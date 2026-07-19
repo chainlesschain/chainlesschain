@@ -1,0 +1,3814 @@
+{
+  "generated_at": "2026-07-19",
+  "total_calls": 633,
+  "by_category": {
+    "agent_spawn": 16,
+    "mcp_server": 8,
+    "hook": 11,
+    "lsp_server": 7,
+    "tool_exec": 0,
+    "sandbox": 8,
+    "system": 13,
+    "other": 570
+  },
+  "calls": [
+    {
+      "file": "src\\assets\\web-panel\\assets\\echarts-CDp6K7pj.js",
+      "line": 1,
+      "snippet": "import{d as Uy,h as Yy,i as Ua,t as Wy,g as Xy,w as Ya,b as Md,o as $y,e as Zy,s as os,f as Di,n as qy,j as Ky,u as Qy}f",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\assets\\web-panel\\assets\\echarts-CDp6K7pj.js",
+      "line": 2,
+      "snippet": "`),a=n.length;if(a===1)return Rh(n[0],t,e,i);for(var o=new W(0,0,0,0),s=0;s<n.length;s++){var u=Rh(n[s],t,e,i);s===0?o.c",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\assets\\web-panel\\assets\\echarts-CDp6K7pj.js",
+      "line": 5,
+      "snippet": "`):[];var m=p.length*v;if(g==null&&(g=m),m>g&&c){var _=Math.floor(g/v);d=d||p.length>_,p=p.slice(0,_),m=p.length*v}if(n&",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\assets\\web-panel\\assets\\icons-Br7BpsSh.js",
+      "line": 1,
+      "snippet": "import{i as E2,r as D,h as J,n as L2,g as B2,a as N2,d as F2,c as i}from\"./vendor-BXcBOG8b.js\";function s(r,t){T2(r)&&(r",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\assets\\web-panel\\assets\\index-BpTUmaCI.js",
+      "line": 1,
+      "snippet": "import{h as j,a0 as $r,p as Fr,i as be,A as Or,f as Y,l as Ar,m as Sr,r as Mt,a8 as Er,g as Cr,N as _t,q as Lt,P as me,Q",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\assets\\web-panel\\assets\\markdown-CsiA8-E5.js",
+      "line": 4,
+      "snippet": "`)}class an{options;rules;lexer;constructor(e){this.options=e||ct}space(e){const n=this.rules.block.newline.exec(e);if(n",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\assets\\web-panel\\assets\\markdown-CsiA8-E5.js",
+      "line": 5,
+      "snippet": "`)}}}fences(e){const n=this.rules.block.fences.exec(e);if(n){const t=n[0],r=ss(t,n[3]||\"\");return{type:\"code\",raw:t,lang",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\assets\\web-panel\\assets\\markdown-CsiA8-E5.js",
+      "line": 7,
+      "snippet": "`);const r=this.lexer.state.top;this.lexer.state.top=!0;const a=this.lexer.blockTokens(t);return this.lexer.state.top=r,",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\assets\\web-panel\\assets\\markdown-CsiA8-E5.js",
+      "line": 14,
+      "snippet": "`,e=e.substring(B.length+1),E=b.slice(w)}}a.loose||(m?a.loose=!0:/\\n *\\n *$/.test(c)&&(m=!0));let O=null,z;this.options.",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\assets\\web-panel\\assets\\markdown-CsiA8-E5.js",
+      "line": 15,
+      "snippet": "`):[],s={type:\"table\",raw:n[0],header:[],align:[],rows:[]};if(t.length===r.length){for(const c of r)/^ *-+: *$/.test(c)?",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\assets\\web-panel\\assets\\markdown-CsiA8-E5.js",
+      "line": 16,
+      "snippet": "`?n[1].slice(0,-1):n[1];return{type:\"paragraph\",raw:n[0],text:t,tokens:this.lexer.inline(t)}}}text(e){const n=this.rules",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\assets\\web-panel\\assets\\markdown-CsiA8-E5.js",
+      "line": 27,
+      "snippet": "`+t.text,this.inlineQueue.pop(),this.inlineQueue[this.inlineQueue.length-1].src=r.text):n.push(t);continue}if(e){const c",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\assets\\web-panel\\assets\\markdown-CsiA8-E5.js",
+      "line": 47,
+      "snippet": "Please report this to https://github.com/markedjs/marked.`,e){const r=\"<p>An error occurred:</p><pre>\"+ye(t.message+\"\",!",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\assets\\web-panel\\assets\\markdown-CsiA8-E5.js",
+      "line": 48,
+      "snippet": "https://github.com/highlightjs/highlight.js/issues/2277`),se=h,F=T),C===void 0&&(C=!0);const Oe={code:F,language:se};ae(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\assets\\web-panel\\assets\\markdown-CsiA8-E5.js",
+      "line": 49,
+      "snippet": "`,1;if(gn>1e5&&gn>A.index*3)throw new Error(\"potential infinite loop, way more iterations than matches\");return Y+=I,I.l",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\assets\\web-panel\\assets\\xterm-BZcWGsqw.js",
+      "line": 7,
+      "snippet": "`)}clearSelection(){this._model.clearSelection(),this._removeMouseDownListeners(),this.refresh(),this._onSelectionChange",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\assets\\web-panel\\assets\\xterm-BZcWGsqw.js",
+      "line": 8,
+      "snippet": "`,n.VT=\"\\v\",n.FF=\"\\f\",n.CR=\"\\r\",n.SO=\"\u000e\",n.SI=\"\u000f\",n.DLE=\"\u0010\",n.DC1=\"\u0011\",n.DC2=\"\u0012\",n.DC3=\"\u0013\",n.DC4=\"\u0014\",n.NAK=\"\u0015\",n.SYN=\"\u0016\",",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\assets\\web-panel\\assets\\_getTag-BVc6NQ_K.js",
+      "line": 1,
+      "snippet": "var C=typeof global==\"object\"&&global&&global.Object===Object&&global,G=typeof self==\"object\"&&self&&self.Object===Objec",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\auth\\npm-auth.js",
+      "line": 7,
+      "snippet": "import { execSync } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\auth\\npm-auth.js",
+      "line": 16,
+      "snippet": "execSync(\"npm whoami\", { stdio: \"ignore\" });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\auth\\npm-auth.js",
+      "line": 29,
+      "snippet": "return execSync(\"npm whoami\", { encoding: \"utf8\" }).trim();",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\auth\\npm-auth.js",
+      "line": 42,
+      "snippet": "execSync(\"npm login\", { stdio: \"inherit\" });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\auth\\npm-auth.js",
+      "line": 57,
+      "snippet": "execSync(\"npm logout\", { stdio: \"inherit\" });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\agenda.js",
+      "line": 21,
+      "snippet": "import { spawn, execSync } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\agenda.js",
+      "line": 435,
+      "snippet": "const child = spawn(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\agenda.js",
+      "line": 455,
+      "snippet": "return execSync(command, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\background-session.js",
+      "line": 361,
+      "snippet": "const { spawn } = await import(\"node:child_process\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\background-session.js",
+      "line": 425,
+      "snippet": "const child = spawn(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\batch.js",
+      "line": 22,
+      "snippet": "import { spawn } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\batch.js",
+      "line": 23,
+      "snippet": "import { execFileSync } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\batch.js",
+      "line": 199,
+      "snippet": "const child = spawn(process.execPath, args, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\batch.js",
+      "line": 217,
+      "snippet": "const child = spawn(command, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\batch.js",
+      "line": 237,
+      "snippet": "execFileSync(\"git\", [\"add\", \"-A\"], { cwd, stdio: \"ignore\" });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\batch.js",
+      "line": 238,
+      "snippet": "const out = execFileSync(\"git\", [\"diff\", \"--cached\", \"--numstat\"], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\batch.js",
+      "line": 261,
+      "snippet": "execFileSync(\"git\", [\"add\", \"-A\"], { cwd, stdio: \"ignore\" });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\batch.js",
+      "line": 262,
+      "snippet": "execFileSync(\"git\", [\"commit\", \"-m\", message, \"--no-verify\"], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\batch.js",
+      "line": 292,
+      "snippet": "const child = spawn(process.execPath, args, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\config.js",
+      "line": 112,
+      "snippet": "const { execSync } = await import(\"node:child_process\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\config.js",
+      "line": 117,
+      "snippet": "execSync(`${editor} \"${safePath}\"`, { stdio: \"inherit\" });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\db.js",
+      "line": 64,
+      "snippet": "res = conn.exec(`PRAGMA ${checkName}`);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\db.js",
+      "line": 97,
+      "snippet": "dst.exec(r.sql);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\db.js",
+      "line": 181,
+      "snippet": "const r = src.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\db.js",
+      "line": 194,
+      "snippet": "dst.exec(r.sql);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\db.js",
+      "line": 201,
+      "snippet": "const r = src.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\db.js",
+      "line": 213,
+      "snippet": "const ti = src.exec(`PRAGMA table_info(${quoteIdent(t)})`);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\eval.js",
+      "line": 14,
+      "snippet": "import { spawn, spawnSync } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\eval.js",
+      "line": 60,
+      "snippet": "spawnSync(\"taskkill\", [\"/PID\", String(child.pid), \"/T\", \"/F\"], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\eval.js",
+      "line": 108,
+      "snippet": "const child = spawn(process.execPath, args, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 611,
+      "snippet": "const { execSync, spawn, spawnSync } = require(\"child_process\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 618,
+      "snippet": "execSync(\\`\\${cmd} --version\\`, { stdio: \"ignore\", encoding: \"utf-8\" });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 628,
+      "snippet": "const proc = spawn(\"python\", [\"-m\", ...args], { stdio: [\"ignore\", \"pipe\", \"pipe\"] });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 739,
+      "snippet": "const r = spawnSync(\"piper\", [\"--output_file\", outputPath], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 801,
+      "snippet": "execSync(\\`python -c \"import \\${moduleName}\"\\`, { stdio: \"ignore\", encoding: \"utf-8\" });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 972,
+      "snippet": "const { spawnSync, execSync } = require(\"child_process\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 980,
+      "snippet": "execSync(\\`\\${cmd} --version\\`, { stdio: \"ignore\", encoding: \"utf-8\" });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 1046,
+      "snippet": "const result = spawnSync(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 1058,
+      "snippet": "const result = spawnSync(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 1083,
+      "snippet": "const askResult = spawnSync(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 1355,
+      "snippet": "const { spawnSync, execSync } = require(\"child_process\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 1365,
+      "snippet": "execSync(\\`\\${cmd} --version\\`, { stdio: \"ignore\", encoding: \"utf-8\" });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 1435,
+      "snippet": "const result = spawnSync(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 1604,
+      "snippet": "const { execSync, spawnSync } = require(\"child_process\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 1611,
+      "snippet": "const r = spawnSync(cmd, [\"--version\"], { encoding: \"utf-8\", timeout: 5000 });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 1620,
+      "snippet": "execSync(\\`\\${pyCmd} -c \"import \\${moduleName}\"\\`, { stdio: \"ignore\", timeout: 10000 });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 1629,
+      "snippet": "const r = spawnSync(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 1751,
+      "snippet": "const r = spawnSync(\"pandoc\", [\"--version\"], { encoding: \"utf-8\", timeout: 5000 });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 1754,
+      "snippet": "spawnSync(\"pandoc\", [inputFile, \"-o\", tmpMd], { encoding: \"utf-8\", timeout: 60000 });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 1763,
+      "snippet": "spawnSync(\"pandoc\", [tmpMd, \"-o\", outputFile], { encoding: \"utf-8\", timeout: 60000 });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 1787,
+      "snippet": "const rv = spawnSync(soffice, [\"--version\"], { encoding: \"utf-8\", timeout: 5000, shell: process.platform === \"win32\" });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 1790,
+      "snippet": "spawnSync(soffice, [\"--headless\", \"--convert-to\", \"html\", inputFile, \"--outdir\", tmpDir2], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 1802,
+      "snippet": "spawnSync(soffice, [\"--headless\", \"--convert-to\", \"docx\", htmlFile, \"--outdir\", path.dirname(outputFile)], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 1857,
+      "snippet": "const er = spawnSync(py.command, [tmpExtract], { encoding: \"utf-8\", timeout: 30000 });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 1907,
+      "snippet": "const ar = spawnSync(py.command, [tmpApply], { encoding: \"utf-8\", timeout: 30000 });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 1964,
+      "snippet": "const er = spawnSync(py.command, [tmpExtract], { encoding: \"utf-8\", timeout: 30000 });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\init.js",
+      "line": 2015,
+      "snippet": "const ar = spawnSync(py.command, [tmpApply], { encoding: \"utf-8\", timeout: 30000 });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\loop.js",
+      "line": 26,
+      "snippet": "import { spawn } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\loop.js",
+      "line": 69,
+      "snippet": "const child = spawn(cmd, args, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\memory.js",
+      "line": 599,
+      "snippet": "const { execSync } = await import(\"child_process\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\memory.js",
+      "line": 609,
+      "snippet": "execSync(`${editor} \"${safePath}\"`, { stdio: \"inherit\" });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\note.js",
+      "line": 55,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\review.js",
+      "line": 31,
+      "snippet": "import { spawnSync } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\review.js",
+      "line": 56,
+      "snippet": "const res = spawnSync(\"git\", args, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\review.js",
+      "line": 365,
+      "snippet": "const res = spawnSync(\"gh\", args, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\routine.js",
+      "line": 16,
+      "snippet": "import { spawn, execFile } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\routine.js",
+      "line": 34,
+      "snippet": "const child = spawn(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\routine.js",
+      "line": 75,
+      "snippet": "execFile(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\search.js",
+      "line": 17,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\session.js",
+      "line": 153,
+      "snippet": "const { execFileSync } = await import(\"node:child_process\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\session.js",
+      "line": 162,
+      "snippet": "const out = execFileSync(\"gh\", args, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\team.js",
+      "line": 21,
+      "snippet": "import { spawn } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\team.js",
+      "line": 104,
+      "snippet": "const child = spawn(command, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\team.js",
+      "line": 134,
+      "snippet": "const child = spawn(process.execPath, args, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\update.js",
+      "line": 3,
+      "snippet": "import { execSync } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\update.js",
+      "line": 36,
+      "snippet": "execSync(`npm install -g chainlesschain@${targetVersion}`, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\commands\\update.js",
+      "line": 42,
+      "snippet": "const newVersion = execSync(\"chainlesschain --version\", {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\gateways\\http\\envelope-http-server.js",
+      "line": 71,
+      "snippet": "const match = /^Bearer\\s+(.+)$/i.exec(header);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\gateways\\http\\envelope-http-server.js",
+      "line": 152,
+      "snippet": "const match = SESSION_EVENTS_RE.exec(url);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\gateways\\terminal\\PtyManager.js",
+      "line": 113,
+      "snippet": "const proc = pty.spawn(cmd, [], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\gateways\\ws\\ws-server.js",
+      "line": 14,
+      "snippet": "import { spawn } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\gateways\\ws\\ws-server.js",
+      "line": 857,
+      "snippet": "const child = spawn(process.execPath, [BIN_PATH, ...args], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\harness\\background-task-manager.js",
+      "line": 11,
+      "snippet": "import { fork } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\harness\\background-task-worker.js",
+      "line": 8,
+      "snippet": "import { execSync } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\harness\\background-task-worker.js",
+      "line": 20,
+      "snippet": "result = execSync(command, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\harness\\background-task-worker.js",
+      "line": 27,
+      "snippet": "result = execSync(command, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\harness\\mcp-client.js",
+      "line": 11,
+      "snippet": "import { spawn } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\harness\\mcp-client.js",
+      "line": 314,
+      "snippet": "const proc = _deps.spawn(config.command, config.args || [], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\harness\\mcp-client.js",
+      "line": 1258,
+      "snippet": "this.db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\harness\\mcp-client.js",
+      "line": 1287,
+      "snippet": "this.db.exec(\"ALTER TABLE mcp_servers ADD COLUMN url TEXT\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\harness\\mcp-client.js",
+      "line": 1290,
+      "snippet": "this.db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\harness\\plugin-manager.js",
+      "line": 20,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\harness\\plugin-manager.js",
+      "line": 37,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\harness\\plugin-manager.js",
+      "line": 45,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\harness\\plugin-manager.js",
+      "line": 54,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\harness\\session-index.js",
+      "line": 87,
+      "snippet": "db.exec(SCHEMA);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\harness\\worktree-isolator.js",
+      "line": 10,
+      "snippet": "import { execSync } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\harness\\worktree-isolator.js",
+      "line": 96,
+      "snippet": "branch = execSync(\"git rev-parse --abbrev-ref HEAD\", {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\harness\\worktree-isolator.js",
+      "line": 218,
+      "snippet": "const porcelain = execSync(\"git status --porcelain\", {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\harness\\worktree-isolator.js",
+      "line": 693,
+      "snippet": "const output = execSync(\"git status --porcelain\", {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\a2a-protocol.js",
+      "line": 50,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\a2a-protocol.js",
+      "line": 65,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\activitypub-bridge.js",
+      "line": 30,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\activitypub-bridge.js",
+      "line": 42,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\activitypub-bridge.js",
+      "line": 54,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\agent-economy.js",
+      "line": 19,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\agent-economy.js",
+      "line": 27,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\agent-economy.js",
+      "line": 38,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\agent-economy.js",
+      "line": 49,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\agent-economy.js",
+      "line": 61,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\agent-economy.js",
+      "line": 70,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\agent-network.js",
+      "line": 76,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\agent-network.js",
+      "line": 89,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\agent-network.js",
+      "line": 100,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\agent-network.js",
+      "line": 112,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\agent-network.js",
+      "line": 123,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\agent-network.js",
+      "line": 135,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\agent-network.js",
+      "line": 149,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\agent-sandbox.js",
+      "line": 2,
+      "snippet": "import { spawnSync } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\agent-sandbox.js",
+      "line": 128,
+      "snippet": "const result = _deps.spawnSync(\"docker\", args, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\agent-sandbox.js",
+      "line": 191,
+      "snippet": "const result = _deps.spawnSync(\"bwrap\", args, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\agent-sandbox.js",
+      "line": 246,
+      "snippet": "const result = deps.spawnSync(probeArgs[0], probeArgs[1], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\agent-worktree.js",
+      "line": 14,
+      "snippet": "import { execFileSync, execSync } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\aiops.js",
+      "line": 75,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS ops_incidents (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\aiops.js",
+      "line": 89,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS ops_remediation_playbooks (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\aiops.js",
+      "line": 100,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS ops_metrics_baseline (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\api-key-helper.js",
+      "line": 17,
+      "snippet": "import { execSync } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\app-builder.js",
+      "line": 116,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\app-builder.js",
+      "line": 129,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\app-builder.js",
+      "line": 140,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\async-hook-supervisor.cjs",
+      "line": 35,
+      "snippet": "const cpDefault = require(\"node:child_process\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\async-hook-supervisor.cjs",
+      "line": 129,
+      "snippet": "const r = this._deps.spawnSync(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\async-hook-supervisor.cjs",
+      "line": 242,
+      "snippet": "child = this._deps.spawn(hook.command, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\audit-logger.js",
+      "line": 55,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\audit-logger.js",
+      "line": 72,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\audit-logger.js",
+      "line": 75,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\audit-logger.js",
+      "line": 78,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\audit-logger.js",
+      "line": 81,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\automation-engine.js",
+      "line": 269,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\automation-engine.js",
+      "line": 284,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\automation-engine.js",
+      "line": 300,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\autonomous-developer.js",
+      "line": 117,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\autonomous-developer.js",
+      "line": 133,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\autonomous-developer.js",
+      "line": 146,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\autonomous-developer.js",
+      "line": 149,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\background-agent-supervisor.js",
+      "line": 1,
+      "snippet": "import { spawn, spawnSync } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\background-agent-supervisor.js",
+      "line": 48,
+      "snippet": "/^(\\d{4})(\\d{2})(\\d{2})(\\d{2})(\\d{2})(\\d{2})\\.(\\d{6})([+-])(\\d{3})$/.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\background-agent-supervisor.js",
+      "line": 80,
+      "snippet": "const r = spawnSync(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\background-agent-supervisor.js",
+      "line": 93,
+      "snippet": "const m = /CreationDate=([^\\r\\n]+)/.exec(r.stdout || \"\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\background-agent-supervisor.js",
+      "line": 104,
+      "snippet": "const r = spawnSync(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\background-agent-supervisor.js",
+      "line": 121,
+      "snippet": "const r = spawnSync(\"ps\", [\"-o\", \"lstart=\", \"-p\", String(target)], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\background-agent-supervisor.js",
+      "line": 150,
+      "snippet": "const r = _deps.spawnSync(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\background-agent-supervisor.js",
+      "line": 824,
+      "snippet": "child = _deps.spawn(process.execPath, [worker, jobFile], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\background-agent-supervisor.js",
+      "line": 925,
+      "snippet": "const killed = _deps.spawnSync(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\bi-engine.js",
+      "line": 49,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\bi-engine.js",
+      "line": 59,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\bi-engine.js",
+      "line": 69,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\browser-automation.js",
+      "line": 123,
+      "snippet": "while ((match = pattern.exec(html)) !== null) {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\browser-automation.js",
+      "line": 156,
+      "snippet": "while ((match = linkRegex.exec(html)) !== null) {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\changelog.js",
+      "line": 65,
+      "snippet": "while ((m = re.exec(text)) !== null) {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\checkpoint-store.js",
+      "line": 21,
+      "snippet": "import { spawnSync } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\checkpoint-store.js",
+      "line": 44,
+      "snippet": "const res = spawnSync(\"git\", args, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\chrome-connector.js",
+      "line": 29,
+      "snippet": "import { spawn } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\chrome-connector.js",
+      "line": 214,
+      "snippet": "const child = deps.spawn(executable, args, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\claude-code-bridge.js",
+      "line": 16,
+      "snippet": "import { spawn, execSync } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\claude-code-bridge.js",
+      "line": 48,
+      "snippet": ".execSync(\"claude --version\", { encoding: \"utf-8\", timeout: 5000 })",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\claude-code-bridge.js",
+      "line": 63,
+      "snippet": ".execSync(\"codex --version\", { encoding: \"utf-8\", timeout: 5000 })",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\claude-code-bridge.js",
+      "line": 151,
+      "snippet": "const proc = _deps.spawn(this.cliCommand, args, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\cli-anything-bridge.js",
+      "line": 11,
+      "snippet": "import { execSync } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\cli-anything-bridge.js",
+      "line": 39,
+      "snippet": "db.exec(CREATE_TABLE_SQL);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\cli-anything-bridge.js",
+      "line": 59,
+      "snippet": ".execSync(`${cmd} --version`, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\cli-anything-bridge.js",
+      "line": 85,
+      "snippet": "const out = _deps.execSync(`${py.command} -m pip show cli-anything`, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\cli-anything-bridge.js",
+      "line": 105,
+      "snippet": "_deps.execSync(`${pythonCmd} -m pip install cli-anything`, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\cli-anything-bridge.js",
+      "line": 155,
+      "snippet": "helpText = _deps.execSync(`${command} --help`, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\cli-anything-bridge.js",
+      "line": 255,
+      "snippet": "const { execSync } = require(\"child_process\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\cli-anything-bridge.js",
+      "line": 267,
+      "snippet": "const output = execSync(\\`${command} \\${input}\\`, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\cli-context-engineering.js",
+      "line": 480,
+      "snippet": "const match = nonGlobal.exec(content);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\code-agent.js",
+      "line": 77,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS code_generations (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\code-agent.js",
+      "line": 89,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS code_reviews (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\code-agent.js",
+      "line": 101,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS code_scaffolds (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\code-agent.js",
+      "line": 227,
+      "snippet": "/child_process.*exec\\s*\\(\\s*[`\"'].*\\$\\{/,",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\code-review.js",
+      "line": 7,
+      "snippet": "import { execSync } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\code-review.js",
+      "line": 17,
+      "snippet": "return execSync(`git diff ${target}`, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\code-review.js",
+      "line": 34,
+      "snippet": "const output = execSync(`git diff ${target} --name-only`, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\collaboration-governance.js",
+      "line": 100,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\collaboration-governance.js",
+      "line": 113,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\collaboration-governance.js",
+      "line": 124,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\collaboration-governance.js",
+      "line": 127,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\community-governance.js",
+      "line": 91,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\community-governance.js",
+      "line": 110,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\community-governance.js",
+      "line": 121,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\community-governance.js",
+      "line": 124,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\community-governance.js",
+      "line": 127,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\compliance-manager.js",
+      "line": 25,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\compliance-manager.js",
+      "line": 36,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\compliance-manager.js",
+      "line": 47,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\content-recommendation.js",
+      "line": 83,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS user_interest_profiles (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\content-recommendation.js",
+      "line": 92,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\content-recommendation.js",
+      "line": 96,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS content_recommendations (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\content-recommendation.js",
+      "line": 110,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\content-recommendation.js",
+      "line": 113,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\content-recommendation.js",
+      "line": 116,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\credential-guard.js",
+      "line": 241,
+      "snippet": "while ((m = re.exec(segment))) {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\cross-chain.js",
+      "line": 127,
+      "snippet": "db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${def}`);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\cross-chain.js",
+      "line": 132,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS cc_bridges (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\cross-chain.js",
+      "line": 149,
+      "snippet": "db.exec(\"CREATE INDEX IF NOT EXISTS idx_ccb_status ON cc_bridges(status)\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\cross-chain.js",
+      "line": 150,
+      "snippet": "db.exec(\"CREATE INDEX IF NOT EXISTS idx_ccb_from ON cc_bridges(from_chain)\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\cross-chain.js",
+      "line": 158,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\cross-chain.js",
+      "line": 162,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS cc_swaps (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\cross-chain.js",
+      "line": 179,
+      "snippet": "db.exec(\"CREATE INDEX IF NOT EXISTS idx_ccs_status ON cc_swaps(status)\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\cross-chain.js",
+      "line": 181,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS cc_messages (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\cross-chain.js",
+      "line": 194,
+      "snippet": "db.exec(\"CREATE INDEX IF NOT EXISTS idx_ccm_status ON cc_messages(status)\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\crypto-manager.js",
+      "line": 198,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\dao-governance.js",
+      "line": 69,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\dao-governance.js",
+      "line": 84,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\dao-governance.js",
+      "line": 95,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\dao-governance.js",
+      "line": 105,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\dbevo.js",
+      "line": 78,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS _migrations (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\dbevo.js",
+      "line": 89,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS _query_log (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\dbevo.js",
+      "line": 99,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS _index_suggestions (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\decentral-infra.js",
+      "line": 67,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS filecoin_deals (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\decentral-infra.js",
+      "line": 81,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS content_versions (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\decentral-infra.js",
+      "line": 92,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS anti_censorship_routes (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\did-manager.js",
+      "line": 13,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\did-v2-manager.js",
+      "line": 63,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\did-v2-manager.js",
+      "line": 82,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\did-v2-manager.js",
+      "line": 98,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\did-v2-manager.js",
+      "line": 114,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\did-v2-manager.js",
+      "line": 128,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\did-v2-manager.js",
+      "line": 141,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\dlp-engine.js",
+      "line": 43,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\dlp-engine.js",
+      "line": 59,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\docs-drift.js",
+      "line": 143,
+      "snippet": "while ((m = ccRe.exec(text)) !== null) {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\doctor-checkup.js",
+      "line": 26,
+      "snippet": "import { execSync, spawnSync } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\doctor-checkup.js",
+      "line": 552,
+      "snippet": "deps.execSync(\"git rev-parse --is-inside-work-tree\", {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\doctor-checkup.js",
+      "line": 573,
+      "snippet": "deps.execSync(\"git worktree prune --dry-run -v\", {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\doctor-checkup.js",
+      "line": 1141,
+      "snippet": "deps.execSync(\"git worktree prune\", {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\downloader.js",
+      "line": 10,
+      "snippet": "import { execFileSync } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\ensure-utf8.js",
+      "line": 10,
+      "snippet": "import { execSync } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\ensure-utf8.js",
+      "line": 37,
+      "snippet": "_deps.execSync(\"chcp 65001\", { stdio: \"ignore\" });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\evolution-system.js",
+      "line": 21,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\evolution-system.js",
+      "line": 32,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\evolution-system.js",
+      "line": 42,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\evolution-system.js",
+      "line": 52,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\evomap-federation.js",
+      "line": 22,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\evomap-federation.js",
+      "line": 35,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\evomap-governance.js",
+      "line": 23,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\evomap-governance.js",
+      "line": 36,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\evomap-manager.js",
+      "line": 95,
+      "snippet": "this.db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\execution-backend.js",
+      "line": 13,
+      "snippet": "import { execSync } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\execution-backend.js",
+      "line": 62,
+      "snippet": "const stdout = _deps.execSync(command, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\execution-backend.js",
+      "line": 126,
+      "snippet": "const stdout = _deps.execSync(dockerCmd, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\execution-backend.js",
+      "line": 193,
+      "snippet": "const stdout = _deps.execSync(sshCmd, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\federation-hardening.js",
+      "line": 75,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS federation_circuit_breakers (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\federation-hardening.js",
+      "line": 91,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS federation_health_checks (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\git-integration.js",
+      "line": 5,
+      "snippet": "import { execSync, spawnSync } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\git-integration.js",
+      "line": 83,
+      "snippet": "const res = spawnSync(\"git\", args, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\git-integration.js",
+      "line": 105,
+      "snippet": "return execSync(`git ${args}`, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\git-integration.js",
+      "line": 141,
+      "snippet": "const output = execSync(\"git status --porcelain\", {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\goal-condition-engine.js",
+      "line": 202,
+      "snippet": "const res = spawnSync(condition.command, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\hardening-manager.js",
+      "line": 43,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\hardening-manager.js",
+      "line": 56,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\hierarchical-memory.js",
+      "line": 126,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\hierarchical-memory.js",
+      "line": 140,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\hierarchical-memory.js",
+      "line": 152,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\hook-manager.js",
+      "line": 7,
+      "snippet": "import { execSync } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\hook-manager.js",
+      "line": 71,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\hook-manager.js",
+      "line": 285,
+      "snippet": "const output = execSync(cmd, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\hook-runner.cjs",
+      "line": 23,
+      "snippet": "const cpDefault = require(\"node:child_process\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\hook-runner.cjs",
+      "line": 243,
+      "snippet": "res = _deps.spawnSync(inv.file, inv.argv, common);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\hook-runner.cjs",
+      "line": 245,
+      "snippet": "res = _deps.spawnSync(command, { ...common, shell: true });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\hook-runner.cjs",
+      "line": 355,
+      "snippet": "child = _deps.spawn(inv.file, inv.argv, { cwd: wd, env: spawnEnv });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\hook-runner.cjs",
+      "line": 357,
+      "snippet": "child = _deps.spawn(command, { cwd: wd, env: spawnEnv, shell: true });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\host-adb-bridge.js",
+      "line": 34,
+      "snippet": "import { execFile } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\host-adb-bridge.js",
+      "line": 113,
+      "snippet": "while ((fm = fieldRe.exec(m[1])) !== null) {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\ide-context.js",
+      "line": 648,
+      "snippet": "while ((m = IDE_MENTION_RE.exec(src)) !== null) {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\image-input.js",
+      "line": 27,
+      "snippet": "const msys = /^\\/([a-zA-Z])\\/(.*)$/.exec(raw); // /c/Users/x → C:/Users/x",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\image-input.js",
+      "line": 115,
+      "snippet": "while ((m = re.exec(text)) !== null) {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\image-input.js",
+      "line": 205,
+      "snippet": "const m = /^data:([^;,]+);base64,(.*)$/s.exec(String(url || \"\"));",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\inference-network.js",
+      "line": 83,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS inference_nodes (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\inference-network.js",
+      "line": 94,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\inference-network.js",
+      "line": 98,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS inference_tasks (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\inference-network.js",
+      "line": 111,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\install-command-policy.js",
+      "line": 244,
+      "snippet": "const pipe = PIPE_TO_SHELL_RE.exec(s);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\install-command-policy.js",
+      "line": 253,
+      "snippet": "const subst = SUBST_TO_SHELL_RE.exec(s);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\instinct-manager.js",
+      "line": 12,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\ipfs-storage.js",
+      "line": 86,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS ipfs_content (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\ipfs-storage.js",
+      "line": 102,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS ipfs_node_config (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\json-schema-output.js",
+      "line": 164,
+      "snippet": "const fence = /```(?:json)?\\s*([\\s\\S]*?)```/i.exec(raw);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\json-schema-validate.js",
+      "line": 59,
+      "snippet": "const m = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(v);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\json-schema-validate.js",
+      "line": 64,
+      "snippet": "const m = /^(\\d{2}):(\\d{2}):(\\d{2})(\\.\\d+)?([Zz]|[+-]\\d{2}:\\d{2})?$/.exec(v);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\json-schema-validate.js",
+      "line": 73,
+      "snippet": "const m = /^(.+)[Tt](.+)$/.exec(v);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\knowledge-exporter.js",
+      "line": 13,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\knowledge-graph.js",
+      "line": 59,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\knowledge-graph.js",
+      "line": 70,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\knowledge-graph.js",
+      "line": 81,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\knowledge-graph.js",
+      "line": 84,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\knowledge-graph.js",
+      "line": 87,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\knowledge-graph.js",
+      "line": 90,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\knowledge-graph.js",
+      "line": 93,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\knowledge-importer.js",
+      "line": 13,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\knowledge-importer.js",
+      "line": 157,
+      "snippet": "while ((noteMatch = noteRegex.exec(xmlString)) !== null) {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\knowledge-importer.js",
+      "line": 179,
+      "snippet": "while ((tagMatch = tagRegex.exec(noteXml)) !== null) {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\lan-pairing-preflight.js",
+      "line": 24,
+      "snippet": "import { execSync } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\lan-pairing-preflight.js",
+      "line": 316,
+      "snippet": "execSync(`${probe} ${cmd}`, { stdio: \"pipe\", windowsHide: true });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\llm-providers.js",
+      "line": 159,
+      "snippet": "this.db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\matrix-bridge.js",
+      "line": 30,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\matrix-bridge.js",
+      "line": 44,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\mcp-oauth.js",
+      "line": 28,
+      "snippet": "import { spawn } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\mcp-oauth.js",
+      "line": 38,
+      "snippet": "spawn: (...a) => spawn(...a),",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\mcp-oauth.js",
+      "line": 674,
+      "snippet": "const child = _deps.spawn(cmd, args, { stdio: \"ignore\", detached: true });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\memory-manager.js",
+      "line": 47,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\multimodal.js",
+      "line": 114,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS multimodal_sessions (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\multimodal.js",
+      "line": 124,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS multimodal_artifacts (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\multisig-runtime.js",
+      "line": 101,
+      "snippet": "sqlDb.exec(sql);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\nl-programming.js",
+      "line": 76,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS nl_programs (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\nl-programming.js",
+      "line": 90,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS nl_program_conventions (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\nostr-bridge.js",
+      "line": 36,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\nostr-bridge.js",
+      "line": 47,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\note-versioning.js",
+      "line": 9,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\orchestrator.js",
+      "line": 25,
+      "snippet": "import { execSync } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\orchestrator.js",
+      "line": 382,
+      "snippet": "const output = _deps.execSync(this.ciCommand, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\org-manager.js",
+      "line": 12,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\org-manager.js",
+      "line": 24,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\org-manager.js",
+      "line": 36,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\org-manager.js",
+      "line": 46,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\org-manager.js",
+      "line": 54,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\p2p-manager.js",
+      "line": 17,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\p2p-manager.js",
+      "line": 29,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\p2p-manager.js",
+      "line": 40,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\pdf-parser.js",
+      "line": 49,
+      "snippet": "while ((match = streamRegex.exec(pdfStr)) !== null) {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\pdf-parser.js",
+      "line": 55,
+      "snippet": "while ((tjMatch = tjRegex.exec(streamContent)) !== null) {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\pdf-parser.js",
+      "line": 63,
+      "snippet": "while ((tjArrMatch = tjArrayRegex.exec(streamContent)) !== null) {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\pdf-parser.js",
+      "line": 68,
+      "snippet": "while ((strMatch = strRegex.exec(inner)) !== null) {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\perception.js",
+      "line": 71,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS perception_results (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\perception.js",
+      "line": 82,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS voice_sessions (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\perception.js",
+      "line": 93,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS multimodal_index (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\perf-tuning.js",
+      "line": 139,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS perf_samples (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\perf-tuning.js",
+      "line": 155,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS perf_rule_state (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\perf-tuning.js",
+      "line": 164,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS perf_recommendations (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\perf-tuning.js",
+      "line": 178,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS perf_tuning_history (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\perf-tuning.js",
+      "line": 186,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS perf_config (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\permanent-memory.js",
+      "line": 89,
+      "snippet": "this.db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\permission-engine.js",
+      "line": 101,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\permission-engine.js",
+      "line": 111,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\permission-engine.js",
+      "line": 123,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\pipeline-orchestrator.js",
+      "line": 129,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\pipeline-orchestrator.js",
+      "line": 146,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\pipeline-orchestrator.js",
+      "line": 164,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\pipeline-orchestrator.js",
+      "line": 177,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\pipeline-orchestrator.js",
+      "line": 193,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\plugin-ecosystem.js",
+      "line": 114,
+      "snippet": "/require\\(\\s*['\"]child_process['\"]\\s*\\)|from\\s+['\"]child_process['\"]/g,",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\plugin-ecosystem.js",
+      "line": 116,
+      "snippet": "message: \"child_process import — review command usage\",",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\plugin-ecosystem.js",
+      "line": 146,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\plugin-ecosystem.js",
+      "line": 166,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\plugin-ecosystem.js",
+      "line": 177,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\plugin-ecosystem.js",
+      "line": 190,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\plugin-ecosystem.js",
+      "line": 203,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\plugin-ecosystem.js",
+      "line": 216,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\plugin-monitor-supervisor.js",
+      "line": 24,
+      "snippet": "import { spawn } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\plugin-monitor-supervisor.js",
+      "line": 110,
+      "snippet": "child = this._spawn(desc.command, desc.args, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\plugin-monitor-supervisor.js",
+      "line": 143,
+      "snippet": "child = this._spawn(desc.command, desc.args, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\pqc-manager.js",
+      "line": 150,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\pqc-manager.js",
+      "line": 164,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\pr-create.js",
+      "line": 7,
+      "snippet": "import { execSync } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\pr-create.js",
+      "line": 16,
+      "snippet": "return execSync(\"git rev-parse --abbrev-ref HEAD\", {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\pr-create.js",
+      "line": 30,
+      "snippet": "return execSync(\"git remote get-url origin\", { encoding: \"utf8\" }).trim();",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\pr-create.js",
+      "line": 61,
+      "snippet": "const status = execSync(\"git status --porcelain\", { encoding: \"utf8\" });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\pr-create.js",
+      "line": 75,
+      "snippet": "commitLog = execSync(`git log ${logRange} --oneline`, { encoding: \"utf8\" });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\pr-link-ledger.js",
+      "line": 20,
+      "snippet": "import { execFile } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\pr-link-ledger.js",
+      "line": 150,
+      "snippet": "_deps.execFile(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\privacy-computing.js",
+      "line": 115,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS fl_models (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\privacy-computing.js",
+      "line": 132,
+      "snippet": "db.exec(\"CREATE INDEX IF NOT EXISTS idx_flm_status ON fl_models(status)\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\privacy-computing.js",
+      "line": 134,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS mpc_computations (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\privacy-computing.js",
+      "line": 149,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\process-manager.js",
+      "line": 1,
+      "snippet": "import { spawn, execSync } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\process-manager.js",
+      "line": 47,
+      "snippet": "const child = spawn(appPath, args, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\process-manager.js",
+      "line": 93,
+      "snippet": "execSync(`taskkill /PID ${pid} /T /F`, { stdio: \"ignore\" });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\project-instructions.js",
+      "line": 258,
+      "snippet": "const m = /^---\\r?\\n([\\s\\S]*?)\\r?\\n---\\r?\\n?/.exec(str);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\project-instructions.js",
+      "line": 268,
+      "snippet": "const key = /^(paths|globs)\\s*:\\s*(.*)$/.exec(line);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\project-instructions.js",
+      "line": 282,
+      "snippet": "const item = /^-\\s*(.+)$/.exec(line);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\project-instructions.js",
+      "line": 336,
+      "snippet": "while ((m = IMPORT_TOKEN_RE.exec(line)) !== null) {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\project-runtime.js",
+      "line": 129,
+      "snippet": "sqlDb.exec(sql);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\protocol-fusion.js",
+      "line": 62,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS unified_messages (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\protocol-fusion.js",
+      "line": 74,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS identity_mappings (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\protocol-fusion.js",
+      "line": 84,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS content_quality_scores (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\protocol-fusion.js",
+      "line": 97,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS translation_cache (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\publish-workspace.js",
+      "line": 7,
+      "snippet": "import { execSync } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\publish-workspace.js",
+      "line": 67,
+      "snippet": "execSync(cmd, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\quantization.js",
+      "line": 79,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS quantization_jobs (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\repl-bang-memorize.js",
+      "line": 20,
+      "snippet": "import { spawnSync as spawnSyncDefault } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\repl-bang-memorize.js",
+      "line": 81,
+      "snippet": "? spawnSync(\"cmd.exe\", [\"/d\", \"/s\", \"/c\", `chcp 65001 >nul && ${cmd}`], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\repl-bang-memorize.js",
+      "line": 87,
+      "snippet": ": spawnSync(\"/bin/sh\", [\"-c\", cmd], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\repl-completer.js",
+      "line": 31,
+      "snippet": "const m = /(^|\\s)@([^\\s@]*)$/.exec(line || \"\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\repl-completer.js",
+      "line": 43,
+      "snippet": "const m = /(\\S*)$/.exec(line || \"\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\repl-completer.js",
+      "line": 191,
+      "snippet": "const slash = /^\\/([A-Za-z0-9:._-]*)$/.exec(line);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\repl-denials.js",
+      "line": 25,
+      "snippet": "const m = DENIAL_PREFIX.exec(errStr);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\reputation-optimizer.js",
+      "line": 41,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\reputation-optimizer.js",
+      "line": 51,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\reputation-optimizer.js",
+      "line": 64,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\response-cache.js",
+      "line": 14,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\sandbox-v2.js",
+      "line": 94,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\sandbox-v2.js",
+      "line": 117,
+      "snippet": "db.exec(ddl);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\sandbox-v2.js",
+      "line": 122,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\sandbox-v2.js",
+      "line": 132,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\scim-manager.js",
+      "line": 21,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\scim-manager.js",
+      "line": 37,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\service-manager.js",
+      "line": 1,
+      "snippet": "import { execSync, spawn } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\service-manager.js",
+      "line": 8,
+      "snippet": "execSync(\"docker --version\", { stdio: \"ignore\" });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\service-manager.js",
+      "line": 17,
+      "snippet": "execSync(\"docker compose version\", { stdio: \"ignore\" });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\service-manager.js",
+      "line": 21,
+      "snippet": "execSync(\"docker-compose --version\", { stdio: \"ignore\" });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\service-manager.js",
+      "line": 31,
+      "snippet": "execSync(\"docker compose version\", { stdio: \"ignore\" });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\service-manager.js",
+      "line": 78,
+      "snippet": "const child = spawn(parts[0], [...parts.slice(1), ...args], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\service-manager.js",
+      "line": 99,
+      "snippet": "const output = execSync(`${cmd} -f \"${composePath}\" ps --format json`, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\service-manager.js",
+      "line": 117,
+      "snippet": "execSync(fullCmd, { stdio: \"inherit\" });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\session-manager.js",
+      "line": 13,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\session-manager.js",
+      "line": 29,
+      "snippet": "db.exec(\"ALTER TABLE llm_sessions ADD COLUMN metadata TEXT DEFAULT '{}'\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\session-search.js",
+      "line": 39,
+      "snippet": "this._db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\session-search.js",
+      "line": 93,
+      "snippet": "this._db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\session-search.js",
+      "line": 163,
+      "snippet": "this._db.exec(`DELETE FROM session_fts`);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\siem-exporter.js",
+      "line": 22,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\skill-marketplace.js",
+      "line": 73,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\skill-marketplace.js",
+      "line": 88,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\skill-marketplace.js",
+      "line": 101,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\skill-marketplace.js",
+      "line": 104,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\skill-marketplace.js",
+      "line": 107,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\sla-manager.js",
+      "line": 92,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\sla-manager.js",
+      "line": 106,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\sla-manager.js",
+      "line": 115,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\slash-commands.js",
+      "line": 24,
+      "snippet": "import { execSync as execSyncDefault } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\slash-commands.js",
+      "line": 189,
+      "snippet": "const out = execSync(cmd, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\slot-filler.js",
+      "line": 438,
+      "snippet": "this.db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\social-graph.js",
+      "line": 63,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\social-graph.js",
+      "line": 75,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\social-graph.js",
+      "line": 79,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\social-manager.js",
+      "line": 17,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\social-manager.js",
+      "line": 27,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\social-manager.js",
+      "line": 35,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\social-manager.js",
+      "line": 44,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\sso-manager.js",
+      "line": 135,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\sso-manager.js",
+      "line": 151,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\sso-manager.js",
+      "line": 166,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\status-line.cjs",
+      "line": 19,
+      "snippet": "const cpDefault = require(\"node:child_process\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\status-line.cjs",
+      "line": 197,
+      "snippet": "res = _deps.spawnSync(config.command, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\stix-parser.js",
+      "line": 82,
+      "snippet": "while ((m = _termRegex.exec(pattern)) !== null) {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\stress-tester.js",
+      "line": 69,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\stress-tester.js",
+      "line": 81,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\sync-cli-db.js",
+      "line": 147,
+      "snippet": "db.exec(CLI_VAULT_SCHEMA);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\sync-cli-db.js",
+      "line": 183,
+      "snippet": "db.exec(CLI_VAULT_SCHEMA);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\sync-manager.js",
+      "line": 71,
+      "snippet": "db.exec(\"ALTER TABLE sync_state RENAME TO cli_sync_state\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\sync-manager.js",
+      "line": 79,
+      "snippet": "db.exec(\"ALTER TABLE sync_log RENAME TO cli_sync_log\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\sync-manager.js",
+      "line": 90,
+      "snippet": "db.exec(\"ALTER TABLE sync_conflicts RENAME TO cli_sync_conflicts\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\sync-manager.js",
+      "line": 105,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\sync-manager.js",
+      "line": 119,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\sync-manager.js",
+      "line": 131,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\tech-learning-engine.js",
+      "line": 135,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\tech-learning-engine.js",
+      "line": 148,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\tech-learning-engine.js",
+      "line": 164,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\tech-learning-engine.js",
+      "line": 167,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\tenant-saas.js",
+      "line": 136,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\tenant-saas.js",
+      "line": 151,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\tenant-saas.js",
+      "line": 161,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\tenant-saas.js",
+      "line": 175,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\tenant-saas.js",
+      "line": 178,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\tenant-saas.js",
+      "line": 181,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\tenant-saas.js",
+      "line": 184,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\tenant-saas.js",
+      "line": 187,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\tenant-saas.js",
+      "line": 190,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\terraform-manager.js",
+      "line": 31,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\terraform-manager.js",
+      "line": 48,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\threat-intel.js",
+      "line": 23,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\threat-intel.js",
+      "line": 39,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\threat-intel.js",
+      "line": 42,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\token-incentive.js",
+      "line": 97,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\token-incentive.js",
+      "line": 108,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\token-incentive.js",
+      "line": 119,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\token-incentive.js",
+      "line": 132,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\token-incentive.js",
+      "line": 135,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\token-incentive.js",
+      "line": 138,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\token-incentive.js",
+      "line": 141,
+      "snippet": "db.exec(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\token-tracker.js",
+      "line": 51,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\trust-security.js",
+      "line": 87,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS trust_attestations (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\trust-security.js",
+      "line": 97,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS pqc_interop_tests (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\trust-security.js",
+      "line": 107,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS satellite_messages (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\trust-security.js",
+      "line": 118,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS hsm_devices (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\turn-context.js",
+      "line": 14,
+      "snippet": "import { execSync } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\turn-context.js",
+      "line": 28,
+      "snippet": ".execSync(`git ${cmd}`, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\ueba.js",
+      "line": 296,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\universal-runtime.js",
+      "line": 98,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS runtime_plugins (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\universal-runtime.js",
+      "line": 110,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS runtime_updates (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\universal-runtime.js",
+      "line": 120,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS runtime_profiles (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\universal-runtime.js",
+      "line": 128,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS runtime_state (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\universal-runtime.js",
+      "line": 134,
+      "snippet": "db.exec(`CREATE TABLE IF NOT EXISTS runtime_config (",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\update-notice.js",
+      "line": 21,
+      "snippet": "import { spawn as spawnDefault } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\update-notice.js",
+      "line": 130,
+      "snippet": "const child = deps.spawn(process.execPath, [refresher, cachePath(deps)], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\wallet-manager.js",
+      "line": 13,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\wallet-manager.js",
+      "line": 26,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\wallet-manager.js",
+      "line": 40,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\web-fetch.js",
+      "line": 40,
+      "snippet": "const m = /^::ffff:(.+)$/.exec(h);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\web-fetch.js",
+      "line": 44,
+      "snippet": "const hx = /^([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(tail);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\web-search.js",
+      "line": 265,
+      "snippet": "while ((sm = snippetRe.exec(html)) !== null) snippets.push(_clean(sm[1]));",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\web-search.js",
+      "line": 268,
+      "snippet": "while ((m = anchorRe.exec(html)) !== null && results.length < maxResults) {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\web-search.js",
+      "line": 368,
+      "snippet": "while ((m = h3re.exec(html)) !== null) {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\workflow-engine.js",
+      "line": 60,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\workflow-engine.js",
+      "line": 71,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\workflow-engine.js",
+      "line": 85,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\workflow-engine.js",
+      "line": 95,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\zkp-engine.js",
+      "line": 36,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\zkp-engine.js",
+      "line": 47,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\zkp-engine.js",
+      "line": 58,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\agent-team\\team-worktree.js",
+      "line": 26,
+      "snippet": "import { execFileSync, spawn } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\agent-team\\team-worktree.js",
+      "line": 52,
+      "snippet": "const child = spawn(command, { cwd, shell: true, env: process.env });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\agent-team\\team-worktree.js",
+      "line": 66,
+      "snippet": "execFileSync(\"git\", [\"add\", \"-A\"], { cwd: worktreePath, stdio: \"ignore\" });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\agent-team\\team-worktree.js",
+      "line": 68,
+      "snippet": "execFileSync(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\cloud\\bundle.js",
+      "line": 10,
+      "snippet": "import { execFileSync } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\cloud\\bundle.js",
+      "line": 20,
+      "snippet": ".execFileSync(\"git\", args, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\computer-use\\computer-use-server.js",
+      "line": 38,
+      "snippet": "const m = /^Bearer\\s+(.+)$/.exec(String(authHeader || \"\"));",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\computer-use\\control-backend.js",
+      "line": 10,
+      "snippet": "import { spawnSync } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\computer-use\\control-backend.js",
+      "line": 16,
+      "snippet": "const res = deps.spawnSync(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\computer-use\\control-backend.js",
+      "line": 139,
+      "snippet": "const res = deps.spawnSync(app, args, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\cowork\\code-knowledge-graph-cli.js",
+      "line": 158,
+      "snippet": "while ((match = esImportRe.exec(content))) {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\cowork\\code-knowledge-graph-cli.js",
+      "line": 164,
+      "snippet": "while ((match = cjsRe.exec(content))) {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\cowork\\code-knowledge-graph-cli.js",
+      "line": 171,
+      "snippet": "while ((match = pyRe.exec(content))) {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\cowork\\code-knowledge-graph-cli.js",
+      "line": 186,
+      "snippet": "while ((match = esExportRe.exec(content))) {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\eval\\tasks.js",
+      "line": 14,
+      "snippet": "import { execFileSync } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\eval\\tasks.js",
+      "line": 100,
+      "snippet": "const out = execFileSync(process.execPath, [\"bug.js\"], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\eval\\tasks.js",
+      "line": 189,
+      "snippet": "const out = execFileSync(process.execPath, [\"run-checks.mjs\"], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\eval\\tasks.js",
+      "line": 246,
+      "snippet": "const out = execFileSync(process.execPath, [\"main.js\"], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\eval\\tasks.js",
+      "line": 294,
+      "snippet": "execFileSync(process.execPath, [\"verify.mjs\"], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\eval\\tasks.js",
+      "line": 386,
+      "snippet": "const out = execFileSync(process.execPath, [\"app.mjs\"], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\eval\\tasks.js",
+      "line": 528,
+      "snippet": "const out = execFileSync(process.execPath, [\"build.mjs\"], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\eval\\tasks.js",
+      "line": 623,
+      "snippet": "const out = execFileSync(process.execPath, [\"run.mjs\"], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\learning\\learning-tables.js",
+      "line": 15,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\learning\\learning-tables.js",
+      "line": 32,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\learning\\learning-tables.js",
+      "line": 36,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\learning\\learning-tables.js",
+      "line": 40,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\learning\\learning-tables.js",
+      "line": 45,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\learning\\learning-tables.js",
+      "line": 53,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\learning\\learning-tables.js",
+      "line": 58,
+      "snippet": "db.exec(`",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\lsp\\benchmark.js",
+      "line": 171,
+      "snippet": "const { execFileSync } = await import(\"child_process\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\lsp\\benchmark.js",
+      "line": 175,
+      "snippet": "const csv = execFileSync(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\lsp\\benchmark.js",
+      "line": 189,
+      "snippet": "const out = execFileSync(\"ps\", [\"-o\", \"pid=,ppid=,rss=\"], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\lsp\\jsonrpc-stream.js",
+      "line": 132,
+      "snippet": "const m = /^content-length:\\s*(\\d+)\\s*$/i.exec(line);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\lsp\\lsp-client.js",
+      "line": 16,
+      "snippet": "import { spawn as nodeSpawn } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\lsp\\lsp-client.js",
+      "line": 76,
+      "snippet": "this._child = _deps.spawn(spawnSpec.file, spawnSpec.args, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\lsp\\lsp-server-registry.js",
+      "line": 17,
+      "snippet": "import { execFileSync } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\packer\\native-prebuild-collector.js",
+      "line": 125,
+      "snippet": "const m = /^node\\d+-([a-z]+)-([a-z0-9]+)$/.exec(target);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\packer\\pack-update-applier.js",
+      "line": 30,
+      "snippet": "import { spawn } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\packer\\pkg-runner.js",
+      "line": 17,
+      "snippet": "import { spawnSync } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\packer\\pkg-runner.js",
+      "line": 50,
+      "snippet": "const res = spawnSync(pkgBin.runtime, args, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\packer\\precheck.js",
+      "line": 8,
+      "snippet": "import { execSync } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\packer\\precheck.js",
+      "line": 143,
+      "snippet": "repoRoot = execSync(\"git rev-parse --show-toplevel\", {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\packer\\precheck.js",
+      "line": 148,
+      "snippet": "gitCommit = execSync(\"git rev-parse --short HEAD\", {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\packer\\precheck.js",
+      "line": 153,
+      "snippet": "const status = execSync(\"git status --porcelain\", {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\packer\\smoke-runner.js",
+      "line": 22,
+      "snippet": "import { spawn } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\packer\\smoke-runner.js",
+      "line": 83,
+      "snippet": "const child = spawn(exePath, [\"ui\", \"--no-open\"], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\packer\\smoke-runner.js",
+      "line": 119,
+      "snippet": "spawn(\"taskkill\", [\"/F\", \"/T\", \"/PID\", String(child.pid)], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\packer\\web-panel-builder.js",
+      "line": 13,
+      "snippet": "import { spawnSync } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\packer\\web-panel-builder.js",
+      "line": 53,
+      "snippet": "const res = spawnSync(npmCmd, [\"run\", \"build:web-panel\"], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\plugin-runtime\\install.js",
+      "line": 22,
+      "snippet": "import { spawnSync } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\plugin-runtime\\install.js",
+      "line": 270,
+      "snippet": "_deps.spawnSync(\"git\", args, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\process-execution-broker\\index.js",
+      "line": 29,
+      "snippet": "import cp from \"node:child_process\";",
+      "needs_broker": false
+    },
+    {
+      "file": "src\\lib\\process-execution-broker\\index.js",
+      "line": 211,
+      "snippet": "spawn({ command, args = [], opts = {}, reason, category = ProcessCategory.OTHER, bypassBroker = false }) {",
+      "needs_broker": false
+    },
+    {
+      "file": "src\\lib\\process-execution-broker\\index.js",
+      "line": 290,
+      "snippet": "spawnSync({ command, args = [], opts = {}, reason, category = ProcessCategory.OTHER, bypassBroker = false }) {",
+      "needs_broker": false
+    },
+    {
+      "file": "src\\lib\\process-execution-broker\\index.js",
+      "line": 342,
+      "snippet": "execSync({ command, opts = {}, reason, category = ProcessCategory.TOOL_EXEC, bypassBroker = false }) {",
+      "needs_broker": false
+    },
+    {
+      "file": "src\\lib\\process-execution-broker\\index.js",
+      "line": 365,
+      "snippet": "execFile({ file, args = [], opts = {}, reason, category = ProcessCategory.OTHER, bypassBroker = false }) {",
+      "needs_broker": false
+    },
+    {
+      "file": "src\\lib\\process-execution-broker\\index.js",
+      "line": 382,
+      "snippet": "execFileSync({ file, args = [], opts = {}, reason, category = ProcessCategory.OTHER, bypassBroker = false }) {",
+      "needs_broker": false
+    },
+    {
+      "file": "src\\lib\\skill-packs\\generator.js",
+      "line": 179,
+      "snippet": "const { spawnSync } = require(\"child_process\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\skill-packs\\generator.js",
+      "line": 256,
+      "snippet": "const result = spawnSync(\"chainlesschain\", cliArgs, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\skill-packs\\generator.js",
+      "line": 410,
+      "snippet": "const { spawnSync } = require(\"child_process\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\lib\\skill-packs\\generator.js",
+      "line": 484,
+      "snippet": "const result = spawnSync(\"chainlesschain\", cliArgs, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\repl\\agent-repl.js",
+      "line": 5523,
+      "snippet": "const cpMod = await import(\"node:child_process\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\repl\\clipboard-copy.js",
+      "line": 7,
+      "snippet": "import { spawnSync as _spawnSync } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\repl\\clipboard-copy.js",
+      "line": 44,
+      "snippet": "while ((m = re.exec(text)) !== null) last = m[1];",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\repl\\clipboard-copy.js",
+      "line": 95,
+      "snippet": "res = spawn(cmd, args, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\repl\\pr-comments.js",
+      "line": 12,
+      "snippet": "import { execFile } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\repl\\pr-comments.js",
+      "line": 17,
+      "snippet": "execFile(",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\repl\\pr-comments.js",
+      "line": 60,
+      "snippet": "const m = /github\\.com\\/([^/]+\\/[^/]+)\\/pull\\/(\\d+)/.exec(t);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\repl\\pr-comments.js",
+      "line": 138,
+      "snippet": "const m = /github\\.com\\/([^/]+\\/[^/]+)\\/pull\\//.exec(meta?.url || \"\");",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\runtime\\agent-core.js",
+      "line": 19,
+      "snippet": "import { execSync, spawn, spawnSync } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\runtime\\agent-core.js",
+      "line": 232,
+      "snippet": "const tk = spawn(\"taskkill\", [\"/pid\", String(child.pid), \"/T\", \"/F\"], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\runtime\\agent-core.js",
+      "line": 305,
+      "snippet": "spawnSync(\"taskkill\", [\"/pid\", String(child.pid), \"/T\", \"/F\"], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\runtime\\agent-core.js",
+      "line": 709,
+      "snippet": "execSync(`${py.command} -m pip --version`, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\runtime\\agent-core.js",
+      "line": 722,
+      "snippet": "nodeVersion = execSync(\"node --version\", {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\runtime\\agent-core.js",
+      "line": 732,
+      "snippet": "execSync(\"git --version\", {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\runtime\\agent-core.js",
+      "line": 2940,
+      "snippet": "? spawn(args.command, bgSpawnOpts)",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\runtime\\agent-core.js",
+      "line": 2941,
+      "snippet": ": spawn(shellInv.file, shellInv.argv, bgSpawnOpts);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\runtime\\agent-core.js",
+      "line": 3115,
+      "snippet": "output = execSync(args.command, fgExecOpts);",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\runtime\\agent-core.js",
+      "line": 3121,
+      "snippet": "const res = spawnSync(shellInv.file, shellInv.argv, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\runtime\\agent-core.js",
+      "line": 3241,
+      "snippet": "const res = spawnSync(\"git\", gitArgs, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\runtime\\agent-core.js",
+      "line": 3846,
+      "snippet": "const output = execSync(cmd, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\runtime\\agent-core.js",
+      "line": 4451,
+      "snippet": "output = execSync(`${interpreter} \"${scriptPath}\"`, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\runtime\\agent-core.js",
+      "line": 4551,
+      "snippet": "execSync(`${interpreter} -m pip install ${packageName}`, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\runtime\\agent-core.js",
+      "line": 4567,
+      "snippet": "const retryOutput = execSync(`${interpreter} \"${scriptPath}\"`, {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\runtime\\diagnostics.js",
+      "line": 15,
+      "snippet": "import { execSync } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\runtime\\diagnostics.js",
+      "line": 72,
+      "snippet": "return execSync(cmd, { encoding: \"utf-8\" }).trim();",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\runtime\\file-ref-expander.js",
+      "line": 89,
+      "snippet": "const m = /^(.+?)#[Ll]?(\\d+)(?:-(\\d+))?$/.exec(String(raw || \"\"));",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\runtime\\file-ref-expander.js",
+      "line": 126,
+      "snippet": "while ((m = TOKEN_RE.exec(text)) !== null) {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\runtime\\headless-runner.js",
+      "line": 2026,
+      "snippet": "gc.spawnSync || (await import(\"node:child_process\")).spawnSync;",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\skills\\video-editing\\extractors\\audio-extractor.js",
+      "line": 14,
+      "snippet": "import { spawn } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\skills\\video-editing\\extractors\\audio-extractor.js",
+      "line": 126,
+      "snippet": "const proc = spawn(\"python\", [script, audioPath], {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\skills\\video-editing\\extractors\\audio-extractor.js",
+      "line": 164,
+      "snippet": "const proc = spawn(\"ffprobe\", args, { stdio: [\"ignore\", \"pipe\", \"pipe\"] });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\skills\\video-editing\\extractors\\video-extractor.js",
+      "line": 9,
+      "snippet": "import { spawn } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\skills\\video-editing\\extractors\\video-extractor.js",
+      "line": 33,
+      "snippet": "const proc = spawn(\"ffmpeg\", args, { stdio: [\"ignore\", \"pipe\", \"pipe\"] });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\skills\\video-editing\\extractors\\video-extractor.js",
+      "line": 62,
+      "snippet": "const proc = spawn(\"ffmpeg\", args, { stdio: [\"ignore\", \"pipe\", \"pipe\"] });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\skills\\video-editing\\extractors\\video-extractor.js",
+      "line": 83,
+      "snippet": "while ((m = regex.exec(ffmpegStderr)) !== null) {",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\skills\\video-editing\\render\\audio-mix.js",
+      "line": 8,
+      "snippet": "import { spawn } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\skills\\video-editing\\render\\audio-mix.js",
+      "line": 41,
+      "snippet": "const proc = spawn(\"ffmpeg\", args, { stdio: [\"ignore\", \"pipe\", \"pipe\"] });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\skills\\video-editing\\render\\audio-mix.js",
+      "line": 73,
+      "snippet": "const proc = spawn(\"ffmpeg\", args, { stdio: [\"ignore\", \"pipe\", \"pipe\"] });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\skills\\video-editing\\render\\ffmpeg-concat.js",
+      "line": 5,
+      "snippet": "import { spawn } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\skills\\video-editing\\render\\ffmpeg-concat.js",
+      "line": 33,
+      "snippet": "const proc = spawn(\"ffmpeg\", args, { stdio: [\"ignore\", \"pipe\", \"pipe\"] });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\skills\\video-editing\\render\\ffmpeg-extract.js",
+      "line": 5,
+      "snippet": "import { spawn } from \"child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\skills\\video-editing\\render\\ffmpeg-extract.js",
+      "line": 51,
+      "snippet": "const proc = spawn(\"ffmpeg\", args, { stdio: [\"ignore\", \"pipe\", \"pipe\"] });",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\workers\\background-agent-worker.js",
+      "line": 15,
+      "snippet": "import { spawn } from \"node:child_process\";",
+      "needs_broker": true
+    },
+    {
+      "file": "src\\workers\\background-agent-worker.js",
+      "line": 114,
+      "snippet": "child = spawn(process.execPath, [job.cliEntry, ...argv], {",
+      "needs_broker": true
+    }
+  ]
+}
