@@ -41,7 +41,7 @@ public final class LlmConfig {
     }
 
     public static final Preset[] PRESETS = {
-        new Preset("volcengine", "Volcengine / Doubao (volcengine)", "https://ark.cn-beijing.volces.com/api/v3", "doubao-seed-2-1-pro-260628", true),
+        new Preset("volcengine", "Volcengine / Doubao (volcengine)", "https://ark.cn-beijing.volces.com/api/v3", "doubao-seed-evolving", true),
         new Preset("ollama", "Ollama (local, no key)", "http://localhost:11434", "qwen2.5:7b", false),
         new Preset("anthropic", "Anthropic Claude", "https://api.anthropic.com/v1", "claude-sonnet-4-6", true),
         new Preset("openai", "OpenAI", "https://api.openai.com/v1", "gpt-4o", true),

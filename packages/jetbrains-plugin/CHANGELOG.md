@@ -1,5 +1,10 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.63] - Doubao coding model default update (2026-07-20)
+
+- **Updated the Volcengine/Doubao default text model** to doubao-seed-evolving.
+
+
 ## [0.4.62] — Marketplace verifier clean: internal/deprecated API usages cleared (2026-07-18)
 
 - **No more internal-API usage.** The Remote Control host's JVM-exit tree-kill
