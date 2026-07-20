@@ -3,14 +3,16 @@
  * M3 阶段模块：包含分布式追踪 + 性能指标收集
  */
 
-export {
+import {
   traceContext,
   TraceContext,
 } from "../execution-trace/trace-context.js";
-export {
+import {
   metricsCollector,
   MetricsCollector,
 } from "../execution-trace/metrics-collector.js";
+
+export { traceContext, TraceContext, metricsCollector, MetricsCollector };
 
 /**
  * 初始化可观测性模块
