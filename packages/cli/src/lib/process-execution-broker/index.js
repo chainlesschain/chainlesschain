@@ -1,10 +1,11 @@
 /**
- * Process Execution Broker — M1+M2+M3+M4+M5 集成
+ * Process Execution Broker — P0-1 生产化
  * 对应文档 §2.1 四层架构 Layer 1
  *
  * 统一拦截所有子进程执行：
  * - M1: 所有子进程唯一入口，权限检查
- * - M2: 沙箱分发（shell/sdk/jsii）
+ * - **P0-1**: 三平台原生沙箱 (macOS Seatbelt / Windows Job Object / Linux seccomp)
+ * - **P0-1**: 凭据代理 default-on（secrets 永远不裸传给子进程）
  * - M3: 集成W3C trace context自动传播
  * - M4: 自动写入Runtime Provenance Ledger (RPL)
  * - M5: Hooks v2事件发射
@@ -25,6 +26,15 @@ import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
+
+// P0-1: 平台沙箱 + 凭据代理
+// platform-sandbox.js exports: applySandbox, postSpawnSandbox, getSandboxInfo
+import {
+  applySandbox as _applySandbox,
+  postSpawnSandbox as _postSpawnSandbox,
+  getSandboxInfo as _getSandboxInfo,
+} from "./platform-sandbox.js";
+import { credentialAgent } from "./credential-agent.js";
 
 // 延迟导入避免循环依赖
 let _traceCtx = null;
@@ -72,13 +82,29 @@ class ProcessExecutionBroker extends EventEmitter {
     this._permissionState = new Map();
     this._defaultTimeout = 300000;
     this._blocked = new Set(["rm -rf /", "format c:", "del /f /s /q *"]);
-    this._stats = { totalSpawned: 0, allowed: 0, denied: 0, byOrigin: {} };
+    this._stats = {
+      totalSpawned: 0,
+      allowed: 0,
+      denied: 0,
+      byOrigin: {},
+      sandboxed: 0,
+      credFiltered: 0,
+    };
     this._logPath = path.join(
       os.homedir(),
       ".chainlesschain",
       "logs",
       "process-audit.log",
     );
+
+    // P0-1: Platform sandbox functions (applySandbox/postSpawnSandbox imported above)
+    // No instance needed — stateless functional API per platform
+
+    // P0-1: Credential filtering is default-on
+    this._credentialAgent = credentialAgent;
+    this._credentialFilteringEnabled = true;
+    this._sandboxEnabled = true;
+
     this._ensureLogDir();
     this._loadPermissions();
   }
@@ -269,9 +295,77 @@ class ProcessExecutionBroker extends EventEmitter {
       spawnOpts.env.TRACEPARENT = traceCtx.traceparent;
     }
 
+    // P0-1: Credential filtering (default-on) — strip secrets from env/args
+    let credInfo = { redacted: 0 };
+    if (this._credentialFilteringEnabled) {
+      const before = JSON.stringify(spawnOpts.env || {}).length;
+      const filtered = this._credentialAgent.apply({
+        ...spawnOpts,
+        file: command,
+        args: args || [],
+        origin,
+      });
+      spawnOpts.env = filtered.env;
+      spawnOpts.args = filtered.args;
+      const after = JSON.stringify(spawnOpts.env).length;
+      credInfo.redacted = before > after ? 1 : 0;
+      if (credInfo.redacted) this._stats.credFiltered++;
+      auditEntry.credentialFiltered = !!credInfo.redacted;
+    }
+
+    // P0-1: Platform sandbox wrapping — apply macOS/Windows/Linux sandbox
+    const optsForSpawn = { ...spawnOpts };
+    let sandboxApplied = false;
+    let sandboxProfile = null;
+    if (this._platformSandboxEnabled) {
+      try {
+        const result = applySandbox(
+          command,
+          args || [],
+          optsForSpawn,
+          "default",
+        );
+        if (result && result.applied) {
+          Object.assign(optsForSpawn, result.options || {});
+          if (result.command) command = result.command;
+          if (result.args) args = result.args;
+          sandboxApplied = true;
+          sandboxProfile = result.profile || null;
+          this._stats.sandboxed++;
+        }
+        auditEntry.sandboxed = sandboxApplied;
+        auditEntry.sandboxProfile = sandboxProfile;
+      } catch (sandboxErr) {
+        // Fail closed: if sandbox setup fails on strict, deny spawn
+        if (process.env.CC_SANDBOX_STRICT === "1") {
+          auditEntry.deniedReason = `sandbox-init-failed: ${sandboxErr.message}`;
+          this._auditLog.push(auditEntry);
+          const err = new Error(`Sandbox init failed: ${sandboxErr.message}`);
+          err.auditEntry = auditEntry;
+          throw err;
+        }
+        // Non-strict: warn but allow (development mode)
+        process.emitWarning(
+          `Sandbox init failed (continuing without): ${sandboxErr.message}`,
+        );
+      }
+    }
+
     // Use native spawn from _native (set by patch-child-process.js)
     const nativeSpawn = this._native?.spawn || nativeSpawn;
-    const proc = nativeSpawn(command, args, spawnOpts);
+    const proc = nativeSpawn(command, args, optsForSpawn);
+
+    // P0-1: Post-spawn sandbox setup (Windows Job Object association, etc.)
+    if (sandboxApplied && proc.pid) {
+      try {
+        postSpawnSandbox(proc, sandboxProfile);
+      } catch (postErr) {
+        process.emitWarning(
+          `Post-spawn sandbox setup failed: ${postErr.message}`,
+        );
+      }
+    }
+
     auditEntry.pid = proc.pid;
     this._recordAudit(auditEntry);
     this._writeRplEntry(auditEntry, "started");
@@ -374,9 +468,62 @@ class ProcessExecutionBroker extends EventEmitter {
       spawnOpts.env.TRACEPARENT = traceCtx.traceparent;
     }
 
+    // P0-1: Credential filtering agent — strip secrets from env/args before spawn
+    if (this._credentialAgentEnabled) {
+      try {
+        const credInfo = credentialAgent.apply(spawnOpts, {
+          command,
+          args,
+          origin,
+        });
+        if (credInfo.redacted) this._stats.credFiltered++;
+        auditEntry.credentialFiltered = !!credInfo.redacted;
+      } catch (credErr) {
+        process.emitWarning(
+          `Credential agent apply failed: ${credErr.message}`,
+        );
+      }
+    }
+
+    // P0-1: Platform sandbox wrapping (sync path)
+    const optsForSync = { ...spawnOpts };
+    let sandboxApplied = false;
+    let sandboxProfile = null;
+    if (this._platformSandboxEnabled) {
+      try {
+        const result = applySandbox(
+          command,
+          args || [],
+          optsForSync,
+          "default",
+        );
+        if (result && result.applied) {
+          Object.assign(optsForSync, result.options || {});
+          if (result.command) command = result.command;
+          if (result.args) args = result.args;
+          sandboxApplied = true;
+          sandboxProfile = result.profile || null;
+          this._stats.sandboxed++;
+        }
+        auditEntry.sandboxed = sandboxApplied;
+        auditEntry.sandboxProfile = sandboxProfile;
+      } catch (sandboxErr) {
+        if (process.env.CC_SANDBOX_STRICT === "1") {
+          auditEntry.deniedReason = `sandbox-init-failed: ${sandboxErr.message}`;
+          this._recordAudit(auditEntry);
+          const err = new Error(`Sandbox init failed: ${sandboxErr.message}`);
+          err.auditEntry = auditEntry;
+          throw err;
+        }
+        process.emitWarning(
+          `Sandbox init failed (sync): ${sandboxErr.message}`,
+        );
+      }
+    }
+
     const nativeSpawnSync = this._native?.spawnSync || nativeSpawnSync;
     try {
-      const result = nativeSpawnSync(command, args, spawnOpts);
+      const result = nativeSpawnSync(command, args, optsForSync);
       auditEntry.exitCode = result.status;
       auditEntry.endTime = Date.now();
       auditEntry.durationMs = auditEntry.endTime - startTime;
