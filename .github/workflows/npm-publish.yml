@@ -24,7 +24,7 @@ on:
 jobs:
   # Run tests before publishing
   test:
-    if: inputs.skip_tests != true
+    if: ${{ inputs.skip_tests != true && !(github.event_name == 'push' && startsWith(github.ref_name, 'v-npm-')) }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
