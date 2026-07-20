@@ -6,6 +6,8 @@
  */
 import { createBaseProgram } from "./program-base.js";
 import { maybeNotifyUpdate } from "./lib/update-notice.js";
+import { getHookDb, fireSetup } from "./lib/session-hooks.js";
+import chalk from "chalk";
 
 // M5 Runtime Convergence: 四层核心Runtime模块，边界清晰，职责单一
 import traceContext from "./lib/execution-trace/trace-context.js"; // 可观测层：仅负责trace传播/span管理
@@ -36,6 +38,29 @@ globalThis.ccRuntime = {
 };
 
 async function main() {
+  // Fire Setup hooks before any command runs
+  try {
+    const hookDb = getHookDb();
+    if (hookDb) {
+      const setupResult = await fireSetup(hookDb, {
+        pid: process.pid,
+        cwd: process.cwd(),
+        nodeVersion: process.version,
+        argv: process.argv.slice(2),
+      });
+      if (setupResult.abort) {
+        console.error(
+          chalk.red(`Setup aborted: ${setupResult.reason || "Unknown reason"}`),
+        );
+        process.exit(1);
+      }
+    }
+  } catch (err) {
+    if (process.env.DEBUG) {
+      console.warn("Setup hook error:", err.message);
+    }
+  }
+
   // 非阻塞更新检查，不影响启动流程
   try {
     maybeNotifyUpdate();

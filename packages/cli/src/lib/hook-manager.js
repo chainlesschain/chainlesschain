@@ -32,6 +32,7 @@ export const HookType = {
  * All supported hook event names.
  */
 export const HookEvents = {
+  Setup: "Setup",
   PreIPCCall: "PreIPCCall",
   PostIPCCall: "PostIPCCall",
   IPCError: "IPCError",

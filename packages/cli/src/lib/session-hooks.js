@@ -3,13 +3,14 @@
  * the tool-level PreToolUse/PostToolUse hooks already wired in
  * `runtime/agent-core.js`.
  *
- * Five session-level events are fired from `repl/agent-repl.js`:
+ * Six session-level events are fired from `repl/agent-repl.js`:
  *
- *   - SessionStart       — once, after sessionId is established
- *   - UserPromptSubmit   — per user line, before agentLoop()
- *   - AssistantResponse  — per agent reply, after agentLoop() returns
- *   - SessionEnd         — once, on rl.close() before shutdown
- *   - Notification       — system notifications/warnings/errors, hook can suppress/override
+ *   - Setup               — once, at CLI startup before session begins, for env preparation
+ *   - SessionStart        — once, after sessionId is established
+ *   - UserPromptSubmit    — per user line, before agentLoop()
+ *   - AssistantResponse   — per agent reply, after agentLoop() returns
+ *   - SessionEnd          — once, on rl.close() before shutdown
+ *   - Notification        — system notifications/warnings/errors, hook can suppress/override
  *
  * Semantics (matches existing PreToolUse convention):
  *   - Fire-and-forget by default: hook failures NEVER break the host flow
@@ -29,6 +30,7 @@ import { executeHooks, HookEvents } from "./hook-manager.js";
  * would otherwise silently no-op inside executeHooks' event filter.
  */
 export const SESSION_HOOK_EVENTS = Object.freeze([
+  HookEvents.Setup,
   HookEvents.SessionStart,
   HookEvents.UserPromptSubmit,
   HookEvents.AssistantResponse,
@@ -659,4 +661,62 @@ export async function fireNotification(
   }
 
   return { suppress, message: finalMessage, results };
+}
+
+/**
+ * Fire the Setup event once at CLI startup, before any session begins.
+ * This is intended for environment preparation tasks:
+ *   - Checking dependencies
+ *   - Warming caches
+ *   - Loading custom configurations
+ *   - Validating environment variables
+ *
+ * Hooks may return directives on stdout to control startup:
+ *   {"abort": true, "reason": "..."} - abort startup with a reason
+ *   {"env": {"KEY": "value"}} - inject environment variables
+ *
+ * @param {object|null} hookDb  better-sqlite3 handle, or null to no-op
+ * @param {Object} [opts]
+ * @param {string} [opts.cliVersion] - CLI version being started
+ * @param {string} [opts.cwd] - Current working directory
+ * @param {object} [opts.metadata={}] - Additional context
+ * @returns {Promise<{abort: boolean, reason: string, env: Object, results: Array}>}
+ */
+export async function fireSetup(
+  hookDb,
+  { cliVersion = "", cwd = process.cwd(), metadata = {} } = {},
+) {
+  const results = await fireSessionHook(hookDb, HookEvents.Setup, {
+    cli_version: cliVersion,
+    cwd,
+    timestamp: new Date().toISOString(),
+    metadata,
+  });
+
+  let abort = false;
+  let abortReason = "";
+  const injectedEnv = {};
+
+  for (const r of results) {
+    if (!r || !r.success) continue;
+    const directive = extractDirective(r);
+    if (!directive) continue;
+    if (directive.abort) {
+      abort = true;
+      abortReason = directive.reason || "Setup hook requested abort";
+      break;
+    }
+    if (directive.env && typeof directive.env === "object") {
+      Object.assign(injectedEnv, directive.env);
+    }
+  }
+
+  // Apply injected environment variables
+  for (const [key, value] of Object.entries(injectedEnv)) {
+    if (typeof value === "string") {
+      process.env[key] = value;
+    }
+  }
+
+  return { abort, reason: abortReason, env: injectedEnv, results };
 }
