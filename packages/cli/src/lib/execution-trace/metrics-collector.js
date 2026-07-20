@@ -213,4 +213,6 @@ class MetricsCollector {
   }
 }
 
+export { MetricsCollector };
 export const metricsCollector = new MetricsCollector();
+export default metricsCollector;

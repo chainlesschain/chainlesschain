@@ -177,5 +177,6 @@ class TraceContext {
   }
 }
 
+export { TraceContext };
 export const traceContext = new TraceContext();
 export default traceContext;
