@@ -1,8 +1,16 @@
 #!/usr/bin/env node
 
+// FIRST: Patch child_process globally to route ALL spawn/exec through ProcessExecutionBroker (M1)
+// This must come BEFORE any other imports to ensure every subprocess is audited
+import "../src/lib/process-execution-broker/patch-child-process.js";
+
 // Ensure UTF-8 encoding on Windows to prevent Chinese character garbling (乱码)
 import { ensureUtf8 } from "../src/lib/ensure-utf8.js";
 ensureUtf8();
+
+// Initialize observability layer (M3 + M8: trace context, metrics, OTLP export)
+import { initObservability } from "../src/lib/observability/index.js";
+initObservability({ otlpEnabled: false }); // OTLP disabled by default, enable via env OTEL_EXPORTER_OTLP_ENDPOINT
 
 // Force blocking stdio when piped, so process.exit() flushes the full output
 // before the process tears down. Without this, macOS (and occasionally Linux)

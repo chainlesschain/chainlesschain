@@ -32,7 +32,7 @@ const scanRoots = [
 const sourceExtensions = new Set([".js", ".cjs", ".mjs", ".ts", ".tsx"]);
 const skipDirs = new Set([".git", "node_modules", "dist", "out", "coverage"]);
 const childProcessPattern =
-  /\b(?:child_process|node:child_process|spawn|spawnSync|exec|execFile|execSync|execFileSync|fork)\b/;
+  /(?:child_process|node:child_process|\b(?:cpDefault|childProcess|_deps|deps)\.(?:spawn|spawnSync|exec|execFile|execSync|execFileSync|fork)\b|\b(?:spawn|spawnSync|execFile|execSync|execFileSync|fork)\s*\()/;
 
 function toPosix(pathname) {
   return pathname.split(sep).join("/");
@@ -63,6 +63,7 @@ function classify(relPath) {
     return "test";
   }
   if (
+    relPath.includes("/src/assets/") ||
     relPath.startsWith("packages/cli/scripts/") ||
     relPath.startsWith("desktop-app-vue/scripts/")
   ) {
