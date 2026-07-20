@@ -8,7 +8,7 @@ import { createBaseProgram } from "./program-base.js";
 import { maybeNotifyUpdate } from "./lib/update-notice.js";
 
 // M5 Runtime Convergence: 四层核心Runtime模块，边界清晰，职责单一
-import traceContext from "./lib/trace-context.js"; // 可观测层：仅负责trace传播/span管理
+import traceContext from "./lib/execution-trace/trace-context.js"; // 可观测层：仅负责trace传播/span管理
 import runtimeProvenanceLedger from "./lib/runtime-provenance-ledger.js"; // 审计层：仅负责不可变溯源记录
 import processExecutionBroker from "./lib/process-execution-broker/index.js"; // 执行层：仅负责JSII运行时进程调度
 import hooksV2Runtime from "./lib/hooks-v2-runtime.js"; // 扩展层：仅负责命令生命周期钩子

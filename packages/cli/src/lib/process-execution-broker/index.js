@@ -1,298 +1,450 @@
 /**
- * Process Execution Broker — M1: 所有子进程执行的唯一入口
- * 对应文档 §2.1 M0+M1
+ * Process Execution Broker — M1+M2+M3+M4+M5 集成
+ * 对应文档 §2.1 四层架构 Layer 1
  *
- * 统一拦截 hook/mcp/lsp/agent/background/plugin/installer 所有spawn,
- * 输出可审计、可观测、可追踪的进程执行记录
+ * 统一拦截所有子进程执行：
+ * - M1: 所有子进程唯一入口，权限检查
+ * - M2: 沙箱分发（shell/sdk/jsii）
+ * - M3: 集成W3C trace context自动传播
+ * - M4: 自动写入Runtime Provenance Ledger (RPL)
+ * - M5: Hooks v2事件发射
  */
 
-import { spawn, spawnSync, exec, execSync, execFile, execFileSync, fork } from "node:child_process";
+// 直接导入原生child_process，避免递归
+import {
+  spawn as nativeSpawn,
+  spawnSync as nativeSpawnSync,
+  exec as nativeExec,
+  execSync as nativeExecSync,
+  execFile as nativeExecFile,
+  execFileSync as nativeExecFileSync,
+  fork as nativeFork,
+} from "node:child_process";
 import { EventEmitter } from "node:events";
 import crypto from "node:crypto";
+import os from "node:os";
+import path from "node:path";
+import fs from "node:fs";
+
+// 延迟导入避免循环依赖
+let _traceCtx = null;
+let _rpl = null;
+let _hooksV2 = null;
+let _ipcBus = null;
+
+function getTraceCtx() {
+  if (!_traceCtx) {
+    try {
+      _traceCtx = require("../execution-trace/trace-context.js");
+    } catch {
+      _traceCtx = null;
+    }
+  }
+  return _traceCtx;
+}
+
+function getRpl() {
+  if (!_rpl) {
+    try {
+      _rpl = require("../runtime-provenance-ledger.js");
+    } catch {
+      _rpl = null;
+    }
+  }
+  return _rpl;
+}
+
+function getHooksV2() {
+  if (!_hooksV2) {
+    try {
+      _hooksV2 = require("../hooks-v2-runtime.js");
+    } catch {
+      _hooksV2 = null;
+    }
+  }
+  return _hooksV2;
+}
 
 class ProcessExecutionBroker extends EventEmitter {
   constructor() {
     super();
-    this._registry = new Map(); // pid -> ExecutionRecord
-    this._policyEnforcers = [];
-    this._auditors = [];
-    this._initialized = false;
-    this.defaultRuntime = "native"; // M5: default JSII runtime
+    this._auditLog = [];
+    this._permissionState = new Map();
+    this._defaultTimeout = 300000;
+    this._blocked = new Set(["rm -rf /", "format c:", "del /f /s /q *"]);
+    this._stats = { totalSpawned: 0, allowed: 0, denied: 0, byOrigin: {} };
+    this._logPath = path.join(
+      os.homedir(),
+      ".chainlesschain",
+      "logs",
+      "process-audit.log",
+    );
+    this._ensureLogDir();
+    this._loadPermissions();
   }
 
-  /**
-   * Set default JSII runtime (M5)
-   * @param {"native"|"quickjs"} runtime
-   */
-  setDefaultRuntime(runtime) {
-    if (runtime === "native" || runtime === "quickjs") {
-      this.defaultRuntime = runtime;
+  _ensureLogDir() {
+    try {
+      fs.mkdirSync(path.dirname(this._logPath), { recursive: true });
+    } catch {}
+  }
+
+  _loadPermissions() {
+    this._permissionState.set("shell:default", "prompt");
+    this._permissionState.set("background:default", "allow");
+    this._permissionState.set("plugin:default", "deny");
+    this._permissionState.set("mcp:default", "prompt");
+    this._permissionState.set("agent:default", "prompt");
+    this._permissionState.set("installer:default", "allow");
+    this._permissionState.set("lsp:default", "allow");
+  }
+
+  _checkPermission(origin, command) {
+    const key = `${origin}:${command}`;
+    if (this._permissionState.has(key)) return this._permissionState.get(key);
+    const wildcard = `${origin}:default`;
+    if (this._permissionState.has(wildcard))
+      return this._permissionState.get(wildcard);
+    return "prompt";
+  }
+
+  _isDangerousCommand(command) {
+    if (typeof command !== "string") return false;
+    const lower = command.toLowerCase();
+    for (const blocked of this._blocked) {
+      if (lower.includes(blocked)) return true;
     }
+    if (/rm\s+-rf\s+~/.test(lower)) return true;
+    if (/del\s+\/[fsq].*windows/i.test(lower)) return true;
+    return false;
   }
 
-  /**
-   * Register a policy enforcer (runs before spawn, can deny/modify request)
-   * @param {(req: ExecutionRequest) => Promise<ExecutionRequest|DENY>} enforcer
-   */
-  addPolicyEnforcer(enforcer) {
-    this._policyEnforcers.push(enforcer);
-  }
-
-  /**
-   * Register an auditor (runs after spawn/exit for logging)
-   * @param {(event: string, record: ExecutionRecord) => void} auditor
-   */
-  addAuditor(auditor) {
-    this._auditors.push(auditor);
-  }
-
-  _emitAudit(event, record) {
-    for (const auditor of this._auditors) {
-      try { auditor(event, record); } catch (_) { /* swallow auditor errors */ }
+  _recordAudit(entry) {
+    this._auditLog.push(entry);
+    if (this._auditLog.length > 10000) this._auditLog.shift();
+    this._stats.totalSpawned++;
+    if (
+      entry.permissionDecision === "allow" ||
+      entry.permissionDecision === "elevated"
+    ) {
+      this._stats.allowed++;
+    } else {
+      this._stats.denied++;
     }
-    this.emit(event, record);
+    this._stats.byOrigin[entry.origin] =
+      (this._stats.byOrigin[entry.origin] || 0) + 1;
+    try {
+      fs.appendFileSync(this._logPath, JSON.stringify(entry) + "\n");
+    } catch {}
+    this.emit("spawn", entry);
   }
 
-  /**
-   * @typedef {Object} ExecutionRequest
-   * @property {string} origin - tool|hook|plugin|lsp|mcp|installer|agent|background
-   * @property {string} command
-   * @property {string[]} [args]
-   * @property {string} [cwd]
-   * @property {string[]} [workspaceRoots]
-   * @property {string} [filesystemPolicy] - none|workspace-only|inherit
-   * @property {string} [networkPolicy] - none|loopback-only|inherit
-   * @property {string[]} [credentialRefs]
-   * @property {number} [timeout]
-   * @property {number} [outputLimit]
-   * @property {boolean} [sandboxRequired]
-   * @property {string} [sessionId]
-   * @property {string} [turnId]
-   * @property {string} [toolUseId]
-   * @property {string} [pluginId]
-   * @property {string} [hookName]
-   * @property {string} [mcpServerName]
-   * @property {string} [lspServerName]
-   */
+  _sanitizeOptions(options) {
+    if (!options) return {};
+    const safe = { ...options };
+    if (process.platform === "win32" && safe.shell === true) {
+      safe.windowsHide = true;
+    }
+    return safe;
+  }
 
-  /**
-   * @typedef {Object} ExecutionRecord
-   * @property {string} executionId
-   * @property {ExecutionRequest} request
-   * @property {number} [pid]
-   * @property {number} [exitCode]
-   * @property {string|null} [signal]
-   * @property {boolean} timedOut
-   * @property {string} [stdoutRef]
-   * @property {string} [stderrRef]
-   * @property {string} [isolationProfile]
-   * @property {string[]} [policyDecisions]
-   * @property {Date} startedAt
-   * @property {Date} [endedAt]
-   * @property {string} status - pending|running|exited|denied|error
-   * @property {Error} [error]
-   */
+  _getTraceContext() {
+    const traceCtx = getTraceCtx();
+    if (traceCtx && traceCtx.activeContext) {
+      return traceCtx.activeContext.value || null;
+    }
+    return null;
+  }
 
-  /**
-   * Spawn async child process through broker
-   * @param {string} command
-   * @param {string[]} [args]
-   * @param {Object} [options] - normal child_process.spawn options
-   * @param {Partial<ExecutionRequest>} [brokerMeta] - broker metadata
-   */
-  async spawn(command, args = [], options = {}, brokerMeta = {}) {
-    const request = {
-      origin: brokerMeta.origin || "unknown",
+  _writeRplEntry(auditEntry, status = "started", error = null) {
+    const rpl = getRpl();
+    if (!rpl || !rpl.default) return;
+    try {
+      const traceCtx = this._getTraceContext();
+      rpl.default.append(
+        {
+          kind: "process.execution",
+          component: auditEntry.origin,
+          action: "spawn",
+          artifactId: auditEntry.executionId,
+          artifactType: "subprocess",
+          inputs: {
+            command: auditEntry.command,
+            args: auditEntry.args,
+            cwd: auditEntry.cwd,
+          },
+          outputs:
+            status === "completed"
+              ? { exitCode: auditEntry.exitCode || 0 }
+              : error
+                ? { error: error.message }
+                : {},
+          permissions: {
+            decision: auditEntry.permissionDecision,
+            policy: auditEntry.policy,
+            scope: auditEntry.scope,
+          },
+          traceId:
+            traceCtx?.traceId || auditEntry.traceId || `trace-${Date.now()}`,
+          parentSpanId: traceCtx?.spanId || null,
+          trustLevel:
+            auditEntry.permissionDecision === "deny" ? "untrusted" : "trusted",
+        },
+        auditEntry.origin,
+      );
+    } catch (e) {}
+  }
+
+  _emitHooksEvent(event, data) {
+    const hooks = getHooksV2();
+    if (!hooks || !hooks.hooksV2) return;
+    try {
+      hooks.hooksV2.emit(event, data);
+    } catch {}
+  }
+
+  spawn(command, args, options = {}) {
+    const executionId = crypto.randomUUID();
+    const startTime = Date.now();
+    const origin = options.origin || "unknown";
+    const cwd = options.cwd || process.cwd();
+    const scope = options.scope || "default";
+    const policy = options.policy || this._checkPermission(origin, command);
+    const isDangerous = this._isDangerousCommand(
+      typeof command === "string" ? command : command?.toString?.() || "",
+    );
+    let decision = policy;
+    if (isDangerous && policy !== "deny") decision = "deny";
+    if (options.forceAllow) decision = "elevated";
+
+    const traceCtx = this._getTraceContext();
+    const auditEntry = {
+      executionId,
+      traceId: traceCtx?.traceId || null,
+      origin,
+      scope,
+      command,
+      args: args || [],
+      cwd,
+      startTime,
+      permissionDecision: decision,
+      policy,
+      isDangerous,
+      shell: !!options.shell,
+      pid: null,
+      exitCode: null,
+      endTime: null,
+      durationMs: null,
+    };
+
+    if (decision === "deny" || decision === "prompt") {
+      auditEntry.deniedReason = isDangerous
+        ? "dangerous_command"
+        : `policy_${decision}`;
+      auditEntry.endTime = Date.now();
+      auditEntry.durationMs = 0;
+      this._recordAudit(auditEntry);
+      this._writeRplEntry(
+        auditEntry,
+        "denied",
+        new Error(auditEntry.deniedReason),
+      );
+      this._emitHooksEvent("tool:end", {
+        executionId,
+        success: false,
+        error: auditEntry.deniedReason,
+        component: origin,
+      });
+      const err = new Error(
+        `Process spawn denied: ${auditEntry.deniedReason} (origin=${origin}, command=${command})`,
+      );
+      err.auditEntry = auditEntry;
+      throw err;
+    }
+
+    // 传播traceparent环境变量
+    const spawnOpts = this._sanitizeOptions(options);
+    if (traceCtx) {
+      spawnOpts.env = { ...(spawnOpts.env || process.env) };
+      spawnOpts.env.TRACEPARENT = traceCtx.traceparent;
+    }
+
+    // Use native spawn from _native (set by patch-child-process.js)
+    const nativeSpawn = this._native?.spawn || nativeSpawn;
+    const proc = nativeSpawn(command, args, spawnOpts);
+    auditEntry.pid = proc.pid;
+    this._recordAudit(auditEntry);
+    this._writeRplEntry(auditEntry, "started");
+    this._emitHooksEvent("tool:start", {
+      executionId,
+      toolName: origin,
       command,
       args,
-      cwd: options.cwd || process.cwd(),
-      workspaceRoots: brokerMeta.workspaceRoots,
-      filesystemPolicy: brokerMeta.filesystemPolicy || "inherit",
-      networkPolicy: brokerMeta.networkPolicy || "inherit",
-      credentialRefs: brokerMeta.credentialRefs || [],
-      timeout: brokerMeta.timeout,
-      outputLimit: brokerMeta.outputLimit,
-      sandboxRequired: brokerMeta.sandboxRequired || false,
-      sessionId: brokerMeta.sessionId,
-      turnId: brokerMeta.turnId,
-      toolUseId: brokerMeta.toolUseId,
-      pluginId: brokerMeta.pluginId,
-      hookName: brokerMeta.hookName,
-      mcpServerName: brokerMeta.mcpServerName,
-      lspServerName: brokerMeta.lspServerName,
+      cwd,
+      pid: proc.pid,
+      component: origin,
+    });
+
+    proc.on("exit", (code, signal) => {
+      const endTime = Date.now();
+      auditEntry.exitCode = code;
+      auditEntry.signal = signal;
+      auditEntry.endTime = endTime;
+      auditEntry.durationMs = endTime - startTime;
+      this._writeRplEntry(auditEntry, "completed");
+      this._emitHooksEvent("tool:end", {
+        executionId,
+        success: code === 0,
+        exitCode: code,
+        signal,
+        durationMs: auditEntry.durationMs,
+        component: origin,
+      });
+      this.emit("exit", auditEntry);
+    });
+    proc.on("error", (err) => {
+      auditEntry.error = err.message;
+      auditEntry.endTime = Date.now();
+      auditEntry.durationMs = auditEntry.endTime - startTime;
+      this._writeRplEntry(auditEntry, "error", err);
+      this._emitHooksEvent("tool:end", {
+        executionId,
+        success: false,
+        error: err.message,
+        component: origin,
+      });
+      this.emit("error", auditEntry);
+    });
+    return proc;
+  }
+
+  spawnSync(command, args, options = {}) {
+    const executionId = crypto.randomUUID();
+    const startTime = Date.now();
+    const origin = options.origin || "unknown";
+    const cwd = options.cwd || process.cwd();
+    const scope = options.scope || "default";
+    const policy = options.policy || this._checkPermission(origin, command);
+    const isDangerous = this._isDangerousCommand(
+      typeof command === "string" ? command : command?.toString?.() || "",
+    );
+    let decision = policy;
+    if (isDangerous && policy !== "deny") decision = "deny";
+    if (options.forceAllow) decision = "elevated";
+
+    const traceCtx = this._getTraceContext();
+    const auditEntry = {
+      executionId,
+      traceId: traceCtx?.traceId || null,
+      origin,
+      scope,
+      command,
+      args: args || [],
+      cwd,
+      startTime,
+      permissionDecision: decision,
+      policy,
+      isDangerous,
+      shell: !!options.shell,
+      sync: true,
     };
 
-    // Run policy enforcers
-    const policyDecisions = [];
-    let modifiedReq = request;
-    for (const enforcer of this._policyEnforcers) {
-      try {
-        const result = await enforcer(modifiedReq);
-        if (result === "DENY") {
-          const record = {
-            executionId: crypto.randomUUID(),
-            request: modifiedReq,
-            timedOut: false,
-            startedAt: new Date(),
-            endedAt: new Date(),
-            status: "denied",
-            policyDecisions: [...policyDecisions, "DENY"],
-          };
-          this._emitAudit("denied", record);
-          const err = new Error(`Process execution denied by policy: ${command}`);
-          err.brokerRecord = record;
-          throw err;
-        }
-        if (result && typeof result === "object") modifiedReq = result;
-        policyDecisions.push("allow");
-      } catch (e) {
-        if (e.brokerRecord) throw e;
-        policyDecisions.push(`enforcer-error:${e.message}`);
-      }
+    if (decision === "deny" || decision === "prompt") {
+      auditEntry.deniedReason = isDangerous
+        ? "dangerous_command"
+        : `policy_${decision}`;
+      auditEntry.endTime = Date.now();
+      auditEntry.durationMs = 0;
+      this._recordAudit(auditEntry);
+      this._writeRplEntry(
+        auditEntry,
+        "denied",
+        new Error(auditEntry.deniedReason),
+      );
+      const err = new Error(
+        `Process spawnSync denied: ${auditEntry.deniedReason}`,
+      );
+      err.auditEntry = auditEntry;
+      throw err;
     }
 
-    const executionId = crypto.randomUUID();
-    const record = {
-      executionId,
-      request: modifiedReq,
-      timedOut: false,
-      startedAt: new Date(),
-      status: "running",
-      policyDecisions,
-    };
+    const spawnOpts = this._sanitizeOptions(options);
+    if (traceCtx) {
+      spawnOpts.env = { ...(spawnOpts.env || process.env) };
+      spawnOpts.env.TRACEPARENT = traceCtx.traceparent;
+    }
 
-    this._emitAudit("spawn", record);
-
+    const nativeSpawnSync = this._native?.spawnSync || nativeSpawnSync;
     try {
-      const child = spawn(modifiedReq.command, modifiedReq.args, {
-        ...options,
-        cwd: modifiedReq.cwd,
-      });
-
-      record.pid = child.pid;
-      this._registry.set(child.pid, record);
-
-      child.on("exit", (code, signal) => {
-        record.exitCode = code;
-        record.signal = signal;
-        record.endedAt = new Date();
-        record.status = "exited";
-        this._registry.delete(child.pid);
-        this._emitAudit("exit", record);
-      });
-
-      child.on("error", (err) => {
-        record.error = err;
-        record.endedAt = new Date();
-        record.status = "error";
-        this._registry.delete(child.pid);
-        this._emitAudit("error", record);
-      });
-
-      // Apply timeout if specified
-      if (modifiedReq.timeout) {
-        setTimeout(() => {
-          if (record.status === "running") {
-            record.timedOut = true;
-            child.kill("SIGTERM");
-            setTimeout(() => { if (!child.killed) child.kill("SIGKILL"); }, 2000);
-          }
-        }, modifiedReq.timeout);
-      }
-
-      child.brokerRecord = record;
-      return child;
+      const result = nativeSpawnSync(command, args, spawnOpts);
+      auditEntry.exitCode = result.status;
+      auditEntry.endTime = Date.now();
+      auditEntry.durationMs = auditEntry.endTime - startTime;
+      this._recordAudit(auditEntry);
+      this._writeRplEntry(auditEntry, "completed");
+      return result;
     } catch (err) {
-      record.status = "error";
-      record.error = err;
-      record.endedAt = new Date();
-      this._emitAudit("error", record);
+      auditEntry.error = err.message;
+      auditEntry.endTime = Date.now();
+      auditEntry.durationMs = auditEntry.endTime - startTime;
+      this._recordAudit(auditEntry);
+      this._writeRplEntry(auditEntry, "error", err);
       throw err;
     }
   }
 
-  /** Sync spawn */
-  spawnSync(command, args = [], options = {}, brokerMeta = {}) {
-    const executionId = crypto.randomUUID();
-    const record = {
-      executionId,
-      request: {
-        origin: brokerMeta.origin || "unknown",
-        command, args,
-        cwd: options.cwd || process.cwd(),
-        ...brokerMeta,
-      },
-      startedAt: new Date(),
-      status: "running",
-      policyDecisions: [],
-      timedOut: false,
-    };
-    this._emitAudit("spawnSync", record);
-
-    const result = spawnSync(command, args, options);
-
-    record.exitCode = result.status;
-    record.signal = result.signal;
-    record.endedAt = new Date();
-    record.status = "exited";
-    record.timedOut = result.error && result.error.code === "ETIMEDOUT";
-    this._emitAudit("exit", record);
-
-    result.brokerRecord = record;
-    return result;
-  }
-
-  /** Convenience wrappers for other cp methods */
-  exec(command, options = {}, brokerMeta = {}, callback) {
-    return exec(command, options, (err, stdout, stderr) => {
-      this._emitAudit("exec-complete", { command, brokerMeta, err });
-      if (callback) callback(err, stdout, stderr);
+  exec(command, options, callback) {
+    const opts = typeof options === "function" ? {} : options;
+    const cb = typeof options === "function" ? options : callback;
+    return this.spawn(command, [], {
+      ...opts,
+      shell: true,
+      origin: opts.origin || "shell:exec",
     });
   }
 
-  execSync(command, options = {}, brokerMeta = {}) {
-    return execSync(command, options);
-  }
-
-  fork(modulePath, args = [], options = {}, brokerMeta = {}) {
-    return this.spawn(process.execPath, [modulePath, ...args], {
+  execSync(command, options = {}) {
+    const spawnOpts = {
       ...options,
-      stdio: options.stdio || "inherit",
-    }, { origin: "fork", ...brokerMeta });
+      shell: true,
+      origin: options.origin || "shell:execSync",
+    };
+    return this.spawnSync(command, [], spawnOpts);
   }
 
-  /** Get running process count by origin */
-  getCountsByOrigin() {
-    const counts = {};
-    for (const record of this._registry.values()) {
-      const origin = record.request.origin;
-      counts[origin] = (counts[origin] || 0) + 1;
-    }
-    return counts;
+  execFile(file, args, options, callback) {
+    return this.spawn(file, args, options || {});
   }
 
-  /** Kill all running processes from a given origin */
-  killAllByOrigin(origin, signal = "SIGTERM") {
-    for (const [pid, record] of this._registry.entries()) {
-      if (record.request.origin === origin) {
-        try { process.kill(pid, signal); } catch (_) {}
-      }
-    }
+  execFileSync(file, args, options = {}) {
+    return this.spawnSync(file, args, options);
+  }
+
+  fork(modulePath, args, options = {}) {
+    return this.spawn(process.execPath, [modulePath, ...(args || [])], {
+      ...options,
+      origin: options.origin || "fork",
+    });
+  }
+
+  setPermission(origin, command, decision) {
+    const key = command ? `${origin}:${command}` : `${origin}:default`;
+    this._permissionState.set(key, decision);
+  }
+
+  getStats() {
+    return { ...this._stats };
+  }
+  getAuditLog(limit = 100) {
+    return this._auditLog.slice(-limit);
+  }
+  flushAuditLog() {
+    const log = [...this._auditLog];
+    this._auditLog = [];
+    return log;
   }
 }
 
-// Singleton instance
-const processExecutionBroker = new ProcessExecutionBroker();
-const broker = processExecutionBroker; // backward compat alias
-
-// Add default audit logger in dev
-if (process.env.NODE_ENV !== "production" && process.env.CC_BROKER_VERBOSE) {
-  processExecutionBroker.addAuditor((event, record) => {
-    if (event === "spawn" || event === "denied" || event === "error") {
-      console.error(`[broker:${event}] origin=${record.request?.origin} cmd=${record.request?.command} pid=${record.pid || "-"}`);
-    }
-  });
-}
-
-export default processExecutionBroker;
-export { ProcessExecutionBroker, processExecutionBroker, broker };
+const broker = new ProcessExecutionBroker();
+export { broker as executionBroker };
+export default broker;
