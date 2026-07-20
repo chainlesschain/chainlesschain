@@ -48,7 +48,7 @@ function cleanConfigValue(v) {
 
 /** Curated provider presets (ids must match the CLI's BUILT_IN_PROVIDERS). */
 const PROVIDER_PRESETS = [
-  { id: "volcengine", label: "Volcengine / Doubao (volcengine)", baseUrl: "https://ark.cn-beijing.volces.com/api/v3", defaultModel: "doubao-seed-2-1-pro-260628", needsKey: true },
+  { id: "volcengine", label: "Volcengine / Doubao (volcengine)", baseUrl: "https://ark.cn-beijing.volces.com/api/v3", defaultModel: "doubao-seed-evolving", needsKey: true },
   { id: "ollama", label: "Ollama (local, no key)", baseUrl: "http://localhost:11434", defaultModel: "qwen2.5:7b", needsKey: false },
   { id: "anthropic", label: "Anthropic Claude", baseUrl: "https://api.anthropic.com/v1", defaultModel: "claude-sonnet-4-6", needsKey: true },
   { id: "openai", label: "OpenAI", baseUrl: "https://api.openai.com/v1", defaultModel: "gpt-4o", needsKey: true },

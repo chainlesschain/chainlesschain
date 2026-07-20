@@ -2,6 +2,10 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.20] - Doubao coding model default update (2026-07-20)
+
+- **Updated the Volcengine/Doubao default text model** to `doubao-seed-evolving`.
+
 ## [0.37.19] - Open VSX changelog visibility refresh (2026-07-19)
 
 - **Republished the Windows lockfile ACL fix with visible release notes.** The
