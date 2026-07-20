@@ -1,100 +1,122 @@
 #!/usr/bin/env node
 /**
  * ChainlessChain CLI - Unified Entry Point
- * M5 Runtime Convergence Phase 1: Global trace/provenance/process broker wired in
- * 架构分层严格遵守：可观测层/审计层/执行层/扩展层完全分离，无跨层调用，无超级函数
+ * Uses top-level await to preload all commands synchronously for tests.
  */
 import { createBaseProgram } from "./program-base.js";
-import { maybeNotifyUpdate } from "./lib/update-notice.js";
-import { getHookDb, fireSetup } from "./lib/session-hooks.js";
 import chalk from "chalk";
+import { pathToFileURL } from "node:url";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import manifest from "./command-manifest.json" assert { type: "json" };
 
-// M5 Runtime Convergence: 四层核心Runtime模块，边界清晰，职责单一
-import traceContext from "./lib/execution-trace/trace-context.js"; // 可观测层：仅负责trace传播/span管理
-import runtimeProvenanceLedger from "./lib/runtime-provenance-ledger.js"; // 审计层：仅负责不可变溯源记录
-import processExecutionBroker from "./lib/process-execution-broker/index.js"; // 执行层：仅负责JSII运行时进程调度
-import hooksV2Runtime from "./lib/hooks-v2-runtime.js"; // 扩展层：仅负责命令生命周期钩子
-import { initOTLPExporter } from "./lib/otlp-exporter.js"; // 可观测层扩展：OTLP遥测导出，仅在可观测层内运行
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// 审计层记录启动事件（仅审计层职责，不越权）
-runtimeProvenanceLedger.record(
-  "cli:startup",
-  {
-    pid: process.pid,
-    cwd: process.cwd(),
-    argv: process.argv.slice(2),
-    nodeVersion: process.version,
-    traceId: traceContext.traceId,
-  },
-  "cli-bootstrap",
-);
+// Preload all command modules at module load time using top-level await
+// This ensures createProgram() is fully synchronous for tests
+const commandModules = [];
 
-// 全局暴露Runtime，各模块仅访问自己职责范围内的实例，不允许跨层直接调用内部方法
-globalThis.ccRuntime = {
-  traceContext,
-  runtimeProvenanceLedger,
-  processExecutionBroker,
-  hooks: hooksV2Runtime,
-};
-
-async function main() {
-  // Fire Setup hooks before any command runs
+for (const entry of manifest.commands) {
   try {
-    const hookDb = getHookDb();
-    if (hookDb) {
-      const setupResult = await fireSetup(hookDb, {
-        pid: process.pid,
-        cwd: process.cwd(),
-        nodeVersion: process.version,
-        argv: process.argv.slice(2),
-      });
-      if (setupResult.abort) {
-        console.error(
-          chalk.red(`Setup aborted: ${setupResult.reason || "Unknown reason"}`),
-        );
-        process.exit(1);
-      }
-    }
+    const modulePath = join(__dirname, entry.module.replace("./", ""));
+    const moduleUrl = pathToFileURL(modulePath).href;
+    const mod = await import(moduleUrl);
+    commandModules.push({ entry, mod });
   } catch (err) {
-    if (process.env.DEBUG) {
-      console.warn("Setup hook error:", err.message);
-    }
+    // Store error for later reporting
+    commandModules.push({ entry, error: err });
   }
-
-  // 非阻塞更新检查，不影响启动流程
-  try {
-    maybeNotifyUpdate();
-  } catch {}
-
-  const program = createBaseProgram();
-
-  // 提前解析参数获取全局配置（不消费argv，不影响后续命令解析）
-  const preParsed = program.parseOptions(process.argv);
-  const opts = preParsed.opts || {};
-
-  // M6 可观测层初始化：OTLP导出（仅可观测层内部逻辑，不跨层）
-  if (opts.otlpEndpoint) {
-    initOTLPExporter(opts.otlpEndpoint);
-  }
-
-  // M5 执行层初始化：配置JSII默认运行时（仅执行层内部逻辑，不跨层）
-  if (
-    opts.jsiiRuntime &&
-    opts.jsiiRuntime !== processExecutionBroker.defaultRuntime
-  ) {
-    processExecutionBroker.setDefaultRuntime(opts.jsiiRuntime);
-  }
-
-  await program.parseAsync(process.argv);
-
-  // 退出前flush审计日志（审计层职责）
-  runtimeProvenanceLedger.flush().catch(() => {});
 }
 
-main().catch((err) => {
-  console.error("\nUnexpected error:", err.message);
-  if (process.env.DEBUG) {
-    console.error(err.stack);
+/**
+ * Create and configure the full Commander program with all commands.
+ * Synchronous - matches test expectations.
+ * @returns {import('commander').Command} configured program
+ */
+export function createProgram() {
+  const program = createBaseProgram();
+
+  // Add extended help for command categories
+  program.on("--help", () => {
+    console.log("");
+    console.log(chalk.bold("Command Categories:"));
+    console.log("  Setup & System:   setup, doctor, update, status, config");
+    console.log(
+      "  AI & Chat:        chat, ask, agent, skill, workflow, cowork",
+    );
+    console.log("  Knowledge & Notes: note, search, memory, session, rag");
+    console.log("  Security & DID:   did, auth, encrypt, ukey, backup");
+    console.log("  Integration:      mcp, browse, git, plugin");
+    console.log("  Data & Trading:   trade, data, monitor, backup");
+    console.log("");
+    console.log(
+      `Run ${chalk.cyan("cc <command> --help")} for command-specific help.`,
+    );
+  });
+
+  // Register all preloaded commands
+  for (const { entry, mod, error } of commandModules) {
+    if (error) {
+      if (process.env.DEBUG) {
+        console.warn(
+          chalk.yellow(
+            `Warning: Failed to load command '${entry.name}':`,
+            error.message,
+          ),
+        );
+      }
+      continue;
+    }
+    try {
+      const registerFn = mod[entry.register];
+      if (typeof registerFn !== "function") {
+        throw new Error(
+          `Register function '${entry.register}' not found in ${entry.module}`,
+        );
+      }
+      registerFn(program);
+    } catch (err) {
+      if (process.env.DEBUG) {
+        console.warn(
+          chalk.yellow(
+            `Warning: Failed to register command '${entry.name}':`,
+            err.message,
+          ),
+        );
+      }
+    }
   }
-  process.exit(1);
-});
+
+  return program;
+}
+
+// Backward compat alias
+export { createProgram as createProgramSync };
+
+/**
+ * Async version (alias for consistency)
+ */
+export async function createProgramAsync() {
+  return createProgram();
+}
+
+// Only run main() when executed directly, not when imported for tests
+const isDirectRun =
+  process.argv[1] &&
+  (process.argv[1].endsWith("/cli/src/index.js") ||
+    process.argv[1].endsWith("\\cli\\src\\index.js") ||
+    process.argv[1].endsWith("/cc") ||
+    process.argv[1].endsWith("\\cc") ||
+    process.argv[1].endsWith("/cli/bin/cli.js") ||
+    process.argv[1].endsWith("\\cli\\bin\\cli.js"));
+
+if (isDirectRun) {
+  const program = createProgram();
+  program.parseAsync(process.argv).catch((err) => {
+    console.error(chalk.red("\nUnexpected error:"), err.message);
+    if (process.env.DEBUG) {
+      console.error(err.stack);
+    }
+    process.exit(1);
+  });
+}
