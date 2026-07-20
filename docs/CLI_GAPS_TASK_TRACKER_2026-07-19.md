@@ -4,7 +4,7 @@
 > 创建日期：2026-07-19
 > 当前 CLI 版本：`0.162.171`
 > 状态：进行中
-> 最后更新：2026-07-21 (P0-1 核心代码完成)
+> 最后更新：2026-07-21 (P0-1 沙箱 + P0-2 人机回路核心代码完成)
 
 ---
 
@@ -12,7 +12,7 @@
 
 | 优先级 | 任务数 | 说明 |
 |--------|--------|------|
-| 🔴 **P0** | **2** | **先做！** P0-1 核心沙箱完成，待 P0-2 人机回路 |
+| 🔴 **P0** | **2** | **P0-1 沙箱 + P0-2 人机回路核心代码完成**，待 CI 三平台验证 |
 | 🟠 P0/P1 | 1 | 权限控制面统一 |
 | 🟡 P1 | 10 | 高优先级体验/安全能力 |
 | 🟢 P2 | 4 | 差异化方向（不抢占 P0/P1）|
@@ -75,7 +75,7 @@
 
 ### P0-2: 后台人机回路（Real-time Interruption）
 
-**状态**: AgentIPCBus 框架已落地 (M2 2026-07-19)，当前 turn 内暂停/恢复未完成
+**状态**: ✅ **核心代码完成 (2026-07-21)**，待 CI 三平台功能验证
 
 **目标**:
 - 后台 Agent 运行时遇到 `AskUserQuestion` 立即暂停当前 turn
@@ -84,16 +84,53 @@
 - Resume 带相同 turn context、tool_call_id、消息序号
 
 **验收标准**:
-- [ ] Agent 遇到提问 → pause → IPC 通知 → 等待 response
-- [ ] 用户回答 → resume → 同一 turn 继续执行
-- [ ] 超时/拒绝 → 按 `onTimeout`/`onReject` 策略处理
-- [ ] Desktop 端集成 `AskUserQuestion` 渲染
-- [ ] E2E 测试：后台 agent 提问→回答→完成
+- [x] Agent 遇到提问 → pause → IPC 通知 → 等待 response
+- [x] 用户回答 → resume → 同一 turn 继续执行
+- [x] 超时/拒绝 → 按 `onTimeout`/`onReject` 策略处理
+- [x] ESLint 通过（零错误零警告）
+- [ ] Desktop 端集成 `AskUserQuestion` 渲染（后续）
+- [ ] E2E 测试：后台 agent 提问→回答→完成（CI 验证）
+
+**完成说明 (2026-07-21)**（CLI Headless 端实现）：
+
+1. **`ipc-attach-protocol.js` IPC 消息协议（新增）**：
+   - 8 种消息类型：`HELLO`/`QUESTION`/`ANSWER`/`RESUME`/`CANCEL`/`LIST_QUESTIONS`/`LIST_RESPONSE`/`BYE`
+   - 换行安全编码：`\n` → `\x1f`，`\r` → `\x1e`（避免 JSON 与 stdout 交错）
+   - 固定 `__IPC__:` 前缀过滤，stdout/stderr 分离
+   - 完整单元测试覆盖（编码/解码/换行安全/前缀过滤）
+
+2. **`background-interaction-resolver.js` 父进程侧交互解析器（新增）**：
+   - 附加到 Worker 子进程 stdio，过滤 IPC 消息
+   - 接收 QUESTION → 调用 resolver 获取答案 → 发回 ANSWER
+   - 支持超时跳过（默认 60s）、CANCEL 处理、多问题排队
+   - 错误安全：IPC 失败时不影响 agent 继续执行
+   - 完整单元测试覆盖（13 个测试用例）
+
+3. **`background-agent-worker.js` Worker 侧 AskUserQuestion 拦截**：
+   - Worker 启动后立即发送 HELLO，报告 pending questions
+   - 拦截 `ask_user_question` tool，暂停 turn，通过 IPC 发送 QUESTION
+   - 用户回答后自动 resume（带相同 turn context、tool_call_id）
+   - 支持 ANSWER/RESUME（文本/对象多格式）/CANCEL/LIST_QUESTIONS 命令
+   - 错误安全：IPC 失败时 fallback 到默认答案继续执行
+   - Worker 退出前发送 BYE
+
+4. **`background-session.js` attach 命令交互集成**：
+   - `cc cowork background attach <id>` TCP 连接到后台会话服务器
+   - 收到 QUESTION 时弹出 readline 提示，显示问题 + 选项
+   - 用户回答后编码为 ANSWER 消息发回 worker，原地恢复执行
+   - Ctrl-C 断开时发送 BYE，不中断后台 worker 执行
+   - 支持 `/detach` 命令主动脱离，旧版无 TCP 服务器 fallback 到日志流
+   - 支持 `pendingQuestion` 状态显示在列表中（`(1 pending question)`）
 
 **涉及文件**:
-- `packages/cli/src/agent/agent-ipc-bus.js`
-- `packages/cli/src/agent/agent-runtime.js`
-- `desktop-app-vue/src/main/ipc/agent-ipc-handler.js`
+- `packages/cli/src/lib/ipc-attach-protocol.js` (✅ 新增完成)
+- `packages/cli/src/lib/background-interaction-resolver.js` (✅ 新增完成)
+- `packages/cli/src/workers/background-agent-worker.js` (✅ AskUserQuestion 拦截完成)
+- `packages/cli/src/commands/background-session.js` (✅ attach IPC 集成完成)
+- `packages/cli/src/lib/background-session-transport.js` (✅ TCP 会话服务器集成)
+- `packages/cli/__tests__/unit/ipc-attach-protocol.test.js` (✅ 单元测试)
+- `packages/cli/src/agent/agent-ipc-bus.js`（现有总线，Desktop 集成后续）
+- `desktop-app-vue/src/main/ipc/agent-ipc-handler.js`（Desktop 端集成后续）
 
 ---
 

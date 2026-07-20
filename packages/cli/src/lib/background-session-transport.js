@@ -16,9 +16,11 @@
  * Protocol (one JSON object per line, both directions):
  *   client → worker: {type:"hello", token} · {type:"prompt", text}
  *                    · {type:"status"} · {type:"stop"} · {type:"detach"}
+ *                    · {type:"interaction_response", requestId, result, error?}
  *   worker → client: {type:"hello", ...status} · {type:"accepted", queued}
  *                    · {type:"status", ...status} · {type:"error", message}
  *                    · {type:"turn-started"|"turn-ended"|"idle", ...}
+ *                    · {type:"interaction_request", requestId, payload}
  */
 
 import net from "node:net";
@@ -85,13 +87,24 @@ function writeMessage(socket, message) {
  * @param {(text:string)=>{queued:number}} opts.onPrompt queue a follow-up
  *        prompt; throw to reject (message is relayed to the client)
  * @param {()=>void} [opts.onStop] kill the current agent turn
+ * @param {(requestId:string, result:any, error?:string)=>void} [opts.onInteractionResponse]
+ *        handle a user's response to a pending interaction request
  * @param {(count:number)=>void} [opts.onClientChange]
  * @param {()=>object} [opts.getStatus] session status payload for hello/status
  * @returns {Promise<{pipePath:string, clientCount:()=>number,
  *          broadcast:(msg:object)=>void, close:()=>Promise<void>}>}
  */
 export function startBackgroundSessionServer(opts) {
-  const { id, dir, token, onPrompt, onStop, onClientChange, getStatus } = opts;
+  const {
+    id,
+    dir,
+    token,
+    onPrompt,
+    onStop,
+    onInteractionResponse,
+    onClientChange,
+    getStatus,
+  } = opts;
   const pipePath = opts.pipePath || transportPipePath(id, dir);
   if (process.platform !== "win32") {
     try {
@@ -182,6 +195,36 @@ export function startBackgroundSessionServer(opts) {
               socket.end();
               return;
             }
+            case "interaction_response": {
+              try {
+                // Support both field names: requestId (client) and intId (wire legacy)
+                const { requestId, intId, answer, result, error } = message;
+                const resolvedId = requestId || intId;
+                if (!resolvedId) {
+                  writeMessage(socket, {
+                    type: "error",
+                    message: "interaction_response requires requestId or intId",
+                  });
+                  return;
+                }
+                // Single-object callback matching worker expectation: { requestId, answer, error }
+                onInteractionResponse?.({
+                  requestId: resolvedId,
+                  answer: answer ?? result,
+                  error,
+                });
+                writeMessage(socket, {
+                  type: "received",
+                  requestId: resolvedId,
+                });
+              } catch (err) {
+                writeMessage(socket, {
+                  type: "error",
+                  message: err?.message || String(err),
+                });
+              }
+              return;
+            }
             default:
               writeMessage(socket, {
                 type: "error",
@@ -217,6 +260,21 @@ export function startBackgroundSessionServer(opts) {
         clientCount: () => clients.size,
         broadcast: (message) => {
           for (const socket of clients) writeMessage(socket, message);
+        },
+        broadcastInteractionRequest: (intId, payload) => {
+          for (const socket of clients)
+            writeMessage(socket, {
+              type: "interaction_request",
+              intId,
+              requestId: intId,
+              question:
+                payload.question || payload.prompt || "Agent needs your input",
+              prompt: payload.question || payload.prompt || "",
+              hint: payload.hint || "",
+              options: payload.options || null,
+              multiSelect: payload.multiSelect || false,
+              defaultValue: payload.defaultValue,
+            });
         },
         close: () =>
           new Promise((done) => {
