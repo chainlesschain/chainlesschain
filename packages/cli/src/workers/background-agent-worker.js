@@ -25,6 +25,7 @@ import {
 } from "../lib/background-agent-supervisor.js";
 import { startBackgroundSessionServer } from "../lib/background-session-transport.js";
 import { idlePhaseFor } from "../lib/background-agent-phase.js";
+import { attachInteractionRequestHandler } from "../lib/background-interaction-resolver.js";
 
 const jobFile = process.argv[2];
 let job;
@@ -37,7 +38,10 @@ let phase = "turn";
 let turnCount = 0;
 let lastExit = { code: 0, signal: null };
 let transportState = null;
+let detachInteractionHandler = null;
 const promptQueue = [];
+// P0-2: 保存 pending 的交互请求，等 attach 客户端连接后转发
+const pendingInteractions = new Map();
 
 // Backpressure (Gap 4): an attached client can push prompts faster than
 // turns drain — an unbounded queue grows without limit and every entry is a
@@ -114,7 +118,7 @@ function startTurn(argv, promptText) {
   child = spawn(process.execPath, [job.cliEntry, ...argv], {
     cwd: job.cwd,
     env: { ...process.env, CC_BACKGROUND_AGENT_ID: job.id },
-    stdio: ["ignore", log.fd, log.fd],
+    stdio: ["ignore", log.fd, log.fd, "ipc"], // P0-2: 开启 IPC 通道用于人机交互
     windowsHide: true,
     // POSIX: give the agent child its own process group so an orphan reclaim
     // (worker crashed → supervisor kills the recorded agentPid) or /stop can
@@ -146,9 +150,71 @@ function startTurn(argv, promptText) {
     turn: turnCount,
     prompt: promptText || null,
   });
+
+  // P0-2: 挂载人机交互请求处理器，转发给 attach 客户端
+  detachInteractionHandler = attachInteractionRequestHandler(
+    child,
+    async (payload, msg) => {
+      const requestId = msg.requestId;
+      // 如果有 attach 客户端，转发给它等待响应
+      if (server && server.clientCount() > 0) {
+        return new Promise((resolve, reject) => {
+          const timer = setTimeout(
+            () => {
+              pendingInteractions.delete(requestId);
+              if (payload.defaultValue !== undefined) {
+                resolve(payload.defaultValue);
+              } else {
+                reject(new Error(`Interaction timed out: ${payload.question}`));
+              }
+            },
+            payload.timeoutMs || 5 * 60 * 1000,
+          );
+          timer.unref?.();
+          pendingInteractions.set(requestId, {
+            resolve,
+            reject,
+            timer,
+            payload,
+          });
+          server.broadcastInteractionRequest(requestId, payload);
+        });
+      }
+      // 没有客户端连接，返回默认值（如果有的话）
+      if (payload.defaultValue !== undefined) {
+        return payload.defaultValue;
+      }
+      // 没有默认值，记录到 state 让用户后续 attach 时能看到
+      mergeState({
+        pendingQuestion: {
+          intId: requestId,
+          requestId,
+          prompt: payload.prompt || payload.question,
+          hint: payload.hint,
+          options: payload.options,
+          multiSelect: payload.multiSelect,
+          timeoutMs: payload.timeoutMs,
+          askedAt: Date.now(),
+        },
+      });
+      // 等待用户 attach 后回复
+      return new Promise((resolve) => {
+        pendingInteractions.set(requestId, { resolve });
+      });
+    },
+  );
+
   child.on("exit", (code, signal) => {
     lastExit = { code, signal };
     child = null;
+    // 清理交互处理器
+    detachInteractionHandler?.();
+    detachInteractionHandler = null;
+    // 清理所有 pending 交互
+    for (const [, pending] of pendingInteractions) {
+      pending.reject?.(new Error("Agent exited"));
+    }
+    pendingInteractions.clear();
     server?.broadcast({ type: "turn-ended", turn: turnCount, exitCode: code });
     maybeContinue();
   });
@@ -257,6 +323,19 @@ async function main() {
         // wait for; finalize with the last turn's exit code.
         if (count === 0 && !child && promptQueue.length === 0) {
           finalize(lastExit.code, lastExit.signal);
+        }
+      },
+      onInteractionResponse: ({ requestId, intId, answer, error }) => {
+        // Support both field names: requestId (from transport) and intId (legacy)
+        const resolvedId = requestId ?? intId;
+        const entry = pendingInteractions.get(resolvedId);
+        if (!entry) return;
+        pendingInteractions.delete(resolvedId);
+        clearTimeout(entry.timer);
+        if (error) {
+          entry.reject(new Error(error));
+        } else {
+          entry.resolve(answer);
         }
       },
     });

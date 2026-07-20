@@ -151,6 +151,7 @@ async function followBackgroundAgent(id, options = {}) {
   }
 
   logger.log(chalk.gray(`Attached to ${id}. Streaming logs; Ctrl-C detaches.`));
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     await new Promise((resolve) => setTimeout(resolve, 1000));
     const next = readLogFromOffset(logFile, offset);
@@ -224,6 +225,84 @@ export async function interactiveAttach(id, state, options = {}) {
           case "error":
             logger.log(chalk.yellow(`— ${message.message}`));
             return;
+          case "interaction_request": {
+            // P0-2: Human-in-the-loop interaction request from the agent
+            const {
+              intId,
+              prompt,
+              hint,
+              options: opts,
+              multiSelect,
+              timeoutMs,
+            } = message;
+            logger.log("");
+            logger.log(chalk.cyan.bold("? Agent asks for your input:"));
+            logger.log(chalk.white(`  ${prompt}`));
+            if (hint) logger.log(chalk.gray(`  (${hint})`));
+            if (timeoutMs)
+              logger.log(
+                chalk.gray(`  (timeout: ${Math.round(timeoutMs / 1000)}s)`),
+              );
+            let promptText = "  Your answer";
+            if (opts && Array.isArray(opts) && opts.length > 0) {
+              logger.log("");
+              opts.forEach((opt, idx) => {
+                const label =
+                  typeof opt === "string" ? opt : opt.label || String(opt);
+                const desc =
+                  typeof opt === "object" && opt.description
+                    ? ` - ${opt.description}`
+                    : "";
+                logger.log(chalk.white(`    ${idx + 1}) ${label}${desc}`));
+              });
+              promptText = multiSelect
+                ? "  Enter number(s) (comma-separated)"
+                : "  Enter a number";
+            }
+            if (multiSelect)
+              logger.log(chalk.gray("  (multiple selections allowed)"));
+            // Pause the log stream and prompt the user via readline
+            rl.question(chalk.cyan(`${promptText}: `), (raw) => {
+              const answer = raw.trim();
+              let resolved = answer;
+              if (opts && Array.isArray(opts) && opts.length > 0) {
+                // Parse numeric selection
+                const nums = answer
+                  .split(",")
+                  .map((s) => parseInt(s.trim(), 10))
+                  .filter((n) => n >= 1 && n <= opts.length);
+                if (nums.length === 0) {
+                  logger.log(
+                    chalk.yellow("  Invalid selection, sending raw text"),
+                  );
+                } else if (multiSelect) {
+                  resolved = nums.map((n) => opts[n - 1]);
+                } else {
+                  resolved = opts[nums[0] - 1];
+                }
+                // Normalize to value if object option
+                if (multiSelect) {
+                  resolved = resolved.map((o) =>
+                    typeof o === "object" && o.value !== undefined
+                      ? o.value
+                      : o,
+                  );
+                } else if (
+                  typeof resolved === "object" &&
+                  resolved.value !== undefined
+                ) {
+                  resolved = resolved.value;
+                }
+              }
+              conn.send({
+                type: "interaction_response",
+                intId,
+                answer: resolved,
+              });
+              logger.log(chalk.gray("— response sent to agent"));
+            });
+            return;
+          }
           default:
             return;
         }
@@ -247,6 +326,14 @@ export async function interactiveAttach(id, state, options = {}) {
       `Attached to ${id} (interactive). Type a prompt to continue the session; /stop · /status · Ctrl-C detaches.`,
     ),
   );
+
+  // P0-2: If the agent is already waiting for human input (e.g. the question
+  // was issued before this client attached, or a previous client detached
+  // without answering), re-prompt immediately.
+  const preExistingQuestion =
+    state.status === "awaiting-input" && state.pendingQuestion
+      ? { ...state.pendingQuestion }
+      : null;
 
   const readline = await import("node:readline");
   const rl = readline.createInterface({
@@ -272,6 +359,21 @@ export async function interactiveAttach(id, state, options = {}) {
   });
   const detach = () => rl.close();
   rl.on("SIGINT", detach);
+
+  if (preExistingQuestion) {
+    setImmediate(() => {
+      conn.onEvent?.({
+        type: "interaction_request",
+        intId: preExistingQuestion.intId,
+        prompt: preExistingQuestion.prompt,
+        hint: preExistingQuestion.hint,
+        options: preExistingQuestion.options,
+        multiSelect: preExistingQuestion.multiSelect,
+        timeoutMs: preExistingQuestion.timeoutMs,
+        _deferred: true,
+      });
+    });
+  }
 
   await new Promise((resolve) => {
     rl.on("close", resolve);
@@ -691,4 +793,237 @@ export function registerBackgroundSessionCommands(program) {
         process.exitCode = 1;
       }
     });
+}
+
+/**
+ * Interactive attach: connect to background agent TCP session server,
+ * relay stdin prompts to the agent and stdout/agent-turn events to the
+ * terminal, and handle P0-2 askUserQuestion IPC interactions.
+ */
+async function interactiveAttach(agentId, lines, followFlag) {
+  const meta = getBackgroundAgentMeta(agentId);
+  if (!meta) {
+    throw new Error(`background agent ${agentId} not found`);
+  }
+  if (!meta.port || !meta.token) {
+    // Fall back to log streaming when no interactive transport exists.
+    return streamAttachLogs(agentId, lines, followFlag);
+  }
+  const chalk = (await import("chalk")).default;
+  const readline = await import("node:readline");
+  const net = await import("node:net");
+  const { encodeIpcMessage } = await import("../lib/ipc-attach-protocol.js");
+
+  let connected = false;
+  let authenticated = false;
+  const pendingQuestions = new Map();
+  let rl = null;
+  let buffer = "";
+
+  const sock = net.createConnection(
+    { port: meta.port, host: "127.0.0.1" },
+    () => {
+      connected = true;
+      // First frame: hello carries the auth token (type PROMPT with token).
+      sock.write(encodeIpcMessage("PROMPT", { text: "", token: meta.token }));
+    },
+  );
+
+  sock.on("data", (chunk) => {
+    buffer += chunk.toString("utf8");
+    const newline = buffer.indexOf("\n");
+    while (newline !== -1) {
+      const line = buffer.slice(0, newline);
+      buffer = buffer.slice(newline + 1);
+      if (line.startsWith("__IPC__:")) {
+        try {
+          const msg = JSON.parse(
+            line
+              .slice("__IPC__:".length)
+              .replace(/\x1f/g, "\n")
+              .replace(/\x1e/g, "\r"),
+          );
+          handleServerMessage(msg);
+        } catch {
+          // ignore malformed IPC
+        }
+      } else if (line.trim()) {
+        process.stdout.write(line + "\n");
+      }
+    }
+  });
+
+  sock.on("error", (err) => {
+    process.stderr.write(
+      chalk.yellow(`\n[attach] connection failed: ${err.message}\n`),
+    );
+    if (!connected) {
+      // Fall back to log streaming.
+      process.stderr.write(chalk.gray("[attach] falling back to log stream\n"));
+      streamAttachLogs(agentId, lines, followFlag).catch(() => {});
+    }
+  });
+
+  sock.on("close", () => {
+    if (rl) rl.close();
+    process.stdout.write(
+      chalk.gray(`\n[attach] session closed for ${agentId}\n`),
+    );
+    process.exit(0);
+  });
+
+  function handleServerMessage(msg) {
+    switch (msg.type) {
+      case SERVER_HELLO: {
+        authenticated = msg.ok === true;
+        if (!authenticated) {
+          process.stderr.write(
+            chalk.red(`[attach] auth rejected: ${msg.error || "bad token"}\n`),
+          );
+          sock.end();
+          return;
+        }
+        process.stdout.write(
+          chalk.cyan(`[attach] connected to background agent ${agentId}\n`),
+        );
+        process.stdout.write(
+          chalk.gray(
+            `[attach] agent pid ${meta.agentPid || "unknown"}, turn ${msg.turn || 0}\n`,
+          ),
+        );
+        // Now it is safe to accept user input.
+        rl = readline.createInterface({
+          input: process.stdin,
+          output: process.stdout,
+        });
+        rl.on("line", (text) => {
+          const trimmed = text.trim();
+          if (!trimmed) return;
+          if (
+            trimmed === "/detach" ||
+            trimmed === "/exit" ||
+            trimmed === "/quit"
+          ) {
+            process.stdout.write(chalk.gray("[attach] detaching\n"));
+            sock.end();
+            rl.close();
+            return;
+          }
+          if (pendingQuestions.size > 0) {
+            // Route the next line to the oldest pending question.
+            const [reqId, q] = pendingQuestions.entries().next().value;
+            pendingQuestions.delete(reqId);
+            sock.write(
+              deserializeAttachFrame({
+                type: CLIENT_RESPONSE,
+                requestId: reqId,
+                answer: trimmed,
+              }),
+            );
+            process.stdout.write(
+              chalk.gray(`[attach] answered question: ${trimmed}\n`),
+            );
+            return;
+          }
+          // Treat as a new prompt for the agent.
+          sock.write(
+            deserializeAttachFrame({ type: CLIENT_PROMPT, text: trimmed }),
+          );
+        });
+        // Print buffered log lines from the initial connection.
+        if (Array.isArray(msg.lines)) {
+          for (const ln of msg.lines.slice(-lines))
+            process.stdout.write(ln + "\n");
+        }
+        break;
+      }
+      case "stdout": {
+        if (msg.chunk) process.stdout.write(msg.chunk);
+        break;
+      }
+      case "stderr": {
+        if (msg.chunk) process.stderr.write(msg.chunk);
+        break;
+      }
+      case "interaction-request": {
+        pendingQuestions.set(msg.requestId, msg.payload);
+        const p = msg.payload || {};
+        process.stdout.write(
+          "\n" + chalk.bold.yellow("? Agent needs your input:\n"),
+        );
+        if (p.question) process.stdout.write(chalk.yellow(p.question) + "\n");
+        if (Array.isArray(p.options) && p.options.length) {
+          p.options.forEach((opt, i) => {
+            process.stdout.write(chalk.gray(`  ${i + 1}. ${opt}\n`));
+          });
+        }
+        process.stdout.write(chalk.gray("Type your answer below:\n> "));
+        break;
+      }
+      case "interaction-skipped": {
+        process.stderr.write(
+          chalk.gray(
+            `\n[attach] question ${msg.requestId} timed out / skipped\n`,
+          ),
+        );
+        pendingQuestions.delete(msg.requestId);
+        break;
+      }
+      case "agent-turn": {
+        process.stdout.write(chalk.gray(`\n[agent turn ${msg.turn}]\n`));
+        break;
+      }
+      case "turn-finished": {
+        process.stdout.write(
+          chalk.green(`\n✔ turn ${msg.turn} finished (${msg.exitCode ?? 0})\n`),
+        );
+        break;
+      }
+      case "stopped": {
+        process.stdout.write(
+          chalk.gray(`\n[attach] background agent stopped; detaching\n`),
+        );
+        sock.end();
+        break;
+      }
+      default:
+        // Unknown events are silently ignored for forward-compat.
+        break;
+    }
+  }
+}
+
+/**
+ * Fallback: tail the background agent's log file when no interactive
+ * session transport is available (e.g. daemon started by an older CLI).
+ */
+async function streamAttachLogs(agentId, lines, followFlag) {
+  const path = await import("node:path");
+  const fs = await import("node:fs");
+  const meta = getBackgroundAgentMeta(agentId);
+  if (!meta) return;
+  const logPath = path.join(getBackgroundSessionsDir(), `${agentId}.log`);
+  if (!fs.existsSync(logPath)) {
+    process.stderr.write(`no log for ${agentId}\n`);
+    return;
+  }
+  const content = fs.readFileSync(logPath, "utf8").split("\n");
+  for (const ln of content.slice(-lines)) process.stdout.write(ln + "\n");
+  if (!followFlag) return;
+  // Simple follow via watchFile.
+  let position = fs.statSync(logPath).size;
+  fs.watchFile(logPath, { interval: 500 }, () => {
+    const stat = fs.statSync(logPath);
+    if (stat.size <= position) return;
+    const fh = fs.openSync(logPath, "r");
+    const buf = Buffer.alloc(stat.size - position);
+    fs.readSync(fh, buf, 0, buf.length, position);
+    fs.closeSync(fh);
+    position = stat.size;
+    process.stdout.write(buf.toString("utf8"));
+    if (!getBackgroundAgentMeta(agentId)) {
+      fs.unwatchFile(logPath);
+      process.exit(0);
+    }
+  });
 }
