@@ -3,12 +3,13 @@
  * the tool-level PreToolUse/PostToolUse hooks already wired in
  * `runtime/agent-core.js`.
  *
- * Four session-level events are fired from `repl/agent-repl.js`:
+ * Five session-level events are fired from `repl/agent-repl.js`:
  *
  *   - SessionStart       — once, after sessionId is established
  *   - UserPromptSubmit   — per user line, before agentLoop()
  *   - AssistantResponse  — per agent reply, after agentLoop() returns
  *   - SessionEnd         — once, on rl.close() before shutdown
+ *   - Notification       — system notifications/warnings/errors, hook can suppress/override
  *
  * Semantics (matches existing PreToolUse convention):
  *   - Fire-and-forget by default: hook failures NEVER break the host flow
@@ -32,6 +33,7 @@ export const SESSION_HOOK_EVENTS = Object.freeze([
   HookEvents.UserPromptSubmit,
   HookEvents.AssistantResponse,
   HookEvents.SessionEnd,
+  HookEvents.Notification,
 ]);
 
 /**
@@ -609,4 +611,52 @@ export async function fireSessionStop({
     error: error ? String(error.message ?? error) : "",
     timestamp: new Date().toISOString(),
   });
+}
+
+/**
+ * Fire a Notification hook — when the CLI outputs a system notification
+ * or status message that the user may want to intercept, forward, or log.
+ *
+ * A hook may control output by emitting a single JSON line to stdout:
+ *   {"suppress": true}       — don't show the notification in terminal
+ *   {"message": "..."}       — override the displayed message
+ *   {"forward": "url"}       — forward notification to external service
+ *
+ * @param {object|null} hookDb  better-sqlite3 handle, or null to no-op
+ * @param {Object} opts
+ * @param {'info'|'warn'|'error'|'success'} [opts.level='info'] - Notification severity
+ * @param {string} opts.message - Notification message text
+ * @param {string} [opts.title=''] - Optional notification title
+ * @param {object} [opts.metadata={}] - Additional context (source, event type, etc.)
+ * @returns {Promise<{suppress: boolean, message: string, results: Array}>}
+ */
+export async function fireNotification(
+  hookDb,
+  { level = "info", message, title = "", metadata = {} },
+) {
+  const results = await fireSessionHook(hookDb, HookEvents.Notification, {
+    level,
+    title,
+    message,
+    metadata,
+  });
+
+  let suppress = false;
+  let finalMessage = message;
+
+  for (const r of results) {
+    if (!r || !r.success) continue;
+    const directive = extractDirective(r);
+    if (!directive) continue;
+    if (directive.suppress) {
+      suppress = true;
+      break;
+    }
+    if (typeof directive.message === "string" && directive.message.length > 0) {
+      finalMessage = directive.message;
+      break;
+    }
+  }
+
+  return { suppress, message: finalMessage, results };
 }

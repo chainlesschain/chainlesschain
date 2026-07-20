@@ -25,12 +25,13 @@ describe("session-hooks", () => {
   });
 
   describe("SESSION_HOOK_EVENTS", () => {
-    it("whitelists SessionStart, UserPromptSubmit, AssistantResponse, SessionEnd", () => {
+    it("whitelists SessionStart, UserPromptSubmit, AssistantResponse, SessionEnd, Notification", () => {
       expect(SESSION_HOOK_EVENTS).toEqual([
         HookEvents.SessionStart,
         HookEvents.UserPromptSubmit,
         HookEvents.AssistantResponse,
         HookEvents.SessionEnd,
+        HookEvents.Notification,
       ]);
     });
 

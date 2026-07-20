@@ -210,6 +210,7 @@ Claude Code 当前官方 Hook 面已包括更完整的生命周期，并支持 `
 
 1. 建立唯一 `HookEventSchema`，CLI、SDK、IDE、插件共用版本和 Golden Fixtures。
 2. 补齐高价值事件：
+   - `Notification` ✅ **已实现**（`hook-events.js` 新增枚举、`session-hooks.js` 实现 `fireNotification`、`agent-repl.js` 接入触发、payload 支持 `message`/`level`/`subtitle` 字段）
    - `Setup`
    - `UserPromptExpansion`
    - `PostToolUseFailure`
@@ -558,7 +559,8 @@ mTLS 和团队级成本/失败聚合；继续坚持内容默认不出端。
 - [`packages/cli/src/lib/hook-runner.cjs`](../packages/cli/src/lib/hook-runner.cjs)
 - [`packages/cli/src/lib/hook-event-bus.cjs`](../packages/cli/src/lib/hook-event-bus.cjs)
 
----
+| **2026-07-20 — 落地** | **Notification Hook 事件** |
+| | ✅ **已完成** — 新增 `HookEvents.Notification` 事件类型，在 `session-hooks.js` 中实现 `fireNotification()` 函数，在 `agent-repl.js` 中接入事件触发点（权限请求、子智能体输出、配额告警、闲置告警时触发），可通过 `$CLAUDE_PROJECT_DIR/.claude/hooks/notification/<lifecycle>.sh` 配置脚本，支持 `CLD_HOOK_EVENT_SOURCE=notification` 和 `CLD_NOTIFICATION_MESSAGE` 环境变量 |
 
 ## 19. Runtime Convergence 实现交付记录 (2026-07-19)
 

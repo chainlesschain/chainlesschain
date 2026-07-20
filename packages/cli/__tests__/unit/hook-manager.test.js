@@ -54,9 +54,9 @@ describe("Hook Manager", () => {
   });
 
   describe("HookEvents", () => {
-    it("defines 31 event types", () => {
+    it("defines 32 event types", () => {
       const eventCount = Object.keys(HookEvents).length;
-      expect(eventCount).toBe(31);
+      expect(eventCount).toBe(32);
     });
 
     it("includes the Notification event", () => {

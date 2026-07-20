@@ -77,6 +77,7 @@ import {
   fireUserPromptSubmit,
   fireAssistantResponse,
   fireSessionStop,
+  fireNotification,
 } from "../lib/session-hooks.js";
 import { HookEvents } from "../lib/hook-manager.js";
 import { IterationBudget } from "../lib/iteration-budget.js";
@@ -182,21 +183,46 @@ function persistRecentDenial(record, options = {}) {
  * user's attention (e.g. waiting on a permission/risk confirmation). A hook can
  * ring a bell / send a desktop notification. Best-effort, never blocks.
  */
-async function _fireNotification(message) {
-  if (!_settingsHooks) return;
-  try {
-    const { runObserveHooks } = await import("../lib/settings-hook-events.cjs");
-    runObserveHooks(
-      _settingsHooks,
-      "Notification",
-      { message, cwd: process.cwd(), session_id: null },
-      { cwd: process.cwd() },
-    );
-  } catch (_err) {
-    // observe-only — never affect the prompt
+async function _fireNotification(message, type = "info") {
+  // Fire settings.json observe hooks first (best-effort)
+  if (_settingsHooks) {
+    try {
+      const { runObserveHooks } =
+        await import("../lib/settings-hook-events.cjs");
+      runObserveHooks(
+        _settingsHooks,
+        "Notification",
+        {
+          message,
+          type,
+          cwd: process.cwd(),
+          session_id: _session?.sessionId || null,
+        },
+        { cwd: process.cwd() },
+      );
+    } catch (_err) {
+      // observe-only — never affect the prompt
+    }
   }
+  // Fire database-registered Notification hooks (interceptable/suppressible)
+  if (_session) {
+    try {
+      const result = await fireNotification(_hookDb, message, {
+        session: _session,
+        type,
+      });
+      if (result?.directive?.suppress) {
+        return { suppress: true };
+      }
+      if (result?.directive?.message) {
+        return { message: result.directive.message };
+      }
+    } catch (_err) {
+      // ignore hook errors
+    }
+  }
+  return { message };
 }
-
 /**
  * "Always allow" persistence: derive a sensible allow rule for a tool call,
  * append it to .claude/settings.local.json (personal, gitignored), and reflect
