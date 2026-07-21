@@ -17,6 +17,18 @@ const manifest = JSON.parse(
  * @param {string[]} argv - process.argv
  * @returns {Promise<void>}
  */
+/** Return the first top-level command token in a process argv array. */
+export function resolveCommandToken(argv = []) {
+  const args = Array.isArray(argv) ? argv.slice(2) : [];
+  for (const token of args) {
+    if (token === "--") return null;
+    if (token === "--verbose" || token === "--quiet") continue;
+    if (["--help", "-h", "--version", "-v", "-V"].includes(token)) return null;
+    if (!token.startsWith("-")) return token;
+  }
+  return null;
+}
+
 export async function runCli(argv) {
   const args = argv.slice(2);
 
@@ -34,7 +46,7 @@ export async function runCli(argv) {
   }
 
   // Try to find the command in manifest
-  const commandName = args[0];
+  const commandName = resolveCommandToken(argv);
   const entry = manifest.commands.find(
     (c) =>
       c.name === commandName || (c.aliases && c.aliases.includes(commandName)),

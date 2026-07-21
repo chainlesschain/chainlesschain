@@ -33,8 +33,16 @@ for (const entry of manifest.commands) {
  * Synchronous - matches test expectations.
  * @returns {import('commander').Command} configured program
  */
-export function createProgram() {
+export function createProgram(options = {}) {
   const program = createBaseProgram();
+
+  const hasOptionWhitelist = Object.prototype.hasOwnProperty.call(options, 'allowedCommands');
+  const allowedCommands = hasOptionWhitelist
+    ? options.allowedCommands
+    : process.env.CC_PROJECT_ALLOWED_SUBCOMMANDS
+      ? new Set(process.env.CC_PROJECT_ALLOWED_SUBCOMMANDS.split(',').map((name) => name.trim()).filter(Boolean))
+      : null;
+  const shouldFilter = allowedCommands instanceof Set && allowedCommands.size > 0;
 
   // Add extended help for command categories
   program.on("--help", () => {
@@ -56,6 +64,7 @@ export function createProgram() {
 
   // Register all preloaded commands
   for (const { entry, mod, error } of commandModules) {
+    if (shouldFilter && !allowedCommands.has(entry.name)) continue;
     if (error) {
       if (process.env.DEBUG) {
         console.warn(
