@@ -53,7 +53,7 @@ jobs:
       - name: Install audit parser deps
         # acorn + eslint-scope are dev tooling for the audit only; install them
         # standalone (no workspace lifecycle scripts / native builds).
-        run: npm install acorn eslint-scope --no-save --no-audit --no-fund --no-package-lock
+        run: npm install acorn eslint-scope --no-save --no-audit --no-fund --no-package-lock --legacy-peer-deps
 
       - name: Run audit unit tests
         run: node --test scripts/__tests__/audit-esm-require.test.mjs

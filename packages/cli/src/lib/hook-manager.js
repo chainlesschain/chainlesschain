@@ -335,7 +335,7 @@ export async function executeHook(hook, context = {}) {
     // 核心修复：lint/build类hook即使退出码非0/ENOBUFS，只要有输出就认为成功
     // 只有命令不存在/超时这种真·致命错误才标记失败
     const stdoutStr = err.stdout ? err.stdout.toString().trim() : "";
-    if (stdoutStr.length > 0) {
+    if (err.code === "ENOBUFS" && stdoutStr.length > 0) {
       return { success: true, result: stdoutStr, error: null, executionTime };
     }
     if (err.code === "ENOBUFS" && err.stderr) {
@@ -347,10 +347,15 @@ export async function executeHook(hook, context = {}) {
     // 仅致命错误返回失败
     const fatalCodes = new Set(["ENOENT", "EACCES", "ETIMEDOUT"]);
     if (fatalCodes.has(err.code)) {
-      return { success: false, result: null, error: err.message, executionTime };
+      return {
+        success: false,
+        result: null,
+        error: err.message,
+        executionTime,
+      };
     }
     // 其余情况（退出码非0但无输出）默认成功，不阻断流程
-    return { success: true, result: null, error: null, executionTime };
+    return { success: false, result: null, error: err.message, executionTime };
   }
 }
 
