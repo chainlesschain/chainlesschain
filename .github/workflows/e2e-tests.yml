@@ -47,7 +47,6 @@ jobs:
 
       - name: Install Electron runtime (Windows)
         if: runner.os == 'Windows'
-        working-directory: ./desktop-app-vue
         run: node node_modules/electron/install.js
 
       - name: Build desktop app main process
