@@ -2,20 +2,20 @@
 
 > 来源：`CLAUDE_CODE_CLI_CURRENT_GAPS_AND_OPTIMIZATIONS_2026-07-18.md`
 > 创建日期：2026-07-19
-> 当前 CLI 版本：`0.162.171`
-> 状态：进行中
-> 最后更新：2026-07-21 (P0-1 沙箱 + P0-2 人机回路核心代码完成)
+> 当前 CLI 版本：`0.162.174`
+> 状态：P0 核心实现完成，主仓 CI 已通过，CLI CI 发布前验证中
+> 最后更新：2026-07-21 (P0-1/P0-2 核心代码及主仓 CI 验证完成)
 
 ---
 
 ## 执行优先级
 
-| 优先级 | 任务数 | 说明 |
-|--------|--------|------|
-| 🔴 **P0** | **2** | **P0-1 沙箱 + P0-2 人机回路核心代码完成**，待 CI 三平台验证 |
-| 🟠 P0/P1 | 1 | 权限控制面统一 |
-| 🟡 P1 | 10 | 高优先级体验/安全能力 |
-| 🟢 P2 | 4 | 差异化方向（不抢占 P0/P1）|
+| 优先级    | 任务数 | 说明                                                                           |
+| --------- | ------ | ------------------------------------------------------------------------------ |
+| 🔴 **P0** | **2**  | **P0-1 沙箱 + P0-2 人机回路核心代码完成**，主仓 CI 已通过，CLI CI 发布前验证中 |
+| 🟠 P0/P1  | 1      | 权限控制面统一                                                                 |
+| 🟡 P1     | 10     | 高优先级体验/安全能力                                                          |
+| 🟢 P2     | 4      | 差异化方向（不抢占 P0/P1）                                                     |
 
 ---
 
@@ -23,9 +23,10 @@
 
 ### P0-1: 进程隔离（ProcessExecutionBroker 生产化）
 
-**状态**: ✅ **核心代码完成 (2026-07-21)**，待三平台功能验证 + parity 测试
+**状态**: ✅ **核心代码完成 (2026-07-21)**；主仓 Code Quality、CI、E2E（Ubuntu/macOS/Windows）及全量自动化均已通过
 
 **目标**:
+
 - macOS: Seatbelt sandbox（`sandbox-exec` profile）
 - Windows: 原生 Win32 Job Object + Restricted Token 强边界
 - Linux: seccomp-bpf + Landlock（当前使用 bwrap namespace 隔离，landlock 后续增强）
@@ -33,11 +34,12 @@
 - 凭据代理 default-on（secrets 永远不裸传给子进程）
 
 **验收标准**:
+
 - [x] macOS sandbox profile 覆盖文件/网络/信号（strict/default/network-only 三种 profile）
 - [x] Windows Job Object 限制子进程 + kill on close（postSpawn 自动关联作业）
 - [x] 所有 `child_process.spawn` 走 Broker，无绕过（spawn/spawnSync 双路径集成）
 - [x] 凭据通过 CredentialAgent 代理注入（default-on，敏感 env/args 自动过滤打码）
-- [ ] 三平台 parity 测试通过（待后续跑验证）
+- [x] 主仓三平台构建与 E2E 验证通过（2026-07-21）`r`n- [ ] CLI 专项 parity 测试（发布前 CLI CI 验证中）
 - [x] 语法校验通过（node --check platform-sandbox.js / credential-agent.js / index.js 全 OK）
 - [x] CC_SANDBOX_STRICT 模式 fail-closed 支持
 - [x] 环境变量控制开关（CC_SANDBOX_DISABLE / CC_SANDBOX_STRICT / CC_CRED_AGENT_DISABLE）
@@ -66,6 +68,7 @@
    - STRICT 模式下沙箱初始化失败直接拒绝执行（fail-closed），非严格模式仅警告继续
 
 **涉及文件**:
+
 - `packages/cli/src/lib/process-execution-broker/index.js` (Broker 主逻辑，已完成集成)
 - `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` (✅ 新增完成)
 - `packages/cli/src/lib/process-execution-broker/credential-agent.js` (✅ 新增完成)
@@ -75,21 +78,23 @@
 
 ### P0-2: 后台人机回路（Real-time Interruption）
 
-**状态**: ✅ **核心代码完成 (2026-07-21)**，待 CI 三平台功能验证
+**状态**: ✅ **核心代码完成 (2026-07-21)**；主仓 CI 与全量自动化已通过，CLI 专项 CI 发布前验证中
 
 **目标**:
+
 - 后台 Agent 运行时遇到 `AskUserQuestion` 立即暂停当前 turn
 - 通过 IPC 总线发送问题到 UI/终端
 - 用户回答后**原地恢复**执行（非结束后另起一轮）
 - Resume 带相同 turn context、tool_call_id、消息序号
 
 **验收标准**:
+
 - [x] Agent 遇到提问 → pause → IPC 通知 → 等待 response
 - [x] 用户回答 → resume → 同一 turn 继续执行
 - [x] 超时/拒绝 → 按 `onTimeout`/`onReject` 策略处理
 - [x] ESLint 通过（零错误零警告）
 - [ ] Desktop 端集成 `AskUserQuestion` 渲染（后续）
-- [ ] E2E 测试：后台 agent 提问→回答→完成（CI 验证）
+- [ ] E2E 测试：后台 agent 提问→回答→完成（CLI 专项 CI 验证中）
 
 **完成说明 (2026-07-21)**（CLI Headless 端实现）：
 
@@ -123,6 +128,7 @@
    - 支持 `pendingQuestion` 状态显示在列表中（`(1 pending question)`）
 
 **涉及文件**:
+
 - `packages/cli/src/lib/ipc-attach-protocol.js` (✅ 新增完成)
 - `packages/cli/src/lib/background-interaction-resolver.js` (✅ 新增完成)
 - `packages/cli/src/workers/background-agent-worker.js` (✅ AskUserQuestion 拦截完成)
@@ -141,12 +147,14 @@
 **状态**: 当前为 advisory 两套系统（运行时硬拒绝 vs 配置文件规则）
 
 **目标**:
+
 - `cc permissions` CLI 直接 gate Agent 工具运行时
 - 统一规则来源：CLI 配置 + Desktop 策略
 - 规则变更实时生效（无需重启）
 - 决策审计日志
 
 **验收标准**:
+
 - [ ] `cc permissions allow/deny/list` 命令完整
 - [ ] Agent tool 调用前查 PermissionManager
 - [ ] Deny 规则立即阻断，Allow 规则持久化
@@ -156,18 +164,18 @@
 
 ## 🟡 P1 任务（P0 完成后执行）
 
-| # | 任务 | 状态 | 说明 |
-|---|------|------|------|
-| P1-4 | Hooks v2 完整实现 | 框架完成 | 5种 executor + 11事件待补 + 沙箱执行 |
-| P1-5 | MCP Elicitation 路由 | 未开始 | Elicitation 生产/UI/Headless 三路由 |
-| P1-6 | Event Runtime 常驻化 | 框架完成 | daemon 模式、租约、补跑、背压闭环 |
-| P1-7 | Context 来源归因 | M4 完成 | Skill 按需加载归因、MCP schema 统计 |
-| P1-8 | Checkpoint REPL 统一 | 部分 | turn-binding 生产者、tool_use_id 完整浮出 |
-| P1-9 | Plugin 安全强化 | 未开始 | Keychain、lockfile/SBOM、进程 Broker 强制 |
-| P1-10 | 并发状态 fail-closed | 未开始 | 锁超时后拒绝而非 best-effort 继续 |
-| P1-11 | JSON Schema 完整支持 | 未开始 | Draft 2020-12、$ref/组合关键字 |
-| P1-12 | SDK/CI 事件透传 | M5 部分 | goal/approval/turn 事件 + Python/CI 模板 |
-| P1-13 | 验收门与文档清理 | M5 脚本完成 | 9项 parity 子项 + 旧文档标记 |
+| #     | 任务                 | 状态        | 说明                                      |
+| ----- | -------------------- | ----------- | ----------------------------------------- |
+| P1-4  | Hooks v2 完整实现    | 框架完成    | 5种 executor + 11事件待补 + 沙箱执行      |
+| P1-5  | MCP Elicitation 路由 | 未开始      | Elicitation 生产/UI/Headless 三路由       |
+| P1-6  | Event Runtime 常驻化 | 框架完成    | daemon 模式、租约、补跑、背压闭环         |
+| P1-7  | Context 来源归因     | M4 完成     | Skill 按需加载归因、MCP schema 统计       |
+| P1-8  | Checkpoint REPL 统一 | 部分        | turn-binding 生产者、tool_use_id 完整浮出 |
+| P1-9  | Plugin 安全强化      | 未开始      | Keychain、lockfile/SBOM、进程 Broker 强制 |
+| P1-10 | 并发状态 fail-closed | 未开始      | 锁超时后拒绝而非 best-effort 继续         |
+| P1-11 | JSON Schema 完整支持 | 未开始      | Draft 2020-12、$ref/组合关键字            |
+| P1-12 | SDK/CI 事件透传      | M5 部分     | goal/approval/turn 事件 + Python/CI 模板  |
+| P1-13 | 验收门与文档清理     | M5 脚本完成 | 9项 parity 子项 + 旧文档标记              |
 
 ### Hooks v2 待补事件（11项，Notification 已完成）
 
@@ -199,18 +207,18 @@
 
 ## 🟢 P2 任务（差异化方向，按需执行）
 
-| # | 任务 | 说明 |
-|---|------|------|
-| P2-14 | 全工具文件回滚 | Process Broker 捕获所有文件写入，支持 checkpoint 回滚 |
-| P2-15 | Auto mode 安全分类器 | 危险操作自动识别评测集 |
-| P2-16 | 大规模 Agent Teams | 多 agent 协作扩展 |
-| P2-17 | 标准 OTel Collector 出口 | 兼容生态可观测性工具 |
+| #     | 任务                     | 说明                                                  |
+| ----- | ------------------------ | ----------------------------------------------------- |
+| P2-14 | 全工具文件回滚           | Process Broker 捕获所有文件写入，支持 checkpoint 回滚 |
+| P2-15 | Auto mode 安全分类器     | 危险操作自动识别评测集                                |
+| P2-16 | 大规模 Agent Teams       | 多 agent 协作扩展                                     |
+| P2-17 | 标准 OTel Collector 出口 | 兼容生态可观测性工具                                  |
 
 ---
 
-## ✅ 已完成（M0-M6 + P0-1 核心，2026-07-19/20/21 落地）
+## ✅ 已完成（M0-M6 + P0-1/P0-2 核心，2026-07-19/20/21 落地）
 
-- [x] **P0-1 三平台沙箱 + 凭据代理核心代码 (2026-07-21)**
+- [x] **P0-1 三平台沙箱 + 凭据代理核心代码 (2026-07-21)**`r`n- [x] **主仓 CI 验证 (2026-07-21)**：Code Quality、CI Tests、E2E Tests（Ubuntu/macOS/Windows）、Full Test Automation 全部通过
 - [x] Notification Hook 事件（2026-07-20）
 - [x] M0: `process-execution-broker` 单例 + spawn 审计清单
 - [x] M0: parity 验证脚本 + `npm run runtime:convergence`
@@ -230,12 +238,12 @@
 
 ## 近期里程碑
 
-| 日期 | 目标 |
-|------|------|
-| **本周** | P0-2 后台人机回路 turn 内暂停/恢复完成 |
-| **下周** | P0/P1-3 权限控制面统一 + P1-4 Hooks v2 完整事件 |
-| **两周后** | P1-5 ~ P1-8 完成 |
-| **三周后** | 9项 parity 验收门全绿，文档清理完成 |
+| 日期       | 目标                                            |
+| ---------- | ----------------------------------------------- |
+| **本周**   | P0-2 后台人机回路 turn 内暂停/恢复完成          |
+| **下周**   | P0/P1-3 权限控制面统一 + P1-4 Hooks v2 完整事件 |
+| **两周后** | P1-5 ~ P1-8 完成                                |
+| **三周后** | 9项 parity 验收门全绿，文档清理完成             |
 
 ---
 
