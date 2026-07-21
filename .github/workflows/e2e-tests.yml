@@ -45,6 +45,11 @@ jobs:
           install-command: ${{ runner.os == 'Windows' && 'npm install --legacy-peer-deps --ignore-scripts' || 'npm install --legacy-peer-deps' }}
           install-desktop-app-vue: "true"
 
+      - name: Install Electron runtime (Windows)
+        if: runner.os == 'Windows'
+        working-directory: ./desktop-app-vue
+        run: node node_modules/electron/install.js
+
       - name: Build desktop app main process
         working-directory: ./desktop-app-vue
         run: npm run build:main
