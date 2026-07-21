@@ -253,7 +253,6 @@ function _enforceOwnerOnly(target, desiredMode, allowInsecurePermissions) {
     }
   } catch (err) {
     if (allowInsecurePermissions) {
-      console.warn("[ide-bridge] lockfile permission enforcement failed (allowed):", err.message);
       return false;
     }
     throw err;
@@ -352,7 +351,8 @@ function writeLock({
         return;
       }
       try {
-        _enforceOwnerOnly(p, mode, true);
+        const enforced = _enforceOwnerOnly(p, mode, true);
+        if (!enforced) warnSkip("permission enforcement failed");
       } catch (err) {
         warnSkip(err.message);
       }

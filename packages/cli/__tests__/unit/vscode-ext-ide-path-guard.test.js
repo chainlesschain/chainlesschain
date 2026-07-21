@@ -300,19 +300,14 @@ describe("lockfile — Windows ACL tightening", () => {
     const calls = [];
     lockfile._deps.spawnSync = (cmd, args) => {
       calls.push([cmd, args]);
-      return { status: 0 };
+      const inspecting = String(args[6] || "").includes("ownerOnly");
+      return inspecting ? { status: 0, stdout: '{"ownerOnly":true}' } : { status: 0 };
     };
     const file = lockfile.writeLock({ port: 4321, token: "t" });
-    expect(calls).toHaveLength(2);
+    expect(calls).toHaveLength(4); // apply + inspect for dir and final file
+    expect(calls.every(([cmd]) => cmd === "powershell.exe")).toBe(true);
     const dir = path.dirname(file);
-    expect(calls[0]).toEqual([
-      "icacls",
-      [dir, "/inheritance:r", "/grant:r", "John Doe:F"],
-    ]);
-    expect(calls[1]).toEqual([
-      "icacls",
-      [file, "/inheritance:r", "/grant:r", "John Doe:F"],
-    ]);
+    expect(calls.map(([, args]) => args.at(-1))).toEqual([dir, dir, file, file]);
   });
 
   it("win32: a failing icacls is fail-open — lock is still written, one warn", () => {
