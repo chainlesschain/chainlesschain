@@ -431,7 +431,7 @@ describe("Hook Manager", () => {
         event: HookEvents.PreIPCCall,
         type: HookType.COMMAND,
         // ~2 MB of output to stdout, cross-platform via node.
-        handler: `node -e "process.stdout.write('x'.repeat(2*1024*1024))"`,
+        handler: `"${process.execPath}" -e "process.stdout.write('x'.repeat(2*1024*1024))"`,
         timeout: 20000,
       };
       const outcome = await executeHook(hook, {});
