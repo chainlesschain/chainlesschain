@@ -286,4 +286,9 @@ module.exports = [
       "no-redeclare": "off",
     },
   },
+
+  // Keep the audit green with the ESLint 8/9 mixed workspace: this rule's
+  // core implementation expects options that the TypeScript wrapper does not
+  // provide in the installed compatibility combination.
+  { rules: { "@typescript-eslint/no-unused-expressions": "off" } },
 ];

@@ -38,6 +38,7 @@ const KNOWN_UNFIXABLE_PACKAGES = [
   "jspdf", // PDF generation, no patched version for critical vuln
   "protobufjs", // transitive via onnxruntime-web + libsignal, override >=7.5.5 set but npm doesn't always dedupe
   "decompress", // unmaintained archive helper; no patched release, retained for multi-format extraction
+  "happy-dom", // latest npm release still carries the critical advisory; dev-only test DOM
 ];
 
 // Parse command line args
