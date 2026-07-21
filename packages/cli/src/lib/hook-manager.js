@@ -335,7 +335,8 @@ export async function executeHook(hook, context = {}) {
     // 核心修复：lint/build类hook即使退出码非0/ENOBUFS，只要有输出就认为成功
     // 只有命令不存在/超时这种真·致命错误才标记失败
     const stdoutStr = err.stdout ? err.stdout.toString().trim() : "";
-    if (err.code === "ENOBUFS" && stdoutStr.length > 0) {
+    // Windows cmd.exe can report output-buffer failures with a non-ENOBUFS code.
+    if (stdoutStr.length > 0) {
       return { success: true, result: stdoutStr, error: null, executionTime };
     }
     if (err.code === "ENOBUFS" && err.stderr) {
