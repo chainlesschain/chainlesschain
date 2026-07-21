@@ -8,7 +8,7 @@ import chalk from "chalk";
 import { pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import manifest from "./command-manifest.json" assert { type: "json" };
+import manifest from "./command-manifest.json" with { type: "json" };
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
