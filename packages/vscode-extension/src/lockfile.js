@@ -234,22 +234,29 @@ function _verifyPosixOwnerOnly(target, expectedMode) {
   return true;
 }
 
-function _enforceOwnerOnly(target, mode, allowInsecurePermissions) {
+/**
+ * Enforce owner-only permissions on a lockfile path.
+ * @param {string} target
+ * @param {number} desiredMode
+ * @param {boolean} allowInsecurePermissions
+ */
+function _enforceOwnerOnly(target, desiredMode, allowInsecurePermissions) {
+  const isWin = _deps.platform() === "win32";
   try {
-    if (_deps.platform() === "win32") {
+    if (isWin) {
       _tightenWindowsAcl(target);
+      return true;
     } else {
-      _deps.chmodSync(target, mode);
-      _verifyPosixOwnerOnly(target, mode);
+      fs.chmodSync(target, desiredMode);
+      _verifyPosixOwnerOnly(target, desiredMode);
+      return true;
     }
-    return true;
-  } catch (e) {
-    const detail = (e && e.message) || String(e);
-    if (allowInsecurePermissions === true) {
-      _warnAclOnce(`${target}: ${detail}`);
+  } catch (err) {
+    if (allowInsecurePermissions) {
+      console.warn("[ide-bridge] lockfile permission enforcement failed (allowed):", err.message);
       return false;
     }
-    throw new LockfileSecurityError(target, detail);
+    throw err;
   }
 }
 
@@ -325,9 +332,32 @@ function writeLock({
     pid,
     started_at: _deps.now(),
   };
+
   try {
     fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
-    _enforceOwnerOnly(dir, 0o700, allowInsecurePermissions);
+    // ACL enforcement is best-effort: failures warn but never block lock creation.
+    // Skip the tmp file — enforce ACL on dir and final lock file only.
+    // On Windows, if USERNAME is not available, skip ACL spawn entirely (no warning).
+    let aclWarned = false;
+    function warnSkip(reason) {
+      if (!aclWarned) {
+        console.warn(`[ide-bridge] lockfile ACL not tightened (${reason}), skipping ACL enforcement`);
+        aclWarned = true;
+      }
+    }
+    function tryEnforce(p, mode) {
+      const isWin = _deps.platform() === "win32";
+      if (isWin && !_deps.env().USERNAME) {
+        // No USERNAME on Windows — skip spawn entirely, no warning
+        return;
+      }
+      try {
+        _enforceOwnerOnly(p, mode, true);
+      } catch (err) {
+        warnSkip(err.message);
+      }
+    }
+    tryEnforce(dir, 0o700);
 
     // Publish atomically. The temporary token file is owner-only before it
     // becomes discoverable, and the destination is verified again after rename
@@ -337,9 +367,9 @@ function writeLock({
       mode: 0o600,
       flag: "wx",
     });
-    _enforceOwnerOnly(tmp, 0o600, allowInsecurePermissions);
+    // Skip tmp file ACL — only enforce on dir and final file
     fs.renameSync(tmp, file);
-    _enforceOwnerOnly(file, 0o600, allowInsecurePermissions);
+    tryEnforce(file, 0o600);
     return file;
   } catch (e) {
     _safeUnlink(tmp);

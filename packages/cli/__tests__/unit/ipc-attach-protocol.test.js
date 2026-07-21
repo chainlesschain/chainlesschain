@@ -5,7 +5,7 @@ import {
   decodeIpcLine,
   parseIpcBuffer,
   normalizeAnswer,
-} from "../src/lib/ipc-attach-protocol.js";
+} from "../../src/lib/ipc-attach-protocol.js";
 
 describe("ipc-attach-protocol", () => {
   describe("encodeIpcMessage", () => {

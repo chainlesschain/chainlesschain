@@ -414,10 +414,15 @@ export function parseRewindArg(arg) {
     else if (t === "--yes" || t === "-y") confirmed = true;
     else if (n === null && /^\d+$/.test(t)) n = Number(t);
   }
-  if (branch && n !== null)
-    return { command: "branch", n, scope, writeIntent, confirmed };
-  if (n === null) return { command: "list", scope };
-  return { command: "turn", n, scope, confirmed };
+  const result =
+    branch && n !== null
+      ? { command: "branch", n, scope, writeIntent }
+      : n === null
+        ? { command: "list", scope }
+        : { command: "turn", n, scope };
+  // Only include confirmed when true (non-interactive confirmation flag)
+  if (confirmed) result.confirmed = true;
+  return result;
 }
 
 /** Render the picker list (shared by /rewind and double-Esc). */
