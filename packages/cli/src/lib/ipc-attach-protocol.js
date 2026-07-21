@@ -89,7 +89,7 @@ function normalizeAnswer(value, question = null) {
   return JSON.stringify(value);
 }
 
-module.exports = {
+export {
   IPC_PREFIX,
   encodeIpcMessage,
   decodeIpcLine,

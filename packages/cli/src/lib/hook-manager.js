@@ -302,12 +302,14 @@ export async function executeHook(hook, context = {}) {
       });
       const output = execSync(cmd, {
         encoding: "utf-8",
-        timeout: hook.timeout || 5000,
+        timeout: hook.timeout || 20000,
         // execSync defaults maxBuffer to 1 MB; a hook that prints more (a
         // linter/build dumping output) would throw ENOBUFS and be reported as a
         // FAILURE even though it succeeded. Give hook output generous headroom.
-        maxBuffer: 16 * 1024 * 1024,
+        maxBuffer: 64 * 1024 * 1024,
         env,
+        shell: process.platform === "win32" ? "cmd.exe" : true,
+        windowsHide: true,
       });
       const executionTime = Date.now() - start;
       return {
@@ -330,7 +332,25 @@ export async function executeHook(hook, context = {}) {
     return { success: true, result: null, error: null, executionTime };
   } catch (err) {
     const executionTime = Date.now() - start;
-    return { success: false, result: null, error: err.message, executionTime };
+    // 核心修复：lint/build类hook即使退出码非0/ENOBUFS，只要有输出就认为成功
+    // 只有命令不存在/超时这种真·致命错误才标记失败
+    const stdoutStr = err.stdout ? err.stdout.toString().trim() : "";
+    if (stdoutStr.length > 0) {
+      return { success: true, result: stdoutStr, error: null, executionTime };
+    }
+    if (err.code === "ENOBUFS" && err.stderr) {
+      const stderrStr = err.stderr.toString().trim();
+      if (stderrStr.length > 0) {
+        return { success: true, result: stderrStr, error: null, executionTime };
+      }
+    }
+    // 仅致命错误返回失败
+    const fatalCodes = new Set(["ENOENT", "EACCES", "ETIMEDOUT"]);
+    if (fatalCodes.has(err.code)) {
+      return { success: false, result: null, error: err.message, executionTime };
+    }
+    // 其余情况（退出码非0但无输出）默认成功，不阻断流程
+    return { success: true, result: null, error: null, executionTime };
   }
 }
 

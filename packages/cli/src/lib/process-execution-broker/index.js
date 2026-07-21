@@ -26,13 +26,15 @@ import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
 
 // P0-1: 平台沙箱 + 凭据代理
-// platform-sandbox.js exports: applySandbox, postSpawnSandbox, getSandboxInfo
+// platform-sandbox.js exports: applySandbox, postSpawnSandbox
 import {
   applySandbox as _applySandbox,
   postSpawnSandbox as _postSpawnSandbox,
-  getSandboxInfo as _getSandboxInfo,
 } from "./platform-sandbox.js";
 import { credentialAgent } from "./credential-agent.js";
 
@@ -40,7 +42,7 @@ import { credentialAgent } from "./credential-agent.js";
 let _traceCtx = null;
 let _rpl = null;
 let _hooksV2 = null;
-let _ipcBus = null;
+const _ipcBus = null;
 
 function getTraceCtx() {
   if (!_traceCtx) {
@@ -296,7 +298,7 @@ class ProcessExecutionBroker extends EventEmitter {
     }
 
     // P0-1: Credential filtering (default-on) — strip secrets from env/args
-    let credInfo = { redacted: 0 };
+    const credInfo = { redacted: 0 };
     if (this._credentialFilteringEnabled) {
       const before = JSON.stringify(spawnOpts.env || {}).length;
       const filtered = this._credentialAgent.apply({
@@ -319,7 +321,7 @@ class ProcessExecutionBroker extends EventEmitter {
     let sandboxProfile = null;
     if (this._platformSandboxEnabled) {
       try {
-        const result = applySandbox(
+        const result = _applySandbox(
           command,
           args || [],
           optsForSpawn,
@@ -358,7 +360,7 @@ class ProcessExecutionBroker extends EventEmitter {
     // P0-1: Post-spawn sandbox setup (Windows Job Object association, etc.)
     if (sandboxApplied && proc.pid) {
       try {
-        postSpawnSandbox(proc, sandboxProfile);
+        _postSpawnSandbox(proc, sandboxProfile);
       } catch (postErr) {
         process.emitWarning(
           `Post-spawn sandbox setup failed: ${postErr.message}`,
@@ -491,7 +493,7 @@ class ProcessExecutionBroker extends EventEmitter {
     let sandboxProfile = null;
     if (this._platformSandboxEnabled) {
       try {
-        const result = applySandbox(
+        const result = _applySandbox(
           command,
           args || [],
           optsForSync,
