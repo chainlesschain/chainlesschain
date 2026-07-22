@@ -13,6 +13,7 @@
 
 const POLL_TIMEOUT_S = 25;
 const ERROR_BACKOFF_MS = 5000;
+import { EventRuntimeProducer } from "../event-runtime-producer.js";
 
 export async function startTelegramChannel(options = {}) {
   const {
@@ -27,7 +28,11 @@ export async function startTelegramChannel(options = {}) {
     // failures) can never turn the loop into a microtask chain that starves
     // the event loop (timers, stop()) entirely.
     pollPauseMs = 50,
+    eventRuntimeStore = null,
   } = options;
+  const runtimeProducer = eventRuntimeStore
+    ? new EventRuntimeProducer({ store: eventRuntimeStore })
+    : null;
 
   if (!botToken) {
     throw new Error(
@@ -65,12 +70,17 @@ export async function startTelegramChannel(options = {}) {
           if (!chatId || !text) continue;
           if (!allowed.has(String(chatId))) continue; // fail closed
           try {
-            onEvent?.({
+            const event = {
               channel: "telegram",
               sender: String(chatId),
               text,
               meta: { updateId: update.update_id },
+            };
+            runtimeProducer?.publish(event, {
+              origin: "telegram",
+              id: `telegram:${update.update_id}`,
             });
+            onEvent?.(event);
           } catch {
             /* downstream owns its failures */
           }

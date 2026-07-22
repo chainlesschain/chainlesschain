@@ -7,6 +7,7 @@ const ALLOWED_ORIGINS = new Set([
   "agenda",
   "monitor",
   "webhook",
+  "telegram",
   "mcp",
   "hook",
   "agent-ipc",

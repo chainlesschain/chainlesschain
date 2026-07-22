@@ -343,4 +343,32 @@ describe("telegram channel", () => {
       text: "done!",
     });
   });
+
+  it("persists allowed Telegram events before delivery when a runtime store is configured", async () => {
+    const records = [];
+    const fetchImpl = updatesFetch([
+      [{ update_id: 42, message: { chat: { id: 111 }, text: "durable" } }],
+    ]);
+    const handle = await startTelegramChannel({
+      botToken: "b",
+      allowFrom: [111],
+      onEvent: () => {},
+      fetchImpl,
+      pollTimeoutS: 0,
+      pollPauseMs: 5,
+      eventRuntimeStore: {
+        enqueue: (queue, event, options) => {
+          records.push({ queue, event, id: options.id });
+          return { id: options.id, duplicate: false };
+        },
+      },
+    });
+    await new Promise((r) => setTimeout(r, 30));
+    await handle.stop();
+    expect(records[0]).toMatchObject({
+      queue: "inbox",
+      id: "telegram:42",
+      event: { origin: "telegram", text: "durable" },
+    });
+  });
 });

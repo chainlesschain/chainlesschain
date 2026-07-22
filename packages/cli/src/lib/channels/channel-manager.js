@@ -20,6 +20,7 @@ import {
   canApprove,
   describeAuthorityChain,
 } from "../agent-authority.js";
+import { EventRuntimeStore } from "../event-runtime-store.js";
 
 export const CHANNEL_KINDS = ["webhook", "telegram"];
 
@@ -120,6 +121,9 @@ export async function startChannels(specsInput, opts = {}) {
   const config = opts.config || {};
   const log = opts.log || ((msg) => logger.info(msg));
   const deps = opts.deps || {};
+  const eventRuntimeStore =
+    opts.eventRuntimeStore ||
+    (process.env.CC_EVENT_RUNTIME_DURABLE === "1" ? new EventRuntimeStore() : null);
   // Every inbound event is stamped with its channel authority (`steer`, never
   // `approve`) before the caller's handler sees it — so a channel message can
   // never be mistaken for a user approval no matter what it contains.
@@ -149,7 +153,7 @@ export async function startChannels(specsInput, opts = {}) {
           port: spec.arg ? Number(spec.arg) : cfg.port,
           onEvent,
           log,
-          eventRuntimeStore: opts.eventRuntimeStore,
+          eventRuntimeStore,
         });
         started.push({ kind: "webhook", describe: handle.describe, ...handle });
       } else if (spec.kind === "telegram") {
@@ -162,7 +166,7 @@ export async function startChannels(specsInput, opts = {}) {
           ...cfg,
           onEvent,
           log,
-          eventRuntimeStore: opts.eventRuntimeStore,
+          eventRuntimeStore,
         });
         started.push({
           kind: "telegram",

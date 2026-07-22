@@ -44,6 +44,7 @@ export class EventRuntimeStore {
     maxAttempts = 5,
     leaseMs = 120000,
     lockTimeoutMs = 2000,
+    maxQueueLength = 10000,
   } = {}) {
     this.dir = dir;
     this._now = typeof now === "function" ? now : () => Number(now);
@@ -51,6 +52,7 @@ export class EventRuntimeStore {
     this.maxAttempts = Math.max(1, Number(maxAttempts) || 5);
     this.leaseMs = Math.max(1, Number(leaseMs) || 120000);
     this.lockTimeoutMs = Math.max(0, Number(lockTimeoutMs) || 2000);
+    this.maxQueueLength = Math.max(1, Number(maxQueueLength) || 10000);
   }
 
   _assertQueue(queue) {
@@ -103,6 +105,15 @@ export class EventRuntimeStore {
     return this._mutate(queue, (records) => {
       const existing = records.find((record) => record.id === key);
       if (existing) return { ...clone(existing), duplicate: true };
+      const active = records.reduce(
+        (count, record) => count + (record.status === "done" || record.status === "dead" ? 0 : 1),
+        0,
+      );
+      if (active >= this.maxQueueLength) {
+        const error = new Error(`Event Runtime ${queue} queue is full (${this.maxQueueLength})`);
+        error.code = "CC_EVENT_RUNTIME_BACKPRESSURE";
+        throw error;
+      }
       const record = {
         id: key,
         event: clone(event || {}),

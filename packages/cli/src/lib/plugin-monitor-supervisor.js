@@ -24,6 +24,7 @@
 import { spawn } from "node:child_process";
 import { executionBroker } from "./process-execution-broker/index.js";
 import { EventRuntimeProducer } from "./event-runtime-producer.js";
+import { EventRuntimeStore } from "./event-runtime-store.js";
 import { monitorEventId } from "./monitor-event.js";
 
 export const _deps = { spawn };
@@ -41,8 +42,11 @@ export class PluginMonitorSupervisor {
     this._spawn = opts.spawn || _deps.spawn;
     this._brokerSpawn =
       opts.brokerSpawn || executionBroker.spawn.bind(executionBroker);
-    this._runtimeProducer = opts.eventRuntimeStore
-      ? new EventRuntimeProducer({ store: opts.eventRuntimeStore, emitter: this })
+    const eventRuntimeStore =
+      opts.eventRuntimeStore ||
+      (process.env.CC_EVENT_RUNTIME_DURABLE === "1" ? new EventRuntimeStore() : null);
+    this._runtimeProducer = eventRuntimeStore
+      ? new EventRuntimeProducer({ store: eventRuntimeStore, emitter: this })
       : null;
     // id -> { desc, timer?, child?, running }
     this._monitors = new Map();

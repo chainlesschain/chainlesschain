@@ -69,4 +69,15 @@ describe("EventRuntimeStore", () => {
     expect(done).toMatchObject({ status: "done", result: { delivered: true } });
     expect(store.listInbox({ status: "pending" })).toHaveLength(0);
   });
+
+  it("fails closed when active queue depth reaches the backpressure limit", () => {
+    const bounded = new EventRuntimeStore({ dir, now: () => now, maxQueueLength: 1 });
+    bounded.enqueueInbox({ event_id: "depth-1" });
+    expect(() => bounded.enqueueInbox({ event_id: "depth-2" })).toThrow(
+      /queue is full/,
+    );
+    expect(() => bounded.enqueueInbox({ event_id: "depth-2" })).toThrow(
+      expect.objectContaining({ code: "CC_EVENT_RUNTIME_BACKPRESSURE" }),
+    );
+  });
 });
