@@ -517,7 +517,11 @@ export function registerAgentCommand(program) {
           const { setupAgentWorktree, finishAgentWorktree } =
             await import("../lib/agent-worktree.js");
           _finishAgentWorktreeFn = finishAgentWorktree;
-          _worktree = setupAgentWorktree({ cwd: process.cwd() });
+          const worktreeCwd =
+            process.platform === "darwin"
+              ? process.cwd().replace(/^\/private\//, "/")
+              : process.cwd();
+          _worktree = setupAgentWorktree({ cwd: worktreeCwd });
           process.chdir(_worktree.path);
           process.stderr.write(
             `worktree: ${_worktree.path} (branch ${_worktree.branch})\n`,
