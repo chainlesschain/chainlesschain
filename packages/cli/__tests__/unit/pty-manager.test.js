@@ -155,25 +155,31 @@ describe("PtyManager process broker seam", () => {
         return { pid: 4242 };
       },
     };
-    const proc = executionBroker.spawnPty(pty, "bash", [], {
+    const secret = ["pty", "credential", "value"].join("-");
+    const proc = executionBroker.spawnPty(pty, "bash", [`--token=${secret}`], {
       origin: "terminal:pty",
       policy: "allow",
-      env: { API_TOKEN: "secret", PATH: "safe" },
+      env: { API_TOKEN: secret, PATH: "safe" },
     });
 
     expect(proc.pid).toBe(4242);
+    expect(received.args).toEqual(["--token=***REDACTED***"]);
     expect(received.options.env.API_TOKEN).toBeUndefined();
     expect(received.options.env.CC_CRED_REF_API_TOKEN).toMatch(/^cc-cred-/);
-    expect(
-      executionBroker
-        .getAuditLog(10)
-        .find((entry) => entry.executionId && entry.operation === "pty.spawn"),
-    ).toMatchObject({
+    const audit = executionBroker
+      .getAuditLog(10)
+      .findLast(
+        (entry) => entry.executionId && entry.operation === "pty.spawn",
+      );
+    expect(audit).toMatchObject({
       origin: "terminal:pty",
       operation: "pty.spawn",
       pty: true,
       credentialFiltered: true,
+      credentialEnvCount: 1,
+      credentialArgCount: 1,
       sandboxed: false,
     });
+    expect(JSON.stringify(audit)).not.toContain(secret);
   });
 });

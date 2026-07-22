@@ -62,7 +62,7 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 
 | 能力面 | Claude Code 官方能力 | ChainlessChain 当前状态 | 当前净差距 | 优先级 |
 | --- | --- | --- | --- | --- |
-| 进程隔离 | macOS Seatbelt、Linux/WSL2 bubblewrap、文件/网络边界、凭据隔离、严格失败 | Docker + bubblewrap，能报告真实隔离级别 | macOS/原生 Windows 缺强边界；多个 spawn 入口未统一；凭据代理仍非默认 | P0 |
+| 进程隔离 | macOS Seatbelt、Linux/WSL2 bubblewrap、文件/网络边界、凭据隔离、严格失败 | Docker + bubblewrap，能报告真实隔离级别；Broker async/sync/PTY 已默认过滤 env/argv，并输出不含值的过滤计数 | macOS/原生 Windows 缺强边界；仍有 spawn 清单入口、原生模块/外部宿主未统一；按审批目标短期解析凭据仍未成为全路径默认 | P0 |
 | 后台人机回路 | 后台任务可暂停、请求权限/输入、恢复和接管 | attach 可追问；`needs_input` 已有真实状态 | 提问会 park 当前子进程，回答作为下一 turn；缺当前 turn 双向通道 | P0 |
 | 权限控制面 | CLI、交互、SDK、IDE 使用同一权限规则和决策来源 | Agent Runtime 已有 settings rules + ApprovalGate；`cc permissions` 仍是另一套管理面 | 用户可能误以为 `cc permissions` 已直接约束 Agent 工具；安全默认和来源解释需统一 | P0/P1 |
 | Hooks | 完整生命周期；command/http/mcp_tool/prompt/agent 五类；并行、去重、最严合并 | 稳定 command hook、部分事件、async/replay/trace 已有 | Hook 类型和事件生产者不全；shell 继承全 env；严格并行仍有 opt-in 路径 | P1 |
@@ -86,11 +86,14 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   也只公开这两个引擎。
 - `bubblewrap` 已有真实 Linux 集成测试，Docker 可提供容器边界，但 macOS Seatbelt 和原生
   Windows 等价实现仍缺。
-- [`hook-runner.cjs`](../packages/cli/src/lib/hook-runner.cjs#L231) 直接派生完整
-  `process.env`，并在 [`hook-runner.cjs`](../packages/cli/src/lib/hook-runner.cjs#L245)
-  通过 `shell: true` 执行。
-- `run_shell`、`run_code`、Hook、Plugin Bin、LSP、MCP stdio 目前不是同一个进程执行入口，
-  很难证明所有路径都遵守相同的文件、网络、凭据和审计策略。
+- Hook command 仍从完整 `process.env` 构造执行环境，但已通过 Process Broker；Broker 会移除已识别
+  的敏感环境变量。按 executor 声明最小环境 allowlist 尚未完成。
+- `run_shell`、`run_code`、Hook、Plugin Bin、LSP、MCP stdio、CLI/`cc ui` PTY 与 Desktop
+  `child_process`/PTY 的已迁移入口现已进入 Broker；静态 spawn 清单中的剩余直接入口、原生模块和
+  外部宿主仍无法证明遵守同一文件/网络边界。
+- 2026-07-23 已统一 Broker async/sync/PTY 的 CredentialAgent 边界：过滤后的 env 与 argv 会真正
+  传给原生执行函数，审计仅记录 env/argv 过滤数量，拒绝路径会先脱敏 argv，过滤器异常时不再让
+  sync 路径携带原始凭据继续执行。按 host/process 审批后解析短期值的完整代理闭环仍待补。
 
 ### 4.2 建议设计
 

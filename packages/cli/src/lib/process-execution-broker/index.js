@@ -180,6 +180,75 @@ class ProcessExecutionBroker extends EventEmitter {
     return safe;
   }
 
+  _credentialBoundaryEnabled() {
+    return (
+      this._credentialFilteringEnabled !== false &&
+      this._credentialAgentEnabled !== false
+    );
+  }
+
+  _sanitizeAuditArgs(args) {
+    const values = Array.isArray(args) ? args : [];
+    try {
+      return this._credentialAgent.sanitizeArgs(values).sanitizedArgs;
+    } catch {
+      return values.map(() => "***REDACTION_FAILED***");
+    }
+  }
+
+  _applyCredentialBoundary(command, args, spawnOptions, origin) {
+    const originalArgs = Array.isArray(args) ? [...args] : [];
+    const originalEnv = spawnOptions.env || process.env;
+    const input = {
+      ...spawnOptions,
+      env: originalEnv,
+      args: originalArgs,
+      file: command,
+      origin,
+    };
+    let filtered;
+    let report = null;
+    if (typeof this._credentialAgent.applyWithReport === "function") {
+      const result = this._credentialAgent.applyWithReport(input);
+      filtered = result.spawnOptions;
+      report = result.report;
+    } else {
+      filtered = this._credentialAgent.apply(input);
+    }
+    const filteredArgs = Array.isArray(filtered?.args)
+      ? filtered.args
+      : originalArgs;
+    const filteredEnv = filtered?.env || {};
+    const inferredEnvCount = Object.keys(originalEnv).filter(
+      (key) =>
+        this._credentialAgent.isSensitiveKey?.(key) &&
+        !Object.prototype.hasOwnProperty.call(filteredEnv, key),
+    ).length;
+    const inferredArgCount = originalArgs.reduce(
+      (count, value, index) =>
+        count + (String(value) === String(filteredArgs[index]) ? 0 : 1),
+      0,
+    );
+    const credentialReport = report || {
+      envCount: inferredEnvCount,
+      argCount: inferredArgCount,
+      filtered: inferredEnvCount > 0 || inferredArgCount > 0,
+    };
+    return {
+      args: filteredArgs,
+      env: filteredEnv,
+      report: credentialReport,
+    };
+  }
+
+  _recordCredentialReport(auditEntry, report) {
+    const filtered = report?.filtered === true;
+    auditEntry.credentialFiltered = filtered;
+    auditEntry.credentialEnvCount = Number(report?.envCount || 0);
+    auditEntry.credentialArgCount = Number(report?.argCount || 0);
+    if (filtered) this._stats.credFiltered++;
+  }
+
   _getTraceContext() {
     const traceCtx = getTraceCtx();
     if (traceCtx && traceCtx.activeContext) {
@@ -256,7 +325,7 @@ class ProcessExecutionBroker extends EventEmitter {
       origin,
       scope,
       command,
-      args: args || [],
+      args: this._sanitizeAuditArgs(args),
       cwd,
       startTime,
       permissionDecision: decision,
@@ -305,21 +374,17 @@ class ProcessExecutionBroker extends EventEmitter {
     }
 
     // P0-1: Credential filtering (default-on) — strip secrets from env/args
-    const credInfo = { redacted: 0 };
-    if (this._credentialFilteringEnabled) {
-      const before = JSON.stringify(spawnOpts.env || {}).length;
-      const filtered = this._credentialAgent.apply({
-        ...spawnOpts,
-        file: command,
-        args: args || [],
+    if (this._credentialBoundaryEnabled()) {
+      const credentialBoundary = this._applyCredentialBoundary(
+        command,
+        args,
+        spawnOpts,
         origin,
-      });
-      spawnOpts.env = filtered.env;
-      spawnOpts.args = filtered.args;
-      const after = JSON.stringify(spawnOpts.env).length;
-      credInfo.redacted = before > after ? 1 : 0;
-      if (credInfo.redacted) this._stats.credFiltered++;
-      auditEntry.credentialFiltered = !!credInfo.redacted;
+      );
+      spawnOpts.env = credentialBoundary.env;
+      args = credentialBoundary.args;
+      auditEntry.args = [...args];
+      this._recordCredentialReport(auditEntry, credentialBoundary.report);
     }
 
     // P0-1: Platform sandbox wrapping — apply macOS/Windows/Linux sandbox
@@ -442,7 +507,7 @@ class ProcessExecutionBroker extends EventEmitter {
       origin,
       scope,
       command,
-      args: args || [],
+      args: this._sanitizeAuditArgs(args),
       cwd,
       startTime,
       permissionDecision: decision,
@@ -481,20 +546,17 @@ class ProcessExecutionBroker extends EventEmitter {
     }
 
     // P0-1: Credential filtering agent — strip secrets from env/args before spawn
-    if (this._credentialAgentEnabled) {
-      try {
-        const credInfo = credentialAgent.apply(spawnOpts, {
-          command,
-          args,
-          origin,
-        });
-        if (credInfo.redacted) this._stats.credFiltered++;
-        auditEntry.credentialFiltered = !!credInfo.redacted;
-      } catch (credErr) {
-        process.emitWarning(
-          `Credential agent apply failed: ${credErr.message}`,
-        );
-      }
+    if (this._credentialBoundaryEnabled()) {
+      const credentialBoundary = this._applyCredentialBoundary(
+        command,
+        args,
+        spawnOpts,
+        origin,
+      );
+      spawnOpts.env = credentialBoundary.env;
+      args = credentialBoundary.args;
+      auditEntry.args = [...args];
+      this._recordCredentialReport(auditEntry, credentialBoundary.report);
     }
 
     // P0-1: Platform sandbox wrapping (sync path)
@@ -573,7 +635,7 @@ class ProcessExecutionBroker extends EventEmitter {
       origin,
       scope,
       command,
-      args: Array.isArray(args) ? [...args] : [],
+      args: this._sanitizeAuditArgs(args),
       cwd: options.cwd || process.cwd(),
       startTime,
       permissionDecision: policy,
@@ -609,20 +671,17 @@ class ProcessExecutionBroker extends EventEmitter {
     delete spawnOptions.pluginVersion;
     delete spawnOptions.pluginSource;
     try {
-      if (this._credentialAgentEnabled) {
-        const originalEnv = spawnOptions.env || {};
-        this._credentialAgent.apply(spawnOptions, {
+      if (this._credentialBoundaryEnabled()) {
+        const credentialBoundary = this._applyCredentialBoundary(
           command,
-          args: auditEntry.args,
+          args,
+          spawnOptions,
           origin,
-        });
-        const credentialFiltered = Object.keys(originalEnv).some(
-          (key) =>
-            this._credentialAgent.isSensitiveKey?.(key) &&
-            !Object.prototype.hasOwnProperty.call(spawnOptions.env || {}, key),
         );
-        auditEntry.credentialFiltered = credentialFiltered;
-        if (credentialFiltered) this._stats.credFiltered++;
+        spawnOptions.env = credentialBoundary.env;
+        spawnOptions.args = credentialBoundary.args;
+        auditEntry.args = [...credentialBoundary.args];
+        this._recordCredentialReport(auditEntry, credentialBoundary.report);
       }
       const filteredArgs = spawnOptions.args || [];
       delete spawnOptions.args;

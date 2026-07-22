@@ -208,9 +208,10 @@ class CredentialAgent {
   }
 
   /**
-   * Apply credential filtering to spawn options
+   * Apply credential filtering and return explicit audit metadata. Credential
+   * values and proxy reference ids are intentionally kept out of the report.
    */
-  apply(spawnOptions) {
+  applyWithReport(spawnOptions) {
     const env = spawnOptions.env || process.env;
     const { safeEnv, redacted: envRedacted } = this.filterEnvironment(env);
     spawnOptions.env = safeEnv;
@@ -231,7 +232,21 @@ class CredentialAgent {
       if (this._accessLog.length > 10000) this._accessLog.shift();
     }
 
-    return spawnOptions;
+    return {
+      spawnOptions,
+      report: {
+        envKeys: envRedacted.map((entry) => entry.key),
+        argIndexes: argRedacted.map((entry) => entry.index),
+        envCount: envRedacted.length,
+        argCount: argRedacted.length,
+        filtered: envRedacted.length > 0 || argRedacted.length > 0,
+      },
+    };
+  }
+
+  /** Backward-compatible mutation API for existing integrations. */
+  apply(spawnOptions) {
+    return this.applyWithReport(spawnOptions).spawnOptions;
   }
 
   /**
