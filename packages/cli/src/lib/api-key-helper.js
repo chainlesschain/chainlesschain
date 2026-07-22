@@ -14,7 +14,7 @@
  * rule). Cached per process (5 min) so multi-call runs don't re-spawn it.
  */
 
-import { execSync } from "node:child_process";
+import { executionBroker } from "./process-execution-broker/index.js";
 
 const TTL_MS = 5 * 60 * 1000;
 const _cache = new Map(); // helper command → { key, at }
@@ -31,7 +31,15 @@ export function resolveApiKeyFromHelper(helperCmd, opts = {}) {
   const now = opts.now || Date.now;
   const hit = _cache.get(cmd);
   if (hit && now() - hit.at < TTL_MS) return hit.key;
-  const exec = opts.exec || execSync;
+  const exec =
+    opts.exec ||
+    ((command, options) =>
+      executionBroker.execSync(command, {
+        ...options,
+        origin: "credential:api-key-helper",
+        policy: "allow",
+        scope: "credential",
+      }));
   try {
     const out = exec(cmd, {
       encoding: "utf-8",

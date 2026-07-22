@@ -94,6 +94,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 - 2026-07-23 已统一 Broker async/sync/PTY 的 CredentialAgent 边界：过滤后的 env 与 argv 会真正
   传给原生执行函数，审计仅记录 env/argv 过滤数量，拒绝路径会先脱敏 argv，过滤器异常时不再让
   sync 路径携带原始凭据继续执行。按 host/process 审批后解析短期值的完整代理闭环仍待补。
+- 同日已将 npm 登录态命令、`llm.apiKeyHelper` 外部凭据命令和 MCP OAuth 浏览器启动器从直接
+  `child_process` 调用迁移到显式 Broker provenance/scope；静态清单继续作为剩余入口的事实源。
 
 ### 4.2 建议设计
 

@@ -25,7 +25,7 @@ import pathDefault from "node:path";
 import { homedir as homedirDefault } from "node:os";
 import crypto from "node:crypto";
 import http from "node:http";
-import { spawn } from "node:child_process";
+import { executionBroker } from "./process-execution-broker/index.js";
 
 export const _deps = {
   fetch: (...a) => globalThis.fetch(...a),
@@ -35,7 +35,13 @@ export const _deps = {
   sha256: (s) => crypto.createHash("sha256").update(s).digest(),
   createServer: (h) => http.createServer(h),
   openBrowser: defaultOpenBrowser,
-  spawn: (...a) => spawn(...a),
+  spawn: (command, args, options) =>
+    executionBroker.spawn(command, args, {
+      ...options,
+      origin: "mcp:oauth-browser",
+      policy: "allow",
+      scope: "oauth",
+    }),
   now: () => Date.now(),
   // Backoff sleep seam (tests override with a no-op so the retry doesn't wait).
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),

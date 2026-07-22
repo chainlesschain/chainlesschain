@@ -9,6 +9,7 @@ import {
   clearApiKeyHelperCache,
 } from "../../src/lib/api-key-helper.js";
 import { applyConfigLlmDefaults } from "../../src/lib/llm-config-defaults.js";
+import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
 
 beforeEach(() => clearApiKeyHelperCache());
 
@@ -47,6 +48,21 @@ describe("resolveApiKeyFromHelper", () => {
     expect(resolveApiKeyFromHelper("cmd", { exec: () => "  \n" })).toBeNull();
     expect(resolveApiKeyFromHelper("", {})).toBeNull();
     expect(resolveApiKeyFromHelper(null, {})).toBeNull();
+  });
+
+  it("routes the default helper process through the credential broker scope", () => {
+    const command = `node -e "process.stdout.write('broker-helper-key')"`;
+    expect(resolveApiKeyFromHelper(command)).toBe("broker-helper-key");
+    const audit = executionBroker
+      .getAuditLog(20)
+      .findLast((entry) => entry.origin === "credential:api-key-helper");
+    expect(audit).toMatchObject({
+      origin: "credential:api-key-helper",
+      scope: "credential",
+      policy: "allow",
+      permissionDecision: "allow",
+      sync: true,
+    });
   });
 });
 
