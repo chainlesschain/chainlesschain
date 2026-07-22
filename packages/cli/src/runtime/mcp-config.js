@@ -150,7 +150,9 @@ export function mcpAuthHint(url, errMessage) {
  */
 export async function setupMcpFromConfig(servers, deps = {}) {
   const writeErr = deps.writeErr || (() => {});
-  const createClient = deps.createClient || (() => new MCPClient());
+  const createClient =
+    deps.createClient ||
+    (() => new MCPClient({ eventRuntimeStore: deps.eventRuntimeStore || null }));
   servers = filterMcpServersByPolicy(servers, deps.mcpPolicy, writeErr);
 
   // `deps.into` lets a second batch (e.g. registered servers) accumulate into
