@@ -35,7 +35,7 @@
 | Open VSX 发布               | 已发布 `0.37.25`；公开 API 已回读并确认可下载，发布 workflow 已接入 `scripts/verify-ide-marketplace.mjs`                                                                                        |
 | 定向复核测试                | CLI 6 个相关测试文件 48 项通过；Desktop bootstrap 2 项通过；关键 JS 语法检查通过                                                                                                                |
 | IDE Runtime Doctor          | VS Code `chainlesschain.ide.doctor` now includes extension/VS Code versions, workspace trust, workspace path, live bridge state, `cc ide status`, and `cc ide doctor` output; 6 assertions pass |
-| JetBrains Marketplace 发布  | 发布任务已成功提交 `0.4.68`，但公开 API 当前仍显示待审核（`approve=false`、`hasUnapprovedUpdate=true`）；发布 workflow 已接入同一验证脚本                                                       |
+| JetBrains Marketplace 发布  | `0.4.68` 已发布；公开 API 已回读并确认 `approve=true`、`listed=true`、`hidden=false`；发布 workflow 已接入同一验证脚本                                  |
 | VS Code 官方 Marketplace    | 未发布，当前未配置 `VSCE_PAT`；不影响 Open VSX 发布                                                                                                                                             |
 
 本轮版本：VS Code `0.37.25`，JetBrains `0.4.68`。Plan/Diff、后台 Agent、Remote、Artifact、Managed CLI、权限保护和安全审计等项目经代码核对已在现有 CLI/插件实现中落地；本轮没有重复实现。
@@ -382,7 +382,7 @@ and its official `/loop` and `/goal` workflows.
   soak，需要对应运行环境和 CI 资源。
 - Collector/SIEM 的 OTLP 端到端接收、企业签名/SBOM/升级回滚生命周期，
   需要组织级基础设施与发布凭据。
-- 本轮版本的 Open VSX 已完成发布与公开 API 回读；JetBrains `0.4.68` 已完成发布提交，仍需 Marketplace 审核后再次回读；官方 VS Code Marketplace 仍需 `VSCE_PAT`。
+- 本轮版本的 Open VSX 与 JetBrains `0.4.68` 均已完成发布及公开 API 回读；官方 VS Code Marketplace 仍需 `VSCE_PAT`。
 
 ### `/` 输入边界修复
 
