@@ -22,6 +22,26 @@ const { buildHookEnvelope } = require("./hook-event-bus.cjs");
 const hookEventLog = require("./hook-event-log.cjs");
 
 /**
+ * Publish lifecycle events to Hooks v2 without making the legacy settings hook
+ * path depend on the ESM runtime. Payloads are deliberately reduced before
+ * publication: prompt text and file contents must never become durable hook
+ * context merely because a lifecycle producer fired.
+ */
+function publishHooksV2Event(event, payload = {}) {
+  const safe = { ...payload };
+  delete safe.prompt;
+  delete safe.content;
+  delete safe.files;
+  void import("./hooks-v2-producers.js")
+    .then(({ emitHooksV2Event }) => {
+      emitHooksV2Event(event, safe);
+    })
+    .catch(() => {
+      // Optional producer bridge; legacy settings hooks remain authoritative.
+    });
+}
+
+/**
  * Stamp a unified-bus delivery id (event_id) onto a hook payload (P2 event bus).
  * Additive — a hook that ignores it is unaffected; a hook that reads it gets a
  * stable per-delivery id for correlation / `cc hook replay`. traceId/parentId
@@ -104,6 +124,10 @@ function runUserPromptSubmitHooks(
   settingsHooks,
   { prompt, cwd, sessionId } = {},
 ) {
+  publishHooksV2Event("UserPromptSubmit", {
+    cwd: cwd || null,
+    session_id: sessionId || null,
+  });
   if (!settingsHooks) return { blocked: false, additionalContext: null };
   const matched = collectHooks(settingsHooks, "UserPromptSubmit", "");
   if (matched.length === 0) return { blocked: false, additionalContext: null };
@@ -169,6 +193,11 @@ function dispatchAsyncHooks(settingsHooks, event, payload = {}, opts = {}) {
  * @returns {{ additionalContext:string|null }}
  */
 function runSessionStartHooks(settingsHooks, { source, cwd, sessionId } = {}) {
+  publishHooksV2Event("SessionStart", {
+    source: source || "startup",
+    cwd: cwd || null,
+    session_id: sessionId || null,
+  });
   if (!settingsHooks) return { additionalContext: null };
   const matched = collectHooks(settingsHooks, "SessionStart", source || "");
   if (matched.length === 0) return { additionalContext: null };
@@ -199,6 +228,11 @@ function runCwdChangedHooks(
   settingsHooks,
   { oldCwd, newCwd, cwd, sessionId } = {},
 ) {
+  publishHooksV2Event("CwdChanged", {
+    old_cwd: oldCwd || null,
+    cwd: newCwd || cwd || null,
+    session_id: sessionId || null,
+  });
   if (!settingsHooks) return { additionalContext: null };
   const matched = collectHooks(settingsHooks, "CwdChanged", newCwd || "");
   const { sync } = partitionAsyncHooks(matched);
@@ -234,6 +268,13 @@ function runWorktreeCreateHooks(
   settingsHooks,
   { worktreePath, branch, baseSha, cwd, sessionId } = {},
 ) {
+  publishHooksV2Event("WorktreeCreate", {
+    worktree_path: worktreePath || null,
+    branch: branch || null,
+    base_sha: baseSha || null,
+    cwd: cwd || worktreePath || null,
+    session_id: sessionId || null,
+  });
   if (!settingsHooks) return { additionalContext: null };
   const matched = collectHooks(settingsHooks, "WorktreeCreate", branch || "");
   const { sync } = partitionAsyncHooks(matched);
@@ -271,6 +312,14 @@ function runWorktreeRemoveHooks(
   settingsHooks,
   { worktreePath, branch, removed, reason, cwd, sessionId } = {},
 ) {
+  publishHooksV2Event("WorktreeRemove", {
+    worktree_path: worktreePath || null,
+    branch: branch || null,
+    removed: removed === true,
+    reason: reason || null,
+    cwd: cwd || worktreePath || null,
+    session_id: sessionId || null,
+  });
   if (!settingsHooks) return { additionalContext: null };
   const matched = collectHooks(settingsHooks, "WorktreeRemove", branch || "");
   const { sync } = partitionAsyncHooks(matched);
@@ -312,6 +361,11 @@ function runInstructionsLoadedHooks(
   settingsHooks,
   { files, cwd, sessionId } = {},
 ) {
+  publishHooksV2Event("InstructionsLoaded", {
+    count: Array.isArray(files) ? files.length : 0,
+    cwd: cwd || null,
+    session_id: sessionId || null,
+  });
   if (!settingsHooks) return { additionalContext: null };
   const matched = collectHooks(settingsHooks, "InstructionsLoaded", "");
   const { sync } = partitionAsyncHooks(matched);
@@ -353,6 +407,12 @@ function runObserveHooks(
   payload = {},
   { cwd, matchTarget, traceId, parentId } = {},
 ) {
+  publishHooksV2Event(event, {
+    ...payload,
+    cwd: cwd || payload.cwd || null,
+    trace_id: traceId || payload.trace_id || null,
+    parent_id: parentId || payload.parent_id || null,
+  });
   if (!settingsHooks) return { decision: "continue", results: [] };
   const matched = collectHooks(settingsHooks, event, matchTarget || "");
   const { sync } = partitionAsyncHooks(matched);
