@@ -194,11 +194,14 @@ export function evaluateUnattendedShellAction(command, params = {}) {
     /\bgit\s+push\b[^\n]*(?:^|\s)(?:main|master|develop|production)(?:\s|$)/i.test(
       command || "",
     );
-  return evaluateUnattendedAction({
+  return {
+    actionClass,
+    ...evaluateUnattendedAction({
     ...params,
     actionClass,
     protectedBranch,
-  });
+    }),
+  };
 }
 
 /**

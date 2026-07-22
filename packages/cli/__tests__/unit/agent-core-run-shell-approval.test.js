@@ -85,6 +85,7 @@ describe("agent-core run_shell + ApprovalGate", () => {
       },
     );
     expect(res.error).toMatch(/Unattended Action/);
+    expect(res.unattendedAction?.actionClass).toBe("push");
     expect(res.unattendedAction?.reason).toBe("requires-attendance");
     expect(res.policy).toEqual({
       decision: "deny",
