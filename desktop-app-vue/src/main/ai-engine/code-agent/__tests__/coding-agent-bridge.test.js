@@ -137,6 +137,24 @@ describe("CodingAgentBridge", () => {
     expect(bridge.pending.size).toBe(0);
   });
 
+  it("uses the permission rules protocol for Desktop sync", async () => {
+    const bridge = new CodingAgentBridge({ cwd: "/repo" });
+    await bridge.ensureReady();
+
+    const promise = bridge.getPermissionRules();
+    await flushSend(mockWs);
+    const sent = JSON.parse(mockWs.sent[0]);
+    expect(sent.type).toBe("permission-rules-get");
+    mockWs.triggerMessage({
+      id: sent.id,
+      type: "permission-rules",
+      rules: { allow: ["Read"], ask: [], deny: [] },
+    });
+    await expect(promise).resolves.toMatchObject({
+      rules: { allow: ["Read"] },
+    });
+  });
+
   it("rejects request() when matching message has type=error", async () => {
     const bridge = new CodingAgentBridge({ cwd: "/repo" });
     await bridge.ensureReady();

@@ -7,6 +7,7 @@ import type {
   CodingAgentPatch,
   CodingAgentPatchSummary,
   CodingAgentPermissionPolicy,
+  CodingAgentPermissionRules,
   CodingAgentReviewState,
   CodingAgentSessionState,
   CodingAgentStatus,
@@ -175,6 +176,8 @@ interface CodingAgentState {
   loading: boolean;
   worktreeLoading: boolean;
   error: string | null;
+  permissionRules: CodingAgentPermissionRules | null;
+  resolvedMcpElicitations: Record<string, boolean>;
   unsubscribe: (() => void) | null;
 }
 
@@ -205,6 +208,8 @@ export const useCodingAgentStore = defineStore("coding-agent", {
     loading: false,
     worktreeLoading: false,
     error: null,
+    permissionRules: null,
+    resolvedMcpElicitations: {},
     unsubscribe: null,
   }),
 
@@ -266,6 +271,21 @@ export const useCodingAgentStore = defineStore("coding-agent", {
             (event) =>
               matchesEventType(event.type, APPROVAL_DENIED_EVENT_TYPES) &&
               event.payload?.source === "approval-gate",
+          ) || null
+      );
+    },
+
+    latestMcpElicitation(): CodingAgentEvent | null {
+      return (
+        [...this.sessionEvents]
+          .reverse()
+          .find(
+            (event) =>
+              event.type === "question" &&
+              event.payload?.metadata?.kind === "mcp_elicitation" &&
+              !this.resolvedMcpElicitations[
+                String(event.requestId || event.payload?.requestId || event.id)
+              ],
           ) || null
       );
     },
@@ -385,6 +405,47 @@ export const useCodingAgentStore = defineStore("coding-agent", {
         }
       } catch (error: any) {
         this.error = error.message;
+      }
+    },
+
+    async refreshPermissionRules(): Promise<CodingAgentPermissionRules | null> {
+      try {
+        const result = await (window as any).electronAPI.codingAgent.getPermissionRules();
+        if (result?.rules) {
+          this.permissionRules = {
+            allow: Array.isArray(result.rules.allow) ? result.rules.allow : [],
+            ask: Array.isArray(result.rules.ask) ? result.rules.ask : [],
+            deny: Array.isArray(result.rules.deny) ? result.rules.deny : [],
+            sources: result.sources || {},
+            files: result.files || [],
+            managed: result.managed || null,
+          };
+        }
+        return this.permissionRules;
+      } catch (error: any) {
+        this.error = error.message;
+        codingAgentLogger.error("refreshPermissionRules failed:", error);
+        return null;
+      }
+    },
+
+    async addPermissionRule(payload: {
+      decision: "allow" | "ask" | "deny";
+      rule: string;
+      scope?: "project" | "local" | "user";
+    }): Promise<boolean> {
+      try {
+        const result = await (window as any).electronAPI.codingAgent.setPermissionRule(payload);
+        if (result?.type === "permission-rule-updated" || result?.added === true) {
+          await this.refreshPermissionRules();
+          return true;
+        }
+        this.error = result?.error || "Failed to update permission rule";
+        return false;
+      } catch (error: any) {
+        this.error = error.message;
+        codingAgentLogger.error("addPermissionRule failed:", error);
+        return false;
       }
     },
 
@@ -1179,6 +1240,31 @@ export const useCodingAgentStore = defineStore("coding-agent", {
           success: false,
           error: error.message,
         };
+      }
+    },
+
+    async respondElicitation(payload: {
+      requestId: string | number;
+      action: "accept" | "decline" | "cancel";
+      answer?: any;
+    }): Promise<boolean> {
+      if (!this.currentSessionId || payload?.requestId == null) return false;
+      try {
+        const result = await (
+          window as any
+        ).electronAPI.codingAgent.respondElicitation({
+          sessionId: this.currentSessionId,
+          ...payload,
+        });
+        if (!result?.success) {
+          throw new Error(result?.error || "Failed to answer MCP elicitation");
+        }
+        this.resolvedMcpElicitations[String(payload.requestId)] = true;
+        return true;
+      } catch (error: any) {
+        this.error = error.message;
+        codingAgentLogger.error("respondElicitation failed:", error);
+        return false;
       }
     },
 

@@ -271,6 +271,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     resumeSession: (sessionId) =>
       ipcRenderer.invoke("coding-agent:resume-session", sessionId),
     listSessions: () => ipcRenderer.invoke("coding-agent:list-sessions"),
+    getPermissionRules: () =>
+      ipcRenderer.invoke("coding-agent:get-permission-rules"),
+    setPermissionRule: (payload) =>
+      ipcRenderer.invoke("coding-agent:set-permission-rule", payload),
     createRemoteSession: (payload) =>
       ipcRenderer.invoke("coding-agent:create-remote-session", payload),
     refreshRemoteSessionPairing: (payload) =>
@@ -293,6 +297,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("coding-agent:close-remote-session", remoteSessionId),
     sendMessage: (payload) =>
       ipcRenderer.invoke("coding-agent:send-message", payload),
+    respondElicitation: (payload) =>
+      ipcRenderer.invoke("coding-agent:respond-elicitation", payload),
     enterPlanMode: (sessionId) =>
       ipcRenderer.invoke("coding-agent:enter-plan-mode", sessionId),
     showPlan: (sessionId) =>

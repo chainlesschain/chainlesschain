@@ -285,6 +285,11 @@
               </a-button>
             </template>
           </a-alert>
+          <CodingAgentElicitationPanel
+            :request="codingAgentStore.latestMcpElicitation"
+            @accept="handleMcpElicitationAccept"
+            @cancel="handleMcpElicitationCancel"
+          />
           <div v-if="showHarnessPanel" class="coding-agent-harness-panel">
             <div class="harness-panel-header">
               <div>
@@ -1188,6 +1193,7 @@ import BrowserPreview from "@/components/projects/BrowserPreview.vue";
 import StepDisplay from "@/components/projects/StepDisplay.vue";
 import HarnessTaskDrawer from "@/components/chat/HarnessTaskDrawer.vue";
 import RemoteSessionPanel from "@/components/chat/RemoteSessionPanel.vue";
+import CodingAgentElicitationPanel from "@/components/CodingAgentElicitationPanel.vue";
 import { useCodingAgentStore } from "@/stores/coding-agent";
 import { useSessionCoreStore } from "@/stores/sessionCore";
 import {
@@ -1495,6 +1501,25 @@ const { handleCodingAgentEvent, ensurePendingAgentMessage } =
     isThinking,
     currentHighRiskToolNames,
   });
+
+const handleMcpElicitationAccept = async (answer) => {
+  const request = codingAgentStore.latestMcpElicitation;
+  if (request?.requestId == null) return;
+  await codingAgentStore.respondElicitation({
+    requestId: request.requestId,
+    action: "accept",
+    answer,
+  });
+};
+
+const handleMcpElicitationCancel = async () => {
+  const request = codingAgentStore.latestMcpElicitation;
+  if (request?.requestId == null) return;
+  await codingAgentStore.respondElicitation({
+    requestId: request.requestId,
+    action: "cancel",
+  });
+};
 
 const updateConversationTitleFromText = async (text) => {
   const conversation = conversations.value.find(

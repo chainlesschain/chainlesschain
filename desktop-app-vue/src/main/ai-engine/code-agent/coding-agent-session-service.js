@@ -350,6 +350,16 @@ class CodingAgentSessionService extends EventEmitter {
     };
   }
 
+  async getPermissionRules() {
+    await this.ensureReady();
+    return this.bridge.getPermissionRules();
+  }
+
+  async setPermissionRule(payload = {}) {
+    await this.ensureReady();
+    return this.bridge.setPermissionRule(payload);
+  }
+
   async createRemoteSession(sessionId, options = {}) {
     this._requireSession(sessionId);
     const response = await this.bridge.createRemoteSession(sessionId, options);
@@ -816,6 +826,25 @@ class CodingAgentSessionService extends EventEmitter {
       sessionId,
       requestId,
     };
+  }
+
+  /** Respond to an MCP elicitation request forwarded by the WS bridge. */
+  async respondElicitation(sessionId, payload = {}) {
+    const session = this._requireSession(sessionId);
+    const requestId = payload.requestId;
+    if (!requestId) throw new Error("MCP elicitation requestId is required");
+    const action = ["accept", "decline", "cancel"].includes(payload.action)
+      ? payload.action
+      : payload.answer == null
+        ? "cancel"
+        : "accept";
+    this.bridge.send({
+      type: "session-answer",
+      sessionId: session.sessionId,
+      requestId,
+      answer: action === "accept" ? payload.answer ?? null : null,
+    });
+    return { success: true, sessionId: session.sessionId, requestId, action };
   }
 
   async enterPlanMode(sessionId) {

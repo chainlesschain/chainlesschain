@@ -277,6 +277,15 @@ export interface CodingAgentPermissionPolicy {
   toolsBySource?: Record<string, string[]>;
 }
 
+export interface CodingAgentPermissionRules {
+  allow: string[];
+  ask: string[];
+  deny: string[];
+  sources?: Record<string, string>;
+  files?: string[];
+  managed?: Record<string, any> | null;
+}
+
 export interface CodingAgentSessionState {
   sessionId: string;
   status: string;
@@ -372,7 +381,19 @@ export interface CodingAgentAPI {
   startSession(options?: any): Promise<any>;
   resumeSession(sessionId: string): Promise<any>;
   listSessions(): Promise<any>;
+  getPermissionRules(): Promise<any>;
+  setPermissionRule(payload: {
+    decision: "allow" | "ask" | "deny";
+    rule: string;
+    scope?: "project" | "local" | "user";
+  }): Promise<any>;
   sendMessage(payload: { sessionId: string; content: string }): Promise<any>;
+  respondElicitation(payload: {
+    sessionId: string;
+    requestId: string | number;
+    action: "accept" | "decline" | "cancel";
+    answer?: any;
+  }): Promise<any>;
   enterPlanMode(sessionId: string): Promise<any>;
   showPlan(sessionId: string): Promise<any>;
   approvePlan(sessionId: string): Promise<any>;

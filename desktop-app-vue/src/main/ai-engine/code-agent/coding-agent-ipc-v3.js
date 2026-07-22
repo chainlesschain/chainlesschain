@@ -10,6 +10,8 @@ const CODING_AGENT_IPC_CHANNELS = [
   "coding-agent:start-session",
   "coding-agent:resume-session",
   "coding-agent:list-sessions",
+  "coding-agent:get-permission-rules",
+  "coding-agent:set-permission-rule",
   "coding-agent:create-remote-session",
   "coding-agent:refresh-remote-session-pairing",
   "coding-agent:list-remote-session-devices",
@@ -18,6 +20,7 @@ const CODING_AGENT_IPC_CHANNELS = [
   "coding-agent:remote-session-policy",
   "coding-agent:close-remote-session",
   "coding-agent:send-message",
+  "coding-agent:respond-elicitation",
   "coding-agent:enter-plan-mode",
   "coding-agent:show-plan",
   "coding-agent:approve-plan",
@@ -102,6 +105,24 @@ function registerCodingAgentIPCV3(options = {}) {
       return await service.listSessions();
     } catch (error) {
       logger.error("[CodingAgentIPCV3] list-sessions failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipc.handle("coding-agent:get-permission-rules", async () => {
+    try {
+      return await service.getPermissionRules();
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] get-permission-rules failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipc.handle("coding-agent:set-permission-rule", async (_event, payload = {}) => {
+    try {
+      return await service.setPermissionRule(payload);
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] set-permission-rule failed:", error);
       return { success: false, error: error.message };
     }
   });
@@ -214,6 +235,18 @@ function registerCodingAgentIPCV3(options = {}) {
       return { success: false, error: error.message };
     }
   });
+
+  ipc.handle(
+    "coding-agent:respond-elicitation",
+    async (_event, payload = {}) => {
+      try {
+        return await service.respondElicitation(payload.sessionId, payload);
+      } catch (error) {
+        logger.error("[CodingAgentIPCV3] respond-elicitation failed:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   ipc.handle("coding-agent:enter-plan-mode", async (_event, sessionId) => {
     try {

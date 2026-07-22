@@ -370,6 +370,18 @@ class CodingAgentBridge extends EventEmitter {
     ]);
   }
 
+  async getPermissionRules() {
+    return this.request("permission-rules-get", {}, ["permission-rules"]);
+  }
+
+  async setPermissionRule({ decision, rule, scope = "project" }) {
+    return this.request(
+      "permission-rules-set",
+      { decision, rule, scope },
+      ["permission-rule-updated"],
+    );
+  }
+
   async closeSession(sessionId) {
     return this.request("session-close", { sessionId }, [
       "command.response",

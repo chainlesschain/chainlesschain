@@ -682,6 +682,29 @@ describe("CodingAgentSessionService", () => {
     ).toBe(true);
   });
 
+  it("routes structured MCP elicitation answers back to the CLI bridge", async () => {
+    await service.createSession();
+
+    const result = await service.respondElicitation("session-1", {
+      requestId: "q-42",
+      action: "accept",
+      answer: { color: "blue" },
+    });
+
+    expect(result).toEqual({
+      success: true,
+      sessionId: "session-1",
+      requestId: "q-42",
+      action: "accept",
+    });
+    expect(bridge.sentMessages.at(-1)).toMatchObject({
+      type: "session-answer",
+      sessionId: "session-1",
+      requestId: "q-42",
+      answer: { color: "blue" },
+    });
+  });
+
   it("blocks follow-up messages until high-risk execution is explicitly confirmed", async () => {
     await service.createSession();
 
