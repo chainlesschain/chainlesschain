@@ -752,8 +752,14 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
         const q = document.createElement("div");
         q.className = "q";
         q.textContent = "❓ " + (m.question || "(question)");
-        card.appendChild(q);
-        const opts = Array.isArray(m.options) ? m.options : [];
+         card.appendChild(q);
+         if (m.elicitation && m.server) {
+           const server = document.createElement("div");
+           server.className = "info";
+           server.textContent = "Server: " + m.server;
+           card.appendChild(server);
+         }
+         const opts = Array.isArray(m.options) ? m.options : [];
         const labelOf = (o) => (typeof o === "string" ? o : (o && o.label != null ? String(o.label) : String(o)));
         const reply = (answer) => {
           vscode.postMessage({ type: "answer", id: m.id, answer });
@@ -765,9 +771,53 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
           card.appendChild(note);
           card.className = "approval done";
         };
-        const btns = document.createElement("div");
-        btns.className = "buttons";
-        if (opts.length && m.multiSelect === true) {
+         const btns = document.createElement("div");
+         btns.className = "buttons";
+         const schema = m.elicitation && m.requestedSchema && typeof m.requestedSchema === "object"
+           ? m.requestedSchema : null;
+         const properties = schema && schema.properties && typeof schema.properties === "object"
+           ? schema.properties : null;
+         const required = new Set(schema && Array.isArray(schema.required) ? schema.required : []);
+         const fields = [];
+         if (properties && Object.keys(properties).length) {
+           Object.entries(properties).forEach(([name, spec]) => {
+             if (!spec || typeof spec !== "object") return;
+             const row = document.createElement("label");
+             row.style.display = "block";
+             row.appendChild(document.createTextNode(name + (required.has(name) ? " *" : "")));
+             let input;
+             if (Array.isArray(spec.enum) && spec.enum.length) {
+               input = document.createElement("select");
+               spec.enum.forEach((value) => {
+                 const option = document.createElement("option");
+                 option.value = String(value); option.textContent = String(value);
+                 input.appendChild(option);
+               });
+             } else if (spec.type === "boolean") {
+               input = document.createElement("input"); input.type = "checkbox";
+             } else {
+               input = document.createElement("input");
+               input.type = spec.format === "password" ? "password" : spec.type === "number" || spec.type === "integer" ? "number" : "text";
+               if (spec.description) input.placeholder = String(spec.description);
+             }
+             if (spec.default !== undefined && input.type !== "checkbox") input.value = String(spec.default);
+             if (spec.default === true && input.type === "checkbox") input.checked = true;
+             fields.push({ name, spec, input });
+             row.appendChild(input);
+             card.appendChild(row);
+           });
+           const submit = document.createElement("button");
+           submit.textContent = "Submit";
+           submit.addEventListener("click", () => {
+             const answer = {};
+             fields.forEach(({ name, spec, input }) => {
+               if (input.type === "checkbox") answer[name] = input.checked;
+               else if (input.value !== "" || required.has(name)) answer[name] = spec.type === "number" ? Number(input.value) : spec.type === "integer" ? Math.trunc(Number(input.value)) : input.value;
+             });
+             reply(answer);
+           });
+           btns.appendChild(submit);
+         } else if (opts.length && m.multiSelect === true) {
           const boxes = [];
           for (const o of opts) {
             const lbl = labelOf(o);

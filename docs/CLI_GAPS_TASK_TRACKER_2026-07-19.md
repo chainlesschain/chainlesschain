@@ -175,7 +175,7 @@
 | #     | 任务                 | 状态        | 说明                                      |
 | ----- | -------------------- | ----------- | ----------------------------------------- |
 | P1-4  | Hooks v2 完整实现    | 🟡 运行时完成 | 18事件注册/执行、5种 executor、并行去重、JS handler、M5 E2E；真实 producer/沙箱仍待补 |
-| P1-5  | MCP Elicitation 路由 | 🟡 Desktop 核心完成 | `elicitation/create` handler/事件驱动应答/超时取消、REPL/stream headless、WS question channel、Desktop schema 表单、Agent SDK callback 已接入；完整 schema vocabulary 与 VS Code/JetBrains 专用 UX 仍待补 |
+| P1-5  | MCP Elicitation 路由 | 🟡 Desktop/IDE 核心完成 | `elicitation/create` handler/事件驱动应答/超时取消、REPL/stream headless、WS question channel、Desktop/VS Code/JetBrains common schema 表单、Agent SDK callback 已接入；完整 schema vocabulary 仍待补 |
 | P1-6  | Event Runtime 常驻化 | 🟡 producer 迁移进行中 | `cc agenda run --watch <seconds>`、claim lease/过期回收、`EventRuntimeStore` durable inbox/outbox、失败重试/死信、可停止 `EventRuntimeWorker`、`EventRuntimeProducer` 与 Agent IPC interaction 已完成；Monitor/Webhook/MCP producer 全量迁移仍待补 |
 | P1-7  | Context 来源归因     | M4 完成     | Skill 按需加载归因、MCP schema 统计       |
 | P1-8  | Checkpoint REPL 统一 | 部分        | turn-binding 生产者、tool_use_id 完整浮出 |

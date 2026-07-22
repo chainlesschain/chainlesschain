@@ -35,6 +35,19 @@ describe("chat-events — ask_user_question round-trip", () => {
     expect(r).toMatchObject({ kind: "question", id: "q-2", options: null, multiSelect: false });
   });
 
+  it("maps MCP elicitation metadata and requested schema for native forms", () => {
+    const schema = { type: "object", properties: { token: { type: "string", format: "password" } }, required: ["token"] };
+    const r = map({
+      type: "question_request",
+      id: "mcp-1",
+      question: "Authentication required",
+      metadata: { kind: "mcp_elicitation", server: "github", requestedSchema: schema },
+    });
+    expect(r).toMatchObject({
+      kind: "question", elicitation: true, server: "github", requestedSchema: schema,
+    });
+  });
+
   it("question_resolved (answered) → a quiet confirmation line", () => {
     const r = map({ type: "question_resolved", id: "q-1", via: "user-answer" });
     expect(r).toEqual({ kind: "info", text: "✓ answered" });

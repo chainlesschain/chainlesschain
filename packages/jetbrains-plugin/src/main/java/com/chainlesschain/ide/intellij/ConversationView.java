@@ -1268,7 +1268,8 @@ final class ConversationView {
             resolveApprovalCard(ui);
         } else if ("question".equals(kind)) {
             indexConversation("waiting_approval");
-            askQuestion(ui); // ask_user_question round-trip → dialog → {type:answer}
+            if (Boolean.TRUE.equals(ui.get("elicitation"))) askElicitation(ui);
+            else askQuestion(ui); // ask_user_question round-trip → dialog → {type:answer}
         } else if ("info".equals(kind) || "error".equals(kind)) {
             if ("error".equals(kind)) indexConversation("errored");
             Object text = ui.get("text");
@@ -1325,6 +1326,68 @@ final class ConversationView {
         ev.put("id", id);
         ev.put("answer", answer);
         queueSessionEvent(ev);
+    }
+
+    /** MCP elicitation round-trip: render the common object-schema vocabulary
+     * as a compact native form, while preserving cancel/timeout as null. */
+    @SuppressWarnings("unchecked")
+    private void askElicitation(Map<String, Object> ui) {
+        String id = ui.get("id") == null ? "" : String.valueOf(ui.get("id"));
+        if (id.isEmpty()) return;
+        String question = ui.get("question") == null ? CcBundle.message("chat.question.title") : String.valueOf(ui.get("question"));
+        Object schemaO = ui.get("requestedSchema");
+        if (!(schemaO instanceof Map)) { askQuestion(ui); return; }
+        Map<String, Object> schema = (Map<String, Object>) schemaO;
+        Object propsO = schema.get("properties");
+        if (!(propsO instanceof Map) || ((Map<?, ?>) propsO).isEmpty()) { askQuestion(ui); return; }
+        java.util.Set<String> required = new java.util.HashSet<>();
+        Object reqO = schema.get("required");
+        if (reqO instanceof java.util.List) for (Object r : (java.util.List<?>) reqO) required.add(String.valueOf(r));
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.add(new JLabel("<html>" + question + "</html>"));
+        java.util.Map<String, javax.swing.JComponent> fields = new java.util.LinkedHashMap<>();
+        java.util.Map<String, Object> specs = new java.util.LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : ((Map<?, ?>) propsO).entrySet()) {
+            String name = String.valueOf(entry.getKey());
+            if (!(entry.getValue() instanceof Map)) continue;
+            Map<String, Object> spec = (Map<String, Object>) entry.getValue();
+            specs.put(name, spec);
+            JPanel row = new JPanel(new java.awt.BorderLayout(8, 0));
+            row.add(new JLabel(name + (required.contains(name) ? " *" : "")), java.awt.BorderLayout.WEST);
+            javax.swing.JComponent component;
+            Object enumO = spec.get("enum");
+            if (enumO instanceof java.util.List && !((java.util.List<?>) enumO).isEmpty()) {
+                javax.swing.JComboBox<String> combo = new javax.swing.JComboBox<>();
+                for (Object value : (java.util.List<?>) enumO) combo.addItem(String.valueOf(value));
+                component = combo;
+            } else if ("boolean".equals(spec.get("type"))) {
+                component = new javax.swing.JCheckBox();
+           } else {
+                javax.swing.JTextField input = "password".equals(spec.get("format"))
+                        ? new javax.swing.JPasswordField() : new javax.swing.JTextField();
+                if (spec.get("default") != null) input.setText(String.valueOf(spec.get("default")));
+                component = input;
+            }
+            fields.put(name, component); row.add(component, java.awt.BorderLayout.CENTER); panel.add(row);
+        }
+        com.intellij.openapi.ui.DialogBuilder builder = new com.intellij.openapi.ui.DialogBuilder(project);
+        builder.setTitle(String.valueOf(ui.get("server") == null ? "MCP elicitation" : "MCP: " + ui.get("server")));
+        builder.setCenterPanel(panel); builder.addOkAction(); builder.addCancelAction();
+        Object answer = null;
+        if (builder.show() == com.intellij.openapi.ui.DialogWrapper.OK_EXIT_CODE) {
+            java.util.Map<String, Object> content = new java.util.LinkedHashMap<>();
+            for (Map.Entry<String, javax.swing.JComponent> field : fields.entrySet()) {
+                Object specO = specs.get(field.getKey());
+                String type = specO instanceof Map ? String.valueOf(((Map<?, ?>) specO).get("type")) : "string";
+                javax.swing.JComponent component = field.getValue();
+                if (component instanceof javax.swing.JCheckBox) content.put(field.getKey(), ((javax.swing.JCheckBox) component).isSelected());
+                else if (component instanceof javax.swing.JComboBox) content.put(field.getKey(), ((javax.swing.JComboBox<?>) component).getSelectedItem());
+                else { String value = component instanceof javax.swing.JPasswordField ? new String(((javax.swing.JPasswordField) component).getPassword()) : ((javax.swing.JTextField) component).getText(); if (!value.isEmpty() || required.contains(field.getKey())) content.put(field.getKey(), "integer".equals(type) ? Integer.valueOf(value) : "number".equals(type) ? Double.valueOf(value) : value); }
+            }
+            answer = content;
+        }
+        Map<String, Object> ev = new LinkedHashMap<>(); ev.put("type", "answer"); ev.put("id", id); ev.put("answer", answer); queueSessionEvent(ev);
     }
 
     /**

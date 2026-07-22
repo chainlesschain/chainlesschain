@@ -66,7 +66,7 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 | 后台人机回路 | 后台任务可暂停、请求权限/输入、恢复和接管 | attach 可追问；`needs_input` 已有真实状态 | 提问会 park 当前子进程，回答作为下一 turn；缺当前 turn 双向通道 | P0 |
 | 权限控制面 | CLI、交互、SDK、IDE 使用同一权限规则和决策来源 | Agent Runtime 已有 settings rules + ApprovalGate；`cc permissions` 仍是另一套管理面 | 用户可能误以为 `cc permissions` 已直接约束 Agent 工具；安全默认和来源解释需统一 | P0/P1 |
 | Hooks | 完整生命周期；command/http/mcp_tool/prompt/agent 五类；并行、去重、最严合并 | 稳定 command hook、部分事件、async/replay/trace 已有 | Hook 类型和事件生产者不全；shell 继承全 env；严格并行仍有 opt-in 路径 | P1 |
-| MCP 交互 | Elicitation、ElicitationResult、Channels、长调用后台化 | Tools/Resources/Prompts/OAuth/Tool Search/list changed/roots、Elicitation transport 与 Desktop schema UI 已有 | 完整 schema vocabulary、专用 IDE UX 与部分外部事件 producer 仍待补 | P1 |
+| MCP 交互 | Elicitation、ElicitationResult、Channels、长调用后台化 | Tools/Resources/Prompts/OAuth/Tool Search/list changed/roots、Elicitation transport、Desktop/VS Code/JetBrains common schema UX 已有 | 完整 schema vocabulary 与部分外部事件 producer 仍待补 | P1 |
 | Event Runtime | 后台会话、任务、外部事件和持续监控统一运行 | Agenda watch、durable inbox/outbox、lease/retry/dead-letter、Agent IPC producer 已接入 | Monitor/Webhook/MCP 等外部 producer 全量迁移、统一背压策略仍待补 | P1 |
 | Context | `/context` 显示 memory、skills、MCP、文件与缓存成本 | 已显示消息角色及 MCP schema 概览 | Skill 按需加载和实际 MCP schema 的逐来源归因仍不完整 | P1 |
 | Checkpoint | 对话与文件按 turn 恢复 | Headless 显式绑定已持久化，REPL 可消费 | REPL 还不是统一生产者；child/worktree/user edit/provider tool id 归因不完整 | P1 |
@@ -253,7 +253,7 @@ Claude Code 当前官方 Hook 面已包括更完整的生命周期，并支持 `
 - Monitor 已有确定性 event id、authority envelope 和去重原语，但注释仍指向“future resident daemon”。
 - [`mcp-client.js`](../packages/cli/src/harness/mcp-client.js#L1054) 已处理 tools/resources
   `list_changed`；Elicitation transport、REPL/Headless/SDK 核心链路及 Desktop
-  原生 schema UI 已接入，CLI validator 已补齐 dependent/pattern/contains/propertyNames 等常用 vocabulary；完整 meta-vocabulary 与 VS Code/JetBrains 专用 UX 仍未完整接入。
+  原生 schema UI 已接入，CLI validator 已补齐 dependent/pattern/contains/propertyNames 等常用 vocabulary；VS Code/JetBrains 已支持 MCP object schema 的常用字段表单，完整 meta-vocabulary 仍待补。
 
 2026-07-22 另补齐 Agenda 的持久执行 lease 和常驻入口：`AgentScheduleStore.claimDue()`
 通过跨进程锁标记 due 条目，完成/失败时释放，进程异常后由过期 lease 回收，避免两个
@@ -264,7 +264,7 @@ daemon loop 持续轮询。`EventRuntimeStore` 与可停止的 `EventRuntimeWork
 handler，或通过 `elicitation-request` 事件交给宿主；支持 `accept/decline/cancel` 规范化、
 超时取消和无宿主时 fail-closed decline。启用 `CC_INTERACTIVE_QUESTIONS=1` 的
 stream/headless 路径会复用现有结构化问题通道。WS question channel、REPL、Desktop 原生表单以及 SDK
-schema fixture 已接入；完整 schema vocabulary 与 VS Code/JetBrains 专用 UX 仍待补，因此 P1-5 仍为部分完成。
+schema fixture 已接入；VS Code/JetBrains 已补 MCP object schema 的 enum、required、默认值、boolean/number/password 字段表单；完整 schema vocabulary 仍待补，因此 P1-5 仍为部分完成。
 
 ### 7.2 建议
 
