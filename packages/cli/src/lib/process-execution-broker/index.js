@@ -552,6 +552,91 @@ class ProcessExecutionBroker extends EventEmitter {
     }
   }
 
+  /**
+   * Route a node-pty session through the same provenance and credential
+   * boundary as child_process execution. node-pty owns the native PTY
+   * allocation, so the platform sandbox is reported as unavailable here
+   * rather than being falsely marked as applied.
+   */
+  spawnPty(ptyModule, command, args = [], options = {}) {
+    if (!ptyModule || typeof ptyModule.spawn !== "function") {
+      throw new TypeError("pty_module_spawn_unavailable");
+    }
+    const executionId = crypto.randomUUID();
+    const startTime = Date.now();
+    const origin = options.origin || "terminal:pty";
+    const scope = options.scope || "terminal";
+    const policy = options.policy || "allow";
+    const auditEntry = {
+      executionId,
+      traceId: this._getTraceContext()?.traceId || null,
+      origin,
+      scope,
+      command,
+      args: Array.isArray(args) ? [...args] : [],
+      cwd: options.cwd || process.cwd(),
+      startTime,
+      permissionDecision: policy,
+      policy,
+      operation: "pty.spawn",
+      pty: true,
+      sandboxed: false,
+      sandboxReason: "native_pty_host_boundary",
+      pluginId: options.pluginId || null,
+      pluginVersion: options.pluginVersion || null,
+      pluginSource: options.pluginSource || null,
+    };
+    if (policy === "deny" || policy === "prompt") {
+      auditEntry.deniedReason = `policy_${policy}`;
+      auditEntry.endTime = Date.now();
+      auditEntry.durationMs = 0;
+      this._recordAudit(auditEntry);
+      this._writeRplEntry(
+        auditEntry,
+        "denied",
+        new Error(auditEntry.deniedReason),
+      );
+      const error = new Error(`PTY spawn denied: ${auditEntry.deniedReason}`);
+      error.auditEntry = auditEntry;
+      throw error;
+    }
+
+    const spawnOptions = { ...options, args: [...auditEntry.args] };
+    delete spawnOptions.origin;
+    delete spawnOptions.policy;
+    delete spawnOptions.scope;
+    delete spawnOptions.pluginId;
+    delete spawnOptions.pluginVersion;
+    delete spawnOptions.pluginSource;
+    try {
+      if (this._credentialAgentEnabled) {
+        const credInfo = this._credentialAgent.apply(spawnOptions, {
+          command,
+          args: auditEntry.args,
+          origin,
+        });
+        auditEntry.credentialFiltered = !!credInfo.redacted;
+        if (credInfo.redacted) this._stats.credFiltered++;
+      }
+      const filteredArgs = spawnOptions.args || [];
+      delete spawnOptions.args;
+      const proc = ptyModule.spawn(command, filteredArgs, spawnOptions);
+      auditEntry.pid = proc?.pid ?? null;
+      auditEntry.endTime = Date.now();
+      auditEntry.durationMs = auditEntry.endTime - startTime;
+      this._recordAudit(auditEntry);
+      this._writeRplEntry(auditEntry, "started");
+      return proc;
+    } catch (error) {
+      auditEntry.error = error.message;
+      auditEntry.endTime = Date.now();
+      auditEntry.durationMs = auditEntry.endTime - startTime;
+      this._recordAudit(auditEntry);
+      this._writeRplEntry(auditEntry, "error", error);
+      throw error;
+    }
+  }
+
   exec(command, options, callback) {
     const opts = typeof options === "function" ? {} : options;
     const cb = typeof options === "function" ? options : callback;

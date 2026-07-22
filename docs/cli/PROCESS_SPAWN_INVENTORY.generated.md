@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 412 (runtime: 336, tooling: 53, test: 23).
+Total matches: 413 (runtime: 337, tooling: 53, test: 23).
 
 ## Policy
 
@@ -97,7 +97,6 @@ Total matches: 412 (runtime: 336, tooling: 53, test: 23).
 | `packages/cli/src/commands/update.js` | 3 | `import { execSync } from "node:child_process";` |
 | `packages/cli/src/commands/update.js` | 36 | `execSync(`npm install -g chainlesschain@${targetVersion}`, {` |
 | `packages/cli/src/commands/update.js` | 42 | `const newVersion = execSync("chainlesschain --version", {` |
-| `packages/cli/src/gateways/terminal/PtyManager.js` | 113 | `const proc = pty.spawn(cmd, [], {` |
 | `packages/cli/src/gateways/ws/ws-server.js` | 14 | `import { spawn } from "node:child_process";` |
 | `packages/cli/src/gateways/ws/ws-server.js` | 919 | `const child = spawn(process.execPath, [BIN_PATH, ...args], {` |
 | `packages/cli/src/harness/background-task-manager.js` | 4 | `* Tasks run in child_process.fork() for isolation.` |
@@ -253,15 +252,17 @@ Total matches: 412 (runtime: 336, tooling: 53, test: 23).
 | `packages/cli/src/lib/process-execution-broker/index.js` | 23 | `} from "node:child_process";` |
 | `packages/cli/src/lib/process-execution-broker/index.js` | 238 | `spawn(command, args, options = {}) {` |
 | `packages/cli/src/lib/process-execution-broker/index.js` | 424 | `spawnSync(command, args, options = {}) {` |
-| `packages/cli/src/lib/process-execution-broker/index.js` | 558 | `return this.spawn(command, [], {` |
-| `packages/cli/src/lib/process-execution-broker/index.js` | 565 | `execSync(command, options = {}) {` |
-| `packages/cli/src/lib/process-execution-broker/index.js` | 571 | `const result = this.spawnSync(command, [], spawnOpts);` |
-| `packages/cli/src/lib/process-execution-broker/index.js` | 585 | `execFile(file, args, options, callback) {` |
-| `packages/cli/src/lib/process-execution-broker/index.js` | 586 | `return this.spawn(file, args, options \|\| {});` |
-| `packages/cli/src/lib/process-execution-broker/index.js` | 589 | `execFileSync(file, args, options = {}) {` |
-| `packages/cli/src/lib/process-execution-broker/index.js` | 590 | `return this.spawnSync(file, args, options);` |
-| `packages/cli/src/lib/process-execution-broker/index.js` | 593 | `fork(modulePath, args, options = {}) {` |
-| `packages/cli/src/lib/process-execution-broker/index.js` | 594 | `return this.spawn(process.execPath, [modulePath, ...(args \|\| [])], {` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 557 | `* boundary as child_process execution. node-pty owns the native PTY` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 623 | `const proc = ptyModule.spawn(command, filteredArgs, spawnOptions);` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 643 | `return this.spawn(command, [], {` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 650 | `execSync(command, options = {}) {` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 656 | `const result = this.spawnSync(command, [], spawnOpts);` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 670 | `execFile(file, args, options, callback) {` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 671 | `return this.spawn(file, args, options \|\| {});` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 674 | `execFileSync(file, args, options = {}) {` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 675 | `return this.spawnSync(file, args, options);` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 678 | `fork(modulePath, args, options = {}) {` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 679 | `return this.spawn(process.execPath, [modulePath, ...(args \|\| [])], {` |
 | `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 2 | `* Monkey-patch node:child_process to route ALL spawn/exec calls through ExecutionBroker (M1)` |
 | `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 11 | `// Get the REAL native child_process module (unpatched, from Node.js internals)` |
 | `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 12 | `const nativeCp = require("node:child_process");` |

@@ -99,4 +99,50 @@ describe("PtyManager env handling (remote frame input)", () => {
     mgr.create({ shell: "bash", env: { MY_VAR: "x" } });
     expect(procs[0].spawnOpts.env.MY_VAR).toBe("x");
   });
+
+  it("routes native PTY creation through the execution broker seam", () => {
+    const { loadNodePty, procs } = makeFakeDeps();
+    const calls = [];
+    const mgr = new PtyManager({
+      _deps: {
+        loadNodePty,
+        spawnPty: (module, command, args, options) => {
+          calls.push({ module, command, args, options });
+          return module.spawn(command, args, options);
+        },
+      },
+    });
+    mgr.create({ shell: "bash" });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].command).toMatch(/bash/);
+    expect(calls[0].options).toMatchObject({
+      origin: "terminal:pty",
+      policy: "allow",
+      scope: "terminal",
+    });
+    expect(procs).toHaveLength(1);
+  });
+});
+
+describe("PtyManager process broker seam", () => {
+  it("routes PTY allocation through the injected broker boundary", () => {
+    const { loadNodePty, procs } = makeFakeDeps();
+    const calls = [];
+    const mgr = new PtyManager({
+      _deps: {
+        loadNodePty,
+        spawnPty(pty, command, args, options) {
+          calls.push({ pty, command, args, options });
+          return pty.spawn(command, args, options);
+        },
+      },
+    });
+
+    mgr.create({ shell: "bash", env: { API_TOKEN: "secret" } });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].command).toMatch(/bash(?:\.exe)?$/);
+    expect(calls[0].args).toEqual([]);
+    expect(procs[0].spawnOpts.env.API_TOKEN).toBe("secret");
+  });
 });

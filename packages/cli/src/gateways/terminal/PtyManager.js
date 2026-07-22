@@ -21,6 +21,7 @@ import EventEmitter from "events";
 import { randomUUID } from "crypto";
 import { createRequire } from "module";
 import { RingBuffer } from "./RingBuffer.js";
+import { executionBroker } from "../../lib/process-execution-broker/index.js";
 
 const require = createRequire(import.meta.url);
 
@@ -66,6 +67,7 @@ export class PtyManager extends EventEmitter {
     this.config = { ...DEFAULT_CONFIG, ...(opts.config || {}) };
     this._deps = {
       loadNodePty: opts._deps?.loadNodePty || (() => require("node-pty")),
+      spawnPty: opts._deps?.spawnPty || null,
       now: opts._deps?.now || (() => Date.now()),
     };
     this._sessions = new Map();
@@ -110,12 +112,16 @@ export class PtyManager extends EventEmitter {
       req.env && typeof req.env === "object" && !Array.isArray(req.env)
         ? req.env
         : {};
-    const proc = pty.spawn(cmd, [], {
+    const spawnPty = this._deps.spawnPty || executionBroker.spawnPty.bind(executionBroker);
+    const proc = spawnPty(pty, cmd, [], {
       name: "xterm-256color",
       cols,
       rows,
       cwd,
       env: { ...process.env, ...extraEnv },
+      origin: "terminal:pty",
+      policy: "allow",
+      scope: "terminal",
     });
 
     const sessionId = randomUUID();
