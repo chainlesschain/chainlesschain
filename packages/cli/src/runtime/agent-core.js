@@ -2945,6 +2945,29 @@ async function executeToolInner(
           : {}
         : { shell: shellInv.kind };
 
+      // PATH-based plugin binaries need explicit provenance at the Broker
+      // boundary; otherwise a trusted plugin executable is indistinguishable
+      // from an ambient system command in the process audit log.
+      let pluginBinProvenance = null;
+      try {
+        const { resolvePluginBinCommand } = await import(
+          "../lib/plugin-runtime/bin.js"
+        );
+        pluginBinProvenance = resolvePluginBinCommand(args.command, { cwd });
+      } catch {
+        pluginBinProvenance = null;
+      }
+      const processOrigin = pluginBinProvenance
+        ? "plugin:bin"
+        : "tool:run_shell";
+      const processProvenance = pluginBinProvenance
+        ? {
+            pluginId: pluginBinProvenance.pluginId,
+            pluginVersion: pluginBinProvenance.pluginVersion,
+            pluginSource: pluginBinProvenance.pluginSource,
+          }
+        : {};
+
       // Background: spawn, register, return a task_id immediately. The agent
       // polls output + completion via check_shell. No timeout — that's the whole
       // point of backgrounding (builds, test suites, dev servers).
@@ -3006,9 +3029,10 @@ async function executeToolInner(
           // is the historical spawn(command, {shell:true}) byte-for-byte.
           const brokerOpts = {
             ...bgSpawnOpts,
-            origin: "tool:run_shell",
+            origin: processOrigin,
             policy: "allow",
             scope: "agent",
+            ...processProvenance,
           };
           const child = shellInv.useDefaultShell
             ? broker.spawn(args.command, [], brokerOpts)
@@ -3187,9 +3211,10 @@ async function executeToolInner(
         let output;
         const brokerExecOpts = {
           ...fgExecOpts,
-          origin: "tool:run_shell",
+          origin: processOrigin,
           policy: "allow",
           scope: "agent",
+          ...processProvenance,
         };
         if (shellInv.useDefaultShell) {
           output = broker.execSync(args.command, brokerExecOpts);

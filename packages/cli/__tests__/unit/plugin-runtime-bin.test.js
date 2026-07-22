@@ -5,6 +5,7 @@ import path from "node:path";
 import {
   collectPluginBinDirs,
   applyPluginBinPath,
+  resolvePluginBinCommand,
 } from "../../src/lib/plugin-runtime/bin.js";
 import { pluginVersionDir } from "../../src/lib/plugin-runtime/scopes.js";
 import {
@@ -122,5 +123,31 @@ describe("applyPluginBinPath", () => {
     const res = applyPluginBinPath({ cwd, scopes: ["local"], env });
     expect(res.added).toEqual([]);
     expect(env.PATH).toBe(`${binDir}${path.delimiter}/usr/bin`);
+  });
+});
+
+describe("resolvePluginBinCommand", () => {
+  it("returns provenance for a trusted plugin executable token", () => {
+    const binDir = installBinPlugin("local", "toolkit", ["mytool"]);
+    expect(resolvePluginBinCommand("mytool --version", {
+      cwd,
+      scopes: ["local"],
+    })).toMatchObject({
+      pluginId: "toolkit",
+      pluginVersion: "1.0.0",
+      binPath: path.join(binDir, "mytool"),
+    });
+  });
+
+  it("does not attribute an ordinary command or an untrusted plugin", () => {
+    installBinPlugin("project", "toolkit", ["mytool"]);
+    expect(resolvePluginBinCommand("mytool", {
+      cwd,
+      scopes: ["project"],
+    })).toBeNull();
+    expect(resolvePluginBinCommand("node --version", {
+      cwd,
+      scopes: ["local"],
+    })).toBeNull();
   });
 });

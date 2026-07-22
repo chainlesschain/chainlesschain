@@ -17,6 +17,7 @@
  */
 
 import path from "path";
+import fs from "fs";
 import { discoverPlugins } from "./scopes.js";
 import { partitionByTrust, warnUntrustedOnce } from "./trust.js";
 import { componentCapabilityDenial } from "./capabilities.js";
@@ -134,4 +135,48 @@ export function applyPluginBinPath(opts = {}) {
       env.PATH = prevPath;
     },
   };
+}
+
+/**
+ * Resolve the first executable token of a shell command to a trusted plugin
+ * bin. This is intentionally conservative: only an existing file directly
+ * under a collected plugin bin directory is attributed.
+ *
+ * @param {string} command
+ * @param {object} [opts] { cwd, scopes }
+ * @returns {{pluginId:string,pluginVersion:string,pluginSource:string,scope:string,binPath:string}|null}
+ */
+export function resolvePluginBinCommand(command, opts = {}) {
+  if (typeof command !== "string") return null;
+  const match = command.match(/^\s*(?:"([^"]+)"|'([^']+)'|([^\s]+))/);
+  const token = match?.[1] || match?.[2] || match?.[3] || "";
+  if (!token) return null;
+  const tokenBase = path.basename(token).toLowerCase();
+  const candidates = new Set([tokenBase]);
+  if (process.platform === "win32" && !path.extname(tokenBase)) {
+    candidates.add(`${tokenBase}.exe`);
+    candidates.add(`${tokenBase}.cmd`);
+    candidates.add(`${tokenBase}.bat`);
+  }
+  for (const entry of collectPluginBinDirs(opts)) {
+    for (const candidateName of candidates) {
+      const binPath = path.join(entry.dir, candidateName);
+      if (!fs.existsSync(binPath)) continue;
+      if (path.isAbsolute(token)) {
+        try {
+          if (path.resolve(token) !== path.resolve(binPath)) continue;
+        } catch {
+          continue;
+        }
+      }
+      return {
+        pluginId: entry.plugin,
+        pluginVersion: entry.version || null,
+        pluginSource: entry.dir,
+        scope: entry.scope || null,
+        binPath,
+      };
+    }
+  }
+  return null;
 }
