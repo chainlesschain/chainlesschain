@@ -292,14 +292,16 @@ export async function executeHook(hook, context = {}) {
         HOOK_CONTEXT: JSON.stringify(context),
       };
       // M1: Record hook command execution in broker audit log
-      broker.auditLog.push({
+      const auditEntry = {
         pid: process.pid,
         origin: "hook",
         command: cmd,
         args: [],
         startedAt: Date.now(),
         sessionId: context?.sessionId,
-      });
+      };
+      if (typeof broker._recordAudit === "function")
+        broker._recordAudit(auditEntry);
       const output = execSync(cmd, {
         encoding: "utf-8",
         timeout: hook.timeout || 20000,
@@ -308,7 +310,6 @@ export async function executeHook(hook, context = {}) {
         // FAILURE even though it succeeded. Give hook output generous headroom.
         maxBuffer: 64 * 1024 * 1024,
         env,
-        shell: process.platform === "win32" ? "cmd.exe" : true,
         windowsHide: true,
       });
       const executionTime = Date.now() - start;

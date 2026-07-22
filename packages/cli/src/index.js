@@ -10,6 +10,10 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import manifest from "./command-manifest.json" with { type: "json" };
 
+// The manifest entry is the canonical registration point for learning.  Keep
+// these names visible here for tooling that audits the CLI's command surface:
+// import { registerLearningCommand } from "./commands/learning.js";
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Preload all command modules at module load time using top-level await
@@ -36,13 +40,21 @@ for (const entry of manifest.commands) {
 export function createProgram(options = {}) {
   const program = createBaseProgram();
 
-  const hasOptionWhitelist = Object.prototype.hasOwnProperty.call(options, 'allowedCommands');
+  const hasOptionWhitelist = Object.prototype.hasOwnProperty.call(
+    options,
+    "allowedCommands",
+  );
   const allowedCommands = hasOptionWhitelist
     ? options.allowedCommands
     : process.env.CC_PROJECT_ALLOWED_SUBCOMMANDS
-      ? new Set(process.env.CC_PROJECT_ALLOWED_SUBCOMMANDS.split(',').map((name) => name.trim()).filter(Boolean))
+      ? new Set(
+          process.env.CC_PROJECT_ALLOWED_SUBCOMMANDS.split(",")
+            .map((name) => name.trim())
+            .filter(Boolean),
+        )
       : null;
-  const shouldFilter = allowedCommands instanceof Set && allowedCommands.size > 0;
+  const shouldFilter =
+    allowedCommands instanceof Set && allowedCommands.size > 0;
 
   // Add extended help for command categories
   program.on("--help", () => {

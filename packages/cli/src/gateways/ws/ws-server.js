@@ -859,6 +859,7 @@ export class ChainlessChainWSServer extends EventEmitter {
         ...process.env,
         FORCE_COLOR: "0",
         NO_SPINNER: "1",
+        NODE_NO_WARNINGS: "1",
         // When this server runs inside Electron (e.g. desktop web-shell)
         // process.execPath points at the Electron binary, not node. Setting
         // ELECTRON_RUN_AS_NODE=1 makes Electron behave as a plain Node
