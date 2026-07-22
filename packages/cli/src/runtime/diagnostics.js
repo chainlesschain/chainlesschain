@@ -30,6 +30,7 @@ import {
 import { loadConfig } from "../lib/config-manager.js";
 import { isAppRunning, getAppPid } from "../lib/process-manager.js";
 import { readDiskVersion, versionDiagnosis } from "../lib/version-skew.js";
+import { EventRuntimeStore } from "../lib/event-runtime-store.js";
 
 /** Best-effort read of the npm `latest` cached by the startup update notice. */
 function readCachedLatest() {
@@ -364,10 +365,37 @@ export function buildDoctorDiagnosticInput(report, signals = {}) {
  *     services: Array<{ name, state }> | null,
  *     note: string | null
  *   },
- *   ports: Array<{ name, port, open }>
+ *   ports: Array<{ name, port, open }>,
+ *   eventRuntime: { enabled, health, error }
  * }
  */
-export async function collectStatusReport() {
+export function collectEventRuntimeStatus({
+  env = process.env,
+  store = null,
+} = {}) {
+  const enabled = env?.CC_EVENT_RUNTIME_DURABLE === "1";
+  if (!enabled && !store) {
+    return { enabled: false, health: null, error: null };
+  }
+  try {
+    return {
+      enabled,
+      health: (store || new EventRuntimeStore()).getHealthSnapshot(),
+      error: null,
+    };
+  } catch (error) {
+    return {
+      enabled,
+      health: null,
+      error: {
+        code: error?.code || "CC_EVENT_RUNTIME_STATUS_FAILED",
+        message: String(error?.message || error),
+      },
+    };
+  }
+}
+
+export async function collectStatusReport(options = {}) {
   let config = {};
   try {
     config = loadConfig();
@@ -443,5 +471,9 @@ export async function collectStatusReport() {
     setup,
     docker,
     ports,
+    eventRuntime: collectEventRuntimeStatus({
+      env: options.eventRuntimeEnv || process.env,
+      store: options.eventRuntimeStore || null,
+    }),
   };
 }

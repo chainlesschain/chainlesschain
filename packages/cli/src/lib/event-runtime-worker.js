@@ -35,14 +35,26 @@ export class EventRuntimeWorker {
     for (const record of claimed) {
       try {
         const result = await handler(record.event, record);
-        if (queue === "inbox") this.store.acknowledgeInbox(record.id, result);
-        else this.store.acknowledgeOutbox(record.id, result);
-        stats[`${queue}Acked`] += 1;
+        const options = { owner: record.lease?.owner };
+        const settled =
+          queue === "inbox"
+            ? this.store.acknowledgeInbox(record.id, result, options)
+            : this.store.acknowledgeOutbox(record.id, result, options);
+        if (settled === null && options.owner) stats[`${queue}LeaseLost`] += 1;
+        else stats[`${queue}Acked`] += 1;
       } catch (error) {
-        this.store.fail(queue, record.id, error?.message || error, {
+        const options = {
           retryDelayMs: this.retryDelayMs,
-        });
-        stats[`${queue}Failed`] += 1;
+          owner: record.lease?.owner,
+        };
+        const settled = this.store.fail(
+          queue,
+          record.id,
+          error?.message || error,
+          options,
+        );
+        if (settled === null && options.owner) stats[`${queue}LeaseLost`] += 1;
+        else stats[`${queue}Failed`] += 1;
       }
     }
     stats[`${queue}Claimed`] += claimed.length;
@@ -53,9 +65,11 @@ export class EventRuntimeWorker {
       inboxClaimed: 0,
       inboxAcked: 0,
       inboxFailed: 0,
+      inboxLeaseLost: 0,
       outboxClaimed: 0,
       outboxAcked: 0,
       outboxFailed: 0,
+      outboxLeaseLost: 0,
     };
     await this._drain("inbox", this.onInbox, stats);
     await this._drain("outbox", this.onOutbox, stats);
@@ -73,9 +87,11 @@ export class EventRuntimeWorker {
       inboxClaimed: 0,
       inboxAcked: 0,
       inboxFailed: 0,
+      inboxLeaseLost: 0,
       outboxClaimed: 0,
       outboxAcked: 0,
       outboxFailed: 0,
+      outboxLeaseLost: 0,
     };
     try {
       while (!stopped) {

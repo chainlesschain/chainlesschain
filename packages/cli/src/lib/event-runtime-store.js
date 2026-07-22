@@ -106,11 +106,15 @@ export class EventRuntimeStore {
       const existing = records.find((record) => record.id === key);
       if (existing) return { ...clone(existing), duplicate: true };
       const active = records.reduce(
-        (count, record) => count + (record.status === "done" || record.status === "dead" ? 0 : 1),
+        (count, record) =>
+          count +
+          (record.status === "done" || record.status === "dead" ? 0 : 1),
         0,
       );
       if (active >= this.maxQueueLength) {
-        const error = new Error(`Event Runtime ${queue} queue is full (${this.maxQueueLength})`);
+        const error = new Error(
+          `Event Runtime ${queue} queue is full (${this.maxQueueLength})`,
+        );
         error.code = "CC_EVENT_RUNTIME_BACKPRESSURE";
         throw error;
       }
@@ -145,7 +149,10 @@ export class EventRuntimeStore {
     return this._mutate(queue, (records) => {
       const claimed = [];
       for (const record of records) {
-        if (record.status === "processing" && Number(record.lease?.expiresAt) <= t) {
+        if (
+          record.status === "processing" &&
+          Number(record.lease?.expiresAt) <= t
+        ) {
           record.status = "pending";
           record.lease = null;
         }
@@ -168,10 +175,18 @@ export class EventRuntimeStore {
     return this.claim("outbox", options);
   }
 
-  acknowledge(queue, id, result = null) {
+  acknowledge(queue, id, result = null, { owner = null } = {}) {
     return this._mutate(queue, (records) => {
       const record = records.find((item) => item.id === String(id));
       if (!record) return null;
+      const expectedOwner = owner ? String(owner) : null;
+      if (
+        expectedOwner &&
+        (record.status !== "processing" ||
+          record.lease?.owner !== expectedOwner)
+      ) {
+        return null;
+      }
       record.status = "done";
       record.result = clone(result);
       record.completedAt = this._now();
@@ -180,26 +195,43 @@ export class EventRuntimeStore {
     });
   }
 
-  acknowledgeInbox(id, result) {
-    return this.acknowledge("inbox", id, result);
+  acknowledgeInbox(id, result, options) {
+    return this.acknowledge("inbox", id, result, options);
   }
 
-  acknowledgeOutbox(id, result) {
-    return this.acknowledge("outbox", id, result);
+  acknowledgeOutbox(id, result, options) {
+    return this.acknowledge("outbox", id, result, options);
   }
 
-  fail(queue, id, error, { retryDelayMs = 1000, maxAttempts = this.maxAttempts } = {}) {
+  fail(
+    queue,
+    id,
+    error,
+    { retryDelayMs = 1000, maxAttempts = this.maxAttempts, owner = null } = {},
+  ) {
     return this._mutate(queue, (records) => {
       const record = records.find((item) => item.id === String(id));
       if (!record) return null;
+      const expectedOwner = owner ? String(owner) : null;
+      if (
+        expectedOwner &&
+        (record.status !== "processing" ||
+          record.lease?.owner !== expectedOwner)
+      ) {
+        return null;
+      }
       record.error = String(error || "event delivery failed").slice(0, 1000);
       record.lease = null;
-      if (Number(record.attempts || 0) >= Math.max(1, Number(maxAttempts) || this.maxAttempts)) {
+      if (
+        Number(record.attempts || 0) >=
+        Math.max(1, Number(maxAttempts) || this.maxAttempts)
+      ) {
         record.status = "dead";
         record.deadAt = this._now();
       } else {
         record.status = "pending";
-        record.nextAttemptAt = this._now() + Math.max(0, Number(retryDelayMs) || 0);
+        record.nextAttemptAt =
+          this._now() + Math.max(0, Number(retryDelayMs) || 0);
       }
       return clone(record);
     });
@@ -217,6 +249,105 @@ export class EventRuntimeStore {
 
   listOutbox(options) {
     return this.list("outbox", options);
+  }
+
+  /**
+   * Return a lock-consistent, cross-process health snapshot without claiming
+   * work. Queue capacity is measured from active records because completed and
+   * dead-letter records do not participate in producer backpressure.
+   */
+  getHealthSnapshot({ now = this._now(), highWatermarkRatio = 0.8 } = {}) {
+    const t = Number(now);
+    const highWatermark = Math.min(
+      1,
+      Math.max(0, Number(highWatermarkRatio) || 0.8),
+    );
+    this._ensureDir();
+    return withFileLock(
+      path.join(this.dir, ".event-runtime"),
+      () => {
+        const queues = {};
+        for (const queue of QUEUES) {
+          const records = this._read(queue);
+          const summary = {
+            total: records.length,
+            active: 0,
+            pending: 0,
+            processing: 0,
+            done: 0,
+            dead: 0,
+            unknown: 0,
+            claimable: 0,
+            delayed: 0,
+            expiredLeases: 0,
+            oldestActiveAgeMs: null,
+            availableCapacity: this.maxQueueLength,
+            utilization: 0,
+            pressure: "normal",
+          };
+          let oldestActiveAt = null;
+          for (const record of records) {
+            const status = String(record.status || "unknown");
+            if (["pending", "processing", "done", "dead"].includes(status)) {
+              summary[status] += 1;
+            } else summary.unknown += 1;
+            const active = status !== "done" && status !== "dead";
+            if (active) {
+              summary.active += 1;
+              const createdAt = Number(record.createdAt);
+              if (
+                Number.isFinite(createdAt) &&
+                (oldestActiveAt == null || createdAt < oldestActiveAt)
+              ) {
+                oldestActiveAt = createdAt;
+              }
+            }
+            if (status === "pending") {
+              if (Number(record.nextAttemptAt || 0) <= t)
+                summary.claimable += 1;
+              else summary.delayed += 1;
+            } else if (
+              status === "processing" &&
+              Number(record.lease?.expiresAt) <= t
+            ) {
+              summary.expiredLeases += 1;
+            }
+          }
+          summary.availableCapacity = Math.max(
+            0,
+            this.maxQueueLength - summary.active,
+          );
+          summary.utilization = Number(
+            (summary.active / this.maxQueueLength).toFixed(4),
+          );
+          summary.pressure =
+            summary.active >= this.maxQueueLength
+              ? "full"
+              : summary.utilization >= highWatermark
+                ? "high"
+                : "normal";
+          summary.oldestActiveAgeMs =
+            oldestActiveAt == null ? null : Math.max(0, t - oldestActiveAt);
+          queues[queue] = summary;
+        }
+        const pressure = Object.values(queues).some(
+          (queue) => queue.pressure === "full",
+        )
+          ? "full"
+          : Object.values(queues).some((queue) => queue.pressure === "high")
+            ? "high"
+            : "normal";
+        return {
+          schema: "chainlesschain.event-runtime-health.v1",
+          observedAt: new Date(t).toISOString(),
+          queueLimit: this.maxQueueLength,
+          highWatermarkRatio: highWatermark,
+          pressure,
+          queues,
+        };
+      },
+      { timeoutMs: this.lockTimeoutMs, failIfUnavailable: true },
+    );
   }
 }
 

@@ -10,6 +10,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import {
   collectDoctorReport,
   collectStatusReport,
+  collectEventRuntimeStatus,
   checkPort,
   checkPdhPackageIntegrity,
 } from "../../src/runtime/diagnostics.js";
@@ -105,10 +106,26 @@ describe("diagnostics.collectDoctorReport", { timeout: 60000 }, () => {
 
 describe("diagnostics.collectStatusReport", () => {
   it("returns a report with the status v1 schema tag", async () => {
-    const report = await collectStatusReport();
+    const report = await collectStatusReport({
+      eventRuntimeEnv: { CC_EVENT_RUNTIME_DURABLE: "1" },
+      eventRuntimeStore: {
+        getHealthSnapshot: () => ({
+          schema: "chainlesschain.event-runtime-health.v1",
+          pressure: "normal",
+        }),
+      },
+    });
     expect(report.schema).toBe("chainlesschain.status.v1");
     expect(typeof report.version).toBe("string");
     expect(() => new Date(report.generatedAt).toISOString()).not.toThrow();
+    expect(report.eventRuntime).toMatchObject({
+      enabled: true,
+      health: {
+        schema: "chainlesschain.event-runtime-health.v1",
+        pressure: "normal",
+      },
+      error: null,
+    });
   });
 
   it("app section has running/pid fields", async () => {
@@ -146,6 +163,31 @@ describe("diagnostics.collectStatusReport", () => {
       expect(typeof p.port).toBe("number");
       expect(typeof p.open).toBe("boolean");
     }
+  });
+
+  it("exposes Event Runtime health without making disabled mode write state", () => {
+    expect(collectEventRuntimeStatus({ env: {} })).toEqual({
+      enabled: false,
+      health: null,
+      error: null,
+    });
+    const health = collectEventRuntimeStatus({
+      env: { CC_EVENT_RUNTIME_DURABLE: "1" },
+      store: {
+        getHealthSnapshot: () => ({
+          schema: "chainlesschain.event-runtime-health.v1",
+          pressure: "high",
+        }),
+      },
+    });
+    expect(health).toMatchObject({
+      enabled: true,
+      health: {
+        schema: "chainlesschain.event-runtime-health.v1",
+        pressure: "high",
+      },
+      error: null,
+    });
   });
 });
 
