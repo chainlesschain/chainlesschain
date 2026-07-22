@@ -140,6 +140,15 @@ function installDesktopProcessBroker({
   });
 
   const broker = {
+    spawnPty(ptyModule, command, args, options) {
+      if (!ptyModule || typeof ptyModule.spawn !== "function") {
+        throw new TypeError("pty_module_spawn_unavailable");
+      }
+      // PTY options contain the complete inherited environment. Keep values
+      // out of the audit record while preserving the native spawn options.
+      record("pty.spawn", command, args, options);
+      return ptyModule.spawn(command, args, options);
+    },
     getAuditLog: (limit = 100) => auditLog.slice(-limit),
     flushAuditLog: () => auditLog.splice(0, auditLog.length),
     uninstall() {
@@ -161,4 +170,12 @@ function installDesktopProcessBroker({
   return broker;
 }
 
-module.exports = { installDesktopProcessBroker, redact };
+function getDesktopProcessBroker({ childProcess = nativeChildProcess } = {}) {
+  return childProcess[BROKER_MARK] || null;
+}
+
+module.exports = {
+  installDesktopProcessBroker,
+  getDesktopProcessBroker,
+  redact,
+};

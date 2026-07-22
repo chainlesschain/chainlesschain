@@ -65,4 +65,36 @@ describe("desktop process broker", () => {
       "Authorization: Bearer [REDACTED]",
     );
   });
+
+  it("audits node-pty without recording inherited environment values", () => {
+    const { cp } = fakeChildProcess();
+    const calls = [];
+    const audit = [];
+    const broker = installDesktopProcessBroker({
+      childProcess: cp,
+      auditSink: (entry) => audit.push(entry),
+      now: () => "2026-07-22T00:00:00.000Z",
+    });
+    const pty = {
+      spawn(command, args, options) {
+        calls.push({ command, args, options });
+        return { pid: 9001 };
+      },
+    };
+
+    const proc = broker.spawnPty(pty, "pwsh.exe", ["-NoLogo"], {
+      cwd: "C:\\work",
+      env: { API_TOKEN: "do-not-log", PATH: "safe" },
+    });
+
+    expect(proc.pid).toBe(9001);
+    expect(calls[0].options.env.API_TOKEN).toBe("do-not-log");
+    expect(audit[0]).toMatchObject({
+      operation: "pty.spawn",
+      command: "pwsh.exe",
+      args: ["-NoLogo"],
+    });
+    expect(JSON.stringify(audit)).not.toContain("do-not-log");
+    broker.uninstall();
+  });
 });

@@ -24,6 +24,7 @@
 const EventEmitter = require("events");
 const { randomUUID } = require("crypto");
 const { RingBuffer } = require("./RingBuffer");
+const { getDesktopProcessBroker } = require("../process/desktop-process-broker");
 
 const DEFAULT_CONFIG = Object.freeze({
   shellWhitelist: ["pwsh", "cmd", "bash", "wsl"],
@@ -103,6 +104,7 @@ class PtyManager extends EventEmitter {
     this.config = { ...DEFAULT_CONFIG, ...(opts.config || {}) };
     this._deps = {
       loadNodePty: opts._deps?.loadNodePty || (() => require("node-pty")),
+      spawnPty: opts._deps?.spawnPty || null,
       now: opts._deps?.now || (() => Date.now()),
     };
     /** @type {Map<string, PtySession>} */
@@ -162,13 +164,18 @@ class PtyManager extends EventEmitter {
       req.env && typeof req.env === "object" && !Array.isArray(req.env)
         ? req.env
         : {};
-    const proc = pty.spawn(cmd, args, {
+    const spawnPty =
+      this._deps.spawnPty || getDesktopProcessBroker()?.spawnPty;
+    const spawnOptions = {
       name: "xterm-256color",
       cols,
       rows,
       cwd,
       env: { ...process.env, ...extraEnv },
-    });
+    };
+    const proc = spawnPty
+      ? spawnPty(pty, cmd, args, spawnOptions)
+      : pty.spawn(cmd, args, spawnOptions);
 
     const sessionId = randomUUID();
     const session = new PtySession({
