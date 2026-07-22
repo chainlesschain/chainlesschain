@@ -52,6 +52,16 @@ describe("resolveAgentMcp — IDE gating", () => {
     expect(loadIdeMcp.mock.calls[0][0]).toMatchObject({ force: false });
   });
 
+  it("forwards the durable Event Runtime store to external MCP producers", async () => {
+    const eventRuntimeStore = { enqueue: vi.fn() };
+    const loadIdeMcp = vi.fn(async () => null);
+    await resolveAgentMcp(
+      { ...base, ide: true, env: {} },
+      { loadIdeMcp, eventRuntimeStore, isInIdeTerminal: () => false },
+    );
+    expect(loadIdeMcp.mock.calls[0][1].eventRuntimeStore).toBe(eventRuntimeStore);
+  });
+
   it("does NOT auto-invoke outside an IDE terminal (ide undefined)", async () => {
     const loadIdeMcp = vi.fn(async () => null);
     await resolveAgentMcp(

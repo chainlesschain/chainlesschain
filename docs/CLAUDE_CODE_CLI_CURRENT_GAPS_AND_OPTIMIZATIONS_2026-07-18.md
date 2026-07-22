@@ -67,7 +67,7 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 | 权限控制面 | CLI、交互、SDK、IDE 使用同一权限规则和决策来源 | Agent Runtime 已有 settings rules + ApprovalGate；`cc permissions` 仍是另一套管理面 | 用户可能误以为 `cc permissions` 已直接约束 Agent 工具；安全默认和来源解释需统一 | P0/P1 |
 | Hooks | 完整生命周期；command/http/mcp_tool/prompt/agent 五类；并行、去重、最严合并 | 稳定 command hook、部分事件、async/replay/trace 已有 | Hook 类型和事件生产者不全；shell 继承全 env；严格并行仍有 opt-in 路径 | P1 |
 | MCP 交互 | Elicitation、ElicitationResult、Channels、长调用后台化 | Tools/Resources/Prompts/OAuth/Tool Search/list changed/roots、Elicitation transport、Desktop/VS Code/JetBrains common schema UX 已有 | 完整 schema vocabulary 与部分外部事件 producer 仍待补 | P1 |
-| Event Runtime | 后台会话、任务、外部事件和持续监控统一运行 | Agenda watch、durable inbox/outbox、lease/retry/dead-letter、Agent IPC producer 已接入 | Monitor/Webhook/MCP 等外部 producer 全量迁移、统一背压策略仍待补 | P1 |
+| Event Runtime | 后台会话、任务、外部事件和持续监控统一运行 | Agenda watch、durable inbox/outbox、lease/retry/dead-letter、Agent IPC producer、MCP resolver 默认接线已接入 | Monitor/Webhook/MCP 长运行调用方全量迁移、统一背压策略仍待补 | P1 |
 | Context | `/context` 显示 memory、skills、MCP、文件与缓存成本 | 已显示消息角色及 MCP schema 概览 | Skill 按需加载和实际 MCP schema 的逐来源归因仍不完整 | P1 |
 | Checkpoint | 对话与文件按 turn 恢复 | Headless 显式绑定已持久化，REPL 可消费 | REPL 还不是统一生产者；child/worktree/user edit/provider tool id 归因不完整 | P1 |
 | Plugin 安全 | 插件统一打包、作用域、企业治理 | 能力声明、consent、签名、typed options、OS secret store、lockfile/SBOM、插件 MCP/LSP Broker provenance | hooks/monitors 与 Desktop 侧全量进程入口仍需统一 Broker | P1 |
@@ -258,7 +258,7 @@ Claude Code 当前官方 Hook 面已包括更完整的生命周期，并支持 `
 2026-07-22 另补齐 Agenda 的持久执行 lease 和常驻入口：`AgentScheduleStore.claimDue()`
 通过跨进程锁标记 due 条目，完成/失败时释放，进程异常后由过期 lease 回收，避免两个
 `cc agenda run` 同时触发同一任务；`cc agenda run --watch <seconds>` 现在以可停止
-daemon loop 持续轮询。`EventRuntimeStore` 与可停止的 `EventRuntimeWorker` 已提供 durable inbox/outbox、幂等、租约回收、失败重试/死信；`EventRuntimeProducer` 已规范 origin/authority，Agent IPC interaction 已接入 durable inbox。Monitor/Webhook/MCP 等外部 producer 全量迁移仍待落地。
+daemon loop 持续轮询。`EventRuntimeStore` 与可停止的 `EventRuntimeWorker` 已提供 durable inbox/outbox、幂等、租约回收、失败重试/死信；`EventRuntimeProducer` 已规范 origin/authority，Agent IPC interaction 已接入 durable inbox，MCP resolver 在 `CC_EVENT_RUNTIME_DURABLE=1` 时会把 store 自动传给外部 server producer。Monitor/Webhook/MCP 的长运行调用方全量迁移仍待落地。
 
 2026-07-22 已补齐 MCP transport 核心：服务器发出的 `elicitation/create` 会进入注入的
 handler，或通过 `elicitation-request` 事件交给宿主；支持 `accept/decline/cancel` 规范化、

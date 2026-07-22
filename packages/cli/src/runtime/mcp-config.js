@@ -34,6 +34,7 @@ import {
   isInJetbrainsContext,
 } from "../lib/jetbrains-bridge.js";
 import { collectPluginMcpServers } from "../lib/plugin-runtime/mcp.js";
+import { EventRuntimeStore } from "../lib/event-runtime-store.js";
 
 /**
  * Normalize a parsed config object into a `{ name: serverConfig }` map.
@@ -753,6 +754,11 @@ export async function resolveAgentMcp(args = {}, deps = {}) {
   const doIde = deps.loadIdeMcp || loadIdeMcp;
   const doPdh = deps.loadPdhMcp || loadPdhMcp;
   const doJetbrains = deps.loadJetbrainsMcp || loadJetbrainsMcp;
+  const runtimeEnv = args.env || process.env;
+  const eventRuntimeStore =
+    deps.eventRuntimeStore ||
+    args.eventRuntimeStore ||
+    (runtimeEnv.CC_EVENT_RUNTIME_DURABLE === "1" ? new EventRuntimeStore() : null);
   // Thread the agent session id down to setupMcpFromConfig so spawned stdio MCP
   // servers get CC_SESSION_ID / CLAUDE_CODE_SESSION_ID (Claude-Code parity).
   let mcpPolicy = deps.mcpPolicy || null;
@@ -767,6 +773,7 @@ export async function resolveAgentMcp(args = {}, deps = {}) {
   const fwd = {
     ...deps,
     ...(args.sessionId != null ? { sessionId: args.sessionId } : {}),
+    ...(eventRuntimeStore ? { eventRuntimeStore } : {}),
     mcpPolicy,
   };
   let result = null;
