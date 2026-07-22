@@ -79,6 +79,17 @@ describe("parseInputEvent — plan controls", () => {
           action: "approve",
           reviewedAt: "2026-07-10T00:00:00.000Z",
           conversationId: "conv-1",
+          revision: 4,
+          comments: [
+            {
+              id: "c1",
+              itemId: "p1",
+              text: "Keep src/a.js:12 compatible",
+              file: "src/a.js",
+              line: 12,
+              turn: 2,
+            },
+          ],
           snapshot: "# Plan\n\nLooks good.",
         },
       }),
@@ -89,6 +100,16 @@ describe("parseInputEvent — plan controls", () => {
         action: "approve",
         reviewedAt: "2026-07-10T00:00:00.000Z",
         conversationId: "conv-1",
+        revision: 4,
+        comments: [
+          expect.objectContaining({
+            id: "c1",
+            itemId: "p1",
+            file: "src/a.js",
+            line: 12,
+            turn: 2,
+          }),
+        ],
         snapshot: "# Plan\n\nLooks good.",
       },
     });
@@ -161,7 +182,11 @@ describe("stream plan mode", () => {
         {
           type: "plan",
           action: "approve",
-          review: { action: "approve", snapshot: "# Review\n\nApproved." },
+          review: {
+            action: "approve",
+            snapshot: "# Review\n\nApproved.",
+            comments: [{ itemId: "p1", text: "Keep src/a.js:12 compatible" }],
+          },
         },
       ],
     });
@@ -185,6 +210,75 @@ describe("stream plan mode", () => {
     const sys = h.seenTurns[0].filter((m) => m.role === "system");
     expect(sys.some((m) => /PLAN REVIEW SNAPSHOT/.test(m.content))).toBe(true);
     expect(sys.some((m) => /# Review/.test(m.content))).toBe(true);
+    expect(
+      sys.some((m) => /PLAN REVIEW STRUCTURED COMMENTS/.test(m.content)),
+    ).toBe(true);
+  });
+
+  it("attributes tool execution to a plan item and streams its progress", async () => {
+    const h = harness({
+      inputObjs: [
+        { type: "plan", action: "enter" },
+        { type: "plan", action: "approve" },
+      ],
+      agentLoop: async function* () {
+        yield {
+          type: "tool-executing",
+          tool: "edit_file",
+          args: { path: "a.js" },
+        };
+        yield {
+          type: "tool-result",
+          tool: "edit_file",
+          result: { ok: true },
+        };
+        yield { type: "response-complete", content: "done" };
+        yield { type: "run-ended", reason: "complete" };
+      },
+    });
+    const pm = getPlanModeManager();
+    const origEnter = pm.enterPlanMode.bind(pm);
+    pm.enterPlanMode = (options) => {
+      const result = origEnter(options);
+      pm.addPlanItem({
+        id: "p1",
+        title: "Edit a.js",
+        tool: "edit_file",
+        params: { path: "a.js" },
+      });
+      return result;
+    };
+    try {
+      await h.run();
+    } finally {
+      pm.enterPlanMode = origEnter;
+    }
+
+    const events = h.events();
+    expect(events.find((event) => event.type === "tool_use")).toMatchObject({
+      id: "tu-1",
+      plan_item_id: "p1",
+      turn: 1,
+    });
+    expect(events.find((event) => event.type === "tool_result")).toMatchObject({
+      id: "tu-1",
+      plan_item_id: "p1",
+      turn: 1,
+      is_error: false,
+    });
+    const updates = events.filter((event) => event.type === "plan_update");
+    expect(
+      updates.some(
+        (event) =>
+          event.state === "executing" && event.items[0]?.status === "executing",
+      ),
+    ).toBe(true);
+    expect(
+      updates.some(
+        (event) =>
+          event.state === "completed" && event.items[0]?.status === "completed",
+      ),
+    ).toBe(true);
   });
 
   it("approve with NO items reports 'nothing to approve' and runs no turn", async () => {

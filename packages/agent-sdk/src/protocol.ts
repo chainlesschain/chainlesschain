@@ -152,6 +152,10 @@ export interface ToolUseEvent extends StreamEventMeta {
    * tool_use); consumers MUST tolerate its absence.
    */
   id?: string;
+  /** Approved plan item attributed to this tool call, when one matches. */
+  plan_item_id?: string;
+  /** 1-based agent turn that started the attributed plan item. */
+  turn?: number;
   tool: string;
   args?: Record<string, unknown>;
 }
@@ -160,6 +164,9 @@ export interface ToolResultEvent extends StreamEventMeta {
   type: "tool_result";
   /** Additive (protocol v1): id of the ToolUseEvent this result settles. */
   id?: string;
+  /** Approved plan item settled by this result, when one matches. */
+  plan_item_id?: string;
+  turn?: number;
   tool: string;
   is_error?: boolean;
   error?: string | null;
@@ -233,6 +240,11 @@ export interface PlanUpdateEvent extends StreamEventMeta {
     tool?: string;
     impact?: string;
     status?: string;
+    turn?: number;
+    tool_use_id?: string;
+    started_at?: string;
+    completed_at?: string;
+    error?: string;
   }>;
   risk?: { level?: string; totalScore?: number } | null;
 }
@@ -396,6 +408,17 @@ export interface PlanControlInput {
     action?: string;
     reviewedAt?: string | null;
     conversationId?: string | null;
+    revision?: number;
+    comments?: Array<{
+      id?: string;
+      sourceLine?: number | null;
+      itemId?: string | null;
+      text: string;
+      file?: string | null;
+      line?: number | null;
+      column?: number | null;
+      turn?: number | null;
+    }>;
     snapshot?: string;
   };
   /** Back-compat shorthand for review.snapshot. */

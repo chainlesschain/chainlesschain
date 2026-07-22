@@ -4,6 +4,16 @@
 > 范围：VS Code、JetBrains、IDE Bridge 与 CLI/IDE 协作
 > 文档状态：历史基线。后续增量请以 [`IDE_VS_PLUGIN_CLAUDE_GAPS_AND_OPTIMIZATIONS_2026-07-22.md`](./IDE_VS_PLUGIN_CLAUDE_GAPS_AND_OPTIMIZATIONS_2026-07-22.md) 为准；本文件中的版本号、发布状态和“仍缺”列表不代表当前事实。
 
+### 2026-07-23 状态覆盖
+
+本历史基线中关于 Plan/Review 后续闭环的开放描述，当前已有进一步实现：VS Code 与
+JetBrains 共享 `cc-plan-review/v1` 有界持久化语义，Markdown item comment 和
+Reviewer Notes 会形成带 plan item、文件、行/列和 agent turn 的结构化记录；CLI
+以 additive `plan_item_id` 将获批计划项与 `tool_use`/`tool_result` 关联，并把
+executing/completed/failed 进度回写两端审阅文档且保留用户原文。尚未关闭的是计划
+重新生成的新旧版本 Diff、审批时的权限/工具锁定摘要，以及本文件原有的真实远程环境
+与长期稳定性验收项。
+
 ## 结论
 
 ChainlessChain IDE 已越过“聊天侧栏”阶段。VS Code 0.37.14、JetBrains 0.4.58

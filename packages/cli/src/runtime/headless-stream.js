@@ -248,6 +248,11 @@ export function planSnapshot(pm) {
       tool: i.tool,
       impact: i.estimatedImpact || "low",
       status: i.status,
+      ...(i.turn ? { turn: i.turn } : {}),
+      ...(i.toolUseId ? { tool_use_id: i.toolUseId } : {}),
+      ...(i.startedAt ? { started_at: i.startedAt } : {}),
+      ...(i.completedAt ? { completed_at: i.completedAt } : {}),
+      ...(i.error ? { error: String(i.error).slice(0, 1000) } : {}),
     }));
     if (items.length > 0) {
       const r = pm.getRiskAssessment();
@@ -260,6 +265,43 @@ export function planSnapshot(pm) {
 }
 
 const MAX_PLAN_REVIEW_SNAPSHOT_CHARS = 24000;
+const MAX_PLAN_REVIEW_COMMENTS = 64;
+const MAX_PLAN_REVIEW_COMMENT_CHARS = 2000;
+
+function boundedReviewString(value, limit) {
+  return String(value == null ? "" : value).slice(0, limit);
+}
+
+function normalizePlanReviewComments(values) {
+  const out = [];
+  let remaining = MAX_PLAN_REVIEW_SNAPSHOT_CHARS;
+  for (const raw of Array.isArray(values)
+    ? values.slice(0, MAX_PLAN_REVIEW_COMMENTS)
+    : []) {
+    if (!raw || typeof raw !== "object" || remaining <= 0) continue;
+    const text = boundedReviewString(
+      raw.text,
+      Math.min(MAX_PLAN_REVIEW_COMMENT_CHARS, remaining),
+    ).trim();
+    if (!text) continue;
+    remaining -= text.length;
+    const positive = (value) => {
+      const number = Number(value);
+      return Number.isInteger(number) && number > 0 ? number : null;
+    };
+    out.push({
+      id: boundedReviewString(raw.id, 160) || `comment-${out.length + 1}`,
+      sourceLine: positive(raw.sourceLine),
+      itemId: boundedReviewString(raw.itemId, 160) || null,
+      text,
+      file: boundedReviewString(raw.file, 1024) || null,
+      line: positive(raw.line),
+      column: positive(raw.column),
+      turn: positive(raw.turn),
+    });
+  }
+  return out;
+}
 
 function planReviewFromInput(obj) {
   const review =
@@ -270,7 +312,8 @@ function planReviewFromInput(obj) {
       : typeof review?.snapshot === "string"
         ? review.snapshot
         : "";
-  if (!snapshot.trim()) return null;
+  const comments = normalizePlanReviewComments(review?.comments);
+  if (!snapshot.trim() && comments.length === 0) return null;
   const text =
     snapshot.length > MAX_PLAN_REVIEW_SNAPSHOT_CHARS
       ? snapshot.slice(0, MAX_PLAN_REVIEW_SNAPSHOT_CHARS) +
@@ -282,22 +325,36 @@ function planReviewFromInput(obj) {
       typeof review?.reviewedAt === "string" ? review.reviewedAt : null,
     conversationId:
       typeof review?.conversationId === "string" ? review.conversationId : null,
+    revision:
+      Number.isInteger(review?.revision) && review.revision > 0
+        ? review.revision
+        : null,
+    comments,
     snapshot: text,
   };
 }
 
 function planReviewSystemMessage(review) {
-  if (!review?.snapshot) return null;
+  if (!review || (!review.snapshot && !review.comments?.length)) return null;
   const meta = [
     review.action ? `action=${review.action}` : null,
     review.reviewedAt ? `reviewedAt=${review.reviewedAt}` : null,
     review.conversationId ? `conversationId=${review.conversationId}` : null,
+    review.revision ? `revision=${review.revision}` : null,
   ]
     .filter(Boolean)
     .join(" ");
-  return (
-    "[PLAN REVIEW SNAPSHOT]" + (meta ? ` ${meta}` : "") + "\n" + review.snapshot
-  );
+  const sections = [
+    "[PLAN REVIEW SNAPSHOT]" + (meta ? ` ${meta}` : ""),
+    review.snapshot || "(no Markdown snapshot)",
+  ];
+  if (review.comments?.length) {
+    sections.push(
+      "[PLAN REVIEW STRUCTURED COMMENTS]",
+      JSON.stringify(review.comments),
+    );
+  }
+  return sections.join("\n");
 }
 import { withQuietStdout } from "./quiet-stdout.js";
 
@@ -583,7 +640,7 @@ function buildSideEffectRecovery(ledger) {
 async function runTurn(
   messages,
   loopOptions,
-  { runLoop, emit, costBudget, nextToolUseId, sideEffects },
+  { runLoop, emit, costBudget, nextToolUseId, sideEffects, turnNumber },
 ) {
   const usage = {
     input_tokens: 0,
@@ -629,13 +686,28 @@ async function runTurn(
         // agent-sdk docs/PROTOCOL.md §1.2.1): the matching tool_result below
         // echoes the same id so UIs can pair calls without adjacency.
         const toolUseId = nextToolUseId ? nextToolUseId() : undefined;
-        toolCalls.push({ id: toolUseId, tool: event.tool, args: event.args });
+        const pm = getPlanModeManager();
+        const planItem = pm.startPlanItemForTool(event.tool, {
+          toolUseId,
+          turn: turnNumber,
+        });
+        toolCalls.push({
+          id: toolUseId,
+          tool: event.tool,
+          args: event.args,
+          planItemId: planItem?.id || null,
+        });
         emit({
           type: "tool_use",
           ...(toolUseId ? { id: toolUseId } : {}),
+          ...(planItem?.id ? { plan_item_id: planItem.id } : {}),
+          ...(planItem?.turn ? { turn: planItem.turn } : {}),
           tool: event.tool,
           args: event.args,
         });
+        if (planItem) {
+          emit({ type: "plan_update", ...planSnapshot(pm) });
+        }
         // P0-2: record an irreversible effect as STARTED (persisted before it
         // settles) so a crash before the matching tool-result leaves a
         // reconcilable "in flight" marker instead of a silent replay — mirrors
@@ -688,14 +760,29 @@ async function runTurn(
         const lastCall =
           toolCalls.length > 0 ? toolCalls[toolCalls.length - 1] : null;
         if (lastCall) lastCall.is_error = Boolean(err);
+        const pm = getPlanModeManager();
+        const settledItem = lastCall?.planItemId
+          ? pm.settlePlanItem(lastCall.planItemId, {
+              success: !err,
+              error: err,
+              result: event.result,
+            })
+          : null;
         emit({
           type: "tool_result",
           ...(lastCall?.id ? { id: lastCall.id } : {}),
+          ...(lastCall?.planItemId
+            ? { plan_item_id: lastCall.planItemId }
+            : {}),
+          ...(settledItem?.turn ? { turn: settledItem.turn } : {}),
           tool: event.tool,
           is_error: Boolean(err),
           error: err,
           result: event.result,
         });
+        if (settledItem) {
+          emit({ type: "plan_update", ...planSnapshot(pm) });
+        }
         break;
       }
       case "token-usage":
@@ -2203,7 +2290,14 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
           // Resume-degenerate role merge for the first live model call only.
           mergeRoles: mergeRolesThisTurn,
         },
-        { runLoop, emit, costBudget, nextToolUseId, sideEffects },
+        {
+          runLoop,
+          emit,
+          costBudget,
+          nextToolUseId,
+          sideEffects,
+          turnNumber: turns,
+        },
       );
     } catch (err) {
       currentAbort = null;
