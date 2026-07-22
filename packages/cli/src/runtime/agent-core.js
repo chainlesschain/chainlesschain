@@ -48,6 +48,7 @@ import {
 import {
   getCodingAgentFunctionToolDefinitions,
   listCodingAgentToolNames,
+  getCodingAgentToolPolicy,
 } from "./coding-agent-contract.js";
 import { createToolContext } from "../tools/tool-context.js";
 import { createToolTelemetryRecord } from "../tools/tool-telemetry.js";
@@ -1275,6 +1276,56 @@ export async function executeTool(name, args, context = {}) {
       : null;
   const runtimeDescriptor =
     getRuntimeToolDescriptor(name) || localToolDescriptor;
+  const admission = context.toolAdmission;
+  if (admission?.enforce === true) {
+    const override =
+      admission.tools && typeof admission.tools === "object"
+        ? admission.tools[name] || {}
+        : {};
+    const tier =
+      override.tier ||
+      runtimeDescriptor?.tier ||
+      getCodingAgentToolPolicy(name)?.tier ||
+      (localToolDescriptor ? "extension" : "mvp");
+    const decision = admitTool({
+      tool: name,
+      tier,
+      capabilityGranted:
+        override.capabilityGranted ?? admission.capabilityGranted,
+      policyAllowed:
+        override.policyAllowed ??
+        (context.hostManagedToolPolicy ?
+          ((context.hostManagedToolPolicy?.tools ||
+            context.hostManagedToolPolicy?.toolPolicies || {})[name]
+            ?.allowed !== false) :
+          admission.policyAllowed),
+      permissionGranted:
+        override.permissionGranted ?? admission.permissionGranted,
+      budgetOk: override.budgetOk ?? admission.budgetOk,
+      uiSupported: override.uiSupported ?? admission.uiSupported,
+    });
+    const attribution = buildToolAttribution({
+      tool: name,
+      source:
+        override.source ||
+        runtimeDescriptor?.source ||
+        localToolDescriptor?.source ||
+        admission.source ||
+        null,
+      version: override.version || runtimeDescriptor?.version || null,
+      scope: override.scope || localToolDescriptor?.scope || null,
+      callId: context.toolCallId || null,
+      decision,
+    });
+    if (!decision.admitted) {
+      return {
+        error: `[Tool Admission] Tool "${name}" was not admitted: ${decision.unmet.join(", ")}.`,
+        toolAttribution: attribution,
+        policy: { decision: "blocked", via: "tool-admission" },
+      };
+    }
+    context = { ...context, toolAttribution: attribution };
+  }
   const toolContext = createToolContext({
     toolName: runtimeDescriptor?.name || name,
     cwd,
@@ -1647,6 +1698,7 @@ export async function executeTool(name, args, context = {}) {
       settingsHooks: context.settingsHooks || null,
       signal: context.signal || null,
       backgroundSubAgents: context.backgroundSubAgents || null,
+      toolAdmission: context.toolAdmission || null,
     });
   } catch (err) {
     if (hookDb) {
@@ -1674,6 +1726,9 @@ export async function executeTool(name, args, context = {}) {
   });
   if (toolResult && typeof toolResult === "object") {
     toolResult.toolTelemetryRecord = telemetryRecord;
+    if (context.toolAttribution) {
+      toolResult.toolAttribution = context.toolAttribution;
+    }
   }
 
   // PostToolUse hook
@@ -2445,6 +2500,7 @@ async function executeToolInner(
     signal = null,
     backgroundSubAgents = null,
     subAgentUsageSink = null,
+    toolAdmission = null,
     // Hook-envelope tracing: this run's trace id, threaded into child loops
     // (spawn_sub_agent / isolated run_skill) as their parent_id.
     hookTraceId = null,
@@ -2948,9 +3004,15 @@ async function executeToolInner(
           };
           // PowerShell route: explicit argv (shell:false above); default route
           // is the historical spawn(command, {shell:true}) byte-for-byte.
+          const brokerOpts = {
+            ...bgSpawnOpts,
+            origin: "tool:run_shell",
+            policy: "allow",
+            scope: "agent",
+          };
           const child = shellInv.useDefaultShell
-            ? spawn(args.command, bgSpawnOpts)
-            : spawn(shellInv.file, shellInv.argv, bgSpawnOpts);
+            ? broker.spawn(args.command, [], brokerOpts)
+            : broker.spawn(shellInv.file, shellInv.argv, brokerOpts);
           task.child = child;
           if (child.stdout) {
             child.stdout.setEncoding("utf8");
@@ -3123,15 +3185,21 @@ async function executeToolInner(
           }).env,
         };
         let output;
+        const brokerExecOpts = {
+          ...fgExecOpts,
+          origin: "tool:run_shell",
+          policy: "allow",
+          scope: "agent",
+        };
         if (shellInv.useDefaultShell) {
-          output = execSync(args.command, fgExecOpts);
+          output = broker.execSync(args.command, brokerExecOpts);
         } else {
           // PowerShell route: explicit argv, no intermediate default shell.
           // Reproduce execSync's contract so the shared catch shapes errors
           // identically: throw on spawn error; throw an Error carrying
           // status/stdout/stderr on non-zero exit.
-          const res = spawnSync(shellInv.file, shellInv.argv, {
-            ...fgExecOpts,
+          const res = broker.spawnSync(shellInv.file, shellInv.argv, {
+            ...brokerExecOpts,
             windowsHide: true,
           });
           if (res.error) throw res.error;
@@ -3363,6 +3431,7 @@ async function executeToolInner(
           signal,
           backgroundSubAgents,
           subAgentUsageSink,
+          toolAdmission,
         }),
       );
     }
@@ -4069,6 +4138,7 @@ async function executeToolInner(
           task: `Execute the "${args.skill_name}" skill with input: ${(args.input || "").substring(0, 200)}`,
           allowedTools: ["read_file", "search_files", "list_dir"],
           hookParentTraceId: hookTraceId || null,
+          toolAdmission,
           cwd,
           onUsage: skillUsageSink
             ? (u) => {
@@ -6949,6 +7019,11 @@ export async function* agentLoop(messages, options) {
     hostManagedToolPolicy: options.hostManagedToolPolicy || null,
     externalToolDescriptors: options.externalToolDescriptors || null,
     externalToolExecutors: options.externalToolExecutors || null,
+    // Optional session-level Extension Tier gate. Hosts that can provide
+    // capability/policy/permission/budget/UI signals opt in with
+    // { enforce: true }; omitting it preserves the CLI's existing per-call
+    // permission pipeline for backwards compatibility.
+    toolAdmission: options.toolAdmission || null,
     // MCP tool DEFINITIONS the LLM sees (mcp__server__tool). Threaded here so a
     // spawn can inherit the parent's MCP tools into the child (filtered by the
     // contract's mcpServers allow-list). Otherwise consumed only at agentLoop.
@@ -7635,16 +7710,16 @@ export async function* agentLoop(messages, options) {
         let toolArgs;
         try {
           toolArgs =
-            typeof call.function.arguments === "string"
-              ? JSON.parse(call.function.arguments)
-              : call.function.arguments;
+          typeof call.function.arguments === "string"
+            ? JSON.parse(call.function.arguments)
+            : call.function.arguments;
         } catch {
           toolArgs = {};
         }
         const promise = executeTool(
           call.function.name,
           toolArgs,
-          toolContext,
+          { ...toolContext, toolCallId: call.id },
         ).then(
           (result) => ({ result, error: null }),
           (err) => ({ result: { error: err.message }, error: err.message }),
@@ -7758,7 +7833,11 @@ export async function* agentLoop(messages, options) {
           recorder,
           "agent.tool",
           { "tool.name": toolName, ...(toolIdAttrs || {}) },
-          () => executeTool(toolName, toolArgs, toolContext),
+          () =>
+            executeTool(toolName, toolArgs, {
+              ...toolContext,
+              toolCallId: call.id,
+            }),
           (span, r) => {
             span.setAttribute(
               "tool.is_error",

@@ -1415,6 +1415,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     enabledToolNames,
     disabledTools,
     iterationBudget: budget,
+    toolAdmission: options.toolAdmission || null,
     // `ask_user_question` in a BACKGROUND turn child (P0 state-machine
     // producer for `needs_input`): there is no live channel to a human
     // mid-turn, but the question IS the structured needs-input signal. Park

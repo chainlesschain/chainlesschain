@@ -232,10 +232,14 @@ export function loadChangelog() {
   ];
   for (const p of changelogCandidates) {
     if (fs.existsSync(p)) {
-      return {
-        source: "CHANGELOG.md",
-        releases: parseChangelog(fs.readFileSync(p, "utf-8")),
-      };
+      const releases = parseChangelog(fs.readFileSync(p, "utf-8"));
+      // A parent-level CHANGELOG can exist in a global Node.js installation
+      // (for example C:\\nvm4w\\nodejs\\CHANGELOG.md).  Do not treat an
+      // unrelated, successfully-read file with zero CLI releases as the
+      // authoritative source; continue to the bundled artifact instead.
+      if (releases.length > 0) {
+        return { source: "CHANGELOG.md", releases };
+      }
     }
   }
   // Installed npm package: CHANGELOG.md isn't shipped, use the bundled artifact.

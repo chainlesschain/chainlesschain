@@ -1599,6 +1599,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     approvalGate,
     permissionRules,
     settingsHooks,
+    toolAdmission: options.toolAdmission || null,
     classifyAllShell,
     enabledToolNames,
     disabledTools,

@@ -83,6 +83,10 @@ export class SubAgentContext {
     // nested spawns (threaded into the loop options so a nested spawn_sub_agent
     // reads it as ctx.subAgentContract).
     this.subAgentContract = options.subAgentContract || null;
+    // Optional session-level Extension Tier admission policy. Keep it as an
+    // explicit inherited capability so child loops cannot silently bypass the
+    // parent's admission decision.
+    this.toolAdmission = options.toolAdmission || null;
     // Skill capability INTERSECT: null = unrestricted; a list (possibly empty)
     // restricts run_skill/list_skills in this context's loop to those skills.
     this.skillAllowlist =
@@ -335,6 +339,7 @@ export class SubAgentContext {
       subAgentBudget: this.subAgentBudget,
       // This context's effective contract = the ceiling for its nested spawns.
       subAgentContract: this.subAgentContract,
+      toolAdmission: this.toolAdmission,
       // Skill allow-list restricting run_skill/list_skills in this loop.
       skillAllowlist: this.skillAllowlist,
       // Parent trace for hook envelopes (absent → key omitted, no parent_id).
