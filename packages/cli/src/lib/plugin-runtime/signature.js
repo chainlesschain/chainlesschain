@@ -30,7 +30,36 @@ export const _deps = {
   readFileSync: fs.readFileSync,
   writeFileSync: fs.writeFileSync,
   existsSync: fs.existsSync,
+  readdirSync: fs.readdirSync,
+  statSync: fs.statSync,
 };
+
+/** Build a deterministic file-level SBOM for an installed plugin directory. */
+export function buildPluginSbom(root) {
+  const files = [];
+  const walk = (dir) => {
+    for (const entry of _deps.readdirSync(dir, { withFileTypes: true })) {
+      const abs = path.join(dir, entry.name);
+      const rel = path.relative(root, abs).replace(/\\/g, "/");
+      if (rel === LOCK_FILENAME) continue;
+      if (entry.isDirectory()) walk(abs);
+      else if (entry.isFile()) {
+        const bytes = _deps.readFileSync(abs);
+        files.push({
+          path: rel,
+          bytes: bytes.length,
+          sha256: createHash("sha256").update(bytes).digest("hex"),
+        });
+      }
+    }
+  };
+  walk(path.resolve(root));
+  files.sort((a, b) => a.path.localeCompare(b.path));
+  const digest = createHash("sha256")
+    .update(files.map((file) => `${file.path}\0${file.sha256}\n`).join(""))
+    .digest("hex");
+  return { version: 1, digest, files };
+}
 
 /** Record a verified signature into the version dir. */
 export function writePluginLock(
@@ -42,6 +71,7 @@ export function writePluginLock(
     signatureVerified,
     signatureBase64,
     publicKeyPem,
+    sbom = null,
   },
 ) {
   const rel = path.relative(versionDir, manifestFile).replace(/\\/g, "/");
@@ -55,6 +85,7 @@ export function writePluginLock(
     // lock is just self-asserted JSON and counts as unsigned.
     signatureBase64: signatureBase64 || null,
     publicKeyPem: publicKeyPem || null,
+    ...(sbom ? { sbom } : {}),
   };
   _deps.writeFileSync(
     path.join(versionDir, LOCK_FILENAME),
@@ -166,6 +197,20 @@ export function verifyInstalledSignature(plugin, opts = {}) {
       signed: false,
       reason: "recorded signature does not verify over the on-disk manifest",
     };
+  }
+  if (lock.sbom) {
+    let actualSbom;
+    try {
+      actualSbom = buildPluginSbom(plugin.root);
+    } catch {
+      return { signed: false, reason: "plugin SBOM cannot be read" };
+    }
+    if (
+      actualSbom.digest !== lock.sbom.digest ||
+      JSON.stringify(actualSbom.files) !== JSON.stringify(lock.sbom.files)
+    ) {
+      return { signed: false, reason: "plugin component SBOM mismatch" };
+    }
   }
   const trustedKeys = opts.trustedKeys;
   if (trustedKeys && trustedKeys.size > 0) {

@@ -2,9 +2,9 @@
 
 > 评估日期：2026-07-18  
 > 评估对象：`packages/cli`、`packages/agent-sdk` 及 Coding Agent 相关验证链  
-> 仓库基线：CLI `0.162.171`  
+> 仓库基线：CLI `0.162.175`
 > 对标基线：截至评估日的 Claude Code 官方滚动文档  
-> 文档状态：完成版；2026-07-19 已复核仓库证据路径、CLI 版本和官方 Hooks/MCP/SDK 公开资料。  
+> 文档状态：持续复核版；2026-07-22 已复核仓库证据路径、CLI 版本和 Runtime Convergence 验收链。
 > 说明：本文只列“当前仍值得投入”的净差距。已落地能力不再重复列为待办，历史实施过程见
 > [`CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`](./CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md)。
 
@@ -66,11 +66,11 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 | 后台人机回路 | 后台任务可暂停、请求权限/输入、恢复和接管 | attach 可追问；`needs_input` 已有真实状态 | 提问会 park 当前子进程，回答作为下一 turn；缺当前 turn 双向通道 | P0 |
 | 权限控制面 | CLI、交互、SDK、IDE 使用同一权限规则和决策来源 | Agent Runtime 已有 settings rules + ApprovalGate；`cc permissions` 仍是另一套管理面 | 用户可能误以为 `cc permissions` 已直接约束 Agent 工具；安全默认和来源解释需统一 | P0/P1 |
 | Hooks | 完整生命周期；command/http/mcp_tool/prompt/agent 五类；并行、去重、最严合并 | 稳定 command hook、部分事件、async/replay/trace 已有 | Hook 类型和事件生产者不全；shell 继承全 env；严格并行仍有 opt-in 路径 | P1 |
-| MCP 交互 | Elicitation、ElicitationResult、Channels、长调用后台化 | Tools/Resources/Prompts/OAuth/Tool Search/list changed/roots 已有 | 缺 Elicitation 生产与 UI/Headless 路由；外部事件未进入常驻运行时 | P1 |
+| MCP 交互 | Elicitation、ElicitationResult、Channels、长调用后台化 | Tools/Resources/Prompts/OAuth/Tool Search/list changed/roots、Elicitation transport 与 Desktop schema UI 已有 | 完整 schema vocabulary、专用 IDE UX 与外部事件常驻运行时仍待补 | P1 |
 | Event Runtime | 后台会话、任务、外部事件和持续监控统一运行 | Agenda/Monitor/Channel 原语较多 | `cc agenda run` 仍需外部触发；缺常驻调度、租约、补跑、背压闭环 | P1 |
 | Context | `/context` 显示 memory、skills、MCP、文件与缓存成本 | 已显示消息角色及 MCP schema 概览 | Skill 按需加载和实际 MCP schema 的逐来源归因仍不完整 | P1 |
 | Checkpoint | 对话与文件按 turn 恢复 | Headless 显式绑定已持久化，REPL 可消费 | REPL 还不是统一生产者；child/worktree/user edit/provider tool id 归因不完整 | P1 |
-| Plugin 安全 | 插件统一打包、作用域、企业治理 | 能力声明、consent、签名、typed options 更细 | 敏感值仍可落 user JSON；进程组件未统一进 Broker；缺 lockfile/SBOM 闭环 | P1 |
+| Plugin 安全 | 插件统一打包、作用域、企业治理 | 能力声明、consent、签名、typed options、lockfile/SBOM 摘要 | 敏感值仍可落 user JSON；进程组件未统一进 Broker；Keychain 与全路径 Broker 强制仍缺 | P1 |
 | 关键状态并发 | 会话、审批、任务和副作用状态应原子持久化 | 文件锁封装以 best-effort 为主 | 锁超时后部分路径会无锁继续，关键状态存在 lost update 风险 | P1 |
 | 结构化输出 | 标准 JSON Schema、启动期校验、最终 validated result | 已有较完整自研子集及 stream `structured_result` | 仍不是完整 Draft 2020-12；复杂 schema 的互操作性需明确 | P1 |
 | SDK/CI | TypeScript/Python SDK、版本化事件、GitHub/GitLab 自动化 | TypeScript SDK 已有 | 部分 goal/approval/turn 事件未完全透传；缺统一发布兼容门；Python/CI 模板按需求决定 | P1 |
@@ -203,6 +203,12 @@ worker -> child
 - 真并行和最严决策合并已经有实现，但仍存在 opt-in/default-flip 余量。
 - Hook 当前直接执行 shell、继承完整环境，尚未进入统一沙箱。
 
+2026-07-22 复核：`hooks-v2-runtime.js` 已提供 18 事件注册表、5 种 executor、默认并行
+执行、按 id 去重、顺序兼容开关和 `executeHooks` 公共入口；JS handler、Process Broker
+同步执行、Agent IPC 注册状态及 Context Source Ledger 适配已由 M5 E2E 覆盖。当前仍未
+将每一个事件都接入真实 producer，也未完成统一 sandbox/managed allowlist，因此本节的
+“完整 Hooks v2”仍是进行中，不能仅凭事件白名单宣称全部完成。
+
 Claude Code 当前官方 Hook 面已包括更完整的生命周期，并支持 `command`、`http`、`mcp_tool`、
 `prompt`、`agent` 五类处理器。值得对标的重点不是“事件数量”，而是把 Hook 作为稳定公共 API。
 
@@ -246,7 +252,19 @@ Claude Code 当前官方 Hook 面已包括更完整的生命周期，并支持 `
   或人工调用触发。
 - Monitor 已有确定性 event id、authority envelope 和去重原语，但注释仍指向“future resident daemon”。
 - [`mcp-client.js`](../packages/cli/src/harness/mcp-client.js#L1054) 已处理 tools/resources
-  `list_changed`，但没有完整 Elicitation 请求到 UI/Headless/SDK 的交互链。
+  `list_changed`；Elicitation transport、REPL/Headless/SDK 核心链路及 Desktop
+  原生 schema UI 已接入，完整 schema vocabulary 与 VS Code/JetBrains 专用 UX 仍未完整接入。
+
+2026-07-22 另补齐 Agenda 的持久执行 lease 和常驻入口：`AgentScheduleStore.claimDue()`
+通过跨进程锁标记 due 条目，完成/失败时释放，进程异常后由过期 lease 回收，避免两个
+`cc agenda run` 同时触发同一任务；`cc agenda run --watch <seconds>` 现在以可停止
+daemon loop 持续轮询。`EventRuntimeStore` 与可停止的 `EventRuntimeWorker` 已提供 durable inbox/outbox、幂等、租约回收、失败重试/死信，并可选接入 Hooks v2；外部 producer 全量迁移仍待落地。
+
+2026-07-22 已补齐 MCP transport 核心：服务器发出的 `elicitation/create` 会进入注入的
+handler，或通过 `elicitation-request` 事件交给宿主；支持 `accept/decline/cancel` 规范化、
+超时取消和无宿主时 fail-closed decline。启用 `CC_INTERACTIVE_QUESTIONS=1` 的
+stream/headless 路径会复用现有结构化问题通道。WS question channel、REPL、Desktop 原生表单以及 SDK
+schema fixture 已接入；完整 schema vocabulary 与 VS Code/JetBrains 专用 UX 仍待补，因此 P1-5 仍为部分完成。
 
 ### 7.2 建议
 
@@ -331,7 +349,7 @@ Headless 已在 [`headless-runner.js`](../packages/cli/src/runtime/headless-runn
 - Plugin Bin、Hook、LSP、MCP stdio 全部进入 Process Broker，并携带 `plugin_id/version/source`。
 - Manifest 的 network domains、filesystem roots、process、credential 声明要从“安装期说明”
   升级为“运行时强制”。
-- 增加 lockfile、依赖图、签名链、SBOM 和安装产物 hash。
+- 增加 lockfile、依赖图、签名链、SBOM 和安装产物 hash。当前安装锁已记录并校验文件级 SBOM 摘要；依赖图、Keychain 与全路径 Broker 强制仍待补。
 - 升级前展示新增能力、上下文成本和可执行组件；能力扩大必须重新 consent。
 - 禁止不安全 shell-form 插值，默认使用 argv 形式。
 
@@ -384,6 +402,11 @@ remote approval 和不同运行入口中。
 跨进程关键状态优先迁到 SQLite transaction、单写者 daemon 或带 compare-and-swap 的持久存储，
 而不是继续扩展文件锁约定。
 
+2026-07-22 已先将关键调度状态落地为 fail-closed：`withFileLock` 支持
+`failIfUnavailable`，`AgentScheduleStore.claimDue()` 在无法取得跨进程锁时拒绝执行，
+并用过期 lease 回收崩溃 runner。Approval、side-effect ledger、session/turn binding
+等其余关键状态仍需迁移到同等语义的持久事务或 daemon。
+
 ### 11.3 标准化 JSON Schema
 
 当前 [`json-schema-validate.js`](../packages/cli/src/lib/json-schema-validate.js) 已覆盖许多常用
@@ -419,7 +442,8 @@ Python SDK 和 GitHub/GitLab CI 模板应按真实用户场景决定：
 
 这是成本最低、回报最快的一项优化。
 
-当前 `desktop-app-vue/scripts/verify-coding-agent-mvp.js` 的验证范围较窄，没有覆盖所有已存在的关键链：
+当前统一入口为 [`verify-coding-agent-parity.js`](../desktop-app-vue/scripts/verify-coding-agent-parity.js)，
+已覆盖主要发布链；仍需持续扩展真实环境矩阵。历史 MVP 验证脚本的范围较窄，没有覆盖所有已存在的关键链：
 
 - Desktop 完整 lifecycle integration。
 - Desktop 到真实 CLI server。
@@ -430,20 +454,25 @@ Python SDK 和 GitHub/GitLab CI 模板应按真实用户场景决定：
 - VS Code 真实 Extension Host + VSIX 安装旅程，以及 JetBrains Remote Robot 的核心交互旅程。
 - Remote/WSL/SSH/Dev Container 运行矩阵和长时间 soak。
 
-建议增加唯一发布入口，例如：
+统一发布入口现已落地：
 
 ```text
 npm run test:coding-agent:parity
-  1. CLI contract/policy/unit
-  2. CLI real envelope E2E
+  1. Desktop Coding Agent core unit
+  2. Desktop lifecycle integration
   3. Desktop hosted-tools integration
-  4. Desktop lifecycle integration
-  5. Desktop <-> real CLI bridge
-  6. Renderer store
-  7. SDK protocol fixtures
-  8. docs:cli-reference:check
-  9. docs:protocol:check
+  4. Desktop <-> real CLI bridge
+  5. Renderer store
+  6. CLI contract/policy/unit
+  7. CLI real envelope E2E
+  8. SDK protocol fixtures
+  9. docs:cli-reference:check
+  10. docs:protocol:check
 ```
+
+2026-07-22 实测上述统一入口的 10/10 步骤全部通过；已纳入权限规则、WebSocket 路由、Desktop
+Bridge/store 和 SDK protocol fixtures 的回归验证。Remote/WSL/SSH/Dev Container 长时间 soak
+仍属于后续矩阵，不能由本次本机 parity 结果替代。
 
 同时治理文档事实源：
 
@@ -558,6 +587,16 @@ mTLS 和团队级成本/失败聚合；继续坚持内容默认不出端。
 - [`packages/cli/src/lib/settings-hooks.cjs`](../packages/cli/src/lib/settings-hooks.cjs)
 - [`packages/cli/src/lib/hook-runner.cjs`](../packages/cli/src/lib/hook-runner.cjs)
 - [`packages/cli/src/lib/hook-event-bus.cjs`](../packages/cli/src/lib/hook-event-bus.cjs)
+- [`packages/cli/src/harness/mcp-client.js`](../packages/cli/src/harness/mcp-client.js)
+- [`packages/cli/src/lib/agent-schedule-store.js`](../packages/cli/src/lib/agent-schedule-store.js)
+- [`packages/cli/src/lib/monitor-event.js`](../packages/cli/src/lib/monitor-event.js)
+- [`packages/cli/src/lib/context-breakdown.js`](../packages/cli/src/lib/context-breakdown.js)
+- [`packages/cli/src/lib/turn-binding.js`](../packages/cli/src/lib/turn-binding.js)
+- [`packages/cli/src/lib/plugin-runtime/plugin-options.js`](../packages/cli/src/lib/plugin-runtime/plugin-options.js)
+- [`packages/cli/src/lib/json-schema-validate.js`](../packages/cli/src/lib/json-schema-validate.js)
+- [`packages/agent-sdk`](../packages/agent-sdk/)
+- [`desktop-app-vue/scripts/verify-coding-agent-mvp.js`](../desktop-app-vue/scripts/verify-coding-agent-mvp.js)
+- [`CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`](./CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md)
 
 | **2026-07-20 — 落地** | **Notification Hook 事件** |
 | | ✅ **已完成** — 新增 `HookEvents.Notification` 事件类型，在 `session-hooks.js` 中实现 `fireNotification()` 函数，在 `agent-repl.js` 中接入事件触发点（权限请求、子智能体输出、配额告警、闲置告警时触发），可通过 `$CLAUDE_PROJECT_DIR/.claude/hooks/notification/<lifecycle>.sh` 配置脚本，支持 `CLD_HOOK_EVENT_SOURCE=notification` 和 `CLD_NOTIFICATION_MESSAGE` 环境变量 |
@@ -572,10 +611,10 @@ mTLS 和团队级成本/失败聚合；继续坚持内容默认不出端。
 |------|------|------|----------|
 | **M0** | `process-execution-broker` 单例 + spawn审计清单 | ✅ **Completed** | `packages/cli/src/lib/process-execution-broker/index.js` |
 | **M0** | parity 验证脚本 + npm script `runtime:convergence` | ✅ **Completed** | `packages/cli/scripts/test-runtime-convergence.mjs`, package.json scripts |
-| **M1** | Broker 支持所有 origin 类型 (shell/mcp/lsp/agent/background/hook) | ✅ **Completed** | Broker 内置 policyEnforcer + auditor 机制 |
+| **M1** | Broker 支持所有 origin 类型 (shell/mcp/lsp/agent/background/hook) | ✅ **Completed** | Broker 内置权限决策、凭据过滤、平台沙箱和审计机制；未提供 `addPolicyEnforcer()` 公共 API |
 | **M1** | 现有入口接入审计 (hook-manager) | ✅ **Completed** | `packages/cli/src/lib/hook-manager.js` 已接入 auditEntry |
 | **M2** | 后台 Agent 实时 IPC 总线 (`agent-ipc-bus`) | ✅ **Completed** | `packages/cli/src/lib/agent-ipc-bus.js` |
-| **M3-1** | Hooks v2: 18个生命周期事件 + 5种executor类型统一API | ✅ **Completed** | `packages/cli/src/lib/hooks-v2-runtime.js` |
+| **M3-1** | Hooks v2: 18个生命周期事件 + 5种executor类型统一API | 🟡 **Runtime completed** | `packages/cli/src/lib/hooks-v2-runtime.js`；真实 producer 接入与 sandbox 强制仍待补 |
 | **M3-2** | Event Runtime 常驻框架 (emit/subscribe) | ✅ **Completed** | HooksV2Runtime 内置 EventEmitter，支持事件调度 |
 | **M4-1** | Context Source Ledger 来源记账 | ✅ **Completed** | `packages/cli/src/lib/context-source-ledger.js` |
 | **M4-2** | Turn binding schema (sessionId/turnId/toolUseId 全透传) | ✅ **Completed** | Broker/IPCBus/Ledger 统一支持 traceId 透传 |
@@ -583,8 +622,8 @@ mTLS 和团队级成本/失败聚合；继续坚持内容默认不出端。
 ### 验证结果
 
 ```
-Results: 10 passed, 0 failed
-All runtime convergence tests PASSED! M0-M4 modules are available.
+Results: 11 passed, 0 failed
+All runtime convergence tests PASSED! M0-M4 modules and compatibility APIs are available.
 ```
 
 ### 使用方式
@@ -599,7 +638,7 @@ npm run runtime:convergence
 
 | 模块 | 核心API |
 |------|---------|
-| **ProcessExecutionBroker** | `broker.spawn()`, `broker.auditEntry()`, `broker.addPolicyEnforcer()`, `broker.killAllByOrigin()` |
+| **ProcessExecutionBroker** | `broker.spawn()`, `broker.spawnSync()`, `broker.setPermission()`, `broker.getAuditLog()` |
 | **AgentIPCBus** | `bus.registerAgent()`, `bus.sendMessage()`, `bus.sendProgress()`, `bus.sendResponse()`, `bus.cancel()` |
 | **HooksV2Runtime** | `hooks.registerHook()`, `hooks.executeHooks()`, `hooks.emitEvent()`, 支持 command/http/prompt/agent/js 5种executor |
 | **ContextSourceLedger** | `ledger.recordRead()`, `ledger.getProvenance()`, `ledger.getTokenBreakdown()`, `ledger.rollup()` |
@@ -622,13 +661,37 @@ npm run runtime:convergence
 ```
 
 所有模块单一职责，层间仅通过公共API契约交互，无循环依赖、无跨层直接调用、无超级函数。
-- [`packages/cli/src/harness/mcp-client.js`](../packages/cli/src/harness/mcp-client.js)
-- [`packages/cli/src/lib/agent-schedule-store.js`](../packages/cli/src/lib/agent-schedule-store.js)
-- [`packages/cli/src/lib/monitor-event.js`](../packages/cli/src/lib/monitor-event.js)
-- [`packages/cli/src/lib/context-breakdown.js`](../packages/cli/src/lib/context-breakdown.js)
-- [`packages/cli/src/lib/turn-binding.js`](../packages/cli/src/lib/turn-binding.js)
-- [`packages/cli/src/lib/plugin-runtime/plugin-options.js`](../packages/cli/src/lib/plugin-runtime/plugin-options.js)
-- [`packages/cli/src/lib/json-schema-validate.js`](../packages/cli/src/lib/json-schema-validate.js)
-- [`packages/agent-sdk`](../packages/agent-sdk/)
-- [`desktop-app-vue/scripts/verify-coding-agent-mvp.js`](../desktop-app-vue/scripts/verify-coding-agent-mvp.js)
-- [`CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`](./CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md)
+
+## 20. 2026-07-22 验收复核与纠偏
+
+本次复核发现收敛脚本仍检查已废弃的 `broker.addPolicyEnforcer()`，导致实际运行结果为
+9 passed / 1 failed。核对 Broker 实现后确认这是验收脚本漂移，不是 Runtime Convergence 模块缺失。
+
+已将 [`test-runtime-convergence.mjs`](../packages/cli/scripts/test-runtime-convergence.mjs) 的检查改为
+当前真实公共契约：`setPermission()`、`getStats()` 和 `getAuditLog()`。复核命令：
+
+```bash
+cd packages/cli
+npm run runtime:convergence
+```
+
+复核结果：`10 passed, 0 failed`。本节 M0-M4 的“已完成”只表示模块加载、核心 API 和来源记账
+smoke gate 已通过，不等同于第 4、5、6、7 节所列的跨平台强隔离、同 turn 恢复、完整 Hook
+生产者或常驻 Event Runtime 已全部完成；这些仍按矩阵中的 P0/P1 净差距推进。
+
+## 21. 2026-07-22 权限控制面进度
+
+运行时权限规则接线已存在于 Agent Core、Headless 和 REPL；本轮补齐 CLI 管理面的显式快捷命令：
+`cc permissions allow <rule>`、`cc permissions ask <rule>`、`cc permissions deny <rule>`，并保留
+`cc permissions add <decision> <rule>` 兼容入口。三种快捷命令均写入相同的 settings-loader 目标文件，
+因此不会产生第二套规则存储。
+
+新增单元测试覆盖三种快捷命令。根目录 workspace 与 `core-multisig` package manifest 的合并冲突
+已清理，权限命令专项测试 `permissions-command.test.js` 现为 13/13 通过。
+
+Desktop 同步链也已完成：CLI server 的认证 WebSocket 暴露 `permission-rules-get/set`，Electron
+主进程和 preload 转发同名 API，`useCodingAgentStore` 提供 `refreshPermissionRules()` 和
+`addPermissionRule()`；写入成功后会重新读取合并规则，确保 UI 不维护第二份事实源。当前仍缺少
+完整发布门测试，不能据此宣称所有权限来源（尤其 managed host deny）可被 Desktop 放宽。
+当前协议路由与 WebSocket 回归测试共 81 个用例通过，Desktop Bridge/store 回归测试共 64 个用例
+通过；剩余发布门仍需纳入统一 parity 命令。

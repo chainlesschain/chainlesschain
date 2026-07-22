@@ -315,6 +315,38 @@ describe("install with a real Ed25519 signature → lock → load enforcement", 
     expect(dropped[0].reason).toMatch(/requireSignedPlugins/);
   });
 
+  it("records an SBOM and rejects tampered component files", () => {
+    const signed = makeSignedSource("sbom-plugin", "1.0.0");
+    const { privateKey, publicKey } = generateKeyPairSync("ed25519");
+    const manifestBytes = Buffer.from(signed.manifest);
+    fs.writeFileSync(signed.sigFile, edSign(null, manifestBytes, privateKey));
+    fs.writeFileSync(
+      signed.keyFile,
+      publicKey.export({ type: "spki", format: "pem" }),
+      "utf8",
+    );
+    const cwd = path.join(dir, "cwd-sbom");
+    const installed = installFromDirectory(signed.src, {
+      scope: "local",
+      cwd,
+      signature: {
+        signatureFile: signed.sigFile,
+        publicKeyFile: signed.keyFile,
+        requireSignature: true,
+      },
+    });
+    const lock = readPluginLock(installed.dir);
+    expect(lock.sbom?.version).toBe(1);
+    expect(verifyInstalledSignature({ root: installed.dir }, {
+      trustedKeys: new Set([lock.publicKeySha256]),
+    }).signed).toBe(true);
+
+    fs.writeFileSync(path.join(installed.dir, "tampered.js"), "malicious", "utf8");
+    expect(verifyInstalledSignature({ root: installed.dir }, {
+      trustedKeys: new Set([lock.publicKeySha256]),
+    })).toMatchObject({ signed: false, reason: "plugin component SBOM mismatch" });
+  });
+
   it("FAIL-CLOSED: requireSignedPlugins with NO pinned keys drops everything", () => {
     // "Signed by anyone" is meaningless — a drop-in plugin can self-sign its own
     // lock. Without trustedPluginKeySha256 the gate must reject, not accept.

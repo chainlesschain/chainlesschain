@@ -29,7 +29,7 @@ import {
   discoverPlugins,
 } from "./scopes.js";
 import { verifyPluginManifest } from "../plugin-security.js";
-import { writePluginLock, LOCK_FILENAME } from "./signature.js";
+import { writePluginLock, buildPluginSbom, LOCK_FILENAME } from "./signature.js";
 
 export const _deps = {
   existsSync: fs.existsSync,
@@ -118,6 +118,7 @@ export function installFromDirectory(srcDir, opts = {}) {
       signatureVerified: verification.signatureVerified === true,
       signatureBase64: verification.signatureBase64,
       publicKeyPem: verification.publicKeyPem,
+      sbom: buildPluginSbom(dest),
     });
   }
 
