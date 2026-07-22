@@ -11,6 +11,9 @@ public final class PlanReview {
     private PlanReview() {}
 
     public static final int MAX_SNAPSHOT_CHARS = 24000;
+    public static final String STATE_SCHEMA = "cc-plan-review/v1";
+    public static final int MAX_PERSISTED_STATES = 20;
+    public static final int MAX_PERSISTED_ITEMS = 128;
 
     public static String markdown(
             Map<String, Object> plan,
@@ -108,6 +111,115 @@ public final class PlanReview {
                 + "\n\n[review snapshot truncated: " + omitted + " chars omitted]";
     }
 
+    /** Build one bounded, versioned plan-review draft/decision snapshot. */
+    public static Map<String, Object> persistedState(
+            String documentText,
+            String conversationId,
+            String conversationTitle,
+            String sessionId,
+            Map<String, Object> plan,
+            String status,
+            String action,
+            Map<String, Object> previous,
+            Instant updatedAt) {
+        Map<String, Object> prior = normalizePersistedState(previous);
+        Map<String, Object> state = new LinkedHashMap<String, Object>();
+        state.put("schema", STATE_SCHEMA);
+        state.put("revision", prior == null ? 1 : number(prior.get("revision"), 1) + 1);
+        state.put("updatedAt", String.valueOf(updatedAt != null ? updatedAt : Instant.now()));
+        state.put("conversationId", bounded(conversationId, 256));
+        state.put("conversationTitle", bounded(conversationTitle, 256));
+        state.put("sessionId", bounded(sessionId, 256));
+        state.put("status", or(bounded(status, 64), "draft"));
+        state.put("action", bounded(action, 64));
+        state.put("plan", sanitizePlanSnapshot(plan));
+        state.put("snapshot", trimSnapshot(documentText));
+        return normalizePersistedState(state);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Map<String, Object> normalizePersistedState(Object value) {
+        if (!(value instanceof Map)) return null;
+        Map<?, ?> source = (Map<?, ?>) value;
+        if (!STATE_SCHEMA.equals(source.get("schema"))) return null;
+        Map<String, Object> state = new LinkedHashMap<String, Object>();
+        state.put("schema", STATE_SCHEMA);
+        state.put("revision", Math.max(1, number(source.get("revision"), 1)));
+        state.put("updatedAt", bounded(source.get("updatedAt"), 64));
+        state.put("conversationId", bounded(source.get("conversationId"), 256));
+        state.put("conversationTitle", bounded(source.get("conversationTitle"), 256));
+        state.put("sessionId", bounded(source.get("sessionId"), 256));
+        state.put("status", or(bounded(source.get("status"), 64), "draft"));
+        state.put("action", bounded(source.get("action"), 64));
+        state.put("plan", sanitizePlanSnapshot(
+                source.get("plan") instanceof Map
+                        ? (Map<String, Object>) source.get("plan") : null));
+        state.put("snapshot", trimSnapshot(string(source.get("snapshot"))));
+        return persistedIdentity(state).isEmpty() ? null : state;
+    }
+
+    public static Map<String, Object> findPersistedState(
+            Object values, String sessionId, String conversationId) {
+        String wanted = persistedIdentity(sessionId, conversationId);
+        if (wanted.isEmpty() || !(values instanceof List)) return null;
+        List<?> list = (List<?>) values;
+        for (int i = list.size() - 1; i >= 0; i--) {
+            Map<String, Object> state = normalizePersistedState(list.get(i));
+            if (state != null && wanted.equals(persistedIdentity(state))) return state;
+        }
+        return null;
+    }
+
+    public static List<Map<String, Object>> upsertPersistedState(
+            Object values, Map<String, Object> value) {
+        Map<String, Object> state = normalizePersistedState(value);
+        List<Map<String, Object>> kept = new ArrayList<Map<String, Object>>();
+        String identity = state == null ? "" : persistedIdentity(state);
+        if (values instanceof List) {
+            for (Object raw : (List<?>) values) {
+                Map<String, Object> entry = normalizePersistedState(raw);
+                if (entry != null && !identity.equals(persistedIdentity(entry))) {
+                    kept.add(entry);
+                }
+            }
+        }
+        if (state != null) kept.add(state);
+        if (kept.size() <= MAX_PERSISTED_STATES) return kept;
+        return new ArrayList<Map<String, Object>>(
+                kept.subList(kept.size() - MAX_PERSISTED_STATES, kept.size()));
+    }
+
+    public static Map<String, Object> sanitizePlanSnapshot(Map<String, Object> plan) {
+        Map<String, Object> source = plan != null ? plan : new LinkedHashMap<String, Object>();
+        Map<String, Object> snapshot = new LinkedHashMap<String, Object>();
+        snapshot.put("active", Boolean.TRUE.equals(source.get("active")));
+        snapshot.put("state", bounded(source.get("state"), 128));
+        List<Map<String, Object>> items = normalizedItems(source.get("items"));
+        List<Map<String, Object>> boundedItems = new ArrayList<Map<String, Object>>();
+        for (int i = 0; i < items.size() && i < MAX_PERSISTED_ITEMS; i++) {
+            Map<String, Object> item = items.get(i);
+            Map<String, Object> row = new LinkedHashMap<String, Object>();
+            row.put("id", bounded(item.get("id"), 160));
+            row.put("title", bounded(item.get("title"), 512));
+            row.put("tool", bounded(item.get("tool"), 160));
+            row.put("impact", bounded(item.get("impact"), 64));
+            row.put("status", bounded(item.get("status"), 64));
+            boundedItems.add(row);
+        }
+        snapshot.put("items", boundedItems);
+        if (source.get("note") != null) snapshot.put("note", bounded(source.get("note"), 2000));
+        if (source.get("risk") instanceof Map) {
+            Map<?, ?> inputRisk = (Map<?, ?>) source.get("risk");
+            Map<String, Object> risk = new LinkedHashMap<String, Object>();
+            risk.put("level", bounded(inputRisk.get("level"), 64));
+            if (inputRisk.get("totalScore") instanceof Number) {
+                risk.put("totalScore", inputRisk.get("totalScore"));
+            }
+            snapshot.put("risk", risk);
+        }
+        return snapshot;
+    }
+
     @SuppressWarnings("unchecked")
     public static List<Map<String, Object>> normalizedItems(Object value) {
         List<Map<String, Object>> out = new ArrayList<Map<String, Object>>();
@@ -141,6 +253,26 @@ public final class PlanReview {
             if (v != null && !String.valueOf(v).isEmpty()) return v;
         }
         return null;
+    }
+
+    private static String persistedIdentity(Map<String, Object> state) {
+        return persistedIdentity(string(state.get("sessionId")), string(state.get("conversationId")));
+    }
+
+    private static String persistedIdentity(String sessionId, String conversationId) {
+        String session = bounded(sessionId, 256);
+        if (!session.isEmpty()) return "session:" + session;
+        String conversation = bounded(conversationId, 256);
+        return conversation.isEmpty() ? "" : "conversation:" + conversation;
+    }
+
+    private static int number(Object value, int fallback) {
+        return value instanceof Number ? ((Number) value).intValue() : fallback;
+    }
+
+    private static String bounded(Object value, int limit) {
+        String s = string(value);
+        return s.length() <= limit ? s : s.substring(0, limit);
     }
 
     private static String or(Object value, String fallback) {

@@ -4,8 +4,12 @@ import { ChatViewProvider } from "../../../vscode-extension/src/chat/chat-view.j
 import {
   buildPlanReviewFeedbackPrompt,
   buildPlanReviewRecord,
+  buildPersistedPlanReview,
+  findPersistedPlanReview,
   formatPlanReviewMarkdown,
+  normalizePersistedPlanReview,
   trimReviewSnapshot,
+  upsertPersistedPlanReview,
 } from "../../../vscode-extension/src/chat/plan-review.js";
 
 describe("VS Code plan review markdown", () => {
@@ -65,6 +69,74 @@ describe("VS Code plan review markdown", () => {
       snapshot: "# Review",
     });
   });
+
+  it("versions, bounds, replaces, and restores persisted review drafts", () => {
+    const first = buildPersistedPlanReview({
+      documentText: "# Review\n\nfirst comment",
+      conversationId: "conv-1",
+      conversationTitle: "Chat",
+      sessionId: "sess-1",
+      plan: {
+        active: true,
+        state: "awaiting_approval",
+        items: [{ id: "p1", title: "Edit file", tool: "edit_file" }],
+      },
+      now: new Date("2026-07-22T00:00:00.000Z"),
+    });
+    const second = buildPersistedPlanReview({
+      documentText: "# Review\n\nupdated comment",
+      conversationId: "conv-new-after-restart",
+      conversationTitle: "Chat",
+      sessionId: "sess-1",
+      plan: first.plan,
+      previous: first,
+      status: "changes_requested",
+      action: "requestChanges",
+      now: new Date("2026-07-22T00:01:00.000Z"),
+    });
+    expect(first).toMatchObject({
+      schema: "cc-plan-review/v1",
+      revision: 1,
+      status: "draft",
+    });
+    expect(second).toMatchObject({
+      revision: 2,
+      status: "changes_requested",
+      action: "requestChanges",
+      snapshot: expect.stringContaining("updated comment"),
+    });
+
+    const list = upsertPersistedPlanReview([first], second);
+    expect(list).toHaveLength(1);
+    expect(findPersistedPlanReview(list, { sessionId: "sess-1" })).toEqual(
+      second,
+    );
+    expect(normalizePersistedPlanReview({ schema: "unknown" })).toBe(null);
+  });
+
+  it("caps the persisted state list and plan payload", () => {
+    let list = [];
+    for (let i = 0; i < 25; i += 1) {
+      list = upsertPersistedPlanReview(
+        list,
+        buildPersistedPlanReview({
+          sessionId: `s-${i}`,
+          documentText: "x".repeat(25000),
+          plan: {
+            active: true,
+            items: Array.from({ length: 140 }, (_, n) => ({
+              id: `p-${n}`,
+              title: "t".repeat(600),
+            })),
+          },
+        }),
+      );
+    }
+    expect(list).toHaveLength(20);
+    expect(list.at(-1).snapshot.length).toBeLessThan(25000);
+    expect(list.at(-1).plan.items).toHaveLength(128);
+    expect(list.at(-1).plan.items[0].title).toHaveLength(512);
+  });
 });
 
 function makeMemento() {
@@ -78,7 +150,7 @@ function makeMemento() {
   };
 }
 
-function makeProvider() {
+function makeProvider({ state = makeMemento(), bootstrap = true } = {}) {
   const posted = [];
   const sessions = [];
   const uri = { toString: () => "untitled:plan-review" };
@@ -114,7 +186,6 @@ function makeProvider() {
     sessions.push(s);
     return s;
   };
-  const state = makeMemento();
   const provider = new ChatViewProvider(vscode, {
     deps: { createSession },
     state,
@@ -122,6 +193,7 @@ function makeProvider() {
   provider.view = {
     webview: { postMessage: (m) => (posted.push(m), Promise.resolve()) },
   };
+  if (!bootstrap) return { provider, posted, sessions, state };
   provider._handleMessage({ type: "send", text: "prepare a plan" });
   const conv = provider._activeConv();
   conv.plan = {
@@ -163,5 +235,59 @@ describe("ChatViewProvider plan review actions", () => {
       text: expect.stringContaining("Revise the plan"),
     });
     expect(sessions[0].sent.at(-1).text).toContain("# Review");
+  });
+
+  it("restores an active review draft by session after a provider restart", async () => {
+    const first = makeProvider();
+    const original = first.provider._activeConv();
+    const ok = await first.provider.reviewPlan("requestChanges");
+    expect(ok).toBe(true);
+
+    const restarted = makeProvider({ state: first.state, bootstrap: false });
+    const restored = restarted.provider._activeConv();
+    expect(restored.sessionId).toBe(original.sessionId);
+    expect(restored.plan).toMatchObject({
+      active: true,
+      state: "awaiting_approval",
+      persistedRevision: 1,
+    });
+    expect(restarted.provider._planReviews.get(restored.id).lastText).toContain(
+      "approve this plan",
+    );
+  });
+
+  it("does not downgrade a submitted decision while disposing", async () => {
+    const { provider, state } = makeProvider();
+    expect(await provider.reviewPlan("approve")).toBe(true);
+
+    provider.dispose();
+
+    expect(
+      state._map.get("chainlesschain.chat.planReviewStates.v1").at(-1),
+    ).toMatchObject({
+      status: "decision_submitted",
+      action: "approve",
+    });
+  });
+
+  it("restores terminal review state without reopening a draft", () => {
+    const first = makeProvider();
+    const original = first.provider._activeConv();
+    original.plan = {
+      ...original.plan,
+      active: false,
+      state: "approved",
+    };
+    first.provider._persistPlanReviewState(
+      original,
+      "# Approved review",
+      original.plan,
+      { status: "approved", action: "approve" },
+    );
+
+    const restarted = makeProvider({ state: first.state, bootstrap: false });
+    const restored = restarted.provider._activeConv();
+    expect(restored.plan).toMatchObject({ active: false, state: "approved" });
+    expect(restarted.provider._planReviews.has(restored.id)).toBe(false);
   });
 });

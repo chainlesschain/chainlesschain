@@ -21,7 +21,7 @@
 
 ### 2026-07-22 状态覆盖说明
 
-本文件正文保留 2026-07-17 的历史审计快照，正文中关于“V3 未接线”、后台 Agent 与 worktree 互斥、VS Code 无 Extension Host、JetBrains GUI 未通过、ACL fail-open 以及仅输出本地 OTLP JSON 的表述，均不再代表当前代码状态。它们已分别由当前实现、针对性测试、VS Code Extension Host smoke、JetBrains GUI smoke、fail-closed ACL 政策和 OTLP HTTP/HTTPS exporter 覆盖；2026-07-22 又补上了 `agent-core.executeTool` / `agentLoop` 的会话级 Tool Admission 与 attribution seam，并由 VS Code、JetBrains 聊天宿主通过有界且 fail-closed 的 `CC_TOOL_ADMISSION` 环境契约传入真实宿主决策。当前仍未完成的项目只以 2026-07-22 增量报告中的 C/T/H/E/D 状态为准。
+本文件正文保留 2026-07-17 的历史审计快照，正文中关于“V3 未接线”、后台 Agent 与 worktree 互斥、VS Code 无 Extension Host、JetBrains GUI 未通过、ACL fail-open 以及仅输出本地 OTLP JSON 的表述，均不再代表当前代码状态。它们已分别由当前实现、针对性测试、VS Code Extension Host smoke、JetBrains GUI smoke、fail-closed ACL 政策和 OTLP HTTP/HTTPS exporter 覆盖；2026-07-22 又补上了 `agent-core.executeTool` / `agentLoop` 的会话级 Tool Admission 与 attribution seam，并由 VS Code、JetBrains 聊天宿主通过有界且 fail-closed 的 `CC_TOOL_ADMISSION` 环境契约传入真实宿主决策。两端 Plan Review 也已增加 `cc-plan-review/v1` 版本化草稿/决策快照，按 session 在 workspace/project 状态中持久化并于重启后恢复活动审阅。当前仍未完成的项目只以 2026-07-22 增量报告中的 C/T/H/E/D 状态为准。
 
 本报告正文中第 6 条关于“Bridge ACL fail-open/仅本地 OTLP JSON”的段落，以及第 3 节中 Remote Robot 未成功的历史运行记录，均属于 2026-07-17 截面；当前请以 2026-07-22 的 VS Code/JetBrains 双端 fail-closed ACL、HTTP/HTTPS OTLP、JetBrains GUI smoke 和 Marketplace API 复核结果为准。
 

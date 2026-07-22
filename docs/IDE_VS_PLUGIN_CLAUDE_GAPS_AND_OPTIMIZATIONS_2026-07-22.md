@@ -18,17 +18,17 @@
 | 联合恢复幂等                     | headless runner/stream 接入 side-effect ledger reconcile，恢复时对未落定副作用提示核验                                | C/T 已完成；需跨进程 kill E2E          |
 | 协议文档、离线回放和治理覆盖率   | `protocol-replay.js`、`gen-protocol-doc.mjs`、`governance-coverage.js` 及对应脚本/测试                                | C/T 已完成；需接入完整发布门           |
 | 标准 OTLP 出口                   | `packages/cli/src/lib/observability/otlp-exporter.js` 提供 HTTP/HTTPS、批处理、重试统计和非阻塞失败处理               | C 已完成；需 Collector/SIEM 实环境验证 |
-| VS Code Bridge token ACL         | `lockfile.js` 默认 fail-closed，目录、临时文件和最终 lockfile 均独立校验；仅 managed policy 可降级；3 项 ACL 回归通过 | C/T 已完成；仍需真实 Windows ACL 矩阵  |
+| VS Code Bridge token ACL         | `lockfile.js` 默认 fail-closed，目录、临时文件和最终 lockfile 均独立校验；仅 managed policy 可降级；5 项 ACL 回归通过 | C/T 已完成；仍需真实 Windows ACL 矩阵  |
 
 | 项目                        | 状态                                                                                                                                                                                            |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | VS Code 插件能力清单        | 已完成，随 MCP `initialize` 动态返回实际工具和可选能力                                                                                                                                          |
 | JetBrains 插件能力清单      | 已完成，随 MCP `initialize` 动态返回实际工具和可选能力                                                                                                                                          |
-| VS Code 契约测试            | 已完成，Node 测试 2/2 通过                                                                                                                                                                      |
+| VS Code 契约与插件回归      | 已完成，能力契约 Node 测试 2/2 通过；`vscode-ext-*` Vitest 全量 82 个文件、922 项测试无失败                                                                                                      |
 | VS Code 真实 Extension Host | 已完成，当前 `0.37.26` VSIX 在 VS Code Stable 干净 profile 激活，16 个关键命令和 Bridge 端口校验通过                                                                                            |
 | JetBrains 契约测试          | 已完成，`IdeCapabilitiesTest` 通过                                                                                                                                                              |
 | JetBrains 纯逻辑回归        | 已完成，`PureLogicSmokeMain` 1219/1219 通过                                                                                                                                                     |
-| JetBrains 完整单元测试      | 已完成，Gradle `test` 通过，602 项测试无失败                                                                                                                                                    |
+| JetBrains 完整单元测试      | 已完成，Gradle `test --rerun-tasks` 通过，605 项测试无失败（另有 2 项按条件跳过）                                                                                                                |
 | JetBrains 真实 GUI smoke    | 已完成，Remote Robot `IdeUiSmokeTest.chainlessChainToolWindowOpens` 通过                                                                                                                        |
 | JetBrains 插件构建          | 已完成，`0.4.68` ZIP 构建成功                                                                                                                                                                   |
 | VS Code VSIX 构建           | 已完成，`0.37.26` VSIX 构建成功                                                                                                                                                                 |
@@ -64,7 +64,7 @@ Claude Code 的 JetBrains 插件则突出原生 Diff、选择区/当前文件上
 | 能力              | VS Code 插件                                                                                          | JetBrains 插件                                                                            | 判断                                                                                  |
 | ----------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | 聊天/多会话       | `src/chat/`、`sessions-workbench.js`、`ide-session-index.js`                                          | `AgentChatSession`、`ConversationManager`、`SessionsWorkbench`、`IdeSessionIndex`         | 两端已有；重点转为协议一致性和恢复可靠性                                              |
-| Plan Review       | `chat/plan-review.js`，有 approve/request changes/regenerate/reject                                   | `PlanReview`、`ChatEvents`，有计划和审批卡片                                              | 主流程已有；仍需版本化快照、批注归因和重启恢复                                        |
+| Plan Review       | `chat/plan-review.js`，有 approve/request changes/regenerate/reject 和 `cc-plan-review/v1` 恢复状态     | `PlanReview`、`ChatEvents`，有计划/审批卡片和项目级恢复状态                                | 版本化快照与重启恢复已完成；仍需结构化行级批注归因和执行进度关联                       |
 | 原生 Diff         | `ide-tools.js`、`diff-hunks.js`、`multi-diff.js`、`diff-apply-guard.js`                               | `DiffHunks`、`MultiDiff`、`DiffApplyGuard`、`ReviewNote`                                  | 主流程已有；重点是用户改写、冲突和跨端事件一致性                                      |
 | IDE MCP Bridge    | `mcp-http-server.js` + `ide-tools.js`                                                                 | `McpServer` + `IdeTools`                                                                  | 已统一 `getSelection/getActiveFile/getDiagnostics/getOpenEditors/openDiff` 等基础契约 |
 | 代码语义          | `semantic-tools.js`，包含 hover、definition、references、rename、call hierarchy、symbol/project model | `SemanticTools`，通过 PSI 提供同类语义工具                                                | 不应再把“增加基础语义工具”列为 P0；应补测试结果、覆盖率、调试状态和能力协商           |
@@ -156,6 +156,15 @@ Claude Code 会把计划打开成完整 Markdown 编辑器，用户可以 inline
 - 计划状态应可恢复、可审计，而不是只存在于当前面板。
 
 验收标准：用户关闭 IDE 后重新打开，仍可恢复同一份计划、批注、审批结果和执行进度。
+
+2026-07-22 落地状态：两端现使用同一语义的 `cc-plan-review/v1` 持久化模型，
+按 `sessionId` 优先关联审阅，记录单调 `revision`、draft/decision/terminal
+状态、受限计划快照和最多 24K 字符的 Markdown 批注正文；每个 workspace/project
+只保留最近 20 个 session。VS Code 在 plan 更新、审阅动作和面板销毁时写入
+`workspaceState`，JetBrains 对等写入项目级 `PropertiesComponent`；重启后只重新
+打开仍活动的审阅，approved/rejected 终态不会误弹编辑器。当前剩项收窄为把自由
+Markdown 批注进一步解析成带文件/行号/plan item/turn 的结构化记录，以及把后续
+执行进度逐项回写审阅视图。
 
 #### 3. Diff 审阅需要覆盖“用户修改 → Agent 反馈”闭环
 
@@ -364,6 +373,11 @@ and its official `/loop` and `/goal` workflows.
   Remote Robot. Its result is intentionally not represented as a headless
   unit-test pass. It now also asserts that the chat composer, Send, and Stop
   controls render.
+- Plan Review drafts now survive IDE restart in both hosts through a bounded
+  `cc-plan-review/v1` state model. It versions each session's Markdown snapshot,
+  plan items, and submitted/terminal decision state; VS Code persists it in
+  workspace state and JetBrains in project properties. Only active drafts are
+  reopened, while approved/rejected reviews remain terminal audit state.
 - Agent extension-tool admission is now wired through the IDE launch boundary,
   not only at the CLI runtime seam. VS Code and JetBrains chat children pass a
   bounded, secret-free `CC_TOOL_ADMISSION` session envelope with host source,

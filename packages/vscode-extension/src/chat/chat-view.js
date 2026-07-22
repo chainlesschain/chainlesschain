@@ -30,9 +30,14 @@ const {
 const {
   buildPlanReviewFeedbackPrompt,
   buildPlanReviewRecord,
+  buildPersistedPlanReview,
+  findPersistedPlanReview,
   formatPlanReviewMarkdown,
+  upsertPersistedPlanReview,
 } = require("./plan-review.js");
 const { upsertIdeSessionRecord } = require("./ide-session-index.js");
+
+const PLAN_REVIEW_STATES_KEY = "chainlesschain.chat.planReviewStates.v1";
 
 class ChatViewProvider {
   /**
@@ -76,6 +81,11 @@ class ChatViewProvider {
     this._lastCallUsage = new Map(); // convId → usage of the latest LLM call
     this._ctxWindowCache = null; // { key, window } from the last CLI probe
     this._planReviews = new Map(); // convId -> { document, lastText, lastPlan }
+    this._persistedPlanReviewStates = Array.isArray(
+      opts.state?.get?.(PLAN_REVIEW_STATES_KEY),
+    )
+      ? opts.state.get(PLAN_REVIEW_STATES_KEY)
+      : [];
     this._loopTimers = new Map(); // convId -> { timer, intervalMs, prompt }
   }
 
@@ -104,7 +114,8 @@ class ChatViewProvider {
           .slice(0, RESTORE_CAP)
       : [];
     if (tabs.length === 0) {
-      this._convs.create({ sessionId: this._storedSessionId() });
+      const conv = this._convs.create({ sessionId: this._storedSessionId() });
+      this._restorePlanReviewState(conv);
       return;
     }
     const created = tabs.map((t) => {
@@ -117,6 +128,7 @@ class ChatViewProvider {
       if (t.thinking) this._convs.setThinking(conv.id, String(t.thinking));
       if (t.goalCondition)
         this._convs.setGoalCondition(conv.id, String(t.goalCondition));
+      this._restorePlanReviewState(conv);
       return conv;
     });
     const idx =
@@ -522,6 +534,16 @@ class ChatViewProvider {
       plan.state === "approved" ||
       plan.state === "rejected"
     ) {
+      const review = this._planReviews.get(convId);
+      const currentText =
+        review?.document?.getText?.() || review?.lastText || "";
+      this._persistPlanReviewState(conv, currentText, plan, {
+        status:
+          plan.state === "approved" || plan.state === "rejected"
+            ? plan.state
+            : "ended",
+        action: plan.state || "ended",
+      });
       return;
     }
     // Only steal focus for the tab the user is looking at. Background tabs keep
@@ -538,8 +560,9 @@ class ChatViewProvider {
     });
     const existing = this._planReviews.get(convId);
     if (!existing?.document) {
+      const initialText = existing?.lastText || text;
       const document = await ws.openTextDocument({
-        content: text,
+        content: initialText,
         language: "markdown",
       });
       await win.showTextDocument(document, {
@@ -548,9 +571,10 @@ class ChatViewProvider {
       });
       this._planReviews.set(convId, {
         document,
-        lastText: text,
+        lastText: initialText,
         lastPlan: plan,
       });
+      this._persistPlanReviewState(conv, initialText, plan);
       this.updatePlanReviewContext();
       this._post({
         kind: "info",
@@ -567,12 +591,99 @@ class ChatViewProvider {
     if (currentText !== existing.lastText) {
       // Preserve reviewer edits/inline notes; do not overwrite a dirty review.
       existing.pendingText = text;
+      this._persistPlanReviewState(conv, currentText, plan);
       return;
     }
     if (existing.lastText !== text) {
       const ok = await this._replacePlanReviewDocument(existing.document, text);
       if (ok) existing.lastText = text;
       else existing.pendingText = text;
+    }
+    this._persistPlanReviewState(conv, existing.lastText || currentText, plan);
+  }
+
+  _persistPlanReviewState(
+    conv,
+    documentText,
+    plan,
+    { status = "draft", action = "" } = {},
+  ) {
+    if (!conv) return null;
+    const previous = findPersistedPlanReview(this._persistedPlanReviewStates, {
+      sessionId: conv.sessionId,
+      conversationId: conv.id,
+    });
+    const next = buildPersistedPlanReview({
+      documentText,
+      conversationId: conv.id,
+      conversationTitle: conv.title,
+      sessionId: conv.sessionId,
+      plan,
+      status,
+      action,
+      previous,
+    });
+    if (!next) return null;
+    this._persistedPlanReviewStates = upsertPersistedPlanReview(
+      this._persistedPlanReviewStates,
+      next,
+    );
+    this.opts.state?.update?.(
+      PLAN_REVIEW_STATES_KEY,
+      this._persistedPlanReviewStates,
+    );
+    return next;
+  }
+
+  _restorePlanReviewState(conv) {
+    if (!conv) return null;
+    const state = findPersistedPlanReview(this._persistedPlanReviewStates, {
+      sessionId: conv.sessionId,
+      conversationId: conv.id,
+    });
+    if (!state) return null;
+    const terminal = state.status === "approved" || state.status === "rejected";
+    conv.plan = {
+      kind: "plan",
+      ...state.plan,
+      active: terminal ? false : state.plan.active,
+      state: terminal ? state.status : state.plan.state,
+      persistedRevision: state.revision,
+    };
+    if (!terminal && conv.plan.active) {
+      this._planReviews.set(conv.id, {
+        document: null,
+        lastText: state.snapshot,
+        lastPlan: conv.plan,
+        persistedState: state,
+      });
+    }
+    return state;
+  }
+
+  _flushPlanReviewDrafts() {
+    for (const [convId, review] of this._planReviews.entries()) {
+      const conv = this._convs.get(convId);
+      if (!conv) continue;
+      const text = review?.document?.getText?.() || review?.lastText || "";
+      const plan = conv.plan || review?.lastPlan;
+      const terminal = plan?.state === "approved" || plan?.state === "rejected";
+      const previous = findPersistedPlanReview(
+        this._persistedPlanReviewStates,
+        {
+          sessionId: conv.sessionId,
+          conversationId: conv.id,
+        },
+      );
+      const submitted = !terminal && previous?.status === "decision_submitted";
+      this._persistPlanReviewState(conv, text, plan, {
+        status: terminal
+          ? plan.state
+          : submitted
+            ? "decision_submitted"
+            : "draft",
+        action: terminal ? plan.state : submitted ? previous.action : "",
+      });
     }
   }
 
@@ -623,6 +734,18 @@ class ChatViewProvider {
       conversationTitle: conv.title,
       sessionId: conv.sessionId,
       plan: conv.plan || review?.lastPlan,
+      revision: this._persistPlanReviewState(
+        conv,
+        documentText,
+        conv.plan || review?.lastPlan,
+        {
+          status:
+            normalized === "approve" || normalized === "reject"
+              ? "decision_submitted"
+              : "changes_requested",
+          action: normalized,
+        },
+      )?.revision,
     });
     this._recordPlanReview(record);
 
@@ -1695,6 +1818,7 @@ class ChatViewProvider {
     this._updateModeStatus();
     view.webview.onDidReceiveMessage((m) => this._handleMessage(m));
     view.onDidDispose(() => {
+      this._flushPlanReviewDrafts();
       for (const s of this._convs.allSessions()) s.stop?.();
       this._modeStatus?.item.dispose();
       this._modeStatus = null;
@@ -1855,8 +1979,11 @@ class ChatViewProvider {
       this._onWebviewReady();
       // Show the tab bar from the first paint (bootstraps one conversation
       // record — no child spawn until the first message).
-      this._activeConv();
+      const conv = this._activeConv();
       this._postTabs();
+      if (conv.plan?.active) {
+        this._syncPlanReviewEditor(conv.id, conv.plan).catch(() => {});
+      }
     } else if (m.type === "new") {
       // New chat: reset the ACTIVE conversation — drop its child AND resume
       // id so the next message spawns fresh. Webview clears on "reset".
@@ -1899,6 +2026,7 @@ class ChatViewProvider {
         }
       }
     } else if (m.type === "closeTab") {
+      this._flushPlanReviewDrafts();
       const res = this._convs.close(String(m.id || ""));
       if (res.closed) {
         this._lastCallUsage.delete(String(m.id || "")); // drop its usage record
@@ -1919,6 +2047,7 @@ class ChatViewProvider {
   }
 
   dispose() {
+    this._flushPlanReviewDrafts();
     for (const state of this._loopTimers.values()) clearInterval(state.timer);
     this._loopTimers.clear();
     for (const s of this._convs.allSessions()) s.stop?.();

@@ -63,4 +63,49 @@ class PlanReviewTest {
         assertTrue(prompt.contains("Revise the plan"));
         assertTrue(prompt.contains("# Notes"));
     }
+
+    @Test
+    void persistedDraftsAreVersionedBoundedReplacedAndRestoredBySession() {
+        Map<String, Object> plan = new LinkedHashMap<>();
+        plan.put("active", true);
+        plan.put("state", "awaiting_approval");
+        plan.put("items", java.util.stream.IntStream.range(0, 140)
+                .mapToObj(i -> Map.of("id", "p-" + i, "title", "t".repeat(600)))
+                .toList());
+        Map<String, Object> first = PlanReview.persistedState(
+                "x".repeat(25000), "conv-1", "Chat", "sess-1", plan,
+                "draft", "", null, Instant.parse("2026-07-22T00:00:00Z"));
+        Map<String, Object> second = PlanReview.persistedState(
+                "# Review\nupdated comment", "conv-after-restart", "Chat", "sess-1", plan,
+                "changes_requested", "requestChanges", first,
+                Instant.parse("2026-07-22T00:01:00Z"));
+
+        assertEquals(1, first.get("revision"));
+        assertEquals(2, second.get("revision"));
+        assertTrue(String.valueOf(first.get("snapshot")).contains("truncated"));
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> items = (List<Map<String, Object>>)
+                ((Map<String, Object>) first.get("plan")).get("items");
+        assertEquals(128, items.size());
+        assertEquals(512, String.valueOf(items.get(0).get("title")).length());
+
+        List<Map<String, Object>> stored = PlanReview.upsertPersistedState(List.of(first), second);
+        assertEquals(1, stored.size());
+        assertEquals(second, PlanReview.findPersistedState(stored, "sess-1", "different-conv"));
+        assertEquals(null, PlanReview.normalizePersistedState(Map.of("schema", "unknown")));
+    }
+
+    @Test
+    void persistedDraftListIsCappedAtTwenty() {
+        Object stored = new java.util.ArrayList<Map<String, Object>>();
+        for (int i = 0; i < 25; i++) {
+            Map<String, Object> state = PlanReview.persistedState(
+                    "draft", "c-" + i, "Chat", "s-" + i,
+                    Map.of("active", true), "draft", "", null, Instant.now());
+            stored = PlanReview.upsertPersistedState(stored, state);
+        }
+        assertEquals(20, ((List<?>) stored).size());
+        assertEquals(null, PlanReview.findPersistedState(stored, "s-0", ""));
+        assertTrue(PlanReview.findPersistedState(stored, "s-24", "") != null);
+    }
 }
