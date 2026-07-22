@@ -157,8 +157,8 @@ Total matches: 411 (runtime: 335, tooling: 53, test: 23).
 | `packages/cli/src/lib/cli-anything-bridge.js` | 155 | `helpText = _deps.execSync(`${command} --help`, {` |
 | `packages/cli/src/lib/cli-anything-bridge.js` | 255 | `const { execSync } = require("child_process");` |
 | `packages/cli/src/lib/cli-anything-bridge.js` | 267 | `const output = execSync(\`${command} \${input}\`, {` |
-| `packages/cli/src/lib/cloud/bundle.js` | 10 | `import { execFileSync } from "node:child_process";` |
-| `packages/cli/src/lib/cloud/bundle.js` | 20 | `.execFileSync("git", args, {` |
+| `packages/cli/src/lib/cloud/bundle.js` | 17 | `const result = executionBroker.spawnSync(file, args, {` |
+| `packages/cli/src/lib/cloud/bundle.js` | 41 | `.execFileSync("git", args, {` |
 | `packages/cli/src/lib/code-agent.js` | 227 | `/child_process.*exec\s*\(\s*[`"'].*\$\{/,` |
 | `packages/cli/src/lib/code-review.js` | 7 | `import { execSync } from "child_process";` |
 | `packages/cli/src/lib/code-review.js` | 17 | `return execSync(`git diff ${target}`, {` |
@@ -171,7 +171,7 @@ Total matches: 411 (runtime: 335, tooling: 53, test: 23).
 | `packages/cli/src/lib/doctor-checkup.js` | 573 | `deps.execSync("git worktree prune --dry-run -v", {` |
 | `packages/cli/src/lib/doctor-checkup.js` | 842 | `spawnSync: deps.spawnSync,` |
 | `packages/cli/src/lib/doctor-checkup.js` | 1141 | `deps.execSync("git worktree prune", {` |
-| `packages/cli/src/lib/downloader.js` | 10 | `import { execFileSync } from "node:child_process";` |
+| `packages/cli/src/lib/downloader.js` | 18 | `const result = executionBroker.spawnSync(file, args, options);` |
 | `packages/cli/src/lib/ensure-utf8.js` | 10 | `import { execSync } from "child_process";` |
 | `packages/cli/src/lib/ensure-utf8.js` | 37 | `_deps.execSync("chcp 65001", { stdio: "ignore" });` |
 | `packages/cli/src/lib/eval/tasks.js` | 14 | `import { execFileSync } from "node:child_process";` |

@@ -7,13 +7,34 @@
  * a repo.
  */
 
-import { execFileSync } from "node:child_process";
 import { writeFileSync, mkdtempSync } from "node:fs";
 import { readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { executionBroker } from "../process-execution-broker/index.js";
 
-export const _deps = { execFileSync };
+function brokerExecFileSync(file, args, options) {
+  const result = executionBroker.spawnSync(file, args, {
+    ...options,
+    origin: "cloud:git",
+    policy: "allow",
+    scope: "cloud",
+    shell: false,
+  });
+  if (result?.error) throw result.error;
+  if (result?.status != null && result.status !== 0) {
+    const error = new Error(
+      `Cloud git command failed (exit ${result.status}): ${args[0] || "git"}`,
+    );
+    error.status = result.status;
+    error.stdout = result.stdout;
+    error.stderr = result.stderr;
+    throw error;
+  }
+  return result?.stdout || "";
+}
+
+export const _deps = { execFileSync: brokerExecFileSync };
 
 function git(args, cwd, deps = _deps) {
   return deps

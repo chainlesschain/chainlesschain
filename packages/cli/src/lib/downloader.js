@@ -7,12 +7,27 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { pipeline } from "node:stream/promises";
-import { execFileSync } from "node:child_process";
 import ora from "ora";
 import { GITHUB_RELEASES_URL } from "../constants.js";
 import { getBinDir, ensureDir } from "./paths.js";
 import { getPlatform, getArch } from "./platform.js";
 import logger from "./logger.js";
+import { executionBroker } from "./process-execution-broker/index.js";
+
+function brokerExecFileSync(file, args, options) {
+  const result = executionBroker.spawnSync(file, args, options);
+  if (result?.error) throw result.error;
+  if (result?.status != null && result.status !== 0) {
+    const error = new Error(
+      `Archive extraction failed (exit ${result.status}): ${file}`,
+    );
+    error.status = result.status;
+    error.stdout = result.stdout;
+    error.stderr = result.stderr;
+    throw error;
+  }
+  return result?.stdout;
+}
 
 // Platform-specific asset matching patterns
 const ASSET_PATTERNS = {
@@ -211,7 +226,7 @@ async function fetchRelease(url) {
 export function extractZip(
   zipPath,
   destDir,
-  { execFileImpl = execFileSync, platform = getPlatform() } = {},
+  { execFileImpl = brokerExecFileSync, platform = getPlatform() } = {},
 ) {
   // Never interpolate the paths into a shell string — `zipPath`/`destDir` derive
   // from the (remote) release asset name, so a `"`/`$()`/`'` in a path would be a
@@ -229,10 +244,20 @@ export function extractZip(
       {
         stdio: "ignore",
         env: { ...process.env, CC_ZIP_SRC: zipPath, CC_ZIP_DEST: destDir },
+        origin: "update:archive-extract",
+        policy: "allow",
+        scope: "update",
+        shell: false,
       },
     );
   } else {
-    execFileImpl("unzip", ["-o", zipPath, "-d", destDir], { stdio: "ignore" });
+    execFileImpl("unzip", ["-o", zipPath, "-d", destDir], {
+      stdio: "ignore",
+      origin: "update:archive-extract",
+      policy: "allow",
+      scope: "update",
+      shell: false,
+    });
   }
 }
 

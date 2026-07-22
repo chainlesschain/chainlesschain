@@ -13,10 +13,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import {
-  streamToFileVerified,
-  extractZip,
-} from "../../src/lib/downloader.js";
+import { streamToFileVerified, extractZip } from "../../src/lib/downloader.js";
 
 let tmpDir;
 let n = 0;
@@ -109,14 +106,20 @@ describe("extractZip — no shell injection via paths", () => {
     let call;
     extractZip(EVIL, "/dest", {
       platform: "linux",
-      execFileImpl: (file, args) => {
-        call = { file, args };
+      execFileImpl: (file, args, options) => {
+        call = { file, args, options };
       },
     });
     expect(call.file).toBe("unzip");
     expect(call.args).toEqual(["-o", EVIL, "-d", "/dest"]);
     // The evil string survives verbatim as one argument — no shell ever parses it.
     expect(call.args).toContain(EVIL);
+    expect(call.options).toMatchObject({
+      origin: "update:archive-extract",
+      policy: "allow",
+      scope: "update",
+      shell: false,
+    });
   });
 
   it("windows: keeps the -Command script constant, paths only via env", () => {
@@ -124,7 +127,7 @@ describe("extractZip — no shell injection via paths", () => {
     extractZip(EVIL, "/dest", {
       platform: "win32",
       execFileImpl: (file, args, opts) => {
-        call = { file, args, env: opts.env };
+        call = { file, args, env: opts.env, options: opts };
       },
     });
     expect(call.file).toBe("powershell");
@@ -134,5 +137,11 @@ describe("extractZip — no shell injection via paths", () => {
     expect(script).not.toContain(EVIL);
     expect(call.env.CC_ZIP_SRC).toBe(EVIL);
     expect(call.env.CC_ZIP_DEST).toBe("/dest");
+    expect(call.options).toMatchObject({
+      origin: "update:archive-extract",
+      policy: "allow",
+      scope: "update",
+      shell: false,
+    });
   });
 });

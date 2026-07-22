@@ -10,6 +10,7 @@ import {
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
 
 const testHome = join(tmpdir(), `cc-cloud-${Date.now()}`);
 vi.mock("../../src/lib/paths.js", () => ({ getHomeDir: () => testHome }));
@@ -159,6 +160,18 @@ describe("bundle + reflow (real git)", () => {
     // the base64 decodes to a valid git bundle (magic header)
     const decoded = Buffer.from(snap.bundle, "base64").toString("utf-8", 0, 40);
     expect(decoded).toContain("git bundle");
+    expect(
+      executionBroker
+        .getAuditLog(20)
+        .findLast((entry) => entry.origin === "cloud:git"),
+    ).toMatchObject({
+      origin: "cloud:git",
+      scope: "cloud",
+      policy: "allow",
+      permissionDecision: "allow",
+      shell: false,
+      sync: true,
+    });
   });
 
   it("applies a runner patch onto the local worktree", () => {
