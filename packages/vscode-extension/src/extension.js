@@ -452,6 +452,10 @@ function activate(context) {
           port: _port,
           statusText,
           doctorText,
+          extensionVersion: context.extension.packageJSON.version,
+          vscodeVersion: vscode.version,
+          workspaceTrusted: vscode.workspace.isTrusted,
+          workspace: cwd || "(no workspace folder)",
         }),
         language: "markdown",
       });
@@ -460,6 +464,33 @@ function activate(context) {
     vscode.commands.registerCommand("chainlesschain.ide.openDashboard", () =>
       openDashboard(vscode, context, getState, _activityLog),
     ),
+    // Read-only PR/CI status: the CLI remains authoritative for linked-PR
+    // lookup and fail-closed merge eligibility; the IDE only renders JSON and
+    // never merges or pushes.
+    vscode.commands.registerCommand("chainlesschain.session.prStatus", async () => {
+      const { runCliText } = require("./chat/introspect-commands.js");
+      const { getResolvedCli } = require("./cli-binary");
+      const { parsePrStatusJson, prStatusToMarkdown } = require("./pr-status-view.js");
+      const text = await runCliText({
+        command: getResolvedCli(),
+        args: ["session", "pr-status", "last", "--json"],
+        cwd: vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath,
+        timeoutMs: 30000,
+      });
+      const status = parsePrStatusJson(text);
+      if (!status) {
+        vscode.window.showWarningMessage(
+          `ChainlessChain: PR status unavailable — ${text || "no linked PR or valid JSON"}`,
+        );
+        return;
+      }
+      const doc = await vscode.workspace.openTextDocument({
+        content: prStatusToMarkdown(status),
+        language: "markdown",
+      });
+      await vscode.window.showTextDocument(doc, { preview: true });
+    }),
+
     // Read-only "cc team" monitor: pick the `cc team run --state <file>`
     // snapshot (remembered per workspace) and watch it live — task graph,
     // lease holders, budget. The CLI runs the team; this window watches.

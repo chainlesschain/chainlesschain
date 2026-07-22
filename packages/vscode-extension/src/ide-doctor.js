@@ -22,7 +22,15 @@ function sectionBody(text) {
  * explanation (`doctor`). The CLI sections pass through as-is — they are the
  * source of truth this report exists to surface.
  */
-function formatBridgeReport({ port, statusText, doctorText } = {}) {
+function formatBridgeReport({
+  port,
+  statusText,
+  doctorText,
+  extensionVersion,
+  vscodeVersion,
+  workspaceTrusted,
+  workspace,
+} = {}) {
   const mine =
     Number(port) > 0
       ? `running on 127.0.0.1:${port} (server "ide")`
@@ -31,6 +39,13 @@ function formatBridgeReport({ port, statusText, doctorText } = {}) {
     "# ChainlessChain IDE bridge — diagnostics",
     "",
     `This window's bridge: ${mine}`,
+    "",
+    "## Runtime compatibility",
+    "",
+    `- Extension: ${sectionBody(extensionVersion)}`,
+    `- VS Code: ${sectionBody(vscodeVersion)}`,
+    `- Workspace trust: ${workspaceTrusted === true ? "trusted" : workspaceTrusted === false ? "restricted" : "unknown"}`,
+    `- Workspace: ${sectionBody(workspace)}`,
     "",
     "## cc ide status — which server a terminal `cc agent` would connect",
     "",

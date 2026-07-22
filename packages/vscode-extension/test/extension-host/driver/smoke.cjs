@@ -12,10 +12,18 @@ const REQUIRED_COMMANDS = [
   "chainlesschain.cli.installManaged",
   "chainlesschain.chat.newConversation",
   "chainlesschain.diff.accept",
+  "chainlesschain.diff.reject",
   "chainlesschain.plan.approve",
+  "chainlesschain.plan.requestChanges",
+  "chainlesschain.plan.regenerate",
+  "chainlesschain.plan.reject",
+  "chainlesschain.preview.start",
+  "chainlesschain.preview.stop",
   "chainlesschain.sessions.workbench",
+  "chainlesschain.session.prStatus",
   "chainlesschain.background.agents",
   "chainlesschain.remote.control",
+  "chainlesschain.remote.doctor",
 ];
 
 function withTimeout(promise, timeoutMs, label) {

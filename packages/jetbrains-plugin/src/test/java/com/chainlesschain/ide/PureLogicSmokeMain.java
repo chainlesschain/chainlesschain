@@ -488,9 +488,10 @@ public final class PureLogicSmokeMain {
         List<String[]> rev = SlashCommands.filter("rev");
         check(rev.size() == 1 && rev.get(0)[0].equals("/review"), "rev -> only /review");
         List<String[]> re = SlashCommands.filter("re");
-        check(re.size() == 4 && re.get(0)[0].equals("/reject") && re.get(1)[0].equals("/review")
-                && re.get(2)[0].equals("/retry") && re.get(3)[0].equals("/rewind"),
-                "re -> /reject /review /retry /rewind (menu order)");
+        check(re.size() == 5 && re.get(0)[0].equals("/reject") && re.get(1)[0].equals("/review")
+                && re.get(2)[0].equals("/retry") && re.get(3)[0].equals("/rewind")
+                && re.get(4)[0].equals("/release-notes"),
+                "re -> /reject /review /retry /rewind /release-notes (menu order)");
         List<String[]> ret = SlashCommands.filter("ret");
         check(ret.size() == 1 && ret.get(0)[0].equals("/retry"), "ret -> only /retry");
         List<String[]> sess = SlashCommands.filter("sess");

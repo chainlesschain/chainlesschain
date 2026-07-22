@@ -3,6 +3,7 @@ package com.chainlesschain.ide;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.AclEntry;
@@ -93,5 +94,17 @@ final class LockfileAclTest {
         // On POSIX there is no ACL view → helper reports "not applied" but never
         // throws; chmod already handled permissions on that filesystem.
         assertFalse(LockfileWriter.tightenOwnerOnlyAcl(f));
+    }
+
+    @Test
+    void permissionFailureBlocksPublicationByDefault(@TempDir Path tmp) {
+        LockfileWriter w = new LockfileWriter(tmp.resolve("ide"), pid -> false,
+                (path, permissions) -> { throw new IOException("denied"); },
+                () -> false);
+        assertThrows(IOException.class, () -> w.write(4324, "tok",
+                Collections.singletonList(tmp.toString()),
+                "http://127.0.0.1:4324/mcp", System.currentTimeMillis(),
+                ProcessHandle.current().pid()));
+        assertFalse(Files.exists(tmp.resolve("ide").resolve("4324.json")));
     }
 }

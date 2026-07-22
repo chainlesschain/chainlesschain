@@ -247,7 +247,7 @@ function _enforceOwnerOnly(target, desiredMode, allowInsecurePermissions) {
       _tightenWindowsAcl(target);
       return true;
     } else {
-      fs.chmodSync(target, desiredMode);
+      _deps.chmodSync(target, desiredMode);
       _verifyPosixOwnerOnly(target, desiredMode);
       return true;
     }
@@ -334,28 +334,25 @@ function writeLock({
 
   try {
     fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
-    // ACL enforcement is best-effort: failures warn but never block lock creation.
-    // Skip the tmp file — enforce ACL on dir and final lock file only.
-    // On Windows, if USERNAME is not available, skip ACL spawn entirely (no warning).
+    // ACL enforcement is fail-closed by default. Only the organization-managed
+    // downgrade may keep the bridge alive when the OS cannot prove owner-only
+    // permissions. The temporary file is protected before rename as well: it
+    // contains the bearer token before becoming the discoverable lockfile.
     let aclWarned = false;
     function warnSkip(reason) {
       if (!aclWarned) {
-        console.warn(`[ide-bridge] lockfile ACL not tightened (${reason}), skipping ACL enforcement`);
+        _warnAclOnce(reason);
         aclWarned = true;
       }
     }
     function tryEnforce(p, mode) {
-      const isWin = _deps.platform() === "win32";
-      if (isWin && !_deps.env().USERNAME) {
-        // No USERNAME on Windows — skip spawn entirely, no warning
-        return;
-      }
-      try {
-        const enforced = _enforceOwnerOnly(p, mode, true);
-        if (!enforced) warnSkip("permission enforcement failed");
-      } catch (err) {
-        warnSkip(err.message);
-      }
+      const enforced = _enforceOwnerOnly(
+        p,
+        mode,
+        allowInsecurePermissions === true,
+      );
+      if (!enforced) warnSkip("permission enforcement failed");
+      return enforced;
     }
     tryEnforce(dir, 0o700);
 
@@ -367,7 +364,7 @@ function writeLock({
       mode: 0o600,
       flag: "wx",
     });
-    // Skip tmp file ACL — only enforce on dir and final file
+    tryEnforce(tmp, 0o600);
     fs.renameSync(tmp, file);
     tryEnforce(file, 0o600);
     return file;

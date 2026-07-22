@@ -1,4 +1,5 @@
 {
+  "cmd.session.prStatus.title": "ChainlessChain：查看关联的 PR / CI 状态",
   "cmd.ide.showStatus.title": "ChainlessChain IDE：查看桥接状态",
   "cmd.ide.restart.title": "ChainlessChain IDE：重启桥接",
   "cmd.ide.openDashboard.title": "ChainlessChain IDE：打开仪表板",

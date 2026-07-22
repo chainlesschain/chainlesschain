@@ -15,7 +15,8 @@ class PreviewController {
    * @param {object} deps
    * @param {(script:string, cwd:string)=>ChildProcess} deps.spawn
    * @param {(url:string)=>void} deps.openUrl   open the URL (Simple Browser)
-   * @param {(cwd:string)=>object|null} deps.readPackageJson
+ * @param {(cwd:string)=>object|null} deps.readPackageJson
+ * @param {(url:string)=>Promise<boolean>|boolean} [deps.probeUrl]
    * @param {(s:object)=>void} [deps.onStatus]  status sink (status bar / log)
    * @param {(child:ChildProcess)=>void} [deps.kill]  terminate the dev server.
    *   Defaults to child.kill(); the live wiring kills the whole PROCESS TREE
@@ -43,6 +44,8 @@ class PreviewController {
     this._stopping = false; // distinguishes a user stop() from a crash
     this._outputTail = ""; // recent dev-server output for getPreviewState
     this._lastExitCode = null;
+    this._probeUrl = deps.probeUrl || null;
+    this._health = "idle";
   }
 
   /** Per-preview output-tail cap (chars) — enough for a stack trace + banner. */
@@ -60,6 +63,7 @@ class PreviewController {
     return {
       running: this.running,
       url: this.url,
+      health: this._health,
       script: this.script,
       exitCode: this.running ? null : this._lastExitCode,
       output: this._outputTail,
@@ -96,6 +100,7 @@ class PreviewController {
     this._stopping = false;
     this._outputTail = "";
     this._lastExitCode = null;
+    this._health = "starting";
     this._onStatus({ state: "starting", script: dev.script });
     const child = this._spawn(dev.script, cwd);
     this.child = child;
@@ -119,8 +124,7 @@ class PreviewController {
           const url = detectServerUrl(line);
           if (url) {
             this.url = url;
-            this._onStatus({ state: "ready", url, script: dev.script });
-            this._openUrl(url);
+            this._verifyAndOpen(url, dev.script);
             return;
           }
         }
@@ -134,6 +138,7 @@ class PreviewController {
       this.child = null;
       this._stopping = false;
       this._lastExitCode = typeof code === "number" ? code : null;
+      if (!this.url) this._health = "stopped";
       // A dev server is meant to run until you stop it — any exit we didn't
       // ask for is a crash. stop() already emitted "stopped", so stay quiet
       // for an intentional exit (avoids a double status).
@@ -149,6 +154,7 @@ class PreviewController {
     this._stopping = true; // tell the exit handler this was on purpose
     this.running = false;
     this.url = null;
+    this._health = "stopped";
     this.child = null;
     if (child) this._kill(child);
     this._onStatus({ state: "stopped" });
@@ -156,6 +162,33 @@ class PreviewController {
 
   dispose() {
     this.stop();
+  }
+
+  async _verifyAndOpen(url, script) {
+    if (!this._probeUrl) {
+      this._health = "unknown";
+      this._onStatus({ state: "ready", url, script });
+      this._openUrl(url);
+      return;
+    }
+    this._health = "checking";
+    this._onStatus({ state: "checking", url, script });
+    try {
+      const ok = await this._probeUrl(url);
+      if (!this.running || this.url !== url) return;
+      if (ok !== true) throw new Error("preview URL did not return a healthy response");
+      this._health = "ok";
+      this._onStatus({ state: "ready", url, script });
+      this._openUrl(url);
+    } catch (error) {
+      this._health = "failed";
+      this._onStatus({
+        state: "error",
+        url,
+        script,
+        message: `preview health check failed: ${error?.message || error}`,
+      });
+    }
   }
 }
 
@@ -168,6 +201,8 @@ function createPreviewController(vscode, { log } = {}) {
   const cp = require("child_process");
   const fs = require("fs");
   const path = require("path");
+  const http = require("http");
+  const https = require("https");
   const { hardenedEnv } = require("./hardened-env");
   let controller;
   controller = new PreviewController({
@@ -225,6 +260,31 @@ function createPreviewController(vscode, { log } = {}) {
         // Some VS Code versions expect a Uri, others a string — Uri is safe.
         vscode.Uri ? vscode.Uri.parse(url) : url,
       ),
+    probeUrl: (url) =>
+      new Promise((resolve) => {
+        let parsed;
+        try {
+          parsed = new URL(url);
+        } catch {
+          resolve(false);
+          return;
+        }
+        const transport = parsed.protocol === "https:" ? https : http;
+        const req = transport.request(
+          parsed,
+          { method: "GET", timeout: 3000, headers: { Accept: "text/html,*/*" } },
+          (res) => {
+            res.resume();
+            resolve(Number(res.statusCode) >= 200 && Number(res.statusCode) < 500);
+          },
+        );
+        req.once("timeout", () => {
+          req.destroy();
+          resolve(false);
+        });
+        req.once("error", () => resolve(false));
+        req.end();
+      }),
     readPackageJson: (cwd) => {
       try {
         return JSON.parse(

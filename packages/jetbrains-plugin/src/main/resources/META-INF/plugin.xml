@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.chainlesschain.ide</id>
     <name>ChainlessChain IDE Bridge</name>
-  <version>0.4.67</version>
+  <version>0.4.68</version>
     <vendor url="https://github.com/chainlesschain/chainlesschain">ChainlessChain</vendor>
 
     <description><![CDATA[
@@ -281,6 +281,10 @@
         </action>
         <action id="chainlesschain.team.Monitor"
                 class="com.chainlesschain.ide.intellij.TeamMonitorAction">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        <action id="chainlesschain.session.PrStatus"
+                class="com.chainlesschain.ide.intellij.PrStatusAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
         <action id="chainlesschain.bg.Agents"

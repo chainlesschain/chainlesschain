@@ -4,6 +4,7 @@
   "cmd.ide.openDashboard.title": "ChainlessChain IDE: Open Dashboard",
   "cmd.ide.doctor.title": "ChainlessChain IDE: Diagnose Bridge",
   "cmd.team.monitor.title": "ChainlessChain: Team Monitor",
+  "cmd.session.prStatus.title": "ChainlessChain: Show PR / CI Status",
   "cmd.background.agents.title": "ChainlessChain: Background Agents",
   "cmd.sessions.workbench.title": "ChainlessChain: Sessions Workbench",
   "cmd.remote.control.title": "ChainlessChain: Remote Control (pair phone/web)",

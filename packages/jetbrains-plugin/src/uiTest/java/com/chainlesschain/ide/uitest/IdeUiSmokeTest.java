@@ -22,7 +22,7 @@ import java.time.Duration;
  *
  * Flow: connect (retry while the IDE cold-starts) → wait for the main IDE
  * frame → click the ChainlessChain tool-window stripe button → assert the
- * chat panel's conversation tab pane exists. On any failure a full-screen
+ * chat panel's conversation tab pane and composer controls exist. On any failure a full-screen
  * PNG is saved under {@code build/reports/ui-smoke/} for the CI artifact.
  *
  * NIGHTLY-ONLY: this needs a downloaded IDE + a display (xvfb on CI) and is
@@ -69,6 +69,15 @@ final class IdeUiSmokeTest {
             //    JBTabbedPane of conversation tabs as the tool-window content.
             robot.find(ComponentFixture.class,
                     Locators.byXpath("//div[@class='JBTabbedPane']"), FIND_BUDGET);
+
+            // The first useful interaction surface must be present as well;
+            // this catches a tool window that opens with only an empty shell.
+            robot.find(ComponentFixture.class,
+                    Locators.byXpath("//div[@class='JTextArea']"), FIND_BUDGET);
+            robot.find(ComponentFixture.class,
+                    Locators.byXpath("//div[@text='Send']"), FIND_BUDGET);
+            robot.find(ComponentFixture.class,
+                    Locators.byXpath("//div[@text='Stop']"), FIND_BUDGET);
         } catch (Throwable t) {
             saveScreenshot(robot, "tool-window-smoke");
             throw t;

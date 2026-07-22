@@ -22,12 +22,25 @@ const path = require("node:path");
 const EXTENSION_ID = "chainlesschain.chainlesschain-ide";
 const PACKAGE_ROOT = path.resolve(__dirname, "..", "..");
 
+function defaultVsixPath() {
+  const manifest = JSON.parse(
+    fs.readFileSync(path.join(PACKAGE_ROOT, "package.json"), "utf8"),
+  );
+  const versioned = path.join(
+    PACKAGE_ROOT,
+    `chainlesschain-ide-${manifest.version}.vsix`,
+  );
+  return fs.existsSync(versioned)
+    ? versioned
+    : path.join(PACKAGE_ROOT, "chainlesschain-ide.vsix");
+}
+
 function usage() {
   return [
     "Usage: node test/extension-host/run.cjs [options]",
     "",
     "Options:",
-    "  --vsix <path>              Packaged VSIX (default: chainlesschain-ide.vsix)",
+    "  --vsix <path>              Packaged VSIX (default: current versioned VSIX, then chainlesschain-ide.vsix)",
     "  --vscode-version <value>   stable, insiders, or an exact version (default: stable)",
     "  --work-dir <path>          Parent for fresh profiles and diagnostic logs",
     "  --help                     Show this help",
@@ -44,7 +57,7 @@ function takeValue(argv, index, name) {
 
 function parseArgs(argv) {
   const options = {
-    vsix: path.join(PACKAGE_ROOT, "chainlesschain-ide.vsix"),
+    vsix: defaultVsixPath(),
     vscodeVersion: "stable",
     workDir: null,
     help: false,

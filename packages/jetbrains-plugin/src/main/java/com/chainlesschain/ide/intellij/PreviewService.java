@@ -54,6 +54,7 @@ public final class PreviewService {
     private volatile String lastUrl;
     private volatile String lastScript;
     private volatile Integer lastExitCode;
+    private volatile String health = "idle";
     private final StringBuilder outputTail = new StringBuilder(); // guarded by itself
 
     public PreviewService(Project project) {
@@ -80,6 +81,7 @@ public final class PreviewService {
         out.put("running", running);
         out.put("url", lastUrl);
         out.put("script", lastScript);
+        out.put("health", health);
         out.put("exitCode", running ? null : lastExitCode);
         synchronized (outputTail) {
             out.put("output", outputTail.toString());
@@ -134,6 +136,7 @@ public final class PreviewService {
         lastUrl = null;
         lastScript = script;
         lastExitCode = null;
+        health = "starting";
         synchronized (outputTail) {
             outputTail.setLength(0);
         }
@@ -150,7 +153,18 @@ public final class PreviewService {
                 if (url != null) {
                     urlFound = true;
                     lastUrl = url;
-                    SwingUtilities.invokeLater(() -> showUrl(url));
+                    health = "checking";
+                    ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                        boolean ok = probeUrl(url);
+                        if (!ok) {
+                            health = "failed";
+                            SwingUtilities.invokeLater(() -> setStatus(
+                                    "Preview health check failed: " + url));
+                            return;
+                        }
+                        health = "ok";
+                        SwingUtilities.invokeLater(() -> showUrl(url));
+                    });
                 }
             }
 
@@ -185,6 +199,7 @@ public final class PreviewService {
             handler = null;
         }
         lastUrl = null;
+        health = "stopped";
         disposeBrowser();
         setStatus("Preview stopped.");
     }
@@ -219,6 +234,25 @@ public final class PreviewService {
         com.intellij.ide.BrowserUtil.browse(url);
         setContent(centeredLabel("Opened preview in your browser: " + url
                 + "  (embedded preview needs JCEF support)."));
+    }
+
+    /** Local reachability check; never sends credentials or leaves the IDE. */
+    private static boolean probeUrl(String url) {
+        java.net.HttpURLConnection connection = null;
+        try {
+            connection = (java.net.HttpURLConnection) java.net.URI.create(url)
+                    .toURL().openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(3000);
+            connection.setReadTimeout(3000);
+            connection.setUseCaches(false);
+            int code = connection.getResponseCode();
+            return code >= 200 && code < 500;
+        } catch (Exception ignored) {
+            return false;
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
     }
 
     /** Best-effort JCEF embed. Returns false if JCEF is unavailable on this IDE/runtime. */

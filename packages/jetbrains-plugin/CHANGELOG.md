@@ -1,5 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.68] - Security and runtime diagnostics (2026-07-22)
+
+- Hardened IDE bridge lockfile publication and ACL verification.
+- Added read-only PR status and Preview health state integration.
+- Added GUI smoke assertions for the composer, Send, and Stop controls.
+
 ## [0.4.67] - Slash command response parity (2026-07-22)
 
 - Verified the shared command catalog and ensured CLI-backed slash commands

@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.25] - Security and runtime diagnostics (2026-07-22)
+
+- Made IDE bridge lockfile permission verification fail-closed by default,
+  including the temporary token file; managed policy is the only downgrade.
+- Added runtime compatibility details to the IDE Doctor report.
+- Added session-level extension-tool admission and attribution plumbing.
+
 ## [0.37.24] - Render CLI slash-command output (2026-07-22)
 
 - Fixed `/status`, `/doctor`, `/mcp`, and related commands returning output that

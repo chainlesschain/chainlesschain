@@ -271,12 +271,15 @@ public final class LockfileWriter {
      * Owner-only permissions: POSIX chmod where supported, otherwise (Windows /
      * NTFS, where chmod is unsupported and the 0600/0700 intent would silently
      * become a no-op — leaving the bearer token readable by other local users)
-     * an explicit owner-only ACL. Both paths are strictly fail-open: a
-     * permission failure must never block bridge startup.
+     * an explicit owner-only ACL. The default path is fail-closed; only the
+     * organization-managed downgrade may allow startup after verification fails.
      */
-    private static void restrictToOwner(Path p, Set<PosixFilePermission> perms) {
+    private static void restrictToOwner(Path p, Set<PosixFilePermission> perms)
+            throws IOException {
         if (!tryChmod(p, perms)) {
-            tightenOwnerOnlyAcl(p);
+            if (!tightenOwnerOnlyAcl(p)) {
+                throw new IOException("owner-only ACL could not be verified for " + p);
+            }
         }
     }
 
@@ -288,17 +291,18 @@ public final class LockfileWriter {
         } catch (UnsupportedOperationException nonPosix) {
             return false; // Windows / non-POSIX filesystem → try the ACL route
         } catch (IOException ignore) {
-            // POSIX filesystem but chmod failed — best-effort, no-op (the ACL
-            // view does not exist there either).
-            return true;
+            // POSIX filesystem but chmod failed. Do not claim the lock is
+            // protected; enforceOwnerOnly will fail closed unless an
+            // organization-managed downgrade is explicitly enabled.
+            return false;
         }
     }
 
     /**
      * Windows twin of the 0600/0700 chmod: replace the ACL with a single
      * entry granting the file's owner full control (pure JDK, no icacls
-     * subprocess). Fail-open — returns false instead of throwing so ACL
-     * problems can never block bridge startup.
+     * subprocess). Returns false when the ACL cannot be applied or verified;
+     * the caller decides whether a managed downgrade is allowed.
      */
     static boolean tightenOwnerOnlyAcl(Path p) {
         try {

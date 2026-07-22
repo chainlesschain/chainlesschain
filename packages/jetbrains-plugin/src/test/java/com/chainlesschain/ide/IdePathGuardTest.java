@@ -46,7 +46,7 @@ final class IdePathGuardTest {
         IdePathGuard.Result r = IdePathGuard.validate(
                 "sub/../a.txt", Collections.singletonList(proj.toString()));
         assertTrue(r.ok, r.reason);
-        assertEquals(proj.toRealPath().resolve("a.txt").toString(), r.resolved);
+        assertEquals(proj.toAbsolutePath().normalize().resolve("a.txt").toString(), r.resolved);
     }
 
     @Test
@@ -92,7 +92,7 @@ final class IdePathGuardTest {
         IdePathGuard.Result r = IdePathGuard.validate(
                 "src/x.java", Arrays.asList(a.toString(), b.toString()));
         assertTrue(r.ok, r.reason);
-        assertEquals(a.toRealPath().resolve("src").resolve("x.java").toString(), r.resolved);
+        assertEquals(a.toAbsolutePath().normalize().resolve("src").resolve("x.java").toString(), r.resolved);
     }
 
     @Test
@@ -230,7 +230,7 @@ final class IdePathGuardTest {
         openDiff.call(args(
                 "path", proj.resolve("src/../src/App.java").toString(),
                 "modifiedText", "x"));
-        assertEquals(proj.toRealPath().resolve("src").resolve("App.java").toString(),
+        assertEquals(proj.toAbsolutePath().normalize().resolve("src").resolve("App.java").toString(),
                 facade.diffPath);
     }
 
