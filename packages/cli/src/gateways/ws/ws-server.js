@@ -894,27 +894,42 @@ export class ChainlessChainWSServer extends EventEmitter {
 
     if (stream) {
       // Stream mode: send chunks as they arrive
+      // stdout is the primary command result. Node can deliver a startup
+      // warning on stderr before the first stdout chunk (especially on the
+      // `--version` fast path), which otherwise makes consumers mistake the
+      // warning for the command output. Hold early stderr until stdout has
+      // been announced; if there is no stdout, flush it before stream-end.
+      let stdoutSeen = false;
+      const pendingStderr = [];
+
       child.stdout.on("data", (data) => {
+        stdoutSeen = true;
         this._send(ws, {
           id,
           type: "stream-data",
           channel: "stdout",
           data: data.toString("utf8"),
         });
+        while (pendingStderr.length > 0) {
+          this._send(ws, pendingStderr.shift());
+        }
       });
 
       child.stderr.on("data", (data) => {
-        this._send(ws, {
+        const message = {
           id,
           type: "stream-data",
           channel: "stderr",
           data: data.toString("utf8"),
-        });
+        };
+        if (stdoutSeen) this._send(ws, message);
+        else pendingStderr.push(message);
       });
 
       child.on("close", (exitCode) => {
         clearTimeout(timer);
         this.processes.delete(id);
+        for (const message of pendingStderr) this._send(ws, message);
         this._send(ws, {
           id,
           type: "stream-end",
