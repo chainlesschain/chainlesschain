@@ -225,14 +225,18 @@ function extractCliSections(bodyLines, header) {
  *
  * @returns {{ source: string, releases: Array }}
  */
-export function loadChangelog() {
+export function loadChangelog({
+  fsApi = fs,
+  pathApi = path,
+  dirname = __dirname,
+} = {}) {
   const changelogCandidates = [
-    path.join(__dirname, "..", "..", "CHANGELOG.md"), // packages/cli/CHANGELOG.md
-    path.join(__dirname, "..", "..", "..", "..", "CHANGELOG.md"), // repo root
+    pathApi.join(dirname, "..", "..", "CHANGELOG.md"), // packages/cli/CHANGELOG.md
+    pathApi.join(dirname, "..", "..", "..", "..", "CHANGELOG.md"), // repo root
   ];
   for (const p of changelogCandidates) {
-    if (fs.existsSync(p)) {
-      const releases = parseChangelog(fs.readFileSync(p, "utf-8"));
+    if (fsApi.existsSync(p)) {
+      const releases = parseChangelog(fsApi.readFileSync(p, "utf-8"));
       // A parent-level CHANGELOG can exist in a global Node.js installation
       // (for example C:\\nvm4w\\nodejs\\CHANGELOG.md).  Do not treat an
       // unrelated, successfully-read file with zero CLI releases as the
@@ -243,10 +247,10 @@ export function loadChangelog() {
     }
   }
   // Installed npm package: CHANGELOG.md isn't shipped, use the bundled artifact.
-  const jsonPath = path.join(__dirname, "..", "data", "changelog.json");
-  if (fs.existsSync(jsonPath)) {
+  const jsonPath = pathApi.join(dirname, "..", "data", "changelog.json");
+  if (fsApi.existsSync(jsonPath)) {
     try {
-      const data = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
+      const data = JSON.parse(fsApi.readFileSync(jsonPath, "utf-8"));
       if (Array.isArray(data.releases)) return data;
     } catch {
       /* fall through to empty */
