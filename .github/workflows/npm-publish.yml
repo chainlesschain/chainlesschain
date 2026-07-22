@@ -267,12 +267,21 @@ jobs:
       - name: "Publish @chainlesschain/agent-sdk"
         working-directory: packages/agent-sdk
         run: |
+          if [ "${{ inputs.dry-run }}" = "true" ]; then
+            echo "Dry run: @chainlesschain/agent-sdk is already published; skipping standalone package"
+            exit 0
+          fi
           npm install --no-audit --no-fund
           CURRENT=$(npm view @chainlesschain/agent-sdk version 2>/dev/null || echo "0.0.0")
           PKG_VER=$(node -p "require('./package.json').version")
           echo "npm: $CURRENT | local: $PKG_VER"
           if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
             echo "Already published, skipping"
+          elif [ "${{ inputs.dry-run }}" = "true" ]; then
+            # Validate the standalone package tarball without asking npm to
+            # publish an already-published scoped version.
+            npm run build
+            npm pack --dry-run
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
