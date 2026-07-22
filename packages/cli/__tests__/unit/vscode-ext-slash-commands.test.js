@@ -25,6 +25,7 @@ describe("slash-commands (panel / autocomplete)", () => {
   it("filterSlashCommands prefix-matches by name, in menu order", () => {
     expect(slash.filterSlashCommands("")).toEqual(slash.SLASH_COMMANDS); // all
     expect(slash.filterSlashCommands("c").map((r) => r[0])).toEqual([
+      "/clear",
       "/compact",
       "/cost",
       "/context",
@@ -34,6 +35,7 @@ describe("slash-commands (panel / autocomplete)", () => {
       "/rewind",
       "/retry",
       "/review",
+      "/release-notes",
     ]);
     expect(slash.filterSlashCommands("rew").map((r) => r[0])).toEqual([
       "/rewind",

@@ -62,6 +62,7 @@ describe("E2E smoke: session-hooks public surface", () => {
       "UserPromptSubmit",
       "AssistantResponse",
       "SessionEnd",
+      "Notification",
     ]);
   });
 
