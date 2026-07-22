@@ -28,7 +28,8 @@ import { EventRuntimeStore } from "./event-runtime-store.js";
 
 const VALID_HOOK_EVENTS = new Set([
   // Session
-  "PreToolUse", "PostToolUse", "Notification", "Stop", "SubagentStop",
+  "PreToolUse", "PostToolUse", "Notification", "Stop", "SubagentStart", "SubagentStop",
+  "SessionResume", "SessionPause", "PostCompact",
   // Auth
   "PreCommit", "PostCommit",
   // Skill
@@ -36,11 +37,14 @@ const VALID_HOOK_EVENTS = new Set([
   // Model
   "PreCompact", "ModelSelection",
   // Config
-  "ConfigChange", "PermissionAllow", "PermissionDeny",
+  "ConfigChange", "PermissionAllow", "PermissionDeny", "PermissionRequest", "PermissionDenied",
   // Timeline
   "TimelineEntry",
   // MCP
-  "McpRequest", "McpResponse",
+  "McpRequest", "McpResponse", "MCPElicitation",
+  // Task / workspace lifecycle
+  "TaskCreated", "TaskCompleted", "InstructionsLoaded", "CwdChanged",
+  "WorktreeCreate", "WorktreeRemove",
 ]);
 
 const VALID_EXECUTOR_TYPES = new Set(["command", "http", "prompt", "agent", "js"]);

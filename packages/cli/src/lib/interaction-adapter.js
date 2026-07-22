@@ -14,6 +14,7 @@ import {
   LEGACY_TO_UNIFIED_TYPE,
 } from "../runtime/runtime-events.js";
 import { createAbortError } from "./abort-utils.js";
+import { emitHooksV2Event } from "./hooks-v2-producers.js";
 import { verifyApprovalBinding } from "./agent-authority.js";
 import { createEnvelope } from "@chainlesschain/session-core";
 
@@ -257,6 +258,12 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
     requestedSchema = null,
     timeoutMs,
   } = {}) {
+    emitHooksV2Event("MCPElicitation", {
+      server: server || null,
+      request_id: mcpRequestId ?? null,
+      message: String(message),
+      requested_schema: requestedSchema || null,
+    });
     return this._request(
       {
         type: "question",

@@ -196,14 +196,14 @@ worker -> child
 
 ### 6.1 当前证据
 
-- [`settings-hooks.cjs`](../packages/cli/src/lib/settings-hooks.cjs#L35) 的事件白名单仍是部分集合。
+- [`settings-hooks.cjs`](../packages/cli/src/lib/settings-hooks.cjs#L35) 的旧配置加载面仍是部分集合；Hooks v2 runtime 注册表已扩展为 31 个事件。
 - 同一加载器在 [`settings-hooks.cjs`](../packages/cli/src/lib/settings-hooks.cjs#L111) 只收
   `type: "command"`。
-- `TaskCreated`、`TaskCompleted`、`MCPElicitation` 等部分名字已进入内部事件表，但缺真实生产者。
+- `TaskCreated` / `TaskCompleted` 已由 Subagent 生命周期生产，`MCPElicitation` 已由交互和 headless-stream producer 生产；其余事件仍未全部接入真实 producer。
 - 真并行和最严决策合并已经有实现，但仍存在 opt-in/default-flip 余量。
 - Hook 当前直接执行 shell、继承完整环境，尚未进入统一沙箱。
 
-2026-07-22 复核：`hooks-v2-runtime.js` 已提供 18 事件注册表、5 种 executor、默认并行
+2026-07-22 复核：`hooks-v2-runtime.js` 已提供 31 事件注册表、5 种 executor、默认并行
 执行、按 id 去重、顺序兼容开关和 `executeHooks` 公共入口；JS handler、Process Broker
 同步执行、Agent IPC 注册状态及 Context Source Ledger 适配已由 M5 E2E 覆盖。当前仍未
 将每一个事件都接入真实 producer，也未完成统一 sandbox/managed allowlist，因此本节的

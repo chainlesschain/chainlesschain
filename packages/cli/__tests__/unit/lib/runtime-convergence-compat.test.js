@@ -3,6 +3,7 @@ import { HooksV2Runtime } from "../../../src/lib/hooks-v2-runtime.js";
 import { ContextSourceLedger } from "../../../src/lib/context-source-ledger.js";
 import { AgentIPCBus } from "../../../src/lib/agent-ipc-bus.js";
 import { EventRuntimeStore } from "../../../src/lib/event-runtime-store.js";
+import { emitHooksV2Event } from "../../../src/lib/hooks-v2-producers.js";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -37,6 +38,54 @@ describe("runtime convergence compatibility APIs", () => {
     expect(result.results.every((entry) => entry.status === "success")).toBe(true);
     expect(order).toContain("a");
     expect(order).toContain("b");
+  });
+
+  test("accepts lifecycle events produced by subagents and MCP elicitation", async () => {
+    const runtime = new HooksV2Runtime();
+    const seen = [];
+    for (const event of ["TaskCreated", "TaskCompleted", "MCPElicitation"]) {
+      runtime.registerHook({
+        id: `producer-${event}`,
+        event,
+        type: "js",
+        handler: (context) => {
+          seen.push({ event, context });
+          return { ok: true };
+        },
+      });
+      const result = await runtime.executeHooks(event, { source: "producer-test" });
+      expect(result.success).toBe(true);
+    }
+    expect(seen.map((entry) => entry.event)).toEqual([
+      "TaskCreated",
+      "TaskCompleted",
+      "MCPElicitation",
+    ]);
+  });
+
+  test("bridges a producer event into the default Hooks v2 runtime", async () => {
+    const { default: runtime } = await import(
+      "../../../src/lib/hooks-v2-runtime.js"
+    );
+    const seen = [];
+    const id = runtime.registerHook({
+      id: "producer-bridge-test",
+      event: "MCPElicitation",
+      type: "js",
+      handler: (context) => {
+        seen.push(context.request_id);
+        return { ok: true };
+      },
+    });
+    try {
+      emitHooksV2Event("MCPElicitation", { request_id: "mcp-1" });
+      for (let i = 0; i < 20 && seen.length === 0; i += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      }
+      expect(seen).toEqual(["mcp-1"]);
+    } finally {
+      runtime.unregisterHook(id);
+    }
   });
 
   test("persists hook delivery and result through the durable runtime boundary", async () => {
