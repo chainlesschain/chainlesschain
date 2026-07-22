@@ -346,7 +346,10 @@ jobs:
           # Plain better-sqlite3 (browser-history / *-adb / vscode adapters read
           # external SQLite DBs) is hoisted in the real workspace but not a
           # declared PDH dep, so a standalone install lacks it — add it.
-          npm install --no-save --no-audit --no-fund better-sqlite3
+          # Keep the auxiliary plain driver on the Node 22 prebuild line. The
+          # newest 12.x release can fall back to node-gyp on Windows runners
+          # when its host-ABI prebuild is unavailable, which requires MSVC.
+          npm install --no-save --no-audit --no-fund better-sqlite3@11.10.0
           # Guard: both native drivers MUST load in CI. If a future Node has no
           # prebuild, fail loud here instead of letting vitest.config.js silently
           # skip the vault tests and report a false green.
