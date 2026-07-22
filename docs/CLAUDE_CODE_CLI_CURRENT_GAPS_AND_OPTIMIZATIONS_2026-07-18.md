@@ -70,7 +70,7 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 | Event Runtime | 后台会话、任务、外部事件和持续监控统一运行 | Agenda watch、durable inbox/outbox、lease/retry/dead-letter、Agent IPC、MCP、Webhook、Telegram、Monitor producer 默认接线与有界队列已接入 | 所有宿主统一启动/托管 worker、跨进程背压观测与完整长运行恢复演练仍待补 | P1 |
 | Context | `/context` 显示 memory、skills、MCP、文件与缓存成本 | 已显示消息角色、instruction 文件、实际注入 persona Skill 及 persisted MCP schema 的逐来源归因 | Skill 按需加载/缓存命中成本仍不完整 | P1 |
 | Checkpoint | 对话与文件按 turn 恢复 | Headless 显式绑定已持久化，REPL 可消费 | REPL 还不是统一生产者；child/worktree/user edit/provider tool id 归因不完整 | P1 |
-| Plugin 安全 | 插件统一打包、作用域、企业治理 | 能力声明、consent、签名、typed options、OS secret store、lockfile/SBOM、插件 MCP/LSP/Hook/Monitor/Bin Broker provenance | Desktop 侧全量进程入口仍需统一 Broker | P1 |
+| Plugin 安全 | 插件统一打包、作用域、企业治理 | 能力声明、consent、签名、typed options、OS secret store、lockfile/SBOM、插件 MCP/LSP/Hook/Monitor/Bin Broker provenance；Desktop 主进程 child_process Broker 已接入 | Desktop PTY、原生模块和外部宿主入口仍需统一 Broker | P1 |
 | 关键状态并发 | 会话、审批、任务和副作用状态应原子持久化 | Agenda/Event Runtime/session transcript 已使用 fail-closed file lock | approval/部分 ledger/IDE session 状态仍需统一迁移，避免不同宿主各自写入 | P1 |
 | 结构化输出 | 标准 JSON Schema、启动期校验、最终 validated result | 常用 Draft 2020-12 vocabulary（组合、条件、`$ref`、dependent、pattern、contains、format）、显式 external schema registry 及 stream `structured_result` | 完整 meta-vocabulary、自动远程 ref 解析与复杂 schema 互操作性仍待补 | P1 |
 | SDK/CI | TypeScript/Python SDK、版本化事件、GitHub/GitLab 自动化 | TypeScript SDK 已有 | 部分 goal/approval/turn 事件未完全透传；缺统一发布兼容门；Python/CI 模板按需求决定 | P1 |
@@ -347,7 +347,7 @@ Headless 已在 [`headless-runner.js`](../packages/cli/src/runtime/headless-runn
   [`policy.js`](../packages/cli/src/lib/plugin-runtime/policy.js#L180) 对未声明 capabilities 的
   旧插件保留兼容加载。建议设置迁移窗口，首次加载展示推断能力并要求确认；企业模式直接
   fail-closed。
-- 插件 MCP stdio、LSP、settings Hook、Monitor 与 `run_shell` 命中的 Plugin Bin 已进入 Process Broker，并携带 `plugin_id/version/source`；Desktop 侧全路径仍待收口。
+- 插件 MCP stdio、LSP、settings Hook、Monitor 与 `run_shell` 命中的 Plugin Bin 已进入 Process Broker，并携带 `plugin_id/version/source`；Desktop 主进程的 `child_process` 入口已统一进入 CJS Broker 并记录脱敏 provenance，PTY、原生模块和外部宿主仍待收口。
 - Manifest 的 network domains、filesystem roots、process、credential 声明要从“安装期说明”
   升级为“运行时强制”。
 - 增加 lockfile、依赖图、签名链、SBOM 和安装产物 hash。当前安装锁已记录并校验文件级 SBOM 摘要，敏感 options 已使用 OS secret store；依赖图与全路径 Broker 强制仍待补。

@@ -30,6 +30,10 @@ try {
 
 console.log("[DEBUG] Starting Electron main process...");
 const { app, BrowserWindow, ipcMain, Notification } = require("electron");
+// Route Desktop main-process child_process APIs through one provenance/audit
+// boundary while preserving Node's native execution behavior.
+const { installDesktopProcessBroker } = require("./process/desktop-process-broker");
+installDesktopProcessBroker();
 console.log("[DEBUG] Electron modules loaded");
 const { logger } = require("./utils/logger.js");
 console.log("[DEBUG] Logger loaded");

@@ -179,7 +179,7 @@
 | P1-6  | Event Runtime 常驻化 | 🟡 producer 已接线、宿主托管待补 | `cc agenda run --watch <seconds>`、claim lease/过期回收、`EventRuntimeStore` durable inbox/outbox、失败重试/死信、可停止 `EventRuntimeWorker`、有界背压、`EventRuntimeProducer`、Agent IPC/MCP/Webhook/Telegram/Monitor 自动接线已完成；所有宿主统一 worker 生命周期、跨进程观测与恢复演练仍待补 |
 | P1-7  | Context 来源归因     | 🟡 MCP schema、实际注入 persona Skill 已补 | `cc context --sources` 已对 instruction 文件、实际注入 persona Skill 和 admitted MCP schema 逐来源计费；普通 Skill 按需加载/缓存命中成本仍待接入 |
 | P1-8  | Checkpoint REPL 统一 | 部分        | turn-binding 生产者、tool_use_id 完整浮出 |
-| P1-9  | Plugin 安全强化      | 🟡 OS secret + Broker provenance 已补 | 签名/manifest SHA-256、trusted key、安装后 SBOM 文件摘要、capability consent、managed allow/deny、DPAPI/Keychain/Secret Service 与插件 MCP/LSP/Hook/Monitor/Bin Broker provenance 已有；Desktop 全路径 Broker 强制仍待补 |
+| P1-9  | Plugin 安全强化      | 🟡 OS secret + Broker provenance 已补 | 签名/manifest SHA-256、trusted key、安装后 SBOM 文件摘要、capability consent、managed allow/deny、DPAPI/Keychain/Secret Service、插件 MCP/LSP/Hook/Monitor/Bin Broker provenance 与 Desktop 主进程 child_process Broker 已有；PTY、原生模块和外部宿主全路径仍待补 |
 | P1-10 | 并发状态 fail-closed | 🟡 关键调度/会话状态已补 | `withFileLock(failIfUnavailable)` + Agenda claim lease、Event Runtime 与 JSONL session append 已 fail-closed；approval/部分 ledger/IDE session 状态仍待统一迁移 |
 | P1-11 | JSON Schema 完整支持 | 🟡 常用 vocabulary + external registry 已补 | Draft 2020-12 常用关键字、dependent/pattern/contains/propertyNames、local `$ref`、显式 external schema registry、组合/条件、format、structured_result 已有；完整 meta-vocabulary、自动远程 ref 与复杂互操作仍待补 |
 | P1-12 | SDK/CI 事件透传      | 🟡 M5+elicitation 部分 | goal/approval/turn、question/MCP elicitation 已有 TypeScript SDK；Python/CI 模板及全量事件仍待补 |
