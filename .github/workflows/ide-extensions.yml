@@ -65,6 +65,15 @@ jobs:
           node scripts/verify-vsix.selftest.mjs
           node scripts/verify-vsix.mjs chainlesschain-ide.vsix
 
+      # Real VS Code Extension Host gate: install the packaged artifact into a
+      # fresh profile and verify activation, declared commands, and the local
+      # IDE Bridge. This catches packaging/activation regressions that ZIP
+      # metadata validation cannot detect.
+      - name: Extension Host smoke
+        run: |
+          npm install --no-save --no-package-lock @vscode/test-electron@3.0.0
+          npm run test:extension-host -- --vsix chainlesschain-ide.vsix
+
       - name: Upload .vsix artifact
         uses: actions/upload-artifact@v6
         with:
@@ -86,6 +95,10 @@ jobs:
           fi
           npx --yes ovsx@latest create-namespace chainlesschain || true
           npx --yes ovsx@latest publish chainlesschain-ide.vsix
+
+      - name: Verify Open VSX listing
+        if: startsWith(github.ref, 'refs/tags/ide-vscode-v')
+        run: node ../../scripts/verify-ide-marketplace.mjs open-vsx "$(node -p "require('./package.json').version")"
 
       # Official VS Code Marketplace — optional; needs a VSCE_PAT secret (an
       # Azure DevOps PAT, org "All accessible organizations", scope
@@ -114,6 +127,7 @@ jobs:
   jetbrains:
     name: JetBrains plugin (build + publish)
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     defaults:
       run:
         working-directory: packages/jetbrains-plugin
@@ -143,6 +157,41 @@ jobs:
       - name: Build plugin
         run: ./gradlew buildPlugin --no-daemon --stacktrace
 
+      # Release GUI gate: exercise the packaged plugin in a real sandbox IDE
+      # before uploading/publishing it. Keep this separate from headless
+      # tests because Remote Robot needs a display and the robot-server IDE.
+      - name: GUI smoke (Remote Robot, release gate)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          nohup xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
+            ./gradlew runIdeForUiTests --no-daemon --stacktrace \
+            > /tmp/chainlesschain-runIdeForUiTests.log 2>&1 &
+          ide_pid=$!
+          cleanup() {
+            kill "$ide_pid" 2>/dev/null || true
+            sleep 3
+            pkill -f 'runIdeForUiTests' 2>/dev/null || true
+          }
+          trap cleanup EXIT
+          for attempt in $(seq 1 120); do
+            if curl -sf http://127.0.0.1:8082 >/dev/null 2>&1; then
+              break
+            fi
+            if ! kill -0 "$ide_pid" 2>/dev/null; then
+              echo "::error::sandbox IDE exited before Robot server became ready"
+              tail -n 200 /tmp/chainlesschain-runIdeForUiTests.log
+              exit 1
+            fi
+            sleep 10
+          done
+          if ! curl -sf http://127.0.0.1:8082 >/dev/null 2>&1; then
+            echo "::error::Robot server did not become ready within 20 minutes"
+            tail -n 200 /tmp/chainlesschain-runIdeForUiTests.log
+            exit 1
+          fi
+          ./gradlew uiSmokeTest --no-daemon --stacktrace
+
       - name: Upload plugin artifact
         uses: actions/upload-artifact@v6
         with:
@@ -163,3 +212,7 @@ jobs:
             exit 1
           fi
           ./gradlew publishPlugin --no-daemon --stacktrace
+
+      - name: Verify JetBrains Marketplace listing
+        if: startsWith(github.ref, 'refs/tags/ide-jetbrains-v')
+        run: node ../../scripts/verify-ide-marketplace.mjs jetbrains "$(sed -n 's/^version = "\(.*\)"/\1/p' build.gradle.kts | head -n 1)"

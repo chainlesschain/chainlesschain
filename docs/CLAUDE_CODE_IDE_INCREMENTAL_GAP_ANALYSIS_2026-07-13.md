@@ -3,8 +3,15 @@
 > 评估日期：2026-07-13  
 > 评估对象：ChainlessChain Desktop / CLI Agent Runtime / VS Code 扩展 / JetBrains 插件  
 > 对标对象：Claude Code CLI、Desktop、VS Code、JetBrains、Web/Mobile 及官方扩展机制  
-> 文档定位：继承 `docs/CLAUDE_CODE_IDE_GAP_ANALYSIS.md` 的增量审计，不重复 2026-07-10、2026-07-11 已完成的实施清单  
+> 文档定位：继承 `docs/CLAUDE_CODE_IDE_GAP_ANALYSIS.md` 的增量审计，不重复 2026-07-10、2026-07-11 已完成的实施清单
 > 状态口径：`已具备`、`部分具备`、`已实现待验收`、`未形成闭环`、`外部状态待实证`
+> 历史快照说明：本报告保留 2026-07-13 的实施证据与决策背景；当前状态、版本和后续优先级以 [`IDE_VS_PLUGIN_CLAUDE_GAPS_AND_OPTIMIZATIONS_2026-07-22.md`](./IDE_VS_PLUGIN_CLAUDE_GAPS_AND_OPTIMIZATIONS_2026-07-22.md) 及 2026-07-17 报告为准。
+
+### 2026-07-22 状态回填
+
+本报告后续追加的实现已经收口以下旧剩项：`cc doctor --export-bundle` 已接通脱敏诊断包导出；`protocol-replay.js` 与 `scripts/replay-protocol.mjs` 已提供离线回放/协商审计；`governance-coverage.js` 与 `scripts/coverage-report.mjs` 已提供治理覆盖率报告；OTLP exporter 已提供 HTTP/HTTPS 批量出口。因而“诊断包/离线回放/覆盖率”应标为 **C/T 已完成，发布门和真实 Collector 验收待完成**，而不是“尚未实现”。
+
+仍不能由仓库静态证据完全关闭的项目：多版本/多宿主 GUI 矩阵、五类远程环境 E2E、跨进程 kill/resume、8 小时 soak、Marketplace 安装升级矩阵，以及 IDE 内部 Preview 的 DOM/console/network/action 闭环、PR/CI 的完整交付交互和 Agent View 的统一跨端状态接管。当前两端已具备 Preview 健康状态、只读 PR 状态命令和后台 Agent 视图入口，不能再表述为“完全未接线”。
 
 ## 1. 结论先行
 
@@ -419,7 +426,7 @@ Auto-fix 边界：
 - **`admitTool({tool, tier, capabilityGranted, policyAllowed, permissionGranted, budgetOk, uiSupported})`**：**extension 层**（run_skill/spawn_sub_agent/browser/schedule/publish_artifact/MCP）需五闸全过——Capability + Policy + 权限 + 预算 + UI 支持，任一不 `=== true` 即入 `unmet` 具名拒因；**mvp 层**（内置读写/shell）只受 Policy + 预算约束（内置工具的**逐次权限**在执行期问，不在准入期）；**未知 tier 一律当 extension**（最严 fail-closed）。
 - **`buildToolAttribution` / `describeToolAttribution`**：每次调用的归因记录（tool ← source@version (scope) · tier · admitted/denied(reason)），**只带来源不带参数值/凭据**，可安全落 transcript。
 
-测试 `agent-tool-admission.test.js` 10（tier 归一 fail-closed + extension 五闸单独/穷举 + 未知 tier=extension + mvp 仅 policy+budget + 归因记录/否决 unmet + 无 token 单行）。纯核尚未接进 agent 工具注册 / `/skills` picker / MCP session enable seam（把它插进 extension 工具开放前置检查是后续接线），故默认路径零影响。
+测试 `agent-tool-admission.test.js` 10（tier 归一 fail-closed + extension 五闸单独/穷举 + 未知 tier=extension + mvp 仅 policy+budget + 归因记录/否决 unmet + 无 token 单行），另有 `agent-core-tool-admission.test.js` 2 项运行时断言。2026-07-22 已接入 `agent-core.executeTool` / `agentLoop` 的可选 `toolAdmission: { enforce: true, ...signals }` 会话准入 seam：Extension Tier 在执行前收集 capability/policy/permission/budget/UI 未满足项并 fail-closed，成功或拒绝结果均带无 token `toolAttribution`（含 `toolCallId`）；headless/stream runner 和子 Agent 会透传该策略。未提供宿主信号时保持兼容的既有路径；IDE/桌面宿主仍需把真实能力信号传入，故 UI picker、MCP enable 的真实宿主接线仍是后续工作。
 
 ### P1-7 Local / SSH / Cloud / Remote Control 统一模型
 
@@ -554,7 +561,7 @@ Auto-fix 边界：
 
 **已接线（2026-07-13 续，remote-approval-bridge 用全元组指纹 + 失败关闭 registry）**：[[remote-approval-bridge.js]] 此前用旧 2 字段 `operationFingerprint({tool, action, detail})` + `approvalFingerprintOk` 做混淆代理防护——只绑 tool+detail，一个陈旧审批在 session/workspace/env/policy 变更后仍能生效。现改用 §8.2 全元组：`requestDecision` 用 `OperationApprovalRegistry.issue({toolName, params, workspace, session(默认 agentSessionId), targetEnv, policyVersion, notBefore:askedAt, notAfter:askedAt+timeout})` 发卡（`opf_`+40hex），`permission.request` 同时发**完整指纹** + `shortId`（设备/终端肉眼比对同一卡）+ **secret-free `summary`**（只列工具+param key 名+目标坐标，不回显命令值；原始命令仍在 `detail` 供人看）+ 有效期窗口。`approval.resolve` 走 `registry.resolve(fingerprint, {now})` 失败关闭——`fingerprint-mismatch`（换操作/换 session·workspace·env·policy）/`superseded`（多卡并发单赢家）/`duplicate`（重复提交）/`not-yet-valid`·`expired`（离线重放过窗），任一拒 → ask 留 pending → 超时 fail-closed。回显无指纹 = legacy 设备，用本卡自身指纹解析（仍受窗口/重复守卫）；`resolveLocally` 也消费 registry 卡防迟到远端二次结算。有效期窗口贴 ask 生命周期（notAfter=askedAt+timeout）。
 
-测试 `remote-approval-fingerprint.test.js` 重写为 6（发布指纹回显即结算 + 异操作指纹拒 + **异 session 指纹拒**（陈旧上下文）+ legacy 无指纹兼容 + **过窗 expired 拒不结算**（注入时钟）+ 发布带 opf_/shortId/secret-free summary/窗口）；bridge 集成 6 + repl-race 都绿（legacy 无回显路径零回归）。剩项（把 `policyDigest` 升级为真 policyVersion 传入 + headless-stream 侧绑定 seam）仍开放。⚠️注：`remote-session-client-hosted.test.js > keeps server-hosted dispatch byte-identical` 在 main HEAD 即 fail（并行 session 遗留，与本改无关，stash 验证过）。
+测试 `remote-approval-fingerprint.test.js` 重写为 6（发布指纹回显即结算 + 异操作指纹拒 + **异 session 指纹拒**（陈旧上下文）+ legacy 无指纹兼容 + **过窗 expired 拒不结算**（注入时钟）+ 发布带 opf\_/shortId/secret-free summary/窗口）；bridge 集成 6 + repl-race 都绿（legacy 无回显路径零回归）。剩项（把 `policyDigest` 升级为真 policyVersion 传入 + headless-stream 侧绑定 seam）仍开放。⚠️注：`remote-session-client-hosted.test.js > keeps server-hosted dispatch byte-identical` 在 main HEAD 即 fail（并行 session 遗留，与本改无关，stash 验证过）。
 
 证据：`docs/CLAUDE_CODE_IDE_GAP_ANALYSIS.md:36,52-54`。
 

@@ -2,6 +2,7 @@
 
 > 评估日期：2026-07-11  
 > 范围：VS Code、JetBrains、IDE Bridge 与 CLI/IDE 协作
+> 文档状态：历史基线。后续增量请以 [`IDE_VS_PLUGIN_CLAUDE_GAPS_AND_OPTIMIZATIONS_2026-07-22.md`](./IDE_VS_PLUGIN_CLAUDE_GAPS_AND_OPTIMIZATIONS_2026-07-22.md) 为准；本文件中的版本号、发布状态和“仍缺”列表不代表当前事实。
 
 ## 结论
 
