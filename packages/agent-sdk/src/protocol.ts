@@ -235,6 +235,8 @@ export interface PlanUpdateEvent extends StreamEventMeta {
   active?: boolean;
   state?: string | null;
   plan_id?: string | null;
+  plan_version?: number | null;
+  previous_plan_id?: string | null;
   items?: Array<{
     id?: string;
     title?: string;
@@ -412,7 +414,7 @@ export interface QuestionAnswerInput {
 
 export interface PlanControlInput {
   type: "plan";
-  action: "enter" | "approve" | "reject";
+  action: "enter" | "approve" | "reject" | "revise" | "regenerate";
   /** Optional IDE review/audit payload written into the session transcript. */
   review?: {
     action?: string;

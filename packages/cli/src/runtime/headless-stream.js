@@ -241,10 +241,14 @@ export function planSnapshot(pm) {
   let items = [];
   let risk = null;
   let planId = null;
+  let planVersion = null;
+  let previousPlanId = null;
   let executionLock = null;
   try {
     const plan = pm.currentPlan;
     planId = plan?.id || null;
+    planVersion = plan?.version || null;
+    previousPlanId = plan?.revisionOf || null;
     items = (plan?.items || []).map((i) => ({
       id: i.id,
       title: i.title,
@@ -269,6 +273,8 @@ export function planSnapshot(pm) {
     active: pm.isActive(),
     state: pm.state || null,
     plan_id: planId,
+    plan_version: planVersion,
+    previous_plan_id: previousPlanId,
     items,
     risk,
     ...(executionLock ? { execution_lock: executionLock } : {}),
@@ -425,7 +431,8 @@ export function parseInputEvent(line) {
   // Plan-mode control events (chat-panel plan UI):
   //   {"type":"plan","action":"enter"|"approve"|"reject"}
   if (obj && typeof obj === "object" && obj.type === "plan") {
-    const action = String(obj.action || "").toLowerCase();
+    const rawAction = String(obj.action || "").toLowerCase();
+    const action = rawAction === "requestchanges" ? "revise" : rawAction;
     if (!action) return null;
     const planReview = planReviewFromInput(obj);
     return planReview ? { plan: action, planReview } : { plan: action };
@@ -1975,10 +1982,14 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     // exits plan mode. Every control answers with a `plan_update` event.
     if (parsed.plan) {
       const pm = getPlanModeManager();
-      const reviewMessage =
-        parsed.plan === "approve" || parsed.plan === "reject"
-          ? planReviewSystemMessage(parsed.planReview)
-          : null;
+      const reviewMessage = [
+        "approve",
+        "reject",
+        "revise",
+        "regenerate",
+      ].includes(parsed.plan)
+        ? planReviewSystemMessage(parsed.planReview)
+        : null;
       if (reviewMessage) {
         messages.push({ role: "system", content: reviewMessage });
       }
@@ -2011,7 +2022,47 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
         });
         continue;
       }
-      if (parsed.plan === "approve") {
+      if (parsed.plan === "revise" || parsed.plan === "regenerate") {
+        if (!pm.isActive()) {
+          emit({
+            type: "plan_update",
+            ...planSnapshot(pm),
+            session_id: sessionId,
+            note: "nothing to revise",
+          });
+          continue;
+        }
+        const revision = pm.beginPlanRevision({
+          reason: parsed.plan,
+        });
+        if (revision.error) {
+          emit({
+            type: "plan_update",
+            ...planSnapshot(pm),
+            session_id: sessionId,
+            note: revision.error,
+          });
+          continue;
+        }
+        messages.push({
+          role: "system",
+          content:
+            `[PLAN REVISION REQUESTED] Plan ${revision.previousPlan.id} is frozen. ` +
+            `Create version ${revision.plan.version} as plan ${revision.plan.id}. ` +
+            (parsed.plan === "regenerate"
+              ? "Regenerate the plan from scratch using the review snapshot."
+              : "Revise the plan using the inline comments and reviewer notes."),
+        });
+        emit({
+          type: "plan_update",
+          ...planSnapshot(pm),
+          session_id: sessionId,
+        });
+        parsed.text =
+          parsed.plan === "regenerate"
+            ? "Regenerate the plan from the review feedback."
+            : "Revise the plan from the review feedback.";
+      } else if (parsed.plan === "approve") {
         if (!pm.isActive() || !(pm.currentPlan?.items?.length > 0)) {
           emit({
             type: "plan_update",

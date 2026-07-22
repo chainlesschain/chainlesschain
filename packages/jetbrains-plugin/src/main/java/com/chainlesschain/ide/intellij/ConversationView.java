@@ -98,6 +98,7 @@ final class ConversationView {
     private VirtualFile planReviewVirtualFile;
     private String planReviewLastText;
     private Map<String, Object> planReviewLastPlan;
+    private Map<String, Object> planReviewRevisionBase;
     private boolean planReviewHasReviewerEdits;
     private volatile int planReviewTurn;
     private boolean restoringPlanReview;
@@ -1629,28 +1630,24 @@ final class ConversationView {
     }
 
     private void requestPlanRevision(String action) {
-        persistPlanReviewState(readPlanReviewText(), currentPlanUi,
+        Map<String, Object> persisted = persistPlanReviewState(
+                readPlanReviewText(), currentPlanUi,
                 "changes_requested", action);
-        final String prompt = PlanReview.feedbackPrompt(action, readPlanReviewText());
-        sendExecutor.execute(() -> {
-            if (disposed) return;
-            AgentChatSession s = liveSession();
-            if (s == null || !s.isRunning()) {
-                try {
-                    ensureSession();
-                } catch (IOException ex) {
-                    final String msg = ex.getMessage();
-                    SwingUtilities.invokeLater(() ->
-                            append("warning: could not start agent for plan review: " + msg + "\n"));
-                    return;
-                }
-                s = liveSession();
-            }
-            final boolean ok = s != null && s.send(prompt);
-            SwingUtilities.invokeLater(() -> append(ok
-                    ? "plan review comments sent\n"
-                    : "warning: could not send plan review comments\n"));
-        });
+        Map<String, Object> review = PlanReview.reviewRecord(
+                action,
+                readPlanReviewText(),
+                conv.id,
+                conv.title,
+                conv.sessionId,
+                currentPlanUi,
+                planReviewTurn,
+                conv.mode,
+                Instant.now());
+        if (persisted != null) review.put("revision", persisted.get("revision"));
+        planReviewRevisionBase = PlanReview.sanitizePlanSnapshot(currentPlanUi);
+        sendPlanAction("requestChanges".equals(action) ? "revise" : "regenerate", review);
+        append("regenerate".equals(action)
+                ? "requested a regenerated plan\n" : "plan review comments sent\n");
     }
 
     /** Send a plan control ({type:plan,action}); entering plan may need to spawn
@@ -1682,7 +1679,22 @@ final class ConversationView {
     }
 
     private void syncPlanReviewEditor(Map<String, Object> plan) {
-        String generated = PlanReview.markdown(plan, conv.title, conv.sessionId, Instant.now());
+        Map<String, Object> previousPlan = planReviewLastPlan;
+        if (planReviewRevisionBase == null && previousPlan != null
+                && plan.get("previous_plan_id") != null) {
+            Object previousId = previousPlan.get("plan_id") != null
+                    ? previousPlan.get("plan_id") : previousPlan.get("planId");
+            if (String.valueOf(plan.get("previous_plan_id")).equals(String.valueOf(previousId))) {
+                planReviewRevisionBase = PlanReview.sanitizePlanSnapshot(previousPlan);
+            }
+        }
+        String nextGenerated = PlanReview.markdown(
+                plan, conv.title, conv.sessionId, Instant.now());
+        if (planReviewRevisionBase != null) {
+            nextGenerated = PlanReview.mergeRevisionDiff(
+                    nextGenerated, planReviewRevisionBase, plan);
+        }
+        final String generated = nextGenerated;
         try {
             if (planReviewVirtualFile == null) {
                 String text = planReviewLastText != null ? planReviewLastText : generated;
@@ -1704,15 +1716,19 @@ final class ConversationView {
             }
 
             String current = readPlanReviewText();
-            planReviewLastPlan = plan;
             if (planReviewLastText != null && !current.equals(planReviewLastText)) {
                 // Preserve inline reviewer edits; do not overwrite a dirty review.
                 planReviewHasReviewerEdits = true;
             }
             if (planReviewHasReviewerEdits) {
                 String merged = PlanReview.mergeProgress(current, plan);
+                if (planReviewRevisionBase != null) {
+                    merged = PlanReview.mergeRevisionDiff(
+                            merged, planReviewRevisionBase, plan);
+                }
                 replacePlanReviewText(merged);
                 planReviewLastText = merged;
+                planReviewLastPlan = plan;
                 String state = String.valueOf(plan.get("state"));
                 persistPlanReviewState(merged, plan,
                         "approved".equals(state) || "executing".equals(state)
@@ -1730,6 +1746,7 @@ final class ConversationView {
                 }
                 planReviewLastText = generated;
             }
+            planReviewLastPlan = plan;
         } catch (Exception e) {
             append("warning: could not open plan review editor: " + e.getMessage() + "\n");
         }

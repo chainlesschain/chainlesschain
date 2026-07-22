@@ -28,12 +28,13 @@ const {
   hasUnsafeShellChars,
 } = require("../llm-config.js");
 const {
-  buildPlanReviewFeedbackPrompt,
   buildPlanReviewRecord,
   buildPersistedPlanReview,
   findPersistedPlanReview,
   formatPlanReviewMarkdown,
+  mergePlanRevisionDiff,
   mergePlanReviewProgress,
+  sanitizePlanSnapshot,
   upsertPersistedPlanReview,
 } = require("./plan-review.js");
 const { upsertIdeSessionRecord } = require("./ide-session-index.js");
@@ -571,12 +572,24 @@ class ChatViewProvider {
     const win = this.vscode.window;
     if (!ws?.openTextDocument || !win?.showTextDocument) return;
 
-    const text = formatPlanReviewMarkdown(plan, {
+    const existing = this._planReviews.get(convId);
+    const previousPlan = existing?.lastPlan;
+    if (
+      existing &&
+      !existing.revisionBase &&
+      plan.previous_plan_id &&
+      (previousPlan?.plan_id || previousPlan?.planId) === plan.previous_plan_id
+    ) {
+      existing.revisionBase = sanitizePlanSnapshot(previousPlan);
+    }
+    let text = formatPlanReviewMarkdown(plan, {
       conversationTitle: conv.title,
       sessionId: conv.sessionId,
       updatedAt: new Date(),
     });
-    const existing = this._planReviews.get(convId);
+    if (existing?.revisionBase) {
+      text = mergePlanRevisionDiff(text, existing.revisionBase, plan);
+    }
     if (!existing?.document) {
       const initialText = existing?.lastText || text;
       const document = await ws.openTextDocument({
@@ -591,6 +604,7 @@ class ChatViewProvider {
         document,
         lastText: initialText,
         lastPlan: plan,
+        revisionBase: existing?.revisionBase || null,
         hasReviewerEdits: existing?.hasReviewerEdits === true,
       });
       this._persistPlanReviewState(conv, initialText, plan, {
@@ -606,7 +620,6 @@ class ChatViewProvider {
       return;
     }
 
-    existing.lastPlan = plan;
     const currentText =
       typeof existing.document.getText === "function"
         ? existing.document.getText()
@@ -616,7 +629,10 @@ class ChatViewProvider {
       existing.hasReviewerEdits = true;
     }
     if (existing.hasReviewerEdits) {
-      const merged = mergePlanReviewProgress(currentText, plan);
+      let merged = mergePlanReviewProgress(currentText, plan);
+      if (existing.revisionBase) {
+        merged = mergePlanRevisionDiff(merged, existing.revisionBase, plan);
+      }
       let persistedText = merged;
       if (merged !== currentText) {
         const ok = await this._replacePlanReviewDocument(
@@ -634,6 +650,7 @@ class ChatViewProvider {
           ? "executing"
           : "draft",
       });
+      existing.lastPlan = plan;
       return;
     }
     if (existing.lastText !== text) {
@@ -646,6 +663,7 @@ class ChatViewProvider {
         ? "executing"
         : "draft",
     });
+    existing.lastPlan = plan;
   }
 
   _persistPlanReviewState(
@@ -834,8 +852,14 @@ class ChatViewProvider {
       return ok;
     }
 
-    const prompt = buildPlanReviewFeedbackPrompt(normalized, documentText);
-    const ok = session.send(prompt);
+    if (review) {
+      review.revisionBase = sanitizePlanSnapshot(conv.plan || review.lastPlan);
+    }
+    const ok = session.sendEvent({
+      type: "plan",
+      action: normalized === "requestChanges" ? "revise" : "regenerate",
+      review: record,
+    });
     this._post({
       kind: ok ? "info" : "error",
       text: ok

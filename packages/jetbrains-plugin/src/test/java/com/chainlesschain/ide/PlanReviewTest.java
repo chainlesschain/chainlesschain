@@ -75,6 +75,47 @@ class PlanReviewTest {
     }
 
     @Test
+    void structuralRevisionDiffPreservesReviewerTextAndIgnoresProgress() {
+        Map<String, Object> previous = Map.of(
+                "plan_id", "plan-1",
+                "plan_version", 1,
+                "items", List.of(
+                        Map.of("id", "p1", "title", "Edit config",
+                                "tool", "edit_file", "impact", "low", "status", "pending"),
+                        Map.of("id", "p2", "title", "Run tests",
+                                "tool", "run_shell", "impact", "medium")));
+        Map<String, Object> next = Map.of(
+                "plan_id", "plan-2",
+                "plan_version", 2,
+                "items", List.of(
+                        Map.of("id", "p1", "title", "Edit safe config",
+                                "tool", "edit_file", "impact", "medium", "status", "completed"),
+                        Map.of("id", "p3", "title", "Run unit tests",
+                                "tool", "run_shell", "impact", "low")));
+        Map<String, Object> diff = PlanReview.planRevisionDiff(previous, next);
+        assertEquals(true, diff.get("hasChanges"));
+        assertEquals(1, ((List<?>) diff.get("added")).size());
+        assertEquals(1, ((List<?>) diff.get("removed")).size());
+        assertEquals(1, ((List<?>) diff.get("changed")).size());
+
+        String review = "# Review\n\n## Reviewer Notes\n\n- Keep this note";
+        String merged = PlanReview.mergeRevisionDiff(review, previous, next);
+        assertTrue(merged.contains(PlanReview.PLAN_DIFF_START));
+        assertTrue(merged.contains("1 added, 1 removed, 1 changed"));
+        assertTrue(merged.contains("Keep this note"));
+        assertEquals(merged.indexOf(PlanReview.PLAN_DIFF_START),
+                merged.lastIndexOf(PlanReview.PLAN_DIFF_START));
+
+        Map<String, Object> progressOnly = Map.of("items", List.of(
+                Map.of("id", "p1", "title", "Edit", "tool", "edit_file",
+                        "status", "completed")));
+        Map<String, Object> pending = Map.of("items", List.of(
+                Map.of("id", "p1", "title", "Edit", "tool", "edit_file",
+                        "status", "pending")));
+        assertEquals(false, PlanReview.planRevisionDiff(pending, progressOnly).get("hasChanges"));
+    }
+
+    @Test
     void persistedDraftsAreVersionedBoundedReplacedAndRestoredBySession() {
         Map<String, Object> plan = new LinkedHashMap<>();
         plan.put("active", true);

@@ -4,12 +4,14 @@ import { ChatViewProvider } from "../../../vscode-extension/src/chat/chat-view.j
 import {
   buildPlanReviewFeedbackPrompt,
   buildPlanExecutionLockSummary,
+  buildPlanRevisionDiff,
   buildPlanReviewRecord,
   buildPersistedPlanReview,
   extractPlanReviewComments,
   findPersistedPlanReview,
   formatPlanReviewMarkdown,
   mergePlanReviewProgress,
+  mergePlanRevisionDiff,
   normalizePersistedPlanReview,
   trimReviewSnapshot,
   upsertPersistedPlanReview,
@@ -51,6 +53,66 @@ describe("VS Code plan review markdown", () => {
     const prompt = buildPlanReviewFeedbackPrompt("requestChanges", "# Notes");
     expect(prompt).toContain("Revise the plan");
     expect(prompt).toContain("# Notes");
+  });
+
+  it("builds and merges bounded structural plan revision diffs", () => {
+    const previous = {
+      plan_id: "plan-1",
+      plan_version: 1,
+      items: [
+        { id: "p1", title: "Edit config", tool: "edit_file", impact: "low" },
+        { id: "p2", title: "Run tests", tool: "run_shell", impact: "medium" },
+      ],
+    };
+    const next = {
+      plan_id: "plan-2",
+      plan_version: 2,
+      items: [
+        {
+          id: "p1",
+          title: "Edit safe config",
+          tool: "edit_file",
+          impact: "medium",
+        },
+        { id: "p3", title: "Run unit tests", tool: "run_shell", impact: "low" },
+      ],
+    };
+    const diff = buildPlanRevisionDiff(previous, next);
+    expect(diff).toMatchObject({
+      previousPlanId: "plan-1",
+      nextPlanId: "plan-2",
+      hasChanges: true,
+      added: [{ id: "p3" }],
+      removed: [{ id: "p2" }],
+    });
+    expect(diff.changed).toHaveLength(1);
+
+    const review = "# Review\n\n## Reviewer Notes\n\n- Keep this note";
+    const merged = mergePlanRevisionDiff(review, previous, next);
+    expect(merged).toContain("<!-- cc-plan-diff:start -->");
+    expect(merged).toContain("1 added, 1 removed, 1 changed");
+    expect(merged).toContain("Keep this note");
+    expect(
+      mergePlanRevisionDiff(merged, previous, {
+        ...next,
+        items: next.items.slice(0, 1),
+      }).match(/cc-plan-diff:start/g),
+    ).toHaveLength(1);
+  });
+
+  it("ignores execution-only status changes in revision diffs", () => {
+    const previous = {
+      items: [
+        { id: "p1", title: "Edit", tool: "edit_file", status: "pending" },
+      ],
+    };
+    const next = {
+      items: [
+        { id: "p1", title: "Edit", tool: "edit_file", status: "completed" },
+      ],
+    };
+    expect(buildPlanRevisionDiff(previous, next).hasChanges).toBe(false);
+    expect(mergePlanRevisionDiff("# Review", previous, next)).toBe("# Review");
   });
 
   it("builds compact audit records", () => {
@@ -281,7 +343,9 @@ function makeProvider({ state = makeMemento(), bootstrap = true } = {}) {
     kind: "plan",
     active: true,
     state: "awaiting_approval",
-    items: [{ title: "Edit file", tool: "edit_file" }],
+    plan_id: "plan-1",
+    plan_version: 1,
+    items: [{ id: "p1", title: "Edit file", tool: "edit_file" }],
   };
   provider._planReviews.set(conv.id, {
     document,
@@ -307,15 +371,21 @@ describe("ChatViewProvider plan review actions", () => {
     expect(state._map.get("chainlesschain.chat.planReviews")).toHaveLength(1);
   });
 
-  it("sends reviewer notes back as a revision prompt", async () => {
+  it("sends reviewer notes as a versioned plan revision event", async () => {
     const { provider, sessions } = makeProvider();
     const ok = await provider.reviewPlan("requestChanges");
     expect(ok).toBe(true);
     expect(sessions[0].sent.at(-1)).toMatchObject({
-      type: "user",
-      text: expect.stringContaining("Revise the plan"),
+      type: "plan",
+      action: "revise",
+      review: {
+        action: "requestChanges",
+        snapshot: expect.stringContaining("# Review"),
+      },
     });
-    expect(sessions[0].sent.at(-1).text).toContain("# Review");
+    expect(
+      provider._activePlanReviewTarget().review.revisionBase,
+    ).toMatchObject({ plan_id: "plan-1", plan_version: 1 });
   });
 
   it("restores an active review draft by session after a provider restart", async () => {

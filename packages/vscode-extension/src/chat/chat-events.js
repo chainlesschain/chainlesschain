@@ -202,6 +202,8 @@ function mapAgentEvent(evt, state) {
         active: evt.active === true,
         state: evt.state || null,
         plan_id: evt.plan_id || null,
+        plan_version: evt.plan_version || null,
+        previous_plan_id: evt.previous_plan_id || null,
         items: Array.isArray(evt.items) ? evt.items : [],
         risk: evt.risk || null,
         execution_lock: evt.execution_lock || null,

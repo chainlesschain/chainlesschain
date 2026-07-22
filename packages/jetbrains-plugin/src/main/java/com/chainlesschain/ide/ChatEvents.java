@@ -306,6 +306,8 @@ public final class ChatEvents {
             m.put("active", isTrue(evt.get("active")));
             m.put("state", evt.get("state"));
             m.put("plan_id", evt.get("plan_id"));
+            m.put("plan_version", evt.get("plan_version"));
+            m.put("previous_plan_id", evt.get("previous_plan_id"));
             m.put("items", evt.get("items") instanceof List ? evt.get("items") : new ArrayList<>());
             m.put("risk", evt.get("risk"));
             m.put("execution_lock", evt.get("execution_lock"));

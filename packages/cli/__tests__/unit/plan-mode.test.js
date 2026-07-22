@@ -216,6 +216,24 @@ describe("PlanModeManager", () => {
       const result = manager.approvePlan();
       expect(result.error).toBeDefined();
     });
+
+    it("freezes the old plan and starts a fresh revision", () => {
+      const previous = manager.currentPlan;
+      const result = manager.beginPlanRevision({ reason: "review-comments" });
+      expect(result.previousPlan).toBe(previous);
+      expect(manager.getHistory()).toContain(previous);
+      expect(manager.currentPlan.id).not.toBe(previous.id);
+      expect(manager.currentPlan.revisionOf).toBe(previous.id);
+      expect(manager.currentPlan.version).toBe(2);
+      expect(manager.currentPlan.items).toEqual([]);
+      expect(manager.state).toBe(PlanState.ANALYZING);
+    });
+
+    it("does not revise an already approved plan", () => {
+      manager.approvePlan();
+      const result = manager.beginPlanRevision();
+      expect(result.error).toBe("Approved plan is locked");
+    });
   });
 
   // ── Tool filtering ──

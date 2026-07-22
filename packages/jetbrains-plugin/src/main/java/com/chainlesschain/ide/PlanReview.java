@@ -19,6 +19,8 @@ public final class PlanReview {
     public static final int MAX_PERSISTED_ITEMS = 128;
     public static final int MAX_COMMENTS = 64;
     public static final int MAX_COMMENT_CHARS = 2000;
+    public static final String PLAN_DIFF_START = "<!-- cc-plan-diff:start -->";
+    public static final String PLAN_DIFF_END = "<!-- cc-plan-diff:end -->";
     private static final Pattern FILE_REFERENCE = Pattern.compile(
             "((?:[A-Za-z]:[\\\\/])?(?:[\\w@.+()\\-]+[\\\\/])*"
                     + "[\\w@.+()\\-]+\\.[A-Za-z0-9]+):(\\d+)(?::(\\d+))?");
@@ -303,6 +305,14 @@ public final class PlanReview {
             boundedItems.add(row);
         }
         snapshot.put("items", boundedItems);
+        int planVersion = number(source.get("planVersion") != null
+                ? source.get("planVersion") : source.get("plan_version"), 0);
+        if (planVersion > 0) snapshot.put("plan_version", planVersion);
+        if (source.get("previousPlanId") != null || source.get("previous_plan_id") != null) {
+            snapshot.put("previous_plan_id", bounded(
+                    source.get("previousPlanId") != null
+                            ? source.get("previousPlanId") : source.get("previous_plan_id"), 160));
+        }
         if (source.get("planId") != null || source.get("plan_id") != null) {
             snapshot.put("plan_id", bounded(
                     source.get("planId") != null
@@ -504,6 +514,147 @@ public final class PlanReview {
             }
         }
         return String.join("\n", out);
+    }
+
+    public static Map<String, Object> planRevisionDiff(
+            Map<String, Object> previousPlan, Map<String, Object> nextPlan) {
+        Map<String, Object> previous = previousPlan != null
+                ? previousPlan : new LinkedHashMap<String, Object>();
+        Map<String, Object> next = nextPlan != null
+                ? nextPlan : new LinkedHashMap<String, Object>();
+        List<Map<String, Object>> before = structuralItems(previous.get("items"));
+        List<Map<String, Object>> after = structuralItems(next.get("items"));
+        Map<String, Map<String, Object>> beforeById = byId(before);
+        Map<String, Map<String, Object>> afterById = byId(after);
+        List<Map<String, Object>> added = new ArrayList<Map<String, Object>>();
+        List<Map<String, Object>> removed = new ArrayList<Map<String, Object>>();
+        List<Map<String, Object>> changed = new ArrayList<Map<String, Object>>();
+        for (Map<String, Object> item : after) {
+            Map<String, Object> old = beforeById.get(string(item.get("id")));
+            if (old == null) {
+                added.add(item);
+            } else if (!sameStructure(old, item)) {
+                changed.add(Map.of("before", old, "after", item));
+            }
+        }
+        for (Map<String, Object> item : before) {
+            if (!afterById.containsKey(string(item.get("id")))) removed.add(item);
+        }
+        Map<String, Object> diff = new LinkedHashMap<String, Object>();
+        diff.put("previousPlanId", or(previous.get("planId"),
+                or(previous.get("plan_id"), "")));
+        diff.put("nextPlanId", or(next.get("planId"), or(next.get("plan_id"), "")));
+        diff.put("previousVersion", number(previous.get("planVersion") != null
+                ? previous.get("planVersion") : previous.get("plan_version"), 0));
+        diff.put("nextVersion", number(next.get("planVersion") != null
+                ? next.get("planVersion") : next.get("plan_version"), 0));
+        diff.put("added", added);
+        diff.put("removed", removed);
+        diff.put("changed", changed);
+        diff.put("hasChanges", !added.isEmpty() || !removed.isEmpty() || !changed.isEmpty());
+        return diff;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static String formatRevisionDiff(Map<String, Object> diff) {
+        if (diff == null || !Boolean.TRUE.equals(diff.get("hasChanges"))) return "";
+        List<Map<String, Object>> added = (List<Map<String, Object>>) diff.get("added");
+        List<Map<String, Object>> removed = (List<Map<String, Object>>) diff.get("removed");
+        List<Map<String, Object>> changed = (List<Map<String, Object>>) diff.get("changed");
+        List<String> lines = new ArrayList<String>();
+        lines.add(PLAN_DIFF_START);
+        lines.add("## Changes Since Previous Plan");
+        lines.add("");
+        lines.add("- Previous: " + planLabel(diff.get("previousPlanId"), diff.get("previousVersion")));
+        lines.add("- Current: " + planLabel(diff.get("nextPlanId"), diff.get("nextVersion")));
+        lines.add("- Summary: " + added.size() + " added, " + removed.size()
+                + " removed, " + changed.size() + " changed");
+        if (!added.isEmpty()) {
+            lines.add("");
+            lines.add("### Added");
+            for (Map<String, Object> item : added) {
+                lines.add("- " + item.get("id") + ": " + diffItemLabel(item));
+            }
+        }
+        if (!removed.isEmpty()) {
+            lines.add("");
+            lines.add("### Removed");
+            for (Map<String, Object> item : removed) {
+                lines.add("- " + item.get("id") + ": " + diffItemLabel(item));
+            }
+        }
+        if (!changed.isEmpty()) {
+            lines.add("");
+            lines.add("### Changed");
+            for (Map<String, Object> entry : changed) {
+                Map<String, Object> old = (Map<String, Object>) entry.get("before");
+                Map<String, Object> item = (Map<String, Object>) entry.get("after");
+                lines.add("- " + item.get("id") + ": " + diffItemLabel(old)
+                        + " → " + diffItemLabel(item));
+            }
+        }
+        lines.add(PLAN_DIFF_END);
+        return String.join("\n", lines);
+    }
+
+    public static String mergeRevisionDiff(
+            String documentText, Map<String, Object> previousPlan, Map<String, Object> nextPlan) {
+        String original = string(documentText);
+        String without = original;
+        int start = without.indexOf(PLAN_DIFF_START);
+        int end = start < 0 ? -1 : without.indexOf(PLAN_DIFF_END, start);
+        if (start >= 0 && end >= start) {
+            without = without.substring(0, start)
+                    + without.substring(end + PLAN_DIFF_END.length());
+            without = without.replaceFirst("\\s+$", "");
+        }
+        String block = formatRevisionDiff(planRevisionDiff(previousPlan, nextPlan));
+        if (block.isEmpty()) return start < 0 ? original : without;
+        return without.replaceFirst("\\s+$", "") + "\n\n" + block;
+    }
+
+    private static List<Map<String, Object>> structuralItems(Object values) {
+        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
+        List<Map<String, Object>> items = normalizedItems(values);
+        for (int i = 0; i < items.size() && i < MAX_PERSISTED_ITEMS; i++) {
+            Map<String, Object> item = items.get(i);
+            Map<String, Object> row = new LinkedHashMap<String, Object>();
+            row.put("id", item.get("id"));
+            row.put("order", i);
+            row.put("title", item.get("title"));
+            row.put("tool", item.get("tool"));
+            row.put("impact", item.get("impact"));
+            result.add(row);
+        }
+        return result;
+    }
+
+    private static Map<String, Map<String, Object>> byId(List<Map<String, Object>> items) {
+        Map<String, Map<String, Object>> result =
+                new LinkedHashMap<String, Map<String, Object>>();
+        for (Map<String, Object> item : items) result.put(string(item.get("id")), item);
+        return result;
+    }
+
+    private static boolean sameStructure(Map<String, Object> a, Map<String, Object> b) {
+        return java.util.Objects.equals(a.get("order"), b.get("order"))
+                && java.util.Objects.equals(a.get("title"), b.get("title"))
+                && java.util.Objects.equals(a.get("tool"), b.get("tool"))
+                && java.util.Objects.equals(a.get("impact"), b.get("impact"));
+    }
+
+    private static String planLabel(Object id, Object version) {
+        String label = or(id, "(unknown)");
+        int v = number(version, 0);
+        return v > 0 ? label + " (v" + v + ")" : label;
+    }
+
+    private static String diffItemLabel(Map<String, Object> item) {
+        String tool = string(item.get("tool")).replaceAll("\\s+", " ").trim();
+        String title = or(string(item.get("title")).replaceAll("\\s+", " ").trim(),
+                "(untitled item)");
+        String impact = or(string(item.get("impact")).replaceAll("\\s+", " ").trim(), "low");
+        return (tool.isEmpty() ? "" : tool + ": ") + title + " [" + impact + "]";
     }
 
     private static void addComment(

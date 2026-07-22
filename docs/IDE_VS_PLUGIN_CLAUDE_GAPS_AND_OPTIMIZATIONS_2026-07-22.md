@@ -24,11 +24,11 @@
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | VS Code 插件能力清单        | 已完成，随 MCP `initialize` 动态返回实际工具和可选能力                                                                                                                                          |
 | JetBrains 插件能力清单      | 已完成，随 MCP `initialize` 动态返回实际工具和可选能力                                                                                                                                          |
-| VS Code 契约与插件回归      | 已完成，能力契约 Node 测试 2/2 通过；`vscode-ext-*` Vitest 全量 82 个文件、924 项测试无失败                                                                                                     |
+| VS Code 契约与插件回归      | 已完成，能力契约 Node 测试 2/2 通过；`vscode-ext-*` Vitest 全量 82 个文件、926 项测试无失败                                                                                                     |
 | VS Code 真实 Extension Host | 已完成，当前 `0.37.26` VSIX 在 VS Code Stable 干净 profile 激活，16 个关键命令和 Bridge 端口校验通过                                                                                            |
 | JetBrains 契约测试          | 已完成，`IdeCapabilitiesTest` 通过                                                                                                                                                              |
 | JetBrains 纯逻辑回归        | 已完成，`PureLogicSmokeMain` 1219/1219 通过                                                                                                                                                     |
-| JetBrains 完整单元测试      | 已完成，Gradle `test --rerun-tasks` 通过，607 项测试无失败（另有 2 项按条件跳过）                                                                                                               |
+| JetBrains 完整单元测试      | 已完成，Gradle `test --rerun-tasks` 通过，608 项测试无失败（另有 2 项按条件跳过）                                                                                                               |
 | JetBrains 真实 GUI smoke    | 已完成，Remote Robot `IdeUiSmokeTest.chainlessChainToolWindowOpens` 通过                                                                                                                        |
 | JetBrains 插件构建          | 已完成，`0.4.68` ZIP 构建成功                                                                                                                                                                   |
 | VS Code VSIX 构建           | 已完成，`0.37.26` VSIX 构建成功                                                                                                                                                                 |
@@ -64,7 +64,7 @@ Claude Code 的 JetBrains 插件则突出原生 Diff、选择区/当前文件上
 | 能力              | VS Code 插件                                                                                          | JetBrains 插件                                                                            | 判断                                                                                           |
 | ----------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | 聊天/多会话       | `src/chat/`、`sessions-workbench.js`、`ide-session-index.js`                                          | `AgentChatSession`、`ConversationManager`、`SessionsWorkbench`、`IdeSessionIndex`         | 两端已有；重点转为协议一致性和恢复可靠性                                                       |
-| Plan Review       | `chat/plan-review.js`，有版本化恢复、结构化批注和逐项执行进度                                         | `PlanReview`、`ChatEvents`，有对等解析/合并和项目级恢复状态                               | 快照、重启恢复、item/file/line/turn 批注和执行关联已完成；仍需计划新旧版本 Diff 与审批锁定摘要 |
+| Plan Review       | `chat/plan-review.js`，有版本化恢复、结构化批注、计划修订 Diff 和逐项执行进度                          | `PlanReview`、`ChatEvents`，有对等解析/合并、修订 Diff 和项目级恢复状态                    | 快照、重启恢复、结构化批注、修订 Diff、执行关联和审批执行锁摘要均已完成                        |
 | 原生 Diff         | `ide-tools.js`、`diff-hunks.js`、`multi-diff.js`、`diff-apply-guard.js`                               | `DiffHunks`、`MultiDiff`、`DiffApplyGuard`、`ReviewNote`                                  | 主流程已有；重点是用户改写、冲突和跨端事件一致性                                               |
 | IDE MCP Bridge    | `mcp-http-server.js` + `ide-tools.js`                                                                 | `McpServer` + `IdeTools`                                                                  | 已统一 `getSelection/getActiveFile/getDiagnostics/getOpenEditors/openDiff` 等基础契约          |
 | 代码语义          | `semantic-tools.js`，包含 hover、definition、references、rename、call hierarchy、symbol/project model | `SemanticTools`，通过 PSI 提供同类语义工具                                                | 不应再把“增加基础语义工具”列为 P0；应补测试结果、覆盖率、调试状态和能力协商                    |
@@ -166,9 +166,12 @@ Claude Code 会把计划打开成完整 Markdown 编辑器，用户可以 inline
 文件/行/列和 agent turn 的结构化记录并随 review 事件传给 CLI；CLI 将获批计划项
 与 `tool_use.id` 精确关联，流式回写 executing/completed/failed、开始/完成时间和错误。
 两端只合并机器拥有的 status/progress 行，因此不会覆盖用户批注；重启后会恢复仍在
-审批或执行的审阅，completed/failed/rejected 终态保持审计状态而不误弹编辑器。当前
-剩项收窄为重新生成计划时展示旧版/新版 Diff，以及在审批记录中显式固化权限模式和
-允许工具集合。
+审批或执行的审阅，completed/failed/rejected 终态保持审计状态而不误弹编辑器。2026-07-23
+进一步完成计划修订状态机：request changes/regenerate 会冻结旧 plan ID、创建新版本，
+两端在机器管理的 Markdown 区块中持续展示 added/removed/changed，并忽略纯状态/进度变化。
+Approve 会生成不可扩大的执行锁，审批记录和 `plan_update.execution_lock` 显式固化 plan ID、
+权限模式、批准项 ID 与允许工具；settings/host allow 也不能绕过该锁。至此本节 Plan Review
+代码与定向测试剩项已收口，真实多宿主发布验收仍按后文 E/H/D 项单独跟踪。
 
 #### 3. Diff 审阅需要覆盖“用户修改 → Agent 反馈”闭环
 
@@ -388,6 +391,11 @@ and its official `/loop` and `/goal` workflows.
   tool calls emit `plan_item_id` and stream executing/completed/failed state;
   both hosts merge those machine-owned progress lines without overwriting
   reviewer text. Completed/failed/rejected reviews remain terminal audit state.
+- Plan revisions now freeze the previous plan ID and create a new version.
+  VS Code and JetBrains render a bounded machine-owned added/removed/changed
+  block while ignoring status-only progress. Approval emits an immutable
+  execution lock containing the plan ID, permission mode, approved item IDs,
+  and allowed tools; settings or host allow rules cannot widen that lock.
 - Agent extension-tool admission is now wired through the IDE launch boundary,
   not only at the CLI runtime seam. VS Code and JetBrains chat children pass a
   bounded, secret-free `CC_TOOL_ADMISSION` session envelope with host source,

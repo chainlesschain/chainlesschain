@@ -10,9 +10,10 @@
 JetBrains 共享 `cc-plan-review/v1` 有界持久化语义，Markdown item comment 和
 Reviewer Notes 会形成带 plan item、文件、行/列和 agent turn 的结构化记录；CLI
 以 additive `plan_item_id` 将获批计划项与 `tool_use`/`tool_result` 关联，并把
-executing/completed/failed 进度回写两端审阅文档且保留用户原文。尚未关闭的是计划
-重新生成的新旧版本 Diff、审批时的权限/工具锁定摘要，以及本文件原有的真实远程环境
-与长期稳定性验收项。
+executing/completed/failed 进度回写两端审阅文档且保留用户原文。2026-07-23 又完成计划
+修订状态机和旧/新 plan ID 的 added/removed/changed Diff；Approve 时会固化权限模式、批准项
+与允许工具，并由 CLI 执行不可扩大的工具锁。Plan Review 的上述代码/定向测试剩项已关闭；
+本文件原有的真实远程环境与长期稳定性验收项仍保留。
 
 ## 结论
 

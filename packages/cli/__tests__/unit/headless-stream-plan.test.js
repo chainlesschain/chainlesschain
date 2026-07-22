@@ -67,6 +67,9 @@ describe("parseInputEvent — plan controls", () => {
     expect(parseInputEvent('{"type":"plan","action":"APPROVE"}')).toEqual({
       plan: "approve",
     });
+    expect(
+      parseInputEvent('{"type":"plan","action":"requestChanges"}'),
+    ).toEqual({ plan: "revise" });
     expect(parseInputEvent('{"type":"plan"}')).toBe(null);
   });
 
@@ -246,6 +249,56 @@ describe("stream plan mode", () => {
     expect(
       sys.some((m) => /REQUESTED EXECUTION LOCK - AUDIT ONLY/.test(m.content)),
     ).toBe(true);
+  });
+
+  it("revision freezes the previous plan and starts a fresh continuation", async () => {
+    const h = harness({
+      inputObjs: [
+        { type: "plan", action: "enter" },
+        {
+          type: "plan",
+          action: "requestChanges",
+          review: {
+            action: "requestChanges",
+            snapshot: "# Review\n\n- Replace the shell step.",
+          },
+        },
+      ],
+    });
+    const pm = getPlanModeManager();
+    const origEnter = pm.enterPlanMode.bind(pm);
+    pm.enterPlanMode = (options) => {
+      const result = origEnter(options);
+      pm.addPlanItem({ id: "old-1", title: "Old shell", tool: "run_shell" });
+      return result;
+    };
+    try {
+      await h.run();
+    } finally {
+      pm.enterPlanMode = origEnter;
+    }
+
+    expect(h.seenTurns).toHaveLength(1);
+    expect(
+      h.seenTurns[0].some(
+        (message) =>
+          message.role === "system" &&
+          /PLAN REVISION REQUESTED/.test(message.content),
+      ),
+    ).toBe(true);
+    const updates = h.events().filter((event) => event.type === "plan_update");
+    const revised = updates.find((event) => event.plan_version === 2);
+    expect(revised).toMatchObject({
+      active: true,
+      state: "analyzing",
+      plan_version: 2,
+      previous_plan_id: expect.any(String),
+      items: [],
+    });
+    expect(h.seenTurns[0].at(-1)).toMatchObject({
+      role: "user",
+      content: "Revise the plan from the review feedback.",
+    });
   });
 
   it("attributes tool execution to a plan item and streams its progress", async () => {

@@ -113,12 +113,16 @@ export class PlanItem {
  */
 export class ExecutionPlan {
   constructor(data = {}) {
-    this.id = data.id || `plan-${Date.now()}`;
+    this.id =
+      data.id || `plan-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     this.title = data.title || "Untitled Plan";
     this.description = data.description || "";
     this.goal = data.goal || "";
     this.items = (data.items || []).map((i) => new PlanItem(i));
     this.status = data.status || PlanState.ANALYZING;
+    this.version =
+      Number.isInteger(data.version) && data.version > 0 ? data.version : 1;
+    this.revisionOf = data.revisionOf || null;
     this.createdAt = new Date().toISOString();
   }
 
@@ -354,6 +358,49 @@ export class PlanModeManager extends EventEmitter {
     this.currentPlan.status = PlanState.PLAN_READY;
     this.emit("plan-ready", { plan: this.currentPlan });
     return { plan: this.currentPlan };
+  }
+
+  /**
+   * Freeze the current draft and start a fresh plan version. This is the only
+   * supported way to replace an awaiting-review plan, so old/new IDE diffs can
+   * bind to stable plan IDs instead of guessing from mutable item arrays.
+   */
+  beginPlanRevision(options = {}) {
+    if (!this.currentPlan || !this.isActive()) {
+      return { error: "No active plan" };
+    }
+    if (
+      this.state !== PlanState.ANALYZING &&
+      this.state !== PlanState.PLAN_READY
+    ) {
+      return { error: "Approved plan is locked" };
+    }
+
+    const previousPlan = this.currentPlan;
+    this.history.push(previousPlan);
+    this.currentPlan = new ExecutionPlan({
+      title: options.title || previousPlan.title,
+      goal: options.goal ?? previousPlan.goal,
+      description: options.description ?? previousPlan.description,
+      version: previousPlan.version + 1,
+      revisionOf: previousPlan.id,
+    });
+    this.state = PlanState.ANALYZING;
+    this.blockedToolLog = [];
+    this.executionLock = null;
+    const payload = {
+      plan: this.currentPlan,
+      previousPlan,
+      reason: String(options.reason || "revision"),
+    };
+    this.emit("plan-revised", payload);
+    this._fireHook("PlanRevised", {
+      planId: this.currentPlan.id,
+      previousPlanId: previousPlan.id,
+      version: this.currentPlan.version,
+      reason: payload.reason,
+    });
+    return payload;
   }
 
   /**

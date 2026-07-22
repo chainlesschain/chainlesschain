@@ -10,6 +10,8 @@ const PLAN_REVIEW_READ_TOOLS = [
   "list_dir",
   "list_skills",
 ];
+const PLAN_DIFF_START = "<!-- cc-plan-diff:start -->";
+const PLAN_DIFF_END = "<!-- cc-plan-diff:end -->";
 
 function normalizePlanItems(items) {
   return (Array.isArray(items) ? items : []).map((item, index) => ({
@@ -320,6 +322,109 @@ function mergePlanReviewProgress(documentText, plan = {}) {
   return out.join("\n");
 }
 
+function structuralPlanItem(item, index) {
+  return {
+    id: item.id,
+    order: index,
+    title: item.title,
+    tool: item.tool,
+    impact: item.impact,
+  };
+}
+
+function buildPlanRevisionDiff(previousPlan = {}, nextPlan = {}) {
+  const previous = normalizePlanItems(previousPlan?.items)
+    .slice(0, MAX_PERSISTED_PLAN_ITEMS)
+    .map(structuralPlanItem);
+  const next = normalizePlanItems(nextPlan?.items)
+    .slice(0, MAX_PERSISTED_PLAN_ITEMS)
+    .map(structuralPlanItem);
+  const previousById = new Map(previous.map((item) => [item.id, item]));
+  const nextById = new Map(next.map((item) => [item.id, item]));
+  const added = next.filter((item) => !previousById.has(item.id));
+  const removed = previous.filter((item) => !nextById.has(item.id));
+  const changed = next
+    .filter((item) => previousById.has(item.id))
+    .map((item) => ({ before: previousById.get(item.id), after: item }))
+    .filter(({ before, after }) =>
+      ["order", "title", "tool", "impact"].some(
+        (field) => before[field] !== after[field],
+      ),
+    );
+  return {
+    previousPlanId: stringOr(previousPlan?.planId || previousPlan?.plan_id, ""),
+    nextPlanId: stringOr(nextPlan?.planId || nextPlan?.plan_id, ""),
+    previousVersion:
+      Number(previousPlan?.planVersion || previousPlan?.plan_version) || null,
+    nextVersion:
+      Number(nextPlan?.planVersion || nextPlan?.plan_version) || null,
+    added,
+    removed,
+    changed,
+    hasChanges: added.length > 0 || removed.length > 0 || changed.length > 0,
+  };
+}
+
+function diffItemLabel(item) {
+  const clean = (value) => stringOr(value, "").replace(/\s+/g, " ").trim();
+  const tool = clean(item.tool);
+  const title = clean(item.title) || "(untitled item)";
+  const impact = clean(item.impact) || "low";
+  return `${tool ? `${tool}: ` : ""}${title} [${impact}]`;
+}
+
+function formatPlanRevisionDiff(diff) {
+  if (!diff?.hasChanges) return "";
+  const lines = [
+    PLAN_DIFF_START,
+    "## Changes Since Previous Plan",
+    "",
+    `- Previous: ${diff.previousPlanId || "(unknown)"}${diff.previousVersion ? ` (v${diff.previousVersion})` : ""}`,
+    `- Current: ${diff.nextPlanId || "(unknown)"}${diff.nextVersion ? ` (v${diff.nextVersion})` : ""}`,
+    `- Summary: ${diff.added.length} added, ${diff.removed.length} removed, ${diff.changed.length} changed`,
+  ];
+  if (diff.added.length) {
+    lines.push("", "### Added");
+    for (const item of diff.added) {
+      lines.push(`- ${item.id}: ${diffItemLabel(item)}`);
+    }
+  }
+  if (diff.removed.length) {
+    lines.push("", "### Removed");
+    for (const item of diff.removed) {
+      lines.push(`- ${item.id}: ${diffItemLabel(item)}`);
+    }
+  }
+  if (diff.changed.length) {
+    lines.push("", "### Changed");
+    for (const entry of diff.changed) {
+      lines.push(
+        `- ${entry.after.id}: ${diffItemLabel(entry.before)} → ${diffItemLabel(entry.after)}`,
+      );
+    }
+  }
+  lines.push(PLAN_DIFF_END);
+  return lines.join("\n");
+}
+
+function mergePlanRevisionDiff(documentText, previousPlan, nextPlan) {
+  const original = String(documentText || "");
+  const marker = new RegExp(
+    `${PLAN_DIFF_START.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s\\S]*?${PLAN_DIFF_END.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`,
+    "g",
+  );
+  const withoutPrior = original
+    .replace(/\n{0,2}$/, "")
+    .replace(marker, "")
+    .trimEnd();
+  const block = formatPlanRevisionDiff(
+    buildPlanRevisionDiff(previousPlan, nextPlan),
+  );
+  if (!block)
+    return withoutPrior === original.trimEnd() ? original : withoutPrior;
+  return `${withoutPrior}\n\n${block}`;
+}
+
 function buildPlanReviewFeedbackPrompt(action, documentText) {
   const verb =
     action === "regenerate"
@@ -366,6 +471,15 @@ function sanitizePlanSnapshot(plan = {}) {
         ...(item.error ? { error: boundedString(item.error, 1000) } : {}),
       })),
   };
+  if (Number.isInteger(Number(source.planVersion || source.plan_version))) {
+    snapshot.plan_version = Number(source.planVersion || source.plan_version);
+  }
+  if (source.previousPlanId != null || source.previous_plan_id != null) {
+    snapshot.previous_plan_id = boundedString(
+      source.previousPlanId || source.previous_plan_id,
+      160,
+    );
+  }
   if (source.planId != null || source.plan_id != null) {
     snapshot.plan_id = boundedString(source.planId || source.plan_id, 160);
   }
@@ -508,11 +622,14 @@ module.exports = {
   PLAN_REVIEW_STATE_SCHEMA,
   buildPlanReviewFeedbackPrompt,
   buildPlanExecutionLockSummary,
+  buildPlanRevisionDiff,
   buildPlanReviewRecord,
   buildPersistedPlanReview,
   findPersistedPlanReview,
   extractPlanReviewComments,
   formatPlanReviewMarkdown,
+  formatPlanRevisionDiff,
+  mergePlanRevisionDiff,
   mergePlanReviewProgress,
   normalizePlanReviewComments,
   normalizePersistedPlanReview,
