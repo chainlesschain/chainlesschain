@@ -344,6 +344,7 @@ function buildSessionArgs({
   resume,
   mode,
   think,
+  goalCondition,
 } = {}) {
   const args = [];
   if (typeof provider === "string" && provider.trim()) {
@@ -369,6 +370,9 @@ function buildSessionArgs({
   const t = typeof think === "string" ? think.trim() : "";
   if (t === "ultra") args.push("--ultrathink");
   else if (t === "on") args.push("--think");
+  if (typeof goalCondition === "string" && goalCondition.trim()) {
+    args.push("--goal-condition", goalCondition.trim());
+  }
   return args;
 }
 

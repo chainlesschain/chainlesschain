@@ -2,6 +2,26 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.23] - Slash input edge-case fix (2026-07-22)
+
+- Fixed sending a bare `/` being reported as `unknown command /`.
+
+## [0.37.22] - Claude Code slash-command parity (2026-07-22)
+
+- Added `/goal` and `/loop` plus the shared diagnostic command catalog.
+- Added CLI-backed `/status`, `/doctor`, `/init`, `/mcp`, `/hooks`,
+  `/permissions`, `/agents`, `/tasks`, `/memory`, `/plugin`, and
+  `/release-notes` panel commands.
+
+## [0.37.21] - IDE capability manifest and bridge contract tests (2026-07-22)
+
+- **Added runtime IDE capability negotiation metadata.** The MCP `initialize`
+  response now advertises the tools and optional host features actually
+  registered by this VS Code bridge under `chainlesschain.ide`.
+- **Added a capability manifest contract test** so optional features such as
+  multi-file diff, notebook execution, and semantic tools are not assumed when
+  unavailable on the host.
+
 ## [0.37.20] - Doubao coding model default update (2026-07-20)
 
 - **Updated the Volcengine/Doubao default text model** to `doubao-seed-evolving`.

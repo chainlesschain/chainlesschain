@@ -20,6 +20,7 @@ public final class SlashCommands {
     /** {@code [command, one-line help]} in menu order. */
     public static final List<String[]> COMMANDS = Collections.unmodifiableList(Arrays.asList(
             new String[] { "/new", "start a new conversation" },
+            new String[] { "/clear", "clear this conversation and start fresh" },
             new String[] { "/compact", "compact the conversation history" },
             new String[] { "/stop", "interrupt the running turn" },
             new String[] { "/auto", "auto-accept file edits" },
@@ -38,6 +39,19 @@ public final class SlashCommands {
             new String[] { "/rewind", "restore a work-tree checkpoint" },
             new String[] { "/sessions", "resume a saved session in this tab" },
             new String[] { "/handoff", "hand off to a background agent (web/mobile)" },
+            new String[] { "/goal", "set or show the session completion goal" },
+            new String[] { "/loop", "repeat a prompt on an interval (use /loop stop to stop)" },
+            new String[] { "/status", "show CLI, model, session, IDE and MCP status" },
+            new String[] { "/doctor", "diagnose CLI and environment configuration" },
+            new String[] { "/init", "initialize project instructions" },
+            new String[] { "/mcp", "show MCP server status" },
+            new String[] { "/hooks", "show configured hooks" },
+            new String[] { "/permissions", "show permission configuration" },
+            new String[] { "/agents", "show configured agents" },
+            new String[] { "/tasks", "show background tasks" },
+            new String[] { "/memory", "show project memory" },
+            new String[] { "/plugin", "show plugin information" },
+            new String[] { "/release-notes", "show CLI release notes" },
             new String[] { "/help", "list panel commands" }));
 
     // Whole input so far is `/` + command chars at the start of the line, no

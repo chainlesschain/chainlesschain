@@ -35,6 +35,7 @@ public final class ConversationManager {
         public volatile Object turnState;
         public volatile String mode = "default"; // approval mode (default|acceptEdits|bypassPermissions)
         public volatile String thinking = "off"; // extended thinking (off|on|ultra)
+        public volatile String goalCondition = ""; // completion condition passed to cc agent
 
         Conversation(String id, String title, String sessionId, Object turnState) {
             this.id = id;

@@ -48,11 +48,12 @@ class SlashCommandsTest {
     @Test
     void filterReReturnsRejectReviewRetryRewindInMenuOrder() {
         List<String[]> re = SlashCommands.filter("re");
-        assertEquals(4, re.size());
+        assertEquals(5, re.size());
         assertEquals("/reject", re.get(0)[0]);
         assertEquals("/review", re.get(1)[0]);
         assertEquals("/retry", re.get(2)[0]);
         assertEquals("/rewind", re.get(3)[0]);
+        assertEquals("/release-notes", re.get(4)[0]);
     }
 
     @Test

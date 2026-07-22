@@ -14,6 +14,7 @@
  */
 const vscode = require("vscode");
 const { IdeMcpServer } = require("./mcp-http-server");
+const { buildIdeCapabilities } = require("./ide-capabilities");
 const { buildIdeTools } = require("./ide-tools");
 const { createVscodeEditorFacade } = require("./vscode-facade");
 const {
@@ -188,6 +189,7 @@ async function startBridge(context) {
   const tools = buildIdeTools(facade);
   _server = new IdeMcpServer({
     tools,
+    ideCapabilities: buildIdeCapabilities(tools),
     token,
     onError: (e) => log("ide bridge server error: " + (e?.message || e)),
     onActivity: (e) => {

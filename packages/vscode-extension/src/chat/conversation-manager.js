@@ -50,6 +50,7 @@ class ConversationManager {
       pendingApproval: null, // the approval card payload (to re-surface on switch)
       mode: "default", // approval mode (default | acceptEdits | bypassPermissions)
       thinking: "off", // extended thinking (off | on | ultra)
+      goalCondition: "", // optional --goal-condition applied on next spawn
     };
     this._conversations.set(id, conv);
     this._order.push(id);
@@ -188,6 +189,13 @@ class ConversationManager {
   setThinking(id, thinking) {
     const c = this.get(id);
     if (c) c.thinking = thinking || "off";
+    return c;
+  }
+
+  /** Set the session completion condition used by the next child spawn. */
+  setGoalCondition(id, condition) {
+    const c = this.get(id);
+    if (c) c.goalCondition = condition || "";
     return c;
   }
 

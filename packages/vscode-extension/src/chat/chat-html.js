@@ -397,6 +397,7 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
     "/sessions": () => vscode.postMessage({ type: "pickSession" }),
     "/resume": () => vscode.postMessage({ type: "pickSession" }),
     "/new": () => vscode.postMessage({ type: "new" }),
+    "/clear": () => vscode.postMessage({ type: "new" }),
     "/plan": () => vscode.postMessage({ type: "plan", action: "enter" }),
     "/approve": () => vscode.postMessage({ type: "plan", action: "approve" }),
     "/reject": () => vscode.postMessage({ type: "plan", action: "reject" }),
@@ -429,6 +430,19 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
         "Don't edit files unless I ask.";
       send();
     },
+    "/goal": (arg) => vscode.postMessage({ type: "goal", spec: arg || "" }),
+    "/loop": (arg) => vscode.postMessage({ type: "loop", spec: arg || "" }),
+    "/status": () => vscode.postMessage({ type: "cliCommand", command: "status" }),
+    "/doctor": () => vscode.postMessage({ type: "cliCommand", command: "doctor" }),
+    "/init": () => vscode.postMessage({ type: "cliCommand", command: "init" }),
+    "/mcp": () => vscode.postMessage({ type: "cliCommand", command: "mcp" }),
+    "/hooks": () => vscode.postMessage({ type: "cliCommand", command: "hook" }),
+    "/permissions": () => vscode.postMessage({ type: "cliCommand", command: "permissions" }),
+    "/agents": () => vscode.postMessage({ type: "cliCommand", command: "agents" }),
+    "/tasks": () => vscode.postMessage({ type: "cliCommand", command: "tasks" }),
+    "/memory": () => vscode.postMessage({ type: "cliCommand", command: "memory" }),
+    "/plugin": () => vscode.postMessage({ type: "cliCommand", command: "plugin" }),
+    "/release-notes": () => vscode.postMessage({ type: "cliCommand", command: "changelog" }),
     "/expand": () => {
       // Expand/collapse all reasoning blocks (also Ctrl/Cmd+O).
       if (log.querySelector("details.thinking")) toggleAllThinking();
@@ -500,13 +514,18 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
     if (text.startsWith("/")) {
       const cmd = text.split(/\s+/)[0].toLowerCase();
       input.value = "";
+      if (text === "/") {
+        add("info", "type / followed by a command, or choose one from the suggestions");
+        input.focus();
+        return;
+      }
       if (cmd === "/help") {
-        add("info", "panel commands: /new · /sessions (/resume) · /plan · /approve · /reject · /auto · /bypass · /normal · /think · /ultrathink · /think-off · /stop · /compact · /cost · /context · /rewind · /retry · /handoff · /review · /expand (Ctrl+O all reasoning) · /help");
+        add("info", "panel commands: /new · /sessions (/resume) · /plan · /approve · /reject · /auto · /bypass · /normal · /think · /ultrathink · /think-off · /stop · /compact · /cost · /context · /rewind · /retry · /handoff · /review · /goal · /loop · /expand (Ctrl+O all reasoning) · /help");
         return;
       }
       if (SLASH[cmd]) {
         add("info", cmd);
-        SLASH[cmd]();
+        SLASH[cmd](text.slice(cmd.length).trim());
         return;
       }
       add("info", "unknown command " + cmd + " — try /help");

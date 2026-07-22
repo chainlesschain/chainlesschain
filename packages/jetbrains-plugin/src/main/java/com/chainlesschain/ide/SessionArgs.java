@@ -56,6 +56,16 @@ public final class SessionArgs {
         return build(provider, model, null, null, resume, mode, think);
     }
 
+    public static List<String> build(String provider, String model, String baseUrl, String apiKey,
+            String resume, String mode, String think, String goalCondition) {
+        List<String> args = build(provider, model, baseUrl, apiKey, resume, mode, think);
+        if (notBlank(goalCondition)) {
+            args.add("--goal-condition");
+            args.add(goalCondition.trim());
+        }
+        return args;
+    }
+
     /**
      * Build the full extra-args list including the endpoint + key. The panel
      * pins --provider/--model and MUST also pass --base-url/--api-key: the CLI,

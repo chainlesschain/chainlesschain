@@ -32,6 +32,7 @@ class IdeMcpServer {
     path = "/mcp",
     onActivity,
     onError,
+    ideCapabilities,
   } = {}) {
     this._tools = tools;
     this._token = token;
@@ -46,6 +47,7 @@ class IdeMcpServer {
       name: "chainlesschain-ide",
       version: "0.1.0",
     };
+    this._ideCapabilities = ideCapabilities || null;
     this._sessionId = crypto.randomBytes(16).toString("hex");
     this._server = null;
     this.port = null;
@@ -234,6 +236,12 @@ class IdeMcpServer {
           protocolVersion: PROTOCOL_VERSION,
           capabilities: { tools: {} },
           serverInfo: this._serverInfo,
+          // Vendor extension: MCP clients that understand ChainlessChain can
+          // select tools from the actual host capability set. Unknown clients
+          // safely ignore this additive field.
+          chainlesschain: this._ideCapabilities
+            ? { ide: this._ideCapabilities }
+            : undefined,
         };
       case "tools/list":
         return {

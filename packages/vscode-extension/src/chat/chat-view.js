@@ -75,6 +75,7 @@ class ChatViewProvider {
     this._lastCallUsage = new Map(); // convId → usage of the latest LLM call
     this._ctxWindowCache = null; // { key, window } from the last CLI probe
     this._planReviews = new Map(); // convId -> { document, lastText, lastPlan }
+    this._loopTimers = new Map(); // convId -> { timer, intervalMs, prompt }
   }
 
   /** The active conversation, creating the first one (lazily) if none exist. */
@@ -113,6 +114,7 @@ class ChatViewProvider {
       });
       if (t.mode) this._convs.setMode(conv.id, String(t.mode));
       if (t.thinking) this._convs.setThinking(conv.id, String(t.thinking));
+      if (t.goalCondition) this._convs.setGoalCondition(conv.id, String(t.goalCondition));
       return conv;
     });
     const idx =
@@ -134,6 +136,7 @@ class ChatViewProvider {
         title: c.title,
         mode: c.mode || "default",
         thinking: c.thinking || "off",
+        goalCondition: c.goalCondition || "",
       };
     });
     const activeIndex = Math.max(
@@ -780,6 +783,7 @@ class ChatViewProvider {
           // Extended thinking (/think, /ultrathink) — same spawn-time story;
           // "off" adds nothing, Anthropic-only (other providers ignore it).
           think: conv.thinking,
+          goalCondition: conv.goalCondition,
         }),
         // Confirm-tier approvals become Approve/Deny cards in the panel
         // instead of failing closed (needs cc >= 0.162.45).
@@ -1087,6 +1091,64 @@ class ChatViewProvider {
     this._persistTabs();
   }
 
+  _setGoalCondition(spec) {
+    const conv = this._activeConv();
+    const value = String(spec || "").trim();
+    if (!value) {
+      this._post({ kind: "info", text: conv.goalCondition
+        ? `session goal: ${conv.goalCondition}`
+        : "no session goal; use /goal <condition>" });
+      return;
+    }
+    if (/^(clear|off|none)$/i.test(value)) {
+      this._convs.setGoalCondition(conv.id, "");
+      this._persistTabs();
+      this._post({ kind: "info", text: "session goal cleared" });
+      return;
+    }
+    this._convs.setGoalCondition(conv.id, value);
+    if (conv.session?.running) {
+      conv.session.stop();
+      this._convs.setSession(conv.id, null);
+    }
+    this._persistTabs();
+    this._post({
+      kind: "info",
+      text: `session goal set: ${value} (applies on the next message; /goal clear to drop)`,
+    });
+  }
+
+  _setLoop(spec) {
+    const conv = this._activeConv();
+    const value = String(spec || "").trim();
+    const old = this._loopTimers.get(conv.id);
+    if (/^(stop|clear|off)$/i.test(value)) {
+      if (old) clearInterval(old.timer);
+      this._loopTimers.delete(conv.id);
+      this._post({ kind: "info", text: "/loop stopped" });
+      return;
+    }
+    const m = /^(?:(\d+(?:\.\d+)?)(s|m|h)\s+)?(.+)$/i.exec(value);
+    if (!m || !m[3].trim()) {
+      this._post({ kind: "info", text: "usage: /loop [30s|5m|1h] <prompt> · /loop stop" });
+      return;
+    }
+    const intervalMs = Math.min(
+      24 * 60 * 60 * 1000,
+      Math.max(1000, Number(m[1] || 300) * ({ s: 1000, m: 60000, h: 3600000 }[m[2]?.toLowerCase() || "s"])),
+    );
+    const prompt = m[3].trim();
+    if (old) clearInterval(old.timer);
+    const timer = setInterval(() => {
+      if (!this._convs.has(conv.id)) return;
+      this._handleMessage({ type: "switchTab", id: conv.id });
+      this._handleMessage({ type: "send", text: prompt });
+    }, intervalMs);
+    this._loopTimers.set(conv.id, { timer, intervalMs, prompt });
+    this._handleMessage({ type: "send", text: prompt });
+    this._post({ kind: "info", text: `/loop started: every ${m[1] || 300}${m[2] || "s"} · /loop stop to stop` });
+  }
+
   /**
    * Reload after a Configure-LLM change. The LLM config is GLOBAL
    * (~/.chainlesschain/config.json), so EVERY spawned child holds the stale
@@ -1326,6 +1388,21 @@ class ChatViewProvider {
       env: { ...process.env, ...bridgeEnv },
     });
     this._post({ kind: "pre", text: text || `/${kind}: (no output)` });
+  }
+
+  async _runCliCommand(command, args = []) {
+    const introspect = require("./introspect-commands");
+    const runText = this.opts.deps?.runCliText || introspect.runCliText;
+    const folders = this.vscode.workspace.workspaceFolders || [];
+    const cwd = folders[0]?.uri?.fsPath || process.cwd();
+    const bridgeEnv = typeof this.opts.getBridgeEnv === "function" ? this.opts.getBridgeEnv() : {};
+    const text = await runText({
+      command: this._cliCommand(),
+      args: [command, ...args],
+      cwd,
+      env: { ...process.env, ...bridgeEnv },
+    });
+    this._post({ kind: "pre", text: text || `/${command}: (no output)` });
   }
 
   /**
@@ -1709,6 +1786,12 @@ class ChatViewProvider {
       this._setMode(String(m.mode || "default"));
     } else if (m.type === "think") {
       this._setThinking(String(m.level || "off"));
+    } else if (m.type === "goal") {
+      this._setGoalCondition(m.spec);
+    } else if (m.type === "loop") {
+      this._setLoop(m.spec);
+    } else if (m.type === "cliCommand") {
+      this._runCliCommand(String(m.command || "")).catch(() => {});
     } else if (m.type === "configureLlm") {
       // After the wizard writes config (cc config set), every ALREADY-RUNNING
       // child still holds the OLD provider/model/key — so a child spawned with
@@ -1815,6 +1898,8 @@ class ChatViewProvider {
   }
 
   dispose() {
+    for (const state of this._loopTimers.values()) clearInterval(state.timer);
+    this._loopTimers.clear();
     for (const s of this._convs.allSessions()) s.stop?.();
     this._cleanupImageTemps();
     this._modeStatus?.item.dispose();

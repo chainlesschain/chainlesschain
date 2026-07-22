@@ -1,5 +1,22 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.66] - Slash input edge-case fix (2026-07-22)
+
+- Fixed sending a bare `/` being reported as `unknown command /`.
+
+## [0.4.65] - Claude Code slash-command parity (2026-07-22)
+
+- Added `/goal` and `/loop` plus the shared diagnostic command catalog.
+- Added CLI-backed diagnostic and project commands matching the VS Code panel.
+
+## [0.4.64] - IDE capability manifest and bridge contract tests (2026-07-22)
+
+- **Added runtime IDE capability negotiation metadata.** The MCP `initialize`
+  response now advertises the tools and optional host features actually
+  registered by this JetBrains bridge under `chainlesschain.ide`.
+- **Added a capability manifest contract test** so PSI, terminal, Preview, and
+  other optional host features are only consumed when registered.
+
 ## [0.4.63] - Doubao coding model default update (2026-07-20)
 
 - **Updated the Volcengine/Doubao default text model** to doubao-seed-evolving.

@@ -89,4 +89,10 @@ class SessionArgsTest {
     void fourArgOverloadStillWorks() {
         assertEquals(new ArrayList<String>(), SessionArgs.build(null, null, null, "default"));
     }
+
+    @Test
+    void goalConditionIsPassedToAgentSpawn() {
+        assertEquals(Arrays.asList("--resume", "s1", "--goal-condition", "tests pass"),
+                SessionArgs.build(null, null, null, null, "s1", "default", null, " tests pass "));
+    }
 }

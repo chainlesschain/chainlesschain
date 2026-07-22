@@ -13,6 +13,7 @@
   // so it is intentionally omitted. Kept in sync with chat-html's SLASH map.
   var SLASH_COMMANDS = [
     ["/new", "start a new conversation"],
+    ["/clear", "clear this conversation and start fresh"],
     ["/sessions", "resume a saved session"],
     ["/plan", "enter plan mode"],
     ["/approve", "approve the current plan"],
@@ -31,6 +32,19 @@
     ["/retry", "regenerate the last prompt"],
     ["/handoff", "hand off to a background agent (web/mobile)"],
     ["/review", "review the current git diff"],
+    ["/goal", "set or show the session completion goal"],
+    ["/loop", "repeat a prompt on an interval (use /loop stop to stop)"],
+    ["/status", "show CLI, model, session, IDE and MCP status"],
+    ["/doctor", "diagnose CLI and environment configuration"],
+    ["/init", "initialize project instructions"],
+    ["/mcp", "show MCP server status"],
+    ["/hooks", "show configured hooks"],
+    ["/permissions", "show permission configuration"],
+    ["/agents", "show configured agents"],
+    ["/tasks", "show background tasks"],
+    ["/memory", "show project memory"],
+    ["/plugin", "show plugin information"],
+    ["/release-notes", "show CLI release notes"],
     ["/help", "list panel commands"],
   ];
 

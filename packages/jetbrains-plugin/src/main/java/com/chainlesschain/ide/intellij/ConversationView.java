@@ -45,6 +45,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * One conversation tab's view + live agent session — the per-tab unit behind the
@@ -133,6 +135,7 @@ final class ConversationView {
     // Per-view (= per-conversation), so a retry never replays another tab's
     // prompt (mirrors the VS Code panel's lastSentByTab). EDT-only.
     private String lastSentPrompt;
+    private volatile ScheduledFuture<?> loopTask;
     // Self-created temp images, one batch PER SENT MESSAGE (FIFO). The CLI
     // resolves a turn's images when that turn STARTS, and queued sends run in
     // order, so each turn_end deletes the OLDEST batch — not all of them. (The
@@ -532,11 +535,33 @@ final class ConversationView {
     private void handleSlash(String raw) {
         String[] parts = raw.trim().split("\\s+", 2);
         String cmd = parts[0].toLowerCase();
+        if ("/".equals(cmd)) {
+            append("type / followed by a command, or choose one from the suggestions\n");
+            return;
+        }
         switch (cmd) {
             case "/new":
+            case "/clear":
                 if (containerActions != null) containerActions.newConversation();
                 else append("ℹ /new unavailable\n");
                 return;
+            case "/goal":
+                setGoal(parts.length > 1 ? parts[1] : "");
+                return;
+            case "/loop":
+                setLoop(parts.length > 1 ? parts[1] : "");
+                return;
+            case "/status": runCliCommand("status"); return;
+            case "/doctor": runCliCommand("doctor"); return;
+            case "/init": runCliCommand("init"); return;
+            case "/mcp": runCliCommand("mcp"); return;
+            case "/hooks": runCliCommand("hook"); return;
+            case "/permissions": runCliCommand("permissions"); return;
+            case "/agents": runCliCommand("agents"); return;
+            case "/tasks": runCliCommand("tasks"); return;
+            case "/memory": runCliCommand("memory"); return;
+            case "/plugin": runCliCommand("plugin"); return;
+            case "/release-notes": runCliCommand("changelog"); return;
             case "/stop": {
                 AgentChatSession s = liveSession();
                 // interrupt() writes+flushes the child's stdin under the session
@@ -652,6 +677,68 @@ final class ConversationView {
             default:
                 append("ℹ unknown command " + cmd + " — try /help\n");
         }
+    }
+
+    private void setGoal(String spec) {
+        String value = spec == null ? "" : spec.trim();
+        if (value.isEmpty()) {
+            append("goal: " + (conv.goalCondition.isEmpty() ? "not set" : conv.goalCondition) + "\n");
+            return;
+        }
+        if ("clear".equalsIgnoreCase(value) || "off".equalsIgnoreCase(value)
+                || "none".equalsIgnoreCase(value)) {
+            conv.goalCondition = "";
+            restartForModeChange();
+            append("goal cleared\n");
+            return;
+        }
+        conv.goalCondition = value;
+        restartForModeChange();
+        append("goal set: " + value + " (applies on next message)\n");
+    }
+
+    private void setLoop(String spec) {
+        String value = spec == null ? "" : spec.trim();
+        if (value.isEmpty() || "stop".equalsIgnoreCase(value)
+                || "clear".equalsIgnoreCase(value) || "off".equalsIgnoreCase(value)) {
+            if (loopTask != null) loopTask.cancel(false);
+            loopTask = null;
+            append("loop stopped\n");
+            return;
+        }
+        long intervalMs = 300_000L;
+        String prompt = value;
+        java.util.regex.Matcher m = java.util.regex.Pattern
+                .compile("^(\\d+(?:\\.\\d+)?)(s|m|h)\\s+(.+)$", java.util.regex.Pattern.CASE_INSENSITIVE)
+                .matcher(value);
+        if (m.matches()) {
+            double n = Double.parseDouble(m.group(1));
+            long unit = "h".equalsIgnoreCase(m.group(2)) ? 3_600_000L
+                    : ("m".equalsIgnoreCase(m.group(2)) ? 60_000L : 1_000L);
+            intervalMs = Math.max(1_000L, Math.min(86_400_000L, (long) (n * unit)));
+            prompt = m.group(3).trim();
+        }
+        if (loopTask != null) loopTask.cancel(false);
+        final String loopPrompt = prompt;
+        final long delay = intervalMs;
+        loopTask = com.intellij.util.concurrency.AppExecutorUtil
+                .getAppScheduledExecutorService().scheduleWithFixedDelay(() ->
+                        SwingUtilities.invokeLater(() -> {
+                            if (!disposed) {
+                                input.setText(loopPrompt);
+                                sendCurrentInput();
+                            }
+                        }), 0, delay, TimeUnit.MILLISECONDS);
+        append("loop started: every " + delay + "ms\n");
+    }
+
+    private void runCliCommand(String command) {
+        final File cwd = project.getBasePath() != null ? new File(project.getBasePath()) : null;
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            String out = AgentChatSession.runCapture(java.util.Arrays.asList(command), cwd, 30000);
+            SwingUtilities.invokeLater(() -> append("/" + command + ": "
+                    + (out == null || out.trim().isEmpty() ? "(no output)" : out.trim()) + "\n"));
+        });
     }
 
     /** Best-effort {@code cc <kind> <id> --json} → append a short line off the EDT. */
@@ -1045,7 +1132,8 @@ final class ConversationView {
             }
         }
         o.extraArgs = SessionArgs.build(
-                llm[0], llm[1], llm[2], llm[3], conv.sessionId, conv.mode, conv.thinking);
+                llm[0], llm[1], llm[2], llm[3], conv.sessionId, conv.mode, conv.thinking,
+                conv.goalCondition);
 
         IdeBridgeService bridge = IdeBridgeService.getInstance(project);
         if (bridge != null && bridge.getPort() > 0) {
@@ -1675,6 +1763,8 @@ final class ConversationView {
 
     void dispose() {
         disposed = true; // gates ensureSession + every queued task body
+        if (loopTask != null) loopTask.cancel(false);
+        loopTask = null;
         sendExecutor.shutdown(); // pending sends may still finish; no new ones
         indexConversation("stopped"); // queued — INDEX_EXECUTOR outlives the view
         AgentChatSession s = liveSession();

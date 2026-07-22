@@ -38,6 +38,7 @@ public final class McpServer {
     private final String path;
     private final String sessionId;
     private final Map<String, Object> serverInfo;
+    private final Map<String, Object> ideCapabilities;
 
     private HttpServer server;
     private int port = -1;
@@ -64,6 +65,7 @@ public final class McpServer {
         this.token = token;
         this.path = path;
         this.serverInfo = serverInfo;
+        this.ideCapabilities = IdeCapabilities.build(tools);
         this.sessionId = randomHex();
     }
 
@@ -183,6 +185,9 @@ public final class McpServer {
                 caps.put("tools", new LinkedHashMap<>());
                 r.put("capabilities", caps);
                 r.put("serverInfo", serverInfo);
+                Map<String, Object> vendor = new LinkedHashMap<>();
+                vendor.put("ide", ideCapabilities);
+                r.put("chainlesschain", vendor);
                 return r;
             }
             case "tools/list": {
