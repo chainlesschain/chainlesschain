@@ -98,6 +98,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   `child_process` 调用迁移到显式 Broker provenance/scope；静态清单继续作为剩余入口的事实源。
 - `cc config edit` 也已移除 shell 字符串拼接：`$EDITOR` 被解析为 executable/argv，配置路径作为
   独立参数经 Broker 传递，路径和编辑器参数中的 shell 元字符不再被解释执行。
+- `cc update` 的 npm 全局安装与版本校验同样改为 executable/argv Broker 调用；Windows 明确选择
+  `.cmd` shim，目标版本不再拼接进 shell 命令。
 
 ### 4.2 建议设计
 

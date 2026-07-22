@@ -1,11 +1,46 @@
 import chalk from "chalk";
 import semver from "semver";
-import { execSync } from "node:child_process";
 import { checkForUpdates } from "../lib/version-checker.js";
 import { downloadRelease } from "../lib/downloader.js";
 import { VERSION } from "../constants.js";
 import { askConfirm } from "../lib/prompts.js";
 import logger from "../lib/logger.js";
+import { executionBroker } from "../lib/process-execution-broker/index.js";
+
+export const _deps = {
+  platform: process.platform,
+  spawnSync: (...args) => executionBroker.spawnSync(...args),
+};
+
+export function updateExecutableNames(platform = _deps.platform) {
+  return {
+    npm: platform === "win32" ? "npm.cmd" : "npm",
+    chainlesschain:
+      platform === "win32" ? "chainlesschain.cmd" : "chainlesschain",
+  };
+}
+
+function runUpdateProcess(command, args, origin) {
+  const result = _deps.spawnSync(command, args, {
+    encoding: "utf-8",
+    stdio: "pipe",
+    origin,
+    policy: "allow",
+    scope: "update",
+    shell: false,
+  });
+  if (result?.error) throw result.error;
+  if (result?.status != null && result.status !== 0) {
+    const error = new Error(
+      `Update process failed (exit ${result.status}): ${command}`,
+    );
+    error.status = result.status;
+    error.stdout = result.stdout;
+    error.stderr = result.stderr;
+    throw error;
+  }
+  return String(result?.stdout || "");
+}
 
 /**
  * A version that is safe to interpolate into `npm install -g chainlesschain@<v>`.
@@ -19,7 +54,7 @@ export function isInstallableVersion(v) {
   return typeof v === "string" && semver.valid(v) !== null;
 }
 
-async function selfUpdateCli(targetVersion) {
+export async function selfUpdateCli(targetVersion) {
   if (VERSION === targetVersion) {
     return true; // Already at the target version
   }
@@ -33,16 +68,19 @@ async function selfUpdateCli(targetVersion) {
 
   try {
     logger.info("Updating CLI package...");
-    execSync(`npm install -g chainlesschain@${targetVersion}`, {
-      encoding: "utf-8",
-      stdio: "pipe",
-    });
+    const executables = updateExecutableNames();
+    runUpdateProcess(
+      executables.npm,
+      ["install", "-g", `chainlesschain@${targetVersion}`],
+      "update:npm-install",
+    );
     // Verify the update actually took effect
     try {
-      const newVersion = execSync("chainlesschain --version", {
-        encoding: "utf-8",
-        stdio: "pipe",
-      }).trim();
+      const newVersion = runUpdateProcess(
+        executables.chainlesschain,
+        ["--version"],
+        "update:version-check",
+      ).trim();
       if (newVersion === targetVersion) {
         logger.success(`CLI updated to v${targetVersion}`);
         return true;

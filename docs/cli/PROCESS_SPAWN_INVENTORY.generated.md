@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 412 (runtime: 336, tooling: 53, test: 23).
+Total matches: 411 (runtime: 335, tooling: 53, test: 23).
 
 ## Policy
 
@@ -94,9 +94,8 @@ Total matches: 412 (runtime: 336, tooling: 53, test: 23).
 | `packages/cli/src/commands/team.js` | 21 | `import { spawn } from "child_process";` |
 | `packages/cli/src/commands/team.js` | 104 | `const child = spawn(command, {` |
 | `packages/cli/src/commands/team.js` | 134 | `const child = spawn(process.execPath, args, {` |
-| `packages/cli/src/commands/update.js` | 3 | `import { execSync } from "node:child_process";` |
-| `packages/cli/src/commands/update.js` | 36 | `execSync(`npm install -g chainlesschain@${targetVersion}`, {` |
-| `packages/cli/src/commands/update.js` | 42 | `const newVersion = execSync("chainlesschain --version", {` |
+| `packages/cli/src/commands/update.js` | 12 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
+| `packages/cli/src/commands/update.js` | 24 | `const result = _deps.spawnSync(command, args, {` |
 | `packages/cli/src/gateways/ws/ws-server.js` | 14 | `import { spawn } from "node:child_process";` |
 | `packages/cli/src/gateways/ws/ws-server.js` | 919 | `const child = spawn(process.execPath, [BIN_PATH, ...args], {` |
 | `packages/cli/src/harness/background-task-manager.js` | 4 | `* Tasks run in child_process.fork() for isolation.` |
