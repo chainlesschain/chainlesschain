@@ -273,6 +273,11 @@ jobs:
           echo "npm: $CURRENT | local: $PKG_VER"
           if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
             echo "Already published, skipping"
+          elif [ "${{ inputs.dry-run }}" = "true" ]; then
+            # Validate the standalone package tarball without asking npm to
+            # publish an already-published scoped version.
+            npm run build
+            npm pack --dry-run
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
