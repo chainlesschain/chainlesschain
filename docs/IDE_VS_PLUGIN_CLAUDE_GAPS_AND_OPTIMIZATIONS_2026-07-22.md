@@ -7,7 +7,7 @@
 
 本轮文档对应的高优先级实现已完成并发布：
 
-> 当前发布基线为 VS Code 0.37.25、JetBrains 0.4.68；下文的“已完成”仅表示仓库代码、定向测试或构建证据；正式 Marketplace 渠道、远程环境和长期稳定性仍需单独核验。VS Code Extension Host 与 JetBrains Remote Robot 已有真实 smoke 和发布门接线，不能把它们与多宿主矩阵混为一谈。
+> 当前发布基线为 VS Code 0.37.26、JetBrains 0.4.68；下文的“已完成”仅表示仓库代码、定向测试或构建证据；正式 Marketplace 渠道、远程环境和长期稳定性仍需单独核验。VS Code Extension Host 与 JetBrains Remote Robot 已有真实 smoke 和发布门接线，不能把它们与多宿主矩阵混为一谈。
 
 ### 本轮复核后已收口的历史开放项
 
@@ -25,20 +25,20 @@
 | VS Code 插件能力清单        | 已完成，随 MCP `initialize` 动态返回实际工具和可选能力                                                                                                                                          |
 | JetBrains 插件能力清单      | 已完成，随 MCP `initialize` 动态返回实际工具和可选能力                                                                                                                                          |
 | VS Code 契约测试            | 已完成，Node 测试 2/2 通过                                                                                                                                                                      |
-| VS Code 真实 Extension Host | 已完成，当前 `0.37.25` VSIX 在 VS Code Stable 干净 profile 激活，16 个关键命令和 Bridge 端口校验通过                                                                                            |
+| VS Code 真实 Extension Host | 已完成，当前 `0.37.26` VSIX 在 VS Code Stable 干净 profile 激活，16 个关键命令和 Bridge 端口校验通过                                                                                            |
 | JetBrains 契约测试          | 已完成，`IdeCapabilitiesTest` 通过                                                                                                                                                              |
 | JetBrains 纯逻辑回归        | 已完成，`PureLogicSmokeMain` 1219/1219 通过                                                                                                                                                     |
 | JetBrains 完整单元测试      | 已完成，Gradle `test` 通过，602 项测试无失败                                                                                                                                                    |
 | JetBrains 真实 GUI smoke    | 已完成，Remote Robot `IdeUiSmokeTest.chainlessChainToolWindowOpens` 通过                                                                                                                        |
 | JetBrains 插件构建          | 已完成，`0.4.68` ZIP 构建成功                                                                                                                                                                   |
-| VS Code VSIX 构建           | 已完成，`0.37.25` VSIX 构建成功                                                                                                                                                                 |
-| Open VSX 发布               | 已发布 `0.37.25`；公开 API 已回读并确认可下载，发布 workflow 已接入 `scripts/verify-ide-marketplace.mjs`                                                                                        |
+| VS Code VSIX 构建           | 已完成，`0.37.26` VSIX 构建成功                                                                                                                                                                 |
+| Open VSX 发布               | 已发布 `0.37.26`；公开 API 已回读并确认可下载，发布 workflow 已接入 `scripts/verify-ide-marketplace.mjs`                                                                                        |
 | 定向复核测试                | CLI 6 个相关测试文件 48 项通过；Desktop bootstrap 2 项通过；关键 JS 语法检查通过                                                                                                                |
 | IDE Runtime Doctor          | VS Code `chainlesschain.ide.doctor` now includes extension/VS Code versions, workspace trust, workspace path, live bridge state, `cc ide status`, and `cc ide doctor` output; 6 assertions pass |
 | JetBrains Marketplace 发布  | `0.4.68` 已发布；公开 API 已回读并确认 `approve=true`、`listed=true`、`hidden=false`；发布 workflow 已接入同一验证脚本                                  |
 | VS Code 官方 Marketplace    | 未发布，当前未配置 `VSCE_PAT`；不影响 Open VSX 发布                                                                                                                                             |
 
-本轮版本：VS Code `0.37.25`，JetBrains `0.4.68`。Plan/Diff、后台 Agent、Remote、Artifact、Managed CLI、权限保护和安全审计等项目经代码核对已在现有 CLI/插件实现中落地；本轮没有重复实现。
+本轮版本：VS Code `0.37.26`，JetBrains `0.4.68`。Plan/Diff、后台 Agent、Remote、Artifact、Managed CLI、权限保护和安全审计等项目经代码核对已在现有 CLI/插件实现中落地；本轮没有重复实现。
 
 ## 一、结论摘要
 
@@ -81,7 +81,7 @@ Claude Code 的 JetBrains 插件则突出原生 Diff、选择区/当前文件上
 
 > 说明：下方链接说明的是能力来源；版本以本节顶部的当前代码基线为准。历史版本号不会改变本报告的结论。
 
-- [VS Code package.json](../packages/vscode-extension/package.json)（当前版本 `0.37.25`、命令、权限和配置入口）。
+- [VS Code package.json](../packages/vscode-extension/package.json)（当前版本 `0.37.26`、命令、权限和配置入口）。
 - [VS Code IDE tools](../packages/vscode-extension/src/ide-tools.js) 与 [semantic tools](../packages/vscode-extension/src/semantic-tools.js)。
 - [JetBrains plugin.xml](../packages/jetbrains-plugin/src/main/resources/META-INF/plugin.xml)（当前版本以插件构建配置和顶部基线为准、Tool Window、Action 和能力说明）。
 - [JetBrains IdeTools](../packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/IdeTools.java) 与 [SemanticTools](../packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SemanticTools.java)。
@@ -338,7 +338,7 @@ and its official `/loop` and `/goal` workflows.
 
 ## Command parity implementation and verification
 
-- VS Code `0.37.25`: the current slash-command catalog is discoverable from
+- VS Code `0.37.26`: the current slash-command catalog is discoverable from
   `/`; command syntax passes Node parse and parity smoke checks.
 - JetBrains `0.4.68`: the same command catalog is implemented in
   `SlashCommands`, with `/goal` passed as `--goal-condition` and `/loop`
@@ -387,4 +387,4 @@ and its official `/loop` and `/goal` workflows.
 ### `/` 输入边界修复
 
 Fixed the bare `/` edge case that previously fell through to `unknown command /`.
-The fix is included in VS Code `0.37.25` and JetBrains `0.4.68`.
+The fix is included in VS Code `0.37.26` and JetBrains `0.4.68`.

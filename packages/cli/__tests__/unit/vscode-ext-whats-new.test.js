@@ -9,6 +9,7 @@ import { describe, it, expect } from "vitest";
 import {
   buildChangelogArgs,
   parseChangelogJson,
+  loadBundledChangelog,
   changelogToMarkdown,
   upgradeNudge,
 } from "../../../vscode-extension/src/whats-new.js";
@@ -49,6 +50,28 @@ describe("parseChangelogJson", () => {
     expect(parseChangelogJson("error: unknown command 'changelog'")).toBeNull();
     expect(parseChangelogJson('{"notReleases": []}')).toBeNull();
     expect(parseChangelogJson("")).toBeNull();
+  });
+});
+
+describe("loadBundledChangelog", () => {
+  it("recovers from a Windows cc wrapper whose CLI returned empty JSON", () => {
+    const reads = new Map([
+      [
+        "/nodejs/node_modules/chainlesschain/src/data/changelog.json",
+        JSON.stringify({ releases: [{ cliVersion: "0.162.175" }] }),
+      ],
+    ]);
+    const fakeFs = {
+      existsSync: (filePath) => reads.has(filePath),
+      readFileSync: (filePath) => reads.get(filePath),
+    };
+    const releases = loadBundledChangelog({
+      command: "cc",
+      env: { PATH: "/nodejs" },
+      fsApi: fakeFs,
+      pathApi: require("node:path/posix"),
+    });
+    expect(releases).toEqual([{ cliVersion: "0.162.175" }]);
   });
 });
 

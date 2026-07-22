@@ -770,6 +770,7 @@ function activate(context) {
       const {
         buildChangelogArgs,
         parseChangelogJson,
+        loadBundledChangelog,
         changelogToMarkdown,
         MIN_CHANGELOG_CLI,
       } = require("./whats-new.js");
@@ -780,7 +781,8 @@ function activate(context) {
         args: buildChangelogArgs({}),
         timeoutMs: 15000,
       });
-      const releases = parseChangelogJson(text);
+      const releases =
+        parseChangelogJson(text) || loadBundledChangelog({ command: getResolvedCli() });
       if (!releases || releases.length === 0) {
         vscode.window.showInformationMessage(
           vscode.l10n.t(

@@ -2,6 +2,12 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.26] - What's New fallback (2026-07-22)
+
+- When an older Windows `cc` wrapper returns an empty changelog because it
+  discovers an unrelated system `CHANGELOG.md`, the IDE now reads the
+  changelog artifact bundled in the installed CLI package.
+
 ## [0.37.25] - Security and runtime diagnostics (2026-07-22)
 
 - Made IDE bridge lockfile permission verification fail-closed by default,

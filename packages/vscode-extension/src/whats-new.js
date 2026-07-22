@@ -5,6 +5,9 @@
  * extension.js wires the command + toast.
  */
 
+const fs = require("node:fs");
+const path = require("node:path");
+
 const MIN_CHANGELOG_CLI = "0.162.151"; // first cc with `cc changelog`
 
 /** argv for the CLI call behind the panel. */
@@ -21,6 +24,57 @@ function parseChangelogJson(text) {
   } catch {
     return null;
   }
+}
+
+/**
+ * Read the changelog artifact shipped inside the installed CLI package.
+ *
+ * Older Windows installations can have a parent-level `CHANGELOG.md` (the
+ * Node.js distribution ships one) that makes `cc changelog --json` return an
+ * empty release list. The npm package still contains the authoritative
+ * `src/data/changelog.json`, so the IDE can recover without waiting for a CLI
+ * upgrade or requiring network access.
+ */
+function loadBundledChangelog({
+  command = "cc",
+  env = process.env,
+  fsApi = fs,
+  pathApi = path,
+} = {}) {
+  const commandText = typeof command === "string" ? command.trim() : "";
+  const pathEntries = String(env?.PATH || "")
+    .split(pathApi.delimiter)
+    .filter(Boolean);
+  const commandCandidates = pathApi.isAbsolute(commandText)
+    ? [commandText]
+    : [
+        commandText,
+        ...pathEntries.flatMap((entry) =>
+          process.platform === "win32"
+            ? [pathApi.join(entry, `${commandText}.cmd`), pathApi.join(entry, commandText)]
+            : [pathApi.join(entry, commandText)],
+        ),
+      ];
+  const packageRoots = [];
+  for (const executable of commandCandidates) {
+    if (!pathApi.isAbsolute(executable)) continue;
+    const dir = pathApi.dirname(executable);
+    packageRoots.push(
+      pathApi.join(dir, "node_modules", "chainlesschain"),
+      pathApi.join(dir, "..", "node_modules", "chainlesschain"),
+    );
+  }
+  for (const root of [...new Set(packageRoots)]) {
+    const dataPath = pathApi.join(root, "src", "data", "changelog.json");
+    try {
+      if (!fsApi.existsSync(dataPath)) continue;
+      const data = JSON.parse(fsApi.readFileSync(dataPath, "utf8"));
+      if (Array.isArray(data?.releases) && data.releases.length > 0) return data.releases;
+    } catch {
+      // A broken optional fallback must not hide the normal CLI error path.
+    }
+  }
+  return null;
 }
 
 /**
@@ -73,6 +127,7 @@ module.exports = {
   MIN_CHANGELOG_CLI,
   buildChangelogArgs,
   parseChangelogJson,
+  loadBundledChangelog,
   changelogToMarkdown,
   upgradeNudge,
 };
