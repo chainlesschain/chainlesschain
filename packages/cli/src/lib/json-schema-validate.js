@@ -173,9 +173,7 @@ export function computeSchemaDigest(schema) {
 }
 
 /** Resolve a local `#/...` JSON Pointer $ref within `root`; null if unresolved. */
-function resolveRef(root, ref) {
-  if (typeof ref !== "string" || !ref.startsWith("#")) return null;
-  const frag = ref.slice(1);
+function resolvePointer(root, frag) {
   if (frag === "" || frag === "/") return root;
   const parts = frag
     .replace(/^\//, "")
@@ -189,15 +187,26 @@ function resolveRef(root, ref) {
   return cur === undefined ? null : cur;
 }
 
+/** Resolve local refs or a caller-provided external document registry. */
+function resolveRef(root, ref, externalSchemas = {}) {
+  if (typeof ref !== "string") return null;
+  if (ref.startsWith("#")) return resolvePointer(root, ref.slice(1));
+  const hash = ref.indexOf("#");
+  const uri = hash >= 0 ? ref.slice(0, hash) : ref;
+  const document = externalSchemas?.[ref] ?? externalSchemas?.[uri];
+  if (document === undefined) return null;
+  return hash >= 0 ? resolvePointer(document, ref.slice(hash + 1)) : document;
+}
+
 // ─── instance validation ─────────────────────────────────────────────────────
 
 /**
  * Validate `value` against `schema`.
  * @returns {{valid:boolean, errors:Array<{code,keyword,instancePath,schemaPath,message}>}}
  */
-export function validate(value, schema) {
+export function validate(value, schema, { externalSchemas = {} } = {}) {
   const errors = [];
-  _validate(value, schema, [], [], schema, errors, 0);
+  _validate(value, schema, [], [], schema, errors, 0, externalSchemas);
   return { valid: errors.length === 0, errors };
 }
 
@@ -211,7 +220,7 @@ function _err(errors, keyword, instSegs, schemaSegs, message) {
   });
 }
 
-function _validate(value, schema, inst, sch, root, errors, depth) {
+function _validate(value, schema, inst, sch, root, errors, depth, externalSchemas) {
   if (schema === true || schema === undefined) return;
   if (schema === false) {
     _err(errors, "false", inst, sch, "schema is `false` — no value is valid");
@@ -222,7 +231,7 @@ function _validate(value, schema, inst, sch, root, errors, depth) {
 
   // $ref — validate against the referenced schema (local only).
   if (typeof schema.$ref === "string") {
-    const target = resolveRef(root, schema.$ref);
+    const target = resolveRef(root, schema.$ref, externalSchemas);
     if (target == null) {
       _err(
         errors,
@@ -232,7 +241,7 @@ function _validate(value, schema, inst, sch, root, errors, depth) {
         `cannot resolve $ref "${schema.$ref}"`,
       );
     } else {
-      _validate(value, target, inst, [...sch, "$ref"], root, errors, depth + 1);
+      _validate(value, target, inst, [...sch, "$ref"], root, errors, depth + 1, externalSchemas);
     }
     // sibling keywords still apply in 2020-12; fall through.
   }
@@ -282,12 +291,12 @@ function _validate(value, schema, inst, sch, root, errors, depth) {
   if (t === "number" || t === "integer")
     _validateNumber(value, schema, inst, sch, errors);
   if (t === "array")
-    _validateArray(value, schema, inst, sch, root, errors, depth);
+    _validateArray(value, schema, inst, sch, root, errors, depth, externalSchemas);
   if (t === "object")
-    _validateObject(value, schema, inst, sch, root, errors, depth);
+    _validateObject(value, schema, inst, sch, root, errors, depth, externalSchemas);
 
-  _validateCombinators(value, schema, inst, sch, root, errors, depth);
-  _validateConditional(value, schema, inst, sch, root, errors, depth);
+  _validateCombinators(value, schema, inst, sch, root, errors, depth, externalSchemas);
+  _validateConditional(value, schema, inst, sch, root, errors, depth, externalSchemas);
 }
 
 /**
@@ -295,9 +304,9 @@ function _validate(value, schema, inst, sch, root, errors, depth) {
  * own errors are never reported; if the value matches `if`, `then` applies,
  * otherwise `else` applies. No `if` keyword ⇒ then/else are inert.
  */
-function _validateConditional(value, schema, inst, sch, root, errors, depth) {
+function _validateConditional(value, schema, inst, sch, root, errors, depth, externalSchemas) {
   if (schema.if === undefined) return;
-  const matched = _branchValid(value, schema.if, root, depth);
+  const matched = _branchValid(value, schema.if, root, depth, externalSchemas);
   if (matched) {
     if (schema.then !== undefined) {
       _validate(
@@ -308,10 +317,11 @@ function _validateConditional(value, schema, inst, sch, root, errors, depth) {
         root,
         errors,
         depth,
+        externalSchemas,
       );
     }
   } else if (schema.else !== undefined) {
-    _validate(value, schema.else, inst, [...sch, "else"], root, errors, depth);
+    _validate(value, schema.else, inst, [...sch, "else"], root, errors, depth, externalSchemas);
   }
 }
 
@@ -423,7 +433,7 @@ function _validateNumber(value, schema, inst, sch, errors) {
   }
 }
 
-function _validateArray(value, schema, inst, sch, root, errors, depth) {
+function _validateArray(value, schema, inst, sch, root, errors, depth, externalSchemas) {
   if (Number.isFinite(schema.minItems) && value.length < schema.minItems) {
     _err(
       errors,
@@ -463,7 +473,7 @@ function _validateArray(value, schema, inst, sch, root, errors, depth) {
   if (schema.contains !== undefined) {
     const matches = value.reduce(
       (count, item, i) =>
-        count + (_branchValid(item, schema.contains, root, depth) ? 1 : 0),
+        count + (_branchValid(item, schema.contains, root, depth, externalSchemas) ? 1 : 0),
       0,
     );
     const min = Number.isFinite(schema.minContains) ? schema.minContains : 1;
@@ -488,6 +498,7 @@ function _validateArray(value, schema, inst, sch, root, errors, depth) {
         root,
         errors,
         depth,
+        externalSchemas,
       );
     } else if (schema.items !== undefined) {
       _validate(
@@ -498,12 +509,13 @@ function _validateArray(value, schema, inst, sch, root, errors, depth) {
         root,
         errors,
         depth,
+        externalSchemas,
       );
     }
   });
 }
 
-function _validateObject(value, schema, inst, sch, root, errors, depth) {
+function _validateObject(value, schema, inst, sch, root, errors, depth, externalSchemas) {
   const keys = Object.keys(value);
   if (
     Number.isFinite(schema.minProperties) &&
@@ -555,12 +567,13 @@ function _validateObject(value, schema, inst, sch, root, errors, depth) {
         root,
         errors,
         depth,
+        externalSchemas,
       );
     } else {
       const matches = patternEntries.filter(([re]) => re && re.test(k));
       if (matches.length > 0) {
         for (const [, pattern, sub] of matches) {
-          _validate(v, sub, [...inst, k], [...sch, "patternProperties", pattern], root, errors, depth);
+          _validate(v, sub, [...inst, k], [...sch, "patternProperties", pattern], root, errors, depth, externalSchemas);
         }
         continue;
       }
@@ -581,13 +594,14 @@ function _validateObject(value, schema, inst, sch, root, errors, depth) {
         root,
         errors,
         depth,
+        externalSchemas,
       );
       }
     }
   }
   if (schema.propertyNames !== undefined) {
     for (const key of keys) {
-      _validate(key, schema.propertyNames, [...inst, key], [...sch, "propertyNames"], root, errors, depth);
+      _validate(key, schema.propertyNames, [...inst, key], [...sch, "propertyNames"], root, errors, depth, externalSchemas);
     }
   }
   if (schema.dependentRequired && typeof schema.dependentRequired === "object") {
@@ -603,26 +617,26 @@ function _validateObject(value, schema, inst, sch, root, errors, depth) {
   if (schema.dependentSchemas && typeof schema.dependentSchemas === "object") {
     for (const [key, sub] of Object.entries(schema.dependentSchemas)) {
       if (Object.prototype.hasOwnProperty.call(value, key)) {
-        _validate(value, sub, inst, [...sch, "dependentSchemas", key], root, errors, depth);
+        _validate(value, sub, inst, [...sch, "dependentSchemas", key], root, errors, depth, externalSchemas);
       }
     }
   }
 }
 
-function _branchValid(value, subschema, root, depth) {
+function _branchValid(value, subschema, root, depth, externalSchemas) {
   const errs = [];
-  _validate(value, subschema, [], [], root, errs, depth + 1);
+  _validate(value, subschema, [], [], root, errs, depth + 1, externalSchemas);
   return errs.length === 0;
 }
 
-function _validateCombinators(value, schema, inst, sch, root, errors, depth) {
+function _validateCombinators(value, schema, inst, sch, root, errors, depth, externalSchemas) {
   if (Array.isArray(schema.allOf)) {
     schema.allOf.forEach((s, i) => {
-      _validate(value, s, inst, [...sch, "allOf", i], root, errors, depth);
+      _validate(value, s, inst, [...sch, "allOf", i], root, errors, depth, externalSchemas);
     });
   }
   if (Array.isArray(schema.anyOf)) {
-    const ok = schema.anyOf.some((s) => _branchValid(value, s, root, depth));
+    const ok = schema.anyOf.some((s) => _branchValid(value, s, root, depth, externalSchemas));
     if (!ok)
       _err(
         errors,
@@ -634,7 +648,7 @@ function _validateCombinators(value, schema, inst, sch, root, errors, depth) {
   }
   if (Array.isArray(schema.oneOf)) {
     const matches = schema.oneOf.filter((s) =>
-      _branchValid(value, s, root, depth),
+      _branchValid(value, s, root, depth, externalSchemas),
     ).length;
     if (matches !== 1) {
       _err(
@@ -648,7 +662,7 @@ function _validateCombinators(value, schema, inst, sch, root, errors, depth) {
   }
   if (
     schema.not !== undefined &&
-    _branchValid(value, schema.not, root, depth)
+    _branchValid(value, schema.not, root, depth, externalSchemas)
   ) {
     _err(
       errors,

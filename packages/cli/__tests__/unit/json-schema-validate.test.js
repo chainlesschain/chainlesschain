@@ -178,6 +178,23 @@ describe("validate — combinators + $ref", () => {
       "$ref",
     );
   });
+
+  it("resolves explicit external schema documents without network access", () => {
+    const schema = {
+      type: "object",
+      properties: {
+        user: { $ref: "https://schemas.test/user.json#/$defs/name" },
+      },
+    };
+    const external = {
+      "https://schemas.test/user.json": {
+        $defs: { name: { type: "string", minLength: 3 } },
+      },
+    };
+    expect(validate({ user: "Ada" }, schema, { externalSchemas: external }).valid).toBe(true);
+    expect(validate({ user: "A" }, schema, { externalSchemas: external }).errors[0].code).toBe("minLength");
+    expect(validate({ user: "Ada" }, schema).errors[0].code).toBe("$ref");
+  });
 });
 
 describe("validate — format assertions", () => {
