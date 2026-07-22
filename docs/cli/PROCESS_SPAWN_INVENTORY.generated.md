@@ -335,7 +335,7 @@ Total matches: 413 (runtime: 337, tooling: 53, test: 23).
 | `packages/cli/src/runtime/agent-core.js` | 5197 | `// fully-defaulted spawn (→ "default") touches neither tools nor confirmer nor gate.` |
 | `packages/cli/src/runtime/agent-core.js` | 5253 | `// sub-agent runs, so a policy hook can VETO the spawn (`block`) or INJECT` |
 | `packages/cli/src/runtime/diagnostics.js` | 15 | `import { execSync } from "node:child_process";` |
-| `packages/cli/src/runtime/diagnostics.js` | 72 | `return execSync(cmd, { encoding: "utf-8" }).trim();` |
+| `packages/cli/src/runtime/diagnostics.js` | 73 | `return execSync(cmd, { encoding: "utf-8" }).trim();` |
 | `packages/cli/src/runtime/headless-runner.js` | 2060 | `gc.spawnSync \|\| (await import("node:child_process")).spawnSync;` |
 | `packages/cli/src/skills/video-editing/extractors/audio-extractor.js` | 14 | `import { spawn } from "child_process";` |
 | `packages/cli/src/skills/video-editing/extractors/audio-extractor.js` | 126 | `const proc = spawn("python", [script, audioPath], {` |
