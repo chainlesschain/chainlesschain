@@ -361,8 +361,8 @@ class ProcessExecutionBroker extends EventEmitter {
     }
 
     // Use native spawn from _native (set by patch-child-process.js)
-    const nativeSpawn = this._native?.spawn || nativeSpawn;
-    const proc = nativeSpawn(command, args, optsForSpawn);
+    const nativeSpawnFn = this._native?.spawn || nativeSpawn;
+    const proc = nativeSpawnFn(command, args, optsForSpawn);
 
     // P0-1: Post-spawn sandbox setup (Windows Job Object association, etc.)
     if (sandboxApplied && proc.pid) {
@@ -568,7 +568,18 @@ class ProcessExecutionBroker extends EventEmitter {
       shell: true,
       origin: options.origin || "shell:execSync",
     };
-    return this.spawnSync(command, [], spawnOpts);
+    const result = this.spawnSync(command, [], spawnOpts);
+    if (result?.error) throw result.error;
+    if (result?.status != null && result.status !== 0) {
+      const error = new Error(
+        `Command failed (exit ${result.status}): ${command}`,
+      );
+      error.status = result.status;
+      error.stdout = result.stdout;
+      error.stderr = result.stderr;
+      throw error;
+    }
+    return result?.stdout ?? "";
   }
 
   execFile(file, args, options, callback) {
