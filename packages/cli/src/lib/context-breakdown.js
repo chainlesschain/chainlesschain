@@ -57,6 +57,25 @@ export function breakdownInstructionSources(files, estimateTokens, cwd) {
   return { sources, total };
 }
 
+/** Attribute the exact MCP tool schemas admitted to a persisted run. */
+export function breakdownMcpSchemas(definitions, estimateTokens) {
+  const est = typeof estimateTokens === "function" ? estimateTokens : () => 0;
+  const list = Array.isArray(definitions) ? definitions : [];
+  const sources = list
+    .map((definition) => {
+      const fn = definition?.function || definition || {};
+      const name = String(fn.name || definition?.name || "mcp");
+      const schema = fn.parameters || definition?.inputSchema || {};
+      return {
+        source: name.split("__")[1] || name,
+        tool: name,
+        tokens: est(JSON.stringify({ description: fn.description || "", parameters: schema })),
+      };
+    })
+    .filter((row) => row.tokens > 0);
+  return { sources, total: sources.reduce((sum, row) => sum + row.tokens, 0) };
+}
+
 // role bucket key → { label, kind } for the ranked source list.
 const MESSAGE_SOURCE_ROWS = [
   ["system", "system messages", "message"],
@@ -84,6 +103,7 @@ export function rankContextSources({
   instructionTotal = 0,
   buckets = {},
   counts = {},
+  extraSources = [],
 } = {}) {
   const rows = [];
   if (instructionTotal > 0) {
@@ -104,6 +124,16 @@ export function rankContextSources({
         count: counts[key] ?? null,
       });
     }
+  }
+  for (const row of Array.isArray(extraSources) ? extraSources : []) {
+    if (!row || !(row.tokens > 0)) continue;
+    rows.push({
+      kind: row.kind || "runtime",
+      source: row.source || "runtime",
+      tokens: row.tokens,
+      count: row.count ?? null,
+      tool: row.tool || null,
+    });
   }
   const total = rows.reduce((s, x) => s + x.tokens, 0);
   // Stable sort: tokens desc, then source name for deterministic ties.

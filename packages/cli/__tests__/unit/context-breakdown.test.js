@@ -8,6 +8,7 @@ import { describe, it, expect } from "vitest";
 import {
   relativizeInstructionPath,
   breakdownInstructionSources,
+  breakdownMcpSchemas,
   rankContextSources,
 } from "../../src/lib/context-breakdown.js";
 
@@ -80,6 +81,15 @@ describe("breakdownInstructionSources", () => {
 });
 
 describe("rankContextSources", () => {
+  it("attributes MCP schema tokens by server/tool source", () => {
+    const mcp = breakdownMcpSchemas([
+      { function: { name: "mcp__github__issues", description: "List issues", parameters: { type: "object" } } },
+    ], est);
+    expect(mcp.sources[0]).toMatchObject({ source: "github", tool: "mcp__github__issues" });
+    expect(mcp.total).toBeGreaterThan(0);
+    expect(rankContextSources({ extraSources: mcp.sources.map((s) => ({ ...s, kind: "mcp_schema" })) }).sources[0]).toMatchObject({ kind: "mcp_schema" });
+  });
+
   it("merges instruction total + message buckets, ranked by tokens desc", () => {
     const { sources, total } = rankContextSources({
       instructionTotal: 100,

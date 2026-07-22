@@ -1340,6 +1340,25 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     });
   }
 
+  // Persist the admitted runtime schema surface so `cc context --sources` can
+  // attribute MCP cost to the actual server/tool definitions used by this run,
+  // rather than guessing from the current environment on a later invocation.
+  if (persist && mcp?.extraToolDefinitions?.length) {
+    try {
+      store.appendEvent(sessionId, "context_sources", {
+        mcp: mcp.extraToolDefinitions.map((definition) => ({
+          function: {
+            name: definition?.function?.name || null,
+            description: definition?.function?.description || "",
+            parameters: definition?.function?.parameters || {},
+          },
+        })),
+      });
+    } catch {
+      // Source attribution is observability-only; never fail the agent run.
+    }
+  }
+
   const loopOptions = {
     model,
     provider,

@@ -100,12 +100,17 @@ export function registerContextCommand(program) {
       // different window.
       let recordedModel = "";
       let recordedProvider = "";
+      let recordedContextSources = null;
       try {
-        const start = (readEvents(sessionId) || []).find(
+        const sessionEvents = readEvents(sessionId) || [];
+        const start = sessionEvents.find(
           (e) => e.type === "session_start",
         );
         recordedModel = start?.data?.model || "";
         recordedProvider = start?.data?.provider || "";
+        recordedContextSources = [...sessionEvents]
+          .reverse()
+          .find((e) => e.type === "context_sources")?.data || null;
       } catch {
         // header optional — fall through to flags/defaults
       }
@@ -129,7 +134,7 @@ export function registerContextCommand(program) {
         try {
           const { loadProjectInstructions } =
             await import("../lib/project-instructions.js");
-          const { breakdownInstructionSources, rankContextSources } =
+          const { breakdownInstructionSources, breakdownMcpSchemas, rankContextSources } =
             await import("../lib/context-breakdown.js");
           const cwd = process.cwd();
           let instructionExcludes;
@@ -151,15 +156,25 @@ export function registerContextCommand(program) {
             estimateTokens,
             cwd,
           );
+          const mcp = breakdownMcpSchemas(
+            recordedContextSources?.mcp || [],
+            estimateTokens,
+          );
           const ranked = rankContextSources({
             instructionTotal: instr.total,
             buckets,
             counts,
+            extraSources: mcp.sources.map((source) => ({
+              ...source,
+              kind: "mcp_schema",
+            })),
           });
           sourceReport = {
             cwd,
             instructions: instr.sources,
             instructionTokens: instr.total,
+            mcpSchemas: mcp.sources,
+            mcpSchemaTokens: mcp.total,
             ranked: ranked.sources,
             combinedTotal: ranked.total,
           };
@@ -189,6 +204,8 @@ export function registerContextCommand(program) {
                     sources: sourceReport.ranked,
                     instructions: sourceReport.instructions,
                     instructionTokens: sourceReport.instructionTokens,
+                    mcpSchemas: sourceReport.mcpSchemas,
+                    mcpSchemaTokens: sourceReport.mcpSchemaTokens,
                     combinedTotal: sourceReport.combinedTotal,
                     cwd: sourceReport.cwd,
                   }
