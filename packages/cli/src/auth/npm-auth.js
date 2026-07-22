@@ -4,8 +4,18 @@
  * @module auth/npm-auth
  */
 
-import { execSync } from "child_process";
 import { logger } from "../lib/logger.js";
+import { executionBroker } from "../lib/process-execution-broker/index.js";
+
+export const _deps = {
+  execSync: (command, options) =>
+    executionBroker.execSync(command, {
+      ...options,
+      origin: "auth:npm",
+      policy: "allow",
+      scope: "auth",
+    }),
+};
 
 /**
  * Check if user is currently logged in to npm
@@ -13,7 +23,7 @@ import { logger } from "../lib/logger.js";
  */
 export function isLoggedIn() {
   try {
-    execSync("npm whoami", { stdio: "ignore" });
+    _deps.execSync("npm whoami", { stdio: "ignore" });
     return true;
   } catch {
     return false;
@@ -26,7 +36,7 @@ export function isLoggedIn() {
  */
 export function getCurrentUser() {
   try {
-    return execSync("npm whoami", { encoding: "utf8" }).trim();
+    return _deps.execSync("npm whoami", { encoding: "utf8" }).trim();
   } catch {
     return null;
   }
@@ -39,7 +49,7 @@ export function getCurrentUser() {
 export async function login() {
   try {
     logger.info("Running npm login...");
-    execSync("npm login", { stdio: "inherit" });
+    _deps.execSync("npm login", { stdio: "inherit" });
     return isLoggedIn();
   } catch (err) {
     logger.error(`Login failed: ${err.message}`);
@@ -54,7 +64,7 @@ export async function login() {
 export async function logout() {
   try {
     logger.info("Running npm logout...");
-    execSync("npm logout", { stdio: "inherit" });
+    _deps.execSync("npm logout", { stdio: "inherit" });
     return !isLoggedIn();
   } catch (err) {
     logger.error(`Logout failed: ${err.message}`);
