@@ -112,7 +112,7 @@ describe("cc agent --bg --worktree dispatch", () => {
     expect(launch.argv).not.toContain("--worktree");
     expect(launch.followUpArgv).not.toContain("--worktree");
     expect(launch.argv).toContain("--session");
-    expect(process.cwd()).toBe(repoRoot);
+    expect(process.cwd().replace(/^\/private\//, "/")).toBe(repoRoot);
 
     // Ownership was transferred: the foreground exit/finish path must not
     // reap the directory out from under the detached worker.
