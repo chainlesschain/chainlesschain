@@ -134,7 +134,7 @@ function renderMarkdown(hits) {
     }
     lines.push("");
   }
-  return `${lines.join("\n")}\n`;
+  return `${lines.join("\n").replace(/\n+$/, "")}\n`;
 }
 
 function main(argv) {
