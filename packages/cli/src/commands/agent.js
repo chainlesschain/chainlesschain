@@ -430,6 +430,21 @@ export function registerAgentCommand(program) {
         console.log(JSON.stringify(buildAgentCapabilities(), null, 2));
         return;
       }
+      let toolAdmission = null;
+      if (process.env.CC_TOOL_ADMISSION) {
+        try {
+          const { parseToolAdmissionConfig } =
+            await import("../lib/agent-tool-admission.js");
+          toolAdmission = parseToolAdmissionConfig(
+            process.env.CC_TOOL_ADMISSION,
+          );
+        } catch (error) {
+          process.stderr.write(
+            `CC_TOOL_ADMISSION: ${error.message}; refusing an ungoverned session.\n`,
+          );
+          process.exit(6);
+        }
+      }
       // CC_API_KEY env fallback for --api-key: lets callers (IDE plugins,
       // scripts) pass the key via the environment instead of argv, where it
       // is visible to every local process (/proc/<pid>/cmdline, Win32_Process).
@@ -1186,6 +1201,7 @@ export function registerAgentCommand(program) {
           baseUrl: visionLlm.baseUrl || options.baseUrl,
           apiKey: visionLlm.apiKey || options.apiKey,
           sessionId: options.session,
+          toolAdmission,
           // A resolved --session/--continue/--resume id means "replay this
           // conversation and persist the new turns"; the runner loads prior
           // history when the id already exists and creates it otherwise.

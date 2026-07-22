@@ -14,6 +14,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { ChatViewProvider } from "../../../vscode-extension/src/chat/chat-view.js";
+import { buildIdeToolAdmission } from "../../../vscode-extension/src/chat/chat-events.js";
 
 function makeMemento(seed = {}) {
   const m = new Map(Object.entries(seed));
@@ -59,6 +60,32 @@ function makeProvider(chatGet = () => undefined) {
   };
   return { provider, spawns };
 }
+
+describe("ChatViewProvider tool admission env", () => {
+  it("passes a bounded, secret-free admission envelope to the CLI", () => {
+    const { provider, spawns } = makeProvider(() => undefined);
+    provider._handleMessage({ type: "send", text: "hi" });
+
+    const admission = JSON.parse(spawns[0].cfg.env.CC_TOOL_ADMISSION);
+    expect(admission).toEqual(buildIdeToolAdmission("vscode-extension"));
+    expect(admission).toMatchObject({
+      enforce: true,
+      source: "vscode-extension",
+      capabilityGranted: true,
+      policyAllowed: true,
+      permissionGranted: true,
+      budgetOk: true,
+      uiSupported: true,
+      tools: {
+        publish_artifact: { policyAllowed: false },
+        notify: { policyAllowed: false },
+      },
+    });
+    expect(spawns[0].cfg.env.CC_TOOL_ADMISSION).not.toMatch(
+      /apiKey|token|prompt|arguments/,
+    );
+  });
+});
 
 describe("ChatViewProvider — lean context env", () => {
   it("injects CC_PROJECT_MEMORY=lean by default (setting unset)", () => {

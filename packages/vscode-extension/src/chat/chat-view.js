@@ -14,6 +14,7 @@ const {
   mapAgentEvent,
   createTurnState,
   buildSessionArgs,
+  buildIdeToolAdmission,
   resolveChatLlm,
 } = require("./chat-events");
 const { buildChatHtml } = require("./chat-html");
@@ -114,7 +115,8 @@ class ChatViewProvider {
       });
       if (t.mode) this._convs.setMode(conv.id, String(t.mode));
       if (t.thinking) this._convs.setThinking(conv.id, String(t.thinking));
-      if (t.goalCondition) this._convs.setGoalCondition(conv.id, String(t.goalCondition));
+      if (t.goalCondition)
+        this._convs.setGoalCondition(conv.id, String(t.goalCondition));
       return conv;
     });
     const idx =
@@ -800,6 +802,9 @@ class ChatViewProvider {
         ...process.env,
         ...bridgeEnv,
         CC_INTERACTIVE_QUESTIONS: "1",
+        CC_TOOL_ADMISSION: JSON.stringify(
+          buildIdeToolAdmission("vscode-extension"),
+        ),
         // Lean context (chainlesschain.chat.leanContext, default on): trim the
         // auto-loaded project memory injected into the system prompt on EVERY
         // turn. "lean" keeps the primary ENTRY instruction file (cc.md/CLAUDE.md)
@@ -1095,9 +1100,12 @@ class ChatViewProvider {
     const conv = this._activeConv();
     const value = String(spec || "").trim();
     if (!value) {
-      this._post({ kind: "info", text: conv.goalCondition
-        ? `session goal: ${conv.goalCondition}`
-        : "no session goal; use /goal <condition>" });
+      this._post({
+        kind: "info",
+        text: conv.goalCondition
+          ? `session goal: ${conv.goalCondition}`
+          : "no session goal; use /goal <condition>",
+      });
       return;
     }
     if (/^(clear|off|none)$/i.test(value)) {
@@ -1130,12 +1138,19 @@ class ChatViewProvider {
     }
     const m = /^(?:(\d+(?:\.\d+)?)(s|m|h)\s+)?(.+)$/i.exec(value);
     if (!m || !m[3].trim()) {
-      this._post({ kind: "info", text: "usage: /loop [30s|5m|1h] <prompt> · /loop stop" });
+      this._post({
+        kind: "info",
+        text: "usage: /loop [30s|5m|1h] <prompt> · /loop stop",
+      });
       return;
     }
     const intervalMs = Math.min(
       24 * 60 * 60 * 1000,
-      Math.max(1000, Number(m[1] || 300) * ({ s: 1000, m: 60000, h: 3600000 }[m[2]?.toLowerCase() || "s"])),
+      Math.max(
+        1000,
+        Number(m[1] || 300) *
+          { s: 1000, m: 60000, h: 3600000 }[m[2]?.toLowerCase() || "s"],
+      ),
     );
     const prompt = m[3].trim();
     if (old) clearInterval(old.timer);
@@ -1146,7 +1161,10 @@ class ChatViewProvider {
     }, intervalMs);
     this._loopTimers.set(conv.id, { timer, intervalMs, prompt });
     this._handleMessage({ type: "send", text: prompt });
-    this._post({ kind: "info", text: `/loop started: every ${m[1] || 300}${m[2] || "s"} · /loop stop to stop` });
+    this._post({
+      kind: "info",
+      text: `/loop started: every ${m[1] || 300}${m[2] || "s"} · /loop stop to stop`,
+    });
   }
 
   /**
@@ -1395,7 +1413,10 @@ class ChatViewProvider {
     const runText = this.opts.deps?.runCliText || introspect.runCliText;
     const folders = this.vscode.workspace.workspaceFolders || [];
     const cwd = folders[0]?.uri?.fsPath || process.cwd();
-    const bridgeEnv = typeof this.opts.getBridgeEnv === "function" ? this.opts.getBridgeEnv() : {};
+    const bridgeEnv =
+      typeof this.opts.getBridgeEnv === "function"
+        ? this.opts.getBridgeEnv()
+        : {};
     const text = await runText({
       command: this._cliCommand(),
       args: [command, ...args],

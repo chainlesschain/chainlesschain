@@ -364,14 +364,18 @@ and its official `/loop` and `/goal` workflows.
   Remote Robot. Its result is intentionally not represented as a headless
   unit-test pass. It now also asserts that the chat composer, Send, and Stop
   controls render.
-- Agent extension-tool admission is now wired at the CLI runtime seam: hosts
-  may pass `toolAdmission: { enforce: true, ...signals }` to `agentLoop` and
-  receive fail-closed Extension Tier decisions plus token-free
-  `toolAttribution` records on every admitted or denied call. The option is
-  propagated through headless/stream runners and child agents, so a session
-  policy cannot be silently bypassed by delegation. Passing real capability/UI
-  signals from each host picker and MCP enable surface remains an integration
-  task.
+- Agent extension-tool admission is now wired through the IDE launch boundary,
+  not only at the CLI runtime seam. VS Code and JetBrains chat children pass a
+  bounded, secret-free `CC_TOOL_ADMISSION` session envelope with host source,
+  capability/policy/permission/budget/UI decisions, and explicit host-level
+  deny overrides for `publish_artifact` and `notify`. The CLI accepts only the
+  decision/provenance vocabulary (32 KiB and 256-tool caps), strips unrelated
+  fields, and refuses an invalid enforcement envelope instead of starting an
+  ungoverned session. Headless/stream runners and child agents inherit the
+  sanitized policy; every admitted or denied call receives token-free
+  `toolAttribution`. Actual MCP availability remains constrained by the runtime
+  descriptor loader and managed MCP policy, so a disabled/unavailable server
+  does not become callable merely because the host supports generic tool UI.
 - Scheduled CLI/`cc ui` runs now opt into a fail-closed shell action policy:
   `git push` to protected branches, publish, merge, deploy, and infrastructure
   mutation commands require attendance or an explicit allowlist; unknown shell

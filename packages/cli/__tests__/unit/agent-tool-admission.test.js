@@ -11,7 +11,74 @@ import {
   admitTool,
   buildToolAttribution,
   describeToolAttribution,
+  parseToolAdmissionConfig,
 } from "../../src/lib/agent-tool-admission.js";
+
+describe("parseToolAdmissionConfig", () => {
+  it("keeps only bounded decision and provenance fields", () => {
+    const parsed = parseToolAdmissionConfig(
+      JSON.stringify({
+        enforce: true,
+        source: "vscode-extension",
+        capabilityGranted: true,
+        policyAllowed: true,
+        permissionGranted: true,
+        budgetOk: true,
+        uiSupported: true,
+        apiKey: "must-not-cross-the-boundary",
+        prompt: "must-not-cross-the-boundary",
+        tools: {
+          publish_artifact: {
+            policyAllowed: false,
+            arguments: { token: "must-not-cross-the-boundary" },
+          },
+        },
+      }),
+    );
+
+    expect(parsed).toEqual({
+      enforce: true,
+      source: "vscode-extension",
+      capabilityGranted: true,
+      policyAllowed: true,
+      permissionGranted: true,
+      budgetOk: true,
+      uiSupported: true,
+      tools: { publish_artifact: { policyAllowed: false } },
+    });
+    expect(JSON.stringify(parsed)).not.toMatch(/apiKey|prompt|arguments|token/);
+  });
+
+  it("fails closed on malformed or ambiguous enforcement envelopes", () => {
+    for (const input of [
+      "not json",
+      "[]",
+      "{}",
+      '{"enforce":false}',
+      '{"enforce":true,"budgetOk":"yes"}',
+      '{"enforce":true,"source":"host\\nforged"}',
+      '{"enforce":true,"tools":{"bad name":{}}}',
+      '{"enforce":true,"tools":{"__proto__":{}}}',
+    ]) {
+      expect(() => parseToolAdmissionConfig(input)).toThrow();
+    }
+  });
+
+  it("bounds the environment contract size and tool count", () => {
+    expect(() =>
+      parseToolAdmissionConfig(
+        JSON.stringify({ enforce: true, source: "x".repeat(32768) }),
+      ),
+    ).toThrow(/32 KiB/);
+
+    const tools = Object.fromEntries(
+      Array.from({ length: 257 }, (_, i) => [`tool_${i}`, {}]),
+    );
+    expect(() => parseToolAdmissionConfig({ enforce: true, tools })).toThrow(
+      /256 entries/,
+    );
+  });
+});
 
 describe("normalizeToolTier", () => {
   it("maps baseline labels to MVP and everything else to EXTENSION", () => {

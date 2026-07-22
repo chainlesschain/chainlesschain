@@ -52,4 +52,33 @@ describe("agent-core tool admission integration", () => {
       reason: "ok",
     });
   });
+
+  it("lets a host deny one tool without weakening the session defaults", async () => {
+    const result = await executeTool(
+      "notify",
+      { title: "should not be delivered" },
+      {
+        toolCallId: "call-host-denied",
+        toolAdmission: {
+          enforce: true,
+          source: "vscode-extension",
+          capabilityGranted: true,
+          policyAllowed: true,
+          permissionGranted: true,
+          budgetOk: true,
+          uiSupported: true,
+          tools: { notify: { policyAllowed: false } },
+        },
+      },
+    );
+
+    expect(result.error).toContain("policy-blocked");
+    expect(result.toolAttribution).toMatchObject({
+      tool: "notify",
+      source: "vscode-extension",
+      callId: "call-host-denied",
+      admitted: false,
+      reason: "policy-blocked",
+    });
+  });
 });

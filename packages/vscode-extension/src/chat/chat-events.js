@@ -183,7 +183,8 @@ function mapAgentEvent(evt, state) {
       if (evt.metadata && typeof evt.metadata === "object") {
         question.metadata = evt.metadata;
         question.elicitation = evt.metadata.kind === "mcp_elicitation";
-        question.requestedSchema = evt.metadata.requestedSchema || evt.requestedSchema || null;
+        question.requestedSchema =
+          evt.metadata.requestedSchema || evt.requestedSchema || null;
         question.server = evt.metadata.server || null;
       }
       return question;
@@ -383,11 +384,28 @@ function buildSessionArgs({
   return args;
 }
 
+function buildIdeToolAdmission(source = "vscode-extension") {
+  return {
+    enforce: true,
+    source,
+    capabilityGranted: true,
+    policyAllowed: true,
+    permissionGranted: true,
+    budgetOk: true,
+    uiSupported: true,
+    tools: {
+      publish_artifact: { policyAllowed: false },
+      notify: { policyAllowed: false },
+    },
+  };
+}
+
 module.exports = {
   mapAgentEvent,
   createTurnState,
   summarizeToolArgs,
   buildSessionArgs,
+  buildIdeToolAdmission,
   resolveChatLlm,
   readCcLlmConfig,
   PERMISSION_MODES,

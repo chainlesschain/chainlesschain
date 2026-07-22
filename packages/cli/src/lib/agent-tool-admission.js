@@ -30,6 +30,110 @@ export const TOOL_TIER = Object.freeze({
   EXTENSION: "extension",
 });
 
+const ADMISSION_BOOLEAN_FIELDS = Object.freeze([
+  "enforce",
+  "capabilityGranted",
+  "policyAllowed",
+  "permissionGranted",
+  "budgetOk",
+  "uiSupported",
+]);
+const ADMISSION_TEXT_FIELDS = Object.freeze([
+  "source",
+  "version",
+  "scope",
+  "tier",
+]);
+const ADMISSION_TEXT_PATTERN = /^[A-Za-z0-9@][A-Za-z0-9_.:/@+-]{0,127}$/;
+const RESERVED_TOOL_NAMES = new Set(["__proto__", "prototype", "constructor"]);
+
+/**
+ * Parse the IDE-to-CLI CC_TOOL_ADMISSION envelope. Only decision/provenance
+ * fields are accepted; arguments, prompts and credentials have no place in
+ * this contract. Invalid input throws so a host that opted into enforcement
+ * cannot silently fall back to an ungoverned session.
+ */
+export function parseToolAdmissionConfig(input) {
+  if (input == null || input === "") return null;
+  let raw;
+  try {
+    raw = typeof input === "string" ? input : JSON.stringify(input);
+  } catch {
+    throw new Error("tool admission config is not valid JSON");
+  }
+  if (typeof raw !== "string") {
+    throw new Error("tool admission config must be an object");
+  }
+  if (Buffer.byteLength(raw, "utf8") > 32768) {
+    throw new Error("tool admission config exceeds 32 KiB");
+  }
+  let value;
+  try {
+    value = typeof input === "string" ? JSON.parse(input) : input;
+  } catch {
+    throw new Error("tool admission config is not valid JSON");
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("tool admission config must be an object");
+  }
+  if (value.enforce !== true) {
+    throw new Error("tool admission config must set enforce=true");
+  }
+
+  const sanitize = (entry, label) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      throw new Error(`${label} must be an object`);
+    }
+    const out = {};
+    for (const field of ADMISSION_BOOLEAN_FIELDS) {
+      if (entry[field] !== undefined) {
+        if (typeof entry[field] !== "boolean") {
+          throw new Error(`${label}.${field} must be boolean`);
+        }
+        out[field] = entry[field];
+      }
+    }
+    for (const field of ADMISSION_TEXT_FIELDS) {
+      if (entry[field] !== undefined) {
+        if (
+          typeof entry[field] !== "string" ||
+          !ADMISSION_TEXT_PATTERN.test(entry[field])
+        ) {
+          throw new Error(`${label}.${field} must be a safe identifier`);
+        }
+        out[field] = entry[field];
+      }
+    }
+    return out;
+  };
+
+  const config = sanitize(value, "toolAdmission");
+  config.enforce = true;
+  if (value.tools !== undefined) {
+    if (
+      !value.tools ||
+      typeof value.tools !== "object" ||
+      Array.isArray(value.tools)
+    ) {
+      throw new Error("toolAdmission.tools must be an object");
+    }
+    const entries = Object.entries(value.tools);
+    if (entries.length > 256)
+      throw new Error("toolAdmission.tools exceeds 256 entries");
+    config.tools = {};
+    for (const [name, entry] of entries) {
+      if (
+        !/^[A-Za-z0-9_.:-]{1,160}$/.test(name) ||
+        RESERVED_TOOL_NAMES.has(name)
+      ) {
+        throw new Error(`invalid tool admission name: ${name}`);
+      }
+      config.tools[name] = sanitize(entry, `toolAdmission.tools.${name}`);
+    }
+  }
+  return config;
+}
+
 /** Normalize a tier label; anything unrecognized → EXTENSION (fail-closed). */
 export function normalizeToolTier(value) {
   const s = String(value || "")
