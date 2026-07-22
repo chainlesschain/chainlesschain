@@ -9,6 +9,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { PtyManager } from "../../src/gateways/terminal/PtyManager.js";
+import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
 
 function makeFakeDeps() {
   const procs = [];
@@ -144,5 +145,35 @@ describe("PtyManager process broker seam", () => {
     expect(calls[0].command).toMatch(/bash(?:\.exe)?$/);
     expect(calls[0].args).toEqual([]);
     expect(procs[0].spawnOpts.env.API_TOKEN).toBe("secret");
+  });
+
+  it("filters PTY credentials and records native boundary provenance", () => {
+    let received;
+    const pty = {
+      spawn(command, args, options) {
+        received = { command, args, options };
+        return { pid: 4242 };
+      },
+    };
+    const proc = executionBroker.spawnPty(pty, "bash", [], {
+      origin: "terminal:pty",
+      policy: "allow",
+      env: { API_TOKEN: "secret", PATH: "safe" },
+    });
+
+    expect(proc.pid).toBe(4242);
+    expect(received.options.env.API_TOKEN).toBeUndefined();
+    expect(received.options.env.CC_CRED_REF_API_TOKEN).toMatch(/^cc-cred-/);
+    expect(
+      executionBroker
+        .getAuditLog(10)
+        .find((entry) => entry.executionId && entry.operation === "pty.spawn"),
+    ).toMatchObject({
+      origin: "terminal:pty",
+      operation: "pty.spawn",
+      pty: true,
+      credentialFiltered: true,
+      sandboxed: false,
+    });
   });
 });
