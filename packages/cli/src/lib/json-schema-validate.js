@@ -187,15 +187,45 @@ function resolvePointer(root, frag) {
   return cur === undefined ? null : cur;
 }
 
+function findAnchor(root, anchor, seen = new Set()) {
+  if (!root || typeof root !== "object" || seen.has(root)) return null;
+  seen.add(root);
+  if (root.$anchor === anchor || root.$dynamicAnchor === anchor) return root;
+  for (const value of Object.values(root)) {
+    const found = findAnchor(value, anchor, seen);
+    if (found) return found;
+  }
+  return null;
+}
+
 /** Resolve local refs or a caller-provided external document registry. */
 function resolveRef(root, ref, externalSchemas = {}) {
   if (typeof ref !== "string") return null;
-  if (ref.startsWith("#")) return resolvePointer(root, ref.slice(1));
+  if (ref.startsWith("#")) {
+    const fragment = ref.slice(1);
+    if (fragment === "" || fragment.startsWith("/")) {
+      return resolvePointer(root, fragment);
+    }
+    try {
+      return findAnchor(root, decodeURIComponent(fragment), new Set());
+    } catch {
+      return findAnchor(root, fragment, new Set());
+    }
+  }
   const hash = ref.indexOf("#");
   const uri = hash >= 0 ? ref.slice(0, hash) : ref;
   const document = externalSchemas?.[ref] ?? externalSchemas?.[uri];
   if (document === undefined) return null;
-  return hash >= 0 ? resolvePointer(document, ref.slice(hash + 1)) : document;
+  if (hash < 0) return document;
+  const fragment = ref.slice(hash + 1);
+  if (fragment === "" || fragment.startsWith("/")) {
+    return resolvePointer(document, fragment);
+  }
+  try {
+    return findAnchor(document, decodeURIComponent(fragment), new Set());
+  } catch {
+    return findAnchor(document, fragment, new Set());
+  }
 }
 
 // ─── instance validation ─────────────────────────────────────────────────────
@@ -229,19 +259,25 @@ function _validate(value, schema, inst, sch, root, errors, depth, externalSchema
   if (!schema || typeof schema !== "object") return;
   if (depth > MAX_REF_DEPTH) return; // cyclic $ref guard
 
-  // $ref — validate against the referenced schema (local only).
-  if (typeof schema.$ref === "string") {
-    const target = resolveRef(root, schema.$ref, externalSchemas);
+  // $ref/$dynamicRef — local pointer/anchor or explicit external registry.
+  const refKeyword =
+    typeof schema.$ref === "string"
+      ? "$ref"
+      : typeof schema.$dynamicRef === "string"
+        ? "$dynamicRef"
+        : null;
+  if (refKeyword) {
+    const target = resolveRef(root, schema[refKeyword], externalSchemas);
     if (target == null) {
       _err(
         errors,
-        "$ref",
+        refKeyword,
         inst,
-        [...sch, "$ref"],
-        `cannot resolve $ref "${schema.$ref}"`,
+        [...sch, refKeyword],
+        `cannot resolve ${refKeyword} "${schema[refKeyword]}"`,
       );
     } else {
-      _validate(value, target, inst, [...sch, "$ref"], root, errors, depth + 1, externalSchemas);
+      _validate(value, target, inst, [...sch, refKeyword], root, errors, depth + 1, externalSchemas);
     }
     // sibling keywords still apply in 2020-12; fall through.
   }
@@ -789,6 +825,28 @@ function _metaValidate(schema, segs, errors, depth) {
   }
   if (schema.$ref !== undefined && typeof schema.$ref !== "string") {
     _metaErr(errors, "$ref", [...segs, "$ref"], "$ref must be a string");
+  }
+  for (const k of ["$id", "$schema", "$anchor", "$dynamicAnchor", "$dynamicRef", "$comment"]) {
+    if (schema[k] !== undefined && typeof schema[k] !== "string") {
+      _metaErr(errors, k, [...segs, k], `${k} must be a string`);
+    }
+  }
+  if (schema.$anchor !== undefined && typeof schema.$anchor === "string" && !/^[A-Za-z][A-Za-z0-9:_-]*$/.test(schema.$anchor)) {
+    _metaErr(errors, "$anchor", [...segs, "$anchor"], "$anchor must match the anchor-name syntax");
+  }
+  if (schema.$dynamicAnchor !== undefined && typeof schema.$dynamicAnchor === "string" && !/^[A-Za-z][A-Za-z0-9:_-]*$/.test(schema.$dynamicAnchor)) {
+    _metaErr(errors, "$dynamicAnchor", [...segs, "$dynamicAnchor"], "$dynamicAnchor must match the anchor-name syntax");
+  }
+  if (schema.$vocabulary !== undefined) {
+    if (!schema.$vocabulary || typeof schema.$vocabulary !== "object" || Array.isArray(schema.$vocabulary)) {
+      _metaErr(errors, "$vocabulary", [...segs, "$vocabulary"], "$vocabulary must be an object");
+    } else {
+      for (const [uri, required] of Object.entries(schema.$vocabulary)) {
+        if (typeof required !== "boolean") {
+          _metaErr(errors, "$vocabulary", [...segs, "$vocabulary", uri], "vocabulary values must be boolean");
+        }
+      }
+    }
   }
   if (schema.properties !== undefined) {
     if (

@@ -360,6 +360,30 @@ describe("validate Draft 2020-12 dependent and collection keywords", () => {
 });
 
 describe("validateSchema (startup meta-validation)", () => {
+  it("resolves local $anchor and $dynamicRef targets", () => {
+    const schema = {
+      $defs: {
+        user: { $anchor: "userShape", type: "object", required: ["id"] },
+      },
+      $dynamicRef: "#userShape",
+    };
+    expect(validate({ id: "u1" }, schema).valid).toBe(true);
+    expect(validate({}, schema).errors[0].code).toBe("required");
+  });
+
+  it("meta-validates 2020-12 identifier and vocabulary keywords", () => {
+    expect(validateSchema({
+      $id: "https://example.test/root",
+      $schema: "https://json-schema.org/draft/2020-12/schema",
+      $anchor: "rootShape",
+      $dynamicAnchor: "rootShape",
+      $vocabulary: { "https://example.test/vocab": true },
+      type: "string",
+    }).valid).toBe(true);
+    expect(validateSchema({ $anchor: "not valid" }).valid).toBe(false);
+    expect(validateSchema({ $vocabulary: { "urn:test": "yes" } }).valid).toBe(false);
+  });
+
   it("accepts a well-formed schema and boolean schemas", () => {
     expect(
       validateSchema({
