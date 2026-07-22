@@ -71,7 +71,7 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 | Context | `/context` 显示 memory、skills、MCP、文件与缓存成本 | 已显示消息角色、instruction 文件及 persisted MCP schema 的逐工具归因 | Skill 按需加载/逐来源归因与缓存命中成本仍不完整 | P1 |
 | Checkpoint | 对话与文件按 turn 恢复 | Headless 显式绑定已持久化，REPL 可消费 | REPL 还不是统一生产者；child/worktree/user edit/provider tool id 归因不完整 | P1 |
 | Plugin 安全 | 插件统一打包、作用域、企业治理 | 能力声明、consent、签名、typed options、OS secret store、lockfile/SBOM、插件 MCP/LSP/Hook Broker provenance | Monitor 与 Desktop 侧全量进程入口仍需统一 Broker | P1 |
-| 关键状态并发 | 会话、审批、任务和副作用状态应原子持久化 | 文件锁封装以 best-effort 为主 | 锁超时后部分路径会无锁继续，关键状态存在 lost update 风险 | P1 |
+| 关键状态并发 | 会话、审批、任务和副作用状态应原子持久化 | Agenda/Event Runtime/session transcript 已使用 fail-closed file lock | approval/部分 ledger/IDE session 状态仍需统一迁移，避免不同宿主各自写入 | P1 |
 | 结构化输出 | 标准 JSON Schema、启动期校验、最终 validated result | 常用 Draft 2020-12 vocabulary（组合、条件、`$ref`、dependent、pattern、contains、format）、显式 external schema registry 及 stream `structured_result` | 完整 meta-vocabulary、自动远程 ref 解析与复杂 schema 互操作性仍待补 | P1 |
 | SDK/CI | TypeScript/Python SDK、版本化事件、GitHub/GitLab 自动化 | TypeScript SDK 已有 | 部分 goal/approval/turn 事件未完全透传；缺统一发布兼容门；Python/CI 模板按需求决定 | P1 |
 | 验收与文档 | CLI/IDE/SDK 共享运行时和持续发布验证 | 单元/集成测试很多 | MVP 验证脚本没有覆盖完整 Desktop→真实 CLI 链；多份旧文档仍把已完成项列为缺口 | P1 |

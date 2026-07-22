@@ -20,6 +20,7 @@ import {
   verifyTranscriptText,
   TRANSCRIPT_CHAIN_STATUS,
 } from "./transcript-integrity.js";
+import { withFileLock } from "../lib/with-file-lock.js";
 
 function getSessionsDir() {
   const dir = join(getHomeDir(), "sessions");
@@ -82,12 +83,18 @@ function _resolveChainTail(sessionId, filePath) {
 
 export function appendEvent(sessionId, type, data) {
   const filePath = sessionPath(sessionId);
-  const prevHash = _resolveChainTail(sessionId, filePath);
-  const core = { type, timestamp: Date.now(), data };
-  const hash = computeEventHash(prevHash, core);
-  const line = JSON.stringify({ ...core, prevHash, hash }) + "\n";
-  appendFileSync(filePath, line, "utf-8");
-  _chainTailCache.set(sessionId, hash);
+  withFileLock(
+    filePath,
+    () => {
+      const prevHash = _resolveChainTail(sessionId, filePath);
+      const core = { type, timestamp: Date.now(), data };
+      const hash = computeEventHash(prevHash, core);
+      const line = JSON.stringify({ ...core, prevHash, hash }) + "\n";
+      appendFileSync(filePath, line, "utf-8");
+      _chainTailCache.set(sessionId, hash);
+    },
+    { failIfUnavailable: true },
+  );
 }
 
 /**
