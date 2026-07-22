@@ -737,7 +737,23 @@ class ProcessExecutionBroker extends EventEmitter {
   }
 
   execFileSync(file, args, options = {}) {
-    return this.spawnSync(file, args, options);
+    if (!Array.isArray(args)) {
+      options = args || {};
+      args = [];
+    }
+    const result = this.spawnSync(file, args, options);
+    if (result?.error) throw result.error;
+    if (result?.status !== 0) {
+      const error = new Error(
+        `Command failed (exit ${result?.status ?? "unknown"}): ${file}`,
+      );
+      error.status = result?.status ?? null;
+      error.signal = result?.signal ?? null;
+      error.stdout = result?.stdout;
+      error.stderr = result?.stderr;
+      throw error;
+    }
+    return result?.stdout ?? "";
   }
 
   fork(modulePath, args, options = {}) {

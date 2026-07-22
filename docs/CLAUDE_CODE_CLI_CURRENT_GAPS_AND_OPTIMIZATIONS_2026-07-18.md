@@ -104,6 +104,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   继续只作为 argv/环境值传递，不进入 PowerShell 脚本文本或 POSIX shell。
 - Cloud handoff 的 `git bundle`/`git apply` 默认执行器已进入 `cloud:git` Broker scope，真实 bundle
   与三方 patch 回流测试保留；测试注入接口不变。
+- Broker `execFileSync` 已恢复 Node 同步契约：成功返回 stdout，启动错误或非零退出抛出带
+  `status/signal/stdout/stderr` 的错误；归档解压与 Cloud handoff 共用该实现。
 
 ### 4.2 建议设计
 

@@ -15,18 +15,7 @@ import logger from "./logger.js";
 import { executionBroker } from "./process-execution-broker/index.js";
 
 function brokerExecFileSync(file, args, options) {
-  const result = executionBroker.spawnSync(file, args, options);
-  if (result?.error) throw result.error;
-  if (result?.status != null && result.status !== 0) {
-    const error = new Error(
-      `Archive extraction failed (exit ${result.status}): ${file}`,
-    );
-    error.status = result.status;
-    error.stdout = result.stdout;
-    error.stderr = result.stderr;
-    throw error;
-  }
-  return result?.stdout;
+  return executionBroker.execFileSync(file, args, options);
 }
 
 // Platform-specific asset matching patterns
