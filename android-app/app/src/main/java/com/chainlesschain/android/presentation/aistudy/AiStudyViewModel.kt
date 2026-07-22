@@ -56,8 +56,11 @@ class AiStudyViewModel @Inject constructor(
     private val companionVault: CompanionVault,
     private val pointsLedger: PointsLedger,
     private val studyContext: com.chainlesschain.android.presentation.familytask.FamilyStudyContext,
+<<<<<<< Updated upstream
     private val childEventRepository: com.chainlesschain.android.feature.familyguard.domain.repository.ChildEventRepository,
     private val anomalyRepository: com.chainlesschain.android.feature.familyguard.domain.repository.AnomalyRepository,
+=======
+>>>>>>> Stashed changes
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AiStudyUiState(profile = profileStore.profile.value))
@@ -244,9 +247,14 @@ class AiStudyViewModel @Inject constructor(
     /**
      * 生成家长端学情报告 (§3.6)。护栏块只含类别+次数，不含聊天原文。
      *
+<<<<<<< Updated upstream
      * FAMILY-67 Phase 2：正向激励 (M9) 块从**真持久积分账本**读 (今日赚分 + 当前余额)，
      * "今日使用"块从**真 telemetry** (child_event 前台 app run) 聚合 —— 均按 [studyContext]
      * 的 childDid，不再缺省跳过；经 Phase 1 同步后家长端也能看到。
+=======
+     * FAMILY-67 Phase 2：正向激励 (M9) 块从**真持久积分账本**读 (今日赚分 + 当前余额，按
+     * [studyContext] 的 childDid)，不再缺省跳过 —— 积分经 Phase 1 同步后家长端也能看到。
+>>>>>>> Stashed changes
      */
     suspend fun generateReport(): StudyReport {
         val childDid = studyContext.childDid()
@@ -254,6 +262,7 @@ class AiStudyViewModel @Inject constructor(
         val dayStart = now - (now % DAY_MS)
         val earnedToday = pointsLedger.earnedBetween(childDid, dayStart, dayStart + DAY_MS)
         val balance = pointsLedger.balanceOf(childDid, now).balance
+<<<<<<< Updated upstream
         val usageToday = runCatching {
             ForegroundUsageAggregator.summarize(childEventRepository.querySince(childDid, dayStart))
         }.getOrNull()
@@ -262,6 +271,8 @@ class AiStudyViewModel @Inject constructor(
                 .filter { it.detectedAt >= dayStart }
                 .map { behaviorAlertLabel(it.type) }
         }.getOrElse { emptyList() }
+=======
+>>>>>>> Stashed changes
         val snapshot = StudyActivitySnapshot(
             learningTurns = learningTurns,
             companionTurns = companionTurns,
@@ -273,8 +284,11 @@ class AiStudyViewModel @Inject constructor(
             guardrailCategories = guardrailSink.findings.value.map { it.category },
             pointsEarnedToday = earnedToday,
             pointsBalance = balance,
+<<<<<<< Updated upstream
             usageToday = usageToday,
             behaviorAlertsToday = behaviorAlerts,
+=======
+>>>>>>> Stashed changes
         )
         return StudyReportGenerator.generate(_uiState.value.profile.nickname, snapshot)
     }

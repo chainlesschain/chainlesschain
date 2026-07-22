@@ -248,6 +248,7 @@ packages/web-panel/dist/
 docs/marketing/
 
 # Personal Android E2E validation scripts (device-pinned, local only).
+.vscode-test/
 # These scripts hardcode specific device IDs (e.g. adb -s 21e9bbfb for one
 # developer's Xiaomi 24115RA8EC) and are not portable across machines.
 # Keep tooling like tools/cost-calculator.py and tools/postman/ tracked,

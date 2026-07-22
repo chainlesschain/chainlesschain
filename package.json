@@ -5,8 +5,29 @@
   "binariesVersion": "20260528",
   "private": true,
   "workspaces": [
+<<<<<<< Updated upstream
     "desktop-app-vue",
     "packages/*"
+=======
+    "desktop-app",
+    "backend/services",
+    "packages/core-env",
+    "packages/shared-logger",
+    "packages/core-db",
+    "packages/core-config",
+    "packages/core-infra",
+    "packages/core-llm",
+    "packages/core-knowledge",
+    "packages/core-ai",
+    "packages/core-social",
+    "packages/core-blockchain",
+    "packages/core-mtc",
+    "packages/core-multisig",
+    "packages/core-settlement",
+    "packages/session-core",
+    "packages/cli",
+    "packages/personal-data-hub"
+>>>>>>> Stashed changes
   ],
   "scripts": {
     "dev": "cd desktop-app-vue && npm run dev",
