@@ -2,6 +2,11 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.24] - Render CLI slash-command output (2026-07-22)
+
+- Fixed `/status`, `/doctor`, `/mcp`, and related commands returning output that
+  the Webview silently dropped.
+
 ## [0.37.23] - Slash input edge-case fix (2026-07-22)
 
 - Fixed sending a bare `/` being reported as `unknown command /`.

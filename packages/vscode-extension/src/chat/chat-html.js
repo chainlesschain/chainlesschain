@@ -818,6 +818,12 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
       case "info":
         add("info", m.text);
         break;
+      case "pre":
+        // Host-side CLI commands such as /status and /doctor return plain text
+        // instead of an agent turn. Render their output in the same transcript
+        // so a successful command is never perceived as "no response".
+        add("info", m.text || "(no output)");
+        break;
       case "turn_end":
         if (m.text) {
           if (m.isError) {

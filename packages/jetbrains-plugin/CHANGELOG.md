@@ -1,5 +1,10 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.67] - Slash command response parity (2026-07-22)
+
+- Verified the shared command catalog and ensured CLI-backed slash commands
+  render their command output in the chat transcript.
+
 ## [0.4.66] - Slash input edge-case fix (2026-07-22)
 
 - Fixed sending a bare `/` being reported as `unknown command /`.
