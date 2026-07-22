@@ -43,6 +43,11 @@ describe("formatBridgeReport", () => {
       statusText: "",
       doctorText: null,
     });
-    expect(md.match(/no output — is the `cc` CLI installed/g)?.length).toBe(2);
+    expect(md).toMatch(
+      /## cc ide status[\s\S]*?no output — is the `cc` CLI installed/,
+    );
+    expect(md).toMatch(
+      /## cc ide doctor[\s\S]*?no output — is the `cc` CLI installed/,
+    );
   });
 });

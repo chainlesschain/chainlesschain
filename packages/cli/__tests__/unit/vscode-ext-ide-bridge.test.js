@@ -348,6 +348,15 @@ describe("lockfile ↔ CLI Phase-0 reader contract", () => {
     // Both sides point at the same fake home.
     lockfile._deps.homedir = () => tmp;
     lockfile._deps.now = () => 1_700_000_000_000;
+    // This suite verifies the lockfile/reader contract, not host ACL tooling.
+    // Keep it deterministic on Windows instead of spawning a real PowerShell
+    // process whose cold start can exceed the lockfile security timeout.
+    lockfile._deps.platform = () => "win32";
+    lockfile._deps.env = () => ({ USERNAME: "test-user" });
+    lockfile._deps.spawnSync = (_command, args) =>
+      String(args[6] || "").includes("ownerOnly")
+        ? { status: 0, stdout: '{"ownerOnly":true}' }
+        : { status: 0 };
     ideDeps.homedir = () => tmp;
     ideDeps.now = () => 1_700_000_000_000;
     ideDeps.processAlive = () => true; // pretend the editor pid is alive

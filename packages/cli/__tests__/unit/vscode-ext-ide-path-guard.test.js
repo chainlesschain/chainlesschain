@@ -279,6 +279,9 @@ describe("lockfile — Windows ACL tightening", () => {
     saved.platform = lockfile._deps.platform;
     saved.env = lockfile._deps.env;
     saved.spawnSync = lockfile._deps.spawnSync;
+    saved.chmodSync = lockfile._deps.chmodSync;
+    saved.lstatSync = lockfile._deps.lstatSync;
+    saved.getuid = lockfile._deps.getuid;
     lockfile._deps.homedir = () => tmpHome;
     lockfile._aclWarnState.warned = false;
   });
@@ -301,52 +304,71 @@ describe("lockfile — Windows ACL tightening", () => {
     lockfile._deps.spawnSync = (cmd, args) => {
       calls.push([cmd, args]);
       const inspecting = String(args[6] || "").includes("ownerOnly");
-      return inspecting ? { status: 0, stdout: '{"ownerOnly":true}' } : { status: 0 };
+      return inspecting
+        ? { status: 0, stdout: '{"ownerOnly":true}' }
+        : { status: 0 };
     };
     const file = lockfile.writeLock({ port: 4321, token: "t" });
-    expect(calls).toHaveLength(4); // apply + inspect for dir and final file
+    expect(calls).toHaveLength(6); // apply + inspect for dir, temp, and final file
     expect(calls.every(([cmd]) => cmd === "powershell.exe")).toBe(true);
     const dir = path.dirname(file);
-    expect(calls.map(([, args]) => args.at(-1))).toEqual([dir, dir, file, file]);
+    const targets = calls.map(([, args]) => args.at(-1));
+    expect(targets[0]).toBe(dir);
+    expect(targets[1]).toBe(dir);
+    expect(targets[2]).toBe(targets[3]);
+    expect(targets[2]).toContain(".tmp-");
+    expect(targets[4]).toBe(file);
+    expect(targets[5]).toBe(file);
   });
 
-  it("win32: a failing icacls is fail-open — lock is still written, one warn", () => {
+  it("win32: a failing ACL command is fail-closed and removes the token file", () => {
     lockfile._deps.platform = () => "win32";
     lockfile._deps.env = () => ({ USERNAME: "u" });
     lockfile._deps.spawnSync = () => {
       throw new Error("icacls not found");
     };
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const file = lockfile.writeLock({ port: 4322, token: "tok" });
-    expect(fs.existsSync(file)).toBe(true);
-    expect(JSON.parse(fs.readFileSync(file, "utf8")).token).toBe("tok");
-    expect(warn).toHaveBeenCalledTimes(1); // dir + file failures → single warn
+    expect(() => lockfile.writeLock({ port: 4322, token: "tok" })).toThrow(
+      /icacls not found/,
+    );
+    expect(
+      fs.existsSync(path.join(tmpHome, ".chainlesschain", "ide", "4322.json")),
+    ).toBe(false);
   });
 
-  it("win32: non-zero icacls exit is tolerated (fail-open)", () => {
+  it("win32: managed policy can explicitly downgrade an ACL failure", () => {
     lockfile._deps.platform = () => "win32";
     lockfile._deps.env = () => ({ USERNAME: "u" });
     lockfile._deps.spawnSync = () => ({ status: 5 });
-    vi.spyOn(console, "warn").mockImplementation(() => {});
-    const file = lockfile.writeLock({ port: 4323, token: "t" });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const file = lockfile.writeLock({
+      port: 4323,
+      token: "t",
+      allowInsecurePermissions: true,
+    });
     expect(fs.existsSync(file)).toBe(true);
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 
-  it("win32: missing USERNAME is tolerated without spawning", () => {
+  it("win32: non-zero ACL exit is fail-closed by default", () => {
     lockfile._deps.platform = () => "win32";
-    lockfile._deps.env = () => ({});
-    const spawn = vi.fn();
-    lockfile._deps.spawnSync = spawn;
-    vi.spyOn(console, "warn").mockImplementation(() => {});
-    const file = lockfile.writeLock({ port: 4324, token: "t" });
-    expect(fs.existsSync(file)).toBe(true);
-    expect(spawn).not.toHaveBeenCalled();
+    lockfile._deps.spawnSync = () => ({ status: 5 });
+    expect(() => lockfile.writeLock({ port: 4324, token: "t" })).toThrow(
+      /status 5/,
+    );
   });
 
   it("non-Windows: icacls is never invoked (chmod path already correct)", () => {
     lockfile._deps.platform = () => "linux";
     const spawn = vi.fn();
     lockfile._deps.spawnSync = spawn;
+    const modes = new Map();
+    lockfile._deps.chmodSync = (target, mode) => modes.set(target, mode);
+    lockfile._deps.lstatSync = (target) => ({
+      mode: modes.get(target),
+      uid: 1000,
+      isSymbolicLink: () => false,
+    });
+    lockfile._deps.getuid = () => 1000;
     lockfile.writeLock({ port: 4325, token: "t" });
     expect(spawn).not.toHaveBeenCalled();
   });

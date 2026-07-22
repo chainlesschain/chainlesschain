@@ -49,6 +49,7 @@ describe("PreviewController.state()", () => {
       script: null,
       exitCode: null,
       output: "",
+      health: "idle",
     });
   });
 
