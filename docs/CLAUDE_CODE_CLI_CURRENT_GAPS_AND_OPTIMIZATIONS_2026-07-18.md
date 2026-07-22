@@ -96,6 +96,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   sync 路径携带原始凭据继续执行。按 host/process 审批后解析短期值的完整代理闭环仍待补。
 - 同日已将 npm 登录态命令、`llm.apiKeyHelper` 外部凭据命令和 MCP OAuth 浏览器启动器从直接
   `child_process` 调用迁移到显式 Broker provenance/scope；静态清单继续作为剩余入口的事实源。
+- `cc config edit` 也已移除 shell 字符串拼接：`$EDITOR` 被解析为 executable/argv，配置路径作为
+  独立参数经 Broker 传递，路径和编辑器参数中的 shell 元字符不再被解释执行。
 
 ### 4.2 建议设计
 

@@ -47,8 +47,8 @@ Total matches: 412 (runtime: 336, tooling: 53, test: 23).
 | `packages/cli/src/commands/batch.js` | 261 | `execFileSync("git", ["add", "-A"], { cwd, stdio: "ignore" });` |
 | `packages/cli/src/commands/batch.js` | 262 | `execFileSync("git", ["commit", "-m", message, "--no-verify"], {` |
 | `packages/cli/src/commands/batch.js` | 292 | `const child = spawn(process.execPath, args, {` |
-| `packages/cli/src/commands/config.js` | 112 | `const { execSync } = await import("node:child_process");` |
-| `packages/cli/src/commands/config.js` | 117 | `execSync(`${editor} "${safePath}"`, { stdio: "inherit" });` |
+| `packages/cli/src/commands/config.js` | 15 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
+| `packages/cli/src/commands/config.js` | 73 | `return deps.spawnSync(file, [...editorArgs, configPath], {` |
 | `packages/cli/src/commands/eval.js` | 14 | `import { spawn, spawnSync } from "child_process";` |
 | `packages/cli/src/commands/eval.js` | 60 | `spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], {` |
 | `packages/cli/src/commands/eval.js` | 108 | `const child = spawn(process.execPath, args, {` |

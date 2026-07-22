@@ -9,6 +9,75 @@ import {
 import { getConfigPath } from "../lib/paths.js";
 import logger from "../lib/logger.js";
 import { listFeatures, setFeature, getFlagInfo } from "../lib/feature-flags.js";
+import { executionBroker } from "../lib/process-execution-broker/index.js";
+
+export const _deps = {
+  spawnSync: (...args) => executionBroker.spawnSync(...args),
+};
+
+/** Parse the conventional $EDITOR string without invoking a shell. */
+export function parseEditorCommand(value) {
+  const input = String(value || "").trim();
+  if (!input) return [];
+  const tokens = [];
+  let token = "";
+  let quote = null;
+  let started = false;
+  for (let index = 0; index < input.length; index += 1) {
+    const char = input[index];
+    if (quote) {
+      if (char === quote) {
+        quote = null;
+        started = true;
+      } else if (char === "\\" && input[index + 1] === quote) {
+        token += quote;
+        index += 1;
+      } else {
+        token += char;
+      }
+      continue;
+    }
+    if (char === '"' || char === "'") {
+      quote = char;
+      started = true;
+      continue;
+    }
+    if (/\s/.test(char)) {
+      if (started || token) {
+        tokens.push(token);
+        token = "";
+        started = false;
+      }
+      continue;
+    }
+    if (
+      char === "\\" &&
+      (input[index + 1] === '"' || input[index + 1] === "'")
+    ) {
+      token += input[index + 1];
+      index += 1;
+      started = true;
+      continue;
+    }
+    token += char;
+    started = true;
+  }
+  if (quote) throw new Error("EDITOR contains an unterminated quote");
+  if (started || token) tokens.push(token);
+  return tokens;
+}
+
+export function openConfigEditor(editor, configPath, deps = _deps) {
+  const [file, ...editorArgs] = parseEditorCommand(editor);
+  if (!file) throw new Error("EDITOR command is empty");
+  return deps.spawnSync(file, [...editorArgs, configPath], {
+    stdio: "inherit",
+    origin: "config:editor",
+    policy: "allow",
+    scope: "config",
+    shell: false,
+  });
+}
 
 export function registerConfigCommand(program) {
   const cmd = program
@@ -109,12 +178,8 @@ export function registerConfigCommand(program) {
         process.env.EDITOR ||
         process.env.VISUAL ||
         (process.platform === "win32" ? "notepad" : "vi");
-      const { execSync } = await import("node:child_process");
       try {
-        // Escape any `"` in the path so it can't break out of the quoted arg
-        // (editor stays unquoted so `$EDITOR` values with args still work).
-        const safePath = configPath.replace(/"/g, '\\"');
-        execSync(`${editor} "${safePath}"`, { stdio: "inherit" });
+        openConfigEditor(editor, configPath);
       } catch (err) {
         logger.error(`Failed to open editor: ${err.message}`);
         logger.info(`Config file is at: ${configPath}`);
