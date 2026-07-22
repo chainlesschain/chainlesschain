@@ -1083,7 +1083,7 @@ export function registerAgentCommand(program) {
           if (promptWasPiped) childArgv.push(prompt);
           const state = launchBackgroundAgent({
             argv: childArgv,
-            cwd: process.cwd(),
+            cwd: _worktree ? _worktree.path : process.cwd(),
             sessionId,
             title: prompt.slice(0, 100),
             followUpArgv,
