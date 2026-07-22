@@ -267,6 +267,10 @@ jobs:
       - name: "Publish @chainlesschain/agent-sdk"
         working-directory: packages/agent-sdk
         run: |
+          if [ "${{ inputs.dry-run }}" = "true" ]; then
+            echo "Dry run: @chainlesschain/agent-sdk is already published; skipping standalone package"
+            exit 0
+          fi
           npm install --no-audit --no-fund
           CURRENT=$(npm view @chainlesschain/agent-sdk version 2>/dev/null || echo "0.0.0")
           PKG_VER=$(node -p "require('./package.json').version")
