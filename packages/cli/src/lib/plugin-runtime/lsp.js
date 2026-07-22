@@ -91,6 +91,9 @@ export function ensurePluginLspServers(opts = {}) {
           args: s.args,
           extensions: s.extensions,
           id: s.id,
+          pluginId: p.name,
+          pluginVersion: p.version,
+          pluginSource: s.absPath || p.manifest.manifestPath,
         });
         registered.push({ plugin: p.name, languageId: s.languageId, id: s.id });
       } catch {

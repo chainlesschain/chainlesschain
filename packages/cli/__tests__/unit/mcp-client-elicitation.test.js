@@ -126,4 +126,30 @@ describe("MCP elicitation/create routing", () => {
     expect(client.clearElicitationHandler("session-a")).toBe(true);
     expect(client.clearElicitationHandler("session-b")).toBe(true);
   });
+
+  it("publishes and acknowledges MCP elicitation in the durable inbox", async () => {
+    const records = [];
+    const store = {
+      enqueue: (queue, event, options) => {
+        const row = { id: options.id, queue, event };
+        records.push(row);
+        return row;
+      },
+      acknowledgeInbox: (id, result) => {
+        const row = records.find((item) => item.id === id);
+        row.result = result;
+        return row;
+      },
+    };
+    const client = new MCPClient({
+      eventRuntimeStore: store,
+      elicitationHandler: async () => ({ action: "accept", content: { ok: true } }),
+    });
+    await expect(client._resolveElicitation("srv", "r1", { message: "ok" })).resolves.toEqual({
+      action: "accept",
+      content: { ok: true },
+    });
+    expect(records[0].event).toMatchObject({ type: "mcp_elicitation", origin: "mcp" });
+    expect(records[0].result.response.content).toEqual({ ok: true });
+  });
 });

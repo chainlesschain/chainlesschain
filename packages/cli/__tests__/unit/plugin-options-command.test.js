@@ -13,7 +13,7 @@ import { registerPluginCommand } from "../../src/commands/plugin.js";
 import { installFromDirectory } from "../../src/lib/plugin-runtime/install.js";
 import { _deps as optDeps } from "../../src/lib/plugin-runtime/plugin-options.js";
 
-let cwd, srcRoot, storeDir, logSpy, errSpy, orig;
+let cwd, srcRoot, storeDir, logSpy, errSpy, orig, secretValues;
 
 function makeProgram() {
   const program = new Command();
@@ -56,9 +56,15 @@ beforeEach(() => {
   cwd = fs.mkdtempSync(path.join(os.tmpdir(), "cc-opt-cwd-"));
   srcRoot = fs.mkdtempSync(path.join(os.tmpdir(), "cc-opt-src-"));
   storeDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-opt-store-"));
-  orig = { u: optDeps.userStorePath, p: optDeps.projectStorePath };
+  orig = { u: optDeps.userStorePath, p: optDeps.projectStorePath, s: optDeps.secretStore };
+  secretValues = new Map();
   optDeps.userStorePath = () => path.join(storeDir, "user.json");
   optDeps.projectStorePath = () => path.join(storeDir, "project.json");
+  optDeps.secretStore = () => ({
+    set: (k, v) => secretValues.set(k, String(v)),
+    get: (k) => secretValues.get(k) ?? null,
+    delete: (k) => secretValues.delete(k),
+  });
   logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
   errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(process, "cwd").mockReturnValue(cwd);
@@ -71,6 +77,7 @@ beforeEach(() => {
 afterEach(() => {
   optDeps.userStorePath = orig.u;
   optDeps.projectStorePath = orig.p;
+  optDeps.secretStore = orig.s;
   vi.restoreAllMocks();
   process.exitCode = 0;
   for (const d of [cwd, srcRoot, storeDir]) {

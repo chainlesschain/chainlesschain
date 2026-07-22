@@ -239,6 +239,10 @@ export class LSPManager {
       command: resolved.command,
       args: resolved.args,
       rootPath: projectRoot,
+      origin: resolved.origin,
+      pluginId: resolved.pluginId,
+      pluginVersion: resolved.pluginVersion,
+      pluginSource: resolved.pluginSource,
     });
     // Collect pushed diagnostics keyed by document, tracking publish count/time
     // so callers can wait for the project to load (first publish) and settle

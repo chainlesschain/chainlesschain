@@ -109,6 +109,24 @@ describe("plugin server registration", () => {
     expect(s).toMatchObject({ id: "zls" });
   });
 
+  it("returns plugin provenance for Broker-enforced servers", () => {
+    registerLanguageServer({
+      languageId: "kotlin",
+      command: "kotlin-lsp",
+      pluginId: "p-kotlin",
+      pluginVersion: "1.2.3",
+      pluginSource: "/plugins/kotlin/.lsp.json",
+    });
+    const isWin = process.platform === "win32";
+    existsFor([path.join("/proj", "node_modules", ".bin", isWin ? "kotlin-lsp.cmd" : "kotlin-lsp")]);
+    expect(resolveServer("kotlin", "/proj")).toMatchObject({
+      origin: "plugin:lsp",
+      pluginId: "p-kotlin",
+      pluginVersion: "1.2.3",
+      pluginSource: "/plugins/kotlin/.lsp.json",
+    });
+  });
+
   it("rejects an incomplete registration", () => {
     expect(() => registerLanguageServer({ languageId: "x" })).toThrow(
       /requires/,

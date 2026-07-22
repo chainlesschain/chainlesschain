@@ -106,6 +106,10 @@ class ProcessExecutionBroker extends EventEmitter {
     this._credentialAgent = credentialAgent;
     this._credentialFilteringEnabled = true;
     this._sandboxEnabled = true;
+    // Keep the legacy aliases used by older call sites and make the strict
+    // plugin path use the same switches as the general broker path.
+    this._credentialAgentEnabled = true;
+    this._platformSandboxEnabled = true;
 
     this._ensureLogDir();
     this._loadPermissions();
@@ -263,6 +267,9 @@ class ProcessExecutionBroker extends EventEmitter {
       exitCode: null,
       endTime: null,
       durationMs: null,
+      pluginId: options.pluginId || null,
+      pluginVersion: options.pluginVersion || null,
+      pluginSource: options.pluginSource || null,
     };
 
     if (decision === "deny" || decision === "prompt") {
@@ -443,6 +450,9 @@ class ProcessExecutionBroker extends EventEmitter {
       isDangerous,
       shell: !!options.shell,
       sync: true,
+      pluginId: options.pluginId || null,
+      pluginVersion: options.pluginVersion || null,
+      pluginSource: options.pluginSource || null,
     };
 
     if (decision === "deny" || decision === "prompt") {

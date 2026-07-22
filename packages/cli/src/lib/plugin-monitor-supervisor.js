@@ -22,6 +22,9 @@
  */
 
 import { spawn } from "node:child_process";
+import { executionBroker } from "./process-execution-broker/index.js";
+import { EventRuntimeProducer } from "./event-runtime-producer.js";
+import { monitorEventId } from "./monitor-event.js";
 
 export const _deps = { spawn };
 
@@ -36,6 +39,11 @@ export class PluginMonitorSupervisor {
     this.defaultIntervalMs = opts.defaultIntervalMs || DEFAULT_INTERVAL_MS;
     this.timeoutMs = opts.timeoutMs || DEFAULT_TIMEOUT_MS;
     this._spawn = opts.spawn || _deps.spawn;
+    this._brokerSpawn =
+      opts.brokerSpawn || executionBroker.spawn.bind(executionBroker);
+    this._runtimeProducer = opts.eventRuntimeStore
+      ? new EventRuntimeProducer({ store: opts.eventRuntimeStore, emitter: this })
+      : null;
     // id -> { desc, timer?, child?, running }
     this._monitors = new Map();
     this._outputs = []; // structured records awaiting drain
@@ -92,13 +100,22 @@ export class PluginMonitorSupervisor {
       .split(/\r?\n/)
       .filter((l) => l.length > 0);
     for (const line of lines) {
-      this._outputs.push({
+      const output = {
         id: desc.id,
         plugin: desc.plugin,
         monitor: desc.name,
         stream,
         line,
-      });
+      };
+      this._outputs.push(output);
+      try {
+        this._runtimeProducer?.publish(
+          { type: "monitor_output", ...output },
+          { origin: "monitor", id: monitorEventId(desc.id, { stream, line }) },
+        );
+      } catch (error) {
+        this._outputs.push({ ...output, stream: "error", line: `durable publish failed: ${error.message}` });
+      }
       if (this._outputs.length > OUTPUT_RING) this._outputs.shift();
     }
   }
@@ -107,7 +124,7 @@ export class PluginMonitorSupervisor {
     const { desc } = entry;
     let child;
     try {
-      child = this._spawn(desc.command, desc.args, {
+      child = this._spawnForDescriptor(desc, {
         cwd: desc.cwd,
         env: desc.env ? { ...process.env, ...desc.env } : process.env,
         shell: false,
@@ -140,7 +157,7 @@ export class PluginMonitorSupervisor {
     this._runningIntervalRuns++;
     let child;
     try {
-      child = this._spawn(desc.command, desc.args, {
+      child = this._spawnForDescriptor(desc, {
         cwd: desc.cwd,
         env: desc.env ? { ...process.env, ...desc.env } : process.env,
         shell: false,
@@ -186,6 +203,20 @@ export class PluginMonitorSupervisor {
       finish();
     });
     child.on("exit", () => finish());
+  }
+
+  _spawnForDescriptor(desc, options) {
+    if (desc?.origin === "plugin:monitor") {
+      return this._brokerSpawn(desc.command, desc.args, {
+        ...options,
+        origin: desc.origin,
+        policy: "allow",
+        pluginId: desc.pluginId,
+        pluginVersion: desc.pluginVersion,
+        pluginSource: desc.pluginSource,
+      });
+    }
+    return this._spawn(desc.command, desc.args, options);
   }
 
   /**

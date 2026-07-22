@@ -81,9 +81,11 @@ describe("resolvePluginOptions (pure)", () => {
 
 describe("plugin-options store (injected IO)", () => {
   let userMem, projMem;
+  let secrets;
   beforeEach(() => {
     userMem = {};
     projMem = {};
+    secrets = new Map();
     _deps.userStorePath = () => "USER";
     _deps.projectStorePath = () => "PROJ";
     _deps.existsSync = (p) => (p === "USER" ? userMem._ : projMem._) != null;
@@ -93,6 +95,11 @@ describe("plugin-options store (injected IO)", () => {
       else projMem._ = c;
     };
     _deps.mkdirSync = () => {};
+    _deps.secretStore = () => ({
+      set: (k, v) => secrets.set(k, String(v)),
+      get: (k) => secrets.get(k) ?? null,
+      delete: (k) => secrets.delete(k),
+    });
   });
 
   it("round-trips values per scope + plugin", () => {
@@ -111,5 +118,29 @@ describe("plugin-options store (injected IO)", () => {
     expect(r.options.retries).toBe(5);
     expect(r.options.apiKey).toBe("userkey");
     expect(r.droppedFromProject).toContain("apiKey");
+  });
+
+  it("stores sensitive user options outside plugin-options.json", () => {
+    setPluginOptionValues("p1", { apiKey: "secret-value" }, "user", {
+      schema,
+    });
+    expect(userMem._).not.toContain("secret-value");
+    expect(JSON.parse(userMem._).p1.apiKey).toEqual({
+      __cc_secret_ref: "p1/apiKey",
+    });
+    expect(loadPluginOptionValues("p1", "user", { schema })).toEqual({
+      apiKey: "secret-value",
+    });
+  });
+
+  it("drops sensitive project values before persistence", () => {
+    setPluginOptionValues("p1", { apiKey: "project-leak", retries: 2 }, "project", {
+      schema,
+    });
+    expect(JSON.parse(projMem._).p1).toEqual({
+      retries: 2,
+      __cc_rejected_sensitive: ["apiKey"],
+    });
+    expect(secrets.size).toBe(0);
   });
 });

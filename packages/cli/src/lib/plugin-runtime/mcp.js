@@ -119,7 +119,14 @@ export function collectPluginMcpServers(opts = {}) {
     for (const [name, cfg] of Object.entries(map)) {
       if (!cfg || typeof cfg !== "object") continue;
       if (name in servers) continue; // first plugin wins on a clash
-      servers[name] = cfg;
+      servers[name] = {
+        ...cfg,
+        origin: "plugin:mcp",
+        policy: "allow",
+        pluginId: p.name,
+        pluginVersion: p.version,
+        pluginSource: m.absPath || p.manifest.manifestPath,
+      };
       added++;
     }
     if (added > 0 && m.absPath) sources.push(m.absPath);

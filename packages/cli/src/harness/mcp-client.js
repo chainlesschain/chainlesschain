@@ -9,10 +9,12 @@
  */
 
 import { spawn } from "child_process";
+import { executionBroker } from "../lib/process-execution-broker/index.js";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { EventEmitter } from "events";
 import { pathToFileURL } from "url";
 import { safeJsonParse } from "../lib/safe-json.js";
+import { EventRuntimeProducer } from "../lib/event-runtime-producer.js";
 
 /**
  * Injectable dependencies — overridable from tests.
@@ -181,6 +183,9 @@ export class MCPClient extends EventEmitter {
         ? Number(options.elicitationTimeoutMs)
         : 180000;
     this._pendingElicitations = new Map();
+    this._runtimeProducer = options.eventRuntimeStore
+      ? new EventRuntimeProducer({ store: options.eventRuntimeStore, emitter: this })
+      : null;
   }
 
   /** Install or clear the host-side MCP elicitation resolver. */
@@ -220,6 +225,12 @@ export class MCPClient extends EventEmitter {
     const pending = this._pendingElicitations.get(key);
     if (!pending) return false;
     pending.resolve(this._normalizeElicitationResponse(response));
+    try {
+      this._runtimeProducer?.store.acknowledgeInbox(
+        `mcp-elicitation:${this._elicitationKey(serverName, requestId)}`,
+        { response: this._normalizeElicitationResponse(response) },
+      );
+    } catch {}
     return true;
   }
 
@@ -248,6 +259,15 @@ export class MCPClient extends EventEmitter {
 
   async _resolveElicitation(serverName, requestId, params = {}) {
     const key = this._elicitationKey(serverName, requestId);
+    try {
+      this._runtimeProducer?.publish(
+        { type: "mcp_elicitation", server: serverName, requestId, params },
+        { origin: "mcp", id: `mcp-elicitation:${key}` },
+      );
+    } catch (error) {
+      this.emit("elicitation-error", { server: serverName, requestId, error });
+      return { action: "cancel" };
+    }
     const contextSessionId = this._elicitationContext.getStore();
     const handler =
       (contextSessionId && this._elicitationHandlers.get(contextSessionId)) ||
@@ -260,7 +280,14 @@ export class MCPClient extends EventEmitter {
           ...params,
         });
         if (direct !== undefined) {
-          return this._normalizeElicitationResponse(direct);
+          const response = this._normalizeElicitationResponse(direct);
+          try {
+            this._runtimeProducer?.store.acknowledgeInbox(
+              `mcp-elicitation:${key}`,
+              { response },
+            );
+          } catch {}
+          return response;
         }
       } catch (error) {
         this.emit("elicitation-error", {
@@ -276,12 +303,26 @@ export class MCPClient extends EventEmitter {
     // No handler/listener means fail closed with decline rather than leaving a
     // server request hanging indefinitely.
     if (this.listenerCount("elicitation-request") === 0) {
+      try {
+        this._runtimeProducer?.store.acknowledgeInbox(
+          `mcp-elicitation:${key}`,
+          { response: { action: "decline" } },
+        );
+      } catch {}
       return { action: "decline" };
     }
     return new Promise((resolve) => {
       const timeout = setTimeout(() => {
         this._pendingElicitations.delete(key);
         this.emit("elicitation-timeout", { server: serverName, requestId });
+        try {
+          this._runtimeProducer?.store.fail(
+            "inbox",
+            `mcp-elicitation:${key}`,
+            "elicitation timeout",
+            { retryDelayMs: 0, maxAttempts: 1 },
+          );
+        } catch {}
         resolve({ action: "cancel" });
       }, this._elicitationTimeoutMs);
       timeout.unref?.();
@@ -445,7 +486,10 @@ export class MCPClient extends EventEmitter {
             `stdio transport requires a command (server "${name}")`,
           );
         }
-        const proc = _deps.spawn(config.command, config.args || [], {
+        const spawnFn = String(config.origin || "").startsWith("plugin:")
+          ? executionBroker.spawn.bind(executionBroker)
+          : _deps.spawn;
+        const proc = spawnFn(config.command, config.args || [], {
           stdio: ["pipe", "pipe", "pipe"],
           // process.env < agent identity (CLAUDECODE / session id) < the
           // server's own config.env, so an explicit per-server override wins.
@@ -454,6 +498,15 @@ export class MCPClient extends EventEmitter {
             ...this._agentIdentityEnv(),
             ...(config.env || {}),
           },
+          ...(config.origin
+            ? {
+                origin: config.origin,
+                policy: config.policy || "allow",
+                pluginId: config.pluginId,
+                pluginVersion: config.pluginVersion,
+                pluginSource: config.pluginSource,
+              }
+            : {}),
         });
 
         entry.process = proc;

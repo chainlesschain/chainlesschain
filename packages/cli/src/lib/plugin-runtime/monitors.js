@@ -81,6 +81,10 @@ function normalizeMonitor(plugin, raw) {
     intervalMs,
     env,
     cwd: plugin.root,
+    origin: "plugin:monitor",
+    pluginId: plugin.name,
+    pluginVersion: plugin.version,
+    pluginSource: plugin.manifest?.manifestPath || null,
   };
 }
 

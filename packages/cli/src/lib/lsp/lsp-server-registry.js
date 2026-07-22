@@ -95,6 +95,9 @@ export function registerLanguageServer(def) {
     bins: [def.command],
     argsFor: () => (Array.isArray(def.args) ? def.args : []),
     fromPlugin: true,
+    pluginId: def.pluginId || null,
+    pluginVersion: def.pluginVersion || null,
+    pluginSource: def.pluginSource || null,
   };
   const existing = pluginServers.get(def.languageId) || [];
   // De-dupe by server id so re-registering the same server (e.g. a reload)
@@ -147,6 +150,14 @@ export function resolveServer(languageId, projectRoot) {
           id: def.id,
           command,
           args: def.argsFor(bin),
+          ...(def.fromPlugin
+            ? {
+                origin: "plugin:lsp",
+                pluginId: def.pluginId,
+                pluginVersion: def.pluginVersion,
+                pluginSource: def.pluginSource,
+              }
+            : {}),
         };
       }
     }

@@ -1314,6 +1314,7 @@ export function registerPluginCommand(program) {
         const scope = options.scope === "project" ? "project" : "user";
         const current = optsMod.loadPluginOptionValues(name, scope, {
           cwd: process.cwd(),
+          schema,
         });
         for (const pair of options.set) {
           const eq = pair.indexOf("=");
@@ -1326,6 +1327,7 @@ export function registerPluginCommand(program) {
         }
         optsMod.setPluginOptionValues(name, current, scope, {
           cwd: process.cwd(),
+          schema,
         });
         logger.success(`Set option(s) for ${name} at ${scope} scope`);
       }

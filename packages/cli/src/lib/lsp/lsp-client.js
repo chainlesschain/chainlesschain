@@ -16,6 +16,7 @@
 import { spawn as nodeSpawn } from "child_process";
 import { EventEmitter } from "events";
 import { encodeMessage, MessageBuffer } from "./jsonrpc-stream.js";
+import { executionBroker } from "../process-execution-broker/index.js";
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 15_000;
 const DEFAULT_INIT_TIMEOUT_MS = 30_000;
@@ -41,6 +42,10 @@ export class LSPClient extends EventEmitter {
     this.env = opts.env || {};
     this.requestTimeoutMs = opts.requestTimeoutMs || DEFAULT_REQUEST_TIMEOUT_MS;
     this.capabilitiesOverride = opts.capabilities || null;
+    this.origin = opts.origin || null;
+    this.pluginId = opts.pluginId || null;
+    this.pluginVersion = opts.pluginVersion || null;
+    this.pluginSource = opts.pluginSource || null;
 
     this._child = null;
     this._buffer = new MessageBuffer();
@@ -73,13 +78,25 @@ export class LSPClient extends EventEmitter {
     // fix, so buildSpawnCommand rewrites them to an explicit `cmd.exe /d /s /c`
     // invocation with verbatim args — still no shell, still injection-safe.
     const spawnSpec = buildSpawnCommand(this.command, this.args);
-    this._child = _deps.spawn(spawnSpec.file, spawnSpec.args, {
+    const spawnFn = String(this.origin || "").startsWith("plugin:")
+      ? executionBroker.spawn.bind(executionBroker)
+      : _deps.spawn;
+    this._child = spawnFn(spawnSpec.file, spawnSpec.args, {
       cwd: this.rootPath,
       env: { ...process.env, ...this.env },
       stdio: ["pipe", "pipe", "pipe"],
       shell: false,
       windowsHide: true,
       windowsVerbatimArguments: spawnSpec.windowsVerbatimArguments,
+      ...(this.origin
+        ? {
+            origin: this.origin,
+            policy: "allow",
+            pluginId: this.pluginId,
+            pluginVersion: this.pluginVersion,
+            pluginSource: this.pluginSource,
+          }
+        : {}),
     });
 
     this._child.on("error", (err) => {
