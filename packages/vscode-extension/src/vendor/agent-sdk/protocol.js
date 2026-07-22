@@ -28,6 +28,7 @@ exports.isContentDelta = isContentDelta;
 exports.contentDelta = contentDelta;
 exports.isApprovalRequest = isApprovalRequest;
 exports.isQuestionRequest = isQuestionRequest;
+exports.isMcpElicitationRequest = isMcpElicitationRequest;
 exports.isResult = isResult;
 exports.PROTOCOL_VERSION = 1;
 /**
@@ -87,6 +88,11 @@ function isApprovalRequest(event) {
 function isQuestionRequest(event) {
     return (event.type === "question_request" &&
         typeof event.id === "string");
+}
+/** True when a question wire event is carrying an MCP elicitation form. */
+function isMcpElicitationRequest(event) {
+    return (isQuestionRequest(event) &&
+        event.metadata?.kind === "mcp_elicitation");
 }
 function isResult(event) {
     return event.type === "result";

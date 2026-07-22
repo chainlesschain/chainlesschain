@@ -189,6 +189,11 @@ class AgentSession {
             this.autoRespondApproval(event);
             return;
         }
+        if ((0, protocol_js_1.isMcpElicitationRequest)(event)) {
+            this.emit("elicitation_request", event);
+            this.autoRespondElicitation(event);
+            return;
+        }
         if ((0, protocol_js_1.isQuestionRequest)(event)) {
             this.emit("question_request", event);
             this.autoRespondQuestion(event);
@@ -227,6 +232,25 @@ class AgentSession {
                 answer = null; // cancel — the CLI resolves it as user_timeout
             }
             this.answerQuestion(request.id, answer);
+        })();
+    }
+    autoRespondElicitation(request) {
+        const callback = this.options.onElicitation;
+        if (!callback)
+            return;
+        void (async () => {
+            try {
+                const response = await callback(request);
+                if (response?.action === "accept") {
+                    this.answerQuestion(request.id, response.content ?? {});
+                }
+                else {
+                    this.answerQuestion(request.id, null);
+                }
+            }
+            catch {
+                this.answerQuestion(request.id, null);
+            }
         })();
     }
     /** Write one protocol input event to the child's stdin. */
