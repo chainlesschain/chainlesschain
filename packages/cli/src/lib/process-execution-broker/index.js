@@ -610,13 +610,19 @@ class ProcessExecutionBroker extends EventEmitter {
     delete spawnOptions.pluginSource;
     try {
       if (this._credentialAgentEnabled) {
-        const credInfo = this._credentialAgent.apply(spawnOptions, {
+        const originalEnv = spawnOptions.env || {};
+        this._credentialAgent.apply(spawnOptions, {
           command,
           args: auditEntry.args,
           origin,
         });
-        auditEntry.credentialFiltered = !!credInfo.redacted;
-        if (credInfo.redacted) this._stats.credFiltered++;
+        const credentialFiltered = Object.keys(originalEnv).some(
+          (key) =>
+            this._credentialAgent.isSensitiveKey?.(key) &&
+            !Object.prototype.hasOwnProperty.call(spawnOptions.env || {}, key),
+        );
+        auditEntry.credentialFiltered = credentialFiltered;
+        if (credentialFiltered) this._stats.credFiltered++;
       }
       const filteredArgs = spawnOptions.args || [];
       delete spawnOptions.args;

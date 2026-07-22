@@ -112,7 +112,8 @@ export class PtyManager extends EventEmitter {
       req.env && typeof req.env === "object" && !Array.isArray(req.env)
         ? req.env
         : {};
-    const spawnPty = this._deps.spawnPty || executionBroker.spawnPty.bind(executionBroker);
+    const spawnPty =
+      this._deps.spawnPty || executionBroker.spawnPty.bind(executionBroker);
     const proc = spawnPty(pty, cmd, [], {
       name: "xterm-256color",
       cols,
