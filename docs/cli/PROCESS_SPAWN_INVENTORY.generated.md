@@ -34,8 +34,8 @@ Total matches: 413 (runtime: 337, tooling: 53, test: 23).
 | `packages/cli/src/auth/npm-auth.js` | 42 | `execSync("npm login", { stdio: "inherit" });` |
 | `packages/cli/src/auth/npm-auth.js` | 57 | `execSync("npm logout", { stdio: "inherit" });` |
 | `packages/cli/src/commands/agenda.js` | 21 | `import { spawn, execSync } from "node:child_process";` |
-| `packages/cli/src/commands/agenda.js` | 493 | `const child = spawn(` |
-| `packages/cli/src/commands/agenda.js` | 513 | `return execSync(command, {` |
+| `packages/cli/src/commands/agenda.js` | 497 | `const child = spawn(` |
+| `packages/cli/src/commands/agenda.js` | 517 | `return execSync(command, {` |
 | `packages/cli/src/commands/background-session.js` | 463 | `const { spawn } = await import("node:child_process");` |
 | `packages/cli/src/commands/background-session.js` | 527 | `const child = spawn(` |
 | `packages/cli/src/commands/batch.js` | 22 | `import { spawn } from "child_process";` |
@@ -316,24 +316,24 @@ Total matches: 413 (runtime: 337, tooling: 53, test: 23).
 | `packages/cli/src/repl/pr-comments.js` | 12 | `import { execFile } from "child_process";` |
 | `packages/cli/src/repl/pr-comments.js` | 17 | `execFile(` |
 | `packages/cli/src/runtime/agent-core.js` | 19 | `import { execSync, spawn, spawnSync } from "child_process";` |
-| `packages/cli/src/runtime/agent-core.js` | 239 | `const tk = spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], {` |
-| `packages/cli/src/runtime/agent-core.js` | 312 | `spawnSync("taskkill", ["/pid", String(child.pid), "/T", "/F"], {` |
-| `packages/cli/src/runtime/agent-core.js` | 718 | `execSync(`${py.command} -m pip --version`, {` |
-| `packages/cli/src/runtime/agent-core.js` | 731 | `nodeVersion = execSync("node --version", {` |
-| `packages/cli/src/runtime/agent-core.js` | 741 | `execSync("git --version", {` |
-| `packages/cli/src/runtime/agent-core.js` | 3029 | `// is the historical spawn(command, {shell:true}) byte-for-byte.` |
-| `packages/cli/src/runtime/agent-core.js` | 3038 | `? broker.spawn(args.command, [], brokerOpts)` |
-| `packages/cli/src/runtime/agent-core.js` | 3039 | `: broker.spawn(shellInv.file, shellInv.argv, brokerOpts);` |
-| `packages/cli/src/runtime/agent-core.js` | 3220 | `output = broker.execSync(args.command, brokerExecOpts);` |
-| `packages/cli/src/runtime/agent-core.js` | 3226 | `const res = broker.spawnSync(shellInv.file, shellInv.argv, {` |
-| `packages/cli/src/runtime/agent-core.js` | 3340 | `// cannot inject a second command. Previously execSync(`git ${cmd}`) ran` |
-| `packages/cli/src/runtime/agent-core.js` | 3346 | `const res = spawnSync("git", gitArgs, {` |
-| `packages/cli/src/runtime/agent-core.js` | 3952 | `const output = execSync(cmd, {` |
-| `packages/cli/src/runtime/agent-core.js` | 4558 | `output = execSync(`${interpreter} "${scriptPath}"`, {` |
-| `packages/cli/src/runtime/agent-core.js` | 4658 | `execSync(`${interpreter} -m pip install ${packageName}`, {` |
-| `packages/cli/src/runtime/agent-core.js` | 4674 | `const retryOutput = execSync(`${interpreter} "${scriptPath}"`, {` |
-| `packages/cli/src/runtime/agent-core.js` | 5177 | `// fully-defaulted spawn (→ "default") touches neither tools nor confirmer nor gate.` |
-| `packages/cli/src/runtime/agent-core.js` | 5233 | `// sub-agent runs, so a policy hook can VETO the spawn (`block`) or INJECT` |
+| `packages/cli/src/runtime/agent-core.js` | 240 | `const tk = spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], {` |
+| `packages/cli/src/runtime/agent-core.js` | 313 | `spawnSync("taskkill", ["/pid", String(child.pid), "/T", "/F"], {` |
+| `packages/cli/src/runtime/agent-core.js` | 719 | `execSync(`${py.command} -m pip --version`, {` |
+| `packages/cli/src/runtime/agent-core.js` | 732 | `nodeVersion = execSync("node --version", {` |
+| `packages/cli/src/runtime/agent-core.js` | 742 | `execSync("git --version", {` |
+| `packages/cli/src/runtime/agent-core.js` | 3049 | `// is the historical spawn(command, {shell:true}) byte-for-byte.` |
+| `packages/cli/src/runtime/agent-core.js` | 3058 | `? broker.spawn(args.command, [], brokerOpts)` |
+| `packages/cli/src/runtime/agent-core.js` | 3059 | `: broker.spawn(shellInv.file, shellInv.argv, brokerOpts);` |
+| `packages/cli/src/runtime/agent-core.js` | 3240 | `output = broker.execSync(args.command, brokerExecOpts);` |
+| `packages/cli/src/runtime/agent-core.js` | 3246 | `const res = broker.spawnSync(shellInv.file, shellInv.argv, {` |
+| `packages/cli/src/runtime/agent-core.js` | 3360 | `// cannot inject a second command. Previously execSync(`git ${cmd}`) ran` |
+| `packages/cli/src/runtime/agent-core.js` | 3366 | `const res = spawnSync("git", gitArgs, {` |
+| `packages/cli/src/runtime/agent-core.js` | 3972 | `const output = execSync(cmd, {` |
+| `packages/cli/src/runtime/agent-core.js` | 4578 | `output = execSync(`${interpreter} "${scriptPath}"`, {` |
+| `packages/cli/src/runtime/agent-core.js` | 4678 | `execSync(`${interpreter} -m pip install ${packageName}`, {` |
+| `packages/cli/src/runtime/agent-core.js` | 4694 | `const retryOutput = execSync(`${interpreter} "${scriptPath}"`, {` |
+| `packages/cli/src/runtime/agent-core.js` | 5197 | `// fully-defaulted spawn (→ "default") touches neither tools nor confirmer nor gate.` |
+| `packages/cli/src/runtime/agent-core.js` | 5253 | `// sub-agent runs, so a policy hook can VETO the spawn (`block`) or INJECT` |
 | `packages/cli/src/runtime/diagnostics.js` | 15 | `import { execSync } from "node:child_process";` |
 | `packages/cli/src/runtime/diagnostics.js` | 72 | `return execSync(cmd, { encoding: "utf-8" }).trim();` |
 | `packages/cli/src/runtime/headless-runner.js` | 2060 | `gc.spawnSync \|\| (await import("node:child_process")).spawnSync;` |

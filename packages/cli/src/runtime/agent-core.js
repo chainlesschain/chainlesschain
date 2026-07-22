@@ -85,6 +85,7 @@ import {
   admitTool,
   buildToolAttribution,
 } from "../lib/agent-tool-admission.js";
+import { evaluateUnattendedShellAction } from "../lib/unattended-action-policy.js";
 
 /**
  * Names of MCP servers currently mounted by an in-flight run_skill call.
@@ -1699,6 +1700,7 @@ export async function executeTool(name, args, context = {}) {
       signal: context.signal || null,
       backgroundSubAgents: context.backgroundSubAgents || null,
       toolAdmission: context.toolAdmission || null,
+      unattendedActionPolicy: context.unattendedActionPolicy || null,
     });
   } catch (err) {
     if (hookDb) {
@@ -2501,6 +2503,7 @@ async function executeToolInner(
     backgroundSubAgents = null,
     subAgentUsageSink = null,
     toolAdmission = null,
+    unattendedActionPolicy = null,
     // Hook-envelope tracing: this run's trace id, threaded into child loops
     // (spawn_sub_agent / isolated run_skill) as their parent_id.
     hookTraceId = null,
@@ -2831,6 +2834,23 @@ async function executeToolInner(
     }
 
     case "run_shell": {
+      if (unattendedActionPolicy?.unattended === true) {
+        const unattendedVerdict = evaluateUnattendedShellAction(args.command, {
+          ...unattendedActionPolicy,
+          attended: false,
+        });
+        if (!unattendedVerdict.allow) {
+          return attachDescriptor({
+            error: `[Unattended Action] ${unattendedVerdict.reason}; shell command was not run.`,
+            unattendedAction: {
+              actionClass: unattendedVerdict.actionClass || null,
+              ...unattendedVerdict,
+            },
+            policy: { decision: "deny", via: "unattended-action-policy" },
+          });
+        }
+      }
+
       const shellPolicyOpts = {
         ...(shellPolicyOverrides
           ? { overrideRuleIds: shellPolicyOverrides }
@@ -7049,6 +7069,7 @@ export async function* agentLoop(messages, options) {
     // { enforce: true }; omitting it preserves the CLI's existing per-call
     // permission pipeline for backwards compatibility.
     toolAdmission: options.toolAdmission || null,
+    unattendedActionPolicy: options.unattendedActionPolicy || null,
     // MCP tool DEFINITIONS the LLM sees (mcp__server__tool). Threaded here so a
     // spawn can inherit the parent's MCP tools into the child (filtered by the
     // contract's mcpServers allow-list). Otherwise consumed only at agentLoop.

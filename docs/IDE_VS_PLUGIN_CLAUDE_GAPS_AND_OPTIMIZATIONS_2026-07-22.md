@@ -372,6 +372,12 @@ and its official `/loop` and `/goal` workflows.
   policy cannot be silently bypassed by delegation. Passing real capability/UI
   signals from each host picker and MCP enable surface remains an integration
   task.
+- Scheduled CLI/`cc ui` runs now opt into a fail-closed shell action policy:
+  `git push` to protected branches, publish, merge, deploy, and infrastructure
+  mutation commands require attendance or an explicit allowlist; unknown shell
+  commands are denied. The policy is covered by shell classification, agenda
+  argv, and `agent-core.executeTool` tests, while interactive runs remain
+  unchanged unless `--unattended` is supplied.
 
 ### 当前无法由本地仓库单独关闭的验收项
 

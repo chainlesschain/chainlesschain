@@ -122,6 +122,86 @@ export function classifyActionRisk(actionClass) {
 }
 
 /**
+ * Classify a shell command before it reaches the process broker. This is a
+ * deliberately conservative, token-free classifier: compound commands use
+ * the highest-risk segment and unknown commands remain unknown so an
+ * unattended caller can fail closed.
+ */
+export function classifyShellAction(command) {
+  if (typeof command !== "string" || !command.trim()) return null;
+  const segments = command
+    .split(/&&|\|\||[;\n]|\|/)
+    .map((part) =>
+      part
+        .trim()
+        .replace(/^(?:env\s+)?(?:sudo\s+)?(?:command\s+)?/i, "")
+        .toLowerCase(),
+    )
+    .filter(Boolean);
+  const classifySegment = (segment) => {
+    if (/^git\s+push\b/.test(segment)) return ACTION_CLASS.PUSH;
+    if (/^git\s+(?:merge|rebase|cherry-pick)\b/.test(segment)) {
+      return ACTION_CLASS.MERGE;
+    }
+    if (/^(?:npm|pnpm|yarn|bun)\s+publish\b/.test(segment)) {
+      return ACTION_CLASS.PUBLISH;
+    }
+    if (
+      /^(?:terraform\s+(?:apply|destroy)|pulumi\s+up|kubectl\s+(?:apply|delete|rollout)|helm\s+(?:install|upgrade)|docker\s+push)\b/.test(
+        segment,
+      )
+    ) {
+      return segment.startsWith("docker push")
+        ? ACTION_CLASS.DEPLOY
+        : ACTION_CLASS.INFRA_MUTATION;
+    }
+    if (/\b(?:deploy|rollout)\b/.test(segment)) return ACTION_CLASS.DEPLOY;
+    if (/^(?:git\s+(?:status|diff|log|show|branch)|ls\b|dir\b|pwd\b|cat\b|type\b|rg\b|grep\b|find\b|where\b)/.test(segment)) {
+      return ACTION_CLASS.READ;
+    }
+    if (/^(?:npm|pnpm|yarn|bun)\s+(?:test|run\s+(?:test|lint|build)|install\b)/.test(segment) || /^(?:pytest|vitest|jest|cargo\s+test|go\s+test)\b/.test(segment)) {
+      return ACTION_CLASS.LOCAL_WRITE;
+    }
+    if (/^echo\b/.test(segment) && />/.test(segment)) {
+      return ACTION_CLASS.LOCAL_WRITE;
+    }
+    return null;
+  };
+  const rank = [
+    ACTION_CLASS.READ,
+    ACTION_CLASS.LOCAL_WRITE,
+    ACTION_CLASS.COMMIT,
+    ACTION_CLASS.PUSH,
+    ACTION_CLASS.PUBLISH,
+    ACTION_CLASS.MERGE,
+    ACTION_CLASS.DEPLOY,
+    ACTION_CLASS.INFRA_MUTATION,
+    ACTION_CLASS.EXTERNAL_MESSAGE,
+  ];
+  const classified = segments.map(classifySegment);
+  return classified.reduce((highest, current) => {
+    if (!current) return null;
+    if (!highest) return current;
+    return rank.indexOf(current) > rank.indexOf(highest) ? current : highest;
+  }, null);
+}
+
+/** Apply the unattended policy to a shell command, including protected push targets. */
+export function evaluateUnattendedShellAction(command, params = {}) {
+  const actionClass = classifyShellAction(command);
+  const protectedBranch =
+    params.protectedBranch === true ||
+    /\bgit\s+push\b[^\n]*(?:^|\s)(?:main|master|develop|production)(?:\s|$)/i.test(
+      command || "",
+    );
+  return evaluateUnattendedAction({
+    ...params,
+    actionClass,
+    protectedBranch,
+  });
+}
+
+/**
  * Decide whether a fired task may perform one action. Fail-closed.
  *
  * @param {object} params

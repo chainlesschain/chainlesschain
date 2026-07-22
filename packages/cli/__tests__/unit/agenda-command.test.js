@@ -114,14 +114,22 @@ describe("cc agenda", () => {
     // P1-8: a scheduled run is unattended, so buildAgentArgs denies the high-risk
     // external tools (notify / publish_artifact) by default.
     const DENY = ["--disallowed-tools", "notify,publish_artifact"];
+    const UNATTENDED = ["--unattended"];
 
     it("buildAgentArgs denies unattended high-risk tools, then appends policy flags", () => {
-      expect(buildAgentArgs("hi")).toEqual(["agent", "-p", "hi", ...DENY]);
+      expect(buildAgentArgs("hi")).toEqual([
+        "agent",
+        "-p",
+        "hi",
+        ...DENY,
+        ...UNATTENDED,
+      ]);
       expect(buildAgentArgs("hi", null)).toEqual([
         "agent",
         "-p",
         "hi",
         ...DENY,
+        ...UNATTENDED,
       ]);
       expect(
         buildAgentArgs("hi", {
@@ -134,6 +142,7 @@ describe("cc agenda", () => {
         "-p",
         "hi",
         ...DENY,
+        ...UNATTENDED,
         "--permission-mode",
         "plan",
         "--worktree",
@@ -152,13 +161,23 @@ describe("cc agenda", () => {
         "hi",
         "--disallowed-tools",
         "publish_artifact",
+        ...UNATTENDED,
+        "--unattended-allow",
+        "external_message",
       ]);
       // Allowing both leaves nothing to disallow.
       expect(
         buildAgentArgs("hi", {
           unattendedAllowlist: ["publish", "external_message"],
         }),
-      ).toEqual(["agent", "-p", "hi"]);
+      ).toEqual([
+        "agent",
+        "-p",
+        "hi",
+        ...UNATTENDED,
+        "--unattended-allow",
+        "publish,external_message",
+      ]);
     });
 
     it("buildAgentArgs emits goal-condition + its budget flags", () => {
@@ -175,6 +194,7 @@ describe("cc agenda", () => {
         "-p",
         "build",
         ...DENY,
+        ...UNATTENDED,
         "--goal-condition",
         "exit-zero: npm test",
         "--max-outer-turns",
@@ -192,6 +212,7 @@ describe("cc agenda", () => {
         "-p",
         "x",
         ...DENY,
+        ...UNATTENDED,
       ]);
     });
 

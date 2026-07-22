@@ -196,6 +196,14 @@ export function registerAgentCommand(program) {
       "Run this session in a fresh git worktree (isolated branch; auto-removed when the session changes nothing)",
     )
     .option(
+      "--unattended",
+      "Enable fail-closed shell action policy for scheduled/event-driven runs",
+    )
+    .option(
+      "--unattended-allow <classes>",
+      "Comma-separated action classes explicitly allowed for unattended shell runs",
+    )
+    .option(
       "--sandbox [image]",
       "Run shell commands in an ephemeral Docker sandbox (network disabled by default)",
     )
@@ -754,6 +762,16 @@ export function registerAgentCommand(program) {
           await import("../lib/settings-loader.cjs");
         const sc = loadSettingsConfig({
           cwd: process.cwd(),
+          unattendedActionPolicy: options.unattended
+            ? {
+                unattended: true,
+                allowlist: String(options.unattendedAllow || "")
+                  .split(",")
+                  .map((value) => value.trim())
+                  .filter(Boolean),
+                trigger: { trusted: true },
+              }
+            : null,
           settingsFile: options.settings || null,
         });
         for (const [k, v] of Object.entries(sc.env || {})) {

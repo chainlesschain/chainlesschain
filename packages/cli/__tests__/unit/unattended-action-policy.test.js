@@ -10,7 +10,37 @@ import {
   classifyActionRisk,
   evaluateUnattendedAction,
   unattendedDisallowedTools,
+  classifyShellAction,
+  evaluateUnattendedShellAction,
 } from "../../src/lib/unattended-action-policy.js";
+
+describe("shell action classification", () => {
+  it("classifies high-risk shell commands and compound commands", () => {
+    expect(classifyShellAction("git push origin feature")).toBe(
+      ACTION_CLASS.PUSH,
+    );
+    expect(classifyShellAction("npm test && git push origin main")).toBe(
+      ACTION_CLASS.PUSH,
+    );
+    expect(classifyShellAction("terraform apply -auto-approve")).toBe(
+      ACTION_CLASS.INFRA_MUTATION,
+    );
+  });
+
+  it("fails closed for unknown unattended shell commands", () => {
+    expect(
+      evaluateUnattendedShellAction("proprietary-sync --prod", {
+        unattended: true,
+        trigger: { trusted: true },
+      }),
+    ).toMatchObject({ allow: false, reason: "unknown-action-unattended" });
+    expect(
+      evaluateUnattendedShellAction("git push origin main", {
+        unattended: true,
+      }),
+    ).toMatchObject({ allow: false, reason: "requires-attendance" });
+  });
+});
 
 describe("normalizeActionClass / classifyActionRisk", () => {
   it("maps aliases and tiers", () => {

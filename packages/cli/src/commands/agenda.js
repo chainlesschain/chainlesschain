@@ -455,6 +455,10 @@ export function buildAgentArgs(prompt, policy = null) {
   if (disallow.length > 0) {
     args.push("--disallowed-tools", disallow.join(","));
   }
+  args.push("--unattended");
+  if (policy && Array.isArray(policy.unattendedAllowlist) && policy.unattendedAllowlist.length > 0) {
+    args.push("--unattended-allow", policy.unattendedAllowlist.join(","));
+  }
   if (policy && typeof policy === "object") {
     if (
       typeof policy.permissionMode === "string" &&

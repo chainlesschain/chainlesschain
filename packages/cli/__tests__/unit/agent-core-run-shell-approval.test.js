@@ -73,6 +73,25 @@ describe("agent-core run_shell + ApprovalGate", () => {
     expect(typeof res.stdout).toBe("string");
   });
 
+  it("fail-closes unattended publish/push shell actions before spawning", async () => {
+    const res = await executeTool(
+      "run_shell",
+      { command: "git push origin main" },
+      {
+        unattendedActionPolicy: {
+          unattended: true,
+          trigger: { trusted: true },
+        },
+      },
+    );
+    expect(res.error).toMatch(/Unattended Action/);
+    expect(res.unattendedAction?.reason).toBe("requires-attendance");
+    expect(res.policy).toEqual({
+      decision: "deny",
+      via: "unattended-action-policy",
+    });
+  });
+
   it("failed command surfaces stdout so the agent sees the failure output", async () => {
     // Test runners / linters / build tools print WHAT failed to stdout and only
     // a one-line summary to stderr, then exit non-zero. If the foreground error
