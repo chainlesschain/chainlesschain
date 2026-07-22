@@ -149,6 +149,7 @@ export async function startChannels(specsInput, opts = {}) {
           port: spec.arg ? Number(spec.arg) : cfg.port,
           onEvent,
           log,
+          eventRuntimeStore: opts.eventRuntimeStore,
         });
         started.push({ kind: "webhook", describe: handle.describe, ...handle });
       } else if (spec.kind === "telegram") {
@@ -161,6 +162,7 @@ export async function startChannels(specsInput, opts = {}) {
           ...cfg,
           onEvent,
           log,
+          eventRuntimeStore: opts.eventRuntimeStore,
         });
         started.push({
           kind: "telegram",

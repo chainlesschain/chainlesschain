@@ -17,6 +17,7 @@
 
 import { createServer } from "node:http";
 import { randomBytes, timingSafeEqual } from "node:crypto";
+import { EventRuntimeProducer } from "../event-runtime-producer.js";
 
 const MAX_BODY_BYTES = 64 * 1024;
 
@@ -34,7 +35,11 @@ export async function startWebhookChannel(options = {}) {
     allowlist,
     onEvent,
     log = () => {},
+    eventRuntimeStore = null,
   } = options;
+  const runtimeProducer = eventRuntimeStore
+    ? new EventRuntimeProducer({ store: eventRuntimeStore })
+    : null;
 
   const isLoopback =
     host === "127.0.0.1" || host === "::1" || host === "localhost";
@@ -92,8 +97,7 @@ export async function startWebhookChannel(options = {}) {
           return respond(403, { error: "sender not in allowlist" });
         }
       }
-      try {
-        onEvent?.({
+      const event = {
           channel: "webhook",
           sender,
           text,
@@ -101,9 +105,17 @@ export async function startWebhookChannel(options = {}) {
             payload.meta && typeof payload.meta === "object"
               ? payload.meta
               : undefined,
+        };
+      try {
+        runtimeProducer?.publish(event, {
+          origin: "webhook",
+          id: payload.event_id || payload.eventId || null,
         });
+        onEvent?.(event);
       } catch {
-        /* the session queue owns downstream failures */
+        // A configured durable runtime is the recovery boundary. Refuse the
+        // request rather than acknowledging an event that was not persisted.
+        if (runtimeProducer) return respond(503, { error: "event persistence unavailable" });
       }
       respond(202, { ok: true });
     });

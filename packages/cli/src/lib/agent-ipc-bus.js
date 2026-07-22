@@ -11,6 +11,8 @@
 
 import { EventEmitter } from "node:events";
 import crypto from "node:crypto";
+import { EventRuntimeProducer } from "./event-runtime-producer.js";
+import { EventRuntimeStore } from "./event-runtime-store.js";
 
 /**
  * @typedef {Object} InteractionRequest
@@ -27,8 +29,11 @@ import crypto from "node:crypto";
  */
 
 class AgentIPCBus extends EventEmitter {
-  constructor() {
+  constructor({ runtimeStore = null } = {}) {
     super();
+    this._runtimeProducer = runtimeStore
+      ? new EventRuntimeProducer({ store: runtimeStore, emitter: this })
+      : null;
     /** @type {Map<string, {req: InteractionRequest, resolve: Function, reject: Function, timer?: NodeJS.Timeout}>} */
     this._pendingRequests = new Map();
     /** @type {Map<string, Function>} resolvers by agentId */
@@ -95,6 +100,19 @@ class AgentIPCBus extends EventEmitter {
       }, fullReq.timeoutMs);
 
       this._pendingRequests.set(requestId, { req: fullReq, resolve, reject, timer });
+      try {
+        this._runtimeProducer?.publish(
+          { type: "interaction_request", request: fullReq },
+          { origin: "agent-ipc", id: `interaction:${requestId}` },
+        );
+      } catch (error) {
+        // Durable publication is fail-closed for configured runtime mode: do
+        // not leave a request that cannot be recovered after a crash.
+        this._pendingRequests.delete(requestId);
+        clearTimeout(timer);
+        reject(error);
+        return;
+      }
       this.emit("request", fullReq);
     });
   }
@@ -110,6 +128,10 @@ class AgentIPCBus extends EventEmitter {
     if (entry.timer) clearTimeout(entry.timer);
     this._pendingRequests.delete(requestId);
     entry.resolve(response);
+    try {
+      const id = `interaction:${requestId}`;
+      this._runtimeProducer?.store.acknowledgeInbox(id, { response });
+    } catch {}
     this.emit("request:resolved", { requestId, response });
     return true;
   }
@@ -330,6 +352,10 @@ class AgentIPCBus extends EventEmitter {
 }
 
 // Singleton
-const ipcBus = new AgentIPCBus();
+const ipcBus = new AgentIPCBus(
+  process.env.CC_EVENT_RUNTIME_DURABLE === "1"
+    ? { runtimeStore: new EventRuntimeStore() }
+    : {},
+);
 export default ipcBus;
 export { AgentIPCBus };

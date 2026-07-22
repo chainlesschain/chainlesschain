@@ -220,6 +220,36 @@ describe("webhook channel", () => {
     }
   });
 
+  it("persists authenticated webhook events before delivery", async () => {
+    const records = [];
+    const handle = await startWebhookChannel({
+      port: 0,
+      token: "durable-token",
+      eventRuntimeStore: {
+        enqueue: (queue, event, options) => {
+          const row = { queue, event, id: options.id };
+          records.push(row);
+          return row;
+        },
+      },
+      onEvent: () => {},
+    });
+    try {
+      const response = await post(handle.url, {
+        token: "durable-token",
+        body: { event_id: "hook-1", text: "persist me", sender: "ci" },
+      });
+      expect(response.status).toBe(202);
+      expect(records[0]).toMatchObject({
+        queue: "inbox",
+        id: "hook-1",
+        event: { origin: "webhook", text: "persist me" },
+      });
+    } finally {
+      await handle.stop();
+    }
+  });
+
   it("refuses a non-loopback bind without allowExternal", async () => {
     await expect(
       startWebhookChannel({ host: "0.0.0.0", token: "t", onEvent: () => {} }),

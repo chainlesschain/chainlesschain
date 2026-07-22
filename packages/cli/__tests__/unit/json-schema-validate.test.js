@@ -313,6 +313,35 @@ describe("validate — if/then/else conditional", () => {
   });
 });
 
+describe("validate Draft 2020-12 dependent and collection keywords", () => {
+  it("supports patternProperties, dependentRequired, and dependentSchemas", () => {
+    const schema = {
+      type: "object",
+      patternProperties: { "^x-": { type: "number" } },
+      dependentRequired: { creditCard: ["billingAddress"] },
+      dependentSchemas: { creditCard: { required: ["billingAddress"] } },
+      unevaluatedProperties: false,
+    };
+    expect(validate({ "x-count": 2 }, schema).valid).toBe(true);
+    expect(validate({ "x-count": "2" }, schema).valid).toBe(false);
+    expect(validate({ creditCard: "1" }, schema).errors.some((e) => e.code === "dependentRequired")).toBe(true);
+    expect(validate({ unknown: true }, schema).errors.some((e) => e.code === "unevaluatedProperties")).toBe(true);
+  });
+
+  it("supports contains with minContains/maxContains and propertyNames", () => {
+    const schema = {
+      type: "array",
+      contains: { type: "integer" },
+      minContains: 2,
+      maxContains: 2,
+    };
+    expect(validate([1, "x", 2], schema).valid).toBe(true);
+    expect(validate([1, "x"], schema).valid).toBe(false);
+    expect(validate({ good: 1 }, { type: "object", propertyNames: { pattern: "^[a-z]+$" } }).valid).toBe(true);
+    expect(validate({ "Bad-Key": 1 }, { type: "object", propertyNames: { pattern: "^[a-z]+$" } }).valid).toBe(false);
+  });
+});
+
 describe("validateSchema (startup meta-validation)", () => {
   it("accepts a well-formed schema and boolean schemas", () => {
     expect(

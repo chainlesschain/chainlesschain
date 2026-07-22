@@ -66,13 +66,13 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 | 后台人机回路 | 后台任务可暂停、请求权限/输入、恢复和接管 | attach 可追问；`needs_input` 已有真实状态 | 提问会 park 当前子进程，回答作为下一 turn；缺当前 turn 双向通道 | P0 |
 | 权限控制面 | CLI、交互、SDK、IDE 使用同一权限规则和决策来源 | Agent Runtime 已有 settings rules + ApprovalGate；`cc permissions` 仍是另一套管理面 | 用户可能误以为 `cc permissions` 已直接约束 Agent 工具；安全默认和来源解释需统一 | P0/P1 |
 | Hooks | 完整生命周期；command/http/mcp_tool/prompt/agent 五类；并行、去重、最严合并 | 稳定 command hook、部分事件、async/replay/trace 已有 | Hook 类型和事件生产者不全；shell 继承全 env；严格并行仍有 opt-in 路径 | P1 |
-| MCP 交互 | Elicitation、ElicitationResult、Channels、长调用后台化 | Tools/Resources/Prompts/OAuth/Tool Search/list changed/roots、Elicitation transport 与 Desktop schema UI 已有 | 完整 schema vocabulary、专用 IDE UX 与外部事件常驻运行时仍待补 | P1 |
-| Event Runtime | 后台会话、任务、外部事件和持续监控统一运行 | Agenda/Monitor/Channel 原语较多 | `cc agenda run` 仍需外部触发；缺常驻调度、租约、补跑、背压闭环 | P1 |
+| MCP 交互 | Elicitation、ElicitationResult、Channels、长调用后台化 | Tools/Resources/Prompts/OAuth/Tool Search/list changed/roots、Elicitation transport 与 Desktop schema UI 已有 | 完整 schema vocabulary、专用 IDE UX 与部分外部事件 producer 仍待补 | P1 |
+| Event Runtime | 后台会话、任务、外部事件和持续监控统一运行 | Agenda watch、durable inbox/outbox、lease/retry/dead-letter、Agent IPC producer 已接入 | Monitor/Webhook/MCP 等外部 producer 全量迁移、统一背压策略仍待补 | P1 |
 | Context | `/context` 显示 memory、skills、MCP、文件与缓存成本 | 已显示消息角色及 MCP schema 概览 | Skill 按需加载和实际 MCP schema 的逐来源归因仍不完整 | P1 |
 | Checkpoint | 对话与文件按 turn 恢复 | Headless 显式绑定已持久化，REPL 可消费 | REPL 还不是统一生产者；child/worktree/user edit/provider tool id 归因不完整 | P1 |
-| Plugin 安全 | 插件统一打包、作用域、企业治理 | 能力声明、consent、签名、typed options、lockfile/SBOM 摘要 | 敏感值仍可落 user JSON；进程组件未统一进 Broker；Keychain 与全路径 Broker 强制仍缺 | P1 |
+| Plugin 安全 | 插件统一打包、作用域、企业治理 | 能力声明、consent、签名、typed options、OS secret store、lockfile/SBOM、插件 MCP/LSP Broker provenance | hooks/monitors 与 Desktop 侧全量进程入口仍需统一 Broker | P1 |
 | 关键状态并发 | 会话、审批、任务和副作用状态应原子持久化 | 文件锁封装以 best-effort 为主 | 锁超时后部分路径会无锁继续，关键状态存在 lost update 风险 | P1 |
-| 结构化输出 | 标准 JSON Schema、启动期校验、最终 validated result | 已有较完整自研子集及 stream `structured_result` | 仍不是完整 Draft 2020-12；复杂 schema 的互操作性需明确 | P1 |
+| 结构化输出 | 标准 JSON Schema、启动期校验、最终 validated result | 常用 Draft 2020-12 vocabulary（组合、条件、`$ref`、dependent、pattern、contains、format）及 stream `structured_result` | 完整 meta-vocabulary、外部 `$ref` 与复杂 schema 互操作性仍待补 | P1 |
 | SDK/CI | TypeScript/Python SDK、版本化事件、GitHub/GitLab 自动化 | TypeScript SDK 已有 | 部分 goal/approval/turn 事件未完全透传；缺统一发布兼容门；Python/CI 模板按需求决定 | P1 |
 | 验收与文档 | CLI/IDE/SDK 共享运行时和持续发布验证 | 单元/集成测试很多 | MVP 验证脚本没有覆盖完整 Desktop→真实 CLI 链；多份旧文档仍把已完成项列为缺口 | P1 |
 | 全进程回滚 | 官方 checkpoint 主要覆盖编辑工具 | 已对 shell/外部副作用诚实标记 partial | 可进一步做全工具文件变更捕获，形成强于 Claude Code 的差异化 | P2 |
@@ -253,12 +253,12 @@ Claude Code 当前官方 Hook 面已包括更完整的生命周期，并支持 `
 - Monitor 已有确定性 event id、authority envelope 和去重原语，但注释仍指向“future resident daemon”。
 - [`mcp-client.js`](../packages/cli/src/harness/mcp-client.js#L1054) 已处理 tools/resources
   `list_changed`；Elicitation transport、REPL/Headless/SDK 核心链路及 Desktop
-  原生 schema UI 已接入，完整 schema vocabulary 与 VS Code/JetBrains 专用 UX 仍未完整接入。
+  原生 schema UI 已接入，CLI validator 已补齐 dependent/pattern/contains/propertyNames 等常用 vocabulary；完整 meta-vocabulary 与 VS Code/JetBrains 专用 UX 仍未完整接入。
 
 2026-07-22 另补齐 Agenda 的持久执行 lease 和常驻入口：`AgentScheduleStore.claimDue()`
 通过跨进程锁标记 due 条目，完成/失败时释放，进程异常后由过期 lease 回收，避免两个
 `cc agenda run` 同时触发同一任务；`cc agenda run --watch <seconds>` 现在以可停止
-daemon loop 持续轮询。`EventRuntimeStore` 与可停止的 `EventRuntimeWorker` 已提供 durable inbox/outbox、幂等、租约回收、失败重试/死信，并可选接入 Hooks v2；外部 producer 全量迁移仍待落地。
+daemon loop 持续轮询。`EventRuntimeStore` 与可停止的 `EventRuntimeWorker` 已提供 durable inbox/outbox、幂等、租约回收、失败重试/死信；`EventRuntimeProducer` 已规范 origin/authority，Agent IPC interaction 已接入 durable inbox。Monitor/Webhook/MCP 等外部 producer 全量迁移仍待落地。
 
 2026-07-22 已补齐 MCP transport 核心：服务器发出的 `elicitation/create` 会进入注入的
 handler，或通过 `elicitation-request` 事件交给宿主；支持 `accept/decline/cancel` 规范化、
@@ -341,15 +341,15 @@ Headless 已在 [`headless-runner.js`](../packages/cli/src/runtime/headless-runn
 
 当前 Plugin 能力声明、能力 diff、重新 consent 和 options schema 已较完善。剩余高价值工作：
 
-- 敏感 option 从 user-scope JSON 迁移到 DPAPI、macOS Keychain、Linux Secret Service。
+- 敏感 option 已从 user-scope JSON 迁移到 DPAPI、macOS Keychain、Linux Secret Service（不可用时 fail-closed）。
 - 取消 legacy manifest 的隐式旁路：当前
   [`policy.js`](../packages/cli/src/lib/plugin-runtime/policy.js#L180) 对未声明 capabilities 的
   旧插件保留兼容加载。建议设置迁移窗口，首次加载展示推断能力并要求确认；企业模式直接
   fail-closed。
-- Plugin Bin、Hook、LSP、MCP stdio 全部进入 Process Broker，并携带 `plugin_id/version/source`。
+- 插件 MCP stdio 与 LSP 已进入 Process Broker，并携带 `plugin_id/version/source`；Plugin Bin、Hook、Monitor 及 Desktop 侧全路径仍待收口。
 - Manifest 的 network domains、filesystem roots、process、credential 声明要从“安装期说明”
   升级为“运行时强制”。
-- 增加 lockfile、依赖图、签名链、SBOM 和安装产物 hash。当前安装锁已记录并校验文件级 SBOM 摘要；依赖图、Keychain 与全路径 Broker 强制仍待补。
+- 增加 lockfile、依赖图、签名链、SBOM 和安装产物 hash。当前安装锁已记录并校验文件级 SBOM 摘要，敏感 options 已使用 OS secret store；依赖图与全路径 Broker 强制仍待补。
 - 升级前展示新增能力、上下文成本和可执行组件；能力扩大必须重新 consent。
 - 禁止不安全 shell-form 插值，默认使用 argv 形式。
 

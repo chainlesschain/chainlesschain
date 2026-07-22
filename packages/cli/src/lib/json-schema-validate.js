@@ -460,6 +460,24 @@ function _validateArray(value, schema, inst, sch, root, errors, depth) {
     }
   }
   const prefix = Array.isArray(schema.prefixItems) ? schema.prefixItems : [];
+  if (schema.contains !== undefined) {
+    const matches = value.reduce(
+      (count, item, i) =>
+        count + (_branchValid(item, schema.contains, root, depth) ? 1 : 0),
+      0,
+    );
+    const min = Number.isFinite(schema.minContains) ? schema.minContains : 1;
+    const max = Number.isFinite(schema.maxContains) ? schema.maxContains : Infinity;
+    if (matches < min || matches > max) {
+      _err(
+        errors,
+        "contains",
+        inst,
+        [...sch, "contains"],
+        `array contains ${matches} matching item(s), expected ${min}${max === Infinity ? "+" : `..${max}`}`,
+      );
+    }
+  }
   value.forEach((item, i) => {
     if (i < prefix.length) {
       _validate(
@@ -523,6 +541,10 @@ function _validateObject(value, schema, inst, sch, root, errors, depth) {
     }
   }
   const props = schema.properties || {};
+  const patterns = schema.patternProperties || {};
+  const patternEntries = Object.entries(patterns).map(([pattern, sub]) => {
+    try { return [new RegExp(pattern), pattern, sub]; } catch { return [null, pattern, sub]; }
+  });
   for (const [k, v] of Object.entries(value)) {
     if (Object.prototype.hasOwnProperty.call(props, k)) {
       _validate(
@@ -534,18 +556,23 @@ function _validateObject(value, schema, inst, sch, root, errors, depth) {
         errors,
         depth,
       );
-    } else if (schema.additionalProperties === false) {
+    } else {
+      const matches = patternEntries.filter(([re]) => re && re.test(k));
+      if (matches.length > 0) {
+        for (const [, pattern, sub] of matches) {
+          _validate(v, sub, [...inst, k], [...sch, "patternProperties", pattern], root, errors, depth);
+        }
+        continue;
+      }
+      if (schema.additionalProperties === false || schema.unevaluatedProperties === false) {
       _err(
         errors,
-        "additionalProperties",
+        schema.additionalProperties === false ? "additionalProperties" : "unevaluatedProperties",
         [...inst, k],
-        [...sch, "additionalProperties"],
+        [...sch, schema.additionalProperties === false ? "additionalProperties" : "unevaluatedProperties"],
         `unexpected property "${k}"`,
       );
-    } else if (
-      schema.additionalProperties &&
-      typeof schema.additionalProperties === "object"
-    ) {
+      } else if (schema.additionalProperties && typeof schema.additionalProperties === "object") {
       _validate(
         v,
         schema.additionalProperties,
@@ -555,6 +582,29 @@ function _validateObject(value, schema, inst, sch, root, errors, depth) {
         errors,
         depth,
       );
+      }
+    }
+  }
+  if (schema.propertyNames !== undefined) {
+    for (const key of keys) {
+      _validate(key, schema.propertyNames, [...inst, key], [...sch, "propertyNames"], root, errors, depth);
+    }
+  }
+  if (schema.dependentRequired && typeof schema.dependentRequired === "object") {
+    for (const [key, required] of Object.entries(schema.dependentRequired)) {
+      if (!Object.prototype.hasOwnProperty.call(value, key)) continue;
+      for (const dep of Array.isArray(required) ? required : []) {
+        if (!Object.prototype.hasOwnProperty.call(value, dep)) {
+          _err(errors, "dependentRequired", inst, [...sch, "dependentRequired", key], `property "${key}" requires property "${dep}"`);
+        }
+      }
+    }
+  }
+  if (schema.dependentSchemas && typeof schema.dependentSchemas === "object") {
+    for (const [key, sub] of Object.entries(schema.dependentSchemas)) {
+      if (Object.prototype.hasOwnProperty.call(value, key)) {
+        _validate(value, sub, inst, [...sch, "dependentSchemas", key], root, errors, depth);
+      }
     }
   }
 }
@@ -692,6 +742,8 @@ function _metaValidate(schema, segs, errors, depth) {
     "maxItems",
     "minProperties",
     "maxProperties",
+    "minContains",
+    "maxContains",
   ]) {
     if (
       schema[k] !== undefined &&
@@ -740,6 +792,36 @@ function _metaValidate(schema, segs, errors, depth) {
         _metaValidate(sub, [...segs, "properties", k], errors, depth + 1);
       }
     }
+  }
+  for (const k of ["patternProperties", "dependentSchemas"]) {
+    if (schema[k] === undefined) continue;
+    if (typeof schema[k] !== "object" || Array.isArray(schema[k])) {
+      _metaErr(errors, k, [...segs, k], `${k} must be an object`);
+    } else {
+      for (const [name, sub] of Object.entries(schema[k])) {
+        if (k === "patternProperties") {
+          try { new RegExp(name); } catch (e) { _metaErr(errors, k, [...segs, k, name], `invalid regex: ${e.message}`); }
+        }
+        _metaValidate(sub, [...segs, k, name], errors, depth + 1);
+      }
+    }
+  }
+  if (schema.propertyNames !== undefined) {
+    _metaValidate(schema.propertyNames, [...segs, "propertyNames"], errors, depth + 1);
+  }
+  if (schema.dependentRequired !== undefined) {
+    if (typeof schema.dependentRequired !== "object" || Array.isArray(schema.dependentRequired)) {
+      _metaErr(errors, "dependentRequired", [...segs, "dependentRequired"], "dependentRequired must be an object");
+    } else {
+      for (const [key, required] of Object.entries(schema.dependentRequired)) {
+        if (!Array.isArray(required) || required.some((v) => typeof v !== "string")) {
+          _metaErr(errors, "dependentRequired", [...segs, "dependentRequired", key], "dependentRequired values must be arrays of strings");
+        }
+      }
+    }
+  }
+  if (schema.contains !== undefined) {
+    _metaValidate(schema.contains, [...segs, "contains"], errors, depth + 1);
   }
   if (
     schema.additionalProperties !== undefined &&
