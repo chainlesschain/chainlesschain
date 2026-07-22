@@ -1762,6 +1762,38 @@ export async function startAgentRepl(options = {}) {
   // "close" cleanup instead of a bare exit.
   _replRl = rl;
 
+  // MCP elicitation in the interactive REPL uses the same readline surface as
+  // approvals, while MCPClient retains the protocol-level response shape.
+  const mcpElicitationClients = [
+    _adhocMcp?.mcpClient,
+    _bundleMcpClient,
+  ].filter((client) => client?.setElicitationHandler);
+  for (const client of mcpElicitationClients) {
+    client.setElicitationHandler(
+      (request) =>
+        new Promise((resolve) => {
+          const label = request.message || "MCP server requests additional input";
+          rl.question(chalk.yellow(`\n  MCP [${request.server}] ${label}\n  > `), (answer) => {
+            const trimmed = String(answer || "").trim();
+            if (!trimmed) {
+              resolve({ action: "cancel" });
+            } else {
+              let content = { value: trimmed };
+              try {
+                const parsed = JSON.parse(trimmed);
+                if (parsed && typeof parsed === "object") content = parsed;
+              } catch {
+                // Plain text remains a valid single-field elicitation answer.
+              }
+              resolve({ action: "accept", content });
+            }
+            rl.prompt();
+          });
+        }),
+      { timeoutMs: options.mcpElicitationTimeoutMs },
+    );
+  }
+
   // Inbound channels (--channels, gap-2026-07-11 P0#5): external events enter
   // this session as user turns. rl.emit("line") reuses the REPL's own input
   // path, so an event landing mid-turn queues behind it (pending-lines), and

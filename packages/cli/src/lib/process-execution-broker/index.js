@@ -523,9 +523,9 @@ class ProcessExecutionBroker extends EventEmitter {
       }
     }
 
-    const nativeSpawnSync = this._native?.spawnSync || nativeSpawnSync;
+    const nativeSpawnSyncFn = this._native?.spawnSync || nativeSpawnSync;
     try {
-      const result = nativeSpawnSync(command, args, optsForSync);
+      const result = nativeSpawnSyncFn(command, args, optsForSync);
       auditEntry.exitCode = result.status;
       auditEntry.endTime = Date.now();
       auditEntry.durationMs = auditEntry.endTime - startTime;

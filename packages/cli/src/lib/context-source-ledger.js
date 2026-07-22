@@ -43,6 +43,7 @@ class ContextSourceLedger {
     const entryId = entry.entryId || crypto.randomUUID();
     const full = {
       entryId,
+      traceId: entry.traceId || null,
       sessionId: entry.sessionId || "unknown",
       turnId: entry.turnId || "unknown",
       sourceType: entry.sourceType || "unknown",
@@ -67,6 +68,48 @@ class ContextSourceLedger {
     this._bySession.get(full.sessionId).push(full);
 
     return entryId;
+  }
+
+  /** Compatibility adapter for runtime provenance producers. */
+  recordRead(entry = {}) {
+    return this.record({
+      sessionId: entry.sessionId,
+      turnId: entry.turnId,
+      sourceType: entry.sourceType || entry.source || "unknown",
+      sourceId: entry.sourceId || entry.span || "unknown",
+      permissionMode: entry.permissionMode || "agent",
+      confidence: entry.confidence,
+      summary: entry.summary || entry.content,
+      metadata: entry.metadata,
+      tokenCount: entry.tokenCount ?? entry.tokens ?? 0,
+      traceId: entry.traceId,
+    });
+  }
+
+  /** Return a flat, read-only provenance snapshot for diagnostics/export. */
+  getProvenance({ sessionId, turnId } = {}) {
+    let entries = Array.from(this._entries.values());
+    if (sessionId) entries = entries.filter((e) => e.sessionId === sessionId);
+    if (turnId) entries = entries.filter((e) => e.turnId === turnId);
+    return entries.map((entry) => ({ ...entry, tags: [...entry.tags] }));
+  }
+
+  /** Aggregate token usage by source type. */
+  getTokenBreakdown() {
+    const bySource = {};
+    let total = 0;
+    for (const entry of this._entries.values()) {
+      total += entry.tokenCount;
+      bySource[entry.sourceType] = (bySource[entry.sourceType] || 0) + entry.tokenCount;
+    }
+    return { total, bySource };
+  }
+
+  /** Clear the in-memory ledger (test/runtime lifecycle boundary). */
+  clear() {
+    this._entries.clear();
+    this._byTurn.clear();
+    this._bySession.clear();
   }
 
   /**

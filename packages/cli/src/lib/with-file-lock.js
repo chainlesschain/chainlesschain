@@ -26,6 +26,7 @@ export function withFileLock(targetPath, fn, opts = {}) {
     _fs = defaultFs,
     _now = () => Date.now(),
     _sleep = sleepSync,
+    failIfUnavailable = false,
   } = opts;
 
   const lockDir = `${targetPath}.lock`;
@@ -52,6 +53,12 @@ export function withFileLock(targetPath, fn, opts = {}) {
       if (_now() >= deadline) break; // timed out → run unlocked (best-effort)
       _sleep(retryMs);
     }
+  }
+
+  if (!held && failIfUnavailable) {
+    const error = new Error(`Could not acquire state lock: ${targetPath}`);
+    error.code = "STATE_LOCK_UNAVAILABLE";
+    throw error;
   }
 
   try {

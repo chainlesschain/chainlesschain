@@ -1137,6 +1137,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     options: qOptions,
     multiSelect,
     timeoutMs,
+    metadata,
   } = {}) =>
     new Promise((resolve, reject) => {
       const id = `q-${++questionSeq}`;
@@ -1151,8 +1152,33 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
         question: typeof question === "string" ? question : "",
         options: Array.isArray(qOptions) ? qOptions : null,
         multiSelect: multiSelect === true,
+        ...(metadata && typeof metadata === "object" ? { metadata } : {}),
       });
     });
+
+  // MCP servers may pause a tool flow with `elicitation/create`. Reuse the
+  // structured question channel used by the Desktop/headless panel, but keep
+  // the MCP response shape (`action` + object `content`) at this boundary.
+  if (mcp?.mcpClient?.setElicitationHandler && interactiveQuestions) {
+    mcp.mcpClient.setElicitationHandler(async (request) => {
+      const answer = await interactionAskUser({
+        question: request.message || "MCP server requests additional input",
+        timeoutMs: request.timeoutMs,
+        metadata: {
+          kind: "mcp_elicitation",
+          server: request.server,
+          requestId: request.requestId,
+          requestedSchema: request.requestedSchema || null,
+        },
+      });
+      if (answer == null) return { action: "cancel" };
+      return {
+        action: "accept",
+        content:
+          answer && typeof answer === "object" ? answer : { value: answer },
+      };
+    });
+  }
 
   // --output-style (or settings.json `outputStyle`) persona, appended.
   let outputStyleBody = null;

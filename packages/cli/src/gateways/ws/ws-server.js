@@ -255,6 +255,7 @@ export class ChainlessChainWSServer extends EventEmitter {
 
     /** Session manager for stateful agent/chat sessions */
     this.sessionManager = options.sessionManager || null;
+    this.projectRoot = options.projectRoot || process.cwd();
 
     /** Session handlers: sessionId → WSAgentHandler | WSChatHandler */
     this.sessionHandlers = new Map();
@@ -528,6 +529,67 @@ export class ChainlessChainWSServer extends EventEmitter {
   /** @private */
   async _handleMessage(clientId, ws, message) {
     return this._dispatcher.dispatch(clientId, ws, message);
+  }
+
+  /** Read the same .claude settings rules used by the Agent Core. */
+  async _handlePermissionRulesGet(id, ws) {
+    try {
+      const { loadSettings } = await import("../../lib/settings-loader.cjs");
+      const loaded = loadSettings({ cwd: this.projectRoot });
+      this._send(ws, {
+        id,
+        type: "permission-rules",
+        rules: loaded.rules,
+        sources: loaded.sources,
+        files: loaded.files,
+        managed: loaded.managed || null,
+      });
+    } catch (error) {
+      this._send(ws, {
+        id,
+        type: "error",
+        code: "PERMISSION_RULES_READ_FAILED",
+        message: error.message,
+      });
+    }
+  }
+
+  /** Persist one rule through settings-loader; managed policy remains authoritative. */
+  async _handlePermissionRulesSet(id, ws, message) {
+    try {
+      const decision = String(message.decision || "").toLowerCase();
+      if (!["allow", "ask", "deny"].includes(decision)) {
+        throw new Error("decision must be allow, ask, or deny");
+      }
+      const rulesMod = await import("../../lib/permission-rules.cjs");
+      const mod = rulesMod.default || rulesMod;
+      if (!mod.parseRule(message.rule)) throw new Error("invalid permission rule");
+      const { addRule } = await import("../../lib/settings-loader.cjs");
+      const scope = ["project", "local", "user"].includes(message.scope)
+        ? message.scope
+        : "project";
+      const result = addRule({
+        cwd: this.projectRoot,
+        kind: decision,
+        rule: message.rule,
+        scope,
+      });
+      this._send(ws, {
+        id,
+        type: "permission-rule-updated",
+        ...result,
+        decision,
+        rule: message.rule,
+        scope,
+      });
+    } catch (error) {
+      this._send(ws, {
+        id,
+        type: "error",
+        code: "PERMISSION_RULES_WRITE_FAILED",
+        message: error.message,
+      });
+    }
   }
 
   /**

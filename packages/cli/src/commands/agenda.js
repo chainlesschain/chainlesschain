@@ -53,8 +53,14 @@ export function registerAgendaCommand(program) {
     .description("Fire every entry that is due now")
     .option("--dry-run", "Show what would fire without running anything")
     .option("--json", "Machine-readable JSON output")
+    .option(
+      "--watch <seconds>",
+      "Keep running as a resident scheduler and poll at this interval",
+    )
     .action(async (options) => {
-      process.exitCode = await runAgendaRun(options);
+      process.exitCode = options.watch
+        ? await runAgendaDaemon(options)
+        : await runAgendaRun(options);
     });
 
   cmd
@@ -219,7 +225,11 @@ export async function runAgendaRun(options = {}, _deps = {}) {
   const retired = options.dryRun
     ? partitionSchedule(store.list(), { now }).expired
     : store.retireExpired(now);
-  const due = store.due(null, now);
+  const due = options.dryRun
+    ? store.due(null, now)
+    : typeof store.claimDue === "function"
+      ? store.claimDue(now, options.leaseMs)
+      : store.due(null, now);
   const actions = [];
 
   for (const entry of due) {
@@ -337,6 +347,7 @@ export async function runAgendaRun(options = {}, _deps = {}) {
         }
       }
     } catch (err) {
+      store.releaseClaim?.(entry.id);
       actions.push({
         id: entry.id,
         kind: entry.kind,
@@ -371,6 +382,53 @@ export async function runAgendaRun(options = {}, _deps = {}) {
     }
   }
   return actions.some((a) => a.action === "error") ? 1 : 0;
+}
+
+/**
+ * Resident scheduler loop for `cc agenda run --watch <seconds>`.
+ *
+ * The store remains the source of truth: every tick re-reads durable entries,
+ * retires expired work, and claims due entries through the same lease path as
+ * one-shot execution. A signal or injected AbortSignal stops after the current
+ * tick; `maxTicks` is intentionally supported for deterministic tests.
+ */
+export async function runAgendaDaemon(options = {}, _deps = {}) {
+  const intervalSeconds = Number(options.watch);
+  const intervalMs = Math.max(
+    250,
+    Number.isFinite(intervalSeconds) && intervalSeconds > 0
+      ? intervalSeconds * 1000
+      : 60000,
+  );
+  const signal = options.signal || _deps.signal || null;
+  const runOnce = _deps.runOnce || ((next) => runAgendaRun(next, _deps));
+  const sleep =
+    _deps.sleep ||
+    ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  let stopped = Boolean(signal?.aborted);
+  let lastCode = 0;
+  let ticks = 0;
+  const stop = () => {
+    stopped = true;
+  };
+  const onAbort = () => stop();
+  signal?.addEventListener?.("abort", onAbort, { once: true });
+  const onSignal = () => stop();
+  process.once("SIGINT", onSignal);
+  process.once("SIGTERM", onSignal);
+  try {
+    while (!stopped) {
+      lastCode = Math.max(lastCode, await runOnce({ ...options, watch: null }));
+      ticks += 1;
+      if (Number.isFinite(_deps.maxTicks) && ticks >= _deps.maxTicks) break;
+      await sleep(intervalMs);
+    }
+  } finally {
+    signal?.removeEventListener?.("abort", onAbort);
+    process.removeListener("SIGINT", onSignal);
+    process.removeListener("SIGTERM", onSignal);
+  }
+  return lastCode;
 }
 
 // ─── default effectful deps (overridable in tests) ─────────────────────────

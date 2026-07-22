@@ -5,10 +5,7 @@
   "binariesVersion": "20260528",
   "private": true,
   "workspaces": [
-<<<<<<< Updated upstream
     "desktop-app-vue",
-    "packages/*"
-=======
     "desktop-app",
     "backend/services",
     "packages/core-env",
@@ -27,12 +24,12 @@
     "packages/session-core",
     "packages/cli",
     "packages/personal-data-hub"
->>>>>>> Stashed changes
   ],
   "scripts": {
     "dev": "cd desktop-app-vue && npm run dev",
     "build": "cd desktop-app-vue && npm run build",
     "build:cli": "cd packages/cli && npm run build",
+    "test:coding-agent:parity": "cd desktop-app-vue && npm run test:coding-agent:parity",
     "test": "cd packages/cli && npm test",
     "lint": "eslint . --ext .js,.vue,.ts",
     "validate:rules": "node scripts/validate-rules.js",

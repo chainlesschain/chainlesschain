@@ -162,7 +162,8 @@ export class WSAgentHandler {
       const sideEffectLedger = loadSideEffectLedger(session.id);
       let currentSideEffectOpId = null;
 
-      for await (const event of agentLoop(session.messages, loopOptions)) {
+      const runAgentTurn = async () => {
+        for await (const event of agentLoop(session.messages, loopOptions)) {
         switch (event.type) {
           case "slot-filling":
             this.interaction.emit("slot-filling", {
@@ -236,6 +237,16 @@ export class WSAgentHandler {
             });
             break;
         }
+        }
+      };
+
+      if (session.mcpClient?.withElicitationContext) {
+        await session.mcpClient.withElicitationContext(
+          session.id,
+          runAgentTurn,
+        );
+      } else {
+        await runAgentTurn();
       }
 
       // Update last activity

@@ -29,9 +29,11 @@ t("M1 ProcessExecutionBroker loads", () => {
   if (!broker || typeof broker.spawn !== "function") throw new Error("missing spawn()");
 });
 
-t("M1 ProcessExecutionBroker has addPolicyEnforcer", () => {
+t("M1 ProcessExecutionBroker exposes policy and audit controls", () => {
   const broker = require(`${SRC}/process-execution-broker/index.js`).default;
-  if (typeof broker.addPolicyEnforcer !== "function") throw new Error("missing addPolicyEnforcer");
+  for (const method of ["setPermission", "getStats", "getAuditLog"]) {
+    if (typeof broker[method] !== "function") throw new Error(`missing ${method}()`);
+  }
 });
 
 // M2: AgentIPCBus
@@ -45,6 +47,7 @@ t("M2 AgentIPCBus supports registerAgent/respond/cancel", () => {
   if (typeof bus.registerAgent !== "function") throw new Error("missing registerAgent");
   if (typeof bus.respond !== "function") throw new Error("missing respond");
   if (typeof bus.cancel !== "function") throw new Error("missing cancel");
+  if (typeof bus.isAgentRegistered !== "function") throw new Error("missing isAgentRegistered");
 });
 
 // M3: HooksV2Runtime
@@ -73,6 +76,19 @@ t("M3 HooksV2Runtime supports 5 executor types", () => {
   }
 });
 
+t("M3 HooksV2Runtime supports programmatic execution", () => {
+  const hooks = require(`${SRC}/hooks-v2-runtime.js`).default;
+  if (typeof hooks.registerHook !== "function") throw new Error("missing registerHook");
+  if (typeof hooks.executeHooks !== "function") throw new Error("missing executeHooks");
+  const id = hooks.registerHook({
+    id: "runtime-convergence-hook",
+    event: "Notification",
+    type: "js",
+    handler: () => ({ ok: true }),
+  });
+  hooks.unregisterHook(id);
+});
+
 // M4: ContextSourceLedger
 t("M4 ContextSourceLedger loads", () => {
   const ledger = require(`${SRC}/context-source-ledger.js`).default;
@@ -81,6 +97,7 @@ t("M4 ContextSourceLedger loads", () => {
 
 t("M4 ContextSourceLedger can record and query provenance", () => {
   const ledger = require(`${SRC}/context-source-ledger.js`).default;
+  ledger.clear();
   ledger.record({
     sessionId: "test-session",
     turnId: "test-turn",
@@ -94,7 +111,10 @@ t("M4 ContextSourceLedger can record and query provenance", () => {
   const provenance = ledger.getTurnProvenance("test-turn");
   if (provenance.totalEntries < 1) throw new Error("expected at least 1 entry");
   if (!provenance.byType.tool) throw new Error("expected tool entry");
+  if (typeof ledger.recordRead !== "function" || typeof ledger.getProvenance !== "function" ||
+      typeof ledger.getTokenBreakdown !== "function") throw new Error("missing runtime provenance adapters");
   ledger.clearSession("test-session");
+  ledger.clear();
 });
 
 // Verify package name

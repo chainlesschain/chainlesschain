@@ -17,6 +17,8 @@ function createServerStub() {
     _handleSessionClose: vi.fn(),
     _handleSlashCommand: vi.fn(),
     _handleSessionAnswer: vi.fn(),
+    _handlePermissionRulesGet: vi.fn(),
+    _handlePermissionRulesSet: vi.fn(),
     _handleHostToolResult: vi.fn(),
     _handleOrchestrate: vi.fn(),
     _handleTasksList: vi.fn(),
@@ -109,6 +111,33 @@ describe("ws message dispatcher", () => {
       "4",
       ws,
       message,
+    );
+  });
+
+  it("routes permission rule read/write messages", async () => {
+    const server = createServerStub();
+    const dispatcher = createWsMessageDispatcher(server);
+    const ws = {};
+    const get = { id: "perm-get", type: "permission-rules-get" };
+    const set = {
+      id: "perm-set",
+      type: "permission-rules-set",
+      decision: "deny",
+      rule: "Bash(rm:*)",
+      scope: "project",
+    };
+
+    await dispatcher.dispatch("client-1", ws, get);
+    await dispatcher.dispatch("client-1", ws, set);
+
+    expect(server._handlePermissionRulesGet).toHaveBeenCalledWith(
+      "perm-get",
+      ws,
+    );
+    expect(server._handlePermissionRulesSet).toHaveBeenCalledWith(
+      "perm-set",
+      ws,
+      set,
     );
   });
 

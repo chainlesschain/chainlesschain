@@ -7,6 +7,7 @@ import {
   runAgendaList,
   runAgendaCancel,
   runAgendaRun,
+  runAgendaDaemon,
   runAgendaPrune,
   buildAgentArgs,
 } from "../../src/commands/agenda.js";
@@ -29,6 +30,23 @@ describe("cc agenda", () => {
   });
 
   const log = (m) => logs.push(m);
+
+  it("runs a resident scheduler for deterministic ticks and stops", async () => {
+    const calls = [];
+    const code = await runAgendaDaemon(
+      { watch: "1", json: true },
+      {
+        maxTicks: 2,
+        runOnce: async (options) => {
+          calls.push(options.watch);
+          return 0;
+        },
+        sleep: async () => {},
+      },
+    );
+    expect(code).toBe(0);
+    expect(calls).toEqual([null, null]);
+  });
 
   it("lists entries as JSON", () => {
     store.scheduleWakeup({ prompt: "a", delayMs: 1000 });

@@ -318,6 +318,7 @@ export class AgentRuntime {
       maxConnections,
       timeout,
       sessionManager,
+      projectRoot: project,
       remoteSessionRelayUrl,
       remoteSessionPeerId,
       envelopeBus,

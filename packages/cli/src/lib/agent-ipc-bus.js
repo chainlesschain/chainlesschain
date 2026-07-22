@@ -58,6 +58,10 @@ class AgentIPCBus extends EventEmitter {
     this.emit("agent:unregistered", { agentId });
   }
 
+  isAgentRegistered(agentId) {
+    return this._agentResolvers.has(agentId);
+  }
+
   /**
    * Child agent calls this to request human interaction
    * @param {string} agentId

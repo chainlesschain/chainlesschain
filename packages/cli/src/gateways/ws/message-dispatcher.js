@@ -110,6 +110,9 @@ export function createWsMessageDispatcher(server) {
         "session-close": () => server._handleSessionClose(id, ws, message),
         "session-interrupt": () =>
           server._handleSessionInterrupt(id, ws, message),
+        "permission-rules-get": () => server._handlePermissionRulesGet(id, ws),
+        "permission-rules-set": () =>
+          server._handlePermissionRulesSet(id, ws, message),
         "slash-command": () => server._handleSlashCommand(id, ws, message),
         "session-answer": () => server._handleSessionAnswer(id, ws, message),
         "remote-session-create": () =>

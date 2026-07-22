@@ -134,6 +134,29 @@ describe("WebSocketInteractionAdapter", () => {
     expect(result).toBe("Alice");
   });
 
+  it("askElicitation sends schema metadata and accepts structured answers", async () => {
+    const promise = adapter.askElicitation({
+      server: "forms",
+      requestId: 42,
+      message: "Choose a color",
+      requestedSchema: {
+        type: "object",
+        properties: { color: { type: "string" } },
+      },
+    });
+    const sent = JSON.parse(ws.send.mock.calls[0][0]);
+    expect(sent.questionType).toBe("elicitation");
+    expect(sent.metadata).toMatchObject({
+      kind: "mcp_elicitation",
+      server: "forms",
+      requestId: 42,
+    });
+    expect(sent.requestedSchema.type).toBe("object");
+
+    adapter.resolveAnswer(sent.requestId, { color: "blue" });
+    await expect(promise).resolves.toEqual({ color: "blue" });
+  });
+
   it("askSelect sends question with choices", async () => {
     const choices = [
       { name: "Red", value: "red" },

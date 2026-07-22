@@ -120,7 +120,9 @@ function launch({ script, argv = [], followUpArgv, title = "matrix" }) {
 describe("4. process tree — workerPid vs agentPid semantics (real spawn)", () => {
   it("records BOTH pids, they diverge, and the watched pid is the worker's", async () => {
     const state = launch({
-      script: "setTimeout(() => process.exit(0), 400);\n",
+      // Keep the child alive long enough for the worker's first state merge to
+      // be observable on slower Windows runners.
+      script: "setTimeout(() => process.exit(0), 1500);\n",
       title: "pids",
     });
     // the launcher records the worker it spawned

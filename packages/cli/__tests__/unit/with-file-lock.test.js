@@ -114,4 +114,20 @@ describe("withFileLock", () => {
     const ran = withFileLock("/s.json", (ctx) => ctx.locked, { _fs });
     expect(ran).toBe(false);
   });
+
+  it("can fail closed when a critical state lock is unavailable", () => {
+    const _fs = fakeLockFs();
+    _fs.dirs.set("/critical.json.lock", 0);
+    let now = 1000;
+    expect(() =>
+      withFileLock("/critical.json", () => true, {
+        _fs,
+        timeoutMs: 10,
+        staleMs: 999999,
+        _now: () => (now += 20),
+        _sleep: () => {},
+        failIfUnavailable: true,
+      }),
+    ).toThrowError(/Could not acquire state lock/);
+  });
 });

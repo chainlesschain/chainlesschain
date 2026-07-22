@@ -191,6 +191,12 @@ export async function setupMcpFromConfig(servers, deps = {}) {
   if (deps.sessionId != null && typeof mcpClient.setSessionId === "function") {
     mcpClient.setSessionId(deps.sessionId);
   }
+  if (typeof mcpClient.setElicitationHandler === "function" &&
+      typeof deps.elicitationHandler === "function") {
+    mcpClient.setElicitationHandler(deps.elicitationHandler, {
+      timeoutMs: deps.elicitationTimeoutMs,
+    });
+  }
 
   for (const [name, cfg] of Object.entries(servers)) {
     // Skip a name already connected — an earlier batch (ad-hoc --mcp-config)

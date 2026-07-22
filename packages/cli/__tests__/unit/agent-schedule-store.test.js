@@ -70,6 +70,23 @@ describe("AgentScheduleStore", () => {
     expect(store.list("wakeup")[0].status).toBe("fired");
   });
 
+  it("claims a due entry once and releases an expired lease", () => {
+    const entry = store.scheduleWakeup({ prompt: "claim me", delayMs: 0 });
+    const first = store.claimDue(clock, 1000);
+    expect(first.map((item) => item.id)).toEqual([entry.id]);
+    expect(store.claimDue(clock, 1000)).toHaveLength(0);
+    clock += 1001;
+    expect(store.claimDue(clock, 1000).map((item) => item.id)).toEqual([entry.id]);
+  });
+
+  it("clears the lease when a recurring entry advances", () => {
+    const entry = store.createCron({ prompt: "claim cron", cron: "* * * * *" });
+    const claimed = store.claimDue(entry.nextAt, 1000);
+    expect(claimed).toHaveLength(1);
+    const advanced = store.advanceCron(entry.id, entry.nextAt + 60000);
+    expect(advanced.executionLease).toBeUndefined();
+  });
+
   it("creates a cron and advances its nextAt after a run", () => {
     const entry = store.createCron({ prompt: "daily", cron: "0 0 * * *" });
     expect(entry.status).toBe("active");

@@ -5,6 +5,7 @@
  *   cc permissions list [--json]                merged ruleset + source file
  *   cc permissions test <tool> <args...>        dry-run: which rule decides?
  *   cc permissions add <allow|ask|deny> <rule>  append a rule to a settings file
+ *   cc permissions allow|ask|deny <rule>        convenience aliases for add
  *       [--local | --user]                      (default target: project)
  *
  * The ruleset is loaded by settings-loader (user < project < local < env) and
@@ -23,7 +24,7 @@ const KIND_COLOR = {
 };
 
 const RUNTIME_ADVISORY =
-  "advisory/not enforced: this command edits and dry-runs settings rules; the Agent runtime still has separate ApprovalGate/managed-policy wiring.";
+  "settings rules are enforced by the Agent Core when loaded into the active runtime; managed host policy and ApprovalGate still apply.";
 
 function printRuntimeAdvisory() {
   logger.log(chalk.yellow(RUNTIME_ADVISORY));
@@ -46,6 +47,48 @@ function buildArgs(tool, positional, rulesMod) {
   if (rulesMod.PATH_TOOLS.has(tool)) return { path: positional[0] || "" };
   if (rulesMod.URL_TOOLS.has(tool)) return { url: positional[0] || "" };
   return {};
+}
+
+async function persistPermissionRule(decision, rule, options, operation = "add") {
+  try {
+    const kind = String(decision || "").toLowerCase();
+    if (!["allow", "ask", "deny"].includes(kind)) {
+      logger.error(
+        chalk.red(`decision must be allow | ask | deny (got "${decision}")`),
+      );
+      process.exitCode = 1;
+      return;
+    }
+    const rulesMod = await import("../lib/permission-rules.cjs");
+    const mod = rulesMod.default || rulesMod;
+    if (!mod.parseRule(rule)) {
+      logger.error(
+        chalk.red(
+          `not a valid rule: "${rule}" (expected Tool or Tool(pattern), e.g. Bash(rm:*))`,
+        ),
+      );
+      process.exitCode = 1;
+      return;
+    }
+    const scope = options.user ? "user" : options.local ? "local" : "project";
+    const { addRule } = await import("../lib/settings-loader.cjs");
+    const { file, added } = addRule({
+      cwd: process.cwd(),
+      kind,
+      rule,
+      scope,
+    });
+    if (!added) {
+      logger.log(chalk.gray(`already present in ${file}: ${kind} ${rule}`));
+      return;
+    }
+    logger.log(
+      `${KIND_COLOR[kind].bold("✓ " + kind)} ${rule} ${chalk.gray("→ " + file)}`,
+    );
+  } catch (err) {
+    logger.error(chalk.red(`permissions ${operation} failed: ${err.message}`));
+    process.exitCode = 1;
+  }
 }
 
 export function registerPermissionsCommand(program) {
@@ -336,4 +379,17 @@ export function registerPermissionsCommand(program) {
         process.exitCode = 1;
       }
     });
+
+  // Explicit decision commands make the management surface easier to script
+  // and match the common `allow <rule>` / `deny <rule>` workflow.
+  for (const decision of ["allow", "ask", "deny"]) {
+    cmd
+      .command(`${decision} <rule>`)
+      .description(`Append an ${decision} permission rule`)
+      .option("--local", "Write to .claude/settings.local.json")
+      .option("--user", "Write to ~/.claude/settings.json")
+      .action(async (rule, options) => {
+        await persistPermissionRule(decision, rule, options, decision);
+      });
+  }
 }

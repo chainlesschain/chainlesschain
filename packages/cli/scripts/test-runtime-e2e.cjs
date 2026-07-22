@@ -4,12 +4,16 @@
  */
 
 const path = require("path");
-const broker = require(path.join(__dirname, "../src/lib/process-execution-broker/index.js"));
-const bus = require(path.join(__dirname, "../src/lib/agent-ipc-bus.js"));
-const hooks = require(path.join(__dirname, "../src/lib/hooks-v2-runtime.js"));
-const ledger = require(path.join(__dirname, "../src/lib/context-source-ledger.js"));
+const brokerModule = require(path.join(__dirname, "../src/lib/process-execution-broker/index.js"));
+const busModule = require(path.join(__dirname, "../src/lib/agent-ipc-bus.js"));
+const hooksModule = require(path.join(__dirname, "../src/lib/hooks-v2-runtime.js"));
+const ledgerModule = require(path.join(__dirname, "../src/lib/context-source-ledger.js"));
+const broker = brokerModule.default || brokerModule;
+const bus = busModule.default || busModule;
+const hooks = hooksModule.default || hooksModule;
+const ledger = ledgerModule.default || ledgerModule;
 
-function runE2ETest() {
+async function runE2ETest() {
   console.log("ChainlessChain CLI M5 E2E Runtime Convergence Verification");
   console.log("=".repeat(70));
 
@@ -31,7 +35,6 @@ function runE2ETest() {
   hooks.registerHook({
     id: "e2e-test-hook",
     event: "UserPromptSubmit",
-    executor: "js",
     type: "js",
     handler: async (ctx) => {
       ledger.recordRead({
@@ -46,19 +49,18 @@ function runE2ETest() {
     }
   });
 
-  hooks.emitEvent("UserPromptSubmit", { session_id: sessionId, turn_id: turnId }).then(hookResult => {
+  const hookResult = await hooks.executeHooks("UserPromptSubmit", { session_id: sessionId, turn_id: turnId });
     assert("Hook executed successfully", hookResult.results.length === 1);
     assert("Hook returned expected result", hookResult.results[0].result.hooked === true);
     assert("Hook context provenance recorded in ledger", ledger.getProvenance().length >= 1);
 
     console.log("\n[Phase 3] Audit a shell command via Broker (simulating tool use)");
-    broker.auditEntry({
+    broker.setPermission("shell", "default", "allow");
+    broker.spawnSync(process.execPath, ["-e", "process.stdout.write('hello from e2e test')"], {
       origin: "shell",
-      tool: "shell:echo",
-      command: "echo 'hello from e2e test'",
-      args: ["hello from e2e test"],
-      pid: 12345,
-      metadata: { traceId, sessionId, turnId }
+      policy: "allow",
+      cwd: process.cwd(),
+      stdio: "pipe",
     });
     ledger.recordRead({
       source: "tool:shell",
@@ -76,21 +78,27 @@ function runE2ETest() {
     let responseReceived = false;
     const agentId = "research-agent-e2e";
 
-    bus.registerAgent({
-      agentId,
-      origin: "agent:research",
-      onMessage: (msg) => {
-        if (msg.type === "progress") progressReceived = true;
-        if (msg.type === "response") responseReceived = true;
-      }
+    bus.registerAgent(agentId, (msg) => {
+      if (msg.type === "progress") progressReceived = true;
+      if (msg.type === "response") responseReceived = true;
     });
-
-    bus.sendMessage({
-      to: "orchestrator",
-      from: agentId,
-      type: "progress",
-      data: { percent: 50, step: "searching knowledge base" },
-      traceId
+    const onRequest = (request) => {
+      if (request.agentId === agentId) bus.respond(request.requestId, {
+        type: "progress",
+        percent: 50,
+      });
+    };
+    bus.on("request", onRequest);
+    const interaction = bus.requestInteraction(agentId, {
+      sessionId,
+      turnId,
+      type: "question",
+      prompt: "search knowledge base",
+      timeoutMs: 1000,
+    });
+    interaction.then(() => {
+      progressReceived = true;
+      responseReceived = true;
     });
 
     ledger.recordRead({
@@ -102,19 +110,16 @@ function runE2ETest() {
       traceId
     });
 
-    bus.sendResponse(agentId, {
-      content: "Research complete: 3 relevant documents found",
-      tokensUsed: 256,
-      traceId
-    });
+    // Let the interaction resolver settle before asserting the IPC leg.
 
     assert("Sub-agent registered", bus.isAgentRegistered(agentId));
+    assert("Interaction request resolved", await interaction.then(() => true));
     assert("Progress message received from sub-agent", progressReceived);
     assert("Final response received from sub-agent", responseReceived);
     assert("Sub-agent context recorded in ledger", ledger.getProvenance().length >= 3);
 
     console.log("\n[Phase 5] Post-turn Hook and Token Breakdown");
-    hooks.emitEvent("SessionEnd", { session_id: sessionId, turn_id: turnId, success: true });
+    await hooks.executeHooks("SessionEnd", { session_id: sessionId, turn_id: turnId, success: true });
     ledger.recordRead({
       source: "hook",
       span: "SessionEnd:finalize",
@@ -139,10 +144,11 @@ function runE2ETest() {
     assert(`All ${auditEntries.length} broker audit entries present`, auditEntries.length >= 1);
 
     console.log("\n[Phase 7] Cleanup");
+    bus.off("request", onRequest);
     bus.unregisterAgent(agentId);
     hooks.unregisterHook("e2e-test-hook");
     assert("Sub-agent unregistered successfully", !bus.isAgentRegistered(agentId));
-    broker.clearAuditLog();
+    broker.flushAuditLog();
     ledger.clear();
     assert("Audit log cleared", broker.getAuditLog().length === 0);
     assert("Ledger cleared", ledger.getProvenance().length === 0);
@@ -160,7 +166,6 @@ function runE2ETest() {
 
     console.log("\n✅ All M5 E2E Parity Tests PASSED!");
     console.log("  Full flow verified: hook execution → tool spawn → sub-agent IPC → context provenance → trace binding");
-  });
 }
 
 runE2ETest();

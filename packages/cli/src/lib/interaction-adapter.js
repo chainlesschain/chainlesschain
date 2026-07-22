@@ -245,6 +245,38 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
     this._resolvePending(requestId, answer, "question", binding);
   }
 
+  /**
+   * Ask an MCP server elicitation over the same question/answer channel.
+   * The schema is carried as metadata so capable IDE clients can render a
+   * native form; older clients still receive a bounded, ordinary question.
+   */
+  async askElicitation({
+    server,
+    requestId: mcpRequestId,
+    message = "MCP server requests input",
+    requestedSchema = null,
+    timeoutMs,
+  } = {}) {
+    return this._request(
+      {
+        type: "question",
+        questionType: "elicitation",
+        question: String(message),
+        ...(requestedSchema ? { requestedSchema } : {}),
+        metadata: {
+          kind: "mcp_elicitation",
+          server: server || null,
+          requestId: mcpRequestId ?? null,
+          requestedSchema: requestedSchema || null,
+        },
+      },
+      {
+        kind: "question",
+        ...(Number(timeoutMs) > 0 ? { timeoutMs: Number(timeoutMs) } : {}),
+      },
+    );
+  }
+
   async requestHostTool(toolName, args = {}, extra = {}) {
     return this._request(
       {

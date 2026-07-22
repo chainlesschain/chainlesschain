@@ -96,6 +96,27 @@ async function ensureSessionHandler(server, ws, session) {
     envelopeBus: server.envelopeBus || null,
   });
 
+  // Route MCP elicitation through the authenticated WS question channel. The
+  // MCP client may be shared by the runtime, so this is deliberately only a
+  // transport hook; the MCP request/answer ids remain inside the pending
+  // interaction entry and unknown answers are ignored by the adapter.
+  if (
+    session.mcpClient &&
+    typeof session.mcpClient.setElicitationHandler === "function"
+  ) {
+    session.mcpClient.setElicitationHandler(
+      async (request) => {
+        const answer = await session.interaction.askElicitation(request);
+        if (answer == null) return { action: "cancel" };
+        if (typeof answer === "object") {
+          return { action: "accept", content: answer };
+        }
+        return { action: "accept", content: { value: answer } };
+      },
+      { sessionId: session.id, timeoutMs: 180000 },
+    );
+  }
+
   let handler;
   if (session.type === "chat") {
     const { WSChatHandler } = await import("../../lib/ws-chat-handler.js");
@@ -443,6 +464,11 @@ export function handleSessionList(server, id, ws) {
 
 export function handleSessionClose(server, id, ws, message) {
   const { sessionId } = message;
+
+  const closingSession = server.sessionManager?.getSession?.(sessionId);
+  if (closingSession?.mcpClient?.clearElicitationHandler) {
+    closingSession.mcpClient.clearElicitationHandler(sessionId);
+  }
 
   const handler = server.sessionHandlers.get(sessionId);
   if (handler && handler.destroy) {

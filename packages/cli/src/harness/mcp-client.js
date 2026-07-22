@@ -9,6 +9,7 @@
  */
 
 import { spawn } from "child_process";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { EventEmitter } from "events";
 import { pathToFileURL } from "url";
 import { safeJsonParse } from "../lib/safe-json.js";
@@ -166,6 +167,139 @@ export class MCPClient extends EventEmitter {
       options && Array.isArray(options.roots) && options.roots.length > 0
         ? options.roots.map(String)
         : null;
+    // MCP elicitation (server -> client `elicitation/create`).  The handler is
+    // intentionally injected by the host (REPL, headless, or Desktop bridge)
+    // so the transport layer never reads stdin or invents an approval policy.
+    this._elicitationHandler =
+      typeof options.elicitationHandler === "function"
+        ? options.elicitationHandler
+        : null;
+    this._elicitationHandlers = new Map();
+    this._elicitationContext = new AsyncLocalStorage();
+    this._elicitationTimeoutMs =
+      Number(options.elicitationTimeoutMs) > 0
+        ? Number(options.elicitationTimeoutMs)
+        : 180000;
+    this._pendingElicitations = new Map();
+  }
+
+  /** Install or clear the host-side MCP elicitation resolver. */
+  setElicitationHandler(handler, options = {}) {
+    const sessionId = options.sessionId;
+    if (sessionId != null && sessionId !== "") {
+      const key = String(sessionId);
+      if (typeof handler === "function") this._elicitationHandlers.set(key, handler);
+      else this._elicitationHandlers.delete(key);
+    } else {
+      this._elicitationHandler =
+        typeof handler === "function" ? handler : null;
+    }
+    if (Number(options.timeoutMs) > 0) {
+      this._elicitationTimeoutMs = Number(options.timeoutMs);
+    }
+  }
+
+  /** Run an async agent turn with a session-scoped elicitation route. */
+  withElicitationContext(sessionId, fn) {
+    if (typeof fn !== "function") return Promise.resolve(undefined);
+    return this._elicitationContext.run(
+      sessionId == null ? null : String(sessionId),
+      fn,
+    );
+  }
+
+  /** Remove a session route when a WS session is closed. */
+  clearElicitationHandler(sessionId) {
+    if (sessionId == null || sessionId === "") return false;
+    return this._elicitationHandlers.delete(String(sessionId));
+  }
+
+  /** Resolve a pending server elicitation by its server/request id pair. */
+  respondElicitation(serverName, requestId, response) {
+    const key = this._elicitationKey(serverName, requestId);
+    const pending = this._pendingElicitations.get(key);
+    if (!pending) return false;
+    pending.resolve(this._normalizeElicitationResponse(response));
+    return true;
+  }
+
+  /** Cancel a pending server elicitation. */
+  cancelElicitation(serverName, requestId) {
+    return this.respondElicitation(serverName, requestId, {
+      action: "cancel",
+    });
+  }
+
+  _elicitationKey(serverName, requestId) {
+    return `${String(serverName)}:${String(requestId)}`;
+  }
+
+  _normalizeElicitationResponse(response) {
+    const action = String(response?.action || "decline").toLowerCase();
+    const safeAction = new Set(["accept", "decline", "cancel"]).has(action)
+      ? action
+      : "decline";
+    const normalized = { action: safeAction };
+    if (safeAction === "accept" && response?.content !== undefined) {
+      normalized.content = response.content;
+    }
+    return normalized;
+  }
+
+  async _resolveElicitation(serverName, requestId, params = {}) {
+    const key = this._elicitationKey(serverName, requestId);
+    const contextSessionId = this._elicitationContext.getStore();
+    const handler =
+      (contextSessionId && this._elicitationHandlers.get(contextSessionId)) ||
+      this._elicitationHandler;
+    if (handler) {
+      try {
+        const direct = await handler({
+          server: serverName,
+          requestId,
+          ...params,
+        });
+        if (direct !== undefined) {
+          return this._normalizeElicitationResponse(direct);
+        }
+      } catch (error) {
+        this.emit("elicitation-error", {
+          server: serverName,
+          requestId,
+          error,
+        });
+        return { action: "cancel" };
+      }
+    }
+
+    // An event-driven host may answer later through respondElicitation().
+    // No handler/listener means fail closed with decline rather than leaving a
+    // server request hanging indefinitely.
+    if (this.listenerCount("elicitation-request") === 0) {
+      return { action: "decline" };
+    }
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        this._pendingElicitations.delete(key);
+        this.emit("elicitation-timeout", { server: serverName, requestId });
+        resolve({ action: "cancel" });
+      }, this._elicitationTimeoutMs);
+      timeout.unref?.();
+      this._pendingElicitations.set(key, {
+        resolve: (response) => {
+          clearTimeout(timeout);
+          this._pendingElicitations.delete(key);
+          resolve(this._normalizeElicitationResponse(response));
+        },
+      });
+      this.emit("elicitation-request", {
+        server: serverName,
+        requestId,
+        ...params,
+        respond: (response) => this.respondElicitation(serverName, requestId, response),
+        cancel: () => this.cancelElicitation(serverName, requestId),
+      });
+    });
   }
 
   /**
@@ -509,6 +643,12 @@ export class MCPClient extends EventEmitter {
   async disconnect(name) {
     const entry = this.servers.get(name);
     if (!entry) return false;
+
+    for (const [key, pending] of this._pendingElicitations) {
+      if (key.startsWith(`${String(name)}:`)) {
+        pending.resolve({ action: "cancel" });
+      }
+    }
 
     if (entry.process) {
       entry.process.kill();
@@ -1123,6 +1263,12 @@ export class MCPClient extends EventEmitter {
     }
     if (method === "ping") {
       this._sendResponse(serverName, id, {});
+      return;
+    }
+    if (method === "elicitation/create") {
+      this._resolveElicitation(serverName, id, msg.params || {})
+        .then((response) => this._sendResponse(serverName, id, response))
+        .catch(() => this._sendResponse(serverName, id, { action: "cancel" }));
       return;
     }
     this._sendResponse(serverName, id, undefined, {

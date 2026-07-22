@@ -108,6 +108,19 @@ describe("cc permissions add", () => {
   });
 });
 
+describe("cc permissions decision aliases", () => {
+  it.each(["allow", "ask", "deny"])(
+    "supports permissions %s <rule>",
+    async (decision) => {
+      await run(decision, "Bash(git status:*)");
+      const data = JSON.parse(
+        fs.readFileSync(path.join(tmp, ".claude", "settings.json"), "utf-8"),
+      );
+      expect(data.permissions[decision]).toEqual(["Bash(git status:*)"]);
+    },
+  );
+});
+
 describe("cc permissions test (dry-run)", () => {
   it("reports deny when a rule blocks the command", async () => {
     writeProjectSettings({ permissions: { deny: ["Bash(rm:*)"] } });

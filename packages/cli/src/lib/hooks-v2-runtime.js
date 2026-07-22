@@ -24,6 +24,7 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import broker from "./process-execution-broker/index.js";
+import { EventRuntimeStore } from "./event-runtime-store.js";
 
 const VALID_HOOK_EVENTS = new Set([
   // Session
@@ -45,12 +46,18 @@ const VALID_HOOK_EVENTS = new Set([
 const VALID_EXECUTOR_TYPES = new Set(["command", "http", "prompt", "agent", "js"]);
 
 class HooksV2Runtime extends EventEmitter {
-  constructor(configDir) {
+  constructor(configDir, options = {}) {
     super();
     this.configDir = configDir;
+    this.durableStore = options.durableStore || null;
     this.hooks = new Map(); // eventName -> HookDefinition[]
     this.executionLog = [];
     this._loaded = false;
+  }
+
+  setDurableStore(store) {
+    this.durableStore = store || null;
+    return this.durableStore;
   }
 
   /**
@@ -132,17 +139,29 @@ class HooksV2Runtime extends EventEmitter {
    * @param {Object} context - event context (tool_name, tool_input, session_id, etc.)
    * @returns {Promise<{results: Array, blocked: boolean, blockingResult?: any}>}
    */
-  async emitEvent(eventName, context = {}) {
+  async emitEvent(eventName, context = {}, options = {}) {
     if (!VALID_HOOK_EVENTS.has(eventName)) {
       throw new Error(`Invalid hook event: ${eventName}`);
     }
 
     const hooks = this.hooks.get(eventName) || [];
-    const results = [];
-    let blocked = false;
-    let blockingResult = null;
-
+    const durableRecord = this.durableStore
+      ? this.durableStore.enqueueInbox(
+          { event: eventName, context },
+          { id: context.event_id || context.eventId || null },
+        )
+      : null;
+    // Hooks are parallel by default. De-duplicate by id so a reload or layered
+    // config cannot execute the same handler twice. `parallel:false` remains a
+    // deterministic compatibility mode for callers that require ordering.
+    const uniqueHooks = [];
+    const seen = new Set();
     for (const hook of hooks) {
+      if (seen.has(hook.id)) continue;
+      seen.add(hook.id);
+      uniqueHooks.push(hook);
+    }
+    const runOne = async (hook) => {
       const execId = crypto.randomUUID();
       const start = Date.now();
       const record = { execId, hookId: hook.id, event: eventName, type: hook.type, startedAt: new Date() };
@@ -170,28 +189,47 @@ class HooksV2Runtime extends EventEmitter {
         record.durationMs = Date.now() - start;
         record.status = "success";
         record.result = result;
-        results.push(record);
-
-        // Check for blocking decision
-        if (hook.blocking && result && result.decision === "block") {
-          blocked = true;
-          blockingResult = result;
-          record.blocked = true;
-        }
+        if (hook.blocking && result && result.decision === "block") record.blocked = true;
 
         this.emit("hook:success", record);
       } catch (err) {
         record.durationMs = Date.now() - start;
         record.status = "error";
         record.error = err.message;
-        results.push(record);
         this.emit("hook:error", record);
       }
 
       this.executionLog.push(record);
+      return record;
+    };
+    const results = options.parallel === false
+      ? []
+      : await Promise.all(uniqueHooks.map(runOne));
+    if (options.parallel === false) {
+      for (const hook of uniqueHooks) results.push(await runOne(hook));
     }
+    const blocking = results.filter((r) => r.blocked === true);
+    const blocked = blocking.length > 0;
+    const blockingResult = blocking[0]?.result || null;
 
-    return { results, blocked, blockingResult };
+    const outcome = { success: !blocked, results, blocked, blockingResult };
+    if (durableRecord && !durableRecord.duplicate) {
+      this.durableStore.acknowledgeInbox(durableRecord.id, {
+        event: eventName,
+        blocked,
+        resultCount: results.length,
+      });
+      this.durableStore.enqueueOutbox(
+        { event: eventName, outcome },
+        { id: `${durableRecord.id}:result` },
+      );
+    }
+    return outcome;
+  }
+
+  /** Compatibility/public name used by runtime parity and SDK callers. */
+  async executeHooks(eventName, context = {}, options = {}) {
+    return this.emitEvent(eventName, context, options);
   }
 
   async _execCommand(hook, context) {
@@ -253,7 +291,9 @@ class HooksV2Runtime extends EventEmitter {
   }
 
   async _execJs(hook, context) {
-    // In-process JS execution via vm (sandboxed) - stub for full vm2/isolated-vm integration
+    if (typeof hook.handler === "function") return hook.handler(context);
+    // In-process JS execution via vm (sandboxed) - config-loaded code remains
+    // disabled until the dedicated VM executor is enabled.
     return { decision: "noop", note: "JS executor stub - context received", contextKeys: Object.keys(context) };
   }
 
@@ -273,6 +313,11 @@ class HooksV2Runtime extends EventEmitter {
 }
 
 // Singleton instance
-const hooksRuntime = new HooksV2Runtime();
+const hooksRuntime = new HooksV2Runtime(undefined, {
+  durableStore:
+    process.env.CC_EVENT_RUNTIME_DURABLE === "1"
+      ? new EventRuntimeStore()
+      : null,
+});
 export default hooksRuntime;
 export { HooksV2Runtime, VALID_HOOK_EVENTS, VALID_EXECUTOR_TYPES };

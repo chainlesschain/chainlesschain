@@ -27,6 +27,7 @@ import { isEntryExpired, effectiveFireAt } from "./schedule-planner.js";
 import { SUBAGENT_PERMISSION_MODES } from "./subagent-contract.js";
 import { parseGoalCondition } from "./goal-condition-engine.js";
 import { normalizeActionClass } from "./unattended-action-policy.js";
+import { withFileLock } from "./with-file-lock.js";
 
 export const SCHEDULE_KINDS = Object.freeze(["wakeup", "cron", "monitor"]);
 
@@ -153,6 +154,10 @@ function isSchedulableStatus(entry) {
   return entry.kind === "wakeup"
     ? entry.status === "pending"
     : entry.status === "active";
+}
+
+function hasLiveExecutionLease(entry, now) {
+  return Number(entry.executionLease?.expiresAt) > Number(now);
 }
 
 /** Statuses an entry can never leave — safe to prune. */
@@ -487,6 +492,7 @@ export class AgentScheduleStore {
       // (defense-in-depth: retireExpired need not have run first).
       if (isEntryExpired(entry, now)) return false;
       if (!isSchedulableStatus(entry)) return false;
+      if (hasLiveExecutionLease(entry, now)) return false;
       // The effective fire time applies the entry's OWN deterministic jitter
       // (`entry.jitterMs`, default 0 → base fire time, byte-identical to the
       // prior `dueAt`/`nextAt` comparison). A jittered entry fires slightly
@@ -494,6 +500,52 @@ export class AgentScheduleStore {
       const fireAt = effectiveFireAt(entry);
       return fireAt != null && fireAt <= now;
     });
+  }
+
+  /**
+   * Atomically claim due entries for one agenda runner. The lease is retained
+   * on the durable entry, so a second process cannot fire the same item while
+   * the first is working; an abandoned process becomes reclaimable after the
+   * lease expires. This is deliberately separate from `due()` for backwards
+   * compatibility with read-only callers and injected test stores.
+   */
+  claimDue(atMs = null, leaseMs = 120000) {
+    const now = atMs != null ? Number(atMs) : this._now();
+    const ttl = Math.max(1000, Number(leaseMs) || 120000);
+    this._ensureDir();
+    return withFileLock(path.join(this.dir, ".agenda-claims"), () => {
+      const claimed = [];
+      for (const kind of SCHEDULE_KINDS) {
+        const entries = this._readAll(kind);
+        let changed = false;
+        for (const entry of entries) {
+          if (!isSchedulableStatus(entry) || isEntryExpired(entry, now)) continue;
+          if (hasLiveExecutionLease(entry, now)) continue;
+          const fireAt = effectiveFireAt(entry);
+          if (fireAt == null || fireAt > now) continue;
+          entry.executionLease = {
+            owner: `${process.pid}:${randomUUID()}`,
+            claimedAt: now,
+            expiresAt: now + ttl,
+          };
+          claimed.push({ ...entry, executionLease: { ...entry.executionLease } });
+          changed = true;
+        }
+        if (changed) this._writeAll(kind, entries);
+      }
+      return claimed;
+    }, { failIfUnavailable: true });
+  }
+
+  /** Release a failed/aborted claim so a later runner can retry it. */
+  releaseClaim(id) {
+    for (const kind of SCHEDULE_KINDS) {
+      const updated = this._mutate(kind, id, (entry) => {
+        delete entry.executionLease;
+      });
+      if (updated) return updated;
+    }
+    return null;
   }
 
   /**
@@ -632,6 +684,9 @@ export class AgentScheduleStore {
     const entry = entries.find((e) => e.id === id);
     if (!entry) return null;
     fn(entry);
+    // Every lifecycle mutation settles the claim before the write becomes
+    // visible, including a recurring cron/monitor entry that remains active.
+    delete entry.executionLease;
     this._writeAll(kind, entries);
     return entry;
   }
