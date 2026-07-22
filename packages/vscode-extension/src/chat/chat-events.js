@@ -201,8 +201,10 @@ function mapAgentEvent(evt, state) {
         kind: "plan",
         active: evt.active === true,
         state: evt.state || null,
+        plan_id: evt.plan_id || null,
         items: Array.isArray(evt.items) ? evt.items : [],
         risk: evt.risk || null,
+        execution_lock: evt.execution_lock || null,
         note: evt.note || null,
       };
     case "session_error":

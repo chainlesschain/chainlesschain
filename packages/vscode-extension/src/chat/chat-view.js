@@ -797,6 +797,7 @@ class ChatViewProvider {
       sessionId: conv.sessionId,
       plan: conv.plan || review?.lastPlan,
       turn: conv.planReviewTurn,
+      permissionMode: conv.mode || "default",
       revision: this._persistPlanReviewState(
         conv,
         documentText,

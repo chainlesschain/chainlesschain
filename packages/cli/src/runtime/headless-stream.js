@@ -240,8 +240,11 @@ export function createStreamCoalescer({
 export function planSnapshot(pm) {
   let items = [];
   let risk = null;
+  let planId = null;
+  let executionLock = null;
   try {
     const plan = pm.currentPlan;
+    planId = plan?.id || null;
     items = (plan?.items || []).map((i) => ({
       id: i.id,
       title: i.title,
@@ -258,10 +261,18 @@ export function planSnapshot(pm) {
       const r = pm.getRiskAssessment();
       if (r) risk = { level: r.level, totalScore: r.totalScore };
     }
+    executionLock = pm.getExecutionLock?.() || null;
   } catch {
     /* snapshot is best-effort */
   }
-  return { active: pm.isActive(), state: pm.state || null, items, risk };
+  return {
+    active: pm.isActive(),
+    state: pm.state || null,
+    plan_id: planId,
+    items,
+    risk,
+    ...(executionLock ? { execution_lock: executionLock } : {}),
+  };
 }
 
 const MAX_PLAN_REVIEW_SNAPSHOT_CHARS = 24000;
@@ -303,6 +314,27 @@ function normalizePlanReviewComments(values) {
   return out;
 }
 
+function normalizePlanExecutionLock(value) {
+  if (!value || typeof value !== "object") return null;
+  const strings = (input, limit = 128) => [
+    ...new Set(
+      (Array.isArray(input) ? input : [])
+        .slice(0, limit)
+        .map((entry) => boundedReviewString(entry, 160))
+        .filter(Boolean),
+    ),
+  ];
+  return {
+    planId: boundedReviewString(value.planId, 160),
+    permissionMode: boundedReviewString(value.permissionMode, 64) || "default",
+    approvedItemIds: strings(value.approvedItemIds),
+    allowedTools: strings(value.allowedTools),
+    ...(value.createdAt
+      ? { createdAt: boundedReviewString(value.createdAt, 64) }
+      : {}),
+  };
+}
+
 function planReviewFromInput(obj) {
   const review =
     obj && obj.review && typeof obj.review === "object" ? obj.review : null;
@@ -330,6 +362,7 @@ function planReviewFromInput(obj) {
         ? review.revision
         : null,
     comments,
+    executionLock: normalizePlanExecutionLock(review?.executionLock),
     snapshot: text,
   };
 }
@@ -352,6 +385,12 @@ function planReviewSystemMessage(review) {
     sections.push(
       "[PLAN REVIEW STRUCTURED COMMENTS]",
       JSON.stringify(review.comments),
+    );
+  }
+  if (review.executionLock) {
+    sections.push(
+      "[PLAN REVIEW REQUESTED EXECUTION LOCK - AUDIT ONLY]",
+      JSON.stringify(review.executionLock),
     );
   }
   return sections.join("\n");
@@ -1982,10 +2021,17 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
           });
           continue;
         }
-        pm.approvePlan();
+        const approval = pm.approvePlan({
+          permissionMode: options.permissionMode || "default",
+        });
+        const executionLock = approval.executionLock;
         messages.push({
           role: "system",
-          content: `[PLAN APPROVED] The user has approved your plan with ${pm.currentPlan.items.length} items. You can now use all tools including write_file, edit_file, run_shell, and run_skill. Execute the plan items in order.`,
+          content:
+            `[PLAN APPROVED] The user has approved your plan with ${pm.currentPlan.items.length} items. ` +
+            `Permission mode is ${executionLock.permissionMode}. The execution lock permits only: ` +
+            `${executionLock.allowedTools.join(", ")}. Execute the approved plan items in order; ` +
+            "request a plan revision before using any other tool.",
         });
         emit({
           type: "plan_update",

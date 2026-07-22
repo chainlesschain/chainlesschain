@@ -36,7 +36,9 @@ class PlanReviewTest {
     void reviewRecordTrimsSnapshotAndPlanEventCarriesIt() {
         String longText = "x".repeat(25000);
         Map<String, Object> plan = new LinkedHashMap<>();
-        plan.put("items", List.of(Map.of("title", "one")));
+        plan.put("plan_id", "plan-1");
+        plan.put("items", List.of(Map.of(
+                "id", "p1", "title", "one", "tool", "edit_file")));
         Map<String, Object> review = PlanReview.reviewRecord(
                 "approve",
                 longText,
@@ -44,11 +46,19 @@ class PlanReviewTest {
                 "Chat",
                 "sess-1",
                 plan,
+                2,
+                "acceptEdits",
                 Instant.parse("2026-07-10T00:00:00Z"));
 
         assertEquals("approve", review.get("action"));
         assertEquals(1, review.get("itemCount"));
         assertTrue(String.valueOf(review.get("snapshot")).contains("review snapshot truncated"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> lock = (Map<String, Object>) review.get("executionLock");
+        assertEquals("plan-1", lock.get("planId"));
+        assertEquals("acceptEdits", lock.get("permissionMode"));
+        assertTrue(((List<?>) lock.get("allowedTools")).contains("edit_file"));
+        assertTrue(!((List<?>) lock.get("allowedTools")).contains("run_shell"));
 
         Map<String, Object> ev = PlanReview.planEvent("approve", review);
         assertEquals("plan", ev.get("type"));

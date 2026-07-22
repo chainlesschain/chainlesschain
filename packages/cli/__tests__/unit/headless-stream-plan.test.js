@@ -90,6 +90,12 @@ describe("parseInputEvent — plan controls", () => {
               turn: 2,
             },
           ],
+          executionLock: {
+            planId: "plan-1",
+            permissionMode: "acceptEdits",
+            approvedItemIds: ["p1"],
+            allowedTools: ["read_file", "edit_file"],
+          },
           snapshot: "# Plan\n\nLooks good.",
         },
       }),
@@ -110,6 +116,12 @@ describe("parseInputEvent — plan controls", () => {
             turn: 2,
           }),
         ],
+        executionLock: {
+          planId: "plan-1",
+          permissionMode: "acceptEdits",
+          approvedItemIds: ["p1"],
+          allowedTools: ["read_file", "edit_file"],
+        },
         snapshot: "# Plan\n\nLooks good.",
       },
     });
@@ -163,12 +175,24 @@ describe("stream plan mode", () => {
     const updates = h.events().filter((e) => e.type === "plan_update");
     expect(updates[0].items).toHaveLength(1);
     expect(updates[0].items[0].tool).toBe("write_file");
+    const approved = updates.find((event) => event.execution_lock);
+    expect(approved).toMatchObject({
+      plan_id: expect.any(String),
+      execution_lock: {
+        permissionMode: "default",
+        approvedItemIds: [expect.any(String)],
+        allowedTools: expect.arrayContaining(["read_file", "write_file"]),
+      },
+    });
     // the approve triggered ONE turn without any user event on stdin
     expect(h.seenTurns).toHaveLength(1);
     const userMsgs = h.seenTurns[0].filter((m) => m.role === "user");
     expect(userMsgs.pop().content).toBe("Proceed with the approved plan.");
     const sys = h.seenTurns[0].filter((m) => m.role === "system");
     expect(sys.some((m) => /PLAN APPROVED/.test(m.content))).toBe(true);
+    expect(sys.some((m) => /execution lock permits only/.test(m.content))).toBe(
+      true,
+    );
     // a result event for that turn exists
     expect(h.events().some((e) => e.type === "result" && !e.is_error)).toBe(
       true,
@@ -186,6 +210,12 @@ describe("stream plan mode", () => {
             action: "approve",
             snapshot: "# Review\n\nApproved.",
             comments: [{ itemId: "p1", text: "Keep src/a.js:12 compatible" }],
+            executionLock: {
+              planId: "plan-1",
+              permissionMode: "default",
+              approvedItemIds: ["p1"],
+              allowedTools: ["read_file", "write_file"],
+            },
           },
         },
       ],
@@ -212,6 +242,9 @@ describe("stream plan mode", () => {
     expect(sys.some((m) => /# Review/.test(m.content))).toBe(true);
     expect(
       sys.some((m) => /PLAN REVIEW STRUCTURED COMMENTS/.test(m.content)),
+    ).toBe(true);
+    expect(
+      sys.some((m) => /REQUESTED EXECUTION LOCK - AUDIT ONLY/.test(m.content)),
     ).toBe(true);
   });
 

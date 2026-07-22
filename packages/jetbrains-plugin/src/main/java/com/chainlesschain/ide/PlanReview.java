@@ -2,6 +2,7 @@ package com.chainlesschain.ide;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -81,7 +82,7 @@ public final class PlanReview {
             Map<String, Object> plan,
             Instant reviewedAt) {
         return reviewRecord(action, documentText, conversationId, conversationTitle,
-                sessionId, plan, latestPlanTurn(plan), reviewedAt);
+                sessionId, plan, latestPlanTurn(plan), "default", reviewedAt);
     }
 
     public static Map<String, Object> reviewRecord(
@@ -92,6 +93,20 @@ public final class PlanReview {
             String sessionId,
             Map<String, Object> plan,
             int turn,
+            Instant reviewedAt) {
+        return reviewRecord(action, documentText, conversationId, conversationTitle,
+                sessionId, plan, turn, "default", reviewedAt);
+    }
+
+    public static Map<String, Object> reviewRecord(
+            String action,
+            String documentText,
+            String conversationId,
+            String conversationTitle,
+            String sessionId,
+            Map<String, Object> plan,
+            int turn,
+            String permissionMode,
             Instant reviewedAt) {
         Map<String, Object> r = new LinkedHashMap<String, Object>();
         r.put("action", or(action, "review"));
@@ -104,7 +119,35 @@ public final class PlanReview {
         r.put("snapshot", trimSnapshot(documentText));
         r.put("comments", extractComments(documentText, turn));
         if (turn > 0) r.put("turn", turn);
+        if ("approve".equals(r.get("action"))) {
+            r.put("executionLock", executionLockSummary(plan, permissionMode));
+        }
         return r;
+    }
+
+    public static Map<String, Object> executionLockSummary(
+            Map<String, Object> plan, String permissionMode) {
+        Map<String, Object> source = plan != null
+                ? plan : new LinkedHashMap<String, Object>();
+        List<Map<String, Object>> items = normalizedItems(source.get("items"));
+        List<String> itemIds = new ArrayList<String>();
+        List<String> tools = new ArrayList<String>();
+        tools.add("read_file");
+        tools.add("search_files");
+        tools.add("list_dir");
+        tools.add("list_skills");
+        for (Map<String, Object> item : items) {
+            itemIds.add(or(item.get("id"), ""));
+            String tool = string(item.get("tool"));
+            if (!tool.isEmpty() && !tools.contains(tool)) tools.add(tool);
+        }
+        Collections.sort(tools);
+        Map<String, Object> lock = new LinkedHashMap<String, Object>();
+        lock.put("planId", or(source.get("planId"), or(source.get("plan_id"), "")));
+        lock.put("permissionMode", or(permissionMode, "default"));
+        lock.put("approvedItemIds", itemIds);
+        lock.put("allowedTools", tools);
+        return lock;
     }
 
     public static Map<String, Object> planEvent(String action, Map<String, Object> review) {
@@ -260,6 +303,27 @@ public final class PlanReview {
             boundedItems.add(row);
         }
         snapshot.put("items", boundedItems);
+        if (source.get("planId") != null || source.get("plan_id") != null) {
+            snapshot.put("plan_id", bounded(
+                    source.get("planId") != null
+                            ? source.get("planId") : source.get("plan_id"), 160));
+        }
+        Object lockValue = source.get("executionLock") != null
+                ? source.get("executionLock") : source.get("execution_lock");
+        if (lockValue instanceof Map) {
+            Map<?, ?> input = (Map<?, ?>) lockValue;
+            Map<String, Object> lock = new LinkedHashMap<String, Object>();
+            lock.put("planId", bounded(input.get("planId"), 160));
+            lock.put("permissionMode", or(bounded(input.get("permissionMode"), 64), "default"));
+            lock.put("approvedItemIds", boundedStrings(input.get("approvedItemIds"),
+                    MAX_PERSISTED_ITEMS, 160));
+            lock.put("allowedTools", boundedStrings(input.get("allowedTools"),
+                    MAX_PERSISTED_ITEMS, 160));
+            if (input.get("createdAt") != null) {
+                lock.put("createdAt", bounded(input.get("createdAt"), 64));
+            }
+            snapshot.put("execution_lock", lock);
+        }
         if (source.get("note") != null) snapshot.put("note", bounded(source.get("note"), 2000));
         if (source.get("risk") instanceof Map) {
             Map<?, ?> inputRisk = (Map<?, ?>) source.get("risk");
@@ -271,6 +335,16 @@ public final class PlanReview {
             snapshot.put("risk", risk);
         }
         return snapshot;
+    }
+
+    private static List<String> boundedStrings(Object value, int limit, int chars) {
+        List<String> result = new ArrayList<String>();
+        if (!(value instanceof List)) return result;
+        for (Object entry : (List<?>) value) {
+            if (result.size() >= limit) break;
+            result.add(bounded(entry, chars));
+        }
+        return result;
     }
 
     @SuppressWarnings("unchecked")

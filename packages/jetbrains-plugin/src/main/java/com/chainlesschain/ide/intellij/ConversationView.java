@@ -1618,6 +1618,7 @@ final class ConversationView {
                 conv.sessionId,
                 currentPlanUi,
                 planReviewTurn,
+                conv.mode,
                 Instant.now());
         if (persisted != null) review.put("revision", persisted.get("revision"));
         sendPlanAction(action, review);

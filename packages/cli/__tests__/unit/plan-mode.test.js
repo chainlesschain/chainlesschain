@@ -161,8 +161,18 @@ describe("PlanModeManager", () => {
 
     it("approves entire plan", () => {
       manager.markPlanReady();
-      const result = manager.approvePlan();
+      const result = manager.approvePlan({ permissionMode: "acceptEdits" });
       expect(result.approvedCount).toBe(2);
+      expect(result.executionLock).toMatchObject({
+        planId: manager.currentPlan.id,
+        permissionMode: "acceptEdits",
+        allowedTools: expect.arrayContaining([
+          "read_file",
+          "write_file",
+          "run_shell",
+        ]),
+      });
+      expect(result.executionLock.approvedItemIds).toHaveLength(2);
       expect(manager.state).toBe(PlanState.APPROVED);
       expect(manager.currentPlan.items[0].status).toBe(PlanStatus.APPROVED);
       expect(manager.currentPlan.items[1].status).toBe(PlanStatus.APPROVED);
@@ -252,15 +262,43 @@ describe("PlanModeManager", () => {
       expect(manager.blockedToolLog[0].timestamp).toBeDefined();
     });
 
-    it("allows all tools after approval", () => {
+    it("locks execution to read tools and approved plan tools", () => {
       manager.enterPlanMode();
-      manager.addPlanItem({ title: "Step 1" });
+      manager.addPlanItem({ title: "Step 1", tool: "write_file" });
       manager.markPlanReady();
       manager.approvePlan();
       expect(manager.isToolAllowed("write_file")).toBe(true);
-      expect(manager.isToolAllowed("run_shell")).toBe(true);
-      expect(manager.isToolAllowed("edit_file")).toBe(true);
-      expect(manager.isToolAllowed("run_skill")).toBe(true);
+      expect(manager.isToolAllowed("read_file")).toBe(true);
+      expect(manager.isToolAllowed("run_shell")).toBe(false);
+      expect(manager.isToolAllowed("edit_file")).toBe(false);
+      expect(manager.blockedToolLog.at(-1)).toMatchObject({
+        tool: "edit_file",
+        reason: "execution-lock",
+      });
+    });
+
+    it("does not allow approved plans to grow after the lock is issued", () => {
+      manager.enterPlanMode();
+      manager.addPlanItem({ title: "Step 1", tool: "write_file" });
+      manager.approvePlan();
+      const result = manager.addPlanItem({
+        title: "Unreviewed shell",
+        tool: "run_shell",
+      });
+      expect(result.error).toBe("Approved plan is locked");
+      expect(manager.currentPlan.items).toHaveLength(1);
+      expect(manager.getExecutionLock().allowedTools).not.toContain(
+        "run_shell",
+      );
+    });
+
+    it("returns defensive execution-lock copies", () => {
+      manager.enterPlanMode();
+      manager.addPlanItem({ title: "Step 1", tool: "write_file" });
+      manager.approvePlan();
+      const copy = manager.getExecutionLock();
+      copy.allowedTools.push("run_shell");
+      expect(manager.isToolAllowed("run_shell")).toBe(false);
     });
 
     it("blocks unknown tools in plan mode", () => {

@@ -1595,31 +1595,42 @@ export async function executeTool(name, args, context = {}) {
     }
   }
 
-  // Plan mode: check if tool is allowed (a settings `allow` rule pre-authorizes)
+  // Plan mode: settings/host allow rules may help exploration, but they cannot
+  // widen the immutable tool set issued when the user approved the plan.
+  const executionLockActive = planManager.executionLock != null;
   if (
     planManager.isActive() &&
-    !ruleAllowed &&
+    (!ruleAllowed || executionLockActive) &&
     !(name === "git" && isReadOnlyGitCommand(args.command)) &&
     !planManager.isToolAllowed(name) &&
-    !(isExternalHostTool && hostToolPolicy?.allowed === true) &&
-    !localReadOnlyAllowedInPlanMode
+    !(
+      !executionLockActive &&
+      isExternalHostTool &&
+      hostToolPolicy?.allowed === true
+    ) &&
+    !(!executionLockActive && localReadOnlyAllowedInPlanMode)
   ) {
-    planManager.addPlanItem({
-      title: `${name}: ${formatToolArgs(name, args)}`,
-      tool: name,
-      params: args,
-      estimatedImpact:
-        name === "run_shell" ||
-        name === "run_code" ||
-        name === "git" ||
-        localToolDescriptor?.riskLevel === "high"
-          ? "high"
-          : name === "write_file" || localToolDescriptor?.riskLevel === "medium"
-            ? "medium"
-            : "low",
-    });
+    if (!executionLockActive) {
+      planManager.addPlanItem({
+        title: `${name}: ${formatToolArgs(name, args)}`,
+        tool: name,
+        params: args,
+        estimatedImpact:
+          name === "run_shell" ||
+          name === "run_code" ||
+          name === "git" ||
+          localToolDescriptor?.riskLevel === "high"
+            ? "high"
+            : name === "write_file" ||
+                localToolDescriptor?.riskLevel === "medium"
+              ? "medium"
+              : "low",
+      });
+    }
     return {
-      error: `[Plan Mode] Tool "${name}" is blocked during planning. It has been added to the plan. Use /plan approve to execute.`,
+      error: executionLockActive
+        ? `[Plan Execution Lock] Tool "${name}" was not in the approved tool set. Request a plan revision before using it.`
+        : `[Plan Mode] Tool "${name}" is blocked during planning. It has been added to the plan. Use /plan approve to execute.`,
     };
   }
 

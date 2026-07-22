@@ -234,6 +234,7 @@ export interface PlanUpdateEvent extends StreamEventMeta {
   type: "plan_update";
   active?: boolean;
   state?: string | null;
+  plan_id?: string | null;
   items?: Array<{
     id?: string;
     title?: string;
@@ -247,6 +248,15 @@ export interface PlanUpdateEvent extends StreamEventMeta {
     error?: string;
   }>;
   risk?: { level?: string; totalScore?: number } | null;
+  execution_lock?: PlanExecutionLock;
+}
+
+export interface PlanExecutionLock {
+  planId: string;
+  permissionMode: string;
+  approvedItemIds: string[];
+  allowedTools: string[];
+  createdAt?: string;
 }
 
 export interface CompactionEvent extends StreamEventMeta {
@@ -419,6 +429,7 @@ export interface PlanControlInput {
       column?: number | null;
       turn?: number | null;
     }>;
+    executionLock?: PlanExecutionLock;
     snapshot?: string;
   };
   /** Back-compat shorthand for review.snapshot. */

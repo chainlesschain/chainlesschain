@@ -262,6 +262,7 @@ export class PlanModeManager extends EventEmitter {
     this.currentPlan = null;
     this.history = [];
     this.blockedToolLog = [];
+    this.executionLock = null;
     this._hookDb = null;
   }
 
@@ -293,6 +294,7 @@ export class PlanModeManager extends EventEmitter {
     });
     this.state = PlanState.ANALYZING;
     this.blockedToolLog = [];
+    this.executionLock = null;
 
     this.emit("enter", { plan: this.currentPlan, state: this.state });
     this._fireHook("PlanModeEnter", { planId: this.currentPlan.id });
@@ -315,6 +317,7 @@ export class PlanModeManager extends EventEmitter {
     this.state = PlanState.INACTIVE;
     this.currentPlan = null;
     this.blockedToolLog = [];
+    this.executionLock = null;
 
     this.emit("exit", { plan, reason: options.reason || "manual" });
     return { plan };
@@ -326,6 +329,12 @@ export class PlanModeManager extends EventEmitter {
   addPlanItem(itemData) {
     if (!this.currentPlan) {
       return { error: "No active plan" };
+    }
+    if (
+      this.state !== PlanState.ANALYZING &&
+      this.state !== PlanState.PLAN_READY
+    ) {
+      return { error: "Approved plan is locked" };
     }
 
     const item = this.currentPlan.addItem(itemData);
@@ -366,17 +375,56 @@ export class PlanModeManager extends EventEmitter {
       item.status = PlanStatus.APPROVED;
     }
 
+    this.executionLock = this._buildExecutionLock(
+      approvedItems,
+      options.permissionMode,
+    );
     this.state = PlanState.APPROVED;
     this.currentPlan.status = PlanState.APPROVED;
     this.emit("plan-approved", {
       plan: this.currentPlan,
       approvedCount: approvedItems.length,
+      executionLock: this.getExecutionLock(),
     });
     this._fireHook("PlanApproved", {
       planId: this.currentPlan.id,
       itemCount: approvedItems.length,
+      permissionMode: this.executionLock.permissionMode,
+      allowedTools: this.executionLock.allowedTools,
     });
-    return { plan: this.currentPlan, approvedCount: approvedItems.length };
+    return {
+      plan: this.currentPlan,
+      approvedCount: approvedItems.length,
+      executionLock: this.getExecutionLock(),
+    };
+  }
+
+  /** Build the immutable authority envelope used after plan approval. */
+  _buildExecutionLock(approvedItems, permissionMode) {
+    const approvedItemIds = approvedItems.map((item) => item.id);
+    const allowedTools = [
+      ...new Set([
+        ...READ_TOOLS,
+        ...approvedItems.map((item) => item.tool).filter(Boolean),
+      ]),
+    ].sort();
+    return Object.freeze({
+      planId: this.currentPlan.id,
+      permissionMode: String(permissionMode || "default"),
+      approvedItemIds: Object.freeze(approvedItemIds),
+      allowedTools: Object.freeze(allowedTools),
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  /** Return a serializable copy so callers cannot widen the live lock. */
+  getExecutionLock() {
+    if (!this.executionLock) return null;
+    return {
+      ...this.executionLock,
+      approvedItemIds: [...this.executionLock.approvedItemIds],
+      allowedTools: [...this.executionLock.allowedTools],
+    };
   }
 
   /**
@@ -489,7 +537,10 @@ export class PlanModeManager extends EventEmitter {
       this.state === PlanState.APPROVED ||
       this.state === PlanState.EXECUTING
     ) {
-      return true;
+      const allowed =
+        this.executionLock?.allowedTools.includes(toolName) === true;
+      if (!allowed) this._recordBlockedTool(toolName, "execution-lock");
+      return allowed;
     }
 
     // In analyzing/plan_ready state, only read tools are allowed
@@ -497,16 +548,21 @@ export class PlanModeManager extends EventEmitter {
 
     // Block write tools and log
     if (WRITE_TOOLS.has(toolName)) {
-      this.blockedToolLog.push({
-        tool: toolName,
-        timestamp: new Date().toISOString(),
-      });
-      this.emit("tool-blocked", { toolName });
+      this._recordBlockedTool(toolName, "planning");
       return false;
     }
 
     // Unknown tools are blocked by default in plan mode
     return false;
+  }
+
+  _recordBlockedTool(toolName, reason) {
+    this.blockedToolLog.push({
+      tool: toolName,
+      reason,
+      timestamp: new Date().toISOString(),
+    });
+    this.emit("tool-blocked", { toolName, reason });
   }
 
   /**

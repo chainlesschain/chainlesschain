@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { ChatViewProvider } from "../../../vscode-extension/src/chat/chat-view.js";
 import {
   buildPlanReviewFeedbackPrompt,
+  buildPlanExecutionLockSummary,
   buildPlanReviewRecord,
   buildPersistedPlanReview,
   extractPlanReviewComments,
@@ -59,7 +60,12 @@ describe("VS Code plan review markdown", () => {
       conversationId: "conv-1",
       conversationTitle: "Chat",
       sessionId: "sess-1",
-      plan: { state: "awaiting_approval", items: [{ title: "one" }] },
+      plan: {
+        plan_id: "plan-1",
+        state: "awaiting_approval",
+        items: [{ id: "p1", title: "one", tool: "edit_file" }],
+      },
+      permissionMode: "acceptEdits",
       now: new Date("2026-07-10T00:00:00.000Z"),
     });
     expect(rec).toMatchObject({
@@ -69,7 +75,19 @@ describe("VS Code plan review markdown", () => {
       sessionId: "sess-1",
       itemCount: 1,
       snapshot: "# Review",
+      executionLock: {
+        planId: "plan-1",
+        permissionMode: "acceptEdits",
+        approvedItemIds: ["p1"],
+        allowedTools: expect.arrayContaining(["read_file", "edit_file"]),
+      },
     });
+    expect(
+      buildPlanExecutionLockSummary(
+        { items: [{ id: "p1", tool: "edit_file" }] },
+        "default",
+      ).allowedTools,
+    ).not.toContain("run_shell");
   });
 
   it("versions, bounds, replaces, and restores persisted review drafts", () => {

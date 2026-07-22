@@ -4,6 +4,12 @@ const MAX_PERSISTED_PLAN_REVIEWS = 20;
 const MAX_PERSISTED_PLAN_ITEMS = 128;
 const MAX_PLAN_REVIEW_COMMENTS = 64;
 const MAX_PLAN_REVIEW_COMMENT_CHARS = 2000;
+const PLAN_REVIEW_READ_TOOLS = [
+  "read_file",
+  "search_files",
+  "list_dir",
+  "list_skills",
+];
 
 function normalizePlanItems(items) {
   return (Array.isArray(items) ? items : []).map((item, index) => ({
@@ -118,6 +124,7 @@ function buildPlanReviewRecord({
   plan,
   revision,
   turn,
+  permissionMode,
   now = new Date(),
 } = {}) {
   const comments = extractPlanReviewComments(documentText, {
@@ -138,7 +145,25 @@ function buildPlanReviewRecord({
     record.revision = revision;
   }
   if (Number.isInteger(turn) && turn > 0) record.turn = turn;
+  if (record.action === "approve") {
+    record.executionLock = buildPlanExecutionLockSummary(plan, permissionMode);
+  }
   return record;
+}
+
+function buildPlanExecutionLockSummary(plan = {}, permissionMode = "default") {
+  const items = normalizePlanItems(plan?.items);
+  return {
+    planId: stringOr(plan?.planId || plan?.plan_id, ""),
+    permissionMode: stringOr(permissionMode, "default"),
+    approvedItemIds: items.map((item) => item.id),
+    allowedTools: [
+      ...new Set([
+        ...PLAN_REVIEW_READ_TOOLS,
+        ...items.map((item) => item.tool).filter(Boolean),
+      ]),
+    ].sort(),
+  };
 }
 
 function latestPlanTurn(plan) {
@@ -341,6 +366,28 @@ function sanitizePlanSnapshot(plan = {}) {
         ...(item.error ? { error: boundedString(item.error, 1000) } : {}),
       })),
   };
+  if (source.planId != null || source.plan_id != null) {
+    snapshot.plan_id = boundedString(source.planId || source.plan_id, 160);
+  }
+  if (source.executionLock || source.execution_lock) {
+    const lock = source.executionLock || source.execution_lock;
+    snapshot.execution_lock = {
+      planId: boundedString(lock.planId, 160),
+      permissionMode: boundedString(lock.permissionMode, 64) || "default",
+      approvedItemIds: (Array.isArray(lock.approvedItemIds)
+        ? lock.approvedItemIds
+        : []
+      )
+        .slice(0, MAX_PERSISTED_PLAN_ITEMS)
+        .map((id) => boundedString(id, 160)),
+      allowedTools: (Array.isArray(lock.allowedTools) ? lock.allowedTools : [])
+        .slice(0, MAX_PERSISTED_PLAN_ITEMS)
+        .map((tool) => boundedString(tool, 160)),
+      ...(lock.createdAt
+        ? { createdAt: boundedString(lock.createdAt, 64) }
+        : {}),
+    };
+  }
   if (source.note != null) snapshot.note = boundedString(source.note, 2000);
   if (source.risk && typeof source.risk === "object") {
     snapshot.risk = {
@@ -460,6 +507,7 @@ module.exports = {
   MAX_PLAN_REVIEW_COMMENTS,
   PLAN_REVIEW_STATE_SCHEMA,
   buildPlanReviewFeedbackPrompt,
+  buildPlanExecutionLockSummary,
   buildPlanReviewRecord,
   buildPersistedPlanReview,
   findPersistedPlanReview,
