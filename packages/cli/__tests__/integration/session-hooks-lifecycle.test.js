@@ -72,6 +72,13 @@ describe("integration: session-hooks lifecycle (4 events)", () => {
     });
     expect(endResults).toHaveLength(1);
 
+    const notificationResults = await fireSessionHook(
+      db,
+      HookEvents.Notification,
+      { sessionId, message: "turn complete" },
+    );
+    expect(notificationResults).toHaveLength(1);
+
     // All four hooks fired exactly once
     const stats = getHookStats(db);
     for (const event of SESSION_HOOK_EVENTS) {

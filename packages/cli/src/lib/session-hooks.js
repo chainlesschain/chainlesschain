@@ -17,6 +17,7 @@ export const SESSION_HOOK_EVENTS = Object.freeze([
   HookEvents.UserPromptSubmit,
   HookEvents.AssistantResponse,
   HookEvents.SessionEnd,
+  HookEvents.Notification,
 ]);
 
 // 依赖注入点（用于测试）
