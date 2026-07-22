@@ -179,7 +179,7 @@
 | P1-6  | Event Runtime 常驻化 | 🟡 producer 迁移进行中 | `cc agenda run --watch <seconds>`、claim lease/过期回收、`EventRuntimeStore` durable inbox/outbox、失败重试/死信、可停止 `EventRuntimeWorker`、`EventRuntimeProducer`、Agent IPC interaction 与 durable MCP resolver 接线已完成；Monitor/Webhook/MCP 长运行调用方全量迁移仍待补 |
 | P1-7  | Context 来源归因     | M4 完成     | Skill 按需加载归因、MCP schema 统计       |
 | P1-8  | Checkpoint REPL 统一 | 部分        | turn-binding 生产者、tool_use_id 完整浮出 |
-| P1-9  | Plugin 安全强化      | 🟡 OS secret + 部分 Broker 已补 | 签名/manifest SHA-256、trusted key、安装后 SBOM 文件摘要、capability consent、managed allow/deny、DPAPI/Keychain/Secret Service 与插件 MCP/LSP Broker provenance 已有；Plugin Bin/Hook/Monitor 及 Desktop 全路径 Broker 强制仍待补 |
+| P1-9  | Plugin 安全强化      | 🟡 OS secret + 部分 Broker 已补 | 签名/manifest SHA-256、trusted key、安装后 SBOM 文件摘要、capability consent、managed allow/deny、DPAPI/Keychain/Secret Service 与插件 MCP/LSP/Hook Broker provenance 已有；Plugin Bin/Monitor 及 Desktop 全路径 Broker 强制仍待补 |
 | P1-10 | 并发状态 fail-closed | 🟡 关键调度状态已补 | `withFileLock(failIfUnavailable)` + Agenda claim lease 已 fail-closed；approval/ledger/session 等关键状态仍待迁移 |
 | P1-11 | JSON Schema 完整支持 | 🟡 常用 vocabulary 已补 | Draft 2020-12 常用关键字、dependent/pattern/contains/propertyNames、local `$ref`、组合/条件、format、structured_result 已有；完整 meta-vocabulary/外部 ref 仍待补 |
 | P1-12 | SDK/CI 事件透传      | 🟡 M5+elicitation 部分 | goal/approval/turn、question/MCP elicitation 已有 TypeScript SDK；Python/CI 模板及全量事件仍待补 |

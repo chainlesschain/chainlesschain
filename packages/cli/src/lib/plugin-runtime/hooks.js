@@ -122,7 +122,20 @@ export function collectPluginHooks(opts = {}) {
     const map = normalizeHookMap(parsed);
     for (const [event, entries] of Object.entries(map)) {
       if (!Array.isArray(entries)) continue;
-      merged[event] = (merged[event] || []).concat(entries);
+      const tagged = entries.map((group) => {
+        if (!group || typeof group !== "object" || !Array.isArray(group.hooks)) return group;
+        return {
+          ...group,
+          hooks: group.hooks.map((hook) => ({
+            ...hook,
+            origin: "plugin:hook",
+            pluginId: p.name,
+            pluginVersion: p.version || null,
+            pluginSource: p.manifest?.manifestPath || null,
+          })),
+        };
+      });
+      merged[event] = (merged[event] || []).concat(tagged);
     }
   }
   warnHookCapabilityDeniedOnce(denied);

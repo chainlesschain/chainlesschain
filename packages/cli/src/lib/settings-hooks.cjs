@@ -252,6 +252,10 @@ function collectHooks(hooksBlock, event, toolName) {
           event,
           async: h.async === true,
           asyncRewake: h.asyncRewake === true,
+          origin: h.origin || "hook",
+          pluginId: h.pluginId || null,
+          pluginVersion: h.pluginVersion || null,
+          pluginSource: h.pluginSource || null,
         });
     }
   }

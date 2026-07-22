@@ -232,7 +232,21 @@ function _runCommandHookInner(command, input = {}, opts = {}) {
         CLAUDE_HOOK_EVENT: event || input.hook_event_name || "",
       },
     };
-    if (usePowershell) {
+    const brokerOptions = {
+      ...common,
+      origin: opts.origin || "hook",
+      policy: opts.origin === "plugin:hook" ? "allow" : undefined,
+      pluginId: opts.pluginId || null,
+      pluginVersion: opts.pluginVersion || null,
+      pluginSource: opts.pluginSource || null,
+    };
+    if (opts.broker && opts.origin === "plugin:hook") {
+      res = opts.broker.spawnSync(
+        usePowershell ? buildPowershellArgv(command, shellKind, { executionPolicy: loadShellConfig({ cwd: common.cwd }).executionPolicy }).file : command,
+        usePowershell ? buildPowershellArgv(command, shellKind, { executionPolicy: loadShellConfig({ cwd: common.cwd }).executionPolicy }).argv : [],
+        brokerOptions,
+      );
+    } else if (usePowershell) {
       // Per-hook `shell: powershell|pwsh` (settings hook entry): explicit argv
       // instead of the default shell; the enterprise ExecutionPolicy override
       // (settings shell.powershell.executionPolicy) applies here too.
@@ -352,9 +366,30 @@ async function _runCommandHookInnerAsync(command, input = {}, opts = {}) {
     if (usePowershell) {
       const { executionPolicy } = loadShellConfig({ cwd: wd });
       const inv = buildPowershellArgv(command, shellKind, { executionPolicy });
-      child = _deps.spawn(inv.file, inv.argv, { cwd: wd, env: spawnEnv });
+      child = opts.broker && opts.origin === "plugin:hook"
+        ? opts.broker.spawn(inv.file, inv.argv, {
+            cwd: wd,
+            env: spawnEnv,
+            origin: opts.origin,
+            policy: "allow",
+            pluginId: opts.pluginId || null,
+            pluginVersion: opts.pluginVersion || null,
+            pluginSource: opts.pluginSource || null,
+          })
+        : _deps.spawn(inv.file, inv.argv, { cwd: wd, env: spawnEnv });
     } else {
-      child = _deps.spawn(command, { cwd: wd, env: spawnEnv, shell: true });
+      child = opts.broker && opts.origin === "plugin:hook"
+        ? opts.broker.spawn(command, [], {
+            cwd: wd,
+            env: spawnEnv,
+            shell: true,
+            origin: opts.origin,
+            policy: "allow",
+            pluginId: opts.pluginId || null,
+            pluginVersion: opts.pluginVersion || null,
+            pluginSource: opts.pluginSource || null,
+          })
+        : _deps.spawn(command, { cwd: wd, env: spawnEnv, shell: true });
     }
   } catch (err) {
     return {
@@ -444,6 +479,11 @@ function runHooks(commandHooks, input = {}, opts = {}) {
   const runOne = (h) =>
     runCommandHook(h.command, input, {
       ...opts,
+      broker: opts.broker,
+      origin: h.origin,
+      pluginId: h.pluginId,
+      pluginVersion: h.pluginVersion,
+      pluginSource: h.pluginSource,
       timeout: h.timeout != null ? h.timeout * 1000 : opts.timeout,
       // per-hook shell selection (P1 #8): `{ "type":"command", "command":…,
       // "shell":"powershell" }` in the settings hook entry
@@ -504,6 +544,11 @@ async function runHooksParallel(commandHooks, input = {}, opts = {}) {
     hooks.map((h) =>
       runCommandHookAsync(h.command, input, {
         ...opts,
+        broker: opts.broker,
+        origin: h.origin,
+        pluginId: h.pluginId,
+        pluginVersion: h.pluginVersion,
+        pluginSource: h.pluginSource,
         timeout: h.timeout != null ? h.timeout * 1000 : opts.timeout,
         shell: h.shell != null ? h.shell : opts.shell,
       }).then((r) => ({ h, r })),

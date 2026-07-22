@@ -56,6 +56,9 @@ describe("collectPluginHooks — component-level capability gate", () => {
     expect(
       collectPluginHooks({ cwd, scopes: ["local"] }).SessionStart,
     ).toHaveLength(1);
+    expect(
+      collectPluginHooks({ cwd, scopes: ["local"] }).SessionStart[0].hooks[0],
+    ).toMatchObject({ origin: "plugin:hook", pluginId: "p", pluginVersion: "1.0.0" });
   });
 
   it("a legacy plugin (no permissions block) is unaffected", () => {

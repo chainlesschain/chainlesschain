@@ -70,7 +70,7 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 | Event Runtime | 后台会话、任务、外部事件和持续监控统一运行 | Agenda watch、durable inbox/outbox、lease/retry/dead-letter、Agent IPC producer、MCP resolver 默认接线已接入 | Monitor/Webhook/MCP 长运行调用方全量迁移、统一背压策略仍待补 | P1 |
 | Context | `/context` 显示 memory、skills、MCP、文件与缓存成本 | 已显示消息角色及 MCP schema 概览 | Skill 按需加载和实际 MCP schema 的逐来源归因仍不完整 | P1 |
 | Checkpoint | 对话与文件按 turn 恢复 | Headless 显式绑定已持久化，REPL 可消费 | REPL 还不是统一生产者；child/worktree/user edit/provider tool id 归因不完整 | P1 |
-| Plugin 安全 | 插件统一打包、作用域、企业治理 | 能力声明、consent、签名、typed options、OS secret store、lockfile/SBOM、插件 MCP/LSP Broker provenance | hooks/monitors 与 Desktop 侧全量进程入口仍需统一 Broker | P1 |
+| Plugin 安全 | 插件统一打包、作用域、企业治理 | 能力声明、consent、签名、typed options、OS secret store、lockfile/SBOM、插件 MCP/LSP/Hook Broker provenance | Monitor 与 Desktop 侧全量进程入口仍需统一 Broker | P1 |
 | 关键状态并发 | 会话、审批、任务和副作用状态应原子持久化 | 文件锁封装以 best-effort 为主 | 锁超时后部分路径会无锁继续，关键状态存在 lost update 风险 | P1 |
 | 结构化输出 | 标准 JSON Schema、启动期校验、最终 validated result | 常用 Draft 2020-12 vocabulary（组合、条件、`$ref`、dependent、pattern、contains、format）及 stream `structured_result` | 完整 meta-vocabulary、外部 `$ref` 与复杂 schema 互操作性仍待补 | P1 |
 | SDK/CI | TypeScript/Python SDK、版本化事件、GitHub/GitLab 自动化 | TypeScript SDK 已有 | 部分 goal/approval/turn 事件未完全透传；缺统一发布兼容门；Python/CI 模板按需求决定 | P1 |
@@ -346,7 +346,7 @@ Headless 已在 [`headless-runner.js`](../packages/cli/src/runtime/headless-runn
   [`policy.js`](../packages/cli/src/lib/plugin-runtime/policy.js#L180) 对未声明 capabilities 的
   旧插件保留兼容加载。建议设置迁移窗口，首次加载展示推断能力并要求确认；企业模式直接
   fail-closed。
-- 插件 MCP stdio 与 LSP 已进入 Process Broker，并携带 `plugin_id/version/source`；Plugin Bin、Hook、Monitor 及 Desktop 侧全路径仍待收口。
+- 插件 MCP stdio、LSP 与 settings Hook 已进入 Process Broker，并携带 `plugin_id/version/source`；Plugin Bin、Monitor 及 Desktop 侧全路径仍待收口。
 - Manifest 的 network domains、filesystem roots、process、credential 声明要从“安装期说明”
   升级为“运行时强制”。
 - 增加 lockfile、依赖图、签名链、SBOM 和安装产物 hash。当前安装锁已记录并校验文件级 SBOM 摘要，敏感 options 已使用 OS secret store；依赖图与全路径 Broker 强制仍待补。

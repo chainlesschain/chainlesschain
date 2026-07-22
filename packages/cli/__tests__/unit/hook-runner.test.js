@@ -58,6 +58,21 @@ beforeEach(() => {
   _resetHookBreaker(); // failure counters must not leak across cases
 });
 
+it("routes plugin hooks through the supplied Process Execution Broker", () => {
+  const broker = { spawnSync: vi.fn(() => ({ status: 0, stdout: "ok", stderr: "" })) };
+  const result = runHooks(
+    [{ command: "plugin-tool", origin: "plugin:hook", pluginId: "p", pluginVersion: "1.0.0", pluginSource: "/p/plugin.json" }],
+    { hook_event_name: "SessionStart" },
+    { broker, event: "SessionStart" },
+  );
+  expect(result.decision).toBe("continue");
+  expect(broker.spawnSync).toHaveBeenCalledWith(
+    "plugin-tool",
+    [],
+    expect.objectContaining({ origin: "plugin:hook", policy: "allow", pluginId: "p" }),
+  );
+});
+
 describe("runCommandHook — input + protocol", () => {
   it("writes the JSON payload to stdin", () => {
     stub({ status: 0 });

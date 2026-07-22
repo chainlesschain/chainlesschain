@@ -251,7 +251,7 @@ class AsyncHookSupervisor {
 
     let child;
     try {
-      child = this._deps.spawn(hook.command, {
+      const spawnOptions = {
         cwd: opts.cwd || process.cwd(),
         shell: true,
         // POSIX: own process group so a timeout / stopAll can signal the whole
@@ -262,7 +262,17 @@ class AsyncHookSupervisor {
           ...process.env,
           CLAUDE_HOOK_EVENT: hook.event || payload.hook_event_name || "",
         },
-      });
+      };
+      child = opts.broker && hook.origin === "plugin:hook"
+        ? opts.broker.spawn(hook.command, [], {
+            ...spawnOptions,
+            origin: hook.origin,
+            policy: "allow",
+            pluginId: hook.pluginId || null,
+            pluginVersion: hook.pluginVersion || null,
+            pluginSource: hook.pluginSource || null,
+          })
+        : this._deps.spawn(hook.command, spawnOptions);
     } catch (err) {
       this._record(hook, {
         ok: false,

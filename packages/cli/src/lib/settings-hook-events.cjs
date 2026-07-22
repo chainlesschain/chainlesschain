@@ -159,7 +159,7 @@ function dispatchAsyncHooks(settingsHooks, event, payload = {}, opts = {}) {
   return supervisor.dispatch(
     asyncHooks,
     { hook_event_name: event, cwd: opts.cwd, ...payload },
-    { cwd: opts.cwd },
+    { cwd: opts.cwd, broker: opts.broker },
   );
 }
 

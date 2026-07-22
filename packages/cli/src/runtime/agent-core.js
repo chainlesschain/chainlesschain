@@ -17,6 +17,7 @@
 import fs from "fs";
 import path from "path";
 import { execSync, spawn, spawnSync } from "child_process";
+import broker from "../lib/process-execution-broker/index.js";
 import os from "os";
 import sharedCodingAgentPolicy from "./coding-agent-policy.cjs";
 import sharedShellPolicy from "./coding-agent-shell-policy.cjs";
@@ -470,8 +471,9 @@ async function runSettingsPreToolUseHooks(name, args, context, cwd) {
     ? await runCommandHooksParallel(matched, payload, {
         cwd,
         event: "PreToolUse",
+        broker,
       })
-    : runCommandHooks(matched, payload, { cwd, event: "PreToolUse" });
+    : runCommandHooks(matched, payload, { cwd, event: "PreToolUse", broker });
   if (outcome.decision === "block") {
     return { blocked: true, reason: outcome.reason, hook: outcome.hook };
   }
@@ -552,6 +554,7 @@ function runSettingsPermissionRequestHooks(name, args, context, cwd, reason) {
     cwd,
     event: "PermissionRequest",
     mergeStrict: _hookStrictMergeEnabled(),
+    broker,
   });
   // Precedence: deny > ask > allow > defer. The runner normalizes deny/block →
   // "block" and short-circuits block/ask, but it COLLAPSES an "allow" into the
@@ -1717,6 +1720,7 @@ export async function executeTool(name, args, context = {}) {
           const outcome = runCommandHooks(sync, payload, {
             cwd,
             event: "PostToolUse",
+            broker,
           });
           if (outcome.decision === "block" && outcome.reason) {
             toolResult.hookFeedback = outcome.reason;
@@ -1725,7 +1729,7 @@ export async function executeTool(name, args, context = {}) {
         // Fire-and-forget the async hooks onto the REPL-owned supervisor when
         // one is wired; results/rewakes drain into the next turn's context.
         if (asyncHooks.length > 0 && context.hookSupervisor) {
-          context.hookSupervisor.dispatch(asyncHooks, payload, { cwd });
+          context.hookSupervisor.dispatch(asyncHooks, payload, { cwd, broker });
         }
       }
     } catch (_err) {
