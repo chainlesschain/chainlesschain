@@ -80,6 +80,7 @@ import { isolationLevel } from "../lib/agent-sandbox.js";
 import { createBackgroundPhaseReporter } from "../lib/background-phase-reporter.js";
 import { withQuietStdout } from "./quiet-stdout.js";
 import { CostBudget } from "../lib/cost-budget.js";
+import { estimateTokens } from "../harness/prompt-compressor.js";
 import {
   classifyDenial,
   recordDenial,
@@ -947,6 +948,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   // (undefined) leaves both paths byte-identical.
   const _leanNoProjectMemory = options.projectMemory === false;
   let _loadedInstructions = null;
+  let _loadedPersonaSkills = [];
   const systemContent = composeSystemPrompt(
     buildSystemPrompt(cwd, {
       additionalDirectories,
@@ -960,6 +962,9 @@ export async function runAgentHeadless(options = {}, deps = {}) {
       projectMemory: _leanNoProjectMemory ? false : undefined,
       onInstructionsLoaded: (loaded) => {
         _loadedInstructions = loaded;
+      },
+      onSkillsLoaded: (skills) => {
+        _loadedPersonaSkills = Array.isArray(skills) ? skills : [];
       },
     },
   );
@@ -1343,15 +1348,24 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   // Persist the admitted runtime schema surface so `cc context --sources` can
   // attribute MCP cost to the actual server/tool definitions used by this run,
   // rather than guessing from the current environment on a later invocation.
-  if (persist && mcp?.extraToolDefinitions?.length) {
+  if (
+    persist &&
+    (mcp?.extraToolDefinitions?.length || _loadedPersonaSkills.length)
+  ) {
     try {
       store.appendEvent(sessionId, "context_sources", {
-        mcp: mcp.extraToolDefinitions.map((definition) => ({
+        mcp: (mcp?.extraToolDefinitions || []).map((definition) => ({
           function: {
             name: definition?.function?.name || null,
             description: definition?.function?.description || "",
             parameters: definition?.function?.parameters || {},
           },
+        })),
+        skills: _loadedPersonaSkills.map((skill) => ({
+          id: skill?.id || skill?.displayName || "skill",
+          displayName: skill?.displayName || skill?.id || "skill",
+          source: skill?.source || "skill",
+          body: typeof skill?.body === "string" ? skill.body : "",
         })),
       });
     } catch {

@@ -76,6 +76,22 @@ export function breakdownMcpSchemas(definitions, estimateTokens) {
   return { sources, total: sources.reduce((sum, row) => sum + row.tokens, 0) };
 }
 
+/** Attribute Skill bodies that were actually injected into the system prompt. */
+export function breakdownSkillSources(skills, estimateTokens) {
+  const est = typeof estimateTokens === "function" ? estimateTokens : () => 0;
+  const list = Array.isArray(skills) ? skills : [];
+  const sources = list
+    .map((skill) => ({
+      source: skill?.source || "skill",
+      skill: String(skill?.id || skill?.displayName || "skill"),
+      tokens: est(
+        `## Persona: ${skill?.displayName || skill?.id || "skill"}\n${skill?.body || ""}`,
+      ),
+    }))
+    .filter((row) => row.tokens > 0);
+  return { sources, total: sources.reduce((sum, row) => sum + row.tokens, 0) };
+}
+
 // role bucket key → { label, kind } for the ranked source list.
 const MESSAGE_SOURCE_ROWS = [
   ["system", "system messages", "message"],

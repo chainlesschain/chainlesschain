@@ -929,6 +929,9 @@ export function buildSystemPrompt(cwd, opts = {}) {
     const personaSkills = allSkills.filter(
       (s) => s.category === "persona" && s.activation === "auto",
     );
+    if (typeof opts.onSkillsLoaded === "function") {
+      opts.onSkillsLoaded(personaSkills);
+    }
     for (const p of personaSkills) {
       if (p.body?.trim()) {
         prompt += `\n\n## Persona: ${p.displayName}\n${p.body}`;

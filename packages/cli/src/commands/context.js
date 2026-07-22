@@ -134,7 +134,12 @@ export function registerContextCommand(program) {
         try {
           const { loadProjectInstructions } =
             await import("../lib/project-instructions.js");
-          const { breakdownInstructionSources, breakdownMcpSchemas, rankContextSources } =
+          const {
+            breakdownInstructionSources,
+            breakdownMcpSchemas,
+            breakdownSkillSources,
+            rankContextSources,
+          } =
             await import("../lib/context-breakdown.js");
           const cwd = process.cwd();
           let instructionExcludes;
@@ -160,14 +165,24 @@ export function registerContextCommand(program) {
             recordedContextSources?.mcp || [],
             estimateTokens,
           );
+          const skills = breakdownSkillSources(
+            recordedContextSources?.skills || [],
+            estimateTokens,
+          );
           const ranked = rankContextSources({
             instructionTotal: instr.total,
             buckets,
             counts,
-            extraSources: mcp.sources.map((source) => ({
-              ...source,
-              kind: "mcp_schema",
-            })),
+            extraSources: [
+              ...mcp.sources.map((source) => ({
+                ...source,
+                kind: "mcp_schema",
+              })),
+              ...skills.sources.map((source) => ({
+                ...source,
+                kind: "skill",
+              })),
+            ],
           });
           sourceReport = {
             cwd,
@@ -175,6 +190,8 @@ export function registerContextCommand(program) {
             instructionTokens: instr.total,
             mcpSchemas: mcp.sources,
             mcpSchemaTokens: mcp.total,
+            skills: skills.sources,
+            skillTokens: skills.total,
             ranked: ranked.sources,
             combinedTotal: ranked.total,
           };

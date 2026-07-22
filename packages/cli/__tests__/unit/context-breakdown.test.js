@@ -9,6 +9,7 @@ import {
   relativizeInstructionPath,
   breakdownInstructionSources,
   breakdownMcpSchemas,
+  breakdownSkillSources,
   rankContextSources,
 } from "../../src/lib/context-breakdown.js";
 
@@ -81,6 +82,19 @@ describe("breakdownInstructionSources", () => {
 });
 
 describe("rankContextSources", () => {
+  it("attributes only injected persona Skill bodies", () => {
+    const skills = breakdownSkillSources(
+      [{ id: "review", displayName: "Review", source: "workspace", body: "abc" }],
+      est,
+    );
+    expect(skills.sources[0]).toMatchObject({
+      skill: "review",
+      source: "workspace",
+      tokens: 22,
+    });
+    expect(skills.total).toBe(22);
+  });
+
   it("attributes MCP schema tokens by server/tool source", () => {
     const mcp = breakdownMcpSchemas([
       { function: { name: "mcp__github__issues", description: "List issues", parameters: { type: "object" } } },
