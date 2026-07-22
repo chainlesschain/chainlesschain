@@ -58,7 +58,7 @@ cc agent --input-format stream-json --output-format stream-json \
 | interrupt        | `{"type":"interrupt"}`                                                                          | aborts in-flight turn, session survives                                        |
 | compact          | `{"type":"compact"}`                                                                            | manual history compaction between turns                                        |
 | approval verdict | `{"type":"approval","id":str,"approve":bool}`                                                   | answers an `approval_request`                                                  |
-| question answer  | `{"type":"answer","id":str,"answer":str\|str[]\|null}`                                          | `null` cancels                                                                 |
+| question answer  | `{"type":"answer","id":str,"answer":unknown\|null}`                                          | `null` cancels; object answers are used by MCP elicitation                         |
 | plan control     | `{"type":"plan","action":"enter"\|"approve"\|"reject","review":{"snapshot":str}?}`              | plan-mode UI; approve/reject may carry an IDE review snapshot for audit/replay |
 | feedback         | `{"type":"feedback","turn_id":str?,"kind":"positive"\|"negative"\|"correction","comment":str?}` | PDH self-learning                                                              |
 | assist resume    | `{"type":"resume","token":str?,"action":"completed"\|"skip"}`                                   | PDH guided collection                                                          |
@@ -77,6 +77,7 @@ cc agent --input-format stream-json --output-format stream-json \
 | `approval_request`                                 | `id`, `session_id`, `tool`, `command`, `risk`, `rule`, `reason` — tool is BLOCKED until answered; CLI fails closed after `CC_APPROVAL_TIMEOUT_MS` (default 120 s)            |
 | `approval_resolved`                                | `id`, `approved`, `via` (`"user"`/`"timeout"`) — settle UI cards on this                                                                                                     |
 | `question_request` / `question_resolved`           | `id`, `question`, `options?`, `multiSelect?` (needs env `CC_INTERACTIVE_QUESTIONS=1`)                                                                                        |
+| MCP elicitation (as `question_request`)            | same fields plus `metadata.kind:"mcp_elicitation"`, `server`, `requestId`, `requestedSchema`; SDK `onElicitation` returns `{action,content}` and answers with the same `id` |
 | `plan_update`                                      | `active`, `state`, `items[]{id,title,tool,impact,status}`, `risk{level,totalScore}`                                                                                          |
 | `compaction`                                       | history-trim stats                                                                                                                                                           |
 | `stream_retry`                                     | provider retry notice                                                                                                                                                        |

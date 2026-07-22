@@ -272,6 +272,34 @@ describe("AgentSession", () => {
     ]);
   });
 
+  it("routes MCP elicitation questions to the typed callback", async () => {
+    const onElicitation = vi.fn(async () => ({
+      action: "accept" as const,
+      content: { approved: true },
+    }));
+    const { session, push, writtenEvents } = startSession({ onElicitation });
+    const seen = vi.fn();
+    session.on("elicitation_request", seen);
+    push({
+      type: "question_request",
+      id: "mcp-1",
+      question: "Confirm MCP action",
+      metadata: {
+        kind: "mcp_elicitation",
+        server: "demo",
+        requestedSchema: { type: "object" },
+      },
+    });
+    await flush();
+    expect(seen).toHaveBeenCalledTimes(1);
+    expect(onElicitation).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "mcp-1" }),
+    );
+    expect(writtenEvents()).toEqual([
+      { type: "answer", id: "mcp-1", answer: { approved: true } },
+    ]);
+  });
+
   it("nextResult resolves on result and rejects on exit", async () => {
     const { session, push } = startSession();
     const pending = session.nextResult();

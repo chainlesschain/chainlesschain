@@ -205,6 +205,14 @@ export interface QuestionRequestEvent extends StreamEventMeta {
   options?: unknown[];
   multiSelect?: boolean;
   session_id?: string;
+  /** Present for host-routed MCP elicitation requests. */
+  metadata?: {
+    kind?: string;
+    server?: string;
+    requestId?: string | number;
+    requestedSchema?: unknown;
+    [key: string]: unknown;
+  };
 }
 
 export interface QuestionResolvedEvent extends StreamEventMeta {
@@ -377,7 +385,7 @@ export interface QuestionAnswerInput {
   type: "answer";
   id: string;
   /** null / absent cancels (handler resolves as user_timeout). */
-  answer: string | string[] | null;
+  answer: unknown;
 }
 
 export interface PlanControlInput {
@@ -658,6 +666,16 @@ export function isQuestionRequest(
   return (
     event.type === "question_request" &&
     typeof (event as QuestionRequestEvent).id === "string"
+  );
+}
+
+/** True when a question wire event is carrying an MCP elicitation form. */
+export function isMcpElicitationRequest(
+  event: AgentStreamEvent,
+): event is QuestionRequestEvent {
+  return (
+    isQuestionRequest(event) &&
+    event.metadata?.kind === "mcp_elicitation"
   );
 }
 

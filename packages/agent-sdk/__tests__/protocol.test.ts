@@ -6,6 +6,7 @@ import {
   isApprovalRequest,
   isContentDelta,
   isQuestionRequest,
+  isMcpElicitationRequest,
   isResult,
   isSystemInit,
   type AgentStreamEvent,
@@ -73,6 +74,14 @@ describe("protocol type guards", () => {
     ).toBe(false);
     expect(
       isQuestionRequest({ type: "question_request", id: "q-1", question: "?" }),
+    ).toBe(true);
+    expect(
+      isMcpElicitationRequest({
+        type: "question_request",
+        id: "mcp-1",
+        question: "?",
+        metadata: { kind: "mcp_elicitation" },
+      }),
     ).toBe(true);
     expect(isResult({ type: "result" } as AgentStreamEvent)).toBe(true);
   });

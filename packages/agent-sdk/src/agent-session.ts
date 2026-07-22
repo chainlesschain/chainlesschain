@@ -36,6 +36,7 @@ import {
   contentDelta,
   isAgentEvent,
   isApprovalRequest,
+  isMcpElicitationRequest,
   isQuestionRequest,
   isResult,
   isSystemInit,
@@ -60,6 +61,7 @@ export interface AgentSessionEvents {
   ) => void;
   approval_request: (event: ApprovalRequestEvent) => void;
   question_request: (event: QuestionRequestEvent) => void;
+  elicitation_request: (event: QuestionRequestEvent) => void;
   result: (event: ResultEvent) => void;
   stderr: (chunk: string) => void;
   /** Child exited. Fires exactly once. */
@@ -103,6 +105,11 @@ export interface AgentSessionOptions {
   onQuestion?: (
     request: QuestionRequestEvent,
   ) => Promise<string | string[] | null> | string | string[] | null;
+  /** MCP elicitation callback. Returning `{ action: "accept", content }` accepts; anything else cancels. */
+  onElicitation?: (
+    request: QuestionRequestEvent,
+  ) => Promise<{ action: "accept" | "decline" | "cancel"; content?: unknown }>
+    | { action: "accept" | "decline" | "cancel"; content?: unknown };
   /** DI seam for tests. */
   spawn?: typeof nodeSpawn;
 }
@@ -300,6 +307,11 @@ export class AgentSession {
       this.autoRespondApproval(event);
       return;
     }
+    if (isMcpElicitationRequest(event)) {
+      this.emit("elicitation_request", event);
+      this.autoRespondElicitation(event);
+      return;
+    }
     if (isQuestionRequest(event)) {
       this.emit("question_request", event);
       this.autoRespondQuestion(event);
@@ -339,6 +351,23 @@ export class AgentSession {
     })();
   }
 
+  private autoRespondElicitation(request: QuestionRequestEvent): void {
+    const callback = this.options.onElicitation;
+    if (!callback) return;
+    void (async () => {
+      try {
+        const response = await callback(request);
+        if (response?.action === "accept") {
+          this.answerQuestion(request.id, response.content ?? {});
+        } else {
+          this.answerQuestion(request.id, null);
+        }
+      } catch {
+        this.answerQuestion(request.id, null);
+      }
+    })();
+  }
+
   /** Write one protocol input event to the child's stdin. */
   write(event: AgentInputEvent): boolean {
     const stdin = this.child?.stdin;
@@ -372,7 +401,7 @@ export class AgentSession {
     return this.write({ type: "approval", id, approve });
   }
 
-  answerQuestion(id: string, answer: string | string[] | null): boolean {
+  answerQuestion(id: string, answer: unknown): boolean {
     return this.write({ type: "answer", id, answer });
   }
 
