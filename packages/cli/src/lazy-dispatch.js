@@ -32,13 +32,24 @@ export function resolveCommandToken(argv = []) {
 export async function runCli(argv) {
   const args = argv.slice(2);
 
+  // Resolve the command before deciding whether help/version needs the eager
+  // program. `cc <command> --help` is command-scoped help and must load only
+  // that command; treating every `--help` as root help silently discards the
+  // command token (and broke `cc agent --help` after lazy dispatch landed).
+  const commandName = resolveCommandToken(argv);
+  const entry = manifest.commands.find(
+    (c) =>
+      c.name === commandName || (c.aliases && c.aliases.includes(commandName)),
+  );
+
   // Fast path: if no args, or --help, or --version, use full program
   if (
     args.length === 0 ||
-    args.includes("--help") ||
-    args.includes("-h") ||
-    args.includes("--version") ||
-    args.includes("-V")
+    (!entry &&
+      (args.includes("--help") ||
+        args.includes("-h") ||
+        args.includes("--version") ||
+        args.includes("-V")))
   ) {
     const program = await createProgramAsync();
     await program.parseAsync(argv);
@@ -46,12 +57,6 @@ export async function runCli(argv) {
   }
 
   // Try to find the command in manifest
-  const commandName = resolveCommandToken(argv);
-  const entry = manifest.commands.find(
-    (c) =>
-      c.name === commandName || (c.aliases && c.aliases.includes(commandName)),
-  );
-
   // Unknown command, use full program to show error/help
   if (!entry) {
     const program = await createProgramAsync();

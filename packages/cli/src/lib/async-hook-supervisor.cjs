@@ -128,11 +128,23 @@ class AsyncHookSupervisor {
       if (process.platform === "win32") {
         const r = this._deps.spawnSync(
           "taskkill",
-          ["/pid", String(pid), "/T", "/F"],
+          ["/PID", String(pid), "/T", "/F"],
           { windowsHide: true },
         );
+        // A shell can publish a just-created descendant between the first
+        // tree snapshot and termination. Repeat once so that race cannot
+        // leave a short-lived hook grandchild orphaned.
+        if (!r?.error && r?.status === 0) {
+          this._deps.spawnSync(
+            "taskkill",
+            ["/PID", String(pid), "/T", "/F"],
+            { windowsHide: true },
+          );
+        }
         // If taskkill couldn't launch, fall back to a direct kill.
-        if (r && r.error) child.kill(signal);
+        if (r && (r.error || (r.status != null && r.status !== 0))) {
+          child.kill(signal);
+        }
       } else {
         // Negative pid → the whole process group (requires the detached spawn).
         try {
