@@ -217,6 +217,10 @@ export default defineConfig({
               link: "/chainlesschain/cli-background-agents",
             },
             {
+              text: "当前 CLI Runtime 实现 (0.162.175) ⭐NEW",
+              link: "/chainlesschain/cli-runtime-current",
+            },
+            {
               text: "会话洞察 — 轮次/工具/成本 (insights) ⭐NEW",
               link: "/chainlesschain/cli-insights",
             },

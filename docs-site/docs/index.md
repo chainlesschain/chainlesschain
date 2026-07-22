@@ -43,6 +43,8 @@ features:
     details: 单元、集成、E2E 与文档持续对齐，减少设计与实现偏移。
 ---
 
+> **2026-07-22 当前实现快照**：CLI 已更新至 `0.162.175`（顶层 175 命令）。后台 Agent 支持 attach 交互询问与本地 IPC/TCP 控制通道；跨平台 sandbox、credential agent、Setup/Notification hooks 和 lazy dispatch 已接入当前运行时。详细入口：[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)。
+
 > 2026-04-08 更新：文档站已对齐 CLI Agent Runtime 重构、统一 runtime event、session record、后台任务增强、Worktree 合并助手、压缩观测、会话迁移，以及 **Coding Agent Phase 5 最小 Harness + 真实 interrupt**。
 >
 > 2026-04-19 更新：CLI V2 规范层 iter17–iter21 累计新增 40 个 lib 治理表面（chat-core / claude-code-bridge / compliance-manager / cowork-learning / cowork-workflow / privacy-computing / token-incentive / hardening-manager / aiops / multimodal / instinct-manager / tenant-saas / quantization / trust-security / nl-programming / perception / code-agent / collaboration-governance / community-governance / did-manager / sso-manager / org-manager / scim-manager / sync-manager / agent-network / browser-automation / dlp-engine / evomap-governance / federation-hardening / ipfs-storage / p2p-manager / wallet-manager / activitypub-bridge / matrix-bridge / nostr-bridge / bi-engine / memory-manager / session-manager / hook-manager / workflow-engine），统一遵循 4 状态 profile maturity + 5 状态 lifecycle 模型；CLI 版本升级到 `0.151.0`。

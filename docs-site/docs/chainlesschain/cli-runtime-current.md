@@ -8,18 +8,45 @@
 - `cc attach <id>`：通过本机控制通道继续提问、停止或查看后台 Agent；通道不可用时自动改为日志跟随。
 - `cc logs <id>`、`cc daemon status|view|resume|stop`：查看和管理后台会话。
 - `Setup` / `Notification` hooks：在命令开始前注入环境并发送会话通知。
-- 跨平台 sandbox 与 credential agent：通过统一的执行 broker 控制 shell 和凭据边界。
+- 跨平台 sandbox 与 credential agent：通过统一 broker 对子进程执行做默认隔离。
 
-## 兼容性说明
+## 运行结构
 
-- 当前 CLI 包版本：`0.162.175`；顶层命令数仍为 **175**。
-- TCP transport 是 IPC 不可用时的本地控制通道后备，不等于开放公网远程控制；集成方必须保留会话凭据握手。
-- sandbox 引擎不可用时，严格模式会拒绝启动；请先安装并验证 Docker 或 bubblewrap，再启用 `failIfUnavailable`。
+```text
+cc
+ ├─ lazy command dispatch (manifest + help/alias)
+ ├─ agent runtime (foreground / background)
+ │    └─ local attach (NDJSON/TCP)
+ ├─ process-execution-broker
+ │    ├─ sandbox
+ │    └─ credential agent
+ └─ session hooks (Setup/Notification)
+```
 
-## 相关文档
+## 命令入口
 
-- [后台 Agent](./cli-background-agents)
-- [安全沙箱](./cli-sandbox)
-- [Hooks 系统](./hooks)
-- [运行时设计核对](/design/cli-runtime-current)
+主要入口位于：
 
+- `packages/cli/src/cli.js`：启动与注册。
+- `packages/cli/src/lazy-dispatch.js`：命令延迟分发。
+- `packages/cli/src/lib/background-agent-supervisor.js`：后台会话监督。
+- `packages/cli/src/lib/process-execution-broker/`：子进程安全执行。
+- `packages/cli/src/lib/session-hooks.js`：通知与会话钩子。
+
+## 平台注意
+
+- Windows 上 `.cmd` 启动、hook 输出清理、后台 attach 路径已修复。
+- 本地控制通道优先使用 NDJSON/TCP fallback，需要本地会话凭据。
+- 停止后台 Agent 时，supervisor 会校验 PID 与会话绑定关系，避免误杀。
+
+## 验证
+
+在发布或本地验证前，建议执行：
+
+```bash
+cd packages/cli
+npm test
+npm run lint
+```
+
+重点覆盖：`agent --bg`、`attach`、`stop`、hooks 输出、Windows 命令分发和 sandbox 能力探测。

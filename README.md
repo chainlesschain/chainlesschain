@@ -11,6 +11,10 @@
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
+## 2026-07-22 当前主线 — **cc CLI 0.162.175：后台交互、执行安全与运行时稳定性收口**
+
+> 基于当前 Git 主线（`b32e90dce6`）。后台 Agent 已支持 attach 交互询问与 IPC/TCP transport；跨平台 sandbox 与 credential agent 默认接入执行 broker；Setup/Notification hooks 已接入命令生命周期；lazy dispatch、Windows hook 输出清理、CLI 启动和停止自 PID 保护完成稳定性修复。顶层命令数仍为 **175**。详见 [CLI Runtime 当前实现](docs-site/docs/chainlesschain/cli-runtime-current.md) 与 [运行时设计核对](docs/design/cli-runtime-current.md)。
+
 ## 2026-07-16 发布 — **IDE 插件 VS Code 0.37.16 / JetBrains 0.4.60：bug-sweep + parity 批（Windows cmd.exe argv 注入加固 / JB EDT 冻结·死锁类修复 / 阻塞后台 Agent 可见 / budget·retry 流事件契约）**
 
 > VS Code `0.37.15` → **`0.37.16`**（Open VSX）/ JetBrains `0.4.59` → **`0.4.60`**（JetBrains Marketplace）。30+ 修复的插件审计批：**Windows cmd.exe argv 注入加固**（用户文本含 `&`/`|`/引号不再被撕坏或当第二条命令执行，cross-spawn 算法真 cmd.exe 往返验证）+ **JB EDT 冻结/死锁类修复**（`/stop`/`/compact`/审批回复/tab 关闭的阻塞管道 IO 全部移出 UI 线程）+ **ghost-text 进程树击杀**（取消补全不再留孤儿 `cc complete` 白烧 LLM 调用并占 SQLite 锁）+ **阻塞后台 Agent 可见**（`waiting_permission`/`pendingApprovals`，配合 cc ≥ 0.162.168，「等待审批」徽标 + 排最前 + JB Resume 可用）+ **budget/retry 流事件**（API 重连与预算停止渲染为带原因 info 行，fixture 契约钉死双端 parity）+ deep-link 包含性 / Plugin Trust-Untrust scope / JB 会话索引并发安全 / 管道 CJK byte-carry。验证：VS 914 测试全绿 + vsix 解析级包验；JB JUnit+smokeTest 1213/0 + verifyPlugin Compatible。

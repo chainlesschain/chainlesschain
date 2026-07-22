@@ -68,4 +68,3 @@ npm run lint
 ```
 
 Windows 还应覆盖 `.cmd` 启动、后台 attach、停止自 PID 记录和 hook 输出清理；TCP attach 需要运行对应的 IPC/transport 回归测试。
-

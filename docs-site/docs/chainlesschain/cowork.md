@@ -1,14 +1,32 @@
 # Cowork 多智能体协作系统
 
-> **版本: v4.0 (CLI Cowork Evolution v0.46.0, 2026-04-15) | 状态: ✅ 生产就绪 | 238 IPC Handlers | 95 内置技能 | 21 数据库表 | ~90% 测试覆盖率**
+> **当前版本: CLI Cowork 0.162.175（2026-07-22） | 状态: ✅ CLI 命令可用 | 运行时测试持续维护**
 >
-> CLI 侧最新进化：Cowork Evolution v0.46.0 完成 F1–F9 九项能力（共享学习 / 决策回放 / 任务模板扩展至 11 / 自动观察 / 签名 P2P 共享 等），并同步 open-agents 对标 Phase 1–5（16 内置工具 / Sub-Agent Profiles / prepareCall 上下文注入 / provider-options 三层深合并）。
+> 当前代码同时保留历史桌面端 Cowork 能力；CLI 入口以 `packages/cli/src/commands/cowork.js` 为准，命令实现采用按需加载。本文中的桌面 IPC 数量、旧版本性能数字和历史模块行数仅作为演进记录，不作为 CLI 当前 SLA。
 
 ## 概述
 
 Cowork 是 ChainlessChain 的生产级多智能体协作系统，基于 Claude Code 的 TeammateTool 设计模式实现，提供智能任务分配、并行执行和协同工作流能力。系统包含 95 个内置技能、13 核心操作、文件沙箱、Agent 池化、P2P 跨设备代理网络和去中心化代理联邦等完整功能矩阵。
 
 ChainlessChain Cowork 是一个生产级的多智能体协作系统，基于 Claude Code 的 TeammateTool 设计模式实现。它为复杂任务提供智能的任务分配、并行执行和协同工作流能力，包含 13 核心操作、FileSandbox 安全沙箱、长时任务管理、Agent 池化、95 内置技能、技能流水线引擎、可视化工作流编辑器、Git Hooks 集成、Instinct 学习系统、Orchestrate 编排工作流、Verification Loop 验证流水线、**P2P 跨设备代理网络、设备能力发现、混合执行策略、Computer Use Bridge、RESTful API 服务、Webhook 事件推送**、全自动开发流水线、自然语言编程（NL→Spec）、多模态协作（音视频/图像/文档融合）、自主运维（异常检测/自动修复/告警）以及**去中心化代理网络（Agent DID / 联邦发现 / 跨组织路由 / 信誉系统）**。
+
+### 当前 CLI 能力边界
+
+当前 CLI Cowork 入口包含：多视角辩论评审、A/B 方案比较、代码分析、任务模板、Cron 调度、签名共享包、DAG 工作流、运行观察、历史学习，以及协调器/Runner V2 管理命令。所有命令使用已配置的 LLM provider，可通过命令行覆盖 provider/model。
+
+本文按以下模块组织：
+
+| 模块 | 内容 |
+| --- | --- |
+| [系统架构](#系统架构) | Cowork 层次、任务执行与持久化边界 |
+| [配置参考](#配置参考) | TeammateTool、FileSandbox、长时任务和 CLI 运行参数 |
+| [性能指标](#性能指标) | 历史桌面基线与当前 CLI 的测量口径 |
+| [测试覆盖率](#测试覆盖率) | 桌面 E2E 与 CLI unit/integration/e2e 覆盖 |
+| [安全考虑](#安全考虑) | 文件、凭据、沙箱、传输与审计边界 |
+| [故障排查](#故障排查) | 桌面 IPC 与 CLI 常见故障 |
+| [关键文件](#关键文件) | 桌面实现与 CLI 实现入口 |
+| [使用示例](#使用示例) | 当前可直接执行的 CLI 示例 |
+| [相关文档](#相关文档) | 用户指南、设计文档和测试文档 |
 
 ## 核心特性
 
@@ -1191,6 +1209,8 @@ const useCoworkStore = defineStore("cowork", {
 
 ## 配置参考
 
+> 桌面端配置使用下列 Cowork 对象；CLI 端不读取这些桌面 IPC 配置对象，而是复用全局 LLM/provider、权限和项目配置。CLI 运行时的 provider/model 可在每条 Cowork 命令上用 `--provider`、`--model` 覆盖。
+
 ### TeammateTool 配置
 
 ```javascript
@@ -1238,6 +1258,8 @@ const useCoworkStore = defineStore("cowork", {
 ```
 
 ## 性能指标
+
+> 下表是历史桌面端基准（用于回归比较，不是所有机器上的保证值）。CLI Cowork 的 LLM 延迟取决于 provider、模型、上下文和并发量；性能测试应使用 `--json` 输出并记录 provider/model、输入规模和运行环境。
 
 ### 响应时间
 
@@ -1295,7 +1317,15 @@ const useCoworkStore = defineStore("cowork", {
 ✅ skill-pipeline-e2e.test.js         - 44 测试用例 (模板→流水线→执行→指标端到端)
 ```
 
-**总覆盖率**: ~90%，440+ 测试用例，99.6% 通过率
+> **覆盖率口径说明**：上面的 440+ 测试是历史桌面 Cowork 基线。当前 CLI 测试分散在 `packages/cli/__tests__/unit/`、`integration/` 与 `e2e/`，请以 CI 当次结果为准，不把历史数字当作当前 CLI 覆盖率。
+
+当前 CLI 回归重点包括：
+
+- `cowork-command.test.js`、`cowork-evolution-commands.test.js`：命令注册、参数和 JSON 输出。
+- `cowork-task-e2e.test.js`、`cowork-workflow-ws-e2e.test.js`：任务执行与工作流端到端流程。
+- `cowork-task-runner.test.js`、`cowork-workflow.test.js`、`cowork-cron.test.js`：任务、DAG 和定时调度纯逻辑。
+- `cowork-share.test.js`、`cowork-template-marketplace.test.js`、`cowork-learning.test.js`：共享包、模板和学习功能。
+- `agent-sandbox.test.js`、`credential-proxy.test.js`、`session-hooks.test.js`：执行安全和 hooks 回归。
 
 ### E2E 测试
 
@@ -1321,6 +1351,8 @@ const useCoworkStore = defineStore("cowork", {
 
 ## 安全考虑
 
+CLI 侧还遵循统一 Agent 安全边界：shell 经过 `process-execution-broker`；sandbox 引擎在严格模式下不可用会拒绝启动；credential agent 默认屏蔽长效凭据；后台/共享操作需要本地会话凭据和签名校验。不要把 API key、私钥或真实凭据写入 Cowork prompt、任务模板、日志或共享包。
+
 ### 文件访问安全
 
 1. **敏感文件检测** — 20+ 内置模式 + 自定义模式支持
@@ -1345,6 +1377,24 @@ const useCoworkStore = defineStore("cowork", {
 4. **输出净化** — 防止跨站脚本
 
 ## 故障排查
+
+### CLI 常见问题
+
+**Q: `cowork` 命令找不到或启动失败？**
+
+确认使用 Node.js `>=22.12.0`，重新执行 `cc cowork --help`；若是源码运行，先在仓库根目录安装依赖，并检查 `packages/cli/src/command-manifest.json` 与 CLI 版本是否匹配。
+
+**Q: LLM 请求很慢或任务没有结果？**
+
+使用 `--json` 保留结构化输出，确认 provider/model 配置和网络连通性；先用小输入运行 `cowork compare` 或 `cowork analyze`，不要把模型响应时间误判为本地任务队列故障。
+
+**Q: `cowork share import` 或模板导入被拒绝？**
+
+检查签名、包路径和包格式，优先使用同一信任配置导出的包；不要关闭签名校验来绕过错误。
+
+**Q: CLI sandbox 报引擎不可用？**
+
+按配置安装并验证 Docker 或 bubblewrap；严格模式会在启动阶段 fail-closed。需要确认当前实际隔离级别时运行 `cc doctor`，不要仅依据配置文件判断已完成隔离。
 
 ### 常见问题
 
@@ -1466,6 +1516,18 @@ const logs = await window.electron.ipcRenderer.invoke("cowork:get-logs", {
 | `src/main/ai-engine/cowork/webhook-manager.js`     | Webhook 事件推送（17 事件）   | ~530 |
 | `src/main/ai-engine/cowork/cowork-v2-ipc.js`       | 34 个 IPC Handler             | ~420 |
 
+### 当前 CLI 文件
+
+| 文件 | 职责 |
+| --- | --- |
+| `packages/cli/src/commands/cowork.js` | Cowork CLI 子命令注册与参数解析 |
+| `packages/cli/src/lib/cowork/` | debate、compare、分析、任务、工作流、观察与学习实现 |
+| `packages/cli/src/lib/cowork-task-runner.js` | Cowork 任务执行与状态收口 |
+| `packages/cli/src/lib/cowork-workflow.js` | DAG 工作流持久化与执行 |
+| `packages/cli/src/lib/cowork-cron.js` | 定时任务配置与运行 |
+| `packages/cli/src/lib/cowork-share.js` | 签名共享包导出、导入和校验 |
+| `packages/cli/src/lib/process-execution-broker/` | shell、sandbox、credential agent 安全边界 |
+
 ## 前端路由（v1.1.0 新增）
 
 | 路由                   | 页面                     | 说明           |
@@ -1489,40 +1551,43 @@ const logs = await window.electron.ipcRenderer.invoke("cowork:get-logs", {
 # 对指定文件发起多视角辩论式评审（性能/安全/可维护性三个视角）
 chainlesschain cowork debate src/main/database.js
 
-# 仅评审安全视角，输出详细报告
-chainlesschain cowork debate src/auth/login.js --perspectives security --verbose
-
-# 对整个目录进行批量辩论评审
-chainlesschain cowork debate src/main/ai-engine/ --recursive
+# 仅评审安全视角，并输出 JSON 结果
+chainlesschain cowork debate src/auth/login.js --perspectives security --json
 ```
 
 ### A/B 方案对比
 
 ```bash
-# 对同一需求生成两个方案并自动对比（含基准测试）
-chainlesschain cowork compare "实现一个高性能的本地缓存模块"
+# 对同一需求生成多个方案并自动评分
+chainlesschain cowork compare "实现一个高性能的本地缓存模块" --variants 3 --json
 
 # 指定对比维度：性能、内存占用、代码复杂度
 chainlesschain cowork compare "用户认证方案" --criteria performance,security,complexity
 
-# 对比两个已有文件的实现方案
-chainlesschain cowork compare --file-a src/cache-v1.js --file-b src/cache-v2.js
+# 指定评估维度
+chainlesschain cowork compare "用户认证方案" --criteria performance,security,readability
 ```
 
 ### 代码知识图谱分析
 
 ```bash
 # 分析项目代码结构，构建实体/关系知识图谱
-chainlesschain cowork analyze src/main/ --mode knowledge-graph
+chainlesschain cowork analyze src/main/ --type knowledge-graph
 
 # 检测循环依赖并输出依赖链
-chainlesschain cowork analyze src/main/ --mode knowledge-graph --detect-cycles
+chainlesschain cowork analyze src/main/ --type knowledge-graph --json
 
 # 分析项目编码风格并提取模式
-chainlesschain cowork analyze src/ --mode style
+chainlesschain cowork analyze src/ --type style
 
 # 查看 Cowork 系统运行状态（团队数/任务数/代理池）
 chainlesschain cowork status
+
+# 查看可用的任务、工作流、定时任务和历史观察数据
+chainlesschain cowork workflow list
+chainlesschain cowork cron list
+chainlesschain cowork observe report --json
+chainlesschain cowork learning stats --json
 ```
 
 ## 相关文档
@@ -1534,6 +1599,11 @@ chainlesschain cowork status
 - [Hooks 系统 →](/chainlesschain/hooks)
 - [Plan Mode →](/chainlesschain/plan-mode)
 - [Session Manager →](/chainlesschain/session-manager)
+- [当前 CLI Runtime 实现 →](/chainlesschain/cli-runtime-current)
+- [后台 Agent 与 attach →](/chainlesschain/cli-background-agents)
+- [CLI Hooks 系统 →](/chainlesschain/hooks)
+- [CLI 安全沙箱 →](/chainlesschain/cli-sandbox)
+- [CLI 更新日志 →](/changelog)
 
 ---
 

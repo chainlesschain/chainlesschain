@@ -45,6 +45,8 @@ features:
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
 
+> **2026-07-22 设计核对**：当前 CLI 运行时版本为 `0.162.175`，顶层命令数保持 175。最新实现已覆盖后台 Agent attach、IPC/TCP 控制通道、跨平台 sandbox、credential agent、Setup/Notification hooks 与 lazy dispatch；新增[运行时实现核对文档](/cli-runtime-current)。
+
 ## 快速导航
 
 ### 按角色
