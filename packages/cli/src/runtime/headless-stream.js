@@ -1161,6 +1161,16 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   // the MCP response shape (`action` + object `content`) at this boundary.
   if (mcp?.mcpClient?.setElicitationHandler && interactiveQuestions) {
     mcp.mcpClient.setElicitationHandler(async (request) => {
+      const { emitHooksV2Event } = await import(
+        "../lib/hooks-v2-producers.js"
+      );
+      emitHooksV2Event("MCPElicitation", {
+        server: request.server || null,
+        request_id: request.requestId ?? null,
+        message: request.message || "MCP server requests additional input",
+        requested_schema: request.requestedSchema || null,
+        session_id: sessionId,
+      });
       const answer = await interactionAskUser({
         question: request.message || "MCP server requests additional input",
         timeoutMs: request.timeoutMs,

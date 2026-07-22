@@ -79,6 +79,11 @@ import {
   imageUrlBlockToAnthropic,
 } from "../lib/image-input.js";
 import { executeToolSearch, gateDeferredMcpCall } from "./mcp-tool-search.js";
+import { emitHooksV2Event } from "../lib/hooks-v2-producers.js";
+import {
+  admitTool,
+  buildToolAttribution,
+} from "../lib/agent-tool-admission.js";
 
 /**
  * Names of MCP servers currently mounted by an in-flight run_skill call.
@@ -5297,10 +5302,32 @@ async function _executeSpawnSubAgent(args, ctx) {
     // seeded with the mode's tier gates the child's run_shell / browser_act;
     // absent (ungated) for a plain default spawn = byte-identical.
     ...(childApprovalGate ? { approvalGate: childApprovalGate } : {}),
+    ...(ctx.toolAdmission ? { toolAdmission: ctx.toolAdmission } : {}),
   });
   subCtxRef = subCtx;
 
   const emit = (type, payload) => {
+    if (type === "sub-agent.started") {
+      emitHooksV2Event("TaskCreated", {
+        task_id: subCtx.id,
+        session_id: parentSessionId,
+        role: subCtx.role,
+        task: subCtx.task,
+        background: payload?.background === true,
+      });
+    } else if (
+      type === "sub-agent.completed" ||
+      type === "sub-agent.failed"
+    ) {
+      emitHooksV2Event("TaskCompleted", {
+        task_id: subCtx.id,
+        session_id: parentSessionId,
+        role: subCtx.role,
+        status: type === "sub-agent.failed" ? "failed" : "completed",
+        error: payload?.error || null,
+        completed_at: payload?.completedAt || null,
+      });
+    }
     if (!interaction || typeof interaction.emit !== "function") return;
     try {
       interaction.emit(type, {
