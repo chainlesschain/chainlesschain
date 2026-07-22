@@ -91,6 +91,10 @@ export class PlanItem {
     this.status = data.status || PlanStatus.PENDING;
     this.result = null;
     this.error = null;
+    this.turn = Number.isInteger(data.turn) && data.turn > 0 ? data.turn : null;
+    this.toolUseId = data.toolUseId || null;
+    this.startedAt = data.startedAt || null;
+    this.completedAt = data.completedAt || null;
   }
 
   /**
@@ -376,6 +380,90 @@ export class PlanModeManager extends EventEmitter {
   }
 
   /**
+   * Attribute a live tool call to the next approved item for that tool.
+   * Read-only/helper calls that were not part of the approved plan remain
+   * unbound instead of advancing an unrelated item.
+   */
+  startPlanItemForTool(toolName, context = {}) {
+    if (
+      !this.currentPlan ||
+      (this.state !== PlanState.APPROVED && this.state !== PlanState.EXECUTING)
+    ) {
+      return null;
+    }
+    const tool = String(toolName || "");
+    const item = this.currentPlan.items.find(
+      (candidate) =>
+        candidate.status === PlanStatus.APPROVED && candidate.tool === tool,
+    );
+    if (!item) return null;
+
+    item.status = PlanStatus.EXECUTING;
+    item.toolUseId = context.toolUseId || null;
+    item.turn =
+      Number.isInteger(context.turn) && context.turn > 0 ? context.turn : null;
+    item.startedAt = String(context.startedAt || new Date().toISOString());
+    item.completedAt = null;
+    item.result = null;
+    item.error = null;
+    this.state = PlanState.EXECUTING;
+    this.currentPlan.status = PlanState.EXECUTING;
+    this.emit("item-executing", { planId: this.currentPlan.id, item });
+    this._fireHook("PlanItemExecute", {
+      planId: this.currentPlan.id,
+      itemId: item.id,
+      tool: item.tool,
+      toolUseId: item.toolUseId,
+      turn: item.turn,
+    });
+    return item;
+  }
+
+  /** Settle a tool-attributed item and derive the aggregate execution state. */
+  settlePlanItem(itemId, options = {}) {
+    if (!this.currentPlan || !itemId) return null;
+    const item = this.currentPlan.getItem(itemId);
+    if (!item || item.status !== PlanStatus.EXECUTING) return null;
+
+    const success = options.success !== false;
+    item.status = success ? PlanStatus.COMPLETED : PlanStatus.FAILED;
+    item.completedAt = String(options.completedAt || new Date().toISOString());
+    item.result = success ? (options.result ?? null) : null;
+    item.error = success ? null : String(options.error || "tool failed");
+
+    const tracked = this.currentPlan.items.filter((candidate) =>
+      [
+        PlanStatus.APPROVED,
+        PlanStatus.EXECUTING,
+        PlanStatus.COMPLETED,
+        PlanStatus.FAILED,
+      ].includes(candidate.status),
+    );
+    const allSettled =
+      tracked.length > 0 &&
+      tracked.every((candidate) =>
+        [PlanStatus.COMPLETED, PlanStatus.FAILED].includes(candidate.status),
+      );
+    if (allSettled) {
+      this.state = tracked.some(
+        (candidate) => candidate.status === PlanStatus.FAILED,
+      )
+        ? PlanState.FAILED
+        : PlanState.COMPLETED;
+    } else {
+      this.state = PlanState.EXECUTING;
+    }
+    this.currentPlan.status = this.state;
+    this.emit("item-settled", {
+      planId: this.currentPlan.id,
+      item,
+      success,
+      state: this.state,
+    });
+    return item;
+  }
+
+  /**
    * Reject the plan
    */
   rejectPlan(reason = "") {
@@ -501,9 +589,7 @@ export class PlanModeManager extends EventEmitter {
 
     const allDone = results.every((r) => r.success);
     this.state = allDone ? PlanState.COMPLETED : PlanState.FAILED;
-    this.currentPlan.status = allDone
-      ? PlanState.COMPLETED
-      : PlanState.FAILED;
+    this.currentPlan.status = allDone ? PlanState.COMPLETED : PlanState.FAILED;
 
     return { results, success: allDone };
   }

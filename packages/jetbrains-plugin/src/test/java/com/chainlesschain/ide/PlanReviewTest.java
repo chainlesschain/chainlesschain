@@ -108,4 +108,55 @@ class PlanReviewTest {
         assertEquals(null, PlanReview.findPersistedState(stored, "s-0", ""));
         assertTrue(PlanReview.findPersistedState(stored, "s-24", "") != null);
     }
+
+    @Test
+    void commentsCarryItemFileLineColumnAndTurnAttribution() {
+        String document = String.join("\n",
+                "# ChainlessChain Plan Review",
+                "",
+                "## Plan Items",
+                "",
+                "1. edit_file: Edit config",
+                "   - id: p1",
+                "   - impact: medium",
+                "   - status: pending",
+                "   - comment: Keep src/config.ts:42:7 backwards compatible",
+                "",
+                "## Reviewer Notes",
+                "",
+                "- Add a migration test");
+
+        List<Map<String, Object>> comments = PlanReview.extractComments(document, 3);
+        assertEquals(2, comments.size());
+        assertEquals("p1", comments.get(0).get("itemId"));
+        assertEquals("src/config.ts", comments.get(0).get("file"));
+        assertEquals(42, comments.get(0).get("line"));
+        assertEquals(7, comments.get(0).get("column"));
+        assertEquals(3, comments.get(0).get("turn"));
+        assertEquals("Add a migration test", comments.get(1).get("text"));
+    }
+
+    @Test
+    void progressMergePreservesReviewerText() {
+        String document = String.join("\n",
+                "1. edit_file: Edit config",
+                "   - id: p1",
+                "   - impact: medium",
+                "   - status: approved",
+                "   - comment: Keep this note");
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("id", "p1");
+        item.put("title", "Edit config");
+        item.put("tool", "edit_file");
+        item.put("status", "completed");
+        item.put("turn", 2);
+        item.put("tool_use_id", "tu-4");
+        item.put("started_at", "2026-07-23T00:00:00Z");
+        item.put("completed_at", "2026-07-23T00:00:01Z");
+
+        String merged = PlanReview.mergeProgress(document, Map.of("items", List.of(item)));
+        assertTrue(merged.contains("- status: completed"));
+        assertTrue(merged.contains("turn 2; tool use tu-4"));
+        assertTrue(merged.contains("- comment: Keep this note"));
+    }
 }

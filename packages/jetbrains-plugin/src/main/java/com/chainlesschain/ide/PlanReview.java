@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /** Pure helper for IDE-native plan review editor tabs. */
 public final class PlanReview {
@@ -14,6 +16,11 @@ public final class PlanReview {
     public static final String STATE_SCHEMA = "cc-plan-review/v1";
     public static final int MAX_PERSISTED_STATES = 20;
     public static final int MAX_PERSISTED_ITEMS = 128;
+    public static final int MAX_COMMENTS = 64;
+    public static final int MAX_COMMENT_CHARS = 2000;
+    private static final Pattern FILE_REFERENCE = Pattern.compile(
+            "((?:[A-Za-z]:[\\\\/])?(?:[\\w@.+()\\-]+[\\\\/])*"
+                    + "[\\w@.+()\\-]+\\.[A-Za-z0-9]+):(\\d+)(?::(\\d+))?");
 
     public static String markdown(
             Map<String, Object> plan,
@@ -53,6 +60,11 @@ public final class PlanReview {
                 sb.append("   - id: ").append(or(item.get("id"), "")).append("\n");
                 sb.append("   - impact: ").append(or(item.get("impact"), "low")).append("\n");
                 sb.append("   - status: ").append(or(item.get("status"), "pending")).append("\n");
+                String progress = formatProgress(item);
+                if (!progress.isEmpty()) sb.append("   - progress: ").append(progress).append("\n");
+                if (!string(item.get("error")).isEmpty()) {
+                    sb.append("   - error: ").append(item.get("error")).append("\n");
+                }
                 sb.append("   - comment:\n");
             }
         }
@@ -68,6 +80,19 @@ public final class PlanReview {
             String sessionId,
             Map<String, Object> plan,
             Instant reviewedAt) {
+        return reviewRecord(action, documentText, conversationId, conversationTitle,
+                sessionId, plan, latestPlanTurn(plan), reviewedAt);
+    }
+
+    public static Map<String, Object> reviewRecord(
+            String action,
+            String documentText,
+            String conversationId,
+            String conversationTitle,
+            String sessionId,
+            Map<String, Object> plan,
+            int turn,
+            Instant reviewedAt) {
         Map<String, Object> r = new LinkedHashMap<String, Object>();
         r.put("action", or(action, "review"));
         r.put("reviewedAt", String.valueOf(reviewedAt != null ? reviewedAt : Instant.now()));
@@ -77,6 +102,8 @@ public final class PlanReview {
         r.put("planState", plan == null ? "" : or(plan.get("state"), ""));
         r.put("itemCount", normalizedItems(plan == null ? null : plan.get("items")).size());
         r.put("snapshot", trimSnapshot(documentText));
+        r.put("comments", extractComments(documentText, turn));
+        if (turn > 0) r.put("turn", turn);
         return r;
     }
 
@@ -122,6 +149,21 @@ public final class PlanReview {
             String action,
             Map<String, Object> previous,
             Instant updatedAt) {
+        return persistedState(documentText, conversationId, conversationTitle,
+                sessionId, plan, status, action, previous, latestPlanTurn(plan), updatedAt);
+    }
+
+    public static Map<String, Object> persistedState(
+            String documentText,
+            String conversationId,
+            String conversationTitle,
+            String sessionId,
+            Map<String, Object> plan,
+            String status,
+            String action,
+            Map<String, Object> previous,
+            int turn,
+            Instant updatedAt) {
         Map<String, Object> prior = normalizePersistedState(previous);
         Map<String, Object> state = new LinkedHashMap<String, Object>();
         state.put("schema", STATE_SCHEMA);
@@ -134,6 +176,7 @@ public final class PlanReview {
         state.put("action", bounded(action, 64));
         state.put("plan", sanitizePlanSnapshot(plan));
         state.put("snapshot", trimSnapshot(documentText));
+        state.put("comments", extractComments(documentText, turn));
         return normalizePersistedState(state);
     }
 
@@ -155,6 +198,10 @@ public final class PlanReview {
                 source.get("plan") instanceof Map
                         ? (Map<String, Object>) source.get("plan") : null));
         state.put("snapshot", trimSnapshot(string(source.get("snapshot"))));
+        state.put("comments", source.get("comments") instanceof List
+                ? normalizeComments(source.get("comments"))
+                : extractComments(string(state.get("snapshot")),
+                        latestPlanTurn((Map<String, Object>) state.get("plan"))));
         return persistedIdentity(state).isEmpty() ? null : state;
     }
 
@@ -204,6 +251,12 @@ public final class PlanReview {
             row.put("tool", bounded(item.get("tool"), 160));
             row.put("impact", bounded(item.get("impact"), 64));
             row.put("status", bounded(item.get("status"), 64));
+            int turn = number(item.get("turn"), 0);
+            if (turn > 0) row.put("turn", turn);
+            copyBounded(row, "tool_use_id", item.get("tool_use_id"), 160);
+            copyBounded(row, "started_at", item.get("started_at"), 64);
+            copyBounded(row, "completed_at", item.get("completed_at"), 64);
+            copyBounded(row, "error", item.get("error"), 1000);
             boundedItems.add(row);
         }
         snapshot.put("items", boundedItems);
@@ -234,17 +287,224 @@ public final class PlanReview {
                 row.put("tool", or(m.get("tool"), ""));
                 row.put("impact", or(firstPresent(m, "impact", "estimatedImpact"), "low"));
                 row.put("status", or(m.get("status"), "pending"));
+                int turn = number(m.get("turn"), 0);
+                if (turn > 0) row.put("turn", turn);
+                row.put("tool_use_id", or(firstPresent(m, "tool_use_id", "toolUseId"), ""));
+                row.put("started_at", or(firstPresent(m, "started_at", "startedAt"), ""));
+                row.put("completed_at", or(firstPresent(m, "completed_at", "completedAt"), ""));
+                row.put("error", or(m.get("error"), ""));
             } else {
                 row.put("id", "item-" + n);
                 row.put("title", String.valueOf(item));
                 row.put("tool", "");
                 row.put("impact", "low");
                 row.put("status", "pending");
+                row.put("tool_use_id", "");
+                row.put("started_at", "");
+                row.put("completed_at", "");
+                row.put("error", "");
             }
             out.add(row);
             n++;
         }
         return out;
+    }
+
+    public static List<Map<String, Object>> extractComments(String documentText, int turn) {
+        String[] lines = string(documentText).split("\\r?\\n", -1);
+        List<Map<String, Object>> comments = new ArrayList<Map<String, Object>>();
+        String itemId = null;
+        boolean reviewerNotes = false;
+        for (int index = 0; index < lines.length && comments.size() < MAX_COMMENTS; index++) {
+            String line = lines[index];
+            Matcher heading = Pattern.compile("^##\\s+(.+?)\\s*$").matcher(line);
+            if (heading.matches()) {
+                reviewerNotes = "Reviewer Notes".equalsIgnoreCase(heading.group(1));
+                itemId = null;
+                continue;
+            }
+            if (line.matches("^\\d+\\.\\s+.*")) {
+                reviewerNotes = false;
+                itemId = null;
+                continue;
+            }
+            Matcher id = Pattern.compile("^\\s*-\\s*id:\\s*(.+?)\\s*$",
+                    Pattern.CASE_INSENSITIVE).matcher(line);
+            if (id.matches()) {
+                itemId = bounded(id.group(1), 160);
+                continue;
+            }
+            Matcher inline = Pattern.compile("^\\s*-\\s*comment:\\s*(.*)$",
+                    Pattern.CASE_INSENSITIVE).matcher(line);
+            if (inline.matches()) {
+                StringBuilder text = new StringBuilder(inline.group(1).trim());
+                int cursor = index + 1;
+                while (cursor < lines.length) {
+                    String continuation = lines[cursor];
+                    if (continuation.matches(
+                            "(?i)^\\s*-\\s*(id|impact|status|progress|error|comment):.*")
+                            || continuation.matches("^\\d+\\.\\s+.*")
+                            || continuation.matches("^##\\s+.*")) {
+                        break;
+                    }
+                    if (!continuation.trim().isEmpty()) {
+                        if (text.length() > 0) text.append("\n");
+                        text.append(continuation.trim());
+                    }
+                    cursor++;
+                }
+                addComment(comments, text.toString(), index + 1, itemId, turn);
+                index = cursor - 1;
+                continue;
+            }
+            if (reviewerNotes) {
+                Matcher note = Pattern.compile("^\\s*[-*]\\s+(.+?)\\s*$").matcher(line);
+                if (note.matches()) addComment(comments, note.group(1), index + 1, null, turn);
+            }
+        }
+        return comments;
+    }
+
+    public static List<Map<String, Object>> normalizeComments(Object values) {
+        List<Map<String, Object>> out = new ArrayList<Map<String, Object>>();
+        if (!(values instanceof List)) return out;
+        for (Object raw : (List<?>) values) {
+            if (out.size() >= MAX_COMMENTS) break;
+            if (!(raw instanceof Map)) continue;
+            Map<?, ?> source = (Map<?, ?>) raw;
+            String text = bounded(source.get("text"), MAX_COMMENT_CHARS).trim();
+            if (text.isEmpty()) continue;
+            Map<String, Object> comment = new LinkedHashMap<String, Object>();
+            comment.put("id", or(bounded(source.get("id"), 160),
+                    "comment-" + (out.size() + 1)));
+            comment.put("sourceLine", positive(source.get("sourceLine")));
+            comment.put("itemId", emptyToNull(bounded(source.get("itemId"), 160)));
+            comment.put("text", text);
+            Map<String, Object> reference = fileReference(text);
+            comment.put("file", orNull(
+                    emptyToNull(bounded(source.get("file"), 1024)), reference.get("file")));
+            comment.put("line", orNull(positive(source.get("line")), reference.get("line")));
+            comment.put("column", orNull(
+                    positive(source.get("column")), reference.get("column")));
+            comment.put("turn", positive(source.get("turn")));
+            out.add(comment);
+        }
+        return out;
+    }
+
+    /** Update only machine-owned status/progress lines; reviewer text is preserved. */
+    public static String mergeProgress(String documentText, Map<String, Object> plan) {
+        Map<String, Map<String, Object>> byId = new LinkedHashMap<String, Map<String, Object>>();
+        for (Map<String, Object> item : normalizedItems(plan == null ? null : plan.get("items"))) {
+            byId.put(string(item.get("id")), item);
+        }
+        String[] lines = string(documentText).split("\\r?\\n", -1);
+        List<String> out = new ArrayList<String>();
+        String itemId = null;
+        Pattern idPattern = Pattern.compile("^\\s*-\\s*id:\\s*(.+?)\\s*$",
+                Pattern.CASE_INSENSITIVE);
+        Pattern statusPattern = Pattern.compile("^(\\s*-\\s*status:)\\s*.*$",
+                Pattern.CASE_INSENSITIVE);
+        for (int index = 0; index < lines.length; index++) {
+            String line = lines[index];
+            Matcher id = idPattern.matcher(line);
+            if (id.matches()) itemId = id.group(1);
+            if (line.matches("^\\d+\\.\\s+.*") || line.matches("^##\\s+.*")) itemId = null;
+            Map<String, Object> item = itemId == null ? null : byId.get(itemId);
+            Matcher status = statusPattern.matcher(line);
+            if (!status.matches() || item == null) {
+                if (item != null && line.matches("(?i)^\\s*-\\s*(progress|error):.*")) continue;
+                out.add(line);
+                continue;
+            }
+            out.add(status.group(1) + " " + or(item.get("status"), "pending"));
+            String indent = leadingWhitespace(status.group(1));
+            String progress = formatProgress(item);
+            if (!progress.isEmpty()) out.add(indent + "- progress: " + progress);
+            if (!string(item.get("error")).isEmpty()) {
+                out.add(indent + "- error: " + item.get("error"));
+            }
+            while (index + 1 < lines.length
+                    && lines[index + 1].matches("(?i)^\\s*-\\s*(progress|error):.*")) {
+                index++;
+            }
+        }
+        return String.join("\n", out);
+    }
+
+    private static void addComment(
+            List<Map<String, Object>> comments,
+            String text,
+            int sourceLine,
+            String itemId,
+            int turn) {
+        Map<String, Object> raw = new LinkedHashMap<String, Object>();
+        raw.put("id", "comment-" + (comments.size() + 1));
+        raw.put("sourceLine", sourceLine);
+        raw.put("itemId", itemId);
+        raw.put("text", text);
+        if (turn > 0) raw.put("turn", turn);
+        List<Map<String, Object>> normalized = normalizeComments(List.of(raw));
+        if (!normalized.isEmpty()) comments.add(normalized.get(0));
+    }
+
+    private static Map<String, Object> fileReference(String text) {
+        Map<String, Object> out = new LinkedHashMap<String, Object>();
+        Matcher matcher = FILE_REFERENCE.matcher(string(text));
+        if (!matcher.find()) return out;
+        out.put("file", bounded(matcher.group(1), 1024));
+        out.put("line", Integer.parseInt(matcher.group(2)));
+        if (matcher.group(3) != null) out.put("column", Integer.parseInt(matcher.group(3)));
+        return out;
+    }
+
+    private static String formatProgress(Map<String, Object> item) {
+        List<String> parts = new ArrayList<String>();
+        int turn = number(item.get("turn"), 0);
+        if (turn > 0) parts.add("turn " + turn);
+        if (!string(item.get("tool_use_id")).isEmpty()) {
+            parts.add("tool use " + item.get("tool_use_id"));
+        }
+        if (!string(item.get("started_at")).isEmpty()) {
+            parts.add("started " + item.get("started_at"));
+        }
+        if (!string(item.get("completed_at")).isEmpty()) {
+            parts.add("completed " + item.get("completed_at"));
+        }
+        return String.join("; ", parts);
+    }
+
+    private static int latestPlanTurn(Map<String, Object> plan) {
+        int latest = 0;
+        for (Map<String, Object> item : normalizedItems(plan == null ? null : plan.get("items"))) {
+            latest = Math.max(latest, number(item.get("turn"), 0));
+        }
+        return latest;
+    }
+
+    private static void copyBounded(
+            Map<String, Object> target, String key, Object value, int limit) {
+        String text = bounded(value, limit);
+        if (!text.isEmpty()) target.put(key, text);
+    }
+
+    private static Integer positive(Object value) {
+        int n = number(value, 0);
+        return n > 0 ? n : null;
+    }
+
+    private static Object orNull(Object preferred, Object fallback) {
+        return preferred != null ? preferred : fallback;
+    }
+
+    private static String emptyToNull(String value) {
+        return value == null || value.isEmpty() ? null : value;
+    }
+
+    private static String leadingWhitespace(String value) {
+        int index = 0;
+        while (index < value.length() && Character.isWhitespace(value.charAt(index))) index++;
+        return value.substring(0, index);
     }
 
     private static Object firstPresent(Map<?, ?> m, String... keys) {

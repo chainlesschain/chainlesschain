@@ -98,6 +98,8 @@ final class ConversationView {
     private VirtualFile planReviewVirtualFile;
     private String planReviewLastText;
     private Map<String, Object> planReviewLastPlan;
+    private boolean planReviewHasReviewerEdits;
+    private volatile int planReviewTurn;
     private boolean restoringPlanReview;
     // Serial per-tab worker for spawn + send: ensureSession() reads config files,
     // probes the cc binary (worst case seconds on a cold machine) and starts a
@@ -1198,6 +1200,11 @@ final class ConversationView {
                     SwingUtilities.invokeLater(() -> append(note));
                 }
             }
+            if (event != null && "result".equals(event.get("type"))
+                    && event.get("turn") instanceof Number) {
+                planReviewTurn = Math.max(
+                        planReviewTurn, ((Number) event.get("turn")).intValue());
+            }
             final Map<String, Object> ui = ChatEvents.mapAgentEvent(event, turnState());
             if (ui == null) return;
             SwingUtilities.invokeLater(() -> render(ui));
@@ -1521,22 +1528,34 @@ final class ConversationView {
     private void showPlanCard(Map<String, Object> ui) {
         String state = String.valueOf(ui.get("state"));
         boolean active = Boolean.TRUE.equals(ui.get("active"));
+        currentPlanUi = ui;
+        planReviewLastPlan = ui;
+        boolean terminalState = "rejected".equals(state)
+                || "completed".equals(state) || "failed".equals(state);
         // Terminal states clear the card and leave a transcript note.
-        if (!active || "approved".equals(state) || "rejected".equals(state)) {
+        if (!active || terminalState) {
             if (!restoringPlanReview) {
-                persistPlanReviewState(readPlanReviewText(), ui,
-                        "rejected".equals(state) ? "rejected"
-                                : "approved".equals(state) ? "approved" : "ended",
-                        state);
+                String merged = PlanReview.mergeProgress(readPlanReviewText(), ui);
+                replacePlanReviewText(merged);
+                Map<String, Object> previous = PlanReview.findPersistedState(
+                        readPersistedPlanReviewStates(), conv.sessionId, conv.id);
+                String terminalStatus = terminalState ? state
+                        : previous != null
+                                && "reject".equals(String.valueOf(previous.get("action")))
+                                ? "rejected" : "ended";
+                persistPlanReviewState(merged, ui, terminalStatus,
+                        previous == null ? state : String.valueOf(previous.get("action")));
             }
             removePlanCard();
             append("📋 plan " + (state == null ? "ended" : state) + "\n");
             return;
         }
-        currentPlanUi = ui;
         syncPlanReviewEditor(ui);
         if (!restoringPlanReview) {
-            persistPlanReviewState(readPlanReviewText(), ui, "draft", "");
+            persistPlanReviewState(readPlanReviewText(), ui,
+                    "approved".equals(state) || "executing".equals(state)
+                            ? "executing" : "draft",
+                    "");
         }
         removePlanCard();
         List<Object> items = ui.get("items") instanceof List
@@ -1552,9 +1571,12 @@ final class ConversationView {
                 String title = item.get("title") == null
                         ? String.valueOf(it) : String.valueOf(item.get("title"));
                 String tool = item.get("tool") == null ? "" : String.valueOf(item.get("tool"));
+                String itemState = item.get("status") == null
+                        ? "pending" : String.valueOf(item.get("status"));
                 sb.append(n++).append(". ");
                 if (!tool.isEmpty()) sb.append(escapeHtml(tool)).append(": ");
-                sb.append(escapeHtml(title)).append("<br>");
+                sb.append(escapeHtml(title)).append(" [")
+                        .append(escapeHtml(itemState)).append("]<br>");
             } else {
                 sb.append(n++).append(". ").append(escapeHtml(String.valueOf(it))).append("<br>");
             }
@@ -1595,6 +1617,7 @@ final class ConversationView {
                 conv.title,
                 conv.sessionId,
                 currentPlanUi,
+                planReviewTurn,
                 Instant.now());
         if (persisted != null) review.put("revision", persisted.get("revision"));
         sendPlanAction(action, review);
@@ -1683,7 +1706,17 @@ final class ConversationView {
             planReviewLastPlan = plan;
             if (planReviewLastText != null && !current.equals(planReviewLastText)) {
                 // Preserve inline reviewer edits; do not overwrite a dirty review.
-                persistPlanReviewState(current, plan, "draft", "");
+                planReviewHasReviewerEdits = true;
+            }
+            if (planReviewHasReviewerEdits) {
+                String merged = PlanReview.mergeProgress(current, plan);
+                replacePlanReviewText(merged);
+                planReviewLastText = merged;
+                String state = String.valueOf(plan.get("state"));
+                persistPlanReviewState(merged, plan,
+                        "approved".equals(state) || "executing".equals(state)
+                                ? "executing" : "draft",
+                        "");
                 return;
             }
             if (!generated.equals(planReviewLastText)) {
@@ -1698,6 +1731,26 @@ final class ConversationView {
             }
         } catch (Exception e) {
             append("warning: could not open plan review editor: " + e.getMessage() + "\n");
+        }
+    }
+
+    private void replacePlanReviewText(String text) {
+        try {
+            if (planReviewVirtualFile != null) {
+                Document doc = FileDocumentManager.getInstance().getDocument(planReviewVirtualFile);
+                if (doc != null) {
+                    if (!doc.getText().equals(text)) {
+                        ApplicationManager.getApplication().runWriteAction(() -> doc.setText(text));
+                    }
+                    return;
+                }
+            }
+            if (planReviewFile != null && planReviewFile.isFile()) {
+                Files.write(planReviewFile.toPath(), text.getBytes(StandardCharsets.UTF_8));
+                LocalFileSystem.getInstance().refreshAndFindFileByIoFile(planReviewFile);
+            }
+        } catch (Exception e) {
+            append("warning: could not update plan review progress: " + e.getMessage() + "\n");
         }
     }
 
@@ -1739,7 +1792,7 @@ final class ConversationView {
                 states, conv.sessionId, conv.id);
         Map<String, Object> next = PlanReview.persistedState(
                 documentText, conv.id, conv.title, conv.sessionId, plan,
-                status, action, previous, Instant.now());
+                status, action, previous, planReviewTurn, Instant.now());
         if (next == null) return null;
         PropertiesComponent.getInstance(project).setValue(
                 PLAN_REVIEW_STATES_KEY,
@@ -1754,7 +1807,9 @@ final class ConversationView {
                 readPersistedPlanReviewStates(), conv.sessionId, conv.id);
         if (state == null || !(state.get("plan") instanceof Map)) return;
         String status = String.valueOf(state.get("status"));
-        boolean terminal = "approved".equals(status) || "rejected".equals(status);
+        boolean terminal = "approved".equals(status) || "rejected".equals(status)
+                || "completed".equals(status) || "failed".equals(status)
+                || "ended".equals(status);
         Map<String, Object> plan = new LinkedHashMap<String, Object>(
                 (Map<String, Object>) state.get("plan"));
         if (terminal) {
@@ -1769,6 +1824,16 @@ final class ConversationView {
         currentPlanUi = plan;
         planReviewLastPlan = plan;
         planReviewLastText = String.valueOf(state.get("snapshot"));
+        planReviewHasReviewerEdits = state.get("comments") instanceof List
+                && !((List<?>) state.get("comments")).isEmpty();
+        if (state.get("comments") instanceof List) {
+            for (Object raw : (List<?>) state.get("comments")) {
+                if (raw instanceof Map && ((Map<?, ?>) raw).get("turn") instanceof Number) {
+                    planReviewTurn = Math.max(planReviewTurn,
+                            ((Number) ((Map<?, ?>) raw).get("turn")).intValue());
+                }
+            }
+        }
         restoringPlanReview = true;
         try {
             showPlanCard(plan);
@@ -1912,10 +1977,19 @@ final class ConversationView {
                     readPersistedPlanReviewStates(), conv.sessionId, conv.id);
             boolean submitted = previous != null
                     && "decision_submitted".equals(String.valueOf(previous.get("status")));
+            String planState = String.valueOf(currentPlanUi.get("state"));
+            boolean executing = "approved".equals(planState)
+                    || "executing".equals(planState);
+            boolean terminal = "completed".equals(planState)
+                    || "failed".equals(planState) || "rejected".equals(planState);
+            String persistStatus = terminal ? planState
+                    : submitted ? "decision_submitted" : executing ? "executing" : "draft";
+            String persistAction = terminal
+                    ? previous == null ? planState : String.valueOf(previous.get("action"))
+                    : submitted ? String.valueOf(previous.get("action")) : "";
             persistPlanReviewState(
                     readPlanReviewText(), currentPlanUi,
-                    submitted ? "decision_submitted" : "draft",
-                    submitted ? String.valueOf(previous.get("action")) : "");
+                    persistStatus, persistAction);
         }
         if (loopTask != null) loopTask.cancel(false);
         loopTask = null;

@@ -5,8 +5,10 @@ import {
   buildPlanReviewFeedbackPrompt,
   buildPlanReviewRecord,
   buildPersistedPlanReview,
+  extractPlanReviewComments,
   findPersistedPlanReview,
   formatPlanReviewMarkdown,
+  mergePlanReviewProgress,
   normalizePersistedPlanReview,
   trimReviewSnapshot,
   upsertPersistedPlanReview,
@@ -136,6 +138,67 @@ describe("VS Code plan review markdown", () => {
     expect(list.at(-1).snapshot.length).toBeLessThan(25000);
     expect(list.at(-1).plan.items).toHaveLength(128);
     expect(list.at(-1).plan.items[0].title).toHaveLength(512);
+  });
+
+  it("extracts item/file/line/turn comments and reviewer notes", () => {
+    const document = [
+      "# ChainlessChain Plan Review",
+      "",
+      "## Plan Items",
+      "",
+      "1. edit_file: Edit config",
+      "   - id: p1",
+      "   - impact: medium",
+      "   - status: pending",
+      "   - comment: Keep src/config.ts:42:7 backwards compatible",
+      "",
+      "## Reviewer Notes",
+      "",
+      "- Add a migration test",
+    ].join("\n");
+
+    expect(extractPlanReviewComments(document, { turn: 3 })).toEqual([
+      expect.objectContaining({
+        itemId: "p1",
+        sourceLine: 9,
+        file: "src/config.ts",
+        line: 42,
+        column: 7,
+        turn: 3,
+      }),
+      expect.objectContaining({
+        itemId: null,
+        text: "Add a migration test",
+        turn: 3,
+      }),
+    ]);
+  });
+
+  it("merges execution progress without losing reviewer comments", () => {
+    const original = [
+      "1. edit_file: Edit config",
+      "   - id: p1",
+      "   - impact: medium",
+      "   - status: approved",
+      "   - comment: Keep this note",
+    ].join("\n");
+    const merged = mergePlanReviewProgress(original, {
+      items: [
+        {
+          id: "p1",
+          title: "Edit config",
+          tool: "edit_file",
+          status: "completed",
+          turn: 2,
+          tool_use_id: "tu-4",
+          started_at: "2026-07-23T00:00:00.000Z",
+          completed_at: "2026-07-23T00:00:01.000Z",
+        },
+      ],
+    });
+    expect(merged).toContain("- status: completed");
+    expect(merged).toContain("turn 2; tool use tu-4");
+    expect(merged).toContain("- comment: Keep this note");
   });
 });
 

@@ -33,6 +33,7 @@ const {
   buildPersistedPlanReview,
   findPersistedPlanReview,
   formatPlanReviewMarkdown,
+  mergePlanReviewProgress,
   upsertPersistedPlanReview,
 } = require("./plan-review.js");
 const { upsertIdeSessionRecord } = require("./ide-session-index.js");
@@ -330,6 +331,13 @@ class ChatViewProvider {
       ) {
         this._lastCallUsage.set(convId, evt.usage);
       }
+      if (
+        evt?.type === "result" &&
+        Number.isInteger(evt.turn) &&
+        evt.turn > 0
+      ) {
+        conv.planReviewTurn = evt.turn;
+      }
       const ui = mapAgentEvent(evt, conv.turnState);
       this._postFrom(convId, ui);
       if (ui?.kind === "plan") {
@@ -529,20 +537,30 @@ class ChatViewProvider {
   async _syncPlanReviewEditor(convId, plan) {
     const conv = this._convs.get(convId);
     if (!conv || !plan) return;
-    if (
-      !plan.active ||
-      plan.state === "approved" ||
-      plan.state === "rejected"
-    ) {
+    const terminalState = ["rejected", "completed", "failed"].includes(
+      plan.state,
+    );
+    if (!plan.active || terminalState) {
       const review = this._planReviews.get(convId);
       const currentText =
         review?.document?.getText?.() || review?.lastText || "";
-      this._persistPlanReviewState(conv, currentText, plan, {
-        status:
-          plan.state === "approved" || plan.state === "rejected"
-            ? plan.state
-            : "ended",
-        action: plan.state || "ended",
+      const mergedText = mergePlanReviewProgress(currentText, plan);
+      if (review?.document && mergedText !== currentText) {
+        await this._replacePlanReviewDocument(review.document, mergedText);
+        review.lastText = mergedText;
+      }
+      const previous = findPersistedPlanReview(
+        this._persistedPlanReviewStates,
+        { sessionId: conv.sessionId, conversationId: conv.id },
+      );
+      const status = terminalState
+        ? plan.state
+        : previous?.action === "reject"
+          ? "rejected"
+          : "ended";
+      this._persistPlanReviewState(conv, mergedText, plan, {
+        status,
+        action: previous?.action || plan.state || "ended",
       });
       return;
     }
@@ -573,8 +591,13 @@ class ChatViewProvider {
         document,
         lastText: initialText,
         lastPlan: plan,
+        hasReviewerEdits: existing?.hasReviewerEdits === true,
       });
-      this._persistPlanReviewState(conv, initialText, plan);
+      this._persistPlanReviewState(conv, initialText, plan, {
+        status: ["approved", "executing"].includes(plan.state)
+          ? "executing"
+          : "draft",
+      });
       this.updatePlanReviewContext();
       this._post({
         kind: "info",
@@ -590,8 +613,27 @@ class ChatViewProvider {
         : existing.lastText;
     if (currentText !== existing.lastText) {
       // Preserve reviewer edits/inline notes; do not overwrite a dirty review.
-      existing.pendingText = text;
-      this._persistPlanReviewState(conv, currentText, plan);
+      existing.hasReviewerEdits = true;
+    }
+    if (existing.hasReviewerEdits) {
+      const merged = mergePlanReviewProgress(currentText, plan);
+      let persistedText = merged;
+      if (merged !== currentText) {
+        const ok = await this._replacePlanReviewDocument(
+          existing.document,
+          merged,
+        );
+        if (!ok) {
+          existing.pendingText = merged;
+          persistedText = currentText;
+        }
+      }
+      existing.lastText = persistedText;
+      this._persistPlanReviewState(conv, persistedText, plan, {
+        status: ["approved", "executing"].includes(plan.state)
+          ? "executing"
+          : "draft",
+      });
       return;
     }
     if (existing.lastText !== text) {
@@ -599,7 +641,11 @@ class ChatViewProvider {
       if (ok) existing.lastText = text;
       else existing.pendingText = text;
     }
-    this._persistPlanReviewState(conv, existing.lastText || currentText, plan);
+    this._persistPlanReviewState(conv, existing.lastText || currentText, plan, {
+      status: ["approved", "executing"].includes(plan.state)
+        ? "executing"
+        : "draft",
+    });
   }
 
   _persistPlanReviewState(
@@ -622,6 +668,7 @@ class ChatViewProvider {
       status,
       action,
       previous,
+      turn: conv.planReviewTurn,
     });
     if (!next) return null;
     this._persistedPlanReviewStates = upsertPersistedPlanReview(
@@ -642,7 +689,17 @@ class ChatViewProvider {
       conversationId: conv.id,
     });
     if (!state) return null;
-    const terminal = state.status === "approved" || state.status === "rejected";
+    conv.planReviewTurn = Math.max(
+      Number(conv.planReviewTurn) || 0,
+      ...(state.comments || []).map((comment) => Number(comment.turn) || 0),
+    );
+    const terminal = [
+      "approved",
+      "rejected",
+      "completed",
+      "failed",
+      "ended",
+    ].includes(state.status);
     conv.plan = {
       kind: "plan",
       ...state.plan,
@@ -656,6 +713,7 @@ class ChatViewProvider {
         lastText: state.snapshot,
         lastPlan: conv.plan,
         persistedState: state,
+        hasReviewerEdits: state.comments?.length > 0,
       });
     }
     return state;
@@ -667,7 +725,9 @@ class ChatViewProvider {
       if (!conv) continue;
       const text = review?.document?.getText?.() || review?.lastText || "";
       const plan = conv.plan || review?.lastPlan;
-      const terminal = plan?.state === "approved" || plan?.state === "rejected";
+      const terminal = ["rejected", "completed", "failed"].includes(
+        plan?.state,
+      );
       const previous = findPersistedPlanReview(
         this._persistedPlanReviewStates,
         {
@@ -681,7 +741,9 @@ class ChatViewProvider {
           ? plan.state
           : submitted
             ? "decision_submitted"
-            : "draft",
+            : ["approved", "executing"].includes(plan?.state)
+              ? "executing"
+              : "draft",
         action: terminal ? plan.state : submitted ? previous.action : "",
       });
     }
@@ -734,6 +796,7 @@ class ChatViewProvider {
       conversationTitle: conv.title,
       sessionId: conv.sessionId,
       plan: conv.plan || review?.lastPlan,
+      turn: conv.planReviewTurn,
       revision: this._persistPlanReviewState(
         conv,
         documentText,
