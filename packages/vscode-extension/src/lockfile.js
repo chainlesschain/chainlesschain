@@ -104,9 +104,35 @@ function loadLockfileSecurityPolicy(file = managedSettingsPath()) {
   };
 }
 
+// Read only the owner and access-control portions through .NET. Using Get-Acl
+// would make bridge startup depend on Microsoft.PowerShell.Security module
+// autoloading, which is not guaranteed in isolated VS Code Extension Host
+// profiles (including GitHub-hosted Windows runners).
+const WINDOWS_READ_ACL_FUNCTION = String.raw`
+function Read-OwnerAccessAcl([string]$target) {
+  $sections =
+    [System.Security.AccessControl.AccessControlSections]::Access -bor
+    [System.Security.AccessControl.AccessControlSections]::Owner
+  if ([System.IO.Directory]::Exists($target)) {
+    return [System.Security.AccessControl.DirectorySecurity]::new(
+      $target,
+      $sections
+    )
+  }
+  if ([System.IO.File]::Exists($target)) {
+    return [System.Security.AccessControl.FileSecurity]::new(
+      $target,
+      $sections
+    )
+  }
+  throw "ACL target does not exist: $target"
+}
+`;
+
 const WINDOWS_APPLY_ACL_SCRIPT = String.raw`
 param([string]$target)
 $ErrorActionPreference = 'Stop'
+${WINDOWS_READ_ACL_FUNCTION}
 $item = Get-Item -LiteralPath $target -Force
 $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
 $account = $identity.Name
@@ -115,8 +141,8 @@ $grant = $account + ":F"
 if ($item.PSIsContainer) {
   $grant = $account + ":(OI)(CI)F"
 }
-$currentAcl = Get-Acl -LiteralPath $target
-$currentOwner = ([System.Security.Principal.NTAccount]$currentAcl.Owner).Translate(
+$currentAcl = Read-OwnerAccessAcl $target
+$currentOwner = $currentAcl.GetOwner(
   [System.Security.Principal.SecurityIdentifier]
 ).Value
 if ($currentOwner -ne $currentSid) {
@@ -134,19 +160,24 @@ if ($LASTEXITCODE -ne 0) {
 const WINDOWS_INSPECT_ACL_SCRIPT = String.raw`
 param([string]$target)
 $ErrorActionPreference = 'Stop'
+${WINDOWS_READ_ACL_FUNCTION}
 $currentSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-$acl = Get-Acl -LiteralPath $target
-$owner = ([System.Security.Principal.NTAccount]$acl.Owner).Translate(
+$acl = Read-OwnerAccessAcl $target
+$owner = $acl.GetOwner(
   [System.Security.Principal.SecurityIdentifier]
 ).Value
-$rules = @($acl.Access)
+$rules = @(
+  $acl.GetAccessRules(
+    $true,
+    $true,
+    [System.Security.Principal.SecurityIdentifier]
+  )
+)
 $ownerOnly = $acl.AreAccessRulesProtected -and
   $owner -eq $currentSid -and $rules.Count -eq 1
 if ($ownerOnly) {
   foreach ($rule in $rules) {
-    $sid = $rule.IdentityReference.Translate(
-      [System.Security.Principal.SecurityIdentifier]
-    ).Value
+    $sid = $rule.IdentityReference.Value
     $hasFullControl = (
       $rule.FileSystemRights -band
       [System.Security.AccessControl.FileSystemRights]::FullControl
@@ -177,6 +208,7 @@ if (-not $ownerOnly) { exit 4 }
 // through stdin (base64 inside JSON), never as a command-line argument.
 const WINDOWS_PUBLISH_LOCK_SCRIPT = String.raw`
 $ErrorActionPreference = 'Stop'
+${WINDOWS_READ_ACL_FUNCTION}
 
 function Set-And-VerifyOwnerOnlyAcl([string]$target) {
   $item = Get-Item -LiteralPath $target -Force
@@ -188,10 +220,8 @@ function Set-And-VerifyOwnerOnlyAcl([string]$target) {
     $grant = $account + ":(OI)(CI)F"
   }
 
-  $currentAcl = Get-Acl -LiteralPath $target
-  $currentOwner = (
-    [System.Security.Principal.NTAccount]$currentAcl.Owner
-  ).Translate(
+  $currentAcl = Read-OwnerAccessAcl $target
+  $currentOwner = $currentAcl.GetOwner(
     [System.Security.Principal.SecurityIdentifier]
   ).Value
   if ($currentOwner -ne $currentSid) {
@@ -205,18 +235,22 @@ function Set-And-VerifyOwnerOnlyAcl([string]$target) {
     throw "icacls exited with status $LASTEXITCODE for $target"
   }
 
-  $acl = Get-Acl -LiteralPath $target
-  $owner = ([System.Security.Principal.NTAccount]$acl.Owner).Translate(
+  $acl = Read-OwnerAccessAcl $target
+  $owner = $acl.GetOwner(
     [System.Security.Principal.SecurityIdentifier]
   ).Value
-  $rules = @($acl.Access)
+  $rules = @(
+    $acl.GetAccessRules(
+      $true,
+      $true,
+      [System.Security.Principal.SecurityIdentifier]
+    )
+  )
   $ownerOnly = $acl.AreAccessRulesProtected -and
     $owner -eq $currentSid -and $rules.Count -eq 1
   if ($ownerOnly) {
     foreach ($rule in $rules) {
-      $sid = $rule.IdentityReference.Translate(
-        [System.Security.Principal.SecurityIdentifier]
-      ).Value
+      $sid = $rule.IdentityReference.Value
       $hasFullControl = (
         $rule.FileSystemRights -band
         [System.Security.AccessControl.FileSystemRights]::FullControl

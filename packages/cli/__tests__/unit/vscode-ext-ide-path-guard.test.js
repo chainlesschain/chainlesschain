@@ -387,6 +387,9 @@ describe("lockfile — Windows ACL tightening", () => {
     expect(calls).toHaveLength(6); // apply + inspect for dir, temp, and final file
     expect(calls.every(([cmd]) => cmd === "powershell.exe")).toBe(true);
     expect(
+      calls.every(([, args]) => !String(args[6] || "").includes("Get-Acl")),
+    ).toBe(true);
+    expect(
       calls
         .filter(([, args]) => !String(args[6] || "").includes("ownerOnly"))
         .every(([, args]) => String(args[6] || "").includes("/setowner")),
@@ -446,6 +449,7 @@ describe("lockfile — Windows ACL tightening", () => {
       stdio: ["pipe", "pipe", "pipe"],
     });
     expect(calls[0].args.join(" ")).toContain("/setowner");
+    expect(calls[0].args.join(" ")).not.toContain("Get-Acl");
     expect(calls[0].args.join(" ")).not.toContain(token);
     expect(JSON.parse(fs.readFileSync(file, "utf8"))).toMatchObject({
       token,
