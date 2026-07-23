@@ -176,6 +176,12 @@ describe("maybeNotifyUpdate", () => {
     expect(bin).toBe(process.execPath);
     expect(String(args[0])).toContain("update-notice-refresh.mjs");
     expect(opts.detached).toBe(true);
+    expect(opts).toMatchObject({
+      origin: "update:notice-refresh",
+      policy: "allow",
+      scope: "update",
+      shell: false,
+    });
     // optimistic touch — a second call inside the window must NOT respawn
     const again = maybeNotifyUpdate({
       deps,

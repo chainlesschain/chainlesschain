@@ -5,12 +5,12 @@
 import fsDefault from "fs";
 import pathDefault from "path";
 import osDefault from "os";
-import { spawn as spawnDefault } from "child_process";
 import { fileURLToPath } from "url";
 import chalk from "chalk";
 import semver from "semver";
 import { VERSION } from "../constants.js";
 import { readDiskVersion } from "./version-skew.js";
+import { executionBroker } from "./process-execution-broker/index.js";
 
 export const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 export const NPM_LATEST_URL =
@@ -19,7 +19,7 @@ export const _deps = {
   fs: fsDefault,
   path: pathDefault,
   os: osDefault,
-  spawn: spawnDefault,
+  spawn: (...args) => executionBroker.spawn(...args),
 };
 
 export function cachePath(deps = _deps) {
@@ -95,6 +95,10 @@ export function maybeNotifyUpdate(opts = {}) {
         detached: true,
         stdio: "ignore",
         windowsHide: true,
+        origin: "update:notice-refresh",
+        policy: "allow",
+        scope: "update",
+        shell: false,
       });
       if (child && typeof child.unref === "function") child.unref();
       out.spawned = true;

@@ -295,7 +295,7 @@ Total matches: 401 (runtime: 325, tooling: 53, test: 23).
 | `packages/cli/src/lib/status-line.cjs` | 197 | `res = _deps.spawnSync(config.command, {` |
 | `packages/cli/src/lib/turn-context.js` | 18 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/lib/turn-context.js` | 30 | `.execFileSync("git", args, {` |
-| `packages/cli/src/lib/update-notice.js` | 8 | `import { spawn as spawnDefault } from "child_process";` |
+| `packages/cli/src/lib/update-notice.js` | 22 | `spawn: (...args) => executionBroker.spawn(...args),` |
 | `packages/cli/src/lib/update-notice.js` | 94 | `const child = deps.spawn(process.execPath, [refresher, cachePath(deps)], {` |
 | `packages/cli/src/repl/agent-repl.js` | 5582 | `const cpMod = await import("node:child_process");` |
 | `packages/cli/src/repl/clipboard-copy.js` | 7 | `import { spawnSync as _spawnSync } from "node:child_process";` |

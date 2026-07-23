@@ -118,6 +118,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   明确别名外，target 作为单一 revision argv 放在 end-of-options 边界后。
 - 每轮动态上下文的 branch/HEAD/status 查询已进入 `context:git` Broker scope，保留 1.5 秒超时、
   16 MiB 输出上限和 status unknown/clean 的区分。
+- 启动期 npm 更新缓存 refresher 已进入 `update:notice-refresh` Broker scope，保留 detached、
+  `windowsHide` 与 fail-open 的被动提示语义。
 
 ### 4.2 建议设计
 
