@@ -196,6 +196,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   `agenda:monitor-command` Broker origin；前者使用无 shell argv，后者保留显式 shell 和失败输出匹配语义。
 - LSP Client 的内置 server 原生 spawn fallback 已移除并进入 `lsp:server` Broker origin；
   插件 server 继续携带 `plugin:lsp` provenance，stdio、Windows shim 与初始化超时/回收语义保持不变。
+- Video editing 的 FFmpeg/FFprobe/Python 子进程已统一收口到共享 `spawnMediaProcess` Broker
+  边界；按 frame extract、scene detect、audio probe/mix/duck、concat/clip extract 记录细分 origin。
 
 ### 4.2 建议设计
 

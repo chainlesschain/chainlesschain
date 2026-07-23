@@ -6,9 +6,9 @@
  *  - scene.json   — 场景切分 + caption
  */
 
-import { spawn } from "child_process";
 import { promises as fs } from "fs";
 import path from "path";
+import { spawnMediaProcess } from "../media-process.js";
 
 const DEFAULT_FPS = 2;
 
@@ -30,7 +30,12 @@ export async function extractFrames(
       "2",
       path.join(framesDir, "frame_%06d.png"),
     ];
-    const proc = spawn("ffmpeg", args, { stdio: ["ignore", "pipe", "pipe"] });
+    const proc = spawnMediaProcess(
+      "ffmpeg",
+      args,
+      { stdio: ["ignore", "pipe", "pipe"] },
+      "video-editing:frame-extract",
+    );
     let stderr = "";
     proc.stderr.on("data", (d) => (stderr += d));
     proc.on("close", (code) => {
@@ -59,7 +64,12 @@ export async function detectScenes(
       "null",
       "-",
     ];
-    const proc = spawn("ffmpeg", args, { stdio: ["ignore", "pipe", "pipe"] });
+    const proc = spawnMediaProcess(
+      "ffmpeg",
+      args,
+      { stdio: ["ignore", "pipe", "pipe"] },
+      "video-editing:scene-detect",
+    );
     let stderr = "";
     proc.stderr.on("data", (d) => (stderr += d));
     proc.on("close", async (code) => {

@@ -11,9 +11,9 @@
  *  - 简化模式：ffmpeg volumedetect + 等间距伪 beat (MVP)
  */
 
-import { spawn } from "child_process";
 import { promises as fs } from "fs";
 import path from "path";
+import { spawnMediaProcess } from "../media-process.js";
 
 export async function extractSubtitle(
   audioPath,
@@ -123,9 +123,12 @@ async function analyzeBeatsMadmom(audioPath, outputDir) {
       "scripts",
       "madmom-beats.py",
     );
-    const proc = spawn("python", [script, audioPath], {
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    const proc = spawnMediaProcess(
+      "python",
+      [script, audioPath],
+      { stdio: ["ignore", "pipe", "pipe"] },
+      "video-editing:beat-analysis",
+    );
     let stdout = "";
     let stderr = "";
     proc.stdout.on("data", (d) => (stdout += d.toString("utf8")));
@@ -161,7 +164,12 @@ export async function getAudioDuration(audioPath) {
       "-of",
       "csv=p=0",
     ];
-    const proc = spawn("ffprobe", args, { stdio: ["ignore", "pipe", "pipe"] });
+    const proc = spawnMediaProcess(
+      "ffprobe",
+      args,
+      { stdio: ["ignore", "pipe", "pipe"] },
+      "video-editing:audio-probe",
+    );
     let stdout = "";
     proc.stdout.on("data", (d) => (stdout += d));
     proc.on("close", (code) => {

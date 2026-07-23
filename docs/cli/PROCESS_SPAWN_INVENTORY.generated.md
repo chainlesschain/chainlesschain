@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 398 (runtime: 322, tooling: 53, test: 23).
+Total matches: 387 (runtime: 311, tooling: 53, test: 23).
 
 ## Policy
 
@@ -322,19 +322,8 @@ Total matches: 398 (runtime: 322, tooling: 53, test: 23).
 | `packages/cli/src/runtime/diagnostics.js` | 83 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/runtime/diagnostics.js` | 89 | `deps.execFileSync(file, args, {` |
 | `packages/cli/src/runtime/headless-runner.js` | 2060 | `gc.spawnSync \|\| (await import("node:child_process")).spawnSync;` |
-| `packages/cli/src/skills/video-editing/extractors/audio-extractor.js` | 14 | `import { spawn } from "child_process";` |
-| `packages/cli/src/skills/video-editing/extractors/audio-extractor.js` | 126 | `const proc = spawn("python", [script, audioPath], {` |
-| `packages/cli/src/skills/video-editing/extractors/audio-extractor.js` | 164 | `const proc = spawn("ffprobe", args, { stdio: ["ignore", "pipe", "pipe"] });` |
-| `packages/cli/src/skills/video-editing/extractors/video-extractor.js` | 9 | `import { spawn } from "child_process";` |
-| `packages/cli/src/skills/video-editing/extractors/video-extractor.js` | 33 | `const proc = spawn("ffmpeg", args, { stdio: ["ignore", "pipe", "pipe"] });` |
-| `packages/cli/src/skills/video-editing/extractors/video-extractor.js` | 62 | `const proc = spawn("ffmpeg", args, { stdio: ["ignore", "pipe", "pipe"] });` |
-| `packages/cli/src/skills/video-editing/render/audio-mix.js` | 8 | `import { spawn } from "child_process";` |
-| `packages/cli/src/skills/video-editing/render/audio-mix.js` | 41 | `const proc = spawn("ffmpeg", args, { stdio: ["ignore", "pipe", "pipe"] });` |
-| `packages/cli/src/skills/video-editing/render/audio-mix.js` | 73 | `const proc = spawn("ffmpeg", args, { stdio: ["ignore", "pipe", "pipe"] });` |
-| `packages/cli/src/skills/video-editing/render/ffmpeg-concat.js` | 5 | `import { spawn } from "child_process";` |
-| `packages/cli/src/skills/video-editing/render/ffmpeg-concat.js` | 33 | `const proc = spawn("ffmpeg", args, { stdio: ["ignore", "pipe", "pipe"] });` |
-| `packages/cli/src/skills/video-editing/render/ffmpeg-extract.js` | 5 | `import { spawn } from "child_process";` |
-| `packages/cli/src/skills/video-editing/render/ffmpeg-extract.js` | 51 | `const proc = spawn("ffmpeg", args, { stdio: ["ignore", "pipe", "pipe"] });` |
+| `packages/cli/src/skills/video-editing/media-process.js` | 4 | `spawn: (...args) => executionBroker.spawn(...args),` |
+| `packages/cli/src/skills/video-editing/media-process.js` | 13 | `return _deps.spawn(file, args, {` |
 | `packages/cli/src/workers/background-agent-worker.js` | 15 | `import { spawn } from "node:child_process";` |
 | `packages/cli/src/workers/background-agent-worker.js` | 118 | `child = spawn(process.execPath, [job.cliEntry, ...argv], {` |
 

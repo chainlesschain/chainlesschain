@@ -2,9 +2,9 @@
  * ffmpeg-concat.js — concat demuxer 拼接多个片段
  */
 
-import { spawn } from "child_process";
 import { promises as fs } from "fs";
 import path from "path";
+import { spawnMediaProcess } from "../media-process.js";
 
 export async function concatClips(clipPaths, workDir) {
   if (clipPaths.length === 0) throw new Error("No clips to concatenate");
@@ -30,7 +30,12 @@ export async function concatClips(clipPaths, workDir) {
       "copy",
       outPath,
     ];
-    const proc = spawn("ffmpeg", args, { stdio: ["ignore", "pipe", "pipe"] });
+    const proc = spawnMediaProcess(
+      "ffmpeg",
+      args,
+      { stdio: ["ignore", "pipe", "pipe"] },
+      "video-editing:concat",
+    );
     let stderr = "";
     proc.stderr.on("data", (d) => (stderr += d));
     proc.on("close", (code) => {

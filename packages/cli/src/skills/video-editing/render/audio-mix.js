@@ -5,7 +5,7 @@
  * Phase 4 扩展: 对话区 ducking + 结尾 fade
  */
 
-import { spawn } from "child_process";
+import { spawnMediaProcess } from "../media-process.js";
 
 export async function mixAudio(videoPath, audioPath, outputPath, options = {}) {
   const bgmVolume = options.bgmVolume ?? 0.3;
@@ -38,7 +38,12 @@ export async function mixAudio(videoPath, audioPath, outputPath, options = {}) {
       outputPath,
     ];
 
-    const proc = spawn("ffmpeg", args, { stdio: ["ignore", "pipe", "pipe"] });
+    const proc = spawnMediaProcess(
+      "ffmpeg",
+      args,
+      { stdio: ["ignore", "pipe", "pipe"] },
+      "video-editing:audio-mix",
+    );
     let stderr = "";
     proc.stderr.on("data", (d) => (stderr += d));
     proc.on("close", (code) => {
@@ -70,7 +75,12 @@ export async function mixAudioWithDucking(
     ].join(";");
 
     const args = buildFfmpegArgs(videoPath, audioPath, outputPath, filter);
-    const proc = spawn("ffmpeg", args, { stdio: ["ignore", "pipe", "pipe"] });
+    const proc = spawnMediaProcess(
+      "ffmpeg",
+      args,
+      { stdio: ["ignore", "pipe", "pipe"] },
+      "video-editing:audio-duck",
+    );
     let stderr = "";
     proc.stderr.on("data", (d) => (stderr += d.toString("utf8")));
     proc.on("close", (code) => {

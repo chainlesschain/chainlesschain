@@ -2,9 +2,9 @@
  * ffmpeg-extract.js — 按 shot_point 从视频中抽取片段
  */
 
-import { spawn } from "child_process";
 import { promises as fs } from "fs";
 import path from "path";
+import { spawnMediaProcess } from "../media-process.js";
 
 export async function extractClips(videoPath, shotPoints, workDir) {
   const clipsDir = path.join(workDir, "clips");
@@ -48,7 +48,12 @@ function extractSingle(videoPath, startSec, duration, outFile) {
       "make_zero",
       outFile,
     ];
-    const proc = spawn("ffmpeg", args, { stdio: ["ignore", "pipe", "pipe"] });
+    const proc = spawnMediaProcess(
+      "ffmpeg",
+      args,
+      { stdio: ["ignore", "pipe", "pipe"] },
+      "video-editing:clip-extract",
+    );
     let stderr = "";
     proc.stderr.on("data", (d) => (stderr += d));
     proc.on("close", (code) => {
