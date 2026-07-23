@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — cc CLI 0.162.177：技能生成子进程统一纳入 Process Broker（CLI-only npm 发版）
+
+> `chainlesschain` 0.162.176 → **0.162.177**（2026-07-23）。本版把 CLI-Anything 与 CLI 技能包生成器的同步子进程执行统一收进宿主 Process Broker，补齐技能执行链路最后一处直接 `child_process` 入口。
+
+- **宿主拥有执行来源**：技能只拿到窄化、冻结的进程 facade；`origin`、`scope`、插件 id/version/source 等来源元数据由宿主写入，处理器不能伪造或绕过。
+- **CLI-Anything 无 shell 执行**：生成的 handler 把输入解析成字面 argv，经 `runFileSync(..., shell:false)` 执行；保留危险字符与未闭合引号拒绝，缺少 Broker 时 fail closed。
+- **CLI 技能包统一接线**：direct/hybrid 生成 handler 改经 `processBroker.runSync` 调用 CLI，命令行与 agent 两条技能执行入口都注入同一 Broker facade，并补齐单元/集成回归。
+
 ### Added — IDE 扩展 VS Code 0.37.17 + JetBrains 0.4.62：`uncertain_side_effect`/`needs_input` 阻塞可见（配 cc 0.162.169 生产者）+ JB deep-link 包含性 + EDT 冻结/泄漏清尾 + JB Marketplace 验证器清零（上架中）
 
 > VS Code `0.37.16` → **`0.37.17`** / JetBrains `0.4.60` → **`0.4.62`**（0.4.61 曾上传后在审核期删除、从未发出；0.4.62 = 0.4.61 全部内容 + 验证器清零批）。承接 cc 0.162.169 的后台状态机生产者与 headless-stream 副作用台账：0.37.16 已渲染的 `raw/side_effect_recovery` 恢复行之外，面板现在把两个新相位也当真数据消费。发版前验证：VS 914/0；JB JUnit 595/0 + smokeTest 1213/0 + verifyPlugin Compatible（零弃用/零内部 API 报告）。

@@ -2,6 +2,15 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.31] - CLI 0.162.177 compatibility release (2026-07-23)
+
+- Align the packaged compatibility fixtures with CLI 0.162.177, whose generated
+  skill subprocesses now run through the host-owned Process Broker.
+- Keep the existing minimum CLI version and IDE bridge protocol unchanged; this
+  is a coordinated patch release with no workspace migration required.
+- Re-run the packaged VSIX metadata verifier and real Extension Host release
+  gates before publishing.
+
 ## [0.37.30] - Slash send and secure release gates (2026-07-23)
 
 - Preserve the whitespace regular expression inside the generated Webview
