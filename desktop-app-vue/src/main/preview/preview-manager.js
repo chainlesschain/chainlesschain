@@ -2,7 +2,9 @@ const { logger } = require("../utils/logger.js");
 const { EventEmitter } = require("events");
 const express = require("express");
 const path = require("path");
-const { spawn } = require("child_process");
+const {
+  spawnWithDesktopBroker,
+} = require("../process/desktop-process-broker.js");
 const getPort = require("get-port");
 const { safeOpenExternal, safeOpenPathDir } = require("../utils/safe-open.js");
 
@@ -11,12 +13,17 @@ const { safeOpenExternal, safeOpenPathDir } = require("../utils/safe-open.js");
  * 负责项目预览功能（静态服务器、开发服务器、文件管理器）
  */
 class PreviewManager extends EventEmitter {
-  constructor(mainWindow) {
+  constructor(
+    mainWindow,
+    { spawnProcess = spawnWithDesktopBroker, startupDelayMs = 2000 } = {},
+  ) {
     super();
     this.mainWindow = mainWindow;
     this.staticServers = new Map(); // projectId → { server, port, url }
     this.devServers = new Map(); // projectId → { process, port, url }
     this.maxServers = 3; // 最多同时运行3个服务器
+    this._spawnProcess = spawnProcess;
+    this._startupDelayMs = startupDelayMs;
   }
 
   /**
@@ -128,10 +135,11 @@ class PreviewManager extends EventEmitter {
       const [cmd, ...args] = command.split(" ");
 
       // 启动子进程
-      const proc = spawn(cmd, args, {
+      const proc = this._spawnProcess(cmd, args, {
         cwd: rootPath,
         shell: true,
         env: { ...process.env },
+        origin: "desktop:preview-dev-server",
       });
 
       let url = null;
@@ -184,7 +192,7 @@ class PreviewManager extends EventEmitter {
       });
 
       // 等待一段时间让服务器启动
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, this._startupDelayMs));
 
       // 如果2秒后还没有检测到URL，返回一个默认值
       if (!url) {
