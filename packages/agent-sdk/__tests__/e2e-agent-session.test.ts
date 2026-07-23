@@ -131,6 +131,7 @@ function newSession(
       CHAINLESSCHAIN_HOME: home,
       HOME: home,
       USERPROFILE: home,
+      CC_DEBUG: "1",
     },
     extraArgs: [
       "--no-ide",
