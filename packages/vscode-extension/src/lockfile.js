@@ -108,10 +108,22 @@ const WINDOWS_APPLY_ACL_SCRIPT = String.raw`
 param([string]$target)
 $ErrorActionPreference = 'Stop'
 $item = Get-Item -LiteralPath $target -Force
-$account = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+$identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+$account = $identity.Name
+$currentSid = $identity.User.Value
 $grant = $account + ":F"
 if ($item.PSIsContainer) {
   $grant = $account + ":(OI)(CI)F"
+}
+$currentAcl = Get-Acl -LiteralPath $target
+$currentOwner = ([System.Security.Principal.NTAccount]$currentAcl.Owner).Translate(
+  [System.Security.Principal.SecurityIdentifier]
+).Value
+if ($currentOwner -ne $currentSid) {
+  & icacls $target /setowner $account | Out-Null
+  if ($LASTEXITCODE -ne 0) {
+    throw "icacls /setowner exited with status $LASTEXITCODE"
+  }
 }
 & icacls $target /inheritance:r /grant:r $grant | Out-Null
 if ($LASTEXITCODE -ne 0) {
@@ -176,6 +188,18 @@ function Set-And-VerifyOwnerOnlyAcl([string]$target) {
     $grant = $account + ":(OI)(CI)F"
   }
 
+  $currentAcl = Get-Acl -LiteralPath $target
+  $currentOwner = (
+    [System.Security.Principal.NTAccount]$currentAcl.Owner
+  ).Translate(
+    [System.Security.Principal.SecurityIdentifier]
+  ).Value
+  if ($currentOwner -ne $currentSid) {
+    & icacls.exe $target /setowner $account | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+      throw "icacls /setowner exited with status $LASTEXITCODE for $target"
+    }
+  }
   & icacls.exe $target /inheritance:r /grant:r $grant | Out-Null
   if ($LASTEXITCODE -ne 0) {
     throw "icacls exited with status $LASTEXITCODE for $target"

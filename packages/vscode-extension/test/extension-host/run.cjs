@@ -146,6 +146,55 @@ function assertInstalled(listOutput, version) {
   }
 }
 
+function dumpFailureDiagnostics(runRoot) {
+  const logsRoot = path.join(runRoot, "user-data", "logs");
+  const candidates = [];
+  function walk(dir) {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const target = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(target);
+      } else if (
+        entry.isFile() &&
+        (entry.name === "exthost.log" ||
+          entry.name === "renderer.log" ||
+          entry.name.endsWith("ChainlessChain IDE.log"))
+      ) {
+        candidates.push(target);
+      }
+    }
+  }
+  walk(logsRoot);
+  if (candidates.length === 0) {
+    process.stderr.write(
+      `[extension-host-smoke] no diagnostic logs found under ${logsRoot}\n`,
+    );
+    return;
+  }
+  for (const file of candidates.sort()) {
+    let text;
+    try {
+      text = fs.readFileSync(file, "utf8");
+    } catch (error) {
+      process.stderr.write(
+        `[extension-host-smoke] could not read ${file}: ${error.message}\n`,
+      );
+      continue;
+    }
+    // Keep CI output bounded while retaining the final activation/bridge error.
+    const tail = text.slice(-16 * 1024);
+    process.stderr.write(
+      `\n[extension-host-smoke] diagnostic tail: ${file}\n${tail}\n`,
+    );
+  }
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.help) {
@@ -167,25 +216,15 @@ async function main() {
   const extensionsDir = path.join(runRoot, "extensions");
   const profileHome = path.join(runRoot, "profile-home");
   const workspaceDir = path.join(runRoot, "workspace");
-  for (const dir of [
-    userDataDir,
-    extensionsDir,
-    profileHome,
-    workspaceDir,
-  ]) {
+  for (const dir of [userDataDir, extensionsDir, profileHome, workspaceDir]) {
     fs.mkdirSync(dir, { recursive: true });
   }
   writeWorkspace(workspaceDir);
 
-  process.stdout.write(
-    `[extension-host-smoke] fresh run root: ${runRoot}\n`,
-  );
+  process.stdout.write(`[extension-host-smoke] fresh run root: ${runRoot}\n`);
 
-  const {
-    downloadAndUnzipVSCode,
-    runTests,
-    runVSCodeCommand,
-  } = requireTestElectron();
+  const { downloadAndUnzipVSCode, runTests, runVSCodeCommand } =
+    requireTestElectron();
   const downloadOptions = { version: options.vscodeVersion };
   const profileArgs = [
     `--extensions-dir=${extensionsDir}`,
@@ -193,12 +232,7 @@ async function main() {
   ];
 
   const install = await runVSCodeCommand(
-    [
-      ...profileArgs,
-      "--install-extension",
-      vsixPath,
-      "--force",
-    ],
+    [...profileArgs, "--install-extension", vsixPath, "--force"],
     downloadOptions,
   );
   if (install.stdout.trim()) {
@@ -215,27 +249,31 @@ async function main() {
   assertInstalled(listed.stdout, expectedVersion);
 
   // Reuses the exact version already downloaded by the install command.
-  const vscodeExecutablePath =
-    await downloadAndUnzipVSCode(downloadOptions);
-  await runTests({
-    vscodeExecutablePath,
-    extensionDevelopmentPath: path.join(__dirname, "driver"),
-    extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
-    launchArgs: [
-      workspaceDir,
-      ...profileArgs,
-      "--disable-extension-update-checks",
-      "--disable-telemetry",
-      "--disable-crash-reporter",
-    ],
-    extensionTestsEnv: {
-      HOME: profileHome,
-      USERPROFILE: profileHome,
-      CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
-      CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
-      CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
-    },
-  });
+  const vscodeExecutablePath = await downloadAndUnzipVSCode(downloadOptions);
+  try {
+    await runTests({
+      vscodeExecutablePath,
+      extensionDevelopmentPath: path.join(__dirname, "driver"),
+      extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
+      launchArgs: [
+        workspaceDir,
+        ...profileArgs,
+        "--disable-extension-update-checks",
+        "--disable-telemetry",
+        "--disable-crash-reporter",
+      ],
+      extensionTestsEnv: {
+        HOME: profileHome,
+        USERPROFILE: profileHome,
+        CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
+        CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
+        CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
+      },
+    });
+  } catch (error) {
+    dumpFailureDiagnostics(runRoot);
+    throw error;
+  }
 
   process.stdout.write(
     `[extension-host-smoke] PASS ${EXTENSION_ID}@${expectedVersion} on ${options.vscodeVersion}\n`,

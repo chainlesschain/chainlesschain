@@ -386,6 +386,11 @@ describe("lockfile — Windows ACL tightening", () => {
     const file = lockfile.writeLock({ port: 4321, token: "t" });
     expect(calls).toHaveLength(6); // apply + inspect for dir, temp, and final file
     expect(calls.every(([cmd]) => cmd === "powershell.exe")).toBe(true);
+    expect(
+      calls
+        .filter(([, args]) => !String(args[6] || "").includes("ownerOnly"))
+        .every(([, args]) => String(args[6] || "").includes("/setowner")),
+    ).toBe(true);
     const dir = path.dirname(file);
     const targets = calls.map(([, args]) => args.at(-1));
     expect(targets[0]).toBe(dir);
@@ -440,6 +445,7 @@ describe("lockfile — Windows ACL tightening", () => {
       windowsHide: true,
       stdio: ["pipe", "pipe", "pipe"],
     });
+    expect(calls[0].args.join(" ")).toContain("/setowner");
     expect(calls[0].args.join(" ")).not.toContain(token);
     expect(JSON.parse(fs.readFileSync(file, "utf8"))).toMatchObject({
       token,
