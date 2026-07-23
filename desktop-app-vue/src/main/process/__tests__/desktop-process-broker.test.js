@@ -1,6 +1,7 @@
 const {
   installDesktopProcessBroker,
   spawnWithDesktopBroker,
+  execFileSyncWithDesktopBroker,
   redact,
 } = require("../desktop-process-broker");
 
@@ -104,6 +105,42 @@ describe("desktop process broker", () => {
     expect(audit[0]).toMatchObject({
       operation: "spawn",
       origin: "desktop:test-worker",
+    });
+    broker.uninstall();
+  });
+
+  it("exposes a fail-closed literal-argv execFileSync facade", () => {
+    const { cp, calls } = fakeChildProcess();
+    expect(() =>
+      execFileSyncWithDesktopBroker(
+        "git",
+        ["diff", "--cached"],
+        {},
+        { childProcess: cp },
+      ),
+    ).toThrow("desktop_process_broker_not_installed");
+
+    const audit = [];
+    const broker = installDesktopProcessBroker({
+      childProcess: cp,
+      auditSink: (entry) => audit.push(entry),
+    });
+    execFileSyncWithDesktopBroker(
+      "git",
+      ["diff", "--cached"],
+      { origin: "desktop:ai-commit-message" },
+      { childProcess: cp },
+    );
+
+    expect(calls[0]).toMatchObject({
+      name: "execFileSync",
+      args: ["git", ["diff", "--cached"], expect.any(Object)],
+    });
+    expect(audit[0]).toMatchObject({
+      operation: "execFileSync",
+      origin: "desktop:ai-commit-message",
+      command: "git",
+      args: ["diff", "--cached"],
     });
     broker.uninstall();
   });

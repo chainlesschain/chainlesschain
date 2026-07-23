@@ -244,6 +244,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   并改用 `process.execPath` + 字面 argv，保留脚本输出和退出码契约。
 - Desktop command/script HookExecutor 已显式使用 fail-closed Desktop Broker，并记录脱敏的 Hook
   id/name/type/event provenance；函数 Hook 语义与测试注入接口保持不变。
+- Desktop AI Commit 的 staged/working/stat Git 查询已改用 fail-closed `execFileSync` Broker 门面；
+  `git diff` 参数保持独立 argv，并统一记录 `desktop:ai-commit-message` origin。
 - REPL `/goal exit-zero` 的命令检查已进入 `repl-goal:exit-zero` Broker origin；保留用户条件所需的
   显式 shell 语义，并增加 30 秒执行上限。
 - Headless `--goal-condition exit-zero` 的默认命令检查已进入 `headless-goal:exit-zero` Broker origin；

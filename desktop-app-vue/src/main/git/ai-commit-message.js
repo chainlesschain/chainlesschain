@@ -3,12 +3,18 @@
  * 使用LLM分析git diff并生成符合Conventional Commits规范的提交信息
  */
 const { logger } = require("../utils/logger.js");
-const { execSync } = require("child_process");
+const {
+  execFileSyncWithDesktopBroker,
+} = require("../process/desktop-process-broker.js");
 const path = require("path");
 
 class AICommitMessageGenerator {
-  constructor(llmManager) {
+  constructor(
+    llmManager,
+    { execFileSync = execFileSyncWithDesktopBroker } = {},
+  ) {
     this.llmManager = llmManager;
+    this._execFileSync = execFileSync;
   }
 
   /**
@@ -46,18 +52,20 @@ class AICommitMessageGenerator {
   getGitDiff(projectPath) {
     try {
       // 获取已暂存的更改
-      const stagedDiff = execSync("git diff --cached", {
+      const stagedDiff = this._execFileSync("git", ["diff", "--cached"], {
         cwd: projectPath,
         encoding: "utf-8",
         maxBuffer: 1024 * 1024 * 10, // 10MB
+        origin: "desktop:ai-commit-message",
       });
 
       // 如果没有暂存的更改，获取工作区更改
       if (!stagedDiff || stagedDiff.trim() === "") {
-        const workingDiff = execSync("git diff", {
+        const workingDiff = this._execFileSync("git", ["diff"], {
           cwd: projectPath,
           encoding: "utf-8",
           maxBuffer: 1024 * 1024 * 10,
+          origin: "desktop:ai-commit-message",
         });
         return workingDiff;
       }
@@ -201,9 +209,10 @@ ${diff.substring(0, 1000)}
    */
   getChangeStats(projectPath) {
     try {
-      const stats = execSync("git diff --stat", {
+      const stats = this._execFileSync("git", ["diff", "--stat"], {
         cwd: projectPath,
         encoding: "utf-8",
+        origin: "desktop:ai-commit-message",
       });
 
       return stats;
