@@ -28,11 +28,10 @@
  *   - tree-reaping of every child on stopAll() / process 'exit', so a session
  *     never leaves an orphan hook process.
  *
- * `_deps.spawn` / `_deps.now` are injected so the whole supervisor is unit-
+ * Process runners and `_deps.now` are injected so the whole supervisor is unit-
  * testable with fake child processes (no real shell).
  */
 
-const cpDefault = require("node:child_process");
 const { tryParseDecision } = require("./hook-runner.cjs");
 
 const DEFAULT_TIMEOUT_MS = 60000;
@@ -52,8 +51,8 @@ class AsyncHookSupervisor {
         ? Number(opts.maxConcurrent)
         : DEFAULT_MAX_CONCURRENT;
     this._deps = {
-      spawn: opts.spawn || cpDefault.spawn,
-      spawnSync: opts.spawnSync || cpDefault.spawnSync,
+      run: opts.run || opts.spawn || null,
+      runSync: opts.runSync || opts.spawnSync || null,
       killProcess: opts.killProcess || process.kill.bind(process),
       platform: opts.platform || process.platform,
       now: opts.now || (() => Date.now()),
@@ -132,7 +131,7 @@ class AsyncHookSupervisor {
         // the shell and then fail on its descendants, orphaning them so a
         // parent-PID query performed afterward can no longer find the tree.
         const descendants = this._windowsDescendantPids(pid);
-        const r = this._deps.spawnSync(
+        const r = this._deps.runSync(
           "taskkill",
           ["/PID", String(pid), "/T", "/F"],
           { windowsHide: true },
@@ -141,7 +140,7 @@ class AsyncHookSupervisor {
         // tree snapshot and termination. Repeat once so that race cannot
         // leave a short-lived hook grandchild orphaned.
         if (!r?.error && r?.status === 0) {
-          this._deps.spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], {
+          this._deps.runSync("taskkill", ["/PID", String(pid), "/T", "/F"], {
             windowsHide: true,
           });
         }
@@ -190,7 +189,7 @@ class AsyncHookSupervisor {
     let output = "";
     let shouldTryCim = false;
     try {
-      const result = this._deps.spawnSync(
+      const result = this._deps.runSync(
         "wmic",
         [
           "path",
@@ -215,7 +214,7 @@ class AsyncHookSupervisor {
     }
     if (!output && shouldTryCim) {
       try {
-        const result = this._deps.spawnSync(
+        const result = this._deps.runSync(
           "powershell.exe",
           [
             "-NoProfile",
@@ -372,17 +371,18 @@ class AsyncHookSupervisor {
           CLAUDE_HOOK_EVENT: hook.event || payload.hook_event_name || "",
         },
       };
-      child =
-        opts.broker && hook.origin === "plugin:hook"
-          ? opts.broker.spawn(hook.command, [], {
-              ...spawnOptions,
-              origin: hook.origin,
-              policy: "allow",
-              pluginId: hook.pluginId || null,
-              pluginVersion: hook.pluginVersion || null,
-              pluginSource: hook.pluginSource || null,
-            })
-          : this._deps.spawn(hook.command, spawnOptions);
+      if (typeof this._deps.run !== "function") {
+        throw new Error("async hook process runner unavailable");
+      }
+      child = this._deps.run(hook.command, {
+        ...spawnOptions,
+        origin: hook.origin || "async-hook:command",
+        policy: "allow",
+        scope: "async-hook",
+        pluginId: hook.pluginId || null,
+        pluginVersion: hook.pluginVersion || null,
+        pluginSource: hook.pluginSource || null,
+      });
     } catch (err) {
       this._record(hook, {
         ok: false,

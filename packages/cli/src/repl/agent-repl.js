@@ -3158,7 +3158,7 @@ export async function startAgentRepl(options = {}) {
               runCwdChangedHooks(_settingsHooks, payload);
               if (!_asyncHookSupervisor) {
                 const { AsyncHookSupervisor } =
-                  await import("../lib/async-hook-supervisor.cjs");
+                  await import("../lib/async-hook-supervisor.js");
                 _asyncHookSupervisor = new AsyncHookSupervisor({
                   persistStats: true,
                 });
@@ -3747,7 +3747,7 @@ export async function startAgentRepl(options = {}) {
             runObserveHooks(_settingsHooks, "ConfigChange", payload, { cwd });
             if (!_asyncHookSupervisor) {
               const { AsyncHookSupervisor } =
-                await import("../lib/async-hook-supervisor.cjs");
+                await import("../lib/async-hook-supervisor.js");
               _asyncHookSupervisor = new AsyncHookSupervisor({
                 persistStats: true,
               });
@@ -5125,7 +5125,7 @@ export async function startAgentRepl(options = {}) {
           await import("../lib/settings-hook-events.cjs");
         if (!_asyncHookSupervisor) {
           const { AsyncHookSupervisor } =
-            await import("../lib/async-hook-supervisor.cjs");
+            await import("../lib/async-hook-supervisor.js");
           _asyncHookSupervisor = new AsyncHookSupervisor({
             persistStats: true,
           });
@@ -5433,7 +5433,7 @@ export async function startAgentRepl(options = {}) {
       // fire-and-forget; their results/rewakes drain into the next turn above.
       if (_settingsHooks && !_asyncHookSupervisor) {
         const { AsyncHookSupervisor } =
-          await import("../lib/async-hook-supervisor.cjs");
+          await import("../lib/async-hook-supervisor.js");
         _asyncHookSupervisor = new AsyncHookSupervisor({ persistStats: true });
       }
       const {
@@ -5779,7 +5779,7 @@ export async function startAgentRepl(options = {}) {
           );
           if (!_asyncHookSupervisor) {
             const { AsyncHookSupervisor } =
-              await import("../lib/async-hook-supervisor.cjs");
+              await import("../lib/async-hook-supervisor.js");
             _asyncHookSupervisor = new AsyncHookSupervisor({
               persistStats: true,
             });

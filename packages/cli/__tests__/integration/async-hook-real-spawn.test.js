@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { AsyncHookSupervisor } from "../../src/lib/async-hook-supervisor.cjs";
+import { AsyncHookSupervisor } from "../../src/lib/async-hook-supervisor.js";
 
 /**
  * Integration tier for the async hook supervisor: unlike the unit tests (which

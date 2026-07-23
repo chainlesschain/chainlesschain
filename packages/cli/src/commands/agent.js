@@ -568,7 +568,7 @@ export function registerAgentCommand(program) {
             });
             if (!_worktreeAsyncSupervisor) {
               const { AsyncHookSupervisor } =
-                await import("../lib/async-hook-supervisor.cjs");
+                await import("../lib/async-hook-supervisor.js");
               _worktreeAsyncSupervisor = new AsyncHookSupervisor({
                 persistStats: true,
               });

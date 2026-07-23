@@ -236,6 +236,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   显式 shell 语义，并增加 30 秒执行上限。
 - Headless `--goal-condition exit-zero` 的默认命令检查已进入 `headless-goal:exit-zero` Broker origin；
   测试注入接口保持兼容，并与 REPL 检查统一采用 30 秒执行上限。
+- 异步 settings Hook Supervisor 已拆分为纯注入 CJS 核心与 ESM Broker 门面；普通 Hook、插件 Hook 及
+  Windows 进程树探测/回收分别记录 `async-hook:command`、插件 origin 与 `async-hook:supervisor`。
 
 ### 4.2 建议设计
 

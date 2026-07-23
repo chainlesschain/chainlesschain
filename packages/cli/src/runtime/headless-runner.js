@@ -1330,7 +1330,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   if (settingsHooks) {
     try {
       const { AsyncHookSupervisor } =
-        await import("../lib/async-hook-supervisor.cjs");
+        await import("../lib/async-hook-supervisor.js");
       _hookSupervisor = new AsyncHookSupervisor({
         persistStats: true,
         // Durably park failed-rewake signals keyed by session so a crash before

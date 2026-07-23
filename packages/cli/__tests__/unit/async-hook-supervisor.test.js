@@ -6,6 +6,10 @@ import os from "node:os";
 import path from "node:path";
 import { AsyncHookSupervisor } from "../../src/lib/async-hook-supervisor.cjs";
 import {
+  AsyncHookSupervisor as BrokerAsyncHookSupervisor,
+  _processDeps,
+} from "../../src/lib/async-hook-supervisor.js";
+import {
   partitionAsyncHooks,
   dispatchAsyncHooks,
   runUserPromptSubmitHooks,
@@ -54,6 +58,36 @@ function makeSpawn(children) {
 }
 
 describe("AsyncHookSupervisor.dispatch (fire-and-forget)", () => {
+  it("uses the process broker adapter by default", () => {
+    const child = makeFakeChild();
+    const calls = [];
+    const originalRunner = _processDeps.run;
+    _processDeps.run = (command, args, options) => {
+      calls.push({ command, args, options });
+      return child;
+    };
+
+    const sup = new BrokerAsyncHookSupervisor();
+    try {
+      sup.dispatch([{ command: "run-tests", event: "PostToolUse" }], {});
+      expect(calls).toEqual([
+        expect.objectContaining({
+          command: "run-tests",
+          args: [],
+          options: expect.objectContaining({
+            shell: true,
+            origin: "async-hook:command",
+            policy: "allow",
+            scope: "async-hook",
+          }),
+        }),
+      ]);
+    } finally {
+      sup.stopAll();
+      _processDeps.run = originalRunner;
+    }
+  });
+
   it("returns immediately and marks each hook dispatched (does not await)", () => {
     const children = [makeFakeChild(), makeFakeChild()];
     const sup = new AsyncHookSupervisor({ spawn: makeSpawn(children) });
