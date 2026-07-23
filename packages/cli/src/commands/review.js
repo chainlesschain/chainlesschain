@@ -28,17 +28,21 @@
  * .chainlesschain/config.json `llm` exactly like `cc agent` / `cc ask`.
  */
 
-import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { firstBalancedJson } from "../lib/json-schema-output.js";
+import { executionBroker } from "../lib/process-execution-broker/index.js";
 import {
   dedupeFindings,
   buildReviewReport,
   findingKey,
 } from "../lib/review-pipeline.js";
+
+export const _deps = {
+  spawnSync: (...args) => executionBroker.spawnSync(...args),
+};
 
 /** Diffs larger than this are truncated before going to the model. */
 const MAX_DIFF_CHARS = 200_000;
@@ -52,12 +56,16 @@ const VALID_EFFORTS = Object.freeze(["low", "medium", "high"]);
  * Run git with an argv array (no shell → no quoting hazards). UTF-8 in/out.
  * Returns trimmed stdout; throws with git's stderr on failure.
  */
-function gitCli(args, { cwd } = {}) {
-  const res = spawnSync("git", args, {
+export function gitCli(args, { cwd } = {}) {
+  const res = _deps.spawnSync("git", args, {
     cwd,
     encoding: "utf-8",
     windowsHide: true,
     maxBuffer: 256 * 1024 * 1024,
+    origin: "review:command-git",
+    policy: "allow",
+    scope: "review",
+    shell: false,
   });
   if (res.error) throw res.error;
   if (res.status !== 0) {
@@ -86,28 +94,28 @@ function isGitRepo(cwd, git = gitCli) {
  */
 export function resolveDiffArgs(opts = {}, stat = false) {
   const { staged, base, range, paths } = opts;
-  let args;
+  const args = ["diff"];
+  if (stat) args.push("--stat");
   let scope;
   let label;
   if (range) {
-    args = ["diff", range];
+    args.push("--end-of-options", range);
     scope = "range";
     label = `range ${range}`;
   } else if (base) {
     // three-dot: changes on HEAD since it diverged from <base> (PR-style).
-    args = ["diff", `${base}...HEAD`];
+    args.push("--end-of-options", `${base}...HEAD`);
     scope = "base";
     label = `${base}...HEAD`;
   } else if (staged) {
-    args = ["diff", "--cached"];
+    args.push("--cached");
     scope = "staged";
     label = "staged changes";
   } else {
-    args = ["diff", "HEAD"];
+    args.push("HEAD");
     scope = "working";
     label = "working tree vs HEAD";
   }
-  if (stat) args.push("--stat");
   const cleanPaths = Array.isArray(paths) ? paths.filter(Boolean) : [];
   if (cleanPaths.length) args.push("--", ...cleanPaths);
   return { args, scope, label };
@@ -361,13 +369,17 @@ function collectReviewDiff(scopeOpts, { cwd, git, includeUntracked }) {
 }
 
 /** Run `gh` with an argv array (no shell). UTF-8 in/out; throws on failure. */
-function ghCli(args, { cwd, input } = {}) {
-  const res = spawnSync("gh", args, {
+export function ghCli(args, { cwd, input } = {}) {
+  const res = _deps.spawnSync("gh", args, {
     cwd,
     input,
     encoding: "utf-8",
     windowsHide: true,
     maxBuffer: 64 * 1024 * 1024,
+    origin: "review:command-gh",
+    policy: "allow",
+    scope: "review",
+    shell: false,
   });
   if (res.error) throw res.error;
   if (res.status !== 0) {

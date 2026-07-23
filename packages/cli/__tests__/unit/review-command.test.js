@@ -42,18 +42,22 @@ describe("resolveDiffArgs", () => {
   });
   it("base → three-dot range vs HEAD", () => {
     const r = resolveDiffArgs({ base: "main" });
-    expect(r.args).toEqual(["diff", "main...HEAD"]);
+    expect(r.args).toEqual(["diff", "--end-of-options", "main...HEAD"]);
     expect(r.scope).toBe("base");
   });
   it("range passes through", () => {
-    expect(resolveDiffArgs({ range: "A..B" }).args).toEqual(["diff", "A..B"]);
+    expect(resolveDiffArgs({ range: "A..B" }).args).toEqual([
+      "diff",
+      "--end-of-options",
+      "A..B",
+    ]);
   });
   it("appends --stat and path filter", () => {
     const r = resolveDiffArgs({ paths: ["src/a.js", "src/b.js"] }, true);
     expect(r.args).toEqual([
       "diff",
-      "HEAD",
       "--stat",
+      "HEAD",
       "--",
       "src/a.js",
       "src/b.js",
@@ -186,7 +190,7 @@ describe("runReview", () => {
     const diffCall = deps.git.mock.calls.find(
       (c) => c[0][0] === "diff" && !c[0].includes("--stat"),
     );
-    expect(diffCall[0]).toEqual(["diff", "develop...HEAD"]);
+    expect(diffCall[0]).toEqual(["diff", "--end-of-options", "develop...HEAD"]);
   });
 
   it("honors explicit --max-turns", async () => {
@@ -352,7 +356,7 @@ describe("runReviewComment", () => {
     const diffCall = deps.git.mock.calls.find(
       (c) => c[0][0] === "diff" && !c[0].includes("--stat"),
     );
-    expect(diffCall[0]).toEqual(["diff", "main...HEAD"]);
+    expect(diffCall[0]).toEqual(["diff", "--end-of-options", "main...HEAD"]);
     // ran read-only (plan mode)
     expect(deps.runAgentHeadless.mock.calls[0][0].permissionMode).toBe("plan");
   });

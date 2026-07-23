@@ -80,9 +80,9 @@ Total matches: 402 (runtime: 326, tooling: 53, test: 23).
 | `packages/cli/src/commands/loop.js` | 69 | `const child = spawn(cmd, args, {` |
 | `packages/cli/src/commands/memory.js` | 599 | `const { execSync } = await import("child_process");` |
 | `packages/cli/src/commands/memory.js` | 609 | `execSync(`${editor} "${safePath}"`, { stdio: "inherit" });` |
-| `packages/cli/src/commands/review.js` | 31 | `import { spawnSync } from "node:child_process";` |
-| `packages/cli/src/commands/review.js` | 56 | `const res = spawnSync("git", args, {` |
-| `packages/cli/src/commands/review.js` | 365 | `const res = spawnSync("gh", args, {` |
+| `packages/cli/src/commands/review.js` | 44 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
+| `packages/cli/src/commands/review.js` | 60 | `const res = _deps.spawnSync("git", args, {` |
+| `packages/cli/src/commands/review.js` | 373 | `const res = _deps.spawnSync("gh", args, {` |
 | `packages/cli/src/commands/routine.js` | 23 | `spawn: (...args) => executionBroker.spawn(...args),` |
 | `packages/cli/src/commands/routine.js` | 24 | `execFile: (...args) => executionBroker.execFile(...args),` |
 | `packages/cli/src/commands/routine.js` | 39 | `const child = _deps.spawn(` |
