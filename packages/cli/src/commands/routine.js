@@ -13,11 +13,16 @@
  * agenda wakeup), exactly like `cc agenda run`.
  */
 
-import { spawn, execFile } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import { executionBroker } from "../lib/process-execution-broker/index.js";
+
+export const _deps = {
+  spawn: (...args) => executionBroker.spawn(...args),
+  execFile: (...args) => executionBroker.execFile(...args),
+};
 
 const BIN_PATH = fileURLToPath(
   new URL("../../bin/chainlesschain.js", import.meta.url),
@@ -29,12 +34,18 @@ async function loadStore() {
 }
 
 /** Production runner: `cc agent -p <prompt> --output-format json`. */
-function defaultRunAgent({ prompt }) {
+export function defaultRunAgent({ prompt }) {
   return new Promise((resolve) => {
-    const child = spawn(
+    const child = _deps.spawn(
       process.execPath,
-      [BIN_PATH, "agent", "-p", prompt, "--output-format", "json"],
-      { windowsHide: true },
+      [BIN_PATH, "agent", "--output-format", "json"],
+      {
+        windowsHide: true,
+        origin: "routine:agent",
+        policy: "allow",
+        scope: "routine",
+        shell: false,
+      },
     );
     let out = "";
     let err = "";
@@ -42,6 +53,10 @@ function defaultRunAgent({ prompt }) {
     child.stderr?.setEncoding("utf8");
     child.stdout?.on("data", (d) => (out += d));
     child.stderr?.on("data", (d) => (err += d));
+    if (child.stdin) {
+      child.stdin.on("error", () => {});
+      child.stdin.end(prompt);
+    }
     child.on("error", (error) =>
       resolve({ exitCode: -1, output: `spawn error: ${error.message}` }),
     );
@@ -70,12 +85,20 @@ function defaultRunAgent({ prompt }) {
 }
 
 /** Production github events fetch via gh CLI. */
-function defaultFetchEvents(repo) {
+export function defaultFetchEvents(repo) {
   return new Promise((resolve) => {
-    execFile(
+    _deps.execFile(
       "gh",
       ["api", `repos/${repo}/events`, "--paginate=false"],
-      { encoding: "utf8", timeout: 8000, windowsHide: true },
+      {
+        encoding: "utf8",
+        timeout: 8000,
+        windowsHide: true,
+        origin: "routine:github-events",
+        policy: "allow",
+        scope: "routine",
+        shell: false,
+      },
       (err, stdout) => {
         if (err) return resolve([]);
         try {

@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 401 (runtime: 325, tooling: 53, test: 23).
+Total matches: 402 (runtime: 326, tooling: 53, test: 23).
 
 ## Policy
 
@@ -83,9 +83,10 @@ Total matches: 401 (runtime: 325, tooling: 53, test: 23).
 | `packages/cli/src/commands/review.js` | 31 | `import { spawnSync } from "node:child_process";` |
 | `packages/cli/src/commands/review.js` | 56 | `const res = spawnSync("git", args, {` |
 | `packages/cli/src/commands/review.js` | 365 | `const res = spawnSync("gh", args, {` |
-| `packages/cli/src/commands/routine.js` | 16 | `import { spawn, execFile } from "node:child_process";` |
-| `packages/cli/src/commands/routine.js` | 34 | `const child = spawn(` |
-| `packages/cli/src/commands/routine.js` | 75 | `execFile(` |
+| `packages/cli/src/commands/routine.js` | 23 | `spawn: (...args) => executionBroker.spawn(...args),` |
+| `packages/cli/src/commands/routine.js` | 24 | `execFile: (...args) => executionBroker.execFile(...args),` |
+| `packages/cli/src/commands/routine.js` | 39 | `const child = _deps.spawn(` |
+| `packages/cli/src/commands/routine.js` | 90 | `_deps.execFile(` |
 | `packages/cli/src/commands/session.js` | 153 | `const { execFileSync } = await import("node:child_process");` |
 | `packages/cli/src/commands/session.js` | 162 | `const out = execFileSync("gh", args, {` |
 | `packages/cli/src/commands/team.js` | 21 | `import { spawn } from "child_process";` |
