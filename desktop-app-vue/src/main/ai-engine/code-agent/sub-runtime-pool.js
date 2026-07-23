@@ -14,14 +14,15 @@
  *     member APIs). They never touch the parent session files — the parent
  *     aggregates their progress through stdout events.
  *   - All side-effect entry points are routed through `_deps` so Vitest can
- *     override them without the `vi.mock("child_process")` trap that plagues
- *     CJS modules inlined into the forks pool.
+ *     override them without the CJS module-mocking trap in the forks pool.
  */
 
 const path = require("path");
-const { spawn } = require("child_process");
 const { EventEmitter } = require("events");
 const { logger } = require("../../utils/logger.js");
+const {
+  spawnWithDesktopBroker,
+} = require("../../process/desktop-process-broker.js");
 
 const DEFAULT_MAX = 4;
 const HARD_CAP = 6;
@@ -38,7 +39,7 @@ const subRuntimeEntry = path.resolve(
 
 // Test injection seam. DO NOT call `spawn` directly anywhere below.
 const _deps = {
-  spawn,
+  spawn: spawnWithDesktopBroker,
   entryFile: subRuntimeEntry,
   now: () => Date.now(),
 };
@@ -293,7 +294,7 @@ function waitForReady(child, timeoutMs) {
 }
 
 /**
- * Wraps a raw child_process.ChildProcess with a JSON-lines event emitter.
+ * Wraps a raw spawned process with a JSON-lines event emitter.
  * Emits `line` (parsed event object) and `exit`.
  */
 function wrapChild(rawChild) {
@@ -365,6 +366,7 @@ class SubRuntimePool extends EventEmitter {
         ELECTRON_RUN_AS_NODE: "1",
         FORCE_COLOR: "0",
       },
+      origin: "desktop:sub-runtime",
     });
     const child = wrapChild(raw);
     await waitForReady(child, this.readyTimeoutMs);

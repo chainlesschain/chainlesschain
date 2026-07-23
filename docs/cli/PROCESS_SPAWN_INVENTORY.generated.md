@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 346 (runtime: 270, tooling: 53, test: 23).
+Total matches: 342 (runtime: 266, tooling: 53, test: 23).
 
 ## Policy
 
@@ -15,12 +15,8 @@ Total matches: 346 (runtime: 270, tooling: 53, test: 23).
 
 | File | Line | Match |
 | --- | ---: | --- |
-| `desktop-app-vue/src/main/ai-engine/code-agent/coding-agent-bridge.js` | 2 | `const { spawn } = require("child_process");` |
-| `desktop-app-vue/src/main/ai-engine/code-agent/coding-agent-bridge.js` | 109 | `this.serverProcess = _deps.spawn(process.execPath, args, {` |
-| `desktop-app-vue/src/main/ai-engine/code-agent/sub-runtime-pool.js` | 17 | `* override them without the `vi.mock("child_process")` trap that plagues` |
-| `desktop-app-vue/src/main/ai-engine/code-agent/sub-runtime-pool.js` | 22 | `const { spawn } = require("child_process");` |
-| `desktop-app-vue/src/main/ai-engine/code-agent/sub-runtime-pool.js` | 296 | `* Wraps a raw child_process.ChildProcess with a JSON-lines event emitter.` |
-| `desktop-app-vue/src/main/ai-engine/code-agent/sub-runtime-pool.js` | 361 | `const raw = _deps.spawn(process.execPath, [_deps.entryFile], {` |
+| `desktop-app-vue/src/main/ai-engine/code-agent/coding-agent-bridge.js` | 111 | `this.serverProcess = _deps.spawn(process.execPath, args, {` |
+| `desktop-app-vue/src/main/ai-engine/code-agent/sub-runtime-pool.js` | 362 | `const raw = _deps.spawn(process.execPath, [_deps.entryFile], {` |
 | `desktop-app-vue/src/main/ipc/advanced-features-ipc.js` | 8 | `const { spawn } = require("child_process");` |
 | `desktop-app-vue/src/main/ipc/advanced-features-ipc.js` | 154 | `const child = spawn("node", [scriptPath, ...args], {` |
 | `packages/agent-sdk/src/agent-session.ts` | 24 | `import { spawn as nodeSpawn, spawnSync } from "node:child_process";` |

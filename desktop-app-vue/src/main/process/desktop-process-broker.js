@@ -140,6 +140,9 @@ function installDesktopProcessBroker({
   });
 
   const broker = {
+    spawn(command, args, options) {
+      return childProcess.spawn(command, args, options);
+    },
     spawnPty(ptyModule, command, args, options) {
       if (!ptyModule || typeof ptyModule.spawn !== "function") {
         throw new TypeError("pty_module_spawn_unavailable");
@@ -174,8 +177,20 @@ function getDesktopProcessBroker({ childProcess = nativeChildProcess } = {}) {
   return childProcess[BROKER_MARK] || null;
 }
 
+function spawnWithDesktopBroker(
+  command,
+  args,
+  options,
+  { childProcess = nativeChildProcess } = {},
+) {
+  const broker = getDesktopProcessBroker({ childProcess });
+  if (!broker) throw new Error("desktop_process_broker_not_installed");
+  return broker.spawn(command, args, options);
+}
+
 module.exports = {
   installDesktopProcessBroker,
   getDesktopProcessBroker,
+  spawnWithDesktopBroker,
   redact,
 };

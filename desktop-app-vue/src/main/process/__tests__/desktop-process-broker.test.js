@@ -1,4 +1,8 @@
-const { installDesktopProcessBroker, redact } = require("../desktop-process-broker");
+const {
+  installDesktopProcessBroker,
+  spawnWithDesktopBroker,
+  redact,
+} = require("../desktop-process-broker");
 
 function fakeChildProcess() {
   const calls = [];
@@ -64,6 +68,32 @@ describe("desktop process broker", () => {
     expect(redact("Authorization: Bearer abc123")).toBe(
       "Authorization: Bearer [REDACTED]",
     );
+  });
+
+  it("exposes a fail-closed spawn facade for desktop modules", () => {
+    const { cp, calls } = fakeChildProcess();
+    expect(() =>
+      spawnWithDesktopBroker("node", ["worker.js"], {}, { childProcess: cp }),
+    ).toThrow("desktop_process_broker_not_installed");
+
+    const audit = [];
+    const broker = installDesktopProcessBroker({
+      childProcess: cp,
+      auditSink: (entry) => audit.push(entry),
+    });
+    spawnWithDesktopBroker(
+      "node",
+      ["worker.js"],
+      { origin: "desktop:test-worker" },
+      { childProcess: cp },
+    );
+
+    expect(calls).toHaveLength(1);
+    expect(audit[0]).toMatchObject({
+      operation: "spawn",
+      origin: "desktop:test-worker",
+    });
+    broker.uninstall();
   });
 
   it("audits node-pty without recording inherited environment values", () => {

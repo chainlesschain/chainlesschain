@@ -96,6 +96,9 @@ describe("CodingAgentBridge", () => {
 
     expect(ready).toEqual({ host: "127.0.0.1", port: 4399 });
     expect(_deps.spawn).toHaveBeenCalledTimes(1);
+    expect(_deps.spawn.mock.calls[0][2]).toMatchObject({
+      origin: "desktop:coding-agent-server",
+    });
     expect(_deps.findAvailablePort).toHaveBeenCalledTimes(1);
     expect(startingEvents).toHaveLength(1);
     expect(readyEvents).toHaveLength(1);

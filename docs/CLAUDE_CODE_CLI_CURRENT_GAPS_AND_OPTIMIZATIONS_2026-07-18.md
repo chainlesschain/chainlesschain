@@ -228,6 +228,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   `agent-worktree:query` / `agent-worktree:cleanup` Broker 字面 argv；失败清理 E2E 验证无残留。
 - Status line 的 CJS 渲染核心已移除原生 `child_process` 默认值，由 ESM 适配层注入
   `status-line:command` Broker runner；保留显式 shell、stdin JSON、终端尺寸与 best-effort 降级语义。
+- Desktop Coding Agent bridge 与 sub-runtime pool 已移除各自的原生 spawn 默认值，统一经 fail-closed
+  Desktop Broker 门面记录 `desktop:coding-agent-server` / `desktop:sub-runtime` provenance。
 
 ### 4.2 建议设计
 

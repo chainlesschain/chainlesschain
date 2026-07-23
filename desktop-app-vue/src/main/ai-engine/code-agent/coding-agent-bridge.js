@@ -1,9 +1,11 @@
 const { EventEmitter } = require("events");
-const { spawn } = require("child_process");
 const path = require("path");
 const net = require("net");
 const WebSocket = require("ws");
 const { logger } = require("../../utils/logger.js");
+const {
+  spawnWithDesktopBroker,
+} = require("../../process/desktop-process-broker.js");
 
 function findAvailablePort() {
   return new Promise((resolve, reject) => {
@@ -30,7 +32,7 @@ function wait(ms) {
 
 // Test injection seam — overridable in unit tests via require("./coding-agent-bridge")._deps
 const _deps = {
-  spawn,
+  spawn: spawnWithDesktopBroker,
   WebSocket,
   netCreateServer: () => net.createServer(),
   findAvailablePort,
@@ -113,6 +115,7 @@ class CodingAgentBridge extends EventEmitter {
           FORCE_COLOR: "0",
         },
         stdio: ["ignore", "pipe", "pipe"],
+        origin: "desktop:coding-agent-server",
       });
 
       this.serverProcess.stdout.on("data", (chunk) => {

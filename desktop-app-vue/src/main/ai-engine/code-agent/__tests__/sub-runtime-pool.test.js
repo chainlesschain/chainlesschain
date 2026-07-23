@@ -130,6 +130,7 @@ describe("SubRuntimePool", () => {
     // ELECTRON_RUN_AS_NODE must be set on every child.
     for (const call of spawnCalls) {
       expect(call.options.env.ELECTRON_RUN_AS_NODE).toBe("1");
+      expect(call.options.origin).toBe("desktop:sub-runtime");
       expect(call.args).toEqual(["/fake/sub-runtime.js"]);
     }
 
