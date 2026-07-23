@@ -205,7 +205,9 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 - Claude/Codex 外部 CLI bridge 的版本探测与 Agent 会话已进入 `claude-code-bridge:detect-*`、
   `claude-code-bridge:agent` Broker origin；前者显式保留 Windows shim shell，后者保持无 shell argv。
 - CLI-Anything 宿主侧的 Python/package 探测、pip install 与 tool help 已进入 `cli-anything:*`
-  Broker origin 并改用 literal argv；生成到用户 Skill 的独立 CommonJS handler 继续作为单独边界追踪。
+  Broker origin；生成到用户 Skill 的 CLI-Anything/CLI Pack CommonJS handler 也改由 CLI 宿主按
+  `shell-exec` capability 注入受限 Broker 门面，缺少门面时 fail-closed，CLI-Anything 参数使用
+  literal argv；Agent `run_skill` 的同门面注入仍待补齐。
 - Background task harness 的 worker 启动与任务命令已进入 `background-task:worker`、
   `background-task:command:*` Broker origin；Node `execArgv`、stdio IPC、heartbeat/result 消息语义保持不变。
 - MCP stdio client 的普通与插件 server 启动已统一进入 Broker；普通 server 自动记录

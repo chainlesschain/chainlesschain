@@ -78,6 +78,7 @@ describe("generateSkillMd", () => {
     expect(md).toContain(`cli-version-hash: "${hash}"`);
     expect(md).toContain("user-invocable: true");
     expect(md).toContain("handler: handler.js");
+    expect(md).toContain("capabilities: [shell-exec]");
   });
 
   it("includes all commands in documentation", () => {
@@ -289,12 +290,13 @@ describe("generateCliPacks", () => {
     expect(content).not.toContain("spawnSync");
   });
 
-  it("direct packs generate spawnSync handler", async () => {
+  it("direct packs generate Broker-scoped handlers", async () => {
     await generateCliPacks({ force: true, outputDir: tmpDir });
 
     const handlerPath = path.join(tmpDir, "cli-knowledge-pack", "handler.js");
     const content = fs.readFileSync(handlerPath, "utf-8");
-    expect(content).toContain("spawnSync");
+    expect(content).toContain("processBroker.runSync");
+    expect(content).not.toContain('require("child_process")');
     expect(content).toContain("chainlesschain");
     expect(content).toContain("VALID_COMMANDS");
   });
@@ -305,7 +307,8 @@ describe("generateCliPacks", () => {
     const handlerPath = path.join(tmpDir, "cli-integration-pack", "handler.js");
     const content = fs.readFileSync(handlerPath, "utf-8");
     expect(content).toContain("AGENT_ONLY_COMMANDS");
-    expect(content).toContain("spawnSync");
+    expect(content).toContain("processBroker.runSync");
+    expect(content).not.toContain('require("child_process")');
   });
 
   it("SKILL.md has correct category for direct packs", async () => {
@@ -443,7 +446,10 @@ describe("generated handler — shell injection guard", () => {
   });
 
   function loadHandler(code) {
-    const f = path.join(dir, `handler-${Math.random().toString(36).slice(2)}.cjs`);
+    const f = path.join(
+      dir,
+      `handler-${Math.random().toString(36).slice(2)}.cjs`,
+    );
     fs.writeFileSync(f, code);
     return require(f);
   }
@@ -470,14 +476,35 @@ describe("generated handler — shell injection guard", () => {
 
   it("direct handler still allows clean args (guard is not over-broad)", async () => {
     const handler = loadHandler(generateDirectHandler("test", directDef));
-    // A plain `note add hello` has no shell metacharacters → passes the guard
-    // and proceeds to spawn (which may fail if chainlesschain isn't installed,
-    // but it must NOT be blocked by the injection guard).
+    // A plain `note add hello` has no shell metacharacters and reaches the
+    // fail-closed host Broker boundary.
     const res = await handler.execute(
       { input: "note add hello" },
       { projectRoot: dir },
     );
     expect(res.error || "").not.toMatch(/不安全/);
+    expect(res.error).toMatch(/Process Broker unavailable/i);
+
+    const runSync = vi.fn(() => ({
+      status: 0,
+      stdout: '{"notes":[]}',
+      stderr: "",
+    }));
+    const brokered = await handler.execute(
+      { input: "note add hello" },
+      { projectRoot: dir, processBroker: { runSync } },
+    );
+    expect(brokered.success).toBe(true);
+    expect(brokered.result).toEqual({ notes: [] });
+    expect(runSync).toHaveBeenCalledWith(
+      "chainlesschain",
+      ["note", "add", "hello", "--json"],
+      expect.objectContaining({
+        cwd: dir,
+        shell: true,
+        timeout: 30000,
+      }),
+    );
   });
 
   it("hybrid handler also guards its direct-exec path", () => {
@@ -488,6 +515,8 @@ describe("generated handler — shell injection guard", () => {
     };
     const code = generateHybridHandler("test", hybridDef);
     expect(code).toContain("unsafeArg");
+    expect(code).toContain("processBroker.runSync");
+    expect(code).not.toContain('require("child_process")');
     // the guard regex compiles inside the generated module
     expect(() => loadHandler(code)).not.toThrow();
   });

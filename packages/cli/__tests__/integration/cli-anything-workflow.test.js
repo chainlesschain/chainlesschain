@@ -185,7 +185,8 @@ describe("CLI-Anything Workflow (integration)", () => {
       const js = _generateHandlerJs("ffmpeg", "cli-anything-ffmpeg");
 
       expect(js).toContain('"use strict"');
-      expect(js).toContain('require("child_process")');
+      expect(js).not.toContain('require("child_process")');
+      expect(js).toContain("processBroker.runFileSync");
       expect(js).toContain("module.exports");
       expect(js).toContain("async execute(task, context)");
       expect(js).toContain("cli-anything-ffmpeg");

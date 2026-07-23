@@ -284,19 +284,44 @@ Pass the subcommand and arguments as plain text input:
  */
 export function _generateHandlerJs(name, command) {
   return `"use strict";
-const { execSync } = require("child_process");
+const CLI_COMMAND = ${JSON.stringify(command)};
+
+function parseArgs(input) {
+  const args = [];
+  let current = "";
+  let inSingle = false;
+  let inDouble = false;
+  for (const ch of input.trim()) {
+    if (ch === "'" && !inDouble) { inSingle = !inSingle; continue; }
+    if (ch === '"' && !inSingle) { inDouble = !inDouble; continue; }
+    if (/\\s/.test(ch) && !inSingle && !inDouble) {
+      if (current) { args.push(current); current = ""; }
+      continue;
+    }
+    current += ch;
+  }
+  if (inSingle || inDouble) return null;
+  if (current) args.push(current);
+  return args;
+}
 
 module.exports = {
   async execute(task, context) {
     const input = (task?.params?.input || task?.action || "").trim();
     if (!input) return { success: false, error: "No input provided" };
-    // Security: input is interpolated into a shell command, so reject shell
-    // metacharacters to prevent command injection from untrusted skill input.
+    // Keep the historical shell-character guard for generated-handler
+    // compatibility even though the Broker now receives literal argv.
     if (/[;&|\`$<>()\\n\\r]/.test(input)) {
       return { success: false, error: "Input contains unsafe shell characters; refused." };
     }
+    const args = parseArgs(input);
+    if (!args) return { success: false, error: "Input contains an unmatched quote; refused." };
+    const processBroker = context?.processBroker;
+    if (!processBroker || typeof processBroker.runFileSync !== "function") {
+      return { success: false, error: "Process Broker unavailable for skill execution." };
+    }
     try {
-      const output = execSync(\`${command} \${input}\`, {
+      const output = processBroker.runFileSync(CLI_COMMAND, args, {
         encoding: "utf-8",
         timeout: 60000,
         cwd: context?.projectRoot || process.cwd(),

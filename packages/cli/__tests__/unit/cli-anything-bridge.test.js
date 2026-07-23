@@ -349,7 +349,8 @@ describe("cli-anything-bridge", () => {
   describe("_generateHandlerJs", () => {
     it("should generate valid handler.js with the correct command", () => {
       const js = _generateHandlerJs("gimp", "cli-anything-gimp");
-      expect(js).toContain('require("child_process")');
+      expect(js).not.toContain('require("child_process")');
+      expect(js).toContain("processBroker.runFileSync");
       expect(js).toContain("cli-anything-gimp");
       expect(js).toContain("module.exports");
       expect(js).toContain("async execute(task, context)");
@@ -387,6 +388,26 @@ describe("cli-anything-bridge", () => {
           { projectRoot: dir },
         );
         expect(ok.error || "").not.toMatch(/unsafe/i);
+        expect(ok.error).toMatch(/Process Broker unavailable/i);
+
+        const runFileSync = vi.fn(() => '{"converted":true}');
+        const brokered = await handler.execute(
+          { params: { input: 'sub "arg with spaces"' } },
+          {
+            projectRoot: dir,
+            processBroker: { runFileSync },
+          },
+        );
+        expect(brokered.success).toBe(true);
+        expect(brokered.result).toEqual({ converted: true });
+        expect(runFileSync).toHaveBeenCalledWith(
+          "cli-anything-test",
+          ["sub", "arg with spaces"],
+          expect.objectContaining({
+            cwd: dir,
+            timeout: 60000,
+          }),
+        );
       } finally {
         fs.rmSync(dir, { recursive: true, force: true });
       }

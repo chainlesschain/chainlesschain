@@ -1,0 +1,71 @@
+import { describe, expect, it, vi } from "vitest";
+import { createSkillProcessBroker } from "../../src/lib/skill-process-broker.js";
+
+describe("skill process broker facade", () => {
+  it("enforces host-owned provenance for synchronous processes", () => {
+    const runSync = vi.fn(() => ({ status: 0, stdout: "ok" }));
+    const facade = createSkillProcessBroker(
+      {
+        id: "plugin/demo skill",
+        pluginId: "demo-plugin",
+        pluginVersion: "1.2.3",
+        pluginSource: "local",
+        capabilities: ["shell-exec"],
+      },
+      { runSync, runFileSync: vi.fn() },
+    );
+
+    const result = facade.runSync("chainlesschain", ["note", "list"], {
+      origin: "forged",
+      policy: "deny",
+      scope: "forged",
+      shell: true,
+    });
+
+    expect(result.status).toBe(0);
+    expect(runSync).toHaveBeenCalledWith(
+      "chainlesschain",
+      ["note", "list"],
+      expect.objectContaining({
+        origin: "skill:plugin-demo-skill",
+        policy: "allow",
+        scope: "skill",
+        shell: true,
+        pluginId: "demo-plugin",
+        pluginVersion: "1.2.3",
+        pluginSource: "local",
+      }),
+    );
+    expect(Object.isFrozen(facade)).toBe(true);
+  });
+
+  it("forces literal no-shell execution for file-style calls", () => {
+    const runFileSync = vi.fn(() => "output");
+    const facade = createSkillProcessBroker(
+      { name: "cli-anything-ffmpeg", capabilities: ["shell-exec"] },
+      { runSync: vi.fn(), runFileSync },
+    );
+
+    expect(
+      facade.runFileSync("cli-anything-ffmpeg", ["convert", "a b.mp4"], {
+        shell: true,
+        cwd: "/repo",
+      }),
+    ).toBe("output");
+    expect(runFileSync).toHaveBeenCalledWith(
+      "cli-anything-ffmpeg",
+      ["convert", "a b.mp4"],
+      expect.objectContaining({
+        cwd: "/repo",
+        origin: "skill:cli-anything-ffmpeg",
+        policy: "allow",
+        scope: "skill",
+        shell: false,
+      }),
+    );
+  });
+
+  it("does not expose execution to skills without shell-exec", () => {
+    expect(createSkillProcessBroker({ id: "docs-only" })).toBeNull();
+  });
+});

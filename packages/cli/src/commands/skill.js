@@ -10,6 +10,7 @@ import chalk from "chalk";
 import ora from "ora";
 import fs from "fs";
 import path from "path";
+import { createSkillProcessBroker } from "../lib/skill-process-broker.js";
 import { logger } from "../lib/logger.js";
 import {
   CLISkillLoader,
@@ -368,6 +369,7 @@ export function registerSkillCommand(program) {
           projectRoot: process.cwd(),
           workspacePath: process.cwd(),
           workspaceRoot: process.cwd(),
+          processBroker: createSkillProcessBroker(s),
         };
 
         const result = await handler.execute(task, context, s);

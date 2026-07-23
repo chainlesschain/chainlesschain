@@ -115,6 +115,7 @@ cli-version-hash: "${hash}"
 tags: [${allTags}]
 user-invocable: true
 handler: handler.js
+capabilities: [shell-exec]
 ---
 
 # ${domainDef.displayName}
@@ -176,7 +177,6 @@ export function generateDirectHandler(domainKey, domainDef) {
  * 自动生成 — 请勿手动修改，运行 \`chainlesschain skill sync-cli\` 重新生成
  */
 
-const { spawnSync } = require("child_process");
 
 /** 解析输入字符串为指令+参数数组 */
 function parseInput(input) {
@@ -241,7 +241,7 @@ ${commandGuide}
     const useJson = JSON_SUPPORTED_COMMANDS.has(command) && !cliArgs.includes("--json");
     if (useJson) cliArgs.push("--json");
 
-    // Security: spawnSync uses shell:true (needed to run the chainlesschain.cmd
+    // Security: Broker execution uses shell:true (needed to run the chainlesschain.cmd
     // shim on Windows), which joins cliArgs into a shell command. Reject shell
     // metacharacters so a crafted skill input can't inject commands.
     const unsafeArg = cliArgs.find((a) => /[;&|\`$<>()\\n\\r]/.test(a));
@@ -252,11 +252,16 @@ ${commandGuide}
       };
     }
 
-    // Execute via child process
-    const result = spawnSync("chainlesschain", cliArgs, {
+    const processBroker = context?.processBroker;
+    if (!processBroker || typeof processBroker.runSync !== "function") {
+      return { success: false, error: "Process Broker unavailable for skill execution." };
+    }
+
+    // Execute via the host-scoped Process Broker facade.
+    const result = processBroker.runSync("chainlesschain", cliArgs, {
       encoding: "utf-8",
       shell: true,
-      cwd: context.projectRoot || process.cwd(),
+      cwd: context?.projectRoot || process.cwd(),
       timeout: 30000,
       env: { ...process.env },
     });
@@ -407,7 +412,6 @@ export function generateHybridHandler(domainKey, domainDef) {
  * 自动生成 — 请勿手动修改，运行 \`chainlesschain skill sync-cli\` 重新生成
  */
 
-const { spawnSync } = require("child_process");
 
 const AGENT_ONLY_COMMANDS = new Set([${agentCmds}]);
 const VALID_COMMANDS = new Set(["${commandList}"]);
@@ -470,7 +474,7 @@ const handler = {
     // Direct execution for other commands
     const cliArgs = [...args, "--quiet"];
 
-    // Security: spawnSync uses shell:true (needed to run the chainlesschain.cmd
+    // Security: Broker execution uses shell:true (needed to run the chainlesschain.cmd
     // shim on Windows), which joins cliArgs into a shell command. Reject shell
     // metacharacters so a crafted skill input can't inject commands.
     const unsafeArg = cliArgs.find((a) => /[;&|\`$<>()\\n\\r]/.test(a));
@@ -481,10 +485,15 @@ const handler = {
       };
     }
 
-    const result = spawnSync("chainlesschain", cliArgs, {
+    const processBroker = context?.processBroker;
+    if (!processBroker || typeof processBroker.runSync !== "function") {
+      return { success: false, error: "Process Broker unavailable for skill execution." };
+    }
+
+    const result = processBroker.runSync("chainlesschain", cliArgs, {
       encoding: "utf-8",
       shell: true,
-      cwd: context.projectRoot || process.cwd(),
+      cwd: context?.projectRoot || process.cwd(),
       timeout: 30000,
       env: { ...process.env },
     });
