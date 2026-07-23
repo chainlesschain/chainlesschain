@@ -461,6 +461,53 @@ function activate(context) {
       });
       await vscode.window.showTextDocument(doc, { preview: false });
     }),
+    vscode.commands.registerCommand(
+      "chainlesschain.ide.exportDiagnostics",
+      async () => {
+        const path = require("path");
+        const os = require("os");
+        const { runCliText } = require("./chat/introspect-commands.js");
+        const { getResolvedCli } = require("./cli-binary");
+        const {
+          exportDiagnosticBundleToPath,
+        } = require("./diagnostic-export.js");
+        const cwd = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
+        const uri = await vscode.window.showSaveDialog({
+          defaultUri: vscode.Uri.file(
+            path.join(cwd || os.homedir(), "cc-diagnostic-bundle.json"),
+          ),
+          filters: { JSON: ["json"] },
+          saveLabel: "Export de-identified diagnostics",
+        });
+        if (!uri) return;
+        if (uri.scheme && uri.scheme !== "file") {
+          vscode.window.showErrorMessage(
+            "ChainlessChain: diagnostics can only be exported to a local file.",
+          );
+          return;
+        }
+        const result = await exportDiagnosticBundleToPath({
+          command: getResolvedCli(),
+          cwd,
+          targetPath: uri.fsPath,
+          runCliText,
+        });
+        if (!result.ok) {
+          vscode.window.showErrorMessage(
+            `ChainlessChain: diagnostic export failed — ${result.reason}`,
+          );
+          return;
+        }
+        const pick = await vscode.window.showInformationMessage(
+          `ChainlessChain: de-identified diagnostic bundle exported to ${result.path}`,
+          "Open",
+        );
+        if (pick === "Open") {
+          const doc = await vscode.workspace.openTextDocument(uri);
+          await vscode.window.showTextDocument(doc, { preview: false });
+        }
+      },
+    ),
     vscode.commands.registerCommand("chainlesschain.ide.openDashboard", () =>
       openDashboard(vscode, context, getState, _activityLog),
     ),

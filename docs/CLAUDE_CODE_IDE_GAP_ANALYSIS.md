@@ -28,6 +28,11 @@ modify/create/delete/rename/mode-change，独立守卫源与 rename 目标，按
 rename、真实 delete 和 POSIX chmod 应用；不支持 mode-change 的宿主结构化降级，混合批次
 逐项回传成功/失败且不静默文本覆盖。生命周期 changeset 的 C/T/H 代码缺口也已关闭，当前
 只剩真实多宿主 UI 矩阵验收。
+同日，VS Code 命令/Status 视图和 JetBrains Tools 菜单均已接入
+`cc doctor --export-bundle`。两端先写私有同目录临时文件，验证
+`cc-diagnostic-bundle/v1` 与默认排除清单契约后才替换用户目标；无效产物保留旧文件，
+符号链接/非普通文件被拒绝，临时文件在所有路径清理。IDE 脱敏诊断导出的 C/T/H seam
+已关闭，仍需真实宿主、远程环境与发布包矩阵验收。
 本文件原有的真实远程环境与长期稳定性验收项仍保留。
 
 ## 结论
@@ -94,8 +99,9 @@ ChainlessChain IDE 已越过“聊天侧栏”阶段。VS Code 0.37.14、JetBrai
   宿主落盘、结构化降级/逐项结果和审计收口；Request Changes 的实际后续结果也已跨三条
   执行路径持久化。代码侧仍需真实多宿主 UI 验收。大文件/二进制与 changeset 容量
   降级已由双端 2 MiB/64 文件/8 MiB 预算、结构化 skipped 结果和有界 LCS 收口。可观测性方面 trace id 字段
-  贯穿本身**已落地**（`948adc711b`，见上），剩项是**脱敏
-  诊断包一键导出、trace 覆盖率指标与离线协议回放**（非 trace 传播未完成）。编辑器文档 stale 拒绝
+  贯穿本身**已落地**（`948adc711b`，见上）；脱敏诊断包的一键导出、治理/trace 覆盖率
+  离线报告和协议离线回放也已完成代码与定向测试，当前仅保留真实 run 采集、宿主 UI 和发布门验证。
+  编辑器文档 stale 拒绝
   已于 `2a21a587ad` 收口（活缓冲区内容比对，双端对齐）。
 
 每个已落地项均含 RED 反证与定向测试（详见各 commit）。
@@ -227,8 +233,9 @@ checkpoint 不覆盖用户修改；外部进程修改时标记 coverage: partial
 ### 可观测性与 Doctor
 
 trace id 字段贯穿 Webview、Bridge、CLI、transcript/诊断包**已落地**（`948adc711b`）；
-本节剩余目标是把它继续贯穿到模型、tool、approval、diff、checkpoint，并提供脱敏诊断包
-一键导出与协议录制回放（trace 传播本身已完成，非未起步）。
+脱敏诊断包、`cc doctor --export-bundle`、VS Code/JetBrains 一键导出、治理覆盖率离线报告
+与协议录制回放均已完成代码和定向测试。本节剩余目标是把 trace/ledger/attribution 的真实
+run 采集继续贯穿模型、tool、approval、diff、checkpoint，并完成真实宿主 UI、发布门和长期运行验收。
 
 验收：95% 交互具备端到端 trace；诊断包 secret scan 零命中；
 80% 常见连接故障给出具体修复；协议可离线回放 UI 问题。

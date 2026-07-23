@@ -3,6 +3,7 @@
   "cmd.ide.restart.title": "ChainlessChain IDE: Restart Bridge",
   "cmd.ide.openDashboard.title": "ChainlessChain IDE: Open Dashboard",
   "cmd.ide.doctor.title": "ChainlessChain IDE: Diagnose Bridge",
+  "cmd.ide.exportDiagnostics.title": "ChainlessChain IDE: Export De-identified Diagnostics",
   "cmd.team.monitor.title": "ChainlessChain: Team Monitor",
   "cmd.session.prStatus.title": "ChainlessChain: Show PR / CI Status",
   "cmd.background.agents.title": "ChainlessChain: Background Agents",

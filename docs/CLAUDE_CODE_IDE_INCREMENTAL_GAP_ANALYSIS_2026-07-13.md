@@ -9,7 +9,7 @@
 
 ### 2026-07-22 状态回填
 
-本报告后续追加的实现已经收口以下旧剩项：`cc doctor --export-bundle` 已接通脱敏诊断包导出；`protocol-replay.js` 与 `scripts/replay-protocol.mjs` 已提供离线回放/协商审计；`governance-coverage.js` 与 `scripts/coverage-report.mjs` 已提供治理覆盖率报告；OTLP exporter 已提供 HTTP/HTTPS 批量出口；VS Code 与 JetBrains 的 Plan Review 已用 `cc-plan-review/v1` 将有界草稿、计划快照、revision 和决策状态按 session 持久化，并恢复重启前仍活动的审阅。2026-07-23 又补齐最多 64 条 item/file/line/column/turn 结构化批注、`tool_use.id` ↔ `plan_item_id` 的逐项 executing/completed/failed 回写、旧/新 plan ID 的结构化 Diff，以及固化权限模式/批准项/允许工具的审批执行锁。因而“诊断包/离线回放/覆盖率”和“Plan Review 草稿恢复、结构化批注、执行进度、计划 Diff、审批锁摘要”应标为 **C/T 已完成**；发布门和真实 Collector 验收仍分别保留。
+本报告后续追加的实现已经收口以下旧剩项：`cc doctor --export-bundle` 已接通脱敏诊断包导出，VS Code 与 JetBrains 也已提供宿主内的“导出诊断”入口；`protocol-replay.js` 与 `scripts/replay-protocol.mjs` 已提供离线回放/协商审计；`governance-coverage.js` 与 `scripts/coverage-report.mjs` 已提供治理覆盖率报告；OTLP exporter 已提供 HTTP/HTTPS 批量出口；VS Code 与 JetBrains 的 Plan Review 已用 `cc-plan-review/v1` 将有界草稿、计划快照、revision 和决策状态按 session 持久化，并恢复重启前仍活动的审阅。2026-07-23 又补齐最多 64 条 item/file/line/column/turn 结构化批注、`tool_use.id` ↔ `plan_item_id` 的逐项 executing/completed/failed 回写、旧/新 plan ID 的结构化 Diff，以及固化权限模式/批准项/允许工具的审批执行锁。因而“CLI/IDE 诊断包导出、离线回放、覆盖率”和“Plan Review 草稿恢复、结构化批注、执行进度、计划 Diff、审批锁摘要”应标为 **C/T 已完成**；发布门、真实宿主 UI 和 Collector 验收仍分别保留。
 
 同日两端 `openDiff` 增加 `cc-diff-review/v1` 审计包，以内容指纹而非代码正文记录
 接受/拒绝、用户改写、hunk 选择、批注与最终写入。后续批次已用 CLI 请求覆盖宿主关联值，
@@ -500,7 +500,7 @@ Auto-fix 边界：
 
 从一份 Canonical Manifest 生成 CLI Capability、VS Code/JetBrains 协商、协议文档、Compatibility Fixture、行为矩阵和 Release Notes Capability Diff，防止代码、文档与测试漂移。
 
-应明确：Trace 字段传播已经落地；一键导出的脱敏诊断包、覆盖率指标和离线协议回放仍需完成。诊断包包含版本、平台、Capability、连接状态、脱敏事件、Trace、重连历史、进程/端口/锁文件/Worktree 摘要；默认不包含源码正文、API Key、Cookie、完整环境变量和未经许可的终端输出。导出前必须运行 Secret Scan。
+本节原始要求是：在 Trace 字段传播已经落地的基础上，继续完成一键导出的脱敏诊断包、覆盖率指标和离线协议回放；截至 2026-07-23，这三项代码与定向测试均已完成，不再作为当前代码缺口。诊断包包含版本、平台、Capability、连接状态、脱敏事件、Trace、重连历史、进程/端口/锁文件/Worktree 摘要；默认不包含源码正文、API Key、Cookie、完整环境变量和未经许可的终端输出。导出前必须运行 Secret Scan。
 
 **已落地（2026-07-13 续，Capability Manifest 单源生成器纯核）**：本节第一句「从一份 Canonical Manifest 生成 …，防止代码、文档与测试漂移」现落为纯逻辑模块 [`capability-manifest.js`](../packages/cli/src/lib/capability-manifest.js)。此前 wire-protocol 能力面被**手写三处**（[[capability-negotiation.js]] 的 `PROTOCOL_FEATURES` / `FEATURE_MIN_VERSION` / 私有 `FEATURE_TO_FIELD`、[[headless-manifest.js]] 的 `buildAgentCapabilities().features`、Java 孪生 + 共享 fixture），加一个 v2 字段只改其一即会在漏掉的对端错解析。新模块是**唯一**定义，其余全为纯投影：
 
@@ -531,7 +531,9 @@ Auto-fix 边界：
 - **导出前必跑 Secret Scan**：`secretScanGate(bundle)` 深走全部字符串，任何残留秘密→`ok:false`/`blocked:true` 并给出**点路径**（如 `notes`/`a.b[1]`），**fail-closed**；`exportDiagnosticBundle` 一步组装+闸门，闸门不过则**不交出可导出体**。
 - 测试 `diagnostic-bundle.test.js` 10（env 仅名 / 契约字段 / 终端默认扣留 vs 显式纳入 / 自由文本脱敏 / 干净包过闸 / 手改残留秘密被拦带路径 / 七字段喂 token 零泄漏）；复用的 secret-scan+capability-manifest 25 绿。
 
-**已接线（2026-07-13 续，`cc doctor --export-bundle` 落地）**：纯核已接进 `cc doctor` 命令面——新增 `--export-bundle [path]` 旗标（[[doctor.js]] `runExportBundle`）：先 `collectDoctorReport()` 取真实体检数据，经 [[diagnostics.js]] 新增的纯映射 `buildDoctorDiagnosticInput(report, {env, worktrees, lockfiles})`（version + 仅 open 端口 + 本机 platform 标签 + 实时 `git worktree list --porcelain` 解析（新纯核 `parseGitWorktrees`）+ 配置目录顶层 `*.lock`）折成 bundle 输入，喂 `exportDiagnosticBundle` 组装+脱敏+强制 secret-scan 闸门；闸门过 → 写 JSON 到 `<path>`（无 path 则 stdout），闸门拦（残留秘密，防御纵深）→ 打印泄漏点位并 exit 1、**不交出可导出体**。这是「一键导出脱敏诊断包」的真实用户面（bypass 人读渲染，是支持工件非终端读出）。env 仅留变量名 + secret-named 旗标、终端输出默认扣留，故导出体可安全外发。测试 `doctor-diagnostic-bundle.test.js` 7（`parseGitWorktrees` porcelain/detached/空 + `buildDoctorDiagnosticInput` 映射/open-only 端口/信号透传/null 报告容错 + `runExportBundle` 端到端：写 v1 包、env 带**名**不带**值**、真实 secret 值零泄漏、终端扣留）；diagnostics/diagnostic-bundle/doctor-status/doctor-checkup/plugin-capabilities 全套 56 回归绿；live `cc doctor --export-bundle` 实证（schema v1 / 98 env 名 / 1 worktree / 注入 `sk-` 秘密值零泄漏而名捕获）。剩项（覆盖率指标 / 离线协议回放 / IDE「导出诊断」命令 seam）仍开放。
+**已接线（2026-07-13 续，`cc doctor --export-bundle` 落地）**：纯核已接进 `cc doctor` 命令面——新增 `--export-bundle [path]` 旗标（[[doctor.js]] `runExportBundle`）：先 `collectDoctorReport()` 取真实体检数据，经 [[diagnostics.js]] 新增的纯映射 `buildDoctorDiagnosticInput(report, {env, worktrees, lockfiles})`（version + 仅 open 端口 + 本机 platform 标签 + 实时 `git worktree list --porcelain` 解析（新纯核 `parseGitWorktrees`）+ 配置目录顶层 `*.lock`）折成 bundle 输入，喂 `exportDiagnosticBundle` 组装+脱敏+强制 secret-scan 闸门；闸门过 → 写 JSON 到 `<path>`（无 path 则 stdout），闸门拦（残留秘密，防御纵深）→ 打印泄漏点位并 exit 1、**不交出可导出体**。这是「一键导出脱敏诊断包」的真实用户面（bypass 人读渲染，是支持工件非终端读出）。env 仅留变量名 + secret-named 旗标、终端输出默认扣留，故导出体可安全外发。测试 `doctor-diagnostic-bundle.test.js` 7（`parseGitWorktrees` porcelain/detached/空 + `buildDoctorDiagnosticInput` 映射/open-only 端口/信号透传/null 报告容错 + `runExportBundle` 端到端：写 v1 包、env 带**名**不带**值**、真实 secret 值零泄漏、终端扣留）；diagnostics/diagnostic-bundle/doctor-status/doctor-checkup/plugin-capabilities 全套 56 回归绿；live `cc doctor --export-bundle` 实证（schema v1 / 98 env 名 / 1 worktree / 注入 `sk-` 秘密值零泄漏而名捕获）。本批当时剩余覆盖率指标、离线协议回放和 IDE“导出诊断”命令 seam，均已由后续批次关闭。
+
+**已接线（2026-07-23，IDE“导出诊断”命令 seam 收口）**：VS Code 新增 `chainlesschain.ide.exportDiagnostics` 命令和 Status 视图入口，JetBrains 新增 Tools 菜单 `ExportDiagnosticsAction`；两端均由用户选择本地目标，再让 `cc doctor --export-bundle` 写入目标同目录的私有临时文件。宿主只在确认 `cc-diagnostic-bundle/v1` 与默认排除清单契约存在后才替换用户目标；旧版/异常 CLI 产出无效内容时保留原文件，拒绝符号链接或非普通文件目标，并在成功或失败后清理临时文件。成功后可直接打开 JSON。VS Code 的命令声明/NLS/激活接线、有效导出、无效导出保留旧文件和 symlink 拒绝，以及 JetBrains 的 action/bundle 对称性和契约解析均有定向测试。IDE 诊断导出的 **C/T 代码 seam 已关闭**；只保留真实 VS Code/JetBrains UI、远程宿主和发布包矩阵验收。
 
 证据：`docs/CLAUDE_CODE_IDE_GAP_ANALYSIS.md:28,62-66,194-200`。
 

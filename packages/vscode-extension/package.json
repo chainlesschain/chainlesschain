@@ -65,6 +65,11 @@
         "title": "%cmd.ide.doctor.title%"
       },
       {
+        "command": "chainlesschain.ide.exportDiagnostics",
+        "title": "%cmd.ide.exportDiagnostics.title%",
+        "icon": "$(export)"
+      },
+      {
         "command": "chainlesschain.team.monitor",
         "title": "%cmd.team.monitor.title%",
         "icon": "$(organization)"
@@ -362,6 +367,11 @@
           "command": "chainlesschain.ide.restart",
           "when": "view == chainlesschainIdeView",
           "group": "navigation@2"
+        },
+        {
+          "command": "chainlesschain.ide.exportDiagnostics",
+          "when": "view == chainlesschainIdeView",
+          "group": "navigation@3"
         }
       ],
       "editor/title": [

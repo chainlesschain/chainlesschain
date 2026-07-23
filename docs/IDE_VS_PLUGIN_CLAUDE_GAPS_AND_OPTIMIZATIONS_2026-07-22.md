@@ -35,6 +35,7 @@
 | Open VSX 发布               | 已发布 `0.37.26`；公开 API 已回读并确认可下载，发布 workflow 已接入 `scripts/verify-ide-marketplace.mjs`                                                                                        |
 | 定向复核测试                | CLI 6 个相关测试文件 48 项通过；Desktop bootstrap 2 项通过；关键 JS 语法检查通过                                                                                                                |
 | IDE Runtime Doctor          | VS Code `chainlesschain.ide.doctor` now includes extension/VS Code versions, workspace trust, workspace path, live bridge state, `cc ide status`, and `cc ide doctor` output; 6 assertions pass |
+| IDE 脱敏诊断导出            | VS Code 命令/Status 入口与 JetBrains Tools action 均调用 `cc doctor --export-bundle`；私有临时文件通过 schema/隐私契约校验后才替换用户目标，异常产物保留旧文件                              |
 | JetBrains Marketplace 发布  | `0.4.68` 已发布；公开 API 已回读并确认 `approve=true`、`listed=true`、`hidden=false`；发布 workflow 已接入同一验证脚本                                                                          |
 | VS Code 官方 Marketplace    | 未发布，当前未配置 `VSCE_PAT`；不影响 Open VSX 发布                                                                                                                                             |
 
@@ -144,6 +145,8 @@ Claude Code 官方插件可组合 Skills、Agents、Hooks、MCP、LSP、Monitors
 - 发布前对 VSIX、ZIP、CLI 和 Bridge 执行同一组 smoke tests，并在插件 UI 显示构建版本、协议版本和诊断 ID。
 
 验收标准：新机器无全局 `cc` 时，插件能自动给出可复制的修复路径；失败诊断不再只出现 `command not found` 或超时。
+
+**2026-07-23 代码收口**：现有 VS Code Runtime Doctor、Remote/WSL Doctor 和受控修复入口之外，两端已新增脱敏诊断包导出。VS Code 的 `chainlesschain.ide.exportDiagnostics` 命令可从 Status 视图启动，JetBrains 的 `ExportDiagnosticsAction` 位于 Tools 菜单；用户先选本地目标，CLI 再写入同目录私有临时文件。宿主确认 `cc-diagnostic-bundle/v1` 和默认排除清单契约后才替换目标；无效/旧版 CLI 产物不会截断已有文件，符号链接或非普通文件目标会被拒绝，临时文件始终清理，成功后可直接打开 JSON。该项的 C/T/H 接线缺口已关闭，剩余为真实 VS Code/JetBrains、Remote/WSL 和发布包矩阵验收。
 
 #### 2. Plan Review 还需要成为真正的 IDE 工作流
 
