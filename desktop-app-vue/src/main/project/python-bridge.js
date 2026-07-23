@@ -4,12 +4,20 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const { spawn } = require("child_process");
+const {
+  spawnWithDesktopBroker,
+  spawnSyncWithDesktopBroker,
+} = require("../process/desktop-process-broker.js");
 const path = require("path");
 const fs = require("fs");
 
 class PythonBridge {
-  constructor() {
+  constructor({
+    spawnProcess = spawnWithDesktopBroker,
+    spawnSyncProcess = spawnSyncWithDesktopBroker,
+  } = {}) {
+    this._spawnProcess = spawnProcess;
+    this._spawnSyncProcess = spawnSyncProcess;
     this.pythonPath = this.findPythonExecutable();
     this.toolsPath = path.join(__dirname, "../python-tools");
     this.timeout = 60000; // 默认60秒超时
@@ -41,13 +49,13 @@ class PythonBridge {
     // 尝试找到可用的Python
     for (const pythonCmd of possiblePaths) {
       try {
-        // 使用 spawnSync 替代 execSync 避免命令注入
-        const { spawnSync } = require("child_process");
-        const result = spawnSync(pythonCmd, ["--version"], {
+        const result = this._spawnSyncProcess(pythonCmd, ["--version"], {
           encoding: "utf-8",
           stdio: ["pipe", "pipe", "pipe"],
           timeout: 5000,
           windowsHide: true,
+          shell: false,
+          origin: "desktop:python-bridge-probe",
         });
         if (result.status === 0) {
           const version = (result.stdout || result.stderr || "").trim();
@@ -85,12 +93,14 @@ class PythonBridge {
 
     return new Promise((resolve, reject) => {
       // 创建子进程
-      const python = spawn(
+      const python = this._spawnProcess(
         this.pythonPath,
         [scriptPath, JSON.stringify(args)],
         {
           cwd: this.toolsPath,
           env: { ...process.env },
+          shell: false,
+          origin: "desktop:python-bridge-tool",
         },
       );
 

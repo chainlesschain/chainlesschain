@@ -1,6 +1,7 @@
 const {
   installDesktopProcessBroker,
   spawnWithDesktopBroker,
+  spawnSyncWithDesktopBroker,
   execFileSyncWithDesktopBroker,
   redact,
 } = require("../desktop-process-broker");
@@ -141,6 +142,40 @@ describe("desktop process broker", () => {
       origin: "desktop:ai-commit-message",
       command: "git",
       args: ["diff", "--cached"],
+    });
+    broker.uninstall();
+  });
+
+  it("exposes a fail-closed literal-argv spawnSync facade", () => {
+    const { cp, calls } = fakeChildProcess();
+    expect(() =>
+      spawnSyncWithDesktopBroker(
+        "python",
+        ["--version"],
+        {},
+        { childProcess: cp },
+      ),
+    ).toThrow("desktop_process_broker_not_installed");
+
+    const audit = [];
+    const broker = installDesktopProcessBroker({
+      childProcess: cp,
+      auditSink: (entry) => audit.push(entry),
+    });
+    spawnSyncWithDesktopBroker(
+      "python",
+      ["--version"],
+      { origin: "desktop:python-bridge-probe" },
+      { childProcess: cp },
+    );
+
+    expect(calls[0]).toMatchObject({
+      name: "spawnSync",
+      args: ["python", ["--version"], expect.any(Object)],
+    });
+    expect(audit[0]).toMatchObject({
+      operation: "spawnSync",
+      origin: "desktop:python-bridge-probe",
     });
     broker.uninstall();
   });

@@ -209,6 +209,17 @@ function spawnWithDesktopBroker(
   return broker.spawn(command, args, options);
 }
 
+function spawnSyncWithDesktopBroker(
+  command,
+  args,
+  options,
+  { childProcess = nativeChildProcess } = {},
+) {
+  const broker = getDesktopProcessBroker({ childProcess });
+  if (!broker) throw new Error("desktop_process_broker_not_installed");
+  return childProcess.spawnSync(command, args, options);
+}
+
 function execFileSyncWithDesktopBroker(
   file,
   args,
@@ -224,6 +235,7 @@ module.exports = {
   installDesktopProcessBroker,
   getDesktopProcessBroker,
   spawnWithDesktopBroker,
+  spawnSyncWithDesktopBroker,
   execFileSyncWithDesktopBroker,
   redact,
 };

@@ -248,6 +248,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   `git diff` 参数保持独立 argv，并统一记录 `desktop:ai-commit-message` origin。
 - Desktop PreviewManager 的开发服务器启动已显式进入 `desktop:preview-dev-server` Broker origin；
   保留自定义 shell 命令、输出解析、LRU 与进程生命周期语义，并提供无真实进程的测试注入点。
+- Desktop PythonBridge 的 Python 版本探测与工具脚本启动已分别进入
+  `desktop:python-bridge-probe` / `desktop:python-bridge-tool`，均使用无 shell 字面 argv 并支持测试注入。
 - REPL `/goal exit-zero` 的命令检查已进入 `repl-goal:exit-zero` Broker origin；保留用户条件所需的
   显式 shell 语义，并增加 30 秒执行上限。
 - Headless `--goal-condition exit-zero` 的默认命令检查已进入 `headless-goal:exit-zero` Broker origin；
