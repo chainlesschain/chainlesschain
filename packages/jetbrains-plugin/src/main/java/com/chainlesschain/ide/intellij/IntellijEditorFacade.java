@@ -34,6 +34,7 @@ import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -233,13 +234,24 @@ public final class IntellijEditorFacade implements EditorFacade {
             // corrupts the bytes. Short-circuit before any UI opens; nothing
             // is written. (A binary file has no Document, so also sniff the
             // raw bytes when the caller sent no baseline.)
-            if (DiffApplyGuard.looksBinary(modifiedText)
-                    || DiffApplyGuard.looksBinary(originalText)
-                    || (originalText == null && DiffApplyGuard.looksBinary(readBytesSafe(vf)))) {
+            FileProbe currentProbe =
+                    originalText == null ? readFileProbe(vf) : null;
+            DiffApplyGuard.ReviewPayload reviewPayload =
+                    DiffApplyGuard.checkReviewPayload(
+                            modifiedText,
+                            originalText,
+                            currentProbe == null ? null : currentProbe.bytes,
+                            currentProbe == null
+                                    ? null : Long.valueOf(currentProbe.sizeBytes),
+                            DiffApplyGuard.MAX_REVIEW_FILE_BYTES);
+            if (!reviewPayload.reviewable) {
                 Map<String, Object> bin = new LinkedHashMap<>();
                 bin.put("outcome", "rejected");
                 bin.put("path", path);
-                bin.put("reason", DiffApplyGuard.REASON_BINARY_SKIPPED);
+                bin.put("operation", diffOperation);
+                if (targetPath != null) bin.put("targetPath", targetPath);
+                bin.put("reason", reviewPayload.reason);
+                bin.put("degradation", reviewPayloadMap(reviewPayload));
                 result.set(bin);
                 return;
             }
@@ -385,24 +397,39 @@ public final class IntellijEditorFacade implements EditorFacade {
             // Binary guard (twin of VS Code): a binary file must never
             // round-trip the UTF-8 text pipeline — drop it from the reviewable
             // set up front, tracking which paths were skipped.
-            final List<String> skippedBinary = new ArrayList<>();
-            final List<MultiDiff.FileChange> norm = new ArrayList<>();
+            final Map<String, byte[]> currentBytes = new LinkedHashMap<>();
+            final Map<String, Long> currentSizes = new LinkedHashMap<>();
             for (MultiDiff.FileChange f : all) {
-                boolean binary = DiffApplyGuard.looksBinary(f.modifiedText)
-                        || DiffApplyGuard.looksBinary(f.originalText)
-                        || (f.originalText == null
-                                && DiffApplyGuard.looksBinary(
-                                        readBytesSafe(LocalFileSystem.getInstance().findFileByPath(f.path))));
-                if (binary) skippedBinary.add(f.path);
-                else norm.add(f);
+                if (f.originalText == null) {
+                    FileProbe probe = readFileProbe(
+                            LocalFileSystem.getInstance().findFileByPath(f.path));
+                    if (probe != null) {
+                        currentBytes.put(f.path, probe.bytes);
+                        currentSizes.put(f.path, probe.sizeBytes);
+                    }
+                }
             }
+            final MultiDiff.ReviewPlan reviewPlan =
+                    MultiDiff.planReview(
+                            all,
+                            currentBytes,
+                            currentSizes,
+                            DiffApplyGuard.MAX_REVIEW_FILE_BYTES,
+                            MultiDiff.MAX_REVIEW_CHANGESET_FILES,
+                            MultiDiff.MAX_REVIEW_CHANGESET_BYTES);
+            final List<MultiDiff.FileChange> norm = reviewPlan.reviewable;
+            final List<String> skippedBinary = skippedPaths(reviewPlan, "binary");
+            final List<String> skippedLarge = skippedPaths(
+                    reviewPlan, "large-file", "changeset-limit");
             if (norm.isEmpty()) {
                 r.put("outcome", "rejected");
                 r.put("written", new ArrayList<String>());
                 r.put("count", 0);
-                if (!skippedBinary.isEmpty()) {
-                    r.put("reason", DiffApplyGuard.REASON_BINARY_SKIPPED);
-                    r.put("skippedBinary", skippedBinary);
+                if (!reviewPlan.skipped.isEmpty()) {
+                    r.put("reason", reviewPlan.skipped.get(0).reason);
+                    addReviewDegradation(
+                            r, all.size(), norm.size(), reviewPlan,
+                            skippedBinary, skippedLarge);
                 }
                 result.set(r);
                 return;
@@ -431,7 +458,11 @@ public final class IntellijEditorFacade implements EditorFacade {
             MultiDiff.Summary summary = MultiDiff.changesetSummary(norm);
             int choice = Messages.showYesNoCancelDialog(project,
                     "Apply " + summary.count + " file change(s)?  (+" + summary.totalAdded
-                            + " / -" + summary.totalRemoved + ")",
+                            + " / -" + summary.totalRemoved + ")"
+                            + (reviewPlan.skipped.isEmpty()
+                                    ? ""
+                                    : "; " + reviewPlan.skipped.size()
+                                            + " skipped by safety limits"),
                     title != null ? title : "ChainlessChain Multi-file Review",
                     "Accept all", "Choose files…", "Reject", null);
 
@@ -478,7 +509,11 @@ public final class IntellijEditorFacade implements EditorFacade {
                 r.put("skippedConflicts", skippedConflicts);
                 if (written.isEmpty()) r.put("reason", DiffApplyGuard.REASON_DISK_DRIFTED);
             }
-            if (!skippedBinary.isEmpty()) r.put("skippedBinary", skippedBinary);
+            if (reviewPlan.degraded()) {
+                addReviewDegradation(
+                        r, all.size(), norm.size(), reviewPlan,
+                        skippedBinary, skippedLarge);
+            }
             result.set(r);
         });
         return result.get();
@@ -579,6 +614,59 @@ public final class IntellijEditorFacade implements EditorFacade {
         String message = error == null || error.getMessage() == null
                 ? String.valueOf(error) : error.getMessage();
         return message.length() > 240 ? message.substring(0, 240) : message;
+    }
+
+    private static Map<String, Object> reviewPayloadMap(
+            DiffApplyGuard.ReviewPayload payload) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("reviewable", payload.reviewable);
+        if (payload.kind != null) out.put("kind", payload.kind);
+        if (payload.reason != null) out.put("reason", payload.reason);
+        out.put("bytes", payload.bytes);
+        out.put("limitBytes", payload.limitBytes);
+        return out;
+    }
+
+    private static List<String> skippedPaths(
+            MultiDiff.ReviewPlan plan, String... kinds) {
+        Set<String> acceptedKinds = new LinkedHashSet<>(List.of(kinds));
+        List<String> paths = new ArrayList<>();
+        for (MultiDiff.ReviewSkip skip : plan.skipped) {
+            if (acceptedKinds.contains(skip.kind)) paths.add(skip.path);
+        }
+        return paths;
+    }
+
+    private static void addReviewDegradation(
+            Map<String, Object> result,
+            int requested,
+            int reviewable,
+            MultiDiff.ReviewPlan plan,
+            List<String> skippedBinary,
+            List<String> skippedLarge) {
+        List<Map<String, Object>> skipped = new ArrayList<>();
+        for (MultiDiff.ReviewSkip item : plan.skipped) {
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("path", item.path);
+            entry.put("kind", item.kind);
+            entry.put("reason", item.reason);
+            entry.put("bytes", item.bytes);
+            entry.put("limitBytes", item.limitBytes);
+            skipped.add(entry);
+        }
+        Map<String, Object> limits = new LinkedHashMap<>();
+        limits.put("maxFileBytes", plan.maxFileBytes);
+        limits.put("maxFiles", plan.maxFiles);
+        limits.put("maxTotalBytes", plan.maxTotalBytes);
+        Map<String, Object> degradation = new LinkedHashMap<>();
+        degradation.put("requested", requested);
+        degradation.put("reviewable", reviewable);
+        degradation.put("skipped", skipped);
+        degradation.put("limits", limits);
+        result.put("degraded", true);
+        result.put("degradation", degradation);
+        if (!skippedBinary.isEmpty()) result.put("skippedBinary", skippedBinary);
+        if (!skippedLarge.isEmpty()) result.put("skippedLarge", skippedLarge);
     }
 
     private void deleteReviewedFile(VirtualFile vf) {
@@ -706,14 +794,29 @@ public final class IntellijEditorFacade implements EditorFacade {
         return confirmDriftOverwrite(vf, path, baselineText);
     }
 
-    /** Raw bytes for the binary sniff (null when missing/unreadable). */
-    private byte[] readBytesSafe(VirtualFile vf) {
+    private static final class FileProbe {
+        final byte[] bytes;
+        final long sizeBytes;
+
+        FileProbe(byte[] bytes, long sizeBytes) {
+            this.bytes = bytes;
+            this.sizeBytes = sizeBytes;
+        }
+    }
+
+    /**
+     * Read at most 8 KiB for the binary sniff while retaining the full VFS
+     * length. A huge file is therefore rejected without materializing it.
+     */
+    private FileProbe readFileProbe(VirtualFile vf) {
         if (vf == null) return null;
         try {
             return ApplicationManager.getApplication().runReadAction(
-                    (com.intellij.openapi.util.Computable<byte[]>) () -> {
-                        try {
-                            return vf.contentsToByteArray();
+                    (com.intellij.openapi.util.Computable<FileProbe>) () -> {
+                        long size = Math.max(0L, vf.getLength());
+                        int probeLength = (int) Math.min(size, 8192L);
+                        try (InputStream input = vf.getInputStream()) {
+                            return new FileProbe(input.readNBytes(probeLength), size);
                         } catch (Throwable t) {
                             return null;
                         }

@@ -11,11 +11,17 @@ import java.util.Set;
  * whole changeset at once) — a direct port of the VS Code extension's
  * multi-diff.js. Normalizes the proposed file set, computes a per-file +/-
  * summary, and resolves a per-file accept decision into the writes to perform.
- * No IntelliJ SDK; the per-file line counts use an inline LCS (equivalent to the
- * JS diff-hunks totals), so it compiles + tests with plain {@code javac}. The
- * IntelliJ glue opens the native multi-file diff; this stays host-free.
+ * No IntelliJ SDK; per-file line counts reuse the bounded {@link DiffHunks}
+ * LCS (equivalent to the JS twin), so it compiles + tests with plain
+ * {@code javac}. The IntelliJ glue opens the native multi-file diff; this stays
+ * host-free.
  */
 public final class MultiDiff {
+
+    public static final int MAX_REVIEW_CHANGESET_FILES = 64;
+    public static final long MAX_REVIEW_CHANGESET_BYTES = 8L * 1024L * 1024L;
+    public static final String REASON_CHANGESET_LIMIT =
+            "changeset exceeds IDE diff review limits";
 
     private MultiDiff() {}
 
@@ -58,6 +64,52 @@ public final class MultiDiff {
             this.count = count;
             this.totalAdded = totalAdded;
             this.totalRemoved = totalRemoved;
+        }
+    }
+
+    /** One entry omitted from native review; never contains file content. */
+    public static final class ReviewSkip {
+        public final String path;
+        public final String kind;
+        public final String reason;
+        public final long bytes;
+        public final long limitBytes;
+
+        ReviewSkip(String path, String kind, String reason, long bytes, long limitBytes) {
+            this.path = path;
+            this.kind = kind;
+            this.reason = reason;
+            this.bytes = bytes;
+            this.limitBytes = limitBytes;
+        }
+    }
+
+    /** Deterministic, bounded subset safe to materialize in the IDE. */
+    public static final class ReviewPlan {
+        public final List<FileChange> reviewable;
+        public final List<ReviewSkip> skipped;
+        public final long totalBytes;
+        public final long maxFileBytes;
+        public final int maxFiles;
+        public final long maxTotalBytes;
+
+        ReviewPlan(
+                List<FileChange> reviewable,
+                List<ReviewSkip> skipped,
+                long totalBytes,
+                long maxFileBytes,
+                int maxFiles,
+                long maxTotalBytes) {
+            this.reviewable = reviewable;
+            this.skipped = skipped;
+            this.totalBytes = totalBytes;
+            this.maxFileBytes = maxFileBytes;
+            this.maxFiles = maxFiles;
+            this.maxTotalBytes = maxTotalBytes;
+        }
+
+        public boolean degraded() {
+            return !skipped.isEmpty();
         }
     }
 
@@ -137,6 +189,95 @@ public final class MultiDiff {
         return out;
     }
 
+    /**
+     * Partition before native editor documents or LCS state are created.
+     * Binary/large entries and entries beyond aggregate limits are reported,
+     * never silently applied.
+     */
+    public static ReviewPlan planReview(
+            List<FileChange> files,
+            Map<String, byte[]> currentBytes,
+            long maxFileBytes,
+            int maxFiles,
+            long maxTotalBytes) {
+        return planReview(
+                files,
+                currentBytes,
+                null,
+                maxFileBytes,
+                maxFiles,
+                maxTotalBytes);
+    }
+
+    public static ReviewPlan planReview(
+            List<FileChange> files,
+            Map<String, byte[]> currentBytes,
+            Map<String, Long> currentSizes,
+            long maxFileBytes,
+            int maxFiles,
+            long maxTotalBytes) {
+        long fileByteLimit = maxFileBytes > 0
+                ? maxFileBytes : DiffApplyGuard.MAX_REVIEW_FILE_BYTES;
+        int fileCountLimit = maxFiles > 0 ? maxFiles : MAX_REVIEW_CHANGESET_FILES;
+        long totalByteLimit = maxTotalBytes > 0
+                ? maxTotalBytes : MAX_REVIEW_CHANGESET_BYTES;
+        List<FileChange> reviewable = new ArrayList<FileChange>();
+        List<ReviewSkip> skipped = new ArrayList<ReviewSkip>();
+        long totalBytes = 0L;
+        for (FileChange file : normalizeMultiDiffFiles(files)) {
+            String original = file.originalText != null ? file.originalText : "";
+            if (original.equals(file.modifiedText)) continue;
+            byte[] disk = file.originalText == null && currentBytes != null
+                    ? currentBytes.get(file.path) : null;
+            Long diskSize = file.originalText == null && currentSizes != null
+                    ? currentSizes.get(file.path) : null;
+            DiffApplyGuard.ReviewPayload payload = DiffApplyGuard.checkReviewPayload(
+                    file.modifiedText,
+                    file.originalText,
+                    disk,
+                    diskSize,
+                    fileByteLimit);
+            if (!payload.reviewable) {
+                skipped.add(new ReviewSkip(
+                        file.path,
+                        payload.kind,
+                        payload.reason,
+                        payload.bytes,
+                        payload.limitBytes));
+                continue;
+            }
+            if (reviewable.size() >= fileCountLimit
+                    || totalBytes + payload.bytes > totalByteLimit) {
+                skipped.add(new ReviewSkip(
+                        file.path,
+                        "changeset-limit",
+                        REASON_CHANGESET_LIMIT,
+                        payload.bytes,
+                        totalByteLimit));
+                continue;
+            }
+            reviewable.add(file);
+            totalBytes += payload.bytes;
+        }
+        return new ReviewPlan(
+                reviewable,
+                skipped,
+                totalBytes,
+                fileByteLimit,
+                fileCountLimit,
+                totalByteLimit);
+    }
+
+    public static ReviewPlan planReview(
+            List<FileChange> files, Map<String, byte[]> currentBytes) {
+        return planReview(
+                files,
+                currentBytes,
+                DiffApplyGuard.MAX_REVIEW_FILE_BYTES,
+                MAX_REVIEW_CHANGESET_FILES,
+                MAX_REVIEW_CHANGESET_BYTES);
+    }
+
     // ── internals ──────────────────────────────────────────────────────────
 
     private static int countLines(String s) {
@@ -145,28 +286,17 @@ public final class MultiDiff {
     }
 
     /**
-     * Added/removed line counts via an LCS of the two line sequences — same
-     * totals the JS diff-hunks produces (a replaced line counts as -1 +1).
+     * Added/removed line counts via the bounded DiffHunks LCS — same totals
+     * the JS twin produces (a replaced line counts as -1 +1).
      * @return int[]{ added, removed }
      */
     private static int[] diffCounts(String original, String modified) {
-        String[] a = original.split("\\n", -1);
-        String[] b = modified.split("\\n", -1);
-        int n = a.length, m = b.length;
-        // LCS length via DP.
-        int[][] dp = new int[n + 1][m + 1];
-        for (int i = n - 1; i >= 0; i--) {
-            for (int j = m - 1; j >= 0; j--) {
-                if (a[i].equals(b[j])) {
-                    dp[i][j] = dp[i + 1][j + 1] + 1;
-                } else {
-                    dp[i][j] = Math.max(dp[i + 1][j], dp[i][j + 1]);
-                }
-            }
+        int removed = 0;
+        int added = 0;
+        for (DiffHunks.Hunk h : DiffHunks.computeHunks(original, modified)) {
+            removed += h.oldLines.size();
+            added += h.newLines.size();
         }
-        int lcs = dp[0][0];
-        int removed = n - lcs;
-        int added = m - lcs;
         return new int[] { added, removed };
     }
 }

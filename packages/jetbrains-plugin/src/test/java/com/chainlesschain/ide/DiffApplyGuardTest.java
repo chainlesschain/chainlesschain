@@ -73,11 +73,58 @@ class DiffApplyGuardTest {
         assertFalse(DiffApplyGuard.looksBinary(new byte[0]));
     }
 
+    @Test
+    void reviewPayloadCountsUtf8BytesAcrossBothSides() {
+        DiffApplyGuard.ReviewPayload payload =
+                DiffApplyGuard.checkReviewPayload("文", "中", null, 6);
+        assertTrue(payload.reviewable);
+        assertEquals(6, payload.bytes);
+        assertEquals(6, payload.limitBytes);
+    }
+
+    @Test
+    void oversizedTextIsRejectedWithBoundedMetadata() {
+        DiffApplyGuard.ReviewPayload payload =
+                DiffApplyGuard.checkReviewPayload("5678", "1234", null, 7);
+        assertFalse(payload.reviewable);
+        assertEquals("large-file", payload.kind);
+        assertEquals(DiffApplyGuard.REASON_LARGE_FILE_SKIPPED, payload.reason);
+        assertEquals(8, payload.bytes);
+        assertEquals(7, payload.limitBytes);
+    }
+
+    @Test
+    void rawDiskBytesAreUsedWhenBaselineIsMissing() {
+        DiffApplyGuard.ReviewPayload payload =
+                DiffApplyGuard.checkReviewPayload(
+                        "new", null, new byte[] { 1, 0, 2 }, 100);
+        assertFalse(payload.reviewable);
+        assertEquals("binary", payload.kind);
+        assertEquals(DiffApplyGuard.REASON_BINARY_SKIPPED, payload.reason);
+    }
+
+    @Test
+    void fullDiskSizeIsUsedWithOnlyABoundedProbe() {
+        DiffApplyGuard.ReviewPayload payload =
+                DiffApplyGuard.checkReviewPayload(
+                        "new",
+                        null,
+                        "small probe".getBytes(StandardCharsets.UTF_8),
+                        Long.valueOf(DiffApplyGuard.MAX_REVIEW_FILE_BYTES),
+                        DiffApplyGuard.MAX_REVIEW_FILE_BYTES);
+        assertFalse(payload.reviewable);
+        assertEquals("large-file", payload.kind);
+        assertEquals(DiffApplyGuard.MAX_REVIEW_FILE_BYTES + 3, payload.bytes);
+    }
+
     // ---- shared reason strings (contract with the facade + VS twin) ----
 
     @Test
     void reasonStringsMatchTheVsCodeTwin() {
         assertEquals("disk-drifted", DiffApplyGuard.REASON_DISK_DRIFTED);
         assertEquals("binary file, skipped", DiffApplyGuard.REASON_BINARY_SKIPPED);
+        assertEquals(
+                "file too large for IDE diff review",
+                DiffApplyGuard.REASON_LARGE_FILE_SKIPPED);
     }
 }

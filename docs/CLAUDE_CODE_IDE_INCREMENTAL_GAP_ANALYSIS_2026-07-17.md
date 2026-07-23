@@ -33,7 +33,11 @@ follow-up tracker：下一次同 session/path 审阅会把实际结果和 review
 再后续批次已增加 `delete_file` / `move_file`，并让 `openDiff` 显式携带
 modify/create/delete/rename 与 rename 目标路径；两端独立守卫源/目标，Accept 后执行不覆盖
 目标的删除/重命名，审计和副作用账本保留操作语义。显式 rename/delete 缺口已关闭；Diff
-代码侧只剩真实多宿主 UI/大文件/二进制与复杂 changeset 降级验收。
+后续又增加同构容量门：单文件 baseline+proposal 2 MiB、changeset 64 文件/8 MiB；双端均在
+创建原生 Diff 前拒绝二进制、大文件和超限条目，混合批次仅应用已展示文本子集，并返回
+content-free 的结构化 skipped 元数据。JetBrains 多文件统计复用有 400 万 DP 单元保护的
+`DiffHunks`。容量降级 C/T/H 已关闭；Diff 代码侧只剩真实多宿主 UI 和 mode-change/
+rename/delete 混合 changeset 验收。
 
 本报告正文中第 6 条关于“Bridge ACL fail-open/仅本地 OTLP JSON”的段落，以及第 3 节中 Remote Robot 未成功的历史运行记录，均属于 2026-07-17 截面；当前请以 2026-07-22 的 VS Code/JetBrains 双端 fail-closed ACL、HTTP/HTTPS OTLP、JetBrains GUI smoke 和 Marketplace API 复核结果为准。
 

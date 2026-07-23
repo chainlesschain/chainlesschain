@@ -1,5 +1,7 @@
 package com.chainlesschain.ide;
 
+import java.nio.charset.StandardCharsets;
+
 /**
  * Pure safety guards for applying a reviewed diff back to disk. SDK-free so
  * plain JUnit covers it; the IntelliJ glue lives in IntellijEditorFacade.
@@ -28,6 +30,35 @@ public final class DiffApplyGuard {
 
     /** Result {@code reason} for a binary short-circuit. */
     public static final String REASON_BINARY_SKIPPED = "binary file, skipped";
+
+    /** Combined baseline + proposal budget for one native IDE diff. */
+    public static final long MAX_REVIEW_FILE_BYTES = 2L * 1024L * 1024L;
+
+    /** Result {@code reason} for an oversized text diff. */
+    public static final String REASON_LARGE_FILE_SKIPPED =
+            "file too large for IDE diff review";
+
+    /** Bounded, content-free classification returned before an IDE diff opens. */
+    public static final class ReviewPayload {
+        public final boolean reviewable;
+        public final String kind;
+        public final String reason;
+        public final long bytes;
+        public final long limitBytes;
+
+        ReviewPayload(
+                boolean reviewable,
+                String kind,
+                String reason,
+                long bytes,
+                long limitBytes) {
+            this.reviewable = reviewable;
+            this.kind = kind;
+            this.reason = reason;
+            this.bytes = bytes;
+            this.limitBytes = limitBytes;
+        }
+    }
 
     private DiffApplyGuard() {
     }
@@ -58,5 +89,66 @@ public final class DiffApplyGuard {
             if (b == 0) return true;
         }
         return false;
+    }
+
+    /**
+     * Classify a baseline/proposal pair before creating native editor
+     * documents. {@code currentBytes} is used only when no explicit baseline
+     * was supplied.
+     */
+    public static ReviewPayload checkReviewPayload(
+            String modifiedText,
+            String originalText,
+            byte[] currentBytes,
+            long maxBytes) {
+        return checkReviewPayload(
+                modifiedText,
+                originalText,
+                currentBytes,
+                currentBytes == null ? null : Long.valueOf(currentBytes.length),
+                maxBytes);
+    }
+
+    public static ReviewPayload checkReviewPayload(
+            String modifiedText,
+            String originalText,
+            byte[] currentBytes,
+            Long currentSizeBytes,
+            long maxBytes) {
+        long limit = maxBytes > 0 ? maxBytes : MAX_REVIEW_FILE_BYTES;
+        boolean explicitBaseline = originalText != null;
+        long bytes = utf8Length(modifiedText)
+                + (explicitBaseline
+                        ? utf8Length(originalText)
+                        : currentSizeBytes != null && currentSizeBytes >= 0
+                                ? currentSizeBytes
+                                : byteLength(currentBytes));
+        boolean binary = looksBinary(modifiedText)
+                || (explicitBaseline ? looksBinary(originalText) : looksBinary(currentBytes));
+        if (binary) {
+            return new ReviewPayload(
+                    false, "binary", REASON_BINARY_SKIPPED, bytes, limit);
+        }
+        if (bytes > limit) {
+            return new ReviewPayload(
+                    false, "large-file", REASON_LARGE_FILE_SKIPPED, bytes, limit);
+        }
+        return new ReviewPayload(true, null, null, bytes, limit);
+    }
+
+    public static ReviewPayload checkReviewPayload(
+            String modifiedText,
+            String originalText,
+            byte[] currentBytes) {
+        return checkReviewPayload(
+                modifiedText, originalText, currentBytes, MAX_REVIEW_FILE_BYTES);
+    }
+
+    private static long utf8Length(String text) {
+        return text == null ? 0L : text.getBytes(StandardCharsets.UTF_8).length;
+    }
+
+    private static long byteLength(byte[] bytes) {
+        return bytes == null ? 0L : bytes.length;
     }
 }

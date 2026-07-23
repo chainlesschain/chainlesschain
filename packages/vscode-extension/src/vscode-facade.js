@@ -7,9 +7,9 @@ const fs = require("fs");
 const nodePath = require("path");
 const {
   checkApplySafety,
-  looksBinary,
+  checkReviewPayload,
+  MAX_REVIEW_FILE_BYTES,
   REASON_DISK_DRIFTED,
-  REASON_BINARY_SKIPPED,
 } = require("./diff-apply-guard");
 
 const SEVERITY = ["error", "warning", "information", "hint"];
@@ -244,12 +244,23 @@ function createVscodeEditorFacade(vscode, opts = {}) {
       // Binary guard: the whole diff pipeline is UTF-8 text — reviewing (and
       // on accept, rewriting) a binary file through it corrupts the bytes.
       // Short-circuit before any UI opens; nothing is written.
-      if (
-        looksBinary(modifiedText) ||
-        looksBinary(originalText) ||
-        (typeof originalText !== "string" && looksBinary(safeReadFileRaw(path)))
-      ) {
-        return { outcome: "rejected", path, reason: REASON_BINARY_SKIPPED };
+      const currentProbe =
+        typeof originalText === "string" ? null : safeReadFileProbe(path);
+      const reviewPayload = checkReviewPayload({
+        modifiedText,
+        originalText,
+        currentBytes: currentProbe?.bytes,
+        currentSizeBytes: currentProbe?.sizeBytes,
+      });
+      if (!reviewPayload.reviewable) {
+        return {
+          outcome: "rejected",
+          path,
+          operation,
+          ...(targetPath ? { targetPath } : {}),
+          reason: reviewPayload.reason,
+          degradation: reviewPayload,
+        };
       }
       const auditBaselineText =
         typeof originalText === "string"
@@ -520,31 +531,46 @@ function createVscodeEditorFacade(vscode, opts = {}) {
         changesetSummary,
         fileLabel,
         selectWrites,
+        planMultiDiffReview,
       } = require("./multi-diff");
       const norm = normalizeMultiDiffFiles(files);
       // Binary guard (same as openDiff): a binary file must never round-trip
       // the UTF-8 text pipeline — drop it from the reviewable set up front.
-      const skippedBinary = [];
-      const textual = [];
-      for (const f of norm) {
-        const binary =
-          looksBinary(f.modifiedText) ||
-          looksBinary(f.originalText) ||
-          (f.originalText == null && looksBinary(safeReadFileRaw(f.path)));
-        if (binary) skippedBinary.push(f.path);
-        else textual.push(f);
-      }
-      const changed = textual.filter(
+      const reviewPlan = planMultiDiffReview(norm, {
+        readCurrentBytes: safeReadFileProbe,
+      });
+      const skippedBinary = reviewPlan.skipped
+        .filter((entry) => entry.kind === "binary")
+        .map((entry) => entry.path);
+      const skippedLarge = reviewPlan.skipped
+        .filter(
+          (entry) =>
+            entry.kind === "large-file" || entry.kind === "changeset-limit",
+        )
+        .map((entry) => entry.path);
+      const changed = reviewPlan.reviewable.filter(
         (f) => (f.originalText || "") !== f.modifiedText,
       );
+      const withDegradation = (result) => {
+        if (!reviewPlan.degraded) return result;
+        return {
+          ...result,
+          degraded: true,
+          degradation: {
+            requested: norm.length,
+            reviewable: changed.length,
+            skipped: reviewPlan.skipped,
+            limits: reviewPlan.limits,
+          },
+          ...(skippedBinary.length > 0 ? { skippedBinary } : {}),
+          ...(skippedLarge.length > 0 ? { skippedLarge } : {}),
+        };
+      };
       if (changed.length === 0) {
-        return skippedBinary.length > 0
-          ? {
-              outcome: "rejected",
-              reason: REASON_BINARY_SKIPPED,
-              skippedBinary,
-            }
-          : { outcome: "rejected", reason: "no changes" };
+        return withDegradation({
+          outcome: "rejected",
+          reason: reviewPlan.skipped[0]?.reason || "no changes",
+        });
       }
       // Baseline per path for the accept-time drift gate (normalize() stores
       // null when the caller sent no baseline → gate stays inert for those).
@@ -592,8 +618,7 @@ function createVscodeEditorFacade(vscode, opts = {}) {
             out.reason = REASON_DISK_DRIFTED;
           }
         }
-        if (skippedBinary.length > 0) out.skippedBinary = skippedBinary;
-        return out;
+        return withDegradation(out);
       };
       // Build the [resourceUri, leftUri, rightUri] list for vscode.changes.
       const resources = [];
@@ -663,7 +688,11 @@ function createVscodeEditorFacade(vscode, opts = {}) {
         }
         vscode.window
           .showInformationMessage(
-            `Apply ${summary.count} proposed change(s)? (+${summary.totalAdded} -${summary.totalRemoved})`,
+            `Apply ${summary.count} proposed change(s)? (+${summary.totalAdded} -${summary.totalRemoved})${
+              reviewPlan.skipped.length > 0
+                ? `; ${reviewPlan.skipped.length} skipped by safety limits`
+                : ""
+            }`,
             { modal: false },
             "Accept all",
             "Pick files…",
@@ -684,7 +713,7 @@ function createVscodeEditorFacade(vscode, opts = {}) {
       }
 
       if (choice === CLOSED) {
-        return { outcome: "rejected", closedDiff: true };
+        return withDegradation({ outcome: "rejected", closedDiff: true });
       }
       if (choice === "Accept all") {
         const writes = selectWrites(changed, null);
@@ -705,7 +734,7 @@ function createVscodeEditorFacade(vscode, opts = {}) {
           },
         );
         if (!picks || picks.length === 0) {
-          return { outcome: "rejected" };
+          return withDegradation({ outcome: "rejected" });
         }
         const writes = selectWrites(
           changed,
@@ -714,7 +743,7 @@ function createVscodeEditorFacade(vscode, opts = {}) {
         const { written, skippedConflicts } = await applyWritesGuarded(writes);
         return decisionResult(written, skippedConflicts, { files: written });
       }
-      return { outcome: "rejected" };
+      return withDegradation({ outcome: "rejected" });
     },
 
     // Notebook code execution via the Jupyter extension's Kernel API
@@ -1042,12 +1071,33 @@ function safeReadFileOrNull(path) {
   }
 }
 
-/** Raw bytes for the binary sniff (null when missing/unreadable). */
-function safeReadFileRaw(path) {
+/**
+ * Read only a small binary probe while preserving the full on-disk byte size.
+ * Capacity rejection therefore happens without materializing a huge file.
+ */
+function safeReadFileProbe(path) {
+  let fd = null;
   try {
-    return fs.readFileSync(path);
+    const stat = fs.statSync(path);
+    if (!stat.isFile()) return null;
+    const length = Math.min(stat.size, 8192, MAX_REVIEW_FILE_BYTES);
+    const bytes = Buffer.alloc(length);
+    if (length > 0) {
+      fd = fs.openSync(path, "r");
+      const read = fs.readSync(fd, bytes, 0, length, 0);
+      return { bytes: bytes.subarray(0, read), sizeBytes: stat.size };
+    }
+    return { bytes, sizeBytes: stat.size };
   } catch {
     return null;
+  } finally {
+    if (fd != null) {
+      try {
+        fs.closeSync(fd);
+      } catch {
+        /* best-effort */
+      }
+    }
   }
 }
 

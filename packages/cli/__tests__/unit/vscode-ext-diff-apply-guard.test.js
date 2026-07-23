@@ -23,9 +23,12 @@ import path from "node:path";
 
 import {
   checkApplySafety,
+  checkReviewPayload,
   looksBinary,
+  MAX_REVIEW_FILE_BYTES,
   REASON_DISK_DRIFTED,
   REASON_BINARY_SKIPPED,
+  REASON_LARGE_FILE_SKIPPED,
 } from "../../../vscode-extension/src/diff-apply-guard.js";
 import { createVscodeEditorFacade } from "../../../vscode-extension/src/vscode-facade.js";
 
@@ -77,6 +80,61 @@ describe("looksBinary (pure)", () => {
     expect(looksBinary(undefined)).toBe(false);
     expect(looksBinary("")).toBe(false);
     expect(looksBinary(Buffer.alloc(0))).toBe(false);
+  });
+});
+
+describe("checkReviewPayload (pure)", () => {
+  it("counts UTF-8 bytes across baseline and proposal", () => {
+    expect(
+      checkReviewPayload({
+        originalText: "中",
+        modifiedText: "文",
+        maxBytes: 6,
+      }),
+    ).toEqual({ reviewable: true, bytes: 6, limitBytes: 6 });
+  });
+
+  it("rejects oversized text with bounded metadata", () => {
+    expect(
+      checkReviewPayload({
+        originalText: "1234",
+        modifiedText: "5678",
+        maxBytes: 7,
+      }),
+    ).toEqual({
+      reviewable: false,
+      kind: "large-file",
+      reason: REASON_LARGE_FILE_SKIPPED,
+      bytes: 8,
+      limitBytes: 7,
+    });
+  });
+
+  it("uses raw disk bytes when no explicit baseline exists", () => {
+    expect(
+      checkReviewPayload({
+        modifiedText: "new",
+        currentBytes: Buffer.from(`old${NUL}`),
+      }),
+    ).toMatchObject({
+      reviewable: false,
+      kind: "binary",
+      reason: REASON_BINARY_SKIPPED,
+    });
+  });
+
+  it("uses full disk size while inspecting only a bounded probe", () => {
+    expect(
+      checkReviewPayload({
+        modifiedText: "new",
+        currentBytes: Buffer.from("small probe"),
+        currentSizeBytes: MAX_REVIEW_FILE_BYTES,
+      }),
+    ).toMatchObject({
+      reviewable: false,
+      kind: "large-file",
+      bytes: MAX_REVIEW_FILE_BYTES + 3,
+    });
   });
 });
 
@@ -383,6 +441,26 @@ describe("openDiff binary guard (wiring)", () => {
       fs.rmSync(file, { force: true });
     }
   });
+
+  it("oversized text fails closed before opening editor documents", async () => {
+    const fx = fakeVscode();
+    const facade = createVscodeEditorFacade(fx.vscode);
+    const res = await facade.openDiff({
+      path: "/ws/large.txt",
+      originalText: "a",
+      modifiedText: "x".repeat(MAX_REVIEW_FILE_BYTES),
+    });
+    expect(res).toMatchObject({
+      outcome: "rejected",
+      reason: REASON_LARGE_FILE_SKIPPED,
+      degradation: {
+        reviewable: false,
+        kind: "large-file",
+        limitBytes: MAX_REVIEW_FILE_BYTES,
+      },
+    });
+    expect(fx.diffCalls).toHaveLength(0);
+  });
 });
 
 describe("openMultiDiff guards (wiring)", () => {
@@ -487,6 +565,48 @@ describe("openMultiDiff guards (wiring)", () => {
         applied: 1,
         total: 1,
         skippedBinary: ["/ws/blob.bin"],
+      });
+      expect(fs.readFileSync(textFile, "utf8")).toBe("new");
+    } finally {
+      fs.rmSync(textFile, { force: true });
+    }
+  });
+
+  it("mixed set: oversized text is reported and never applied", async () => {
+    const textFile = tmpFile("md-large-mixed.txt", "base");
+    try {
+      const fx = fakeVscode();
+      const facade = createVscodeEditorFacade(fx.vscode);
+      const p = facade.openMultiDiff({
+        files: [
+          { path: textFile, originalText: "base", modifiedText: "new" },
+          {
+            path: "/ws/huge.txt",
+            originalText: "",
+            modifiedText: "x".repeat(MAX_REVIEW_FILE_BYTES + 1),
+          },
+        ],
+      });
+      await tick();
+      fx.decide("Accept all");
+      const res = await p;
+      expect(res).toMatchObject({
+        outcome: "accepted",
+        applied: 1,
+        total: 1,
+        degraded: true,
+        skippedLarge: ["/ws/huge.txt"],
+        degradation: {
+          requested: 2,
+          reviewable: 1,
+          skipped: [
+            {
+              path: "/ws/huge.txt",
+              kind: "large-file",
+              reason: REASON_LARGE_FILE_SKIPPED,
+            },
+          ],
+        },
       });
       expect(fs.readFileSync(textFile, "utf8")).toBe("new");
     } finally {

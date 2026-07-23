@@ -9,7 +9,13 @@ import {
   changesetSummary,
   fileLabel,
   selectWrites,
+  planMultiDiffReview,
+  REASON_CHANGESET_LIMIT,
 } from "../../../vscode-extension/src/multi-diff.js";
+import {
+  REASON_BINARY_SKIPPED,
+  REASON_LARGE_FILE_SKIPPED,
+} from "../../../vscode-extension/src/diff-apply-guard.js";
 
 describe("normalizeMultiDiffFiles", () => {
   it("drops invalid entries and dedupes by path (last write wins)", () => {
@@ -96,5 +102,68 @@ describe("selectWrites", () => {
 
   it("empty selection writes nothing", () => {
     expect(selectWrites(files, [])).toEqual([]);
+  });
+});
+
+describe("planMultiDiffReview", () => {
+  it("partitions binary, per-file-large and reviewable entries", () => {
+    const plan = planMultiDiffReview(
+      [
+        { path: "ok.js", originalText: "a", modifiedText: "b" },
+        { path: "large.js", originalText: "12", modifiedText: "345" },
+        { path: "blob.bin", originalText: "a\u0000", modifiedText: "b" },
+      ],
+      { maxFileBytes: 4, maxFiles: 10, maxTotalBytes: 100 },
+    );
+    expect(plan.reviewable.map((f) => f.path)).toEqual(["ok.js"]);
+    expect(plan.skipped).toEqual([
+      {
+        path: "large.js",
+        kind: "large-file",
+        reason: REASON_LARGE_FILE_SKIPPED,
+        bytes: 5,
+        limitBytes: 4,
+      },
+      {
+        path: "blob.bin",
+        kind: "binary",
+        reason: REASON_BINARY_SKIPPED,
+        bytes: 3,
+        limitBytes: 4,
+      },
+    ]);
+    expect(plan.degraded).toBe(true);
+  });
+
+  it("bounds file count and aggregate payload deterministically", () => {
+    const plan = planMultiDiffReview(
+      [
+        { path: "a.js", originalText: "", modifiedText: "aa" },
+        { path: "b.js", originalText: "", modifiedText: "bb" },
+        { path: "c.js", originalText: "", modifiedText: "cc" },
+      ],
+      { maxFileBytes: 10, maxFiles: 2, maxTotalBytes: 3 },
+    );
+    expect(plan.reviewable.map((f) => f.path)).toEqual(["a.js"]);
+    expect(plan.skipped.map((f) => f.path)).toEqual(["b.js", "c.js"]);
+    expect(plan.skipped.every((f) => f.reason === REASON_CHANGESET_LIMIT)).toBe(
+      true,
+    );
+    expect(plan.totalBytes).toBe(2);
+  });
+
+  it("uses current raw bytes when originalText is omitted", () => {
+    const plan = planMultiDiffReview(
+      [{ path: "disk.bin", modifiedText: "text" }],
+      {
+        readCurrentBytes: () => Buffer.from([1, 0, 2]),
+        maxFileBytes: 100,
+      },
+    );
+    expect(plan.reviewable).toEqual([]);
+    expect(plan.skipped[0]).toMatchObject({
+      path: "disk.bin",
+      kind: "binary",
+    });
   });
 });
