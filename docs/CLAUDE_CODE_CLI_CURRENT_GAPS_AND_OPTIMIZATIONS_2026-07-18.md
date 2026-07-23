@@ -114,6 +114,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   均作为独立 argv，保留 detached/PID 文件生命周期语义。
 - PR 草稿的分支、remote、status 与 commit log 查询已进入 `pr:git` Broker scope；base/branch
   组成单一 revision argv 并使用 Git 的 end-of-options 边界，比较 URL 对 ref 做百分号编码。
+- Code review 的 diff 与 changed-files 查询已进入 `review:git-diff` Broker scope；除 staged/cached
+  明确别名外，target 作为单一 revision argv 放在 end-of-options 边界后。
 
 ### 4.2 建议设计
 

@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 402 (runtime: 326, tooling: 53, test: 23).
+Total matches: 401 (runtime: 325, tooling: 53, test: 23).
 
 ## Policy
 
@@ -157,9 +157,8 @@ Total matches: 402 (runtime: 326, tooling: 53, test: 23).
 | `packages/cli/src/lib/cloud/bundle.js` | 17 | `return executionBroker.execFileSync(file, args, {` |
 | `packages/cli/src/lib/cloud/bundle.js` | 30 | `.execFileSync("git", args, {` |
 | `packages/cli/src/lib/code-agent.js` | 227 | `/child_process.*exec\s*\(\s*[`"'].*\$\{/,` |
-| `packages/cli/src/lib/code-review.js` | 7 | `import { execSync } from "child_process";` |
-| `packages/cli/src/lib/code-review.js` | 17 | `return execSync(`git diff ${target}`, {` |
-| `packages/cli/src/lib/code-review.js` | 34 | `const output = execSync(`git diff ${target} --name-only`, {` |
+| `packages/cli/src/lib/code-review.js` | 11 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
+| `packages/cli/src/lib/code-review.js` | 29 | `return _deps.execFileSync("git", buildGitDiffArgs(target, options), {` |
 | `packages/cli/src/lib/computer-use/control-backend.js` | 10 | `import { spawnSync } from "node:child_process";` |
 | `packages/cli/src/lib/computer-use/control-backend.js` | 16 | `const res = deps.spawnSync(` |
 | `packages/cli/src/lib/computer-use/control-backend.js` | 139 | `const res = deps.spawnSync(app, args, {` |

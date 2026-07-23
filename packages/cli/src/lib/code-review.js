@@ -4,8 +4,37 @@
  * @module lib/code-review
  */
 
-import { execSync } from "child_process";
 import { logger } from "./logger.js";
+import { executionBroker } from "./process-execution-broker/index.js";
+
+export const _deps = {
+  execFileSync: (...args) => executionBroker.execFileSync(...args),
+};
+
+export function buildGitDiffArgs(
+  target = "--staged",
+  { nameOnly = false } = {},
+) {
+  const args = ["diff"];
+  if (nameOnly) args.push("--name-only");
+  if (target === "--staged" || target === "--cached") {
+    args.push(target);
+  } else {
+    args.push("--end-of-options", String(target), "--");
+  }
+  return args;
+}
+
+function gitDiff(target, options = {}) {
+  return _deps.execFileSync("git", buildGitDiffArgs(target, options), {
+    encoding: "utf8",
+    maxBuffer: 10 * 1024 * 1024,
+    origin: "review:git-diff",
+    policy: "allow",
+    scope: "review",
+    shell: false,
+  });
+}
 
 /**
  * Get git diff for review
@@ -14,10 +43,7 @@ import { logger } from "./logger.js";
  */
 export function getGitDiff(target = "--staged") {
   try {
-    return execSync(`git diff ${target}`, {
-      encoding: "utf8",
-      maxBuffer: 10 * 1024 * 1024,
-    });
+    return gitDiff(target);
   } catch (err) {
     logger.error(`Failed to get git diff: ${err.message}`);
     return "";
@@ -31,9 +57,7 @@ export function getGitDiff(target = "--staged") {
  */
 export function getChangedFiles(target = "--staged") {
   try {
-    const output = execSync(`git diff ${target} --name-only`, {
-      encoding: "utf8",
-    });
+    const output = gitDiff(target, { nameOnly: true });
     return output.trim().split("\n").filter(Boolean);
   } catch (err) {
     logger.error(`Failed to get changed files: ${err.message}`);
