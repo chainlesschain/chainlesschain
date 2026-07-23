@@ -106,6 +106,9 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   与三方 patch 回流测试保留；测试注入接口不变。
 - Broker `execFileSync` 已恢复 Node 同步契约：成功返回 stdout，启动错误或非零退出抛出带
   `status/signal/stdout/stderr` 的错误；归档解压与 Cloud handoff 共用该实现。
+- Broker `execFile` 已恢复 Node 异步 callback 契约：支持 args/options 重载、文本或 Buffer 输出、
+  非零退出与启动错误，并对 stdout/stderr 独立执行 `maxBuffer` 限制；未订阅 Broker error 事件时
+  ENOENT 也不会触发 EventEmitter 的未处理异常。
 - `doctor` 的 npm、Git 探针及 Windows UTF-8 控制台初始化已迁移为 Broker executable/argv
   调用；Windows npm 同样使用 `node.exe + npm-cli.js`，固定命令不再依赖业务模块中的裸 shell。
 - Docker/Compose 可用性探针及 up/down/pull/logs/status 已迁移到 `service` Broker scope；compose

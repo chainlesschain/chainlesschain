@@ -481,7 +481,10 @@ class ProcessExecutionBroker extends EventEmitter {
         error: err.message,
         component: origin,
       });
-      this.emit("error", auditEntry);
+      // EventEmitter treats an unhandled `error` event as an exception. A
+      // process ENOENT must reach the child-process listener/callback instead
+      // of crashing callers that did not subscribe to broker diagnostics.
+      if (this.listenerCount("error") > 0) this.emit("error", auditEntry);
     });
     return proc;
   }
@@ -733,7 +736,94 @@ class ProcessExecutionBroker extends EventEmitter {
   }
 
   execFile(file, args, options, callback) {
-    return this.spawn(file, args, options || {});
+    if (typeof args === "function") {
+      callback = args;
+      args = [];
+      options = {};
+    } else if (!Array.isArray(args)) {
+      callback = typeof options === "function" ? options : callback;
+      options = args || {};
+      args = [];
+    } else if (typeof options === "function") {
+      callback = options;
+      options = {};
+    }
+
+    options = options || {};
+    const proc = this.spawn(file, args, options);
+    if (typeof callback !== "function") return proc;
+
+    const stdoutChunks = [];
+    const stderrChunks = [];
+    const outputEncoding = options.encoding ?? "utf8";
+    const returnBuffers =
+      outputEncoding === "buffer" || outputEncoding === null;
+    const configuredMaxBuffer = options.maxBuffer;
+    const maxBuffer =
+      configuredMaxBuffer === Infinity
+        ? Infinity
+        : Number.isFinite(configuredMaxBuffer) && configuredMaxBuffer >= 0
+          ? configuredMaxBuffer
+          : 1024 * 1024;
+    let stdoutBytes = 0;
+    let stderrBytes = 0;
+    let completionError = null;
+    let completed = false;
+
+    const asBuffer = (chunk) =>
+      Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk));
+    const render = (chunks) => {
+      const value = Buffer.concat(chunks);
+      return returnBuffers ? value : value.toString(outputEncoding);
+    };
+    const finish = (error, code = null, signal = null) => {
+      if (completed) return;
+      completed = true;
+      const stdout = render(stdoutChunks);
+      const stderr = render(stderrChunks);
+      if (error) {
+        error.stdout = stdout;
+        error.stderr = stderr;
+        if (error.status === undefined) error.status = code;
+        if (error.signal === undefined) error.signal = signal;
+      }
+      callback(error, stdout, stderr);
+    };
+    const collect = (stream, chunks, streamName) => {
+      if (!stream || typeof stream.on !== "function") return;
+      stream.on("data", (chunk) => {
+        const value = asBuffer(chunk);
+        chunks.push(value);
+        if (streamName === "stdout") stdoutBytes += value.length;
+        else stderrBytes += value.length;
+        const streamBytes = streamName === "stdout" ? stdoutBytes : stderrBytes;
+        if (!completionError && streamBytes > maxBuffer) {
+          completionError = new Error(`${streamName} maxBuffer exceeded`);
+          completionError.code = "ERR_CHILD_PROCESS_STDIO_MAXBUFFER";
+          completionError.stream = streamName;
+          try {
+            proc.kill(options.killSignal || "SIGTERM");
+          } catch {}
+        }
+      });
+    };
+
+    collect(proc.stdout, stdoutChunks, "stdout");
+    collect(proc.stderr, stderrChunks, "stderr");
+    proc.once("error", (error) => finish(error));
+    proc.once("close", (code, signal) => {
+      if (completionError) return finish(completionError, code, signal);
+      if (code === 0) return finish(null, code, signal);
+      const error = new Error(
+        `Command failed (exit ${code ?? "unknown"}): ${file}`,
+      );
+      error.code = code;
+      error.killed = Boolean(proc.killed);
+      error.signal = signal;
+      error.status = code;
+      return finish(error, code, signal);
+    });
+    return proc;
   }
 
   execFileSync(file, args, options = {}) {
