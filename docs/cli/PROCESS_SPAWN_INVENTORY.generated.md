@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 386 (runtime: 310, tooling: 53, test: 23).
+Total matches: 385 (runtime: 309, tooling: 53, test: 23).
 
 ## Policy
 
@@ -142,7 +142,6 @@ Total matches: 386 (runtime: 310, tooling: 53, test: 23).
 | `packages/cli/src/lib/background-interaction-resolver.js` | 15 | `* @param {import('node:child_process').ChildProcess} child - agent 子进程实例` |
 | `packages/cli/src/lib/checkpoint-store.js` | 26 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/lib/checkpoint-store.js` | 48 | `const res = _deps.spawnSync("git", args, {` |
-| `packages/cli/src/lib/chrome-connector.js` | 29 | `import { spawn } from "child_process";` |
 | `packages/cli/src/lib/chrome-connector.js` | 214 | `const child = deps.spawn(executable, args, {` |
 | `packages/cli/src/lib/claude-code-bridge.js` | 16 | `import { spawn, execSync } from "child_process";` |
 | `packages/cli/src/lib/claude-code-bridge.js` | 48 | `.execSync("claude --version", { encoding: "utf-8", timeout: 5000 })` |

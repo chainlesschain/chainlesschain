@@ -26,11 +26,11 @@
  * Chrome when done. This is the same trade Claude-Code's Chrome connector
  * makes.
  */
-import { spawn } from "child_process";
 import fs from "fs";
 import os from "os";
 import path from "path";
 import http from "http";
+import executionBroker from "./process-execution-broker/index.js";
 
 export const DEFAULT_CDP_PORT = 9222;
 
@@ -69,7 +69,7 @@ export const DEFAULT_DOM_CAP = 150000;
 
 const _deps = {
   fs,
-  spawn,
+  spawn: executionBroker.spawn.bind(executionBroker),
   homedir: () => os.homedir(),
   platform: () => process.platform,
   env: () => process.env,
@@ -215,6 +215,10 @@ export function launchChrome(opts = {}) {
       detached: true,
       stdio: "ignore",
       windowsHide: false,
+      origin: "chrome-connector:launch",
+      policy: "allow",
+      scope: "browser",
+      shell: false,
     });
     child.unref();
     return { ok: true, executable, args, pid: child.pid };

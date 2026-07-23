@@ -200,6 +200,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   边界；按 frame extract、scene detect、audio probe/mix/duck、concat/clip extract 记录细分 origin。
 - `cc eval` 的 headless Agent 启动与 Windows 进程树回收已分别进入 `eval:agent-run`、
   `eval:agent-tree-kill` Broker origin；argv、POSIX process-group kill 与超时后等待退出语义保持不变。
+- Chrome connector 的 detached 浏览器启动已进入 `chrome-connector:launch` Broker origin；
+  CDP 端口、profile/URL 字面 argv、进程 unref 与可注入测试边界保持不变。
 
 ### 4.2 建议设计
 

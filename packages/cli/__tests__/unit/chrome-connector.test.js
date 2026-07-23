@@ -143,6 +143,12 @@ describe("launch argv + executable resolution", () => {
     });
     expect(seen.args).toContain("--remote-debugging-port=9400");
     expect(seen.opts.detached).toBe(true);
+    expect(seen.opts).toMatchObject({
+      origin: "chrome-connector:launch",
+      policy: "allow",
+      scope: "browser",
+      shell: false,
+    });
 
     const missing = launchChrome({ deps: fakeDeps() });
     expect(missing.ok).toBe(false);
