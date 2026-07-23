@@ -47,7 +47,7 @@ describe("packer pkg process execution", () => {
     expect(_deps.spawnSync).toHaveBeenCalledWith(
       process.execPath,
       [
-        fixture.script,
+        fs.realpathSync(fixture.script),
         fixture.pkgConfigFile,
         "--targets",
         "node18-win-x64",
