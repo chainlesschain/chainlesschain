@@ -196,10 +196,17 @@ describe("WhisperClient", () => {
       mockProc.stdout.emit("data", Buffer.from(JSON.stringify({ text: "test" })));
       mockProc.emit("close", 0);
       await promise;
-      expect(mockSpawn).toHaveBeenCalledWith("/usr/bin/whisper", [
-        "--model", "/models/test.bin", "--output-json", "-f", "/audio.wav",
-        "--language", "en", "--prompt", "test prompt", "--temperature", "0.5",
-      ]);
+      expect(mockSpawn).toHaveBeenCalledWith(
+        "/usr/bin/whisper",
+        [
+          "--model", "/models/test.bin", "--output-json", "-f", "/audio.wav",
+          "--language", "en", "--prompt", "test prompt", "--temperature", "0.5",
+        ],
+        {
+          windowsHide: true,
+          origin: "desktop:speech-whisper-transcribe",
+        },
+      );
       await c.terminate();
     });
 
@@ -480,7 +487,14 @@ describe("WhisperClient", () => {
       mockSpawn.mockReturnValue(mockProc);
       const c = new WhisperClient({ language: "zh", modelPath: "/models/test.bin" });
       await c.startStream({ step: 5000 });
-      expect(mockSpawn).toHaveBeenCalledWith("whisper-cpp-main", expect.arrayContaining(["--stream", "--step", "5000", "--language", "zh"]));
+      expect(mockSpawn).toHaveBeenCalledWith(
+        "whisper-cpp-main",
+        expect.arrayContaining(["--stream", "--step", "5000", "--language", "zh"]),
+        {
+          windowsHide: true,
+          origin: "desktop:speech-whisper-stream",
+        },
+      );
       await c.terminate();
     });
 

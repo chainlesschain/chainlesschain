@@ -19,14 +19,19 @@ const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
 const path = require("path");
 const fs = require("fs");
-const { spawn } = require("child_process");
+const { spawnWithDesktopBroker } = require("../process/desktop-process-broker");
 
 /**
  * Internal dependency container for testability.
  * In tests, override these before constructing WhisperClient instances.
  * @private
  */
-const _deps = { fs, spawn, uuidv4, getAxios: () => require("axios") };
+const _deps = {
+  fs,
+  spawn: spawnWithDesktopBroker,
+  uuidv4,
+  getAxios: () => require("axios"),
+};
 
 /**
  * Model definitions with metadata
@@ -218,7 +223,10 @@ class WhisperClient extends EventEmitter {
       let stdout = "";
       let stderr = "";
 
-      const proc = _deps.spawn(binaryPath, args);
+      const proc = _deps.spawn(binaryPath, args, {
+        windowsHide: true,
+        origin: "desktop:speech-whisper-transcribe",
+      });
 
       proc.stdout.on("data", (data) => {
         stdout += data.toString("utf8");
@@ -408,7 +416,10 @@ class WhisperClient extends EventEmitter {
 
     logger.info(`[WhisperClient] Starting stream ${streamId}`);
 
-    const proc = _deps.spawn(binaryPath, args);
+    const proc = _deps.spawn(binaryPath, args, {
+      windowsHide: true,
+      origin: "desktop:speech-whisper-stream",
+    });
 
     let buffer = "";
 
