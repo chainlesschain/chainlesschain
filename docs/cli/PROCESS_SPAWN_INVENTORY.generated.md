@@ -89,9 +89,9 @@ Total matches: 402 (runtime: 326, tooling: 53, test: 23).
 | `packages/cli/src/commands/routine.js` | 90 | `_deps.execFile(` |
 | `packages/cli/src/commands/session.js` | 67 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/commands/session.js` | 166 | `const out = _deps.execFileSync("gh", args, {` |
-| `packages/cli/src/commands/team.js` | 21 | `import { spawn } from "child_process";` |
-| `packages/cli/src/commands/team.js` | 104 | `const child = spawn(command, {` |
-| `packages/cli/src/commands/team.js` | 134 | `const child = spawn(process.execPath, args, {` |
+| `packages/cli/src/commands/team.js` | 29 | `spawn: (...args) => executionBroker.spawn(...args),` |
+| `packages/cli/src/commands/team.js` | 108 | `const child = _deps.spawn(command, [], {` |
+| `packages/cli/src/commands/team.js` | 139 | `const child = _deps.spawn(process.execPath, args, {` |
 | `packages/cli/src/commands/update.js` | 15 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/commands/update.js` | 36 | `const result = _deps.spawnSync(command, args, {` |
 | `packages/cli/src/gateways/ws/ws-server.js` | 14 | `import { spawn } from "node:child_process";` |

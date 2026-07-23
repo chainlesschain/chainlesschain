@@ -18,12 +18,16 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { spawn } from "child_process";
 import { TaskLeaseRegistry } from "../lib/agent-team/task-lease.js";
 import { TeamRunner } from "../lib/agent-team/team-runner.js";
 import { TeamWorktreeCoordinator } from "../lib/agent-team/team-worktree.js";
 import { TeamBudget } from "../lib/agent-team/team-budget.js";
 import { TeamMailbox } from "../lib/agent-team/team-mailbox.js";
+import { executionBroker } from "../lib/process-execution-broker/index.js";
+
+export const _deps = {
+  spawn: (...args) => executionBroker.spawn(...args),
+};
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BIN = path.resolve(__dirname, "..", "..", "bin", "chainlesschain.js");
@@ -94,17 +98,20 @@ function planWaves(reg) {
 }
 
 /** Real executor: run a task's shell `command`, success = exit 0. */
-function makeShellRunTask(logger) {
+export function makeShellRunTask(logger) {
   return function runTask({ task }) {
     const command = task.metadata?.command || task?.command;
     if (!command) {
       throw new Error(`task "${task.key}" has no \`command\` to --exec`);
     }
     return new Promise((resolve, reject) => {
-      const child = spawn(command, {
+      const child = _deps.spawn(command, [], {
         cwd: process.cwd(),
         shell: true,
         env: process.env,
+        origin: "team:shell",
+        policy: "allow",
+        scope: "team",
       });
       let err = "";
       child.stderr?.on("data", (d) => (err += d.toString("utf8")));
@@ -118,26 +125,32 @@ function makeShellRunTask(logger) {
 }
 
 /** Spawn a headless `cc agent -p` for one prompt in `cwd`; resolve on exit 0. */
-function spawnAgent(prompt, cwd, opts = {}) {
+export function spawnAgent(prompt, cwd, opts = {}) {
   return new Promise((resolve, reject) => {
     const args = [
       BIN,
       "agent",
-      "-p",
-      prompt,
       "--permission-mode",
       opts.permissionMode || "acceptEdits",
       "--output-format",
       "text",
     ];
     if (opts.model) args.push("--model", opts.model);
-    const child = spawn(process.execPath, args, {
+    const child = _deps.spawn(process.execPath, args, {
       cwd,
       env: { ...process.env, CLAUDECODE: "1" },
       windowsHide: true,
+      origin: "team:agent",
+      policy: "allow",
+      scope: "team",
+      shell: false,
     });
     let err = "";
     child.stderr?.on("data", (d) => (err += d.toString("utf8")));
+    if (child.stdin) {
+      child.stdin.on("error", () => {});
+      child.stdin.end(prompt);
+    }
     child.on("error", (e) => reject(new Error(e.message)));
     child.on("close", (code) =>
       code === 0

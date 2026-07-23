@@ -139,6 +139,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   继续只经 stdin 传递，并保留 256/64 MiB 输出上限。
 - `cc memory file --edit` 已复用无 shell 的 `$EDITOR` 引号解析并进入 `memory:editor` Broker
   scope；编辑器参数与 `MEMORY.md` 路径逐项传递，路径中的引号和 shell 元字符不再被解释。
+- `cc team --exec/--agent` 的任务进程已进入 `team:shell`、`team:agent` Broker origin；显式
+  `--exec` 保留 shell 任务语义但获得危险命令/凭据边界，Agent prompt 改经 stdin 传递而不进入 argv。
 
 ### 4.2 建议设计
 
