@@ -5,7 +5,7 @@ import { CONFIG_DIR_NAME } from "../constants.js";
 import { getPlatform } from "./platform.js";
 
 export function getHomeDir() {
-  return join(homedir(), CONFIG_DIR_NAME);
+  return process.env.CHAINLESSCHAIN_HOME || join(homedir(), CONFIG_DIR_NAME);
 }
 
 export function getBinDir() {

@@ -240,16 +240,20 @@ function _killTask(task) {
         const tk = spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], {
           windowsHide: true,
         });
-        // A spawn that fails to launch emits an async 'error' event — with no
-        // listener Node rethrows it as an UNCAUGHT exception (the try/catch
-        // here can't catch the async emit), crashing the CLI. Handle it and
-        // fall back to a direct kill.
-        tk.on("error", () => {
+        const fallbackDirectKill = () => {
           try {
-            child.kill();
+            if (!child.killed) child.kill("SIGKILL");
           } catch {
             /* already dead */
           }
+        };
+        // A launch failure emits 'error'; a permissions/policy failure instead
+        // launches taskkill successfully and exits non-zero. Both must fall
+        // back or the background command remains alive while teardown reports
+        // success.
+        tk.once("error", fallbackDirectKill);
+        tk.once("close", (code) => {
+          if (code !== 0) fallbackDirectKill();
         });
       } else {
         child.kill();
@@ -310,9 +314,19 @@ function _killTaskSync(task) {
   try {
     if (process.platform === "win32") {
       if (child.pid) {
-        spawnSync("taskkill", ["/pid", String(child.pid), "/T", "/F"], {
-          windowsHide: true,
-        });
+        const killed = spawnSync(
+          "taskkill",
+          ["/pid", String(child.pid), "/T", "/F"],
+          {
+            windowsHide: true,
+          },
+        );
+        if (killed.error || killed.status !== 0) {
+          // Restricted runners can execute taskkill but receive a non-zero
+          // access/policy result. Direct termination is the synchronous
+          // last-resort for the child handle we own.
+          child.kill("SIGKILL");
+        }
       } else {
         child.kill();
       }
@@ -1387,11 +1401,11 @@ export async function executeTool(name, args, context = {}) {
         override.capabilityGranted ?? admission.capabilityGranted,
       policyAllowed:
         override.policyAllowed ??
-        (context.hostManagedToolPolicy ?
-          ((context.hostManagedToolPolicy?.tools ||
-            context.hostManagedToolPolicy?.toolPolicies || {})[name]
-            ?.allowed !== false) :
-          admission.policyAllowed),
+        (context.hostManagedToolPolicy
+          ? (context.hostManagedToolPolicy?.tools ||
+              context.hostManagedToolPolicy?.toolPolicies ||
+              {})[name]?.allowed !== false
+          : admission.policyAllowed),
       permissionGranted:
         override.permissionGranted ?? admission.permissionGranted,
       budgetOk: override.budgetOk ?? admission.budgetOk,
@@ -3158,9 +3172,8 @@ async function executeToolInner(
       // from an ambient system command in the process audit log.
       let pluginBinProvenance = null;
       try {
-        const { resolvePluginBinCommand } = await import(
-          "../lib/plugin-runtime/bin.js"
-        );
+        const { resolvePluginBinCommand } =
+          await import("../lib/plugin-runtime/bin.js");
         pluginBinProvenance = resolvePluginBinCommand(args.command, { cwd });
       } catch {
         pluginBinProvenance = null;
@@ -4428,7 +4441,7 @@ async function executeToolInner(
             onWarn: (msg) => {
               // Non-fatal — logged as warning, skipped servers captured
               // in mountResult.skipped.
-              // eslint-disable-next-line no-console
+
               console.warn(msg);
             },
           });
@@ -5618,10 +5631,7 @@ async function _executeSpawnSubAgent(args, ctx) {
         task: subCtx.task,
         background: payload?.background === true,
       });
-    } else if (
-      type === "sub-agent.completed" ||
-      type === "sub-agent.failed"
-    ) {
+    } else if (type === "sub-agent.completed" || type === "sub-agent.failed") {
       emitHooksV2Event("TaskCompleted", {
         task_id: subCtx.id,
         session_id: parentSessionId,
@@ -7944,9 +7954,9 @@ export async function* agentLoop(messages, options) {
         let toolArgs;
         try {
           toolArgs =
-          typeof call.function.arguments === "string"
-            ? JSON.parse(call.function.arguments)
-            : call.function.arguments;
+            typeof call.function.arguments === "string"
+              ? JSON.parse(call.function.arguments)
+              : call.function.arguments;
         } catch {
           toolArgs = {};
         }

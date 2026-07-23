@@ -51,24 +51,24 @@ cc agent --input-format stream-json --output-format stream-json \
 
 ### 1.1 Client → CLI (stdin events)
 
-| Event            | Shape                                                                                           | Notes                                                                          |
-| ---------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| capability hello | `{"type":"hello","protocol_version":int?,"min_protocol_version":int?,"features":[str...]?}`     | optional first line; negotiates a common level — see 1.2.2. CLI replies `system/negotiated` |
-| user turn        | `{"type":"user","text":str,"images":[path...]?,"llm":{provider,model,baseUrl?,apiKey?}?}`       | ≤ 8 images honored; `llm` switches this turn's model only                      |
-| interrupt        | `{"type":"interrupt"}`                                                                          | aborts in-flight turn, session survives                                        |
-| compact          | `{"type":"compact"}`                                                                            | manual history compaction between turns                                        |
-| approval verdict | `{"type":"approval","id":str,"approve":bool}`                                                   | answers an `approval_request`                                                  |
-| question answer  | `{"type":"answer","id":str,"answer":unknown\|null}`                                          | `null` cancels; object answers are used by MCP elicitation                         |
+| Event            | Shape                                                                                            | Notes                                                                                                                            |
+| ---------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| capability hello | `{"type":"hello","protocol_version":int?,"min_protocol_version":int?,"features":[str...]?}`      | optional first line; negotiates a common level — see 1.2.2. CLI replies `system/negotiated`                                      |
+| user turn        | `{"type":"user","text":str,"images":[path...]?,"llm":{provider,model,baseUrl?,apiKey?}?}`        | ≤ 8 images honored; `llm` switches this turn's model only                                                                        |
+| interrupt        | `{"type":"interrupt"}`                                                                           | aborts in-flight turn, session survives                                                                                          |
+| compact          | `{"type":"compact"}`                                                                             | manual history compaction between turns                                                                                          |
+| approval verdict | `{"type":"approval","id":str,"approve":bool}`                                                    | answers an `approval_request`                                                                                                    |
+| question answer  | `{"type":"answer","id":str,"answer":unknown\|null}`                                              | `null` cancels; object answers are used by MCP elicitation                                                                       |
 | plan control     | `{"type":"plan","action":"enter"\|"approve"\|"reject"\|"revise"\|"regenerate","review":{"snapshot":str,"comments":[],"executionLock":obj?}?}` | plan-mode UI; decisions/revisions may carry bounded Markdown, structured comments, and an audit-only requested lock; CLI derives the authoritative approval lock |
-| feedback         | `{"type":"feedback","turn_id":str?,"kind":"positive"\|"negative"\|"correction","comment":str?}` | PDH self-learning                                                              |
-| assist resume    | `{"type":"resume","token":str?,"action":"completed"\|"skip"}`                                   | PDH guided collection                                                          |
+| feedback         | `{"type":"feedback","turn_id":str?,"kind":"positive"\|"negative"\|"correction","comment":str?}`  | PDH self-learning                                                                                                                |
+| assist resume    | `{"type":"resume","token":str?,"action":"completed"\|"skip"}`                                    | PDH guided collection                                                                                                            |
 
 ### 1.2 CLI → client (stdout events)
 
 | `type`                                             | Key fields                                                                                                                                                                   |
 | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `system` (`subtype:"init"`)                        | `session_id` (resume id — persist this), `model`, `provider`, `permission_mode`, `tools[]`, `resumed_messages`                                                               |
-| `system` (`subtype:"negotiated"`)                  | `protocol_version` (agreed, or null), `features[]`, `downgraded`, `disabled_features[]?`, `ok`, `reason?` — reply to a `hello`, see 1.2.2                                     |
+| `system` (`subtype:"negotiated"`)                  | `protocol_version` (agreed, or null), `features[]`, `downgraded`, `disabled_features[]?`, `ok`, `reason?` — reply to a `hello`, see 1.2.2                                    |
 | `system` (`subtype:"end"`)                         | `turns`                                                                                                                                                                      |
 | `stream_event`                                     | `event.type:"content_block_delta"`, `event.delta` = `{type:"text_delta",text}` or `{type:"thinking_delta",thinking}`                                                         |
 | `tool_use`                                         | `tool`, `args`, `id?` (`tu-<n>`, additive — see 1.2.1)                                                                                                                       |
@@ -77,7 +77,7 @@ cc agent --input-format stream-json --output-format stream-json \
 | `approval_request`                                 | `id`, `session_id`, `tool`, `command`, `risk`, `rule`, `reason` — tool is BLOCKED until answered; CLI fails closed after `CC_APPROVAL_TIMEOUT_MS` (default 120 s)            |
 | `approval_resolved`                                | `id`, `approved`, `via` (`"user"`/`"timeout"`) — settle UI cards on this                                                                                                     |
 | `question_request` / `question_resolved`           | `id`, `question`, `options?`, `multiSelect?` (needs env `CC_INTERACTIVE_QUESTIONS=1`)                                                                                        |
-| MCP elicitation (as `question_request`)            | same fields plus `metadata.kind:"mcp_elicitation"`, `server`, `requestId`, `requestedSchema`; SDK `onElicitation` returns `{action,content}` and answers with the same `id` |
+| MCP elicitation (as `question_request`)            | same fields plus `metadata.kind:"mcp_elicitation"`, `server`, `requestId`, `requestedSchema`; SDK `onElicitation` returns `{action,content}` and answers with the same `id`  |
 | `plan_update`                                      | `active`, `state`, `plan_id`, `plan_version`, `previous_plan_id?`, `items[]{id,title,tool,impact,status,turn?,tool_use_id?,started_at?,completed_at?,error?}`, `risk{level,totalScore}`, `execution_lock?{planId,permissionMode,approvedItemIds[],allowedTools[],createdAt}` |
 | `compaction`                                       | history-trim stats                                                                                                                                                           |
 | `stream_retry`                                     | provider retry notice                                                                                                                                                        |

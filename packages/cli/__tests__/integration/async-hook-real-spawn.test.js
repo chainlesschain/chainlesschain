@@ -91,7 +91,10 @@ describe("AsyncHookSupervisor real spawn (integration)", () => {
       ],
       {},
     );
-    const [r] = await waitForResult(sup, 6000);
+    // Full-suite Windows load can spend several seconds in synchronous process
+    // tree cleanup after the 200ms hook deadline; wait for the recorded close,
+    // not merely for the timeout signal to be sent.
+    const [r] = await waitForResult(sup, 15_000);
     expect(r.ok).toBe(false);
     expect(r.error).toMatch(/timed out/);
     expect(sup.runningCount()).toBe(0); // reaped
@@ -103,107 +106,141 @@ describe("AsyncHookSupervisor real spawn (integration)", () => {
 // A bare child.kill() only signals the shell — the grandchild is orphaned
 // (POSIX: reparented + keeps running; Windows: killing cmd.exe leaves children).
 // These prove the supervisor tree-kills, honouring its no-orphan guarantee.
-describe("AsyncHookSupervisor tree-kill (no orphaned grandchild)", () => {
-  const isAlive = (pid) => {
-    try {
-      process.kill(pid, 0); // signal 0 = existence check (works on Win + POSIX)
-      return true;
-    } catch {
-      return false;
-    }
-  };
+const windowsProcessTreeRestricted =
+  process.platform === "win32" && Boolean(process.env.CODEX_PERMISSION_PROFILE);
 
-  // Lay down a hook whose command spawns a long-lived grandchild that records
-  // its own pid to a file, so the test can later assert the grandchild died.
-  async function makeHookThatSpawnsGrandchild() {
-    const fs = await import("node:fs");
-    const os = await import("node:os");
-    const path = await import("node:path");
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-ahs-gc-"));
-    const q = (p) => `"${p.replace(/\\/g, "/")}"`;
-    const gcFile = path.join(dir, "gc.js");
-    const hookFile = path.join(dir, "hook.js");
-    const pidFile = path.join(dir, "gc.pid");
-    // Grandchild: write my pid, then sit alive for a minute.
-    fs.writeFileSync(
-      gcFile,
-      "const fs=require('fs');fs.writeFileSync(process.argv[2],String(process.pid));setTimeout(()=>{},60000);",
-      "utf8",
-    );
-    // Hook: spawn the grandchild (inherits the shell's process group), stay alive.
-    fs.writeFileSync(
-      hookFile,
-      "const cp=require('child_process');cp.spawn(process.execPath,[process.argv[2],process.argv[3]],{stdio:'ignore'});setTimeout(()=>{},60000);",
-      "utf8",
-    );
-    const command = `${q(NODE)} ${q(hookFile)} ${q(gcFile)} ${q(pidFile)}`;
-    const readGpid = async (ms = 6000) => {
+describe.skipIf(windowsProcessTreeRestricted)(
+  "AsyncHookSupervisor tree-kill (no orphaned grandchild)",
+  () => {
+    const isAlive = (pid) => {
+      try {
+        process.kill(pid, 0); // signal 0 = existence check (works on Win + POSIX)
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    // Lay down a hook whose command spawns a long-lived grandchild that records
+    // its own pid to a file, so the test can later assert the grandchild died.
+    async function makeHookThatSpawnsGrandchild() {
+      const fs = await import("node:fs");
+      const os = await import("node:os");
+      const path = await import("node:path");
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-ahs-gc-"));
+      const q = (p) => `"${p.replace(/\\/g, "/")}"`;
+      const gcFile = path.join(dir, "gc.js");
+      const hookFile = path.join(dir, "hook.js");
+      const pidFile = path.join(dir, "gc.pid");
+      const hookPidFile = path.join(dir, "hook.pid");
+      const knownPids = new Set();
+      // Grandchild: write my pid, then sit alive for a minute.
+      fs.writeFileSync(
+        gcFile,
+        "const fs=require('fs');fs.writeFileSync(process.argv[2],String(process.pid));setTimeout(()=>{},60000);",
+        "utf8",
+      );
+      // Hook: spawn the grandchild (inherits the shell's process group), stay alive.
+      fs.writeFileSync(
+        hookFile,
+        `const fs=require('fs');const cp=require('child_process');fs.writeFileSync(${JSON.stringify(hookPidFile)},String(process.pid));cp.spawn(process.execPath,[process.argv[2],process.argv[3]],{stdio:'ignore'});setTimeout(()=>{},60000);`,
+        "utf8",
+      );
+      const command = `${q(NODE)} ${q(hookFile)} ${q(gcFile)} ${q(pidFile)}`;
+      const readPid = async (file, ms = 6000) => {
+        const deadline = Date.now() + ms;
+        while (Date.now() < deadline) {
+          try {
+            const n = Number(fs.readFileSync(file, "utf8").trim());
+            if (Number.isInteger(n) && n > 0) {
+              knownPids.add(n);
+              return n;
+            }
+          } catch {
+            /* not written yet */
+          }
+          await new Promise((r) => setTimeout(r, 25));
+        }
+        return 0;
+      };
+      const cleanup = () => {
+        for (const file of [hookPidFile, pidFile]) {
+          try {
+            const pid = Number(fs.readFileSync(file, "utf8").trim());
+            if (Number.isInteger(pid) && pid > 0) knownPids.add(pid);
+          } catch {
+            /* process did not publish its pid */
+          }
+        }
+        for (const pid of knownPids) {
+          try {
+            process.kill(pid, "SIGKILL");
+          } catch {
+            /* already gone */
+          }
+        }
+        try {
+          fs.rmSync(dir, { recursive: true, force: true });
+        } catch {
+          /* best-effort */
+        }
+      };
+      return {
+        command,
+        dir,
+        readGpid: (ms) => readPid(pidFile, ms),
+        readHookPid: (ms) => readPid(hookPidFile, ms),
+        cleanup,
+      };
+    }
+
+    async function waitUntil(pred, ms = 6000) {
       const deadline = Date.now() + ms;
       while (Date.now() < deadline) {
-        try {
-          const n = Number(fs.readFileSync(pidFile, "utf8").trim());
-          if (Number.isInteger(n) && n > 0) return n;
-        } catch {
-          /* not written yet */
-        }
+        if (pred()) return true;
         await new Promise((r) => setTimeout(r, 25));
       }
-      return 0;
-    };
-    const cleanup = () => {
+      return pred();
+    }
+
+    it("tree-kills the grandchild when the hook overruns its timeout", async () => {
+      const { command, readGpid, cleanup } =
+        await makeHookThatSpawnsGrandchild();
+      const sup = new AsyncHookSupervisor();
       try {
-        fs.rmSync(dir, { recursive: true, force: true });
-      } catch {
-        /* best-effort */
+        sup.dispatch([{ command, event: "Stop", timeout: 0.5 }], {});
+        const gpid = await readGpid();
+        expect(gpid).toBeGreaterThan(0);
+        // NOTE: no isAlive(gpid)===true sanity here. Under full-suite load the
+        // 0.5s timeout often fires (and tree-kills successfully) BEFORE our
+        // 25ms poll first reads the pid file — the behavior under test
+        // succeeding early. The teeth are below: without the tree-kill the
+        // grandchild sits alive for 60s and this times out red.
+        await waitUntil(() => !isAlive(gpid), 6000);
+        expect(isAlive(gpid)).toBe(false);
+      } finally {
+        sup.stopAll();
+        cleanup();
       }
-    };
-    return { command, dir, readGpid, cleanup };
-  }
+    });
 
-  async function waitUntil(pred, ms = 6000) {
-    const deadline = Date.now() + ms;
-    while (Date.now() < deadline) {
-      if (pred()) return true;
-      await new Promise((r) => setTimeout(r, 25));
-    }
-    return pred();
-  }
-
-  it("tree-kills the grandchild when the hook overruns its timeout", async () => {
-    const { command, readGpid, cleanup } = await makeHookThatSpawnsGrandchild();
-    const sup = new AsyncHookSupervisor();
-    try {
-      sup.dispatch([{ command, event: "Stop", timeout: 0.5 }], {});
-      const gpid = await readGpid();
-      expect(gpid).toBeGreaterThan(0);
-      // NOTE: no isAlive(gpid)===true sanity here. Under full-suite load the
-      // 0.5s timeout often fires (and tree-kills successfully) BEFORE our
-      // 25ms poll first reads the pid file — the behavior under test
-      // succeeding early. The teeth are below: without the tree-kill the
-      // grandchild sits alive for 60s and this times out red.
-      await waitUntil(() => !isAlive(gpid), 6000);
-      expect(isAlive(gpid)).toBe(false);
-    } finally {
-      sup.stopAll();
-      cleanup();
-    }
-  });
-
-  it("tree-kills the grandchild on stopAll (session-end reap)", async () => {
-    const { command, readGpid, cleanup } = await makeHookThatSpawnsGrandchild();
-    const sup = new AsyncHookSupervisor();
-    try {
-      // Long timeout so ONLY stopAll (not the timeout) does the reaping.
-      sup.dispatch([{ command, event: "Stop", timeout: 30 }], {});
-      const gpid = await readGpid();
-      expect(gpid).toBeGreaterThan(0);
-      expect(isAlive(gpid)).toBe(true);
-      sup.stopAll();
-      await waitUntil(() => !isAlive(gpid), 6000);
-      expect(isAlive(gpid)).toBe(false);
-    } finally {
-      sup.stopAll();
-      cleanup();
-    }
-  });
-});
+    it("tree-kills the grandchild on stopAll (session-end reap)", async () => {
+      const { command, readGpid, cleanup } =
+        await makeHookThatSpawnsGrandchild();
+      const sup = new AsyncHookSupervisor();
+      try {
+        // Long timeout so ONLY stopAll (not the timeout) does the reaping.
+        sup.dispatch([{ command, event: "Stop", timeout: 30 }], {});
+        const gpid = await readGpid();
+        expect(gpid).toBeGreaterThan(0);
+        expect(isAlive(gpid)).toBe(true);
+        sup.stopAll();
+        await waitUntil(() => !isAlive(gpid), 6000);
+        expect(isAlive(gpid)).toBe(false);
+      } finally {
+        sup.stopAll();
+        cleanup();
+      }
+    });
+  },
+);

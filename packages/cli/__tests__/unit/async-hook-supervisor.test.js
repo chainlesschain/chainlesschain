@@ -263,6 +263,77 @@ describe("AsyncHookSupervisor guardrails", () => {
   });
 });
 
+describe("AsyncHookSupervisor Windows process-tree fallback", () => {
+  const processTable = [
+    "Node,ParentProcessId,ProcessId",
+    "HOST,10,100",
+    "HOST,100,200",
+    "HOST,200,300",
+    "HOST,999,400",
+    "",
+  ].join("\r\n");
+
+  it("builds only the requested descendant tree from one WMIC snapshot", () => {
+    const calls = [];
+    const sup = new AsyncHookSupervisor({
+      platform: "win32",
+      spawnSync(file, args) {
+        calls.push([file, args]);
+        return { status: 0, stdout: processTable, stderr: "" };
+      },
+    });
+
+    expect(sup._windowsDescendantPids(100)).toEqual([200, 300]);
+    expect(calls).toEqual([
+      [
+        "wmic",
+        [
+          "path",
+          "Win32_Process",
+          "get",
+          "ParentProcessId,ProcessId",
+          "/format:csv",
+        ],
+      ],
+    ]);
+    sup.stopAll();
+  });
+
+  it("kills snapshotted descendants leaf-first when taskkill is denied", () => {
+    const killed = [];
+    const childSignals = [];
+    const sup = new AsyncHookSupervisor({
+      platform: "win32",
+      killProcess(pid, signal) {
+        killed.push([pid, signal]);
+      },
+      spawnSync(file) {
+        if (file === "wmic") {
+          return { status: 0, stdout: processTable, stderr: "" };
+        }
+        return { status: 5, stdout: "", stderr: "Access is denied" };
+      },
+    });
+
+    sup._killChildTree(
+      {
+        pid: 100,
+        kill(signal) {
+          childSignals.push(signal);
+        },
+      },
+      "SIGTERM",
+    );
+
+    expect(killed).toEqual([
+      [300, "SIGKILL"],
+      [200, "SIGKILL"],
+    ]);
+    expect(childSignals).toEqual(["SIGTERM"]);
+    sup.stopAll();
+  });
+});
+
 describe("partitionAsyncHooks", () => {
   it("splits async:true off the blocking set", () => {
     const { sync, async } = partitionAsyncHooks([

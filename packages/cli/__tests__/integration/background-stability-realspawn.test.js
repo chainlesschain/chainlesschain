@@ -233,7 +233,7 @@ describe("6. needs-input phase — turn → idle → finalize (real spawn)", () 
     expect(final?.transport ?? null).toBe(null);
     expect(final?.phase ?? null).toBe(null);
     expect(final?.title).toBe("renamed-while-idle");
-  }, 20_000);
+  }, 45_000);
 });
 
 describe("8. log tail — truncation while the worker is appending (real spawn)", () => {

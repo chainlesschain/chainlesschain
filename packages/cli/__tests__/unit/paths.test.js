@@ -1,15 +1,32 @@
-import { describe, it, expect, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
 describe("paths", () => {
+  const originalChainlesschainHome = process.env.CHAINLESSCHAIN_HOME;
+
+  beforeEach(() => {
+    delete process.env.CHAINLESSCHAIN_HOME;
+  });
+
   afterEach(() => {
+    if (originalChainlesschainHome === undefined) {
+      delete process.env.CHAINLESSCHAIN_HOME;
+    } else {
+      process.env.CHAINLESSCHAIN_HOME = originalChainlesschainHome;
+    }
     vi.restoreAllMocks();
   });
 
   it("getHomeDir returns ~/.chainlesschain", async () => {
     const { getHomeDir } = await import("../../src/lib/paths.js");
     expect(getHomeDir()).toBe(join(homedir(), ".chainlesschain"));
+  });
+
+  it("getHomeDir honors CHAINLESSCHAIN_HOME", async () => {
+    process.env.CHAINLESSCHAIN_HOME = join("custom", "chainlesschain-home");
+    const { getHomeDir } = await import("../../src/lib/paths.js");
+    expect(getHomeDir()).toBe(join("custom", "chainlesschain-home"));
   });
 
   it("getBinDir returns ~/.chainlesschain/bin", async () => {

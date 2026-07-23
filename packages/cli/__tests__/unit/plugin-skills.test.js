@@ -20,14 +20,22 @@ import {
 describe("Plugin Skills Integration", () => {
   let db;
   let tempDir;
+  let appDataBefore;
 
   beforeEach(() => {
     db = new MockDatabase();
     tempDir = mkdtempSync(join(tmpdir(), "cc-pluginskill-test-"));
+    appDataBefore = process.env.APPDATA;
+    process.env.APPDATA = join(tempDir, "appdata");
   });
 
   afterEach(() => {
     rmSync(tempDir, { recursive: true, force: true });
+    if (appDataBefore === undefined) {
+      delete process.env.APPDATA;
+    } else {
+      process.env.APPDATA = appDataBefore;
+    }
   });
 
   // ─── ensurePluginTables creates plugin_skills ─────────

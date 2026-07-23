@@ -108,8 +108,11 @@ chainlesschain config beta disable managed-agents-2026-04-15
 
 ## 持久化文件
 
-- `config.json`：基础 CLI 配置
-- `~/.chainlesschain/beta-flags.json`：Managed Agents Beta Flags
+- `<CHAINLESSCHAIN_HOME>/config.json`：基础 CLI 配置
+- `<CHAINLESSCHAIN_HOME>/beta-flags.json`：Managed Agents Beta Flags
+- `<CHAINLESSCHAIN_HOME>/sessions/`：Agent JSONL 会话
+
+未设置 `CHAINLESSCHAIN_HOME` 时，它等价于 `~/.chainlesschain`。设置后，该值就是配置目录本身，不会再自动追加 `.chainlesschain`。
 
 ## 配置参考
 
@@ -168,8 +171,8 @@ OPENAI_API_KEY=sk-...
 # 覆盖数据库路径
 CHAINLESSCHAIN_DB_PATH=/custom/path/chainlesschain.db
 
-# 覆盖配置目录
-CHAINLESSCHAIN_CONFIG_DIR=/custom/config/dir
+# 覆盖整个 CLI 运行目录（配置、会话、状态、日志与缓存）
+CHAINLESSCHAIN_HOME=/custom/chainlesschain-home
 ```
 
 ## 性能指标
@@ -250,10 +253,10 @@ A: 不会。`config reset` 仅重置 `config.json`，`beta-flags.json` 独立管
 
 **Q: 多用户/多项目环境下如何隔离配置？**
 
-A: 通过 `CHAINLESSCHAIN_CONFIG_DIR` 环境变量指向不同目录，实现多套配置隔离：
+A: 通过 `CHAINLESSCHAIN_HOME` 环境变量指向不同目录，实现多套配置、会话与状态隔离。变量值就是目标目录本身：
 
 ```bash
-CHAINLESSCHAIN_CONFIG_DIR=./project-a/.chainlesschain chainlesschain config list
+CHAINLESSCHAIN_HOME=./project-a/.chainlesschain chainlesschain config list
 ```
 
 ## 使用示例

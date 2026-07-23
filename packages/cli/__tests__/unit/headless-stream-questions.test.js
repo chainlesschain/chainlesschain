@@ -61,7 +61,12 @@ describe("interactive questions round-trip", () => {
     yield { type: "run-ended", reason: "complete" };
   };
 
-  function harness({ inputGen, agentLoop = askingLoop, options = {} }) {
+  function harness({
+    inputGen,
+    agentLoop = askingLoop,
+    options = {},
+    extraDeps = {},
+  }) {
     const lines = [];
     const deps = {
       bootstrap: async () => ({ db: null }),
@@ -70,6 +75,7 @@ describe("interactive questions round-trip", () => {
       writeErr: () => {},
       agentLoop,
       input: inputGen(),
+      ...extraDeps,
     };
     return {
       run: () =>
@@ -86,6 +92,59 @@ describe("interactive questions round-trip", () => {
     };
   }
 
+  it("registers MCP elicitation after resolving the MCP client", async () => {
+    let elicitationHandler = null;
+    const h = harness({
+      inputGen: async function* () {
+        yield JSON.stringify({ type: "user", text: "trigger MCP" }) + "\n";
+        await sleep(80);
+        yield JSON.stringify({
+          type: "answer",
+          id: "q-1",
+          answer: "approved",
+        }) + "\n";
+      },
+      agentLoop: async function* () {
+        const response = await elicitationHandler({
+          server: "example",
+          requestId: "req-1",
+          message: "Provide a value",
+          requestedSchema: { type: "object" },
+        });
+        yield { type: "response-complete", content: JSON.stringify(response) };
+        yield { type: "run-ended", reason: "complete" };
+      },
+      extraDeps: {
+        resolveAgentMcp: async () => ({
+          mcpClient: {
+            setElicitationHandler(handler) {
+              elicitationHandler = handler;
+            },
+          },
+          tools: [],
+        }),
+      },
+    });
+
+    await h.run();
+
+    expect(elicitationHandler).toBeTypeOf("function");
+    expect(
+      h.events().find((event) => event.type === "question_request"),
+    ).toMatchObject({
+      question: "Provide a value",
+      metadata: {
+        kind: "mcp_elicitation",
+        server: "example",
+        requestId: "req-1",
+        requestedSchema: { type: "object" },
+      },
+    });
+    expect(
+      JSON.parse(h.events().find((event) => event.type === "result").result),
+    ).toEqual({ action: "accept", content: { value: "approved" } });
+  });
+
   it("answer: the blocked tool gets the value; request + resolution emitted", async () => {
     const h = harness({
       inputGen: async function* () {
@@ -96,14 +155,14 @@ describe("interactive questions round-trip", () => {
       },
     });
     await h.run();
-    expect(
-      h.events().find((e) => e.type === "question_request"),
-    ).toMatchObject({
-      id: "q-1",
-      question: "Pick a color",
-      options: [{ label: "Blue" }, { label: "Red" }],
-      multiSelect: false,
-    });
+    expect(h.events().find((e) => e.type === "question_request")).toMatchObject(
+      {
+        id: "q-1",
+        question: "Pick a color",
+        options: [{ label: "Blue" }, { label: "Red" }],
+        multiSelect: false,
+      },
+    );
     expect(
       h.events().find((e) => e.type === "question_resolved"),
     ).toMatchObject({ id: "q-1", via: "user-answer" });
@@ -135,7 +194,8 @@ describe("interactive questions round-trip", () => {
       inputGen: async function* () {
         yield JSON.stringify({ type: "user", text: "ASK" }) + "\n";
         await sleep(80);
-        yield JSON.stringify({ type: "answer", id: "q-1", answer: null }) + "\n";
+        yield JSON.stringify({ type: "answer", id: "q-1", answer: null }) +
+          "\n";
       },
     });
     await h.run();

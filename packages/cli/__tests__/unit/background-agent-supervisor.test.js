@@ -75,9 +75,23 @@ function reapTree(pid) {
   if (target === process.pid) return; // never kill the vitest worker itself
   try {
     if (process.platform === "win32") {
-      originalSpawnSync("taskkill", ["/PID", String(target), "/T", "/F"], {
-        windowsHide: true,
-      });
+      const result = originalSpawnSync(
+        "taskkill",
+        ["/PID", String(target), "/T", "/F"],
+        {
+          windowsHide: true,
+        },
+      );
+      if (result.error || result.status !== 0) {
+        // Restricted Windows runners may deny taskkill even for a process this
+        // test created. Terminate the recorded worker/agent directly as the
+        // cleanup fallback; reapLaunchedAgents calls this for both generations.
+        try {
+          process.kill(target, "SIGKILL");
+        } catch {
+          /* already gone */
+        }
+      }
     } else {
       // Detached child is a group leader → the negative pid takes the worker
       // AND the agent it spawned in one shot; the direct kill is the fallback
@@ -95,6 +109,22 @@ function reapTree(pid) {
     }
   } catch {
     /* best-effort reap */
+  }
+}
+
+function isProcessStillAlive(pid) {
+  try {
+    process.kill(Number(pid), 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function waitForLaunchedProcessesToExit() {
+  for (let attempt = 0; attempt < 50; attempt++) {
+    if (![...launchedPids].some(isProcessStillAlive)) return;
+    await new Promise((resolve) => setTimeout(resolve, 50));
   }
 }
 
@@ -163,15 +193,22 @@ afterEach(async () => {
   // state record a test already removed, e.g. the --force rm flow).
   reapLaunchedAgents(dir);
   for (const pid of launchedPids) reapTree(pid);
+  // On Windows taskkill can return just before the worker releases its cwd and
+  // named-pipe handles. Wait for the tracked processes to actually disappear
+  // before removing their temporary working directory.
+  await waitForLaunchedProcessesToExit();
   launchedPids.clear();
   delete process.env.CC_BACKGROUND_AGENTS_DIR;
-  for (let attempt = 0; attempt < 20; attempt++) {
+  // Windows can keep the worker's former cwd locked for several seconds even
+  // after taskkill has completed and the pid no longer exists. Retry only that
+  // transient EBUSY; permission/path errors still fail immediately.
+  for (let attempt = 0; attempt < 150; attempt++) {
     try {
       rmSync(dir, { recursive: true, force: true });
       break;
     } catch (error) {
-      if (error?.code !== "EBUSY" || attempt === 19) throw error;
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      if (error?.code !== "EBUSY" || attempt === 149) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
 });
@@ -950,10 +987,28 @@ describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
 
     conn.close();
     // Reap the worker tree so the 20s turn + 100 queued turns never run on.
-    try {
-      stopBackgroundAgent(state.id);
-    } catch {
-      /* already gone */
+    if (process.platform === "win32") {
+      // The sandbox can reject taskkill /T even for our own child. Keep the
+      // production stop path and terminal-state write under test, but replace
+      // only its OS command seam with direct termination of the recorded pids.
+      _deps.spawnSync = vi.fn(() => {
+        const latest = readBackgroundAgentState(state.id) || state;
+        for (const pid of [latest.agentPid, latest.workerPid, latest.pid]) {
+          const target = Number(pid);
+          if (!Number.isInteger(target) || target <= 0) continue;
+          launchedPids.add(target);
+          try {
+            process.kill(target, "SIGKILL");
+          } catch {
+            /* already gone */
+          }
+        }
+        return { status: 0, stdout: "", stderr: "" };
+      });
+    } else {
+      _deps.kill = (pid, signal) => process.kill(pid, signal);
     }
+    const stopped = stopBackgroundAgent(state.id);
+    expect(stopped).toMatchObject({ stopped: true, status: "stopped" });
   }, 30000);
 });

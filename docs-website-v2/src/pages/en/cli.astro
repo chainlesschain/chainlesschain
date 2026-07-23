@@ -589,6 +589,9 @@ const packs = [
         <p class="mt-6 text-lg text-muted">
           cc's network / IO client layer is continuously hardened against Claude Code CLI: <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">write_file</code> / <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">edit_file</code> verify the on-disk byte count (a silent truncation on a network / cloud-synced drive no longer reads as success); the MCP client surfaces <code class="font-mono text-sm">tools/list</code> failures, fails fast on a dead stdio server (no 30s hang) and times out HTTP requests; <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc mcp serve</code> bounds request body + timeout + errors; <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc setup</code> verifies Content-Length + a stall timeout. Every guard ships with tests.
         </p>
+        <p class="mt-4 text-lg text-muted">
+          Runtime boundaries are covered too: the credential agent forwards only explicit session identifiers while filtering unknown credential-bearing environment variables; async hooks reap the whole process tree on timeout or session shutdown, with a descendant-snapshot fallback when Windows <code class="font-mono text-sm">taskkill</code> is denied; and <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">CHAINLESSCHAIN_HOME</code> isolates configuration, sessions, and state in one exact directory. The 2026-07-23 CLI E2E baseline is 59 test files and 633 passing tests (10 capability-gated skips).
+        </p>
       </div>
     </div>
   </section>

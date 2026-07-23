@@ -1,5 +1,7 @@
 # CLI Runtime 当前实现（0.162.175）
 
+> 更新时间：2026-07-23。
+
 本文是当前 CLI 运行时的实现快照，适合部署、排障和集成方阅读。设计取舍详见[运行时设计核对](/design/cli-runtime-current)。
 
 ## 现在可以使用什么
@@ -9,6 +11,8 @@
 - `cc logs <id>`、`cc daemon status|view|resume|stop`：查看和管理后台会话。
 - `Setup` / `Notification` hooks：在命令开始前注入环境并发送会话通知。
 - 跨平台 sandbox 与 credential agent：通过统一 broker 对子进程执行做默认隔离。
+- `cc session export <id>`：默认扫描并脱敏会话中的 API Key、JWT、连接串等秘密；只有显式 `--no-redact` 才保留原文。
+- `CHAINLESSCHAIN_HOME=<dir>`：把配置、会话、状态、日志和缓存统一隔离到指定目录，适合 CI、多项目或便携部署。
 
 ## 运行结构
 
@@ -20,6 +24,7 @@ cc
  ├─ process-execution-broker
  │    ├─ sandbox
  │    └─ credential agent
+ ├─ async-hook supervisor (timeout + process-tree reap)
  └─ session hooks (Setup/Notification)
 ```
 
@@ -31,13 +36,28 @@ cc
 - `packages/cli/src/lazy-dispatch.js`：命令延迟分发。
 - `packages/cli/src/lib/background-agent-supervisor.js`：后台会话监督。
 - `packages/cli/src/lib/process-execution-broker/`：子进程安全执行。
+- `packages/cli/src/lib/async-hook-supervisor.cjs`：异步 hook 并发、超时与进程树回收。
+- `packages/cli/src/lib/paths.js`：`CHAINLESSCHAIN_HOME` 与运行目录解析。
 - `packages/cli/src/lib/session-hooks.js`：通知与会话钩子。
 
 ## 平台注意
 
 - Windows 上 `.cmd` 启动、hook 输出清理、后台 attach 路径已修复。
+- Windows 异步 hook 优先使用 `taskkill /T /F` 回收整棵进程树；当系统允许枚举但拒绝 `taskkill` 时，会先快照后代 PID 并从叶子向上兜底终止。受限沙箱若同时禁止枚举和终止，只能回收当前可控子进程并显式跳过真实树终止测试。
 - 本地控制通道优先使用 NDJSON/TCP fallback，需要本地会话凭据。
 - 停止后台 Agent 时，supervisor 会校验 PID 与会话绑定关系，避免误杀。
+
+## 配置目录约定
+
+默认运行目录是 `~/.chainlesschain`。设置 `CHAINLESSCHAIN_HOME` 时，该值就是运行目录本身，不会再追加一层 `.chainlesschain`：
+
+```bash
+CHAINLESSCHAIN_HOME=/tmp/cc-ci cc session list
+# 会话文件：/tmp/cc-ci/sessions/<id>.jsonl
+# 主配置：  /tmp/cc-ci/config.json
+```
+
+credential agent 会保留运行所需的非秘密会话标识（如 `CC_SESSION_ID`、`CLAUDE_CODE_SESSION_ID`），但仍过滤未知的 `*_SESSION` 变量与长效凭据，避免把无关宿主环境透传给子进程。
 
 ## 验证
 
@@ -45,8 +65,9 @@ cc
 
 ```bash
 cd packages/cli
-npm test
-npm run lint
+npm run test:unit
+npm run test:integration
+npm run test:e2e
 ```
 
-重点覆盖：`agent --bg`、`attach`、`stop`、hooks 输出、Windows 命令分发和 sandbox 能力探测。
+2026-07-23 的 CLI E2E 分片基线为 **59 个测试文件通过、633 项通过、10 项按条件跳过**；另有 1 个辅助模块不含测试。重点覆盖 `agent --bg`、`attach`、`stop`、resume、会话导出脱敏、LIKE 字面搜索、hooks 输出、Windows 命令分发和 sandbox 能力探测。

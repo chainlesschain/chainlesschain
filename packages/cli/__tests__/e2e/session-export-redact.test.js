@@ -20,7 +20,9 @@ afterAll(() => t.cleanup());
 const SECRET = "sk-abcdef0123456789abcdef0123456789abcdef01";
 
 function seed(id) {
-  const dir = path.join(t.home, ".chainlesschain", "sessions");
+  // testHome sets CHAINLESSCHAIN_HOME=t.home, so JSONL sessions live directly
+  // below that override instead of under a second .chainlesschain directory.
+  const dir = path.join(t.home, "sessions");
   fs.mkdirSync(dir, { recursive: true });
   const lines = [
     {
@@ -58,7 +60,7 @@ describe("cc session export secret redaction (§8.1)", () => {
   it("redacts secrets from the exported transcript by default", () => {
     seed("sid-redact");
     const r = runExport(["sid-redact"]);
-    expect(r.status).toBe(0);
+    expect(r.status, `stderr: ${r.stderr}`).toBe(0);
     expect(r.stdout).not.toContain(SECRET);
     expect(r.stdout).toContain("[REDACTED]");
     // The redaction count notice goes to stderr, not into the exported file.
@@ -68,7 +70,7 @@ describe("cc session export secret redaction (§8.1)", () => {
   it("keeps raw values with --no-redact", () => {
     seed("sid-raw");
     const r = runExport(["sid-raw", "--no-redact"]);
-    expect(r.status).toBe(0);
+    expect(r.status, `stderr: ${r.stderr}`).toBe(0);
     expect(r.stdout).toContain(SECRET);
     expect(r.stdout).not.toContain("[REDACTED]");
   }, 60_000);

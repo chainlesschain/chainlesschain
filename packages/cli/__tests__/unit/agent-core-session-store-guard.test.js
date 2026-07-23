@@ -4,20 +4,27 @@
  * exactly like the sensitive-file guard: an explicit settings `allow` rule is
  * the only bypass, headless without a confirmer fails closed.
  */
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { executeTool } from "../../src/runtime/agent-core.js";
 import { sessionStoreDir } from "../../src/lib/session-store-guard.js";
 
-// Unique per-run filename inside the REAL session store — only the
-// confirmer-approved / allow-rule cases actually create it; cleaned up after.
-const storeTarget = path.join(
-  sessionStoreDir(),
-  `guard-test-${process.pid}-${Date.now()}.jsonl`,
-);
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cc-store-guard-"));
+let storeTarget;
+let tmp;
+let chainlesschainHomeBefore;
+
+beforeAll(() => {
+  tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cc-store-guard-"));
+  chainlesschainHomeBefore = process.env.CHAINLESSCHAIN_HOME;
+  process.env.CHAINLESSCHAIN_HOME = path.join(tmp, "home");
+  fs.mkdirSync(sessionStoreDir(), { recursive: true });
+  storeTarget = path.join(
+    sessionStoreDir(),
+    `guard-test-${process.pid}-${Date.now()}.jsonl`,
+  );
+});
 
 afterEach(() => {
   try {
@@ -25,6 +32,15 @@ afterEach(() => {
   } catch {
     /* best-effort */
   }
+});
+
+afterAll(() => {
+  if (chainlesschainHomeBefore === undefined) {
+    delete process.env.CHAINLESSCHAIN_HOME;
+  } else {
+    process.env.CHAINLESSCHAIN_HOME = chainlesschainHomeBefore;
+  }
+  fs.rmSync(tmp, { recursive: true, force: true });
 });
 
 describe("session-store write guard", () => {

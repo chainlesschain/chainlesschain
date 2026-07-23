@@ -393,8 +393,16 @@ export function mergeWorktree(repoDir, branchName, options = {}) {
     };
   } catch (err) {
     const errMsg = err.message || String(err);
-    if (errMsg.includes("CONFLICT") || errMsg.includes("conflict")) {
-      const conflictPaths = _collectConflictFiles(repoDir);
+    // Git can report merge conflicts on stdout while execSync's Error.message
+    // contains only the failed command (and localized installations need not
+    // include the English word "conflict"). The unmerged index is the
+    // authoritative signal.
+    const conflictPaths = _collectConflictFiles(repoDir);
+    if (
+      conflictPaths.length > 0 ||
+      errMsg.includes("CONFLICT") ||
+      errMsg.includes("conflict")
+    ) {
       if (conflictPaths.length === 0) {
         conflictPaths.push(..._extractConflictPathsFromMessage(errMsg));
       }

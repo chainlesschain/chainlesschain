@@ -709,10 +709,7 @@ export function isQuestionRequest(
 export function isMcpElicitationRequest(
   event: AgentStreamEvent,
 ): event is QuestionRequestEvent {
-  return (
-    isQuestionRequest(event) &&
-    event.metadata?.kind === "mcp_elicitation"
-  );
+  return isQuestionRequest(event) && event.metadata?.kind === "mcp_elicitation";
 }
 
 export function isResult(event: AgentStreamEvent): event is ResultEvent {

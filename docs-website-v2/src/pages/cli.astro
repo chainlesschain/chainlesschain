@@ -595,6 +595,9 @@ const packs = [
         <p class="mt-6 text-lg text-muted">
           对照 Claude Code CLI 持续硬化 cc 的网络 / IO 客户端层：<code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">write_file</code> / <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">edit_file</code> 落盘后校验字节数（网络盘 / 云同步盘静默截断不再假成功）；MCP 客户端 <code class="font-mono text-sm">tools/list</code> 失败显式可见、stdio 进程猝死立即失败（不挂 30s）、HTTP 请求补超时；<code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc mcp serve</code> 请求体上限 + 超时 + 错误处理；<code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc setup</code> 下载校验 Content-Length + 停滞超时。每项都带专项测试。
         </p>
+        <p class="mt-4 text-lg text-muted">
+          运行时边界也已纳入回归：credential agent 只放行明确的会话标识并过滤未知凭据环境变量；异步 hooks 在超时或会话结束时回收整棵进程树，Windows 的 <code class="font-mono text-sm">taskkill</code> 权限失败有后代快照兜底；<code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">CHAINLESSCHAIN_HOME</code> 可把配置、会话与状态完整隔离到指定目录。2026-07-23 的 CLI E2E 基线为 59 个测试文件、633 项通过（10 项按系统能力跳过）。
+        </p>
       </div>
     </div>
   </section>

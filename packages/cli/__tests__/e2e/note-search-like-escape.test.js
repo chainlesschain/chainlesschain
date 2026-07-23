@@ -25,6 +25,11 @@ describe("E2E: note search escapes LIKE wildcards", () => {
       env: { ...t.env(), NODE_NO_WARNINGS: "1" },
     });
 
+  const mustRun = (args) => {
+    const result = run(args);
+    expect(result.status, `stderr: ${result.stderr}`).toBe(0);
+  };
+
   const search = (q) => {
     const r = run(["note", "search", q, "--json"]);
     expect(r.status, `stderr: ${r.stderr}`).toBe(0);
@@ -40,12 +45,12 @@ describe("E2E: note search escapes LIKE wildcards", () => {
 
   beforeAll(() => {
     // None of these titles/contents contain a literal % or _.
-    run(["note", "add", "alpha", "-c", "first body"]);
-    run(["note", "add", "beta", "-c", "second body"]);
+    mustRun(["note", "add", "alpha", "-c", "first body"]);
+    mustRun(["note", "add", "beta", "-c", "second body"]);
     // One note whose content contains a literal "50%"; another with "5000".
-    run(["note", "add", "discount", "-c", "save 50% today"]);
-    run(["note", "add", "inventory", "-c", "we have 5000 units"]);
-  });
+    mustRun(["note", "add", "discount", "-c", "save 50% today"]);
+    mustRun(["note", "add", "inventory", "-c", "we have 5000 units"]);
+  }, 120_000);
 
   it('`note search "%"` matches only notes with a literal % (wildcard escaped)', () => {
     const results = search("%");

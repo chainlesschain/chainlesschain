@@ -15,6 +15,7 @@ const {
 const SEVERITY = ["error", "warning", "information", "hint"];
 
 function createVscodeEditorFacade(vscode, opts = {}) {
+  const hostPlatform = opts.platform || process.platform;
   // Optional provider for the App Preview controller (created lazily by the
   // preview.start command) — getPreviewState reads through it so the tool
   // reports "not running" before the first start instead of being absent.
@@ -532,12 +533,14 @@ function createVscodeEditorFacade(vscode, opts = {}) {
         fileLabel,
         selectWrites,
         planMultiDiffReview,
+        normalizeFileMode,
       } = require("./multi-diff");
       const norm = normalizeMultiDiffFiles(files);
       // Binary guard (same as openDiff): a binary file must never round-trip
       // the UTF-8 text pipeline — drop it from the reviewable set up front.
       const reviewPlan = planMultiDiffReview(norm, {
         readCurrentBytes: safeReadFileProbe,
+        supportsModeChange: hostPlatform !== "win32",
       });
       const skippedBinary = reviewPlan.skipped
         .filter((entry) => entry.kind === "binary")
@@ -548,9 +551,10 @@ function createVscodeEditorFacade(vscode, opts = {}) {
             entry.kind === "large-file" || entry.kind === "changeset-limit",
         )
         .map((entry) => entry.path);
-      const changed = reviewPlan.reviewable.filter(
-        (f) => (f.originalText || "") !== f.modifiedText,
-      );
+      const skippedUnsupported = reviewPlan.skipped
+        .filter((entry) => entry.kind === "unsupported-operation")
+        .map((entry) => entry.path);
+      const changed = reviewPlan.reviewable;
       const withDegradation = (result) => {
         if (!reviewPlan.degraded) return result;
         return {
@@ -564,6 +568,7 @@ function createVscodeEditorFacade(vscode, opts = {}) {
           },
           ...(skippedBinary.length > 0 ? { skippedBinary } : {}),
           ...(skippedLarge.length > 0 ? { skippedLarge } : {}),
+          ...(skippedUnsupported.length > 0 ? { skippedUnsupported } : {}),
         };
       };
       if (changed.length === 0) {

@@ -54,6 +54,8 @@ class AsyncHookSupervisor {
     this._deps = {
       spawn: opts.spawn || cpDefault.spawn,
       spawnSync: opts.spawnSync || cpDefault.spawnSync,
+      killProcess: opts.killProcess || process.kill.bind(process),
+      platform: opts.platform || process.platform,
       now: opts.now || (() => Date.now()),
     };
     this._running = new Map(); // key -> { child, timer }
@@ -125,7 +127,11 @@ class AsyncHookSupervisor {
       return;
     }
     try {
-      if (process.platform === "win32") {
+      if (this._deps.platform === "win32") {
+        // Snapshot before taskkill: a policy-restricted taskkill may terminate
+        // the shell and then fail on its descendants, orphaning them so a
+        // parent-PID query performed afterward can no longer find the tree.
+        const descendants = this._windowsDescendantPids(pid);
         const r = this._deps.spawnSync(
           "taskkill",
           ["/PID", String(pid), "/T", "/F"],
@@ -135,20 +141,27 @@ class AsyncHookSupervisor {
         // tree snapshot and termination. Repeat once so that race cannot
         // leave a short-lived hook grandchild orphaned.
         if (!r?.error && r?.status === 0) {
-          this._deps.spawnSync(
-            "taskkill",
-            ["/PID", String(pid), "/T", "/F"],
-            { windowsHide: true },
-          );
+          this._deps.spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], {
+            windowsHide: true,
+          });
         }
-        // If taskkill couldn't launch, fall back to a direct kill.
+        // Restricted runners can launch taskkill but still receive a non-zero
+        // access/policy result. Enumerate the tree while it is still alive,
+        // then terminate descendants leaf-first before killing the shell.
         if (r && (r.error || (r.status != null && r.status !== 0))) {
+          for (const descendant of descendants.reverse()) {
+            try {
+              this._deps.killProcess(descendant, "SIGKILL");
+            } catch {
+              /* already gone */
+            }
+          }
           child.kill(signal);
         }
       } else {
         // Negative pid → the whole process group (requires the detached spawn).
         try {
-          process.kill(-pid, signal);
+          this._deps.killProcess(-pid, signal);
         } catch {
           child.kill(signal);
         }
@@ -160,6 +173,102 @@ class AsyncHookSupervisor {
         /* already gone */
       }
     }
+  }
+
+  /**
+   * Snapshot a Windows process tree for the taskkill-denied fallback. Query the
+   * process table once instead of issuing a quoted WMIC `where` expression for
+   * every level: Node/cmd quoting can silently turn that expression into an
+   * invalid WMIC alias query. PowerShell/CIM covers systems where WMIC has been
+   * removed. Traversal is bounded + cycle-safe so corrupt data cannot stall
+   * session teardown.
+   */
+  _windowsDescendantPids(rootPid) {
+    if (this._deps.platform !== "win32") return [];
+    const root = Number(rootPid);
+    if (!Number.isInteger(root) || root <= 0) return [];
+    let output = "";
+    let shouldTryCim = false;
+    try {
+      const result = this._deps.spawnSync(
+        "wmic",
+        [
+          "path",
+          "Win32_Process",
+          "get",
+          "ParentProcessId,ProcessId",
+          "/format:csv",
+        ],
+        {
+          encoding: "utf8",
+          windowsHide: true,
+          timeout: 3000,
+        },
+      );
+      if (!result?.error && result?.status === 0) {
+        output = String(result.stdout || "");
+      } else if (result?.error?.code === "ENOENT") {
+        shouldTryCim = true;
+      }
+    } catch {
+      shouldTryCim = true;
+    }
+    if (!output && shouldTryCim) {
+      try {
+        const result = this._deps.spawnSync(
+          "powershell.exe",
+          [
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "Get-CimInstance Win32_Process | ForEach-Object { '{0},{1}' -f $_.ParentProcessId,$_.ProcessId }",
+          ],
+          {
+            encoding: "utf8",
+            windowsHide: true,
+            timeout: 3000,
+          },
+        );
+        if (!result?.error && result?.status === 0) {
+          output = String(result.stdout || "");
+        }
+      } catch {
+        return [];
+      }
+    }
+
+    const childrenByParent = new Map();
+    for (const line of output.split(/\r?\n/)) {
+      const fields = line.trim().split(",");
+      if (fields.length < 2) continue;
+      const parentPid = Number(fields.at(-2));
+      const childPid = Number(fields.at(-1));
+      if (
+        !Number.isInteger(parentPid) ||
+        parentPid < 0 ||
+        !Number.isInteger(childPid) ||
+        childPid <= 0
+      ) {
+        continue;
+      }
+      const children = childrenByParent.get(parentPid) || [];
+      children.push(childPid);
+      childrenByParent.set(parentPid, children);
+    }
+
+    const seen = new Set([root]);
+    const pending = [root];
+    const descendants = [];
+    while (pending.length > 0 && seen.size <= 256) {
+      const parentPid = pending.shift();
+      for (const childPid of childrenByParent.get(parentPid) || []) {
+        if (seen.has(childPid)) continue;
+        seen.add(childPid);
+        descendants.push(childPid);
+        pending.push(childPid);
+      }
+    }
+    return descendants;
   }
 
   /** Install the process-exit reaper exactly once, only when a child exists. */
@@ -257,22 +366,23 @@ class AsyncHookSupervisor {
         // POSIX: own process group so a timeout / stopAll can signal the whole
         // tree (shell + the real hook command), not just the shell wrapper.
         // No-op on Windows, where the tree is reaped via `taskkill /T` instead.
-        detached: process.platform !== "win32",
+        detached: this._deps.platform !== "win32",
         env: {
           ...process.env,
           CLAUDE_HOOK_EVENT: hook.event || payload.hook_event_name || "",
         },
       };
-      child = opts.broker && hook.origin === "plugin:hook"
-        ? opts.broker.spawn(hook.command, [], {
-            ...spawnOptions,
-            origin: hook.origin,
-            policy: "allow",
-            pluginId: hook.pluginId || null,
-            pluginVersion: hook.pluginVersion || null,
-            pluginSource: hook.pluginSource || null,
-          })
-        : this._deps.spawn(hook.command, spawnOptions);
+      child =
+        opts.broker && hook.origin === "plugin:hook"
+          ? opts.broker.spawn(hook.command, [], {
+              ...spawnOptions,
+              origin: hook.origin,
+              policy: "allow",
+              pluginId: hook.pluginId || null,
+              pluginVersion: hook.pluginVersion || null,
+              pluginSource: hook.pluginSource || null,
+            })
+          : this._deps.spawn(hook.command, spawnOptions);
     } catch (err) {
       this._record(hook, {
         ok: false,

@@ -146,9 +146,9 @@ describe("MCPClient hot reconnect (unit, fake fetch)", () => {
     const a = fakeEndpoint({ token: "tok-a", marker: "a" });
     endpoints.push(a);
     await connectTo(a);
-    expect(
-      (await client.callTool("ide", "ping", {})).content[0].text,
-    ).toBe("pong-a");
+    expect((await client.callTool("ide", "ping", {})).content[0].text).toBe(
+      "pong-a",
+    );
 
     // IDE "restarts": old endpoint gone, new one on a new port + new token.
     const b = fakeEndpoint({ token: "tok-b", marker: "b" });
@@ -284,6 +284,7 @@ describe("IDE hot reconnect (integration: real IdeMcpServer restart)", () => {
   let out;
   const origHomedirReader = ideDeps.homedir;
   const origHomedirWriter = lockfile._deps.homedir;
+  const origAclSpawnSync = lockfile._deps.spawnSync;
 
   beforeEach(async () => {
     tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "cc-ide-reconnect-"));
@@ -291,6 +292,14 @@ describe("IDE hot reconnect (integration: real IdeMcpServer restart)", () => {
     fs.mkdirSync(ws, { recursive: true });
     ideDeps.homedir = () => tmpHome; // CLI lockfile reader
     lockfile._deps.homedir = () => tmpHome; // extension lockfile writer
+    // This suite exercises IDE endpoint rediscovery, not Windows ACL tooling.
+    // Keep writeLock fail-closed semantics satisfied without launching an
+    // external PowerShell process that restricted test runners can block.
+    lockfile._deps.spawnSync = () => ({
+      status: 0,
+      stdout: JSON.stringify({ ownerOnly: true }),
+      stderr: "",
+    });
 
     serverA = new IdeMcpServer({
       tools: buildIdeTools(facade("A")),
@@ -309,6 +318,7 @@ describe("IDE hot reconnect (integration: real IdeMcpServer restart)", () => {
   afterEach(async () => {
     ideDeps.homedir = origHomedirReader;
     lockfile._deps.homedir = origHomedirWriter;
+    lockfile._deps.spawnSync = origAclSpawnSync;
     try {
       await out?.mcpClient?.disconnectAll();
     } catch {

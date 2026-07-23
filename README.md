@@ -11,9 +11,9 @@
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-07-22 当前主线 — **cc CLI 0.162.175：后台交互、执行安全与运行时稳定性收口**
+## 2026-07-23 当前主线 — **cc CLI 0.162.175：测试金字塔、会话隔离与 Windows 进程生命周期加固**
 
-> 基于当前 Git 主线（`b32e90dce6`）。后台 Agent 已支持 attach 交互询问与 IPC/TCP transport；跨平台 sandbox 与 credential agent 默认接入执行 broker；Setup/Notification hooks 已接入命令生命周期；lazy dispatch、Windows hook 输出清理、CLI 启动和停止自 PID 保护完成稳定性修复。顶层命令数仍为 **175**。详见 [CLI Runtime 当前实现](docs-site/docs/chainlesschain/cli-runtime-current.md) 与 [运行时设计核对](docs/design/cli-runtime-current.md)。
+> 当前工作树完成了一轮 CLI unit / integration / E2E 稳定性修复：`CHAINLESSCHAIN_HOME` 现在明确表示配置、会话与状态的完整隔离目录；credential agent 只放行 `CC_SESSION_ID` / `CLAUDE_CODE_SESSION_ID` 等明确非秘密标识，未知会话变量仍默认过滤；Windows 后台 shell 与异步 hooks 在 `taskkill` 失败时有受控 fallback，不再把 shell 退出误判为整棵进程树已回收；session export 默认脱敏、无响应会话 resume、LIKE 字面搜索和真实后台 idle/finalize 均有回归覆盖。E2E 全量分片结果：**59 个测试文件、633 项通过，10 项按系统能力跳过**。顶层命令数仍为 **175**。详见 [CLI Runtime 当前实现](docs-site/docs/chainlesschain/cli-runtime-current.md) 与 [运行时设计核对](docs/design/cli-runtime-current.md)。
 
 ## 2026-07-16 发布 — **IDE 插件 VS Code 0.37.16 / JetBrains 0.4.60：bug-sweep + parity 批（Windows cmd.exe argv 注入加固 / JB EDT 冻结·死锁类修复 / 阻塞后台 Agent 可见 / budget·retry 流事件契约）**
 

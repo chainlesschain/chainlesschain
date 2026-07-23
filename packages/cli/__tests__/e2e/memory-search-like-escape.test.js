@@ -25,6 +25,11 @@ describe("E2E: memory search escapes LIKE wildcards", () => {
       env: { ...t.env(), NODE_NO_WARNINGS: "1" },
     });
 
+  const mustRun = (args) => {
+    const result = run(args);
+    expect(result.status, `stderr: ${result.stderr}`).toBe(0);
+  };
+
   const search = (q) => {
     const r = run(["memory", "search", q, "--json"]);
     expect(r.status, `stderr: ${r.stderr}`).toBe(0);
@@ -40,12 +45,12 @@ describe("E2E: memory search escapes LIKE wildcards", () => {
 
   beforeAll(() => {
     // None of these contents contain a literal % or _ …
-    run(["memory", "add", "alpha first body"]);
-    run(["memory", "add", "beta second body"]);
+    mustRun(["memory", "add", "alpha first body"]);
+    mustRun(["memory", "add", "beta second body"]);
     // … except one whose content contains a literal "50%"; another has "5000".
-    run(["memory", "add", "save 50% today"]);
-    run(["memory", "add", "we have 5000 units"]);
-  });
+    mustRun(["memory", "add", "save 50% today"]);
+    mustRun(["memory", "add", "we have 5000 units"]);
+  }, 120_000);
 
   it('`memory search "%"` matches only entries with a literal % (wildcard escaped)', () => {
     const results = search("%");

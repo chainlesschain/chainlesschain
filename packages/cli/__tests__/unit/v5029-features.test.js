@@ -7,6 +7,9 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 // ── 1. Context Compression Adaptive Strategies ─────────────────────────
 
@@ -131,9 +134,23 @@ describe("Context Compression Adaptive", () => {
 
 describe("JSONL Session Store Integration", () => {
   let store;
+  let sessionHome;
+  let chainlesschainHomeBefore;
 
   beforeEach(async () => {
+    chainlesschainHomeBefore = process.env.CHAINLESSCHAIN_HOME;
+    sessionHome = mkdtempSync(join(tmpdir(), "cc-v5029-sessions-"));
+    process.env.CHAINLESSCHAIN_HOME = sessionHome;
     store = await import("../../src/lib/jsonl-session-store.js");
+  });
+
+  afterEach(() => {
+    if (chainlesschainHomeBefore === undefined) {
+      delete process.env.CHAINLESSCHAIN_HOME;
+    } else {
+      process.env.CHAINLESSCHAIN_HOME = chainlesschainHomeBefore;
+    }
+    rmSync(sessionHome, { recursive: true, force: true });
   });
 
   it("exports all required functions", () => {

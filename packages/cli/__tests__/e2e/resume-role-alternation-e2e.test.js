@@ -36,7 +36,9 @@ function firstConsecutiveRole(messages) {
 
 /** Seed a JSONL session whose run produced NO assistant response. */
 function seedNoResponseSession(id) {
-  const dir = path.join(t.home, ".chainlesschain", "sessions");
+  // CHAINLESSCHAIN_HOME points at the config directory itself; the default
+  // value happens to be ~/.chainlesschain, but an override is not nested again.
+  const dir = path.join(t.home, "sessions");
   fs.mkdirSync(dir, { recursive: true });
   const lines = [
     {

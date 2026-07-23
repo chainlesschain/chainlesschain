@@ -28,6 +28,7 @@ let logSpy;
 let errSpy;
 let exitCodeBefore;
 let tmpDir;
+let chainlesschainHomeBefore;
 const createdSessions = [];
 
 function uniqueId() {
@@ -60,6 +61,8 @@ beforeEach(() => {
   exitCodeBefore = process.exitCode;
   process.exitCode = undefined;
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-loop-it-"));
+  chainlesschainHomeBefore = process.env.CHAINLESSCHAIN_HOME;
+  process.env.CHAINLESSCHAIN_HOME = path.join(tmpDir, "home");
   logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
   errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -79,6 +82,11 @@ afterEach(() => {
     } catch {
       /* best-effort */
     }
+  }
+  if (chainlesschainHomeBefore === undefined) {
+    delete process.env.CHAINLESSCHAIN_HOME;
+  } else {
+    process.env.CHAINLESSCHAIN_HOME = chainlesschainHomeBefore;
   }
 });
 

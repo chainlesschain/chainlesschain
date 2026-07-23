@@ -97,16 +97,61 @@ function escapeVueTags(content) {
     }
 
     const htmlTags = new Set([
-      "div", "span", "p", "a", "br", "hr", "img",
-      "table", "tr", "td", "th", "thead", "tbody",
-      "ul", "ol", "li",
-      "h1", "h2", "h3", "h4", "h5", "h6",
-      "pre", "code", "em", "strong", "b", "i", "u", "s", "sub", "sup",
-      "details", "summary", "blockquote",
-      "figure", "figcaption", "section", "article",
-      "header", "footer", "nav", "main", "aside",
-      "input", "button", "form", "label", "select", "option", "textarea",
-      "style", "script", "link", "meta",
+      "div",
+      "span",
+      "p",
+      "a",
+      "br",
+      "hr",
+      "img",
+      "table",
+      "tr",
+      "td",
+      "th",
+      "thead",
+      "tbody",
+      "ul",
+      "ol",
+      "li",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "pre",
+      "code",
+      "em",
+      "strong",
+      "b",
+      "i",
+      "u",
+      "s",
+      "sub",
+      "sup",
+      "details",
+      "summary",
+      "blockquote",
+      "figure",
+      "figcaption",
+      "section",
+      "article",
+      "header",
+      "footer",
+      "nav",
+      "main",
+      "aside",
+      "input",
+      "button",
+      "form",
+      "label",
+      "select",
+      "option",
+      "textarea",
+      "style",
+      "script",
+      "link",
+      "meta",
     ]);
 
     // 先把行内代码 `...` 替换为占位符，避免误转义行内代码中的 <tag>
@@ -208,7 +253,15 @@ function syncDir(src, dest, isRoot = false, isModuleDir = false) {
       let content = readFileSync(srcPath, "utf-8");
       content = escapeVueTags(content);
       content = rewriteInternalLinks(content);
-      writeFileSync(destPath, content, "utf-8");
+      // Avoid touching byte-identical mirrors. Besides reducing rebuild churn,
+      // this lets Windows builds proceed when a preview/indexer holds an
+      // unchanged file open without write sharing.
+      if (
+        !existsSync(destPath) ||
+        readFileSync(destPath, "utf-8") !== content
+      ) {
+        writeFileSync(destPath, content, "utf-8");
+      }
       if (entry !== targetName) {
         console.log(`  ${entry} → ${targetName}`);
       }

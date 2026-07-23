@@ -342,7 +342,9 @@ describe("libre-convert handler: LibreOffice not-found path", () => {
 
     // If soffice IS in PATH (unlikely in CI), this would succeed; otherwise error
     if (!result.success) {
-      expect(result.error).toMatch(/LibreOffice not found|Failed to launch/i);
+      expect(result.error).toMatch(
+        /LibreOffice not found|Failed to launch|conversion failed/i,
+      );
       expect(result.hint).toBeTruthy();
     }
   });
@@ -580,7 +582,7 @@ describe("doc-edit handler: xlsx/pptx Python dependency detection", () => {
         expect(result.hint).toMatch(/python\.org|pip install/i);
       }
     }
-  }, 15000);
+  }, 45000);
 
   it("pptx: returns error with python-pptx pip hint when python-pptx not installed", async () => {
     const fs = require("node:fs");

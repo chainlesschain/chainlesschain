@@ -1,6 +1,6 @@
 # CLI Runtime 当前实现核对（0.162.175）
 
-> 更新时间：2026-07-22。本文只记录已经进入当前代码和 Git 主线的运行时能力；路线图与实验性设计仍以各自的计划文档为准。
+> 更新时间：2026-07-23。本文只记录已经进入当前代码的运行时能力；路线图与实验性设计仍以各自的计划文档为准。
 
 ## 当前边界
 
@@ -38,33 +38,49 @@ cc entry
 
 - `process-execution-broker` 统一 shell 执行入口，跨平台 sandbox 与 credential agent 默认接入。
 - 凭据代理向子进程提供受控占位符，避免把长效凭据直接暴露给 agent 工具链。
+- 非秘密运行标识使用显式 allowlist：`CC_SESSION_ID`、`CLAUDE_CODE_SESSION_ID` 可以跨 broker 边界；未知 `*_SESSION` 与凭据型变量仍默认过滤。这样既不破坏会话关联，也不放宽通用环境透传。
 - sandbox 支持平台能力探测；严格配置下引擎不可用会拒绝启动，而不是静默宣称已隔离。
 
-### 4. Hooks
+### 4. 路径与会话隔离
+
+- `getHomeDir()` 的默认值为 `~/.chainlesschain`。
+- `CHAINLESSCHAIN_HOME` 是完整运行目录覆盖值，而不是用户 home 的父目录；设置为 `/tmp/cc-run` 时，会话位于 `/tmp/cc-run/sessions/`，不会写入 `/tmp/cc-run/.chainlesschain/sessions/`。
+- 配置、状态、服务、日志、缓存和 JSONL 会话共享这条目录契约。单元、集成和 E2E 夹具必须设置独立的 `CHAINLESSCHAIN_HOME`，不得写入开发者真实 home。
+- `cc session export` 默认经过 secret scan/redaction；`--no-redact` 是显式可信备份开关。
+
+### 5. Hooks 与进程生命周期
 
 - `Setup` 在命令执行前触发，可注入受控环境变量。
 - `Notification` 支持把会话状态转发到配置的通知适配器。
 - hooks 输出会经过统一清理；异常输出不会破坏命令 dispatch 或污染后续会话。
 - 未注册 hooks 时保持兼容路径，默认不改变既有输出。
+- 异步 hooks 受并发上限、去重和单 hook timeout 约束。停止或超时时必须回收 shell 与真实命令形成的整棵进程树，不能只杀 shell 留下孤儿任务。
+- POSIX 通过独立进程组和负 PID 信号回收；Windows 优先 `taskkill /T /F`。为处理策略限制下 `taskkill` 非零退出，supervisor 会在终止前一次性读取进程表、构造目标后代树，并按叶子优先顺序兜底终止。
+- WMIC 不存在时才使用 PowerShell/CIM，避免在权限拒绝场景重复做高延迟探测。受管沙箱同时禁止进程枚举与树终止时，真实树测试按能力跳过，解析和 fallback 行为由可注入单元测试覆盖。
 
 ## 关键入口
 
-| 领域 | 实现 |
-| --- | --- |
-| 命令分发 | `packages/cli/src/lazy-dispatch.js`、`command-manifest.json` |
-| 后台监督 | `packages/cli/src/lib/background-agent-supervisor.js` |
-| 交互协议 | `packages/cli/src/lib/ipc-attach-protocol.js`、`background-session-transport.js` |
-| 执行安全 | `packages/cli/src/lib/process-execution-broker/` |
-| hooks | `packages/cli/src/lib/session-hooks.js`、`hook-manager.js` |
+| 领域           | 实现                                                                             |
+| -------------- | -------------------------------------------------------------------------------- |
+| 命令分发       | `packages/cli/src/lazy-dispatch.js`、`command-manifest.json`                     |
+| 后台监督       | `packages/cli/src/lib/background-agent-supervisor.js`                            |
+| 交互协议       | `packages/cli/src/lib/ipc-attach-protocol.js`、`background-session-transport.js` |
+| 执行安全       | `packages/cli/src/lib/process-execution-broker/`                                 |
+| 路径契约       | `packages/cli/src/lib/paths.js`、`harness/jsonl-session-store.js`                |
+| 异步 hook 回收 | `packages/cli/src/lib/async-hook-supervisor.cjs`                                 |
+| hooks          | `packages/cli/src/lib/session-hooks.js`、`hook-manager.js`                       |
 
 ## 验证口径
 
-本页对应最近提交 `b32e90dce6` 及其前序 CLI 修复/功能提交。发布前应至少执行：
+发布前应分别执行三个层级，不能只用默认 `npm test` 代替：
 
 ```bash
 cd packages/cli
-npm test
-npm run lint
+npm run test:unit
+npm run test:integration
+npm run test:e2e
 ```
 
-Windows 还应覆盖 `.cmd` 启动、后台 attach、停止自 PID 记录和 hook 输出清理；TCP attach 需要运行对应的 IPC/transport 回归测试。
+2026-07-23 本轮已完成 E2E 全量分片验证：**59 个测试文件、633 项通过；10 项按环境能力跳过**。单元层新增 Windows 进程表解析与 taskkill-denied 叶子优先 fallback；集成层覆盖真实 hook spawn、后台 idle/finalize、loop home 隔离、plan approval 和文档转换失败路径。
+
+Windows 还应覆盖 `.cmd` 启动、后台 attach、停止自 PID 记录、hook 输出清理和进程树能力探测；TCP attach 需要运行对应的 IPC/transport 回归测试。真实系统能力不可用时，测试必须明确跳过并由注入测试补齐，不得把权限拒绝伪装成功。

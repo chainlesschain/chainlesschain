@@ -11,9 +11,9 @@
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
 
-## 2026-07-22 Mainline snapshot — **cc CLI 0.162.175: interactive background agents, execution security, and runtime hardening**
+## 2026-07-23 Mainline snapshot — **cc CLI 0.162.175: test pyramid, session isolation, and Windows process-lifecycle hardening**
 
-> Based on the current Git mainline (`b32e90dce6`). Background agents now support interactive attach questions over the local IPC/TCP transport; the cross-platform sandbox and credential agent are wired into the execution broker by default; Setup/Notification hooks are part of the command lifecycle; lazy dispatch, Windows hook-output cleanup, CLI startup, and self-PID stop guards were hardened. The top-level command count remains **175**. See [CLI Runtime current implementation](docs-site/docs/chainlesschain/cli-runtime-current.md) and [runtime design check](docs/design/cli-runtime-current.md).
+> The current worktree completed a CLI unit / integration / E2E stability pass. `CHAINLESSCHAIN_HOME` now unambiguously names the exact directory for configuration, sessions, and state; the credential agent forwards explicit non-secret identifiers such as `CC_SESSION_ID` / `CLAUDE_CODE_SESSION_ID` while unknown session variables remain filtered; Windows background shells and async hooks use controlled fallbacks when `taskkill` is denied instead of treating a dead shell as a reaped process tree; and regressions cover default-redacted session export, no-response resume, literal LIKE searches, and the real background idle/finalize lifecycle. Full sharded E2E result: **59 test files and 633 passing tests, with 10 capability-gated skips**. The top-level command count remains **175**. See [CLI Runtime current implementation](docs-site/docs/chainlesschain/cli-runtime-current.md) and [runtime design check](docs/design/cli-runtime-current.md).
 
 ## 2026-07-16 Release — **IDE plugins VS Code 0.37.16 / JetBrains 0.4.60: bug-sweep + parity batch (Windows cmd.exe argv hardening / JB EDT freeze-deadlock class / blocked background agents visible / budget-retry stream-event contract)**
 

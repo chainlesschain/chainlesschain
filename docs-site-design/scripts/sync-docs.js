@@ -254,7 +254,15 @@ function syncDir(src, dest, isRoot = false, isModuleDir = false) {
       let content = readFileSync(srcPath, "utf-8");
       content = escapeVueTags(content);
       content = rewriteInternalLinks(content);
-      writeFileSync(destPath, content, "utf-8");
+      // Avoid touching byte-identical mirrors. Besides reducing rebuild churn,
+      // this lets Windows builds proceed when a preview/indexer holds an
+      // unchanged file open without write sharing.
+      if (
+        !existsSync(destPath) ||
+        readFileSync(destPath, "utf-8") !== content
+      ) {
+        writeFileSync(destPath, content, "utf-8");
+      }
       if (entry !== targetName) {
         console.log(`  ${entry} → ${targetName}`);
       }

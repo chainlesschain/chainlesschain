@@ -17,6 +17,54 @@ const {
 const MAX_REVIEW_CHANGESET_FILES = 64;
 const MAX_REVIEW_CHANGESET_BYTES = 8 * 1024 * 1024;
 const REASON_CHANGESET_LIMIT = "changeset exceeds IDE diff review limits";
+const REASON_UNSUPPORTED_OPERATION = "unsupported changeset operation";
+const REASON_MODE_CHANGE_UNSUPPORTED =
+  "file mode change unsupported on this host";
+const CHANGESET_OPERATIONS = new Set([
+  "modify",
+  "create",
+  "delete",
+  "rename",
+  "mode-change",
+]);
+
+function normalizeFileMode(value) {
+  if (Number.isInteger(value) && value >= 0 && value <= 0o777) return value;
+  if (typeof value !== "string" || !/^[0-7]{3,6}$/.test(value)) return null;
+  const parsed = Number.parseInt(value, 8);
+  return Number.isSafeInteger(parsed) ? parsed & 0o777 : null;
+}
+
+function operationIssue(file, supportsModeChange) {
+  if (!CHANGESET_OPERATIONS.has(file.operation)) {
+    return `unknown operation: ${file.operation}`;
+  }
+  if (file.operation === "rename" && !file.targetPath) {
+    return "rename target missing";
+  }
+  if (file.operation === "delete" && file.modifiedText !== "") {
+    return "delete requires empty modifiedText";
+  }
+  if (file.operation === "mode-change") {
+    if (!supportsModeChange) return REASON_MODE_CHANGE_UNSUPPORTED;
+    if (normalizeFileMode(file.newMode) == null) return "newMode missing or invalid";
+    if (
+      typeof file.originalText !== "string" ||
+      file.originalText !== file.modifiedText
+    ) {
+      return "mode-change must not include a content change";
+    }
+  }
+  return null;
+}
+
+function isNoOp(file) {
+  if (file.operation === "delete" || file.operation === "rename") return false;
+  if (file.operation === "mode-change") {
+    return normalizeFileMode(file.oldMode) === normalizeFileMode(file.newMode);
+  }
+  return (file.originalText || "") === file.modifiedText;
+}
 
 /**
  * Keep only valid `{path, modifiedText, originalText?}` entries, deduped by
@@ -32,6 +80,13 @@ function normalizeMultiDiffFiles(files) {
       path: f.path,
       modifiedText: f.modifiedText,
       originalText: typeof f.originalText === "string" ? f.originalText : null,
+      operation: typeof f.operation === "string" ? f.operation : "modify",
+      targetPath:
+        typeof f.targetPath === "string" && f.targetPath
+          ? f.targetPath
+          : null,
+      oldMode: f.oldMode ?? null,
+      newMode: f.newMode ?? null,
     });
   }
   return [...byPath.values()];
@@ -41,13 +96,20 @@ function normalizeMultiDiffFiles(files) {
 function fileStat(f) {
   const original = f.originalText || "";
   const modified = f.modifiedText;
-  if (original === modified) {
+  const meta = {
+    operation: f.operation || "modify",
+    targetPath: f.targetPath || null,
+    oldMode: f.oldMode ?? null,
+    newMode: f.newMode ?? null,
+  };
+  if (isNoOp({ ...f, ...meta })) {
     return {
       path: f.path,
       added: 0,
       removed: 0,
       isNew: false,
       unchanged: true,
+      ...meta,
     };
   }
   // Whole-file add or delete: count lines directly so the phantom empty line
@@ -57,8 +119,9 @@ function fileStat(f) {
       path: f.path,
       added: modified === "" ? 0 : modified.split("\n").length,
       removed: original === "" ? 0 : original.split("\n").length,
-      isNew: original === "" && modified !== "",
+      isNew: meta.operation === "create" || (original === "" && modified !== ""),
       unchanged: false,
+      ...meta,
     };
   }
   const hunks = computeHunks(original, modified);
@@ -68,7 +131,14 @@ function fileStat(f) {
     added += h.newLines.length;
     removed += h.oldLines.length;
   }
-  return { path: f.path, added, removed, isNew: false, unchanged: false };
+  return {
+    path: f.path,
+    added,
+    removed,
+    isNew: false,
+    unchanged: false,
+    ...meta,
+  };
 }
 
 /**
@@ -91,7 +161,14 @@ function fileLabel(stat) {
   const parts = [];
   if (stat.added) parts.push("+" + stat.added);
   if (stat.removed) parts.push("-" + stat.removed);
-  const flag = stat.isNew ? " (new)" : stat.unchanged ? " (unchanged)" : "";
+  let flag = stat.isNew ? " (new)" : stat.unchanged ? " (unchanged)" : "";
+  if (stat.operation === "delete") flag = " (delete)";
+  if (stat.operation === "rename") {
+    flag = ` (rename \u2192 ${stat.targetPath || "?"})`;
+  }
+  if (stat.operation === "mode-change") {
+    flag = ` (mode ${stat.oldMode ?? "?"} \u2192 ${stat.newMode ?? "?"})`;
+  }
   return `${stat.path}  ${parts.join(" ") || "±0"}${flag}`.trimEnd();
 }
 
@@ -103,9 +180,16 @@ function fileLabel(stat) {
 function selectWrites(files, selectedPaths) {
   const sel = selectedPaths == null ? null : new Set(selectedPaths);
   return normalizeMultiDiffFiles(files)
-    .filter((f) => (f.originalText || "") !== f.modifiedText) // skip no-ops
+    .filter((f) => !isNoOp(f))
     .filter((f) => sel == null || sel.has(f.path))
-    .map((f) => ({ path: f.path, modifiedText: f.modifiedText }));
+    .map((f) => ({
+      path: f.path,
+      modifiedText: f.modifiedText,
+      operation: f.operation,
+      targetPath: f.targetPath,
+      oldMode: f.oldMode,
+      newMode: f.newMode,
+    }));
 }
 
 /**
@@ -120,6 +204,7 @@ function planMultiDiffReview(
     maxFileBytes = MAX_REVIEW_FILE_BYTES,
     maxFiles = MAX_REVIEW_CHANGESET_FILES,
     maxTotalBytes = MAX_REVIEW_CHANGESET_BYTES,
+    supportsModeChange = true,
   } = {},
 ) {
   const reviewable = [];
@@ -135,7 +220,25 @@ function planMultiDiffReview(
       : MAX_REVIEW_CHANGESET_BYTES;
 
   for (const file of normalizeMultiDiffFiles(files)) {
-    if ((file.originalText || "") === file.modifiedText) continue;
+    const issue = operationIssue(file, supportsModeChange);
+    if (issue) {
+      skipped.push({
+        path: file.path,
+        kind: "unsupported-operation",
+        reason:
+          issue === REASON_MODE_CHANGE_UNSUPPORTED
+            ? issue
+            : `${REASON_UNSUPPORTED_OPERATION}: ${issue}`,
+        operation: file.operation,
+        bytes: 0,
+        limitBytes:
+          Number.isSafeInteger(maxFileBytes) && maxFileBytes > 0
+            ? maxFileBytes
+            : MAX_REVIEW_FILE_BYTES,
+      });
+      continue;
+    }
+    if (isNoOp(file)) continue;
     const current =
       file.originalText == null && typeof readCurrentBytes === "function"
         ? readCurrentBytes(file.path)
@@ -210,7 +313,10 @@ module.exports = {
   fileLabel,
   selectWrites,
   planMultiDiffReview,
+  normalizeFileMode,
   MAX_REVIEW_CHANGESET_FILES,
   MAX_REVIEW_CHANGESET_BYTES,
   REASON_CHANGESET_LIMIT,
+  REASON_UNSUPPORTED_OPERATION,
+  REASON_MODE_CHANGE_UNSUPPORTED,
 };

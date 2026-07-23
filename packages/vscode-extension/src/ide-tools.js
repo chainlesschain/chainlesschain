@@ -323,6 +323,32 @@ function buildIdeTools(editor, options = {}) {
                         description:
                           "Original content; defaults to the file on disk.",
                       },
+                      operation: {
+                        type: "string",
+                        enum: [
+                          "modify",
+                          "create",
+                          "delete",
+                          "rename",
+                          "mode-change",
+                        ],
+                        description:
+                          "Filesystem intent; defaults to modify.",
+                      },
+                      targetPath: {
+                        type: "string",
+                        description: "Destination for operation=rename.",
+                      },
+                      oldMode: {
+                        type: ["string", "number"],
+                        description:
+                          "Previous POSIX mode for operation=mode-change.",
+                      },
+                      newMode: {
+                        type: ["string", "number"],
+                        description:
+                          "New POSIX mode for operation=mode-change.",
+                      },
                     },
                     required: ["path", "modifiedText"],
                   },
@@ -345,12 +371,39 @@ function buildIdeTools(editor, options = {}) {
               // silent drop).
               const safeFiles = [];
               for (const f of args.files) {
+                const operation = f?.operation || "modify";
+                if (
+                  ![
+                    "modify",
+                    "create",
+                    "delete",
+                    "rename",
+                    "mode-change",
+                  ].includes(operation)
+                ) {
+                  throw new Error(
+                    `openMultiDiff received unsupported operation: ${operation}`,
+                  );
+                }
                 const safePath = await guardToolPath(
                   f && f.path,
                   "write",
                   "openMultiDiff",
                 );
-                safeFiles.push({ ...f, path: safePath });
+                const safeTargetPath =
+                  operation === "rename"
+                    ? await guardToolPath(
+                        f?.targetPath,
+                        "write",
+                        "openMultiDiff targetPath",
+                      )
+                    : null;
+                safeFiles.push({
+                  ...f,
+                  path: safePath,
+                  operation,
+                  ...(safeTargetPath ? { targetPath: safeTargetPath } : {}),
+                });
               }
               const res = await editor.openMultiDiff({
                 files: safeFiles,

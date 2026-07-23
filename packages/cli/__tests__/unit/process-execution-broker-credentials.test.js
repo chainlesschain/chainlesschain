@@ -46,7 +46,13 @@ describe("ProcessExecutionBroker credential boundary", () => {
     executionBroker.spawn("cc-test-tool", [rawArg], {
       origin: "test:async-credential",
       policy: "allow",
-      env: { API_TOKEN: secret, PATH: "safe" },
+      env: {
+        API_TOKEN: secret,
+        PATH: "safe",
+        CC_SESSION_ID: "session-42",
+        CLAUDE_CODE_SESSION_ID: "session-42",
+        SERVICE_SESSION: "must-stay-filtered",
+      },
     });
 
     expect(nativeSpawn).toHaveBeenCalledOnce();
@@ -54,12 +60,16 @@ describe("ProcessExecutionBroker credential boundary", () => {
     expect(args).toEqual(["--api-token=***REDACTED***"]);
     expect(options.env.API_TOKEN).toBeUndefined();
     expect(options.env.CC_CRED_REF_API_TOKEN).toMatch(/^cc-cred-/);
+    expect(options.env.CC_SESSION_ID).toBe("session-42");
+    expect(options.env.CLAUDE_CODE_SESSION_ID).toBe("session-42");
+    expect(options.env.SERVICE_SESSION).toBeUndefined();
+    expect(options.env.CC_CRED_REF_SERVICE_SESSION).toMatch(/^cc-cred-/);
     const audit = executionBroker.getAuditLog(1)[0];
     expect(audit).toMatchObject({
       origin: "test:async-credential",
       args: ["--api-token=***REDACTED***"],
       credentialFiltered: true,
-      credentialEnvCount: 1,
+      credentialEnvCount: 2,
       credentialArgCount: 1,
     });
     expect(JSON.stringify(audit)).not.toContain(secret);
