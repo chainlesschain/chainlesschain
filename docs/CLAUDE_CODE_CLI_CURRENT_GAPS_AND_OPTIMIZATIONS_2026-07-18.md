@@ -210,6 +210,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   `background-task:command:*` Broker origin；Node `execArgv`、stdio IPC、heartbeat/result 消息语义保持不变。
 - MCP stdio client 的普通与插件 server 启动已统一进入 Broker；普通 server 自动记录
   `mcp:server:<name>` origin，插件继续透传 plugin provenance，stdio/env/失败清理语义保持不变。
+- Worktree isolator 的 branch/porcelain 查询已复用 Broker 化 `gitExecArgs`；3 处 shell 字符串
+  改为 literal Git argv，并统一继承 64 MB 输出上限与 `git-integration:argv` provenance。
 
 ### 4.2 建议设计
 

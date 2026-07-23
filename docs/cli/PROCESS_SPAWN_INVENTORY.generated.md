@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 374 (runtime: 298, tooling: 53, test: 23).
+Total matches: 370 (runtime: 294, tooling: 53, test: 23).
 
 ## Policy
 
@@ -99,10 +99,6 @@ Total matches: 374 (runtime: 298, tooling: 53, test: 23).
 | `packages/cli/src/harness/background-task-manager.js` | 125 | `const child = _deps.spawn(` |
 | `packages/cli/src/harness/background-task-worker.js` | 17 | `const result = executionBroker.execSync(command, {` |
 | `packages/cli/src/harness/mcp-client.js` | 488 | `const proc = _deps.spawn(config.command, config.args || [], {` |
-| `packages/cli/src/harness/worktree-isolator.js` | 10 | `import { execSync } from "node:child_process";` |
-| `packages/cli/src/harness/worktree-isolator.js` | 96 | `branch = execSync("git rev-parse --abbrev-ref HEAD", {` |
-| `packages/cli/src/harness/worktree-isolator.js` | 218 | `const porcelain = execSync("git status --porcelain", {` |
-| `packages/cli/src/harness/worktree-isolator.js` | 693 | `const output = execSync("git status --porcelain", {` |
 | `packages/cli/src/lazy-dispatch.js` | 105 | `async spawn(argv) {` |
 | `packages/cli/src/lib/agent-ipc-bus.js` | 173 | `const { spawn } = await import("node:child_process");` |
 | `packages/cli/src/lib/agent-ipc-bus.js` | 178 | `const child = spawn(command, args, {` |

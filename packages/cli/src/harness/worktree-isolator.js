@@ -7,7 +7,6 @@
  * Feature-flag gated: WORKTREE_ISOLATION
  */
 
-import { execSync } from "node:child_process";
 import { existsSync, rmSync, symlinkSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import {
@@ -93,10 +92,10 @@ export function removeWorktree(repoDir, worktreePath, options = {}) {
   let branch = null;
   if (deleteBranch) {
     try {
-      branch = execSync("git rev-parse --abbrev-ref HEAD", {
-        cwd: worktreePath,
-        encoding: "utf-8",
-      }).trim();
+      branch = gitExecArgs(
+        ["rev-parse", "--abbrev-ref", "HEAD"],
+        worktreePath,
+      ).trim();
     } catch (_e) {
       // Can't determine branch, skip branch deletion.
     }
@@ -215,11 +214,7 @@ function _worktreeCleanupState(repoDir, wt) {
 
   // Dirty state: separate tracked modifications from untracked files.
   try {
-    const porcelain = execSync("git status --porcelain", {
-      cwd: wt.path,
-      encoding: "utf-8",
-      maxBuffer: 64 * 1024 * 1024,
-    });
+    const porcelain = gitExecArgs(["status", "--porcelain"], wt.path);
     const lines = porcelain.split("\n").filter((l) => l.trim().length > 0);
     state.untracked = lines.some((l) => l.startsWith("??"));
     state.uncommitted = lines.some((l) => !l.startsWith("??"));
@@ -698,15 +693,9 @@ function _fileStatus(repoDir, base, branch, filePath) {
 
 function _hasUncommittedChanges(worktreePath) {
   try {
-    const output = execSync("git status --porcelain", {
-      cwd: worktreePath,
-      encoding: "utf-8",
-      // A worktree with many dirty files produces >1 MB of porcelain output and
-      // would ENOBUFS on the default cap — the catch below then reports "clean"
-      // (fail-OPEN), which could let a caller discard a worktree full of
-      // uncommitted work. Give it the same 64 MB headroom as gitExec.
-      maxBuffer: 64 * 1024 * 1024,
-    });
+    // gitExecArgs carries the shared 64 MB maxBuffer, avoiding a fail-open
+    // "clean" result when a large worktree exceeds Node's default output cap.
+    const output = gitExecArgs(["status", "--porcelain"], worktreePath);
     return output.trim().length > 0;
   } catch (_e) {
     return false;
