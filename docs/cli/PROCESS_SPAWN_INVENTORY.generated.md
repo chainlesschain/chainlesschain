@@ -271,8 +271,8 @@ Total matches: 402 (runtime: 326, tooling: 53, test: 23).
 | `packages/cli/src/lib/process-manager.js` | 16 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/lib/process-manager.js` | 52 | `const child = _deps.spawn(appPath, args, {` |
 | `packages/cli/src/lib/process-manager.js` | 102 | `_deps.execFileSync("taskkill", ["/PID", String(pid), "/T", "/F"], {` |
-| `packages/cli/src/lib/publish-workspace.js` | 7 | `import { execSync } from "child_process";` |
-| `packages/cli/src/lib/publish-workspace.js` | 67 | `execSync(cmd, {` |
+| `packages/cli/src/lib/publish-workspace.js` | 13 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
+| `packages/cli/src/lib/publish-workspace.js` | 71 | `_deps.execFileSync("npm", args, {` |
 | `packages/cli/src/lib/repl-bang-memorize.js` | 20 | `import { spawnSync as spawnSyncDefault } from "child_process";` |
 | `packages/cli/src/lib/repl-bang-memorize.js` | 72 | `const spawnSync = opts.deps?.spawnSync \|\| _deps.spawnSync;` |
 | `packages/cli/src/lib/repl-bang-memorize.js` | 81 | `? spawnSync("cmd.exe", ["/d", "/s", "/c", `chcp 65001 >nul && ${cmd}`], {` |

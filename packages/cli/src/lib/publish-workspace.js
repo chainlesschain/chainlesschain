@@ -4,10 +4,14 @@
  * @module lib/publish-workspace
  */
 
-import { execSync } from "child_process";
+import executionBroker from "./process-execution-broker/index.js";
 import { logger } from "./logger.js";
 import path from "path";
 import fs from "fs";
+
+export const _deps = {
+  execFileSync: (...args) => executionBroker.execFileSync(...args),
+};
 
 /**
  * Get all workspace packages
@@ -60,16 +64,20 @@ export function getWorkspacePackages() {
 export function publishPackage(pkg, options = {}) {
   try {
     logger.info(`Publishing ${pkg.name}@${pkg.version}...`);
-    let cmd = "npm publish";
-    if (options.tag) cmd += ` --tag ${options.tag}`;
-    if (options.access) cmd += ` --access ${options.access}`;
+    const args = ["publish"];
+    if (options.tag) args.push("--tag", String(options.tag));
+    if (options.access) args.push("--access", String(options.access));
 
-    execSync(cmd, {
+    _deps.execFileSync("npm", args, {
+      origin: "publish-workspace:npm",
+      scope: "publish",
+      policy: "allow",
+      shell: false,
       cwd: pkg.path,
       stdio: "inherit",
       encoding: "utf8",
     });
-    logger.succeed(`Published ${pkg.name}@${pkg.version}`);
+    logger.success(`Published ${pkg.name}@${pkg.version}`);
     return true;
   } catch (err) {
     logger.error(`Failed to publish ${pkg.name}: ${err.message}`);
