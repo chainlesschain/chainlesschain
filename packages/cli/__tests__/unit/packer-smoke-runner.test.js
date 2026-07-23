@@ -15,6 +15,7 @@ import os from "node:os";
 import path from "node:path";
 import { smokeTestExe } from "../../src/lib/packer/smoke-runner.js";
 import { PackError, EXIT } from "../../src/lib/packer/errors.js";
+import executionBroker from "../../src/lib/process-execution-broker/index.js";
 
 function writeFakeExe(dir, bodyJs) {
   // On Windows we can't chmod +x a .js; instead we create a tiny .cmd
@@ -159,6 +160,17 @@ describe("smokeTestExe", () => {
     expect(res.ok).toBe(true);
     expect(res.uiStatus).toBe(200);
     expect(res.wsListening).toBe(true);
+    expect(
+      executionBroker
+        .getAuditLog(200)
+        .findLast((entry) => entry.origin === "packer:smoke-launch"),
+    ).toMatchObject({
+      command: exe,
+      args: ["ui", "--no-open"],
+      scope: "pack",
+      policy: "allow",
+      shell: true,
+    });
   });
 
   it("throws PackError(EXIT.SMOKE) when exe returns non-2xx", async () => {

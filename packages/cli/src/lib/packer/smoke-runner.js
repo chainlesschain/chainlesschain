@@ -19,11 +19,15 @@
  * Called from `runPack()` as Phase 8 when `cliOpts.smokeTest !== false`.
  */
 
-import { spawn } from "node:child_process";
 import { createConnection } from "node:net";
 import http from "node:http";
 import path from "node:path";
 import { PackError, EXIT } from "./errors.js";
+import executionBroker from "../process-execution-broker/index.js";
+
+export const _deps = {
+  spawn: (...args) => executionBroker.spawn(...args),
+};
 
 const DEFAULT_BOOT_TIMEOUT_MS = 45_000;
 const DEFAULT_PROBE_TIMEOUT_MS = 5_000;
@@ -80,7 +84,10 @@ export async function smokeTestExe(ctx) {
   // artifacts are always .exe so this only kicks in during tests that use
   // a shim — kept here so the smoke-runner is self-testable.
   const needsShell = /\.(cmd|bat|sh)$/i.test(exePath);
-  const child = spawn(exePath, ["ui", "--no-open"], {
+  const child = _deps.spawn(exePath, ["ui", "--no-open"], {
+    origin: "packer:smoke-launch",
+    scope: "pack",
+    policy: "allow",
     env,
     stdio: ["ignore", "pipe", "pipe"],
     windowsHide: true,
@@ -116,9 +123,15 @@ export async function smokeTestExe(ctx) {
         // unrelated process tree that inherited the number (on CI: another
         // vitest worker or a test's helper child).
         if (child.exitCode !== null || child.signalCode !== null) return;
-        spawn("taskkill", ["/F", "/T", "/PID", String(child.pid)], {
-          stdio: "ignore",
-        }).unref();
+        _deps
+          .spawn("taskkill", ["/F", "/T", "/PID", String(child.pid)], {
+            origin: "packer:smoke-taskkill",
+            scope: "pack",
+            policy: "allow",
+            shell: false,
+            stdio: "ignore",
+          })
+          .unref();
       } else if (child.pid) {
         // Negative pid → the whole process group from the detached spawn above,
         // so a shell:true wrapper's exec'd/forked `node` grandchild dies too

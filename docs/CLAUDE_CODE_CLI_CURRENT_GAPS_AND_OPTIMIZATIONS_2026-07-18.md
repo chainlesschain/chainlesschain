@@ -170,6 +170,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   超时/输出限制和 fail-closed 错误语义保持不变。
 - Checkpoint store 的 shadow commit、ref、diff 与 rewind Git plumbing 已统一进入 `checkpoint:git`
   Broker origin；继续使用临时 index、无 shell argv 和 128 MiB 输出上限，不触碰用户真实暂存区。
+- Packer smoke test 的产物启动与 Windows 进程树清理已分别进入 `packer:smoke-launch`、
+  `packer:smoke-taskkill` Broker origin；保留 shim shell 兼容、stdio 管道、进程组 teardown 与端口探测语义。
 
 ### 4.2 建议设计
 

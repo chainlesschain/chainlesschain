@@ -225,9 +225,9 @@ Total matches: 402 (runtime: 326, tooling: 53, test: 23).
 | `packages/cli/src/lib/packer/precheck.js` | 157 | `.execFileSync(` |
 | `packages/cli/src/lib/packer/precheck.js` | 164 | `.execFileSync(` |
 | `packages/cli/src/lib/packer/precheck.js` | 170 | `const status = _deps.execFileSync(` |
-| `packages/cli/src/lib/packer/smoke-runner.js` | 22 | `import { spawn } from "node:child_process";` |
-| `packages/cli/src/lib/packer/smoke-runner.js` | 83 | `const child = spawn(exePath, ["ui", "--no-open"], {` |
-| `packages/cli/src/lib/packer/smoke-runner.js` | 119 | `spawn("taskkill", ["/F", "/T", "/PID", String(child.pid)], {` |
+| `packages/cli/src/lib/packer/smoke-runner.js` | 29 | `spawn: (...args) => executionBroker.spawn(...args),` |
+| `packages/cli/src/lib/packer/smoke-runner.js` | 87 | `const child = _deps.spawn(exePath, ["ui", "--no-open"], {` |
+| `packages/cli/src/lib/packer/smoke-runner.js` | 127 | `.spawn("taskkill", ["/F", "/T", "/PID", String(child.pid)], {` |
 | `packages/cli/src/lib/packer/web-panel-builder.js` | 17 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/lib/packer/web-panel-builder.js` | 57 | `const res = _deps.spawnSync(npmCmd, ["run", "build:web-panel"], {` |
 | `packages/cli/src/lib/plugin-ecosystem.js` | 114 | `/require\(\s*['"]child_process['"]\s*\)\|from\s+['"]child_process['"]/g,` |
