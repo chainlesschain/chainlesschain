@@ -86,6 +86,7 @@ class InlineCompletionItem {
 
 const commands = {}; // command id → callback (captured by registerCommand)
 const executed = []; // executeCommand log
+const lifecycle = []; // selected registration/execution order for activation tests
 const messages = { info: [], warn: [], error: [] };
 let configValues = {}; // "<section>.<key>" → value
 
@@ -130,10 +131,14 @@ const vscode = {
       backgroundColor: undefined,
     }),
     registerTreeDataProvider: () => ({ dispose: () => {} }),
-    registerWebviewViewProvider: () => ({ dispose: () => {} }),
+    registerWebviewViewProvider: (id) => {
+      lifecycle.push({ type: "registerWebviewViewProvider", id });
+      return { dispose: () => {} };
+    },
     registerUriHandler: () => ({ dispose: () => {} }),
     showInformationMessage: (msg) => {
       messages.info.push(msg);
+      lifecycle.push({ type: "showInformationMessage", message: msg });
       return Promise.resolve(undefined);
     },
     showWarningMessage: (msg) => {
@@ -188,6 +193,7 @@ const vscode = {
     },
     executeCommand: (id, ...args) => {
       executed.push({ id, args });
+      lifecycle.push({ type: "executeCommand", id });
       return Promise.resolve(undefined);
     },
   },
@@ -216,6 +222,7 @@ const vscode = {
   // ── test seams (not part of the real API) ────────────────────────────────
   __commands: commands,
   __executed: executed,
+  __lifecycle: lifecycle,
   __messages: messages,
   __setConfig(values) {
     configValues = { ...values };
@@ -223,6 +230,7 @@ const vscode = {
   __reset() {
     for (const k of Object.keys(commands)) delete commands[k];
     executed.length = 0;
+    lifecycle.length = 0;
     messages.info.length = 0;
     messages.warn.length = 0;
     messages.error.length = 0;

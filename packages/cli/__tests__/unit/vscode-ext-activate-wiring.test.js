@@ -129,4 +129,33 @@ describe("extension activate() wiring", () => {
     expect(vscode.__commands["chainlesschain.diff.accept"]()).toBeUndefined();
     expect(vscode.__commands["chainlesschain.diff.reject"]()).toBeUndefined();
   });
+
+  it("offers a one-shot Window Reload after provider wiring without auto-reloading", async () => {
+    // The fake context has no prior version marker, so activation must exercise
+    // the package.json fallback. The fake user dismisses the prompt.
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(vscode.__messages.info).toContainEqual(
+      expect.stringContaining("Reload this VS Code window"),
+    );
+    expect(vscode.__executed).not.toContainEqual({
+      id: "workbench.action.reloadWindow",
+      args: [],
+    });
+    expect(vscode.__executed).not.toContainEqual({
+      id: "workbench.action.webview.reloadWebviewAction",
+      args: [],
+    });
+    const registeredAt = vscode.__lifecycle.findIndex(
+      (event) =>
+        event.type === "registerWebviewViewProvider" &&
+        event.id === "chainlesschainIdeChat",
+    );
+    const promptedAt = vscode.__lifecycle.findIndex(
+      (event) =>
+        event.type === "showInformationMessage" &&
+        event.message.includes("Reload this VS Code window"),
+    );
+    expect(registeredAt).toBeGreaterThanOrEqual(0);
+    expect(promptedAt).toBeGreaterThan(registeredAt);
+  });
 });

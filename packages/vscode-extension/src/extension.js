@@ -30,7 +30,7 @@ const { IdeBridgeTreeProvider } = require("./ui/tree-view");
 const { openDashboard, refreshDashboard } = require("./ui/dashboard");
 const { ChatViewProvider } = require("./chat/chat-view");
 const {
-  reloadWebviewsOnceAfterExtensionUpgrade,
+  promptForWindowReloadAfterExtensionUpgrade,
 } = require("./webview-upgrade-reload");
 
 let _server = null;
@@ -284,10 +284,11 @@ function activate(context) {
   );
   // Activation-level upgrade guard: a retained Webview can survive an
   // Extension Host restart without resolveWebviewView being called again.
-  // The VS Code command reloads ALL Webviews, so run it only once when this
-  // extension version first appears/changes. The helper persists the version
-  // before executing the command, preventing a reload/re-activation loop.
-  reloadWebviewsOnceAfterExtensionUpgrade({
+  // VS Code exposes no targeted public API that recreates that view/provider;
+  // offer a full Window Reload once per extension version, but only execute it
+  // after the user explicitly confirms. The marker is saved before prompting,
+  // preventing a reload/re-activation loop.
+  promptForWindowReloadAfterExtensionUpgrade({
     vscode,
     context,
     packageJson: require("../package.json"),
@@ -295,11 +296,13 @@ function activate(context) {
     (result) => {
       if (result.reloaded) {
         log(
-          `extension ${result.currentVersion}: reloaded all retained Webviews after upgrade`,
+          `extension ${result.currentVersion}: user accepted the upgrade Window Reload`,
         );
+      } else if (result.prompted) {
+        log(`extension ${result.currentVersion}: Window Reload deferred`);
       }
     },
-    (err) => log(`upgrade Webview reload failed: ${err?.message || err}`),
+    (err) => log(`upgrade Window Reload prompt failed: ${err?.message || err}`),
   );
   if (typeof vscode.window.onDidChangeActiveTextEditor === "function") {
     context.subscriptions.push(
