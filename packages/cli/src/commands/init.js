@@ -561,6 +561,7 @@ parameters:
     description: 输出文件路径（.mp3 或 .wav）
     default: "output.mp3"
 execution-mode: direct
+capabilities: [shell-exec]
 ---
 
 # AI 音频生成
@@ -608,24 +609,38 @@ chainlesschain cli-anything register <tool-name>
  * Auto-detects which backend is available and uses the best one.
  */
 
-const { execSync, spawn, spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const https = require("https");
 
-function commandExists(cmd) {
+function requireProcessBroker(context) {
+  const broker = context && context.processBroker;
+  if (!broker || typeof broker.run !== "function" ||
+      typeof broker.runSync !== "function" || typeof broker.runFileSync !== "function") {
+    throw new Error("Process Broker unavailable for audio-gen skill");
+  }
+  return broker;
+}
+
+function commandExists(processBroker, cmd) {
   try {
-    execSync(\`\${cmd} --version\`, { stdio: "ignore", encoding: "utf-8" });
+    processBroker.runFileSync(cmd, ["--version"], {
+      stdio: "ignore",
+      encoding: "utf-8",
+      timeout: 5000,
+    });
     return true;
   } catch {
     return false;
   }
 }
 
-function runEdgeTTS(text, voice, outputPath) {
+function runEdgeTTS(processBroker, text, voice, outputPath) {
   return new Promise((resolve, reject) => {
     const args = ["edge-tts", "--voice", voice || "zh-CN-XiaoxiaoNeural", "--text", text, "--write-media", outputPath];
-    const proc = spawn("python", ["-m", ...args], { stdio: ["ignore", "pipe", "pipe"] });
+    const proc = processBroker.run("python", ["-m", ...args], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     let stderr = "";
     proc.stderr.on("data", (d) => (stderr += d.toString("utf8")));
     proc.on("close", (code) => {
@@ -699,7 +714,7 @@ function callOpenAITTS(text, voice, outputPath, apiKey) {
   });
 }
 
-async function audioGenHandler(params) {
+async function audioGenHandler(params, processBroker) {
   const { text, voice, type, output } = params;
 
   if (!text) {
@@ -717,9 +732,9 @@ async function audioGenHandler(params) {
   const openaiKey = process.env.OPENAI_API_KEY;
 
   // 1. edge-tts (free, no API key needed)
-  if (commandExists("edge-tts") || await checkPythonModule("edge_tts")) {
+  if (commandExists(processBroker, "edge-tts") || await checkPythonModule(processBroker, "edge_tts")) {
     try {
-      await runEdgeTTS(text, voice, outputPath);
+      await runEdgeTTS(processBroker, text, voice, outputPath);
       return {
         success: true,
         backend: "edge-tts",
@@ -732,11 +747,11 @@ async function audioGenHandler(params) {
   }
 
   // 2. piper-tts (offline, free)
-  if (commandExists("piper")) {
+  if (commandExists(processBroker, "piper")) {
     try {
       // Pass the text via stdin with NO shell — an echo-pipe only escaped
       // double-quotes, so backticks / \$(...) in \`text\` would still execute.
-      const r = spawnSync("piper", ["--output_file", outputPath], {
+      const r = processBroker.runSync("piper", ["--output_file", outputPath], {
         input: text,
         encoding: "utf-8",
       });
@@ -796,21 +811,26 @@ async function audioGenHandler(params) {
   };
 };
 
-async function checkPythonModule(moduleName) {
+async function checkPythonModule(processBroker, moduleName) {
   try {
-    execSync(\`python -c "import \${moduleName}"\`, { stdio: "ignore", encoding: "utf-8" });
+    processBroker.runFileSync("python", ["-c", \`import \${moduleName}\`], {
+      stdio: "ignore",
+      encoding: "utf-8",
+      timeout: 10000,
+    });
     return true;
   } catch {
     return false;
   }
 }
 
-audioGenHandler.execute = async (task, _ctx, _skill) => {
+audioGenHandler.execute = async (task, context, _skill) => {
+  const processBroker = requireProcessBroker(context);
   const input = typeof task === "string" ? task : (task.input || task.params?.input || "");
   let p = {};
   try { p = input.trim().startsWith("{") ? JSON.parse(input) : { text: input }; }
   catch { p = { text: input }; }
-  return audioGenHandler(p);
+  return audioGenHandler(p, processBroker);
 };
 module.exports = audioGenHandler;
 `,

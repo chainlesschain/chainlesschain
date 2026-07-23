@@ -12,7 +12,7 @@ describe("skill process broker facade", () => {
         pluginSource: "local",
         capabilities: ["shell-exec"],
       },
-      { runSync, runFileSync: vi.fn() },
+      { run: vi.fn(), runSync, runFileSync: vi.fn() },
     );
 
     const result = facade.runSync("chainlesschain", ["note", "list"], {
@@ -39,11 +39,38 @@ describe("skill process broker facade", () => {
     expect(Object.isFrozen(facade)).toBe(true);
   });
 
+  it("forces literal no-shell execution for asynchronous processes", () => {
+    const child = { pid: 4242 };
+    const run = vi.fn(() => child);
+    const facade = createSkillProcessBroker(
+      { id: "audio-gen", capabilities: ["shell-exec"] },
+      { run, runSync: vi.fn(), runFileSync: vi.fn() },
+    );
+
+    expect(
+      facade.run("python", ["-m", "edge-tts", "--text", "hello world"], {
+        shell: true,
+        cwd: "/repo",
+      }),
+    ).toBe(child);
+    expect(run).toHaveBeenCalledWith(
+      "python",
+      ["-m", "edge-tts", "--text", "hello world"],
+      expect.objectContaining({
+        cwd: "/repo",
+        origin: "skill:audio-gen",
+        policy: "allow",
+        scope: "skill",
+        shell: false,
+      }),
+    );
+  });
+
   it("forces literal no-shell execution for file-style calls", () => {
     const runFileSync = vi.fn(() => "output");
     const facade = createSkillProcessBroker(
       { name: "cli-anything-ffmpeg", capabilities: ["shell-exec"] },
-      { runSync: vi.fn(), runFileSync },
+      { run: vi.fn(), runSync: vi.fn(), runFileSync },
     );
 
     expect(

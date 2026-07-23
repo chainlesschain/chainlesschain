@@ -171,6 +171,7 @@ describe("SKILL_TEMPLATES: SKILL.md frontmatter validation", () => {
     expect(fm.name).toBe("audio-gen");
     expect(fm.category).toBe("media");
     expect(fm["execution-mode"]).toBe("direct");
+    expect(fm.capabilities).toBe("[shell-exec]");
     expect(fm.version).toBe("1.0.0");
   });
 
@@ -273,6 +274,15 @@ describe("SKILL_TEMPLATES: handler.js syntax validation", () => {
     const handler = SKILL_TEMPLATES["audio-gen"].handler;
     expect(handler).toContain("checkPythonModule");
     expect(handler).toContain("edge_tts");
+  });
+
+  it("audio-gen handler is fail-closed and uses only the injected Process Broker", () => {
+    const handler = SKILL_TEMPLATES["audio-gen"].handler;
+    expect(handler).not.toContain('require("child_process")');
+    expect(handler).toContain("Process Broker unavailable for audio-gen skill");
+    expect(handler).toContain("processBroker.run(");
+    expect(handler).toContain("processBroker.runSync(");
+    expect(handler).toContain("processBroker.runFileSync(");
   });
 
   it("audio-gen handler returns install hint when no backends available", () => {

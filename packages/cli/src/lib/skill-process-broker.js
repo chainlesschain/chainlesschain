@@ -2,6 +2,7 @@ import executionBroker from "./process-execution-broker/index.js";
 
 const defaultRunSync = executionBroker.spawnSync.bind(executionBroker);
 const defaultRunFileSync = executionBroker.execFileSync.bind(executionBroker);
+const defaultRun = executionBroker.spawn.bind(executionBroker);
 
 function skillIdentity(skill = {}) {
   const identity = String(
@@ -31,7 +32,11 @@ function declaresShellExecution(skill = {}) {
  */
 export function createSkillProcessBroker(
   skill,
-  { runSync = defaultRunSync, runFileSync = defaultRunFileSync } = {},
+  {
+    run = defaultRun,
+    runSync = defaultRunSync,
+    runFileSync = defaultRunFileSync,
+  } = {},
 ) {
   if (!declaresShellExecution(skill)) return null;
 
@@ -46,6 +51,14 @@ export function createSkillProcessBroker(
   });
 
   return Object.freeze({
+    run(file, args = [], options = {}) {
+      return run(file, args, {
+        ...options,
+        ...metadata,
+        shell: false,
+      });
+    },
+
     runSync(file, args = [], options = {}) {
       return runSync(file, args, {
         ...options,
@@ -64,6 +77,7 @@ export function createSkillProcessBroker(
 }
 
 export const _skillProcessDefaults = {
+  run: defaultRun,
   runSync: defaultRunSync,
   runFileSync: defaultRunFileSync,
 };
