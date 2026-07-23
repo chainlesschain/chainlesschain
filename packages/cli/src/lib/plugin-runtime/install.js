@@ -19,7 +19,6 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { spawnSync } from "child_process";
 import { parsePluginManifest, isWithin } from "./manifest.js";
 import {
   pluginNameDir,
@@ -29,7 +28,12 @@ import {
   discoverPlugins,
 } from "./scopes.js";
 import { verifyPluginManifest } from "../plugin-security.js";
-import { writePluginLock, buildPluginSbom, LOCK_FILENAME } from "./signature.js";
+import {
+  writePluginLock,
+  buildPluginSbom,
+  LOCK_FILENAME,
+} from "./signature.js";
+import executionBroker from "../process-execution-broker/index.js";
 
 export const _deps = {
   existsSync: fs.existsSync,
@@ -40,7 +44,7 @@ export const _deps = {
   lstatSync: fs.lstatSync,
   writeFileSync: fs.writeFileSync,
   mkdtempSync: fs.mkdtempSync,
-  spawnSync,
+  spawnSync: (...args) => executionBroker.spawnSync(...args),
 };
 
 /**
@@ -272,6 +276,9 @@ export function fetchGitRepo(url, ref) {
       encoding: "utf8",
       timeout: 120000,
       windowsHide: true,
+      origin: "plugin:install-git",
+      policy: "allow",
+      scope: "plugin-install",
       shell: false,
     });
 

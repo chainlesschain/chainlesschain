@@ -228,8 +228,8 @@ Total matches: 396 (runtime: 320, tooling: 53, test: 23).
 | `packages/cli/src/lib/plugin-ecosystem.js` | 116 | `message: "child_process import — review command usage",` |
 | `packages/cli/src/lib/plugin-monitor-supervisor.js` | 24 | `import { spawn } from "node:child_process";` |
 | `packages/cli/src/lib/plugin-monitor-supervisor.js` | 42 | `this._spawn = opts.spawn \|\| _deps.spawn;` |
-| `packages/cli/src/lib/plugin-runtime/install.js` | 22 | `import { spawnSync } from "child_process";` |
-| `packages/cli/src/lib/plugin-runtime/install.js` | 271 | `_deps.spawnSync("git", args, {` |
+| `packages/cli/src/lib/plugin-runtime/install.js` | 47 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
+| `packages/cli/src/lib/plugin-runtime/install.js` | 275 | `_deps.spawnSync("git", args, {` |
 | `packages/cli/src/lib/pr-create.js` | 11 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/lib/pr-create.js` | 15 | `return _deps.execFileSync("git", args, {` |
 | `packages/cli/src/lib/pr-link-ledger.js` | 25 | `execFile: (...args) => executionBroker.execFile(...args),` |

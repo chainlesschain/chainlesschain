@@ -301,8 +301,10 @@ describe("installFromSource — git (mocked clone)", () => {
   });
 
   it("clones a remote source and installs it", () => {
+    const calls = [];
     // Emulate `git clone … <dir>` by materializing a plugin at the target dir.
-    installDeps.spawnSync = (cmd, args) => {
+    installDeps.spawnSync = (cmd, args, options) => {
+      calls.push([cmd, args, options]);
       const dir = args[args.length - 1];
       fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(
@@ -319,6 +321,23 @@ describe("installFromSource — git (mocked clone)", () => {
       source: "https://github.com/acme/widgets.git",
     });
     expect(listInstalled({ cwd, scopes: ["project"] })).toHaveLength(1);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toEqual([
+      "git",
+      [
+        "clone",
+        "--depth",
+        "1",
+        "https://github.com/acme/widgets.git",
+        expect.any(String),
+      ],
+      expect.objectContaining({
+        origin: "plugin:install-git",
+        policy: "allow",
+        scope: "plugin-install",
+        shell: false,
+      }),
+    ]);
   });
 
   it("reports a clear error when git is not installed", () => {

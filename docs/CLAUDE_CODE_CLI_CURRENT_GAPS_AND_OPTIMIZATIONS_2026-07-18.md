@@ -186,6 +186,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   保留显式 shell 与失败降级为提示文本的兼容语义，同时获得危险命令、凭据和审计边界。
 - Orchestrator 的配置化 CI gate 已进入 `orchestrator:ci` Broker origin；保留显式 shell、
   180 秒超时、64 MiB 输出上限及失败重试/重派发语义。
+- Plugin remote install 的 Git clone/checkout 已进入 `plugin:install-git` Broker origin；
+  URL、ref 与临时目标目录继续作为独立 argv，并保留 option-looking 值的前置拒绝和 120 秒超时。
 
 ### 4.2 建议设计
 
