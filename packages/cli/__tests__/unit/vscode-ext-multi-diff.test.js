@@ -10,7 +10,9 @@ import {
   fileLabel,
   selectWrites,
   planMultiDiffReview,
+  normalizeFileMode,
   REASON_CHANGESET_LIMIT,
+  REASON_MODE_CHANGE_UNSUPPORTED,
 } from "../../../vscode-extension/src/multi-diff.js";
 import {
   REASON_BINARY_SKIPPED,
@@ -28,8 +30,24 @@ describe("normalizeMultiDiffFiles", () => {
       { path: "c.js", modifiedText: "z", originalText: "y" },
     ]);
     expect(out).toEqual([
-      { path: "a.js", modifiedText: "2", originalText: null },
-      { path: "c.js", modifiedText: "z", originalText: "y" },
+      {
+        path: "a.js",
+        modifiedText: "2",
+        originalText: null,
+        operation: "modify",
+        targetPath: null,
+        oldMode: null,
+        newMode: null,
+      },
+      {
+        path: "c.js",
+        modifiedText: "z",
+        originalText: "y",
+        operation: "modify",
+        targetPath: null,
+        oldMode: null,
+        newMode: null,
+      },
     ]);
   });
 
@@ -77,6 +95,25 @@ describe("fileLabel", () => {
     expect(
       fileLabel({ path: "u.js", added: 0, removed: 0, unchanged: true }),
     ).toBe("u.js  ±0 (unchanged)");
+    expect(
+      fileLabel({
+        path: "old.js",
+        added: 0,
+        removed: 0,
+        operation: "rename",
+        targetPath: "new.js",
+      }),
+    ).toBe("old.js  ±0 (rename → new.js)");
+    expect(
+      fileLabel({
+        path: "run.sh",
+        added: 0,
+        removed: 0,
+        operation: "mode-change",
+        oldMode: "100644",
+        newMode: "100755",
+      }),
+    ).toBe("run.sh  ±0 (mode 100644 → 100755)");
   });
 });
 
@@ -89,19 +126,80 @@ describe("selectWrites", () => {
 
   it("null selection accepts ALL changed files, dropping no-ops", () => {
     expect(selectWrites(files, null)).toEqual([
-      { path: "a.js", modifiedText: "2" },
-      { path: "b.js", modifiedText: "y" },
+      {
+        path: "a.js",
+        modifiedText: "2",
+        operation: "modify",
+        targetPath: null,
+        oldMode: null,
+        newMode: null,
+      },
+      {
+        path: "b.js",
+        modifiedText: "y",
+        operation: "modify",
+        targetPath: null,
+        oldMode: null,
+        newMode: null,
+      },
     ]);
   });
 
   it("a path set writes only those files (still dropping no-ops)", () => {
     expect(selectWrites(files, ["a.js", "noop.js"])).toEqual([
-      { path: "a.js", modifiedText: "2" },
+      {
+        path: "a.js",
+        modifiedText: "2",
+        operation: "modify",
+        targetPath: null,
+        oldMode: null,
+        newMode: null,
+      },
     ]);
   });
 
   it("empty selection writes nothing", () => {
     expect(selectWrites(files, [])).toEqual([]);
+  });
+
+  it("preserves mixed lifecycle operations", () => {
+    expect(
+      selectWrites(
+        [
+          {
+            path: "remove.js",
+            originalText: "x",
+            modifiedText: "",
+            operation: "delete",
+          },
+          {
+            path: "old.js",
+            targetPath: "new.js",
+            originalText: "x",
+            modifiedText: "x",
+            operation: "rename",
+          },
+          {
+            path: "run.sh",
+            originalText: "echo ok",
+            modifiedText: "echo ok",
+            operation: "mode-change",
+            oldMode: "100644",
+            newMode: "100755",
+          },
+        ],
+        null,
+      ),
+    ).toMatchObject([
+      { path: "remove.js", operation: "delete" },
+      { path: "old.js", operation: "rename", targetPath: "new.js" },
+      {
+        path: "run.sh",
+        operation: "mode-change",
+        oldMode: "100644",
+        newMode: "100755",
+      },
+    ]);
   });
 });
 
@@ -165,5 +263,70 @@ describe("planMultiDiffReview", () => {
       path: "disk.bin",
       kind: "binary",
     });
+  });
+
+  it("keeps lifecycle entries and explicitly degrades unsupported mode changes", () => {
+    const files = [
+      {
+        path: "remove.js",
+        originalText: "x",
+        modifiedText: "",
+        operation: "delete",
+      },
+      {
+        path: "run.sh",
+        originalText: "echo ok",
+        modifiedText: "echo ok",
+        operation: "mode-change",
+        oldMode: "100644",
+        newMode: "100755",
+      },
+    ];
+    expect(
+      planMultiDiffReview(files, { supportsModeChange: true }).reviewable.map(
+        (f) => f.operation,
+      ),
+    ).toEqual(["delete", "mode-change"]);
+    const degraded = planMultiDiffReview(files, {
+      supportsModeChange: false,
+    });
+    expect(degraded.reviewable.map((f) => f.operation)).toEqual(["delete"]);
+    expect(degraded.skipped[0]).toMatchObject({
+      path: "run.sh",
+      kind: "unsupported-operation",
+      reason: REASON_MODE_CHANGE_UNSUPPORTED,
+    });
+  });
+
+  it("rejects malformed lifecycle entries before review", () => {
+    const plan = planMultiDiffReview([
+      {
+        path: "bad-delete.js",
+        originalText: "x",
+        modifiedText: "still here",
+        operation: "delete",
+      },
+      {
+        path: "bad-rename.js",
+        originalText: "x",
+        modifiedText: "x",
+        operation: "rename",
+      },
+    ]);
+    expect(plan.reviewable).toEqual([]);
+    expect(plan.skipped).toHaveLength(2);
+    expect(
+      plan.skipped.every((entry) => entry.kind === "unsupported-operation"),
+    ).toBe(true);
+  });
+});
+
+describe("normalizeFileMode", () => {
+  it("accepts POSIX and Git modes but rejects malformed values", () => {
+    expect(normalizeFileMode("100755")).toBe(0o755);
+    expect(normalizeFileMode("0644")).toBe(0o644);
+    expect(normalizeFileMode(0o600)).toBe(0o600);
+    expect(normalizeFileMode("755x")).toBeNull();
+    expect(normalizeFileMode(0o1000)).toBeNull();
   });
 });

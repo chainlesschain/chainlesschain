@@ -587,6 +587,8 @@ function createVscodeEditorFacade(vscode, opts = {}) {
       const applyWritesGuarded = async (writes) => {
         const written = [];
         const skippedConflicts = [];
+        const failedOperations = [];
+        const appliedOperations = [];
         for (const w of writes) {
           const baseline = baselineByPath.get(w.path);
           const ok = await confirmDriftOverwrite(
@@ -598,30 +600,80 @@ function createVscodeEditorFacade(vscode, opts = {}) {
             skippedConflicts.push(w.path);
             continue;
           }
-          await applyTextToFile(
-            vscode,
-            vscode.Uri.file(w.path),
-            w.modifiedText,
-          );
-          written.push(w.path);
+          try {
+            let writtenPath = w.path;
+            if (w.operation === "delete") {
+              deleteReviewedFile(w.path);
+            } else if (w.operation === "rename") {
+              await renameReviewedFile(
+                vscode,
+                w.path,
+                w.targetPath,
+                w.modifiedText,
+                baseline,
+              );
+              writtenPath = w.targetPath;
+            } else if (w.operation === "create") {
+              createReviewedFile(w.path, w.modifiedText);
+            } else if (w.operation === "mode-change") {
+              assertLifecycleSource(w.path);
+              fs.chmodSync(w.path, normalizeFileMode(w.newMode));
+            } else {
+              await applyTextToFile(
+                vscode,
+                vscode.Uri.file(w.path),
+                w.modifiedText,
+              );
+            }
+            written.push(writtenPath);
+            appliedOperations.push(multiDiffOperationRecord(w));
+          } catch (error) {
+            failedOperations.push({
+              ...multiDiffOperationRecord(w),
+              reason: String(error?.message || error).slice(0, 240),
+            });
+          }
         }
-        return { written, skippedConflicts };
+        return {
+          written,
+          skippedConflicts,
+          appliedOperations,
+          failedOperations,
+        };
       };
       // Shape a decision result: identical to the historical shape unless a
       // guard actually skipped something (then the extra keys ride along).
-      const decisionResult = (written, skippedConflicts, extra = {}) => {
+      const decisionResult = (
+        written,
+        skippedConflicts,
+        appliedOperations,
+        failedOperations,
+        extra = {},
+      ) => {
         const out = {
           outcome: "accepted",
           applied: written.length,
           total: changed.length,
+          appliedOperations,
           ...extra,
         };
         if (skippedConflicts.length > 0) {
           out.skippedConflicts = skippedConflicts;
-          if (written.length === 0) {
-            out.outcome = "rejected";
-            out.reason = REASON_DISK_DRIFTED;
-          }
+        }
+        if (failedOperations.length > 0) {
+          out.failedOperations = failedOperations;
+        }
+        if (
+          written.length === 0 &&
+          (skippedConflicts.length > 0 || failedOperations.length > 0)
+        ) {
+          out.outcome = "rejected";
+          out.reason =
+            failedOperations.length > 0
+              ? "changeset apply failed"
+              : REASON_DISK_DRIFTED;
+        } else if (written.length > 0 && failedOperations.length > 0) {
+          out.outcome = "partial";
         }
         return withDegradation(out);
       };
@@ -658,6 +710,30 @@ function createVscodeEditorFacade(vscode, opts = {}) {
       const multiTab =
         vscode.window.tabGroups?.activeTabGroup?.activeTab || null;
       const summary = changesetSummary(changed);
+      const operationCounts = new Map();
+      for (const f of changed) {
+        operationCounts.set(
+          f.operation,
+          (operationCounts.get(f.operation) || 0) + 1,
+        );
+      }
+      const operationSummary = [...operationCounts]
+        .map(([operation, count]) => `${operation} ${count}`)
+        .join(", ");
+      const lifecycleFiles = summary.files.filter(
+        (file) => file.operation !== "modify",
+      );
+      const lifecycleSummary =
+        lifecycleFiles.length === 0
+          ? ""
+          : `; lifecycle: ${lifecycleFiles
+              .slice(0, 6)
+              .map(fileLabel)
+              .join("; ")}${
+              lifecycleFiles.length > 6
+                ? `; +${lifecycleFiles.length - 6} more`
+                : ""
+            }`;
       // Block on the decision, also resolvable by the Accept/Reject keybindings
       // (same chainlesschainDiffActive handle as openDiff — keyboard Accept maps
       // to "Accept all", keyboard Reject to "Reject") or by closing the tab.
@@ -693,7 +769,7 @@ function createVscodeEditorFacade(vscode, opts = {}) {
         }
         vscode.window
           .showInformationMessage(
-            `Apply ${summary.count} proposed change(s)? (+${summary.totalAdded} -${summary.totalRemoved})${
+            `Apply ${summary.count} proposed change(s)? (+${summary.totalAdded} -${summary.totalRemoved}; ${operationSummary})${lifecycleSummary}${
               reviewPlan.skipped.length > 0
                 ? `; ${reviewPlan.skipped.length} skipped by safety limits`
                 : ""
@@ -722,8 +798,13 @@ function createVscodeEditorFacade(vscode, opts = {}) {
       }
       if (choice === "Accept all") {
         const writes = selectWrites(changed, null);
-        const { written, skippedConflicts } = await applyWritesGuarded(writes);
-        return decisionResult(written, skippedConflicts);
+        const result = await applyWritesGuarded(writes);
+        return decisionResult(
+          result.written,
+          result.skippedConflicts,
+          result.appliedOperations,
+          result.failedOperations,
+        );
       }
       if (choice === "Pick files…") {
         const picks = await vscode.window.showQuickPick(
@@ -745,8 +826,14 @@ function createVscodeEditorFacade(vscode, opts = {}) {
           changed,
           picks.map((p) => p.path),
         );
-        const { written, skippedConflicts } = await applyWritesGuarded(writes);
-        return decisionResult(written, skippedConflicts, { files: written });
+        const result = await applyWritesGuarded(writes);
+        return decisionResult(
+          result.written,
+          result.skippedConflicts,
+          result.appliedOperations,
+          result.failedOperations,
+          { files: result.written },
+        );
       }
       return withDegradation({ outcome: "rejected" });
     },
@@ -1014,7 +1101,7 @@ function diffReviewPrompt(operation, path, targetPath) {
 
 function assertLifecycleSource(path) {
   const stat = fs.lstatSync(path);
-  if (stat.isDirectory()) {
+  if (!stat.isFile()) {
     throw new Error(`Diff lifecycle operations only support files: ${path}`);
   }
 }
@@ -1022,6 +1109,14 @@ function assertLifecycleSource(path) {
 function deleteReviewedFile(path) {
   assertLifecycleSource(path);
   fs.unlinkSync(path);
+}
+
+function createReviewedFile(path, text) {
+  const parent = nodePath.dirname(path);
+  if (!fs.existsSync(parent) || !fs.lstatSync(parent).isDirectory()) {
+    throw new Error(`Create target directory not found: ${parent}`);
+  }
+  fs.writeFileSync(path, text, { encoding: "utf8", flag: "wx" });
 }
 
 async function renameReviewedFile(
@@ -1038,24 +1133,67 @@ async function renameReviewedFile(
   const targetParent = nodePath.dirname(targetPath);
   if (
     !fs.existsSync(targetParent) ||
-    !fs.statSync(targetParent).isDirectory()
+    !fs.lstatSync(targetParent).isDirectory()
   ) {
     throw new Error(`Rename target directory not found: ${targetParent}`);
   }
-  fs.renameSync(sourcePath, targetPath);
+  moveFileNoOverwrite(sourcePath, targetPath);
   if (finalText === baselineText) return;
   try {
     await applyTextToFile(vscode, vscode.Uri.file(targetPath), finalText);
   } catch (error) {
     try {
       if (!fs.existsSync(sourcePath) && fs.existsSync(targetPath)) {
-        fs.renameSync(targetPath, sourcePath);
+        moveFileNoOverwrite(targetPath, sourcePath);
       }
     } catch {
       /* best-effort rollback; preserve the original apply error */
     }
     throw error;
   }
+}
+
+function moveFileNoOverwrite(sourcePath, targetPath) {
+  let targetLinked = false;
+  try {
+    fs.linkSync(sourcePath, targetPath);
+    targetLinked = true;
+    fs.unlinkSync(sourcePath);
+    return;
+  } catch (error) {
+    if (targetLinked) {
+      try {
+        fs.unlinkSync(targetPath);
+      } catch {
+        /* best-effort rollback; preserve the original unlink failure */
+      }
+      throw error;
+    }
+    if (!["EXDEV", "EPERM", "EACCES", "ENOTSUP"].includes(error?.code)) {
+      throw error;
+    }
+  }
+  fs.copyFileSync(sourcePath, targetPath, fs.constants.COPYFILE_EXCL);
+  try {
+    fs.unlinkSync(sourcePath);
+  } catch (error) {
+    try {
+      fs.unlinkSync(targetPath);
+    } catch {
+      /* best-effort rollback; preserve the original unlink failure */
+    }
+    throw error;
+  }
+}
+
+function multiDiffOperationRecord(change) {
+  return {
+    path: change.path,
+    operation: change.operation,
+    ...(change.targetPath ? { targetPath: change.targetPath } : {}),
+    ...(change.oldMode != null ? { oldMode: change.oldMode } : {}),
+    ...(change.newMode != null ? { newMode: change.newMode } : {}),
+  };
 }
 
 /** Best-effort disk read for the hunk baseline (new files → empty). */

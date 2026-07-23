@@ -23,7 +23,11 @@ Request Changes 原记录，并为无重新提议/中断提供明确终态；`fo
 生命周期落盘语义完成。后续批次又为双端加入单文件 2 MiB、changeset 64 文件/8 MiB 的
 同构预算；二进制、大文件和超限条目在打开原生文档前 fail-closed，并返回不含内容的结构化
 降级清单。JetBrains 多文件统计也复用有 400 万 DP 单元上限的 `DiffHunks`。因此容量降级的
-C/T/H 代码缺口已关闭，当前只剩真实多宿主和 mode-change/混合生命周期 changeset 验收。
+C/T/H 代码缺口已关闭。随后双端 `openMultiDiff` 已支持逐项
+modify/create/delete/rename/mode-change，独立守卫源与 rename 目标，按不覆盖 create/
+rename、真实 delete 和 POSIX chmod 应用；不支持 mode-change 的宿主结构化降级，混合批次
+逐项回传成功/失败且不静默文本覆盖。生命周期 changeset 的 C/T/H 代码缺口也已关闭，当前
+只剩真实多宿主 UI 矩阵验收。
 本文件原有的真实远程环境与长期稳定性验收项仍保留。
 
 ## 结论
@@ -85,9 +89,10 @@ ChainlessChain IDE 已越过“聊天侧栏”阶段。VS Code 0.37.14、JetBrai
   resume 侧改动）；1000 次启停 / 8 小时 soak = 环境阻塞。
 - **质量门（P0#5）**：capability manifest 单一真源生成文档/测试/行为清单、Marketplace 安装包
   smoke、nightly 远程矩阵 = 部分需 CI 配额与真实安装环境。
-- **P1 已收口/剩项**：diff 的单文件 rename/delete 语义已由显式工具、协议意图、双端宿主
-  落盘与审计收口，Request Changes 的实际后续结果也已跨三条执行路径持久化；仍需
-  mode-change/混合生命周期 changeset 和真实多宿主验收。大文件/二进制与 changeset 容量
+- **P1 已收口/剩项**：diff 的单文件 rename/delete 与混合
+  modify/create/delete/rename/mode-change changeset 语义已由显式协议意图、双端路径守卫、
+  宿主落盘、结构化降级/逐项结果和审计收口；Request Changes 的实际后续结果也已跨三条
+  执行路径持久化。代码侧仍需真实多宿主 UI 验收。大文件/二进制与 changeset 容量
   降级已由双端 2 MiB/64 文件/8 MiB 预算、结构化 skipped 结果和有界 LCS 收口。可观测性方面 trace id 字段
   贯穿本身**已落地**（`948adc711b`，见上），剩项是**脱敏
   诊断包一键导出、trace 覆盖率指标与离线协议回放**（非 trace 传播未完成）。编辑器文档 stale 拒绝

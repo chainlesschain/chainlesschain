@@ -248,6 +248,49 @@ describe("buildIdeTools — path boundary wiring", () => {
     );
   });
 
+  it("openMultiDiff validates each rename destination independently", async () => {
+    const facade = fakeFacade();
+    const t = byName(toolsWithBoundary(facade));
+    await expect(
+      t.openMultiDiff.handler({
+        files: [
+          {
+            path: INSIDE,
+            targetPath: OUTSIDE,
+            originalText: "x",
+            modifiedText: "x",
+            operation: "rename",
+          },
+        ],
+      }),
+    ).rejects.toThrow(/openMultiDiff targetPath: unsafe write target rejected/);
+    expect(facade.openMultiDiff).not.toHaveBeenCalled();
+
+    const target = path.join(ROOT, "renamed.js");
+    await t.openMultiDiff.handler({
+      files: [
+        {
+          path: INSIDE,
+          targetPath: target,
+          originalText: "x",
+          modifiedText: "x",
+          operation: "rename",
+        },
+      ],
+    });
+    expect(facade.openMultiDiff).toHaveBeenCalledWith(
+      expect.objectContaining({
+        files: [
+          expect.objectContaining({
+            path: INSIDE,
+            targetPath: target,
+            operation: "rename",
+          }),
+        ],
+      }),
+    );
+  });
+
   it("getDiagnostics rejects an out-of-workspace scope with READ wording", async () => {
     const facade = fakeFacade();
     const t = byName(toolsWithBoundary(facade));

@@ -189,7 +189,9 @@ public final class IdeTools {
                 "openMultiDiff",
                 "Open a native multi-file diff for a whole changeset and BLOCK until the "
                         + "user accepts all, picks a subset, or rejects. `files` is a list of "
-                        + "{ path, modifiedText, originalText? }; chosen files are written. "
+                        + "{ path, modifiedText, originalText?, operation?, targetPath?, "
+                        + "oldMode?, newMode? }; lifecycle operations are applied explicitly "
+                        + "and never downgraded to text overwrites. "
                         + "Returns { outcome:'accepted'|'partial'|'rejected', written:[path…], "
                         + "count } — this call can take a while, that is expected.",
                 openMultiDiffSchema()) {
@@ -204,6 +206,22 @@ public final class IdeTools {
                         Object p = m.get("path");
                         Object mod = m.get("modifiedText");
                         if (!(p instanceof String) || !(mod instanceof String)) continue;
+                        String operation = m.get("operation") instanceof String
+                                ? (String) m.get("operation") : "modify";
+                        if (!List.of(
+                                "modify", "create", "delete", "rename", "mode-change")
+                                .contains(operation)) {
+                            throw new IllegalArgumentException(
+                                    "openMultiDiff received unsupported operation: "
+                                            + operation);
+                        }
+                        String targetPath = "rename".equals(operation)
+                                && m.get("targetPath") instanceof String
+                                        ? (String) m.get("targetPath") : null;
+                        if ("rename".equals(operation) && targetPath == null) {
+                            throw new IllegalArgumentException(
+                                    "openMultiDiff operation=rename requires `targetPath`");
+                        }
                         // Write-capable tool: EVERY target must live inside the
                         // workspace — one bad path rejects the whole batch.
                         String safePath = (String) p;
@@ -215,10 +233,26 @@ public final class IdeTools {
                                                 + safePath + "): " + g.reason);
                             }
                             safePath = g.resolved;
+                            if (targetPath != null) {
+                                IdePathGuard.Result target =
+                                        IdePathGuard.validate(targetPath, workspaceRoots);
+                                if (!target.ok) {
+                                    throw new IllegalArgumentException(
+                                            "openMultiDiff targetPath: unsafe write target rejected ("
+                                                    + targetPath + "): " + target.reason);
+                                }
+                                targetPath = target.resolved;
+                            }
                         }
                         Object orig = m.get("originalText");
-                        changes.add(new MultiDiff.FileChange(safePath, (String) mod,
-                                orig instanceof String ? (String) orig : null));
+                        changes.add(new MultiDiff.FileChange(
+                                safePath,
+                                (String) mod,
+                                orig instanceof String ? (String) orig : null,
+                                operation,
+                                targetPath,
+                                m.get("oldMode"),
+                                m.get("newMode")));
                     }
                 }
                 if (changes.isEmpty()) {
@@ -313,6 +347,15 @@ public final class IdeTools {
         fileProps.put("path", strProp("Absolute path of the file."));
         fileProps.put("modifiedText", strProp("Proposed new content for this file."));
         fileProps.put("originalText", strProp("Original content; defaults to the file on disk."));
+        Map<String, Object> operation = strProp("Filesystem intent; defaults to modify.");
+        operation.put("enum", new ArrayList<>(Arrays.asList(
+                "modify", "create", "delete", "rename", "mode-change")));
+        fileProps.put("operation", operation);
+        fileProps.put("targetPath", strProp("Destination for operation=rename."));
+        fileProps.put("oldMode", strOrNumberProp(
+                "Previous POSIX mode for operation=mode-change."));
+        fileProps.put("newMode", strOrNumberProp(
+                "New POSIX mode for operation=mode-change."));
         Map<String, Object> fileItem = new LinkedHashMap<>();
         fileItem.put("type", "object");
         fileItem.put("properties", fileProps);
@@ -331,6 +374,13 @@ public final class IdeTools {
         s.put("properties", props);
         s.put("required", new ArrayList<>(Arrays.asList("files")));
         return s;
+    }
+
+    private static Map<String, Object> strOrNumberProp(String description) {
+        Map<String, Object> p = new LinkedHashMap<>();
+        p.put("type", new ArrayList<>(Arrays.asList("string", "number")));
+        p.put("description", description);
+        return p;
     }
 
     private static Map<String, Object> emptyObjectSchema() {

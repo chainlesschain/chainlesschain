@@ -61,21 +61,21 @@ Claude Code 的 JetBrains 插件则突出原生 Diff、选择区/当前文件上
 （例如 JetBrains PSI 语义工具、VS Code multi-file diff/notebook）按宿主能力
 降级，不再要求客户端假设两个 IDE 完全对称。
 
-| 能力              | VS Code 插件                                                                                          | JetBrains 插件                                                                            | 判断                                                                                              |
-| ----------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| 聊天/多会话       | `src/chat/`、`sessions-workbench.js`、`ide-session-index.js`                                          | `AgentChatSession`、`ConversationManager`、`SessionsWorkbench`、`IdeSessionIndex`         | 两端已有；重点转为协议一致性和恢复可靠性                                                          |
-| Plan Review       | `chat/plan-review.js`，有版本化恢复、结构化批注、计划修订 Diff 和逐项执行进度                         | `PlanReview`、`ChatEvents`，有对等解析/合并、修订 Diff 和项目级恢复状态                   | 快照、重启恢复、结构化批注、修订 Diff、执行关联和审批执行锁摘要均已完成                           |
-| 原生 Diff         | `ide-tools.js`、`diff-hunks.js`、`multi-diff.js`、`diff-apply-guard.js`、`diff-review-audit.js`       | `DiffHunks`、`MultiDiff`、`DiffApplyGuard`、`ReviewNote`、`DiffReviewAudit`               | 生命周期、审阅归因/后续结果和大小预算已统一；剩真实宿主与 mode-change/混合生命周期 changeset 验收 |
-| IDE MCP Bridge    | `mcp-http-server.js` + `ide-tools.js`                                                                 | `McpServer` + `IdeTools`                                                                  | 已统一 `getSelection/getActiveFile/getDiagnostics/getOpenEditors/openDiff` 等基础契约             |
-| 代码语义          | `semantic-tools.js`，包含 hover、definition、references、rename、call hierarchy、symbol/project model | `SemanticTools`，通过 PSI 提供同类语义工具                                                | 不应再把“增加基础语义工具”列为 P0；应补测试结果、覆盖率、调试状态和能力协商                       |
-| 终端/Preview      | `terminal-capture.js`、`preview.js`、`preview-detect.js`                                              | `TerminalTextReader`、`PreviewService`、`PreviewDetect`                                   | 已有只读输出和 Preview 状态；浏览器 DOM/console/network/action 仍是后续能力                       |
-| 后台 Agent/Remote | `background-agents.js`、`remote-handoff.js`、`remote-control-host.js`、`remote-doctor.js`             | `BackgroundAgents`、`RemoteHandoff`、`RemoteDoctor`、`RemoteControlAction`                | 已有入口；需要统一状态机、断线恢复和副作用账本                                                    |
-| Artifact          | `artifacts-drawer.js`、`ui/artifacts-view.js`                                                         | `Artifacts`、`ArtifactsAction`                                                            | 已有列表、元数据和预览降级；还可增强发布/重发布/会话关联                                          |
-| 权限/安全         | workspace trust、路径保护、Diff approval、auto-exec guard、plugin quality                             | `BridgeSecurityPolicy`、`IdePathGuard`、`DiffApplyGuard`、`AutoExecGuard`、`PolicyViewer` | 安全基础较完整；需要统一 `PermissionDecision` 和策略来源解释                                      |
-| 插件管理          | `plugin-manager.js`、`plugin-quality.js`、管理视图                                                    | `PluginManager`、`PluginQuality`、管理 action                                             | 已有管理面；供应链签名、依赖锁定、升级回滚和企业策略仍需补齐                                      |
-| CLI 运行时        | Managed CLI、版本检查、安装、升级、回滚                                                               | `ManagedCliRuntime`、`ManagedCli`、`CliVersionCheck`、安装/回滚 action                    | 已解决“只能依赖全局 CLI”的主要问题；仍需更清晰的兼容矩阵和离线缓存诊断                            |
-| 代码补全          | VS Code `completion.js`，配置项和手动触发                                                             | Kotlin `CcInlineCompletionProvider`，另有手动触发 action                                  | 两端都有，但仍不是 Claude Code/Copilot 级的持续 ghost-text 体验；应继续控制延迟和成本             |
-| GUI 自动化验证    | extension-host 测试                                                                                   | Remote Robot `uiTest` 为隔离/nightly smoke，60 个 Java 单测文件                           | 单测覆盖较好；发布门仍应加入关键真实 UI 场景，而不仅是纯逻辑测试                                  |
+| 能力              | VS Code 插件                                                                                          | JetBrains 插件                                                                            | 判断                                                                                                  |
+| ----------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| 聊天/多会话       | `src/chat/`、`sessions-workbench.js`、`ide-session-index.js`                                          | `AgentChatSession`、`ConversationManager`、`SessionsWorkbench`、`IdeSessionIndex`         | 两端已有；重点转为协议一致性和恢复可靠性                                                              |
+| Plan Review       | `chat/plan-review.js`，有版本化恢复、结构化批注、计划修订 Diff 和逐项执行进度                         | `PlanReview`、`ChatEvents`，有对等解析/合并、修订 Diff 和项目级恢复状态                   | 快照、重启恢复、结构化批注、修订 Diff、执行关联和审批执行锁摘要均已完成                               |
+| 原生 Diff         | `ide-tools.js`、`diff-hunks.js`、`multi-diff.js`、`diff-apply-guard.js`、`diff-review-audit.js`       | `DiffHunks`、`MultiDiff`、`DiffApplyGuard`、`ReviewNote`、`DiffReviewAudit`               | 生命周期（含混合 changeset/mode-change）、审阅归因/后续结果和大小预算已统一；仅剩真实宿主 UI 矩阵验收 |
+| IDE MCP Bridge    | `mcp-http-server.js` + `ide-tools.js`                                                                 | `McpServer` + `IdeTools`                                                                  | 已统一 `getSelection/getActiveFile/getDiagnostics/getOpenEditors/openDiff` 等基础契约                 |
+| 代码语义          | `semantic-tools.js`，包含 hover、definition、references、rename、call hierarchy、symbol/project model | `SemanticTools`，通过 PSI 提供同类语义工具                                                | 不应再把“增加基础语义工具”列为 P0；应补测试结果、覆盖率、调试状态和能力协商                           |
+| 终端/Preview      | `terminal-capture.js`、`preview.js`、`preview-detect.js`                                              | `TerminalTextReader`、`PreviewService`、`PreviewDetect`                                   | 已有只读输出和 Preview 状态；浏览器 DOM/console/network/action 仍是后续能力                           |
+| 后台 Agent/Remote | `background-agents.js`、`remote-handoff.js`、`remote-control-host.js`、`remote-doctor.js`             | `BackgroundAgents`、`RemoteHandoff`、`RemoteDoctor`、`RemoteControlAction`                | 已有入口；需要统一状态机、断线恢复和副作用账本                                                        |
+| Artifact          | `artifacts-drawer.js`、`ui/artifacts-view.js`                                                         | `Artifacts`、`ArtifactsAction`                                                            | 已有列表、元数据和预览降级；还可增强发布/重发布/会话关联                                              |
+| 权限/安全         | workspace trust、路径保护、Diff approval、auto-exec guard、plugin quality                             | `BridgeSecurityPolicy`、`IdePathGuard`、`DiffApplyGuard`、`AutoExecGuard`、`PolicyViewer` | 安全基础较完整；需要统一 `PermissionDecision` 和策略来源解释                                          |
+| 插件管理          | `plugin-manager.js`、`plugin-quality.js`、管理视图                                                    | `PluginManager`、`PluginQuality`、管理 action                                             | 已有管理面；供应链签名、依赖锁定、升级回滚和企业策略仍需补齐                                          |
+| CLI 运行时        | Managed CLI、版本检查、安装、升级、回滚                                                               | `ManagedCliRuntime`、`ManagedCli`、`CliVersionCheck`、安装/回滚 action                    | 已解决“只能依赖全局 CLI”的主要问题；仍需更清晰的兼容矩阵和离线缓存诊断                                |
+| 代码补全          | VS Code `completion.js`，配置项和手动触发                                                             | Kotlin `CcInlineCompletionProvider`，另有手动触发 action                                  | 两端都有，但仍不是 Claude Code/Copilot 级的持续 ghost-text 体验；应继续控制延迟和成本                 |
+| GUI 自动化验证    | extension-host 测试                                                                                   | Remote Robot `uiTest` 为隔离/nightly smoke，60 个 Java 单测文件                           | 单测覆盖较好；发布门仍应加入关键真实 UI 场景，而不仅是纯逻辑测试                                      |
 
 代码依据（版本以本节顶部的当前基线为准）：
 
@@ -217,8 +217,18 @@ baseline+proposal 合计最多 2 MiB、一个 changeset 最多 64 个文件/8 Mi
 以及兼容字段 `skippedBinary` / `skippedLarge`，不会静默应用被跳过内容。无显式 baseline 时
 只读取文件长度和最多 8 KiB 二进制探针，不会为了判断超限先把整个大文件载入内存。JetBrains 多文件
 统计也改为复用带 400 万 DP 单元保护的 `DiffHunks`，不再另建无界二维 LCS 数组。大文件/
-二进制/changeset 容量降级的 C/T/H 代码缺口至此关闭；真实多宿主 UI 矩阵以及 mode-change/
-rename/delete 混合批次仍保留。
+二进制/changeset 容量降级的 C/T/H 代码缺口至此关闭。
+
+随后双端 `openMultiDiff` 又把每个条目从单纯文本替换扩展为显式
+`modify|create|delete|rename|mode-change` 意图，并保留 `targetPath`、`oldMode`、`newMode`。
+Bridge 会独立验证源路径和 rename 目标路径；Planner 会在打开原生文档前拒绝未知操作、缺失
+rename 目标、带非空 proposal 的 delete、无效 mode 或夹带内容修改的 mode-change。Accept
+按操作执行：create 使用不覆盖创建，delete 删除源文件，rename 拒绝覆盖已有目标并可在目标
+应用已审阅文本，POSIX 宿主用规范化权限位执行 mode-change；Windows 等不支持 POSIX mode
+的宿主返回 content-free 的 `skippedUnsupported` / `degradation.skipped`，不会退化为文本
+覆盖。混合批次可应用安全子集，并以 `appliedOperations` / `failedOperations` 明确回传逐项
+结果。mode-change/混合生命周期 changeset 的 C/T/H 代码缺口至此关闭，只保留真实 VS Code
+与 JetBrains 宿主 UI 矩阵验收。
 
 ### P1：影响效率和跨端一致性
 
@@ -319,7 +329,7 @@ Agent 修改后，IDE 应自动收集相关测试、lint、类型检查、构建
 
 1. Installation & Runtime Doctor 和版本兼容矩阵。
 2. Plan Review 快照、批注、审批、恢复闭环。
-3. Diff 真实多宿主和 mode-change/混合生命周期 changeset 验收。
+3. Diff 混合生命周期 changeset 的真实多宿主 UI 矩阵验收（代码语义已落地）。
 4. VS Code / JetBrains 关键流程 Golden Fixtures 与真实 UI smoke test。
 
 ### 中期：P1（2～3 个版本周期）

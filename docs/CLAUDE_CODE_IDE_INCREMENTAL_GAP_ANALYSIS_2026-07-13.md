@@ -21,8 +21,11 @@ stream/headless/WebSocket 副作用账本。后续又以可恢复 tracker 将下
 operation/targetPath、双端源/目标路径守卫及生命周期落盘语义关闭。当前只保留真实宿主、
 后续批次又用双端一致的单文件 2 MiB、changeset 64 文件/8 MiB 预算关闭大文件/二进制/
 聚合容量降级代码缺口；超限条目在原生文档创建前 fail-closed，返回不含正文的 skipped 元数据，
-JetBrains 多文件统计也不再分配无界二维 LCS。当前只保留真实宿主和 mode-change/
-rename/delete 混合 changeset 验收。
+JetBrains 多文件统计也不再分配无界二维 LCS。随后双端 `openMultiDiff` 已支持逐项
+modify/create/delete/rename/mode-change，独立守卫源与 rename 目标，使用不覆盖 create/
+rename、真实 delete 和 POSIX chmod 语义；不支持 mode-change 的宿主结构化降级，混合批次
+逐项回传成功/失败且不静默文本覆盖。相关 C/T/H 代码缺口已关闭，当前只保留真实宿主 UI
+矩阵验收。
 
 仍不能由仓库静态证据完全关闭的项目：多版本/多宿主 GUI 矩阵、五类远程环境 E2E、跨进程 kill/resume、8 小时 soak、Marketplace 安装升级矩阵，以及 IDE 内部 Preview 的 DOM/console/network/action 闭环、PR/CI 的完整交付交互和 Agent View 的统一跨端状态接管。当前两端已具备 Preview 健康状态、只读 PR 状态命令和后台 Agent 视图入口，不能再表述为“完全未接线”。
 
@@ -322,7 +325,7 @@ Session Timeline 提供四个动作：“只恢复代码”“只恢复对话”
 
 下一步重点不是普通文本 Diff，而是语义和并发正确性：
 
-- Rename、Delete、Mode Change、Create/Delete 混合 Changeset（单文件 Rename/Delete 的双宿主显式生命周期已完成，剩 changeset/mode-change 组合语义）。
+- Rename、Delete、Mode Change、Create/Delete 混合 Changeset：双宿主显式生命周期和 changeset/mode-change 组合语义已完成，剩真实宿主 UI 矩阵验收。
 - Formatter、Watcher、Git 或人工编辑造成的并发修改。
 - Binary/Large File 的明确降级。
 - Desktop 使用 Monaco 原生多文件 Review Queue 和逐 hunk accept/reject。
@@ -337,7 +340,7 @@ Session Timeline 提供四个动作：“只恢复代码”“只恢复对话”
 
 测试 `review-comment-anchor.test.js` 11（锚定捕获 + current/moved/outdated（编辑走/整段删/无捕获文本）/ambiguous（对称 0-radius 多命中）+ 上下文消歧唯一→moved + resolved 终态 + 混合集分桶且 outdated/ambiguous 恒 null 行）。
 
-**已接线（2026-07-13 续，锚定进 review-pipeline finding 输出）**：纯核已接进 [[review-pipeline.js]] 的 finding 输出——`buildReviewReport(rawFindings, { verdicts, minConfidence, fileContents })` 新增可选 `fileContents`（`path → 当前文件内容` 的 Map/对象）；提供时每个 finding 的输出在裸 `line` 之外多带一个可重锚 `anchor`（`makeCommentAnchor` 产出的 file+baseHash+锚定行原文+上下文，`id=path:line:category`），下游 IDE Diff Review 就能在 agent 改文件后 `reanchorComment` 重定位/标陈旧而非复用死行号；**不提供 `fileContents` 则输出逐字节不变**（向后兼容）。命令层 [[review.js]] 的 `runMultiFinderReview` 在 `buildReviewReport` 前**尽力**读取所有被引用文件（相对 `baseOptions.cwd`）填 `fileContents`——读不到（文件已删/二进制/树外）就跳过该文件不加 anchor、绝不让读文件失败拖垮 review。测试 `review-pipeline.test.js` +5（无 `fileContents` 无 anchor 字节不变 / 提供内容附可重锚 anchor / 接受 Map / 文件不在表中跳过 / 无 line 跳过）；review-comment-anchor/review-multi-finder/review-command/review-args 全套 83 回归绿。单文件 Rename/Delete 后续已由显式工具与双宿主生命周期 Diff 收口；Binary/Large 与 changeset 容量降级也已由双端一致的 2 MiB/64 文件/8 MiB 门和结构化 skipped 结果收口；剩项（Mode-change/混合生命周期 changeset 语义、Monaco 逐 hunk Review Queue、真实宿主评论线程 UI seam）仍开放。
+**已接线（2026-07-13 续，锚定进 review-pipeline finding 输出）**：纯核已接进 [[review-pipeline.js]] 的 finding 输出——`buildReviewReport(rawFindings, { verdicts, minConfidence, fileContents })` 新增可选 `fileContents`（`path → 当前文件内容` 的 Map/对象）；提供时每个 finding 的输出在裸 `line` 之外多带一个可重锚 `anchor`（`makeCommentAnchor` 产出的 file+baseHash+锚定行原文+上下文，`id=path:line:category`），下游 IDE Diff Review 就能在 agent 改文件后 `reanchorComment` 重定位/标陈旧而非复用死行号；**不提供 `fileContents` 则输出逐字节不变**（向后兼容）。命令层 [[review.js]] 的 `runMultiFinderReview` 在 `buildReviewReport` 前**尽力**读取所有被引用文件（相对 `baseOptions.cwd`）填 `fileContents`——读不到（文件已删/二进制/树外）就跳过该文件不加 anchor、绝不让读文件失败拖垮 review。测试 `review-pipeline.test.js` +5（无 `fileContents` 无 anchor 字节不变 / 提供内容附可重锚 anchor / 接受 Map / 文件不在表中跳过 / 无 line 跳过）；review-comment-anchor/review-multi-finder/review-command/review-args 全套 83 回归绿。单文件 Rename/Delete 后续已由显式工具与双宿主生命周期 Diff 收口；Binary/Large 与 changeset 容量降级也已由双端一致的 2 MiB/64 文件/8 MiB 门和结构化 skipped 结果收口；Mode-change/混合生命周期 changeset 也已由双端 operation schema、路径守卫、POSIX mode 应用和结构化不支持/逐项失败结果收口。剩项（Monaco 逐 hunk Review Queue、真实宿主评论线程 UI seam 和多宿主 UI 矩阵）仍开放。
 
 证据：`docs/CLAUDE_CODE_IDE_GAP_ANALYSIS.md:64-66,187-192`。
 

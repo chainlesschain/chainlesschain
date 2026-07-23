@@ -1,6 +1,8 @@
 package com.chainlesschain.ide;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -91,6 +93,86 @@ class MultiDiffTest {
                 new MultiDiff.FileChange("b.js", "y", "x"),
                 new MultiDiff.FileChange("noop.js", "same", "same"));
         assertEquals(0, MultiDiff.selectWrites(files, new HashSet<>()).size());
+    }
+
+    @Test
+    void normalizesPosixAndGitFileModes() {
+        assertEquals(0755, MultiDiff.normalizeFileMode(0755));
+        assertEquals(0755, MultiDiff.normalizeFileMode("755"));
+        assertEquals(0755, MultiDiff.normalizeFileMode("100755"));
+        assertEquals(0644, MultiDiff.normalizeFileMode("100644"));
+        assertNull(MultiDiff.normalizeFileMode("888"));
+        assertNull(MultiDiff.normalizeFileMode(0100755));
+    }
+
+    @Test
+    void preservesMixedLifecycleIntentInLabelsAndSelectedWrites() {
+        List<MultiDiff.FileChange> files = Arrays.asList(
+                new MultiDiff.FileChange(
+                        "old.txt", "moved", "moved",
+                        "rename", "new.txt", null, null),
+                new MultiDiff.FileChange(
+                        "gone.txt", "", "gone",
+                        "delete", null, null, null),
+                new MultiDiff.FileChange(
+                        "run.sh", "echo ok", "echo ok",
+                        "mode-change", null, "100644", "100755"));
+        MultiDiff.Summary summary = MultiDiff.changesetSummary(files);
+        assertTrue(MultiDiff.fileLabel(summary.files.get(0)).contains("new.txt"));
+        assertTrue(MultiDiff.fileLabel(summary.files.get(1)).contains("delete"));
+        assertTrue(MultiDiff.fileLabel(summary.files.get(2)).contains("100755"));
+
+        List<MultiDiff.FileChange> writes = MultiDiff.selectWrites(files, null);
+        assertEquals(3, writes.size());
+        assertEquals("rename", writes.get(0).operation);
+        assertEquals("new.txt", writes.get(0).targetPath);
+        assertEquals("100755", writes.get(2).newMode);
+        assertNull(writes.get(0).originalText);
+    }
+
+    @Test
+    void modeChangeDegradesExplicitlyWhenTheHostCannotApplyIt() {
+        MultiDiff.FileChange mode = new MultiDiff.FileChange(
+                "run.sh", "echo ok", "echo ok",
+                "mode-change", null, "100644", "100755");
+        MultiDiff.ReviewPlan unsupported = MultiDiff.planReview(
+                Arrays.asList(mode), null, null, 100, 10, 100, false);
+        assertTrue(unsupported.reviewable.isEmpty());
+        assertEquals(1, unsupported.skipped.size());
+        assertEquals("unsupported-operation", unsupported.skipped.get(0).kind);
+        assertEquals(
+                MultiDiff.REASON_MODE_CHANGE_UNSUPPORTED,
+                unsupported.skipped.get(0).reason);
+        assertEquals("mode-change", unsupported.skipped.get(0).operation);
+
+        MultiDiff.ReviewPlan supported = MultiDiff.planReview(
+                Arrays.asList(mode), null, null, 100, 10, 100, true);
+        assertEquals(1, supported.reviewable.size());
+        assertFalse(supported.degraded());
+    }
+
+    @Test
+    void malformedLifecycleEntriesAreSkippedWithoutContent() {
+        List<MultiDiff.FileChange> files = Arrays.asList(
+                new MultiDiff.FileChange(
+                        "rename.txt", "x", "x",
+                        "rename", null, null, null),
+                new MultiDiff.FileChange(
+                        "delete.txt", "not empty", "x",
+                        "delete", null, null, null),
+                new MultiDiff.FileChange(
+                        "odd.txt", "y", "x",
+                        "unknown", null, null, null));
+        MultiDiff.ReviewPlan plan =
+                MultiDiff.planReview(files, null, 100, 10, 1000);
+        assertTrue(plan.reviewable.isEmpty());
+        assertEquals(3, plan.skipped.size());
+        for (MultiDiff.ReviewSkip skip : plan.skipped) {
+            assertEquals("unsupported-operation", skip.kind);
+            assertTrue(skip.reason.startsWith(
+                    MultiDiff.REASON_UNSUPPORTED_OPERATION));
+            assertEquals(0, skip.bytes);
+        }
     }
 
     @Test

@@ -47,7 +47,8 @@ function operationIssue(file, supportsModeChange) {
   }
   if (file.operation === "mode-change") {
     if (!supportsModeChange) return REASON_MODE_CHANGE_UNSUPPORTED;
-    if (normalizeFileMode(file.newMode) == null) return "newMode missing or invalid";
+    if (normalizeFileMode(file.newMode) == null)
+      return "newMode missing or invalid";
     if (
       typeof file.originalText !== "string" ||
       file.originalText !== file.modifiedText
@@ -82,9 +83,7 @@ function normalizeMultiDiffFiles(files) {
       originalText: typeof f.originalText === "string" ? f.originalText : null,
       operation: typeof f.operation === "string" ? f.operation : "modify",
       targetPath:
-        typeof f.targetPath === "string" && f.targetPath
-          ? f.targetPath
-          : null,
+        typeof f.targetPath === "string" && f.targetPath ? f.targetPath : null,
       oldMode: f.oldMode ?? null,
       newMode: f.newMode ?? null,
     });
@@ -119,7 +118,8 @@ function fileStat(f) {
       path: f.path,
       added: modified === "" ? 0 : modified.split("\n").length,
       removed: original === "" ? 0 : original.split("\n").length,
-      isNew: meta.operation === "create" || (original === "" && modified !== ""),
+      isNew:
+        meta.operation === "create" || (original === "" && modified !== ""),
       unchanged: false,
       ...meta,
     };

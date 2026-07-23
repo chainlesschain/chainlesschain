@@ -332,8 +332,7 @@ function buildIdeTools(editor, options = {}) {
                           "rename",
                           "mode-change",
                         ],
-                        description:
-                          "Filesystem intent; defaults to modify.",
+                        description: "Filesystem intent; defaults to modify.",
                       },
                       targetPath: {
                         type: "string",

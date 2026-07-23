@@ -165,6 +165,7 @@ final class IdePathGuardTest {
         String diffTargetPath;
         String diagPath = "UNSET";
         final List<String> multiPaths = new ArrayList<>();
+        final List<MultiDiff.FileChange> multiChanges = new ArrayList<>();
 
         @Override public Map<String, Object> getSelection() { return null; }
         @Override public List<Map<String, Object>> getDiagnostics(String path) {
@@ -200,7 +201,10 @@ final class IdePathGuardTest {
         }
         @Override public Map<String, Object> openMultiDiff(
                 List<MultiDiff.FileChange> files, String title) {
-            for (MultiDiff.FileChange f : files) multiPaths.add(f.path);
+            for (MultiDiff.FileChange f : files) {
+                multiPaths.add(f.path);
+                multiChanges.add(f);
+            }
             Map<String, Object> out = new LinkedHashMap<>();
             out.put("outcome", "accepted");
             out.put("count", files.size());
@@ -319,6 +323,60 @@ final class IdePathGuardTest {
         assertTrue(e.getMessage().contains("openMultiDiff: unsafe write target rejected"),
                 e.getMessage());
         assertTrue(facade.multiPaths.isEmpty(), "facade must not see a refused batch");
+    }
+
+    @Test
+    void openMultiDiffValidatesAndResolvesRenameTargets(@TempDir Path tmp)
+            throws Exception {
+        Path proj = Files.createDirectories(tmp.resolve("proj"));
+        Path other = Files.createDirectories(tmp.resolve("other"));
+        RecordingFacade facade = new RecordingFacade();
+        Tool multi = find(IdeTools.build(facade, null,
+                Collections.singletonList(proj.toString())), "openMultiDiff");
+
+        List<Object> refusedFiles = Collections.singletonList(args(
+                "path", proj.resolve("old.txt").toString(),
+                "modifiedText", "same",
+                "originalText", "same",
+                "operation", "rename",
+                "targetPath", other.resolve("new.txt").toString()));
+        IllegalArgumentException refused = assertThrows(
+                IllegalArgumentException.class,
+                () -> multi.call(args("files", refusedFiles)));
+        assertTrue(refused.getMessage().contains("openMultiDiff targetPath"));
+        assertTrue(facade.multiChanges.isEmpty());
+
+        List<Object> acceptedFiles = Collections.singletonList(args(
+                "path", proj.resolve("old.txt").toString(),
+                "modifiedText", "same",
+                "originalText", "same",
+                "operation", "rename",
+                "targetPath", proj.resolve("nested/../new.txt").toString()));
+        multi.call(args("files", acceptedFiles));
+        assertEquals(1, facade.multiChanges.size());
+        MultiDiff.FileChange change = facade.multiChanges.get(0);
+        assertEquals("rename", change.operation);
+        assertEquals(
+                proj.resolve("new.txt").toAbsolutePath().normalize().toString(),
+                change.targetPath);
+    }
+
+    @Test
+    void openMultiDiffSchemaAdvertisesLifecycleMetadata(@TempDir Path tmp) {
+        RecordingFacade facade = new RecordingFacade();
+        Tool multi = find(IdeTools.build(facade, null,
+                Collections.singletonList(tmp.toString())), "openMultiDiff");
+        Map<?, ?> properties = (Map<?, ?>) multi.inputSchema().get("properties");
+        Map<?, ?> files = (Map<?, ?>) properties.get("files");
+        Map<?, ?> item = (Map<?, ?>) files.get("items");
+        Map<?, ?> fileProperties = (Map<?, ?>) item.get("properties");
+        Map<?, ?> operation = (Map<?, ?>) fileProperties.get("operation");
+        assertEquals(
+                Arrays.asList("modify", "create", "delete", "rename", "mode-change"),
+                operation.get("enum"));
+        assertTrue(fileProperties.containsKey("targetPath"));
+        assertTrue(fileProperties.containsKey("oldMode"));
+        assertTrue(fileProperties.containsKey("newMode"));
     }
 
     @Test

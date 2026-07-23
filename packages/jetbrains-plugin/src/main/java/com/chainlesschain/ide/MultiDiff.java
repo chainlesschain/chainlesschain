@@ -22,6 +22,10 @@ public final class MultiDiff {
     public static final long MAX_REVIEW_CHANGESET_BYTES = 8L * 1024L * 1024L;
     public static final String REASON_CHANGESET_LIMIT =
             "changeset exceeds IDE diff review limits";
+    public static final String REASON_UNSUPPORTED_OPERATION =
+            "unsupported changeset operation";
+    public static final String REASON_MODE_CHANGE_UNSUPPORTED =
+            "file mode change unsupported on this host";
 
     private MultiDiff() {}
 
@@ -30,10 +34,30 @@ public final class MultiDiff {
         public final String path;
         public final String modifiedText;
         public final String originalText; // nullable
+        public final String operation;
+        public final String targetPath;
+        public final Object oldMode;
+        public final Object newMode;
+
         public FileChange(String path, String modifiedText, String originalText) {
+            this(path, modifiedText, originalText, "modify", null, null, null);
+        }
+
+        public FileChange(
+                String path,
+                String modifiedText,
+                String originalText,
+                String operation,
+                String targetPath,
+                Object oldMode,
+                Object newMode) {
             this.path = path;
             this.modifiedText = modifiedText;
             this.originalText = originalText;
+            this.operation = operation == null ? "modify" : operation;
+            this.targetPath = targetPath;
+            this.oldMode = oldMode;
+            this.newMode = newMode;
         }
     }
 
@@ -44,12 +68,34 @@ public final class MultiDiff {
         public final int removed;
         public final boolean isNew;
         public final boolean unchanged;
+        public final String operation;
+        public final String targetPath;
+        public final Object oldMode;
+        public final Object newMode;
+
         FileStat(String path, int added, int removed, boolean isNew, boolean unchanged) {
+            this(path, added, removed, isNew, unchanged, "modify", null, null, null);
+        }
+
+        FileStat(
+                String path,
+                int added,
+                int removed,
+                boolean isNew,
+                boolean unchanged,
+                String operation,
+                String targetPath,
+                Object oldMode,
+                Object newMode) {
             this.path = path;
             this.added = added;
             this.removed = removed;
             this.isNew = isNew;
             this.unchanged = unchanged;
+            this.operation = operation;
+            this.targetPath = targetPath;
+            this.oldMode = oldMode;
+            this.newMode = newMode;
         }
     }
 
@@ -72,13 +118,21 @@ public final class MultiDiff {
         public final String path;
         public final String kind;
         public final String reason;
+        public final String operation;
         public final long bytes;
         public final long limitBytes;
 
-        ReviewSkip(String path, String kind, String reason, long bytes, long limitBytes) {
+        ReviewSkip(
+                String path,
+                String kind,
+                String reason,
+                String operation,
+                long bytes,
+                long limitBytes) {
             this.path = path;
             this.kind = kind;
             this.reason = reason;
+            this.operation = operation;
             this.bytes = bytes;
             this.limitBytes = limitBytes;
         }
@@ -123,28 +177,102 @@ public final class MultiDiff {
             for (FileChange f : files) {
                 if (f == null || f.path == null || f.path.isEmpty()) continue;
                 if (f.modifiedText == null) continue;
-                byPath.put(f.path, new FileChange(f.path, f.modifiedText, f.originalText));
+                byPath.put(f.path, new FileChange(
+                        f.path,
+                        f.modifiedText,
+                        f.originalText,
+                        f.operation,
+                        f.targetPath,
+                        f.oldMode,
+                        f.newMode));
             }
         }
         return new ArrayList<FileChange>(byPath.values());
+    }
+
+    /** Convert a POSIX/Git mode such as 0755 or "100755" to permission bits. */
+    public static Integer normalizeFileMode(Object value) {
+        if (value instanceof Number) {
+            int mode = ((Number) value).intValue();
+            return mode >= 0 && mode <= 0777 ? mode : null;
+        }
+        if (!(value instanceof String) || !((String) value).matches("^[0-7]{3,6}$")) {
+            return null;
+        }
+        try {
+            return Integer.parseInt((String) value, 8) & 0777;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static String operationIssue(FileChange file, boolean supportsModeChange) {
+        if (!Set.of("modify", "create", "delete", "rename", "mode-change")
+                .contains(file.operation)) {
+            return "unknown operation: " + file.operation;
+        }
+        if ("rename".equals(file.operation)
+                && (file.targetPath == null || file.targetPath.isEmpty())) {
+            return "rename target missing";
+        }
+        if ("delete".equals(file.operation) && !file.modifiedText.isEmpty()) {
+            return "delete requires empty modifiedText";
+        }
+        if ("mode-change".equals(file.operation)) {
+            if (!supportsModeChange) return REASON_MODE_CHANGE_UNSUPPORTED;
+            if (normalizeFileMode(file.newMode) == null) {
+                return "newMode missing or invalid";
+            }
+            if (file.originalText == null
+                    || !file.originalText.equals(file.modifiedText)) {
+                return "mode-change must not include a content change";
+            }
+        }
+        return null;
+    }
+
+    private static boolean isNoOp(FileChange file) {
+        if ("delete".equals(file.operation) || "rename".equals(file.operation)) {
+            return false;
+        }
+        if ("mode-change".equals(file.operation)) {
+            Integer oldMode = normalizeFileMode(file.oldMode);
+            Integer newMode = normalizeFileMode(file.newMode);
+            return oldMode != null && oldMode.equals(newMode);
+        }
+        String original = file.originalText != null ? file.originalText : "";
+        return original.equals(file.modifiedText);
     }
 
     /** Per-file added/removed line counts + new/unchanged flags. */
     public static FileStat fileStat(FileChange f) {
         String original = f.originalText != null ? f.originalText : "";
         String modified = f.modifiedText;
-        if (original.equals(modified)) {
-            return new FileStat(f.path, 0, 0, false, true);
+        if (isNoOp(f)) {
+            return new FileStat(
+                    f.path, 0, 0, false, true,
+                    f.operation, f.targetPath, f.oldMode, f.newMode);
         }
         // Whole-file add or delete: count lines directly (no phantom empty line).
         if (original.isEmpty() || modified.isEmpty()) {
             int added = modified.isEmpty() ? 0 : countLines(modified);
             int removed = original.isEmpty() ? 0 : countLines(original);
-            return new FileStat(f.path, added, removed,
-                    original.isEmpty() && !modified.isEmpty(), false);
+            return new FileStat(
+                    f.path,
+                    added,
+                    removed,
+                    "create".equals(f.operation)
+                            || (original.isEmpty() && !modified.isEmpty()),
+                    false,
+                    f.operation,
+                    f.targetPath,
+                    f.oldMode,
+                    f.newMode);
         }
         int[] c = diffCounts(original, modified);
-        return new FileStat(f.path, c[0], c[1], false, false);
+        return new FileStat(
+                f.path, c[0], c[1], false, false,
+                f.operation, f.targetPath, f.oldMode, f.newMode);
     }
 
     /** Changeset summary for the review UI: per-file stats + totals. */
@@ -171,6 +299,14 @@ public final class MultiDiff {
         }
         if (counts.length() == 0) counts.append("±0"); // ±0
         String flag = s.isNew ? " (new)" : (s.unchanged ? " (unchanged)" : "");
+        if ("delete".equals(s.operation)) flag = " (delete)";
+        if ("rename".equals(s.operation)) {
+            flag = " (rename → " + (s.targetPath == null ? "?" : s.targetPath) + ")";
+        }
+        if ("mode-change".equals(s.operation)) {
+            flag = " (mode " + (s.oldMode == null ? "?" : s.oldMode)
+                    + " → " + (s.newMode == null ? "?" : s.newMode) + ")";
+        }
         return (s.path + "  " + counts + flag).trim();
     }
 
@@ -181,10 +317,16 @@ public final class MultiDiff {
     public static List<FileChange> selectWrites(List<FileChange> files, Set<String> selectedPaths) {
         List<FileChange> out = new ArrayList<FileChange>();
         for (FileChange f : normalizeMultiDiffFiles(files)) {
-            String original = f.originalText != null ? f.originalText : "";
-            if (original.equals(f.modifiedText)) continue; // skip no-ops
+            if (isNoOp(f)) continue;
             if (selectedPaths != null && !selectedPaths.contains(f.path)) continue;
-            out.add(new FileChange(f.path, f.modifiedText, null));
+            out.add(new FileChange(
+                    f.path,
+                    f.modifiedText,
+                    null,
+                    f.operation,
+                    f.targetPath,
+                    f.oldMode,
+                    f.newMode));
         }
         return out;
     }
@@ -206,7 +348,8 @@ public final class MultiDiff {
                 null,
                 maxFileBytes,
                 maxFiles,
-                maxTotalBytes);
+                maxTotalBytes,
+                true);
     }
 
     public static ReviewPlan planReview(
@@ -216,6 +359,24 @@ public final class MultiDiff {
             long maxFileBytes,
             int maxFiles,
             long maxTotalBytes) {
+        return planReview(
+                files,
+                currentBytes,
+                currentSizes,
+                maxFileBytes,
+                maxFiles,
+                maxTotalBytes,
+                true);
+    }
+
+    public static ReviewPlan planReview(
+            List<FileChange> files,
+            Map<String, byte[]> currentBytes,
+            Map<String, Long> currentSizes,
+            long maxFileBytes,
+            int maxFiles,
+            long maxTotalBytes,
+            boolean supportsModeChange) {
         long fileByteLimit = maxFileBytes > 0
                 ? maxFileBytes : DiffApplyGuard.MAX_REVIEW_FILE_BYTES;
         int fileCountLimit = maxFiles > 0 ? maxFiles : MAX_REVIEW_CHANGESET_FILES;
@@ -225,8 +386,20 @@ public final class MultiDiff {
         List<ReviewSkip> skipped = new ArrayList<ReviewSkip>();
         long totalBytes = 0L;
         for (FileChange file : normalizeMultiDiffFiles(files)) {
-            String original = file.originalText != null ? file.originalText : "";
-            if (original.equals(file.modifiedText)) continue;
+            String issue = operationIssue(file, supportsModeChange);
+            if (issue != null) {
+                skipped.add(new ReviewSkip(
+                        file.path,
+                        "unsupported-operation",
+                        REASON_MODE_CHANGE_UNSUPPORTED.equals(issue)
+                                ? issue
+                                : REASON_UNSUPPORTED_OPERATION + ": " + issue,
+                        file.operation,
+                        0L,
+                        fileByteLimit));
+                continue;
+            }
+            if (isNoOp(file)) continue;
             byte[] disk = file.originalText == null && currentBytes != null
                     ? currentBytes.get(file.path) : null;
             Long diskSize = file.originalText == null && currentSizes != null
@@ -242,6 +415,7 @@ public final class MultiDiff {
                         file.path,
                         payload.kind,
                         payload.reason,
+                        file.operation,
                         payload.bytes,
                         payload.limitBytes));
                 continue;
@@ -252,6 +426,7 @@ public final class MultiDiff {
                         file.path,
                         "changeset-limit",
                         REASON_CHANGESET_LIMIT,
+                        file.operation,
                         payload.bytes,
                         totalByteLimit));
                 continue;

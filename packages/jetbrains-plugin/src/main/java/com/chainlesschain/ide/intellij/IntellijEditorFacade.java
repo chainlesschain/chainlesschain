@@ -35,7 +35,15 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -300,6 +308,8 @@ public final class IntellijEditorFacade implements EditorFacade {
                             deleteReviewedFile(vf);
                         } else if ("rename".equals(diffOperation)) {
                             renameReviewedFile(vf, targetPath, reviewed, left);
+                        } else if ("create".equals(diffOperation)) {
+                            createReviewedFile(path, reviewed);
                         } else {
                             applyToFile(vf, reviewed);
                         }
@@ -416,11 +426,14 @@ public final class IntellijEditorFacade implements EditorFacade {
                             currentSizes,
                             DiffApplyGuard.MAX_REVIEW_FILE_BYTES,
                             MultiDiff.MAX_REVIEW_CHANGESET_FILES,
-                            MultiDiff.MAX_REVIEW_CHANGESET_BYTES);
+                            MultiDiff.MAX_REVIEW_CHANGESET_BYTES,
+                            supportsPosixModeChanges());
             final List<MultiDiff.FileChange> norm = reviewPlan.reviewable;
             final List<String> skippedBinary = skippedPaths(reviewPlan, "binary");
             final List<String> skippedLarge = skippedPaths(
                     reviewPlan, "large-file", "changeset-limit");
+            final List<String> skippedUnsupported =
+                    skippedPaths(reviewPlan, "unsupported-operation");
             if (norm.isEmpty()) {
                 r.put("outcome", "rejected");
                 r.put("written", new ArrayList<String>());
@@ -429,7 +442,7 @@ public final class IntellijEditorFacade implements EditorFacade {
                     r.put("reason", reviewPlan.skipped.get(0).reason);
                     addReviewDegradation(
                             r, all.size(), norm.size(), reviewPlan,
-                            skippedBinary, skippedLarge);
+                            skippedBinary, skippedLarge, skippedUnsupported);
                 }
                 result.set(r);
                 return;
@@ -450,7 +463,12 @@ public final class IntellijEditorFacade implements EditorFacade {
                 }
                 DocumentContent l = factory.create(left == null ? "" : left);
                 DocumentContent rt = factory.create(f.modifiedText == null ? "" : f.modifiedText);
-                requests.add(new SimpleDiffRequest(f.path, l, rt, "Current", "Proposed"));
+                requests.add(new SimpleDiffRequest(
+                        MultiDiff.fileLabel(MultiDiff.fileStat(f)),
+                        l,
+                        rt,
+                        "Current",
+                        "Proposed"));
             }
             SimpleDiffRequestChain chain = new SimpleDiffRequestChain(requests);
             DiffManager.getInstance().showDiff(project, chain, DiffDialogHints.DEFAULT);
@@ -458,7 +476,9 @@ public final class IntellijEditorFacade implements EditorFacade {
             MultiDiff.Summary summary = MultiDiff.changesetSummary(norm);
             int choice = Messages.showYesNoCancelDialog(project,
                     "Apply " + summary.count + " file change(s)?  (+" + summary.totalAdded
-                            + " / -" + summary.totalRemoved + ")"
+                            + " / -" + summary.totalRemoved + "; "
+                            + multiDiffOperationSummary(norm) + ")"
+                            + multiDiffLifecycleSummary(norm)
                             + (reviewPlan.skipped.isEmpty()
                                     ? ""
                                     : "; " + reviewPlan.skipped.size()
@@ -468,6 +488,8 @@ public final class IntellijEditorFacade implements EditorFacade {
 
             List<String> written = new ArrayList<>();
             List<String> skippedConflicts = new ArrayList<>();
+            List<Map<String, Object>> failedOperations = new ArrayList<>();
+            List<Map<String, Object>> appliedOperations = new ArrayList<>();
             String outcome;
             if (choice == Messages.YES) {
                 for (MultiDiff.FileChange f : MultiDiff.selectWrites(norm, null)) {
@@ -475,10 +497,22 @@ public final class IntellijEditorFacade implements EditorFacade {
                         skippedConflicts.add(f.path);
                         continue;
                     }
-                    applyToPath(f.path, f.modifiedText);
-                    written.add(f.path);
+                    try {
+                        written.add(applyMultiDiffChange(
+                                f, baselineByPath.get(f.path)));
+                        appliedOperations.add(multiDiffOperationRecord(f));
+                    } catch (RuntimeException e) {
+                        failedOperations.add(
+                                failedMultiDiffOperation(f, e));
+                    }
                 }
-                outcome = written.isEmpty() && !skippedConflicts.isEmpty() ? "rejected" : "accepted";
+                outcome = written.isEmpty()
+                                && (!skippedConflicts.isEmpty()
+                                        || !failedOperations.isEmpty())
+                        ? "rejected"
+                        : !failedOperations.isEmpty()
+                                ? "partial"
+                                : "accepted";
             } else if (choice == Messages.NO) {
                 Set<String> picked = pickFiles(summary);
                 if (picked.isEmpty()) {
@@ -490,10 +524,18 @@ public final class IntellijEditorFacade implements EditorFacade {
                             skippedConflicts.add(f.path);
                             continue;
                         }
-                        applyToPath(f.path, f.modifiedText);
-                        written.add(f.path);
+                        try {
+                            written.add(applyMultiDiffChange(
+                                    f, baselineByPath.get(f.path)));
+                            appliedOperations.add(multiDiffOperationRecord(f));
+                        } catch (RuntimeException e) {
+                            failedOperations.add(
+                                    failedMultiDiffOperation(f, e));
+                        }
                     }
-                    if (written.isEmpty() && !skippedConflicts.isEmpty()) {
+                    if (written.isEmpty()
+                            && (!skippedConflicts.isEmpty()
+                                    || !failedOperations.isEmpty())) {
                         outcome = "rejected";
                     } else {
                         outcome = written.size() == norm.size() ? "accepted" : "partial";
@@ -505,14 +547,19 @@ public final class IntellijEditorFacade implements EditorFacade {
             r.put("outcome", outcome);
             r.put("written", written);
             r.put("count", written.size());
+            r.put("appliedOperations", appliedOperations);
             if (!skippedConflicts.isEmpty()) {
                 r.put("skippedConflicts", skippedConflicts);
                 if (written.isEmpty()) r.put("reason", DiffApplyGuard.REASON_DISK_DRIFTED);
             }
+            if (!failedOperations.isEmpty()) {
+                r.put("failedOperations", failedOperations);
+                if (written.isEmpty()) r.put("reason", "changeset apply failed");
+            }
             if (reviewPlan.degraded()) {
                 addReviewDegradation(
                         r, all.size(), norm.size(), reviewPlan,
-                        skippedBinary, skippedLarge);
+                        skippedBinary, skippedLarge, skippedUnsupported);
             }
             result.set(r);
         });
@@ -591,13 +638,162 @@ public final class IntellijEditorFacade implements EditorFacade {
     }
 
     private void applyToFile(VirtualFile vf, String text) {
-        if (vf == null) return;
+        if (vf == null) {
+            throw new IllegalStateException("Review target file not found");
+        }
         Document doc = FileDocumentManager.getInstance().getDocument(vf);
-        if (doc == null) return;
+        if (doc == null) {
+            throw new IllegalStateException(
+                    "Review target is not an editable text file: " + vf.getPath());
+        }
         WriteCommandAction.runWriteCommandAction(project, () -> {
             doc.setText(text);
             FileDocumentManager.getInstance().saveDocument(doc);
         });
+    }
+
+    private static boolean supportsPosixModeChanges() {
+        return FileSystems.getDefault()
+                .supportedFileAttributeViews()
+                .contains("posix");
+    }
+
+    private static String multiDiffOperationSummary(
+            List<MultiDiff.FileChange> files) {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (MultiDiff.FileChange file : files) {
+            counts.put(file.operation, counts.getOrDefault(file.operation, 0) + 1);
+        }
+        List<String> parts = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : counts.entrySet()) {
+            parts.add(entry.getKey() + " " + entry.getValue());
+        }
+        return String.join(", ", parts);
+    }
+
+    private static String multiDiffLifecycleSummary(
+            List<MultiDiff.FileChange> files) {
+        List<String> labels = new ArrayList<>();
+        int lifecycleCount = 0;
+        for (MultiDiff.FileChange file : files) {
+            if ("modify".equals(file.operation)) continue;
+            lifecycleCount += 1;
+            if (labels.size() < 6) {
+                labels.add(MultiDiff.fileLabel(MultiDiff.fileStat(file)));
+            }
+        }
+        if (lifecycleCount == 0) return "";
+        String remaining = lifecycleCount > labels.size()
+                ? "; +" + (lifecycleCount - labels.size()) + " more"
+                : "";
+        return "\nLifecycle: " + String.join("; ", labels) + remaining;
+    }
+
+    private static Map<String, Object> multiDiffOperationRecord(
+            MultiDiff.FileChange file) {
+        Map<String, Object> record = new LinkedHashMap<>();
+        record.put("path", file.path);
+        record.put("operation", file.operation);
+        if (file.targetPath != null) record.put("targetPath", file.targetPath);
+        if (file.oldMode != null) record.put("oldMode", file.oldMode);
+        if (file.newMode != null) record.put("newMode", file.newMode);
+        return record;
+    }
+
+    private static Map<String, Object> failedMultiDiffOperation(
+            MultiDiff.FileChange file, Throwable error) {
+        Map<String, Object> record = multiDiffOperationRecord(file);
+        record.put("reason", boundedMessage(error));
+        return record;
+    }
+
+    private String applyMultiDiffChange(
+            MultiDiff.FileChange file, String baselineText) {
+        VirtualFile vf = LocalFileSystem.getInstance().findFileByPath(file.path);
+        if (vf == null) {
+            vf = LocalFileSystem.getInstance().refreshAndFindFileByPath(file.path);
+        }
+        switch (file.operation) {
+            case "delete":
+                deleteReviewedFile(vf);
+                return file.path;
+            case "rename":
+                renameReviewedFile(
+                        vf, file.targetPath, file.modifiedText, baselineText);
+                return file.targetPath;
+            case "create":
+                createReviewedFile(file.path, file.modifiedText);
+                return file.path;
+            case "mode-change":
+                applyModeChange(file.path, file.newMode);
+                return file.path;
+            case "modify":
+                applyToFile(vf, file.modifiedText);
+                return file.path;
+            default:
+                throw new IllegalStateException(
+                        "Unsupported changeset operation: " + file.operation);
+        }
+    }
+
+    private void createReviewedFile(String path, String text) {
+        Path target = Path.of(path);
+        Path parent = target.getParent();
+        if (parent == null || !Files.isDirectory(parent, LinkOption.NOFOLLOW_LINKS)) {
+            throw new IllegalStateException(
+                    "Create target directory not found: " + parent);
+        }
+        if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
+            throw new IllegalStateException("Create target already exists: " + path);
+        }
+        WriteCommandAction.runWriteCommandAction(project, () -> {
+            try {
+                Files.writeString(
+                        target,
+                        text,
+                        StandardCharsets.UTF_8,
+                        StandardOpenOption.CREATE_NEW,
+                        StandardOpenOption.WRITE);
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
+        });
+        LocalFileSystem.getInstance().refreshAndFindFileByPath(path);
+    }
+
+    private static void applyModeChange(String path, Object newMode) {
+        Integer mode = MultiDiff.normalizeFileMode(newMode);
+        if (mode == null) {
+            throw new IllegalStateException("Invalid POSIX file mode: " + newMode);
+        }
+        if (!supportsPosixModeChanges()) {
+            throw new IllegalStateException(MultiDiff.REASON_MODE_CHANGE_UNSUPPORTED);
+        }
+        Path target = Path.of(path);
+        if (!Files.isRegularFile(target, LinkOption.NOFOLLOW_LINKS)) {
+            throw new IllegalStateException(
+                    "Mode change only supports an existing regular file: " + path);
+        }
+        try {
+            Files.setPosixFilePermissions(target, posixPermissions(mode));
+        } catch (IOException | UnsupportedOperationException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private static Set<PosixFilePermission> posixPermissions(int mode) {
+        Set<PosixFilePermission> permissions =
+                EnumSet.noneOf(PosixFilePermission.class);
+        if ((mode & 0400) != 0) permissions.add(PosixFilePermission.OWNER_READ);
+        if ((mode & 0200) != 0) permissions.add(PosixFilePermission.OWNER_WRITE);
+        if ((mode & 0100) != 0) permissions.add(PosixFilePermission.OWNER_EXECUTE);
+        if ((mode & 0040) != 0) permissions.add(PosixFilePermission.GROUP_READ);
+        if ((mode & 0020) != 0) permissions.add(PosixFilePermission.GROUP_WRITE);
+        if ((mode & 0010) != 0) permissions.add(PosixFilePermission.GROUP_EXECUTE);
+        if ((mode & 0004) != 0) permissions.add(PosixFilePermission.OTHERS_READ);
+        if ((mode & 0002) != 0) permissions.add(PosixFilePermission.OTHERS_WRITE);
+        if ((mode & 0001) != 0) permissions.add(PosixFilePermission.OTHERS_EXECUTE);
+        return permissions;
     }
 
     private static String diffReviewPrompt(
@@ -643,13 +839,15 @@ public final class IntellijEditorFacade implements EditorFacade {
             int reviewable,
             MultiDiff.ReviewPlan plan,
             List<String> skippedBinary,
-            List<String> skippedLarge) {
+            List<String> skippedLarge,
+            List<String> skippedUnsupported) {
         List<Map<String, Object>> skipped = new ArrayList<>();
         for (MultiDiff.ReviewSkip item : plan.skipped) {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("path", item.path);
             entry.put("kind", item.kind);
             entry.put("reason", item.reason);
+            entry.put("operation", item.operation);
             entry.put("bytes", item.bytes);
             entry.put("limitBytes", item.limitBytes);
             skipped.add(entry);
@@ -667,10 +865,15 @@ public final class IntellijEditorFacade implements EditorFacade {
         result.put("degradation", degradation);
         if (!skippedBinary.isEmpty()) result.put("skippedBinary", skippedBinary);
         if (!skippedLarge.isEmpty()) result.put("skippedLarge", skippedLarge);
+        if (!skippedUnsupported.isEmpty()) {
+            result.put("skippedUnsupported", skippedUnsupported);
+        }
     }
 
     private void deleteReviewedFile(VirtualFile vf) {
-        if (vf == null || vf.isDirectory()) {
+        if (vf == null
+                || !Files.isRegularFile(
+                        Path.of(vf.getPath()), LinkOption.NOFOLLOW_LINKS)) {
             throw new IllegalStateException("Diff deletion only supports an existing file");
         }
         WriteCommandAction.runWriteCommandAction(project, () -> {
@@ -684,7 +887,9 @@ public final class IntellijEditorFacade implements EditorFacade {
 
     private void renameReviewedFile(
             VirtualFile vf, String targetPath, String reviewedText, String baselineText) {
-        if (vf == null || vf.isDirectory()) {
+        if (vf == null
+                || !Files.isRegularFile(
+                        Path.of(vf.getPath()), LinkOption.NOFOLLOW_LINKS)) {
             throw new IllegalStateException("Diff rename only supports an existing file");
         }
         if (targetPath == null || targetPath.isEmpty()) {

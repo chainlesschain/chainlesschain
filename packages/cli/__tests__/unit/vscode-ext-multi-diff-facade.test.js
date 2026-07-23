@@ -5,13 +5,17 @@
  * exposes the tool only when the facade supports it.
  */
 import { describe, it, expect } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { createVscodeEditorFacade } from "../../../vscode-extension/src/vscode-facade.js";
 import { buildIdeTools } from "../../../vscode-extension/src/ide-tools.js";
 
-function fakeVscode({ choice, picks } = {}) {
+function fakeVscode({ choice, picks, applyEditResult = true } = {}) {
   const writes = [];
   let untitled = 0;
   const changesCalls = [];
+  const messages = [];
   const v = {
     l10n: {
       t: (m, ...a) =>
@@ -44,7 +48,7 @@ function fakeVscode({ choice, picks } = {}) {
           save: async () => {},
         };
       },
-      applyEdit: async () => true,
+      applyEdit: async () => applyEditResult,
     },
     commands: {
       executeCommand: async (cmd, title, resources) => {
@@ -52,7 +56,10 @@ function fakeVscode({ choice, picks } = {}) {
       },
     },
     window: {
-      showInformationMessage: async () => choice,
+      showInformationMessage: async (message) => {
+        messages.push(message);
+        return choice;
+      },
       showQuickPick: async (items) =>
         typeof picks === "function" ? picks(items) : picks,
     },
@@ -63,7 +70,7 @@ function fakeVscode({ choice, picks } = {}) {
     },
     Range: class {},
   };
-  return { vscode: v, writes, changesCalls };
+  return { vscode: v, writes, changesCalls, messages };
 }
 
 const CHANGESET = [
@@ -131,6 +138,153 @@ describe("openMultiDiff facade", () => {
       files: [{ path: "/ws/x", originalText: "a", modifiedText: "a" }],
     });
     expect(res).toMatchObject({ outcome: "rejected", reason: "no changes" });
+    expect(fx.changesCalls).toHaveLength(0);
+  });
+
+  it("applies a mixed create/delete/rename/mode-change batch", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-multi-lifecycle-"));
+    const removed = path.join(dir, "remove.txt");
+    const source = path.join(dir, "old.txt");
+    const target = path.join(dir, "new.txt");
+    const created = path.join(dir, "created.txt");
+    const modeFile = path.join(dir, "run.sh");
+    fs.writeFileSync(removed, "remove");
+    fs.writeFileSync(source, "move");
+    fs.writeFileSync(modeFile, "echo ok");
+    try {
+      const fx = fakeVscode({
+        choice: "Accept all",
+        applyEditResult: false,
+      });
+      const facade = createVscodeEditorFacade(fx.vscode, {
+        platform: "linux",
+      });
+      const res = await facade.openMultiDiff({
+        files: [
+          {
+            path: removed,
+            originalText: "remove",
+            modifiedText: "",
+            operation: "delete",
+          },
+          {
+            path: source,
+            targetPath: target,
+            originalText: "move",
+            modifiedText: "move",
+            operation: "rename",
+          },
+          {
+            path: created,
+            originalText: "",
+            modifiedText: "created",
+            operation: "create",
+          },
+          {
+            path: modeFile,
+            originalText: "echo ok",
+            modifiedText: "echo ok",
+            operation: "mode-change",
+            oldMode: "100644",
+            newMode: "100755",
+          },
+        ],
+      });
+      expect(res).toMatchObject({
+        outcome: "accepted",
+        applied: 4,
+        total: 4,
+        appliedOperations: [
+          { path: removed, operation: "delete" },
+          { path: source, operation: "rename", targetPath: target },
+          { path: created, operation: "create" },
+          {
+            path: modeFile,
+            operation: "mode-change",
+            oldMode: "100644",
+            newMode: "100755",
+          },
+        ],
+      });
+      expect(fs.existsSync(removed)).toBe(false);
+      expect(fs.existsSync(source)).toBe(false);
+      expect(fs.readFileSync(target, "utf8")).toBe("move");
+      expect(fs.readFileSync(created, "utf8")).toBe("created");
+      expect(fx.messages[0]).toContain(`rename → ${target}`);
+      expect(fx.messages[0]).toContain("mode 100644 → 100755");
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("reports a mixed lifecycle apply failure as partial without file content", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-multi-partial-"));
+    const created = path.join(dir, "created.txt");
+    const existing = path.join(dir, "existing.txt");
+    fs.writeFileSync(existing, "keep");
+    try {
+      const fx = fakeVscode({ choice: "Accept all" });
+      const facade = createVscodeEditorFacade(fx.vscode);
+      const res = await facade.openMultiDiff({
+        files: [
+          {
+            path: created,
+            originalText: "",
+            modifiedText: "new",
+            operation: "create",
+          },
+          {
+            path: existing,
+            originalText: "keep",
+            modifiedText: "do not overwrite",
+            operation: "create",
+          },
+        ],
+      });
+      expect(res).toMatchObject({
+        outcome: "partial",
+        applied: 1,
+        appliedOperations: [{ path: created, operation: "create" }],
+        failedOperations: [{ path: existing, operation: "create" }],
+      });
+      expect(JSON.stringify(res.failedOperations)).not.toContain(
+        "do not overwrite",
+      );
+      expect(fs.readFileSync(created, "utf8")).toBe("new");
+      expect(fs.readFileSync(existing, "utf8")).toBe("keep");
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("reports mode changes as unsupported on Windows without prompting", async () => {
+    const fx = fakeVscode({ choice: "Accept all" });
+    const facade = createVscodeEditorFacade(fx.vscode, { platform: "win32" });
+    const res = await facade.openMultiDiff({
+      files: [
+        {
+          path: "/ws/run.sh",
+          originalText: "echo ok",
+          modifiedText: "echo ok",
+          operation: "mode-change",
+          oldMode: "100644",
+          newMode: "100755",
+        },
+      ],
+    });
+    expect(res).toMatchObject({
+      outcome: "rejected",
+      degraded: true,
+      skippedUnsupported: ["/ws/run.sh"],
+      degradation: {
+        skipped: [
+          {
+            path: "/ws/run.sh",
+            kind: "unsupported-operation",
+          },
+        ],
+      },
+    });
     expect(fx.changesCalls).toHaveLength(0);
   });
 });
@@ -301,6 +455,10 @@ describe("buildIdeTools exposes openMultiDiff conditionally", () => {
       openMultiDiff: () => ({}),
     });
     expect(withIt.map((t) => t.name)).toContain("openMultiDiff");
+    const multi = withIt.find((t) => t.name === "openMultiDiff");
+    expect(
+      multi.inputSchema.properties.files.items.properties.operation.enum,
+    ).toEqual(["modify", "create", "delete", "rename", "mode-change"]);
 
     const without = buildIdeTools({
       getSelection: () => null,
