@@ -33,14 +33,14 @@ class IdeDoctorTest {
                         RuntimeCompatibility.MIN_CLI_VERSION,
                         51234,
                         null),
-                "0.4.68",
+                "0.4.69",
                 "2024.3");
         assertTrue(up.contains("running on 127.0.0.1:51234"));
         assertTrue(up.contains("connect intellij:51234"));
         assertTrue(up.contains("reason: workspace-match"));
         assertTrue(up.contains("endpoint injected: yes"));
         assertTrue(up.contains("READY (可运行)"));
-        assertTrue(up.contains("Plugin: 0.4.68"));
+        assertTrue(up.contains("Plugin: 0.4.69"));
         assertTrue(up.contains("CLI: 0.162.176"));
     }
 
@@ -53,7 +53,7 @@ class IdeDoctorTest {
                         RuntimeCompatibility.MIN_CLI_VERSION,
                         -1,
                         null),
-                "0.4.68",
+                "0.4.69",
                 "2024.3");
         assertTrue(down.contains("STOPPED"));
         assertTrue(down.contains("Restart Bridge"));

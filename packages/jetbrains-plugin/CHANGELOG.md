@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.69] - Context v2 and review safety (2026-07-23)
+
+- Added versioned core, semantic PSI-symbol, and diff-review context metadata
+  so the CLI can negotiate host capabilities without guessing.
+- Expanded native review safety for mixed/file-lifecycle changes, bounded diff
+  payloads, correlation and audit records, structured plan feedback and
+  drafts, and approved-plan execution locking.
+- Added de-identified diagnostic export, runtime compatibility reporting, and
+  schema-driven MCP elicitation forms.
+
 ## [0.4.68] - Security and runtime diagnostics (2026-07-22)
 
 - Hardened IDE bridge lockfile publication and ACL verification.
@@ -32,7 +42,6 @@
 
 - **Updated the Volcengine/Doubao default text model** to doubao-seed-evolving.
 
-
 ## [0.4.62] — Marketplace verifier clean: internal/deprecated API usages cleared (2026-07-18)
 
 - **No more internal-API usage.** The Remote Control host's JVM-exit tree-kill
@@ -43,7 +52,7 @@
 - **No more deprecated-API usage.** (1) The doctor's save-firewall-script
   dialog constructed `FileSaverDescriptor` via the varargs constructor 2026.x
   deprecates; it now prefers the blessed exact `(title, description,
-  extension)` constructor (2024.3+) with a reflective fallback to varargs on
+extension)` constructor (2024.3+) with a reflective fallback to varargs on
   the 242 floor. (2) The two integrated-terminal launch sites (doctor fixes,
   worktree tasks) now share one `TerminalLauncher` that resolves the
   tab-creation entry point reflectively — same `createShellWidget` call at
@@ -188,9 +197,9 @@
   of attributed tokens, cache-read ratio < 0.25 above 10k input (and only
   when the provider reports cache fields), average input per LLM call
   > 50k. With an old CLI (no attribution section) the report stays
-  byte-identical to the previous renderer — snapshot-locked in
-  `UsageReportTest`. Hostile skill/tool names (newlines, 60+ chars) are
-  collapsed/capped to keep one row per line.
+  > byte-identical to the previous renderer — snapshot-locked in
+  > `UsageReportTest`. Hostile skill/tool names (newlines, 60+ chars) are
+  > collapsed/capped to keep one row per line.
 - **GUI smoke gate skeleton (gap #8, nightly-only).** First automated GUI
   verification foundation: an isolated `src/uiTest/java` source set with a
   Remote Robot smoke test (launch sandbox IDE → wait for the main frame →
@@ -234,7 +243,7 @@
   manifest types (skills/agents/hooks/mcp/lsp/monitors/bin/settings, from
   `cc plugin validate <dir> --json`) plus flags — `broken` (validate errors /
   invalid manifest), the LSP verdict from the live `cc code-intel status
-  --json` probe (`ok`/`unavailable`, and honestly `unknown` when the probe
+--json` probe (`ok`/`unavailable`, and honestly `unknown` when the probe
   can't vouch for the plugin's OWN server — untrusted plugins are never
   judged by someone else's row) and `unused` (contributes nothing; an
   LSP-only plugin is deliberately NOT unused). There is no fabricated `slow`
@@ -246,7 +255,7 @@
 - **Remote / WSL Doctor one-click fixes (gap #12).** The Diagnose Bridge
   report now offers a fix row (only when something is actionable): "Apply
   safe fixes" runs the strictly-allowlisted `npm install -g
-  chainlesschain[@latest]` in a VISIBLE integrated terminal and restarts the
+chainlesschain[@latest]` in a VISIBLE integrated terminal and restarts the
   bridge via the existing IdeBridgeService path — after ONE confirmation
   listing exactly what runs; tampered fix text NEVER executes (degrades to
   copy-only). "Save firewall fix script (.ps1)" generates a complete,
@@ -263,7 +272,7 @@
   smoke, SDK-free, injection fixtures); en+zh localized glue.
 - **Artifacts drawer (gap #9).** New Tools → "ChainlessChain: Artifacts"
   dialog browses the agent-published deliverable store (`cc artifacts list
-  --json` — reports/patches/screenshots/logs published by the
+--json` — reports/patches/screenshots/logs published by the
   `publish_artifact` tool): searchable, kind-filterable metadata table
   (title/kind/human size/MIME/relative created — payload bytes are never read
   for listing), with per-row actions derived from previewability: Open puts
@@ -282,8 +291,8 @@
   with count/mode/relative time (`cc permissions recent --json`), the
   auto-mode risk→decision matrix plus fine-grained `autoMode.decisions`
   rules and customized/defaults classifier state (`cc auto-mode config
-  --json`), and the built-in decision precedence chain (`cc auto-mode
-  defaults`). A summary counts line tops the view; a Refresh button
+--json`), and the built-in decision precedence chain (`cc auto-mode
+defaults`). A summary counts line tops the view; a Refresh button
   re-gathers in place; a failed or malformed source degrades to a warning
   entry while the other sections still render. All parsing/shaping/rendering
   lives in the pure `PolicyViewer` core (JUnit + smoke, SDK-free); en+zh

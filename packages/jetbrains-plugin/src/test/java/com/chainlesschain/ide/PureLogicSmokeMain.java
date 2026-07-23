@@ -1136,7 +1136,7 @@ public final class PureLogicSmokeMain {
                         RuntimeCompatibility.MIN_CLI_VERSION,
                         51234,
                         null),
-                "0.4.68",
+                "0.4.69",
                 "2024.3");
         check(up.contains("running on 127.0.0.1:51234"), "port shown when up");
         check(up.contains("connect intellij:51234"), "status passthrough");
@@ -1150,7 +1150,7 @@ public final class PureLogicSmokeMain {
                         RuntimeCompatibility.MIN_CLI_VERSION,
                         -1,
                         null),
-                "0.4.68",
+                "0.4.69",
                 "2024.3");
         check(down.contains("STOPPED"), "stopped when port <= 0");
         check(down.contains("Restart Bridge"), "recovery action named");
