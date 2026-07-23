@@ -3,6 +3,7 @@ package com.chainlesschain.ide.intellij;
 import com.chainlesschain.ide.DiffApplyGuard;
 import com.chainlesschain.ide.DiffHunks;
 import com.chainlesschain.ide.EditorFacade;
+import com.chainlesschain.ide.IdeContextV2;
 import com.chainlesschain.ide.MultiDiff;
 import com.chainlesschain.ide.ReviewNote;
 import com.intellij.diff.DiffContentFactory;
@@ -64,6 +65,57 @@ public final class IntellijEditorFacade implements EditorFacade {
 
     public IntellijEditorFacade(Project project) {
         this.project = project;
+    }
+
+    @Override
+    public Map<String, Object> getContextMetadata(
+            String file, String tool) {
+        return ApplicationManager.getApplication().runReadAction(
+                (com.intellij.openapi.util.Computable<Map<String, Object>>) () -> {
+                    VirtualFile vf = null;
+                    Document doc = null;
+                    if (file != null && !file.isEmpty()) {
+                        for (VirtualFile open :
+                                FileEditorManager.getInstance(project).getOpenFiles()) {
+                            if (samePath(file, open.getPath())) {
+                                vf = open;
+                                break;
+                            }
+                        }
+                        if (vf == null) {
+                            vf = LocalFileSystem.getInstance().findFileByPath(
+                                    file.replace('\\', '/'));
+                        }
+                        if (vf != null) {
+                            doc = FileDocumentManager.getInstance().getDocument(vf);
+                        }
+                    } else if ("getSelection".equals(tool)
+                            || "getActiveFile".equals(tool)) {
+                        Editor active = FileEditorManager.getInstance(project)
+                                .getSelectedTextEditor();
+                        if (active != null) {
+                            doc = active.getDocument();
+                            vf = FileDocumentManager.getInstance().getFile(doc);
+                        }
+                    }
+                    String base = project.getBasePath();
+                    List<String> roots = base == null
+                            ? java.util.Collections.<String>emptyList()
+                            : java.util.Collections.singletonList(base);
+                    return IdeContextV2.build(
+                            roots,
+                            vf == null ? null : vf.getUrl(),
+                            doc == null ? null : Long.valueOf(
+                                    doc.getModificationStamp()),
+                            vf == null || doc == null
+                                    ? null
+                                    : Boolean.valueOf(
+                                            FileDocumentManager.getInstance()
+                                                    .isFileModified(vf)),
+                            "jetbrains-project-policy",
+                            doc == null ? "live-host" : "live-buffer",
+                            System.currentTimeMillis());
+                });
     }
 
     /** VirtualFile.getPath() is always forward-slashed; the agent sends OS-native
@@ -177,6 +229,12 @@ public final class IntellijEditorFacade implements EditorFacade {
                     int line = doc.getLineNumber(info.getStartOffset());
                     Map<String, Object> d = new LinkedHashMap<>();
                     d.put("file", vf.getPath());
+                    d.put("documentUri", vf.getUrl());
+                    d.put("documentVersion",
+                            Long.valueOf(doc.getModificationStamp()));
+                    d.put("isDirty", Boolean.valueOf(
+                            FileDocumentManager.getInstance()
+                                    .isFileModified(vf)));
                     d.put("severity", String.valueOf(info.getSeverity()).toLowerCase());
                     d.put("message", info.getDescription());
                     d.put("line", (long) line);
@@ -199,6 +257,12 @@ public final class IntellijEditorFacade implements EditorFacade {
             for (VirtualFile vf : fem.getOpenFiles()) {
                 Map<String, Object> e = new LinkedHashMap<>();
                 e.put("file", vf.getPath());
+                e.put("documentUri", vf.getUrl());
+                Document doc =
+                        FileDocumentManager.getInstance().getDocument(vf);
+                e.put("documentVersion", doc == null
+                        ? null
+                        : Long.valueOf(doc.getModificationStamp()));
                 e.put("active", vf.equals(activeFile));
                 e.put("languageId", vf.getFileType().getName());
                 // Unsaved-buffer flag so the agent knows the on-disk copy is

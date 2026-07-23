@@ -11,11 +11,19 @@ const {
   MAX_REVIEW_FILE_BYTES,
   REASON_DISK_DRIFTED,
 } = require("./diff-apply-guard");
+const { buildIdeContextV2 } = require("./ide-context-v2");
 
 const SEVERITY = ["error", "warning", "information", "hint"];
 
+function uriText(uri) {
+  if (!uri || typeof uri.toString !== "function") return null;
+  const value = String(uri.toString());
+  return value && value !== "[object Object]" ? value : null;
+}
+
 function createVscodeEditorFacade(vscode, opts = {}) {
   const hostPlatform = opts.platform || process.platform;
+  const now = typeof opts.now === "function" ? opts.now : () => Date.now();
   // Optional provider for the App Preview controller (created lazily by the
   // preview.start command) — getPreviewState reads through it so the tool
   // reports "not running" before the first start instead of being absent.
@@ -125,6 +133,41 @@ function createVscodeEditorFacade(vscode, opts = {}) {
   };
 
   return {
+    async getContextMetadata({ file, tool } = {}) {
+      const documents = vscode.workspace.textDocuments || [];
+      const activeDocument = vscode.window.activeTextEditor?.document || null;
+      const document = file
+        ? documents.find((doc) => doc?.uri?.fsPath === file) || null
+        : tool === "getSelection" || tool === "getActiveFile"
+          ? activeDocument
+          : null;
+      const uri =
+        document?.uri ||
+        (file && vscode.Uri && typeof vscode.Uri.file === "function"
+          ? vscode.Uri.file(file)
+          : null);
+      return buildIdeContextV2({
+        workspaceRoots: (vscode.workspace.workspaceFolders || [])
+          .map((folder) => folder?.uri?.fsPath)
+          .filter(Boolean),
+        documentUri:
+          uriText(uri),
+        documentVersion:
+          document && Number.isFinite(Number(document.version))
+            ? Number(document.version)
+            : null,
+        isDirty: document ? Boolean(document.isDirty) : null,
+        permissionSource:
+          vscode.workspace.isTrusted === false
+            ? "workspace-trust:restricted"
+            : vscode.workspace.isTrusted === true
+              ? "workspace-trust:trusted"
+              : "workspace-trust:unknown",
+        freshnessState: document ? "live-buffer" : "live-host",
+        capturedAtMs: now(),
+      });
+    },
+
     async getSelection() {
       const ed = vscode.window.activeTextEditor;
       if (!ed) return null;
@@ -157,9 +200,18 @@ function createVscodeEditorFacade(vscode, opts = {}) {
       for (const [uri, diags] of vscode.languages.getDiagnostics()) {
         const fsPath = uri.fsPath;
         if (path && fsPath !== path) continue;
+        const document = (vscode.workspace.textDocuments || []).find(
+          (doc) => doc?.uri?.toString() === uri?.toString(),
+        );
         for (const d of diags) {
           out.push({
             file: fsPath,
+            documentUri: uriText(uri),
+            documentVersion:
+              document && Number.isFinite(Number(document.version))
+                ? Number(document.version)
+                : null,
+            isDirty: document ? Boolean(document.isDirty) : null,
             severity: SEVERITY[d.severity] ?? String(d.severity),
             message: d.message,
             line: d.range?.start?.line,
@@ -181,6 +233,11 @@ function createVscodeEditorFacade(vscode, opts = {}) {
         seen.add(f);
         out.push({
           file: f,
+          documentUri: uriText(uri),
+          documentVersion:
+            doc && Number.isFinite(Number(doc.version))
+              ? Number(doc.version)
+              : null,
           active: f === active,
           languageId: doc ? doc.languageId : undefined,
           // Unsaved-buffer flag so the agent knows the on-disk copy is stale

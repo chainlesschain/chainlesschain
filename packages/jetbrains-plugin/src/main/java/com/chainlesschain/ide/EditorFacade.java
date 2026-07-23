@@ -11,6 +11,15 @@ import java.util.Map;
  */
 public interface EditorFacade {
 
+    /**
+     * Optional additive {@code cc-ide-context/v2} metadata for a read result.
+     * Legacy/fake facades return null and preserve their historical payload.
+     */
+    default Map<String, Object> getContextMetadata(
+            String file, String tool) {
+        return null;
+    }
+
     /** { file, languageId, selection:{start,end}, text } or null when no editor. */
     Map<String, Object> getSelection();
 

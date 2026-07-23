@@ -1,0 +1,98 @@
+[
+  {
+    "name": "live dirty document in sorted Windows roots",
+    "input": {
+      "workspaceRoots": ["C:\\repo\\lib", "C:\\repo\\app\\"],
+      "documentUri": "file:///C:/repo/app/src/a.ts",
+      "documentVersion": 7,
+      "isDirty": true,
+      "permissionSource": "workspace-trust:trusted",
+      "freshnessState": "live-buffer",
+      "capturedAtMs": 0
+    },
+    "expected": {
+      "schema": "cc-ide-context/v2",
+      "workspaceId": "ws-c206a8c607b55e19",
+      "documentUri": "file:///C:/repo/app/src/a.ts",
+      "documentVersion": 7,
+      "isDirty": true,
+      "permissionSource": "workspace-trust:trusted",
+      "freshness": {
+        "state": "live-buffer",
+        "capturedAt": "1970-01-01T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "name": "workspace-level capture without a document",
+    "input": {
+      "workspaceRoots": ["/workspace/"],
+      "documentUri": null,
+      "documentVersion": null,
+      "isDirty": null,
+      "permissionSource": "jetbrains-project-policy",
+      "freshnessState": "live-host",
+      "capturedAtMs": 1
+    },
+    "expected": {
+      "schema": "cc-ide-context/v2",
+      "workspaceId": "ws-c52ddf65534b7b46",
+      "documentUri": null,
+      "documentVersion": null,
+      "isDirty": null,
+      "permissionSource": "jetbrains-project-policy",
+      "freshness": {
+        "state": "live-host",
+        "capturedAt": "1970-01-01T00:00:00.001Z"
+      }
+    }
+  },
+  {
+    "name": "no workspace is explicit and content free",
+    "input": {
+      "workspaceRoots": [],
+      "documentUri": null,
+      "documentVersion": null,
+      "isDirty": false,
+      "permissionSource": "",
+      "freshnessState": "",
+      "capturedAtMs": 1000
+    },
+    "expected": {
+      "schema": "cc-ide-context/v2",
+      "workspaceId": null,
+      "documentUri": null,
+      "documentVersion": null,
+      "isDirty": false,
+      "permissionSource": "host-policy",
+      "freshness": {
+        "state": "live-host",
+        "capturedAt": "1970-01-01T00:00:01.000Z"
+      }
+    }
+  },
+  {
+    "name": "filesystem root remains a real workspace",
+    "input": {
+      "workspaceRoots": ["/", "/"],
+      "documentUri": "file:///a.txt",
+      "documentVersion": 1,
+      "isDirty": false,
+      "permissionSource": "host-policy",
+      "freshnessState": "live-buffer",
+      "capturedAtMs": 2000
+    },
+    "expected": {
+      "schema": "cc-ide-context/v2",
+      "workspaceId": "ws-8a5edab282632443",
+      "documentUri": "file:///a.txt",
+      "documentVersion": 1,
+      "isDirty": false,
+      "permissionSource": "host-policy",
+      "freshness": {
+        "state": "live-buffer",
+        "capturedAt": "1970-01-01T00:00:02.000Z"
+      }
+    }
+  }
+]

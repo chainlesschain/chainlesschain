@@ -66,6 +66,7 @@ public final class PureLogicSmokeMain {
         projectMemory();
         whatsNew();
         ideDoctor();
+        ideContextV2();
         teamMonitor();
         backgroundAgents();
         activityLog();
@@ -1157,6 +1158,27 @@ public final class PureLogicSmokeMain {
                 "single repair verdict");
         int placeholders = down.split("no output — is the cc CLI installed", -1).length - 1;
         eq(placeholders, 3, "3 empty sections -> 3 visible placeholders");
+    }
+
+    private static void ideContextV2() {
+        System.out.println("IdeContextV2 (versioned context metadata)");
+        Map<String, Object> context = IdeContextV2.build(
+                java.util.Arrays.asList(
+                        "C:\\repo\\lib", "C:\\repo\\app\\"),
+                "file:///C:/repo/app/src/a.ts",
+                Long.valueOf(7),
+                Boolean.TRUE,
+                "workspace-trust:trusted",
+                "live-buffer",
+                0);
+        eq(context.get("schema"), "cc-ide-context/v2", "context schema");
+        eq(context.get("workspaceId"), "ws-c206a8c607b55e19",
+                "workspace digest");
+        check(!String.valueOf(context.get("workspaceId")).contains("repo"),
+                "workspace path not exposed");
+        Map<?, ?> freshness = (Map<?, ?>) context.get("freshness");
+        eq(freshness.get("capturedAt"),
+                "1970-01-01T00:00:00.000Z", "capture timestamp");
     }
 
     private static void backgroundAgents() {

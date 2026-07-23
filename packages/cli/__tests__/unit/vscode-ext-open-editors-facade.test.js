@@ -44,12 +44,16 @@ describe("facade getOpenEditors: unsaved-buffer (isDirty) flag", () => {
     expect(eds).toEqual([
       {
         file: "/ws/a.js",
+        documentUri: "file:///ws/a.js",
+        documentVersion: null,
         active: true,
         languageId: "javascript",
         isDirty: true,
       },
       {
         file: "/ws/b.ts",
+        documentUri: "file:///ws/b.ts",
+        documentVersion: null,
         active: false,
         languageId: "typescript",
         isDirty: false,

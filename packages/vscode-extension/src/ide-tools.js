@@ -83,6 +83,28 @@ async function resolveWorkspaceFolders(editor, options) {
 }
 
 function buildIdeTools(editor, options = {}) {
+  async function withContext(payload, file, tool) {
+    if (
+      !payload ||
+      typeof payload !== "object" ||
+      Array.isArray(payload) ||
+      typeof editor.getContextMetadata !== "function"
+    ) {
+      return payload;
+    }
+    let context;
+    try {
+      context = await editor.getContextMetadata({ file, tool });
+    } catch {
+      // Metadata is additive. A host probe failure must not erase the context
+      // payload that older clients already understand.
+      return payload;
+    }
+    return context && typeof context === "object"
+      ? { ...payload, context }
+      : payload;
+  }
+
   /**
    * Enforce the workspace path boundary for a tool-supplied path. Returns the
    * resolved path to forward to the facade; throws an Error (which the MCP
@@ -113,7 +135,7 @@ function buildIdeTools(editor, options = {}) {
       inputSchema: { type: "object", properties: {} },
       handler: async () => {
         const sel = await editor.getSelection();
-        return sel || null;
+        return sel ? withContext(sel, sel.file, "getSelection") : null;
       },
     },
     {
@@ -125,15 +147,22 @@ function buildIdeTools(editor, options = {}) {
       inputSchema: { type: "object", properties: {} },
       handler: async () => {
         if (typeof editor.getActiveFile === "function") {
-          return (await editor.getActiveFile()) || null;
+          const active = await editor.getActiveFile();
+          return active
+            ? withContext(active, active.file, "getActiveFile")
+            : null;
         }
         const sel = await editor.getSelection();
         if (!sel) return null;
-        return {
-          file: sel.file || null,
-          languageId: sel.languageId,
-          cursor: sel.selection?.start || null,
-        };
+        return withContext(
+          {
+            file: sel.file || null,
+            languageId: sel.languageId,
+            cursor: sel.selection?.start || null,
+          },
+          sel.file,
+          "getActiveFile",
+        );
       },
     },
     {
@@ -157,7 +186,11 @@ function buildIdeTools(editor, options = {}) {
           scopePath = await guardToolPath(scopePath, "read", "getDiagnostics");
         }
         const diags = await editor.getDiagnostics({ path: scopePath });
-        return { diagnostics: Array.isArray(diags) ? diags : [] };
+        return withContext(
+          { diagnostics: Array.isArray(diags) ? diags : [] },
+          scopePath,
+          "getDiagnostics",
+        );
       },
     },
     {
@@ -169,7 +202,11 @@ function buildIdeTools(editor, options = {}) {
       inputSchema: { type: "object", properties: {} },
       handler: async () => {
         const eds = await editor.getOpenEditors();
-        return { editors: Array.isArray(eds) ? eds : [] };
+        return withContext(
+          { editors: Array.isArray(eds) ? eds : [] },
+          null,
+          "getOpenEditors",
+        );
       },
     },
     {

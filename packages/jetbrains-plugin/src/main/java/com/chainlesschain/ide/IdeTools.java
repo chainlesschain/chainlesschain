@@ -51,7 +51,9 @@ public final class IdeTools {
                 emptyObjectSchema()) {
             @Override public Object call(Map<String, Object> args) {
                 Map<String, Object> sel = editor.getSelection();
-                return sel; // may be null
+                return sel == null ? null : withContext(
+                        editor, sel, stringValue(sel.get("file")),
+                        "getSelection");
             }
         });
 
@@ -61,7 +63,10 @@ public final class IdeTools {
                         + "cursor position without including selected text.",
                 emptyObjectSchema()) {
             @Override public Object call(Map<String, Object> args) {
-                return editor.getActiveFile();
+                Map<String, Object> active = editor.getActiveFile();
+                return active == null ? null : withContext(
+                        editor, active, stringValue(active.get("file")),
+                        "getActiveFile");
             }
         });
 
@@ -83,7 +88,8 @@ public final class IdeTools {
                 List<Map<String, Object>> diags = editor.getDiagnostics(path);
                 Map<String, Object> out = new LinkedHashMap<>();
                 out.put("diagnostics", diags == null ? new ArrayList<>() : diags);
-                return out;
+                return withContext(
+                        editor, out, path, "getDiagnostics");
             }
         });
 
@@ -95,7 +101,8 @@ public final class IdeTools {
                 List<Map<String, Object>> eds = editor.getOpenEditors();
                 Map<String, Object> out = new LinkedHashMap<>();
                 out.put("editors", eds == null ? new ArrayList<>() : eds);
-                return out;
+                return withContext(
+                        editor, out, null, "getOpenEditors");
             }
         });
 
@@ -328,6 +335,28 @@ public final class IdeTools {
         }
 
         return tools;
+    }
+
+    private static String stringValue(Object value) {
+        return value instanceof String ? (String) value : null;
+    }
+
+    private static Map<String, Object> withContext(
+            EditorFacade editor,
+            Map<String, Object> payload,
+            String file,
+            String tool) {
+        Map<String, Object> context;
+        try {
+            context = editor.getContextMetadata(file, tool);
+        } catch (RuntimeException unavailable) {
+            return payload;
+        }
+        if (context == null) return payload;
+        Map<String, Object> out =
+                new LinkedHashMap<String, Object>(payload);
+        out.put("context", context);
+        return out;
     }
 
     private static Map<String, Object> schemaWithOptionalLimit() {
