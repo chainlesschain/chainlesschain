@@ -372,7 +372,7 @@ describe("lockfile — Windows ACL tightening", () => {
     vi.restoreAllMocks();
   });
 
-  it("win32: tightens dir + file with /inheritance:r then current-user-only grant", () => {
+  it("win32: replaces dir + file DACLs with one current-SID rule", () => {
     lockfile._deps.platform = () => "win32";
     lockfile._deps.env = () => ({ USERNAME: "John Doe" });
     const calls = [];
@@ -388,6 +388,13 @@ describe("lockfile — Windows ACL tightening", () => {
     expect(calls.every(([cmd]) => cmd === "powershell.exe")).toBe(true);
     expect(
       calls.every(([, args]) => !String(args[6] || "").includes("Get-Acl")),
+    ).toBe(true);
+    expect(
+      calls
+        .filter(([, args]) => !String(args[6] || "").includes("ownerOnly"))
+        .every(([, args]) =>
+          String(args[6] || "").includes("SetAccessControl"),
+        ),
     ).toBe(true);
     expect(
       calls
@@ -449,6 +456,8 @@ describe("lockfile — Windows ACL tightening", () => {
       stdio: ["pipe", "pipe", "pipe"],
     });
     expect(calls[0].args.join(" ")).toContain("/setowner");
+    expect(calls[0].args.join(" ")).toContain("SetAccessControl");
+    expect(calls[0].args.join(" ")).not.toContain("/grant:r");
     expect(calls[0].args.join(" ")).not.toContain("Get-Acl");
     expect(calls[0].args.join(" ")).not.toContain(token);
     expect(JSON.parse(fs.readFileSync(file, "utf8"))).toMatchObject({
@@ -458,6 +467,34 @@ describe("lockfile — Windows ACL tightening", () => {
     expect(payload.file).toBe(file);
     expect(payload.tmp).toContain(".tmp-");
   });
+
+  it.runIf(process.platform === "win32")(
+    "win32 real process: replaces inherited ACEs and verifies the published file",
+    async () => {
+      lockfile._deps.platform = () => "win32";
+      lockfile._deps.spawn = saved.spawn;
+      lockfile._deps.spawnSync = saved.spawnSync;
+      const token = lockfile.generateToken();
+
+      const file = await lockfile.writeLockAsync({
+        port: 4329,
+        token,
+        workspaceFolders: ["C:\\work\\repo"],
+      });
+      const actual = lockfile._inspectWindowsAcl(file);
+
+      expect(actual).toMatchObject({
+        ownerOnly: true,
+        protected: true,
+        aceCount: 1,
+      });
+      expect(actual.ownerSid).toBe(actual.currentSid);
+      expect(JSON.parse(fs.readFileSync(file, "utf8"))).toMatchObject({
+        port: 4329,
+        token,
+      });
+    },
+  );
 
   it("win32 async: publisher failure is fail-closed and removes discovery files", async () => {
     lockfile._deps.platform = () => "win32";

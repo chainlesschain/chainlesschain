@@ -129,32 +129,66 @@ function Read-OwnerAccessAcl([string]$target) {
 }
 `;
 
+// Build the DACL from an empty security descriptor instead of incrementally
+// editing the inherited ACL. `icacls /grant:r` only replaces ACEs for the
+// named account and can leave unrelated explicit runner/service ACEs behind.
+const WINDOWS_SET_OWNER_ONLY_ACL_FUNCTION = String.raw`
+${WINDOWS_READ_ACL_FUNCTION}
+function Set-ExactOwnerOnlyAcl([string]$target) {
+  $item = Get-Item -LiteralPath $target -Force
+  $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+  $currentSid = $identity.User
+  $currentAcl = Read-OwnerAccessAcl $target
+  $currentOwner = $currentAcl.GetOwner(
+    [System.Security.Principal.SecurityIdentifier]
+  ).Value
+  if ($currentOwner -ne $currentSid.Value) {
+    & icacls.exe $target /setowner $identity.Name | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+      throw "icacls /setowner exited with status $LASTEXITCODE for $target"
+    }
+  }
+
+  $rights = [System.Security.AccessControl.FileSystemRights]::FullControl
+  $propagation = [System.Security.AccessControl.PropagationFlags]::None
+  $allow = [System.Security.AccessControl.AccessControlType]::Allow
+
+  if ($item.PSIsContainer) {
+    $security = [System.Security.AccessControl.DirectorySecurity]::new()
+    $inheritance =
+      [System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor
+      [System.Security.AccessControl.InheritanceFlags]::ObjectInherit
+    $rule = [System.Security.AccessControl.FileSystemAccessRule]::new(
+      $currentSid,
+      $rights,
+      $inheritance,
+      $propagation,
+      $allow
+    )
+    $security.SetAccessRuleProtection($true, $false)
+    $security.AddAccessRule($rule) | Out-Null
+    [System.IO.DirectoryInfo]::new($target).SetAccessControl($security)
+  } else {
+    $security = [System.Security.AccessControl.FileSecurity]::new()
+    $rule = [System.Security.AccessControl.FileSystemAccessRule]::new(
+      $currentSid,
+      $rights,
+      [System.Security.AccessControl.InheritanceFlags]::None,
+      $propagation,
+      $allow
+    )
+    $security.SetAccessRuleProtection($true, $false)
+    $security.AddAccessRule($rule) | Out-Null
+    [System.IO.FileInfo]::new($target).SetAccessControl($security)
+  }
+}
+`;
+
 const WINDOWS_APPLY_ACL_SCRIPT = String.raw`
 param([string]$target)
 $ErrorActionPreference = 'Stop'
-${WINDOWS_READ_ACL_FUNCTION}
-$item = Get-Item -LiteralPath $target -Force
-$identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
-$account = $identity.Name
-$currentSid = $identity.User.Value
-$grant = $account + ":F"
-if ($item.PSIsContainer) {
-  $grant = $account + ":(OI)(CI)F"
-}
-$currentAcl = Read-OwnerAccessAcl $target
-$currentOwner = $currentAcl.GetOwner(
-  [System.Security.Principal.SecurityIdentifier]
-).Value
-if ($currentOwner -ne $currentSid) {
-  & icacls $target /setowner $account | Out-Null
-  if ($LASTEXITCODE -ne 0) {
-    throw "icacls /setowner exited with status $LASTEXITCODE"
-  }
-}
-& icacls $target /inheritance:r /grant:r $grant | Out-Null
-if ($LASTEXITCODE -ne 0) {
-  throw "icacls exited with status $LASTEXITCODE"
-}
+${WINDOWS_SET_OWNER_ONLY_ACL_FUNCTION}
+Set-ExactOwnerOnlyAcl $target
 `;
 
 const WINDOWS_INSPECT_ACL_SCRIPT = String.raw`
@@ -208,33 +242,12 @@ if (-not $ownerOnly) { exit 4 }
 // through stdin (base64 inside JSON), never as a command-line argument.
 const WINDOWS_PUBLISH_LOCK_SCRIPT = String.raw`
 $ErrorActionPreference = 'Stop'
-${WINDOWS_READ_ACL_FUNCTION}
+${WINDOWS_SET_OWNER_ONLY_ACL_FUNCTION}
 
 function Set-And-VerifyOwnerOnlyAcl([string]$target) {
-  $item = Get-Item -LiteralPath $target -Force
-  $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
-  $account = $identity.Name
-  $currentSid = $identity.User.Value
-  $grant = $account + ":F"
-  if ($item.PSIsContainer) {
-    $grant = $account + ":(OI)(CI)F"
-  }
+  Set-ExactOwnerOnlyAcl $target
 
-  $currentAcl = Read-OwnerAccessAcl $target
-  $currentOwner = $currentAcl.GetOwner(
-    [System.Security.Principal.SecurityIdentifier]
-  ).Value
-  if ($currentOwner -ne $currentSid) {
-    & icacls.exe $target /setowner $account | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-      throw "icacls /setowner exited with status $LASTEXITCODE for $target"
-    }
-  }
-  & icacls.exe $target /inheritance:r /grant:r $grant | Out-Null
-  if ($LASTEXITCODE -ne 0) {
-    throw "icacls exited with status $LASTEXITCODE for $target"
-  }
-
+  $currentSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
   $acl = Read-OwnerAccessAcl $target
   $owner = $acl.GetOwner(
     [System.Security.Principal.SecurityIdentifier]
@@ -265,7 +278,21 @@ function Set-And-VerifyOwnerOnlyAcl([string]$target) {
     }
   }
   if (-not $ownerOnly) {
-    throw "final Windows ACL is not owner-only for $target"
+    $ruleSummary = @()
+    foreach ($rule in $rules) {
+      $ruleSummary += (
+        $rule.IdentityReference.Value + ":" +
+        $rule.AccessControlType + ":" +
+        [int]$rule.FileSystemRights + ":inherited=" +
+        $rule.IsInherited
+      )
+    }
+    throw (
+      "final Windows ACL is not owner-only for $target " +
+      "(protected=$($acl.AreAccessRulesProtected), ownerSid=$owner, " +
+      "currentSid=$currentSid, aceCount=$($rules.Count), " +
+      "rules=$($ruleSummary -join ';'))"
+    )
   }
 }
 
