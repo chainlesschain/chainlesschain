@@ -60,6 +60,9 @@ describe("LocalBackend", () => {
   it("passes cwd, timeout, maxBuffer to execSync", () => {
     backend.execute("ls", { cwd: "/tmp", timeout: 5000, maxBuffer: 512 });
     expect(_deps.execSync).toHaveBeenCalledWith("ls", {
+      origin: "execution-backend:local",
+      scope: "execution-backend",
+      policy: "allow",
       cwd: "/tmp",
       encoding: "utf8",
       timeout: 5000,
@@ -120,6 +123,11 @@ describe("DockerBackend", () => {
     expect(cmd).toContain("docker exec");
     expect(cmd).toContain("my-container");
     expect(cmd).toContain("ls /app");
+    expect(_deps.execSync.mock.calls[0][1]).toMatchObject({
+      origin: "execution-backend:docker",
+      scope: "execution-backend",
+      policy: "allow",
+    });
   });
 
   it("uses docker run when image specified", () => {
@@ -200,6 +208,11 @@ describe("SSHBackend", () => {
     expect(cmd).toContain("ssh");
     expect(cmd).toContain("deploy@server.com");
     expect(cmd).toContain("uptime");
+    expect(_deps.execSync.mock.calls[0][1]).toMatchObject({
+      origin: "execution-backend:ssh",
+      scope: "execution-backend",
+      policy: "allow",
+    });
   });
 
   it("includes key file when specified", () => {

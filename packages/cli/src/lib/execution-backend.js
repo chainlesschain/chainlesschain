@@ -10,12 +10,12 @@
  * @module execution-backend
  */
 
-import { execSync } from "node:child_process";
+import executionBroker from "./process-execution-broker/index.js";
 
 // ─── Exported for test injection ────────────────────────────────────
 
 export const _deps = {
-  execSync,
+  execSync: (...args) => executionBroker.execSync(...args),
 };
 
 // ─── Base class ─────────────────────────────────────────────────────
@@ -60,6 +60,9 @@ export class LocalBackend extends ExecutionBackend {
 
     try {
       const stdout = _deps.execSync(command, {
+        origin: "execution-backend:local",
+        scope: "execution-backend",
+        policy: "allow",
         cwd,
         encoding: "utf8",
         timeout,
@@ -124,6 +127,9 @@ export class DockerBackend extends ExecutionBackend {
 
     try {
       const stdout = _deps.execSync(dockerCmd, {
+        origin: "execution-backend:docker",
+        scope: "execution-backend",
+        policy: "allow",
         encoding: "utf8",
         timeout,
         maxBuffer,
@@ -191,6 +197,9 @@ export class SSHBackend extends ExecutionBackend {
 
     try {
       const stdout = _deps.execSync(sshCmd, {
+        origin: "execution-backend:ssh",
+        scope: "execution-backend",
+        policy: "allow",
         encoding: "utf8",
         timeout,
         maxBuffer,

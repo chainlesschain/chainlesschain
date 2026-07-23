@@ -152,6 +152,9 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 - Computer Use Windows 控制后端的 PowerShell 原语与应用启动已分别进入
   `computer-use:powershell`、`computer-use:app-launch` Broker origin；脚本和应用参数继续使用独立
   argv 且显式禁用 shell，并保留截图输出上限与 detached 应用生命周期语义。
+- Local/Docker/SSH Execution Backend 已分别进入 `execution-backend:local`、
+  `execution-backend:docker`、`execution-backend:ssh` Broker origin；现有远端 shell 行为、超时、
+  输出上限和错误归一化保持不变，Docker/SSH 的主机侧字符串拼接列为下一步 argv 收敛项。
 
 ### 4.2 建议设计
 
