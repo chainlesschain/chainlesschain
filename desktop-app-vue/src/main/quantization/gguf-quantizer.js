@@ -11,11 +11,11 @@
  * @version 1.0.0
  */
 
-const { spawn } = require("child_process");
 const { logger } = require("../utils/logger.js");
+const { spawnWithDesktopBroker } = require("../process/desktop-process-broker");
 
 /** Testability shim – override in tests to inject mocks. */
-const _deps = { spawn };
+const _deps = { spawn: spawnWithDesktopBroker };
 
 // ============================================================
 // Supported quantization levels
@@ -114,6 +114,8 @@ class GGUFQuantizer {
         [inputPath, outputPath, level],
         {
           stdio: ["ignore", "pipe", "pipe"],
+          windowsHide: true,
+          origin: "desktop:quantization-gguf",
         },
       );
 

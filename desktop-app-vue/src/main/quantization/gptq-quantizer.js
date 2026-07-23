@@ -11,11 +11,11 @@
  * @version 1.0.0
  */
 
-const { spawn } = require("child_process");
 const { logger } = require("../utils/logger.js");
+const { spawnWithDesktopBroker } = require("../process/desktop-process-broker");
 
 /** Testability shim – override in tests to inject mocks. */
-const _deps = { spawn };
+const _deps = { spawn: spawnWithDesktopBroker };
 
 // ============================================================
 // Default options
@@ -100,6 +100,8 @@ class GPTQQuantizer {
 
       const child = _deps.spawn("python", args, {
         stdio: ["ignore", "pipe", "pipe"],
+        windowsHide: true,
+        origin: "desktop:quantization-gptq",
       });
 
       this.childProcess = child;
