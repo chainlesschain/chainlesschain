@@ -146,6 +146,9 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 - Knowledge-base Git integration 的 argv 与遗留字符串命令已分别进入 `git-integration:argv`、
   `git-integration:shell` Broker origin；commit message 继续逐项传递，旧字符串路径保留既有 ref/path
   allowlist 并在审计中显式标记 shell，便于后续继续消除。
+- Hook Manager 的 command/script handler 已由手工补写审计升级为 `hook-manager:command` Broker
+  执行；保留 shell、超时、64 MiB 输出上限与 `HOOK_EVENT`/`HOOK_CONTEXT` 环境契约，并统一获得
+  危险命令拦截、凭据过滤和执行结果审计。
 
 ### 4.2 建议设计
 
@@ -668,7 +671,7 @@ mTLS 和团队级成本/失败聚合；继续坚持内容默认不出端。
 | **M0** | `process-execution-broker` 单例 + spawn审计清单 | ✅ **Completed** | `packages/cli/src/lib/process-execution-broker/index.js` |
 | **M0** | parity 验证脚本 + npm script `runtime:convergence` | ✅ **Completed** | `packages/cli/scripts/test-runtime-convergence.mjs`, package.json scripts |
 | **M1** | Broker 支持所有 origin 类型 (shell/mcp/lsp/agent/background/hook) | ✅ **Completed** | Broker 内置权限决策、凭据过滤、平台沙箱和审计机制；未提供 `addPolicyEnforcer()` 公共 API |
-| **M1** | 现有入口接入审计 (hook-manager) | ✅ **Completed** | `packages/cli/src/lib/hook-manager.js` 已接入 auditEntry |
+| **M1** | 现有入口接入审计 (hook-manager) | ✅ **Completed** | `packages/cli/src/lib/hook-manager.js` 已由 Process Broker 执行并统一审计 |
 | **M2** | 后台 Agent 实时 IPC 总线 (`agent-ipc-bus`) | ✅ **Completed** | `packages/cli/src/lib/agent-ipc-bus.js` |
 | **M3-1** | Hooks v2: 18个生命周期事件 + 5种executor类型统一API | 🟡 **Runtime completed** | `packages/cli/src/lib/hooks-v2-runtime.js`；真实 producer 接入与 sandbox 强制仍待补 |
 | **M3-2** | Event Runtime 常驻框架 (emit/subscribe) | ✅ **Completed** | HooksV2Runtime 内置 EventEmitter，支持事件调度 |

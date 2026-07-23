@@ -4,7 +4,6 @@
  */
 
 import crypto from "crypto";
-import { execSync } from "child_process";
 import broker from "./process-execution-broker/index.js";
 
 /**
@@ -275,8 +274,8 @@ export async function executeHook(hook, context = {}) {
     const type = hook.type || HookType.SYNC;
 
     if (type === HookType.COMMAND || type === HookType.SCRIPT) {
-      // Command/script hooks execute a shell command (execSync hoisted to a
-      // top-level import — this runs per hook on the tool-use hot path).
+      // Command/script hooks execute a shell command through the shared
+      // process broker on the tool-use hot path.
       const cmd = hook.handler || "";
       if (!cmd) {
         return {
@@ -291,18 +290,10 @@ export async function executeHook(hook, context = {}) {
         HOOK_EVENT: hook.event,
         HOOK_CONTEXT: JSON.stringify(context),
       };
-      // M1: Record hook command execution in broker audit log
-      const auditEntry = {
-        pid: process.pid,
-        origin: "hook",
-        command: cmd,
-        args: [],
-        startedAt: Date.now(),
-        sessionId: context?.sessionId,
-      };
-      if (typeof broker._recordAudit === "function")
-        broker._recordAudit(auditEntry);
-      const output = execSync(cmd, {
+      const output = broker.execSync(cmd, {
+        origin: "hook-manager:command",
+        scope: "hook",
+        policy: "allow",
         encoding: "utf-8",
         timeout: hook.timeout || 20000,
         // execSync defaults maxBuffer to 1 MB; a hook that prints more (a

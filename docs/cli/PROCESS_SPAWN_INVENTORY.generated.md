@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 403 (runtime: 327, tooling: 53, test: 23).
+Total matches: 402 (runtime: 326, tooling: 53, test: 23).
 
 ## Policy
 
@@ -190,8 +190,7 @@ Total matches: 403 (runtime: 327, tooling: 53, test: 23).
 | `packages/cli/src/lib/git-integration.js` | 153 | `const output = _deps.execSync("git status --porcelain", {` |
 | `packages/cli/src/lib/goal-condition-engine.js` | 194 | `const spawnSync = deps.spawnSync;` |
 | `packages/cli/src/lib/goal-condition-engine.js` | 202 | `const res = spawnSync(condition.command, {` |
-| `packages/cli/src/lib/hook-manager.js` | 7 | `import { execSync } from "child_process";` |
-| `packages/cli/src/lib/hook-manager.js` | 305 | `const output = execSync(cmd, {` |
+| `packages/cli/src/lib/hook-manager.js` | 293 | `const output = broker.execSync(cmd, {` |
 | `packages/cli/src/lib/hook-runner.cjs` | 20 | `* `_deps.spawnSync` is injected for unit tests (no real process needed).` |
 | `packages/cli/src/lib/hook-runner.cjs` | 23 | `const cpDefault = require("node:child_process");` |
 | `packages/cli/src/lib/hook-runner.cjs` | 31 | `const _deps = { spawnSync: cpDefault.spawnSync, spawn: cpDefault.spawn };` |

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
+import executionBroker from "../../src/lib/process-execution-broker/index.js";
 import {
   HookPriority,
   HookType,
@@ -422,6 +423,44 @@ describe("Hook Manager", () => {
       const outcome = await executeHook(hook, {});
       expect(outcome.success).toBe(false);
       expect(outcome.error).toContain("No handler command");
+    });
+
+    it("routes command hooks through the process broker", async () => {
+      const execSync = vi
+        .spyOn(executionBroker, "execSync")
+        .mockReturnValue("hook-ok\n");
+      const context = { sessionId: "session-1", tool: "Read" };
+      const outcome = await executeHook(
+        {
+          event: HookEvents.PreToolUse,
+          type: HookType.COMMAND,
+          handler: "echo hook-ok",
+          timeout: 4321,
+        },
+        context,
+      );
+
+      expect(execSync).toHaveBeenCalledWith(
+        "echo hook-ok",
+        expect.objectContaining({
+          origin: "hook-manager:command",
+          scope: "hook",
+          policy: "allow",
+          encoding: "utf-8",
+          timeout: 4321,
+          maxBuffer: 64 * 1024 * 1024,
+          windowsHide: true,
+          env: expect.objectContaining({
+            HOOK_EVENT: HookEvents.PreToolUse,
+            HOOK_CONTEXT: JSON.stringify(context),
+          }),
+        }),
+      );
+      expect(outcome).toMatchObject({
+        success: true,
+        result: "hook-ok",
+        error: null,
+      });
     });
 
     it("does not ENOBUFS-fail a command hook that prints > 1 MB (maxBuffer guard)", async () => {
