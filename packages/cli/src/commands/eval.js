@@ -11,14 +11,21 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { spawn, spawnSync } from "child_process";
 import { runEvalSuite } from "../lib/eval/runner.js";
 import { getSuite } from "../lib/eval/tasks.js";
+import executionBroker from "../lib/process-execution-broker/index.js";
 import {
   TelemetryRecorder,
   formatTelemetry,
 } from "../lib/telemetry/span-recorder.js";
 import { computeTrend, formatTrend } from "../lib/eval/trend.js";
+
+export const _deps = {
+  platform: process.platform,
+  kill: process.kill.bind(process),
+  spawn: executionBroker.spawn.bind(executionBroker),
+  spawnSync: executionBroker.spawnSync.bind(executionBroker),
+};
 
 /** Append a run summary as one JSONL line to the history file. */
 function appendHistory(file, record) {
@@ -55,18 +62,22 @@ const BIN = path.resolve(__dirname, "..", "..", "bin", "chainlesschain.js");
  */
 function killAgentTree(child) {
   if (!child || !child.pid) return;
-  if (process.platform === "win32") {
+  if (_deps.platform === "win32") {
     try {
-      spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], {
+      _deps.spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], {
         windowsHide: true,
         timeout: 10000,
+        origin: "eval:agent-tree-kill",
+        policy: "allow",
+        scope: "eval",
+        shell: false,
       });
     } catch {
       /* fall through to the direct kill below */
     }
   } else {
     try {
-      process.kill(-child.pid, "SIGKILL"); // negative pid = process group
+      _deps.kill(-child.pid, "SIGKILL"); // negative pid = process group
       return;
     } catch {
       /* not a group leader / already gone — fall through */
@@ -105,12 +116,16 @@ function makeHeadlessRunAgent(opts = {}) {
         if (opts.model) args.push("--model", opts.model);
         if (opts.provider) args.push("--provider", opts.provider);
       }
-      const child = spawn(process.execPath, args, {
+      const child = _deps.spawn(process.execPath, args, {
         cwd,
         env: { ...process.env, CLAUDECODE: "1" },
         windowsHide: true,
         // Own process group on POSIX so a timeout can reap the whole tree.
-        detached: process.platform !== "win32",
+        detached: _deps.platform !== "win32",
+        origin: "eval:agent-run",
+        policy: "allow",
+        scope: "eval",
+        shell: false,
       });
       let out = "";
       let err = "";

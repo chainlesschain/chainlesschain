@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 387 (runtime: 311, tooling: 53, test: 23).
+Total matches: 386 (runtime: 310, tooling: 53, test: 23).
 
 ## Policy
 
@@ -47,9 +47,8 @@ Total matches: 387 (runtime: 311, tooling: 53, test: 23).
 | `packages/cli/src/commands/batch.js` | 292 | `const child = spawn(process.execPath, args, {` |
 | `packages/cli/src/commands/config.js` | 15 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/commands/config.js` | 73 | `return deps.spawnSync(file, [...editorArgs, configPath], {` |
-| `packages/cli/src/commands/eval.js` | 14 | `import { spawn, spawnSync } from "child_process";` |
-| `packages/cli/src/commands/eval.js` | 60 | `spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], {` |
-| `packages/cli/src/commands/eval.js` | 108 | `const child = spawn(process.execPath, args, {` |
+| `packages/cli/src/commands/eval.js` | 67 | `_deps.spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], {` |
+| `packages/cli/src/commands/eval.js` | 119 | `const child = _deps.spawn(process.execPath, args, {` |
 | `packages/cli/src/commands/init.js` | 611 | `const { execSync, spawn, spawnSync } = require("child_process");` |
 | `packages/cli/src/commands/init.js` | 618 | `execSync(\`\${cmd} --version\`, { stdio: "ignore", encoding: "utf-8" });` |
 | `packages/cli/src/commands/init.js` | 628 | `const proc = spawn("python", ["-m", ...args], { stdio: ["ignore", "pipe", "pipe"] });` |

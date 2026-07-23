@@ -1,15 +1,22 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { EventEmitter } from "node:events";
 import os from "node:os";
 import fs from "node:fs";
 import path from "node:path";
-import { makeHeadlessRunAgent } from "../../src/commands/eval.js";
+import {
+  _deps,
+  killAgentTree,
+  makeHeadlessRunAgent,
+} from "../../src/commands/eval.js";
 import { computeTrend } from "../../src/lib/eval/trend.js";
 
+const originalDeps = { ..._deps };
 let dir;
 beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-eval-kill-"));
 });
 afterEach(() => {
+  Object.assign(_deps, originalDeps);
   try {
     fs.rmSync(dir, { recursive: true, force: true });
   } catch {
@@ -18,6 +25,55 @@ afterEach(() => {
 });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+describe("eval process Broker contract", () => {
+  it("runs the headless agent with literal argv and eval provenance", async () => {
+    const child = new EventEmitter();
+    child.pid = 42;
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    child.kill = vi.fn();
+    _deps.spawn = vi.fn(() => child);
+
+    const argv = ["-e", "process.exit(0)"];
+    const runAgent = makeHeadlessRunAgent({ _argv: argv });
+    const pending = runAgent({ prompt: "x", cwd: dir, timeoutMs: 30000 });
+    child.emit("close", 0);
+
+    await expect(pending).resolves.toMatchObject({ ok: true, error: null });
+    expect(_deps.spawn).toHaveBeenCalledWith(
+      process.execPath,
+      argv,
+      expect.objectContaining({
+        cwd: dir,
+        origin: "eval:agent-run",
+        policy: "allow",
+        scope: "eval",
+        shell: false,
+      }),
+    );
+  });
+
+  it("routes Windows tree termination through taskkill argv", () => {
+    const child = { pid: 4242, kill: vi.fn() };
+    _deps.platform = "win32";
+    _deps.spawnSync = vi.fn(() => ({ status: 0 }));
+
+    killAgentTree(child);
+
+    expect(_deps.spawnSync).toHaveBeenCalledWith(
+      "taskkill",
+      ["/PID", "4242", "/T", "/F"],
+      expect.objectContaining({
+        origin: "eval:agent-tree-kill",
+        policy: "allow",
+        scope: "eval",
+        shell: false,
+      }),
+    );
+    expect(child.kill).toHaveBeenCalledWith("SIGKILL");
+  });
+});
 
 describe("eval timeout — tree kill + settle only after exit", () => {
   it(
