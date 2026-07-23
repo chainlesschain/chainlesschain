@@ -19,8 +19,6 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { spawn } from "child_process";
-import { execFileSync } from "child_process";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { runBatch } from "../lib/agent-batch.js";
@@ -31,6 +29,12 @@ import {
   mergeWorktree,
 } from "../harness/worktree-isolator.js";
 import { findProjectRoot } from "../lib/project-detector.js";
+import executionBroker from "../lib/process-execution-broker/index.js";
+
+export const _processDeps = {
+  spawn: executionBroker.spawn.bind(executionBroker),
+  execFileSync: executionBroker.execFileSync.bind(executionBroker),
+};
 
 const BIN = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -183,6 +187,26 @@ function sanitize(key) {
   return String(key).replace(/[^a-zA-Z0-9._-]/g, "-");
 }
 
+function spawnBatchProcess(command, args, options, origin) {
+  return _processDeps.spawn(command, args, {
+    ...options,
+    origin,
+    policy: "allow",
+    scope: "batch",
+  });
+}
+
+function runBatchGit(args, cwd, options, origin) {
+  return _processDeps.execFileSync("git", args, {
+    ...options,
+    cwd,
+    origin,
+    policy: "allow",
+    scope: "batch",
+    shell: false,
+  });
+}
+
 function spawnAgent(prompt, cwd, opts = {}) {
   return new Promise((resolve, reject) => {
     const args = [
@@ -196,11 +220,17 @@ function spawnAgent(prompt, cwd, opts = {}) {
       "text",
     ];
     if (opts.model) args.push("--model", opts.model);
-    const child = spawn(process.execPath, args, {
-      cwd,
-      env: { ...process.env, CLAUDECODE: "1" },
-      windowsHide: true,
-    });
+    const child = spawnBatchProcess(
+      process.execPath,
+      args,
+      {
+        cwd,
+        env: { ...process.env, CLAUDECODE: "1" },
+        windowsHide: true,
+        shell: false,
+      },
+      "batch:agent-run",
+    );
     let err = "";
     child.stderr?.on("data", (d) => (err += d.toString("utf8")));
     child.on("error", (e) => reject(new Error(e.message)));
@@ -214,12 +244,17 @@ function spawnAgent(prompt, cwd, opts = {}) {
 
 function runTestCommand(command, cwd) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, {
-      cwd,
-      shell: true,
-      env: process.env,
-      windowsHide: true,
-    });
+    const child = spawnBatchProcess(
+      command,
+      [],
+      {
+        cwd,
+        shell: true,
+        env: process.env,
+        windowsHide: true,
+      },
+      "batch:test-command",
+    );
     let err = "";
     child.stderr?.on("data", (d) => (err += d.toString("utf8")));
     child.on("error", (e) => reject(new Error(e.message)));
@@ -234,11 +269,13 @@ function runTestCommand(command, cwd) {
 /** `git add -A` staged numstat totals for a worktree. */
 function gitDiffStat(cwd) {
   try {
-    execFileSync("git", ["add", "-A"], { cwd, stdio: "ignore" });
-    const out = execFileSync("git", ["diff", "--cached", "--numstat"], {
+    runBatchGit(["add", "-A"], cwd, { stdio: "ignore" }, "batch:git-diff");
+    const out = runBatchGit(
+      ["diff", "--cached", "--numstat"],
       cwd,
-      encoding: "utf8",
-    });
+      { encoding: "utf8" },
+      "batch:git-diff",
+    );
     let insertions = 0;
     let deletions = 0;
     let filesChanged = 0;
@@ -258,11 +295,13 @@ function gitDiffStat(cwd) {
 
 function gitCommitAll(cwd, message) {
   try {
-    execFileSync("git", ["add", "-A"], { cwd, stdio: "ignore" });
-    execFileSync("git", ["commit", "-m", message, "--no-verify"], {
+    runBatchGit(["add", "-A"], cwd, { stdio: "ignore" }, "batch:git-commit");
+    runBatchGit(
+      ["commit", "-m", message, "--no-verify"],
       cwd,
-      stdio: "ignore",
-    });
+      { stdio: "ignore" },
+      "batch:git-commit",
+    );
     return true;
   } catch {
     return false; // nothing to commit / commit failed
@@ -289,11 +328,17 @@ async function decomposeGoal(goal, parts, opts = {}) {
       "plan",
     ];
     if (opts.model) args.push("--model", opts.model);
-    const child = spawn(process.execPath, args, {
-      cwd: opts.repoDir || process.cwd(),
-      env: { ...process.env, CLAUDECODE: "1" },
-      windowsHide: true,
-    });
+    const child = spawnBatchProcess(
+      process.execPath,
+      args,
+      {
+        cwd: opts.repoDir || process.cwd(),
+        env: { ...process.env, CLAUDECODE: "1" },
+        windowsHide: true,
+        shell: false,
+      },
+      "batch:decompose",
+    );
     let out = "";
     let err = "";
     child.stdout?.on("data", (d) => (out += d.toString("utf8")));
@@ -342,4 +387,11 @@ function formatEvent(ev) {
   }
 }
 
-export const _internal = { decomposeGoal, gitDiffStat, DECOMPOSE_SCHEMA };
+export const _internal = {
+  decomposeGoal,
+  gitDiffStat,
+  gitCommitAll,
+  runTestCommand,
+  spawnAgent,
+  DECOMPOSE_SCHEMA,
+};

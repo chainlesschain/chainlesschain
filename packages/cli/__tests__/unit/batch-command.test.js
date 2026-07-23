@@ -2,7 +2,22 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { runBatchCommand } from "../../src/commands/batch.js";
+import { EventEmitter } from "node:events";
+import {
+  _internal,
+  _processDeps,
+  runBatchCommand,
+} from "../../src/commands/batch.js";
+
+const originalSpawn = _processDeps.spawn;
+const originalExecFileSync = _processDeps.execFileSync;
+
+function fakeChild() {
+  const child = new EventEmitter();
+  child.stdout = new EventEmitter();
+  child.stderr = new EventEmitter();
+  return child;
+}
 
 describe("cc batch command", () => {
   let dir;
@@ -16,6 +31,8 @@ describe("cc batch command", () => {
   });
 
   afterEach(() => {
+    _processDeps.spawn = originalSpawn;
+    _processDeps.execFileSync = originalExecFileSync;
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
@@ -107,5 +124,99 @@ describe("cc batch command", () => {
     const code = await runBatchCommand({ units: bad }, io());
     expect(code).toBe(4);
     expect(errs.join("\n")).toMatch(/Failed to resolve units/);
+  });
+
+  it("brokers agent and shell test processes with explicit contracts", async () => {
+    const agentChild = fakeChild();
+    const testChild = fakeChild();
+    _processDeps.spawn = vi
+      .fn()
+      .mockReturnValueOnce(agentChild)
+      .mockReturnValueOnce(testChild);
+
+    const agentRun = _internal.spawnAgent("implement it", dir);
+    agentChild.emit("close", 0);
+    await expect(agentRun).resolves.toEqual({ code: 0 });
+
+    const testRun = _internal.runTestCommand("npm test", dir);
+    testChild.emit("close", 0);
+    await expect(testRun).resolves.toEqual({ code: 0 });
+
+    expect(_processDeps.spawn.mock.calls[0][2]).toMatchObject({
+      cwd: dir,
+      origin: "batch:agent-run",
+      policy: "allow",
+      scope: "batch",
+      shell: false,
+    });
+    expect(_processDeps.spawn.mock.calls[1]).toEqual([
+      "npm test",
+      [],
+      expect.objectContaining({
+        cwd: dir,
+        origin: "batch:test-command",
+        policy: "allow",
+        scope: "batch",
+        shell: true,
+      }),
+    ]);
+  });
+
+  it("brokers decomposition with literal agent argv", async () => {
+    const child = fakeChild();
+    _processDeps.spawn = vi.fn(() => child);
+
+    const pending = _internal.decomposeGoal("split this", 2, {
+      repoDir: dir,
+    });
+    child.stdout.emit(
+      "data",
+      Buffer.from('{"units":[{"key":"a","prompt":"do a"}]}'),
+    );
+    child.emit("close", 0);
+
+    await expect(pending).resolves.toEqual([{ key: "a", prompt: "do a" }]);
+    expect(_processDeps.spawn.mock.calls[0][2]).toMatchObject({
+      cwd: dir,
+      origin: "batch:decompose",
+      policy: "allow",
+      scope: "batch",
+      shell: false,
+    });
+  });
+
+  it("brokers git diff and commit operations without a shell", () => {
+    _processDeps.execFileSync = vi
+      .fn()
+      .mockReturnValueOnce("")
+      .mockReturnValueOnce("3\t1\ta.txt\n");
+
+    expect(_internal.gitDiffStat(dir)).toEqual({
+      filesChanged: 1,
+      insertions: 3,
+      deletions: 1,
+    });
+    for (const call of _processDeps.execFileSync.mock.calls) {
+      expect(call[2]).toMatchObject({
+        cwd: dir,
+        origin: "batch:git-diff",
+        policy: "allow",
+        scope: "batch",
+        shell: false,
+      });
+    }
+
+    _processDeps.execFileSync.mockReset().mockReturnValue("");
+    expect(_internal.gitCommitAll(dir, "batch: unit")).toBe(true);
+    expect(_processDeps.execFileSync).toHaveBeenCalledTimes(2);
+    for (const call of _processDeps.execFileSync.mock.calls) {
+      expect(call[2]).toMatchObject({
+        cwd: dir,
+        origin: "batch:git-commit",
+        policy: "allow",
+        scope: "batch",
+        shell: false,
+      });
+    }
   });
 });

@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 362 (runtime: 286, tooling: 53, test: 23).
+Total matches: 355 (runtime: 279, tooling: 53, test: 23).
 
 ## Policy
 
@@ -36,15 +36,8 @@ Total matches: 362 (runtime: 286, tooling: 53, test: 23).
 | `packages/cli/src/commands/agenda.js` | 529 | `return _processDeps.execSync(command, {` |
 | `packages/cli/src/commands/background-session.js` | 463 | `const { spawn } = await import("node:child_process");` |
 | `packages/cli/src/commands/background-session.js` | 527 | `const child = spawn(` |
-| `packages/cli/src/commands/batch.js` | 22 | `import { spawn } from "child_process";` |
-| `packages/cli/src/commands/batch.js` | 23 | `import { execFileSync } from "child_process";` |
-| `packages/cli/src/commands/batch.js` | 199 | `const child = spawn(process.execPath, args, {` |
-| `packages/cli/src/commands/batch.js` | 217 | `const child = spawn(command, {` |
-| `packages/cli/src/commands/batch.js` | 237 | `execFileSync("git", ["add", "-A"], { cwd, stdio: "ignore" });` |
-| `packages/cli/src/commands/batch.js` | 238 | `const out = execFileSync("git", ["diff", "--cached", "--numstat"], {` |
-| `packages/cli/src/commands/batch.js` | 261 | `execFileSync("git", ["add", "-A"], { cwd, stdio: "ignore" });` |
-| `packages/cli/src/commands/batch.js` | 262 | `execFileSync("git", ["commit", "-m", message, "--no-verify"], {` |
-| `packages/cli/src/commands/batch.js` | 292 | `const child = spawn(process.execPath, args, {` |
+| `packages/cli/src/commands/batch.js` | 191 | `return _processDeps.spawn(command, args, {` |
+| `packages/cli/src/commands/batch.js` | 200 | `return _processDeps.execFileSync("git", args, {` |
 | `packages/cli/src/commands/config.js` | 15 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/commands/config.js` | 73 | `return deps.spawnSync(file, [...editorArgs, configPath], {` |
 | `packages/cli/src/commands/eval.js` | 67 | `_deps.spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], {` |
