@@ -349,6 +349,10 @@ try {
 
 const WINDOWS_PUBLISH_TIMEOUT_MS = 30000;
 const WINDOWS_PUBLISH_OUTPUT_LIMIT = 64 * 1024;
+// Windows PowerShell 5.1 cold starts can exceed 10 seconds on contended CI
+// runners. Production publication is asynchronous; this larger bound applies
+// only to the legacy synchronous writer and independent ACL diagnostics.
+const WINDOWS_ACL_COMMAND_TIMEOUT_MS = 30000;
 
 function _appendBounded(current, chunk) {
   if (current.length >= WINDOWS_PUBLISH_OUTPUT_LIMIT) return current;
@@ -478,7 +482,7 @@ function _runWindowsAclScript(script, target) {
     {
       encoding: "utf8",
       windowsHide: true,
-      timeout: 10000,
+      timeout: WINDOWS_ACL_COMMAND_TIMEOUT_MS,
     },
   );
   if (!result || result.error || result.status !== 0) {
