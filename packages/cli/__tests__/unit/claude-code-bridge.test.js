@@ -60,7 +60,12 @@ describe("detectClaudeCode", () => {
     expect(result.version).toBe("2.1.81 (Claude Code)");
     expect(_deps.execSync).toHaveBeenCalledWith(
       "claude --version",
-      expect.any(Object),
+      expect.objectContaining({
+        origin: "claude-code-bridge:detect-claude",
+        policy: "allow",
+        scope: "orchestrator",
+        shell: true,
+      }),
     );
   });
 
@@ -92,6 +97,15 @@ describe("detectCodex", () => {
     const result = detectCodex();
     expect(result.found).toBe(true);
     expect(result.version).toBe("codex 1.0.0");
+    expect(_deps.execSync).toHaveBeenCalledWith(
+      "codex --version",
+      expect.objectContaining({
+        origin: "claude-code-bridge:detect-codex",
+        policy: "allow",
+        scope: "orchestrator",
+        shell: true,
+      }),
+    );
   });
 
   it("returns found=false when codex is not installed", () => {
@@ -144,7 +158,13 @@ describe("ClaudeCodeAgent", () => {
         "--output-format",
         "stream-json",
       ]),
-      expect.objectContaining({ cwd: "/tmp" }),
+      expect.objectContaining({
+        cwd: "/tmp",
+        origin: "claude-code-bridge:agent",
+        policy: "allow",
+        scope: "orchestrator",
+        shell: false,
+      }),
     );
   });
 

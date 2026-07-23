@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 385 (runtime: 309, tooling: 53, test: 23).
+Total matches: 383 (runtime: 307, tooling: 53, test: 23).
 
 ## Policy
 
@@ -143,10 +143,8 @@ Total matches: 385 (runtime: 309, tooling: 53, test: 23).
 | `packages/cli/src/lib/checkpoint-store.js` | 26 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/lib/checkpoint-store.js` | 48 | `const res = _deps.spawnSync("git", args, {` |
 | `packages/cli/src/lib/chrome-connector.js` | 214 | `const child = deps.spawn(executable, args, {` |
-| `packages/cli/src/lib/claude-code-bridge.js` | 16 | `import { spawn, execSync } from "child_process";` |
-| `packages/cli/src/lib/claude-code-bridge.js` | 48 | `.execSync("claude --version", { encoding: "utf-8", timeout: 5000 })` |
-| `packages/cli/src/lib/claude-code-bridge.js` | 63 | `.execSync("codex --version", { encoding: "utf-8", timeout: 5000 })` |
-| `packages/cli/src/lib/claude-code-bridge.js` | 151 | `const proc = _deps.spawn(this.cliCommand, args, {` |
+| `packages/cli/src/lib/claude-code-bridge.js` | 44 | `.execSync(`${command} --version`, {` |
+| `packages/cli/src/lib/claude-code-bridge.js` | 163 | `const proc = _deps.spawn(this.cliCommand, args, {` |
 | `packages/cli/src/lib/cli-anything-bridge.js` | 11 | `import { execSync } from "child_process";` |
 | `packages/cli/src/lib/cli-anything-bridge.js` | 59 | `.execSync(`${cmd} --version`, {` |
 | `packages/cli/src/lib/cli-anything-bridge.js` | 85 | `const out = _deps.execSync(`${py.command} -m pip show cli-anything`, {` |

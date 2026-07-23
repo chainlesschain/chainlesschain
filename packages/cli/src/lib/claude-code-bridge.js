@@ -13,11 +13,14 @@
  *   ], { cwd: "/path/to/project" });
  */
 
-import { spawn, execSync } from "child_process";
 import { EventEmitter } from "events";
+import executionBroker from "./process-execution-broker/index.js";
 
 /* ---------- _deps injection (Vitest CJS mock pattern) ---------- */
-export const _deps = { spawn, execSync };
+export const _deps = {
+  spawn: executionBroker.spawn.bind(executionBroker),
+  execSync: executionBroker.execSync.bind(executionBroker),
+};
 
 // ─── Agent status constants ───────────────────────────────────────
 
@@ -36,6 +39,19 @@ export const AGENT_STATUS = {
 // only thing _parseStreamJson needs — is at the end.
 export const MAX_AGENT_OUTPUT_BYTES = 32 * 1024 * 1024;
 
+function detectCliVersion(command) {
+  return _deps
+    .execSync(`${command} --version`, {
+      encoding: "utf-8",
+      timeout: 5000,
+      origin: `claude-code-bridge:detect-${command}`,
+      policy: "allow",
+      scope: "orchestrator",
+      shell: true,
+    })
+    .trim();
+}
+
 // ─── Detection ───────────────────────────────────────────────────
 
 /**
@@ -44,9 +60,7 @@ export const MAX_AGENT_OUTPUT_BYTES = 32 * 1024 * 1024;
  */
 export function detectClaudeCode() {
   try {
-    const version = _deps
-      .execSync("claude --version", { encoding: "utf-8", timeout: 5000 })
-      .trim();
+    const version = detectCliVersion("claude");
     return { found: true, version };
   } catch (_err) {
     return { found: false };
@@ -59,9 +73,7 @@ export function detectClaudeCode() {
  */
 export function detectCodex() {
   try {
-    const version = _deps
-      .execSync("codex --version", { encoding: "utf-8", timeout: 5000 })
-      .trim();
+    const version = detectCliVersion("codex");
     return { found: true, version };
   } catch (_err) {
     return { found: false };
@@ -152,6 +164,10 @@ export class ClaudeCodeAgent extends EventEmitter {
         cwd,
         env: { ...process.env },
         windowsHide: true,
+        origin: "claude-code-bridge:agent",
+        policy: "allow",
+        scope: "orchestrator",
+        shell: false,
       });
       this._proc = proc;
 
