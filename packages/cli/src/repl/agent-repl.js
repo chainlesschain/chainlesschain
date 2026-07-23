@@ -5579,7 +5579,6 @@ export async function startAgentRepl(options = {}) {
         try {
           const rg = await import("../lib/repl-goal.js");
           const fsMod = await import("node:fs");
-          const cpMod = await import("node:child_process");
           const judge = async (cond, { finalText }) => {
             const { chatWithTools } = await import("../runtime/agent-core.js");
             const { firstBalancedJson } =
@@ -5621,7 +5620,6 @@ export async function startAgentRepl(options = {}) {
             response || "",
             {
               cwd: process.cwd(),
-              spawnSync: cpMod.spawnSync,
               existsSync: fsMod.existsSync,
               judge,
             },

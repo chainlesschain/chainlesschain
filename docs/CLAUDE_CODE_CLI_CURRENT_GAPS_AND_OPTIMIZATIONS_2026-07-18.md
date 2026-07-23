@@ -232,6 +232,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   Desktop Broker 门面记录 `desktop:coding-agent-server` / `desktop:sub-runtime` provenance。
 - Desktop Advanced Features IPC 的脚本启动已进入 `desktop:advanced-features-script` Broker origin，
   并改用 `process.execPath` + 字面 argv，保留脚本输出和退出码契约。
+- REPL `/goal exit-zero` 的命令检查已进入 `repl-goal:exit-zero` Broker origin；保留用户条件所需的
+  显式 shell 语义，并增加 30 秒执行上限。
 
 ### 4.2 建议设计
 

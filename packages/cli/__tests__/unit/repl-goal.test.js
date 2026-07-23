@@ -4,8 +4,9 @@
  * re-drive). Built on the tested goal-condition-engine.js; clock + fs/spawn +
  * model judge are injected, so it's fully deterministic here.
  */
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import {
+  _processDeps,
   parseGoalCommand,
   createReplGoal,
   renderGoalStart,
@@ -14,6 +15,12 @@ import {
   evaluateReplGoalTurn,
   REPL_GOAL_MAX_OUTER_TURNS,
 } from "../../src/lib/repl-goal.js";
+
+const originalProcessRunner = _processDeps.run;
+
+afterEach(() => {
+  _processDeps.run = originalProcessRunner;
+});
 
 const clock =
   (t = 0) =>
@@ -90,6 +97,27 @@ describe("evaluateReplGoalTurn — deterministic", () => {
     const spawnSync = () => ({ status: 0 });
     const r = await evaluateReplGoalTurn(g, "", { spawnSync });
     expect(r.met).toBe(true);
+  });
+
+  it("exit-zero: uses the process broker adapter by default", async () => {
+    _processDeps.run = vi.fn(() => ({ status: 0 }));
+    const g = createReplGoal("exit-zero:npm test", { now: clock() });
+
+    const r = await evaluateReplGoalTurn(g, "", { cwd: "C:/workspace" });
+
+    expect(r.met).toBe(true);
+    expect(_processDeps.run).toHaveBeenCalledWith(
+      "npm test",
+      [],
+      expect.objectContaining({
+        cwd: "C:/workspace",
+        shell: true,
+        timeout: 30000,
+        origin: "repl-goal:exit-zero",
+        policy: "allow",
+        scope: "repl-goal",
+      }),
+    );
   });
 
   it("file-exists: uses the injected existsSync", async () => {

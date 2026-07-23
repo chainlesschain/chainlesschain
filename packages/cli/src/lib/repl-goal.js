@@ -19,6 +19,23 @@ import {
   GoalConditionEngine,
   GOAL_DECISION,
 } from "./goal-condition-engine.js";
+import executionBroker from "./process-execution-broker/index.js";
+
+const brokerRunner = executionBroker.spawnSync.bind(executionBroker);
+
+export const _processDeps = {
+  run: brokerRunner,
+};
+
+function runReplGoalCommand(command, options = {}) {
+  return _processDeps.run(command, [], {
+    ...options,
+    timeout: options.timeout ?? 30000,
+    origin: "repl-goal:exit-zero",
+    policy: "allow",
+    scope: "repl-goal",
+  });
+}
 
 // Interactive sessions are human-paced, so the turn-count budget is generous —
 // it exists only as a backstop (the engine hard-caps at 100 regardless). The
@@ -94,7 +111,7 @@ export function renderGoalVerdict(decision, events) {
 /**
  * Evaluate the session goal against a completed turn's final text. Deterministic
  * conditions run inline (contains/regex on the text; exit-zero/file-exists via
- * injected `spawnSync`/`existsSync`); a model condition delegates to `judge`.
+ * injected process runner/`existsSync`); a model condition delegates to `judge`.
  *
  * @param {GoalConditionEngine} engine
  * @param {string} finalText  the assistant's answer this turn
@@ -110,7 +127,7 @@ export async function evaluateReplGoalTurn(engine, finalText, deps = {}) {
     evaluation = runDeterministicCheck(cond, {
       lastOutput: finalText,
       cwd: deps.cwd,
-      spawnSync: deps.spawnSync,
+      spawnSync: deps.spawnSync || runReplGoalCommand,
       existsSync: deps.existsSync,
     });
   } else if (typeof deps.judge === "function") {
