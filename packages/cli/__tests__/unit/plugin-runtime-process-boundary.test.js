@@ -36,6 +36,7 @@ describe("plugin process boundary", () => {
       expect.objectContaining({
         origin: "plugin:monitor",
         policy: "allow",
+        scope: "plugin-monitor",
         pluginId: "p",
         pluginVersion: "1.0.0",
         pluginSource: "/plugin/monitors.json",

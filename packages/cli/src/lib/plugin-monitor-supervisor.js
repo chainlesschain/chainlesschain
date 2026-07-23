@@ -21,13 +21,14 @@
  * real processes.
  */
 
-import { spawn } from "node:child_process";
 import { executionBroker } from "./process-execution-broker/index.js";
 import { EventRuntimeProducer } from "./event-runtime-producer.js";
 import { EventRuntimeStore } from "./event-runtime-store.js";
 import { monitorEventId } from "./monitor-event.js";
 
-export const _deps = { spawn };
+export const _deps = {
+  spawn: (...args) => executionBroker.spawn(...args),
+};
 
 const DEFAULT_INTERVAL_MS = 60_000;
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -40,8 +41,7 @@ export class PluginMonitorSupervisor {
     this.defaultIntervalMs = opts.defaultIntervalMs || DEFAULT_INTERVAL_MS;
     this.timeoutMs = opts.timeoutMs || DEFAULT_TIMEOUT_MS;
     this._spawn = opts.spawn || _deps.spawn;
-    this._brokerSpawn =
-      opts.brokerSpawn || executionBroker.spawn.bind(executionBroker);
+    this._pluginSpawn = opts.brokerSpawn || this._spawn;
     const eventRuntimeStore =
       opts.eventRuntimeStore ||
       (process.env.CC_EVENT_RUNTIME_DURABLE === "1" ? new EventRuntimeStore() : null);
@@ -210,17 +210,24 @@ export class PluginMonitorSupervisor {
   }
 
   _spawnForDescriptor(desc, options) {
-    if (desc?.origin === "plugin:monitor") {
-      return this._brokerSpawn(desc.command, desc.args, {
+    const isPlugin = desc?.origin === "plugin:monitor";
+    return (isPlugin ? this._pluginSpawn : this._spawn)(
+      desc.command,
+      desc.args,
+      {
         ...options,
-        origin: desc.origin,
+        origin: isPlugin ? desc.origin : "plugin-monitor:process",
         policy: "allow",
-        pluginId: desc.pluginId,
-        pluginVersion: desc.pluginVersion,
-        pluginSource: desc.pluginSource,
-      });
-    }
-    return this._spawn(desc.command, desc.args, options);
+        scope: "plugin-monitor",
+        ...(isPlugin
+          ? {
+              pluginId: desc.pluginId,
+              pluginVersion: desc.pluginVersion,
+              pluginSource: desc.pluginSource,
+            }
+          : {}),
+      },
+    );
   }
 
   /**

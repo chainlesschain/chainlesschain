@@ -57,6 +57,13 @@ describe("PluginMonitorSupervisor — interval mode", () => {
     expect(spawn.calls).toHaveLength(1);
     expect(spawn.calls[0].command).toBe("echo");
     expect(spawn.calls[0].opts.shell).toBe(false); // no shell injection surface
+    expect(spawn.calls[0].opts).toEqual(
+      expect.objectContaining({
+        origin: "plugin-monitor:process",
+        policy: "allow",
+        scope: "plugin-monitor",
+      }),
+    );
     spawn.children[0].stdout.emit("data", Buffer.from("line1\nline2\n"));
     spawn.children[0].emit("exit", 0);
     const out = sup.drainOutputs();
