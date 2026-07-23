@@ -244,6 +244,30 @@ describe("ChatViewProvider — context indicator refresh", () => {
     expect(runCliText).toHaveBeenCalledTimes(2); // status quo preserved
   });
 
+  it("drops a context probe that resolves after /new replaces the same tab transcript", async () => {
+    let resolveProbe;
+    const runCliText = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveProbe = resolve;
+        }),
+    );
+    const { provider, posted } = makeProvider({ runCliText });
+    provider._handleMessage({ type: "ready" });
+    const convId = provider._convs.activeId();
+    const onEvent = provider._makeOnEvent(convId);
+    onEvent({ type: "system", subtype: "init", session_id: "sess-old" });
+    onEvent({ type: "result", is_error: false });
+    expect(runCliText).toHaveBeenCalledTimes(1);
+
+    provider._handleMessage({ type: "new" });
+    posted.length = 0;
+    resolveProbe(JSON.stringify({ contextWindow: 200000, totalTokens: 12000 }));
+    await tick();
+
+    expect(posted.find((p) => p.kind === "ctxStatus")).toBeUndefined();
+  });
+
   it("respects the chainlesschain.chat.contextIndicator=false kill-switch", async () => {
     const runCliText = vi.fn(async () => "{}");
     const { provider } = makeProvider({

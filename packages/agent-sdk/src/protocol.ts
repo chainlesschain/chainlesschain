@@ -87,6 +87,8 @@ export interface SystemInitEvent extends StreamEventMeta {
   provider?: string;
   permission_mode?: string;
   tools?: string[];
+  /** Session-scoped slash commands accepted over the live stream protocol. */
+  slash_commands?: string[];
   input_format?: string;
   additional_directories?: string[];
   /** > 0 when the session was resumed from a prior transcript. */
@@ -321,6 +323,26 @@ export interface ResumeAckEvent extends StreamEventMeta {
   [key: string]: unknown;
 }
 
+/**
+ * Result of a read-only, session-scoped slash command requested over stdin.
+ *
+ * This is an additive protocol-v1 event. `request_id` correlates it with the
+ * matching SlashCommandInput without borrowing the turn-level `result` event,
+ * so clients can issue a status query without ending or starting an agent turn.
+ */
+export interface SlashCommandResultEvent extends StreamEventMeta {
+  type: "slash_command_result";
+  request_id: string;
+  command: string;
+  ok: boolean;
+  text?: string;
+  error?: {
+    code: string;
+    message: string;
+  };
+  session_id?: string;
+}
+
 /** Forward-compat: events this SDK version does not know yet. */
 export interface UnknownAgentEvent {
   type: string;
@@ -349,6 +371,7 @@ export type AgentStreamEvent =
   | UserEchoEvent
   | FeedbackAckEvent
   | ResumeAckEvent
+  | SlashCommandResultEvent
   | UnknownAgentEvent;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -451,6 +474,19 @@ export interface ResumeAssistInput {
   action: "completed" | "skip";
 }
 
+/**
+ * Read-only query against the live stream-json session.
+ *
+ * `args` is the raw text following the command name. The CLI validates which
+ * arguments each command supports and answers with SlashCommandResultEvent.
+ */
+export interface SlashCommandInput {
+  type: "slash_command";
+  request_id: string;
+  command: string;
+  args: string;
+}
+
 export type AgentInputEvent =
   | ClientHelloInput
   | UserMessageInput
@@ -460,7 +496,8 @@ export type AgentInputEvent =
   | QuestionAnswerInput
   | PlanControlInput
   | FeedbackInput
-  | ResumeAssistInput;
+  | ResumeAssistInput
+  | SlashCommandInput;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Background-session pipe protocol (cc attach / daemon workers)
@@ -714,4 +751,15 @@ export function isMcpElicitationRequest(
 
 export function isResult(event: AgentStreamEvent): event is ResultEvent {
   return event.type === "result";
+}
+
+export function isSlashCommandResult(
+  event: AgentStreamEvent,
+): event is SlashCommandResultEvent {
+  return (
+    event.type === "slash_command_result" &&
+    typeof (event as SlashCommandResultEvent).request_id === "string" &&
+    typeof (event as SlashCommandResultEvent).command === "string" &&
+    typeof (event as SlashCommandResultEvent).ok === "boolean"
+  );
 }

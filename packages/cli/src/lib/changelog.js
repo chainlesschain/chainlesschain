@@ -92,6 +92,41 @@ export function compareSemver(a, b) {
 }
 
 /**
+ * Whether a parsed changelog documents an exact CLI package version.
+ *
+ * A product block can cover more than one CLI release (notably the root
+ * `Unreleased` block), so check both its primary `cliVersion` and the complete
+ * `cliVersions` set. This is also the publish-time stale-artifact guard.
+ */
+export function hasCliVersion(releases, version) {
+  if (!version || !Array.isArray(releases)) return false;
+  return releases.some(
+    (release) =>
+      release?.cliVersion === version ||
+      (Array.isArray(release?.cliVersions) &&
+        release.cliVersions.includes(version)),
+  );
+}
+
+/** Highest exact CLI version documented by the parsed release list. */
+export function latestCliVersion(releases) {
+  if (!Array.isArray(releases)) return null;
+  const versions = releases.flatMap((release) => {
+    const covered = Array.isArray(release?.cliVersions)
+      ? release.cliVersions
+      : [];
+    return release?.cliVersion ? [...covered, release.cliVersion] : covered;
+  });
+  return versions.length === 0
+    ? null
+    : versions.reduce(
+        (latest, version) =>
+          compareSemver(version, latest) > 0 ? version : latest,
+        versions[0],
+      );
+}
+
+/**
  * Parse a raw CHANGELOG.md string into CLI-focused release entries.
  *
  * @param {string} md
@@ -134,6 +169,28 @@ export function parseChangelog(md) {
     // block, by CLI-publish language) — not by a bare bundled-cli mention.
     const sections = extractCliSections(block.lines, block.header);
     if (!sections) continue;
+
+    // The root changelog keeps multiple still-unreleased CLI versions as
+    // sibling `###` sections. Treating the whole `## [Unreleased]` block as
+    // one record collapses many CLI releases into a single entry and makes
+    // `-n 5` mean five product blocks instead of five CLI versions.
+    if (parsed.version.toLowerCase() === "unreleased") {
+      for (const section of sections) {
+        const sectionText = `${section.heading}\n${section.body}`;
+        const sectionVersions = extractCliVersions(sectionText);
+        if (!sectionVersions.primary) continue;
+        const dateMatch = sectionText.match(/\b(\d{4}-\d{2}-\d{2})\b/);
+        releases.push({
+          productVersion: null,
+          cliVersion: sectionVersions.primary,
+          cliVersions: sectionVersions.all.sort(compareSemver),
+          date: dateMatch ? dateMatch[1] : null,
+          title: "",
+          sections: [section],
+        });
+      }
+      continue;
+    }
 
     releases.push({
       productVersion: parsed.version,

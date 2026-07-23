@@ -17,7 +17,7 @@ const {
   buildIdeToolAdmission,
   resolveChatLlm,
 } = require("./chat-events");
-const { buildChatHtml } = require("./chat-html");
+const { buildChatHtml, CHAT_UI_PROTOCOL_VERSION } = require("./chat-html");
 const {
   ConversationManager,
   deriveTabTitle,
@@ -38,8 +38,10 @@ const {
   upsertPersistedPlanReview,
 } = require("./plan-review.js");
 const { upsertIdeSessionRecord } = require("./ide-session-index.js");
+const { COMMAND_DEFS, splitSlashArgs } = require("./slash-commands.js");
 
 const PLAN_REVIEW_STATES_KEY = "chainlesschain.chat.planReviewStates.v1";
+const WEBVIEW_PROTOCOL_TIMEOUT_MS = 750;
 
 class ChatViewProvider {
   /**
@@ -68,6 +70,13 @@ class ChatViewProvider {
     // webview signals it is live, then flushed into the input.
     this._pendingInsert = "";
     this._webviewReady = false;
+    // VS Code can keep the Webview DOM alive while its Extension Host restarts.
+    // Guard resolved views with an explicit protocol handshake so an old UI
+    // cannot keep applying stale client-side slash-command routing.
+    this._webviewProtocolGuard = false;
+    this._webviewProtocolConfirmed = false;
+    this._webviewProtocolReloads = 0;
+    this._webviewProtocolTimer = null;
     // Keyboard actions that may fire before the webview is live (reveal races
     // the "ready" message) — queued here and flushed in _onWebviewReady.
     this._pendingNewTab = false; // Cmd/Ctrl+Shift+Esc
@@ -254,6 +263,111 @@ class ChatViewProvider {
     }
   }
 
+  _clearWebviewProtocolTimer() {
+    if (this._webviewProtocolTimer) {
+      clearTimeout(this._webviewProtocolTimer);
+      this._webviewProtocolTimer = null;
+    }
+  }
+
+  _buildChatHtml(view) {
+    return buildChatHtml({
+      cspSource: view.webview.cspSource,
+      nonce: crypto.randomBytes(16).toString("hex"),
+      // Localized in the host (the webview can't call vscode.l10n.t) and
+      // injected as CC_L10N for the setup card.
+      l10n: {
+        setupFailed: this.vscode.l10n.t(
+          "LLM connection failed: {0} — configure the model first",
+        ),
+        setupNoConfig: this.vscode.l10n.t(
+          "No model configured yet — a one-minute guide gets you chatting (written to config.json, shared by the CLI and the panel)",
+        ),
+        configureLlmBtn: this.vscode.l10n.t("Configure LLM"),
+      },
+    });
+  }
+
+  /**
+   * Ask the currently-live DOM which UI protocol it implements. This matters
+   * after an Extension Host restart: retainContextWhenHidden can preserve the
+   * old script even though this provider instance is new.
+   */
+  _armWebviewProtocolCheck(view) {
+    this._clearWebviewProtocolTimer();
+    try {
+      Promise.resolve(
+        view.webview.postMessage({
+          kind: "protocolProbe",
+          uiProtocolVersion: CHAT_UI_PROTOCOL_VERSION,
+        }),
+      ).catch(() => {});
+    } catch {
+      /* a disposed/not-yet-live webview is handled by the timeout */
+    }
+    this._webviewProtocolTimer = setTimeout(() => {
+      this._webviewProtocolTimer = null;
+      if (
+        this.view !== view ||
+        !this._webviewProtocolGuard ||
+        this._webviewProtocolConfirmed
+      ) {
+        return;
+      }
+      this._reloadStaleWebview(view, "protocol probe timed out");
+    }, WEBVIEW_PROTOCOL_TIMEOUT_MS);
+    this._webviewProtocolTimer.unref?.();
+  }
+
+  _renderChatWebview(view) {
+    if (!view || this.view !== view) return false;
+    this._clearWebviewProtocolTimer();
+    this._webviewReady = false;
+    this._webviewProtocolConfirmed = false;
+    view.webview.html = this._buildChatHtml(view);
+    this._armWebviewProtocolCheck(view);
+    return true;
+  }
+
+  /**
+   * Rebuild at most once per resolved view. A missing/mismatched protocol is a
+   * stale retained DOM in normal operation; the cap prevents an invalid local
+   * CSP/script from causing an endless reload loop.
+   */
+  _reloadStaleWebview(view, reason) {
+    if (
+      !this._webviewProtocolGuard ||
+      this.view !== view ||
+      this._webviewProtocolReloads >= 1
+    ) {
+      return false;
+    }
+    this._webviewProtocolReloads += 1;
+    this.opts.log?.(
+      `chat: rebuilding webview (${reason}; expected UI protocol ${CHAT_UI_PROTOCOL_VERSION})`,
+    );
+    return this._renderChatWebview(view);
+  }
+
+  _acceptWebviewProtocol(m) {
+    if (!this._webviewProtocolGuard) return true;
+    if (m.uiProtocolVersion === CHAT_UI_PROTOCOL_VERSION) {
+      this._clearWebviewProtocolTimer();
+      this._webviewProtocolConfirmed = true;
+      return true;
+    }
+    // Ignore a late legacy message once the replacement UI has already
+    // completed its handshake.
+    if (this._webviewProtocolConfirmed) return false;
+    this._reloadStaleWebview(
+      this.view,
+      m.uiProtocolVersion == null
+        ? "retained UI did not report a protocol"
+        : `retained UI protocol ${m.uiProtocolVersion} does not match`,
+    );
+    return false;
+  }
+
   _cliCommand() {
     // An explicit non-default `cli.path` wins; otherwise use the binary resolved
     // at activation (cc → chainlesschain → clc → clchain), so a `cc` shadowed by
@@ -265,10 +379,81 @@ class ChatViewProvider {
     return require("../cli-binary").getResolvedCli();
   }
 
-  /** Post a webview message only when it belongs to the ACTIVE tab — so a
-   * background tab's stream never bleeds into the visible transcript. */
-  _postFrom(convId, msg) {
+  /** Stable token for host-side async work that belongs to the current
+   * transcript generation. `/new` and resume keep the tab id, so convId alone
+   * cannot stop an old CLI result from appearing in the replacement chat. */
+  _asyncToken(conv) {
+    if (!conv._asyncToken) conv._asyncToken = {};
+    return conv._asyncToken;
+  }
+
+  _invalidateAsync(conv) {
+    if (conv) conv._asyncToken = {};
+  }
+
+  /** Post a webview message only when it belongs to the ACTIVE tab and, when
+   * supplied, the same transcript generation. */
+  _postFrom(convId, msg, asyncToken = null) {
+    const conv = this._convs.get(convId);
+    if (!conv) return;
+    if (asyncToken && conv._asyncToken !== asyncToken) return;
     if (this._convs.activeId() === convId) this._post(msg);
+  }
+
+  /** Stop and forget one conversation's recurring /loop, if any. */
+  _stopLoop(convId) {
+    const state = this._loopTimers.get(convId);
+    if (state) clearInterval(state.timer);
+    this._loopTimers.delete(convId);
+    return !!state;
+  }
+
+  /**
+   * Detach a child before stopping it. The token invalidates late stdout/exit
+   * callbacks from the old process so they cannot alter a newly spawned child
+   * or bleed stale output into a reset conversation.
+   */
+  _stopSession(conv) {
+    if (!conv) return false;
+    const session = conv.session;
+    const pendingApproval = conv.pendingApproval;
+    conv._sessionToken = null;
+    conv.sessionSlashCommands = null;
+    conv.unconfirmedSessionSlashCommands = [];
+    conv.turnActive = false;
+    const clearedApproval = this._convs.clearApproval(conv.id);
+    conv.plan = null;
+    conv.planReviewTurn = 0;
+    this._planReviews.delete(conv.id);
+    this._convs.setSession(conv.id, null);
+    session?.stop?.();
+    if (pendingApproval?.kind === "approval" && pendingApproval.id) {
+      this._postFrom(conv.id, {
+        kind: "approval_done",
+        id: pendingApproval.id,
+        approved: false,
+        via: "session-stopped",
+      });
+    }
+    if (clearedApproval) this._postTabs();
+    if (session) this._indexConversation(conv, "stopped");
+    return !!session;
+  }
+
+  /** Clear state that belongs to a particular resumed session, not the tab. */
+  _clearSessionState(conv, { clearGoal = false } = {}) {
+    if (!conv) return;
+    this._invalidateAsync(conv);
+    this._stopLoop(conv.id);
+    this._lastCallUsage.delete(conv.id);
+    this._convs.resetTurnState(conv.id);
+    this._convs.clearApproval(conv.id);
+    conv.unread = false;
+    conv.plan = null;
+    conv.planReviewTurn = 0;
+    conv.turnActive = false;
+    this._planReviews.delete(conv.id);
+    if (clearGoal) this._convs.setGoalCondition(conv.id, "");
   }
 
   /** Push the current tab set to the webview (the tab bar renders from this). */
@@ -284,11 +469,34 @@ class ChatViewProvider {
 
   /** Event handler bound to one conversation: routes to ITS reducer state and
    * only surfaces when that conversation is the active tab. */
-  _makeOnEvent(convId) {
+  _makeOnEvent(convId, sessionToken = null) {
     return (evt) => {
       const conv = this._convs.get(convId);
       if (!conv) return;
+      if (sessionToken && conv._sessionToken !== sessionToken) return;
       if (evt?.type === "system" && evt.subtype === "init") {
+        conv.sessionSlashCommands = Array.isArray(evt.slash_commands)
+          ? evt.slash_commands.map((name) => String(name))
+          : [];
+        const pending = Array.isArray(conv.unconfirmedSessionSlashCommands)
+          ? conv.unconfirmedSessionSlashCommands
+          : [];
+        const unsupported = [
+          ...new Set(
+            pending.filter(
+              (name) => !conv.sessionSlashCommands.includes(String(name)),
+            ),
+          ),
+        ];
+        conv.unconfirmedSessionSlashCommands = [];
+        if (unsupported.length) {
+          this._postFrom(convId, {
+            kind: "error",
+            text:
+              `${unsupported.map((name) => `/${name}`).join(", ")} requires ` +
+              "a newer cc CLI. Upgrade the CLI, then retry.",
+          });
+        }
         if (evt.session_id) {
           this._convs.setSessionId(convId, evt.session_id);
           if (this._convs.activeId() === convId) {
@@ -339,6 +547,13 @@ class ChatViewProvider {
       ) {
         conv.planReviewTurn = evt.turn;
       }
+      // approve/revise/regenerate can optimistically mark a continuation turn
+      // active before the CLI evaluates the plan. A plan_update with a note is
+      // the CLI's terminal no-op/error acknowledgement, so no result event will
+      // follow to clear the flag.
+      if (evt?.type === "plan_update" && evt.note) {
+        conv.turnActive = false;
+      }
       const ui = mapAgentEvent(evt, conv.turnState);
       this._postFrom(convId, ui);
       if (ui?.kind === "plan") {
@@ -380,6 +595,7 @@ class ChatViewProvider {
         this._indexConversation(conv, "waiting_approval");
       }
       if (evt?.type === "result") {
+        conv.turnActive = false;
         this._indexConversation(conv, evt.is_error ? "errored" : "completed");
         // The turn is done — the CLI inlined any pasted images at turn start,
         // so their temp files are consumed and can be deleted now (they would
@@ -844,6 +1060,7 @@ class ChatViewProvider {
           : "could not send plan review decision",
       });
       if (ok) {
+        if (normalized === "approve") conv.turnActive = true;
         this._indexConversation(
           conv,
           normalized === "reject" ? "stopped" : "running",
@@ -868,7 +1085,10 @@ class ChatViewProvider {
           : "sent plan review comments to the agent"
         : "could not send plan review comments",
     });
-    if (ok) this._indexConversation(conv, "running");
+    if (ok) {
+      conv.turnActive = true;
+      this._indexConversation(conv, "running");
+    }
     return ok;
   }
 
@@ -895,12 +1115,15 @@ class ChatViewProvider {
     });
     const prompt = typeof raw === "string" ? raw.trim() : "";
     if (!prompt) return;
+    // A recurring /loop would otherwise restart the foreground child after
+    // handoff and create two writers for the same resumed session.
+    this._stopLoop(conv.id);
     if (conv.session?.running) {
-      conv.session.stop();
-      this._convs.setSession(conv.id, null);
+      this._stopSession(conv);
     }
     this._post({ kind: "info", text: "handing off to a background agent…" });
-    const { runHandoff, formatHandoffNote } = require("./remote-handoff");
+    const { runHandoff, formatHandoffNote } =
+      this.opts.deps?.remoteHandoff || require("./remote-handoff");
     const folders = this.vscode.workspace.workspaceFolders || [];
     const res = await runHandoff({
       command: this._cliCommand(),
@@ -982,7 +1205,13 @@ class ChatViewProvider {
       this._persistTabs();
       this._indexConversation(conv, "running");
     }
-    const session = this._createSession({
+    const sessionToken = {};
+    conv._sessionToken = sessionToken;
+    conv.sessionSlashCommands = null;
+    conv.unconfirmedSessionSlashCommands = [];
+    let session;
+    let exited = false;
+    session = this._createSession({
       command: this._cliCommand(),
       args: [
         ...buildSessionArgs({
@@ -1032,14 +1261,28 @@ class ChatViewProvider {
           : {}),
         ...(llm.apiKey ? { CC_API_KEY: String(llm.apiKey) } : {}),
       },
-      onEvent: this._makeOnEvent(conv.id),
-      onStderr: (line) =>
-        this._postFrom(conv.id, { kind: "stderr", text: line }),
+      onEvent: this._makeOnEvent(conv.id, sessionToken),
+      onStderr: (line) => {
+        if (conv._sessionToken === sessionToken) {
+          this._postFrom(conv.id, { kind: "stderr", text: line });
+        }
+      },
       onExit: ({ code }) => {
-        this._indexConversation(conv, "stopped");
+        exited = true;
+        const current = this._convs.get(conv.id);
+        if (!current || current._sessionToken !== sessionToken) {
+          return;
+        }
+        current._sessionToken = null;
+        current.sessionSlashCommands = null;
+        current.unconfirmedSessionSlashCommands = [];
+        current.turnActive = false;
+        this._convs.setSession(conv.id, null);
+        this._indexConversation(current, "stopped");
         this._postFrom(conv.id, { kind: "exited", code });
       },
     });
+    if (exited || conv._sessionToken !== sessionToken) return session;
     this._convs.setSession(conv.id, session);
     this._indexConversation(conv, "running");
     if (typeof this.opts.log === "function") {
@@ -1114,8 +1357,9 @@ class ChatViewProvider {
     const id = String(sessionId || "").trim();
     if (!id) return;
     const conv = this._activeConv();
-    conv.session?.stop();
-    this._convs.setSession(conv.id, null);
+    this._flushPlanReviewDrafts();
+    this._stopSession(conv);
+    this._clearSessionState(conv, { clearGoal: true });
     this._convs.setSessionId(conv.id, id);
     this._rememberSessionId(id);
     this._indexConversation(conv, "stopped");
@@ -1123,7 +1367,7 @@ class ChatViewProvider {
     // preferred over the legacy single-session key on restore, so without this a
     // window reload before the next message would restore the tab's OLD id and
     // the pick would silently vanish.
-    this._persistTabs();
+    this._postTabs();
     this._post({ kind: "reset" });
     this._post({
       kind: "info",
@@ -1263,8 +1507,7 @@ class ChatViewProvider {
     this._updateModeStatus();
     const restarted = !!conv.session?.running;
     if (restarted) {
-      conv.session.stop();
-      this._convs.setSession(conv.id, null);
+      this._stopSession(conv);
     }
     this._post({
       kind: "info",
@@ -1295,8 +1538,7 @@ class ChatViewProvider {
     this._convs.setThinking(conv.id, level);
     const restarted = !!conv.session?.running;
     if (restarted) {
-      conv.session.stop();
-      this._convs.setSession(conv.id, null);
+      this._stopSession(conv);
     }
     this._post({
       kind: "info",
@@ -1321,14 +1563,14 @@ class ChatViewProvider {
     }
     if (/^(clear|off|none)$/i.test(value)) {
       this._convs.setGoalCondition(conv.id, "");
+      if (conv.session?.running) this._stopSession(conv);
       this._persistTabs();
       this._post({ kind: "info", text: "session goal cleared" });
       return;
     }
     this._convs.setGoalCondition(conv.id, value);
     if (conv.session?.running) {
-      conv.session.stop();
-      this._convs.setSession(conv.id, null);
+      this._stopSession(conv);
     }
     this._persistTabs();
     this._post({
@@ -1342,8 +1584,7 @@ class ChatViewProvider {
     const value = String(spec || "").trim();
     const old = this._loopTimers.get(conv.id);
     if (/^(stop|clear|off)$/i.test(value)) {
-      if (old) clearInterval(old.timer);
-      this._loopTimers.delete(conv.id);
+      this._stopLoop(conv.id);
       this._post({ kind: "info", text: "/loop stopped" });
       return;
     }
@@ -1364,7 +1605,7 @@ class ChatViewProvider {
       ),
     );
     const prompt = m[3].trim();
-    if (old) clearInterval(old.timer);
+    if (old) this._stopLoop(conv.id);
     const timer = setInterval(() => {
       if (!this._convs.has(conv.id)) return;
       this._handleMessage({ type: "switchTab", id: conv.id });
@@ -1393,9 +1634,11 @@ class ChatViewProvider {
     let restartedActive = false;
     for (const summary of this._convs.list()) {
       const conv = this._convs.get(summary.id);
-      if (conv && conv.session && conv.session.running) {
-        conv.session.stop();
-        this._convs.setSession(conv.id, null);
+      if (!conv) continue;
+      this._invalidateAsync(conv);
+      this._lastCallUsage.delete(conv.id);
+      if (conv.session && conv.session.running) {
+        this._stopSession(conv);
         if (conv.id === this._convs.activeId()) restartedActive = true;
       }
     }
@@ -1583,16 +1826,22 @@ class ChatViewProvider {
    * persisted session id, so it's a no-op with a hint before the first turn.
    */
   async _runIntrospect(kind) {
-    const id = this._storedSessionId();
+    const conv = this._activeConv();
+    const convId = conv.id;
+    const asyncToken = this._asyncToken(conv);
+    const id = conv.sessionId;
     if (!id) {
-      this._post({
-        kind: "info",
-        text: `/${kind}: send a message first — no session yet.`,
-      });
+      this._postFrom(
+        convId,
+        {
+          kind: "info",
+          text: `/${kind}: send a message first — no session yet.`,
+        },
+        asyncToken,
+      );
       return;
     }
     const introspect = require("./introspect-commands");
-    const runText = this.opts.deps?.runCliText || introspect.runCliText;
     const folders = this.vscode.workspace.workspaceFolders || [];
     const cwd = folders[0]?.uri?.fsPath || process.cwd();
     const chatCfg = this.vscode.workspace.getConfiguration(
@@ -1610,31 +1859,340 @@ class ChatViewProvider {
         provider: this._safeLlmSetting("provider", chatCfg.get("provider")),
       }),
     );
-    const text = await runText({
-      command: this._cliCommand(),
-      args,
-      cwd,
-      env: { ...process.env, ...bridgeEnv },
-    });
-    this._post({ kind: "pre", text: text || `/${kind}: (no output)` });
+    try {
+      const options = {
+        command: this._cliCommand(),
+        args,
+        cwd,
+        env: { ...process.env, ...bridgeEnv },
+      };
+      let result;
+      if (typeof this.opts.deps?.runCliResult === "function") {
+        result = await this.opts.deps.runCliResult(options);
+      } else if (typeof this.opts.deps?.runCliText === "function") {
+        const text = await this.opts.deps.runCliText(options);
+        result = { ok: true, text: String(text || "") };
+      } else {
+        result = await introspect.runCliResult(options);
+      }
+      if (result?.ok === true) {
+        this._postFrom(
+          convId,
+          {
+            kind: "pre",
+            text: result.text || `/${kind}: (no output)`,
+          },
+          asyncToken,
+        );
+        return;
+      }
+      const detail = result?.timedOut
+        ? `/${kind} timed out`
+        : result?.text || result?.error || `/${kind} failed`;
+      this._postFrom(
+        convId,
+        { kind: "error", text: String(detail) },
+        asyncToken,
+      );
+    } catch (err) {
+      this._postFrom(
+        convId,
+        {
+          kind: "error",
+          text: `/${kind} failed: ${err?.message || err}`,
+        },
+        asyncToken,
+      );
+    }
   }
 
-  async _runCliCommand(command, args = []) {
+  _validateCliSlashArgs(command, args) {
+    if (command === "changelog") return null;
+    if (command === "init") {
+      const templates = new Set([
+        "code-project",
+        "data-science",
+        "devops",
+        "medical-triage",
+        "agriculture-expert",
+        "general-assistant",
+        "ai-media-creator",
+        "ai-doc-creator",
+        "empty",
+      ]);
+      const flags = new Set(["--force", "--memory", "--yes", "-y", "--bare"]);
+      for (let i = 0; i < args.length; i += 1) {
+        const arg = args[i];
+        if (flags.has(arg)) continue;
+        const inlineTemplate = /^--template=(.+)$/.exec(arg);
+        if (inlineTemplate) {
+          if (!templates.has(inlineTemplate[1])) {
+            return `unknown /init template "${inlineTemplate[1]}"`;
+          }
+          continue;
+        }
+        if (arg === "--template" || arg === "-t") {
+          const template = args[i + 1];
+          if (!templates.has(template)) {
+            return `unknown /init template "${template || ""}"`;
+          }
+          i += 1;
+          continue;
+        }
+        return (
+          `unsupported /init argument "${arg}". ` +
+          "Use --force, --memory, --yes, --bare, or --template <name>."
+        );
+      }
+      return null;
+    }
+    if (command === "plugin") {
+      if (args.length === 0) return null;
+      const defaultListFlags = new Set(["--enabled", "--json"]);
+      if (args[0].startsWith("-")) {
+        return args.every((arg) => defaultListFlags.has(arg))
+          ? null
+          : "/plugin list only accepts --enabled and --json in chat.";
+      }
+      const [subcommand, ...rest] = args;
+      const onlyFlags = (allowed) => rest.every((arg) => allowed.has(arg));
+      const onePositionalAndJson = () => {
+        let positional = 0;
+        for (const arg of rest) {
+          if (arg === "--json") continue;
+          if (arg.startsWith("-")) return false;
+          positional += 1;
+        }
+        return positional === 1;
+      };
+      if (subcommand === "list") {
+        return onlyFlags(defaultListFlags)
+          ? null
+          : "/plugin list only accepts --enabled and --json in chat.";
+      }
+      if (["registry", "summary", "installed"].includes(subcommand)) {
+        return onlyFlags(new Set(["--json"]))
+          ? null
+          : `/plugin ${subcommand} only accepts --json in chat.`;
+      }
+      if (["info", "search"].includes(subcommand)) {
+        return onePositionalAndJson()
+          ? null
+          : `/plugin ${subcommand} requires one name/query and optional --json.`;
+      }
+      if (subcommand === "options") {
+        return onePositionalAndJson()
+          ? null
+          : "/plugin options is read-only in chat: use one plugin name and optional --json; run --set/--scope in a terminal.";
+      }
+      if (subcommand === "monitors") {
+        return onlyFlags(new Set(["--json"]))
+          ? null
+          : "/plugin monitors is list-only in chat: --run/--seconds must be run explicitly in a terminal.";
+      }
+      if (subcommand === "browse") {
+        let queryCount = 0;
+        let registryCount = 0;
+        for (let i = 0; i < rest.length; i += 1) {
+          const arg = rest[i];
+          if (arg === "--json") continue;
+          if (arg === "--registry") {
+            const value = rest[i + 1];
+            if (!value || value.startsWith("-")) {
+              return "/plugin browse requires --registry <url>.";
+            }
+            registryCount += 1;
+            i += 1;
+            continue;
+          }
+          if (/^--registry=.+/.test(arg)) {
+            registryCount += 1;
+            continue;
+          }
+          if (arg.startsWith("-")) {
+            return "/plugin browse only accepts an optional query, --registry <url>, and --json in chat; use tokens or insecure registries explicitly in a terminal.";
+          }
+          queryCount += 1;
+        }
+        return registryCount === 1 && queryCount <= 1
+          ? null
+          : "/plugin browse requires exactly one --registry <url> and at most one query.";
+      }
+      return (
+        `/${command} "${subcommand}" changes local plugin state and is not ` +
+        "available from chat; run it explicitly in a terminal."
+      );
+    }
+    return `unsupported panel CLI command: ${command}`;
+  }
+
+  async _runCliCommand(command, rawArgs = "") {
+    const conv = this._activeConv();
+    const convId = conv.id;
+    const asyncToken = this._asyncToken(conv);
+    const name = String(command || "").trim();
+    const def = COMMAND_DEFS.find(
+      (item) => item.route === "cli" && item.command === name,
+    );
+    if (!def) {
+      this._postFrom(convId, {
+        kind: "error",
+        text: `unsupported panel CLI command: ${name || "(empty)"}`,
+      });
+      return false;
+    }
+    if (typeof rawArgs === "string" && rawArgs.length > 8192) {
+      this._postFrom(convId, {
+        kind: "error",
+        text: `/${name}: arguments are too long`,
+      });
+      return false;
+    }
+    const parsed = Array.isArray(rawArgs)
+      ? { args: rawArgs.map((arg) => String(arg)), error: null }
+      : splitSlashArgs(rawArgs);
+    if (parsed.error || parsed.args.length > 64) {
+      this._postFrom(convId, {
+        kind: "error",
+        text: `/${name}: ${parsed.error || "too many arguments"}`,
+      });
+      return false;
+    }
+    const validationError = this._validateCliSlashArgs(name, parsed.args);
+    if (validationError) {
+      this._postFrom(convId, { kind: "error", text: validationError });
+      return false;
+    }
+
     const introspect = require("./introspect-commands");
-    const runText = this.opts.deps?.runCliText || introspect.runCliText;
     const folders = this.vscode.workspace.workspaceFolders || [];
     const cwd = folders[0]?.uri?.fsPath || process.cwd();
     const bridgeEnv =
       typeof this.opts.getBridgeEnv === "function"
         ? this.opts.getBridgeEnv()
         : {};
-    const text = await runText({
+    const options = {
       command: this._cliCommand(),
-      args: [command, ...args],
+      args: [name, ...parsed.args],
       cwd,
       env: { ...process.env, ...bridgeEnv },
-    });
-    this._post({ kind: "pre", text: text || `/${command}: (no output)` });
+    };
+    try {
+      let result;
+      if (typeof this.opts.deps?.runCliResult === "function") {
+        result = await this.opts.deps.runCliResult(options);
+      } else if (typeof this.opts.deps?.runCliText === "function") {
+        const text = await this.opts.deps.runCliText(options);
+        result = { ok: true, text: String(text || "") };
+      } else {
+        result = await introspect.runCliResult(options);
+      }
+      if (result?.ok === true) {
+        this._postFrom(
+          convId,
+          {
+            kind: "pre",
+            text: result.text || `/${name}: (no output)`,
+          },
+          asyncToken,
+        );
+        return true;
+      }
+      const detail = result?.timedOut
+        ? `/${name} timed out`
+        : result?.text || result?.error || `/${name} failed`;
+      this._postFrom(
+        convId,
+        { kind: "error", text: String(detail) },
+        asyncToken,
+      );
+      return false;
+    } catch (err) {
+      this._postFrom(
+        convId,
+        {
+          kind: "error",
+          text: `/${name} failed: ${err?.message || err}`,
+        },
+        asyncToken,
+      );
+      return false;
+    }
+  }
+
+  _runSessionSlashCommand(command, rawArgs = "") {
+    const conv = this._activeConv();
+    const name = String(command || "")
+      .trim()
+      .replace(/^\/+/, "");
+    const def = COMMAND_DEFS.find(
+      (item) => item.route === "session" && item.command === name,
+    );
+    if (!def) {
+      this._postFrom(conv.id, {
+        kind: "error",
+        text: `unsupported session command: /${name || "(empty)"}`,
+      });
+      return false;
+    }
+    const args = String(rawArgs || "").trim();
+    if (args.length > 4096) {
+      this._postFrom(conv.id, {
+        kind: "error",
+        text: `/${name}: arguments are too long`,
+      });
+      return false;
+    }
+    let session;
+    try {
+      session = this._ensureSession();
+    } catch (err) {
+      this._postFrom(conv.id, {
+        kind: "error",
+        text: `/${name}: could not start the agent session: ${err?.message || err}`,
+      });
+      return false;
+    }
+    if (!Array.isArray(conv.sessionSlashCommands)) {
+      if (!Array.isArray(conv.unconfirmedSessionSlashCommands)) {
+        conv.unconfirmedSessionSlashCommands = [];
+      }
+      conv.unconfirmedSessionSlashCommands.push(name);
+    } else if (!conv.sessionSlashCommands.includes(name)) {
+      this._postFrom(conv.id, {
+        kind: "error",
+        text:
+          `/${name} is not supported by the installed cc CLI. ` +
+          "Upgrade the CLI and retry.",
+      });
+      return false;
+    }
+    const requestId = `slash-${
+      typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : crypto.randomBytes(12).toString("hex")
+    }`;
+    let ok = false;
+    try {
+      ok = session.sendEvent({
+        type: "slash_command",
+        request_id: requestId,
+        command: name,
+        args,
+      });
+    } catch {
+      ok = false;
+    }
+    if (!ok) {
+      const pending = conv.unconfirmedSessionSlashCommands;
+      const index = Array.isArray(pending) ? pending.lastIndexOf(name) : -1;
+      if (index >= 0) pending.splice(index, 1);
+      this._postFrom(conv.id, {
+        kind: "error",
+        text: `/${name}: could not reach the agent session`,
+      });
+    }
+    return ok;
   }
 
   /**
@@ -1656,6 +2214,8 @@ class ChatViewProvider {
    */
   _refreshContextStatus(convId) {
     const conv = this._convs.get(convId);
+    if (!conv) return;
+    const asyncToken = this._asyncToken(conv);
     const id = conv?.sessionId;
     if (!id) return;
     const chatCfg = this.vscode.workspace.getConfiguration(
@@ -1673,9 +2233,7 @@ class ChatViewProvider {
         this._ctxWindowCache.window,
       );
       if (status) {
-        if (this._convs.activeId() === convId) {
-          this._post({ kind: "ctxStatus", ...status });
-        }
+        this._postFrom(convId, { kind: "ctxStatus", ...status }, asyncToken);
         return;
       }
     }
@@ -1703,11 +2261,10 @@ class ChatViewProvider {
       (text) => {
         const status = introspect.parseContextStatus(text);
         if (!status) return;
+        if (this._convs.get(convId)?._asyncToken !== asyncToken) return;
         // Remember the window so later turns derive the status locally.
         this._ctxWindowCache = { key: cacheKey, window: status.window };
-        if (this._convs.activeId() === convId) {
-          this._post({ kind: "ctxStatus", ...status });
-        }
+        this._postFrom(convId, { kind: "ctxStatus", ...status }, asyncToken);
       },
       () => {},
     );
@@ -1868,26 +2425,20 @@ class ChatViewProvider {
   resolveWebviewView(view) {
     this.view = view;
     this._webviewReady = false;
+    this._webviewProtocolGuard = true;
+    this._webviewProtocolConfirmed = false;
+    this._webviewProtocolReloads = 0;
     view.webview.options = { enableScripts: true };
-    view.webview.html = buildChatHtml({
-      cspSource: view.webview.cspSource,
-      nonce: crypto.randomBytes(16).toString("hex"),
-      // Localized in the host (the webview can't call vscode.l10n.t) and injected
-      // as CC_L10N for the setup card.
-      l10n: {
-        setupFailed: this.vscode.l10n.t(
-          "LLM connection failed: {0} — configure the model first",
-        ),
-        setupNoConfig: this.vscode.l10n.t(
-          "No model configured yet — a one-minute guide gets you chatting (written to config.json, shared by the CLI and the panel)",
-        ),
-        configureLlmBtn: this.vscode.l10n.t("Configure LLM"),
-      },
-    });
+    // Subscribe before assigning HTML: the new script posts `ready` as soon as
+    // it executes, and fast Webview hosts must not win that race.
+    view.webview.onDidReceiveMessage((m) => this._handleMessage(m));
+    this._renderChatWebview(view);
     // First-run onboarding: no llm.provider configured → show the setup card.
     (async () => {
       try {
-        const { getConfiguredProvider } = require("../llm-config");
+        const getConfiguredProvider =
+          this.opts.deps?.getConfiguredProvider ||
+          require("../llm-config").getConfiguredProvider;
         const provider = await getConfiguredProvider({
           command: this._cliCommand(),
         });
@@ -1904,14 +2455,21 @@ class ChatViewProvider {
       this._modeStatus = createModeStatusBar(this.vscode);
     }
     this._updateModeStatus();
-    view.webview.onDidReceiveMessage((m) => this._handleMessage(m));
     view.onDidDispose(() => {
+      this._clearWebviewProtocolTimer();
       this._flushPlanReviewDrafts();
-      for (const s of this._convs.allSessions()) s.stop?.();
+      for (const summary of this._convs.list()) {
+        this._stopLoop(summary.id);
+        this._stopSession(this._convs.get(summary.id));
+      }
+      this._cleanupImageTemps();
       this._modeStatus?.item.dispose();
       this._modeStatus = null;
       this.view = null;
       this._webviewReady = false;
+      this._webviewProtocolGuard = false;
+      this._webviewProtocolConfirmed = false;
+      this._webviewProtocolReloads = 0;
     });
   }
 
@@ -1928,6 +2486,27 @@ class ChatViewProvider {
    */
   _handleMessage(m) {
     if (!m || typeof m !== "object") return;
+    if (this._webviewProtocolGuard) {
+      if (m.type === "ready" || m.type === "protocol") {
+        const wasReady = this._webviewReady;
+        if (!this._acceptWebviewProtocol(m)) return;
+        // A retained same-version DOM answers the Host probe but does not rerun
+        // its startup `ready` post. Treat that acknowledgement as readiness so
+        // queued actions and the tab bar are restored after an EH restart.
+        if (m.type === "protocol") {
+          if (wasReady) return;
+          m = { ...m, type: "ready" };
+        }
+      } else if (!this._webviewProtocolConfirmed) {
+        // Do not accept commands from a DOM whose routing contract has not
+        // been verified; replace it immediately instead of waiting for timeout.
+        this._reloadStaleWebview(
+          this.view,
+          `message "${String(m.type || "unknown")}" arrived before handshake`,
+        );
+        return;
+      }
+    }
     if (m.type === "send") {
       const images = Array.isArray(m.images)
         ? this._writeImageTemps(m.images)
@@ -1957,6 +2536,7 @@ class ChatViewProvider {
             images,
           })
         : session.send(m.text);
+      this._activeConv().turnActive = ok === true;
       if (!ok) {
         this._post({
           kind: "error",
@@ -1975,9 +2555,33 @@ class ChatViewProvider {
       // need to spawn the child first (e.g. Plan clicked before any turn).
       const action = String(m.action || "");
       if (action === "enter") {
-        this._ensureSession().sendEvent({ type: "plan", action });
+        const ok = this._ensureSession().sendEvent({ type: "plan", action });
+        if (!ok) {
+          this._post({ kind: "error", text: "could not enter plan mode" });
+        }
       } else {
-        this.session?.sendEvent({ type: "plan", action });
+        const conv = this._activeConv();
+        if (!conv.plan?.active) {
+          this._post({
+            kind: "info",
+            text: `/${action}: there is no active plan`,
+          });
+        } else if (!conv.session?.running) {
+          this._post({
+            kind: "error",
+            text: `/${action}: the agent session is not running`,
+          });
+        } else if (!conv.session.sendEvent({ type: "plan", action })) {
+          this._post({
+            kind: "error",
+            text: `/${action}: could not reach the agent session`,
+          });
+        } else if (["approve", "revise", "regenerate"].includes(action)) {
+          // These controls can fall through into a model continuation turn.
+          // Mark it active immediately so /stop can interrupt before the first
+          // streamed token arrives. A no-op plan_update note clears the flag.
+          conv.turnActive = true;
+        }
       }
     } else if (m.type === "planReviewAction") {
       this.reviewPlan(m.action).catch(() => {});
@@ -2024,7 +2628,9 @@ class ChatViewProvider {
     } else if (m.type === "loop") {
       this._setLoop(m.spec);
     } else if (m.type === "cliCommand") {
-      this._runCliCommand(String(m.command || "")).catch(() => {});
+      this._runCliCommand(String(m.command || ""), m.args).catch(() => {});
+    } else if (m.type === "sessionSlashCommand") {
+      this._runSessionSlashCommand(String(m.command || ""), m.args);
     } else if (m.type === "configureLlm") {
       // After the wizard writes config (cc config set), every ALREADY-RUNNING
       // child still holds the OLD provider/model/key — so a child spawned with
@@ -2053,15 +2659,34 @@ class ChatViewProvider {
       });
     } else if (m.type === "interrupt") {
       // Abort the in-flight turn only — the conversation/child stays alive.
-      this.session?.sendEvent({ type: "interrupt" });
+      const conv = this._activeConv();
+      if (!conv.session?.running || !conv.turnActive) {
+        this._post({ kind: "info", text: "/stop: no active turn" });
+      } else if (!conv.session.sendEvent({ type: "interrupt" })) {
+        this._post({
+          kind: "error",
+          text: "/stop: could not reach the agent session",
+        });
+      }
     } else if (m.type === "compact") {
       // Manual /compact (Claude-Code IDE parity): ask the child to trim its
       // live history between turns. The CLI answers with a `compaction`
       // event rendered like any other status line.
-      this.session?.sendEvent({ type: "compact" });
+      const conv = this._activeConv();
+      if (!conv.session?.running) {
+        this._post({
+          kind: "info",
+          text: "/compact: send a message first — no live session",
+        });
+      } else if (!conv.session.sendEvent({ type: "compact" })) {
+        this._post({
+          kind: "error",
+          text: "/compact: could not reach the agent session",
+        });
+      }
     } else if (m.type === "stop") {
       const conv = this._activeConv();
-      conv?.session?.stop?.();
+      this._stopSession(conv);
       this._indexConversation(conv, "stopped");
     } else if (m.type === "ready") {
       this._onWebviewReady();
@@ -2076,9 +2701,10 @@ class ChatViewProvider {
       // New chat: reset the ACTIVE conversation — drop its child AND resume
       // id so the next message spawns fresh. Webview clears on "reset".
       const conv = this._activeConv();
-      conv.session?.stop();
+      this._flushPlanReviewDrafts();
+      this._stopSession(conv);
+      this._clearSessionState(conv, { clearGoal: true });
       this._indexConversation(conv, "stopped");
-      this._convs.setSession(conv.id, null);
       this._convs.setSessionId(conv.id, null);
       // Reset the title back to its default ("Chat N") so the fresh
       // conversation re-derives its name from its OWN first message — otherwise
@@ -2115,9 +2741,14 @@ class ChatViewProvider {
       }
     } else if (m.type === "closeTab") {
       this._flushPlanReviewDrafts();
-      const res = this._convs.close(String(m.id || ""));
+      const closingId = String(m.id || "");
+      const closing = this._convs.get(closingId);
+      this._stopLoop(closingId);
+      this._lastCallUsage.delete(closingId);
+      this._planReviews.delete(closingId);
+      this._stopSession(closing);
+      const res = this._convs.close(closingId);
       if (res.closed) {
-        this._lastCallUsage.delete(String(m.id || "")); // drop its usage record
         // Remember it so Cmd/Ctrl+Shift+T can reopen+resume the last close.
         if (res.conv) {
           this._lastClosed = {
@@ -2126,7 +2757,6 @@ class ChatViewProvider {
           };
           this._indexConversation(res.conv, "stopped");
         }
-        res.conv?.session?.stop?.();
         if (this._convs.count() === 0) this._convs.create({}); // never empty
         this._rememberSessionId(this._convs.active()?.sessionId || null);
         this._postTabs();
@@ -2135,10 +2765,14 @@ class ChatViewProvider {
   }
 
   dispose() {
+    this._clearWebviewProtocolTimer();
+    this._webviewProtocolGuard = false;
+    this._webviewProtocolConfirmed = false;
     this._flushPlanReviewDrafts();
-    for (const state of this._loopTimers.values()) clearInterval(state.timer);
-    this._loopTimers.clear();
-    for (const s of this._convs.allSessions()) s.stop?.();
+    for (const summary of this._convs.list()) {
+      this._stopLoop(summary.id);
+      this._stopSession(this._convs.get(summary.id));
+    }
     this._cleanupImageTemps();
     this._modeStatus?.item.dispose();
     this._modeStatus = null;

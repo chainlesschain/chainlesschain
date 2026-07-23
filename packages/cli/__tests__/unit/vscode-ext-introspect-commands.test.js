@@ -12,6 +12,7 @@ import { describe, it, expect, vi } from "vitest";
 
 import {
   buildIntrospectArgs,
+  runCliResult,
   runCliText,
 } from "../../../vscode-extension/src/chat/introspect-commands.js";
 import { escapeCmdArgs } from "../../../vscode-extension/src/win-shell.js";
@@ -82,6 +83,93 @@ describe("runCliText (never rejects)", () => {
   it("resolves '' on a hard failure with no output", async () => {
     const execFile = vi.fn((cmd, args, o, cb) => cb(new Error("boom"), "", ""));
     await expect(runCliText(opts(execFile))).resolves.toBe("");
+  });
+});
+
+describe("runCliResult (structured process outcome)", () => {
+  const opts = (execFile, overrides = {}) => ({
+    command: "cc",
+    args: ["status"],
+    deps: { execFile },
+    ...overrides,
+  });
+
+  it("reports successful stdout without breaking runCliText compatibility", async () => {
+    const execFile = vi.fn((cmd, args, options, cb) =>
+      cb(null, "  session: ready\n", ""),
+    );
+
+    await expect(runCliResult(opts(execFile))).resolves.toMatchObject({
+      ok: true,
+      code: 0,
+      signal: null,
+      timedOut: false,
+      stdout: "session: ready",
+      stderr: "",
+      text: "session: ready",
+      error: null,
+    });
+    await expect(runCliText(opts(execFile))).resolves.toBe("session: ready");
+  });
+
+  it("retains stdout, stderr and numeric exit code on non-zero exit", async () => {
+    const failure = Object.assign(new Error("Command failed"), {
+      code: 7,
+      signal: null,
+    });
+    const execFile = vi.fn((cmd, args, options, cb) =>
+      cb(failure, "partial output\n", "bad arguments\n"),
+    );
+
+    await expect(runCliResult(opts(execFile))).resolves.toMatchObject({
+      ok: false,
+      code: 7,
+      signal: null,
+      timedOut: false,
+      stdout: "partial output",
+      stderr: "bad arguments",
+      text: "partial output\nbad arguments",
+      error: "Command failed",
+    });
+  });
+
+  it("surfaces ENOENT even when the process produced no output", async () => {
+    const missing = Object.assign(new Error("spawn cc ENOENT"), {
+      code: "ENOENT",
+    });
+    const execFile = vi.fn((cmd, args, options, cb) => cb(missing, "", ""));
+
+    await expect(runCliResult(opts(execFile))).resolves.toMatchObject({
+      ok: false,
+      code: null,
+      timedOut: false,
+      stdout: "",
+      stderr: "",
+      text: "",
+      error: "spawn cc ENOENT",
+    });
+  });
+
+  it("marks timeout failures distinctly", async () => {
+    const timeout = Object.assign(new Error("command timed out"), {
+      code: "ETIMEDOUT",
+      killed: true,
+      signal: "SIGTERM",
+    });
+    const execFile = vi.fn((cmd, args, options, cb) =>
+      cb(timeout, "", "timed out"),
+    );
+
+    const result = await runCliResult(opts(execFile, { timeoutMs: 1234 }));
+    expect(result).toMatchObject({
+      ok: false,
+      code: null,
+      signal: "SIGTERM",
+      timedOut: true,
+      stderr: "timed out",
+      text: "timed out",
+    });
+    expect(execFile.mock.calls[0][2].timeout).toBe(1234);
   });
 });
 

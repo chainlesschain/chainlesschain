@@ -117,6 +117,38 @@ describe("mapAgentEvent", () => {
     expect(mapAgentEvent(null, st)).toBe(null);
   });
 
+  it("maps successful session slash-command results to transcript output", () => {
+    const st = createTurnState();
+    expect(
+      mapAgentEvent(
+        {
+          type: "slash_command_result",
+          request_id: "slash-1",
+          command: "status",
+          ok: true,
+          text: "session: ready",
+        },
+        st,
+      ),
+    ).toEqual({ kind: "pre", text: "session: ready" });
+  });
+
+  it("maps failed session slash-command results to visible errors", () => {
+    const st = createTurnState();
+    expect(
+      mapAgentEvent(
+        {
+          type: "slash_command_result",
+          request_id: "slash-2",
+          command: "mcp",
+          ok: false,
+          error: { message: "MCP session is unavailable" },
+        },
+        st,
+      ),
+    ).toEqual({ kind: "error", text: "MCP session is unavailable" });
+  });
+
   it("renders cc version-skew / provider-fallback notices as info lines (raw channel)", () => {
     // cc emits these reminders as type:"raw" so the shipped panel renders them
     // (its `raw` → info mapping) without a plugin rebuild. Extra structured
@@ -364,8 +396,11 @@ describe("buildChatHtml", () => {
     // The SLASH map posts a compact control message …
     expect(html).toContain('"/compact"');
     expect(html).toContain('type: "compact"');
-    // … and /compact is advertised in the /help one-liner + autocomplete catalog.
-    expect(html).toMatch(/\/stop[^\n]*\/compact/); // listed right after /stop
+    // … and /compact is advertised by the shared manifest immediately after
+    // /stop (the manifest now drives both /help and autocomplete).
+    expect(html.indexOf('name: "/compact"')).toBeGreaterThan(
+      html.indexOf('name: "/stop"'),
+    );
     expect(html).toContain("compact the conversation history");
   });
 });
@@ -632,6 +667,25 @@ describe("panel slash commands (P1)", async () => {
       expect(page).toContain(cmd);
     }
     expect(page).toContain("/help");
+  });
+
+  it("the Send button accepts the highlighted slash suggestion before routing", async () => {
+    const { buildChatHtml: htmlS } =
+      await import("../../../vscode-extension/src/chat/chat-html.js");
+    const page = htmlS({ cspSource: "x:", nonce: "N" });
+    const sendStart = page.indexOf("function send()");
+    const sendEnd = page.indexOf(
+      'document.getElementById("send").addEventListener',
+      sendStart,
+    );
+    const sendBody = page.slice(sendStart, sendEnd);
+
+    expect(sendBody).toContain(
+      'if (sug.mode === "slash" && sug.items.length) acceptSug();',
+    );
+    expect(sendBody.indexOf("acceptSug()")).toBeLessThan(
+      sendBody.indexOf("const text = input.value.trim()"),
+    );
   });
 });
 

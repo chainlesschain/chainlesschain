@@ -19,6 +19,15 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
+import {
+  isSlashCommandResult,
+  type AgentInputEvent,
+  type AgentStreamEvent,
+  type SlashCommandInput,
+  type SlashCommandResultEvent,
+  type SystemInitEvent,
+} from "../src/protocol.js";
+
 const require = createRequire(import.meta.url);
 const here = dirname(fileURLToPath(import.meta.url));
 const fixturesDir = join(here, "..", "__fixtures__", "protocol");
@@ -168,5 +177,79 @@ describe("protocol fixture contract (VS Code chat-events twin)", () => {
       state,
     );
     expect(withMeta).toEqual(withoutMeta);
+  });
+});
+
+describe("session slash-command wire fixture", () => {
+  it("types the init capability advertisement", () => {
+    const [initValue] = readFixtureLines("session-lifecycle.ndjson");
+    const init: SystemInitEvent = initValue as SystemInitEvent;
+    const output: AgentStreamEvent = init;
+
+    expect(output.type).toBe("system");
+    expect(init.slash_commands).toEqual([
+      "status",
+      "doctor",
+      "mcp",
+      "hooks",
+      "permissions",
+      "agents",
+      "tasks",
+      "memory",
+    ]);
+  });
+
+  it("correlates success and failure responses without creating turn results", () => {
+    const lines = readFixtureLines("session-slash-command.ndjson");
+    expect(lines).toHaveLength(4);
+
+    const [
+      statusInputValue,
+      statusResultValue,
+      deniedInputValue,
+      deniedResultValue,
+    ] = lines;
+    const statusInput = statusInputValue as SlashCommandInput;
+    const statusResult = statusResultValue as SlashCommandResultEvent;
+    const deniedInput = deniedInputValue as SlashCommandInput;
+    const deniedResult = deniedResultValue as SlashCommandResultEvent;
+
+    // Compile-time union coverage: both additive shapes remain accepted by the
+    // public AgentInputEvent / AgentStreamEvent contracts.
+    const inputs: AgentInputEvent[] = [statusInput, deniedInput];
+    const outputs: AgentStreamEvent[] = [statusResult, deniedResult];
+
+    for (const input of inputs) {
+      expect(input.type).toBe("slash_command");
+      expect(typeof input.request_id).toBe("string");
+      expect(typeof input.command).toBe("string");
+      expect(typeof input.args).toBe("string");
+    }
+    for (const output of outputs) {
+      expect(isSlashCommandResult(output)).toBe(true);
+      expect(output.type).toBe("slash_command_result");
+      expect(output.type).not.toBe("result");
+    }
+
+    expect(statusResult).toMatchObject({
+      request_id: statusInput.request_id,
+      command: statusInput.command,
+      ok: true,
+      text: "Session status",
+      session_id: "sess-fx-1",
+    });
+    expect(statusResult.error).toBeUndefined();
+
+    expect(deniedResult).toMatchObject({
+      request_id: deniedInput.request_id,
+      command: deniedInput.command,
+      ok: false,
+      error: {
+        code: "UNSUPPORTED_ARGUMENTS",
+        message: "/permissions is read-only over stream-json",
+      },
+      session_id: "sess-fx-1",
+    });
+    expect(deniedResult.text).toBeUndefined();
   });
 });

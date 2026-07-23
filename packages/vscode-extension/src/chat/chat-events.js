@@ -106,6 +106,24 @@ function mapAgentEvent(evt, state) {
         kind: "info",
         text: `compacted: saved ${evt.stats?.saved ?? "?"} tokens`,
       };
+    case "slash_command_result": {
+      const command = String(evt.command || "").replace(/^\/+/, "");
+      const fallback = command ? `/${command}` : "session command";
+      if (evt.ok === true) {
+        return {
+          kind: "pre",
+          text: String(evt.text || `${fallback}: (no output)`),
+        };
+      }
+      const error =
+        evt.error && typeof evt.error === "object"
+          ? evt.error.message
+          : evt.error;
+      return {
+        kind: "error",
+        text: String(error || evt.text || `${fallback} failed`),
+      };
+    }
     case "result": {
       const sawDelta = state.sawDelta;
       state.sawDelta = false; // reset for the next turn

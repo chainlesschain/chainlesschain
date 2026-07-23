@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added — IDE 扩展 VS Code 0.37.17 + JetBrains 0.4.62：`uncertain_side_effect`/`needs_input` 阻塞可见（配 cc 0.162.169 生产者）+ JB deep-link 包含性 + EDT 冻结/泄漏清尾 + JB Marketplace 验证器清零（上架中）
 
 > VS Code `0.37.16` → **`0.37.17`** / JetBrains `0.4.60` → **`0.4.62`**（0.4.61 曾上传后在审核期删除、从未发出；0.4.62 = 0.4.61 全部内容 + 验证器清零批）。承接 cc 0.162.169 的后台状态机生产者与 headless-stream 副作用台账：0.37.16 已渲染的 `raw/side_effect_recovery` 恢复行之外，面板现在把两个新相位也当真数据消费。发版前验证：VS 914/0；JB JUnit 595/0 + smokeTest 1213/0 + verifyPlugin Compatible（零弃用/零内部 API 报告）。
+
 - **JB Marketplace 验证器清零（0.4.62 增量）**：0.4.61 报告 3 内部 API（`ShutDownTracker`，来自 Remote Control JVM 退出树杀）+ 3 弃用（`createShellWidget` ×2、`FileSaverDescriptor` varargs 构造器）。修法：树杀改纯 JDK `Runtime.addShutdownHook`（同一 JVM hook 机制，语义不变）；两处开终端收进共享 `TerminalLauncher` 反射解析（现有版本运行时零变化，未来方法被删自动改试 `createNewSession(String,…)`，剪贴板兜底不变）；.ps1 保存对话框反射优先官方精确三参构造器（2024.3+），242 回退 varargs。
 
 - **`uncertain_side_effect` 阻塞可见（双端）**：cc 0.162.169 在 resume 发现 UNKNOWN 结局不可逆操作时把会话停在 `phase:"uncertain_side_effect"`——面板此前把它当健康 "running" 渲染。现经单一共享判定归入"等人"类（摘要卡/行徽章/Sessions 工作台排序；JB 侧 Resume 对此类会话解禁，点击不再被静默吞掉）；徽章/attention 文案直接展示 parked question（`needs_input` 的 `pendingQuestion`）与 uncertain 计数，而非裸相位名。无管道的阻塞会话补 **Answer** 按钮（`cc daemon resume`）。
@@ -18,6 +19,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **JB EDT 冻结清尾**：Remote Control 启动（至多 4×12s `cc --version` 探测 + spawn）、Team Monitor 整文件读、App Preview（package.json 读 + `npm run` spawn）全部移出 UI 线程——缺 `cc` 时 IDE 不再冻 ~48s；remote-control host 加 JVM 退出树杀 + pairing 缓冲封顶。
 - **P2 加固/泄漏批**：VS——MCP `stop()` 强关活连接（挂着的 `openDiff` 评审不再卡死 Restart Bridge/关窗）、发送失败的粘贴图临时 PNG 即删；JB——`/handoff` 后台 spawn 收进单线程 sendExecutor（消除同会话双写者竞态）、WorktreeTasksAction git 捕获防撕裂读、SessionsWorkbench 自动刷新 in-flight 守卫入 finally（异常不再把面板钉死在旧数据）、plan-review 临时 .md dispose 即删。
 - **checkpoint 快照可见（VS）**：`checkpoint` 流事件渲染为 `📸 snapshot before <tool>` 行而非静默丢弃——`/rewind` 的锚点从此可见。
+
+### Added — cc CLI 0.162.176：统一进程执行边界 + durable runtime 事件 + IDE plan/diff review 完整链路（CLI-only npm 发版）
+
+> `chainlesschain` 0.162.175 → **0.162.176**（2026-07-23）。本版把 CLI 内分散的子进程入口收进统一 broker，并补齐 durable event、插件来源治理、结构化输出与 IDE 评审链路；同时修复 Windows changelog fallback、MCP 初始化顺序及多项跨平台执行回归。
+
+- **统一进程执行与安全边界**：后台 agent、batch、worktree、LSP/MCP、hook、发布、远程执行、凭据 helper 等宿主命令统一经 process broker；远程 argv、凭据过滤、同步/异步 exec-file 契约和跨平台 probe 一并加固。
+- **durable runtime / plugin 治理**：外部事件持久队列与 backpressure、MCP durable 事件生产者、plugin secret/process boundary、hook broker、plugin bin provenance 与 SBOM 接线。
+- **结构化输出与 IDE 评审**：JSON Schema 支持 local/dynamic/external refs；plan review 流式进度、批准计划锁定、diff 生命周期/关联/追问持久化和工具准入 host signal 接线。
+- **稳定性修复**：Windows 全局安装遇到父级 Node.js `CHANGELOG.md` 时回退包内数据；MCP 先初始化再注册 elicitation；修复 ESM cycle、workspace publishing、stream debug stack 与 broker portability。
+
+### Fixed — cc CLI 0.162.175：Windows hook 输出与 Node.js 22 启动链路加固
+
+> `chainlesschain` 0.162.174 → **0.162.175**（2026-07-21）。
+
+- 修复 Windows hook 输出处理、Node.js 22 JSON import 语法、platform sandbox/process broker 残余语法错误及命令注册回归。
+- 后台 cowork attach 可把 `askUserQuestion` 真实交给用户；Setup/Notification hooks、跨平台 sandbox 与 credential agent 默认链路完成接线。
+- 清理发布门的跨平台/并发 flake，恢复 CLI 启动、测试与发版契约。
+
+### Fixed — cc CLI 0.162.174：移除失效的 session notification import
+
+> `chainlesschain` 0.162.173 → **0.162.174**（2026-07-20）。
+
+- 移除 session notification 的陈旧导入，避免启动期模块解析失败。
+
+### Fixed — cc CLI 0.162.173：修复 observability 启动回归
+
+> `chainlesschain` 0.162.172 → **0.162.173**（2026-07-20）。
+
+- 修复 observability 模块缺失导出、循环依赖与 `traceContext is not defined`，恢复 CLI 正常启动。
+
+### Added — cc CLI 0.162.172：cowork 远程控制 + Runtime Convergence M5/M6
+
+> `chainlesschain` 0.162.171 → **0.162.172**（2026-07-20）。
+
+- 完成 cowork 远程控制、Hook System v2、Notification 事件与 Permission UX。
+- 接入分布式追踪、性能指标、OTLP exporter，以及 M5/M6 四层 runtime convergence 运行参数。
+
+### Added — cc CLI 0.162.171：后台 Agent 安全 worktree 交接 + turn/approval 持久绑定
+
+> `chainlesschain` 0.162.170 → **0.162.171**（2026-07-19）。
+
+- 后台 Agent 增加生产级 bootstrap 与安全 worktree transfer。
+- REPL 成为 turn-binding 生产者，`/rewind` 消费持久化绑定表；WebSocket approval binding 补齐真实生产者。
+- IDE lockfile sandbox 与 CLI worktree 边界同步加固。
 
 ### Added — cc CLI 0.162.170：后台 Agent stop 自杀守卫 + 可注入 kill seam + smoke-runner 死 pid 守卫；发版门 flake 治本后首个无 skip_tests 发版（CLI-only npm 发版）
 

@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { VERSION } from "../constants.js";
-import { loadChangelog } from "../lib/changelog.js";
+import { latestCliVersion, loadChangelog } from "../lib/changelog.js";
 import logger from "../lib/logger.js";
 
 /**
@@ -82,10 +82,21 @@ export function registerChangelogCommand(program) {
     .action((version, options) => {
       const data = loadChangelog();
       const releases = data.releases || [];
+      const jsonPayload = (selected) =>
+        JSON.stringify(
+          {
+            ...data,
+            installedVersion: VERSION,
+            latestDocumentedVersion: latestCliVersion(releases),
+            releases: selected,
+          },
+          null,
+          2,
+        );
 
       if (releases.length === 0) {
         if (options.json) {
-          logger.log(JSON.stringify({ releases: [] }, null, 2));
+          logger.log(jsonPayload([]));
         } else {
           logger.warn("No changelog data is bundled with this build.");
         }
@@ -97,7 +108,7 @@ export function registerChangelogCommand(program) {
         selected = matchVersion(releases, version);
         if (selected.length === 0) {
           if (options.json) {
-            logger.log(JSON.stringify({ releases: [] }, null, 2));
+            logger.log(jsonPayload([]));
           } else {
             logger.warn(`No CLI release notes found for "${version}".`);
             logger.info(
@@ -114,7 +125,7 @@ export function registerChangelogCommand(program) {
       }
 
       if (options.json) {
-        logger.log(JSON.stringify({ ...data, releases: selected }, null, 2));
+        logger.log(jsonPayload(selected));
         return;
       }
 

@@ -82,13 +82,16 @@ function contextStatusFromUsage(usage, window) {
 }
 
 /**
- * Run a CLI command and resolve its trimmed stdout (or stderr when stdout is
- * empty). Never rejects — resolves "" on a hard failure so the caller renders
- * a fallback. execFile gives plain text (chalk auto-disables off a TTY).
+ * Run a CLI command without throwing away its process outcome.
+ *
+ * The older runCliText API remains a string-returning compatibility wrapper
+ * for cost/context and other extension features. Slash-command routing uses
+ * this structured result so a non-zero exit, timeout or ENOENT is rendered as
+ * an error instead of a successful-looking transcript block.
  */
-function runCliText({
+function runCliResult({
   command = "cc",
-  args,
+  args = [],
   cwd,
   env,
   timeoutMs = 30000,
@@ -115,16 +118,34 @@ function runCliText({
       },
       (err, stdout, stderr) => {
         const out = String(stdout || "").trim();
-        if (out) return resolve(out);
         const errOut = String(stderr || "").trim();
-        resolve(err && !errOut ? "" : errOut);
+        const combined = [out, errOut].filter(Boolean).join("\n");
+        const timedOut =
+          Boolean(err) &&
+          (err.code === "ETIMEDOUT" ||
+            (err.killed === true && err.signal === "SIGTERM"));
+        resolve({
+          ok: !err,
+          code: !err ? 0 : typeof err.code === "number" ? err.code : null,
+          signal: err?.signal || null,
+          timedOut,
+          stdout: out,
+          stderr: errOut,
+          text: err ? combined : out || errOut,
+          error: err ? String(err.message || err) : null,
+        });
       },
     );
   });
 }
 
+function runCliText(options = {}) {
+  return runCliResult(options).then((result) => result.text);
+}
+
 module.exports = {
   buildIntrospectArgs,
+  runCliResult,
   runCliText,
   parseContextStatus,
   contextStatusFromUsage,

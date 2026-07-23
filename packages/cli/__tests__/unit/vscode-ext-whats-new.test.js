@@ -9,6 +9,8 @@ import { describe, it, expect } from "vitest";
 import {
   buildChangelogArgs,
   parseChangelogJson,
+  chooseChangelogReleases,
+  reconcileChangelogReleases,
   loadBundledChangelog,
   changelogToMarkdown,
   upgradeNudge,
@@ -53,6 +55,37 @@ describe("parseChangelogJson", () => {
   });
 });
 
+describe("chooseChangelogReleases", () => {
+  it("falls back when valid CLI JSON contains an empty release list", () => {
+    const bundled = [{ cliVersion: "0.162.176" }];
+    expect(chooseChangelogReleases([], bundled)).toBe(bundled);
+    expect(chooseChangelogReleases(RELEASES, bundled)).toBe(RELEASES);
+  });
+});
+
+describe("reconcileChangelogReleases", () => {
+  it("makes a stale non-empty artifact explicit at the installed version", () => {
+    const stale = [{ cliVersion: "0.162.170", cliVersions: ["0.162.170"] }];
+    const result = reconcileChangelogReleases(stale, {
+      installed: "0.162.176",
+    });
+    expect(result.stale).toBe(true);
+    expect(result.releases[0].cliVersion).toBe("0.162.176");
+    expect(result.releases[0].sections[0].body).toContain(
+      "Newest bundled notes: `0.162.170`",
+    );
+  });
+
+  it("recognizes the installed version in a multi-version release block", () => {
+    const result = reconcileChangelogReleases(
+      [{ cliVersion: "0.162.176", cliVersions: ["0.162.175", "0.162.176"] }],
+      { installed: "0.162.175" },
+    );
+    expect(result.stale).toBe(false);
+    expect(result.releases).toHaveLength(1);
+  });
+});
+
 describe("loadBundledChangelog", () => {
   it("recovers from a Windows cc wrapper whose CLI returned empty JSON", () => {
     const reads = new Map([
@@ -85,6 +118,12 @@ describe("changelogToMarkdown", () => {
     expect(md).toContain("## 0.162.150");
     expect(md).not.toContain("> note"); // blockquote marker stripped
     expect(md).not.toMatch(/\n{3,}/); // no blank-run bloat
+  });
+
+  it("marks the installed CLI version in the rendered heading", () => {
+    expect(changelogToMarkdown(RELEASES, { installed: "0.162.151" })).toContain(
+      "## 0.162.151 (product v5.0.3.135, 2026-07-06) ← installed",
+    );
   });
 });
 

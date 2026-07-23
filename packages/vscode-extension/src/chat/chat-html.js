@@ -23,6 +23,12 @@ const SLASH_SOURCE = fs.readFileSync(
   "utf8",
 );
 
+// Bump whenever an older retained Webview DOM is not safe to keep talking to
+// the current Extension Host. VS Code can preserve that DOM across an
+// Extension Host restart when retainContextWhenHidden is enabled, so this is
+// an explicit UI/Host handshake rather than relying on the extension version.
+const CHAT_UI_PROTOCOL_VERSION = 2;
+
 function buildChatHtml({ cspSource, nonce, l10n }) {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -154,6 +160,7 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
   </div>
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();
+  const CC_CHAT_UI_PROTOCOL_VERSION = ${CHAT_UI_PROTOCOL_VERSION};
   const CC_L10N = ${JSON.stringify(l10n || {})};
   const log = document.getElementById("log");
   const input = document.getElementById("input");
@@ -392,27 +399,9 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
     }
   }
 
-  // Panel slash commands — local sugar over the existing controls.
-  const SLASH = {
-    "/sessions": () => vscode.postMessage({ type: "pickSession" }),
-    "/resume": () => vscode.postMessage({ type: "pickSession" }),
-    "/new": () => vscode.postMessage({ type: "new" }),
-    "/clear": () => vscode.postMessage({ type: "new" }),
-    "/plan": () => vscode.postMessage({ type: "plan", action: "enter" }),
-    "/approve": () => vscode.postMessage({ type: "plan", action: "approve" }),
-    "/reject": () => vscode.postMessage({ type: "plan", action: "reject" }),
-    "/auto": () => vscode.postMessage({ type: "mode", mode: "acceptEdits" }),
-    "/bypass": () => vscode.postMessage({ type: "mode", mode: "bypassPermissions" }),
-    "/normal": () => vscode.postMessage({ type: "mode", mode: "default" }),
-    "/think": () => vscode.postMessage({ type: "think", level: "on" }),
-    "/ultrathink": () => vscode.postMessage({ type: "think", level: "ultra" }),
-    "/think-off": () => vscode.postMessage({ type: "think", level: "off" }),
-    "/stop": () => vscode.postMessage({ type: "interrupt" }),
-    "/compact": () => vscode.postMessage({ type: "compact" }),
-    "/cost": () => vscode.postMessage({ type: "cost" }),
-    "/context": () => vscode.postMessage({ type: "context" }),
-    "/rewind": () => vscode.postMessage({ type: "rewind" }),
-    "/handoff": () => vscode.postMessage({ type: "handoff" }),
+  // Commands requiring DOM state stay local. Everything else is resolved from
+  // ccSlash.COMMAND_DEFS, the same manifest that drives completion and /help.
+  const LOCAL_SLASH = {
     "/retry": () => {
       // Regenerate: re-send THIS tab's last user prompt as a fresh turn (a
       // single global would replay another tab's prompt after a switch).
@@ -430,19 +419,6 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
         "Don't edit files unless I ask.";
       send();
     },
-    "/goal": (arg) => vscode.postMessage({ type: "goal", spec: arg || "" }),
-    "/loop": (arg) => vscode.postMessage({ type: "loop", spec: arg || "" }),
-    "/status": () => vscode.postMessage({ type: "cliCommand", command: "status" }),
-    "/doctor": () => vscode.postMessage({ type: "cliCommand", command: "doctor" }),
-    "/init": () => vscode.postMessage({ type: "cliCommand", command: "init" }),
-    "/mcp": () => vscode.postMessage({ type: "cliCommand", command: "mcp" }),
-    "/hooks": () => vscode.postMessage({ type: "cliCommand", command: "hook" }),
-    "/permissions": () => vscode.postMessage({ type: "cliCommand", command: "permissions" }),
-    "/agents": () => vscode.postMessage({ type: "cliCommand", command: "agents" }),
-    "/tasks": () => vscode.postMessage({ type: "cliCommand", command: "tasks" }),
-    "/memory": () => vscode.postMessage({ type: "cliCommand", command: "memory" }),
-    "/plugin": () => vscode.postMessage({ type: "cliCommand", command: "plugin" }),
-    "/release-notes": () => vscode.postMessage({ type: "cliCommand", command: "changelog" }),
     "/expand": () => {
       // Expand/collapse all reasoning blocks (also Ctrl/Cmd+O).
       if (log.querySelector("details.thinking")) toggleAllThinking();
@@ -509,6 +485,11 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
     }
   });
   function send() {
+    // Clicking the blue Send button must mirror Enter while the slash menu is
+    // open. Previously Enter accepted the highlighted /status suggestion,
+    // but Send submitted the still-partial /sta text and reported it as an
+    // unknown command without ever reaching the Extension Host or cc.
+    if (sug.mode === "slash" && sug.items.length) acceptSug();
     const text = input.value.trim();
     if (!text && !pendingImages.length) return;
     if (text.startsWith("/")) {
@@ -519,13 +500,23 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
         input.focus();
         return;
       }
-      if (cmd === "/help") {
-        add("info", "panel commands: /new · /sessions (/resume) · /plan · /approve · /reject · /auto · /bypass · /normal · /think · /ultrathink · /think-off · /stop · /compact · /cost · /context · /rewind · /retry · /handoff · /review · /goal · /loop · /expand (Ctrl+O all reasoning) · /help");
-        return;
-      }
-      if (SLASH[cmd]) {
+      const route = ccSlash.routeSlashCommand(
+        cmd,
+        text.slice(cmd.length).trim(),
+      );
+      if (route) {
+        if (route.kind === "help") {
+          add("info", ccSlash.formatSlashHelp());
+          return;
+        }
         add("info", cmd);
-        SLASH[cmd](text.slice(cmd.length).trim());
+        if (route.kind === "local") {
+          const local = LOCAL_SLASH[route.command];
+          if (local) local(route.args);
+          else add("info", "command is unavailable in this panel: " + cmd);
+        } else if (route.kind === "message") {
+          vscode.postMessage(route.message);
+        }
         return;
       }
       add("info", "unknown command " + cmd + " — try /help");
@@ -712,6 +703,15 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
 
   window.addEventListener("message", (e) => {
     const m = e.data || {};
+    // The Extension Host may have restarted while VS Code retained this DOM.
+    // Answer its probe so it can distinguish this UI from an older script.
+    if (m.kind === "protocolProbe") {
+      vscode.postMessage({
+        type: "protocol",
+        uiProtocolVersion: CC_CHAT_UI_PROTOCOL_VERSION,
+      });
+      return;
+    }
     switch (m.kind) {
       case "init":
         status.textContent = m.model ? (m.provider + " · " + m.model) : "connected";
@@ -1082,10 +1082,13 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
     }
   });
   // Signal the host the script is live so it can flush a queued insertText.
-  vscode.postMessage({ type: "ready" });
+  vscode.postMessage({
+    type: "ready",
+    uiProtocolVersion: CC_CHAT_UI_PROTOCOL_VERSION,
+  });
 </script>
 </body>
 </html>`;
 }
 
-module.exports = { buildChatHtml };
+module.exports = { buildChatHtml, CHAT_UI_PROTOCOL_VERSION };

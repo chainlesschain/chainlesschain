@@ -27,6 +27,71 @@ function parseChangelogJson(text) {
 }
 
 /**
+ * Prefer usable CLI output, but let an empty (rather than malformed) JSON
+ * result fall back to the artifact bundled in the same installation.
+ */
+function chooseChangelogReleases(parsed, bundled) {
+  if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+  if (Array.isArray(bundled) && bundled.length > 0) return bundled;
+  return Array.isArray(parsed)
+    ? parsed
+    : Array.isArray(bundled)
+      ? bundled
+      : null;
+}
+
+function releaseVersions(release) {
+  return [
+    release?.cliVersion,
+    ...(Array.isArray(release?.cliVersions) ? release.cliVersions : []),
+  ].filter(Boolean);
+}
+
+/**
+ * Detect a non-empty but stale changelog. Older published CLI packages can
+ * report a newer `cc --version` than any release in their bundled artifact.
+ * Never present that data as if it described the installed build.
+ */
+function reconcileChangelogReleases(releases, { installed } = {}) {
+  const list = Array.isArray(releases) ? releases : [];
+  const versions = [...new Set(list.flatMap(releaseVersions))];
+  if (!installed || versions.includes(installed) || versions.length === 0) {
+    return { releases: list, stale: false };
+  }
+  const { compareVersions } = require("./version-check");
+  const latest = versions.reduce((best, version) =>
+    compareVersions(version, best) > 0 ? version : best,
+  );
+  if (compareVersions(installed, latest) <= 0) {
+    return { releases: list, stale: false };
+  }
+
+  return {
+    stale: true,
+    releases: [
+      {
+        productVersion: null,
+        cliVersion: installed,
+        cliVersions: [installed],
+        date: null,
+        title: "Installed CLI build — matching release notes were not bundled",
+        sections: [
+          {
+            heading: "Release-note data is out of date",
+            body:
+              `- Installed CLI: \`${installed}\`\n` +
+              `- Newest bundled notes: \`${latest}\`\n\n` +
+              "Older bundled notes follow below. Reinstall or upgrade the CLI " +
+              "after a corrected package is published.",
+          },
+        ],
+      },
+      ...list,
+    ],
+  };
+}
+
+/**
  * Read the changelog artifact shipped inside the installed CLI package.
  *
  * Older Windows installations can have a parent-level `CHANGELOG.md` (the
@@ -51,7 +116,10 @@ function loadBundledChangelog({
         commandText,
         ...pathEntries.flatMap((entry) =>
           process.platform === "win32"
-            ? [pathApi.join(entry, `${commandText}.cmd`), pathApi.join(entry, commandText)]
+            ? [
+                pathApi.join(entry, `${commandText}.cmd`),
+                pathApi.join(entry, commandText),
+              ]
             : [pathApi.join(entry, commandText)],
         ),
       ];
@@ -69,7 +137,8 @@ function loadBundledChangelog({
     try {
       if (!fsApi.existsSync(dataPath)) continue;
       const data = JSON.parse(fsApi.readFileSync(dataPath, "utf8"));
-      if (Array.isArray(data?.releases) && data.releases.length > 0) return data.releases;
+      if (Array.isArray(data?.releases) && data.releases.length > 0)
+        return data.releases;
     } catch {
       // A broken optional fallback must not hide the normal CLI error path.
     }
@@ -127,6 +196,8 @@ module.exports = {
   MIN_CHANGELOG_CLI,
   buildChangelogArgs,
   parseChangelogJson,
+  chooseChangelogReleases,
+  reconcileChangelogReleases,
   loadBundledChangelog,
   changelogToMarkdown,
   upgradeNudge,

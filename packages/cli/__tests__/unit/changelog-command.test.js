@@ -39,6 +39,7 @@ vi.mock("../../src/lib/changelog.js", () => ({
     source: "CHANGELOG.md",
     releases: RELEASES,
   })),
+  latestCliVersion: vi.fn(() => "0.162.150"),
 }));
 vi.mock("../../src/constants.js", () => ({ VERSION: "0.162.150" }));
 
@@ -112,11 +113,20 @@ describe("cc changelog", () => {
     expect(out).toContain("0.162.3");
   });
 
+  it("keeps version metadata when a JSON query has no matching release", () => {
+    const json = JSON.parse(run("9.9.9", "--json"));
+    expect(json.releases).toEqual([]);
+    expect(json.installedVersion).toBe("0.162.150");
+    expect(json.latestDocumentedVersion).toBe("0.162.150");
+  });
+
   it("--json emits structured data for the selection", () => {
     const out = run("0.162.148", "--json");
     const json = JSON.parse(out);
     expect(json.releases).toHaveLength(1);
     expect(json.releases[0].cliVersion).toBe("0.162.148");
     expect(json.source).toBe("CHANGELOG.md");
+    expect(json.installedVersion).toBe("0.162.150");
+    expect(json.latestDocumentedVersion).toBe("0.162.150");
   });
 });

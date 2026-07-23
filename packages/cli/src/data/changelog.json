@@ -2,124 +2,353 @@
   "source": "CHANGELOG.md",
   "releases": [
     {
-      "productVersion": "Unreleased",
+      "productVersion": null,
+      "cliVersion": "0.162.176",
+      "cliVersions": ["0.162.176"],
+      "date": "2026-07-23",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added — cc CLI 0.162.176：统一进程执行边界 + durable runtime 事件 + IDE plan/diff review 完整链路（CLI-only npm 发版）",
+          "body": "> `chainlesschain` 0.162.175 → **0.162.176**（2026-07-23）。本版把 CLI 内分散的子进程入口收进统一 broker，并补齐 durable event、插件来源治理、结构化输出与 IDE 评审链路；同时修复 Windows changelog fallback、MCP 初始化顺序及多项跨平台执行回归。\n\n- **统一进程执行与安全边界**：后台 agent、batch、worktree、LSP/MCP、hook、发布、远程执行、凭据 helper 等宿主命令统一经 process broker；远程 argv、凭据过滤、同步/异步 exec-file 契约和跨平台 probe 一并加固。\n- **durable runtime / plugin 治理**：外部事件持久队列与 backpressure、MCP durable 事件生产者、plugin secret/process boundary、hook broker、plugin bin provenance 与 SBOM 接线。\n- **结构化输出与 IDE 评审**：JSON Schema 支持 local/dynamic/external refs；plan review 流式进度、批准计划锁定、diff 生命周期/关联/追问持久化和工具准入 host signal 接线。\n- **稳定性修复**：Windows 全局安装遇到父级 Node.js `CHANGELOG.md` 时回退包内数据；MCP 先初始化再注册 elicitation；修复 ESM cycle、workspace publishing、stream debug stack 与 broker portability。"
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.175",
+      "cliVersions": ["0.162.175"],
+      "date": "2026-07-21",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed — cc CLI 0.162.175：Windows hook 输出与 Node.js 22 启动链路加固",
+          "body": "> `chainlesschain` 0.162.174 → **0.162.175**（2026-07-21）。\n\n- 修复 Windows hook 输出处理、Node.js 22 JSON import 语法、platform sandbox/process broker 残余语法错误及命令注册回归。\n- 后台 cowork attach 可把 `askUserQuestion` 真实交给用户；Setup/Notification hooks、跨平台 sandbox 与 credential agent 默认链路完成接线。\n- 清理发布门的跨平台/并发 flake，恢复 CLI 启动、测试与发版契约。"
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.174",
+      "cliVersions": ["0.162.174"],
+      "date": "2026-07-20",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed — cc CLI 0.162.174：移除失效的 session notification import",
+          "body": "> `chainlesschain` 0.162.173 → **0.162.174**（2026-07-20）。\n\n- 移除 session notification 的陈旧导入，避免启动期模块解析失败。"
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.173",
+      "cliVersions": ["0.162.173"],
+      "date": "2026-07-20",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed — cc CLI 0.162.173：修复 observability 启动回归",
+          "body": "> `chainlesschain` 0.162.172 → **0.162.173**（2026-07-20）。\n\n- 修复 observability 模块缺失导出、循环依赖与 `traceContext is not defined`，恢复 CLI 正常启动。"
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.172",
+      "cliVersions": ["0.162.172"],
+      "date": "2026-07-20",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added — cc CLI 0.162.172：cowork 远程控制 + Runtime Convergence M5/M6",
+          "body": "> `chainlesschain` 0.162.171 → **0.162.172**（2026-07-20）。\n\n- 完成 cowork 远程控制、Hook System v2、Notification 事件与 Permission UX。\n- 接入分布式追踪、性能指标、OTLP exporter，以及 M5/M6 四层 runtime convergence 运行参数。"
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.171",
+      "cliVersions": ["0.162.171"],
+      "date": "2026-07-19",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added — cc CLI 0.162.171：后台 Agent 安全 worktree 交接 + turn/approval 持久绑定",
+          "body": "> `chainlesschain` 0.162.170 → **0.162.171**（2026-07-19）。\n\n- 后台 Agent 增加生产级 bootstrap 与安全 worktree transfer。\n- REPL 成为 turn-binding 生产者，`/rewind` 消费持久化绑定表；WebSocket approval binding 补齐真实生产者。\n- IDE lockfile sandbox 与 CLI worktree 边界同步加固。"
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.162.170",
-      "cliVersions": [
-        "0.4.46",
-        "0.4.51",
-        "0.37.4",
-        "0.162.150",
-        "0.162.151",
-        "0.162.152",
-        "0.162.153",
-        "0.162.154",
-        "0.162.155",
-        "0.162.156",
-        "0.162.157",
-        "0.162.158",
-        "0.162.159",
-        "0.162.160",
-        "0.162.161",
-        "0.162.162",
-        "0.162.163",
-        "0.162.164",
-        "0.162.165",
-        "0.162.166",
-        "0.162.167",
-        "0.162.168",
-        "0.162.169",
-        "0.162.170"
-      ],
+      "cliVersions": ["0.162.170"],
       "date": null,
       "title": "",
       "sections": [
         {
           "heading": "Added — cc CLI 0.162.170：后台 Agent stop 自杀守卫 + 可注入 kill seam + smoke-runner 死 pid 守卫；发版门 flake 治本后首个无 skip_tests 发版（CLI-only npm 发版）",
           "body": "> `chainlesschain` 0.162.169 → **0.162.170** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。CLI-only：`packages/cli/src` 仅两文件（+ vitest 4.1.5→4.1.10 devDep 升级与测试）；未触 `pdh/lib` → 无 Android bundle / 无 USR_VERSION。**无新增顶层命令，命令数 175 不变**；默认路径字节不变（守卫只在损坏/异常记录上改变行为）。本版同时是 CI 发版门 worker-death flake（卡了 .167/.168/.169 三个发版、cli-ci 30+ 连败）治本（trap #34）后的**验证发版**——test 门应首跑即绿、无需 `skip_tests`。\n\n- **后台 Agent stop 自杀守卫（真实世界加固）**：`stopBackgroundAgent` 现拒绝向 `pid === process.pid` 的记录发信号——合法的 worker 记录不可能指向执行 stop 的进程自身，命中即判损坏记录（标 `lost`/`self-pid-corrupt-record`、不杀任何进程）。此前一份损坏/手改的 state 文件能让 `cc daemon stop` 对用户自己的 shell 树发 SIGTERM（POSIX）或 `taskkill /T /F`（Windows）。agentPid 组杀同样加 `!== process.pid` 守卫；`defaultKillProcessTree` 同款自杀守卫。\n- **可注入 kill seam**：supervisor 全部 POSIX 信号从裸 `process.kill` 收进 `_deps.kill` 单一 seam——测试可注入（正是 flake 根因之一：`_deps.spawnSync` stub 只盖 Windows taskkill 分支、POSIX 裸 kill 拦不住），生产行为不变。\n- **smoke-runner 死 pid 守卫**：子进程已退出（`exitCode`/`signalCode` 非 null）时跳过 Windows `taskkill /T /F`——Windows 秒级复用 pid，对死尸 pid 的树杀会误杀顶替者全树（CI 上即另一 vitest worker / 无辜测试子进程）。\n- **vitest 4.1.5 → 4.1.10**（root workspace 全体 devDep）：含 4.1.9 的真 pool 修复（worker 崩溃挂起、per-task error 监听、STOPPED 态、回收 isTerminated 守卫）；非 flake 解药但保留为正确卫生。agent-sdk 刻意保持 `^3` 钉版；独立 web-panel 不动。"
-        },
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.169",
+      "cliVersions": ["0.162.169"],
+      "date": null,
+      "title": "",
+      "sections": [
         {
           "heading": "Added — cc CLI 0.162.169：增量 gap-analysis 收口批——后台 Agent `needs_input`/`uncertain_side_effect` 真实生产者 + IDE stream 路径副作用台账 + post-edit 诊断多根 + plugin 安装入统一 install 审计（CLI-only npm 发版）",
           "body": "> `chainlesschain` 0.162.168 → **0.162.169** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量（4 个 feat/fix commit + 测试 + gap-analysis 文档状态）；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。**无新增顶层命令，命令数 175 不变**。默认路径全部字节不变——唯一行为变化限**后台** agent 子进程（`ask_user_question` 从 `user_not_reachable` 变为 park 成 `needs_input`，前台/headless 不受影响）。\n\n- **P0 后台 Agent：`needs_input` + `uncertain_side_effect` 真实生产者（状态机相位收口）**：最后两个无生产者相位补齐。`uncertain_side_effect`——后台子进程 `--resume` 时 side-effect ledger reconcile 出 **UNKNOWN 结局**的不可逆操作（inspect 桶），即把 `phase:\"uncertain_side_effect\"` + 计数写进共享 state，Dashboard 归入 \"Needs input\"（unknown 必须人工确认）；worker 在下一 turn/idle 边界清注解。`needs_input`（**提问**态，区别于审批）——后台 turn 子进程的 `ask_user_question` 现在有人接：把 `phase:\"needs_input\"` + `pendingQuestion:{question,options}` 写进 state、指示模型结束回合，用户经 attach 的回复作为下一 turn 到达；新纯核 `idlePhaseFor` 保证**未答问题在 idle 边界不降级为 Idle**。session-lifecycle/phase 词表/Dashboard 分组同步扩齐；前台运行不供 interaction → 既有 `user_not_reachable` 路径逐字节不变。\n- **P0-2 IDE stream 路径副作用台账（崩溃恢复补全第三路）**：crash-safe side-effect ledger（prepare→start→commit|fail 记账 + resume 时 verify-before-replay reconcile）此前只在单-prompt runner 与 WS bridge——IDE 双面板真正驱动的 **headless-stream**（`--input-format stream-json --resume`）没有：面板 worker 在 git push/publish/opaque shell 中途被杀，resume 后无恢复通知、可能盲目重放。现 stream 孪生路径同样记账（副作用 settle 前持久化快照），resume 时 reconcile 并把 Recovery notice 以 system 消息 + `raw/side_effect_recovery` 行双路发出（已发的 VS 0.37.16 / JB 0.4.60 面板已渲染该行）。匿名/`--ephemeral` 运行字节不变。\n- **P2 LSP：post-edit 诊断多根**：`_postEditDiagnostics` 的根选择不再恒 cwd——三个编辑工具（write_file/edit_file/edit_file_hashed）按**包含被编辑文件的根**（`pickRootForFile`，镜像 code_intelligence）做 server 探测与共享池 key，编辑 `--add-dir` 根内文件时诊断走它自己项目的语言服务器而非静默降级为无诊断。单根会话字节不变。\n- **P0 沙箱：plugin 安装入统一 install 审计（「下载并运行第三方代码」三入口收口）**：`cc plugin add`/`upgrade` 拉来的插件带可执行组件（bin/hooks/LSP/MCP 以进程运行），本质是 plugin-runtime 版的 `npm install -g`——现与 run_shell 安装、run_code 自动安装共用同一 opt-in 审计 trail（`CC_INSTALL_AUDIT`/settings `installPolicy` → `install-commands.jsonl`）：新纯核 `classifyPluginInstall`（manager `cc-plugin`、`name@version`、**仅 user scope 判 global**、source URL + 已声明能力 token 随行），add 成功后与 upgrade **真落盘**新版本后记 `source:\"plugin_install\"`（up-to-date no-op 不记）。默认（策略关）零写；审计 best-effort 绝不破坏安装。"
-        },
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.168",
+      "cliVersions": ["0.162.168"],
+      "date": null,
+      "title": "",
+      "sections": [
         {
           "heading": "Added — cc CLI 0.162.168：增量 gap-analysis 第二批接线——后台 Agent「等待审批」真实状态 + hook 事件溯源（trace/parent）+ LSP 多根与重启退避默认开 + 严格 hook 合并真并行 + 大仓 subagent worktree/子树指令 + run_code install 审计（CLI-only npm 发版）",
           "body": "> `chainlesschain` 0.162.167 → **0.162.168** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量（10 个 feat commit + 测试 + gap-analysis 文档状态）；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。**无新增顶层命令，命令数 175 不变**。绝大多数改动 opt-in / 默认路径字节不变；**两处默认行为变化**（均可 env 关）：LSP 重启退避默认开（`CC_LSP_RESTART_BACKOFF_MS=0` 恢复旧行为）与子树指令懒注入默认开（`CC_SUBTREE_INSTRUCTIONS=0` 关）。\n\n- **P0 后台 Agent：`waiting_permission` 真实生产者**：后台 agent 卡在人工审批（`--permission-prompt-tool` / `--remote-control`）时不再永远显示 \"Working\"——agent 子进程（经 worker 注入的 `CC_BACKGROUND_AGENT_ID`）在审批 pending 期间把 `phase:\"waiting_permission\"` + 实时 `pendingApprovals` 计数写进共享 state，settle 即恢复；Dashboard \"Needs input\" 分组从此有真数据。前台运行返回同一 confirmer 函数对象、零 IO 字节不变；worker 在每回合开始与 idle 重置计数，被 SIGKILL 于审批中途的子进程不会把会话永久钉在 \"Needs input\"。\n- **P0 沙箱：统一 install 审计扩到 `run_code`**：分类器新识别模块调用 `python`/`python3`/`py` `-m pip install …`（含 `sudo` 包裹；`-m http.server`/`-m venv`/`setup.py install` 不误报）；`run_code` 的 pip 自动安装 installed/failed 尝试在同一 opt-in 策略（`CC_INSTALL_AUDIT` / settings `installPolicy`）下落统一 `install-commands.jsonl`（`source:\"run_code_auto_install\"` + pip 分类 + global 判定）——一份审计覆盖所有「下载并运行第三方代码」入口。\n- **P2 Hooks：strictest-merge 决策合并（opt-in `CC_HOOK_STRICT_MERGE=1`）+ PreToolUse 真并行**：修掉真实安全缺口——原按序短路下**较早**的一个 `ask` 会掩盖**较晚**一个 hook 的 `block`（blocker 根本没跑）。开启后跑完全部匹配 hook 取最严（block>ask>allow>continue）；PreToolUse 路径经异步 spawn **真并行**（wall-clock=最慢单 hook 而非求和，硬超时 SIGKILL 挂死 hook）。默认关=逐字节原短路行为。\n- **P2 Hooks：trace_id/parent_id 事件溯源**：PreToolUse / PostToolUse / PermissionRequest / SubagentStop 四个 payload 构造点现带 `event_id` + `trace_id`（本 run）+ `parent_id`（spawn 方 run）；`spawn_sub_agent` 与隔离 `run_skill` 把父 trace 线程进子 loop，子 agent 的 hook 事件跨深度关联回父 trace。未线程时字段整个省略——legacy payload 字节不变；`CC_HOOK_EVENT_LOG` 开启时这些决策事件顺带可被 `cc hook replay` 寻址。\n- **P2 LSP：重启退避默认开 + 多根 workspace**：池化语言服务器重启退避默认 1s→2s→4s→8s 封顶（启动即崩的 server 不再毫秒级连爆 `maxRestarts` 次；`CC_LSP_RESTART_BACKOFF_MS` 覆盖、`=0` 恢复立即重生）。`code_intelligence` 现按**包含该文件的根**（containment 最深根胜）key 共享 server 池——`--add-dir` 根内的文件拿到它自己项目的语言服务器而非 cwd 的；`workspace_symbols` 跨全部根扇出合并、逐 symbol 标注 `root`。单根会话字节不变。\n- **P1 大仓：子树指令懒注入（tool-time）**：工具**首次访问**某子树（read_file / list_dir / write_file / edit_file / edit_file_hashed）时把该子树自带的 `cc.md`/`CLAUDE.md`/`AGENTS.md` 附到工具结果的 `subtreeInstructions` 字段（每子树每进程恰一次，honor `instructionExcludes`，fail-open）——monorepo 里 per-package 规则不再要求启动时全量注入。子树无指令文件（常态）零成本；`CC_SUBTREE_INSTRUCTIONS=0` 整体关闭。同批：post-edit 诊断从未排序裸 cap 20 改为 **severity 优先 + token 预算**封顶（error 先于 warning，`CC_EDIT_DIAGNOSTICS_TOKENS` 默认 2000）。\n- **P1 subagent/大仓三项收尾**：①subagent worktree spawn 透传 `sparsePaths`/`symlinkDirectories`（spawn-arg 胜 agent-file；隔离 worktree 只 checkout 任务需要的包 + junction 复用依赖目录）；②agent-file frontmatter `background: true` 现真生效（此前只认调用方显式传参）；③headless `--add-dir` 启动根 seed——`cc agent -p --add-dir` 现把完整根列表告知已连 MCP 服务器（`roots/list_changed`），此前它们的 `roots/list` 永远只见 cwd。"
-        },
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.167",
+      "cliVersions": ["0.162.167"],
+      "date": null,
+      "title": "",
+      "sections": [
         {
           "heading": "Added — cc CLI 0.162.167：增量 gap-analysis 收尾——P0 沙箱远程脚本执行检测 + 4 个生命周期事件钩子（CwdChanged/Worktree/InstructionsLoaded）+ doctor 孤儿子进程 + 4 项杂项接线（CLI-only npm 发版）",
           "body": "> `chainlesschain` 0.162.166 → **0.162.167** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量（+ 测试 + gap-analysis 文档状态更新）；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。**无新增顶层命令，命令数 175 不变**；所有改动 opt-in / 默认路径字节不变。本版把 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md` 的多个可 Windows 落地「仍欠」项整批接线。\n\n- **P0 沙箱：run_shell 远程脚本执行检测**：新增统一「代码获取」分类器——把 20+ 包管理器安装命令（npm/pip/cargo/gem/go/apt/…）与 `curl … | sh` / `wget -O- | bash` 一类**下载即执行**的远程脚本归为一类，在 shell 审批时抬高风险地板并落审计（记录带 `remoteExec` 标记）；`cat script.sh | sh`（本地文件）与 `curl -O file`（仅下载不执行）不误报。默认路径字节不变。\n- **P2 生命周期事件钩子——4 个命令层生产者**：为新的 settings.json 生命周期事件类型接上真实触发点（此前它们只在事件总线注册、无生产者、loader 不认、`cc doctor` 还会当 unknown-event 告警用户配的钩子）：`CwdChanged`（REPL `/cd` 改工作目录后）、`WorktreeCreate`/`WorktreeRemove`（`cc agent --worktree` 会话 create/finish 一对，payload 含 branch/base_sha，remove 带 `removed`/`reason` 区分自动删与保留）、`InstructionsLoaded`（会话启动组装完项目指令块后，携本会话权威指令文件清单 `{path,scope,truncated}`，**绝不含文件内容**）。全部 observe-only、无注册 hook 时字节不变；`InstructionsLoaded` 经 `composeSystemPrompt` 可选回调拿**真正注入**的那份文件集（零漂移，非另行 re-discover）。三处会话入口（headless / stream / REPL）与 SessionStart 同点触发。\n- **P2 Doctor：孤儿 agent 子进程检测**：`cc doctor` 现从持久化的后台 agent 记录探活，标出「worker 已死但子进程仍在」或「会话已消失」的泄漏进程为 error 并给对应 `taskkill`/`kill` 修复命令（进程起始时间锚定，防 PID 复用误判；仅喂持久记录不做启发式全机扫描 → 零误报）。\n- **4 项杂项 gap 接线**：①async-hook 持久重唤队列 + 崩溃恢复（失败的 async-hook 重唤按会话落盘，`--resume` 时作「Recovery notice」系统消息恢复）；②monorepo 附加根变更时向连接的 MCP 服务器广播 roots/list_changed（`/add-dir` + 启动 `--add-dir`）；③`cc doctor` LSP 就绪安装缺口检查（源文件在但对应语言服务器未装 → 代码智能静默降级为文本搜索时告警）；④Session Mirror at-rest 加密/删除/保留/密钥轮换（scrypt+AES-256-GCM，`cc session index --mirror-delete` / `--mirror-prune` / `--mirror-rotate`）。"
-        },
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.166",
+      "cliVersions": ["0.162.166"],
+      "date": null,
+      "title": "",
+      "sections": [
         {
           "heading": "Added — cc CLI 0.162.166：P1-9「Capability Manifest 与脱敏诊断包」收官——协议文档 CI byte-diff / 离线协议回放 / 治理覆盖率指标（CLI-only npm 发版）",
           "body": "> `chainlesschain` 0.162.165 → **0.162.166** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量（新增 3 个 `src/lib` 纯逻辑模块 + 3 个 `scripts/` 离线工具 + 测试）；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。**只加 npm 脚本 + 离线工具,无新增顶层命令,命令数 175 不变**;默认路径字节不变。本版把 `docs/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md` 的 P1-9 三个剩项全部收口。\n\n- **协议能力文档 CI byte-diff 单源生成**：新增生成器 `scripts/gen-protocol-doc.mjs`（`--out`/`--check`）从唯一源 `capability-manifest.js` `renderProtocolDoc()` 投影出 `docs/cli/PROTOCOL_CAPABILITY_MANIFEST.generated.md`（协议版本 + 可协商 wire 特性表 + 权限模式）；npm 脚本 `docs:protocol` / `docs:protocol:check`；`capability-manifest.test.js` 新增 byte-diff 断言（读签入副本 = `renderProtocolDoc()`），manifest 加 wire 字段但未重生成即测试红——drift 不可能 merge 绿。\n- **离线协议回放 + 兼容审计**：新增 `protocol-replay.js`——拿一段录制的 stream-json 会话 + 协商上下文（server×client offer），**无需活体对端**离线①回放到该协商下的线上形态（未通过协商的字段按 field-gate 剥离）②审计录制是否遵守协商（任何帧携带已 gate-OFF 的可协商 wire 字段 = 前向兼容违规,fail-closed）。可 gate 字段集从唯一源 `toFieldGate()` 投影不会漂移；`sessionDigest` 键序无关可 pin golden 录制。离线工具 `scripts/replay-protocol.mjs`（`--replay`/`--audit`,违规 exit 1）+ golden fixture。\n- **治理覆盖率指标（§11.3 验收）**：新增 `governance-coverage.js`——①高风险 Tool Call Ledger/Trace 覆盖率（每个不可逆副作用调用须既有 side-effect-ledger 记录又有 trace span,「高风险」复用唯一源 `classifyToolSideEffect`）②Plugin/MCP/Skill/Hook 溯源可追溯率（外部来源调用须带 source+version+scope+权限决策）;`ok` 仅双 100% 才真(fail-closed),给逐条未覆盖项。离线工具 `scripts/coverage-report.mjs`（读 run-summary JSON,任一 gap exit 1,可对录制 run 工件 CI 强制 100%）。"
-        },
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.165",
+      "cliVersions": ["0.162.165"],
+      "date": null,
+      "title": "",
+      "sections": [
         {
           "heading": "Added — cc CLI 0.162.165：精简项目记忆——`--no-project-memory` 全关 + `CC_PROJECT_MEMORY=lean` 只留入口文件 + IDE 聊天「精简上下文」默认开（CLI-only npm 发版）",
           "body": "> `chainlesschain` 0.162.164 → **0.162.165** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src`（+ VS Code 插件设置）；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面只加 `cc agent --no-project-memory` **标志** + `CC_PROJECT_MEMORY` 环境变量识别，**顶层命令数 175 不变**；默认路径字节不变。动机：文档密集的仓库里 `cc agent` 每轮都把整套项目记忆重发进系统提示（本仓库实测约 12k token/轮），付费模型即真金白银。\n\n- **精简系统提示三态**：`cc agent` 每轮重发的项目记忆现分三档——`full`（默认，不变）/ `lean` / `off`。`--no-project-memory`（全关）跳过整个自动加载的项目记忆层级（`cc.md`/`CLAUDE.md`/`AGENTS.md` 入口 + `CLAUDE.local.md` + `.claude/rules/*` + `.chainlesschain/rules.md`），贯穿 headless `-p` / stream-json / 交互 REPL 全模式；`agent` 需要时仍可用工具自读那些文件。\n- **`CC_PROJECT_MEMORY=lean` 只留入口文件**：保留主入口指令文件（按 `cc.md` > `CLAUDE.md` > `AGENTS.md` 首个命中，优先 `cc.md`），丢掉沉重附属——`CLAUDE.local.md`（个人开发状态）、`.claude/rules/*.md`、`.chainlesschain/rules.md`。本仓库实测项目记忆 ~12k → ~5k token/轮，入口文件保留。遗留 `CC_PROJECT_MEMORY=0`（关指令块、`rules.md` 仍保留）契约完全不变。\n- **IDE 聊天「精简上下文」（随本版 CLI 运行时生效，设置随下次插件发版）**：VS Code 插件新增 `chainlesschain.chat.leanContext`（默认开）→ 面板子进程注入 `CC_PROJECT_MEMORY=lean`。经**环境变量而非 CLI 标志**下发——旧 `cc` 不认时自动回退 full（安全、不会因未知标志报错），终端 `cc` 不受影响。"
-        },
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.164",
+      "cliVersions": ["0.162.164"],
+      "date": "2026-07-13",
+      "title": "",
+      "sections": [
         {
           "heading": "Added — cc CLI 0.162.164：IDE 增量 gap-analysis (2026-07-13) 全批接线落地——凭据脱敏三导出面 / /rewind 从这里分支 / cc doctor 执行位置 / cc session pr-status / 复杂 Diff 行评论锚定 / 终端上下文策略 / worktree 清理安全闸 / 崩溃恢复台账 / 无人值守动作门 / 跨设备操作指纹（CLI-only npm 发版）",
           "body": "> `chainlesschain` 0.162.163 → **0.162.164** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面只加 **session 子命令 `cc session pr-status`** 与 REPL `/rewind <n> --branch`、`cc doctor` 新增「Execution context」诊断段 + 工具 flag，**顶层命令数 175 不变**。本版把 `docs/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md` 的可 Windows 落地项整批接线（纯核已建、本版补真实运行时/命令面接线，默认路径保持字节不变）。\n\n- **8.1 凭据脱敏三导出面全闸**：一份导出物离机必须朝「不泄漏」失败——`cc session export` 导出前对渲染 transcript 跑召回优先 secret-scan（命中替 `[REDACTED]`，脱敏计数写 stderr，`--no-redact` 保原值）；OTLP `toOtlp()` 对 span/event 字符串属性（含 exception message）默认脱敏（`cc agent/team --otlp`、`cc eval`）；诊断包 `cc doctor --export-bundle` 强制脱敏（P1-9）。三面共用同一 recall-first 扫描器。\n- **P0-2 崩溃恢复副作用台账**：两阶段记账 `prepare→start→commit|fail|unknown` 接进 headless 与 IDE/Bridge/Extension-Host resume——`--resume` reconcile 台账，started-未落定-非幂等 op 注入去标识「Recovery notice」而非盲目重跑；Diff-Apply 内容哈希幂等（old 已改+new 已在→幂等 no-op 不重写）；外部操作 Idempotency Key + 0-重复副作用度量。\n- **P0-3「从这里分支」进 `/rewind`**：`/rewind <n> --branch [--write]`（`--fork` 别名）从选中 turn 派生独立会话，保留分支点之前历史并从此分叉，**父会话绝不被截断**；确定性分支 id + `session_branch` 血统事件 + 幂等重放 + traversal fail-closed。\n- **P1-1 复杂 Diff 行评论锚定**：review finding 锚到它所指的**代码**（file+baseHash+锚定行原文+上下文）而非裸坐标；agent 改文件后可 `reanchorComment` 重定位/标 outdated，绝不复用旧行号（接进 `review-pipeline` finding 输出 + `cc review` 尽力填 fileContents）。\n- **P1-2 终端上下文策略 + 后台任务脱敏**：`selectTerminalContextForModel` fail-closed（非显式 opt-in 绝不把终端 scrollback 塞进模型上下文）+ ANSI-strip→secret-redact→scrollback-cap；`check_shell {list}` / `/tasks` 后台任务快照对命令串脱敏并暴露 PID（stoppable 仅在握真 PID 时）。\n- **P1-4 PR/CI 监控 + 受控合并**：新子命令 `cc session pr-status [id] [--pr N] [--checks-file <json>] [--enable] [--json]`——从 PR-link ledger 取会话关联 PR，`gh pr view` 或 `--checks-file` 采信号，渲染状态条 + **默认关**的 auto-merge 合格性判定（穷举列未满足项：分支保护/Review/待审批/失败或 pending check/缺席必需 check）。\n- **P1-5 worktree 清理安全闸**：后台 agent worktree reaper 清理前过 fail-closed 安全闸——未提交/未追踪/未 push/关联 PR 任一命中即**保留**（旧「全清」逃生门 `force:true` 保留）；`git` 读不出→保留（绝不销毁无法核实的工作）。\n- **P1-6 会话级 agent 工具准入 + 归因**：extension 层工具（run_skill/spawn_sub_agent/browser/schedule/publish_artifact/MCP）需 Capability+Policy+权限+预算+UI 五闸全过；每次调用记只带来源的安全归因（可落 transcript）。\n- **P1-7 执行位置一等属性**：`cc doctor` 新增「Execution context」诊断段——检测 ambient location（Codespaces/SSH/Container/WSL/Local），remote/unknown fail-closed 到只读地板并列 policy 违规；凭据只显示来源/作用域不显示值。\n- **P1-8 无人值守动作门**：`cc agenda` 定时/事件任务默认拦截 notify/publish_artifact 等高危外呼（`unattendedAllowlist` 显式放回）；action-class 分级 fail-closed。\n- **P1-9 脱敏诊断包**：`cc doctor --export-bundle` 一键导出去标识诊断包（版本/平台/Capability/连接/脱敏事件/进程·端口·锁文件·worktree 摘要；默认不含源码/Key/Cookie/完整环境变量；导出前强制 secret-scan）。\n- **8.2 跨设备操作指纹**：远程审批 `remote-approval-bridge` 升级到全元组 `OperationApprovalRegistry`（工具名/规范化参数/目标环境/workspace/session/策略版本/有效期）；`permission.request` 发完整指纹 + 短标识 + 无秘密摘要，`approval.resolve` 失败关闭（mismatch/superseded/duplicate/过窗）。\n- **Monorepo / P2 硬化**：worktree `sparsePaths` 稀疏检出 + `symlinkDirectories` 逃逸守卫接进 team runner；`cc doctor` 新增沙箱真能力/静默降级、重复 skill 影子、settings.json hook 配置静态校验、async-hook 可靠性健康检查；LSP 服务器可选指数退避重启；每 span 归一 OTel session/agent id + `permission.decision_id`。"
-        },
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.163",
+      "cliVersions": ["0.162.163"],
+      "date": null,
+      "title": "",
+      "sections": [
         {
           "heading": "Added — cc CLI 0.162.163：增量 gap-analysis last-mile 运行时接线——Subagent 契约全轴强制 / 跨 Agent 授权边界 / 完成条件引擎 / Turn↔Checkpoint 持久化 / hook 事件日志+replay / plugin consent 生命周期 / /goal 循环 / --json-schema / OTel（CLI-only npm 发版）",
           "body": "> `chainlesschain` 0.162.162 → **0.162.163** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面只加子命令（`cc agenda prune`、`cc plugin consent`、`cc hook replay`/`events-log`、`cc context --sources`）与 REPL slash（`/goal`）+ 工具参数/flag，**顶层命令数 175 不变**。本版把 0.162.162 announce 的多数纯核落成真实**运行时接线**，并补齐 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md` 各节的 last-mile「仍欠」。全套本地三层全绿（unit+integration 25,008 + e2e 628，0 真失败）。\n\n- **Subagent 契约全轴强制（P1）**：`_executeSpawnSubAgent` 真正消费 `resolveSubagentContract`（spawnArgs > agent-file > 父级天花板），tighten-only 强制 skills/mcp/hooks/memory capability INTERSECT、permissionMode（plan→只读工具集）、budget/effort/context、worktree fail-closed、递归深度/宽度上限；非 plan confirmer 线程化 + headless 与交互 REPL 均以运行模式播种子级天花板；子级专属无 confirmer ApprovalGate 强制 run_shell/run_code/browser_act 会话策略。\n- **跨 Agent 授权边界接线（P0）**：本地 headless 审批链路携带并校验 `tool_call_id + normalized_arguments + policy_digest` 绑定（重放/参数替换/错投的批准判 `binding-mismatch` 拒绝）；入站 channel 事件显式打 steer authority（其载荷里的 \"approved\" 只是文本，不能代表用户批准）。\n- **会话完成条件引擎接线（P1）**：`--goal-condition <spec>`（exit-zero/file-exists/contains/regex/model）驱动 headless 外层回合，跨进程 `--resume` 续跑（持久 `goal_snapshot`），REPL `/goal <condition>` 交互入口；`goal_started/evaluated/completed/exhausted` 事件。\n- **Turn↔Checkpoint 绑定持久化 + coverage-aware /rewind（P1）**：绑定作为链式会话事件持久化；`/rewind` 打印诚实的 coverage/警告（副作用 / 缺 checkpoint / 对话-文件漂移），永不过度承诺可恢复范围。\n- **副作用台账崩溃恢复（P0 纯核）**：`side-effect-ledger.js` 两阶段记账 `prepare→start→commit|fail|unknown` + `reconcileSideEffects` 分桶 redo/inspect/skip（file-write/git-push/package-install 中途强杀不重复副作用）。\n- **持久 Scheduler/Monitor 扩展（P1）**：`cc agenda prune`（回收终态条目）+ 过期退休（`expiresAt`/`retireExpired`）+ Monitor 文件/HTTP/mtime-change 源（替每 tick spawn shell）+ agent `schedule` 工具透传 `expires`/`jitter` + 每任务 permission-mode/worktree/turn 预算。\n- **Plugin 能力 consent 生命周期（P1）**：consent 存储 + load-path chokepoint enforcement（opt-in）+ `cc plugin consent` + `add`/`upgrade` 渲染能力清单+diff+re-consent 提示 + doctor 未同意/坏 manifest 告警。\n- **Monorepo 上下文（P1）**：`instructionExcludes` 从分层 settings 接进 `composeSystemPrompt`（排除 legacy/vendor/generated 子树，含 @import）+ `cc context --sources`（逐来源 token 归因）+ 懒加载子树指令纯核。\n- **Hooks 持久事件日志 + Replay（P2）**：哈希链 JSONL 事件日志（opt-in `CC_HOOK_EVENT_LOG`）+ `cc hook replay`（决策类事件必显式 `--sandbox`，绝不 re-gate 真流程）/`cc hook events-log`（列出/校验链）。\n- **JSON Schema（P2）**：`--json-schema` 接受 inline JSON + 与 `stream-json` 兼容（终局 `structured_result` NDJSON 行）+ format/if-then-else 断言 + 约束式重试改用富校验器（带 RFC 6901 JSON Pointer 提示）。\n- **多 Agent Review（P2）**：`cc review --multi`（correctness/security/performance/tests 分维 finder 扇出）+ `--verify`（skeptic 复现剔除 refuted）+ high effort 自动双开。\n- **OTel（P2）**：`--otlp-content` opt-in 输出 prompt/response/tool_arguments（默认脱敏 `[redacted]`）+ 每 span 归一化 session/agent id。"
-        },
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.162",
+      "cliVersions": ["0.162.162"],
+      "date": null,
+      "title": "",
+      "sections": [
         {
           "heading": "Added — cc CLI 0.162.162：增量 gap-analysis 收尾（P1 Subagent 契约/Turn-Checkpoint 绑定/Plugin 能力 Schema + P2 Hooks 事件总线/JSON Schema/多 Agent Review + LSP 诊断/Doctor+文档+OTel）+ IDE gap P0（远程审批指纹/会话生命周期）（CLI-only npm 发版）",
           "body": "> `chainlesschain` 0.162.161 → **0.162.162** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` + 一个构建脚本；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面无新顶层命令（全部为纯核 lib 模块 + 最小接线 + 一个 `scripts/gen-cli-reference.mjs` 生成器），**顶层命令数 175 不变**。至此 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`（vs Claude Code v2.1.207）的 P0/P1/P2 全部章节均有「已落地（增量）」记录；每节仍列「仍欠」（多为环境/平台阻塞或运行时深接线）。\n>\n> 全部为纯核 + 时钟注入（无 timer/RNG，确定性可测）+ 最小真实接线的低风险增量；新增测试文件本地全绿。\n\n- **Subagent 契约（P1）**：`subagent-contract.js`——tighten-only 继承/覆盖：权限模式加宽被钳回父级上限，capabilities 与父级天花板取交集，memory 父级拒则永不授予，预算封顶父级余量，maxDepth/maxChildren 只能调低不能调高；`resolveSubagentContract` + `enforceRecursionLimits` + `resolveIsolationFailClosed`。接线到 `.claude/agents/*.md` 解析（`parseAgentFile` 增 `contract` 字段）。\n- **Turn↔Checkpoint 绑定（P1）**：`turn-binding.js`——显式 turn→checkpoint 表：`computeCoverage` 对有副作用无 checkpoint 的 turn 标 PARTIAL、无变更标 FULL、有变更且有 checkpoint 标 FULL、有变更无 checkpoint 标 NONE；`resolveRestorePlan` 永不过度承诺可恢复范围（conversation/files/both scope）；`TurnBindingLog` + `selectTurnRange` + `buildTurnBindingFromMarks`。\n- **Plugin 能力声明 + 配置 Schema（P1）**：`plugin-runtime/capabilities.js`——能力默认 DENY（process/network{any,domains}/filesystem/mcp/monitor/credential），`diffCapabilities`+`consentRequiredForUpgrade`（加宽即需重新同意），`auditDeclaredCapabilities`；`normalizeOptionsSchema`/`validateOptions`/`redactSensitiveOptions`（敏感选项只从用户级取、拒绝来自 project 配置）。接线到 `manifest.js`（`parsePluginManifest` 增 capabilities/capabilitiesDeclared/optionsSchema）。\n- **Hooks 统一事件总线 + Replay（P2）**：`hook-event-bus.cjs`——`HOOK_EVENT_TYPES`（现有 settings 事件 ∪ 新 PermissionDenied/TaskCreated/TaskCompleted/InstructionsLoaded/CwdChanged/WorktreeCreate/WorktreeRemove/MCPElicitation），`buildHookEnvelope`（`event_id`=`evt_`+sha256，带 trace_id/parent_id 的版本化信封），`mergeHookDecisions`（block>ask>allow>continue 最严胜出），`planHookReplay`（决策类事件 replay 必须显式 sandbox:true）。接线到 `settings-hook-events.cjs`（`withDeliveryId` 打 event_id）。\n- **JSON Schema 结构化输出（P2）**：`json-schema-validate.js`——Draft 2020-12 子集校验器：`jsonPointer`/`canonical`/`computeSchemaDigest`(\"sha256:…\")/`validate`→`{valid,errors:[{code,keyword,instancePath,schemaPath,message}]}`/`validateSchema`(meta 校验)/`buildStructuredResultEvent`(`{type:\"structured_result\",schema_digest,valid,value,errors?}`)；支持 type/enum/const/properties/required/additionalProperties/items/prefixItems/数值与串与数组约束/allOf-anyOf-oneOf-not/本地 $ref（128 层守卫）。接线到 `json-schema-output.js`（加载即 meta 校验 + 导出 buildStructuredResult/computeSchemaDigest）。\n- **多 Agent Code Review + LSP 自动诊断（P2）**：`review-pipeline.js`——finders→verifier→deduper→结构化输出的纯聚合核：`dedupeFindings`（合并同 path:line:title、保留最高 severity、跨维度并 categories/dimensions；形状保持）、`applyVerdicts`（verifier 复现——拒者剔除、复现者提权）、`filterByConfidence`/`rankFindings`/`buildReviewReport`（path/line/category/severity/failure_scenario/evidence + rollup）；接线到 `review.js parseFindings`（过 dedupe，形状保持）。`lsp/diagnostics-scheduler.js`——编辑触发的自动诊断：`DiagnosticsScheduler`（debounce 合并编辑爆发、throttle 每文件最小间隔、msUntilNextDue）+ `capDiagnostics`（token 上限、按 severity 先丢最不严重、恒留≥1）。\n- **Doctor Runtime Checkup + CLI 文档漂移 + 统一 OTel id（P2）**：`telemetry-ids.js`——`buildTelemetryAttributes` 把杂乱别名归一到九个稳定 id key（session/turn/prompt/tool_use/agent/parent_agent/workflow.run_id/permission.decision_id/checkpoint.id），`content.*` 默认脱敏为 `[redacted]`（仅显式 opt-in 才输出且长度封顶），只发 allow-list key（外来高基数 label 丢弃）、id 值字符集净化+≤128 截断；接线到 `agent-core.js`（每 span 现带归一化的 workflow.run_id+session.id）。`runtime-checkup.js`——纯 Doctor 评估器（agenda 逾期/孤儿进程/慢·熔断 Hook/失效 Plugin·LSP/陈旧 session·worktree/冗长指令文件）；接线到 `doctor-checkup.js` 新 `runtimeSection`（只消费 agenda + 指令文件，其余留给既有 section 免双报）。`docs-drift.js` + `scripts/gen-cli-reference.mjs`——从 `command-manifest.json`(175)+`listCodingAgentToolNames()`(26) 生成 canonical 参考文档并双向 diff 漂移（`--out` 生成 / `--check` CI fail-on-drift）。\n- **IDE gap P0（cli/src 侧）**：远程审批绑定操作指纹（`approvalBindingDigest` 常数时间校验，断线重发/跨 Agent 冒用防护）+ 统一会话生命周期状态机（`session-lifecycle.js` 折叠 supervisor 状态/worker phase/IDE 状态为单一词汇表）。"
-        },
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.161",
+      "cliVersions": ["0.162.161"],
+      "date": null,
+      "title": "",
+      "sections": [
         {
           "heading": "Added — cc CLI 0.162.161：增量 gap-analysis（P0 后台状态机/跨 Agent 授权/凭据代理 + P1 完成条件/Monorepo 排除/持久 Scheduler）+ bg-\\* WS relay 协议硬化（CLI-only npm 发版）",
           "body": "> `chainlesschain` 0.162.160 → **0.162.161** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` + `packages/agent-sdk` 协议增量；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面无新顶层命令（`cc agenda list` 增 `nextWakeupAt` 字段），**顶层命令数 175 不变**。对照 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`（vs Claude Code v2.1.207）逐节落地 P0/P1 Windows-可做、自包含、全测试的最有价值切片，每节文档记录「已落地」与「仍欠」。\n>\n> 全部为纯核 + 时钟注入（无 timer/RNG，确定性可测）+ 最小真实接线的低风险增量；已落地增量的 9 个测试文件 148 测全绿。\n\n- **跨事件 `trace_id`（协议 §1.2.1）**：stream-json 每行标注 run-scoped `trace_id`（`--trace-id` / `CC_TRACE_ID` / 自动生成），`sanitizeTraceId` 限字符集 `[A-Za-z0-9._:-]`≤128，供跨进程/跨 Agent 事件关联。\n- **后台 Agent 状态机（P0）**：拆分 Idle 与 Needs-input——`background-agent-phase.js` 归一化 phase（starting/working/idle/needs_input/waiting_permission，legacy `turn`→working），`phaseGroupKey` 让 `cc` 后台仪表板把「空闲」与「待输入/待批准」分组显示，不再混为一谈。\n- **跨 Agent 授权边界（P0 安全）**：`agent-authority.js` 授权信封——`origin`（user/model/subagent/teammate/channel/hook/remote/system/permission_tool）→ `authority`（none/steer/approve/manage），仅 user=manage、permission_tool=approve、已认证且 approve-scoped 的 remote=approve 可批准；`approvalBindingDigest({toolCallId,args,policyDigest})` 常数时间校验、fail-closed，防止一个 Agent 冒用另一个的批准。`origin` 恒由可信 dispatch 赋值，绝不从消息内容读取。\n- **跨平台沙箱与凭据代理（P0）**：`credential-proxy.js`——子进程环境默认屏蔽长效凭据（`maskCredentialEnv` 把 secret 值换成哨兵 `cc-cred-redacted:<NAME>`，`mask`/`deny` 双模式），审计日志绝不记录还原后的明文（`redactEnvForAudit`），`resolveApprovedInjection` 按 approved-host fail-closed 注入；`CC_CREDENTIAL_PROXY` 开关，关闭时同对象引用零开销。接线到 agent-core 前后台两处 spawn。\n- **会话级完成条件引擎（P1）**：`goal-condition-engine.js`——确定性完成条件（`exit-zero:`/`file-exists:`/`contains:`/`regex:`/`model:`/裸），预算（maxOuterTurns 默认 10、硬顶 100）+ 纯 reducer `evaluateGoalStep`，`GoalConditionEngine` 支持 snapshot/fromSnapshot 恢复；确定性检查经注入 spawnSync/existsSync 可测。\n- **大型 Monorepo 上下文排除（P1）**：`instructionExcludes`——`project-instructions.js` 支持按 glob 排除 legacy/vendor/generated 子树（裸名=任意段匹配、带斜杠前缀=目录+后代、`*`/`**`/`?` 通配、祖先匹配语义），@import 目标落在排除子树内也跳过（避免把凭据文件拉进 prompt）；`composeSystemPrompt` 透传 `instructionExcludes`。\n- **统一持久 Scheduler 规划器（P1）**：`schedule-planner.js`——确定性 jitter（FNV-1a 稳定 per-task 偏移，跨重启不漂移，避免共享 cron 分钟的惊群）、自适应唤醒（`nextWakeupAt`/`msUntilNextWakeup` 让 daemon 睡到最早 fire 而非轮询）、过期（`isEntryExpired`/`partitionSchedule` 先退休过期再触发）；接线到 `cc agenda list`（JSON `nextWakeupAt` + \"next wakeup\" 行）。\n- **bg-\\* WS relay 协议硬化**：事件序号缺口检测 + replay（慢/断线消费者补投）、出站背压（slow-consumer 保护）、跨语言 fixture 契约 + `tool_use_id` + event seq，IDE 上报文件路径的 remote URI/path 映射，MCP tool-path 边界守卫 + Windows lockfile ACL，diff-apply 并发/二进制守卫 + 读取实时编辑器缓冲的 stale-rejection，后台 Agent supervisor 3 个 pinned gap 收口 + 有界 prompt 队列。"
-        },
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.160",
+      "cliVersions": ["0.162.160"],
+      "date": null,
+      "title": "",
+      "sections": [
         {
           "heading": "Added — cc CLI 0.162.160：运行时安全与确定性 8 批（沙箱严格模式 + 依赖/凭据安全 + 确定性 Headless + Subagent 契约 + MCP 生命周期 + Hooks 硬化）（CLI-only npm 发版）",
           "body": "> `chainlesschain` 0.162.159 → **0.162.160** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面**只加子命令**（`cc session rename/prune`、`cc daemon rm`、`cc mcp trust-project`），**顶层命令数 175 不变**（manifest 无需重生）。对照 `docs/CLAUDE_CODE_CLI_GAP_ANALYSIS.md`（docs 根）审计确认仍缺的 8 项全落地（commit 链 `c4533ad848..4c2e297754`）。\n>\n> ⚠️ **行为变更（升级前须知）**：① `run_code` 的 pip 依赖**默认不再自动安装**（改 opt-in，见下）；② agent 脚本默认写 OS 临时目录、不再落项目根（`persist:true` 才进项目）；③ headless/agent **退出码细化**——最大轮次→3、预算超限→4、模型错误→5、配置错误→6（成功仍 0、通用失败仍 1、hook block 仍 2、SIGINT/SIGTERM 仍 130/143）。依赖固定 exit≠0 判失败的脚本不受影响；依赖\"失败必为 1\"的脚本需放宽。\n\n- **确定性 Headless（A）**：新增 `--ephemeral`（resume 只读回放、零落盘）；init 事件补 `protocol_version`/`session_persistence`/`loaded_sources`/`policy_digest`/`tools_hash`/`isolation_level`（消费者可判定回放确定性与工具/策略指纹）；退出码分类（`lib/exit-codes.cjs`）；`cc agent --capabilities` 打印机读能力清单（协议版本、agent 工具集、权限模式、退出码、特性开关）后退出。\n- **依赖安装安全（B）**：`run_code` 的 pip 自动安装**默认关闭**——经 settings `runCode.autoInstall` 或 `CC_RUN_CODE_AUTO_INSTALL` 显式开启，且受 `runCode.installAllowlist`（PEP 503 归一化包名）约束，每次安装写审计 JSONL（`~/.chainlesschain/audit/`，`CC_AUDIT_DIR` 可覆盖）；agent 脚本默认写 OS 临时目录（`persist:true` 才进项目根）。系统提示词/工具契约文案已同步。\n- **凭据卫生（C）**：config `llm.apiKeyHelper`——从外部命令（→ OS 凭据库）解析 API Key，5 分钟缓存，helper 失败 **fail-closed 并告警一次**（返回 null，绝不静默替换成别的凭据）；argv `--api-key` 明文传参现给出告警（进程表/shell 历史泄露面）。\n- **沙箱严格模式（D）**：`failIfUnavailable` 此前只是声明、从不执行——现在启动期探测沙箱引擎（docker `version` / bwrap `--version`），不可用即拒绝启动（退出码 6），headless 与交互双路均生效；`isolation_level`（os-sandbox / container / policy-only）透出到 init 事件与 `sandboxSummary`，不再静默降级为\"只有工具规则\"。\n- **Subagent 契约（E）**：`spawn_sub_agent` 与 `.claude/agents/*.md` frontmatter 双入口新增 `disallowedTools`（从 allowedTools 减去）、`maxTurns`、`isolation:worktree`。**顺手修出一个真 bug**：`SubAgentContext._runCore` 早已算出工具白名单却从未传给 agentLoop——子代理在 LLM 面一直看到全量工具，白名单形同虚设（修=`enabledToolNames` 透传）。\n- **会话运营（F）**：`cc session rename <id> <title>`（append `session_rename` 事件，哈希链不破）+ `cc session prune --older-than <days> [--keep N] [--dry-run]`（按最后活动保留期清理，默认保最新 10）+ `cc daemon rm <id> [--force] [--keep-log]`（终态直接移除、运行中需 `--force`）。\n- **MCP 生命周期（G）**：mcp-client 处理 `notifications/tools/list_changed` + `notifications/resources/list_changed`——合并式重拉服务器工具/资源清单（刻意**不动 in-flight LLM 工具数组**，保 tool-search 缓存稳定性，追加式更新）；项目 `.mcp.json` 首用记 sha256 指纹，文件变更后 **fail-closed 拒绝加载**，需 `CC_PROJECT_MCP_TRUST=1` 或 `cc mcp trust-project` 显式重信任（防被换过的项目配置静默拉起新 MCP server）。\n- **Hooks 硬化（H）**：每个 hook 的 stdin payload 打 `schema_version`（=1，additive 变更保号、破坏性 reshape 才 bump）；连续失败熔断——同一 hook 命令连续 3 次非阻塞失败（spawn error / 超时 / 非 2 非零退出）开闸，60s 冷却后半开试跑一次，成功或真 block/ask 决策关闸（`CC_HOOK_BREAKER_THRESHOLD=0` 关闭、`CC_HOOK_BREAKER_COOLDOWN_MS` 可调）；坏 hook 不再每轮拖慢 agent。"
-        },
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.159",
+      "cliVersions": ["0.162.159"],
+      "date": "2026-07-11",
+      "title": "",
+      "sections": [
         {
           "heading": "Added — cc CLI 0.162.159：Claude-Code 平价 gap-analysis 14 项收口（cloud handoff + /tui + /voice + /fast + plugin 治理 + session SQLite 索引）（CLI-only npm 发版）",
           "body": "> `chainlesschain` 0.162.158 → **0.162.159** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。顶层命令数 **173 → 175**（新增 `cc cloud` + `cc routine`；`cc session index` 是 `session` 子命令、`/tui` `/voice` `/fast` 为 REPL-only 均不计数）。对照 `docs/internal/cli-claude-code-gap-analysis-2026-07-11.md` 14 项全落地。\n\n- **`cc cloud`（P1#7）自托管 cloud handoff**：`cc cloud run/status/attach/list`——`git bundle`（base64）当前分支上传到配置的私有 runner（`cloud.baseUrl`/`cloud.token` 或 `CC_CLOUD_URL`/`CC_CLOUD_TOKEN`），runner 完成后 `cc cloud attach` 轮询到终态并 `git apply --3way` 回流 patch、落 plan/artifacts、显示 PR——无 Anthropic 云依赖。本地 job 台账 `~/.chainlesschain/cloud-jobs/`（穿越守卫），不落地的 patch 存旁不失败。\n- **`/tui`（P1#10）全屏无闪烁视图**：`/tui fullscreen` 进备用屏缓冲（`?1049h`，保滚动历史）+ 尾锚定视口窗口化 + diff 重绘（仅改动行光标寻址重写，无整屏清屏→无闪烁）；`/tui default` 退回流式滚动；`CC_NO_FLICKER=1` 启动即全屏；屏幕阅读器模式强制 default。持久化 `cli.tuiMode`。\n- **`/voice`（P2#11）语音听写**：`/voice hold|tap|off`（hold=按住说话，tap=切换）；严格 local-first STT 优先级（本地 Whisper > 系统 STT > 云，云需 `voice.allowCloud` 显式开）；SSH/无 TTY/CI/`CC_NO_VOICE` 环境清晰降级不假装监听；真实采集是主机绑定 DI seam。\n- **`/fast`（P2#12）延迟档**：`/fast on|off|status`——下一轮最小化推理（thinking off）+ 除非用户 `/model` 钉过模型否则换到 provider 的低延迟模型（anthropic→haiku-4-5、openai→4o-mini、deepseek/dashscope/mistral/gemini），始终显示成本/质量权衡。持久化 `cli.fastMode`。\n- **插件治理（P2#13）三项**：manifest `dependencies`（插件名→semver 区间 + 保留 `host`/`cc` 约束 CLI 版本）经 `cc plugin validate` 校验缺失/越界依赖；LSP 注册表改**每 languageId 有序候选表**——一个插件 LSP server 二进制缺失不再遮蔽 builtin（回退到下一候选/内建，扩展名不再\"变黑\"）；`isPluginInUse` 把 LSP/MCP/hooks/monitors 被动组件视为 in-use，不再被\"未调用即弃用\"误判。\n- **`cc session index`（P2#14）外部 session 存储**：JSONL 仍是权威源，新增 SQLite 索引（`~/.chainlesschain/session-index.db`）——增量按 mtime+size 同步 + 内容/标题搜索（LIKE 转义通配符）+ stats + `--rebuild`，取代逐文件解析（1072 真 session 验过）；可插拔 off-box mirror（`fs`/`http` 驱动，S3/WebDAV/Redis 同接口待配），`session.mirror.{kind,dir|baseUrl,token}` 配置，加密/访问控制由驱动独立负责。\n- **P0/P1 早前提交同随本版发出**：`cc bg view` 交互式 agent 面板（P0#1）+ background supervisor 稳定性加固（P0#2）+ `/doctor` 可修复 checkup + `/checkup` 别名（P0#3）+ transcript hash-chain 防篡改 `cc session verify`（P0#4）+ Inbound Channels（webhook/telegram allowlist，P0#5）+ computer-use MCP 显式开启（P1#6）+ Routines（cron/once/webhook/github，P1#8）+ PR/session linking（P1#9）。"
-        },
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.158",
+      "cliVersions": ["0.162.158"],
+      "date": null,
+      "title": "",
+      "sections": [
         {
           "heading": "Added — cc CLI 0.162.158：browser_state agent 工具 + REPL /remote-control + web-panel 直连配对/审批卡片 + 交付物预览下载（CLI-only npm 发版）",
           "body": "> `chainlesschain` 0.162.157 → **0.162.158** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` + web-panel dist 随包；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令数不变（**173**）；AGENT_TOOLS **24 → 25**（新增 `browser_state`）。\n\n- **`browser_state` 一等 agent 工具（IDE gap P1 #8 收口）**：Chrome CDP 连接器（`cc browse chrome`）暴露为第 25 个 agent 工具——URL/标题/标签页 + 观察窗口 console/失败网络请求 + DOM 快照（agent 面 40k cap，CLI 命令面 150k）+ 可选截图（**生成的**临时路径，防 agent 自选路径经读工具覆盖任意文件）；LOW/READ/plan 模式可用，纯观察不点击不输入不导航，仅 loopback CDP。\n- **REPL `/remote-control`（别名 `/rc`）on|off|status（批 26）**：交互式会话内起自托管 WS + RemoteApprovalBridge 配对（URI + 可选二维码），TAB 补全 + /help；`cc agent --remote-control` 对交互式会话同样生效（启动失败降级 local-only 不中断会话）。**交互式远程审批赛跑语义**（新 `src/repl/remote-approval.js`）：两个交互 confirmer（ApprovalGate + settings/hook ask）把终端 prompt 与已配对设备赛跑，先答先赢；与 headless 刻意不同——远端超时/断开**不是决定**（静默的手机永不代键盘用户 auto-deny），设备先答则取消本地 readline 并压掉其搁浅的 idle-timeout。\n- **web-panel 直连（direct-LAN）配对 + `permission.request` 审批卡片（批 28）**：remoteSession store 自动识别双 URI 方案——relay E2EE 路径不变，新增 `chainlesschain://remote-control/pair#` 直连 transport（browser 版 parseDirectPairingUri + 客户端过期检查）；直连控制走 remote-session-publish **顶层 commandId+seq**（applyControlIdempotent direct-client 契约）；一次性 pairing token → 直连断开**刻意不自动重连**（重 join 必失败，诚实 disconnected 态 + 重配对提示）；两种 transport 喂同一 pendingApprovals 卡片（requestId 去重 + permission.resolved 任意裁决方清除 + 首等公民审批卡列表批准/拒绝）。\n- **交付物 Markdown 预览 + 浏览器下载（批 25）**：面板 text/markdown 预览走既有 MarkdownRenderer（marked+DOMPurify+hljs，零新依赖）；新 `GET /api/artifacts/<id>/download` 流式下载完整存档副本（WS 预览仍 cap）——Content-Disposition（RFC 5987）+ no-store/nosniff + 配置 wsToken 时同 WS 强度 token 门（sha256+timingSafeEqual，Bearer 头不进 URL）+ basename 防篡改守卫。\n- **安全修复 ×2**：① **直连配对信任边界**——直连（LAN）配对无密码学主机身份（区别 relay E2EE），钓鱼配对 URI 可把面板指向任意公网 ws:// 端点导走 serverToken/prompt/审批决定；两端 parser（web-panel + CLI 孪生）现拒绝指向非私网主机的明文 ws://（仅 loopback/RFC-1918/link-local/ULA，即 pickLanAddress 可能产出的全集；wss:// 不限），IPv6 括号 + IPv4-mapped 点分/hex 双形态识别，RED 反证过。② **chrome-connector launch-arg 加固**——launch URL 曾逐字进 Chrome argv（`--` 开头值被 Chrome 当开关解析=潜在命令执行面），现限 http(s)://、about:（URL parse 校验字节原样透传）+ CDP 端口处处整型边界校验。\n- **健壮性**：web-panel 审批卡发送失败恢复——approve() 乐观清除后若答复未离开本端（直连 publish 拒绝/socket 断/relay 未配对）恢复卡片并浮错，可重新裁决；失败窗口内别设备已 resolved 则抑制恢复（无僵尸卡）。RED 反证 + web-panel 全套 2512 绿。\n- **测试稳健性（仓库面，不进 npm 包）**：checkpoint-store `vi.setConfig 30s` + web-panel doctor 90s 两处负载敏感预算加固（trap #31 形态）；ai-doc-creator 集成测试改 chdir tmpDir，不再向仓库根泄漏 12 个产物文件。"
-        },
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.157",
+      "cliVersions": ["0.4.51", "0.162.157"],
+      "date": null,
+      "title": "",
+      "sections": [
         {
           "heading": "Added — cc CLI 0.162.157：diff 审阅修订摘要 + plan 审阅快照 + Chrome 连接器 + Artifacts + Windows/PowerShell 一等 + --bare/无斜杠/读屏模式（CLI-only npm 发版）",
           "body": "> `chainlesschain` 0.162.156 → **0.162.157** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` + 依赖指针（`@chainlesschain/personal-data-hub` 0.4.50→**0.4.51**，交易短信→金额事件，已先行在 npm）；命令数 **172 → 173**（新增顶层 `cc artifacts`，13 文档面已扫）；无 Android cc bundle rollover / 无 USR_VERSION 改动。agent-sdk 0.1.1（plan review payload additive 类型）此前已在 npm。\n\n- **Artifacts v1：`publish_artifact` agent 工具 + `cc artifacts` 命令**：agent 完成的交付物（报告/图表/构建产物）发布到 `~/.chainlesschain/artifacts`（index.jsonl + 按 id 存文件，title/kind/mime/sha256/session/TTL 元数据，100MB 守卫）——**只有元数据进对话/transcript**，大产物不再撑爆上下文；`cc artifacts list|show|open|remove|clean`（别名 `artifact`）管理与打开；工具 LOW 风险、plan 模式禁用（AGENT_TOOLS 23→24）。\n- **Windows/PowerShell 一等公民（批 22）**：run_shell 新增可选 `shell` 参数（`default|cmd|powershell|pwsh`），选择链 per-call > settings `shell.windowsDefault`（win32-only 分层，`CC_WINDOWS_SHELL` env 胜出）> 平台默认（未配置路径字节不变）；PowerShell 经**显式 argv** 运行（`-NoProfile [-ExecutionPolicy <enum 校验>] -Command`，防 argv 走私）；权限规则新增 `PowerShell(...)` 伞形族与 `shell:pwsh` 参数域；settings hooks 每 hook 可声明 `shell: powershell|pwsh`。结果携带 `shell`/`shell_note`。\n\n- **IDE diff 审阅：agent 能看到你改了什么（gap #4 收口的 CLI 面）**：在 IDE diff 里编辑 proposed content 后 Accept，工具结果此前只带 `userEdited: true` 布尔——agent 不知道你具体改了什么，其对文件的心智模型仍是它自己的原提案。现在新增 `userAmendments`：新纯核 `summarizeUserAmendments`（`lib/ide-context.js`）产出提案→实际写入的 -/+ 行级摘要，按最终文件 1-based 行锚定分块（复用 note-versioning 的 simpleDiff LCS；纯插入/删除直排防幻影空行；1M cell 守卫降级粗块；行数/字符双 cap）。配合 JetBrains 0.4.55（可编辑右栏回读）/ VS Code 0.37.x（原生支持）形成端到端闭环。\n- **plan 审阅快照写入会话（IDE plan review 的 CLI 协议面）**：`{type:\"plan\", action:\"approve\"|\"reject\"}` 控制消息现可携带 `review` 载荷（IDE 端 Markdown 审阅文档的快照 + 元数据，24k cap），CLI 把它写进会话 transcript——计划批准/拒绝留档可审计可回放（headless-stream.js；agent-sdk 0.1.1 `PlanControlInput.review` 类型同步）。\n- **`--bare`（`CC_BARE`）裸模式**：`--safe-mode` 全开关之上再关 skills（`CC_SKILLS=0`）、plugins（`CC_PLUGINS=0`）与 MCP/IDE/PDH/JetBrains 自动连接——两个新 env 各在单一咽喉点生效（skill-loader `loadAll` / plugin-runtime `discoverPlugins`）；显式 `--mcp-config/--ide/--pdh/--jetbrains` 仍胜出；权限规则不放松。最小攻击面/最快启动的干净 agent 环境。\n- **`--disable-slash-commands`（`CC_DISABLE_SLASH_COMMANDS`）**：REPL 里 `/` 开头输入原样送模型（纯谓词 + NUL 哨兵，`lib/slash-dispatch`）；`/exit`、`/quit` 保留；TAB 补全不再提示斜杠命令；宏与 MCP prompt 展开一并旁路。粘贴含 `/` 行首文本不再误触发。\n- **`--ax-screen-reader`（`CC_SCREEN_READER`）读屏友好模式**：mono 主题（零 ANSI 色）+ 状态栏关闭（新 `lib/accessibility.js`）——读屏器不再逐字念转义序列与高频刷新的状态行。\n- **`cc browse chrome status|launch|state`**：与 `browse fetch/scrape`（每次冷启空白 headless 浏览器）不同，连接器经 CDP attach 到**用户自己的 Chrome**，页面状态带着登录会话。`launch` 启动可调试 Chrome（默认**专用配置目录** `~/.chainlesschain/chrome-profile`——登录一次持久复用；`--default-profile` 可选复用真实配置但要求所有 Chrome 窗口先关闭）；`status` 探测 CDP 端口；`state` attach 后观察窗口期内的 console 消息与失败/4xx-5xx 网络请求（CDP 无追溯历史，`--reload` 可捕获加载期输出），快照 URL/标题/DOM（默认 150k cap）/可选截图，断开不杀浏览器。安全注记：CDP 端口是本机无鉴权控制通道，仅绑 loopback，用完关闭该 Chrome。查找 Chrome/Edge 可执行文件跨三平台（`CHROME_PATH` 优先）。attach 后 page targets 有挂载延迟——轮询 3s 而非误报\"无标签页\"。6 单测（注入 deps）+ 真 Chrome 145 live e2e（discover→attach→console/network 捕获→DOM→截图→干净断开）。两 IDE 插件入口（VS `ChainlessChain: Chrome Connector` / JB Tools 同名）已随 VS Code 0.37.10 / JetBrains 0.4.53 上市场——本版补上其依赖的 CLI 端命令。"
-        },
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.156",
+      "cliVersions": ["0.162.156"],
+      "date": null,
+      "title": "",
+      "sections": [
         {
           "heading": "Added — cc CLI 0.162.156：agenda/batch 双命令（第四阶段收口）+ @chainlesschain/agent-sdk 0.1.0 npm 首发（CLI-only npm 发版）",
           "body": "> `chainlesschain` 0.162.155 → **0.162.156** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）；**`@chainlesschain/agent-sdk` 0.1.0 同 run 首发 npm**（平台化第三阶段产物，npm-publish.yml / release.yml 均已加发布 step，防 trap #127 漏发）。纯 `packages/cli/src`（+web-panel dist 随包）+ 新独立包，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令数 **170 → 172**（新增顶层 `agenda`/`batch`，清单已重生，13 文档面已扫）。\n\n- **`cc agenda` + notify/schedule 双 agent 工具（第四阶段批19）**：Monitor/Cron/Push 暴露为 agent 可调工具（AGENT_TOOLS 21→23）——`notify` 推送到用户已配置的多通道通知器（Telegram/企业微信/钉钉/飞书）；`schedule` 一工具五动作（wakeup/cron/monitor/list/cancel），单轮进程持不住定时器 → 意图持久化到 `~/.chainlesschain/agent-schedule/*.jsonl`（0600），由 `cc agenda list|run|cancel` 消费触发（wakeup/cron 到期 spawn `cc agent -p`，monitor 跑命令匹配 stop_when 即通知）。两工具 LOW 风险、plan 模式禁用；29 单测 + 真进程 smoke。\n- **`cc batch` 动态 worktree 批处理（第四阶段批20，第四阶段全收口）**：把大改动拆成独立单元并行跑——`--units <file>` 或 `--decompose <goal> --parts N`（agent 经 `--json-schema` 产单元 JSON，`--plan-only` 只打印）；每单元独立 git worktree（复用 `cc team --worktree` 的 worktree-isolator），`--test` 门控、`--merge` 顺序集成（后合分支与已合冲突时报告不强合、测试失败单元永不合并）；15 单测 + 2 真 git/worktree 集成测试。\n- **`@chainlesschain/agent-sdk` 0.1.0 首发**：`cc agent` stream-json 双工协议的 TypeScript 正式契约（Agent Protocol v1）——流式事件全词汇 + 审批回调（fail-closed）+ 检查点 + 会话恢复；`AgentSession` spawn 客户端（Windows `cmd.exe /c` shim + `NoDefaultCurrentDirectoryInExePath` 反劫持 + `taskkill /T` 进程树回收内置）、`attachBackgroundSession` 后台管道接管、`/browser` 浏览器安全入口（web-panel bg-\\* 帧）、`/protocol` 纯类型入口；双构建 ESM+CJS，零运行时依赖，36 测试（单元+真管道集成+真 CLI e2e）。VS Code 扩展（vendored）与 web-panel（vite alias）已消费；JetBrains 对齐语言中立 `docs/PROTOCOL.md`。用户文档 `docs-site/docs/chainlesschain/agent-sdk.md`。\n- 修复（随本版仓内，不在 cli 包面）：SDK 真 CLI e2e 抓出的两 IDE 首会话不落盘洞（IDE 重载后 resume 静默空会话）已在两插件修复，随各自下次插件发版出货。"
-        },
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.155",
+      "cliVersions": ["0.162.155"],
+      "date": null,
+      "title": "",
+      "sections": [
         {
           "heading": "Added — cc CLI 0.162.155：权限模式/auto 分类器 + 后台会话可交互接管全家桶（第一阶段收口，CLI-only npm 发版）",
           "body": "> `chainlesschain` 0.162.154 → **0.162.155** 已发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src`（+web-panel dist 随包）增量，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。gap-analysis「第一阶段：安全与可运营性」4 项全部落地（批 1-15，9 commit `e3ab46c73f..1618a3ca83`）。命令数 **165 → 170**（新增顶层 `attach`/`auto-mode`/`daemon`/`logs`/`remote-control`，清单已重生）。发版前本机三层全绿（unit 21808 / integration 除 1 已知 real-spawn flake 隔离 3 连绿 / e2e 628）。\n\n- **权限模式补齐 `manual`/`auto`/`dontAsk`**（headless + 交互 REPL 双面）：`manual`=default 别名；`auto`=可配置分类器——settings `autoMode.decisions` 按 riskLevel（对象/数组形）与 tool/commandPattern 细粒度规则（`*` glob，声明序优先）映射 allow/ask/deny，未配置时字节不变映射 trusted；`dontAsk`=需确认动作直接 deny 不弹审批（REPL 两处 confirmer 全覆盖）。REPL `/permissions auto|dontask` 中途切换，Shift+Tab 循环兼容；`cc agent --permission-mode` 对交互式会话生效（顺带修 `resolveAgentPolicy` 白名单静默丢弃 `--vim/--think/--fallback-model/--pdh` 等交互 flag 的预存 bug）。\n- **`cc auto-mode defaults|config [--json]`**：内置分类默认值文档 + user/project/local/managed 分层合并后的有效配置（含细粒度规则展示）；修 `mergeSandboxSettings` 数组分支把数组形 decisions 毁成 `\"[object Object]\"` 的潜伏 bug（新 `mergeAutoModeSettings`，decisions=有序规则集 closer 层整体替换）。\n- **`cc permissions recent|denials [--json|--clear]` + 决策逐层解释链**：跨会话持久 denial ring buffer（headless + REPL 双源）；被拒 run_shell 附带 `permissionChain`（settings-rules→shell-policy→approval-gate 各层判定+理由），`/permissions denials` 与 `cc permissions recent` 渲染紧凑链——一眼看清「allow 规则为何没生效」。\n- **后台会话可运营全家桶**：顶层 `cc logs <id>` / `cc attach <id>` / `cc daemon status|view|stop|rename|resume`。worker heartbeat + workerPid/agentPid 分离 + stale-heartbeat/PID-reuse 防误杀（可靠标 `lost`）；`cc daemon resume <id> <prompt>` 把崩溃/终态会话按 sessionId 续接为新后台运行（原 argv 有意不持久化防 secrets 落盘）。\n- **`cc attach` 可交互接管（session transport）**：worker 每会话托管本地 NDJSON 控制通道（Win named pipe / POSIX socket，随机 token 存 0600 state 文件）；attach 后键入即发 follow-up prompt（同 `--session` 自动续接对话史，多轮 turn 循环），`/stop` 截断当前轮，turn 运行中断开任务照跑、idle 断开会话收尾；transport 不可用自动回退日志流，`--no-input` 强制纯日志。\n- **web-panel「后台 Agent」面板**：新 `bg-*` WS 协议（list/view/attach/prompt/stop-turn/detach/stop/rename/resume，attach 期间推送 worker 事件与日志增量）；takeover token 永不过 WS 边界。面板含列表/接管卡片/日志流/重命名/续跑。\n- 修复：后台 rename 与 worker read-modify-write 竞态（写后校验+有界重试）；`settingsVerdict` 未传入 executeToolInner 的解释链断点；launcher/worker 状态竞写（先写 state 后 spawn + heartbeat 重申 transport）。\n- **`cc remote-control`（第四阶段批17，随本版一同发布）**：统一远控入口（别名 `rc`）——start/status/stop 组合既有 remote-session 栈（WS server + E2EE relay + registry + ledger + push + audit），配对 URI 双模式（relay E2EE / 直连 LAN），跨进程 0600 state 发现；顺带修 `cc serve --remote-session-relay-url` 白名单丢参从未生效的预存 bug。\n- **MCP tool search（第二阶段批16，随本版一同发布）**：大规模 MCP 面下工具定义超上下文阈值（默认窗口 10%，`mcp.toolSearch` settings / `CC_TOOL_SEARCH` env 可配）时自动换成 `[deferred]` stub + 内部 `tool_search` 检索工具；完整 schema 经 tool result 返回（append-only，保 prompt cache 稳定）；REPL `/context` 新增 MCP tool schemas 占用与优化建议一节。未超阈值/关闭时行为字节不变。"
-        },
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.154",
+      "cliVersions": ["0.162.154"],
+      "date": null,
+      "title": "",
+      "sections": [
         {
           "heading": "Added — cc CLI 0.162.154：`cc complete` 内联补全后端（IDE ghost-text）+ 本地化残留清扫（CLI-only npm 发版）",
           "body": "> `chainlesschain` 0.162.153 → **0.162.154** 已发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。发版动因：VS Code 0.37.7 + JetBrains 0.4.49 的内联 ghost-text 补全依赖 `cc complete`，此命令不在已发的 0.162.153 里 → 不发 npm 则两端补全功能对终端用户不可用。命令数 **164 → 165**（新增 `cc complete`，清单已重生）。发版前本机三层全绿（unit+integration+e2e）。\n\n- **`cc complete` — IDE 内联补全（fill-in-the-middle）后端**：读 stdin JSON `{prefix,suffix,language}` → 打印光标处应插入的代码（`--json` 输出 `{completion,model,provider}`）。复用 `cc ask` 的 provider 路由（`queryLLM`）——honor 用户已配置的 LLM/provider/key，零新鉴权（本地 FIM 模型如 `qwen2.5-coder` 更快，慢速 chat 模型也能用因为是手动触发）。纯可测 helper：`buildFimPrompt`（cursor-sentinel 提示让无原生 FIM 的 chat 模型也有双向上下文）+ `cleanCompletion`（剥 markdown fence / `<CURSOR>` / 硬上限 2000 字符；**故意不做 suffix-overlap 裁剪**——朴素「补全结尾等于 suffix 首行就切」会吃掉合法的结尾 token 如 `if` 块自己的 `}`，重复交给 prompt 的「勿重复周围代码」指令处理）。fail-quiet：后端故障返回空补全而非在编辑器里抛错。IDE 侧（VS Code `InlineCompletionItemProvider` / JetBrains `InlineCompletionProvider`）共享同一后端，两端行为一致。"
-        },
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.153",
+      "cliVersions": ["0.162.153"],
+      "date": null,
+      "title": "",
+      "sections": [
         {
           "heading": "Added — cc CLI 0.162.153：上游 Claude Code parity 封顶 2.1.191 → 2.1.204（6 项，CLI-only npm 发版）",
           "body": "> `chainlesschain` 0.162.152 → **0.162.153** 已发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。逐项经 Explore-agent grep 坐实上游 changelog（2.1.192→2.1.204）后落地，全部带回归测试（新增约 30 项）；发版前本机三层全绿（unit+integration+e2e）。命令数不变（164；`cc team run --otlp` 只新增 option 非新命令）。判定明细 + N-A 清单见项目记忆 `cli-parity-gap-backlog`。\n\n- **`spawn_sub_agent` 后台模式（2.1.198）**：`background:true` 令子代理立即返回「running」句柄、父循环继续工作，结果在后续轮自动注水为 user-role 消息喂给模型；若模型想收尾但仍有后台子代理未决，循环**等待全部完成 + 注入结果 + 再给一轮**——后台成果永不静默丢失（迭代预算仍是兜底）。父 abort 信号前传防孤儿；settle-capture 包装永不 reject（未消费句柄不会变未处理 rejection）；SubagentStop 钩子改在结果送达时 fire。opt-in 逐调用，省略 `background` 则阻塞路径字节不变。\n- **子代理中途失败/预算截断返回部分成果（2.1.199）**：被 API 错误（限流/掉线）或 token 预算截断的子代理此前丢弃已产出的一切（父级只见 `Sub-agent failed: <msg>` + 空 artifacts）；现失败/强制完成结果把已产出内容摘要并入 summary（父模型唯一可见的通道）并保留截断前收集的 artifacts。\n- **交互权限询问 idle timeout（2.1.200）**：无人应答的权限询问此前永久阻塞整个 agent turn（`rl.question` 无超时）；两个交互确认点（settings/hook `ask` + ApprovalGate）现把询问与可配置的空闲超时竞速，静默时**自动 DENY**（无人值守下 deny 是唯一安全答案）。默认关（行为字节不变），`CC_PERMISSION_ASK_TIMEOUT_MS` 环境变量或 config `permissions.askTimeoutMs` 开启；布尔/对象配置值按「非超时」拒绝。\n- **MCP roots 能力（2.1.203）**：roots 是**客户端**能力——服务器向客户端发 `roots/list` 请求索要工作区根、并订阅 `notifications/roots/list_changed`。此前**任何**服务器发起的请求都落进 `_handleMessage` 的通知分支、永不应答 → 服务器挂到自己超时。现客户端在 `initialize` 声明 `roots(listChanged)`、以会话工作目录（显式 `roots` 或 `process.cwd()`，`file://` URI）应答 `roots/list`、ack `ping`、未知服务器请求回 JSON-RPC `-32601` 而非静默；`setRoots()`/`notifyRootsListChanged()` 广播变更通知，REPL `/cd` 成功 chdir 后通知已连服务器。\n- **workflow 级 OTel 追踪属性 + `cc team run --otlp`（2.1.202）**：`TelemetryRecorder` 加 `defaultAttributes`（构造）+ `setDefaultAttribute()`——盖在每个 span 上，per-span 键优先；`agentLoop` 把 `workflow.run_id`（run id）+ 可选 `options.workflowName` 盖到本 run 全部 model/tool span。`TeamRunner` 接可选 recorder、每次执行发一个 `team.task` span（task key/holder/attempts；被丢弃的完成打标；失败记为 `task_failure` + error 状态）。新 `cc team run --otlp <file>` 写出以 team run id + 任务图文件名标记的 OTLP/JSON。真机验证：2 任务图 dry-run 产出 2 个共享同一 `workflow.run_id` 的 span。\n- **config.json 损坏先备份再降级（2.1.199）**：`loadConfig` 遇坏 config 此前已优雅降级（warn 一次 + 内存默认，读时不覆盖），但随后一跑 `cc config set` 的 load-modify-**save** 会原子替换坏文件为默认+新值，静默销毁用户仍留在坏 JSON 里的东西（API key / 自定义 baseUrl）。现首次失败加载把文件复制到 `config.json.corrupted`（固定同名、best-effort、每进程一次），警告指向它。"
-        },
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.152",
+      "cliVersions": ["0.162.152"],
+      "date": null,
+      "title": "",
+      "sections": [
         {
           "heading": "Fixed — cc CLI 0.162.152：全面体检 13 修复 + auto-pin 默认开 + 远控幂等激活 + 多语言 LSP/内核沙箱 CI 真机验证（CLI-only npm 发版）",
           "body": "> `chainlesschain` 0.162.151 → **0.162.152** 已发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` + `packages/web-panel`（随 `prepublishOnly build:web-panel` 打入包）增量，未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。发版前本机三层全绿（unit+integration+e2e 23,167 passed / 0 fail）+ 新 `env-blocked-verification.yml` CI 门（真 gopls/rust-analyzer/jdtls 三语言 LSP + 真 bubblewrap 内核隔离，ubuntu）跑通。命令数不变（164）。\n\n- **安全（HIGH）插件签名锁可伪造绕过 `requireSignedPlugins`**：`.plugin-lock.json` 原是可写目录里的自断言 JSON（布尔字段+自选哈希，load 只重哈希不验签；install 还会把源目录自带的伪造 lock 原样拷入；组织没配 `trustedPluginKeySha256` 时 key 检查整个跳过）。改为 lock v2 落真 Ed25519 签名+公钥、load 时**真验签**、trust 指纹从嵌入公钥现算（永不信 lock 字段）、install 无条件剥离源自带 lock、`requireSignedPlugins`+空 key 名单 fail-closed 全拒。3 条 ATTACK 回归测试。\n- **安全：插件远程 registry 拒纯 HTTP**（registry 同时供 source+sha256，MITM 二者全控=完整性检查空转；loopback 豁免、`--allow-insecure-registry`/`CC_PLUGIN_REGISTRY_ALLOW_HTTP=1` 显式 opt-in）+ **fetchGitRepo 拒 `-` 开头 url/ref**（git argv 注入：registry 供的 ref=\"-f\" 在 full-clone retry 路径被 `checkout` 当选项；注意 `checkout -- <ref>` 是错修——`--` 后是 pathspec）。\n- **eval 反作弊三连**：`fix-failing-test`/`fix-build`/`upgrade-dependency` 的 do-not-edit harness 文件从 presence-regex（可被「文本还在但不执行」绕过：前插 `ALL OK`+exit(0)、重写 build.mjs 自定义 banner、run.mjs 干脆零守卫）改为逐字节比对模块常量；4 条作弊回归全在 pre-fix 代码上验 RED。\n- **远控账本双修**：`_perDeviceSeq` 乱序完成回退水位（新 commandId 复用旧 seq 本应拒 stale 实际 applied，真机复现）改 advance-only `Math.max`；`_applied/_order` 随 `cc serve` 无界涨（实测 5 万条 snapshot 14.3MB）加保留窗口（默认 1 万条、分块淘汰、`_baseIndex` 保 applyIndex 全局单调、snapshot 兼容旧格式，实测封顶 4.3MB）。\n- **`cc team` 三修**：runner 层 lease 心跳（内建 shell/agent executor 从不 renew → 超 TTL 长任务被 peer steal **并发双跑**，真时钟回归测试 pre-fix 红）；`dependsOn` 拼错 key 现在 load 时报错（原静默 exit 1 + plan 波次悄悄少块）；`--state` 快照 tmp+rename 原子写（写中崩溃不再截断唯一 resume 文件）。\n- **eval 基建双修**：超时改整树击杀（POSIX detached 组 / Win `taskkill /T /F`）+ 等 `close` 再 settle（原 kill 后立即 resolve，agent 还活着写文件时就快照/check/删目录）；`--dry-run --history` 记录打 `dryRun:true` 且 `--trend` 排除（dry-run 恒 0%，原污染 CI 回归门造成全任务假回归）。\n- **OTLP 合规双修**：`*UnixNano` 时间戳改十进制字符串（ms×1e6≈1.8e18 超 2^53，JSON number 违 proto3 mapping、严格 collector 拒收）；traceId 掺进程启动时间+pid（原裸计数器每进程重置 → 连续 run 全是 `0…01` 被 collector 并成一条 trace）。\n- **LSP 双修（多语言 CI 真机验证抓获）**：`normalizeUri` 统一盘符冒号编码（gopls 把 publish URI 重写成裸 `C:/` 而客户端 didOpen 用 `C%3A/`，诊断 Map key 永不相遇 → **Go 诊断恒空**；tsserver/pyright 原样回显故此前未暴露）；读查询（def/refs/hover/symbols/diag/rename-preview）对 LSP `-32801 ContentModified` 有界重试（rust-analyzer 索引未稳时高频抛出，语义即「请重试」）。\n- **bwrap 沙箱挂载顺序**：`--tmpfs /tmp` 原在工作区 bind 之后挂载，遮蔽任何位于 /tmp 下的工作区（chdir 直接失败、沙箱不可用）；tmpfs 移到 bind 之前（bwrap 顺序挂载、后挂者胜）。\n- **Added：auto-pin 默认开启（产品拍板）**：compaction 现在默认 pin 原始任务（首个 user 轮，token 上限 2000）防长会话跑偏；优先级 `--auto-pin` flag > `CC_AUTO_PIN`(\"1\"/\"0\") > config `context.autoPin` > 默认开；关= `CC_AUTO_PIN=0` 或 config false。\n- **Added：远控客户端发送 commandId/seq，Phase 5 幂等保护端到端激活**：web-panel 直连 `execute` 带顶层 uuid commandId + 抗页面重载单调 seq + per-TAB deviceId，断线后**同 id 重发一次**（服务端 ledger 保至多一次，`replayed` ack 如实上报）；web/Android 的 E2EE 控制事件（prompt/approval/interrupt）把 commandId+per-pairing seq 打进加密明文（relay 本身 at-least-once 补投 offline-message——无 id 时补投的 prompt 会多跑一整个 agent turn）。勘误：所谓 Terminal 远程客户端不存在（cli 包内无此进程），客户端发送侧已全覆盖。\n- **Added：`env-blocked-verification.yml` CI 门**：ubuntu 真机跑三语言 LSP live 套（gopls/rust-analyzer/jdtls 各 def/refs/diag，`CC_LSP_LIVE_REQUIRE` 使装失败=红而非静默 skip）+ 真 bubblewrap 内核隔离套（netns 断网证明「无视 proxy env 的工具」也被拦、rootfs 只读、denyRead tmpfs 掩蔽）；零 `continue-on-error`。\n- **desktop（不随 npm 包，同批落 main）**：SSO IPC 四 handler 端到端修复（refresh-token 传参形状错+读错 store、logout 把 providerId 当 sessionId 致 provider 侧撤销从未发生、handle-callback 会话 id 不达 renderer、get-sessions 恒空——统一路由到权威 SSOManager store）。"
-        },
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.151",
+      "cliVersions": ["0.162.151"],
+      "date": null,
+      "title": "",
+      "sections": [
         {
           "heading": "Added — cc CLI `cc changelog`（别名 `cc whatsnew`）命令：npm 包每版更新说明离线可查",
           "body": "> CLI-only 发版（`chainlesschain` 0.162.150 → **0.162.151**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。纯 `packages/cli/src` 增量（新增 `commands/changelog.js` + `lib/changelog.js` 解析器 + `scripts/build-changelog.mjs` 构建器 + 生成的 `src/data/changelog.json`），未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令数 163 → **164**（清单已重生）。新增解析器 + 命令共 39 项单测本机全绿。\n\n- **命令**：`cc changelog` 显示当前版本 + 最近 5 条 CLI 更新（`← installed` 标出装机版）；`--all` 全部历史、`<version>` 指定版本（吃 CLI 版本 `0.162.150` 或产品版本 `v5.0.3.134` / 裸 `134`）、`-n/--limit` 控制条数、`--json` 机器可读。数据**离线随包**，无网络依赖、永远和装机版本对齐。\n- **数据源与「只显示 CLI 相关条目」**：唯一权威更新记录是根 `CHANGELOG.md`（按**产品版本** `v5.0.3.x` 组织），解析器把它蒸馏成 **CLI 专属**子集。难点是区分「真·CLI 发版」与「只捎带 bump 了 cli 版本号的 PDH/安卓采集器发版」，三道闸：① CLI npm 在 `0.x` alpha 轨、产品在 `5.x` → 版本 token 只取 `0.x`，天然滤掉 `v5.0.3.x` 误抓；② 大小写敏感的 `CLI` → 真 CLI 标题写大写「CLI/cc CLI」，捎带的 bundle note 写小写「cli 0.162.x」；③ 无 `###` 子标题的块只看 `##` 标题（每块都有 `Version surfaces: CLI 0.x` 样板行，信正文会全放行）。从 112 个产品版本块精准抽出 11 个真 CLI 发版（拼多多采集 / 浏览历史等 PDH 发版正确排除）。\n- **打包**：`build:changelog` 脚本在发版时（挂进 `prepublishOnly`）把 CHANGELOG 解析成 `src/data/changelog.json`（~30KB，CLI 子集），随 `src/` 一起发 npm；in-repo dev 无 JSON 时 `loadChangelog()` 回退直接解析根 CHANGELOG。"
-        },
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.162.150",
+      "cliVersions": ["0.162.150"],
+      "date": null,
+      "title": "",
+      "sections": [
         {
           "heading": "Fixed — cc CLI 0.162.150：正确性 + 健壮性大扫（CLI-only npm 发版）",
           "body": "> `chainlesschain` 0.162.149 → **0.162.150** 已发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src`（未触 `pdh/lib`）→ 无 Android cc bundle rollover / 无 USR_VERSION 改动（安卓 in-app cc 有意留 0.162.148）。发版前本机 unit+integration 全绿（22,933+ passed / 0 fail），Linux CI 测试门跑通。逐条明细见 docs-site changelog。\n\n- **命令层正确性**：`mtc cross-trust-create --member` 冒号分隔公钥摘要被 `split(\":\",2)` 截断（损坏信任锚）；`cc loop --resume` 忽略 `[[loop:stop]]` 致循环永不终止；`cc lowcode deploy` DB 句柄错误致 100% 失败 + 漏退出码；`cc marketplace list --limit` 的 `parseInt` coercer 进制 bug 致 `--limit` 静默失效；`cc audit` 8 个 V2 子命令未 await 异步 `bootstrap()`。\n- **资源 / 生命周期**：LSPManager 惰性池并发重复 spawn 语言服务器；`AsyncHookSupervisor` 构造函数无条件注册 exit 监听器 + 未处理的异步 stdin EPIPE（Linux 上确定性崩进程）+ 结果数组无界。\n- **错误处理 / UX**：`logger.warn` 改 stderr（不污染 `--json`）；Ctrl-C `ExitPromptError` 干净取消（exit 130）；`cc team --exec` 不可信 plan 警示；`init` TTS shell 注入 sink 改无 shell；`cc team` worktree 合并失败真实上报（此前死 catch 当成功）。\n- **同批并行 session 硬化**：账本/钱包/身份写入原子化、~25 管理器跨进程状态水合、SQL LIKE 转义、marketplace/state-channel 持久化。"
-        },
-        {
-          "heading": "Tests — 修复 remote-session-crypto 篡改测试的不确定性（CLI CI flaky，非产品 bug）",
-          "body": "> 纯测试改动，未触 `packages/cli/src` → 无版本 bump / 无 npm 发版 / 无 doc 版本指针变化；`packages/cli` 三层测试本机全绿（unit 21,357 / integration 954 / e2e 617）。commit `383435582c`。\n\n- **`remote-session-crypto.test.js` 「rejects ciphertext tampering」flaky（~6%/run）**：该测试篡改密文的 base64url 串（`ciphertext.slice(0,-1)+\"A\"`）。密文为 41 字节（≡2 mod 3），base64url 末字符只承载 4 个有效 bit + 2 个 padding bit，故末字符必 ∈ `{A,E,I,M,Q,U,Y,c,g,k,o,s,w,0,4,8}`（低 2 bit 恒 0）；当末字符恰解码为 nibble 0 时替换成 `\"A\"` 是 no-op（1/16≈6.25%）→ 密文未变 → AES-GCM 验签仍通过 → `toThrow` 不成立。**实测此前备选修法 `last===\"A\"?\"B\":\"A\"` 同样有 6.19% no-op（`A→B` 只翻被丢弃的 padding bit）**。改为篡改解码后的字节（`Buffer.from(ct,\"base64url\")` → `raw[0]^=0xff` → 重编码），确定性（10 万次随机密文实测 0% no-op）；crypto 实现本身无问题，未改源码。"
         }
       ]
     },

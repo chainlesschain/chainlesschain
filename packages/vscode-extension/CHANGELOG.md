@@ -2,6 +2,32 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.29] - Slash suggestions and Webview restart safety (2026-07-23)
+
+- Clicking the blue Send button while a slash-command suggestion is highlighted
+  now accepts that suggestion before submitting, matching the Enter key.
+- This prevents a visible `/status` suggestion from accidentally sending the
+  still-partial `/sta` input and reporting `unknown command`.
+- Added a versioned UI/Extension Host handshake so a retained legacy Webview is
+  rebuilt after an Extension Host restart instead of processing newer messages
+  with stale scripts.
+
+## [0.37.28] - Current CLI release notes (2026-07-23)
+
+- Compare What's New data with the installed `cc --version`; stale non-empty
+  changelog artifacts can no longer be presented as current.
+- Fall back to bundled data when `cc changelog --json` returns an empty list,
+  and mark the installed release in the rendered heading.
+
+## [0.37.27] - Live session slash commands (2026-07-23)
+
+- Route `/status`, `/doctor`, `/mcp`, `/hooks`, `/permissions`, `/agents`,
+  `/tasks`, and `/memory` through the active agent session instead of unrelated
+  top-level CLI commands.
+- Keep slash completion, `/help`, aliases, and execution on one manifest.
+- Preserve arguments and structured failures, isolate stale async results
+  across tabs/session resets, and harden read-only `/plugin` subcommands.
+
 ## [0.37.26] - What's New fallback (2026-07-22)
 
 - When an older Windows `cc` wrapper returns an empty changelog because it
@@ -83,9 +109,9 @@ All notable changes to this extension are documented here.
   the `cc` process, the temp PNGs written for it were never unlinked (no
   `result` event fires) and leaked in tmp for the panel's lifetime.
 - **Checkpoint snapshots are traced.** The `checkpoint` stream event (an
-  auto-snapshot before a mutating tool) now renders a terse `📸 snapshot before
-  <tool>` line instead of being silently dropped, giving `/rewind` a visible
-  anchor.
+  auto-snapshot before a mutating tool) now renders a terse
+  `📸 snapshot before <tool>` line instead of being silently dropped, giving
+  `/rewind` a visible anchor.
 
 ## [0.37.16] — Windows cmd.exe hardening, blocked-agent visibility, bug-sweep + stream-event parity (2026-07-16)
 

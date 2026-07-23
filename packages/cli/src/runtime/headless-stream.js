@@ -86,6 +86,11 @@ import {
 } from "../lib/side-effect-ledger-store.js";
 import { operationIdempotencyKey } from "../lib/idempotency.js";
 import { getPlanModeManager } from "../lib/plan-mode.js";
+import {
+  SESSION_SLASH_COMMANDS,
+  executeSessionSlashCommand,
+  parseSessionSlashCommandEvent,
+} from "./session-slash-commands.js";
 
 /**
  * Resolve the streaming-delta coalesce window (ms). Adjacent partial-message
@@ -429,6 +434,11 @@ export function parseInputEvent(line) {
     if (obj.features !== undefined) offer.features = obj.features;
     return { hello: offer };
   }
+  // Session-scoped slash commands (IDE panel / SDK control plane). These are
+  // dispatched against live session state and never become model turns:
+  //   {"type":"slash_command","command":"status","args":"","request_id":"r1"}
+  const slashCommand = parseSessionSlashCommandEvent(obj);
+  if (slashCommand) return { slashCommand };
   // Plan-mode control events (chat-panel plan UI):
   //   {"type":"plan","action":"enter"|"approve"|"reject"}
   if (obj && typeof obj === "object" && obj.type === "plan") {
@@ -943,6 +953,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   // runAgentHeadless for the full semantics. null = no file → unchanged.
   let permissionRules = options.permissionRules || null;
   let managedSettings = null;
+  let settingsFiles = [];
   try {
     const { loadSettings, applyManagedPermissionPolicy } =
       await import("../lib/settings-loader.cjs");
@@ -952,6 +963,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       managedSettingsFile: options.managedSettingsFile,
     });
     managedSettings = loaded.managed;
+    settingsFiles = Array.isArray(loaded.files) ? loaded.files : [];
     if (!permissionRules) {
       const total =
         loaded.rules.allow.length +
@@ -1016,6 +1028,8 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   const runLoop = deps.agentLoop || coreAgentLoop;
   const doBootstrap = deps.bootstrap || bootstrap;
   const doExpand = deps.expandFileRefs || expandFileRefsAsync;
+  const runSessionSlashCommand =
+    deps.executeSessionSlashCommand || executeSessionSlashCommand;
   const writeOut = deps.writeOut || ((s) => process.stdout.write(s));
   const writeErr = deps.writeErr || ((s) => process.stderr.write(s));
   // Guard the real stdout/stderr against a downstream `| head` closing the pipe
@@ -1520,6 +1534,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       mcp: Boolean(options.mcpConfig) || options.useRegisteredMcp !== false,
       enabledToolNames,
     }),
+    slash_commands: [...SESSION_SLASH_COMMANDS],
     input_format: "stream-json",
     additional_directories: additionalDirectories,
     resumed_messages: resumedMessages,
@@ -1858,6 +1873,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   let wakeQueue = null;
   let inputDone = false;
   let currentAbort = null;
+  let slashRequestSeq = 0;
   (async () => {
     try {
       for await (const line of readJsonLines(input)) {
@@ -1946,6 +1962,60 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   for (;;) {
     const parsed = await nextEvent();
     if (parsed == null) break; // stdin closed
+
+    if (parsed.slashCommand) {
+      const requestId =
+        parsed.slashCommand.requestId || `slash-${++slashRequestSeq}`;
+      let result;
+      try {
+        result = await runSessionSlashCommand(
+          parsed.slashCommand,
+          {
+            sessionId,
+            cwd,
+            provider,
+            model,
+            apiKey,
+            messages,
+            messageCount: messages.length,
+            additionalDirectories,
+            extraRoots: additionalDirectories.length,
+            mcp,
+            permissionRules,
+            permissionMode: options.permissionMode || "default",
+            settingsHooks,
+            settingsFiles,
+            loadedInstructions: _loadedInstructions,
+            projectMemoryEnabled:
+              options.projectMemory !== false &&
+              process.env.CC_PROJECT_MEMORY !== "0",
+          },
+          deps.sessionSlashCommandDeps || {},
+        );
+      } catch (error) {
+        result = {
+          ok: false,
+          code: "COMMAND_FAILED",
+          error: String(error?.message || error),
+        };
+      }
+      emit({
+        type: "slash_command_result",
+        request_id: requestId,
+        command: parsed.slashCommand.command,
+        session_id: sessionId,
+        ok: result?.ok === true,
+        ...(result?.ok === true
+          ? { text: String(result.output || "") }
+          : {
+              error: {
+                code: result?.code || "COMMAND_FAILED",
+                message: String(result?.error || "Slash command failed"),
+              },
+            }),
+      });
+      continue;
+    }
 
     // One-time version-skew reminder (see flag declaration above). Best-effort;
     // never blocks a turn. detectVersionSkew() returns null when this process is

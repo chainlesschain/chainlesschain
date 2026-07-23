@@ -12,6 +12,8 @@ import {
   parseChangelog,
   extractCliVersions,
   compareSemver,
+  hasCliVersion,
+  latestCliVersion,
 } from "../../src/lib/changelog.js";
 
 describe("extractCliVersions", () => {
@@ -51,7 +53,48 @@ describe("compareSemver", () => {
   });
 });
 
+describe("hasCliVersion", () => {
+  it("checks both the primary and all versions covered by a release block", () => {
+    const releases = [
+      {
+        cliVersion: "0.162.176",
+        cliVersions: ["0.162.175", "0.162.176"],
+      },
+    ];
+    expect(hasCliVersion(releases, "0.162.176")).toBe(true);
+    expect(hasCliVersion(releases, "0.162.175")).toBe(true);
+    expect(hasCliVersion(releases, "0.162.170")).toBe(false);
+    expect(latestCliVersion(releases)).toBe("0.162.176");
+  });
+});
+
 describe("parseChangelog — CLI-relevance gate", () => {
+  it("splits CLI sections in Unreleased into independently limitable releases", () => {
+    const md = [
+      "## [Unreleased]",
+      "",
+      "### Added — cc CLI 0.162.176: newest",
+      "",
+      "> `chainlesschain` 0.162.175 → **0.162.176** (2026-07-23)",
+      "- newest change",
+      "",
+      "### Fixed — cc CLI 0.162.175: previous",
+      "",
+      "> `chainlesschain` 0.162.174 → **0.162.175** (2026-07-21)",
+      "- previous fix",
+    ].join("\n");
+    const rel = parseChangelog(md);
+    expect(rel.map((item) => item.cliVersion)).toEqual([
+      "0.162.176",
+      "0.162.175",
+    ]);
+    expect(rel[0]).toMatchObject({
+      productVersion: null,
+      date: "2026-07-23",
+    });
+    expect(rel[0].sections).toHaveLength(1);
+  });
+
   it("keeps a block with an uppercase-CLI ### section", () => {
     const md = [
       "## [v5.0.3.134] - 2026-07-03 — some release",

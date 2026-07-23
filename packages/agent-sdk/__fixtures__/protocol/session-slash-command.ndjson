@@ -1,0 +1,4 @@
+{"type":"slash_command","request_id":"slash-fx-status","command":"status","args":""}
+{"type":"slash_command_result","request_id":"slash-fx-status","command":"status","ok":true,"text":"Session status","session_id":"sess-fx-1","seq":21,"trace_id":"tr-fx-1"}
+{"type":"slash_command","request_id":"slash-fx-permissions","command":"permissions","args":"allow"}
+{"type":"slash_command_result","request_id":"slash-fx-permissions","command":"permissions","ok":false,"error":{"code":"UNSUPPORTED_ARGUMENTS","message":"/permissions is read-only over stream-json"},"session_id":"sess-fx-1","seq":22,"trace_id":"tr-fx-1"}

@@ -29,6 +29,9 @@ const { createStatusBar } = require("./ui/status-bar");
 const { IdeBridgeTreeProvider } = require("./ui/tree-view");
 const { openDashboard, refreshDashboard } = require("./ui/dashboard");
 const { ChatViewProvider } = require("./chat/chat-view");
+const {
+  reloadWebviewsOnceAfterExtensionUpgrade,
+} = require("./webview-upgrade-reload");
 
 let _server = null;
 let _port = null;
@@ -278,6 +281,25 @@ function activate(context) {
       { webviewOptions: { retainContextWhenHidden: true } },
     ),
     chatProvider,
+  );
+  // Activation-level upgrade guard: a retained Webview can survive an
+  // Extension Host restart without resolveWebviewView being called again.
+  // The VS Code command reloads ALL Webviews, so run it only once when this
+  // extension version first appears/changes. The helper persists the version
+  // before executing the command, preventing a reload/re-activation loop.
+  reloadWebviewsOnceAfterExtensionUpgrade({
+    vscode,
+    context,
+    packageJson: require("../package.json"),
+  }).then(
+    (result) => {
+      if (result.reloaded) {
+        log(
+          `extension ${result.currentVersion}: reloaded all retained Webviews after upgrade`,
+        );
+      }
+    },
+    (err) => log(`upgrade Webview reload failed: ${err?.message || err}`),
   );
   if (typeof vscode.window.onDidChangeActiveTextEditor === "function") {
     context.subscriptions.push(
@@ -830,20 +852,32 @@ function activate(context) {
       const {
         buildChangelogArgs,
         parseChangelogJson,
+        chooseChangelogReleases,
+        reconcileChangelogReleases,
         loadBundledChangelog,
         changelogToMarkdown,
         MIN_CHANGELOG_CLI,
       } = require("./whats-new.js");
       const { runCliText } = require("./chat/introspect-commands.js");
       const { getResolvedCli } = require("./cli-binary");
-      const text = await runCliText({
-        command: getResolvedCli(),
-        args: buildChangelogArgs({}),
-        timeoutMs: 15000,
+      const { parseCliVersion } = require("./version-check");
+      const command = getResolvedCli();
+      const [text, versionText] = await Promise.all([
+        runCliText({
+          command,
+          args: buildChangelogArgs({}),
+          timeoutMs: 15000,
+        }),
+        runCliVersion(command).catch(() => null),
+      ]);
+      const parsed = parseChangelogJson(text);
+      const bundled =
+        parsed?.length > 0 ? null : loadBundledChangelog({ command });
+      const selected = chooseChangelogReleases(parsed, bundled);
+      const installed = parseCliVersion(String(versionText || ""));
+      const { releases } = reconcileChangelogReleases(selected, {
+        installed,
       });
-      const releases =
-        parseChangelogJson(text) ||
-        loadBundledChangelog({ command: getResolvedCli() });
       if (!releases || releases.length === 0) {
         vscode.window.showInformationMessage(
           vscode.l10n.t(
@@ -854,7 +888,7 @@ function activate(context) {
         return;
       }
       const doc = await vscode.workspace.openTextDocument({
-        content: changelogToMarkdown(releases),
+        content: changelogToMarkdown(releases, { installed }),
         language: "markdown",
       });
       try {
