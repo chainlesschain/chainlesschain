@@ -18,7 +18,6 @@
  *               stop; else re-arm for the next interval
  */
 
-import { spawn, execSync } from "node:child_process";
 import { readFileSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
@@ -27,6 +26,12 @@ import { sendAgentNotification } from "../lib/agent-notify.js";
 import { nextWakeupAt, partitionSchedule } from "../lib/schedule-planner.js";
 import { monitorEventEnvelope, capEventPayload } from "../lib/monitor-event.js";
 import { unattendedDisallowedTools } from "../lib/unattended-action-policy.js";
+import executionBroker from "../lib/process-execution-broker/index.js";
+
+export const _processDeps = {
+  spawn: (...args) => executionBroker.spawn(...args),
+  execSync: (...args) => executionBroker.execSync(...args),
+};
 
 const BIN_PATH = fileURLToPath(
   new URL("../../bin/chainlesschain.js", import.meta.url),
@@ -403,8 +408,7 @@ export async function runAgendaDaemon(options = {}, _deps = {}) {
   const signal = options.signal || _deps.signal || null;
   const runOnce = _deps.runOnce || ((next) => runAgendaRun(next, _deps));
   const sleep =
-    _deps.sleep ||
-    ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+    _deps.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   let stopped = Boolean(signal?.aborted);
   let lastCode = 0;
   let ticks = 0;
@@ -456,7 +460,11 @@ export function buildAgentArgs(prompt, policy = null) {
     args.push("--disallowed-tools", disallow.join(","));
   }
   args.push("--unattended");
-  if (policy && Array.isArray(policy.unattendedAllowlist) && policy.unattendedAllowlist.length > 0) {
+  if (
+    policy &&
+    Array.isArray(policy.unattendedAllowlist) &&
+    policy.unattendedAllowlist.length > 0
+  ) {
     args.push("--unattended-allow", policy.unattendedAllowlist.join(","));
   }
   if (policy && typeof policy === "object") {
@@ -494,13 +502,17 @@ export function buildAgentArgs(prompt, policy = null) {
 
 function defaultSpawnAgent(prompt, policy = null) {
   return new Promise((resolve, reject) => {
-    const child = spawn(
+    const child = _processDeps.spawn(
       process.execPath,
       [BIN_PATH, ...buildAgentArgs(prompt, policy)],
       {
         stdio: "ignore",
         detached: false,
         env: process.env,
+        origin: "agenda:agent-run",
+        policy: "allow",
+        scope: "agenda",
+        shell: false,
       },
     );
     child.on("error", reject);
@@ -514,10 +526,14 @@ function defaultSpawnAgent(prompt, policy = null) {
 
 function defaultRunCommand(command) {
   try {
-    return execSync(command, {
+    return _processDeps.execSync(command, {
       encoding: "utf-8",
       stdio: ["ignore", "pipe", "pipe"],
       timeout: 60000,
+      origin: "agenda:monitor-command",
+      policy: "allow",
+      scope: "agenda",
+      shell: true,
     });
   } catch (err) {
     // A non-zero exit still yields output we want to match against.

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { EventEmitter } from "node:events";
 import fs from "fs";
 import os from "os";
 import path from "path";
@@ -10,6 +11,7 @@ import {
   runAgendaDaemon,
   runAgendaPrune,
   buildAgentArgs,
+  _processDeps,
 } from "../../src/commands/agenda.js";
 
 describe("cc agenda", () => {
@@ -108,6 +110,81 @@ describe("cc agenda", () => {
     expect(store.list("wakeup").find((e) => e.id === w.id).status).toBe(
       "fired",
     );
+  });
+
+  it("routes the default scheduled agent launch through the Broker", async () => {
+    const original = _processDeps.spawn;
+    const calls = [];
+    try {
+      _processDeps.spawn = (file, args, options) => {
+        calls.push([file, args, options]);
+        const child = new EventEmitter();
+        queueMicrotask(() => child.emit("close", 0));
+        return child;
+      };
+      store.scheduleWakeup({ prompt: "broker wake", delayMs: 0 });
+
+      const code = await runAgendaRun(
+        { json: true },
+        { store, log, now: () => clock + 1 },
+      );
+      expect(code).toBe(0);
+      expect(calls).toHaveLength(1);
+      expect(calls[0][0]).toBe(process.execPath);
+      expect(calls[0][1]).toEqual(
+        expect.arrayContaining(["agent", "-p", "broker wake"]),
+      );
+      expect(calls[0][2]).toEqual(
+        expect.objectContaining({
+          origin: "agenda:agent-run",
+          policy: "allow",
+          scope: "agenda",
+          shell: false,
+        }),
+      );
+    } finally {
+      _processDeps.spawn = original;
+    }
+  });
+
+  it("routes the default monitor command through the Broker shell path", async () => {
+    const original = _processDeps.execSync;
+    const calls = [];
+    try {
+      _processDeps.execSync = (command, options) => {
+        calls.push([command, options]);
+        return "BUILD OK\n";
+      };
+      store.createMonitor({
+        command: "echo BUILD OK",
+        intervalMs: 1000,
+        stopWhen: "OK",
+      });
+
+      const code = await runAgendaRun(
+        { json: true },
+        {
+          store,
+          log,
+          notify: vi.fn(async () => ({})),
+          now: () => clock + 2000,
+        },
+      );
+      expect(code).toBe(0);
+      expect(calls).toEqual([
+        [
+          "echo BUILD OK",
+          expect.objectContaining({
+            origin: "agenda:monitor-command",
+            policy: "allow",
+            scope: "agenda",
+            shell: true,
+          }),
+        ],
+      ]);
+    } finally {
+      _processDeps.execSync = original;
+    }
   });
 
   describe("per-task run policy", () => {

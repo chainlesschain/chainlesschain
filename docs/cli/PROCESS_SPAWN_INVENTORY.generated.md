@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 397 (runtime: 321, tooling: 53, test: 23).
+Total matches: 398 (runtime: 322, tooling: 53, test: 23).
 
 ## Policy
 
@@ -30,9 +30,10 @@ Total matches: 397 (runtime: 321, tooling: 53, test: 23).
 | `packages/cli/bin/chainlesschain.js` | 3 | `// FIRST: Patch child_process globally to route ALL spawn/exec through ProcessExecutionBroker (M1)` |
 | `packages/cli/src/auth/npm-auth.js` | 14 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/auth/npm-auth.js` | 22 | `return _deps.execFileSync(` |
-| `packages/cli/src/commands/agenda.js` | 21 | `import { spawn, execSync } from "node:child_process";` |
-| `packages/cli/src/commands/agenda.js` | 497 | `const child = spawn(` |
-| `packages/cli/src/commands/agenda.js` | 517 | `return execSync(command, {` |
+| `packages/cli/src/commands/agenda.js` | 32 | `spawn: (...args) => executionBroker.spawn(...args),` |
+| `packages/cli/src/commands/agenda.js` | 33 | `execSync: (...args) => executionBroker.execSync(...args),` |
+| `packages/cli/src/commands/agenda.js` | 505 | `const child = _processDeps.spawn(` |
+| `packages/cli/src/commands/agenda.js` | 529 | `return _processDeps.execSync(command, {` |
 | `packages/cli/src/commands/background-session.js` | 463 | `const { spawn } = await import("node:child_process");` |
 | `packages/cli/src/commands/background-session.js` | 527 | `const child = spawn(` |
 | `packages/cli/src/commands/batch.js` | 22 | `import { spawn } from "child_process";` |
