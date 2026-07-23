@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 402 (runtime: 326, tooling: 53, test: 23).
+Total matches: 403 (runtime: 327, tooling: 53, test: 23).
 
 ## Policy
 
@@ -163,11 +163,12 @@ Total matches: 402 (runtime: 326, tooling: 53, test: 23).
 | `packages/cli/src/lib/computer-use/control-backend.js` | 13 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/lib/computer-use/control-backend.js` | 19 | `const res = deps.spawnSync(` |
 | `packages/cli/src/lib/computer-use/control-backend.js` | 150 | `const res = deps.spawnSync(app, args, {` |
-| `packages/cli/src/lib/doctor-checkup.js` | 26 | `import { execSync, spawnSync } from "node:child_process";` |
-| `packages/cli/src/lib/doctor-checkup.js` | 552 | `deps.execSync("git rev-parse --is-inside-work-tree", {` |
-| `packages/cli/src/lib/doctor-checkup.js` | 573 | `deps.execSync("git worktree prune --dry-run -v", {` |
-| `packages/cli/src/lib/doctor-checkup.js` | 842 | `spawnSync: deps.spawnSync,` |
-| `packages/cli/src/lib/doctor-checkup.js` | 1141 | `deps.execSync("git worktree prune", {` |
+| `packages/cli/src/lib/doctor-checkup.js` | 62 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
+| `packages/cli/src/lib/doctor-checkup.js` | 63 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
+| `packages/cli/src/lib/doctor-checkup.js` | 552 | `deps.execFileSync("git", ["rev-parse", "--is-inside-work-tree"], {` |
+| `packages/cli/src/lib/doctor-checkup.js` | 577 | `deps.execFileSync("git", ["worktree", "prune", "--dry-run", "-v"], {` |
+| `packages/cli/src/lib/doctor-checkup.js` | 850 | `spawnSync: deps.spawnSync,` |
+| `packages/cli/src/lib/doctor-checkup.js` | 1149 | `deps.execFileSync("git", ["worktree", "prune"], {` |
 | `packages/cli/src/lib/downloader.js` | 18 | `return executionBroker.execFileSync(file, args, options);` |
 | `packages/cli/src/lib/ensure-utf8.js` | 15 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/lib/ensure-utf8.js` | 39 | `_deps.execFileSync("cmd.exe", ["/d", "/s", "/c", "chcp 65001"], {` |

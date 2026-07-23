@@ -15,7 +15,7 @@ function fakeDeps(overrides = {}) {
     readdirSync: () => [],
     statSync: () => ({ mtimeMs: 0 }),
     rmSync: vi.fn(),
-    execSync: vi.fn(() => ""),
+    execFileSync: vi.fn(() => ""),
     now: () => 10_000_000,
     ...overrides,
   };
@@ -90,13 +90,14 @@ describe("doctor-checkup", () => {
   });
 
   it("flags stale git worktree entries with a SAFE fix", async () => {
+    const execFileSync = vi.fn((_file, args) => {
+      if (args.includes("rev-parse")) return "true";
+      if (args.includes("--dry-run"))
+        return "Removing worktrees/dead: gitdir file points to non-existent location\n";
+      return "";
+    });
     const deps = fakeDeps({
-      execSync: vi.fn((cmd) => {
-        if (String(cmd).includes("rev-parse")) return "true";
-        if (String(cmd).includes("prune --dry-run"))
-          return "Removing worktrees/dead: gitdir file points to non-existent location\n";
-        return "";
-      }),
+      execFileSync,
     });
     const sections = await collectCheckupSections({ deps });
     const wt = sections.find((s) => s.id === "worktrees");
@@ -105,12 +106,34 @@ describe("doctor-checkup", () => {
     expect(check.fix).toEqual(
       expect.objectContaining({ id: "git-worktree-prune", safe: true }),
     );
+    expect(execFileSync.mock.calls).toEqual([
+      [
+        "git",
+        ["rev-parse", "--is-inside-work-tree"],
+        expect.objectContaining({
+          origin: "doctor:git-worktree",
+          policy: "allow",
+          scope: "diagnostics",
+          shell: false,
+        }),
+      ],
+      [
+        "git",
+        ["worktree", "prune", "--dry-run", "-v"],
+        expect.objectContaining({
+          origin: "doctor:git-worktree",
+          policy: "allow",
+          scope: "diagnostics",
+          shell: false,
+        }),
+      ],
+    ]);
   });
 
   it("reports a clean worktree state as ok", async () => {
     const deps = fakeDeps({
-      execSync: vi.fn((cmd) =>
-        String(cmd).includes("rev-parse") ? "true" : "",
+      execFileSync: vi.fn((_file, args) =>
+        args.includes("rev-parse") ? "true" : "",
       ),
     });
     const sections = await collectCheckupSections({ deps });
@@ -363,7 +386,7 @@ describe("doctor-checkup", () => {
     });
 
     it("runs git worktree prune for the worktree fix", async () => {
-      const execSync = vi.fn(() => "");
+      const execFileSync = vi.fn(() => "");
       const sections = [
         {
           id: "worktrees",
@@ -377,17 +400,23 @@ describe("doctor-checkup", () => {
         },
       ];
       const results = await runCheckupFixes(sections, {
-        deps: fakeDeps({ execSync }),
+        deps: fakeDeps({ execFileSync }),
       });
       expect(results[0].applied).toBe(true);
-      expect(execSync).toHaveBeenCalledWith(
-        "git worktree prune",
-        expect.anything(),
+      expect(execFileSync).toHaveBeenCalledWith(
+        "git",
+        ["worktree", "prune"],
+        expect.objectContaining({
+          origin: "doctor:git-worktree-fix",
+          policy: "allow",
+          scope: "diagnostics",
+          shell: false,
+        }),
       );
     });
 
     it("never executes unsafe fixes", async () => {
-      const execSync = vi.fn(() => "");
+      const execFileSync = vi.fn(() => "");
       const rmSync = vi.fn();
       const sections = [
         {
@@ -406,10 +435,10 @@ describe("doctor-checkup", () => {
         },
       ];
       const results = await runCheckupFixes(sections, {
-        deps: fakeDeps({ execSync, rmSync }),
+        deps: fakeDeps({ execFileSync, rmSync }),
       });
       expect(results).toEqual([]);
-      expect(execSync).not.toHaveBeenCalled();
+      expect(execFileSync).not.toHaveBeenCalled();
       expect(rmSync).not.toHaveBeenCalled();
     });
   });
@@ -452,7 +481,7 @@ describe("doctor-checkup — LSP readiness (runtime section)", () => {
     existsSync: () => false, // keep every OTHER doctor section a no-op
     readFileSync: () => "",
     rmSync: vi.fn(),
-    execSync: vi.fn(() => ""),
+    execFileSync: vi.fn(() => ""),
     now: () => 10_000_000,
   });
 

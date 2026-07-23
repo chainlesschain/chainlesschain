@@ -23,9 +23,9 @@ import {
   statSync,
   rmSync,
 } from "node:fs";
-import { execSync, spawnSync } from "node:child_process";
 import { join, basename } from "node:path";
 import { getHomeDir, getConfigPath } from "./paths.js";
+import executionBroker from "./process-execution-broker/index.js";
 import {
   languageIdForFile,
   resolveServer,
@@ -59,8 +59,8 @@ export const _deps = {
   readFileSync,
   statSync,
   rmSync,
-  execSync,
-  spawnSync,
+  execFileSync: (...args) => executionBroker.execFileSync(...args),
+  spawnSync: (...args) => executionBroker.spawnSync(...args),
   now: () => Date.now(),
 };
 
@@ -549,10 +549,14 @@ async function worktreeSection(opts, deps) {
   try {
     const inRepo = (() => {
       try {
-        deps.execSync("git rev-parse --is-inside-work-tree", {
+        deps.execFileSync("git", ["rev-parse", "--is-inside-work-tree"], {
           cwd,
           encoding: "utf-8",
           stdio: ["ignore", "pipe", "ignore"],
+          origin: "doctor:git-worktree",
+          policy: "allow",
+          scope: "diagnostics",
+          shell: false,
         });
         return true;
       } catch {
@@ -570,10 +574,14 @@ async function worktreeSection(opts, deps) {
       );
     } else {
       const out =
-        deps.execSync("git worktree prune --dry-run -v", {
+        deps.execFileSync("git", ["worktree", "prune", "--dry-run", "-v"], {
           cwd,
           encoding: "utf-8",
           stdio: ["ignore", "pipe", "ignore"],
+          origin: "doctor:git-worktree",
+          policy: "allow",
+          scope: "diagnostics",
+          shell: false,
         }) || "";
       const prunable = out.split("\n").filter((l) => l.trim()).length;
       if (prunable > 0) {
@@ -1138,10 +1146,14 @@ export async function runCheckupFixes(sections, opts = {}) {
           detail: `removed ${removed} file(s)`,
         });
       } else if (fix.id === "git-worktree-prune") {
-        deps.execSync("git worktree prune", {
+        deps.execFileSync("git", ["worktree", "prune"], {
           cwd: opts.cwd || process.cwd(),
           encoding: "utf-8",
           stdio: ["ignore", "pipe", "ignore"],
+          origin: "doctor:git-worktree-fix",
+          policy: "allow",
+          scope: "diagnostics",
+          shell: false,
         });
         results.push({
           id: fix.id,

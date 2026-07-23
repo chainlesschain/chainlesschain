@@ -174,6 +174,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   `packer:smoke-taskkill` Broker origin；保留 shim shell 兼容、stdio 管道、进程组 teardown 与端口探测语义。
 - Packer OTA apply 的 Windows sidecar 与 POSIX 更新后重启已分别进入 `packer:update-sidecar`、
   `packer:update-restart` Broker origin；路径继续作为独立 argv，保留 detached/unref 与原子替换流程。
+- Doctor checkup 的 Git worktree 探测与安全 prune 修复已分别进入 `doctor:git-worktree`、
+  `doctor:git-worktree-fix` Broker origin；固定 Git 命令改为无 shell argv，sandbox 可用性探测也复用同步 Broker。
 
 ### 4.2 建议设计
 
