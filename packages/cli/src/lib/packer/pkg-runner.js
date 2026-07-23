@@ -14,8 +14,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
-import { spawnSync } from "node:child_process";
 import { PackError, EXIT } from "./errors.js";
+import executionBroker from "../process-execution-broker/index.js";
+
+export const _deps = {
+  spawnSync: (...args) => executionBroker.spawnSync(...args),
+};
 
 /**
  * @param {object} ctx
@@ -47,12 +51,19 @@ export function runPkg(ctx) {
   ];
 
   log(`  [pkg] Running: ${pkgBin.runtime} ${args.join(" ")}`);
-  const res = spawnSync(pkgBin.runtime, args, {
+  const res = _deps.spawnSync(pkgBin.runtime, args, {
+    origin: "packer:pkg",
+    scope: "pack",
+    policy: "allow",
+    shell: false,
     cwd: path.dirname(pkgConfigFile),
     stdio: "inherit",
     windowsHide: true,
   });
 
+  if (res.error) {
+    throw new PackError(`Failed to start pkg: ${res.error.message}`, EXIT.PKG);
+  }
   if (res.status !== 0) {
     throw new PackError(
       `pkg exited with code ${res.status}. See output above for details.`,

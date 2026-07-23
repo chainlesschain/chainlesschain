@@ -161,6 +161,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   `lan-pairing:firewall-probe` Broker origin；候选工具名作为独立 argv 传递，继续保持只读、失败降级语义。
 - Packer precheck 的 repo root、short HEAD 与 porcelain status 查询已进入
   `packer:precheck-git` Broker origin；三组固定 Git 参数均改为无 shell argv，并保留非 Git 目录的静默降级。
+- Packer 的 `@yao-pkg/pkg` 运行器已进入 `packer:pkg` Broker origin；runtime、脚本、配置、targets
+  与输出路径继续逐项传递，并新增启动失败与成功产物映射的隔离测试。
 
 ### 4.2 建议设计
 
