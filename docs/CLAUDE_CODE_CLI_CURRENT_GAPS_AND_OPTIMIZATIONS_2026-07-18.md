@@ -112,6 +112,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   文件路径与服务名保持独立 argv，状态查询不再拼接 shell 命令。
 - Desktop 应用启动与 Windows `taskkill` 停止路径已进入 `app` Broker scope；可执行文件路径和 PID
   均作为独立 argv，保留 detached/PID 文件生命周期语义。
+- PR 草稿的分支、remote、status 与 commit log 查询已进入 `pr:git` Broker scope；base/branch
+  组成单一 revision argv 并使用 Git 的 end-of-options 边界，比较 URL 对 ref 做百分号编码。
 
 ### 4.2 建议设计
 

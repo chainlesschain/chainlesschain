@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 405 (runtime: 329, tooling: 53, test: 23).
+Total matches: 402 (runtime: 326, tooling: 53, test: 23).
 
 ## Policy
 
@@ -236,11 +236,8 @@ Total matches: 405 (runtime: 329, tooling: 53, test: 23).
 | `packages/cli/src/lib/plugin-monitor-supervisor.js` | 42 | `this._spawn = opts.spawn \|\| _deps.spawn;` |
 | `packages/cli/src/lib/plugin-runtime/install.js` | 22 | `import { spawnSync } from "child_process";` |
 | `packages/cli/src/lib/plugin-runtime/install.js` | 271 | `_deps.spawnSync("git", args, {` |
-| `packages/cli/src/lib/pr-create.js` | 7 | `import { execSync } from "child_process";` |
-| `packages/cli/src/lib/pr-create.js` | 16 | `return execSync("git rev-parse --abbrev-ref HEAD", {` |
-| `packages/cli/src/lib/pr-create.js` | 30 | `return execSync("git remote get-url origin", { encoding: "utf8" }).trim();` |
-| `packages/cli/src/lib/pr-create.js` | 61 | `const status = execSync("git status --porcelain", { encoding: "utf8" });` |
-| `packages/cli/src/lib/pr-create.js` | 75 | `commitLog = execSync(`git log ${logRange} --oneline`, { encoding: "utf8" });` |
+| `packages/cli/src/lib/pr-create.js` | 11 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
+| `packages/cli/src/lib/pr-create.js` | 15 | `return _deps.execFileSync("git", args, {` |
 | `packages/cli/src/lib/pr-link-ledger.js` | 20 | `import { execFile } from "node:child_process";` |
 | `packages/cli/src/lib/pr-link-ledger.js` | 150 | `_deps.execFile(` |
 | `packages/cli/src/lib/process-execution-broker/index.js` | 14 | `// 直接导入原生child_process，避免递归` |

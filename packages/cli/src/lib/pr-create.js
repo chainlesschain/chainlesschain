@@ -4,8 +4,23 @@
  * @module lib/pr-create
  */
 
-import { execSync } from "child_process";
 import { logger } from "./logger.js";
+import { executionBroker } from "./process-execution-broker/index.js";
+
+export const _deps = {
+  execFileSync: (...args) => executionBroker.execFileSync(...args),
+};
+
+function git(args, options = {}) {
+  return _deps.execFileSync("git", args, {
+    encoding: "utf8",
+    ...options,
+    origin: "pr:git",
+    policy: "allow",
+    scope: "pr",
+    shell: false,
+  });
+}
 
 /**
  * Get current git branch
@@ -13,9 +28,7 @@ import { logger } from "./logger.js";
  */
 export function getCurrentBranch() {
   try {
-    return execSync("git rev-parse --abbrev-ref HEAD", {
-      encoding: "utf8",
-    }).trim();
+    return git(["rev-parse", "--abbrev-ref", "HEAD"]).trim();
   } catch {
     return "main";
   }
@@ -27,7 +40,7 @@ export function getCurrentBranch() {
  */
 export function getRemoteUrl() {
   try {
-    return execSync("git remote get-url origin", { encoding: "utf8" }).trim();
+    return git(["remote", "get-url", "origin"]).trim();
   } catch {
     return null;
   }
@@ -58,7 +71,7 @@ export async function preparePullRequest(options = {}) {
   const repo = parseGitHubRepo();
 
   // Check for uncommitted changes
-  const status = execSync("git status --porcelain", { encoding: "utf8" });
+  const status = git(["status", "--porcelain"]);
   const hasChanges = status.trim().length > 0;
 
   if (hasChanges && !options.skipStash) {
@@ -72,13 +85,13 @@ export async function preparePullRequest(options = {}) {
   const logRange = `${defaultBase}...${branch}`;
   let commitLog = "";
   try {
-    commitLog = execSync(`git log ${logRange} --oneline`, { encoding: "utf8" });
+    commitLog = git(["log", "--oneline", "--end-of-options", logRange, "--"]);
   } catch {
     commitLog = "";
   }
 
   const prUrl = repo
-    ? `https://github.com/${repo.owner}/${repo.repo}/compare/${defaultBase}...${branch}?expand=1`
+    ? `https://github.com/${repo.owner}/${repo.repo}/compare/${encodeURIComponent(defaultBase)}...${encodeURIComponent(branch)}?expand=1`
     : null;
 
   logger.info(`Branch: ${branch}`);
