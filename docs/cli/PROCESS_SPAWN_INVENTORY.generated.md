@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 328 (runtime: 252, tooling: 53, test: 23).
+Total matches: 332 (runtime: 251, tooling: 53, test: 28).
 
 ## Policy
 
@@ -84,7 +84,7 @@ Total matches: 328 (runtime: 252, tooling: 53, test: 23).
 | `packages/cli/src/gateways/ws/ws-server.js` | 248 | `this._spawnProcess = options.spawn \|\| _deps.spawn;` |
 | `packages/cli/src/harness/background-task-manager.js` | 125 | `const child = _deps.spawn(` |
 | `packages/cli/src/harness/background-task-worker.js` | 17 | `const result = executionBroker.execSync(command, {` |
-| `packages/cli/src/harness/mcp-client.js` | 488 | `const proc = _deps.spawn(config.command, config.args || [], {` |
+| `packages/cli/src/harness/mcp-client.js` | 488 | `const proc = _deps.spawn(config.command, config.args \|\| [], {` |
 | `packages/cli/src/lazy-dispatch.js` | 105 | `async spawn(argv) {` |
 | `packages/cli/src/lib/agent-ipc-bus.js` | 183 | `const child = _deps.spawn(command, args, {` |
 | `packages/cli/src/lib/agent-sandbox.js` | 8 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
@@ -153,6 +153,7 @@ Total matches: 328 (runtime: 252, tooling: 53, test: 23).
 | `packages/cli/src/lib/lan-pairing-preflight.js` | 28 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/lib/lan-pairing-preflight.js` | 320 | `_deps.execFileSync(probe, [cmd], {` |
 | `packages/cli/src/lib/lsp/benchmark.js` | 21 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
+| `packages/cli/src/lib/lsp/benchmark.js` | 174 | `{ execFileSync = _deps.execFileSync, platform = process.platform } = {},` |
 | `packages/cli/src/lib/lsp/benchmark.js` | 179 | `const csv = execFileSync(` |
 | `packages/cli/src/lib/lsp/benchmark.js` | 201 | `const out = execFileSync("ps", ["-o", "pid=,ppid=,rss="], {` |
 | `packages/cli/src/lib/lsp/lsp-client.js` | 11 | `* Testability: all process spawning goes through `_deps.spawn` so tests inject a` |
@@ -165,6 +166,7 @@ Total matches: 328 (runtime: 252, tooling: 53, test: 23).
 | `packages/cli/src/lib/orchestrator.js` | 384 | `const output = _deps.execSync(this.ciCommand, {` |
 | `packages/cli/src/lib/packer/native-prebuild-collector.js` | 257 | `// Generic fallback — a native fork (e.g. better-sqlite3-multiple-ciphers)` |
 | `packages/cli/src/lib/packer/pack-update-applier.js` | 33 | `spawn: (...args) => executionBroker.spawn(...args),` |
+| `packages/cli/src/lib/packer/pack-update-applier.js` | 62 | `spawnImpl = _deps.spawn,` |
 | `packages/cli/src/lib/packer/pkg-runner.js` | 21 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/lib/packer/pkg-runner.js` | 54 | `const res = _deps.spawnSync(pkgBin.runtime, args, {` |
 | `packages/cli/src/lib/packer/precheck.js` | 13 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
@@ -202,16 +204,16 @@ Total matches: 328 (runtime: 252, tooling: 53, test: 23).
 | `packages/cli/src/lib/process-execution-broker/index.js` | 849 | `fork(modulePath, args, options = {}) {` |
 | `packages/cli/src/lib/process-execution-broker/index.js` | 850 | `return this.spawn(process.execPath, [modulePath, ...(args \|\| [])], {` |
 | `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 2 | `* Monkey-patch node:child_process to route ALL spawn/exec calls through ExecutionBroker (M1)` |
-| `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 11 | `// Get the REAL native child_process module (unpatched, from Node.js internals)` |
-| `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 12 | `const nativeCp = require("node:child_process");` |
-| `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 17 | `return executionBroker.spawn(command, args, options);` |
-| `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 21 | `return executionBroker.spawnSync(command, args, options);` |
-| `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 29 | `return executionBroker.execSync(command, options);` |
-| `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 33 | `return executionBroker.execFile(file, args, options, callback);` |
-| `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 37 | `return executionBroker.execFileSync(file, args, options);` |
-| `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 41 | `return executionBroker.fork(modulePath, args, options);` |
-| `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 44 | `// Also patch child_process for CommonJS require` |
-| `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 45 | `const cpModule = require.cache[require.resolve("node:child_process")];` |
+| `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 10 | `// Get the REAL native child_process module (unpatched, from Node.js internals)` |
+| `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 11 | `const nativeCp = require("node:child_process");` |
+| `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 16 | `return executionBroker.spawn(command, args, options);` |
+| `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 20 | `return executionBroker.spawnSync(command, args, options);` |
+| `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 28 | `return executionBroker.execSync(command, options);` |
+| `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 32 | `return executionBroker.execFile(file, args, options, callback);` |
+| `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 36 | `return executionBroker.execFileSync(file, args, options);` |
+| `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 40 | `return executionBroker.fork(modulePath, args, options);` |
+| `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 43 | `// Also patch child_process for CommonJS require` |
+| `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 44 | `const cpModule = require.cache[require.resolve("node:child_process")];` |
 | `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 217 | `* is to use `prlimit` (util-linux) wrapper and set `child_process` uid/gid/groups.` |
 | `packages/cli/src/lib/process-manager.js` | 15 | `spawn: (...args) => executionBroker.spawn(...args),` |
 | `packages/cli/src/lib/process-manager.js` | 16 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
@@ -223,7 +225,7 @@ Total matches: 328 (runtime: 252, tooling: 53, test: 23).
 | `packages/cli/src/lib/repl-bang-memorize.js` | 72 | `const spawnSync = opts.deps?.spawnSync \|\| _deps.spawnSync;` |
 | `packages/cli/src/lib/repl-bang-memorize.js` | 81 | `? spawnSync("cmd.exe", ["/d", "/s", "/c", `chcp 65001 >nul && ${cmd}`], {` |
 | `packages/cli/src/lib/repl-bang-memorize.js` | 91 | `: spawnSync("/bin/sh", ["-c", cmd], {` |
-| `packages/cli/src/lib/repl-goal.js` | 113 | `spawnSync: deps.spawnSync,` |
+| `packages/cli/src/lib/repl-goal.js` | 130 | `spawnSync: deps.spawnSync \|\| runReplGoalCommand,` |
 | `packages/cli/src/lib/search-command.js` | 5 | `* The pattern flows into execSync (a real shell), so a raw interpolation` |
 | `packages/cli/src/lib/secret-store.js` | 38 | `const result = executionBroker.spawnSync(file, args, {` |
 | `packages/cli/src/lib/service-manager.js` | 7 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
@@ -246,22 +248,19 @@ Total matches: 328 (runtime: 252, tooling: 53, test: 23).
 | `packages/cli/src/repl/clipboard-copy.js` | 97 | `res = spawn(cmd, args, {` |
 | `packages/cli/src/repl/pr-comments.js` | 15 | `execFile: (...args) => executionBroker.execFile(...args),` |
 | `packages/cli/src/repl/pr-comments.js` | 21 | `deps.execFile(` |
-| `packages/cli/src/runtime/agent-core.js` | 19 | `import { execSync, spawn, spawnSync } from "child_process";` |
-| `packages/cli/src/runtime/agent-core.js` | 240 | `const tk = spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], {` |
-| `packages/cli/src/runtime/agent-core.js` | 317 | `const killed = spawnSync(` |
-| `packages/cli/src/runtime/agent-core.js` | 3060 | `// is the historical spawn(command, {shell:true}) byte-for-byte.` |
-| `packages/cli/src/runtime/agent-core.js` | 3069 | `? broker.spawn(args.command, [], brokerOpts)` |
-| `packages/cli/src/runtime/agent-core.js` | 3070 | `: broker.spawn(shellInv.file, shellInv.argv, brokerOpts);` |
-| `packages/cli/src/runtime/agent-core.js` | 3251 | `output = broker.execSync(args.command, brokerExecOpts);` |
-| `packages/cli/src/runtime/agent-core.js` | 3257 | `const res = broker.spawnSync(shellInv.file, shellInv.argv, {` |
-| `packages/cli/src/runtime/agent-core.js` | 3371 | `// cannot inject a second command. Previously execSync(`git ${cmd}`) ran` |
-| `packages/cli/src/runtime/agent-core.js` | 3377 | `const res = spawnSync("git", gitArgs, {` |
-| `packages/cli/src/runtime/agent-core.js` | 3983 | `const output = execSync(cmd, {` |
-| `packages/cli/src/runtime/agent-core.js` | 4589 | `output = execSync(`${interpreter} "${scriptPath}"`, {` |
-| `packages/cli/src/runtime/agent-core.js` | 4689 | `execSync(`${interpreter} -m pip install ${packageName}`, {` |
-| `packages/cli/src/runtime/agent-core.js` | 4705 | `const retryOutput = execSync(`${interpreter} "${scriptPath}"`, {` |
-| `packages/cli/src/runtime/agent-core.js` | 5208 | `// fully-defaulted spawn (→ "default") touches neither tools nor confirmer nor gate.` |
-| `packages/cli/src/runtime/agent-core.js` | 5264 | `// sub-agent runs, so a policy hook can VETO the spawn (`block`) or INJECT` |
+| `packages/cli/src/runtime/agent-core.js` | 19 | `import { execSync } from "child_process";` |
+| `packages/cli/src/runtime/agent-core.js` | 3284 | `// is the historical spawn(command, {shell:true}) byte-for-byte.` |
+| `packages/cli/src/runtime/agent-core.js` | 3293 | `? broker.spawn(args.command, [], brokerOpts)` |
+| `packages/cli/src/runtime/agent-core.js` | 3294 | `: broker.spawn(shellInv.file, shellInv.argv, brokerOpts);` |
+| `packages/cli/src/runtime/agent-core.js` | 3475 | `output = broker.execSync(args.command, brokerExecOpts);` |
+| `packages/cli/src/runtime/agent-core.js` | 3481 | `const res = broker.spawnSync(shellInv.file, shellInv.argv, {` |
+| `packages/cli/src/runtime/agent-core.js` | 3595 | `// cannot inject a second command. Previously execSync(`git ${cmd}`) ran` |
+| `packages/cli/src/runtime/agent-core.js` | 4210 | `const output = execSync(cmd, {` |
+| `packages/cli/src/runtime/agent-core.js` | 4816 | `output = execSync(`${interpreter} "${scriptPath}"`, {` |
+| `packages/cli/src/runtime/agent-core.js` | 4916 | `execSync(`${interpreter} -m pip install ${packageName}`, {` |
+| `packages/cli/src/runtime/agent-core.js` | 4932 | `const retryOutput = execSync(`${interpreter} "${scriptPath}"`, {` |
+| `packages/cli/src/runtime/agent-core.js` | 5435 | `// fully-defaulted spawn (→ "default") touches neither tools nor confirmer nor gate.` |
+| `packages/cli/src/runtime/agent-core.js` | 5491 | `// sub-agent runs, so a policy hook can VETO the spawn (`block`) or INJECT` |
 | `packages/cli/src/runtime/diagnostics.js` | 83 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/runtime/diagnostics.js` | 89 | `deps.execFileSync(file, args, {` |
 | `packages/cli/src/skills/video-editing/media-process.js` | 4 | `spawn: (...args) => executionBroker.spawn(...args),` |
@@ -332,21 +331,26 @@ Total matches: 328 (runtime: 252, tooling: 53, test: 23).
 | --- | ---: | --- |
 | `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/coding-agent-bridge.test.js` | 75 | `_deps.spawn = vi.fn(() => mockProcess);` |
 | `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/coding-agent-bridge.test.js` | 98 | `expect(_deps.spawn).toHaveBeenCalledTimes(1);` |
-| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/coding-agent-bridge.test.js` | 108 | `_deps.spawn.mockClear();` |
-| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/coding-agent-bridge.test.js` | 111 | `expect(_deps.spawn).not.toHaveBeenCalled();` |
+| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/coding-agent-bridge.test.js` | 99 | `expect(_deps.spawn.mock.calls[0][2]).toMatchObject({` |
+| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/coding-agent-bridge.test.js` | 111 | `_deps.spawn.mockClear();` |
+| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/coding-agent-bridge.test.js` | 114 | `expect(_deps.spawn).not.toHaveBeenCalled();` |
 | `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/sub-runtime-pool.test.js` | 81 | `originalSpawn = poolMod._deps.spawn;` |
 | `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/sub-runtime-pool.test.js` | 86 | `poolMod._deps.spawn = originalSpawn;` |
 | `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/sub-runtime-pool.test.js` | 92 | `poolMod._deps.spawn = (execPath, args, options) => {` |
-| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/sub-runtime-pool.test.js` | 147 | `poolMod._deps.spawn = () => {` |
-| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/sub-runtime-pool.test.js` | 170 | `poolMod._deps.spawn = () => {` |
-| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/sub-runtime-pool.test.js` | 193 | `poolMod._deps.spawn = () => createFakeChild({}).child;` |
-| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/sub-runtime-pool.test.js` | 216 | `poolMod._deps.spawn = () => {` |
-| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/sub-runtime-pool.test.js` | 231 | `poolMod._deps.spawn = () =>` |
-| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/sub-runtime-pool.test.js` | 424 | `originalSpawn = poolMod._deps.spawn;` |
-| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/sub-runtime-pool.test.js` | 429 | `poolMod._deps.spawn = originalSpawn;` |
-| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/sub-runtime-pool.test.js` | 435 | `poolMod._deps.spawn = (_execPath, _args, _options) => {` |
-| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/sub-runtime-pool.test.js` | 514 | `poolMod._deps.spawn = (_e, _a, _o) => {` |
-| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/sub-runtime-pool.test.js` | 576 | `poolMod._deps.spawn = (_e, _a, _o) => {` |
+| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/sub-runtime-pool.test.js` | 148 | `poolMod._deps.spawn = () => {` |
+| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/sub-runtime-pool.test.js` | 171 | `poolMod._deps.spawn = () => {` |
+| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/sub-runtime-pool.test.js` | 194 | `poolMod._deps.spawn = () => createFakeChild({}).child;` |
+| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/sub-runtime-pool.test.js` | 217 | `poolMod._deps.spawn = () => {` |
+| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/sub-runtime-pool.test.js` | 232 | `poolMod._deps.spawn = () =>` |
+| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/sub-runtime-pool.test.js` | 425 | `originalSpawn = poolMod._deps.spawn;` |
+| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/sub-runtime-pool.test.js` | 430 | `poolMod._deps.spawn = originalSpawn;` |
+| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/sub-runtime-pool.test.js` | 436 | `poolMod._deps.spawn = (_execPath, _args, _options) => {` |
+| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/sub-runtime-pool.test.js` | 515 | `poolMod._deps.spawn = (_e, _a, _o) => {` |
+| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/sub-runtime-pool.test.js` | 577 | `poolMod._deps.spawn = (_e, _a, _o) => {` |
+| `desktop-app-vue/src/main/ipc/__tests__/advanced-features-ipc-sanitize.test.js` | 14 | `const originalSpawn = AdvancedFeaturesIPC._deps.spawn;` |
+| `desktop-app-vue/src/main/ipc/__tests__/advanced-features-ipc-sanitize.test.js` | 17 | `AdvancedFeaturesIPC._deps.spawn = originalSpawn;` |
+| `desktop-app-vue/src/main/ipc/__tests__/advanced-features-ipc-sanitize.test.js` | 81 | `AdvancedFeaturesIPC._deps.spawn = vi.fn(() => child);` |
+| `desktop-app-vue/src/main/ipc/__tests__/advanced-features-ipc-sanitize.test.js` | 96 | `expect(AdvancedFeaturesIPC._deps.spawn).toHaveBeenCalledWith(` |
 | `packages/cli/src/lib/lsp/__tests__/lsp-client.test.js` | 4 | `* is injected through `_deps.spawn`; no real language server is spawned.` |
 | `packages/cli/src/lib/lsp/__tests__/lsp-client.test.js` | 59 | `origSpawn = _deps.spawn;` |
 | `packages/cli/src/lib/lsp/__tests__/lsp-client.test.js` | 62 | `_deps.spawn = origSpawn;` |
