@@ -173,7 +173,18 @@ describe("AgentSession ↔ real cc agent (e2e)", () => {
       first.start();
 
       first.send("say hello");
-      const r1 = await first.nextResult();
+      let r1: ResultEvent;
+      try {
+        r1 = await first.nextResult();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const cliStderr = stderrLines.join("").trim();
+        throw new Error(
+          cliStderr
+            ? `${message}\ncc stderr:\n${cliStderr}`
+            : `${message}\ncc stderr: <empty>`,
+        );
+      }
       expect(r1.is_error).toBe(false);
       expect(inits.length).toBe(1);
       const sessionId = first.sessionId;
