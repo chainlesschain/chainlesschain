@@ -67,14 +67,22 @@ describe("runBangCommand", () => {
       cwd: tmp,
       platform: "linux",
       deps: {
-        spawnSync: (bin, args) => {
-          seen = { bin, args };
+        spawnSync: (bin, args, options) => {
+          seen = { bin, args, options };
           return { status: 0, stdout: "stub-out", stderr: "" };
         },
       },
     });
     expect(seen.bin).toBe("/bin/sh");
     expect(seen.args).toEqual(["-c", "fake cmd"]);
+    expect(seen.options).toEqual(
+      expect.objectContaining({
+        origin: "repl:bang-command",
+        policy: "allow",
+        scope: "repl",
+        shell: false,
+      }),
+    );
     expect(res.stdout).toBe("stub-out");
   });
 
@@ -84,14 +92,22 @@ describe("runBangCommand", () => {
       cwd: tmp,
       platform: "win32",
       deps: {
-        spawnSync: (bin, args) => {
-          seen = { bin, args };
+        spawnSync: (bin, args, options) => {
+          seen = { bin, args, options };
           return { status: 0, stdout: "", stderr: "" };
         },
       },
     });
     expect(seen.bin).toBe("cmd.exe");
     expect(seen.args[seen.args.length - 1]).toBe("chcp 65001 >nul && dir");
+    expect(seen.options).toEqual(
+      expect.objectContaining({
+        origin: "repl:bang-command",
+        policy: "allow",
+        scope: "repl",
+        shell: false,
+      }),
+    );
   });
 });
 

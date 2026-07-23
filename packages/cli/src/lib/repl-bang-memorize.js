@@ -17,10 +17,10 @@
  * All process/fs access goes through `_deps` for tests.
  */
 
-import { spawnSync as spawnSyncDefault } from "child_process";
 import fsDefault from "fs";
 import pathDefault from "path";
 import { findProjectRoot } from "./project-instructions.js";
+import executionBroker from "./process-execution-broker/index.js";
 
 export const BANG_TIMEOUT_MS = 120_000;
 export const BANG_MAX_BUFFER = 10 * 1024 * 1024;
@@ -32,7 +32,7 @@ export const BANG_OUTPUT_CAP = 30_000;
 export const MEMO_NOTE_MAX = 4_000;
 
 export const _deps = {
-  spawnSync: spawnSyncDefault,
+  spawnSync: (...args) => executionBroker.spawnSync(...args),
   fs: fsDefault,
   path: pathDefault,
 };
@@ -83,12 +83,20 @@ export function runBangCommand(line, opts = {}) {
         timeout: BANG_TIMEOUT_MS,
         maxBuffer: BANG_MAX_BUFFER,
         cwd,
+        origin: "repl:bang-command",
+        policy: "allow",
+        scope: "repl",
+        shell: false,
       })
     : spawnSync("/bin/sh", ["-c", cmd], {
         encoding: "utf-8",
         timeout: BANG_TIMEOUT_MS,
         maxBuffer: BANG_MAX_BUFFER,
         cwd,
+        origin: "repl:bang-command",
+        policy: "allow",
+        scope: "repl",
+        shell: false,
       });
 
   const exitCode = res.status == null ? (res.error ? -1 : 0) : res.status;

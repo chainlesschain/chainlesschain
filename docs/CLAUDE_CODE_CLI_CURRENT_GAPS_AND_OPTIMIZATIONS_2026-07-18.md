@@ -180,6 +180,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   `wmic`/`ps` 参数保持无 shell argv，同时删除 server registry 中从未使用的原生 `execFileSync` 注入。
 - Eval 内置任务的 7 条真实 Node 验证路径已统一收口到 `eval:task-check` Broker helper；
   脚本名保持独立 argv，并统一保留 10 秒超时、stderr 捕获和无 shell 执行语义。
+- REPL `!` 命令的 Windows `cmd.exe` 与 POSIX `/bin/sh` 执行已进入 `repl:bang-command`
+  Broker origin；显式 shell 文本继续作为单一 argv 传递，并保留输出上限、超时和上下文回填语义。
 
 ### 4.2 建议设计
 
