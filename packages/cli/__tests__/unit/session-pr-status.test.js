@@ -2,11 +2,64 @@
  * `cc session pr-status` pure helpers (P1-4 PR/CI monitor + controlled
  * auto-merge). renderPrStatus / mapGhPrToSignals are pure — no gh, no network.
  */
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import {
+  _deps,
+  fetchPrSignalsViaGh,
   renderPrStatus,
   mapGhPrToSignals,
 } from "../../src/commands/session.js";
+
+const ORIGINAL_EXEC_FILE_SYNC = _deps.execFileSync;
+
+afterEach(() => {
+  _deps.execFileSync = ORIGINAL_EXEC_FILE_SYNC;
+});
+
+describe("fetchPrSignalsViaGh", () => {
+  it("queries gh through the PR status Broker scope", async () => {
+    _deps.execFileSync = vi.fn(() =>
+      JSON.stringify({
+        number: 12,
+        state: "OPEN",
+        headRefName: "feat/x",
+        headRefOid: "abc123",
+        reviewDecision: "APPROVED",
+        statusCheckRollup: [{ name: "build", conclusion: "SUCCESS" }],
+      }),
+    );
+
+    await expect(
+      fetchPrSignalsViaGh({ number: 12, repo: "acme/widgets" }),
+    ).resolves.toMatchObject({
+      prNumber: 12,
+      branch: "feat/x",
+      hasOpenPr: true,
+      reviewApproved: true,
+    });
+    expect(_deps.execFileSync).toHaveBeenCalledWith(
+      "gh",
+      [
+        "pr",
+        "view",
+        "12",
+        "--json",
+        "number,state,headRefName,headRefOid,reviewDecision,statusCheckRollup",
+        "--repo",
+        "acme/widgets",
+      ],
+      expect.objectContaining({
+        encoding: "utf-8",
+        timeout: 8000,
+        stdio: ["ignore", "pipe", "ignore"],
+        origin: "session:pr-status",
+        policy: "allow",
+        scope: "pr",
+        shell: false,
+      }),
+    );
+  });
+});
 
 describe("mapGhPrToSignals", () => {
   it("maps gh pr view json to fail-closed signals", () => {

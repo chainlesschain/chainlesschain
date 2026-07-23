@@ -61,6 +61,11 @@ import {
   listWorkflowSessions,
   readWorkflowSession,
 } from "../lib/workflow-state-reader.js";
+import { executionBroker } from "../lib/process-execution-broker/index.js";
+
+export const _deps = {
+  execFileSync: (...args) => executionBroker.execFileSync(...args),
+};
 
 // DB sessions store `updated_at` as SQLite datetime('now') → "YYYY-MM-DD
 // HH:MM:SS" (UTC, space at index 10); JSONL sessions store toISOString() →
@@ -149,8 +154,7 @@ export function mapGhPrToSignals(gh = {}) {
  * mapped signals, or throws (caller degrades to a "pass --checks-file" hint).
  * 8s timeout, stderr suppressed — a missing / unauthenticated gh just fails.
  */
-async function fetchPrSignalsViaGh(target) {
-  const { execFileSync } = await import("node:child_process");
+export async function fetchPrSignalsViaGh(target) {
   const args = [
     "pr",
     "view",
@@ -159,10 +163,14 @@ async function fetchPrSignalsViaGh(target) {
     "number,state,headRefName,headRefOid,reviewDecision,statusCheckRollup",
   ];
   if (target.repo) args.push("--repo", String(target.repo));
-  const out = execFileSync("gh", args, {
+  const out = _deps.execFileSync("gh", args, {
     encoding: "utf-8",
     timeout: 8000,
     stdio: ["ignore", "pipe", "ignore"],
+    origin: "session:pr-status",
+    policy: "allow",
+    scope: "pr",
+    shell: false,
   });
   return mapGhPrToSignals(JSON.parse(out));
 }

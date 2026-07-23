@@ -132,6 +132,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 - Routine 的 Agent 子进程与 GitHub events 查询已分别进入 `routine:agent`、
   `routine:github-events` Broker origin；Agent prompt 改经 stdin 传递，不再出现在 argv、进程列表或
   Broker 参数审计中，GitHub 轮询继续保持 8 秒超时和失败降级为空事件列表。
+- `cc session pr-status` 的 `gh pr view` 实时信号查询已进入 `session:pr-status` Broker scope；
+  PR number/repo 继续作为独立参数传递，并保留 8 秒超时、stderr 抑制与上层 fail-closed 提示。
 
 ### 4.2 建议设计
 

@@ -87,8 +87,8 @@ Total matches: 402 (runtime: 326, tooling: 53, test: 23).
 | `packages/cli/src/commands/routine.js` | 24 | `execFile: (...args) => executionBroker.execFile(...args),` |
 | `packages/cli/src/commands/routine.js` | 39 | `const child = _deps.spawn(` |
 | `packages/cli/src/commands/routine.js` | 90 | `_deps.execFile(` |
-| `packages/cli/src/commands/session.js` | 153 | `const { execFileSync } = await import("node:child_process");` |
-| `packages/cli/src/commands/session.js` | 162 | `const out = execFileSync("gh", args, {` |
+| `packages/cli/src/commands/session.js` | 67 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
+| `packages/cli/src/commands/session.js` | 166 | `const out = _deps.execFileSync("gh", args, {` |
 | `packages/cli/src/commands/team.js` | 21 | `import { spawn } from "child_process";` |
 | `packages/cli/src/commands/team.js` | 104 | `const child = spawn(command, {` |
 | `packages/cli/src/commands/team.js` | 134 | `const child = spawn(process.execPath, args, {` |
