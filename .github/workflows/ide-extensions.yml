@@ -37,8 +37,42 @@ permissions:
   contents: read
 
 jobs:
+  vscode-windows-smoke:
+    name: VS Code extension (Windows host gate)
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: packages/vscode-extension
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+
+      # Windows is a release gate because the bridge lockfile uses a native
+      # owner-only DACL. Exercise both the latest editor and engines.vscode's
+      # minimum supported release from a freshly packaged VSIX.
+      - name: Package .vsix
+        run: npx --yes @vscode/vsce@latest package --no-dependencies --out chainlesschain-ide.vsix
+
+      - name: Verify .vsix metadata
+        run: |
+          node scripts/verify-vsix.selftest.mjs
+          node scripts/verify-vsix.mjs chainlesschain-ide.vsix
+
+      - name: Install Extension Host test runtime
+        run: npm install --no-save --no-package-lock @vscode/test-electron@3.0.0
+
+      - name: Extension Host smoke (Windows stable)
+        run: npm run test:extension-host -- --vsix chainlesschain-ide.vsix
+
+      - name: Extension Host smoke (Windows minimum 1.85.2)
+        run: npm run test:extension-host -- --vsix chainlesschain-ide.vsix --vscode-version 1.85.2
+
   vscode:
     name: VS Code extension (package + publish)
+    needs: vscode-windows-smoke
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -71,8 +105,11 @@ jobs:
       # metadata validation cannot detect.
       - name: Extension Host smoke
         run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
           npm install --no-save --no-package-lock @vscode/test-electron@3.0.0
-          npm run test:extension-host -- --vsix chainlesschain-ide.vsix
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
+            npm run test:extension-host -- --vsix chainlesschain-ide.vsix
 
       - name: Upload .vsix artifact
         uses: actions/upload-artifact@v6

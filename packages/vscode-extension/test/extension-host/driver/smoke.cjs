@@ -121,7 +121,10 @@ async function run() {
   assert.ok(profileHome, "missing isolated profile home");
 
   const extension = vscode.extensions.getExtension(EXTENSION_ID);
-  assert.ok(extension, `installed extension ${EXTENSION_ID} was not discovered`);
+  assert.ok(
+    extension,
+    `installed extension ${EXTENSION_ID} was not discovered`,
+  );
   assertPathInside(
     fs.realpathSync(extension.extensionPath),
     fs.realpathSync(extensionsDir),
@@ -151,7 +154,11 @@ async function run() {
 
   // activate() starts the bridge asynchronously, so wait for its production
   // discovery artifact and then prove the advertised localhost port is live.
-  const lock = await waitForBridgeLock(profileHome, workspaceDir, 20_000);
+  // Windows may need a cold PowerShell start to apply and independently verify
+  // the owner-only bridge-token ACL. The production publisher is asynchronous
+  // and fail-closed with its own 30s deadline; leave enough outer-test margin
+  // to capture that diagnostic instead of terminating the Extension Host first.
+  const lock = await waitForBridgeLock(profileHome, workspaceDir, 45_000);
   assert.match(lock.token, /^[a-f0-9]{64}$/, "bridge token is malformed");
   await assertPortListening(lock.port);
 

@@ -18,7 +18,7 @@ const { buildIdeCapabilities } = require("./ide-capabilities");
 const { buildIdeTools } = require("./ide-tools");
 const { createVscodeEditorFacade } = require("./vscode-facade");
 const {
-  writeLock,
+  writeLockAsync,
   removeLock,
   pruneStaleLocks,
   generateToken,
@@ -205,7 +205,7 @@ async function startBridge(context) {
     _workspaceFolders = (vscode.workspace.workspaceFolders || []).map(
       (f) => f.uri.fsPath,
     );
-    writeLock({
+    await writeLockAsync({
       port: _port,
       token,
       workspaceFolders: _workspaceFolders,
@@ -521,29 +521,35 @@ function activate(context) {
     // Read-only PR/CI status: the CLI remains authoritative for linked-PR
     // lookup and fail-closed merge eligibility; the IDE only renders JSON and
     // never merges or pushes.
-    vscode.commands.registerCommand("chainlesschain.session.prStatus", async () => {
-      const { runCliText } = require("./chat/introspect-commands.js");
-      const { getResolvedCli } = require("./cli-binary");
-      const { parsePrStatusJson, prStatusToMarkdown } = require("./pr-status-view.js");
-      const text = await runCliText({
-        command: getResolvedCli(),
-        args: ["session", "pr-status", "last", "--json"],
-        cwd: vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath,
-        timeoutMs: 30000,
-      });
-      const status = parsePrStatusJson(text);
-      if (!status) {
-        vscode.window.showWarningMessage(
-          `ChainlessChain: PR status unavailable — ${text || "no linked PR or valid JSON"}`,
-        );
-        return;
-      }
-      const doc = await vscode.workspace.openTextDocument({
-        content: prStatusToMarkdown(status),
-        language: "markdown",
-      });
-      await vscode.window.showTextDocument(doc, { preview: true });
-    }),
+    vscode.commands.registerCommand(
+      "chainlesschain.session.prStatus",
+      async () => {
+        const { runCliText } = require("./chat/introspect-commands.js");
+        const { getResolvedCli } = require("./cli-binary");
+        const {
+          parsePrStatusJson,
+          prStatusToMarkdown,
+        } = require("./pr-status-view.js");
+        const text = await runCliText({
+          command: getResolvedCli(),
+          args: ["session", "pr-status", "last", "--json"],
+          cwd: vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath,
+          timeoutMs: 30000,
+        });
+        const status = parsePrStatusJson(text);
+        if (!status) {
+          vscode.window.showWarningMessage(
+            `ChainlessChain: PR status unavailable — ${text || "no linked PR or valid JSON"}`,
+          );
+          return;
+        }
+        const doc = await vscode.workspace.openTextDocument({
+          content: prStatusToMarkdown(status),
+          language: "markdown",
+        });
+        await vscode.window.showTextDocument(doc, { preview: true });
+      },
+    ),
 
     // Read-only "cc team" monitor: pick the `cc team run --state <file>`
     // snapshot (remembered per workspace) and watch it live — task graph,
@@ -836,7 +842,8 @@ function activate(context) {
         timeoutMs: 15000,
       });
       const releases =
-        parseChangelogJson(text) || loadBundledChangelog({ command: getResolvedCli() });
+        parseChangelogJson(text) ||
+        loadBundledChangelog({ command: getResolvedCli() });
       if (!releases || releases.length === 0) {
         vscode.window.showInformationMessage(
           vscode.l10n.t(

@@ -13,6 +13,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "fs";
 import os from "os";
 import path from "path";
+import { EventEmitter } from "events";
+import { PassThrough } from "stream";
 
 import { validateIdeToolPath } from "../../../vscode-extension/src/ide-path-guard.js";
 import { buildIdeTools } from "../../../vscode-extension/src/ide-tools.js";
@@ -350,6 +352,7 @@ describe("lockfile — Windows ACL tightening", () => {
     saved.homedir = lockfile._deps.homedir;
     saved.platform = lockfile._deps.platform;
     saved.env = lockfile._deps.env;
+    saved.spawn = lockfile._deps.spawn;
     saved.spawnSync = lockfile._deps.spawnSync;
     saved.chmodSync = lockfile._deps.chmodSync;
     saved.lstatSync = lockfile._deps.lstatSync;
@@ -391,6 +394,110 @@ describe("lockfile — Windows ACL tightening", () => {
     expect(targets[2]).toContain(".tmp-");
     expect(targets[4]).toBe(file);
     expect(targets[5]).toBe(file);
+  });
+
+  it("win32 async: publishes in one non-blocking PowerShell process without token argv exposure", async () => {
+    lockfile._deps.platform = () => "win32";
+    const token = "a".repeat(64);
+    const calls = [];
+    let payload;
+    lockfile._deps.spawn = (cmd, args, options) => {
+      calls.push({ cmd, args, options });
+      const child = new EventEmitter();
+      child.stdout = new PassThrough();
+      child.stderr = new PassThrough();
+      child.stdin = new PassThrough();
+      child.kill = vi.fn();
+      let stdin = "";
+      child.stdin.setEncoding("utf8");
+      child.stdin.on("data", (chunk) => {
+        stdin += chunk;
+      });
+      child.stdin.on("finish", () => {
+        payload = JSON.parse(stdin);
+        const content = Buffer.from(payload.contentBase64, "base64").toString(
+          "utf8",
+        );
+        fs.mkdirSync(payload.dir, { recursive: true });
+        fs.writeFileSync(payload.file, content, "utf8");
+        child.stdout.end(
+          JSON.stringify({ ownerOnly: true, file: payload.file }),
+        );
+        queueMicrotask(() => child.emit("close", 0, null));
+      });
+      return child;
+    };
+
+    const file = await lockfile.writeLockAsync({
+      port: 4326,
+      token,
+      workspaceFolders: ["C:\\work\\repo"],
+    });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].cmd).toBe("powershell.exe");
+    expect(calls[0].options).toMatchObject({
+      windowsHide: true,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    expect(calls[0].args.join(" ")).not.toContain(token);
+    expect(JSON.parse(fs.readFileSync(file, "utf8"))).toMatchObject({
+      token,
+      workspaceFolders: ["C:\\work\\repo"],
+    });
+    expect(payload.file).toBe(file);
+    expect(payload.tmp).toContain(".tmp-");
+  });
+
+  it("win32 async: publisher failure is fail-closed and removes discovery files", async () => {
+    lockfile._deps.platform = () => "win32";
+    lockfile._deps.spawn = () => {
+      const child = new EventEmitter();
+      child.stdout = new PassThrough();
+      child.stderr = new PassThrough();
+      child.stdin = new PassThrough();
+      child.kill = vi.fn();
+      child.stdin.on("finish", () => {
+        child.stderr.end("simulated ACL verification failure");
+        queueMicrotask(() => child.emit("close", 4, null));
+      });
+      return child;
+    };
+
+    await expect(
+      lockfile.writeLockAsync({ port: 4327, token: "b".repeat(64) }),
+    ).rejects.toMatchObject({
+      name: "LockfileSecurityError",
+      code: "CC_IDE_LOCKFILE_INSECURE",
+    });
+    expect(
+      fs.existsSync(path.join(tmpHome, ".chainlesschain", "ide", "4327.json")),
+    ).toBe(false);
+  });
+
+  it("win32 async: managed policy can downgrade publisher failure exactly once", async () => {
+    lockfile._deps.platform = () => "win32";
+    lockfile._deps.spawn = () => {
+      const child = new EventEmitter();
+      child.stdout = new PassThrough();
+      child.stderr = new PassThrough();
+      child.stdin = new PassThrough();
+      child.kill = vi.fn();
+      child.stdin.on("finish", () => {
+        queueMicrotask(() => child.emit("close", 5, null));
+      });
+      return child;
+    };
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const file = await lockfile.writeLockAsync({
+      port: 4328,
+      token: "c".repeat(64),
+      allowInsecurePermissions: true,
+    });
+
+    expect(fs.existsSync(file)).toBe(true);
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 
   it("win32: a failing ACL command is fail-closed and removes the token file", () => {

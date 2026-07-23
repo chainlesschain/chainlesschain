@@ -20,6 +20,7 @@ const _deps = {
   kill: (pid, sig) => process.kill(pid, sig),
   platform: () => process.platform,
   env: () => process.env,
+  spawn: (cmd, args, opts) => require("child_process").spawn(cmd, args, opts),
   spawnSync: (cmd, args, opts) =>
     require("child_process").spawnSync(cmd, args, opts),
   chmodSync: (target, mode) => fs.chmodSync(target, mode),
@@ -157,6 +158,225 @@ if ($ownerOnly) {
 if (-not $ownerOnly) { exit 4 }
 `;
 
+// Production Windows publication runs in one asynchronous PowerShell process.
+// Besides avoiding repeated cold starts, keeping the full sequence in one
+// process means the Extension Host event loop is never blocked while Windows
+// resolves the current identity and reads back DACLs. The bearer token is sent
+// through stdin (base64 inside JSON), never as a command-line argument.
+const WINDOWS_PUBLISH_LOCK_SCRIPT = String.raw`
+$ErrorActionPreference = 'Stop'
+
+function Set-And-VerifyOwnerOnlyAcl([string]$target) {
+  $item = Get-Item -LiteralPath $target -Force
+  $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+  $account = $identity.Name
+  $currentSid = $identity.User.Value
+  $grant = $account + ":F"
+  if ($item.PSIsContainer) {
+    $grant = $account + ":(OI)(CI)F"
+  }
+
+  & icacls.exe $target /inheritance:r /grant:r $grant | Out-Null
+  if ($LASTEXITCODE -ne 0) {
+    throw "icacls exited with status $LASTEXITCODE for $target"
+  }
+
+  $acl = Get-Acl -LiteralPath $target
+  $owner = ([System.Security.Principal.NTAccount]$acl.Owner).Translate(
+    [System.Security.Principal.SecurityIdentifier]
+  ).Value
+  $rules = @($acl.Access)
+  $ownerOnly = $acl.AreAccessRulesProtected -and
+    $owner -eq $currentSid -and $rules.Count -eq 1
+  if ($ownerOnly) {
+    foreach ($rule in $rules) {
+      $sid = $rule.IdentityReference.Translate(
+        [System.Security.Principal.SecurityIdentifier]
+      ).Value
+      $hasFullControl = (
+        $rule.FileSystemRights -band
+        [System.Security.AccessControl.FileSystemRights]::FullControl
+      ) -eq [System.Security.AccessControl.FileSystemRights]::FullControl
+      if ($sid -ne $currentSid -or
+          $rule.AccessControlType -ne
+            [System.Security.AccessControl.AccessControlType]::Allow -or
+          -not $hasFullControl -or $rule.IsInherited) {
+        $ownerOnly = $false
+        break
+      }
+    }
+  }
+  if (-not $ownerOnly) {
+    throw "final Windows ACL is not owner-only for $target"
+  }
+}
+
+$payload = ([Console]::In.ReadToEnd() | ConvertFrom-Json)
+$dir = [string]$payload.dir
+$tmp = [string]$payload.tmp
+$file = [string]$payload.file
+
+try {
+  [System.IO.Directory]::CreateDirectory($dir) | Out-Null
+  Set-And-VerifyOwnerOnlyAcl $dir
+
+  $bytes = [System.Convert]::FromBase64String(
+    [string]$payload.contentBase64
+  )
+  $stream = [System.IO.FileStream]::new(
+    $tmp,
+    [System.IO.FileMode]::CreateNew,
+    [System.IO.FileAccess]::Write,
+    [System.IO.FileShare]::None
+  )
+  try {
+    $stream.Write($bytes, 0, $bytes.Length)
+    $stream.Flush($true)
+  } finally {
+    $stream.Dispose()
+  }
+  Set-And-VerifyOwnerOnlyAcl $tmp
+
+  if ([System.IO.File]::Exists($file)) {
+    [System.IO.File]::Delete($file)
+  }
+  [System.IO.File]::Move($tmp, $file)
+  Set-And-VerifyOwnerOnlyAcl $file
+
+  [pscustomobject]@{
+    ownerOnly = $true
+    file = $file
+  } | ConvertTo-Json -Compress
+} catch {
+  try {
+    if ([System.IO.File]::Exists($tmp)) {
+      [System.IO.File]::Delete($tmp)
+    }
+    if ([System.IO.File]::Exists($file)) {
+      [System.IO.File]::Delete($file)
+    }
+  } catch {
+    # The JavaScript caller performs another best-effort cleanup.
+  }
+  throw
+}
+`;
+
+const WINDOWS_PUBLISH_TIMEOUT_MS = 30000;
+const WINDOWS_PUBLISH_OUTPUT_LIMIT = 64 * 1024;
+
+function _appendBounded(current, chunk) {
+  if (current.length >= WINDOWS_PUBLISH_OUTPUT_LIMIT) return current;
+  return (current + String(chunk || "")).slice(0, WINDOWS_PUBLISH_OUTPUT_LIMIT);
+}
+
+function _runWindowsLockPublisher(payload) {
+  return new Promise((resolve, reject) => {
+    let child;
+    try {
+      child = _deps.spawn(
+        "powershell.exe",
+        [
+          "-NoLogo",
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-Command",
+          `& { ${WINDOWS_PUBLISH_LOCK_SCRIPT} }`,
+        ],
+        {
+          windowsHide: true,
+          stdio: ["pipe", "pipe", "pipe"],
+        },
+      );
+    } catch (error) {
+      reject(error);
+      return;
+    }
+
+    let stdout = "";
+    let stderr = "";
+    let settled = false;
+    let timer = null;
+
+    const finish = (error, value) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      if (error) reject(error);
+      else resolve(value);
+    };
+
+    child.stdout?.setEncoding?.("utf8");
+    child.stderr?.setEncoding?.("utf8");
+    child.stdout?.on?.("data", (chunk) => {
+      stdout = _appendBounded(stdout, chunk);
+    });
+    child.stderr?.on?.("data", (chunk) => {
+      stderr = _appendBounded(stderr, chunk);
+    });
+    child.once?.("error", (error) => finish(error));
+    child.once?.("close", (status, signal) => {
+      if (status !== 0) {
+        finish(
+          new Error(
+            stderr.trim() ||
+              `PowerShell lockfile publisher exited with status ${status}` +
+                (signal ? ` (signal ${signal})` : ""),
+          ),
+        );
+        return;
+      }
+      try {
+        const result = JSON.parse(stdout.trim());
+        if (!result || result.ownerOnly !== true) {
+          throw new Error("publisher did not confirm owner-only permissions");
+        }
+        finish(null, result);
+      } catch (error) {
+        finish(
+          new Error(
+            `could not parse Windows lockfile publisher result: ${error.message}`,
+          ),
+        );
+      }
+    });
+    child.stdin?.on?.("error", () => {
+      // A failed child can close stdin before Node finishes writing. The child
+      // close/error event carries the actionable diagnostic.
+    });
+
+    timer = setTimeout(() => {
+      const error = new Error(
+        `PowerShell lockfile publisher timed out after ${WINDOWS_PUBLISH_TIMEOUT_MS}ms`,
+      );
+      error.code = "ETIMEDOUT";
+      try {
+        child.kill();
+      } catch {
+        /* best-effort */
+      }
+      finish(error);
+    }, WINDOWS_PUBLISH_TIMEOUT_MS);
+    timer.unref?.();
+
+    try {
+      if (!child.stdin || typeof child.stdin.end !== "function") {
+        throw new Error("PowerShell lockfile publisher has no stdin");
+      }
+      child.stdin.end(JSON.stringify(payload), "utf8");
+    } catch (error) {
+      try {
+        child.kill();
+      } catch {
+        /* best-effort */
+      }
+      finish(error);
+    }
+  });
+}
+
 function _runWindowsAclScript(script, target) {
   const result = _deps.spawnSync(
     "powershell.exe",
@@ -197,7 +417,9 @@ function _inspectWindowsAcl(target) {
   try {
     return JSON.parse(String(result.stdout || "").trim());
   } catch (e) {
-    throw new Error(`could not parse final Windows ACL: ${e.message}`);
+    throw new Error(`could not parse final Windows ACL: ${e.message}`, {
+      cause: e,
+    });
   }
 }
 
@@ -382,6 +604,108 @@ function writeLock({
   }
 }
 
+/**
+ * Non-blocking production publisher. On Windows the complete sensitive write
+ * and DACL verification sequence runs in one child process, so VS Code's
+ * Extension Host stays responsive. POSIX keeps the small synchronous path.
+ *
+ * @param {object} o same options as writeLock
+ * @returns {Promise<string>} the lockfile path
+ */
+async function writeLockAsync({
+  port,
+  token,
+  workspaceFolders = [],
+  ide = "vscode",
+  transport = "http",
+  urlPath = "/mcp",
+  url,
+  pid = process.pid,
+  allowInsecurePermissions = false,
+}) {
+  if (_deps.platform() !== "win32") {
+    return writeLock({
+      port,
+      token,
+      workspaceFolders,
+      ide,
+      transport,
+      urlPath,
+      url,
+      pid,
+      allowInsecurePermissions,
+    });
+  }
+
+  const dir = ideLockDir();
+  const file = path.join(dir, `${port}.json`);
+  const tmp = path.join(
+    dir,
+    `${port}.json.tmp-${process.pid}-${crypto.randomBytes(8).toString("hex")}`,
+  );
+  const dirExisted = fs.existsSync(dir);
+  const lock = {
+    ide,
+    version: 1,
+    transport,
+    url: url || `http://127.0.0.1:${port}${urlPath}`,
+    port,
+    workspaceFolders,
+    token,
+    pid,
+    started_at: _deps.now(),
+  };
+  const content = JSON.stringify(lock, null, 2);
+
+  try {
+    await _runWindowsLockPublisher({
+      dir,
+      tmp,
+      file,
+      contentBase64: Buffer.from(content, "utf8").toString("base64"),
+    });
+    return file;
+  } catch (error) {
+    _safeUnlink(tmp);
+    _safeUnlink(file);
+
+    if (allowInsecurePermissions === true) {
+      _warnAclOnce(error?.message || String(error));
+      try {
+        fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+        fs.writeFileSync(tmp, content, {
+          encoding: "utf8",
+          mode: 0o600,
+          flag: "wx",
+        });
+        _safeUnlink(file);
+        fs.renameSync(tmp, file);
+        return file;
+      } catch (fallbackError) {
+        _safeUnlink(tmp);
+        _safeUnlink(file);
+        if (!dirExisted) {
+          try {
+            fs.rmdirSync(dir);
+          } catch {
+            /* keep a non-empty/shared directory */
+          }
+        }
+        throw fallbackError;
+      }
+    }
+
+    if (!dirExisted) {
+      try {
+        fs.rmdirSync(dir);
+      } catch {
+        /* keep a non-empty/shared directory */
+      }
+    }
+    throw new LockfileSecurityError(file, error?.message || String(error));
+  }
+}
+
 /** Remove the lockfile for a port. Returns true if a file was deleted. */
 function removeLock(port) {
   try {
@@ -425,7 +749,7 @@ function pruneStaleLocks() {
       }
       continue;
     }
-    let lock = null;
+    let lock;
     try {
       lock = JSON.parse(fs.readFileSync(file, "utf8"));
     } catch {
@@ -446,6 +770,7 @@ module.exports = {
   ideLockDir,
   generateToken,
   writeLock,
+  writeLockAsync,
   removeLock,
   pruneStaleLocks,
   loadLockfileSecurityPolicy,
@@ -455,6 +780,7 @@ module.exports = {
   _deps,
   _tightenWindowsAcl,
   _inspectWindowsAcl,
+  _runWindowsLockPublisher,
   _verifyPosixOwnerOnly,
   _aclWarnState,
 };
