@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 368 (runtime: 292, tooling: 53, test: 23).
+Total matches: 362 (runtime: 286, tooling: 53, test: 23).
 
 ## Policy
 
@@ -120,14 +120,8 @@ Total matches: 368 (runtime: 292, tooling: 53, test: 23).
 | `packages/cli/src/lib/async-hook-supervisor.cjs` | 138 | `this._deps.spawnSync(` |
 | `packages/cli/src/lib/async-hook-supervisor.cjs` | 267 | `? opts.broker.spawn(hook.command, [], {` |
 | `packages/cli/src/lib/async-hook-supervisor.cjs` | 275 | `: this._deps.spawn(hook.command, spawnOptions);` |
-| `packages/cli/src/lib/background-agent-supervisor.js` | 1 | `import { spawn, spawnSync } from "node:child_process";` |
-| `packages/cli/src/lib/background-agent-supervisor.js` | 80 | `const r = spawnSync(` |
-| `packages/cli/src/lib/background-agent-supervisor.js` | 104 | `const r = spawnSync(` |
-| `packages/cli/src/lib/background-agent-supervisor.js` | 121 | `const r = spawnSync("ps", ["-o", "lstart=", "-p", String(target)], {` |
-| `packages/cli/src/lib/background-agent-supervisor.js` | 150 | `const r = _deps.spawnSync(` |
-| `packages/cli/src/lib/background-agent-supervisor.js` | 744 | `* Fail fast on an unusable cwd. Without this, spawn() surfaces a bad cwd as` |
-| `packages/cli/src/lib/background-agent-supervisor.js` | 824 | `child = _deps.spawn(process.execPath, [worker, jobFile], {` |
-| `packages/cli/src/lib/background-agent-supervisor.js` | 925 | `const killed = _deps.spawnSync(` |
+| `packages/cli/src/lib/background-agent-supervisor.js` | 46 | `return _deps.spawnSync(file, args, {` |
+| `packages/cli/src/lib/background-agent-supervisor.js` | 842 | `child = _deps.spawn(process.execPath, [worker, jobFile], {` |
 | `packages/cli/src/lib/background-interaction-resolver.js` | 15 | `* @param {import('node:child_process').ChildProcess} child - agent 子进程实例` |
 | `packages/cli/src/lib/checkpoint-store.js` | 26 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/lib/checkpoint-store.js` | 48 | `const res = _deps.spawnSync("git", args, {` |

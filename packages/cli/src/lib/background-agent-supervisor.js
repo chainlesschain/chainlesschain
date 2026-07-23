@@ -1,4 +1,3 @@
-import { spawn, spawnSync } from "node:child_process";
 import {
   closeSync,
   existsSync,
@@ -21,6 +20,7 @@ import {
   finishAgentWorktree,
   validateAgentWorktree,
 } from "./agent-worktree.js";
+import executionBroker from "./process-execution-broker/index.js";
 
 export const DEFAULT_HEARTBEAT_INTERVAL_MS = 5000;
 export const DEFAULT_HEARTBEAT_STALE_MS = 120000;
@@ -41,6 +41,16 @@ export const PID_IDENTITY_TOLERANCE_MS = 60000;
 
 const START_TIME_CACHE_TTL_MS = 10000;
 const _startTimeCache = new Map();
+
+function runSupervisorCommand(file, args, options, origin) {
+  return _deps.spawnSync(file, args, {
+    ...options,
+    origin,
+    policy: "allow",
+    scope: "background-agent",
+    shell: false,
+  });
+}
 
 /** CIM_DATETIME (`20260711120000.500000+480`) → epoch ms, null when unparseable. */
 export function parseCimDateToMs(raw) {
@@ -77,7 +87,7 @@ function defaultReadProcessStartTimeMs(pid) {
     // wmic first (fast, ~100-300ms); PowerShell CIM as fallback (wmic is
     // removed from recent Windows 11 builds).
     try {
-      const r = spawnSync(
+      const r = runSupervisorCommand(
         "wmic",
         [
           "process",
@@ -88,6 +98,7 @@ function defaultReadProcessStartTimeMs(pid) {
           "/value",
         ],
         { windowsHide: true, encoding: "utf8", timeout: 5000 },
+        "background-agent:process-start-time",
       );
       if (!r.error && r.status === 0) {
         const m = /CreationDate=([^\r\n]+)/.exec(r.stdout || "");
@@ -101,10 +112,11 @@ function defaultReadProcessStartTimeMs(pid) {
       const script =
         `$p = Get-CimInstance Win32_Process -Filter 'ProcessId=${target}' -ErrorAction SilentlyContinue; ` +
         "if ($p -and $p.CreationDate) { [DateTimeOffset]::new($p.CreationDate).ToUnixTimeMilliseconds() }";
-      const r = spawnSync(
+      const r = runSupervisorCommand(
         "powershell",
         ["-NoProfile", "-NonInteractive", "-Command", script],
         { windowsHide: true, encoding: "utf8", timeout: 10000 },
+        "background-agent:process-start-time",
       );
       if (!r.error && r.status === 0) {
         const n = Number(String(r.stdout || "").trim());
@@ -118,10 +130,15 @@ function defaultReadProcessStartTimeMs(pid) {
   // POSIX: `ps -o lstart=` gives an absolute start timestamp on Linux + macOS
   // (procps and BSD ps both support it; busybox ps does not → null → open).
   try {
-    const r = spawnSync("ps", ["-o", "lstart=", "-p", String(target)], {
-      encoding: "utf8",
-      timeout: 5000,
-    });
+    const r = runSupervisorCommand(
+      "ps",
+      ["-o", "lstart=", "-p", String(target)],
+      {
+        encoding: "utf8",
+        timeout: 5000,
+      },
+      "background-agent:process-start-time",
+    );
     if (!r.error && r.status === 0) {
       const t = Date.parse(String(r.stdout || "").trim());
       if (Number.isFinite(t) && t > 0) return t;
@@ -147,13 +164,14 @@ function defaultKillProcessTree(pid, signal = "SIGKILL") {
   if (target === process.pid) return false;
   try {
     if (process.platform === "win32") {
-      const r = _deps.spawnSync(
+      const r = runSupervisorCommand(
         "taskkill",
         ["/PID", String(target), "/T", "/F"],
         {
           windowsHide: true,
           encoding: "utf8",
         },
+        "background-agent:process-tree-kill",
       );
       return !r.error && r.status === 0;
     }
@@ -170,8 +188,8 @@ function defaultKillProcessTree(pid, signal = "SIGKILL") {
 }
 
 export const _deps = {
-  spawn,
-  spawnSync,
+  spawn: executionBroker.spawn.bind(executionBroker),
+  spawnSync: executionBroker.spawnSync.bind(executionBroker),
   // Single POSIX signal seam: every kill this module issues goes through here
   // so tests can stub it — a bare `process.kill` is NOT interceptable and a
   // fixture recording a live pid would eat a REAL signal (the shard-2/4
@@ -741,7 +759,7 @@ export function resumeBackgroundAgent(id, prompt, options = {}) {
 }
 
 /**
- * Fail fast on an unusable cwd. Without this, spawn() surfaces a bad cwd as
+ * Fail fast on an unusable cwd. Without this, process launch surfaces a bad cwd as
  * an ASYNC 'error' event on the detached child — which nothing listened to
  * (uncaught exception with no context) — and the pre-written state/job files
  * stayed behind as a phantom "running" session. Deleted, file-replaced, and
@@ -826,6 +844,10 @@ export function launchBackgroundAgent({
       detached: true,
       stdio: "ignore",
       windowsHide: true,
+      origin: "background-agent:worker",
+      policy: "allow",
+      scope: "background-agent",
+      shell: false,
     });
   } catch (error) {
     rmSync(jobFile, { force: true });
@@ -922,13 +944,14 @@ export function stopBackgroundAgent(id) {
     return { ...lost, stopped: false };
   }
   if (process.platform === "win32") {
-    const killed = _deps.spawnSync(
+    const killed = runSupervisorCommand(
       "taskkill",
       ["/PID", String(state.pid), "/T", "/F"],
       {
         windowsHide: true,
         encoding: "utf8",
       },
+      "background-agent:stop-tree",
     );
     if (killed.error || (killed.status !== 0 && isProcessAlive(state.pid))) {
       throw new Error(

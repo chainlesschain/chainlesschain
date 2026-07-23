@@ -55,7 +55,14 @@ function spawnSleeperPid() {
   const child = _deps.spawn(
     process.execPath,
     ["-e", "setInterval(()=>{},1000)"],
-    { detached: process.platform !== "win32", stdio: "ignore" },
+    {
+      detached: process.platform !== "win32",
+      stdio: "ignore",
+      origin: "test:background-agent-sleeper",
+      policy: "allow",
+      scope: "test",
+      shell: false,
+    },
   );
   child.unref();
   return child.pid;
@@ -80,6 +87,10 @@ function reapTree(pid) {
         ["/PID", String(target), "/T", "/F"],
         {
           windowsHide: true,
+          origin: "test:background-agent-reap",
+          policy: "allow",
+          scope: "test",
+          shell: false,
         },
       );
       if (result.error || result.status !== 0) {
@@ -228,6 +239,10 @@ describe("background agent supervisor", () => {
     expect(_deps.spawn.mock.calls[0][2]).toMatchObject({
       detached: true,
       stdio: "ignore",
+      origin: "background-agent:worker",
+      policy: "allow",
+      scope: "background-agent",
+      shell: false,
     });
   });
 
@@ -635,7 +650,12 @@ describe("background agent supervisor", () => {
       expect(_deps.spawnSync).toHaveBeenCalledWith(
         "taskkill",
         expect.arrayContaining(["/T", "/F"]),
-        expect.any(Object),
+        expect.objectContaining({
+          origin: "background-agent:stop-tree",
+          policy: "allow",
+          scope: "background-agent",
+          shell: false,
+        }),
       );
     },
   );
