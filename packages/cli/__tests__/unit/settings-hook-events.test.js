@@ -6,7 +6,7 @@
  * SessionStart: context-only. Uses real `node -e` hook commands.
  */
 import { describe, it, expect } from "vitest";
-import ev from "../../src/lib/settings-hook-events.cjs";
+import ev from "../../src/lib/settings-hook-events.js";
 
 const {
   runUserPromptSubmitHooks,

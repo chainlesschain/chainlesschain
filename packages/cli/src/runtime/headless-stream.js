@@ -1409,7 +1409,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   if (settingsHooks && _loadedInstructions) {
     try {
       const { runInstructionsLoadedHooks } =
-        await import("../lib/settings-hook-events.cjs");
+        await import("../lib/settings-hook-events.js");
       const ctx = runInstructionsLoadedHooks(settingsHooks, {
         files: _loadedInstructions.files,
         cwd,
@@ -1450,7 +1450,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   if (settingsHooks) {
     try {
       const { runSessionStartHooks } =
-        await import("../lib/settings-hook-events.cjs");
+        await import("../lib/settings-hook-events.js");
       const ctx = runSessionStartHooks(settingsHooks, {
         source: "startup",
         cwd,
@@ -2314,7 +2314,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     if (settingsHooks) {
       try {
         const { runUserPromptSubmitHooks } =
-          await import("../lib/settings-hook-events.cjs");
+          await import("../lib/settings-hook-events.js");
         const ups = runUserPromptSubmitHooks(settingsHooks, {
           prompt: userContent,
           cwd,
@@ -2666,7 +2666,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   if (settingsHooks) {
     try {
       const { runObserveHooks } =
-        await import("../lib/settings-hook-events.cjs");
+        await import("../lib/settings-hook-events.js");
       runObserveHooks(
         settingsHooks,
         "SessionEnd",

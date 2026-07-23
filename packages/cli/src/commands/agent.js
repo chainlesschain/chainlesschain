@@ -559,7 +559,7 @@ export function registerAgentCommand(program) {
             _worktreeSettingsHooks =
               loadHooks({ cwd: _worktree.repoRoot }).hooks || null;
             const { runWorktreeCreateHooks, dispatchAsyncHooks } =
-              await import("../lib/settings-hook-events.cjs");
+              await import("../lib/settings-hook-events.js");
             runWorktreeCreateHooks(_worktreeSettingsHooks, {
               worktreePath: _worktree.path,
               branch: _worktree.branch,
@@ -629,7 +629,7 @@ export function registerAgentCommand(program) {
           if (_worktreeSettingsHooks) {
             try {
               const { runWorktreeRemoveHooks, dispatchAsyncHooks } =
-                await import("../lib/settings-hook-events.cjs");
+                await import("../lib/settings-hook-events.js");
               runWorktreeRemoveHooks(_worktreeSettingsHooks, {
                 worktreePath: _worktree.path,
                 branch: _worktree.branch,

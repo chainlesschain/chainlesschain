@@ -17,7 +17,8 @@
  */
 
 const { collectHooks } = require("./settings-hooks.cjs");
-const { runHooks } = require("./hook-runner.cjs");
+const hookRunner = require("./hook-runner.cjs");
+const _deps = { runHooks: hookRunner.runHooks };
 const { buildHookEnvelope } = require("./hook-event-bus.cjs");
 const hookEventLog = require("./hook-event-log.cjs");
 
@@ -143,7 +144,7 @@ function runUserPromptSubmitHooks(
     },
     { sessionId },
   );
-  const outcome = runHooks(sync, payload, {
+  const outcome = _deps.runHooks(sync, payload, {
     cwd,
     event: "UserPromptSubmit",
   });
@@ -211,7 +212,10 @@ function runSessionStartHooks(settingsHooks, { source, cwd, sessionId } = {}) {
     },
     { sessionId },
   );
-  const outcome = runHooks(matched, payload, { cwd, event: "SessionStart" });
+  const outcome = _deps.runHooks(matched, payload, {
+    cwd,
+    event: "SessionStart",
+  });
   return { additionalContext: aggregateContext(outcome.results) };
 }
 
@@ -247,7 +251,7 @@ function runCwdChangedHooks(
     },
     { sessionId },
   );
-  const outcome = runHooks(sync, payload, {
+  const outcome = _deps.runHooks(sync, payload, {
     cwd: newCwd || cwd,
     event: "CwdChanged",
   });
@@ -291,7 +295,7 @@ function runWorktreeCreateHooks(
     },
     { sessionId },
   );
-  const outcome = runHooks(sync, payload, {
+  const outcome = _deps.runHooks(sync, payload, {
     cwd: cwd || worktreePath,
     event: "WorktreeCreate",
   });
@@ -337,7 +341,7 @@ function runWorktreeRemoveHooks(
     },
     { sessionId },
   );
-  const outcome = runHooks(sync, payload, {
+  const outcome = _deps.runHooks(sync, payload, {
     cwd: cwd || worktreePath,
     event: "WorktreeRemove",
   });
@@ -386,7 +390,7 @@ function runInstructionsLoadedHooks(
     },
     { sessionId },
   );
-  const outcome = runHooks(sync, payload, {
+  const outcome = _deps.runHooks(sync, payload, {
     cwd,
     event: "InstructionsLoaded",
   });
@@ -417,7 +421,7 @@ function runObserveHooks(
   const matched = collectHooks(settingsHooks, event, matchTarget || "");
   const { sync } = partitionAsyncHooks(matched);
   if (sync.length === 0) return { decision: "continue", results: [] };
-  return runHooks(
+  return _deps.runHooks(
     sync,
     withDeliveryId(
       event,
@@ -440,4 +444,5 @@ module.exports = {
   aggregateContext,
   partitionAsyncHooks,
   dispatchAsyncHooks,
+  _deps,
 };

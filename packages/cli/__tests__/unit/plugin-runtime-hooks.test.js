@@ -58,7 +58,11 @@ describe("collectPluginHooks — component-level capability gate", () => {
     ).toHaveLength(1);
     expect(
       collectPluginHooks({ cwd, scopes: ["local"] }).SessionStart[0].hooks[0],
-    ).toMatchObject({ origin: "plugin:hook", pluginId: "p", pluginVersion: "1.0.0" });
+    ).toMatchObject({
+      origin: "plugin:hook",
+      pluginId: "p",
+      pluginVersion: "1.0.0",
+    });
   });
 
   it("a legacy plugin (no permissions block) is unaffected", () => {
@@ -191,7 +195,7 @@ describe("plugin hooks fire through the settings-hook lifecycle", () => {
     });
     const merged = mergePluginHooks(null, { cwd, scopes: ["local"] });
     const { runSessionStartHooks } =
-      await import("../../src/lib/settings-hook-events.cjs");
+      await import("../../src/lib/settings-hook-events.js");
     const res = runSessionStartHooks(merged, { source: "startup", cwd });
     expect(res.additionalContext || "").toContain("PLUGIN_HOOK_OK");
   });

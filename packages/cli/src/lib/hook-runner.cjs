@@ -17,10 +17,9 @@
  *                               agent — only an explicit block decision blocks).
  *
  * Returns a normalized `{ decision, reason, exitCode, stdout, stderr, ... }`.
- * `_deps.spawnSync` is injected for unit tests (no real process needed).
+ * Process runners are injected for unit tests and by the ESM Broker facade.
  */
 
-const cpDefault = require("node:child_process");
 const {
   normalizeShellKind,
   buildPowershellArgv,
@@ -28,7 +27,27 @@ const {
 } = require("./shell-selector.cjs");
 const { mergeHookDecisions } = require("./hook-event-bus.cjs");
 
-const _deps = { spawnSync: cpDefault.spawnSync, spawn: cpDefault.spawn };
+const _deps = { runSync: null, run: null };
+Object.defineProperties(_deps, {
+  spawnSync: {
+    enumerable: true,
+    get() {
+      return this.runSync;
+    },
+    set(value) {
+      this.runSync = value;
+    },
+  },
+  spawn: {
+    enumerable: true,
+    get() {
+      return this.run;
+    },
+    set(value) {
+      this.run = value;
+    },
+  },
+});
 
 const HOOK_DECISIONS = Object.freeze({
   BLOCK: "block",
@@ -232,20 +251,29 @@ function _runCommandHookInner(command, input = {}, opts = {}) {
         CLAUDE_HOOK_EVENT: event || input.hook_event_name || "",
       },
     };
-    const brokerOptions = {
+    const processOptions = {
       ...common,
       origin: opts.origin || "hook",
-      policy: opts.origin === "plugin:hook" ? "allow" : undefined,
+      policy: "allow",
+      scope: "hook",
       pluginId: opts.pluginId || null,
       pluginVersion: opts.pluginVersion || null,
       pluginSource: opts.pluginSource || null,
     };
-    if (opts.broker && opts.origin === "plugin:hook") {
-      res = opts.broker.spawnSync(
-        usePowershell ? buildPowershellArgv(command, shellKind, { executionPolicy: loadShellConfig({ cwd: common.cwd }).executionPolicy }).file : command,
-        usePowershell ? buildPowershellArgv(command, shellKind, { executionPolicy: loadShellConfig({ cwd: common.cwd }).executionPolicy }).argv : [],
-        brokerOptions,
-      );
+    const brokerRunSync =
+      opts.broker &&
+      opts.origin === "plugin:hook" &&
+      typeof opts.broker["spawnSync"] === "function"
+        ? opts.broker["spawnSync"].bind(opts.broker)
+        : null;
+    if (brokerRunSync) {
+      const invocation = usePowershell
+        ? buildPowershellArgv(command, shellKind, {
+            executionPolicy: loadShellConfig({ cwd: common.cwd })
+              .executionPolicy,
+          })
+        : { file: command, argv: [] };
+      res = brokerRunSync(invocation.file, invocation.argv, processOptions);
     } else if (usePowershell) {
       // Per-hook `shell: powershell|pwsh` (settings hook entry): explicit argv
       // instead of the default shell; the enterprise ExecutionPolicy override
@@ -254,9 +282,15 @@ function _runCommandHookInner(command, input = {}, opts = {}) {
         cwd: common.cwd,
       });
       const inv = buildPowershellArgv(command, shellKind, { executionPolicy });
-      res = _deps.spawnSync(inv.file, inv.argv, common);
+      if (typeof _deps.runSync !== "function") {
+        throw new Error("hook process runner unavailable");
+      }
+      res = _deps.runSync(inv.file, inv.argv, processOptions);
     } else {
-      res = _deps.spawnSync(command, { ...common, shell: true });
+      if (typeof _deps.runSync !== "function") {
+        throw new Error("hook process runner unavailable");
+      }
+      res = _deps.runSync(command, { ...processOptions, shell: true });
     }
   } catch (err) {
     return {
@@ -360,36 +394,37 @@ async function _runCommandHookInnerAsync(command, input = {}, opts = {}) {
     ...process.env,
     CLAUDE_HOOK_EVENT: event || input.hook_event_name || "",
   };
+  const processOptions = {
+    cwd: wd,
+    env: spawnEnv,
+    origin: opts.origin || "hook",
+    policy: "allow",
+    scope: "hook",
+    pluginId: opts.pluginId || null,
+    pluginVersion: opts.pluginVersion || null,
+    pluginSource: opts.pluginSource || null,
+  };
 
   let child;
   try {
+    const brokerRun =
+      opts.broker &&
+      opts.origin === "plugin:hook" &&
+      typeof opts.broker["spawn"] === "function"
+        ? opts.broker["spawn"].bind(opts.broker)
+        : null;
+    const run = brokerRun || _deps.run;
+    if (typeof run !== "function") {
+      throw new Error("hook process runner unavailable");
+    }
     if (usePowershell) {
       const { executionPolicy } = loadShellConfig({ cwd: wd });
       const inv = buildPowershellArgv(command, shellKind, { executionPolicy });
-      child = opts.broker && opts.origin === "plugin:hook"
-        ? opts.broker.spawn(inv.file, inv.argv, {
-            cwd: wd,
-            env: spawnEnv,
-            origin: opts.origin,
-            policy: "allow",
-            pluginId: opts.pluginId || null,
-            pluginVersion: opts.pluginVersion || null,
-            pluginSource: opts.pluginSource || null,
-          })
-        : _deps.spawn(inv.file, inv.argv, { cwd: wd, env: spawnEnv });
+      child = run(inv.file, inv.argv, processOptions);
     } else {
-      child = opts.broker && opts.origin === "plugin:hook"
-        ? opts.broker.spawn(command, [], {
-            cwd: wd,
-            env: spawnEnv,
-            shell: true,
-            origin: opts.origin,
-            policy: "allow",
-            pluginId: opts.pluginId || null,
-            pluginVersion: opts.pluginVersion || null,
-            pluginSource: opts.pluginSource || null,
-          })
-        : _deps.spawn(command, { cwd: wd, env: spawnEnv, shell: true });
+      child = brokerRun
+        ? run(command, [], { ...processOptions, shell: true })
+        : run(command, { ...processOptions, shell: true });
     }
   } catch (err) {
     return {

@@ -183,12 +183,12 @@ function persistRecentDenial(record, options = {}) {
  * user's attention (e.g. waiting on a permission/risk confirmation). A hook can
  * ring a bell / send a desktop notification. Best-effort, never blocks.
  */
-async function _fireNotification(message, type = "info") {
+async function _fireNotification(message, type = "info", session = null) {
   // Fire settings.json observe hooks first (best-effort)
   if (_settingsHooks) {
     try {
       const { runObserveHooks } =
-        await import("../lib/settings-hook-events.cjs");
+        await import("../lib/settings-hook-events.js");
       runObserveHooks(
         _settingsHooks,
         "Notification",
@@ -196,7 +196,7 @@ async function _fireNotification(message, type = "info") {
           message,
           type,
           cwd: process.cwd(),
-          session_id: _session?.sessionId || null,
+          session_id: session?.sessionId || null,
         },
         { cwd: process.cwd() },
       );
@@ -205,10 +205,10 @@ async function _fireNotification(message, type = "info") {
     }
   }
   // Fire database-registered Notification hooks (interceptable/suppressible)
-  if (_session) {
+  if (session) {
     try {
       const result = await fireNotification(_hookDb, message, {
-        session: _session,
+        session,
         type,
       });
       if (result?.directive?.suppress) {
@@ -750,6 +750,8 @@ export async function startAgentRepl(options = {}) {
         }
         await _fireNotification(
           `Permission needed: ${riskLevel || "medium"}-risk ${tool || "run_shell"}${args?.command ? " — " + args.command : ""}`,
+          "info",
+          _sessionHandle,
         );
         const local = askGateApprovalLocally({ tool, args, riskLevel });
         if (!_remoteApproval?.bridge) return local.promise;
@@ -840,6 +842,8 @@ export async function startAgentRepl(options = {}) {
       }
       await _fireNotification(
         `Permission needed: ${tool}${rule ? " (" + rule + ")" : ""}`,
+        "info",
+        _sessionHandle,
       );
       const local = askPermissionLocally({ tool, args, rule, reason });
       if (!_remoteApproval?.bridge) return local.promise;
@@ -1142,7 +1146,7 @@ export async function startAgentRepl(options = {}) {
   if (_settingsHooks && _loadedReplInstructions) {
     try {
       const { runInstructionsLoadedHooks } =
-        await import("../lib/settings-hook-events.cjs");
+        await import("../lib/settings-hook-events.js");
       const ctx = runInstructionsLoadedHooks(_settingsHooks, {
         files: _loadedReplInstructions.files,
         cwd: process.cwd(),
@@ -1158,7 +1162,7 @@ export async function startAgentRepl(options = {}) {
   if (_settingsHooks) {
     try {
       const { runSessionStartHooks } =
-        await import("../lib/settings-hook-events.cjs");
+        await import("../lib/settings-hook-events.js");
       const ctx = runSessionStartHooks(_settingsHooks, {
         source: "startup",
         cwd: process.cwd(),
@@ -1466,7 +1470,7 @@ export async function startAgentRepl(options = {}) {
     if (_settingsHooks && messages.some((m) => m.role !== "system")) {
       try {
         const { runObserveHooks } =
-          await import("../lib/settings-hook-events.cjs");
+          await import("../lib/settings-hook-events.js");
         runObserveHooks(
           _settingsHooks,
           "SessionResume",
@@ -1764,31 +1768,34 @@ export async function startAgentRepl(options = {}) {
 
   // MCP elicitation in the interactive REPL uses the same readline surface as
   // approvals, while MCPClient retains the protocol-level response shape.
-  const mcpElicitationClients = [
-    _adhocMcp?.mcpClient,
-    _bundleMcpClient,
-  ].filter((client) => client?.setElicitationHandler);
+  const mcpElicitationClients = [_adhocMcp?.mcpClient, _bundleMcpClient].filter(
+    (client) => client?.setElicitationHandler,
+  );
   for (const client of mcpElicitationClients) {
     client.setElicitationHandler(
       (request) =>
         new Promise((resolve) => {
-          const label = request.message || "MCP server requests additional input";
-          rl.question(chalk.yellow(`\n  MCP [${request.server}] ${label}\n  > `), (answer) => {
-            const trimmed = String(answer || "").trim();
-            if (!trimmed) {
-              resolve({ action: "cancel" });
-            } else {
-              let content = { value: trimmed };
-              try {
-                const parsed = JSON.parse(trimmed);
-                if (parsed && typeof parsed === "object") content = parsed;
-              } catch {
-                // Plain text remains a valid single-field elicitation answer.
+          const label =
+            request.message || "MCP server requests additional input";
+          rl.question(
+            chalk.yellow(`\n  MCP [${request.server}] ${label}\n  > `),
+            (answer) => {
+              const trimmed = String(answer || "").trim();
+              if (!trimmed) {
+                resolve({ action: "cancel" });
+              } else {
+                let content = { value: trimmed };
+                try {
+                  const parsed = JSON.parse(trimmed);
+                  if (parsed && typeof parsed === "object") content = parsed;
+                } catch {
+                  // Plain text remains a valid single-field elicitation answer.
+                }
+                resolve({ action: "accept", content });
               }
-              resolve({ action: "accept", content });
-            }
-            rl.prompt();
-          });
+              rl.prompt();
+            },
+          );
         }),
       { timeoutMs: options.mcpElicitationTimeoutMs },
     );
@@ -1896,7 +1903,7 @@ export async function startAgentRepl(options = {}) {
         // turn — the session stays open, the current work is suspended. The
         // keypress handler can't await, so fire observe-only fire-and-forget.
         if (_settingsHooks) {
-          import("../lib/settings-hook-events.cjs")
+          import("../lib/settings-hook-events.js")
             .then(({ runObserveHooks }) =>
               runObserveHooks(
                 _settingsHooks,
@@ -3153,7 +3160,7 @@ export async function startAgentRepl(options = {}) {
           if (_settingsHooks && oldCwd !== newCwd) {
             try {
               const { runCwdChangedHooks, dispatchAsyncHooks } =
-                await import("../lib/settings-hook-events.cjs");
+                await import("../lib/settings-hook-events.js");
               const payload = { oldCwd, newCwd, sessionId };
               runCwdChangedHooks(_settingsHooks, payload);
               if (!_asyncHookSupervisor) {
@@ -3739,7 +3746,7 @@ export async function startAgentRepl(options = {}) {
         if (_settingsHooks) {
           try {
             const { runObserveHooks, dispatchAsyncHooks } =
-              await import("../lib/settings-hook-events.cjs");
+              await import("../lib/settings-hook-events.js");
             const payload = {
               session_id: sessionId || null,
               source: "reload-plugins",
@@ -5099,7 +5106,7 @@ export async function startAgentRepl(options = {}) {
     if (_settingsHooks) {
       try {
         const { runUserPromptSubmitHooks } =
-          await import("../lib/settings-hook-events.cjs");
+          await import("../lib/settings-hook-events.js");
         const ups = runUserPromptSubmitHooks(_settingsHooks, {
           prompt: userContent,
           cwd: process.cwd(),
@@ -5122,7 +5129,7 @@ export async function startAgentRepl(options = {}) {
         // turn without blocking it; its result/rewake surfaces on a later turn
         // via the async-hook drain below. Lazily create the supervisor.
         const { dispatchAsyncHooks } =
-          await import("../lib/settings-hook-events.cjs");
+          await import("../lib/settings-hook-events.js");
         if (!_asyncHookSupervisor) {
           const { AsyncHookSupervisor } =
             await import("../lib/async-hook-supervisor.js");
@@ -5770,7 +5777,7 @@ export async function startAgentRepl(options = {}) {
       if (_settingsHooks) {
         try {
           const { runObserveHooks, dispatchAsyncHooks } =
-            await import("../lib/settings-hook-events.cjs");
+            await import("../lib/settings-hook-events.js");
           runObserveHooks(
             _settingsHooks,
             "Stop",
@@ -5877,7 +5884,7 @@ export async function startAgentRepl(options = {}) {
     if (_settingsHooks) {
       try {
         const { runObserveHooks } =
-          await import("../lib/settings-hook-events.cjs");
+          await import("../lib/settings-hook-events.js");
         runObserveHooks(
           _settingsHooks,
           "SessionEnd",

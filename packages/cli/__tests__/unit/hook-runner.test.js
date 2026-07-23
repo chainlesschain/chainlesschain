@@ -10,6 +10,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { EventEmitter } from "node:events";
 import runner from "../../src/lib/hook-runner.cjs";
+import {
+  runCommandHook as runBrokerCommandHook,
+  _processDeps,
+} from "../../src/lib/hook-runner.js";
 
 const {
   runCommandHook,
@@ -53,15 +57,72 @@ function stub(returns) {
   });
 }
 
+it("routes default hooks through the process broker adapter", () => {
+  const originalRunner = _processDeps.runSync;
+  const runSync = vi.fn(() => ({ status: 0, stdout: "ok", stderr: "" }));
+  _processDeps.runSync = runSync;
+
+  try {
+    const result = runBrokerCommandHook(
+      "guard.sh",
+      {},
+      {
+        cwd: "C:/workspace",
+        event: "PreToolUse",
+      },
+    );
+
+    expect(result.decision).toBe("continue");
+    expect(runSync).toHaveBeenCalledWith(
+      "guard.sh",
+      [],
+      expect.objectContaining({
+        cwd: "C:/workspace",
+        shell: true,
+        origin: "hook",
+        policy: "allow",
+        scope: "hook",
+      }),
+    );
+  } finally {
+    _processDeps.runSync = originalRunner;
+  }
+});
+
+it("fails open with a visible error when the CJS core has no runner", () => {
+  const originalRunner = _deps.runSync;
+  _deps.runSync = null;
+
+  try {
+    expect(runCommandHook("guard.sh", {}, {})).toMatchObject({
+      decision: "continue",
+      nonBlockingError: true,
+      error: "hook process runner unavailable",
+    });
+  } finally {
+    _deps.runSync = originalRunner;
+  }
+});
+
 beforeEach(() => {
   calls = [];
   _resetHookBreaker(); // failure counters must not leak across cases
 });
 
 it("routes plugin hooks through the supplied Process Execution Broker", () => {
-  const broker = { spawnSync: vi.fn(() => ({ status: 0, stdout: "ok", stderr: "" })) };
+  const broker = {
+    spawnSync: vi.fn(() => ({ status: 0, stdout: "ok", stderr: "" })),
+  };
   const result = runHooks(
-    [{ command: "plugin-tool", origin: "plugin:hook", pluginId: "p", pluginVersion: "1.0.0", pluginSource: "/p/plugin.json" }],
+    [
+      {
+        command: "plugin-tool",
+        origin: "plugin:hook",
+        pluginId: "p",
+        pluginVersion: "1.0.0",
+        pluginSource: "/p/plugin.json",
+      },
+    ],
     { hook_event_name: "SessionStart" },
     { broker, event: "SessionStart" },
   );
@@ -69,7 +130,11 @@ it("routes plugin hooks through the supplied Process Execution Broker", () => {
   expect(broker.spawnSync).toHaveBeenCalledWith(
     "plugin-tool",
     [],
-    expect.objectContaining({ origin: "plugin:hook", policy: "allow", pluginId: "p" }),
+    expect.objectContaining({
+      origin: "plugin:hook",
+      policy: "allow",
+      pluginId: "p",
+    }),
   );
 });
 

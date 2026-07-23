@@ -992,7 +992,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   if (settingsHooks) {
     try {
       const { runUserPromptSubmitHooks } =
-        await import("../lib/settings-hook-events.cjs");
+        await import("../lib/settings-hook-events.js");
       const ups = runUserPromptSubmitHooks(settingsHooks, {
         prompt: userContent,
         cwd,
@@ -1023,7 +1023,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   if (settingsHooks && _loadedInstructions) {
     try {
       const { runInstructionsLoadedHooks } =
-        await import("../lib/settings-hook-events.cjs");
+        await import("../lib/settings-hook-events.js");
       instructionsLoadedContext = runInstructionsLoadedHooks(settingsHooks, {
         files: _loadedInstructions.files,
         cwd,
@@ -1039,7 +1039,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   if (settingsHooks) {
     try {
       const { runSessionStartHooks } =
-        await import("../lib/settings-hook-events.cjs");
+        await import("../lib/settings-hook-events.js");
       sessionStartContext = runSessionStartHooks(settingsHooks, {
         source: resumeId ? "resume" : "startup",
         cwd,
@@ -1058,7 +1058,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   if (settingsHooks && resumeId && history.length > 0) {
     try {
       const { runObserveHooks } =
-        await import("../lib/settings-hook-events.cjs");
+        await import("../lib/settings-hook-events.js");
       runObserveHooks(
         settingsHooks,
         "SessionResume",
@@ -1620,7 +1620,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   const _settleAsyncStop = async () => {
     if (!settingsHooks || !_hookSupervisor) return { rewakes: [], results: [] };
     const { dispatchAsyncHooks } =
-      await import("../lib/settings-hook-events.cjs");
+      await import("../lib/settings-hook-events.js");
     dispatchAsyncHooks(
       settingsHooks,
       "Stop",
@@ -1800,7 +1800,6 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   process.once("SIGTERM", _onHardSignal);
 
   try {
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       // P1 turn→checkpoint binding: one drain of the loop = one turn. Anchor
       // the conversation offset before the model sees the new user turn. A
@@ -2237,7 +2236,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     if (settingsHooks) {
       try {
         const { runObserveHooks, dispatchAsyncHooks } =
-          await import("../lib/settings-hook-events.cjs");
+          await import("../lib/settings-hook-events.js");
         const stopPayload = { reason: endReason, cwd, session_id: sessionId };
         runObserveHooks(settingsHooks, "Stop", stopPayload, { cwd });
         // Skip the async Stop dispatch/settle here if the auto-rewake re-drive

@@ -173,7 +173,7 @@ export function registerHookCommand(program) {
           return;
         }
 
-        const { runHooks } = await import("../lib/hook-runner.cjs");
+        const { runHooks } = await import("../lib/hook-runner.js");
         const outcome = runHooks(matched, payload, {
           cwd: process.cwd(),
           event,
@@ -283,7 +283,7 @@ export function registerHookCommand(program) {
         // observe-only + --run: re-collect and execute the matching hooks.
         const { loadHooks, collectHooks } =
           await import("../lib/settings-hooks.cjs");
-        const { runHooks } = await import("../lib/hook-runner.cjs");
+        const { runHooks } = await import("../lib/hook-runner.js");
         const { hooks } = loadHooks({ cwd: process.cwd() });
         const matched = collectHooks(
           hooks,
