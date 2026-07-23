@@ -8,62 +8,104 @@
 
 const channel = process.argv[2];
 const requestedVersion = process.argv[3] || null;
+const retryAttempts = positiveInteger(
+  process.env.CC_MARKETPLACE_VERIFY_ATTEMPTS,
+  12,
+);
+const retryDelayMs = positiveInteger(
+  process.env.CC_MARKETPLACE_VERIFY_DELAY_MS,
+  10_000,
+);
 
-if (!['open-vsx', 'jetbrains'].includes(channel)) {
-  console.error('usage: node scripts/verify-ide-marketplace.mjs <open-vsx|jetbrains> [version]');
+if (!["open-vsx", "jetbrains"].includes(channel)) {
+  console.error(
+    "usage: node scripts/verify-ide-marketplace.mjs <open-vsx|jetbrains> [version]",
+  );
   process.exit(2);
 }
 
-const version = requestedVersion || (channel === 'open-vsx' ? '0.0.0' : '0.0.0');
+const version =
+  requestedVersion || (channel === "open-vsx" ? "0.0.0" : "0.0.0");
 const endpoint =
-  channel === 'open-vsx'
-    ? 'https://open-vsx.org/api/chainlesschain/chainlesschain-ide'
-    : 'https://plugins.jetbrains.com/api/plugins/32208/updates';
+  channel === "open-vsx"
+    ? "https://open-vsx.org/api/chainlesschain/chainlesschain-ide"
+    : "https://plugins.jetbrains.com/api/plugins/32208/updates";
 
-const response = await fetch(endpoint, {
-  headers: { accept: 'application/json' },
-  signal: AbortSignal.timeout(20_000),
-});
-if (!response.ok) {
-  throw new Error(`${channel} registry returned HTTP ${response.status}`);
+function positiveInteger(value, fallback) {
+  const parsed = Number.parseInt(String(value || ""), 10);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
-const payload = await response.json();
 
-let record;
-if (channel === 'open-vsx') {
-  const latest = payload?.version;
-  const listed = payload?.allVersions &&
-    Object.prototype.hasOwnProperty.call(payload.allVersions, version);
-  const versionResponse = await fetch(`${endpoint}/${encodeURIComponent(version)}`, {
-    headers: { accept: 'application/json' },
+function sleep(delayMs) {
+  return new Promise((resolve) => setTimeout(resolve, delayMs));
+}
+
+async function fetchJson(url, label) {
+  const response = await fetch(url, {
+    headers: { accept: "application/json" },
     signal: AbortSignal.timeout(20_000),
   });
-  if (!versionResponse.ok) {
-    throw new Error(`Open VSX version endpoint returned HTTP ${versionResponse.status}`);
+  if (!response.ok) {
+    throw new Error(`${label} returned HTTP ${response.status}`);
   }
-  const versionPayload = await versionResponse.json();
-  const downloadable = versionPayload?.downloadable === true;
-  if (versionPayload?.version !== version || !downloadable || !listed) {
-    throw new Error(
-      `Open VSX mismatch: expected ${version}, version=${versionPayload?.version}, latest=${latest}, ` +
-      `downloadable=${downloadable}, listed=${listed}`,
+  return response.json();
+}
+
+async function inspectMarketplace() {
+  const payload = await fetchJson(endpoint, `${channel} registry`);
+
+  if (channel === "open-vsx") {
+    const latest = payload?.version;
+    const listed =
+      payload?.allVersions &&
+      Object.prototype.hasOwnProperty.call(payload.allVersions, version);
+    const versionPayload = await fetchJson(
+      `${endpoint}/${encodeURIComponent(version)}`,
+      "Open VSX version endpoint",
     );
+    const downloadable = versionPayload?.downloadable === true;
+    if (versionPayload?.version !== version || !downloadable || !listed) {
+      throw new Error(
+        `Open VSX mismatch: expected ${version}, version=${versionPayload?.version}, latest=${latest}, ` +
+          `downloadable=${downloadable}, listed=${listed}`,
+      );
+    }
+    return { version, latest, downloadable, listed };
   }
-  record = { version, latest, downloadable, listed };
-} else {
+
   const rows = Array.isArray(payload) ? payload : [];
-  record = rows.find((row) => row?.version === version);
-  if (!record || record.approve !== true || record.listed !== true || record.hidden === true) {
+  const marketplaceRecord = rows.find((row) => row?.version === version);
+  if (
+    !marketplaceRecord ||
+    marketplaceRecord.approve !== true ||
+    marketplaceRecord.listed !== true ||
+    marketplaceRecord.hidden === true
+  ) {
     throw new Error(
       `JetBrains Marketplace mismatch: expected listed approved visible ${version}`,
     );
   }
-  record = {
-    version: record.version,
-    approve: record.approve,
-    listed: record.listed,
-    hidden: record.hidden,
+  return {
+    version: marketplaceRecord.version,
+    approve: marketplaceRecord.approve,
+    listed: marketplaceRecord.listed,
+    hidden: marketplaceRecord.hidden,
   };
+}
+
+let record;
+for (let attempt = 1; attempt <= retryAttempts; attempt += 1) {
+  try {
+    record = await inspectMarketplace();
+    break;
+  } catch (error) {
+    if (attempt === retryAttempts) throw error;
+    console.error(
+      `[verify-ide-marketplace] attempt ${attempt}/${retryAttempts} failed: ${error.message}; ` +
+        `retrying in ${retryDelayMs}ms`,
+    );
+    await sleep(retryDelayMs);
+  }
 }
 
 console.log(JSON.stringify({ channel, endpoint, ...record }));
