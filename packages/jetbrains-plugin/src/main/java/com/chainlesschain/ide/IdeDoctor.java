@@ -43,9 +43,24 @@ public final class IdeDoctor {
      * the live plugin), then the CLI's discovery view verbatim — those sections
      * are the source of truth this report exists to surface.
      */
-    public static String formatReport(int port, String statusOut, String doctorOut,
-                                      String jetbrainsOut) {
+    public static String formatReport(int port, String statusOut,
+            String doctorOut, String jetbrainsOut,
+            RuntimeCompatibility.Result compatibility,
+            String pluginVersion, String ideVersion) {
         StringBuilder sb = new StringBuilder("ChainlessChain IDE bridge — diagnostics\n\n");
+        RuntimeCompatibility.Result runtime = compatibility != null
+                ? compatibility
+                : RuntimeCompatibility.evaluate(
+                        "", RuntimeCompatibility.MIN_CLI_VERSION,
+                        port, null);
+        sb.append("── Runtime compatibility ──\n")
+          .append("Verdict: ").append(runtime.summary).append("\n")
+          .append("Plugin: ").append(section(pluginVersion)).append("\n")
+          .append("IntelliJ Platform: ").append(section(ideVersion)).append("\n")
+          .append("CLI: ").append(runtime.cliVersion == null
+                  ? "missing / unrecognized" : runtime.cliVersion)
+          .append(" (minimum ").append(runtime.minimumCliVersion)
+          .append(")\n\n");
         sb.append("This project's bridge: ");
         if (port > 0) {
             sb.append("running on 127.0.0.1:").append(port).append(" (server \"ide\")\n");

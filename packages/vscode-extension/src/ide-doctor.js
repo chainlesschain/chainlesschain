@@ -9,6 +9,7 @@
 
 const IDE_STATUS_ARGS = ["ide", "status"];
 const IDE_DOCTOR_ARGS = ["ide", "doctor"];
+const CLI_VERSION_ARGS = ["--version"];
 
 /** Section body, or a visible placeholder when the CLI produced nothing. */
 function sectionBody(text) {
@@ -28,9 +29,16 @@ function formatBridgeReport({
   doctorText,
   extensionVersion,
   vscodeVersion,
+  cliVersionText,
   workspaceTrusted,
   workspace,
 } = {}) {
+  const { evaluateRuntimeCompatibility } = require("./runtime-compatibility");
+  const compatibility = evaluateRuntimeCompatibility({
+    cliVersionText,
+    bridgePort: port,
+    workspaceTrusted,
+  });
   const mine =
     Number(port) > 0
       ? `running on 127.0.0.1:${port} (server "ide")`
@@ -42,8 +50,10 @@ function formatBridgeReport({
     "",
     "## Runtime compatibility",
     "",
+    `- Verdict: ${compatibility.summary}`,
     `- Extension: ${sectionBody(extensionVersion)}`,
     `- VS Code: ${sectionBody(vscodeVersion)}`,
+    `- CLI: ${compatibility.cliVersion || "missing / unrecognized"} (minimum ${compatibility.minimumCliVersion})`,
     `- Workspace trust: ${workspaceTrusted === true ? "trusted" : workspaceTrusted === false ? "restricted" : "unknown"}`,
     `- Workspace: ${sectionBody(workspace)}`,
     "",
@@ -66,4 +76,9 @@ function formatBridgeReport({
   ].join("\n");
 }
 
-module.exports = { IDE_STATUS_ARGS, IDE_DOCTOR_ARGS, formatBridgeReport };
+module.exports = {
+  IDE_STATUS_ARGS,
+  IDE_DOCTOR_ARGS,
+  CLI_VERSION_ARGS,
+  formatBridgeReport,
+};

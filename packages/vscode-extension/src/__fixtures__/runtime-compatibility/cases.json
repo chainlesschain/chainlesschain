@@ -1,0 +1,100 @@
+[
+  {
+    "name": "ready above floor",
+    "input": {
+      "cliVersionText": "0.162.176",
+      "bridgePort": 43123,
+      "workspaceTrusted": true
+    },
+    "expected": {
+      "status": "ready",
+      "cliVersion": "0.162.176",
+      "minimumCliVersion": "0.162.47",
+      "reasons": []
+    }
+  },
+  {
+    "name": "ready exactly at floor and trust unknown",
+    "input": {
+      "cliVersionText": "v0.162.47\n",
+      "minimumCliVersion": "0.162.47",
+      "bridgePort": 43123,
+      "workspaceTrusted": null
+    },
+    "expected": {
+      "status": "ready",
+      "cliVersion": "0.162.47",
+      "reasons": []
+    }
+  },
+  {
+    "name": "bridge stopped degrades",
+    "input": {
+      "cliVersionText": "0.162.176",
+      "minimumCliVersion": "0.162.47",
+      "bridgePort": 0,
+      "workspaceTrusted": true
+    },
+    "expected": {
+      "status": "degraded",
+      "cliVersion": "0.162.176",
+      "reasons": ["IDE bridge is stopped"]
+    }
+  },
+  {
+    "name": "restricted workspace degrades",
+    "input": {
+      "cliVersionText": "0.162.176",
+      "minimumCliVersion": "0.162.47",
+      "bridgePort": 43123,
+      "workspaceTrusted": false
+    },
+    "expected": {
+      "status": "degraded",
+      "cliVersion": "0.162.176",
+      "reasons": ["workspace trust is restricted"]
+    }
+  },
+  {
+    "name": "outdated CLI requires repair",
+    "input": {
+      "cliVersionText": "0.162.46",
+      "minimumCliVersion": "0.162.47",
+      "bridgePort": 43123,
+      "workspaceTrusted": true
+    },
+    "expected": {
+      "status": "repair",
+      "cliVersion": "0.162.46",
+      "reasons": ["cc CLI 0.162.46 is older than required 0.162.47"]
+    }
+  },
+  {
+    "name": "missing CLI requires repair and preserves bridge reason",
+    "input": {
+      "cliVersionText": "",
+      "minimumCliVersion": "0.162.47",
+      "bridgePort": 0,
+      "workspaceTrusted": true
+    },
+    "expected": {
+      "status": "repair",
+      "cliVersion": null,
+      "reasons": ["cc CLI is missing", "IDE bridge is stopped"]
+    }
+  },
+  {
+    "name": "shadowed compiler is not accepted as cc",
+    "input": {
+      "cliVersionText": "cc (GCC) 12.2.0",
+      "minimumCliVersion": "0.162.47",
+      "bridgePort": 43123,
+      "workspaceTrusted": true
+    },
+    "expected": {
+      "status": "repair",
+      "cliVersion": null,
+      "reasons": ["resolved command is not the chainlesschain CLI"]
+    }
+  }
+]

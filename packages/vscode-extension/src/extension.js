@@ -433,7 +433,7 @@ function activate(context) {
       const { getResolvedCli } = require("./cli-binary");
       const command = getResolvedCli();
       const cwd = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
-      const [statusText, doctorText] = await Promise.all([
+      const [statusText, doctorText, cliVersionText] = await Promise.all([
         runCliText({
           command,
           args: doctor.IDE_STATUS_ARGS,
@@ -446,6 +446,12 @@ function activate(context) {
           cwd,
           timeoutMs: 15000,
         }),
+        runCliText({
+          command,
+          args: doctor.CLI_VERSION_ARGS,
+          cwd,
+          timeoutMs: 12000,
+        }),
       ]);
       const doc = await vscode.workspace.openTextDocument({
         content: doctor.formatBridgeReport({
@@ -454,6 +460,7 @@ function activate(context) {
           doctorText,
           extensionVersion: context.extension.packageJSON.version,
           vscodeVersion: vscode.version,
+          cliVersionText,
           workspaceTrusted: vscode.workspace.isTrusted,
           workspace: cwd || "(no workspace folder)",
         }),

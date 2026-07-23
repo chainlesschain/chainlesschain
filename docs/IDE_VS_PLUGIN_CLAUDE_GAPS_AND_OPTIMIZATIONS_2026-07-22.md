@@ -34,7 +34,7 @@
 | VS Code VSIX 构建           | 已完成，`0.37.26` VSIX 构建成功                                                                                                                                                                 |
 | Open VSX 发布               | 已发布 `0.37.26`；公开 API 已回读并确认可下载，发布 workflow 已接入 `scripts/verify-ide-marketplace.mjs`                                                                                        |
 | 定向复核测试                | CLI 6 个相关测试文件 48 项通过；Desktop bootstrap 2 项通过；关键 JS 语法检查通过                                                                                                                |
-| IDE Runtime Doctor          | VS Code `chainlesschain.ide.doctor` now includes extension/VS Code versions, workspace trust, workspace path, live bridge state, `cc ide status`, and `cc ide doctor` output; 6 assertions pass |
+| IDE Runtime Doctor          | 两端 Doctor 均主动探测 `cc --version`，把 CLI 下限、Bridge 和 workspace trust 汇总为 `可运行 / 可降级运行 / 需要修复`；共享 JSON fixture 锁定双端规则并拒绝 GCC 同名 `cc`                       |
 | IDE 脱敏诊断导出            | VS Code 命令/Status 入口与 JetBrains Tools action 均调用 `cc doctor --export-bundle`；私有临时文件通过 schema/隐私契约校验后才替换用户目标，异常产物保留旧文件                              |
 | JetBrains Marketplace 发布  | `0.4.68` 已发布；公开 API 已回读并确认 `approve=true`、`listed=true`、`hidden=false`；发布 workflow 已接入同一验证脚本                                                                          |
 | VS Code 官方 Marketplace    | 未发布，当前未配置 `VSCE_PAT`；不影响 Open VSX 发布                                                                                                                                             |
@@ -74,7 +74,7 @@ Claude Code 的 JetBrains 插件则突出原生 Diff、选择区/当前文件上
 | Artifact          | `artifacts-drawer.js`、`ui/artifacts-view.js`                                                         | `Artifacts`、`ArtifactsAction`                                                            | 已有列表、元数据和预览降级；还可增强发布/重发布/会话关联                                              |
 | 权限/安全         | workspace trust、路径保护、Diff approval、auto-exec guard、plugin quality                             | `BridgeSecurityPolicy`、`IdePathGuard`、`DiffApplyGuard`、`AutoExecGuard`、`PolicyViewer` | 安全基础较完整；需要统一 `PermissionDecision` 和策略来源解释                                          |
 | 插件管理          | `plugin-manager.js`、`plugin-quality.js`、管理视图                                                    | `PluginManager`、`PluginQuality`、管理 action                                             | 已有管理面；供应链签名、依赖锁定、升级回滚和企业策略仍需补齐                                          |
-| CLI 运行时        | Managed CLI、版本检查、安装、升级、回滚                                                               | `ManagedCliRuntime`、`ManagedCli`、`CliVersionCheck`、安装/回滚 action                    | 已解决“只能依赖全局 CLI”的主要问题；仍需更清晰的兼容矩阵和离线缓存诊断                                |
+| CLI 运行时        | Managed CLI、版本检查、安装、升级、回滚、`runtime-compatibility.js`                                  | `ManagedCliRuntime`、`ManagedCli`、`CliVersionCheck`、`RuntimeCompatibility`             | 已解决全局 CLI 依赖和单一兼容性结论；仍需真实版本矩阵与离线缓存诊断                                   |
 | 代码补全          | VS Code `completion.js`，配置项和手动触发                                                             | Kotlin `CcInlineCompletionProvider`，另有手动触发 action                                  | 两端都有，但仍不是 Claude Code/Copilot 级的持续 ghost-text 体验；应继续控制延迟和成本                 |
 | GUI 自动化验证    | extension-host 测试                                                                                   | Remote Robot `uiTest` 为隔离/nightly smoke，60 个 Java 单测文件                           | 单测覆盖较好；发布门仍应加入关键真实 UI 场景，而不仅是纯逻辑测试                                      |
 
@@ -133,7 +133,7 @@ Claude Code 官方插件可组合 Skills、Agents、Hooks、MCP、LSP、Monitors
 潜在问题：
 
 - VS Code 官方 Marketplace、Open VSX、JetBrains Marketplace 的发布和版本状态可能不完全一致。
-- CLI、插件、IDE Bridge 的版本组合缺少一个用户可理解的兼容性结论。
+- CLI、插件、IDE Bridge 的版本组合此前缺少用户可理解的兼容性结论；双端现已输出统一三态结论，真实版本组合矩阵仍待持续验证。
 - `cc` 不在 PATH、CLI 版本过旧、Node/Java 环境缺失时，用户容易只看到底层错误。
 - 远程、WSL、代理、防火墙、企业网络环境的失败原因仍可能需要人工排查。
 
@@ -147,6 +147,8 @@ Claude Code 官方插件可组合 Skills、Agents、Hooks、MCP、LSP、Monitors
 验收标准：新机器无全局 `cc` 时，插件能自动给出可复制的修复路径；失败诊断不再只出现 `command not found` 或超时。
 
 **2026-07-23 代码收口**：现有 VS Code Runtime Doctor、Remote/WSL Doctor 和受控修复入口之外，两端已新增脱敏诊断包导出。VS Code 的 `chainlesschain.ide.exportDiagnostics` 命令可从 Status 视图启动，JetBrains 的 `ExportDiagnosticsAction` 位于 Tools 菜单；用户先选本地目标，CLI 再写入同目录私有临时文件。宿主确认 `cc-diagnostic-bundle/v1` 和默认排除清单契约后才替换目标；无效/旧版 CLI 产物不会截断已有文件，符号链接或非普通文件目标会被拒绝，临时文件始终清理，成功后可直接打开 JSON。该项的 C/T/H 接线缺口已关闭，剩余为真实 VS Code/JetBrains、Remote/WSL 和发布包矩阵验收。
+
+**2026-07-23 续，兼容性单一结论收口**：新增 VS Code `runtime-compatibility.js` 与 JetBrains `RuntimeCompatibility` 孪生纯核；Doctor 主动执行 `cc --version`，结合最低 CLI 版本、Bridge 状态和 workspace trust，输出唯一的 `READY（可运行）`、`DEGRADED（可降级运行）` 或 `NEEDS REPAIR（需要修复）`。CLI 缺失、低于下限或 `cc` 实为 GCC/Clang 等同名命令时要求修复；Bridge 停止或 workspace 受限时允许降级并列出原因。两端直接读取同一 JSON fixture，覆盖三种结论及边界组合；JetBrains 报告同时展示插件、IntelliJ 平台和 CLI 版本。该“单一兼容性结论”的 C/T/H seam 已关闭；Node/Java 环境探测、离线缓存诊断和真实 IDE × 插件 × CLI 发布矩阵仍保留。
 
 #### 2. Plan Review 还需要成为真正的 IDE 工作流
 
@@ -330,7 +332,7 @@ Agent 修改后，IDE 应自动收集相关测试、lint、类型检查、构建
 
 ### 近期：P0（1 个版本周期）
 
-1. Installation & Runtime Doctor 和版本兼容矩阵。
+1. Installation & Runtime Doctor 的单一兼容性结论已完成；继续真实版本矩阵、Node/Java 探测与离线缓存诊断。
 2. Plan Review 快照、批注、审批、恢复闭环。
 3. Diff 混合生命周期 changeset 的真实多宿主 UI 矩阵验收（代码语义已落地）。
 4. VS Code / JetBrains 关键流程 Golden Fixtures 与真实 UI smoke test。

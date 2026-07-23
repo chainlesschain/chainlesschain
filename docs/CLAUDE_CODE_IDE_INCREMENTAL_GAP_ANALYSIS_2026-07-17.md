@@ -17,6 +17,7 @@
 - `cc agent --bg --worktree` 已解除互斥，后台 supervisor 接收独立 worktree；`agent-background-worktree.test.js` 覆盖创建、转交和子参数剥离。
 - headless/stream resume 已接入 side-effect ledger reconcile；跨 CLI、Bridge、Extension Host 的物理 kill/resume 仍需真实环境。
 - `protocol-replay.js`、治理覆盖率脚本、`cc doctor --export-bundle` 和 OTLP HTTP/HTTPS exporter 已存在；2026-07-23 又把脱敏诊断包导出接入 VS Code 命令/Status 视图和 JetBrains Tools 菜单，并在替换用户目标前验证 schema 与默认排除契约。剩余是完整发布门、真实宿主/远程 UI、Collector/SIEM 和长期运行证据。
+- VS Code 与 JetBrains Doctor 已用共享 fixture 约束的孪生兼容性纯核，将最低 CLI 版本、Bridge 和 workspace trust 汇总为 `可运行 / 可降级运行 / 需要修复`，并拒绝 GCC/Clang 同名 `cc`；单一结论的 C/T/H seam 已关闭，真实版本组合、Node/Java 与离线缓存诊断仍保留。
 - Bridge token ACL 的默认路径已改为 fail-closed；JetBrains 侧 ACL/权限验证失败会阻断 lockfile 发布，只有组织级 managed downgrade 才允许降级。JetBrains `LockfileAclTest` 已通过；VS Code `0.37.24` Extension Host 和 JetBrains Remote Robot 核心 smoke 已通过，剩余是多版本/多宿主、真实 Windows ACL 矩阵与正式分发渠道验收。
 
 ### 2026-07-22 状态覆盖说明

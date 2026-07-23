@@ -1128,14 +1128,33 @@ public final class PureLogicSmokeMain {
         eq(String.join(" ", IdeDoctor.buildDoctorArgs()), "ide doctor", "doctor args");
         eq(String.join(" ", IdeDoctor.buildJetbrainsArgs()), "ide jetbrains", "jetbrains args");
         String up = IdeDoctor.formatReport(51234,
-                "connect intellij:51234", "reason: workspace-match", "endpoint injected: yes");
+                "connect intellij:51234", "reason: workspace-match",
+                "endpoint injected: yes",
+                RuntimeCompatibility.evaluate(
+                        "0.162.176",
+                        RuntimeCompatibility.MIN_CLI_VERSION,
+                        51234,
+                        null),
+                "0.4.68",
+                "2024.3");
         check(up.contains("running on 127.0.0.1:51234"), "port shown when up");
         check(up.contains("connect intellij:51234"), "status passthrough");
         check(up.contains("reason: workspace-match"), "doctor passthrough");
         check(up.contains("endpoint injected: yes"), "jetbrains passthrough");
-        String down = IdeDoctor.formatReport(-1, "", null, "  ");
+        check(up.contains("READY (可运行)"), "single ready verdict");
+        String down = IdeDoctor.formatReport(
+                -1, "", null, "  ",
+                RuntimeCompatibility.evaluate(
+                        "",
+                        RuntimeCompatibility.MIN_CLI_VERSION,
+                        -1,
+                        null),
+                "0.4.68",
+                "2024.3");
         check(down.contains("STOPPED"), "stopped when port <= 0");
         check(down.contains("Restart Bridge"), "recovery action named");
+        check(down.contains("NEEDS REPAIR (需要修复)"),
+                "single repair verdict");
         int placeholders = down.split("no output — is the cc CLI installed", -1).length - 1;
         eq(placeholders, 3, "3 empty sections -> 3 visible placeholders");
     }

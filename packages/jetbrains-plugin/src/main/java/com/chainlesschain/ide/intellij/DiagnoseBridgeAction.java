@@ -5,9 +5,14 @@ import com.chainlesschain.ide.CliVersionCheck;
 import com.chainlesschain.ide.IdeDoctor;
 import com.chainlesschain.ide.RemoteDoctor;
 import com.chainlesschain.ide.RemoteDoctorFixes;
+import com.chainlesschain.ide.RuntimeCompatibility;
+import com.intellij.ide.plugins.IdeaPluginDescriptor;
+import com.intellij.ide.plugins.PluginManagerCore;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.application.ApplicationInfo;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.extensions.PluginId;
 import com.intellij.openapi.fileChooser.FileChooserFactory;
 import com.intellij.openapi.fileChooser.FileSaverDescriptor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
@@ -68,8 +73,19 @@ public final class DiagnoseBridgeAction extends AnAction {
             String status = AgentChatSession.runCapture(IdeDoctor.buildStatusArgs(), cwd, 15000);
             String doctor = AgentChatSession.runCapture(IdeDoctor.buildDoctorArgs(), cwd, 15000);
             String jb = AgentChatSession.runCapture(IdeDoctor.buildJetbrainsArgs(), cwd, 15000);
-            final RemoteDoctor.Result remote = remoteDoctorResult(project, port);
-            final String report = IdeDoctor.formatReport(port, status, doctor, jb)
+            String cliVersionText = AgentChatSession.runCapture(
+                    java.util.Collections.singletonList("--version"), cwd, 12000);
+            final RuntimeCompatibility.Result compatibility =
+                    RuntimeCompatibility.evaluate(
+                            cliVersionText,
+                            RuntimeCompatibility.MIN_CLI_VERSION,
+                            port,
+                            null);
+            final RemoteDoctor.Result remote =
+                    remoteDoctorResult(project, port, cliVersionText);
+            final String report = IdeDoctor.formatReport(
+                    port, status, doctor, jb, compatibility,
+                    pluginVersion(), ApplicationInfo.getInstance().getFullVersion())
                     + "\n\n── Remote / WSL Doctor (P2 #12) ──\n" + remote.summary;
             final List<RemoteDoctorFixes.Fix> fixes =
                     RemoteDoctorFixes.classifyFixes(remote.checks);
@@ -77,11 +93,9 @@ public final class DiagnoseBridgeAction extends AnAction {
         });
     }
 
-    // Min cc version this plugin build targets (advisory; mirrors the VS twin).
-    private static final String MIN_CLI_VERSION = "0.162.47";
-
     /** Gather real environment signals and run the Remote/WSL Doctor analysis. */
-    private static RemoteDoctor.Result remoteDoctorResult(Project project, int port) {
+    private static RemoteDoctor.Result remoteDoctorResult(
+            Project project, int port, String versionOut) {
         RemoteDoctor.Signals s = new RemoteDoctor.Signals();
         s.isWsl = System.getenv("WSL_DISTRO_NAME") != null;
         String base = project.getBasePath();
@@ -95,21 +109,20 @@ public final class DiagnoseBridgeAction extends AnAction {
         // the check is simply omitted on a normal local IDE.
         s.remoteDevClient = System.getProperty("remote.development") != null
                 || "JetBrainsClient".equals(System.getProperty("idea.platform.prefix"));
-        String ver = null;
-        try {
-            File cwd = base != null ? new File(base) : null;
-            String out = AgentChatSession.runCapture(
-                    java.util.Collections.singletonList("--version"), cwd, 12000);
-            if (AgentChatSession.looksLikeCcVersion(out)) ver = CliVersionCheck.parseVersion(out);
-        } catch (Throwable ignored) {
-            /* CLI probe best-effort */
-        }
+        String ver = AgentChatSession.looksLikeCcVersion(versionOut)
+                ? CliVersionCheck.parseVersion(versionOut) : null;
         s.cliFound = ver != null;
         s.cliVersion = ver;
-        s.minCliVersion = MIN_CLI_VERSION;
+        s.minCliVersion = RuntimeCompatibility.MIN_CLI_VERSION;
         s.bridgePort = Math.max(port, 0);
         s.portProbe = probePort(port);
         return RemoteDoctor.analyze(s);
+    }
+
+    private static String pluginVersion() {
+        IdeaPluginDescriptor descriptor = PluginManagerCore.getPlugin(
+                PluginId.getId("com.chainlesschain.ide"));
+        return descriptor == null ? "unknown" : descriptor.getVersion();
     }
 
     /** Quick loopback probe: does something accept a TCP connection on {@code port}? */
