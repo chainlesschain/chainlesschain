@@ -25,8 +25,11 @@
 
 2026-07-23 还为两端 `openDiff` 增加了 `cc-diff-review/v1` 统一审计包：
 接受/拒绝、用户改写、hunk 选择、行批注和最终写入均有时间/actor/host/路径与内容指纹，
-而不复制代码正文。Diff 的剩项已缩小为显式 rename/delete 意图、session/turn/toolUse
-绑定与副作用账本持久化，以及真实多宿主 UI/大文件降级验收。
+而不复制代码正文。后续批次又完成 CLI 可信 `session/turn/toolUse` 绑定和
+stream/headless/WebSocket 三条执行路径的副作用账本持久化；关联元数据不进入模型可见的
+工具结果，`changes-requested` 仅记录 `followUpRequested`，不把请求误报为后续 turn 已完成。
+Diff 的剩项已缩小为显式 rename/delete 意图、Request Changes 后续结果，以及真实多宿主
+UI/大文件降级验收。
 
 本报告正文中第 6 条关于“Bridge ACL fail-open/仅本地 OTLP JSON”的段落，以及第 3 节中 Remote Robot 未成功的历史运行记录，均属于 2026-07-17 截面；当前请以 2026-07-22 的 VS Code/JetBrains 双端 fail-closed ACL、HTTP/HTTPS OTLP、JetBrains GUI smoke 和 Marketplace API 复核结果为准。
 

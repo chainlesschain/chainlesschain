@@ -230,7 +230,11 @@ final class IdePathGuardTest {
 
         Object result = openDiff.call(args(
                 "path", proj.resolve("src/../src/App.java").toString(),
-                "modifiedText", "x"));
+                "modifiedText", "x",
+                "reviewContext", args(
+                        "sessionId", "sess-1",
+                        "turnId", "run-1:t2",
+                        "toolUseId", "call-7")));
         assertEquals(proj.toAbsolutePath().normalize().resolve("src").resolve("App.java").toString(),
                 facade.diffPath);
         assertTrue(result instanceof Map);
@@ -241,6 +245,9 @@ final class IdePathGuardTest {
         assertEquals("jetbrains", audit.get("host"));
         assertEquals("accepted", audit.get("outcome"));
         assertEquals(true, audit.get("written"));
+        assertEquals("sess-1", audit.get("sessionId"));
+        assertEquals("run-1:t2", audit.get("turnId"));
+        assertEquals("call-7", audit.get("toolUseId"));
         assertEquals(3, ((Map<?, ?>) audit.get("baseline")).get("chars"));
         assertFalse(((Map<?, ?>) result).containsKey("_auditBaselineText"));
     }

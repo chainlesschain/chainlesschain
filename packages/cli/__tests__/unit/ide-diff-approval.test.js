@@ -16,6 +16,7 @@ import {
   ideDiffApprovalEnabled,
   hasIdeOpenDiff,
   requestIdeDiffApproval,
+  normalizeDiffReviewAudit,
   formatReviewComments,
   summarizeUserAmendments,
 } from "../../src/lib/ide-context.js";
@@ -26,6 +27,26 @@ import {
 
 const txt = (data) => ({
   content: [{ type: "text", text: JSON.stringify(data) }],
+});
+
+const audit = (over = {}) => ({
+  schema: "cc-diff-review/v1",
+  reviewId: "drev_1234567890abcdef12345678",
+  createdAt: "2026-07-23T00:00:00.000Z",
+  actor: "local-user",
+  host: "vscode",
+  path: "/spoofed",
+  outcome: "accepted",
+  source: "agent-proposed",
+  written: true,
+  proposed: {
+    sha256: "a".repeat(64),
+    chars: 3,
+    lines: 1,
+  },
+  selectedHunks: [],
+  comments: [],
+  ...over,
 });
 
 function fakeDiffMcp({ callTool } = {}) {
@@ -101,6 +122,61 @@ describe("requestIdeDiffApproval", () => {
     expect(
       await requestIdeDiffApproval(mcp, { path: "p", modifiedText: "m" }),
     ).toEqual({ outcome: "rejected" });
+  });
+
+  it("bounds the audit and binds correlation ids from the CLI request", async () => {
+    const mcp = fakeDiffMcp({
+      callTool: async (_server, _tool, args) =>
+        txt({
+          outcome: "accepted",
+          finalText: "new",
+          audit: audit({
+            outcome: "changes-requested",
+            sessionId: "spoofed-session",
+            comments: [
+              {
+                line: 0,
+                lineFingerprint: {
+                  sha256: "b".repeat(64),
+                  chars: 8,
+                  lines: 1,
+                },
+                note: "n".repeat(1500),
+                unexpected: "drop",
+              },
+            ],
+            unexpected: "drop",
+          }),
+          receivedContext: args.reviewContext,
+        }),
+    });
+    const result = await requestIdeDiffApproval(mcp, {
+      path: "C:/x/a.js",
+      modifiedText: "new",
+      sessionId: "sess-1",
+      turnId: "run-1:t2",
+      toolUseId: "call-7",
+    });
+    expect(result.audit).toMatchObject({
+      schema: "cc-diff-review/v1",
+      path: "C:/x/a.js",
+      sessionId: "sess-1",
+      turnId: "run-1:t2",
+      toolUseId: "call-7",
+      outcome: "accepted",
+      followUpRequested: false,
+      proposed: { sha256: "a".repeat(64), chars: 3, lines: 1 },
+    });
+    expect(result.audit.comments[0].note).toHaveLength(1000);
+    expect(result.audit).not.toHaveProperty("unexpected");
+    expect(result.audit.comments[0]).not.toHaveProperty("unexpected");
+  });
+
+  it("rejects malformed or unknown audit envelopes", () => {
+    expect(normalizeDiffReviewAudit(null)).toBeNull();
+    expect(
+      normalizeDiffReviewAudit({ schema: "cc-diff-review/v2" }),
+    ).toBeNull();
   });
 
   it("returns changes-requested with comments and reviewedText", async () => {
@@ -348,6 +424,41 @@ describe("executeTool — IDE diff approval wiring (settings ask)", () => {
     expect(fs.existsSync(path.join(tmp, "out.js"))).toBe(false);
     expect(context.permissionConfirm).not.toHaveBeenCalled();
     expect(mcp.calls[0].args.title).toContain("write_file");
+  });
+
+  it("keeps a bound audit off the model-facing JSON result", async () => {
+    let requestArgs;
+    const mcp = fakeDiffMcp({
+      callTool: async (_server, _tool, args) => {
+        requestArgs = args;
+        return txt({
+          outcome: "accepted",
+          finalText: args.modifiedText,
+          audit: audit(),
+        });
+      },
+    });
+    const res = await executeTool(
+      "write_file",
+      { path: "audited.js", content: "x" },
+      ctx(mcp, {
+        sessionId: "sess-1",
+        turnId: "run-1:t2",
+        toolCallId: "call-7",
+      }),
+    );
+    expect(requestArgs.reviewContext).toEqual({
+      sessionId: "sess-1",
+      turnId: "run-1:t2",
+      toolUseId: "call-7",
+    });
+    expect(res._diffReviewAudit).toMatchObject({
+      sessionId: "sess-1",
+      turnId: "run-1:t2",
+      toolUseId: "call-7",
+    });
+    expect(Object.keys(res)).not.toContain("_diffReviewAudit");
+    expect(JSON.stringify(res)).not.toContain("cc-diff-review/v1");
   });
 
   it("flags userEdited AND hands the agent the -/+ amendments", async () => {

@@ -202,6 +202,17 @@ function buildIdeTools(editor, options = {}) {
               "Original content (left-hand side); defaults to the file on disk.",
           },
           title: { type: "string", description: "Diff tab title (optional)." },
+          reviewContext: {
+            type: "object",
+            description:
+              "Optional session/turn/tool correlation supplied by the CLI.",
+            properties: {
+              sessionId: { type: "string" },
+              turnId: { type: "string" },
+              toolUseId: { type: "string" },
+            },
+            additionalProperties: false,
+          },
         },
         required: ["path", "modifiedText"],
       },
@@ -234,6 +245,7 @@ function buildIdeTools(editor, options = {}) {
             originalText: auditBaselineText,
             proposedText: args.modifiedText,
             result: publicResult,
+            reviewContext: args.reviewContext,
             host: "vscode",
           }),
         };

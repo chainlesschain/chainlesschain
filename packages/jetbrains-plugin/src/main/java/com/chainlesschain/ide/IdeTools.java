@@ -147,6 +147,8 @@ public final class IdeTools {
                         auditBaseline,
                         (String) modified,
                         output,
+                        args.get("reviewContext") instanceof Map
+                                ? (Map<?, ?>) args.get("reviewContext") : null,
                         "jetbrains",
                         "local-user",
                         Instant.now()));
@@ -324,6 +326,15 @@ public final class IdeTools {
         props.put("modifiedText", strProp("Proposed new file content (right-hand side)."));
         props.put("originalText", strProp("Original content; defaults to the file on disk."));
         props.put("title", strProp("Diff tab title (optional)."));
+        Map<String, Object> reviewContextProps = new LinkedHashMap<>();
+        reviewContextProps.put("sessionId", strProp("CLI session id."));
+        reviewContextProps.put("turnId", strProp("Agent turn id."));
+        reviewContextProps.put("toolUseId", strProp("Provider tool-use id."));
+        Map<String, Object> reviewContext = new LinkedHashMap<>();
+        reviewContext.put("type", "object");
+        reviewContext.put("properties", reviewContextProps);
+        reviewContext.put("additionalProperties", false);
+        props.put("reviewContext", reviewContext);
         Map<String, Object> s = new LinkedHashMap<>();
         s.put("type", "object");
         s.put("properties", props);

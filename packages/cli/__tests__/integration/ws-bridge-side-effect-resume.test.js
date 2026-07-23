@@ -151,4 +151,40 @@ describe("WS bridge side-effect resume", () => {
       ),
     ).toBe(false);
   });
+
+  it("persists a bound Diff Review audit on a committed file write", async () => {
+    const session = makeSession();
+    const interaction = { emit: vi.fn(), rejectAllPending: vi.fn() };
+    const handler = new WSAgentHandler({ session, interaction, db: null });
+    const audit = {
+      schema: "cc-diff-review/v1",
+      sessionId: session.id,
+      turnId: "run-1:t2",
+      toolUseId: "call-7",
+      outcome: "accepted",
+    };
+    agentLoop.mockReturnValue(
+      fakeLoop([
+        {
+          type: "tool-executing",
+          tool: "write_file",
+          args: { path: "a.js", content: "x" },
+        },
+        {
+          type: "tool-result",
+          tool: "write_file",
+          result: { ok: true, _diffReviewAudit: audit },
+        },
+      ]),
+    );
+    await handler.handleMessage("edit it", "req-1");
+
+    const snapshot = [...events]
+      .reverse()
+      .find((event) => event.type === "side_effect_ledger");
+    expect(snapshot.data.ops[0]).toMatchObject({
+      state: "committed",
+      meta: { diffReview: audit },
+    });
+  });
 });

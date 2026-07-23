@@ -88,6 +88,9 @@ describe("buildIdeTools (fake facade)", () => {
       "path",
       "modifiedText",
     ]);
+    expect(
+      byName.openDiff.inputSchema.properties.reviewContext.properties,
+    ).toHaveProperty("toolUseId");
   });
 
   it("getSelection returns the active selection", async () => {
@@ -122,6 +125,11 @@ describe("buildIdeTools (fake facade)", () => {
     const result = await byName.openDiff.handler({
       path: "/x",
       modifiedText: "new",
+      reviewContext: {
+        sessionId: "sess-1",
+        turnId: "run-1:t2",
+        toolUseId: "call-7",
+      },
     });
     expect(result).toMatchObject({
       outcome: "accepted",
@@ -133,6 +141,9 @@ describe("buildIdeTools (fake facade)", () => {
         outcome: "accepted",
         source: "agent-proposed",
         written: true,
+        sessionId: "sess-1",
+        turnId: "run-1:t2",
+        toolUseId: "call-7",
       },
     });
     expect(result.audit.proposed.sha256).toHaveLength(64);

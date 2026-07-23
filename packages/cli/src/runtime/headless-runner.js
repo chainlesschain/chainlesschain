@@ -1845,6 +1845,11 @@ export async function runAgentHeadless(options = {}, deps = {}) {
             // P0-2: settle the in-flight side-effect (commit on success, fail on
             // a clean error) and persist the updated ledger snapshot.
             if (persist && currentSideEffectOpId) {
+              if (event.result?._diffReviewAudit) {
+                sideEffectLedger.annotate(currentSideEffectOpId, {
+                  diffReview: event.result._diffReviewAudit,
+                });
+              }
               if (err)
                 sideEffectLedger.fail(
                   currentSideEffectOpId,

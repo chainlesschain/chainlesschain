@@ -213,6 +213,11 @@ export class WSAgentHandler {
             });
             if (currentSideEffectOpId) {
               const err = event.error || event.result?.error || null;
+              if (event.result?._diffReviewAudit) {
+                sideEffectLedger.annotate(currentSideEffectOpId, {
+                  diffReview: event.result._diffReviewAudit,
+                });
+              }
               if (err)
                 sideEffectLedger.fail(
                   currentSideEffectOpId,

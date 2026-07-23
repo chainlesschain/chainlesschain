@@ -34,6 +34,7 @@ function buildDiffReviewAudit({
   originalText,
   proposedText,
   result = {},
+  reviewContext = {},
   host = "ide",
   actor = "local-user",
   now = new Date(),
@@ -81,9 +82,13 @@ function buildDiffReviewAudit({
     actor: bounded(actor, 128) || "local-user",
     host: bounded(host, 64) || "ide",
     path: bounded(path, 2048),
+    sessionId: optionalBounded(reviewContext.sessionId, 256),
+    turnId: optionalBounded(reviewContext.turnId, 256),
+    toolUseId: optionalBounded(reviewContext.toolUseId, 256),
     outcome,
     source,
     written,
+    followUpRequested: outcome === "changes-requested",
     baseline: fingerprintText(originalText),
     proposed,
     reviewed,
@@ -98,6 +103,11 @@ function buildDiffReviewAudit({
 
 function bounded(value, limit) {
   return String(value == null ? "" : value).slice(0, limit);
+}
+
+function optionalBounded(value, limit) {
+  const text = bounded(value, limit);
+  return text || null;
 }
 
 function positive(value) {

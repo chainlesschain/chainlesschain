@@ -17,6 +17,10 @@ class DiffReviewAuditTest {
                 "old",
                 "agent proposal",
                 Map.of("outcome", "accepted", "finalText", "user revision"),
+                Map.of(
+                        "sessionId", "sess-1",
+                        "turnId", "run-1:t2",
+                        "toolUseId", "call-7"),
                 "jetbrains",
                 "local-user",
                 Instant.parse("2026-07-23T00:00:00Z"));
@@ -26,6 +30,10 @@ class DiffReviewAuditTest {
         assertEquals("user-edited", audit.get("source"));
         assertEquals(true, audit.get("written"));
         assertEquals("jetbrains", audit.get("host"));
+        assertEquals("sess-1", audit.get("sessionId"));
+        assertEquals("run-1:t2", audit.get("turnId"));
+        assertEquals("call-7", audit.get("toolUseId"));
+        assertEquals(false, audit.get("followUpRequested"));
         assertEquals(13, ((Map<?, ?>) audit.get("final")).get("chars"));
         assertFalse(MiniJson.stringify(audit).contains("user revision"));
     }
@@ -43,10 +51,12 @@ class DiffReviewAuditTest {
                                 "line", 0, "endLine", 2,
                                 "lineText", "const apiKey = 'sensitive line'",
                                 "note", "Revise this"))),
+                null,
                 "jetbrains", "local-user", Instant.now());
 
         assertEquals(List.of(0, 2), audit.get("selectedHunks"));
         assertEquals(false, audit.get("written"));
+        assertEquals(true, audit.get("followUpRequested"));
         assertEquals(null, audit.get("final"));
         assertEquals(1, ((List<?>) audit.get("comments")).size());
         assertFalse(MiniJson.stringify(audit).contains("sensitive line"));

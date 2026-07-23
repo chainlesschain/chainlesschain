@@ -201,6 +201,14 @@ export class SideEffectLedger {
     ]);
   }
 
+  /** Merge bounded correlation metadata discovered after an effect started. */
+  annotate(opId, metadata = {}) {
+    const rec = this._rec(opId);
+    if (!rec || !metadata || typeof metadata !== "object") return this;
+    rec.meta = { ...rec.meta, ...metadata };
+    return this;
+  }
+
   /** Confirm the effect applied. Only from `started`. */
   commit(opId) {
     return this._advance(

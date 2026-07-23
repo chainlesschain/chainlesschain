@@ -791,6 +791,11 @@ async function runTurn(
         // P0-2: settle the in-flight side-effect (commit on success, fail on
         // a clean error) and persist the updated ledger snapshot.
         if (sideEffects && currentSideEffectOpId) {
+          if (event.result?._diffReviewAudit) {
+            sideEffects.ledger.annotate(currentSideEffectOpId, {
+              diffReview: event.result._diffReviewAudit,
+            });
+          }
           if (err)
             sideEffects.ledger.fail(
               currentSideEffectOpId,

@@ -66,6 +66,33 @@ describe("SideEffectLedger lifecycle", () => {
     expect(l.get("op1").idempotent).toBe(true);
   });
 
+  it("annotates an in-flight effect with bounded review correlation metadata", () => {
+    const l = new SideEffectLedger();
+    l.prepare("op1", { kind: "file-write", meta: { tool: "write_file" } })
+      .start("op1")
+      .annotate("op1", {
+        diffReview: {
+          schema: "cc-diff-review/v1",
+          sessionId: "sess-1",
+          turnId: "run-1:t2",
+          toolUseId: "call-7",
+        },
+      })
+      .commit("op1");
+    const back = SideEffectLedger.fromJSON(
+      JSON.parse(JSON.stringify(l.toJSON())),
+    );
+    expect(back.get("op1").meta).toMatchObject({
+      tool: "write_file",
+      diffReview: {
+        schema: "cc-diff-review/v1",
+        sessionId: "sess-1",
+        turnId: "run-1:t2",
+        toolUseId: "call-7",
+      },
+    });
+  });
+
   it("unknown() settles an unsettled op but never a committed one", () => {
     const l = new SideEffectLedger();
     l.prepare("a", { kind: "git-push" }).start("a");

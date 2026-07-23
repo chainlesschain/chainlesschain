@@ -438,6 +438,94 @@ export function hasIdeOpenDiff(mcp) {
   );
 }
 
+const DIFF_REVIEW_AUDIT_SCHEMA = "cc-diff-review/v1";
+
+function auditString(value, max) {
+  if (value == null) return null;
+  const text = String(value).slice(0, max);
+  return text || null;
+}
+
+function auditIndex(value) {
+  return Number.isInteger(value) && value >= 0 ? value : null;
+}
+
+function auditFingerprint(value) {
+  if (!value || typeof value !== "object") return null;
+  const sha256 = auditString(value.sha256, 64);
+  if (!/^[a-f0-9]{64}$/i.test(sha256 || "")) return null;
+  return {
+    sha256: sha256.toLowerCase(),
+    chars: auditIndex(value.chars),
+    lines: auditIndex(value.lines),
+  };
+}
+
+/**
+ * Reduce a host-provided Diff Review audit to the bounded v1 wire contract.
+ * Correlation ids and path are overwritten from the CLI request so a malformed
+ * or stale local bridge cannot spoof which session/tool the decision belongs to.
+ */
+export function normalizeDiffReviewAudit(value, binding = {}) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    value.schema !== DIFF_REVIEW_AUDIT_SCHEMA
+  ) {
+    return null;
+  }
+  const requestedOutcome = auditString(binding.outcome ?? value.outcome, 64);
+  const outcome = ["accepted", "rejected", "changes-requested"].includes(
+    requestedOutcome,
+  )
+    ? requestedOutcome
+    : "rejected";
+  const comments = (Array.isArray(value.comments) ? value.comments : [])
+    .filter((comment) => comment && typeof comment === "object")
+    .map((comment) => ({
+      line: auditIndex(comment.line),
+      endLine: auditIndex(comment.endLine),
+      lineFingerprint: auditFingerprint(comment.lineFingerprint),
+      note: auditString(comment.note, 1000),
+    }))
+    .filter((comment) => comment.note)
+    .slice(0, 32);
+  const selectedHunks = [
+    ...new Set(
+      (Array.isArray(value.selectedHunks) ? value.selectedHunks : []).filter(
+        (index) => Number.isInteger(index) && index >= 0,
+      ),
+    ),
+  ]
+    .sort((a, b) => a - b)
+    .slice(0, 128);
+  return {
+    schema: DIFF_REVIEW_AUDIT_SCHEMA,
+    reviewId: auditString(value.reviewId, 64),
+    createdAt: auditString(value.createdAt, 64),
+    actor: auditString(value.actor, 128) || "local-user",
+    host: auditString(value.host, 64) || "ide",
+    path: auditString(binding.path ?? value.path, 2048),
+    sessionId: auditString(binding.sessionId, 256),
+    turnId: auditString(binding.turnId, 256),
+    toolUseId: auditString(binding.toolUseId, 256),
+    outcome,
+    source: auditString(value.source, 64) || "agent-proposed",
+    written: value.written === true,
+    followUpRequested:
+      value.followUpRequested === true || outcome === "changes-requested",
+    baseline: auditFingerprint(value.baseline),
+    proposed: auditFingerprint(value.proposed),
+    reviewed: auditFingerprint(value.reviewed),
+    final: auditFingerprint(value.final),
+    selectedHunks,
+    appliedHunks: auditIndex(value.appliedHunks),
+    totalHunks: auditIndex(value.totalHunks),
+    comments,
+    reason: auditString(value.reason, 512),
+  };
+}
+
 /**
  * Run one blocking openDiff review in the connected IDE. Returns
  *   { outcome:"accepted", finalText|null }  — the IDE wrote the file itself
@@ -460,6 +548,13 @@ export async function requestIdeDiffApproval(mcp, req = {}) {
   if (!hasIdeOpenDiff(mcp)) return null;
   if (!req.path || typeof req.modifiedText !== "string") return null;
   const exec = mcp.externalToolExecutors.mcp__ide__openDiff;
+  const reviewContext = Object.fromEntries(
+    Object.entries({
+      sessionId: auditString(req.sessionId, 256),
+      turnId: auditString(req.turnId, 256),
+      toolUseId: auditString(req.toolUseId, 256),
+    }).filter(([, value]) => value),
+  );
   let result;
   try {
     result = await mcp.mcpClient.callTool(exec.serverName, exec.toolName, {
@@ -469,15 +564,22 @@ export async function requestIdeDiffApproval(mcp, req = {}) {
         ? { originalText: req.originalText }
         : {}),
       ...(req.title ? { title: req.title } : {}),
+      ...(Object.values(reviewContext).some(Boolean) ? { reviewContext } : {}),
     });
   } catch {
     return null;
   }
   const data = parseToolResultJson(result);
+  const audit = normalizeDiffReviewAudit(data?.audit, {
+    ...reviewContext,
+    path: req.path,
+    outcome: data?.outcome,
+  });
   if (data?.outcome === "accepted") {
     return {
       outcome: "accepted",
       finalText: typeof data.finalText === "string" ? data.finalText : null,
+      ...(audit ? { audit } : {}),
     };
   }
   if (data?.outcome === "changes-requested") {
@@ -486,9 +588,12 @@ export async function requestIdeDiffApproval(mcp, req = {}) {
       comments: Array.isArray(data.comments) ? data.comments : [],
       reviewedText:
         typeof data.reviewedText === "string" ? data.reviewedText : null,
+      ...(audit ? { audit } : {}),
     };
   }
-  if (data?.outcome === "rejected") return { outcome: "rejected" };
+  if (data?.outcome === "rejected") {
+    return { outcome: "rejected", ...(audit ? { audit } : {}) };
+  }
   return null; // anything else is not a verdict — fail safe to fallback
 }
 

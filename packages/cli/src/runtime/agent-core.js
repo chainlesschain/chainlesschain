@@ -1197,6 +1197,9 @@ async function tryIdeDiffApprovalForEdit(
       modifiedText: proposal.newContent,
       originalText: proposal.originalText,
       title: `cc agent: ${name} ${path.basename(proposal.filePath)}`,
+      sessionId: context.sessionId || null,
+      turnId: context.turnId || null,
+      toolUseId: context.toolCallId || null,
     });
     if (verdict?.outcome === "accepted") {
       // When the reviewer amended the proposal in the diff before accepting,
@@ -1209,24 +1212,30 @@ async function tryIdeDiffApprovalForEdit(
           : null;
       return {
         outcome: "accepted",
-        result: {
-          success: true,
-          path: proposal.filePath,
-          appliedVia: "ide-diff",
-          ...(amendments
-            ? { userEdited: true, userAmendments: amendments }
-            : {}),
-          policy: { decision: "allow", rule, via: "ide-diff" },
-        },
+        result: attachDiffReviewAudit(
+          {
+            success: true,
+            path: proposal.filePath,
+            appliedVia: "ide-diff",
+            ...(amendments
+              ? { userEdited: true, userAmendments: amendments }
+              : {}),
+            policy: { decision: "allow", rule, via: "ide-diff" },
+          },
+          verdict.audit,
+        ),
       };
     }
     if (verdict?.outcome === "rejected") {
       return {
         outcome: "rejected",
-        result: {
-          error: `[Permission] "${name}" was rejected in the IDE diff review (${source}: ${rule}).`,
-          policy: { decision: "deny", rule, via: "ide-diff" },
-        },
+        result: attachDiffReviewAudit(
+          {
+            error: `[Permission] "${name}" was rejected in the IDE diff review (${source}: ${rule}).`,
+            policy: { decision: "deny", rule, via: "ide-diff" },
+          },
+          verdict.audit,
+        ),
       };
     }
     if (verdict?.outcome === "changes-requested") {
@@ -1238,20 +1247,37 @@ async function tryIdeDiffApprovalForEdit(
         "The user requested changes in the IDE diff review (no specific notes).";
       return {
         outcome: "changes-requested",
-        result: {
-          error:
-            `[IDE review] "${name}" was NOT applied — the user requested changes:\n` +
-            `${feedback}\n` +
-            "Revise the edit to address this feedback, then propose it again.",
-          policy: { decision: "deny", rule, via: "ide-diff-review" },
-          reviewComments: verdict.comments,
-        },
+        result: attachDiffReviewAudit(
+          {
+            error:
+              `[IDE review] "${name}" was NOT applied — the user requested changes:\n` +
+              `${feedback}\n` +
+              "Revise the edit to address this feedback, then propose it again.",
+            policy: { decision: "deny", rule, via: "ide-diff-review" },
+            reviewComments: verdict.comments,
+          },
+          verdict.audit,
+        ),
       };
     }
   } catch (_err) {
     // diff-approval routing is best-effort — fall back to the normal confirm
   }
   return null;
+}
+
+/**
+ * Keep the audit available to stream/WS ledger consumers without serializing
+ * it into the model-facing tool result (which would waste context tokens).
+ */
+function attachDiffReviewAudit(result, audit) {
+  if (!result || typeof result !== "object" || !audit) return result;
+  Object.defineProperty(result, "_diffReviewAudit", {
+    value: audit,
+    enumerable: false,
+    configurable: true,
+  });
+  return result;
 }
 
 /**
@@ -7773,11 +7799,11 @@ export async function* agentLoop(messages, options) {
         } catch {
           toolArgs = {};
         }
-        const promise = executeTool(
-          call.function.name,
-          toolArgs,
-          { ...toolContext, toolCallId: call.id },
-        ).then(
+        const promise = executeTool(call.function.name, toolArgs, {
+          ...toolContext,
+          toolCallId: call.id,
+          turnId: `${runId}:t${budget.consumed}`,
+        }).then(
           (result) => ({ result, error: null }),
           (err) => ({ result: { error: err.message }, error: err.message }),
         );
@@ -7894,6 +7920,7 @@ export async function* agentLoop(messages, options) {
             executeTool(toolName, toolArgs, {
               ...toolContext,
               toolCallId: call.id,
+              turnId: `${runId}:t${budget.consumed}`,
             }),
           (span, r) => {
             span.setAttribute(

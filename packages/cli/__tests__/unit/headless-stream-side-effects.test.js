@@ -59,14 +59,17 @@ function harness({ over = {}, options = {}, loop } = {}) {
 }
 
 /** A turn-capturing loop that also exercises one tool round-trip. */
-function toolLoop(seenTurns, { tool, args, error = null }) {
+function toolLoop(
+  seenTurns,
+  { tool, args, error = null, result = { ok: true } },
+) {
   return async function* (messages) {
     seenTurns.push(messages.map((m) => ({ role: m.role, content: m.content })));
     yield { type: "tool-executing", tool, args };
     yield {
       type: "tool-result",
       tool,
-      ...(error ? { error } : { result: { ok: true } }),
+      ...(error ? { error, result } : { result }),
     };
     yield { type: "response-complete", content: "done" };
     yield { type: "run-ended", reason: "complete" };
@@ -233,6 +236,35 @@ describe("stream side-effect ledger — turn-time recording", () => {
     const op = ledger.list()[0];
     expect(op.state).toBe("failed");
     expect(op.reason).toBe("boom");
+  });
+
+  it("persists a Diff Review audit on the matching file-write effect", async () => {
+    const ledger = new SideEffectLedger();
+    const audit = {
+      schema: "cc-diff-review/v1",
+      reviewId: "drev_123",
+      sessionId: "chat-abc",
+      turnId: "run-1:t2",
+      toolUseId: "call-7",
+      outcome: "accepted",
+    };
+    const h = harness({
+      options: { sessionId: "chat-abc" },
+      over: {
+        loadSideEffectLedger: () => ledger,
+        persistSideEffectLedger: vi.fn(),
+      },
+      loop: toolLoop([], {
+        tool: "write_file",
+        args: { path: "a.txt", content: "x" },
+        result: { ok: true, _diffReviewAudit: audit },
+      }),
+    });
+    await h.run();
+    expect(ledger.list()[0]).toMatchObject({
+      state: "committed",
+      meta: { diffReview: audit },
+    });
   });
 
   it("read-only tools and non-persisted sessions record nothing", async () => {

@@ -11,6 +11,11 @@ describe("VS Code diff review audit", () => {
       originalText: "old",
       proposedText: "agent proposal",
       result: { outcome: "accepted", finalText: "user revision" },
+      reviewContext: {
+        sessionId: "sess-1",
+        turnId: "run-1:t2",
+        toolUseId: "call-7",
+      },
       host: "vscode",
       now: new Date("2026-07-23T00:00:00.000Z"),
     });
@@ -23,6 +28,10 @@ describe("VS Code diff review audit", () => {
       outcome: "accepted",
       source: "user-edited",
       written: true,
+      sessionId: "sess-1",
+      turnId: "run-1:t2",
+      toolUseId: "call-7",
+      followUpRequested: false,
       baseline: { chars: 3, lines: 1 },
       final: { chars: 13, lines: 1 },
     });
@@ -58,6 +67,7 @@ describe("VS Code diff review audit", () => {
     ]);
     expect(JSON.stringify(audit)).not.toContain("sensitive line");
     expect(audit.written).toBe(false);
+    expect(audit.followUpRequested).toBe(true);
     expect(audit.final).toBe(null);
   });
 

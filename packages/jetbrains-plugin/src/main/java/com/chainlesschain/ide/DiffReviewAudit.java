@@ -24,6 +24,7 @@ public final class DiffReviewAudit {
             String originalText,
             String proposedText,
             Map<String, Object> result,
+            Map<?, ?> reviewContext,
             String host,
             String actor,
             Instant now) {
@@ -59,9 +60,13 @@ public final class DiffReviewAudit {
         audit.put("actor", or(bounded(actor, 128), "local-user"));
         audit.put("host", or(bounded(host, 64), "ide"));
         audit.put("path", bounded(path, 2048));
+        audit.put("sessionId", contextString(reviewContext, "sessionId", 256));
+        audit.put("turnId", contextString(reviewContext, "turnId", 256));
+        audit.put("toolUseId", contextString(reviewContext, "toolUseId", 256));
         audit.put("outcome", outcome);
         audit.put("source", source);
         audit.put("written", written);
+        audit.put("followUpRequested", "changes-requested".equals(outcome));
         audit.put("baseline", fingerprintText(originalText));
         audit.put("proposed", proposed);
         audit.put("reviewed", reviewed);
@@ -149,6 +154,12 @@ public final class DiffReviewAudit {
 
     private static String or(String value, String fallback) {
         return value == null || value.isEmpty() ? fallback : value;
+    }
+
+    private static Object contextString(
+            Map<?, ?> context, String key, int max) {
+        if (context == null) return null;
+        return emptyToNull(bounded(context.get(key), max));
     }
 
     private static Object emptyToNull(String value) {
