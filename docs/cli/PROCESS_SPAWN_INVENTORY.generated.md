@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 379 (runtime: 303, tooling: 53, test: 23).
+Total matches: 375 (runtime: 299, tooling: 53, test: 23).
 
 ## Policy
 
@@ -96,12 +96,8 @@ Total matches: 379 (runtime: 303, tooling: 53, test: 23).
 | `packages/cli/src/commands/update.js` | 36 | `const result = _deps.spawnSync(command, args, {` |
 | `packages/cli/src/gateways/ws/ws-server.js` | 118 | `spawn: (...args) => executionBroker.spawn(...args),` |
 | `packages/cli/src/gateways/ws/ws-server.js` | 248 | `this._spawnProcess = options.spawn \|\| _deps.spawn;` |
-| `packages/cli/src/harness/background-task-manager.js` | 4 | `* Tasks run in child_process.fork() for isolation.` |
-| `packages/cli/src/harness/background-task-manager.js` | 11 | `import { fork } from "node:child_process";` |
-| `packages/cli/src/harness/background-task-manager.js` | 117 | `const child = fork(` |
-| `packages/cli/src/harness/background-task-worker.js` | 8 | `import { execSync } from "node:child_process";` |
-| `packages/cli/src/harness/background-task-worker.js` | 20 | `result = execSync(command, {` |
-| `packages/cli/src/harness/background-task-worker.js` | 27 | `result = execSync(command, {` |
+| `packages/cli/src/harness/background-task-manager.js` | 125 | `const child = _deps.spawn(` |
+| `packages/cli/src/harness/background-task-worker.js` | 17 | `const result = executionBroker.execSync(command, {` |
 | `packages/cli/src/harness/mcp-client.js` | 11 | `import { spawn } from "child_process";` |
 | `packages/cli/src/harness/mcp-client.js` | 491 | `: _deps.spawn;` |
 | `packages/cli/src/harness/worktree-isolator.js` | 10 | `import { execSync } from "node:child_process";` |

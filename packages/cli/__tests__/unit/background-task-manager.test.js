@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { EventEmitter } from "node:events";
 import { mkdirSync, rmSync, existsSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -10,8 +11,9 @@ vi.mock("../../src/lib/paths.js", () => ({
   getHomeDir: () => testDir,
 }));
 
-const { BackgroundTaskManager, TaskStatus } =
+const { _deps, BackgroundTaskManager, TaskStatus } =
   await import("../../src/lib/background-task-manager.js");
+const originalSpawn = _deps.spawn;
 
 describe("BackgroundTaskManager", () => {
   let manager;
@@ -26,6 +28,7 @@ describe("BackgroundTaskManager", () => {
 
   afterEach(() => {
     manager.destroy();
+    _deps.spawn = originalSpawn;
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
@@ -147,6 +150,38 @@ describe("BackgroundTaskManager", () => {
       const task = manager.create({ command: "echo" });
       task.status = TaskStatus.RUNNING;
       expect(() => manager.start(task.id)).toThrow(/not pending/);
+    });
+
+    it("starts the worker through a brokered Node IPC argv", () => {
+      const child = new EventEmitter();
+      child.kill = vi.fn();
+      child.exitCode = 0;
+      _deps.spawn = vi.fn(() => child);
+      const task = manager.create({
+        command: "echo input with spaces",
+        cwd: testDir,
+        type: "shell",
+      });
+
+      manager.start(task.id);
+
+      const [file, args, options] = _deps.spawn.mock.calls[0];
+      expect(file).toBe(process.execPath);
+      expect(args.slice(-4)).toEqual([
+        expect.stringMatching(/background-task-worker\.js$/),
+        "echo input with spaces",
+        testDir,
+        "shell",
+      ]);
+      expect(options).toMatchObject({
+        cwd: testDir,
+        stdio: ["pipe", "pipe", "pipe", "ipc"],
+        origin: "background-task:worker",
+        policy: "allow",
+        scope: "background-task",
+        shell: false,
+      });
+      child.emit("exit", 0);
     });
   });
 

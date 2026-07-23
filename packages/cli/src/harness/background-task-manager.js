@@ -1,19 +1,23 @@
 /**
  * Background Task Manager - daemon task queue with completion notifications.
  *
- * Tasks run in child_process.fork() for isolation.
+ * Tasks run in a brokered Node child with an IPC channel for isolation.
  * Queue persisted to .chainlesschain/tasks/queue.jsonl.
  * Completion notifications delivered to REPL callback.
  *
  * Feature-flag gated: BACKGROUND_TASKS
  */
 
-import { fork } from "node:child_process";
 import { existsSync, mkdirSync, appendFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { EventEmitter } from "node:events";
 import { getHomeDir } from "../lib/paths.js";
+import executionBroker from "../lib/process-execution-broker/index.js";
+
+export const _deps = {
+  spawn: executionBroker.spawn.bind(executionBroker),
+};
 
 function getTasksDir() {
   const dir = join(getHomeDir(), "tasks");
@@ -114,13 +118,21 @@ export class BackgroundTaskManager extends EventEmitter {
     task.recoverySourceStatus = null;
     this._recordHistory(task, "started", { status: task.status });
 
-    const child = fork(
-      join(import.meta.dirname || ".", "background-task-worker.js"),
-      [task.command, task.cwd, task.type],
+    const workerPath = join(
+      import.meta.dirname || ".",
+      "background-task-worker.js",
+    );
+    const child = _deps.spawn(
+      process.execPath,
+      [...process.execArgv, workerPath, task.command, task.cwd, task.type],
       {
         cwd: task.cwd,
-        silent: true,
+        stdio: ["pipe", "pipe", "pipe", "ipc"],
         env: { ...process.env, CC_TASK_ID: taskId },
+        origin: "background-task:worker",
+        policy: "allow",
+        scope: "background-task",
+        shell: false,
       },
     );
 

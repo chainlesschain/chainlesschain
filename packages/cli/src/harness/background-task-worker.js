@@ -5,7 +5,7 @@
  * Sends messages to parent: { type: "heartbeat"|"result"|"error", ... }
  */
 
-import { execSync } from "node:child_process";
+import executionBroker from "../lib/process-execution-broker/index.js";
 
 const [command, cwd, type] = process.argv.slice(2);
 
@@ -14,23 +14,16 @@ const heartbeat = setInterval(() => {
 }, 5000);
 
 try {
-  let result;
-
-  if (type === "shell") {
-    result = execSync(command, {
-      cwd: cwd || process.cwd(),
-      encoding: "utf-8",
-      timeout: 300000,
-      maxBuffer: 10 * 1024 * 1024,
-    });
-  } else {
-    result = execSync(command, {
-      cwd: cwd || process.cwd(),
-      encoding: "utf-8",
-      timeout: 300000,
-      maxBuffer: 10 * 1024 * 1024,
-    });
-  }
+  const result = executionBroker.execSync(command, {
+    cwd: cwd || process.cwd(),
+    encoding: "utf-8",
+    timeout: 300000,
+    maxBuffer: 10 * 1024 * 1024,
+    origin: `background-task:command:${type || "unknown"}`,
+    policy: "allow",
+    scope: "background-task",
+    shell: true,
+  });
 
   if (process.send) {
     process.send({ type: "result", data: result || "Done" });
