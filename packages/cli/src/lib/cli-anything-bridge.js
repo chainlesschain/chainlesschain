@@ -8,13 +8,27 @@
  * that the existing 4-layer skill-loader picks up automatically.
  */
 
-import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import { getElectronUserDataDir } from "./paths.js";
+import executionBroker from "./process-execution-broker/index.js";
 
 /* ---------- _deps injection (Vitest CJS mock pattern) ---------- */
-export const _deps = { execSync, fs, path };
+export const _deps = {
+  execFileSync: executionBroker.execFileSync.bind(executionBroker),
+  fs,
+  path,
+};
+
+function execCliAnything(file, args, options, origin) {
+  return _deps.execFileSync(file, args, {
+    ...options,
+    origin,
+    policy: "allow",
+    scope: "cli-anything",
+    shell: false,
+  });
+}
 
 /* ----------------------------------------------------------------
  * Database helpers
@@ -55,13 +69,16 @@ export function detectPython() {
 
   for (const cmd of candidates) {
     try {
-      const ver = _deps
-        .execSync(`${cmd} --version`, {
+      const ver = execCliAnything(
+        cmd,
+        ["--version"],
+        {
           encoding: "utf-8",
           timeout: 10000,
           stdio: ["pipe", "pipe", "pipe"],
-        })
-        .trim();
+        },
+        "cli-anything:detect-python",
+      ).trim();
       const match = ver.match(/Python\s+([\d.]+)/i);
       if (match) {
         return { found: true, command: cmd, version: match[1] };
@@ -82,11 +99,16 @@ export function detectCliAnything() {
   if (!py.found) return { installed: false };
 
   try {
-    const out = _deps.execSync(`${py.command} -m pip show cli-anything`, {
-      encoding: "utf-8",
-      timeout: 15000,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
+    const out = execCliAnything(
+      py.command,
+      ["-m", "pip", "show", "cli-anything"],
+      {
+        encoding: "utf-8",
+        timeout: 15000,
+        stdio: ["pipe", "pipe", "pipe"],
+      },
+      "cli-anything:detect-package",
+    );
     const verMatch = out.match(/Version:\s*([\d.]+)/i);
     return {
       installed: true,
@@ -102,11 +124,16 @@ export function detectCliAnything() {
  * Install CLI-Anything via pip.
  */
 export function installCliAnything(pythonCmd) {
-  _deps.execSync(`${pythonCmd} -m pip install cli-anything`, {
-    encoding: "utf-8",
-    timeout: 120000,
-    stdio: "inherit",
-  });
+  execCliAnything(
+    pythonCmd,
+    ["-m", "pip", "install", "cli-anything"],
+    {
+      encoding: "utf-8",
+      timeout: 120000,
+      stdio: "inherit",
+    },
+    "cli-anything:install",
+  );
 }
 
 /* ----------------------------------------------------------------
@@ -152,11 +179,16 @@ export function scanPathForTools() {
 export function parseToolHelp(command) {
   let helpText;
   try {
-    helpText = _deps.execSync(`${command} --help`, {
-      encoding: "utf-8",
-      timeout: 15000,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
+    helpText = execCliAnything(
+      command,
+      ["--help"],
+      {
+        encoding: "utf-8",
+        timeout: 15000,
+        stdio: ["pipe", "pipe", "pipe"],
+      },
+      "cli-anything:tool-help",
+    );
   } catch (err) {
     const raw = err.stdout || err.stderr || "";
     helpText = typeof raw === "string" ? raw : raw.toString("utf-8");

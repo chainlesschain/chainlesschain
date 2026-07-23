@@ -204,6 +204,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   CDP 端口、profile/URL 字面 argv、进程 unref 与可注入测试边界保持不变。
 - Claude/Codex 外部 CLI bridge 的版本探测与 Agent 会话已进入 `claude-code-bridge:detect-*`、
   `claude-code-bridge:agent` Broker origin；前者显式保留 Windows shim shell，后者保持无 shell argv。
+- CLI-Anything 宿主侧的 Python/package 探测、pip install 与 tool help 已进入 `cli-anything:*`
+  Broker origin 并改用 literal argv；生成到用户 Skill 的独立 CommonJS handler 继续作为单独边界追踪。
 
 ### 4.2 建议设计
 

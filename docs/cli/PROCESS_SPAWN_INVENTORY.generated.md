@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 383 (runtime: 307, tooling: 53, test: 23).
+Total matches: 379 (runtime: 303, tooling: 53, test: 23).
 
 ## Policy
 
@@ -145,13 +145,9 @@ Total matches: 383 (runtime: 307, tooling: 53, test: 23).
 | `packages/cli/src/lib/chrome-connector.js` | 214 | `const child = deps.spawn(executable, args, {` |
 | `packages/cli/src/lib/claude-code-bridge.js` | 44 | `.execSync(`${command} --version`, {` |
 | `packages/cli/src/lib/claude-code-bridge.js` | 163 | `const proc = _deps.spawn(this.cliCommand, args, {` |
-| `packages/cli/src/lib/cli-anything-bridge.js` | 11 | `import { execSync } from "child_process";` |
-| `packages/cli/src/lib/cli-anything-bridge.js` | 59 | `.execSync(`${cmd} --version`, {` |
-| `packages/cli/src/lib/cli-anything-bridge.js` | 85 | `const out = _deps.execSync(`${py.command} -m pip show cli-anything`, {` |
-| `packages/cli/src/lib/cli-anything-bridge.js` | 105 | `_deps.execSync(`${pythonCmd} -m pip install cli-anything`, {` |
-| `packages/cli/src/lib/cli-anything-bridge.js` | 155 | `helpText = _deps.execSync(`${command} --help`, {` |
-| `packages/cli/src/lib/cli-anything-bridge.js` | 255 | `const { execSync } = require("child_process");` |
-| `packages/cli/src/lib/cli-anything-bridge.js` | 267 | `const output = execSync(\`${command} \${input}\`, {` |
+| `packages/cli/src/lib/cli-anything-bridge.js` | 24 | `return _deps.execFileSync(file, args, {` |
+| `packages/cli/src/lib/cli-anything-bridge.js` | 287 | `const { execSync } = require("child_process");` |
+| `packages/cli/src/lib/cli-anything-bridge.js` | 299 | `const output = execSync(\`${command} \${input}\`, {` |
 | `packages/cli/src/lib/cloud/bundle.js` | 17 | `return executionBroker.execFileSync(file, args, {` |
 | `packages/cli/src/lib/cloud/bundle.js` | 30 | `.execFileSync("git", args, {` |
 | `packages/cli/src/lib/code-agent.js` | 227 | `/child_process.*exec\s*\(\s*[`"'].*\$\{/,` |

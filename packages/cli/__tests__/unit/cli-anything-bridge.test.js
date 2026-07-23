@@ -8,6 +8,7 @@ import {
   ensureCliAnythingTables,
   detectPython,
   detectCliAnything,
+  installCliAnything,
   scanPathForTools,
   parseToolHelp,
   registerTool,
@@ -51,16 +52,26 @@ describe("cli-anything-bridge", () => {
   /* ----- detectPython ----- */
   describe("detectPython", () => {
     it("should return found=true when python is available", () => {
-      _deps.execSync = vi.fn(() => "Python 3.11.5");
+      _deps.execFileSync = vi.fn(() => "Python 3.11.5");
       const result = detectPython();
       expect(result.found).toBe(true);
       expect(result.version).toBe("3.11.5");
       expect(result.command).toBeDefined();
+      expect(_deps.execFileSync).toHaveBeenCalledWith(
+        result.command,
+        ["--version"],
+        expect.objectContaining({
+          origin: "cli-anything:detect-python",
+          policy: "allow",
+          scope: "cli-anything",
+          shell: false,
+        }),
+      );
     });
 
     it("should try multiple candidates and return first match", () => {
       let calls = 0;
-      _deps.execSync = vi.fn(() => {
+      _deps.execFileSync = vi.fn(() => {
         calls++;
         if (calls === 1) throw new Error("not found");
         return "Python 3.10.0";
@@ -71,7 +82,7 @@ describe("cli-anything-bridge", () => {
     });
 
     it("should return found=false when no python is available", () => {
-      _deps.execSync = vi.fn(() => {
+      _deps.execFileSync = vi.fn(() => {
         throw new Error("command not found");
       });
       const result = detectPython();
@@ -80,7 +91,7 @@ describe("cli-anything-bridge", () => {
     });
 
     it("should return found=false when output doesn't match Python version", () => {
-      _deps.execSync = vi.fn(() => "something else 1.2.3");
+      _deps.execFileSync = vi.fn(() => "something else 1.2.3");
       const result = detectPython();
       expect(result.found).toBe(false);
     });
@@ -89,20 +100,28 @@ describe("cli-anything-bridge", () => {
   /* ----- detectCliAnything ----- */
   describe("detectCliAnything", () => {
     it("should return installed=true when pip show succeeds", () => {
-      _deps.execSync = vi.fn((cmd) => {
-        if (cmd.includes("--version")) return "Python 3.11.0";
-        if (cmd.includes("pip show"))
+      _deps.execFileSync = vi.fn((_file, args) => {
+        if (args.includes("--version")) return "Python 3.11.0";
+        if (args.includes("show"))
           return "Name: cli-anything\nVersion: 0.2.1\nSummary: ...";
         return "";
       });
       const result = detectCliAnything();
       expect(result.installed).toBe(true);
       expect(result.version).toBe("0.2.1");
+      expect(_deps.execFileSync).toHaveBeenLastCalledWith(
+        result.pythonCommand,
+        ["-m", "pip", "show", "cli-anything"],
+        expect.objectContaining({
+          origin: "cli-anything:detect-package",
+          shell: false,
+        }),
+      );
     });
 
     it("should return installed=false when pip show fails", () => {
-      _deps.execSync = vi.fn((cmd) => {
-        if (cmd.includes("--version")) return "Python 3.11.0";
+      _deps.execFileSync = vi.fn((_file, args) => {
+        if (args.includes("--version")) return "Python 3.11.0";
         throw new Error("not installed");
       });
       const result = detectCliAnything();
@@ -110,11 +129,30 @@ describe("cli-anything-bridge", () => {
     });
 
     it("should return installed=false when python is not found", () => {
-      _deps.execSync = vi.fn(() => {
+      _deps.execFileSync = vi.fn(() => {
         throw new Error("not found");
       });
       const result = detectCliAnything();
       expect(result.installed).toBe(false);
+    });
+  });
+
+  describe("installCliAnything", () => {
+    it("uses literal pip argv with install provenance", () => {
+      _deps.execFileSync = vi.fn(() => "");
+
+      installCliAnything("python with spaces.exe");
+
+      expect(_deps.execFileSync).toHaveBeenCalledWith(
+        "python with spaces.exe",
+        ["-m", "pip", "install", "cli-anything"],
+        expect.objectContaining({
+          origin: "cli-anything:install",
+          policy: "allow",
+          scope: "cli-anything",
+          shell: false,
+        }),
+      );
     });
   });
 
@@ -212,7 +250,7 @@ describe("cli-anything-bridge", () => {
   /* ----- parseToolHelp ----- */
   describe("parseToolHelp", () => {
     it("should parse description and subcommands from help text", () => {
-      _deps.execSync = vi.fn(() =>
+      _deps.execFileSync = vi.fn(() =>
         [
           "Agent-native CLI for GIMP image editor",
           "",
@@ -234,10 +272,18 @@ describe("cli-anything-bridge", () => {
       expect(result.subcommands[0].name).toBe("project");
       expect(result.subcommands[0].description).toBe("Manage GIMP projects");
       expect(result.subcommands[2].name).toBe("export");
+      expect(_deps.execFileSync).toHaveBeenCalledWith(
+        "cli-anything-gimp",
+        ["--help"],
+        expect.objectContaining({
+          origin: "cli-anything:tool-help",
+          shell: false,
+        }),
+      );
     });
 
     it("should handle help output starting with Usage:", () => {
-      _deps.execSync = vi.fn(() =>
+      _deps.execFileSync = vi.fn(() =>
         [
           "Usage: cli-anything-foo [cmd]",
           "",
@@ -251,14 +297,14 @@ describe("cli-anything-bridge", () => {
     });
 
     it("should return default description when help is empty", () => {
-      _deps.execSync = vi.fn(() => "");
+      _deps.execFileSync = vi.fn(() => "");
       const result = parseToolHelp("cli-anything-bar");
       expect(result.description).toContain("cli-anything-bar");
       expect(result.subcommands).toHaveLength(0);
     });
 
     it("should handle command failure gracefully", () => {
-      _deps.execSync = vi.fn(() => {
+      _deps.execFileSync = vi.fn(() => {
         const err = new Error("fail");
         err.stdout = "Some help text\n";
         err.stderr = "";
@@ -364,7 +410,7 @@ describe("cli-anything-bridge", () => {
         writeFileSync: vi.fn(),
       };
       _deps.path = { join: (...args) => args.join("/") };
-      _deps.execSync = vi.fn(
+      _deps.execFileSync = vi.fn(
         () => "Simple tool\n\nUsage: cli-anything-test [cmd]\n",
       );
     });
