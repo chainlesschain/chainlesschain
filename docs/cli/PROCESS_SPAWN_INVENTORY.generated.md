@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 355 (runtime: 279, tooling: 53, test: 23).
+Total matches: 354 (runtime: 278, tooling: 53, test: 23).
 
 ## Policy
 
@@ -292,8 +292,7 @@ Total matches: 355 (runtime: 279, tooling: 53, test: 23).
 | `packages/cli/src/runtime/headless-runner.js` | 2060 | `gc.spawnSync \|\| (await import("node:child_process")).spawnSync;` |
 | `packages/cli/src/skills/video-editing/media-process.js` | 4 | `spawn: (...args) => executionBroker.spawn(...args),` |
 | `packages/cli/src/skills/video-editing/media-process.js` | 13 | `return _deps.spawn(file, args, {` |
-| `packages/cli/src/workers/background-agent-worker.js` | 15 | `import { spawn } from "node:child_process";` |
-| `packages/cli/src/workers/background-agent-worker.js` | 118 | `child = spawn(process.execPath, [job.cliEntry, ...argv], {` |
+| `packages/cli/src/workers/background-agent-worker.js` | 118 | `child = executionBroker.spawn(process.execPath, [job.cliEntry, ...argv], {` |
 
 ## tooling
 

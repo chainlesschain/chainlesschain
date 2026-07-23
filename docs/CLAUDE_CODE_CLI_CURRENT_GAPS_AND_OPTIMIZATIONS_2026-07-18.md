@@ -216,8 +216,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   初始化握手、Agent identity env、可选 shell 兼容和 heartbeat 生命周期保持不变。
 - `cc loop` 的每轮外部命令/Agent 启动已进入 `loop:iteration` Broker origin；
   exec 模式保留 Windows shim 所需 shell，prompt 模式继续使用字面 argv。
-- 后台 Agent supervisor 的 PID 创建时间探测、detached worker 启动与 Windows 进程树清理已进入
-  `background-agent:*` Broker origin；测试注入缝、PID 复用保护和孤儿回收语义保持不变。
+- 后台 Agent supervisor/worker 的 PID 创建时间探测、detached worker/turn 启动与 Windows 进程树清理
+  已进入 `background-agent:*` Broker origin；IPC stdio、测试注入缝、PID 复用保护和孤儿回收语义保持不变。
 - `cc batch` 的 Agent/分解运行、用户测试命令与 Git 暂存/差异/提交已统一进入 `batch:*`
   Broker origin；Agent/Git 保持字面 argv，测试命令保留显式 shell，真实 worktree 集成测试继续通过。
 

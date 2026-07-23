@@ -12,7 +12,6 @@
  * no client is attached.
  */
 
-import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import {
@@ -26,6 +25,7 @@ import {
 import { startBackgroundSessionServer } from "../lib/background-session-transport.js";
 import { idlePhaseFor } from "../lib/background-agent-phase.js";
 import { attachInteractionRequestHandler } from "../lib/background-interaction-resolver.js";
+import executionBroker from "../lib/process-execution-broker/index.js";
 
 const jobFile = process.argv[2];
 let job;
@@ -115,11 +115,15 @@ function finalize(code, signal, errorMessage) {
 function startTurn(argv, promptText) {
   phase = "turn";
   turnCount++;
-  child = spawn(process.execPath, [job.cliEntry, ...argv], {
+  child = executionBroker.spawn(process.execPath, [job.cliEntry, ...argv], {
     cwd: job.cwd,
     env: { ...process.env, CC_BACKGROUND_AGENT_ID: job.id },
     stdio: ["ignore", log.fd, log.fd, "ipc"], // P0-2: 开启 IPC 通道用于人机交互
     windowsHide: true,
+    origin: "background-agent:turn",
+    policy: "allow",
+    scope: "background-agent",
+    shell: false,
     // POSIX: give the agent child its own process group so an orphan reclaim
     // (worker crashed → supervisor kills the recorded agentPid) or /stop can
     // signal the WHOLE agent tree via -pid. Windows reaps via taskkill /T.
