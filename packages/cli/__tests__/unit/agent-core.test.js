@@ -83,6 +83,7 @@ const {
   MAX_SUB_AGENT_DEPTH,
   MAX_SUB_AGENTS_PER_RUN,
   tokenizeShellWords,
+  _gitProcessDeps,
 } = await import("../../src/lib/agent-core.js");
 
 const { getPlanModeManager } = await import("../../src/lib/plan-mode.js");
@@ -205,6 +206,33 @@ describe("agent tool registry compatibility", () => {
 });
 
 describe("git tool — shell-free (no command injection)", () => {
+  it("routes literal argv through the process broker adapter", async () => {
+    const originalRunner = _gitProcessDeps.run;
+    const run = vi.fn(() => ({
+      status: 0,
+      stdout: "git version 2.51.0\n",
+      stderr: "",
+    }));
+    _gitProcessDeps.run = run;
+
+    try {
+      const res = await executeTool("git", { command: "--version" });
+
+      expect(res.stdout).toMatch(/git version/);
+      expect(run).toHaveBeenCalledWith(
+        "git",
+        ["--version"],
+        expect.objectContaining({
+          origin: "agent-core:git-command",
+          policy: "allow",
+          scope: "agent-core",
+        }),
+      );
+    } finally {
+      _gitProcessDeps.run = originalRunner;
+    }
+  });
+
   it("tokenizeShellWords keeps quoted args intact (incl. shell metachars)", () => {
     expect(tokenizeShellWords('commit -m "fix: a; b | c"')).toEqual([
       "commit",

@@ -1,10 +1,12 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import {
   executeTool,
   listBackgroundShellTasks,
   killAllBackgroundShellTasks,
   killAllBackgroundShellTasksSync,
   reapIdleBackgroundShellTasks,
+  _backgroundProcessDeps,
+  _runBackgroundTaskkill,
 } from "../../src/runtime/agent-core.js";
 
 // run_shell { run_in_background:true } + check_shell polling pair (Claude-Code
@@ -12,6 +14,42 @@ import {
 // the commands are short, deterministic Node one-liners that work on any OS.
 
 const NODE = process.execPath; // absolute path to the running node binary
+
+describe("agent-core Windows taskkill process broker adapter", () => {
+  it("routes async and sync tree kills with literal argv", () => {
+    const originalRun = _backgroundProcessDeps.run;
+    const originalRunSync = _backgroundProcessDeps.runSync;
+    const run = vi.fn(() => ({ once: vi.fn() }));
+    const runSync = vi.fn(() => ({ status: 0 }));
+    _backgroundProcessDeps.run = run;
+    _backgroundProcessDeps.runSync = runSync;
+
+    try {
+      _runBackgroundTaskkill(4242);
+      _runBackgroundTaskkill(4242, { sync: true });
+
+      const expectedOptions = expect.objectContaining({
+        windowsHide: true,
+        origin: "agent-core:background-taskkill",
+        policy: "allow",
+        scope: "agent-core",
+      });
+      expect(run).toHaveBeenCalledWith(
+        "taskkill",
+        ["/pid", "4242", "/T", "/F"],
+        expectedOptions,
+      );
+      expect(runSync).toHaveBeenCalledWith(
+        "taskkill",
+        ["/pid", "4242", "/T", "/F"],
+        expectedOptions,
+      );
+    } finally {
+      _backgroundProcessDeps.run = originalRun;
+      _backgroundProcessDeps.runSync = originalRunSync;
+    }
+  });
+});
 
 // Poll check_shell until the task leaves the "running" state or we give up.
 // check_shell returns output incrementally (only what's new since the last

@@ -16,7 +16,7 @@
 
 import fs from "fs";
 import path from "path";
-import { execSync, spawn, spawnSync } from "child_process";
+import { execSync } from "child_process";
 import broker from "../lib/process-execution-broker/index.js";
 import os from "os";
 import sharedCodingAgentPolicy from "./coding-agent-policy.cjs";
@@ -231,15 +231,40 @@ function _releaseBgChildHandles(task) {
   }
 }
 
+const backgroundTaskRunner = broker.spawn.bind(broker);
+const backgroundTaskSyncRunner = broker.spawnSync.bind(broker);
+
+export const _backgroundProcessDeps = {
+  run: backgroundTaskRunner,
+  runSync: backgroundTaskSyncRunner,
+};
+
+export function _runBackgroundTaskkill(pid, { sync = false } = {}) {
+  const args = ["/pid", String(pid), "/T", "/F"];
+  const options = {
+    windowsHide: true,
+    origin: "agent-core:background-taskkill",
+    policy: "allow",
+    scope: "agent-core",
+  };
+  return sync
+    ? _backgroundProcessDeps.runSync("taskkill", args, options)
+    : _backgroundProcessDeps.run("taskkill", args, options);
+}
+
+const gitProcessRunner = broker.spawnSync.bind(broker);
+
+export const _gitProcessDeps = {
+  run: gitProcessRunner,
+};
+
 function _killTask(task) {
   const child = task?.child;
   if (!child || child.killed || task?.status !== "running") return false;
   try {
     if (process.platform === "win32") {
       if (child.pid) {
-        const tk = spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], {
-          windowsHide: true,
-        });
+        const tk = _runBackgroundTaskkill(child.pid);
         const fallbackDirectKill = () => {
           try {
             if (!child.killed) child.kill("SIGKILL");
@@ -314,13 +339,7 @@ function _killTaskSync(task) {
   try {
     if (process.platform === "win32") {
       if (child.pid) {
-        const killed = spawnSync(
-          "taskkill",
-          ["/pid", String(child.pid), "/T", "/F"],
-          {
-            windowsHide: true,
-          },
-        );
+        const killed = _runBackgroundTaskkill(child.pid, { sync: true });
         if (killed.error || killed.status !== 0) {
           // Restricted runners can execute taskkill but receive a non-zero
           // access/policy result. Direct termination is the synchronous
@@ -3579,12 +3598,15 @@ async function executeToolInner(
       // command-execution bypass for a prompt-injected agent. Quoted args (a
       // commit message) keep their content via the quote-aware tokenizer.
       const gitArgs = tokenizeShellWords(normalizedCommand);
-      const res = spawnSync("git", gitArgs, {
+      const res = _gitProcessDeps.run("git", gitArgs, {
         cwd: args.cwd || cwd,
         encoding: "utf8",
         timeout: 60000,
         maxBuffer: 1024 * 1024,
         windowsHide: true,
+        origin: "agent-core:git-command",
+        policy: "allow",
+        scope: "agent-core",
       });
       const readOnly = isReadOnlyGitCommand(normalizedCommand);
       if (res.error) {

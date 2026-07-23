@@ -240,6 +240,10 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   Windows 进程树探测/回收分别记录 `async-hook:command`、插件 origin 与 `async-hook:supervisor`。
 - Agent Core 的 Python/pip、Node 与 Git 环境探针已进入 `agent-core:environment-probe` Broker origin，
   并由 shell 命令改为可审计的可执行文件 + 字面 argv。
+- Agent Core 的 Windows 后台 shell 任务树异步/同步回收已统一进入
+  `agent-core:background-taskkill` Broker origin，退出处理器仍使用同步回收契约。
+- Agent Core 的专用 Git 工具已进入 `agent-core:git-command` Broker origin，继续使用无 shell 的
+  quote-aware 字面 argv，保留原有注入防护和 60 秒上限。
 
 ### 4.2 建议设计
 
