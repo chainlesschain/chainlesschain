@@ -168,6 +168,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 - Agent OS sandbox 的 Docker、bubblewrap 执行与可用性探测已分别进入 `agent-sandbox:docker`、
   `agent-sandbox:bubblewrap`、`agent-sandbox:probe` Broker origin；既有隔离 argv、egress proxy、
   超时/输出限制和 fail-closed 错误语义保持不变。
+- Checkpoint store 的 shadow commit、ref、diff 与 rewind Git plumbing 已统一进入 `checkpoint:git`
+  Broker origin；继续使用临时 index、无 shell argv 和 128 MiB 输出上限，不触碰用户真实暂存区。
 
 ### 4.2 建议设计
 

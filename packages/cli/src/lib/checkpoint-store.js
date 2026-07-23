@@ -18,9 +18,13 @@
  * is. When it is not, callers should fall back / report unavailable.
  */
 
-import { spawnSync } from "node:child_process";
 import { rmSync } from "node:fs";
 import path from "node:path";
+import executionBroker from "./process-execution-broker/index.js";
+
+export const _deps = {
+  spawnSync: (...args) => executionBroker.spawnSync(...args),
+};
 
 const REF_NS = "refs/cc-checkpoints";
 // Deterministic identity for shadow commits so `git commit-tree` never trips on
@@ -41,7 +45,11 @@ const CHECKPOINT_IDENTITY = Object.freeze({
  * @throws {Error} with git's stderr when the command fails
  */
 function git(args, { cwd, env, input } = {}) {
-  const res = spawnSync("git", args, {
+  const res = _deps.spawnSync("git", args, {
+    origin: "checkpoint:git",
+    scope: "checkpoint",
+    policy: "allow",
+    shell: false,
     cwd,
     input,
     encoding: "utf-8",

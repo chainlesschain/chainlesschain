@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { spawnSync } from "node:child_process";
 import {
   mkdtempSync,
@@ -23,6 +23,7 @@ import {
   clearCheckpoints,
   withinRoot,
   _internals,
+  _deps,
 } from "../../src/lib/checkpoint-store.js";
 
 /** Run git in the repo (test helper). */
@@ -61,6 +62,32 @@ describe("checkpoint-store (git engine)", () => {
       expect(isCheckpointAvailable(plain)).toBe(false);
     } finally {
       rmSync(plain, { recursive: true, force: true });
+    }
+  });
+
+  it("routes checkpoint git calls through literal brokered argv", () => {
+    const original = _deps.spawnSync;
+    _deps.spawnSync = vi.fn(() => ({
+      status: 0,
+      stdout: "true\n",
+      stderr: "",
+    }));
+
+    try {
+      expect(isCheckpointAvailable(repo)).toBe(true);
+      expect(_deps.spawnSync).toHaveBeenCalledWith(
+        "git",
+        ["rev-parse", "--is-inside-work-tree"],
+        expect.objectContaining({
+          origin: "checkpoint:git",
+          scope: "checkpoint",
+          policy: "allow",
+          shell: false,
+          cwd: repo,
+        }),
+      );
+    } finally {
+      _deps.spawnSync = original;
     }
   });
 

@@ -140,8 +140,8 @@ Total matches: 402 (runtime: 326, tooling: 53, test: 23).
 | `packages/cli/src/lib/background-agent-supervisor.js` | 824 | `child = _deps.spawn(process.execPath, [worker, jobFile], {` |
 | `packages/cli/src/lib/background-agent-supervisor.js` | 925 | `const killed = _deps.spawnSync(` |
 | `packages/cli/src/lib/background-interaction-resolver.js` | 15 | `* @param {import('node:child_process').ChildProcess} child - agent 子进程实例` |
-| `packages/cli/src/lib/checkpoint-store.js` | 21 | `import { spawnSync } from "node:child_process";` |
-| `packages/cli/src/lib/checkpoint-store.js` | 44 | `const res = spawnSync("git", args, {` |
+| `packages/cli/src/lib/checkpoint-store.js` | 26 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
+| `packages/cli/src/lib/checkpoint-store.js` | 48 | `const res = _deps.spawnSync("git", args, {` |
 | `packages/cli/src/lib/chrome-connector.js` | 29 | `import { spawn } from "child_process";` |
 | `packages/cli/src/lib/chrome-connector.js` | 214 | `const child = deps.spawn(executable, args, {` |
 | `packages/cli/src/lib/claude-code-bridge.js` | 16 | `import { spawn, execSync } from "child_process";` |
