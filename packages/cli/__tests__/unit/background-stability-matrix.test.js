@@ -291,16 +291,22 @@ describe("7. worktree isolation", () => {
         path: "C:/repo/.worktrees/cc-agent-x",
         branch: "cc-agent-x",
       })),
-      execSync: vi.fn((cmd, opts) => {
-        calls.push({ cmd, cwd: opts.cwd });
+      execFileSync: vi.fn((_file, args, opts) => {
+        calls.push({ args, options: opts });
         return "abc123\n";
       }),
     };
     const info = setupAgentWorktree({ cwd: process.cwd(), deps });
     expect(info.path).toBe("C:/repo/.worktrees/cc-agent-x");
-    const revParse = calls.find((c) => c.cmd.includes("rev-parse"));
-    expect(revParse.cwd).toBe("C:/repo/.worktrees/cc-agent-x");
-    expect(revParse.cwd).not.toBe(process.cwd());
+    const revParse = calls.find((c) => c.args.includes("rev-parse"));
+    expect(revParse.options).toMatchObject({
+      cwd: "C:/repo/.worktrees/cc-agent-x",
+      origin: "agent-worktree:query",
+      policy: "allow",
+      scope: "agent-worktree",
+      shell: false,
+    });
+    expect(revParse.options.cwd).not.toBe(process.cwd());
   });
 
   it("finishAgentWorktree keeps dirty work and keeps UNVERIFIABLE work (never destroys)", async () => {
@@ -313,8 +319,8 @@ describe("7. worktree isolation", () => {
       { path: "wt", branch: "b", repoRoot: "r", baseSha: "s" },
       {
         deps: {
-          execSync: vi.fn((cmd) =>
-            cmd.includes("status") ? " M file.js\n" : "s\n",
+          execFileSync: vi.fn((_file, args) =>
+            args.includes("status") ? " M file.js\n" : "s\n",
           ),
           removeWorktree,
         },
@@ -328,7 +334,7 @@ describe("7. worktree isolation", () => {
       { path: "wt", branch: "b", repoRoot: "r", baseSha: "s" },
       {
         deps: {
-          execSync: vi.fn(() => {
+          execFileSync: vi.fn(() => {
             throw new Error("not a git repo");
           }),
           removeWorktree,
@@ -347,8 +353,8 @@ describe("7. worktree isolation", () => {
       { path: "wt", branch: "b", repoRoot: "r", baseSha: "same-sha" },
       {
         deps: {
-          execSync: vi.fn((cmd) =>
-            cmd.includes("status") ? "" : "same-sha\n",
+          execFileSync: vi.fn((_file, args) =>
+            args.includes("status") ? "" : "same-sha\n",
           ),
           removeWorktree,
         },

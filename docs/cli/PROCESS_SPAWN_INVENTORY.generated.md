@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 351 (runtime: 275, tooling: 53, test: 23).
+Total matches: 349 (runtime: 273, tooling: 53, test: 23).
 
 ## Policy
 
@@ -98,9 +98,7 @@ Total matches: 351 (runtime: 275, tooling: 53, test: 23).
 | `packages/cli/src/lib/agent-sandbox.js` | 256 | `const result = deps.spawnSync(probeArgs[0], probeArgs[1], {` |
 | `packages/cli/src/lib/agent-team/team-worktree.js` | 57 | `const child = _processDeps.spawn(command, [], {` |
 | `packages/cli/src/lib/agent-team/team-worktree.js` | 77 | `return _processDeps.execFileSync("git", args, {` |
-| `packages/cli/src/lib/agent-worktree.js` | 14 | `import { execFileSync, execSync } from "child_process";` |
-| `packages/cli/src/lib/agent-worktree.js` | 28 | `return (deps.execSync \|\| execSync)(`git ${cmd}`, {` |
-| `packages/cli/src/lib/agent-worktree.js` | 141 | `const run = deps.execFileSync \|\| execFileSync;` |
+| `packages/cli/src/lib/agent-worktree.js` | 27 | `const run = deps.execFileSync \|\| _deps.execFileSync;` |
 | `packages/cli/src/lib/api-key-helper.js` | 37 | `executionBroker.execSync(command, {` |
 | `packages/cli/src/lib/async-hook-supervisor.cjs` | 31 | `* `_deps.spawn` / `_deps.now` are injected so the whole supervisor is unit-` |
 | `packages/cli/src/lib/async-hook-supervisor.cjs` | 35 | `const cpDefault = require("node:child_process");` |

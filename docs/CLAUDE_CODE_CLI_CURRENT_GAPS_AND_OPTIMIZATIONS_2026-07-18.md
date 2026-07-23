@@ -224,6 +224,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   保留 detached/unref、无 stdio 与字面 prompt argv 语义。
 - Team worktree 的任务 shell 与 Git 暂存/提交已分别进入 `team-worktree:task-command`、
   `team-worktree:commit` Broker origin；真实并行 worktree 合并与冲突集成测试保持通过。
+- Agent worktree 的 Git identity/status 查询与验证后清理已移除 shell 字符串，统一改为
+  `agent-worktree:query` / `agent-worktree:cleanup` Broker 字面 argv；失败清理 E2E 验证无残留。
 
 ### 4.2 建议设计
 

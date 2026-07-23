@@ -11,24 +11,28 @@
  *    a merge hint. Removal failures fail-open to "kept".
  */
 
-import { execFileSync, execSync } from "child_process";
 import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { createWorktree, removeWorktree } from "./worktree-isolator.js";
 import { findProjectRoot } from "./project-instructions.js";
+import executionBroker from "./process-execution-broker/index.js";
 
 export const _deps = {
-  execFileSync,
-  execSync,
+  execFileSync: executionBroker.execFileSync.bind(executionBroker),
   createWorktree,
   removeWorktree,
 };
 
-function git(cmd, cwd, deps) {
-  return (deps.execSync || execSync)(`git ${cmd}`, {
+function git(args, cwd, deps, options = {}) {
+  const run = deps.execFileSync || _deps.execFileSync;
+  return run("git", args, {
     cwd,
     encoding: "utf8",
-    stdio: ["ignore", "pipe", "ignore"],
+    stdio: options.stdio || ["ignore", "pipe", "ignore"],
+    origin: options.origin || "agent-worktree:query",
+    policy: "allow",
+    scope: "agent-worktree",
+    shell: false,
   });
 }
 
@@ -90,17 +94,17 @@ export function validateAgentWorktree(info, { deps = _deps } = {}) {
     }
 
     const repoTop = canonicalPath(
-      git("rev-parse --show-toplevel", info.repoRoot, deps).trim(),
+      git(["rev-parse", "--show-toplevel"], info.repoRoot, deps).trim(),
     );
     const worktreeTop = canonicalPath(
-      git("rev-parse --show-toplevel", worktreePath, deps).trim(),
+      git(["rev-parse", "--show-toplevel"], worktreePath, deps).trim(),
     );
     if (repoTop !== repo || worktreeTop !== worktree) {
       return { valid: false, reason: "worktree path identity mismatch" };
     }
 
     const registered = parseRegisteredWorktrees(
-      git("worktree list --porcelain", info.repoRoot, deps),
+      git(["worktree", "list", "--porcelain"], info.repoRoot, deps),
     ).find((entry) => {
       try {
         return canonicalPath(entry.path) === worktree;
@@ -138,16 +142,13 @@ function removeVerifiedAgentWorktree(info, deps) {
     return null;
   }
 
-  const run = deps.execFileSync || execFileSync;
-  run("git", ["worktree", "remove", info.path], {
-    cwd: info.repoRoot,
-    encoding: "utf8",
+  git(["worktree", "remove", info.path], info.repoRoot, deps, {
+    origin: "agent-worktree:cleanup",
     stdio: ["ignore", "pipe", "pipe"],
   });
   try {
-    run("git", ["branch", "-D", "--", info.branch], {
-      cwd: info.repoRoot,
-      encoding: "utf8",
+    git(["branch", "-D", "--", info.branch], info.repoRoot, deps, {
+      origin: "agent-worktree:cleanup",
       stdio: ["ignore", "pipe", "pipe"],
     });
     return null;
@@ -174,7 +175,7 @@ export function setupAgentWorktree({
   const suffix = Math.random().toString(36).slice(2, 6);
   const branch = `cc-agent-${stamp}-${suffix}`;
   const info = (deps.createWorktree || createWorktree)(repoRoot, branch);
-  const baseSha = git("rev-parse HEAD", info.path, deps).trim();
+  const baseSha = git(["rev-parse", "HEAD"], info.path, deps).trim();
   return { ...info, repoRoot, baseSha };
 }
 
@@ -205,8 +206,8 @@ export function finishAgentWorktree(info, { deps = _deps } = {}) {
   let headSha = null;
   let readable = false;
   try {
-    dirty = git("status --porcelain", info.path, deps).trim().length > 0;
-    headSha = git("rev-parse HEAD", info.path, deps).trim();
+    dirty = git(["status", "--porcelain"], info.path, deps).trim().length > 0;
+    headSha = git(["rev-parse", "HEAD"], info.path, deps).trim();
     readable = true;
   } catch {
     /* unreadable → keep, never destroy work we cannot verify */
