@@ -230,6 +230,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   `status-line:command` Broker runner；保留显式 shell、stdin JSON、终端尺寸与 best-effort 降级语义。
 - Desktop Coding Agent bridge 与 sub-runtime pool 已移除各自的原生 spawn 默认值，统一经 fail-closed
   Desktop Broker 门面记录 `desktop:coding-agent-server` / `desktop:sub-runtime` provenance。
+- Desktop Advanced Features IPC 的脚本启动已进入 `desktop:advanced-features-script` Broker origin，
+  并改用 `process.execPath` + 字面 argv，保留脚本输出和退出码契约。
 
 ### 4.2 建议设计
 

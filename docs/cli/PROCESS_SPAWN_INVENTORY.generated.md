@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 342 (runtime: 266, tooling: 53, test: 23).
+Total matches: 341 (runtime: 265, tooling: 53, test: 23).
 
 ## Policy
 
@@ -17,8 +17,7 @@ Total matches: 342 (runtime: 266, tooling: 53, test: 23).
 | --- | ---: | --- |
 | `desktop-app-vue/src/main/ai-engine/code-agent/coding-agent-bridge.js` | 111 | `this.serverProcess = _deps.spawn(process.execPath, args, {` |
 | `desktop-app-vue/src/main/ai-engine/code-agent/sub-runtime-pool.js` | 362 | `const raw = _deps.spawn(process.execPath, [_deps.entryFile], {` |
-| `desktop-app-vue/src/main/ipc/advanced-features-ipc.js` | 8 | `const { spawn } = require("child_process");` |
-| `desktop-app-vue/src/main/ipc/advanced-features-ipc.js` | 154 | `const child = spawn("node", [scriptPath, ...args], {` |
+| `desktop-app-vue/src/main/ipc/advanced-features-ipc.js` | 158 | `const child = _deps.spawn(process.execPath, [scriptPath, ...args], {` |
 | `packages/agent-sdk/src/agent-session.ts` | 24 | `import { spawn as nodeSpawn, spawnSync } from "node:child_process";` |
 | `packages/agent-sdk/src/agent-session.ts` | 25 | `import type { ChildProcess, SpawnOptions } from "node:child_process";` |
 | `packages/agent-sdk/src/agent-session.ts` | 452 | `spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"]);` |

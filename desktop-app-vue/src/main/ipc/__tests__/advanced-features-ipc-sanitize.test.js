@@ -9,6 +9,13 @@
  */
 
 const AdvancedFeaturesIPC = require("../advanced-features-ipc");
+const { EventEmitter } = require("node:events");
+
+const originalSpawn = AdvancedFeaturesIPC._deps.spawn;
+
+afterEach(() => {
+  AdvancedFeaturesIPC._deps.spawn = originalSpawn;
+});
 
 const sanitize = (d, fb) =>
   AdvancedFeaturesIPC.prototype._sanitizeDays.call({}, d, fb);
@@ -63,5 +70,38 @@ describe("advanced-features-ipc _sanitizeDays", () => {
       expect(r).toBeGreaterThanOrEqual(1);
       expect(r).toBeLessThanOrEqual(3650);
     }
+  });
+});
+
+describe("advanced-features-ipc process contract", () => {
+  it("routes scripts through the desktop broker facade", async () => {
+    const child = new EventEmitter();
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    AdvancedFeaturesIPC._deps.spawn = vi.fn(() => child);
+
+    const pending = AdvancedFeaturesIPC.prototype.executeScript.call(
+      {},
+      "adaptive-threshold.js",
+      ["simulate"],
+    );
+    child.stdout.emit("data", Buffer.from("ok"));
+    child.emit("close", 0);
+
+    await expect(pending).resolves.toMatchObject({
+      success: true,
+      output: "ok",
+      exitCode: 0,
+    });
+    expect(AdvancedFeaturesIPC._deps.spawn).toHaveBeenCalledWith(
+      process.execPath,
+      expect.arrayContaining([
+        expect.stringMatching(/adaptive-threshold\.js$/),
+        "simulate",
+      ]),
+      expect.objectContaining({
+        origin: "desktop:advanced-features-script",
+      }),
+    );
   });
 });

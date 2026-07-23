@@ -5,9 +5,13 @@
 
 const { logger } = require("../utils/logger.js");
 const { ipcMain } = require("electron");
-const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
+const {
+  spawnWithDesktopBroker,
+} = require("../process/desktop-process-broker.js");
+
+const _deps = { spawn: spawnWithDesktopBroker };
 
 // 防止重复注册的标志
 let handlersRegistered = false;
@@ -151,8 +155,9 @@ class AdvancedFeaturesIPC {
     return new Promise((resolve, reject) => {
       const scriptPath = path.join(__dirname, "..", "..", script);
 
-      const child = spawn("node", [scriptPath, ...args], {
+      const child = _deps.spawn(process.execPath, [scriptPath, ...args], {
         cwd: path.dirname(scriptPath),
+        origin: "desktop:advanced-features-script",
       });
 
       let output = "";
@@ -399,3 +404,4 @@ class AdvancedFeaturesIPC {
 }
 
 module.exports = AdvancedFeaturesIPC;
+module.exports._deps = _deps;
