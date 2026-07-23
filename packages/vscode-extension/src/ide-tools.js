@@ -549,7 +549,12 @@ function buildIdeTools(editor, options = {}) {
     // supplies the `lsp` capability object (VS Code); the tool logic lives in
     // the pure semantic-tools.js module.
     ...(editor.lsp && typeof editor.lsp === "object"
-      ? buildSemanticTools(editor.lsp)
+      ? buildSemanticTools(
+          editor.lsp,
+          typeof editor.getContextMetadata === "function"
+            ? editor.getContextMetadata.bind(editor)
+            : null,
+        )
       : []),
   ];
 }

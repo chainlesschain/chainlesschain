@@ -331,7 +331,7 @@ public final class IdeTools {
         // exposed when the IntelliJ glue supplies a SemanticFacade — the pure
         // interop tests and non-PSI hosts simply don't advertise them.
         if (semantics != null) {
-            tools.addAll(SemanticTools.build(semantics));
+            tools.addAll(SemanticTools.build(semantics, editor));
         }
 
         return tools;

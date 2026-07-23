@@ -85,6 +85,59 @@ describe("buildIdeTools — conditional semantic tools", () => {
       byName.goToDefinition.inputSchema.properties.line.description,
     ).toMatch(/1-based/);
   });
+
+  it("attaches cc-ide-context/v2 to every semantic result through the editor facade", async () => {
+    const getContextMetadata = vi.fn(async ({ file, tool }) => ({
+      schema: "cc-ide-context/v2",
+      workspaceId: "ws-fixture",
+      documentUri: file ? `file://${file}` : null,
+      documentVersion: file ? 17 : null,
+      isDirty: file ? true : null,
+      permissionSource: "workspace-trust:trusted",
+      freshness: {
+        state: file ? "live-buffer" : "live-host",
+        capturedAt: "2026-07-23T00:00:00.000Z",
+      },
+      tool,
+    }));
+    const tools = buildIdeTools({
+      ...baseFacade(),
+      lsp: fakeLsp(),
+      getContextMetadata,
+    });
+    const byName = Object.fromEntries(tools.map((t) => [t.name, t]));
+    const position = { path: "/ws/src/a.ts", line: 3, column: 4 };
+
+    for (const name of SEMANTIC_NAMES) {
+      const result = await byName[name].handler(
+        name === "getProjectModel" ? {} : position,
+      );
+      expect(result.context).toMatchObject({
+        schema: "cc-ide-context/v2",
+        workspaceId: "ws-fixture",
+        documentUri:
+          name === "getProjectModel" ? null : "file:///ws/src/a.ts",
+        tool: name,
+      });
+    }
+    expect(getContextMetadata).toHaveBeenCalledTimes(SEMANTIC_NAMES.length);
+    expect(getContextMetadata).toHaveBeenCalledWith({
+      file: null,
+      tool: "getProjectModel",
+    });
+  });
+
+  it("preserves legacy semantic payloads when context probing fails", async () => {
+    const legacy = tool(fakeLsp(), "goToDefinition");
+    const withBrokenContext = buildSemanticTools(fakeLsp(), async () => {
+      throw new Error("host metadata unavailable");
+    }).find((t) => t.name === "goToDefinition");
+    const args = { path: "/ws/a.ts", line: 1, column: 1 };
+
+    expect(await withBrokenContext.handler(args)).toEqual(
+      await legacy.handler(args),
+    );
+  });
 });
 
 describe("input validation (1-based line/column)", () => {

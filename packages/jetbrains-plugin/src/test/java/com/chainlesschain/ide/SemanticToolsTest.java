@@ -305,6 +305,39 @@ class SemanticToolsTest {
     }
 
     @Test
+    void semanticResultsCarryAdditiveContextFromTheEditor() throws Exception {
+        FakeSemantics sem = new FakeSemantics();
+        ContextEditor editor = new ContextEditor();
+        List<Tool> tools = SemanticTools.build(sem, editor);
+
+        for (String name : semanticToolNames()) {
+            Map<String, Object> input = name.equals("getProjectModel")
+                    ? new LinkedHashMap<>()
+                    : args("src/A.java", 2L, 3L);
+            Map<?, ?> result = (Map<?, ?>) find(tools, name).call(input);
+            Map<?, ?> context = (Map<?, ?>) result.get("context");
+            assertNotNull(context, name + " context");
+            assertEquals("cc-ide-context/v2", context.get("schema"));
+            assertEquals(name, context.get("tool"));
+            assertEquals(name.equals("getProjectModel") ? null : "src/A.java",
+                    context.get("file"));
+        }
+
+        Map<?, ?> legacy = (Map<?, ?>) find(
+                SemanticTools.build(sem), "getHover")
+                .call(args("src/A.java", 2L, 3L));
+        assertFalse(legacy.containsKey("context"),
+                "legacy build overload must preserve the old payload");
+
+        editor.fail = true;
+        Map<?, ?> degraded = (Map<?, ?>) find(
+                SemanticTools.build(sem, editor), "getHover")
+                .call(args("src/A.java", 2L, 3L));
+        assertFalse(degraded.containsKey("context"),
+                "metadata probe failures must not erase semantic results");
+    }
+
+    @Test
     void positionSchemasDeclareRequiredsAndDocumentOneBased() {
         List<Tool> tools = SemanticTools.build(new FakeSemantics());
         for (Tool t : tools) {
@@ -404,11 +437,26 @@ class SemanticToolsTest {
     }
 
     /** Minimal EditorFacade — the semantic tools never touch it. */
-    private static final class NoopEditor implements EditorFacade {
+    private static class NoopEditor implements EditorFacade {
         @Override public Map<String, Object> getSelection() { return null; }
         @Override public List<Map<String, Object>> getDiagnostics(String path) { return new ArrayList<>(); }
         @Override public List<Map<String, Object>> getOpenEditors() { return new ArrayList<>(); }
         @Override public Map<String, Object> openDiff(String p, String m, String o, String t) { return null; }
+    }
+
+    private static final class ContextEditor extends NoopEditor {
+        boolean fail;
+
+        @Override
+        public Map<String, Object> getContextMetadata(String file, String tool) {
+            if (fail) throw new IllegalStateException("metadata unavailable");
+            Map<String, Object> context = new LinkedHashMap<>();
+            context.put("schema", "cc-ide-context/v2");
+            context.put("workspaceId", "ws-fixture");
+            context.put("file", file);
+            context.put("tool", tool);
+            return context;
+        }
     }
 
     /** Scriptable fake of the PSI glue. */

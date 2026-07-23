@@ -18,7 +18,7 @@
 - headless/stream resume 已接入 side-effect ledger reconcile；跨 CLI、Bridge、Extension Host 的物理 kill/resume 仍需真实环境。
 - `protocol-replay.js`、治理覆盖率脚本、`cc doctor --export-bundle` 和 OTLP HTTP/HTTPS exporter 已存在；2026-07-23 又把脱敏诊断包导出接入 VS Code 命令/Status 视图和 JetBrains Tools 菜单，并在替换用户目标前验证 schema 与默认排除契约。剩余是完整发布门、真实宿主/远程 UI、Collector/SIEM 和长期运行证据。
 - VS Code 与 JetBrains Doctor 已用共享 fixture 约束的孪生兼容性纯核，将最低 CLI 版本、Bridge 和 workspace trust 汇总为 `可运行 / 可降级运行 / 需要修复`，并拒绝 GCC/Clang 同名 `cc`；单一结论的 C/T/H seam 已关闭，真实版本组合、Node/Java 与离线缓存诊断仍保留。
-- `getSelection/getActiveFile/getDiagnostics/getOpenEditors` 已在真实 VS Code/JetBrains facade 上附加共享 fixture 约束的 `cc-ide-context/v2`：匿名 workspaceId、document URI/version、dirty、权限来源和采集新鲜度；多文档记录保留各自 URI/version/dirty，旧宿主无 metadata 时原 payload 不变。四核心只读工具 C/T/H 已完成，语义、测试/coverage、debug 与写工具仍需后续扩展。
+- `getSelection/getActiveFile/getDiagnostics/getOpenEditors` 已在真实 VS Code/JetBrains facade 上附加共享 fixture 约束的 `cc-ide-context/v2`：匿名 workspaceId、document URI/version、dirty、权限来源和采集新鲜度；多文档记录保留各自 URI/version/dirty，旧宿主无 metadata 时原 payload 不变。后续批次又将同一 metadata 接入 `getHover/goToDefinition/findReferences/renamePreview/getCallHierarchy/getSymbolInfo/getProjectModel` 七个 LSP/PSI 语义工具；位置型工具锚定查询源文档，项目模型返回 workspace 级 context，探针异常时保持旧 payload。四核心只读工具与语义/项目模型的 C/T/H 已完成，测试结果/coverage、debug 与写工具仍需后续扩展。
 - Bridge token ACL 的默认路径已改为 fail-closed；JetBrains 侧 ACL/权限验证失败会阻断 lockfile 发布，只有组织级 managed downgrade 才允许降级。JetBrains `LockfileAclTest` 已通过；VS Code `0.37.24` Extension Host 和 JetBrains Remote Robot 核心 smoke 已通过，剩余是多版本/多宿主、真实 Windows ACL 矩阵与正式分发渠道验收。
 
 ### 2026-07-22 状态覆盖说明

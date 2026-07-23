@@ -27,6 +27,10 @@
  *   workspaceRoots()                                -> [{ name, path }]
  *   openEditorLanguages()                           -> [{ file, languageId }]
  *   listFiles({ max })                              -> string[] (file paths)
+ *
+ * buildSemanticTools' optional `getContextMetadata({ file, tool })` callback
+ * supplies additive `cc-ide-context/v2` metadata. Missing/failed providers
+ * preserve the legacy payload byte-for-byte.
  */
 
 const MAX_HOVER_CHARS = 8000;
@@ -223,6 +227,27 @@ async function getRoots(lsp) {
   return (await lsp.workspaceRoots()) || [];
 }
 
+async function withContext(payload, file, tool, getContextMetadata) {
+  if (
+    !payload ||
+    typeof payload !== "object" ||
+    Array.isArray(payload) ||
+    typeof getContextMetadata !== "function"
+  ) {
+    return payload;
+  }
+  try {
+    const context = await getContextMetadata({ file, tool });
+    return context && typeof context === "object"
+      ? { ...payload, context }
+      : payload;
+  } catch {
+    // Context metadata is additive; semantic answers remain usable when a
+    // host cannot inspect a document/version (old host, closed file, etc.).
+    return payload;
+  }
+}
+
 const POSITION_PROPS = {
   path: { type: "string", description: "Absolute file path." },
   line: {
@@ -241,7 +266,7 @@ const POSITION_REQUIRED = ["path", "line", "column"];
  * Build the semantic tool declarations (same shape as ide-tools.js entries).
  * ide-tools spreads these in only when the editor facade exposes `lsp`.
  */
-function buildSemanticTools(lsp) {
+function buildSemanticTools(lsp, getContextMetadata) {
   return [
     {
       name: "getHover",
@@ -261,12 +286,17 @@ function buildSemanticTools(lsp) {
         const roots = await getRoots(lsp);
         const hovers = await lsp.hover(target);
         const text = flattenHoverContents(hovers);
-        return {
-          uri: toWorkspaceRelative(target.path, roots),
-          line: args.line,
-          column: args.column,
-          hover: text || null,
-        };
+        return withContext(
+          {
+            uri: toWorkspaceRelative(target.path, roots),
+            line: args.line,
+            column: args.column,
+            hover: text || null,
+          },
+          target.path,
+          "getHover",
+          getContextMetadata,
+        );
       },
     },
     {
@@ -289,7 +319,12 @@ function buildSemanticTools(lsp) {
         const definitions = defs
           .map((d) => shapeLocation(d, roots))
           .filter(Boolean);
-        return { definitions, total: definitions.length };
+        return withContext(
+          { definitions, total: definitions.length },
+          target.path,
+          "goToDefinition",
+          getContextMetadata,
+        );
       },
     },
     {
@@ -328,11 +363,16 @@ function buildSemanticTools(lsp) {
           .slice(0, cap)
           .map((r) => shapeLocation(r, roots))
           .filter(Boolean);
-        return {
-          references,
-          total: refs.length,
-          truncated: refs.length > references.length,
-        };
+        return withContext(
+          {
+            references,
+            total: refs.length,
+            truncated: refs.length > references.length,
+          },
+          target.path,
+          "findReferences",
+          getContextMetadata,
+        );
       },
     },
     {
@@ -372,16 +412,21 @@ function buildSemanticTools(lsp) {
           uri,
           occurrences,
         }));
-        return {
-          ...(typeof args.newName === "string" && args.newName
-            ? { newName: args.newName }
-            : {}),
-          files,
-          fileCount: files.length,
-          totalOccurrences: refs.length,
-          truncated: refs.length > counted.length,
-          applied: false,
-        };
+        return withContext(
+          {
+            ...(typeof args.newName === "string" && args.newName
+              ? { newName: args.newName }
+              : {}),
+            files,
+            fileCount: files.length,
+            totalOccurrences: refs.length,
+            truncated: refs.length > counted.length,
+            applied: false,
+          },
+          target.path,
+          "renamePreview",
+          getContextMetadata,
+        );
       },
     },
     {
@@ -404,7 +449,12 @@ function buildSemanticTools(lsp) {
         const roots = await getRoots(lsp);
         const items = (await lsp.prepareCallHierarchy(target)) || [];
         if (items.length === 0) {
-          return { item: null, callers: [], callees: [], truncated: false };
+          return withContext(
+            { item: null, callers: [], callees: [], truncated: false },
+            target.path,
+            "getCallHierarchy",
+            getContextMetadata,
+          );
         }
         const item = items[0];
         const incoming = (await lsp.incomingCalls(item)) || [];
@@ -422,14 +472,19 @@ function buildSemanticTools(lsp) {
         const callees = outgoing
           .slice(0, Math.max(0, MAX_CALL_NODES - callers.length))
           .map((c) => shapeCall(c.to, c.fromRanges));
-        return {
-          item: shapeHierarchyItem(item, roots),
-          callers,
-          callees,
-          truncated:
-            incoming.length > callers.length ||
-            outgoing.length > callees.length,
-        };
+        return withContext(
+          {
+            item: shapeHierarchyItem(item, roots),
+            callers,
+            callees,
+            truncated:
+              incoming.length > callers.length ||
+              outgoing.length > callees.length,
+          },
+          target.path,
+          "getCallHierarchy",
+          getContextMetadata,
+        );
       },
     },
     {
@@ -457,11 +512,16 @@ function buildSemanticTools(lsp) {
             s.selectionRange || s.range || (s.location && s.location.range),
           ),
         }));
-        return {
-          uri: toWorkspaceRelative(target.path, roots),
-          chain,
-          symbol: chain.length ? chain[chain.length - 1] : null,
-        };
+        return withContext(
+          {
+            uri: toWorkspaceRelative(target.path, roots),
+            chain,
+            symbol: chain.length ? chain[chain.length - 1] : null,
+          },
+          target.path,
+          "getSymbolInfo",
+          getContextMetadata,
+        );
       },
     },
     {
@@ -508,16 +568,24 @@ function buildSemanticTools(lsp) {
           const ext = dot > 0 ? base.slice(dot).toLowerCase() : "(none)";
           filesByExtension[ext] = (filesByExtension[ext] || 0) + 1;
         }
-        return {
-          workspaceFolders: roots.map((r) => ({ name: r.name, path: r.path })),
-          openEditors: open.map((d) => ({
-            file: toWorkspaceRelative(d.file, roots),
-            languageId: d.languageId,
-          })),
-          filesByExtension,
-          scannedFiles: files.length,
-          fileScanTruncated: files.length >= maxFiles,
-        };
+        return withContext(
+          {
+            workspaceFolders: roots.map((r) => ({
+              name: r.name,
+              path: r.path,
+            })),
+            openEditors: open.map((d) => ({
+              file: toWorkspaceRelative(d.file, roots),
+              languageId: d.languageId,
+            })),
+            filesByExtension,
+            scannedFiles: files.length,
+            fileScanTruncated: files.length >= maxFiles,
+          },
+          null,
+          "getProjectModel",
+          getContextMetadata,
+        );
       },
     },
   ];

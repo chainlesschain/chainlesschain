@@ -1464,6 +1464,9 @@ public final class PureLogicSmokeMain {
             @Override public Map<String, Object> projectModel() { return null; }
         };
         EditorFacade noEditor = new EditorFacade() {
+            @Override public Map<String, Object> getContextMetadata(String file, String tool) {
+                return mapOf("schema", IdeContextV2.SCHEMA, "file", file, "tool", tool);
+            }
             @Override public Map<String, Object> getSelection() { return null; }
             @Override public List<Map<String, Object>> getDiagnostics(String path) { return new ArrayList<>(); }
             @Override public List<Map<String, Object>> getOpenEditors() { return new ArrayList<>(); }
@@ -1482,6 +1485,8 @@ public final class PureLogicSmokeMain {
             Object res = findTool(withSem, "renamePreview").call(mapOf(
                     "path", "f0.java", "line", 1L, "column", 1L));
             eq(((Map<?, ?>) res).get("totalOccurrences"), 151L, "renamePreview tool end-to-end");
+            eq(((Map<?, ?>) ((Map<?, ?>) res).get("context")).get("schema"),
+                    IdeContextV2.SCHEMA, "semantic tool carries context v2");
         } catch (Exception e) {
             check(false, "renamePreview tool call threw: " + e);
         }

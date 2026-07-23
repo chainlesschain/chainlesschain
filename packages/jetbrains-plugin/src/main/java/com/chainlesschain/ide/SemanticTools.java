@@ -308,8 +308,16 @@ public final class SemanticTools {
     }
 
     // ── Tool registration ───────────────────────────────────────────────────
-    /** Build the 7 semantic tools over a non-null facade. */
+    /** Build the 7 semantic tools over a non-null facade (legacy payloads). */
     public static List<Tool> build(SemanticFacade sem) {
+        return build(sem, null);
+    }
+
+    /**
+     * Build the semantic tools with optional additive
+     * {@code cc-ide-context/v2} metadata from the editor host.
+     */
+    public static List<Tool> build(SemanticFacade sem, EditorFacade contextEditor) {
         List<Tool> tools = new ArrayList<>();
 
         tools.add(new IdeTools.BaseTool(
@@ -321,7 +329,9 @@ public final class SemanticTools {
                 positionSchema(false)) {
             @Override public Object call(Map<String, Object> args) {
                 Position p = requirePosition(args);
-                return shapeHover(sem.hover(p.path, p.line, p.column));
+                return withContext(
+                        shapeHover(sem.hover(p.path, p.line, p.column)),
+                        contextEditor, p.path, "getHover");
             }
         });
 
@@ -334,7 +344,9 @@ public final class SemanticTools {
                 positionSchema(false)) {
             @Override public Object call(Map<String, Object> args) {
                 Position p = requirePosition(args);
-                return shapeDefinitions(sem.definitions(p.path, p.line, p.column));
+                return withContext(
+                        shapeDefinitions(sem.definitions(p.path, p.line, p.column)),
+                        contextEditor, p.path, "goToDefinition");
             }
         });
 
@@ -349,7 +361,11 @@ public final class SemanticTools {
             @Override public Object call(Map<String, Object> args) {
                 Position p = requirePosition(args);
                 int max = clampMax(args.get("max"), DEFAULT_REFERENCES, MAX_REFERENCES);
-                return shapeReferences(sem.references(p.path, p.line, p.column, COLLECT_BOUND), max);
+                return withContext(
+                        shapeReferences(
+                                sem.references(p.path, p.line, p.column, COLLECT_BOUND),
+                                max),
+                        contextEditor, p.path, "findReferences");
             }
         });
 
@@ -365,7 +381,9 @@ public final class SemanticTools {
                 Position p = requirePosition(args);
                 Map<String, Object> symbol = sem.symbolInfo(p.path, p.line, p.column);
                 List<Map<String, Object>> refs = sem.references(p.path, p.line, p.column, COLLECT_BOUND);
-                return shapeRenamePreview(symbol, refs);
+                return withContext(
+                        shapeRenamePreview(symbol, refs),
+                        contextEditor, p.path, "renamePreview");
             }
         });
 
@@ -380,8 +398,11 @@ public final class SemanticTools {
             @Override public Object call(Map<String, Object> args) {
                 Position p = requirePosition(args);
                 int max = clampMax(args.get("max"), DEFAULT_HIERARCHY, MAX_HIERARCHY);
-                return shapeCallHierarchy(
-                        sem.callHierarchy(p.path, p.line, p.column, COLLECT_BOUND), max);
+                return withContext(
+                        shapeCallHierarchy(
+                                sem.callHierarchy(p.path, p.line, p.column, COLLECT_BOUND),
+                                max),
+                        contextEditor, p.path, "getCallHierarchy");
             }
         });
 
@@ -393,7 +414,9 @@ public final class SemanticTools {
                 positionSchema(false)) {
             @Override public Object call(Map<String, Object> args) {
                 Position p = requirePosition(args);
-                return shapeSymbolInfo(sem.symbolInfo(p.path, p.line, p.column));
+                return withContext(
+                        shapeSymbolInfo(sem.symbolInfo(p.path, p.line, p.column)),
+                        contextEditor, p.path, "getSymbolInfo");
             }
         });
 
@@ -405,7 +428,9 @@ public final class SemanticTools {
                         + "build files.",
                 emptySchema()) {
             @Override public Object call(Map<String, Object> args) {
-                return shapeProjectModel(sem.projectModel());
+                return withContext(
+                        shapeProjectModel(sem.projectModel()),
+                        contextEditor, null, "getProjectModel");
             }
         });
 
@@ -437,6 +462,23 @@ public final class SemanticTools {
     private static String reasonOr(Map<String, Object> raw, String fallback) {
         Object r = raw == null ? null : raw.get("reason");
         return r instanceof String && !((String) r).isEmpty() ? (String) r : fallback;
+    }
+
+    private static Map<String, Object> withContext(
+            Map<String, Object> payload,
+            EditorFacade contextEditor,
+            String file,
+            String tool) {
+        if (contextEditor == null) return payload;
+        try {
+            Map<String, Object> context =
+                    contextEditor.getContextMetadata(file, tool);
+            if (context != null) payload.put("context", context);
+        } catch (RuntimeException ignored) {
+            // Context metadata is additive. Old hosts and unavailable document
+            // probes must not erase the semantic answer.
+        }
+        return payload;
     }
 
     private static String asString(Object o) {
