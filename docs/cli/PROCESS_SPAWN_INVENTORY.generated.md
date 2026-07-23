@@ -78,8 +78,8 @@ Total matches: 402 (runtime: 326, tooling: 53, test: 23).
 | `packages/cli/src/commands/init.js` | 2015 | `const ar = spawnSync(py.command, [tmpApply], { encoding: "utf-8", timeout: 30000 });` |
 | `packages/cli/src/commands/loop.js` | 26 | `import { spawn } from "node:child_process";` |
 | `packages/cli/src/commands/loop.js` | 69 | `const child = spawn(cmd, args, {` |
-| `packages/cli/src/commands/memory.js` | 599 | `const { execSync } = await import("child_process");` |
-| `packages/cli/src/commands/memory.js` | 609 | `execSync(`${editor} "${safePath}"`, { stdio: "inherit" });` |
+| `packages/cli/src/commands/memory.js` | 57 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
+| `packages/cli/src/commands/memory.js` | 63 | `return deps.execFileSync(file, [...editorArgs, filePath], {` |
 | `packages/cli/src/commands/review.js` | 44 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/commands/review.js` | 60 | `const res = _deps.spawnSync("git", args, {` |
 | `packages/cli/src/commands/review.js` | 373 | `const res = _deps.spawnSync("gh", args, {` |

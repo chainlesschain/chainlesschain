@@ -137,6 +137,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 - `cc review` 命令层的 Git diff 和 `gh` review/comment 调用已进入 `review:command-git`、
   `review:command-gh` Broker origin；用户提供的 base/range 位于 `--end-of-options` 后，review JSON
   继续只经 stdin 传递，并保留 256/64 MiB 输出上限。
+- `cc memory file --edit` 已复用无 shell 的 `$EDITOR` 引号解析并进入 `memory:editor` Broker
+  scope；编辑器参数与 `MEMORY.md` 路径逐项传递，路径中的引号和 shell 元字符不再被解释。
 
 ### 4.2 建议设计
 

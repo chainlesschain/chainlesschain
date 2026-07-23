@@ -4,8 +4,11 @@
  */
 
 import chalk from "chalk";
+import path from "node:path";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
+import { parseEditorCommand } from "./config.js";
+import { executionBroker } from "../lib/process-execution-broker/index.js";
 import {
   getMemoryDir,
   addMemory,
@@ -49,6 +52,22 @@ import {
   autoFailStuckJobsV2,
   getMemoryManagerStatsV2,
 } from "../lib/memory-manager.js";
+
+export const _deps = {
+  execFileSync: (...args) => executionBroker.execFileSync(...args),
+};
+
+export function openMemoryEditor(editor, filePath, deps = _deps) {
+  const [file, ...editorArgs] = parseEditorCommand(editor);
+  if (!file) throw new Error("EDITOR command is empty");
+  return deps.execFileSync(file, [...editorArgs, filePath], {
+    stdio: "inherit",
+    origin: "memory:editor",
+    policy: "allow",
+    scope: "memory",
+    shell: false,
+  });
+}
 
 export function registerMemoryCommand(program) {
   const memory = program
@@ -596,17 +615,13 @@ export function registerMemoryCommand(program) {
         const content = getMemoryFile(memoryDir);
 
         if (options.edit) {
-          const { execSync } = await import("child_process");
           const editor =
             process.env.EDITOR ||
             process.env.VISUAL ||
             (process.platform === "win32" ? "notepad" : "nano");
-          const filePath = `${memoryDir}/MEMORY.md`;
+          const filePath = path.join(memoryDir, "MEMORY.md");
           try {
-            // Escape any `"` in the path so it can't break out of the quoted
-            // arg (editor stays unquoted so `$EDITOR` values with args work).
-            const safePath = filePath.replace(/"/g, '\\"');
-            execSync(`${editor} "${safePath}"`, { stdio: "inherit" });
+            openMemoryEditor(editor, filePath);
             logger.success("Memory file updated");
           } catch {
             logger.error(
