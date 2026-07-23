@@ -96,6 +96,63 @@ describe("process-manager", () => {
     expect(existsSync(pidFile)).toBe(false); // corrupt file removed
   });
 
+  it("starts the desktop executable through the app Broker scope", async () => {
+    const pidFile = join(tempDir, "app.pid");
+    const appPath = join(tempDir, 'ChainlessChain "safe".exe');
+    mockPaths(pidFile);
+    vi.doMock("../../src/lib/platform.js", () => ({
+      isWindows: () => false,
+    }));
+    const { _deps, startApp } =
+      await import("../../src/lib/process-manager.js");
+    const child = { pid: 4242, unref: vi.fn() };
+    _deps.spawn = vi.fn(() => child);
+
+    expect(startApp({ appPath, headless: true, env: { CC_TEST: "1" } })).toBe(
+      4242,
+    );
+    expect(_deps.spawn).toHaveBeenCalledWith(
+      appPath,
+      ["--headless"],
+      expect.objectContaining({
+        detached: true,
+        stdio: "ignore",
+        origin: "app:start",
+        policy: "allow",
+        scope: "app",
+        shell: false,
+        env: expect.objectContaining({ CC_TEST: "1" }),
+      }),
+    );
+    expect(child.unref).toHaveBeenCalledOnce();
+    expect(readFileSync(pidFile, "utf-8")).toBe("4242");
+  });
+
+  it("stops a Windows process with taskkill argv instead of a shell string", async () => {
+    const pidFile = join(tempDir, "app.pid");
+    writeFileSync(pidFile, "4321");
+    mockPaths(pidFile);
+    vi.doMock("../../src/lib/platform.js", () => ({
+      isWindows: () => true,
+    }));
+    const { _deps, stopApp } = await import("../../src/lib/process-manager.js");
+    _deps.execFileSync = vi.fn(() => "");
+
+    expect(stopApp()).toBe(true);
+    expect(_deps.execFileSync).toHaveBeenCalledWith(
+      "taskkill",
+      ["/PID", "4321", "/T", "/F"],
+      {
+        stdio: "ignore",
+        origin: "app:stop",
+        policy: "allow",
+        scope: "app",
+        shell: false,
+      },
+    );
+    expect(existsSync(pidFile)).toBe(false);
+  });
+
   describe("parsePid", () => {
     it("parses valid positive integers (trimmed)", async () => {
       vi.resetModules();

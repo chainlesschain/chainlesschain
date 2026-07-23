@@ -1,4 +1,3 @@
-import { spawn, execSync } from "node:child_process";
 import {
   readFileSync,
   writeFileSync,
@@ -10,6 +9,12 @@ import { join } from "node:path";
 import { getPidFilePath, getBinDir, ensureDir, getStatePath } from "./paths.js";
 import { isWindows } from "./platform.js";
 import logger from "./logger.js";
+import { executionBroker } from "./process-execution-broker/index.js";
+
+export const _deps = {
+  spawn: (...args) => executionBroker.spawn(...args),
+  execFileSync: (...args) => executionBroker.execFileSync(...args),
+};
 
 export function startApp(options = {}) {
   ensureDir(getStatePath());
@@ -44,10 +49,14 @@ export function startApp(options = {}) {
 
   logger.verbose(`Starting: ${appPath} ${args.join(" ")}`);
 
-  const child = spawn(appPath, args, {
+  const child = _deps.spawn(appPath, args, {
     detached: true,
     stdio: "ignore",
     env: { ...process.env, ...options.env },
+    origin: "app:start",
+    policy: "allow",
+    scope: "app",
+    shell: false,
   });
 
   child.unref();
@@ -90,7 +99,13 @@ export function stopApp() {
 
   try {
     if (isWindows()) {
-      execSync(`taskkill /PID ${pid} /T /F`, { stdio: "ignore" });
+      _deps.execFileSync("taskkill", ["/PID", String(pid), "/T", "/F"], {
+        stdio: "ignore",
+        origin: "app:stop",
+        policy: "allow",
+        scope: "app",
+        shell: false,
+      });
     } else {
       process.kill(pid, "SIGTERM");
     }

@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 404 (runtime: 328, tooling: 53, test: 23).
+Total matches: 405 (runtime: 329, tooling: 53, test: 23).
 
 ## Policy
 
@@ -270,9 +270,10 @@ Total matches: 404 (runtime: 328, tooling: 53, test: 23).
 | `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 44 | `// Also patch child_process for CommonJS require` |
 | `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 45 | `const cpModule = require.cache[require.resolve("node:child_process")];` |
 | `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 217 | `* is to use `prlimit` (util-linux) wrapper and set `child_process` uid/gid/groups.` |
-| `packages/cli/src/lib/process-manager.js` | 1 | `import { spawn, execSync } from "node:child_process";` |
-| `packages/cli/src/lib/process-manager.js` | 47 | `const child = spawn(appPath, args, {` |
-| `packages/cli/src/lib/process-manager.js` | 93 | `execSync(`taskkill /PID ${pid} /T /F`, { stdio: "ignore" });` |
+| `packages/cli/src/lib/process-manager.js` | 15 | `spawn: (...args) => executionBroker.spawn(...args),` |
+| `packages/cli/src/lib/process-manager.js` | 16 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
+| `packages/cli/src/lib/process-manager.js` | 52 | `const child = _deps.spawn(appPath, args, {` |
+| `packages/cli/src/lib/process-manager.js` | 102 | `_deps.execFileSync("taskkill", ["/PID", String(pid), "/T", "/F"], {` |
 | `packages/cli/src/lib/publish-workspace.js` | 7 | `import { execSync } from "child_process";` |
 | `packages/cli/src/lib/publish-workspace.js` | 67 | `execSync(cmd, {` |
 | `packages/cli/src/lib/repl-bang-memorize.js` | 20 | `import { spawnSync as spawnSyncDefault } from "child_process";` |

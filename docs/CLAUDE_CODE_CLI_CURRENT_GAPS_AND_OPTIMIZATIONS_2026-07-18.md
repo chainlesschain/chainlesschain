@@ -110,6 +110,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   调用；Windows npm 同样使用 `node.exe + npm-cli.js`，固定命令不再依赖业务模块中的裸 shell。
 - Docker/Compose 可用性探针及 up/down/pull/logs/status 已迁移到 `service` Broker scope；compose
   文件路径与服务名保持独立 argv，状态查询不再拼接 shell 命令。
+- Desktop 应用启动与 Windows `taskkill` 停止路径已进入 `app` Broker scope；可执行文件路径和 PID
+  均作为独立 argv，保留 detached/PID 文件生命周期语义。
 
 ### 4.2 建议设计
 
