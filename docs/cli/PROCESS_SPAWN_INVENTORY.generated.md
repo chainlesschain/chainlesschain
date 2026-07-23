@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 396 (runtime: 320, tooling: 53, test: 23).
+Total matches: 397 (runtime: 321, tooling: 53, test: 23).
 
 ## Policy
 
@@ -197,7 +197,8 @@ Total matches: 396 (runtime: 320, tooling: 53, test: 23).
 | `packages/cli/src/lib/hook-runner.cjs` | 382 | `? opts.broker.spawn(command, [], {` |
 | `packages/cli/src/lib/hook-runner.cjs` | 392 | `: _deps.spawn(command, { cwd: wd, env: spawnEnv, shell: true });` |
 | `packages/cli/src/lib/hooks-v2-runtime.js` | 240 | `const child = await broker.spawn(` |
-| `packages/cli/src/lib/host-adb-bridge.js` | 34 | `import { execFile } from "node:child_process";` |
+| `packages/cli/src/lib/host-adb-bridge.js` | 37 | `execFile: (...args) => executionBroker.execFile(...args),` |
+| `packages/cli/src/lib/host-adb-bridge.js` | 42 | `_deps.execFile(file, args, options, (error, stdout, stderr) => {` |
 | `packages/cli/src/lib/lan-pairing-preflight.js` | 28 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/lib/lan-pairing-preflight.js` | 320 | `_deps.execFileSync(probe, [cmd], {` |
 | `packages/cli/src/lib/lsp/benchmark.js` | 21 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |

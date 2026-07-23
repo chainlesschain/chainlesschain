@@ -31,10 +31,20 @@
  *     `\n` / EOS — every parse routine strips `\r+$` first.
  */
 
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
+import executionBroker from "./process-execution-broker/index.js";
 
-const execFileP = promisify(execFile);
+export const _deps = {
+  execFile: (...args) => executionBroker.execFile(...args),
+};
+
+function execFileP(file, args, options) {
+  return new Promise((resolve, reject) => {
+    _deps.execFile(file, args, options, (error, stdout, stderr) => {
+      if (error) reject(error);
+      else resolve({ stdout, stderr });
+    });
+  });
+}
 
 export class HostAdbBridgeUnavailableError extends Error {
   constructor(reason) {
@@ -52,6 +62,10 @@ async function adb(args, opts = {}) {
       timeout: opts.timeoutMs || 30_000,
       maxBuffer: 32 * 1024 * 1024,
       encoding: "utf8",
+      origin: "host-adb:command",
+      policy: "allow",
+      scope: "host-adb",
+      shell: false,
     });
     if (stderr && /error:|failed:|protocol fault/i.test(stderr)) {
       throw new HostAdbBridgeUnavailableError(stderr.trim().split("\n")[0]);
@@ -585,6 +599,7 @@ export function createHostAdbBridge(opts = {}) {
 
 // Exposed for unit testing without spawning real adb.
 export const _internals = {
+  adb,
   parseContentQueryRows,
   mergeContactRows,
   listDevices,

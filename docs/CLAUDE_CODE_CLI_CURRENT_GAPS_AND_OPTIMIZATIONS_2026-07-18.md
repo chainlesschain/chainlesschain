@@ -190,6 +190,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   URL、ref 与临时目标目录继续作为独立 argv，并保留 option-looking 值的前置拒绝和 120 秒超时。
 - Plugin Monitor 的原生 spawn fallback 已移除；带 provenance 的描述符继续使用 `plugin:monitor`，
   兼容描述符使用 `plugin-monitor:process`，两者共享无 shell、并发上限、超时与统一回收语义。
+- Host ADB bridge 的设备枚举与 shell/content 调用已进入 `host-adb:command` Broker origin；
+  ADB 路径、serial 和子命令保持独立 argv，并保留超时、输出上限和 typed error 映射。
 
 ### 4.2 建议设计
 

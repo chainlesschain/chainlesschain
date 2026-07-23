@@ -21,10 +21,43 @@ import { describe, it, expect, vi } from "vitest";
 import {
   createHostAdbBridge,
   HostAdbBridgeUnavailableError,
+  _deps,
   _internals,
 } from "../../../src/lib/host-adb-bridge.js";
 
 describe("host-adb-bridge — extension API (Phase B0)", () => {
+  it("routes adb through the Broker with serial argv and provenance", async () => {
+    const original = _deps.execFile;
+    const calls = [];
+    try {
+      _deps.execFile = (file, args, options, callback) => {
+        calls.push([file, args, options]);
+        callback(null, "device-output", "");
+      };
+
+      await expect(
+        _internals.adb(["shell", "getprop"], {
+          adbPath: "custom-adb",
+          serial: "SER-123",
+        }),
+      ).resolves.toBe("device-output");
+      expect(calls).toEqual([
+        [
+          "custom-adb",
+          ["-s", "SER-123", "shell", "getprop"],
+          expect.objectContaining({
+            origin: "host-adb:command",
+            policy: "allow",
+            scope: "host-adb",
+            shell: false,
+          }),
+        ],
+      ]);
+    } finally {
+      _deps.execFile = original;
+    }
+  });
+
   it("merges complete contact metadata from the four public provider queries", () => {
     const contacts = _internals.mergeContactRows(
       [
