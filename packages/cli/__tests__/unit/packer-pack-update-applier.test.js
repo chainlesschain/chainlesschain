@@ -23,6 +23,7 @@ import {
   scheduleReplace,
   writeWindowsSidecar,
   ApplyError,
+  _deps,
 } from "../../src/lib/packer/pack-update-applier.js";
 
 describe("scheduleReplace – argument guards", () => {
@@ -149,6 +150,12 @@ describe("scheduleReplace – POSIX branch", () => {
     expect(spawnCalls[0].cmd).toBe(target);
     expect(spawnCalls[0].opts.detached).toBe(true);
     expect(spawnCalls[0].opts.stdio).toBe("ignore");
+    expect(spawnCalls[0].opts).toMatchObject({
+      origin: "packer:update-restart",
+      scope: "pack-update",
+      policy: "allow",
+      shell: false,
+    });
   });
 
   it("chmod +x is applied before rename (exec bit survives)", async () => {
@@ -196,13 +203,19 @@ describe("scheduleReplace – Windows branch (sidecar cmd)", () => {
   });
 
   it("writes a .cmd sidecar and spawns cmd.exe detached", async () => {
-    const r = await scheduleReplace({
-      newExePath: newExe,
-      targetExePath: target,
-      platform: "win32",
-      parentPid: 12345,
-      spawnImpl: fakeSpawn,
-    });
+    const originalSpawn = _deps.spawn;
+    _deps.spawn = fakeSpawn;
+    let r;
+    try {
+      r = await scheduleReplace({
+        newExePath: newExe,
+        targetExePath: target,
+        platform: "win32",
+        parentPid: 12345,
+      });
+    } finally {
+      _deps.spawn = originalSpawn;
+    }
     expect(r.action).toBe("sidecar-cmd");
     expect(r.sidecarPath).toBeTruthy();
     expect(fs.existsSync(r.sidecarPath)).toBe(true);
@@ -216,6 +229,12 @@ describe("scheduleReplace – Windows branch (sidecar cmd)", () => {
     expect(spawnCalls[0].args[1]).toBe(r.sidecarPath);
     expect(spawnCalls[0].opts.detached).toBe(true);
     expect(spawnCalls[0].opts.windowsHide).toBe(true);
+    expect(spawnCalls[0].opts).toMatchObject({
+      origin: "packer:update-sidecar",
+      scope: "pack-update",
+      policy: "allow",
+      shell: false,
+    });
     // Cleanup
     try {
       fs.unlinkSync(r.sidecarPath);

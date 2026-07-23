@@ -218,7 +218,7 @@ Total matches: 402 (runtime: 326, tooling: 53, test: 23).
 | `packages/cli/src/lib/orchestrator.js` | 25 | `import { execSync } from "child_process";` |
 | `packages/cli/src/lib/orchestrator.js` | 382 | `const output = _deps.execSync(this.ciCommand, {` |
 | `packages/cli/src/lib/packer/native-prebuild-collector.js` | 257 | `// Generic fallback — a native fork (e.g. better-sqlite3-multiple-ciphers)` |
-| `packages/cli/src/lib/packer/pack-update-applier.js` | 30 | `import { spawn } from "node:child_process";` |
+| `packages/cli/src/lib/packer/pack-update-applier.js` | 33 | `spawn: (...args) => executionBroker.spawn(...args),` |
 | `packages/cli/src/lib/packer/pkg-runner.js` | 21 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/lib/packer/pkg-runner.js` | 54 | `const res = _deps.spawnSync(pkgBin.runtime, args, {` |
 | `packages/cli/src/lib/packer/precheck.js` | 13 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |

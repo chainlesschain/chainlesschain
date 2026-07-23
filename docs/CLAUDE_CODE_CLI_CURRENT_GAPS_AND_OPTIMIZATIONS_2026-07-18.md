@@ -172,6 +172,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   Broker origin；继续使用临时 index、无 shell argv 和 128 MiB 输出上限，不触碰用户真实暂存区。
 - Packer smoke test 的产物启动与 Windows 进程树清理已分别进入 `packer:smoke-launch`、
   `packer:smoke-taskkill` Broker origin；保留 shim shell 兼容、stdio 管道、进程组 teardown 与端口探测语义。
+- Packer OTA apply 的 Windows sidecar 与 POSIX 更新后重启已分别进入 `packer:update-sidecar`、
+  `packer:update-restart` Broker origin；路径继续作为独立 argv，保留 detached/unref 与原子替换流程。
 
 ### 4.2 建议设计
 

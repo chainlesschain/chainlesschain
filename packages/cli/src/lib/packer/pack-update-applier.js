@@ -27,7 +27,11 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { spawn } from "node:child_process";
+import executionBroker from "../process-execution-broker/index.js";
+
+export const _deps = {
+  spawn: (...args) => executionBroker.spawn(...args),
+};
 
 /**
  * @param {object} ctx
@@ -55,7 +59,7 @@ export async function scheduleReplace(ctx) {
     dryRun = false,
     platform = process.platform === "win32" ? "win32" : "posix",
     parentPid = process.pid,
-    spawnImpl = spawn,
+    spawnImpl = _deps.spawn,
   } = ctx;
 
   if (!newExePath || typeof newExePath !== "string") {
@@ -92,6 +96,10 @@ export async function scheduleReplace(ctx) {
     // Detach so the sidecar survives our process exit. `windowsHide: true`
     // keeps the cmd window from flashing — the replace itself is silent.
     const child = spawnImpl("cmd.exe", ["/c", sidecarPath], {
+      origin: "packer:update-sidecar",
+      scope: "pack-update",
+      policy: "allow",
+      shell: false,
       detached: true,
       stdio: "ignore",
       windowsHide: true,
@@ -123,6 +131,10 @@ export async function scheduleReplace(ctx) {
 
   if (restart) {
     const child = spawnImpl(targetExePath, process.argv.slice(2), {
+      origin: "packer:update-restart",
+      scope: "pack-update",
+      policy: "allow",
+      shell: false,
       detached: true,
       stdio: "ignore",
     });
