@@ -72,6 +72,12 @@ describe("agent sandbox", () => {
     expect(args).toContain("node:22-alpine");
     expect(args.at(-1)).toBe("npm test && echo done");
     expect(args.join(" ")).not.toContain("SECRET");
+    expect(opts).toMatchObject({
+      origin: "agent-sandbox:docker",
+      scope: "sandbox",
+      policy: "allow",
+      shell: false,
+    });
     expect(opts.timeout).toBe(1000);
   });
 
@@ -173,13 +179,19 @@ describe("agent sandbox", () => {
       timeout: 2000,
     });
     expect(result.exitCode).toBe(0);
-    const [file, args] = _deps.spawnSync.mock.calls[0];
+    const [file, args, opts] = _deps.spawnSync.mock.calls[0];
     expect(file).toBe("bwrap");
     expect(args).toContain("--unshare-all");
     expect(args).toContain("--ro-bind");
     expect(args).toContain("--bind");
     expect(args).not.toContain("--share-net");
     expect(args.at(-1)).toBe("npm test");
+    expect(opts).toMatchObject({
+      origin: "agent-sandbox:bubblewrap",
+      scope: "sandbox",
+      policy: "allow",
+      shell: false,
+    });
   });
 
   it("fails closed when bubblewrap is unavailable", () => {
@@ -256,6 +268,25 @@ describe("strict sandbox mode (gap 2026-07-11: failIfUnavailable + isolation lev
     );
     expect(probe2.available).toBe(false);
     expect(probe2.reason).toMatch(/daemon/i);
+  });
+
+  it("routes the default availability probe through the broker", () => {
+    _deps.spawnSync = vi.fn(() => ({ status: 0, stdout: "27", stderr: "" }));
+
+    expect(probeSandboxAvailability(normalizeAgentSandbox(true))).toEqual({
+      available: true,
+      reason: null,
+    });
+    expect(_deps.spawnSync).toHaveBeenCalledWith(
+      "docker",
+      ["version", "--format", "{{.Server.Version}}"],
+      expect.objectContaining({
+        origin: "agent-sandbox:probe",
+        scope: "sandbox",
+        policy: "allow",
+        shell: false,
+      }),
+    );
   });
 
   it("assertSandboxAvailable refuses to start ONLY under failIfUnavailable", () => {

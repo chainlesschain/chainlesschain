@@ -165,6 +165,9 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   与输出路径继续逐项传递，并新增启动失败与成功产物映射的隔离测试。
 - Packer Web Panel 的 `npm run build:web-panel` 已进入 `packer:web-panel-build` Broker origin；
   固定 npm argv 显式禁用 shell，并补齐 npm 无法启动与构建产物发现的隔离测试。
+- Agent OS sandbox 的 Docker、bubblewrap 执行与可用性探测已分别进入 `agent-sandbox:docker`、
+  `agent-sandbox:bubblewrap`、`agent-sandbox:probe` Broker origin；既有隔离 argv、egress proxy、
+  超时/输出限制和 fail-closed 错误语义保持不变。
 
 ### 4.2 建议设计
 

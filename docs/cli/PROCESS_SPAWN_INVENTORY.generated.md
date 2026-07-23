@@ -111,10 +111,10 @@ Total matches: 402 (runtime: 326, tooling: 53, test: 23).
 | `packages/cli/src/lazy-dispatch.js` | 105 | `async spawn(argv) {` |
 | `packages/cli/src/lib/agent-ipc-bus.js` | 173 | `const { spawn } = await import("node:child_process");` |
 | `packages/cli/src/lib/agent-ipc-bus.js` | 178 | `const child = spawn(command, args, {` |
-| `packages/cli/src/lib/agent-sandbox.js` | 2 | `import { spawnSync } from "node:child_process";` |
-| `packages/cli/src/lib/agent-sandbox.js` | 128 | `const result = _deps.spawnSync("docker", args, {` |
-| `packages/cli/src/lib/agent-sandbox.js` | 191 | `const result = _deps.spawnSync("bwrap", args, {` |
-| `packages/cli/src/lib/agent-sandbox.js` | 246 | `const result = deps.spawnSync(probeArgs[0], probeArgs[1], {` |
+| `packages/cli/src/lib/agent-sandbox.js` | 8 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
+| `packages/cli/src/lib/agent-sandbox.js` | 130 | `const result = _deps.spawnSync("docker", args, {` |
+| `packages/cli/src/lib/agent-sandbox.js` | 197 | `const result = _deps.spawnSync("bwrap", args, {` |
+| `packages/cli/src/lib/agent-sandbox.js` | 256 | `const result = deps.spawnSync(probeArgs[0], probeArgs[1], {` |
 | `packages/cli/src/lib/agent-team/team-worktree.js` | 26 | `import { execFileSync, spawn } from "node:child_process";` |
 | `packages/cli/src/lib/agent-team/team-worktree.js` | 52 | `const child = spawn(command, { cwd, shell: true, env: process.env });` |
 | `packages/cli/src/lib/agent-team/team-worktree.js` | 66 | `execFileSync("git", ["add", "-A"], { cwd: worktreePath, stdio: "ignore" });` |

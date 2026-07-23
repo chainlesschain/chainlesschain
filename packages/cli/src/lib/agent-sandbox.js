@@ -1,10 +1,12 @@
 /** OS-isolated shell execution for the coding agent. */
-import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { proxyEnv } from "./sandbox-egress-proxy.js";
+import executionBroker from "./process-execution-broker/index.js";
 
 export const DEFAULT_SANDBOX_IMAGE = "node:22-bookworm-slim";
-export const _deps = { spawnSync };
+export const _deps = {
+  spawnSync: (...args) => executionBroker.spawnSync(...args),
+};
 
 function stringList(value) {
   if (!Array.isArray(value)) return [];
@@ -126,6 +128,10 @@ export function executeSandboxedShell(command, sandbox, options = {}) {
   }
   args.push(sandbox.image, "sh", "-lc", String(command || ""));
   const result = _deps.spawnSync("docker", args, {
+    origin: "agent-sandbox:docker",
+    scope: "sandbox",
+    policy: "allow",
+    shell: false,
     encoding: "utf8",
     timeout: options.timeout,
     maxBuffer: options.maxBuffer,
@@ -189,6 +195,10 @@ function executeBubblewrapShell(command, sandbox, options, hostCwd, policy) {
       ? { ...(options.env || {}), ...proxyEnv(egress.port, "127.0.0.1") }
       : options.env;
   const result = _deps.spawnSync("bwrap", args, {
+    origin: "agent-sandbox:bubblewrap",
+    scope: "sandbox",
+    policy: "allow",
+    shell: false,
     cwd: hostCwd,
     env: bwrapEnv,
     encoding: "utf8",
@@ -244,6 +254,10 @@ export function probeSandboxAvailability(sandbox, deps = _deps) {
       ? ["bwrap", ["--version"]]
       : ["docker", ["version", "--format", "{{.Server.Version}}"]];
   const result = deps.spawnSync(probeArgs[0], probeArgs[1], {
+    origin: "agent-sandbox:probe",
+    scope: "sandbox",
+    policy: "allow",
+    shell: false,
     encoding: "utf8",
     timeout: 10000,
     windowsHide: true,
