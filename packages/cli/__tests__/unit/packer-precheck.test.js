@@ -6,12 +6,12 @@
  * tmpDir-based fakes for projectRoot validation.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { execSync } from "node:child_process";
-import { precheck } from "../../src/lib/packer/precheck.js";
+import { _deps, precheck } from "../../src/lib/packer/precheck.js";
 import { PackError } from "../../src/lib/packer/errors.js";
 
 describe("precheck", () => {
@@ -66,6 +66,44 @@ describe("precheck", () => {
     if (r.gitCommit !== null) {
       expect(typeof r.gitCommit).toBe("string");
       expect(r.gitCommit.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("routes git metadata probes through literal brokered argv", () => {
+    const original = _deps.execFileSync;
+    const execFileSync = vi.fn((_file, args) => {
+      if (args[0] === "status") return "";
+      if (args.includes("--show-toplevel")) return `${process.cwd()}\n`;
+      return "abc123\n";
+    });
+    _deps.execFileSync = execFileSync;
+
+    try {
+      const result = precheck({
+        projectRoot: process.cwd(),
+        allowDirty: true,
+        projectMode: false,
+      });
+      expect(result.gitCommit).toBe("abc123");
+      expect(execFileSync).toHaveBeenNthCalledWith(
+        1,
+        "git",
+        ["rev-parse", "--show-toplevel"],
+        expect.objectContaining({
+          origin: "packer:precheck-git",
+          scope: "pack",
+          policy: "allow",
+          shell: false,
+          cwd: process.cwd(),
+        }),
+      );
+      expect(execFileSync.mock.calls.map((call) => call[1])).toEqual([
+        ["rev-parse", "--show-toplevel"],
+        ["rev-parse", "--short", "HEAD"],
+        ["status", "--porcelain"],
+      ]);
+    } finally {
+      _deps.execFileSync = original;
     }
   });
 

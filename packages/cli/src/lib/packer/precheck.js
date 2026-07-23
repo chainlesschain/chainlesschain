@@ -5,9 +5,13 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { PackError, EXIT } from "./errors.js";
+import executionBroker from "../process-execution-broker/index.js";
+
+export const _deps = {
+  execFileSync: (...args) => executionBroker.execFileSync(...args),
+};
 
 const WINDOWS_RESERVED = new Set([
   "CON",
@@ -139,22 +143,35 @@ export function precheck(ctx) {
   let gitCommit = null;
   let dirty = false;
   let repoRoot = null;
+  const gitOptions = (cwd) => ({
+    origin: "packer:precheck-git",
+    scope: "pack",
+    policy: "allow",
+    shell: false,
+    cwd,
+    encoding: "utf-8",
+    stdio: ["ignore", "pipe", "ignore"],
+  });
   try {
-    repoRoot = execSync("git rev-parse --show-toplevel", {
-      cwd: projectRoot,
-      encoding: "utf-8",
-      stdio: ["ignore", "pipe", "ignore"],
-    }).trim();
-    gitCommit = execSync("git rev-parse --short HEAD", {
-      cwd: repoRoot,
-      encoding: "utf-8",
-      stdio: ["ignore", "pipe", "ignore"],
-    }).trim();
-    const status = execSync("git status --porcelain", {
-      cwd: repoRoot,
-      encoding: "utf-8",
-      stdio: ["ignore", "pipe", "ignore"],
-    });
+    repoRoot = _deps
+      .execFileSync(
+        "git",
+        ["rev-parse", "--show-toplevel"],
+        gitOptions(projectRoot),
+      )
+      .trim();
+    gitCommit = _deps
+      .execFileSync(
+        "git",
+        ["rev-parse", "--short", "HEAD"],
+        gitOptions(repoRoot),
+      )
+      .trim();
+    const status = _deps.execFileSync(
+      "git",
+      ["status", "--porcelain"],
+      gitOptions(repoRoot),
+    );
     dirty = status.trim().length > 0;
   } catch (_e) {
     // Not a git repo — fine, leave the metadata null

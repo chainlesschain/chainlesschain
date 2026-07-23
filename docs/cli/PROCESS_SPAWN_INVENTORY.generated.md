@@ -221,10 +221,10 @@ Total matches: 402 (runtime: 326, tooling: 53, test: 23).
 | `packages/cli/src/lib/packer/pack-update-applier.js` | 30 | `import { spawn } from "node:child_process";` |
 | `packages/cli/src/lib/packer/pkg-runner.js` | 17 | `import { spawnSync } from "node:child_process";` |
 | `packages/cli/src/lib/packer/pkg-runner.js` | 50 | `const res = spawnSync(pkgBin.runtime, args, {` |
-| `packages/cli/src/lib/packer/precheck.js` | 8 | `import { execSync } from "node:child_process";` |
-| `packages/cli/src/lib/packer/precheck.js` | 143 | `repoRoot = execSync("git rev-parse --show-toplevel", {` |
-| `packages/cli/src/lib/packer/precheck.js` | 148 | `gitCommit = execSync("git rev-parse --short HEAD", {` |
-| `packages/cli/src/lib/packer/precheck.js` | 153 | `const status = execSync("git status --porcelain", {` |
+| `packages/cli/src/lib/packer/precheck.js` | 13 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
+| `packages/cli/src/lib/packer/precheck.js` | 157 | `.execFileSync(` |
+| `packages/cli/src/lib/packer/precheck.js` | 164 | `.execFileSync(` |
+| `packages/cli/src/lib/packer/precheck.js` | 170 | `const status = _deps.execFileSync(` |
 | `packages/cli/src/lib/packer/smoke-runner.js` | 22 | `import { spawn } from "node:child_process";` |
 | `packages/cli/src/lib/packer/smoke-runner.js` | 83 | `const child = spawn(exePath, ["ui", "--no-open"], {` |
 | `packages/cli/src/lib/packer/smoke-runner.js` | 119 | `spawn("taskkill", ["/F", "/T", "/PID", String(child.pid)], {` |

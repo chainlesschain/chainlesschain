@@ -159,6 +159,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   传递，不再经过 shell 拼接，并修复发布成功后误调用不存在的 `logger.succeed()` 而返回失败的问题。
 - LAN pairing preflight 的 `which`/`where` 防火墙工具探测已进入
   `lan-pairing:firewall-probe` Broker origin；候选工具名作为独立 argv 传递，继续保持只读、失败降级语义。
+- Packer precheck 的 repo root、short HEAD 与 porcelain status 查询已进入
+  `packer:precheck-git` Broker origin；三组固定 Git 参数均改为无 shell argv，并保留非 Git 目录的静默降级。
 
 ### 4.2 建议设计
 
