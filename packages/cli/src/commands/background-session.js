@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { readPrLinkLedger } from "../lib/pr-link-ledger.js";
+import executionBroker from "../lib/process-execution-broker/index.js";
 
 function formatAge(ms) {
   const n = Math.max(0, Math.round(Number(ms || 0) / 1000));
@@ -460,7 +461,6 @@ async function runDashboardView(options = {}) {
 
   const { runBgDashboard } = await import("../repl/bg-dashboard.js");
   const { fileURLToPath } = await import("node:url");
-  const { spawn } = await import("node:child_process");
   const BIN_PATH = fileURLToPath(
     new URL("../../bin/chainlesschain.js", import.meta.url),
   );
@@ -524,10 +524,18 @@ async function runDashboardView(options = {}) {
       await followBackgroundAgent(session.id, { lines: 40 });
     },
     dispatchAgent: async (text) => {
-      const child = spawn(
+      const child = executionBroker.spawn(
         process.execPath,
         [BIN_PATH, "agent", "--bg", "-p", text],
-        { detached: true, stdio: "ignore", windowsHide: true },
+        {
+          detached: true,
+          stdio: "ignore",
+          windowsHide: true,
+          origin: "background-session:dispatch",
+          policy: "allow",
+          scope: "background-session",
+          shell: false,
+        },
       );
       child.unref();
       return null; // id is minted by the launcher; the next refresh shows it
@@ -794,4 +802,3 @@ export function registerBackgroundSessionCommands(program) {
       }
     });
 }
-

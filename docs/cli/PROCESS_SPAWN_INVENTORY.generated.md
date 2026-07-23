@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 354 (runtime: 278, tooling: 53, test: 23).
+Total matches: 353 (runtime: 277, tooling: 53, test: 23).
 
 ## Policy
 
@@ -34,8 +34,7 @@ Total matches: 354 (runtime: 278, tooling: 53, test: 23).
 | `packages/cli/src/commands/agenda.js` | 33 | `execSync: (...args) => executionBroker.execSync(...args),` |
 | `packages/cli/src/commands/agenda.js` | 505 | `const child = _processDeps.spawn(` |
 | `packages/cli/src/commands/agenda.js` | 529 | `return _processDeps.execSync(command, {` |
-| `packages/cli/src/commands/background-session.js` | 463 | `const { spawn } = await import("node:child_process");` |
-| `packages/cli/src/commands/background-session.js` | 527 | `const child = spawn(` |
+| `packages/cli/src/commands/background-session.js` | 527 | `const child = executionBroker.spawn(` |
 | `packages/cli/src/commands/batch.js` | 191 | `return _processDeps.spawn(command, args, {` |
 | `packages/cli/src/commands/batch.js` | 200 | `return _processDeps.execFileSync("git", args, {` |
 | `packages/cli/src/commands/config.js` | 15 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
