@@ -108,6 +108,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   `status/signal/stdout/stderr` 的错误；归档解压与 Cloud handoff 共用该实现。
 - `doctor` 的 npm、Git 探针及 Windows UTF-8 控制台初始化已迁移为 Broker executable/argv
   调用；Windows npm 同样使用 `node.exe + npm-cli.js`，固定命令不再依赖业务模块中的裸 shell。
+- Docker/Compose 可用性探针及 up/down/pull/logs/status 已迁移到 `service` Broker scope；compose
+  文件路径与服务名保持独立 argv，状态查询不再拼接 shell 命令。
 
 ### 4.2 建议设计
 

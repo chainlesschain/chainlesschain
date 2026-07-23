@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 408 (runtime: 332, tooling: 53, test: 23).
+Total matches: 404 (runtime: 328, tooling: 53, test: 23).
 
 ## Policy
 
@@ -282,14 +282,10 @@ Total matches: 408 (runtime: 332, tooling: 53, test: 23).
 | `packages/cli/src/lib/repl-goal.js` | 113 | `spawnSync: deps.spawnSync,` |
 | `packages/cli/src/lib/search-command.js` | 5 | `* The pattern flows into execSync (a real shell), so a raw interpolation` |
 | `packages/cli/src/lib/secret-store.js` | 38 | `const result = executionBroker.spawnSync(file, args, {` |
-| `packages/cli/src/lib/service-manager.js` | 1 | `import { execSync, spawn } from "node:child_process";` |
-| `packages/cli/src/lib/service-manager.js` | 8 | `execSync("docker --version", { stdio: "ignore" });` |
-| `packages/cli/src/lib/service-manager.js` | 17 | `execSync("docker compose version", { stdio: "ignore" });` |
-| `packages/cli/src/lib/service-manager.js` | 21 | `execSync("docker-compose --version", { stdio: "ignore" });` |
-| `packages/cli/src/lib/service-manager.js` | 31 | `execSync("docker compose version", { stdio: "ignore" });` |
-| `packages/cli/src/lib/service-manager.js` | 78 | `const child = spawn(parts[0], [...parts.slice(1), ...args], {` |
-| `packages/cli/src/lib/service-manager.js` | 99 | `const output = execSync(`${cmd} -f "${composePath}" ps --format json`, {` |
-| `packages/cli/src/lib/service-manager.js` | 117 | `execSync(fullCmd, { stdio: "inherit" });` |
+| `packages/cli/src/lib/service-manager.js` | 7 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
+| `packages/cli/src/lib/service-manager.js` | 8 | `spawn: (...args) => executionBroker.spawn(...args),` |
+| `packages/cli/src/lib/service-manager.js` | 12 | `return _deps.execFileSync(command, args, {` |
+| `packages/cli/src/lib/service-manager.js` | 92 | `const child = _deps.spawn(` |
 | `packages/cli/src/lib/skill-packs/generator.js` | 179 | `const { spawnSync } = require("child_process");` |
 | `packages/cli/src/lib/skill-packs/generator.js` | 256 | `const result = spawnSync("chainlesschain", cliArgs, {` |
 | `packages/cli/src/lib/skill-packs/generator.js` | 410 | `const { spawnSync } = require("child_process");` |

@@ -1,11 +1,26 @@
-import { execSync, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import logger from "./logger.js";
+import { executionBroker } from "./process-execution-broker/index.js";
+
+export const _deps = {
+  execFileSync: (...args) => executionBroker.execFileSync(...args),
+  spawn: (...args) => executionBroker.spawn(...args),
+};
+
+function syncDocker(command, args, options = {}, origin = "service:docker") {
+  return _deps.execFileSync(command, args, {
+    ...options,
+    origin,
+    policy: "allow",
+    scope: "service",
+    shell: false,
+  });
+}
 
 export function isDockerAvailable() {
   try {
-    execSync("docker --version", { stdio: "ignore" });
+    syncDocker("docker", ["--version"], { stdio: "ignore" });
     return true;
   } catch {
     return false;
@@ -14,11 +29,11 @@ export function isDockerAvailable() {
 
 export function isDockerComposeAvailable() {
   try {
-    execSync("docker compose version", { stdio: "ignore" });
+    syncDocker("docker", ["compose", "version"], { stdio: "ignore" });
     return true;
   } catch {
     try {
-      execSync("docker-compose --version", { stdio: "ignore" });
+      syncDocker("docker-compose", ["--version"], { stdio: "ignore" });
       return true;
     } catch {
       return false;
@@ -26,12 +41,12 @@ export function isDockerComposeAvailable() {
   }
 }
 
-function getComposeCommand() {
+export function getComposeInvocation() {
   try {
-    execSync("docker compose version", { stdio: "ignore" });
-    return "docker compose";
+    syncDocker("docker", ["compose", "version"], { stdio: "ignore" });
+    return { command: "docker", prefixArgs: ["compose"] };
   } catch {
-    return "docker-compose";
+    return { command: "docker-compose", prefixArgs: [] };
   }
 }
 
@@ -54,30 +69,37 @@ export function findComposeFile(searchPaths) {
 }
 
 export function servicesUp(composePath, options = {}) {
-  const cmd = getComposeCommand();
+  const invocation = getComposeInvocation();
   const args = ["-f", composePath, "up", "-d"];
   if (options.services) {
     args.push(...options.services);
   }
-  return runCompose(cmd, args);
+  return runCompose(invocation, args);
 }
 
 export function servicesDown(composePath) {
-  const cmd = getComposeCommand();
-  return runCompose(cmd, ["-f", composePath, "down"]);
+  const invocation = getComposeInvocation();
+  return runCompose(invocation, ["-f", composePath, "down"]);
 }
 
 export function servicesLogs(composePath, options = {}) {
-  const cmd = getComposeCommand();
+  const invocation = getComposeInvocation();
   const args = ["-f", composePath, "logs"];
   if (options.follow) args.push("-f");
   if (options.tail) args.push("--tail", String(options.tail));
   if (options.services) args.push(...options.services);
 
-  const parts = cmd.split(" ");
-  const child = spawn(parts[0], [...parts.slice(1), ...args], {
-    stdio: "inherit",
-  });
+  const child = _deps.spawn(
+    invocation.command,
+    [...invocation.prefixArgs, ...args],
+    {
+      stdio: "inherit",
+      origin: "service:compose-logs",
+      policy: "allow",
+      scope: "service",
+      shell: false,
+    },
+  );
 
   return new Promise((resolve, reject) => {
     child.on("close", (code) => {
@@ -89,17 +111,22 @@ export function servicesLogs(composePath, options = {}) {
 }
 
 export function servicesPull(composePath) {
-  const cmd = getComposeCommand();
-  return runCompose(cmd, ["-f", composePath, "pull"]);
+  const invocation = getComposeInvocation();
+  return runCompose(invocation, ["-f", composePath, "pull"]);
 }
 
 export function getServiceStatus(composePath) {
-  const cmd = getComposeCommand();
+  const invocation = getComposeInvocation();
   try {
-    const output = execSync(`${cmd} -f "${composePath}" ps --format json`, {
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "ignore"],
-    });
+    const output = syncDocker(
+      invocation.command,
+      [...invocation.prefixArgs, "-f", composePath, "ps", "--format", "json"],
+      {
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "ignore"],
+      },
+      "service:compose-status",
+    );
     try {
       return JSON.parse(`[${output.trim().split("\n").join(",")}]`);
     } catch {
@@ -110,14 +137,22 @@ export function getServiceStatus(composePath) {
   }
 }
 
-function runCompose(cmd, args) {
-  const fullCmd = `${cmd} ${args.map((a) => (a.includes(" ") ? `"${a}"` : a)).join(" ")}`;
-  logger.verbose(`Running: ${fullCmd}`);
+function runCompose(invocation, args) {
+  const fullArgs = [...invocation.prefixArgs, ...args];
+  const display = [invocation.command, ...fullArgs]
+    .map((part) => JSON.stringify(String(part)))
+    .join(" ");
+  logger.verbose(`Running: ${display}`);
   try {
-    execSync(fullCmd, { stdio: "inherit" });
+    syncDocker(
+      invocation.command,
+      fullArgs,
+      { stdio: "inherit" },
+      "service:compose",
+    );
     return true;
   } catch (err) {
-    logger.error(`Command failed: ${fullCmd}`);
+    logger.error(`Command failed: ${display}`);
     throw err;
   }
 }
