@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.162.177",
+      "cliVersions": ["0.162.177"],
+      "date": "2026-07-23",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed — cc CLI 0.162.177：技能生成子进程统一纳入 Process Broker（CLI-only npm 发版）",
+          "body": "> `chainlesschain` 0.162.176 → **0.162.177**（2026-07-23）。本版把 CLI-Anything 与 CLI 技能包生成器的同步子进程执行统一收进宿主 Process Broker，补齐技能执行链路最后一处直接 `child_process` 入口。\n\n- **宿主拥有执行来源**：技能只拿到窄化、冻结的进程 facade；`origin`、`scope`、插件 id/version/source 等来源元数据由宿主写入，处理器不能伪造或绕过。\n- **CLI-Anything 无 shell 执行**：生成的 handler 把输入解析成字面 argv，经 `runFileSync(..., shell:false)` 执行；保留危险字符与未闭合引号拒绝，缺少 Broker 时 fail closed。\n- **CLI 技能包统一接线**：direct/hybrid 生成 handler 改经 `processBroker.runSync` 调用 CLI，命令行与 agent 两条技能执行入口都注入同一 Broker facade，并补齐单元/集成回归。"
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.162.176",
       "cliVersions": ["0.162.176"],
       "date": "2026-07-23",

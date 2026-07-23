@@ -2,13 +2,13 @@
   {
     "name": "ready above floor",
     "input": {
-      "cliVersionText": "0.162.176",
+      "cliVersionText": "0.162.177",
       "bridgePort": 43123,
       "workspaceTrusted": true
     },
     "expected": {
       "status": "ready",
-      "cliVersion": "0.162.176",
+      "cliVersion": "0.162.177",
       "minimumCliVersion": "0.162.47",
       "reasons": []
     }
@@ -30,28 +30,28 @@
   {
     "name": "bridge stopped degrades",
     "input": {
-      "cliVersionText": "0.162.176",
+      "cliVersionText": "0.162.177",
       "minimumCliVersion": "0.162.47",
       "bridgePort": 0,
       "workspaceTrusted": true
     },
     "expected": {
       "status": "degraded",
-      "cliVersion": "0.162.176",
+      "cliVersion": "0.162.177",
       "reasons": ["IDE bridge is stopped"]
     }
   },
   {
     "name": "restricted workspace degrades",
     "input": {
-      "cliVersionText": "0.162.176",
+      "cliVersionText": "0.162.177",
       "minimumCliVersion": "0.162.47",
       "bridgePort": 43123,
       "workspaceTrusted": false
     },
     "expected": {
       "status": "degraded",
-      "cliVersion": "0.162.176",
+      "cliVersion": "0.162.177",
       "reasons": ["workspace trust is restricted"]
     }
   },
