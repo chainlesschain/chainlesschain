@@ -225,6 +225,14 @@ function createVscodeEditorFacade(vscode, opts = {}) {
       ) {
         return { outcome: "rejected", path, reason: REASON_BINARY_SKIPPED };
       }
+      const auditBaselineText =
+        typeof originalText === "string"
+          ? originalText
+          : currentTextForDrift(vscode, path);
+      const withAuditBaseline = (decision) => ({
+        ...decision,
+        _auditBaselineText: auditBaselineText,
+      });
       const fileUri = vscode.Uri.file(path);
       let leftUri;
       if (typeof originalText === "string") {
@@ -304,7 +312,11 @@ function createVscodeEditorFacade(vscode, opts = {}) {
       });
       if (choice === CLOSED) {
         // The reviewer closed the diff tab themselves — it is already gone.
-        return { outcome: "rejected", path, closedDiff: true };
+        return withAuditBaseline({
+          outcome: "rejected",
+          path,
+          closedDiff: true,
+        });
       }
       // Close the (now-stale) diff tab once a BUTTON decision is fully handled.
       // Accept / Pick hunks / Request changes otherwise leave the tab open, so
@@ -336,24 +348,28 @@ function createVscodeEditorFacade(vscode, opts = {}) {
           // the notes ride back to the agent so it revises and re-proposes.
           const comments = await collectReviewComments(vscode, rightDoc);
           if (!comments || comments.length === 0) {
-            return { outcome: "rejected", path }; // no actionable feedback
+            return withAuditBaseline({ outcome: "rejected", path }); // no actionable feedback
           }
-          return {
+          return withAuditBaseline({
             outcome: "changes-requested",
             path,
             comments,
             reviewedText: rightDoc.getText(),
-          };
+          });
         }
         if (choice === "Accept") {
           const finalText = rightDoc.getText(); // includes any user edits
           // Optimistic-concurrency gate: the review was decided against
           // `originalText` — if the disk moved meanwhile, don't blind-write.
           if (!(await confirmDriftOverwrite(vscode, path, originalText))) {
-            return { outcome: "rejected", path, reason: REASON_DISK_DRIFTED };
+            return withAuditBaseline({
+              outcome: "rejected",
+              path,
+              reason: REASON_DISK_DRIFTED,
+            });
           }
           await applyTextToFile(vscode, fileUri, finalText);
-          return { outcome: "accepted", path, finalText };
+          return withAuditBaseline({ outcome: "accepted", path, finalText });
         }
         if (choice === "Pick hunks…") {
           // Hunk-level partial accept: diff the (possibly user-edited) right
@@ -366,7 +382,7 @@ function createVscodeEditorFacade(vscode, opts = {}) {
               : safeReadFile(path);
           const hunks = computeHunks(baseline, rightDoc.getText());
           if (hunks.length === 0) {
-            return { outcome: "rejected", path }; // nothing to apply
+            return withAuditBaseline({ outcome: "rejected", path }); // nothing to apply
           }
           const picks = await vscode.window.showQuickPick(
             hunks.map((h) => ({
@@ -389,7 +405,7 @@ function createVscodeEditorFacade(vscode, opts = {}) {
           );
           // Esc / empty selection → fail-safe: nothing is written.
           if (!picks || picks.length === 0) {
-            return { outcome: "rejected", path };
+            return withAuditBaseline({ outcome: "rejected", path });
           }
           const finalText = applyHunks(
             baseline,
@@ -399,18 +415,23 @@ function createVscodeEditorFacade(vscode, opts = {}) {
           // Same drift gate as Accept: hunks were computed against the agent's
           // baseline, so a moved disk would be clobbered by this write too.
           if (!(await confirmDriftOverwrite(vscode, path, originalText))) {
-            return { outcome: "rejected", path, reason: REASON_DISK_DRIFTED };
+            return withAuditBaseline({
+              outcome: "rejected",
+              path,
+              reason: REASON_DISK_DRIFTED,
+            });
           }
           await applyTextToFile(vscode, fileUri, finalText);
-          return {
+          return withAuditBaseline({
             outcome: "accepted",
             path,
             finalText,
             appliedHunks: picks.length,
             totalHunks: hunks.length,
-          };
+            selectedHunks: picks.map((pick) => pick.hunk.index),
+          });
         }
-        return { outcome: "rejected", path };
+        return withAuditBaseline({ outcome: "rejected", path });
       } finally {
         await closeDiffTab();
       }
@@ -463,7 +484,11 @@ function createVscodeEditorFacade(vscode, opts = {}) {
       );
       if (changed.length === 0) {
         return skippedBinary.length > 0
-          ? { outcome: "rejected", reason: REASON_BINARY_SKIPPED, skippedBinary }
+          ? {
+              outcome: "rejected",
+              reason: REASON_BINARY_SKIPPED,
+              skippedBinary,
+            }
           : { outcome: "rejected", reason: "no changes" };
       }
       // Baseline per path for the accept-time drift gate (normalize() stores

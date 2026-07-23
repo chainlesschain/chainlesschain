@@ -67,6 +67,7 @@ function fakeFacade() {
       outcome: "accepted",
       path: args.path,
       finalText: args.modifiedText,
+      _auditBaselineText: "old",
     })),
   };
 }
@@ -118,9 +119,26 @@ describe("buildIdeTools (fake facade)", () => {
     await expect(byName.openDiff.handler({ path: "/x" })).rejects.toThrow(
       /requires/,
     );
-    expect(
-      await byName.openDiff.handler({ path: "/x", modifiedText: "new" }),
-    ).toMatchObject({ outcome: "accepted", finalText: "new" });
+    const result = await byName.openDiff.handler({
+      path: "/x",
+      modifiedText: "new",
+    });
+    expect(result).toMatchObject({
+      outcome: "accepted",
+      finalText: "new",
+      audit: {
+        schema: "cc-diff-review/v1",
+        host: "vscode",
+        path: "/x",
+        outcome: "accepted",
+        source: "agent-proposed",
+        written: true,
+      },
+    });
+    expect(result.audit.proposed.sha256).toHaveLength(64);
+    expect(result.audit.baseline).toMatchObject({ chars: 3, lines: 1 });
+    expect(result.audit).not.toHaveProperty("proposedText");
+    expect(result).not.toHaveProperty("_auditBaselineText");
   });
 });
 

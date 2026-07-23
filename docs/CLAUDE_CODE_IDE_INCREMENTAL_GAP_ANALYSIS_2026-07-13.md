@@ -11,6 +11,10 @@
 
 本报告后续追加的实现已经收口以下旧剩项：`cc doctor --export-bundle` 已接通脱敏诊断包导出；`protocol-replay.js` 与 `scripts/replay-protocol.mjs` 已提供离线回放/协商审计；`governance-coverage.js` 与 `scripts/coverage-report.mjs` 已提供治理覆盖率报告；OTLP exporter 已提供 HTTP/HTTPS 批量出口；VS Code 与 JetBrains 的 Plan Review 已用 `cc-plan-review/v1` 将有界草稿、计划快照、revision 和决策状态按 session 持久化，并恢复重启前仍活动的审阅。2026-07-23 又补齐最多 64 条 item/file/line/column/turn 结构化批注、`tool_use.id` ↔ `plan_item_id` 的逐项 executing/completed/failed 回写、旧/新 plan ID 的结构化 Diff，以及固化权限模式/批准项/允许工具的审批执行锁。因而“诊断包/离线回放/覆盖率”和“Plan Review 草稿恢复、结构化批注、执行进度、计划 Diff、审批锁摘要”应标为 **C/T 已完成**；发布门和真实 Collector 验收仍分别保留。
 
+同日两端 `openDiff` 增加 `cc-diff-review/v1` 审计包，以内容指纹而非代码正文记录
+接受/拒绝、用户改写、hunk 选择、批注与最终写入。历史 Diff 差距因此只保留显式
+rename/delete 意图、session/turn/toolUse 与副作用账本关联、真实宿主/大文件降级验收。
+
 仍不能由仓库静态证据完全关闭的项目：多版本/多宿主 GUI 矩阵、五类远程环境 E2E、跨进程 kill/resume、8 小时 soak、Marketplace 安装升级矩阵，以及 IDE 内部 Preview 的 DOM/console/network/action 闭环、PR/CI 的完整交付交互和 Agent View 的统一跨端状态接管。当前两端已具备 Preview 健康状态、只读 PR 状态命令和后台 Agent 视图入口，不能再表述为“完全未接线”。
 
 ## 1. 结论先行

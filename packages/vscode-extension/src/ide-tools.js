@@ -28,6 +28,7 @@
 
 const { buildSemanticTools } = require("./semantic-tools");
 const { validateIdeToolPath } = require("./ide-path-guard");
+const { buildDiffReviewAudit } = require("./diff-review-audit");
 
 /**
  * Resolve the workspace folders that bound where the path-taking IDE tools
@@ -70,8 +71,8 @@ async function resolveWorkspaceFolders(editor, options) {
     }
   }
   try {
-    // eslint-disable-next-line global-require -- only resolvable inside a VS
-    // Code extension host; unit tests fall through to the catch.
+    // `vscode` is only resolvable inside an extension host; unit tests fall
+    // through to the catch.
     const vscode = require("vscode");
     const folders = vscode?.workspace?.workspaceFolders;
     if (!Array.isArray(folders)) return [];
@@ -217,7 +218,25 @@ function buildIdeTools(editor, options = {}) {
           title: args.title,
         });
         // Fail-safe: a facade that returns nothing is treated as "not applied".
-        return res || { outcome: "rejected", path: safePath };
+        const result = res || { outcome: "rejected", path: safePath };
+        const publicResult = { ...result };
+        const auditBaselineText =
+          typeof args.originalText === "string"
+            ? args.originalText
+            : typeof publicResult._auditBaselineText === "string"
+              ? publicResult._auditBaselineText
+              : undefined;
+        delete publicResult._auditBaselineText;
+        return {
+          ...publicResult,
+          audit: buildDiffReviewAudit({
+            path: safePath,
+            originalText: auditBaselineText,
+            proposedText: args.modifiedText,
+            result: publicResult,
+            host: "vscode",
+          }),
+        };
       },
     },
     // Conditional: batch multi-file diff review. Only exposed when the facade

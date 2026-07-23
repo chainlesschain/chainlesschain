@@ -291,6 +291,7 @@ public final class IntellijEditorFacade implements EditorFacade {
                     r.put("finalText", finalText);
                     r.put("appliedHunks", picked.size());
                     r.put("totalHunks", hunks.size());
+                    r.put("selectedHunks", new ArrayList<Integer>(picked));
                 }
             } else if (choice == 2) { // Request changes…
                 List<Map<String, Object>> comments = collectReviewComments(reviewed);
@@ -308,6 +309,7 @@ public final class IntellijEditorFacade implements EditorFacade {
                 r.put("outcome", "rejected");
                 r.put("path", path);
             }
+            r.put("_auditBaselineText", left);
             result.set(r);
         });
         return result.get();

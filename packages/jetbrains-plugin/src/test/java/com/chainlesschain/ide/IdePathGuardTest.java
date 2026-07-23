@@ -178,6 +178,7 @@ final class IdePathGuardTest {
             Map<String, Object> out = new LinkedHashMap<>();
             out.put("outcome", "accepted");
             out.put("path", path);
+            out.put("_auditBaselineText", "old");
             return out;
         }
         @Override public Map<String, Object> openMultiDiff(
@@ -227,11 +228,21 @@ final class IdePathGuardTest {
         Tool openDiff = find(IdeTools.build(facade, null,
                 Collections.singletonList(proj.toString())), "openDiff");
 
-        openDiff.call(args(
+        Object result = openDiff.call(args(
                 "path", proj.resolve("src/../src/App.java").toString(),
                 "modifiedText", "x"));
         assertEquals(proj.toAbsolutePath().normalize().resolve("src").resolve("App.java").toString(),
                 facade.diffPath);
+        assertTrue(result instanceof Map);
+        Object auditValue = ((Map<?, ?>) result).get("audit");
+        assertTrue(auditValue instanceof Map);
+        Map<?, ?> audit = (Map<?, ?>) auditValue;
+        assertEquals(DiffReviewAudit.SCHEMA, audit.get("schema"));
+        assertEquals("jetbrains", audit.get("host"));
+        assertEquals("accepted", audit.get("outcome"));
+        assertEquals(true, audit.get("written"));
+        assertEquals(3, ((Map<?, ?>) audit.get("baseline")).get("chars"));
+        assertFalse(((Map<?, ?>) result).containsKey("_auditBaselineText"));
     }
 
     @Test

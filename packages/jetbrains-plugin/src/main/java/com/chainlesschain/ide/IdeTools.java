@@ -1,5 +1,6 @@
 package com.chainlesschain.ide;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -130,11 +131,26 @@ public final class IdeTools {
                         (String) modified,
                         (String) args.get("originalText"),
                         (String) args.get("title"));
-                if (res != null) return res;
-                Map<String, Object> fallback = new LinkedHashMap<>();
-                fallback.put("outcome", "rejected");
-                fallback.put("path", safePath);
-                return fallback;
+                Map<String, Object> output = res != null
+                        ? new LinkedHashMap<String, Object>(res)
+                        : new LinkedHashMap<String, Object>();
+                if (res == null) {
+                    output.put("outcome", "rejected");
+                    output.put("path", safePath);
+                }
+                Object internalBaseline = output.remove("_auditBaselineText");
+                String auditBaseline = args.get("originalText") instanceof String
+                        ? (String) args.get("originalText")
+                        : internalBaseline instanceof String ? (String) internalBaseline : null;
+                output.put("audit", DiffReviewAudit.build(
+                        safePath,
+                        auditBaseline,
+                        (String) modified,
+                        output,
+                        "jetbrains",
+                        "local-user",
+                        Instant.now()));
+                return output;
             }
         });
 

@@ -13,7 +13,10 @@ Reviewer Notes 会形成带 plan item、文件、行/列和 agent turn 的结构
 executing/completed/failed 进度回写两端审阅文档且保留用户原文。2026-07-23 又完成计划
 修订状态机和旧/新 plan ID 的 added/removed/changed Diff；Approve 时会固化权限模式、批准项
 与允许工具，并由 CLI 执行不可扩大的工具锁。Plan Review 的上述代码/定向测试剩项已关闭；
-本文件原有的真实远程环境与长期稳定性验收项仍保留。
+两端 `openDiff` 还新增 `cc-diff-review/v1` 统一审计包，用内容指纹记录接受/拒绝、用户改写、
+hunk 选择、行批注与最终写入，不保存代码正文。Diff 当前剩项是显式 rename/delete 意图、
+session/turn/toolUse 与副作用账本持久化，以及真实多宿主/大文件降级验收。本文件原有的
+真实远程环境与长期稳定性验收项仍保留。
 
 ## 结论
 
