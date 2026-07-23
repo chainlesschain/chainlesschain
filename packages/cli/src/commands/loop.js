@@ -23,10 +23,10 @@
  * only builds the concrete iteration (spawn + tee output) and wires SIGINT.
  */
 
-import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import executionBroker from "../lib/process-execution-broker/index.js";
 import {
   runLoop,
   parseDuration,
@@ -41,6 +41,10 @@ import {
   readEvents,
   sessionExists,
 } from "../harness/jsonl-session-store.js";
+
+export const _deps = {
+  spawn: executionBroker.spawn.bind(executionBroker),
+};
 
 /**
  * Appended to the prompt under `--dynamic` so the model can self-pace: it ends
@@ -66,10 +70,13 @@ const BIN_PATH = fileURLToPath(
  */
 function spawnIteration(cmd, args, { shell, onChild, capture }) {
   return new Promise((resolve) => {
-    const child = spawn(cmd, args, {
+    const child = _deps.spawn(cmd, args, {
       shell,
       stdio: capture ? ["inherit", "pipe", "pipe"] : "inherit",
       env: process.env,
+      origin: "loop:iteration",
+      policy: "allow",
+      scope: "loop",
     });
     if (onChild) onChild(child);
 

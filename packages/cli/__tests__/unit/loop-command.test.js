@@ -7,11 +7,12 @@
  * `node -e` children so the loop completes in well under a second.
  */
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
+import { EventEmitter } from "node:events";
 import { Command } from "commander";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { registerLoopCommand } from "../../src/commands/loop.js";
+import { _deps, registerLoopCommand } from "../../src/commands/loop.js";
 import {
   sessionPath,
   readEvents,
@@ -23,6 +24,7 @@ let chainlesschainHomeBefore;
 let exitCodeBefore;
 let tmpDir;
 const createdSessions = [];
+const originalSpawn = _deps.spawn;
 
 /** Write a throwaway .js script (no shell-fragile embedded-space args). */
 function writeScript(body) {
@@ -58,6 +60,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  _deps.spawn = originalSpawn;
   logSpy.mockRestore();
   errSpy.mockRestore();
   process.exitCode = exitCodeBefore;
@@ -120,6 +123,37 @@ describe("cc loop — validation", () => {
 });
 
 describe("cc loop — exec mode", () => {
+  it("routes the shell-resolved iteration through Broker provenance", async () => {
+    const child = new EventEmitter();
+    child.kill = vi.fn();
+    _deps.spawn = vi.fn(() => {
+      queueMicrotask(() => child.emit("close", 0, null));
+      return child;
+    });
+
+    await run(
+      "--every",
+      "1ms",
+      "--max-iterations",
+      "1",
+      "--json",
+      "--",
+      "fake-tool",
+      "arg with spaces",
+    );
+
+    expect(_deps.spawn).toHaveBeenCalledWith(
+      "fake-tool arg with spaces",
+      [],
+      expect.objectContaining({
+        origin: "loop:iteration",
+        policy: "allow",
+        scope: "loop",
+        shell: true,
+      }),
+    );
+  });
+
   it("runs an external command --max-iterations times and reports JSON", async () => {
     const out = await run(
       "--every",

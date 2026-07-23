@@ -214,6 +214,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   改为 literal Git argv，并统一继承 64 MB 输出上限与 `git-integration:argv` provenance。
 - Agent IPC bus 的 subagent stdio 启动已进入 `agent-ipc:subagent` Broker origin；
   初始化握手、Agent identity env、可选 shell 兼容和 heartbeat 生命周期保持不变。
+- `cc loop` 的每轮外部命令/Agent 启动已进入 `loop:iteration` Broker origin；
+  exec 模式保留 Windows shim 所需 shell，prompt 模式继续使用字面 argv。
 
 ### 4.2 建议设计
 

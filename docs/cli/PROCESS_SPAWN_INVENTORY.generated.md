@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 369 (runtime: 293, tooling: 53, test: 23).
+Total matches: 368 (runtime: 292, tooling: 53, test: 23).
 
 ## Policy
 
@@ -76,8 +76,7 @@ Total matches: 369 (runtime: 293, tooling: 53, test: 23).
 | `packages/cli/src/commands/init.js` | 1907 | `const ar = spawnSync(py.command, [tmpApply], { encoding: "utf-8", timeout: 30000 });` |
 | `packages/cli/src/commands/init.js` | 1964 | `const er = spawnSync(py.command, [tmpExtract], { encoding: "utf-8", timeout: 30000 });` |
 | `packages/cli/src/commands/init.js` | 2015 | `const ar = spawnSync(py.command, [tmpApply], { encoding: "utf-8", timeout: 30000 });` |
-| `packages/cli/src/commands/loop.js` | 26 | `import { spawn } from "node:child_process";` |
-| `packages/cli/src/commands/loop.js` | 69 | `const child = spawn(cmd, args, {` |
+| `packages/cli/src/commands/loop.js` | 73 | `const child = _deps.spawn(cmd, args, {` |
 | `packages/cli/src/commands/memory.js` | 57 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/commands/memory.js` | 63 | `return deps.execFileSync(file, [...editorArgs, filePath], {` |
 | `packages/cli/src/commands/review.js` | 44 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
