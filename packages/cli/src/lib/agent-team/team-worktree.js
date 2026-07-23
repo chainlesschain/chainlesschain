@@ -23,7 +23,12 @@ import {
 } from "../../harness/worktree-isolator.js";
 import { isGitRepo as _isGitRepo } from "../../lib/git-integration.js";
 import { normalizeSparsePaths } from "../../lib/worktree-sparse.js";
-import { execFileSync, spawn } from "node:child_process";
+import executionBroker from "../../lib/process-execution-broker/index.js";
+
+export const _processDeps = {
+  spawn: executionBroker.spawn.bind(executionBroker),
+  execFileSync: executionBroker.execFileSync.bind(executionBroker),
+};
 
 /**
  * Resolve the sparse-checkout / dependency-symlink options for a task, letting a
@@ -49,7 +54,14 @@ function resolveWorktreeOptions(task, defaults) {
 
 function defaultRunShell(command, cwd) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, { cwd, shell: true, env: process.env });
+    const child = _processDeps.spawn(command, [], {
+      cwd,
+      shell: true,
+      env: process.env,
+      origin: "team-worktree:task-command",
+      policy: "allow",
+      scope: "team-worktree",
+    });
     let err = "";
     child.stderr?.on("data", (d) => (err += d.toString("utf8")));
     child.on("error", (e) => reject(new Error(e.message)));
@@ -61,12 +73,22 @@ function defaultRunShell(command, cwd) {
   });
 }
 
+function runTeamGit(args, cwd) {
+  return _processDeps.execFileSync("git", args, {
+    cwd,
+    stdio: "ignore",
+    origin: "team-worktree:commit",
+    policy: "allow",
+    scope: "team-worktree",
+    shell: false,
+  });
+}
+
 /** Stage + commit everything in a worktree. Returns true if a commit was made. */
 function defaultCommit(worktreePath, message) {
-  execFileSync("git", ["add", "-A"], { cwd: worktreePath, stdio: "ignore" });
+  runTeamGit(["add", "-A"], worktreePath);
   try {
-    execFileSync(
-      "git",
+    runTeamGit(
       [
         "-c",
         "user.email=team@chainlesschain.local",
@@ -76,7 +98,7 @@ function defaultCommit(worktreePath, message) {
         "-m",
         message,
       ],
-      { cwd: worktreePath, stdio: "ignore" },
+      worktreePath,
     );
     return true;
   } catch {

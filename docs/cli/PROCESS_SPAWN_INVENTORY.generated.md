@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 353 (runtime: 277, tooling: 53, test: 23).
+Total matches: 351 (runtime: 275, tooling: 53, test: 23).
 
 ## Policy
 
@@ -96,10 +96,8 @@ Total matches: 353 (runtime: 277, tooling: 53, test: 23).
 | `packages/cli/src/lib/agent-sandbox.js` | 130 | `const result = _deps.spawnSync("docker", args, {` |
 | `packages/cli/src/lib/agent-sandbox.js` | 197 | `const result = _deps.spawnSync("bwrap", args, {` |
 | `packages/cli/src/lib/agent-sandbox.js` | 256 | `const result = deps.spawnSync(probeArgs[0], probeArgs[1], {` |
-| `packages/cli/src/lib/agent-team/team-worktree.js` | 26 | `import { execFileSync, spawn } from "node:child_process";` |
-| `packages/cli/src/lib/agent-team/team-worktree.js` | 52 | `const child = spawn(command, { cwd, shell: true, env: process.env });` |
-| `packages/cli/src/lib/agent-team/team-worktree.js` | 66 | `execFileSync("git", ["add", "-A"], { cwd: worktreePath, stdio: "ignore" });` |
-| `packages/cli/src/lib/agent-team/team-worktree.js` | 68 | `execFileSync(` |
+| `packages/cli/src/lib/agent-team/team-worktree.js` | 57 | `const child = _processDeps.spawn(command, [], {` |
+| `packages/cli/src/lib/agent-team/team-worktree.js` | 77 | `return _processDeps.execFileSync("git", args, {` |
 | `packages/cli/src/lib/agent-worktree.js` | 14 | `import { execFileSync, execSync } from "child_process";` |
 | `packages/cli/src/lib/agent-worktree.js` | 28 | `return (deps.execSync \|\| execSync)(`git ${cmd}`, {` |
 | `packages/cli/src/lib/agent-worktree.js` | 141 | `const run = deps.execFileSync \|\| execFileSync;` |

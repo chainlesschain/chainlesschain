@@ -1,16 +1,62 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { EventEmitter } from "node:events";
 import {
   TeamWorktreeCoordinator,
   _deps,
+  _processDeps,
 } from "../../src/lib/agent-team/team-worktree.js";
 
 // Save/restore the injected git surface so each test drives fakes.
 let saved;
+let savedProcessDeps;
 beforeEach(() => {
   saved = { ..._deps };
+  savedProcessDeps = { ..._processDeps };
 });
 afterEach(() => {
   Object.assign(_deps, saved);
+  Object.assign(_processDeps, savedProcessDeps);
+});
+
+describe("TeamWorktreeCoordinator process contracts", () => {
+  it("brokers the default task shell with explicit provenance", async () => {
+    const child = new EventEmitter();
+    child.stderr = new EventEmitter();
+    _processDeps.spawn = vi.fn(() => child);
+
+    const pending = _deps.runShell("npm test", "/wt/task");
+    child.emit("close", 0);
+
+    await expect(pending).resolves.toEqual({ code: 0 });
+    expect(_processDeps.spawn).toHaveBeenCalledWith(
+      "npm test",
+      [],
+      expect.objectContaining({
+        cwd: "/wt/task",
+        origin: "team-worktree:task-command",
+        policy: "allow",
+        scope: "team-worktree",
+        shell: true,
+      }),
+    );
+  });
+
+  it("brokers worktree staging and commit without a shell", () => {
+    _processDeps.execFileSync = vi.fn(() => "");
+
+    expect(_deps.commit("/wt/task", "team task build")).toBe(true);
+    expect(_processDeps.execFileSync).toHaveBeenCalledTimes(2);
+    for (const call of _processDeps.execFileSync.mock.calls) {
+      expect(call[0]).toBe("git");
+      expect(call[2]).toMatchObject({
+        cwd: "/wt/task",
+        origin: "team-worktree:commit",
+        policy: "allow",
+        scope: "team-worktree",
+        shell: false,
+      });
+    }
+  });
 });
 
 describe("TeamWorktreeCoordinator.makeRunTask", () => {

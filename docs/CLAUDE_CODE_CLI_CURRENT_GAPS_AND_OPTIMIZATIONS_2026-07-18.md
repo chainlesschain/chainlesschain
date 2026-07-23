@@ -222,6 +222,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   Broker origin；Agent/Git 保持字面 argv，测试命令保留显式 shell，真实 worktree 集成测试继续通过。
 - 后台会话 dashboard 的新 Agent 分发已进入 `background-session:dispatch` Broker origin；
   保留 detached/unref、无 stdio 与字面 prompt argv 语义。
+- Team worktree 的任务 shell 与 Git 暂存/提交已分别进入 `team-worktree:task-command`、
+  `team-worktree:commit` Broker origin；真实并行 worktree 合并与冲突集成测试保持通过。
 
 ### 4.2 建议设计
 
