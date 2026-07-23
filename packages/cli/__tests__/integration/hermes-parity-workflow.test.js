@@ -589,13 +589,16 @@ describe("Plugin Auto-Discovery Pipeline", () => {
 
 describe("Backend Factory -> Execute", () => {
   let origExecSync;
+  let origSpawnSync;
 
   beforeEach(() => {
     origExecSync = backendDeps.execSync;
+    origSpawnSync = backendDeps.spawnSync;
   });
 
   afterEach(() => {
     backendDeps.execSync = origExecSync;
+    backendDeps.spawnSync = origSpawnSync;
   });
 
   it("createBackend('local') -> execute returns stdout", () => {
@@ -617,7 +620,11 @@ describe("Backend Factory -> Execute", () => {
   });
 
   it("createBackend('docker') with container generates correct docker exec command", () => {
-    backendDeps.execSync = vi.fn(() => "container output\n");
+    backendDeps.spawnSync = vi.fn(() => ({
+      status: 0,
+      stdout: "container output\n",
+      stderr: "",
+    }));
 
     const backend = createBackend({
       type: "docker",
@@ -630,15 +637,25 @@ describe("Backend Factory -> Execute", () => {
     expect(result.stdout).toBe("container output\n");
     expect(result.exitCode).toBe(0);
 
-    const calledCmd = backendDeps.execSync.mock.calls[0][0];
-    expect(calledCmd).toContain("docker exec");
-    expect(calledCmd).toContain("my-app-container");
-    expect(calledCmd).toContain("/app");
-    expect(calledCmd).toContain("ls -la");
+    const [file, args] = backendDeps.spawnSync.mock.calls[0];
+    expect(file).toBe("docker");
+    expect(args).toEqual([
+      "exec",
+      "-w",
+      "/app",
+      "my-app-container",
+      "sh",
+      "-c",
+      "ls -la",
+    ]);
   });
 
   it("createBackend('ssh') with host generates correct ssh command", () => {
-    backendDeps.execSync = vi.fn(() => "remote output\n");
+    backendDeps.spawnSync = vi.fn(() => ({
+      status: 0,
+      stdout: "remote output\n",
+      stderr: "",
+    }));
 
     const backend = createBackend({
       type: "ssh",
@@ -657,13 +674,18 @@ describe("Backend Factory -> Execute", () => {
     expect(result.stdout).toBe("remote output\n");
     expect(result.exitCode).toBe(0);
 
-    const calledCmd = backendDeps.execSync.mock.calls[0][0];
-    expect(calledCmd).toContain("ssh");
-    expect(calledCmd).toContain("deploy@prod.example.com");
-    expect(calledCmd).toContain("-i");
-    expect(calledCmd).toContain("/home/deploy/.ssh/id_ed25519");
-    expect(calledCmd).toContain("-p 2222");
-    expect(calledCmd).toContain("systemctl status nginx");
+    const [file, args] = backendDeps.spawnSync.mock.calls[0];
+    expect(file).toBe("ssh");
+    expect(args).toContain("deploy@prod.example.com");
+    expect(args).toEqual(
+      expect.arrayContaining([
+        "-i",
+        "/home/deploy/.ssh/id_ed25519",
+        "-p",
+        "2222",
+      ]),
+    );
+    expect(args.at(-1)).toBe("cd '/opt/app' && systemctl status nginx");
   });
 });
 

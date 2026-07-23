@@ -14,4 +14,5 @@ export {
   ChainlessChainWSServer,
   tokenizeCommand,
   isCommandBlocked,
+  _deps,
 } from "../gateways/ws/ws-server.js";
