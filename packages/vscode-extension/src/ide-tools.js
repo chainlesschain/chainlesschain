@@ -83,26 +83,48 @@ async function resolveWorkspaceFolders(editor, options) {
 }
 
 function buildIdeTools(editor, options = {}) {
-  async function withContext(payload, file, tool) {
-    if (
-      !payload ||
-      typeof payload !== "object" ||
-      Array.isArray(payload) ||
-      typeof editor.getContextMetadata !== "function"
-    ) {
-      return payload;
-    }
-    let context;
+  async function contextMetadata(file, tool) {
+    if (typeof editor.getContextMetadata !== "function") return null;
     try {
-      context = await editor.getContextMetadata({ file, tool });
+      const context = await editor.getContextMetadata({ file, tool });
+      return context && typeof context === "object" ? context : null;
     } catch {
       // Metadata is additive. A host probe failure must not erase the context
       // payload that older clients already understand.
+      return null;
+    }
+  }
+
+  async function withContext(payload, file, tool) {
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
       return payload;
     }
-    return context && typeof context === "object"
-      ? { ...payload, context }
-      : payload;
+    const context = await contextMetadata(file, tool);
+    return context ? { ...payload, context } : payload;
+  }
+
+  async function withMultiFileContexts(payload, files, tool) {
+    let result = await withContext(payload, null, tool);
+    if (typeof editor.getContextMetadata !== "function") return result;
+    const documentContexts = [];
+    for (const file of files) {
+      const context = await contextMetadata(file.path, tool);
+      const targetContext = file.targetPath
+        ? await contextMetadata(file.targetPath, tool)
+        : null;
+      if (!context && !targetContext) continue;
+      documentContexts.push({
+        path: file.path,
+        operation: file.operation || "modify",
+        ...(context ? { context } : {}),
+        ...(file.targetPath ? { targetPath: file.targetPath } : {}),
+        ...(targetContext ? { targetContext } : {}),
+      });
+    }
+    if (documentContexts.length > 0) {
+      result = { ...result, documentContexts };
+    }
+    return result;
   }
 
   /**
@@ -310,7 +332,7 @@ function buildIdeTools(editor, options = {}) {
               ? publicResult._auditBaselineText
               : undefined;
         delete publicResult._auditBaselineText;
-        return {
+        const output = {
           ...publicResult,
           audit: buildDiffReviewAudit({
             path: safePath,
@@ -321,6 +343,13 @@ function buildIdeTools(editor, options = {}) {
             host: "vscode",
           }),
         };
+        const contextual = await withContext(output, safePath, "openDiff");
+        if (!safeTargetPath) return contextual;
+        const targetContext = await contextMetadata(
+          safeTargetPath,
+          "openDiff",
+        );
+        return targetContext ? { ...contextual, targetContext } : contextual;
       },
     },
     // Conditional: batch multi-file diff review. Only exposed when the facade
@@ -445,7 +474,11 @@ function buildIdeTools(editor, options = {}) {
                 files: safeFiles,
                 title: args.title,
               });
-              return res || { outcome: "rejected" };
+              return withMultiFileContexts(
+                res || { outcome: "rejected" },
+                safeFiles,
+                "openMultiDiff",
+              );
             },
           },
         ]

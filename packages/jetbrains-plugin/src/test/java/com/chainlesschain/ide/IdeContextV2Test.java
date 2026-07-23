@@ -3,6 +3,7 @@ package com.chainlesschain.ide;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -108,6 +109,67 @@ class IdeContextV2Test {
         assertEquals(4, facade.contextCalls);
     }
 
+    @Test
+    void writeReviewToolsAttachSourceTargetAndWorkspaceMetadata()
+            throws Exception {
+        MetadataFacade facade = new MetadataFacade();
+        List<Tool> tools = IdeTools.build(facade);
+
+        Map<String, Object> single = result(
+                tools, "openDiff",
+                new java.util.LinkedHashMap<String, Object>(Map.of(
+                        "path", "/workspace/a.java",
+                        "modifiedText", "next")));
+        assertEquals(
+                "file:///workspace/a.java",
+                ((Map<?, ?>) single.get("context")).get("documentUri"));
+
+        Map<String, Object> renameArgs = new java.util.LinkedHashMap<>();
+        renameArgs.put("path", "/workspace/a.java");
+        renameArgs.put("modifiedText", "next");
+        renameArgs.put("operation", "rename");
+        renameArgs.put("targetPath", "/workspace/b.java");
+        Map<String, Object> rename =
+                result(tools, "openDiff", renameArgs);
+        assertEquals(
+                "file:///workspace/a.java",
+                ((Map<?, ?>) rename.get("context")).get("documentUri"));
+        assertEquals(
+                "file:///workspace/b.java",
+                ((Map<?, ?>) rename.get("targetContext"))
+                        .get("documentUri"));
+
+        List<Map<String, Object>> changes = new ArrayList<>();
+        changes.add(new java.util.LinkedHashMap<String, Object>(Map.of(
+                "path", "/workspace/a.java",
+                "modifiedText", "a")));
+        changes.add(new java.util.LinkedHashMap<String, Object>(Map.of(
+                "path", "/workspace/b.java",
+                "modifiedText", "b",
+                "operation", "rename",
+                "targetPath", "/workspace/c.java")));
+        Map<String, Object> multiArgs = new java.util.LinkedHashMap<>();
+        multiArgs.put("files", changes);
+        Map<String, Object> multi =
+                result(tools, "openMultiDiff", multiArgs);
+        assertNull(((Map<?, ?>) multi.get("context")).get("documentUri"));
+        List<?> documentContexts =
+                (List<?>) multi.get("documentContexts");
+        assertEquals(2, documentContexts.size());
+        Map<?, ?> first = (Map<?, ?>) documentContexts.get(0);
+        assertEquals("modify", first.get("operation"));
+        assertEquals(
+                "file:///workspace/a.java",
+                ((Map<?, ?>) first.get("context")).get("documentUri"));
+        Map<?, ?> second = (Map<?, ?>) documentContexts.get(1);
+        assertEquals("rename", second.get("operation"));
+        assertEquals("/workspace/c.java", second.get("targetPath"));
+        assertEquals(
+                "file:///workspace/c.java",
+                ((Map<?, ?>) second.get("targetContext"))
+                        .get("documentUri"));
+    }
+
     private static Map<String, Object> result(
             List<Tool> tools, String name, Map<String, Object> args)
             throws Exception {
@@ -132,7 +194,7 @@ class IdeContextV2Test {
             contextCalls++;
             return IdeContextV2.build(
                     List.of("/workspace"),
-                    file == null ? null : "file:///workspace/a.java",
+                    file == null ? null : "file://" + file.replace('\\', '/'),
                     file == null ? null : Long.valueOf(9),
                     file == null ? null : Boolean.TRUE,
                     "jetbrains-project-policy",
@@ -167,6 +229,15 @@ class IdeContextV2Test {
                 String path, String modifiedText,
                 String originalText, String title) {
             return null;
+        }
+
+        @Override
+        public Map<String, Object> openMultiDiff(
+                List<MultiDiff.FileChange> files, String title) {
+            Map<String, Object> out = new java.util.LinkedHashMap<>();
+            out.put("outcome", "rejected");
+            out.put("written", new ArrayList<String>());
+            return out;
         }
     }
 }

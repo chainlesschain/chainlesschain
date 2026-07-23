@@ -188,7 +188,16 @@ public final class IdeTools {
                         "jetbrains",
                         "local-user",
                         Instant.now()));
-                return output;
+                Map<String, Object> contextual =
+                        withContext(editor, output, safePath, "openDiff");
+                if (safeTargetPath == null) return contextual;
+                Map<String, Object> targetContext =
+                        contextMetadata(editor, safeTargetPath, "openDiff");
+                if (targetContext == null) return contextual;
+                Map<String, Object> withTarget =
+                        new LinkedHashMap<String, Object>(contextual);
+                withTarget.put("targetContext", targetContext);
+                return withTarget;
             }
         });
 
@@ -267,10 +276,13 @@ public final class IdeTools {
                             "openMultiDiff requires a non-empty `files` array of { path, modifiedText }");
                 }
                 Map<String, Object> res = editor.openMultiDiff(changes, (String) args.get("title"));
-                if (res != null) return res;
-                Map<String, Object> fallback = new LinkedHashMap<>();
-                fallback.put("outcome", "rejected");
-                return fallback;
+                Map<String, Object> output = res;
+                if (output == null) {
+                    output = new LinkedHashMap<>();
+                    output.put("outcome", "rejected");
+                }
+                return withMultiFileContexts(
+                        editor, output, changes, "openMultiDiff");
             }
         });
 
@@ -346,16 +358,59 @@ public final class IdeTools {
             Map<String, Object> payload,
             String file,
             String tool) {
-        Map<String, Object> context;
-        try {
-            context = editor.getContextMetadata(file, tool);
-        } catch (RuntimeException unavailable) {
-            return payload;
-        }
+        Map<String, Object> context =
+                contextMetadata(editor, file, tool);
         if (context == null) return payload;
         Map<String, Object> out =
                 new LinkedHashMap<String, Object>(payload);
         out.put("context", context);
+        return out;
+    }
+
+    private static Map<String, Object> contextMetadata(
+            EditorFacade editor,
+            String file,
+            String tool) {
+        try {
+            return editor.getContextMetadata(file, tool);
+        } catch (RuntimeException unavailable) {
+            return null;
+        }
+    }
+
+    private static Map<String, Object> withMultiFileContexts(
+            EditorFacade editor,
+            Map<String, Object> payload,
+            List<MultiDiff.FileChange> files,
+            String tool) {
+        Map<String, Object> result =
+                withContext(editor, payload, null, tool);
+        List<Map<String, Object>> documents = new ArrayList<>();
+        for (MultiDiff.FileChange file : files) {
+            Map<String, Object> context =
+                    contextMetadata(editor, file.path, tool);
+            Map<String, Object> targetContext =
+                    file.targetPath == null
+                            ? null
+                            : contextMetadata(
+                                    editor, file.targetPath, tool);
+            if (context == null && targetContext == null) continue;
+            Map<String, Object> record = new LinkedHashMap<>();
+            record.put("path", file.path);
+            record.put("operation", file.operation);
+            if (context != null) record.put("context", context);
+            if (file.targetPath != null) {
+                record.put("targetPath", file.targetPath);
+            }
+            if (targetContext != null) {
+                record.put("targetContext", targetContext);
+            }
+            documents.add(record);
+        }
+        if (documents.isEmpty()) return result;
+        Map<String, Object> out =
+                new LinkedHashMap<String, Object>(result);
+        out.put("documentContexts", documents);
         return out;
     }
 

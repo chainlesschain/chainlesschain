@@ -40,8 +40,11 @@ diagnostics/editors 的每条记录保留各自 URI/version/dirty。metadata 是
 为 `getHover/goToDefinition/findReferences/renamePreview/getCallHierarchy/getSymbolInfo`
 和 `getProjectModel` 七个 LSP/PSI 语义工具附加同一版本化封套；位置型查询锚定源文档，
 项目模型使用 document-null 的 workspace metadata，metadata 探针失败仍保留原语义结果。
-四核心只读工具与语义/项目模型的 C/T/H seam 已关闭；测试结果/coverage、debug state
-和写工具仍开放。
+后续又将 `openDiff/openMultiDiff` 纳入同一封套：单文件审阅结果附源文档 context，
+rename 另附目标 context；多文件结果附 workspace context 和逐项源/目标
+`documentContexts`，顺序与受保护的 changeset 一致。四核心只读、语义/项目模型与 Diff
+写入审阅的 C/T/H seam 已关闭；测试结果/coverage、debug state、Notebook 执行和未来
+写 API 仍开放。
 
 仍不能由仓库静态证据完全关闭的项目：多版本/多宿主 GUI 矩阵、五类远程环境 E2E、跨进程 kill/resume、8 小时 soak、Marketplace 安装升级矩阵，以及 IDE 内部 Preview 的 DOM/console/network/action 闭环、PR/CI 的完整交付交互和 Agent View 的统一跨端状态接管。当前两端已具备 Preview 健康状态、只读 PR 状态命令和后台 Agent 视图入口，不能再表述为“完全未接线”。
 

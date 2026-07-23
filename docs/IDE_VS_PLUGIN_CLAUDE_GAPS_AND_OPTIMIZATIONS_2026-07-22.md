@@ -265,6 +265,15 @@ additive `context`，原语义结果不变。JS/Java 定向测试覆盖全部七
 语义和探针失败降级。语义/项目模型的 C/T/H seam 已关闭；测试结果/coverage、debug
 state 和写工具仍开放。
 
+**2026-07-23 续，Diff 写入审阅接线**：双端 `openDiff` 在审阅与 stale guard 落定后
+附加源文档 Context v2，rename 同时附加 `targetContext`；`openMultiDiff` 附加
+document-null 的 workspace context，并以 `documentContexts` 按受保护 changeset 的
+原顺序返回每个源文档、operation 与可选 rename 目标 context。metadata 只描述宿主中
+审阅完成后的文档状态，不替代原有 baseline 指纹、漂移拒绝、路径守卫或
+`cc-diff-review/v1` 审计。旧 facade 或单个文档探针失败时仅省略对应 additive 字段，
+不改变接受/拒绝、逐项结果和审计 payload。Diff 写入审阅 metadata 的 C/T/H seam 已
+关闭；测试结果/coverage、debug state、Notebook 执行和未来写 API 仍开放。
+
 #### 5. Session、后台 Agent 和 Remote Control 还需统一状态机
 
 当前已经有共享 session index 和后台 Agent 入口，但 IDE、CLI、Web/Mobile 之间仍需要统一以下状态：
@@ -351,7 +360,7 @@ Agent 修改后，IDE 应自动收集相关测试、lint、类型检查、构建
 
 ### 中期：P1（2～3 个版本周期）
 
-1. `IdeContext v2`：LSP/PSI 与项目模型已接线；继续测试结果/coverage、debug state 和写工具。
+1. `IdeContext v2`：LSP/PSI、项目模型与 Diff 写入审阅已接线；继续测试结果/coverage、debug state、Notebook 执行和未来写 API。
 2. 统一 session/checkpoint/approval 状态机和跨端恢复。
 3. PermissionDecision + SideEffectLedger。
 4. Marketplace、依赖、签名、能力 diff、升级回滚和企业策略。

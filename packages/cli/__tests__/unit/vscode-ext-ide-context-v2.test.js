@@ -50,12 +50,13 @@ describe("IDE context v2 tool wiring", () => {
       getDiagnostics: async () => [{ file: "/workspace/a.js", message: "x" }],
       getOpenEditors: async () => [{ file: "/workspace/a.js", active: true }],
       openDiff: async () => ({ outcome: "rejected" }),
+      openMultiDiff: async () => ({ outcome: "rejected", written: [] }),
       ...(metadata
         ? {
             getContextMetadata: vi.fn(async ({ file, tool }) =>
               buildIdeContextV2({
                 workspaceRoots: ["/workspace"],
-                documentUri: file ? "file:///workspace/a.js" : null,
+                documentUri: file ? `file://${file}` : null,
                 documentVersion: file ? 9 : null,
                 isDirty: file ? true : null,
                 permissionSource: "workspace-trust:trusted",
@@ -97,11 +98,74 @@ describe("IDE context v2 tool wiring", () => {
     expect(editor.getContextMetadata).toHaveBeenCalledTimes(4);
   });
 
-  it("keeps the legacy payload unchanged when metadata is unsupported", async () => {
-    const selection = buildIdeTools(facade(false)).find(
-      (tool) => tool.name === "getSelection",
+  it("attaches source/target context to single and multi-file write reviews", async () => {
+    const editor = facade();
+    const tools = Object.fromEntries(
+      buildIdeTools(editor).map((tool) => [tool.name, tool]),
     );
-    expect(await selection.handler({})).not.toHaveProperty("context");
+    const single = await tools.openDiff.handler({
+      path: "/workspace/a.js",
+      modifiedText: "next",
+    });
+    expect(single.context).toMatchObject({
+      schema: "cc-ide-context/v2",
+      documentUri: "file:///workspace/a.js",
+    });
+
+    const rename = await tools.openDiff.handler({
+      path: "/workspace/a.js",
+      modifiedText: "next",
+      operation: "rename",
+      targetPath: "/workspace/b.js",
+    });
+    expect(rename.context.documentUri).toBe("file:///workspace/a.js");
+    expect(rename.targetContext.documentUri).toBe("file:///workspace/b.js");
+
+    const multi = await tools.openMultiDiff.handler({
+      files: [
+        { path: "/workspace/a.js", modifiedText: "a" },
+        {
+          path: "/workspace/b.js",
+          modifiedText: "b",
+          operation: "rename",
+          targetPath: "/workspace/c.js",
+        },
+      ],
+    });
+    expect(multi.context).toMatchObject({
+      schema: "cc-ide-context/v2",
+      documentUri: null,
+    });
+    expect(multi.documentContexts).toHaveLength(2);
+    expect(multi.documentContexts[0]).toMatchObject({
+      path: "/workspace/a.js",
+      operation: "modify",
+      context: { documentUri: "file:///workspace/a.js" },
+    });
+    expect(multi.documentContexts[1]).toMatchObject({
+      path: "/workspace/b.js",
+      operation: "rename",
+      context: { documentUri: "file:///workspace/b.js" },
+      targetPath: "/workspace/c.js",
+      targetContext: { documentUri: "file:///workspace/c.js" },
+    });
+  });
+
+  it("keeps the legacy payload unchanged when metadata is unsupported", async () => {
+    const tools = Object.fromEntries(
+      buildIdeTools(facade(false)).map((tool) => [tool.name, tool]),
+    );
+    expect(await tools.getSelection.handler({})).not.toHaveProperty("context");
+    const diff = await tools.openDiff.handler({
+      path: "/workspace/a.js",
+      modifiedText: "next",
+    });
+    expect(diff).not.toHaveProperty("context");
+    const multi = await tools.openMultiDiff.handler({
+      files: [{ path: "/workspace/a.js", modifiedText: "next" }],
+    });
+    expect(multi).not.toHaveProperty("context");
+    expect(multi).not.toHaveProperty("documentContexts");
   });
 });
 
