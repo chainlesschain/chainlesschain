@@ -12,7 +12,9 @@
  */
 
 const { EventEmitter } = require("events");
-const { spawn } = require("child_process");
+const {
+  spawnWithDesktopBroker,
+} = require("../process/desktop-process-broker.js");
 const path = require("path");
 const fs = require("fs");
 const { logger } = require("../utils/logger.js");
@@ -28,13 +30,14 @@ class FineTuningManager extends EventEmitter {
    * @param {Object} options
    * @param {Object} options.database - Database manager instance
    */
-  constructor({ database } = {}) {
+  constructor({ database, spawnProcess = spawnWithDesktopBroker } = {}) {
     super();
     this.database = database || null;
     this.dataBuilder = new TrainingDataBuilder({ database: this.database });
     this.adapterRegistry = new AdapterRegistry({ database: this.database });
     this.initialized = false;
     this.runningProcesses = new Map(); // jobId -> child_process
+    this._spawnProcess = spawnProcess;
     this.ollamaBaseUrl = process.env.OLLAMA_HOST || OLLAMA_DEFAULT_URL;
   }
 
@@ -389,8 +392,10 @@ class FineTuningManager extends EventEmitter {
         `[FineTuning] Spawning llama-finetune with args: ${args.join(" ")}`,
       );
 
-      const child = spawn("llama-finetune", args, {
+      const child = this._spawnProcess("llama-finetune", args, {
         stdio: ["ignore", "pipe", "pipe"],
+        shell: false,
+        origin: "desktop:fine-tuning-llama-cpp",
       });
 
       this.runningProcesses.set(jobId, child);

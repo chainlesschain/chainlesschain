@@ -122,7 +122,10 @@ describe('FineTuningManager', () => {
     const mod = await import('../fine-tuning-manager.js');
     FineTuningManager = mod.FineTuningManager;
     mockDb = createMockDb();
-    manager = new FineTuningManager({ database: mockDb });
+    manager = new FineTuningManager({
+      database: mockDb,
+      spawnProcess: childProcess.spawn,
+    });
     tmpDir = realMkdtempSync('ft-test-');
   });
   beforeEach(() => {
@@ -369,11 +372,17 @@ describe('FineTuningManager', () => {
         backend: 'llama-cpp',
       });
 
-      // The SUT calls the real spawn (vi.mock for CJS require in inlined modules may not intercept);
-      // verify the job record was created correctly instead.
       expect(job).toBeDefined();
       expect(job.backend).toBe('llama-cpp');
       expect(job.id).toBe('test-job-uuid');
+      expect(childProcess.spawn).toHaveBeenCalledWith(
+        'llama-finetune',
+        expect.any(Array),
+        expect.objectContaining({
+          shell: false,
+          origin: 'desktop:fine-tuning-llama-cpp',
+        }),
+      );
     });
 
     it('applies default config values', async () => {
