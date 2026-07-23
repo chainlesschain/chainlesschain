@@ -919,6 +919,7 @@ parameters:
     required: false
     description: 输出文件名（不含扩展名，默认为主题名）
 execution-mode: direct
+capabilities: [shell-exec]
 ---
 
 # AI 文档生成
@@ -989,27 +990,39 @@ chainlesschain skill run cli-anything-soffice "convert report.md to pdf"
  *   - pdf:     LibreOffice soffice --headless
  */
 
-const { spawnSync, execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
 // ─── Tool detection ───────────────────────────────────────────────
 
-function commandExists(cmd) {
+function requireProcessBroker(context) {
+  const broker = context && context.processBroker;
+  if (!broker || typeof broker.runSync !== "function" ||
+      typeof broker.runFileSync !== "function") {
+    throw new Error("Process Broker unavailable for doc-generate skill");
+  }
+  return broker;
+}
+
+function commandExists(processBroker, cmd) {
   try {
-    execSync(\`\${cmd} --version\`, { stdio: "ignore", encoding: "utf-8" });
+    processBroker.runFileSync(cmd, ["--version"], {
+      stdio: "ignore",
+      encoding: "utf-8",
+      timeout: 5000,
+    });
     return true;
   } catch {
     return false;
   }
 }
 
-function detectSoffice() {
-  if (commandExists("soffice")) return "soffice";
-  if (commandExists("libreoffice")) return "libreoffice";
+function detectSoffice(processBroker) {
+  if (commandExists(processBroker, "soffice")) return "soffice";
+  if (commandExists(processBroker, "libreoffice")) return "libreoffice";
   // Windows default install path
   const winPath = "C:\\\\Program Files\\\\LibreOffice\\\\program\\\\soffice.exe";
-  if (process.platform === "win32" && fs.existsSync(winPath)) return \`"\${winPath}"\`;
+  if (process.platform === "win32" && fs.existsSync(winPath)) return winPath;
   return null;
 }
 
@@ -1062,11 +1075,11 @@ function mdToHtml(md, title) {
 
 // ─── Conversion helpers ───────────────────────────────────────────
 
-function convertWithPandoc(mdFile, outputFile, format) {
-  const result = spawnSync(
+function convertWithPandoc(processBroker, mdFile, outputFile, format) {
+  const result = processBroker.runSync(
     "pandoc",
     [mdFile, "-o", outputFile, "--standalone"],
-    { encoding: "utf-8", timeout: 60000 },
+    { encoding: "utf-8", timeout: 60000, shell: false },
   );
   if (result.status !== 0) {
     throw new Error(\`pandoc failed: \${result.stderr || result.error?.message}\`);
@@ -1074,11 +1087,11 @@ function convertWithPandoc(mdFile, outputFile, format) {
   return outputFile;
 }
 
-function convertWithSoffice(sofficeCmd, inputFile, format, outDir) {
-  const result = spawnSync(
+function convertWithSoffice(processBroker, sofficeCmd, inputFile, format, outDir) {
+  const result = processBroker.runSync(
     sofficeCmd,
     ["--headless", "--convert-to", format, inputFile, "--outdir", outDir],
-    { encoding: "utf-8", timeout: 120000, shell: process.platform === "win32" },
+    { encoding: "utf-8", timeout: 120000, shell: false },
   );
   if (result.status !== 0) {
     throw new Error(\`soffice failed: \${result.stderr || result.error?.message}\`);
@@ -1090,7 +1103,7 @@ function convertWithSoffice(sofficeCmd, inputFile, format, outDir) {
 
 // ─── LLM content generation ───────────────────────────────────────
 
-function generateContent(topic, style, outline) {
+function generateContent(processBroker, topic, style, outline) {
   const styleDesc = STYLE_PROMPTS[style] || STYLE_PROMPTS.report;
   const outlineSection = outline
     ? \`\\n\\n大纲要求（请按以下结构组织内容）：\\n\${outline}\`
@@ -1100,7 +1113,7 @@ function generateContent(topic, style, outline) {
     \`请为以下主题生成\${styleDesc}。\\n\\n主题：\${topic}\${outlineSection}\\n\\n要求：\\n- 使用标准 Markdown 格式（H1/H2/H3 标题、列表、表格等）\\n- 内容详实具体，不少于 800 字\\n- 使用中文撰写\\n- 直接输出 Markdown 内容，不需要额外说明\`;
 
   // Try chainlesschain ask first
-  const askResult = spawnSync(
+  const askResult = processBroker.runSync(
     process.execPath,
     [process.argv[1], "ask", prompt],
     {
@@ -1108,6 +1121,7 @@ function generateContent(topic, style, outline) {
       timeout: 120000,
       cwd: process.cwd(),
       env: process.env,
+      shell: false,
     },
   );
 
@@ -1150,7 +1164,7 @@ function generateContent(topic, style, outline) {
 
 // ─── Main handler ─────────────────────────────────────────────────
 
-async function docGenerateHandler(params) {
+async function docGenerateHandler(params, processBroker) {
   const { topic, format, outline, style, output } = params;
 
   if (!topic) {
@@ -1164,7 +1178,7 @@ async function docGenerateHandler(params) {
 
   // Generate content via LLM
   console.log(\`[doc-generate] Generating \${docStyle} document for: \${topic}\`);
-  const mdContent = generateContent(topic, docStyle, outline);
+  const mdContent = generateContent(processBroker, topic, docStyle, outline);
 
   // Always write markdown first
   const mdFile = path.join(outputDir, \`\${safeTitle}.md\`);
@@ -1194,13 +1208,13 @@ async function docGenerateHandler(params) {
   }
 
   // DOCX / PDF: try pandoc then soffice
-  const sofficeCmd = detectSoffice();
+  const sofficeCmd = detectSoffice(processBroker);
 
   if (fmt === "docx") {
-    if (commandExists("pandoc")) {
+    if (commandExists(processBroker, "pandoc")) {
       try {
         const docxFile = path.join(outputDir, \`\${safeTitle}.docx\`);
-        convertWithPandoc(mdFile, docxFile, "docx");
+        convertWithPandoc(processBroker, mdFile, docxFile, "docx");
         return { success: true, format: "docx", output: docxFile, mdOutput: mdFile, message: \`DOCX saved to: \${docxFile} (via pandoc)\` };
       } catch (err) {
         console.warn("[doc-generate] pandoc failed:", err.message);
@@ -1211,7 +1225,7 @@ async function docGenerateHandler(params) {
         // soffice needs HTML or ODT as input for md→docx (md not natively supported)
         const htmlFile = path.join(outputDir, \`\${safeTitle}.html\`);
         fs.writeFileSync(htmlFile, mdToHtml(mdContent, topic), "utf-8");
-        const docxFile = convertWithSoffice(sofficeCmd, htmlFile, "docx", outputDir);
+        const docxFile = convertWithSoffice(processBroker, sofficeCmd, htmlFile, "docx", outputDir);
         // Clean up temp HTML
         try { fs.unlinkSync(htmlFile); } catch { /* ignore */ }
         return { success: true, format: "docx", output: docxFile, mdOutput: mdFile, message: \`DOCX saved to: \${docxFile} (via LibreOffice)\` };
@@ -1233,17 +1247,17 @@ async function docGenerateHandler(params) {
       try {
         const htmlFile = path.join(outputDir, \`\${safeTitle}.html\`);
         fs.writeFileSync(htmlFile, mdToHtml(mdContent, topic), "utf-8");
-        const pdfFile = convertWithSoffice(sofficeCmd, htmlFile, "pdf", outputDir);
+        const pdfFile = convertWithSoffice(processBroker, sofficeCmd, htmlFile, "pdf", outputDir);
         try { fs.unlinkSync(htmlFile); } catch { /* ignore */ }
         return { success: true, format: "pdf", output: pdfFile, mdOutput: mdFile, message: \`PDF saved to: \${pdfFile} (via LibreOffice)\` };
       } catch (err) {
         console.warn("[doc-generate] soffice pdf failed:", err.message);
       }
     }
-    if (commandExists("pandoc") && commandExists("wkhtmltopdf")) {
+    if (commandExists(processBroker, "pandoc") && commandExists(processBroker, "wkhtmltopdf")) {
       try {
         const pdfFile = path.join(outputDir, \`\${safeTitle}.pdf\`);
-        convertWithPandoc(mdFile, pdfFile, "pdf");
+        convertWithPandoc(processBroker, mdFile, pdfFile, "pdf");
         return { success: true, format: "pdf", output: pdfFile, mdOutput: mdFile, message: \`PDF saved to: \${pdfFile} (via pandoc+wkhtmltopdf)\` };
       } catch (err) {
         console.warn("[doc-generate] pandoc pdf failed:", err.message);
@@ -1261,12 +1275,13 @@ async function docGenerateHandler(params) {
   return { error: \`Unsupported format: \${fmt}\`, hint: "Supported formats: md, html, docx, pdf" };
 }
 
-docGenerateHandler.execute = async (task, _ctx, _skill) => {
+docGenerateHandler.execute = async (task, context, _skill) => {
+  const processBroker = requireProcessBroker(context);
   const input = typeof task === "string" ? task : (task.input || task.params?.input || "");
   let p = {};
   try { p = input.trim().startsWith("{") ? JSON.parse(input) : { topic: input }; }
   catch { p = { topic: input }; }
-  return docGenerateHandler(p);
+  return docGenerateHandler(p, processBroker);
 };
 module.exports = docGenerateHandler;
 `,

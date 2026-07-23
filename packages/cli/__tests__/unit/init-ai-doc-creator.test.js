@@ -98,6 +98,7 @@ describe("SKILL_TEMPLATES: doc-generate SKILL.md", () => {
     expect(fm.name).toBe("doc-generate");
     expect(fm.category).toBe("document");
     expect(fm["execution-mode"]).toBe("direct");
+    expect(fm.capabilities).toBe("[shell-exec]");
     expect(fm.version).toBe("1.0.0");
     expect(fm.description).toBeTruthy();
   });
@@ -181,7 +182,16 @@ describe("SKILL_TEMPLATES: doc-generate handler.js", () => {
     expect(h).toContain("chainlesschain ask");
   });
 
-  it("uses utf-8 for child_process output (no bare toString())", () => {
+  it("is fail-closed and uses only the injected Process Broker", () => {
+    const h = SKILL_TEMPLATES["doc-generate"].handler;
+    expect(h).not.toContain('require("child_process")');
+    expect(h).toContain("Process Broker unavailable for doc-generate skill");
+    expect(h).toContain("processBroker.runSync(");
+    expect(h).toContain("processBroker.runFileSync(");
+    expect(h).toContain("shell: false");
+  });
+
+  it("uses utf-8 for process output (no bare toString())", () => {
     const h = SKILL_TEMPLATES["doc-generate"].handler;
     // spawnSync uses encoding: "utf-8" option
     expect(h).toContain('"utf-8"');
