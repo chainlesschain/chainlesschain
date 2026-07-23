@@ -707,6 +707,21 @@ export function reloadSkills() {
 let _cachedPython = null;
 let _cachedEnvInfo = null;
 
+const environmentProbeRunner = broker.execFileSync.bind(broker);
+
+export const _environmentProcessDeps = {
+  run: environmentProbeRunner,
+};
+
+function runEnvironmentProbe(file, args, options = {}) {
+  return _environmentProcessDeps.run(file, args, {
+    ...options,
+    origin: "agent-core:environment-probe",
+    policy: "allow",
+    scope: "agent-core",
+  });
+}
+
 /**
  * Get cached Python interpreter info (reuses cli-anything-bridge detection).
  * @returns {{ found: boolean, command?: string, version?: string }}
@@ -730,7 +745,7 @@ export function getEnvironmentInfo() {
   let pipAvailable = false;
   if (py.found) {
     try {
-      execSync(`${py.command} -m pip --version`, {
+      runEnvironmentProbe(py.command, ["-m", "pip", "--version"], {
         encoding: "utf-8",
         timeout: 10000,
         stdio: ["pipe", "pipe", "pipe"],
@@ -743,7 +758,7 @@ export function getEnvironmentInfo() {
 
   let nodeVersion = null;
   try {
-    nodeVersion = execSync("node --version", {
+    nodeVersion = runEnvironmentProbe(process.execPath, ["--version"], {
       encoding: "utf-8",
       timeout: 5000,
     }).trim();
@@ -753,7 +768,7 @@ export function getEnvironmentInfo() {
 
   let gitAvailable = false;
   try {
-    execSync("git --version", {
+    runEnvironmentProbe("git", ["--version"], {
       encoding: "utf-8",
       timeout: 5000,
       stdio: ["pipe", "pipe", "pipe"],

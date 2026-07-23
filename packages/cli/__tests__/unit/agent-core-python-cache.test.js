@@ -31,7 +31,7 @@ vi.mock("../../src/lib/cli-anything-bridge.js", () => ({
   })),
 }));
 
-const { getCachedPython, getEnvironmentInfo } =
+const { getCachedPython, getEnvironmentInfo, _environmentProcessDeps } =
   await import("../../src/lib/agent-core.js");
 
 describe("getCachedPython — Python not found", () => {
@@ -50,12 +50,40 @@ describe("getCachedPython — Python not found", () => {
 
 describe("getEnvironmentInfo — Python unavailable", () => {
   it("shows Python as unavailable", () => {
-    const info = getEnvironmentInfo();
-    expect(info.python).toBeNull();
-    expect(info.pip).toBe(false);
-    // Other fields should still be present
-    expect(info.os).toBe(process.platform);
-    expect(info.arch).toBe(process.arch);
-    expect(info.node).toBeTruthy();
+    const originalRunner = _environmentProcessDeps.run;
+    const run = vi.fn((file) =>
+      file === process.execPath ? "v22.22.2\n" : "git version 2.51.0\n",
+    );
+    _environmentProcessDeps.run = run;
+
+    try {
+      const info = getEnvironmentInfo();
+      expect(info.python).toBeNull();
+      expect(info.pip).toBe(false);
+      expect(info.os).toBe(process.platform);
+      expect(info.arch).toBe(process.arch);
+      expect(info.node).toBe("v22.22.2");
+      expect(info.git).toBe(true);
+      expect(run).toHaveBeenCalledWith(
+        process.execPath,
+        ["--version"],
+        expect.objectContaining({
+          origin: "agent-core:environment-probe",
+          policy: "allow",
+          scope: "agent-core",
+        }),
+      );
+      expect(run).toHaveBeenCalledWith(
+        "git",
+        ["--version"],
+        expect.objectContaining({
+          origin: "agent-core:environment-probe",
+          policy: "allow",
+          scope: "agent-core",
+        }),
+      );
+    } finally {
+      _environmentProcessDeps.run = originalRunner;
+    }
   });
 });

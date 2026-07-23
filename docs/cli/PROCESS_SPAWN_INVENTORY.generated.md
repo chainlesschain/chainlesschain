@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 331 (runtime: 255, tooling: 53, test: 23).
+Total matches: 328 (runtime: 252, tooling: 53, test: 23).
 
 ## Policy
 
@@ -249,9 +249,6 @@ Total matches: 331 (runtime: 255, tooling: 53, test: 23).
 | `packages/cli/src/runtime/agent-core.js` | 19 | `import { execSync, spawn, spawnSync } from "child_process";` |
 | `packages/cli/src/runtime/agent-core.js` | 240 | `const tk = spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], {` |
 | `packages/cli/src/runtime/agent-core.js` | 317 | `const killed = spawnSync(` |
-| `packages/cli/src/runtime/agent-core.js` | 733 | `execSync(`${py.command} -m pip --version`, {` |
-| `packages/cli/src/runtime/agent-core.js` | 746 | `nodeVersion = execSync("node --version", {` |
-| `packages/cli/src/runtime/agent-core.js` | 756 | `execSync("git --version", {` |
 | `packages/cli/src/runtime/agent-core.js` | 3060 | `// is the historical spawn(command, {shell:true}) byte-for-byte.` |
 | `packages/cli/src/runtime/agent-core.js` | 3069 | `? broker.spawn(args.command, [], brokerOpts)` |
 | `packages/cli/src/runtime/agent-core.js` | 3070 | `: broker.spawn(shellInv.file, shellInv.argv, brokerOpts);` |

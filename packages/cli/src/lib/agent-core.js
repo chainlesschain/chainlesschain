@@ -13,6 +13,7 @@ export {
   getAgentToolDescriptors,
   getCachedPython,
   getEnvironmentInfo,
+  _environmentProcessDeps,
   getBaseSystemPrompt,
   buildSystemPrompt,
   executeTool,
