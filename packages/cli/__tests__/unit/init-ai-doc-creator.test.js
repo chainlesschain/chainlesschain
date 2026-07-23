@@ -444,6 +444,7 @@ describe("SKILL_TEMPLATES: doc-edit SKILL.md", () => {
     expect(fm.name).toBe("doc-edit");
     expect(fm.category).toBe("document");
     expect(fm["execution-mode"]).toBe("direct");
+    expect(fm.capabilities).toBe("[shell-exec]");
     expect(fm.version).toBe("1.0.0");
     expect(fm.description).toBeTruthy();
   });
@@ -533,6 +534,16 @@ describe("SKILL_TEMPLATES: doc-edit handler.js", () => {
   it("includes checkPythonModule function", () => {
     const h = SKILL_TEMPLATES["doc-edit"].handler;
     expect(h).toContain("checkPythonModule");
+  });
+
+  it("is fail-closed and uses only literal-argv Process Broker calls", () => {
+    const h = SKILL_TEMPLATES["doc-edit"].handler;
+    expect(h).not.toContain('require("child_process")');
+    expect(h).toContain("Process Broker unavailable for doc-edit skill");
+    expect(h).toContain("processBroker.runSync(");
+    expect(h).toContain("processBroker.runFileSync(");
+    expect(h).toContain("shell: false");
+    expect(h).toContain("sys.argv[1]");
   });
 
   it("output uses _edited naming (never overwrites original)", () => {

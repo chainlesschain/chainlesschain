@@ -1579,6 +1579,7 @@ input_schema:
       description: 输出目录（默认与输入文件同目录）
   required: [input_file, instruction]
 execution-mode: direct
+capabilities: [shell-exec]
 ---
 
 # AI 文档修改 (doc-edit)
@@ -1650,23 +1651,38 @@ chainlesschain cli-anything register soffice
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
-const { execSync, spawnSync } = require("child_process");
+
+function requireProcessBroker(context) {
+  const broker = context && context.processBroker;
+  if (!broker || typeof broker.runSync !== "function" ||
+      typeof broker.runFileSync !== "function") {
+    throw new Error("Process Broker unavailable for doc-edit skill");
+  }
+  return broker;
+}
 
 // ── Python detection (mirrors cli-anything-bridge pattern) ───────────────────
-function detectPython() {
+function detectPython(processBroker) {
   const candidates = ["python", "python3", "py"];
   for (const cmd of candidates) {
     try {
-      const r = spawnSync(cmd, ["--version"], { encoding: "utf-8", timeout: 5000 });
+      const r = processBroker.runSync(cmd, ["--version"], {
+        encoding: "utf-8",
+        timeout: 5000,
+        shell: false,
+      });
       if (r.status === 0) return { found: true, command: cmd };
     } catch (_e) { /* try next */ }
   }
   return { found: false, command: null };
 }
 
-function checkPythonModule(pyCmd, moduleName) {
+function checkPythonModule(processBroker, pyCmd, moduleName) {
   try {
-    execSync(\`\${pyCmd} -c "import \${moduleName}"\`, { stdio: "ignore", timeout: 10000 });
+    processBroker.runFileSync(pyCmd, ["-c", \`import \${moduleName}\`], {
+      stdio: "ignore",
+      timeout: 10000,
+    });
     return true;
   } catch {
     return false;
@@ -1674,11 +1690,11 @@ function checkPythonModule(pyCmd, moduleName) {
 }
 
 // ── LLM call via CLI sub-process ─────────────────────────────────────────────
-function callLLM(prompt) {
-  const r = spawnSync(
+function callLLM(processBroker, prompt) {
+  const r = processBroker.runSync(
     process.execPath,
     [process.argv[1], "ask", prompt],
-    { encoding: "utf-8", timeout: 120000, cwd: process.cwd(), env: process.env },
+    { encoding: "utf-8", timeout: 120000, cwd: process.cwd(), env: process.env, shell: false },
   );
   if (r.status === 0 && r.stdout && r.stdout.trim().length > 10) return r.stdout.trim();
   return null;
@@ -1755,10 +1771,10 @@ function buildTextPrompt(content, instruction, action, section) {
 }
 
 // ── md / txt / html handler ───────────────────────────────────────────────────
-function editText(inputFile, instruction, action, section, outputDir) {
+function editText(processBroker, inputFile, instruction, action, section, outputDir) {
   const content = fs.readFileSync(inputFile, "utf-8");
   const prompt = buildTextPrompt(content, instruction, action, section);
-  const llmResult = callLLM(prompt);
+  const llmResult = callLLM(processBroker, prompt);
 
   let newContent;
   if (llmResult) {
@@ -1794,22 +1810,34 @@ function editText(inputFile, instruction, action, section, outputDir) {
 }
 
 // ── docx handler ──────────────────────────────────────────────────────────────
-function editDocx(inputFile, instruction, action, section, outputDir) {
+function editDocx(processBroker, inputFile, instruction, action, section, outputDir) {
   // Try pandoc: docx → markdown → LLM → markdown → docx
   try {
-    const r = spawnSync("pandoc", ["--version"], { encoding: "utf-8", timeout: 5000 });
+    const r = processBroker.runSync("pandoc", ["--version"], {
+      encoding: "utf-8",
+      timeout: 5000,
+      shell: false,
+    });
     if (r.status === 0) {
       const tmpMd = path.join(os.tmpdir(), \`doc_edit_\${Date.now()}.md\`);
-      spawnSync("pandoc", [inputFile, "-o", tmpMd], { encoding: "utf-8", timeout: 60000 });
+      processBroker.runSync("pandoc", [inputFile, "-o", tmpMd], {
+        encoding: "utf-8",
+        timeout: 60000,
+        shell: false,
+      });
       if (fs.existsSync(tmpMd)) {
         const content = fs.readFileSync(tmpMd, "utf-8");
         const prompt = buildTextPrompt(content, instruction, action, section);
-        const llmResult = callLLM(prompt);
+        const llmResult = callLLM(processBroker, prompt);
         if (llmResult) {
           let newContent = action === "append" ? content + "\\n\\n" + llmResult : llmResult;
           fs.writeFileSync(tmpMd, newContent, "utf-8");
           const outputFile = buildOutputPath(inputFile, outputDir);
-          spawnSync("pandoc", [tmpMd, "-o", outputFile], { encoding: "utf-8", timeout: 60000 });
+          processBroker.runSync("pandoc", [tmpMd, "-o", outputFile], {
+            encoding: "utf-8",
+            timeout: 60000,
+            shell: false,
+          });
           try { fs.unlinkSync(tmpMd); } catch (_e) { /* ignore */ }
           if (fs.existsSync(outputFile)) {
             return { success: true, input: inputFile, output: outputFile, action, message: \`DOCX edited via pandoc: \${outputFile}\` };
@@ -1833,23 +1861,27 @@ function editDocx(inputFile, instruction, action, section, outputDir) {
   }
   for (const soffice of sofficeCandidates) {
     try {
-      const rv = spawnSync(soffice, ["--version"], { encoding: "utf-8", timeout: 5000, shell: process.platform === "win32" });
+      const rv = processBroker.runSync(soffice, ["--version"], {
+        encoding: "utf-8",
+        timeout: 5000,
+        shell: false,
+      });
       if (rv.status === 0) {
         const tmpDir2 = os.tmpdir();
-        spawnSync(soffice, ["--headless", "--convert-to", "html", inputFile, "--outdir", tmpDir2], {
-          encoding: "utf-8", timeout: 60000, shell: process.platform === "win32",
+        processBroker.runSync(soffice, ["--headless", "--convert-to", "html", inputFile, "--outdir", tmpDir2], {
+          encoding: "utf-8", timeout: 60000, shell: false,
         });
         const baseName = path.basename(inputFile, ".docx");
         const htmlFile = path.join(tmpDir2, \`\${baseName}.html\`);
         if (fs.existsSync(htmlFile)) {
           const content = fs.readFileSync(htmlFile, "utf-8");
           const prompt = buildTextPrompt(content, instruction, action, section);
-          const llmResult = callLLM(prompt);
+          const llmResult = callLLM(processBroker, prompt);
           if (llmResult) {
             fs.writeFileSync(htmlFile, llmResult, "utf-8");
             const outputFile = buildOutputPath(inputFile, outputDir);
-            spawnSync(soffice, ["--headless", "--convert-to", "docx", htmlFile, "--outdir", path.dirname(outputFile)], {
-              encoding: "utf-8", timeout: 60000, shell: process.platform === "win32",
+            processBroker.runSync(soffice, ["--headless", "--convert-to", "docx", htmlFile, "--outdir", path.dirname(outputFile)], {
+              encoding: "utf-8", timeout: 60000, shell: false,
             });
             try { fs.unlinkSync(htmlFile); } catch (_e) { /* ignore */ }
             if (fs.existsSync(outputFile)) {
@@ -1871,12 +1903,12 @@ function editDocx(inputFile, instruction, action, section, outputDir) {
 }
 
 // ── xlsx handler (Python + openpyxl) ─────────────────────────────────────────
-function editXlsx(inputFile, instruction, action, outputDir) {
-  const py = detectPython();
+function editXlsx(processBroker, inputFile, instruction, action, outputDir) {
+  const py = detectPython(processBroker);
   if (!py.found) {
     return { success: false, error: "未找到 Python，请安装 Python 3.x", hint: "https://python.org" };
   }
-  if (!checkPythonModule(py.command, "openpyxl")) {
+  if (!checkPythonModule(processBroker, py.command, "openpyxl")) {
     return {
       success: false,
       error: "需要安装 openpyxl 才能修改 XLSX 文件",
@@ -1891,19 +1923,24 @@ function editXlsx(inputFile, instruction, action, outputDir) {
   try {
     // Step 1: extract text cells (non-formula string cells)
     const extractScript = \`
-import json, openpyxl
-wb = openpyxl.load_workbook(r"""\${inputFile}""", data_only=False)
+import json, openpyxl, sys
+input_file, output_json = sys.argv[1], sys.argv[2]
+wb = openpyxl.load_workbook(input_file, data_only=False)
 cells = []
 for ws in wb.worksheets:
     for row in ws.iter_rows():
         for cell in row:
             if cell.data_type == 's' and cell.value is not None:
                 cells.append({"sheet": ws.title, "row": cell.row, "col": cell.column, "value": cell.value})
-with open(r"""\${tmpJson}""", "w", encoding="utf-8") as f:
+with open(output_json, "w", encoding="utf-8") as f:
     json.dump(cells, f, ensure_ascii=False)
 \`;
     fs.writeFileSync(tmpExtract, extractScript, "utf-8");
-    const er = spawnSync(py.command, [tmpExtract], { encoding: "utf-8", timeout: 30000 });
+    const er = processBroker.runSync(py.command, [tmpExtract, inputFile, tmpJson], {
+      encoding: "utf-8",
+      timeout: 30000,
+      shell: false,
+    });
     if (er.status !== 0) throw new Error(er.stderr || "extract failed");
 
     const cells = JSON.parse(fs.readFileSync(tmpJson, "utf-8"));
@@ -1922,7 +1959,7 @@ with open(r"""\${tmpJson}""", "w", encoding="utf-8") as f:
 \${textList}
 
 直接返回 JSON 数组，不要其他说明。\`;
-    const llmResult = callLLM(prompt);
+    const llmResult = callLLM(processBroker, prompt);
     if (!llmResult) {
       return { success: false, error: "LLM 调用失败", hint: "运行 chainlesschain llm test 检查连接" };
     }
@@ -1939,21 +1976,26 @@ with open(r"""\${tmpJson}""", "w", encoding="utf-8") as f:
     // Step 3: apply changes
     const outputFile = buildOutputPath(inputFile, outputDir);
     const applyScript = \`
-import json, openpyxl, shutil
-shutil.copy2(r"""\${inputFile}""", r"""\${outputFile}""")
-wb = openpyxl.load_workbook(r"""\${outputFile}""", data_only=False)
-updated = json.loads('''
-\${JSON.stringify(updatedCells).replace(/'/g, "\\\\'")}
-''')
+import json, openpyxl, shutil, sys
+input_file, output_file, updated_json = sys.argv[1], sys.argv[2], sys.argv[3]
+shutil.copy2(input_file, output_file)
+wb = openpyxl.load_workbook(output_file, data_only=False)
+with open(updated_json, "r", encoding="utf-8") as f:
+    updated = json.load(f)
 for item in updated:
     ws = wb[item["sheet"]]
     cell = ws.cell(row=item["row"], column=item["col"])
     if cell.data_type == 's':
         cell.value = item["value"]
-wb.save(r"""\${outputFile}""")
+wb.save(output_file)
 \`;
     fs.writeFileSync(tmpApply, applyScript, "utf-8");
-    const ar = spawnSync(py.command, [tmpApply], { encoding: "utf-8", timeout: 30000 });
+    fs.writeFileSync(tmpJson, JSON.stringify(updatedCells), "utf-8");
+    const ar = processBroker.runSync(py.command, [tmpApply, inputFile, outputFile, tmpJson], {
+      encoding: "utf-8",
+      timeout: 30000,
+      shell: false,
+    });
     if (ar.status !== 0) throw new Error(ar.stderr || "apply failed");
 
     return {
@@ -1974,12 +2016,12 @@ wb.save(r"""\${outputFile}""")
 }
 
 // ── pptx handler (Python + python-pptx) ──────────────────────────────────────
-function editPptx(inputFile, instruction, action, outputDir) {
-  const py = detectPython();
+function editPptx(processBroker, inputFile, instruction, action, outputDir) {
+  const py = detectPython(processBroker);
   if (!py.found) {
     return { success: false, error: "未找到 Python，请安装 Python 3.x", hint: "https://python.org" };
   }
-  if (!checkPythonModule(py.command, "pptx")) {
+  if (!checkPythonModule(processBroker, py.command, "pptx")) {
     return {
       success: false,
       error: "需要安装 python-pptx 才能修改 PPTX 文件",
@@ -1994,9 +2036,10 @@ function editPptx(inputFile, instruction, action, outputDir) {
   try {
     // Step 1: extract text runs (skip chart shapes)
     const extractScript = \`
-import json
+import json, sys
 from pptx import Presentation
-prs = Presentation(r"""\${inputFile}""")
+input_file, output_json = sys.argv[1], sys.argv[2]
+prs = Presentation(input_file)
 runs = []
 for si, slide in enumerate(prs.slides):
     for shi, shape in enumerate(slide.shapes):
@@ -2006,11 +2049,15 @@ for si, slide in enumerate(prs.slides):
             for ri, run in enumerate(para.runs):
                 if run.text.strip():
                     runs.append({"slide": si, "shape": shi, "para": pi, "run": ri, "text": run.text})
-with open(r"""\${tmpJson}""", "w", encoding="utf-8") as f:
+with open(output_json, "w", encoding="utf-8") as f:
     json.dump(runs, f, ensure_ascii=False)
 \`;
     fs.writeFileSync(tmpExtract, extractScript, "utf-8");
-    const er = spawnSync(py.command, [tmpExtract], { encoding: "utf-8", timeout: 30000 });
+    const er = processBroker.runSync(py.command, [tmpExtract, inputFile, tmpJson], {
+      encoding: "utf-8",
+      timeout: 30000,
+      shell: false,
+    });
     if (er.status !== 0) throw new Error(er.stderr || "extract failed");
 
     const runs = JSON.parse(fs.readFileSync(tmpJson, "utf-8"));
@@ -2029,7 +2076,7 @@ with open(r"""\${tmpJson}""", "w", encoding="utf-8") as f:
 \${textList}
 
 直接返回 JSON 数组，不要其他说明。\`;
-    const llmResult = callLLM(prompt);
+    const llmResult = callLLM(processBroker, prompt);
     if (!llmResult) {
       return { success: false, error: "LLM 调用失败", hint: "运行 chainlesschain llm test 检查连接" };
     }
@@ -2045,23 +2092,28 @@ with open(r"""\${tmpJson}""", "w", encoding="utf-8") as f:
     // Step 3: apply changes (only .text, preserve all font/style)
     const outputFile = buildOutputPath(inputFile, outputDir);
     const applyScript = \`
-import json, shutil
+import json, shutil, sys
 from pptx import Presentation
-shutil.copy2(r"""\${inputFile}""", r"""\${outputFile}""")
-prs = Presentation(r"""\${outputFile}""")
-updated = json.loads('''
-\${JSON.stringify(updatedRuns).replace(/'/g, "\\\\'")}
-''')
+input_file, output_file, updated_json = sys.argv[1], sys.argv[2], sys.argv[3]
+shutil.copy2(input_file, output_file)
+prs = Presentation(output_file)
+with open(updated_json, "r", encoding="utf-8") as f:
+    updated = json.load(f)
 for item in updated:
     slide = prs.slides[item["slide"]]
     shape = slide.shapes[item["shape"]]
     if shape.has_text_frame:
         run = shape.text_frame.paragraphs[item["para"]].runs[item["run"]]
         run.text = item["text"]
-prs.save(r"""\${outputFile}""")
+prs.save(output_file)
 \`;
     fs.writeFileSync(tmpApply, applyScript, "utf-8");
-    const ar = spawnSync(py.command, [tmpApply], { encoding: "utf-8", timeout: 30000 });
+    fs.writeFileSync(tmpJson, JSON.stringify(updatedRuns), "utf-8");
+    const ar = processBroker.runSync(py.command, [tmpApply, inputFile, outputFile, tmpJson], {
+      encoding: "utf-8",
+      timeout: 30000,
+      shell: false,
+    });
     if (ar.status !== 0) throw new Error(ar.stderr || "apply failed");
 
     return {
@@ -2082,7 +2134,7 @@ prs.save(r"""\${outputFile}""")
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
-async function docEdit(params) {
+async function docEdit(params, processBroker) {
   const { input_file, instruction, action = "edit", section, output_dir } = params || {};
 
   if (!input_file) {
@@ -2103,16 +2155,16 @@ async function docEdit(params) {
   const ext = path.extname(input_file).toLowerCase();
 
   if ([".md", ".txt", ".html", ".htm"].includes(ext)) {
-    return editText(input_file, instruction, action, section, output_dir);
+    return editText(processBroker, input_file, instruction, action, section, output_dir);
   }
   if (ext === ".docx") {
-    return editDocx(input_file, instruction, action, section, output_dir);
+    return editDocx(processBroker, input_file, instruction, action, section, output_dir);
   }
   if (ext === ".xlsx") {
-    return editXlsx(input_file, instruction, action, output_dir);
+    return editXlsx(processBroker, input_file, instruction, action, output_dir);
   }
   if (ext === ".pptx") {
-    return editPptx(input_file, instruction, action, output_dir);
+    return editPptx(processBroker, input_file, instruction, action, output_dir);
   }
 
   return {
@@ -2122,12 +2174,13 @@ async function docEdit(params) {
   };
 }
 
-docEdit.execute = async (task, _ctx, _skill) => {
+docEdit.execute = async (task, context, _skill) => {
+  const processBroker = requireProcessBroker(context);
   const input = typeof task === "string" ? task : (task.input || task.params?.input || "");
   let p = {};
   try { p = input.trim().startsWith("{") ? JSON.parse(input) : { input_file: input }; }
   catch { p = { input_file: input }; }
-  return docEdit(p);
+  return docEdit(p, processBroker);
 };
 module.exports = docEdit;
 `,

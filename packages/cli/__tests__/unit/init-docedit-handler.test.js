@@ -46,4 +46,10 @@ describe("doc-edit handler: firstBalancedJson is resolvable in the emitted modul
     // Before the fix this threw ReferenceError: firstBalancedJson is not defined.
     expect(mod.__probeFirstBalancedJson()).toBe("[1,2,3]");
   });
+
+  it("fails closed when the host does not inject a Process Broker", async () => {
+    await expect(mod.execute("input.md", {})).rejects.toThrow(
+      "Process Broker unavailable for doc-edit skill",
+    );
+  });
 });
