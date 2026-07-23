@@ -2,6 +2,19 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.30] - Secure Windows bridge release gates (2026-07-23)
+
+- Publish owner-only bridge lockfiles asynchronously and construct exact,
+  protected Windows DACLs without PowerShell module-autoload dependencies.
+- Keep bearer tokens off process arguments, normalize ownership only when
+  needed, and verify the final directory, temporary-file, and final-file ACLs
+  before making the bridge discoverable.
+- Offer a one-time, per-window **Reload Window** prompt after an extension
+  version change so retained Webview scripts are recreated safely without an
+  automatic cross-extension reload.
+- Gate the packaged VSIX in real VS Code hosts on Windows Stable, the minimum
+  supported VS Code 1.85.2, and Linux Xvfb, using Node.js 22.12.0.
+
 ## [0.37.29] - Slash suggestions and Webview restart safety (2026-07-23)
 
 - Clicking the blue Send button while a slash-command suggestion is highlighted
