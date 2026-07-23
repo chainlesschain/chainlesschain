@@ -6,14 +6,61 @@
  * can rely on stable shapes.
  */
 
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, vi } from "vitest";
 import {
   collectDoctorReport,
   collectStatusReport,
   collectEventRuntimeStatus,
   checkPort,
   checkPdhPackageIntegrity,
+  diagnosticProcessInvocations,
+  runDiagnosticProbe,
 } from "../../src/runtime/diagnostics.js";
+
+describe("diagnostics process probes", () => {
+  it("selects shell-free npm and Git invocations", () => {
+    expect(diagnosticProcessInvocations("win32", "C:\\node\\node.exe")).toEqual(
+      {
+        npm: {
+          command: "C:\\node\\node.exe",
+          prefixArgs: ["C:\\node\\node_modules\\npm\\bin\\npm-cli.js"],
+        },
+        git: { command: "git", prefixArgs: [] },
+      },
+    );
+    expect(diagnosticProcessInvocations("linux")).toEqual({
+      npm: { command: "npm", prefixArgs: [] },
+      git: { command: "git", prefixArgs: [] },
+    });
+  });
+
+  it("passes fixed executable argv through the diagnostics Broker scope", () => {
+    const execFileSync = vi.fn(() => "10.9.0\n");
+
+    expect(runDiagnosticProbe("npm", ["--version"], { execFileSync })).toBe(
+      "10.9.0",
+    );
+    expect(execFileSync).toHaveBeenCalledWith(
+      "npm",
+      ["--version"],
+      expect.objectContaining({
+        encoding: "utf-8",
+        origin: "runtime:diagnostics",
+        policy: "allow",
+        scope: "diagnostics",
+        shell: false,
+      }),
+    );
+  });
+
+  it("keeps unavailable probes best-effort", () => {
+    const execFileSync = vi.fn(() => {
+      throw Object.assign(new Error("not found"), { code: "ENOENT" });
+    });
+
+    expect(runDiagnosticProbe("missing", [], { execFileSync })).toBeNull();
+  });
+});
 
 describe("diagnostics.collectDoctorReport", { timeout: 60000 }, () => {
   // Pre-warm: first collectDoctorReport call on cold Windows CI runners

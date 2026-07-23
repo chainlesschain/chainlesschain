@@ -98,14 +98,16 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   `child_process` 调用迁移到显式 Broker provenance/scope；静态清单继续作为剩余入口的事实源。
 - `cc config edit` 也已移除 shell 字符串拼接：`$EDITOR` 被解析为 executable/argv，配置路径作为
   独立参数经 Broker 传递，路径和编辑器参数中的 shell 元字符不再被解释执行。
-- `cc update` 的 npm 全局安装与版本校验同样改为 executable/argv Broker 调用；Windows 明确选择
-  `.cmd` shim，目标版本不再拼接进 shell 命令。
+- `cc update` 的 npm 全局安装与版本校验同样改为 executable/argv Broker 调用；Windows 使用
+  `node.exe + npm-cli.js` 绕开不可由 Node 无 shell 启动的 `.cmd` shim，目标版本不再拼接进命令文本。
 - 下载更新后的 ZIP 解压默认执行器也已进入 `update:archive-extract` Broker scope；远程产物路径
   继续只作为 argv/环境值传递，不进入 PowerShell 脚本文本或 POSIX shell。
 - Cloud handoff 的 `git bundle`/`git apply` 默认执行器已进入 `cloud:git` Broker scope，真实 bundle
   与三方 patch 回流测试保留；测试注入接口不变。
 - Broker `execFileSync` 已恢复 Node 同步契约：成功返回 stdout，启动错误或非零退出抛出带
   `status/signal/stdout/stderr` 的错误；归档解压与 Cloud handoff 共用该实现。
+- `doctor` 的 npm、Git 探针及 Windows UTF-8 控制台初始化已迁移为 Broker executable/argv
+  调用；Windows npm 同样使用 `node.exe + npm-cli.js`，固定命令不再依赖业务模块中的裸 shell。
 
 ### 4.2 建议设计
 

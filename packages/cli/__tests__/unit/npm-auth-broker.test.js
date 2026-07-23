@@ -8,43 +8,92 @@ import {
 } from "../../src/auth/npm-auth.js";
 
 describe("npm auth process broker boundary", () => {
-  let originalExecSync;
+  let originalExecFileSync;
+  let originalPlatform;
+  let originalExecPath;
 
   beforeEach(() => {
-    originalExecSync = _deps.execSync;
+    originalExecFileSync = _deps.execFileSync;
+    originalPlatform = _deps.platform;
+    originalExecPath = _deps.execPath;
+    _deps.platform = "linux";
+    _deps.execPath = "/usr/bin/node";
   });
 
   afterEach(() => {
-    _deps.execSync = originalExecSync;
+    _deps.execFileSync = originalExecFileSync;
+    _deps.platform = originalPlatform;
+    _deps.execPath = originalExecPath;
   });
 
   it("checks login state and username through the injected execution seam", () => {
-    _deps.execSync = vi.fn((_command, options) =>
+    _deps.execFileSync = vi.fn((_command, _args, options) =>
       options.encoding ? "alice\n" : "",
     );
 
     expect(isLoggedIn()).toBe(true);
     expect(getCurrentUser()).toBe("alice");
-    expect(_deps.execSync).toHaveBeenNthCalledWith(1, "npm whoami", {
-      stdio: "ignore",
-    });
-    expect(_deps.execSync).toHaveBeenNthCalledWith(2, "npm whoami", {
-      encoding: "utf8",
-    });
+    expect(_deps.execFileSync).toHaveBeenNthCalledWith(
+      1,
+      "npm",
+      ["whoami"],
+      expect.objectContaining({
+        stdio: "ignore",
+        origin: "auth:npm",
+        policy: "allow",
+        scope: "auth",
+        shell: false,
+      }),
+    );
+    expect(_deps.execFileSync).toHaveBeenNthCalledWith(
+      2,
+      "npm",
+      ["whoami"],
+      expect.objectContaining({
+        encoding: "utf8",
+        origin: "auth:npm",
+        shell: false,
+      }),
+    );
+  });
+
+  it("uses node.exe plus npm-cli.js on Windows", () => {
+    _deps.platform = "win32";
+    _deps.execPath = "C:\\node\\node.exe";
+    _deps.execFileSync = vi.fn(() => "alice\n");
+
+    expect(getCurrentUser()).toBe("alice");
+    expect(_deps.execFileSync).toHaveBeenCalledWith(
+      "C:\\node\\node.exe",
+      ["C:\\node\\node_modules\\npm\\bin\\npm-cli.js", "whoami"],
+      expect.objectContaining({
+        origin: "auth:npm",
+        scope: "auth",
+        shell: false,
+      }),
+    );
   });
 
   it("runs login and verifies the resulting identity", async () => {
-    _deps.execSync = vi.fn(() => "");
+    _deps.execFileSync = vi.fn(() => "");
 
     await expect(login()).resolves.toBe(true);
-    expect(_deps.execSync.mock.calls).toEqual([
-      ["npm login", { stdio: "inherit" }],
-      ["npm whoami", { stdio: "ignore" }],
-    ]);
+    expect(_deps.execFileSync).toHaveBeenNthCalledWith(
+      1,
+      "npm",
+      ["login"],
+      expect.objectContaining({ stdio: "inherit", shell: false }),
+    );
+    expect(_deps.execFileSync).toHaveBeenNthCalledWith(
+      2,
+      "npm",
+      ["whoami"],
+      expect.objectContaining({ stdio: "ignore", shell: false }),
+    );
   });
 
   it("runs logout and verifies the identity is gone", async () => {
-    _deps.execSync = vi
+    _deps.execFileSync = vi
       .fn()
       .mockReturnValueOnce("")
       .mockImplementationOnce(() => {
@@ -52,14 +101,22 @@ describe("npm auth process broker boundary", () => {
       });
 
     await expect(logout()).resolves.toBe(true);
-    expect(_deps.execSync.mock.calls).toEqual([
-      ["npm logout", { stdio: "inherit" }],
-      ["npm whoami", { stdio: "ignore" }],
-    ]);
+    expect(_deps.execFileSync).toHaveBeenNthCalledWith(
+      1,
+      "npm",
+      ["logout"],
+      expect.objectContaining({ stdio: "inherit", shell: false }),
+    );
+    expect(_deps.execFileSync).toHaveBeenNthCalledWith(
+      2,
+      "npm",
+      ["whoami"],
+      expect.objectContaining({ stdio: "ignore", shell: false }),
+    );
   });
 
   it("fails closed when the execution seam rejects auth commands", async () => {
-    _deps.execSync = vi.fn(() => {
+    _deps.execFileSync = vi.fn(() => {
       throw new Error("broker denied");
     });
 

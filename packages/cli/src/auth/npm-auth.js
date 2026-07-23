@@ -6,16 +6,31 @@
 
 import { logger } from "../lib/logger.js";
 import { executionBroker } from "../lib/process-execution-broker/index.js";
+import { resolveNpmInvocation } from "../lib/npm-invocation.js";
 
 export const _deps = {
-  execSync: (command, options) =>
-    executionBroker.execSync(command, {
+  platform: process.platform,
+  execPath: process.execPath,
+  execFileSync: (...args) => executionBroker.execFileSync(...args),
+};
+
+function runNpm(args, options = {}) {
+  const invocation = resolveNpmInvocation({
+    platform: _deps.platform,
+    execPath: _deps.execPath,
+  });
+  return _deps.execFileSync(
+    invocation.command,
+    [...invocation.prefixArgs, ...args],
+    {
       ...options,
       origin: "auth:npm",
       policy: "allow",
       scope: "auth",
-    }),
-};
+      shell: false,
+    },
+  );
+}
 
 /**
  * Check if user is currently logged in to npm
@@ -23,7 +38,7 @@ export const _deps = {
  */
 export function isLoggedIn() {
   try {
-    _deps.execSync("npm whoami", { stdio: "ignore" });
+    runNpm(["whoami"], { stdio: "ignore" });
     return true;
   } catch {
     return false;
@@ -36,7 +51,7 @@ export function isLoggedIn() {
  */
 export function getCurrentUser() {
   try {
-    return _deps.execSync("npm whoami", { encoding: "utf8" }).trim();
+    return runNpm(["whoami"], { encoding: "utf8" }).trim();
   } catch {
     return null;
   }
@@ -49,7 +64,7 @@ export function getCurrentUser() {
 export async function login() {
   try {
     logger.info("Running npm login...");
-    _deps.execSync("npm login", { stdio: "inherit" });
+    runNpm(["login"], { stdio: "inherit" });
     return isLoggedIn();
   } catch (err) {
     logger.error(`Login failed: ${err.message}`);
@@ -64,7 +79,7 @@ export async function login() {
 export async function logout() {
   try {
     logger.info("Running npm logout...");
-    _deps.execSync("npm logout", { stdio: "inherit" });
+    runNpm(["logout"], { stdio: "inherit" });
     return !isLoggedIn();
   } catch (err) {
     logger.error(`Logout failed: ${err.message}`);

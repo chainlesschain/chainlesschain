@@ -6,17 +6,29 @@ import { VERSION } from "../constants.js";
 import { askConfirm } from "../lib/prompts.js";
 import logger from "../lib/logger.js";
 import { executionBroker } from "../lib/process-execution-broker/index.js";
+import { resolveNpmInvocation } from "../lib/npm-invocation.js";
 
 export const _deps = {
   platform: process.platform,
+  execPath: process.execPath,
+  cliEntryPath: process.argv[1] || null,
   spawnSync: (...args) => executionBroker.spawnSync(...args),
 };
 
-export function updateExecutableNames(platform = _deps.platform) {
+export function updateProcessInvocations(
+  platform = _deps.platform,
+  execPath = _deps.execPath,
+  cliEntryPath = _deps.cliEntryPath,
+) {
   return {
-    npm: platform === "win32" ? "npm.cmd" : "npm",
-    chainlesschain:
-      platform === "win32" ? "chainlesschain.cmd" : "chainlesschain",
+    npm: resolveNpmInvocation({ platform, execPath }),
+    chainlesschain: cliEntryPath
+      ? { command: execPath, prefixArgs: [cliEntryPath] }
+      : {
+          command:
+            platform === "win32" ? "chainlesschain.cmd" : "chainlesschain",
+          prefixArgs: [],
+        },
   };
 }
 
@@ -68,17 +80,22 @@ export async function selfUpdateCli(targetVersion) {
 
   try {
     logger.info("Updating CLI package...");
-    const executables = updateExecutableNames();
+    const invocations = updateProcessInvocations();
     runUpdateProcess(
-      executables.npm,
-      ["install", "-g", `chainlesschain@${targetVersion}`],
+      invocations.npm.command,
+      [
+        ...invocations.npm.prefixArgs,
+        "install",
+        "-g",
+        `chainlesschain@${targetVersion}`,
+      ],
       "update:npm-install",
     );
     // Verify the update actually took effect
     try {
       const newVersion = runUpdateProcess(
-        executables.chainlesschain,
-        ["--version"],
+        invocations.chainlesschain.command,
+        [...invocations.chainlesschain.prefixArgs, "--version"],
         "update:version-check",
       ).trim();
       if (newVersion === targetVersion) {

@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 411 (runtime: 335, tooling: 53, test: 23).
+Total matches: 408 (runtime: 332, tooling: 53, test: 23).
 
 ## Policy
 
@@ -28,11 +28,8 @@ Total matches: 411 (runtime: 335, tooling: 53, test: 23).
 | `packages/agent-sdk/src/agent-session.ts` | 452 | `spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"]);` |
 | `packages/agent-sdk/src/cli-json.ts` | 8 | `import { execFile } from "node:child_process";` |
 | `packages/cli/bin/chainlesschain.js` | 3 | `// FIRST: Patch child_process globally to route ALL spawn/exec through ProcessExecutionBroker (M1)` |
-| `packages/cli/src/auth/npm-auth.js` | 12 | `executionBroker.execSync(command, {` |
-| `packages/cli/src/auth/npm-auth.js` | 26 | `_deps.execSync("npm whoami", { stdio: "ignore" });` |
-| `packages/cli/src/auth/npm-auth.js` | 39 | `return _deps.execSync("npm whoami", { encoding: "utf8" }).trim();` |
-| `packages/cli/src/auth/npm-auth.js` | 52 | `_deps.execSync("npm login", { stdio: "inherit" });` |
-| `packages/cli/src/auth/npm-auth.js` | 67 | `_deps.execSync("npm logout", { stdio: "inherit" });` |
+| `packages/cli/src/auth/npm-auth.js` | 14 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
+| `packages/cli/src/auth/npm-auth.js` | 22 | `return _deps.execFileSync(` |
 | `packages/cli/src/commands/agenda.js` | 21 | `import { spawn, execSync } from "node:child_process";` |
 | `packages/cli/src/commands/agenda.js` | 497 | `const child = spawn(` |
 | `packages/cli/src/commands/agenda.js` | 517 | `return execSync(command, {` |
@@ -94,8 +91,8 @@ Total matches: 411 (runtime: 335, tooling: 53, test: 23).
 | `packages/cli/src/commands/team.js` | 21 | `import { spawn } from "child_process";` |
 | `packages/cli/src/commands/team.js` | 104 | `const child = spawn(command, {` |
 | `packages/cli/src/commands/team.js` | 134 | `const child = spawn(process.execPath, args, {` |
-| `packages/cli/src/commands/update.js` | 12 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
-| `packages/cli/src/commands/update.js` | 24 | `const result = _deps.spawnSync(command, args, {` |
+| `packages/cli/src/commands/update.js` | 15 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
+| `packages/cli/src/commands/update.js` | 36 | `const result = _deps.spawnSync(command, args, {` |
 | `packages/cli/src/gateways/ws/ws-server.js` | 14 | `import { spawn } from "node:child_process";` |
 | `packages/cli/src/gateways/ws/ws-server.js` | 919 | `const child = spawn(process.execPath, [BIN_PATH, ...args], {` |
 | `packages/cli/src/harness/background-task-manager.js` | 4 | `* Tasks run in child_process.fork() for isolation.` |
@@ -172,8 +169,8 @@ Total matches: 411 (runtime: 335, tooling: 53, test: 23).
 | `packages/cli/src/lib/doctor-checkup.js` | 842 | `spawnSync: deps.spawnSync,` |
 | `packages/cli/src/lib/doctor-checkup.js` | 1141 | `deps.execSync("git worktree prune", {` |
 | `packages/cli/src/lib/downloader.js` | 18 | `return executionBroker.execFileSync(file, args, options);` |
-| `packages/cli/src/lib/ensure-utf8.js` | 10 | `import { execSync } from "child_process";` |
-| `packages/cli/src/lib/ensure-utf8.js` | 37 | `_deps.execSync("chcp 65001", { stdio: "ignore" });` |
+| `packages/cli/src/lib/ensure-utf8.js` | 15 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
+| `packages/cli/src/lib/ensure-utf8.js` | 39 | `_deps.execFileSync("cmd.exe", ["/d", "/s", "/c", "chcp 65001"], {` |
 | `packages/cli/src/lib/eval/tasks.js` | 14 | `import { execFileSync } from "node:child_process";` |
 | `packages/cli/src/lib/eval/tasks.js` | 100 | `const out = execFileSync(process.execPath, ["bug.js"], {` |
 | `packages/cli/src/lib/eval/tasks.js` | 189 | `const out = execFileSync(process.execPath, ["run-checks.mjs"], {` |
@@ -332,8 +329,8 @@ Total matches: 411 (runtime: 335, tooling: 53, test: 23).
 | `packages/cli/src/runtime/agent-core.js` | 4708 | `const retryOutput = execSync(`${interpreter} "${scriptPath}"`, {` |
 | `packages/cli/src/runtime/agent-core.js` | 5211 | `// fully-defaulted spawn (→ "default") touches neither tools nor confirmer nor gate.` |
 | `packages/cli/src/runtime/agent-core.js` | 5267 | `// sub-agent runs, so a policy hook can VETO the spawn (`block`) or INJECT` |
-| `packages/cli/src/runtime/diagnostics.js` | 15 | `import { execSync } from "node:child_process";` |
-| `packages/cli/src/runtime/diagnostics.js` | 73 | `return execSync(cmd, { encoding: "utf-8" }).trim();` |
+| `packages/cli/src/runtime/diagnostics.js` | 83 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
+| `packages/cli/src/runtime/diagnostics.js` | 89 | `deps.execFileSync(file, args, {` |
 | `packages/cli/src/runtime/headless-runner.js` | 2060 | `gc.spawnSync \|\| (await import("node:child_process")).spawnSync;` |
 | `packages/cli/src/skills/video-editing/extractors/audio-extractor.js` | 14 | `import { spawn } from "child_process";` |
 | `packages/cli/src/skills/video-editing/extractors/audio-extractor.js` | 126 | `const proc = spawn("python", [script, audioPath], {` |

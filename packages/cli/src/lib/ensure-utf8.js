@@ -7,11 +7,13 @@
  * Node.js streams to use UTF-8 encoding.
  */
 
-import { execSync } from "child_process";
+import { executionBroker } from "./process-execution-broker/index.js";
 
 // Injectable so tests can assert whether the (expensive) chcp spawn happened
 // without actually spawning cmd.exe. See cli-dev.md `_deps` pattern.
-export const _deps = { execSync };
+export const _deps = {
+  execFileSync: (...args) => executionBroker.execFileSync(...args),
+};
 
 /**
  * Call this as early as possible in the process entry point.
@@ -34,7 +36,13 @@ export function ensureUtf8() {
     Boolean(process.stderr && process.stderr.isTTY);
   if (consoleAttached || process.env.CC_FORCE_CHCP === "1") {
     try {
-      _deps.execSync("chcp 65001", { stdio: "ignore" });
+      _deps.execFileSync("cmd.exe", ["/d", "/s", "/c", "chcp 65001"], {
+        stdio: "ignore",
+        origin: "runtime:utf8-console",
+        policy: "allow",
+        scope: "runtime",
+        shell: false,
+      });
     } catch (_err) {
       // Ignore - may fail in non-interactive environments
     }

@@ -12,7 +12,6 @@
  * Refs: docs/implementation-plans/CLI_RUNTIME_CONVERGENCE_ADR.md
  */
 
-import { execSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join as pathJoin } from "node:path";
 import { createRequire } from "node:module";
@@ -31,6 +30,8 @@ import { loadConfig } from "../lib/config-manager.js";
 import { isAppRunning, getAppPid } from "../lib/process-manager.js";
 import { readDiskVersion, versionDiagnosis } from "../lib/version-skew.js";
 import { EventRuntimeStore } from "../lib/event-runtime-store.js";
+import { executionBroker } from "../lib/process-execution-broker/index.js";
+import { resolveNpmInvocation } from "../lib/npm-invocation.js";
 
 /** Best-effort read of the npm `latest` cached by the startup update notice. */
 function readCachedLatest() {
@@ -68,9 +69,31 @@ function readdirSafe(dir) {
   }
 }
 
-function safeExec(cmd) {
+export function diagnosticProcessInvocations(
+  platform = process.platform,
+  execPath = process.execPath,
+) {
+  return {
+    npm: resolveNpmInvocation({ platform, execPath }),
+    git: { command: "git", prefixArgs: [] },
+  };
+}
+
+export const _diagnosticDeps = {
+  execFileSync: (...args) => executionBroker.execFileSync(...args),
+};
+
+export function runDiagnosticProbe(file, args = [], deps = _diagnosticDeps) {
   try {
-    return execSync(cmd, { encoding: "utf-8" }).trim();
+    return String(
+      deps.execFileSync(file, args, {
+        encoding: "utf-8",
+        origin: "runtime:diagnostics",
+        policy: "allow",
+        scope: "diagnostics",
+        shell: false,
+      }),
+    ).trim();
   } catch {
     return null;
   }
@@ -127,6 +150,7 @@ export function checkPdhPackageIntegrity(deps = {}) {
  */
 export async function collectDoctorReport() {
   const checks = [];
+  const invocations = diagnosticProcessInvocations();
 
   // Node.js
   const nodeVersion = process.versions.node;
@@ -140,7 +164,10 @@ export async function collectDoctorReport() {
   });
 
   // npm
-  const npmVersion = safeExec("npm --version");
+  const npmVersion = runDiagnosticProbe(invocations.npm.command, [
+    ...invocations.npm.prefixArgs,
+    "--version",
+  ]);
   checks.push({
     id: "npm",
     name: npmVersion ? `npm ${npmVersion}` : "npm",
@@ -169,7 +196,7 @@ export async function collectDoctorReport() {
   });
 
   // Git
-  const gitVersion = safeExec("git --version");
+  const gitVersion = runDiagnosticProbe(invocations.git.command, ["--version"]);
   checks.push({
     id: "git",
     name: gitVersion || "Git",
@@ -317,7 +344,13 @@ export function parseGitWorktrees(porcelain) {
 
 /** Best-effort live git worktree list for the current repo. */
 export function collectWorktrees() {
-  return parseGitWorktrees(safeExec("git worktree list --porcelain"));
+  return parseGitWorktrees(
+    runDiagnosticProbe(diagnosticProcessInvocations().git.command, [
+      "worktree",
+      "list",
+      "--porcelain",
+    ]),
+  );
 }
 
 /**

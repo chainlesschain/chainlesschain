@@ -2,32 +2,63 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   _deps,
   selfUpdateCli,
-  updateExecutableNames,
+  updateProcessInvocations,
 } from "../../src/commands/update.js";
 
 describe("CLI self-update process broker boundary", () => {
   let originalSpawnSync;
   let originalPlatform;
+  let originalExecPath;
+  let originalCliEntryPath;
 
   beforeEach(() => {
     originalSpawnSync = _deps.spawnSync;
     originalPlatform = _deps.platform;
+    originalExecPath = _deps.execPath;
+    originalCliEntryPath = _deps.cliEntryPath;
     _deps.platform = "linux";
+    _deps.execPath = "/usr/bin/node";
+    _deps.cliEntryPath = "/opt/cc/bin/chainlesschain.js";
   });
 
   afterEach(() => {
     _deps.spawnSync = originalSpawnSync;
     _deps.platform = originalPlatform;
+    _deps.execPath = originalExecPath;
+    _deps.cliEntryPath = originalCliEntryPath;
   });
 
-  it("selects executable shims without invoking a shell", () => {
-    expect(updateExecutableNames("linux")).toEqual({
-      npm: "npm",
-      chainlesschain: "chainlesschain",
+  it("selects process invocations without a shell", () => {
+    expect(
+      updateProcessInvocations(
+        "linux",
+        "/usr/bin/node",
+        "/opt/cc/bin/chainlesschain.js",
+      ),
+    ).toEqual({
+      npm: { command: "npm", prefixArgs: [] },
+      chainlesschain: {
+        command: "/usr/bin/node",
+        prefixArgs: ["/opt/cc/bin/chainlesschain.js"],
+      },
     });
-    expect(updateExecutableNames("win32")).toEqual({
-      npm: "npm.cmd",
-      chainlesschain: "chainlesschain.cmd",
+    expect(
+      updateProcessInvocations(
+        "win32",
+        "C:\\node\\node.exe",
+        "C:\\npm\\node_modules\\chainlesschain\\bin\\chainlesschain.js",
+      ),
+    ).toEqual({
+      npm: {
+        command: "C:\\node\\node.exe",
+        prefixArgs: ["C:\\node\\node_modules\\npm\\bin\\npm-cli.js"],
+      },
+      chainlesschain: {
+        command: "C:\\node\\node.exe",
+        prefixArgs: [
+          "C:\\npm\\node_modules\\chainlesschain\\bin\\chainlesschain.js",
+        ],
+      },
     });
   });
 
@@ -53,8 +84,8 @@ describe("CLI self-update process broker boundary", () => {
     );
     expect(_deps.spawnSync).toHaveBeenNthCalledWith(
       2,
-      "chainlesschain",
-      ["--version"],
+      "/usr/bin/node",
+      ["/opt/cc/bin/chainlesschain.js", "--version"],
       expect.objectContaining({
         origin: "update:version-check",
         policy: "allow",

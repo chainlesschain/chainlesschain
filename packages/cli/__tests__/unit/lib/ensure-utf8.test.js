@@ -25,14 +25,14 @@ function setTTY(out, err) {
     configurable: true,
   });
 }
-const ORIG_EXECSYNC = _deps.execSync;
+const ORIG_EXEC_FILE_SYNC = _deps.execFileSync;
 afterEach(() => {
   Object.defineProperty(process, "platform", ORIG_PLATFORM_DESC);
   if (ORIG_OUT_TTY)
     Object.defineProperty(process.stdout, "isTTY", ORIG_OUT_TTY);
   if (ORIG_ERR_TTY)
     Object.defineProperty(process.stderr, "isTTY", ORIG_ERR_TTY);
-  _deps.execSync = ORIG_EXECSYNC;
+  _deps.execFileSync = ORIG_EXEC_FILE_SYNC;
   delete process.env.CC_FORCE_CHCP;
 });
 
@@ -130,20 +130,27 @@ describe("ensureUtf8", () => {
   it("win32 + interactive console: spawns chcp (TTY attached)", () => {
     setPlatform("win32");
     setTTY(true, false);
-    _deps.execSync = vi.fn();
+    _deps.execFileSync = vi.fn();
     ensureUtf8();
-    expect(_deps.execSync).toHaveBeenCalledWith(
-      "chcp 65001",
-      expect.objectContaining({ stdio: "ignore" }),
+    expect(_deps.execFileSync).toHaveBeenCalledWith(
+      "cmd.exe",
+      ["/d", "/s", "/c", "chcp 65001"],
+      expect.objectContaining({
+        stdio: "ignore",
+        origin: "runtime:utf8-console",
+        policy: "allow",
+        scope: "runtime",
+        shell: false,
+      }),
     );
   });
 
   it("win32 + piped output: SKIPS the ~280ms chcp spawn (no TTY)", () => {
     setPlatform("win32");
     setTTY(false, false);
-    _deps.execSync = vi.fn();
+    _deps.execFileSync = vi.fn();
     ensureUtf8();
-    expect(_deps.execSync).not.toHaveBeenCalled();
+    expect(_deps.execFileSync).not.toHaveBeenCalled();
     // env vars still set so child processes inherit UTF-8 regardless.
     expect(process.env.PYTHONIOENCODING).toBe("utf-8");
   });
@@ -151,17 +158,17 @@ describe("ensureUtf8", () => {
   it("win32 + stderr-only TTY: still spawns chcp (console attached via stderr)", () => {
     setPlatform("win32");
     setTTY(false, true);
-    _deps.execSync = vi.fn();
+    _deps.execFileSync = vi.fn();
     ensureUtf8();
-    expect(_deps.execSync).toHaveBeenCalledTimes(1);
+    expect(_deps.execFileSync).toHaveBeenCalledTimes(1);
   });
 
   it("win32 + piped + CC_FORCE_CHCP=1: forces the spawn (escape hatch)", () => {
     setPlatform("win32");
     setTTY(false, false);
     process.env.CC_FORCE_CHCP = "1";
-    _deps.execSync = vi.fn();
+    _deps.execFileSync = vi.fn();
     ensureUtf8();
-    expect(_deps.execSync).toHaveBeenCalledTimes(1);
+    expect(_deps.execFileSync).toHaveBeenCalledTimes(1);
   });
 });
