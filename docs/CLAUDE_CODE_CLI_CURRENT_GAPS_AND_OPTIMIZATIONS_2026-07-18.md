@@ -208,6 +208,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   Broker origin 并改用 literal argv；生成到用户 Skill 的独立 CommonJS handler 继续作为单独边界追踪。
 - Background task harness 的 worker 启动与任务命令已进入 `background-task:worker`、
   `background-task:command:*` Broker origin；Node `execArgv`、stdio IPC、heartbeat/result 消息语义保持不变。
+- MCP stdio client 的普通与插件 server 启动已统一进入 Broker；普通 server 自动记录
+  `mcp:server:<name>` origin，插件继续透传 plugin provenance，stdio/env/失败清理语义保持不变。
 
 ### 4.2 建议设计
 

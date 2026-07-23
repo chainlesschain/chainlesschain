@@ -8,7 +8,6 @@
  * thin re-export shim for backwards compatibility.
  */
 
-import { spawn } from "child_process";
 import { executionBroker } from "../lib/process-execution-broker/index.js";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { EventEmitter } from "events";
@@ -21,7 +20,7 @@ import { EventRuntimeProducer } from "../lib/event-runtime-producer.js";
  * `fetch` defaults to the global fetch (Node 18+).
  */
 export const _deps = {
-  spawn,
+  spawn: executionBroker.spawn.bind(executionBroker),
   fetch: (...args) => globalThis.fetch(...args),
   // Backoff sleep seam (tests override with a no-op so retries don't wait).
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
@@ -486,10 +485,7 @@ export class MCPClient extends EventEmitter {
             `stdio transport requires a command (server "${name}")`,
           );
         }
-        const spawnFn = String(config.origin || "").startsWith("plugin:")
-          ? executionBroker.spawn.bind(executionBroker)
-          : _deps.spawn;
-        const proc = spawnFn(config.command, config.args || [], {
+        const proc = _deps.spawn(config.command, config.args || [], {
           stdio: ["pipe", "pipe", "pipe"],
           // process.env < agent identity (CLAUDECODE / session id) < the
           // server's own config.env, so an explicit per-server override wins.
@@ -498,15 +494,13 @@ export class MCPClient extends EventEmitter {
             ...this._agentIdentityEnv(),
             ...(config.env || {}),
           },
-          ...(config.origin
-            ? {
-                origin: config.origin,
-                policy: config.policy || "allow",
-                pluginId: config.pluginId,
-                pluginVersion: config.pluginVersion,
-                pluginSource: config.pluginSource,
-              }
-            : {}),
+          origin: config.origin || `mcp:server:${name}`,
+          policy: config.policy || "allow",
+          scope: config.scope || "mcp",
+          shell: false,
+          pluginId: config.pluginId,
+          pluginVersion: config.pluginVersion,
+          pluginSource: config.pluginSource,
         });
 
         entry.process = proc;

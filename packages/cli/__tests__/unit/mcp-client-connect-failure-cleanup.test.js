@@ -15,7 +15,7 @@
  * the teardown happened.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { EventEmitter } from "events";
 import { MCPClient } from "../../src/lib/mcp-client.js";
 
@@ -41,11 +41,25 @@ describe("MCPClient stdio — connect-failure cleanup", () => {
     const mod = await import("../../src/lib/mcp-client.js");
     const client = new MCPClient();
     const proc = makeBrokenProc();
-    mod._deps.spawn = () => proc;
+    mod._deps.spawn = vi.fn(() => proc);
 
     await expect(
-      client.connect("srv", { command: "fake-mcp" }),
+      client.connect("srv", {
+        command: "fake-mcp",
+        args: ["--root", "path with spaces"],
+      }),
     ).rejects.toThrow(/EPIPE/);
+
+    expect(mod._deps.spawn).toHaveBeenCalledWith(
+      "fake-mcp",
+      ["--root", "path with spaces"],
+      expect.objectContaining({
+        origin: "mcp:server:srv",
+        policy: "allow",
+        scope: "mcp",
+        shell: false,
+      }),
+    );
 
     // The orphan-prevention invariant: process reaped, registry clean,
     // listeners dropped (no dangling stdout/stderr/close/error handlers).
