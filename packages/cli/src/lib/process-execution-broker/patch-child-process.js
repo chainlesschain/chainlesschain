@@ -3,10 +3,9 @@
  * This runs at CLI startup, before any other imports, ensuring every subprocess is audited
  */
 import { createRequire } from "node:module";
-const require = createRequire(import.meta.url);
+import { executionBroker } from "./index.js";
 
-// Import ExecutionBroker singleton
-const { executionBroker } = require("./index.js");
+const require = createRequire(import.meta.url);
 
 // Get the REAL native child_process module (unpatched, from Node.js internals)
 const nativeCp = require("node:child_process");
