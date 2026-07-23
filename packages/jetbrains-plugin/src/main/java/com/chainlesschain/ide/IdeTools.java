@@ -104,7 +104,9 @@ public final class IdeTools {
                 "Open a native side-by-side diff in the editor for the user to review a "
                         + "proposed change, then BLOCK until they accept or reject it. `path` is "
                         + "the target file; `modifiedText` is the proposed new content; "
-                        + "`originalText` defaults to the file's current content. On accept the "
+                        + "`originalText` defaults to the file's current content; `operation` "
+                        + "explicitly marks modify/create/delete/rename and rename requires "
+                        + "`targetPath`. On accept the "
                         + "(possibly user-edited) text is written to the file. Returns "
                         + "{ outcome: 'accepted'|'rejected', path, finalText? } — this call can "
                         + "take a while, that is expected.",
@@ -116,8 +118,21 @@ public final class IdeTools {
                 if (!(path instanceof String) || !(modified instanceof String)) {
                     throw new IllegalArgumentException("openDiff requires `path` and `modifiedText`");
                 }
+                String operation = args.get("operation") instanceof String
+                        ? (String) args.get("operation") : "modify";
+                if (!List.of("modify", "create", "delete", "rename").contains(operation)) {
+                    throw new IllegalArgumentException(
+                            "openDiff received unsupported operation: " + operation);
+                }
+                if ("rename".equals(operation)
+                        && !(args.get("targetPath") instanceof String)) {
+                    throw new IllegalArgumentException(
+                            "openDiff operation=rename requires `targetPath`");
+                }
                 // Write-capable tool: the target must live inside the workspace.
                 String safePath = (String) path;
+                String safeTargetPath = "rename".equals(operation)
+                        ? (String) args.get("targetPath") : null;
                 if (workspaceRoots != null) {
                     IdePathGuard.Result g = IdePathGuard.validate(safePath, workspaceRoots);
                     if (!g.ok) {
@@ -125,12 +140,24 @@ public final class IdeTools {
                                 "openDiff: unsafe write target rejected: " + g.reason);
                     }
                     safePath = g.resolved;
+                    if (safeTargetPath != null) {
+                        IdePathGuard.Result target =
+                                IdePathGuard.validate(safeTargetPath, workspaceRoots);
+                        if (!target.ok) {
+                            throw new IllegalArgumentException(
+                                    "openDiff targetPath: unsafe write target rejected: "
+                                            + target.reason);
+                        }
+                        safeTargetPath = target.resolved;
+                    }
                 }
                 Map<String, Object> res = editor.openDiff(
                         safePath,
                         (String) modified,
                         (String) args.get("originalText"),
-                        (String) args.get("title"));
+                        (String) args.get("title"),
+                        operation,
+                        safeTargetPath);
                 Map<String, Object> output = res != null
                         ? new LinkedHashMap<String, Object>(res)
                         : new LinkedHashMap<String, Object>();
@@ -138,6 +165,8 @@ public final class IdeTools {
                     output.put("outcome", "rejected");
                     output.put("path", safePath);
                 }
+                output.put("operation", operation);
+                if (safeTargetPath != null) output.put("targetPath", safeTargetPath);
                 Object internalBaseline = output.remove("_auditBaselineText");
                 String auditBaseline = args.get("originalText") instanceof String
                         ? (String) args.get("originalText")
@@ -326,6 +355,12 @@ public final class IdeTools {
         props.put("modifiedText", strProp("Proposed new file content (right-hand side)."));
         props.put("originalText", strProp("Original content; defaults to the file on disk."));
         props.put("title", strProp("Diff tab title (optional)."));
+        Map<String, Object> operation = strProp(
+                "Filesystem intent; defaults to modify. rename requires targetPath.");
+        operation.put("enum",
+                new ArrayList<>(Arrays.asList("modify", "create", "delete", "rename")));
+        props.put("operation", operation);
+        props.put("targetPath", strProp("Destination path for operation=rename."));
         Map<String, Object> reviewContextProps = new LinkedHashMap<>();
         reviewContextProps.put("sessionId", strProp("CLI session id."));
         reviewContextProps.put("turnId", strProp("Agent turn id."));

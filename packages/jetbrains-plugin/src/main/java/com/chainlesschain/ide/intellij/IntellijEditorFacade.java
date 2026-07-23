@@ -33,6 +33,7 @@ import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -203,7 +204,22 @@ public final class IntellijEditorFacade implements EditorFacade {
 
     @Override
     public Map<String, Object> openDiff(String path, String modifiedText, String originalText, String title) {
+        return openDiff(path, modifiedText, originalText, title, "modify", null);
+    }
+
+    @Override
+    public Map<String, Object> openDiff(
+            String path,
+            String modifiedText,
+            String originalText,
+            String title,
+            String operation,
+            String targetPath) {
         final AtomicReference<Map<String, Object>> result = new AtomicReference<>();
+        final String diffOperation = List.of("modify", "create", "delete", "rename")
+                .contains(operation) ? operation : "modify";
+        final boolean lifecycleOperation =
+                "delete".equals(diffOperation) || "rename".equals(diffOperation);
         // Show the diff + the accept/reject prompt on the EDT and block until done.
         ApplicationManager.getApplication().invokeAndWait(() -> {
             DiffContentFactory factory = DiffContentFactory.getInstance();
@@ -243,9 +259,12 @@ public final class IntellijEditorFacade implements EditorFacade {
             Document rightDoc = rightContent.getDocument();
             String proposalShown = rightDoc.getText(); // post-normalization baseline
             int choice = Messages.showDialog(project,
-                    "Review proposed changes to " + path + ":",
+                    diffReviewPrompt(diffOperation, path, targetPath),
                     "ChainlessChain Review",
-                    new String[] { "Accept", "Pick hunks…", "Request changes…", "Reject" },
+                    lifecycleOperation
+                            ? new String[] { "Accept", "Request changes…", "Reject" }
+                            : new String[] {
+                                    "Accept", "Pick hunks…", "Request changes…", "Reject" },
                     0, null);
 
             // What the reviewer was actually looking at when they decided. When
@@ -255,7 +274,7 @@ public final class IntellijEditorFacade implements EditorFacade {
             String reviewed = shownNow.equals(proposalShown) ? modifiedText : shownNow;
 
             Map<String, Object> r = new LinkedHashMap<>();
-            if (choice == 0) { // Accept — writes the (possibly user-edited) right pane
+            if (choice == 0) { // Accept — applies the explicit filesystem intent
                 // Optimistic-concurrency gate: the review was decided against
                 // originalText — if the file moved on disk meanwhile, don't
                 // blind-write. No baseline (null) → legacy path, no prompt.
@@ -264,12 +283,27 @@ public final class IntellijEditorFacade implements EditorFacade {
                     r.put("path", path);
                     r.put("reason", DiffApplyGuard.REASON_DISK_DRIFTED);
                 } else {
-                    applyToFile(vf, reviewed);
-                    r.put("outcome", "accepted");
-                    r.put("path", path);
-                    r.put("finalText", reviewed);
+                    try {
+                        if ("delete".equals(diffOperation)) {
+                            deleteReviewedFile(vf);
+                        } else if ("rename".equals(diffOperation)) {
+                            renameReviewedFile(vf, targetPath, reviewed, left);
+                        } else {
+                            applyToFile(vf, reviewed);
+                        }
+                        r.put("outcome", "accepted");
+                        r.put("path", path);
+                        if (!"delete".equals(diffOperation)) {
+                            r.put("finalText", reviewed);
+                        }
+                    } catch (RuntimeException e) {
+                        r.put("outcome", "rejected");
+                        r.put("path", path);
+                        r.put("reason", "apply failed: " + boundedMessage(e));
+                    }
                 }
-            } else if (choice == 1) { // Pick hunks… — partial accept; unpicked keep original
+            } else if (!lifecycleOperation && choice == 1) {
+                // Pick hunks… — partial accept; unpicked keep original
                 String baseline = left == null ? "" : left;
                 List<DiffHunks.Hunk> hunks = DiffHunks.computeHunks(baseline, reviewed);
                 Set<Integer> picked = hunks.isEmpty() ? new LinkedHashSet<>() : pickHunks(hunks);
@@ -293,7 +327,8 @@ public final class IntellijEditorFacade implements EditorFacade {
                     r.put("totalHunks", hunks.size());
                     r.put("selectedHunks", new ArrayList<Integer>(picked));
                 }
-            } else if (choice == 2) { // Request changes…
+            } else if ((!lifecycleOperation && choice == 2)
+                    || (lifecycleOperation && choice == 1)) { // Request changes…
                 List<Map<String, Object>> comments = collectReviewComments(reviewed);
                 if (comments.isEmpty()) {
                     // No notes entered → treat as a plain rejection.
@@ -309,6 +344,8 @@ public final class IntellijEditorFacade implements EditorFacade {
                 r.put("outcome", "rejected");
                 r.put("path", path);
             }
+            r.put("operation", diffOperation);
+            if (targetPath != null) r.put("targetPath", targetPath);
             r.put("_auditBaselineText", left);
             result.set(r);
         });
@@ -526,6 +563,110 @@ public final class IntellijEditorFacade implements EditorFacade {
             doc.setText(text);
             FileDocumentManager.getInstance().saveDocument(doc);
         });
+    }
+
+    private static String diffReviewPrompt(
+            String operation, String path, String targetPath) {
+        if ("delete".equals(operation)) return "Review deletion of " + path + ":";
+        if ("rename".equals(operation)) {
+            return "Review rename of " + path + " to " + targetPath + ":";
+        }
+        if ("create".equals(operation)) return "Review creation of " + path + ":";
+        return "Review proposed changes to " + path + ":";
+    }
+
+    private static String boundedMessage(Throwable error) {
+        String message = error == null || error.getMessage() == null
+                ? String.valueOf(error) : error.getMessage();
+        return message.length() > 240 ? message.substring(0, 240) : message;
+    }
+
+    private void deleteReviewedFile(VirtualFile vf) {
+        if (vf == null || vf.isDirectory()) {
+            throw new IllegalStateException("Diff deletion only supports an existing file");
+        }
+        WriteCommandAction.runWriteCommandAction(project, () -> {
+            try {
+                vf.delete(this);
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
+        });
+    }
+
+    private void renameReviewedFile(
+            VirtualFile vf, String targetPath, String reviewedText, String baselineText) {
+        if (vf == null || vf.isDirectory()) {
+            throw new IllegalStateException("Diff rename only supports an existing file");
+        }
+        if (targetPath == null || targetPath.isEmpty()) {
+            throw new IllegalStateException("Rename target missing");
+        }
+        LocalFileSystem lfs = LocalFileSystem.getInstance();
+        if (lfs.findFileByPath(targetPath) != null
+                || lfs.refreshAndFindFileByPath(targetPath) != null) {
+            throw new IllegalStateException("Rename target already exists: " + targetPath);
+        }
+        java.io.File targetFile = new java.io.File(targetPath);
+        java.io.File parentFile = targetFile.getParentFile();
+        VirtualFile targetParent = parentFile == null
+                ? null : lfs.refreshAndFindFileByPath(parentFile.getPath());
+        if (targetParent == null || !targetParent.isDirectory()) {
+            throw new IllegalStateException(
+                    "Rename target directory not found: " + parentFile);
+        }
+        VirtualFile originalParent = vf.getParent();
+        String originalName = vf.getName();
+        WriteCommandAction.runWriteCommandAction(project, () -> {
+            try {
+                if (!samePath(vf.getParent().getPath(), targetParent.getPath())) {
+                    vf.move(this, targetParent);
+                }
+                if (!vf.getName().equals(targetFile.getName())) {
+                    vf.rename(this, targetFile.getName());
+                }
+            } catch (IOException e) {
+                try {
+                    if (!vf.getName().equals(originalName)) vf.rename(this, originalName);
+                    if (originalParent != null
+                            && !samePath(vf.getParent().getPath(), originalParent.getPath())) {
+                        vf.move(this, originalParent);
+                    }
+                } catch (IOException ignored) {
+                    // Best-effort rollback; preserve the original failure.
+                }
+                throw new IllegalStateException(e);
+            }
+        });
+        if (!java.util.Objects.equals(reviewedText, baselineText)) {
+            try {
+                applyToFile(vf, reviewedText);
+            } catch (RuntimeException e) {
+                rollbackReviewedRename(vf, originalParent, originalName);
+                throw e;
+            }
+        }
+    }
+
+    private void rollbackReviewedRename(
+            VirtualFile vf, VirtualFile originalParent, String originalName) {
+        try {
+            WriteCommandAction.runWriteCommandAction(project, () -> {
+                try {
+                    if (!vf.getName().equals(originalName)) {
+                        vf.rename(this, originalName);
+                    }
+                    if (originalParent != null
+                            && !samePath(vf.getParent().getPath(), originalParent.getPath())) {
+                        vf.move(this, originalParent);
+                    }
+                } catch (IOException e) {
+                    throw new IllegalStateException(e);
+                }
+            });
+        } catch (RuntimeException ignored) {
+            // Best-effort rollback; preserve the original apply failure.
+        }
     }
 
     /**

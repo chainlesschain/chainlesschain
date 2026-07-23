@@ -91,6 +91,12 @@ describe("buildIdeTools (fake facade)", () => {
     expect(
       byName.openDiff.inputSchema.properties.reviewContext.properties,
     ).toHaveProperty("toolUseId");
+    expect(byName.openDiff.inputSchema.properties.operation.enum).toEqual([
+      "modify",
+      "create",
+      "delete",
+      "rename",
+    ]);
   });
 
   it("getSelection returns the active selection", async () => {
@@ -125,6 +131,8 @@ describe("buildIdeTools (fake facade)", () => {
     const result = await byName.openDiff.handler({
       path: "/x",
       modifiedText: "new",
+      operation: "rename",
+      targetPath: "/y",
       reviewContext: {
         sessionId: "sess-1",
         turnId: "run-1:t2",
@@ -138,6 +146,8 @@ describe("buildIdeTools (fake facade)", () => {
         schema: "cc-diff-review/v1",
         host: "vscode",
         path: "/x",
+        operation: "rename",
+        targetPath: "/y",
         outcome: "accepted",
         source: "agent-proposed",
         written: true,

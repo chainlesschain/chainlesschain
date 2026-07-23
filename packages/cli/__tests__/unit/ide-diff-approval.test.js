@@ -115,6 +115,23 @@ describe("requestIdeDiffApproval", () => {
     });
   });
 
+  it("forwards an explicit rename operation and destination", async () => {
+    const mcp = fakeDiffMcp();
+    await requestIdeDiffApproval(mcp, {
+      path: "C:/x/old.js",
+      targetPath: "C:/x/new.js",
+      operation: "rename",
+      modifiedText: "same",
+      originalText: "same",
+    });
+    expect(mcp.calls[0].args).toMatchObject({
+      path: "C:/x/old.js",
+      targetPath: "C:/x/new.js",
+      operation: "rename",
+      modifiedText: "same",
+    });
+  });
+
   it("returns rejected", async () => {
     const mcp = fakeDiffMcp({
       callTool: async () => txt({ outcome: "rejected" }),
@@ -132,6 +149,8 @@ describe("requestIdeDiffApproval", () => {
           finalText: "new",
           audit: audit({
             outcome: "changes-requested",
+            operation: "rename",
+            targetPath: "C:/spoofed.js",
             sessionId: "spoofed-session",
             comments: [
               {
@@ -165,6 +184,8 @@ describe("requestIdeDiffApproval", () => {
       toolUseId: "call-7",
       outcome: "accepted",
       followUpRequested: false,
+      operation: "modify",
+      targetPath: null,
       proposed: { sha256: "a".repeat(64), chars: 3, lines: 1 },
     });
     expect(result.audit.comments[0].note).toHaveLength(1000);
@@ -338,13 +359,41 @@ describe("computeProposedEdit", () => {
     expect(p1).toMatchObject({
       newContent: "Z",
       originalText: "const x = 1;\n",
+      operation: "modify",
     });
     const p2 = computeProposedEdit(
       "write_file",
       { path: "new.js", content: "Z" },
       tmp,
     );
-    expect(p2).toMatchObject({ newContent: "Z", originalText: "" });
+    expect(p2).toMatchObject({
+      newContent: "Z",
+      originalText: "",
+      operation: "create",
+    });
+  });
+
+  it("delete_file and move_file preserve explicit lifecycle intent", () => {
+    const deleted = computeProposedEdit("delete_file", { path: "a.js" }, tmp);
+    expect(deleted).toMatchObject({
+      operation: "delete",
+      originalText: "const x = 1;\n",
+      newContent: "",
+    });
+
+    const moved = computeProposedEdit(
+      "move_file",
+      { path: "a.js", target_path: "renamed.js" },
+      tmp,
+    );
+    expect(moved).toMatchObject({
+      operation: "rename",
+      originalText: "const x = 1;\n",
+      newContent: "const x = 1;\n",
+      targetPath: path.join(tmp, "renamed.js"),
+    });
+    expect(fs.existsSync(path.join(tmp, "a.js"))).toBe(true);
+    expect(fs.existsSync(path.join(tmp, "renamed.js"))).toBe(false);
   });
 
   it("edit_file: applies the replacement without writing", () => {
@@ -424,6 +473,78 @@ describe("executeTool — IDE diff approval wiring (settings ask)", () => {
     expect(fs.existsSync(path.join(tmp, "out.js"))).toBe(false);
     expect(context.permissionConfirm).not.toHaveBeenCalled();
     expect(mcp.calls[0].args.title).toContain("write_file");
+  });
+
+  it("routes delete and rename as explicit IDE lifecycle reviews", async () => {
+    const source = path.join(tmp, "lifecycle.js");
+    fs.writeFileSync(source, "x", "utf8");
+    const mcp = fakeDiffMcp();
+
+    const deleted = await executeTool(
+      "delete_file",
+      { path: "lifecycle.js" },
+      ctx(mcp),
+    );
+    expect(deleted).toMatchObject({
+      success: true,
+      operation: "delete",
+      appliedVia: "ide-diff",
+    });
+    expect(mcp.calls[0].args).toMatchObject({
+      operation: "delete",
+      modifiedText: "",
+      originalText: "x",
+    });
+
+    const moved = await executeTool(
+      "move_file",
+      { path: "lifecycle.js", target_path: "renamed.js" },
+      ctx(mcp),
+    );
+    expect(moved).toMatchObject({
+      success: true,
+      operation: "rename",
+      targetPath: path.join(tmp, "renamed.js"),
+      appliedVia: "ide-diff",
+    });
+    expect(mcp.calls[1].args).toMatchObject({
+      operation: "rename",
+      targetPath: path.join(tmp, "renamed.js"),
+    });
+    // The fake host reports acceptance but intentionally performs no I/O.
+    expect(fs.existsSync(source)).toBe(true);
+  });
+
+  it("executes delete and move safely when an allow rule bypasses IDE review", async () => {
+    const deletePath = path.join(tmp, "delete.js");
+    const movePath = path.join(tmp, "move.js");
+    const targetPath = path.join(tmp, "moved.js");
+    fs.writeFileSync(deletePath, "delete", "utf8");
+    fs.writeFileSync(movePath, "move", "utf8");
+    const context = ctx(null, {
+      permissionRules: { allow: ["Edit"], ask: [], deny: [] },
+    });
+
+    const deleted = await executeTool(
+      "delete_file",
+      { path: "delete.js" },
+      context,
+    );
+    expect(deleted).toMatchObject({ success: true, operation: "delete" });
+    expect(fs.existsSync(deletePath)).toBe(false);
+
+    const moved = await executeTool(
+      "move_file",
+      { path: "move.js", target_path: "moved.js" },
+      context,
+    );
+    expect(moved).toMatchObject({
+      success: true,
+      operation: "rename",
+      targetPath,
+    });
+    expect(fs.existsSync(movePath)).toBe(false);
+    expect(fs.readFileSync(targetPath, "utf8")).toBe("move");
   });
 
   it("keeps a bound audit off the model-facing JSON result", async () => {

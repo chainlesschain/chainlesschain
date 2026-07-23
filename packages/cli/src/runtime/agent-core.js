@@ -780,6 +780,7 @@ You have access to tools that let you read files, write files, edit files, run s
 Key behaviors:
 - When asked to modify code, read the file first, then edit it
 - When asked to create something, use write_file to create it
+- When asked to remove or rename a file, use delete_file or move_file so the filesystem intent is explicit and reviewable
 - When asked to run/test something, use run_shell to execute it
 - For long-running commands (builds, full test suites, dev servers) set run_shell { run_in_background: true } to get a task_id back immediately, then poll output and completion with check_shell { task_id }. Kill a backgrounded server with check_shell { task_id, kill: true } when finished
 - When asked about git status, diff, log, or other repository operations, use the git tool instead of run_shell
@@ -1029,7 +1030,20 @@ const IDE_DIFF_EDIT_TOOLS = new Set([
   "write_file",
   "edit_file",
   "edit_file_hashed",
+  "delete_file",
+  "move_file",
 ]);
+const GUARDED_FILE_MUTATION_TOOLS = new Set([
+  ...IDE_DIFF_EDIT_TOOLS,
+  "notebook_edit",
+]);
+
+function fileMutationPaths(name, args = {}) {
+  return [
+    args.path,
+    ...(name === "move_file" ? [args.target_path] : []),
+  ].filter(Boolean);
+}
 
 /**
  * Quote-aware shell tokenizer (mirrors gateways/ws `tokenizeCommand`). The `git`
@@ -1099,12 +1113,11 @@ function applyLiteralEdit(content, oldStr, newStr, replaceAll) {
 /**
  * Compute the content an edit tool WOULD write, without writing it — the
  * left/right sides for an IDE diff review. Mirrors the corresponding
- * executeToolInner cases exactly (write_file / edit_file / edit_file_hashed,
- * the latter via the same pure replaceByHash). Returns
- * `{ filePath, newContent, originalText|null }` or null when the edit cannot
- * be computed (missing file, anchor/old_string miss, bad args) — the caller
- * then falls back to the normal confirmation path so the tool can produce its
- * own diagnostics.
+ * executeToolInner cases exactly (write/edit/delete/move; hashed edits use the
+ * same pure replaceByHash). Returns an explicit operation plus the left/right
+ * text and optional rename destination, or null when the proposal cannot be
+ * computed — the caller then falls back to normal confirmation so the tool can
+ * produce its own diagnostics.
  */
 export function computeProposedEdit(name, args = {}, cwd = process.cwd()) {
   try {
@@ -1112,10 +1125,49 @@ export function computeProposedEdit(name, args = {}, cwd = process.cwd()) {
     const filePath = path.resolve(cwd, args.path);
     if (name === "write_file") {
       if (typeof args.content !== "string") return null;
-      const originalText = fs.existsSync(filePath)
-        ? fs.readFileSync(filePath, "utf8")
-        : "";
-      return { filePath, newContent: args.content, originalText };
+      const exists = fs.existsSync(filePath);
+      const originalText = exists ? fs.readFileSync(filePath, "utf8") : "";
+      return {
+        filePath,
+        newContent: args.content,
+        originalText,
+        operation: exists ? "modify" : "create",
+      };
+    }
+    if (name === "delete_file") {
+      if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+        return null;
+      }
+      const originalText = fs.readFileSync(filePath, "utf8");
+      return {
+        filePath,
+        newContent: "",
+        originalText,
+        operation: "delete",
+      };
+    }
+    if (name === "move_file") {
+      if (
+        !args.target_path ||
+        !fs.existsSync(filePath) ||
+        fs.statSync(filePath).isDirectory()
+      ) {
+        return null;
+      }
+      const targetPath = path.resolve(cwd, args.target_path);
+      if (targetPath === filePath || fs.existsSync(targetPath)) return null;
+      const targetDir = path.dirname(targetPath);
+      if (!fs.existsSync(targetDir) || !fs.statSync(targetDir).isDirectory()) {
+        return null;
+      }
+      const originalText = fs.readFileSync(filePath, "utf8");
+      return {
+        filePath,
+        targetPath,
+        newContent: originalText,
+        originalText,
+        operation: "rename",
+      };
     }
     if (name === "edit_file") {
       if (!fs.existsSync(filePath)) return null;
@@ -1137,7 +1189,12 @@ export function computeProposedEdit(name, args = {}, cwd = process.cwd()) {
       // No match, or a non-unique match without replace_all → the edit will be
       // rejected, so show no (misleading) diff and let the tool report it.
       if (count === 0 || (count > 1 && !replaceAll)) return null;
-      return { filePath, newContent, originalText: content };
+      return {
+        filePath,
+        newContent,
+        originalText: content,
+        operation: "modify",
+      };
     }
     if (name === "edit_file_hashed") {
       if (!fs.existsSync(filePath)) return null;
@@ -1149,7 +1206,12 @@ export function computeProposedEdit(name, args = {}, cwd = process.cwd()) {
         newLine: args.new_line,
       });
       if (!result.success) return null;
-      return { filePath, newContent: result.content, originalText: original };
+      return {
+        filePath,
+        newContent: result.content,
+        originalText: original,
+        operation: "modify",
+      };
     }
   } catch {
     // unreadable file etc. → no proposal, normal path handles it
@@ -1197,6 +1259,8 @@ async function tryIdeDiffApprovalForEdit(
       modifiedText: proposal.newContent,
       originalText: proposal.originalText,
       title: `cc agent: ${name} ${path.basename(proposal.filePath)}`,
+      operation: proposal.operation,
+      targetPath: proposal.targetPath,
       sessionId: context.sessionId || null,
       turnId: context.turnId || null,
       toolUseId: context.toolCallId || null,
@@ -1216,6 +1280,8 @@ async function tryIdeDiffApprovalForEdit(
           {
             success: true,
             path: proposal.filePath,
+            operation: proposal.operation,
+            ...(proposal.targetPath ? { targetPath: proposal.targetPath } : {}),
             appliedVia: "ide-diff",
             ...(amendments
               ? { userEdited: true, userAmendments: amendments }
@@ -1486,26 +1552,29 @@ export async function executeTool(name, args, context = {}) {
   // An explicit settings `allow` rule is the only bypass (exact user
   // pre-authorization); headless without a confirmer fails closed.
   if (
-    (name === "write_file" ||
-      name === "edit_file" ||
-      name === "notebook_edit") &&
-    settingsVerdict.decision !== "allow" &&
-    args?.path
+    GUARDED_FILE_MUTATION_TOOLS.has(name) &&
+    settingsVerdict.decision !== "allow"
   ) {
     const { sensitiveFileReason, autoExecConfigReason } =
       await import("../lib/sensitive-file-guard.js");
-    const sensReason =
-      sensitiveFileReason(args.path) || autoExecConfigReason(args.path);
-    if (sensReason) {
+    const guarded = fileMutationPaths(name, args)
+      .map((candidatePath) => ({
+        path: candidatePath,
+        reason:
+          sensitiveFileReason(candidatePath) ||
+          autoExecConfigReason(candidatePath),
+      }))
+      .find((candidate) => candidate.reason);
+    if (guarded) {
       const ok = await requestInteractivePermission(name, args, context, cwd, {
         tool: name,
         args,
         rule: null,
-        reason: `sensitive file: ${sensReason}`,
+        reason: `sensitive file: ${guarded.reason}`,
       });
       if (!ok) {
         return {
-          error: `[Sensitive File] Writing "${args.path}" requires confirmation (${sensReason}) — denied. Add a settings allow rule to pre-authorize.`,
+          error: `[Sensitive File] Mutating "${guarded.path}" requires confirmation (${guarded.reason}) — denied. Add a settings allow rule to pre-authorize.`,
           policy: { decision: "ask", via: "sensitive-file" },
         };
       }
@@ -1519,25 +1588,27 @@ export async function executeTool(name, args, context = {}) {
   // sensitive-file guard: confirm-first, an explicit settings `allow` rule is
   // the only bypass, headless without a confirmer fails closed.
   if (
-    (name === "write_file" ||
-      name === "edit_file" ||
-      name === "notebook_edit") &&
-    settingsVerdict.decision !== "allow" &&
-    args?.path
+    GUARDED_FILE_MUTATION_TOOLS.has(name) &&
+    settingsVerdict.decision !== "allow"
   ) {
     const { sessionStorePathReason } =
       await import("../lib/session-store-guard.js");
-    const storeReason = sessionStorePathReason(args.path, { cwd });
-    if (storeReason) {
+    const guarded = fileMutationPaths(name, args)
+      .map((candidatePath) => ({
+        path: candidatePath,
+        reason: sessionStorePathReason(candidatePath, { cwd }),
+      }))
+      .find((candidate) => candidate.reason);
+    if (guarded) {
       const ok = await requestInteractivePermission(name, args, context, cwd, {
         tool: name,
         args,
         rule: null,
-        reason: `session store: ${storeReason}`,
+        reason: `session store: ${guarded.reason}`,
       });
       if (!ok) {
         return {
-          error: `[Session Store] Writing "${args.path}" would modify a session transcript (${storeReason}) — denied. Add a settings allow rule to pre-authorize.`,
+          error: `[Session Store] Mutating "${guarded.path}" would modify a session transcript (${guarded.reason}) — denied. Add a settings allow rule to pre-authorize.`,
           policy: { decision: "ask", via: "session-store-guard" },
         };
       }
@@ -1647,7 +1718,7 @@ export async function executeTool(name, args, context = {}) {
           name === "git" ||
           localToolDescriptor?.riskLevel === "high"
             ? "high"
-            : name === "write_file" ||
+            : GUARDED_FILE_MUTATION_TOOLS.has(name) ||
                 localToolDescriptor?.riskLevel === "medium"
               ? "medium"
               : "low",
@@ -2702,6 +2773,86 @@ async function executeToolInner(
             additionalDirectories,
           ),
           filePath,
+          cwd,
+        ),
+      );
+    }
+
+    case "delete_file": {
+      if (!args.path) {
+        return attachDescriptor({ error: "path is required" });
+      }
+      const filePath = path.resolve(cwd, args.path);
+      if (!fs.existsSync(filePath)) {
+        return attachDescriptor({ error: `File not found: ${filePath}` });
+      }
+      if (fs.lstatSync(filePath).isDirectory()) {
+        return attachDescriptor({
+          error: `Refusing to delete a directory: ${filePath}`,
+        });
+      }
+      const stale = _checkFileFreshness(filePath);
+      if (stale) return attachDescriptor({ error: stale });
+      fs.unlinkSync(filePath);
+      _fileObservedMtimes.delete(filePath);
+      return attachDescriptor({
+        success: true,
+        path: filePath,
+        operation: "delete",
+      });
+    }
+
+    case "move_file": {
+      if (!args.path || !args.target_path) {
+        return attachDescriptor({
+          error: "path and target_path are required",
+        });
+      }
+      const filePath = path.resolve(cwd, args.path);
+      const targetPath = path.resolve(cwd, args.target_path);
+      if (filePath === targetPath) {
+        return attachDescriptor({
+          error: "Source and target paths are the same",
+        });
+      }
+      if (!fs.existsSync(filePath)) {
+        return attachDescriptor({ error: `File not found: ${filePath}` });
+      }
+      if (fs.lstatSync(filePath).isDirectory()) {
+        return attachDescriptor({
+          error: `Refusing to move a directory: ${filePath}`,
+        });
+      }
+      if (fs.existsSync(targetPath)) {
+        return attachDescriptor({
+          error: `Move target already exists: ${targetPath}`,
+        });
+      }
+      const targetDir = path.dirname(targetPath);
+      if (!fs.existsSync(targetDir) || !fs.statSync(targetDir).isDirectory()) {
+        return attachDescriptor({
+          error: `Move target directory not found: ${targetDir}`,
+        });
+      }
+      const stale = _checkFileFreshness(filePath);
+      if (stale) return attachDescriptor({ error: stale });
+      fs.renameSync(filePath, targetPath);
+      _fileObservedMtimes.delete(filePath);
+      _recordFileObservation(targetPath);
+      return attachDescriptor(
+        await _withSubtreeInstructions(
+          await _withPostEditDiagnostics(
+            {
+              success: true,
+              path: filePath,
+              targetPath,
+              operation: "rename",
+            },
+            targetPath,
+            cwd,
+            additionalDirectories,
+          ),
+          targetPath,
           cwd,
         ),
       );
@@ -8016,6 +8167,10 @@ export function formatToolArgs(name, args) {
       return args.path;
     case "edit_file_hashed":
       return `${args.path} @${args.anchor_hash}`;
+    case "delete_file":
+      return args.path;
+    case "move_file":
+      return `${args.path} → ${args.target_path}`;
     case "run_shell":
       return args.run_in_background
         ? `${args.command} (background)`

@@ -55,15 +55,21 @@ function buildDiffReviewAudit({
     .sort((a, b) => a - b)
     .slice(0, MAX_AUDIT_HUNKS);
   const outcome = bounded(result.outcome, 64) || "rejected";
+  const operation = ["modify", "create", "delete", "rename"].includes(
+    result.operation,
+  )
+    ? result.operation
+    : "modify";
   const written = outcome === "accepted" || outcome === "partial";
   const createdAt = formatDate(now);
   const proposed = fingerprintText(proposedText);
   const reviewed = fingerprintText(reviewedText);
-  const finalText = written
-    ? typeof result.finalText === "string"
-      ? result.finalText
-      : reviewedText
-    : null;
+  const finalText =
+    written && operation !== "delete"
+      ? typeof result.finalText === "string"
+        ? result.finalText
+        : reviewedText
+      : null;
   const source = selectedHunks.length
     ? "hunk-selection"
     : proposed?.sha256 && reviewed?.sha256 !== proposed.sha256
@@ -71,6 +77,8 @@ function buildDiffReviewAudit({
       : "agent-proposed";
   const identity = [
     bounded(path, 2048),
+    operation,
+    bounded(result.targetPath, 2048),
     proposed?.sha256 || "",
     createdAt,
     outcome,
@@ -82,6 +90,9 @@ function buildDiffReviewAudit({
     actor: bounded(actor, 128) || "local-user",
     host: bounded(host, 64) || "ide",
     path: bounded(path, 2048),
+    operation,
+    targetPath:
+      operation === "rename" ? optionalBounded(result.targetPath, 2048) : null,
     sessionId: optionalBounded(reviewContext.sessionId, 256),
     turnId: optionalBounded(reviewContext.turnId, 256),
     toolUseId: optionalBounded(reviewContext.toolUseId, 256),

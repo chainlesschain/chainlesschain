@@ -4,6 +4,7 @@
  * with a fake facade. This file only runs inside the extension host.
  */
 const fs = require("fs");
+const nodePath = require("path");
 const {
   checkApplySafety,
   looksBinary,
@@ -214,7 +215,32 @@ function createVscodeEditorFacade(vscode, opts = {}) {
       return out;
     },
 
-    async openDiff({ path, modifiedText, originalText, title }) {
+    async openDiff({
+      path,
+      modifiedText,
+      originalText,
+      title,
+      operation = "modify",
+      targetPath = null,
+    }) {
+      const lifecycleOperation =
+        operation === "delete" || operation === "rename";
+      if (!["modify", "create", "delete", "rename"].includes(operation)) {
+        return {
+          outcome: "rejected",
+          path,
+          operation,
+          reason: "unsupported diff operation",
+        };
+      }
+      if (operation === "rename" && !targetPath) {
+        return {
+          outcome: "rejected",
+          path,
+          operation,
+          reason: "rename target missing",
+        };
+      }
       // Binary guard: the whole diff pipeline is UTF-8 text — reviewing (and
       // on accept, rewriting) a binary file through it corrupts the bytes.
       // Short-circuit before any UI opens; nothing is written.
@@ -231,6 +257,8 @@ function createVscodeEditorFacade(vscode, opts = {}) {
           : currentTextForDrift(vscode, path);
       const withAuditBaseline = (decision) => ({
         ...decision,
+        operation,
+        ...(targetPath ? { targetPath } : {}),
         _auditBaselineText: auditBaselineText,
       });
       const fileUri = vscode.Uri.file(path);
@@ -301,11 +329,11 @@ function createVscodeEditorFacade(vscode, opts = {}) {
         }
         vscode.window
           .showInformationMessage(
-            `Apply proposed changes to ${path}?`,
+            diffReviewPrompt(operation, path, targetPath),
             { modal: false },
             "Accept",
             "Request changes…",
-            "Pick hunks…",
+            ...(!lifecycleOperation ? ["Pick hunks…"] : []),
             "Reject",
           )
           .then(settle, () => settle(undefined));
@@ -368,8 +396,35 @@ function createVscodeEditorFacade(vscode, opts = {}) {
               reason: REASON_DISK_DRIFTED,
             });
           }
-          await applyTextToFile(vscode, fileUri, finalText);
-          return withAuditBaseline({ outcome: "accepted", path, finalText });
+          try {
+            if (operation === "delete") {
+              deleteReviewedFile(path);
+              return withAuditBaseline({ outcome: "accepted", path });
+            }
+            if (operation === "rename") {
+              await renameReviewedFile(
+                vscode,
+                path,
+                targetPath,
+                finalText,
+                auditBaselineText,
+              );
+              return withAuditBaseline({
+                outcome: "accepted",
+                path,
+                targetPath,
+                finalText,
+              });
+            }
+            await applyTextToFile(vscode, fileUri, finalText);
+            return withAuditBaseline({ outcome: "accepted", path, finalText });
+          } catch (error) {
+            return withAuditBaseline({
+              outcome: "rejected",
+              path,
+              reason: `apply failed: ${String(error?.message || error).slice(0, 240)}`,
+            });
+          }
         }
         if (choice === "Pick hunks…") {
           // Hunk-level partial accept: diff the (possibly user-edited) right
@@ -914,6 +969,59 @@ async function collectReviewComments(vscode, rightDoc) {
     comments.push({ ...anchor, note: note.trim() });
   }
   return comments;
+}
+
+function diffReviewPrompt(operation, path, targetPath) {
+  if (operation === "delete") return `Delete ${path}?`;
+  if (operation === "rename") return `Rename ${path} to ${targetPath}?`;
+  if (operation === "create") return `Create ${path}?`;
+  return `Apply proposed changes to ${path}?`;
+}
+
+function assertLifecycleSource(path) {
+  const stat = fs.lstatSync(path);
+  if (stat.isDirectory()) {
+    throw new Error(`Diff lifecycle operations only support files: ${path}`);
+  }
+}
+
+function deleteReviewedFile(path) {
+  assertLifecycleSource(path);
+  fs.unlinkSync(path);
+}
+
+async function renameReviewedFile(
+  vscode,
+  sourcePath,
+  targetPath,
+  finalText,
+  baselineText,
+) {
+  assertLifecycleSource(sourcePath);
+  if (fs.existsSync(targetPath)) {
+    throw new Error(`Rename target already exists: ${targetPath}`);
+  }
+  const targetParent = nodePath.dirname(targetPath);
+  if (
+    !fs.existsSync(targetParent) ||
+    !fs.statSync(targetParent).isDirectory()
+  ) {
+    throw new Error(`Rename target directory not found: ${targetParent}`);
+  }
+  fs.renameSync(sourcePath, targetPath);
+  if (finalText === baselineText) return;
+  try {
+    await applyTextToFile(vscode, vscode.Uri.file(targetPath), finalText);
+  } catch (error) {
+    try {
+      if (!fs.existsSync(sourcePath) && fs.existsSync(targetPath)) {
+        fs.renameSync(targetPath, sourcePath);
+      }
+    } catch {
+      /* best-effort rollback; preserve the original apply error */
+    }
+    throw error;
+  }
 }
 
 /** Best-effort disk read for the hunk baseline (new files → empty). */

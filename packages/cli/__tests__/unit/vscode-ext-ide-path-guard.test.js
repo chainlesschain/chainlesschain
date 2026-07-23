@@ -191,6 +191,35 @@ describe("buildIdeTools — path boundary wiring", () => {
     expect(res.outcome).toBe("accepted");
   });
 
+  it("openDiff validates and resolves a rename target independently", async () => {
+    const facade = fakeFacade();
+    const t = byName(toolsWithBoundary(facade));
+    await expect(
+      t.openDiff.handler({
+        path: INSIDE,
+        modifiedText: "x",
+        operation: "rename",
+        targetPath: OUTSIDE,
+      }),
+    ).rejects.toThrow(/openDiff targetPath: unsafe write target rejected/);
+    expect(facade.openDiff).not.toHaveBeenCalled();
+
+    const target = path.join(ROOT, "src", "..", "renamed.js");
+    await t.openDiff.handler({
+      path: INSIDE,
+      modifiedText: "x",
+      operation: "rename",
+      targetPath: target,
+    });
+    expect(facade.openDiff).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: INSIDE,
+        operation: "rename",
+        targetPath: path.join(ROOT, "renamed.js"),
+      }),
+    );
+  });
+
   it("openMultiDiff rejects the whole batch when ONE file escapes", async () => {
     const facade = fakeFacade();
     const t = byName(toolsWithBoundary(facade));

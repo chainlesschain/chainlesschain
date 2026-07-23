@@ -54,6 +54,8 @@ describe("toolMatches — bidirectional aliasing", () => {
     expect(toolMatches("Read", "read_file")).toBe(true);
     expect(toolMatches("Read", "list_dir")).toBe(true);
     expect(toolMatches("Edit", "edit_file_hashed")).toBe(true);
+    expect(toolMatches("Edit", "delete_file")).toBe(true);
+    expect(toolMatches("Edit", "move_file")).toBe(true);
   });
   it("concrete CLI name matches only itself", () => {
     expect(toolMatches("read_file", "read_file")).toBe(true);
@@ -546,7 +548,13 @@ describe("evaluatePermissionRules — traversal cannot bypass a deny rule", () =
     // The arg never literally contains "secret/**"-shaped text, but resolves to
     // <cwd>/secret/key — the engine must resolve BEFORE matching so the deny
     // rule still fires (otherwise a relative-traversal path would bypass it).
-    for (const tool of ["edit_file", "edit_file_hashed", "write_file"]) {
+    for (const tool of [
+      "edit_file",
+      "edit_file_hashed",
+      "delete_file",
+      "move_file",
+      "write_file",
+    ]) {
       expect(
         evaluatePermissionRules({
           tool,

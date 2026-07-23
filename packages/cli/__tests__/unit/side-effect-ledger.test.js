@@ -141,6 +141,24 @@ describe("classifyToolSideEffect", () => {
     expect(kindIsIdempotent(se.kind)).toBe(true);
   });
 
+  it("records delete and move with explicit lifecycle side-effect kinds", () => {
+    expect(classifyToolSideEffect("delete_file", { path: "src/a.js" })).toEqual(
+      {
+        kind: "file-delete",
+        key: "src/a.js",
+      },
+    );
+    expect(
+      classifyToolSideEffect("move_file", {
+        path: "src/a.js",
+        target_path: "src/b.js",
+      }),
+    ).toEqual({
+      kind: "file-move",
+      key: "src/a.js -> src/b.js",
+    });
+  });
+
   it("treats opaque shell / run_code as non-idempotent (fail-closed)", () => {
     expect(
       classifyToolSideEffect("run_shell", { command: "npm test" }),

@@ -161,6 +161,8 @@ final class IdePathGuardTest {
     /** Facade recording the paths it was actually asked to touch. */
     private static final class RecordingFacade implements EditorFacade {
         String diffPath;
+        String diffOperation;
+        String diffTargetPath;
         String diagPath = "UNSET";
         final List<String> multiPaths = new ArrayList<>();
 
@@ -179,6 +181,21 @@ final class IdePathGuardTest {
             out.put("outcome", "accepted");
             out.put("path", path);
             out.put("_auditBaselineText", "old");
+            return out;
+        }
+        @Override public Map<String, Object> openDiff(
+                String path,
+                String modifiedText,
+                String originalText,
+                String title,
+                String operation,
+                String targetPath) {
+            diffOperation = operation;
+            diffTargetPath = targetPath;
+            Map<String, Object> out =
+                    openDiff(path, modifiedText, originalText, title);
+            out.put("operation", operation);
+            out.put("targetPath", targetPath);
             return out;
         }
         @Override public Map<String, Object> openMultiDiff(
@@ -250,6 +267,38 @@ final class IdePathGuardTest {
         assertEquals("call-7", audit.get("toolUseId"));
         assertEquals(3, ((Map<?, ?>) audit.get("baseline")).get("chars"));
         assertFalse(((Map<?, ?>) result).containsKey("_auditBaselineText"));
+    }
+
+    @Test
+    void openDiffValidatesAndResolvesRenameTarget(@TempDir Path tmp) throws Exception {
+        Path proj = Files.createDirectories(tmp.resolve("proj"));
+        Path other = Files.createDirectories(tmp.resolve("other"));
+        Path source = proj.resolve("old.txt");
+        RecordingFacade facade = new RecordingFacade();
+        Tool openDiff = find(IdeTools.build(facade, null,
+                Collections.singletonList(proj.toString())), "openDiff");
+
+        IllegalArgumentException refused = assertThrows(
+                IllegalArgumentException.class,
+                () -> openDiff.call(args(
+                        "path", source.toString(),
+                        "modifiedText", "x",
+                        "operation", "rename",
+                        "targetPath", other.resolve("new.txt").toString())));
+        assertTrue(refused.getMessage().contains("openDiff targetPath"));
+        assertNull(facade.diffPath);
+
+        Path target = proj.resolve("nested/../new.txt");
+        Object result = openDiff.call(args(
+                "path", source.toString(),
+                "modifiedText", "x",
+                "operation", "rename",
+                "targetPath", target.toString()));
+        assertEquals("rename", facade.diffOperation);
+        assertEquals(proj.resolve("new.txt").toAbsolutePath().normalize().toString(),
+                facade.diffTargetPath);
+        assertEquals("rename", ((Map<?, ?>) result).get("operation"));
+        assertEquals(facade.diffTargetPath, ((Map<?, ?>) result).get("targetPath"));
     }
 
     @Test

@@ -56,6 +56,8 @@ const KIND_IDEMPOTENT = new Map([
   ["network-mutation", false],
   ["payment", false],
   ["file-write", false],
+  ["file-delete", false],
+  ["file-move", false],
   ["file-write-checkpointed", true],
   ["read", true],
   ["compute", true],
@@ -98,6 +100,18 @@ export function classifyToolSideEffect(toolName, args = {}) {
       return {
         kind: "file-write",
         key: shortKey(a.path || a.file || a.notebook_path),
+      };
+    case "delete_file":
+      return {
+        kind: "file-delete",
+        key: shortKey(a.path || a.file),
+      };
+    case "move_file":
+      return {
+        kind: "file-move",
+        key: shortKey(
+          `${a.path || a.file || ""} -> ${a.target_path || a.targetPath || ""}`,
+        ),
       };
     case "edit_file_hashed":
       // Hash-guarded: re-applying over an already-changed tree fails safely, so

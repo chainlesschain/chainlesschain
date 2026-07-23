@@ -41,6 +41,30 @@ public interface EditorFacade {
     Map<String, Object> openDiff(String path, String modifiedText, String originalText, String title);
 
     /**
+     * Lifecycle-aware Diff Review. Legacy facades keep source compatibility;
+     * modify/create delegate to the original method while delete/rename fail
+     * closed until the real host explicitly implements them.
+     */
+    default Map<String, Object> openDiff(
+            String path,
+            String modifiedText,
+            String originalText,
+            String title,
+            String operation,
+            String targetPath) {
+        if ("delete".equals(operation) || "rename".equals(operation)) {
+            Map<String, Object> r = new java.util.LinkedHashMap<String, Object>();
+            r.put("outcome", "rejected");
+            r.put("path", path);
+            r.put("operation", operation);
+            r.put("targetPath", targetPath);
+            r.put("reason", "editor facade does not support lifecycle diff operations");
+            return r;
+        }
+        return openDiff(path, modifiedText, originalText, title);
+    }
+
+    /**
      * §4: open a native multi-file diff for a changeset and BLOCK until the user
      * decides — accept all, pick a subset, or reject. Chosen files are written.
      * Default impl rejects (so non-IntelliJ fakes need not implement it).

@@ -48,6 +48,8 @@ const READ_TOOLS = new Set([
 const WRITE_TOOLS = new Set([
   "write_file",
   "edit_file",
+  "delete_file",
+  "move_file",
   "run_shell",
   "git",
   "run_skill",
@@ -66,6 +68,8 @@ const TOOL_RISK_WEIGHTS = {
   list_skills: 1,
   write_file: 2,
   edit_file: 2,
+  delete_file: 2,
+  move_file: 2,
   run_skill: 2,
   run_shell: 3,
   git: 3,

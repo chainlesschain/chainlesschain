@@ -439,6 +439,12 @@ export function hasIdeOpenDiff(mcp) {
 }
 
 const DIFF_REVIEW_AUDIT_SCHEMA = "cc-diff-review/v1";
+const DIFF_REVIEW_OPERATIONS = new Set([
+  "modify",
+  "create",
+  "delete",
+  "rename",
+]);
 
 function auditString(value, max) {
   if (value == null) return null;
@@ -480,6 +486,10 @@ export function normalizeDiffReviewAudit(value, binding = {}) {
   )
     ? requestedOutcome
     : "rejected";
+  const requestedOperation = binding.operation ?? value.operation;
+  const operation = DIFF_REVIEW_OPERATIONS.has(requestedOperation)
+    ? requestedOperation
+    : "modify";
   const comments = (Array.isArray(value.comments) ? value.comments : [])
     .filter((comment) => comment && typeof comment === "object")
     .map((comment) => ({
@@ -506,6 +516,11 @@ export function normalizeDiffReviewAudit(value, binding = {}) {
     actor: auditString(value.actor, 128) || "local-user",
     host: auditString(value.host, 64) || "ide",
     path: auditString(binding.path ?? value.path, 2048),
+    operation,
+    targetPath:
+      operation === "rename"
+        ? auditString(binding.targetPath ?? value.targetPath, 2048)
+        : null,
     sessionId: auditString(binding.sessionId, 256),
     turnId: auditString(binding.turnId, 256),
     toolUseId: auditString(binding.toolUseId, 256),
@@ -547,6 +562,9 @@ export function normalizeDiffReviewAudit(value, binding = {}) {
 export async function requestIdeDiffApproval(mcp, req = {}) {
   if (!hasIdeOpenDiff(mcp)) return null;
   if (!req.path || typeof req.modifiedText !== "string") return null;
+  const operation = req.operation || "modify";
+  if (!DIFF_REVIEW_OPERATIONS.has(operation)) return null;
+  if (operation === "rename" && !req.targetPath) return null;
   const exec = mcp.externalToolExecutors.mcp__ide__openDiff;
   const reviewContext = Object.fromEntries(
     Object.entries({
@@ -564,6 +582,8 @@ export async function requestIdeDiffApproval(mcp, req = {}) {
         ? { originalText: req.originalText }
         : {}),
       ...(req.title ? { title: req.title } : {}),
+      ...(req.operation ? { operation } : {}),
+      ...(operation === "rename" ? { targetPath: req.targetPath } : {}),
       ...(Object.values(reviewContext).some(Boolean) ? { reviewContext } : {}),
     });
   } catch {
@@ -573,6 +593,8 @@ export async function requestIdeDiffApproval(mcp, req = {}) {
   const audit = normalizeDiffReviewAudit(data?.audit, {
     ...reviewContext,
     path: req.path,
+    operation,
+    targetPath: operation === "rename" ? req.targetPath : null,
     outcome: data?.outcome,
   });
   if (data?.outcome === "accepted") {

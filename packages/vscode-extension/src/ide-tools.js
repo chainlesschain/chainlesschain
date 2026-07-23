@@ -13,7 +13,7 @@
  *   getActiveFile()                     -> { file, languageId?, isDirty?, cursor? } | null
  *   getDiagnostics({ path? })           -> [{ file, severity, message, line, character, source? }]
  *   getOpenEditors()                    -> [{ file, active, languageId?, isDirty? }]
- *   openDiff({ path, originalText?, modifiedText, title? }) -> { shown, ... }
+ *   openDiff({ path, originalText?, modifiedText, operation?, targetPath?, title? }) -> { shown, ... }
  *   executeCode?({ code, timeoutMs? })  -> { success, outputs:[{mime,text}] }
  *     OPTIONAL — when absent (e.g. the JetBrains plugin, or a VS Code host
  *     without notebook support) the executeCode tool is simply not exposed,
@@ -178,7 +178,9 @@ function buildIdeTools(editor, options = {}) {
         "Open a native side-by-side diff in the editor for the user to review " +
         "a proposed change, then BLOCK until they decide. `path` is the target " +
         "file; `modifiedText` is the proposed new content; `originalText` " +
-        "defaults to the file's current content. The user can accept (the " +
+        "defaults to the file's current content. `operation` explicitly marks " +
+        "modify/create/delete/rename; rename also requires `targetPath`. The " +
+        "user can accept (the " +
         "possibly-edited text is written to the file), reject, or request " +
         "changes by annotating specific lines. Returns " +
         "{ outcome: 'accepted'|'rejected'|'changes-requested', path, " +
@@ -202,6 +204,16 @@ function buildIdeTools(editor, options = {}) {
               "Original content (left-hand side); defaults to the file on disk.",
           },
           title: { type: "string", description: "Diff tab title (optional)." },
+          operation: {
+            type: "string",
+            enum: ["modify", "create", "delete", "rename"],
+            description:
+              "Filesystem intent; defaults to modify. rename requires targetPath.",
+          },
+          targetPath: {
+            type: "string",
+            description: "Destination path for operation=rename.",
+          },
           reviewContext: {
             type: "object",
             description:
@@ -220,17 +232,40 @@ function buildIdeTools(editor, options = {}) {
         if (!args.path || typeof args.modifiedText !== "string") {
           throw new Error("openDiff requires `path` and `modifiedText`");
         }
+        const operation = args.operation || "modify";
+        if (!["modify", "create", "delete", "rename"].includes(operation)) {
+          throw new Error(
+            `openDiff received unsupported operation: ${operation}`,
+          );
+        }
+        if (operation === "rename" && !args.targetPath) {
+          throw new Error("openDiff operation=rename requires `targetPath`");
+        }
         // Write-capable tool: the target must live inside the workspace.
         const safePath = await guardToolPath(args.path, "write", "openDiff");
+        const safeTargetPath =
+          operation === "rename"
+            ? await guardToolPath(
+                args.targetPath,
+                "write",
+                "openDiff targetPath",
+              )
+            : null;
         const res = await editor.openDiff({
           path: safePath,
           modifiedText: args.modifiedText,
           originalText: args.originalText,
           title: args.title,
+          operation,
+          targetPath: safeTargetPath,
         });
         // Fail-safe: a facade that returns nothing is treated as "not applied".
         const result = res || { outcome: "rejected", path: safePath };
-        const publicResult = { ...result };
+        const publicResult = {
+          ...result,
+          operation,
+          ...(safeTargetPath ? { targetPath: safeTargetPath } : {}),
+        };
         const auditBaselineText =
           typeof args.originalText === "string"
             ? args.originalText

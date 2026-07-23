@@ -36,11 +36,15 @@ public final class DiffReviewAudit {
                         ? (String) decision.get("finalText") : proposedText;
         List<Integer> selectedHunks = selectedHunks(decision.get("selectedHunks"));
         String outcome = or(bounded(decision.get("outcome"), 64), "rejected");
+        String operation = bounded(decision.get("operation"), 16);
+        if (!List.of("modify", "create", "delete", "rename").contains(operation)) {
+            operation = "modify";
+        }
         boolean written = "accepted".equals(outcome) || "partial".equals(outcome);
         String createdAt = String.valueOf(now != null ? now : Instant.now());
         Map<String, Object> proposed = fingerprintText(proposedText);
         Map<String, Object> reviewed = fingerprintText(reviewedText);
-        String finalText = written
+        String finalText = written && !"delete".equals(operation)
                 ? decision.get("finalText") instanceof String
                         ? (String) decision.get("finalText") : reviewedText
                 : null;
@@ -49,7 +53,8 @@ public final class DiffReviewAudit {
                 : proposed != null && reviewed != null
                         && !proposed.get("sha256").equals(reviewed.get("sha256"))
                                 ? "user-edited" : "agent-proposed";
-        String identity = bounded(path, 2048) + "\0"
+        String identity = bounded(path, 2048) + "\0" + operation + "\0"
+                + bounded(decision.get("targetPath"), 2048) + "\0"
                 + (proposed == null ? "" : proposed.get("sha256")) + "\0"
                 + createdAt + "\0" + outcome;
 
@@ -60,6 +65,9 @@ public final class DiffReviewAudit {
         audit.put("actor", or(bounded(actor, 128), "local-user"));
         audit.put("host", or(bounded(host, 64), "ide"));
         audit.put("path", bounded(path, 2048));
+        audit.put("operation", operation);
+        audit.put("targetPath", "rename".equals(operation)
+                ? emptyToNull(bounded(decision.get("targetPath"), 2048)) : null);
         audit.put("sessionId", contextString(reviewContext, "sessionId", 256));
         audit.put("turnId", contextString(reviewContext, "turnId", 256));
         audit.put("toolUseId", contextString(reviewContext, "toolUseId", 256));

@@ -61,7 +61,7 @@ const TOOL_GROUPS = Object.freeze({
   grep: ["search_files"],
   glob: ["search_files"],
   write: ["write_file"],
-  edit: ["edit_file", "edit_file_hashed"],
+  edit: ["edit_file", "edit_file_hashed", "delete_file", "move_file"],
   webfetch: ["web_fetch"],
   websearch: ["web_search"],
   task: ["spawn_sub_agent"],
@@ -82,6 +82,8 @@ const PATH_TOOLS = new Set([
   "write_file",
   "edit_file",
   "edit_file_hashed",
+  "delete_file",
+  "move_file",
 ]);
 /** Tools whose match target is a URL. */
 const URL_TOOLS = new Set(["web_fetch"]);
@@ -354,6 +356,8 @@ const SUGGEST_UMBRELLA = Object.freeze({
   write_file: "Write",
   edit_file: "Edit",
   edit_file_hashed: "Edit",
+  delete_file: "Edit",
+  move_file: "Edit",
   web_fetch: "WebFetch",
   web_search: "WebSearch",
   spawn_sub_agent: "Task",

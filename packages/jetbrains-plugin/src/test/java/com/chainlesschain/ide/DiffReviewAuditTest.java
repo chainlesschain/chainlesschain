@@ -29,6 +29,7 @@ class DiffReviewAuditTest {
         assertTrue(String.valueOf(audit.get("reviewId")).matches("drev_[a-f0-9]{24}"));
         assertEquals("user-edited", audit.get("source"));
         assertEquals(true, audit.get("written"));
+        assertEquals("modify", audit.get("operation"));
         assertEquals("jetbrains", audit.get("host"));
         assertEquals("sess-1", audit.get("sessionId"));
         assertEquals("run-1:t2", audit.get("turnId"));
@@ -36,6 +37,29 @@ class DiffReviewAuditTest {
         assertEquals(false, audit.get("followUpRequested"));
         assertEquals(13, ((Map<?, ?>) audit.get("final")).get("chars"));
         assertFalse(MiniJson.stringify(audit).contains("user revision"));
+    }
+
+    @Test
+    void recordsLifecycleIntentWithoutInventingDeletedFinalContent() {
+        Map<String, Object> renamed = DiffReviewAudit.build(
+                "/ws/old.js", "old", "old",
+                Map.of(
+                        "outcome", "accepted",
+                        "operation", "rename",
+                        "targetPath", "/ws/new.js",
+                        "finalText", "old"),
+                null, "jetbrains", "local-user", Instant.now());
+        assertEquals("rename", renamed.get("operation"));
+        assertEquals("/ws/new.js", renamed.get("targetPath"));
+
+        Map<String, Object> deleted = DiffReviewAudit.build(
+                "/ws/old.js", "old", "",
+                Map.of("outcome", "accepted", "operation", "delete"),
+                null, "jetbrains", "local-user", Instant.now());
+        assertEquals("delete", deleted.get("operation"));
+        assertEquals(null, deleted.get("targetPath"));
+        assertEquals(null, deleted.get("final"));
+        assertEquals(true, deleted.get("written"));
     }
 
     @Test

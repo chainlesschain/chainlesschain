@@ -28,6 +28,7 @@ describe("VS Code diff review audit", () => {
       outcome: "accepted",
       source: "user-edited",
       written: true,
+      operation: "modify",
       sessionId: "sess-1",
       turnId: "run-1:t2",
       toolUseId: "call-7",
@@ -69,6 +70,38 @@ describe("VS Code diff review audit", () => {
     expect(audit.written).toBe(false);
     expect(audit.followUpRequested).toBe(true);
     expect(audit.final).toBe(null);
+  });
+
+  it("records rename/delete intent without inventing a deleted final file", () => {
+    const renamed = buildDiffReviewAudit({
+      path: "/x/old.js",
+      originalText: "old",
+      proposedText: "old",
+      result: {
+        outcome: "accepted",
+        operation: "rename",
+        targetPath: "/x/new.js",
+        finalText: "old",
+      },
+    });
+    expect(renamed).toMatchObject({
+      operation: "rename",
+      targetPath: "/x/new.js",
+      final: { chars: 3 },
+    });
+
+    const deleted = buildDiffReviewAudit({
+      path: "/x/old.js",
+      originalText: "old",
+      proposedText: "",
+      result: { outcome: "accepted", operation: "delete" },
+    });
+    expect(deleted).toMatchObject({
+      operation: "delete",
+      targetPath: null,
+      final: null,
+      written: true,
+    });
   });
 
   it("uses stable SHA-256 text fingerprints", () => {

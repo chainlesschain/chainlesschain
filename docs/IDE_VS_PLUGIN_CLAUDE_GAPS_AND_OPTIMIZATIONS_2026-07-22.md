@@ -65,7 +65,7 @@ Claude Code 的 JetBrains 插件则突出原生 Diff、选择区/当前文件上
 | ----------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | 聊天/多会话       | `src/chat/`、`sessions-workbench.js`、`ide-session-index.js`                                          | `AgentChatSession`、`ConversationManager`、`SessionsWorkbench`、`IdeSessionIndex`         | 两端已有；重点转为协议一致性和恢复可靠性                                                            |
 | Plan Review       | `chat/plan-review.js`，有版本化恢复、结构化批注、计划修订 Diff 和逐项执行进度                         | `PlanReview`、`ChatEvents`，有对等解析/合并、修订 Diff 和项目级恢复状态                   | 快照、重启恢复、结构化批注、修订 Diff、执行关联和审批执行锁摘要均已完成                             |
-| 原生 Diff         | `ide-tools.js`、`diff-hunks.js`、`multi-diff.js`、`diff-apply-guard.js`、`diff-review-audit.js`       | `DiffHunks`、`MultiDiff`、`DiffApplyGuard`、`ReviewNote`、`DiffReviewAudit`               | 接受/拒绝/改写/hunk 归因、会话绑定和副作用账本持久化已统一；剩 rename/delete 意图和真实宿主降级验收 |
+| 原生 Diff         | `ide-tools.js`、`diff-hunks.js`、`multi-diff.js`、`diff-apply-guard.js`、`diff-review-audit.js`       | `DiffHunks`、`MultiDiff`、`DiffApplyGuard`、`ReviewNote`、`DiffReviewAudit`               | modify/create/delete/rename、接受/拒绝/改写/hunk 归因、会话绑定和副作用账本持久化已统一；剩后续 turn 和真实宿主降级验收 |
 | IDE MCP Bridge    | `mcp-http-server.js` + `ide-tools.js`                                                                 | `McpServer` + `IdeTools`                                                                  | 已统一 `getSelection/getActiveFile/getDiagnostics/getOpenEditors/openDiff` 等基础契约               |
 | 代码语义          | `semantic-tools.js`，包含 hover、definition、references、rename、call hierarchy、symbol/project model | `SemanticTools`，通过 PSI 提供同类语义工具                                                | 不应再把“增加基础语义工具”列为 P0；应补测试结果、覆盖率、调试状态和能力协商                         |
 | 终端/Preview      | `terminal-capture.js`、`preview.js`、`preview-detect.js`                                              | `TerminalTextReader`、`PreviewService`、`PreviewDetect`                                   | 已有只读输出和 Preview 状态；浏览器 DOM/console/network/action 仍是后续能力                         |
@@ -196,8 +196,14 @@ stream、headless runner 和 WebSocket/IDE Bridge 三条执行路径上，将有
 `diffReview` 元数据写入对应文件写副作用账本；宿主回传的路径和关联 ID 会被 CLI 请求值覆盖，
 审计对象通过非枚举内部字段交给账本，不进入模型可见的工具结果 JSON。`changes-requested`
 会记录 `followUpRequested=true`，但这只表示请求了后续修订，不宣称后续 Agent turn 已完成。
-本节尚未完全关闭：rename/delete 仍需协议显式携带意图；实际后续 turn 结果、大文件和真实
-多宿主 UI 降级仍由验收矩阵跟踪。
+后续批次又增加显式 `delete_file` / `move_file` 工具，并让 CLI → IDE 的 `openDiff`
+携带 `operation=modify|create|delete|rename` 与 rename `targetPath`。两端分别独立校验源和
+目标路径；Accept 删除会删除源文件，Accept 重命名会拒绝覆盖已有目标并在目标路径应用用户
+改写，生命周期操作不提供容易误解的部分 hunk 接受。审计包同时记录 operation/targetPath，
+删除接受态的 `final` 为 `null`，不会把空文本误报为最终文件。权限、Plan、子 Agent allowlist
+与副作用账本也已识别这两个非幂等文件操作。显式 rename/delete 的代码与定向测试缺口至此
+关闭；实际 Request Changes 后续 turn 结果、大文件/二进制和真实多宿主 UI 降级仍由验收矩阵
+跟踪。
 
 ### P1：影响效率和跨端一致性
 
@@ -298,7 +304,7 @@ Agent 修改后，IDE 应自动收集相关测试、lint、类型检查、构建
 
 1. Installation & Runtime Doctor 和版本兼容矩阵。
 2. Plan Review 快照、批注、审批、恢复闭环。
-3. Diff rename/delete 意图、Request Changes 后续 turn 结果和真实宿主降级验收。
+3. Diff Request Changes 后续 turn 结果和真实宿主/大文件降级验收。
 4. VS Code / JetBrains 关键流程 Golden Fixtures 与真实 UI smoke test。
 
 ### 中期：P1（2～3 个版本周期）

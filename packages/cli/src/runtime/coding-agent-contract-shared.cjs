@@ -91,6 +91,58 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     },
   },
   {
+    name: "delete_file",
+    title: "Delete File",
+    kind: "filesystem",
+    tier: "mvp",
+    description:
+      "Delete one file. Directories are rejected. Read the file first; interactive IDE approval shows an explicit deletion diff before applying it.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string", description: "File path to delete" },
+      },
+      required: ["path"],
+    },
+    ...TOOL_POLICY_METADATA.delete_file,
+    permissions: {
+      level: "elevated",
+      scopes: ["filesystem:write"],
+    },
+    telemetry: {
+      category: "filesystem",
+      tags: ["tool:delete_file", "contract:coding-agent", "tier:mvp"],
+    },
+  },
+  {
+    name: "move_file",
+    title: "Move File",
+    kind: "filesystem",
+    tier: "mvp",
+    description:
+      "Rename or move one file without overwriting an existing destination. Directories are rejected. Interactive IDE approval shows the explicit source and destination.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string", description: "Existing source file path" },
+        target_path: {
+          type: "string",
+          description: "New destination file path",
+        },
+      },
+      required: ["path", "target_path"],
+    },
+    ...TOOL_POLICY_METADATA.move_file,
+    permissions: {
+      level: "elevated",
+      scopes: ["filesystem:write"],
+    },
+    telemetry: {
+      category: "filesystem",
+      tags: ["tool:move_file", "contract:coding-agent", "tier:mvp"],
+    },
+  },
+  {
     name: "notebook_edit",
     title: "Edit Notebook",
     kind: "filesystem",
