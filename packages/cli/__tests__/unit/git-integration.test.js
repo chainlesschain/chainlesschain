@@ -17,6 +17,7 @@ vi.mock("fs", () => ({
 import { execSync, spawnSync } from "child_process";
 import { existsSync, writeFileSync, chmodSync } from "fs";
 import {
+  _deps,
   isGitRepo,
   gitExec,
   gitInit,
@@ -118,6 +119,8 @@ describe("assertSafeGitPath (shell-injection guard for interpolated file paths)"
 describe("Git Integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    _deps.execSync = execSync;
+    _deps.spawnSync = spawnSync;
     // clearAllMocks wipes the default impl; restore the success return.
     spawnSync.mockReturnValue({ status: 0, stdout: "" });
   });
@@ -145,7 +148,12 @@ describe("Git Integration", () => {
       expect(result).toBe("main");
       expect(execSync).toHaveBeenCalledWith(
         "git rev-parse --abbrev-ref HEAD",
-        expect.objectContaining({ cwd: "/test" }),
+        expect.objectContaining({
+          cwd: "/test",
+          origin: "git-integration:shell",
+          policy: "allow",
+          scope: "git",
+        }),
       );
     });
 
@@ -307,7 +315,13 @@ describe("Git Integration", () => {
       expect(spawnSync).toHaveBeenCalledWith(
         "git",
         ["commit", "-m", evil],
-        expect.objectContaining({ cwd: "/test" }),
+        expect.objectContaining({
+          cwd: "/test",
+          origin: "git-integration:argv",
+          policy: "allow",
+          scope: "git",
+          shell: false,
+        }),
       );
       // And `git commit -m "<evil>"` was never built as a shell command.
       for (const call of execSync.mock.calls) {

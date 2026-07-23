@@ -143,6 +143,9 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   `--exec` 保留 shell 任务语义但获得危险命令/凭据边界，Agent prompt 改经 stdin 传递而不进入 argv。
 - WebSocket gateway 的远程 CLI 子进程已进入 `gateway:ws-command` Broker scope；命令继续先做
   blocklist 与无 shell tokenization，并保留超时取消、流式/缓冲输出和 Electron-as-Node 环境语义。
+- Knowledge-base Git integration 的 argv 与遗留字符串命令已分别进入 `git-integration:argv`、
+  `git-integration:shell` Broker origin；commit message 继续逐项传递，旧字符串路径保留既有 ref/path
+  allowlist 并在审计中显式标记 shell，便于后续继续消除。
 
 ### 4.2 建议设计
 

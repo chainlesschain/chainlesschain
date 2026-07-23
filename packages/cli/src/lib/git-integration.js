@@ -2,9 +2,14 @@
  * Git integration — wraps system git commands for knowledge base versioning.
  */
 
-import { execSync, spawnSync } from "child_process";
 import { existsSync, writeFileSync, chmodSync } from "fs";
 import { join } from "path";
+import { executionBroker } from "./process-execution-broker/index.js";
+
+export const _deps = {
+  execSync: (...args) => executionBroker.execSync(...args),
+  spawnSync: (...args) => executionBroker.spawnSync(...args),
+};
 
 /**
  * Check if a directory is a git repository.
@@ -80,12 +85,16 @@ export function assertSafeGitPath(p, label = "file path") {
  * @returns {string} trimmed stdout
  */
 export function gitExecArgs(args, cwd, opts = {}) {
-  const res = spawnSync("git", args, {
+  const res = _deps.spawnSync("git", args, {
     cwd,
     encoding: "utf-8",
     windowsHide: true,
     maxBuffer: 64 * 1024 * 1024,
     input: opts.input,
+    origin: "git-integration:argv",
+    policy: "allow",
+    scope: "git",
+    shell: false,
   });
   if (res.error) throw res.error;
   if (res.status !== 0) {
@@ -102,7 +111,7 @@ export function gitExecArgs(args, cwd, opts = {}) {
  */
 export function gitExec(args, cwd) {
   try {
-    return execSync(`git ${args}`, {
+    return _deps.execSync(`git ${args}`, {
       cwd,
       encoding: "utf-8",
       // git diff/log/worktree-list output on a large repo easily exceeds
@@ -111,6 +120,9 @@ export function gitExec(args, cwd) {
       // pass, which isn't wrapped in a degrade-gracefully try/catch).
       maxBuffer: 64 * 1024 * 1024,
       stdio: ["pipe", "pipe", "pipe"],
+      origin: "git-integration:shell",
+      policy: "allow",
+      scope: "git",
     }).trim();
   } catch (err) {
     const stderr = err.stderr ? err.stderr.toString("utf-8").trim() : "";
@@ -138,10 +150,13 @@ export function gitStatus(dir) {
   }
 
   // Use execSync directly to preserve leading whitespace in porcelain format
-  const output = execSync("git status --porcelain", {
+  const output = _deps.execSync("git status --porcelain", {
     cwd: dir,
     encoding: "utf-8",
     stdio: ["pipe", "pipe", "pipe"],
+    origin: "git-integration:shell",
+    policy: "allow",
+    scope: "git",
   });
   const files = output
     .split("\n")
