@@ -16,7 +16,27 @@ import executionBroker from "./process-execution-broker/index.js";
 
 export const _deps = {
   execSync: (...args) => executionBroker.execSync(...args),
+  spawnSync: (...args) => executionBroker.spawnSync(...args),
 };
+
+function execArgv(command, args, options) {
+  const result = _deps.spawnSync(command, args, options);
+  if (result?.error) {
+    result.error.status ??= result.status ?? 1;
+    result.error.stdout ??= result.stdout;
+    result.error.stderr ??= result.stderr;
+    throw result.error;
+  }
+  if (!result || result.status !== 0) {
+    const status = result?.status ?? 1;
+    const error = new Error(`${command} exited with status ${status}`);
+    error.status = status;
+    error.stdout = result?.stdout;
+    error.stderr = result?.stderr;
+    throw error;
+  }
+  return result?.stdout || "";
+}
 
 // ─── Base class ─────────────────────────────────────────────────────
 
@@ -109,14 +129,32 @@ export class DockerBackend extends ExecutionBackend {
     const maxBuffer = opts.maxBuffer || 1024 * 1024;
     const cwd = opts.cwd || this.workdir;
 
-    let dockerCmd;
+    let dockerArgs;
     if (this.container) {
       // Exec into existing container
-      dockerCmd = `docker exec -w "${cwd}" ${this.container} ${this.shell} -c "${this._escapeCommand(command)}"`;
+      dockerArgs = [
+        "exec",
+        "-w",
+        cwd,
+        this.container,
+        this.shell,
+        "-c",
+        command,
+      ];
     } else if (this.image) {
       // Run ephemeral container
-      const volumeArgs = this.volumes.map((v) => `-v "${v}"`).join(" ");
-      dockerCmd = `docker run --rm -w "${cwd}" ${volumeArgs} ${this.image} ${this.shell} -c "${this._escapeCommand(command)}"`;
+      const volumeArgs = this.volumes.flatMap((volume) => ["-v", volume]);
+      dockerArgs = [
+        "run",
+        "--rm",
+        "-w",
+        cwd,
+        ...volumeArgs,
+        this.image,
+        this.shell,
+        "-c",
+        command,
+      ];
     } else {
       return {
         stdout: "",
@@ -126,10 +164,11 @@ export class DockerBackend extends ExecutionBackend {
     }
 
     try {
-      const stdout = _deps.execSync(dockerCmd, {
+      const stdout = execArgv("docker", dockerArgs, {
         origin: "execution-backend:docker",
         scope: "execution-backend",
         policy: "allow",
+        shell: false,
         encoding: "utf8",
         timeout,
         maxBuffer,
@@ -142,10 +181,6 @@ export class DockerBackend extends ExecutionBackend {
         exitCode: err.status || 1,
       };
     }
-  }
-
-  _escapeCommand(cmd) {
-    return cmd.replace(/"/g, '\\"');
   }
 
   describe() {
@@ -189,17 +224,24 @@ export class SSHBackend extends ExecutionBackend {
     }
 
     const userHost = this.user ? `${this.user}@${this.host}` : this.host;
-    const keyArg = this.key ? `-i "${this.key}"` : "";
-    const portArg = this.port !== 22 ? `-p ${this.port}` : "";
-    const remoteCmd = `cd "${cwd}" && ${command}`;
-
-    const sshCmd = `ssh ${keyArg} ${portArg} -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${userHost} "${this._escapeCommand(remoteCmd)}"`;
+    const sshArgs = [];
+    if (this.key) sshArgs.push("-i", this.key);
+    if (this.port !== 22) sshArgs.push("-p", String(this.port));
+    sshArgs.push(
+      "-o",
+      "StrictHostKeyChecking=no",
+      "-o",
+      "ConnectTimeout=10",
+      userHost,
+      `cd ${quotePosixShellArg(cwd)} && ${command}`,
+    );
 
     try {
-      const stdout = _deps.execSync(sshCmd, {
+      const stdout = execArgv("ssh", sshArgs, {
         origin: "execution-backend:ssh",
         scope: "execution-backend",
         policy: "allow",
+        shell: false,
         encoding: "utf8",
         timeout,
         maxBuffer,
@@ -214,14 +256,14 @@ export class SSHBackend extends ExecutionBackend {
     }
   }
 
-  _escapeCommand(cmd) {
-    return cmd.replace(/"/g, '\\"');
-  }
-
   describe() {
     const userHost = this.user ? `${this.user}@${this.host}` : this.host;
     return `ssh (${userHost}:${this.port})`;
   }
+}
+
+function quotePosixShellArg(value) {
+  return `'${String(value).replace(/'/g, `'"'"'`)}'`;
 }
 
 // ─── Factory ────────────────────────────────────────────────────────

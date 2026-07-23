@@ -180,9 +180,9 @@ Total matches: 402 (runtime: 326, tooling: 53, test: 23).
 | `packages/cli/src/lib/eval/tasks.js` | 528 | `const out = execFileSync(process.execPath, ["build.mjs"], {` |
 | `packages/cli/src/lib/eval/tasks.js` | 623 | `const out = execFileSync(process.execPath, ["run.mjs"], {` |
 | `packages/cli/src/lib/execution-backend.js` | 18 | `execSync: (...args) => executionBroker.execSync(...args),` |
-| `packages/cli/src/lib/execution-backend.js` | 62 | `const stdout = _deps.execSync(command, {` |
-| `packages/cli/src/lib/execution-backend.js` | 129 | `const stdout = _deps.execSync(dockerCmd, {` |
-| `packages/cli/src/lib/execution-backend.js` | 199 | `const stdout = _deps.execSync(sshCmd, {` |
+| `packages/cli/src/lib/execution-backend.js` | 19 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
+| `packages/cli/src/lib/execution-backend.js` | 23 | `const result = _deps.spawnSync(command, args, options);` |
+| `packages/cli/src/lib/execution-backend.js` | 82 | `const stdout = _deps.execSync(command, {` |
 | `packages/cli/src/lib/git-integration.js` | 10 | `execSync: (...args) => executionBroker.execSync(...args),` |
 | `packages/cli/src/lib/git-integration.js` | 11 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/lib/git-integration.js` | 88 | `const res = _deps.spawnSync("git", args, {` |

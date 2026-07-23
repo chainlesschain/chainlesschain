@@ -18,6 +18,11 @@ const origDeps = { ..._deps };
 
 beforeEach(() => {
   _deps.execSync = vi.fn(() => "mock output");
+  _deps.spawnSync = vi.fn(() => ({
+    status: 0,
+    stdout: "mock output",
+    stderr: "",
+  }));
 });
 
 afterAll(() => {
@@ -119,23 +124,38 @@ describe("DockerBackend", () => {
   it("uses docker exec when container specified", () => {
     const backend = new DockerBackend({ container: "my-container" });
     backend.execute("ls /app");
-    const cmd = _deps.execSync.mock.calls[0][0];
-    expect(cmd).toContain("docker exec");
-    expect(cmd).toContain("my-container");
-    expect(cmd).toContain("ls /app");
-    expect(_deps.execSync.mock.calls[0][1]).toMatchObject({
+    const [file, args, options] = _deps.spawnSync.mock.calls[0];
+    expect(file).toBe("docker");
+    expect(args).toEqual([
+      "exec",
+      "-w",
+      "/workspace",
+      "my-container",
+      "sh",
+      "-c",
+      "ls /app",
+    ]);
+    expect(options).toMatchObject({
       origin: "execution-backend:docker",
       scope: "execution-backend",
       policy: "allow",
+      shell: false,
     });
   });
 
   it("uses docker run when image specified", () => {
     const backend = new DockerBackend({ image: "node:18" });
     backend.execute("node --version");
-    const cmd = _deps.execSync.mock.calls[0][0];
-    expect(cmd).toContain("docker run --rm");
-    expect(cmd).toContain("node:18");
+    expect(_deps.spawnSync.mock.calls[0][1]).toEqual([
+      "run",
+      "--rm",
+      "-w",
+      "/workspace",
+      "node:18",
+      "sh",
+      "-c",
+      "node --version",
+    ]);
   });
 
   it("includes volume mounts in docker run", () => {
@@ -144,8 +164,8 @@ describe("DockerBackend", () => {
       volumes: ["/host/path:/container/path"],
     });
     backend.execute("ls");
-    const cmd = _deps.execSync.mock.calls[0][0];
-    expect(cmd).toContain('-v "/host/path:/container/path"');
+    const args = _deps.spawnSync.mock.calls[0][1];
+    expect(args.slice(4, 6)).toEqual(["-v", "/host/path:/container/path"]);
   });
 
   it("uses custom workdir", () => {
@@ -154,8 +174,12 @@ describe("DockerBackend", () => {
       workdir: "/app",
     });
     backend.execute("pwd");
-    const cmd = _deps.execSync.mock.calls[0][0];
-    expect(cmd).toContain('-w "/app"');
+    expect(_deps.spawnSync.mock.calls[0][1].slice(0, 4)).toEqual([
+      "exec",
+      "-w",
+      "/app",
+      "c1",
+    ]);
   });
 
   it("returns error when neither container nor image specified", () => {
@@ -167,11 +191,10 @@ describe("DockerBackend", () => {
 
   it("handles exec errors gracefully", () => {
     const backend = new DockerBackend({ container: "c1" });
-    const err = new Error("container not found");
-    err.status = 1;
-    err.stderr = "Error: No such container";
-    _deps.execSync.mockImplementation(() => {
-      throw err;
+    _deps.spawnSync.mockReturnValue({
+      status: 1,
+      stdout: "",
+      stderr: "Error: No such container",
     });
 
     const result = backend.execute("ls");
@@ -179,11 +202,13 @@ describe("DockerBackend", () => {
     expect(result.stderr).toContain("No such container");
   });
 
-  it("escapes double quotes in command", () => {
+  it("keeps the container command in one argv slot", () => {
     const backend = new DockerBackend({ container: "c1" });
     backend.execute('echo "hello"');
-    const cmd = _deps.execSync.mock.calls[0][0];
-    expect(cmd).toContain('\\"hello\\"');
+    expect(_deps.spawnSync.mock.calls[0][1].slice(-2)).toEqual([
+      "-c",
+      'echo "hello"',
+    ]);
   });
 
   it("describe() shows container or image", () => {
@@ -204,14 +229,15 @@ describe("SSHBackend", () => {
   it("constructs ssh command with user@host", () => {
     const backend = new SSHBackend({ host: "server.com", user: "deploy" });
     backend.execute("uptime");
-    const cmd = _deps.execSync.mock.calls[0][0];
-    expect(cmd).toContain("ssh");
-    expect(cmd).toContain("deploy@server.com");
-    expect(cmd).toContain("uptime");
-    expect(_deps.execSync.mock.calls[0][1]).toMatchObject({
+    const [file, args, options] = _deps.spawnSync.mock.calls[0];
+    expect(file).toBe("ssh");
+    expect(args).toContain("deploy@server.com");
+    expect(args.at(-1)).toContain("uptime");
+    expect(options).toMatchObject({
       origin: "execution-backend:ssh",
       scope: "execution-backend",
       policy: "allow",
+      shell: false,
     });
   });
 
@@ -221,29 +247,33 @@ describe("SSHBackend", () => {
       key: "/home/user/.ssh/id_rsa",
     });
     backend.execute("ls");
-    const cmd = _deps.execSync.mock.calls[0][0];
-    expect(cmd).toContain('-i "/home/user/.ssh/id_rsa"');
+    expect(_deps.spawnSync.mock.calls[0][1].slice(0, 2)).toEqual([
+      "-i",
+      "/home/user/.ssh/id_rsa",
+    ]);
   });
 
   it("includes custom port", () => {
     const backend = new SSHBackend({ host: "s", port: 2222 });
     backend.execute("ls");
-    const cmd = _deps.execSync.mock.calls[0][0];
-    expect(cmd).toContain("-p 2222");
+    expect(_deps.spawnSync.mock.calls[0][1].slice(0, 2)).toEqual([
+      "-p",
+      "2222",
+    ]);
   });
 
   it("omits port arg for default port 22", () => {
     const backend = new SSHBackend({ host: "s" });
     backend.execute("ls");
-    const cmd = _deps.execSync.mock.calls[0][0];
-    expect(cmd).not.toContain("-p ");
+    expect(_deps.spawnSync.mock.calls[0][1]).not.toContain("-p");
   });
 
   it("includes workdir via cd", () => {
     const backend = new SSHBackend({ host: "s", workdir: "/opt/app" });
     backend.execute("pwd");
-    const cmd = _deps.execSync.mock.calls[0][0];
-    expect(cmd).toContain('cd \\"/opt/app\\"');
+    expect(_deps.spawnSync.mock.calls[0][1].at(-1)).toBe(
+      "cd '/opt/app' && pwd",
+    );
   });
 
   it("returns error when host not specified", () => {
@@ -255,11 +285,10 @@ describe("SSHBackend", () => {
 
   it("handles SSH errors gracefully", () => {
     const backend = new SSHBackend({ host: "s" });
-    const err = new Error("Connection refused");
-    err.status = 255;
-    err.stderr = "ssh: connect to host s port 22: Connection refused";
-    _deps.execSync.mockImplementation(() => {
-      throw err;
+    _deps.spawnSync.mockReturnValue({
+      status: 255,
+      stdout: "",
+      stderr: "ssh: connect to host s port 22: Connection refused",
     });
 
     const result = backend.execute("ls");
@@ -328,10 +357,9 @@ describe("DockerBackend — custom shell", () => {
   it("uses custom shell in docker exec command", () => {
     const backend = new DockerBackend({ container: "c1", shell: "bash" });
     backend.execute("echo hi");
-    const cmd = _deps.execSync.mock.calls[0][0];
-    expect(cmd).toContain("bash -c");
-    // Default shell "sh" should not appear — "bash" is used instead
-    expect(cmd).toMatch(/\bbash -c\b/);
+    const args = _deps.spawnSync.mock.calls[0][1];
+    expect(args.slice(-3)).toEqual(["bash", "-c", "echo hi"]);
+    expect(args).not.toContain("sh");
   });
 });
 
@@ -339,9 +367,9 @@ describe("DockerBackend — empty volumes array", () => {
   it("docker run command has no -v flags with empty volumes", () => {
     const backend = new DockerBackend({ image: "alpine", volumes: [] });
     backend.execute("ls");
-    const cmd = _deps.execSync.mock.calls[0][0];
-    expect(cmd).toContain("docker run --rm");
-    expect(cmd).not.toContain("-v ");
+    const args = _deps.spawnSync.mock.calls[0][1];
+    expect(args.slice(0, 2)).toEqual(["run", "--rm"]);
+    expect(args).not.toContain("-v");
   });
 });
 
@@ -349,9 +377,9 @@ describe("SSHBackend — without user", () => {
   it("constructs ssh command with just host (no user@)", () => {
     const backend = new SSHBackend({ host: "bare-host.io" });
     backend.execute("uptime");
-    const cmd = _deps.execSync.mock.calls[0][0];
-    expect(cmd).toContain("bare-host.io");
-    expect(cmd).not.toContain("@bare-host.io");
+    const args = _deps.spawnSync.mock.calls[0][1];
+    expect(args).toContain("bare-host.io");
+    expect(args.some((arg) => arg.includes("@bare-host.io"))).toBe(false);
   });
 
   it("describe() shows just host without user@", () => {
@@ -375,8 +403,12 @@ describe("DockerBackend — cwd option overriding workdir", () => {
   it("uses opts.cwd instead of constructor workdir", () => {
     const backend = new DockerBackend({ container: "c1", workdir: "/default" });
     backend.execute("pwd", { cwd: "/override" });
-    const cmd = _deps.execSync.mock.calls[0][0];
-    expect(cmd).toContain('-w "/override"');
+    expect(_deps.spawnSync.mock.calls[0][1].slice(0, 4)).toEqual([
+      "exec",
+      "-w",
+      "/override",
+      "c1",
+    ]);
   });
 });
 
