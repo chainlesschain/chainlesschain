@@ -141,6 +141,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   scope；编辑器参数与 `MEMORY.md` 路径逐项传递，路径中的引号和 shell 元字符不再被解释。
 - `cc team --exec/--agent` 的任务进程已进入 `team:shell`、`team:agent` Broker origin；显式
   `--exec` 保留 shell 任务语义但获得危险命令/凭据边界，Agent prompt 改经 stdin 传递而不进入 argv。
+- WebSocket gateway 的远程 CLI 子进程已进入 `gateway:ws-command` Broker scope；命令继续先做
+  blocklist 与无 shell tokenization，并保留超时取消、流式/缓冲输出和 Electron-as-Node 环境语义。
 
 ### 4.2 建议设计
 

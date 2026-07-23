@@ -11,7 +11,6 @@
  */
 
 import { EventEmitter } from "node:events";
-import { spawn } from "node:child_process";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -113,6 +112,11 @@ import {
   handleArtifactRemove,
   handleArtifactShow,
 } from "./artifact-protocol.js";
+import { executionBroker } from "../../lib/process-execution-broker/index.js";
+
+export const _deps = {
+  spawn: (...args) => executionBroker.spawn(...args),
+};
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -216,6 +220,7 @@ export class ChainlessChainWSServer extends EventEmitter {
    * @param {string}  [options.token]           - If set, clients must authenticate first
    * @param {number}  [options.maxConnections=10]
    * @param {number}  [options.timeout=30000]   - Command execution timeout (ms)
+   * @param {Function} [options.spawn]           - Process seam for tests
    */
   constructor(options = {}) {
     super();
@@ -240,6 +245,7 @@ export class ChainlessChainWSServer extends EventEmitter {
     // grace window so it can't hold a maxConnections slot forever (see
     // AUTH_TIMEOUT_MS). `??` so an explicit 0 (disable) is honoured.
     this.authTimeoutMs = options.authTimeoutMs ?? AUTH_TIMEOUT_MS;
+    this._spawnProcess = options.spawn || _deps.spawn;
 
     /** Optional Phase-5 envelope bus for fan-out to hosted HTTP SSE. */
     this.envelopeBus = options.envelopeBus || null;
@@ -916,7 +922,7 @@ export class ChainlessChainWSServer extends EventEmitter {
       return;
     }
 
-    const child = spawn(process.execPath, [BIN_PATH, ...args], {
+    const child = this._spawnProcess(process.execPath, [BIN_PATH, ...args], {
       env: {
         ...process.env,
         FORCE_COLOR: "0",
@@ -932,6 +938,10 @@ export class ChainlessChainWSServer extends EventEmitter {
       },
       stdio: ["pipe", "pipe", "pipe"],
       windowsHide: true,
+      origin: "gateway:ws-command",
+      policy: "allow",
+      scope: "gateway",
+      shell: false,
     });
 
     this.processes.set(id, child);

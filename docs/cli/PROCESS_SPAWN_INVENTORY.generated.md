@@ -94,8 +94,8 @@ Total matches: 402 (runtime: 326, tooling: 53, test: 23).
 | `packages/cli/src/commands/team.js` | 139 | `const child = _deps.spawn(process.execPath, args, {` |
 | `packages/cli/src/commands/update.js` | 15 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/commands/update.js` | 36 | `const result = _deps.spawnSync(command, args, {` |
-| `packages/cli/src/gateways/ws/ws-server.js` | 14 | `import { spawn } from "node:child_process";` |
-| `packages/cli/src/gateways/ws/ws-server.js` | 919 | `const child = spawn(process.execPath, [BIN_PATH, ...args], {` |
+| `packages/cli/src/gateways/ws/ws-server.js` | 118 | `spawn: (...args) => executionBroker.spawn(...args),` |
+| `packages/cli/src/gateways/ws/ws-server.js` | 248 | `this._spawnProcess = options.spawn \|\| _deps.spawn;` |
 | `packages/cli/src/harness/background-task-manager.js` | 4 | `* Tasks run in child_process.fork() for isolation.` |
 | `packages/cli/src/harness/background-task-manager.js` | 11 | `import { fork } from "node:child_process";` |
 | `packages/cli/src/harness/background-task-manager.js` | 117 | `const child = fork(` |
