@@ -182,6 +182,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   脚本名保持独立 argv，并统一保留 10 秒超时、stderr 捕获和无 shell 执行语义。
 - REPL `!` 命令的 Windows `cmd.exe` 与 POSIX `/bin/sh` 执行已进入 `repl:bang-command`
   Broker origin；显式 shell 文本继续作为单一 argv 传递，并保留输出上限、超时和上下文回填语义。
+- Slash command 模板中的 `!`cmd`` 展开已进入 `slash-command:bang` Broker origin；
+  保留显式 shell 与失败降级为提示文本的兼容语义，同时获得危险命令、凭据和审计边界。
 
 ### 4.2 建议设计
 

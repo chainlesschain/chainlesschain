@@ -21,11 +21,15 @@
 import fsDefault from "node:fs";
 import pathDefault from "node:path";
 import { homedir } from "node:os";
-import { execSync as execSyncDefault } from "node:child_process";
 import { expandFileRefs } from "../runtime/file-ref-expander.js";
 import { projectRootBase } from "./project-root.cjs";
+import executionBroker from "./process-execution-broker/index.js";
 
-const _deps = { fs: fsDefault, path: pathDefault, execSync: execSyncDefault };
+const _deps = {
+  fs: fsDefault,
+  path: pathDefault,
+  execSync: (...args) => executionBroker.execSync(...args),
+};
 
 /**
  * Split `--- ... ---` frontmatter from the body and camelCase the keys (so
@@ -191,6 +195,10 @@ function runBangs(text, { cwd, execSync }) {
         encoding: "utf-8",
         timeout: BANG_TIMEOUT_MS,
         stdio: ["ignore", "pipe", "pipe"],
+        origin: "slash-command:bang",
+        policy: "allow",
+        scope: "slash-command",
+        shell: true,
       });
       return String(out).trim();
     } catch (err) {

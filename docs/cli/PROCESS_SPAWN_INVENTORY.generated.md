@@ -282,9 +282,9 @@ Total matches: 396 (runtime: 320, tooling: 53, test: 23).
 | `packages/cli/src/lib/skill-packs/generator.js` | 256 | `const result = spawnSync("chainlesschain", cliArgs, {` |
 | `packages/cli/src/lib/skill-packs/generator.js` | 410 | `const { spawnSync } = require("child_process");` |
 | `packages/cli/src/lib/skill-packs/generator.js` | 484 | `const result = spawnSync("chainlesschain", cliArgs, {` |
-| `packages/cli/src/lib/slash-commands.js` | 24 | `import { execSync as execSyncDefault } from "node:child_process";` |
-| `packages/cli/src/lib/slash-commands.js` | 189 | `const out = execSync(cmd, {` |
-| `packages/cli/src/lib/slash-commands.js` | 215 | `const execSync = opts.deps?.execSync \|\| _deps.execSync;` |
+| `packages/cli/src/lib/slash-commands.js` | 31 | `execSync: (...args) => executionBroker.execSync(...args),` |
+| `packages/cli/src/lib/slash-commands.js` | 193 | `const out = execSync(cmd, {` |
+| `packages/cli/src/lib/slash-commands.js` | 223 | `const execSync = opts.deps?.execSync \|\| _deps.execSync;` |
 | `packages/cli/src/lib/status-line.cjs` | 19 | `const cpDefault = require("node:child_process");` |
 | `packages/cli/src/lib/status-line.cjs` | 24 | `spawnSync: cpDefault.spawnSync,` |
 | `packages/cli/src/lib/status-line.cjs` | 197 | `res = _deps.spawnSync(config.command, {` |

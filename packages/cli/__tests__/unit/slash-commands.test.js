@@ -116,13 +116,23 @@ describe("slash-commands", () => {
       const { prompt } = expandCommand(mk("status: !`git status`"), [], {
         cwd,
         deps: {
-          execSync: (cmd) => {
-            calls.push(cmd);
+          execSync: (cmd, options) => {
+            calls.push([cmd, options]);
             return "BRANCH-CLEAN\n";
           },
         },
       });
-      expect(calls).toEqual(["git status"]);
+      expect(calls).toEqual([
+        [
+          "git status",
+          expect.objectContaining({
+            origin: "slash-command:bang",
+            policy: "allow",
+            scope: "slash-command",
+            shell: true,
+          }),
+        ],
+      ]);
       expect(prompt).toContain("status: BRANCH-CLEAN");
     });
 
