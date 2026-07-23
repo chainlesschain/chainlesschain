@@ -7,16 +7,27 @@
  * project's U-Key/hardware posture.
  */
 
-import { spawnSync } from "node:child_process";
+import executionBroker from "../process-execution-broker/index.js";
 
-export const _deps = { spawnSync, platform: () => process.platform };
+export const _deps = {
+  spawnSync: (...args) => executionBroker.spawnSync(...args),
+  platform: () => process.platform,
+};
 
 /** Run a PowerShell script, returning { ok, stdout, stderr }. */
 function runPowerShell(script, deps = _deps) {
   const res = deps.spawnSync(
     "powershell.exe",
     ["-NoProfile", "-NonInteractive", "-Command", script],
-    { encoding: "utf-8", windowsHide: true, maxBuffer: 16 * 1024 * 1024 },
+    {
+      encoding: "utf-8",
+      windowsHide: true,
+      maxBuffer: 16 * 1024 * 1024,
+      origin: "computer-use:powershell",
+      scope: "computer-use",
+      policy: "allow",
+      shell: false,
+    },
   );
   if (res.error) return { ok: false, stdout: "", stderr: res.error.message };
   return {
@@ -140,6 +151,10 @@ export function createWindowsBackend(deps = _deps) {
           windowsHide: false,
           detached: true,
           stdio: "ignore",
+          origin: "computer-use:app-launch",
+          scope: "computer-use",
+          policy: "allow",
+          shell: false,
         });
         return res.error
           ? { ok: false, error: res.error.message }

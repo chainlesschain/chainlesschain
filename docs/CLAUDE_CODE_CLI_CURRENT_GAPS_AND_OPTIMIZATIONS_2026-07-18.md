@@ -149,6 +149,9 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 - Hook Manager 的 command/script handler 已由手工补写审计升级为 `hook-manager:command` Broker
   执行；保留 shell、超时、64 MiB 输出上限与 `HOOK_EVENT`/`HOOK_CONTEXT` 环境契约，并统一获得
   危险命令拦截、凭据过滤和执行结果审计。
+- Computer Use Windows 控制后端的 PowerShell 原语与应用启动已分别进入
+  `computer-use:powershell`、`computer-use:app-launch` Broker origin；脚本和应用参数继续使用独立
+  argv 且显式禁用 shell，并保留截图输出上限与 detached 应用生命周期语义。
 
 ### 4.2 建议设计
 

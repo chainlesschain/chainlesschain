@@ -160,9 +160,9 @@ Total matches: 402 (runtime: 326, tooling: 53, test: 23).
 | `packages/cli/src/lib/code-agent.js` | 227 | `/child_process.*exec\s*\(\s*[`"'].*\$\{/,` |
 | `packages/cli/src/lib/code-review.js` | 11 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/lib/code-review.js` | 29 | `return _deps.execFileSync("git", buildGitDiffArgs(target, options), {` |
-| `packages/cli/src/lib/computer-use/control-backend.js` | 10 | `import { spawnSync } from "node:child_process";` |
-| `packages/cli/src/lib/computer-use/control-backend.js` | 16 | `const res = deps.spawnSync(` |
-| `packages/cli/src/lib/computer-use/control-backend.js` | 139 | `const res = deps.spawnSync(app, args, {` |
+| `packages/cli/src/lib/computer-use/control-backend.js` | 13 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
+| `packages/cli/src/lib/computer-use/control-backend.js` | 19 | `const res = deps.spawnSync(` |
+| `packages/cli/src/lib/computer-use/control-backend.js` | 150 | `const res = deps.spawnSync(app, args, {` |
 | `packages/cli/src/lib/doctor-checkup.js` | 26 | `import { execSync, spawnSync } from "node:child_process";` |
 | `packages/cli/src/lib/doctor-checkup.js` | 552 | `deps.execSync("git rev-parse --is-inside-work-tree", {` |
 | `packages/cli/src/lib/doctor-checkup.js` | 573 | `deps.execSync("git worktree prune --dry-run -v", {` |

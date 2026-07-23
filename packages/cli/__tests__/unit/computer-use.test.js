@@ -99,8 +99,8 @@ describe("computer-use authorization", () => {
 describe("control-backend (Windows)", () => {
   it("dispatches the right PowerShell per verb and shapes results", () => {
     const calls = [];
-    const spawnSync = vi.fn((file, args) => {
-      calls.push(args[args.length - 1]);
+    const spawnSync = vi.fn((file, args, options) => {
+      calls.push({ file, args, options });
       return { status: 0, stdout: "1920x1080", stderr: "" };
     });
     const backend = createWindowsBackend({
@@ -109,12 +109,44 @@ describe("control-backend (Windows)", () => {
     });
     const shot = backend.screenshot("C:/tmp/x.png");
     expect(shot).toMatchObject({ ok: true, path: "C:/tmp/x.png" });
-    expect(calls[0]).toContain("CopyFromScreen");
+    expect(calls[0].file).toBe("powershell.exe");
+    expect(calls[0].args.at(-1)).toContain("CopyFromScreen");
+    expect(calls[0].options).toMatchObject({
+      origin: "computer-use:powershell",
+      scope: "computer-use",
+      policy: "allow",
+      shell: false,
+    });
 
     backend.click(10, 20);
-    expect(calls[1]).toContain("mouse_event");
+    expect(calls[1].args.at(-1)).toContain("mouse_event");
     backend.type("hi");
-    expect(calls[2]).toContain("SendKeys");
+    expect(calls[2].args.at(-1)).toContain("SendKeys");
+  });
+
+  it("routes app launches through the process broker contract", () => {
+    const spawnSync = vi.fn(() => ({ status: 0 }));
+    const backend = createWindowsBackend({
+      spawnSync,
+      platform: () => "win32",
+    });
+
+    expect(backend.appLaunch("notepad.exe", ["notes.txt"])).toEqual({
+      ok: true,
+      app: "notepad.exe",
+    });
+    expect(spawnSync).toHaveBeenCalledWith(
+      "notepad.exe",
+      ["notes.txt"],
+      expect.objectContaining({
+        origin: "computer-use:app-launch",
+        scope: "computer-use",
+        policy: "allow",
+        shell: false,
+        detached: true,
+        stdio: "ignore",
+      }),
+    );
   });
 
   it("parses window list JSON", () => {
