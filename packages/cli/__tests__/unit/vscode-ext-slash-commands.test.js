@@ -90,6 +90,30 @@ describe("slash-command completion", () => {
     );
     expect(slash.filterSlashCommands("zzz")).toEqual([]);
   });
+
+  it("normalizes untrusted host tokens and resolves only unique prefixes", () => {
+    expect(slash.normalizeSlashName("/ＳＴＡ\u200b")).toBe("/sta");
+    expect(slash.resolveSlashCommandPrefix("/ＳＴＡ\u200b")).toMatchObject({
+      status: "resolved",
+      name: "/sta",
+      command: "/status",
+      matchedName: "/status",
+    });
+    expect(slash.resolveSlashCommandPrefix("/think")).toMatchObject({
+      status: "resolved",
+      command: "/think",
+    });
+    expect(slash.resolveSlashCommandPrefix("/st")).toEqual({
+      status: "ambiguous",
+      name: "/st",
+      matches: ["/stop", "/status"],
+    });
+    expect(slash.resolveSlashCommandPrefix("/sta;rm")).toEqual({
+      status: "unknown",
+      name: "/sta;rm",
+      matches: [],
+    });
+  });
 });
 
 describe("slash-command execution routing", () => {
@@ -186,6 +210,10 @@ describe("chat HTML slash-command integration", () => {
     expect(html).toContain("ccSlash.formatSlashHelp");
     expect(html).toContain("showSlashSug");
     expect(html).toContain('mode: "slash"');
+    expect(html).toContain('type: "slashCommandFallback"');
+    expect(html).not.toContain(
+      'add("info", "unknown command " + cmd + " — try /help")',
+    );
 
     const scripts = [
       ...html.matchAll(/<script nonce="[^"]+">([\s\S]*?)<\/script>/g),

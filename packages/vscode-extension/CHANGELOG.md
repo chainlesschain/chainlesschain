@@ -2,8 +2,13 @@
 
 All notable changes to this extension are documented here.
 
-## [0.37.30] - Secure Windows bridge release gates (2026-07-23)
+## [0.37.30] - Slash send and secure release gates (2026-07-23)
 
+- Preserve the whitespace regular expression inside the generated Webview
+  script, so choosing `/status` from a partial `/sta` input no longer parses
+  the command as a bare `/`.
+- Resolve only exact or unique slash-command prefixes in the trusted Extension
+  Host as a defense-in-depth fallback; ambiguous or unknown input is rejected.
 - Publish owner-only bridge lockfiles asynchronously and construct exact,
   protected Windows DACLs without PowerShell module-autoload dependencies.
 - Keep bearer tokens off process arguments, normalize ownership only when

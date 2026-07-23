@@ -113,6 +113,63 @@ afterEach(() => {
 });
 
 describe("VS Code chat session slash-command routing", () => {
+  it("routes a normalized unique /sta fallback through the manifest to /status", () => {
+    const { provider, posted, createSession, runCliResult } = makeProvider();
+
+    provider._handleMessage({
+      type: "slashCommandFallback",
+      command: "/ＳＴＡ\u200b",
+      args: "--verbose",
+    });
+
+    expect(createSession).toHaveBeenCalledTimes(1);
+    expect(createSession.sessions[0].sent).toHaveLength(1);
+    expect(createSession.sessions[0].sent[0]).toMatchObject({
+      type: "slash_command",
+      command: "status",
+      args: "--verbose",
+    });
+    expect(posted[0]).toEqual({ kind: "info", text: "/status" });
+    expect(runCliResult).not.toHaveBeenCalled();
+  });
+
+  it("rejects ambiguous, unknown and panel-only fallback tokens without dispatch", () => {
+    const { provider, posted, createSession, runCliResult } = makeProvider();
+
+    provider._handleMessage({
+      type: "slashCommandFallback",
+      command: "/st",
+      args: "",
+    });
+    provider._handleMessage({
+      type: "slashCommandFallback",
+      command: "/definitely-not-real",
+      args: "",
+    });
+    provider._handleMessage({
+      type: "slashCommandFallback",
+      command: "/retr",
+      args: "",
+    });
+
+    expect(createSession).not.toHaveBeenCalled();
+    expect(runCliResult).not.toHaveBeenCalled();
+    expect(posted).toEqual([
+      {
+        kind: "error",
+        text: "ambiguous command /st — matches /stop, /status",
+      },
+      {
+        kind: "error",
+        text: "unknown command /definitely-not-real — try /help",
+      },
+      {
+        kind: "error",
+        text: "command /retry is handled inside the panel — type it in full or choose it from suggestions",
+      },
+    ]);
+  });
+
   it("starts once, reuses the live session and sends correlated status requests without spawning a CLI command", () => {
     const { provider, createSession, runCliResult } = makeProvider();
 

@@ -493,7 +493,7 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
     const text = input.value.trim();
     if (!text && !pendingImages.length) return;
     if (text.startsWith("/")) {
-      const cmd = text.split(/\s+/)[0].toLowerCase();
+      const cmd = text.split(/\\s+/)[0].toLowerCase();
       input.value = "";
       if (text === "/") {
         add("info", "type / followed by a command, or choose one from the suggestions");
@@ -519,7 +519,14 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
         }
         return;
       }
-      add("info", "unknown command " + cmd + " — try /help");
+      // Let the trusted Extension Host resolve partial or visually-normalized
+      // tokens against the manifest. It alone decides whether a fallback is
+      // safe to dispatch; the Webview must not guess or execute arbitrary input.
+      vscode.postMessage({
+        type: "slashCommandFallback",
+        command: cmd,
+        args: text.slice(cmd.length).trim(),
+      });
       return;
     }
     const images = pendingImages;

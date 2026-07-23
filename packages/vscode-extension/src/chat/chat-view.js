@@ -38,7 +38,12 @@ const {
   upsertPersistedPlanReview,
 } = require("./plan-review.js");
 const { upsertIdeSessionRecord } = require("./ide-session-index.js");
-const { COMMAND_DEFS, splitSlashArgs } = require("./slash-commands.js");
+const {
+  COMMAND_DEFS,
+  resolveSlashCommandPrefix,
+  routeSlashCommand,
+  splitSlashArgs,
+} = require("./slash-commands.js");
 
 const PLAN_REVIEW_STATES_KEY = "chainlesschain.chat.planReviewStates.v1";
 const WEBVIEW_PROTOCOL_TIMEOUT_MS = 750;
@@ -2484,6 +2489,44 @@ class ChatViewProvider {
    * Extracted from resolveWebviewView so the whole message flow is unit-testable
    * without a live webview host.
    */
+  _handleSlashCommandFallback(m) {
+    const resolved = resolveSlashCommandPrefix(m.command);
+    const submitted =
+      resolved.name || String(m.command == null ? "" : m.command).trim() || "/";
+
+    if (resolved.status === "ambiguous") {
+      this._post({
+        kind: "error",
+        text: `ambiguous command ${submitted} — matches ${resolved.matches.join(
+          ", ",
+        )}`,
+      });
+      return false;
+    }
+    if (resolved.status !== "resolved") {
+      this._post({
+        kind: "error",
+        text: `unknown command ${submitted} — try /help`,
+      });
+      return false;
+    }
+
+    const route = routeSlashCommand(resolved.command, m.args);
+    if (!route || route.kind !== "message") {
+      this._post({
+        kind: "error",
+        text:
+          `command ${resolved.matchedName || resolved.command} is handled ` +
+          "inside the panel — type it in full or choose it from suggestions",
+      });
+      return false;
+    }
+
+    this._post({ kind: "info", text: resolved.command });
+    this._handleMessage(route.message);
+    return true;
+  }
+
   _handleMessage(m) {
     if (!m || typeof m !== "object") return;
     if (this._webviewProtocolGuard) {
@@ -2507,7 +2550,9 @@ class ChatViewProvider {
         return;
       }
     }
-    if (m.type === "send") {
+    if (m.type === "slashCommandFallback") {
+      this._handleSlashCommandFallback(m);
+    } else if (m.type === "send") {
       const images = Array.isArray(m.images)
         ? this._writeImageTemps(m.images)
         : [];

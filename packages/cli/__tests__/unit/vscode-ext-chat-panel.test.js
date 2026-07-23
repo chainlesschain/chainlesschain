@@ -686,6 +686,8 @@ describe("panel slash commands (P1)", async () => {
     expect(sendBody.indexOf("acceptSug()")).toBeLessThan(
       sendBody.indexOf("const text = input.value.trim()"),
     );
+    expect(sendBody).toContain("text.split(/\\s+/)");
+    expect(sendBody).not.toContain("text.split(/s+/)");
   });
 });
 

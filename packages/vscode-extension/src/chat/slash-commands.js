@@ -252,6 +252,77 @@
   }
 
   /**
+   * Normalize an untrusted command token received by the Extension Host.
+   *
+   * NFKC folds visually equivalent full-width input, while format characters
+   * that can make two command tokens look identical are removed explicitly.
+   * The caller still has to validate the resulting command grammar.
+   */
+  function normalizeSlashName(name) {
+    var key = String(name == null ? "" : name);
+    if (typeof key.normalize === "function") key = key.normalize("NFKC");
+    return key
+      .replace(/[\u200B-\u200D\u2060\uFEFF]/g, "")
+      .trim()
+      .toLowerCase();
+  }
+
+  /**
+   * Resolve a host fallback token against the declarative manifest.
+   *
+   * Exact names/aliases win even when they are also a prefix of another
+   * command (for example /think and /think-off). Otherwise only a unique
+   * manifest definition is resolved; ambiguous prefixes are never guessed.
+   */
+  function resolveSlashCommandPrefix(name) {
+    var key = normalizeSlashName(name);
+    if (!/^\/[a-z]+(?:-[a-z]+)*$/.test(key)) {
+      return { status: "unknown", name: key, matches: [] };
+    }
+
+    var exact = findSlashCommand(key);
+    if (exact) {
+      return {
+        status: "resolved",
+        name: key,
+        command: exact.name,
+        matchedName: key,
+      };
+    }
+
+    var matches = [];
+    for (var i = 0; i < COMMAND_DEFS.length; i += 1) {
+      var def = COMMAND_DEFS[i];
+      var names = [def.name].concat(def.aliases || []);
+      for (var j = 0; j < names.length; j += 1) {
+        if (names[j].indexOf(key) === 0) {
+          matches.push({
+            command: def.name,
+            matchedName: names[j],
+          });
+          break;
+        }
+      }
+    }
+
+    if (matches.length === 1) {
+      return {
+        status: "resolved",
+        name: key,
+        command: matches[0].command,
+        matchedName: matches[0].matchedName,
+      };
+    }
+    return {
+      status: matches.length ? "ambiguous" : "unknown",
+      name: key,
+      matches: matches.map(function (match) {
+        return match.matchedName;
+      }),
+    };
+  }
+
+  /**
    * Resolve a slash command into either a host message or a local/help action.
    * Free-form arguments remain text here; the trusted extension host tokenizes
    * CLI argv so quoted values and Windows paths survive safely.
@@ -360,6 +431,8 @@
     detectSlashToken: detectSlashToken,
     filterSlashCommands: filterSlashCommands,
     findSlashCommand: findSlashCommand,
+    normalizeSlashName: normalizeSlashName,
+    resolveSlashCommandPrefix: resolveSlashCommandPrefix,
     routeSlashCommand: routeSlashCommand,
     formatSlashHelp: formatSlashHelp,
     splitSlashArgs: splitSlashArgs,
@@ -368,4 +441,4 @@
     module.exports = api;
   }
   global.ccSlash = api;
-})(typeof window !== "undefined" ? window : globalThis);
+})(globalThis);
