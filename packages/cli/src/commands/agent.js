@@ -1030,7 +1030,11 @@ export function registerAgentCommand(program) {
             jsonSchema: options.jsonSchema || null,
           });
         } catch (err) {
-          process.stderr.write(`Error: ${err.message}\n`);
+          process.stderr.write(
+            process.env.CC_DEBUG && err?.stack
+              ? `${err.stack}\n`
+              : `Error: ${err.message}\n`,
+          );
           await _finishWorktree();
           process.exit(1);
         }
