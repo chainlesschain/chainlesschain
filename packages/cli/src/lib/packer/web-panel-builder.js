@@ -10,8 +10,12 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 import { PackError, EXIT } from "./errors.js";
+import executionBroker from "../process-execution-broker/index.js";
+
+export const _deps = {
+  spawnSync: (...args) => executionBroker.spawnSync(...args),
+};
 
 /**
  * @param {object} ctx
@@ -50,11 +54,21 @@ export function ensureWebPanel(ctx) {
   if (needsBuild) {
     log("  [web-panel] Building Vue panel via 'npm run build:web-panel'...");
     const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
-    const res = spawnSync(npmCmd, ["run", "build:web-panel"], {
+    const res = _deps.spawnSync(npmCmd, ["run", "build:web-panel"], {
+      origin: "packer:web-panel-build",
+      scope: "pack",
+      policy: "allow",
+      shell: false,
       cwd: cliRoot,
       stdio: "inherit",
       windowsHide: true,
     });
+    if (res.error) {
+      throw new PackError(
+        `Failed to start 'npm run build:web-panel': ${res.error.message}`,
+        EXIT.WEB_PANEL,
+      );
+    }
     if (res.status !== 0) {
       throw new PackError(
         `'npm run build:web-panel' exited with code ${res.status}`,

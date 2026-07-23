@@ -228,8 +228,8 @@ Total matches: 402 (runtime: 326, tooling: 53, test: 23).
 | `packages/cli/src/lib/packer/smoke-runner.js` | 22 | `import { spawn } from "node:child_process";` |
 | `packages/cli/src/lib/packer/smoke-runner.js` | 83 | `const child = spawn(exePath, ["ui", "--no-open"], {` |
 | `packages/cli/src/lib/packer/smoke-runner.js` | 119 | `spawn("taskkill", ["/F", "/T", "/PID", String(child.pid)], {` |
-| `packages/cli/src/lib/packer/web-panel-builder.js` | 13 | `import { spawnSync } from "node:child_process";` |
-| `packages/cli/src/lib/packer/web-panel-builder.js` | 53 | `const res = spawnSync(npmCmd, ["run", "build:web-panel"], {` |
+| `packages/cli/src/lib/packer/web-panel-builder.js` | 17 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
+| `packages/cli/src/lib/packer/web-panel-builder.js` | 57 | `const res = _deps.spawnSync(npmCmd, ["run", "build:web-panel"], {` |
 | `packages/cli/src/lib/plugin-ecosystem.js` | 114 | `/require\(\s*['"]child_process['"]\s*\)\|from\s+['"]child_process['"]/g,` |
 | `packages/cli/src/lib/plugin-ecosystem.js` | 116 | `message: "child_process import — review command usage",` |
 | `packages/cli/src/lib/plugin-monitor-supervisor.js` | 24 | `import { spawn } from "node:child_process";` |

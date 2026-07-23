@@ -163,6 +163,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   `packer:precheck-git` Broker origin；三组固定 Git 参数均改为无 shell argv，并保留非 Git 目录的静默降级。
 - Packer 的 `@yao-pkg/pkg` 运行器已进入 `packer:pkg` Broker origin；runtime、脚本、配置、targets
   与输出路径继续逐项传递，并新增启动失败与成功产物映射的隔离测试。
+- Packer Web Panel 的 `npm run build:web-panel` 已进入 `packer:web-panel-build` Broker origin；
+  固定 npm argv 显式禁用 shell，并补齐 npm 无法启动与构建产物发现的隔离测试。
 
 ### 4.2 建议设计
 
