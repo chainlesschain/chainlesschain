@@ -11,6 +11,7 @@ import {
   applyForkSession,
   parseToolList,
   READ_ONLY_TOOLS,
+  _goalProcessDeps,
 } from "../../src/runtime/headless-runner.js";
 import { GoalConditionEngine } from "../../src/lib/goal-condition-engine.js";
 
@@ -1120,6 +1121,43 @@ describe("headless-runner — goal-condition outer-turn re-drive", () => {
     const types = parseLines(out).map((e) => e.type);
     expect(seen.turns).toBe(1); // met on the first turn, no re-drive
     expect(types).toContain("goal_completed");
+  });
+
+  it("evaluates exit-zero through the process broker adapter by default", async () => {
+    const seen = {};
+    const { deps, out } = makeDeps(replyText("x"));
+    deps.agentLoop = scriptedLoop(["built"], seen);
+    const originalRunner = _goalProcessDeps.run;
+    const run = vi.fn(() => ({ status: 0 }));
+    _goalProcessDeps.run = run;
+
+    try {
+      await runAgentHeadless(
+        {
+          prompt: "build it",
+          outputFormat: "stream-json",
+          goalCondition: "exit-zero:npm run build",
+        },
+        deps,
+      );
+
+      const types = parseLines(out).map((event) => event.type);
+      expect(seen.turns).toBe(1);
+      expect(types).toContain("goal_completed");
+      expect(run).toHaveBeenCalledWith(
+        "npm run build",
+        [],
+        expect.objectContaining({
+          shell: true,
+          timeout: 30000,
+          origin: "headless-goal:exit-zero",
+          policy: "allow",
+          scope: "headless-goal",
+        }),
+      );
+    } finally {
+      _goalProcessDeps.run = originalRunner;
+    }
   });
 
   it("uses an injected judge for a model-judged condition", async () => {

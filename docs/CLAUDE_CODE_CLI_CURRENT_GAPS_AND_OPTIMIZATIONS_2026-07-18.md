@@ -234,6 +234,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   并改用 `process.execPath` + 字面 argv，保留脚本输出和退出码契约。
 - REPL `/goal exit-zero` 的命令检查已进入 `repl-goal:exit-zero` Broker origin；保留用户条件所需的
   显式 shell 语义，并增加 30 秒执行上限。
+- Headless `--goal-condition exit-zero` 的默认命令检查已进入 `headless-goal:exit-zero` Broker origin；
+  测试注入接口保持兼容，并与 REPL 检查统一采用 30 秒执行上限。
 
 ### 4.2 建议设计
 

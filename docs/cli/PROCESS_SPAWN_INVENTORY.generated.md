@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 340 (runtime: 264, tooling: 53, test: 23).
+Total matches: 339 (runtime: 263, tooling: 53, test: 23).
 
 ## Policy
 
@@ -275,7 +275,6 @@ Total matches: 340 (runtime: 264, tooling: 53, test: 23).
 | `packages/cli/src/runtime/agent-core.js` | 5264 | `// sub-agent runs, so a policy hook can VETO the spawn (`block`) or INJECT` |
 | `packages/cli/src/runtime/diagnostics.js` | 83 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/runtime/diagnostics.js` | 89 | `deps.execFileSync(file, args, {` |
-| `packages/cli/src/runtime/headless-runner.js` | 2060 | `gc.spawnSync \|\| (await import("node:child_process")).spawnSync;` |
 | `packages/cli/src/skills/video-editing/media-process.js` | 4 | `spawn: (...args) => executionBroker.spawn(...args),` |
 | `packages/cli/src/skills/video-editing/media-process.js` | 13 | `return _deps.spawn(file, args, {` |
 | `packages/cli/src/workers/background-agent-worker.js` | 118 | `child = executionBroker.spawn(process.execPath, [job.cliEntry, ...argv], {` |

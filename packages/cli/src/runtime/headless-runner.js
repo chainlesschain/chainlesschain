@@ -87,6 +87,23 @@ import {
   recordDenial,
   formatDenials,
 } from "../lib/repl-denials.js";
+import executionBroker from "../lib/process-execution-broker/index.js";
+
+const goalBrokerRunner = executionBroker.spawnSync.bind(executionBroker);
+
+export const _goalProcessDeps = {
+  run: goalBrokerRunner,
+};
+
+function runHeadlessGoalCommand(command, options = {}) {
+  return _goalProcessDeps.run(command, [], {
+    ...options,
+    timeout: options.timeout ?? 30000,
+    origin: "headless-goal:exit-zero",
+    policy: "allow",
+    scope: "headless-goal",
+  });
+}
 
 /** Tools that cannot mutate the filesystem or run commands. */
 export const READ_ONLY_TOOLS = Object.freeze([
@@ -2085,8 +2102,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
         try {
           if (_goalHelpers.isDeterministicCondition(cond)) {
             const gc = deps.goalCheck || {};
-            const spawnSync =
-              gc.spawnSync || (await import("node:child_process")).spawnSync;
+            const spawnSync = gc.spawnSync || runHeadlessGoalCommand;
             const existsSync =
               gc.existsSync || (await import("node:fs")).existsSync;
             evaluation = _goalHelpers.runDeterministicCheck(cond, {
