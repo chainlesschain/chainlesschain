@@ -217,6 +217,7 @@ describe("SKILL_TEMPLATES: libre-convert SKILL.md", () => {
     expect(fm.name).toBe("libre-convert");
     expect(fm.category).toBe("document");
     expect(fm["execution-mode"]).toBe("direct");
+    expect(fm.capabilities).toBe("[shell-exec]");
     expect(fm.version).toBe("1.0.0");
   });
 
@@ -300,7 +301,16 @@ describe("SKILL_TEMPLATES: libre-convert handler.js", () => {
     expect(h).toContain("--convert-to");
   });
 
-  it("uses utf-8 encoding in spawnSync", () => {
+  it("is fail-closed and uses only the injected Process Broker", () => {
+    const h = SKILL_TEMPLATES["libre-convert"].handler;
+    expect(h).not.toContain('require("child_process")');
+    expect(h).toContain("Process Broker unavailable for libre-convert skill");
+    expect(h).toContain("processBroker.runSync(");
+    expect(h).toContain("processBroker.runFileSync(");
+    expect(h).toContain("shell: false");
+  });
+
+  it("uses utf-8 encoding for process output", () => {
     const h = SKILL_TEMPLATES["libre-convert"].handler;
     expect(h).toContain('"utf-8"');
   });

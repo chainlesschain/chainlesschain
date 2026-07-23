@@ -212,6 +212,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   探测、异步合成与 piper stdin 路径均只使用宿主注入的无 shell Broker 门面，缺少门面时 fail-closed。
 - `init ai-doc-creator` 生成的 `doc-generate` Skill 已按同一 capability/fail-closed 契约迁移；
   `chainlesschain ask`、pandoc 与 LibreOffice 探测/转换均使用独立 argv，Windows 路径不再依赖 shell 引号。
+- 同模板组的 `libre-convert` Skill 也已迁移 soffice/libreoffice 探测和 headless 转换；用户输入路径
+  保持独立 argv，Windows 默认安装路径直接交给无 shell Broker，不再生成原生 `child_process`。
 - Background task harness 的 worker 启动与任务命令已进入 `background-task:worker`、
   `background-task:command:*` Broker origin；Node `execArgv`、stdio IPC、heartbeat/result 消息语义保持不变。
 - MCP stdio client 的普通与插件 server 启动已统一进入 Broker；普通 server 自动记录

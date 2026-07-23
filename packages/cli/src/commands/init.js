@@ -1310,6 +1310,7 @@ parameters:
     required: false
     description: 输出目录（默认与源文件相同目录）
 execution-mode: direct
+capabilities: [shell-exec]
 ---
 
 # LibreOffice 文档格式转换
@@ -1387,17 +1388,29 @@ soffice --version
  *     chainlesschain cli-anything register soffice
  */
 
-const { spawnSync, execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
 const SUPPORTED_FORMATS = new Set(["pdf", "docx", "html", "odt", "pptx", "xlsx", "csv", "txt", "png"]);
 
-function findSoffice() {
+function requireProcessBroker(context) {
+  const broker = context && context.processBroker;
+  if (!broker || typeof broker.runSync !== "function" ||
+      typeof broker.runFileSync !== "function") {
+    throw new Error("Process Broker unavailable for libre-convert skill");
+  }
+  return broker;
+}
+
+function findSoffice(processBroker) {
   const candidates = ["soffice", "libreoffice"];
   for (const cmd of candidates) {
     try {
-      execSync(\`\${cmd} --version\`, { stdio: "ignore", encoding: "utf-8" });
+      processBroker.runFileSync(cmd, ["--version"], {
+        stdio: "ignore",
+        encoding: "utf-8",
+        timeout: 5000,
+      });
       return cmd;
     } catch { /* try next */ }
   }
@@ -1408,13 +1421,13 @@ function findSoffice() {
       "C:\\\\Program Files (x86)\\\\LibreOffice\\\\program\\\\soffice.exe",
     ];
     for (const p of paths) {
-      if (fs.existsSync(p)) return \`"\${p}"\`;
+      if (fs.existsSync(p)) return p;
     }
   }
   return null;
 }
 
-async function libreConvertHandler(params) {
+async function libreConvertHandler(params, processBroker) {
   const { input_file, format, outdir } = params;
 
   if (!input_file) {
@@ -1439,7 +1452,7 @@ async function libreConvertHandler(params) {
   }
 
   // Find LibreOffice
-  const sofficeCmd = findSoffice();
+  const sofficeCmd = findSoffice(processBroker);
   if (!sofficeCmd) {
     return {
       error: "LibreOffice not found",
@@ -1467,13 +1480,13 @@ async function libreConvertHandler(params) {
   console.log(\`[libre-convert] Converting \${path.basename(inputPath)} → \${targetFormat}\`);
 
   // Run soffice
-  const result = spawnSync(
+  const result = processBroker.runSync(
     sofficeCmd,
     ["--headless", "--convert-to", targetFormat, inputPath, "--outdir", outputDir],
     {
       encoding: "utf-8",
       timeout: 120000,
-      shell: process.platform === "win32",
+      shell: false,
     },
   );
 
@@ -1521,12 +1534,13 @@ async function libreConvertHandler(params) {
   };
 }
 
-libreConvertHandler.execute = async (task, _ctx, _skill) => {
+libreConvertHandler.execute = async (task, context, _skill) => {
+  const processBroker = requireProcessBroker(context);
   const input = typeof task === "string" ? task : (task.input || task.params?.input || "");
   let p = {};
   try { p = input.trim().startsWith("{") ? JSON.parse(input) : { input_file: input }; }
   catch { p = { input_file: input }; }
-  return libreConvertHandler(p);
+  return libreConvertHandler(p, processBroker);
 };
 module.exports = libreConvertHandler;
 `,
