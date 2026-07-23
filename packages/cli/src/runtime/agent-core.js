@@ -16,7 +16,6 @@
 
 import fs from "fs";
 import path from "path";
-import { execSync } from "child_process";
 import broker from "../lib/process-execution-broker/index.js";
 import os from "os";
 import sharedCodingAgentPolicy from "./coding-agent-policy.cjs";
@@ -112,6 +111,33 @@ const {
   partitionAsyncHooks,
   withDeliveryId,
 } = sharedHookEvents;
+
+const searchProcessRunner = broker.execSync.bind(broker);
+const runCodeProcessRunner = broker.execFileSync.bind(broker);
+
+export const _agentToolProcessDeps = {
+  runSearch: searchProcessRunner,
+  runCode: runCodeProcessRunner,
+};
+
+function runSearchProcess(command, options = {}) {
+  return _agentToolProcessDeps.runSearch(command, {
+    ...options,
+    origin: "agent-core:search-files",
+    policy: "allow",
+    scope: "agent-core",
+  });
+}
+
+function runCodeProcess(file, args, options = {}, origin = "run-code") {
+  return _agentToolProcessDeps.runCode(file, args, {
+    ...options,
+    origin: `agent-core:${origin}`,
+    policy: "allow",
+    scope: "agent-core",
+    shell: false,
+  });
+}
 
 // ─── Background shell tasks ────────────────────────────────────────────────
 //
@@ -4207,7 +4233,7 @@ async function executeToolInner(
         };
         try {
           if (!fs.existsSync(root)) continue;
-          const output = execSync(cmd, {
+          const output = runSearchProcess(cmd, {
             cwd: root,
             encoding: "utf8",
             timeout: 10000,
@@ -4813,7 +4839,7 @@ async function _executeRunCode(args, cwd) {
     const start = Date.now();
     let output;
     try {
-      output = execSync(`${interpreter} "${scriptPath}"`, {
+      output = runCodeProcess(interpreter, [scriptPath], {
         cwd,
         encoding: "utf8",
         timeout: timeoutSec * 1000,
@@ -4913,12 +4939,18 @@ async function _executeRunCode(args, cwd) {
 
           // Attempt pip install
           try {
-            execSync(`${interpreter} -m pip install ${packageName}`, {
-              encoding: "utf-8",
-              timeout: 120000,
-              maxBuffer: 2 * 1024 * 1024,
-              stdio: ["pipe", "pipe", "pipe"],
-            });
+            runCodeProcess(
+              interpreter,
+              ["-m", "pip", "install", packageName],
+              {
+                cwd,
+                encoding: "utf-8",
+                timeout: 120000,
+                maxBuffer: 2 * 1024 * 1024,
+                stdio: ["pipe", "pipe", "pipe"],
+              },
+              "run-code-install",
+            );
             recordInstallAudit({
               package: packageName,
               interpreter,
@@ -4929,12 +4961,17 @@ async function _executeRunCode(args, cwd) {
 
             // Retry execution
             const retryStart = Date.now();
-            const retryOutput = execSync(`${interpreter} "${scriptPath}"`, {
-              cwd,
-              encoding: "utf8",
-              timeout: timeoutSec * 1000,
-              maxBuffer: 5 * 1024 * 1024,
-            });
+            const retryOutput = runCodeProcess(
+              interpreter,
+              [scriptPath],
+              {
+                cwd,
+                encoding: "utf8",
+                timeout: timeoutSec * 1000,
+                maxBuffer: 5 * 1024 * 1024,
+              },
+              "run-code-retry",
+            );
             const retryDuration = Date.now() - retryStart;
 
             return {

@@ -24,21 +24,6 @@ vi.mock("../../src/lib/hook-manager.js", () => ({
   },
 }));
 
-// Track execSync calls for pip-install flow assertions
-let execSyncCalls = [];
-let execSyncImpl = null;
-
-vi.mock("node:child_process", async (importOriginal) => {
-  const original = await importOriginal();
-  return {
-    ...original,
-    execSync: vi.fn((...args) => {
-      if (execSyncImpl) return execSyncImpl(...args);
-      return original.execSync(...args);
-    }),
-  };
-});
-
 // Mock detectPython as available
 vi.mock("../../src/lib/cli-anything-bridge.js", () => ({
   detectPython: vi.fn(() => ({
@@ -48,9 +33,22 @@ vi.mock("../../src/lib/cli-anything-bridge.js", () => ({
   })),
 }));
 
-const { executeTool, isValidPackageName } =
+const { executeTool, isValidPackageName, _agentToolProcessDeps } =
   await import("../../src/lib/agent-core.js");
-const { execSync } = await import("node:child_process");
+
+const originalRunCodeProcess = _agentToolProcessDeps.runCode;
+let runCodeImpl = null;
+
+function installRunCodeMock() {
+  _agentToolProcessDeps.runCode = vi.fn((file, args, options) => {
+    const command = [file, ...(args || [])].join(" ");
+    return runCodeImpl ? runCodeImpl(command, options) : "";
+  });
+}
+
+function restoreRunCodeProcess() {
+  _agentToolProcessDeps.runCode = originalRunCodeProcess;
+}
 
 describe("run_code pip auto-install flow", () => {
   let tempDir;
@@ -60,9 +58,8 @@ describe("run_code pip auto-install flow", () => {
     const os = await import("node:os");
     const path = await import("node:path");
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-pip-test-"));
-    execSyncCalls = [];
-    execSyncImpl = null;
-    vi.mocked(execSync).mockReset();
+    runCodeImpl = null;
+    installRunCodeMock();
     // gap 2026-07-11: auto-install is opt-in — these flow tests opt in; the
     // default-disabled behavior has its own cases below. Audit lines go to
     // the temp dir, never the real home.
@@ -71,13 +68,14 @@ describe("run_code pip auto-install flow", () => {
   });
 
   afterEach(() => {
+    restoreRunCodeProcess();
     delete process.env.CC_RUN_CODE_AUTO_INSTALL;
     delete process.env.CC_AUDIT_DIR;
   });
 
   it("auto-installs missing Python package and retries", async () => {
     let callIdx = 0;
-    vi.mocked(execSync).mockImplementation((cmd, opts) => {
+    runCodeImpl = (cmd) => {
       callIdx++;
       if (callIdx === 1) {
         // writeFileSync already handled by real fs — this is the first exec (run script)
@@ -96,7 +94,7 @@ describe("run_code pip auto-install flow", () => {
         return "result after install";
       }
       return "";
-    });
+    };
 
     const result = await executeTool(
       "run_code",
@@ -107,11 +105,23 @@ describe("run_code pip auto-install flow", () => {
     expect(result.success).toBe(true);
     expect(result.output).toContain("result after install");
     expect(result.autoInstalled).toEqual(["pandas"]);
+    expect(_agentToolProcessDeps.runCode).toHaveBeenNthCalledWith(
+      2,
+      "python3",
+      ["-m", "pip", "install", "pandas"],
+      expect.objectContaining({
+        cwd: tempDir,
+        origin: "agent-core:run-code-install",
+        policy: "allow",
+        scope: "agent-core",
+        shell: false,
+      }),
+    );
   });
 
   it("returns error when pip install fails", async () => {
     let callIdx = 0;
-    vi.mocked(execSync).mockImplementation((cmd) => {
+    runCodeImpl = (cmd) => {
       callIdx++;
       if (callIdx === 1) {
         const err = new Error(
@@ -128,7 +138,7 @@ describe("run_code pip auto-install flow", () => {
         throw pipErr;
       }
       return "";
-    });
+    };
 
     const result = await executeTool(
       "run_code",
@@ -143,7 +153,7 @@ describe("run_code pip auto-install flow", () => {
   it("extracts top-level package from dotted module name", async () => {
     let pipCmd = "";
     let callIdx = 0;
-    vi.mocked(execSync).mockImplementation((cmd) => {
+    runCodeImpl = (cmd) => {
       callIdx++;
       if (callIdx === 1) {
         const err = new Error("ModuleNotFoundError: No module named 'foo.bar'");
@@ -159,7 +169,7 @@ describe("run_code pip auto-install flow", () => {
         return "output from foo.bar";
       }
       return "";
-    });
+    };
 
     const result = await executeTool(
       "run_code",
@@ -177,7 +187,7 @@ describe("run_code pip auto-install flow", () => {
   it("rejects invalid package names without running pip", async () => {
     let callIdx = 0;
     let pipCalled = false;
-    vi.mocked(execSync).mockImplementation((cmd) => {
+    runCodeImpl = (cmd) => {
       callIdx++;
       if (callIdx === 1) {
         const err = new Error(
@@ -191,7 +201,7 @@ describe("run_code pip auto-install flow", () => {
         pipCalled = true;
       }
       return "";
-    });
+    };
 
     const result = await executeTool(
       "run_code",
@@ -208,7 +218,7 @@ describe("run_code pip auto-install flow", () => {
   it("DEFAULT: refuses to auto-install and returns the opt-in hint", async () => {
     delete process.env.CC_RUN_CODE_AUTO_INSTALL; // back to the default policy
     let pipCalled = false;
-    vi.mocked(execSync).mockImplementation((cmd) => {
+    runCodeImpl = (cmd) => {
       if (String(cmd).includes("pip install")) {
         pipCalled = true;
         return "";
@@ -217,7 +227,7 @@ describe("run_code pip auto-install flow", () => {
       err.stderr = "ModuleNotFoundError: No module named 'pandas'";
       err.status = 1;
       throw err;
-    });
+    };
 
     const result = await executeTool(
       "run_code",
@@ -244,7 +254,7 @@ describe("run_code pip auto-install flow", () => {
     );
 
     let pipCalled = false;
-    vi.mocked(execSync).mockImplementation((cmd) => {
+    runCodeImpl = (cmd) => {
       if (String(cmd).includes("pip install")) {
         pipCalled = true;
         return "";
@@ -253,7 +263,7 @@ describe("run_code pip auto-install flow", () => {
       err.stderr = "ModuleNotFoundError: No module named 'pandas'";
       err.status = 1;
       throw err;
-    });
+    };
 
     const result = await executeTool(
       "run_code",
@@ -274,14 +284,14 @@ describe("run_code auto-install — unified install-command audit (P0 sandbox)",
     const os = await import("node:os");
     const path = await import("node:path");
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-pip-uaudit-"));
-    execSyncCalls = [];
-    execSyncImpl = null;
-    vi.mocked(execSync).mockReset();
+    runCodeImpl = null;
+    installRunCodeMock();
     process.env.CC_RUN_CODE_AUTO_INSTALL = "1";
     process.env.CC_AUDIT_DIR = path.join(tempDir, "audit");
   });
 
   afterEach(() => {
+    restoreRunCodeProcess();
     delete process.env.CC_RUN_CODE_AUTO_INSTALL;
     delete process.env.CC_AUDIT_DIR;
     delete process.env.CC_INSTALL_AUDIT;
@@ -289,7 +299,7 @@ describe("run_code auto-install — unified install-command audit (P0 sandbox)",
 
   const runAutoInstallFlow = async () => {
     let callIdx = 0;
-    vi.mocked(execSync).mockImplementation(() => {
+    runCodeImpl = () => {
       callIdx++;
       if (callIdx === 1) {
         const err = new Error("ModuleNotFoundError: No module named 'pandas'");
@@ -298,7 +308,7 @@ describe("run_code auto-install — unified install-command audit (P0 sandbox)",
         throw err;
       }
       return callIdx === 2 ? "Successfully installed" : "ok";
-    });
+    };
     return executeTool(
       "run_code",
       { language: "python", code: "import pandas" },

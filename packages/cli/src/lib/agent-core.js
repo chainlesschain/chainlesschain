@@ -14,6 +14,7 @@ export {
   getCachedPython,
   getEnvironmentInfo,
   _environmentProcessDeps,
+  _agentToolProcessDeps,
   getBaseSystemPrompt,
   buildSystemPrompt,
   executeTool,

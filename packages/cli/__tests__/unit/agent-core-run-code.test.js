@@ -44,6 +44,7 @@ const {
   isValidPackageName,
   getEnvironmentInfo,
   getBaseSystemPrompt,
+  _agentToolProcessDeps,
 } = await import("../../src/lib/agent-core.js");
 
 describe("classifyError", () => {
@@ -311,5 +312,62 @@ describe("executeTool — run_code enhancements", () => {
     );
     expect(result.scriptPath).toMatch(/-node\.js$/);
     expect(result.scriptPath).toMatch(/\d{4}-\d{2}-\d{2}/);
+  });
+
+  it("routes run_code through literal Broker argv with provenance", async () => {
+    const original = _agentToolProcessDeps.runCode;
+    _agentToolProcessDeps.runCode = vi.fn(() => "brokered-output");
+
+    try {
+      const result = await executeTool(
+        "run_code",
+        { language: "node", code: 'console.log("brokered")' },
+        { cwd: tempDir },
+      );
+
+      expect(result).toMatchObject({
+        success: true,
+        output: "brokered-output",
+      });
+      expect(_agentToolProcessDeps.runCode).toHaveBeenCalledWith(
+        "node",
+        [expect.stringMatching(/cc-agent-\d+\.js$/)],
+        expect.objectContaining({
+          cwd: tempDir,
+          origin: "agent-core:run-code",
+          policy: "allow",
+          scope: "agent-core",
+          shell: false,
+        }),
+      );
+    } finally {
+      _agentToolProcessDeps.runCode = original;
+    }
+  });
+
+  it("routes search_files shell commands through Broker provenance", async () => {
+    const original = _agentToolProcessDeps.runSearch;
+    _agentToolProcessDeps.runSearch = vi.fn(() => "found.js\n");
+
+    try {
+      const result = await executeTool(
+        "search_files",
+        { pattern: "*.js", directory: "." },
+        { cwd: tempDir },
+      );
+
+      expect(result.files).toEqual(["found.js"]);
+      expect(_agentToolProcessDeps.runSearch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          cwd: tempDir,
+          origin: "agent-core:search-files",
+          policy: "allow",
+          scope: "agent-core",
+        }),
+      );
+    } finally {
+      _agentToolProcessDeps.runSearch = original;
+    }
   });
 });

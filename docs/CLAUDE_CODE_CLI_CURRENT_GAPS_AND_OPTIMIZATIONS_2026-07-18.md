@@ -182,7 +182,7 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   脚本名保持独立 argv，并统一保留 10 秒超时、stderr 捕获和无 shell 执行语义。
 - REPL `!` 命令的 Windows `cmd.exe` 与 POSIX `/bin/sh` 执行已进入 `repl:bang-command`
   Broker origin；显式 shell 文本继续作为单一 argv 传递，并保留输出上限、超时和上下文回填语义。
-- Slash command 模板中的 `!`cmd``展开已进入`slash-command:bang` Broker origin；
+- Slash command 模板中的 `!`cmd`` 展开已进入 `slash-command:bang` Broker origin；
   保留显式 shell 与失败降级为提示文本的兼容语义，同时获得危险命令、凭据和审计边界。
 - Orchestrator 的配置化 CI gate 已进入 `orchestrator:ci` Broker origin；保留显式 shell、
   180 秒超时、64 MiB 输出上限及失败重试/重派发语义。
@@ -244,7 +244,9 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   `agent-core:background-taskkill` Broker origin，退出处理器仍使用同步回收契约。
 - Agent Core 的专用 Git 工具已进入 `agent-core:git-command` Broker origin，继续使用无 shell 的
   quote-aware 字面 argv，保留原有注入防护和 60 秒上限。
-- 同步/并行 settings Hook runner 已拆分为 fail-closed CJS 核心与 ESM Broker 门面；所有 CLI、
+- Agent Core 的 `search_files` shell 搜索已进入 `agent-core:search-files` Broker origin；`run_code`
+  首次执行、策略允许后的 pip 安装与重试分别使用无 shell 字面 argv，并记录独立 Broker provenance。
+- 同步/并行 settings Hook runner 已拆分为无原生默认执行器的 CJS 核心与 ESM Broker 门面；所有 CLI、
   Headless 与 REPL 生产入口统一走 `hook` / `plugin:hook` provenance，显式插件 Broker 仍兼容。
 
 ### 4.2 建议设计
