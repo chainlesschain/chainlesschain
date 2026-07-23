@@ -157,6 +157,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   Docker/SSH 的宿主机调用已改为无 shell argv，容器/远端命令仅作为单一 `-c`/remote-command 参数传递。
 - Workspace npm publish 已进入 `publish-workspace:npm` Broker origin；tag/access 作为独立 argv
   传递，不再经过 shell 拼接，并修复发布成功后误调用不存在的 `logger.succeed()` 而返回失败的问题。
+- LAN pairing preflight 的 `which`/`where` 防火墙工具探测已进入
+  `lan-pairing:firewall-probe` Broker origin；候选工具名作为独立 argv 传递，继续保持只读、失败降级语义。
 
 ### 4.2 建议设计
 

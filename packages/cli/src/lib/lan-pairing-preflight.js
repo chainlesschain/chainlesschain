@@ -21,8 +21,12 @@
 
 import os from "node:os";
 import fs from "node:fs";
-import { execSync } from "node:child_process";
 import dgram from "node:dgram";
+import executionBroker from "./process-execution-broker/index.js";
+
+export const _deps = {
+  execFileSync: (...args) => executionBroker.execFileSync(...args),
+};
 
 const MDNS_PORT = 5353;
 const MDNS_GROUP = "224.0.0.251";
@@ -313,7 +317,14 @@ function which(cmd) {
   try {
     const platform = os.platform();
     const probe = platform === "win32" ? "where" : "which";
-    execSync(`${probe} ${cmd}`, { stdio: "pipe", windowsHide: true });
+    _deps.execFileSync(probe, [cmd], {
+      origin: "lan-pairing:firewall-probe",
+      scope: "network-diagnostics",
+      policy: "allow",
+      shell: false,
+      stdio: "pipe",
+      windowsHide: true,
+    });
     return true;
   } catch (_err) {
     return false;

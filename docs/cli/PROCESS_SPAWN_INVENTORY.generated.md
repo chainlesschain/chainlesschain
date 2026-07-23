@@ -203,8 +203,8 @@ Total matches: 402 (runtime: 326, tooling: 53, test: 23).
 | `packages/cli/src/lib/hook-runner.cjs` | 392 | `: _deps.spawn(command, { cwd: wd, env: spawnEnv, shell: true });` |
 | `packages/cli/src/lib/hooks-v2-runtime.js` | 240 | `const child = await broker.spawn(` |
 | `packages/cli/src/lib/host-adb-bridge.js` | 34 | `import { execFile } from "node:child_process";` |
-| `packages/cli/src/lib/lan-pairing-preflight.js` | 24 | `import { execSync } from "node:child_process";` |
-| `packages/cli/src/lib/lan-pairing-preflight.js` | 316 | `execSync(`${probe} ${cmd}`, { stdio: "pipe", windowsHide: true });` |
+| `packages/cli/src/lib/lan-pairing-preflight.js` | 28 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
+| `packages/cli/src/lib/lan-pairing-preflight.js` | 320 | `_deps.execFileSync(probe, [cmd], {` |
 | `packages/cli/src/lib/lsp/benchmark.js` | 171 | `const { execFileSync } = await import("child_process");` |
 | `packages/cli/src/lib/lsp/benchmark.js` | 175 | `const csv = execFileSync(` |
 | `packages/cli/src/lib/lsp/benchmark.js` | 189 | `const out = execFileSync("ps", ["-o", "pid=,ppid=,rss="], {` |

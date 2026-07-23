@@ -10,7 +10,7 @@
  *   - firewallCommandTemplate returns expected strings per tool
  *   - runPreflight assembles report with correct exit code mapping
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import os from "node:os";
 import {
   listInterfaces,
@@ -21,6 +21,7 @@ import {
   firewallCommandTemplate,
   runPreflight,
   STATUS,
+  _deps,
 } from "../../src/lib/lan-pairing-preflight.js";
 
 // ─── listInterfaces ───────────────────────────────────────────
@@ -173,6 +174,31 @@ describe("detectFirewallTool", () => {
   it("returns null when none found", () => {
     const whichRunner = () => false;
     expect(detectFirewallTool(whichRunner)).toBeNull();
+  });
+
+  it("routes the default probe through literal brokered argv", () => {
+    const original = _deps.execFileSync;
+    const execFileSync = vi.fn((_file, args) => {
+      if (args[0] === "nft") return "";
+      throw new Error("not found");
+    });
+    _deps.execFileSync = execFileSync;
+
+    try {
+      expect(detectFirewallTool()).toBe("nft");
+      expect(execFileSync).toHaveBeenLastCalledWith(
+        process.platform === "win32" ? "where" : "which",
+        ["nft"],
+        expect.objectContaining({
+          origin: "lan-pairing:firewall-probe",
+          scope: "network-diagnostics",
+          policy: "allow",
+          shell: false,
+        }),
+      );
+    } finally {
+      _deps.execFileSync = original;
+    }
   });
 });
 
