@@ -176,6 +176,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   `packer:update-restart` Broker origin；路径继续作为独立 argv，保留 detached/unref 与原子替换流程。
 - Doctor checkup 的 Git worktree 探测与安全 prune 修复已分别进入 `doctor:git-worktree`、
   `doctor:git-worktree-fix` Broker origin；固定 Git 命令改为无 shell argv，sandbox 可用性探测也复用同步 Broker。
+- LSP benchmark 的 Windows/POSIX 进程树 RSS 快照已进入 `lsp:benchmark-rss` Broker origin；
+  `wmic`/`ps` 参数保持无 shell argv，同时删除 server registry 中从未使用的原生 `execFileSync` 注入。
 
 ### 4.2 建议设计
 

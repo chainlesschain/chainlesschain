@@ -8,6 +8,7 @@ import { describe, it, expect } from "vitest";
 import {
   percentile,
   summarize,
+  sampleRssDefault,
   sumSubtreeRss,
   sumSubtreeRssFromWmicCsv,
 } from "../benchmark.js";
@@ -84,5 +85,65 @@ describe("sumSubtreeRssFromWmicCsv", () => {
   });
   it("returns null on malformed input", () => {
     expect(sumSubtreeRssFromWmicCsv("garbage\r\n", 100)).toBeNull();
+  });
+});
+
+describe("sampleRssDefault", () => {
+  it("routes the POSIX process snapshot through the Broker contract", async () => {
+    const calls = [];
+    const execFileSync = (...args) => {
+      calls.push(args);
+      return "100 1 1024\n200 100 512\n400 1 9999\n";
+    };
+
+    await expect(
+      sampleRssDefault(100, { execFileSync, platform: "linux" }),
+    ).resolves.toBe(2);
+    expect(calls).toEqual([
+      [
+        "ps",
+        ["-o", "pid=,ppid=,rss="],
+        expect.objectContaining({
+          origin: "lsp:benchmark-rss",
+          policy: "allow",
+          scope: "lsp",
+          shell: false,
+        }),
+      ],
+    ]);
+  });
+
+  it("routes the Windows process snapshot through literal argv", async () => {
+    const calls = [];
+    const execFileSync = (...args) => {
+      calls.push(args);
+      return [
+        "Node,ParentProcessId,ProcessId,WorkingSetSize",
+        "HOST,1,100,1048576",
+        "HOST,100,200,1048576",
+      ].join("\r\n");
+    };
+
+    await expect(
+      sampleRssDefault(100, { execFileSync, platform: "win32" }),
+    ).resolves.toBe(2);
+    expect(calls).toEqual([
+      [
+        "wmic",
+        [
+          "process",
+          "get",
+          "ProcessId,ParentProcessId,WorkingSetSize",
+          "/format:csv",
+        ],
+        expect.objectContaining({
+          origin: "lsp:benchmark-rss",
+          policy: "allow",
+          scope: "lsp",
+          shell: false,
+          windowsHide: true,
+        }),
+      ],
+    ]);
   });
 });

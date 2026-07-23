@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 403 (runtime: 327, tooling: 53, test: 23).
+Total matches: 402 (runtime: 326, tooling: 53, test: 23).
 
 ## Policy
 
@@ -206,14 +206,13 @@ Total matches: 403 (runtime: 327, tooling: 53, test: 23).
 | `packages/cli/src/lib/host-adb-bridge.js` | 34 | `import { execFile } from "node:child_process";` |
 | `packages/cli/src/lib/lan-pairing-preflight.js` | 28 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/lib/lan-pairing-preflight.js` | 320 | `_deps.execFileSync(probe, [cmd], {` |
-| `packages/cli/src/lib/lsp/benchmark.js` | 171 | `const { execFileSync } = await import("child_process");` |
-| `packages/cli/src/lib/lsp/benchmark.js` | 175 | `const csv = execFileSync(` |
-| `packages/cli/src/lib/lsp/benchmark.js` | 189 | `const out = execFileSync("ps", ["-o", "pid=,ppid=,rss="], {` |
+| `packages/cli/src/lib/lsp/benchmark.js` | 21 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
+| `packages/cli/src/lib/lsp/benchmark.js` | 179 | `const csv = execFileSync(` |
+| `packages/cli/src/lib/lsp/benchmark.js` | 201 | `const out = execFileSync("ps", ["-o", "pid=,ppid=,rss="], {` |
 | `packages/cli/src/lib/lsp/lsp-client.js` | 11 | `* Testability: all process spawning goes through `_deps.spawn` so tests inject a` |
 | `packages/cli/src/lib/lsp/lsp-client.js` | 12 | `* fake stdio pair (see cli-dev.md `_deps` pattern — `vi.mock("child_process")`` |
 | `packages/cli/src/lib/lsp/lsp-client.js` | 16 | `import { spawn as nodeSpawn } from "child_process";` |
 | `packages/cli/src/lib/lsp/lsp-client.js` | 83 | `: _deps.spawn;` |
-| `packages/cli/src/lib/lsp/lsp-server-registry.js` | 17 | `import { execFileSync } from "child_process";` |
 | `packages/cli/src/lib/mcp-oauth.js` | 39 | `executionBroker.spawn(command, args, {` |
 | `packages/cli/src/lib/mcp-oauth.js` | 680 | `const child = _deps.spawn(cmd, args, { stdio: "ignore", detached: true });` |
 | `packages/cli/src/lib/orchestrator.js` | 25 | `import { execSync } from "child_process";` |

@@ -14,11 +14,9 @@
 
 import fs from "fs";
 import path from "path";
-import { execFileSync } from "child_process";
 
 export const _deps = {
   existsSync: fs.existsSync,
-  execFileSync,
 };
 
 // Extension → LSP languageId. Kept small and explicit; unknown extensions get

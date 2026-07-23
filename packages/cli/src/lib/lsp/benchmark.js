@@ -12,11 +12,13 @@
  */
 
 import { CodeIntelligence } from "./code-intelligence.js";
+import executionBroker from "../process-execution-broker/index.js";
 
 /** now() in fractional milliseconds — injectable for deterministic tests. */
 export const _deps = {
   now: () => Number(process.hrtime.bigint() / 1000n) / 1000,
   sampleRss: sampleRssDefault,
+  execFileSync: (...args) => executionBroker.execFileSync(...args),
 };
 
 /** p-th percentile (0..100) of an UNSORTED sample via linear interpolation. */
@@ -167,10 +169,12 @@ async function captureServerInfo(ci) {
  * lies. We sum the whole subtree. Returns null if it can't be read (never throws
  * — memory is a bonus metric, not load-bearing).
  */
-async function sampleRssDefault(pid) {
-  const { execFileSync } = await import("child_process");
+export async function sampleRssDefault(
+  pid,
+  { execFileSync = _deps.execFileSync, platform = process.platform } = {},
+) {
   try {
-    if (process.platform === "win32") {
+    if (platform === "win32") {
       // One snapshot of every process → parent map → sum the subtree at `pid`.
       const csv = execFileSync(
         "wmic",
@@ -180,7 +184,15 @@ async function sampleRssDefault(pid) {
           "ProcessId,ParentProcessId,WorkingSetSize",
           "/format:csv",
         ],
-        { encoding: "utf8", windowsHide: true, maxBuffer: 16 * 1024 * 1024 },
+        {
+          encoding: "utf8",
+          windowsHide: true,
+          maxBuffer: 16 * 1024 * 1024,
+          origin: "lsp:benchmark-rss",
+          policy: "allow",
+          scope: "lsp",
+          shell: false,
+        },
       );
       const bytes = sumSubtreeRssFromWmicCsv(csv, pid);
       return bytes != null ? Math.round(bytes / (1024 * 1024)) : null;
@@ -188,6 +200,10 @@ async function sampleRssDefault(pid) {
     // POSIX: not wrapped, so the pid is the real server. Sum pid + children.
     const out = execFileSync("ps", ["-o", "pid=,ppid=,rss="], {
       encoding: "utf8",
+      origin: "lsp:benchmark-rss",
+      policy: "allow",
+      scope: "lsp",
+      shell: false,
     });
     const rows = out
       .trim()
