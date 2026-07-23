@@ -9,11 +9,14 @@
  */
 
 const EventEmitter = require("events");
-const { spawn, execFile } = require("child_process");
 const path = require("path");
 const fs = require("fs").promises;
 const os = require("os");
 const { logger } = require("../utils/logger.js");
+const {
+  execFileWithDesktopBroker,
+  spawnWithDesktopBroker,
+} = require("../process/desktop-process-broker");
 
 /** @type {{ fs: typeof fs, https: any, http: any, fsSync: typeof import('fs') }} */
 const _deps = { fs, https: null, http: null, fsSync: null };
@@ -80,7 +83,13 @@ const DEFAULT_CONFIG = {
  * Local TTS Client using Piper
  */
 class LocalTTSClient extends EventEmitter {
-  constructor(config = {}) {
+  constructor(
+    config = {},
+    {
+      execFileProcess = execFileWithDesktopBroker,
+      spawnProcess = spawnWithDesktopBroker,
+    } = {},
+  ) {
     super();
 
     this.config = {
@@ -91,6 +100,8 @@ class LocalTTSClient extends EventEmitter {
     this.available = false;
     this.models = {};
     this.loadedModel = null;
+    this.execFileProcess = execFileProcess;
+    this.spawnProcess = spawnProcess;
 
     // Cache
     this.cache = new Map();
@@ -535,12 +546,13 @@ class LocalTTSClient extends EventEmitter {
    */
   _runCommand(args, timeout = 30000) {
     return new Promise((resolve, reject) => {
-      const proc = execFile(
+      this.execFileProcess(
         this.config.piperPath,
         args,
         {
           timeout,
           windowsHide: true,
+          origin: "desktop:speech-local-tts-probe",
         },
         (error, stdout, stderr) => {
           if (error) {
@@ -559,8 +571,9 @@ class LocalTTSClient extends EventEmitter {
    */
   _synthesizeWithStdin(text, args, outputFile) {
     return new Promise((resolve, reject) => {
-      const proc = spawn(this.config.piperPath, args, {
+      const proc = this.spawnProcess(this.config.piperPath, args, {
         windowsHide: true,
+        origin: "desktop:speech-local-tts-synthesize",
       });
 
       let stderr = "";

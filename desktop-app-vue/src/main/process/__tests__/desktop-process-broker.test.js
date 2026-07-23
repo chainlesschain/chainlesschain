@@ -2,6 +2,7 @@ const {
   installDesktopProcessBroker,
   spawnWithDesktopBroker,
   spawnSyncWithDesktopBroker,
+  execFileWithDesktopBroker,
   execFileSyncWithDesktopBroker,
   redact,
 } = require("../desktop-process-broker");
@@ -142,6 +143,41 @@ describe("desktop process broker", () => {
       origin: "desktop:ai-commit-message",
       command: "git",
       args: ["diff", "--cached"],
+    });
+    broker.uninstall();
+  });
+
+  it("exposes a fail-closed literal-argv execFile facade", () => {
+    const { cp, calls } = fakeChildProcess();
+    const callback = () => {};
+    expect(() =>
+      execFileWithDesktopBroker("piper", ["--help"], {}, callback, {
+        childProcess: cp,
+      }),
+    ).toThrow("desktop_process_broker_not_installed");
+
+    const audit = [];
+    const broker = installDesktopProcessBroker({
+      childProcess: cp,
+      auditSink: (entry) => audit.push(entry),
+    });
+    execFileWithDesktopBroker(
+      "piper",
+      ["--help"],
+      { origin: "desktop:speech-local-tts-probe" },
+      callback,
+      { childProcess: cp },
+    );
+
+    expect(calls[0]).toMatchObject({
+      name: "execFile",
+      args: ["piper", ["--help"], expect.any(Object), callback],
+    });
+    expect(audit[0]).toMatchObject({
+      operation: "execFile",
+      origin: "desktop:speech-local-tts-probe",
+      command: "piper",
+      args: ["--help"],
     });
     broker.uninstall();
   });

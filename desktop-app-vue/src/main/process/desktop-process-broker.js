@@ -231,11 +231,24 @@ function execFileSyncWithDesktopBroker(
   return childProcess.execFileSync(file, args, options);
 }
 
+function execFileWithDesktopBroker(
+  file,
+  args,
+  options,
+  callback,
+  { childProcess = nativeChildProcess } = {},
+) {
+  const broker = getDesktopProcessBroker({ childProcess });
+  if (!broker) throw new Error("desktop_process_broker_not_installed");
+  return childProcess.execFile(file, args, options, callback);
+}
+
 module.exports = {
   installDesktopProcessBroker,
   getDesktopProcessBroker,
   spawnWithDesktopBroker,
   spawnSyncWithDesktopBroker,
+  execFileWithDesktopBroker,
   execFileSyncWithDesktopBroker,
   redact,
 };
