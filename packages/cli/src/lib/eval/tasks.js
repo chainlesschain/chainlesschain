@@ -11,7 +11,24 @@
 
 import fs from "fs";
 import path from "path";
-import { execFileSync } from "node:child_process";
+import executionBroker from "../process-execution-broker/index.js";
+
+export const _deps = {
+  execFileSync: (...args) => executionBroker.execFileSync(...args),
+};
+
+function runTaskCheck(dir, script, options = {}) {
+  return _deps.execFileSync(process.execPath, [script], {
+    cwd: dir,
+    timeout: 10000,
+    stdio: ["ignore", "pipe", "pipe"],
+    ...options,
+    origin: "eval:task-check",
+    policy: "allow",
+    scope: "eval",
+    shell: false,
+  });
+}
 
 function read(dir, rel) {
   try {
@@ -97,11 +114,8 @@ export const BUILTIN_TASKS = [
       // Objective check: it must parse AND print OK. Re-run in a child so we
       // score the actual behavior, not a heuristic on the source.
       try {
-        const out = execFileSync(process.execPath, ["bug.js"], {
-          cwd: dir,
+        const out = runTaskCheck(dir, "bug.js", {
           encoding: "utf8",
-          timeout: 10000,
-          stdio: ["ignore", "pipe", "pipe"], // capture stderr, don't inherit
         });
         return out.trim() === "OK"
           ? { pass: true, detail: "node bug.js prints OK" }
@@ -186,11 +200,8 @@ export const BUILTIN_TASKS = [
         };
       }
       try {
-        const out = execFileSync(process.execPath, ["run-checks.mjs"], {
-          cwd: dir,
+        const out = runTaskCheck(dir, "run-checks.mjs", {
           encoding: "utf8",
-          timeout: 10000,
-          stdio: ["ignore", "pipe", "pipe"],
         });
         return out.includes("ALL OK")
           ? { pass: true, detail: "test suite passes" }
@@ -243,11 +254,8 @@ export const BUILTIN_TASKS = [
       }
       // Behavior must be preserved: run main.js and check the output.
       try {
-        const out = execFileSync(process.execPath, ["main.js"], {
-          cwd: dir,
+        const out = runTaskCheck(dir, "main.js", {
           encoding: "utf8",
-          timeout: 10000,
-          stdio: ["ignore", "pipe", "pipe"],
         });
         return out.trim() === "6"
           ? { pass: true, detail: "renamed + behavior preserved" }
@@ -290,12 +298,7 @@ export const BUILTIN_TASKS = [
       if (read(dir, "verify.mjs") == null) {
         return { pass: false, detail: "verify.mjs not created" };
       }
-      const run = () =>
-        execFileSync(process.execPath, ["verify.mjs"], {
-          cwd: dir,
-          timeout: 10000,
-          stdio: ["ignore", "pipe", "pipe"],
-        });
+      const run = () => runTaskCheck(dir, "verify.mjs");
       // 1) The verifier must PASS against the correct implementation.
       try {
         run();
@@ -383,11 +386,8 @@ export const BUILTIN_TASKS = [
         };
       }
       try {
-        const out = execFileSync(process.execPath, ["app.mjs"], {
-          cwd: dir,
+        const out = runTaskCheck(dir, "app.mjs", {
           encoding: "utf8",
-          timeout: 10000,
-          stdio: ["ignore", "pipe", "pipe"],
         }).trim();
         return out === "Hello, Ada!\nHello, Bob!!!"
           ? { pass: true, detail: "signature migrated + callers updated" }
@@ -525,11 +525,8 @@ export const BUILTIN_TASKS = [
         };
       }
       try {
-        const out = execFileSync(process.execPath, ["build.mjs"], {
-          cwd: dir,
+        const out = runTaskCheck(dir, "build.mjs", {
           encoding: "utf8",
-          timeout: 10000,
-          stdio: ["ignore", "pipe", "pipe"],
         });
         return out.includes("BUILD OK")
           ? { pass: true, detail: "build links + passes" }
@@ -620,11 +617,8 @@ export const BUILTIN_TASKS = [
         return { pass: false, detail: "app.mjs does not use the new toTitle" };
       }
       try {
-        const out = execFileSync(process.execPath, ["run.mjs"], {
-          cwd: dir,
+        const out = runTaskCheck(dir, "run.mjs", {
           encoding: "utf8",
-          timeout: 10000,
-          stdio: ["ignore", "pipe", "pipe"],
         });
         return out.trim() === "OK"
           ? { pass: true, detail: "adapted to new API + manifest bumped" }

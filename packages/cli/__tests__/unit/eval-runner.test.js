@@ -1,8 +1,13 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { runEvalSuite, formatEvalReport } from "../../src/lib/eval/runner.js";
-import { BUILTIN_TASKS, getSuite } from "../../src/lib/eval/tasks.js";
+import {
+  BUILTIN_TASKS,
+  getSuite,
+  _deps as taskDeps,
+} from "../../src/lib/eval/tasks.js";
 import { TelemetryRecorder } from "../../src/lib/telemetry/span-recorder.js";
 
 // A "perfect agent" that actually performs each built-in task in its workspace,
@@ -123,6 +128,45 @@ async function perfectAgent({ prompt, cwd }) {
 async function noopAgent() {
   return { ok: true, output: "" };
 }
+
+describe("eval task process checks", () => {
+  it("routes task scripts through the Broker with literal argv", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-eval-broker-"));
+    const original = taskDeps.execFileSync;
+    const calls = [];
+    try {
+      const task = BUILTIN_TASKS.find(
+        (entry) => entry.id === "fix-syntax-error",
+      );
+      task.setup(dir);
+      taskDeps.execFileSync = (...args) => {
+        calls.push(args);
+        return "OK\n";
+      };
+
+      expect(task.check(dir)).toEqual({
+        pass: true,
+        detail: "node bug.js prints OK",
+      });
+      expect(calls).toEqual([
+        [
+          process.execPath,
+          ["bug.js"],
+          expect.objectContaining({
+            cwd: dir,
+            origin: "eval:task-check",
+            policy: "allow",
+            scope: "eval",
+            shell: false,
+          }),
+        ],
+      ]);
+    } finally {
+      taskDeps.execFileSync = original;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
 
 describe("runEvalSuite", () => {
   it("scores 100% when a perfect agent solves every built-in task", async () => {

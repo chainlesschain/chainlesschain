@@ -178,6 +178,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   `doctor:git-worktree-fix` Broker origin；固定 Git 命令改为无 shell argv，sandbox 可用性探测也复用同步 Broker。
 - LSP benchmark 的 Windows/POSIX 进程树 RSS 快照已进入 `lsp:benchmark-rss` Broker origin；
   `wmic`/`ps` 参数保持无 shell argv，同时删除 server registry 中从未使用的原生 `execFileSync` 注入。
+- Eval 内置任务的 7 条真实 Node 验证路径已统一收口到 `eval:task-check` Broker helper；
+  脚本名保持独立 argv，并统一保留 10 秒超时、stderr 捕获和无 shell 执行语义。
 
 ### 4.2 建议设计
 

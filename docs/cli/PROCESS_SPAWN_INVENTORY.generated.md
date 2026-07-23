@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 402 (runtime: 326, tooling: 53, test: 23).
+Total matches: 396 (runtime: 320, tooling: 53, test: 23).
 
 ## Policy
 
@@ -172,14 +172,8 @@ Total matches: 402 (runtime: 326, tooling: 53, test: 23).
 | `packages/cli/src/lib/downloader.js` | 18 | `return executionBroker.execFileSync(file, args, options);` |
 | `packages/cli/src/lib/ensure-utf8.js` | 15 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/lib/ensure-utf8.js` | 39 | `_deps.execFileSync("cmd.exe", ["/d", "/s", "/c", "chcp 65001"], {` |
-| `packages/cli/src/lib/eval/tasks.js` | 14 | `import { execFileSync } from "node:child_process";` |
-| `packages/cli/src/lib/eval/tasks.js` | 100 | `const out = execFileSync(process.execPath, ["bug.js"], {` |
-| `packages/cli/src/lib/eval/tasks.js` | 189 | `const out = execFileSync(process.execPath, ["run-checks.mjs"], {` |
-| `packages/cli/src/lib/eval/tasks.js` | 246 | `const out = execFileSync(process.execPath, ["main.js"], {` |
-| `packages/cli/src/lib/eval/tasks.js` | 294 | `execFileSync(process.execPath, ["verify.mjs"], {` |
-| `packages/cli/src/lib/eval/tasks.js` | 386 | `const out = execFileSync(process.execPath, ["app.mjs"], {` |
-| `packages/cli/src/lib/eval/tasks.js` | 528 | `const out = execFileSync(process.execPath, ["build.mjs"], {` |
-| `packages/cli/src/lib/eval/tasks.js` | 623 | `const out = execFileSync(process.execPath, ["run.mjs"], {` |
+| `packages/cli/src/lib/eval/tasks.js` | 17 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
+| `packages/cli/src/lib/eval/tasks.js` | 21 | `return _deps.execFileSync(process.execPath, [script], {` |
 | `packages/cli/src/lib/execution-backend.js` | 18 | `execSync: (...args) => executionBroker.execSync(...args),` |
 | `packages/cli/src/lib/execution-backend.js` | 19 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/lib/execution-backend.js` | 23 | `const result = _deps.spawnSync(command, args, options);` |
