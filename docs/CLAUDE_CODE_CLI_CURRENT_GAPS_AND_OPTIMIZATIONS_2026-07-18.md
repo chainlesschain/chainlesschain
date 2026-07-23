@@ -212,6 +212,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   `mcp:server:<name>` origin，插件继续透传 plugin provenance，stdio/env/失败清理语义保持不变。
 - Worktree isolator 的 branch/porcelain 查询已复用 Broker 化 `gitExecArgs`；3 处 shell 字符串
   改为 literal Git argv，并统一继承 64 MB 输出上限与 `git-integration:argv` provenance。
+- Agent IPC bus 的 subagent stdio 启动已进入 `agent-ipc:subagent` Broker origin；
+  初始化握手、Agent identity env、可选 shell 兼容和 heartbeat 生命周期保持不变。
 
 ### 4.2 建议设计
 

@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 370 (runtime: 294, tooling: 53, test: 23).
+Total matches: 369 (runtime: 293, tooling: 53, test: 23).
 
 ## Policy
 
@@ -100,8 +100,7 @@ Total matches: 370 (runtime: 294, tooling: 53, test: 23).
 | `packages/cli/src/harness/background-task-worker.js` | 17 | `const result = executionBroker.execSync(command, {` |
 | `packages/cli/src/harness/mcp-client.js` | 488 | `const proc = _deps.spawn(config.command, config.args || [], {` |
 | `packages/cli/src/lazy-dispatch.js` | 105 | `async spawn(argv) {` |
-| `packages/cli/src/lib/agent-ipc-bus.js` | 173 | `const { spawn } = await import("node:child_process");` |
-| `packages/cli/src/lib/agent-ipc-bus.js` | 178 | `const child = spawn(command, args, {` |
+| `packages/cli/src/lib/agent-ipc-bus.js` | 183 | `const child = _deps.spawn(command, args, {` |
 | `packages/cli/src/lib/agent-sandbox.js` | 8 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/lib/agent-sandbox.js` | 130 | `const result = _deps.spawnSync("docker", args, {` |
 | `packages/cli/src/lib/agent-sandbox.js` | 197 | `const result = _deps.spawnSync("bwrap", args, {` |

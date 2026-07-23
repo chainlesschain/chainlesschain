@@ -13,6 +13,11 @@ import { EventEmitter } from "node:events";
 import crypto from "node:crypto";
 import { EventRuntimeProducer } from "./event-runtime-producer.js";
 import { EventRuntimeStore } from "./event-runtime-store.js";
+import executionBroker from "./process-execution-broker/index.js";
+
+export const _deps = {
+  spawn: executionBroker.spawn.bind(executionBroker),
+};
 
 /**
  * @typedef {Object} InteractionRequest
@@ -170,12 +175,12 @@ class AgentIPCBus extends EventEmitter {
    * @returns {Promise<{process: ChildProcess, agentId: string}>}
    */
   async spawnAgentProcess(command, args = [], options = {}) {
-    const { spawn } = await import("node:child_process");
     const agentId = options.agentId || crypto.randomUUID();
     const heartbeatMs = options.heartbeatMs || 30000;
 
     return new Promise((resolve, reject) => {
-      const child = spawn(command, args, {
+      const spawnOptions = options.spawnOptions || {};
+      const child = _deps.spawn(command, args, {
         stdio: ["pipe", "pipe", "pipe"],
         env: {
           ...process.env,
@@ -184,7 +189,11 @@ class AgentIPCBus extends EventEmitter {
           CHAINLESSCHAIN_IPC_PROTOCOL: "jsonrpc-stdio-v1",
           ...options.env,
         },
-        ...options.spawnOptions,
+        ...spawnOptions,
+        origin: spawnOptions.origin || "agent-ipc:subagent",
+        policy: spawnOptions.policy || "allow",
+        scope: spawnOptions.scope || "agent-ipc",
+        shell: spawnOptions.shell === true,
       });
 
       let buffer = "";
