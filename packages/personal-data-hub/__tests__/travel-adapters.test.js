@@ -376,7 +376,7 @@ describe("AmapAdapter", () => {
     expect(a.capabilities).toContain("sync:sqlite");
   });
 
-  it("sync yields route + search records via mocked driver", async () => {
+  it("sync yields route + search + favourite records via mocked driver", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "amap-"));
     const dbPath = path.join(dir, "amap.db");
     fs.writeFileSync(dbPath, "fake");
@@ -394,6 +394,11 @@ describe("AmapAdapter", () => {
               if (sql.includes("history_search")) {
                 return [
                   { id: "s1", keyword: "外滩", time: 1700000001000, lat: 31.23, lng: 121.49 },
+                ];
+              }
+              if (sql.includes("favourites")) {
+                return [
+                  { id: "f1", name: "家", address: "上海市", lat: "31.2", lng: "121.5" },
                 ];
               }
               throw new Error("no such table");
@@ -415,8 +420,10 @@ describe("AmapAdapter", () => {
       expect(raws.length).toBeGreaterThan(0);
       const route = raws.find((r) => r.payload.kind === "route");
       const search = raws.find((r) => r.payload.kind === "search");
+      const favourite = raws.find((r) => r.payload.kind === "favourite");
       expect(route).toBeDefined();
       expect(search).toBeDefined();
+      expect(favourite).toBeDefined();
       // Normalize succeeds + validates
       const batch = a.normalize(route);
       const v = validateBatch(batch);
@@ -436,10 +443,10 @@ describe("BaiduMapAdapter", () => {
     expect(a.extractMode).toBe("device-pull");
   });
 
-  it("sync yields route from mocked driver", async () => {
+  it("imports an Android-selected SQLite file without requiring account metadata", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "bd-"));
     const dbPath = path.join(dir, "baidu.db");
-    fs.writeFileSync(dbPath, "fake");
+    fs.writeFileSync(dbPath, Buffer.from("SQLite format 3\0fixture"));
 
     const mockDriver = function () {
       return {
@@ -456,6 +463,11 @@ describe("BaiduMapAdapter", () => {
                   { _id: 2, key: "西湖", time: 1700000001 },
                 ];
               }
+              if (sql.includes("my_favourite")) {
+                return [
+                  { _id: 3, name: "公司", address: "杭州市", lat: "30.2", lng: "120.2" },
+                ];
+              }
               throw new Error("no such table");
             },
           };
@@ -466,13 +478,19 @@ describe("BaiduMapAdapter", () => {
 
     try {
       const a = new BaiduMapAdapter({
-        account: { deviceId: "dev-1" },
-        dbPath,
         dbDriverFactory: () => mockDriver,
       });
+      expect(await a.authenticate({ inputPath: dbPath })).toMatchObject({
+        ok: true,
+        mode: "sqlite-file",
+      });
       const raws = [];
-      for await (const r of a.sync()) raws.push(r);
-      expect(raws.length).toBeGreaterThan(0);
+      for await (const r of a.sync({ inputPath: dbPath })) raws.push(r);
+      expect(raws.map((r) => r.payload.kind)).toEqual([
+        "route",
+        "search",
+        "favourite",
+      ]);
       const batch = a.normalize(raws[0]);
       const v = validateBatch(batch);
       expect(v.valid).toBe(true);

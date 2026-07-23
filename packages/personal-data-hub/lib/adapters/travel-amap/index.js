@@ -19,7 +19,7 @@ const fs = require("node:fs");
 const { normalizeTravelRecord, parseChineseDateTime } = require("../travel-base");
 
 const NAME = "travel-amap";
-const VERSION = "0.6.0"; // 2026-05-25 — account.deviceId OPTIONAL + inputPath alias
+const VERSION = "0.7.0";
 
 class AmapAdapter {
   constructor(opts = {}) {
@@ -34,7 +34,13 @@ class AmapAdapter {
 
     this.name = NAME;
     this.version = VERSION;
-    this.capabilities = ["sync:sqlite", "sync:snapshot", "parse:amap-history"];
+    this.capabilities = [
+      "sync:sqlite",
+      "sync:snapshot",
+      "import:sqlite",
+      "parse:amap-history",
+      "parse:amap-favourites",
+    ];
     this.extractMode = "device-pull";
     this.rateLimits = {};
     this.dataDisclosure = {
@@ -96,6 +102,22 @@ class AmapAdapter {
           };
         }
       }
+      const favourites =
+        trySelect(db, "SELECT * FROM favourites LIMIT 5000") ||
+        trySelect(db, "SELECT * FROM favorite LIMIT 5000") ||
+        trySelect(db, "SELECT * FROM favorite_poi LIMIT 5000") ||
+        [];
+      for (const row of favourites) {
+        const rec = favouriteRowToRecord(row);
+        if (rec) {
+          yield {
+            adapter: NAME,
+            originalId: rec.recordId,
+            capturedAt: rec.bookedAt || Date.now(),
+            payload: { record: rec, kind: "favourite" },
+          };
+        }
+      }
     } finally {
       try { db.close(); } catch (_e) {}
     }
@@ -152,6 +174,42 @@ function searchRowToRecord(row) {
   };
 }
 
+function favouriteRowToRecord(row) {
+  if (!row) return null;
+  const id = row.id || row._id || row.guid || row.poi_id || row.poiid;
+  if (!id) return null;
+  const name = row.name || row.title || row.poiname || row.poi_name || row.address;
+  if (!name) return null;
+  return {
+    vendorId: "amap",
+    recordId: `favourite-${id}`,
+    vehicleType: "visit",
+    to: {
+      name,
+      lat: numberOrNull(row.lat || row.latitude || row.y),
+      lng: numberOrNull(row.lng || row.lon || row.longitude || row.x),
+      city: row.city || row.city_name || row.cityname || null,
+    },
+    departureMs: numberOrParse(
+      row.time || row.create_time || row.created_at || row.update_time,
+    ),
+    carrier: "高德地图",
+    extras: {
+      kind: "favourite",
+      category: row.category || row.type || row.poi_type || null,
+      address: row.address || row.addr || null,
+    },
+  };
+}
+
+function numberOrNull(v) {
+  if (Number.isFinite(v)) return v;
+  if (typeof v === "string" && /^-?\d+(\.\d+)?$/.test(v)) {
+    return Number.parseFloat(v);
+  }
+  return null;
+}
+
 function numberOrParse(v) {
   if (Number.isFinite(v)) {
     // Amap timestamps are sometimes seconds — heuristic upgrade to ms
@@ -167,4 +225,4 @@ function numberOrParse(v) {
   return null;
 }
 
-module.exports = { AmapAdapter, NAME, VERSION };
+module.exports = { AmapAdapter, favouriteRowToRecord, NAME, VERSION };

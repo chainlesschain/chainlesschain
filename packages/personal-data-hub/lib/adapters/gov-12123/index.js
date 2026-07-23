@@ -1,12 +1,10 @@
 /**
  * §12.1 Phase 13+ ⭐⭐ — 交管12123 (com.tmri.app.main) adapter, "驾驶证 + 违章".
- * BEST-EFFORT SCAFFOLD (user-requested).
+ * Snapshot import adapter with an explicitly configured custom live seam.
  *
  * ⚠️ SENSITIVE (gov real-name traffic/vehicle data). The 12123 app has NO
- * documented public API; the cookie-api endpoints below are FABRICATED
- * placeholders (overridable, NOT field-verified — FAMILY-23 playbook) and
- * cannot authenticate without the gov real-name login. **snapshot mode is the
- * reliable path**; cookie path surfaces auth.unverified=true. Gated
+ * documented public API. No API path is selected by default; custom live
+ * collection requires caller-supplied captured URLs and a fetchFn. Gated
  * sensitivity:"high" + legalGate:true.
  *
  * Two record kinds:
@@ -36,7 +34,7 @@ const { ENTITY_TYPES, EVENT_SUBTYPES, CAPTURED_BY } = require("../../constants")
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "gov-12123";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 const KIND_VIOLATION = "violation";
 const KIND_LICENSE = "license";
@@ -144,16 +142,23 @@ class Tmri12123Adapter {
     this._signProvider = typeof opts.signProvider === "function" ? opts.signProvider : null;
     // Host VERIFIED province-prefixed `.122.gov.cn/app`; sub-paths best-effort.
     this.province = /^[a-z]{2}$/.test(String(opts.province || "")) ? opts.province : DEFAULT_PROVINCE;
-    const base = provinceBase(this.province);
     this._urls = {
-      violation: opts.violationUrl || opts.listUrl || `${base}/violation/list`,
-      license: opts.licenseUrl || `${base}/license/info`,
+      violation: opts.violationUrl || opts.listUrl || null,
+      license: opts.licenseUrl || null,
     };
+    this._liveConfigured = Boolean(
+      this._urls.violation && this._urls.license && typeof opts.fetchFn === "function",
+    );
 
     this.name = NAME;
     this.version = VERSION;
-    this.capabilities = ["sync:snapshot", "sync:cookie-api", "parse:12123-violation", "parse:12123-license"];
-    this.extractMode = "web-api";
+    this.capabilities = [
+      "sync:snapshot",
+      ...(this._liveConfigured ? ["sync:custom-cookie-api"] : []),
+      "parse:12123-violation",
+      "parse:12123-license",
+    ];
+    this.extractMode = this._liveConfigured ? "web-api" : "file-import";
     this.rateLimits = { perMinute: 6, perDay: 100 };
     this.dataDisclosure = {
       fields: [
@@ -176,6 +181,13 @@ class Tmri12123Adapter {
       }
       return { ok: true, mode: "snapshot-file" };
     }
+    if (this._cookieAuth && !this._liveConfigured) {
+      return {
+        ok: false,
+        reason: "EXPLICIT_ENDPOINT_REQUIRED",
+        message: `gov-12123: province host ${provinceBase(this.province)} is known but API paths are not field-verified; provide captured violationUrl + licenseUrl and fetchFn`,
+      };
+    }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
       if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
@@ -184,7 +196,7 @@ class Tmri12123Adapter {
     return {
       ok: false,
       reason: "NO_INPUT",
-      message: "gov-12123.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode, best-effort/unverified)",
+      message: "gov-12123.authenticate: needs opts.inputPath; custom live mode also requires cookies, violationUrl, licenseUrl, and fetchFn",
     };
   }
 
@@ -201,11 +213,14 @@ class Tmri12123Adapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    if (this._cookieAuth) {
+    if (this._cookieAuth && this._liveConfigured) {
       yield* this._syncViaCookie(opts);
       return;
     }
-    throw new Error("gov-12123.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)");
+    if (this._cookieAuth) {
+      throw new Error("gov-12123.sync: explicit violationUrl + licenseUrl and fetchFn required for custom cookie collection");
+    }
+    throw new Error("gov-12123.sync: needs opts.inputPath (snapshot mode)");
   }
 
   async *_syncViaSnapshot(opts) {

@@ -529,6 +529,38 @@ const ADAPTER_OVERRIDES = Object.freeze({
     ],
   },
 
+  "messaging-whatsapp": {
+    summary:
+      "导入 WhatsApp Android 本地聊天备份。支持明文 msgstore.db，也支持使用你自己的备份密钥直接解密 crypt14 / crypt15；密钥和聊天数据全程留在本机。",
+    methods: [
+      {
+        label: "Android 自动拉取 crypt15 + 64 位备份密钥（推荐）",
+        recommended: true,
+        steps: [
+          "WhatsApp → 设置 → 聊天 → 聊天备份 → 端到端加密备份，选择使用 64 位加密密钥并妥善保存。",
+          "打开 Android 的 USB 调试并连接电脑；中台会从 Android/media/com.whatsapp/WhatsApp/Databases/ 自动拉取 msgstore.db.crypt15，无需 root。也可以手动选择该文件。",
+          "采集时填写 64 个十六进制字符的备份密钥；中台会在本地认证解密、入库，并立即删除 ADB 拉取副本和临时明文数据库。",
+          "CLI 可执行 cc hub sync-adapter messaging-whatsapp --key <密钥文件路径>；密钥文件可只包含 64 位十六进制密钥，避免把密钥留在 shell 历史中。",
+        ],
+        note: "仅支持用户主动提供自己的备份文件和密钥，不获取、不猜测也不上传密钥。",
+      },
+      {
+        label: "crypt14 + rooted 设备 key 文件",
+        steps: [
+          "从你自己的 rooted Android 设备复制 /data/data/com.whatsapp/files/key。",
+          "同时复制 WhatsApp/Databases/msgstore.db.crypt14。",
+          "采集时选择 crypt14 和 key 文件；中台本地解密后直接读取聊天、联系人、会话和通话记录。",
+        ],
+      },
+      {
+        label: "已解密的 msgstore.db",
+        steps: [
+          "如果已有明文 msgstore.db，直接选择该文件采集，无需再提供密钥。",
+        ],
+      },
+    ],
+  },
+
   "system-data-android": {
     summary: "采集 Android 通讯录、已装应用列表、短信、通话记录等系统数据。",
     methods: [

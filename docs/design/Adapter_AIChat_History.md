@@ -1,6 +1,6 @@
-# Adapter: AI Chat History — 8 厂商跨平台 AI 对话史合一
+# Adapter: AI Chat History — 9 厂商跨平台 AI 对话史合一
 
-> **状态**：v0.1 设计稿（2026-05-19）。Phase 10 待启。Personal Data Hub 的**旗舰差异化 adapter** — 任何单厂商都做不到的独家价值。
+> **状态**：v0.2 已实现（2026-07-23）。根包、CLI 与桌面注册表均已接入；Android Cookie 快照会恢复为短生命周期会话并执行指定厂商同步，完成后删除手机端敏感暂存文件。当前目录共统计 9 家厂商。
 >
 > **关联**：父文档 [`Personal_Data_Hub_Architecture.md`](./Personal_Data_Hub_Architecture.md) §12 Phase 10；前置 [`Adapter_Email_IMAP.md`](./Adapter_Email_IMAP.md) (Phase 5) + [`Adapter_Alipay_Bill.md`](./Adapter_Alipay_Bill.md) (Phase 6)
 >
@@ -485,9 +485,9 @@ ByteDance 的旗舰文本 AI 助手，与 Dreamina（图像/视频）同源但 w
 | 时间字段 | `create_time` / `last_message_time` / `update_time`（秒级 epoch，`_toMs` 检测 >1e12 不再 ×1000） |
 | 角色字段 | `sender_type` 兼容数字（1=user / 2=assistant / 3=system）+ 字符串（`USER` / `ASSISTANT` / `SYSTEM` + 小写）|
 | modelName 取舍 | 取 `bot_name`（豆包账号支持多 bot 角色），`extra.botId` 保留原 id 供 KG 分组 |
-| 附件 | text + optional `attachments[]`（image / file），v1 scaffold 仅保 url + filename + size + mimeType |
+| 附件 | text + optional `attachments[]`（image / file），保留 url + filename + size + mimeType 稳定子集 |
 | 节奏 | `rateLimits: { perMinute: 20, minIntervalMs: 2000 }` — 比标准 8 家略激进，因豆包 web 端响应快 |
-| 已落地 | Phase 10.2(+) v0.1 scaffold（5 单测 + 一并接入 `DEFAULT_VENDOR_SPECS`），Phase 10.4 真账号 har 抓包 pin 字段名 |
+| 已落地 | 已接入 `DEFAULT_VENDOR_SPECS`，含 cookie 校验、会话/消息分页和防御性字段解析；真账号 HAR 仍用于版本字段回归 |
 
 **与 §6.8 Dreamina 的关系**：同字节出品但完全独立 — Dreamina 是图像/视频 workspace，豆包是文本对话。两者 cookie 不互通（不同子域），可同时接入；UnifiedSchema 通过 `vendor` 字段区分。
 
@@ -691,12 +691,12 @@ ChatPanel 加入跨家历史搜索框：
 |---|---|---|
 | 10.1 | 框架：VendorAdapter 接口 + 父 adapter 主循环 + UnifiedSchema 映射 + WebView 鉴权流程 | 1.5d |
 | 10.2 | DeepSeek + Kimi 两家（最简单 API，先验证框架） | 1.5d |
-| 10.2(+) | 豆包 Doubao scaffold（第 9 家，字节文本 AI；validateCookie + listConversations + listMessages + _extractList 防御 + 5 单测，字段名待 10.4 har pin） | 0.5d |
+| 10.2(+) | 豆包 Doubao（第 9 家；validateCookie + listConversations + listMessages + _extractList 防御解析，字段名按真实账号 HAR 持续回归） | 0.5d |
 | 10.3 | 通义 + 智谱 + 混元 + 千帆 四家（中文厂商批量） | 2d |
 | 10.4 | 扣子 (agent 结构) + Dreamina (图像生成) + 豆包 har 字段 pin | 1d |
 | 10.5 | 跨家分析 skill + 月度报告 Workflow + UI 概览页 | 1d |
 
-**总**：~7.5 天，与父文档 §12 Phase 10 工期一致（豆包 scaffold 半天插入 10.2 与 10.3 之间）。
+**总**：~7.5 天，与父文档 §12 Phase 10 工期一致（豆包适配半天插入 10.2 与 10.3 之间）。
 
 ---
 

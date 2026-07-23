@@ -57,6 +57,7 @@ describe("car-mercedesme", () => {
     let signed = 0;
     const a = new mb.MercedesMeAdapter({
       account: { cookies: COOKIES, userId: "u1" },
+      listUrl: "https://captured.example/trips",
       signProvider: async () => { signed += 1; return "sig"; },
       fetchFn: async ({ query }) => (query.page > 1 ? { trips: [] } : { trips: [{ tripId: "T9", startTime: 1716383000, distanceMeters: 8000 }] }),
     });
@@ -69,6 +70,8 @@ describe("car-mercedesme", () => {
 
   it("medium sensitivity; default fetch throws", async () => {
     expect(new mb.MercedesMeAdapter().dataDisclosure.sensitivity).toBe("medium");
-    await expect(collect(new mb.MercedesMeAdapter({ account: { cookies: COOKIES } }).sync({}))).rejects.toThrow(/no fetchFn/);
+    const unverified = new mb.MercedesMeAdapter({ account: { cookies: COOKIES } });
+    expect(await unverified.authenticate()).toMatchObject({ ok: false, reason: "EXPLICIT_ENDPOINT_REQUIRED" });
+    await expect(collect(unverified.sync({}))).rejects.toThrow(/explicit listUrl/);
   });
 });

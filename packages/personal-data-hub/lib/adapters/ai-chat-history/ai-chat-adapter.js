@@ -21,6 +21,8 @@
 
 "use strict";
 
+const fs = require("node:fs/promises");
+
 const { EVENT_SUBTYPES } = require("../../constants");
 
 const { SUPPORTED_VENDORS, assertVendorSpec, NotImplementedYetError } =
@@ -59,6 +61,8 @@ const DEFAULT_VENDOR_SPECS = Object.freeze({
   doubao: doubaoSpec,
 });
 
+const MAX_COOKIE_SNAPSHOT_BYTES = 1024 * 1024;
+
 class AIChatHistoryAdapter {
   /**
    * @param {object} [opts]
@@ -82,6 +86,8 @@ class AIChatHistoryAdapter {
     this.version = ADAPTER_VERSION;
     this.capabilities = [
       "sync:cookie-multi-vendor",
+      "sync:persisted-cookie-accounts",
+      "sync:cookie-snapshot",
       "parse:ai-conversations",
       "ingest:cross-vendor",
     ];
@@ -194,7 +200,7 @@ class AIChatHistoryAdapter {
    * The inner `payload.kind` distinguishes:
    *   - "conversation"           → emit Topic + vendor Person (no Event yet)
    *   - "message"                → emit Event + items + vendor Person
-   *   - "vendor-not-wired"       → no-op normalize (Phase 10.1 stub trace)
+   *   - "vendor-not-wired"       → no-op normalize (extension sentinel trace)
    *   - "vendor-cookie-expired"  → no-op normalize (401/403 trace)
    *   - "vendor-rate-limited"    → no-op normalize (429 trace after retries)
    *
@@ -207,7 +213,15 @@ class AIChatHistoryAdapter {
    * @param {object} [opts.watermarks]  per-vendor cursor / since IDs
    */
   async *sync(opts = {}) {
-    const targetVendors = opts.vendors
+    // Android's in-app collector cannot write the desktop/CLI
+    // `aichat-accounts.json`; it stages `{vendor,cookie,fetchedAt}` and calls
+    // `sync-adapter ai-chat-history --input <file>`. Restore that ephemeral
+    // session before selecting vendors so the same command performs the real
+    // remote conversation/message fetch instead of silently yielding zero.
+    const snapshotVendor = await this._restoreSnapshotSession(opts);
+    const targetVendors = snapshotVendor
+      ? [snapshotVendor]
+      : opts.vendors
       ? opts.vendors.filter((v) => this._vendorSpecs[v])
       : Object.keys(this._vendorSpecs);
 
@@ -279,6 +293,78 @@ class AIChatHistoryAdapter {
     }
   }
 
+  async _restoreSnapshotSession(opts = {}) {
+    const inputPath = opts.inputPath || opts.snapshotPath || null;
+    if (!inputPath) return null;
+    if (typeof inputPath !== "string") {
+      throw createSnapshotError(
+        "AI_CHAT_SNAPSHOT_PATH_INVALID",
+        "ai-chat-history: inputPath must be a string",
+      );
+    }
+
+    let raw;
+    try {
+      const stat = await fs.stat(inputPath);
+      if (!stat.isFile()) {
+        throw createSnapshotError(
+          "AI_CHAT_SNAPSHOT_NOT_FILE",
+          "ai-chat-history: inputPath must point to a file",
+        );
+      }
+      if (stat.size > MAX_COOKIE_SNAPSHOT_BYTES) {
+        throw createSnapshotError(
+          "AI_CHAT_SNAPSHOT_TOO_LARGE",
+          `ai-chat-history: cookie snapshot exceeds ${MAX_COOKIE_SNAPSHOT_BYTES} bytes`,
+        );
+      }
+      raw = await fs.readFile(inputPath, "utf8");
+    } catch (err) {
+      if (err && typeof err.code === "string" && err.code.startsWith("AI_CHAT_")) {
+        throw err;
+      }
+      throw createSnapshotError(
+        "AI_CHAT_SNAPSHOT_READ_FAILED",
+        `ai-chat-history: cannot read cookie snapshot (${err && err.code ? err.code : "unknown"})`,
+      );
+    }
+
+    let snapshot;
+    try {
+      snapshot = JSON.parse(raw);
+    } catch (_err) {
+      throw createSnapshotError(
+        "AI_CHAT_SNAPSHOT_JSON_INVALID",
+        "ai-chat-history: cookie snapshot is not valid JSON",
+      );
+    }
+    if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) {
+      throw createSnapshotError(
+        "AI_CHAT_SNAPSHOT_SHAPE_INVALID",
+        "ai-chat-history: cookie snapshot must be an object",
+      );
+    }
+
+    const vendor = snapshot.vendor;
+    if (typeof vendor !== "string" || !this._vendorSpecs[vendor]) {
+      throw createSnapshotError(
+        "AI_CHAT_SNAPSHOT_VENDOR_INVALID",
+        "ai-chat-history: cookie snapshot vendor is missing or unsupported",
+      );
+    }
+    try {
+      this.setSessionFromCookies(vendor, snapshot.cookies || snapshot.cookie, {
+        capturedAt: snapshot.fetchedAt || snapshot.capturedAt,
+      });
+    } catch (_err) {
+      throw createSnapshotError(
+        "AI_CHAT_SNAPSHOT_COOKIE_INVALID",
+        "ai-chat-history: cookie snapshot has no usable cookies",
+      );
+    }
+    return vendor;
+  }
+
   /**
    * Convert one raw event into a NormalizedBatch.
    *
@@ -347,6 +433,48 @@ class AIChatHistoryAdapter {
     this._sessions[vendor] = session;
   }
 
+  /**
+   * Restore one vendor session from the persisted `aichat-accounts.json`
+   * cookie shapes. The wizard stores a name/value object while Electron may
+   * provide a Cookie[]; accepting both keeps boot restoration independent of
+   * the shell that originally captured the login.
+   */
+  setSessionFromCookies(vendor, cookies, opts = {}) {
+    const entries = normalizeCookieEntries(cookies);
+    if (entries.length === 0) {
+      throw new Error(`AIChatHistoryAdapter: no usable cookies for vendor "${vendor}"`);
+    }
+    const capturedAt = normalizeCapturedAt(opts.capturedAt);
+    const session = new CookieAuthSession({ vendor, cookies: entries, capturedAt });
+    this.setSession(vendor, session);
+    return session;
+  }
+
+  /**
+   * Restore every valid persisted account without letting one corrupt row
+   * prevent the remaining vendors from collecting. Returns a scrubbed report
+   * (vendor + reason only; never cookie values) for boot diagnostics/tests.
+   */
+  restoreSessions(entries = []) {
+    const restored = [];
+    const skipped = [];
+    for (const entry of Array.isArray(entries) ? entries : []) {
+      const vendor = entry && entry.vendor;
+      try {
+        this.setSessionFromCookies(vendor, entry.cookies, {
+          capturedAt: entry.registeredAt || entry.capturedAt,
+        });
+        restored.push(vendor);
+      } catch (err) {
+        skipped.push({
+          vendor: typeof vendor === "string" && vendor ? vendor : "(missing)",
+          reason: err && err.message ? err.message : "invalid persisted session",
+        });
+      }
+    }
+    return { restored, skipped };
+  }
+
   clearSession(vendor) {
     delete this._sessions[vendor];
   }
@@ -360,6 +488,63 @@ class AIChatHistoryAdapter {
       hasSession: Boolean(this._sessions[spec.name]),
     }));
   }
+}
+
+function normalizeCookieEntries(input) {
+  if (Array.isArray(input)) {
+    return input
+      .filter(
+        (cookie) =>
+          cookie &&
+          typeof cookie.name === "string" &&
+          cookie.name.length > 0 &&
+          typeof cookie.value === "string" &&
+          cookie.value.length > 0,
+      )
+      .map((cookie) => ({ ...cookie }));
+  }
+  if (typeof input === "string") {
+    return input
+      .split(/;\s*/u)
+      .map((pair) => {
+        const separator = pair.indexOf("=");
+        if (separator <= 0) return null;
+        return {
+          name: pair.slice(0, separator).trim(),
+          value: pair.slice(separator + 1).trim(),
+        };
+      })
+      .filter((cookie) => cookie && cookie.name && cookie.value);
+  }
+  if (input && typeof input === "object") {
+    return Object.entries(input)
+      .filter(
+        ([name, value]) =>
+          typeof name === "string" &&
+          name.length > 0 &&
+          typeof value === "string" &&
+          value.length > 0,
+      )
+      .map(([name, value]) => ({ name, value }));
+  }
+  return [];
+}
+
+function normalizeCapturedAt(value) {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return value;
+  }
+  if (typeof value === "string" && value) {
+    const parsed = Date.parse(value);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  return Date.now();
+}
+
+function createSnapshotError(code, message) {
+  const error = new Error(message);
+  error.code = code;
+  return error;
 }
 
 module.exports = {

@@ -36,6 +36,7 @@ const bridges = require("./bridges");
 const emailImapAdapter = require("./adapters/email-imap");
 const alipayBillAdapter = require("./adapters/alipay-bill");
 const wechatAdapter = require("./adapters/wechat");
+const aiChatHistoryAdapter = require("./adapters/ai-chat-history");
 const travelBase = require("./adapters/travel-base");
 const { Train12306Adapter } = require("./adapters/travel-12306");
 const { CtripAdapter } = require("./adapters/travel-ctrip");
@@ -297,6 +298,14 @@ module.exports = {
   normalizeWeChatContact: wechatAdapter.normalizeWeChatContact,
   wxidToWeChatPersonId: wechatAdapter.wxidToWeChatPersonId,
   WECHAT_PRAGMA_PROFILES: wechatAdapter.WECHAT_PRAGMA_PROFILES,
+
+  // Phase 10 — multi-vendor AI conversation history. Export from the root
+  // package as well as the subpath so default registry/catalog discovery can
+  // see the collector (the login wizard already used the subpath directly).
+  AIChatHistoryAdapter: aiChatHistoryAdapter.AIChatHistoryAdapter,
+  AI_CHAT_SUPPORTED_VENDORS: aiChatHistoryAdapter.SUPPORTED_VENDORS,
+  AI_CHAT_DEFAULT_VENDOR_SPECS: aiChatHistoryAdapter.DEFAULT_VENDOR_SPECS,
+  AIChatCookieAuthSession: aiChatHistoryAdapter.CookieAuthSession,
 
   // Phase 9 + §2.5b 地图三联 — Travel five-pack
   normalizeTravelRecord: travelBase.normalizeTravelRecord,

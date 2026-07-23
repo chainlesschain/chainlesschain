@@ -1,7 +1,7 @@
 /**
  * §12.1 Phase 13+ ⭐⭐ — i 厦门 (com.xmgov.xmapp) adapter, "本地政务".
  *
- * ⚠️ BEST-EFFORT SCAFFOLD (user-requested). i 厦门 is a local-government
+ * i 厦门 is a local-government
  * super-app (社保 / 公积金 / 医保 / 政务办事 / 预约) behind real-name gov SSO.
  * Unlike the document / shopping / travel adapters it has **no verifiable
  * public API**. Static APK analysis (com.xmgov.xmapp, 2026-06-16) CONFIRMED the
@@ -44,7 +44,7 @@ const { ENTITY_TYPES, EVENT_SUBTYPES, CAPTURED_BY } = require("../../constants")
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "gov-ixiamen";
-const VERSION = "0.2.0";
+const VERSION = "0.3.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_SERVICE = "service";
@@ -151,12 +151,17 @@ class IXiamenAdapter {
     this._listUrl =
       typeof opts.listUrl === "string" && opts.listUrl.length > 0
         ? opts.listUrl
-        : IXIAMEN_LIST_URL;
+        : null;
+    this._liveConfigured = Boolean(this._listUrl && typeof opts.fetchFn === "function");
 
     this.name = NAME;
     this.version = VERSION;
-    this.capabilities = ["sync:snapshot", "sync:cookie-api", "parse:ixiamen-service"];
-    this.extractMode = "web-api";
+    this.capabilities = [
+      "sync:snapshot",
+      ...(this._liveConfigured ? ["sync:custom-cookie-api"] : []),
+      "parse:ixiamen-service",
+    ];
+    this.extractMode = this._liveConfigured ? "web-api" : "file-import";
     this.rateLimits = { perMinute: 6, perDay: 100 };
     this.dataDisclosure = {
       fields: ["ixiamen:service (serviceName / category / handledTime / status / dept)"],
@@ -182,6 +187,13 @@ class IXiamenAdapter {
       }
       return { ok: true, mode: "snapshot-file" };
     }
+    if (this._cookieAuth && !this._liveConfigured) {
+      return {
+        ok: false,
+        reason: "EXPLICIT_ENDPOINT_REQUIRED",
+        message: `gov-ixiamen: /pbc host is known but the encrypted list path is not field-verified; provide captured listUrl and fetchFn (host reference: ${IXIAMEN_LIST_URL})`,
+      };
+    }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
       if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
@@ -197,7 +209,7 @@ class IXiamenAdapter {
       ok: false,
       reason: "NO_INPUT",
       message:
-        "gov-ixiamen.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode, best-effort/unverified)",
+        "gov-ixiamen.authenticate: needs opts.inputPath; custom live mode also requires cookies, listUrl, and fetchFn",
     };
   }
 
@@ -216,12 +228,17 @@ class IXiamenAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    if (this._cookieAuth) {
+    if (this._cookieAuth && this._liveConfigured) {
       yield* this._syncViaCookie(opts);
       return;
     }
+    if (this._cookieAuth) {
+      throw new Error(
+        "gov-ixiamen.sync: explicit listUrl and fetchFn required for custom cookie collection",
+      );
+    }
     throw new Error(
-      "gov-ixiamen.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)",
+      "gov-ixiamen.sync: needs opts.inputPath (snapshot mode)",
     );
   }
 

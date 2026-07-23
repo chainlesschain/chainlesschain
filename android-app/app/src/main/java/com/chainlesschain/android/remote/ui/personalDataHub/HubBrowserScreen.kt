@@ -427,12 +427,14 @@ private fun ContactDetail(extra: org.json.JSONObject) {
         }
         val org = extra.optString("organization", "")
         if (org.isNotEmpty()) DetailRow(label = "组织", value = org)
+        val jobTitle = extra.optString("jobTitle", "")
+        if (jobTitle.isNotEmpty()) DetailRow(label = "职位", value = jobTitle)
         if (extra.has("starred")) {
             DetailRow(label = "星标", value = if (extra.optBoolean("starred")) "是" else "否")
         }
-        if (phones == null && emails == null && org.isEmpty()) {
+        if (phones == null && emails == null && org.isEmpty() && jobTitle.isEmpty()) {
             Text(
-                "（同步时该联系人没有电话/邮箱/组织字段）",
+                "（同步时该联系人没有电话/邮箱/组织/职位字段）",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

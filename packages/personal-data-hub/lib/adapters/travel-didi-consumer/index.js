@@ -5,10 +5,9 @@
  * travel-didi's order mapping helpers; only NAME + the consumer order-centre
  * endpoint differ.
  *
- * BEST-EFFORT: api.udache.com / common.diditaxi.com.cn endpoints are FABRICATED
- * placeholders (overridable via opts.ordersUrl, NOT field-verified — FAMILY-23
- * playbook); snapshot/file-import is the reliable path; cookie path surfaces
- * auth.unverified=true. sensitivity:"medium" (ride start/end addresses).
+ * JSON file import is supported. No endpoint is selected by default; custom
+ * live collection requires a caller-supplied ordersUrl and fetchFn captured
+ * from an authorized session. sensitivity:"medium" (ride start/end addresses).
  */
 
 "use strict";
@@ -19,10 +18,8 @@ const { CookieAuth } = require("../shopping-base");
 const { orderToRecord, extractOrders, parseRecords } = require("../travel-didi");
 
 const NAME = "travel-didi-consumer";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 
-// Best-effort 滴滴出行 (consumer) order-list endpoint. Overridable via opts.ordersUrl.
-const DIDI_CONSUMER_ORDERS_URL = "https://api.udache.com/gulfstream/api/v1/order/list";
 const DEFAULT_PAGE_SIZE = 20;
 const DEFAULT_MAX_PAGES = 10;
 
@@ -35,11 +32,17 @@ class DidiConsumerAdapter {
     this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
     this._signProvider = typeof opts.signProvider === "function" ? opts.signProvider : null;
     this._ordersUrl =
-      typeof opts.ordersUrl === "string" && opts.ordersUrl.length > 0 ? opts.ordersUrl : DIDI_CONSUMER_ORDERS_URL;
+      typeof opts.ordersUrl === "string" && opts.ordersUrl.length > 0 ? opts.ordersUrl : null;
+    this._liveConfigured = Boolean(this._ordersUrl && typeof opts.fetchFn === "function");
 
     this.name = NAME;
     this.version = VERSION;
-    this.capabilities = ["import:json", "sync:snapshot", "sync:cookie-api", "parse:didi-rides"];
+    this.capabilities = [
+      "import:json",
+      "sync:snapshot",
+      ...(this._liveConfigured ? ["sync:custom-cookie-api"] : []),
+      "parse:didi-rides",
+    ];
     this.extractMode = "file-import";
     this.rateLimits = {};
     this.dataDisclosure = {
@@ -60,12 +63,19 @@ class DidiConsumerAdapter {
       }
       return { ok: true, mode: "snapshot-file" };
     }
+    if (this._cookieAuth && !this._liveConfigured) {
+      return {
+        ok: false,
+        reason: "EXPLICIT_ENDPOINT_REQUIRED",
+        message: "travel-didi-consumer: live collection requires a captured ordersUrl and fetchFn; JSON import is ready",
+      };
+    }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
       if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
       return { ok: true, account: (this.account && this.account.phone) || null, mode: "cookie", unverified: true };
     }
-    return { ok: true, account: null, mode: "ready" };
+    return { ok: false, reason: "NO_FILE", message: "Select an exported Didi trip JSON file" };
   }
 
   async healthCheck() {
@@ -93,7 +103,14 @@ class DidiConsumerAdapter {
       }
       return;
     }
-    if (this._cookieAuth) yield* this._syncViaCookie(opts);
+    if (this._cookieAuth && this._liveConfigured) {
+      yield* this._syncViaCookie(opts);
+      return;
+    }
+    if (this._cookieAuth) {
+      throw new Error("travel-didi-consumer.sync: explicit ordersUrl and fetchFn required for custom live collection");
+    }
+    throw new Error("travel-didi-consumer.sync: inputPath or dataPath is required");
   }
 
   async *_syncViaCookie(opts = {}) {

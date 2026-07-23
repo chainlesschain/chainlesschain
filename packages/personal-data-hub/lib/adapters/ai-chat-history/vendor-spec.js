@@ -1,8 +1,8 @@
 /**
  * VendorSpec — per-AI-vendor contract used by AIChatHistoryAdapter.
  *
- * Each of the 8 supported vendors (DeepSeek / Kimi / 通义 / 智谱 / 混元 / 千帆 /
- * 扣子 / Dreamina) provides one VendorSpec object describing:
+ * Each of the 9 supported vendors (DeepSeek / Kimi / 通义 / 智谱 / 混元 / 千帆 /
+ * 扣子 / Dreamina / 豆包) provides one VendorSpec object describing:
  *
  *   - Identity (`name`, `displayName`, `androidPackage`)
  *   - Login surface (`loginUrl`, `cookieDomains`)
@@ -11,10 +11,8 @@
  *   - Rate limits (`rateLimits`)
  *
  * The parent adapter fans out to all configured vendors and reuses one cookie
- * jar per vendor. Vendor implementations live in `./vendors/<name>.js` and are
- * SKELETONS in Phase 10.1 — they advertise the right shape and ratelimit so
- * the AdapterRegistry contract holds, but the actual HTTP wiring is wired in
- * later (Phase 10.2+). See `Adapter_AIChat_History.md` §6 per-vendor detail.
+ * jar per vendor. Implementations live in `./vendors/<name>.js`; the sentinel
+ * error below remains available for third-party or temporarily disabled specs.
  */
 
 "use strict";

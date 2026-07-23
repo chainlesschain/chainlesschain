@@ -36,7 +36,7 @@ import com.chainlesschain.android.pdh.email.EmailVendor
  *
  * Confirm 按钮 enabled 条件：user 非空 + password 非空 + host 非空 + port>0。
  *
- * Gmail vendor 警告：authNote 告诉用户 OAuth v0.2.1 / 临时用 App Password。
+ * Gmail vendor 使用 Google 官方提供的 App Password IMAP 路径。
  */
 @Composable
 fun EmailCredentialsDialog(

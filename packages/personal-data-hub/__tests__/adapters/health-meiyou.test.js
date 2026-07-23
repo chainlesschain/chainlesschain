@@ -24,7 +24,7 @@ const COOKIES = "myclient_id=abc; sid=xyz";
 describe("health-meiyou mappers", () => {
   it("name/version", () => {
     expect(my.NAME).toBe("health-meiyou");
-    expect(my.VERSION).toBe("0.1.0");
+    expect(my.VERSION).toBe("0.2.0");
   });
   it("mapPeriod / mapRecord field aliases; no id → null", () => {
     const p = my.mapPeriod({ record_id: "P1", start_date: 1716383000, end_date: 1716800000, cycle_length: 28, period_length: 5 });
@@ -97,6 +97,8 @@ describe("MeiyouAdapter (snapshot + cookie-api)", () => {
     let signed = 0;
     const a = new my.MeiyouAdapter({
       account: { cookies: COOKIES, userId: "u1" },
+      periodUrl: "https://captured.example/period",
+      recordUrl: "https://captured.example/record",
       signProvider: async () => {
         signed += 1;
         return "sig";
@@ -116,9 +118,10 @@ describe("MeiyouAdapter (snapshot + cookie-api)", () => {
     expect(signed).toBeGreaterThan(0);
   });
 
-  it("default fetch throws; no input throws", async () => {
+  it("unverified live endpoints are rejected; no input throws", async () => {
     const a = new my.MeiyouAdapter({ account: { cookies: COOKIES } });
-    await expect(collect(a.sync({}))).rejects.toThrow(/no fetchFn configured/);
+    expect(await a.authenticate()).toMatchObject({ ok: false, reason: "EXPLICIT_ENDPOINT_REQUIRED" });
+    await expect(collect(a.sync({}))).rejects.toThrow(/explicit periodUrl/);
     const b = new my.MeiyouAdapter();
     await expect(collect(b.sync({}))).rejects.toThrow(/needs opts.inputPath/);
   });

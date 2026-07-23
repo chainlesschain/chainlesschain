@@ -63,6 +63,7 @@ describe("fitness-joyrun", () => {
     let signed = 0;
     const a = new jr.JoyrunAdapter({
       account: { cookies: COOKIES, userId: "u1" },
+      listUrl: "https://captured.example/runs",
       signProvider: async () => { signed += 1; return "sig"; },
       fetchFn: async ({ query }) => (query.page > 1 ? { list: [] } : { data: { runs: [{ fid: "R9", starttime: 1716383000, meter: 10000, second: 3600 }] } }),
     });
@@ -76,7 +77,9 @@ describe("fitness-joyrun", () => {
   it("medium sensitivity (GPS route); default fetch / no input throw", async () => {
     expect(new jr.JoyrunAdapter().dataDisclosure.sensitivity).toBe("medium");
     expect(new jr.JoyrunAdapter().dataDisclosure.legalGate).toBe(false);
-    await expect(collect(new jr.JoyrunAdapter({ account: { cookies: COOKIES } }).sync({}))).rejects.toThrow(/no fetchFn/);
+    const unverified = new jr.JoyrunAdapter({ account: { cookies: COOKIES } });
+    expect(await unverified.authenticate()).toMatchObject({ ok: false, reason: "EXPLICIT_ENDPOINT_REQUIRED" });
+    await expect(collect(unverified.sync({}))).rejects.toThrow(/explicit listUrl/);
     await expect(collect(new jr.JoyrunAdapter().sync({}))).rejects.toThrow(/needs opts.inputPath/);
   });
 });

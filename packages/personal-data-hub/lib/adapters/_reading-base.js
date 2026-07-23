@@ -5,14 +5,12 @@
  * Reading apps expose the same shape of personal data: books the user read
  * (阅读历史 / 书架, with progress) + optionally favourited (收藏/追更). Same
  * family pattern as _video-base / _document-base: `createReadingAdapter(config)`
- * returns a full adapter (snapshot + cookie-api); each platform supplies only
- * its endpoints + field mapping.
+ * returns a full adapter (snapshot + optional custom cookie API); each platform
+ * supplies field mapping. Guessed endpoints are never selected by default.
  *
  *   1. snapshot mode (opts.inputPath): JSON schemaVersion 1, stateless.
- *   2. cookie-api mode (opts.account.cookies): fetch read / favourite lists via
- *      injected `fetchFn`, paginate; signProvider seam for anti-bot tokens;
- *      endpoints overridable via opts.readUrl / opts.favouriteUrl (best-effort,
- *      NOT field-verified — FAMILY-23 playbook).
+ *   2. custom cookie-api mode: caller must provide account.cookies, readUrl,
+ *      favouriteUrl, and fetchFn captured from its own authorized session.
  *
  * normalize() emits, per book: a MEDIA event ("读了 X" / "收藏 X") + a DOCUMENT
  * item (the book entity), mirroring _video-base's event+item dual-emit so the
@@ -68,7 +66,7 @@ function parseTime(v) {
  *        BookRecord = { bookId, title, author, category, chapter, progress, url, occurredAt? }
  */
 function createReadingAdapter(config) {
-  const { NAME, VERSION, platform, readUrl, favouriteUrl, extractItems, mapItem } = config;
+  const { NAME, VERSION, platform, extractItems, mapItem } = config;
   const { CookieAuth } = require("./shopping-base");
 
   function stableOriginalId(kind, id) {
@@ -86,15 +84,20 @@ function createReadingAdapter(config) {
         opts.account && opts.account.cookies ? new CookieAuth({ platform, cookies: opts.account.cookies }) : null;
       this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
       this._signProvider = typeof opts.signProvider === "function" ? opts.signProvider : null;
-      this._urls = {
-        read: opts.readUrl || readUrl,
-        favourite: opts.favouriteUrl || favouriteUrl,
-      };
+      this._urls = { read: opts.readUrl || null, favourite: opts.favouriteUrl || null };
+      this._liveConfigured = Boolean(
+        this._urls.read && this._urls.favourite && typeof opts.fetchFn === "function",
+      );
 
       this.name = NAME;
       this.version = VERSION;
-      this.capabilities = ["sync:snapshot", "sync:cookie-api", `parse:${platform}-read`, `parse:${platform}-favourite`];
-      this.extractMode = "web-api";
+      this.capabilities = [
+        "sync:snapshot",
+        ...(this._liveConfigured ? ["sync:custom-cookie-api"] : []),
+        `parse:${platform}-read`,
+        `parse:${platform}-favourite`,
+      ];
+      this.extractMode = this._liveConfigured ? "web-api" : "file-import";
       this.rateLimits = {};
       this.dataDisclosure = {
         fields: [`${platform}:read (书名 / 作者 / 分类 / 进度)`, `${platform}:favourite (收藏的书)`],
@@ -114,6 +117,13 @@ function createReadingAdapter(config) {
         }
         return { ok: true, mode: "snapshot-file" };
       }
+      if (this._cookieAuth && !this._liveConfigured) {
+        return {
+          ok: false,
+          reason: "EXPLICIT_ENDPOINT_REQUIRED",
+          message: `${NAME}: cookie collection requires captured readUrl + favouriteUrl and fetchFn; snapshot import is ready`,
+        };
+      }
       if (this._cookieAuth) {
         const ok = await this._cookieAuth.validate();
         if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
@@ -122,7 +132,7 @@ function createReadingAdapter(config) {
       return {
         ok: false,
         reason: "NO_INPUT",
-        message: `${NAME}.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)`,
+        message: `${NAME}.authenticate: needs opts.inputPath; custom live mode also requires cookies, readUrl, favouriteUrl, and fetchFn`,
       };
     }
 
@@ -139,11 +149,14 @@ function createReadingAdapter(config) {
         yield* this._syncViaSnapshot(opts);
         return;
       }
-      if (this._cookieAuth) {
+      if (this._cookieAuth && this._liveConfigured) {
         yield* this._syncViaCookie(opts);
         return;
       }
-      throw new Error(`${NAME}.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)`);
+      if (this._cookieAuth) {
+        throw new Error(`${NAME}.sync: explicit readUrl + favouriteUrl and fetchFn required for custom cookie collection`);
+      }
+      throw new Error(`${NAME}.sync: needs opts.inputPath (snapshot mode)`);
     }
 
     async *_syncViaSnapshot(opts) {

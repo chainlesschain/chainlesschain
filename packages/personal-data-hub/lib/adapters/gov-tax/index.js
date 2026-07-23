@@ -3,13 +3,10 @@
  * "收入 + 雇主 + 申报".
  *
  * ⚠️ MAXIMALLY SENSITIVE (financial/tax, real-name + 可能人脸 auth).
- * BEST-EFFORT SCAFFOLD (user-requested). The 个税 app is a government tax
- * system behind real-name SSO with NO verifiable public API; the cookie-api
- * endpoints below are FABRICATED placeholders (overridable via opts.*Url, NOT
- * field-verified — FAMILY-23 playbook) and cannot authenticate without the
- * gov real-name login. **snapshot mode is the reliable path** (the app / a
- * manual 收入纳税明细 export produces a JSON); the cookie path is a seam only
- * and surfaces `auth.unverified=true`. Gated sensitivity:"high" +
+ * The 个税 app is a government tax system behind real-name SSO with no
+ * documented public API. Snapshot import is supported; custom live collection
+ * requires caller-supplied captured URLs and a fetch implementation. No guessed
+ * government endpoint is selected by default. Gated sensitivity:"high" +
  * legalGate:true — the registry REQUIRES explicit legal/consent confirmation
  * before any collection runs.
  *
@@ -50,16 +47,13 @@ const {
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "gov-tax";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_INCOME = "income";
 const KIND_DECLARATION = "declaration";
 const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_INCOME, KIND_DECLARATION]);
 
-// FABRICATED best-effort endpoints — NOT field-verified. Overridable.
-const INCOME_URL = "https://its.tax.gov.cn/api/v1/income/list";
-const DECLARATION_URL = "https://its.tax.gov.cn/api/v1/declaration/list";
 const PAGE_SIZE = 30;
 
 function parseTime(v) {
@@ -157,19 +151,22 @@ class TaxAdapter {
     this._signProvider =
       typeof opts.signProvider === "function" ? opts.signProvider : null;
     this._urls = {
-      income: opts.incomeUrl || opts.listUrl || INCOME_URL,
-      declaration: opts.declarationUrl || DECLARATION_URL,
+      income: opts.incomeUrl || opts.listUrl || null,
+      declaration: opts.declarationUrl || null,
     };
+    this._liveConfigured = Boolean(
+      this._urls.income && this._urls.declaration && typeof opts.fetchFn === "function",
+    );
 
     this.name = NAME;
     this.version = VERSION;
     this.capabilities = [
       "sync:snapshot",
-      "sync:cookie-api",
+      ...(this._liveConfigured ? ["sync:custom-cookie-api"] : []),
       "parse:tax-income",
       "parse:tax-declaration",
     ];
-    this.extractMode = "web-api";
+    this.extractMode = this._liveConfigured ? "web-api" : "file-import";
     this.rateLimits = { perMinute: 6, perDay: 100 };
     this.dataDisclosure = {
       fields: [
@@ -198,6 +195,13 @@ class TaxAdapter {
       }
       return { ok: true, mode: "snapshot-file" };
     }
+    if (this._cookieAuth && !this._liveConfigured) {
+      return {
+        ok: false,
+        reason: "EXPLICIT_ENDPOINT_REQUIRED",
+        message: "gov-tax: cookie collection requires captured incomeUrl + declarationUrl and fetchFn; snapshot import is ready",
+      };
+    }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
       if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
@@ -212,7 +216,7 @@ class TaxAdapter {
       ok: false,
       reason: "NO_INPUT",
       message:
-        "gov-tax.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode, best-effort/unverified)",
+        "gov-tax.authenticate: needs opts.inputPath; custom live mode also requires cookies, incomeUrl, declarationUrl, and fetchFn",
     };
   }
 
@@ -231,12 +235,17 @@ class TaxAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    if (this._cookieAuth) {
+    if (this._cookieAuth && this._liveConfigured) {
       yield* this._syncViaCookie(opts);
       return;
     }
+    if (this._cookieAuth) {
+      throw new Error(
+        "gov-tax.sync: explicit incomeUrl + declarationUrl and fetchFn required for custom cookie collection",
+      );
+    }
     throw new Error(
-      "gov-tax.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)",
+      "gov-tax.sync: needs opts.inputPath (snapshot mode)",
     );
   }
 

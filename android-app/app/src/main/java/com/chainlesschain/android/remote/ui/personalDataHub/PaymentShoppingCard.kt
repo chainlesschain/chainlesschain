@@ -12,7 +12,9 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,9 +24,8 @@ import androidx.compose.ui.unit.dp
 /**
  * D7.1 + D7.2 — 支付与购物 sub-cards (推文 §"支付与购物: 支付宝 / 淘宝")
  *
- * v0.1: 替换原 PlaceholderCategoryCard 单卡为 2 张 provider 子卡。
- * §2.4 D7.2 (本 commit)：button 由 disabled placeholder 升 enabled —
- * onProviderImport 在 Screen 端 launch ACTION_OPEN_DOCUMENT picker，
+ * 各来源使用可操作 provider 子卡。onProviderImport 在 Screen 端 launch
+ * ACTION_OPEN_DOCUMENT picker，
  * 拿到 Uri 后 VM 走 ContentResolver.openInputStream → filesDir/staging/
  * <adapter>-<ts>.<ext> → LocalCcRunner.syncAdapter(adapter, path)。
  *
@@ -39,8 +40,8 @@ fun PaymentShoppingGroup(
 ) {
     // §2.4c 购物三联 v0.2 — 5 卡 (支付宝账单 / 淘宝 / 京东 / 美团 / 拼多多)
     // 顺序: 支付 1 + 电商 4。京东/美团/拼多多 v0.2 接 SAF JSON snapshot
-    // (Android collector WebView cookie scrape 写)；HTML parser 预留 v0.3。
-    // 拼多多 v0.2 无 collector — 用户需手抄 JSON 或等 v0.3 浏览器扩展
+    // (Android collector WebView cookie scrape 写)；当前明确只接受 JSON 导出，
+    // 不把尚未验证的 HTML 页面结构当作采集能力。
     // (mobile.yangkeduo.com 走 anti_token JS-VM 签名，没纯 Kotlin/Node 实现)。
     val providers = listOf(
         ProviderCard(
@@ -99,56 +100,82 @@ fun PaymentShoppingGroup(
  */
 @Composable
 fun TravelGroup(
+    states: Map<String, HubLocalViewModel.TravelCardState>,
+    globalBusy: Boolean,
     onProviderLogin: (providerKey: String) -> Unit,
+    onProviderImport: (providerKey: String) -> Unit,
+    onProviderSync: (providerKey: String) -> Unit,
+    onProviderLogout: (providerKey: String) -> Unit,
+    onClearError: (providerKey: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // §2.5 D8.2 + §2.5b 地图扩展 — 4 路全 enable 走 WebView cookie scrape →
-    // cc hub sync travel-{vendor}. p.key 必须与 TravelVendor.key 对齐
-    // (travel-amap / travel-baidu-map / travel-tencent-map / travel-ctrip).
-    // 桌面 adapter snapshot mode 接 Android cookie scrape JSON，与既有 sqlite
-    // mode (device-pull) 并存。
+    // 12306 使用已验证的登录态实时拉取；其余来源只开放本地文件导入，避免
+    // 把未经官方确认的私有 API 或只有 cookie、没有事件的空快照标成成功。
     val providers = listOf(
         ProviderCard(
             key = "travel-amap",
             displayName = "高德地图",
-            hint = "网页登录 cookie → 账户 + 收藏地点 (v0.2 OAuth 加历史轨迹)",
-            sourceFormat = "WebView",
+            hint = "导入已提取的 amap.db，采集搜索、路线与收藏地点",
+            sourceFormat = "SQLite DB",
         ),
         ProviderCard(
             key = "travel-baidu-map",
             displayName = "百度地图",
-            hint = "网页登录 cookie → 账户 + 收藏地点 (v0.2 lbs.baidu.com 加轨迹)",
-            sourceFormat = "WebView",
+            hint = "导入百度地图 SQLite 数据库或结构化快照",
+            sourceFormat = "SQLite DB / JSON",
         ),
         ProviderCard(
             key = "travel-tencent-map",
             displayName = "腾讯地图",
-            hint = "网页登录 cookie → 账户 + 收藏地点 (v0.2 lbs.qq.com 加轨迹)",
-            sourceFormat = "WebView",
+            hint = "导入包含收藏、搜索与路线事件的结构化快照",
+            sourceFormat = "JSON",
         ),
         ProviderCard(
             key = "travel-ctrip",
             displayName = "携程",
-            hint = "网页登录 cookie → 订单 / 酒店 / 机票历史",
-            sourceFormat = "WebView",
+            hint = "导入携程订单 JSON / JSONL；不依赖未公开的私有接口",
+            sourceFormat = "JSON / JSONL",
         ),
-        // 2026-05-23 v0.3 新增 — 中国铁路 12306。v0.1 仅显登录卡，sync 走 cookie
-        // scrape 拿账号态；订单历史 v0.2 走 /otn/queryOrder/queryMyOrder。
+        // 中国铁路 12306：登录后实时同步近 90 天与待出行订单。
         ProviderCard(
             key = "travel-12306",
             displayName = "12306",
-            hint = "网页登录 cookie → 账号态 (v0.2 加订单历史)",
+            hint = "网页登录后同步近 90 天已完成订单与待出行订单",
             sourceFormat = "WebView",
         ),
     )
     Column(modifier = modifier.fillMaxWidth()) {
         providers.forEachIndexed { idx, p ->
-            ProviderCardRow(
-                provider = p,
-                actionLabel = "登录",
-                onAction = { onProviderLogin(p.key) },
-                enabled = true,
+            val state = states[p.key] ?: HubLocalViewModel.TravelCardState(
+                vendorKey = p.key,
+                displayName = p.displayName,
             )
+            if (p.key == "travel-12306") {
+                AccountProviderCardRow(
+                    provider = p,
+                    isLoggedIn = state.isLoggedIn,
+                    isSyncing = state.isSyncing,
+                    lastSyncAt = state.lastSyncAt,
+                    lastSyncCount = state.lastSyncCount,
+                    errorMessage = state.errorMessage,
+                    globalBusy = globalBusy,
+                    onLogin = { onProviderLogin(p.key) },
+                    onSync = { onProviderSync(p.key) },
+                    onLogout = { onProviderLogout(p.key) },
+                    onClearError = { onClearError(p.key) },
+                )
+            } else {
+                ManualImportProviderCardRow(
+                    provider = p,
+                    isImporting = state.isSyncing,
+                    lastImportAt = state.lastSyncAt,
+                    lastImportCount = state.lastSyncCount,
+                    errorMessage = state.errorMessage,
+                    globalBusy = globalBusy,
+                    onImport = { onProviderImport(p.key) },
+                    onClearError = { onClearError(p.key) },
+                )
+            }
             if (idx < providers.lastIndex) Spacer(Modifier.height(8.dp))
         }
     }
@@ -158,15 +185,17 @@ fun TravelGroup(
  * D10.1 / D10.2 — AI 助手 sub-cards (推文 §"AI 助手: 豆包 / 文心 / Kimi /
  * 通义 / DeepSeek 等")
  *
- * 推文原列 9 家含独立"千帆"，2026-05-22 与"文心一言"合并 (桌面 qianfan
- * adapter BASE=yiyan.baidu.com 实际就是文心一言域名) → 8 家。8 路全 enable
- * 走 WebView cookie scrape → cc hub sync ai-chat-history --vendor <k>
- * → 本机 SQLCipher vault。豆包/coze 桌面 adapter 已 wired，与其他 6 家
- * 对等。
+ * 文心与千帆共用 qianfan vendor，再加豆包与即梦，共 9 个入口。全部走
+ * WebView cookie capture → Android 敏感快照 → ai-chat-history → 本机 vault。
  */
 @Composable
 fun AiAssistantsGroup(
+    states: Map<String, HubLocalViewModel.AiChatCardState>,
+    globalBusy: Boolean,
     onProviderLogin: (providerKey: String) -> Unit,
+    onProviderSync: (providerKey: String) -> Unit,
+    onProviderLogout: (providerKey: String) -> Unit,
+    onClearError: (providerKey: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // 推文 §"豆包 / 文心 / Kimi / 通义 / DeepSeek 等" 9 家（合并千帆+文心后 8
@@ -185,11 +214,22 @@ fun AiAssistantsGroup(
     )
     Column(modifier = modifier.fillMaxWidth()) {
         providers.forEachIndexed { idx, p ->
-            ProviderCardRow(
+            val state = states[p.key] ?: HubLocalViewModel.AiChatCardState(
+                vendorKey = p.key,
+                displayName = p.displayName,
+            )
+            AccountProviderCardRow(
                 provider = p,
-                actionLabel = "登录",
-                onAction = { onProviderLogin(p.key) },
-                enabled = true,
+                isLoggedIn = state.isLoggedIn,
+                isSyncing = state.isSyncing,
+                lastSyncAt = state.lastSyncAt,
+                lastSyncCount = state.lastSyncCount,
+                errorMessage = state.errorMessage,
+                globalBusy = globalBusy,
+                onLogin = { onProviderLogin(p.key) },
+                onSync = { onProviderSync(p.key) },
+                onLogout = { onProviderLogout(p.key) },
+                onClearError = { onClearError(p.key) },
             )
             if (idx < providers.lastIndex) Spacer(Modifier.height(8.dp))
         }
@@ -237,6 +277,179 @@ private fun ProviderCardRow(
                 }
                 OutlinedButton(onClick = onAction, enabled = enabled) {
                     Text(if (enabled) actionLabel else "v0.2 $actionLabel")
+                }
+            }
+        }
+    }
+}
+
+/** Shared state-aware row for providers backed by encrypted credentials. */
+@Composable
+private fun AccountProviderCardRow(
+    provider: ProviderCard,
+    isLoggedIn: Boolean,
+    isSyncing: Boolean,
+    lastSyncAt: Long?,
+    lastSyncCount: Int,
+    errorMessage: String?,
+    globalBusy: Boolean,
+    onLogin: () -> Unit,
+    onSync: () -> Unit,
+    onLogout: () -> Unit,
+    onClearError: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.fillMaxWidth(0.62f)) {
+                    Text(
+                        provider.displayName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        provider.hint,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        when {
+                            lastSyncAt != null -> "上次同步 $lastSyncCount 条"
+                            isLoggedIn -> "已登录，尚未同步"
+                            else -> provider.sourceFormat
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (isLoggedIn) {
+                    Column(horizontalAlignment = Alignment.End) {
+                        OutlinedButton(
+                            onClick = onSync,
+                            enabled = !globalBusy && !isSyncing,
+                        ) {
+                            Text(if (isSyncing) "同步中…" else "同步")
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        TextButton(
+                            onClick = onLogout,
+                            enabled = !globalBusy && !isSyncing,
+                        ) {
+                            Text("退出", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                } else {
+                    OutlinedButton(onClick = onLogin, enabled = !globalBusy) {
+                        Text("登录")
+                    }
+                }
+            }
+            if (errorMessage != null) {
+                Spacer(Modifier.height(8.dp))
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            errorMessage,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.fillMaxWidth(0.84f),
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                        )
+                        TextButton(onClick = onClearError) { Text("知道了") }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ManualImportProviderCardRow(
+    provider: ProviderCard,
+    isImporting: Boolean,
+    lastImportAt: Long?,
+    lastImportCount: Int,
+    errorMessage: String?,
+    globalBusy: Boolean,
+    onImport: () -> Unit,
+    onClearError: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.fillMaxWidth(0.62f)) {
+                    Text(
+                        provider.displayName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        provider.hint,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        if (lastImportAt != null) "上次导入 $lastImportCount 条" else provider.sourceFormat,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                OutlinedButton(
+                    onClick = onImport,
+                    enabled = !globalBusy && !isImporting,
+                ) {
+                    Text(if (isImporting) "导入中…" else "导入")
+                }
+            }
+            if (errorMessage != null) {
+                Spacer(Modifier.height(8.dp))
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            errorMessage,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.fillMaxWidth(0.84f),
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                        )
+                        TextButton(onClick = onClearError) { Text("知道了") }
+                    }
                 }
             }
         }

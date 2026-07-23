@@ -55,6 +55,7 @@ describe("finance-dcep", () => {
     let signed = 0;
     const a = new dc.DcepAdapter({
       account: { cookies: COOKIES, userId: "u1" },
+      listUrl: "https://captured.example/transactions",
       signProvider: async () => { signed += 1; return "sig"; },
       fetchFn: async ({ query }) => (query.page > 1 ? { list: [] } : { list: [{ txId: "X9", time: 1716383000, amount: 9.9, direction: "receive" }] }),
     });
@@ -68,7 +69,9 @@ describe("finance-dcep", () => {
   it("high sensitivity + legalGate; default fetch / no input throw", async () => {
     expect(new dc.DcepAdapter().dataDisclosure.sensitivity).toBe("high");
     expect(new dc.DcepAdapter().dataDisclosure.legalGate).toBe(true);
-    await expect(collect(new dc.DcepAdapter({ account: { cookies: COOKIES } }).sync({}))).rejects.toThrow(/no fetchFn/);
+    const unverified = new dc.DcepAdapter({ account: { cookies: COOKIES } });
+    expect(await unverified.authenticate()).toMatchObject({ ok: false, reason: "EXPLICIT_ENDPOINT_REQUIRED" });
+    await expect(collect(unverified.sync({}))).rejects.toThrow(/explicit listUrl/);
     await expect(collect(new dc.DcepAdapter().sync({}))).rejects.toThrow(/needs opts.inputPath/);
   });
 });

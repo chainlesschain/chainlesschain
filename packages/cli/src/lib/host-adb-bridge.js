@@ -17,8 +17,8 @@
  * still used for the V5/V6 IPC code path (separate hub singleton).
  *
  * Methods implemented (only what system-data-android consumes):
- *   - `contacts.query({since?})` →
- *       [{ lookupKey, displayName }, ...]
+ *   - `contacts.query({since?})` → contacts with phones, emails,
+ *       organization, job title, starred state, and photo URI
  *   - `app.list({includeSystem?})` →
  *       [{ packageName }, ...]
  *
@@ -120,27 +120,116 @@ function parseContentQueryRows(stdout) {
   return rows;
 }
 
-async function queryContacts(_params, opts) {
+function mergeContactRows(contactRows, phoneRows, emailRows, organizationRows) {
+  const byId = new Map();
+  for (const row of contactRows) {
+    const contactId = row._id == null ? null : String(row._id);
+    const displayName = row.display_name || null;
+    if (!contactId || !displayName) continue;
+    byId.set(contactId, {
+      lookupKey: row.lookup || null,
+      displayName,
+      phones: [],
+      emails: [],
+      starred: row.starred === "1",
+      organization: null,
+      jobTitle: null,
+      photoUri: row.photo_uri || null,
+    });
+  }
+
+  const appendUnique = (rows, field, valueOf) => {
+    for (const row of rows) {
+      const contact = byId.get(String(row.contact_id));
+      const value = valueOf(row);
+      if (!contact || typeof value !== "string" || !value.trim()) continue;
+      const normalized = value.trim();
+      if (!contact[field].includes(normalized)) contact[field].push(normalized);
+    }
+  };
+  appendUnique(phoneRows, "phones", (row) => row.data1 || row.number);
+  appendUnique(emailRows, "emails", (row) => row.data1 || row.address);
+  for (const row of organizationRows) {
+    const contact = byId.get(String(row.contact_id));
+    if (!contact) continue;
+    const organization = row.data1 || row.company;
+    const jobTitle = row.data4 || row.title;
+    if (!contact.organization && organization && organization.trim()) {
+      contact.organization = organization.trim();
+    }
+    if (!contact.jobTitle && jobTitle && jobTitle.trim()) {
+      contact.jobTitle = jobTitle.trim();
+    }
+  }
+  return [...byId.values()];
+}
+
+async function queryContacts(params, opts) {
   const serial = await pickDevice(opts);
-  const stdout = await adb(
-    [
-      "shell",
-      "content",
-      "query",
-      "--uri",
-      "content://com.android.contacts/contacts",
-      "--projection",
-      "lookup:display_name",
-    ],
-    { ...opts, serial },
+  const contactArgs = [
+    "shell",
+    "content",
+    "query",
+    "--uri",
+    "content://com.android.contacts/contacts",
+    "--projection",
+    "_id:lookup:display_name:starred:photo_uri",
+  ];
+  if (Number.isInteger(params?.since) && params.since > 0) {
+    contactArgs.push(
+      "--where",
+      `contact_last_updated_timestamp >= ${params.since}`,
+    );
+  }
+  const commandOpts = { ...opts, serial, timeoutMs: opts.timeoutMs || 120_000 };
+  const [contactsOut, phonesOut, emailsOut, organizationsOut] =
+    await Promise.all([
+      adb(contactArgs, commandOpts),
+      adb(
+        [
+          "shell",
+          "content",
+          "query",
+          "--uri",
+          "content://com.android.contacts/data/phones",
+          "--projection",
+          "contact_id:data1",
+        ],
+        commandOpts,
+      ),
+      adb(
+        [
+          "shell",
+          "content",
+          "query",
+          "--uri",
+          "content://com.android.contacts/data/emails",
+          "--projection",
+          "contact_id:data1",
+        ],
+        commandOpts,
+      ),
+      adb(
+        [
+          "shell",
+          "content",
+          "query",
+          "--uri",
+          "content://com.android.contacts/data",
+          "--projection",
+          "contact_id:data1:data4",
+          "--where",
+          "mimetype='vnd.android.cursor.item/organization'",
+        ],
+        commandOpts,
+      ),
+    ]);
+  return mergeContactRows(
+    parseContentQueryRows(contactsOut),
+    parseContentQueryRows(phonesOut),
+    parseContentQueryRows(emailsOut),
+    parseContentQueryRows(organizationsOut),
   );
-  const rows = parseContentQueryRows(stdout);
-  return rows
-    .map((r) => ({
-      lookupKey: r.lookup || null,
-      displayName: r.display_name || null,
-    }))
-    .filter((c) => c.displayName);
 }
 
 async function listApps(params, opts) {
@@ -497,6 +586,7 @@ export function createHostAdbBridge(opts = {}) {
 // Exposed for unit testing without spawning real adb.
 export const _internals = {
   parseContentQueryRows,
+  mergeContactRows,
   listDevices,
   pickDevice,
   queryContacts,

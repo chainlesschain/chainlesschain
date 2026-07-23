@@ -49,6 +49,7 @@ describe("travel-didi-consumer", () => {
     let signed = 0;
     const a = new dc.DidiConsumerAdapter({
       account: { cookies: COOKIES, phone: "1" },
+      ordersUrl: "https://captured.example/orders",
       signProvider: async () => { signed += 1; return "sig"; },
       fetchFn: async ({ query }) => (query.pageIndex > 1 ? { data: { list: [] } } : { data: { list: [{ orderId: "O9", fromAddress: "A", toAddress: "B", departTime: Date.now() }] } }),
     });
@@ -61,6 +62,8 @@ describe("travel-didi-consumer", () => {
 
   it("medium sensitivity; default fetch throws", async () => {
     expect(new dc.DidiConsumerAdapter().dataDisclosure.sensitivity).toBe("medium");
-    await expect(collect(new dc.DidiConsumerAdapter({ account: { cookies: COOKIES } }).sync({}))).rejects.toThrow(/no fetchFn/);
+    const unverified = new dc.DidiConsumerAdapter({ account: { cookies: COOKIES } });
+    expect(await unverified.authenticate()).toMatchObject({ ok: false, reason: "EXPLICIT_ENDPOINT_REQUIRED" });
+    await expect(collect(unverified.sync({}))).rejects.toThrow(/explicit ordersUrl/);
   });
 });

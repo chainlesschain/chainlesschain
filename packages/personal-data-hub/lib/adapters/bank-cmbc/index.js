@@ -1,11 +1,10 @@
 /**
  * §12.1 Phase 13+ ⭐⭐⭐ — 民生银行 (China Minsheng Bank, com.com.cmbc.newmbank)
- * adapter, "交易明细 + 信用卡". BEST-EFFORT SCAFFOLD (user-requested).
+ * adapter, "交易明细 + 信用卡". Supports snapshot import and an explicit live seam.
  *
  * Thin wrapper over _bank-base. ⚠️ MAXIMALLY SENSITIVE (real-name banking,
- * strong-auth). Endpoints FABRICATED placeholders (overridable, NOT
- * field-verified — FAMILY-23 playbook); snapshot mode is the reliable path,
- * cookie path surfaces auth.unverified=true. Gated high sensitivity + legalGate.
+ * strong-auth). No endpoint is selected by default; custom live collection
+ * requires caller-supplied captured URLs. Gated high sensitivity + legalGate.
  */
 
 "use strict";
@@ -13,14 +12,12 @@
 const { createBankAdapter, SNAPSHOT_SCHEMA_VERSION } = require("../_bank-base");
 
 const NAME = "bank-cmbc";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 
 const CmbcBankAdapter = createBankAdapter({
   NAME,
   VERSION,
   platform: "cmbc",
-  defaultTxUrl: "https://mbank.cmbc.com.cn/api/v1/account/transactions",
-  defaultCardUrl: "https://mbank.cmbc.com.cn/api/v1/creditcard/bills",
 });
 
 module.exports = { CmbcBankAdapter, NAME, VERSION, SNAPSHOT_SCHEMA_VERSION };

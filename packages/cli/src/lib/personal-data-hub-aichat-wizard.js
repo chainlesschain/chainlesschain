@@ -141,7 +141,11 @@ export function createAccountsStore({ hubDir }) {
  * spec.validateCookie(). Kept duplicated so the cli build stays ESM-pure
  * without reaching into desktop-app-vue.
  */
-export function createVendorAdapterBridge({ specs, _httpClientFactory } = {}) {
+export function createVendorAdapterBridge({
+  specs,
+  runtimeAdapter,
+  _httpClientFactory,
+} = {}) {
   // DEFAULT_VENDOR_SPECS is shipped as a vendor-keyed object; tests pass an
   // array. Normalize to an array first so byVendor lookup works either way.
   const effectiveSpecs = specs ?? _loadAichatModule().DEFAULT_VENDOR_SPECS;
@@ -187,7 +191,15 @@ export function createVendorAdapterBridge({ specs, _httpClientFactory } = {}) {
     });
     try {
       const r = await spec.validateCookie({ httpClient: client, session });
-      return r || { ok: false, reason: "VALIDATE_RETURNED_NULL" };
+      const result = r || { ok: false, reason: "VALIDATE_RETURNED_NULL" };
+      if (
+        result.ok &&
+        runtimeAdapter &&
+        typeof runtimeAdapter.setSession === "function"
+      ) {
+        runtimeAdapter.setSession(vendor, session);
+      }
+      return result;
     } catch (err) {
       return { ok: false, reason: "VALIDATE_THREW", error: err.message };
     }
@@ -233,6 +245,8 @@ const _wizardsByHubDir = new Map();
  */
 export function getAIChatWizard({
   hubDir,
+  accountsStore,
+  vendorAdapter,
   _accountsStore,
   _vendorAdapter,
   _deps,
@@ -242,8 +256,10 @@ export function getAIChatWizard({
   if (!isTest && _wizardsByHubDir.has(hubDir))
     return _wizardsByHubDir.get(hubDir);
 
-  const accountsStore = _accountsStore || createAccountsStore({ hubDir });
-  const vendorAdapter = _vendorAdapter || createVendorAdapterBridge();
+  const effectiveAccountsStore =
+    accountsStore || _accountsStore || createAccountsStore({ hubDir });
+  const effectiveVendorAdapter =
+    vendorAdapter || _vendorAdapter || createVendorAdapterBridge();
   // Paste-mode is the default for cli. Tests can override via _deps.
   const deps = _deps || {
     sessionFactory: () => ({}),
@@ -273,8 +289,8 @@ export function getAIChatWizard({
     "@chainlesschain/personal-data-hub/adapters/ai-chat-history/wizard-controller",
   );
   const wiz = createAIChatWizardController({
-    accountsStore,
-    vendorAdapter,
+    accountsStore: effectiveAccountsStore,
+    vendorAdapter: effectiveVendorAdapter,
     _deps: deps,
   });
   if (!isTest) _wizardsByHubDir.set(hubDir, wiz);

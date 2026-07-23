@@ -3,13 +3,12 @@
  * 中行 / 交行 / ...), §12.1 Phase 13+ "交易明细 + 信用卡".
  *
  * ⚠️ MAXIMALLY SENSITIVE (real-name banking, strong-auth + 可能人脸).
- * BEST-EFFORT SCAFFOLDS: mobile-bank apps have NO documented public API and
- * sit behind real-name SSO; the cookie-api endpoints supplied by each wrapper
- * are FABRICATED placeholders (overridable, NOT field-verified — FAMILY-23
- * playbook) and cannot authenticate without the bank's real login. **snapshot
- * mode is the reliable path** (the app / a manual 交易明细 + 账单 export
- * produces a JSON); the cookie path is a seam only, surfaces
- * `auth.unverified=true`. Every bank adapter is gated sensitivity:"high" +
+ * Mobile-bank apps have no documented public API and
+ * sit behind real-name SSO. **snapshot mode is the supported path** (the app /
+ * a manual 交易明细 + 账单 export produces a JSON). A custom cookie collector is
+ * enabled only when the caller explicitly supplies both captured endpoint URLs
+ * and a fetch implementation; no guessed bank endpoint is selected by default.
+ * Every bank adapter is gated sensitivity:"high" +
  * legalGate:true — the registry REQUIRES explicit legal/consent confirmation
  * before any collection runs.
  *
@@ -145,7 +144,7 @@ function billMonthToMs(billMonth) {
  * @param {string} cfg.defaultCardUrl best-effort credit-card-bill endpoint
  */
 function createBankAdapter(cfg) {
-  const { NAME, VERSION, platform, defaultTxUrl, defaultCardUrl } = cfg;
+  const { NAME, VERSION, platform } = cfg;
   const { CookieAuth } = require("./shopping-base");
 
   function stableOriginalId(kind, id) {
@@ -166,14 +165,22 @@ function createBankAdapter(cfg) {
       this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
       this._signProvider = typeof opts.signProvider === "function" ? opts.signProvider : null;
       this._urls = {
-        transaction: opts.transactionUrl || opts.listUrl || defaultTxUrl,
-        card: opts.cardUrl || defaultCardUrl,
+        transaction: opts.transactionUrl || opts.listUrl || null,
+        card: opts.cardUrl || null,
       };
+      this._liveConfigured = Boolean(
+        this._urls.transaction && this._urls.card && typeof opts.fetchFn === "function",
+      );
 
       this.name = NAME;
       this.version = VERSION;
-      this.capabilities = ["sync:snapshot", "sync:cookie-api", `parse:${platform}-transaction`, `parse:${platform}-card`];
-      this.extractMode = "web-api";
+      this.capabilities = [
+        "sync:snapshot",
+        ...(this._liveConfigured ? ["sync:custom-cookie-api"] : []),
+        `parse:${platform}-transaction`,
+        `parse:${platform}-card`,
+      ];
+      this.extractMode = this._liveConfigured ? "web-api" : "file-import";
       this.rateLimits = { perMinute: 5, perDay: 60 };
       this.dataDisclosure = {
         fields: [
@@ -197,6 +204,13 @@ function createBankAdapter(cfg) {
         }
         return { ok: true, mode: "snapshot-file" };
       }
+      if (this._cookieAuth && !this._liveConfigured) {
+        return {
+          ok: false,
+          reason: "EXPLICIT_ENDPOINT_REQUIRED",
+          message: `${NAME}: cookie collection requires captured transactionUrl + cardUrl and fetchFn; snapshot import is ready`,
+        };
+      }
       if (this._cookieAuth) {
         const ok = await this._cookieAuth.validate();
         if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
@@ -205,7 +219,7 @@ function createBankAdapter(cfg) {
       return {
         ok: false,
         reason: "NO_INPUT",
-        message: `${NAME}.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode, best-effort/unverified)`,
+        message: `${NAME}.authenticate: needs opts.inputPath; custom live mode also requires cookies, transactionUrl, cardUrl, and fetchFn`,
       };
     }
 
@@ -222,11 +236,14 @@ function createBankAdapter(cfg) {
         yield* this._syncViaSnapshot(opts);
         return;
       }
-      if (this._cookieAuth) {
+      if (this._cookieAuth && this._liveConfigured) {
         yield* this._syncViaCookie(opts);
         return;
       }
-      throw new Error(`${NAME}.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)`);
+      if (this._cookieAuth) {
+        throw new Error(`${NAME}.sync: explicit transactionUrl + cardUrl and fetchFn required for custom cookie collection`);
+      }
+      throw new Error(`${NAME}.sync: needs opts.inputPath (snapshot mode)`);
     }
 
     async *_syncViaSnapshot(opts) {

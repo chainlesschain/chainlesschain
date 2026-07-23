@@ -38,7 +38,8 @@ import javax.inject.Singleton
  *     "contacts": [
  *       { "lookupKey": "...", "displayName": "妈妈",
  *         "phones": ["+861..."], "emails": [],
- *         "starred": true, "organization": "家庭", "photoUri": null }
+ *         "starred": true, "organization": "家庭", "jobTitle": "工程师",
+ *         "photoUri": null }
  *     ],
  *     "apps": [
  *       { "packageName": "com.tencent.mm", "label": "微信",
@@ -156,7 +157,7 @@ class LocalSystemDataSnapshotter @Inject constructor(
 
                 val phones = readPhonesFor(contactId)
                 val emails = readEmailsFor(contactId)
-                val (orgName, _) = readOrganizationFor(contactId)
+                val (orgName, jobTitle) = readOrganizationFor(contactId)
 
                 val obj = JSONObject()
                     .put("lookupKey", lookupKey)
@@ -165,6 +166,7 @@ class LocalSystemDataSnapshotter @Inject constructor(
                     .put("emails", JSONArray(emails))
                     .put("starred", starred)
                 if (!orgName.isNullOrBlank()) obj.put("organization", orgName)
+                if (!jobTitle.isNullOrBlank()) obj.put("jobTitle", jobTitle)
                 if (!photoUri.isNullOrBlank()) obj.put("photoUri", photoUri)
                 arr.put(obj)
             }
@@ -208,7 +210,7 @@ class LocalSystemDataSnapshotter @Inject constructor(
         return emails.distinct()
     }
 
-    /** Returns (organization, title) — title currently unused; placeholder for v0.2. */
+    /** Returns the contact's organization and job title, when available. */
     private fun readOrganizationFor(contactId: Long): Pair<String?, String?> {
         var org: String? = null
         var title: String? = null

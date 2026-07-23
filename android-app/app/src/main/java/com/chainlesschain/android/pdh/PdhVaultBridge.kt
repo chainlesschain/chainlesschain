@@ -12,9 +12,9 @@ package com.chainlesschain.android.pdh
  *    新事件被插入)。
  *
  * **活库只读 §5.2 + cc 独占 vault**:不直读 vault.db(WAL/并发风险),一律经 cc 子进程。
- * [CcVaultGateway] 是 seam(测试注入 in-memory fake);真实现走 `cc hub` 子进程导出/导入
- * 事件(**Node 侧待补 `hub export-events --json` / `hub import-events` 命令**——vault.js 已
- * 有 queryEvents/putEvent 原语,加薄 CLI 即可;改 pdh/lib 须走发版链 traps #27/#28)。
+ * [CcVaultGateway] 是 seam(测试注入 in-memory fake);真实现通过
+ * [CcRunnerVaultGateway] 调用已随设备运行时发布的 `cc hub export-events --json` /
+ * `cc hub import-events`，并由 CLI 的真实 vault round-trip 测试覆盖。
  *
  * 桥本身(事件 ⇄ Record 映射)纯逻辑、不解析 JSON(gateway 给 id + 原始 json)→ 可单测。
  */
@@ -27,7 +27,7 @@ class PdhVaultBridge(
     /** 一个 vault 事件:稳定 [id] + 原始事件 [json](由 cc 导出/导入)。 */
     data class VaultEventBlob(val id: String, val json: String)
 
-    /** 读写 vault 事件的 seam。真实现走 cc hub 子进程(export/import events,Node 侧待补)。 */
+    /** 读写 vault 事件的 seam。真实现走 cc hub 子进程 export-events/import-events。 */
     interface CcVaultGateway {
         fun exportEvents(): List<VaultEventBlob>
         fun importEvents(events: List<VaultEventBlob>)

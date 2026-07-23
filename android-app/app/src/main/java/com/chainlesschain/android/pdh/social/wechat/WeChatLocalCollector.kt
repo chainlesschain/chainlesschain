@@ -20,10 +20,11 @@ import javax.inject.Singleton
  *   4. Return [SnapshotResult] so the caller (HubLocalViewModel) can hand
  *      the path to `LocalCcRunner.syncAdapter("wechat", path)`
  *
- * **STATUS**: scaffold only. Steps 2 + 3 are stubs (see WeChatFridaInjector
- * and WeChatDbExtractor); only the orchestration flow + error mapping is
- * real here. Phase 12.10.4 + 12.10.6 unblock the stubs on a real rooted
- * device.
+ * **STATUS**: implemented. [WeChatFridaInjector] stages the bundled arm/arm64
+ * injector and captures the SQLCipher key; [WeChatDbExtractor] copies the
+ * DB/WAL/SHM cohort, tries the supported cipher profiles, and writes the
+ * normalized staging snapshot. A rooted-device compatibility pass is still
+ * required for each new WeChat build because its native symbols may drift.
  *
  * Failure modes (sealed result so HubLocalViewModel can pattern-match on
  * each and surface a distinct banner):

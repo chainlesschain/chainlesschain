@@ -24,7 +24,7 @@ const COOKIES = "XMGOV_SSO=abc; tgc=xyz";
 describe("gov-ixiamen mappers", () => {
   it("name/version/capabilities", () => {
     expect(ix.NAME).toBe("gov-ixiamen");
-    expect(ix.VERSION).toBe("0.2.0");
+    expect(ix.VERSION).toBe("0.3.0");
   });
   it("inferCategory: explicit wins, else keyword, else fallback", () => {
     expect(ix.inferCategory("随便", "医保")).toBe("医保");
@@ -104,6 +104,7 @@ describe("IXiamenAdapter (snapshot + cookie-api)", () => {
     const calls = [];
     const a = new ix.IXiamenAdapter({
       account: { cookies: COOKIES, userId: "u1" },
+      listUrl: "https://buss.ixiamen.org.cn/pbc/captured/handle/list",
       fetchFn: async ({ url, cookies, query, sign }) => {
         calls.push({ url, cookies, page: query.page, sign });
         return query.page === 1 ? pages[0] : pages[1];
@@ -124,6 +125,7 @@ describe("IXiamenAdapter (snapshot + cookie-api)", () => {
     let seen = null;
     const a = new ix.IXiamenAdapter({
       account: { cookies: COOKIES },
+      listUrl: "https://buss.ixiamen.org.cn/pbc/captured/handle/list",
       signProvider: async ({ url, query }) => {
         seen = { url, page: query.page };
         return "gov-sig";
@@ -141,9 +143,10 @@ describe("IXiamenAdapter (snapshot + cookie-api)", () => {
     expect(seen.url).toContain("buss.ixiamen.org.cn");
   });
 
-  it("default fetch throws; no input throws", async () => {
+  it("unverified live endpoint is rejected; no input throws", async () => {
     const a = new ix.IXiamenAdapter({ account: { cookies: COOKIES } });
-    await expect(collect(a.sync({}))).rejects.toThrow(/no fetchFn configured/);
+    expect(await a.authenticate()).toMatchObject({ ok: false, reason: "EXPLICIT_ENDPOINT_REQUIRED" });
+    await expect(collect(a.sync({}))).rejects.toThrow(/explicit listUrl/);
     const b = new ix.IXiamenAdapter();
     await expect(collect(b.sync({}))).rejects.toThrow(/needs opts.inputPath/);
   });

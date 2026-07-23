@@ -71,6 +71,8 @@ describe("gov-12123", () => {
   it("cookie-api: paginated violations + single license + unverified", async () => {
     const a = new g.Tmri12123Adapter({
       account: { cookies: COOKIES, userId: "u1" },
+      violationUrl: "https://fj.122.gov.cn/app/captured/violation",
+      licenseUrl: "https://fj.122.gov.cn/app/captured/license",
       fetchFn: async ({ url, query }) => {
         if (url.includes("/violation")) return query.page > 1 ? { list: [] } : { list: [{ wzbh: "V9", wfsj: 1716383000, wfxw: "闯红灯", fkje: 200, wfjfs: 6 }] };
         return { data: { dabh: "L9", zt: "正常", ljjf: 6 } };
@@ -86,10 +88,10 @@ describe("gov-12123", () => {
     // default province bj
     const a = new g.Tmri12123Adapter({ province: "fj" });
     expect(a.province).toBe("fj");
-    expect(a._urls.violation).toBe("https://fj.122.gov.cn/app/violation/list");
-    expect(a._urls.license).toBe("https://fj.122.gov.cn/app/license/info");
+    expect(a._urls.violation).toBe(null);
+    expect(a._urls.license).toBe(null);
     // bad province → default bj
-    expect(new g.Tmri12123Adapter({ province: "XX" })._urls.violation).toBe("https://bj.122.gov.cn/app/violation/list");
+    expect(new g.Tmri12123Adapter({ province: "XX" }).province).toBe("bj");
     // explicit url override still wins
     expect(new g.Tmri12123Adapter({ violationUrl: "https://x/y" })._urls.violation).toBe("https://x/y");
   });
@@ -97,7 +99,9 @@ describe("gov-12123", () => {
   it("high sensitivity + legalGate; default fetch / no input throw", async () => {
     expect(new g.Tmri12123Adapter().dataDisclosure.sensitivity).toBe("high");
     expect(new g.Tmri12123Adapter().dataDisclosure.legalGate).toBe(true);
-    await expect(collect(new g.Tmri12123Adapter({ account: { cookies: COOKIES } }).sync({}))).rejects.toThrow(/no fetchFn/);
+    const unverified = new g.Tmri12123Adapter({ account: { cookies: COOKIES } });
+    expect(await unverified.authenticate()).toMatchObject({ ok: false, reason: "EXPLICIT_ENDPOINT_REQUIRED" });
+    await expect(collect(unverified.sync({}))).rejects.toThrow(/explicit violationUrl/);
     await expect(collect(new g.Tmri12123Adapter().sync({}))).rejects.toThrow(/needs opts.inputPath/);
   });
 });

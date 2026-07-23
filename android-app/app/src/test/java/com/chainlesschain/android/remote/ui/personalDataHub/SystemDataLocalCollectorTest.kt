@@ -46,6 +46,7 @@ class SystemDataLocalCollectorTest {
             starred = true,
             organization = "某公司",
             photoUri = "content://com.android.contacts/contacts/1/photo",
+            jobTitle = "工程师",
         )
         val map = c.toMap()
         // These names appear verbatim in
@@ -58,6 +59,7 @@ class SystemDataLocalCollectorTest {
         assertEquals(true, map["starred"])
         assertEquals("某公司", map["organization"])
         assertEquals("content://com.android.contacts/contacts/1/photo", map["photoUri"])
+        assertEquals("工程师", map["jobTitle"])
     }
 
     @Test
@@ -74,6 +76,7 @@ class SystemDataLocalCollectorTest {
         val map = c.toMap()
         assertNull(map["organization"])
         assertNull(map["photoUri"])
+        assertNull(map["jobTitle"])
     }
 
     @Test

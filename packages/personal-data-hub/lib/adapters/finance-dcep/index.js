@@ -1,13 +1,11 @@
 /**
  * §12.1 Phase 13+ ⭐⭐⭐ — 数字人民币 (DCEP / e-CNY, cn.gov.pbc.dcep) adapter,
- * "DCEP 交易". BEST-EFFORT SCAFFOLD (user-requested).
+ * "DCEP 交易". Supports snapshot import and an explicit live seam.
  *
  * ⚠️ MAXIMALLY SENSITIVE (central-bank digital-currency wallet, real-name +
- * strong-auth). The DCEP app has NO documented public API; the cookie-api
- * endpoint below is a FABRICATED placeholder (overridable via opts.listUrl,
- * NOT field-verified — FAMILY-23 playbook) and cannot authenticate without the
- * app's real login. **snapshot mode is the reliable path**; cookie path
- * surfaces auth.unverified=true. Gated sensitivity:"high" + legalGate:true.
+ * strong-auth). The DCEP app has no documented public API. No endpoint is
+ * selected by default; custom live collection requires a caller-supplied URL
+ * captured from an authorized session. Gated sensitivity:"high" + legalGate:true.
  *
  * One record kind: 钱包交易 (wallet transactions):
  *   { txId, time, amount, direction(pay付款/receive收款), counterparty, walletType(子钱包) }
@@ -33,11 +31,10 @@ const { ENTITY_TYPES, EVENT_SUBTYPES, CAPTURED_BY } = require("../../constants")
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "finance-dcep";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 const KIND_TX = "transaction";
 const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_TX]);
-const DCEP_LIST_URL = "https://dcep.pbc.gov.cn/api/v1/wallet/transactions";
 const PAGE_SIZE = 30;
 
 function parseTime(v) {
@@ -113,12 +110,17 @@ class DcepAdapter {
       opts.account && opts.account.cookies ? new CookieAuth({ platform: "dcep", cookies: opts.account.cookies }) : null;
     this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
     this._signProvider = typeof opts.signProvider === "function" ? opts.signProvider : null;
-    this._listUrl = typeof opts.listUrl === "string" && opts.listUrl.length > 0 ? opts.listUrl : DCEP_LIST_URL;
+    this._listUrl = typeof opts.listUrl === "string" && opts.listUrl.length > 0 ? opts.listUrl : null;
+    this._liveConfigured = Boolean(this._listUrl && typeof opts.fetchFn === "function");
 
     this.name = NAME;
     this.version = VERSION;
-    this.capabilities = ["sync:snapshot", "sync:cookie-api", "parse:dcep-transaction"];
-    this.extractMode = "web-api";
+    this.capabilities = [
+      "sync:snapshot",
+      ...(this._liveConfigured ? ["sync:custom-cookie-api"] : []),
+      "parse:dcep-transaction",
+    ];
+    this.extractMode = this._liveConfigured ? "web-api" : "file-import";
     this.rateLimits = { perMinute: 5, perDay: 60 };
     this.dataDisclosure = {
       fields: ["dcep:transaction (time / amount / direction / counterparty / walletType)"],
@@ -138,6 +140,13 @@ class DcepAdapter {
       }
       return { ok: true, mode: "snapshot-file" };
     }
+    if (this._cookieAuth && !this._liveConfigured) {
+      return {
+        ok: false,
+        reason: "EXPLICIT_ENDPOINT_REQUIRED",
+        message: "finance-dcep: cookie collection requires captured listUrl and fetchFn; snapshot import is ready",
+      };
+    }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
       if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
@@ -146,7 +155,7 @@ class DcepAdapter {
     return {
       ok: false,
       reason: "NO_INPUT",
-      message: "finance-dcep.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode, best-effort/unverified)",
+      message: "finance-dcep.authenticate: needs opts.inputPath; custom live mode also requires cookies, listUrl, and fetchFn",
     };
   }
 
@@ -163,11 +172,14 @@ class DcepAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    if (this._cookieAuth) {
+    if (this._cookieAuth && this._liveConfigured) {
       yield* this._syncViaCookie(opts);
       return;
     }
-    throw new Error("finance-dcep.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)");
+    if (this._cookieAuth) {
+      throw new Error("finance-dcep.sync: explicit listUrl and fetchFn required for custom cookie collection");
+    }
+    throw new Error("finance-dcep.sync: needs opts.inputPath (snapshot mode)");
   }
 
   async *_syncViaSnapshot(opts) {

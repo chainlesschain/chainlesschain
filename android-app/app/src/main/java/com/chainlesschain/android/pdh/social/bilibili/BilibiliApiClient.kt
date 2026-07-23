@@ -46,14 +46,11 @@ private val WBI_FORBIDDEN_CHARS = charArrayOf('!', '\'', '(', ')', '*')
  * `DedeUserID` (the latter is the user's numeric UID and lets us derive
  * `account.uid` for the snapshot without needing a separate "me" call).
  *
- * v0.1 caveats:
- *   - WBI signing is NOT implemented. Endpoints above currently accept un-signed
- *     requests when SESSDATA is valid. The newer "wbi" endpoints require it
- *     (avoid writing the literal slash-star sequence here — Kotlin block
- *     comments nest, so any slash-star inside a KDoc opens a nested comment
- *     that swallows subsequent code; see memory kotlin_nested_block_comments);
- *     if Bilibili tightens enforcement, we'll need to port the WBI key handshake
- *     from `/x/web-interface/nav` (TODO follow-up trap).
+ * Current caveats:
+ *   - WBI signing is implemented: keys are derived from
+ *     `/x/web-interface/nav`, mixed with [WBI_MIXIN_KEY_TABLE], and applied to
+ *     endpoints that require `wts`/`w_rid`. A browser-prefetch path remains as
+ *     a compatibility fallback when Bilibili changes anti-bot behavior.
  *   - Anti-bot risk is medium. If we see 412 (Bilibili rate-limit code) or 401,
  *     the collector falls back to whatever data was successfully fetched so far
  *     rather than throwing. Recovery = wait + relog.

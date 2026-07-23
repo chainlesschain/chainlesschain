@@ -24,7 +24,7 @@ const { newId } = require("../../ids");
 
 const SELF_PERSON_ID = "person-self";
 const ADAPTER_NAME = "ai-chat-history";
-const ADAPTER_VERSION = "0.1.0";
+const ADAPTER_VERSION = "0.2.0";
 
 function personIdForVendor(vendor) {
   return `person-ai-${vendor}`;

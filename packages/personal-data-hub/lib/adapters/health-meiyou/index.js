@@ -9,12 +9,9 @@
  * REQUIRES explicit legal/consent confirmation before any collection runs, and
  * nothing is fetched until the user opts in.
  *
- * 美柚 has no documented public API and its cloud sync is account-bound, so the
- * reliable path is **snapshot mode** (the app / a manual export produces a JSON
- * of the user's records). The cookie-api path is a best-effort seam only: the
- * endpoint (yunshouyi/seeyou) is a FABRICATED placeholder (overridable via
- * opts.listUrl, NOT field-verified — FAMILY-23 playbook); auth surfaces
- * `unverified:true`.
+ * 美柚 has no documented public API and its cloud sync is account-bound, so
+ * snapshot import is supported. No endpoint is selected by default; custom
+ * live collection requires caller-supplied captured URLs and a fetchFn.
  *
  * Modelled records → EVENT(subtype OTHER) on the entry date, rich health
  * fields in `extra` (kept local in the vault, never normalized into searchable
@@ -43,16 +40,13 @@ const { ENTITY_TYPES, EVENT_SUBTYPES, CAPTURED_BY } = require("../../constants")
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "health-meiyou";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_PERIOD = "period";
 const KIND_RECORD = "record";
 const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_PERIOD, KIND_RECORD]);
 
-// FABRICATED best-effort endpoints — NOT field-verified. Overridable.
-const PERIOD_URL = "https://yunshouyi.seeyouyima.com/v1/calendar/period";
-const RECORD_URL = "https://yunshouyi.seeyouyima.com/v1/calendar/record";
 const PAGE_SIZE = 30;
 
 function parseTime(v) {
@@ -126,14 +120,22 @@ class MeiyouAdapter {
     this._signProvider =
       typeof opts.signProvider === "function" ? opts.signProvider : null;
     this._urls = {
-      period: opts.periodUrl || opts.listUrl || PERIOD_URL,
-      record: opts.recordUrl || RECORD_URL,
+      period: opts.periodUrl || opts.listUrl || null,
+      record: opts.recordUrl || null,
     };
+    this._liveConfigured = Boolean(
+      this._urls.period && this._urls.record && typeof opts.fetchFn === "function",
+    );
 
     this.name = NAME;
     this.version = VERSION;
-    this.capabilities = ["sync:snapshot", "sync:cookie-api", "parse:meiyou-period", "parse:meiyou-record"];
-    this.extractMode = "web-api";
+    this.capabilities = [
+      "sync:snapshot",
+      ...(this._liveConfigured ? ["sync:custom-cookie-api"] : []),
+      "parse:meiyou-period",
+      "parse:meiyou-record",
+    ];
+    this.extractMode = this._liveConfigured ? "web-api" : "file-import";
     this.rateLimits = { perMinute: 6, perDay: 100 };
     this.dataDisclosure = {
       fields: [
@@ -162,6 +164,13 @@ class MeiyouAdapter {
       }
       return { ok: true, mode: "snapshot-file" };
     }
+    if (this._cookieAuth && !this._liveConfigured) {
+      return {
+        ok: false,
+        reason: "EXPLICIT_ENDPOINT_REQUIRED",
+        message: "health-meiyou: cookie collection requires captured periodUrl + recordUrl and fetchFn; snapshot import is ready",
+      };
+    }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
       if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
@@ -176,7 +185,7 @@ class MeiyouAdapter {
       ok: false,
       reason: "NO_INPUT",
       message:
-        "health-meiyou.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode, best-effort/unverified)",
+        "health-meiyou.authenticate: needs opts.inputPath; custom live mode also requires cookies, periodUrl, recordUrl, and fetchFn",
     };
   }
 
@@ -195,12 +204,17 @@ class MeiyouAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    if (this._cookieAuth) {
+    if (this._cookieAuth && this._liveConfigured) {
       yield* this._syncViaCookie(opts);
       return;
     }
+    if (this._cookieAuth) {
+      throw new Error(
+        "health-meiyou.sync: explicit periodUrl + recordUrl and fetchFn required for custom cookie collection",
+      );
+    }
     throw new Error(
-      "health-meiyou.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)",
+      "health-meiyou.sync: needs opts.inputPath (snapshot mode)",
     );
   }
 

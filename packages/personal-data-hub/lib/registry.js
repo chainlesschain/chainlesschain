@@ -232,6 +232,28 @@ class AdapterRegistry {
     }
 
     let auth;
+    if (
+      adapter._cookieAuth
+      && Array.isArray(adapter.capabilities)
+      && adapter.capabilities.includes("sync:cookie-api")
+      && typeof adapter._fetchFn === "function"
+      && adapter._fetchFn.name === "defaultFetch"
+    ) {
+      const desc = describeReadiness("CUSTOM_FETCH_REQUIRED");
+      return {
+        ...base,
+        ready: false,
+        status: desc.status,
+        category: desc.category,
+        reason: "CUSTOM_FETCH_REQUIRED",
+        message: desc.message,
+        actionHint: desc.actionHint,
+        mode: null,
+        lastSyncedAt,
+        lastStatus,
+        lastError,
+      };
+    }
     try {
       auth = await this._withTimeout(
         Promise.resolve().then(() => adapter.authenticate({ readinessOnly: true })),

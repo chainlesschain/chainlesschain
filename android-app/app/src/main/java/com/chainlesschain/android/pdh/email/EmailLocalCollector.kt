@@ -25,7 +25,7 @@ import javax.inject.Singleton
  *  - var session/store factory = test seam (JVM unit test inject mock)
  *
  * Sealed [SnapshotResult] 7 分支：
- *   NoCredentials / OAuthRequired / AuthFailed (用户授权码错) /
+ *   NoCredentials / AuthFailed (用户授权码错) /
  *   ConnectFailed (DNS / TLS / 港口拒) / ProtocolFailed (IMAP 协议错) /
  *   Empty (INBOX 没邮件) / Ok(snapshotPath, fetchedCount)
  *
@@ -54,7 +54,6 @@ class EmailLocalCollector @Inject constructor(
     sealed class SnapshotResult {
         data class Ok(val snapshotPath: String, val fetchedCount: Int) : SnapshotResult()
         object NoCredentials : SnapshotResult()
-        object OAuthRequired : SnapshotResult()
         data class AuthFailed(val message: String) : SnapshotResult()
         data class ConnectFailed(val message: String) : SnapshotResult()
         data class ProtocolFailed(val message: String) : SnapshotResult()
@@ -81,10 +80,9 @@ class EmailLocalCollector @Inject constructor(
     /**
      * snapshot(vendor) 入口。
      *  1. 读 credentials (NoCredentials 早返)
-     *  2. Gmail + 无 OAuth token = OAuthRequired (v0.2.1)
-     *  3. imapFetcher.fetchInbox 拿 EmailRecord 列表
-     *  4. 序列化到 filesDir/staging/email-<vendor>-<ts>.json
-     *  5. 返 Ok(path, count)
+     *  2. imapFetcher.fetchInbox 拿 EmailRecord 列表
+     *  3. 序列化到 filesDir/staging/email-<vendor>-<ts>.json
+     *  4. 返 Ok(path, count)
      */
     suspend fun snapshot(vendor: String, limit: Int = 200): SnapshotResult = withContext(Dispatchers.IO) {
         val v = EmailVendor.fromKey(vendor) ?: return@withContext SnapshotResult.Failed(
@@ -96,14 +94,6 @@ class EmailLocalCollector @Inject constructor(
         val port = credentials.getImapPort(vendor) ?: v.imapPort
         if (user.isNullOrBlank() || password.isNullOrBlank()) {
             return@withContext SnapshotResult.NoCredentials
-        }
-        if (v.usesOAuth) {
-            // Gmail OAuth — v0.2.1。当前未实现 OAuth token 流程，所以即使用
-            // 户填了密码也告诉他不行。但实际上如果用户填的是 Google App
-            // Password (16-char) 也能走 plain IMAP (Google 还允许 App Password
-            // 直登)。这里简化：v0.1 一律走 plain IMAP path，由用户决定填
-            // App Password 还是 OAuth token。OAuth gated 在 v0.2.1。
-            // ↑ 但是 if Gmail 走 plain 失败提示用户走 App Password。
         }
         val records = try {
             imapFetcher.fetchInbox(

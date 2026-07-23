@@ -2124,18 +2124,18 @@ class HubLocalViewModelTest {
         assertNull(vm.state.value.xiaohongshu.errorMessage)
     }
 
-    // ─── Other social stubs (xiaohongshu only — kept for forward-compat) ────
-    // §A8 v0.2: weibo + douyin migrated out of stub path — see their lifecycle
-    // tests above. requestSocialLoginStub still maps all 3 → forward-compat
+    // ─── Defensive fallback for future/unknown social-card routes ───────────
+    // Weibo + Douyin use their explicit lifecycle paths above. The fallback
+    // still maps all 3 so an accidental future route fails visibly.
     // but HubLocalScreen no longer routes weibo/douyin through it.
 
     @Test
-    fun `requestSocialLoginStub for douyin surfaces error on douyin card only`() = runTest(testDispatcher) {
+    fun `requestUnhandledSocialLogin for douyin surfaces error on douyin card only`() = runTest(testDispatcher) {
         val vm = newVm()
         advanceUntilIdle()
-        vm.requestSocialLoginStub("douyin")
+        vm.requestUnhandledSocialLogin("douyin")
         assertNotNull(vm.state.value.douyin.errorMessage)
-        assertTrue(vm.state.value.douyin.errorMessage!!.contains("v0.2"))
+        assertTrue(vm.state.value.douyin.errorMessage!!.contains("登录路由未注册"))
         // Other cards untouched
         assertNull(vm.state.value.weibo.errorMessage)
         assertNull(vm.state.value.xiaohongshu.errorMessage)
@@ -2143,10 +2143,10 @@ class HubLocalViewModelTest {
     }
 
     @Test
-    fun `requestSocialLoginStub unknown platform is no-op`() = runTest(testDispatcher) {
+    fun `requestUnhandledSocialLogin unknown platform is no-op`() = runTest(testDispatcher) {
         val vm = newVm()
         advanceUntilIdle()
-        vm.requestSocialLoginStub("nonexistent")
+        vm.requestUnhandledSocialLogin("nonexistent")
         // All cards still clean
         assertNull(vm.state.value.weibo.errorMessage)
         assertNull(vm.state.value.douyin.errorMessage)
@@ -3141,10 +3141,14 @@ class HubLocalViewModelTest {
         assertEquals(42, card.lastSyncCount)
         assertNull(card.errorMessage)
         io.mockk.verify { aiChatCredentials.recordSync("tongyi", any(), 42) }
+        assertTrue(
+            "cookie snapshot must be deleted after successful cc sync",
+            java.io.File(filesDir, "staging").listFiles()?.isEmpty() ?: true,
+        )
     }
 
     @Test
-    fun `syncAiChat cc failure with not-found surfaces v0_2 hint`() = runTest(testDispatcher) {
+    fun `syncAiChat cc failure with not-found surfaces runtime update hint`() = runTest(testDispatcher) {
         val filesDir = java.io.File.createTempFile("files", "").let { it.delete(); it.mkdirs(); it }
         every { appContext.filesDir } returns filesDir
         every { aiChatCredentials.hasCredentials("doubao") } returns true
@@ -3161,7 +3165,11 @@ class HubLocalViewModelTest {
 
         val card = vm.state.value.aiChat["doubao"]!!
         assertFalse(card.isSyncing)
-        assertTrue(card.errorMessage?.contains("v0.2") == true)
+        assertTrue(card.errorMessage?.contains("更新内置运行时") == true)
+        assertTrue(
+            "cookie snapshot must be deleted after failed cc sync",
+            java.io.File(filesDir, "staging").listFiles()?.isEmpty() ?: true,
+        )
     }
 
     @Test
@@ -3310,7 +3318,7 @@ class HubLocalViewModelTest {
     }
 
     @Test
-    fun `syncEmail Ok but cc adapter not-found surfaces v0_2 hint`() = runTest(testDispatcher) {
+    fun `syncEmail cc adapter not-found surfaces runtime update hint`() = runTest(testDispatcher) {
         every { emailCredentials.hasCredentials("netease163") } returns true
         every { emailCredentials.hasCredentials(match<String> { it != "netease163" }) } returns false
         io.mockk.coEvery {
@@ -3324,7 +3332,7 @@ class HubLocalViewModelTest {
         advanceUntilIdle()
         val card = vm.state.value.email["netease163"]!!
         assertFalse(card.isSyncing)
-        assertTrue(card.errorMessage?.contains("v0.2") == true)
+        assertTrue(card.errorMessage?.contains("更新内置运行时") == true)
     }
 
     @Test
@@ -3476,27 +3484,10 @@ class HubLocalViewModelTest {
     }
 
     @Test
-    fun `syncTravel Ok records lastSync + clears error`() = runTest(testDispatcher) {
-        val filesDir = java.io.File.createTempFile("files", "").let { it.delete(); it.mkdirs(); it }
-        every { appContext.filesDir } returns filesDir
+    fun `syncTravel for undocumented cookie source directs user to verified import`() =
+        runTest(testDispatcher) {
         every { travelCredentials.hasCredentials("travel-ctrip") } returns true
         every { travelCredentials.hasCredentials(match<String> { it != "travel-ctrip" }) } returns false
-        every { travelCredentials.getCookie("travel-ctrip") } returns "cookie-stub"
-        every { travelCredentials.recordSync(any(), any(), any()) } just runs
-        coEvery { ccRunner.syncAdapter("travel-ctrip", any(), any()) } returns
-            LocalCcRunner.CcResult.Ok(
-                report = LocalCcRunner.SyncReport(
-                    adapter = "travel-ctrip",
-                    status = "ok",
-                    ingested = 18,
-                    invalidCount = 0,
-                    kgTriples = 0,
-                    ragDocs = 0,
-                    durationMs = 90L,
-                    error = null,
-                ),
-                rawJson = "{}",
-            )
         val vm = newVm()
         advanceUntilIdle()
         vm.syncTravel("travel-ctrip")
@@ -3504,28 +3495,96 @@ class HubLocalViewModelTest {
 
         val card = vm.state.value.travel["travel-ctrip"]!!
         assertFalse(card.isSyncing)
-        assertNotNull(card.lastSyncAt)
-        assertEquals(18, card.lastSyncCount)
-        assertNull(card.errorMessage)
-        io.mockk.verify { travelCredentials.recordSync("travel-ctrip", any(), 18) }
+        assertTrue(card.errorMessage?.contains("导入") == true)
+        coVerify(exactly = 0) { ccRunner.syncAdapter(any(), any(), any()) }
     }
 
     @Test
-    fun `syncTravel cc not-found surfaces v0_2 hint`() = runTest(testDispatcher) {
-        val filesDir = java.io.File.createTempFile("files", "").let { it.delete(); it.mkdirs(); it }
-        every { appContext.filesDir } returns filesDir
+    fun `syncTravel amap does not create a cookie-only zero-event snapshot`() = runTest(testDispatcher) {
         every { travelCredentials.hasCredentials("travel-amap") } returns true
         every { travelCredentials.hasCredentials(match<String> { it != "travel-amap" }) } returns false
-        every { travelCredentials.getCookie("travel-amap") } returns "cookie-stub"
-        coEvery { ccRunner.syncAdapter(any(), any(), any()) } returns
-            LocalCcRunner.CcResult.Failed("unknown adapter: travel-amap", 1, null)
         val vm = newVm()
         advanceUntilIdle()
         vm.syncTravel("travel-amap")
         advanceUntilIdle()
         val card = vm.state.value.travel["travel-amap"]!!
         assertFalse(card.isSyncing)
-        assertTrue(card.errorMessage?.contains("v0.2") == true)
+        assertTrue(card.errorMessage?.contains("导入") == true)
+        coVerify(exactly = 0) { ccRunner.syncAdapter(any(), any(), any()) }
+    }
+
+    @Test
+    fun `importTravelFile baidu map syncs selected database and deletes staging copy`() =
+        runTest(testDispatcher) {
+            val filesDir = java.io.File.createTempFile("files", "").let {
+                it.delete()
+                it.mkdirs()
+                it
+            }
+            every { appContext.filesDir } returns filesDir
+            every { travelCredentials.hasCredentials(any()) } returns false
+            val resolver = io.mockk.mockk<android.content.ContentResolver>(relaxed = true)
+            every { appContext.contentResolver } returns resolver
+            val fakeUri = io.mockk.mockk<android.net.Uri>(relaxed = true)
+            every { resolver.openInputStream(fakeUri) } answers {
+                java.io.ByteArrayInputStream("SQLite format 3\u0000fixture".toByteArray())
+            }
+            coEvery { ccRunner.syncAdapter("travel-baidu-map", any(), any()) } returns
+                LocalCcRunner.CcResult.Ok(
+                    report = LocalCcRunner.SyncReport(
+                        adapter = "travel-baidu-map",
+                        status = "ok",
+                        ingested = 3,
+                        invalidCount = 0,
+                        kgTriples = 0,
+                        ragDocs = 0,
+                        durationMs = 10L,
+                        error = null,
+                    ),
+                    rawJson = "{}",
+                )
+
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.importTravelFile("travel-baidu-map", fakeUri)
+            advanceUntilIdle()
+
+            val card = vm.state.value.travel["travel-baidu-map"]!!
+            assertFalse(card.isSyncing)
+            assertEquals(3, card.lastSyncCount)
+            assertNotNull(card.lastSyncAt)
+            assertNull(card.errorMessage)
+            verify { travelCredentials.recordSync("travel-baidu-map", any(), 3) }
+            assertTrue(
+                "travel import staging file must be deleted after cc consumes it",
+                java.io.File(filesDir, "staging").listFiles()?.isEmpty() ?: true,
+            )
+        }
+
+    @Test
+    fun `importTravelFile rejects empty file without invoking cc`() = runTest(testDispatcher) {
+        val filesDir = java.io.File.createTempFile("files", "").let {
+            it.delete()
+            it.mkdirs()
+            it
+        }
+        every { appContext.filesDir } returns filesDir
+        every { travelCredentials.hasCredentials(any()) } returns false
+        val resolver = io.mockk.mockk<android.content.ContentResolver>(relaxed = true)
+        every { appContext.contentResolver } returns resolver
+        val fakeUri = io.mockk.mockk<android.net.Uri>(relaxed = true)
+        every { resolver.openInputStream(fakeUri) } returns java.io.ByteArrayInputStream(byteArrayOf())
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.importTravelFile("travel-ctrip", fakeUri)
+        advanceUntilIdle()
+
+        val card = vm.state.value.travel["travel-ctrip"]!!
+        assertFalse(card.isSyncing)
+        assertTrue(card.errorMessage?.contains("空") == true)
+        coVerify(exactly = 0) { ccRunner.syncAdapter("travel-ctrip", any(), any()) }
+        assertTrue(java.io.File(filesDir, "staging").listFiles()?.isEmpty() ?: true)
     }
 
     @Test

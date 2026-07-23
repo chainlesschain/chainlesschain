@@ -66,11 +66,11 @@ describe("BaiduMapAdapter snapshot mode", () => {
     expect(res.reason).toBe("NO_INPUT");
   });
 
-  it("authenticate(dbPath) without account.deviceId returns NO_ACCOUNT_DEVICE_ID", async () => {
+  it("authenticate(dbPath) does not require unused account.deviceId", async () => {
     const a = new BaiduMapAdapter({ dbPath: path.join(tmpDir, "fake.db") });
     const res = await a.authenticate({});
-    expect(res.ok).toBe(false);
-    expect(res.reason).toBe("NO_ACCOUNT_DEVICE_ID");
+    expect(res.ok).toBe(true);
+    expect(res.mode).toBe("sqlite");
   });
 
   it("rejects schemaVersion mismatch", async () => {
@@ -299,11 +299,11 @@ describe("TencentMapAdapter snapshot mode", () => {
     expect(res.mode).toBe("snapshot-file");
   });
 
-  it("authenticate(dbPath) without deviceId returns NO_ACCOUNT_DEVICE_ID", async () => {
+  it("authenticate(dbPath) requires an explicit confirmed sqlite profile", async () => {
     const a = new TencentMapAdapter({ dbPath: "/tmp/fake.db" });
     const res = await a.authenticate({});
     expect(res.ok).toBe(false);
-    expect(res.reason).toBe("NO_ACCOUNT_DEVICE_ID");
+    expect(res.reason).toBe("EXPLICIT_SCHEMA_REQUIRED");
   });
 
   it("rejects schemaVersion mismatch", async () => {

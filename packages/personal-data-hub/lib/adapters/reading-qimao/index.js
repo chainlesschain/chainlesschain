@@ -2,9 +2,8 @@
  * §12.1 Phase 13+ — 七猫免费小说 (Qimao, com.phoenix.read) adapter, "阅读历史".
  * Device-discovered gap (2026-06-15). Thin wrapper over _reading-base.
  *
- * BEST-EFFORT: wtzw.com / qimao endpoints are FABRICATED placeholders
- * (overridable, NOT field-verified — FAMILY-23 playbook); snapshot mode is the
- * reliable path. Low sensitivity (reading history).
+ * Snapshot import is supported. Custom live collection requires caller-supplied
+ * captured endpoints. Low sensitivity (reading history).
  */
 
 "use strict";
@@ -12,10 +11,7 @@
 const { createReadingAdapter, parseTime, SNAPSHOT_SCHEMA_VERSION } = require("../_reading-base");
 
 const NAME = "reading-qimao";
-const VERSION = "0.1.0";
-
-const READ_URL = "https://api.wtzw.com/api/v1/reader/history";
-const FAVOURITE_URL = "https://api.wtzw.com/api/v1/bookshelf/list";
+const VERSION = "0.2.0";
 
 function extractItems(resp) {
   if (!resp || typeof resp !== "object") return [];
@@ -52,8 +48,6 @@ const QimaoReadingAdapter = createReadingAdapter({
   NAME,
   VERSION,
   platform: "qimao",
-  readUrl: READ_URL,
-  favouriteUrl: FAVOURITE_URL,
   extractItems,
   mapItem,
 });

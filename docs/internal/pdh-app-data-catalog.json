@@ -1,7 +1,24 @@
 {
   "generated": "run gen-app-data-catalog.js",
-  "count": 78,
+  "count": 81,
   "adapters": [
+    {
+      "export": "BrowserHistoryAospAdapter",
+      "name": "browser-history-aosp",
+      "display": "MIUI/AOSP 浏览历史",
+      "category": "本地/系统",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:aosp-browser-history-sqlite",
+        "sync:aosp-browser-bookmarks-sqlite"
+      ],
+      "fields": [
+        "history:url,title,visitTimeMs,visitCount",
+        "bookmarks:url,name"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
     {
       "export": "BrowserHistoryChromeAdapter",
       "name": "browser-history-chrome",
@@ -86,7 +103,7 @@
       "name": "system-data-android",
       "display": "Android 系统数据",
       "category": "本地/系统",
-      "version": "0.3.2",
+      "version": "0.3.4",
       "capabilities": [
         "sync:android-content-provider",
         "sync:android-package-manager",
@@ -95,7 +112,7 @@
         "sync:android-media-files"
       ],
       "fields": [
-        "contacts:displayName,phones,emails,starred,organization,photoUri",
+        "contacts:displayName,phones,emails,starred,organization,jobTitle,photoUri",
         "installed_apps:packageName,label,versionName,versionCode,firstInstallTime,lastUpdateTime,isSystem",
         "sms:id,address,body,date,dateSent,type,threadId,read,subject",
         "callLog:id,number,name,duration,date,type,geocoded",
@@ -142,11 +159,10 @@
       "name": "car-mercedesme",
       "display": "奔驰 Mercedes me",
       "category": "出行/车",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "capabilities": [
         "import:json",
         "sync:snapshot",
-        "sync:cookie-api",
         "parse:mercedesme-trips"
       ],
       "fields": [
@@ -163,7 +179,7 @@
       "version": "0.7.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "import:json",
         "parse:12306-orders"
       ],
@@ -178,11 +194,13 @@
       "name": "travel-amap",
       "display": "高德地图",
       "category": "出行/车",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "capabilities": [
         "sync:sqlite",
         "sync:snapshot",
-        "parse:amap-history"
+        "import:sqlite",
+        "parse:amap-history",
+        "parse:amap-favourites"
       ],
       "fields": [
         "amap:search_history (query / time / location)",
@@ -197,10 +215,11 @@
       "name": "travel-baidu-map",
       "display": "百度地图",
       "category": "出行/车",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "capabilities": [
         "sync:snapshot",
         "sync:sqlite",
+        "import:sqlite",
         "parse:baidu-map-favourite",
         "parse:baidu-map-history"
       ],
@@ -222,7 +241,7 @@
       "capabilities": [
         "import:json",
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:ctrip-orders"
       ],
       "fields": [
@@ -240,7 +259,7 @@
       "capabilities": [
         "import:json",
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:didi-rides"
       ],
       "fields": [
@@ -254,11 +273,10 @@
       "name": "travel-didi-consumer",
       "display": "滴滴出行",
       "category": "出行/车",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "capabilities": [
         "import:json",
         "sync:snapshot",
-        "sync:cookie-api",
         "parse:didi-rides"
       ],
       "fields": [
@@ -272,18 +290,17 @@
       "name": "travel-tencent-map",
       "display": "腾讯地图",
       "category": "出行/车",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:sqlite",
         "parse:tencent-map-favourite",
         "parse:tencent-map-history"
       ],
       "fields": [
         "tencent:account (uid / displayName, cookie scrape)",
         "tencent:favourite (saved places — home / company / other)",
-        "tencent:search_history (queries, scaffold sqlite mode)",
-        "tencent:route_history (planned routes, scaffold sqlite mode)"
+        "tencent:search_history (queries, snapshot or explicit sqlite profile)",
+        "tencent:route_history (planned routes, snapshot or explicit sqlite profile)"
       ],
       "sensitivity": "medium",
       "legalGate": false
@@ -297,7 +314,7 @@
       "capabilities": [
         "import:json",
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:tongcheng-orders"
       ],
       "fields": [
@@ -314,7 +331,7 @@
       "version": "0.1.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:dianping-orders"
       ],
       "fields": [
@@ -331,7 +348,7 @@
       "version": "0.1.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:eleme-orders"
       ],
       "fields": [
@@ -348,7 +365,7 @@
       "version": "0.6.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:jd-orders"
       ],
       "fields": [
@@ -365,7 +382,7 @@
       "version": "0.6.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:meituan-orders"
       ],
       "fields": [
@@ -382,7 +399,7 @@
       "version": "0.2.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:pinduoduo-orders"
       ],
       "fields": [
@@ -399,7 +416,7 @@
       "version": "0.6.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:taobao-orders"
       ],
       "fields": [
@@ -416,7 +433,7 @@
       "version": "0.1.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:vipshop-orders"
       ],
       "fields": [
@@ -433,7 +450,7 @@
       "version": "0.1.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:xianyu-orders"
       ],
       "fields": [
@@ -518,10 +535,13 @@
       "name": "messaging-whatsapp",
       "display": "WhatsApp",
       "category": "即时通讯",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "capabilities": [
         "sync:sqlite",
         "sync:snapshot",
+        "sync:adb-public-backup",
+        "decrypt:whatsapp-crypt14",
+        "decrypt:whatsapp-crypt15",
         "parse:whatsapp-messages"
       ],
       "fields": [
@@ -627,10 +647,9 @@
       "name": "fitness-joyrun",
       "display": "悦跑圈",
       "category": "健康/运动",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
         "parse:joyrun-run"
       ],
       "fields": [
@@ -644,10 +663,9 @@
       "name": "fitness-keep",
       "display": "Keep",
       "category": "健康/运动",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
         "parse:keep-workout"
       ],
       "fields": [
@@ -661,10 +679,9 @@
       "name": "health-meiyou",
       "display": "美柚",
       "category": "健康/运动",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
         "parse:meiyou-period",
         "parse:meiyou-record"
       ],
@@ -734,10 +751,9 @@
       "name": "bank-bankcomm",
       "display": "交通银行",
       "category": "金融/支付",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
         "parse:bankcomm-transaction",
         "parse:bankcomm-card"
       ],
@@ -753,10 +769,9 @@
       "name": "bank-boc",
       "display": "中国银行",
       "category": "金融/支付",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
         "parse:boc-transaction",
         "parse:boc-card"
       ],
@@ -772,10 +787,9 @@
       "name": "bank-cmbc",
       "display": "民生银行",
       "category": "金融/支付",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
         "parse:cmbc-transaction",
         "parse:cmbc-card"
       ],
@@ -791,10 +805,9 @@
       "name": "bank-icbc",
       "display": "工商银行",
       "category": "金融/支付",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
         "parse:icbc-transaction",
         "parse:icbc-card"
       ],
@@ -829,10 +842,9 @@
       "name": "finance-dcep",
       "display": "数字人民币",
       "category": "金融/支付",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
         "parse:dcep-transaction"
       ],
       "fields": [
@@ -849,7 +861,7 @@
       "version": "0.1.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:ximalaya-play",
         "parse:ximalaya-favorite",
         "parse:ximalaya-subscribe"
@@ -870,7 +882,7 @@
       "version": "0.1.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:kugou-play",
         "parse:kugou-favorite",
         "parse:kugou-playlist"
@@ -891,7 +903,7 @@
       "version": "0.1.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:qqmusic-play",
         "parse:qqmusic-favorite",
         "parse:qqmusic-playlist"
@@ -909,10 +921,9 @@
       "name": "reading-fanqie",
       "display": "番茄小说",
       "category": "媒体/阅读",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
         "parse:fanqie-read",
         "parse:fanqie-favourite"
       ],
@@ -928,10 +939,9 @@
       "name": "reading-qimao",
       "display": "七猫小说",
       "category": "媒体/阅读",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
         "parse:qimao-read",
         "parse:qimao-favourite"
       ],
@@ -950,7 +960,7 @@
       "version": "0.1.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:iqiyi-watch",
         "parse:iqiyi-favourite"
       ],
@@ -969,7 +979,7 @@
       "version": "0.1.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:tencent-video-watch",
         "parse:tencent-video-favourite"
       ],
@@ -988,7 +998,7 @@
       "version": "0.1.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:xigua-watch",
         "parse:xigua-favourite"
       ],
@@ -1049,7 +1059,7 @@
       "version": "0.1.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:tianyancha-monitor",
         "parse:tianyancha-search"
       ],
@@ -1091,7 +1101,7 @@
       "version": "0.1.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:csdn-article",
         "parse:csdn-favourite",
         "parse:csdn-follow"
@@ -1112,7 +1122,7 @@
       "version": "0.1.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:dongchedi-favourite",
         "parse:dongchedi-follow"
       ],
@@ -1131,7 +1141,7 @@
       "version": "0.1.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:douban-interest",
         "parse:douban-review",
         "parse:douban-follow"
@@ -1220,7 +1230,7 @@
       "name": "social-weibo",
       "display": "微博",
       "category": "社交/内容",
-      "version": "0.7.0",
+      "version": "0.8.0",
       "capabilities": [
         "sync:snapshot",
         "sync:sqlite",
@@ -1233,7 +1243,10 @@
         "weibo:posts (text / created_at / reposts_count / comments_count / likes)",
         "weibo:favourite (mid / text / author)",
         "weibo:follow (uid / screen_name)",
-        "weibo:search_history (legacy sqlite mode)"
+        "weibo:search_history (legacy sqlite mode)",
+        "weibo:dm-buddy (uid / nick / remark) — HIGH sensitivity, opt-in (includeDm)",
+        "weibo:dm-session (session_id / unread) — HIGH sensitivity, opt-in",
+        "weibo:dm-message (time / outgoing / content) — HIGH sensitivity, opt-in"
       ],
       "sensitivity": "medium",
       "legalGate": false
@@ -1269,7 +1282,7 @@
       "version": "0.1.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:zhihu-answer",
         "parse:zhihu-favourite",
         "parse:zhihu-follow"
@@ -1290,7 +1303,7 @@
       "version": "0.1.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:baidu-netdisk-documents"
       ],
       "fields": [
@@ -1307,7 +1320,7 @@
       "version": "0.1.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:camscanner-documents"
       ],
       "fields": [
@@ -1324,7 +1337,7 @@
       "version": "0.1.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:tencent-docs-documents"
       ],
       "fields": [
@@ -1341,13 +1354,38 @@
       "version": "0.1.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:wps-documents"
       ],
       "fields": [
         "wps:document (title / docType / createdTime / url)"
       ],
       "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "EmailAdapter",
+      "name": "email-imap",
+      "display": "邮箱（IMAP）",
+      "category": "邮件",
+      "version": "0.7.0",
+      "capabilities": [
+        "sync:snapshot",
+        "parse:mime-body",
+        "parse:attachment-metadata",
+        "classify:layer1-rules",
+        "extract:6-templates",
+        "decrypt:pdf-bills"
+      ],
+      "fields": [
+        "email:headers (from/to/subject/date/messageId)",
+        "email:flags + uid + internalDate",
+        "email:body (text + html, capped to ~8k chars)",
+        "email:attachment-metadata (filename, contentType, size, sha256; no file bytes saved in v0)",
+        "classification:layer-1-rule-or-layer-2-llm-category (bill_bank/order/travel/etc.)",
+        "bill-transactions:date+description+amount+balance (extracted from decrypted PDF attachments; PDF bytes themselves never persist)"
+      ],
+      "sensitivity": "high",
       "legalGate": false
     },
     {
@@ -1396,7 +1434,7 @@
       "version": "0.1.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
+        "sync:custom-cookie-api",
         "parse:boss-chat",
         "parse:boss-application"
       ],
@@ -1412,10 +1450,9 @@
       "name": "gov-12123",
       "display": "交管12123",
       "category": "政务",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
         "parse:12123-violation",
         "parse:12123-license"
       ],
@@ -1431,10 +1468,9 @@
       "name": "gov-ixiamen",
       "display": "i厦门",
       "category": "政务",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
         "parse:ixiamen-service"
       ],
       "fields": [
@@ -1448,10 +1484,9 @@
       "name": "gov-tax",
       "display": "个人所得税",
       "category": "政务",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
         "parse:tax-income",
         "parse:tax-declaration"
       ],
@@ -1461,6 +1496,28 @@
       ],
       "sensitivity": "high",
       "legalGate": true
+    },
+    {
+      "export": "AIChatHistoryAdapter",
+      "name": "ai-chat-history",
+      "display": "AI 对话历史",
+      "category": "AI 对话",
+      "version": "0.2.0",
+      "capabilities": [
+        "sync:cookie-multi-vendor",
+        "sync:persisted-cookie-accounts",
+        "sync:cookie-snapshot",
+        "parse:ai-conversations",
+        "ingest:cross-vendor"
+      ],
+      "fields": [
+        "ai-chat:vendor,conversationId,messageId,role,text,modelName",
+        "ai-chat:attachments(url,filename,mimeType,size)",
+        "ai-chat:generatedImages(url,prompt,model,params)",
+        "ai-chat:toolCalls"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
     }
   ]
 }

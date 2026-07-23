@@ -2,9 +2,8 @@
  * §12.1 Phase 13+ — 番茄免费小说 (Fanqie, com.dragon.read) adapter, "阅读历史".
  * Device-discovered gap (2026-06-15). Thin wrapper over _reading-base.
  *
- * BEST-EFFORT: fanqienovel.com endpoints are FABRICATED placeholders
- * (overridable, NOT field-verified — FAMILY-23 playbook); snapshot mode is the
- * reliable path. Low sensitivity (reading history).
+ * Snapshot import is supported. Custom live collection requires caller-supplied
+ * captured endpoints. Low sensitivity (reading history).
  */
 
 "use strict";
@@ -12,10 +11,7 @@
 const { createReadingAdapter, parseTime, SNAPSHOT_SCHEMA_VERSION } = require("../_reading-base");
 
 const NAME = "reading-fanqie";
-const VERSION = "0.1.0";
-
-const READ_URL = "https://fanqienovel.com/api/reader/history";
-const FAVOURITE_URL = "https://fanqienovel.com/api/bookshelf/list";
+const VERSION = "0.2.0";
 
 function extractItems(resp) {
   if (!resp || typeof resp !== "object") return [];
@@ -52,8 +48,6 @@ const FanqieReadingAdapter = createReadingAdapter({
   NAME,
   VERSION,
   platform: "fanqie",
-  readUrl: READ_URL,
-  favouriteUrl: FAVOURITE_URL,
   extractItems,
   mapItem,
 });

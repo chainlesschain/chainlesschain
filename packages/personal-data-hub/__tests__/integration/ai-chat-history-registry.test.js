@@ -152,6 +152,41 @@ describe("Integration — AIChatHistoryAdapter through AdapterRegistry", () => {
     expect(topicCount).toBe(2);
   });
 
+  it("Android cookie snapshot flows through registry into real vault events", async () => {
+    rig = makeRig();
+    const clk = makeClock();
+    const fetched = makeRoutedFetch(deepseekFixtures());
+    const adapter = new AIChatHistoryAdapter({
+      fetch: fetched.fetch,
+      sleep: clk.sleep,
+      now: clk.now,
+    });
+    rig.registry.register(adapter);
+    const inputPath = path.join(rig.dir, "ai-chat-deepseek.json");
+    fs.writeFileSync(
+      inputPath,
+      JSON.stringify({
+        vendor: "deepseek",
+        cookie: "userToken=android-token; device_id=device-1",
+        fetchedAt: 1_700_000_000_000,
+      }),
+      { mode: 0o600 },
+    );
+
+    const report = await rig.registry.syncAdapter("ai-chat-history", { inputPath });
+
+    expect(report.status).toBe("ok");
+    expect(report.invalidCount).toBe(0);
+    expect(report.rawCount).toBeGreaterThanOrEqual(3);
+    const events = rig.vault.queryEvents({ adapter: "ai-chat-history", limit: 100 });
+    expect(events).toHaveLength(2);
+    expect(events.every((event) => event.extra.vendor === "deepseek")).toBe(true);
+    const conversation = rig.vault.db
+      .prepare("SELECT COUNT(*) AS n FROM topics WHERE json_extract(extra, '$.kind') = 'ai-conversation'")
+      .get().n;
+    expect(conversation).toBe(1);
+  });
+
   it("watermark advances after successful sync; second sync is idempotent", async () => {
     rig = makeRig();
     const clk = makeClock();

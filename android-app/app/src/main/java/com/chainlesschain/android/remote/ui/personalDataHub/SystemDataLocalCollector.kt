@@ -171,6 +171,7 @@ class SystemDataLocalCollector @Inject constructor(
             arrayOf(
                 ContactsContract.Data.CONTACT_ID,
                 ContactsContract.CommonDataKinds.Organization.COMPANY,
+                ContactsContract.CommonDataKinds.Organization.TITLE,
             ),
             "${ContactsContract.Data.CONTACT_ID} IN ($ids) AND ${ContactsContract.Data.MIMETYPE} = ?",
             arrayOf(ContactsContract.CommonDataKinds.Organization.CONTENT_ITEM_TYPE),
@@ -178,12 +179,18 @@ class SystemDataLocalCollector @Inject constructor(
         )?.use { c ->
             val idIdx = c.getColumnIndexOrThrow(ContactsContract.Data.CONTACT_ID)
             val orgIdx = c.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Organization.COMPANY)
+            val titleIdx = c.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Organization.TITLE)
             while (c.moveToNext()) {
                 val id = c.getLong(idIdx)
-                val org = c.getString(orgIdx)?.trim() ?: continue
-                if (org.isEmpty()) continue
                 val target = byId[id] ?: continue
-                if (target.organization == null) target.organization = org
+                val org = c.getString(orgIdx)?.trim()
+                if (target.organization == null && !org.isNullOrEmpty()) {
+                    target.organization = org
+                }
+                val jobTitle = c.getString(titleIdx)?.trim()
+                if (target.jobTitle == null && !jobTitle.isNullOrEmpty()) {
+                    target.jobTitle = jobTitle
+                }
             }
         }
     }
@@ -254,6 +261,7 @@ data class Contact(
     val starred: Boolean,
     val organization: String?,
     val photoUri: String?,
+    val jobTitle: String? = null,
 ) {
     fun toMap(): Map<String, Any?> = mapOf(
         "lookupKey" to lookupKey,
@@ -263,6 +271,7 @@ data class Contact(
         "starred" to starred,
         "organization" to organization,
         "photoUri" to photoUri,
+        "jobTitle" to jobTitle,
     )
 }
 
@@ -294,6 +303,7 @@ private class MutableContact(
     val phones: MutableList<String> = mutableListOf(),
     val emails: MutableList<String> = mutableListOf(),
     var organization: String? = null,
+    var jobTitle: String? = null,
 ) {
     fun toImmutable(): Contact = Contact(
         lookupKey = lookupKey,
@@ -303,5 +313,6 @@ private class MutableContact(
         starred = starred,
         organization = organization,
         photoUri = photoUri,
+        jobTitle = jobTitle,
     )
 }

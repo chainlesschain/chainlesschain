@@ -40,16 +40,23 @@
 "use strict";
 
 const fs = require("node:fs");
-const { normalizeTravelRecord, parseChineseDateTime } = require("../travel-base");
+const {
+  normalizeTravelRecord,
+  parseChineseDateTime,
+} = require("../travel-base");
 
 const NAME = "travel-baidu-map";
-const VERSION = "0.6.0";
+const VERSION = "0.7.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_FAVOURITE = "favourite";
 const KIND_SEARCH = "search";
 const KIND_ROUTE = "route";
-const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_FAVOURITE, KIND_SEARCH, KIND_ROUTE]);
+const VALID_SNAPSHOT_KINDS = Object.freeze([
+  KIND_FAVOURITE,
+  KIND_SEARCH,
+  KIND_ROUTE,
+]);
 
 class BaiduMapAdapter {
   constructor(opts = {}) {
@@ -64,6 +71,7 @@ class BaiduMapAdapter {
     this.capabilities = [
       "sync:snapshot",
       "sync:sqlite",
+      "import:sqlite",
       "parse:baidu-map-favourite",
       "parse:baidu-map-history",
     ];
@@ -106,17 +114,19 @@ class BaiduMapAdapter {
           message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
         };
       }
-      return { ok: true, mode: "snapshot-file" };
+      return {
+        ok: true,
+        mode: isSqliteFile(this._deps.fs, ctx.inputPath)
+          ? "sqlite-file"
+          : "snapshot-file",
+      };
     }
     if (this._dbPath || (ctx && typeof ctx.dbPath === "string")) {
-      if (!this.account || !this.account.deviceId) {
-        return {
-          ok: false,
-          reason: "NO_ACCOUNT_DEVICE_ID",
-          message: "travel-baidu-map.authenticate: sqlite mode requires account.deviceId",
-        };
-      }
-      return { ok: true, account: this.account.deviceId, mode: "sqlite" };
+      return {
+        ok: true,
+        account: this.account ? this.account.deviceId || null : null,
+        mode: "sqlite",
+      };
     }
     return {
       ok: false,
@@ -132,7 +142,11 @@ class BaiduMapAdapter {
 
   async *sync(opts = {}) {
     if (typeof opts.inputPath === "string" && opts.inputPath.length > 0) {
-      yield* this._syncViaSnapshot(opts);
+      if (isSqliteFile(this._deps.fs, opts.inputPath)) {
+        yield* this._syncViaSqlite({ ...opts, dbPath: opts.inputPath });
+      } else {
+        yield* this._syncViaSnapshot(opts);
+      }
       return;
     }
     const dbPath = opts.dbPath || this._dbPath;
@@ -179,9 +193,7 @@ class BaiduMapAdapter {
       if (include[kind] === false) continue;
 
       const capturedAt =
-        parseTime(ev.capturedAt) ||
-        parseTime(ev.time) ||
-        fallbackCapturedAt;
+        parseTime(ev.capturedAt) || parseTime(ev.time) || fallbackCapturedAt;
       const id =
         (typeof ev.id === "string" && ev.id.length > 0 && ev.id) ||
         ev.rid ||
@@ -199,12 +211,8 @@ class BaiduMapAdapter {
   }
 
   async *_syncViaSqlite(opts) {
-    // Legacy Phase 9.4b path — requires account.deviceId in constructor.
-    if (!this.account || !this.account.deviceId) {
-      throw new Error(
-        "travel-baidu-map._syncViaSqlite: account.deviceId required (set via new BaiduMapAdapter({ account: { deviceId } }))",
-      );
-    }
+    // Legacy Phase 9.4b path. The database itself is sufficient input;
+    // deviceId was never used for decryption or normalization.
     const dbPath = opts.dbPath;
     if (!dbPath || !this._deps.fs.existsSync(dbPath)) return;
     const Driver = this._deps.dbDriverFactory
@@ -213,8 +221,10 @@ class BaiduMapAdapter {
     const db = new Driver(dbPath, { readonly: true });
 
     try {
-      const routes = trySelect(db, "SELECT * FROM route_history LIMIT 5000")
-        || trySelect(db, "SELECT * FROM bd_route_history LIMIT 5000") || [];
+      const routes =
+        trySelect(db, "SELECT * FROM route_history LIMIT 5000") ||
+        trySelect(db, "SELECT * FROM bd_route_history LIMIT 5000") ||
+        [];
       for (const r of routes) {
         const rec = routeRowToRecord(r);
         if (rec) {
@@ -226,7 +236,8 @@ class BaiduMapAdapter {
           };
         }
       }
-      const searches = trySelect(db, "SELECT * FROM search_history LIMIT 5000") || [];
+      const searches =
+        trySelect(db, "SELECT * FROM search_history LIMIT 5000") || [];
       for (const r of searches) {
         const rec = searchRowToRecord(r);
         if (rec) {
@@ -238,8 +249,27 @@ class BaiduMapAdapter {
           };
         }
       }
+      const favourites =
+        trySelect(db, "SELECT * FROM my_favourite LIMIT 5000") ||
+        trySelect(db, "SELECT * FROM favorite LIMIT 5000") ||
+        [];
+      for (const row of favourites) {
+        const rec = favouriteRowToRecord(row);
+        if (rec) {
+          yield {
+            adapter: NAME,
+            originalId: rec.recordId,
+            capturedAt: rec.bookedAt || Date.now(),
+            payload: { record: rec, kind: KIND_FAVOURITE },
+          };
+        }
+      }
     } finally {
-      try { db.close(); } catch (_e) { /* ignore */ }
+      try {
+        db.close();
+      } catch (_e) {
+        /* ignore */
+      }
     }
   }
 
@@ -318,10 +348,18 @@ function snapshotEventToRecord(kind, p, originalId) {
       recordId: originalId,
       vehicleType: detectVehicle(p.mode),
       from: p.from
-        ? { name: p.from.name || null, lat: numberOrNull(p.from.lat), lng: numberOrNull(p.from.lng) }
+        ? {
+            name: p.from.name || null,
+            lat: numberOrNull(p.from.lat),
+            lng: numberOrNull(p.from.lng),
+          }
         : undefined,
       to: p.to
-        ? { name: p.to.name || null, lat: numberOrNull(p.to.lat), lng: numberOrNull(p.to.lng) }
+        ? {
+            name: p.to.name || null,
+            lat: numberOrNull(p.to.lat),
+            lng: numberOrNull(p.to.lng),
+          }
         : undefined,
       departureMs: parseTime(p.capturedAt),
       carrier: "百度地图",
@@ -346,6 +384,29 @@ function trySelect(db, sql) {
   }
 }
 
+function isSqliteFile(fsImpl, filePath) {
+  let fd;
+  try {
+    fd = fsImpl.openSync(filePath, "r");
+    const header = Buffer.alloc(16);
+    const bytesRead = fsImpl.readSync(fd, header, 0, header.length, 0);
+    return (
+      bytesRead === header.length &&
+      header.toString("binary") === "SQLite format 3\u0000"
+    );
+  } catch (_e) {
+    return false;
+  } finally {
+    if (fd !== undefined) {
+      try {
+        fsImpl.closeSync(fd);
+      } catch (_e) {
+        // best-effort close
+      }
+    }
+  }
+}
+
 function routeRowToRecord(row) {
   if (!row) return null;
   const id = row._id || row.id || row.uid;
@@ -354,8 +415,16 @@ function routeRowToRecord(row) {
     vendorId: "baidumap",
     recordId: `route-${id}`,
     vehicleType: detectVehicle(row.type || row.mode),
-    from: { name: row.start_name || row.from_name, lat: row.start_lat || null, lng: row.start_lng || null },
-    to: { name: row.end_name || row.to_name, lat: row.end_lat || null, lng: row.end_lng || null },
+    from: {
+      name: row.start_name || row.from_name,
+      lat: row.start_lat || null,
+      lng: row.start_lng || null,
+    },
+    to: {
+      name: row.end_name || row.to_name,
+      lat: row.end_lat || null,
+      lng: row.end_lng || null,
+    },
     departureMs: numberOrParse(row.time || row.create_time),
     carrier: "百度地图",
     extras: { mode: row.type || row.mode },
@@ -370,10 +439,43 @@ function searchRowToRecord(row) {
     vendorId: "baidumap",
     recordId: `search-${id}`,
     vehicleType: "visit",
-    to: { name: row.key || row.query, lat: row.lat || null, lng: row.lng || null, city: row.city },
+    to: {
+      name: row.key || row.query,
+      lat: row.lat || null,
+      lng: row.lng || null,
+      city: row.city,
+    },
     departureMs: numberOrParse(row.time || row.create_time),
     carrier: "百度地图",
     extras: { query: row.key || row.query },
+  };
+}
+
+function favouriteRowToRecord(row) {
+  if (!row) return null;
+  const id = row._id || row.id || row.uid || row.poi_id;
+  if (!id) return null;
+  const name = row.name || row.title || row.poi_name || row.address;
+  if (!name) return null;
+  return {
+    vendorId: "baidumap",
+    recordId: `favourite-${id}`,
+    vehicleType: "visit",
+    to: {
+      name,
+      lat: numberOrNull(row.lat || row.latitude || row.y),
+      lng: numberOrNull(row.lng || row.lon || row.longitude || row.x),
+      city: row.city || row.city_name || null,
+    },
+    departureMs: numberOrParse(
+      row.time || row.create_time || row.created_at || row.update_time,
+    ),
+    carrier: "百度地图",
+    extras: {
+      kind: KIND_FAVOURITE,
+      category: row.category || row.type || null,
+      address: row.address || row.addr || null,
+    },
   };
 }
 
@@ -419,4 +521,11 @@ function numberOrParse(v) {
   return null;
 }
 
-module.exports = { BaiduMapAdapter, NAME, VERSION, SNAPSHOT_SCHEMA_VERSION };
+module.exports = {
+  BaiduMapAdapter,
+  favouriteRowToRecord,
+  isSqliteFile,
+  NAME,
+  VERSION,
+  SNAPSHOT_SCHEMA_VERSION,
+};

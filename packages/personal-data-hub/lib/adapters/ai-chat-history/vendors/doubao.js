@@ -1,5 +1,5 @@
 /**
- * Doubao / 豆包 (ByteDance text AI) vendor adapter — Phase 10.2(+) scaffold.
+ * Doubao / 豆包 (ByteDance text AI) vendor adapter.
  *
  * Doubao is ByteDance's flagship text AI assistant — sibling to Dreamina
  * (image/video) but on a separate domain and surface. Treated as the 9th
@@ -16,17 +16,9 @@
  *                  response: { data: { message_list: [...], cursor, has_more } }
  *   - user info    POST /samantha/user/info
  *
- * Phase 10.2(+) scope (this file): scaffold only.
- *   - SPEC declares endpoint shape + rate limits + cookie domain
- *   - validateCookie / listConversations / listMessages parse the documented
- *     response shape but the exact field names are TBD until Phase 10.4
- *     real-account fixture pin
- *   - response shape uses defensive `_extractList` fallback to absorb minor
- *     field-name drift without breaking sync
- *
- * Phase 10.4 will pin field names from real-account har capture and add the
- * remaining response variants (search-result attachments, image gen inside
- * Doubao, voice replies, etc).
+ * The implementation validates cookies and paginates conversations/messages.
+ * Response extraction is defensive because this private web API can drift;
+ * real-account HAR fixtures are still required for version-by-version sign-off.
  */
 
 "use strict";
@@ -198,8 +190,8 @@ function _normalizeRole(r) {
 
 function _buildContent(m) {
   // Doubao messages can carry text + attachments (images uploaded by user,
-  // search refs, code blocks). For scaffold we keep text + attachment slot —
-  // Phase 10.4 will refine after fixture pin.
+  // search refs, code blocks). Preserve text plus the stable attachment subset;
+  // additional variants can be pinned from authorized account fixtures.
   const text = m.content || m.text || m.message_content || "";
   const out = { text };
   if (Array.isArray(m.attachments) && m.attachments.length > 0) {

@@ -175,6 +175,7 @@ function _ensureDir(_fs, dir) {
  */
 function createVendorAdapterBridge({
   specs = DEFAULT_VENDOR_SPECS,
+  runtimeAdapter,
   _httpClientFactory,
 } = {}) {
   // DEFAULT_VENDOR_SPECS is shipped as a vendor-keyed object; tests pass an
@@ -237,8 +238,18 @@ function createVendorAdapterBridge({
 
     try {
       const r = await spec.validateCookie({ httpClient: client, session });
-      // validateCookie returns { ok, userId?, reason? }. Pass through.
-      return r || { ok: false, reason: "VALIDATE_RETURNED_NULL" };
+      // validateCookie returns { ok, userId?, reason? }. Once valid, attach
+      // the exact same session to the registry-owned runtime adapter so the
+      // newly registered account can sync immediately without an app restart.
+      const result = r || { ok: false, reason: "VALIDATE_RETURNED_NULL" };
+      if (
+        result.ok &&
+        runtimeAdapter &&
+        typeof runtimeAdapter.setSession === "function"
+      ) {
+        runtimeAdapter.setSession(vendor, session);
+      }
+      return result;
     } catch (err) {
       return { ok: false, reason: "VALIDATE_THREW", error: err.message };
     }
@@ -399,6 +410,8 @@ function _resolveUserDataDir() {
 const _wizardsByHubDir = new Map();
 function getAIChatWizard({
   hubDir,
+  accountsStore,
+  vendorAdapter,
   _deps,
   _accountsStore,
   _vendorAdapter,
@@ -413,12 +426,15 @@ function getAIChatWizard({
   if (_wizardsByHubDir.has(hubDir) && !isTestInject) {
     return _wizardsByHubDir.get(hubDir);
   }
-  const accountsStore =
-    _accountsStore || createAccountsStore({ hubDir, _fs: _fsInject });
-  const vendorAdapter = _vendorAdapter || createVendorAdapterBridge();
+  const effectiveAccountsStore =
+    accountsStore ||
+    _accountsStore ||
+    createAccountsStore({ hubDir, _fs: _fsInject });
+  const effectiveVendorAdapter =
+    vendorAdapter || _vendorAdapter || createVendorAdapterBridge();
   const controller = createAIChatWizardController({
-    accountsStore,
-    vendorAdapter,
+    accountsStore: effectiveAccountsStore,
+    vendorAdapter: effectiveVendorAdapter,
     _deps,
   });
   // Don't cache test-injected instances — only production singletons.

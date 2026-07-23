@@ -75,13 +75,13 @@ const SNAPSHOT = {
 describe("constants", () => {
   it("exposes name/version/schema", () => {
     expect(NAME).toBe("travel-tencent-map");
-    expect(VERSION).toBe("0.2.0");
+    expect(VERSION).toBe("0.3.0");
     expect(SNAPSHOT_SCHEMA_VERSION).toBe(1);
   });
 });
 
 describe("authenticate", () => {
-  it("mirrors baidu: snapshot / sqlite-needs-deviceId / NO_INPUT", async () => {
+  it("supports snapshot and rejects sqlite without an explicit schema profile", async () => {
     const p = writeTmp("{}");
     try {
       const a = new TencentMapAdapter();
@@ -92,7 +92,15 @@ describe("authenticate", () => {
         (
           await new TencentMapAdapter({ dbPath: "x.db" }).authenticate({})
         ).reason,
-      ).toBe("NO_ACCOUNT_DEVICE_ID");
+      ).toBe("EXPLICIT_SCHEMA_REQUIRED");
+      expect(
+        (
+          await new TencentMapAdapter({
+            dbPath: "x.db",
+            sqliteTables: { route: ["confirmed_route_history"] },
+          }).authenticate({})
+        ).mode,
+      ).toBe("custom-sqlite");
       expect((await a.authenticate({})).reason).toBe("NO_INPUT");
     } finally {
       fs.unlinkSync(p);
@@ -135,7 +143,10 @@ describe("sync — sqlite mode (fake driver)", () => {
     try {
       const a = new TencentMapAdapter({
         dbPath: p,
-        account: { deviceId: "DEV1" },
+        sqliteTables: {
+          route: ["route_history", "tencent_route_history"],
+          search: ["search_history", "tencent_search_history"],
+        },
         dbDriverFactory: makeFakeDriverFactory(
           {
             tencent_route_history: [
@@ -174,10 +185,10 @@ describe("sync — sqlite mode (fake driver)", () => {
     }
   });
 
-  it("requires account.deviceId at sync time", async () => {
+  it("requires an explicit sqlite schema profile at sync time", async () => {
     const a = new TencentMapAdapter({ dbPath: "x.db" });
     await expect(collect(a.sync({}))).rejects.toThrow(
-      /account\.deviceId required/,
+      /explicit sqliteTables profile required/,
     );
   });
 });

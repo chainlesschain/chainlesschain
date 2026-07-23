@@ -39,8 +39,8 @@ import java.util.Locale
  *  - 第二把：默认拒云开关（Switch，默认 OFF）
  *  - 第三把：一键销毁（Button + 二次确认 AlertDialog）
  *
- * Export ("一键带走") 推文也提到但 SAF picker 还要一轮 wire — 本卡留 D11
- * follow-up 占位（disabled OutlinedButton + 注脚）。
+ * Export ("一键带走") 已接通加密 vault 导出；按钮会写入应用导出目录，
+ * 桌面端可通过 `cc hub import-vault` 恢复。
  */
 @Composable
 fun ThreeLocksCard(

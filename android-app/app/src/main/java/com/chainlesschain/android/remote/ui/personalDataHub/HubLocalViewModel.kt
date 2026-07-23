@@ -592,8 +592,7 @@ class HubLocalViewModel @Inject constructor(
             displayName = "小红书",
             implemented = true,
         ),
-        // 2026-05-23 v0.1 — 头条 placeholder card. cookie scrape 拿 uid，
-        // events 写空数组 (read/collection/search 需 _signature 签名 v0.2 接通)
+        // 今日头条：cookie/WebView + API collector，root DB 作为可选回退。
         val toutiao: SocialCardState = SocialCardState(
             adapterName = "social-toutiao",
             displayName = "今日头条",
@@ -607,8 +606,7 @@ class HubLocalViewModel @Inject constructor(
             displayName = "QQ空间",
             implemented = true,
         ),
-        // 2026-05-23 v0.1 — 快手 placeholder card. cookie scrape 拿 userId，
-        // events 写空数组 (watch/collect/search 需 NS_sig3 签名 v0.2 接通)
+        // 快手：cookie/WebView + API collector，root DB 作为可选回退。
         val kuaishou: SocialCardState = SocialCardState(
             adapterName = "social-kuaishou",
             displayName = "快手",
@@ -2005,9 +2003,9 @@ class HubLocalViewModel @Inject constructor(
     }
 
     /**
-     * v0.1 sync 入口 — 让 cc 走 ai-chat-history adapter (Phase 10.2 8/9
-     * 桌面 vendor 已 wire)。v0.2 加增量 since/last_id；豆包/文心 桌面 adapter
-     * 待补，本路径报 cc error "no adapter wired"，UI 显引导 "桌面 v0.2"。
+     * 让 cc 走统一的 ai-chat-history adapter。Android 只暂存本次 vendor
+     * cookie；adapter 从 inputPath 恢复临时会话后直接抓取对话与消息，命令
+     * 返回后立即删除含 cookie 的暂存文件。
      */
     fun syncAiChat(vendorKey: String) {
         val v = AiChatVendor.fromKey(vendorKey) ?: return
@@ -2038,9 +2036,8 @@ class HubLocalViewModel @Inject constructor(
             )
         }
         viewModelScope.launch {
-            // Stage cookie + vendor metadata as snapshot JSON so cc adapter can
-            // pick it up. Phase 10.2 桌面 adapter 模式 — snapshot.json shape
-            // {vendor, cookie, fetchedAt}.
+            // Stage cookie + vendor metadata for the cc adapter's ephemeral
+            // cookie-snapshot mode: {vendor, cookie, fetchedAt}.
             val staging = File(appContext.filesDir, "staging").apply { mkdirs() }
             val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
             val snapshotFile = File(staging, "ai-chat-${v.key}-$stamp.json")
@@ -2066,7 +2063,16 @@ class HubLocalViewModel @Inject constructor(
             }
 
             // adapterName = "ai-chat-history" (固定，cc 内部按 vendor field 分发)
-            val ccResult = ccRunner.syncAdapter("ai-chat-history", snapshotFile.absolutePath)
+            val ccResult = try {
+                ccRunner.syncAdapter("ai-chat-history", snapshotFile.absolutePath)
+            } finally {
+                if (snapshotFile.exists() && !snapshotFile.delete()) {
+                    Timber.w(
+                        "syncAiChat: failed to delete sensitive cookie snapshot vendor=%s",
+                        v.key,
+                    )
+                }
+            }
             _state.update { st ->
                 val current = st.aiChat[vendorKey] ?: card
                 when (ccResult) {
@@ -2087,13 +2093,13 @@ class HubLocalViewModel @Inject constructor(
                         )
                     }
                     is LocalCcRunner.CcResult.Failed -> {
-                        // Friendlier message for the common "no adapter wired"
-                        // case (豆包/文心 桌面 v0.2 待补): cc 会报 adapter not
-                        // found / unknown vendor。
+                        // A stale Android runtime bundle may predate the root
+                        // registration/cookie-snapshot path; distinguish that
+                        // upgrade case from an upstream API/auth failure.
                         val hint = if (
                             ccResult.reason.contains("not found", ignoreCase = true) ||
                             ccResult.reason.contains("unknown", ignoreCase = true)
-                        ) "桌面端 ai-chat-history adapter 暂未对接 ${v.displayName}，v0.2 补齐"
+                        ) "当前 cc 运行时未包含 ai-chat-history，请更新内置运行时后重试"
                         else ccResult.reason
                         Timber.w(
                             "syncAiChat: cc failed vendor=%s reason=%s",
@@ -2215,7 +2221,14 @@ class HubLocalViewModel @Inject constructor(
             // Each branch maps to a user-actionable error message.
             when (snapshot) {
                 is EmailLocalCollector.SnapshotResult.Ok -> {
-                    val ccResult = ccRunner.syncAdapter("email-imap", snapshot.snapshotPath)
+                    val snapshotFile = File(snapshot.snapshotPath)
+                    val ccResult = try {
+                        ccRunner.syncAdapter("email-imap", snapshot.snapshotPath)
+                    } finally {
+                        if (!snapshotFile.delete()) {
+                            Timber.w("syncEmail: failed to delete staging file %s", snapshotFile)
+                        }
+                    }
                     _state.update { st ->
                         val cur = st.email[vendorKey] ?: card
                         when (ccResult) {
@@ -2239,7 +2252,7 @@ class HubLocalViewModel @Inject constructor(
                                 val hint = if (
                                     ccResult.reason.contains("not found", ignoreCase = true) ||
                                     ccResult.reason.contains("unknown adapter", ignoreCase = true)
-                                ) "桌面端 email-imap adapter 暂未对接，v0.2 补齐 (邮件已成功抓 ${snapshot.fetchedCount} 封到本机临时区)"
+                                ) "当前运行时未包含 email-imap，请更新内置运行时后重试"
                                 else ccResult.reason
                                 st.copy(
                                     globalSyncingAdapter = null,
@@ -2253,7 +2266,6 @@ class HubLocalViewModel @Inject constructor(
                     }
                 }
                 is EmailLocalCollector.SnapshotResult.NoCredentials -> updateEmailError(vendorKey, "凭据丢失 — 请重新输入")
-                is EmailLocalCollector.SnapshotResult.OAuthRequired -> updateEmailError(vendorKey, "Gmail OAuth v0.2.1 — 临时用 App Password (myaccount.google.com → 安全 → 应用专用密码)")
                 is EmailLocalCollector.SnapshotResult.AuthFailed -> updateEmailError(vendorKey, "认证失败：${snapshot.message}")
                 is EmailLocalCollector.SnapshotResult.ConnectFailed -> updateEmailError(vendorKey, "连接 IMAP 失败：${snapshot.message}")
                 is EmailLocalCollector.SnapshotResult.ProtocolFailed -> updateEmailError(vendorKey, "IMAP 协议错：${snapshot.message}")
@@ -2352,93 +2364,123 @@ class HubLocalViewModel @Inject constructor(
             requestTravelLogin(vendorKey)
             return
         }
-        // §2.5 v0.2 — 12306 走专用 collector，fetch 订单历史写真 events 进
-        // snapshot；其它 vendor 仍走 cookie-scrape generic path（地图三家 +
-        // 携程 v0.2 暂未接 web API，桌面 adapter 暂未对接）。
+        // 12306 走已验证的专用 collector。地图与携程没有公开且稳定的消费
+        // 者 API，只接受用户选择的 SQLite / JSON 导出，不再生成 cookie-only
+        // 空快照。
         if (v == TravelVendor.KYFW_12306) {
             syncKyfw12306(card)
             return
         }
-        val cookie = travelCredentials.getCookie(vendorKey)
-        if (cookie.isNullOrBlank()) {
-            _state.update { st ->
-                st.copy(
-                    travel = st.travel + (vendorKey to card.copy(
-                        errorMessage = "cookie 失效 — 请重新登录",
-                    )),
-                )
-            }
-            return
-        }
-
-        _state.update {
-            it.copy(
-                globalSyncingAdapter = "travel:${v.key}",
-                travel = it.travel + (vendorKey to card.copy(
-                    isSyncing = true, errorMessage = null,
+        _state.update { st ->
+            st.copy(
+                travel = st.travel + (vendorKey to card.copy(
+                    isSyncing = false,
+                    errorMessage = "该来源没有公开且可验证的 Cookie 订单接口，请使用卡片上的“导入”选择本地导出文件",
                 )),
             )
         }
+    }
+
+    /**
+     * Imports user-controlled travel exports without relying on undocumented
+     * consumer APIs. Supported inputs are Amap/Baidu SQLite databases and
+     * Baidu/Tencent/Ctrip JSON snapshots. 12306 keeps its authenticated live
+     * collector and therefore does not use this path.
+     */
+    fun importTravelFile(vendorKey: String, sourceUri: android.net.Uri) {
+        val vendor = TravelVendor.fromKey(vendorKey) ?: return
+        if (vendor == TravelVendor.KYFW_12306) return
+        if (_state.value.globalSyncingAdapter != null) return
+        val card = _state.value.travel[vendorKey] ?: return
+        if (card.isSyncing) return
+
+        _state.update {
+            it.copy(
+                globalSyncingAdapter = "travel-import:$vendorKey",
+                travel = it.travel + (vendorKey to card.copy(
+                    isSyncing = true,
+                    errorMessage = null,
+                )),
+            )
+        }
+
         viewModelScope.launch {
+            val ext = when (vendor) {
+                TravelVendor.AMAP -> "db"
+                TravelVendor.BAIDU_MAP -> "bin"
+                TravelVendor.TENCENT_MAP, TravelVendor.CTRIP -> "json"
+                TravelVendor.KYFW_12306 -> "dat"
+            }
             val staging = File(appContext.filesDir, "staging").apply { mkdirs() }
             val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
-            val snapshotFile = File(staging, "travel-${v.key}-$stamp.json")
-            try {
-                val json = org.json.JSONObject().apply {
-                    put("vendor", v.key)
-                    put("cookie", cookie)
-                    put("fetchedAt", System.currentTimeMillis())
+            val stagedFile = File(staging, "$vendorKey-import-$stamp.$ext")
+            val copiedBytes = try {
+                appContext.contentResolver.openInputStream(sourceUri).use { input ->
+                    if (input == null) throw java.io.IOException("ContentResolver 无法打开 $sourceUri")
+                    stagedFile.outputStream().use { input.copyTo(it) }
                 }
-                snapshotFile.writeText(json.toString())
+                stagedFile.length()
             } catch (t: Throwable) {
-                Timber.w(t, "syncTravel: snapshot write failed vendor=%s", v.key)
+                stagedFile.delete()
+                Timber.w(t, "importTravelFile: copy failed vendor=%s", vendorKey)
                 _state.update { st ->
+                    val current = st.travel[vendorKey] ?: card
                     st.copy(
                         globalSyncingAdapter = null,
-                        travel = st.travel + (vendorKey to card.copy(
+                        travel = st.travel + (vendorKey to current.copy(
                             isSyncing = false,
-                            errorMessage = "本地暂存写入失败: ${t.message ?: t.javaClass.simpleName}",
+                            errorMessage = "读取所选文件失败: ${t.message ?: t.javaClass.simpleName}",
                         )),
                     )
                 }
                 return@launch
             }
 
-            val ccResult = ccRunner.syncAdapter(v.key, snapshotFile.absolutePath)
+            if (copiedBytes == 0L) {
+                stagedFile.delete()
+                _state.update { st ->
+                    val current = st.travel[vendorKey] ?: card
+                    st.copy(
+                        globalSyncingAdapter = null,
+                        travel = st.travel + (vendorKey to current.copy(
+                            isSyncing = false,
+                            errorMessage = "所选文件为空 — 请重新导出后再试",
+                        )),
+                    )
+                }
+                return@launch
+            }
+
+            val result = try {
+                ccRunner.syncAdapter(vendorKey, stagedFile.absolutePath)
+            } finally {
+                if (!stagedFile.delete()) {
+                    Timber.w("importTravelFile: failed to delete staging file %s", stagedFile)
+                }
+            }
             _state.update { st ->
-                val cur = st.travel[vendorKey] ?: card
-                when (ccResult) {
+                val current = st.travel[vendorKey] ?: card
+                when (result) {
                     is LocalCcRunner.CcResult.Ok -> {
-                        travelCredentials.recordSync(
-                            v.key,
-                            System.currentTimeMillis(),
-                            ccResult.report.ingested,
-                        )
+                        val now = System.currentTimeMillis()
+                        travelCredentials.recordSync(vendorKey, now, result.report.ingested)
                         st.copy(
                             globalSyncingAdapter = null,
-                            travel = st.travel + (vendorKey to cur.copy(
+                            travel = st.travel + (vendorKey to current.copy(
                                 isSyncing = false,
-                                lastSyncAt = System.currentTimeMillis(),
-                                lastSyncCount = ccResult.report.ingested,
+                                lastSyncAt = now,
+                                lastSyncCount = result.report.ingested,
                                 errorMessage = null,
                             )),
                         )
                     }
-                    is LocalCcRunner.CcResult.Failed -> {
-                        val hint = if (
-                            ccResult.reason.contains("not found", ignoreCase = true) ||
-                            ccResult.reason.contains("unknown adapter", ignoreCase = true)
-                        ) "桌面端 ${v.key} adapter 暂未对接，v0.2 补齐 (cookie 已保存到本机)"
-                        else ccResult.reason
-                        Timber.w("syncTravel: cc failed vendor=%s reason=%s", v.key, ccResult.reason)
-                        st.copy(
-                            globalSyncingAdapter = null,
-                            travel = st.travel + (vendorKey to cur.copy(
-                                isSyncing = false,
-                                errorMessage = hint,
-                            )),
-                        )
-                    }
+                    is LocalCcRunner.CcResult.Failed -> st.copy(
+                        globalSyncingAdapter = null,
+                        travel = st.travel + (vendorKey to current.copy(
+                            isSyncing = false,
+                            errorMessage = result.reason,
+                        )),
+                    )
                 }
             }
         }
@@ -4505,16 +4547,9 @@ class HubLocalViewModel @Inject constructor(
         }
     }
 
-    // ─── Toutiao 今日头条 (v0.1 placeholder — cookie + uid, events 空) ─────────
-    //
-    // 与 Douyin 同 family（ByteDance _signature 反爬 SDK），但 v0.1 比 Douyin
-    // 更小 surface：**完全不发网络请求**。cookie 抓回来后从 cookie 直接抽
-    // `passport_uid` / `multi_sids` / __ac_uid 之一，写 store；snapshot 写
-    // empty events 数组，cc syncAdapter 返 ingested=0，UI 透出
-    // "v0.2 待 _signature 签名接通历史/收藏/搜索"。
-    //
-    // SocialCardState.uid 字段是 Long? — 头条 uid 是数字字符串，能转 Long 就
-    // 转一下，转不了（极端长度）就留 null（仍能 isLoggedIn=true）。
+    // ─── Toutiao 今日头条：Web 登录/API 快照 + root DB 双路径 ────────────────
+    // SocialCardState.uid 是 Long?；非数字或超长 uid 保留在加密凭据 store，
+    // UI 的 uid 字段留 null，不影响登录态与同步。
 
     fun refreshToutiaoFromStore() {
         val loggedIn = toutiaoCredentials.hasCredentials()
@@ -5134,11 +5169,9 @@ class HubLocalViewModel @Inject constructor(
         }
     }
 
-    // ─── Kuaishou 快手 (v0.1 placeholder — 完全对称 Toutiao) ──────────────────
-    //
-    // 与 Toutiao 唯一差异：cookie uid 字段不同（userId vs passport_uid）。
-    // 其他全部 1:1 — 同 placeholder events=[] 策略 + 同 v0.1 honest banner
-    // ("watch/collect/search 需 v0.2 NS_sig3 签名接通")。
+    // ─── Kuaishou 快手：Web 登录/API 快照 + root DB 双路径 ───────────────────
+    // 与 Toutiao 的主要差异是 cookie uid 字段（userId vs passport_uid）以及
+    // 快手自身的 API/本地数据库结构。
 
     fun refreshKuaishouFromStore() {
         val loggedIn = kuaishouCredentials.hasCredentials()
@@ -5491,9 +5524,9 @@ class HubLocalViewModel @Inject constructor(
     //   3. User taps "同步" → collector orchestrates frida key extract (8.0+)
     //      + db extract + cc syncAdapter
     //
-    // For v0.1 the frida + extract steps are stubs; the orchestrator returns
-    // FridaInjectFailed("binary-missing") which surfaces as a "改用桌面端"
-    // banner. See docs/design/Android_WeChat_InApp_Frida_Collector.md §5.
+    // Frida key capture and SQLCipher extraction are implemented. Typed
+    // failures still guide users when root, binary compatibility, or DB access
+    // fails. See docs/design/Android_WeChat_InApp_Frida_Collector.md §5.
 
     fun refreshWechatFromStore() {
         val loggedIn = wechatCredentials.hasCredentials()
@@ -5961,27 +5994,26 @@ class HubLocalViewModel @Inject constructor(
         }
     }
 
-    // ─── Weibo / Douyin / Xiaohongshu — stubs (Task #10) ────────────────────
+    // ─── Defensive fallback for unknown social cards ────────────────────────
 
-    fun requestSocialLoginStub(platform: String) {
+    fun requestUnhandledSocialLogin(platform: String) {
         val (adapter, name) = when (platform) {
             "weibo" -> "social-weibo" to "微博"
             "douyin" -> "social-douyin" to "抖音"
             "xiaohongshu" -> "social-xiaohongshu" to "小红书"
             else -> return
         }
-        // v0.1 stub: surface "尚未实现" on the relevant card without launching
-        // WebView; the cookie-auth flow framework is in place (see Bilibili)
-        // but per-platform API wiring is a follow-up.
+        // Known social cards are routed explicitly. Keep this defensive
+        // fallback so a future card cannot silently launch the wrong flow.
         _state.update {
             when (platform) {
-                "weibo" -> it.copy(weibo = it.weibo.copy(errorMessage = "$name 同步 v0.2 开放，敬请期待"))
-                "douyin" -> it.copy(douyin = it.douyin.copy(errorMessage = "$name 同步 v0.2 开放，敬请期待"))
-                "xiaohongshu" -> it.copy(xiaohongshu = it.xiaohongshu.copy(errorMessage = "$name 同步 v0.2 开放，敬请期待"))
+                "weibo" -> it.copy(weibo = it.weibo.copy(errorMessage = "$name 登录路由未注册，请更新应用后重试"))
+                "douyin" -> it.copy(douyin = it.douyin.copy(errorMessage = "$name 登录路由未注册，请更新应用后重试"))
+                "xiaohongshu" -> it.copy(xiaohongshu = it.xiaohongshu.copy(errorMessage = "$name 登录路由未注册，请更新应用后重试"))
                 else -> it
             }
         }
-        Timber.i("HubLocalViewModel: %s login stub triggered (adapter=%s)", platform, adapter)
+        Timber.i("HubLocalViewModel: %s defensive login fallback triggered (adapter=%s)", platform, adapter)
     }
 
     companion object {

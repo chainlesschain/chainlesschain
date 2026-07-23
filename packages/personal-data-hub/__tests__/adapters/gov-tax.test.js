@@ -24,7 +24,7 @@ const COOKIES = "ETAX_SSO=abc; sid=xyz";
 describe("gov-tax mappers", () => {
   it("name/version", () => {
     expect(tx.NAME).toBe("gov-tax");
-    expect(tx.VERSION).toBe("0.1.0");
+    expect(tx.VERSION).toBe("0.2.0");
   });
   it("periodToMs / toAmount", () => {
     expect(tx.periodToMs("2025-03")).toBe(Date.parse("2025-03-01T00:00:00Z"));
@@ -108,6 +108,8 @@ describe("TaxAdapter (snapshot + cookie-api)", () => {
     let signed = 0;
     const a = new tx.TaxAdapter({
       account: { cookies: COOKIES, userId: "u1" },
+      incomeUrl: "https://captured.example/income",
+      declarationUrl: "https://captured.example/declaration",
       signProvider: async () => {
         signed += 1;
         return "sig";
@@ -126,9 +128,10 @@ describe("TaxAdapter (snapshot + cookie-api)", () => {
     expect(signed).toBeGreaterThan(0);
   });
 
-  it("default fetch throws; no input throws", async () => {
+  it("unverified live endpoints are rejected; no input throws", async () => {
     const a = new tx.TaxAdapter({ account: { cookies: COOKIES } });
-    await expect(collect(a.sync({}))).rejects.toThrow(/no fetchFn configured/);
+    expect(await a.authenticate()).toMatchObject({ ok: false, reason: "EXPLICIT_ENDPOINT_REQUIRED" });
+    await expect(collect(a.sync({}))).rejects.toThrow(/explicit incomeUrl/);
     const b = new tx.TaxAdapter();
     await expect(collect(b.sync({}))).rejects.toThrow(/needs opts.inputPath/);
   });

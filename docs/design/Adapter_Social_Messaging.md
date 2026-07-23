@@ -1,6 +1,6 @@
 # Adapter — Social + Messaging (Phase 13)
 
-> **状态**：v0.5 已落地 (2026-05-19/20)。7 个 adapter 全部移植自 sjqz Python parser。
+> **状态**：v0.7 已落地。7 个 adapter 已移植；WhatsApp 已支持用户自有 crypt14 / crypt15 密钥的本地直解，并兼容新旧消息表。
 > **关联**：父文档 [`Personal_Data_Hub_Architecture.md`](./Personal_Data_Hub_Architecture.md) §12 phase plan / [`Personal_Data_Hub_sjqz_Comparison.md`](./Personal_Data_Hub_sjqz_Comparison.md) §3 移植清单。
 > **commit 锚点**：`ade1bc025` (13.1+13.2 Bilibili+Weibo) → `12b06c4d5` (13.3-13.6 Douyin+Xiaohongshu+QQ+Telegram) → `18c62c9d6` (13.7 WhatsApp 收口)。
 
@@ -70,8 +70,8 @@ class XxxAdapter {
 ┌────────────────────────────────────────────────────────┐
 │ 2. (messaging 类) Key extraction                        │
 │    - QQ: per-installation key from auth_info_*.xml      │
-│    - WhatsApp: crypt14 key from /sdcard/WhatsApp/Databases │
-│      或 Google Drive backup key                          │
+│    - WhatsApp: crypt14 key from app-private files/key      │
+│      或 crypt15 64 字符备份密钥 / encrypted_backup.key    │
 │    - WeChat: MD5(IMEI+UIN)[:7] (Phase 12 path)          │
 │    输出：keyProvider.getKey() => Buffer                 │
 └─────────────────┬──────────────────────────────────────┘
@@ -89,7 +89,7 @@ class XxxAdapter {
 └────────────────────────────────────────────────────────┘
 ```
 
-**关键约束**：本 phase 不调 ADB 也不解 crypt14 — 那些动作分别属于 Phase 7.5 与 Phase 13.7b。当前 v0.5 仅接受**已解密的明文 .db**。
+**关键约束（历史）**：Phase 13.7 v0.5 不调 ADB、只接受已解密的明文 `.db`。Phase 13.7b / v0.7 已补齐 crypt14 与 crypt15：桌面/CLI 可通过 ADB 从 Android 公共备份目录自动拉取加密库（无需 root），也可手选文件；必须由用户主动提供自己的 key/keyProvider。ADB 加密副本与解密明文都只在本机临时目录存在，采集结束立即清理。
 
 ---
 
@@ -139,7 +139,7 @@ class XxxAdapter {
 | Xiaohongshu | 124 | ~110 | 90% | — |
 | QQ | 391 | ~280 | 70% | sjqz 还包 PC QQ `MsgEx.db` 旧路径；PDH 暂只支持 Android |
 | Telegram | 248 | ~190 | 78% | sjqz 处理 `tdata` 桌面端 cache；PDH 仅 Android |
-| WhatsApp | 312 (parser) + 437 (crypt14 解密) | ~190 (parser) | parser 80% / crypt14 0% (v0.5b TODO) | crypt14 解密路径完全未移植 |
+| WhatsApp | 312 (parser) + 437 (crypt14 解密) | Node 解析 + ADB 公共目录拉取 + 流式解密 | 核心采集路径 ✅ (v0.7) | 新旧 `message` / `messages` 合并去重；解析 chat/sender JID、media/location/vcard/quote/call；用户自有 key；AES-256-GCM 认证、zlib 解压、SQLite magic 校验、拉取副本与临时明文清理；真实 crypt14/15 fixture 与 `msgstore.db` 结构交叉验证通过 |
 
 **移植 SOP**：
 
@@ -157,7 +157,7 @@ class XxxAdapter {
 |---|---|---|
 | `__tests__/social-adapters.test.js` | Bilibili / Weibo / Douyin / Xiaohongshu (history / favourite / DM 等三类 row 各一例 fixture) | ~32 |
 | `__tests__/longtail-adapters.test.js` | QQ + Telegram (friend / group / message 三 kind) | ~24 |
-| `__tests__/whatsapp-adapter.test.js` | WhatsApp jid(contact/group) / chat / message / call_log 全 4 kind + crypt14 graceful error | ~14 |
+| `__tests__/whatsapp-adapter.test.js` + `adapters/messaging-whatsapp.test.js` + `adapters/whatsapp-backup-decryptor.test.js` + `adapters/whatsapp-adb-extension.test.js` | WhatsApp ADB 公共备份拉取、路径白名单、jid/contact/group/chat、新旧 message 合并去重、media/location/vcard/quote/call_log + crypt14/crypt15 解密、错误密钥、临时文件清理 | 32 |
 
 合计 +70 单测累计到 hub 总线 47 文件 / 927 单测。
 
@@ -167,7 +167,7 @@ class XxxAdapter {
 
 | 项 | 当前状态 | follow-up phase | 工期估 |
 |---|---|---|---|
-| WhatsApp crypt14 / 15 解密 | v0.5 仅接受明文 db | Phase 13.7b | 1d (sjqz Python 移植) |
+| WhatsApp crypt14 / 15 采集 | **v0.7 已完成**：ADB 公共备份自动拉取（个人版/Business）或文件导入；用户自有 key/keyProvider；流式 AES-GCM + MD5/tag 校验 + zlib + SQLite 校验；全程临时文件清理 | Phase 13.7b ✅ | 真机 UX 验收仍需用户设备/备份 |
 | QQ 8.x+ 新 schema | v0.5 仅老版本 mr_* 表名 | Phase 13.5b | 0.5d |
 | iOS app-private container 提取 | 不支持 | Phase 7.5b (iOS pull 增强) | 2d |
 | 自动同步 watermark for 增量 | 全表 LIMIT N，无水位 | Phase 13.8 | 1d × 7 adapter ≈ 4d 含测试 |
@@ -195,9 +195,9 @@ class XxxAdapter {
 
 ---
 
-## 11. Toutiao 今日头条 (`com.ss.android.article.news`) — v0.1 scaffold
+## 11. Toutiao 今日头条 (`com.ss.android.article.news`) — v0.2.1 dual-mode
 
-> **状态**：v0.1 scaffold（2026-05-20，与 Kuaishou 同批补完）。代码 `lib/adapters/social-toutiao/`；schema 字段名待 Phase 13.10 Xiaomi 24115RA8EC 真机 fixture pin。
+> **状态**：v0.2.1 已接通 snapshot + SQLite 双模式，覆盖 profile / read history / collection / search；桌面/CLI 与 Android 已有 ADB cookie/sign/root collector。当前环境无连接设备，真机端点命中率与新版加密库仍按对应 E2E runbook 验收，不再标为 scaffold。
 
 **事实源**：Android `/data/data/com.ss.android.article.news/databases/` 下 SQLite 库。新版（2024+）逐步加密，老 7.x 版本明文。
 
@@ -215,9 +215,9 @@ class XxxAdapter {
 - 新版（8.x+）逐渐加密 SQLite，需 Phase 13.10 评估 frida-indep MD5(IMEI/UIN) 类密钥派生路径（同 WeChat Phase 12 v0.5）
 - App 间数据流（如"今日头条 → 抖音"跳转打开同一文章）目前无法关联 — 同 ByteDance 内多 app 共享日志在系统层无暴露；Phase 13.10 评估能否从 Toutiao 自身 log 表追到 click-out
 
-## 12. Kuaishou 快手 (`com.smile.gifmaker`) — v0.1 scaffold
+## 12. Kuaishou 快手 (`com.smile.gifmaker`) — v0.2.1 dual-mode
 
-> **状态**：v0.1 scaffold（2026-05-20）。代码 `lib/adapters/social-kuaishou/`；schema 字段名待 Phase 13.10 fixture pin。
+> **状态**：v0.2.1 已接通 snapshot + SQLite 双模式，覆盖 profile / watch history / collection / search；桌面/CLI 与 Android 已有 ADB cookie/sign/root collector。当前环境无连接设备，`__NS_sig3` 命中率与新版加密库仍按对应 E2E runbook 验收，不再标为 scaffold。
 
 **事实源**：Android `/data/data/com.smile.gifmaker/databases/`。Kuaishou 内部把短视频叫做 "photo"（产品历史遗留），SQLite 字段沿用此命名。
 
@@ -236,7 +236,7 @@ class XxxAdapter {
 - 与 Douyin 数据无关联（虽然算法上类似）；两 adapter 完全独立运行
 - 直播 / 商品挂载等高阶交互目前不采集，仅 v0 视频观看 / 收藏 / 搜索三表
 
-> §11+§12 schema 真正确定后，本文档版本 bump 至 v0.6（含 fixture link）+ 撤销 `(v0.1 scaffold)` 标记。
+> §11+§12 的代码与 mock/结构回归已收口；发布 sign-off 仍以用户设备上的真实账号 smoke 为准，不能用单元测试替代。
 
 ---
 
@@ -269,9 +269,17 @@ const { WhatsAppAdapter } = require("@chainlesschain/personal-data-hub/adapters/
 
 const adapter = new WhatsAppAdapter({
   account: { phone: "+8613800138000" },
-  dbPath: "C:/Users/me/decrypted-msgstore.db",   // 用户已在外部解 crypt14
-  keyProvider: null,                              // Phase 13.7b 实施后改用 keyProvider
+  dbPath: "C:/Users/me/msgstore.db.crypt15",
+  // 支持 64 字符 hex、key/encrypted_backup.key 文件路径，或 async getKey(ctx)。
+  keyProvider: { getKey: async () => process.env.WHATSAPP_BACKUP_KEY },
 });
+```
+
+ADB 自动拉取（推荐把 64 位密钥写入仅当前用户可读的文本文件，避免进入 shell 历史）：
+
+```bash
+cc hub sync-adapter messaging-whatsapp --key C:/secure/whatsapp-crypt15.key
+# WhatsApp Business 可追加 --whatsapp-business；多设备时追加 --serial <adb-serial>
 ```
 
 ## 附录：规范章节补全（v5.0.3.108）

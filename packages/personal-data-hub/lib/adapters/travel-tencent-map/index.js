@@ -1,5 +1,5 @@
 /**
- * §2.5b 地图三联 v0.2 — Tencent Map (腾讯地图) adapter, dual-mode (snapshot + sqlite).
+ * §2.5b 地图三联 — Tencent Map (腾讯地图) adapter.
  *
  * 新增本 adapter 把地图三联补齐 (amap / baidu-map / tencent-map)。两条路径
  * 与 travel-baidu-map / travel-amap 同 pattern：
@@ -9,11 +9,9 @@
  *      map.qq.com). Desktop-independent. Adapter stateless — account.
  *      deviceId OPTIONAL at construction.
  *
- *   2. sqlite mode (opts.dbPath, future device-pull): scaffold for completeness
- *      — table names are educated guess (sjqz/parsers does not yet have a
- *      tencent-map parser). Mode runs but trySelect tolerates missing tables.
- *      account.deviceId REQUIRED in this mode (checked at sync, not
- *      construction).
+ *   2. custom sqlite mode: requires opts.dbPath plus an explicit
+ *      opts.sqliteTables={route:[...],search:[...]} profile confirmed against
+ *      the user's app version. No guessed Tencent table is queried by default.
  *
  * Snapshot schema (mirrors TencentMapLocalCollector.SNAPSHOT_SCHEMA_VERSION):
  *
@@ -39,7 +37,7 @@ const fs = require("node:fs");
 const { normalizeTravelRecord, parseChineseDateTime } = require("../travel-base");
 
 const NAME = "travel-tencent-map";
-const VERSION = "0.2.0";
+const VERSION = "0.3.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_FAVOURITE = "favourite";
@@ -49,27 +47,29 @@ const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_FAVOURITE, KIND_SEARCH, KIND_RO
 
 class TencentMapAdapter {
   constructor(opts = {}) {
-    // §2.5b v0.2: account.deviceId OPTIONAL — snapshot mode is stateless.
-    // Sqlite mode requires it; checked at sync time.
     this.account = opts.account || null;
     this._dbPath = opts.dbPath || null;
+    this._sqliteTables = normalizeSqliteTables(opts.sqliteTables);
+    this._sqliteConfigured = Boolean(
+      this._sqliteTables.route.length || this._sqliteTables.search.length,
+    );
 
     this.name = NAME;
     this.version = VERSION;
     this.capabilities = [
       "sync:snapshot",
-      "sync:sqlite",
+      ...(this._sqliteConfigured ? ["sync:custom-sqlite"] : []),
       "parse:tencent-map-favourite",
       "parse:tencent-map-history",
     ];
-    this.extractMode = "device-pull";
+    this.extractMode = this._sqliteConfigured ? "device-pull" : "file-import";
     this.rateLimits = {};
     this.dataDisclosure = {
       fields: [
         "tencent:account (uid / displayName, cookie scrape)",
         "tencent:favourite (saved places — home / company / other)",
-        "tencent:search_history (queries, scaffold sqlite mode)",
-        "tencent:route_history (planned routes, scaffold sqlite mode)",
+        "tencent:search_history (queries, snapshot or explicit sqlite profile)",
+        "tencent:route_history (planned routes, snapshot or explicit sqlite profile)",
       ],
       sensitivity: "medium",
       legalGate: false,
@@ -100,20 +100,20 @@ class TencentMapAdapter {
       return { ok: true, mode: "snapshot-file" };
     }
     if (this._dbPath || (ctx && typeof ctx.dbPath === "string")) {
-      if (!this.account || !this.account.deviceId) {
+      if (!this._sqliteTables.route.length && !this._sqliteTables.search.length) {
         return {
           ok: false,
-          reason: "NO_ACCOUNT_DEVICE_ID",
-          message: "travel-tencent-map.authenticate: sqlite mode requires account.deviceId",
+          reason: "EXPLICIT_SCHEMA_REQUIRED",
+          message: "travel-tencent-map: sqlite import requires an app-version-confirmed sqliteTables profile; JSON import is ready",
         };
       }
-      return { ok: true, account: this.account.deviceId, mode: "sqlite" };
+      return { ok: true, account: this.account && this.account.deviceId, mode: "custom-sqlite" };
     }
     return {
       ok: false,
       reason: "NO_INPUT",
       message:
-        "travel-tencent-map.authenticate: needs opts.inputPath (snapshot mode) OR opts.dbPath (sqlite mode)",
+        "travel-tencent-map.authenticate: needs opts.inputPath; custom sqlite mode also requires dbPath + sqliteTables",
     };
   }
 
@@ -128,11 +128,16 @@ class TencentMapAdapter {
     }
     const dbPath = opts.dbPath || this._dbPath;
     if (dbPath) {
+      if (!this._sqliteTables.route.length && !this._sqliteTables.search.length) {
+        throw new Error(
+          "travel-tencent-map.sync: explicit sqliteTables profile required for custom sqlite import",
+        );
+      }
       yield* this._syncViaSqlite({ ...opts, dbPath });
       return;
     }
     throw new Error(
-      "travel-tencent-map.sync: needs opts.inputPath (snapshot mode, Android in-APK cc) OR opts.dbPath (sqlite mode)",
+      "travel-tencent-map.sync: needs opts.inputPath; custom sqlite mode also requires dbPath + sqliteTables",
     );
   }
 
@@ -190,11 +195,6 @@ class TencentMapAdapter {
   }
 
   async *_syncViaSqlite(opts) {
-    if (!this.account || !this.account.deviceId) {
-      throw new Error(
-        "travel-tencent-map._syncViaSqlite: account.deviceId required (set via new TencentMapAdapter({ account: { deviceId } }))",
-      );
-    }
     const dbPath = opts.dbPath;
     if (!dbPath || !this._deps.fs.existsSync(dbPath)) return;
     const Driver = this._deps.dbDriverFactory
@@ -203,12 +203,7 @@ class TencentMapAdapter {
     const db = new Driver(dbPath, { readonly: true });
 
     try {
-      // Tencent Map Android app table names (educated guess — sjqz has no
-      // parser yet; trySelect tolerates missing tables for forward-compat).
-      const routes =
-        trySelect(db, "SELECT * FROM route_history LIMIT 5000")
-        || trySelect(db, "SELECT * FROM tencent_route_history LIMIT 5000")
-        || [];
+      const routes = selectFirstTable(db, this._sqliteTables.route);
       for (const r of routes) {
         const rec = routeRowToRecord(r);
         if (rec) {
@@ -220,10 +215,7 @@ class TencentMapAdapter {
           };
         }
       }
-      const searches =
-        trySelect(db, "SELECT * FROM search_history LIMIT 5000")
-        || trySelect(db, "SELECT * FROM tencent_search_history LIMIT 5000")
-        || [];
+      const searches = selectFirstTable(db, this._sqliteTables.search);
       for (const r of searches) {
         const rec = searchRowToRecord(r);
         if (rec) {
@@ -330,12 +322,30 @@ function snapshotEventToRecord(kind, p, originalId) {
   };
 }
 
+function normalizeSqliteTables(value) {
+  const safeList = (input) =>
+    (Array.isArray(input) ? input : [])
+      .filter((name) => typeof name === "string" && /^[A-Za-z0-9_]+$/.test(name));
+  return {
+    route: safeList(value && value.route),
+    search: safeList(value && value.search),
+  };
+}
+
 function trySelect(db, sql) {
   try {
     return db.prepare(sql).all();
   } catch (_e) {
     return null;
   }
+}
+
+function selectFirstTable(db, tableNames) {
+  for (const tableName of tableNames) {
+    const rows = trySelect(db, `SELECT * FROM "${tableName}" LIMIT 5000`);
+    if (rows) return rows;
+  }
+  return [];
 }
 
 function routeRowToRecord(row) {

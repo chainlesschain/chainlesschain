@@ -140,7 +140,7 @@ class KuaishouApiClient @Inject constructor() {
      *
      * 返 null 的情况：cookie 不含 api_ph 或解码失败（多见于仅 userId 单字段
      * 登录态，例如部分跨端登录路径）。这种情况 [extractUid] 仍可拿到 uid，
-     * 上层可继续走 placeholder 流程。
+     * 上层仍可保留账号并继续 root DB 或已缓存快照路径。
      */
     suspend fun fetchProfile(cookie: String): ProfileInfo? = withContext(Dispatchers.IO) {
         if (cookie.isBlank()) {
@@ -473,8 +473,8 @@ class KuaishouApiClient @Inject constructor() {
     }
 
     /**
-     * v0.3 placeholder — 实际 HTTP fetch helper（与 Toutiao/Douyin 对称）。
-     * 当前未被 fetchProfile 用，但保留 wire-ready 让 v0.3 1-line 启用。
+     * 保留的 HTTP fetch helper（与 Toutiao/Douyin 对称）。当前 cookie 内嵌
+     * profile 路径不调用它，避免把未签名的私有接口误当成可用采集能力。
      */
     @Suppress("Unused")
     private fun doGetJson(url: HttpUrl, cookie: String): JSONObject? {

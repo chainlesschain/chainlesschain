@@ -142,7 +142,9 @@ object CcAndroidBridge {
                         .put("emails", JSONArray(readEmailsFor(ctx, contactId)))
                         .put("starred", c.getInt(starIdx) == 1)
                     c.getString(photoIdx)?.takeIf { it.isNotBlank() }?.let { o.put("photoUri", it) }
-                    readOrgFor(ctx, contactId)?.takeIf { it.isNotBlank() }?.let { o.put("organization", it) }
+                    val (organization, jobTitle) = readOrganizationFor(ctx, contactId)
+                    organization?.takeIf { it.isNotBlank() }?.let { o.put("organization", it) }
+                    jobTitle?.takeIf { it.isNotBlank() }?.let { o.put("jobTitle", it) }
                     arr.put(o)
                 }
             }
@@ -187,11 +189,15 @@ object CcAndroidBridge {
         return out.distinct()
     }
 
-    private fun readOrgFor(ctx: Context, contactId: Long): String? {
+    private fun readOrganizationFor(ctx: Context, contactId: Long): Pair<String?, String?> {
         var org: String? = null
+        var jobTitle: String? = null
         ctx.contentResolver.query(
             ContactsContract.Data.CONTENT_URI,
-            arrayOf(ContactsContract.CommonDataKinds.Organization.COMPANY),
+            arrayOf(
+                ContactsContract.CommonDataKinds.Organization.COMPANY,
+                ContactsContract.CommonDataKinds.Organization.TITLE,
+            ),
             ContactsContract.Data.CONTACT_ID + " = ? AND " +
                 ContactsContract.Data.MIMETYPE + " = ?",
             arrayOf(
@@ -199,9 +205,12 @@ object CcAndroidBridge {
                 ContactsContract.CommonDataKinds.Organization.CONTENT_ITEM_TYPE,
             ), null,
         )?.use { c ->
-            if (c.moveToFirst()) org = c.getString(0)
+            if (c.moveToFirst()) {
+                org = c.getString(0)
+                jobTitle = c.getString(1)
+            }
         }
-        return org
+        return Pair(org, jobTitle)
     }
 
     // ─── sms.query ─────────────────────────────────────────────────────────

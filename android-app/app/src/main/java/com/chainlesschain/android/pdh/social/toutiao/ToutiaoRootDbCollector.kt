@@ -13,7 +13,7 @@ import javax.inject.Singleton
 /**
  * Phase 7.1 — orchestrator for the Android in-APK root Toutiao collector
  * (path B). Implements the shared [LocalRootCollector] interface from
- * the Phase B0 scaffold, returning the canonical [LocalSnapshotResult].
+ * the root database extractor, returning the canonical [LocalSnapshotResult].
  *
  * Coexists with [ToutiaoLocalCollector] (path A, cookies + passport +
  * SignBridge-signed endpoints):

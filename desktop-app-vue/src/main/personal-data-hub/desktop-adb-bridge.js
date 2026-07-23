@@ -10,10 +10,10 @@
  * `adb` (developer-mode USB debugging) instead.
  *
  * Methods implemented (only what system-data-android consumes):
- *   - `contacts.query({since?})` →
- *       [{ lookupKey, displayName, phone? }, ...]
- *   - `app.list({includeSystem?})` →
- *       [{ packageName, label?, version? }, ...]
+ *   - `contacts.query({since?})` → complete contact metadata
+ *   - `app.list({includeSystem?})` → installed package names
+ *   - `sms.query`, `call.query`, `media.list` → the remaining
+ *       system-data-android bridge sources
  *
  * Any other method throws AndroidBridgeUnavailableError so the adapter
  * falls through to snapshot mode (or surfaces a clear error).
@@ -170,34 +170,123 @@ function parseContentQueryRows(stdout) {
 /**
  * Query contacts via ContentResolver. No root needed.
  *
- * Reads ContactsContract.Contacts (lookup, display_name) so we get one
- * row per contact — not one row per phone/email like the .data table.
+ * Reads ContactsContract.Contacts for one row per contact, then joins the
+ * public phone/email/organization data URIs by contact_id.
  *
  * @param {{since?: number}} params
  * @param {object} opts
- * @returns {Promise<Array<{lookupKey, displayName}>>}
+ * @returns {Promise<Array<object>>}
  */
+function mergeContactRows(contactRows, phoneRows, emailRows, organizationRows) {
+  const byId = new Map();
+  for (const row of contactRows) {
+    const contactId = row._id == null ? null : String(row._id);
+    const displayName = row.display_name || null;
+    if (!contactId || !displayName) continue;
+    byId.set(contactId, {
+      lookupKey: row.lookup || null,
+      displayName,
+      phones: [],
+      emails: [],
+      starred: row.starred === "1",
+      organization: null,
+      jobTitle: null,
+      photoUri: row.photo_uri || null,
+    });
+  }
+
+  const appendUnique = (rows, field, valueOf) => {
+    for (const row of rows) {
+      const contact = byId.get(String(row.contact_id));
+      const value = valueOf(row);
+      if (!contact || typeof value !== "string" || !value.trim()) continue;
+      const normalized = value.trim();
+      if (!contact[field].includes(normalized)) contact[field].push(normalized);
+    }
+  };
+  appendUnique(phoneRows, "phones", (row) => row.data1 || row.number);
+  appendUnique(emailRows, "emails", (row) => row.data1 || row.address);
+  for (const row of organizationRows) {
+    const contact = byId.get(String(row.contact_id));
+    if (!contact) continue;
+    const organization = row.data1 || row.company;
+    const jobTitle = row.data4 || row.title;
+    if (!contact.organization && organization && organization.trim()) {
+      contact.organization = organization.trim();
+    }
+    if (!contact.jobTitle && jobTitle && jobTitle.trim()) {
+      contact.jobTitle = jobTitle.trim();
+    }
+  }
+  return [...byId.values()];
+}
+
 async function queryContacts(params, opts) {
   const serial = await pickDevice(opts);
-  const stdout = await adb(
-    [
-      "shell",
-      "content",
-      "query",
-      "--uri",
-      "content://com.android.contacts/contacts",
-      "--projection",
-      "lookup:display_name",
-    ],
-    { ...opts, serial },
+  const contactArgs = [
+    "shell",
+    "content",
+    "query",
+    "--uri",
+    "content://com.android.contacts/contacts",
+    "--projection",
+    "_id:lookup:display_name:starred:photo_uri",
+  ];
+  if (Number.isInteger(params?.since) && params.since > 0) {
+    contactArgs.push(
+      "--where",
+      `contact_last_updated_timestamp >= ${params.since}`,
+    );
+  }
+  const commandOpts = { ...opts, serial, timeoutMs: opts.timeoutMs || 120_000 };
+  const [contactsOut, phonesOut, emailsOut, organizationsOut] =
+    await Promise.all([
+      adb(contactArgs, commandOpts),
+      adb(
+        [
+          "shell",
+          "content",
+          "query",
+          "--uri",
+          "content://com.android.contacts/data/phones",
+          "--projection",
+          "contact_id:data1",
+        ],
+        commandOpts,
+      ),
+      adb(
+        [
+          "shell",
+          "content",
+          "query",
+          "--uri",
+          "content://com.android.contacts/data/emails",
+          "--projection",
+          "contact_id:data1",
+        ],
+        commandOpts,
+      ),
+      adb(
+        [
+          "shell",
+          "content",
+          "query",
+          "--uri",
+          "content://com.android.contacts/data",
+          "--projection",
+          "contact_id:data1:data4",
+          "--where",
+          "mimetype='vnd.android.cursor.item/organization'",
+        ],
+        commandOpts,
+      ),
+    ]);
+  return mergeContactRows(
+    parseContentQueryRows(contactsOut),
+    parseContentQueryRows(phonesOut),
+    parseContentQueryRows(emailsOut),
+    parseContentQueryRows(organizationsOut),
   );
-  const rows = parseContentQueryRows(stdout);
-  return rows
-    .map((r) => ({
-      lookupKey: r.lookup || null,
-      displayName: r.display_name || null,
-    }))
-    .filter((c) => c.displayName); // drop empty entries
 }
 
 /**
@@ -232,6 +321,96 @@ async function listApps(params, opts) {
   return apps;
 }
 
+async function querySms(_params, opts) {
+  const serial = await pickDevice(opts);
+  const stdout = await adb(
+    ["shell", "content", "query", "--uri", "content://sms"],
+    { ...opts, serial, timeoutMs: opts.timeoutMs || 120_000 },
+  );
+  return parseContentQueryRows(stdout)
+    .map((row) => ({
+      id: row._id ? String(row._id) : null,
+      address: row.address || null,
+      body: row.body || null,
+      date: row.date ? parseInt(row.date, 10) : null,
+      dateSent: row.date_sent ? parseInt(row.date_sent, 10) : null,
+      type: row.type ? parseInt(row.type, 10) : null,
+      threadId: row.thread_id ? parseInt(row.thread_id, 10) : null,
+      read: row.read === "1" ? true : row.read === "0" ? false : null,
+      subject: row.subject || null,
+    }))
+    .filter((row) => row.id);
+}
+
+async function queryCallLog(_params, opts) {
+  const serial = await pickDevice(opts);
+  const stdout = await adb(
+    ["shell", "content", "query", "--uri", "content://call_log/calls"],
+    { ...opts, serial, timeoutMs: opts.timeoutMs || 120_000 },
+  );
+  return parseContentQueryRows(stdout)
+    .map((row) => ({
+      id: row._id ? String(row._id) : null,
+      number: row.number || null,
+      name: row.name || null,
+      duration: row.duration ? parseInt(row.duration, 10) : null,
+      date: row.date ? parseInt(row.date, 10) : null,
+      type: row.type ? parseInt(row.type, 10) : null,
+      geocoded: row.geocoded_location || null,
+    }))
+    .filter((row) => row.id);
+}
+
+const MEDIA_DIRS = {
+  photos: "/sdcard/DCIM/Camera",
+  pictures: "/sdcard/Pictures",
+  videos: "/sdcard/Movies",
+  downloads: "/sdcard/Download",
+  documents: "/sdcard/Documents",
+};
+
+async function listMedia(params, opts) {
+  const category = params && params.category;
+  const directory = MEDIA_DIRS[category];
+  if (!directory) {
+    throw new DesktopAdbBridgeUnavailableError(
+      `media.list: unknown category "${category}". Valid: ${Object.keys(MEDIA_DIRS).join(", ")}`,
+    );
+  }
+  const serial = await pickDevice(opts);
+  const stdout = await adb(
+    [
+      "shell",
+      `find ${directory} -type f -printf '%s\\t%T@\\t%p\\n' 2>/dev/null`,
+    ],
+    { ...opts, serial, timeoutMs: opts.timeoutMs || 180_000 },
+  );
+  const sinceMs = Number.isInteger(params?.since) ? params.since : 0;
+  const files = [];
+  for (const rawLine of stdout.split("\n")) {
+    const line = rawLine.replace(/\r+$/, "");
+    if (!line) continue;
+    const firstTab = line.indexOf("\t");
+    const secondTab = line.indexOf("\t", firstTab + 1);
+    if (firstTab < 0 || secondTab < 0) continue;
+    const size = parseInt(line.substring(0, firstTab), 10);
+    const mtimeSeconds = parseFloat(line.substring(firstTab + 1, secondTab));
+    const filePath = line.substring(secondTab + 1);
+    if (!Number.isFinite(size) || !Number.isFinite(mtimeSeconds) || !filePath) {
+      continue;
+    }
+    if (filePath.split("/").some((segment) => segment.startsWith(".")))
+      continue;
+    const mtimeMs = Math.floor(mtimeSeconds * 1000);
+    if (sinceMs > 0 && mtimeMs < sinceMs) continue;
+    const lastDot = filePath.lastIndexOf(".");
+    const ext =
+      lastDot >= 0 ? filePath.substring(lastDot + 1).toLowerCase() : "";
+    files.push({ path: filePath, size, mtimeMs, ext, category });
+  }
+  return files;
+}
+
 /**
  * Phase B0 — plugin point for platform-specific ADB methods.
  *
@@ -247,10 +426,9 @@ async function listApps(params, opts) {
 const BUILTIN_METHODS = new Set([
   "contacts.query",
   "app.list",
-  // Note: desktop-adb-bridge currently exposes only contacts.query +
-  // app.list (the V5/V6 IPC code path's narrower scope). Phase 1 will
-  // expand here in lockstep with the ESM mirror when the desktop
-  // PersonalDataHub UI consumes the new platform methods.
+  "sms.query",
+  "call.query",
+  "media.list",
 ]);
 
 /**
@@ -293,6 +471,12 @@ function createDesktopAdbBridge(opts = {}) {
           return await queryContacts(params, opts);
         case "app.list":
           return await listApps(params, opts);
+        case "sms.query":
+          return await querySms(params, opts);
+        case "call.query":
+          return await queryCallLog(params, opts);
+        case "media.list":
+          return await listMedia(params, opts);
         default: {
           const ext = extensions[method];
           if (typeof ext === "function") {
@@ -313,9 +497,13 @@ module.exports = {
   // Exposed for unit testing without spawning real adb
   _internals: {
     parseContentQueryRows,
+    mergeContactRows,
     listDevices,
     pickDevice,
     queryContacts,
     listApps,
+    querySms,
+    queryCallLog,
+    listMedia,
   },
 };

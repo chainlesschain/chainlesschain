@@ -1,6 +1,9 @@
 "use strict";
 
 import { describe, it, expect } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 const {
   AIChatHistoryAdapter,
@@ -21,7 +24,7 @@ const {
 // ─── vendor-spec assertion ──────────────────────────────────────────────
 
 describe("assertVendorSpec — SUPPORTED_VENDORS", () => {
-  it("9 vendors are declared (Phase 10.2 +doubao scaffold)", () => {
+  it("9 vendors are declared", () => {
     expect(SUPPORTED_VENDORS).toEqual([
       "deepseek",
       "kimi",
@@ -87,8 +90,9 @@ describe("AIChatHistoryAdapter contract", () => {
   it("declares name + version + capabilities + extractMode", () => {
     const a = new AIChatHistoryAdapter();
     expect(a.name).toBe("ai-chat-history");
-    expect(a.version).toMatch(/^0\.1\.\d+$/);
+    expect(a.version).toMatch(/^0\.2\.\d+$/);
     expect(a.capabilities).toContain("sync:cookie-multi-vendor");
+    expect(a.capabilities).toContain("sync:persisted-cookie-accounts");
     expect(a.extractMode).toBe("web-api");
   });
 
@@ -128,6 +132,30 @@ describe("AIChatHistoryAdapter.authenticate", () => {
     expect(r.vendorsNeedingLogin).not.toContain("deepseek");
     expect(r.vendorsNeedingLogin).not.toContain("kimi");
   });
+
+  it("restores persisted object/array cookie jars and skips corrupt rows", async () => {
+    const a = new AIChatHistoryAdapter();
+    const report = a.restoreSessions([
+      {
+        vendor: "deepseek",
+        registeredAt: "2026-07-23T00:00:00.000Z",
+        cookies: { userToken: "deepseek-token" },
+      },
+      {
+        vendor: "kimi",
+        cookies: [{ name: "access_token", value: "kimi-token", domain: ".kimi.com" }],
+      },
+      { vendor: "doubao", cookies: {} },
+      { vendor: "unknown", cookies: { sid: "x" } },
+    ]);
+
+    expect(report.restored).toEqual(["deepseek", "kimi"]);
+    expect(report.skipped.map((entry) => entry.vendor)).toEqual(["doubao", "unknown"]);
+    const auth = await a.authenticate();
+    expect(auth.vendorsReady.sort()).toEqual(["deepseek", "kimi"]);
+    expect(a._sessions.deepseek.get("userToken")).toBe("deepseek-token");
+    expect(a._sessions.kimi.get("access_token")).toBe("kimi-token");
+  });
 });
 
 describe("AIChatHistoryAdapter.healthCheck", () => {
@@ -163,6 +191,75 @@ describe("AIChatHistoryAdapter.sync — skeleton path", () => {
     const out = [];
     for await (const ev of a.sync()) out.push(ev);
     expect(out).toEqual([]);
+  });
+
+  it("loads Android cookie snapshot input and performs the real vendor sync", async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "pdh-aichat-snapshot-"));
+    const inputPath = path.join(tempDir, "deepseek.json");
+    fs.writeFileSync(
+      inputPath,
+      JSON.stringify({
+        vendor: "deepseek",
+        cookie: "userToken=android-token; device_id=device-1",
+        fetchedAt: 1_721_689_600_000,
+      }),
+      { mode: 0o600 },
+    );
+
+    let observedToken;
+    const spec = {
+      ...DEFAULT_VENDOR_SPECS.deepseek,
+      async *listConversations(ctx) {
+        observedToken = ctx.session.get("userToken");
+        yield {
+          vendor: "deepseek",
+          originalId: "conv-android",
+          title: "Android conversation",
+          createdAt: 1_721_689_600_000,
+          updatedAt: 1_721_689_600_000,
+        };
+      },
+      async *listMessages() {},
+    };
+    const adapter = new AIChatHistoryAdapter({
+      vendorSpecs: { deepseek: spec },
+    });
+
+    try {
+      const out = [];
+      for await (const raw of adapter.sync({ inputPath })) out.push(raw);
+      expect(observedToken).toBe("android-token");
+      expect(out).toHaveLength(1);
+      expect(out[0].payload.kind).toBe("conversation");
+      expect(out[0].payload.vendor).toBe("deepseek");
+      expect((await adapter.authenticate()).vendorsReady).toContain("deepseek");
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects an unsupported Android cookie snapshot vendor with a stable code", async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "pdh-aichat-snapshot-"));
+    const inputPath = path.join(tempDir, "unknown.json");
+    fs.writeFileSync(
+      inputPath,
+      JSON.stringify({ vendor: "unknown", cookie: "sid=secret" }),
+      { mode: 0o600 },
+    );
+    const adapter = new AIChatHistoryAdapter();
+
+    try {
+      const consume = async () => {
+        for await (const _raw of adapter.sync({ inputPath })) {
+          // consume generator
+        }
+      };
+      await expect(consume()).rejects.toMatchObject({
+        code: "AI_CHAT_SNAPSHOT_VENDOR_INVALID",
+      });
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 
   it("vendor-not-wired sentinel path: surfaced via NotImplementedYetError direct throw", async () => {

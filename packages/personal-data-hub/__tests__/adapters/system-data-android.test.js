@@ -113,6 +113,7 @@ describe("SystemDataAndroidAdapter.sync + normalize", () => {
           emails: [],
           starred: true,
           organization: "家庭",
+          jobTitle: "工程师",
         },
       ],
       apps: [
@@ -163,6 +164,7 @@ describe("SystemDataAndroidAdapter.sync + normalize", () => {
     // sheet doesn't have to join the persons table.
     expect(events[0].extra.phones).toEqual(["+8613800138000"]);
     expect(events[0].extra.organization).toBe("家庭");
+    expect(events[0].extra.jobTitle).toBe("工程师");
     expect(events[0].extra.starred).toBe(true);
     expect(events[1].content.title).toBe("应用：微信");
     expect(events[1].extra.kind).toBe("app-snapshot");
@@ -184,7 +186,7 @@ describe("SystemDataAndroidAdapter.sync + normalize", () => {
     expect(p.subtype).toBe(PERSON_SUBTYPES.CONTACT);
     expect(p.names).toEqual(["妈妈"]);
     expect(p.identifiers).toEqual({ phone: ["+8613800138000"] });
-    expect(p.extra).toEqual({ starred: true });
+    expect(p.extra).toEqual({ starred: true, jobTitle: "工程师" });
     expect(p.relation).toBe("家庭");
     expect(p.source.adapter).toBe(SYSTEM_DATA_ANDROID_NAME);
     expect(p.source.capturedBy).toBe(CAPTURED_BY.API);

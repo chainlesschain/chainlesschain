@@ -91,6 +91,21 @@ describe("createVendorAdapterBridge (cli)", () => {
     expect(r.userId).toBe("userToken");
   });
 
+  it("attaches a validated session to the registry runtime adapter", async () => {
+    const runtimeAdapter = { setSession: vi.fn() };
+    const bridge = createVendorAdapterBridge({
+      specs: [fakeSpec("deepseek", async () => ({ ok: true }))],
+      runtimeAdapter,
+      _httpClientFactory: () => ({}),
+    });
+
+    await bridge.registerVendor("deepseek", { userToken: "abc" });
+
+    expect(runtimeAdapter.setSession).toHaveBeenCalledOnce();
+    expect(runtimeAdapter.setSession.mock.calls[0][0]).toBe("deepseek");
+    expect(runtimeAdapter.setSession.mock.calls[0][1].get("userToken")).toBe("abc");
+  });
+
   it("UNKNOWN_VENDOR for unrecognized", async () => {
     const bridge = createVendorAdapterBridge({
       specs: [fakeSpec("deepseek", async () => ({ ok: true }))],

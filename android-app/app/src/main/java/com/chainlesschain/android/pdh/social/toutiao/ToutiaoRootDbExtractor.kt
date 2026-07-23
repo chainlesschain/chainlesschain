@@ -105,7 +105,7 @@ class ToutiaoRootDbExtractor @Inject constructor(
         }
         val localDb = File(stagingDir, pickedDb)
 
-        // Step 2: cohort copy via B0 scaffold.
+        // Step 2: copy the WAL-consistent database cohort.
         val copyResult = cohortCopier.copy(remoteDb, localDb)
         if (copyResult.isFailure) {
             cohortCopier.cleanup(localDb)

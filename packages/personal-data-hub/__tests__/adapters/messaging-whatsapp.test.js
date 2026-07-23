@@ -48,10 +48,13 @@ function makeFakeDriverFactory(tables, log = {}) {
 describe("constants", () => {
   it("exposes name/version + high sensitivity & legal gate", () => {
     expect(NAME).toBe("messaging-whatsapp");
-    expect(VERSION).toBe("0.6.0");
+    expect(VERSION).toBe("0.7.0");
     const a = new WhatsAppAdapter();
     expect(a.dataDisclosure.sensitivity).toBe("high");
     expect(a.dataDisclosure.legalGate).toBe(true);
+    expect(a.capabilities).toContain("decrypt:whatsapp-crypt14");
+    expect(a.capabilities).toContain("decrypt:whatsapp-crypt15");
+    expect(a.capabilities).toContain("sync:adb-public-backup");
   });
 });
 
@@ -61,6 +64,12 @@ describe("authenticate", () => {
     const r = await a.authenticate({});
     expect(r.ok).toBe(false);
     expect(r.reason).toBe("DB_NOT_PULLED");
+  });
+
+  it("advertises ADB pull readiness when a bridge is wired", async () => {
+    const a = new WhatsAppAdapter({ bridgeProvider: () => ({ invoke() {} }) });
+    const r = await a.authenticate({});
+    expect(r).toMatchObject({ ok: false, reason: "ADB_PULL_REQUIRED" });
   });
 
   it("ok when dbPath exists (inputPath alias too)", async () => {
@@ -155,6 +164,54 @@ describe("sync — fake sqlite driver", () => {
       const items = await collect(a.sync({}));
       expect(items).toHaveLength(1);
       expect(items[0].payload.kind).toBe("message");
+      expect(items[0].payload.schema).toBe("legacy");
+    } finally {
+      fs.unlinkSync(p);
+    }
+  });
+
+  it("merges modern and legacy tables, resolves relations, and deduplicates key_id", async () => {
+    const p = writeTmpDb();
+    const modern = {
+      _id: 7,
+      key_id: "same-key",
+      chat_row_id: 2,
+      chat_jid: "1234@g.us",
+      sender_jid: "86139@s.whatsapp.net",
+      from_me: 0,
+      text_data: "photo",
+      timestamp: 1716383021000,
+    };
+    try {
+      const a = new WhatsAppAdapter({
+        dbPath: p,
+        dbDriverFactory: makeFakeDriverFactory({
+          "FROM jid": [],
+          "FROM chat": [],
+          "FROM message_media": [{ message_row_id: 7, mime_type: "image/jpeg", file_path: "/media/a.jpg" }],
+          "FROM message_location": [{ message_row_id: 7, latitude: 31.2, longitude: 121.5, place_name: "Shanghai" }],
+          "FROM message_vcard": [{ message_row_id: 7, vcard: "BEGIN:VCARD" }],
+          "FROM message_quoted": [{ message_row_id: 7, text_data: "quoted" }],
+          "FROM message\n": [modern],
+          "FROM messages ": [
+            { _id: 7, key_id: "same-key", key_from_me: 0, data: "duplicate", timestamp: 1 },
+            { _id: 7, key_id: "legacy-only", key_from_me: 1, data: "old", timestamp: 2 },
+          ],
+          "FROM call_log": [],
+        }),
+      });
+      const items = await collect(a.sync({}));
+      const messages = items.filter((item) => item.payload.kind === "message");
+      expect(messages.map((item) => item.originalId)).toEqual(["msg-7", "msg-legacy-7"]);
+      expect(messages.map((item) => item.payload.schema)).toEqual(["modern", "legacy"]);
+      expect(messages[0].payload.row).toMatchObject({
+        chat_jid: "1234@g.us",
+        sender_jid: "86139@s.whatsapp.net",
+        _media: { mime_type: "image/jpeg" },
+        _location: { place_name: "Shanghai" },
+        _vcards: [{ vcard: "BEGIN:VCARD" }],
+        _quoted: { text_data: "quoted" },
+      });
     } finally {
       fs.unlinkSync(p);
     }
@@ -186,6 +243,7 @@ describe("normalize", () => {
       },
     });
     const person = batch.persons[0];
+    expect(person.id).toBe("person-whatsapp-8613800138000@s.whatsapp.net");
     expect(person.subtype).toBe("contact");
     expect(person.names).toEqual(["Alice", "+86 138-0013-8000"]);
     expect(person.identifiers).toEqual({ phone: ["8613800138000"] });
@@ -263,6 +321,51 @@ describe("normalize", () => {
     expect(ev.content.title).toBe("(空)");
     expect(ev.actor).toBe("person-whatsapp-86139@s.whatsapp.net");
     expect(ev.extra.isOutgoing).toBe(false);
+  });
+
+  it("modern message resolves group sender, media, location, vcard and quote", () => {
+    const batch = a.normalize({
+      originalId: "msg-8",
+      payload: {
+        kind: "message",
+        schema: "modern",
+        row: {
+          _id: 8,
+          chat_row_id: 2,
+          chat_jid: "1234@g.us",
+          sender_jid: "86139@s.whatsapp.net",
+          from_me: 0,
+          message_type: 1,
+          text_data: "",
+          timestamp: 1716383021000,
+          _media: { mime_type: "image/jpeg", media_name: "photo.jpg", file_path: "/media/photo.jpg" },
+          _location: { latitude: 31.2, longitude: 121.5, place_name: "Shanghai", place_address: "Pudong" },
+          _vcards: [{ vcard: "BEGIN:VCARD" }],
+          _quoted: { text_data: "quoted" },
+        },
+      },
+    });
+    const ev = batch.events[0];
+    expect(ev.actor).toBe("person-whatsapp-86139@s.whatsapp.net");
+    expect(ev.topics).toEqual(["topic-whatsapp-chat-2"]);
+    expect(ev.place).toBe("place-whatsapp-8");
+    expect(ev.content).toMatchObject({
+      title: "photo.jpg",
+      text: "photo.jpg",
+      mediaRefs: ["/media/photo.jpg"],
+    });
+    expect(ev.extra).toMatchObject({
+      jid: "1234@g.us",
+      senderJid: "86139@s.whatsapp.net",
+      mediaType: "image/jpeg",
+      vcards: [{ vcard: "BEGIN:VCARD" }],
+      quotedMessage: { text_data: "quoted" },
+    });
+    expect(batch.places[0]).toMatchObject({
+      name: "Shanghai",
+      coordinates: { lat: 31.2, lng: 121.5 },
+      address: "Pudong",
+    });
   });
 
   it("incoming video call → call event with duration/isVideo extras", () => {

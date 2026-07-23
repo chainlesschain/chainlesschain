@@ -86,6 +86,20 @@ const REASONS = Object.freeze({
     actionHint: "通过 ADB / 本地 DB 解密导出数据库后再同步",
     appendDetail: true,
   },
+  ADB_PULL_REQUIRED: {
+    status: READINESS_STATUS.NEEDS_SETUP,
+    category: READINESS_CATEGORY.DEVICE,
+    message: "可从 Android 自动拉取 WhatsApp 加密备份，还需连接手机并提供自己的备份密钥",
+    actionHint: "开启 USB 调试并连接手机，填写 crypt15 64 位密钥（或 crypt14 key 文件）后同步",
+    appendDetail: true,
+  },
+  KEY_REQUIRED: {
+    status: READINESS_STATUS.NEEDS_SETUP,
+    category: READINESS_CATEGORY.DEVICE,
+    message: "已找到加密备份，但尚未提供用户自己的解密密钥",
+    actionHint: "填写 crypt15 64 位密钥，或选择 crypt14 key / encrypted_backup.key 文件",
+    appendDetail: true,
+  },
   // 自动发现：已在本机找到 App 的加密数据库，只差解密密钥即可一键采集。
   DB_FOUND_NEEDS_KEY: {
     status: READINESS_STATUS.NEEDS_SETUP,
@@ -260,6 +274,33 @@ function categoryForMode(extractMode) {
  * @returns {{status: string, category: string, message: string, actionHint: string|null, appendDetail: boolean}}
  */
 function describeReadiness(reason) {
+  if (reason === "CUSTOM_FETCH_REQUIRED") {
+    return {
+      status: READINESS_STATUS.NEEDS_SETUP,
+      category: READINESS_CATEGORY.SNAPSHOT,
+      message: "This adapter exposes a custom web-API seam but has no verified built-in fetch implementation",
+      actionHint: "Use snapshot/file import, or configure a fetch implementation for your authorized session",
+      appendDetail: true,
+    };
+  }
+  if (reason === "EXPLICIT_SCHEMA_REQUIRED") {
+    return {
+      status: READINESS_STATUS.NEEDS_SETUP,
+      category: READINESS_CATEGORY.SNAPSHOT,
+      message: "SQLite schema is not field-verified for this app version; verified snapshot/file import remains available",
+      actionHint: "Import an exported snapshot, or provide table names confirmed against your own app database",
+      appendDetail: true,
+    };
+  }
+  if (reason === "EXPLICIT_ENDPOINT_REQUIRED") {
+    return {
+      status: READINESS_STATUS.NEEDS_SETUP,
+      category: READINESS_CATEGORY.SNAPSHOT,
+      message: "Live collection is not field-verified; verified snapshot/file import remains available",
+      actionHint: "Import an exported snapshot, or provide endpoint URLs captured from your own authorized session",
+      appendDetail: true,
+    };
+  }
   const d = (reason && REASONS[reason]) || REASONS.UNKNOWN;
   return {
     status: d.status,

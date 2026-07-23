@@ -3,11 +3,9 @@
  * adapter, "车辆行程". Device-discovered gap (2026-06-15), new `car-` category
  * (own-vehicle telematics, distinct from ride-hailing travel-didi).
  *
- * ⚠️ BEST-EFFORT SCAFFOLD. Mercedes me uses OAuth (not cookie) over a
- * proprietary OEM API; the endpoint below is a FABRICATED placeholder
- * (overridable via opts.listUrl, NOT field-verified — FAMILY-23 playbook) and
- * the cookie seam stands in for a real bearer token. snapshot/file-import is
- * the reliable path; cookie path surfaces auth.unverified=true. Each trip maps
+ * Mercedes me uses OAuth over a proprietary OEM API. JSON file import is
+ * supported; no endpoint is selected by default. The custom live seam is
+ * enabled only with a caller-supplied URL and fetchFn. Each trip maps
  * onto the vendor-neutral car TravelRecord (travel-base). sensitivity:"medium"
  * (trip start/end addresses = location history).
  *
@@ -23,9 +21,8 @@ const { normalizeTravelRecord, parseChineseDateTime } = require("../travel-base"
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "car-mercedesme";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 
-const MERCEDESME_TRIPS_URL = "https://api.mercedes-benz.com.cn/vehicledata/v1/trips";
 const DEFAULT_PAGE_SIZE = 30;
 const DEFAULT_MAX_PAGES = 10;
 
@@ -115,11 +112,17 @@ class MercedesMeAdapter {
       opts.account && opts.account.cookies ? new CookieAuth({ platform: "mercedesme", cookies: opts.account.cookies }) : null;
     this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
     this._signProvider = typeof opts.signProvider === "function" ? opts.signProvider : null;
-    this._listUrl = typeof opts.listUrl === "string" && opts.listUrl.length > 0 ? opts.listUrl : MERCEDESME_TRIPS_URL;
+    this._listUrl = typeof opts.listUrl === "string" && opts.listUrl.length > 0 ? opts.listUrl : null;
+    this._liveConfigured = Boolean(this._listUrl && typeof opts.fetchFn === "function");
 
     this.name = NAME;
     this.version = VERSION;
-    this.capabilities = ["import:json", "sync:snapshot", "sync:cookie-api", "parse:mercedesme-trips"];
+    this.capabilities = [
+      "import:json",
+      "sync:snapshot",
+      ...(this._liveConfigured ? ["sync:custom-cookie-api"] : []),
+      "parse:mercedesme-trips",
+    ];
     this.extractMode = "file-import";
     this.rateLimits = {};
     this.dataDisclosure = {
@@ -140,12 +143,19 @@ class MercedesMeAdapter {
       }
       return { ok: true, mode: "snapshot-file" };
     }
+    if (this._cookieAuth && !this._liveConfigured) {
+      return {
+        ok: false,
+        reason: "EXPLICIT_ENDPOINT_REQUIRED",
+        message: "car-mercedesme: live collection requires a captured listUrl and fetchFn; JSON import is ready",
+      };
+    }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
       if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "token missing" };
       return { ok: true, account: (this.account && this.account.userId) || null, mode: "cookie", unverified: true };
     }
-    return { ok: true, account: null, mode: "ready" };
+    return { ok: false, reason: "NO_FILE", message: "Select an exported Mercedes me trip JSON file" };
   }
 
   async healthCheck() {
@@ -172,7 +182,14 @@ class MercedesMeAdapter {
       }
       return;
     }
-    if (this._cookieAuth) yield* this._syncViaCookie(opts);
+    if (this._cookieAuth && this._liveConfigured) {
+      yield* this._syncViaCookie(opts);
+      return;
+    }
+    if (this._cookieAuth) {
+      throw new Error("car-mercedesme.sync: explicit listUrl and fetchFn required for custom live collection");
+    }
+    throw new Error("car-mercedesme.sync: inputPath or dataPath is required");
   }
 
   async *_syncViaCookie(opts = {}) {

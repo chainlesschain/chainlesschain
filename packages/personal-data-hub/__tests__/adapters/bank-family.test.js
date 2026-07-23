@@ -102,6 +102,8 @@ describe("CmbcBankAdapter (via _bank-base)", () => {
     let signed = 0;
     const a = new cmbc.CmbcBankAdapter({
       account: { cookies: COOKIES, userId: "u1" },
+      transactionUrl: "https://captured.example/transactions",
+      cardUrl: "https://captured.example/cards",
       signProvider: async () => { signed += 1; return "sig"; },
       fetchFn: async ({ url, query }) => {
         if (query.page > 1) return { list: [] };
@@ -116,9 +118,10 @@ describe("CmbcBankAdapter (via _bank-base)", () => {
     expect(signed).toBeGreaterThan(0);
   });
 
-  it("default fetch throws; no input throws", async () => {
+  it("unverified live endpoints are rejected; no input throws", async () => {
     const a = new cmbc.CmbcBankAdapter({ account: { cookies: COOKIES } });
-    await expect(collect(a.sync({}))).rejects.toThrow(/no fetchFn configured/);
+    expect(await a.authenticate()).toMatchObject({ ok: false, reason: "EXPLICIT_ENDPOINT_REQUIRED" });
+    await expect(collect(a.sync({}))).rejects.toThrow(/explicit transactionUrl/);
     const b = new cmbc.CmbcBankAdapter();
     await expect(collect(b.sync({}))).rejects.toThrow(/needs opts.inputPath/);
   });

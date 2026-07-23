@@ -6,7 +6,11 @@ const path = require("node:path");
 const os = require("node:os");
 const crypto = require("node:crypto");
 
-const { AmapAdapter, NAME, VERSION } = require("../../lib/adapters/travel-amap");
+const {
+  AmapAdapter,
+  NAME,
+  VERSION,
+} = require("../../lib/adapters/travel-amap");
 
 function writeTmpDb() {
   // sync() only checks fs.existsSync before handing the path to the
@@ -69,7 +73,7 @@ const SEARCH_ROW = {
 describe("constants", () => {
   it("exposes name/version", () => {
     expect(NAME).toBe("travel-amap");
-    expect(VERSION).toBe("0.6.0");
+    expect(VERSION).toBe("0.7.0");
   });
 });
 

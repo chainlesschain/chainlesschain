@@ -22,11 +22,51 @@ import { describe, it, expect, vi } from "vitest";
 import { createRequire } from "node:module";
 
 const require_ = createRequire(import.meta.url);
-const { createDesktopAdbBridge, DesktopAdbBridgeUnavailableError } = require_(
-  "../desktop-adb-bridge.js",
-);
+const { createDesktopAdbBridge, DesktopAdbBridgeUnavailableError, _internals } =
+  require_("../desktop-adb-bridge.js");
 
 describe("desktop-adb-bridge — extension API (Phase B0)", () => {
+  it("merges phones, emails, organization, and job title into contacts", () => {
+    const contacts = _internals.mergeContactRows(
+      [
+        {
+          _id: "7",
+          lookup: "lookup-7",
+          display_name: "Alice",
+          starred: "1",
+          photo_uri: "content://photo/7",
+        },
+      ],
+      [{ contact_id: "7", data1: "13800000000" }],
+      [{ contact_id: "7", data1: "alice@example.com" }],
+      [{ contact_id: "7", data1: "Acme", data4: "Engineer" }],
+    );
+    expect(contacts[0]).toEqual({
+      lookupKey: "lookup-7",
+      displayName: "Alice",
+      phones: ["13800000000"],
+      emails: ["alice@example.com"],
+      starred: true,
+      organization: "Acme",
+      jobTitle: "Engineer",
+      photoUri: "content://photo/7",
+    });
+  });
+
+  it("treats SMS, call-log, and media methods as built-ins", () => {
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const bridge = createDesktopAdbBridge({
+      extensions: {
+        "sms.query": async () => [],
+        "call.query": async () => [],
+        "media.list": async () => [],
+      },
+    });
+    expect(consoleWarn).toHaveBeenCalledTimes(3);
+    expect(bridge.extensionMethods()).toEqual([]);
+    consoleWarn.mockRestore();
+  });
+
   it("caps() returns available:true sync (unchanged from pre-B0)", () => {
     const bridge = createDesktopAdbBridge();
     expect(bridge.caps()).toEqual({ available: true });

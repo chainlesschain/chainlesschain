@@ -60,15 +60,15 @@ import java.util.Locale
  * D5 layout — LazyColumn 6-category grouping mirroring推文 §"已支持 19+ App / 6 大类":
  *   1. 提问 — [HubAskCard] (A3 端侧 LLM ask flow，A3.2 wire 后真出答案)
  *   2. 基础数据 — [SystemDataCard] (system-data-android: contacts + apps)
- *   3. 内容平台 — Bilibili (real) + 微博/抖音/小红书 stubs (A8 v0.2 待接通)
+ *   3. 内容平台 — Bilibili / 微博 / 抖音 / 小红书 / 头条 / 快手 / QQ 空间
  *   4. 社交聊天 — 微信 + QQ (Phase 8 unified via SocialAdapterCard;
  *      WechatCard/QQCard retired P8.2/P8.3). UIN-entry dialog flow via
- *      `state.{wechat,qq}.requiresUinEntry`. Frida injector still scaffold
- *      v0.1 until Phase 12.10.4 lands real injection.
- *   5. 邮箱 — QQ/Gmail/163/Outlook placeholder (D6 待开放)
- *   6. 支付与购物 — 支付宝/淘宝 placeholder (D7 待开放)
- *   7. 出行 — 高德/携程 placeholder (D8 待开放)
- *   8. AI 助手 — 9 家 placeholder (D10 待开放)
+ *      `state.{wechat,qq}.requiresUinEntry`; WeChat root collection uses the
+ *      bundled Frida injector and SQLCipher extractor.
+ *   5. 邮箱 — QQ/Gmail/163/Outlook IMAP
+ *   6. 支付与购物 — official export / local file import
+ *   7. 出行 — 12306 live collection + map/Ctrip local import
+ *   8. AI 助手 — 9 家 cookie-session history collection
  *
  * Login WebView overlay: when [HubLocalViewModel.UiState.pendingLogin] is
  * non-null, we replace the card list with SocialCookieWebViewScreen so the
@@ -203,6 +203,17 @@ fun HubLocalScreen(
         if (uri != null) viewModel.importPaymentShoppingFile("shopping-pinduoduo", uri)
     }
 
+    var pendingTravelImportKey by remember { mutableStateOf<String?>(null) }
+    val travelImportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        val providerKey = pendingTravelImportKey
+        pendingTravelImportKey = null
+        if (uri != null && providerKey != null) {
+            viewModel.importTravelFile(providerKey, uri)
+        }
+    }
+
     LaunchedEffect(Unit) {
         viewModel.refreshPermissionState()
         viewModel.refreshBilibiliFromStore()
@@ -215,9 +226,8 @@ fun HubLocalScreen(
     }
 
     Scaffold { padding ->
-        // D5 — LazyColumn 6 类分组（基础数据 / 社交聊天 / 邮箱 / 支付与购物 /
-        // 出行 / 内容平台 / AI 助手）镜像推文 §"已支持 19+ App / 6 大类"。未实施
-        // 大类先用 PlaceholderCategoryCard 占位，每个 PR 把对应 D6-D10 真接通。
+        // LazyColumn 展示已接通的基础数据、社交聊天、邮箱、支付购物、
+        // 出行、内容平台和 AI 助手来源。
         // A3.8 — HubAskCard 浮在最顶（提问 over 本机数据），与 SystemDataCard 配对。
         val globalBusy = state.globalSyncingAdapter != null
         LazyColumn(
@@ -368,7 +378,7 @@ fun HubLocalScreen(
                             "social-toutiao" -> viewModel.requestToutiaoLogin()
                             "social-kuaishou" -> viewModel.requestKuaishouLogin()
                             "social-qzone" -> viewModel.requestQzoneLogin()
-                            else -> viewModel.requestSocialLoginStub(
+                            else -> viewModel.requestUnhandledSocialLogin(
                                 card.adapterName.removePrefix("social-")
                             )
                         }
@@ -382,7 +392,7 @@ fun HubLocalScreen(
                             "social-toutiao" -> viewModel.syncToutiao()
                             "social-kuaishou" -> viewModel.syncKuaishou()
                             "social-qzone" -> viewModel.syncQzone()
-                            else -> viewModel.requestSocialLoginStub(
+                            else -> viewModel.requestUnhandledSocialLogin(
                                 card.adapterName.removePrefix("social-")
                             )
                         }
@@ -548,7 +558,18 @@ fun HubLocalScreen(
             item("section-travel") { SectionHeader("出行") }
             item("travel-providers") {
                 TravelGroup(
+                    states = state.travel,
+                    globalBusy = globalBusy,
                     onProviderLogin = { key -> viewModel.requestTravelLogin(key) },
+                    onProviderImport = { key ->
+                        pendingTravelImportKey = key
+                        travelImportLauncher.launch(
+                            arrayOf("application/json", "application/x-sqlite3", "application/octet-stream", "text/plain", "*/*"),
+                        )
+                    },
+                    onProviderSync = { key -> viewModel.syncTravel(key) },
+                    onProviderLogout = { key -> viewModel.logoutTravel(key) },
+                    onClearError = { key -> viewModel.clearTravelError(key) },
                 )
             }
 
@@ -560,7 +581,12 @@ fun HubLocalScreen(
             item("section-aichat") { SectionHeader("AI 助手") }
             item("aichat-providers") {
                 AiAssistantsGroup(
+                    states = state.aiChat,
+                    globalBusy = globalBusy,
                     onProviderLogin = { key -> viewModel.requestAiChatLogin(key) },
+                    onProviderSync = { key -> viewModel.syncAiChat(key) },
+                    onProviderLogout = { key -> viewModel.logoutAiChat(key) },
+                    onClearError = { key -> viewModel.clearAiChatError(key) },
                 )
             }
 
@@ -648,35 +674,6 @@ private fun SectionHeader(title: String) {
     }
 }
 
-/**
- * D5 — 大类占位卡。每个大类在真接通前先用一张卡占位，让用户看到推文 §"6 大类"
- * 全部呈现，不会因为只有 system-data + bilibili 实装而误以为产品只有 2 张卡。
- * D6-D10 替换为真 adapter 卡阵列时把对应 item 解锁即可。
- */
-@Composable
-private fun PlaceholderCategoryCard(title: String, statusText: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                statusText,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
 
 @Composable
 private fun SystemDataCard(

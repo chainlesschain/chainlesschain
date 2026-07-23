@@ -531,6 +531,12 @@ async function cmdSyncAdapter(name, options) {
     // sources (wechat-pc), --db-path as an explicit alias for the DB file.
     if (options.key) opts.key = String(options.key);
     if (options.dbPath) opts.dbPath = String(options.dbPath);
+    // WhatsApp public-backup ADB path. `--key` accepts the crypt15 64-hex
+    // root key or a crypt14/encrypted_backup.key file path. Device selection
+    // follows --serial, then ADB_SERIAL, then the single connected device.
+    if (options.serial) opts.serial = String(options.serial);
+    if (options.whatsappBusiness) opts.business = true;
+    if (options.remotePath) opts.remotePath = String(options.remotePath);
     // QQ NT (qq-pc): the SQLCipher passphrase from qq-win-db-key (ASCII, e.g.
     // "5{sww#,6aq=)8=A@"). Routes qq-pc through the decrypt+parse sidecar.
     if (options.passphrase) opts.passphrase = String(options.passphrase);
@@ -3013,7 +3019,19 @@ export function registerHubCommand(program) {
     )
     .option(
       "--key <hex>",
-      "SQLCipher key (64-hex) for encrypted local DBs (e.g. wechat-pc)",
+      "Encryption key: SQLCipher 64-hex, WhatsApp crypt15 64-hex, or WhatsApp key-file path",
+    )
+    .option(
+      "--serial <adb-serial>",
+      "Android device serial for ADB-backed adapters (otherwise ADB_SERIAL or the single connected device)",
+    )
+    .option(
+      "--whatsapp-business",
+      "Pull the WhatsApp Business public backup instead of the personal app backup",
+    )
+    .option(
+      "--remote-path <android-path>",
+      "Explicit WhatsApp msgstore backup path inside an allowed public Databases directory",
     )
     .option(
       "--passphrase <key>",

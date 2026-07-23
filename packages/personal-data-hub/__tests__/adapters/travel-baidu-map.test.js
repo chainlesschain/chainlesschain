@@ -84,7 +84,7 @@ const SNAPSHOT = {
 describe("constants", () => {
   it("exposes name/version/schema", () => {
     expect(NAME).toBe("travel-baidu-map");
-    expect(VERSION).toBe("0.6.0");
+    expect(VERSION).toBe("0.7.0");
     expect(SNAPSHOT_SCHEMA_VERSION).toBe(1);
   });
 });
@@ -107,9 +107,13 @@ describe("authenticate", () => {
     }
   });
 
-  it("sqlite mode requires account.deviceId; NO_INPUT otherwise", async () => {
+  it("sqlite mode accepts an explicit DB without unrelated device metadata", async () => {
     const noAcc = new BaiduMapAdapter({ dbPath: "x.db" });
-    expect((await noAcc.authenticate({})).reason).toBe("NO_ACCOUNT_DEVICE_ID");
+    expect(await noAcc.authenticate({})).toEqual({
+      ok: true,
+      account: null,
+      mode: "sqlite",
+    });
     const withAcc = new BaiduMapAdapter({
       dbPath: "x.db",
       account: { deviceId: "DEV1" },
@@ -159,9 +163,9 @@ describe("sync — snapshot mode", () => {
       expect(
         await collect(a.sync({ inputPath: good, include: { search: false } })),
       ).toHaveLength(2);
-      expect(
-        await collect(a.sync({ inputPath: good, limit: 1 })),
-      ).toHaveLength(1);
+      expect(await collect(a.sync({ inputPath: good, limit: 1 }))).toHaveLength(
+        1,
+      );
     } finally {
       fs.unlinkSync(bad);
       fs.unlinkSync(good);
@@ -181,11 +185,24 @@ describe("sync — sqlite mode (fake driver)", () => {
   };
   const SEARCH_ROW = { _id: 6, key: "火锅", city: "成都", time: "1716383021" };
 
-  it("requires account.deviceId", async () => {
-    const a = new BaiduMapAdapter({ dbPath: "x.db" });
-    await expect(collect(a.sync({}))).rejects.toThrow(
-      /account\.deviceId required/,
-    );
+  it("does not require account.deviceId to parse an explicit DB", async () => {
+    const p = writeTmp("fake", "db");
+    const log = {};
+    try {
+      const a = new BaiduMapAdapter({
+        dbPath: p,
+        dbDriverFactory: makeFakeDriverFactory(
+          { route_history: [ROUTE_ROW] },
+          log,
+        ),
+      });
+      const items = await collect(a.sync({}));
+      expect(items).toHaveLength(1);
+      expect(items[0].payload.kind).toBe("route");
+      expect(log.closed).toBe(true);
+    } finally {
+      fs.unlinkSync(p);
+    }
   });
 
   it("yields route (transit→bus) + search records, closes db", async () => {

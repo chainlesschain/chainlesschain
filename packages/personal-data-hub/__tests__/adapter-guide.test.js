@@ -38,6 +38,18 @@ describe("adapter-guide", () => {
     }
   });
 
+  it("WhatsApp guide documents direct crypt14/crypt15 collection with a user key", () => {
+    const g = getAdapterGuide("messaging-whatsapp", "device");
+    expect(g.methods[0].recommended).toBe(true);
+    expect(g.methods[0].label).toMatch(/crypt15/i);
+    expect(g.methods[0].steps.join(" ")).toMatch(/ADB|USB|自动拉取/i);
+    expect(g.methods.flatMap((method) => method.steps).join(" ")).toMatch(
+      /crypt14.*crypt15|crypt15.*crypt14/i,
+    );
+    expect(g.summary).toMatch(/本机/);
+    expect(g.summary).toMatch(/密钥/);
+  });
+
   it("unknown adapter falls back to a category guide without throwing", () => {
     const g = getAdapterGuide("totally-unknown", "snapshot");
     expect(g.category).toBe("snapshot");

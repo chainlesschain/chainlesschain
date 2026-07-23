@@ -7,9 +7,9 @@
  * 悦跑圈 (running-only), Keep logs MANY workout types, so this carries a
  * `workoutType` per record (vs joyrun's single run kind).
  *
- * BEST-EFFORT SCAFFOLD: api.gotokeep.com endpoints are FABRICATED placeholders
- * (overridable via opts.listUrl, NOT field-verified — FAMILY-23 playbook);
- * snapshot mode is the reliable path; cookie path surfaces auth.unverified=true.
+ * Snapshot import is the supported path. Custom cookie collection is enabled
+ * only with an explicit, user-captured listUrl and injected fetchFn; this
+ * adapter never selects a guessed Keep endpoint by default.
  * Outdoor workouts carry GPS/route → sensitivity:"medium" (legalGate off).
  *
  * One record kind: 训练记录 (workouts):
@@ -37,11 +37,10 @@ const { ENTITY_TYPES, EVENT_SUBTYPES, CAPTURED_BY } = require("../../constants")
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "fitness-keep";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 const KIND_WORKOUT = "workout";
 const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_WORKOUT]);
-const WORKOUTS_URL = "https://api.gotokeep.com/pd/v3/stats/detail";
 const PAGE_SIZE = 30;
 
 // Keep workout type token → readable Chinese label (best-effort; falls back to
@@ -150,12 +149,17 @@ class KeepAdapter {
       opts.account && opts.account.cookies ? new CookieAuth({ platform: "keep", cookies: opts.account.cookies }) : null;
     this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
     this._signProvider = typeof opts.signProvider === "function" ? opts.signProvider : null;
-    this._listUrl = typeof opts.listUrl === "string" && opts.listUrl.length > 0 ? opts.listUrl : WORKOUTS_URL;
+    this._listUrl = typeof opts.listUrl === "string" && opts.listUrl.length > 0 ? opts.listUrl : null;
+    this._liveConfigured = Boolean(this._listUrl && typeof opts.fetchFn === "function");
 
     this.name = NAME;
     this.version = VERSION;
-    this.capabilities = ["sync:snapshot", "sync:cookie-api", "parse:keep-workout"];
-    this.extractMode = "web-api";
+    this.capabilities = [
+      "sync:snapshot",
+      ...(this._liveConfigured ? ["sync:custom-cookie-api"] : []),
+      "parse:keep-workout",
+    ];
+    this.extractMode = this._liveConfigured ? "web-api" : "file-import";
     this.rateLimits = {};
     this.dataDisclosure = {
       fields: ["keep:workout (type / distance / duration / calories / steps — outdoor carries GPS route)"],
@@ -175,6 +179,13 @@ class KeepAdapter {
       }
       return { ok: true, mode: "snapshot-file" };
     }
+    if (this._cookieAuth && !this._liveConfigured) {
+      return {
+        ok: false,
+        reason: "EXPLICIT_ENDPOINT_REQUIRED",
+        message: "fitness-keep: cookie collection requires captured listUrl and fetchFn; snapshot import is ready",
+      };
+    }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
       if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
@@ -183,7 +194,7 @@ class KeepAdapter {
     return {
       ok: false,
       reason: "NO_INPUT",
-      message: "fitness-keep.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode, best-effort/unverified)",
+      message: "fitness-keep.authenticate: needs opts.inputPath; custom live mode also requires cookies, listUrl, and fetchFn",
     };
   }
 
@@ -200,11 +211,14 @@ class KeepAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    if (this._cookieAuth) {
+    if (this._cookieAuth && this._liveConfigured) {
       yield* this._syncViaCookie(opts);
       return;
     }
-    throw new Error("fitness-keep.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)");
+    if (this._cookieAuth) {
+      throw new Error("fitness-keep.sync: explicit listUrl and fetchFn required for custom cookie collection");
+    }
+    throw new Error("fitness-keep.sync: needs opts.inputPath (snapshot mode)");
   }
 
   async *_syncViaSnapshot(opts) {

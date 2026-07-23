@@ -21,9 +21,42 @@ import { describe, it, expect, vi } from "vitest";
 import {
   createHostAdbBridge,
   HostAdbBridgeUnavailableError,
+  _internals,
 } from "../../../src/lib/host-adb-bridge.js";
 
 describe("host-adb-bridge — extension API (Phase B0)", () => {
+  it("merges complete contact metadata from the four public provider queries", () => {
+    const contacts = _internals.mergeContactRows(
+      [
+        {
+          _id: "7",
+          lookup: "lookup-7",
+          display_name: "Alice",
+          starred: "1",
+          photo_uri: "content://photo/7",
+        },
+      ],
+      [
+        { contact_id: "7", data1: " 13800000000 " },
+        { contact_id: "7", data1: "13800000000" },
+      ],
+      [{ contact_id: "7", data1: "alice@example.com" }],
+      [{ contact_id: "7", data1: "Acme", data4: "Engineer" }],
+    );
+    expect(contacts).toEqual([
+      {
+        lookupKey: "lookup-7",
+        displayName: "Alice",
+        phones: ["13800000000"],
+        emails: ["alice@example.com"],
+        starred: true,
+        organization: "Acme",
+        jobTitle: "Engineer",
+        photoUri: "content://photo/7",
+      },
+    ]);
+  });
+
   it("caps() returns available:true sync (unchanged from pre-B0)", () => {
     const bridge = createHostAdbBridge();
     expect(bridge.caps()).toEqual({ available: true });

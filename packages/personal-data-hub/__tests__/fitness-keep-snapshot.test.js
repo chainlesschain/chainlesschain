@@ -130,18 +130,17 @@ describe("KeepAdapter snapshot mode", () => {
   it("advertises capabilities + passes assertAdapter", () => {
     const a = new KeepAdapter();
     expect(a.capabilities).toContain("sync:snapshot");
-    expect(a.capabilities).toContain("sync:cookie-api");
+    expect(a.capabilities).not.toContain("sync:cookie-api");
+    expect(a.capabilities).not.toContain("sync:custom-cookie-api");
     expect(assertAdapter(a).ok).toBe(true);
   });
 });
 
 describe("KeepAdapter cookie-api mode", () => {
-  it("authenticate(cookie) returns unverified:true (best-effort scaffold)", async () => {
+  it("rejects cookie mode until a captured endpoint and fetcher are provided", async () => {
     const a = new KeepAdapter({ account: { cookies: "token=ok" } });
     const res = await a.authenticate();
-    expect(res.ok).toBe(true);
-    expect(res.mode).toBe("cookie");
-    expect(res.unverified).toBe(true);
+    expect(res).toMatchObject({ ok: false, reason: "EXPLICIT_ENDPOINT_REQUIRED" });
   });
 
   it("fetches workouts via fetchFn and normalizes (km vs meters heuristic)", async () => {
@@ -152,7 +151,7 @@ describe("KeepAdapter cookie-api mode", () => {
         ],
       },
     });
-    const a = new KeepAdapter({ account: { userId: "u1", cookies: "token=ok" }, fetchFn });
+    const a = new KeepAdapter({ account: { userId: "u1", cookies: "token=ok" }, fetchFn, listUrl: "https://captured.example/workouts" });
     const raws = [];
     for await (const r of a.sync({})) raws.push(r);
     expect(raws.length).toBe(1);
@@ -170,7 +169,7 @@ describe("KeepAdapter cookie-api mode", () => {
       seen = opts.sign;
       return { list: [] };
     };
-    const a = new KeepAdapter({ account: { cookies: "x=1" }, fetchFn, signProvider });
+    const a = new KeepAdapter({ account: { cookies: "x=1" }, fetchFn, signProvider, listUrl: "https://captured.example/workouts" });
     for await (const _r of a.sync({})) { /* drain */ }
     expect(seen).toBe("SIG");
   });
@@ -183,7 +182,7 @@ describe("KeepAdapter cookie-api mode", () => {
       seenPages.push(page);
       return { list: all.slice((page - 1) * 30, page * 30) };
     };
-    const a = new KeepAdapter({ account: { cookies: "x=1" }, fetchFn });
+    const a = new KeepAdapter({ account: { cookies: "x=1" }, fetchFn, listUrl: "https://captured.example/workouts" });
     const raws = [];
     for await (const r of a.sync({})) raws.push(r);
     expect(raws.length).toBe(45);
@@ -211,7 +210,7 @@ describe("KeepAdapter cookie-api mode", () => {
     expect(seenUrl).toBe("https://x/w");
   });
 
-  it("default fetchFn throws legible error", async () => {
+  it("missing explicit endpoint/fetcher throws a legible error", async () => {
     const a = new KeepAdapter({ account: { cookies: "x=1" } });
     let threw = null;
     try {
@@ -219,6 +218,6 @@ describe("KeepAdapter cookie-api mode", () => {
     } catch (err) {
       threw = err;
     }
-    expect(String(threw.message)).toMatch(/no fetchFn configured/);
+    expect(String(threw.message)).toMatch(/explicit listUrl/);
   });
 });

@@ -155,6 +155,22 @@ describe("createVendorAdapterBridge — validateCookie dispatch", () => {
     expect(arg.session.cookies[0]).toEqual({ name: "userToken", value: "abc" });
   });
 
+  it("attaches a validated session to the registry runtime adapter", async () => {
+    const runtimeAdapter = { setSession: vi.fn() };
+    const bridge = createVendorAdapterBridge({
+      specs: [fakeSpec("deepseek", async () => ({ ok: true, userId: "u1" }))],
+      runtimeAdapter,
+      _httpClientFactory: () => ({}),
+    });
+
+    await bridge.registerVendor("deepseek", { userToken: "abc" });
+
+    expect(runtimeAdapter.setSession).toHaveBeenCalledOnce();
+    const [vendor, session] = runtimeAdapter.setSession.mock.calls[0];
+    expect(vendor).toBe("deepseek");
+    expect(session.get("userToken")).toBe("abc");
+  });
+
   it("returns UNKNOWN_VENDOR for an unknown vendor", async () => {
     const bridge = createVendorAdapterBridge({
       specs: [fakeSpec("deepseek", async () => ({ ok: true }))],

@@ -64,6 +64,11 @@ const {
   XiaohongshuAdapter,
   ToutiaoAdapter,
   KuaishouAdapter,
+  GenshinAdapter,
+  HonorOfKingsAdapter,
+  ZuoyebangAdapter,
+  AlipayAdapter,
+  HuaweiLearningAdapter,
   QQAdapter,
   WeChatPcAdapter,
   QQPcAdapter,
@@ -115,6 +120,7 @@ const {
   AmapAdapter,
   TelegramAdapter,
   WhatsAppAdapter,
+  AIChatHistoryAdapter,
   EntityResolver,
   EntityResolverEmbeddingStage,
   EntityResolverLLMStage,
@@ -415,8 +421,9 @@ async function initHub() {
   // `desktop-adb-bridge`, which invokes ADB shell commands against the
   // attached developer-mode phone (no root, no in-APK cc needed). When
   // the user clicks 同步 on the desktop UI with no `inputPath`, the
-  // adapter auto-engages bridge mode and pulls contacts + app.list via
-  // ADB. Snapshot mode (Path C phone-push) still works in parallel —
+  // adapter auto-engages bridge mode and pulls contacts, installed apps,
+  // SMS, call logs, and media metadata via ADB. Snapshot mode (Path C
+  // phone-push) still works in parallel —
   // ingestSystemDataAndroidSnapshot writes the JSON then calls
   // syncAdapter() with inputPath, which takes precedence over bridge.
   //
@@ -455,6 +462,9 @@ async function initHub() {
     const {
       createKuaishouCookiesExtension,
     } = require("@chainlesschain/personal-data-hub/adapters/social-kuaishou-adb");
+    const {
+      createWhatsAppBackupExtension,
+    } = require("@chainlesschain/personal-data-hub/adapters/messaging-whatsapp");
     desktopAdbBridge = createDesktopAdbBridge({
       extensions: {
         "bilibili.cookies": createBilibiliCookiesExtension(),
@@ -465,6 +475,7 @@ async function initHub() {
         "toutiao.cookies": createToutiaoCookiesExtension(),
         "toutiao.account": createToutiaoAccountExtension(),
         "kuaishou.cookies": createKuaishouCookiesExtension(),
+        "whatsapp.backup": createWhatsAppBackupExtension(),
       },
     });
     const sda = new SystemDataAndroidAdapter();
@@ -635,6 +646,11 @@ async function initHub() {
     XiaohongshuAdapter,
     ToutiaoAdapter,
     KuaishouAdapter,
+    GenshinAdapter,
+    HonorOfKingsAdapter,
+    ZuoyebangAdapter,
+    AlipayAdapter,
+    HuaweiLearningAdapter,
     QQAdapter,
     WeChatPcAdapter,
     QQPcAdapter,
@@ -688,7 +704,9 @@ async function initHub() {
     WhatsAppAdapter,
   ]) {
     try {
-      const adapter = new Cls();
+      const adapter = Cls === WhatsAppAdapter
+        ? new Cls({ bridgeProvider: () => desktopAdbBridge })
+        : new Cls();
       if (!registry.has(adapter.name)) {
         registry.register(adapter);
       }
@@ -747,7 +765,28 @@ async function initHub() {
   // aichat-accounts.json on each pass — no file work if the user never
   // registered any vendor.
   const aichatAccountsStore = createAIChatAccountsStore({ hubDir });
-  const aichatVendorAdapter = createAIChatVendorAdapterBridge();
+  const aiChatAdapter = new AIChatHistoryAdapter();
+  try {
+    const persistedAccounts = await aichatAccountsStore.list();
+    const restored = aiChatAdapter.restoreSessions(persistedAccounts);
+    if (restored.skipped.length > 0) {
+      logger.warn(
+        "[PersonalDataHub] skipped invalid persisted AIChat accounts",
+        restored.skipped.map((entry) => entry.vendor),
+      );
+    }
+    if (!registry.has(aiChatAdapter.name)) {
+      registry.register(aiChatAdapter);
+    }
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to restore/register AIChat adapter",
+      err && err.message,
+    );
+  }
+  const aichatVendorAdapter = createAIChatVendorAdapterBridge({
+    runtimeAdapter: aiChatAdapter,
+  });
   const aichatHealthChecker = createAIChatHealthChecker({
     accountsStore: aichatAccountsStore,
     vendorAdapter: aichatVendorAdapter,
@@ -763,7 +802,11 @@ async function initHub() {
 
   // Expose the wizard controller (singleton-cached per hubDir by the
   // factory) so the IPC layer can delegate without re-wiring deps per call.
-  const aichatWizard = getAIChatWizard({ hubDir });
+  const aichatWizard = getAIChatWizard({
+    hubDir,
+    accountsStore: aichatAccountsStore,
+    vendorAdapter: aichatVendorAdapter,
+  });
 
   // Phase 12.6.8 — WeChat accounts persistence (mirror Alipay shape).
   // No auto-register on boot: WeChat adapters bind to a `dbPath` that
@@ -786,6 +829,7 @@ async function initHub() {
     wechatAccountsPath,
     entityResolver,
     aichatAccountsStore,
+    aiChatAdapter,
     aichatWizard,
     aichatHealthChecker,
     analysisSkillNames: ANALYSIS_SKILL_NAMES,
@@ -824,6 +868,7 @@ async function initHub() {
         return { ok: false, reason: "NOT_REGISTERED", vendor };
       }
       await aichatAccountsStore.delete(vendor);
+      aiChatAdapter.clearSession(vendor);
       // Best-effort cookie clear via the wizard's rotate path. We swallow
       // any error — the JSON row removal is the authoritative state.
       try {

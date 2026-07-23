@@ -46,20 +46,30 @@ const failed = [];
 for (const key of Object.keys(pdh)) {
   if (!/Adapter$/.test(key) || key === "MockAdapter" || key === "CcLLMAdapter") continue;
   const Cls = pdh[key];
-  if (typeof Cls !== "function") continue;
+  // `assertAdapter` also matches /Adapter$/ but is a contract helper, not a
+  // collector. Requiring the adapter sync surface prevents helper exports from
+  // showing up as false catalog failures.
+  if (typeof Cls !== "function" || typeof Cls.prototype?.sync !== "function") continue;
   let inst = null;
-  for (const o of [OPTS, { ...OPTS, account: undefined }, {}]) {
+  for (const o of [OPTS, { snapshotMode: true }, { ...OPTS, account: undefined }, {}]) {
     try { inst = new Cls(o); break; } catch (_e) { /* try next */ }
   }
   if (!inst || !inst.name) { failed.push(key); continue; }
   const dd = inst.dataDisclosure || {};
+  const capabilities = Array.isArray(inst.capabilities) ? [...inst.capabilities] : [];
+  const placeholderFetch =
+    typeof inst._fetchFn === "function" && inst._fetchFn.name === "defaultFetch";
+  if (placeholderFetch) {
+    const index = capabilities.indexOf("sync:cookie-api");
+    if (index >= 0) capabilities.splice(index, 1, "sync:custom-cookie-api");
+  }
   rows.push({
     export: key,
     name: inst.name,
     display: displayName(inst.name),
     category: (typeof inferCategory === "function" ? inferCategory(inst.name) : "unknown") || "unknown",
     version: inst.version || null,
-    capabilities: inst.capabilities || [],
+    capabilities,
     fields: Array.isArray(dd.fields) ? dd.fields : [],
     sensitivity: dd.sensitivity || "unknown",
     legalGate: !!dd.legalGate,

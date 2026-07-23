@@ -18,11 +18,13 @@ const path = require("node:path");
 
 const { AdapterRegistry } = require("../lib/registry");
 const {
+  describeReadiness,
   READINESS_CATEGORY,
   READINESS_STATUS,
 } = require("../lib/adapter-readiness");
 const { BilibiliAdapter } = require("../lib/adapters/social-bilibili");
 const { TelegramAdapter } = require("../lib/adapters/messaging-telegram");
+const { WhatsAppAdapter } = require("../lib/adapters/messaging-whatsapp");
 const { Train12306Adapter } = require("../lib/adapters/travel-12306");
 const { EmailAdapter } = require("../lib/adapters/email-imap");
 const { WechatAdapter } = require("../lib/adapters/wechat");
@@ -66,6 +68,38 @@ describe("AdapterRegistry.readiness()", () => {
     expect(r.reason).toBe("DB_NOT_PULLED");
     expect(r.category).toBe(READINESS_CATEGORY.DEVICE);
     expect(r.extractMode).toBe("device-pull");
+  });
+
+  it("WhatsApp ADB pull remains needs_setup until the user supplies a key", async () => {
+    const reg = new AdapterRegistry({ vault: stubVault() });
+    reg.register(new WhatsAppAdapter({ bridgeProvider: () => ({ invoke() {} }) }));
+    const [r] = await reg.readiness();
+    expect(r.ready).toBe(false);
+    expect(r.status).toBe(READINESS_STATUS.NEEDS_SETUP);
+    expect(r.reason).toBe("ADB_PULL_REQUIRED");
+    expect(r.category).toBe(READINESS_CATEGORY.DEVICE);
+    expect(r.actionHint).toMatch(/crypt15|crypt14/i);
+  });
+
+  it("maps WhatsApp KEY_REQUIRED to an actionable device setup state", () => {
+    const r = describeReadiness("KEY_REQUIRED");
+    expect(r.status).toBe(READINESS_STATUS.NEEDS_SETUP);
+    expect(r.category).toBe(READINESS_CATEGORY.DEVICE);
+    expect(r.actionHint).toMatch(/crypt15|crypt14/i);
+  });
+
+  it("maps unverified live endpoints to snapshot setup instead of ready", () => {
+    const r = describeReadiness("EXPLICIT_ENDPOINT_REQUIRED");
+    expect(r.status).toBe(READINESS_STATUS.NEEDS_SETUP);
+    expect(r.category).toBe(READINESS_CATEGORY.SNAPSHOT);
+    expect(r.actionHint).toMatch(/snapshot|endpoint/i);
+  });
+
+  it("maps unverified SQLite schemas to snapshot setup instead of ready", () => {
+    const r = describeReadiness("EXPLICIT_SCHEMA_REQUIRED");
+    expect(r.status).toBe(READINESS_STATUS.NEEDS_SETUP);
+    expect(r.category).toBe(READINESS_CATEGORY.SNAPSHOT);
+    expect(r.actionHint).toMatch(/snapshot|table/i);
   });
 
   it("12306 snapshot adapter → needs_setup", async () => {
@@ -174,6 +208,28 @@ describe("AdapterRegistry.readiness()", () => {
     expect(r.ready).toBe(false);
     expect(r.reason).toBe("TOTALLY_NEW_CODE_42");
     expect(r.message).toBeTruthy(); // mapped via UNKNOWN fallback
+  });
+
+  it("does not report ready when cookie mode only has a placeholder fetch seam", async () => {
+    const reg = new AdapterRegistry({ vault: stubVault() });
+    const defaultFetch = async () => { throw new Error("not configured"); };
+    reg.register({
+      name: "custom-web-seam",
+      version: "1.0.0",
+      capabilities: ["sync:snapshot", "sync:cookie-api"],
+      extractMode: "web-api",
+      dataDisclosure: { fields: [], sensitivity: "low" },
+      _cookieAuth: { configured: true },
+      _fetchFn: defaultFetch,
+      authenticate: async () => ({ ok: true, mode: "cookie" }),
+      healthCheck: async () => ({ ok: true }),
+      normalize: (value) => value,
+      async *sync() {},
+    });
+    const [r] = await reg.readiness();
+    expect(r.ready).toBe(false);
+    expect(r.reason).toBe("CUSTOM_FETCH_REQUIRED");
+    expect(r.category).toBe(READINESS_CATEGORY.SNAPSHOT);
   });
 
   it("folds last sync outcome from the watermark into the report", async () => {

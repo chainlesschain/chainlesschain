@@ -2,9 +2,9 @@
  * §12.1 Phase 13+ — 悦跑圈 (Joyrun, co.runner.app) adapter, "跑步记录".
  * Device-discovered gap (2026-06-15), new `fitness-` category.
  *
- * BEST-EFFORT SCAFFOLD: thejoyrun.com endpoints are FABRICATED placeholders
- * (overridable via opts.listUrl, NOT field-verified — FAMILY-23 playbook);
- * snapshot mode is the reliable path; cookie path surfaces auth.unverified=true.
+ * Snapshot import is the supported path. Custom cookie collection is enabled
+ * only with an explicit, user-captured listUrl and injected fetchFn; no guessed
+ * Joyrun endpoint is selected by default.
  * Running records carry GPS/route info → sensitivity:"medium" (legalGate off,
  * like the travel adapters).
  *
@@ -32,11 +32,10 @@ const { ENTITY_TYPES, EVENT_SUBTYPES, CAPTURED_BY } = require("../../constants")
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "fitness-joyrun";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 const KIND_RUN = "run";
 const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_RUN]);
-const RUNS_URL = "https://api.thejoyrun.com/v1/user/runs";
 const PAGE_SIZE = 30;
 
 function parseTime(v) {
@@ -110,12 +109,17 @@ class JoyrunAdapter {
       opts.account && opts.account.cookies ? new CookieAuth({ platform: "joyrun", cookies: opts.account.cookies }) : null;
     this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
     this._signProvider = typeof opts.signProvider === "function" ? opts.signProvider : null;
-    this._listUrl = typeof opts.listUrl === "string" && opts.listUrl.length > 0 ? opts.listUrl : RUNS_URL;
+    this._listUrl = typeof opts.listUrl === "string" && opts.listUrl.length > 0 ? opts.listUrl : null;
+    this._liveConfigured = Boolean(this._listUrl && typeof opts.fetchFn === "function");
 
     this.name = NAME;
     this.version = VERSION;
-    this.capabilities = ["sync:snapshot", "sync:cookie-api", "parse:joyrun-run"];
-    this.extractMode = "web-api";
+    this.capabilities = [
+      "sync:snapshot",
+      ...(this._liveConfigured ? ["sync:custom-cookie-api"] : []),
+      "parse:joyrun-run",
+    ];
+    this.extractMode = this._liveConfigured ? "web-api" : "file-import";
     this.rateLimits = {};
     this.dataDisclosure = {
       fields: ["joyrun:run (distance / duration / pace / calories / steps — carries GPS route)"],
@@ -135,6 +139,13 @@ class JoyrunAdapter {
       }
       return { ok: true, mode: "snapshot-file" };
     }
+    if (this._cookieAuth && !this._liveConfigured) {
+      return {
+        ok: false,
+        reason: "EXPLICIT_ENDPOINT_REQUIRED",
+        message: "fitness-joyrun: cookie collection requires captured listUrl and fetchFn; snapshot import is ready",
+      };
+    }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
       if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
@@ -143,7 +154,7 @@ class JoyrunAdapter {
     return {
       ok: false,
       reason: "NO_INPUT",
-      message: "fitness-joyrun.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode, best-effort/unverified)",
+      message: "fitness-joyrun.authenticate: needs opts.inputPath; custom live mode also requires cookies, listUrl, and fetchFn",
     };
   }
 
@@ -160,11 +171,14 @@ class JoyrunAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    if (this._cookieAuth) {
+    if (this._cookieAuth && this._liveConfigured) {
       yield* this._syncViaCookie(opts);
       return;
     }
-    throw new Error("fitness-joyrun.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)");
+    if (this._cookieAuth) {
+      throw new Error("fitness-joyrun.sync: explicit listUrl and fetchFn required for custom cookie collection");
+    }
+    throw new Error("fitness-joyrun.sync: needs opts.inputPath (snapshot mode)");
   }
 
   async *_syncViaSnapshot(opts) {

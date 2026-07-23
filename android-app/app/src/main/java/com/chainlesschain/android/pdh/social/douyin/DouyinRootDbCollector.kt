@@ -13,7 +13,7 @@ import javax.inject.Singleton
 /**
  * Phase 2b — orchestrator for the Android in-APK root Douyin collector
  * (path B). Implements the shared [LocalRootCollector] interface from
- * the Phase B0 scaffold, returning the canonical [LocalSnapshotResult].
+ * the root database extractor, returning the canonical [LocalSnapshotResult].
  *
  * Coexists with [DouyinLocalCollector] (v0.2 cookies + profile path):
  *

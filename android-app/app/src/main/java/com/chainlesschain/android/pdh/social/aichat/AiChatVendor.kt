@@ -22,11 +22,10 @@ package com.chainlesschain.android.pdh.social.aichat
  *  - 部分家（豆包 / 文心）走 baidu / bytedance 子域 — cookieDomain 要写实
  *    际 set-cookie 域，不是营销页面域
  *
- * 真接通 sync 路径：cookie → in-APK cc hub sync ai-chat-history --vendor
- * <key> --cookie '<c>' --json → packages/personal-data-hub Phase 10.2
- * 8 厂商 adapter (DeepSeek/Kimi/通义/智谱/混元/千帆/扣子/Dreamina)。豆包 /
- * 文心 桌面端 adapter v0.2 待补，UI v0.1 占位但 cookie 已能存 (用户不丢
- * onboarding context)。
+ * 真接通 sync 路径：cookie → 加密凭据快照 → in-APK cc hub sync
+ * ai-chat-history --input <path> --json。Node 端已注册 9 厂商
+ * (DeepSeek/Kimi/通义/智谱/混元/千帆/扣子/Dreamina/豆包)；豆包内部接口
+ * 仍需按真实账号版本回归字段漂移。
  */
 enum class AiChatVendor(
     val key: String,

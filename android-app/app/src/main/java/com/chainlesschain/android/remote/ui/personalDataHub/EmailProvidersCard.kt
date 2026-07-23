@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
  * D6.1 + D6.2 — 邮箱 4 provider sub-cards (推文 §"邮箱: QQ / Gmail / 163 /
  * Outlook").
  *
- * v0.1 (D6.1): 4 provider 卡 disabled stub。
+ * 4 provider 卡均已接通凭据配置、IMAP 采集、快照导入和退出操作。
  * v0.2 (§2.3 D6.2 本 commit): button 真接通 — onProviderLogin 弹凭据 dialog
  * → 提交 → EmailCredentialsStore + EmailLocalCollector + cc hub sync
  * email-imap。已登录卡 button 改 "同步" + "退出"。
@@ -42,7 +42,7 @@ fun EmailProvidersGroup(
 ) {
     val vendorMeta = listOf(
         EmailProviderMeta("qq", "QQ 邮箱", "imap.qq.com:993", "Web 端开 IMAP/SMTP + 授权码"),
-        EmailProviderMeta("gmail", "Gmail", "imap.gmail.com:993", "App Password (v0.2.1 加 OAuth)"),
+        EmailProviderMeta("gmail", "Gmail", "imap.gmail.com:993", "Google 两步验证 + 16 位 App Password"),
         EmailProviderMeta("netease163", "163 邮箱", "imap.163.com:993", "Web 端开 IMAP/SMTP + 客户端授权码"),
         EmailProviderMeta("outlook", "Outlook", "outlook.office365.com:993", "支持 IMAP / App Password"),
     )

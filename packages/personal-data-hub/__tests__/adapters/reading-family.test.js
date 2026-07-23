@@ -87,6 +87,8 @@ describe("FanqieReadingAdapter (snapshot + cookie-api via _reading-base)", () =>
     let signed = 0;
     const a = new fanqie.FanqieReadingAdapter({
       account: { cookies: COOKIES, userId: "u1" },
+      readUrl: "https://captured.example/history",
+      favouriteUrl: "https://captured.example/bookshelf",
       signProvider: async () => { signed += 1; return "sig"; },
       fetchFn: async ({ url, query }) => {
         if (query.page > 1) return { list: [] };
@@ -101,8 +103,10 @@ describe("FanqieReadingAdapter (snapshot + cookie-api via _reading-base)", () =>
     expect(signed).toBeGreaterThan(0);
   });
 
-  it("default fetch / no input throw", async () => {
-    await expect(collect(new fanqie.FanqieReadingAdapter({ account: { cookies: COOKIES } }).sync({}))).rejects.toThrow(/no fetchFn/);
+  it("unverified live endpoints / no input throw", async () => {
+    const unverified = new fanqie.FanqieReadingAdapter({ account: { cookies: COOKIES } });
+    expect(await unverified.authenticate()).toMatchObject({ ok: false, reason: "EXPLICIT_ENDPOINT_REQUIRED" });
+    await expect(collect(unverified.sync({}))).rejects.toThrow(/explicit readUrl/);
     await expect(collect(new fanqie.FanqieReadingAdapter().sync({}))).rejects.toThrow(/needs opts.inputPath/);
   });
 });

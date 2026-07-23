@@ -29,6 +29,14 @@ const {
 } = require("../../constants");
 
 const NAME = "system-data-android";
+// v0.3.4 (2026-07-23): preserve the job title already exposed by Android's
+//   Contacts provider. The snapshot writer previously queried TITLE but
+//   discarded it. It now lands on both person.extra and the synthetic event.
+// v0.3.3 (2026-07-10): bank/payment transaction SMS are now parsed into
+//   amount-bearing financial events (subtype payment/transfer/income/refund
+//   + content.amount) instead of plain MESSAGE, so the one reliably-collected
+//   money source feeds the spending analysis. Non-transaction SMS (OTP,
+//   marketing, plain chat) keep the MESSAGE mapping — strictly additive.
 // v0.3.2 (2026-05-25): denormalise contact identifiers (phones/emails/
 //   organization/starred) and app version/install fields onto
 //   event.extra so the Vault Browser tap-to-detail sheet can render
@@ -36,11 +44,6 @@ const NAME = "system-data-android";
 //   tables. Same content lives on the entity rows; events are now a
 //   convenience copy. Adds ~50-200 bytes per event but keeps the detail
 //   UI single-table.
-// v0.3.3 (2026-07-10): bank/payment transaction SMS are now parsed into
-//   amount-bearing financial events (subtype payment/transfer/income/refund
-//   + content.amount) instead of plain MESSAGE, so the one reliably-collected
-//   money source feeds the spending analysis. Non-transaction SMS (OTP,
-//   marketing, plain chat) keep the MESSAGE mapping — strictly additive.
 // v0.3.1 (2026-05-25): normalize() now emits a synthetic OTHER event per
 //   contact + per app. Snapshot mode previously only wrote persons/items;
 //   Vault Browser's `category=system` facet only counts events, so the
@@ -55,7 +58,7 @@ const NAME = "system-data-android";
 // v0.2.0 (2026-05-24): added kind="sms" + kind="call" via bridge mode.
 //   Snapshot mode still v1 schema — sms/calls/media only land via
 //   bridge path until Android snapshot writer is updated to include them.
-const VERSION = "0.3.3";
+const VERSION = "0.3.4";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 // Stable per-source originalId — registry.putRawEvent rejects null originalId
@@ -117,7 +120,7 @@ class SystemDataAndroidAdapter {
     this.rateLimits = { perDay: 24 };
     this.dataDisclosure = {
       fields: [
-        "contacts:displayName,phones,emails,starred,organization,photoUri",
+        "contacts:displayName,phones,emails,starred,organization,jobTitle,photoUri",
         "installed_apps:packageName,label,versionName,versionCode,firstInstallTime,lastUpdateTime,isSystem",
         "sms:id,address,body,date,dateSent,type,threadId,read,subject",
         "callLog:id,number,name,duration,date,type,geocoded",
@@ -463,6 +466,9 @@ class SystemDataAndroidAdapter {
       }
       const extra = {};
       if (typeof p.starred === "boolean") extra.starred = p.starred;
+      if (typeof p.jobTitle === "string" && p.jobTitle.trim().length > 0) {
+        extra.jobTitle = p.jobTitle.trim();
+      }
       if (typeof p.photoUri === "string" && p.photoUri.length > 0)
         extra.photoUri = p.photoUri;
       if (Object.keys(extra).length > 0) person.extra = extra;
@@ -491,6 +497,9 @@ class SystemDataAndroidAdapter {
         p.organization.trim().length > 0
       ) {
         eventExtra.organization = p.organization.trim();
+      }
+      if (typeof p.jobTitle === "string" && p.jobTitle.trim().length > 0) {
+        eventExtra.jobTitle = p.jobTitle.trim();
       }
       if (typeof p.starred === "boolean") eventExtra.starred = p.starred;
       const event = {

@@ -136,6 +136,7 @@ let LocalVault,
   AmapAdapter,
   TelegramAdapter,
   WhatsAppAdapter,
+  AIChatHistoryAdapter,
   EntityResolver,
   EntityResolverEmbeddingStage,
   EntityResolverLLMStage,
@@ -259,6 +260,7 @@ function ensurePdhLoaded() {
         AmapAdapter,
         TelegramAdapter,
         WhatsAppAdapter,
+        AIChatHistoryAdapter,
         EntityResolver,
         EntityResolverEmbeddingStage,
         EntityResolverLLMStage,
@@ -587,6 +589,8 @@ async function initHub() {
       // KuaishouSignBridge.
       const { createKuaishouCookiesExtension } =
         await import("@chainlesschain/personal-data-hub/adapters/social-kuaishou-adb");
+      const { createWhatsAppBackupExtension } =
+        await import("@chainlesschain/personal-data-hub/adapters/messaging-whatsapp");
       hostAdbBridge = createHostAdbBridge({
         extensions: {
           "bilibili.cookies": createBilibiliCookiesExtension(),
@@ -597,6 +601,7 @@ async function initHub() {
           "toutiao.cookies": createToutiaoCookiesExtension(),
           "toutiao.account": createToutiaoAccountExtension(),
           "kuaishou.cookies": createKuaishouCookiesExtension(),
+          "whatsapp.backup": createWhatsAppBackupExtension(),
         },
       });
       sda._deps.bridgeProvider = () => hostAdbBridge;
@@ -796,7 +801,9 @@ async function initHub() {
     WhatsAppAdapter,
   ]) {
     try {
-      const adapter = new Cls();
+      const adapter = Cls === WhatsAppAdapter
+        ? new Cls({ bridgeProvider: () => hostAdbBridge })
+        : new Cls();
       if (!registry.has(adapter.name)) registry.register(adapter);
     } catch (_err) {
       // Continue boot even if one adapter ctor throws
@@ -838,7 +845,18 @@ async function initHub() {
   // periodic loop still validates persisted cookies so list-aichat-accounts
   // can surface lastHealth reliably.
   const aichatAccountsStore = createAIChatAccountsStore({ hubDir });
-  const aichatVendorAdapter = createAIChatVendorAdapterBridge();
+  const aiChatAdapter = new AIChatHistoryAdapter();
+  try {
+    const persistedAccounts = await aichatAccountsStore.list();
+    aiChatAdapter.restoreSessions(persistedAccounts);
+    if (!registry.has(aiChatAdapter.name)) registry.register(aiChatAdapter);
+  } catch (_err) {
+    // Corrupt rows are skipped by restoreSessions; a store/registry failure
+    // must not prevent the rest of the hub from booting.
+  }
+  const aichatVendorAdapter = createAIChatVendorAdapterBridge({
+    runtimeAdapter: aiChatAdapter,
+  });
   const createAIChatHealthChecker = await loadAIChatHealthChecker();
   const aichatHealthChecker = createAIChatHealthChecker({
     accountsStore: aichatAccountsStore,
@@ -849,7 +867,11 @@ async function initHub() {
   } catch (_err) {
     // Continue boot even if checker fails to schedule
   }
-  const aichatWizard = getAIChatWizard({ hubDir });
+  const aichatWizard = getAIChatWizard({
+    hubDir,
+    accountsStore: aichatAccountsStore,
+    vendorAdapter: aichatVendorAdapter,
+  });
 
   return {
     vault,
@@ -864,6 +886,7 @@ async function initHub() {
     alipayAccountsPath,
     entityResolver,
     aichatAccountsStore,
+    aiChatAdapter,
     aichatWizard,
     aichatHealthChecker,
     analysisSkillNames: ANALYSIS_SKILL_NAMES,
@@ -896,6 +919,7 @@ async function initHub() {
         return { ok: false, reason: "NOT_REGISTERED", vendor };
       }
       await aichatAccountsStore.delete(vendor);
+      aiChatAdapter.clearSession(vendor);
       try {
         await aichatWizard.rotateLoginPartition({ vendor });
       } catch (_err) {
