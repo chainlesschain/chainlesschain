@@ -9,11 +9,11 @@
  */
 
 const EventEmitter = require("events");
-const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs").promises;
 const os = require("os");
 const { logger } = require("../utils/logger.js");
+const { spawnWithDesktopBroker } = require("../process/desktop-process-broker");
 
 /**
  * Available Edge TTS voices (commonly used)
@@ -66,7 +66,7 @@ const DEFAULT_CONFIG = {
  * Edge TTS Client
  */
 class EdgeTTSClient extends EventEmitter {
-  constructor(config = {}) {
+  constructor(config = {}, { spawnProcess = spawnWithDesktopBroker } = {}) {
     super();
 
     this.config = {
@@ -76,6 +76,7 @@ class EdgeTTSClient extends EventEmitter {
 
     this.available = false;
     this.voices = { ...EDGE_VOICES };
+    this.spawnProcess = spawnProcess;
 
     // Cache for generated audio
     this.cache = new Map();
@@ -309,9 +310,14 @@ class EdgeTTSClient extends EventEmitter {
    */
   _runCommand(args) {
     return new Promise((resolve, reject) => {
-      const proc = spawn(this.config.pythonPath, ["-m", "edge_tts", ...args], {
-        windowsHide: true,
-      });
+      const proc = this.spawnProcess(
+        this.config.pythonPath,
+        ["-m", "edge_tts", ...args],
+        {
+          windowsHide: true,
+          origin: "desktop:speech-edge-tts",
+        },
+      );
 
       let stdout = "";
       let stderr = "";
