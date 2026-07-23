@@ -89,7 +89,14 @@ describe("copyToClipboard", () => {
     expect(spawnSync).toHaveBeenCalledWith(
       "pbcopy",
       [],
-      expect.objectContaining({ input: "payload", encoding: "utf-8" }),
+      expect.objectContaining({
+        input: "payload",
+        encoding: "utf-8",
+        origin: "repl:clipboard-copy",
+        policy: "allow",
+        scope: "clipboard",
+        shell: false,
+      }),
     );
   });
 

@@ -4,7 +4,7 @@
  * spawn wrapper. The pure parts are unit-tested; real clipboard I/O is
  * environment-dependent and exercised through an injected spawnSync.
  */
-import { spawnSync as _spawnSync } from "node:child_process";
+import { executionBroker } from "../lib/process-execution-broker/index.js";
 
 /** Flatten a message's content (string | content-parts[]) to plain text. Pure. */
 export function messageText(content) {
@@ -78,7 +78,9 @@ export function clipboardCommands(platform = process.platform) {
   ];
 }
 
-const _deps = { spawnSync: _spawnSync };
+const _deps = {
+  spawnSync: (...args) => executionBroker.spawnSync(...args),
+};
 
 /**
  * Write text to the system clipboard, trying each platform candidate in order
@@ -96,6 +98,10 @@ export function copyToClipboard(text, { platform, spawnSync } = {}) {
         input: text,
         encoding: "utf-8",
         windowsHide: true,
+        origin: "repl:clipboard-copy",
+        policy: "allow",
+        scope: "clipboard",
+        shell: false,
       });
     } catch (e) {
       lastErr = e.message;

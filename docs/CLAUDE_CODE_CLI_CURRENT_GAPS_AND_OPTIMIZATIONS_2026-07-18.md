@@ -120,6 +120,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   16 MiB 输出上限和 status unknown/clean 的区分。
 - 启动期 npm 更新缓存 refresher 已进入 `update:notice-refresh` Broker scope，保留 detached、
   `windowsHide` 与 fail-open 的被动提示语义。
+- REPL `/copy` 的 PowerShell、`clip`、`pbcopy`、`wl-copy`、`xclip` 与 `xsel` 候选执行已进入
+  `repl:clipboard-copy` Broker scope；剪贴板正文继续只经 stdin 传递，命令参数禁用 shell 解释。
 
 ### 4.2 建议设计
 

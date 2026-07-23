@@ -298,9 +298,9 @@ Total matches: 401 (runtime: 325, tooling: 53, test: 23).
 | `packages/cli/src/lib/update-notice.js` | 22 | `spawn: (...args) => executionBroker.spawn(...args),` |
 | `packages/cli/src/lib/update-notice.js` | 94 | `const child = deps.spawn(process.execPath, [refresher, cachePath(deps)], {` |
 | `packages/cli/src/repl/agent-repl.js` | 5582 | `const cpMod = await import("node:child_process");` |
-| `packages/cli/src/repl/clipboard-copy.js` | 7 | `import { spawnSync as _spawnSync } from "node:child_process";` |
-| `packages/cli/src/repl/clipboard-copy.js` | 89 | `const spawn = spawnSync \|\| _deps.spawnSync;` |
-| `packages/cli/src/repl/clipboard-copy.js` | 95 | `res = spawn(cmd, args, {` |
+| `packages/cli/src/repl/clipboard-copy.js` | 82 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
+| `packages/cli/src/repl/clipboard-copy.js` | 91 | `const spawn = spawnSync \|\| _deps.spawnSync;` |
+| `packages/cli/src/repl/clipboard-copy.js` | 97 | `res = spawn(cmd, args, {` |
 | `packages/cli/src/repl/pr-comments.js` | 12 | `import { execFile } from "child_process";` |
 | `packages/cli/src/repl/pr-comments.js` | 17 | `execFile(` |
 | `packages/cli/src/runtime/agent-core.js` | 19 | `import { execSync, spawn, spawnSync } from "child_process";` |
