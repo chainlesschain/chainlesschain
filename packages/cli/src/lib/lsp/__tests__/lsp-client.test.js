@@ -87,7 +87,12 @@ describe("LSPClient handshake", () => {
     expect(_deps.spawn).toHaveBeenCalledWith(
       "fake-lsp",
       ["--stdio"],
-      expect.objectContaining({ shell: false }),
+      expect.objectContaining({
+        origin: "lsp:server",
+        policy: "allow",
+        scope: "lsp",
+        shell: false,
+      }),
     );
   });
 

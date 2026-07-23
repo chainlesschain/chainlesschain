@@ -194,6 +194,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   ADB 路径、serial 和子命令保持独立 argv，并保留超时、输出上限和 typed error 映射。
 - Agenda 的定时 Agent 启动与 monitor 命令已分别进入 `agenda:agent-run`、
   `agenda:monitor-command` Broker origin；前者使用无 shell argv，后者保留显式 shell 和失败输出匹配语义。
+- LSP Client 的内置 server 原生 spawn fallback 已移除并进入 `lsp:server` Broker origin；
+  插件 server 继续携带 `plugin:lsp` provenance，stdio、Windows shim 与初始化超时/回收语义保持不变。
 
 ### 4.2 建议设计
 

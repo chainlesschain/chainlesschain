@@ -13,7 +13,6 @@
  * does not intercept this file). Nothing here is language-specific.
  */
 
-import { spawn as nodeSpawn } from "child_process";
 import { EventEmitter } from "events";
 import { encodeMessage, MessageBuffer } from "./jsonrpc-stream.js";
 import { executionBroker } from "../process-execution-broker/index.js";
@@ -22,7 +21,9 @@ const DEFAULT_REQUEST_TIMEOUT_MS = 15_000;
 const DEFAULT_INIT_TIMEOUT_MS = 30_000;
 
 // Injectable so unit tests can supply a fake child process.
-export const _deps = { spawn: nodeSpawn };
+export const _deps = {
+  spawn: (...args) => executionBroker.spawn(...args),
+};
 
 export class LSPClient extends EventEmitter {
   /**
@@ -88,10 +89,11 @@ export class LSPClient extends EventEmitter {
       shell: false,
       windowsHide: true,
       windowsVerbatimArguments: spawnSpec.windowsVerbatimArguments,
+      origin: this.origin || "lsp:server",
+      policy: "allow",
+      scope: "lsp",
       ...(this.origin
         ? {
-            origin: this.origin,
-            policy: "allow",
             pluginId: this.pluginId,
             pluginVersion: this.pluginVersion,
             pluginSource: this.pluginSource,

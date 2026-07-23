@@ -207,8 +207,8 @@ Total matches: 398 (runtime: 322, tooling: 53, test: 23).
 | `packages/cli/src/lib/lsp/benchmark.js` | 201 | `const out = execFileSync("ps", ["-o", "pid=,ppid=,rss="], {` |
 | `packages/cli/src/lib/lsp/lsp-client.js` | 11 | `* Testability: all process spawning goes through `_deps.spawn` so tests inject a` |
 | `packages/cli/src/lib/lsp/lsp-client.js` | 12 | `* fake stdio pair (see cli-dev.md `_deps` pattern — `vi.mock("child_process")`` |
-| `packages/cli/src/lib/lsp/lsp-client.js` | 16 | `import { spawn as nodeSpawn } from "child_process";` |
-| `packages/cli/src/lib/lsp/lsp-client.js` | 83 | `: _deps.spawn;` |
+| `packages/cli/src/lib/lsp/lsp-client.js` | 25 | `spawn: (...args) => executionBroker.spawn(...args),` |
+| `packages/cli/src/lib/lsp/lsp-client.js` | 84 | `: _deps.spawn;` |
 | `packages/cli/src/lib/mcp-oauth.js` | 39 | `executionBroker.spawn(command, args, {` |
 | `packages/cli/src/lib/mcp-oauth.js` | 680 | `const child = _deps.spawn(cmd, args, { stdio: "ignore", detached: true });` |
 | `packages/cli/src/lib/orchestrator.js` | 34 | `execSync: (...args) => executionBroker.execSync(...args),` |
