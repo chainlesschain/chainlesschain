@@ -185,6 +185,10 @@ describe("Phase 7 parity: Plan Mode approval flow", () => {
 
   it("write_file executes after approvePlan() and actually mutates the filesystem", async () => {
     planManager.enterPlanMode({ title: "approve & execute" });
+    planManager.addPlanItem({
+      title: "write approved file",
+      tool: "write_file",
+    });
     planManager.approvePlan(); // jump straight to APPROVED
     expect(planManager.state).toBe("approved");
 

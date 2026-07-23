@@ -65,6 +65,11 @@ const ENV_ALLOWLIST = new Set([
   "VISUAL",
   "NODE_ENV",
   "NODE_OPTIONS",
+  // Correlation identifiers required by ChainlessChain/Claude-compatible
+  // child processes. These identify a run; they are not authentication
+  // credentials. Other SESSION-named variables remain filtered.
+  "CC_SESSION_ID",
+  "CLAUDE_CODE_SESSION_ID",
   "npm_config_registry",
   "npm_config_cache",
   "NPM_CONFIG_REGISTRY",
