@@ -209,8 +209,8 @@ Total matches: 396 (runtime: 320, tooling: 53, test: 23).
 | `packages/cli/src/lib/lsp/lsp-client.js` | 83 | `: _deps.spawn;` |
 | `packages/cli/src/lib/mcp-oauth.js` | 39 | `executionBroker.spawn(command, args, {` |
 | `packages/cli/src/lib/mcp-oauth.js` | 680 | `const child = _deps.spawn(cmd, args, { stdio: "ignore", detached: true });` |
-| `packages/cli/src/lib/orchestrator.js` | 25 | `import { execSync } from "child_process";` |
-| `packages/cli/src/lib/orchestrator.js` | 382 | `const output = _deps.execSync(this.ciCommand, {` |
+| `packages/cli/src/lib/orchestrator.js` | 34 | `execSync: (...args) => executionBroker.execSync(...args),` |
+| `packages/cli/src/lib/orchestrator.js` | 384 | `const output = _deps.execSync(this.ciCommand, {` |
 | `packages/cli/src/lib/packer/native-prebuild-collector.js` | 257 | `// Generic fallback — a native fork (e.g. better-sqlite3-multiple-ciphers)` |
 | `packages/cli/src/lib/packer/pack-update-applier.js` | 33 | `spawn: (...args) => executionBroker.spawn(...args),` |
 | `packages/cli/src/lib/packer/pkg-runner.js` | 21 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |

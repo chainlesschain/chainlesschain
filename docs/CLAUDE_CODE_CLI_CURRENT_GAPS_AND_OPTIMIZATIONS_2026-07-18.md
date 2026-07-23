@@ -184,6 +184,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   Broker origin；显式 shell 文本继续作为单一 argv 传递，并保留输出上限、超时和上下文回填语义。
 - Slash command 模板中的 `!`cmd`` 展开已进入 `slash-command:bang` Broker origin；
   保留显式 shell 与失败降级为提示文本的兼容语义，同时获得危险命令、凭据和审计边界。
+- Orchestrator 的配置化 CI gate 已进入 `orchestrator:ci` Broker origin；保留显式 shell、
+  180 秒超时、64 MiB 输出上限及失败重试/重派发语义。
 
 ### 4.2 建议设计
 

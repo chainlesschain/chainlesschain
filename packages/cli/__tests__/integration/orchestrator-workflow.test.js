@@ -403,6 +403,14 @@ describe("Orchestrator: status()", () => {
     );
     expect(ciCall).toBeTruthy();
     expect(ciCall[1].maxBuffer).toBeGreaterThanOrEqual(16 * 1024 * 1024);
+    expect(ciCall[1]).toEqual(
+      expect.objectContaining({
+        origin: "orchestrator:ci",
+        policy: "allow",
+        scope: "orchestrator",
+        shell: true,
+      }),
+    );
   });
 });
 

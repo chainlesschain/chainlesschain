@@ -22,15 +22,17 @@
  */
 
 import { EventEmitter } from "events";
-import { execSync } from "child_process";
 import crypto from "crypto";
 import { AgentRouter } from "./agent-router.js";
 import { NotificationManager } from "./notifiers/index.js";
 import { createChatFn } from "./cowork-adapter.js";
 import { firstBalancedJson } from "./json-schema-output.js";
+import executionBroker from "./process-execution-broker/index.js";
 
 /* ---------- _deps injection (Vitest CJS mock pattern) ---------- */
-export const _deps = { execSync };
+export const _deps = {
+  execSync: (...args) => executionBroker.execSync(...args),
+};
 
 // ─── Task statuses ────────────────────────────────────────────────
 export const TASK_STATUS = {
@@ -389,6 +391,10 @@ export class Orchestrator extends EventEmitter {
         // re-dispatch). Give CI output generous headroom.
         maxBuffer: 64 * 1024 * 1024,
         stdio: "pipe",
+        origin: "orchestrator:ci",
+        policy: "allow",
+        scope: "orchestrator",
+        shell: true,
       });
       return {
         pass: true,
