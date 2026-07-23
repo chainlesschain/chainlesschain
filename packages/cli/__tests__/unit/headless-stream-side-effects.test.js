@@ -267,6 +267,127 @@ describe("stream side-effect ledger — turn-time recording", () => {
     });
   });
 
+  it("persists the actual review outcome after Request Changes", async () => {
+    const ledger = new SideEffectLedger();
+    const requested = {
+      schema: "cc-diff-review/v1",
+      reviewId: "drev_request",
+      sessionId: "chat-abc",
+      turnId: "run-1:t1",
+      toolUseId: "call-1",
+      path: "/repo/a.txt",
+      operation: "modify",
+      outcome: "changes-requested",
+      written: false,
+    };
+    const accepted = {
+      ...requested,
+      reviewId: "drev_accept",
+      turnId: "run-1:t2",
+      toolUseId: "call-2",
+      outcome: "accepted",
+      written: true,
+    };
+    const loop = async function* () {
+      yield {
+        type: "tool-executing",
+        tool: "write_file",
+        args: { path: "a.txt", content: "first" },
+      };
+      yield {
+        type: "tool-result",
+        tool: "write_file",
+        result: {
+          error: "changes requested",
+          _diffReviewAudit: requested,
+        },
+      };
+      yield {
+        type: "tool-executing",
+        tool: "write_file",
+        args: { path: "a.txt", content: "revised" },
+      };
+      yield {
+        type: "tool-result",
+        tool: "write_file",
+        result: { ok: true, _diffReviewAudit: accepted },
+      };
+      yield { type: "response-complete", content: "done" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const h = harness({
+      options: { sessionId: "chat-abc" },
+      over: {
+        loadSideEffectLedger: () => ledger,
+        persistSideEffectLedger: vi.fn(),
+      },
+      loop,
+    });
+    await h.run();
+
+    expect(ledger.list()[0]).toMatchObject({
+      state: "failed",
+      meta: {
+        diffReview: {
+          reviewId: "drev_request",
+          followUp: {
+            status: "accepted",
+            reviewId: "drev_accept",
+            turnId: "run-1:t2",
+            toolUseId: "call-2",
+            written: true,
+          },
+        },
+      },
+    });
+    expect(ledger.list()[1]).toMatchObject({
+      state: "committed",
+      meta: {
+        diffReview: {
+          ...accepted,
+          followUpOfReviewId: "drev_request",
+        },
+      },
+    });
+  });
+
+  it("records when the turn completes without another Diff proposal", async () => {
+    const ledger = new SideEffectLedger();
+    const requested = {
+      schema: "cc-diff-review/v1",
+      reviewId: "drev_request",
+      sessionId: "chat-abc",
+      turnId: "run-1:t1",
+      toolUseId: "call-1",
+      path: "/repo/a.txt",
+      operation: "modify",
+      outcome: "changes-requested",
+      written: false,
+    };
+    const h = harness({
+      options: { sessionId: "chat-abc" },
+      over: {
+        loadSideEffectLedger: () => ledger,
+        persistSideEffectLedger: vi.fn(),
+      },
+      loop: toolLoop([], {
+        tool: "write_file",
+        args: { path: "a.txt", content: "first" },
+        result: {
+          error: "changes requested",
+          _diffReviewAudit: requested,
+        },
+      }),
+    });
+    await h.run();
+
+    expect(ledger.list()[0].meta.diffReview.followUp).toEqual({
+      status: "completed-without-reproposal",
+      turnId: null,
+      reason: null,
+    });
+  });
+
   it("read-only tools and non-persisted sessions record nothing", async () => {
     // Persisted session, non-dangerous tool → classify returns null.
     const ledger = new SideEffectLedger();

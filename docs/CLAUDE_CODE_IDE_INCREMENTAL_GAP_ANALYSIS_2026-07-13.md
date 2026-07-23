@@ -14,10 +14,12 @@
 同日两端 `openDiff` 增加 `cc-diff-review/v1` 审计包，以内容指纹而非代码正文记录
 接受/拒绝、用户改写、hunk 选择、批注与最终写入。后续批次已用 CLI 请求覆盖宿主关联值，
 完成 session/turn/toolUse 可信绑定，并把有界审计元数据随对应文件写持久化到
-stream/headless/WebSocket 副作用账本；`followUpRequested` 只表示请求修订。历史 Diff
+stream/headless/WebSocket 副作用账本。后续又以可恢复 tracker 将下一次同 session/path
+审阅的实际结果回写原 Request Changes 记录，并为无重新提议/中断提供明确终态；
+`followUpRequested` 不再是唯一证据。历史 Diff
 差距中的显式 rename/delete 也已由 `delete_file` / `move_file`、`openDiff`
-operation/targetPath、双端源/目标路径守卫及生命周期落盘语义关闭。当前只保留 Request Changes
-后续结果和真实宿主/大文件降级验收。
+operation/targetPath、双端源/目标路径守卫及生命周期落盘语义关闭。当前只保留真实宿主、
+大文件/二进制和复杂 changeset 降级验收。
 
 仍不能由仓库静态证据完全关闭的项目：多版本/多宿主 GUI 矩阵、五类远程环境 E2E、跨进程 kill/resume、8 小时 soak、Marketplace 安装升级矩阵，以及 IDE 内部 Preview 的 DOM/console/network/action 闭环、PR/CI 的完整交付交互和 Agent View 的统一跨端状态接管。当前两端已具备 Preview 健康状态、只读 PR 状态命令和后台 Agent 视图入口，不能再表述为“完全未接线”。
 

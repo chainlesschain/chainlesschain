@@ -13,6 +13,7 @@
 
 import { agentLoop, formatToolArgs } from "../../runtime/agent-core.js";
 import { classifyToolSideEffect } from "../../lib/side-effect-ledger.js";
+import { DiffReviewFollowUpTracker } from "../../lib/diff-review-follow-up.js";
 import {
   loadSideEffectLedger,
   persistSideEffectLedger,
@@ -88,6 +89,8 @@ export class WSAgentHandler {
     const abortController = new AbortController();
     this._abortController = abortController;
     this._activeRequestId = requestId || null;
+    let sideEffectLedger = null;
+    let diffReviewFollowUps = null;
 
     try {
       const { session } = this;
@@ -159,89 +162,92 @@ export class WSAgentHandler {
       // persisted BEFORE it settles) and commit/fail on its result, so a bridge
       // worker killed mid-flight is surfaced for verification on resume (see
       // handleSessionResume) instead of being blindly replayed.
-      const sideEffectLedger = loadSideEffectLedger(session.id);
+      sideEffectLedger = loadSideEffectLedger(session.id);
+      diffReviewFollowUps = new DiffReviewFollowUpTracker(sideEffectLedger);
       let currentSideEffectOpId = null;
 
       const runAgentTurn = async () => {
         for await (const event of agentLoop(session.messages, loopOptions)) {
-        switch (event.type) {
-          case "slot-filling":
-            this.interaction.emit("slot-filling", {
-              requestId,
-              slot: event.slot,
-              question: event.question,
-            });
-            break;
+          switch (event.type) {
+            case "slot-filling":
+              this.interaction.emit("slot-filling", {
+                requestId,
+                slot: event.slot,
+                question: event.question,
+              });
+              break;
 
-          case "tool-executing":
-            this.interaction.emit("tool-executing", {
-              requestId,
-              tool: event.tool,
-              args: event.args,
-              display: formatToolArgs(event.tool, event.args),
-            });
-            currentSideEffectOpId = null;
-            {
-              const se = classifyToolSideEffect(event.tool, event.args);
-              if (se) {
-                const opId = `ws:${session.id}:${Date.now()}:${this._sideEffectSeq++}`;
-                currentSideEffectOpId = opId;
-                sideEffectLedger
-                  .prepare(opId, {
-                    kind: se.kind,
-                    key: se.key,
-                    meta: {
-                      tool: event.tool,
-                      idempotencyKey: operationIdempotencyKey({
+            case "tool-executing":
+              this.interaction.emit("tool-executing", {
+                requestId,
+                tool: event.tool,
+                args: event.args,
+                display: formatToolArgs(event.tool, event.args),
+              });
+              currentSideEffectOpId = null;
+              {
+                const se = classifyToolSideEffect(event.tool, event.args);
+                if (se) {
+                  const opId = `ws:${session.id}:${Date.now()}:${this._sideEffectSeq++}`;
+                  currentSideEffectOpId = opId;
+                  sideEffectLedger
+                    .prepare(opId, {
+                      kind: se.kind,
+                      key: se.key,
+                      meta: {
                         tool: event.tool,
-                        args: event.args,
-                      }),
-                    },
-                  })
-                  .start(opId);
-                persistSideEffectLedger(session.id, sideEffectLedger);
+                        idempotencyKey: operationIdempotencyKey({
+                          tool: event.tool,
+                          args: event.args,
+                        }),
+                      },
+                    })
+                    .start(opId);
+                  persistSideEffectLedger(session.id, sideEffectLedger);
+                }
               }
-            }
-            break;
+              break;
 
-          case "tool-result":
-            this.interaction.emit("tool-result", {
-              requestId,
-              tool: event.tool,
-              result: event.result,
-              error: event.error,
-            });
-            if (currentSideEffectOpId) {
-              const err = event.error || event.result?.error || null;
-              if (event.result?._diffReviewAudit) {
-                sideEffectLedger.annotate(currentSideEffectOpId, {
-                  diffReview: event.result._diffReviewAudit,
+            case "tool-result":
+              this.interaction.emit("tool-result", {
+                requestId,
+                tool: event.tool,
+                result: event.result,
+                error: event.error,
+              });
+              if (currentSideEffectOpId) {
+                const err = event.error || event.result?.error || null;
+                if (event.result?._diffReviewAudit) {
+                  diffReviewFollowUps.observe(
+                    sideEffectLedger,
+                    currentSideEffectOpId,
+                    event.result._diffReviewAudit,
+                  );
+                }
+                if (err)
+                  sideEffectLedger.fail(
+                    currentSideEffectOpId,
+                    String(err).slice(0, 200),
+                  );
+                else sideEffectLedger.commit(currentSideEffectOpId);
+                persistSideEffectLedger(session.id, sideEffectLedger);
+                currentSideEffectOpId = null;
+              }
+              break;
+
+            case "response-complete":
+              if (event.content) {
+                session.messages.push({
+                  role: "assistant",
+                  content: event.content,
                 });
               }
-              if (err)
-                sideEffectLedger.fail(
-                  currentSideEffectOpId,
-                  String(err).slice(0, 200),
-                );
-              else sideEffectLedger.commit(currentSideEffectOpId);
-              persistSideEffectLedger(session.id, sideEffectLedger);
-              currentSideEffectOpId = null;
-            }
-            break;
-
-          case "response-complete":
-            if (event.content) {
-              session.messages.push({
-                role: "assistant",
+              this.interaction.emit("response-complete", {
+                requestId,
                 content: event.content,
               });
-            }
-            this.interaction.emit("response-complete", {
-              requestId,
-              content: event.content,
-            });
-            break;
-        }
+              break;
+          }
         }
       };
 
@@ -253,10 +259,26 @@ export class WSAgentHandler {
       } else {
         await runAgentTurn();
       }
+      if (
+        diffReviewFollowUps.complete(sideEffectLedger, {
+          status: "completed-without-reproposal",
+        }).length > 0
+      ) {
+        persistSideEffectLedger(session.id, sideEffectLedger);
+      }
 
       // Update last activity
       session.lastActivity = new Date().toISOString();
     } catch (err) {
+      if (
+        sideEffectLedger &&
+        diffReviewFollowUps?.complete(sideEffectLedger, {
+          status: "interrupted",
+          reason: isAbortError(err) ? "aborted" : err.message,
+        }).length > 0
+      ) {
+        persistSideEffectLedger(this.session.id, sideEffectLedger);
+      }
       if (isAbortError(err) || abortController.signal.aborted) {
         return;
       }

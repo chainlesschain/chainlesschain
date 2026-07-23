@@ -216,6 +216,80 @@ describe("headless side-effect ledger — record + resume reconcile", () => {
     );
   });
 
+  it("links a revised Diff proposal to the Request Changes ledger record", async () => {
+    const store = makeStore();
+    const requested = {
+      schema: "cc-diff-review/v1",
+      reviewId: "drev_request",
+      sessionId: "sid",
+      turnId: "run-1:t1",
+      toolUseId: "call-1",
+      path: "/repo/a.js",
+      operation: "modify",
+      outcome: "changes-requested",
+      written: false,
+    };
+    const accepted = {
+      ...requested,
+      reviewId: "drev_accept",
+      turnId: "run-1:t2",
+      toolUseId: "call-2",
+      outcome: "accepted",
+      written: true,
+    };
+    const loop = async function* () {
+      yield {
+        type: "tool-executing",
+        tool: "write_file",
+        args: { path: "a.js", content: "first" },
+      };
+      yield {
+        type: "tool-result",
+        tool: "write_file",
+        result: {
+          error: "changes requested",
+          _diffReviewAudit: requested,
+        },
+      };
+      yield {
+        type: "tool-executing",
+        tool: "write_file",
+        args: { path: "a.js", content: "revised" },
+      };
+      yield {
+        type: "tool-result",
+        tool: "write_file",
+        result: { ok: true, _diffReviewAudit: accepted },
+      };
+      yield { type: "response-complete", content: "done" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    await runAgentHeadless(
+      {
+        prompt: "edit",
+        sessionId: "sid",
+        persistSession: true,
+        outputFormat: "json",
+        expandFileRefs: false,
+        now: () => 1000,
+      },
+      baseDeps(store, loop),
+    );
+
+    const ledger = latestLedger(store.events);
+    expect(ledger.list()[0].meta.diffReview.followUp).toMatchObject({
+      status: "accepted",
+      reviewId: "drev_accept",
+      turnId: "run-1:t2",
+      toolUseId: "call-2",
+      written: true,
+    });
+    expect(ledger.list()[1].meta.diffReview).toMatchObject({
+      reviewId: "drev_accept",
+      outcome: "accepted",
+    });
+  });
+
   it("kill-point metric: a correct resume yields 0 duplicate committed effects", async () => {
     const store = makeStore();
     // Run 1: git push completes cleanly (committed under idempotency key K).

@@ -79,6 +79,7 @@ import {
   reconcileSideEffects,
   classifyToolSideEffect,
 } from "../lib/side-effect-ledger.js";
+import { DiffReviewFollowUpTracker } from "../lib/diff-review-follow-up.js";
 import {
   loadSideEffectLedger,
   persistSideEffectLedger,
@@ -698,10 +699,14 @@ async function runTurn(
   let finalText = "";
   let endReason = "complete";
   let stopForCost = false;
+  let responseCompleted = false;
   // P0-2: the side-effect op currently in flight (at most one — the loop runs
   // tools serially). Non-null only between a dangerous tool's tool-executing
   // and its tool-result.
   let currentSideEffectOpId = null;
+  const diffReviewFollowUps = new DiffReviewFollowUpTracker(
+    sideEffects?.ledger,
+  );
 
   // Collapse consecutive same-role turns before the model call ONLY when the
   // caller flags a resume-degenerate transcript (`mergeRoles`): a resumed
@@ -792,9 +797,11 @@ async function runTurn(
         // a clean error) and persist the updated ledger snapshot.
         if (sideEffects && currentSideEffectOpId) {
           if (event.result?._diffReviewAudit) {
-            sideEffects.ledger.annotate(currentSideEffectOpId, {
-              diffReview: event.result._diffReviewAudit,
-            });
+            diffReviewFollowUps.observe(
+              sideEffects.ledger,
+              currentSideEffectOpId,
+              event.result._diffReviewAudit,
+            );
           }
           if (err)
             sideEffects.ledger.fail(
@@ -873,6 +880,7 @@ async function runTurn(
         break;
       case "response-complete":
         finalText = event.content || "";
+        responseCompleted = true;
         break;
       case "run-ended":
         if (event.reason) endReason = event.reason;
@@ -884,6 +892,18 @@ async function runTurn(
     // Hard cost cap reached — stop consuming the loop (break the for-await, not
     // just the switch) so no further paid LLM call is made.
     if (stopForCost) break;
+  }
+  if (
+    sideEffects &&
+    diffReviewFollowUps.complete(sideEffects.ledger, {
+      status:
+        responseCompleted || endReason === "complete"
+          ? "completed-without-reproposal"
+          : "interrupted",
+      reason: responseCompleted || endReason === "complete" ? null : endReason,
+    }).length > 0
+  ) {
+    sideEffects.persist();
   }
   return { finalText, endReason, usage, toolCalls };
 }

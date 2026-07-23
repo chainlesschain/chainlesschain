@@ -56,6 +56,7 @@ import {
   reconcileSideEffects,
   classifyToolSideEffect,
 } from "../lib/side-effect-ledger.js";
+import { DiffReviewFollowUpTracker } from "../lib/diff-review-follow-up.js";
 import { SIDE_EFFECT_LEDGER_EVENT } from "../lib/side-effect-ledger-store.js";
 import { TurnBindingLog, createTurnBindingFeed } from "../lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../lib/turn-binding-store.js";
@@ -860,6 +861,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
       }
     }
   }
+  const diffReviewFollowUps = new DiffReviewFollowUpTracker(sideEffectLedger);
 
   // ── Wire the persistent ApprovalGate with our non-interactive confirmer
   // and force the session-policy tier dictated by --permission-mode. ──────
@@ -1846,9 +1848,11 @@ export async function runAgentHeadless(options = {}, deps = {}) {
             // a clean error) and persist the updated ledger snapshot.
             if (persist && currentSideEffectOpId) {
               if (event.result?._diffReviewAudit) {
-                sideEffectLedger.annotate(currentSideEffectOpId, {
-                  diffReview: event.result._diffReviewAudit,
-                });
+                diffReviewFollowUps.observe(
+                  sideEffectLedger,
+                  currentSideEffectOpId,
+                  event.result._diffReviewAudit,
+                );
               }
               if (err)
                 sideEffectLedger.fail(
@@ -1956,10 +1960,30 @@ export async function runAgentHeadless(options = {}, deps = {}) {
           }
           case "response-complete": {
             finalText = event.content || "";
+            if (
+              persist &&
+              diffReviewFollowUps.complete(sideEffectLedger, {
+                status: "completed-without-reproposal",
+              }).length > 0
+            ) {
+              persistSideEffectLedger();
+            }
             break;
           }
           case "run-ended": {
             if (event.reason) endReason = event.reason;
+            if (
+              persist &&
+              diffReviewFollowUps.complete(sideEffectLedger, {
+                status:
+                  event.reason === "complete"
+                    ? "completed-without-reproposal"
+                    : "interrupted",
+                reason: event.reason || endReason,
+              }).length > 0
+            ) {
+              persistSideEffectLedger();
+            }
             break;
           }
           default:

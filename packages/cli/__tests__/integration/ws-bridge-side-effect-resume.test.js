@@ -187,4 +187,73 @@ describe("WS bridge side-effect resume", () => {
       meta: { diffReview: audit },
     });
   });
+
+  it("links an accepted re-proposal to the preceding Request Changes review", async () => {
+    const session = makeSession();
+    const interaction = { emit: vi.fn(), rejectAllPending: vi.fn() };
+    const handler = new WSAgentHandler({ session, interaction, db: null });
+    const requested = {
+      schema: "cc-diff-review/v1",
+      reviewId: "drev_request",
+      sessionId: session.id,
+      turnId: "run-1:t1",
+      toolUseId: "call-1",
+      path: "/proj/a.js",
+      operation: "modify",
+      outcome: "changes-requested",
+      written: false,
+    };
+    const accepted = {
+      ...requested,
+      reviewId: "drev_accept",
+      turnId: "run-1:t2",
+      toolUseId: "call-2",
+      outcome: "accepted",
+      written: true,
+    };
+    agentLoop.mockReturnValue(
+      fakeLoop([
+        {
+          type: "tool-executing",
+          tool: "write_file",
+          args: { path: "a.js", content: "first" },
+        },
+        {
+          type: "tool-result",
+          tool: "write_file",
+          result: {
+            error: "changes requested",
+            _diffReviewAudit: requested,
+          },
+        },
+        {
+          type: "tool-executing",
+          tool: "write_file",
+          args: { path: "a.js", content: "revised" },
+        },
+        {
+          type: "tool-result",
+          tool: "write_file",
+          result: { ok: true, _diffReviewAudit: accepted },
+        },
+        { type: "response-complete", content: "done" },
+      ]),
+    );
+    await handler.handleMessage("edit it", "req-1");
+
+    const snapshot = [...events]
+      .reverse()
+      .find((event) => event.type === "side_effect_ledger");
+    expect(snapshot.data.ops[0].meta.diffReview.followUp).toMatchObject({
+      status: "accepted",
+      reviewId: "drev_accept",
+      turnId: "run-1:t2",
+      toolUseId: "call-2",
+      written: true,
+    });
+    expect(snapshot.data.ops[1].meta.diffReview).toMatchObject({
+      reviewId: "drev_accept",
+      outcome: "accepted",
+    });
+  });
 });

@@ -27,11 +27,13 @@
 接受/拒绝、用户改写、hunk 选择、行批注和最终写入均有时间/actor/host/路径与内容指纹，
 而不复制代码正文。后续批次又完成 CLI 可信 `session/turn/toolUse` 绑定和
 stream/headless/WebSocket 三条执行路径的副作用账本持久化；关联元数据不进入模型可见的
-工具结果，`changes-requested` 仅记录 `followUpRequested`，不把请求误报为后续 turn 已完成。
+工具结果。最初 `changes-requested` 仅记录 `followUpRequested`，后续批次已增加可恢复的
+follow-up tracker：下一次同 session/path 审阅会把实际结果和 review/turn/toolUse 关联回原
+记录；无重新提议和中断也有明确终态，不复制回复或代码正文。
 再后续批次已增加 `delete_file` / `move_file`，并让 `openDiff` 显式携带
 modify/create/delete/rename 与 rename 目标路径；两端独立守卫源/目标，Accept 后执行不覆盖
 目标的删除/重命名，审计和副作用账本保留操作语义。显式 rename/delete 缺口已关闭；Diff
-只剩 Request Changes 后续结果，以及真实多宿主 UI/大文件降级验收。
+代码侧只剩真实多宿主 UI/大文件/二进制与复杂 changeset 降级验收。
 
 本报告正文中第 6 条关于“Bridge ACL fail-open/仅本地 OTLP JSON”的段落，以及第 3 节中 Remote Robot 未成功的历史运行记录，均属于 2026-07-17 截面；当前请以 2026-07-22 的 VS Code/JetBrains 双端 fail-closed ACL、HTTP/HTTPS OTLP、JetBrains GUI smoke 和 Marketplace API 复核结果为准。
 
