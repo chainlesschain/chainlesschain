@@ -2058,7 +2058,7 @@ export async function startAgentRepl(options = {}) {
   const _costStore = newCostStore(); // running token spend for `/cost`
   let _renderStatus = null;
   try {
-    const slm = await import("../lib/status-line.cjs");
+    const slm = await import("../lib/status-line.js");
     const _sl = slm.default || slm;
     const _slCfg = _sl.loadStatusLineConfig({ cwd: process.cwd() });
     _customStatus = !!_slCfg;

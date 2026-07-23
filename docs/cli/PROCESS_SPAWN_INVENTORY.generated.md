@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 349 (runtime: 273, tooling: 53, test: 23).
+Total matches: 346 (runtime: 270, tooling: 53, test: 23).
 
 ## Policy
 
@@ -250,9 +250,6 @@ Total matches: 349 (runtime: 273, tooling: 53, test: 23).
 | `packages/cli/src/lib/slash-commands.js` | 31 | `execSync: (...args) => executionBroker.execSync(...args),` |
 | `packages/cli/src/lib/slash-commands.js` | 193 | `const out = execSync(cmd, {` |
 | `packages/cli/src/lib/slash-commands.js` | 223 | `const execSync = opts.deps?.execSync \|\| _deps.execSync;` |
-| `packages/cli/src/lib/status-line.cjs` | 19 | `const cpDefault = require("node:child_process");` |
-| `packages/cli/src/lib/status-line.cjs` | 24 | `spawnSync: cpDefault.spawnSync,` |
-| `packages/cli/src/lib/status-line.cjs` | 197 | `res = _deps.spawnSync(config.command, {` |
 | `packages/cli/src/lib/turn-context.js` | 18 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/lib/turn-context.js` | 30 | `.execFileSync("git", args, {` |
 | `packages/cli/src/lib/update-notice.js` | 22 | `spawn: (...args) => executionBroker.spawn(...args),` |

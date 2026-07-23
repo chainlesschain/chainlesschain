@@ -13,15 +13,14 @@
  *
  * Best-effort throughout: a missing config, a broken command, or a timeout just
  * yields no status line — it never blocks or breaks the REPL. `_deps` injection
- * (spawnSync / settings reader) for tests.
+ * (process runner / settings reader) for tests.
  */
 
-const cpDefault = require("node:child_process");
 const path = require("node:path");
 const { settingsPaths, readSettingsFile } = require("./settings-loader.cjs");
 
 const _deps = {
-  spawnSync: cpDefault.spawnSync,
+  runProcess: null,
   // injectable so tests don't touch real settings files
   readSettings: (cwd, settingsFile) => {
     const out = [];
@@ -181,7 +180,7 @@ function isStatusLineDisabled({ cwd = process.cwd(), settingsFile } = {}) {
 function renderStatusLine(
   config,
   context = {},
-  { cwd, timeout = 5000, columns, rows } = {},
+  { cwd, timeout = 5000, columns, rows, runProcess } = {},
 ) {
   if (!config || !config.command) return null;
   // Claude-Code parity (2.1.153): hand the command the terminal width/height so
@@ -194,7 +193,9 @@ function renderStatusLine(
   if (rws != null) env.LINES = String(rws);
   let res;
   try {
-    res = _deps.spawnSync(config.command, {
+    const runner = runProcess || _deps.runProcess;
+    if (typeof runner !== "function") return null;
+    res = runner(config.command, [], {
       input: JSON.stringify(context),
       cwd: cwd || process.cwd(),
       env,
@@ -202,6 +203,9 @@ function renderStatusLine(
       timeout,
       shell: true,
       maxBuffer: 1024 * 1024,
+      origin: "status-line:command",
+      policy: "allow",
+      scope: "status-line",
     });
   } catch {
     return null; // spawn failure → no status line
@@ -216,11 +220,28 @@ function renderStatusLine(
 }
 
 /** Convenience: load + render in one call (used by the REPL each turn). */
-function getStatusLine({ cwd, settingsFile, sessionId, model, provider, projectDir, timeout, columns, rows } = {}) {
+function getStatusLine({
+  cwd,
+  settingsFile,
+  sessionId,
+  model,
+  provider,
+  projectDir,
+  timeout,
+  columns,
+  rows,
+  runProcess,
+} = {}) {
   const config = loadStatusLineConfig({ cwd, settingsFile });
   if (!config) return null;
   const context = buildContext({ sessionId, model, provider, cwd, projectDir });
-  return renderStatusLine(config, context, { cwd, timeout, columns, rows });
+  return renderStatusLine(config, context, {
+    cwd,
+    timeout,
+    columns,
+    rows,
+    runProcess,
+  });
 }
 
 module.exports = {

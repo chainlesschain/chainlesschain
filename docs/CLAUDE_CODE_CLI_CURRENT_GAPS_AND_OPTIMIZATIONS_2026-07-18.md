@@ -226,6 +226,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   `team-worktree:commit` Broker origin；真实并行 worktree 合并与冲突集成测试保持通过。
 - Agent worktree 的 Git identity/status 查询与验证后清理已移除 shell 字符串，统一改为
   `agent-worktree:query` / `agent-worktree:cleanup` Broker 字面 argv；失败清理 E2E 验证无残留。
+- Status line 的 CJS 渲染核心已移除原生 `child_process` 默认值，由 ESM 适配层注入
+  `status-line:command` Broker runner；保留显式 shell、stdin JSON、终端尺寸与 best-effort 降级语义。
 
 ### 4.2 建议设计
 

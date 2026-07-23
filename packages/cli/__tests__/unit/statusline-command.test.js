@@ -1,5 +1,5 @@
 /**
- * cc statusline — command surface (preview / show), spawnSync + settings stubbed.
+ * cc statusline — command surface (preview / show), process + settings stubbed.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Command } from "commander";
@@ -25,7 +25,7 @@ beforeEach(() => {
   sl._deps.readSettings = () => [
     { statusLine: { type: "command", command: "fake-status" } },
   ];
-  sl._deps.spawnSync = vi.fn(() => ({
+  sl._deps.runProcess = vi.fn(() => ({
     status: 0,
     stdout: "★ STATUS LINE",
     stderr: "",

@@ -53,7 +53,7 @@ describe("loadStatusLineConfig", () => {
 
 describe("renderStatusLine", () => {
   it("returns the first stdout line, trimmed", () => {
-    _deps.spawnSync = vi.fn(() => ({
+    _deps.runProcess = vi.fn(() => ({
       status: 0,
       stdout: "branch:main | $0.02\nignored second line",
       stderr: "",
@@ -63,7 +63,7 @@ describe("renderStatusLine", () => {
   });
   it("passes the JSON context on stdin", () => {
     let seen = null;
-    _deps.spawnSync = vi.fn((cmd, opts) => {
+    _deps.runProcess = vi.fn((cmd, args, opts) => {
       seen = opts.input;
       return { status: 0, stdout: "ok", stderr: "" };
     });
@@ -76,26 +76,44 @@ describe("renderStatusLine", () => {
       session_id: "S",
       model: { id: "opus" },
     });
+    expect(_deps.runProcess).toHaveBeenCalledWith(
+      "s.sh",
+      [],
+      expect.objectContaining({
+        origin: "status-line:command",
+        policy: "allow",
+        scope: "status-line",
+        shell: true,
+      }),
+    );
   });
   it("non-zero exit → null (never breaks the REPL)", () => {
-    _deps.spawnSync = vi.fn(() => ({ status: 1, stdout: "x", stderr: "boom" }));
+    _deps.runProcess = vi.fn(() => ({
+      status: 1,
+      stdout: "x",
+      stderr: "boom",
+    }));
     expect(renderStatusLine({ command: "s.sh" }, {}, {})).toBeNull();
   });
   it("spawn error → null", () => {
-    _deps.spawnSync = vi.fn(() => ({
+    _deps.runProcess = vi.fn(() => ({
       error: new Error("ENOENT"),
       status: null,
     }));
     expect(renderStatusLine({ command: "missing" }, {}, {})).toBeNull();
   });
   it("applies padding", () => {
-    _deps.spawnSync = vi.fn(() => ({ status: 0, stdout: "hi", stderr: "" }));
+    _deps.runProcess = vi.fn(() => ({
+      status: 0,
+      stdout: "hi",
+      stderr: "",
+    }));
     expect(renderStatusLine({ command: "s", padding: 2 }, {}, {})).toBe("  hi");
   });
 
   it("passes COLUMNS/LINES env from explicit size and inherits process.env (2.1.153)", () => {
     let opts = null;
-    _deps.spawnSync = vi.fn((cmd, o) => {
+    _deps.runProcess = vi.fn((cmd, args, o) => {
       opts = o;
       return { status: 0, stdout: "ok", stderr: "" };
     });
@@ -110,7 +128,7 @@ describe("renderStatusLine", () => {
 
   it("omits COLUMNS/LINES when no terminal size is known (non-TTY)", () => {
     let opts = null;
-    _deps.spawnSync = vi.fn((cmd, o) => {
+    _deps.runProcess = vi.fn((cmd, args, o) => {
       opts = o;
       return { status: 0, stdout: "ok", stderr: "" };
     });

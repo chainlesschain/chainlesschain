@@ -27,12 +27,12 @@ export function registerStatuslineCommand(program) {
     .action(async (options) => {
       try {
         const { loadStatusLineConfig, buildContext, renderStatusLine } =
-          await import("../lib/status-line.cjs");
+          await import("../lib/status-line.js");
         const cfg = loadStatusLineConfig({ cwd: process.cwd() });
         if (!cfg) {
           logger.log(
             chalk.gray(
-              'No statusLine configured. Add to .claude/settings.json:\n' +
+              "No statusLine configured. Add to .claude/settings.json:\n" +
                 '  { "statusLine": { "type": "command", "command": "./status.sh" } }',
             ),
           );
@@ -73,7 +73,7 @@ export function registerStatuslineCommand(program) {
     .option("--json", "Output as JSON")
     .action(async (options) => {
       try {
-        const { loadStatusLineConfig } = await import("../lib/status-line.cjs");
+        const { loadStatusLineConfig } = await import("../lib/status-line.js");
         const cfg = loadStatusLineConfig({ cwd: process.cwd() });
         if (options.json) {
           console.log(JSON.stringify(cfg, null, 2));
