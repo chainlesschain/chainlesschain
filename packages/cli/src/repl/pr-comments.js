@@ -9,15 +9,26 @@
  * or a real repo. The REPL (agent-repl.js) wires expandPrComments into the
  * same promptText seam that `/mcp__server__prompt` uses.
  */
-import { execFile } from "child_process";
+import { executionBroker } from "../lib/process-execution-broker/index.js";
+
+export const _deps = {
+  execFile: (...args) => executionBroker.execFile(...args),
+};
 
 /** Default `gh` runner — resolves stdout, rejects with a friendly message. */
-function defaultRunGh(args) {
+function defaultRunGh(args, deps = _deps) {
   return new Promise((resolve, reject) => {
-    execFile(
+    deps.execFile(
       "gh",
       args,
-      { encoding: "utf-8", maxBuffer: 16 * 1024 * 1024 },
+      {
+        encoding: "utf-8",
+        maxBuffer: 16 * 1024 * 1024,
+        origin: "repl:pr-comments",
+        policy: "allow",
+        scope: "pr",
+        shell: false,
+      },
       (err, stdout, stderr) => {
         if (err) {
           if (err.code === "ENOENT") {
@@ -125,7 +136,9 @@ export function formatPrComments(data) {
  * @param {object} opts  { pr?: number, repo?: string, deps?: { runGh } }
  */
 export async function fetchPrComments({ pr = null, repo = null, deps } = {}) {
-  const runGh = deps?.runGh || defaultRunGh;
+  const runtimeDeps = { ..._deps, ...(deps || {}) };
+  const runGh =
+    runtimeDeps.runGh || ((args) => defaultRunGh(args, runtimeDeps));
   const viewArgs = ["pr", "view"];
   if (pr) viewArgs.push(String(pr));
   if (repo) viewArgs.push("--repo", repo);
@@ -175,7 +188,12 @@ const PR_INSTRUCTION =
  * Throws on fetch failure (the REPL surfaces it and skips the turn).
  */
 export async function expandPrComments(line, { deps } = {}) {
-  if (!String(line || "").trim().startsWith("/pr-comments")) return null;
+  if (
+    !String(line || "")
+      .trim()
+      .startsWith("/pr-comments")
+  )
+    return null;
   const { pr, repo } = parsePrCommentsArg(line);
   const data = await fetchPrComments({ pr, repo, deps });
   const block = formatPrComments(data);
@@ -183,5 +201,10 @@ export async function expandPrComments(line, { deps } = {}) {
     (data.reviews?.length || 0) +
     (data.conversation?.length || 0) +
     (data.inline?.length || 0);
-  return { number: data.number, count, block, text: `${PR_INSTRUCTION}\n\n${block}` };
+  return {
+    number: data.number,
+    count,
+    block,
+    text: `${PR_INSTRUCTION}\n\n${block}`,
+  };
 }

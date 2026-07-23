@@ -2,7 +2,7 @@
  * `/pr-comments` — parse args, format fetched PR comments, and fetch via an
  * injected `gh` runner. Pure + deterministic (runGh stubbed).
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   parsePrCommentsArg,
   formatPrComments,
@@ -49,12 +49,21 @@ describe("formatPrComments", () => {
     title: "Add feature",
     url: "https://github.com/o/r/pull/12",
     reviews: [
-      { author: { login: "alice" }, state: "CHANGES_REQUESTED", body: "Fix the null check" },
+      {
+        author: { login: "alice" },
+        state: "CHANGES_REQUESTED",
+        body: "Fix the null check",
+      },
       { author: { login: "bot" }, state: "COMMENTED", body: "" }, // filtered out
     ],
     conversation: [{ user: { login: "bob" }, body: "Looks close!" }],
     inline: [
-      { user: { login: "carol" }, path: "src/x.js", line: 40, body: "rename this" },
+      {
+        user: { login: "carol" },
+        path: "src/x.js",
+        line: 40,
+        body: "rename this",
+      },
     ],
   };
 
@@ -81,6 +90,52 @@ describe("formatPrComments", () => {
 });
 
 describe("fetchPrComments", () => {
+  it("routes the default gh runner through the PR Broker scope", async () => {
+    const execFile = vi.fn((file, args, options, callback) => {
+      const output =
+        args[0] === "pr"
+          ? {
+              number: 5,
+              title: "T",
+              url: "https://github.com/o/r/pull/5",
+              comments: [],
+              reviews: [],
+            }
+          : [];
+      callback(null, JSON.stringify(output), "");
+      return {};
+    });
+
+    await fetchPrComments({ pr: 5, deps: { execFile } });
+
+    expect(execFile).toHaveBeenCalledTimes(2);
+    expect(execFile).toHaveBeenNthCalledWith(
+      1,
+      "gh",
+      ["pr", "view", "5", "--json", "number,title,url,comments,reviews"],
+      expect.objectContaining({
+        encoding: "utf-8",
+        maxBuffer: 16 * 1024 * 1024,
+        origin: "repl:pr-comments",
+        policy: "allow",
+        scope: "pr",
+        shell: false,
+      }),
+      expect.any(Function),
+    );
+  });
+
+  it("preserves the friendly message when the broker reports gh as missing", async () => {
+    const execFile = vi.fn((_file, _args, _options, callback) => {
+      callback(Object.assign(new Error("spawn gh ENOENT"), { code: "ENOENT" }));
+      return {};
+    });
+
+    await expect(
+      fetchPrComments({ pr: 5, deps: { execFile } }),
+    ).rejects.toThrow(/gh CLI not found/);
+  });
+
   it("calls gh pr view then the inline-comments API and merges results", async () => {
     const calls = [];
     const runGh = async (args) => {
@@ -141,10 +196,16 @@ describe("expandPrComments", () => {
             url: "https://github.com/o/r/pull/3",
             comments: [{ user: { login: "u" }, body: "c1" }],
             reviews: [
-              { author: { login: "a" }, state: "CHANGES_REQUESTED", body: "r1" },
+              {
+                author: { login: "a" },
+                state: "CHANGES_REQUESTED",
+                body: "r1",
+              },
             ],
           })
-        : JSON.stringify([{ user: { login: "c" }, path: "a.js", line: 1, body: "i1" }]);
+        : JSON.stringify([
+            { user: { login: "c" }, path: "a.js", line: 1, body: "i1" },
+          ]);
     const res = await expandPrComments("/pr-comments 3", { deps: { runGh } });
     expect(res.number).toBe(3);
     expect(res.count).toBe(3); // 1 review + 1 conversation + 1 inline

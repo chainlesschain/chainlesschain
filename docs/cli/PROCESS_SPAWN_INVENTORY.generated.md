@@ -301,8 +301,8 @@ Total matches: 401 (runtime: 325, tooling: 53, test: 23).
 | `packages/cli/src/repl/clipboard-copy.js` | 82 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/repl/clipboard-copy.js` | 91 | `const spawn = spawnSync \|\| _deps.spawnSync;` |
 | `packages/cli/src/repl/clipboard-copy.js` | 97 | `res = spawn(cmd, args, {` |
-| `packages/cli/src/repl/pr-comments.js` | 12 | `import { execFile } from "child_process";` |
-| `packages/cli/src/repl/pr-comments.js` | 17 | `execFile(` |
+| `packages/cli/src/repl/pr-comments.js` | 15 | `execFile: (...args) => executionBroker.execFile(...args),` |
+| `packages/cli/src/repl/pr-comments.js` | 21 | `deps.execFile(` |
 | `packages/cli/src/runtime/agent-core.js` | 19 | `import { execSync, spawn, spawnSync } from "child_process";` |
 | `packages/cli/src/runtime/agent-core.js` | 240 | `const tk = spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], {` |
 | `packages/cli/src/runtime/agent-core.js` | 317 | `const killed = spawnSync(` |

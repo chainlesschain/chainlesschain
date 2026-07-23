@@ -125,6 +125,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   `windowsHide` 与 fail-open 的被动提示语义。
 - REPL `/copy` 的 PowerShell、`clip`、`pbcopy`、`wl-copy`、`xclip` 与 `xsel` 候选执行已进入
   `repl:clipboard-copy` Broker scope；剪贴板正文继续只经 stdin 传递，命令参数禁用 shell 解释。
+- REPL `/pr-comments` 的 `gh pr view` 与 inline-comments API 查询已进入 `repl:pr-comments`
+  Broker scope，保留 16 MiB 输出上限、ENOENT 友好提示与 inline 评论 best-effort 语义。
 
 ### 4.2 建议设计
 
