@@ -1,6 +1,6 @@
 {
   "name": "@chainlesschain/core-db",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Database layer - SQLite/SQLCipher with migrations, query builder, and optimization",
   "type": "commonjs",
   "main": "lib/index.js",

@@ -1,6 +1,6 @@
 {
   "name": "@chainlesschain/core-config",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Configuration management - database config, app config, settings",
   "type": "commonjs",
   "main": "lib/index.js",
@@ -31,7 +31,7 @@
     "directory": "packages/core-config"
   },
   "dependencies": {
-    "@chainlesschain/core-env": "0.1.1"
+    "@chainlesschain/core-env": "0.1.2"
   },
   "devDependencies": {
     "vitest": "^4.1.10"

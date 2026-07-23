@@ -1,6 +1,6 @@
 {
   "name": "@chainlesschain/core-settlement",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "P1 settlement core — append-only signed transfer-log ledger (federation node hosts, cannot forge/mint) + custodian-driven escrow gated by M-of-N multisig. See docs/design 去中心化交易_知识资产加密交付与AI撮合_v1 §8.2/§6.",
   "type": "commonjs",
   "main": "lib/index.js",

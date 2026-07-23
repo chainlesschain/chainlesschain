@@ -1,6 +1,6 @@
 {
   "name": "@chainlesschain/core-mtc",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Merkle Tree Certificates (MTC) — RFC 6962 tree, JCS canonicalization, inclusion proofs",
   "type": "commonjs",
   "main": "lib/index.js",

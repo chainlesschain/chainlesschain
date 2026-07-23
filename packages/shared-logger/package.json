@@ -1,6 +1,6 @@
 {
   "name": "@chainlesschain/shared-logger",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Shared logging library with file output and log rotation",
   "type": "module",
   "main": "lib/index.js",
@@ -31,7 +31,7 @@
     "directory": "packages/shared-logger"
   },
   "dependencies": {
-    "@chainlesschain/core-env": "0.1.0"
+    "@chainlesschain/core-env": "0.1.2"
   },
   "devDependencies": {
     "vitest": "^4.1.10"

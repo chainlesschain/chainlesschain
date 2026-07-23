@@ -1,6 +1,6 @@
 {
   "name": "@chainlesschain/core-infra",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "DI container, event bus, and bootstrap infrastructure",
   "type": "commonjs",
   "main": "lib/index.js",
@@ -33,7 +33,7 @@
     "directory": "packages/core-infra"
   },
   "dependencies": {
-    "@chainlesschain/shared-logger": "0.1.0"
+    "@chainlesschain/shared-logger": "0.1.1"
   },
   "devDependencies": {
     "vitest": "^4.1.10"
