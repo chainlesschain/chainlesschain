@@ -7,6 +7,7 @@
  */
 
 const { HookExecutor, HookResult } = require("../hook-executor");
+const { EventEmitter } = require("node:events");
 
 // Mock registry
 function createMockRegistry(hooks = []) {
@@ -665,6 +666,51 @@ describe("HookExecutor", () => {
       const result = await executor.trigger("PreToolUse", { toolName: "test" });
 
       expect(result.result).toBe(HookResult.CONTINUE);
+    });
+
+    it("should route command hooks through the Desktop Broker facade", async () => {
+      const child = new EventEmitter();
+      child.stdout = new EventEmitter();
+      child.stderr = new EventEmitter();
+      child.kill = vi.fn();
+      const spawnProcess = vi.fn(() => {
+        setTimeout(() => {
+          child.stdout.emit("data", Buffer.from('{"result":"continue"}'));
+          child.emit("close", 0);
+        }, 0);
+        return child;
+      });
+      mockRegistry = createMockRegistry([
+        {
+          id: "command-hook-1",
+          event: "PreToolUse",
+          name: "brokered-command",
+          type: "command",
+          command: "echo ok",
+        },
+      ]);
+      executor = new HookExecutor(mockRegistry, { spawnProcess });
+
+      const result = await executor.trigger(
+        "PreToolUse",
+        { toolName: "read_file" },
+        { workingDirectory: process.cwd() },
+      );
+
+      expect(result.result).toBe(HookResult.CONTINUE);
+      expect(spawnProcess).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(Array),
+        expect.objectContaining({
+          origin: "desktop:hook-command",
+          provenance: {
+            hookId: "command-hook-1",
+            hookName: "brokered-command",
+            hookType: "command",
+            eventName: "PreToolUse",
+          },
+        }),
+      );
     });
 
     it("should throw for unknown hook type", async () => {

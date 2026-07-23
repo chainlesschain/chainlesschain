@@ -39,6 +39,26 @@ function commandLabel(command, args) {
   };
 }
 
+function cleanProvenance(provenance) {
+  if (!provenance || typeof provenance !== "object") return null;
+  const allowed = [
+    "pluginId",
+    "pluginVersion",
+    "pluginSource",
+    "hookId",
+    "hookName",
+    "hookType",
+    "eventName",
+  ];
+  const clean = {};
+  for (const key of allowed) {
+    if (provenance[key] !== undefined && provenance[key] !== null) {
+      clean[key] = redact(provenance[key]);
+    }
+  }
+  return Object.keys(clean).length > 0 ? clean : null;
+}
+
 function defaultAuditSink(entry) {
   try {
     const logPath = nodePath.join(
@@ -76,6 +96,7 @@ function installDesktopProcessBroker({
       host: "desktop-main",
       operation,
       origin: options?.origin || "desktop:unknown",
+      provenance: cleanProvenance(options?.provenance),
       cwd: options?.cwd || process.cwd(),
       ...commandLabel(command, args),
     };

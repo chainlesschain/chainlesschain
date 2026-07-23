@@ -34,7 +34,14 @@ describe("desktop process broker", () => {
       now: () => "2026-07-22T00:00:00.000Z",
     });
 
-    cp.spawn("node", ["worker.js"], { origin: "coding-agent" });
+    cp.spawn("node", ["worker.js"], {
+      origin: "coding-agent",
+      provenance: {
+        hookId: "hook-1",
+        hookName: "token=secret-value",
+        ignoredSecret: "password=do-not-record",
+      },
+    });
     cp.spawnSync("git", ["status"]);
     cp.exec("npm view chainlesschain");
     cp.execSync("node --version");
@@ -56,7 +63,12 @@ describe("desktop process broker", () => {
       host: "desktop-main",
       origin: "coding-agent",
       command: "node",
+      provenance: {
+        hookId: "hook-1",
+        hookName: "token=[REDACTED]",
+      },
     });
+    expect(JSON.stringify(audit)).not.toContain("do-not-record");
     expect(broker.getAuditLog()).toHaveLength(7);
     broker.uninstall();
   });

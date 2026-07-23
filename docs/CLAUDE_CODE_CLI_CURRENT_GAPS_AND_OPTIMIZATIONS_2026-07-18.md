@@ -234,6 +234,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   Desktop Broker 门面记录 `desktop:coding-agent-server` / `desktop:sub-runtime` provenance。
 - Desktop Advanced Features IPC 的脚本启动已进入 `desktop:advanced-features-script` Broker origin，
   并改用 `process.execPath` + 字面 argv，保留脚本输出和退出码契约。
+- Desktop command/script HookExecutor 已显式使用 fail-closed Desktop Broker，并记录脱敏的 Hook
+  id/name/type/event provenance；函数 Hook 语义与测试注入接口保持不变。
 - REPL `/goal exit-zero` 的命令检查已进入 `repl-goal:exit-zero` Broker origin；保留用户条件所需的
   显式 shell 语义，并增加 30 秒执行上限。
 - Headless `--goal-condition exit-zero` 的默认命令检查已进入 `headless-goal:exit-zero` Broker origin；
@@ -360,7 +362,8 @@ worker -> child
   `type: "command"`。
 - `TaskCreated` / `TaskCompleted` 已由 Subagent 生命周期生产，`MCPElicitation` 已由交互和 headless-stream producer 生产；其余事件仍未全部接入真实 producer。
 - 真并行和最严决策合并已经有实现，但仍存在 opt-in/default-flip 余量。
-- Hook 当前直接执行 shell、继承完整环境，尚未进入统一沙箱。
+- CLI 与 Desktop command/script Hook 已进入各自的 Process Broker，但仍以 shell 执行并从宿主环境
+  构造输入；统一强沙箱和按 executor 声明的 managed 最小环境 allowlist 尚未完成。
 
 2026-07-22 复核：`hooks-v2-runtime.js` 已提供 31 事件注册表、5 种 executor、默认并行
 执行、按 id 去重、顺序兼容开关和 `executeHooks` 公共入口；JS handler、Process Broker

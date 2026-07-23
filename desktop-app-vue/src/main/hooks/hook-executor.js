@@ -6,7 +6,7 @@
  * @module hooks/hook-executor
  */
 
-const { spawn } = require("child_process");
+const { spawnWithDesktopBroker } = require("../process/desktop-process-broker");
 const path = require("path");
 const { EventEmitter } = require("events");
 
@@ -31,6 +31,8 @@ class HookExecutor extends EventEmitter {
   constructor(registry, options = {}) {
     super();
 
+    const { spawnProcess, ...executorOptions } = options;
+
     /** @type {HookRegistry} */
     this.registry = registry;
 
@@ -40,8 +42,11 @@ class HookExecutor extends EventEmitter {
       maxConcurrent: 10,
       continueOnError: true, // 单个钩子出错是否继续
       parallelSamePriority: false, // 同优先级钩子是否并行执行
-      ...options,
+      ...executorOptions,
     };
+
+    /** @type {(command:string,args:string[],options:Object)=>import("node:child_process").ChildProcess} */
+    this._spawnProcess = spawnProcess || spawnWithDesktopBroker;
 
     /** @type {Map<string, AbortController>} hookId -> AbortController */
     this.runningHooks = new Map();
@@ -312,10 +317,17 @@ class HookExecutor extends EventEmitter {
       const shellCmd = isWindows ? "cmd.exe" : "/bin/sh";
       const shellArgs = isWindows ? ["/c", hook.command] : ["-c", hook.command];
 
-      const child = spawn(shellCmd, shellArgs, {
+      const child = this._spawnProcess(shellCmd, shellArgs, {
         env,
         cwd: event.context.workingDirectory || process.cwd(),
         windowsHide: true,
+        origin: "desktop:hook-command",
+        provenance: {
+          hookId: hook.id,
+          hookName: hook.name,
+          hookType: hook.type,
+          eventName: event.eventName,
+        },
       });
 
       let stdout = "";
