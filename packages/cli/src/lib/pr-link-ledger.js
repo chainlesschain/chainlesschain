@@ -17,11 +17,14 @@
  */
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { execFile } from "node:child_process";
 import { join } from "node:path";
 import { getHomeDir } from "./paths.js";
+import { executionBroker } from "./process-execution-broker/index.js";
 
-export const _deps = { execFile, now: () => Date.now() };
+export const _deps = {
+  execFile: (...args) => executionBroker.execFile(...args),
+  now: () => Date.now(),
+};
 
 const MAX_LINKS_PER_SESSION = 20;
 const MAX_SESSIONS = 500;
@@ -150,7 +153,16 @@ function ghPrForBranch(cwd, timeoutMs = 3000) {
       _deps.execFile(
         file,
         fileArgs,
-        { cwd, encoding: "utf8", timeout: timeoutMs, windowsHide: true },
+        {
+          cwd,
+          encoding: "utf8",
+          timeout: timeoutMs,
+          windowsHide: true,
+          origin: "pr:link-query",
+          policy: "allow",
+          scope: "pr",
+          shell: false,
+        },
         (err, stdout) => resolve(err ? null : String(stdout || "").trim()),
       );
     });

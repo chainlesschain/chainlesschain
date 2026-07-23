@@ -237,8 +237,8 @@ Total matches: 401 (runtime: 325, tooling: 53, test: 23).
 | `packages/cli/src/lib/plugin-runtime/install.js` | 271 | `_deps.spawnSync("git", args, {` |
 | `packages/cli/src/lib/pr-create.js` | 11 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/lib/pr-create.js` | 15 | `return _deps.execFileSync("git", args, {` |
-| `packages/cli/src/lib/pr-link-ledger.js` | 20 | `import { execFile } from "node:child_process";` |
-| `packages/cli/src/lib/pr-link-ledger.js` | 150 | `_deps.execFile(` |
+| `packages/cli/src/lib/pr-link-ledger.js` | 25 | `execFile: (...args) => executionBroker.execFile(...args),` |
+| `packages/cli/src/lib/pr-link-ledger.js` | 153 | `_deps.execFile(` |
 | `packages/cli/src/lib/process-execution-broker/index.js` | 14 | `// 直接导入原生child_process，避免递归` |
 | `packages/cli/src/lib/process-execution-broker/index.js` | 23 | `} from "node:child_process";` |
 | `packages/cli/src/lib/process-execution-broker/index.js` | 307 | `spawn(command, args, options = {}) {` |

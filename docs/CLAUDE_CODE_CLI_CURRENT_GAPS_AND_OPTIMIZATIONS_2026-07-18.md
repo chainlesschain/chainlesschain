@@ -127,6 +127,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   `repl:clipboard-copy` Broker scope；剪贴板正文继续只经 stdin 传递，命令参数禁用 shell 解释。
 - REPL `/pr-comments` 的 `gh pr view` 与 inline-comments API 查询已进入 `repl:pr-comments`
   Broker scope，保留 16 MiB 输出上限、ENOENT 友好提示与 inline 评论 best-effort 语义。
+- `git push` 后的 PR link ledger 分支探针与 `gh pr list` 查询已进入 `pr:link-query` Broker
+  scope，保留 3 秒超时和全路径 best-effort，不让关联信息失败影响 shell 工具结果。
 
 ### 4.2 建议设计
 

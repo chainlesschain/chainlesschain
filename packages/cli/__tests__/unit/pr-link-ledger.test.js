@@ -145,6 +145,16 @@ describe("recordFromShellCommand", () => {
 
   it("queries gh for open PRs after a git push (branch → pr list)", async () => {
     _deps.execFile = vi.fn((file, args, opts, cb) => {
+      expect(opts).toMatchObject({
+        cwd: testHome,
+        encoding: "utf8",
+        timeout: 3000,
+        windowsHide: true,
+        origin: "pr:link-query",
+        policy: "allow",
+        scope: "pr",
+        shell: false,
+      });
       if (file === "git") return cb(null, "feat/thing\n");
       if (file === "gh") {
         expect(args).toEqual([
@@ -180,6 +190,7 @@ describe("recordFromShellCommand", () => {
       state: "open",
       action: "push",
     });
+    expect(_deps.execFile).toHaveBeenCalledTimes(2);
   });
 
   it("swallows gh unavailability quietly", async () => {
