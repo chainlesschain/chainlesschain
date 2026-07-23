@@ -11,21 +11,23 @@
  * @module turn-context
  */
 
-import { execSync } from "child_process";
 import path from "path";
+import { executionBroker } from "./process-execution-broker/index.js";
 
-const _deps = { execSync };
+const _deps = {
+  execFileSync: (...args) => executionBroker.execFileSync(...args),
+};
 
 /**
  * Run a git command with stdio pipe and return stdout or null.
- * @param {string} cmd
+ * @param {string[]} args
  * @param {string} cwd
  * @returns {string|null}
  */
-function _git(cmd, cwd) {
+function _git(args, cwd) {
   try {
     return _deps
-      .execSync(`git ${cmd}`, {
+      .execFileSync("git", args, {
         cwd,
         encoding: "utf-8",
         stdio: ["ignore", "pipe", "ignore"],
@@ -33,6 +35,10 @@ function _git(cmd, cwd) {
         // `status --porcelain` on a dirty repo with many files can exceed the
         // 1 MB execSync default → ENOBUFS → null → "(clean)" misreport below.
         maxBuffer: 16 * 1024 * 1024,
+        origin: "context:git",
+        policy: "allow",
+        scope: "context",
+        shell: false,
       })
       .trim();
   } catch (_e) {
@@ -60,10 +66,10 @@ export function buildTurnContext({
   lines.push(`## Turn context (iteration ${iteration})`);
   lines.push(`- cwd: ${path.resolve(cwd)}`);
 
-  const branch = _git("rev-parse --abbrev-ref HEAD", cwd);
+  const branch = _git(["rev-parse", "--abbrev-ref", "HEAD"], cwd);
   if (branch) {
-    const head = _git("rev-parse --short HEAD", cwd);
-    const status = _git("status --porcelain", cwd);
+    const head = _git(["rev-parse", "--short", "HEAD"], cwd);
+    const status = _git(["status", "--porcelain"], cwd);
     // Distinguish "command failed" (null — timeout / huge output) from "" (truly
     // clean): the old `status && …` reported a repo as "(clean)" whenever status
     // couldn't be determined, which is a wrong signal to the model.

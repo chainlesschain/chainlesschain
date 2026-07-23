@@ -4,18 +4,18 @@ import * as turnCtx from "../../src/lib/turn-context.js";
 const { buildTurnContext, defaultPrepareCall, _deps } = turnCtx;
 
 describe("turn-context — buildTurnContext", () => {
-  let realExec;
+  let realExecFile;
 
   beforeEach(() => {
-    realExec = _deps.execSync;
+    realExecFile = _deps.execFileSync;
   });
 
   afterEach(() => {
-    _deps.execSync = realExec;
+    _deps.execFileSync = realExecFile;
   });
 
   it("always includes cwd and iteration heading", () => {
-    _deps.execSync = vi.fn(() => {
+    _deps.execFileSync = vi.fn(() => {
       throw new Error("no git");
     });
     const out = buildTurnContext({ iteration: 1, cwd: "/tmp/x" });
@@ -24,21 +24,33 @@ describe("turn-context — buildTurnContext", () => {
   });
 
   it("includes git branch + short sha + clean status", () => {
-    _deps.execSync = vi.fn((cmd) => {
-      if (cmd.includes("abbrev-ref")) return "main\n";
-      if (cmd.includes("short HEAD")) return "abc1234\n";
-      if (cmd.includes("porcelain")) return "";
+    _deps.execFileSync = vi.fn((_command, args) => {
+      if (args.includes("--abbrev-ref")) return "main\n";
+      if (args.includes("--short")) return "abc1234\n";
+      if (args.includes("--porcelain")) return "";
       return "";
     });
     const out = buildTurnContext({ iteration: 2, cwd: "/tmp" });
     expect(out).toMatch(/- git: main@abc1234 \(clean\)/);
+    expect(_deps.execFileSync).toHaveBeenNthCalledWith(
+      1,
+      "git",
+      ["rev-parse", "--abbrev-ref", "HEAD"],
+      expect.objectContaining({
+        cwd: "/tmp",
+        origin: "context:git",
+        policy: "allow",
+        scope: "context",
+        shell: false,
+      }),
+    );
   });
 
   it("reports dirty file count", () => {
-    _deps.execSync = vi.fn((cmd) => {
-      if (cmd.includes("abbrev-ref")) return "feat/x";
-      if (cmd.includes("short HEAD")) return "def5";
-      if (cmd.includes("porcelain")) return " M a.js\n M b.js\n?? c.js";
+    _deps.execFileSync = vi.fn((_command, args) => {
+      if (args.includes("--abbrev-ref")) return "feat/x";
+      if (args.includes("--short")) return "def5";
+      if (args.includes("--porcelain")) return " M a.js\n M b.js\n?? c.js";
       return "";
     });
     const out = buildTurnContext({ iteration: 1, cwd: "/tmp" });
@@ -48,10 +60,10 @@ describe("turn-context — buildTurnContext", () => {
   it("reports '(status unknown)' — not '(clean)' — when git status fails", () => {
     // branch/head resolve, but `status --porcelain` times out / exceeds the
     // buffer (returns null). The old code conflated null with "" → "(clean)".
-    _deps.execSync = vi.fn((cmd) => {
-      if (cmd.includes("abbrev-ref")) return "main\n";
-      if (cmd.includes("short HEAD")) return "abc1234\n";
-      if (cmd.includes("porcelain")) throw new Error("ENOBUFS / timeout");
+    _deps.execFileSync = vi.fn((_command, args) => {
+      if (args.includes("--abbrev-ref")) return "main\n";
+      if (args.includes("--short")) return "abc1234\n";
+      if (args.includes("--porcelain")) throw new Error("ENOBUFS / timeout");
       return "";
     });
     const out = buildTurnContext({ iteration: 1, cwd: "/tmp" });
@@ -61,10 +73,10 @@ describe("turn-context — buildTurnContext", () => {
 
   it("passes a generous maxBuffer to git so a large status isn't ENOBUFS", () => {
     let porcelainOpts = null;
-    _deps.execSync = vi.fn((cmd, opts) => {
-      if (cmd.includes("abbrev-ref")) return "main";
-      if (cmd.includes("short HEAD")) return "abc";
-      if (cmd.includes("porcelain")) {
+    _deps.execFileSync = vi.fn((_command, args, opts) => {
+      if (args.includes("--abbrev-ref")) return "main";
+      if (args.includes("--short")) return "abc";
+      if (args.includes("--porcelain")) {
         porcelainOpts = opts;
         return " M a.js";
       }
@@ -75,7 +87,7 @@ describe("turn-context — buildTurnContext", () => {
   });
 
   it("omits git line when not a repo", () => {
-    _deps.execSync = vi.fn(() => {
+    _deps.execFileSync = vi.fn(() => {
       throw new Error("fatal: not a git repo");
     });
     const out = buildTurnContext({ iteration: 1, cwd: "/tmp" });
@@ -83,7 +95,7 @@ describe("turn-context — buildTurnContext", () => {
   });
 
   it("includes session id when provided", () => {
-    _deps.execSync = vi.fn(() => {
+    _deps.execFileSync = vi.fn(() => {
       throw new Error("no git");
     });
     const out = buildTurnContext({ sessionId: "sess-1", cwd: "/tmp" });
@@ -91,7 +103,7 @@ describe("turn-context — buildTurnContext", () => {
   });
 
   it("includes active skills when non-empty", () => {
-    _deps.execSync = vi.fn(() => {
+    _deps.execFileSync = vi.fn(() => {
       throw new Error("no git");
     });
     const out = buildTurnContext({
@@ -102,7 +114,7 @@ describe("turn-context — buildTurnContext", () => {
   });
 
   it("defaults iteration to 1 when missing", () => {
-    _deps.execSync = vi.fn(() => {
+    _deps.execFileSync = vi.fn(() => {
       throw new Error("no git");
     });
     const out = buildTurnContext({ cwd: "/tmp" });
@@ -111,17 +123,17 @@ describe("turn-context — buildTurnContext", () => {
 });
 
 describe("turn-context — defaultPrepareCall", () => {
-  let realExec;
+  let realExecFile;
 
   beforeEach(() => {
-    realExec = _deps.execSync;
+    realExecFile = _deps.execFileSync;
   });
   afterEach(() => {
-    _deps.execSync = realExec;
+    _deps.execFileSync = realExecFile;
   });
 
   it("returns { systemSuffix } for non-empty context", () => {
-    _deps.execSync = vi.fn(() => {
+    _deps.execFileSync = vi.fn(() => {
       throw new Error("no git");
     });
     const out = defaultPrepareCall({ iteration: 3, cwd: "/tmp" });

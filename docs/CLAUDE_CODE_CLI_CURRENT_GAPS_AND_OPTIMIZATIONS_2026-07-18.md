@@ -116,6 +116,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   组成单一 revision argv 并使用 Git 的 end-of-options 边界，比较 URL 对 ref 做百分号编码。
 - Code review 的 diff 与 changed-files 查询已进入 `review:git-diff` Broker scope；除 staged/cached
   明确别名外，target 作为单一 revision argv 放在 end-of-options 边界后。
+- 每轮动态上下文的 branch/HEAD/status 查询已进入 `context:git` Broker scope，保留 1.5 秒超时、
+  16 MiB 输出上限和 status unknown/clean 的区分。
 
 ### 4.2 建议设计
 
