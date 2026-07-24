@@ -41,6 +41,10 @@
 
 const fs = require("node:fs");
 const {
+  probeJsonSnapshotFile,
+  readJsonSnapshot,
+} = require("../../snapshot-file");
+const {
   normalizeTravelRecord,
   parseChineseDateTime,
 } = require("../travel-base");
@@ -105,21 +109,15 @@ class BaiduMapAdapter {
 
   async authenticate(ctx = {}) {
     if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
-      try {
-        this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
-      } catch (err) {
-        return {
-          ok: false,
-          reason: "INPUT_PATH_UNREADABLE",
-          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
-        };
+      if (isSqliteFile(this._deps.fs, ctx.inputPath)) {
+        return { ok: true, mode: "sqlite-file" };
       }
-      return {
-        ok: true,
-        mode: isSqliteFile(this._deps.fs, ctx.inputPath)
-          ? "sqlite-file"
-          : "snapshot-file",
-      };
+      return probeJsonSnapshotFile(this._deps.fs, ctx.inputPath, {
+        maxBytes: ctx.maxSnapshotBytes,
+        expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        requiredArrayFields: ["events"],
+        allowedEventKinds: VALID_SNAPSHOT_KINDS,
+      });
     }
     if (this._dbPath || (ctx && typeof ctx.dbPath === "string")) {
       return {
@@ -160,17 +158,12 @@ class BaiduMapAdapter {
   }
 
   async *_syncViaSnapshot(opts) {
-    const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
-    const snapshot = JSON.parse(raw);
-    if (
-      !snapshot ||
-      typeof snapshot !== "object" ||
-      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
-    ) {
-      throw new Error(
-        `travel-baidu-map.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
-      );
-    }
+    const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
+      maxBytes: opts.maxSnapshotBytes,
+      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      requiredArrayFields: ["events"],
+      allowedEventKinds: VALID_SNAPSHOT_KINDS,
+    });
     const fallbackCapturedAt =
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
@@ -183,19 +176,20 @@ class BaiduMapAdapter {
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
 
-    const events = Array.isArray(snapshot.events) ? snapshot.events : [];
+    const events = snapshot.events;
     let emitted = 0;
     for (const ev of events) {
       if (emitted >= limit) return;
-      if (!ev || typeof ev !== "object") continue;
       const kind = ev.kind;
-      if (!VALID_SNAPSHOT_KINDS.includes(kind)) continue;
       if (include[kind] === false) continue;
 
       const capturedAt =
         parseTime(ev.capturedAt) || parseTime(ev.time) || fallbackCapturedAt;
       const id =
         (typeof ev.id === "string" && ev.id.length > 0 && ev.id) ||
+        (typeof ev.id === "number" &&
+          Number.isFinite(ev.id) &&
+          String(ev.id)) ||
         ev.rid ||
         null;
 
@@ -299,13 +293,13 @@ class BaiduMapAdapter {
 }
 
 function stableOriginalId(kind, id) {
-  const stringified =
+  const safe =
     (typeof id === "string" && id.length > 0 && id) ||
     (typeof id === "number" && Number.isFinite(id) && String(id)) ||
     null;
-  const safe =
-    stringified ||
-    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  if (!safe) {
+    throw new Error(`${NAME}.sync: ${kind} event requires a stable source id`);
+  }
   return `baidu-map:${kind}:${safe}`;
 }
 

@@ -55,6 +55,10 @@
 const fs = require("node:fs");
 const { createAccountScopeFromAccount } = require("../../account-scope");
 const {
+  probeJsonSnapshotFile,
+  readJsonSnapshot,
+} = require("../../snapshot-file");
+const {
   normalizeOrderRecord,
   CookieAuth,
   hasRuntimeCookie,
@@ -124,16 +128,12 @@ class ElemeAdapter {
 
   async authenticate(ctx = {}) {
     if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
-      try {
-        this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
-      } catch (err) {
-        return {
-          ok: false,
-          reason: "INPUT_PATH_UNREADABLE",
-          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
-        };
-      }
-      return { ok: true, mode: "snapshot-file" };
+      return probeJsonSnapshotFile(this._deps.fs, ctx.inputPath, {
+        maxBytes: ctx.maxSnapshotBytes,
+        expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        requiredArrayFields: ["events"],
+        allowedEventKinds: VALID_SNAPSHOT_KINDS,
+      });
     }
     const { account, cookieAuth } = resolveCookieContext({
       account: this.account,
@@ -192,24 +192,12 @@ class ElemeAdapter {
   }
 
   async *_syncViaSnapshot(opts) {
-    const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
-    let snapshot;
-    try {
-      snapshot = JSON.parse(raw);
-    } catch (err) {
-      throw new Error(
-        `shopping-eleme.sync: snapshot must be JSON (HTML parsing is future work). Got parse error: ${err.message}`,
-      );
-    }
-    if (
-      !snapshot ||
-      typeof snapshot !== "object" ||
-      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
-    ) {
-      throw new Error(
-        `shopping-eleme.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
-      );
-    }
+    const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
+      maxBytes: opts.maxSnapshotBytes,
+      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      requiredArrayFields: ["events"],
+      allowedEventKinds: VALID_SNAPSHOT_KINDS,
+    });
     const fallbackCapturedAt =
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
@@ -222,13 +210,11 @@ class ElemeAdapter {
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
 
-    const events = Array.isArray(snapshot.events) ? snapshot.events : [];
+    const events = snapshot.events;
     let emitted = 0;
     for (const ev of events) {
       if (emitted >= limit) return;
-      if (!ev || typeof ev !== "object") continue;
       const kind = ev.kind;
-      if (!VALID_SNAPSHOT_KINDS.includes(kind)) continue;
       if (include[kind] === false) continue;
 
       const capturedAt =
@@ -238,6 +224,9 @@ class ElemeAdapter {
         fallbackCapturedAt;
       const id =
         (typeof ev.id === "string" && ev.id.length > 0 && ev.id) ||
+        (typeof ev.id === "number" &&
+          Number.isFinite(ev.id) &&
+          String(ev.id)) ||
         ev.orderId ||
         null;
 
@@ -277,6 +266,7 @@ class ElemeAdapter {
       Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
 
     let page = 1;
+    let sourceItemsSeen = 0;
     let scanComplete = false;
     while (page <= maxPages) {
       const offset = (page - 1) * pageSize;
@@ -301,9 +291,17 @@ class ElemeAdapter {
       });
       const orders = extractOrders(resp);
       if (!orders.length) {
-        scanComplete = orders !== UNKNOWN_ORDERS;
+        const recognizedPage = orders !== UNKNOWN_ORDERS;
+        const pageState = sourcePageState(resp, sourceItemsSeen);
+        if (recognizedPage && pageState === "more") {
+          page += 1;
+          continue;
+        }
+        scanComplete = recognizedPage;
         break;
       }
+      sourceItemsSeen += orders.length;
+      const pageState = sourcePageState(resp, sourceItemsSeen);
       let pageHasNew = false;
       let reachedWatermark = false;
       for (const rawOrder of orders) {
@@ -321,7 +319,7 @@ class ElemeAdapter {
           payload: { record: rec },
         };
       }
-      if (reachedWatermark || (pageHasNew && orders.length < pageSize)) {
+      if (reachedWatermark || (pageHasNew && pageState === "complete")) {
         scanComplete = true;
         break;
       }
@@ -343,7 +341,7 @@ class ElemeAdapter {
         adapterVersion: VERSION,
       });
     }
-    const rec = snapshotEventToRecord(raw.payload);
+    const rec = snapshotEventToRecord(raw.payload, raw.originalId);
     return normalizeOrderRecord(rec, {
       adapterName: NAME,
       adapterVersion: VERSION,
@@ -352,13 +350,13 @@ class ElemeAdapter {
 }
 
 function stableOriginalId(kind, id) {
-  const stringified =
+  const safe =
     (typeof id === "string" && id.length > 0 && id) ||
     (typeof id === "number" && Number.isFinite(id) && String(id)) ||
     null;
-  const safe =
-    stringified ||
-    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  if (!safe) {
+    throw new Error(`${NAME}.sync: ${kind} event requires a stable source id`);
+  }
   return `eleme:${kind}:${safe}`;
 }
 
@@ -385,6 +383,46 @@ function extractOrders(resp) {
  * amounts are in 元 (yuan, with decimals); field names are best-effort across
  * endpoint versions (camelCase + snake_case fallbacks).
  */
+function sourcePageState(resp, sourceItemsSeen) {
+  const containers = [
+    resp,
+    resp && resp.data,
+    resp && resp.result,
+    resp && resp.pagination,
+    resp && resp.data && resp.data.pagination,
+    resp && resp.result && resp.result.pagination,
+  ];
+  for (const container of containers) {
+    if (!container || typeof container !== "object" || Array.isArray(container))
+      continue;
+    const hasMore = container.hasMore ?? container.has_more;
+    if (hasMore != null) {
+      const token = String(hasMore).toLowerCase();
+      if (token === "true" || token === "1") return "more";
+      if (token === "false" || token === "0") return "complete";
+    }
+    const total = Number(
+      container.total ?? container.totalCount ?? container.total_count,
+    );
+    if (Number.isFinite(total) && total >= 0)
+      return sourceItemsSeen >= total ? "complete" : "more";
+    for (const key of [
+      "next",
+      "nextPage",
+      "next_page",
+      "nextCursor",
+      "next_cursor",
+    ]) {
+      if (!Object.prototype.hasOwnProperty.call(container, key)) continue;
+      const value = container[key];
+      return value == null || value === "" || value === false || value === 0
+        ? "complete"
+        : "more";
+    }
+  }
+  return "unknown";
+}
+
 function orderToRecord(o) {
   if (!o || typeof o !== "object") return null;
   const orderId = o.order_id || o.orderId || o.id || o.unique_id || o.uniqueId;
@@ -450,7 +488,7 @@ function orderToRecord(o) {
   };
 }
 
-function snapshotEventToRecord(ev) {
+function snapshotEventToRecord(ev, originalId) {
   const items = [];
   const rawItems = Array.isArray(ev.items) ? ev.items : [];
   for (const it of rawItems) {
@@ -464,7 +502,7 @@ function snapshotEventToRecord(ev) {
   }
   return {
     vendorId: "eleme",
-    orderId: String(ev.orderId || ev.id || "unknown"),
+    orderId: String(ev.orderId || ev.id || originalId),
     placedAt: parseTime(ev.placedAt),
     paidAt: parseTime(ev.paidAt),
     status: mapStatus(ev.status || "placed"),

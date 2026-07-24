@@ -77,7 +77,6 @@ const SNAPSHOT = {
       to: { name: "公司", lat: 31.2, lng: 121.44 },
       mode: "drive",
     },
-    { kind: "alien", id: "x" },
   ],
 };
 
@@ -91,7 +90,9 @@ describe("constants", () => {
 
 describe("authenticate", () => {
   it("snapshot mode ok / unreadable", async () => {
-    const p = writeTmp("{}");
+    const p = writeTmp(
+      JSON.stringify({ schemaVersion: SNAPSHOT_SCHEMA_VERSION, events: [] }),
+    );
     try {
       const a = new BaiduMapAdapter();
       expect(await a.authenticate({ inputPath: p })).toEqual({
@@ -130,7 +131,7 @@ describe("authenticate", () => {
 });
 
 describe("sync — snapshot mode", () => {
-  it("yields 3 kinds with prefixed originalId + account attached, skips unknown kind", async () => {
+  it("yields 3 kinds with prefixed originalId + account attached", async () => {
     const p = writeTmp(JSON.stringify(SNAPSHOT));
     try {
       const a = new BaiduMapAdapter();

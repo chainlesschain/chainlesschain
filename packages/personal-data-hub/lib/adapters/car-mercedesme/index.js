@@ -19,6 +19,10 @@
 const fs = require("node:fs");
 const { createAccountScopeFromAccount } = require("../../account-scope");
 const {
+  probeSnapshotFile,
+  readBoundedSnapshot,
+} = require("../../snapshot-file");
+const {
   normalizeTravelRecord,
   parseChineseDateTime,
 } = require("../travel-base");
@@ -171,16 +175,9 @@ class MercedesMeAdapter {
   async authenticate(ctx = {}) {
     const filePath = (ctx && ctx.inputPath) || ctx.dataPath || this._dataPath;
     if (filePath) {
-      try {
-        this._deps.fs.accessSync(filePath, this._deps.fs.constants.R_OK);
-      } catch (err) {
-        return {
-          ok: false,
-          reason: "INPUT_PATH_UNREADABLE",
-          message: `not readable at ${filePath}: ${err.message}`,
-        };
-      }
-      return { ok: true, mode: "snapshot-file" };
+      return probeSnapshotFile(this._deps.fs, filePath, {
+        maxBytes: ctx.maxSnapshotBytes,
+      });
     }
     if (this._cookieAuth && !this._liveConfigured) {
       return {
@@ -221,8 +218,9 @@ class MercedesMeAdapter {
   async *sync(opts = {}) {
     const dataPath = opts.inputPath || opts.dataPath || this._dataPath;
     if (dataPath) {
-      if (!this._deps.fs.existsSync(dataPath)) return;
-      const text = this._deps.fs.readFileSync(dataPath, "utf-8");
+      const text = readBoundedSnapshot(this._deps.fs, dataPath, {
+        maxBytes: opts.maxSnapshotBytes,
+      });
       let records;
       try {
         records = parseTrips(text);
@@ -283,15 +281,16 @@ class MercedesMeAdapter {
         sign,
       });
       const trips = extractTrips(resp);
-      if (!trips.length) break;
-      let reachedWatermark = false;
+      if (!trips.length) {
+        scanComplete = true;
+        break;
+      }
       for (const raw of trips) {
         const rec = tripToRecord(raw, { capturedVia: "cookie-api" });
         if (!rec) continue;
         const ts = rec.departureMs || null;
         if (sinceMs && ts && ts < sinceMs) {
-          reachedWatermark = true;
-          break;
+          continue;
         }
         if (emitted >= limit) return;
         yield {
@@ -301,10 +300,6 @@ class MercedesMeAdapter {
           payload: { record: rec },
         };
         emitted += 1;
-      }
-      if (reachedWatermark || trips.length < pageSize) {
-        scanComplete = true;
-        break;
       }
       page += 1;
     }

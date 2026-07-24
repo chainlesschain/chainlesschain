@@ -31,6 +31,16 @@ function makeOrders(count) {
   }));
 }
 
+function sourcePage(request) {
+  const query = request.query || {};
+  if (Number.isInteger(query.page)) return query.page;
+  if (Number.isInteger(query.pageNumber)) return query.pageNumber;
+  if (Number.isInteger(query.offset) && Number.isInteger(query.limit)) {
+    return Math.floor(query.offset / query.limit) + 1;
+  }
+  return 1;
+}
+
 async function collect(iterable) {
   const records = [];
   for await (const record of iterable) records.push(record);
@@ -77,7 +87,7 @@ describe("shopping cookie pagination budget", () => {
   );
 
   it.each(CASES)(
-    "%s stops at maxPages without advancing the watermark",
+    "%s leaves a non-empty short page incomplete when maxPages is exhausted",
     async (_name, Adapter, account) => {
       let requests = 0;
       let completions = 0;
@@ -86,7 +96,7 @@ describe("shopping cookie pagination budget", () => {
         account: { ...account, cookies: "sid=test" },
         fetchFn: async () => {
           requests += 1;
-          return { orders: makeOrders(10) };
+          return { orders: makeOrders(1) };
         },
       });
 
@@ -104,7 +114,7 @@ describe("shopping cookie pagination budget", () => {
         }),
       );
 
-      expect(records).toHaveLength(10);
+      expect(records).toHaveLength(1);
       expect(requests).toBe(1);
       expect(pacedRequests).toHaveLength(1);
       expect(pacedRequests[0].page).toBe(1);
@@ -114,17 +124,20 @@ describe("shopping cookie pagination budget", () => {
 
   it.each(CASES)(
     "%s advances the watermark only after every source is drained",
-    async (_name, Adapter, account, expectedRequests) => {
+    async (_name, Adapter, account, sourceCount) => {
       let requests = 0;
       let completions = 0;
       const adapter = new Adapter({
         account: { ...account, cookies: "sid=test" },
-        fetchFn: async () => {
+        fetchFn: async (request) => {
           requests += 1;
-          return { orders: makeOrders(1) };
+          return {
+            orders: sourcePage(request) === 1 ? makeOrders(1) : [],
+          };
         },
       });
 
+      const expectedRequests = sourceCount * 2;
       const records = await collect(
         adapter.sync({
           sinceWatermark: 0,
@@ -136,7 +149,7 @@ describe("shopping cookie pagination budget", () => {
         }),
       );
 
-      expect(records).toHaveLength(expectedRequests);
+      expect(records).toHaveLength(sourceCount);
       expect(requests).toBe(expectedRequests);
       expect(completions).toBe(1);
     },
@@ -170,6 +183,59 @@ describe("shopping cookie pagination budget", () => {
       expect(completions).toBe(1);
     },
   );
+
+  it.each([
+    ["hasMore", { hasMore: false }],
+    ["total", { total: 1 }],
+    ["next", { next: null }],
+  ])(
+    "shopping-taobao honors authoritative %s completion metadata",
+    async (_field, metadata) => {
+      let completions = 0;
+      const adapter = new TaobaoAdapter({
+        account: { userId: "u-1", cookies: "sid=test" },
+        fetchFn: async () => ({ orders: makeOrders(1), ...metadata }),
+      });
+
+      const records = await collect(
+        adapter.sync({
+          sinceWatermark: 0,
+          maxPages: 1,
+          markWatermarkComplete: () => {
+            completions += 1;
+          },
+        }),
+      );
+
+      expect(records).toHaveLength(1);
+      expect(completions).toBe(1);
+    },
+  );
+
+  it("shopping-taobao honors authoritative hasMore on an empty page", async () => {
+    let requests = 0;
+    let completions = 0;
+    const adapter = new TaobaoAdapter({
+      account: { userId: "u-1", cookies: "sid=test" },
+      fetchFn: async () => {
+        requests += 1;
+        return { orders: [], hasMore: requests === 1 };
+      },
+    });
+
+    await collect(
+      adapter.sync({
+        sinceWatermark: 0,
+        maxPages: 2,
+        markWatermarkComplete: () => {
+          completions += 1;
+        },
+      }),
+    );
+
+    expect(requests).toBe(2);
+    expect(completions).toBe(1);
+  });
 
   it.each(CASES)(
     "%s preserves the watermark for an unrecognized response",

@@ -82,16 +82,17 @@ describe("constants", () => {
 
 describe("authenticate", () => {
   it("supports snapshot and rejects sqlite without an explicit schema profile", async () => {
-    const p = writeTmp("{}");
+    const p = writeTmp(
+      JSON.stringify({ schemaVersion: SNAPSHOT_SCHEMA_VERSION, events: [] }),
+    );
     try {
       const a = new TencentMapAdapter();
       expect((await a.authenticate({ inputPath: p })).mode).toBe(
         "snapshot-file",
       );
       expect(
-        (
-          await new TencentMapAdapter({ dbPath: "x.db" }).authenticate({})
-        ).reason,
+        (await new TencentMapAdapter({ dbPath: "x.db" }).authenticate({}))
+          .reason,
       ).toBe("EXPLICIT_SCHEMA_REQUIRED");
       expect(
         (
@@ -202,9 +203,9 @@ describe("normalize", () => {
       expect(a.normalize(fav).events[0].content.title).toBe("visit: → 公司");
       const batch = a.normalize(route);
       expect(batch.events[0].content.title).toBe("bike: 公司 → 体育馆");
-      expect(
-        batch.persons.find((x) => x.subtype === "merchant").names,
-      ).toEqual(["腾讯地图"]);
+      expect(batch.persons.find((x) => x.subtype === "merchant").names).toEqual(
+        ["腾讯地图"],
+      );
     } finally {
       fs.unlinkSync(p);
     }

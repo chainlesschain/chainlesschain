@@ -55,6 +55,12 @@
 const fs = require("node:fs");
 const { createAccountScopeFromAccount } = require("../../account-scope");
 const {
+  probeJsonSnapshotFile,
+  probeSnapshotFile,
+  readBoundedSnapshot,
+  readJsonSnapshot,
+} = require("../../snapshot-file");
+const {
   normalizeTravelRecord,
   parseChineseDateTime,
 } = require("../travel-base");
@@ -142,16 +148,12 @@ class Train12306Adapter {
 
   async authenticate(ctx = {}) {
     if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
-      try {
-        this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
-      } catch (err) {
-        return {
-          ok: false,
-          reason: "INPUT_PATH_UNREADABLE",
-          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
-        };
-      }
-      return { ok: true, mode: "snapshot-file" };
+      return probeJsonSnapshotFile(this._deps.fs, ctx.inputPath, {
+        maxBytes: ctx.maxSnapshotBytes,
+        expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        requiredArrayFields: ["events"],
+        allowedEventKinds: VALID_SNAPSHOT_KINDS,
+      });
     }
     const { account, cookieAuth } = resolveCookieContext({
       account: this.account,
@@ -184,7 +186,10 @@ class Train12306Adapter {
         mode: "cookie",
       };
     }
-    if (this._dataPath || (ctx && typeof ctx.dataPath === "string")) {
+    const dataPath =
+      (ctx && typeof ctx.dataPath === "string" && ctx.dataPath) ||
+      this._dataPath;
+    if (dataPath) {
       if (!this.account || !this.account.username) {
         return {
           ok: false,
@@ -193,7 +198,16 @@ class Train12306Adapter {
             "travel-12306.authenticate: file-import mode requires account.username",
         };
       }
-      return { ok: true, account: this.account.username, mode: "file-import" };
+      const probe = probeSnapshotFile(this._deps.fs, dataPath, {
+        maxBytes: ctx.maxSnapshotBytes,
+      });
+      return probe.ok
+        ? {
+            ...probe,
+            account: this.account.username,
+            mode: "file-import",
+          }
+        : probe;
     }
     return {
       ok: false,
@@ -281,6 +295,7 @@ class Train12306Adapter {
 
     // ── completed orders (paginated) ──────────────────────────────────────
     let page = 1;
+    let completedItemsSeen = 0;
     let completedScanComplete = false;
     while (sourceRequests < maxPages) {
       const form = {
@@ -308,10 +323,19 @@ class Train12306Adapter {
       });
       const orders = extractCompletedOrders(resp);
       if (!hasCompletedOrderList(resp)) break;
+      const pageState = sourcePageState(
+        resp,
+        completedItemsSeen + orders.length,
+      );
       if (orders.length === 0) {
+        if (pageState === "more") {
+          page += 1;
+          continue;
+        }
         completedScanComplete = true;
         break;
       }
+      completedItemsSeen += orders.length;
       for (const order of orders) {
         for (const ev of ticketsFromOrder(order, true)) {
           if (emitted >= limit) return;
@@ -319,9 +343,9 @@ class Train12306Adapter {
           emitted += 1;
         }
       }
-      if (orders.length < PAGE_SIZE) {
+      if (pageState === "complete") {
         completedScanComplete = true;
-        break; // last page
+        break;
       }
       page += 1;
     }
@@ -342,8 +366,11 @@ class Train12306Adapter {
         headers: KYFW_REQUEST_HEADERS,
         form: {},
       });
-      pendingScanComplete = hasPendingOrderList(resp);
-      for (const order of extractPendingOrders(resp)) {
+      const pendingOrders = extractPendingOrders(resp);
+      pendingScanComplete =
+        hasPendingOrderList(resp) &&
+        sourcePageState(resp, pendingOrders.length) !== "more";
+      for (const order of pendingOrders) {
         for (const ev of ticketsFromOrder(order, false)) {
           if (emitted >= limit) return;
           yield cookieEventToRecord(ev);
@@ -361,17 +388,12 @@ class Train12306Adapter {
   }
 
   async *_syncViaSnapshot(opts) {
-    const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
-    const snapshot = JSON.parse(raw);
-    if (
-      !snapshot ||
-      typeof snapshot !== "object" ||
-      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
-    ) {
-      throw new Error(
-        `travel-12306.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
-      );
-    }
+    const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
+      maxBytes: opts.maxSnapshotBytes,
+      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      requiredArrayFields: ["events"],
+      allowedEventKinds: VALID_SNAPSHOT_KINDS,
+    });
     const fallbackCapturedAt =
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
@@ -380,28 +402,25 @@ class Train12306Adapter {
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
 
-    const events = Array.isArray(snapshot.events) ? snapshot.events : [];
+    const events = snapshot.events;
     let emitted = 0;
     for (const ev of events) {
       if (emitted >= limit) return;
-      if (!ev || typeof ev !== "object") continue;
       const kind = ev.kind;
-      if (!VALID_SNAPSHOT_KINDS.includes(kind)) continue;
       if (include[kind] === false) continue;
 
       const capturedAt =
         (Number.isFinite(ev.capturedAt) && ev.capturedAt) ||
         (Number.isFinite(ev.departureMs) && ev.departureMs) ||
         fallbackCapturedAt;
-      const id =
-        (typeof ev.id === "string" && ev.id.length > 0 && ev.id) ||
-        ev.orderSequenceNo ||
-        null;
-
       yield {
         adapter: NAME,
         kind,
-        originalId: stableOriginalId(id || `unknown-${emitted}`),
+        originalId: stableSnapshotOriginalId(
+          ev.id,
+          ev.ticketNumber,
+          ev.orderSequenceNo,
+        ),
         capturedAt,
         payload: { ...ev, snapshot: true },
       };
@@ -416,8 +435,10 @@ class Train12306Adapter {
       );
     }
     const dataPath = opts.dataPath;
-    if (!dataPath || !this._deps.fs.existsSync(dataPath)) return;
-    const buf = this._deps.fs.readFileSync(dataPath, "utf-8");
+    if (!dataPath) return;
+    const buf = readBoundedSnapshot(this._deps.fs, dataPath, {
+      maxBytes: opts.maxSnapshotBytes,
+    });
     let records;
     try {
       records = parseRecords(buf);
@@ -464,12 +485,25 @@ function stableOriginalId(id) {
   return `12306:ticket:${id}`;
 }
 
+function stableSnapshotOriginalId(...candidates) {
+  const safe =
+    candidates.find(
+      (id) =>
+        (typeof id === "string" && id.length > 0) ||
+        (typeof id === "number" && Number.isFinite(id)),
+    ) ?? null;
+  if (safe == null) {
+    throw new Error(`${NAME}.sync: ticket event requires a stable source id`);
+  }
+  return stableOriginalId(String(safe));
+}
+
 /** Convert a v0.2 snapshot event into the adapter-neutral travel record
  *  shape that [normalizeTravelRecord] expects. */
 function snapshotEventToRecord(ev) {
   return {
     vendorId: "12306",
-    recordId: String(ev.id || ev.orderSequenceNo || ev.ticketNumber),
+    recordId: String(ev.id || ev.ticketNumber || ev.orderSequenceNo),
     vehicleType: "train",
     from: { station: ev.fromStation },
     to: { station: ev.toStation },
@@ -612,6 +646,49 @@ function hasPendingOrderList(resp) {
     typeof data === "object" &&
     (Array.isArray(data.orderDBList) || Array.isArray(data.orderDbList))
   );
+}
+
+function sourcePageState(resp, sourceItemsSeen) {
+  const containers = [
+    resp,
+    resp && resp.data,
+    resp && resp.result,
+    resp && resp.pagination,
+    resp && resp.data && resp.data.pagination,
+    resp && resp.result && resp.result.pagination,
+  ];
+  for (const container of containers) {
+    if (!container || typeof container !== "object" || Array.isArray(container))
+      continue;
+    for (const key of ["hasMore", "has_more"]) {
+      if (!Object.prototype.hasOwnProperty.call(container, key)) continue;
+      const value = container[key];
+      if (value === true || value === 1 || value === "1" || value === "true")
+        return "more";
+      if (value === false || value === 0 || value === "0" || value === "false")
+        return "complete";
+    }
+    const total = Number(
+      container.total ?? container.totalCount ?? container.total_count,
+    );
+    if (Number.isFinite(total) && total >= 0) {
+      return sourceItemsSeen >= total ? "complete" : "more";
+    }
+    for (const key of [
+      "next",
+      "nextPage",
+      "next_page",
+      "nextCursor",
+      "next_cursor",
+    ]) {
+      if (!Object.prototype.hasOwnProperty.call(container, key)) continue;
+      const value = container[key];
+      return value == null || value === "" || value === false || value === 0
+        ? "complete"
+        : "more";
+    }
+  }
+  return "unknown";
 }
 
 /**

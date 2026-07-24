@@ -102,7 +102,12 @@ describe("parseRecords / orderToRecord", () => {
   });
 
   it("scenery/门票 order maps to attraction; sceneryName→carrier/to", () => {
-    const rec = orderToRecord({ orderId: "S1", projectType: "门票", sceneryName: "黄山风景区", amount: 230 });
+    const rec = orderToRecord({
+      orderId: "S1",
+      projectType: "门票",
+      sceneryName: "黄山风景区",
+      amount: 230,
+    });
     expect(rec.vehicleType).toBe("attraction");
     expect(rec.carrier).toBe("黄山风景区");
     expect(rec.totalCost.value).toBe(230);
@@ -115,7 +120,9 @@ describe("parseRecords / orderToRecord", () => {
   });
 
   it("accepts {orders:[...]} envelope + JSONL fallback", () => {
-    expect(parseRecords(JSON.stringify({ orders: [FLIGHT_ORDER] }))).toHaveLength(1);
+    expect(
+      parseRecords(JSON.stringify({ orders: [FLIGHT_ORDER] })),
+    ).toHaveLength(1);
     const jsonl = `${JSON.stringify(FLIGHT_ORDER)}\ngarbage\n${JSON.stringify({ ...FLIGHT_ORDER, orderId: "TC2" })}`;
     expect(parseRecords(jsonl).map((r) => r.recordId)).toEqual(["TC1", "TC2"]);
   });
@@ -124,25 +131,40 @@ describe("parseRecords / orderToRecord", () => {
 describe("extractOrders", () => {
   it("pulls list from common shapes", () => {
     expect(extractOrders({ orders: [{ orderId: "A" }] })).toHaveLength(1);
-    expect(extractOrders({ data: { orderList: [{ orderId: "B" }] } })).toHaveLength(1);
-    expect(extractOrders({ data: { records: [{ orderId: "C" }] } })).toHaveLength(1);
+    expect(
+      extractOrders({ data: { orderList: [{ orderId: "B" }] } }),
+    ).toHaveLength(1);
+    expect(
+      extractOrders({ data: { records: [{ orderId: "C" }] } }),
+    ).toHaveLength(1);
     expect(extractOrders({})).toEqual([]);
     expect(extractOrders(null)).toEqual([]);
   });
 });
 
 describe("TongchengAdapter file/snapshot mode", () => {
-  it("authenticate ready mode without account", async () => {
+  it("reports NO_INPUT and unhealthy when no source is configured", async () => {
     const a = new TongchengAdapter();
-    expect(await a.authenticate({})).toEqual({ ok: true, account: null, mode: "ready" });
+    expect(await a.authenticate({})).toMatchObject({
+      ok: false,
+      reason: "NO_INPUT",
+    });
+    expect(await a.healthCheck({})).toMatchObject({
+      ok: false,
+      reason: "NO_INPUT",
+    });
   });
 
   it("authenticate validates inputPath readability", async () => {
     const p = writeTmp("[]");
     try {
       const a = new TongchengAdapter();
-      expect((await a.authenticate({ inputPath: p })).mode).toBe("snapshot-file");
-      const bad = await a.authenticate({ inputPath: path.join(os.tmpdir(), "nope-tc.json") });
+      expect((await a.authenticate({ inputPath: p })).mode).toBe(
+        "snapshot-file",
+      );
+      const bad = await a.authenticate({
+        inputPath: path.join(os.tmpdir(), "nope-tc.json"),
+      });
       expect(bad.ok).toBe(false);
       expect(bad.reason).toBe("INPUT_PATH_UNREADABLE");
     } finally {
@@ -159,41 +181,72 @@ describe("TongchengAdapter file/snapshot mode", () => {
       expect(items[0]).toMatchObject({ adapter: NAME, originalId: "TC1" });
       const batch = a.normalize(items[0]);
       expect(batch.events[0].content.title).toBe("flight: 上海 → 北京");
-      expect(batch.events[0].content.amount).toEqual({ value: 1180, currency: "CNY", direction: "out" });
-      expect(batch.persons.find((x) => x.subtype === "merchant").names).toEqual(["东方航空"]);
+      expect(batch.events[0].content.amount).toEqual({
+        value: 1180,
+        currency: "CNY",
+        direction: "out",
+      });
+      expect(batch.persons.find((x) => x.subtype === "merchant").names).toEqual(
+        ["东方航空"],
+      );
     } finally {
       fs.unlinkSync(p);
     }
   });
 
-  it("sync returns silently when no path / missing file", async () => {
+  it("sync throws without a source and reports a path-safe missing-file error", async () => {
     const a = new TongchengAdapter();
-    expect(await collect(a.sync({}))).toEqual([]);
-    expect(await collect(a.sync({ inputPath: path.join(os.tmpdir(), "nope-tc2.json") }))).toEqual([]);
+    await expect(collect(a.sync({}))).rejects.toThrow(/needs opts\.inputPath/);
+    await expect(
+      collect(a.sync({ inputPath: path.join(os.tmpdir(), "nope-tc2.json") })),
+    ).rejects.toMatchObject({
+      code: "INPUT_PATH_UNREADABLE",
+      message: "snapshot file is unavailable or unreadable",
+    });
   });
 
   it("normalize throws on missing record", () => {
     const a = new TongchengAdapter();
-    expect(() => a.normalize({ payload: {} })).toThrow(/payload\.record missing/);
+    expect(() => a.normalize({ payload: {} })).toThrow(
+      /payload\.record missing/,
+    );
   });
 });
 
 describe("TongchengAdapter cookie-api mode", () => {
   it("authenticate cookie mode (account OPTIONAL)", async () => {
-    const a = new TongchengAdapter({ account: { cookies: COOKIES } });
-    expect(await a.authenticate()).toEqual({ ok: true, account: null, mode: "cookie" });
+    const a = new TongchengAdapter({
+      account: { cookies: COOKIES },
+      fetchFn: async () => ({ orderList: [] }),
+    });
+    expect(await a.authenticate()).toEqual({
+      ok: true,
+      account: null,
+      mode: "cookie",
+    });
   });
 
-  it("empty cookies → ready (not cookie mode)", async () => {
+  it("empty cookies → NO_INPUT (not cookie mode)", async () => {
     const a = new TongchengAdapter({ account: { cookies: "" } });
-    expect((await a.authenticate()).mode).toBe("ready");
+    expect(await a.authenticate()).toMatchObject({
+      ok: false,
+      reason: "NO_INPUT",
+    });
   });
 
   it("sync fetches, paginates, maps + normalizes", async () => {
     const pages = [
       {
         orderList: [
-          { orderId: "CK1", projectType: "train", departureCity: "广州", arrivalCity: "深圳", amount: "75", orderDate: 1716383021000, trainNo: "G6501" },
+          {
+            orderId: "CK1",
+            projectType: "train",
+            departureCity: "广州",
+            arrivalCity: "深圳",
+            amount: "75",
+            orderDate: 1716383021000,
+            trainNo: "G6501",
+          },
         ],
       },
       { orderList: [] },
@@ -207,6 +260,7 @@ describe("TongchengAdapter cookie-api mode", () => {
     const items = await collect(a.sync({ sinceWatermark: 0 }));
     expect(items).toHaveLength(1);
     expect(items[0]).toMatchObject({ adapter: NAME, originalId: "CK1" });
+    expect(calls).toHaveLength(2);
     expect(calls[0].cookies).toBe(COOKIES);
     expect(calls[0].sign).toBe(null);
     const batch = a.normalize(items[0]);
@@ -218,7 +272,9 @@ describe("TongchengAdapter cookie-api mode", () => {
     const a = new TongchengAdapter({
       account: { cookies: COOKIES },
       fetchFn: async ({ query }) =>
-        query.pageIndex === 1 ? { orders: [{ orderId: "S1", projectType: "hotel" }] } : { orders: [] },
+        query.pageIndex === 1
+          ? { orders: [{ orderId: "S1", projectType: "hotel" }] }
+          : { orders: [] },
       signProvider: async (ctx) => {
         signCalls.push(ctx);
         return "TC-SIGN";
@@ -226,7 +282,7 @@ describe("TongchengAdapter cookie-api mode", () => {
     });
     const items = await collect(a.sync({ sinceWatermark: 0 }));
     expect(items).toHaveLength(1);
-    expect(signCalls).toHaveLength(1);
+    expect(signCalls).toHaveLength(2);
     expect(signCalls[0].cookies).toBe(COOKIES);
   });
 
@@ -235,12 +291,22 @@ describe("TongchengAdapter cookie-api mode", () => {
       account: { cookies: COOKIES },
       fetchFn: async () => ({
         orderList: [
-          { orderId: "NEW", projectType: "flight", orderDate: 2_000_000_000_000 },
-          { orderId: "OLD", projectType: "flight", orderDate: 1_000_000_000_000 },
+          {
+            orderId: "NEW",
+            projectType: "flight",
+            orderDate: 2_000_000_000_000,
+          },
+          {
+            orderId: "OLD",
+            projectType: "flight",
+            orderDate: 1_000_000_000_000,
+          },
         ],
       }),
     });
-    const items = await collect(a.sync({ sinceWatermark: 1_500_000_000_000, maxPages: 1 }));
+    const items = await collect(
+      a.sync({ sinceWatermark: 1_500_000_000_000, maxPages: 1 }),
+    );
     expect(items.map((x) => x.originalId)).toEqual(["NEW"]);
   });
 
@@ -249,12 +315,22 @@ describe("TongchengAdapter cookie-api mode", () => {
       account: { cookies: COOKIES },
       fetchFn: async () => ({
         orderList: [
-          { orderId: "L1", projectType: "flight", orderDate: 2_000_000_000_000 },
-          { orderId: "L2", projectType: "flight", orderDate: 2_000_000_000_001 },
+          {
+            orderId: "L1",
+            projectType: "flight",
+            orderDate: 2_000_000_000_000,
+          },
+          {
+            orderId: "L2",
+            projectType: "flight",
+            orderDate: 2_000_000_000_001,
+          },
         ],
       }),
     });
-    const items = await collect(a.sync({ sinceWatermark: 0, limit: 1, maxPages: 1 }));
+    const items = await collect(
+      a.sync({ sinceWatermark: 0, limit: 1, maxPages: 1 }),
+    );
     expect(items).toHaveLength(1);
   });
 
@@ -268,7 +344,17 @@ describe("TongchengAdapter cookie-api mode", () => {
 
   it("default fetch throws when no fetchFn", async () => {
     const a = new TongchengAdapter({ account: { cookies: COOKIES } });
-    await expect(collect(a.sync({ sinceWatermark: 0 }))).rejects.toThrow(/no fetchFn configured/);
+    expect(await a.authenticate()).toMatchObject({
+      ok: false,
+      reason: "CUSTOM_FETCH_REQUIRED",
+    });
+    expect(await a.healthCheck()).toMatchObject({
+      ok: false,
+      reason: "CUSTOM_FETCH_REQUIRED",
+    });
+    await expect(collect(a.sync({ sinceWatermark: 0 }))).rejects.toThrow(
+      /no fetchFn configured/,
+    );
   });
 
   it("file path takes priority over cookie mode", async () => {

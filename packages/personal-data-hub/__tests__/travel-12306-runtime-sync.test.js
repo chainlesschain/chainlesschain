@@ -67,11 +67,14 @@ describe("12306 runtime-cookie registry integration", () => {
           ? { data: { orderDBList: [] } }
           : {
               data: {
-                OrderDTODataList: [
-                  completedOrder(
-                    request.cookies.includes("account-a") ? "A-1" : "B-1",
-                  ),
-                ],
+                OrderDTODataList:
+                  request.form.pageIndex === "1"
+                    ? [
+                        completedOrder(
+                          request.cookies.includes("account-a") ? "A-1" : "B-1",
+                        ),
+                      ]
+                    : [],
               },
             };
       },
@@ -95,7 +98,7 @@ describe("12306 runtime-cookie registry integration", () => {
       expect(report.status).toBe("ok");
       expect(report.rawCount).toBe(1);
       expect(report.checkpointCommitted).toBe(true);
-      expect(report.sourceRequestCount).toBe(2);
+      expect(report.sourceRequestCount).toBe(3);
       expect(report.scope).toMatch(/^account:travel-12306:[a-f0-9]{32}$/u);
       expect(
         vault.queryRawEvents({
@@ -106,7 +109,7 @@ describe("12306 runtime-cookie registry integration", () => {
       expect(vault.getWatermark("travel-12306", report.scope)).toBeTruthy();
     }
     expect(first.scope).not.toBe(second.scope);
-    expect(sourceRequests).toHaveLength(4);
+    expect(sourceRequests).toHaveLength(6);
     expect(sourceRequests.every((request) => request.form)).toBe(true);
     expect(adapter.account).toBe(null);
     expect(adapter._cookieAuth).toBe(null);

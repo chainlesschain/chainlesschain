@@ -57,7 +57,9 @@ describe("ElemeAdapter snapshot mode", () => {
 
   it("authenticate(inputPath) fails when path unreadable", async () => {
     const a = new ElemeAdapter();
-    const res = await a.authenticate({ inputPath: path.join(tmpDir, "missing.json") });
+    const res = await a.authenticate({
+      inputPath: path.join(tmpDir, "missing.json"),
+    });
     expect(res.ok).toBe(false);
     expect(res.reason).toBe("INPUT_PATH_UNREADABLE");
   });
@@ -74,7 +76,9 @@ describe("ElemeAdapter snapshot mode", () => {
     const a = new ElemeAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({})) { /* drain */ }
+      for await (const _r of a.sync({})) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
@@ -83,16 +87,22 @@ describe("ElemeAdapter snapshot mode", () => {
   });
 
   it("rejects non-JSON inputPath", async () => {
-    const p = writeRaw(tmpDir, "orders.html", "<html><body>not json</body></html>");
+    const p = writeRaw(
+      tmpDir,
+      "orders.html",
+      "<html><body>not json</body></html>",
+    );
     const a = new ElemeAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({ inputPath: p })) { /* drain */ }
+      for await (const _r of a.sync({ inputPath: p })) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
     expect(threw).toBeTruthy();
-    expect(String(threw.message)).toMatch(/snapshot must be JSON/);
+    expect(String(threw.message)).toMatch(/valid JSON/);
   });
 
   it("rejects schemaVersion mismatch", async () => {
@@ -104,7 +114,9 @@ describe("ElemeAdapter snapshot mode", () => {
     const a = new ElemeAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({ inputPath: p })) { /* drain */ }
+      for await (const _r of a.sync({ inputPath: p })) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
@@ -181,9 +193,13 @@ describe("ElemeAdapter snapshot mode", () => {
         snapshottedAt: now,
         events: [
           {
-            kind: "order", id: `o-${c.status}`,
-            orderId: `o-${c.status}`, merchantName: "m",
-            placedAt: now, paidAt: now, status: c.status,
+            kind: "order",
+            id: `o-${c.status}`,
+            orderId: `o-${c.status}`,
+            merchantName: "m",
+            placedAt: now,
+            paidAt: now,
+            status: c.status,
             items: [{ name: "x", quantity: 1, unitPrice: 1 }],
             totalAmount: { value: 1, currency: "CNY" },
           },
@@ -203,8 +219,15 @@ describe("ElemeAdapter snapshot mode", () => {
       schemaVersion: 1,
       snapshottedAt: now,
       events: [
-        { kind: "order", id: "o1", orderId: "o1", merchantName: "m", placedAt: now,
-          items: [], totalAmount: { value: 1, currency: "CNY" } },
+        {
+          kind: "order",
+          id: "o1",
+          orderId: "o1",
+          merchantName: "m",
+          placedAt: now,
+          items: [],
+          totalAmount: { value: 1, currency: "CNY" },
+        },
       ],
     });
     const a = new ElemeAdapter();
@@ -218,34 +241,49 @@ describe("ElemeAdapter snapshot mode", () => {
   it("respects opts.limit", async () => {
     const now = Date.now();
     const events = Array.from({ length: 5 }, (_, i) => ({
-      kind: "order", id: `o${i}`, orderId: `o${i}`, merchantName: "m",
+      kind: "order",
+      id: `o${i}`,
+      orderId: `o${i}`,
+      merchantName: "m",
       placedAt: now - i * 1000,
-      items: [], totalAmount: { value: 1, currency: "CNY" },
+      items: [],
+      totalAmount: { value: 1, currency: "CNY" },
     }));
-    const p = writeSnapshot(tmpDir, { schemaVersion: 1, snapshottedAt: now, events });
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 1,
+      snapshottedAt: now,
+      events,
+    });
     const a = new ElemeAdapter();
     const raws = [];
     for await (const r of a.sync({ inputPath: p, limit: 2 })) raws.push(r);
     expect(raws.length).toBe(2);
   });
 
-  it("filters out unknown kinds (forward compat)", async () => {
+  it("rejects unknown snapshot kinds", async () => {
     const now = Date.now();
     const p = writeSnapshot(tmpDir, {
       schemaVersion: 1,
       snapshottedAt: now,
       events: [
-        { kind: "order", id: "o1", orderId: "o1", merchantName: "m", placedAt: now,
-          items: [], totalAmount: { value: 1, currency: "CNY" } },
+        {
+          kind: "order",
+          id: "o1",
+          orderId: "o1",
+          merchantName: "m",
+          placedAt: now,
+          items: [],
+          totalAmount: { value: 1, currency: "CNY" },
+        },
         { kind: "refund", id: "r1", orderId: "o1" },
         { kind: "future-kind", id: "x" },
       ],
     });
     const a = new ElemeAdapter();
-    const raws = [];
-    for await (const r of a.sync({ inputPath: p })) raws.push(r);
-    expect(raws.length).toBe(1);
-    expect(raws[0].kind).toBe("order");
+    expect(await a.authenticate({ inputPath: p })).toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_SHAPE_INVALID",
+    });
   });
 
   it("snapshottedAt fallback when event capturedAt missing", async () => {
@@ -254,8 +292,14 @@ describe("ElemeAdapter snapshot mode", () => {
       schemaVersion: 1,
       snapshottedAt: ts,
       events: [
-        { kind: "order", id: "o1", orderId: "o1", merchantName: "m", items: [],
-          totalAmount: { value: 1, currency: "CNY" } },
+        {
+          kind: "order",
+          id: "o1",
+          orderId: "o1",
+          merchantName: "m",
+          items: [],
+          totalAmount: { value: 1, currency: "CNY" },
+        },
       ],
     });
     const a = new ElemeAdapter();
@@ -274,7 +318,9 @@ describe("ElemeAdapter snapshot mode", () => {
 
 describe("ElemeAdapter cookie-api mode", () => {
   it("authenticate(cookie) ok when userId + cookies present", async () => {
-    const a = new ElemeAdapter({ account: { userId: "u-1", cookies: "USERID=ok" } });
+    const a = new ElemeAdapter({
+      account: { userId: "u-1", cookies: "USERID=ok" },
+    });
     const res = await a.authenticate();
     expect(res.ok).toBe(true);
     expect(res.mode).toBe("cookie");
@@ -289,22 +335,23 @@ describe("ElemeAdapter cookie-api mode", () => {
   });
 
   it("sync yields normalized records from fetchFn fixture (元)", async () => {
-    const fetchFn = async () => ({
-      orders: [
-        {
-          order_id: "ELM-COOKIE-1",
-          restaurant_name: "兰州拉面",
-          status_bar_text: "已送达",
-          total_amount: 28.5,
-          order_time: 1700000000, // sec
-          pay_time: 1700000010,
-          consignee: "李四",
-          address: "广州市天河区...",
-          basket: [
-            { name: "牛肉拉面", quantity: 2, price: 14.25 },
-          ],
-        },
-      ],
+    const fetchFn = async ({ query }) => ({
+      orders:
+        query.offset === 0
+          ? [
+              {
+                order_id: "ELM-COOKIE-1",
+                restaurant_name: "兰州拉面",
+                status_bar_text: "已送达",
+                total_amount: 28.5,
+                order_time: 1700000000, // sec
+                pay_time: 1700000010,
+                consignee: "李四",
+                address: "广州市天河区...",
+                basket: [{ name: "牛肉拉面", quantity: 2, price: 14.25 }],
+              },
+            ]
+          : [],
     });
     const a = new ElemeAdapter({
       account: { userId: "u-1", cookies: "USERID=ok" },
@@ -336,7 +383,9 @@ describe("ElemeAdapter cookie-api mode", () => {
       fetchFn,
       signProvider,
     });
-    for await (const _r of a.sync({ sinceWatermark: 0 })) { /* drain */ }
+    for await (const _r of a.sync({ sinceWatermark: 0 })) {
+      /* drain */
+    }
     expect(seenSign).toBe("SIGN-XYZ");
   });
 
@@ -350,18 +399,38 @@ describe("ElemeAdapter cookie-api mode", () => {
       account: { userId: "u-1", cookies: "USERID=ok" },
       fetchFn,
     });
-    for await (const _r of a.sync({ sinceWatermark: 0 })) { /* drain */ }
+    for await (const _r of a.sync({ sinceWatermark: 0 })) {
+      /* drain */
+    }
     expect(seen).toBe(null);
   });
 
   it("paginates with offset and stops at sinceWatermark", async () => {
     const pages = {
       0: [
-        { order_id: "p1-a", restaurant_name: "m", order_time: 1700000000, total_amount: 10, basket: [] },
-        { order_id: "p1-b", restaurant_name: "m", order_time: 1699000000, total_amount: 10, basket: [] },
+        {
+          order_id: "p1-a",
+          restaurant_name: "m",
+          order_time: 1700000000,
+          total_amount: 10,
+          basket: [],
+        },
+        {
+          order_id: "p1-b",
+          restaurant_name: "m",
+          order_time: 1699000000,
+          total_amount: 10,
+          basket: [],
+        },
       ],
       2: [
-        { order_id: "p2-a", restaurant_name: "m", order_time: 1698000000, total_amount: 10, basket: [] },
+        {
+          order_id: "p2-a",
+          restaurant_name: "m",
+          order_time: 1698000000,
+          total_amount: 10,
+          basket: [],
+        },
       ],
     };
     const seenOffsets = [];
@@ -374,7 +443,10 @@ describe("ElemeAdapter cookie-api mode", () => {
       fetchFn,
     });
     const raws = [];
-    for await (const r of a.sync({ sinceWatermark: 1699500000 * 1000, pageSize: 2 })) {
+    for await (const r of a.sync({
+      sinceWatermark: 1699500000 * 1000,
+      pageSize: 2,
+    })) {
       raws.push(r);
     }
     expect(raws.map((r) => r.originalId)).toEqual(["p1-a"]);
@@ -436,15 +508,21 @@ describe("ElemeAdapter cookie-api mode", () => {
       fetchFn,
       ordersUrl: "https://custom.example/orders",
     });
-    for await (const _r of a.sync({ sinceWatermark: 0 })) { /* drain */ }
+    for await (const _r of a.sync({ sinceWatermark: 0 })) {
+      /* drain */
+    }
     expect(seenUrl).toBe("https://custom.example/orders");
   });
 
   it("default fetchFn throws a legible error when cookie mode used without injection", async () => {
-    const a = new ElemeAdapter({ account: { userId: "u-1", cookies: "USERID=ok" } });
+    const a = new ElemeAdapter({
+      account: { userId: "u-1", cookies: "USERID=ok" },
+    });
     let threw = null;
     try {
-      for await (const _r of a.sync({ sinceWatermark: 0 })) { /* drain */ }
+      for await (const _r of a.sync({ sinceWatermark: 0 })) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }

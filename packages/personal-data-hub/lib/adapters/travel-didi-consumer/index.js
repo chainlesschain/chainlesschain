@@ -14,11 +14,17 @@
 
 const fs = require("node:fs");
 const { createAccountScopeFromAccount } = require("../../account-scope");
+const {
+  probeSnapshotFile,
+  readBoundedSnapshot,
+} = require("../../snapshot-file");
 const { normalizeTravelRecord } = require("../travel-base");
 const { CookieAuth } = require("../shopping-base");
 const {
   orderToRecord,
   extractOrders,
+  hasOrderList,
+  sourcePageState,
   parseRecords,
 } = require("../travel-didi");
 
@@ -76,16 +82,9 @@ class DidiConsumerAdapter {
   async authenticate(ctx = {}) {
     const filePath = (ctx && ctx.inputPath) || ctx.dataPath || this._dataPath;
     if (filePath) {
-      try {
-        this._deps.fs.accessSync(filePath, this._deps.fs.constants.R_OK);
-      } catch (err) {
-        return {
-          ok: false,
-          reason: "INPUT_PATH_UNREADABLE",
-          message: `not readable at ${filePath}: ${err.message}`,
-        };
-      }
-      return { ok: true, mode: "snapshot-file" };
+      return probeSnapshotFile(this._deps.fs, filePath, {
+        maxBytes: ctx.maxSnapshotBytes,
+      });
     }
     if (this._cookieAuth && !this._liveConfigured) {
       return {
@@ -130,8 +129,9 @@ class DidiConsumerAdapter {
   async *sync(opts = {}) {
     const dataPath = opts.inputPath || opts.dataPath || this._dataPath;
     if (dataPath) {
-      if (!this._deps.fs.existsSync(dataPath)) return;
-      const text = this._deps.fs.readFileSync(dataPath, "utf-8");
+      const text = readBoundedSnapshot(this._deps.fs, dataPath, {
+        maxBytes: opts.maxSnapshotBytes,
+      });
       let records;
       try {
         records = parseRecords(text);
@@ -182,6 +182,7 @@ class DidiConsumerAdapter {
 
     let emitted = 0;
     let pageIndex = 1;
+    let sourceItemsSeen = 0;
     let scanComplete = false;
     while (pageIndex <= maxPages) {
       const query = { pageIndex, pageSize, ts: Date.now() };
@@ -199,7 +200,18 @@ class DidiConsumerAdapter {
         sign,
       });
       const rides = extractOrders(resp);
-      if (!rides.length) break;
+      const recognizedPage = hasOrderList(resp);
+      if (!rides.length) {
+        const pageState = sourcePageState(resp, sourceItemsSeen);
+        if (recognizedPage && pageState === "more") {
+          pageIndex += 1;
+          continue;
+        }
+        scanComplete = recognizedPage;
+        break;
+      }
+      sourceItemsSeen += rides.length;
+      const pageState = sourcePageState(resp, sourceItemsSeen);
       let pageHasNew = false;
       let reachedWatermark = false;
       for (const raw of rides) {
@@ -220,7 +232,7 @@ class DidiConsumerAdapter {
         };
         emitted += 1;
       }
-      if (reachedWatermark || rides.length < pageSize) {
+      if (reachedWatermark || (pageHasNew && pageState === "complete")) {
         scanComplete = true;
         break;
       }

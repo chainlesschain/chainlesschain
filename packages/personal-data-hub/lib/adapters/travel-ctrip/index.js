@@ -39,6 +39,10 @@
 const fs = require("node:fs");
 const { createAccountScopeFromAccount } = require("../../account-scope");
 const {
+  probeSnapshotFile,
+  readBoundedSnapshot,
+} = require("../../snapshot-file");
+const {
   normalizeTravelRecord,
   parseChineseDateTime,
 } = require("../travel-base");
@@ -116,16 +120,9 @@ class CtripAdapter {
     // / dataPath is provided. Takes priority over cookie mode when both given.
     const filePath = (ctx && ctx.inputPath) || ctx.dataPath || this._dataPath;
     if (filePath) {
-      try {
-        this._deps.fs.accessSync(filePath, this._deps.fs.constants.R_OK);
-      } catch (err) {
-        return {
-          ok: false,
-          reason: "INPUT_PATH_UNREADABLE",
-          message: `not readable at ${filePath}: ${err.message}`,
-        };
-      }
-      return { ok: true, mode: "snapshot-file" };
+      return probeSnapshotFile(this._deps.fs, filePath, {
+        maxBytes: ctx.maxSnapshotBytes,
+      });
     }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
@@ -136,6 +133,14 @@ class CtripAdapter {
           error: "cookies missing",
         };
       }
+      if (this._fetchFn === defaultFetch) {
+        return {
+          ok: false,
+          reason: "CUSTOM_FETCH_REQUIRED",
+          message:
+            "travel-ctrip cookie mode requires an explicitly configured fetchFn for an authorized session",
+        };
+      }
       // account is OPTIONAL in cookie mode — the .ctrip.com cookie carries identity.
       return {
         ok: true,
@@ -144,20 +149,23 @@ class CtripAdapter {
       };
     }
     return {
-      ok: true,
-      account: this.account ? this.account.email : null,
-      mode: "ready",
+      ok: false,
+      reason: "NO_INPUT",
+      message:
+        "travel-ctrip.authenticate: needs opts.inputPath/dataPath (snapshot mode) OR configured account.cookies + fetchFn (custom cookie-api mode)",
     };
   }
 
-  async healthCheck() {
-    if (this._cookieAuth) {
-      const r = await this.authenticate();
-      return r.ok
-        ? { ok: true, lastChecked: Date.now() }
-        : { ok: false, reason: r.reason, error: r.error };
-    }
-    return { ok: true, lastChecked: Date.now() };
+  async healthCheck(opts = {}) {
+    const result = await this.authenticate(opts);
+    return result.ok
+      ? { ok: true, lastChecked: Date.now() }
+      : {
+          ok: false,
+          reason: result.reason,
+          error: result.error || result.message,
+          lastChecked: Date.now(),
+        };
   }
 
   async *sync(opts = {}) {
@@ -166,8 +174,9 @@ class CtripAdapter {
     // for the other snapshot-mode adapters (shopping-jd / travel-12306).
     const dataPath = opts.inputPath || opts.dataPath || this._dataPath;
     if (dataPath) {
-      if (!this._deps.fs.existsSync(dataPath)) return;
-      const text = this._deps.fs.readFileSync(dataPath, "utf-8");
+      const text = readBoundedSnapshot(this._deps.fs, dataPath, {
+        maxBytes: opts.maxSnapshotBytes,
+      });
       let records;
       try {
         records = parseRecords(text);
@@ -186,7 +195,11 @@ class CtripAdapter {
     }
     if (this._cookieAuth) {
       yield* this._syncViaCookie(opts);
+      return;
     }
+    throw new Error(
+      "travel-ctrip.sync: needs opts.inputPath/dataPath OR configured account.cookies + fetchFn",
+    );
   }
 
   /**
@@ -214,6 +227,7 @@ class CtripAdapter {
 
     let emitted = 0;
     let pageIndex = 1;
+    let sourceItemsSeen = 0;
     let scanComplete = false;
     while (pageIndex <= maxPages) {
       const query = { pageIndex, pageSize, ts: Date.now() };
@@ -233,7 +247,18 @@ class CtripAdapter {
         sign,
       });
       const orders = extractOrders(resp);
-      if (!orders.length) break;
+      const recognizedPage = hasOrderList(resp);
+      if (!orders.length) {
+        const pageState = sourcePageState(resp, sourceItemsSeen);
+        if (recognizedPage && pageState === "more") {
+          pageIndex += 1;
+          continue;
+        }
+        scanComplete = recognizedPage;
+        break;
+      }
+      sourceItemsSeen += orders.length;
+      const pageState = sourcePageState(resp, sourceItemsSeen);
 
       let pageHasNew = false;
       let reachedWatermark = false;
@@ -255,7 +280,7 @@ class CtripAdapter {
         };
         emitted += 1;
       }
-      if (reachedWatermark || orders.length < pageSize) {
+      if (reachedWatermark || (pageHasNew && pageState === "complete")) {
         scanComplete = true;
         break;
       }
@@ -420,6 +445,75 @@ function extractOrders(resp) {
     if (Array.isArray(result.list)) return result.list;
   }
   return [];
+}
+
+function hasOrderList(resp) {
+  if (!resp || typeof resp !== "object") return false;
+  if (
+    Array.isArray(resp.orders) ||
+    Array.isArray(resp.orderList) ||
+    Array.isArray(resp.list)
+  ) {
+    return true;
+  }
+  const data = resp.data && typeof resp.data === "object" ? resp.data : null;
+  if (
+    data &&
+    (Array.isArray(data.orders) ||
+      Array.isArray(data.orderList) ||
+      Array.isArray(data.list))
+  ) {
+    return true;
+  }
+  const result =
+    resp.result && typeof resp.result === "object" ? resp.result : null;
+  return !!(
+    result &&
+    (Array.isArray(result.orderList) || Array.isArray(result.list))
+  );
+}
+
+function sourcePageState(resp, sourceItemsSeen) {
+  const containers = [
+    resp,
+    resp && resp.data,
+    resp && resp.result,
+    resp && resp.pagination,
+    resp && resp.data && resp.data.pagination,
+    resp && resp.result && resp.result.pagination,
+  ];
+  for (const container of containers) {
+    if (!container || typeof container !== "object" || Array.isArray(container))
+      continue;
+    for (const key of ["hasMore", "has_more"]) {
+      if (!Object.prototype.hasOwnProperty.call(container, key)) continue;
+      const value = container[key];
+      if (value === true || value === 1 || value === "1" || value === "true")
+        return "more";
+      if (value === false || value === 0 || value === "0" || value === "false")
+        return "complete";
+    }
+    const total = Number(
+      container.total ?? container.totalCount ?? container.total_count,
+    );
+    if (Number.isFinite(total) && total >= 0) {
+      return sourceItemsSeen >= total ? "complete" : "more";
+    }
+    for (const key of [
+      "next",
+      "nextPage",
+      "next_page",
+      "nextCursor",
+      "next_cursor",
+    ]) {
+      if (!Object.prototype.hasOwnProperty.call(container, key)) continue;
+      const value = container[key];
+      return value == null || value === "" || value === false || value === 0
+        ? "complete"
+        : "more";
+    }
+  }
+  return "unknown";
 }
 
 async function defaultFetch(_opts) {

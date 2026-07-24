@@ -15,7 +15,10 @@ const {
   BaiduMapAdapter,
 } = require("../lib");
 const { parseRecords: parse12306 } = require("../lib/adapters/travel-12306");
-const { parseRecords: parseCtripRecords, TYPE_MAP: CTRIP_TYPE_MAP } = require("../lib/adapters/travel-ctrip");
+const {
+  parseRecords: parseCtripRecords,
+  TYPE_MAP: CTRIP_TYPE_MAP,
+} = require("../lib/adapters/travel-ctrip");
 const { assertAdapter } = require("../lib/adapter-spec");
 const { validateBatch } = require("../lib/batch");
 
@@ -69,7 +72,10 @@ describe("normalizeTravelRecord", () => {
       traveler: "张三",
       confirmationCode: "E123456789",
     };
-    const b = normalizeTravelRecord(rec, { adapterName: "travel-12306", adapterVersion: "0.5.0" });
+    const b = normalizeTravelRecord(rec, {
+      adapterName: "travel-12306",
+      adapterVersion: "0.5.0",
+    });
     expect(b.events).toHaveLength(1);
     expect(b.events[0].subtype).toBe("trip");
     expect(b.events[0].content.title).toContain("train:");
@@ -88,10 +94,17 @@ describe("normalizeTravelRecord", () => {
 
   it("traveler that matches selfName not added as Person", () => {
     const b = normalizeTravelRecord(
-      { vendorId: "12306", recordId: "X", vehicleType: "train", traveler: "自己" },
+      {
+        vendorId: "12306",
+        recordId: "X",
+        vehicleType: "train",
+        traveler: "自己",
+      },
       { adapterName: "travel-12306", selfName: "自己" },
     );
-    expect(b.persons.find((p) => p.extra && p.extra.role === "traveler")).toBeUndefined();
+    expect(
+      b.persons.find((p) => p.extra && p.extra.role === "traveler"),
+    ).toBeUndefined();
   });
 });
 
@@ -112,34 +125,37 @@ describe("Train12306Adapter", () => {
   it("v0.2 snapshot mode — sync yields ticket events from snapshot file", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "12306-snap-"));
     const inputPath = path.join(dir, "travel-12306.json");
-    fs.writeFileSync(inputPath, JSON.stringify({
-      schemaVersion: 1,
-      snapshottedAt: 1_700_000_000_000,
-      vendor: "12306",
-      events: [
-        {
-          kind: "ticket",
-          id: "ticket-EE123:0",
-          capturedAt: 1_700_001_000_000,
-          orderSequenceNo: "EE123",
-          ticketNumber: "T-1",
-          passengerName: "张三",
-          passengerIdLast6: "123456",
-          trainNumber: "G123",
-          fromStation: "上海虹桥",
-          toStation: "北京南",
-          departureMs: 1_700_001_000_000,
-          arrivalMs: 1_700_018_000_000,
-          seatTypeName: "二等座",
-          coachNo: "05",
-          seatNo: "12A",
-          ticketPrice: 553.5,
-          orderDateMs: 1_699_950_000_000,
-          orderTotalPrice: 553.5,
-          isCompleted: true,
-        },
-      ],
-    }));
+    fs.writeFileSync(
+      inputPath,
+      JSON.stringify({
+        schemaVersion: 1,
+        snapshottedAt: 1_700_000_000_000,
+        vendor: "12306",
+        events: [
+          {
+            kind: "ticket",
+            id: "ticket-EE123:0",
+            capturedAt: 1_700_001_000_000,
+            orderSequenceNo: "EE123",
+            ticketNumber: "T-1",
+            passengerName: "张三",
+            passengerIdLast6: "123456",
+            trainNumber: "G123",
+            fromStation: "上海虹桥",
+            toStation: "北京南",
+            departureMs: 1_700_001_000_000,
+            arrivalMs: 1_700_018_000_000,
+            seatTypeName: "二等座",
+            coachNo: "05",
+            seatNo: "12A",
+            ticketPrice: 553.5,
+            orderDateMs: 1_699_950_000_000,
+            orderTotalPrice: 553.5,
+            isCompleted: true,
+          },
+        ],
+      }),
+    );
     try {
       const a = new Train12306Adapter(); // snapshot mode — no account needed
       const auth = await a.authenticate({ inputPath });
@@ -163,16 +179,21 @@ describe("Train12306Adapter", () => {
   it("v0.2 snapshot mode — rejects schemaVersion mismatch", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "12306-snap-bad-"));
     const inputPath = path.join(dir, "travel-12306.json");
-    fs.writeFileSync(inputPath, JSON.stringify({
-      schemaVersion: 99,
-      snapshottedAt: Date.now(),
-      events: [],
-    }));
+    fs.writeFileSync(
+      inputPath,
+      JSON.stringify({
+        schemaVersion: 99,
+        snapshottedAt: Date.now(),
+        events: [],
+      }),
+    );
     try {
       const a = new Train12306Adapter();
       let threw = null;
       try {
-        for await (const _r of a.sync({ inputPath })) { /* drain */ }
+        for await (const _r of a.sync({ inputPath })) {
+          /* drain */
+        }
       } catch (err) {
         threw = err;
       }
@@ -186,13 +207,17 @@ describe("Train12306Adapter", () => {
   it("parseRecords parses JSON array", () => {
     const json = JSON.stringify([
       {
-        orderId: "ORD-1", trainNumber: "G2",
-        fromStation: "上海虹桥", toStation: "北京南",
+        orderId: "ORD-1",
+        trainNumber: "G2",
+        fromStation: "上海虹桥",
+        toStation: "北京南",
         departureTime: "2026-04-15 09:00:00",
         arrivalTime: "2026-04-15 14:00:00",
-        passengerName: "张三", price: "553.5",
+        passengerName: "张三",
+        price: "553.5",
         ticketNumber: "T-1",
-        seatNumber: "01车05A号", seat: "二等座",
+        seatNumber: "01车05A号",
+        seat: "二等座",
       },
     ]);
     const recs = parse12306(json);
@@ -203,7 +228,8 @@ describe("Train12306Adapter", () => {
   });
 
   it("parseRecords handles JSONL format", () => {
-    const jsonl = '{"orderId":"a","trainNumber":"G1","fromStation":"X","toStation":"Y","passengerName":"p","ticketNumber":"t1"}\n{"orderId":"b","trainNumber":"G2","fromStation":"X","toStation":"Y","passengerName":"p","ticketNumber":"t2"}';
+    const jsonl =
+      '{"orderId":"a","trainNumber":"G1","fromStation":"X","toStation":"Y","passengerName":"p","ticketNumber":"t1"}\n{"orderId":"b","trainNumber":"G2","fromStation":"X","toStation":"Y","passengerName":"p","ticketNumber":"t2"}';
     const recs = parse12306(jsonl);
     expect(recs).toHaveLength(2);
   });
@@ -211,11 +237,24 @@ describe("Train12306Adapter", () => {
   it("legacy file-import mode — yields raw events from JSON file", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "12306-"));
     const dataPath = path.join(dir, "12306.json");
-    fs.writeFileSync(dataPath, JSON.stringify([
-      { orderId: "x", trainNumber: "G3", fromStation: "上海虹桥", toStation: "北京南", passengerName: "张三", ticketNumber: "tx" },
-    ]));
+    fs.writeFileSync(
+      dataPath,
+      JSON.stringify([
+        {
+          orderId: "x",
+          trainNumber: "G3",
+          fromStation: "上海虹桥",
+          toStation: "北京南",
+          passengerName: "张三",
+          ticketNumber: "tx",
+        },
+      ]),
+    );
     try {
-      const a = new Train12306Adapter({ account: { username: "test" }, dataPath });
+      const a = new Train12306Adapter({
+        account: { username: "test" },
+        dataPath,
+      });
       const raws = [];
       for await (const r of a.sync()) raws.push(r);
       expect(raws).toHaveLength(1);
@@ -261,8 +300,10 @@ describe("CtripAdapter", () => {
   it("parseRecords maps Ctrip flight type", () => {
     const json = JSON.stringify([
       {
-        orderId: "C-1", type: "flight",
-        depCity: "上海", arrCity: "北京",
+        orderId: "C-1",
+        type: "flight",
+        depCity: "上海",
+        arrCity: "北京",
         flightNumber: "CA1234",
         airline: "中国国际航空",
         departureTime: "2026-04-15 09:00:00",
@@ -281,10 +322,15 @@ describe("CtripAdapter", () => {
   it("parseRecords maps Ctrip hotel type", () => {
     const json = JSON.stringify([
       {
-        orderId: "H-1", type: "hotel",
-        hotelCity: "上海", hotelName: "外滩英迪格酒店",
-        checkIn: "2026-04-15", checkOut: "2026-04-17",
-        guestName: "张三", price: 1980, nights: 2,
+        orderId: "H-1",
+        type: "hotel",
+        hotelCity: "上海",
+        hotelName: "外滩英迪格酒店",
+        checkIn: "2026-04-15",
+        checkOut: "2026-04-17",
+        guestName: "张三",
+        price: 1980,
+        nights: 2,
       },
     ]);
     const recs = parseCtripRecords(json);
@@ -314,16 +360,25 @@ describe("CtripAdapter", () => {
   it("sync(inputPath) alias yields records same as dataPath", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ctrip-snap-"));
     const inputPath = path.join(dir, "snap.json");
-    fs.writeFileSync(inputPath, JSON.stringify([
-      {
-        orderId: "C-SNAP-1", type: "flight",
-        depCity: "上海", arrCity: "北京",
-        flightNumber: "MU100", airline: "东航",
-        departureTime: "2026-05-01 08:00:00",
-        arrivalTime: "2026-05-01 10:30:00",
-        passengerName: "张三", price: 800, pnr: "XYZ",
-      },
-    ]), "utf-8");
+    fs.writeFileSync(
+      inputPath,
+      JSON.stringify([
+        {
+          orderId: "C-SNAP-1",
+          type: "flight",
+          depCity: "上海",
+          arrCity: "北京",
+          flightNumber: "MU100",
+          airline: "东航",
+          departureTime: "2026-05-01 08:00:00",
+          arrivalTime: "2026-05-01 10:30:00",
+          passengerName: "张三",
+          price: 800,
+          pnr: "XYZ",
+        },
+      ]),
+      "utf-8",
+    );
     try {
       const a = new CtripAdapter();
       const raws = [];
@@ -352,11 +407,11 @@ describe("CtripAdapter", () => {
     }
   });
 
-  it("authenticate(no path) ok with mode=ready (no account required)", async () => {
+  it("authenticate(no path) reports NO_INPUT", async () => {
     const a = new CtripAdapter();
     const auth = await a.authenticate({});
-    expect(auth.ok).toBe(true);
-    expect(auth.mode).toBe("ready");
+    expect(auth.ok).toBe(false);
+    expect(auth.reason).toBe("NO_INPUT");
   });
 });
 
@@ -388,17 +443,35 @@ describe("AmapAdapter", () => {
             all() {
               if (sql.includes("history_route")) {
                 return [
-                  { id: "r1", from_name: "上海", to_name: "北京", time: 1700000000000, mode: "drive" },
+                  {
+                    id: "r1",
+                    from_name: "上海",
+                    to_name: "北京",
+                    time: 1700000000000,
+                    mode: "drive",
+                  },
                 ];
               }
               if (sql.includes("history_search")) {
                 return [
-                  { id: "s1", keyword: "外滩", time: 1700000001000, lat: 31.23, lng: 121.49 },
+                  {
+                    id: "s1",
+                    keyword: "外滩",
+                    time: 1700000001000,
+                    lat: 31.23,
+                    lng: 121.49,
+                  },
                 ];
               }
               if (sql.includes("favourites")) {
                 return [
-                  { id: "f1", name: "家", address: "上海市", lat: "31.2", lng: "121.5" },
+                  {
+                    id: "f1",
+                    name: "家",
+                    address: "上海市",
+                    lat: "31.2",
+                    lng: "121.5",
+                  },
                 ];
               }
               throw new Error("no such table");
@@ -455,17 +528,27 @@ describe("BaiduMapAdapter", () => {
             all() {
               if (sql.includes("route_history")) {
                 return [
-                  { _id: 1, start_name: "上海", end_name: "杭州", time: 1700000000, type: "drive" },
+                  {
+                    _id: 1,
+                    start_name: "上海",
+                    end_name: "杭州",
+                    time: 1700000000,
+                    type: "drive",
+                  },
                 ];
               }
               if (sql.includes("search_history")) {
-                return [
-                  { _id: 2, key: "西湖", time: 1700000001 },
-                ];
+                return [{ _id: 2, key: "西湖", time: 1700000001 }];
               }
               if (sql.includes("my_favourite")) {
                 return [
-                  { _id: 3, name: "公司", address: "杭州市", lat: "30.2", lng: "120.2" },
+                  {
+                    _id: 3,
+                    name: "公司",
+                    address: "杭州市",
+                    lat: "30.2",
+                    lng: "120.2",
+                  },
                 ];
               }
               throw new Error("no such table");

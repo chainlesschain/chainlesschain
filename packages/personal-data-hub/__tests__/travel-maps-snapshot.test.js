@@ -54,7 +54,9 @@ describe("BaiduMapAdapter snapshot mode", () => {
 
   it("authenticate(inputPath) fails when path unreadable", async () => {
     const a = new BaiduMapAdapter();
-    const res = await a.authenticate({ inputPath: path.join(tmpDir, "missing.json") });
+    const res = await a.authenticate({
+      inputPath: path.join(tmpDir, "missing.json"),
+    });
     expect(res.ok).toBe(false);
     expect(res.reason).toBe("INPUT_PATH_UNREADABLE");
   });
@@ -82,7 +84,9 @@ describe("BaiduMapAdapter snapshot mode", () => {
     const a = new BaiduMapAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({ inputPath: p })) { /* drain */ }
+      for await (const _r of a.sync({ inputPath: p })) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
@@ -185,14 +189,31 @@ describe("BaiduMapAdapter snapshot mode", () => {
       schemaVersion: 1,
       snapshottedAt: now,
       events: [
-        { kind: "favourite", id: "f1", capturedAt: now, name: "家", lat: 24, lng: 118 },
+        {
+          kind: "favourite",
+          id: "f1",
+          capturedAt: now,
+          name: "家",
+          lat: 24,
+          lng: 118,
+        },
         { kind: "search", id: "s1", capturedAt: now, query: "餐厅" },
-        { kind: "route", id: "r1", capturedAt: now, from: { name: "A" }, to: { name: "B" }, mode: "walk" },
+        {
+          kind: "route",
+          id: "r1",
+          capturedAt: now,
+          from: { name: "A" },
+          to: { name: "B" },
+          mode: "walk",
+        },
       ],
     });
     const a = new BaiduMapAdapter();
     const raws = [];
-    for await (const r of a.sync({ inputPath: p, include: { search: false } })) {
+    for await (const r of a.sync({
+      inputPath: p,
+      include: { search: false },
+    })) {
       raws.push(r);
     }
     const kinds = raws.map((r) => r.kind);
@@ -220,22 +241,29 @@ describe("BaiduMapAdapter snapshot mode", () => {
     expect(raws.length).toBe(2);
   });
 
-  it("filters out unknown kinds (forward compat)", async () => {
+  it("rejects unknown snapshot kinds", async () => {
     const now = Date.now();
     const p = writeSnapshot(tmpDir, "travel-baidu-map.json", {
       schemaVersion: 1,
       snapshottedAt: now,
       events: [
-        { kind: "favourite", id: "f1", capturedAt: now, name: "ok", lat: 1, lng: 2 },
+        {
+          kind: "favourite",
+          id: "f1",
+          capturedAt: now,
+          name: "ok",
+          lat: 1,
+          lng: 2,
+        },
         { kind: "future-kind", id: "x", capturedAt: now },
         { kind: "trip-summary", id: "ts", capturedAt: now }, // hypothetical future
       ],
     });
     const a = new BaiduMapAdapter();
-    const raws = [];
-    for await (const r of a.sync({ inputPath: p })) raws.push(r);
-    expect(raws.length).toBe(1);
-    expect(raws[0].kind).toBe("favourite");
+    expect(await a.authenticate({ inputPath: p })).toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_SHAPE_INVALID",
+    });
   });
 
   it("snapshottedAt fallback when event capturedAt missing", async () => {
@@ -257,7 +285,9 @@ describe("BaiduMapAdapter snapshot mode", () => {
     const a = new BaiduMapAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({})) { /* drain */ }
+      for await (const _r of a.sync({})) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
@@ -315,7 +345,9 @@ describe("TencentMapAdapter snapshot mode", () => {
     const a = new TencentMapAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({ inputPath: p })) { /* drain */ }
+      for await (const _r of a.sync({ inputPath: p })) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
@@ -368,7 +400,9 @@ describe("TencentMapAdapter snapshot mode", () => {
     // copy-paste regression)
     const allBatches = raws.map((r) => a.normalize(r));
     for (const b of allBatches) {
-      const tencentCarrier = b.persons.find((p) => p.names.includes("腾讯地图"));
+      const tencentCarrier = b.persons.find((p) =>
+        p.names.includes("腾讯地图"),
+      );
       expect(tencentCarrier).toBeTruthy();
       expect(b.persons.find((p) => p.names.includes("百度地图"))).toBeFalsy();
       expect(b.persons.find((p) => p.names.includes("高德地图"))).toBeFalsy();
@@ -392,21 +426,28 @@ describe("TencentMapAdapter snapshot mode", () => {
     expect(raws.length).toBe(0);
   });
 
-  it("filters unknown kinds", async () => {
+  it("rejects unknown snapshot kinds", async () => {
     const now = Date.now();
     const p = writeSnapshot(tmpDir, "travel-tencent-map.json", {
       schemaVersion: 1,
       snapshottedAt: now,
       events: [
-        { kind: "favourite", id: "f1", capturedAt: now, name: "ok", lat: 1, lng: 2 },
+        {
+          kind: "favourite",
+          id: "f1",
+          capturedAt: now,
+          name: "ok",
+          lat: 1,
+          lng: 2,
+        },
         { kind: "speculative-future", id: "x", capturedAt: now },
       ],
     });
     const a = new TencentMapAdapter();
-    const raws = [];
-    for await (const r of a.sync({ inputPath: p })) raws.push(r);
-    expect(raws.length).toBe(1);
-    expect(raws[0].kind).toBe("favourite");
+    expect(await a.authenticate({ inputPath: p })).toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_SHAPE_INVALID",
+    });
   });
 
   it("snapshottedAt fallback when event capturedAt missing", async () => {

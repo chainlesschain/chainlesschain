@@ -58,7 +58,9 @@ describe("JdAdapter snapshot mode", () => {
 
   it("authenticate(inputPath) fails when path unreadable", async () => {
     const a = new JdAdapter();
-    const res = await a.authenticate({ inputPath: path.join(tmpDir, "missing.json") });
+    const res = await a.authenticate({
+      inputPath: path.join(tmpDir, "missing.json"),
+    });
     expect(res.ok).toBe(false);
     expect(res.reason).toBe("INPUT_PATH_UNREADABLE");
   });
@@ -79,7 +81,9 @@ describe("JdAdapter snapshot mode", () => {
     const a = new JdAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({ inputPath: p })) { /* drain */ }
+      for await (const _r of a.sync({ inputPath: p })) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
@@ -89,16 +93,22 @@ describe("JdAdapter snapshot mode", () => {
 
   it("rejects non-JSON snapshot (v0.3 will add HTML parsing)", async () => {
     const p = path.join(tmpDir, "shopping-jd.html");
-    fs.writeFileSync(p, "<!DOCTYPE html><html><body>not json</body></html>", "utf-8");
+    fs.writeFileSync(
+      p,
+      "<!DOCTYPE html><html><body>not json</body></html>",
+      "utf-8",
+    );
     const a = new JdAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({ inputPath: p })) { /* drain */ }
+      for await (const _r of a.sync({ inputPath: p })) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
     expect(threw).toBeTruthy();
-    expect(String(threw.message)).toMatch(/must be JSON.*v0\.3.*HTML/);
+    expect(String(threw.message)).toMatch(/valid JSON/);
   });
 
   it("empty events array yields nothing", async () => {
@@ -128,7 +138,12 @@ describe("JdAdapter snapshot mode", () => {
           orderId: "JD200001",
           merchantName: "京东自营",
           items: [
-            { name: "AirPods Pro 2", quantity: 1, unitPrice: 1899, sku: "100012345" },
+            {
+              name: "AirPods Pro 2",
+              quantity: 1,
+              unitPrice: 1899,
+              sku: "100012345",
+            },
           ],
           placedAt: now - 86400_000,
           paidAt: now - 86300_000,
@@ -150,7 +165,9 @@ describe("JdAdapter snapshot mode", () => {
     expect(validateBatch(batch).valid).toBe(true);
     // OrderRecord → events[0] = "purchase" subtype with merchant 京东自营 / amount 1899
     expect(batch.events.length).toBe(1);
-    const merchantPerson = batch.persons.find((p) => p.names && p.names.includes("京东自营"));
+    const merchantPerson = batch.persons.find(
+      (p) => p.names && p.names.includes("京东自营"),
+    );
     expect(merchantPerson).toBeTruthy();
   });
 
@@ -178,7 +195,7 @@ describe("JdAdapter snapshot mode", () => {
     expect(raws.length).toBe(2);
   });
 
-  it("filters unknown kinds (forward compat)", async () => {
+  it("rejects unknown snapshot kinds", async () => {
     const now = Date.now();
     const p = writeSnapshot(tmpDir, "shopping-jd.json", {
       schemaVersion: 1,
@@ -198,10 +215,10 @@ describe("JdAdapter snapshot mode", () => {
       ],
     });
     const a = new JdAdapter();
-    const raws = [];
-    for await (const r of a.sync({ inputPath: p })) raws.push(r);
-    expect(raws.length).toBe(1);
-    expect(raws[0].kind).toBe("order");
+    expect(await a.authenticate({ inputPath: p })).toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_SHAPE_INVALID",
+    });
   });
 
   it("snapshottedAt fallback when event capturedAt+placedAt+paidAt missing", async () => {
@@ -231,7 +248,9 @@ describe("JdAdapter snapshot mode", () => {
     const a = new JdAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({})) { /* drain */ }
+      for await (const _r of a.sync({})) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
@@ -302,7 +321,9 @@ describe("MeituanAdapter snapshot mode", () => {
     const a = new MeituanAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({ inputPath: p })) { /* drain */ }
+      for await (const _r of a.sync({ inputPath: p })) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
@@ -316,12 +337,14 @@ describe("MeituanAdapter snapshot mode", () => {
     const a = new MeituanAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({ inputPath: p })) { /* drain */ }
+      for await (const _r of a.sync({ inputPath: p })) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
     expect(threw).toBeTruthy();
-    expect(String(threw.message)).toMatch(/must be JSON.*v0\.3.*HTML/);
+    expect(String(threw.message)).toMatch(/valid JSON/);
   });
 
   it("order round-trip normalize with carrier=美团 (waimai platform)", async () => {
@@ -361,11 +384,13 @@ describe("MeituanAdapter snapshot mode", () => {
     const batch = a.normalize(raws[0]);
     expect(validateBatch(batch).valid).toBe(true);
     // Merchant is per-POI in waimai (not generic "美团")
-    const merchant = batch.persons.find((p) => p.names && p.names.includes("肯德基(厦门集美店)"));
+    const merchant = batch.persons.find(
+      (p) => p.names && p.names.includes("肯德基(厦门集美店)"),
+    );
     expect(merchant).toBeTruthy();
   });
 
-  it("filters unknown kinds (forward compat)", async () => {
+  it("rejects unknown snapshot kinds", async () => {
     const now = Date.now();
     const p = writeSnapshot(tmpDir, "shopping-meituan.json", {
       schemaVersion: 1,
@@ -385,10 +410,10 @@ describe("MeituanAdapter snapshot mode", () => {
       ],
     });
     const a = new MeituanAdapter();
-    const raws = [];
-    for await (const r of a.sync({ inputPath: p })) raws.push(r);
-    expect(raws.length).toBe(1);
-    expect(raws[0].kind).toBe("order");
+    expect(await a.authenticate({ inputPath: p })).toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_SHAPE_INVALID",
+    });
   });
 
   it("snapshottedAt fallback when no timestamps in event", async () => {

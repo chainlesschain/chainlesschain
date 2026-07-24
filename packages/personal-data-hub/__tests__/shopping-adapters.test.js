@@ -9,9 +9,16 @@ const {
   JdAdapter,
   MeituanAdapter,
 } = require("../lib");
-const { orderToRecord: taobaoOrderToRecord, parseTaobaoTime } = require("../lib/adapters/shopping-taobao");
-const { orderToRecord: jdOrderToRecord } = require("../lib/adapters/shopping-jd");
-const { orderToRecord: meituanOrderToRecord } = require("../lib/adapters/shopping-meituan");
+const {
+  orderToRecord: taobaoOrderToRecord,
+  parseTaobaoTime,
+} = require("../lib/adapters/shopping-taobao");
+const {
+  orderToRecord: jdOrderToRecord,
+} = require("../lib/adapters/shopping-jd");
+const {
+  orderToRecord: meituanOrderToRecord,
+} = require("../lib/adapters/shopping-meituan");
 const { assertAdapter } = require("../lib/adapter-spec");
 const { validateBatch } = require("../lib/batch");
 
@@ -27,14 +34,15 @@ describe("normalizeOrderRecord", () => {
       status: "delivered",
       merchantName: "Apple官方旗舰店",
       totalAmount: { value: 9999, currency: "CNY" },
-      items: [
-        { name: "iPhone 17 Pro 256GB", quantity: 1, unitPrice: 9999 },
-      ],
+      items: [{ name: "iPhone 17 Pro 256GB", quantity: 1, unitPrice: 9999 }],
       recipient: "张三",
       shippingAddress: "上海市某区某路",
       trackingNumber: "SF1234567",
     };
-    const b = normalizeOrderRecord(rec, { adapterName: "shopping-taobao", adapterVersion: "0.5.0" });
+    const b = normalizeOrderRecord(rec, {
+      adapterName: "shopping-taobao",
+      adapterVersion: "0.5.0",
+    });
     expect(b.events).toHaveLength(1);
     expect(b.events[0].subtype).toBe("order");
     expect(b.events[0].content.amount.value).toBe(9999);
@@ -52,8 +60,11 @@ describe("normalizeOrderRecord", () => {
 
   it("refund status maps to refund subtype + amount in", () => {
     const rec = {
-      vendorId: "taobao", orderId: "X", placedAt: Date.now(),
-      status: "refunded", merchantName: "Test",
+      vendorId: "taobao",
+      orderId: "X",
+      placedAt: Date.now(),
+      status: "refunded",
+      merchantName: "Test",
       totalAmount: { value: 100, currency: "CNY" },
     };
     const b = normalizeOrderRecord(rec, { adapterName: "shopping-taobao" });
@@ -63,8 +74,11 @@ describe("normalizeOrderRecord", () => {
 
   it("cancelled status maps to cancelled subtype", () => {
     const rec = {
-      vendorId: "jd", orderId: "X", placedAt: Date.now(),
-      status: "已取消", merchantName: "Test",
+      vendorId: "jd",
+      orderId: "X",
+      placedAt: Date.now(),
+      status: "已取消",
+      merchantName: "Test",
     };
     const b = normalizeOrderRecord(rec, { adapterName: "shopping-jd" });
     expect(b.events[0].subtype).toBe("cancelled");
@@ -94,7 +108,10 @@ describe("CookieAuth", () => {
   });
 
   it("getCookieValue reads single cookie", () => {
-    const ca = new CookieAuth({ platform: "taobao", cookies: "k1=v1; k2=v%20space" });
+    const ca = new CookieAuth({
+      platform: "taobao",
+      cookies: "k1=v1; k2=v%20space",
+    });
     expect(ca.getCookieValue("k1")).toBe("v1");
     expect(ca.getCookieValue("k2")).toBe("v space"); // decoded
     expect(ca.getCookieValue("missing")).toBeNull();
@@ -134,9 +151,7 @@ describe("TaobaoAdapter", () => {
       payTime: 1700000010,
       statusText: "已发货",
       actualFee: "9999.00",
-      subOrders: [
-        { itemTitle: "iPhone 17", buyCount: 1, itemPrice: "9999" },
-      ],
+      subOrders: [{ itemTitle: "iPhone 17", buyCount: 1, itemPrice: "9999" }],
       receiverName: "张三",
       fullAddress: "上海...",
     };
@@ -156,22 +171,31 @@ describe("TaobaoAdapter", () => {
   });
 
   it("sync yields raw events from fetchFn fixture", async () => {
-    const fetchFn = async () => ({
-      orders: [
-        {
-          bizOrderId: "TB-2", sellerNick: "Test",
-          createTime: 1700000000, payTime: 1700000010,
-          statusText: "已签收", actualFee: "100",
-          subOrders: [{ itemTitle: "Item A", buyCount: 1, itemPrice: "100" }],
-        },
-      ],
+    const fetchFn = async ({ query }) => ({
+      orders:
+        query.page === 1
+          ? [
+              {
+                bizOrderId: "TB-2",
+                sellerNick: "Test",
+                createTime: 1700000000,
+                payTime: 1700000010,
+                statusText: "已签收",
+                actualFee: "100",
+                subOrders: [
+                  { itemTitle: "Item A", buyCount: 1, itemPrice: "100" },
+                ],
+              },
+            ]
+          : [],
     });
     const a = new TaobaoAdapter({
       account: { userId: "u-1", cookies: "valid=cookie" },
       fetchFn,
     });
     const raws = [];
-    for await (const r of a.sync({ pageSize: 20, sinceWatermark: 0 })) raws.push(r);
+    for await (const r of a.sync({ pageSize: 20, sinceWatermark: 0 }))
+      raws.push(r);
     expect(raws).toHaveLength(1);
     const batch = a.normalize(raws[0]);
     expect(validateBatch(batch).valid).toBe(true);
@@ -201,7 +225,11 @@ describe("TaobaoAdapter", () => {
     const os = require("node:os");
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "taobao-snap-"));
     const inputPath = path.join(dir, "snap.json");
-    fs.writeFileSync(inputPath, "{}", "utf-8");
+    fs.writeFileSync(
+      inputPath,
+      JSON.stringify({ schemaVersion: 1, events: [] }),
+      "utf-8",
+    );
     try {
       const a = new TaobaoAdapter();
       const auth = await a.authenticate({ inputPath });
@@ -218,26 +246,30 @@ describe("TaobaoAdapter", () => {
     const os = require("node:os");
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "taobao-snap-yield-"));
     const inputPath = path.join(dir, "snap.json");
-    fs.writeFileSync(inputPath, JSON.stringify({
-      schemaVersion: 1,
-      snapshottedAt: 1_700_000_000_000,
-      account: { userId: "u-snap" },
-      events: [
-        {
-          kind: "order",
-          id: "TB-SNAP-1",
-          capturedAt: 1_700_000_100_000,
-          vendorId: "taobao",
-          orderId: "TB-SNAP-1",
-          placedAt: 1_700_000_000_000,
-          paidAt: 1_700_000_010_000,
-          status: "delivered",
-          merchantName: "Test 旗舰店",
-          totalAmount: { value: 123.45, currency: "CNY" },
-          items: [{ name: "Item X", quantity: 1, unitPrice: 123.45 }],
-        },
-      ],
-    }), "utf-8");
+    fs.writeFileSync(
+      inputPath,
+      JSON.stringify({
+        schemaVersion: 1,
+        snapshottedAt: 1_700_000_000_000,
+        account: { userId: "u-snap" },
+        events: [
+          {
+            kind: "order",
+            id: "TB-SNAP-1",
+            capturedAt: 1_700_000_100_000,
+            vendorId: "taobao",
+            orderId: "TB-SNAP-1",
+            placedAt: 1_700_000_000_000,
+            paidAt: 1_700_000_010_000,
+            status: "delivered",
+            merchantName: "Test 旗舰店",
+            totalAmount: { value: 123.45, currency: "CNY" },
+            items: [{ name: "Item X", quantity: 1, unitPrice: 123.45 }],
+          },
+        ],
+      }),
+      "utf-8",
+    );
     try {
       const a = new TaobaoAdapter();
       const raws = [];
@@ -259,13 +291,21 @@ describe("TaobaoAdapter", () => {
     const os = require("node:os");
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "taobao-snap-bad-"));
     const inputPath = path.join(dir, "snap.json");
-    fs.writeFileSync(inputPath, JSON.stringify({ schemaVersion: 99, events: [] }), "utf-8");
+    fs.writeFileSync(
+      inputPath,
+      JSON.stringify({ schemaVersion: 99, events: [] }),
+      "utf-8",
+    );
     try {
       const a = new TaobaoAdapter();
       let threw = null;
       try {
-        for await (const _r of a.sync({ inputPath })) { /* drain */ }
-      } catch (err) { threw = err; }
+        for await (const _r of a.sync({ inputPath })) {
+          /* drain */
+        }
+      } catch (err) {
+        threw = err;
+      }
       expect(threw).toBeTruthy();
       expect(threw.message).toMatch(/schemaVersion mismatch/);
     } finally {
@@ -311,16 +351,26 @@ describe("JdAdapter", () => {
   });
 
   it("sync + normalize end-to-end", async () => {
-    const fetchFn = async () => ({
-      orders: [
-        {
-          orderId: "JD-2", orderTotalPrice: "299",
-          orderStartTime: "2026-04-15 10:00:00",
-          orderStatusText: "已发货",
-          venderName: "京东",
-          productList: [{ productName: "鼠标", productPrice: "299", productQuantity: 1 }],
-        },
-      ],
+    const fetchFn = async ({ query }) => ({
+      orders:
+        query.page === 1
+          ? [
+              {
+                orderId: "JD-2",
+                orderTotalPrice: "299",
+                orderStartTime: "2026-04-15 10:00:00",
+                orderStatusText: "已发货",
+                venderName: "京东",
+                productList: [
+                  {
+                    productName: "鼠标",
+                    productPrice: "299",
+                    productQuantity: 1,
+                  },
+                ],
+              },
+            ]
+          : [],
     });
     const a = new JdAdapter({
       account: { pin: "p1", cookies: "v=ok" },
@@ -337,7 +387,9 @@ describe("JdAdapter", () => {
 
 describe("MeituanAdapter", () => {
   it("contract conformance", () => {
-    const a = new MeituanAdapter({ account: { userId: "u-1", cookies: "k=v" } });
+    const a = new MeituanAdapter({
+      account: { userId: "u-1", cookies: "k=v" },
+    });
     expect(assertAdapter(a).ok).toBe(true);
   });
 
@@ -349,9 +401,7 @@ describe("MeituanAdapter", () => {
       payTime: 1700000010,
       statusDesc: "已送达",
       totalPrice: "45.50",
-      dishes: [
-        { name: "巨无霸套餐", quantity: 1, price: "45.5" },
-      ],
+      dishes: [{ name: "巨无霸套餐", quantity: 1, price: "45.5" }],
       recipientAddress: "上海...",
     };
     const rec = meituanOrderToRecord(o, "waimai");
@@ -367,16 +417,19 @@ describe("MeituanAdapter", () => {
     const fetchFn = async (opts) => {
       seen.push(opts.query.platform);
       return {
-        orders: [
-          {
-            orderId: `MT-${opts.query.platform}`,
-            poiName: "Test",
-            orderTime: 1700000000,
-            statusDesc: "已完成",
-            totalPrice: "10",
-            dishes: [{ name: "x", quantity: 1, price: "10" }],
-          },
-        ],
+        orders:
+          opts.query.page === 1
+            ? [
+                {
+                  orderId: `MT-${opts.query.platform}`,
+                  poiName: "Test",
+                  orderTime: 1700000000,
+                  statusDesc: "已完成",
+                  totalPrice: "10",
+                  dishes: [{ name: "x", quantity: 1, price: "10" }],
+                },
+              ]
+            : [],
       };
     };
     const a = new MeituanAdapter({
@@ -384,7 +437,11 @@ describe("MeituanAdapter", () => {
       fetchFn,
     });
     const raws = [];
-    for await (const r of a.sync({ sinceWatermark: 0, platforms: ["waimai", "groupbuy"] })) raws.push(r);
+    for await (const r of a.sync({
+      sinceWatermark: 0,
+      platforms: ["waimai", "groupbuy"],
+    }))
+      raws.push(r);
     expect(seen).toContain("waimai");
     expect(seen).toContain("groupbuy");
     expect(raws.length).toBeGreaterThan(0);

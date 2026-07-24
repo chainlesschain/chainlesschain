@@ -45,7 +45,11 @@ describe("XianyuAdapter snapshot mode", () => {
   });
 
   it("authenticate(inputPath) ok when readable", async () => {
-    const p = writeSnapshot(tmpDir, { schemaVersion: 1, snapshottedAt: Date.now(), events: [] });
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 1,
+      snapshottedAt: Date.now(),
+      events: [],
+    });
     const a = new XianyuAdapter();
     const res = await a.authenticate({ inputPath: p });
     expect(res.ok).toBe(true);
@@ -54,7 +58,9 @@ describe("XianyuAdapter snapshot mode", () => {
 
   it("authenticate(inputPath) fails when path unreadable", async () => {
     const a = new XianyuAdapter();
-    const res = await a.authenticate({ inputPath: path.join(tmpDir, "missing.json") });
+    const res = await a.authenticate({
+      inputPath: path.join(tmpDir, "missing.json"),
+    });
     expect(res.ok).toBe(false);
     expect(res.reason).toBe("INPUT_PATH_UNREADABLE");
   });
@@ -71,7 +77,9 @@ describe("XianyuAdapter snapshot mode", () => {
     const a = new XianyuAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({})) { /* drain */ }
+      for await (const _r of a.sync({})) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
@@ -84,20 +92,28 @@ describe("XianyuAdapter snapshot mode", () => {
     const a = new XianyuAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({ inputPath: p })) { /* drain */ }
+      for await (const _r of a.sync({ inputPath: p })) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
     expect(threw).toBeTruthy();
-    expect(String(threw.message)).toMatch(/snapshot must be JSON/);
+    expect(String(threw.message)).toMatch(/valid JSON/);
   });
 
   it("rejects schemaVersion mismatch", async () => {
-    const p = writeSnapshot(tmpDir, { schemaVersion: 99, snapshottedAt: Date.now(), events: [] });
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 99,
+      snapshottedAt: Date.now(),
+      events: [],
+    });
     const a = new XianyuAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({ inputPath: p })) { /* drain */ }
+      for await (const _r of a.sync({ inputPath: p })) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
@@ -106,7 +122,11 @@ describe("XianyuAdapter snapshot mode", () => {
   });
 
   it("empty events array yields nothing (no crash)", async () => {
-    const p = writeSnapshot(tmpDir, { schemaVersion: 1, snapshottedAt: Date.now(), events: [] });
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 1,
+      snapshottedAt: Date.now(),
+      events: [],
+    });
     const a = new XianyuAdapter();
     const raws = [];
     for await (const r of a.sync({ inputPath: p })) raws.push(r);
@@ -159,9 +179,15 @@ describe("XianyuAdapter snapshot mode", () => {
       snapshottedAt: now,
       events: [
         {
-          kind: "order", id: "XY-SELL-1", orderId: "XY-SELL-1", side: "sell",
-          title: "出闲置耳机", counterparty: "买家小李",
-          placedAt: now, paidAt: now, status: "已完成",
+          kind: "order",
+          id: "XY-SELL-1",
+          orderId: "XY-SELL-1",
+          side: "sell",
+          title: "出闲置耳机",
+          counterparty: "买家小李",
+          placedAt: now,
+          paidAt: now,
+          status: "已完成",
           totalAmount: { value: 120, currency: "CNY" },
         },
       ],
@@ -191,9 +217,18 @@ describe("XianyuAdapter snapshot mode", () => {
         schemaVersion: 1,
         snapshottedAt: now,
         events: [
-          { kind: "order", id: `o-${c.status}`, orderId: `o-${c.status}`, side: "buy",
-            title: "x", counterparty: "c", placedAt: now, paidAt: now, status: c.status,
-            totalAmount: { value: 1, currency: "CNY" } },
+          {
+            kind: "order",
+            id: `o-${c.status}`,
+            orderId: `o-${c.status}`,
+            side: "buy",
+            title: "x",
+            counterparty: "c",
+            placedAt: now,
+            paidAt: now,
+            status: c.status,
+            totalAmount: { value: 1, currency: "CNY" },
+          },
         ],
       });
       const a = new XianyuAdapter();
@@ -210,46 +245,70 @@ describe("XianyuAdapter snapshot mode", () => {
       schemaVersion: 1,
       snapshottedAt: now,
       events: [
-        { kind: "order", id: "o1", orderId: "o1", side: "buy", title: "t", placedAt: now,
-          totalAmount: { value: 1, currency: "CNY" } },
+        {
+          kind: "order",
+          id: "o1",
+          orderId: "o1",
+          side: "buy",
+          title: "t",
+          placedAt: now,
+          totalAmount: { value: 1, currency: "CNY" },
+        },
       ],
     });
     const a = new XianyuAdapter();
     const raws = [];
-    for await (const r of a.sync({ inputPath: p, include: { order: false } })) raws.push(r);
+    for await (const r of a.sync({ inputPath: p, include: { order: false } }))
+      raws.push(r);
     expect(raws.length).toBe(0);
   });
 
   it("respects opts.limit", async () => {
     const now = Date.now();
     const events = Array.from({ length: 5 }, (_, i) => ({
-      kind: "order", id: `o${i}`, orderId: `o${i}`, side: "buy", title: "t",
-      placedAt: now - i * 1000, totalAmount: { value: 1, currency: "CNY" },
+      kind: "order",
+      id: `o${i}`,
+      orderId: `o${i}`,
+      side: "buy",
+      title: "t",
+      placedAt: now - i * 1000,
+      totalAmount: { value: 1, currency: "CNY" },
     }));
-    const p = writeSnapshot(tmpDir, { schemaVersion: 1, snapshottedAt: now, events });
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 1,
+      snapshottedAt: now,
+      events,
+    });
     const a = new XianyuAdapter();
     const raws = [];
     for await (const r of a.sync({ inputPath: p, limit: 2 })) raws.push(r);
     expect(raws.length).toBe(2);
   });
 
-  it("filters out unknown kinds (forward compat)", async () => {
+  it("rejects unknown snapshot kinds", async () => {
     const now = Date.now();
     const p = writeSnapshot(tmpDir, {
       schemaVersion: 1,
       snapshottedAt: now,
       events: [
-        { kind: "order", id: "o1", orderId: "o1", side: "buy", title: "t", placedAt: now,
-          totalAmount: { value: 1, currency: "CNY" } },
+        {
+          kind: "order",
+          id: "o1",
+          orderId: "o1",
+          side: "buy",
+          title: "t",
+          placedAt: now,
+          totalAmount: { value: 1, currency: "CNY" },
+        },
         { kind: "message", id: "m1" },
         { kind: "future-kind", id: "x" },
       ],
     });
     const a = new XianyuAdapter();
-    const raws = [];
-    for await (const r of a.sync({ inputPath: p })) raws.push(r);
-    expect(raws.length).toBe(1);
-    expect(raws[0].kind).toBe("order");
+    expect(await a.authenticate({ inputPath: p })).toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_SHAPE_INVALID",
+    });
   });
 
   it("snapshottedAt fallback when event capturedAt missing", async () => {
@@ -258,8 +317,14 @@ describe("XianyuAdapter snapshot mode", () => {
       schemaVersion: 1,
       snapshottedAt: ts,
       events: [
-        { kind: "order", id: "o1", orderId: "o1", side: "buy", title: "t",
-          totalAmount: { value: 1, currency: "CNY" } },
+        {
+          kind: "order",
+          id: "o1",
+          orderId: "o1",
+          side: "buy",
+          title: "t",
+          totalAmount: { value: 1, currency: "CNY" },
+        },
       ],
     });
     const a = new XianyuAdapter();
@@ -278,7 +343,9 @@ describe("XianyuAdapter snapshot mode", () => {
 
 describe("XianyuAdapter cookie-api mode", () => {
   it("authenticate(cookie) ok when userId + cookies present", async () => {
-    const a = new XianyuAdapter({ account: { userId: "u-1", cookies: "_m_h5_tk=ok" } });
+    const a = new XianyuAdapter({
+      account: { userId: "u-1", cookies: "_m_h5_tk=ok" },
+    });
     const res = await a.authenticate();
     expect(res.ok).toBe(true);
     expect(res.mode).toBe("cookie");
@@ -295,20 +362,42 @@ describe("XianyuAdapter cookie-api mode", () => {
   it("sync yields normalized buy+sell records from fetchFn fixture", async () => {
     const byTab = {
       buy: [
-        { order_id: "XY-BUY-1", title: "二手相机", seller_nick: "卖家A", status_text: "交易成功",
-          total_amount: 1500, order_time: 1700000000, pay_time: 1700000010,
-          receiver: "李四", address: "广州..." },
+        {
+          order_id: "XY-BUY-1",
+          title: "二手相机",
+          seller_nick: "卖家A",
+          status_text: "交易成功",
+          total_amount: 1500,
+          order_time: 1700000000,
+          pay_time: 1700000010,
+          receiver: "李四",
+          address: "广州...",
+        },
       ],
       sell: [
-        { order_id: "XY-SELL-1", title: "出旧书", buyer_nick: "买家B", status_text: "交易成功",
-          total_amount: 30, order_time: 1700000500 },
+        {
+          order_id: "XY-SELL-1",
+          title: "出旧书",
+          buyer_nick: "买家B",
+          status_text: "交易成功",
+          total_amount: 30,
+          order_time: 1700000500,
+        },
       ],
     };
-    const fetchFn = async (opts) => ({ orders: byTab[opts.query.tab] || [] });
-    const a = new XianyuAdapter({ account: { userId: "u-1", cookies: "_m_h5_tk=ok" }, fetchFn });
+    const fetchFn = async (opts) => ({
+      orders: opts.query.pageNumber === 1 ? byTab[opts.query.tab] || [] : [],
+    });
+    const a = new XianyuAdapter({
+      account: { userId: "u-1", cookies: "_m_h5_tk=ok" },
+      fetchFn,
+    });
     const raws = [];
     for await (const r of a.sync({ sinceWatermark: 0 })) raws.push(r);
-    expect(raws.map((r) => r.originalId).sort()).toEqual(["XY-BUY-1", "XY-SELL-1"]);
+    expect(raws.map((r) => r.originalId).sort()).toEqual([
+      "XY-BUY-1",
+      "XY-SELL-1",
+    ]);
     const buy = raws.find((r) => r.originalId === "XY-BUY-1");
     expect(buy.payload.record.extras.side).toBe("buy");
     expect(buy.payload.record.merchantName).toBe("卖家A");
@@ -335,7 +424,9 @@ describe("XianyuAdapter cookie-api mode", () => {
       fetchFn,
       signProvider,
     });
-    for await (const _r of a.sync({ sinceWatermark: 0, sides: ["buy"] })) { /* drain */ }
+    for await (const _r of a.sync({ sinceWatermark: 0, sides: ["buy"] })) {
+      /* drain */
+    }
     expect(seenSign).toBe("SIGN-XYZ");
   });
 
@@ -345,27 +436,56 @@ describe("XianyuAdapter cookie-api mode", () => {
       seen = opts.sign;
       return { orders: [] };
     };
-    const a = new XianyuAdapter({ account: { userId: "u-1", cookies: "_m_h5_tk=ok" }, fetchFn });
-    for await (const _r of a.sync({ sinceWatermark: 0, sides: ["buy"] })) { /* drain */ }
+    const a = new XianyuAdapter({
+      account: { userId: "u-1", cookies: "_m_h5_tk=ok" },
+      fetchFn,
+    });
+    for await (const _r of a.sync({ sinceWatermark: 0, sides: ["buy"] })) {
+      /* drain */
+    }
     expect(seen).toBe(null);
   });
 
   it("paginates and stops at sinceWatermark within one side", async () => {
     const pages = {
       1: [
-        { order_id: "p1-a", title: "t", order_time: 1700000000, total_amount: 10 },
-        { order_id: "p1-b", title: "t", order_time: 1699000000, total_amount: 10 },
+        {
+          order_id: "p1-a",
+          title: "t",
+          order_time: 1700000000,
+          total_amount: 10,
+        },
+        {
+          order_id: "p1-b",
+          title: "t",
+          order_time: 1699000000,
+          total_amount: 10,
+        },
       ],
-      2: [{ order_id: "p2-a", title: "t", order_time: 1698000000, total_amount: 10 }],
+      2: [
+        {
+          order_id: "p2-a",
+          title: "t",
+          order_time: 1698000000,
+          total_amount: 10,
+        },
+      ],
     };
     const seenPages = [];
     const fetchFn = async (opts) => {
       seenPages.push(opts.query.pageNumber);
       return { orders: pages[opts.query.pageNumber] || [] };
     };
-    const a = new XianyuAdapter({ account: { userId: "u-1", cookies: "_m_h5_tk=ok" }, fetchFn });
+    const a = new XianyuAdapter({
+      account: { userId: "u-1", cookies: "_m_h5_tk=ok" },
+      fetchFn,
+    });
     const raws = [];
-    for await (const r of a.sync({ sinceWatermark: 1699500000 * 1000, pageSize: 2, sides: ["buy"] })) {
+    for await (const r of a.sync({
+      sinceWatermark: 1699500000 * 1000,
+      pageSize: 2,
+      sides: ["buy"],
+    })) {
       raws.push(r);
     }
     expect(raws.map((r) => r.originalId)).toEqual(["p1-a"]);
@@ -378,7 +498,10 @@ describe("XianyuAdapter cookie-api mode", () => {
       called = true;
       return { orders: [] };
     };
-    const a = new XianyuAdapter({ account: { userId: "u-1", cookies: "_m_h5_tk=ok" }, fetchFn });
+    const a = new XianyuAdapter({
+      account: { userId: "u-1", cookies: "_m_h5_tk=ok" },
+      fetchFn,
+    });
     const raws = [];
     for await (const r of a.sync({ include: { order: false } })) raws.push(r);
     expect(raws.length).toBe(0);
@@ -395,14 +518,17 @@ describe("XianyuAdapter cookie-api mode", () => {
   });
 
   it("orderToRecord maps xianyu buy fields (counterparty=seller)", () => {
-    const rec = orderToRecord({
-      order_id: "XY-9",
-      title: "二手键盘",
-      seller_nick: "卖家C",
-      status_text: "已完成",
-      total_amount: 88.0,
-      order_time: 1700000000,
-    }, "buy");
+    const rec = orderToRecord(
+      {
+        order_id: "XY-9",
+        title: "二手键盘",
+        seller_nick: "卖家C",
+        status_text: "已完成",
+        total_amount: 88.0,
+        order_time: 1700000000,
+      },
+      "buy",
+    );
     expect(rec.orderId).toBe("XY-9");
     expect(rec.merchantName).toBe("卖家C");
     expect(rec.status).toBe("delivered");
@@ -433,15 +559,21 @@ describe("XianyuAdapter cookie-api mode", () => {
       fetchFn,
       ordersUrl: "https://custom.example/orders",
     });
-    for await (const _r of a.sync({ sinceWatermark: 0, sides: ["buy"] })) { /* drain */ }
+    for await (const _r of a.sync({ sinceWatermark: 0, sides: ["buy"] })) {
+      /* drain */
+    }
     expect(seenUrl).toBe("https://custom.example/orders");
   });
 
   it("default fetchFn throws a legible error when cookie mode used without injection", async () => {
-    const a = new XianyuAdapter({ account: { userId: "u-1", cookies: "_m_h5_tk=ok" } });
+    const a = new XianyuAdapter({
+      account: { userId: "u-1", cookies: "_m_h5_tk=ok" },
+    });
     let threw = null;
     try {
-      for await (const _r of a.sync({ sinceWatermark: 0 })) { /* drain */ }
+      for await (const _r of a.sync({ sinceWatermark: 0 })) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }

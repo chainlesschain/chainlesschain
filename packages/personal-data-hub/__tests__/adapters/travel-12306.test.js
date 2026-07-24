@@ -98,19 +98,24 @@ describe("authenticate", () => {
   });
 
   it("file-import mode requires account.username", async () => {
-    const noAccount = new Train12306Adapter({ dataPath: "x.json" });
-    expect((await noAccount.authenticate({})).reason).toBe(
-      "NO_ACCOUNT_USERNAME",
-    );
-    const withAccount = new Train12306Adapter({
-      dataPath: "x.json",
-      account: { username: "alice" },
-    });
-    expect(await withAccount.authenticate({})).toEqual({
-      ok: true,
-      account: "alice",
-      mode: "file-import",
-    });
+    const p = writeTmp("[]");
+    try {
+      const noAccount = new Train12306Adapter({ dataPath: p });
+      expect((await noAccount.authenticate({})).reason).toBe(
+        "NO_ACCOUNT_USERNAME",
+      );
+      const withAccount = new Train12306Adapter({
+        dataPath: p,
+        account: { username: "alice" },
+      });
+      expect(await withAccount.authenticate({})).toMatchObject({
+        ok: true,
+        account: "alice",
+        mode: "file-import",
+      });
+    } finally {
+      fs.unlinkSync(p);
+    }
   });
 
   it("fails NO_INPUT when neither path given", async () => {
@@ -151,13 +156,22 @@ describe("sync — snapshot mode", () => {
     }
   });
 
-  it("skips unknown kinds + honors include gate + limit", async () => {
+  it("rejects unknown snapshot kinds", async () => {
+    const p = writeTmp(makeSnapshot([{ kind: "alien", id: "x" }]));
+    try {
+      const a = new Train12306Adapter();
+      expect(await a.authenticate({ inputPath: p })).toMatchObject({
+        ok: false,
+        reason: "SNAPSHOT_SHAPE_INVALID",
+      });
+    } finally {
+      fs.unlinkSync(p);
+    }
+  });
+
+  it("honors include gate + limit", async () => {
     const p = writeTmp(
-      makeSnapshot([
-        { kind: "alien", id: "x" },
-        TICKET_EVENT,
-        { ...TICKET_EVENT, id: "ticket-SEQ1:1" },
-      ]),
+      makeSnapshot([TICKET_EVENT, { ...TICKET_EVENT, id: "ticket-SEQ1:1" }]),
     );
     try {
       const a = new Train12306Adapter();
@@ -464,8 +478,9 @@ describe("sync — cookie-api mode", () => {
       if (url.includes("NoComplete")) {
         return { data: { orderDBList: [rawOrder("PEND1")] } };
       }
-      // single completed page (< PAGE_SIZE → stops)
-      return { data: { OrderDTODataList: [rawOrder("SEQ1")] } };
+      return form.pageIndex === "1"
+        ? { data: { OrderDTODataList: [rawOrder("SEQ1")] } }
+        : { data: { OrderDTODataList: [] } };
     };
     const a = new Train12306Adapter({ account: { cookies: COOKIE }, fetchFn });
     const items = await collect(a.sync({}));
@@ -490,7 +505,7 @@ describe("sync — cookie-api mode", () => {
     });
   });
 
-  it("paginates completed orders until a short page", async () => {
+  it("paginates completed orders until an explicit empty page", async () => {
     const fetchFn = async ({ url, form }) => {
       if (url.includes("NoComplete")) return { data: { orderDBList: [] } };
       const page = parseInt(form.pageIndex, 10);
@@ -506,7 +521,7 @@ describe("sync — cookie-api mode", () => {
     };
     const a = new Train12306Adapter({ account: { cookies: COOKIE }, fetchFn });
     const items = await collect(a.sync({}));
-    expect(items).toHaveLength(51); // 50 + 1, then short page stops
+    expect(items).toHaveLength(51); // 50 + 1, then an empty page stops
   });
 
   it("honors limit + include gate", async () => {
@@ -533,10 +548,15 @@ describe("sync — cookie-api mode", () => {
   });
 
   it("normalize maps a cookie ticket event → trip with capturedVia", async () => {
-    const fetchFn = async ({ url }) =>
+    const fetchFn = async ({ url, form }) =>
       url.includes("NoComplete")
         ? { data: { orderDBList: [] } }
-        : { data: { OrderDTODataList: [rawOrder("SEQ1")] } };
+        : {
+            data: {
+              OrderDTODataList:
+                form.pageIndex === "1" ? [rawOrder("SEQ1")] : [],
+            },
+          };
     const a = new Train12306Adapter({ account: { cookies: COOKIE }, fetchFn });
     const [item] = await collect(a.sync({}));
     const batch = a.normalize(item);
@@ -555,7 +575,12 @@ describe("sync — cookie-api mode", () => {
       requests.push(request);
       return request.url.includes("NoComplete")
         ? { data: { orderDBList: [] } }
-        : { data: { OrderDTODataList: [rawOrder("RUNTIME")] } };
+        : {
+            data: {
+              OrderDTODataList:
+                request.form.pageIndex === "1" ? [rawOrder("RUNTIME")] : [],
+            },
+          };
     };
     const a = new Train12306Adapter({ fetchFn });
     const items = await collect(
@@ -566,7 +591,7 @@ describe("sync — cookie-api mode", () => {
     );
 
     expect(items).toHaveLength(1);
-    expect(requests).toHaveLength(2);
+    expect(requests).toHaveLength(3);
     expect(requests.every((request) => request.cookies === COOKIE)).toBe(true);
     expect(JSON.stringify(items)).not.toContain(COOKIE);
     expect(JSON.stringify(items)).not.toContain("rail-user");
@@ -579,9 +604,14 @@ describe("sync — cookie-api mode", () => {
     const sourceFetch = createJsonSourceFetch({
       fetchImpl: async (url, init) => {
         calls.push({ url: String(url), init });
+        const page = new URLSearchParams(String(init.body)).get("pageIndex");
         const payload = String(url).includes("NoComplete")
           ? { data: { orderDBList: [] } }
-          : { data: { OrderDTODataList: [rawOrder("TRANSPORT")] } };
+          : {
+              data: {
+                OrderDTODataList: page === "1" ? [rawOrder("TRANSPORT")] : [],
+              },
+            };
         return new Response(JSON.stringify(payload), {
           status: 200,
           headers: { "content-type": "application/json" },
@@ -598,7 +628,7 @@ describe("sync — cookie-api mode", () => {
       ),
     ).toHaveLength(1);
 
-    expect(calls).toHaveLength(2);
+    expect(calls).toHaveLength(3);
     expect(calls[0].init.method).toBe("POST");
     expect(calls[0].init.headers.get("cookie")).toBe(COOKIE);
     expect(calls[0].init.headers.get("x-requested-with")).toBe(
@@ -608,7 +638,10 @@ describe("sync — cookie-api mode", () => {
     const form = new URLSearchParams(String(calls[0].init.body));
     expect(form.get("pageIndex")).toBe("1");
     expect(form.get("queryType")).toBe("1");
-    expect(String(calls[1].init.body)).toBe("");
+    expect(
+      new URLSearchParams(String(calls[1].init.body)).get("pageIndex"),
+    ).toBe("2");
+    expect(String(calls[2].init.body)).toBe("");
   });
 
   it("shares maxPages across completed/pending lists and commits only recognized complete scans", async () => {
@@ -648,10 +681,10 @@ describe("sync — cookie-api mode", () => {
     const budgeted = new Train12306Adapter({
       fetchFn: async () => {
         requests += 1;
-        return { data: { OrderDTODataList: [] } };
+        return { data: { OrderDTODataList: [rawOrder("SHORT")] } };
       },
     });
-    await collect(
+    const budgetedItems = await collect(
       budgeted.sync({
         cookie: COOKIE,
         accountId: "rail-user",
@@ -661,6 +694,7 @@ describe("sync — cookie-api mode", () => {
         },
       }),
     );
+    expect(budgetedItems).toHaveLength(1);
     expect(requests).toBe(1);
     expect(completions).toBe(0);
 

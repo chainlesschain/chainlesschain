@@ -120,12 +120,15 @@ describe("parseRecords", () => {
 });
 
 describe("CtripAdapter", () => {
-  it("authenticate ok in ready mode without account (v0.6 optional)", async () => {
+  it("reports NO_INPUT and unhealthy when no source is configured", async () => {
     const a = new CtripAdapter();
-    expect(await a.authenticate({})).toEqual({
-      ok: true,
-      account: null,
-      mode: "ready",
+    expect(await a.authenticate({})).toMatchObject({
+      ok: false,
+      reason: "NO_INPUT",
+    });
+    expect(await a.healthCheck({})).toMatchObject({
+      ok: false,
+      reason: "NO_INPUT",
     });
   });
 
@@ -170,14 +173,15 @@ describe("CtripAdapter", () => {
     }
   });
 
-  it("sync returns silently when no path / missing file", async () => {
+  it("sync throws without a source and reports a path-safe missing-file error", async () => {
     const a = new CtripAdapter();
-    expect(await collect(a.sync({}))).toEqual([]);
-    expect(
-      await collect(
-        a.sync({ inputPath: path.join(os.tmpdir(), "nope-ctrip.json") }),
-      ),
-    ).toEqual([]);
+    await expect(collect(a.sync({}))).rejects.toThrow(/needs opts\.inputPath/);
+    await expect(
+      collect(a.sync({ inputPath: path.join(os.tmpdir(), "nope-ctrip.json") })),
+    ).rejects.toMatchObject({
+      code: "INPUT_PATH_UNREADABLE",
+      message: "snapshot file is unavailable or unreadable",
+    });
   });
 
   it("sync throws on broken {-line; pure garbage degrades to empty (JSONL filter)", async () => {
@@ -258,7 +262,10 @@ describe("CtripAdapter cookie-api mode", () => {
   const COOKIES = "_bfa=abc; cticket=xyz; UUID=u1";
 
   it("authenticate returns cookie mode (account OPTIONAL)", async () => {
-    const a = new CtripAdapter({ account: { cookies: COOKIES } });
+    const a = new CtripAdapter({
+      account: { cookies: COOKIES },
+      fetchFn: async () => ({ orderList: [] }),
+    });
     expect(await a.authenticate()).toEqual({
       ok: true,
       account: null,
@@ -268,8 +275,10 @@ describe("CtripAdapter cookie-api mode", () => {
 
   it("authenticate fails on empty cookies", async () => {
     const a = new CtripAdapter({ account: { cookies: "" } });
-    // empty cookies → no cookieAuth → falls through to ready (not cookie mode)
-    expect((await a.authenticate()).mode).toBe("ready");
+    expect(await a.authenticate()).toMatchObject({
+      ok: false,
+      reason: "NO_INPUT",
+    });
   });
 
   it("sync fetches, paginates, maps + normalizes end-to-end", async () => {
@@ -310,6 +319,7 @@ describe("CtripAdapter cookie-api mode", () => {
     );
     expect(items).toHaveLength(1);
     expect(items[0]).toMatchObject({ adapter: NAME, originalId: "CK1" });
+    expect(calls).toHaveLength(2);
     expect(calls[0].cookies).toBe(COOKIES);
     expect(calls[0].sign).toBe(null);
     expect(watermarkComplete).toBe(true);
@@ -335,7 +345,7 @@ describe("CtripAdapter cookie-api mode", () => {
     });
     const items = await collect(a.sync({ sinceWatermark: 0 }));
     expect(items).toHaveLength(1);
-    expect(signCalls).toHaveLength(1);
+    expect(signCalls).toHaveLength(2);
     expect(signCalls[0].cookies).toBe(COOKIES);
   });
 
@@ -376,11 +386,10 @@ describe("CtripAdapter cookie-api mode", () => {
     expect(watermarkComplete).toBe(false);
   });
 
-  it("does not complete the watermark when maxPages truncates a full page", async () => {
+  it("does not complete the watermark when maxPages truncates a non-empty short page", async () => {
     const fetchFn = async () => ({
       orderList: [
         { orderId: "P1", type: "flight", orderDate: 2_000_000_000_000 },
-        { orderId: "P2", type: "flight", orderDate: 1_900_000_000_000 },
       ],
     });
     const a = new CtripAdapter({ account: { cookies: COOKIES }, fetchFn });
@@ -395,8 +404,32 @@ describe("CtripAdapter cookie-api mode", () => {
         },
       }),
     );
-    expect(items).toHaveLength(2);
+    expect(items).toHaveLength(1);
     expect(watermarkComplete).toBe(false);
+  });
+
+  it("honors authoritative hasMore completion metadata", async () => {
+    const a = new CtripAdapter({
+      account: { cookies: COOKIES },
+      fetchFn: async () => ({
+        orderList: [
+          { orderId: "META", type: "flight", orderDate: 2_000_000_000_000 },
+        ],
+        hasMore: false,
+      }),
+    });
+    let watermarkComplete = false;
+    const items = await collect(
+      a.sync({
+        sinceWatermark: 0,
+        maxPages: 1,
+        markWatermarkComplete: () => {
+          watermarkComplete = true;
+        },
+      }),
+    );
+    expect(items).toHaveLength(1);
+    expect(watermarkComplete).toBe(true);
   });
 
   it("empty/login-redirect response yields zero (no crash)", async () => {
@@ -409,6 +442,14 @@ describe("CtripAdapter cookie-api mode", () => {
 
   it("default fetch throws when no fetchFn (wiring bug)", async () => {
     const a = new CtripAdapter({ account: { cookies: COOKIES } });
+    expect(await a.authenticate()).toMatchObject({
+      ok: false,
+      reason: "CUSTOM_FETCH_REQUIRED",
+    });
+    expect(await a.healthCheck()).toMatchObject({
+      ok: false,
+      reason: "CUSTOM_FETCH_REQUIRED",
+    });
     await expect(collect(a.sync({ sinceWatermark: 0 }))).rejects.toThrow(
       /no fetchFn configured/,
     );

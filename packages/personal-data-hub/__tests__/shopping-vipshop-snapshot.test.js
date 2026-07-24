@@ -44,7 +44,11 @@ describe("VipshopAdapter snapshot mode", () => {
   });
 
   it("authenticate(inputPath) ok when readable", async () => {
-    const p = writeSnapshot(tmpDir, { schemaVersion: 1, snapshottedAt: Date.now(), events: [] });
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 1,
+      snapshottedAt: Date.now(),
+      events: [],
+    });
     const a = new VipshopAdapter();
     const res = await a.authenticate({ inputPath: p });
     expect(res.ok).toBe(true);
@@ -53,7 +57,9 @@ describe("VipshopAdapter snapshot mode", () => {
 
   it("authenticate(inputPath) fails when path unreadable", async () => {
     const a = new VipshopAdapter();
-    const res = await a.authenticate({ inputPath: path.join(tmpDir, "missing.json") });
+    const res = await a.authenticate({
+      inputPath: path.join(tmpDir, "missing.json"),
+    });
     expect(res.ok).toBe(false);
     expect(res.reason).toBe("INPUT_PATH_UNREADABLE");
   });
@@ -70,7 +76,9 @@ describe("VipshopAdapter snapshot mode", () => {
     const a = new VipshopAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({})) { /* drain */ }
+      for await (const _r of a.sync({})) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
@@ -83,20 +91,28 @@ describe("VipshopAdapter snapshot mode", () => {
     const a = new VipshopAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({ inputPath: p })) { /* drain */ }
+      for await (const _r of a.sync({ inputPath: p })) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
     expect(threw).toBeTruthy();
-    expect(String(threw.message)).toMatch(/snapshot must be JSON/);
+    expect(String(threw.message)).toMatch(/valid JSON/);
   });
 
   it("rejects schemaVersion mismatch", async () => {
-    const p = writeSnapshot(tmpDir, { schemaVersion: 99, snapshottedAt: Date.now(), events: [] });
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 99,
+      snapshottedAt: Date.now(),
+      events: [],
+    });
     const a = new VipshopAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({ inputPath: p })) { /* drain */ }
+      for await (const _r of a.sync({ inputPath: p })) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
@@ -105,7 +121,11 @@ describe("VipshopAdapter snapshot mode", () => {
   });
 
   it("empty events array yields nothing (no crash)", async () => {
-    const p = writeSnapshot(tmpDir, { schemaVersion: 1, snapshottedAt: Date.now(), events: [] });
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 1,
+      snapshottedAt: Date.now(),
+      events: [],
+    });
     const a = new VipshopAdapter();
     const raws = [];
     for await (const r of a.sync({ inputPath: p })) raws.push(r);
@@ -169,10 +189,17 @@ describe("VipshopAdapter snapshot mode", () => {
         schemaVersion: 1,
         snapshottedAt: now,
         events: [
-          { kind: "order", id: `o-${c.status}`, orderId: `o-${c.status}`, merchantName: "m",
-            placedAt: now, paidAt: now, status: c.status,
+          {
+            kind: "order",
+            id: `o-${c.status}`,
+            orderId: `o-${c.status}`,
+            merchantName: "m",
+            placedAt: now,
+            paidAt: now,
+            status: c.status,
             items: [{ name: "x", quantity: 1, unitPrice: 1 }],
-            totalAmount: { value: 1, currency: "CNY" } },
+            totalAmount: { value: 1, currency: "CNY" },
+          },
         ],
       });
       const a = new VipshopAdapter();
@@ -189,46 +216,70 @@ describe("VipshopAdapter snapshot mode", () => {
       schemaVersion: 1,
       snapshottedAt: now,
       events: [
-        { kind: "order", id: "o1", orderId: "o1", merchantName: "m", placedAt: now,
-          items: [], totalAmount: { value: 1, currency: "CNY" } },
+        {
+          kind: "order",
+          id: "o1",
+          orderId: "o1",
+          merchantName: "m",
+          placedAt: now,
+          items: [],
+          totalAmount: { value: 1, currency: "CNY" },
+        },
       ],
     });
     const a = new VipshopAdapter();
     const raws = [];
-    for await (const r of a.sync({ inputPath: p, include: { order: false } })) raws.push(r);
+    for await (const r of a.sync({ inputPath: p, include: { order: false } }))
+      raws.push(r);
     expect(raws.length).toBe(0);
   });
 
   it("respects opts.limit", async () => {
     const now = Date.now();
     const events = Array.from({ length: 5 }, (_, i) => ({
-      kind: "order", id: `o${i}`, orderId: `o${i}`, merchantName: "m",
-      placedAt: now - i * 1000, items: [], totalAmount: { value: 1, currency: "CNY" },
+      kind: "order",
+      id: `o${i}`,
+      orderId: `o${i}`,
+      merchantName: "m",
+      placedAt: now - i * 1000,
+      items: [],
+      totalAmount: { value: 1, currency: "CNY" },
     }));
-    const p = writeSnapshot(tmpDir, { schemaVersion: 1, snapshottedAt: now, events });
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 1,
+      snapshottedAt: now,
+      events,
+    });
     const a = new VipshopAdapter();
     const raws = [];
     for await (const r of a.sync({ inputPath: p, limit: 2 })) raws.push(r);
     expect(raws.length).toBe(2);
   });
 
-  it("filters out unknown kinds (forward compat)", async () => {
+  it("rejects unknown snapshot kinds", async () => {
     const now = Date.now();
     const p = writeSnapshot(tmpDir, {
       schemaVersion: 1,
       snapshottedAt: now,
       events: [
-        { kind: "order", id: "o1", orderId: "o1", merchantName: "m", placedAt: now,
-          items: [], totalAmount: { value: 1, currency: "CNY" } },
+        {
+          kind: "order",
+          id: "o1",
+          orderId: "o1",
+          merchantName: "m",
+          placedAt: now,
+          items: [],
+          totalAmount: { value: 1, currency: "CNY" },
+        },
         { kind: "browse", id: "b1" },
         { kind: "future-kind", id: "x" },
       ],
     });
     const a = new VipshopAdapter();
-    const raws = [];
-    for await (const r of a.sync({ inputPath: p })) raws.push(r);
-    expect(raws.length).toBe(1);
-    expect(raws[0].kind).toBe("order");
+    expect(await a.authenticate({ inputPath: p })).toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_SHAPE_INVALID",
+    });
   });
 
   it("snapshottedAt fallback when event capturedAt missing", async () => {
@@ -237,8 +288,14 @@ describe("VipshopAdapter snapshot mode", () => {
       schemaVersion: 1,
       snapshottedAt: ts,
       events: [
-        { kind: "order", id: "o1", orderId: "o1", merchantName: "m", items: [],
-          totalAmount: { value: 1, currency: "CNY" } },
+        {
+          kind: "order",
+          id: "o1",
+          orderId: "o1",
+          merchantName: "m",
+          items: [],
+          totalAmount: { value: 1, currency: "CNY" },
+        },
       ],
     });
     const a = new VipshopAdapter();
@@ -257,7 +314,9 @@ describe("VipshopAdapter snapshot mode", () => {
 
 describe("VipshopAdapter cookie-api mode", () => {
   it("authenticate(cookie) ok when userId + cookies present", async () => {
-    const a = new VipshopAdapter({ account: { userId: "u-1", cookies: "vip_access_token=ok" } });
+    const a = new VipshopAdapter({
+      account: { userId: "u-1", cookies: "vip_access_token=ok" },
+    });
     const res = await a.authenticate();
     expect(res.ok).toBe(true);
     expect(res.mode).toBe("cookie");
@@ -265,33 +324,46 @@ describe("VipshopAdapter cookie-api mode", () => {
   });
 
   it("authenticate(cookie) requires account.userId", async () => {
-    const a = new VipshopAdapter({ account: { cookies: "vip_access_token=ok" } });
+    const a = new VipshopAdapter({
+      account: { cookies: "vip_access_token=ok" },
+    });
     const res = await a.authenticate();
     expect(res.ok).toBe(false);
     expect(res.reason).toBe("NO_ACCOUNT_USER_ID");
   });
 
   it("sync yields normalized records from fetchFn fixture (元)", async () => {
-    const fetchFn = async () => ({
+    const fetchFn = async ({ query }) => ({
       data: {
-        orders: [
-          {
-            order_sn: "VIP-COOKIE-1",
-            brand_name: "Nike 官方",
-            order_status_name: "已收货",
-            money: 499.0,
-            add_time: 1700000000, // sec
-            pay_time: 1700000010,
-            consignee: "李四",
-            address: "广州市天河区...",
-            goods_list: [
-              { goods_name: "运动鞋", goods_num: 1, vipshop_price: 499.0, size_id: "42" },
-            ],
-          },
-        ],
+        orders:
+          query.page === 1
+            ? [
+                {
+                  order_sn: "VIP-COOKIE-1",
+                  brand_name: "Nike 官方",
+                  order_status_name: "已收货",
+                  money: 499.0,
+                  add_time: 1700000000, // sec
+                  pay_time: 1700000010,
+                  consignee: "李四",
+                  address: "广州市天河区...",
+                  goods_list: [
+                    {
+                      goods_name: "运动鞋",
+                      goods_num: 1,
+                      vipshop_price: 499.0,
+                      size_id: "42",
+                    },
+                  ],
+                },
+              ]
+            : [],
       },
     });
-    const a = new VipshopAdapter({ account: { userId: "u-1", cookies: "vip_access_token=ok" }, fetchFn });
+    const a = new VipshopAdapter({
+      account: { userId: "u-1", cookies: "vip_access_token=ok" },
+      fetchFn,
+    });
     const raws = [];
     for await (const r of a.sync({ sinceWatermark: 0 })) raws.push(r);
     expect(raws.length).toBe(1);
@@ -319,7 +391,9 @@ describe("VipshopAdapter cookie-api mode", () => {
       fetchFn,
       signProvider,
     });
-    for await (const _r of a.sync({ sinceWatermark: 0 })) { /* drain */ }
+    for await (const _r of a.sync({ sinceWatermark: 0 })) {
+      /* drain */
+    }
     expect(seenSign).toBe("SIGN-XYZ");
   });
 
@@ -329,27 +403,58 @@ describe("VipshopAdapter cookie-api mode", () => {
       seen = opts.sign;
       return { orders: [] };
     };
-    const a = new VipshopAdapter({ account: { userId: "u-1", cookies: "vip_access_token=ok" }, fetchFn });
-    for await (const _r of a.sync({ sinceWatermark: 0 })) { /* drain */ }
+    const a = new VipshopAdapter({
+      account: { userId: "u-1", cookies: "vip_access_token=ok" },
+      fetchFn,
+    });
+    for await (const _r of a.sync({ sinceWatermark: 0 })) {
+      /* drain */
+    }
     expect(seen).toBe(null);
   });
 
   it("paginates and stops at sinceWatermark", async () => {
     const pages = {
       1: [
-        { order_sn: "p1-a", brand_name: "m", add_time: 1700000000, money: 10, goods_list: [] },
-        { order_sn: "p1-b", brand_name: "m", add_time: 1699000000, money: 10, goods_list: [] },
+        {
+          order_sn: "p1-a",
+          brand_name: "m",
+          add_time: 1700000000,
+          money: 10,
+          goods_list: [],
+        },
+        {
+          order_sn: "p1-b",
+          brand_name: "m",
+          add_time: 1699000000,
+          money: 10,
+          goods_list: [],
+        },
       ],
-      2: [{ order_sn: "p2-a", brand_name: "m", add_time: 1698000000, money: 10, goods_list: [] }],
+      2: [
+        {
+          order_sn: "p2-a",
+          brand_name: "m",
+          add_time: 1698000000,
+          money: 10,
+          goods_list: [],
+        },
+      ],
     };
     const seenPages = [];
     const fetchFn = async (opts) => {
       seenPages.push(opts.query.page);
       return { orders: pages[opts.query.page] || [] };
     };
-    const a = new VipshopAdapter({ account: { userId: "u-1", cookies: "vip_access_token=ok" }, fetchFn });
+    const a = new VipshopAdapter({
+      account: { userId: "u-1", cookies: "vip_access_token=ok" },
+      fetchFn,
+    });
     const raws = [];
-    for await (const r of a.sync({ sinceWatermark: 1699500000 * 1000, pageSize: 2 })) {
+    for await (const r of a.sync({
+      sinceWatermark: 1699500000 * 1000,
+      pageSize: 2,
+    })) {
       raws.push(r);
     }
     expect(raws.map((r) => r.originalId)).toEqual(["p1-a"]);
@@ -362,7 +467,10 @@ describe("VipshopAdapter cookie-api mode", () => {
       called = true;
       return { orders: [] };
     };
-    const a = new VipshopAdapter({ account: { userId: "u-1", cookies: "vip_access_token=ok" }, fetchFn });
+    const a = new VipshopAdapter({
+      account: { userId: "u-1", cookies: "vip_access_token=ok" },
+      fetchFn,
+    });
     const raws = [];
     for await (const r of a.sync({ include: { order: false } })) raws.push(r);
     expect(raws.length).toBe(0);
@@ -376,7 +484,9 @@ describe("VipshopAdapter cookie-api mode", () => {
       order_status_name: "已完成",
       money: 320.0,
       add_time: 1700000000,
-      goods_list: [{ goods_name: "粉底液", goods_num: 1, vipshop_price: 320.0 }],
+      goods_list: [
+        { goods_name: "粉底液", goods_num: 1, vipshop_price: 320.0 },
+      ],
     });
     expect(rec.orderId).toBe("VIP-9");
     expect(rec.merchantName).toBe("兰蔻");
@@ -407,15 +517,21 @@ describe("VipshopAdapter cookie-api mode", () => {
       fetchFn,
       ordersUrl: "https://custom.example/orders",
     });
-    for await (const _r of a.sync({ sinceWatermark: 0 })) { /* drain */ }
+    for await (const _r of a.sync({ sinceWatermark: 0 })) {
+      /* drain */
+    }
     expect(seenUrl).toBe("https://custom.example/orders");
   });
 
   it("default fetchFn throws a legible error when cookie mode used without injection", async () => {
-    const a = new VipshopAdapter({ account: { userId: "u-1", cookies: "vip_access_token=ok" } });
+    const a = new VipshopAdapter({
+      account: { userId: "u-1", cookies: "vip_access_token=ok" },
+    });
     let threw = null;
     try {
-      for await (const _r of a.sync({ sinceWatermark: 0 })) { /* drain */ }
+      for await (const _r of a.sync({ sinceWatermark: 0 })) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }

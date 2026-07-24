@@ -34,7 +34,14 @@
 "use strict";
 
 const fs = require("node:fs");
-const { normalizeTravelRecord, parseChineseDateTime } = require("../travel-base");
+const {
+  probeJsonSnapshotFile,
+  readJsonSnapshot,
+} = require("../../snapshot-file");
+const {
+  normalizeTravelRecord,
+  parseChineseDateTime,
+} = require("../travel-base");
 
 const NAME = "travel-tencent-map";
 const VERSION = "0.3.0";
@@ -43,7 +50,11 @@ const SNAPSHOT_SCHEMA_VERSION = 1;
 const KIND_FAVOURITE = "favourite";
 const KIND_SEARCH = "search";
 const KIND_ROUTE = "route";
-const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_FAVOURITE, KIND_SEARCH, KIND_ROUTE]);
+const VALID_SNAPSHOT_KINDS = Object.freeze([
+  KIND_FAVOURITE,
+  KIND_SEARCH,
+  KIND_ROUTE,
+]);
 
 class TencentMapAdapter {
   constructor(opts = {}) {
@@ -88,26 +99,30 @@ class TencentMapAdapter {
 
   async authenticate(ctx = {}) {
     if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
-      try {
-        this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
-      } catch (err) {
-        return {
-          ok: false,
-          reason: "INPUT_PATH_UNREADABLE",
-          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
-        };
-      }
-      return { ok: true, mode: "snapshot-file" };
+      return probeJsonSnapshotFile(this._deps.fs, ctx.inputPath, {
+        maxBytes: ctx.maxSnapshotBytes,
+        expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        requiredArrayFields: ["events"],
+        allowedEventKinds: VALID_SNAPSHOT_KINDS,
+      });
     }
     if (this._dbPath || (ctx && typeof ctx.dbPath === "string")) {
-      if (!this._sqliteTables.route.length && !this._sqliteTables.search.length) {
+      if (
+        !this._sqliteTables.route.length &&
+        !this._sqliteTables.search.length
+      ) {
         return {
           ok: false,
           reason: "EXPLICIT_SCHEMA_REQUIRED",
-          message: "travel-tencent-map: sqlite import requires an app-version-confirmed sqliteTables profile; JSON import is ready",
+          message:
+            "travel-tencent-map: sqlite import requires an app-version-confirmed sqliteTables profile; JSON import is ready",
         };
       }
-      return { ok: true, account: this.account && this.account.deviceId, mode: "custom-sqlite" };
+      return {
+        ok: true,
+        account: this.account && this.account.deviceId,
+        mode: "custom-sqlite",
+      };
     }
     return {
       ok: false,
@@ -128,7 +143,10 @@ class TencentMapAdapter {
     }
     const dbPath = opts.dbPath || this._dbPath;
     if (dbPath) {
-      if (!this._sqliteTables.route.length && !this._sqliteTables.search.length) {
+      if (
+        !this._sqliteTables.route.length &&
+        !this._sqliteTables.search.length
+      ) {
         throw new Error(
           "travel-tencent-map.sync: explicit sqliteTables profile required for custom sqlite import",
         );
@@ -142,17 +160,12 @@ class TencentMapAdapter {
   }
 
   async *_syncViaSnapshot(opts) {
-    const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
-    const snapshot = JSON.parse(raw);
-    if (
-      !snapshot ||
-      typeof snapshot !== "object" ||
-      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
-    ) {
-      throw new Error(
-        `travel-tencent-map.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
-      );
-    }
+    const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
+      maxBytes: opts.maxSnapshotBytes,
+      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      requiredArrayFields: ["events"],
+      allowedEventKinds: VALID_SNAPSHOT_KINDS,
+    });
     const fallbackCapturedAt =
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
@@ -165,21 +178,20 @@ class TencentMapAdapter {
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
 
-    const events = Array.isArray(snapshot.events) ? snapshot.events : [];
+    const events = snapshot.events;
     let emitted = 0;
     for (const ev of events) {
       if (emitted >= limit) return;
-      if (!ev || typeof ev !== "object") continue;
       const kind = ev.kind;
-      if (!VALID_SNAPSHOT_KINDS.includes(kind)) continue;
       if (include[kind] === false) continue;
 
       const capturedAt =
-        parseTime(ev.capturedAt) ||
-        parseTime(ev.time) ||
-        fallbackCapturedAt;
+        parseTime(ev.capturedAt) || parseTime(ev.time) || fallbackCapturedAt;
       const id =
         (typeof ev.id === "string" && ev.id.length > 0 && ev.id) ||
+        (typeof ev.id === "number" &&
+          Number.isFinite(ev.id) &&
+          String(ev.id)) ||
         ev.rid ||
         null;
 
@@ -228,7 +240,11 @@ class TencentMapAdapter {
         }
       }
     } finally {
-      try { db.close(); } catch (_e) { /* ignore */ }
+      try {
+        db.close();
+      } catch (_e) {
+        /* ignore */
+      }
     }
   }
 
@@ -254,13 +270,13 @@ class TencentMapAdapter {
 }
 
 function stableOriginalId(kind, id) {
-  const stringified =
+  const safe =
     (typeof id === "string" && id.length > 0 && id) ||
     (typeof id === "number" && Number.isFinite(id) && String(id)) ||
     null;
-  const safe =
-    stringified ||
-    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  if (!safe) {
+    throw new Error(`${NAME}.sync: ${kind} event requires a stable source id`);
+  }
   return `tencent-map:${kind}:${safe}`;
 }
 
@@ -303,10 +319,18 @@ function snapshotEventToRecord(kind, p, originalId) {
       recordId: originalId,
       vehicleType: detectVehicle(p.mode),
       from: p.from
-        ? { name: p.from.name || null, lat: numberOrNull(p.from.lat), lng: numberOrNull(p.from.lng) }
+        ? {
+            name: p.from.name || null,
+            lat: numberOrNull(p.from.lat),
+            lng: numberOrNull(p.from.lng),
+          }
         : undefined,
       to: p.to
-        ? { name: p.to.name || null, lat: numberOrNull(p.to.lat), lng: numberOrNull(p.to.lng) }
+        ? {
+            name: p.to.name || null,
+            lat: numberOrNull(p.to.lat),
+            lng: numberOrNull(p.to.lng),
+          }
         : undefined,
       departureMs: parseTime(p.capturedAt),
       carrier: "腾讯地图",
@@ -324,8 +348,9 @@ function snapshotEventToRecord(kind, p, originalId) {
 
 function normalizeSqliteTables(value) {
   const safeList = (input) =>
-    (Array.isArray(input) ? input : [])
-      .filter((name) => typeof name === "string" && /^[A-Za-z0-9_]+$/.test(name));
+    (Array.isArray(input) ? input : []).filter(
+      (name) => typeof name === "string" && /^[A-Za-z0-9_]+$/.test(name),
+    );
   return {
     route: safeList(value && value.route),
     search: safeList(value && value.search),
@@ -356,8 +381,16 @@ function routeRowToRecord(row) {
     vendorId: "tencentmap",
     recordId: `route-${id}`,
     vehicleType: detectVehicle(row.type || row.mode),
-    from: { name: row.start_name || row.from_name, lat: row.start_lat || null, lng: row.start_lng || null },
-    to: { name: row.end_name || row.to_name, lat: row.end_lat || null, lng: row.end_lng || null },
+    from: {
+      name: row.start_name || row.from_name,
+      lat: row.start_lat || null,
+      lng: row.start_lng || null,
+    },
+    to: {
+      name: row.end_name || row.to_name,
+      lat: row.end_lat || null,
+      lng: row.end_lng || null,
+    },
     departureMs: numberOrParse(row.time || row.create_time),
     carrier: "腾讯地图",
     extras: { mode: row.type || row.mode },
@@ -372,7 +405,12 @@ function searchRowToRecord(row) {
     vendorId: "tencentmap",
     recordId: `search-${id}`,
     vehicleType: "visit",
-    to: { name: row.key || row.query || row.keyword, lat: row.lat || null, lng: row.lng || null, city: row.city },
+    to: {
+      name: row.key || row.query || row.keyword,
+      lat: row.lat || null,
+      lng: row.lng || null,
+      city: row.city,
+    },
     departureMs: numberOrParse(row.time || row.create_time),
     carrier: "腾讯地图",
     extras: { query: row.key || row.query || row.keyword },

@@ -74,7 +74,13 @@ describe("orderToRecord", () => {
     expect(rec.extras.capturedVia).toBe("cookie-api");
   });
   it("snake_case + seconds-epoch aliases; drops id-less", () => {
-    const rec = orderToRecord({ oid: "DD2", from_address: "A", to_address: "B", depart_time: 1716383021, total_fee: 5850 });
+    const rec = orderToRecord({
+      oid: "DD2",
+      from_address: "A",
+      to_address: "B",
+      depart_time: 1716383021,
+      total_fee: 5850,
+    });
     expect(rec.recordId).toBe("DD2");
     expect(rec.departureMs).toBe(1716383021000); // seconds → ms
     expect(rec.totalCost.value).toBe(58.5);
@@ -88,13 +94,28 @@ describe("orderToRecord", () => {
 });
 
 describe("DidiAdapter file/snapshot mode", () => {
-  it("authenticate ready without account; validates inputPath", async () => {
+  it("reports NO_INPUT without a source and validates inputPath", async () => {
     const a = new DidiAdapter();
-    expect(await a.authenticate({})).toEqual({ ok: true, account: null, mode: "ready" });
+    expect(await a.authenticate({})).toMatchObject({
+      ok: false,
+      reason: "NO_INPUT",
+    });
+    expect(await a.healthCheck({})).toMatchObject({
+      ok: false,
+      reason: "NO_INPUT",
+    });
     const p = writeTmp("[]");
     try {
-      expect((await a.authenticate({ inputPath: p })).mode).toBe("snapshot-file");
-      expect((await a.authenticate({ inputPath: path.join(os.tmpdir(), "nope-dd.json") })).reason).toBe("INPUT_PATH_UNREADABLE");
+      expect((await a.authenticate({ inputPath: p })).mode).toBe(
+        "snapshot-file",
+      );
+      expect(
+        (
+          await a.authenticate({
+            inputPath: path.join(os.tmpdir(), "nope-dd.json"),
+          })
+        ).reason,
+      ).toBe("INPUT_PATH_UNREADABLE");
     } finally {
       fs.unlinkSync(p);
     }
@@ -109,38 +130,68 @@ describe("DidiAdapter file/snapshot mode", () => {
       expect(items[0]).toMatchObject({ adapter: NAME, originalId: "DD1" });
       const batch = a.normalize(items[0]);
       expect(batch.events[0].content.title).toBe("car: 公司 → 机场");
-      expect(batch.events[0].content.amount).toEqual({ value: 58.5, currency: "CNY", direction: "out" });
-      expect(batch.persons.find((x) => x.subtype === "merchant").names).toEqual(["滴滴"]);
+      expect(batch.events[0].content.amount).toEqual({
+        value: 58.5,
+        currency: "CNY",
+        direction: "out",
+      });
+      expect(batch.persons.find((x) => x.subtype === "merchant").names).toEqual(
+        ["滴滴"],
+      );
     } finally {
       fs.unlinkSync(p);
     }
   });
 
-  it("parseRecords JSONL + {orders} envelope; sync silent when no path", async () => {
+  it("parseRecords JSONL + {orders} envelope; sync throws with no source", async () => {
     expect(parseRecords(JSON.stringify({ orders: [RIDE] }))).toHaveLength(1);
     const jsonl = `${JSON.stringify(RIDE)}\njunk\n${JSON.stringify({ ...RIDE, orderId: "DD9" })}`;
     expect(parseRecords(jsonl).map((r) => r.recordId)).toEqual(["DD1", "DD9"]);
     const a = new DidiAdapter();
-    expect(await collect(a.sync({}))).toEqual([]);
+    await expect(collect(a.sync({}))).rejects.toThrow(/needs opts\.inputPath/);
   });
 
   it("normalize throws on missing record", () => {
     const a = new DidiAdapter();
-    expect(() => a.normalize({ payload: {} })).toThrow(/payload\.record missing/);
+    expect(() => a.normalize({ payload: {} })).toThrow(
+      /payload\.record missing/,
+    );
   });
 });
 
 describe("DidiAdapter cookie-api mode", () => {
   it("authenticate cookie mode (account optional)", async () => {
-    const a = new DidiAdapter({ account: { cookies: COOKIES } });
-    expect(await a.authenticate()).toEqual({ ok: true, account: null, mode: "cookie" });
-    const ready = new DidiAdapter({ account: { cookies: "" } });
-    expect((await ready.authenticate()).mode).toBe("ready");
+    const a = new DidiAdapter({
+      account: { cookies: COOKIES },
+      fetchFn: async () => ({ orders: [] }),
+    });
+    expect(await a.authenticate()).toEqual({
+      ok: true,
+      account: null,
+      mode: "cookie",
+    });
+    const noInput = new DidiAdapter({ account: { cookies: "" } });
+    expect(await noInput.authenticate()).toMatchObject({
+      ok: false,
+      reason: "NO_INPUT",
+    });
   });
 
   it("sync fetches, paginates, maps + normalizes", async () => {
     const pages = [
-      { data: { list: [{ orderId: "CK1", fromAddress: "家", toAddress: "公司", departTime: 1716383021, fare: 2300 }] } },
+      {
+        data: {
+          list: [
+            {
+              orderId: "CK1",
+              fromAddress: "家",
+              toAddress: "公司",
+              departTime: 1716383021,
+              fare: 2300,
+            },
+          ],
+        },
+      },
       { data: { list: [] } },
     ];
     const calls = [];
@@ -152,6 +203,7 @@ describe("DidiAdapter cookie-api mode", () => {
     const items = await collect(a.sync({ sinceWatermark: 0 }));
     expect(items).toHaveLength(1);
     expect(items[0].originalId).toBe("CK1");
+    expect(calls).toHaveLength(2);
     expect(calls[0].cookies).toBe(COOKIES);
     expect(calls[0].sign).toBe(null);
     const batch = a.normalize(items[0]);
@@ -163,11 +215,18 @@ describe("DidiAdapter cookie-api mode", () => {
     const signCalls = [];
     const a = new DidiAdapter({
       account: { cookies: COOKIES },
-      fetchFn: async ({ query }) => (query.pageIndex === 1 ? { orders: [{ orderId: "S1" }] } : { orders: [] }),
-      signProvider: async (ctx) => { signCalls.push(ctx); return "DD-SIG"; },
+      fetchFn: async ({ query }) =>
+        query.pageIndex === 1
+          ? { orders: [{ orderId: "S1" }] }
+          : { orders: [] },
+      signProvider: async (ctx) => {
+        signCalls.push(ctx);
+        return "DD-SIG";
+      },
     });
     const items = await collect(a.sync({ sinceWatermark: 0 }));
     expect(items).toHaveLength(1);
+    expect(signCalls).toHaveLength(2);
     expect(signCalls.length).toBeGreaterThan(0);
     expect(signCalls[0].cookies).toBe(COOKIES);
   });
@@ -175,18 +234,39 @@ describe("DidiAdapter cookie-api mode", () => {
   it("sinceWatermark + limit + empty/login response + default fetch throws", async () => {
     const a1 = new DidiAdapter({
       account: { cookies: COOKIES },
-      fetchFn: async () => ({ orders: [
-        { orderId: "NEW", departTime: 2_000_000_000_000 },
-        { orderId: "OLD", departTime: 1_000_000_000_000 },
-      ] }),
+      fetchFn: async () => ({
+        orders: [
+          { orderId: "NEW", departTime: 2_000_000_000_000 },
+          { orderId: "OLD", departTime: 1_000_000_000_000 },
+        ],
+      }),
     });
-    expect((await collect(a1.sync({ sinceWatermark: 1_500_000_000_000, maxPages: 1 }))).map((x) => x.originalId)).toEqual(["NEW"]);
+    expect(
+      (
+        await collect(
+          a1.sync({ sinceWatermark: 1_500_000_000_000, maxPages: 1 }),
+        )
+      ).map((x) => x.originalId),
+    ).toEqual(["NEW"]);
 
-    const a2 = new DidiAdapter({ account: { cookies: COOKIES }, fetchFn: async () => "<html>login</html>" });
+    const a2 = new DidiAdapter({
+      account: { cookies: COOKIES },
+      fetchFn: async () => "<html>login</html>",
+    });
     expect(await collect(a2.sync({ sinceWatermark: 0 }))).toEqual([]);
 
     const a3 = new DidiAdapter({ account: { cookies: COOKIES } });
-    await expect(collect(a3.sync({ sinceWatermark: 0 }))).rejects.toThrow(/no fetchFn configured/);
+    expect(await a3.authenticate()).toMatchObject({
+      ok: false,
+      reason: "CUSTOM_FETCH_REQUIRED",
+    });
+    expect(await a3.healthCheck()).toMatchObject({
+      ok: false,
+      reason: "CUSTOM_FETCH_REQUIRED",
+    });
+    await expect(collect(a3.sync({ sinceWatermark: 0 }))).rejects.toThrow(
+      /no fetchFn configured/,
+    );
   });
 
   it("file path takes priority over cookie mode", async () => {
@@ -194,9 +274,13 @@ describe("DidiAdapter cookie-api mode", () => {
     try {
       const a = new DidiAdapter({
         account: { cookies: COOKIES },
-        fetchFn: async () => { throw new Error("must not fetch in file mode"); },
+        fetchFn: async () => {
+          throw new Error("must not fetch in file mode");
+        },
       });
-      expect((await collect(a.sync({ inputPath: p }))).map((x) => x.originalId)).toEqual(["DD1"]);
+      expect(
+        (await collect(a.sync({ inputPath: p }))).map((x) => x.originalId),
+      ).toEqual(["DD1"]);
     } finally {
       fs.unlinkSync(p);
     }
