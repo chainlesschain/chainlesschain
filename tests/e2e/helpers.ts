@@ -60,6 +60,23 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
     "utf8",
   );
 
+  // These suites validate project-management IPC, not onboarding. Seed the
+  // isolated profile before Electron starts so launchElectronApp() does not
+  // need to complete setup, close the app, and recursively launch it again.
+  fs.writeFileSync(
+    path.join(userDataPath, "initial-setup-config.json"),
+    JSON.stringify(
+      {
+        setupCompleted: true,
+        completedAt: "2026-01-01T00:00:00.000Z",
+        edition: "personal",
+      },
+      null,
+      2,
+    ),
+    "utf8",
+  );
+
   // 启动Electron（增加超时时间，指定 userData 路径，添加测试环境参数）
   // Belt-and-braces: settings pre-write above is the load-bearing fix; argv
   // + env below are the secondary opt-out paths shouldRunWebShell honours
