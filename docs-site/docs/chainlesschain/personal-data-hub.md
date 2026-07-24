@@ -65,7 +65,7 @@
 
 此外：**email 账单 LLM 补全（Phase 5.5）** — 邮件账单解析在结构化字段缺失时走 LLM gap-fill 补齐金额 / 商户 / 时间；**iOS 加密备份解密（Phase 7.5b）** — 移动提取层支持解密 iOS 加密备份后导入。当前 PDH 包共 **51 个 Adapter**、**121 测试文件 / 2040 测试**。
 
-> 注：改动 `packages/personal-data-hub/lib/**` 发版时必同步 bump pdh 包 version + npm publish + Android `USR_VERSION`（否则真机走 fast-path 跳解压用旧代码）。本工作区目标为 pdh 0.4.52 / CLI 0.162.175 / binariesVersion 20260711 / USR_VERSION 77；npm 与 Android runtime bundle 发布仍是独立发布步骤。
+> 注：改动 `packages/personal-data-hub/lib/**` 发版时必同步 bump pdh 包 version + npm publish + Android `USR_VERSION`（否则真机走 fast-path 跳解压用旧代码）。本工作区目标为 pdh 0.4.54 / CLI 0.162.175 / binariesVersion 20260711 / USR_VERSION 78；npm 与 Android runtime bundle 发布仍是独立发布步骤。
 
 ## 核心特性
 

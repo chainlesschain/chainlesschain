@@ -1,17 +1,19 @@
 # PDH App 数据目录（自动生成，供 AI 找数据）
 
 > 由 `scripts/pdh/gen-app-data-catalog.js` 从各 adapter 自带元数据生成 —— 索引「哪个 app
-> 有什么数据、怎么采、敏感度」。**共 81 个 adapter。** 详细表/字段级 schema 见
+> 有什么数据、怎么采、敏感度」。**共 92 个 adapter。** 详细表/字段级 schema 见
 > `pdh-app-db-schemas.md`（微信/抖音等已展开）。重新生成：`node scripts/pdh/gen-app-data-catalog.js`。
 >
 > 列含义：**底层模式** = adapter.extractMode；**采集方式** = capabilities（sync:cookie-api/sqlite/snapshot/...）；**敏感度** =
 > dataDisclosure.sensitivity；🔒 = legalGate（需法律/用户同意门）。
 
-## 分类: AI 对话（1）
+## 分类: AI 对话（3）
 
-| App         | 名称              | 底层模式 | 采集方式                                                      | 敏感度 | 数据字段（摘要）                                                                                                         |
-| ----------- | ----------------- | -------- | ------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
-| AI 对话历史 | `ai-chat-history` | web-api  | cookie-multi-vendor/persisted-cookie-accounts/cookie-snapshot | high   | ai-chat:vendor,conversationId,messageId,role,text,modelName; ai-chat:attachments(url,filename,mimeType,size); ai-chat:ge |
+| App         | 名称              | 底层模式    | 采集方式                                                                                                                                                | 敏感度 | 数据字段（摘要）                                                                                                         |
+| ----------- | ----------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
+| AI 对话历史 | `ai-chat-history` | web-api     | cookie-multi-vendor/persisted-cookie-accounts/cookie-snapshot                                                                                           | high   | ai-chat:vendor,conversationId,messageId,role,text,modelName; ai-chat:attachments(url,filename,mimeType,size); ai-chat:ge |
+| Claude Code | `claude-code`     | web-api     | claude-code-session-jsonl/claude-code-subagent-jsonl/claude-code-stats-json/profile-directory                                                           | high   | conversation-messages:role,text,sessionTitle,model,stopReason,tokenUsage,occurredAt; session-metadata:projectHash,sessio |
+| Cursor      | `cursor`          | file-import | cursor-workspace-storage/cursor-globalstorage-sqlite/cursor-local-history-metadata/cursor-agent-transcripts/cursor-ai-tracking-sqlite/profile-directory | high   | workspaces:name,resourceScheme,resourceHash,lastOpenedMs; terminal-commands:command,shellType,sourceIndex,snapshotTs; te |
 
 ## 分类: 企业/工商（1）
 
@@ -76,6 +78,12 @@
 | 腾讯视频 | `video-tencent`  | web-api     | snapshot/custom-cookie-api | low    | tencent-video:watch (title / category / episode / channel); tencent-video:favourite (title / category)         |
 | 西瓜视频 | `video-xigua`    | web-api     | snapshot/custom-cookie-api | low    | xigua:watch (title / category / episode / channel); xigua:favourite (title / category)                         |
 
+## 分类: 工作/会议（1）
+
+| App          | 名称              | 底层模式    | 采集方式                                                 | 敏感度  | 数据字段（摘要）                                                                                                         |
+| ------------ | ----------------- | ----------- | -------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 腾讯会议历史 | `meeting-tencent` | file-import | tencent-meeting-sqlite/meeting-history/profile-directory | high 🔒 | meetings:subject,description,beginTimeMs,joinTimeMs,leaveTimeMs,durationMs,creatorNickname; participants:displayName,has |
+
 ## 分类: 招聘（1）
 
 | App       | 名称           | 底层模式 | 采集方式                   | 敏感度 | 数据字段（摘要）                                                                                                      |
@@ -99,26 +107,34 @@
 
 ## 分类: 文档/云盘（4）
 
-| App        | 名称                | 底层模式 | 采集方式                   | 敏感度 | 数据字段（摘要）                                             |
-| ---------- | ------------------- | -------- | -------------------------- | ------ | ------------------------------------------------------------ |
-| 百度网盘   | `doc-baidu-netdisk` | web-api  | snapshot/custom-cookie-api | medium | baidu-netdisk:document (title / docType / createdTime / url) |
-| 扫描全能王 | `doc-camscanner`    | web-api  | snapshot/custom-cookie-api | medium | camscanner:document (title / docType / createdTime / url)    |
-| 腾讯文档   | `doc-tencent-docs`  | web-api  | snapshot/custom-cookie-api | medium | tencent-docs:document (title / docType / createdTime / url)  |
-| WPS 云文档 | `doc-wps`           | web-api  | snapshot/custom-cookie-api | medium | wps:document (title / docType / createdTime / url)           |
+| App        | 名称                | 底层模式    | 采集方式                     | 敏感度 | 数据字段（摘要）                                                           |
+| ---------- | ------------------- | ----------- | ---------------------------- | ------ | -------------------------------------------------------------------------- |
+| 百度网盘   | `doc-baidu-netdisk` | web-api     | snapshot/oauth-api/recursive | medium | baidu-netdisk:document (title / type / path / timestamps / size / md5)     |
+| 扫描全能王 | `doc-camscanner`    | web-api     | snapshot/custom-cookie-api   | medium | camscanner:document (title / docType / createdTime / url)                  |
+| 腾讯文档   | `doc-tencent-docs`  | file-import | snapshot/export-directory    | medium | tencent-docs:document (title / relative path / format / timestamps / size) |
+| WPS 云文档 | `doc-wps`           | web-api     | snapshot/oauth-api           | medium | wps:document (title / type / link / timestamps / size / drive / parent)    |
 
-## 分类: 本地/系统（9）
+## 分类: 本地/系统（17）
 
-| App                | 名称                     | 底层模式    | 采集方式                                                                                                       | 敏感度 | 数据字段（摘要）                                                                                                         |
-| ------------------ | ------------------------ | ----------- | -------------------------------------------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
-| MIUI/AOSP 浏览历史 | `browser-history-aosp`   | file-import | file-import/aosp-browser-history-sqlite/aosp-browser-bookmarks-sqlite                                          | high   | history:url,title,visitTimeMs,visitCount; bookmarks:url,name                                                             |
-| Chrome 浏览历史    | `browser-history-chrome` | file-import | chrome-history-sqlite/chrome-bookmarks-json                                                                    | high   | visits:url,title,visitTimeMs,transition,visitDurationMs,hidden; bookmarks:url,name,dateAddedMs,folderPath                |
-| Edge 浏览历史      | `browser-history-edge`   | file-import | edge-history-sqlite/edge-bookmarks-json                                                                        | high   | visits:url,title,visitTimeMs,transition,visitDurationMs,hidden; bookmarks:url,name,dateAddedMs,folderPath                |
-| Git 提交记录       | `git-activity`           | file-import | git-log-local                                                                                                  | high   | commits:sha,authoredAtMs,authorName,authorEmail,subject,repoName                                                         |
-| 本地文件           | `local-files`            | file-import | local-file-walk                                                                                                | high   | files:path,name,ext,size,mtimeMs,root                                                                                    |
-| 命令行历史         | `shell-history`          | file-import | shell-history-files                                                                                            | high   | commands:shell,value,sourceIndex,snapshotTs                                                                              |
-| Android 系统数据   | `system-data-android`    | device-pull | snapshot/adb/android-content-provider/android-package-manager/android-sms/android-call-log/android-media-files | high   | contacts:displayName,phones,emails,starred,organization,jobTitle,photoUri; installed_apps:packageName,label,versionName, |
-| VS Code            | `vscode`                 | file-import | vscode-workspace-storage/vscode-globalstorage-sqlite                                                           | high   | workspaces:hash,folderUri,folderPath,lastOpenedMs; terminal-commands:command,shellType,sourceIndex,snapshotTs; terminal- |
-| Windows 最近使用   | `win-recent`             | file-import | win-recent-shortcuts                                                                                           | high   | recent:name,mtimeMs,size,lnkPath                                                                                         |
+| App                | 名称                      | 底层模式    | 采集方式                                                                                                       | 敏感度 | 数据字段（摘要）                                                                                                         |
+| ------------------ | ------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
+| MIUI/AOSP 浏览历史 | `browser-history-aosp`    | file-import | file-import/aosp-browser-history-sqlite/aosp-browser-bookmarks-sqlite                                          | high   | history:url,title,visitTimeMs,visitCount; bookmarks:url,name                                                             |
+| Brave 浏览历史     | `browser-history-brave`   | file-import | brave-history-sqlite/brave-downloads-sqlite/brave-bookmarks-json/profile-directory                             | high   | visits:url,title,visitTimeMs,transition,visitDurationMs,hidden; downloads:fileName,fileExtension,sourceUrl,startTimeMs,e |
+| Chrome 浏览历史    | `browser-history-chrome`  | file-import | chrome-history-sqlite/chrome-downloads-sqlite/chrome-bookmarks-json/profile-directory                          | high   | visits:url,title,visitTimeMs,transition,visitDurationMs,hidden; downloads:fileName,fileExtension,sourceUrl,startTimeMs,e |
+| Edge 浏览历史      | `browser-history-edge`    | file-import | edge-history-sqlite/edge-downloads-sqlite/edge-bookmarks-json/profile-directory                                | high   | visits:url,title,visitTimeMs,transition,visitDurationMs,hidden; downloads:fileName,fileExtension,sourceUrl,startTimeMs,e |
+| Firefox 浏览历史   | `browser-history-firefox` | file-import | firefox-places-sqlite/profile-directory/file-import/firefox-downloads-sqlite                                   | high   | visits:url,title,visitTimeMs,visitType,visitCount,hidden; bookmarks:url,name,dateAddedMs,lastModifiedMs,folderPath; down |
+| Opera 浏览历史     | `browser-history-opera`   | file-import | opera-history-sqlite/opera-downloads-sqlite/opera-bookmarks-json/profile-directory                             | high   | visits:url,title,visitTimeMs,transition,visitDurationMs,hidden; downloads:fileName,fileExtension,sourceUrl,startTimeMs,e |
+| Safari 浏览历史    | `browser-history-safari`  | file-import | safari-history-sqlite/safari-bookmarks-plist/safari-downloads-plist/profile-directory                          | high   | visits:url,title,visitTimeMs,visitCount,loadSuccessful,httpNonGet; bookmarks:url,name,dateAddedMs,dateLastViewedMs,folde |
+| Vivaldi 浏览历史   | `browser-history-vivaldi` | file-import | vivaldi-history-sqlite/vivaldi-downloads-sqlite/vivaldi-bookmarks-json/profile-directory                       | high   | visits:url,title,visitTimeMs,transition,visitDurationMs,hidden; downloads:fileName,fileExtension,sourceUrl,startTimeMs,e |
+| Git 提交记录       | `git-activity`            | file-import | git-log-local/profile-directory                                                                                | high   | commits:commitHash,authoredAtMs,committedAtMs,authorName,authorEmail,subject,subjectTruncated,repoName,repoHash          |
+| HBuilderX          | `hbuilderx`               | file-import | hbuilderx-file-activity-ini/profile-directory                                                                  | high   | file-activity:pathHash,extension,fileType,encoding,occurredAt,timestampSource                                            |
+| JetBrains IDE      | `jetbrains-ide`           | file-import | jetbrains-recent-projects-xml/profile-directory                                                                | high   | recent-projects:projectName,pathHash,productName,productVersion,productCode,lastOpenedMs,lastActivatedMs,currentlyOpen,t |
+| 本地文件           | `local-files`             | file-import | local-file-walk/scan-directory/profile-directory                                                               | high   | files:fileHash,rootHash,name,extension,size,mtimeMs,rootCategory,relativeDepth                                           |
+| 命令行历史         | `shell-history`           | file-import | shell-history-files                                                                                            | high   | commands:shell,sourceName,sourceHash,value,contentHash,entryHash,occurrence,sourceIndex,capturedAt,timestampSource       |
+| Android 系统数据   | `system-data-android`     | device-pull | snapshot/adb/android-content-provider/android-package-manager/android-sms/android-call-log/android-media-files | high   | contacts:displayName,phones,emails,starred,organization,jobTitle,photoUri; installed_apps:packageName,label,versionName, |
+| VS Code            | `vscode`                  | file-import | vscode-workspace-storage/vscode-globalstorage-sqlite/vscode-local-history-metadata/profile-directory           | high   | workspaces:name,resourceScheme,resourceHash,lastOpenedMs; terminal-commands:command,shellType,sourceIndex,snapshotTs; te |
+| VSCodium           | `vscodium`                | file-import | vscodium-workspace-storage/vscodium-globalstorage-sqlite/vscodium-local-history-metadata/profile-directory     | high   | workspaces:name,resourceScheme,resourceHash,lastOpenedMs; terminal-commands:command,shellType,sourceIndex,snapshotTs; te |
+| Windows 最近使用   | `win-recent`              | file-import | win-recent-shortcuts                                                                                           | high   | recent:name,mtimeMs,size,lnkPath                                                                                         |
 
 ## 分类: 游戏（2）
 

@@ -1,6 +1,6 @@
 {
   "generated": "run gen-app-data-catalog.js",
-  "count": 81,
+  "count": 92,
   "adapters": [
     {
       "export": "BrowserHistoryAospAdapter",
@@ -22,19 +22,43 @@
       "legalGate": false
     },
     {
+      "export": "BrowserHistoryBraveAdapter",
+      "name": "browser-history-brave",
+      "display": "Brave 浏览历史",
+      "category": "本地/系统",
+      "version": "0.2.0",
+      "extractMode": "file-import",
+      "capabilities": [
+        "sync:brave-history-sqlite",
+        "sync:brave-downloads-sqlite",
+        "sync:brave-bookmarks-json",
+        "sync:profile-directory"
+      ],
+      "fields": [
+        "visits:url,title,visitTimeMs,transition,visitDurationMs,hidden",
+        "downloads:fileName,fileExtension,sourceUrl,startTimeMs,endTimeMs,state,danger,receivedBytes,totalBytes,opened,targetPathHash",
+        "bookmarks:url,name,dateAddedMs,dateLastUsedMs,folderPath"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
       "export": "BrowserHistoryChromeAdapter",
       "name": "browser-history-chrome",
       "display": "Chrome 浏览历史",
       "category": "本地/系统",
-      "version": "0.1.0",
+      "version": "0.3.0",
       "extractMode": "file-import",
       "capabilities": [
         "sync:chrome-history-sqlite",
-        "sync:chrome-bookmarks-json"
+        "sync:chrome-downloads-sqlite",
+        "sync:chrome-bookmarks-json",
+        "sync:profile-directory"
       ],
       "fields": [
         "visits:url,title,visitTimeMs,transition,visitDurationMs,hidden",
-        "bookmarks:url,name,dateAddedMs,folderPath"
+        "downloads:fileName,fileExtension,sourceUrl,startTimeMs,endTimeMs,state,danger,receivedBytes,totalBytes,opened,targetPathHash",
+        "bookmarks:url,name,dateAddedMs,dateLastUsedMs,folderPath"
       ],
       "sensitivity": "high",
       "legalGate": false
@@ -44,12 +68,105 @@
       "name": "browser-history-edge",
       "display": "Edge 浏览历史",
       "category": "本地/系统",
-      "version": "0.1.0",
+      "version": "0.3.0",
       "extractMode": "file-import",
-      "capabilities": ["sync:edge-history-sqlite", "sync:edge-bookmarks-json"],
+      "capabilities": [
+        "sync:edge-history-sqlite",
+        "sync:edge-downloads-sqlite",
+        "sync:edge-bookmarks-json",
+        "sync:profile-directory"
+      ],
       "fields": [
         "visits:url,title,visitTimeMs,transition,visitDurationMs,hidden",
-        "bookmarks:url,name,dateAddedMs,folderPath"
+        "downloads:fileName,fileExtension,sourceUrl,startTimeMs,endTimeMs,state,danger,receivedBytes,totalBytes,opened,targetPathHash",
+        "bookmarks:url,name,dateAddedMs,dateLastUsedMs,folderPath"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "BrowserHistoryFirefoxAdapter",
+      "name": "browser-history-firefox",
+      "display": "Firefox 浏览历史",
+      "category": "本地/系统",
+      "version": "0.2.0",
+      "extractMode": "file-import",
+      "capabilities": [
+        "sync:firefox-places-sqlite",
+        "sync:profile-directory",
+        "sync:file-import",
+        "sync:firefox-downloads-sqlite",
+        "parse:firefox-history",
+        "parse:firefox-bookmarks",
+        "parse:firefox-downloads"
+      ],
+      "fields": [
+        "visits:url,title,visitTimeMs,visitType,visitCount,hidden",
+        "bookmarks:url,name,dateAddedMs,lastModifiedMs,folderPath",
+        "downloads:fileName,fileExtension,sourceUrl,startTimeMs,endTimeMs,state,fileSize,deleted,targetPathHash"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "BrowserHistoryOperaAdapter",
+      "name": "browser-history-opera",
+      "display": "Opera 浏览历史",
+      "category": "本地/系统",
+      "version": "0.2.0",
+      "extractMode": "file-import",
+      "capabilities": [
+        "sync:opera-history-sqlite",
+        "sync:opera-downloads-sqlite",
+        "sync:opera-bookmarks-json",
+        "sync:profile-directory"
+      ],
+      "fields": [
+        "visits:url,title,visitTimeMs,transition,visitDurationMs,hidden",
+        "downloads:fileName,fileExtension,sourceUrl,startTimeMs,endTimeMs,state,danger,receivedBytes,totalBytes,opened,targetPathHash",
+        "bookmarks:url,name,dateAddedMs,dateLastUsedMs,folderPath"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "BrowserHistorySafariAdapter",
+      "name": "browser-history-safari",
+      "display": "Safari 浏览历史",
+      "category": "本地/系统",
+      "version": "0.2.0",
+      "extractMode": "file-import",
+      "capabilities": [
+        "sync:safari-history-sqlite",
+        "sync:safari-bookmarks-plist",
+        "sync:safari-downloads-plist",
+        "sync:profile-directory"
+      ],
+      "fields": [
+        "visits:url,title,visitTimeMs,visitCount,loadSuccessful,httpNonGet",
+        "bookmarks:url,name,dateAddedMs,dateLastViewedMs,folderPath,readingList",
+        "downloads:fileName,fileExtension,sourceUrl,startTimeMs,endTimeMs,state,receivedBytes,totalBytes,removeWhenDone,targetPathHash"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "BrowserHistoryVivaldiAdapter",
+      "name": "browser-history-vivaldi",
+      "display": "Vivaldi 浏览历史",
+      "category": "本地/系统",
+      "version": "0.2.0",
+      "extractMode": "file-import",
+      "capabilities": [
+        "sync:vivaldi-history-sqlite",
+        "sync:vivaldi-downloads-sqlite",
+        "sync:vivaldi-bookmarks-json",
+        "sync:profile-directory"
+      ],
+      "fields": [
+        "visits:url,title,visitTimeMs,transition,visitDurationMs,hidden",
+        "downloads:fileName,fileExtension,sourceUrl,startTimeMs,endTimeMs,state,danger,receivedBytes,totalBytes,opened,targetPathHash",
+        "bookmarks:url,name,dateAddedMs,dateLastUsedMs,folderPath"
       ],
       "sensitivity": "high",
       "legalGate": false
@@ -59,11 +176,45 @@
       "name": "git-activity",
       "display": "Git 提交记录",
       "category": "本地/系统",
-      "version": "0.2.0",
+      "version": "0.4.0",
       "extractMode": "file-import",
-      "capabilities": ["sync:git-log-local"],
+      "capabilities": ["sync:git-log-local", "sync:profile-directory"],
       "fields": [
-        "commits:sha,authoredAtMs,authorName,authorEmail,subject,repoName"
+        "commits:commitHash,authoredAtMs,committedAtMs,authorName,authorEmail,subject,subjectTruncated,repoName,repoHash"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "HBuilderXAdapter",
+      "name": "hbuilderx",
+      "display": "HBuilderX",
+      "category": "本地/系统",
+      "version": "0.1.0",
+      "extractMode": "file-import",
+      "capabilities": [
+        "sync:hbuilderx-file-activity-ini",
+        "sync:profile-directory"
+      ],
+      "fields": [
+        "file-activity:pathHash,extension,fileType,encoding,occurredAt,timestampSource"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "JetBrainsIdeAdapter",
+      "name": "jetbrains-ide",
+      "display": "JetBrains IDE",
+      "category": "本地/系统",
+      "version": "0.1.0",
+      "extractMode": "file-import",
+      "capabilities": [
+        "sync:jetbrains-recent-projects-xml",
+        "sync:profile-directory"
+      ],
+      "fields": [
+        "recent-projects:projectName,pathHash,productName,productVersion,productCode,lastOpenedMs,lastActivatedMs,currentlyOpen,timestampSource"
       ],
       "sensitivity": "high",
       "legalGate": false
@@ -73,10 +224,16 @@
       "name": "local-files",
       "display": "本地文件",
       "category": "本地/系统",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "extractMode": "file-import",
-      "capabilities": ["sync:local-file-walk"],
-      "fields": ["files:path,name,ext,size,mtimeMs,root"],
+      "capabilities": [
+        "sync:local-file-walk",
+        "sync:scan-directory",
+        "sync:profile-directory"
+      ],
+      "fields": [
+        "files:fileHash,rootHash,name,extension,size,mtimeMs,rootCategory,relativeDepth"
+      ],
       "sensitivity": "high",
       "legalGate": false
     },
@@ -85,10 +242,12 @@
       "name": "shell-history",
       "display": "命令行历史",
       "category": "本地/系统",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "extractMode": "file-import",
       "capabilities": ["sync:shell-history-files"],
-      "fields": ["commands:shell,value,sourceIndex,snapshotTs"],
+      "fields": [
+        "commands:shell,sourceName,sourceHash,value,contentHash,entryHash,occurrence,sourceIndex,capturedAt,timestampSource"
+      ],
       "sensitivity": "high",
       "legalGate": false
     },
@@ -97,7 +256,7 @@
       "name": "system-data-android",
       "display": "Android 系统数据",
       "category": "本地/系统",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "extractMode": "device-pull",
       "capabilities": [
         "sync:snapshot",
@@ -123,16 +282,41 @@
       "name": "vscode",
       "display": "VS Code",
       "category": "本地/系统",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "extractMode": "file-import",
       "capabilities": [
         "sync:vscode-workspace-storage",
-        "sync:vscode-globalstorage-sqlite"
+        "sync:vscode-globalstorage-sqlite",
+        "sync:vscode-local-history-metadata",
+        "sync:profile-directory"
       ],
       "fields": [
-        "workspaces:hash,folderUri,folderPath,lastOpenedMs",
+        "workspaces:name,resourceScheme,resourceHash,lastOpenedMs",
         "terminal-commands:command,shellType,sourceIndex,snapshotTs",
-        "terminal-dirs:dir,shellType,sourceIndex,snapshotTs"
+        "terminal-dirs:name,pathHash,shellType,sourceIndex,snapshotTs",
+        "local-history:fileName,fileExtension,resourceScheme,resourceHash,savedAtMs,hasSaveSource"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "VSCodiumAdapter",
+      "name": "vscodium",
+      "display": "VSCodium",
+      "category": "本地/系统",
+      "version": "0.1.0",
+      "extractMode": "file-import",
+      "capabilities": [
+        "sync:vscodium-workspace-storage",
+        "sync:vscodium-globalstorage-sqlite",
+        "sync:vscodium-local-history-metadata",
+        "sync:profile-directory"
+      ],
+      "fields": [
+        "workspaces:name,resourceScheme,resourceHash,lastOpenedMs",
+        "terminal-commands:command,shellType,sourceIndex,snapshotTs",
+        "terminal-dirs:name,pathHash,shellType,sourceIndex,snapshotTs",
+        "local-history:fileName,fileExtension,resourceScheme,resourceHash,savedAtMs,hasSaveSource"
       ],
       "sensitivity": "high",
       "legalGate": false
@@ -322,6 +506,26 @@
       ],
       "sensitivity": "medium",
       "legalGate": false
+    },
+    {
+      "export": "TencentMeetingAdapter",
+      "name": "meeting-tencent",
+      "display": "腾讯会议历史",
+      "category": "工作/会议",
+      "version": "0.1.0",
+      "extractMode": "file-import",
+      "capabilities": [
+        "sync:tencent-meeting-sqlite",
+        "sync:meeting-history",
+        "sync:profile-directory"
+      ],
+      "fields": [
+        "meetings:subject,description,beginTimeMs,joinTimeMs,leaveTimeMs,durationMs,creatorNickname",
+        "participants:displayName,hashedLocalId",
+        "artifacts:documentName,documentCount,recordCount,recordDurationSeconds,aiSummary,chatCount"
+      ],
+      "sensitivity": "high",
+      "legalGate": true
     },
     {
       "export": "DianpingAdapter",
@@ -867,7 +1071,7 @@
       "name": "audio-ximalaya",
       "display": "喜马拉雅",
       "category": "媒体/阅读",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
@@ -889,7 +1093,7 @@
       "name": "music-kugou",
       "display": "酷狗音乐",
       "category": "媒体/阅读",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
@@ -911,7 +1115,7 @@
       "name": "music-qq",
       "display": "QQ音乐",
       "category": "媒体/阅读",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
@@ -1308,7 +1512,7 @@
       "name": "social-zhihu",
       "display": "知乎",
       "category": "社交/内容",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
@@ -1330,15 +1534,16 @@
       "name": "doc-baidu-netdisk",
       "display": "百度网盘",
       "category": "文档/云盘",
-      "version": "0.1.0",
+      "version": "0.3.0",
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:oauth-api",
+        "sync:recursive",
         "parse:baidu-netdisk-documents"
       ],
       "fields": [
-        "baidu-netdisk:document (title / docType / createdTime / url)"
+        "baidu-netdisk:document (title / type / path / timestamps / size / md5)"
       ],
       "sensitivity": "medium",
       "legalGate": false
@@ -1364,14 +1569,16 @@
       "name": "doc-tencent-docs",
       "display": "腾讯文档",
       "category": "文档/云盘",
-      "version": "0.1.0",
-      "extractMode": "web-api",
+      "version": "0.2.0",
+      "extractMode": "file-import",
       "capabilities": [
         "sync:snapshot",
-        "sync:custom-cookie-api",
-        "parse:tencent-docs-documents"
+        "sync:export-directory",
+        "parse:tencent-documents"
       ],
-      "fields": ["tencent-docs:document (title / docType / createdTime / url)"],
+      "fields": [
+        "tencent-docs:document (title / relative path / format / timestamps / size)"
+      ],
       "sensitivity": "medium",
       "legalGate": false
     },
@@ -1380,14 +1587,17 @@
       "name": "doc-wps",
       "display": "WPS 云文档",
       "category": "文档/云盘",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:oauth-api",
+        "auth:kso1-optional",
         "parse:wps-documents"
       ],
-      "fields": ["wps:document (title / docType / createdTime / url)"],
+      "fields": [
+        "wps:document (title / type / link / timestamps / size / drive / parent)"
+      ],
       "sensitivity": "medium",
       "legalGate": false
     },
@@ -1534,7 +1744,7 @@
       "name": "ai-chat-history",
       "display": "AI 对话历史",
       "category": "AI 对话",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "extractMode": "web-api",
       "capabilities": [
         "sync:cookie-multi-vendor",
@@ -1548,6 +1758,55 @@
         "ai-chat:attachments(url,filename,mimeType,size)",
         "ai-chat:generatedImages(url,prompt,model,params)",
         "ai-chat:toolCalls"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "ClaudeCodeAdapter",
+      "name": "claude-code",
+      "display": "Claude Code",
+      "category": "AI 对话",
+      "version": "0.1.0",
+      "extractMode": "web-api",
+      "capabilities": [
+        "sync:claude-code-session-jsonl",
+        "sync:claude-code-subagent-jsonl",
+        "sync:claude-code-stats-json",
+        "sync:profile-directory"
+      ],
+      "fields": [
+        "conversation-messages:role,text,sessionTitle,model,stopReason,tokenUsage,occurredAt",
+        "session-metadata:projectHash,sessionHash,parentSessionHash,agentHash,isSubagent",
+        "daily-activity:date,messageCount,sessionCount,toolCallCount",
+        "daily-model-usage:date,model,tokenCount"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "CursorAdapter",
+      "name": "cursor",
+      "display": "Cursor",
+      "category": "AI 对话",
+      "version": "0.1.0",
+      "extractMode": "file-import",
+      "capabilities": [
+        "sync:cursor-workspace-storage",
+        "sync:cursor-globalstorage-sqlite",
+        "sync:cursor-local-history-metadata",
+        "sync:cursor-agent-transcripts",
+        "sync:cursor-ai-tracking-sqlite",
+        "sync:profile-directory"
+      ],
+      "fields": [
+        "workspaces:name,resourceScheme,resourceHash,lastOpenedMs",
+        "terminal-commands:command,shellType,sourceIndex,snapshotTs",
+        "terminal-dirs:name,pathHash,shellType,sourceIndex,snapshotTs",
+        "local-history:fileName,fileExtension,resourceScheme,resourceHash,savedAtMs,hasSaveSource",
+        "agent-messages:role,text,projectHash,transcriptHash,sourceIndex,contentPartCount,snapshotTs",
+        "conversation-summaries:title,tldr,overview,summaryBullets,model,mode,updatedAt",
+        "ai-code-activity:source,fileExtension,model,occurredAt,recordHash"
       ],
       "sensitivity": "high",
       "legalGate": false
