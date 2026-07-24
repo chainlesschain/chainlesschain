@@ -208,7 +208,9 @@ jobs:
   cli-install-smoke:
     name: CLI Global Install Smoke
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 8
+    # Windows global installs can spend several minutes resolving native
+    # dependencies. Keep enough headroom for hosted-runner/network variance.
+    timeout-minutes: 20
 
     strategy:
       fail-fast: false
