@@ -52,7 +52,9 @@ describe("BilibiliAdapter snapshot mode", () => {
 
   it("authenticate(inputPath) fails when path unreadable", async () => {
     const a = new BilibiliAdapter();
-    const res = await a.authenticate({ inputPath: path.join(tmpDir, "missing.json") });
+    const res = await a.authenticate({
+      inputPath: path.join(tmpDir, "missing.json"),
+    });
     expect(res.ok).toBe(false);
     expect(res.reason).toBe("INPUT_PATH_UNREADABLE");
   });
@@ -73,7 +75,9 @@ describe("BilibiliAdapter snapshot mode", () => {
     const a = new BilibiliAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({ inputPath: p })) { /* drain */ }
+      for await (const _r of a.sync({ inputPath: p })) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
@@ -153,10 +157,18 @@ describe("BilibiliAdapter snapshot mode", () => {
       "history",
     ]);
     // Stable originalId format
-    expect(raws.find((r) => r.kind === "history").originalId).toBe("bilibili:history:BV1abc");
-    expect(raws.find((r) => r.kind === "favourite").originalId).toBe("bilibili:favourite:fav-BV2def");
-    expect(raws.find((r) => r.kind === "dynamic").originalId).toBe("bilibili:dynamic:dyn-99");
-    expect(raws.find((r) => r.kind === "follow").originalId).toBe("bilibili:follow:follow-300");
+    expect(raws.find((r) => r.kind === "history").originalId).toBe(
+      "bilibili:history:BV1abc",
+    );
+    expect(raws.find((r) => r.kind === "favourite").originalId).toBe(
+      "bilibili:favourite:fav-BV2def",
+    );
+    expect(raws.find((r) => r.kind === "dynamic").originalId).toBe(
+      "bilibili:dynamic:dyn-99",
+    );
+    expect(raws.find((r) => r.kind === "follow").originalId).toBe(
+      "bilibili:follow:follow-300",
+    );
 
     // Normalize each + validate
     for (const raw of raws) {
@@ -199,7 +211,10 @@ describe("BilibiliAdapter snapshot mode", () => {
     });
     const a = new BilibiliAdapter();
     const raws = [];
-    for await (const r of a.sync({ inputPath: p, include: { follow: false } })) {
+    for await (const r of a.sync({
+      inputPath: p,
+      include: { follow: false },
+    })) {
       raws.push(r);
     }
     expect(raws).toHaveLength(1);
@@ -222,44 +237,49 @@ describe("BilibiliAdapter snapshot mode", () => {
     expect(raws).toHaveLength(2);
   });
 
-  it("skips unknown kinds (forward-compat with future event types)", async () => {
+  it("rejects unknown snapshot kinds", async () => {
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 1,
+      snapshottedAt: Date.now(),
+      events: [{ kind: "fancy-new-kind-from-future", id: "x", data: "?" }],
+    });
+    const a = new BilibiliAdapter();
+    expect(await a.authenticate({ inputPath: p })).toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_SHAPE_INVALID",
+    });
+  });
+
+  it("derives originalId from stable source fields when event.id is absent", async () => {
     const p = writeSnapshot(tmpDir, {
       schemaVersion: 1,
       snapshottedAt: Date.now(),
       events: [
-        { kind: "history", id: "1", title: "ok" },
-        { kind: "fancy-new-kind-from-future", id: "x", data: "?" },
-        { kind: "favourite", id: "f", title: "also ok" },
+        { kind: "history", bvid: "BV1xyz", title: "no-id" },
+        { kind: "follow", mid: 999, uname: "with-mid-no-id" },
       ],
     });
     const a = new BilibiliAdapter();
     const raws = [];
     for await (const r of a.sync({ inputPath: p })) raws.push(r);
     expect(raws).toHaveLength(2);
-    expect(raws.map((r) => r.kind).sort()).toEqual(["favourite", "history"]);
+    expect(raws[0].originalId).toBe("bilibili:history:BV1xyz");
+    expect(raws[1].originalId).toBe("bilibili:follow:999");
   });
 
-  it("uses fallback originalId when event.id absent (no crash, still ingestable)", async () => {
+  it("fails closed when no stable source id can be derived", async () => {
     const p = writeSnapshot(tmpDir, {
       schemaVersion: 1,
       snapshottedAt: Date.now(),
-      events: [
-        // Missing id — adapter should derive from bvid/mid/rid or generate fallback
-        { kind: "history", bvid: "BV1xyz", title: "no-id" },
-        { kind: "follow", mid: 999, uname: "with-mid-no-id" },
-        { kind: "dynamic", summary: "no id no rid" },
-      ],
+      events: [{ kind: "dynamic", summary: "no id no rid" }],
     });
     const a = new BilibiliAdapter();
-    const raws = [];
-    for await (const r of a.sync({ inputPath: p })) raws.push(r);
-    expect(raws).toHaveLength(3);
-    // history derives from bvid
-    expect(raws[0].originalId).toBe("bilibili:history:BV1xyz");
-    // follow derives from mid
-    expect(raws[1].originalId).toBe("bilibili:follow:999");
-    // dynamic with no id/bvid/mid/rid → fallback unknown- prefix
-    expect(raws[2].originalId).toMatch(/^bilibili:dynamic:unknown-/);
+    const pending = (async () => {
+      const raws = [];
+      for await (const raw of a.sync({ inputPath: p })) raws.push(raw);
+      return raws;
+    })();
+    await expect(pending).rejects.toThrow(/requires a stable source id/u);
   });
 
   it("snapshot account propagates to payload (Path Y can re-attribute later)", async () => {

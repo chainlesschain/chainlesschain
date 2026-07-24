@@ -38,6 +38,10 @@
  */
 
 const fs = require("node:fs");
+const {
+  probeJsonSnapshotFile,
+  readJsonSnapshot,
+} = require("../../snapshot-file");
 const { newId } = require("../../ids");
 const {
   ENTITY_TYPES,
@@ -64,18 +68,16 @@ const VALID_KINDS = Object.freeze([
 
 function stableOriginalId(kind, id) {
   // Coerce numeric IDs to string — Bilibili APIs return mid/avid/rid as
-  // integers, but originalId is a string in raw_events schema. Without this
-  // coercion, `typeof 999 === "string"` is false → falls to unknown- prefix
-  // and breaks idempotency across syncs (every sync emits a new "unknown-"
-  // ID, raw_events table grows unbounded).
+  // integers, but originalId is a string in raw_events schema. Values with no
+  // stable source ID are rejected below so repeated syncs stay idempotent.
   const stringified =
     (typeof id === "string" && id.length > 0 && id) ||
     (typeof id === "number" && Number.isFinite(id) && String(id)) ||
     null;
-  const safe =
-    stringified ||
-    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  return `bilibili:${kind}:${safe}`;
+  if (!stringified) {
+    throw new Error(`${NAME}.sync: ${kind} event requires a stable source id`);
+  }
+  return `bilibili:${kind}:${stringified}`;
 }
 
 function parseTime(v) {
@@ -145,16 +147,12 @@ class BilibiliAdapter {
 
   async authenticate(ctx = {}) {
     if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
-      try {
-        this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
-      } catch (err) {
-        return {
-          ok: false,
-          reason: "INPUT_PATH_UNREADABLE",
-          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
-        };
-      }
-      return { ok: true, mode: "snapshot-file" };
+      return probeJsonSnapshotFile(this._deps.fs, ctx.inputPath, {
+        maxBytes: ctx.maxSnapshotBytes,
+        expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        requiredArrayFields: ["events"],
+        allowedEventKinds: VALID_KINDS,
+      });
     }
     if (this._dbPath || (ctx && typeof ctx.dbPath === "string")) {
       return { ok: true, mode: "sqlite" };
@@ -186,32 +184,29 @@ class BilibiliAdapter {
       return;
     }
     throw new Error(
-      "social-bilibili.sync: needs opts.inputPath (snapshot mode, Android in-APK cc) OR opts.dbPath (sqlite mode, Phase 7.5 desktop extractor)"
+      "social-bilibili.sync: needs opts.inputPath (snapshot mode, Android in-APK cc) OR opts.dbPath (sqlite mode, Phase 7.5 desktop extractor)",
     );
   }
 
   async *_syncViaSnapshot(opts) {
-    const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
-    const snapshot = JSON.parse(raw);
-    if (
-      !snapshot ||
-      typeof snapshot !== "object" ||
-      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
-    ) {
-      throw new Error(
-        `social-bilibili.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`
-      );
-    }
+    const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
+      maxBytes: opts.maxSnapshotBytes,
+      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      requiredArrayFields: ["events"],
+      allowedEventKinds: VALID_KINDS,
+    });
     const fallbackCapturedAt =
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
         : Date.now();
 
-    const account = snapshot.account && typeof snapshot.account === "object"
-      ? snapshot.account
-      : null;
+    const account =
+      snapshot.account && typeof snapshot.account === "object"
+        ? snapshot.account
+        : null;
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
 
     const events = Array.isArray(snapshot.events) ? snapshot.events : [];
     let emitted = 0;
@@ -224,11 +219,12 @@ class BilibiliAdapter {
       if (include[kind] === false) continue;
 
       const capturedAt =
-        parseTime(ev.capturedAt) ||
-        parseTime(ev.time) ||
-        fallbackCapturedAt;
+        parseTime(ev.capturedAt) || parseTime(ev.time) || fallbackCapturedAt;
       const id =
         (typeof ev.id === "string" && ev.id.length > 0 && ev.id) ||
+        (typeof ev.id === "number" &&
+          Number.isFinite(ev.id) &&
+          String(ev.id)) ||
         ev.bvid ||
         ev.mid ||
         ev.rid ||
@@ -251,7 +247,7 @@ class BilibiliAdapter {
     // pre-A8 adapter so existing desktop users don't regress.
     if (!this.account || !this.account.uid) {
       throw new Error(
-        "social-bilibili._syncViaSqlite: account.uid required (set via new BilibiliAdapter({ account: { uid } }) in cli wiring)"
+        "social-bilibili._syncViaSqlite: account.uid required (set via new BilibiliAdapter({ account: { uid } }) in cli wiring)",
       );
     }
     const dbPath = opts.dbPath;
@@ -261,14 +257,18 @@ class BilibiliAdapter {
       : require("better-sqlite3-multiple-ciphers");
     const db = new Driver(dbPath, { readonly: true });
     try {
-      const history = trySelect(db, "SELECT * FROM history ORDER BY view_at DESC LIMIT 5000") || [];
+      const history =
+        trySelect(
+          db,
+          "SELECT * FROM history ORDER BY view_at DESC LIMIT 5000",
+        ) || [];
       for (const row of history) {
         yield {
           adapter: NAME,
           kind: KIND_HISTORY,
           originalId: stableOriginalId(
             KIND_HISTORY,
-            row.id || row._id || row.kid || row.bvid || row.avid
+            row.id || row._id || row.kid || row.bvid || row.avid,
           ),
           capturedAt: parseTime(row.view_at || row.create_at || row.time),
           payload: {
@@ -283,14 +283,18 @@ class BilibiliAdapter {
           },
         };
       }
-      const favs = trySelect(db, "SELECT * FROM bili_favourite ORDER BY save_time DESC LIMIT 5000") || [];
+      const favs =
+        trySelect(
+          db,
+          "SELECT * FROM bili_favourite ORDER BY save_time DESC LIMIT 5000",
+        ) || [];
       for (const row of favs) {
         yield {
           adapter: NAME,
           kind: KIND_FAVOURITE,
           originalId: stableOriginalId(
             KIND_FAVOURITE,
-            row.id || row.fav_id || row.bvid
+            row.id || row.fav_id || row.bvid,
           ),
           capturedAt: parseTime(row.save_time || row.time),
           payload: {
@@ -305,7 +309,11 @@ class BilibiliAdapter {
         };
       }
     } finally {
-      try { db.close(); } catch (_e) { /* ignore */ }
+      try {
+        db.close();
+      } catch (_e) {
+        /* ignore */
+      }
     }
   }
 
@@ -344,7 +352,9 @@ class BilibiliAdapter {
 function normalizeHistory(p, source, occurredAt, ingestedAt) {
   const title = p.title || "(no title)";
   const bvid = p.bvid || null;
-  const itemId = bvid ? `item-bilibili-video-${bvid}` : `item-bilibili-video-${newId()}`;
+  const itemId = bvid
+    ? `item-bilibili-video-${bvid}`
+    : `item-bilibili-video-${newId()}`;
   const item = {
     id: itemId,
     type: ENTITY_TYPES.ITEM,
@@ -361,25 +371,27 @@ function normalizeHistory(p, source, occurredAt, ingestedAt) {
     },
   };
   return {
-    events: [{
-      id: newId(),
-      type: ENTITY_TYPES.EVENT,
-      subtype: EVENT_SUBTYPES.BROWSE,
-      occurredAt,
-      actor: "person-self",
-      content: { title },
-      ingestedAt,
-      source,
-      extra: {
-        platform: "bilibili",
-        bvid,
-        avid: p.avid || null,
-        duration: p.duration || null,
-        uploader: p.uploader || null,
-        part: p.part || null,
-        itemRef: itemId,
+    events: [
+      {
+        id: newId(),
+        type: ENTITY_TYPES.EVENT,
+        subtype: EVENT_SUBTYPES.BROWSE,
+        occurredAt,
+        actor: "person-self",
+        content: { title },
+        ingestedAt,
+        source,
+        extra: {
+          platform: "bilibili",
+          bvid,
+          avid: p.avid || null,
+          duration: p.duration || null,
+          uploader: p.uploader || null,
+          part: p.part || null,
+          itemRef: itemId,
+        },
       },
-    }],
+    ],
     persons: [],
     places: [],
     items: [item],
@@ -390,7 +402,9 @@ function normalizeHistory(p, source, occurredAt, ingestedAt) {
 function normalizeFavourite(p, source, occurredAt, ingestedAt) {
   const title = p.title || "(no title)";
   const bvid = p.bvid || null;
-  const itemId = bvid ? `item-bilibili-video-${bvid}` : `item-bilibili-video-${newId()}`;
+  const itemId = bvid
+    ? `item-bilibili-video-${bvid}`
+    : `item-bilibili-video-${newId()}`;
   const item = {
     id: itemId,
     type: ENTITY_TYPES.ITEM,
@@ -406,24 +420,26 @@ function normalizeFavourite(p, source, occurredAt, ingestedAt) {
     },
   };
   return {
-    events: [{
-      id: newId(),
-      type: ENTITY_TYPES.EVENT,
-      subtype: EVENT_SUBTYPES.LIKE,
-      occurredAt,
-      actor: "person-self",
-      content: { title },
-      ingestedAt,
-      source,
-      extra: {
-        platform: "bilibili",
-        bvid,
-        avid: p.avid || null,
-        folderName: p.folderName || null,
-        uploader: p.uploader || null,
-        itemRef: itemId,
+    events: [
+      {
+        id: newId(),
+        type: ENTITY_TYPES.EVENT,
+        subtype: EVENT_SUBTYPES.LIKE,
+        occurredAt,
+        actor: "person-self",
+        content: { title },
+        ingestedAt,
+        source,
+        extra: {
+          platform: "bilibili",
+          bvid,
+          avid: p.avid || null,
+          folderName: p.folderName || null,
+          uploader: p.uploader || null,
+          itemRef: itemId,
+        },
       },
-    }],
+    ],
     persons: [],
     places: [],
     items: [item],
@@ -434,24 +450,26 @@ function normalizeFavourite(p, source, occurredAt, ingestedAt) {
 function normalizeDynamic(p, source, occurredAt, ingestedAt) {
   const summary = p.summary || p.content || "(no summary)";
   return {
-    events: [{
-      id: newId(),
-      type: ENTITY_TYPES.EVENT,
-      subtype: EVENT_SUBTYPES.BROWSE,
-      occurredAt,
-      actor: "person-self",
-      content: { title: summary.slice(0, 200) },
-      ingestedAt,
-      source,
-      extra: {
-        platform: "bilibili",
-        dynamicType: p.dynamicType || "unknown",
-        rid: p.rid || null,
-        authorMid: p.authorMid || null,
-        authorName: p.authorName || null,
-        summary,
+    events: [
+      {
+        id: newId(),
+        type: ENTITY_TYPES.EVENT,
+        subtype: EVENT_SUBTYPES.BROWSE,
+        occurredAt,
+        actor: "person-self",
+        content: { title: summary.slice(0, 200) },
+        ingestedAt,
+        source,
+        extra: {
+          platform: "bilibili",
+          dynamicType: p.dynamicType || "unknown",
+          rid: p.rid || null,
+          authorMid: p.authorMid || null,
+          authorName: p.authorName || null,
+          summary,
+        },
       },
-    }],
+    ],
     persons: [],
     places: [],
     items: [],

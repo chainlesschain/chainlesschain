@@ -81,6 +81,14 @@ class WechatAdapter {
     };
   }
 
+  fileCheckpointMode(opts = {}) {
+    // inputPath is an alias for the continuing EnMicroMsg SQLite database,
+    // so repeated pulls share the account's incremental cursor.
+    return typeof opts.inputPath === "string" && opts.inputPath.trim()
+      ? "shared"
+      : "preserve";
+  }
+
   async authenticate(ctx = {}) {
     // No server auth; sanity check the on-disk state.
     const dbPath = this._resolveDbPath(ctx);
@@ -144,7 +152,9 @@ class WechatAdapter {
       if (!onProgress) return;
       try {
         onProgress({ phase, adapter: NAME, ...payload });
-      } catch (_e) {}
+      } catch {
+        // Progress callbacks are best-effort and must not abort collection.
+      }
     };
 
     const dbPath = this._resolveDbPath(opts);
@@ -219,7 +229,9 @@ class WechatAdapter {
     } finally {
       try {
         reader.close();
-      } catch (_e) {}
+      } catch {
+        // Closing a best-effort reader must not mask the collection result.
+      }
     }
   }
 

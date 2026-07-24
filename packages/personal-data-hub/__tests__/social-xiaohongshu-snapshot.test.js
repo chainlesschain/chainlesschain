@@ -50,7 +50,9 @@ describe("XiaohongshuAdapter snapshot mode", () => {
 
   it("authenticate(inputPath) fails when path unreadable", async () => {
     const a = new XiaohongshuAdapter();
-    const res = await a.authenticate({ inputPath: path.join(tmpDir, "missing.json") });
+    const res = await a.authenticate({
+      inputPath: path.join(tmpDir, "missing.json"),
+    });
     expect(res.ok).toBe(false);
     expect(res.reason).toBe("INPUT_PATH_UNREADABLE");
   });
@@ -71,7 +73,9 @@ describe("XiaohongshuAdapter snapshot mode", () => {
     const a = new XiaohongshuAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({ inputPath: p })) { /* drain */ }
+      for await (const _r of a.sync({ inputPath: p })) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
@@ -96,7 +100,11 @@ describe("XiaohongshuAdapter snapshot mode", () => {
     const p = writeSnapshot(tmpDir, {
       schemaVersion: 1,
       snapshottedAt: now,
-      account: { uid: "5e8c8f7e000000000abcdef0", numericUid: "12345", displayName: "alice" },
+      account: {
+        uid: "5e8c8f7e000000000abcdef0",
+        numericUid: "12345",
+        displayName: "alice",
+      },
       events: [
         {
           kind: "note",
@@ -162,7 +170,9 @@ describe("XiaohongshuAdapter snapshot mode", () => {
     expect(followBatch.events.length).toBe(0);
     expect(followBatch.persons.length).toBe(1);
     expect(followBatch.persons[0].names).toEqual(["carol"]);
-    expect(followBatch.persons[0].identifiers["xiaohongshu-uid"]).toEqual(["USR99"]);
+    expect(followBatch.persons[0].identifiers["xiaohongshu-uid"]).toEqual([
+      "USR99",
+    ]);
   });
 
   it("respects per-kind include opt-out", async () => {
@@ -173,7 +183,13 @@ describe("XiaohongshuAdapter snapshot mode", () => {
       events: [
         { kind: "note", id: "n1", capturedAt: now, title: "t", noteId: "N1" },
         { kind: "liked", id: "l1", capturedAt: now, title: "l", noteId: "N2" },
-        { kind: "follow", id: "fl1", capturedAt: now, userId: "U1", nickname: "x" },
+        {
+          kind: "follow",
+          id: "fl1",
+          capturedAt: now,
+          userId: "U1",
+          nickname: "x",
+        },
       ],
     });
     const a = new XiaohongshuAdapter();
@@ -188,31 +204,35 @@ describe("XiaohongshuAdapter snapshot mode", () => {
   it("respects opts.limit", async () => {
     const now = Date.now();
     const events = Array.from({ length: 5 }, (_, i) => ({
-      kind: "note", id: `n${i}`, capturedAt: now - i * 100, title: `t${i}`, noteId: `N${i}`,
+      kind: "note",
+      id: `n${i}`,
+      capturedAt: now - i * 100,
+      title: `t${i}`,
+      noteId: `N${i}`,
     }));
-    const p = writeSnapshot(tmpDir, { schemaVersion: 1, snapshottedAt: now, events });
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 1,
+      snapshottedAt: now,
+      events,
+    });
     const a = new XiaohongshuAdapter();
     const raws = [];
     for await (const r of a.sync({ inputPath: p, limit: 2 })) raws.push(r);
     expect(raws.length).toBe(2);
   });
 
-  it("filters out unknown kinds (forward compat)", async () => {
+  it("rejects unknown snapshot kinds", async () => {
     const now = Date.now();
     const p = writeSnapshot(tmpDir, {
       schemaVersion: 1,
       snapshottedAt: now,
-      events: [
-        { kind: "note", id: "n1", capturedAt: now, title: "ok", noteId: "N1" },
-        { kind: "future-kind", id: "x", capturedAt: now },
-        { kind: "history", id: "h", capturedAt: now }, // sqlite-only
-      ],
+      events: [{ kind: "future-kind", id: "x", capturedAt: now }],
     });
     const a = new XiaohongshuAdapter();
-    const raws = [];
-    for await (const r of a.sync({ inputPath: p })) raws.push(r);
-    expect(raws.length).toBe(1);
-    expect(raws[0].kind).toBe("note");
+    expect(await a.authenticate({ inputPath: p })).toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_SHAPE_INVALID",
+    });
   });
 
   it("snapshottedAt fallback when event capturedAt missing", async () => {
@@ -220,9 +240,7 @@ describe("XiaohongshuAdapter snapshot mode", () => {
     const p = writeSnapshot(tmpDir, {
       schemaVersion: 1,
       snapshottedAt: ts,
-      events: [
-        { kind: "note", id: "n1", title: "no time", noteId: "N1" },
-      ],
+      events: [{ kind: "note", id: "n1", title: "no time", noteId: "N1" }],
     });
     const a = new XiaohongshuAdapter();
     const raws = [];

@@ -61,7 +61,9 @@ describe("DouyinAdapter snapshot mode", () => {
 
   it("authenticate(inputPath) fails when path unreadable", async () => {
     const a = new DouyinAdapter();
-    const res = await a.authenticate({ inputPath: path.join(tmpDir, "missing.json") });
+    const res = await a.authenticate({
+      inputPath: path.join(tmpDir, "missing.json"),
+    });
     expect(res.ok).toBe(false);
     expect(res.reason).toBe("INPUT_PATH_UNREADABLE");
   });
@@ -82,7 +84,9 @@ describe("DouyinAdapter snapshot mode", () => {
     const a = new DouyinAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({ inputPath: p })) { /* drain */ }
+      for await (const _r of a.sync({ inputPath: p })) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
@@ -146,7 +150,9 @@ describe("DouyinAdapter snapshot mode", () => {
     expect(person.id).toBe("person-douyin-MS4wLjABAAAA_alice");
     expect(person.subtype).toBe("self");
     expect(person.names).toEqual(["alice"]);
-    expect(person.identifiers["douyin-sec-uid"]).toEqual(["MS4wLjABAAAA_alice"]);
+    expect(person.identifiers["douyin-sec-uid"]).toEqual([
+      "MS4wLjABAAAA_alice",
+    ]);
     expect(person.identifiers["douyin-short-id"]).toEqual(["12345678"]);
     expect(person.extra.platform).toBe("douyin");
     expect(person.extra.signature).toBe("hello world");
@@ -162,12 +168,21 @@ describe("DouyinAdapter snapshot mode", () => {
       schemaVersion: 1,
       snapshottedAt: now,
       events: [
-        { kind: "profile", id: "profile-X", capturedAt: now, secUid: "X", nickname: "x" },
+        {
+          kind: "profile",
+          id: "profile-X",
+          capturedAt: now,
+          secUid: "X",
+          nickname: "x",
+        },
       ],
     });
     const a = new DouyinAdapter();
     const raws = [];
-    for await (const r of a.sync({ inputPath: p, include: { profile: false } })) {
+    for await (const r of a.sync({
+      inputPath: p,
+      include: { profile: false },
+    })) {
       raws.push(r);
     }
     expect(raws.length).toBe(0);
@@ -177,34 +192,52 @@ describe("DouyinAdapter snapshot mode", () => {
     // v0.2 unlikely to emit more than 1 profile, but verify the gate is wired.
     const now = Date.now();
     const events = [
-      { kind: "profile", id: "p1", capturedAt: now, secUid: "X1", nickname: "x1" },
+      {
+        kind: "profile",
+        id: "p1",
+        capturedAt: now,
+        secUid: "X1",
+        nickname: "x1",
+      },
       // simulate forward-compat: a v0.3 snapshot with history events
-      { kind: "history", id: "h1", capturedAt: now - 1000, awemeId: "A1", title: "t1" },
-      { kind: "history", id: "h2", capturedAt: now - 2000, awemeId: "A2", title: "t2" },
+      {
+        kind: "history",
+        id: "h1",
+        capturedAt: now - 1000,
+        awemeId: "A1",
+        title: "t1",
+      },
+      {
+        kind: "history",
+        id: "h2",
+        capturedAt: now - 2000,
+        awemeId: "A2",
+        title: "t2",
+      },
     ];
-    const p = writeSnapshot(tmpDir, { schemaVersion: 1, snapshottedAt: now, events });
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 1,
+      snapshottedAt: now,
+      events,
+    });
     const a = new DouyinAdapter();
     const raws = [];
     for await (const r of a.sync({ inputPath: p, limit: 2 })) raws.push(r);
     expect(raws.length).toBe(2);
   });
 
-  it("filters out unknown kinds (forward compat)", async () => {
+  it("rejects unknown snapshot kinds", async () => {
     const now = Date.now();
     const p = writeSnapshot(tmpDir, {
       schemaVersion: 1,
       snapshottedAt: now,
-      events: [
-        { kind: "profile", id: "p1", capturedAt: now, secUid: "X", nickname: "x" },
-        { kind: "future-kind", id: "x", capturedAt: now },
-        { kind: "search", id: "s", capturedAt: now }, // search is sqlite-only
-      ],
+      events: [{ kind: "future-kind", id: "x", capturedAt: now }],
     });
     const a = new DouyinAdapter();
-    const raws = [];
-    for await (const r of a.sync({ inputPath: p })) raws.push(r);
-    expect(raws.length).toBe(1);
-    expect(raws[0].kind).toBe("profile");
+    expect(await a.authenticate({ inputPath: p })).toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_SHAPE_INVALID",
+    });
   });
 
   it("snapshottedAt fallback when event capturedAt missing", async () => {
@@ -212,9 +245,7 @@ describe("DouyinAdapter snapshot mode", () => {
     const p = writeSnapshot(tmpDir, {
       schemaVersion: 1,
       snapshottedAt: ts,
-      events: [
-        { kind: "profile", id: "p1", secUid: "X", nickname: "x" },
-      ],
+      events: [{ kind: "profile", id: "p1", secUid: "X", nickname: "x" }],
     });
     const a = new DouyinAdapter();
     const raws = [];

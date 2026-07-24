@@ -38,6 +38,10 @@
 "use strict";
 
 const fs = require("node:fs");
+const {
+  probeJsonSnapshotFile,
+  readJsonSnapshot,
+} = require("../../snapshot-file");
 const { newId } = require("../../ids");
 const {
   ENTITY_TYPES,
@@ -73,10 +77,10 @@ function stableOriginalId(kind, id) {
     (typeof id === "string" && id.length > 0 && id) ||
     (typeof id === "number" && Number.isFinite(id) && String(id)) ||
     null;
-  const safe =
-    stringified ||
-    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  return `kuaishou:${kind}:${safe}`;
+  if (!stringified) {
+    throw new Error(`${NAME}.sync: ${kind} event requires a stable source id`);
+  }
+  return `kuaishou:${kind}:${stringified}`;
 }
 
 function parseTime(v) {
@@ -144,16 +148,12 @@ class KuaishouAdapter {
 
   async authenticate(ctx = {}) {
     if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
-      try {
-        this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
-      } catch (err) {
-        return {
-          ok: false,
-          reason: "INPUT_PATH_UNREADABLE",
-          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
-        };
-      }
-      return { ok: true, mode: "snapshot-file" };
+      return probeJsonSnapshotFile(this._deps.fs, ctx.inputPath, {
+        maxBytes: ctx.maxSnapshotBytes,
+        expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        requiredArrayFields: ["events"],
+        allowedEventKinds: VALID_SNAPSHOT_KINDS,
+      });
     }
     if (this._dbPath || (ctx && typeof ctx.dbPath === "string")) {
       if (!this.account || !this.account.uid) {
@@ -194,17 +194,12 @@ class KuaishouAdapter {
   }
 
   async *_syncViaSnapshot(opts) {
-    const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
-    const snapshot = JSON.parse(raw);
-    if (
-      !snapshot ||
-      typeof snapshot !== "object" ||
-      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
-    ) {
-      throw new Error(
-        `social-kuaishou.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
-      );
-    }
+    const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
+      maxBytes: opts.maxSnapshotBytes,
+      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      requiredArrayFields: ["events"],
+      allowedEventKinds: VALID_SNAPSHOT_KINDS,
+    });
     const fallbackCapturedAt =
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
@@ -228,11 +223,12 @@ class KuaishouAdapter {
       if (include[kind] === false) continue;
 
       const capturedAt =
-        parseTime(ev.capturedAt) ||
-        parseTime(ev.time) ||
-        fallbackCapturedAt;
+        parseTime(ev.capturedAt) || parseTime(ev.time) || fallbackCapturedAt;
       const id =
         (typeof ev.id === "string" && ev.id.length > 0 && ev.id) ||
+        (typeof ev.id === "number" &&
+          Number.isFinite(ev.id) &&
+          String(ev.id)) ||
         ev.photoId ||
         ev.keyword ||
         null;
@@ -404,8 +400,7 @@ function normalizeWatch(p, raw, ingestedAt) {
   }
   const isSnapshot = !p.row;
   const row = p.row || {};
-  const caption =
-    pickField(p, "caption", "caption", "title") || "(no caption)";
+  const caption = pickField(p, "caption", "caption", "title") || "(no caption)";
   const occurredAt =
     parseTime(p.capturedAt) ||
     parseTime(row.view_time || row.time || row.create_time) ||
@@ -451,8 +446,7 @@ function normalizeCollect(p, raw, ingestedAt) {
   }
   const isSnapshot = !p.row;
   const row = p.row || {};
-  const caption =
-    pickField(p, "caption", "caption", "title") || "(no caption)";
+  const caption = pickField(p, "caption", "caption", "title") || "(no caption)";
   const occurredAt =
     parseTime(p.capturedAt) ||
     parseTime(row.collect_time || row.time) ||

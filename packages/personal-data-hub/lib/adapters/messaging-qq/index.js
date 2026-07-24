@@ -52,6 +52,10 @@
 const fs = require("node:fs");
 const { newId } = require("../../ids");
 const {
+  probeJsonSnapshotFile,
+  readJsonSnapshot,
+} = require("../../snapshot-file");
+const {
   ENTITY_TYPES,
   PERSON_SUBTYPES,
   EVENT_SUBTYPES,
@@ -72,13 +76,14 @@ const VALID_SNAPSHOT_KINDS = Object.freeze([
 ]);
 
 function stableOriginalId(kind, id) {
-  const stringified =
-    (typeof id === "string" && id.length > 0 && id) ||
-    (typeof id === "number" && Number.isFinite(id) && String(id)) ||
-    null;
   const safe =
-    stringified ||
-    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    (typeof id === "string" && id.length > 0 && id) ||
+    (typeof id === "number" && Number.isFinite(id) && String(id));
+  if (!safe) {
+    throw new Error(
+      `${NAME}.sync: ${String(kind)} record requires a stable id`,
+    );
+  }
   return `qq:${kind}:${safe}`;
 }
 
@@ -150,16 +155,12 @@ class QQAdapter {
 
   async authenticate(ctx = {}) {
     if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
-      try {
-        this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
-      } catch (err) {
-        return {
-          ok: false,
-          reason: "INPUT_PATH_UNREADABLE",
-          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
-        };
-      }
-      return { ok: true, mode: "snapshot-file" };
+      return probeJsonSnapshotFile(this._deps.fs, ctx.inputPath, {
+        maxBytes: ctx.maxSnapshotBytes,
+        expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        requiredArrayFields: ["events"],
+        allowedEventKinds: VALID_SNAPSHOT_KINDS,
+      });
     }
     if (this._dbPath || (ctx && typeof ctx.dbPath === "string")) {
       if (!this.account || !this.account.qq) {
@@ -169,7 +170,10 @@ class QQAdapter {
           message: "messaging-qq.authenticate: sqlite mode requires account.qq",
         };
       }
-      if (!this._keyProvider || typeof this._keyProvider.getKey !== "function") {
+      if (
+        !this._keyProvider ||
+        typeof this._keyProvider.getKey !== "function"
+      ) {
         return {
           ok: false,
           reason: "NO_KEY_PROVIDER",
@@ -210,17 +214,12 @@ class QQAdapter {
   }
 
   async *_syncViaSnapshot(opts) {
-    const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
-    const snapshot = JSON.parse(raw);
-    if (
-      !snapshot ||
-      typeof snapshot !== "object" ||
-      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
-    ) {
-      throw new Error(
-        `messaging-qq.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
-      );
-    }
+    const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
+      maxBytes: opts.maxSnapshotBytes,
+      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      requiredArrayFields: ["events"],
+      allowedEventKinds: VALID_SNAPSHOT_KINDS,
+    });
     const fallbackCapturedAt =
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
@@ -234,25 +233,25 @@ class QQAdapter {
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
 
-    const events = Array.isArray(snapshot.events) ? snapshot.events : [];
+    const events = snapshot.events;
     let emitted = 0;
     for (const ev of events) {
       if (emitted >= limit) return;
-      if (!ev || typeof ev !== "object") continue;
       const kind = ev.kind;
-      if (!VALID_SNAPSHOT_KINDS.includes(kind)) continue;
       if (include[kind] === false) continue;
 
       const capturedAt =
-        parseTime(ev.capturedAt) ||
-        parseTime(ev.time) ||
-        fallbackCapturedAt;
-      const id =
+        parseTime(ev.capturedAt) || parseTime(ev.time) || fallbackCapturedAt;
+      const explicitId =
         (typeof ev.id === "string" && ev.id.length > 0 && ev.id) ||
-        ev.uin ||
-        ev.troopUin ||
-        ev.msgId ||
-        null;
+        (typeof ev.id === "number" && Number.isFinite(ev.id) ? ev.id : null);
+      const id =
+        explicitId ??
+        (kind === KIND_CONTACT
+          ? ev.uin
+          : kind === KIND_GROUP
+            ? ev.troopUin
+            : ev.msgId);
 
       yield {
         adapter: NAME,
@@ -285,7 +284,9 @@ class QQAdapter {
     const imeiKey = await this._keyProvider.getKey();
     if (!imeiKey) return;
     const imeiBytes =
-      typeof imeiKey === "string" ? Buffer.from(imeiKey, "utf-8") : Buffer.from(imeiKey);
+      typeof imeiKey === "string"
+        ? Buffer.from(imeiKey, "utf-8")
+        : Buffer.from(imeiKey);
 
     const Driver = this._deps.dbDriverFactory
       ? this._deps.dbDriverFactory()
@@ -295,9 +296,18 @@ class QQAdapter {
     try {
       // Friends: probe 3 known table names across QQ version drift.
       const friends =
-        trySelect(db, "SELECT uin, name AS nickname, '' AS remark FROM Friends LIMIT 5000") ||
-        trySelect(db, "SELECT uin, name AS nickname, '' AS remark FROM friends LIMIT 5000") ||
-        trySelect(db, "SELECT uin, name AS nickname, remark FROM tb_recent_contact LIMIT 5000") ||
+        trySelect(
+          db,
+          "SELECT uin, name AS nickname, '' AS remark FROM Friends LIMIT 5000",
+        ) ||
+        trySelect(
+          db,
+          "SELECT uin, name AS nickname, '' AS remark FROM friends LIMIT 5000",
+        ) ||
+        trySelect(
+          db,
+          "SELECT uin, name AS nickname, remark FROM tb_recent_contact LIMIT 5000",
+        ) ||
         [];
       for (const row of friends) {
         yield {
@@ -362,10 +372,13 @@ class QQAdapter {
               msgId: row.msgId != null ? String(row.msgId) : null,
               msgType: row.msgtype,
               senderUin: row.senderuin != null ? String(row.senderuin) : null,
-              peerUin:
-                isGroup
-                  ? (row.troopuin != null ? String(row.troopuin) : null)
-                  : (row.frienduin != null ? String(row.frienduin) : null),
+              peerUin: isGroup
+                ? row.troopuin != null
+                  ? String(row.troopuin)
+                  : null
+                : row.frienduin != null
+                  ? String(row.frienduin)
+                  : null,
               isGroup,
               isSend: !!row.issend,
               text: decrypted,
@@ -375,7 +388,11 @@ class QQAdapter {
         }
       }
     } finally {
-      try { db.close(); } catch (_e) { /* ignore */ }
+      try {
+        db.close();
+      } catch (_e) {
+        /* ignore */
+      }
     }
   }
 
@@ -449,7 +466,9 @@ function normalizeGroup(p, raw, ingestedAt) {
   const troopUin =
     p.troopUin || (p.row && p.row.troop_uin && String(p.row.troop_uin)) || null;
   const troopName =
-    p.troopName || (p.row && p.row.troop_name) || (troopUin ? String(troopUin) : "(unnamed)");
+    p.troopName ||
+    (p.row && p.row.troop_name) ||
+    (troopUin ? String(troopUin) : "(unnamed)");
   const memberCount =
     p.memberCount != null ? p.memberCount : (p.row && p.row.member_count) || 0;
   const ownerUin =
@@ -483,8 +502,7 @@ function normalizeMessage(p, raw, ingestedAt) {
   // Snapshot: { msgId, msgType, senderUin, peerUin, isGroup, isSend, text, capturedAt }
   // Sqlite:   { msgId, msgType, senderUin, peerUin, isGroup, isSend, text, _table }
   const text = p.text || "";
-  const occurredAt =
-    parseTime(p.capturedAt) || raw.capturedAt || ingestedAt;
+  const occurredAt = parseTime(p.capturedAt) || raw.capturedAt || ingestedAt;
   const source = buildSource(raw, occurredAt, CAPTURED_BY.SQLITE);
   return {
     events: [

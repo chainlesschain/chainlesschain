@@ -35,6 +35,10 @@
 "use strict";
 
 const fs = require("node:fs");
+const {
+  probeJsonSnapshotFile,
+  readJsonSnapshot,
+} = require("../../snapshot-file");
 const { newId } = require("../../ids");
 const {
   ENTITY_TYPES,
@@ -54,17 +58,21 @@ const KIND_FOLLOW = "follow";
 const KIND_HISTORY = "history";
 const KIND_LIKE = "like";
 const KIND_FAVOURITE = "favourite";
-const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_NOTE, KIND_LIKED, KIND_FOLLOW]);
+const VALID_SNAPSHOT_KINDS = Object.freeze([
+  KIND_NOTE,
+  KIND_LIKED,
+  KIND_FOLLOW,
+]);
 
 function stableOriginalId(kind, id) {
   const stringified =
     (typeof id === "string" && id.length > 0 && id) ||
     (typeof id === "number" && Number.isFinite(id) && String(id)) ||
     null;
-  const safe =
-    stringified ||
-    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  return `xiaohongshu:${kind}:${safe}`;
+  if (!stringified) {
+    throw new Error(`${NAME}.sync: ${kind} event requires a stable source id`);
+  }
+  return `xiaohongshu:${kind}:${stringified}`;
 }
 
 function parseTime(v) {
@@ -81,7 +89,11 @@ function parseTime(v) {
 }
 
 function trySelect(db, sql) {
-  try { return db.prepare(sql).all(); } catch (_e) { return null; }
+  try {
+    return db.prepare(sql).all();
+  } catch (_e) {
+    return null;
+  }
 }
 
 class XiaohongshuAdapter {
@@ -126,23 +138,20 @@ class XiaohongshuAdapter {
 
   async authenticate(ctx = {}) {
     if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
-      try {
-        this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
-      } catch (err) {
-        return {
-          ok: false,
-          reason: "INPUT_PATH_UNREADABLE",
-          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
-        };
-      }
-      return { ok: true, mode: "snapshot-file" };
+      return probeJsonSnapshotFile(this._deps.fs, ctx.inputPath, {
+        maxBytes: ctx.maxSnapshotBytes,
+        expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        requiredArrayFields: ["events"],
+        allowedEventKinds: VALID_SNAPSHOT_KINDS,
+      });
     }
     if (this._dbPath || (ctx && typeof ctx.dbPath === "string")) {
       if (!this.account || !this.account.uid) {
         return {
           ok: false,
           reason: "NO_ACCOUNT_UID",
-          message: "social-xiaohongshu.authenticate: sqlite mode requires account.uid",
+          message:
+            "social-xiaohongshu.authenticate: sqlite mode requires account.uid",
         };
       }
       return { ok: true, account: this.account.uid, mode: "sqlite" };
@@ -175,17 +184,12 @@ class XiaohongshuAdapter {
   }
 
   async *_syncViaSnapshot(opts) {
-    const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
-    const snapshot = JSON.parse(raw);
-    if (
-      !snapshot ||
-      typeof snapshot !== "object" ||
-      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
-    ) {
-      throw new Error(
-        `social-xiaohongshu.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
-      );
-    }
+    const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
+      maxBytes: opts.maxSnapshotBytes,
+      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      requiredArrayFields: ["events"],
+      allowedEventKinds: VALID_SNAPSHOT_KINDS,
+    });
     const fallbackCapturedAt =
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
@@ -209,11 +213,12 @@ class XiaohongshuAdapter {
       if (include[kind] === false) continue;
 
       const capturedAt =
-        parseTime(ev.capturedAt) ||
-        parseTime(ev.time) ||
-        fallbackCapturedAt;
+        parseTime(ev.capturedAt) || parseTime(ev.time) || fallbackCapturedAt;
       const id =
         (typeof ev.id === "string" && ev.id.length > 0 && ev.id) ||
+        (typeof ev.id === "number" &&
+          Number.isFinite(ev.id) &&
+          String(ev.id)) ||
         ev.noteId ||
         ev.userId ||
         null;
@@ -243,9 +248,15 @@ class XiaohongshuAdapter {
     const db = new Driver(dbPath, { readonly: true });
     try {
       const histories =
-        trySelect(db, "SELECT * FROM browse_history ORDER BY view_time DESC LIMIT 5000")
-        || trySelect(db, "SELECT * FROM note ORDER BY view_time DESC LIMIT 5000")
-        || [];
+        trySelect(
+          db,
+          "SELECT * FROM browse_history ORDER BY view_time DESC LIMIT 5000",
+        ) ||
+        trySelect(
+          db,
+          "SELECT * FROM note ORDER BY view_time DESC LIMIT 5000",
+        ) ||
+        [];
       for (const row of histories) {
         yield {
           adapter: NAME,
@@ -254,7 +265,11 @@ class XiaohongshuAdapter {
           payload: { row, kind: KIND_HISTORY },
         };
       }
-      const likes = trySelect(db, "SELECT * FROM liked_note ORDER BY like_time DESC LIMIT 5000") || [];
+      const likes =
+        trySelect(
+          db,
+          "SELECT * FROM liked_note ORDER BY like_time DESC LIMIT 5000",
+        ) || [];
       for (const row of likes) {
         yield {
           adapter: NAME,
@@ -263,7 +278,11 @@ class XiaohongshuAdapter {
           payload: { row, kind: KIND_LIKE },
         };
       }
-      const favs = trySelect(db, "SELECT * FROM favourite ORDER BY save_time DESC LIMIT 5000") || [];
+      const favs =
+        trySelect(
+          db,
+          "SELECT * FROM favourite ORDER BY save_time DESC LIMIT 5000",
+        ) || [];
       for (const row of favs) {
         yield {
           adapter: NAME,
@@ -273,7 +292,11 @@ class XiaohongshuAdapter {
         };
       }
     } finally {
-      try { db.close(); } catch (_e) { /* ignore */ }
+      try {
+        db.close();
+      } catch (_e) {
+        /* ignore */
+      }
     }
   }
 
@@ -286,7 +309,11 @@ class XiaohongshuAdapter {
     const p = raw.payload;
 
     // Sqlite mode (legacy) — payload.row + kind in {history, like, favourite}
-    if (kind === KIND_HISTORY || kind === KIND_LIKE || kind === KIND_FAVOURITE) {
+    if (
+      kind === KIND_HISTORY ||
+      kind === KIND_LIKE ||
+      kind === KIND_FAVOURITE
+    ) {
       return normalizeSqliteRow(p, raw, ingestedAt);
     }
 
@@ -321,23 +348,28 @@ function normalizeSqliteRow(p, raw, ingestedAt) {
     [KIND_FAVOURITE]: EVENT_SUBTYPES.LIKE,
   };
   return {
-    events: [{
-      id: newId(),
-      type: ENTITY_TYPES.EVENT,
-      subtype: subtypeMap[kind] || EVENT_SUBTYPES.BROWSE,
-      occurredAt,
-      actor: "person-self",
-      content: { title: row.title || row.note_title || "(no title)" },
-      ingestedAt,
-      source,
-      extra: {
-        platform: "xiaohongshu",
-        noteId: row.note_id || null,
-        author: row.author || row.nickname || null,
-        kind,
+    events: [
+      {
+        id: newId(),
+        type: ENTITY_TYPES.EVENT,
+        subtype: subtypeMap[kind] || EVENT_SUBTYPES.BROWSE,
+        occurredAt,
+        actor: "person-self",
+        content: { title: row.title || row.note_title || "(no title)" },
+        ingestedAt,
+        source,
+        extra: {
+          platform: "xiaohongshu",
+          noteId: row.note_id || null,
+          author: row.author || row.nickname || null,
+          kind,
+        },
       },
-    }],
-    persons: [], places: [], items: [], topics: [],
+    ],
+    persons: [],
+    places: [],
+    items: [],
+    topics: [],
   };
 }
 
@@ -346,28 +378,33 @@ function normalizeNote(p, raw, ingestedAt) {
   const source = buildSource(raw, occurredAt, CAPTURED_BY.API);
   const title = p.title || "(no title)";
   return {
-    events: [{
-      id: newId(),
-      type: ENTITY_TYPES.EVENT,
-      subtype: EVENT_SUBTYPES.POST,
-      occurredAt,
-      actor: "person-self",
-      content: {
-        title,
-        text: p.desc || "",
+    events: [
+      {
+        id: newId(),
+        type: ENTITY_TYPES.EVENT,
+        subtype: EVENT_SUBTYPES.POST,
+        occurredAt,
+        actor: "person-self",
+        content: {
+          title,
+          text: p.desc || "",
+        },
+        ingestedAt,
+        source,
+        extra: {
+          platform: "xiaohongshu",
+          noteId: p.noteId,
+          type: p.type || "normal",
+          likedCount: p.likedCount || 0,
+          collectedCount: p.collectedCount || 0,
+          commentCount: p.commentCount || 0,
+        },
       },
-      ingestedAt,
-      source,
-      extra: {
-        platform: "xiaohongshu",
-        noteId: p.noteId,
-        type: p.type || "normal",
-        likedCount: p.likedCount || 0,
-        collectedCount: p.collectedCount || 0,
-        commentCount: p.commentCount || 0,
-      },
-    }],
-    persons: [], places: [], items: [], topics: [],
+    ],
+    persons: [],
+    places: [],
+    items: [],
+    topics: [],
   };
 }
 
@@ -376,22 +413,27 @@ function normalizeLiked(p, raw, ingestedAt) {
   const source = buildSource(raw, occurredAt, CAPTURED_BY.API);
   const title = p.title || "(no title)";
   return {
-    events: [{
-      id: newId(),
-      type: ENTITY_TYPES.EVENT,
-      subtype: EVENT_SUBTYPES.LIKE,
-      occurredAt,
-      actor: "person-self",
-      content: { title },
-      ingestedAt,
-      source,
-      extra: {
-        platform: "xiaohongshu",
-        noteId: p.noteId,
-        authorNickname: p.authorNickname || null,
+    events: [
+      {
+        id: newId(),
+        type: ENTITY_TYPES.EVENT,
+        subtype: EVENT_SUBTYPES.LIKE,
+        occurredAt,
+        actor: "person-self",
+        content: { title },
+        ingestedAt,
+        source,
+        extra: {
+          platform: "xiaohongshu",
+          noteId: p.noteId,
+          authorNickname: p.authorNickname || null,
+        },
       },
-    }],
-    persons: [], places: [], items: [], topics: [],
+    ],
+    persons: [],
+    places: [],
+    items: [],
+    topics: [],
   };
 }
 

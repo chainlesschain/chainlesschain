@@ -37,7 +37,11 @@ describe("DoubanAdapter snapshot mode", () => {
   });
 
   it("authenticate(inputPath) ok when readable", async () => {
-    const p = writeSnapshot(tmpDir, { schemaVersion: 1, snapshottedAt: Date.now(), events: [] });
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 1,
+      snapshottedAt: Date.now(),
+      events: [],
+    });
     const a = new DoubanAdapter();
     const res = await a.authenticate({ inputPath: p });
     expect(res.ok).toBe(true);
@@ -55,7 +59,9 @@ describe("DoubanAdapter snapshot mode", () => {
     const a = new DoubanAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({})) { /* drain */ }
+      for await (const _r of a.sync({})) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
@@ -64,11 +70,17 @@ describe("DoubanAdapter snapshot mode", () => {
   });
 
   it("rejects schemaVersion mismatch", async () => {
-    const p = writeSnapshot(tmpDir, { schemaVersion: 99, snapshottedAt: Date.now(), events: [] });
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 99,
+      snapshottedAt: Date.now(),
+      events: [],
+    });
     const a = new DoubanAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({ inputPath: p })) { /* drain */ }
+      for await (const _r of a.sync({ inputPath: p })) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
@@ -83,9 +95,16 @@ describe("DoubanAdapter snapshot mode", () => {
       account: { userId: "12345", name: "alice" },
       events: [
         {
-          kind: "interest", id: "interest-m1", subjectId: "26266893",
-          subjectType: "movie", title: "瞬息全宇宙", status: "done",
-          myRating: 5, comment: "好看", createdTime: 1700000000, url: "https://movie.douban.com/subject/26266893/",
+          kind: "interest",
+          id: "interest-m1",
+          subjectId: "26266893",
+          subjectType: "movie",
+          title: "瞬息全宇宙",
+          status: "done",
+          myRating: 5,
+          comment: "好看",
+          createdTime: 1700000000,
+          url: "https://movie.douban.com/subject/26266893/",
         },
       ],
     });
@@ -116,10 +135,18 @@ describe("DoubanAdapter snapshot mode", () => {
     ];
     for (const c of cases) {
       const p = writeSnapshot(tmpDir, {
-        schemaVersion: 1, snapshottedAt: now,
+        schemaVersion: 1,
+        snapshottedAt: now,
         events: [
-          { kind: "interest", id: `i-${c.status}`, subjectId: "1", subjectType: "book",
-            title: "三体", status: c.status, createdTime: now },
+          {
+            kind: "interest",
+            id: `i-${c.status}`,
+            subjectId: "1",
+            subjectType: "book",
+            title: "三体",
+            status: c.status,
+            createdTime: now,
+          },
         ],
       });
       const a = new DoubanAdapter();
@@ -133,10 +160,19 @@ describe("DoubanAdapter snapshot mode", () => {
   it("review → POST event", async () => {
     const now = Date.now();
     const p = writeSnapshot(tmpDir, {
-      schemaVersion: 1, snapshottedAt: now,
+      schemaVersion: 1,
+      snapshottedAt: now,
       events: [
-        { kind: "review", id: "review-1", reviewId: "9001", title: "一篇影评",
-          abstract: "<p>写得不错</p>", subjectTitle: "瞬息全宇宙", rating: 4, createdTime: now },
+        {
+          kind: "review",
+          id: "review-1",
+          reviewId: "9001",
+          title: "一篇影评",
+          abstract: "<p>写得不错</p>",
+          subjectTitle: "瞬息全宇宙",
+          rating: 4,
+          createdTime: now,
+        },
       ],
     });
     const a = new DoubanAdapter();
@@ -153,10 +189,17 @@ describe("DoubanAdapter snapshot mode", () => {
   it("follow → CONTACT person with douban-id identifier", async () => {
     const now = Date.now();
     const p = writeSnapshot(tmpDir, {
-      schemaVersion: 1, snapshottedAt: now,
+      schemaVersion: 1,
+      snapshottedAt: now,
       events: [
-        { kind: "follow", id: "follow-u1", memberId: "67890", name: "豆友小张",
-          url: "https://www.douban.com/people/67890/", capturedAt: now },
+        {
+          kind: "follow",
+          id: "follow-u1",
+          memberId: "67890",
+          name: "豆友小张",
+          url: "https://www.douban.com/people/67890/",
+          capturedAt: now,
+        },
       ],
     });
     const a = new DoubanAdapter();
@@ -173,31 +216,46 @@ describe("DoubanAdapter snapshot mode", () => {
   it("respects per-kind include opt-out + limit", async () => {
     const now = Date.now();
     const events = [
-      { kind: "interest", id: "i1", subjectId: "1", subjectType: "movie", title: "a", status: "done", createdTime: now },
+      {
+        kind: "interest",
+        id: "i1",
+        subjectId: "1",
+        subjectType: "movie",
+        title: "a",
+        status: "done",
+        createdTime: now,
+      },
       { kind: "review", id: "r1", reviewId: "2", title: "b", createdTime: now },
       { kind: "follow", id: "f1", memberId: "3", name: "c", capturedAt: now },
     ];
-    const p = writeSnapshot(tmpDir, { schemaVersion: 1, snapshottedAt: now, events });
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 1,
+      snapshottedAt: now,
+      events,
+    });
     const a = new DoubanAdapter();
     const raws = [];
-    for await (const r of a.sync({ inputPath: p, include: { review: false, follow: false } })) raws.push(r);
+    for await (const r of a.sync({
+      inputPath: p,
+      include: { review: false, follow: false },
+    }))
+      raws.push(r);
     expect(raws.length).toBe(1);
     expect(raws[0].kind).toBe("interest");
   });
 
-  it("filters unknown kinds (forward compat)", async () => {
+  it("rejects unknown snapshot kinds", async () => {
     const now = Date.now();
     const p = writeSnapshot(tmpDir, {
-      schemaVersion: 1, snapshottedAt: now,
-      events: [
-        { kind: "interest", id: "i1", subjectId: "1", subjectType: "movie", title: "a", status: "done", createdTime: now },
-        { kind: "status", id: "s1" },
-      ],
+      schemaVersion: 1,
+      snapshottedAt: now,
+      events: [{ kind: "status", id: "s1" }],
     });
     const a = new DoubanAdapter();
-    const raws = [];
-    for await (const r of a.sync({ inputPath: p })) raws.push(r);
-    expect(raws.length).toBe(1);
+    expect(await a.authenticate({ inputPath: p })).toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_SHAPE_INVALID",
+    });
   });
 
   it("advertises snapshot + cookie-api capabilities; passes assertAdapter", () => {
@@ -217,7 +275,9 @@ describe("DoubanAdapter cookie-api mode", () => {
   });
 
   it("authenticate(cookie) ok when userId + cookies present", async () => {
-    const a = new DoubanAdapter({ account: { userId: "12345", cookies: "bid=ok" } });
+    const a = new DoubanAdapter({
+      account: { userId: "12345", cookies: "bid=ok" },
+    });
     const res = await a.authenticate();
     expect(res.ok).toBe(true);
     expect(res.mode).toBe("cookie");
@@ -229,26 +289,54 @@ describe("DoubanAdapter cookie-api mode", () => {
       if (url.includes("/interests")) {
         return {
           interests: [
-            { id: "int1", status: "done", create_time: "2024-01-02 10:00:00",
-              rating: { value: 4 }, comment: "不错",
-              subject: { id: "26266893", type: "movie", title: "瞬息全宇宙", url: "u" } },
+            {
+              id: "int1",
+              status: "done",
+              create_time: "2024-01-02 10:00:00",
+              rating: { value: 4 },
+              comment: "不错",
+              subject: {
+                id: "26266893",
+                type: "movie",
+                title: "瞬息全宇宙",
+                url: "u",
+              },
+            },
           ],
           total: 1,
         };
       }
       if (url.includes("/reviews")) {
-        return { reviews: [{ id: "rev1", title: "影评", abstract: "好", create_time: "2024-01-03 10:00:00", subject: { title: "瞬息全宇宙" } }], total: 1 };
+        return {
+          reviews: [
+            {
+              id: "rev1",
+              title: "影评",
+              abstract: "好",
+              create_time: "2024-01-03 10:00:00",
+              subject: { title: "瞬息全宇宙" },
+            },
+          ],
+          total: 1,
+        };
       }
       if (url.includes("/following")) {
         return { users: [{ id: "u9", name: "豆友" }], total: 1 };
       }
-      return { total: 0 };
+      return { items: [], total: 0 };
     };
     const fetchFn = async (opts) => byUrl(opts.url);
-    const a = new DoubanAdapter({ account: { userId: "12345", cookies: "bid=ok" }, fetchFn });
+    const a = new DoubanAdapter({
+      account: { userId: "12345", cookies: "bid=ok" },
+      fetchFn,
+    });
     const raws = [];
     for await (const r of a.sync({})) raws.push(r);
-    expect(raws.map((r) => r.kind).sort()).toEqual(["follow", "interest", "review"]);
+    expect(raws.map((r) => r.kind).sort()).toEqual([
+      "follow",
+      "interest",
+      "review",
+    ]);
 
     const interest = raws.find((r) => r.kind === "interest");
     const ib = a.normalize(interest);
@@ -268,14 +356,18 @@ describe("DoubanAdapter cookie-api mode", () => {
     const signProvider = async () => "SIG-1";
     const fetchFn = async (opts) => {
       seenSign = opts.sign;
-      return { total: 0 };
+      return { interests: [], total: 0 };
     };
     const a = new DoubanAdapter({
       account: { userId: "12345", cookies: "bid=ok" },
       fetchFn,
       signProvider,
     });
-    for await (const _r of a.sync({ include: { review: false, follow: false } })) { /* drain */ }
+    for await (const _r of a.sync({
+      include: { review: false, follow: false },
+    })) {
+      /* drain */
+    }
     expect(seenSign).toBe("SIG-1");
   });
 
@@ -283,30 +375,50 @@ describe("DoubanAdapter cookie-api mode", () => {
     let seen = "unset";
     const fetchFn = async (opts) => {
       seen = opts.sign;
-      return { total: 0 };
+      return { interests: [], total: 0 };
     };
-    const a = new DoubanAdapter({ account: { userId: "12345", cookies: "bid=ok" }, fetchFn });
-    for await (const _r of a.sync({ include: { review: false, follow: false } })) { /* drain */ }
+    const a = new DoubanAdapter({
+      account: { userId: "12345", cookies: "bid=ok" },
+      fetchFn,
+    });
+    for await (const _r of a.sync({
+      include: { review: false, follow: false },
+    })) {
+      /* drain */
+    }
     expect(seen).toBe(null);
   });
 
   it("paginates interests with start cursor until total reached", async () => {
     const seenStarts = [];
+    let watermarkComplete = false;
     const all = Array.from({ length: 25 }, (_, i) => ({
-      id: `int${i}`, status: "done", create_time: "2024-01-01 00:00:00",
+      id: `int${i}`,
+      status: "done",
+      create_time: "2024-01-01 00:00:00",
       subject: { id: String(i), type: "book", title: `书${i}` },
     }));
     const fetchFn = async (opts) => {
-      if (!opts.url.includes("/interests")) return { total: 0 };
+      if (!opts.url.includes("/interests")) return { items: [], total: 0 };
       const start = opts.query.start;
       seenStarts.push(start);
       return { interests: all.slice(start, start + 20), total: all.length };
     };
-    const a = new DoubanAdapter({ account: { userId: "12345", cookies: "bid=ok" }, fetchFn });
+    const a = new DoubanAdapter({
+      account: { userId: "12345", cookies: "bid=ok" },
+      fetchFn,
+    });
     const raws = [];
-    for await (const r of a.sync({ include: { review: false, follow: false } })) raws.push(r);
+    for await (const r of a.sync({
+      include: { review: false, follow: false },
+      markWatermarkComplete: () => {
+        watermarkComplete = true;
+      },
+    }))
+      raws.push(r);
     expect(raws.length).toBe(25);
     expect(seenStarts).toEqual([0, 20]);
+    expect(watermarkComplete).toBe(true);
   });
 
   it("extractData tolerates Frodo response shapes", () => {
@@ -315,15 +427,20 @@ describe("DoubanAdapter cookie-api mode", () => {
     expect(extractData({ users: [3] }, "follow")).toEqual([3]);
     expect(extractData({ items: [4] })).toEqual([4]);
     expect(extractData([5])).toEqual([5]);
-    expect(extractData({})).toEqual([]);
-    expect(extractData(null)).toEqual([]);
+    expect(extractData({ items: [] })).toEqual([]);
+    expect(() => extractData({})).toThrow(
+      expect.objectContaining({ code: "SOURCE_PAGE_UNRECOGNIZED" }),
+    );
+    expect(() => extractData(null)).toThrow(
+      expect.objectContaining({ code: "SOURCE_PAGE_UNRECOGNIZED" }),
+    );
   });
 
   it("uses opts.*Url overrides", async () => {
     const seen = [];
     const fetchFn = async (opts) => {
       seen.push(opts.url);
-      return { total: 0 };
+      return { items: [], total: 0 };
     };
     const a = new DoubanAdapter({
       account: { userId: "12345", cookies: "bid=ok" },
@@ -332,17 +449,23 @@ describe("DoubanAdapter cookie-api mode", () => {
       reviewsUrl: "https://x/r/{id}",
       followingUrl: "https://x/f/{id}",
     });
-    for await (const _r of a.sync({})) { /* drain */ }
+    for await (const _r of a.sync({})) {
+      /* drain */
+    }
     expect(seen).toContain("https://x/i/12345");
     expect(seen).toContain("https://x/r/12345");
     expect(seen).toContain("https://x/f/12345");
   });
 
   it("default fetchFn throws legible error in cookie mode without injection", async () => {
-    const a = new DoubanAdapter({ account: { userId: "12345", cookies: "bid=ok" } });
+    const a = new DoubanAdapter({
+      account: { userId: "12345", cookies: "bid=ok" },
+    });
     let threw = null;
     try {
-      for await (const _r of a.sync({})) { /* drain */ }
+      for await (const _r of a.sync({})) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }

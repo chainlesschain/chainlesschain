@@ -185,7 +185,9 @@ describe("extractWeChatKey", () => {
   afterEach(() => {
     try {
       fs.rmSync(dir, { recursive: true, force: true });
-    } catch (_e) {}
+    } catch {
+      // Best-effort cleanup for temporary test data.
+    }
   });
 
   function writeAuthXml(uin = "1234567890") {
@@ -447,6 +449,8 @@ describe("WechatAdapter contract", () => {
     expect(a.capabilities).toContain("sync:sqlite");
     expect(a.capabilities).toContain("decrypt:sqlcipher-v1");
     expect(a.dataDisclosure.legalGate).toBe(true);
+    expect(a.fileCheckpointMode({ inputPath: "EnMicroMsg.db" })).toBe("shared");
+    expect(a.fileCheckpointMode({ zipPath: "export.zip" })).toBe("preserve");
   });
 
   it("rejects missing account", () => {

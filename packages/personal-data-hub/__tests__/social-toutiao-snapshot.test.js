@@ -260,7 +260,13 @@ describe("ToutiaoAdapter snapshot mode", () => {
       snapshottedAt: now,
       events: [
         { kind: "read", id: "r1", capturedAt: now, itemId: "i-1", title: "t1" },
-        { kind: "collection", id: "c1", capturedAt: now, itemId: "i-2", title: "t2" },
+        {
+          kind: "collection",
+          id: "c1",
+          capturedAt: now,
+          itemId: "i-2",
+          title: "t2",
+        },
         { kind: "search", id: "s1", capturedAt: now, keyword: "kw" },
       ],
     });
@@ -288,29 +294,29 @@ describe("ToutiaoAdapter snapshot mode", () => {
         title: `t${i}`,
       });
     }
-    const p = writeSnapshot(tmpDir, { schemaVersion: 1, snapshottedAt: now, events });
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 1,
+      snapshottedAt: now,
+      events,
+    });
     const a = new ToutiaoAdapter();
     const raws = [];
     for await (const r of a.sync({ inputPath: p, limit: 3 })) raws.push(r);
     expect(raws.length).toBe(3);
   });
 
-  it("filters out unknown kinds (forward compat)", async () => {
+  it("rejects unknown snapshot kinds", async () => {
     const now = Date.now();
     const p = writeSnapshot(tmpDir, {
       schemaVersion: 1,
       snapshottedAt: now,
-      events: [
-        { kind: "read", id: "r1", capturedAt: now, itemId: "i-1", title: "t1" },
-        { kind: "future-kind", id: "x", capturedAt: now },
-        { kind: "subscription", id: "sub-1", capturedAt: now }, // v0.3 hypothetical
-      ],
+      events: [{ kind: "future-kind", id: "x", capturedAt: now }],
     });
     const a = new ToutiaoAdapter();
-    const raws = [];
-    for await (const r of a.sync({ inputPath: p })) raws.push(r);
-    expect(raws.length).toBe(1);
-    expect(raws[0].kind).toBe("read");
+    expect(await a.authenticate({ inputPath: p })).toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_SHAPE_INVALID",
+    });
   });
 
   it("snapshottedAt fallback when event capturedAt missing", async () => {

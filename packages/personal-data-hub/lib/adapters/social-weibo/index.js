@@ -48,6 +48,10 @@
 "use strict";
 
 const fs = require("node:fs");
+const {
+  probeJsonSnapshotFile,
+  readJsonSnapshot,
+} = require("../../snapshot-file");
 const { newId } = require("../../ids");
 const {
   ENTITY_TYPES,
@@ -71,17 +75,21 @@ const KIND_SEARCH = "search"; // legacy sqlite-mode only
 const KIND_DM_BUDDY = "dm-buddy"; // t_buddy   → PERSON(CONTACT)
 const KIND_DM_SESSION = "dm-session"; // t_session → TOPIC
 const KIND_DM_MESSAGE = "dm-message"; // t_message → EVENT(MESSAGE)
-const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_POST, KIND_FAVOURITE, KIND_FOLLOW]);
+const VALID_SNAPSHOT_KINDS = Object.freeze([
+  KIND_POST,
+  KIND_FAVOURITE,
+  KIND_FOLLOW,
+]);
 
 function stableOriginalId(kind, id) {
   const stringified =
     (typeof id === "string" && id.length > 0 && id) ||
     (typeof id === "number" && Number.isFinite(id) && String(id)) ||
     null;
-  const safe =
-    stringified ||
-    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  return `weibo:${kind}:${safe}`;
+  if (!stringified) {
+    throw new Error(`${NAME}.sync: ${kind} event requires a stable source id`);
+  }
+  return `weibo:${kind}:${stringified}`;
 }
 
 function parseTime(v) {
@@ -98,7 +106,11 @@ function parseTime(v) {
 }
 
 function trySelect(db, sql) {
-  try { return db.prepare(sql).all(); } catch (_e) { return null; }
+  try {
+    return db.prepare(sql).all();
+  } catch (_e) {
+    return null;
+  }
 }
 
 class WeiboAdapter {
@@ -154,23 +166,20 @@ class WeiboAdapter {
 
   async authenticate(ctx = {}) {
     if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
-      try {
-        this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
-      } catch (err) {
-        return {
-          ok: false,
-          reason: "INPUT_PATH_UNREADABLE",
-          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
-        };
-      }
-      return { ok: true, mode: "snapshot-file" };
+      return probeJsonSnapshotFile(this._deps.fs, ctx.inputPath, {
+        maxBytes: ctx.maxSnapshotBytes,
+        expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        requiredArrayFields: ["events"],
+        allowedEventKinds: VALID_SNAPSHOT_KINDS,
+      });
     }
     if (this._dbPath || (ctx && typeof ctx.dbPath === "string")) {
       if (!this.account || !this.account.uid) {
         return {
           ok: false,
           reason: "NO_ACCOUNT_UID",
-          message: "social-weibo.authenticate: sqlite mode requires account.uid",
+          message:
+            "social-weibo.authenticate: sqlite mode requires account.uid",
         };
       }
       return { ok: true, account: this.account.uid, mode: "sqlite" };
@@ -203,17 +212,12 @@ class WeiboAdapter {
   }
 
   async *_syncViaSnapshot(opts) {
-    const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
-    const snapshot = JSON.parse(raw);
-    if (
-      !snapshot ||
-      typeof snapshot !== "object" ||
-      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
-    ) {
-      throw new Error(
-        `social-weibo.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
-      );
-    }
+    const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
+      maxBytes: opts.maxSnapshotBytes,
+      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      requiredArrayFields: ["events"],
+      allowedEventKinds: VALID_SNAPSHOT_KINDS,
+    });
     const fallbackCapturedAt =
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
@@ -237,11 +241,12 @@ class WeiboAdapter {
       if (include[kind] === false) continue;
 
       const capturedAt =
-        parseTime(ev.capturedAt) ||
-        parseTime(ev.time) ||
-        fallbackCapturedAt;
+        parseTime(ev.capturedAt) || parseTime(ev.time) || fallbackCapturedAt;
       const id =
         (typeof ev.id === "string" && ev.id.length > 0 && ev.id) ||
+        (typeof ev.id === "number" &&
+          Number.isFinite(ev.id) &&
+          String(ev.id)) ||
         ev.mid ||
         ev.uid ||
         null;
@@ -284,8 +289,14 @@ class WeiboAdapter {
             db,
             `SELECT * FROM home_table WHERE uid='${selfUid}' ORDER BY time DESC LIMIT 5000`,
           )) ||
-        trySelect(db, "SELECT * FROM post ORDER BY created_at DESC LIMIT 5000") ||
-        trySelect(db, "SELECT * FROM status ORDER BY created_at DESC LIMIT 5000") ||
+        trySelect(
+          db,
+          "SELECT * FROM post ORDER BY created_at DESC LIMIT 5000",
+        ) ||
+        trySelect(
+          db,
+          "SELECT * FROM status ORDER BY created_at DESC LIMIT 5000",
+        ) ||
         [];
       for (const row of posts) {
         yield {
@@ -299,7 +310,10 @@ class WeiboAdapter {
       // FAVOURITES — device-verified `like_table` (the account's likes).
       // Legacy sqlite had no favourite path (folded into posts pre-A8).
       const favourites =
-        trySelect(db, "SELECT * FROM like_table ORDER BY time DESC LIMIT 5000") || [];
+        trySelect(
+          db,
+          "SELECT * FROM like_table ORDER BY time DESC LIMIT 5000",
+        ) || [];
       for (const row of favourites) {
         yield {
           adapter: NAME,
@@ -330,8 +344,10 @@ class WeiboAdapter {
       // SEARCH — legacy only (`search_history` doesn't exist on modern
       // weibo; trySelect returns null gracefully, loop is skipped).
       const searches =
-        trySelect(db, "SELECT * FROM search_history ORDER BY time DESC LIMIT 5000")
-        || [];
+        trySelect(
+          db,
+          "SELECT * FROM search_history ORDER BY time DESC LIMIT 5000",
+        ) || [];
       for (const row of searches) {
         yield {
           adapter: NAME,
@@ -341,7 +357,11 @@ class WeiboAdapter {
         };
       }
     } finally {
-      try { db.close(); } catch (_e) { /* ignore */ }
+      try {
+        db.close();
+      } catch (_e) {
+        /* ignore */
+      }
     }
 
     // Private messages live in a SEPARATE sibling DB `message_<uid>.db`.
@@ -413,7 +433,11 @@ class WeiboAdapter {
         };
       }
     } finally {
-      try { db.close(); } catch (_e) { /* ignore */ }
+      try {
+        db.close();
+      } catch (_e) {
+        /* ignore */
+      }
     }
   }
 
@@ -468,21 +492,26 @@ function normalizeSearch(p, raw, ingestedAt) {
   const occurredAt = parseTime(row.time || row.create_at) || ingestedAt;
   const source = buildSource(raw, occurredAt, CAPTURED_BY.SQLITE);
   return {
-    events: [{
-      id: newId(),
-      type: ENTITY_TYPES.EVENT,
-      subtype: EVENT_SUBTYPES.INTERACTION,
-      occurredAt,
-      actor: "person-self",
-      content: {
-        title: `搜索: ${row.keyword || row.query || ""}`,
-        text: row.keyword || row.query || "",
+    events: [
+      {
+        id: newId(),
+        type: ENTITY_TYPES.EVENT,
+        subtype: EVENT_SUBTYPES.INTERACTION,
+        occurredAt,
+        actor: "person-self",
+        content: {
+          title: `搜索: ${row.keyword || row.query || ""}`,
+          text: row.keyword || row.query || "",
+        },
+        ingestedAt,
+        source,
+        extra: { query: row.keyword || row.query, fromAdapter: NAME },
       },
-      ingestedAt,
-      source,
-      extra: { query: row.keyword || row.query, fromAdapter: NAME },
-    }],
-    persons: [], places: [], items: [], topics: [],
+    ],
+    persons: [],
+    places: [],
+    items: [],
+    topics: [],
   };
 }
 
@@ -503,36 +532,44 @@ function normalizePost(p, raw, ingestedAt) {
     isSnapshot ? CAPTURED_BY.API : CAPTURED_BY.SQLITE,
   );
   return {
-    events: [{
-      id: newId(),
-      type: ENTITY_TYPES.EVENT,
-      subtype: EVENT_SUBTYPES.POST,
-      occurredAt,
-      actor: "person-self",
-      content: {
-        title: (text || "").slice(0, 80) || "(空)",
-        text,
+    events: [
+      {
+        id: newId(),
+        type: ENTITY_TYPES.EVENT,
+        subtype: EVENT_SUBTYPES.POST,
+        occurredAt,
+        actor: "person-self",
+        content: {
+          title: (text || "").slice(0, 80) || "(空)",
+          text,
+        },
+        ingestedAt,
+        source,
+        extra: {
+          weiboMid: mid,
+          repostsCount:
+            row.repostsCount != null
+              ? row.repostsCount
+              : row.reposts_count || row.repost || row.rtnum || 0,
+          commentsCount:
+            row.commentsCount != null
+              ? row.commentsCount
+              : row.comments_count || row.comments || row.commentnum || 0,
+          likesCount:
+            row.likesCount != null
+              ? row.likesCount
+              : row.attitudes_count || row.likes || row.attitudenum || 0,
+          picCount: row.picCount || row.pic_num || 0,
+          source: row.source || null,
+          location: row.location || row.geo || null,
+          platform: "weibo",
+        },
       },
-      ingestedAt,
-      source,
-      extra: {
-        weiboMid: mid,
-        repostsCount:
-          row.repostsCount != null ? row.repostsCount
-            : row.reposts_count || row.repost || row.rtnum || 0,
-        commentsCount:
-          row.commentsCount != null ? row.commentsCount
-            : row.comments_count || row.comments || row.commentnum || 0,
-        likesCount:
-          row.likesCount != null ? row.likesCount
-            : row.attitudes_count || row.likes || row.attitudenum || 0,
-        picCount: row.picCount || row.pic_num || 0,
-        source: row.source || null,
-        location: row.location || row.geo || null,
-        platform: "weibo",
-      },
-    }],
-    persons: [], places: [], items: [], topics: [],
+    ],
+    persons: [],
+    places: [],
+    items: [],
+    topics: [],
   };
 }
 
@@ -542,38 +579,43 @@ function normalizeFavourite(p, raw, ingestedAt) {
   // nick } }. Both shapes handled below.
   const row = p.row || null;
   const isSqlite = !!row;
-  const text = isSqlite ? (row.content || "") : (p.text || "");
-  const mid = isSqlite ? (row.mblogid || row.id || null) : (p.mid || null);
+  const text = isSqlite ? row.content || "" : p.text || "";
+  const mid = isSqlite ? row.mblogid || row.id || null : p.mid || null;
   const occurredAt = isSqlite
-    ? (parseTime(row.time) || raw.capturedAt || ingestedAt)
-    : (parseTime(p.capturedAt) || raw.capturedAt || ingestedAt);
+    ? parseTime(row.time) || raw.capturedAt || ingestedAt
+    : parseTime(p.capturedAt) || raw.capturedAt || ingestedAt;
   const source = buildSource(
     raw,
     occurredAt,
     isSqlite ? CAPTURED_BY.SQLITE : CAPTURED_BY.API,
   );
   return {
-    events: [{
-      id: newId(),
-      type: ENTITY_TYPES.EVENT,
-      subtype: EVENT_SUBTYPES.LIKE,
-      occurredAt,
-      actor: "person-self",
-      content: {
-        title: (text || "").slice(0, 80) || "(空)",
-        text,
+    events: [
+      {
+        id: newId(),
+        type: ENTITY_TYPES.EVENT,
+        subtype: EVENT_SUBTYPES.LIKE,
+        occurredAt,
+        actor: "person-self",
+        content: {
+          title: (text || "").slice(0, 80) || "(空)",
+          text,
+        },
+        ingestedAt,
+        source,
+        extra: {
+          platform: "weibo",
+          weiboMid: mid,
+          authorScreenName: isSqlite
+            ? row.nick || null
+            : p.authorScreenName || null,
+        },
       },
-      ingestedAt,
-      source,
-      extra: {
-        platform: "weibo",
-        weiboMid: mid,
-        authorScreenName: isSqlite
-          ? (row.nick || null)
-          : (p.authorScreenName || null),
-      },
-    }],
-    persons: [], places: [], items: [], topics: [],
+    ],
+    persons: [],
+    places: [],
+    items: [],
+    topics: [],
   };
 }
 
@@ -584,17 +626,17 @@ function normalizeFollow(p, raw, ingestedAt) {
   //   screen_name, remark, gender } }. Both shapes handled below.
   const row = p.row || null;
   const isSqlite = !!row;
-  const rawUid = isSqlite ? (row.user_id || row.id) : p.uid;
+  const rawUid = isSqlite ? row.user_id || row.id : p.uid;
   const followUid =
     (typeof rawUid === "number" && rawUid) ||
     (typeof rawUid === "string" && rawUid.length > 0 && rawUid) ||
     `unknown-${newId()}`;
   const screenName = isSqlite
-    ? (row.screen_name || row.remark || "(unnamed)")
-    : (p.screenName || "(unnamed)");
+    ? row.screen_name || row.remark || "(unnamed)"
+    : p.screenName || "(unnamed)";
   const occurredAt = isSqlite
-    ? (parseTime(row.time) || raw.capturedAt || ingestedAt)
-    : (parseTime(p.capturedAt) || raw.capturedAt || ingestedAt);
+    ? parseTime(row.time) || raw.capturedAt || ingestedAt
+    : parseTime(p.capturedAt) || raw.capturedAt || ingestedAt;
   const source = buildSource(
     raw,
     occurredAt,
@@ -656,7 +698,8 @@ function normalizeDmBuddy(p, raw, ingestedAt) {
 
 function normalizeDmSession(p, raw, ingestedAt) {
   const row = p.row || {};
-  const sid = row.session_id != null ? String(row.session_id) : `unknown-${newId()}`;
+  const sid =
+    row.session_id != null ? String(row.session_id) : `unknown-${newId()}`;
   const occurredAt = parseTime(row.update_time) || raw.capturedAt || ingestedAt;
   const source = buildSource(raw, occurredAt, CAPTURED_BY.SQLITE);
   const topic = {
@@ -670,7 +713,8 @@ function normalizeDmSession(p, raw, ingestedAt) {
       via: "dm",
       sessionId: sid,
       sessionType: row.type != null ? row.type : null,
-      unread: typeof row.im_unread_count === "number" ? row.im_unread_count : null,
+      unread:
+        typeof row.im_unread_count === "number" ? row.im_unread_count : null,
       lastUpdate: occurredAt,
     },
   };
@@ -686,7 +730,9 @@ function normalizeDmMessage(p, raw, ingestedAt) {
   // types carry structured/empty content → emit a typed placeholder. Encoding
   // is device-verified-schema but best-effort (no rows on reference account).
   const isText =
-    row.content_type == null || row.content_type === 0 || row.content_type === 1;
+    row.content_type == null ||
+    row.content_type === 0 ||
+    row.content_type === 1;
   const rawText =
     isText && typeof row.content === "string" && row.content.length > 0
       ? row.content

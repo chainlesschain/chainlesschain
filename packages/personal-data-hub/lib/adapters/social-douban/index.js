@@ -47,7 +47,12 @@
 "use strict";
 
 const fs = require("node:fs");
+const {
+  probeJsonSnapshotFile,
+  readJsonSnapshot,
+} = require("../../snapshot-file");
 const { newId } = require("../../ids");
+const { extractRecognizedArray } = require("../../source-page");
 const {
   ENTITY_TYPES,
   PERSON_SUBTYPES,
@@ -103,10 +108,10 @@ function stableOriginalId(kind, id) {
     (typeof id === "string" && id.length > 0 && id) ||
     (typeof id === "number" && Number.isFinite(id) && String(id)) ||
     null;
-  const safe =
-    stringified ||
-    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  return `douban:${kind}:${safe}`;
+  if (!stringified) {
+    throw new Error(`${NAME}.sync: ${kind} event requires a stable source id`);
+  }
+  return `douban:${kind}:${stringified}`;
 }
 
 function parseTime(v) {
@@ -170,16 +175,12 @@ class DoubanAdapter {
 
   async authenticate(ctx = {}) {
     if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
-      try {
-        this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
-      } catch (err) {
-        return {
-          ok: false,
-          reason: "INPUT_PATH_UNREADABLE",
-          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
-        };
-      }
-      return { ok: true, mode: "snapshot-file" };
+      return probeJsonSnapshotFile(this._deps.fs, ctx.inputPath, {
+        maxBytes: ctx.maxSnapshotBytes,
+        expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        requiredArrayFields: ["events"],
+        allowedEventKinds: VALID_SNAPSHOT_KINDS,
+      });
     }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
@@ -232,24 +233,12 @@ class DoubanAdapter {
   }
 
   async *_syncViaSnapshot(opts) {
-    const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
-    let snapshot;
-    try {
-      snapshot = JSON.parse(raw);
-    } catch (err) {
-      throw new Error(
-        `social-douban.sync: snapshot must be JSON. Got parse error: ${err.message}`,
-      );
-    }
-    if (
-      !snapshot ||
-      typeof snapshot !== "object" ||
-      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
-    ) {
-      throw new Error(
-        `social-douban.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
-      );
-    }
+    const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
+      maxBytes: opts.maxSnapshotBytes,
+      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      requiredArrayFields: ["events"],
+      allowedEventKinds: VALID_SNAPSHOT_KINDS,
+    });
     const fallbackCapturedAt =
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
@@ -277,6 +266,9 @@ class DoubanAdapter {
         fallbackCapturedAt;
       const id =
         (typeof ev.id === "string" && ev.id.length > 0 && ev.id) ||
+        (typeof ev.id === "number" &&
+          Number.isFinite(ev.id) &&
+          String(ev.id)) ||
         ev.subjectId ||
         ev.reviewId ||
         ev.memberId ||
@@ -361,13 +353,11 @@ class DoubanAdapter {
           streamComplete = true;
           break;
         }
-        let reachedWatermark = false;
         for (const it of items) {
           if (!it || typeof it !== "object") continue;
           const capturedAt = cookieItemTime(step.kind, it);
           if (capturedAt < sinceMs) {
-            reachedWatermark = true;
-            break;
+            continue;
           }
           if (emitted >= limit) return;
           yield {
@@ -379,11 +369,7 @@ class DoubanAdapter {
           };
           emitted += 1;
         }
-        if (
-          reachedWatermark ||
-          isEnd(resp, start, items.length) ||
-          items.length < PAGE_LIMIT
-        ) {
+        if (isEnd(resp, start, items.length)) {
           streamComplete = true;
           break;
         }
@@ -414,17 +400,21 @@ class DoubanAdapter {
 
 /** Pull the collection array from a Frodo paginated response. */
 function extractData(resp, kind) {
-  if (!resp || typeof resp !== "object") return [];
   if (Array.isArray(resp)) return resp;
-  if (Array.isArray(resp.interests)) return resp.interests;
-  if (Array.isArray(resp.reviews)) return resp.reviews;
-  if (Array.isArray(resp.users)) return resp.users;
-  if (Array.isArray(resp.following)) return resp.following;
-  if (Array.isArray(resp.items)) return resp.items;
-  if (Array.isArray(resp.data)) return resp.data;
+  const paths = [
+    ["interests"],
+    ["reviews"],
+    ["users"],
+    ["following"],
+    ["items"],
+    ["data"],
+  ];
   // Frodo sometimes keys the collection by its kind plural — best-effort.
-  if (kind && Array.isArray(resp[`${kind}s`])) return resp[`${kind}s`];
-  return [];
+  if (kind) paths.push([`${kind}s`]);
+  return extractRecognizedArray(resp, paths, {
+    source: NAME,
+    stream: kind,
+  });
 }
 
 function isEnd(resp, start, batch) {

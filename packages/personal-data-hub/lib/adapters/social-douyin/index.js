@@ -45,6 +45,10 @@
 "use strict";
 
 const fs = require("node:fs");
+const {
+  probeJsonSnapshotFile,
+  readJsonSnapshot,
+} = require("../../snapshot-file");
 const { newId } = require("../../ids");
 const {
   ENTITY_TYPES,
@@ -58,12 +62,12 @@ const VERSION = "0.6.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_PROFILE = "profile";
-const KIND_HISTORY = "history";   // v0.3 (X-Bogus required)
+const KIND_HISTORY = "history"; // v0.3 (X-Bogus required)
 const KIND_FAVOURITE = "favourite"; // v0.3 (X-Bogus required)
-const KIND_LIKE = "like";         // v0.3 (X-Bogus required)
-const KIND_SEARCH = "search";     // legacy sqlite-mode only
-const KIND_MESSAGE = "message";   // Phase 2a — IM private messages from <uid>_im.db (abrignoni DFIR)
-const KIND_CONTACT = "contact";   // Phase 2a — SIMPLE_USER/participant contacts from <uid>_im.db
+const KIND_LIKE = "like"; // v0.3 (X-Bogus required)
+const KIND_SEARCH = "search"; // legacy sqlite-mode only
+const KIND_MESSAGE = "message"; // Phase 2a — IM private messages from <uid>_im.db (abrignoni DFIR)
+const KIND_CONTACT = "contact"; // Phase 2a — SIMPLE_USER/participant contacts from <uid>_im.db
 const KIND_CONVERSATION = "conversation"; // device-verified — conversation_list thread → TOPIC
 
 // Forward-compat: list every kind v0.3+ may emit so cc adapter accepts
@@ -82,10 +86,10 @@ function stableOriginalId(kind, id) {
     (typeof id === "string" && id.length > 0 && id) ||
     (typeof id === "number" && Number.isFinite(id) && String(id)) ||
     null;
-  const safe =
-    stringified ||
-    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  return `douyin:${kind}:${safe}`;
+  if (!stringified) {
+    throw new Error(`${NAME}.sync: ${kind} event requires a stable source id`);
+  }
+  return `douyin:${kind}:${stringified}`;
 }
 
 function parseTime(v) {
@@ -102,7 +106,11 @@ function parseTime(v) {
 }
 
 function trySelect(db, sql) {
-  try { return db.prepare(sql).all(); } catch (_e) { return null; }
+  try {
+    return db.prepare(sql).all();
+  } catch (_e) {
+    return null;
+  }
 }
 
 class DouyinAdapter {
@@ -119,19 +127,19 @@ class DouyinAdapter {
       "sync:snapshot",
       "sync:sqlite",
       "parse:douyin-profile",
-      "parse:douyin-history",   // v0.3
+      "parse:douyin-history", // v0.3
       "parse:douyin-favourite", // v0.3
-      "parse:douyin-like",      // v0.3
-      "parse:douyin-search",    // sqlite-only
+      "parse:douyin-like", // v0.3
+      "parse:douyin-search", // sqlite-only
     ];
     this.extractMode = "device-pull";
     this.rateLimits = {};
     this.dataDisclosure = {
       fields: [
         "douyin:profile (sec_user_id / nickname / signature / counts)",
-        "douyin:history (aweme_id / title / author / view_time)",      // v0.3
-        "douyin:favourite",                                            // v0.3
-        "douyin:like",                                                 // v0.3
+        "douyin:history (aweme_id / title / author / view_time)", // v0.3
+        "douyin:favourite", // v0.3
+        "douyin:like", // v0.3
         "douyin:search_history (sqlite-mode only)",
       ],
       sensitivity: "medium",
@@ -152,23 +160,20 @@ class DouyinAdapter {
 
   async authenticate(ctx = {}) {
     if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
-      try {
-        this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
-      } catch (err) {
-        return {
-          ok: false,
-          reason: "INPUT_PATH_UNREADABLE",
-          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
-        };
-      }
-      return { ok: true, mode: "snapshot-file" };
+      return probeJsonSnapshotFile(this._deps.fs, ctx.inputPath, {
+        maxBytes: ctx.maxSnapshotBytes,
+        expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        requiredArrayFields: ["events"],
+        allowedEventKinds: VALID_SNAPSHOT_KINDS,
+      });
     }
     if (this._dbPath || (ctx && typeof ctx.dbPath === "string")) {
       if (!this.account || !this.account.uid) {
         return {
           ok: false,
           reason: "NO_ACCOUNT_UID",
-          message: "social-douyin.authenticate: sqlite mode requires account.uid",
+          message:
+            "social-douyin.authenticate: sqlite mode requires account.uid",
         };
       }
       return { ok: true, account: this.account.uid, mode: "sqlite" };
@@ -252,22 +257,35 @@ class DouyinAdapter {
   async *_syncViaImDb(opts) {
     const dbPath = opts.dbPath;
     if (!dbPath || !this._deps.fs.existsSync(dbPath)) return;
-    // eslint-disable-next-line global-require
+
     const { parseImDb } = require("../social-douyin-adb/im-db-parser");
     const parseOpts = {};
-    if (Number.isInteger(opts.limitMessages)) parseOpts.limitMessages = opts.limitMessages;
-    if (Number.isInteger(opts.limitContacts)) parseOpts.limitContacts = opts.limitContacts;
-    if (this._deps.dbDriverFactory) parseOpts._databaseClass = this._deps.dbDriverFactory();
+    if (Number.isInteger(opts.limitMessages))
+      parseOpts.limitMessages = opts.limitMessages;
+    if (Number.isInteger(opts.limitContacts))
+      parseOpts.limitContacts = opts.limitContacts;
+    if (this._deps.dbDriverFactory)
+      parseOpts._databaseClass = this._deps.dbDriverFactory();
 
-    const { messages, contacts, conversations, diagnostic } = parseImDb(dbPath, parseOpts);
+    const { messages, contacts, conversations, diagnostic } = parseImDb(
+      dbPath,
+      parseOpts,
+    );
     if (typeof opts.onProgress === "function") {
       try {
-        opts.onProgress({ phase: "im-db-parsed", adapter: NAME, ...diagnostic });
-      } catch (_e) { /* progress is best-effort */ }
+        opts.onProgress({
+          phase: "im-db-parsed",
+          adapter: NAME,
+          ...diagnostic,
+        });
+      } catch (_e) {
+        /* progress is best-effort */
+      }
     }
 
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const fallbackCapturedAt = Date.now();
     let emitted = 0;
 
@@ -339,17 +357,12 @@ class DouyinAdapter {
   }
 
   async *_syncViaSnapshot(opts) {
-    const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
-    const snapshot = JSON.parse(raw);
-    if (
-      !snapshot ||
-      typeof snapshot !== "object" ||
-      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
-    ) {
-      throw new Error(
-        `social-douyin.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
-      );
-    }
+    const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
+      maxBytes: opts.maxSnapshotBytes,
+      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      requiredArrayFields: ["events"],
+      allowedEventKinds: VALID_SNAPSHOT_KINDS,
+    });
     const fallbackCapturedAt =
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
@@ -373,11 +386,12 @@ class DouyinAdapter {
       if (include[kind] === false) continue;
 
       const capturedAt =
-        parseTime(ev.capturedAt) ||
-        parseTime(ev.time) ||
-        fallbackCapturedAt;
+        parseTime(ev.capturedAt) || parseTime(ev.time) || fallbackCapturedAt;
       const id =
         (typeof ev.id === "string" && ev.id.length > 0 && ev.id) ||
+        (typeof ev.id === "number" &&
+          Number.isFinite(ev.id) &&
+          String(ev.id)) ||
         ev.secUid ||
         ev.awemeId ||
         null;
@@ -408,9 +422,15 @@ class DouyinAdapter {
 
     try {
       const histories =
-        trySelect(db, "SELECT * FROM video_history ORDER BY view_time DESC LIMIT 5000")
-        || trySelect(db, "SELECT * FROM history ORDER BY view_time DESC LIMIT 5000")
-        || [];
+        trySelect(
+          db,
+          "SELECT * FROM video_history ORDER BY view_time DESC LIMIT 5000",
+        ) ||
+        trySelect(
+          db,
+          "SELECT * FROM history ORDER BY view_time DESC LIMIT 5000",
+        ) ||
+        [];
       for (const row of histories) {
         yield {
           adapter: NAME,
@@ -420,9 +440,15 @@ class DouyinAdapter {
         };
       }
       const favs =
-        trySelect(db, "SELECT * FROM user_favorite ORDER BY create_time DESC LIMIT 5000")
-        || trySelect(db, "SELECT * FROM favourite ORDER BY time DESC LIMIT 5000")
-        || [];
+        trySelect(
+          db,
+          "SELECT * FROM user_favorite ORDER BY create_time DESC LIMIT 5000",
+        ) ||
+        trySelect(
+          db,
+          "SELECT * FROM favourite ORDER BY time DESC LIMIT 5000",
+        ) ||
+        [];
       for (const row of favs) {
         yield {
           adapter: NAME,
@@ -432,8 +458,10 @@ class DouyinAdapter {
         };
       }
       const searches =
-        trySelect(db, "SELECT * FROM search_history ORDER BY time DESC LIMIT 5000")
-        || [];
+        trySelect(
+          db,
+          "SELECT * FROM search_history ORDER BY time DESC LIMIT 5000",
+        ) || [];
       for (const row of searches) {
         yield {
           adapter: NAME,
@@ -443,7 +471,11 @@ class DouyinAdapter {
         };
       }
     } finally {
-      try { db.close(); } catch (_e) { /* ignore */ }
+      try {
+        db.close();
+      } catch (_e) {
+        /* ignore */
+      }
     }
   }
 
@@ -508,33 +540,40 @@ function normalizeProfile(p, raw, ingestedAt) {
   if (shortId) identifiers["douyin-short-id"] = [String(shortId)];
   return {
     events: [],
-    persons: [{
-      id: secUid ? `person-douyin-${secUid}` : `person-douyin-self-${newId()}`,
-      type: ENTITY_TYPES.PERSON,
-      subtype: PERSON_SUBTYPES.SELF,
-      names: [nickname],
-      ingestedAt,
-      source,
-      identifiers,
-      extra: {
-        platform: "douyin",
-        signature: p.signature || null,
-        followingCount: p.followingCount || 0,
-        followerCount: p.followerCount || 0,
-        awemeCount: p.awemeCount || 0,
-        favoritingCount: p.favoritingCount || 0,
-        totalFavorited: p.totalFavorited || 0,
-        snapshottedAt: occurredAt,
+    persons: [
+      {
+        id: secUid
+          ? `person-douyin-${secUid}`
+          : `person-douyin-self-${newId()}`,
+        type: ENTITY_TYPES.PERSON,
+        subtype: PERSON_SUBTYPES.SELF,
+        names: [nickname],
+        ingestedAt,
+        source,
+        identifiers,
+        extra: {
+          platform: "douyin",
+          signature: p.signature || null,
+          followingCount: p.followingCount || 0,
+          followerCount: p.followerCount || 0,
+          awemeCount: p.awemeCount || 0,
+          favoritingCount: p.favoritingCount || 0,
+          totalFavorited: p.totalFavorited || 0,
+          snapshottedAt: occurredAt,
+        },
       },
-    }],
-    places: [], items: [], topics: [],
+    ],
+    places: [],
+    items: [],
+    topics: [],
   };
 }
 
 function normalizeHistory(p, raw, ingestedAt) {
   // v0.3 — X-Bogus path. Snapshot fields: { kind:"history", awemeId, title,
   // author, capturedAt, duration }
-  const awemeId = p.awemeId || p.aweme_id || (p.row && (p.row.aweme_id || p.row.id)) || null;
+  const awemeId =
+    p.awemeId || p.aweme_id || (p.row && (p.row.aweme_id || p.row.id)) || null;
   const row = p.row || p;
   const title = row.title || row.desc || p.title || "(no title)";
   const author = row.author || row.nickname || p.author || null;
@@ -544,36 +583,43 @@ function normalizeHistory(p, raw, ingestedAt) {
     raw.capturedAt ||
     ingestedAt;
   const source = buildSource(
-    raw, occurredAt,
+    raw,
+    occurredAt,
     p.row ? CAPTURED_BY.SQLITE : CAPTURED_BY.API,
   );
   return {
-    events: [{
-      id: newId(),
-      type: ENTITY_TYPES.EVENT,
-      subtype: EVENT_SUBTYPES.BROWSE,
-      occurredAt,
-      actor: "person-self",
-      content: { title },
-      ingestedAt,
-      source,
-      extra: {
-        platform: "douyin",
-        awemeId,
-        author,
-        duration,
-        // Source surface from the local video_record.db (homepage_hot / etc.).
-        enterFrom: row.enterFrom || row.enter_from || p.enterFrom || null,
+    events: [
+      {
+        id: newId(),
+        type: ENTITY_TYPES.EVENT,
+        subtype: EVENT_SUBTYPES.BROWSE,
+        occurredAt,
+        actor: "person-self",
+        content: { title },
+        ingestedAt,
+        source,
+        extra: {
+          platform: "douyin",
+          awemeId,
+          author,
+          duration,
+          // Source surface from the local video_record.db (homepage_hot / etc.).
+          enterFrom: row.enterFrom || row.enter_from || p.enterFrom || null,
+        },
       },
-    }],
-    persons: [], places: [], items: [], topics: [],
+    ],
+    persons: [],
+    places: [],
+    items: [],
+    topics: [],
   };
 }
 
 function normalizeFavourite(p, raw, ingestedAt) {
   // v0.3 — X-Bogus path. Snapshot fields: { kind:"favourite", awemeId, title,
   // author, capturedAt }
-  const awemeId = p.awemeId || p.aweme_id || (p.row && (p.row.aweme_id || p.row.id)) || null;
+  const awemeId =
+    p.awemeId || p.aweme_id || (p.row && (p.row.aweme_id || p.row.id)) || null;
   const row = p.row || p;
   const title = row.title || row.desc || p.title || "(no title)";
   const author = row.author || row.nickname || p.author || null;
@@ -582,49 +628,62 @@ function normalizeFavourite(p, raw, ingestedAt) {
     raw.capturedAt ||
     ingestedAt;
   const source = buildSource(
-    raw, occurredAt,
+    raw,
+    occurredAt,
     p.row ? CAPTURED_BY.SQLITE : CAPTURED_BY.API,
   );
   return {
-    events: [{
-      id: newId(),
-      type: ENTITY_TYPES.EVENT,
-      subtype: EVENT_SUBTYPES.LIKE,
-      occurredAt,
-      actor: "person-self",
-      content: { title },
-      ingestedAt,
-      source,
-      extra: {
-        platform: "douyin",
-        awemeId,
-        author,
+    events: [
+      {
+        id: newId(),
+        type: ENTITY_TYPES.EVENT,
+        subtype: EVENT_SUBTYPES.LIKE,
+        occurredAt,
+        actor: "person-self",
+        content: { title },
+        ingestedAt,
+        source,
+        extra: {
+          platform: "douyin",
+          awemeId,
+          author,
+        },
       },
-    }],
-    persons: [], places: [], items: [], topics: [],
+    ],
+    persons: [],
+    places: [],
+    items: [],
+    topics: [],
   };
 }
 
 function normalizeLike(p, raw, ingestedAt) {
   // v0.3 — X-Bogus path. Same shape as favourite; semantic diff = a 赞 vs 收藏.
   const awemeId = p.awemeId || (p.row && p.row.aweme_id) || null;
-  const title = p.title || (p.row && (p.row.title || p.row.desc)) || "(no title)";
-  const author = p.author || (p.row && (p.row.author || p.row.nickname)) || null;
+  const title =
+    p.title || (p.row && (p.row.title || p.row.desc)) || "(no title)";
+  const author =
+    p.author || (p.row && (p.row.author || p.row.nickname)) || null;
   const occurredAt = parseTime(p.capturedAt) || raw.capturedAt || ingestedAt;
   const source = buildSource(raw, occurredAt, CAPTURED_BY.API);
   return {
-    events: [{
-      id: newId(),
-      type: ENTITY_TYPES.EVENT,
-      subtype: EVENT_SUBTYPES.LIKE,
-      occurredAt,
-      actor: "person-self",
-      content: { title },
-      ingestedAt,
-      source,
-      extra: { platform: "douyin", awemeId, author },
-    }],
-    persons: [], places: [], items: [], topics: [],
+    events: [
+      {
+        id: newId(),
+        type: ENTITY_TYPES.EVENT,
+        subtype: EVENT_SUBTYPES.LIKE,
+        occurredAt,
+        actor: "person-self",
+        content: { title },
+        ingestedAt,
+        source,
+        extra: { platform: "douyin", awemeId, author },
+      },
+    ],
+    persons: [],
+    places: [],
+    items: [],
+    topics: [],
   };
 }
 
@@ -634,21 +693,26 @@ function normalizeSearch(p, raw, ingestedAt) {
   const occurredAt = parseTime(row.time || row.create_time) || ingestedAt;
   const source = buildSource(raw, occurredAt, CAPTURED_BY.SQLITE);
   return {
-    events: [{
-      id: newId(),
-      type: ENTITY_TYPES.EVENT,
-      subtype: EVENT_SUBTYPES.INTERACTION,
-      occurredAt,
-      actor: "person-self",
-      content: {
-        title: `搜索: ${row.keyword || row.query || ""}`,
-        text: row.keyword || row.query || "",
+    events: [
+      {
+        id: newId(),
+        type: ENTITY_TYPES.EVENT,
+        subtype: EVENT_SUBTYPES.INTERACTION,
+        occurredAt,
+        actor: "person-self",
+        content: {
+          title: `搜索: ${row.keyword || row.query || ""}`,
+          text: row.keyword || row.query || "",
+        },
+        ingestedAt,
+        source,
+        extra: { query: row.keyword || row.query, fromAdapter: NAME },
       },
-      ingestedAt,
-      source,
-      extra: { query: row.keyword || row.query, fromAdapter: NAME },
-    }],
-    persons: [], places: [], items: [], topics: [],
+    ],
+    persons: [],
+    places: [],
+    items: [],
+    topics: [],
   };
 }
 
@@ -657,35 +721,39 @@ function normalizeMessage(p, raw, ingestedAt) {
   // MESSAGE event. We don't reliably know the self uid here, so actor stays
   // person-self and the real sender is preserved in extra.senderUid (the
   // consumer / EntityResolver can correlate it to a contact person).
-  const occurredAt =
-    parseTime(p.createdTimeMs) || raw.capturedAt || ingestedAt;
+  const occurredAt = parseTime(p.createdTimeMs) || raw.capturedAt || ingestedAt;
   const source = buildSource(raw, occurredAt, CAPTURED_BY.SQLITE);
   const text = typeof p.text === "string" ? p.text : "";
   return {
-    events: [{
-      id: newId(),
-      type: ENTITY_TYPES.EVENT,
-      subtype: EVENT_SUBTYPES.MESSAGE,
-      occurredAt,
-      actor: "person-self",
-      content: {
-        title: text ? text.slice(0, 80) : "(非文本消息)",
-        text,
+    events: [
+      {
+        id: newId(),
+        type: ENTITY_TYPES.EVENT,
+        subtype: EVENT_SUBTYPES.MESSAGE,
+        occurredAt,
+        actor: "person-self",
+        content: {
+          title: text ? text.slice(0, 80) : "(非文本消息)",
+          text,
+        },
+        ingestedAt,
+        source,
+        extra: {
+          platform: "douyin",
+          channel: "im",
+          senderUid: p.senderUid || null,
+          conversationId: p.conversationId || null,
+          readStatus: typeof p.readStatus === "number" ? p.readStatus : null,
+          // Preserve the raw content blob for non-text message types (stickers
+          // / voice / video) so a richer consumer can decode them later.
+          contentBlob: typeof p.contentBlob === "string" ? p.contentBlob : null,
+        },
       },
-      ingestedAt,
-      source,
-      extra: {
-        platform: "douyin",
-        channel: "im",
-        senderUid: p.senderUid || null,
-        conversationId: p.conversationId || null,
-        readStatus: typeof p.readStatus === "number" ? p.readStatus : null,
-        // Preserve the raw content blob for non-text message types (stickers
-        // / voice / video) so a richer consumer can decode them later.
-        contentBlob: typeof p.contentBlob === "string" ? p.contentBlob : null,
-      },
-    }],
-    persons: [], places: [], items: [], topics: [],
+    ],
+    persons: [],
+    places: [],
+    items: [],
+    topics: [],
   };
 }
 
@@ -703,22 +771,27 @@ function normalizeContact(p, raw, ingestedAt) {
   if (p.shortId) identifiers["douyin-short-id"] = [String(p.shortId)];
   return {
     events: [],
-    persons: [{
-      id: uid ? `person-douyin-${uid}` : `person-douyin-${newId()}`,
-      type: ENTITY_TYPES.PERSON,
-      subtype: PERSON_SUBTYPES.CONTACT,
-      names: [p.name || "(unnamed)"],
-      ingestedAt,
-      source,
-      identifiers,
-      extra: {
-        platform: "douyin",
-        avatarUrl: p.avatarUrl || null,
-        // 0/1/2 = none / following / mutual (Douyin follow_status)
-        followStatus: typeof p.followStatus === "number" ? p.followStatus : null,
+    persons: [
+      {
+        id: uid ? `person-douyin-${uid}` : `person-douyin-${newId()}`,
+        type: ENTITY_TYPES.PERSON,
+        subtype: PERSON_SUBTYPES.CONTACT,
+        names: [p.name || "(unnamed)"],
+        ingestedAt,
+        source,
+        identifiers,
+        extra: {
+          platform: "douyin",
+          avatarUrl: p.avatarUrl || null,
+          // 0/1/2 = none / following / mutual (Douyin follow_status)
+          followStatus:
+            typeof p.followStatus === "number" ? p.followStatus : null,
+        },
       },
-    }],
-    places: [], items: [], topics: [],
+    ],
+    places: [],
+    items: [],
+    topics: [],
   };
 }
 
@@ -731,23 +804,30 @@ function normalizeConversation(p, raw, ingestedAt) {
   const occurredAt = raw.capturedAt || ingestedAt;
   const source = buildSource(raw, occurredAt, CAPTURED_BY.SQLITE);
   return {
-    events: [], persons: [], places: [], items: [],
-    topics: [{
-      id: convId ? `topic-douyin-conv-${convId}` : `topic-douyin-conv-${newId()}`,
-      type: ENTITY_TYPES.TOPIC,
-      name: convId ? `抖音会话 ${convId}` : "抖音会话",
-      ingestedAt,
-      source,
-      extra: {
-        platform: "douyin",
-        conversationId: convId,
-        conversationType:
-          typeof p.conversationType === "number" ? p.conversationType : null,
-        lastMsgTimeMs:
-          typeof p.lastMsgTimeMs === "number" ? p.lastMsgTimeMs : null,
-        stranger: typeof p.stranger === "boolean" ? p.stranger : null,
+    events: [],
+    persons: [],
+    places: [],
+    items: [],
+    topics: [
+      {
+        id: convId
+          ? `topic-douyin-conv-${convId}`
+          : `topic-douyin-conv-${newId()}`,
+        type: ENTITY_TYPES.TOPIC,
+        name: convId ? `抖音会话 ${convId}` : "抖音会话",
+        ingestedAt,
+        source,
+        extra: {
+          platform: "douyin",
+          conversationId: convId,
+          conversationType:
+            typeof p.conversationType === "number" ? p.conversationType : null,
+          lastMsgTimeMs:
+            typeof p.lastMsgTimeMs === "number" ? p.lastMsgTimeMs : null,
+          stranger: typeof p.stranger === "boolean" ? p.stranger : null,
+        },
       },
-    }],
+    ],
   };
 }
 

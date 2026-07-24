@@ -33,8 +33,23 @@ const SNAP = JSON.stringify({
   snapshottedAt: 1716383000000,
   account: { userId: "u1" },
   events: [
-    { kind: "favourite", id: "fav-1", itemId: "G1", title: "2026 新能源车横评", contentType: "article", url: "https://x/G1", capturedAt: 1716300000000 },
-    { kind: "follow", id: "follow-S1", followId: "S1", name: "理想 L 系列", followType: "series", capturedAt: 1716320000000 },
+    {
+      kind: "favourite",
+      id: "fav-1",
+      itemId: "G1",
+      title: "2026 新能源车横评",
+      contentType: "article",
+      url: "https://x/G1",
+      capturedAt: 1716300000000,
+    },
+    {
+      kind: "follow",
+      id: "follow-S1",
+      followId: "S1",
+      name: "理想 L 系列",
+      followType: "series",
+      capturedAt: 1716320000000,
+    },
   ],
 });
 
@@ -46,9 +61,14 @@ describe("constants + helpers", () => {
   });
   it("extractData tolerant", () => {
     expect(extractData({ data: [{ id: 1 }] })).toHaveLength(1);
-    expect(extractData({ data: { favorite_list: [{ id: 1 }] } })).toHaveLength(1);
+    expect(extractData({ data: { favorite_list: [{ id: 1 }] } })).toHaveLength(
+      1,
+    );
     expect(extractData({ data: { follow_list: [{ id: 1 }] } })).toHaveLength(1);
-    expect(extractData({})).toEqual([]);
+    expect(extractData({ list: [] })).toEqual([]);
+    expect(() => extractData({})).toThrow(
+      expect.objectContaining({ code: "SOURCE_PAGE_UNRECOGNIZED" }),
+    );
   });
   it("isEnd reads has_more", () => {
     expect(isEnd({ data: { has_more: false } })).toBe(true);
@@ -62,8 +82,16 @@ describe("DongchediAdapter snapshot mode", () => {
     const p = writeTmp(SNAP);
     try {
       const a = new DongchediAdapter();
-      expect((await a.authenticate({ inputPath: p })).mode).toBe("snapshot-file");
-      expect((await a.authenticate({ inputPath: path.join(os.tmpdir(), "no-dcd.json") })).reason).toBe("INPUT_PATH_UNREADABLE");
+      expect((await a.authenticate({ inputPath: p })).mode).toBe(
+        "snapshot-file",
+      );
+      expect(
+        (
+          await a.authenticate({
+            inputPath: path.join(os.tmpdir(), "no-dcd.json"),
+          })
+        ).reason,
+      ).toBe("INPUT_PATH_UNREADABLE");
     } finally {
       fs.unlinkSync(p);
     }
@@ -95,16 +123,24 @@ describe("DongchediAdapter snapshot mode", () => {
     const p = writeTmp(SNAP);
     try {
       const a = new DongchediAdapter();
-      expect((await collect(a.sync({ inputPath: p, include: { favourite: false } }))).map((x) => x.kind)).toEqual(["follow"]);
+      expect(
+        (
+          await collect(a.sync({ inputPath: p, include: { favourite: false } }))
+        ).map((x) => x.kind),
+      ).toEqual(["follow"]);
       expect(await collect(a.sync({ inputPath: p, limit: 1 }))).toHaveLength(1);
-      expect(() => a.normalize({ kind: "bogus", payload: {} })).toThrow(/unknown kind/);
+      expect(() => a.normalize({ kind: "bogus", payload: {} })).toThrow(
+        /unknown kind/,
+      );
     } finally {
       fs.unlinkSync(p);
     }
     const bad = writeTmp(JSON.stringify({ schemaVersion: 9, events: [] }));
     try {
       const a = new DongchediAdapter();
-      await expect(collect(a.sync({ inputPath: bad }))).rejects.toThrow(/schemaVersion mismatch/);
+      await expect(collect(a.sync({ inputPath: bad }))).rejects.toThrow(
+        /schemaVersion mismatch/,
+      );
     } finally {
       fs.unlinkSync(bad);
     }
@@ -114,47 +150,93 @@ describe("DongchediAdapter snapshot mode", () => {
 describe("DongchediAdapter cookie-api mode", () => {
   it("authenticate cookie (userId optional)", async () => {
     const a = new DongchediAdapter({ account: { cookies: COOKIES } });
-    expect(await a.authenticate()).toEqual({ ok: true, account: null, mode: "cookie" });
+    expect(await a.authenticate()).toEqual({
+      ok: true,
+      account: null,
+      mode: "cookie",
+    });
   });
 
   it("sync fetches favourites + follows, normalizes", async () => {
     const byUrl = (u) => (u.includes("favorite") ? "favourite" : "follow");
     const data = {
-      favourite: [{ group_id: "G1", title: "试驾视频", content_type: "video", create_time: 1716300000 }],
-      follow: [{ series_id: "S9", series_name: "比亚迪汉", follow_time: 1716320000 }],
+      favourite: [
+        {
+          group_id: "G1",
+          title: "试驾视频",
+          content_type: "video",
+          create_time: 1716300000,
+        },
+      ],
+      follow: [
+        { series_id: "S9", series_name: "比亚迪汉", follow_time: 1716320000 },
+      ],
     };
     const calls = [];
+    let watermarkComplete = false;
     const a = new DongchediAdapter({
       account: { cookies: COOKIES, userId: "u1" },
       fetchFn: async ({ url, cookies, query, sign }) => {
         const k = byUrl(url);
         calls.push({ k, cookies, offset: query.offset, sign });
-        return { data: { list: query.offset === 0 ? data[k] : [], has_more: false } };
+        return {
+          data: { list: query.offset === 0 ? data[k] : [], has_more: false },
+        };
       },
     });
-    const items = await collect(a.sync({}));
+    const items = await collect(
+      a.sync({
+        markWatermarkComplete: () => {
+          watermarkComplete = true;
+        },
+      }),
+    );
     expect(items.map((x) => x.kind).sort()).toEqual(["favourite", "follow"]);
-    expect(calls.every((c) => c.cookies === COOKIES && c.sign === null)).toBe(true);
+    expect(calls.every((c) => c.cookies === COOKIES && c.sign === null)).toBe(
+      true,
+    );
     const fav = a.normalize(items.find((x) => x.kind === "favourite"));
     expect(fav.events[0].content.title).toBe("收藏: 试驾视频");
     const fol = a.normalize(items.find((x) => x.kind === "follow"));
     expect(fol.persons[0].names).toEqual(["比亚迪汉"]);
     expect(fol.persons[0].extra.followType).toBe("series");
+    expect(watermarkComplete).toBe(true);
   });
 
   it("invokes signProvider + limit + empty + default fetch + no input", async () => {
     const signCalls = [];
     const a = new DongchediAdapter({
       account: { cookies: COOKIES },
-      fetchFn: async ({ query }) => ({ data: { list: query.offset === 0 ? [{ group_id: "G1", title: "x" }, { group_id: "G2", title: "y" }] : [], has_more: false } }),
-      signProvider: async (ctx) => { signCalls.push(ctx); return "x-bogus"; },
+      fetchFn: async ({ query }) => ({
+        data: {
+          list:
+            query.offset === 0
+              ? [
+                  { group_id: "G1", title: "x" },
+                  { group_id: "G2", title: "y" },
+                ]
+              : [],
+          has_more: false,
+        },
+      }),
+      signProvider: async (ctx) => {
+        signCalls.push(ctx);
+        return "x-bogus";
+      },
     });
-    expect(await collect(a.sync({ limit: 1, include: { follow: false } }))).toHaveLength(1);
+    expect(
+      await collect(a.sync({ limit: 1, include: { follow: false } })),
+    ).toHaveLength(1);
     expect(signCalls.length).toBeGreaterThan(0);
     expect(signCalls[0].cookies).toBe(COOKIES);
 
-    const a2 = new DongchediAdapter({ account: { cookies: COOKIES }, fetchFn: async () => "<html>login</html>" });
-    expect(await collect(a2.sync({}))).toEqual([]);
+    const a2 = new DongchediAdapter({
+      account: { cookies: COOKIES },
+      fetchFn: async () => "<html>login</html>",
+    });
+    await expect(collect(a2.sync({}))).rejects.toMatchObject({
+      code: "SOURCE_PAGE_UNRECOGNIZED",
+    });
 
     const a3 = new DongchediAdapter({ account: { cookies: COOKIES } });
     await expect(collect(a3.sync({}))).rejects.toThrow(/no fetchFn configured/);

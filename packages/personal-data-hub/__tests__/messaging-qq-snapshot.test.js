@@ -53,7 +53,9 @@ describe("QQAdapter snapshot mode", () => {
 
   it("authenticate(inputPath) fails when path unreadable", async () => {
     const a = new QQAdapter();
-    const res = await a.authenticate({ inputPath: path.join(tmpDir, "missing.json") });
+    const res = await a.authenticate({
+      inputPath: path.join(tmpDir, "missing.json"),
+    });
     expect(res.ok).toBe(false);
     expect(res.reason).toBe("INPUT_PATH_UNREADABLE");
   });
@@ -74,7 +76,9 @@ describe("QQAdapter snapshot mode", () => {
     const a = new QQAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({ inputPath: p })) { /* drain */ }
+      for await (const item of a.sync({ inputPath: p })) {
+        void item;
+      }
     } catch (err) {
       threw = err;
     }
@@ -181,14 +185,29 @@ describe("QQAdapter snapshot mode", () => {
       schemaVersion: 1,
       snapshottedAt: now,
       events: [
-        { kind: "contact", id: "c1", capturedAt: now, uin: "100", nickname: "A" },
-        { kind: "group", id: "g1", capturedAt: now, troopUin: "200", troopName: "G" },
+        {
+          kind: "contact",
+          id: "c1",
+          capturedAt: now,
+          uin: "100",
+          nickname: "A",
+        },
+        {
+          kind: "group",
+          id: "g1",
+          capturedAt: now,
+          troopUin: "200",
+          troopName: "G",
+        },
         { kind: "message", id: "m1", capturedAt: now, msgId: "m1", text: "hi" },
       ],
     });
     const a = new QQAdapter();
     const raws = [];
-    for await (const r of a.sync({ inputPath: p, include: { message: false } })) {
+    for await (const r of a.sync({
+      inputPath: p,
+      include: { message: false },
+    })) {
       raws.push(r);
     }
     const kinds = raws.map((r) => r.kind);
@@ -204,29 +223,40 @@ describe("QQAdapter snapshot mode", () => {
       msgId: `m${i}`,
       text: `t${i}`,
     }));
-    const p = writeSnapshot(tmpDir, { schemaVersion: 1, snapshottedAt: now, events });
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 1,
+      snapshottedAt: now,
+      events,
+    });
     const a = new QQAdapter();
     const raws = [];
     for await (const r of a.sync({ inputPath: p, limit: 2 })) raws.push(r);
     expect(raws.length).toBe(2);
   });
 
-  it("filters out unknown kinds (forward compat)", async () => {
+  it("rejects unknown kinds instead of partially importing the snapshot", async () => {
     const now = Date.now();
     const p = writeSnapshot(tmpDir, {
       schemaVersion: 1,
       snapshottedAt: now,
       events: [
-        { kind: "contact", id: "c1", capturedAt: now, uin: "100", nickname: "A" },
+        {
+          kind: "contact",
+          id: "c1",
+          capturedAt: now,
+          uin: "100",
+          nickname: "A",
+        },
         { kind: "future-kind", id: "x", capturedAt: now },
         { kind: "search", id: "s", capturedAt: now }, // not a QQ snapshot kind
       ],
     });
     const a = new QQAdapter();
-    const raws = [];
-    for await (const r of a.sync({ inputPath: p })) raws.push(r);
-    expect(raws.length).toBe(1);
-    expect(raws[0].kind).toBe("contact");
+    await expect(async () => {
+      for await (const item of a.sync({ inputPath: p })) {
+        void item;
+      }
+    }).rejects.toMatchObject({ code: "SNAPSHOT_SHAPE_INVALID" });
   });
 
   it("snapshottedAt fallback when event capturedAt missing", async () => {
@@ -234,9 +264,7 @@ describe("QQAdapter snapshot mode", () => {
     const p = writeSnapshot(tmpDir, {
       schemaVersion: 1,
       snapshottedAt: ts,
-      events: [
-        { kind: "contact", id: "c1", uin: "100", nickname: "A" },
-      ],
+      events: [{ kind: "contact", id: "c1", uin: "100", nickname: "A" }],
     });
     const a = new QQAdapter();
     const raws = [];

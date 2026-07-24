@@ -49,7 +49,9 @@ describe("WeiboAdapter snapshot mode", () => {
 
   it("authenticate(inputPath) fails when path unreadable", async () => {
     const a = new WeiboAdapter();
-    const res = await a.authenticate({ inputPath: path.join(tmpDir, "missing.json") });
+    const res = await a.authenticate({
+      inputPath: path.join(tmpDir, "missing.json"),
+    });
     expect(res.ok).toBe(false);
     expect(res.reason).toBe("INPUT_PATH_UNREADABLE");
   });
@@ -70,7 +72,9 @@ describe("WeiboAdapter snapshot mode", () => {
     const a = new WeiboAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({ inputPath: p })) { /* drain */ }
+      for await (const _r of a.sync({ inputPath: p })) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
@@ -175,12 +179,21 @@ describe("WeiboAdapter snapshot mode", () => {
       events: [
         { kind: "post", id: "p1", capturedAt: now, text: "p1", mid: "M1" },
         { kind: "favourite", id: "f1", capturedAt: now, text: "f1", mid: "M2" },
-        { kind: "follow", id: "fl1", capturedAt: now, uid: 99, screenName: "x" },
+        {
+          kind: "follow",
+          id: "fl1",
+          capturedAt: now,
+          uid: 99,
+          screenName: "x",
+        },
       ],
     });
     const a = new WeiboAdapter();
     const raws = [];
-    for await (const r of a.sync({ inputPath: p, include: { favourite: false } })) {
+    for await (const r of a.sync({
+      inputPath: p,
+      include: { favourite: false },
+    })) {
       raws.push(r);
     }
     const kinds = raws.map((r) => r.kind);
@@ -190,31 +203,35 @@ describe("WeiboAdapter snapshot mode", () => {
   it("respects opts.limit", async () => {
     const now = Date.now();
     const events = Array.from({ length: 5 }, (_, i) => ({
-      kind: "post", id: `p${i}`, capturedAt: now - i * 100, text: `t${i}`, mid: `M${i}`,
+      kind: "post",
+      id: `p${i}`,
+      capturedAt: now - i * 100,
+      text: `t${i}`,
+      mid: `M${i}`,
     }));
-    const p = writeSnapshot(tmpDir, { schemaVersion: 1, snapshottedAt: now, events });
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 1,
+      snapshottedAt: now,
+      events,
+    });
     const a = new WeiboAdapter();
     const raws = [];
     for await (const r of a.sync({ inputPath: p, limit: 2 })) raws.push(r);
     expect(raws.length).toBe(2);
   });
 
-  it("filters out unknown kinds (forward compat)", async () => {
+  it("rejects unknown snapshot kinds", async () => {
     const now = Date.now();
     const p = writeSnapshot(tmpDir, {
       schemaVersion: 1,
       snapshottedAt: now,
-      events: [
-        { kind: "post", id: "p1", capturedAt: now, text: "ok", mid: "M1" },
-        { kind: "future-kind", id: "x", capturedAt: now },
-        { kind: "search", id: "s", capturedAt: now }, // search is sqlite-only
-      ],
+      events: [{ kind: "future-kind", id: "x", capturedAt: now }],
     });
     const a = new WeiboAdapter();
-    const raws = [];
-    for await (const r of a.sync({ inputPath: p })) raws.push(r);
-    expect(raws.length).toBe(1);
-    expect(raws[0].kind).toBe("post");
+    expect(await a.authenticate({ inputPath: p })).toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_SHAPE_INVALID",
+    });
   });
 
   it("snapshottedAt fallback when event capturedAt missing", async () => {
@@ -222,9 +239,7 @@ describe("WeiboAdapter snapshot mode", () => {
     const p = writeSnapshot(tmpDir, {
       schemaVersion: 1,
       snapshottedAt: ts,
-      events: [
-        { kind: "post", id: "p1", text: "no time", mid: "M1" },
-      ],
+      events: [{ kind: "post", id: "p1", text: "no time", mid: "M1" }],
     });
     const a = new WeiboAdapter();
     const raws = [];
