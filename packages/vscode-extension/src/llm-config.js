@@ -48,16 +48,76 @@ function cleanConfigValue(v) {
 
 /** Curated provider presets (ids must match the CLI's BUILT_IN_PROVIDERS). */
 const PROVIDER_PRESETS = [
-  { id: "volcengine", label: "Volcengine / Doubao (volcengine)", baseUrl: "https://ark.cn-beijing.volces.com/api/v3", defaultModel: "doubao-seed-evolving", needsKey: true },
-  { id: "ollama", label: "Ollama (local, no key)", baseUrl: "http://localhost:11434", defaultModel: "qwen2.5:7b", needsKey: false },
-  { id: "anthropic", label: "Anthropic Claude", baseUrl: "https://api.anthropic.com/v1", defaultModel: "claude-sonnet-4-6", needsKey: true },
-  { id: "openai", label: "OpenAI", baseUrl: "https://api.openai.com/v1", defaultModel: "gpt-4o", needsKey: true },
-  { id: "deepseek", label: "DeepSeek", baseUrl: "https://api.deepseek.com/v1", defaultModel: "deepseek-chat", needsKey: true },
-  { id: "dashscope", label: "Aliyun Bailian / Tongyi (dashscope)", baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1", defaultModel: "qwen-max", needsKey: true },
-  { id: "kimi", label: "Moonshot Kimi", baseUrl: "https://api.moonshot.cn/v1", defaultModel: "moonshot-v1-auto", needsKey: true },
-  { id: "gemini", label: "Google Gemini", baseUrl: "https://generativelanguage.googleapis.com/v1beta", defaultModel: "gemini-2.0-flash", needsKey: true },
-  { id: "mistral", label: "Mistral", baseUrl: "https://api.mistral.ai/v1", defaultModel: "mistral-large-latest", needsKey: true },
-  { id: "minimax", label: "MiniMax", baseUrl: "https://api.minimax.chat/v1", defaultModel: "abab6.5s-chat", needsKey: true },
+  {
+    id: "volcengine",
+    label: "Volcengine / Doubao (volcengine)",
+    baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+    defaultModel: "doubao-seed-evolving",
+    needsKey: true,
+  },
+  {
+    id: "ollama",
+    label: "Ollama (local, no key)",
+    baseUrl: "http://localhost:11434",
+    defaultModel: "qwen2.5:7b",
+    needsKey: false,
+  },
+  {
+    id: "anthropic",
+    label: "Anthropic Claude",
+    baseUrl: "https://api.anthropic.com/v1",
+    defaultModel: "claude-sonnet-4-6",
+    needsKey: true,
+  },
+  {
+    id: "openai",
+    label: "OpenAI",
+    baseUrl: "https://api.openai.com/v1",
+    defaultModel: "gpt-4o",
+    needsKey: true,
+  },
+  {
+    id: "deepseek",
+    label: "DeepSeek",
+    baseUrl: "https://api.deepseek.com/v1",
+    defaultModel: "deepseek-chat",
+    needsKey: true,
+  },
+  {
+    id: "dashscope",
+    label: "Aliyun Bailian / Tongyi (dashscope)",
+    baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    defaultModel: "qwen-max",
+    needsKey: true,
+  },
+  {
+    id: "kimi",
+    label: "Moonshot Kimi",
+    baseUrl: "https://api.moonshot.cn/v1",
+    defaultModel: "moonshot-v1-auto",
+    needsKey: true,
+  },
+  {
+    id: "gemini",
+    label: "Google Gemini",
+    baseUrl: "https://generativelanguage.googleapis.com/v1beta",
+    defaultModel: "gemini-2.0-flash",
+    needsKey: true,
+  },
+  {
+    id: "mistral",
+    label: "Mistral",
+    baseUrl: "https://api.mistral.ai/v1",
+    defaultModel: "mistral-large-latest",
+    needsKey: true,
+  },
+  {
+    id: "minimax",
+    label: "MiniMax",
+    baseUrl: "https://api.minimax.chat/v1",
+    defaultModel: "abab6.5s-chat",
+    needsKey: true,
+  },
 ];
 
 /**
@@ -70,7 +130,13 @@ function hasUnsafeShellChars(value) {
 }
 
 /** The `cc config set` invocations for the wizard's answers (skips blanks). */
-function buildConfigSetArgs({ provider, model, apiKey, baseUrl, visionModel } = {}) {
+function buildConfigSetArgs({
+  provider,
+  model,
+  apiKey,
+  baseUrl,
+  visionModel,
+} = {}) {
   const sets = [];
   if (provider) sets.push(["config", "set", "llm.provider", provider]);
   if (model) sets.push(["config", "set", "llm.model", model]);
@@ -103,15 +169,39 @@ function suggestVisionModel(providerId) {
 function looksLikeLlmConfigError(message) {
   if (!message) return false;
   const m = String(message).toLowerCase();
+  if (
+    m.includes("accountoverdue") ||
+    m.includes("overdue balance") ||
+    m.includes("account balance/billing") ||
+    m.includes("model access permissions")
+  ) {
+    return false;
+  }
   return (
     m.includes("401") ||
-    m.includes("403") ||
     m.includes("api key") ||
     m.includes("api_key") ||
     m.includes("unauthorized") ||
     m.includes("authentication failed") ||
     m.includes("invalid api key") ||
     m.includes("incorrect api key")
+  );
+}
+
+/** Add the missing 403 caveat for older CLIs that still label every 403 auth. */
+function withLlmErrorGuidance(message) {
+  const text = String(message || "");
+  if (!/\b403\b/.test(text)) return text;
+  if (
+    /accountoverdue|overdue balance|account balance\/billing|model access/i.test(
+      text,
+    )
+  ) {
+    return text;
+  }
+  return (
+    text +
+    "\nHTTP 403 can also mean provider billing/account balance or model-access permission; check those before replacing the API key."
   );
 }
 
@@ -196,11 +286,18 @@ async function setVisionModel({ command = "cc", visionModel, deps } = {}) {
   if (v && hasUnsafeShellChars(v)) {
     return {
       ok: false,
-      error: "Value contains unsafe characters — remove spaces/quotes/& and retry",
+      error:
+        "Value contains unsafe characters — remove spaces/quotes/& and retry",
     };
   }
-  const r = await runCli(command, ["config", "set", "llm.visionModel", v], deps);
-  return r.ok ? { ok: true } : { ok: false, error: r.error || r.stderr.slice(0, 200) };
+  const r = await runCli(
+    command,
+    ["config", "set", "llm.visionModel", v],
+    deps,
+  );
+  return r.ok
+    ? { ok: true }
+    : { ok: false, error: r.error || r.stderr.slice(0, 200) };
 }
 
 /** Apply the wizard's answers via `cc config set` (sequential, fail-fast). */
@@ -233,6 +330,7 @@ module.exports = {
   buildConfigSetArgs,
   suggestVisionModel,
   looksLikeLlmConfigError,
+  withLlmErrorGuidance,
   readLlmConfigFromFile,
   getConfiguredProvider,
   getConfiguredVisionModel,

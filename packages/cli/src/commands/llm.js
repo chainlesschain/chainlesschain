@@ -43,6 +43,7 @@ import {
   autoFailStuckRequestsV2,
   getLlmProvidersStatsV2,
 } from "../lib/llm-providers.js";
+import { formatProviderResponseError } from "../lib/provider-http-error.js";
 
 /**
  * Resolve the effective `cc llm test` target from CLI flags + persisted config.
@@ -58,7 +59,12 @@ import {
  * @param {object} [env]    process.env (for apiKeyEnv lookup)
  * @returns {{provider,model,baseUrl,apiKey,isOllama,label}}
  */
-export function resolveLlmTestTarget(options = {}, config = {}, builtIns = {}, env = {}) {
+export function resolveLlmTestTarget(
+  options = {},
+  config = {},
+  builtIns = {},
+  env = {},
+) {
   const llm = config.llm || {};
   const provider = options.provider || llm.provider || "ollama";
   const isOllama = provider === "ollama";
@@ -73,11 +79,15 @@ export function resolveLlmTestTarget(options = {}, config = {}, builtIns = {}, e
   if (isOllama) {
     // Only inherit config.baseUrl when the CONFIGURED provider is also ollama —
     // otherwise `--provider ollama` would probe another provider's endpoint.
-    const configOllamaBase = llm.provider === "ollama" ? llm.baseUrl : undefined;
+    const configOllamaBase =
+      llm.provider === "ollama" ? llm.baseUrl : undefined;
     baseUrl = options.baseUrl || configOllamaBase || "http://localhost:11434";
   } else {
     baseUrl =
-      options.baseUrl || llm.baseUrl || builtIn?.baseUrl || "https://api.openai.com/v1";
+      options.baseUrl ||
+      llm.baseUrl ||
+      builtIn?.baseUrl ||
+      "https://api.openai.com/v1";
   }
 
   const apiKey = isOllama
@@ -166,7 +176,9 @@ export function registerLlmCommand(program) {
   // probe instead of only special-casing openai.
   llm
     .command("test")
-    .description("Test LLM provider connectivity (defaults to configured provider)")
+    .description(
+      "Test LLM provider connectivity (defaults to configured provider)",
+    )
     .option("--provider <provider>", "LLM provider (default: configured)")
     .option("--model <model>", "Model to test (default: configured)")
     .option("--base-url <url>", "API base URL (default: configured/provider)")
@@ -195,7 +207,9 @@ export function registerLlmCommand(program) {
           });
 
           if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+            throw new Error(
+              await formatProviderResponseError("ollama", response),
+            );
           }
 
           const data = await response.json();
@@ -226,7 +240,9 @@ export function registerLlmCommand(program) {
           });
 
           if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+            throw new Error(
+              await formatProviderResponseError(target.provider, response),
+            );
           }
 
           const data = await response.json();

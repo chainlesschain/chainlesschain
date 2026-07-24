@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — cc CLI 0.162.178 + IDE provider 403 diagnosis hotfix
+
+- Preserve structured provider error codes/messages for failed LLM requests and
+  `cc llm test`, with credential-shaped text redacted before display.
+- Do not classify every HTTP 403 as an invalid API key: overdue accounts,
+  billing failures, and model-access denials now retain their real corrective
+  action in CLI, VS Code, and JetBrains.
+- Release VS Code 0.37.33 and JetBrains 0.4.70 with corrected setup guidance.
+
 ## [v5.0.3.135] - 2026-07-24 — Python Agent SDK 0.1.0 + CLI/IDE 运行时收口 + 跨端 CI 稳定性
 
 > 本版汇总 v5.0.3.134 之后的 Python Agent SDK 首发、CLI/IDE 运行时收口、桌面端项目管理与审批链路修复，以及跨 Android、Electron、Node.js 和 Python 的 CI 稳定性治理。

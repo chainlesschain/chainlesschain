@@ -25,6 +25,7 @@ const {
 } = require("./conversation-manager");
 const {
   looksLikeLlmConfigError,
+  withLlmErrorGuidance,
   hasUnsafeShellChars,
 } = require("../llm-config.js");
 const {
@@ -530,7 +531,7 @@ class ChatViewProvider {
         ) {
           this._postFrom(convId, {
             kind: "setup",
-            reason: String(evt.error || ""),
+            reason: withLlmErrorGuidance(reason),
           });
         }
       }

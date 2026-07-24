@@ -1,5 +1,12 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.70] - Provider 403 diagnosis hotfix (2026-07-25)
+
+- Stop routing account-overdue and model-access 403 responses to API-key setup.
+- Explain that legacy generic 403 errors may be caused by billing/account
+  balance or model permissions, in both English and Chinese UI.
+- Keep the Configure LLM hint for confirmed authentication failures.
+
 ## [0.4.69] - Context v2 and review safety (2026-07-23)
 
 - Added versioned core, semantic PSI-symbol, and diff-review context metadata

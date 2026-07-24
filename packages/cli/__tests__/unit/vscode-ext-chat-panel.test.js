@@ -867,11 +867,26 @@ describe("LLM config wizard plumbing (onboarding)", async () => {
     expect(llmCfg.suggestVisionModel("volcengine")).toBe(DEFAULT_VISION_MODEL);
   });
 
-  it("looksLikeLlmConfigError: catches bare 401/403/unauthorized (setup-card trigger)", () => {
+  it("looksLikeLlmConfigError: catches auth but not billing/model-access 403s", () => {
     // The original bug class — these must surface the setup card even without
     // the literal "api key" text the old regex required.
     expect(llmCfg.looksLikeLlmConfigError("Anthropic error: 401")).toBe(true);
-    expect(llmCfg.looksLikeLlmConfigError("403 Forbidden")).toBe(true);
+    expect(llmCfg.looksLikeLlmConfigError("403 Forbidden")).toBe(false);
+    expect(
+      llmCfg.looksLikeLlmConfigError(
+        "HTTP 403 — authentication failed: API key missing or invalid",
+      ),
+    ).toBe(true);
+    expect(
+      llmCfg.looksLikeLlmConfigError(
+        "HTTP 403 — AccountOverdueError: overdue balance",
+      ),
+    ).toBe(false);
+    expect(
+      llmCfg.looksLikeLlmConfigError(
+        "HTTP 403 — check model access permissions",
+      ),
+    ).toBe(false);
     expect(llmCfg.looksLikeLlmConfigError("Unauthorized")).toBe(true);
     expect(llmCfg.looksLikeLlmConfigError("authentication failed")).toBe(true);
     expect(llmCfg.looksLikeLlmConfigError("ANTHROPIC_API_KEY required")).toBe(
@@ -881,6 +896,20 @@ describe("LLM config wizard plumbing (onboarding)", async () => {
     expect(llmCfg.looksLikeLlmConfigError("network timeout")).toBe(false);
     expect(llmCfg.looksLikeLlmConfigError("")).toBe(false);
     expect(llmCfg.looksLikeLlmConfigError(null)).toBe(false);
+  });
+
+  it("withLlmErrorGuidance adds the billing/model-access caveat to legacy 403s", () => {
+    const guided = llmCfg.withLlmErrorGuidance(
+      "HTTP 403 — authentication failed",
+    );
+    expect(guided).toMatch(/billing\/account balance/i);
+    expect(guided).toMatch(/model-access permission/i);
+    expect(llmCfg.withLlmErrorGuidance("HTTP 401")).toBe("HTTP 401");
+    expect(
+      llmCfg.withLlmErrorGuidance(
+        "HTTP 403 — AccountOverdueError: overdue balance",
+      ),
+    ).not.toMatch(/can also mean/);
   });
 
   it("setVisionModel: writes llm.visionModel, blank clears, unsafe rejected", async () => {

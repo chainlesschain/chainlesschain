@@ -50,7 +50,7 @@
   "Failed to write LLM config: {0}": "LLM 配置写入失败：{0}",
   "Wrote {0} config, verifying connectivity with cc llm test…": "已写入 {0} 配置，正在用 cc llm test 验证连通…",
   "LLM configured and reachable ✓ ({0} · {1}). The Chat panel's next message uses it.": "LLM 配置完成并连通 ✓（{0} · {1}）。Chat 面板的下一条消息即生效。",
-  "Config written, but the connectivity test failed: {0} — check the key/network, then re-run ChainlessChain: Configure LLM.": "配置已写入，但连通性测试未通过：{0} — 检查 key/网络后可重跑 ChainlessChain：配置大模型。",
+  "Config written, but the connectivity test failed: {0} — check the key, provider billing/account balance, model access, and network, then re-run ChainlessChain: Configure LLM.": "配置已写入，但连通性测试未通过：{0} — 请检查 key、服务商余额/计费状态、模型权限和网络后重跑 ChainlessChain：配置大模型。",
   "see output": "见输出",
   "Failed to write the vision model: {0}": "视觉模型写入失败：{0}",
   "Cleared the image-recognition model — images reuse the text model / CLI default.": "已清除图片识别模型 —— 看图时复用文本模型 / CLI 默认。",

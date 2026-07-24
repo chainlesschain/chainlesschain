@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.33] - Provider 403 diagnosis hotfix (2026-07-25)
+
+- Stop treating every provider HTTP 403 as an invalid API key.
+- Preserve billing/account and model-access guidance from the shared CLI, and
+  add a billing/permission caveat when an older CLI emits the legacy auth text.
+- Keep the Configure LLM card for confirmed key/authentication failures.
+
 ## [0.37.32] - MCP elicitation and packaged schema (2026-07-24)
 
 - Render MCP form-elicitation requests directly in chat with the shared

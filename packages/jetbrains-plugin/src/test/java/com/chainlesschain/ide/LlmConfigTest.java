@@ -42,12 +42,18 @@ class LlmConfigTest {
     void looksLikeLlmConfigErrorTrueForAuthAndKeyFailures() {
         assertTrue(LlmConfig.looksLikeLlmConfigError("Anthropic error: 401"));
         assertTrue(LlmConfig.looksLikeLlmConfigError("ANTHROPIC_API_KEY required"));
-        assertTrue(LlmConfig.looksLikeLlmConfigError("403 Forbidden"));
+        assertTrue(LlmConfig.looksLikeLlmConfigError(
+                "HTTP 403 — authentication failed: API key missing or invalid"));
     }
 
     @Test
     void looksLikeLlmConfigErrorFalseForNonAuthAndNull() {
         assertFalse(LlmConfig.looksLikeLlmConfigError("network timeout"));
+        assertFalse(LlmConfig.looksLikeLlmConfigError("403 Forbidden"));
+        assertFalse(LlmConfig.looksLikeLlmConfigError(
+                "volcengine API error: HTTP 403 — AccountOverdueError: overdue balance"));
+        assertFalse(LlmConfig.looksLikeLlmConfigError(
+                "HTTP 403 — check model access permissions"));
         assertFalse(LlmConfig.looksLikeLlmConfigError(null));
     }
 
