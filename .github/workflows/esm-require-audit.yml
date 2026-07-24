@@ -19,20 +19,21 @@ name: ESM require() Audit (hard gate, trap #33)
 #   scripts/__tests__/audit-esm-require.test.mjs
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
-      - 'packages/cli/src/**'
-      - 'scripts/audit-esm-require.mjs'
-      - 'scripts/__tests__/audit-esm-require.test.mjs'
-      - '.github/workflows/esm-require-audit.yml'
+      - "packages/cli/src/**"
+      - "scripts/audit-esm-require.mjs"
+      - "scripts/__tests__/audit-esm-require.test.mjs"
+      - ".github/workflows/esm-require-audit.yml"
   push:
     branches:
       - main
     paths:
-      - 'packages/cli/src/**'
-      - 'scripts/audit-esm-require.mjs'
-      - 'scripts/__tests__/audit-esm-require.test.mjs'
-      - '.github/workflows/esm-require-audit.yml'
+      - "packages/cli/src/**"
+      - "scripts/audit-esm-require.mjs"
+      - "scripts/__tests__/audit-esm-require.test.mjs"
+      - ".github/workflows/esm-require-audit.yml"
 
 permissions:
   contents: read
@@ -50,7 +51,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Install audit parser deps
         # acorn + eslint-scope are dev tooling for the audit only; install them
