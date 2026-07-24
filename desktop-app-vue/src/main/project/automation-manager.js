@@ -13,10 +13,12 @@ try {
 }
 const { EventEmitter } = require("events");
 const path = require("path");
+const { spawnWithDesktopBroker } = require("../process/desktop-process-broker");
 
 class AutomationManager extends EventEmitter {
-  constructor() {
+  constructor({ spawnProcess = spawnWithDesktopBroker } = {}) {
     super();
+    this.spawnProcess = spawnProcess;
     this.database = null;
     this.rules = new Map(); // 规则存储
     this.scheduledTasks = new Map(); // 定时任务
@@ -733,10 +735,12 @@ class AutomationManager extends EventEmitter {
 
     logger.info(`[AutomationManager] 运行脚本: ${scriptPath}`);
 
-    const { spawn } = require("child_process");
-
     return new Promise((resolve, reject) => {
-      const process = spawn(scriptPath, args);
+      const process = this.spawnProcess(scriptPath, args, {
+        shell: false,
+        windowsHide: true,
+        origin: "desktop:project-automation-script",
+      });
 
       let stdout = "";
       let stderr = "";
