@@ -1,7 +1,7 @@
 "use strict";
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, mkdirSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import Database from "better-sqlite3";
@@ -12,16 +12,15 @@ const {
   BROWSER_HISTORY_EDGE_VERSION,
 } = require("../../lib/adapters/browser-history-edge");
 const { assertAdapter } = require("../../lib/adapter-spec");
+const { EVENT_SUBTYPES, ITEM_SUBTYPES } = require("../../lib/constants");
 const {
-  EVENT_SUBTYPES,
-  ITEM_SUBTYPES,
-} = require("../../lib/constants");
-const {
-  epochMsToWebkitUs,
   defaultEdgeProfileDir,
+  epochMsToWebkitUs,
 } = require("../../lib/adapters/browser-history-chrome/chrome-db-reader");
 
-let tmpDir;
+const VISIT_MS = 1_700_000_001_000;
+
+let tempDir;
 let profileDir;
 let historyPath;
 
@@ -31,7 +30,8 @@ function buildHistoryFixture() {
   db.exec(`
     CREATE TABLE urls(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      url LONGVARCHAR, title LONGVARCHAR,
+      url LONGVARCHAR,
+      title LONGVARCHAR,
       visit_count INTEGER DEFAULT 0 NOT NULL,
       typed_count INTEGER DEFAULT 0 NOT NULL,
       last_visit_time INTEGER NOT NULL,
@@ -46,114 +46,149 @@ function buildHistoryFixture() {
       visit_duration INTEGER DEFAULT 0 NOT NULL
     );
   `);
-  const t = epochMsToWebkitUs(1_700_000_001_000).toString();
-  db.prepare(
-    "INSERT INTO urls(url, title, last_visit_time) VALUES('https://bing.com', 'Bing', ?)",
-  ).run(t);
-  db.prepare(
-    "INSERT INTO visits(url, visit_time, transition) VALUES(1, ?, 1)",
-  ).run(t);
+  const timestamp = epochMsToWebkitUs(VISIT_MS).toString();
+  db.prepare("INSERT INTO urls(url,title,last_visit_time) VALUES(?,?,?)").run(
+    "https://bing.com",
+    "Bing",
+    timestamp,
+  );
+  db.prepare("INSERT INTO visits(url,visit_time,transition) VALUES(1,?,1)").run(
+    timestamp,
+  );
   db.close();
 }
 
+async function collect(adapter, opts = {}) {
+  const rows = [];
+  for await (const row of adapter.sync(opts)) rows.push(row);
+  return rows;
+}
+
 beforeEach(() => {
-  tmpDir = mkdtempSync(join(tmpdir(), "edge-adapter-test-"));
-  profileDir = join(tmpDir, "Default");
+  tempDir = mkdtempSync(join(tmpdir(), "edge-adapter-test-"));
+  profileDir = join(tempDir, "Default");
   historyPath = join(profileDir, "History");
 });
 
 afterEach(() => {
-  rmSync(tmpDir, { recursive: true, force: true });
+  rmSync(tempDir, { recursive: true, force: true });
 });
 
-describe("BrowserHistoryEdgeAdapter — contract + defaults", () => {
-  it("conforms to PersonalDataAdapter contract", () => {
-    const adapter = new BrowserHistoryEdgeAdapter();
+describe("BrowserHistoryEdgeAdapter contract and defaults", () => {
+  it("inherits the bounded Chromium collection contract", () => {
+    const adapter = new BrowserHistoryEdgeAdapter({
+      defaultProfileDir: () => null,
+    });
     expect(assertAdapter(adapter)).toEqual({ ok: true });
-  });
-
-  it("identifies as browser-history-edge with edge-prefixed capabilities", () => {
-    const adapter = new BrowserHistoryEdgeAdapter();
     expect(adapter.name).toBe(BROWSER_HISTORY_EDGE_NAME);
     expect(adapter.name).toBe("browser-history-edge");
     expect(adapter.version).toBe(BROWSER_HISTORY_EDGE_VERSION);
-    expect(adapter.capabilities).toContain("sync:edge-history-sqlite");
-    expect(adapter.capabilities).toContain("sync:edge-bookmarks-json");
+    expect(adapter.version).toBe("0.3.0");
+    expect(adapter.capabilities).toEqual(
+      expect.arrayContaining([
+        "sync:edge-history-sqlite",
+        "sync:edge-downloads-sqlite",
+        "sync:edge-bookmarks-json",
+        "sync:profile-directory",
+      ]),
+    );
+    expect(adapter.watermarkStrategy).toBe("max-captured-at");
+    expect(adapter.watermarkRequiresCompleteScan).toBe(true);
   });
 
-  it("defaultEdgeProfileDir resolves to platform-correct Edge path", () => {
-    const dir = defaultEdgeProfileDir();
-    expect(typeof dir === "string" || dir === null).toBe(true);
-    if (process.platform === "win32" && process.env.LOCALAPPDATA) {
-      expect(dir).toBe(
-        join(process.env.LOCALAPPDATA, "Microsoft", "Edge", "User Data", "Default"),
-      );
-    }
+  it("resolves the platform-correct default Edge profile", () => {
+    const localAppData = join(tempDir, "LocalAppData");
+    const profile = defaultEdgeProfileDir({
+      platform: "win32",
+      env: { LOCALAPPDATA: localAppData },
+      homedir: tempDir,
+      fs: require("node:fs"),
+    });
+    expect(profile).toBe(
+      join(localAppData, "Microsoft", "Edge", "User Data", "Default"),
+    );
   });
 });
 
-describe("BrowserHistoryEdgeAdapter — sync + normalize use edge prefix", () => {
-  it("yields visits with edge-visit: originalId prefix", async () => {
+describe("BrowserHistoryEdgeAdapter collection and normalization", () => {
+  it("collects Edge visits with a hashed profile identity", async () => {
     buildHistoryFixture();
-    const adapter = new BrowserHistoryEdgeAdapter({ profilePath: profileDir });
-    const raws = [];
-    for await (const r of adapter.sync()) raws.push(r);
-    expect(raws).toHaveLength(1);
-    expect(raws[0].kind).toBe("visit");
-    expect(raws[0].originalId).toMatch(/^edge-visit:/);
+    const adapter = new BrowserHistoryEdgeAdapter({
+      profilePath: profileDir,
+    });
+    const rows = await collect(adapter);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      kind: "visit",
+      capturedAt: VISIT_MS,
+    });
+    expect(rows[0].originalId).toMatch(/^edge-visit:[a-f0-9]{24}:1$/u);
+    expect(rows[0].payload.profileId).toMatch(/^[a-f0-9]{24}$/u);
+    expect(JSON.stringify(rows)).not.toContain(profileDir);
   });
 
-  it("normalize emits browser='edge' in extra + event id prefixed edge", () => {
-    const adapter = new BrowserHistoryEdgeAdapter();
+  it("normalizes Edge visits without an absolute profile path", () => {
+    const adapter = new BrowserHistoryEdgeAdapter({
+      defaultProfileDir: () => null,
+    });
     const { events } = adapter.normalize({
       kind: "visit",
-      capturedAt: 1_700_000_000_000,
+      originalId: "edge-visit:profile:42",
+      capturedAt: VISIT_MS,
       payload: {
+        profileId: "profile",
         visitId: 42,
         url: "https://bing.com",
         title: "Bing",
-        visitTimeMs: 1_700_000_000_000,
-        visitDurationMs: 0,
+        visitTimeMs: VISIT_MS,
         transition: "link",
         rawTransition: 0,
-        profileDir: "/p/Default",
       },
     });
-    expect(events).toHaveLength(1);
-    expect(events[0].extra.browser).toBe("edge");
-    expect(events[0].id).toBe("event-edge-visit-42");
     expect(events[0].subtype).toBe(EVENT_SUBTYPES.BROWSE);
-    expect(events[0].source.originalId).toBe("edge-visit:/p/Default:42");
+    expect(events[0].id).toBe("event-edge-visit-profile-42");
+    expect(events[0].source.originalId).toBe("edge-visit:profile:42");
     expect(events[0].source.adapter).toBe("browser-history-edge");
+    expect(events[0].extra.browser).toBe("edge");
+    expect(events[0].extra.profileId).toBe("profile");
+    expect(events[0].extra).not.toHaveProperty("profileDir");
   });
 
-  it("normalize bookmark emits browser='edge'", () => {
-    const adapter = new BrowserHistoryEdgeAdapter();
+  it("normalizes Edge bookmarks with the profile-scoped ID", () => {
+    const adapter = new BrowserHistoryEdgeAdapter({
+      defaultProfileDir: () => null,
+    });
     const { items } = adapter.normalize({
       kind: "bookmark",
-      capturedAt: 1_700_000_000_000,
+      originalId: "edge-bookmark:profile:g1",
+      capturedAt: VISIT_MS,
       payload: {
+        profileId: "profile",
         guid: "g1",
         name: "Bing",
         url: "https://bing.com",
-        dateAddedMs: 1_600_000_000_000,
-        folderPath: "书签栏",
-        profileDir: "/p/Default",
+        dateAddedMs: VISIT_MS,
+        folderPath: "\u4e66\u7b7e\u680f",
       },
     });
-    expect(items).toHaveLength(1);
-    expect(items[0].extra.browser).toBe("edge");
-    expect(items[0].id).toBe("item-edge-bookmark-g1");
     expect(items[0].subtype).toBe(ITEM_SUBTYPES.LINK);
-    expect(items[0].source.originalId).toBe("edge-bookmark:/p/Default:g1");
+    expect(items[0].id).toBe("item-edge-bookmark-profile-g1");
+    expect(items[0].source.originalId).toBe("edge-bookmark:profile:g1");
+    expect(items[0].extra.browser).toBe("edge");
+    expect(items[0].extra).not.toHaveProperty("profileDir");
   });
 
-  it("PROFILE_NOT_FOUND error message mentions edge, not chrome", async () => {
-    const adapter = new BrowserHistoryEdgeAdapter({ profilePath: profileDir });
-    const r = await adapter.authenticate({});
-    expect(r.ok).toBe(false);
-    expect(r.reason).toBe("PROFILE_NOT_FOUND");
-    expect(r.message).toContain("edge");
-    expect(r.message).not.toContain("Chrome");
+  it("reports a missing Edge profile without leaking its path", async () => {
+    const adapter = new BrowserHistoryEdgeAdapter({
+      profilePath: profileDir,
+    });
+    const result = await adapter.authenticate();
+    expect(result).toMatchObject({
+      ok: false,
+      reason: "PROFILE_NOT_FOUND",
+    });
+    expect(result.message).toContain("edge");
+    expect(result.message).not.toContain("chrome");
+    expect(JSON.stringify(result)).not.toContain(profileDir);
   });
 });

@@ -1,37 +1,45 @@
 "use strict";
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import Database from "better-sqlite3";
+
+const nodeFs = require("node:fs");
 
 const {
   BrowserHistoryChromeAdapter,
   BROWSER_HISTORY_CHROME_NAME,
   BROWSER_HISTORY_CHROME_VERSION,
+  decodeDownloadDanger,
+  decodeDownloadState,
+  decodeTransition,
+  epochMsToWebkitUs,
+  findChromiumProfiles,
+  sanitizeDownloadUrl,
+  webkitUsToEpochMs,
 } = require("../../lib/adapters/browser-history-chrome");
 const { assertAdapter } = require("../../lib/adapter-spec");
-const {
-  ENTITY_TYPES,
-  EVENT_SUBTYPES,
-  ITEM_SUBTYPES,
-} = require("../../lib/constants");
+const { EVENT_SUBTYPES, ITEM_SUBTYPES } = require("../../lib/constants");
 const { validateEvent, validateItem } = require("../../lib/schemas");
-const {
-  epochMsToWebkitUs,
-  webkitUsToEpochMs,
-  decodeTransition,
-} = require("../../lib/adapters/browser-history-chrome");
+const { AdapterRegistry } = require("../../lib/registry");
+const { LocalVault } = require("../../lib/vault");
+const { generateKeyHex } = require("../../lib/key-providers");
 
-let tmpDir;
+const OLD_MS = 1_700_000_000_000;
+const NEW_MS = 1_700_000_005_000;
+const BOOKMARK_MS = 1_700_000_006_000;
+const DOWNLOAD_START_MS = 1_700_000_007_000;
+const DOWNLOAD_END_MS = 1_700_000_009_000;
+const DOWNLOAD_ACCESS_MS = 1_700_000_010_000;
+
+let tempDir;
 let profileDir;
 let historyPath;
 let bookmarksPath;
 
-// Build a minimal Chrome-shaped History SQLite + Bookmarks JSON inside a
-// throwaway profile dir.
-function buildFixture({ visits = [], bookmarks = null } = {}) {
+function buildFixture({ visits = [], bookmarks = [], downloads = [] } = {}) {
   mkdirSync(profileDir, { recursive: true });
   const db = new Database(historyPath);
   db.exec(`
@@ -52,326 +60,709 @@ function buildFixture({ visits = [], bookmarks = null } = {}) {
       transition INTEGER DEFAULT 0 NOT NULL,
       visit_duration INTEGER DEFAULT 0 NOT NULL
     );
+    CREATE TABLE downloads(
+      id INTEGER PRIMARY KEY,
+      guid VARCHAR NOT NULL,
+      current_path LONGVARCHAR NOT NULL,
+      target_path LONGVARCHAR NOT NULL,
+      start_time INTEGER NOT NULL,
+      received_bytes INTEGER NOT NULL,
+      total_bytes INTEGER NOT NULL,
+      state INTEGER NOT NULL,
+      danger_type INTEGER NOT NULL,
+      interrupt_reason INTEGER NOT NULL,
+      hash BLOB NOT NULL,
+      end_time INTEGER NOT NULL,
+      opened INTEGER NOT NULL,
+      last_access_time INTEGER NOT NULL,
+      transient INTEGER NOT NULL,
+      referrer VARCHAR NOT NULL,
+      site_url VARCHAR NOT NULL,
+      tab_url VARCHAR NOT NULL,
+      tab_referrer_url VARCHAR NOT NULL,
+      http_method VARCHAR NOT NULL,
+      by_ext_name VARCHAR NOT NULL,
+      mime_type VARCHAR(255) NOT NULL,
+      original_mime_type VARCHAR(255) NOT NULL
+    );
+    CREATE TABLE downloads_url_chains(
+      id INTEGER NOT NULL,
+      chain_index INTEGER NOT NULL,
+      url LONGVARCHAR NOT NULL,
+      PRIMARY KEY (id, chain_index)
+    );
   `);
-  const urlsByUrl = new Map();
   const insertUrl = db.prepare(
-    "INSERT INTO urls(url, title, visit_count, last_visit_time, hidden) VALUES(?, ?, ?, ?, ?)",
+    "INSERT INTO urls(url,title,visit_count,typed_count,last_visit_time,hidden) VALUES(?,?,?,?,?,?)",
   );
   const insertVisit = db.prepare(
-    "INSERT INTO visits(url, visit_time, transition, visit_duration) VALUES(?, ?, ?, ?)",
+    "INSERT INTO visits(url,visit_time,from_visit,transition,visit_duration) VALUES(?,?,?,?,?)",
   );
-  for (const v of visits) {
-    let urlId = urlsByUrl.get(v.url);
-    if (!urlId) {
-      const r = insertUrl.run(
-        v.url,
-        v.title || "",
-        v.visitCount || 1,
-        epochMsToWebkitUs(v.visitTimeMs).toString(),
-        v.hidden ? 1 : 0,
-      );
-      urlId = r.lastInsertRowid;
-      urlsByUrl.set(v.url, urlId);
-    }
-    insertVisit.run(
-      urlId,
-      epochMsToWebkitUs(v.visitTimeMs).toString(),
-      v.rawTransition != null ? v.rawTransition : 1,
-      v.visitDurationMs != null ? v.visitDurationMs * 1000 : 0,
+  for (const [index, visit] of visits.entries()) {
+    const visitTime = epochMsToWebkitUs(visit.visitTimeMs).toString();
+    const result = insertUrl.run(
+      visit.url,
+      visit.title || "",
+      visit.visitCount || 1,
+      visit.typedCount || 0,
+      visitTime,
+      visit.hidden ? 1 : 0,
     );
+    insertVisit.run(
+      result.lastInsertRowid,
+      visitTime,
+      index === 0 ? 0 : index,
+      visit.rawTransition ?? 1,
+      (visit.visitDurationMs || 0) * 1000,
+    );
+  }
+  const insertDownload = db.prepare(
+    `INSERT INTO downloads(
+      id,guid,current_path,target_path,start_time,received_bytes,total_bytes,
+      state,danger_type,interrupt_reason,hash,end_time,opened,last_access_time,
+      transient,referrer,site_url,tab_url,tab_referrer_url,http_method,
+      by_ext_name,mime_type,original_mime_type
+    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+  );
+  const insertDownloadUrl = db.prepare(
+    "INSERT INTO downloads_url_chains(id,chain_index,url) VALUES(?,?,?)",
+  );
+  for (const [index, download] of downloads.entries()) {
+    const id = index + 1;
+    const targetPath =
+      download.targetPath || `C:\\Private\\Downloads\\fixture-${id}.bin`;
+    const startTimeMs = download.startTimeMs || DOWNLOAD_START_MS + index;
+    const endTimeMs = download.endTimeMs || 0;
+    const lastAccessTimeMs = download.lastAccessTimeMs || 0;
+    insertDownload.run(
+      id,
+      download.guid || `download-guid-${id}`,
+      targetPath,
+      targetPath,
+      epochMsToWebkitUs(startTimeMs).toString(),
+      download.receivedBytes ?? 0,
+      download.totalBytes ?? 0,
+      download.state ?? 1,
+      download.dangerType ?? 0,
+      download.interruptReason ?? 0,
+      download.contentHash
+        ? Buffer.from(download.contentHash, "hex")
+        : Buffer.alloc(0),
+      endTimeMs ? epochMsToWebkitUs(endTimeMs).toString() : 0,
+      download.opened ? 1 : 0,
+      lastAccessTimeMs ? epochMsToWebkitUs(lastAccessTimeMs).toString() : 0,
+      download.transient ? 1 : 0,
+      download.referrer || "",
+      download.siteUrl || "",
+      download.tabUrl || "",
+      download.tabReferrerUrl || "",
+      download.httpMethod || "GET",
+      download.extensionName || "",
+      download.mimeType || "",
+      download.originalMimeType || "",
+    );
+    const urlChain = download.urlChain || [];
+    for (const [chainIndex, url] of urlChain.entries()) {
+      insertDownloadUrl.run(id, chainIndex, url);
+    }
   }
   db.close();
 
-  if (bookmarks) {
-    writeFileSync(bookmarksPath, JSON.stringify(bookmarks), "utf-8");
+  if (bookmarks.length > 0) {
+    writeFileSync(
+      bookmarksPath,
+      JSON.stringify({
+        version: 1,
+        roots: {
+          bookmark_bar: {
+            type: "folder",
+            name: "Bookmarks bar",
+            children: bookmarks.map((bookmark, index) => ({
+              type: "url",
+              id: String(index + 1),
+              guid: bookmark.guid || `bookmark-${index + 1}`,
+              url: bookmark.url,
+              name: bookmark.name,
+              date_added: epochMsToWebkitUs(
+                bookmark.dateAddedMs || BOOKMARK_MS,
+              ).toString(),
+              date_last_used: epochMsToWebkitUs(
+                bookmark.dateLastUsedMs || bookmark.dateAddedMs || BOOKMARK_MS,
+              ).toString(),
+            })),
+          },
+          other: {
+            type: "folder",
+            name: "Other bookmarks",
+            children: [],
+          },
+          synced: {
+            type: "folder",
+            name: "Mobile bookmarks",
+            children: [],
+          },
+        },
+      }),
+      "utf8",
+    );
   }
 }
 
+async function collect(adapter, opts = {}) {
+  const rows = [];
+  for await (const row of adapter.sync(opts)) rows.push(row);
+  return rows;
+}
+
 beforeEach(() => {
-  tmpDir = mkdtempSync(join(tmpdir(), "chrome-adapter-test-"));
-  profileDir = join(tmpDir, "Default");
+  tempDir = mkdtempSync(join(tmpdir(), "chrome-adapter-test-"));
+  profileDir = join(tempDir, "Default");
   historyPath = join(profileDir, "History");
   bookmarksPath = join(profileDir, "Bookmarks");
 });
 
 afterEach(() => {
-  rmSync(tmpDir, { recursive: true, force: true });
+  rmSync(tempDir, { recursive: true, force: true });
 });
 
-describe("BrowserHistoryChromeAdapter — contract", () => {
-  it("conforms to PersonalDataAdapter contract", () => {
-    const adapter = new BrowserHistoryChromeAdapter();
-    const r = assertAdapter(adapter);
-    expect(r).toEqual({ ok: true });
-  });
-
-  it("exposes stable name/version/capabilities", () => {
-    const adapter = new BrowserHistoryChromeAdapter();
+describe("BrowserHistoryChromeAdapter contract and readiness", () => {
+  it("publishes a bounded local profile-directory contract", () => {
+    const adapter = new BrowserHistoryChromeAdapter({
+      defaultProfileDir: () => null,
+    });
+    expect(assertAdapter(adapter)).toEqual({ ok: true });
     expect(adapter.name).toBe(BROWSER_HISTORY_CHROME_NAME);
+    expect(adapter.name).toBe("browser-history-chrome");
     expect(adapter.version).toBe(BROWSER_HISTORY_CHROME_VERSION);
+    expect(adapter.version).toBe("0.3.0");
+    expect(adapter.capabilities).toEqual(
+      expect.arrayContaining([
+        "sync:chrome-history-sqlite",
+        "sync:chrome-downloads-sqlite",
+        "sync:chrome-bookmarks-json",
+        "sync:profile-directory",
+      ]),
+    );
     expect(adapter.extractMode).toBe("file-import");
-    expect(adapter.capabilities).toContain("sync:chrome-history-sqlite");
-    expect(adapter.dataDisclosure.sensitivity).toBe("high");
-    expect(adapter.dataDisclosure.legalGate).toBe(false);
-  });
-});
-
-describe("BrowserHistoryChromeAdapter.authenticate", () => {
-  it("returns PROFILE_NOT_FOUND when History missing", async () => {
-    const adapter = new BrowserHistoryChromeAdapter({ profilePath: profileDir });
-    const r = await adapter.authenticate({});
-    expect(r.ok).toBe(false);
-    expect(r.reason).toBe("PROFILE_NOT_FOUND");
+    expect(adapter.watermarkStrategy).toBe("max-captured-at");
+    expect(adapter.watermarkRequiresCompleteScan).toBe(true);
+    expect(adapter.initialPageBudget).toBe(20);
+    expect(adapter.runtimeCredentialOption).toBe("profilePath");
   });
 
-  it("succeeds when History present", async () => {
-    buildFixture({ visits: [{ url: "https://a.test", title: "A", visitTimeMs: 1_700_000_000_000 }] });
-    const adapter = new BrowserHistoryChromeAdapter({ profilePath: profileDir });
-    const r = await adapter.authenticate({});
-    expect(r.ok).toBe(true);
-    expect(r.profileDir).toBe(profileDir);
-  });
-
-  it("ctx.profilePath overrides constructor opts", async () => {
-    buildFixture({ visits: [{ url: "https://x.test", title: "X", visitTimeMs: 1_700_000_000_000 }] });
-    const adapter = new BrowserHistoryChromeAdapter({ profilePath: "/nonexistent/dir" });
-    const r = await adapter.authenticate({ profilePath: profileDir });
-    expect(r.ok).toBe(true);
-    expect(r.profileDir).toBe(profileDir);
-  });
-});
-
-describe("BrowserHistoryChromeAdapter.sync", () => {
-  it("yields visits in occurredAt-ascending order", async () => {
-    buildFixture({
-      visits: [
-        { url: "https://b.test", title: "B", visitTimeMs: 1_700_000_002_000 },
-        { url: "https://a.test", title: "A", visitTimeMs: 1_700_000_001_000 },
-      ],
-    });
-    const adapter = new BrowserHistoryChromeAdapter({ profilePath: profileDir });
-    const raws = [];
-    for await (const r of adapter.sync()) raws.push(r);
-    const visits = raws.filter((r) => r.kind === "visit");
-    expect(visits).toHaveLength(2);
-    expect(visits[0].payload.url).toBe("https://a.test");
-    expect(visits[1].payload.url).toBe("https://b.test");
-    expect(visits[0].payload.visitTimeMs).toBe(1_700_000_001_000);
-  });
-
-  it("filters by since (epoch ms → WebKit microseconds)", async () => {
-    buildFixture({
-      visits: [
-        { url: "https://old.test", title: "Old", visitTimeMs: 1_700_000_000_000 },
-        { url: "https://new.test", title: "New", visitTimeMs: 1_700_000_005_000 },
-      ],
-    });
-    const adapter = new BrowserHistoryChromeAdapter({ profilePath: profileDir });
-    const raws = [];
-    for await (const r of adapter.sync({ since: 1_700_000_003_000 })) raws.push(r);
-    const urls = raws.filter((r) => r.kind === "visit").map((r) => r.payload.url);
-    expect(urls).toEqual(["https://new.test"]);
-  });
-
-  it("skips hidden urls by default", async () => {
-    buildFixture({
-      visits: [
-        { url: "https://shown.test", title: "S", visitTimeMs: 1_700_000_001_000, hidden: false },
-        { url: "https://hidden.test", title: "H", visitTimeMs: 1_700_000_002_000, hidden: true },
-      ],
-    });
-    const adapter = new BrowserHistoryChromeAdapter({ profilePath: profileDir });
-    const raws = [];
-    for await (const r of adapter.sync()) raws.push(r);
-    const urls = raws.filter((r) => r.kind === "visit").map((r) => r.payload.url);
-    expect(urls).toEqual(["https://shown.test"]);
-  });
-
-  it("includes hidden urls when opts.includeHidden=true", async () => {
-    buildFixture({
-      visits: [
-        { url: "https://shown.test", title: "S", visitTimeMs: 1_700_000_001_000, hidden: false },
-        { url: "https://hidden.test", title: "H", visitTimeMs: 1_700_000_002_000, hidden: true },
-      ],
-    });
-    const adapter = new BrowserHistoryChromeAdapter({ profilePath: profileDir });
-    const raws = [];
-    for await (const r of adapter.sync({ includeHidden: true })) raws.push(r);
-    expect(raws.filter((r) => r.kind === "visit")).toHaveLength(2);
-  });
-
-  it("yields bookmarks from all three root folders with folder path", async () => {
-    buildFixture({
-      visits: [{ url: "https://x.test", title: "X", visitTimeMs: 1_700_000_000_000 }],
-      bookmarks: {
-        version: 1,
-        roots: {
-          bookmark_bar: {
-            type: "folder",
-            name: "书签栏",
-            children: [
-              { type: "url", id: "1", guid: "g1", url: "https://b1.test", name: "B1", date_added: "13300000000000000" },
-            ],
-          },
-          other: {
-            type: "folder",
-            name: "other",
-            children: [
-              {
-                type: "folder",
-                name: "Tech",
-                children: [
-                  { type: "url", id: "2", guid: "g2", url: "https://t1.test", name: "T1", date_added: "13300000000000000" },
-                ],
-              },
-            ],
-          },
-          synced: { type: "folder", name: "synced", children: [] },
-        },
+  it("defers default profile discovery until scope resolution", () => {
+    let discoveryCalls = 0;
+    const adapter = new BrowserHistoryChromeAdapter({
+      defaultProfileDir: () => {
+        discoveryCalls += 1;
+        return profileDir;
       },
     });
-    const adapter = new BrowserHistoryChromeAdapter({ profilePath: profileDir });
-    const bms = [];
-    for await (const r of adapter.sync()) if (r.kind === "bookmark") bms.push(r);
-    expect(bms).toHaveLength(2);
-    const byGuid = Object.fromEntries(bms.map((r) => [r.payload.guid, r.payload]));
-    expect(byGuid.g1.folderPath).toBe("书签栏");
-    expect(byGuid.g2.folderPath).toMatch(/其他书签 \/ Tech/);
-    expect(typeof byGuid.g1.dateAddedMs).toBe("number");
+
+    expect(discoveryCalls).toBe(0);
+    expect(adapter.defaultScope).toBeUndefined();
+    expect(adapter.resolveDefaultScope()).toMatch(
+      /^account:browser-history-chrome:[a-f0-9]{32}$/u,
+    );
+    expect(discoveryCalls).toBe(1);
   });
 
-  it("respects per-kind include gates", async () => {
+  it("reports a missing profile without exposing its absolute path", async () => {
+    const adapter = new BrowserHistoryChromeAdapter({
+      profilePath: profileDir,
+    });
+    const result = await adapter.authenticate();
+    expect(result).toMatchObject({
+      ok: false,
+      reason: "PROFILE_NOT_FOUND",
+    });
+    expect(JSON.stringify(result)).not.toContain(profileDir);
+  });
+
+  it("accepts a runtime profile and returns only its stable hash", async () => {
     buildFixture({
-      visits: [{ url: "https://x.test", title: "X", visitTimeMs: 1_700_000_000_000 }],
-      bookmarks: {
-        version: 1,
-        roots: {
-          bookmark_bar: {
-            type: "folder",
-            name: "bar",
-            children: [
-              { type: "url", id: "1", guid: "g1", url: "https://b1.test", name: "B1", date_added: "13300000000000000" },
-            ],
+      visits: [{ url: "https://runtime.test", visitTimeMs: OLD_MS }],
+    });
+    const adapter = new BrowserHistoryChromeAdapter({
+      profilePath: join(tempDir, "missing"),
+    });
+    const result = await adapter.authenticate({ profilePath: historyPath });
+    expect(result).toMatchObject({ ok: true, mode: "file-import" });
+    expect(result.profileId).toMatch(/^[a-f0-9]{24}$/u);
+    expect(JSON.stringify(result)).not.toContain(profileDir);
+    await expect(
+      adapter.healthCheck({ profilePath: profileDir }),
+    ).resolves.toMatchObject({ ok: true });
+  });
+
+  it("prioritizes the Local State last-used profile", () => {
+    const userDataDir = join(tempDir, "User Data");
+    const firstProfile = join(userDataDir, "Profile 1");
+    const lastUsedProfile = join(userDataDir, "Profile 2");
+    mkdirSync(firstProfile, { recursive: true });
+    mkdirSync(lastUsedProfile, { recursive: true });
+    writeFileSync(join(firstProfile, "History"), "");
+    writeFileSync(join(lastUsedProfile, "History"), "");
+    writeFileSync(
+      join(userDataDir, "Local State"),
+      JSON.stringify({
+        profile: {
+          last_used: "Profile 2",
+          info_cache: {
+            "Profile 1": {},
+            "Profile 2": {},
           },
         },
-      },
-    });
-    const adapter = new BrowserHistoryChromeAdapter({ profilePath: profileDir });
-    const raws1 = [];
-    for await (const r of adapter.sync({ include: { history: false } })) raws1.push(r);
-    expect(raws1.every((r) => r.kind === "bookmark")).toBe(true);
-    expect(raws1.length).toBeGreaterThan(0);
-    const raws2 = [];
-    for await (const r of adapter.sync({ include: { bookmarks: false } })) raws2.push(r);
-    expect(raws2.every((r) => r.kind === "visit")).toBe(true);
-    expect(raws2.length).toBeGreaterThan(0);
+      }),
+      "utf8",
+    );
+    expect(findChromiumProfiles([userDataDir])).toEqual([
+      lastUsedProfile,
+      firstProfile,
+    ]);
   });
 });
 
-describe("BrowserHistoryChromeAdapter.normalize", () => {
-  it("maps a visit to a schema-valid Event(BROWSE)", () => {
-    const adapter = new BrowserHistoryChromeAdapter();
-    const raw = {
-      kind: "visit",
-      originalId: "chrome-visit:/p/Default:42",
-      capturedAt: 1_700_000_000_000,
+describe("BrowserHistoryChromeAdapter collection", () => {
+  it("collects ordered visible visits and bookmarks without leaking paths", async () => {
+    buildFixture({
+      visits: [
+        {
+          url: "https://new.test",
+          title: "New",
+          visitTimeMs: NEW_MS,
+          typedCount: 1,
+        },
+        {
+          url: "https://old.test",
+          title: "Old",
+          visitTimeMs: OLD_MS,
+          visitDurationMs: 2000,
+        },
+        {
+          url: "https://hidden.test",
+          title: "Hidden",
+          visitTimeMs: NEW_MS + 1000,
+          hidden: true,
+        },
+      ],
+      bookmarks: [
+        {
+          guid: "bookmark-guid",
+          url: "https://bookmark.test",
+          name: "Bookmark",
+          dateAddedMs: BOOKMARK_MS,
+        },
+      ],
+    });
+    const adapter = new BrowserHistoryChromeAdapter({
+      profilePath: profileDir,
+    });
+    let complete = false;
+    const rows = await collect(adapter, {
+      markWatermarkComplete: () => {
+        complete = true;
+      },
+    });
+
+    expect(rows.map((row) => row.payload.url)).toEqual([
+      "https://old.test",
+      "https://new.test",
+      "https://bookmark.test",
+    ]);
+    expect(rows[0].capturedAt).toBe(OLD_MS);
+    expect(rows.at(-1).capturedAt).toBe(BOOKMARK_MS);
+    expect(rows.at(-1).payload.folderPath).toBe("\u4e66\u7b7e\u680f");
+    expect(complete).toBe(true);
+    expect(JSON.stringify(rows)).not.toContain(profileDir);
+    expect(JSON.stringify(rows)).not.toContain("History");
+  });
+
+  it("includes hidden visits only when requested", async () => {
+    buildFixture({
+      visits: [
+        { url: "https://visible.test", visitTimeMs: OLD_MS },
+        {
+          url: "https://hidden.test",
+          visitTimeMs: NEW_MS,
+          hidden: true,
+        },
+      ],
+    });
+    const adapter = new BrowserHistoryChromeAdapter({
+      profilePath: profileDir,
+    });
+    expect(await collect(adapter)).toHaveLength(1);
+    expect(await collect(adapter, { includeHidden: true })).toHaveLength(2);
+  });
+
+  it("collects download history while stripping paths and URL credentials", async () => {
+    buildFixture({
+      downloads: [
+        {
+          targetPath:
+            "C:\\Users\\private-profile\\Downloads\\Quarterly Report.pdf",
+          startTimeMs: DOWNLOAD_START_MS,
+          endTimeMs: DOWNLOAD_END_MS,
+          lastAccessTimeMs: DOWNLOAD_ACCESS_MS,
+          receivedBytes: 4096,
+          totalBytes: 4096,
+          state: 1,
+          dangerType: 4,
+          opened: true,
+          mimeType: "application/pdf",
+          contentHash: "ab".repeat(32),
+          urlChain: [
+            "https://alice:secret@download.test/start?token=credential#private",
+            "https://cdn.test/files/Quarterly%20Report.pdf?signature=secret",
+          ],
+          referrer: "https://portal.test/account?session=secret",
+          tabUrl: "https://portal.test/downloads?auth=secret",
+        },
+      ],
+    });
+    const adapter = new BrowserHistoryChromeAdapter({
+      profilePath: profileDir,
+    });
+    let complete = false;
+    const rows = await collect(adapter, {
+      include: { history: false, bookmarks: false },
+      markWatermarkComplete: () => {
+        complete = true;
+      },
+    });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      kind: "download",
+      capturedAt: DOWNLOAD_ACCESS_MS,
       payload: {
+        fileName: "Quarterly Report.pdf",
+        fileExtension: "pdf",
+        sourceUrl: "https://cdn.test/files/Quarterly%20Report.pdf",
+        startTimeMs: DOWNLOAD_START_MS,
+        endTimeMs: DOWNLOAD_END_MS,
+        lastAccessTimeMs: DOWNLOAD_ACCESS_MS,
+        state: "complete",
+        danger: "maybe-dangerous-content",
+        receivedBytes: 4096,
+        totalBytes: 4096,
+        opened: true,
+        contentHashSha256: "ab".repeat(32),
+      },
+    });
+    expect(rows[0].payload.targetPathHash).toMatch(/^[a-f0-9]{64}$/u);
+    expect(JSON.stringify(rows)).not.toMatch(
+      /private-profile|C:\\|credential|signature=|session=|auth=|alice|secret/u,
+    );
+    expect(complete).toBe(true);
+  });
+
+  it("replays a download when its completion or access timestamp equals the watermark", async () => {
+    buildFixture({
+      downloads: [
+        {
+          startTimeMs: DOWNLOAD_START_MS,
+          endTimeMs: DOWNLOAD_END_MS,
+          lastAccessTimeMs: DOWNLOAD_ACCESS_MS,
+          urlChain: ["https://download.test/file.zip"],
+        },
+      ],
+    });
+    const adapter = new BrowserHistoryChromeAdapter({
+      profilePath: profileDir,
+    });
+    const rows = await collect(adapter, {
+      sinceWatermark: String(DOWNLOAD_ACCESS_MS),
+      include: { history: false, bookmarks: false },
+    });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].capturedAt).toBe(DOWNLOAD_ACCESS_MS);
+  });
+
+  it("honors include gates for history and bookmarks", async () => {
+    buildFixture({
+      visits: [{ url: "https://visit.test", visitTimeMs: OLD_MS }],
+      bookmarks: [
+        {
+          url: "https://bookmark.test",
+          name: "Bookmark",
+          dateAddedMs: BOOKMARK_MS,
+        },
+      ],
+    });
+    const adapter = new BrowserHistoryChromeAdapter({
+      profilePath: profileDir,
+    });
+    const bookmarks = await collect(adapter, {
+      include: { history: false },
+    });
+    expect(bookmarks.every((row) => row.kind === "bookmark")).toBe(true);
+    const visits = await collect(adapter, {
+      include: { bookmarks: false },
+    });
+    expect(visits.every((row) => row.kind === "visit")).toBe(true);
+  });
+
+  it("uses sinceWatermark with equality replay", async () => {
+    buildFixture({
+      visits: [
+        { url: "https://old.test", visitTimeMs: OLD_MS },
+        { url: "https://equal.test", visitTimeMs: NEW_MS },
+      ],
+    });
+    const adapter = new BrowserHistoryChromeAdapter({
+      profilePath: profileDir,
+    });
+    const rows = await collect(adapter, {
+      sinceWatermark: String(NEW_MS),
+      include: { bookmarks: false },
+    });
+    expect(rows.map((row) => row.payload.url)).toEqual(["https://equal.test"]);
+  });
+
+  it("does not complete a scan truncated by limit or maxPages", async () => {
+    buildFixture({
+      visits: [
+        { url: "https://one.test", visitTimeMs: OLD_MS },
+        { url: "https://two.test", visitTimeMs: NEW_MS },
+      ],
+    });
+    const adapter = new BrowserHistoryChromeAdapter({
+      profilePath: profileDir,
+    });
+    let complete = false;
+    const rows = await collect(adapter, {
+      maxPages: 1,
+      pageSize: 1,
+      markWatermarkComplete: () => {
+        complete = true;
+      },
+    });
+    expect(rows).toHaveLength(1);
+    expect(complete).toBe(false);
+    await expect(collect(adapter, { limit: 0 })).rejects.toThrow(
+      /positive integer/u,
+    );
+    await expect(collect(adapter, { pageSize: 50_001 })).rejects.toThrow(
+      /must not exceed 50000/u,
+    );
+  });
+
+  it("redacts the profile path from low-level filesystem failures", async () => {
+    buildFixture({
+      visits: [{ url: "https://failure.test", visitTimeMs: OLD_MS }],
+    });
+    const adapter = new BrowserHistoryChromeAdapter({
+      profilePath: profileDir,
+      fs: {
+        ...nodeFs,
+        copyFileSync() {
+          const error = new Error(`EACCES: ${profileDir}`);
+          error.code = "EACCES";
+          throw error;
+        },
+      },
+    });
+    let failure;
+    try {
+      await collect(adapter);
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure).toMatchObject({
+      code: "CHROMIUM_PROFILE_READ_FAILED",
+      sourceCode: "EACCES",
+    });
+    expect(failure.message).not.toContain(profileDir);
+  });
+});
+
+describe("BrowserHistoryChromeAdapter normalization", () => {
+  it("normalizes a visit to a path-free schema-valid browse event", () => {
+    const adapter = new BrowserHistoryChromeAdapter({
+      defaultProfileDir: () => null,
+    });
+    const { events } = adapter.normalize({
+      kind: "visit",
+      originalId: "chrome-visit:profile:42",
+      capturedAt: OLD_MS,
+      payload: {
+        profileId: "profile",
         visitId: 42,
-        url: "https://a.test/x?y=1",
-        title: "Hello",
-        visitTimeMs: 1_700_000_000_500,
+        url: "https://example.test",
+        title: "Example",
+        visitTimeMs: OLD_MS,
         visitDurationMs: 2000,
-        transition: "link",
-        rawTransition: 805306369,
-        visitCount: 3,
-        typedCount: 0,
-        hidden: false,
-        fromVisit: 0,
-        profileDir: "/p/Default",
+        transition: "typed",
+        rawTransition: 1,
       },
-    };
-    const { events, items } = adapter.normalize(raw);
-    expect(items).toEqual([]);
-    expect(events).toHaveLength(1);
-    const e = events[0];
-    expect(e.type).toBe(ENTITY_TYPES.EVENT);
-    expect(e.subtype).toBe(EVENT_SUBTYPES.BROWSE);
-    expect(e.actor).toBe("self");
-    expect(e.content.title).toBe("Hello");
-    expect(e.content.text).toBe("https://a.test/x?y=1");
-    expect(e.durationMs).toBe(2000);
-    expect(e.extra.url).toBe("https://a.test/x?y=1");
-    expect(e.extra.transition).toBe("link");
-    expect(e.extra.browser).toBe("chrome");
-    expect(validateEvent(e).valid).toBe(true);
+    });
+    expect(events[0].subtype).toBe(EVENT_SUBTYPES.BROWSE);
+    expect(events[0].id).toBe("event-chrome-visit-profile-42");
+    expect(events[0].extra.browser).toBe("chrome");
+    expect(events[0].extra.profileId).toBe("profile");
+    expect(events[0].extra).not.toHaveProperty("profileDir");
+    expect(events[0].durationMs).toBe(2000);
+    expect(validateEvent(events[0]).valid).toBe(true);
   });
 
-  it("maps a bookmark to a schema-valid Item(LINK)", () => {
-    const adapter = new BrowserHistoryChromeAdapter();
-    const raw = {
+  it("normalizes a bookmark to a path-free schema-valid link item", () => {
+    const adapter = new BrowserHistoryChromeAdapter({
+      defaultProfileDir: () => null,
+    });
+    const { items } = adapter.normalize({
       kind: "bookmark",
-      originalId: "chrome-bookmark:/p/Default:guid-1",
-      capturedAt: 1_700_000_000_000,
+      originalId: "chrome-bookmark:profile:bookmark",
+      capturedAt: BOOKMARK_MS,
       payload: {
-        id: "1",
-        guid: "guid-1",
-        name: "Anthropic",
-        url: "https://anthropic.com",
-        dateAddedMs: 1_600_000_000_000,
-        folderPath: "书签栏 / AI",
-        profileDir: "/p/Default",
+        profileId: "profile",
+        guid: "bookmark",
+        url: "https://bookmark.test",
+        name: "Bookmark",
+        dateAddedMs: BOOKMARK_MS,
+        folderPath: "\u4e66\u7b7e\u680f / Work",
       },
-    };
-    const { events, items } = adapter.normalize(raw);
-    expect(events).toEqual([]);
-    expect(items).toHaveLength(1);
-    const it = items[0];
-    expect(it.subtype).toBe(ITEM_SUBTYPES.LINK);
-    expect(it.name).toBe("Anthropic");
-    expect(it.extra.url).toBe("https://anthropic.com");
-    expect(it.extra.folderPath).toBe("书签栏 / AI");
-    expect(it.extra.browser).toBe("chrome");
-    expect(validateItem(it).valid).toBe(true);
+    });
+    expect(items[0].subtype).toBe(ITEM_SUBTYPES.LINK);
+    expect(items[0].id).toBe("item-chrome-bookmark-profile-bookmark");
+    expect(items[0].extra.profileId).toBe("profile");
+    expect(items[0].extra).not.toHaveProperty("profileDir");
+    expect(validateItem(items[0]).valid).toBe(true);
   });
 
-  it("truncates very long titles to 200 chars", () => {
-    const adapter = new BrowserHistoryChromeAdapter();
-    const raw = {
+  it("normalizes a download to a path-free schema-valid download event", () => {
+    const adapter = new BrowserHistoryChromeAdapter({
+      defaultProfileDir: () => null,
+    });
+    const { events } = adapter.normalize({
+      kind: "download",
+      originalId: "chrome-download:profile:download-guid",
+      capturedAt: DOWNLOAD_ACCESS_MS,
+      payload: {
+        profileId: "profile",
+        downloadId: 7,
+        guid: "download-guid",
+        fileName: "Report.pdf",
+        fileExtension: "pdf",
+        sourceUrl: "https://download.test/Report.pdf",
+        initialUrl: "https://download.test/redirect",
+        finalUrl: "https://download.test/Report.pdf",
+        startTimeMs: DOWNLOAD_START_MS,
+        endTimeMs: DOWNLOAD_END_MS,
+        lastAccessTimeMs: DOWNLOAD_ACCESS_MS,
+        receivedBytes: 4096,
+        totalBytes: 4096,
+        state: "complete",
+        rawState: 1,
+        danger: "not-dangerous",
+        rawDanger: 0,
+        opened: true,
+        mimeType: "application/pdf",
+        targetPathHash: "cd".repeat(32),
+      },
+    });
+    expect(events).toHaveLength(1);
+    expect(events[0].subtype).toBe(EVENT_SUBTYPES.DOWNLOAD);
+    expect(events[0].id).toBe("event-chrome-download-profile-download-guid");
+    expect(events[0].occurredAt).toBe(DOWNLOAD_START_MS);
+    expect(events[0].durationMs).toBe(DOWNLOAD_END_MS - DOWNLOAD_START_MS);
+    expect(events[0].source.capturedAt).toBe(DOWNLOAD_ACCESS_MS);
+    expect(events[0].extra.targetPathHash).toBe("cd".repeat(32));
+    expect(JSON.stringify(events[0])).not.toContain("C:\\");
+    expect(validateEvent(events[0]).valid).toBe(true);
+  });
+
+  it("bounds long titles and rejects unknown raw kinds", () => {
+    const adapter = new BrowserHistoryChromeAdapter({
+      defaultProfileDir: () => null,
+    });
+    const { events } = adapter.normalize({
       kind: "visit",
-      capturedAt: 1_700_000_000_000,
+      originalId: "chrome-visit:profile:1",
+      capturedAt: OLD_MS,
       payload: {
+        profileId: "profile",
         visitId: 1,
-        url: "https://x.test",
+        url: "https://title.test",
         title: "A".repeat(500),
-        visitTimeMs: 1_700_000_000_000,
-        visitDurationMs: 0,
-        transition: "link",
-        rawTransition: 0,
-        profileDir: "/p",
+        visitTimeMs: OLD_MS,
       },
-    };
-    const { events } = adapter.normalize(raw);
-    expect(events[0].content.title.length).toBeLessThanOrEqual(201); // 200 + "…"
-    expect(events[0].content.title.endsWith("…")).toBe(true);
-  });
-
-  it("throws on unknown raw.kind", () => {
-    const adapter = new BrowserHistoryChromeAdapter();
-    expect(() => adapter.normalize({ kind: "bogus", payload: {} })).toThrow(/unknown raw\.kind=bogus/);
+    });
+    expect(events[0].content.title).toHaveLength(201);
+    expect(events[0].content.title.endsWith("\u2026")).toBe(true);
+    expect(() => adapter.normalize({ kind: "unknown", payload: {} })).toThrow(
+      /unknown raw\.kind/u,
+    );
   });
 });
 
-describe("WebKit timestamp helpers", () => {
-  it("round-trips epoch ms ↔ WebKit microseconds", () => {
-    const ms = 1_700_000_000_000;
-    const wk = epochMsToWebkitUs(ms);
-    expect(webkitUsToEpochMs(wk)).toBe(ms);
+describe("BrowserHistoryChromeAdapter registry safety", () => {
+  it("isolates the encrypted-vault watermark and defers truncated scans", async () => {
+    buildFixture({
+      visits: [
+        { url: "https://one.test", visitTimeMs: OLD_MS },
+        { url: "https://two.test", visitTimeMs: NEW_MS },
+      ],
+    });
+    const adapter = new BrowserHistoryChromeAdapter({
+      profilePath: profileDir,
+    });
+    expect(adapter.defaultScope).toMatch(
+      /^account:browser-history-chrome:[a-f0-9]{32}$/u,
+    );
+    expect(adapter.defaultScope).not.toContain(profileDir);
+
+    const vault = new LocalVault({
+      path: join(tempDir, "vault.db"),
+      key: generateKeyHex(),
+      skipAudit: true,
+    });
+    vault.open();
+    try {
+      vault.setWatermark(adapter.name, adapter.defaultScope, {
+        watermark: String(OLD_MS - 1000),
+        lastSyncedAt: OLD_MS,
+        lastStatus: "ok",
+        lastError: null,
+      });
+      const registry = new AdapterRegistry({ vault });
+      registry.register(adapter);
+
+      const partial = await registry.syncAdapter(adapter.name, { limit: 1 });
+      expect(partial.status).toBe("ok");
+      expect(partial.watermarkDeferred).toBe(true);
+      expect(partial.watermark).toBe(String(OLD_MS - 1000));
+
+      const complete = await registry.syncAdapter(adapter.name);
+      expect(complete.status).toBe("ok");
+      expect(complete.watermarkDeferred).toBe(false);
+      expect(Number(complete.watermark)).toBeGreaterThanOrEqual(NEW_MS);
+      expect(vault.stats().events).toBe(2);
+    } finally {
+      vault.close();
+    }
+  });
+});
+
+describe("Chromium timestamp and transition helpers", () => {
+  it("round-trips WebKit microseconds and decodes transition flags", () => {
+    expect(webkitUsToEpochMs(epochMsToWebkitUs(NEW_MS))).toBe(NEW_MS);
+    expect(decodeTransition(805306369)).toBe("typed");
+    expect(decodeTransition(268435464)).toBe("reload");
+    expect(decodeTransition(null)).toBe(null);
   });
 
-  it("decodes transition lower 8 bits", () => {
-    expect(decodeTransition(805306369)).toBe("typed"); // 0x30000001 → core=1
-    expect(decodeTransition(268435464)).toBe("reload"); // 0x10000008 → core=8
-    expect(decodeTransition(0)).toBe("link");
-    expect(decodeTransition(null)).toBe(null);
+  it("decodes persisted download enums and strips sensitive URL components", () => {
+    expect(decodeDownloadState(1)).toBe("complete");
+    expect(decodeDownloadState(4)).toBe("interrupted");
+    expect(decodeDownloadDanger(4)).toBe("maybe-dangerous-content");
+    expect(decodeDownloadDanger(25)).toBe("forced-save-to-onedrive");
+    expect(
+      sanitizeDownloadUrl(
+        "https://alice:secret@example.test/file.zip?token=secret#fragment",
+      ),
+    ).toBe("https://example.test/file.zip");
+    expect(sanitizeDownloadUrl("file:///C:/Private/file.zip")).toBe(null);
   });
 });

@@ -14,7 +14,7 @@ const {
 } = require("../browser-history-chrome/chrome-db-reader");
 
 const NAME = "browser-history-edge";
-const VERSION = "0.1.0";
+const VERSION = "0.3.0";
 
 class BrowserHistoryEdgeAdapter extends BrowserHistoryChromeAdapter {
   _browserConfig() {
