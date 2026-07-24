@@ -93,11 +93,8 @@ class AiStudyViewModelTest {
     private lateinit var taskContext: InMemoryStudyTaskContext
     private lateinit var companionVault: FakeCompanionVault
     private lateinit var ledger: InMemoryPointsLedger
-<<<<<<< Updated upstream
     private lateinit var childEventRepo: FakeChildEventRepository
     private lateinit var anomalyRepo: FakeAnomalyRepository
-=======
->>>>>>> Stashed changes
     private val studyContext = object : com.chainlesschain.android.presentation.familytask.FamilyStudyContext {
         override suspend fun childDid() = TEST_CHILD_DID
     }
@@ -112,11 +109,8 @@ class AiStudyViewModelTest {
         taskContext = InMemoryStudyTaskContext()
         companionVault = FakeCompanionVault()
         ledger = InMemoryPointsLedger()
-<<<<<<< Updated upstream
         childEventRepo = FakeChildEventRepository()
         anomalyRepo = FakeAnomalyRepository()
-=======
->>>>>>> Stashed changes
     }
 
     @After
@@ -126,11 +120,7 @@ class AiStudyViewModelTest {
 
     private fun vm() = AiStudyViewModel(
         llm, store, mistakeBook, KeywordGuardrailClassifier(), guardrailSink, taskContext, companionVault,
-<<<<<<< Updated upstream
         ledger, studyContext, childEventRepo, anomalyRepo,
-=======
-        ledger, studyContext,
->>>>>>> Stashed changes
     )
 
     @Test
@@ -231,11 +221,7 @@ class AiStudyViewModelTest {
         }
         val vm2 = AiStudyViewModel(
             erroringLlm, store, mistakeBook, KeywordGuardrailClassifier(), guardrailSink, taskContext, companionVault,
-<<<<<<< Updated upstream
             ledger, studyContext, childEventRepo, anomalyRepo,
-=======
-            ledger, studyContext,
->>>>>>> Stashed changes
         )
         vm2.send("hi")
 
@@ -400,7 +386,6 @@ class AiStudyViewModelTest {
         assertTrue(text.contains("余额 0 分"))
     }
 
-<<<<<<< Updated upstream
     @Test
     fun `report shows today-usage block from telemetry foreground-app runs`() = runTest {
         // 真 telemetry: 微信 45min + 王者 30min 的前台 run。
@@ -456,8 +441,6 @@ class AiStudyViewModelTest {
         timestamp = 1L, durationMs = durationMs, level = "L1",
     )
 
-=======
->>>>>>> Stashed changes
     private companion object {
         const val TEST_CHILD_DID = "did:test-child"
     }
