@@ -76,18 +76,11 @@ jobs:
             desktop-app-vue/package-lock.json
 
       - name: Install dependencies (workspace-aware)
-        run: npm ci --legacy-peer-deps
-
-      - name: Install desktop-app-vue deps (post-workspace-refactor)
-        working-directory: desktop-app-vue
-        # cowork-doc-generator.js requires('glob') which lives in
-        # desktop-app-vue/node_modules/glob. After ad3e7d403 workspace
-        # refactor, root npm install no longer installs desktop-app-vue's
-        # deps. v5.0.3.45 documentation.yml hit "Cannot find module 'glob'"
-        # — same root cause as release.yml fix. Wrapped in 3-attempt retry
-        # (see scripts/ci-npm-retry.sh).
-        shell: bash
-        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm ci
+        # The generator only imports pure-JS tooling such as glob. Skipping
+        # lifecycle scripts avoids compiling unrelated Electron native addons
+        # (for example node-pty), while the root workspace lock still installs
+        # desktop-app-vue dependencies deterministically.
+        run: npm ci --legacy-peer-deps --ignore-scripts
 
       - name: Preview documentation changes
         working-directory: ./desktop-app-vue
