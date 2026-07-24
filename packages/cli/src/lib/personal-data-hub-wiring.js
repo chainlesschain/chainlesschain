@@ -78,12 +78,23 @@ let LocalVault,
   SystemDataAndroidAdapter,
   BrowserHistoryChromeAdapter,
   BrowserHistoryEdgeAdapter,
+  BrowserHistoryBraveAdapter,
+  BrowserHistoryOperaAdapter,
+  BrowserHistoryVivaldiAdapter,
+  BrowserHistorySafariAdapter,
+  BrowserHistoryFirefoxAdapter,
   BrowserHistoryAospAdapter,
   VSCodeAdapter,
+  VSCodiumAdapter,
+  CursorAdapter,
+  ClaudeCodeAdapter,
+  JetBrainsIdeAdapter,
   WinRecentAdapter,
   GitActivityAdapter,
   ShellHistoryAdapter,
+  HBuilderXAdapter,
   LocalFilesAdapter,
+  TencentMeetingAdapter,
   BilibiliAdapter,
   WeiboAdapter,
   ZhihuAdapter,
@@ -203,12 +214,23 @@ function ensurePdhLoaded() {
         SystemDataAndroidAdapter,
         BrowserHistoryChromeAdapter,
         BrowserHistoryEdgeAdapter,
+        BrowserHistoryBraveAdapter,
+        BrowserHistoryOperaAdapter,
+        BrowserHistoryVivaldiAdapter,
+        BrowserHistorySafariAdapter,
+        BrowserHistoryFirefoxAdapter,
         BrowserHistoryAospAdapter,
         VSCodeAdapter,
+        VSCodiumAdapter,
+        CursorAdapter,
+        ClaudeCodeAdapter,
+        JetBrainsIdeAdapter,
         WinRecentAdapter,
         GitActivityAdapter,
         ShellHistoryAdapter,
+        HBuilderXAdapter,
         LocalFilesAdapter,
+        TencentMeetingAdapter,
         BilibiliAdapter,
         WeiboAdapter,
         ZhihuAdapter,
@@ -501,14 +523,22 @@ async function initHub() {
   ]);
   const adbReadinessProbe = async () => {
     try {
-      const { listDevices } = await import("./host-adb-bridge.js");
-      const serials = await listDevices();
+      const { probeDevices } = await import("./host-adb-bridge.js");
+      return await probeDevices({
+        serial:
+          typeof process.env.ADB_SERIAL === "string"
+            ? process.env.ADB_SERIAL
+            : undefined,
+      });
+    } catch (error) {
+      const detail = error && error.message ? error.message : "";
       return {
-        deviceConnected: Array.isArray(serials) && serials.length > 0,
-        serial: serials && serials[0],
+        authorizedDeviceCount: 0,
+        deviceConnected: false,
+        reason: /binary not found|ENOENT/iu.test(detail)
+          ? "ADB_NOT_INSTALLED"
+          : "ADB_PROBE_FAILED",
       };
-    } catch (_e) {
-      return { deviceConnected: false };
     }
   };
 
@@ -650,6 +680,46 @@ async function initHub() {
     // Continue boot
   }
 
+  try {
+    const brave = new BrowserHistoryBraveAdapter();
+    if (!registry.has(brave.name)) registry.register(brave);
+  } catch (_err) {
+    // Continue boot
+  }
+
+  try {
+    const opera = new BrowserHistoryOperaAdapter();
+    if (!registry.has(opera.name)) registry.register(opera);
+  } catch (_err) {
+    // Continue boot
+  }
+
+  try {
+    const vivaldi = new BrowserHistoryVivaldiAdapter();
+    if (!registry.has(vivaldi.name)) registry.register(vivaldi);
+  } catch (_err) {
+    // Continue boot
+  }
+
+  // Safari keeps visits in History.db and bookmarks in XML/binary plist.
+  // Profile discovery is lazy so non-macOS hosts do no filesystem work.
+  try {
+    const safari = new BrowserHistorySafariAdapter();
+    if (!registry.has(safari.name)) registry.register(safari);
+  } catch (_err) {
+    // Continue boot
+  }
+
+  // Firefox stores history and bookmarks together in places.sqlite. The
+  // adapter resolves profiles.ini by default and accepts opts.profilePath
+  // for secondary/custom profiles.
+  try {
+    const firefox = new BrowserHistoryFirefoxAdapter();
+    if (!registry.has(firefox.name)) registry.register(firefox);
+  } catch (_err) {
+    // Continue boot
+  }
+
   // AOSP / MIUI stock browser (com.android.browser → browser2.db). No host
   // default — needs a device-pulled browser2.db via opts.dbPath at sync time
   // (cc hub sync-adapter browser-history-aosp --db-path <pulled>), so bare
@@ -668,6 +738,40 @@ async function initHub() {
   try {
     const vscode = new VSCodeAdapter();
     if (!registry.has(vscode.name)) registry.register(vscode);
+  } catch (_err) {
+    // Continue boot
+  }
+
+  // VSCodium uses the same open-source VS Code storage schema under its own
+  // user-data root. Keep the source identity separate so records and
+  // watermarks cannot collide with Microsoft VS Code.
+  try {
+    const vscodium = new VSCodiumAdapter();
+    if (!registry.has(vscodium.name)) registry.register(vscodium);
+  } catch (_err) {
+    // Continue boot
+  }
+
+  // Cursor editor activity + local Agent transcripts + AI code metadata.
+  try {
+    const cursor = new CursorAdapter();
+    if (!registry.has(cursor.name)) registry.register(cursor);
+  } catch (_err) {
+    // Continue boot
+  }
+
+  // Claude Code local main/subagent conversations + aggregate usage.
+  try {
+    const claudeCode = new ClaudeCodeAdapter();
+    if (!registry.has(claudeCode.name)) registry.register(claudeCode);
+  } catch (_err) {
+    // Continue boot
+  }
+
+  // JetBrains Platform IDE recent projects and latest open/activation times.
+  try {
+    const jetbrains = new JetBrainsIdeAdapter();
+    if (!registry.has(jetbrains.name)) registry.register(jetbrains);
   } catch (_err) {
     // Continue boot
   }
@@ -701,8 +805,24 @@ async function initHub() {
   }
 
   try {
+    const hbuilderx = new HBuilderXAdapter();
+    if (!registry.has(hbuilderx.name)) registry.register(hbuilderx);
+  } catch (_err) {
+    // Continue boot
+  }
+
+  try {
     const localFiles = new LocalFilesAdapter();
     if (!registry.has(localFiles.name)) registry.register(localFiles);
+  } catch (_err) {
+    // Continue boot
+  }
+
+  // Tencent Meeting desktop history. The adapter discovers the hash-named
+  // SQLite database by schema and redacts meeting/account ids before archive.
+  try {
+    const tencentMeeting = new TencentMeetingAdapter();
+    if (!registry.has(tencentMeeting.name)) registry.register(tencentMeeting);
   } catch (_err) {
     // Continue boot
   }
@@ -748,7 +868,7 @@ async function initHub() {
   // ctors throw without account args, so they were silently swallowed by
   // try/catch and never actually registered. Removed to make the list
   // accurate.
-  const runtimeCookieAdapterClasses = new Set([
+  const runtimeSourceAdapterClasses = new Set([
     TaobaoAdapter,
     JdAdapter,
     MeituanAdapter,
@@ -759,6 +879,8 @@ async function initHub() {
     VipshopAdapter,
     Train12306Adapter,
     ZhihuAdapter,
+    BaiduNetdiskAdapter,
+    WpsDocAdapter,
   ]);
   const sourceJsonFetch = createJsonSourceFetch();
   for (const Cls of [
@@ -834,7 +956,7 @@ async function initHub() {
       const adapter =
         Cls === WhatsAppAdapter
           ? new Cls({ bridgeProvider: () => hostAdbBridge })
-          : runtimeCookieAdapterClasses.has(Cls)
+          : runtimeSourceAdapterClasses.has(Cls)
             ? new Cls({ fetchFn: sourceJsonFetch })
             : new Cls();
       if (!registry.has(adapter.name)) registry.register(adapter);
@@ -2031,17 +2153,23 @@ export function close() {
   if (_hub && _hub.aichatHealthChecker) {
     try {
       _hub.aichatHealthChecker.stop();
-    } catch (_e) {}
+    } catch {
+      // Best-effort shutdown.
+    }
   }
   if (_hub && _hub.vault) {
     try {
       _hub.vault.close();
-    } catch (_e) {}
+    } catch {
+      // Best-effort shutdown.
+    }
   }
   if (_hubMinimal && _hubMinimal.vault && _hubMinimal !== _hub) {
     try {
       _hubMinimal.vault.close();
-    } catch (_e) {}
+    } catch {
+      // Best-effort shutdown.
+    }
   }
   _hub = null;
   _initPromise = null;

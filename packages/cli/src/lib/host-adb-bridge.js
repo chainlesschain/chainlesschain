@@ -86,15 +86,82 @@ async function adb(args, opts = {}) {
 
 async function listDevices(opts = {}) {
   const stdout = await adb(["devices"], opts);
-  const lines = stdout.split("\n").slice(1);
-  const serials = [];
-  for (const rawLine of lines) {
+  return parseDeviceRows(stdout)
+    .filter((device) => device.state === "device")
+    .map((device) => device.serial);
+}
+
+function parseDeviceRows(stdout) {
+  const devices = [];
+  for (const rawLine of String(stdout || "")
+    .split("\n")
+    .slice(1)) {
     const line = rawLine.replace(/\r+$/, "").trim();
     if (!line) continue;
-    const [serial, state] = line.split(/\s+/);
-    if (state === "device") serials.push(serial);
+    const [serial, state] = line.split(/\s+/, 2);
+    if (serial && state) devices.push({ serial, state });
   }
-  return serials;
+  return devices;
+}
+
+async function probeDevices(opts = {}) {
+  const requestedSerial =
+    (typeof opts.serial === "string" && opts.serial.trim()) ||
+    (typeof process.env.ADB_SERIAL === "string" &&
+      process.env.ADB_SERIAL.trim()) ||
+    null;
+  const stdout = await adb(["devices"], { ...opts, serial: undefined });
+  const devices = parseDeviceRows(stdout);
+  const authorized = devices.filter((device) => device.state === "device");
+
+  if (requestedSerial) {
+    const selected = devices.find(
+      (device) => device.serial === requestedSerial,
+    );
+    if (!selected) {
+      return {
+        authorizedDeviceCount: 0,
+        deviceConnected: false,
+        requestedSerial,
+        reason: "ADB_SELECTED_DEVICE_NOT_FOUND",
+      };
+    }
+    if (selected.state !== "device") {
+      return {
+        authorizedDeviceCount: 0,
+        deviceConnected: false,
+        requestedSerial,
+        reason:
+          selected.state === "unauthorized"
+            ? "ADB_DEVICE_UNAUTHORIZED"
+            : "ADB_DEVICE_OFFLINE",
+      };
+    }
+    return {
+      authorizedDeviceCount: 1,
+      deviceConnected: true,
+      serial: requestedSerial,
+      requestedSerial,
+    };
+  }
+
+  if (authorized.length === 0) {
+    return {
+      authorizedDeviceCount: 0,
+      deviceConnected: false,
+      reason: devices.some((device) => device.state === "unauthorized")
+        ? "ADB_DEVICE_UNAUTHORIZED"
+        : devices.some((device) => device.state === "offline")
+          ? "ADB_DEVICE_OFFLINE"
+          : "ADB_DEVICE_NEEDED",
+    };
+  }
+  return {
+    authorizedDeviceCount: authorized.length,
+    deviceConnected: true,
+    serial: authorized.length === 1 ? authorized[0].serial : undefined,
+    reason: authorized.length > 1 ? "ADB_MULTIPLE_DEVICES" : undefined,
+  };
 }
 
 async function pickDevice(opts = {}) {
@@ -533,6 +600,12 @@ const BUILTIN_METHODS = new Set([
   "snapshot.read",
 ]);
 
+function mergeInvokeOptions(baseOptions, params) {
+  const serial =
+    params && typeof params.serial === "string" ? params.serial.trim() : "";
+  return serial ? { ...baseOptions, serial } : baseOptions;
+}
+
 export function createHostAdbBridge(opts = {}) {
   const extensions = opts.extensions || {};
   // Defense: warn (but allow) when an extension tries to shadow a
@@ -541,7 +614,6 @@ export function createHostAdbBridge(opts = {}) {
   // throw in Phase 1 if any extension author actually attempts it.
   for (const k of Object.keys(extensions)) {
     if (BUILTIN_METHODS.has(k)) {
-      // eslint-disable-next-line no-console
       console.warn(
         `host-adb-bridge: extension "${k}" shadows a built-in method and will be ignored at dispatch`,
       );
@@ -568,21 +640,22 @@ export function createHostAdbBridge(opts = {}) {
       return Object.keys(extensions).filter((k) => !BUILTIN_METHODS.has(k));
     },
     async invoke(method, params = {}) {
+      const invokeOptions = mergeInvokeOptions(opts, params);
       switch (method) {
         case "contacts.query":
-          return await queryContacts(params, opts);
+          return await queryContacts(params, invokeOptions);
         case "app.list":
-          return await listApps(params, opts);
+          return await listApps(params, invokeOptions);
         case "sms.query":
-          return await querySms(params, opts);
+          return await querySms(params, invokeOptions);
         case "call.query":
-          return await queryCallLog(params, opts);
+          return await queryCallLog(params, invokeOptions);
         case "media.list":
-          return await listMedia(params, opts);
+          return await listMedia(params, invokeOptions);
         case "snapshot.list":
-          return await listSnapshots(params, opts);
+          return await listSnapshots(params, invokeOptions);
         case "snapshot.read":
-          return await readSnapshot(params, opts);
+          return await readSnapshot(params, invokeOptions);
         default: {
           const ext = extensions[method];
           if (typeof ext === "function") {
@@ -597,12 +670,17 @@ export function createHostAdbBridge(opts = {}) {
   };
 }
 
+export { listDevices, probeDevices };
+
 // Exposed for unit testing without spawning real adb.
 export const _internals = {
   adb,
   parseContentQueryRows,
+  parseDeviceRows,
   mergeContactRows,
+  mergeInvokeOptions,
   listDevices,
+  probeDevices,
   pickDevice,
   queryContacts,
   listApps,

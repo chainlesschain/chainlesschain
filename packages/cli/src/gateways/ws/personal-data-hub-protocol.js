@@ -50,6 +50,36 @@ async function ingestSystemDataAndroidSnapshot(hub, snapshot) {
 }
 
 /**
+ * Adapters that must never consume an Android staging snapshot implicitly.
+ * They either have a richer live bridge or read desktop-local state directly.
+ * Exported as an immutable array so the transport contract can be guarded
+ * without exercising ADB in unit tests.
+ */
+export const ADB_AUTO_PULL_BYPASS_ADAPTERS = Object.freeze([
+  "system-data-android",
+  "browser-history-chrome",
+  "browser-history-edge",
+  "browser-history-brave",
+  "browser-history-opera",
+  "browser-history-vivaldi",
+  "browser-history-safari",
+  "browser-history-firefox",
+  "vscode",
+  "vscodium",
+  "cursor",
+  "claude-code",
+  "jetbrains-ide",
+  "hbuilderx",
+  "win-recent",
+  "git-activity",
+  "shell-history",
+  "local-files",
+  "meeting-tencent",
+]);
+
+const ADB_AUTO_PULL_BYPASS_SET = new Set(ADB_AUTO_PULL_BYPASS_ADAPTERS);
+
+/**
  * If the caller didn't pass `inputPath`, try to pull a snapshot for
  * this adapter off the attached Android phone via `adb shell run-as
  * <pkg.debug> cat files/.chainlesschain/staging/<name>.json`. On
@@ -85,20 +115,11 @@ async function _tryAdbAutoPullInputPath(hub, name, options) {
   // an Android-collected snapshot only contains contacts + apps).
   // Keep this list in sync with adapters whose _syncViaBridge is
   // strictly richer than their snapshot output.
-  // browser-history-* and vscode read desktop-local files (browser History
-  // SQLite + Bookmarks JSON, or VS Code workspaceStorage + state.vscdb);
-  // ADB snapshot is meaningless for them.
-  const BRIDGE_PREFERRED = new Set([
-    "system-data-android",
-    "browser-history-chrome",
-    "browser-history-edge",
-    "vscode",
-    "win-recent",
-    "git-activity",
-    "shell-history",
-    "local-files",
-  ]);
-  if (BRIDGE_PREFERRED.has(name)) {
+  // browser-history-*, vscode/vscodium/cursor, claude-code, and
+  // jetbrains-ide read desktop-local files (browser profiles, editor/Agent
+  // state, Claude Code transcripts, or JetBrains recentProjects.xml);
+  // an ADB snapshot is meaningless for them.
+  if (ADB_AUTO_PULL_BYPASS_SET.has(name)) {
     return options || {};
   }
   try {
@@ -326,7 +347,9 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
               unlinkSync(p);
               removed.push(p);
             }
-          } catch (_e) {}
+          } catch {
+            // Account files are removed on a best-effort basis.
+          }
         }
       }
       if (alsoWipeMasterKey) {
@@ -337,14 +360,20 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
               try {
                 unlinkSync(join(keyDir, f));
                 removed.push(join(keyDir, f));
-              } catch (_e) {}
+              } catch {
+                // Key fragments are removed on a best-effort basis.
+              }
             }
           }
-        } catch (_e) {}
+        } catch {
+          // Key-directory cleanup is best-effort.
+        }
       }
       try {
         closeHub();
-      } catch (_e) {}
+      } catch {
+        // The hub may already be closed after a partial wipe.
+      }
       return { result: { ok: true, removed } };
     } catch (err) {
       return { error: err && err.message ? err.message : String(err) };
@@ -640,11 +669,15 @@ export const PERSONAL_DATA_HUB_STREAMING_HANDLERS = {
           type: "personal-data-hub.sync-adapter-stream.event",
           event: evt,
         });
-      } catch (_e) {}
+      } catch {
+        // Streaming clients may disconnect while collection continues.
+      }
       if (typeof original === "function") {
         try {
           original(evt);
-        } catch (_e) {}
+        } catch {
+          // A prior observer must not break collection telemetry.
+        }
       }
     };
     const options = await _tryAdbAutoPullInputPath(hub, msg.name, msg.options);
@@ -669,11 +702,15 @@ export const PERSONAL_DATA_HUB_STREAMING_HANDLERS = {
     hub.registry.onSyncEvent = (evt) => {
       try {
         sender({ type: "personal-data-hub.sync-all-stream.event", event: evt });
-      } catch (_e) {}
+      } catch {
+        // Streaming clients may disconnect while collection continues.
+      }
       if (typeof original === "function") {
         try {
           original(evt);
-        } catch (_e) {}
+        } catch {
+          // A prior observer must not break collection telemetry.
+        }
       }
     };
     try {

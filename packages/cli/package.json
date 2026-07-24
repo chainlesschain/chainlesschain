@@ -68,7 +68,7 @@
     "@chainlesschain/core-infra": "0.1.1",
     "@chainlesschain/core-mtc": "0.2.3",
     "@chainlesschain/core-multisig": "0.1.4",
-    "@chainlesschain/personal-data-hub": "0.4.53",
+    "@chainlesschain/personal-data-hub": "0.4.54",
     "@chainlesschain/session-core": "0.3.4",
     "@chainlesschain/shared-logger": "0.1.1",
     "@inquirer/prompts": "^7.2.0",

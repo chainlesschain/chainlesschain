@@ -128,8 +128,105 @@ describe("cc hub command surface", () => {
       "--zip-password",
     );
     expect(sync.options.map((option) => option.long)).toEqual(
-      expect.arrayContaining(["--cookie", "--cookie-file", "--account-id"]),
+      expect.arrayContaining([
+        "--cookie",
+        "--cookie-file",
+        "--access-token",
+        "--access-token-file",
+        "--app-id",
+        "--app-key",
+        "--app-key-file",
+        "--account-id",
+        "--root",
+        "--roots",
+        "--dir",
+        "--export-dir",
+        "--profile-path",
+        "--cursor-home",
+        "--claude-home",
+        "--hbuilderx-home",
+        "--source-timezone",
+        "--source-timezone-offset-minutes",
+        "--no-history",
+        "--no-bookmarks",
+        "--no-downloads",
+        "--no-local-history",
+        "--no-agent-transcripts",
+        "--no-ai-tracking",
+        "--no-claude-subagents",
+        "--no-claude-stats",
+        "--no-participants",
+        "--no-artifacts",
+        "--no-contacts",
+        "--no-apps",
+        "--no-sms",
+        "--no-calls",
+        "--no-media",
+        "--max-participants",
+        "--drive-id",
+        "--parent-id",
+        "--shallow",
+        "--page-size",
+        "--max-pages",
+        "--max-files",
+      ]),
     );
+  });
+
+  it("parses repeatable --root values as exact paths", () => {
+    const program = buildProgram();
+    const hub = program.commands.find((c) => c.name() === "hub");
+    const sync = hub.commands.find((c) => c.name() === "sync-adapter");
+
+    sync.parseOptions([
+      "local-files",
+      "--root",
+      " C:\\Data, Archive ",
+      "--root",
+      "D:\\Downloads",
+    ]);
+
+    expect(sync.opts().root).toEqual([" C:\\Data, Archive ", "D:\\Downloads"]);
+  });
+
+  it("parses every Android source opt-out", () => {
+    const program = buildProgram();
+    const hub = program.commands.find((c) => c.name() === "hub");
+    const sync = hub.commands.find((c) => c.name() === "sync-adapter");
+
+    sync.parseOptions([
+      "system-data-android",
+      "--no-contacts",
+      "--no-apps",
+      "--no-sms",
+      "--no-calls",
+      "--no-media",
+    ]);
+
+    expect(sync.opts()).toMatchObject({
+      contacts: false,
+      apps: false,
+      sms: false,
+      calls: false,
+      media: false,
+    });
+  });
+
+  it("keeps only the unambiguous legacy --roots case", () => {
+    expect(
+      _internal.resolveSyncRoots({ roots: " C:\\One exact directory " }),
+    ).toEqual([" C:\\One exact directory "]);
+    expect(
+      _internal.resolveSyncRoots({
+        root: ["C:\\New, exact root"],
+        roots: "D:\\Legacy exact root",
+      }),
+    ).toEqual(["C:\\New, exact root", "D:\\Legacy exact root"]);
+    expect(() =>
+      _internal.resolveSyncRoots({
+        roots: "C:\\Documents,C:\\Downloads",
+      }),
+    ).toThrow(/ambiguous comma-separated values.*--root/u);
   });
 
   it("resolves transient cookies from direct, environment, or bounded file input", () => {
@@ -162,6 +259,87 @@ describe("cc hub command surface", () => {
       writeFileSync(file, "x".repeat(64 * 1024 + 1), "utf8");
       expect(() =>
         _internal.resolveSyncCookie({ cookieFile: file }, {}),
+      ).toThrow(/exceeds/u);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("resolves transient OAuth tokens from direct, environment, or bounded file input", () => {
+    expect(
+      _internal.resolveSyncAccessToken({ accessToken: " oauth-direct " }, {}),
+    ).toBe("oauth-direct");
+    expect(
+      _internal.resolveSyncAccessToken(
+        {},
+        { CC_PDH_ACCESS_TOKEN: " oauth-environment " },
+      ),
+    ).toBe("oauth-environment");
+    expect(() =>
+      _internal.resolveSyncAccessToken(
+        {},
+        { CC_PDH_ACCESS_TOKEN: "x".repeat(16 * 1024 + 1) },
+      ),
+    ).toThrow(/exceeds/u);
+    expect(() =>
+      _internal.resolveSyncAccessToken(
+        {
+          accessToken: "oauth-direct",
+          accessTokenFile: "token.txt",
+        },
+        {},
+      ),
+    ).toThrow(/either --access-token or --access-token-file/u);
+
+    const dir = mkdtempSync(join(tmpdir(), "pdh-token-"));
+    const file = join(dir, "token.txt");
+    try {
+      writeFileSync(file, " oauth-file \n", "utf8");
+      expect(
+        _internal.resolveSyncAccessToken({ accessTokenFile: file }, {}),
+      ).toBe("oauth-file");
+      writeFileSync(file, "x".repeat(16 * 1024 + 1), "utf8");
+      expect(() =>
+        _internal.resolveSyncAccessToken({ accessTokenFile: file }, {}),
+      ).toThrow(/exceeds/u);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("resolves transient application keys from direct, environment, or bounded file input", () => {
+    expect(
+      _internal.resolveSyncAppKey({ appKey: " app-key-direct " }, {}),
+    ).toBe("app-key-direct");
+    expect(
+      _internal.resolveSyncAppKey(
+        {},
+        { CC_PDH_APP_KEY: " app-key-environment " },
+      ),
+    ).toBe("app-key-environment");
+    expect(() =>
+      _internal.resolveSyncAppKey(
+        {},
+        { CC_PDH_APP_KEY: "x".repeat(16 * 1024 + 1) },
+      ),
+    ).toThrow(/exceeds/u);
+    expect(() =>
+      _internal.resolveSyncAppKey(
+        { appKey: "direct", appKeyFile: "app-key.txt" },
+        {},
+      ),
+    ).toThrow(/either --app-key or --app-key-file/u);
+
+    const dir = mkdtempSync(join(tmpdir(), "pdh-app-key-"));
+    const file = join(dir, "app-key.txt");
+    try {
+      writeFileSync(file, " app-key-file \n", "utf8");
+      expect(_internal.resolveSyncAppKey({ appKeyFile: file }, {})).toBe(
+        "app-key-file",
+      );
+      writeFileSync(file, "x".repeat(16 * 1024 + 1), "utf8");
+      expect(() =>
+        _internal.resolveSyncAppKey({ appKeyFile: file }, {}),
       ).toThrow(/exceeds/u);
     } finally {
       rmSync(dir, { recursive: true, force: true });
@@ -442,7 +620,40 @@ describe("cc hub sync report semantics", () => {
         json: true,
         zipPassword: "zip-secret",
         cookie: "sid=runtime-secret",
+        accessToken: "oauth-runtime-secret",
+        appId: "app-id",
+        appKey: "app-key-runtime-secret",
         accountId: "shopping-user",
+        driveId: "drive-id",
+        parentId: "parent-id",
+        shallow: true,
+        dir: "/apps/chainlesschain",
+        exportDir: "C:\\Exports\\Tencent Docs",
+        profilePath: "C:\\Firefox\\Profiles\\abc.default-release",
+        cursorHome: "C:\\Users\\fixture\\.cursor",
+        claudeHome: "C:\\Users\\fixture\\.claude",
+        hbuilderxHome: "C:\\Users\\fixture\\AppData\\Roaming\\HBuilder X",
+        sourceTimezone: "Asia/Shanghai",
+        sourceTimezoneOffsetMinutes: "480",
+        history: false,
+        bookmarks: false,
+        downloads: false,
+        agentTranscripts: false,
+        aiTracking: false,
+        claudeSubagents: false,
+        claudeStats: false,
+        participants: false,
+        artifacts: false,
+        contacts: false,
+        apps: false,
+        sms: false,
+        calls: false,
+        media: false,
+        maxParticipants: "200",
+        root: [" C:\\Data, Archive ", "C:\\Data\\Downloads"],
+        pageSize: "100",
+        maxPages: "3",
+        maxFiles: "250",
         _getHub: async () => ({
           registry: {
             syncAdapter: async (_name, options) => {
@@ -472,9 +683,54 @@ describe("cc hub sync report semantics", () => {
     expect(exitCode).toBe(1);
     expect(receivedOptions.zipPassword).toBe("zip-secret");
     expect(receivedOptions.cookie).toBe("sid=runtime-secret");
+    expect(receivedOptions.accessToken).toBe("oauth-runtime-secret");
+    expect(receivedOptions.appId).toBe("app-id");
+    expect(receivedOptions.appKey).toBe("app-key-runtime-secret");
     expect(receivedOptions.accountId).toBe("shopping-user");
+    expect(receivedOptions.driveId).toBe("drive-id");
+    expect(receivedOptions.parentId).toBe("parent-id");
+    expect(receivedOptions.recursive).toBe(false);
+    expect(receivedOptions.dir).toBe("/apps/chainlesschain");
+    expect(receivedOptions.exportDir).toBe("C:\\Exports\\Tencent Docs");
+    expect(receivedOptions.profilePath).toBe(
+      "C:\\Firefox\\Profiles\\abc.default-release",
+    );
+    expect(receivedOptions.cursorHome).toBe("C:\\Users\\fixture\\.cursor");
+    expect(receivedOptions.claudeHome).toBe("C:\\Users\\fixture\\.claude");
+    expect(receivedOptions.hbuilderxHome).toBe(
+      "C:\\Users\\fixture\\AppData\\Roaming\\HBuilder X",
+    );
+    expect(receivedOptions.sourceTimezone).toBe("Asia/Shanghai");
+    expect(receivedOptions.sourceTimezoneOffsetMinutes).toBe(480);
+    expect(receivedOptions.include).toEqual({
+      history: false,
+      bookmarks: false,
+      downloads: false,
+      agentTranscripts: false,
+      aiTracking: false,
+      subagentTranscripts: false,
+      stats: false,
+      participants: false,
+      artifacts: false,
+      contacts: false,
+      apps: false,
+      sms: false,
+      calls: false,
+      media: false,
+    });
+    expect(receivedOptions.includeParticipants).toBe(false);
+    expect(receivedOptions.maxParticipants).toBe(200);
+    expect(receivedOptions.roots).toEqual([
+      " C:\\Data, Archive ",
+      "C:\\Data\\Downloads",
+    ]);
+    expect(receivedOptions.pageSize).toBe(100);
+    expect(receivedOptions.maxPages).toBe(3);
+    expect(receivedOptions.maxFiles).toBe(250);
     expect(stdout).not.toContain("zip-secret");
     expect(stdout).not.toContain("runtime-secret");
+    expect(stdout).not.toContain("oauth-runtime-secret");
+    expect(stdout).not.toContain("app-key-runtime-secret");
     expect(stdout).not.toContain("shopping-user");
   });
 });

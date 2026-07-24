@@ -58,6 +58,122 @@ describe("host-adb-bridge — extension API (Phase B0)", () => {
     }
   });
 
+  it("applies a per-invocation serial without mutating bridge defaults", () => {
+    const defaults = { adbPath: "custom-adb", timeoutMs: 1000 };
+    expect(
+      _internals.mergeInvokeOptions(defaults, { serial: " DEVICE-123 " }),
+    ).toEqual({
+      adbPath: "custom-adb",
+      timeoutMs: 1000,
+      serial: "DEVICE-123",
+    });
+    expect(defaults).toEqual({ adbPath: "custom-adb", timeoutMs: 1000 });
+    expect(_internals.mergeInvokeOptions(defaults, { serial: " " })).toBe(
+      defaults,
+    );
+  });
+
+  it("uses the per-invocation serial for a built-in ADB command", async () => {
+    const original = _deps.execFile;
+    const calls = [];
+    try {
+      _deps.execFile = (file, args, options, callback) => {
+        calls.push([file, args, options]);
+        callback(null, "package:com.example.app\n", "");
+      };
+      const bridge = createHostAdbBridge({ adbPath: "custom-adb" });
+
+      await expect(
+        bridge.invoke("app.list", {
+          includeSystem: false,
+          serial: "SER-456",
+        }),
+      ).resolves.toEqual([{ packageName: "com.example.app" }]);
+      expect(calls[0][1]).toEqual([
+        "-s",
+        "SER-456",
+        "shell",
+        "pm",
+        "list",
+        "packages",
+        "-3",
+      ]);
+    } finally {
+      _deps.execFile = original;
+    }
+  });
+
+  it("probes selected, unauthorized, and offline device states explicitly", async () => {
+    const original = _deps.execFile;
+    const calls = [];
+    try {
+      _deps.execFile = (file, args, options, callback) => {
+        calls.push([file, args, options]);
+        callback(
+          null,
+          [
+            "List of devices attached",
+            "SER-OK\tdevice product:x",
+            "SER-WAIT\tunauthorized",
+            "SER-OFF\toffline",
+            "",
+          ].join("\n"),
+          "",
+        );
+      };
+
+      await expect(
+        _internals.probeDevices({
+          adbPath: "custom-adb",
+          serial: "SER-OK",
+        }),
+      ).resolves.toMatchObject({
+        authorizedDeviceCount: 1,
+        deviceConnected: true,
+        serial: "SER-OK",
+      });
+      await expect(
+        _internals.probeDevices({
+          adbPath: "custom-adb",
+          serial: "SER-WAIT",
+        }),
+      ).resolves.toMatchObject({
+        authorizedDeviceCount: 0,
+        reason: "ADB_DEVICE_UNAUTHORIZED",
+      });
+      await expect(
+        _internals.probeDevices({
+          adbPath: "custom-adb",
+          serial: "SER-OFF",
+        }),
+      ).resolves.toMatchObject({
+        authorizedDeviceCount: 0,
+        reason: "ADB_DEVICE_OFFLINE",
+      });
+      expect(calls.every(([, args]) => args[0] === "devices")).toBe(true);
+    } finally {
+      _deps.execFile = original;
+    }
+  });
+
+  it("reports a missing selected serial instead of picking another phone", async () => {
+    const original = _deps.execFile;
+    try {
+      _deps.execFile = (_file, _args, _options, callback) => {
+        callback(null, "List of devices attached\nSER-OTHER\tdevice\n", "");
+      };
+      await expect(
+        _internals.probeDevices({ serial: "SER-MISSING" }),
+      ).resolves.toMatchObject({
+        authorizedDeviceCount: 0,
+        reason: "ADB_SELECTED_DEVICE_NOT_FOUND",
+        requestedSerial: "SER-MISSING",
+      });
+    } finally {
+      _deps.execFile = original;
+    }
+  });
+
   it("merges complete contact metadata from the four public provider queries", () => {
     const contacts = _internals.mergeContactRows(
       [

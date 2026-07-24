@@ -60,6 +60,8 @@ function parsePositiveInt(raw) {
 
 const SYNC_ENTITY_KEYS = ["events", "persons", "places", "items", "topics"];
 const MAX_SYNC_COOKIE_BYTES = 64 * 1024;
+const MAX_SYNC_ACCESS_TOKEN_BYTES = 16 * 1024;
+const MAX_SYNC_APP_KEY_BYTES = 16 * 1024;
 
 function resolveSyncCookie(options = {}, env = process.env) {
   if (options.cookie && options.cookieFile) {
@@ -78,6 +80,87 @@ function resolveSyncCookie(options = {}, env = process.env) {
     throw new Error(`Cookie exceeds ${MAX_SYNC_COOKIE_BYTES} bytes`);
   }
   return normalized || null;
+}
+
+function resolveSyncAccessToken(options = {}, env = process.env) {
+  if (options.accessToken && options.accessTokenFile) {
+    throw new Error(
+      "Use either --access-token or --access-token-file, not both",
+    );
+  }
+  let raw = options.accessToken || env.CC_PDH_ACCESS_TOKEN || null;
+  if (options.accessTokenFile) {
+    raw = readFileSync(String(options.accessTokenFile), "utf8");
+    if (Buffer.byteLength(raw, "utf8") > MAX_SYNC_ACCESS_TOKEN_BYTES) {
+      throw new Error(
+        `Access token file exceeds ${MAX_SYNC_ACCESS_TOKEN_BYTES} bytes`,
+      );
+    }
+  }
+  if (raw == null) return null;
+  const normalized = String(raw).trim();
+  if (Buffer.byteLength(normalized, "utf8") > MAX_SYNC_ACCESS_TOKEN_BYTES) {
+    throw new Error(
+      `Access token exceeds ${MAX_SYNC_ACCESS_TOKEN_BYTES} bytes`,
+    );
+  }
+  return normalized || null;
+}
+
+function resolveSyncAppKey(options = {}, env = process.env) {
+  if (options.appKey && options.appKeyFile) {
+    throw new Error("Use either --app-key or --app-key-file, not both");
+  }
+  let raw = options.appKey || env.CC_PDH_APP_KEY || null;
+  if (options.appKeyFile) {
+    raw = readFileSync(String(options.appKeyFile), "utf8");
+    if (Buffer.byteLength(raw, "utf8") > MAX_SYNC_APP_KEY_BYTES) {
+      throw new Error(`App key file exceeds ${MAX_SYNC_APP_KEY_BYTES} bytes`);
+    }
+  }
+  if (raw == null) return null;
+  const normalized = String(raw).trim();
+  if (Buffer.byteLength(normalized, "utf8") > MAX_SYNC_APP_KEY_BYTES) {
+    throw new Error(`App key exceeds ${MAX_SYNC_APP_KEY_BYTES} bytes`);
+  }
+  return normalized || null;
+}
+
+function collectSyncRoot(value, previous = []) {
+  const roots = Array.isArray(previous) ? previous : [];
+  return [...roots, String(value)];
+}
+
+/**
+ * Resolve local-files scan roots without interpreting path characters.
+ *
+ * `--root` is repeatable and preserves each argument byte-for-byte after the
+ * shell/Commander handoff. The deprecated `--roots` spelling remains safe for
+ * one exact path, but comma-containing values are inherently ambiguous (a
+ * legal filename versus the former comma-separated syntax), so they fail
+ * closed instead of scanning unintended directories.
+ */
+function resolveSyncRoots(options = {}) {
+  const roots = Array.isArray(options.root)
+    ? options.root.map((value) => String(value))
+    : options.root == null
+      ? []
+      : [String(options.root)];
+
+  if (options.roots != null) {
+    const legacyRoot = String(options.roots);
+    if (legacyRoot.includes(",")) {
+      throw new Error(
+        "--roots no longer accepts ambiguous comma-separated values; repeat --root <path> for each exact directory",
+      );
+    }
+    roots.push(legacyRoot);
+  }
+
+  if (roots.some((root) => root.length === 0)) {
+    throw new Error("--root requires a non-empty exact directory path");
+  }
+  return roots;
 }
 
 function syncCount(value) {
@@ -779,23 +862,74 @@ async function cmdSyncAdapter(name, options) {
     // history and process listings. The value remains transient.
     const runtimeCookie = resolveSyncCookie(options);
     if (runtimeCookie) opts.cookie = runtimeCookie;
-    // Constructor-optional cookie collectors use a transient account identity
-    // to isolate watermarks without persisting the cookie or account id.
+    // Official OAuth collectors receive their token only for this invocation.
+    // File/env input is preferred so the secret stays out of shell history.
+    const runtimeAccessToken = resolveSyncAccessToken(options);
+    if (runtimeAccessToken) opts.accessToken = runtimeAccessToken;
+    const runtimeAppKey = resolveSyncAppKey(options);
+    if (runtimeAppKey) opts.appKey = runtimeAppKey;
+    const runtimeAppId = options.appId || process.env.CC_PDH_APP_ID;
+    if (runtimeAppId) opts.appId = String(runtimeAppId);
+    // Constructor-optional credential collectors use a transient account
+    // identity to isolate watermarks without persisting credentials or ids.
     const runtimeAccountId = options.accountId || process.env.CC_PDH_ACCOUNT_ID;
     if (runtimeAccountId) opts.accountId = String(runtimeAccountId);
+    const runtimeDriveId = options.driveId || process.env.CC_PDH_DRIVE_ID;
+    if (runtimeDriveId) opts.driveId = String(runtimeDriveId);
+    if (options.parentId) opts.parentId = String(options.parentId);
+    if (options.shallow) opts.recursive = false;
+    if (options.dir) opts.dir = String(options.dir);
+    if (options.exportDir) opts.exportDir = String(options.exportDir);
+    if (options.profilePath) opts.profilePath = String(options.profilePath);
+    if (options.cursorHome) opts.cursorHome = String(options.cursorHome);
+    if (options.claudeHome) opts.claudeHome = String(options.claudeHome);
+    if (options.hbuilderxHome) {
+      opts.hbuilderxHome = String(options.hbuilderxHome);
+    }
+    if (options.sourceTimezone) {
+      opts.sourceTimezone = String(options.sourceTimezone);
+    }
+    if (options.sourceTimezoneOffsetMinutes != null) {
+      opts.sourceTimezoneOffsetMinutes = Number(
+        options.sourceTimezoneOffsetMinutes,
+      );
+    }
+    const include = {};
+    if (options.history === false) include.history = false;
+    if (options.bookmarks === false) include.bookmarks = false;
+    if (options.downloads === false) include.downloads = false;
+    if (options.localHistory === false) include.localHistory = false;
+    if (options.agentTranscripts === false) include.agentTranscripts = false;
+    if (options.aiTracking === false) include.aiTracking = false;
+    if (options.claudeSubagents === false) {
+      include.subagentTranscripts = false;
+    }
+    if (options.claudeStats === false) include.stats = false;
+    if (options.participants === false) include.participants = false;
+    if (options.artifacts === false) include.artifacts = false;
+    if (options.contacts === false) include.contacts = false;
+    if (options.apps === false) include.apps = false;
+    if (options.sms === false) include.sms = false;
+    if (options.calls === false) include.calls = false;
+    if (options.media === false) include.media = false;
+    if (Object.keys(include).length > 0) opts.include = include;
+    // Keep the legacy field while every shell converges on dataDisclosure's
+    // standard include map.
+    if (options.participants === false) opts.includeParticipants = false;
+    if (options.maxParticipants) {
+      opts.maxParticipants = Number(options.maxParticipants);
+    }
+    if (options.pageSize) opts.pageSize = Number(options.pageSize);
+    if (options.maxPages) opts.maxPages = Number(options.maxPages);
+    if (options.maxFiles) opts.maxFiles = Number(options.maxFiles);
     // Alipay bill ZIP exports may be password protected. Environment fallback
     // keeps the password out of shell history for automated collection.
     const zipPassword = options.zipPassword || process.env.CC_PDH_ZIP_PASSWORD;
     if (zipPassword) opts.zipPassword = String(zipPassword);
-    // L1 local files (module 101): the local-files adapter walks directories
-    // given via opts.roots (comma-separated dirs → array). Without this the
-    // adapter falls back to its default user-data dirs.
-    if (options.roots) {
-      opts.roots = String(options.roots)
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
-    }
+    // L1 local files (module 101): repeated --root values are exact paths.
+    // The deprecated --roots alias accepts one unambiguous exact path only.
+    const roots = resolveSyncRoots(options);
+    if (roots.length > 0) opts.roots = roots;
     const report = await hub.registry.syncAdapter(name, opts);
     const analysis = analyzeSyncReport(report);
     // 2026-05-24 in-APK Android exit + flush-race fix. Real-device repro on
@@ -3399,8 +3533,13 @@ export function registerHubCommand(program) {
       "Path to a snapshot file or local DB (system-data-android snapshot, douyin <uid>_im.db, wechat-pc MSG*.db, etc.)",
     )
     .option(
-      "--roots <dirs>",
-      "Comma-separated directories to scan (local-files adapter, e.g. /sdcard/Documents,/sdcard/Download)",
+      "--root <path>",
+      "Exact directory to scan with local-files; repeat for multiple roots (commas and surrounding spaces are preserved)",
+      collectSyncRoot,
+    )
+    .option(
+      "--roots <path>",
+      "Deprecated single exact directory alias; comma-containing values are rejected (use repeated --root)",
     )
     .option(
       "--db-path <path>",
@@ -3435,8 +3574,133 @@ export function registerHubCommand(program) {
       "Read the login cookie from a local file (preferred over putting it in shell history)",
     )
     .option(
+      "--access-token <token>",
+      "OAuth access token for supported official API collectors",
+    )
+    .option(
+      "--access-token-file <path>",
+      "Read an OAuth access token from a local file (preferred; or set CC_PDH_ACCESS_TOKEN)",
+    )
+    .option(
+      "--app-id <id>",
+      "OAuth application ID for collectors that require request signing (or set CC_PDH_APP_ID)",
+    )
+    .option("--app-key <key>", "OAuth application key for request signing")
+    .option(
+      "--app-key-file <path>",
+      "Read an OAuth application key from a local file (preferred; or set CC_PDH_APP_KEY)",
+    )
+    .option(
       "--account-id <id>",
-      "Platform account identity (for example a Zhihu url_token; stored only as a hashed scope)",
+      "Stable local platform account identity; stored only as a hashed scope",
+    )
+    .option(
+      "--dir <path>",
+      "Baidu Netdisk application directory (required; /apps/{appname} or a subdirectory)",
+    )
+    .option(
+      "--export-dir <path>",
+      "Local directory containing files exported from Tencent Docs",
+    )
+    .option(
+      "--profile-path <path>",
+      "Local browser/app profile or scan directory (also accepts Tencent Meeting and local-files roots)",
+    )
+    .option(
+      "--cursor-home <path>",
+      "Cursor local data home containing projects/agent-transcripts and ai-tracking",
+    )
+    .option(
+      "--claude-home <path>",
+      "Claude Code local data home containing projects and stats-cache.json",
+    )
+    .option(
+      "--hbuilderx-home <path>",
+      "HBuilderX local data directory containing file-activity INI metadata",
+    )
+    .option(
+      "--source-timezone <iana-or-offset>",
+      "Timezone for local timestamps without an embedded offset (for example Asia/Shanghai or UTC+08:00)",
+    )
+    .option(
+      "--source-timezone-offset-minutes <minutes>",
+      "Fixed source timezone offset in minutes (-840 to 840)",
+    )
+    .option("--no-history", "Exclude browser visit history")
+    .option("--no-bookmarks", "Exclude browser bookmarks")
+    .option("--no-downloads", "Exclude browser download history")
+    .option("--no-local-history", "Exclude VS Code Local History save metadata")
+    .option(
+      "--no-agent-transcripts",
+      "Exclude Cursor local Agent prompt/response transcripts",
+    )
+    .option(
+      "--no-ai-tracking",
+      "Exclude Cursor AI conversation summaries and code-activity metadata",
+    )
+    .option(
+      "--no-claude-subagents",
+      "Exclude Claude Code local subagent transcripts",
+    )
+    .option(
+      "--no-claude-stats",
+      "Exclude Claude Code aggregate activity and model-token statistics",
+    )
+    .option(
+      "--no-participants",
+      "Exclude participant names from Tencent Meeting history collection",
+    )
+    .option(
+      "--no-artifacts",
+      "Exclude document, recording, AI-summary, and chat metadata from Tencent Meeting history collection",
+    )
+    .option(
+      "--no-contacts",
+      "Exclude Android contacts from system-data-android collection",
+    )
+    .option(
+      "--no-apps",
+      "Exclude installed Android apps from system-data-android collection",
+    )
+    .option(
+      "--no-sms",
+      "Exclude Android SMS messages from system-data-android collection",
+    )
+    .option(
+      "--no-calls",
+      "Exclude Android call history from system-data-android collection",
+    )
+    .option(
+      "--no-media",
+      "Exclude Android media file metadata from system-data-android collection",
+    )
+    .option(
+      "--max-participants <n>",
+      "Maximum participant records retained per Tencent Meeting (default 1000, max 10000)",
+    )
+    .option(
+      "--drive-id <id>",
+      "Cloud drive ID for collectors that require it (WPS OpenAPI)",
+    )
+    .option(
+      "--parent-id <id>",
+      "Parent folder ID for collectors that support it (WPS defaults to 0)",
+    )
+    .option(
+      "--shallow",
+      "Collect only direct children instead of recursively traversing folders (WPS, Baidu Netdisk, or Tencent Docs exports)",
+    )
+    .option(
+      "--page-size <n>",
+      "Source page size when supported (Baidu Netdisk: 1-1000; WPS: 1-500)",
+    )
+    .option(
+      "--max-pages <n>",
+      "Maximum source pages for this run; an incomplete scan keeps the old watermark",
+    )
+    .option(
+      "--max-files <n>",
+      "Maximum local export files to inspect; an incomplete scan keeps the old watermark",
     )
     .option(
       "--zip-password <password>",
@@ -4005,6 +4269,10 @@ export const _internal = {
   summarizeSyncReports,
   formatSyncReportLine,
   resolveSyncCookie,
+  resolveSyncAccessToken,
+  resolveSyncAppKey,
+  collectSyncRoot,
+  resolveSyncRoots,
   cmdSyncAdapter,
   cmdSyncAll,
   cmdAIChatList,
