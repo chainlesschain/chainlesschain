@@ -134,8 +134,8 @@ import {
   compileElicitationSchema,
   initialElicitationValues,
   prepareElicitationSubmission,
-  type ElicitationIssue,
-} from "../../../../packages/elicitation-schema";
+} from "../../../../packages/elicitation-schema/index.mjs";
+import type { ElicitationIssue } from "../../../../packages/elicitation-schema";
 
 const props = defineProps<{ request: any | null }>();
 const emit = defineEmits<{
