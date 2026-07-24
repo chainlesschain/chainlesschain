@@ -11,7 +11,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
     <div class="container-wide relative pt-20 pb-20 md:pt-28 md:pb-24">
       <div class="max-w-4xl">
-        <div class="chip mb-6 animate-fade-in">IDE Integration · VS Code + JetBrains extensions shipped</div>
+        <div class="chip mb-6 animate-fade-in">IDE Integration · VS Code 0.37.31 on Open VSX + JetBrains</div>
         <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
           The agent in your editor:<br/><span class="italic text-ember">sees what you see, changes what you approve</span>.
         </h1>
@@ -24,6 +24,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
           <a href="https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge" rel="noopener" target="_blank" class="btn-ghost">JetBrains Marketplace ↗</a>
           <a href="https://docs.chainlesschain.com/chainlesschain/ide-bridge.html" rel="noopener" class="btn-ghost">Full docs ↗</a>
         </div>
+        <p class="mt-5 text-sm text-muted">
+          VS Code release <strong class="text-ink">0.37.31</strong> is live on Open VSX with packaged compatibility fixtures aligned to CLI <strong class="text-ink">0.162.177</strong>. The bridge protocol and minimum CLI floor are unchanged.
+        </p>
       </div>
     </div>
   </section>
@@ -92,8 +95,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       <div class="max-w-3xl">
         <h2 class="text-3xl md:text-4xl mb-6 font-display">Two steps to install</h2>
         <ol class="space-y-4 text-muted leading-relaxed">
-          <li><strong class="text-ink">1. Install the CLI:</strong> <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">npm i -g chainlesschain</code> (≥ 0.162.47; <code class="font-mono text-sm">cc ide doctor</code> diagnoses connectivity)</li>
-          <li><strong class="text-ink">2. Install the extension:</strong> VSCodium / Cursor etc. — search <strong class="text-ink">ChainlessChain IDE</strong> in the extension panel (Open VSX); IDEA / PyCharm / WebStorm — Settings → Plugins → Marketplace, same name (2024.2+). Official VS Code Marketplace listing pending — build a local .vsix from source meanwhile.</li>
+          <li><strong class="text-ink">1. Install the CLI:</strong> <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">npm i -g chainlesschain</code> (current recommended <code class="font-mono text-sm">0.162.177</code>, bridge minimum <code class="font-mono text-sm">0.162.47</code>; <code class="font-mono text-sm">cc ide doctor</code> diagnoses connectivity)</li>
+          <li><strong class="text-ink">2. Install the extension:</strong> VSCodium / Cursor etc. — search <strong class="text-ink">ChainlessChain IDE</strong> in the extension panel (Open VSX currently <code class="font-mono text-sm">0.37.31</code>); IDEA / PyCharm / WebStorm — Settings → Plugins → Marketplace, same name (2024.2+). The Microsoft VS Code Marketplace listing is pending; stock VS Code users can download and install the <code class="font-mono text-sm">.vsix</code> from Open VSX.</li>
         </ol>
         <p class="mt-6 text-sm text-muted">
           Safe defaults: server binds localhost only + per-instance random Bearer token + 0600 lockfile; on the CLI side <code class="font-mono text-xs">--no-ide</code> / <code class="font-mono text-xs">CC_IDE_CONTEXT=0</code> / <code class="font-mono text-xs">CC_IDE_DIFF_APPROVAL=0</code> switch each behavior off.

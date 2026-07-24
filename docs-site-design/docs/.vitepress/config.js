@@ -867,6 +867,10 @@ export default defineConfig({
               link: "/modules/m78-cli-agent-runtime",
             },
             {
+              text: "CLI Runtime 当前实现核对 (0.162.177) ⭐NEW",
+              link: "/cli-runtime-current",
+            },
+            {
               text: "79 Coding Agent 系统",
               link: "/modules/m79-coding-agent",
             },

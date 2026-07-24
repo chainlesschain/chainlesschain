@@ -1,6 +1,6 @@
 ﻿# 设计文档
 
-> 本目录是 ChainlessChain 的研发设计入口，也是 `docs-site` 设计区的同步源。CLI Runtime 核对已更新到 2026-07-23 的实际代码状态。
+> 本目录是 ChainlessChain 的研发设计入口，也是 `docs-site` 设计区的同步源。CLI Runtime 核对已更新到 2026-07-24 / CLI 0.162.177 的实际代码状态。
 
 ## 当前重点
 
@@ -15,8 +15,10 @@
 
 - 明确 `CHAINLESSCHAIN_HOME` 是完整运行目录覆盖值，测试夹具不得写入真实 home。
 - 补充 process-execution-broker 的非秘密会话标识 allowlist 与默认凭据过滤边界。
+- 补充 `skill-process-broker`：`shell-exec` 技能只获得宿主冻结 facade，来源元数据不可由 handler 伪造。
+- 记录 CLI-Anything 的字面 argv + `shell:false`，以及 CLI 指令技能包 direct/hybrid handler 的 Broker 接线与 fail-closed 行为。
 - 记录异步 hook 的 POSIX 进程组 / Windows `taskkill` + 后代快照 fallback 设计。
-- 记录 unit / integration / E2E 分层门禁与 2026-07-23 E2E 基线。
+- 记录 unit / integration / E2E 三平台分层门禁、打包/启动校验与 0.162.177 发布基线。
 
 ### `modules/91_Managed_Agents对标计划.md`
 
