@@ -1,6 +1,6 @@
 # Component Reference
 
-**Total Components**: 562
+**Total Components**: 557
 
 ---
 
@@ -584,14 +584,6 @@
 
 ## src/renderer/pages/tasks
 
-### TaskReportsPage
-
-**File**: `src/renderer/pages/tasks/TaskReportsPage.vue`
-
-**Description**: 报告列表
-
----
-
 ### TaskDashboardPage
 
 **File**: `src/renderer/pages/tasks/TaskDashboardPage.vue`
@@ -613,14 +605,6 @@
 ### SocialInsightsPage
 
 **File**: `src/renderer/pages/social/SocialInsightsPage.vue`
-
----
-
-### RecommendationsPage
-
-**File**: `src/renderer/pages/social/RecommendationsPage.vue`
-
-**Description**: Recommendation Feed
 
 ---
 
@@ -960,14 +944,6 @@
 
 ---
 
-### ApprovalCenterPage
-
-**File**: `src/renderer/pages/permissions/ApprovalCenterPage.vue`
-
-**Description**: 待审批请求
-
----
-
 ## src/renderer/pages/p2p
 
 ### SessionFingerprintPage
@@ -1018,23 +994,7 @@
 
 ---
 
-## src/renderer/pages/family-guard
-
-### FamilyGuardDashboard
-
-**File**: `src/renderer/pages/family-guard/FamilyGuardDashboard.vue`
-
----
-
 ## src/renderer/pages/evomap
-
-### EvoMapDashboard
-
-**File**: `src/renderer/pages/evomap/EvoMapDashboard.vue`
-
-**Description**: 页面头部
-
----
 
 ### EvoMapBrowser
 
@@ -1217,12 +1177,6 @@
 ### ReputationOptimizerPage
 
 **File**: `src/renderer/pages/ai/ReputationOptimizerPage.vue`
-
----
-
-### InferenceNetworkPage
-
-**File**: `src/renderer/pages/ai/InferenceNetworkPage.vue`
 
 ---
 
@@ -1687,6 +1641,12 @@
 **File**: `src/renderer/components/ContactManagement.vue`
 
 **Description**: 搜索框
+
+---
+
+### CodingAgentElicitationPanel
+
+**File**: `src/renderer/components/CodingAgentElicitationPanel.vue`
 
 ---
 

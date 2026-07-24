@@ -72,6 +72,18 @@ async initialize()
 
 ---
 
+## async _resetFailedAdapterState()
+
+```javascript
+async _resetFailedAdapterState()
+```
+
+* Clear a partially initialized native adapter before falling back to
+   * sql.js. saveToFile() branches on this.adapter, so retaining a failed
+   * adapter would silently prevent the sql.js database from being persisted.
+
+---
+
 ## async initializeWithBetterSQLite()
 
 ```javascript
