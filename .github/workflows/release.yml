@@ -145,13 +145,15 @@ jobs:
 
       - name: Install desktop-app-vue dependencies (standalone post-workspace-refactor)
         working-directory: desktop-app-vue
-        # `ad3e7d403` removed desktop-app-vue from root workspaces, so root
-        # `npm ci` no longer installs its deps. Without this step, the next
-        # `build:main` / `build:renderer` fail with `Cannot find module
-        # '@vitejs/plugin-vue'` etc. Verified via v5.0.3.21 CI failure.
+        # Keep a real nested dependency tree even when desktop-app-vue is a
+        # root workspace. A plain `npm ci` entered workspace mode and hoisted
+        # Electron + bs3mc to root, so the release ABI rebuild could not find
+        # desktop-app-vue/node_modules/{electron,better-sqlite3-*} on any OS.
+        # `--workspaces=false` makes this install use the desktop lockfile and
+        # preserves the package layout consumed by electron-builder.
         # Wrapped in 3-attempt retry (v5.0.3.45) — see scripts/ci-npm-retry.sh.
         shell: bash
-        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm ci
+        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm ci --workspaces=false
 
       - name: Build main process
         working-directory: desktop-app-vue
@@ -405,13 +407,15 @@ jobs:
 
       - name: Install desktop-app-vue dependencies (standalone post-workspace-refactor)
         working-directory: desktop-app-vue
-        # `ad3e7d403` removed desktop-app-vue from root workspaces, so root
-        # `npm ci` no longer installs its deps. Without this step, the next
-        # `build:main` / `build:renderer` fail with `Cannot find module
-        # '@vitejs/plugin-vue'` etc. Verified via v5.0.3.21 CI failure.
+        # Keep a real nested dependency tree even when desktop-app-vue is a
+        # root workspace. A plain `npm ci` entered workspace mode and hoisted
+        # Electron + bs3mc to root, so the release ABI rebuild could not find
+        # desktop-app-vue/node_modules/{electron,better-sqlite3-*} on any OS.
+        # `--workspaces=false` makes this install use the desktop lockfile and
+        # preserves the package layout consumed by electron-builder.
         # Wrapped in 3-attempt retry (v5.0.3.45) — see scripts/ci-npm-retry.sh.
         shell: bash
-        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm ci
+        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm ci --workspaces=false
 
       - name: Build main process
         working-directory: desktop-app-vue
@@ -664,11 +668,12 @@ jobs:
 
       - name: Install desktop-app-vue dependencies (standalone post-workspace-refactor)
         working-directory: desktop-app-vue
-        # `ad3e7d403` removed desktop-app-vue from root workspaces, so root
-        # `npm ci` no longer installs its deps. See Windows variant for details.
+        # Keep a real nested dependency tree even when desktop-app-vue is a
+        # root workspace. See the Windows variant for the three-platform
+        # hoisting failure fixed by `--workspaces=false`.
         # Wrapped in 3-attempt retry (v5.0.3.45) — see scripts/ci-npm-retry.sh.
         shell: bash
-        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm ci
+        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm ci --workspaces=false
 
       - name: Build main process
         working-directory: desktop-app-vue
