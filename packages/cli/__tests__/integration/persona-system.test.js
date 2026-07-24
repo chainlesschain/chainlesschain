@@ -317,7 +317,8 @@ This should NOT be auto-activated.`,
       );
       expect(autoPersonas).toHaveLength(1);
       expect(autoPersonas[0].id).toBe("my-persona");
-      expect(autoPersonas[0].body).toContain("specialized assistant");
+      const materializedAutoPersona = loader.materializeSkill(autoPersonas[0]);
+      expect(materializedAutoPersona.body).toContain("specialized assistant");
 
       const manualPersonas = skills.filter(
         (s) => s.category === "persona" && s.activation === "manual",
