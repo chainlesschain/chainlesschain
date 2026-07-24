@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [Unreleased]
+
+- Vendor the shared MCP elicitation schema inside the VSIX so chat activation
+  no longer depends on a monorepo-only sibling path.
+- Verify the vendored schema is current and present in every packaged artifact
+  before Extension Host release gates run.
+
 ## [0.37.31] - CLI 0.162.177 compatibility release (2026-07-23)
 
 - Align the packaged compatibility fixtures with CLI 0.162.177, whose generated

@@ -470,6 +470,8 @@
   },
   "scripts": {
     "package": "vsce package --no-dependencies",
+    "sync:elicitation-schema": "node scripts/sync-elicitation-schema.mjs",
+    "check:elicitation-schema": "node scripts/sync-elicitation-schema.mjs --check",
     "test:extension-host": "node test/extension-host/run.cjs",
     "publish:ovsx": "npx --yes ovsx publish --no-dependencies",
     "publish:vsce": "vsce publish --no-dependencies"
