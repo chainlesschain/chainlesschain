@@ -24,7 +24,7 @@ const { newId } = require("../../ids");
 
 const SELF_PERSON_ID = "person-self";
 const ADAPTER_NAME = "ai-chat-history";
-const ADAPTER_VERSION = "0.2.0";
+const ADAPTER_VERSION = "0.2.1";
 
 function personIdForVendor(vendor) {
   return `person-ai-${vendor}`;
@@ -100,7 +100,9 @@ function buildMessageEvent(rawMsg, capturedAt) {
   const vendorPersonId = personIdForVendor(rawMsg.vendor);
   const actor = rawMsg.role === "user" ? SELF_PERSON_ID : vendorPersonId;
   const subtype =
-    rawMsg.content && Array.isArray(rawMsg.content.generatedImages) && rawMsg.content.generatedImages.length > 0
+    rawMsg.content &&
+    Array.isArray(rawMsg.content.generatedImages) &&
+    rawMsg.content.generatedImages.length > 0
       ? EVENT_SUBTYPES.AI_IMAGE_GENERATION
       : EVENT_SUBTYPES.AI_MESSAGE;
   const now = Date.now();
@@ -115,14 +117,16 @@ function buildMessageEvent(rawMsg, capturedAt) {
     id: `evt-aichat-${rawMsg.vendor}-${rawMsg.originalId}`,
     type: ENTITY_TYPES.EVENT,
     subtype,
-    occurredAt: Number.isFinite(occurredAtMs) && occurredAtMs > 0 ? occurredAtMs : now,
+    occurredAt:
+      Number.isFinite(occurredAtMs) && occurredAtMs > 0 ? occurredAtMs : now,
     actor,
     participants: [SELF_PERSON_ID, vendorPersonId],
     content: {
       text: (rawMsg.content && rawMsg.content.text) || undefined,
-      mediaRefs: rawMsg.content && Array.isArray(rawMsg.content.attachments)
-        ? rawMsg.content.attachments.map((a) => a.url).filter(Boolean)
-        : undefined,
+      mediaRefs:
+        rawMsg.content && Array.isArray(rawMsg.content.attachments)
+          ? rawMsg.content.attachments.map((a) => a.url).filter(Boolean)
+          : undefined,
     },
     topics: [topicIdForConversation(rawMsg.vendor, rawMsg.conversationId)],
     ingestedAt: now,
@@ -140,7 +144,9 @@ function buildMessageEvent(rawMsg, capturedAt) {
       modelName: rawMsg.modelName,
       parentMessageId: rawMsg.parentMessageId,
       toolCalls: rawMsg.content ? rawMsg.content.toolCalls : undefined,
-      generatedImages: rawMsg.content ? rawMsg.content.generatedImages : undefined,
+      generatedImages: rawMsg.content
+        ? rawMsg.content.generatedImages
+        : undefined,
     },
   };
 }
@@ -150,7 +156,8 @@ function buildMessageEvent(rawMsg, capturedAt) {
  * Item so KG queries like "what images did I generate this month" work.
  */
 function buildGeneratedImageItems(rawMsg) {
-  if (!rawMsg.content || !Array.isArray(rawMsg.content.generatedImages)) return [];
+  if (!rawMsg.content || !Array.isArray(rawMsg.content.generatedImages))
+    return [];
   const now = Date.now();
   const capturedAt = Number(rawMsg.createdAt) || now;
   return rawMsg.content.generatedImages.map((img, idx) => ({
@@ -193,7 +200,10 @@ function conversationToBatch(rawConv, rawMessages, vendorMeta, capturedAt) {
   if (!Array.isArray(rawMessages)) {
     throw new Error("conversationToBatch: rawMessages must be an array");
   }
-  const vendorPerson = buildVendorPerson(rawConv.vendor, (vendorMeta && vendorMeta.displayName) || rawConv.vendor);
+  const vendorPerson = buildVendorPerson(
+    rawConv.vendor,
+    (vendorMeta && vendorMeta.displayName) || rawConv.vendor,
+  );
   const topic = buildConversationTopic(rawConv);
 
   const events = [];

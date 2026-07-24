@@ -21,6 +21,13 @@ const BASE = "https://chatglm.cn";
 const CONV_LIST_PATH = "/chatglm/backend-api/v1/conversation/list";
 const CONV_DETAIL_PATH = "/chatglm/backend-api/v1/conversation/";
 const USER_INFO_PATH = "/chatglm/backend-api/v1/user/info";
+const {
+  resolveMaxPages,
+  paginationError,
+  pageSignature,
+  hasMoreState,
+} = require("./pagination");
+const { extractVendorArray } = require("./strict-response");
 
 const DEFAULT_PAGE_SIZE = 30;
 
@@ -55,13 +62,31 @@ async function validateCookie(ctx) {
   }
 }
 
-async function *listConversations(ctx, opts = {}) {
+async function* listConversations(ctx, opts = {}) {
   const client = _ensureClient(ctx);
-  const pageSize = Number.isFinite(opts.pageSize) ? opts.pageSize : DEFAULT_PAGE_SIZE;
-  const sinceTs = opts.since && opts.since.lastUpdatedAt ? Number(opts.since.lastUpdatedAt) : 0;
+  const pageSize = Number.isFinite(opts.pageSize)
+    ? opts.pageSize
+    : DEFAULT_PAGE_SIZE;
+  const maxPages = resolveMaxPages(opts);
+  const sinceTs =
+    opts.since && opts.since.lastUpdatedAt
+      ? Number(opts.since.lastUpdatedAt)
+      : 0;
 
   let page = 1;
+  let pagesFetched = 0;
+  let itemsFetched = 0;
+  const seenPages = new Set();
   while (true) {
+    if (pagesFetched >= maxPages) {
+      throw paginationError(
+        "zhipu",
+        "AI_CHAT_PAGINATION_LIMIT",
+        `zhipu: conversation pagination exceeded ${maxPages} pages`,
+        { maxPages, page },
+      );
+    }
+
     const url = new URL(BASE + CONV_LIST_PATH);
     url.searchParams.set("page", String(page));
     url.searchParams.set("page_size", String(pageSize));
@@ -70,13 +95,38 @@ async function *listConversations(ctx, opts = {}) {
       session: ctx.session,
       headers: _authHeader(ctx.session),
     });
-    const list = _extractList(data);
-    if (list.length === 0) return;
+    pagesFetched++;
+    const list = _extractList(data, "conversations");
+    const meta = (data && data.result) || data || {};
+    const hasMore = hasMoreState(meta);
+    if (list.length === 0) {
+      if (hasMore === true || _hasRemainingTotal(meta, data, itemsFetched)) {
+        throw paginationError(
+          "zhipu",
+          "AI_CHAT_PAGINATION_STALLED",
+          "zhipu: conversation pagination ended before the reported boundary",
+          { page, pagesFetched },
+        );
+      }
+      return;
+    }
+
+    const signature = pageSignature(list, ["conversation_id", "id"]);
+    if (seenPages.has(signature)) {
+      throw paginationError(
+        "zhipu",
+        "AI_CHAT_PAGINATION_STALLED",
+        `zhipu: conversation pagination repeated page ${page}`,
+        { page, pagesFetched },
+      );
+    }
+    seenPages.add(signature);
+    itemsFetched += list.length;
 
     let stopped = false;
     for (const c of list) {
       const updatedAt = _toMs(c.update_time || c.updateTime || c.create_time);
-      if (sinceTs && updatedAt <= sinceTs) {
+      if (sinceTs && updatedAt > 0 && updatedAt <= sinceTs) {
         stopped = true;
         break;
       }
@@ -93,13 +143,21 @@ async function *listConversations(ctx, opts = {}) {
       };
     }
     if (stopped) return;
-    if (list.length < pageSize) return;
+    if (hasMore === false && _hasRemainingTotal(meta, data, itemsFetched)) {
+      throw paginationError(
+        "zhipu",
+        "AI_CHAT_PAGINATION_STALLED",
+        "zhipu: conversation pagination stopped before the reported total",
+        { page, pagesFetched, itemsFetched },
+      );
+    }
+    if (hasMore === false) return;
+    if (hasMore !== true && _reachedTotal(meta, data, itemsFetched)) return;
     page++;
-    if (page > 200) return;
   }
 }
 
-async function *listMessages(ctx, conversationId, _opts = {}) {
+async function* listMessages(ctx, conversationId) {
   const client = _ensureClient(ctx);
   const url = BASE + CONV_DETAIL_PATH + encodeURIComponent(conversationId);
   const data = await client.getJson(url, {
@@ -108,12 +166,34 @@ async function *listMessages(ctx, conversationId, _opts = {}) {
   });
 
   // GLM detail returns { result: { messages: [...] } } or { messages: [...] }.
-  let msgs = [];
-  if (data && data.result && Array.isArray(data.result.messages)) msgs = data.result.messages;
-  else if (data && Array.isArray(data.messages)) msgs = data.messages;
-  else if (data && data.result && Array.isArray(data.result.history)) msgs = data.result.history;
+  const msgs = _extractMessages(data);
+  const meta = (data && data.result) || data || {};
+  if (
+    hasMoreState(meta) === true ||
+    _hasRemainingTotal(meta, data, msgs.length)
+  ) {
+    const cursor =
+      meta.next_cursor || meta.nextCursor || meta.cursor || meta.last_id;
+    if (cursor == null || cursor === "") {
+      throw paginationError(
+        "zhipu",
+        "AI_CHAT_PAGINATION_STALLED",
+        "zhipu: message response reported more data without a cursor",
+        { conversationId: String(conversationId) },
+      );
+    }
+    throw paginationError(
+      "zhipu",
+      "AI_CHAT_PAGINATION_LIMIT",
+      "zhipu: message response was paginated but this endpoint has no supported continuation request",
+      { conversationId: String(conversationId), cursor: String(cursor) },
+    );
+  }
 
-  msgs.sort((a, b) => _toMs(a.create_time || a.timestamp) - _toMs(b.create_time || b.timestamp));
+  msgs.sort(
+    (a, b) =>
+      _toMs(a.create_time || a.timestamp) - _toMs(b.create_time || b.timestamp),
+  );
 
   for (const m of msgs) {
     yield {
@@ -133,14 +213,52 @@ async function *listMessages(ctx, conversationId, _opts = {}) {
   }
 }
 
-function _extractList(data) {
-  if (!data) return [];
-  if (Array.isArray(data.result)) return data.result;
-  if (data.result && Array.isArray(data.result.list)) return data.result.list;
-  if (data.result && Array.isArray(data.result.conversations)) return data.result.conversations;
-  if (Array.isArray(data.conversations)) return data.conversations;
-  if (Array.isArray(data.list)) return data.list;
-  return [];
+function _reachedTotal(meta, data, fetched) {
+  const total = _reportedTotal(meta, data);
+  return Number.isFinite(total) && fetched >= total;
+}
+
+function _hasRemainingTotal(meta, data, fetched) {
+  const total = _reportedTotal(meta, data);
+  return Number.isFinite(total) && fetched < total;
+}
+
+function _reportedTotal(meta, data) {
+  const rawTotal =
+    meta.total ?? meta.total_count ?? meta.totalCount ?? (data && data.total);
+  if (rawTotal == null || rawTotal === "") return Number.NaN;
+  const total = Number(rawTotal);
+  return Number.isFinite(total) && total >= 0 ? total : Number.NaN;
+}
+
+function _extractList(data, stream) {
+  return extractVendorArray(
+    data,
+    [
+      ["result"],
+      ["result", "list"],
+      ["result", "conversations"],
+      ["conversations"],
+      ["list"],
+    ],
+    {
+      vendor: "zhipu",
+      stream,
+      businessStatus: { code: [0, 200], status: [0] },
+    },
+  );
+}
+
+function _extractMessages(data) {
+  return extractVendorArray(
+    data,
+    [["result", "messages"], ["messages"], ["result", "history"]],
+    {
+      vendor: "zhipu",
+      stream: "messages",
+      businessStatus: { code: [0, 200], status: [0] },
+    },
+  );
 }
 
 function _normalizeRole(r) {
@@ -156,7 +274,10 @@ function _buildContent(m) {
   if (Array.isArray(m.attachments) && m.attachments.length > 0) {
     content.attachments = m.attachments
       .map((a) => ({
-        type: (a.type === "image" || /image/i.test(a.mime_type || "")) ? "image" : "file",
+        type:
+          a.type === "image" || /image/i.test(a.mime_type || "")
+            ? "image"
+            : "file",
         filename: a.name || a.file_name,
         url: a.url || a.download_url,
         size: a.size,
@@ -166,7 +287,11 @@ function _buildContent(m) {
   }
   if (Array.isArray(m.images) && m.images.length > 0) {
     content.attachments = (content.attachments || []).concat(
-      m.images.map((i) => ({ type: "image", url: i.url || i, mimeType: "image/png" })),
+      m.images.map((i) => ({
+        type: "image",
+        url: i.url || i,
+        mimeType: "image/png",
+      })),
     );
   }
   return content;
@@ -198,5 +323,12 @@ const SPEC = {
 
 module.exports = {
   SPEC,
-  _internal: { _toMs, _normalizeRole, _buildContent, _authHeader, _extractList, BASE },
+  _internal: {
+    _toMs,
+    _normalizeRole,
+    _buildContent,
+    _authHeader,
+    _extractList,
+    BASE,
+  },
 };

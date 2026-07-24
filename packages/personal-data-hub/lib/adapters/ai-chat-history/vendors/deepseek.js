@@ -37,12 +37,17 @@ const BASE = "https://chat.deepseek.com";
 const CONV_PAGE_PATH = "/api/v0/chat_session/fetch_page";
 const MSG_PATH = "/api/v0/chat/history_messages";
 const USER_INFO_PATH = "/api/v0/user/get_user_info";
+const { hasMoreState, pageSignature } = require("./pagination");
+const { extractVendorArray } = require("./strict-response");
 
 const DEFAULT_PAGE_SIZE = 30;
+const DEFAULT_MAX_PAGES = 200;
 
 function _ensureClient(ctx) {
   if (!ctx || !ctx.httpClient) {
-    throw new Error("deepseek: ctx.httpClient required (AIChatHistoryAdapter must wire one)");
+    throw new Error(
+      "deepseek: ctx.httpClient required (AIChatHistoryAdapter must wire one)",
+    );
   }
   return ctx.httpClient;
 }
@@ -50,9 +55,14 @@ function _ensureClient(ctx) {
 async function validateCookie(ctx) {
   const client = _ensureClient(ctx);
   try {
-    const data = await client.getJson(BASE + USER_INFO_PATH, { session: ctx.session });
+    const data = await client.getJson(BASE + USER_INFO_PATH, {
+      session: ctx.session,
+    });
     if (data && data.code === 0 && data.data) {
-      return { ok: true, userId: data.data.biz_data && data.data.biz_data.user_id };
+      return {
+        ok: true,
+        userId: data.data.biz_data && data.data.biz_data.user_id,
+      };
     }
     return { ok: false, reason: "UNEXPECTED_RESPONSE_SHAPE" };
   } catch (err) {
@@ -66,25 +76,102 @@ async function validateCookie(ctx) {
  * returned session). Stop when `chat_sessions` is empty OR we hit
  * opts.since (timestamp watermark from prior sync).
  */
-async function *listConversations(ctx, opts = {}) {
+async function* listConversations(ctx, opts = {}) {
   const client = _ensureClient(ctx);
-  const limit = Number.isFinite(opts.pageSize) ? opts.pageSize : DEFAULT_PAGE_SIZE;
-  const sinceTs = opts.since && opts.since.lastUpdatedAt ? Number(opts.since.lastUpdatedAt) : 0;
+  const limit = Number.isFinite(opts.pageSize)
+    ? opts.pageSize
+    : DEFAULT_PAGE_SIZE;
+  const maxPages = Number.isFinite(opts.maxPages)
+    ? Math.max(1, Math.floor(opts.maxPages))
+    : DEFAULT_MAX_PAGES;
+  const sinceTs =
+    opts.since && opts.since.lastUpdatedAt
+      ? Number(opts.since.lastUpdatedAt)
+      : 0;
   let cursor = null;
+  let pagesFetched = 0;
+  const seenCursors = new Set();
+  const seenPages = new Set();
 
   while (true) {
+    if (pagesFetched >= maxPages) {
+      throw _paginationError(
+        "AI_CHAT_PAGINATION_LIMIT",
+        `deepseek: conversation pagination exceeded ${maxPages} pages`,
+        { maxPages, cursor },
+      );
+    }
+
     const url = new URL(BASE + CONV_PAGE_PATH);
     url.searchParams.set("count", String(limit));
     if (cursor != null) url.searchParams.set("before", String(cursor));
 
     const data = await client.getJson(url.toString(), { session: ctx.session });
-    const sessions = data && data.data && data.data.biz_data && data.data.biz_data.chat_sessions;
-    if (!Array.isArray(sessions) || sessions.length === 0) return;
+    pagesFetched++;
+    const meta = data && data.data && data.data.biz_data;
+    const hasMore = hasMoreState(meta);
+    if ((!meta || !Array.isArray(meta.chat_sessions)) && hasMore === true) {
+      throw _paginationError(
+        "AI_CHAT_PAGINATION_STALLED",
+        "deepseek: conversation pagination reported more data but returned an empty page",
+        { cursor, pagesFetched },
+      );
+    }
+    const sessions = extractVendorArray(
+      data,
+      [["data", "biz_data", "chat_sessions"]],
+      {
+        vendor: "deepseek",
+        stream: "conversations",
+        businessStatus: { code: [0] },
+      },
+    );
+    if (sessions.length === 0) {
+      if (hasMore === true) {
+        throw _paginationError(
+          "AI_CHAT_PAGINATION_STALLED",
+          "deepseek: conversation pagination reported more data but returned an empty page",
+          { cursor, pagesFetched },
+        );
+      }
+      return;
+    }
+
+    const signature = pageSignature(sessions, ["id"]);
+    if (seenPages.has(signature)) {
+      throw _paginationError(
+        "AI_CHAT_PAGINATION_STALLED",
+        `deepseek: conversation pagination repeated page for cursor ${cursor || "initial"}`,
+        { cursor, pagesFetched },
+      );
+    }
+    seenPages.add(signature);
+
+    const last = sessions[sessions.length - 1];
+    const nextCursor = last.inserted_at || last.updated_at;
+    if (hasMore !== false) {
+      if (!nextCursor) {
+        throw _paginationError(
+          "AI_CHAT_PAGINATION_STALLED",
+          "deepseek: non-empty conversation page had no continuation cursor",
+          { cursor, pagesFetched, pageSize: limit },
+        );
+      }
+      const cursorKey = String(nextCursor);
+      if (seenCursors.has(cursorKey)) {
+        throw _paginationError(
+          "AI_CHAT_PAGINATION_STALLED",
+          `deepseek: conversation pagination repeated cursor ${cursorKey}`,
+          { cursor: cursorKey, pagesFetched },
+        );
+      }
+      seenCursors.add(cursorKey);
+    }
 
     let stopped = false;
     for (const s of sessions) {
       const updatedAt = _toMs(s.updated_at || s.inserted_at);
-      if (sinceTs && updatedAt <= sinceTs) {
+      if (sinceTs && updatedAt > 0 && updatedAt <= sinceTs) {
         stopped = true;
         break;
       }
@@ -103,26 +190,56 @@ async function *listConversations(ctx, opts = {}) {
       };
     }
     if (stopped) return;
+    if (hasMore === false) return;
     // Advance cursor — `before` expects the oldest timestamp from this page.
-    const last = sessions[sessions.length - 1];
-    cursor = last.inserted_at || last.updated_at;
-    if (!cursor) return;
+    cursor = String(nextCursor);
   }
+}
+
+function _paginationError(code, message, details) {
+  const err = new Error(message);
+  err.name = "AIChatPaginationError";
+  err.code = code;
+  err.vendor = "deepseek";
+  Object.assign(err, details);
+  return err;
 }
 
 /**
  * Yield each message in a conversation. DeepSeek already returns messages in
  * chronological order — we re-yield them as-is.
  */
-async function *listMessages(ctx, conversationId, _opts = {}) {
+async function* listMessages(ctx, conversationId) {
   const client = _ensureClient(ctx);
   const url = new URL(BASE + MSG_PATH);
   url.searchParams.set("chat_session_id", String(conversationId));
 
   const data = await client.getJson(url.toString(), { session: ctx.session });
-  const msgs = data && data.data && data.data.biz_data && data.data.biz_data.chat_messages;
-  if (!Array.isArray(msgs)) return;
-
+  const meta = data && data.data && data.data.biz_data;
+  if (hasMoreState(meta) === true) {
+    const cursor = meta.next_cursor || meta.cursor || meta.last_id;
+    if (cursor == null || cursor === "") {
+      throw _paginationError(
+        "AI_CHAT_PAGINATION_STALLED",
+        "deepseek: message response reported more data without a cursor",
+        { conversationId: String(conversationId) },
+      );
+    }
+    throw _paginationError(
+      "AI_CHAT_PAGINATION_LIMIT",
+      "deepseek: message response was paginated but this endpoint has no supported continuation request",
+      { conversationId: String(conversationId), cursor: String(cursor) },
+    );
+  }
+  const msgs = extractVendorArray(
+    data,
+    [["data", "biz_data", "chat_messages"]],
+    {
+      vendor: "deepseek",
+      stream: "messages",
+      businessStatus: { code: [0] },
+    },
+  );
   for (const m of msgs) {
     yield {
       vendor: "deepseek",
@@ -195,5 +312,12 @@ const SPEC = {
 module.exports = {
   SPEC,
   // exported for tests
-  _internal: { _toMs, _normalizeRole, _buildContent, BASE, CONV_PAGE_PATH, MSG_PATH },
+  _internal: {
+    _toMs,
+    _normalizeRole,
+    _buildContent,
+    BASE,
+    CONV_PAGE_PATH,
+    MSG_PATH,
+  },
 };

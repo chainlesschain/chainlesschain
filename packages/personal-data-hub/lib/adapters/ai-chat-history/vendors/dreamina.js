@@ -23,20 +23,32 @@
 
 const BASE = "https://jimeng.jianying.com";
 const WORKSPACE_LIST_PATH = "/api/workspace/list";
-const WORKSPACE_ITEMS_PATH = (id) => `/api/workspace/${encodeURIComponent(id)}/items`;
+const WORKSPACE_ITEMS_PATH = (id) =>
+  `/api/workspace/${encodeURIComponent(id)}/items`;
 const USER_INFO_PATH = "/api/user/info";
+const {
+  resolveMaxPages,
+  paginationError,
+  pageSignature,
+  hasMoreState,
+} = require("./pagination");
+const { extractVendorArray } = require("./strict-response");
 
 const DEFAULT_PAGE_SIZE = 30;
+const DEFAULT_MESSAGE_PAGE_SIZE = 200;
 
 function _ensureClient(ctx) {
-  if (!ctx || !ctx.httpClient) throw new Error("dreamina: ctx.httpClient required");
+  if (!ctx || !ctx.httpClient)
+    throw new Error("dreamina: ctx.httpClient required");
   return ctx.httpClient;
 }
 
 async function validateCookie(ctx) {
   const client = _ensureClient(ctx);
   try {
-    const data = await client.getJson(BASE + USER_INFO_PATH, { session: ctx.session });
+    const data = await client.getJson(BASE + USER_INFO_PATH, {
+      session: ctx.session,
+    });
     if (data && data.code === 0 && data.data) {
       return { ok: true, userId: data.data.user_id || data.data.uid };
     }
@@ -46,22 +58,67 @@ async function validateCookie(ctx) {
   }
 }
 
-async function *listConversations(ctx, opts = {}) {
+async function* listConversations(ctx, opts = {}) {
   const client = _ensureClient(ctx);
-  const pageSize = Number.isFinite(opts.pageSize) ? opts.pageSize : DEFAULT_PAGE_SIZE;
-  const sinceTs = opts.since && opts.since.lastUpdatedAt ? Number(opts.since.lastUpdatedAt) : 0;
+  const pageSize = Number.isFinite(opts.pageSize)
+    ? opts.pageSize
+    : DEFAULT_PAGE_SIZE;
+  const maxPages = resolveMaxPages(opts);
+  const sinceTs =
+    opts.since && opts.since.lastUpdatedAt
+      ? Number(opts.since.lastUpdatedAt)
+      : 0;
 
   let page = 1;
+  let pagesFetched = 0;
+  let itemsFetched = 0;
+  const seenPages = new Set();
   while (true) {
+    if (pagesFetched >= maxPages) {
+      throw paginationError(
+        "dreamina",
+        "AI_CHAT_PAGINATION_LIMIT",
+        `dreamina: conversation pagination exceeded ${maxPages} pages`,
+        { maxPages, page },
+      );
+    }
+
     const body = { page, page_size: pageSize };
-    const data = await client.postJson(BASE + WORKSPACE_LIST_PATH, body, { session: ctx.session });
-    const list = _extractList(data);
-    if (list.length === 0) return;
+    const data = await client.postJson(BASE + WORKSPACE_LIST_PATH, body, {
+      session: ctx.session,
+    });
+    pagesFetched++;
+    const list = _extractList(data, "conversations");
+    const meta = (data && data.data) || {};
+    const hasMore = hasMoreState(meta);
+    if (list.length === 0) {
+      if (hasMore === true || _hasRemainingTotal(meta, data, itemsFetched)) {
+        throw paginationError(
+          "dreamina",
+          "AI_CHAT_PAGINATION_STALLED",
+          "dreamina: conversation pagination ended before the reported boundary",
+          { page, pagesFetched },
+        );
+      }
+      return;
+    }
+
+    const signature = pageSignature(list, ["workspace_id", "id"]);
+    if (seenPages.has(signature)) {
+      throw paginationError(
+        "dreamina",
+        "AI_CHAT_PAGINATION_STALLED",
+        `dreamina: conversation pagination repeated page ${page}`,
+        { page, pagesFetched },
+      );
+    }
+    seenPages.add(signature);
+    itemsFetched += list.length;
 
     let stopped = false;
     for (const w of list) {
       const updatedAt = _toMs(w.update_time || w.updated_at || w.create_time);
-      if (sinceTs && updatedAt <= sinceTs) {
+      if (sinceTs && updatedAt > 0 && updatedAt <= sinceTs) {
         stopped = true;
         break;
       }
@@ -78,17 +135,87 @@ async function *listConversations(ctx, opts = {}) {
       };
     }
     if (stopped) return;
-    if (list.length < pageSize) return;
+    if (hasMore === false && _hasRemainingTotal(meta, data, itemsFetched)) {
+      throw paginationError(
+        "dreamina",
+        "AI_CHAT_PAGINATION_STALLED",
+        "dreamina: conversation pagination stopped before the reported total",
+        { page, pagesFetched, itemsFetched },
+      );
+    }
+    if (hasMore === false) return;
+    if (hasMore !== true && _reachedTotal(meta, data, itemsFetched)) return;
     page++;
-    if (page > 200) return;
   }
 }
 
-async function *listMessages(ctx, workspaceId, _opts = {}) {
+async function* listMessages(ctx, workspaceId, opts = {}) {
   const client = _ensureClient(ctx);
   const url = BASE + WORKSPACE_ITEMS_PATH(workspaceId);
-  const data = await client.postJson(url, { workspace_id: String(workspaceId), page_size: 200 }, { session: ctx.session });
-  const items = _extractList(data);
+  const pageSize = Number.isFinite(opts.pageSize)
+    ? opts.pageSize
+    : DEFAULT_MESSAGE_PAGE_SIZE;
+  const maxPages = resolveMaxPages(opts);
+  const items = [];
+  let page = 1;
+  let pagesFetched = 0;
+  const seenPages = new Set();
+
+  while (true) {
+    if (pagesFetched >= maxPages) {
+      throw paginationError(
+        "dreamina",
+        "AI_CHAT_PAGINATION_LIMIT",
+        `dreamina: message pagination exceeded ${maxPages} pages`,
+        { workspaceId: String(workspaceId), maxPages, page },
+      );
+    }
+
+    const data = await client.postJson(
+      url,
+      { workspace_id: String(workspaceId), page, page_size: pageSize },
+      { session: ctx.session },
+    );
+    pagesFetched++;
+    const currentPage = _extractList(data, "messages");
+    const meta = (data && data.data) || {};
+    const hasMore = hasMoreState(meta);
+    if (currentPage.length === 0) {
+      if (hasMore === true || _hasRemainingTotal(meta, data, items.length)) {
+        throw paginationError(
+          "dreamina",
+          "AI_CHAT_PAGINATION_STALLED",
+          "dreamina: message pagination ended before the reported boundary",
+          { workspaceId: String(workspaceId), page, pagesFetched },
+        );
+      }
+      break;
+    }
+
+    const signature = pageSignature(currentPage, ["id", "item_id"]);
+    if (seenPages.has(signature)) {
+      throw paginationError(
+        "dreamina",
+        "AI_CHAT_PAGINATION_STALLED",
+        `dreamina: message pagination repeated page ${page}`,
+        { workspaceId: String(workspaceId), page, pagesFetched },
+      );
+    }
+    seenPages.add(signature);
+    items.push(...currentPage);
+
+    if (hasMore === false && _hasRemainingTotal(meta, data, items.length)) {
+      throw paginationError(
+        "dreamina",
+        "AI_CHAT_PAGINATION_STALLED",
+        "dreamina: message pagination stopped before the reported total",
+        { workspaceId: String(workspaceId), page, pagesFetched },
+      );
+    }
+    if (hasMore === false) break;
+    if (hasMore !== true && _reachedTotal(meta, data, items.length)) break;
+    page++;
+  }
 
   items.sort((a, b) => _toMs(a.create_time) - _toMs(b.create_time));
 
@@ -135,13 +262,34 @@ async function *listMessages(ctx, workspaceId, _opts = {}) {
   }
 }
 
-function _extractList(data) {
-  if (!data) return [];
-  if (data.data && Array.isArray(data.data.workspaces)) return data.data.workspaces;
-  if (data.data && Array.isArray(data.data.list)) return data.data.list;
-  if (data.data && Array.isArray(data.data.items)) return data.data.items;
-  if (Array.isArray(data.data)) return data.data;
-  return [];
+function _reachedTotal(meta, data, fetched) {
+  const total = _reportedTotal(meta, data);
+  return Number.isFinite(total) && fetched >= total;
+}
+
+function _hasRemainingTotal(meta, data, fetched) {
+  const total = _reportedTotal(meta, data);
+  return Number.isFinite(total) && fetched < total;
+}
+
+function _reportedTotal(meta, data) {
+  const rawTotal =
+    meta.total ?? meta.total_count ?? meta.totalCount ?? (data && data.total);
+  if (rawTotal == null || rawTotal === "") return Number.NaN;
+  const total = Number(rawTotal);
+  return Number.isFinite(total) && total >= 0 ? total : Number.NaN;
+}
+
+function _extractList(data, stream) {
+  return extractVendorArray(
+    data,
+    [["data", "workspaces"], ["data", "list"], ["data", "items"], ["data"]],
+    {
+      vendor: "dreamina",
+      stream,
+      businessStatus: { code: [0] },
+    },
+  );
 }
 
 function _toMs(t) {

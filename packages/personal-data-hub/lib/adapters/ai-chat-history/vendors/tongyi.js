@@ -19,6 +19,13 @@ const BASE = "https://tongyi.aliyun.com";
 const CONV_LIST_PATH = "/dialog/conversation/list";
 const MSG_LIST_PATH = "/dialog/conversation/messages";
 const USER_INFO_PATH = "/api/user/info";
+const {
+  resolveMaxPages,
+  paginationError,
+  pageSignature,
+  hasMoreState,
+} = require("./pagination");
+const { extractVendorArray } = require("./strict-response");
 
 const DEFAULT_PAGE_SIZE = 30;
 
@@ -42,8 +49,13 @@ async function validateCookie(ctx) {
       session: ctx.session,
       headers: _csrfHeader(ctx.session),
     });
-    if (data && (data.success || data.code === 200) && (data.data || data.userId)) {
-      const userId = (data.data && (data.data.userId || data.data.uid)) || data.userId;
+    if (
+      data &&
+      (data.success || data.code === 200) &&
+      (data.data || data.userId)
+    ) {
+      const userId =
+        (data.data && (data.data.userId || data.data.uid)) || data.userId;
       return { ok: true, userId };
     }
     return { ok: false, reason: "UNEXPECTED_RESPONSE_SHAPE" };
@@ -52,25 +64,68 @@ async function validateCookie(ctx) {
   }
 }
 
-async function *listConversations(ctx, opts = {}) {
+async function* listConversations(ctx, opts = {}) {
   const client = _ensureClient(ctx);
-  const pageSize = Number.isFinite(opts.pageSize) ? opts.pageSize : DEFAULT_PAGE_SIZE;
-  const sinceTs = opts.since && opts.since.lastUpdatedAt ? Number(opts.since.lastUpdatedAt) : 0;
+  const pageSize = Number.isFinite(opts.pageSize)
+    ? opts.pageSize
+    : DEFAULT_PAGE_SIZE;
+  const maxPages = resolveMaxPages(opts);
+  const sinceTs =
+    opts.since && opts.since.lastUpdatedAt
+      ? Number(opts.since.lastUpdatedAt)
+      : 0;
 
   let pageNum = 1;
+  let pagesFetched = 0;
+  let itemsFetched = 0;
+  const seenPages = new Set();
   while (true) {
+    if (pagesFetched >= maxPages) {
+      throw paginationError(
+        "tongyi",
+        "AI_CHAT_PAGINATION_LIMIT",
+        `tongyi: conversation pagination exceeded ${maxPages} pages`,
+        { maxPages, page: pageNum },
+      );
+    }
+
     const body = { pageNum, pageSize };
     const data = await client.postJson(BASE + CONV_LIST_PATH, body, {
       session: ctx.session,
       headers: _csrfHeader(ctx.session),
     });
-    const items = _extractList(data);
-    if (items.length === 0) return;
+    pagesFetched++;
+    const items = _extractList(data, "conversations");
+    const meta = _responseMeta(data);
+    const hasMore = hasMoreState(meta);
+    if (items.length === 0) {
+      if (hasMore === true || _hasRemainingTotal(meta, data, itemsFetched)) {
+        throw paginationError(
+          "tongyi",
+          "AI_CHAT_PAGINATION_STALLED",
+          "tongyi: conversation pagination ended before the reported boundary",
+          { page: pageNum, pagesFetched },
+        );
+      }
+      return;
+    }
+
+    const signature = pageSignature(items, ["sessionId", "id"]);
+    if (seenPages.has(signature)) {
+      throw paginationError(
+        "tongyi",
+        "AI_CHAT_PAGINATION_STALLED",
+        `tongyi: conversation pagination repeated page ${pageNum}`,
+        { page: pageNum, pagesFetched },
+      );
+    }
+    seenPages.add(signature);
+    itemsFetched += items.length;
 
     let stopped = false;
     for (const c of items) {
       const updatedAt = _toMs(c.gmtModified || c.updatedAt || c.gmtCreate);
-      if (sinceTs && updatedAt <= sinceTs) {
+      if (sinceTs && updatedAt > 0 && updatedAt <= sinceTs) {
         stopped = true;
         break;
       }
@@ -87,31 +142,68 @@ async function *listConversations(ctx, opts = {}) {
       };
     }
     if (stopped) return;
-    if (items.length < pageSize) return;
+    if (hasMore === false && _hasRemainingTotal(meta, data, itemsFetched)) {
+      throw paginationError(
+        "tongyi",
+        "AI_CHAT_PAGINATION_STALLED",
+        "tongyi: conversation pagination stopped before the reported total",
+        { page: pageNum, pagesFetched, itemsFetched },
+      );
+    }
+    if (hasMore === false) return;
+    if (hasMore !== true && _reachedTotal(meta, data, itemsFetched)) return;
     pageNum++;
-    if (pageNum > 200) return; // safety
   }
 }
 
-async function *listMessages(ctx, conversationId, _opts = {}) {
+async function* listMessages(ctx, conversationId) {
   const client = _ensureClient(ctx);
   const body = { sessionId: String(conversationId), parentMsgId: "" };
   const data = await client.postJson(BASE + MSG_LIST_PATH, body, {
     session: ctx.session,
     headers: _csrfHeader(ctx.session),
   });
-  const msgs = _extractList(data);
+  const msgs = _extractList(data, "messages");
+  const meta = _responseMeta(data);
+  if (
+    hasMoreState(meta) === true ||
+    _hasRemainingTotal(meta, data, msgs.length)
+  ) {
+    const cursor =
+      meta.next_cursor || meta.nextCursor || meta.cursor || meta.parentMsgId;
+    if (cursor == null || cursor === "") {
+      throw paginationError(
+        "tongyi",
+        "AI_CHAT_PAGINATION_STALLED",
+        "tongyi: message response reported more data without a cursor",
+        { conversationId: String(conversationId) },
+      );
+    }
+    throw paginationError(
+      "tongyi",
+      "AI_CHAT_PAGINATION_LIMIT",
+      "tongyi: message response was paginated but this endpoint has no supported continuation request",
+      { conversationId: String(conversationId), cursor: String(cursor) },
+    );
+  }
 
   // Tongyi returns messages mixed user/bot in their own order; we sort
   // ascending by createTime for stable chronological yield.
-  msgs.sort((a, b) => _toMs(a.createTime || a.gmtCreate) - _toMs(b.createTime || b.gmtCreate));
+  msgs.sort(
+    (a, b) =>
+      _toMs(a.createTime || a.gmtCreate) - _toMs(b.createTime || b.gmtCreate),
+  );
 
   for (const m of msgs) {
     yield {
       vendor: "tongyi",
       originalId: String(m.msgId || m.id),
       conversationId: String(conversationId),
-      role: _normalizeRole(m.senderType || m.role || (m.contentType === "user" ? "user" : "assistant")),
+      role: _normalizeRole(
+        m.senderType ||
+          m.role ||
+          (m.contentType === "user" ? "user" : "assistant"),
+      ),
       content: _buildContent(m),
       createdAt: _toMs(m.createTime || m.gmtCreate),
       parentMessageId: m.parentMsgId ? String(m.parentMsgId) : undefined,
@@ -121,18 +213,49 @@ async function *listMessages(ctx, conversationId, _opts = {}) {
   }
 }
 
-function _extractList(data) {
-  if (!data) return [];
-  if (Array.isArray(data.data)) return data.data;
-  if (data.data && Array.isArray(data.data.list)) return data.data.list;
-  if (data.data && Array.isArray(data.data.records)) return data.data.records;
-  if (Array.isArray(data.list)) return data.list;
-  return [];
+function _responseMeta(data) {
+  return data &&
+    data.data &&
+    typeof data.data === "object" &&
+    !Array.isArray(data.data)
+    ? data.data
+    : data || {};
+}
+
+function _reachedTotal(meta, data, fetched) {
+  const total = _reportedTotal(meta, data);
+  return Number.isFinite(total) && fetched >= total;
+}
+
+function _hasRemainingTotal(meta, data, fetched) {
+  const total = _reportedTotal(meta, data);
+  return Number.isFinite(total) && fetched < total;
+}
+
+function _reportedTotal(meta, data) {
+  const rawTotal =
+    meta.total ?? meta.total_count ?? meta.totalCount ?? (data && data.total);
+  if (rawTotal == null || rawTotal === "") return Number.NaN;
+  const total = Number(rawTotal);
+  return Number.isFinite(total) && total >= 0 ? total : Number.NaN;
+}
+
+function _extractList(data, stream) {
+  return extractVendorArray(
+    data,
+    [["data"], ["data", "list"], ["data", "records"], ["list"]],
+    {
+      vendor: "tongyi",
+      stream,
+      businessStatus: { code: [0, 200] },
+    },
+  );
 }
 
 function _normalizeRole(r) {
   if (r === "user" || r === "USER" || r === 1) return "user";
-  if (r === "assistant" || r === "ASSISTANT" || r === "bot" || r === 2) return "assistant";
+  if (r === "assistant" || r === "ASSISTANT" || r === "bot" || r === 2)
+    return "assistant";
   if (r === "system" || r === "SYSTEM" || r === 0) return "system";
   return r ? String(r).toLowerCase() : "assistant";
 }
@@ -142,8 +265,11 @@ function _buildContent(m) {
   // multi-segment replies (image + text). Flatten to single text.
   const segments = Array.isArray(m.contents) ? m.contents : null;
   const text = segments
-    ? segments.map((s) => s.content || "").filter(Boolean).join("\n")
-    : (m.content || "");
+    ? segments
+        .map((s) => s.content || "")
+        .filter(Boolean)
+        .join("\n")
+    : m.content || "";
   const content = { text };
 
   const files = []
@@ -152,7 +278,10 @@ function _buildContent(m) {
   if (files.length > 0) {
     content.attachments = files
       .map((f) => ({
-        type: (f.type === "image" || /image/i.test(f.fileType || "")) ? "image" : "file",
+        type:
+          f.type === "image" || /image/i.test(f.fileType || "")
+            ? "image"
+            : "file",
         filename: f.fileName || f.name,
         url: f.url || f.fileUrl,
         size: f.size,
@@ -189,5 +318,12 @@ const SPEC = {
 
 module.exports = {
   SPEC,
-  _internal: { _toMs, _normalizeRole, _buildContent, _csrfHeader, _extractList, BASE },
+  _internal: {
+    _toMs,
+    _normalizeRole,
+    _buildContent,
+    _csrfHeader,
+    _extractList,
+    BASE,
+  },
 };

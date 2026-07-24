@@ -28,12 +28,22 @@ const CONV_LIST_PATH = "/samantha/conversation/list";
 const MSG_LIST_PATH = (id) =>
   `/samantha/conversation/${encodeURIComponent(id)}/message/list`;
 const USER_INFO_PATH = "/samantha/user/info";
+const {
+  resolveMaxPages,
+  paginationError,
+  pageSignature,
+  hasMoreState,
+} = require("./pagination");
+const { extractVendorArray } = require("./strict-response");
 
 const DEFAULT_PAGE_SIZE = 30;
+const DEFAULT_MESSAGE_PAGE_SIZE = 100;
 
 function _ensureClient(ctx) {
   if (!ctx || !ctx.httpClient) {
-    throw new Error("doubao: ctx.httpClient required (AIChatHistoryAdapter must wire one)");
+    throw new Error(
+      "doubao: ctx.httpClient required (AIChatHistoryAdapter must wire one)",
+    );
   }
   return ctx.httpClient;
 }
@@ -60,17 +70,30 @@ async function validateCookie(ctx) {
  * Pagination uses an opaque `cursor` returned by the previous page plus
  * `has_more` boolean (Doubao does not use offset / page numbers).
  */
-async function *listConversations(ctx, opts = {}) {
+async function* listConversations(ctx, opts = {}) {
   const client = _ensureClient(ctx);
-  const limit = Number.isFinite(opts.pageSize) ? opts.pageSize : DEFAULT_PAGE_SIZE;
+  const limit = Number.isFinite(opts.pageSize)
+    ? opts.pageSize
+    : DEFAULT_PAGE_SIZE;
+  const maxPages = resolveMaxPages(opts);
   const sinceTs =
-    opts.since && opts.since.lastUpdatedAt ? Number(opts.since.lastUpdatedAt) : 0;
+    opts.since && opts.since.lastUpdatedAt
+      ? Number(opts.since.lastUpdatedAt)
+      : 0;
 
   let cursor = "";
-  let safety = 0;
+  let pagesFetched = 0;
+  const seenCursors = new Set();
+  const seenPages = new Set();
   while (true) {
-    safety++;
-    if (safety > 200) return; // hard cap
+    if (pagesFetched >= maxPages) {
+      throw paginationError(
+        "doubao",
+        "AI_CHAT_PAGINATION_LIMIT",
+        `doubao: conversation pagination exceeded ${maxPages} pages`,
+        { maxPages, cursor },
+      );
+    }
 
     const body = { count: limit };
     if (cursor) body.cursor = cursor;
@@ -78,13 +101,69 @@ async function *listConversations(ctx, opts = {}) {
     const data = await client.postJson(BASE + CONV_LIST_PATH, body, {
       session: ctx.session,
     });
+    pagesFetched++;
     const list = _extractConvList(data);
-    if (list.length === 0) return;
+    const meta = (data && data.data) || {};
+    const hasMore = hasMoreState(meta);
+    const rawNextCursor =
+      meta.cursor || meta.next_cursor || meta.nextCursor || "";
+    if (list.length === 0) {
+      if (hasMore === true || (hasMore == null && rawNextCursor !== "")) {
+        throw paginationError(
+          "doubao",
+          "AI_CHAT_PAGINATION_STALLED",
+          "doubao: conversation pagination reported more data but returned an empty page",
+          { cursor, pagesFetched },
+        );
+      }
+      return;
+    }
+
+    const signature = pageSignature(list, ["conversation_id", "id"]);
+    if (seenPages.has(signature)) {
+      throw paginationError(
+        "doubao",
+        "AI_CHAT_PAGINATION_STALLED",
+        `doubao: conversation pagination repeated page for cursor ${cursor || "initial"}`,
+        { cursor, pagesFetched },
+      );
+    }
+    seenPages.add(signature);
+
+    let nextCursor = null;
+    if (hasMore === true || (hasMore == null && rawNextCursor !== "")) {
+      if (rawNextCursor === "") {
+        throw paginationError(
+          "doubao",
+          "AI_CHAT_PAGINATION_STALLED",
+          "doubao: conversation pagination reported more data without a cursor",
+          { cursor, pagesFetched },
+        );
+      }
+      nextCursor = String(rawNextCursor);
+      if (seenCursors.has(nextCursor)) {
+        throw paginationError(
+          "doubao",
+          "AI_CHAT_PAGINATION_STALLED",
+          `doubao: conversation pagination repeated cursor ${nextCursor}`,
+          { cursor: nextCursor, pagesFetched },
+        );
+      }
+    } else if (hasMore == null) {
+      throw paginationError(
+        "doubao",
+        "AI_CHAT_PAGINATION_STALLED",
+        "doubao: non-empty conversation page had no continuation cursor",
+        { cursor, pagesFetched, pageSize: limit },
+      );
+    }
 
     let stopped = false;
     for (const c of list) {
-      const updatedAt = _toMs(c.last_message_time || c.update_time || c.create_time);
-      if (sinceTs && updatedAt <= sinceTs) {
+      const updatedAt = _toMs(
+        c.last_message_time || c.update_time || c.create_time,
+      );
+      if (sinceTs && updatedAt > 0 && updatedAt <= sinceTs) {
         stopped = true;
         break;
       }
@@ -102,10 +181,8 @@ async function *listConversations(ctx, opts = {}) {
     }
     if (stopped) return;
 
-    const meta = (data && data.data) || {};
-    const hasMore = meta.has_more === true || meta.hasMore === true;
-    const nextCursor = meta.cursor || meta.next_cursor || "";
-    if (!hasMore || !nextCursor) return;
+    if (hasMore === false) return;
+    seenCursors.add(nextCursor);
     cursor = nextCursor;
   }
 }
@@ -115,31 +192,107 @@ async function *listConversations(ctx, opts = {}) {
  * Doubao paginates messages too — historical conversations can have
  * thousands of turns.
  */
-async function *listMessages(ctx, conversationId, _opts = {}) {
+async function* listMessages(ctx, conversationId, opts = {}) {
   const client = _ensureClient(ctx);
+  const pageSize = Number.isFinite(opts.pageSize)
+    ? opts.pageSize
+    : DEFAULT_MESSAGE_PAGE_SIZE;
+  const maxPages = resolveMaxPages(opts);
   let cursor = "";
-  let safety = 0;
+  let pagesFetched = 0;
+  const seenCursors = new Set();
+  const seenPages = new Set();
   const collected = [];
 
   while (true) {
-    safety++;
-    if (safety > 200) break;
+    if (pagesFetched >= maxPages) {
+      throw paginationError(
+        "doubao",
+        "AI_CHAT_PAGINATION_LIMIT",
+        `doubao: message pagination exceeded ${maxPages} pages`,
+        { conversationId: String(conversationId), maxPages, cursor },
+      );
+    }
 
-    const body = { conversation_id: String(conversationId), count: 100 };
+    const body = { conversation_id: String(conversationId), count: pageSize };
     if (cursor) body.cursor = cursor;
 
-    const data = await client.postJson(BASE + MSG_LIST_PATH(conversationId), body, {
-      session: ctx.session,
-    });
+    const data = await client.postJson(
+      BASE + MSG_LIST_PATH(conversationId),
+      body,
+      {
+        session: ctx.session,
+      },
+    );
+    pagesFetched++;
     const list = _extractMsgList(data);
-    if (list.length === 0) break;
-
-    for (const m of list) collected.push(m);
-
     const meta = (data && data.data) || {};
-    const hasMore = meta.has_more === true || meta.hasMore === true;
-    const nextCursor = meta.cursor || meta.next_cursor || "";
-    if (!hasMore || !nextCursor) break;
+    const hasMore = hasMoreState(meta);
+    const rawNextCursor =
+      meta.cursor || meta.next_cursor || meta.nextCursor || "";
+    if (list.length === 0) {
+      if (hasMore === true || (hasMore == null && rawNextCursor !== "")) {
+        throw paginationError(
+          "doubao",
+          "AI_CHAT_PAGINATION_STALLED",
+          "doubao: message pagination reported more data but returned an empty page",
+          { conversationId: String(conversationId), cursor, pagesFetched },
+        );
+      }
+      break;
+    }
+
+    const signature = pageSignature(list, ["id", "message_id"]);
+    if (seenPages.has(signature)) {
+      throw paginationError(
+        "doubao",
+        "AI_CHAT_PAGINATION_STALLED",
+        `doubao: message pagination repeated page for cursor ${cursor || "initial"}`,
+        { conversationId: String(conversationId), cursor, pagesFetched },
+      );
+    }
+    seenPages.add(signature);
+
+    let nextCursor = null;
+    if (hasMore === true || (hasMore == null && rawNextCursor !== "")) {
+      if (rawNextCursor === "") {
+        throw paginationError(
+          "doubao",
+          "AI_CHAT_PAGINATION_STALLED",
+          "doubao: message pagination reported more data without a cursor",
+          { conversationId: String(conversationId), cursor, pagesFetched },
+        );
+      }
+      nextCursor = String(rawNextCursor);
+      if (seenCursors.has(nextCursor)) {
+        throw paginationError(
+          "doubao",
+          "AI_CHAT_PAGINATION_STALLED",
+          `doubao: message pagination repeated cursor ${nextCursor}`,
+          {
+            conversationId: String(conversationId),
+            cursor: nextCursor,
+            pagesFetched,
+          },
+        );
+      }
+    } else if (hasMore == null) {
+      throw paginationError(
+        "doubao",
+        "AI_CHAT_PAGINATION_STALLED",
+        "doubao: non-empty message page had no continuation cursor",
+        {
+          conversationId: String(conversationId),
+          cursor,
+          pagesFetched,
+          pageSize,
+        },
+      );
+    }
+
+    collected.push(...list);
+    if (hasMore === false) break;
+    seenCursors.add(nextCursor);
     cursor = nextCursor;
   }
 
@@ -165,25 +318,42 @@ async function *listMessages(ctx, conversationId, _opts = {}) {
 }
 
 function _extractConvList(data) {
-  if (!data || !data.data) return [];
-  if (Array.isArray(data.data.conversation_list)) return data.data.conversation_list;
-  if (Array.isArray(data.data.conversations)) return data.data.conversations;
-  if (Array.isArray(data.data.list)) return data.data.list;
-  return [];
+  return extractVendorArray(
+    data,
+    [
+      ["data", "conversation_list"],
+      ["data", "conversations"],
+      ["data", "list"],
+    ],
+    {
+      vendor: "doubao",
+      stream: "conversations",
+      businessStatus: { code: [0] },
+    },
+  );
 }
 
 function _extractMsgList(data) {
-  if (!data || !data.data) return [];
-  if (Array.isArray(data.data.message_list)) return data.data.message_list;
-  if (Array.isArray(data.data.messages)) return data.data.messages;
-  if (Array.isArray(data.data.list)) return data.data.list;
-  return [];
+  return extractVendorArray(
+    data,
+    [
+      ["data", "message_list"],
+      ["data", "messages"],
+      ["data", "list"],
+    ],
+    {
+      vendor: "doubao",
+      stream: "messages",
+      businessStatus: { code: [0] },
+    },
+  );
 }
 
 function _normalizeRole(r) {
   // Doubao uses sender_type "USER" / "ASSISTANT" / "SYSTEM" or numeric codes.
   if (r === 1 || r === "1" || r === "USER" || r === "user") return "user";
-  if (r === 2 || r === "2" || r === "ASSISTANT" || r === "assistant") return "assistant";
+  if (r === 2 || r === "2" || r === "ASSISTANT" || r === "assistant")
+    return "assistant";
   if (r === 3 || r === "3" || r === "SYSTEM" || r === "system") return "system";
   return r || "assistant";
 }

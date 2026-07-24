@@ -9,6 +9,7 @@ const {
   AIChatHistoryAdapter,
   CookieAuthSession,
   NotImplementedYetError,
+  RateLimitedError,
   assertVendorSpec,
   SUPPORTED_VENDORS,
   DEFAULT_VENDOR_SPECS,
@@ -20,6 +21,15 @@ const {
   PERSON_SUBTYPES,
   ITEM_SUBTYPES,
 } = require("../../lib/constants");
+
+function jsonHttpResponse(body) {
+  return {
+    status: 200,
+    ok: true,
+    headers: { get: () => null },
+    json: async () => body,
+  };
+}
 
 // ─── vendor-spec assertion ──────────────────────────────────────────────
 
@@ -63,7 +73,10 @@ describe("assertVendorSpec — SUPPORTED_VENDORS", () => {
   });
 
   it("rejects spec with non-https loginUrl", () => {
-    const bad = { ...DEFAULT_VENDOR_SPECS.deepseek, loginUrl: "http://chat.deepseek.com/" };
+    const bad = {
+      ...DEFAULT_VENDOR_SPECS.deepseek,
+      loginUrl: "http://chat.deepseek.com/",
+    };
     const check = assertVendorSpec(bad);
     expect(check.ok).toBe(false);
     expect(check.errors.some((e) => e.includes("loginUrl"))).toBe(true);
@@ -94,6 +107,11 @@ describe("AIChatHistoryAdapter contract", () => {
     expect(a.capabilities).toContain("sync:cookie-multi-vendor");
     expect(a.capabilities).toContain("sync:persisted-cookie-accounts");
     expect(a.extractMode).toBe("web-api");
+    expect(a.watermarkStrategy).toBe("explicit");
+    expect(a.watermarkRequiresCompleteScan).toBe(true);
+    expect(a.initialPageBudget).toBeGreaterThan(0);
+    expect(a.fileCheckpointMode({ inputPath: "cookies.json" })).toBe("shared");
+    expect(a.fileCheckpointMode({ dataPath: "export.json" })).toBe("preserve");
   });
 
   it("dataDisclosure is high-sensitivity without legalGate (cookies, not third-party content)", () => {
@@ -106,7 +124,9 @@ describe("AIChatHistoryAdapter contract", () => {
     expect(
       () =>
         new AIChatHistoryAdapter({
-          vendorSpecs: { deepseek: { ...DEFAULT_VENDOR_SPECS.deepseek, rateLimits: {} } },
+          vendorSpecs: {
+            deepseek: { ...DEFAULT_VENDOR_SPECS.deepseek, rateLimits: {} },
+          },
         }),
     ).toThrow(/rateLimits/);
   });
@@ -118,15 +138,28 @@ describe("AIChatHistoryAdapter.authenticate", () => {
   it("returns vendorsReady=[] when no sessions configured", async () => {
     const a = new AIChatHistoryAdapter();
     const r = await a.authenticate();
-    expect(r.ok).toBe(true);
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("INVALID_COOKIE");
     expect(r.vendorsReady).toEqual([]);
     expect(r.vendorsNeedingLogin.sort()).toEqual([...SUPPORTED_VENDORS].sort());
   });
 
   it("reflects configured sessions", async () => {
     const a = new AIChatHistoryAdapter();
-    a.setSession("deepseek", new CookieAuthSession({ vendor: "deepseek", cookies: [{ name: "userToken", value: "x" }] }));
-    a.setSession("kimi", new CookieAuthSession({ vendor: "kimi", cookies: [{ name: "sess", value: "y" }] }));
+    a.setSession(
+      "deepseek",
+      new CookieAuthSession({
+        vendor: "deepseek",
+        cookies: [{ name: "userToken", value: "x" }],
+      }),
+    );
+    a.setSession(
+      "kimi",
+      new CookieAuthSession({
+        vendor: "kimi",
+        cookies: [{ name: "sess", value: "y" }],
+      }),
+    );
     const r = await a.authenticate();
     expect(r.vendorsReady.sort()).toEqual(["deepseek", "kimi"]);
     expect(r.vendorsNeedingLogin).not.toContain("deepseek");
@@ -143,14 +176,19 @@ describe("AIChatHistoryAdapter.authenticate", () => {
       },
       {
         vendor: "kimi",
-        cookies: [{ name: "access_token", value: "kimi-token", domain: ".kimi.com" }],
+        cookies: [
+          { name: "access_token", value: "kimi-token", domain: ".kimi.com" },
+        ],
       },
       { vendor: "doubao", cookies: {} },
       { vendor: "unknown", cookies: { sid: "x" } },
     ]);
 
     expect(report.restored).toEqual(["deepseek", "kimi"]);
-    expect(report.skipped.map((entry) => entry.vendor)).toEqual(["doubao", "unknown"]);
+    expect(report.skipped.map((entry) => entry.vendor)).toEqual([
+      "doubao",
+      "unknown",
+    ]);
     const auth = await a.authenticate();
     expect(auth.vendorsReady.sort()).toEqual(["deepseek", "kimi"]);
     expect(a._sessions.deepseek.get("userToken")).toBe("deepseek-token");
@@ -162,10 +200,27 @@ describe("AIChatHistoryAdapter.healthCheck", () => {
   it("reports per-vendor no-session when fresh", async () => {
     const a = new AIChatHistoryAdapter();
     const h = await a.healthCheck();
-    expect(h.ok).toBe(true);
+    expect(h.ok).toBe(false);
+    expect(h.reason).toBe("INVALID_COOKIE");
     for (const v of SUPPORTED_VENDORS) {
       expect(h.perVendor[v]).toEqual({ ok: false, reason: "no-session" });
     }
+  });
+
+  it("allows an explicit cookie snapshot to pass the pre-sync readiness gate", async () => {
+    const a = new AIChatHistoryAdapter();
+    await expect(
+      a.authenticate({ inputPath: "snapshot.json" }),
+    ).resolves.toMatchObject({
+      ok: true,
+      mode: "snapshot-file",
+    });
+    await expect(
+      a.healthCheck({ inputPath: "snapshot.json" }),
+    ).resolves.toMatchObject({
+      ok: true,
+      mode: "snapshot-file",
+    });
   });
 
   it("calls vendor.validateCookie when session present", async () => {
@@ -177,9 +232,82 @@ describe("AIChatHistoryAdapter.healthCheck", () => {
         },
       },
     });
-    a.setSession("deepseek", new CookieAuthSession({ vendor: "deepseek", cookies: [{ name: "x", value: "1" }] }));
+    a.setSession(
+      "deepseek",
+      new CookieAuthSession({
+        vendor: "deepseek",
+        cookies: [{ name: "x", value: "1" }],
+      }),
+    );
     const h = await a.healthCheck();
+    expect(h.ok).toBe(true);
     expect(h.perVendor.deepseek).toEqual({ ok: true, expiresAt: 999 });
+  });
+
+  it("reports not ready when every configured session fails validation", async () => {
+    const a = new AIChatHistoryAdapter({
+      vendorSpecs: {
+        deepseek: {
+          ...DEFAULT_VENDOR_SPECS.deepseek,
+          validateCookie: async () => ({
+            ok: false,
+            reason: "COOKIE_EXPIRED",
+          }),
+        },
+      },
+    });
+    a.setSession(
+      "deepseek",
+      new CookieAuthSession({
+        vendor: "deepseek",
+        cookies: [{ name: "userToken", value: "expired" }],
+      }),
+    );
+
+    await expect(a.healthCheck()).resolves.toMatchObject({
+      ok: false,
+      reason: "INVALID_COOKIE",
+      perVendor: {
+        deepseek: { ok: false, reason: "COOKIE_EXPIRED" },
+      },
+    });
+  });
+
+  it("is ready when at least one configured vendor validates", async () => {
+    const a = new AIChatHistoryAdapter({
+      vendorSpecs: {
+        deepseek: {
+          ...DEFAULT_VENDOR_SPECS.deepseek,
+          validateCookie: async () => ({
+            ok: false,
+            reason: "COOKIE_EXPIRED",
+          }),
+        },
+        kimi: {
+          ...DEFAULT_VENDOR_SPECS.kimi,
+          validateCookie: async () => ({ ok: true }),
+        },
+      },
+    });
+    a.setSession(
+      "deepseek",
+      new CookieAuthSession({
+        vendor: "deepseek",
+        cookies: [{ name: "userToken", value: "expired" }],
+      }),
+    );
+    a.setSession(
+      "kimi",
+      new CookieAuthSession({
+        vendor: "kimi",
+        cookies: [{ name: "access_token", value: "valid" }],
+      }),
+    );
+
+    const health = await a.healthCheck();
+    expect(health.ok).toBe(true);
+    expect(health.perVendor.deepseek.ok).toBe(false);
+    expect(health.perVendor.kimi.ok).toBe(true);
   });
 });
 
@@ -189,12 +317,22 @@ describe("AIChatHistoryAdapter.sync — skeleton path", () => {
   it("yields nothing when no sessions configured", async () => {
     const a = new AIChatHistoryAdapter();
     const out = [];
-    for await (const ev of a.sync()) out.push(ev);
+    let markedComplete = false;
+    for await (const ev of a.sync({
+      markWatermarkComplete: () => {
+        markedComplete = true;
+      },
+    })) {
+      out.push(ev);
+    }
     expect(out).toEqual([]);
+    expect(markedComplete).toBe(false);
   });
 
   it("loads Android cookie snapshot input and performs the real vendor sync", async () => {
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "pdh-aichat-snapshot-"));
+    const tempDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "pdh-aichat-snapshot-"),
+    );
     const inputPath = path.join(tempDir, "deepseek.json");
     fs.writeFileSync(
       inputPath,
@@ -239,7 +377,9 @@ describe("AIChatHistoryAdapter.sync — skeleton path", () => {
   });
 
   it("rejects an unsupported Android cookie snapshot vendor with a stable code", async () => {
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "pdh-aichat-snapshot-"));
+    const tempDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "pdh-aichat-snapshot-"),
+    );
     const inputPath = path.join(tempDir, "unknown.json");
     fs.writeFileSync(
       inputPath,
@@ -251,7 +391,7 @@ describe("AIChatHistoryAdapter.sync — skeleton path", () => {
     try {
       const consume = async () => {
         for await (const _raw of adapter.sync({ inputPath })) {
-          // consume generator
+          void _raw;
         }
       };
       await expect(consume()).rejects.toMatchObject({
@@ -262,22 +402,415 @@ describe("AIChatHistoryAdapter.sync — skeleton path", () => {
     }
   });
 
+  it("rejects a cookie snapshot directory as a regular file", async () => {
+    const tempDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "pdh-aichat-snapshot-"),
+    );
+    const adapter = new AIChatHistoryAdapter();
+    try {
+      await expect(
+        adapter.sync({ inputPath: tempDir }).next(),
+      ).rejects.toMatchObject({ code: "AI_CHAT_SNAPSHOT_NOT_FILE" });
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a cookie snapshot over the one MiB boundary", async () => {
+    const tempDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "pdh-aichat-snapshot-"),
+    );
+    const inputPath = path.join(tempDir, "oversized.json");
+    fs.writeFileSync(inputPath, Buffer.alloc(1024 * 1024 + 1, 0x20));
+    const adapter = new AIChatHistoryAdapter();
+    try {
+      await expect(adapter.sync({ inputPath }).next()).rejects.toMatchObject({
+        code: "AI_CHAT_SNAPSHOT_TOO_LARGE",
+      });
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a symbolic-link cookie snapshot when the host supports symlinks", async () => {
+    const tempDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "pdh-aichat-snapshot-"),
+    );
+    const targetPath = path.join(tempDir, "target.json");
+    const inputPath = path.join(tempDir, "link.json");
+    fs.writeFileSync(
+      targetPath,
+      JSON.stringify({ vendor: "deepseek", cookie: "userToken=secret" }),
+    );
+    try {
+      try {
+        fs.symlinkSync(targetPath, inputPath, "file");
+      } catch (error) {
+        if (error && ["EPERM", "EACCES", "ENOSYS"].includes(error.code)) return;
+        throw error;
+      }
+      const adapter = new AIChatHistoryAdapter();
+      await expect(adapter.sync({ inputPath }).next()).rejects.toMatchObject({
+        code: "AI_CHAT_SNAPSHOT_SYMBOLIC_LINK",
+      });
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("publishes a per-vendor cursor and consumes it on the second sync", async () => {
+    const updatedAt = Date.parse("2026-05-19T01:00:00Z");
+    const observedSince = [];
+    const spec = {
+      ...DEFAULT_VENDOR_SPECS.deepseek,
+      async *listConversations(_ctx, opts) {
+        observedSince.push(opts.since);
+        if (!opts.since) {
+          yield {
+            vendor: "deepseek",
+            originalId: "cursor-conv",
+            createdAt: updatedAt,
+            updatedAt,
+          };
+        }
+      },
+      async *listMessages() {},
+    };
+    const adapter = new AIChatHistoryAdapter({
+      vendorSpecs: { deepseek: spec },
+    });
+    adapter.setSession(
+      "deepseek",
+      new CookieAuthSession({
+        vendor: "deepseek",
+        cookies: [{ name: "userToken", value: "x" }],
+      }),
+    );
+
+    let firstCursor;
+    let firstComplete = false;
+    for await (const _raw of adapter.sync({
+      vendors: ["deepseek"],
+      updateWatermark: (value) => {
+        firstCursor = value;
+      },
+      markWatermarkComplete: () => {
+        firstComplete = true;
+      },
+    })) {
+      void _raw;
+    }
+
+    expect(firstComplete).toBe(true);
+    expect(firstCursor).toMatch(/^aichat-v1:/);
+
+    let secondComplete = false;
+    for await (const _raw of adapter.sync({
+      vendors: ["deepseek"],
+      sinceWatermark: firstCursor,
+      markWatermarkComplete: () => {
+        secondComplete = true;
+      },
+    })) {
+      void _raw;
+    }
+
+    expect(secondComplete).toBe(true);
+    expect(observedSince).toHaveLength(2);
+    expect(observedSince[0]).toBeNull();
+    expect(observedSince[1]).toEqual({ lastUpdatedAt: updatedAt - 1 });
+  });
+
+  it("keeps opts.watermarks as the per-vendor compatibility override", async () => {
+    let observedSince;
+    const spec = {
+      ...DEFAULT_VENDOR_SPECS.deepseek,
+      // eslint-disable-next-line require-yield
+      async *listConversations(_ctx, opts) {
+        observedSince = opts.since;
+      },
+      async *listMessages() {},
+    };
+    const adapter = new AIChatHistoryAdapter({
+      vendorSpecs: { deepseek: spec },
+    });
+    adapter.setSession(
+      "deepseek",
+      new CookieAuthSession({
+        vendor: "deepseek",
+        cookies: [{ name: "userToken", value: "x" }],
+      }),
+    );
+
+    for await (const _raw of adapter.sync({
+      vendors: ["deepseek"],
+      watermarks: { deepseek: { lastUpdatedAt: 10_000 } },
+    })) {
+      void _raw;
+    }
+
+    expect(observedSince).toEqual({ lastUpdatedAt: 9_999 });
+  });
+
+  it("does not complete the watermark after vendor rate limiting", async () => {
+    const spec = {
+      ...DEFAULT_VENDOR_SPECS.deepseek,
+      // eslint-disable-next-line require-yield
+      async *listConversations() {
+        throw new RateLimitedError(1_000, "deepseek");
+      },
+    };
+    const adapter = new AIChatHistoryAdapter({
+      vendorSpecs: { deepseek: spec },
+    });
+    adapter.setSession(
+      "deepseek",
+      new CookieAuthSession({
+        vendor: "deepseek",
+        cookies: [{ name: "userToken", value: "x" }],
+      }),
+    );
+    let updated = false;
+    let completed = false;
+    const out = [];
+    for await (const raw of adapter.sync({
+      vendors: ["deepseek"],
+      updateWatermark: () => {
+        updated = true;
+      },
+      markWatermarkComplete: () => {
+        completed = true;
+      },
+    })) {
+      out.push(raw);
+    }
+
+    expect(out.map((raw) => raw.payload.kind)).toEqual(["vendor-rate-limited"]);
+    expect(updated).toBe(false);
+    expect(completed).toBe(false);
+  });
+
+  it.each(["AI_CHAT_PAGINATION_STALLED", "AI_CHAT_PAGINATION_LIMIT"])(
+    "does not complete the watermark after %s",
+    async (code) => {
+      const spec = {
+        ...DEFAULT_VENDOR_SPECS.deepseek,
+        // eslint-disable-next-line require-yield
+        async *listConversations() {
+          const error = new Error(code);
+          error.code = code;
+          throw error;
+        },
+      };
+      const adapter = new AIChatHistoryAdapter({
+        vendorSpecs: { deepseek: spec },
+      });
+      adapter.setSession(
+        "deepseek",
+        new CookieAuthSession({
+          vendor: "deepseek",
+          cookies: [{ name: "userToken", value: "x" }],
+        }),
+      );
+      let completed = false;
+      const out = [];
+      for await (const raw of adapter.sync({
+        vendors: ["deepseek"],
+        markWatermarkComplete: () => {
+          completed = true;
+        },
+      })) {
+        out.push(raw);
+      }
+
+      expect(out[0].payload).toMatchObject({
+        kind: "vendor-pagination-incomplete",
+        error: code,
+      });
+      expect(completed).toBe(false);
+    },
+  );
+
+  it("does not complete the watermark after message pagination stalls", async () => {
+    const spec = {
+      ...DEFAULT_VENDOR_SPECS.kimi,
+      async *listConversations() {
+        yield {
+          vendor: "kimi",
+          originalId: "message-page-conv",
+          createdAt: 1_700_000_000_000,
+          updatedAt: 1_700_000_000_000,
+        };
+      },
+      // eslint-disable-next-line require-yield
+      async *listMessages() {
+        const error = new Error("message cursor repeated");
+        error.code = "AI_CHAT_PAGINATION_STALLED";
+        throw error;
+      },
+    };
+    const adapter = new AIChatHistoryAdapter({
+      vendorSpecs: { kimi: spec },
+    });
+    adapter.setSession(
+      "kimi",
+      new CookieAuthSession({
+        vendor: "kimi",
+        cookies: [{ name: "access_token", value: "x" }],
+      }),
+    );
+    let updated = false;
+    let completed = false;
+    const out = [];
+    for await (const raw of adapter.sync({
+      vendors: ["kimi"],
+      updateWatermark: () => {
+        updated = true;
+      },
+      markWatermarkComplete: () => {
+        completed = true;
+      },
+    })) {
+      out.push(raw);
+    }
+
+    expect(out.map((raw) => raw.payload.kind)).toEqual([
+      "conversation",
+      "vendor-pagination-incomplete",
+    ]);
+    expect(updated).toBe(false);
+    expect(completed).toBe(false);
+  });
+
+  it.each([
+    ["malformed HTML", "<html>login</html>", "SOURCE_PAGE_UNRECOGNIZED"],
+    [
+      "an explicit business error",
+      { code: 1001, message: "session expired", items: [] },
+      "SOURCE_PAGE_ERROR",
+    ],
+  ])(
+    "does not advance the vendor cursor after messages return %s",
+    async (_label, messageResponse, expectedCode) => {
+      const adapter = new AIChatHistoryAdapter({
+        fetch: async (url) => {
+          if (url.includes("/api/chat/list")) {
+            return jsonHttpResponse({
+              items: [
+                {
+                  id: "strict-message-conv",
+                  created_at: 1_700_000_000,
+                  updated_at: 1_700_000_100,
+                },
+              ],
+              total: 1,
+            });
+          }
+          if (url.includes("/segment/scroll")) {
+            return jsonHttpResponse(messageResponse);
+          }
+          return jsonHttpResponse({ error: "unexpected route" });
+        },
+        sleep: async () => {},
+        now: () => 1_800_000_000_000,
+      });
+      adapter.setSession(
+        "kimi",
+        new CookieAuthSession({
+          vendor: "kimi",
+          cookies: [{ name: "access_token", value: "x" }],
+        }),
+      );
+
+      let updated = false;
+      let completed = false;
+      const emittedKinds = [];
+      const consume = async () => {
+        for await (const raw of adapter.sync({
+          vendors: ["kimi"],
+          updateWatermark: () => {
+            updated = true;
+          },
+          markWatermarkComplete: () => {
+            completed = true;
+          },
+        })) {
+          emittedKinds.push(raw.payload.kind);
+        }
+      };
+
+      await expect(consume()).rejects.toMatchObject({ code: expectedCode });
+      expect(emittedKinds).toEqual(["conversation"]);
+      expect(updated).toBe(false);
+      expect(completed).toBe(false);
+    },
+  );
+
+  it("does not complete the watermark when maxEvents truncates the stream", async () => {
+    const spec = {
+      ...DEFAULT_VENDOR_SPECS.deepseek,
+      async *listConversations() {
+        for (const id of ["one", "two"]) {
+          yield {
+            vendor: "deepseek",
+            originalId: id,
+            createdAt: 1_700_000_000_000,
+            updatedAt: 1_700_000_000_000,
+          };
+        }
+      },
+      async *listMessages() {},
+    };
+    const adapter = new AIChatHistoryAdapter({
+      vendorSpecs: { deepseek: spec },
+    });
+    adapter.setSession(
+      "deepseek",
+      new CookieAuthSession({
+        vendor: "deepseek",
+        cookies: [{ name: "userToken", value: "x" }],
+      }),
+    );
+    let completed = false;
+    const out = [];
+    for await (const raw of adapter.sync({
+      vendors: ["deepseek"],
+      maxEvents: 1,
+      markWatermarkComplete: () => {
+        completed = true;
+      },
+    })) {
+      out.push(raw);
+    }
+
+    expect(out).toHaveLength(1);
+    expect(completed).toBe(false);
+  });
+
   it("vendor-not-wired sentinel path: surfaced via NotImplementedYetError direct throw", async () => {
     // Phase 10.2 complete — all 8 vendors are wired with real h5 API.
     // The sentinel kind:"vendor-not-wired" path remains in the sync()
     // catch-block for forward-compat (e.g. when adding new vendors in
     // Phase 10.3+ before their wiring lands). Verify the dispatch by
     // injecting a synthetic always-throwing vendor spec.
-    const { NotImplementedYetError } = require("../../lib/adapters/ai-chat-history/vendor-spec");
+    const {
+      NotImplementedYetError,
+    } = require("../../lib/adapters/ai-chat-history/vendor-spec");
     const fakeSpec = {
-      ...require("../../lib/adapters/ai-chat-history").DEFAULT_VENDOR_SPECS.deepseek,
+      ...require("../../lib/adapters/ai-chat-history").DEFAULT_VENDOR_SPECS
+        .deepseek,
       // eslint-disable-next-line require-yield
-      async *listConversations() { throw new NotImplementedYetError("deepseek", "listConversations"); },
+      async *listConversations() {
+        throw new NotImplementedYetError("deepseek", "listConversations");
+      },
     };
     const a = new AIChatHistoryAdapter({ vendorSpecs: { deepseek: fakeSpec } });
     a.setSession(
       "deepseek",
-      new CookieAuthSession({ vendor: "deepseek", cookies: [{ name: "userToken", value: "x" }] }),
+      new CookieAuthSession({
+        vendor: "deepseek",
+        cookies: [{ name: "userToken", value: "x" }],
+      }),
     );
     const out = [];
     for await (const ev of a.sync({ vendors: ["deepseek"] })) out.push(ev);
@@ -321,15 +854,24 @@ describe("AIChatHistoryAdapter.sync — skeleton path", () => {
       vendorSpecs: {
         deepseek: {
           ...DEFAULT_VENDOR_SPECS.deepseek,
-          async validateCookie() { return { ok: true }; },
-          async *listConversations() { yield FAKE_CONV; },
-          async *listMessages() { for (const m of FAKE_MSGS) yield m; },
+          async validateCookie() {
+            return { ok: true };
+          },
+          async *listConversations() {
+            yield FAKE_CONV;
+          },
+          async *listMessages() {
+            for (const m of FAKE_MSGS) yield m;
+          },
         },
       },
     });
     a.setSession(
       "deepseek",
-      new CookieAuthSession({ vendor: "deepseek", cookies: [{ name: "userToken", value: "x" }] }),
+      new CookieAuthSession({
+        vendor: "deepseek",
+        cookies: [{ name: "userToken", value: "x" }],
+      }),
     );
 
     const out = [];
@@ -366,12 +908,26 @@ describe("schema-map.conversationToBatch", () => {
       updatedAt: 1700001000000,
     };
     const msgs = [
-      { vendor: "kimi", originalId: "m1", conversationId: "abc", role: "user",
-        content: { text: "summarize this paper" }, createdAt: 1700000000000 },
-      { vendor: "kimi", originalId: "m2", conversationId: "abc", role: "assistant",
-        content: { text: "ok here is the summary..." }, createdAt: 1700000010000 },
+      {
+        vendor: "kimi",
+        originalId: "m1",
+        conversationId: "abc",
+        role: "user",
+        content: { text: "summarize this paper" },
+        createdAt: 1700000000000,
+      },
+      {
+        vendor: "kimi",
+        originalId: "m2",
+        conversationId: "abc",
+        role: "assistant",
+        content: { text: "ok here is the summary..." },
+        createdAt: 1700000010000,
+      },
     ];
-    const batch = schemaMap.conversationToBatch(conv, msgs, { displayName: "Kimi" });
+    const batch = schemaMap.conversationToBatch(conv, msgs, {
+      displayName: "Kimi",
+    });
     expect(batch.events.length).toBe(2);
     expect(batch.events[0].subtype).toBe(EVENT_SUBTYPES.AI_MESSAGE);
     expect(batch.events[0].topics).toEqual(["topic-aiconv-kimi-abc"]);
@@ -385,7 +941,12 @@ describe("schema-map.conversationToBatch", () => {
   });
 
   it("upgrades to ai-image-generation subtype when generatedImages present", () => {
-    const conv = { vendor: "dreamina", originalId: "img-1", createdAt: 1, updatedAt: 1 };
+    const conv = {
+      vendor: "dreamina",
+      originalId: "img-1",
+      createdAt: 1,
+      updatedAt: 1,
+    };
     const msgs = [
       {
         vendor: "dreamina",
@@ -398,7 +959,9 @@ describe("schema-map.conversationToBatch", () => {
         createdAt: 1700000000000,
       },
     ];
-    const batch = schemaMap.conversationToBatch(conv, msgs, { displayName: "Dreamina" });
+    const batch = schemaMap.conversationToBatch(conv, msgs, {
+      displayName: "Dreamina",
+    });
     expect(batch.events[0].subtype).toBe(EVENT_SUBTYPES.AI_IMAGE_GENERATION);
     expect(batch.items.length).toBe(1);
     expect(batch.items[0].subtype).toBe(ITEM_SUBTYPES.MEDIA);
@@ -406,21 +969,49 @@ describe("schema-map.conversationToBatch", () => {
   });
 
   it("throws when message vendor mismatches conversation vendor", () => {
-    const conv = { vendor: "kimi", originalId: "a", createdAt: 1, updatedAt: 1 };
-    const msgs = [{ vendor: "deepseek", originalId: "m", conversationId: "a", role: "user", content: {}, createdAt: 1 }];
+    const conv = {
+      vendor: "kimi",
+      originalId: "a",
+      createdAt: 1,
+      updatedAt: 1,
+    };
+    const msgs = [
+      {
+        vendor: "deepseek",
+        originalId: "m",
+        conversationId: "a",
+        role: "user",
+        content: {},
+        createdAt: 1,
+      },
+    ];
     expect(() => schemaMap.conversationToBatch(conv, msgs)).toThrow(/vendor/);
   });
 });
 
 describe("schema-map.mergeBatches", () => {
   it("dedupes vendor Person by id", () => {
-    const conv1 = { vendor: "kimi", originalId: "a", createdAt: 1, updatedAt: 1 };
-    const conv2 = { vendor: "kimi", originalId: "b", createdAt: 1, updatedAt: 1 };
-    const b1 = schemaMap.conversationToBatch(conv1, [], { displayName: "Kimi" });
-    const b2 = schemaMap.conversationToBatch(conv2, [], { displayName: "Kimi" });
+    const conv1 = {
+      vendor: "kimi",
+      originalId: "a",
+      createdAt: 1,
+      updatedAt: 1,
+    };
+    const conv2 = {
+      vendor: "kimi",
+      originalId: "b",
+      createdAt: 1,
+      updatedAt: 1,
+    };
+    const b1 = schemaMap.conversationToBatch(conv1, [], {
+      displayName: "Kimi",
+    });
+    const b2 = schemaMap.conversationToBatch(conv2, [], {
+      displayName: "Kimi",
+    });
     const merged = schemaMap.mergeBatches([b1, b2]);
-    expect(merged.persons.length).toBe(1);   // dedup
-    expect(merged.topics.length).toBe(2);    // distinct conversations
+    expect(merged.persons.length).toBe(1); // dedup
+    expect(merged.topics.length).toBe(2); // distinct conversations
   });
 });
 

@@ -21,18 +21,28 @@
 
 "use strict";
 
-const fs = require("node:fs/promises");
+const fs = require("node:fs");
 
 const { EVENT_SUBTYPES } = require("../../constants");
+const {
+  SnapshotFileError,
+  readBoundedSnapshot,
+} = require("../../snapshot-file");
 
-const { SUPPORTED_VENDORS, assertVendorSpec, NotImplementedYetError } =
-  require("./vendor-spec");
+const {
+  SUPPORTED_VENDORS,
+  assertVendorSpec,
+  NotImplementedYetError,
+} = require("./vendor-spec");
 const { CookieAuthSession } = require("./cookie-auth");
-const { HttpClient, CookieExpiredError, RateLimitedError } = require("./http-client");
+const {
+  HttpClient,
+  CookieExpiredError,
+  RateLimitedError,
+} = require("./http-client");
 const {
   ADAPTER_NAME,
   ADAPTER_VERSION,
-  conversationToBatch,
   buildMessageEvent,
   buildVendorPerson,
   buildConversationTopic,
@@ -62,6 +72,16 @@ const DEFAULT_VENDOR_SPECS = Object.freeze({
 });
 
 const MAX_COOKIE_SNAPSHOT_BYTES = 1024 * 1024;
+const WATERMARK_PREFIX = "aichat-v1:";
+const WATERMARK_VERSION = 1;
+const MAX_WATERMARK_BYTES = 64 * 1024;
+const DEFAULT_SCAN_PAGE_BUDGET = 20;
+const CURSOR_REPLAY_OVERLAP_MS = 1;
+const NEEDS_LOGIN_REASON = "INVALID_COOKIE";
+const PAGINATION_INCOMPLETE_CODES = new Set([
+  "AI_CHAT_PAGINATION_STALLED",
+  "AI_CHAT_PAGINATION_LIMIT",
+]);
 
 class AIChatHistoryAdapter {
   /**
@@ -93,6 +113,12 @@ class AIChatHistoryAdapter {
     ];
     this.extractMode = "web-api";
     this.rateLimits = { perMinute: 60 }; // aggregate across vendors; per-vendor caps in spec
+    // Each vendor owns an opaque sub-cursor inside one versioned registry
+    // watermark. Commit it only when every targeted vendor reaches its
+    // source boundary.
+    this.watermarkStrategy = "explicit";
+    this.watermarkRequiresCompleteScan = true;
+    this.initialPageBudget = DEFAULT_SCAN_PAGE_BUDGET;
     this.dataDisclosure = {
       fields: [
         "ai-chat:vendor,conversationId,messageId,role,text,modelName",
@@ -106,7 +132,11 @@ class AIChatHistoryAdapter {
         "AI 对话史含您输入的所有问题与上传的附件。所有数据在本机加密存储；分析时本地 LLM 可读取；不向任何厂商回传。",
     };
 
-    this._logger = opts.logger || { info: () => {}, warn: () => {}, error: () => {} };
+    this._logger = opts.logger || {
+      info: () => {},
+      warn: () => {},
+      error: () => {},
+    };
 
     // Vendor specs are registered upfront so that listVendors() / health
     // checks work even before any cookie is configured.
@@ -125,6 +155,14 @@ class AIChatHistoryAdapter {
     this._sleep = opts.sleep;
     this._now = opts.now;
     this._httpClients = new Map(); // vendor → HttpClient, lazy
+  }
+
+  fileCheckpointMode(opts = {}) {
+    // inputPath contains cookie/session material for the continuing web API
+    // source; it is not an exported conversation snapshot.
+    return typeof opts.inputPath === "string" && opts.inputPath.trim()
+      ? "shared"
+      : "preserve";
   }
 
   _getHttpClient(vendor) {
@@ -151,10 +189,10 @@ class AIChatHistoryAdapter {
   /**
    * Authentication is delegated per-vendor: the hub UI captures cookies via
    * the Electron WebView and registers them with `setSession(vendor, session)`.
-   * `authenticate(ctx)` here only does a quick survey — returns { ok: true,
-   * vendorsReady: [...], vendorsNeedingLogin: [...] }.
+   * `authenticate(ctx)` does a quick survey and reports needs-login until at
+   * least one vendor session (or an explicit snapshot input) is available.
    */
-  async authenticate(_ctx = {}) {
+  async authenticate(ctx = {}) {
     const vendorsReady = [];
     const vendorsNeedingLogin = [];
     for (const vendor of Object.keys(this._vendorSpecs)) {
@@ -164,29 +202,76 @@ class AIChatHistoryAdapter {
         vendorsNeedingLogin.push(vendor);
       }
     }
-    // Surface ok=true even when no vendor is configured yet — the UI manages
-    // the per-vendor onboarding state and `sync()` will simply yield zero
-    // events when no sessions are present.
+    if (hasSnapshotInput(ctx)) {
+      return {
+        ok: true,
+        mode: "snapshot-file",
+        vendorsReady,
+        vendorsNeedingLogin,
+      };
+    }
+    if (vendorsReady.length === 0) {
+      return {
+        ok: false,
+        reason: NEEDS_LOGIN_REASON,
+        message:
+          "No AI chat vendor session is configured; sign in to at least one vendor.",
+        vendorsReady,
+        vendorsNeedingLogin,
+      };
+    }
     return { ok: true, vendorsReady, vendorsNeedingLogin };
   }
 
-  async healthCheck() {
-    // Per-vendor health is collected in parallel; the adapter as a whole is
-    // healthy iff at least one vendor has a valid cookie (or no vendors are
-    // yet onboarded — fresh-install state).
+  async healthCheck(ctx = {}) {
+    if (hasSnapshotInput(ctx)) {
+      return { ok: true, mode: "snapshot-file", perVendor: {} };
+    }
+    // The adapter is ready only when at least one configured vendor session
+    // passes its source-specific validation.
     const perVendor = {};
+    let configuredCount = 0;
+    let readyCount = 0;
     for (const [vendor, spec] of Object.entries(this._vendorSpecs)) {
       const sess = this._sessions[vendor];
       if (!sess) {
         perVendor[vendor] = { ok: false, reason: "no-session" };
         continue;
       }
+      configuredCount += 1;
       try {
         const httpClient = this._getHttpClient(vendor);
-        perVendor[vendor] = await spec.validateCookie({ session: sess, vendor, httpClient });
+        const result = await spec.validateCookie({
+          session: sess,
+          vendor,
+          httpClient,
+        });
+        perVendor[vendor] =
+          result && typeof result === "object"
+            ? result
+            : { ok: false, reason: "INVALID_COOKIE" };
+        if (perVendor[vendor].ok === true) readyCount += 1;
       } catch (err) {
         perVendor[vendor] = { ok: false, reason: err.code || err.message };
       }
+    }
+    if (configuredCount === 0) {
+      return {
+        ok: false,
+        reason: NEEDS_LOGIN_REASON,
+        message:
+          "No AI chat vendor session is configured; sign in to at least one vendor.",
+        perVendor,
+      };
+    }
+    if (readyCount === 0) {
+      return {
+        ok: false,
+        reason: NEEDS_LOGIN_REASON,
+        message:
+          "All configured AI chat vendor sessions failed validation; sign in again.",
+        perVendor,
+      };
     }
     return { ok: true, perVendor };
   }
@@ -203,6 +288,7 @@ class AIChatHistoryAdapter {
    *   - "vendor-not-wired"       → no-op normalize (extension sentinel trace)
    *   - "vendor-cookie-expired"  → no-op normalize (401/403 trace)
    *   - "vendor-rate-limited"    → no-op normalize (429 trace after retries)
+   *   - "vendor-pagination-incomplete" → no-op normalize (retryable trace)
    *
    * The registry calls `normalize(raw)` per yielded envelope. One yield per
    * conversation/message keeps registry batches small so a slow vendor
@@ -211,6 +297,9 @@ class AIChatHistoryAdapter {
    * @param {object} [opts]
    * @param {string[]} [opts.vendors]   restrict to a subset
    * @param {object} [opts.watermarks]  per-vendor cursor / since IDs
+   * @param {string} [opts.sinceWatermark] versioned aggregate cursor
+   * @param {function} [opts.updateWatermark] publish a complete candidate
+   * @param {function} [opts.markWatermarkComplete] confirm source boundary
    */
   async *sync(opts = {}) {
     // Android's in-app collector cannot write the desktop/CLI
@@ -221,61 +310,126 @@ class AIChatHistoryAdapter {
     const snapshotVendor = await this._restoreSnapshotSession(opts);
     const targetVendors = snapshotVendor
       ? [snapshotVendor]
-      : opts.vendors
-      ? opts.vendors.filter((v) => this._vendorSpecs[v])
-      : Object.keys(this._vendorSpecs);
+      : Array.isArray(opts.vendors)
+        ? [...new Set(opts.vendors.filter((v) => this._vendorSpecs[v]))]
+        : Object.keys(this._sessions).filter((v) => this._vendorSpecs[v]);
+    const checkpoint = parseAggregateWatermark(opts.sinceWatermark);
+    const nextCursor = {
+      v: WATERMARK_VERSION,
+      vendors: copyKnownVendorCursors(checkpoint.vendors, this._vendorSpecs),
+    };
+    const eventLimit = resolveEventLimit(opts);
+    const scanStartedAt = Date.now();
+    let yieldedCount = 0;
+    let scanComplete = targetVendors.length > 0;
 
-    for (const vendor of targetVendors) {
+    vendorLoop: for (const vendor of targetVendors) {
       const sess = this._sessions[vendor];
       if (!sess) {
         this._logger.info(`[ai-chat] skipping vendor=${vendor}: no session`);
+        scanComplete = false;
         continue;
       }
       const spec = this._vendorSpecs[vendor];
       const httpClient = this._getHttpClient(vendor);
       const ctx = { session: sess, vendor, httpClient };
-      const vendorWatermark = (opts.watermarks && opts.watermarks[vendor]) || null;
+      const vendorWatermark = resolveVendorWatermark(
+        vendor,
+        opts.watermarks,
+        checkpoint.vendors,
+      );
+      const normalizedVendorWatermark =
+        normalizeVendorWatermark(vendorWatermark);
+      if (normalizedVendorWatermark) {
+        nextCursor.vendors[vendor] = normalizedVendorWatermark;
+      }
+      const vendorSince = collectionVendorWatermark(normalizedVendorWatermark);
+      let maxUpdatedAt =
+        normalizedVendorWatermark &&
+        Number.isFinite(Number(normalizedVendorWatermark.lastUpdatedAt))
+          ? Number(normalizedVendorWatermark.lastUpdatedAt)
+          : 0;
 
       try {
-        for await (const conv of spec.listConversations(ctx, { since: vendorWatermark })) {
+        for await (const conv of spec.listConversations(ctx, {
+          since: vendorSince,
+          maxPages: opts.maxPages,
+        })) {
+          if (yieldedCount >= eventLimit) {
+            scanComplete = false;
+            break vendorLoop;
+          }
+          const conversationUpdatedAt =
+            Number(conv.updatedAt) || Number(conv.createdAt) || 0;
+          if (conversationUpdatedAt > 0) {
+            maxUpdatedAt = Math.max(
+              maxUpdatedAt,
+              Math.min(conversationUpdatedAt, scanStartedAt),
+            );
+          }
           yield {
             originalId: `${vendor}:conv:${conv.originalId}`,
-            capturedAt: Number(conv.updatedAt) || Number(conv.createdAt) || Date.now(),
+            capturedAt:
+              Number(conv.updatedAt) || Number(conv.createdAt) || Date.now(),
             payload: { kind: "conversation", vendor, conversation: conv },
           };
+          yieldedCount += 1;
 
-          for await (const msg of spec.listMessages(ctx, conv.originalId, {})) {
+          for await (const msg of spec.listMessages(ctx, conv.originalId, {
+            maxPages: opts.maxPages,
+          })) {
+            if (yieldedCount >= eventLimit) {
+              scanComplete = false;
+              break vendorLoop;
+            }
             yield {
               originalId: `${vendor}:msg:${msg.originalId}`,
               capturedAt: Number(msg.createdAt) || Date.now(),
               payload: { kind: "message", vendor, message: msg },
             };
+            yieldedCount += 1;
           }
         }
+        if (maxUpdatedAt > 0) {
+          nextCursor.vendors[vendor] = {
+            ...(normalizedVendorWatermark || {}),
+            lastUpdatedAt: maxUpdatedAt,
+          };
+        }
       } catch (err) {
+        scanComplete = false;
         const traceCapturedAt = Date.now();
         if (err instanceof NotImplementedYetError) {
           this._logger.warn(
             `[ai-chat] vendor=${vendor} not wired (Phase 10.2+ work): ${err.message}`,
           );
+          if (yieldedCount >= eventLimit) break vendorLoop;
           yield {
             originalId: `${vendor}:trace:not-wired:${traceCapturedAt}`,
             capturedAt: traceCapturedAt,
             payload: { kind: "vendor-not-wired", vendor, error: err.code },
           };
+          yieldedCount += 1;
           continue;
         }
         if (err instanceof CookieExpiredError) {
-          this._logger.warn(`[ai-chat] vendor=${vendor} cookie expired: ${err.message}`);
+          this._logger.warn(
+            `[ai-chat] vendor=${vendor} cookie expired: ${err.message}`,
+          );
+          if (yieldedCount >= eventLimit) break vendorLoop;
           yield {
             originalId: `${vendor}:trace:cookie-expired:${traceCapturedAt}`,
             capturedAt: traceCapturedAt,
             payload: { kind: "vendor-cookie-expired", vendor, error: err.code },
           };
+          yieldedCount += 1;
           continue;
         }
         if (err instanceof RateLimitedError) {
-          this._logger.warn(`[ai-chat] vendor=${vendor} rate limited: ${err.message}`);
+          this._logger.warn(
+            `[ai-chat] vendor=${vendor} rate limited: ${err.message}`,
+          );
+          if (yieldedCount >= eventLimit) break vendorLoop;
           yield {
             originalId: `${vendor}:trace:rate-limited:${traceCapturedAt}`,
             capturedAt: traceCapturedAt,
@@ -286,9 +440,36 @@ class AIChatHistoryAdapter {
               retryAfterMs: err.retryAfterMs,
             },
           };
+          yieldedCount += 1;
+          continue;
+        }
+        if (err && PAGINATION_INCOMPLETE_CODES.has(err.code)) {
+          this._logger.warn(
+            `[ai-chat] vendor=${vendor} pagination incomplete: ${err.message}`,
+          );
+          if (yieldedCount >= eventLimit) break vendorLoop;
+          yield {
+            originalId: `${vendor}:trace:pagination-incomplete:${traceCapturedAt}`,
+            capturedAt: traceCapturedAt,
+            payload: {
+              kind: "vendor-pagination-incomplete",
+              vendor,
+              error: err.code,
+            },
+          };
+          yieldedCount += 1;
           continue;
         }
         throw err;
+      }
+    }
+
+    if (scanComplete) {
+      if (typeof opts.updateWatermark === "function") {
+        opts.updateWatermark(serializeAggregateWatermark(nextCursor));
+      }
+      if (typeof opts.markWatermarkComplete === "function") {
+        opts.markWatermarkComplete();
       }
     }
   }
@@ -303,36 +484,12 @@ class AIChatHistoryAdapter {
       );
     }
 
-    let raw;
-    try {
-      const stat = await fs.stat(inputPath);
-      if (!stat.isFile()) {
-        throw createSnapshotError(
-          "AI_CHAT_SNAPSHOT_NOT_FILE",
-          "ai-chat-history: inputPath must point to a file",
-        );
-      }
-      if (stat.size > MAX_COOKIE_SNAPSHOT_BYTES) {
-        throw createSnapshotError(
-          "AI_CHAT_SNAPSHOT_TOO_LARGE",
-          `ai-chat-history: cookie snapshot exceeds ${MAX_COOKIE_SNAPSHOT_BYTES} bytes`,
-        );
-      }
-      raw = await fs.readFile(inputPath, "utf8");
-    } catch (err) {
-      if (err && typeof err.code === "string" && err.code.startsWith("AI_CHAT_")) {
-        throw err;
-      }
-      throw createSnapshotError(
-        "AI_CHAT_SNAPSHOT_READ_FAILED",
-        `ai-chat-history: cannot read cookie snapshot (${err && err.code ? err.code : "unknown"})`,
-      );
-    }
+    const raw = readCookieSnapshot(inputPath);
 
     let snapshot;
     try {
       snapshot = JSON.parse(raw);
-    } catch (_err) {
+    } catch {
       throw createSnapshotError(
         "AI_CHAT_SNAPSHOT_JSON_INVALID",
         "ai-chat-history: cookie snapshot is not valid JSON",
@@ -356,7 +513,7 @@ class AIChatHistoryAdapter {
       this.setSessionFromCookies(vendor, snapshot.cookies || snapshot.cookie, {
         capturedAt: snapshot.fetchedAt || snapshot.capturedAt,
       });
-    } catch (_err) {
+    } catch {
       throw createSnapshotError(
         "AI_CHAT_SNAPSHOT_COOKIE_INVALID",
         "ai-chat-history: cookie snapshot has no usable cookies",
@@ -379,10 +536,16 @@ class AIChatHistoryAdapter {
     // Registry-compliant envelopes wrap kind inside payload. Adapter-internal
     // tests (Phase 10.1) sometimes pass the inner shape directly — accept
     // both for forward compat.
-    const inner = raw.payload && typeof raw.payload === "object" ? raw.payload : raw;
+    const inner =
+      raw.payload && typeof raw.payload === "object" ? raw.payload : raw;
     const kind = inner.kind;
 
-    if (kind === "vendor-not-wired" || kind === "vendor-cookie-expired" || kind === "vendor-rate-limited") {
+    if (
+      kind === "vendor-not-wired" ||
+      kind === "vendor-cookie-expired" ||
+      kind === "vendor-rate-limited" ||
+      kind === "vendor-pagination-incomplete"
+    ) {
       // Nothing to write; the warning was already logged by sync().
       return { events: [], persons: [], places: [], items: [], topics: [] };
     }
@@ -428,7 +591,9 @@ class AIChatHistoryAdapter {
       throw new Error(`AIChatHistoryAdapter: unknown vendor "${vendor}"`);
     }
     if (!(session instanceof CookieAuthSession)) {
-      throw new Error("AIChatHistoryAdapter: session must be a CookieAuthSession");
+      throw new Error(
+        "AIChatHistoryAdapter: session must be a CookieAuthSession",
+      );
     }
     this._sessions[vendor] = session;
   }
@@ -442,10 +607,16 @@ class AIChatHistoryAdapter {
   setSessionFromCookies(vendor, cookies, opts = {}) {
     const entries = normalizeCookieEntries(cookies);
     if (entries.length === 0) {
-      throw new Error(`AIChatHistoryAdapter: no usable cookies for vendor "${vendor}"`);
+      throw new Error(
+        `AIChatHistoryAdapter: no usable cookies for vendor "${vendor}"`,
+      );
     }
     const capturedAt = normalizeCapturedAt(opts.capturedAt);
-    const session = new CookieAuthSession({ vendor, cookies: entries, capturedAt });
+    const session = new CookieAuthSession({
+      vendor,
+      cookies: entries,
+      capturedAt,
+    });
     this.setSession(vendor, session);
     return session;
   }
@@ -468,7 +639,8 @@ class AIChatHistoryAdapter {
       } catch (err) {
         skipped.push({
           vendor: typeof vendor === "string" && vendor ? vendor : "(missing)",
-          reason: err && err.message ? err.message : "invalid persisted session",
+          reason:
+            err && err.message ? err.message : "invalid persisted session",
         });
       }
     }
@@ -488,6 +660,134 @@ class AIChatHistoryAdapter {
       hasSession: Boolean(this._sessions[spec.name]),
     }));
   }
+}
+
+function hasSnapshotInput(opts) {
+  if (!opts || typeof opts !== "object") return false;
+  const inputPath = opts.inputPath || opts.snapshotPath;
+  return typeof inputPath === "string" && inputPath.length > 0;
+}
+
+function parseAggregateWatermark(value) {
+  const empty = { v: WATERMARK_VERSION, vendors: {} };
+  if (value == null || value === "") return empty;
+
+  // Before this adapter declared an explicit cursor, Registry used its
+  // default count watermark. Treat that numeric checkpoint as a one-time
+  // migration to a full scan.
+  if (
+    typeof value === "number" ||
+    typeof value === "bigint" ||
+    (typeof value === "string" &&
+      value.trim() !== "" &&
+      Number.isFinite(Number(value)))
+  ) {
+    return empty;
+  }
+  if (typeof value !== "string") {
+    throw createCursorError("AI chat watermark must be a string");
+  }
+  if (Buffer.byteLength(value, "utf8") > MAX_WATERMARK_BYTES) {
+    throw createCursorError("AI chat watermark exceeds the maximum size");
+  }
+  if (!value.startsWith(WATERMARK_PREFIX)) {
+    throw createCursorError("AI chat watermark has an unsupported format");
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(value.slice(WATERMARK_PREFIX.length));
+  } catch {
+    throw createCursorError("AI chat watermark JSON is invalid");
+  }
+  if (
+    !parsed ||
+    typeof parsed !== "object" ||
+    Array.isArray(parsed) ||
+    parsed.v !== WATERMARK_VERSION ||
+    !parsed.vendors ||
+    typeof parsed.vendors !== "object" ||
+    Array.isArray(parsed.vendors)
+  ) {
+    throw createCursorError("AI chat watermark shape is invalid");
+  }
+  return { v: WATERMARK_VERSION, vendors: parsed.vendors };
+}
+
+function serializeAggregateWatermark(cursor) {
+  const vendors = {};
+  for (const vendor of Object.keys(cursor.vendors || {}).sort()) {
+    const normalized = normalizeVendorWatermark(cursor.vendors[vendor]);
+    if (normalized) vendors[vendor] = normalized;
+  }
+  const serialized =
+    WATERMARK_PREFIX +
+    JSON.stringify({
+      v: WATERMARK_VERSION,
+      vendors,
+    });
+  if (Buffer.byteLength(serialized, "utf8") > MAX_WATERMARK_BYTES) {
+    throw createCursorError("AI chat watermark exceeds the maximum size");
+  }
+  return serialized;
+}
+
+function copyKnownVendorCursors(vendors, vendorSpecs) {
+  const copy = {};
+  for (const vendor of Object.keys(vendorSpecs)) {
+    const normalized = normalizeVendorWatermark(vendors && vendors[vendor]);
+    if (normalized) copy[vendor] = normalized;
+  }
+  return copy;
+}
+
+function resolveVendorWatermark(vendor, legacyWatermarks, cursorVendors) {
+  if (
+    legacyWatermarks &&
+    typeof legacyWatermarks === "object" &&
+    Object.prototype.hasOwnProperty.call(legacyWatermarks, vendor)
+  ) {
+    return legacyWatermarks[vendor];
+  }
+  return cursorVendors && cursorVendors[vendor];
+}
+
+function normalizeVendorWatermark(value) {
+  if (value == null) return null;
+  const rawTimestamp =
+    typeof value === "object" && !Array.isArray(value)
+      ? value.lastUpdatedAt
+      : value;
+  if (rawTimestamp == null || rawTimestamp === "") return {};
+  const timestamp = Number(rawTimestamp);
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return {};
+  // A future cursor can suppress every legitimate row. Treat it as an empty
+  // vendor cursor so the next successful run repairs it with observed data.
+  if (timestamp > Date.now()) return {};
+  return { lastUpdatedAt: timestamp };
+}
+
+function collectionVendorWatermark(value) {
+  if (!value || !Number.isFinite(Number(value.lastUpdatedAt))) return null;
+  return {
+    lastUpdatedAt: Math.max(
+      0,
+      Number(value.lastUpdatedAt) - CURSOR_REPLAY_OVERLAP_MS,
+    ),
+  };
+}
+
+function resolveEventLimit(opts) {
+  const limits = [opts.limit, opts.maxEvents].filter(
+    (value) => Number.isSafeInteger(value) && value > 0,
+  );
+  return limits.length > 0 ? Math.min(...limits) : Number.POSITIVE_INFINITY;
+}
+
+function createCursorError(message) {
+  const error = new Error(`ai-chat-history: ${message}`);
+  error.code = "AI_CHAT_WATERMARK_INVALID";
+  return error;
 }
 
 function normalizeCookieEntries(input) {
@@ -528,6 +828,45 @@ function normalizeCookieEntries(input) {
       .map(([name, value]) => ({ name, value }));
   }
   return [];
+}
+
+function readCookieSnapshot(inputPath) {
+  try {
+    return readBoundedSnapshot(fs, inputPath, {
+      maxBytes: MAX_COOKIE_SNAPSHOT_BYTES,
+    });
+  } catch (error) {
+    if (error instanceof SnapshotFileError) {
+      if (error.code === "SNAPSHOT_NOT_REGULAR_FILE") {
+        throw createSnapshotError(
+          "AI_CHAT_SNAPSHOT_NOT_FILE",
+          "ai-chat-history: inputPath must point to a file",
+        );
+      }
+      if (error.code === "SNAPSHOT_TOO_LARGE") {
+        throw createSnapshotError(
+          "AI_CHAT_SNAPSHOT_TOO_LARGE",
+          `ai-chat-history: cookie snapshot exceeds ${MAX_COOKIE_SNAPSHOT_BYTES} bytes`,
+        );
+      }
+      if (error.code === "SNAPSHOT_SYMBOLIC_LINK") {
+        throw createSnapshotError(
+          "AI_CHAT_SNAPSHOT_SYMBOLIC_LINK",
+          "ai-chat-history: cookie snapshot must not be a symbolic link",
+        );
+      }
+      if (error.code === "SNAPSHOT_CHANGED") {
+        throw createSnapshotError(
+          "AI_CHAT_SNAPSHOT_CHANGED",
+          "ai-chat-history: cookie snapshot changed while it was being read",
+        );
+      }
+    }
+    throw createSnapshotError(
+      "AI_CHAT_SNAPSHOT_READ_FAILED",
+      `ai-chat-history: cannot read cookie snapshot (${error && error.code ? error.code : "unknown"})`,
+    );
+  }
 }
 
 function normalizeCapturedAt(value) {

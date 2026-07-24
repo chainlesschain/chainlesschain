@@ -16,21 +16,37 @@
 
 const BASE = "https://yuanbao.tencent.com";
 const CONV_LIST_PATH = "/api/user/conv/list";
-const MSG_LIST_PATH = (id) => `/api/user/conv/${encodeURIComponent(id)}/message/list`;
+const MSG_LIST_PATH = (id) =>
+  `/api/user/conv/${encodeURIComponent(id)}/message/list`;
 const USER_INFO_PATH = "/api/user/info";
+const {
+  resolveMaxPages,
+  paginationError,
+  pageSignature,
+  hasMoreState,
+} = require("./pagination");
+const { extractVendorArray } = require("./strict-response");
 
 const DEFAULT_PAGE_SIZE = 30;
+const DEFAULT_MESSAGE_PAGE_SIZE = 200;
 
 function _ensureClient(ctx) {
-  if (!ctx || !ctx.httpClient) throw new Error("hunyuan: ctx.httpClient required");
+  if (!ctx || !ctx.httpClient)
+    throw new Error("hunyuan: ctx.httpClient required");
   return ctx.httpClient;
 }
 
 async function validateCookie(ctx) {
   const client = _ensureClient(ctx);
   try {
-    const data = await client.getJson(BASE + USER_INFO_PATH, { session: ctx.session });
-    if (data && (data.ret === 0 || data.code === 0) && (data.data || data.user)) {
+    const data = await client.getJson(BASE + USER_INFO_PATH, {
+      session: ctx.session,
+    });
+    if (
+      data &&
+      (data.ret === 0 || data.code === 0) &&
+      (data.data || data.user)
+    ) {
       const u = data.data || data.user;
       return { ok: true, userId: u.userId || u.uin || u.uid };
     }
@@ -40,24 +56,99 @@ async function validateCookie(ctx) {
   }
 }
 
-async function *listConversations(ctx, opts = {}) {
+async function* listConversations(ctx, opts = {}) {
   const client = _ensureClient(ctx);
-  const pageSize = Number.isFinite(opts.pageSize) ? opts.pageSize : DEFAULT_PAGE_SIZE;
-  const sinceTs = opts.since && opts.since.lastUpdatedAt ? Number(opts.since.lastUpdatedAt) : 0;
+  const pageSize = Number.isFinite(opts.pageSize)
+    ? opts.pageSize
+    : DEFAULT_PAGE_SIZE;
+  const maxPages = resolveMaxPages(opts);
+  const sinceTs =
+    opts.since && opts.since.lastUpdatedAt
+      ? Number(opts.since.lastUpdatedAt)
+      : 0;
 
   let cursor = null;
-  let safety = 0;
-  while (safety < 200) {
-    safety++;
+  let pagesFetched = 0;
+  const seenCursors = new Set();
+  const seenPages = new Set();
+  while (true) {
+    if (pagesFetched >= maxPages) {
+      throw paginationError(
+        "hunyuan",
+        "AI_CHAT_PAGINATION_LIMIT",
+        `hunyuan: conversation pagination exceeded ${maxPages} pages`,
+        { maxPages, cursor },
+      );
+    }
+
     const body = { count: pageSize, ...(cursor ? { cursor } : {}) };
-    const data = await client.postJson(BASE + CONV_LIST_PATH, body, { session: ctx.session });
-    const items = _extractList(data);
-    if (items.length === 0) return;
+    const data = await client.postJson(BASE + CONV_LIST_PATH, body, {
+      session: ctx.session,
+    });
+    pagesFetched++;
+    const items = _extractList(data, "conversations");
+    const meta = (data && data.data) || {};
+    const hasMore = hasMoreState(meta);
+    const rawNextCursor =
+      meta.next_cursor ||
+      meta.nextCursor ||
+      meta.cursor ||
+      (items[items.length - 1] && items[items.length - 1].cursor) ||
+      "";
+    if (items.length === 0) {
+      if (hasMore === true || (hasMore == null && rawNextCursor !== "")) {
+        throw paginationError(
+          "hunyuan",
+          "AI_CHAT_PAGINATION_STALLED",
+          "hunyuan: conversation pagination reported more data but returned an empty page",
+          { cursor, pagesFetched },
+        );
+      }
+      return;
+    }
+
+    const signature = pageSignature(items, ["convId", "conv_id", "id"]);
+    if (seenPages.has(signature)) {
+      throw paginationError(
+        "hunyuan",
+        "AI_CHAT_PAGINATION_STALLED",
+        `hunyuan: conversation pagination repeated page for cursor ${cursor || "initial"}`,
+        { cursor, pagesFetched },
+      );
+    }
+    seenPages.add(signature);
+
+    let nextCursor = null;
+    if (hasMore !== false && rawNextCursor !== "") {
+      nextCursor = String(rawNextCursor);
+      if (seenCursors.has(nextCursor)) {
+        throw paginationError(
+          "hunyuan",
+          "AI_CHAT_PAGINATION_STALLED",
+          `hunyuan: conversation pagination repeated cursor ${nextCursor}`,
+          { cursor: nextCursor, pagesFetched },
+        );
+      }
+    } else if (hasMore === true) {
+      throw paginationError(
+        "hunyuan",
+        "AI_CHAT_PAGINATION_STALLED",
+        "hunyuan: conversation pagination reported more data without a cursor",
+        { cursor, pagesFetched },
+      );
+    } else if (hasMore == null) {
+      throw paginationError(
+        "hunyuan",
+        "AI_CHAT_PAGINATION_STALLED",
+        "hunyuan: non-empty conversation page had no continuation cursor",
+        { cursor, pagesFetched, pageSize },
+      );
+    }
 
     let stopped = false;
     for (const c of items) {
       const updatedAt = _toMs(c.updateTime || c.update_time || c.createTime);
-      if (sinceTs && updatedAt <= sinceTs) {
+      if (sinceTs && updatedAt > 0 && updatedAt <= sinceTs) {
         stopped = true;
         break;
       }
@@ -73,18 +164,121 @@ async function *listConversations(ctx, opts = {}) {
       };
     }
     if (stopped) return;
-    cursor = (data && data.data && data.data.cursor) || (items[items.length - 1] && items[items.length - 1].cursor);
-    if (!cursor || items.length < pageSize) return;
+    if (hasMore === false) return;
+    seenCursors.add(nextCursor);
+    cursor = nextCursor;
   }
 }
 
-async function *listMessages(ctx, conversationId, _opts = {}) {
+async function* listMessages(ctx, conversationId, opts = {}) {
   const client = _ensureClient(ctx);
   const url = BASE + MSG_LIST_PATH(conversationId);
-  const data = await client.postJson(url, { convId: String(conversationId), count: 200 }, { session: ctx.session });
-  const msgs = _extractList(data);
+  const pageSize = Number.isFinite(opts.pageSize)
+    ? opts.pageSize
+    : DEFAULT_MESSAGE_PAGE_SIZE;
+  const maxPages = resolveMaxPages(opts);
+  const msgs = [];
+  let cursor = null;
+  let pagesFetched = 0;
+  const seenCursors = new Set();
+  const seenPages = new Set();
 
-  msgs.sort((a, b) => _toMs(a.createTime || a.create_time) - _toMs(b.createTime || b.create_time));
+  while (true) {
+    if (pagesFetched >= maxPages) {
+      throw paginationError(
+        "hunyuan",
+        "AI_CHAT_PAGINATION_LIMIT",
+        `hunyuan: message pagination exceeded ${maxPages} pages`,
+        { conversationId: String(conversationId), maxPages, cursor },
+      );
+    }
+
+    const body = {
+      convId: String(conversationId),
+      count: pageSize,
+      ...(cursor ? { cursor } : {}),
+    };
+    const data = await client.postJson(url, body, { session: ctx.session });
+    pagesFetched++;
+    const page = _extractList(data, "messages");
+    const meta = (data && data.data) || {};
+    const hasMore = hasMoreState(meta);
+    const rawNextCursor =
+      meta.next_cursor ||
+      meta.nextCursor ||
+      meta.cursor ||
+      (page[page.length - 1] && page[page.length - 1].cursor) ||
+      "";
+    if (page.length === 0) {
+      if (hasMore === true || (hasMore == null && rawNextCursor !== "")) {
+        throw paginationError(
+          "hunyuan",
+          "AI_CHAT_PAGINATION_STALLED",
+          "hunyuan: message pagination reported more data but returned an empty page",
+          { conversationId: String(conversationId), cursor, pagesFetched },
+        );
+      }
+      break;
+    }
+
+    const signature = pageSignature(page, ["msgId", "msg_id", "id"]);
+    if (seenPages.has(signature)) {
+      throw paginationError(
+        "hunyuan",
+        "AI_CHAT_PAGINATION_STALLED",
+        `hunyuan: message pagination repeated page for cursor ${cursor || "initial"}`,
+        { conversationId: String(conversationId), cursor, pagesFetched },
+      );
+    }
+    seenPages.add(signature);
+
+    let nextCursor = null;
+    if (hasMore !== false && rawNextCursor !== "") {
+      nextCursor = String(rawNextCursor);
+      if (seenCursors.has(nextCursor)) {
+        throw paginationError(
+          "hunyuan",
+          "AI_CHAT_PAGINATION_STALLED",
+          `hunyuan: message pagination repeated cursor ${nextCursor}`,
+          {
+            conversationId: String(conversationId),
+            cursor: nextCursor,
+            pagesFetched,
+          },
+        );
+      }
+    } else if (hasMore === true) {
+      throw paginationError(
+        "hunyuan",
+        "AI_CHAT_PAGINATION_STALLED",
+        "hunyuan: message pagination reported more data without a cursor",
+        { conversationId: String(conversationId), cursor, pagesFetched },
+      );
+    } else if (hasMore == null) {
+      throw paginationError(
+        "hunyuan",
+        "AI_CHAT_PAGINATION_STALLED",
+        "hunyuan: non-empty message page had no continuation cursor",
+        {
+          conversationId: String(conversationId),
+          cursor,
+          pagesFetched,
+          pageSize,
+        },
+      );
+    }
+
+    msgs.push(...page);
+    if (hasMore === false) break;
+    seenCursors.add(nextCursor);
+    cursor = nextCursor;
+  }
+
+  msgs.sort(
+    (a, b) =>
+      _toMs(a.createTime || a.create_time) -
+      _toMs(b.createTime || b.create_time),
+  );
 
   for (const m of msgs) {
     yield {
@@ -96,24 +290,35 @@ async function *listMessages(ctx, conversationId, _opts = {}) {
       createdAt: _toMs(m.createTime || m.create_time),
       parentMessageId: m.parentMsgId ? String(m.parentMsgId) : undefined,
       modelName: m.model || undefined,
-      extra: m.linkedArticles ? { linkedArticles: m.linkedArticles } : undefined,
+      extra: m.linkedArticles
+        ? { linkedArticles: m.linkedArticles }
+        : undefined,
     };
   }
 }
 
-function _extractList(data) {
-  if (!data) return [];
-  if (data.data && Array.isArray(data.data.list)) return data.data.list;
-  if (data.data && Array.isArray(data.data.convs)) return data.data.convs;
-  if (data.data && Array.isArray(data.data.messages)) return data.data.messages;
-  if (Array.isArray(data.data)) return data.data;
-  if (Array.isArray(data.list)) return data.list;
-  return [];
+function _extractList(data, stream) {
+  return extractVendorArray(
+    data,
+    [
+      ["data", "list"],
+      ["data", "convs"],
+      ["data", "messages"],
+      ["data"],
+      ["list"],
+    ],
+    {
+      vendor: "hunyuan",
+      stream,
+      businessStatus: { code: [0], ret: [0] },
+    },
+  );
 }
 
 function _normalizeRole(r) {
   if (r === "user" || r === "USER" || r === "human") return "user";
-  if (r === "assistant" || r === "ASSISTANT" || r === "bot" || r === "ai") return "assistant";
+  if (r === "assistant" || r === "ASSISTANT" || r === "bot" || r === "ai")
+    return "assistant";
   if (r === "system" || r === "SYSTEM") return "system";
   return r ? String(r).toLowerCase() : "assistant";
 }
@@ -124,7 +329,10 @@ function _buildContent(m) {
   if (Array.isArray(m.files)) {
     for (const f of m.files) {
       attachments.push({
-        type: (f.type === "image" || /image/i.test(f.mimeType || "")) ? "image" : "file",
+        type:
+          f.type === "image" || /image/i.test(f.mimeType || "")
+            ? "image"
+            : "file",
         filename: f.name,
         url: f.url,
         mimeType: f.mimeType,
