@@ -12,14 +12,21 @@ const path = require("path");
 const fs = require("fs");
 const fsp = fs.promises;
 const { app } = require("electron");
-const { spawn } = require("child_process");
+const { spawnWithDesktopBroker } = require("../process/desktop-process-broker");
 
 class PluginLoader {
-  constructor() {
+  constructor({
+    pluginsDir,
+    tempDir,
+    spawnProcess = spawnWithDesktopBroker,
+  } = {}) {
     // 插件安装目录
-    this.pluginsDir = path.join(app.getPath("userData"), "plugins");
+    this.pluginsDir =
+      pluginsDir || path.join(app.getPath("userData"), "plugins");
     // 临时目录
-    this.tempDir = path.join(app.getPath("temp"), "chainlesschain-plugins");
+    this.tempDir =
+      tempDir || path.join(app.getPath("temp"), "chainlesschain-plugins");
+    this.spawnProcess = spawnProcess;
 
     // M2: 启动期不再阻塞事件循环。目录创建延后到首次使用，
     // 通过 _readyPromise 串联，避免重复 mkdir。
@@ -248,12 +255,15 @@ class PluginLoader {
     logger.info(`[PluginLoader] 从NPM安装: ${fullPackage}`);
 
     // 执行 npm install
-    await this.execCommand("npm", [
-      "install",
-      fullPackage,
-      "--prefix",
-      installPath,
-    ]);
+    const npm = process.platform === "win32" ? "npm.cmd" : "npm";
+    await this.execCommand(
+      npm,
+      ["install", fullPackage, "--prefix", installPath],
+      {
+        origin: "desktop:plugin-loader-install",
+        provenance: { pluginSource: fullPackage },
+      },
+    );
 
     // 返回安装后的路径
     const packagePath = path.join(installPath, "node_modules", packageName);
@@ -350,12 +360,26 @@ class PluginLoader {
 
     // 仅当 adm-zip 缺失时回退系统命令（adm-zip 是声明依赖，正常不会走到这里）
     if (process.platform === "win32") {
-      await this.execCommand("powershell", [
-        "-Command",
-        `Expand-Archive -Path "${zipPath}" -DestinationPath "${extractPath}" -Force`,
-      ]);
+      await this.execCommand(
+        "powershell",
+        [
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          "Expand-Archive -LiteralPath $args[0] -DestinationPath $args[1] -Force",
+          zipPath,
+          extractPath,
+        ],
+        {
+          origin: "desktop:plugin-loader-extract",
+          provenance: { pluginSource: zipPath },
+        },
+      );
     } else {
-      await this.execCommand("unzip", ["-q", zipPath, "-d", extractPath]);
+      await this.execCommand("unzip", ["-q", zipPath, "-d", extractPath], {
+        origin: "desktop:plugin-loader-extract",
+        provenance: { pluginSource: zipPath },
+      });
     }
   }
 
@@ -393,9 +417,13 @@ class PluginLoader {
     return new Promise((resolve, reject) => {
       const npm = process.platform === "win32" ? "npm.cmd" : "npm";
 
-      const child = spawn(npm, ["install", "--production"], {
+      const child = this.spawnProcess(npm, ["install", "--production"], {
         cwd: pluginPath,
         stdio: "pipe",
+        shell: false,
+        windowsHide: true,
+        origin: "desktop:plugin-loader-dependencies",
+        provenance: { pluginSource: pluginPath },
       });
 
       let output = "";
@@ -426,11 +454,14 @@ class PluginLoader {
    * @param {Array} args - 参数
    * @returns {Promise<string>} 命令输出
    */
-  async execCommand(command, args = []) {
+  async execCommand(command, args = [], options = {}) {
     return new Promise((resolve, reject) => {
-      const child = spawn(command, args, {
+      const child = this.spawnProcess(command, args, {
         stdio: "pipe",
-        shell: true,
+        shell: false,
+        windowsHide: true,
+        origin: options.origin || "desktop:plugin-loader-command",
+        provenance: options.provenance || null,
       });
 
       let stdout = "";
