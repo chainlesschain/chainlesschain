@@ -334,13 +334,14 @@ jobs:
           #     (which in turn → ../../packages/personal-data-hub/lib/forensics/leaf-salvage.js)
           ROOT="${RUNNER_TEMP}/pdh-ci"
           rm -rf "$ROOT"
-          mkdir -p "$ROOT/packages/personal-data-hub" "$ROOT/packages/cli" "$ROOT/scripts/android"
+          mkdir -p "$ROOT/packages/personal-data-hub" "$ROOT/packages/cli" "$ROOT/scripts/android" "$ROOT/docs/internal"
           cp -r packages/personal-data-hub/lib "$ROOT/packages/personal-data-hub/"
           cp -r packages/personal-data-hub/__tests__ "$ROOT/packages/personal-data-hub/"
           cp packages/personal-data-hub/package.json "$ROOT/packages/personal-data-hub/"
           cp packages/personal-data-hub/vitest.config.js "$ROOT/packages/personal-data-hub/"
           cp -r packages/cli/src "$ROOT/packages/cli/src"   # host-adb-bridge.js (node builtins only)
           cp scripts/android/pdh-sqlite-leaf-salvage.js "$ROOT/scripts/android/"  # leaf-salvage test re-export target
+          cp docs/internal/pdh-app-data-catalog.json "$ROOT/docs/internal/"  # catalog completeness fixture
           cd "$ROOT/packages/personal-data-hub"
           npm install --no-audit --no-fund --loglevel=warn
           # Plain better-sqlite3 (browser-history / *-adb / vscode adapters read
