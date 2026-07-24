@@ -47,12 +47,23 @@ const {
   SystemDataAndroidAdapter,
   BrowserHistoryChromeAdapter,
   BrowserHistoryEdgeAdapter,
+  BrowserHistoryBraveAdapter,
+  BrowserHistoryOperaAdapter,
+  BrowserHistoryVivaldiAdapter,
+  BrowserHistorySafariAdapter,
+  BrowserHistoryFirefoxAdapter,
   BrowserHistoryAospAdapter,
   VSCodeAdapter,
+  VSCodiumAdapter,
+  CursorAdapter,
+  ClaudeCodeAdapter,
+  JetBrainsIdeAdapter,
   WinRecentAdapter,
   GitActivityAdapter,
   ShellHistoryAdapter,
+  HBuilderXAdapter,
   LocalFilesAdapter,
+  TencentMeetingAdapter,
   BilibiliAdapter,
   WeiboAdapter,
   ZhihuAdapter,
@@ -337,14 +348,22 @@ async function initHub() {
   ]);
   const adbReadinessProbe = async () => {
     try {
-      const { listDevices } = require("./desktop-adb-bridge");
-      const serials = await listDevices();
+      const { probeDevices } = require("./desktop-adb-bridge");
+      return await probeDevices({
+        serial:
+          typeof process.env.ADB_SERIAL === "string"
+            ? process.env.ADB_SERIAL
+            : undefined,
+      });
+    } catch (error) {
+      const detail = error && error.message ? error.message : "";
       return {
-        deviceConnected: Array.isArray(serials) && serials.length > 0,
-        serial: serials && serials[0],
+        authorizedDeviceCount: 0,
+        deviceConnected: false,
+        reason: /binary not found|ENOENT/iu.test(detail)
+          ? "ADB_NOT_INSTALLED"
+          : "ADB_PROBE_FAILED",
       };
-    } catch (_e) {
-      return { deviceConnected: false };
     }
   };
 
@@ -518,6 +537,70 @@ async function initHub() {
     );
   }
 
+  try {
+    const brave = new BrowserHistoryBraveAdapter();
+    if (!registry.has(brave.name)) {
+      registry.register(brave);
+    }
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to register browser-history-brave adapter",
+      err && err.message,
+    );
+  }
+
+  try {
+    const opera = new BrowserHistoryOperaAdapter();
+    if (!registry.has(opera.name)) {
+      registry.register(opera);
+    }
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to register browser-history-opera adapter",
+      err && err.message,
+    );
+  }
+
+  try {
+    const vivaldi = new BrowserHistoryVivaldiAdapter();
+    if (!registry.has(vivaldi.name)) {
+      registry.register(vivaldi);
+    }
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to register browser-history-vivaldi adapter",
+      err && err.message,
+    );
+  }
+
+  // Safari History.db + Bookmarks.plist, including Safari 17+ profiles.
+  try {
+    const safari = new BrowserHistorySafariAdapter();
+    if (!registry.has(safari.name)) {
+      registry.register(safari);
+    }
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to register browser-history-safari adapter",
+      err && err.message,
+    );
+  }
+
+  // Firefox places.sqlite contains both browsing history and bookmarks.
+  // profiles.ini is resolved automatically; the Web Panel can also pass a
+  // selected profile directory for non-default profiles.
+  try {
+    const firefox = new BrowserHistoryFirefoxAdapter();
+    if (!registry.has(firefox.name)) {
+      registry.register(firefox);
+    }
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to register browser-history-firefox adapter",
+      err && err.message,
+    );
+  }
+
   // AOSP / MIUI stock browser (browser2.db). Needs a device-pulled db via
   // opts.dbPath at sync time, so bare registration is inert until input.
   try {
@@ -542,6 +625,59 @@ async function initHub() {
   } catch (err) {
     logger.warn(
       "[PersonalDataHub] failed to register vscode adapter",
+      err && err.message,
+    );
+  }
+
+  // VSCodium shares the VS Code storage schema but has an isolated user-data
+  // root and source identity.
+  try {
+    const vscodium = new VSCodiumAdapter();
+    if (!registry.has(vscodium.name)) {
+      registry.register(vscodium);
+    }
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to register vscodium adapter",
+      err && err.message,
+    );
+  }
+
+  // Cursor editor activity + local Agent transcripts + AI code metadata.
+  try {
+    const cursor = new CursorAdapter();
+    if (!registry.has(cursor.name)) {
+      registry.register(cursor);
+    }
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to register cursor adapter",
+      err && err.message,
+    );
+  }
+
+  // Claude Code local main/subagent conversations + aggregate usage.
+  try {
+    const claudeCode = new ClaudeCodeAdapter();
+    if (!registry.has(claudeCode.name)) {
+      registry.register(claudeCode);
+    }
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to register claude-code adapter",
+      err && err.message,
+    );
+  }
+
+  // JetBrains Platform IDE recent projects and latest open/activation times.
+  try {
+    const jetbrains = new JetBrainsIdeAdapter();
+    if (!registry.has(jetbrains.name)) {
+      registry.register(jetbrains);
+    }
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to register jetbrains-ide adapter",
       err && err.message,
     );
   }
@@ -588,6 +724,18 @@ async function initHub() {
   }
 
   try {
+    const hbuilderx = new HBuilderXAdapter();
+    if (!registry.has(hbuilderx.name)) {
+      registry.register(hbuilderx);
+    }
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to register hbuilderx adapter",
+      err && err.message,
+    );
+  }
+
+  try {
     const localFiles = new LocalFilesAdapter();
     if (!registry.has(localFiles.name)) {
       registry.register(localFiles);
@@ -595,6 +743,20 @@ async function initHub() {
   } catch (err) {
     logger.warn(
       "[PersonalDataHub] failed to register local-files adapter",
+      err && err.message,
+    );
+  }
+
+  // Tencent Meeting local history timeline. Discovery is schema-based because
+  // current clients use a hash-named SQLite database below Global/Database.
+  try {
+    const tencentMeeting = new TencentMeetingAdapter();
+    if (!registry.has(tencentMeeting.name)) {
+      registry.register(tencentMeeting);
+    }
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to register meeting-tencent adapter",
       err && err.message,
     );
   }
@@ -630,7 +792,7 @@ async function initHub() {
   // alias. The sqlite sync still requires user to pre-extract DB (Telegram
   // unencrypted, WhatsApp needs Crypt key, Amap needs root ADB pull) but the
   // registry slot is claimed so syncAdapter("<name>", path) routes correctly.
-  const runtimeCookieAdapterClasses = new Set([
+  const runtimeSourceAdapterClasses = new Set([
     TaobaoAdapter,
     JdAdapter,
     MeituanAdapter,
@@ -641,6 +803,8 @@ async function initHub() {
     VipshopAdapter,
     Train12306Adapter,
     ZhihuAdapter,
+    BaiduNetdiskAdapter,
+    WpsDocAdapter,
   ]);
   const sourceJsonFetch = createJsonSourceFetch();
   for (const Cls of [
@@ -716,7 +880,7 @@ async function initHub() {
       const adapter =
         Cls === WhatsAppAdapter
           ? new Cls({ bridgeProvider: () => desktopAdbBridge })
-          : runtimeCookieAdapterClasses.has(Cls)
+          : runtimeSourceAdapterClasses.has(Cls)
             ? new Cls({ fetchFn: sourceJsonFetch })
             : new Cls();
       if (!registry.has(adapter.name)) {

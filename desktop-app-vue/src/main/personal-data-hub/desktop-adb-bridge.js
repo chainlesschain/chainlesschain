@@ -92,19 +92,86 @@ async function adb(args, opts = {}) {
  */
 async function listDevices(opts = {}) {
   const stdout = await adb(["devices"], opts);
-  const lines = stdout.split("\n").slice(1); // drop "List of devices attached"
-  const serials = [];
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) {
+  return parseDeviceRows(stdout)
+    .filter((device) => device.state === "device")
+    .map((device) => device.serial);
+}
+
+function parseDeviceRows(stdout) {
+  const devices = [];
+  for (const rawLine of String(stdout || "")
+    .split("\n")
+    .slice(1)) {
+    const line = rawLine.replace(/\r+$/, "").trim();
+    if (!line) {
       continue;
     }
-    const [serial, state] = trimmed.split(/\s+/);
-    if (state === "device") {
-      serials.push(serial);
+    const [serial, state] = line.split(/\s+/, 2);
+    if (serial && state) {
+      devices.push({ serial, state });
     }
   }
-  return serials;
+  return devices;
+}
+
+async function probeDevices(opts = {}) {
+  const requestedSerial =
+    (typeof opts.serial === "string" && opts.serial.trim()) ||
+    (typeof process.env.ADB_SERIAL === "string" &&
+      process.env.ADB_SERIAL.trim()) ||
+    null;
+  const stdout = await adb(["devices"], { ...opts, serial: undefined });
+  const devices = parseDeviceRows(stdout);
+  const authorized = devices.filter((device) => device.state === "device");
+
+  if (requestedSerial) {
+    const selected = devices.find(
+      (device) => device.serial === requestedSerial,
+    );
+    if (!selected) {
+      return {
+        authorizedDeviceCount: 0,
+        deviceConnected: false,
+        requestedSerial,
+        reason: "ADB_SELECTED_DEVICE_NOT_FOUND",
+      };
+    }
+    if (selected.state !== "device") {
+      return {
+        authorizedDeviceCount: 0,
+        deviceConnected: false,
+        requestedSerial,
+        reason:
+          selected.state === "unauthorized"
+            ? "ADB_DEVICE_UNAUTHORIZED"
+            : "ADB_DEVICE_OFFLINE",
+      };
+    }
+    return {
+      authorizedDeviceCount: 1,
+      deviceConnected: true,
+      serial: requestedSerial,
+      requestedSerial,
+    };
+  }
+
+  if (authorized.length === 0) {
+    return {
+      authorizedDeviceCount: 0,
+      deviceConnected: false,
+      reason: devices.some((device) => device.state === "unauthorized")
+        ? "ADB_DEVICE_UNAUTHORIZED"
+        : devices.some((device) => device.state === "offline")
+          ? "ADB_DEVICE_OFFLINE"
+          : "ADB_DEVICE_NEEDED",
+    };
+  }
+  return {
+    authorizedDeviceCount: authorized.length,
+    deviceConnected: true,
+    serial: authorized.length === 1 ? authorized[0].serial : undefined,
+    reason: authorized.length > 1 ? "ADB_MULTIPLE_DEVICES" : undefined,
+  };
 }
 
 /**
@@ -182,7 +249,9 @@ function mergeContactRows(contactRows, phoneRows, emailRows, organizationRows) {
   for (const row of contactRows) {
     const contactId = row._id == null ? null : String(row._id);
     const displayName = row.display_name || null;
-    if (!contactId || !displayName) continue;
+    if (!contactId || !displayName) {
+      continue;
+    }
     byId.set(contactId, {
       lookupKey: row.lookup || null,
       displayName,
@@ -199,16 +268,22 @@ function mergeContactRows(contactRows, phoneRows, emailRows, organizationRows) {
     for (const row of rows) {
       const contact = byId.get(String(row.contact_id));
       const value = valueOf(row);
-      if (!contact || typeof value !== "string" || !value.trim()) continue;
+      if (!contact || typeof value !== "string" || !value.trim()) {
+        continue;
+      }
       const normalized = value.trim();
-      if (!contact[field].includes(normalized)) contact[field].push(normalized);
+      if (!contact[field].includes(normalized)) {
+        contact[field].push(normalized);
+      }
     }
   };
   appendUnique(phoneRows, "phones", (row) => row.data1 || row.number);
   appendUnique(emailRows, "emails", (row) => row.data1 || row.address);
   for (const row of organizationRows) {
     const contact = byId.get(String(row.contact_id));
-    if (!contact) continue;
+    if (!contact) {
+      continue;
+    }
     const organization = row.data1 || row.company;
     const jobTitle = row.data4 || row.title;
     if (!contact.organization && organization && organization.trim()) {
@@ -389,20 +464,27 @@ async function listMedia(params, opts) {
   const files = [];
   for (const rawLine of stdout.split("\n")) {
     const line = rawLine.replace(/\r+$/, "");
-    if (!line) continue;
+    if (!line) {
+      continue;
+    }
     const firstTab = line.indexOf("\t");
     const secondTab = line.indexOf("\t", firstTab + 1);
-    if (firstTab < 0 || secondTab < 0) continue;
+    if (firstTab < 0 || secondTab < 0) {
+      continue;
+    }
     const size = parseInt(line.substring(0, firstTab), 10);
     const mtimeSeconds = parseFloat(line.substring(firstTab + 1, secondTab));
     const filePath = line.substring(secondTab + 1);
     if (!Number.isFinite(size) || !Number.isFinite(mtimeSeconds) || !filePath) {
       continue;
     }
-    if (filePath.split("/").some((segment) => segment.startsWith(".")))
+    if (filePath.split("/").some((segment) => segment.startsWith("."))) {
       continue;
+    }
     const mtimeMs = Math.floor(mtimeSeconds * 1000);
-    if (sinceMs > 0 && mtimeMs < sinceMs) continue;
+    if (sinceMs > 0 && mtimeMs < sinceMs) {
+      continue;
+    }
     const lastDot = filePath.lastIndexOf(".");
     const ext =
       lastDot >= 0 ? filePath.substring(lastDot + 1).toLowerCase() : "";
@@ -430,6 +512,12 @@ const BUILTIN_METHODS = new Set([
   "call.query",
   "media.list",
 ]);
+
+function mergeInvokeOptions(baseOptions, params) {
+  const serial =
+    params && typeof params.serial === "string" ? params.serial.trim() : "";
+  return serial ? { ...baseOptions, serial } : baseOptions;
+}
 
 /**
  * Factory: returns an object matching the bridgeProvider contract
@@ -466,17 +554,18 @@ function createDesktopAdbBridge(opts = {}) {
       return Object.keys(extensions).filter((k) => !BUILTIN_METHODS.has(k));
     },
     async invoke(method, params = {}) {
+      const invokeOptions = mergeInvokeOptions(opts, params);
       switch (method) {
         case "contacts.query":
-          return await queryContacts(params, opts);
+          return await queryContacts(params, invokeOptions);
         case "app.list":
-          return await listApps(params, opts);
+          return await listApps(params, invokeOptions);
         case "sms.query":
-          return await querySms(params, opts);
+          return await querySms(params, invokeOptions);
         case "call.query":
-          return await queryCallLog(params, opts);
+          return await queryCallLog(params, invokeOptions);
         case "media.list":
-          return await listMedia(params, opts);
+          return await listMedia(params, invokeOptions);
         default: {
           const ext = extensions[method];
           if (typeof ext === "function") {
@@ -494,11 +583,16 @@ function createDesktopAdbBridge(opts = {}) {
 module.exports = {
   createDesktopAdbBridge,
   DesktopAdbBridgeUnavailableError,
+  listDevices,
+  probeDevices,
   // Exposed for unit testing without spawning real adb
   _internals: {
     parseContentQueryRows,
+    parseDeviceRows,
     mergeContactRows,
+    mergeInvokeOptions,
     listDevices,
+    probeDevices,
     pickDevice,
     queryContacts,
     listApps,

@@ -68,6 +68,17 @@ describe("Personal Data Hub default registry parity", () => {
     }
   });
 
+  it("reports the same detailed selected-device contract in both ADB readiness probes", () => {
+    for (const filePath of [DESKTOP_WIRING, CLI_WIRING]) {
+      const source = fs.readFileSync(filePath, "utf8");
+      expect(source).toContain("probeDevices");
+      expect(source).toContain("return await probeDevices({");
+      expect(source).toContain("process.env.ADB_SERIAL");
+      expect(source).toContain('"ADB_NOT_INSTALLED"');
+      expect(source).toContain('"ADB_PROBE_FAILED"');
+    }
+  });
+
   it("restores and registers the multi-vendor AI chat collector in both gateways", () => {
     for (const filePath of [DESKTOP_WIRING, CLI_WIRING]) {
       const source = fs.readFileSync(filePath, "utf8");
@@ -95,11 +106,11 @@ describe("Personal Data Hub default registry parity", () => {
     }
   });
 
-  it("wires the constrained source transport for ephemeral shopping and travel cookie sync in both gateways", () => {
+  it("wires constrained source transport for ephemeral cookie and OAuth sync in both gateways", () => {
     for (const filePath of [DESKTOP_WIRING, CLI_WIRING]) {
       const source = fs.readFileSync(filePath, "utf8");
       expect(source).toContain("createJsonSourceFetch");
-      expect(source).toContain("runtimeCookieAdapterClasses");
+      expect(source).toContain("runtimeSourceAdapterClasses");
       expect(source).toContain("new Cls({ fetchFn: sourceJsonFetch })");
       for (const className of [
         "TaobaoAdapter",
@@ -112,11 +123,101 @@ describe("Personal Data Hub default registry parity", () => {
         "VipshopAdapter",
         "Train12306Adapter",
         "ZhihuAdapter",
+        "BaiduNetdiskAdapter",
+        "WpsDocAdapter",
       ]) {
         expect(source).toMatch(
-          new RegExp(`runtimeCookieAdapterClasses[\\s\\S]+${className}`),
+          new RegExp(`runtimeSourceAdapterClasses[\\s\\S]+${className}`),
         );
       }
+    }
+  });
+
+  it("registers the Firefox local Places collector in both gateways", () => {
+    for (const filePath of [DESKTOP_WIRING, CLI_WIRING]) {
+      const source = fs.readFileSync(filePath, "utf8");
+      expect(source).toContain("BrowserHistoryFirefoxAdapter");
+      expect(source).toContain("new BrowserHistoryFirefoxAdapter()");
+      expect(source).toContain("registry.register(firefox)");
+    }
+  });
+
+  it("registers the Brave local Chromium collector in both gateways", () => {
+    for (const filePath of [DESKTOP_WIRING, CLI_WIRING]) {
+      const source = fs.readFileSync(filePath, "utf8");
+      expect(source).toContain("BrowserHistoryBraveAdapter");
+      expect(source).toContain("new BrowserHistoryBraveAdapter()");
+      expect(source).toContain("registry.register(brave)");
+    }
+  });
+
+  it.each([
+    ["Opera", "BrowserHistoryOperaAdapter", "opera"],
+    ["Vivaldi", "BrowserHistoryVivaldiAdapter", "vivaldi"],
+    ["Safari", "BrowserHistorySafariAdapter", "safari"],
+  ])(
+    "registers the %s local Chromium collector in both gateways",
+    (_label, className, variableName) => {
+      for (const filePath of [DESKTOP_WIRING, CLI_WIRING]) {
+        const source = fs.readFileSync(filePath, "utf8");
+        expect(source).toContain(className);
+        expect(source).toContain(`new ${className}()`);
+        expect(source).toContain(`registry.register(${variableName})`);
+      }
+    },
+  );
+
+  it("registers the Tencent Meeting local history collector in both gateways", () => {
+    for (const filePath of [DESKTOP_WIRING, CLI_WIRING]) {
+      const source = fs.readFileSync(filePath, "utf8");
+      expect(source).toContain("TencentMeetingAdapter");
+      expect(source).toContain("new TencentMeetingAdapter()");
+      expect(source).toContain("registry.register(tencentMeeting)");
+    }
+  });
+
+  it("registers the JetBrains recent-project collector in both gateways", () => {
+    for (const filePath of [DESKTOP_WIRING, CLI_WIRING]) {
+      const source = fs.readFileSync(filePath, "utf8");
+      expect(source).toContain("JetBrainsIdeAdapter");
+      expect(source).toContain("new JetBrainsIdeAdapter()");
+      expect(source).toContain("registry.register(jetbrains)");
+    }
+  });
+
+  it("registers the VSCodium local activity collector in both gateways", () => {
+    for (const filePath of [DESKTOP_WIRING, CLI_WIRING]) {
+      const source = fs.readFileSync(filePath, "utf8");
+      expect(source).toContain("VSCodiumAdapter");
+      expect(source).toContain("new VSCodiumAdapter()");
+      expect(source).toContain("registry.register(vscodium)");
+    }
+  });
+
+  it("registers the Cursor local Agent collector in both gateways", () => {
+    for (const filePath of [DESKTOP_WIRING, CLI_WIRING]) {
+      const source = fs.readFileSync(filePath, "utf8");
+      expect(source).toContain("CursorAdapter");
+      expect(source).toContain("new CursorAdapter()");
+      expect(source).toContain("registry.register(cursor)");
+    }
+  });
+
+  it("registers the Claude Code local conversation collector in both gateways", () => {
+    for (const filePath of [DESKTOP_WIRING, CLI_WIRING]) {
+      const source = fs.readFileSync(filePath, "utf8");
+      expect(source).toContain("ClaudeCodeAdapter");
+      expect(source).toContain("new ClaudeCodeAdapter()");
+      expect(source).toContain("registry.register(claudeCode)");
+    }
+  });
+
+  it("registers the HBuilderX local file-activity collector in both gateways", () => {
+    for (const filePath of [DESKTOP_WIRING, CLI_WIRING]) {
+      const source = fs.readFileSync(filePath, "utf8");
+      expect(source).toContain("HBuilderXAdapter");
+      expect(source).toContain("new HBuilderXAdapter()");
+      expect(source).toContain("registry.register(hbuilderx)");
     }
   });
 });

@@ -25,6 +25,39 @@ const require_ = createRequire(import.meta.url);
 const { createDesktopAdbBridge, DesktopAdbBridgeUnavailableError, _internals } =
   require_("../desktop-adb-bridge.js");
 
+it("applies a per-invocation serial without mutating bridge defaults", () => {
+  const defaults = { adbPath: "custom-adb", timeoutMs: 1000 };
+  expect(
+    _internals.mergeInvokeOptions(defaults, { serial: " DEVICE-123 " }),
+  ).toEqual({
+    adbPath: "custom-adb",
+    timeoutMs: 1000,
+    serial: "DEVICE-123",
+  });
+  expect(defaults).toEqual({ adbPath: "custom-adb", timeoutMs: 1000 });
+  expect(_internals.mergeInvokeOptions(defaults, { serial: " " })).toBe(
+    defaults,
+  );
+});
+
+it("parses authorized, unauthorized, and offline ADB rows without conflating them", () => {
+  expect(
+    _internals.parseDeviceRows(
+      [
+        "List of devices attached",
+        "SER-OK\tdevice product:x",
+        "SER-WAIT\tunauthorized",
+        "SER-OFF\toffline",
+        "",
+      ].join("\r\n"),
+    ),
+  ).toEqual([
+    { serial: "SER-OK", state: "device" },
+    { serial: "SER-WAIT", state: "unauthorized" },
+    { serial: "SER-OFF", state: "offline" },
+  ]);
+});
+
 describe("desktop-adb-bridge — extension API (Phase B0)", () => {
   it("merges phones, emails, organization, and job title into contacts", () => {
     const contacts = _internals.mergeContactRows(
