@@ -44,16 +44,10 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "22"
-
-      - name: Cache node modules
-        uses: actions/cache@v5
-        with:
-          path: |
-            desktop-app-vue/node_modules
-            ~/.npm
-          key: ${{ runner.os }}-node-v2-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-v2-
+          cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            desktop-app-vue/package-lock.json
 
       - name: Install dependencies (workspace-aware)
         uses: ./.github/actions/setup-node-deps
@@ -85,17 +79,10 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "22"
-
-      - name: Cache node modules
-        uses: actions/cache@v5
-        with:
-          path: |
-            node_modules
-            desktop-app-vue/node_modules
-            ~/.npm
-          key: ${{ runner.os }}-node-v2-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-v2-
+          cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            desktop-app-vue/package-lock.json
 
       - name: Install dependencies (workspace-aware)
         uses: ./.github/actions/setup-node-deps
@@ -123,16 +110,10 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "22"
-
-      - name: Cache node modules
-        uses: actions/cache@v5
-        with:
-          path: |
-            desktop-app-vue/node_modules
-            ~/.npm
-          key: ${{ runner.os }}-node-v2-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-v2-
+          cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            desktop-app-vue/package-lock.json
 
       - name: Install dependencies (workspace-aware)
         uses: ./.github/actions/setup-node-deps
@@ -159,16 +140,10 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "22"
-
-      - name: Cache node modules
-        uses: actions/cache@v5
-        with:
-          path: |
-            desktop-app-vue/node_modules
-            ~/.npm
-          key: ${{ runner.os }}-node-v2-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-v2-
+          cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            desktop-app-vue/package-lock.json
 
       - name: Install dependencies (workspace-aware)
         uses: ./.github/actions/setup-node-deps
@@ -194,21 +169,15 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "22"
+          cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            desktop-app-vue/package-lock.json
 
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libx11-dev libxtst-dev libpng-dev
-
-      - name: Cache node modules
-        uses: actions/cache@v5
-        with:
-          path: |
-            desktop-app-vue/node_modules
-            ~/.npm
-          key: ${{ runner.os }}-node-v2-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-v2-
 
       - name: Install dependencies (workspace-aware)
         uses: ./.github/actions/setup-node-deps

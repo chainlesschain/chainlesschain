@@ -35,16 +35,10 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node-version }}
-
-      - name: Cache node modules
-        uses: actions/cache@v5
-        with:
-          path: |
-            desktop-app-vue/node_modules
-            ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+          cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            desktop-app-vue/package-lock.json
 
       - name: Install dependencies
         uses: ./.github/actions/setup-node-deps
@@ -146,16 +140,10 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "22.x"
-
-      - name: Cache node modules
-        uses: actions/cache@v5
-        with:
-          path: |
-            desktop-app-vue/node_modules
-            ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+          cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            desktop-app-vue/package-lock.json
 
       - name: Install dependencies
         uses: ./.github/actions/setup-node-deps
@@ -190,16 +178,10 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "22.x"
-
-      - name: Cache node modules
-        uses: actions/cache@v5
-        with:
-          path: |
-            desktop-app-vue/node_modules
-            ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+          cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            desktop-app-vue/package-lock.json
 
       - name: Install dependencies
         uses: ./.github/actions/setup-node-deps
@@ -274,16 +256,10 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "22.x"
-
-      - name: Cache node modules
-        uses: actions/cache@v5
-        with:
-          path: |
-            desktop-app-vue/node_modules
-            ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+          cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            desktop-app-vue/package-lock.json
 
       - name: Install dependencies
         uses: ./.github/actions/setup-node-deps
@@ -323,7 +299,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Mirror the REAL repo layout (packages/… + scripts/…) in a scratch dir
+          # Mirror the REAL repo layout (packages/… + scripts/… + docs/…) in a scratch dir
           # OUTSIDE the workspace so npm install resolves standalone — bs3mc then
           # gets the host-Node prebuild (ABI 127), not desktop-app-vue's Electron
           # build. Full depth (packages/personal-data-hub + packages/cli +
@@ -334,13 +310,14 @@ jobs:
           #     (which in turn → ../../packages/personal-data-hub/lib/forensics/leaf-salvage.js)
           ROOT="${RUNNER_TEMP}/pdh-ci"
           rm -rf "$ROOT"
-          mkdir -p "$ROOT/packages/personal-data-hub" "$ROOT/packages/cli" "$ROOT/scripts/android"
+          mkdir -p "$ROOT/packages/personal-data-hub" "$ROOT/packages/cli" "$ROOT/scripts/android" "$ROOT/docs/internal"
           cp -r packages/personal-data-hub/lib "$ROOT/packages/personal-data-hub/"
           cp -r packages/personal-data-hub/__tests__ "$ROOT/packages/personal-data-hub/"
           cp packages/personal-data-hub/package.json "$ROOT/packages/personal-data-hub/"
           cp packages/personal-data-hub/vitest.config.js "$ROOT/packages/personal-data-hub/"
           cp -r packages/cli/src "$ROOT/packages/cli/src"   # host-adb-bridge.js (node builtins only)
           cp scripts/android/pdh-sqlite-leaf-salvage.js "$ROOT/scripts/android/"  # leaf-salvage test re-export target
+          cp docs/internal/pdh-app-data-catalog.json "$ROOT/docs/internal/"  # catalog completeness fixture
           cd "$ROOT/packages/personal-data-hub"
           npm install --no-audit --no-fund --loglevel=warn
           # Plain better-sqlite3 (browser-history / *-adb / vscode adapters read
@@ -377,16 +354,10 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "22.x"
-
-      - name: Cache node modules
-        uses: actions/cache@v5
-        with:
-          path: |
-            desktop-app-vue/node_modules
-            ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+          cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            desktop-app-vue/package-lock.json
 
       - name: Install dependencies
         uses: ./.github/actions/setup-node-deps

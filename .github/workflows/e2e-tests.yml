@@ -42,7 +42,7 @@ jobs:
       - name: Install root dependencies
         uses: ./.github/actions/setup-node-deps
         with:
-          install-command: ${{ runner.os == 'Windows' && 'npm install --legacy-peer-deps --ignore-scripts' || 'npm install --legacy-peer-deps' }}
+          install-command: ${{ runner.os == 'Windows' && 'npm ci --legacy-peer-deps --ignore-scripts' || 'npm ci --legacy-peer-deps' }}
           install-desktop-app-vue: "true"
 
       - name: Install Electron runtime (Windows)

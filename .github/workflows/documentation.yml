@@ -70,20 +70,13 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "22.x"
-
-      - name: Cache node modules
-        uses: actions/cache@v5
-        with:
-          path: |
-            desktop-app-vue/node_modules
-            ~/.npm
-          key: ${{ runner.os }}-node-docs-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-docs-
-            ${{ runner.os }}-node-
+          cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            desktop-app-vue/package-lock.json
 
       - name: Install dependencies (workspace-aware)
-        run: npm install --legacy-peer-deps
+        run: npm ci --legacy-peer-deps
 
       - name: Install desktop-app-vue deps (post-workspace-refactor)
         working-directory: desktop-app-vue
@@ -145,8 +138,7 @@ jobs:
       # branch protection intact and makes the auto-docs reviewable/auto-mergeable.
       #
       # `add-paths` is scoped to the generated docs so the dirty root
-      # package-lock.json (left by the `npm install --legacy-peer-deps` step
-      # above) is never swept into the PR. The action reuses one branch
+      # package-lock.json is excluded from the generated-docs PR. The action reuses one branch
       # (`chore/auto-docs`) and updates the existing PR on subsequent runs.
       #
       # NOTE: requires the repo setting "Allow GitHub Actions to create and
