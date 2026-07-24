@@ -34,19 +34,44 @@ describe("gov-tax mappers", () => {
     expect(tx.toAmount("abc")).toBe(null);
   });
   it("mapIncome / mapDeclaration field aliases; no id → null", () => {
-    const inc = tx.mapIncome({ record_id: "I1", tax_period: "2025-03", income_type: "工资薪金", amount: "20,000", withheldTax: 1234.56, company: "某某公司", companyId: "9144" });
-    expect(inc).toMatchObject({ recordId: "I1", incomeType: "工资薪金", payerName: "某某公司", payerId: "9144" });
+    const inc = tx.mapIncome({
+      record_id: "I1",
+      tax_period: "2025-03",
+      income_type: "工资薪金",
+      amount: "20,000",
+      withheldTax: 1234.56,
+      company: "某某公司",
+      companyId: "9144",
+    });
+    expect(inc).toMatchObject({
+      recordId: "I1",
+      incomeType: "工资薪金",
+      payerName: "某某公司",
+      payerId: "9144",
+    });
     expect(inc.amount).toBe(20000);
     expect(inc.withheld).toBeCloseTo(1234.56, 2);
     expect(tx.mapIncome({ amount: 1 })).toBe(null);
-    const dec = tx.mapDeclaration({ id: "D1", tax_year: 2024, type: "综合所得年度汇算", status: "已退税", amount: -800 });
-    expect(dec).toMatchObject({ recordId: "D1", year: 2024, declType: "综合所得年度汇算", status: "已退税", settleAmount: -800 });
+    const dec = tx.mapDeclaration({
+      id: "D1",
+      tax_year: 2024,
+      type: "综合所得年度汇算",
+      status: "已退税",
+      amount: -800,
+    });
+    expect(dec).toMatchObject({
+      recordId: "D1",
+      year: 2024,
+      declType: "综合所得年度汇算",
+      status: "已退税",
+      settleAmount: -800,
+    });
     expect(tx.mapDeclaration({ year: 2024 })).toBe(null);
   });
   it("extractList tolerant", () => {
     expect(tx.extractList({ list: [{ id: 1 }] })).toHaveLength(1);
     expect(tx.extractList({ data: { records: [{ id: 1 }] } })).toHaveLength(1);
-    expect(tx.extractList({})).toEqual([]);
+    expect(() => tx.extractList({})).toThrow(/recognized list/u);
   });
 });
 
@@ -56,8 +81,27 @@ describe("TaxAdapter (snapshot + cookie-api)", () => {
     snapshottedAt: 1716383000000,
     account: { userId: "u1" },
     events: [
-      { kind: "income", id: "inc-I1", recordId: "I1", period: "2025-03", incomeType: "工资薪金", amount: 20000, withheld: 1234.56, payerName: "某某科技有限公司", payerId: "9144ABC" },
-      { kind: "declaration", id: "dec-D1", recordId: "D1", year: 2024, declType: "综合所得年度汇算", status: "已退税", settleAmount: -800, declaredAt: 1716383000 },
+      {
+        kind: "income",
+        id: "inc-I1",
+        recordId: "I1",
+        period: "2025-03",
+        incomeType: "工资薪金",
+        amount: 20000,
+        withheld: 1234.56,
+        payerName: "某某科技有限公司",
+        payerId: "9144ABC",
+      },
+      {
+        kind: "declaration",
+        id: "dec-D1",
+        recordId: "D1",
+        year: 2024,
+        declType: "综合所得年度汇算",
+        status: "已退税",
+        settleAmount: -800,
+        declaredAt: 1716383000,
+      },
     ],
   });
 
@@ -65,7 +109,9 @@ describe("TaxAdapter (snapshot + cookie-api)", () => {
     const p = writeTmp(SNAP);
     try {
       const a = new tx.TaxAdapter();
-      expect((await a.authenticate({ inputPath: p })).mode).toBe("snapshot-file");
+      expect((await a.authenticate({ inputPath: p })).mode).toBe(
+        "snapshot-file",
+      );
       const items = await collect(a.sync({ inputPath: p }));
       expect(items).toHaveLength(2);
       const inc = a.normalize(items[0]);
@@ -116,21 +162,109 @@ describe("TaxAdapter (snapshot + cookie-api)", () => {
       },
       fetchFn: async ({ url, query }) => {
         if (query.page > 1) return { list: [] };
-        if (url.includes("/income")) return { list: [{ recordId: "I9", period: "2025-01", incomeType: "劳务报酬", amount: 5000 }] };
-        return { list: [{ recordId: "D9", year: 2024, declType: "年度汇算", settleAmount: 300 }] };
+        if (url.includes("/income"))
+          return {
+            list: [
+              {
+                recordId: "I9",
+                period: "2025-01",
+                incomeType: "劳务报酬",
+                amount: 5000,
+              },
+            ],
+          };
+        return {
+          list: [
+            {
+              recordId: "D9",
+              year: 2024,
+              declType: "年度汇算",
+              settleAmount: 300,
+            },
+          ],
+        };
       },
     });
     const auth = await a.authenticate();
     expect(auth).toMatchObject({ ok: true, mode: "cookie", unverified: true });
     const items = await collect(a.sync({}));
     expect(items).toHaveLength(2);
-    expect(items.map((i) => i.originalId).sort()).toEqual(["tax:declaration:D9", "tax:income:I9"]);
+    expect(items.map((i) => i.originalId).sort()).toEqual([
+      "tax:declaration:D9",
+      "tax:income:I9",
+    ]);
     expect(signed).toBeGreaterThan(0);
   });
 
+  it("cookie-api: continues past old rows and waits for an empty page", async () => {
+    const pages = [];
+    let watermarkCompletions = 0;
+    const a = new tx.TaxAdapter({
+      account: { cookies: COOKIES },
+      incomeUrl: "https://captured.example/income",
+      declarationUrl: "https://captured.example/declaration",
+      fetchFn: async ({ query }) => {
+        pages.push(query.page);
+        return query.page === 1
+          ? {
+              list: [
+                { recordId: "OLD", period: "2024-12" },
+                { recordId: "NEW", period: "2025-02" },
+              ],
+            }
+          : { list: [] };
+      },
+    });
+
+    const items = await collect(
+      a.sync({
+        include: { declaration: false },
+        sinceWatermark: Date.parse("2025-01-01T00:00:00Z"),
+        markWatermarkComplete: () => {
+          watermarkCompletions += 1;
+        },
+      }),
+    );
+
+    expect(items.map((item) => item.originalId)).toEqual(["tax:income:NEW"]);
+    expect(pages).toEqual([1, 2]);
+    expect(watermarkCompletions).toBe(1);
+  });
+
+  it.each([
+    ["HTML login page", "<html>login</html>", "SOURCE_PAGE_UNRECOGNIZED"],
+    ["business error", { code: 401, list: [] }, "SOURCE_PAGE_ERROR"],
+  ])(
+    "cookie-api: rejects a %s without completing the watermark",
+    async (_label, response, expectedCode) => {
+      let watermarkCompletions = 0;
+      const a = new tx.TaxAdapter({
+        account: { cookies: COOKIES },
+        incomeUrl: "https://captured.example/income",
+        declarationUrl: "https://captured.example/declaration",
+        fetchFn: async () => response,
+      });
+
+      await expect(
+        collect(
+          a.sync({
+            include: { declaration: false },
+            markWatermarkComplete: () => {
+              watermarkCompletions += 1;
+            },
+          }),
+        ),
+      ).rejects.toMatchObject({ code: expectedCode });
+      expect(watermarkCompletions).toBe(0);
+    },
+  );
+
   it("unverified live endpoints are rejected; no input throws", async () => {
     const a = new tx.TaxAdapter({ account: { cookies: COOKIES } });
-    expect(await a.authenticate()).toMatchObject({ ok: false, reason: "EXPLICIT_ENDPOINT_REQUIRED" });
+    expect(await a.authenticate()).toMatchObject({
+      ok: false,
+      reason: "EXPLICIT_ENDPOINT_REQUIRED",
+    });
     await expect(collect(a.sync({}))).rejects.toThrow(/explicit incomeUrl/);
     const b = new tx.TaxAdapter();
     await expect(collect(b.sync({}))).rejects.toThrow(/needs opts.inputPath/);

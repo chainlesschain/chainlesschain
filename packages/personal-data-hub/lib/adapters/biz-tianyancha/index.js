@@ -32,7 +32,12 @@
 "use strict";
 
 const fs = require("node:fs");
+const {
+  probeJsonSnapshotFile,
+  readJsonSnapshot,
+} = require("../../snapshot-file");
 const { newId } = require("../../ids");
+const { extractRecognizedArray } = require("../../source-page");
 const {
   ENTITY_TYPES,
   EVENT_SUBTYPES,
@@ -72,7 +77,10 @@ function stableOriginalId(kind, id) {
   const safe =
     (typeof id === "string" && id.length > 0 && id) ||
     (typeof id === "number" && Number.isFinite(id) && String(id)) ||
-    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    null;
+  if (!safe) {
+    throw new Error(`${NAME}.sync: ${kind} event requires a stable source id`);
+  }
   return `tianyancha:${kind}:${safe}`;
 }
 
@@ -122,16 +130,12 @@ class TianyanchaAdapter {
 
   async authenticate(ctx = {}) {
     if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
-      try {
-        this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
-      } catch (err) {
-        return {
-          ok: false,
-          reason: "INPUT_PATH_UNREADABLE",
-          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
-        };
-      }
-      return { ok: true, mode: "snapshot-file" };
+      return probeJsonSnapshotFile(this._deps.fs, ctx.inputPath, {
+        maxBytes: ctx.maxSnapshotBytes,
+        expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        requiredArrayFields: ["events"],
+        allowedEventKinds: VALID_SNAPSHOT_KINDS,
+      });
     }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
@@ -180,17 +184,12 @@ class TianyanchaAdapter {
   }
 
   async *_syncViaSnapshot(opts) {
-    const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
-    const snapshot = JSON.parse(raw);
-    if (
-      !snapshot ||
-      typeof snapshot !== "object" ||
-      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
-    ) {
-      throw new Error(
-        `biz-tianyancha.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
-      );
-    }
+    const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
+      maxBytes: opts.maxSnapshotBytes,
+      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      requiredArrayFields: ["events"],
+      allowedEventKinds: VALID_SNAPSHOT_KINDS,
+    });
     const fallback =
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
@@ -215,6 +214,9 @@ class TianyanchaAdapter {
       if (include[ev.kind] === false) continue;
       const id =
         (typeof ev.id === "string" && ev.id) ||
+        (typeof ev.id === "number" &&
+          Number.isFinite(ev.id) &&
+          String(ev.id)) ||
         ev.companyId ||
         ev.query ||
         null;
@@ -279,12 +281,11 @@ class TianyanchaAdapter {
           query,
           sign,
         });
-        const items = extractData(resp);
+        const items = extractData(resp, step.kind);
         if (!items.length) {
           streamComplete = true;
           break;
         }
-        let reachedWatermark = false;
         for (const it of items) {
           if (!it || typeof it !== "object") continue;
           const capturedAt =
@@ -292,8 +293,7 @@ class TianyanchaAdapter {
               it.createTime || it.monitorTime || it.searchTime || it.gmtCreate,
             ) || Date.now();
           if (capturedAt < sinceMs) {
-            reachedWatermark = true;
-            break;
+            continue;
           }
           if (emitted >= limit) return;
           yield {
@@ -304,10 +304,6 @@ class TianyanchaAdapter {
             payload: { item: it, kind: step.kind, cookie: true },
           };
           emitted += 1;
-        }
-        if (reachedWatermark || items.length < PAGE_SIZE) {
-          streamComplete = true;
-          break;
         }
         pageNum += 1;
       }
@@ -331,18 +327,19 @@ class TianyanchaAdapter {
 
 // ─── cookie response helpers ─────────────────────────────────────────────────
 
-function extractData(resp) {
-  if (!resp || typeof resp !== "object") return [];
-  if (Array.isArray(resp.data)) return resp.data;
-  if (Array.isArray(resp.list)) return resp.list;
-  const d = resp.data;
-  if (d && typeof d === "object") {
-    if (Array.isArray(d.list)) return d.list;
-    if (Array.isArray(d.items)) return d.items;
-    if (Array.isArray(d.resultList)) return d.resultList;
-    if (Array.isArray(d.records)) return d.records;
-  }
-  return [];
+function extractData(resp, stream) {
+  return extractRecognizedArray(
+    resp,
+    [
+      ["data"],
+      ["list"],
+      ["data", "list"],
+      ["data", "items"],
+      ["data", "resultList"],
+      ["data", "records"],
+    ],
+    { source: NAME, stream },
+  );
 }
 
 // ─── per-kind normalizers (snapshot fields OR cookie payload.item) ────────────

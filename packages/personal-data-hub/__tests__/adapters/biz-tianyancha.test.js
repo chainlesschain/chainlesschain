@@ -32,8 +32,22 @@ const SNAP = JSON.stringify({
   snapshottedAt: 1716383000000,
   account: { userId: "u1" },
   events: [
-    { kind: "monitor", id: "mon-G1", companyId: "G1", companyName: "字节跳动有限公司", legalPerson: "张利东", regStatus: "存续", capturedAt: 1716300000000 },
-    { kind: "search", id: "s-1", query: "小米科技", companyName: "小米科技有限责任公司", capturedAt: 1716320000000 },
+    {
+      kind: "monitor",
+      id: "mon-G1",
+      companyId: "G1",
+      companyName: "字节跳动有限公司",
+      legalPerson: "张利东",
+      regStatus: "存续",
+      capturedAt: 1716300000000,
+    },
+    {
+      kind: "search",
+      id: "s-1",
+      query: "小米科技",
+      companyName: "小米科技有限责任公司",
+      capturedAt: 1716320000000,
+    },
   ],
 });
 
@@ -47,7 +61,10 @@ describe("constants + extractData", () => {
     expect(extractData({ data: [{ id: 1 }] })).toHaveLength(1);
     expect(extractData({ data: { resultList: [{ id: 1 }] } })).toHaveLength(1);
     expect(extractData({ list: [{ id: 1 }] })).toHaveLength(1);
-    expect(extractData({})).toEqual([]);
+    expect(extractData({ list: [] })).toEqual([]);
+    expect(() => extractData({})).toThrow(
+      expect.objectContaining({ code: "SOURCE_PAGE_UNRECOGNIZED" }),
+    );
   });
 });
 
@@ -56,8 +73,16 @@ describe("TianyanchaAdapter snapshot mode", () => {
     const p = writeTmp(SNAP);
     try {
       const a = new TianyanchaAdapter();
-      expect((await a.authenticate({ inputPath: p })).mode).toBe("snapshot-file");
-      expect((await a.authenticate({ inputPath: path.join(os.tmpdir(), "no-tyc.json") })).reason).toBe("INPUT_PATH_UNREADABLE");
+      expect((await a.authenticate({ inputPath: p })).mode).toBe(
+        "snapshot-file",
+      );
+      expect(
+        (
+          await a.authenticate({
+            inputPath: path.join(os.tmpdir(), "no-tyc.json"),
+          })
+        ).reason,
+      ).toBe("INPUT_PATH_UNREADABLE");
     } finally {
       fs.unlinkSync(p);
     }
@@ -89,16 +114,24 @@ describe("TianyanchaAdapter snapshot mode", () => {
     const p = writeTmp(SNAP);
     try {
       const a = new TianyanchaAdapter();
-      expect((await collect(a.sync({ inputPath: p, include: { monitor: false } }))).map((x) => x.kind)).toEqual(["search"]);
+      expect(
+        (
+          await collect(a.sync({ inputPath: p, include: { monitor: false } }))
+        ).map((x) => x.kind),
+      ).toEqual(["search"]);
       expect(await collect(a.sync({ inputPath: p, limit: 1 }))).toHaveLength(1);
-      expect(() => a.normalize({ kind: "bogus", payload: {} })).toThrow(/unknown kind/);
+      expect(() => a.normalize({ kind: "bogus", payload: {} })).toThrow(
+        /unknown kind/,
+      );
     } finally {
       fs.unlinkSync(p);
     }
     const bad = writeTmp(JSON.stringify({ schemaVersion: 9, events: [] }));
     try {
       const a = new TianyanchaAdapter();
-      await expect(collect(a.sync({ inputPath: bad }))).rejects.toThrow(/schemaVersion mismatch/);
+      await expect(collect(a.sync({ inputPath: bad }))).rejects.toThrow(
+        /schemaVersion mismatch/,
+      );
     } finally {
       fs.unlinkSync(bad);
     }
@@ -108,13 +141,24 @@ describe("TianyanchaAdapter snapshot mode", () => {
 describe("TianyanchaAdapter cookie-api mode", () => {
   it("authenticate cookie (userId optional)", async () => {
     const a = new TianyanchaAdapter({ account: { cookies: COOKIES } });
-    expect(await a.authenticate()).toEqual({ ok: true, account: null, mode: "cookie" });
+    expect(await a.authenticate()).toEqual({
+      ok: true,
+      account: null,
+      mode: "cookie",
+    });
   });
 
   it("sync fetches monitor + search, normalizes", async () => {
     const byUrl = (u) => (u.includes("monitor") ? "monitor" : "search");
     const data = {
-      monitor: [{ graphId: "G9", companyName: "腾讯科技", legalPersonName: "马化腾", createTime: 1716300000 }],
+      monitor: [
+        {
+          graphId: "G9",
+          companyName: "腾讯科技",
+          legalPersonName: "马化腾",
+          createTime: 1716300000,
+        },
+      ],
       search: [{ id: "h1", keyword: "阿里巴巴", searchTime: 1716320000 }],
     };
     const calls = [];
@@ -128,7 +172,9 @@ describe("TianyanchaAdapter cookie-api mode", () => {
     });
     const items = await collect(a.sync({}));
     expect(items.map((x) => x.kind).sort()).toEqual(["monitor", "search"]);
-    expect(calls.every((c) => c.cookies === COOKIES && c.sign === null)).toBe(true);
+    expect(calls.every((c) => c.cookies === COOKIES && c.sign === null)).toBe(
+      true,
+    );
     const mon = a.normalize(items.find((x) => x.kind === "monitor"));
     expect(mon.events[0].content.title).toBe("关注公司: 腾讯科技");
     expect(mon.events[0].extra.legalPerson).toBe("马化腾");
@@ -136,19 +182,62 @@ describe("TianyanchaAdapter cookie-api mode", () => {
     expect(search.events[0].content.title).toBe("搜索企业: 阿里巴巴");
   });
 
+  it("does not complete a capped scan on a non-empty short page", async () => {
+    let watermarkComplete = false;
+    const a = new TianyanchaAdapter({
+      account: { cookies: COOKIES },
+      fetchFn: async () => ({
+        data: { list: [{ graphId: "G-short", companyName: "short" }] },
+      }),
+    });
+
+    expect(
+      await collect(
+        a.sync({
+          include: { search: false },
+          maxPages: 1,
+          markWatermarkComplete: () => {
+            watermarkComplete = true;
+          },
+        }),
+      ),
+    ).toHaveLength(1);
+    expect(watermarkComplete).toBe(false);
+  });
+
   it("invokes signProvider + limit + empty + default fetch + no input", async () => {
     const signCalls = [];
     const a = new TianyanchaAdapter({
       account: { cookies: COOKIES },
-      fetchFn: async ({ query }) => ({ data: { list: query.pageNum === 1 ? [{ graphId: "G1", companyName: "a" }, { graphId: "G2", companyName: "b" }] : [] } }),
-      signProvider: async (ctx) => { signCalls.push(ctx); return "sig"; },
+      fetchFn: async ({ query }) => ({
+        data: {
+          list:
+            query.pageNum === 1
+              ? [
+                  { graphId: "G1", companyName: "a" },
+                  { graphId: "G2", companyName: "b" },
+                ]
+              : [],
+        },
+      }),
+      signProvider: async (ctx) => {
+        signCalls.push(ctx);
+        return "sig";
+      },
     });
-    expect(await collect(a.sync({ limit: 1, include: { search: false } }))).toHaveLength(1);
+    expect(
+      await collect(a.sync({ limit: 1, include: { search: false } })),
+    ).toHaveLength(1);
     expect(signCalls.length).toBeGreaterThan(0);
     expect(signCalls[0].cookies).toBe(COOKIES);
 
-    const a2 = new TianyanchaAdapter({ account: { cookies: COOKIES }, fetchFn: async () => "<html>login</html>" });
-    expect(await collect(a2.sync({}))).toEqual([]);
+    const a2 = new TianyanchaAdapter({
+      account: { cookies: COOKIES },
+      fetchFn: async () => "<html>login</html>",
+    });
+    await expect(collect(a2.sync({}))).rejects.toMatchObject({
+      code: "SOURCE_PAGE_UNRECOGNIZED",
+    });
 
     const a3 = new TianyanchaAdapter({ account: { cookies: COOKIES } });
     await expect(collect(a3.sync({}))).rejects.toThrow(/no fetchFn configured/);

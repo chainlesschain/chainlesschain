@@ -34,8 +34,27 @@ const SNAP = JSON.stringify({
   snapshottedAt: 1716383000000,
   account: { userId: "u1", name: "我" },
   events: [
-    { kind: "chat", id: "chat-J1", jobId: "J1", jobTitle: "前端工程师", company: "字节跳动", hrName: "李 HR", hrId: "HR9", salary: "25-40K", city: "北京", lastChatTime: 1716300000 },
-    { kind: "application", id: "apply-J2", jobId: "J2", jobTitle: "后端工程师", company: "腾讯", status: "已查看", deliverTime: 1716310000 },
+    {
+      kind: "chat",
+      id: "chat-J1",
+      jobId: "J1",
+      jobTitle: "前端工程师",
+      company: "字节跳动",
+      hrName: "李 HR",
+      hrId: "HR9",
+      salary: "25-40K",
+      city: "北京",
+      lastChatTime: 1716300000,
+    },
+    {
+      kind: "application",
+      id: "apply-J2",
+      jobId: "J2",
+      jobTitle: "后端工程师",
+      company: "腾讯",
+      status: "已查看",
+      deliverTime: 1716310000,
+    },
   ],
 });
 
@@ -46,20 +65,51 @@ describe("constants + item mappers", () => {
     expect(SNAPSHOT_SCHEMA_VERSION).toBe(1);
   });
   it("chatItemToRecord maps BOSS chat fields", () => {
-    const r = chatItemToRecord({ jobId: "J1", jobName: "前端", brandName: "字节", bossName: "王HR", bossId: "B1", salaryDesc: "30K", cityName: "深圳", lastChatTime: 1716300000 });
-    expect(r).toMatchObject({ id: "J1", jobTitle: "前端", company: "字节", hrName: "王HR", hrId: "B1", salary: "30K", city: "深圳" });
+    const r = chatItemToRecord({
+      jobId: "J1",
+      jobName: "前端",
+      brandName: "字节",
+      bossName: "王HR",
+      bossId: "B1",
+      salaryDesc: "30K",
+      cityName: "深圳",
+      lastChatTime: 1716300000,
+    });
+    expect(r).toMatchObject({
+      id: "J1",
+      jobTitle: "前端",
+      company: "字节",
+      hrName: "王HR",
+      hrId: "B1",
+      salary: "30K",
+      city: "深圳",
+    });
     expect(r.occurredAt).toBe(1716300000000);
     expect(chatItemToRecord({ jobName: "noid" })).toBe(null);
   });
   it("applicationItemToRecord maps delivery fields", () => {
-    const r = applicationItemToRecord({ jobId: "J2", jobName: "后端", brandName: "腾讯", statusDesc: "已查看", deliverTime: 1716310000 });
-    expect(r).toMatchObject({ id: "J2", jobTitle: "后端", company: "腾讯", status: "已查看" });
+    const r = applicationItemToRecord({
+      jobId: "J2",
+      jobName: "后端",
+      brandName: "腾讯",
+      statusDesc: "已查看",
+      deliverTime: 1716310000,
+    });
+    expect(r).toMatchObject({
+      id: "J2",
+      jobTitle: "后端",
+      company: "腾讯",
+      status: "已查看",
+    });
     expect(r.occurredAt).toBe(1716310000000);
   });
   it("extractData tolerant (data/list/zpData.list)", () => {
     expect(extractData({ data: [{ jobId: 1 }] })).toHaveLength(1);
     expect(extractData({ zpData: { list: [{ jobId: 1 }] } })).toHaveLength(1);
-    expect(extractData({})).toEqual([]);
+    expect(extractData({ list: [] })).toEqual([]);
+    expect(() => extractData({})).toThrow(
+      expect.objectContaining({ code: "SOURCE_PAGE_UNRECOGNIZED" }),
+    );
   });
 });
 
@@ -68,8 +118,16 @@ describe("BossZhipinAdapter snapshot mode", () => {
     const p = writeTmp(SNAP);
     try {
       const a = new BossZhipinAdapter();
-      expect((await a.authenticate({ inputPath: p })).mode).toBe("snapshot-file");
-      expect((await a.authenticate({ inputPath: path.join(os.tmpdir(), "no-boss.json") })).reason).toBe("INPUT_PATH_UNREADABLE");
+      expect((await a.authenticate({ inputPath: p })).mode).toBe(
+        "snapshot-file",
+      );
+      expect(
+        (
+          await a.authenticate({
+            inputPath: path.join(os.tmpdir(), "no-boss.json"),
+          })
+        ).reason,
+      ).toBe("INPUT_PATH_UNREADABLE");
     } finally {
       fs.unlinkSync(p);
     }
@@ -84,7 +142,9 @@ describe("BossZhipinAdapter snapshot mode", () => {
 
       const chat = a.normalize(items[0]);
       expect(chat.events[0].subtype).toBe("interaction");
-      expect(chat.events[0].content.title).toBe("沟通职位: 前端工程师 @ 字节跳动");
+      expect(chat.events[0].content.title).toBe(
+        "沟通职位: 前端工程师 @ 字节跳动",
+      );
       expect(chat.persons[0].subtype).toBe("contact");
       expect(chat.persons[0].names).toEqual(["李 HR"]);
       expect(chat.persons[0].identifiers["boss-hr-id"]).toEqual(["HR9"]);
@@ -103,16 +163,24 @@ describe("BossZhipinAdapter snapshot mode", () => {
     const p = writeTmp(SNAP);
     try {
       const a = new BossZhipinAdapter();
-      expect((await collect(a.sync({ inputPath: p, include: { chat: false } }))).map((x) => x.kind)).toEqual(["application"]);
+      expect(
+        (await collect(a.sync({ inputPath: p, include: { chat: false } }))).map(
+          (x) => x.kind,
+        ),
+      ).toEqual(["application"]);
       expect(await collect(a.sync({ inputPath: p, limit: 1 }))).toHaveLength(1);
-      expect(() => a.normalize({ kind: "bogus", payload: {} })).toThrow(/unknown kind/);
+      expect(() => a.normalize({ kind: "bogus", payload: {} })).toThrow(
+        /unknown kind/,
+      );
     } finally {
       fs.unlinkSync(p);
     }
     const bad = writeTmp(JSON.stringify({ schemaVersion: 9, events: [] }));
     try {
       const a = new BossZhipinAdapter();
-      await expect(collect(a.sync({ inputPath: bad }))).rejects.toThrow(/schemaVersion mismatch/);
+      await expect(collect(a.sync({ inputPath: bad }))).rejects.toThrow(
+        /schemaVersion mismatch/,
+      );
     } finally {
       fs.unlinkSync(bad);
     }
@@ -122,14 +190,36 @@ describe("BossZhipinAdapter snapshot mode", () => {
 describe("BossZhipinAdapter cookie-api mode", () => {
   it("authenticate cookie mode (userId optional)", async () => {
     const a = new BossZhipinAdapter({ account: { cookies: COOKIES } });
-    expect(await a.authenticate()).toEqual({ ok: true, account: null, mode: "cookie" });
+    expect(await a.authenticate()).toEqual({
+      ok: true,
+      account: null,
+      mode: "cookie",
+    });
   });
 
   it("sync fetches chats + deliveries, normalizes", async () => {
-    const byUrl = (url) => (url.includes("contactList") ? "chats" : "deliveries");
+    const byUrl = (url) =>
+      url.includes("contactList") ? "chats" : "deliveries";
     const data = {
-      chats: [{ jobId: "C1", jobName: "全栈", brandName: "小米", bossName: "赵HR", bossId: "B2", lastChatTime: 1716300000 }],
-      deliveries: [{ jobId: "D1", jobName: "测试", brandName: "美团", statusDesc: "已投递", deliverTime: 1716310000 }],
+      chats: [
+        {
+          jobId: "C1",
+          jobName: "全栈",
+          brandName: "小米",
+          bossName: "赵HR",
+          bossId: "B2",
+          lastChatTime: 1716300000,
+        },
+      ],
+      deliveries: [
+        {
+          jobId: "D1",
+          jobName: "测试",
+          brandName: "美团",
+          statusDesc: "已投递",
+          deliverTime: 1716310000,
+        },
+      ],
     };
     const calls = [];
     const fetchFn = async ({ url, cookies, query, sign }) => {
@@ -140,7 +230,9 @@ describe("BossZhipinAdapter cookie-api mode", () => {
     const a = new BossZhipinAdapter({ account: { cookies: COOKIES }, fetchFn });
     const items = await collect(a.sync({}));
     expect(items.map((x) => x.kind).sort()).toEqual(["application", "chat"]);
-    expect(calls.every((c) => c.cookies === COOKIES && c.sign === null)).toBe(true);
+    expect(calls.every((c) => c.cookies === COOKIES && c.sign === null)).toBe(
+      true,
+    );
     const chat = a.normalize(items.find((x) => x.kind === "chat"));
     expect(chat.events[0].content.title).toBe("沟通职位: 全栈 @ 小米");
     expect(chat.persons[0].names).toEqual(["赵HR"]);
@@ -148,12 +240,42 @@ describe("BossZhipinAdapter cookie-api mode", () => {
     expect(app.events[0].content.title).toBe("投递简历: 测试 @ 美团");
   });
 
+  it("does not complete a capped scan on a non-empty short page", async () => {
+    let watermarkComplete = false;
+    const a = new BossZhipinAdapter({
+      account: { cookies: COOKIES },
+      fetchFn: async () => ({
+        zpData: { list: [{ jobId: "C-short", jobName: "short" }] },
+      }),
+    });
+
+    expect(
+      await collect(
+        a.sync({
+          include: { application: false },
+          maxPages: 1,
+          markWatermarkComplete: () => {
+            watermarkComplete = true;
+          },
+        }),
+      ),
+    ).toHaveLength(1);
+    expect(watermarkComplete).toBe(false);
+  });
+
   it("invokes signProvider when configured", async () => {
     const signCalls = [];
     const a = new BossZhipinAdapter({
       account: { cookies: COOKIES },
-      fetchFn: async ({ query }) => ({ zpData: { list: query.page === 1 ? [{ jobId: "C1", jobName: "x" }] : [] } }),
-      signProvider: async (ctx) => { signCalls.push(ctx); return "__zp_stoken__sig"; },
+      fetchFn: async ({ query }) => ({
+        zpData: {
+          list: query.page === 1 ? [{ jobId: "C1", jobName: "x" }] : [],
+        },
+      }),
+      signProvider: async (ctx) => {
+        signCalls.push(ctx);
+        return "__zp_stoken__sig";
+      },
     });
     const items = await collect(a.sync({ include: { application: false } }));
     expect(items.length).toBeGreaterThan(0);
@@ -164,12 +286,25 @@ describe("BossZhipinAdapter cookie-api mode", () => {
   it("limit + empty/login response + default fetch + no input", async () => {
     const a1 = new BossZhipinAdapter({
       account: { cookies: COOKIES },
-      fetchFn: async ({ query }) => ({ data: query.page === 1 ? [{ jobId: "C1", jobName: "a" }, { jobId: "C2", jobName: "b" }] : [] }),
+      fetchFn: async ({ query }) => ({
+        data:
+          query.page === 1
+            ? [
+                { jobId: "C1", jobName: "a" },
+                { jobId: "C2", jobName: "b" },
+              ]
+            : [],
+      }),
     });
     expect(await collect(a1.sync({ limit: 1 }))).toHaveLength(1);
 
-    const a2 = new BossZhipinAdapter({ account: { cookies: COOKIES }, fetchFn: async () => "<html>login</html>" });
-    expect(await collect(a2.sync({}))).toEqual([]);
+    const a2 = new BossZhipinAdapter({
+      account: { cookies: COOKIES },
+      fetchFn: async () => "<html>login</html>",
+    });
+    await expect(collect(a2.sync({}))).rejects.toMatchObject({
+      code: "SOURCE_PAGE_UNRECOGNIZED",
+    });
 
     const a3 = new BossZhipinAdapter({ account: { cookies: COOKIES } });
     await expect(collect(a3.sync({}))).rejects.toThrow(/no fetchFn configured/);

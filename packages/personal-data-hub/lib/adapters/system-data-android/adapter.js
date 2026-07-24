@@ -21,6 +21,14 @@
 const { newId } = require("../../ids");
 const { parseTransactionSms } = require("./sms-transaction");
 const {
+  probeJsonSnapshotFile,
+  readJsonSnapshot,
+} = require("../../snapshot-file");
+const {
+  SourcePageError,
+  extractRecognizedArray,
+} = require("../../source-page");
+const {
   ENTITY_TYPES,
   PERSON_SUBTYPES,
   ITEM_SUBTYPES,
@@ -29,6 +37,9 @@ const {
 } = require("../../constants");
 
 const NAME = "system-data-android";
+// v0.4.1 (2026-07-25): use the shared bounded/TOCTOU-safe snapshot reader,
+// fail closed on unrecognized bridge responses, and reject records that
+// cannot provide a deterministic source identifier.
 // v0.4.0 (2026-07-24): make the existing snapshot + host-ADB dual path a
 // first-class adapter contract. `sync:snapshot` lets shells offer a file
 // picker when no phone is connected, while constructor bridge injection
@@ -62,7 +73,7 @@ const NAME = "system-data-android";
 // v0.2.0 (2026-05-24): added kind="sms" + kind="call" via bridge mode.
 //   Snapshot mode still v1 schema — sms/calls/media only land via
 //   bridge path until Android snapshot writer is updated to include them.
-const VERSION = "0.4.0";
+const VERSION = "0.4.1";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 // Stable per-source originalId — registry.putRawEvent rejects null originalId
@@ -70,43 +81,113 @@ const SNAPSHOT_SCHEMA_VERSION = 1;
 // SyncReport (real-device repro 2026-05-21: 1305 of 1305 raws "invalid"
 // despite all entities being written). Re-deriving the same key on each
 // sync also lets the raw_events store dedup naturally.
+function requireStableSourceKey(value, kind) {
+  const key =
+    typeof value === "string"
+      ? value.trim()
+      : typeof value === "number" && Number.isFinite(value)
+        ? String(value)
+        : typeof value === "bigint"
+          ? String(value)
+          : "";
+  if (!key) {
+    throw new Error(
+      `system-data-android.sync: ${kind} record requires a stable source id`,
+    );
+  }
+  return key;
+}
+
 function contactOriginalId(c) {
-  const k =
+  const key =
     (c &&
       typeof c.lookupKey === "string" &&
-      c.lookupKey.length > 0 &&
-      c.lookupKey) ||
-    (c && typeof c.displayName === "string" && c.displayName) ||
-    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  return `android-contact:${k}`;
+      c.lookupKey.trim().length > 0 &&
+      c.lookupKey.trim()) ||
+    (c &&
+      typeof c.displayName === "string" &&
+      c.displayName.trim().length > 0 &&
+      c.displayName.trim());
+  return `android-contact:${requireStableSourceKey(key, "contact")}`;
 }
+
 function appOriginalId(a) {
-  const k =
-    (a && typeof a.packageName === "string" && a.packageName) ||
-    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  return `android-app:${k}`;
+  const key = a && typeof a.packageName === "string" && a.packageName.trim();
+  return `android-app:${requireStableSourceKey(key, "app")}`;
 }
+
 function smsOriginalId(s) {
   // Stable across re-syncs: use SMS _id from the system content provider.
-  const k =
-    (s && s.id != null && String(s.id)) ||
-    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  return `android-sms:${k}`;
+  return `android-sms:${requireStableSourceKey(s && s.id, "sms")}`;
 }
+
 function callOriginalId(c) {
   // Stable across re-syncs: use call_log _id from the system content provider.
-  const k =
-    (c && c.id != null && String(c.id)) ||
-    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  return `android-call:${k}`;
+  return `android-call:${requireStableSourceKey(c && c.id, "call")}`;
 }
+
 function mediaOriginalId(m) {
   // Full filesystem path is stable as long as the file isn't moved/renamed.
   // Path is unique within the device.
-  const k =
-    (m && typeof m.path === "string" && m.path) ||
-    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  return `android-media:${k}`;
+  const key = m && typeof m.path === "string" && m.path.trim();
+  return `android-media:${requireStableSourceKey(key, "media-file")}`;
+}
+
+function extractBridgeRows(response, field, operation) {
+  if (Array.isArray(response)) return response;
+  const fields = Array.isArray(field) ? field : [field];
+  return extractRecognizedArray(
+    response,
+    fields.map((name) => [name]),
+    {
+      source: NAME,
+      stream: operation,
+    },
+  );
+}
+
+function requireBridgeRecord(record, operation) {
+  if (!record || typeof record !== "object" || Array.isArray(record)) {
+    throw new SourcePageError(
+      "SOURCE_RECORD_INVALID",
+      `${NAME}: ${operation} source returned an invalid record`,
+    );
+  }
+  return record;
+}
+
+function bridgeParams(opts, params = {}) {
+  const serial =
+    opts && typeof opts.serial === "string" ? opts.serial.trim() : "";
+  return serial ? { ...params, serial } : params;
+}
+
+async function invokeBridgeWithAliases(bridge, primary, aliases, params) {
+  let response;
+  try {
+    response = await bridge.invoke(primary, params);
+  } catch (error) {
+    if (
+      !Array.isArray(aliases) ||
+      aliases.length === 0 ||
+      !/unknown method|not implemented/iu.test(
+        error && error.message ? error.message : "",
+      )
+    ) {
+      throw error;
+    }
+  }
+  if (
+    response &&
+    typeof response === "object" &&
+    !Array.isArray(response) &&
+    response.error !== "UNKNOWN_METHOD"
+  ) {
+    return response;
+  }
+  if (Array.isArray(response)) return response;
+  if (!Array.isArray(aliases) || aliases.length === 0) return response;
+  return bridge.invoke(aliases[0], params);
 }
 
 class SystemDataAndroidAdapter {
@@ -167,28 +248,11 @@ class SystemDataAndroidAdapter {
   // ─── PersonalDataAdapter contract ──────────────────────────────────────
 
   async authenticate(ctx = {}) {
-    if (
-      !ctx ||
-      typeof ctx.inputPath !== "string" ||
-      ctx.inputPath.length === 0
-    ) {
-      return {
-        ok: false,
-        reason: "INPUT_PATH_REQUIRED",
-        message:
-          "system-data-android requires opts.inputPath pointing to a snapshot JSON written by the Android app",
-      };
-    }
-    try {
-      this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
-    } catch (err) {
-      return {
-        ok: false,
-        reason: "INPUT_PATH_UNREADABLE",
-        message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
-      };
-    }
-    return { ok: true, mode: "snapshot-file" };
+    return probeJsonSnapshotFile(this._deps.fs, ctx && ctx.inputPath, {
+      maxBytes: ctx && ctx.maxSnapshotBytes,
+      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      requiredArrayFields: ["contacts", "apps"],
+    });
   }
 
   async healthCheck() {
@@ -248,15 +312,13 @@ class SystemDataAndroidAdapter {
 
     if (includeContacts) {
       const res = await bridge.invoke("contacts.query", {
+        ...bridgeParams(opts),
         since: Number.isInteger(opts.since) ? opts.since : undefined,
       });
-      const arr = Array.isArray(res)
-        ? res
-        : Array.isArray(res?.contacts)
-          ? res.contacts
-          : [];
+      const arr = extractBridgeRows(res, "contacts", "contacts.query");
       for (const c of arr) {
         if (emitted >= limit) return;
+        requireBridgeRecord(c, "contacts.query");
         // originalId required by registry.putRawEvent (NOT NULL column); use
         // the stable Android lookupKey when present, else displayName.
         yield {
@@ -270,14 +332,14 @@ class SystemDataAndroidAdapter {
     }
 
     if (includeApps) {
-      const res = await bridge.invoke("app.list", { includeSystem: false });
-      const arr = Array.isArray(res)
-        ? res
-        : Array.isArray(res?.apps)
-          ? res.apps
-          : [];
+      const res = await bridge.invoke(
+        "app.list",
+        bridgeParams(opts, { includeSystem: false }),
+      );
+      const arr = extractBridgeRows(res, "apps", "app.list");
       for (const a of arr) {
         if (emitted >= limit) return;
+        requireBridgeRecord(a, "app.list");
         yield {
           kind: "app",
           originalId: appOriginalId(a),
@@ -291,15 +353,13 @@ class SystemDataAndroidAdapter {
     const includeSms = opts.include?.sms !== false;
     if (includeSms) {
       const res = await bridge.invoke("sms.query", {
+        ...bridgeParams(opts),
         since: Number.isInteger(opts.since) ? opts.since : undefined,
       });
-      const arr = Array.isArray(res)
-        ? res
-        : Array.isArray(res?.sms)
-          ? res.sms
-          : [];
+      const arr = extractBridgeRows(res, ["sms", "messages"], "sms.query");
       for (const s of arr) {
         if (emitted >= limit) return;
+        requireBridgeRecord(s, "sms.query");
         yield {
           kind: "sms",
           originalId: smsOriginalId(s),
@@ -312,21 +372,28 @@ class SystemDataAndroidAdapter {
 
     const includeCalls = opts.include?.calls !== false;
     if (includeCalls) {
-      const res = await bridge.invoke("call.query", {
-        since: Number.isInteger(opts.since) ? opts.since : undefined,
-      });
-      const arr = Array.isArray(res)
-        ? res
-        : Array.isArray(res?.calls)
-          ? res.calls
-          : [];
+      const res = await invokeBridgeWithAliases(
+        bridge,
+        "call.query",
+        ["calls.query"],
+        {
+          ...bridgeParams(opts),
+          since: Number.isInteger(opts.since) ? opts.since : undefined,
+        },
+      );
+      const arr = extractBridgeRows(res, "calls", "call.query");
       for (const c of arr) {
         if (emitted >= limit) return;
+        requireBridgeRecord(c, "call.query");
+        const call =
+          c.duration == null && c.durationSec != null
+            ? { ...c, duration: c.durationSec }
+            : c;
         yield {
           kind: "call",
-          originalId: callOriginalId(c),
+          originalId: callOriginalId(call),
           capturedAt,
-          payload: c,
+          payload: call,
         };
         emitted += 1;
       }
@@ -348,16 +415,14 @@ class SystemDataAndroidAdapter {
       if (opts.include?.media === false) break;
       if (opts.include?.media?.[cat] === false) continue;
       const res = await bridge.invoke("media.list", {
+        ...bridgeParams(opts),
         category: cat,
         since: Number.isInteger(opts.since) ? opts.since : undefined,
       });
-      const arr = Array.isArray(res)
-        ? res
-        : Array.isArray(res?.files)
-          ? res.files
-          : [];
+      const arr = extractBridgeRows(res, "files", `media.list:${cat}`);
       for (const f of arr) {
         if (emitted >= limit) return;
+        requireBridgeRecord(f, `media.list:${cat}`);
         yield {
           kind: "media-file",
           originalId: mediaOriginalId(f),
@@ -370,17 +435,11 @@ class SystemDataAndroidAdapter {
   }
 
   async *_syncViaSnapshot(opts) {
-    const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
-    const snapshot = JSON.parse(raw);
-    if (
-      !snapshot ||
-      typeof snapshot !== "object" ||
-      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
-    ) {
-      throw new Error(
-        `system-data-android.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
-      );
-    }
+    const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
+      maxBytes: opts.maxSnapshotBytes,
+      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      requiredArrayFields: ["contacts", "apps"],
+    });
     const capturedAt =
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)

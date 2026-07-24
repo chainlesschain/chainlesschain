@@ -1,6 +1,6 @@
 "use strict";
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -90,6 +90,39 @@ describe("SystemDataAndroidAdapter.authenticate", () => {
     const r = await adapter.authenticate({ inputPath: snapshotPath });
     expect(r).toEqual({ ok: true, mode: "snapshot-file" });
   });
+
+  it("validates JSON and required arrays during authenticate", async () => {
+    const adapter = new SystemDataAndroidAdapter();
+
+    writeFileSync(snapshotPath, "{not-json", "utf-8");
+    await expect(
+      adapter.authenticate({ inputPath: snapshotPath }),
+    ).resolves.toMatchObject({ ok: false, reason: "SNAPSHOT_JSON_INVALID" });
+
+    writeSnapshot({
+      schemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      contacts: [],
+    });
+    await expect(
+      adapter.authenticate({ inputPath: snapshotPath }),
+    ).resolves.toMatchObject({ ok: false, reason: "SNAPSHOT_SHAPE_INVALID" });
+  });
+
+  it("enforces the bounded snapshot size during authenticate", async () => {
+    writeSnapshot({
+      schemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      contacts: [],
+      apps: [],
+      padding: "x".repeat(256),
+    });
+    const adapter = new SystemDataAndroidAdapter();
+    await expect(
+      adapter.authenticate({
+        inputPath: snapshotPath,
+        maxSnapshotBytes: 64,
+      }),
+    ).resolves.toMatchObject({ ok: false, reason: "SNAPSHOT_TOO_LARGE" });
+  });
 });
 
 describe("SystemDataAndroidAdapter.sync + normalize", () => {
@@ -102,6 +135,51 @@ describe("SystemDataAndroidAdapter.sync + normalize", () => {
         // drain
       }
     }).rejects.toThrow(/schemaVersion mismatch/);
+  });
+
+  it("rejects snapshots that exceed the configured byte limit", async () => {
+    writeSnapshot({
+      schemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      contacts: [],
+      apps: [],
+      padding: "x".repeat(256),
+    });
+    const adapter = new SystemDataAndroidAdapter();
+    await expect(async () => {
+      for await (const _ of adapter.sync({
+        inputPath: snapshotPath,
+        maxSnapshotBytes: 64,
+      })) {
+        // drain
+      }
+    }).rejects.toThrow(/exceeds the 64-byte import limit/);
+  });
+
+  it.each([
+    [
+      "contact",
+      {
+        schemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        contacts: [{}],
+        apps: [],
+      },
+    ],
+    [
+      "app",
+      {
+        schemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        contacts: [],
+        apps: [{}],
+      },
+    ],
+  ])("rejects a %s record without a stable source id", async (_kind, data) => {
+    writeSnapshot(data);
+    const adapter = new SystemDataAndroidAdapter();
+    await expect(async () => {
+      for await (const _ of adapter.sync({ inputPath: snapshotPath })) {
+        // drain
+      }
+    }).rejects.toThrow(/requires a stable source id/);
   });
 
   it("yields contact + app raws and normalizes each into a valid entity", async () => {
@@ -436,6 +514,36 @@ describe("SystemDataAndroidAdapter — bridge-direct sync", () => {
     expect(out[0].kind).toBe("app");
   });
 
+  it("forwards an explicit serial to every selected bridge subsource", async () => {
+    const adapter = new SystemDataAndroidAdapter();
+    const bridge = makeBridge({
+      apps: [{ packageName: "com.selected.device" }],
+    });
+    const invoke = vi.spyOn(bridge, "invoke");
+    adapter._deps.bridgeProvider = () => bridge;
+
+    const out = [];
+    for await (const raw of adapter.sync({
+      useBridge: true,
+      serial: " DEVICE-123 ",
+      include: {
+        contacts: false,
+        apps: true,
+        sms: false,
+        calls: false,
+        media: false,
+      },
+    })) {
+      out.push(raw);
+    }
+
+    expect(out).toHaveLength(1);
+    expect(invoke).toHaveBeenCalledExactlyOnceWith("app.list", {
+      includeSystem: false,
+      serial: "DEVICE-123",
+    });
+  });
+
   it("limit caps bridge yields", async () => {
     const adapter = new SystemDataAndroidAdapter();
     const many = Array.from({ length: 10 }, (_, i) => ({
@@ -463,6 +571,42 @@ describe("SystemDataAndroidAdapter — bridge-direct sync", () => {
       });
     const it = adapter.sync({ useBridge: true });
     await expect(it.next()).rejects.toThrow(/ANDROID_BRIDGE_NOT_AVAILABLE/);
+  });
+
+  it("rejects explicit bridge error envelopes instead of treating them as empty", async () => {
+    const adapter = new SystemDataAndroidAdapter({
+      bridgeProvider: () => ({
+        caps: () => ({ available: true }),
+        invoke: async () => ({ ok: false, error: "permission denied" }),
+      }),
+    });
+    await expect(
+      adapter.sync({ useBridge: true }).next(),
+    ).rejects.toMatchObject({ code: "SOURCE_PAGE_ERROR" });
+  });
+
+  it("rejects unrecognized bridge response shapes", async () => {
+    const adapter = new SystemDataAndroidAdapter({
+      bridgeProvider: () => ({
+        caps: () => ({ available: true }),
+        invoke: async () => ({ data: [] }),
+      }),
+    });
+    await expect(
+      adapter.sync({ useBridge: true }).next(),
+    ).rejects.toMatchObject({ code: "SOURCE_PAGE_UNRECOGNIZED" });
+  });
+
+  it("rejects bridge records without a stable source id", async () => {
+    const adapter = new SystemDataAndroidAdapter({
+      bridgeProvider: () => ({
+        caps: () => ({ available: true }),
+        invoke: async (method) => (method === "contacts.query" ? [{}] : []),
+      }),
+    });
+    await expect(adapter.sync({ useBridge: true }).next()).rejects.toThrow(
+      /requires a stable source id/,
+    );
   });
 
   it("accepts bare array response from bridge (contacts as Array)", async () => {
@@ -525,6 +669,55 @@ describe("SystemDataAndroidAdapter — bridge-direct sync", () => {
     expect(out.map((r) => r.kind)).toEqual(["sms", "call"]);
     expect(out[0].originalId).toBe("android-sms:7");
     expect(out[1].originalId).toBe("android-call:9");
+  });
+
+  it("accepts the legacy in-app bridge aliases without losing fields", async () => {
+    const adapter = new SystemDataAndroidAdapter({
+      bridgeProvider: () => ({
+        caps: () => ({ available: true }),
+        invoke: async (method) => {
+          if (method === "sms.query") {
+            return {
+              messages: [{ id: 7, address: "10086", body: "hello", date: 10 }],
+            };
+          }
+          if (method === "call.query") {
+            return { error: "UNKNOWN_METHOD" };
+          }
+          if (method === "calls.query") {
+            return {
+              calls: [
+                {
+                  id: 9,
+                  number: "13900000000",
+                  durationSec: 12,
+                  date: 11,
+                },
+              ],
+            };
+          }
+          throw new Error(`unexpected method ${method}`);
+        },
+      }),
+    });
+
+    const out = [];
+    for await (const raw of adapter.sync({
+      useBridge: true,
+      include: {
+        contacts: false,
+        apps: false,
+        sms: true,
+        calls: true,
+        media: false,
+      },
+    })) {
+      out.push(raw);
+    }
+
+    expect(out.map((raw) => raw.kind)).toEqual(["sms", "call"]);
+    expect(out[1].payload.duration).toBe(12);
+    expect(out[1].payload.durationSec).toBe(12);
   });
 
   it("v0.2 include.sms=false / include.calls=false honoured per-kind", async () => {
@@ -633,13 +826,14 @@ describe("SystemDataAndroidAdapter — bridge-direct sync", () => {
 
   it("v0.3 include.media=false disables ALL media categories", async () => {
     const adapter = new SystemDataAndroidAdapter();
-    adapter._deps.bridgeProvider = () =>
-      makeBridge({
-        media: {
-          photos: [{ path: "/p.jpg", category: "photos" }],
-          videos: [{ path: "/v.mp4", category: "videos" }],
-        },
-      });
+    const bridge = makeBridge({
+      media: {
+        photos: [{ path: "/p.jpg", category: "photos" }],
+        videos: [{ path: "/v.mp4", category: "videos" }],
+      },
+    });
+    const invoke = vi.spyOn(bridge, "invoke");
+    adapter._deps.bridgeProvider = () => bridge;
     const out = [];
     for await (const r of adapter.sync({
       useBridge: true,
@@ -648,6 +842,9 @@ describe("SystemDataAndroidAdapter — bridge-direct sync", () => {
       out.push(r);
     }
     expect(out).toHaveLength(0);
+    expect(invoke.mock.calls.some(([method]) => method === "media.list")).toBe(
+      false,
+    );
   });
 
   it("v0.3 include.media.photos=false skips just photos, keeps videos", async () => {

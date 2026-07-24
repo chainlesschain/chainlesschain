@@ -31,10 +31,15 @@
 const fs = require("node:fs");
 const { newId } = require("../../ids");
 const {
+  probeJsonSnapshotFile,
+  readJsonSnapshot,
+} = require("../../snapshot-file");
+const {
   ENTITY_TYPES,
   EVENT_SUBTYPES,
   CAPTURED_BY,
 } = require("../../constants");
+const { extractRecognizedArray } = require("../../source-page");
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "gov-12123";
@@ -127,34 +132,77 @@ function mapLicense(raw) {
   };
 }
 
-function extractList(resp) {
-  if (!resp || typeof resp !== "object") return [];
-  if (Array.isArray(resp.list)) return resp.list;
-  if (Array.isArray(resp.data)) return resp.data;
-  const d = resp.data;
-  if (d && typeof d === "object") {
-    if (Array.isArray(d.list)) return d.list;
-    if (Array.isArray(d.records)) return d.records;
-    if (Array.isArray(d.result)) return d.result;
-  }
-  return [];
+function extractList(resp, stream = KIND_VIOLATION) {
+  return extractRecognizedArray(
+    resp,
+    [
+      ["list"],
+      ["data"],
+      ["data", "list"],
+      ["data", "records"],
+      ["data", "result"],
+    ],
+    { source: NAME, stream },
+  );
 }
 
 // License endpoint returns a single object (not a paginated list); wrap it.
 function extractLicense(resp) {
-  if (!resp || typeof resp !== "object") return [];
-  if (Array.isArray(resp.list)) return resp.list;
-  if (resp.data && typeof resp.data === "object" && !Array.isArray(resp.data))
+  if (isRecognizedLicenseObject(resp && resp.data)) {
+    assertLicenseEnvelopeSuccess(resp, true);
     return [resp.data];
-  if (resp.licenseId || resp.dabh || resp.id) return [resp];
-  return extractList(resp);
+  }
+  if (isRecognizedLicenseObject(resp)) {
+    assertLicenseEnvelopeSuccess(resp, false);
+    return [resp];
+  }
+  return extractList(resp, KIND_LICENSE);
+}
+
+function isRecognizedLicenseObject(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  return ["licenseId", "license_id", "id", "dabh", "fileNo"].some(
+    (field) => value[field] != null && value[field] !== "",
+  );
+}
+
+function assertLicenseEnvelopeSuccess(response, hasNestedRecord) {
+  const envelope = { recognized: [] };
+  const fields = [
+    "success",
+    "ok",
+    "error",
+    "statusCode",
+    "code",
+    "errno",
+    "errNo",
+    "errorCode",
+    "error_code",
+    "errcode",
+    "ret",
+    "retCode",
+    "retcode",
+    "resultCode",
+    ...(hasNestedRecord ? ["status"] : []),
+  ];
+  for (const field of fields) {
+    if (Object.hasOwn(response, field)) envelope[field] = response[field];
+  }
+  extractRecognizedArray(envelope, [["recognized"]], {
+    source: NAME,
+    stream: KIND_LICENSE,
+  });
 }
 
 function stableOriginalId(kind, id) {
   const safe =
     (typeof id === "string" && id.length > 0 && id) ||
-    (typeof id === "number" && Number.isFinite(id) && String(id)) ||
-    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    (typeof id === "number" && Number.isFinite(id) && String(id));
+  if (!safe) {
+    throw new Error(
+      `${NAME}.sync: ${String(kind)} record requires a stable id`,
+    );
+  }
   return `12123:${kind}:${safe}`;
 }
 
@@ -209,16 +257,12 @@ class Tmri12123Adapter {
 
   async authenticate(ctx = {}) {
     if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
-      try {
-        this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
-      } catch (err) {
-        return {
-          ok: false,
-          reason: "INPUT_PATH_UNREADABLE",
-          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
-        };
-      }
-      return { ok: true, mode: "snapshot-file" };
+      return probeJsonSnapshotFile(this._deps.fs, ctx.inputPath, {
+        maxBytes: ctx.maxSnapshotBytes,
+        expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        requiredArrayFields: ["events"],
+        allowedEventKinds: VALID_SNAPSHOT_KINDS,
+      });
     }
     if (this._cookieAuth && !this._liveConfigured) {
       return {
@@ -278,17 +322,12 @@ class Tmri12123Adapter {
   }
 
   async *_syncViaSnapshot(opts) {
-    const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
-    const snapshot = JSON.parse(raw);
-    if (
-      !snapshot ||
-      typeof snapshot !== "object" ||
-      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
-    ) {
-      throw new Error(
-        `gov-12123.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
-      );
-    }
+    const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
+      maxBytes: opts.maxSnapshotBytes,
+      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      requiredArrayFields: ["events"],
+      allowedEventKinds: VALID_SNAPSHOT_KINDS,
+    });
     const fallbackCapturedAt =
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
@@ -301,16 +340,18 @@ class Tmri12123Adapter {
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
 
-    const events = Array.isArray(snapshot.events) ? snapshot.events : [];
+    const events = snapshot.events;
     let emitted = 0;
     for (const ev of events) {
       if (emitted >= limit) return;
-      if (!ev || typeof ev !== "object") continue;
-      if (!VALID_SNAPSHOT_KINDS.includes(ev.kind)) continue;
       if (include[ev.kind] === false) continue;
       const rec =
         ev.kind === KIND_VIOLATION ? mapViolation(ev) : mapLicense(ev);
-      if (!rec) continue;
+      if (!rec) {
+        throw new Error(
+          `${NAME}.sync: ${String(ev.kind)} record requires a stable id`,
+        );
+      }
       const recTime = ev.kind === KIND_VIOLATION ? rec.timeMs : null;
       const capturedAt =
         parseTime(ev.capturedAt) || recTime || fallbackCapturedAt;
@@ -369,18 +410,16 @@ class Tmri12123Adapter {
           query,
           sign,
         });
-        const items = extractList(resp);
+        const items = extractList(resp, KIND_VIOLATION);
         if (!items.length) {
           streamComplete = true;
           break;
         }
-        let reachedWatermark = false;
         for (const it of items) {
           const rec = mapViolation(it);
           if (!rec) continue;
           if (rec.timeMs && rec.timeMs < sinceMs) {
-            reachedWatermark = true;
-            break;
+            continue;
           }
           if (emitted >= limit) return;
           yield {
@@ -391,10 +430,6 @@ class Tmri12123Adapter {
             payload: { record: rec, kind: KIND_VIOLATION, cookie: true },
           };
           emitted += 1;
-        }
-        if (reachedWatermark || items.length < PAGE_SIZE) {
-          streamComplete = true;
-          break;
         }
         page += 1;
       }

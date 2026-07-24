@@ -2,6 +2,12 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const crypto = require("node:crypto");
+const {
+  SnapshotFileError,
+  resolveMaxSnapshotBytes,
+  validateJsonSnapshot,
+} = require("../../snapshot-file");
 const {
   SystemDataAndroidAdapter,
   SYSTEM_DATA_ANDROID_NAME,
@@ -23,37 +29,51 @@ const {
  * @param {object} [opts]
  * @param {object} [opts.fs] — fs module override for tests (must expose
  *   mkdirSync, writeFileSync, existsSync, unlinkSync)
+ * @param {number} [opts.maxSnapshotBytes] bounded staging/import size
  * @returns {Promise<object>} SyncReport from registry.syncAdapter
  */
 async function ingestSystemDataAndroidSnapshot(hub, snapshot, opts = {}) {
   if (!hub || !hub.hubDir || !hub.registry) {
     throw new Error(
-      "ingestSystemDataAndroidSnapshot: hub must expose hubDir + registry"
+      "ingestSystemDataAndroidSnapshot: hub must expose hubDir + registry",
     );
   }
   if (!snapshot || typeof snapshot !== "object") {
     throw new Error(
-      "ingestSystemDataAndroidSnapshot: snapshot payload required"
+      "ingestSystemDataAndroidSnapshot: snapshot payload required",
     );
   }
-  if (snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION) {
-    throw new Error(
-      `ingestSystemDataAndroidSnapshot: schemaVersion ${snapshot.schemaVersion} != expected ${SNAPSHOT_SCHEMA_VERSION}`
-    );
-  }
+  validateJsonSnapshot(snapshot, {
+    expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+    requiredArrayFields: ["contacts", "apps"],
+  });
 
   const fsImpl = opts.fs || fs;
+  const maxSnapshotBytes = resolveMaxSnapshotBytes(opts.maxSnapshotBytes);
+  const serialized = JSON.stringify(snapshot);
+  const serializedBytes = Buffer.byteLength(serialized, "utf8");
+  if (serializedBytes > maxSnapshotBytes) {
+    throw new SnapshotFileError(
+      "SNAPSHOT_TOO_LARGE",
+      `snapshot file exceeds the ${maxSnapshotBytes}-byte import limit`,
+    );
+  }
   const stagingDir = path.join(hub.hubDir, "staging");
   fsImpl.mkdirSync(stagingDir, { recursive: true });
   const stagingPath = path.join(
     stagingDir,
-    `system-data-android-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.json`
+    `system-data-android-${Date.now()}-${crypto.randomUUID()}.json`,
   );
-  fsImpl.writeFileSync(stagingPath, JSON.stringify(snapshot), "utf-8");
+  fsImpl.writeFileSync(stagingPath, serialized, {
+    encoding: "utf8",
+    flag: "wx",
+    mode: 0o600,
+  });
 
   try {
     return await hub.registry.syncAdapter(SYSTEM_DATA_ANDROID_NAME, {
       inputPath: stagingPath,
+      maxSnapshotBytes,
     });
   } finally {
     // best-effort cleanup; failures shouldn't shadow the (possibly successful) sync

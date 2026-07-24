@@ -56,6 +56,12 @@ describe("gov-12123", () => {
     expect(g.extractLicense({ data: { dabh: "L1" } })).toHaveLength(1);
     expect(g.extractLicense({ licenseId: "L2" })).toHaveLength(1);
     expect(g.extractLicense({ list: [{ dabh: "L3" }] })).toHaveLength(1);
+    expect(
+      g.extractLicense({ data: { licenseId: "L4", status: "normal" } }),
+    ).toHaveLength(1);
+    expect(() => g.extractLicense({ data: { message: "normal" } })).toThrow(
+      /recognized list/u,
+    );
   });
 
   it("snapshot → violation + license OTHER events", async () => {
@@ -107,12 +113,14 @@ describe("gov-12123", () => {
 
   it("cookie-api: paginated violations + single license + unverified", async () => {
     let watermarkComplete = false;
+    const violationPages = [];
     const a = new g.Tmri12123Adapter({
       account: { cookies: COOKIES, userId: "u1" },
       violationUrl: "https://fj.122.gov.cn/app/captured/violation",
       licenseUrl: "https://fj.122.gov.cn/app/captured/license",
       fetchFn: async ({ url, query }) => {
-        if (url.includes("/violation"))
+        if (url.includes("/violation")) {
+          violationPages.push(query.page);
           return query.page > 1
             ? { list: [] }
             : {
@@ -126,6 +134,7 @@ describe("gov-12123", () => {
                   },
                 ],
               };
+        }
         return {
           data: {
             dabh: "L9",
@@ -159,8 +168,45 @@ describe("gov-12123", () => {
     );
     expect(a.watermarkStrategy).toBe("max-captured-at");
     expect(a.watermarkRequiresCompleteScan).toBe(true);
+    expect(violationPages).toEqual([1, 2]);
     expect(watermarkComplete).toBe(true);
   });
+
+  it.each([
+    [
+      "unknown license envelope",
+      { data: { message: "normal" } },
+      "SOURCE_PAGE_UNRECOGNIZED",
+    ],
+    [
+      "license business error",
+      { code: 401, data: { dabh: "L9" } },
+      "SOURCE_PAGE_ERROR",
+    ],
+  ])(
+    "cookie-api: rejects a %s without completing the watermark",
+    async (_label, licenseResponse, expectedCode) => {
+      let watermarkCompletions = 0;
+      const a = new g.Tmri12123Adapter({
+        account: { cookies: COOKIES },
+        violationUrl: "https://fj.122.gov.cn/app/captured/violation",
+        licenseUrl: "https://fj.122.gov.cn/app/captured/license",
+        fetchFn: async ({ url }) =>
+          url.includes("/violation") ? { list: [] } : licenseResponse,
+      });
+
+      await expect(
+        collect(
+          a.sync({
+            markWatermarkComplete: () => {
+              watermarkCompletions += 1;
+            },
+          }),
+        ),
+      ).rejects.toMatchObject({ code: expectedCode });
+      expect(watermarkCompletions).toBe(0);
+    },
+  );
 
   it("province base host (verified .122.gov.cn/app); override + default", () => {
     // default province bj

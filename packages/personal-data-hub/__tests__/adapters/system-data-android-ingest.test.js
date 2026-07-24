@@ -35,9 +35,13 @@ beforeEach(() => {
         for await (const raw of adapter.sync(opts)) {
           out.ingested += 1;
           if (raw.kind === "contact")
-            out.partitions.contacts = { ingested: (out.partitions.contacts?.ingested || 0) + 1 };
+            out.partitions.contacts = {
+              ingested: (out.partitions.contacts?.ingested || 0) + 1,
+            };
           if (raw.kind === "app")
-            out.partitions.apps = { ingested: (out.partitions.apps?.ingested || 0) + 1 };
+            out.partitions.apps = {
+              ingested: (out.partitions.apps?.ingested || 0) + 1,
+            };
         }
         return out;
       }),
@@ -84,22 +88,55 @@ describe("ingestSystemDataAndroidSnapshot", () => {
         contacts: [],
         apps: [],
       }),
-    ).rejects.toThrow(/schemaVersion 99/);
+    ).rejects.toThrow(/schemaVersion mismatch/);
+  });
+
+  it("rejects a snapshot missing a required collection", async () => {
+    await expect(
+      ingestSystemDataAndroidSnapshot(hub, {
+        schemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        snapshottedAt: 0,
+        contacts: [],
+      }),
+    ).rejects.toMatchObject({ code: "SNAPSHOT_SHAPE_INVALID" });
+    expect(hub.registry.syncAdapter).not.toHaveBeenCalled();
+  });
+
+  it("rejects an oversized inline snapshot before staging it", async () => {
+    await expect(
+      ingestSystemDataAndroidSnapshot(
+        hub,
+        {
+          schemaVersion: SNAPSHOT_SCHEMA_VERSION,
+          snapshottedAt: 0,
+          contacts: [],
+          apps: [],
+          padding: "x".repeat(256),
+        },
+        { maxSnapshotBytes: 64 },
+      ),
+    ).rejects.toMatchObject({ code: "SNAPSHOT_TOO_LARGE" });
+    expect(hub.registry.syncAdapter).not.toHaveBeenCalled();
   });
 
   it("rejects missing hub.hubDir", async () => {
     await expect(
       ingestSystemDataAndroidSnapshot(
         { registry: hub.registry },
-        { schemaVersion: SNAPSHOT_SCHEMA_VERSION, snapshottedAt: 0, contacts: [], apps: [] },
+        {
+          schemaVersion: SNAPSHOT_SCHEMA_VERSION,
+          snapshottedAt: 0,
+          contacts: [],
+          apps: [],
+        },
       ),
     ).rejects.toThrow(/hubDir/);
   });
 
   it("rejects missing snapshot payload", async () => {
-    await expect(
-      ingestSystemDataAndroidSnapshot(hub, null),
-    ).rejects.toThrow(/snapshot payload required/);
+    await expect(ingestSystemDataAndroidSnapshot(hub, null)).rejects.toThrow(
+      /snapshot payload required/,
+    );
   });
 
   it("cleans up staging file even when syncAdapter throws", async () => {

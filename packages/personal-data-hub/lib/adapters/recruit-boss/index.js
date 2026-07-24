@@ -34,7 +34,12 @@
 "use strict";
 
 const fs = require("node:fs");
+const {
+  probeJsonSnapshotFile,
+  readJsonSnapshot,
+} = require("../../snapshot-file");
 const { newId } = require("../../ids");
+const { extractRecognizedArray } = require("../../source-page");
 const {
   ENTITY_TYPES,
   PERSON_SUBTYPES,
@@ -73,7 +78,10 @@ function stableOriginalId(kind, id) {
   const safe =
     (typeof id === "string" && id.length > 0 && id) ||
     (typeof id === "number" && Number.isFinite(id) && String(id)) ||
-    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    null;
+  if (!safe) {
+    throw new Error(`${NAME}.sync: ${kind} event requires a stable source id`);
+  }
   return `boss:${kind}:${safe}`;
 }
 
@@ -120,16 +128,12 @@ class BossZhipinAdapter {
 
   async authenticate(ctx = {}) {
     if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
-      try {
-        this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
-      } catch (err) {
-        return {
-          ok: false,
-          reason: "INPUT_PATH_UNREADABLE",
-          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
-        };
-      }
-      return { ok: true, mode: "snapshot-file" };
+      return probeJsonSnapshotFile(this._deps.fs, ctx.inputPath, {
+        maxBytes: ctx.maxSnapshotBytes,
+        expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        requiredArrayFields: ["events"],
+        allowedEventKinds: VALID_SNAPSHOT_KINDS,
+      });
     }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
@@ -178,17 +182,12 @@ class BossZhipinAdapter {
   }
 
   async *_syncViaSnapshot(opts) {
-    const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
-    const snapshot = JSON.parse(raw);
-    if (
-      !snapshot ||
-      typeof snapshot !== "object" ||
-      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
-    ) {
-      throw new Error(
-        `recruit-boss.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
-      );
-    }
+    const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
+      maxBytes: opts.maxSnapshotBytes,
+      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      requiredArrayFields: ["events"],
+      allowedEventKinds: VALID_SNAPSHOT_KINDS,
+    });
     const fallbackCapturedAt =
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
@@ -216,6 +215,9 @@ class BossZhipinAdapter {
         fallbackCapturedAt;
       const id =
         (typeof ev.id === "string" && ev.id.length > 0 && ev.id) ||
+        (typeof ev.id === "number" &&
+          Number.isFinite(ev.id) &&
+          String(ev.id)) ||
         ev.jobId ||
         ev.hrId ||
         null;
@@ -274,18 +276,16 @@ class BossZhipinAdapter {
           query,
           sign,
         });
-        const items = extractData(resp);
+        const items = extractData(resp, step.kind);
         if (!items.length) {
           streamComplete = true;
           break;
         }
-        let reachedWatermark = false;
         for (const it of items) {
           const rec = step.map(it);
           if (!rec) continue;
           if (rec.occurredAt && rec.occurredAt < sinceMs) {
-            reachedWatermark = true;
-            break;
+            continue;
           }
           if (emitted >= limit) return;
           yield {
@@ -296,10 +296,6 @@ class BossZhipinAdapter {
             payload: { record: rec, kind: step.kind, cookie: true },
           };
           emitted += 1;
-        }
-        if (reachedWatermark || items.length < PAGE_SIZE) {
-          streamComplete = true;
-          break;
         }
         page += 1;
       }
@@ -324,17 +320,21 @@ class BossZhipinAdapter {
 
 // ─── cookie response → intermediate record ───────────────────────────────────
 
-function extractData(resp) {
-  if (!resp || typeof resp !== "object") return [];
-  if (Array.isArray(resp.data)) return resp.data;
-  if (Array.isArray(resp.list)) return resp.list;
-  const z = resp.zpData || resp.data;
-  if (z && typeof z === "object") {
-    if (Array.isArray(z.list)) return z.list;
-    if (Array.isArray(z.result)) return z.result;
-    if (Array.isArray(z.records)) return z.records;
-  }
-  return [];
+function extractData(resp, stream) {
+  return extractRecognizedArray(
+    resp,
+    [
+      ["data"],
+      ["list"],
+      ["zpData", "list"],
+      ["zpData", "result"],
+      ["zpData", "records"],
+      ["data", "list"],
+      ["data", "result"],
+      ["data", "records"],
+    ],
+    { source: NAME, stream },
+  );
 }
 
 function chatItemToRecord(it) {

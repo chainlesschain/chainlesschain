@@ -41,7 +41,12 @@ describe("gov-ixiamen mappers", () => {
       status: "已办结",
       deptName: "厦门市社保中心",
     });
-    expect(rec).toMatchObject({ serviceId: "S1", category: "社保", status: "已办结", dept: "厦门市社保中心" });
+    expect(rec).toMatchObject({
+      serviceId: "S1",
+      category: "社保",
+      status: "已办结",
+      dept: "厦门市社保中心",
+    });
     expect(rec.handledMs).toBe(1716383000000);
     expect(ix.mapService({ service_name: "noid" })).toBe(null);
   });
@@ -74,13 +79,17 @@ describe("IXiamenAdapter (snapshot + cookie-api)", () => {
     const p = writeTmp(SNAP);
     try {
       const a = new ix.IXiamenAdapter();
-      expect((await a.authenticate({ inputPath: p })).mode).toBe("snapshot-file");
+      expect((await a.authenticate({ inputPath: p })).mode).toBe(
+        "snapshot-file",
+      );
       const items = await collect(a.sync({ inputPath: p }));
       expect(items).toHaveLength(1);
       expect(items[0].originalId).toBe("ixiamen:service:S1");
       const batch = a.normalize(items[0]);
       expect(batch.events[0].subtype).toBe("interaction");
-      expect(batch.events[0].content.title).toBe("办理: 住房公积金缴存明细查询");
+      expect(batch.events[0].content.title).toBe(
+        "办理: 住房公积金缴存明细查询",
+      );
       expect(batch.events[0].extra.category).toBe("公积金");
       expect(batch.topics[0].name).toBe("公积金");
       expect(batch.topics[0].id).toBe("topic-ixiamen-cat-公积金");
@@ -98,7 +107,16 @@ describe("IXiamenAdapter (snapshot + cookie-api)", () => {
 
   it("cookie-api: best-effort fetch + paginate + unverified flag", async () => {
     const pages = [
-      { list: [{ id: 7, name: "门诊报销", category: "医保", handledTime: 1716383000 }] },
+      {
+        list: [
+          {
+            id: 7,
+            name: "门诊报销",
+            category: "医保",
+            handledTime: 1716383000,
+          },
+        ],
+      },
       { list: [] },
     ];
     const calls = [];
@@ -130,22 +148,51 @@ describe("IXiamenAdapter (snapshot + cookie-api)", () => {
         seen = { url, page: query.page };
         return "gov-sig";
       },
-      fetchFn: async () => ({
-        list: [
-          { id: "new", name: "新事项", handledTime: 1716390000 },
-          { id: "old", name: "旧事项", handledTime: 1700000000 },
-        ],
-      }),
+      fetchFn: async ({ query }) =>
+        query.page === 1
+          ? {
+              list: [
+                { id: "new", name: "新事项", handledTime: 1716390000 },
+                { id: "old", name: "旧事项", handledTime: 1700000000 },
+              ],
+            }
+          : { list: [] },
     });
     const items = await collect(a.sync({ sinceWatermark: 1716000000000 }));
-    expect(items).toHaveLength(1); // old one below watermark stops iteration
+    expect(items).toHaveLength(1);
     expect(items[0].originalId).toBe("ixiamen:service:new");
     expect(seen.url).toContain("buss.ixiamen.org.cn");
   });
 
+  it("does not complete a capped scan on a non-empty short page", async () => {
+    let watermarkComplete = false;
+    const a = new ix.IXiamenAdapter({
+      account: { cookies: COOKIES },
+      listUrl: "https://buss.ixiamen.org.cn/pbc/captured/handle/list",
+      fetchFn: async () => ({
+        list: [{ id: "short", name: "short page", handledTime: 1716390000 }],
+      }),
+    });
+
+    expect(
+      await collect(
+        a.sync({
+          maxPages: 1,
+          markWatermarkComplete: () => {
+            watermarkComplete = true;
+          },
+        }),
+      ),
+    ).toHaveLength(1);
+    expect(watermarkComplete).toBe(false);
+  });
+
   it("unverified live endpoint is rejected; no input throws", async () => {
     const a = new ix.IXiamenAdapter({ account: { cookies: COOKIES } });
-    expect(await a.authenticate()).toMatchObject({ ok: false, reason: "EXPLICIT_ENDPOINT_REQUIRED" });
+    expect(await a.authenticate()).toMatchObject({
+      ok: false,
+      reason: "EXPLICIT_ENDPOINT_REQUIRED",
+    });
     await expect(collect(a.sync({}))).rejects.toThrow(/explicit listUrl/);
     const b = new ix.IXiamenAdapter();
     await expect(collect(b.sync({}))).rejects.toThrow(/needs opts.inputPath/);
