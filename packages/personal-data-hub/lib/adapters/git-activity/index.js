@@ -13,5 +13,6 @@ module.exports = {
   GIT_ACTIVITY_VERSION,
   defaultCodeRoots: reader.defaultCodeRoots,
   findGitRepos: reader.findGitRepos,
+  getHeadCommit: reader.getHeadCommit,
   listCommits: reader.listCommits,
 };

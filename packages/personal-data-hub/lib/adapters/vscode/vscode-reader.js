@@ -1,61 +1,60 @@
 "use strict";
 
-// vscode-reader — pulls workspace folders + terminal history out of VSCode's
-// own state files. Two on-disk sources, both desktop-local:
+// Read desktop-local VS Code activity without requiring an extension or network
+// access. Only metadata manifests are read for Local History; the adjacent
+// version files contain source content and must never be opened by this reader.
 //
-//   1. `%APPDATA%\Code\User\workspaceStorage\<hash>\workspace.json`
-//      Each `workspace.json` carries `{ folder: "file:///..." }` — the
-//      decoded URI is the project root the user opened. Folder mtime gives
-//      us a "last opened" timestamp (when VSCode last touched the storage).
-//
-//   2. `%APPDATA%\Code\User\globalStorage\state.vscdb` (plain SQLite)
-//      ItemTable contains JSON blobs keyed by `terminal.history.entries.*`.
-//      Single snapshot timestamp at `terminal.history.timestamp.*` — there
-//      is no per-command timestamp, only the "last updated" of the whole
-//      list. We anchor every command/dir to that timestamp.
-//
-// Like the Chromium readers, we copy the SQLite file first — VSCode keeps
-// state.vscdb open while running, and a direct read would fight WAL.
+// Official format source:
+// https://github.com/microsoft/vscode/blob/main/src/vs/workbench/services/workingCopy/common/workingCopyHistoryService.ts
 
+const crypto = require("node:crypto");
 const fs = require("node:fs");
-const path = require("node:path");
 const os = require("node:os");
-// Dual-load: bs3mc tracks Electron's ABI 140 (runtime path), plain
-// better-sqlite3 tracks Node's ABI 127 (test path). Whichever loads
-// wins. See chrome-db-reader.js for the same pattern + rationale.
-//
-// CRITICAL: must be lazy. Top-level invocation kills main process when
-// both modules absent/ABI-mismatched (v5.0.3.87 startup crash).
-let _cachedDatabaseClass = null;
+const path = require("node:path");
+
+const DEFAULT_MAX_WORKSPACES = 100_000;
+const DEFAULT_MAX_HISTORY_DIRECTORIES = 100_000;
+const DEFAULT_MAX_HISTORY_ENTRIES = 1_000_000;
+const DEFAULT_MAX_TERMINAL_ENTRIES = 100_000;
+const MAX_WORKSPACE_MANIFEST_BYTES = 1024 * 1024;
+const MAX_HISTORY_MANIFEST_BYTES = 4 * 1024 * 1024;
+const MAX_TERMINAL_JSON_BYTES = 8 * 1024 * 1024;
+const MAX_STATE_DB_BYTES = 256 * 1024 * 1024;
+
+// Dual-load: better-sqlite3-multiple-ciphers tracks Electron's native ABI,
+// while better-sqlite3 tracks the Node test ABI. Loading must remain lazy so
+// an unavailable native module cannot crash the Electron main process.
+let cachedDatabaseClass = null;
 function loadDatabase() {
-  if (_cachedDatabaseClass) return _cachedDatabaseClass;
-  for (const mod of ["better-sqlite3-multiple-ciphers", "better-sqlite3"]) {
-    let cls;
+  if (cachedDatabaseClass) return cachedDatabaseClass;
+  for (const moduleName of [
+    "better-sqlite3-multiple-ciphers",
+    "better-sqlite3",
+  ]) {
+    let Database;
     try {
-      // eslint-disable-next-line global-require
-      cls = require(mod);
-    } catch (_e) {
+      Database = require(moduleName);
+    } catch {
       continue;
     }
     try {
-      const probe = new cls(":memory:");
+      const probe = new Database(":memory:");
       probe.close();
-      _cachedDatabaseClass = cls;
-      return cls;
-    } catch (_e) {
-      /* ABI mismatch, try next */
+      cachedDatabaseClass = Database;
+      return Database;
+    } catch {
+      // Native ABI mismatch: try the other package.
     }
   }
   throw new Error(
-    "vscode-reader: neither better-sqlite3-multiple-ciphers nor better-sqlite3 loaded — both ABI-mismatched",
+    "vscode-reader: no compatible better-sqlite3 implementation is available",
   );
 }
 
 function defaultVscodeRoot() {
   if (process.platform === "win32") {
     const appData = process.env.APPDATA;
-    if (!appData) return null;
-    return path.join(appData, "Code");
+    return appData ? path.join(appData, "Code") : null;
   }
   if (process.platform === "darwin") {
     return path.join(os.homedir(), "Library", "Application Support", "Code");
@@ -63,142 +62,440 @@ function defaultVscodeRoot() {
   return path.join(os.homedir(), ".config", "Code");
 }
 
-// Decode a file:// URI into a Windows / Posix path. Returns null when the
-// URI scheme isn't file:// (could be vscode-remote://, ssh://, etc — those
-// stay as URIs for the caller).
+function sha256Hex(value) {
+  return crypto
+    .createHash("sha256")
+    .update(String(value || ""), "utf8")
+    .digest("hex");
+}
+
+function positiveInteger(value, fallback) {
+  return Number.isSafeInteger(value) && value > 0 ? value : fallback;
+}
+
+function boundedText(value, maxLength = 255) {
+  if (typeof value !== "string") return "";
+  return Array.from(value)
+    .filter((character) => {
+      const codePoint = character.codePointAt(0);
+      return codePoint > 31 && codePoint !== 127;
+    })
+    .join("")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function safeDecode(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+// Decode a file:// URI into a platform path. This public helper remains for
+// callers that explicitly need a path, but adapter records never archive the
+// returned absolute value.
 function decodeFileUri(uri) {
   if (typeof uri !== "string" || !uri.startsWith("file://")) return null;
-  // file:///c%3A/code/foo → /c:/code/foo → c:/code/foo on win32
   const raw = uri.slice("file://".length);
-  // A corrupt/malformed percent-sequence must not throw URIError.
-  let p;
-  try {
-    p = decodeURIComponent(raw);
-  } catch {
-    p = raw;
-  }
+  let decoded = safeDecode(raw);
   if (process.platform === "win32") {
-    // Strip leading slash and normalise separators
-    if (p.startsWith("/")) p = p.slice(1);
-    return p.replace(/\//g, "\\");
+    if (decoded.startsWith("/")) decoded = decoded.slice(1);
+    return decoded.replace(/\//gu, "\\");
   }
-  return p;
+  return decoded;
 }
 
-function* readWorkspaces(vscodeRoot, opts = {}) {
-  const fsMod = opts.fs || fs;
-  const wsRoot = path.join(vscodeRoot, "User", "workspaceStorage");
-  if (!fsMod.existsSync(wsRoot)) return;
-  const sinceMs = Number.isInteger(opts.since) && opts.since > 0 ? opts.since : 0;
-  let hashes;
+function resourceMetadata(resource, { workspace = false } = {}) {
+  const raw = typeof resource === "string" ? resource.trim() : "";
+  const schemeMatch = /^([a-z][a-z0-9+.-]*):/iu.exec(raw);
+  const resourceScheme = schemeMatch
+    ? schemeMatch[1].toLowerCase().slice(0, 64)
+    : "unknown";
+
+  let resourcePath = raw;
   try {
-    hashes = fsMod.readdirSync(wsRoot);
+    resourcePath = new URL(raw).pathname || raw;
   } catch {
-    return;
+    const separator = raw.indexOf(":");
+    if (separator >= 0) resourcePath = raw.slice(separator + 1);
   }
-  for (const h of hashes) {
-    const wsFile = path.join(wsRoot, h, "workspace.json");
-    if (!fsMod.existsSync(wsFile)) continue;
+  const normalizedPath = safeDecode(resourcePath)
+    .replace(/\\/gu, "/")
+    .replace(/\/+$/gu, "");
+  let name = boundedText(path.posix.basename(normalizedPath), 255);
+  if (workspace && name.toLowerCase().endsWith(".code-workspace")) {
+    name = name.slice(0, -".code-workspace".length);
+  }
+  const fileExtension = workspace
+    ? ""
+    : boundedText(path.posix.extname(name).toLowerCase(), 32);
+
+  return {
+    name: name || (workspace ? "(unnamed workspace)" : "(unnamed file)"),
+    fileExtension,
+    resourceScheme,
+    resourceHash: sha256Hex(raw),
+  };
+}
+
+function localPathMetadata(value) {
+  const raw = typeof value === "string" ? value.trim() : "";
+  const normalized = raw.replace(/\\/gu, "/").replace(/\/+$/gu, "");
+  const name = boundedText(path.posix.basename(normalized), 255);
+  return {
+    name: name || "(unknown directory)",
+    pathHash: sha256Hex(raw),
+  };
+}
+
+function readWorkspaces(vscodeRoot, opts = {}) {
+  const fsMod = opts.fs || fs;
+  const workspaceRoot = path.join(vscodeRoot, "User", "workspaceStorage");
+  if (!fsMod.existsSync(workspaceRoot)) {
+    return { workspaces: [], complete: true };
+  }
+
+  const since = Number.isInteger(opts.since) && opts.since > 0 ? opts.since : 0;
+  const limit = positiveInteger(opts.limit, Number.MAX_SAFE_INTEGER);
+  const maxWorkspaces = positiveInteger(
+    opts.maxWorkspaces,
+    DEFAULT_MAX_WORKSPACES,
+  );
+  let directoryNames;
+  try {
+    directoryNames = fsMod.readdirSync(workspaceRoot).sort();
+  } catch {
+    return { workspaces: [], complete: false };
+  }
+
+  let complete = true;
+  if (directoryNames.length > maxWorkspaces) {
+    directoryNames.length = maxWorkspaces;
+    complete = false;
+  }
+
+  const workspaces = [];
+  for (const directoryName of directoryNames) {
+    const manifestPath = path.join(
+      workspaceRoot,
+      directoryName,
+      "workspace.json",
+    );
+    if (!fsMod.existsSync(manifestPath)) continue;
+
     let stat;
-    let body;
+    let manifest;
     try {
-      stat = fsMod.statSync(wsFile);
-      body = JSON.parse(fsMod.readFileSync(wsFile, "utf-8"));
+      stat = fsMod.statSync(manifestPath);
+      if (!stat.isFile() || stat.size > MAX_WORKSPACE_MANIFEST_BYTES) {
+        complete = false;
+        continue;
+      }
+      manifest = JSON.parse(fsMod.readFileSync(manifestPath, "utf8"));
     } catch {
+      complete = false;
       continue;
     }
+
     const lastOpenedMs = Math.floor(stat.mtimeMs);
-    if (sinceMs > 0 && lastOpenedMs < sinceMs) continue;
-    const folderUri = typeof body?.folder === "string" ? body.folder : null;
-    const workspaceUri = typeof body?.workspace === "string" ? body.workspace : null;
-    if (!folderUri && !workspaceUri) continue;
-    yield {
-      hash: h,
-      folderUri,
-      workspaceUri,
-      folderPath: folderUri ? decodeFileUri(folderUri) : null,
+    if (since > 0 && lastOpenedMs < since) continue;
+    const resource =
+      typeof manifest?.folder === "string"
+        ? manifest.folder
+        : typeof manifest?.workspace === "string"
+          ? manifest.workspace
+          : null;
+    if (!resource) continue;
+
+    const metadata = resourceMetadata(resource, { workspace: true });
+    workspaces.push({
+      workspaceId: sha256Hex(directoryName),
+      name: metadata.name,
+      resourceScheme: metadata.resourceScheme,
+      resourceHash: metadata.resourceHash,
       lastOpenedMs,
-    };
+    });
   }
+
+  workspaces.sort(
+    (a, b) =>
+      a.lastOpenedMs - b.lastOpenedMs ||
+      a.workspaceId.localeCompare(b.workspaceId),
+  );
+  if (workspaces.length > limit) {
+    workspaces.length = limit;
+    complete = false;
+  }
+  return { workspaces, complete };
 }
 
-// Read terminal command + dir history from state.vscdb. Returns
-// { commands: [...], dirs: [...], commandsTimestampMs, dirsTimestampMs }.
-// Each entry is { value, shellType, sourceIndex } — the index lets us
-// reconstruct order across syncs.
 function readTerminalHistory(vscodeRoot, opts = {}) {
   const fsMod = opts.fs || fs;
-  const src = path.join(vscodeRoot, "User", "globalStorage", "state.vscdb");
-  if (!fsMod.existsSync(src)) {
-    return { commands: [], dirs: [], commandsTimestampMs: null, dirsTimestampMs: null };
-  }
-  const tmp = path.join(
-    os.tmpdir(),
-    `pdh-vscode-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.db`,
+  const sourcePath = path.join(
+    vscodeRoot,
+    "User",
+    "globalStorage",
+    "state.vscdb",
   );
-  fsMod.copyFileSync(src, tmp);
-  // VSCode uses plain SQLite (not WAL by default for state.vscdb), but copy
-  // the WAL sidecar if it exists just in case.
-  for (const ext of ["-wal", "-shm"]) {
-    const w = src + ext;
-    if (fsMod.existsSync(w)) {
-      try {
-        fsMod.copyFileSync(w, tmp + ext);
-      } catch {}
+  if (!fsMod.existsSync(sourcePath)) {
+    return {
+      commands: [],
+      dirs: [],
+      commandsTimestampMs: null,
+      dirsTimestampMs: null,
+      databaseMtimeMs: null,
+      complete: true,
+    };
+  }
+
+  const sourceStat = fsMod.statSync(sourcePath);
+  if (!sourceStat.isFile() || sourceStat.size > MAX_STATE_DB_BYTES) {
+    return {
+      commands: [],
+      dirs: [],
+      commandsTimestampMs: null,
+      dirsTimestampMs: null,
+      databaseMtimeMs: Math.floor(sourceStat.mtimeMs),
+      complete: false,
+    };
+  }
+
+  const limit = positiveInteger(opts.limit, Number.MAX_SAFE_INTEGER);
+  const maxEntries = positiveInteger(
+    opts.maxTerminalEntries,
+    DEFAULT_MAX_TERMINAL_ENTRIES,
+  );
+  const tempDirectory = fsMod.mkdtempSync(
+    path.join(os.tmpdir(), "pdh-vscode-"),
+  );
+  const snapshotPath = path.join(tempDirectory, "state.vscdb");
+  fsMod.copyFileSync(sourcePath, snapshotPath);
+  for (const suffix of ["-wal", "-shm"]) {
+    const sidecar = sourcePath + suffix;
+    if (!fsMod.existsSync(sidecar)) continue;
+    try {
+      fsMod.copyFileSync(sidecar, snapshotPath + suffix);
+    } catch {
+      // The main database snapshot can still be read without an optional
+      // sidecar; a missing concurrent update will be retried next sync.
     }
   }
+
+  let db = null;
+  let complete = true;
   try {
     const Database = loadDatabase();
-    const db = new Database(tmp, { readonly: true });
-    const get = (k) => {
+    db = new Database(snapshotPath, { readonly: true });
+    const getValue = (key) => {
       try {
-        const r = db.prepare("SELECT value FROM ItemTable WHERE key=?").get(k);
-        return r ? r.value : null;
+        const row = db
+          .prepare("SELECT value FROM ItemTable WHERE key = ?")
+          .get(key);
+        return row ? row.value : null;
       } catch {
+        complete = false;
         return null;
       }
     };
-    const parseEntries = (jsonStr) => {
-      if (!jsonStr) return [];
-      try {
-        const parsed = JSON.parse(jsonStr);
-        const arr = Array.isArray(parsed?.entries) ? parsed.entries : [];
-        return arr
-          .map((e, i) => ({
-            value: typeof e?.key === "string" ? e.key : "",
-            shellType: e?.value?.shellType || null,
-            sourceIndex: i,
-          }))
-          .filter((e) => e.value.length > 0);
-      } catch {
+
+    const parseEntries = (rawValue, kind) => {
+      if (rawValue == null) return [];
+      const text = Buffer.isBuffer(rawValue)
+        ? rawValue.toString("utf8")
+        : String(rawValue);
+      if (Buffer.byteLength(text, "utf8") > MAX_TERMINAL_JSON_BYTES) {
+        complete = false;
         return [];
       }
-    };
-    const parseTs = (raw) => {
-      if (!raw) return null;
-      const n = Number(raw);
-      return Number.isFinite(n) && n > 0 ? Math.floor(n) : null;
-    };
-    const out = {
-      commands: parseEntries(get("terminal.history.entries.commands")),
-      dirs: parseEntries(get("terminal.history.entries.dirs")),
-      commandsTimestampMs: parseTs(get("terminal.history.timestamp.commands")),
-      dirsTimestampMs: parseTs(get("terminal.history.timestamp.dirs")),
-    };
-    db.close();
-    return out;
-  } finally {
-    for (const ext of ["", "-wal", "-shm"]) {
+      let parsed;
       try {
-        fsMod.unlinkSync(tmp + ext);
-      } catch {}
+        parsed = JSON.parse(text);
+      } catch {
+        complete = false;
+        return [];
+      }
+      const sourceEntries = Array.isArray(parsed?.entries)
+        ? parsed.entries
+        : [];
+      const boundedEntries = sourceEntries.slice(0, maxEntries);
+      if (boundedEntries.length < sourceEntries.length) complete = false;
+      const records = [];
+      for (
+        let sourceIndex = 0;
+        sourceIndex < boundedEntries.length;
+        sourceIndex++
+      ) {
+        const entry = boundedEntries[sourceIndex];
+        const value = typeof entry?.key === "string" ? entry.key : "";
+        if (!value) continue;
+        const shellType = boundedText(entry?.value?.shellType, 64) || null;
+        if (kind === "command") {
+          records.push({ value, shellType, sourceIndex });
+        } else {
+          records.push({
+            ...localPathMetadata(value),
+            shellType,
+            sourceIndex,
+          });
+        }
+      }
+      if (records.length > limit) {
+        records.length = limit;
+        complete = false;
+      }
+      return records;
+    };
+
+    const parseTimestamp = (value) => {
+      const numeric = Number(value);
+      return Number.isFinite(numeric) && numeric > 0
+        ? Math.floor(numeric)
+        : null;
+    };
+
+    return {
+      commands: parseEntries(
+        getValue("terminal.history.entries.commands"),
+        "command",
+      ),
+      dirs: parseEntries(getValue("terminal.history.entries.dirs"), "dir"),
+      commandsTimestampMs: parseTimestamp(
+        getValue("terminal.history.timestamp.commands"),
+      ),
+      dirsTimestampMs: parseTimestamp(
+        getValue("terminal.history.timestamp.dirs"),
+      ),
+      databaseMtimeMs: Math.floor(sourceStat.mtimeMs),
+      complete,
+    };
+  } finally {
+    try {
+      db?.close();
+    } catch {
+      // Best-effort close of the private read-only snapshot.
+    }
+    // tempDirectory was created by mkdtempSync immediately above and contains
+    // only this reader's database snapshot.
+    try {
+      fsMod.rmSync(tempDirectory, { recursive: true, force: true });
+    } catch {
+      // A stale private temp snapshot can be removed by the OS later.
     }
   }
+}
+
+function readLocalHistory(vscodeRoot, opts = {}) {
+  const fsMod = opts.fs || fs;
+  const historyRoot = path.join(vscodeRoot, "User", "History");
+  if (!fsMod.existsSync(historyRoot)) {
+    return { entries: [], complete: true };
+  }
+
+  const since = Number.isInteger(opts.since) && opts.since > 0 ? opts.since : 0;
+  const limit = positiveInteger(opts.limit, Number.MAX_SAFE_INTEGER);
+  const maxDirectories = positiveInteger(
+    opts.maxHistoryDirectories,
+    DEFAULT_MAX_HISTORY_DIRECTORIES,
+  );
+  const maxEntries = positiveInteger(
+    opts.maxHistoryEntries,
+    DEFAULT_MAX_HISTORY_ENTRIES,
+  );
+  let directoryNames;
+  try {
+    directoryNames = fsMod.readdirSync(historyRoot).sort();
+  } catch {
+    return { entries: [], complete: false };
+  }
+
+  let complete = true;
+  if (directoryNames.length > maxDirectories) {
+    directoryNames.length = maxDirectories;
+    complete = false;
+  }
+
+  const entries = [];
+  let inspectedEntries = 0;
+  for (const directoryName of directoryNames) {
+    const manifestPath = path.join(historyRoot, directoryName, "entries.json");
+    if (!fsMod.existsSync(manifestPath)) continue;
+
+    let manifest;
+    try {
+      const stat = fsMod.statSync(manifestPath);
+      if (!stat.isFile() || stat.size > MAX_HISTORY_MANIFEST_BYTES) {
+        complete = false;
+        continue;
+      }
+      manifest = JSON.parse(fsMod.readFileSync(manifestPath, "utf8"));
+    } catch {
+      complete = false;
+      continue;
+    }
+
+    if (
+      typeof manifest?.resource !== "string" ||
+      !Array.isArray(manifest?.entries)
+    ) {
+      complete = false;
+      continue;
+    }
+    const metadata = resourceMetadata(manifest.resource);
+    const historyId = sha256Hex(directoryName);
+    for (const entry of manifest.entries) {
+      inspectedEntries += 1;
+      if (inspectedEntries > maxEntries) {
+        complete = false;
+        break;
+      }
+      const savedAtMs = Number(entry?.timestamp);
+      if (
+        typeof entry?.id !== "string" ||
+        entry.id.length === 0 ||
+        entry.id.length > 1024 ||
+        !Number.isFinite(savedAtMs) ||
+        savedAtMs <= 0
+      ) {
+        complete = false;
+        continue;
+      }
+      const timestamp = Math.floor(savedAtMs);
+      if (since > 0 && timestamp < since) continue;
+      entries.push({
+        historyId,
+        entryIdHash: sha256Hex(`${directoryName}\0${entry.id}`),
+        fileName: metadata.name,
+        fileExtension: metadata.fileExtension,
+        resourceScheme: metadata.resourceScheme,
+        resourceHash: metadata.resourceHash,
+        savedAtMs: timestamp,
+        hasSaveSource:
+          typeof entry.source === "string" && entry.source.length > 0,
+      });
+    }
+    if (inspectedEntries > maxEntries) break;
+  }
+
+  entries.sort(
+    (a, b) =>
+      a.savedAtMs - b.savedAtMs ||
+      a.resourceHash.localeCompare(b.resourceHash) ||
+      a.entryIdHash.localeCompare(b.entryIdHash),
+  );
+  if (entries.length > limit) {
+    entries.length = limit;
+    complete = false;
+  }
+  return { entries, complete };
 }
 
 module.exports = {
   defaultVscodeRoot,
   decodeFileUri,
+  resourceMetadata,
   readWorkspaces,
   readTerminalHistory,
+  readLocalHistory,
 };

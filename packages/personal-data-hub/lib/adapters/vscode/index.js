@@ -1,10 +1,6 @@
 "use strict";
 
-const {
-  VSCodeAdapter,
-  VSCODE_NAME,
-  VSCODE_VERSION,
-} = require("./adapter");
+const { VSCodeAdapter, VSCODE_NAME, VSCODE_VERSION } = require("./adapter");
 const reader = require("./vscode-reader");
 
 module.exports = {
@@ -15,4 +11,5 @@ module.exports = {
   decodeFileUri: reader.decodeFileUri,
   readWorkspaces: reader.readWorkspaces,
   readTerminalHistory: reader.readTerminalHistory,
+  readLocalHistory: reader.readLocalHistory,
 };

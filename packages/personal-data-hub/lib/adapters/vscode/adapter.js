@@ -1,75 +1,231 @@
 "use strict";
 
-// VSCodeAdapter — pulls VSCode workspace history + global terminal history
-// from on-disk state. Desktop-local, zero network, no extension required.
+// VS Code desktop-local activity:
+//   - workspaceStorage/*/workspace.json: recently opened workspaces
+//   - globalStorage/state.vscdb: terminal command and directory history
+//   - History/*/entries.json: Local History save metadata
 //
-// Sources (all under `%APPDATA%\Code\` on Win, equivalent on macOS/Linux):
-//   - User/workspaceStorage/<hash>/workspace.json  → each opened project
-//   - User/globalStorage/state.vscdb               → terminal command history
-//
-// Yields:
-//   kind="workspace"        → Item(LINK, category="code-project")
-//   kind="terminal-command" → Event(OTHER, content.title=cmd[0..80])
-//   kind="terminal-dir"     → Event(OTHER, content.title=cd <dir>)
-//
-// Caveat: terminal history has NO per-entry timestamp in VSCode — only a
-// single "snapshot updated" ts. We anchor every command/dir to that ts and
-// add `sourceIndex` to extra so callers can reconstruct order. Re-syncing
-// after a new command lands gives that command (and only that command) a
-// fresher snapshot ts.
+// Absolute workspace/directory paths are reduced to a basename plus SHA-256.
+// Local History content files are never opened.
 
+const crypto = require("node:crypto");
+const fs = require("node:fs");
 const path = require("node:path");
 
 const {
+  CAPTURED_BY,
   ENTITY_TYPES,
   EVENT_SUBTYPES,
   ITEM_SUBTYPES,
-  CAPTURED_BY,
 } = require("../../constants");
-
+const {
+  createAccountScope,
+  normalizeIdentity,
+} = require("../../account-scope");
 const {
   defaultVscodeRoot,
-  decodeFileUri,
-  readWorkspaces,
+  readLocalHistory,
   readTerminalHistory,
+  readWorkspaces,
 } = require("./vscode-reader");
 
 const NAME = "vscode";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
+const DEFAULT_PAGE_SIZE = 5000;
+const MAX_PAGE_SIZE = 50_000;
+const DEFAULT_MAX_PAGES = 20;
 
-class VSCodeAdapter {
-  constructor(opts = {}) {
-    this.name = NAME;
-    this.version = VERSION;
-    this.capabilities = [
-      "sync:vscode-workspace-storage",
-      "sync:vscode-globalstorage-sqlite",
-    ];
+function sha256Hex(value, length = 64) {
+  return crypto
+    .createHash("sha256")
+    .update(String(value || ""), "utf8")
+    .digest("hex")
+    .slice(0, length);
+}
+
+function parsePositiveInteger(value, optionName, adapterName) {
+  const numeric = Number(value);
+  if (!Number.isSafeInteger(numeric) || numeric <= 0) {
+    throw new Error(
+      `${adapterName}.sync: ${optionName} must be a positive integer`,
+    );
+  }
+  return numeric;
+}
+
+function parseSince(opts, adapterName) {
+  const candidate = opts.since !== undefined ? opts.since : opts.sinceWatermark;
+  if (candidate == null || candidate === "") return 0;
+  const numeric = Number(candidate);
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    throw new Error(
+      `${adapterName}.sync: since watermark must be unix milliseconds`,
+    );
+  }
+  return Math.floor(numeric);
+}
+
+function parseScanLimit(opts, adapterName) {
+  const pageSize =
+    opts.pageSize == null
+      ? DEFAULT_PAGE_SIZE
+      : parsePositiveInteger(opts.pageSize, "pageSize", adapterName);
+  if (pageSize > MAX_PAGE_SIZE) {
+    throw new Error(
+      `${adapterName}.sync: pageSize must not exceed ${MAX_PAGE_SIZE}`,
+    );
+  }
+  const maxPages =
+    opts.maxPages == null
+      ? DEFAULT_MAX_PAGES
+      : parsePositiveInteger(opts.maxPages, "maxPages", adapterName);
+  const pageBudget =
+    maxPages > Math.floor(Number.MAX_SAFE_INTEGER / pageSize)
+      ? Number.MAX_SAFE_INTEGER
+      : pageSize * maxPages;
+  const configured = [pageBudget];
+  if (opts.limit != null) {
+    configured.push(parsePositiveInteger(opts.limit, "limit", adapterName));
+  }
+  if (opts.maxEvents != null) {
+    configured.push(
+      parsePositiveInteger(opts.maxEvents, "maxEvents", adapterName),
+    );
+  }
+  return Math.min(...configured);
+}
+
+function canonicalRoot(value, fsMod = fs) {
+  if (typeof value !== "string" || value.trim().length === 0) return null;
+  const resolved = path.resolve(value.trim());
+  try {
+    const realpath =
+      typeof fsMod.realpathSync?.native === "function"
+        ? fsMod.realpathSync.native(resolved)
+        : fsMod.realpathSync(resolved);
+    return path.resolve(realpath);
+  } catch {
+    return resolved;
+  }
+}
+
+function rootFingerprint(root, adapterName, fsMod = fs) {
+  const canonical = canonicalRoot(root, fsMod);
+  if (!canonical) return null;
+  const normalized =
+    process.platform === "win32" ? canonical.toLowerCase() : canonical;
+  return sha256Hex(`${adapterName}\0${normalized}`, 24);
+}
+
+function scopeForRoot(root, adapterName, scopeIdentityKey, fsMod = fs) {
+  const canonical = canonicalRoot(root, fsMod);
+  if (!canonical) return undefined;
+  return createAccountScope(
+    adapterName,
+    `${scopeIdentityKey}:${normalizeIdentity(canonical)}`,
+  );
+}
+
+function sanitizedReadError(error, descriptor) {
+  const sourceCode =
+    typeof error?.code === "string" && /^[A-Z0-9_]+$/u.test(error.code)
+      ? error.code
+      : "UNKNOWN";
+  const wrapped = new Error(
+    `${descriptor.name}.sync: unable to read the selected ${descriptor.displayName} state (${sourceCode})`,
+  );
+  wrapped.code = `${descriptor.errorPrefix}_STATE_READ_FAILED`;
+  wrapped.sourceCode = sourceCode;
+  return wrapped;
+}
+
+const VSCODE_DESCRIPTOR = Object.freeze({
+  name: NAME,
+  version: VERSION,
+  displayName: "VS Code",
+  editor: "vscode",
+  rootOption: "vscodeRoot",
+  scopeIdentityKey: "vscodeRoot",
+  errorPrefix: "VSCODE",
+  defaultRoot: defaultVscodeRoot,
+  capabilities: Object.freeze([
+    "sync:vscode-workspace-storage",
+    "sync:vscode-globalstorage-sqlite",
+    "sync:vscode-local-history-metadata",
+    "sync:profile-directory",
+  ]),
+});
+
+class CodeEditorActivityAdapter {
+  constructor(opts = {}, descriptor = VSCODE_DESCRIPTOR) {
+    this._descriptor = descriptor;
+    this.name = descriptor.name;
+    this.version = descriptor.version;
+    this.capabilities = [...descriptor.capabilities];
     this.extractMode = "file-import";
     this.rateLimits = { perDay: 96 };
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
+    this.watermarkLookbackMs = 1000;
+    this.initialPageBudget = DEFAULT_MAX_PAGES;
+    this.runtimeCredentialOption = descriptor.rootOption;
+    this.runtimeScopeIdentityKey = descriptor.rootOption;
     this.dataDisclosure = {
       fields: [
-        "workspaces:hash,folderUri,folderPath,lastOpenedMs",
+        "workspaces:name,resourceScheme,resourceHash,lastOpenedMs",
         "terminal-commands:command,shellType,sourceIndex,snapshotTs",
-        "terminal-dirs:dir,shellType,sourceIndex,snapshotTs",
+        "terminal-dirs:name,pathHash,shellType,sourceIndex,snapshotTs",
+        "local-history:fileName,fileExtension,resourceScheme,resourceHash,savedAtMs,hasSaveSource",
       ],
       sensitivity: "high",
       legalGate: false,
-      defaultInclude: { workspaces: true, terminal: true },
+      defaultInclude: {
+        workspaces: true,
+        terminal: true,
+        localHistory: true,
+      },
     };
     this._deps = {
-      fs: require("node:fs"),
-      defaultRoot: defaultVscodeRoot,
+      fs: opts.fs || fs,
+      defaultRoot:
+        typeof opts.defaultRoot === "function"
+          ? opts.defaultRoot
+          : descriptor.defaultRoot,
     };
-    this._rootOverride = typeof opts.vscodeRoot === "string" ? opts.vscodeRoot : null;
+    this._rootOverride = canonicalRoot(
+      opts[descriptor.rootOption],
+      this._deps.fs,
+    );
+    if (this._rootOverride) {
+      this.defaultScope = scopeForRoot(
+        this._rootOverride,
+        this.name,
+        descriptor.scopeIdentityKey,
+        this._deps.fs,
+      );
+    }
   }
 
-  _resolveRoot(opts) {
-    if (typeof opts?.vscodeRoot === "string" && opts.vscodeRoot.length > 0) {
-      return opts.vscodeRoot;
-    }
-    if (this._rootOverride) return this._rootOverride;
-    return this._deps.defaultRoot();
+  _resolveRoot(opts = {}) {
+    const configuredRoot = opts[this._descriptor.rootOption];
+    const candidate =
+      (typeof configuredRoot === "string" && configuredRoot.trim()) ||
+      (typeof opts.profilePath === "string" && opts.profilePath.trim()) ||
+      this._rootOverride ||
+      this._deps.defaultRoot();
+    return canonicalRoot(candidate, this._deps.fs);
+  }
+
+  resolveDefaultScope(opts = {}) {
+    const root = this._resolveRoot(opts);
+    return root
+      ? scopeForRoot(
+          root,
+          this.name,
+          this._descriptor.scopeIdentityKey,
+          this._deps.fs,
+        )
+      : undefined;
   }
 
   async authenticate(ctx = {}) {
@@ -77,209 +233,322 @@ class VSCodeAdapter {
     if (!root) {
       return {
         ok: false,
-        reason: "VSCODE_ROOT_UNRESOLVED",
-        message: "no default VSCode root on this platform; pass opts.vscodeRoot",
+        reason: `${this._descriptor.errorPrefix}_ROOT_UNRESOLVED`,
+        message: `No default ${this._descriptor.displayName} state directory could be resolved; select one locally`,
       };
     }
-    const wsRoot = path.join(root, "User", "workspaceStorage");
-    const stateDb = path.join(root, "User", "globalStorage", "state.vscdb");
-    const wsExists = this._deps.fs.existsSync(wsRoot);
-    const stateExists = this._deps.fs.existsSync(stateDb);
-    if (!wsExists && !stateExists) {
+    const hasWorkspaces = this._deps.fs.existsSync(
+      path.join(root, "User", "workspaceStorage"),
+    );
+    const hasTerminalHistory = this._deps.fs.existsSync(
+      path.join(root, "User", "globalStorage", "state.vscdb"),
+    );
+    const hasLocalHistory = this._deps.fs.existsSync(
+      path.join(root, "User", "History"),
+    );
+    if (!hasWorkspaces && !hasTerminalHistory && !hasLocalHistory) {
       return {
         ok: false,
-        reason: "VSCODE_NOT_FOUND",
-        message: `no VSCode state at ${root} — install VS Code / open it at least once, or pass opts.vscodeRoot`,
+        reason: `${this._descriptor.errorPrefix}_NOT_FOUND`,
+        message: `No ${this._descriptor.displayName} workspace, terminal, or Local History state was found in the selected directory`,
       };
     }
     return {
       ok: true,
       mode: "file-import",
-      vscodeRoot: root,
-      hasWorkspaces: wsExists,
-      hasTerminalHistory: stateExists,
+      hasWorkspaces,
+      hasTerminalHistory,
+      hasLocalHistory,
     };
   }
 
-  async healthCheck() {
-    const root = this._resolveRoot({});
-    const ok =
-      !!root &&
-      (this._deps.fs.existsSync(path.join(root, "User", "workspaceStorage")) ||
-        this._deps.fs.existsSync(path.join(root, "User", "globalStorage", "state.vscdb")));
-    return { ok, lastChecked: Date.now() };
+  async healthCheck(ctx = {}) {
+    const result = await this.authenticate({ ...ctx, readinessOnly: true });
+    return { ok: result.ok, lastChecked: Date.now() };
   }
 
   async *sync(opts = {}) {
     const root = this._resolveRoot(opts);
-    if (!root) {
-      throw new Error("vscode.sync: no VSCode root resolved — pass opts.vscodeRoot");
+    const auth = await this.authenticate({
+      ...opts,
+      [this._descriptor.rootOption]: root,
+    });
+    if (!auth.ok) {
+      const error = new Error(`${this.name}.sync: ${auth.message}`);
+      error.code = auth.reason;
+      throw error;
     }
+
+    const since = parseSince(opts, this.name);
+    const limit = parseScanLimit(opts, this.name);
     const includeWorkspaces = opts.include?.workspaces !== false;
     const includeTerminal = opts.include?.terminal !== false;
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
-    const capturedAt = Date.now();
-    let emitted = 0;
+    const includeLocalHistory = opts.include?.localHistory !== false;
+    const rootId = rootFingerprint(root, this.name, this._deps.fs);
+    const records = [];
+    let complete = true;
 
-    if (includeWorkspaces) {
-      for (const w of readWorkspaces(root, { fs: this._deps.fs, since: opts.since })) {
-        if (emitted >= limit) return;
-        yield {
-          kind: "workspace",
-          originalId: `vscode-workspace:${w.hash}`,
-          capturedAt,
-          payload: w,
-        };
-        emitted += 1;
+    try {
+      if (includeWorkspaces) {
+        const result = readWorkspaces(root, {
+          fs: this._deps.fs,
+          since,
+          limit,
+        });
+        complete = complete && result.complete;
+        for (const workspace of result.workspaces) {
+          records.push({
+            kind: "workspace",
+            id: workspace.workspaceId,
+            capturedAt: workspace.lastOpenedMs,
+            payload: workspace,
+          });
+        }
       }
+
+      if (includeTerminal) {
+        const history = readTerminalHistory(root, {
+          fs: this._deps.fs,
+          limit,
+        });
+        complete = complete && history.complete;
+        const commandTimestamp =
+          history.commandsTimestampMs || history.databaseMtimeMs || Date.now();
+        const directoryTimestamp =
+          history.dirsTimestampMs || history.databaseMtimeMs || Date.now();
+
+        if (
+          opts.include?.terminalCommands !== false &&
+          commandTimestamp >= since
+        ) {
+          const occurrences = new Map();
+          for (const command of history.commands) {
+            const commandHash = sha256Hex(command.value, 24);
+            const occurrence = occurrences.get(commandHash) || 0;
+            occurrences.set(commandHash, occurrence + 1);
+            records.push({
+              kind: "terminal-command",
+              id: `${commandHash}:${occurrence}`,
+              order: command.sourceIndex,
+              capturedAt: commandTimestamp,
+              payload: { ...command, snapshotTs: commandTimestamp },
+            });
+          }
+        }
+        if (
+          opts.include?.terminalDirs !== false &&
+          directoryTimestamp >= since
+        ) {
+          const occurrences = new Map();
+          for (const directory of history.dirs) {
+            const directoryHash = directory.pathHash.slice(0, 24);
+            const occurrence = occurrences.get(directoryHash) || 0;
+            occurrences.set(directoryHash, occurrence + 1);
+            records.push({
+              kind: "terminal-dir",
+              id: `${directoryHash}:${occurrence}`,
+              order: directory.sourceIndex,
+              capturedAt: directoryTimestamp,
+              payload: { ...directory, snapshotTs: directoryTimestamp },
+            });
+          }
+        }
+      }
+
+      if (includeLocalHistory) {
+        const result = readLocalHistory(root, {
+          fs: this._deps.fs,
+          since,
+          limit,
+        });
+        complete = complete && result.complete;
+        for (const entry of result.entries) {
+          records.push({
+            kind: "local-history-save",
+            id: `${entry.resourceHash.slice(0, 24)}:${entry.entryIdHash.slice(0, 24)}`,
+            capturedAt: entry.savedAtMs,
+            payload: entry,
+          });
+        }
+      }
+    } catch (error) {
+      throw sanitizedReadError(error, this._descriptor);
     }
 
-    if (includeTerminal) {
-      const hist = readTerminalHistory(root, { fs: this._deps.fs });
-      const cmdTs = Number.isInteger(hist.commandsTimestampMs)
-        ? hist.commandsTimestampMs
-        : capturedAt;
-      const dirTs = Number.isInteger(hist.dirsTimestampMs)
-        ? hist.dirsTimestampMs
-        : capturedAt;
-      if (opts.include?.terminalCommands !== false) {
-        for (const c of hist.commands) {
-          if (emitted >= limit) return;
-          if (Number.isInteger(opts.since) && cmdTs < opts.since) break;
-          yield {
-            kind: "terminal-command",
-            // Index disambiguates entries that re-occur with identical command
-            // text — keeps registry.putRawEvent's UNIQUE(source.originalId) happy.
-            originalId: `vscode-terminal-cmd:${c.sourceIndex}:${hashCommand(c.value)}`,
-            capturedAt,
-            payload: { ...c, snapshotTs: cmdTs },
-          };
-          emitted += 1;
-        }
-      }
-      if (opts.include?.terminalDirs !== false) {
-        for (const d of hist.dirs) {
-          if (emitted >= limit) return;
-          if (Number.isInteger(opts.since) && dirTs < opts.since) break;
-          yield {
-            kind: "terminal-dir",
-            originalId: `vscode-terminal-dir:${d.sourceIndex}:${hashCommand(d.value)}`,
-            capturedAt,
-            payload: { ...d, snapshotTs: dirTs },
-          };
-          emitted += 1;
-        }
-      }
+    records.sort(
+      (a, b) =>
+        a.capturedAt - b.capturedAt ||
+        a.kind.localeCompare(b.kind) ||
+        (a.order || 0) - (b.order || 0) ||
+        a.id.localeCompare(b.id),
+    );
+    if (records.length > limit) {
+      records.length = limit;
+      complete = false;
+    }
+
+    for (const record of records) {
+      yield {
+        kind: record.kind,
+        originalId: `${this.name}-${record.kind}:${rootId}:${record.id}`,
+        capturedAt: record.capturedAt,
+        payload: record.payload,
+      };
+    }
+
+    if (complete && typeof opts.markWatermarkComplete === "function") {
+      opts.markWatermarkComplete();
     }
   }
 
   normalize(raw) {
+    const payload = raw.payload || {};
     const ingestedAt = Date.now();
-    const source = (originalId) => ({
-      adapter: NAME,
-      adapterVersion: VERSION,
+    const source = {
+      adapter: this.name,
+      adapterVersion: this.version,
       capturedAt: raw.capturedAt,
       capturedBy: CAPTURED_BY.SQLITE,
-      originalId,
-    });
+      originalId: raw.originalId,
+    };
+    const empty = {
+      events: [],
+      persons: [],
+      places: [],
+      items: [],
+      topics: [],
+    };
 
     if (raw.kind === "workspace") {
-      const p = raw.payload || {};
-      const uri = p.folderUri || p.workspaceUri || `vscode-hash:${p.hash}`;
-      const name =
-        (p.folderPath && p.folderPath.split(/[\\/]/).filter(Boolean).pop()) ||
-        decodeFileUri(uri) ||
-        uri;
+      const workspaceId =
+        typeof payload.workspaceId === "string"
+          ? payload.workspaceId
+          : sha256Hex(raw.originalId);
       const item = {
-        id: `item-vscode-workspace-${p.hash}`,
+        id: `item-${this.name}-workspace-${workspaceId.slice(0, 32)}`,
         type: ENTITY_TYPES.ITEM,
         subtype: ITEM_SUBTYPES.LINK,
-        name: name || "(无名工程)",
+        name:
+          typeof payload.name === "string" && payload.name
+            ? payload.name
+            : "(unnamed workspace)",
         category: "code-project",
         ingestedAt,
-        source: source(`vscode-workspace:${p.hash}`),
+        source,
         extra: {
-          folderUri: p.folderUri || null,
-          workspaceUri: p.workspaceUri || null,
-          folderPath: p.folderPath || null,
-          lastOpenedMs: Number.isInteger(p.lastOpenedMs) ? p.lastOpenedMs : null,
-          editor: "vscode",
+          resourceScheme: payload.resourceScheme || "unknown",
+          resourceHash: payload.resourceHash || null,
+          lastOpenedMs: Number.isInteger(payload.lastOpenedMs)
+            ? payload.lastOpenedMs
+            : null,
+          editor: this._descriptor.editor,
         },
       };
-      return { events: [], persons: [], places: [], items: [item], topics: [] };
+      return { ...empty, items: [item] };
     }
 
     if (raw.kind === "terminal-command") {
-      const p = raw.payload || {};
-      const cmd = typeof p.value === "string" ? p.value : "";
+      const command = typeof payload.value === "string" ? payload.value : "";
       const event = {
-        id: `event-vscode-terminal-cmd-${p.sourceIndex}-${shortHash(cmd)}`,
+        id: `event-${this.name}-terminal-cmd-${sha256Hex(raw.originalId, 32)}`,
         type: ENTITY_TYPES.EVENT,
         subtype: EVENT_SUBTYPES.OTHER,
-        occurredAt: Number.isInteger(p.snapshotTs) ? p.snapshotTs : raw.capturedAt,
+        occurredAt: Number.isInteger(payload.snapshotTs)
+          ? payload.snapshotTs
+          : raw.capturedAt,
         ingestedAt,
-        source: source(raw.originalId),
+        source,
         actor: "self",
         content: {
-          title: cmd.length > 80 ? cmd.substring(0, 80) + "…" : cmd,
-          text: cmd,
+          title: command.length > 80 ? `${command.substring(0, 80)}…` : command,
+          text: command,
         },
         extra: {
           kind: "terminal-command",
-          shellType: p.shellType || null,
-          sourceIndex: p.sourceIndex,
-          editor: "vscode",
+          shellType: payload.shellType || null,
+          sourceIndex: payload.sourceIndex,
+          editor: this._descriptor.editor,
         },
       };
-      return { events: [event], persons: [], places: [], items: [], topics: [] };
+      return { ...empty, events: [event] };
     }
 
     if (raw.kind === "terminal-dir") {
-      const p = raw.payload || {};
-      const dir = typeof p.value === "string" ? p.value : "";
+      const directoryName =
+        typeof payload.name === "string" && payload.name
+          ? payload.name
+          : "(unknown directory)";
       const event = {
-        id: `event-vscode-terminal-dir-${p.sourceIndex}-${shortHash(dir)}`,
+        id: `event-${this.name}-terminal-dir-${sha256Hex(raw.originalId, 32)}`,
         type: ENTITY_TYPES.EVENT,
         subtype: EVENT_SUBTYPES.OTHER,
-        occurredAt: Number.isInteger(p.snapshotTs) ? p.snapshotTs : raw.capturedAt,
+        occurredAt: Number.isInteger(payload.snapshotTs)
+          ? payload.snapshotTs
+          : raw.capturedAt,
         ingestedAt,
-        source: source(raw.originalId),
+        source,
         actor: "self",
         content: {
-          title: `cd ${dir.length > 76 ? dir.substring(0, 76) + "…" : dir}`,
-          text: dir,
+          title: `cd ${directoryName}`,
+          text: directoryName,
         },
         extra: {
           kind: "terminal-dir",
-          shellType: p.shellType || null,
-          sourceIndex: p.sourceIndex,
-          editor: "vscode",
+          pathHash: payload.pathHash || null,
+          shellType: payload.shellType || null,
+          sourceIndex: payload.sourceIndex,
+          editor: this._descriptor.editor,
         },
       };
-      return { events: [event], persons: [], places: [], items: [], topics: [] };
+      return { ...empty, events: [event] };
     }
 
-    throw new Error(`vscode.normalize: unknown raw.kind=${raw.kind}`);
+    if (raw.kind === "local-history-save") {
+      const fileName =
+        typeof payload.fileName === "string" && payload.fileName
+          ? payload.fileName
+          : "(unnamed file)";
+      const event = {
+        id: `event-${this.name}-local-history-${sha256Hex(raw.originalId, 32)}`,
+        type: ENTITY_TYPES.EVENT,
+        subtype: EVENT_SUBTYPES.OTHER,
+        occurredAt: Number.isInteger(payload.savedAtMs)
+          ? payload.savedAtMs
+          : raw.capturedAt,
+        ingestedAt,
+        source,
+        actor: "self",
+        content: {
+          title: `Saved ${fileName}`,
+          text: fileName,
+        },
+        extra: {
+          kind: "local-history-save",
+          fileExtension: payload.fileExtension || null,
+          resourceScheme: payload.resourceScheme || "unknown",
+          resourceHash: payload.resourceHash || null,
+          hasSaveSource: payload.hasSaveSource === true,
+          editor: this._descriptor.editor,
+        },
+      };
+      return { ...empty, events: [event] };
+    }
+
+    throw new Error(`${this.name}.normalize: unknown raw.kind=${raw.kind}`);
   }
 }
 
-// Cheap non-crypto hash for de-duping originalId + event id collisions.
-// Don't need cryptographic strength here — the registry UNIQUE constraint
-// gives the real guarantee.
-function hashCommand(s) {
-  let h = 5381;
-  for (let i = 0; i < s.length; i++) {
-    h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+class VSCodeAdapter extends CodeEditorActivityAdapter {
+  constructor(opts = {}) {
+    super(opts, VSCODE_DESCRIPTOR);
   }
-  return h.toString(36);
-}
-
-function shortHash(s) {
-  return hashCommand(s).substring(0, 8);
 }
 
 module.exports = {
+  CodeEditorActivityAdapter,
   VSCodeAdapter,
   VSCODE_NAME: NAME,
   VSCODE_VERSION: VERSION,
+  codeEditorParseSince: parseSince,
+  codeEditorScanLimit: parseScanLimit,
 };
