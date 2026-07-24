@@ -2,9 +2,10 @@
 
 > 来源：`CLAUDE_CODE_CLI_CURRENT_GAPS_AND_OPTIMIZATIONS_2026-07-18.md`
 > 创建日期：2026-07-19
-> 当前 CLI 版本：`0.162.175`
-> 状态：P0 核心实现完成，主仓 CI 已通过，CLI CI 发布前验证中
-> 最后更新：2026-07-21 (P0-1/P0-2 核心代码及主仓 CI 验证完成)
+> 当前 CLI 版本：`0.162.177`
+> 状态：P0-2 当前 turn 交互核心已完成；P0-1 Broker/凭据/macOS 核心已落地，
+> Windows 原生强边界与静态进程清单收口仍在进行；P1-12 双语言 SDK 已完成
+> 最后更新：2026-07-24（按当前源码与生成清单复核）
 
 ---
 
@@ -12,7 +13,7 @@
 
 | 优先级    | 任务数 | 说明                                                                           |
 | --------- | ------ | ------------------------------------------------------------------------------ |
-| 🔴 **P0** | **2**  | **P0-1 沙箱 + P0-2 人机回路核心代码完成**，主仓 CI 已通过，CLI CI 发布前验证中 |
+| 🔴 **P0** | **2**  | P0-2 核心完成；P0-1 的 Windows 强边界、凭据解析 transport 与剩余进程入口待收口 |
 | 🟠 P0/P1  | 1      | 权限控制面统一                                                                 |
 | 🟡 P1     | 10     | 高优先级体验/安全能力                                                          |
 | 🟢 P2     | 4      | 差异化方向（不抢占 P0/P1）                                                     |
@@ -23,7 +24,8 @@
 
 ### P0-1: 进程隔离（ProcessExecutionBroker 生产化）
 
-**状态**: ✅ **核心代码完成 (2026-07-21)**；主仓 Code Quality、CI、E2E（Ubuntu/macOS/Windows）及全量自动化均已通过
+**状态**: 🟡 **Broker/凭据/macOS 核心已落地**；Windows 原生强边界、凭据解析 transport 与
+静态进程入口审计尚未完成
 
 **目标**:
 
@@ -35,22 +37,22 @@
 
 **验收标准**:
 
-- [x] macOS sandbox profile 覆盖文件/网络/信号（strict/default/network-only 三种 profile）
-- [x] Windows Job Object 限制子进程 + kill on close（postSpawn 自动关联作业）
-- [x] 所有 `child_process.spawn` 走 Broker，无绕过（spawn/spawnSync 双路径集成）
-- [x] 凭据通过 CredentialAgent 代理注入（default-on，敏感 env/args 自动过滤打码）
-- [x] 主仓三平台构建与 E2E 验证通过（2026-07-21）
-- [ ] CLI 专项 parity 测试（发布前 CLI CI 验证中）
-- [x] 语法校验通过（node --check platform-sandbox.js / credential-agent.js / index.js 全 OK）
-- [x] CC_SANDBOX_STRICT 模式 fail-closed 支持
-- [x] 环境变量控制开关（CC_SANDBOX_DISABLE / CC_SANDBOX_STRICT / CC_CRED_AGENT_DISABLE）
+- [x] macOS Seatbelt wrapper 与 strict/default/network-only profile 生成、注入式测试
+- [x] Linux bubblewrap 显式 Agent sandbox 与 Broker `prlimit` 执行计划
+- [ ] Windows Job Object + Restricted Token 原生 adapter（当前明确返回
+  `windows_native_job_object_unavailable`）
+- [x] Broker `spawn`/`spawnSync`/PTY 接入 CredentialAgent，敏感 env/argv 默认过滤且审计不含值
+- [ ] Broker 签发的 credential ref 通过认证 transport 向目标进程按需解析
+- [ ] 生成清单中的 runtime 匹配全部迁移或记录审计豁免（2026-07-24：204 项）
+- [x] `CC_SANDBOX_STRICT` 在平台边界不可用时 fail-closed
+- [ ] macOS/Linux/Windows 严格隔离真实 CI 矩阵全部通过
 
-**完成说明 (2026-07-21)**:
+**实现说明（2026-07-24 复核）**:
 
-1. **`platform-sandbox.js` 三平台原生沙箱实现**：
-   - macOS: 生成 Seatbelt `.sb` profile，通过 `sandbox-exec -f` 启动子进程，支持文件读写/网络/信号/sysctl 限制
-   - Windows: 创建 Job Object + Restricted Token + Kill-on-Close，子进程退出/父进程退出自动清理，无孤儿进程
-   - Linux: bubblewrap (bwrap) namespace 隔离（mount/pid/net/ipc/uts），支持 --unshare-net 禁网、只读系统绑定
+1. **`platform-sandbox.js` 平台执行计划**：
+   - macOS：生成 Seatbelt profile，通过 `/usr/bin/sandbox-exec -f` 包装目标进程
+   - Windows：当前如实报告原生 Job Object/Restricted Token 不可用；严格模式拒绝降级执行
+   - Linux：Broker 可用 `prlimit` 施加资源限制；文件/网络边界继续复用显式 bubblewrap sandbox
 
 2. **`credential-agent.js` 凭据过滤代理（default-on）**：
    - 30+ 正则模式识别敏感 env（API_KEY/TOKEN/PASSWORD/SECRET/PRIVATE_KEY/BEARER/AUTH 等）
@@ -59,14 +61,21 @@
      - `--token=xxx` → `--token=***REDACTED***`
      - `-H "Authorization: Bearer xxx"` → `-H "Authorization: ***REDACTED***"`
      - 内嵌 `sk-xxx` / `ghp_xxx` / `xoxb-xxx` 模式自动打码
-   - 敏感值替换为 refId，明文不直接传入子进程，子进程按需 IPC 请求（有审计）
+   - 敏感值替换为目标/审批绑定的短期 refId，明文不直接传入子进程
+   - ref 签发、解析、撤销与审计已有核心 API；认证 IPC/本地 transport 尚待接入
 
 3. **Broker `index.js` 集成完成**：
    - 修复构造函数错误（移除错误的 `new PlatformSandbox()`，改为函数式 API）
-   - `spawn()` 异步路径：权限检查 → 凭据过滤 → 沙箱应用 → native spawn → postSpawn Job Object 关联
-   - `spawnSync()` 同步路径：同等处理（同步阻塞不需要 postSpawn）
+   - `spawn()` / `spawnSync()` / PTY 路径统一执行凭据过滤、平台执行计划和脱敏审计
    - `getInfo()` 对外暴露沙箱状态（平台/启用/严格模式）和凭据代理状态（default-on/过滤计数）
-   - STRICT 模式下沙箱初始化失败直接拒绝执行（fail-closed），非严格模式仅警告继续
+   - STRICT 模式下平台边界不可用直接拒绝执行（fail-closed），非严格模式显式记录降级原因
+
+4. **2026-07-24 入口收口**：
+   - Agent `run_skill` 仅向声明 `shell-exec` 的 Skill 注入受限 Broker 门面
+   - Desktop 语音、量化、CodeExecutor、Control Panel、Data Science、Project Automation 与
+     Plugin Loader 已迁移到显式 Broker origin；Plugin Loader 的安装/解压链已去 shell
+   - 生成清单由 317/236 项（total/runtime）降至 285/204；剩余 runtime 匹配继续逐项迁移或
+     记录审计豁免
 
 **涉及文件**:
 
@@ -79,7 +88,7 @@
 
 ### P0-2: 后台人机回路（Real-time Interruption）
 
-**状态**: ✅ **核心代码完成 (2026-07-21)**；主仓 CI 与全量自动化已通过，CLI 专项 CI 发布前验证中
+**状态**: ✅ **CLI 当前 turn 核心完成**；跨宿主接管、pending 持久恢复和三平台 E2E 待补
 
 **目标**:
 
@@ -92,52 +101,44 @@
 
 - [x] Agent 遇到提问 → pause → IPC 通知 → 等待 response
 - [x] 用户回答 → resume → 同一 turn 继续执行
-- [x] 超时/拒绝 → 按 `onTimeout`/`onReject` 策略处理
-- [x] ESLint 通过（零错误零警告）
-- [ ] Desktop 端集成 `AskUserQuestion` 渲染（后续）
-- [ ] E2E 测试：后台 agent 提问→回答→完成（CLI 专项 CI 验证中）
+- [x] `backgroundAgentId/sessionId/turnId/toolUseId/sequence` 绑定不匹配时拒绝解析
+- [x] 超时、取消、重复 request 与重连重放有显式处理
+- [x] 单元/集成测试覆盖同 turn 解析和真实子进程链
+- [ ] Desktop/VS Code/JetBrains/Remote Control 共用 authority/binding resolver
+- [ ] worker/child 崩溃后的 pending request 持久恢复与 settlement exactly-once
+- [ ] 三平台真实 E2E：提问→断线→重连→回答→同 turn 完成
 
-**完成说明 (2026-07-21)**（CLI Headless 端实现）：
+**实现说明（2026-07-24 复核）**：
 
-1. **`ipc-attach-protocol.js` IPC 消息协议（新增）**：
-   - 8 种消息类型：`HELLO`/`QUESTION`/`ANSWER`/`RESUME`/`CANCEL`/`LIST_QUESTIONS`/`LIST_RESPONSE`/`BYE`
-   - 换行安全编码：`\n` → `\x1f`，`\r` → `\x1e`（避免 JSON 与 stdout 交错）
-   - 固定 `__IPC__:` 前缀过滤，stdout/stderr 分离
-   - 完整单元测试覆盖（编码/解码/换行安全/前缀过滤）
+1. **turn child ↔ worker Node IPC**：
+   - `background-agent-worker.js` 以 `stdio: [..., "ipc"]` 启动 turn child
+   - `background-interaction-resolver.js` 实现版本化
+     `interaction-request` / `interaction-response`
+   - request/response 保留同一 turn、tool call 和单调 sequence 绑定
 
-2. **`background-interaction-resolver.js` 父进程侧交互解析器（新增）**：
-   - 附加到 Worker 子进程 stdio，过滤 IPC 消息
-   - 接收 QUESTION → 调用 resolver 获取答案 → 发回 ANSWER
-   - 支持超时跳过（默认 60s）、CANCEL 处理、多问题排队
-   - 错误安全：IPC 失败时不影响 agent 继续执行
-   - 完整单元测试覆盖（13 个测试用例）
+2. **worker ↔ attach 宿主 transport**：
+   - `background-session-transport.js` 使用 Unix socket / Windows named pipe
+   - worker 广播 `interaction_request`，attach 发送 `interaction_response`
+   - attach 重连后可重放当前 worker 内存中的 pending request
 
-3. **`background-agent-worker.js` Worker 侧 AskUserQuestion 拦截**：
-   - Worker 启动后立即发送 HELLO，报告 pending questions
-   - 拦截 `ask_user_question` tool，暂停 turn，通过 IPC 发送 QUESTION
-   - 用户回答后自动 resume（带相同 turn context、tool_call_id）
-   - 支持 ANSWER/RESUME（文本/对象多格式）/CANCEL/LIST_QUESTIONS 命令
-   - 错误安全：IPC 失败时 fallback 到默认答案继续执行
-   - Worker 退出前发送 BYE
+3. **Headless 与状态接线**：
+   - `headless-runner.js` 将 `ask_user_question` 接到 `backgroundInteractionClient`
+   - 回答返回同一个 child，不写入下一 turn 的 `promptQueue`
+   - session 状态在等待期间为 `needs_input`，settle 后回到当前 turn
 
-4. **`background-session.js` attach 命令交互集成**：
-   - `cc cowork background attach <id>` TCP 连接到后台会话服务器
-   - 收到 QUESTION 时弹出 readline 提示，显示问题 + 选项
-   - 用户回答后编码为 ANSWER 消息发回 worker，原地恢复执行
-   - Ctrl-C 断开时发送 BYE，不中断后台 worker 执行
-   - 支持 `/detach` 命令主动脱离，旧版无 TCP 服务器 fallback 到日志流
-   - 支持 `pendingQuestion` 状态显示在列表中（`(1 pending question)`）
+4. **验证证据**：
+   - `headless-side-effect-ledger-resume.test.js` 验证同 turn question resolve
+   - `background-stability-realspawn.test.js` 覆盖真实 child/worker 交互链
 
 **涉及文件**:
 
-- `packages/cli/src/lib/ipc-attach-protocol.js` (✅ 新增完成)
-- `packages/cli/src/lib/background-interaction-resolver.js` (✅ 新增完成)
-- `packages/cli/src/workers/background-agent-worker.js` (✅ AskUserQuestion 拦截完成)
-- `packages/cli/src/commands/background-session.js` (✅ attach IPC 集成完成)
-- `packages/cli/src/lib/background-session-transport.js` (✅ TCP 会话服务器集成)
-- `packages/cli/__tests__/unit/ipc-attach-protocol.test.js` (✅ 单元测试)
-- `packages/cli/src/agent/agent-ipc-bus.js`（现有总线，Desktop 集成后续）
-- `desktop-app-vue/src/main/ipc/agent-ipc-handler.js`（Desktop 端集成后续）
+- `packages/cli/src/lib/background-interaction-resolver.js`
+- `packages/cli/src/workers/background-agent-worker.js`
+- `packages/cli/src/runtime/headless-runner.js`
+- `packages/cli/src/commands/background-session.js`
+- `packages/cli/src/lib/background-session-transport.js`
+- `packages/cli/__tests__/integration/headless-side-effect-ledger-resume.test.js`
+- `packages/cli/__tests__/integration/background-stability-realspawn.test.js`
 
 ---
 
@@ -179,7 +180,7 @@
 | P1-6  | Event Runtime 常驻化 | 🟡 producer 已接线、宿主托管待补            | `cc agenda run --watch <seconds>`、claim lease/过期回收、`EventRuntimeStore` durable inbox/outbox、失败重试/死信、可停止 `EventRuntimeWorker`、有界背压、`EventRuntimeProducer`、Agent IPC/MCP/Webhook/Telegram/Monitor 自动接线已完成；所有宿主统一 worker 生命周期、跨进程观测与恢复演练仍待补 |
 | P1-7  | Context 来源归因     | 🟡 MCP schema、实际注入 persona Skill 已补  | `cc context --sources` 已对 instruction 文件、实际注入 persona Skill 和 admitted MCP schema 逐来源计费；普通 Skill 按需加载/缓存命中成本仍待接入                                                                                                                                                 |
 | P1-8  | Checkpoint REPL 统一 | 部分                                        | turn-binding 生产者、tool_use_id 完整浮出                                                                                                                                                                                                                                                        |
-| P1-9  | Plugin 安全强化      | 🟡 OS secret + Broker provenance 已补       | 签名/manifest SHA-256、trusted key、安装后 SBOM 文件摘要、capability consent、managed allow/deny、DPAPI/Keychain/Secret Service、插件 MCP/LSP/Hook/Monitor/Bin Broker provenance 与 CLI/cc ui、Desktop 主进程 child_process/node-pty Broker 已有；原生模块和外部宿主全路径仍待补                 |
+| P1-9  | Plugin 安全强化      | 🟡 OS secret + Broker provenance 已补       | 签名/manifest SHA-256、trusted key、安装后 SBOM 文件摘要、capability consent、managed allow/deny、DPAPI/Keychain/Secret Service、插件 MCP/LSP/Hook/Monitor/Bin 与 Agent `run_skill` Broker 门面已有；Desktop Plugin Loader 的依赖探测/安装/解压已去 shell 并携带 plugin source；原生模块和外部宿主全路径仍待补 |
 | P1-10 | 并发状态 fail-closed | 🟡 关键调度/会话状态已补                    | `withFileLock(failIfUnavailable)` + Agenda claim lease、Event Runtime 与 JSONL session append 已 fail-closed；approval/部分 ledger/IDE session 状态仍待统一迁移                                                                                                                                  |
 | P1-11 | JSON Schema 完整支持 | 🟡 常用 vocabulary + external registry 已补 | Draft 2020-12 常用关键字、dependent/pattern/contains/propertyNames、local `$ref`、显式 external schema registry、组合/条件、format、structured_result 已有；完整 meta-vocabulary、自动远程 ref 与复杂互操作仍待补                                                                                |
 | P1-12 | SDK/CI 事件透传      | ✅ 已完成                                   | TypeScript + Python SDK 已覆盖契约中的 22 类 typed stream 事件、approval/question/MCP elicitation callback、resume 与未知事件无损透传；共享 protocol fixture、穷举 CI consumer、GitHub Actions 模板及 21 项 hermetic 测试已补                                                                    |
@@ -247,10 +248,12 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 
 ---
 
-## ✅ 已完成（M0-M6 + P0-1/P0-2 核心，2026-07-19/20/21 落地）
+## ✅ 已完成（M0-M6 + P0-2 核心及 P0-1 已落地子项）
 
-- [x] **P0-1 三平台沙箱 + 凭据代理核心代码 (2026-07-21)**
-- [x] **主仓 CI 验证 (2026-07-21)**：Code Quality、CI Tests、E2E Tests（Ubuntu/macOS/Windows）、Full Test Automation 全部通过
+- [x] **P0-1 Broker async/sync/PTY 凭据边界 + macOS Seatbelt/Linux 执行计划**
+- [x] **P0-2 CLI 当前 turn 提问/回答/继续核心链**
+- [x] **P1-12 TypeScript/Python SDK、共享 fixture 与 GitHub Actions 示例**
+- [x] **2026-07-21 历史主仓验证**：当时的 Code Quality、CI Tests、E2E Tests 与 Full Test Automation 通过；不替代当前剩余严格隔离验收
 - [x] Notification Hook 事件（2026-07-20）
 - [x] M0: `process-execution-broker` 单例 + spawn 审计清单
 - [x] M0: parity 验证脚本 + `npm run runtime:convergence`
@@ -270,12 +273,12 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 
 ## 近期里程碑
 
-| 日期       | 目标                                                    |
-| ---------- | ------------------------------------------------------- |
-| **本周**   | P0-2 后台人机回路 turn 内暂停/恢复完成                  |
-| **下周**   | P0/P1-3 权限控制面统一 + P1-4 Hooks producer 接入与沙箱 |
-| **两周后** | P1-5 ~ P1-8 完成                                        |
-| **三周后** | 9项 parity 验收门全绿，文档清理完成                     |
+| 顺序       | 目标                                                                 |
+| ---------- | -------------------------------------------------------------------- |
+| **当前**   | P0-1 Windows 原生强边界、credential transport、204 项 runtime 清单审计 |
+| **随后**   | P0-2 跨宿主 resolver、pending 持久恢复与三平台断线重连 E2E           |
+| **并行**   | P1-4 剩余 producer/沙箱、P1-5 URL-mode/defer、P1-6 宿主托管          |
+| **发布前** | 双语言 SDK 兼容门、真实环境 parity 与文档事实源漂移检查              |
 
 ---
 

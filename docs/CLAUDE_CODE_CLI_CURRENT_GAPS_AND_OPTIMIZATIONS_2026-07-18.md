@@ -2,9 +2,10 @@
 
 > 评估日期：2026-07-18  
 > 评估对象：`packages/cli`、`packages/agent-sdk` 及 Coding Agent 相关验证链  
-> 仓库基线：CLI `0.162.175`
+> 仓库基线：CLI `0.162.177`
 > 对标基线：截至评估日的 Claude Code 官方滚动文档  
-> 文档状态：持续复核版；2026-07-22 已复核仓库证据路径、CLI 版本和 Runtime Convergence 验收链。
+> 文档状态：持续复核版；2026-07-24 已复核 CLI 版本、后台当前 turn 交互、双语言 Agent SDK、
+> Skill/Desktop Process Broker 收口及静态进程清单。
 > 说明：本文只列“当前仍值得投入”的净差距。已落地能力不再重复列为待办，历史实施过程见
 > [`CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`](./CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md)。
 
@@ -18,7 +19,7 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 一个可信、可恢复、跨平台一致的运行时。建议优先投入以下五项：
 
 1. **P0：统一 Process Sandbox Broker。** 所有子进程入口统一经过强隔离、网络策略、凭据代理和审计。
-2. **P0：后台 Agent 实时交互总线。** 审批和提问能够在当前 turn 内暂停、回答和继续，而不是结束后另起一轮。
+2. **P0/P1：后台 Agent 实时交互总线产品化。** CLI 当前 turn 暂停/回答/继续核心已落地，继续补齐跨宿主接管、持久恢复与端到端验收。
 3. **P1：Hooks v2。** 补齐新版事件和五种 Hook 类型，并默认并行、去重、最严决策合并及沙箱执行。
 4. **P1：常驻 Event Runtime + MCP Elicitation/Channels。** 让 Agenda、Monitor、Webhook 和 MCP 外部事件真正可持续运行。
 5. **P1：统一协议与验收门。** CLI、SDK、IDE、Desktop 共用版本化事件协议和真实端到端发布门，清理已过时的能力文档。
@@ -48,7 +49,7 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 | MCP             | stdio/HTTP、Tools、Resources、Prompts、OAuth、Tool Search、动态 list changed、Roots 通知、重连      | 主体已具备   |
 | Plugin          | Manifest、签名/信任、能力声明、能力差异与重新 consent、typed options、LSP/MCP/Hooks/Bin             | 主体已具备   |
 | 质量            | LSP、多根工作区、编辑后诊断、多 Agent Review + verifier、Doctor、OTel                               | 主体已具备   |
-| SDK             | 已有 TypeScript Agent SDK、NDJSON 协议 fixture、background/session 测试                             | 已有产品雏形 |
+| SDK             | TypeScript/Python Agent SDK、22 类 typed stream 事件、交互回调、共享 NDJSON fixture 与 CI 示例       | 双语言基线已具备 |
 
 因此不建议再单独立项：
 
@@ -62,18 +63,18 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 
 | 能力面        | Claude Code 官方能力                                                        | ChainlessChain 当前状态                                                                                                                                                                                                            | 当前净差距                                                                                                          | 优先级 |
 | ------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------ |
-| 进程隔离      | macOS Seatbelt、Linux/WSL2 bubblewrap、文件/网络边界、凭据隔离、严格失败    | Docker + bubblewrap，能报告真实隔离级别；Broker async/sync/PTY 已默认过滤 env/argv，并输出不含值的过滤计数                                                                                                                         | macOS/原生 Windows 缺强边界；仍有 spawn 清单入口、原生模块/外部宿主未统一；按审批目标短期解析凭据仍未成为全路径默认 | P0     |
-| 后台人机回路  | 后台任务可暂停、请求权限/输入、恢复和接管                                   | attach 可追问；`needs_input` 已有真实状态                                                                                                                                                                                          | 提问会 park 当前子进程，回答作为下一 turn；缺当前 turn 双向通道                                                     | P0     |
+| 进程隔离      | macOS Seatbelt、Linux/WSL2 bubblewrap、文件/网络边界、凭据隔离、严格失败    | Docker/bubblewrap 与 macOS Seatbelt wrapper 已有；Broker async/sync/PTY 默认过滤 env/argv 并输出无值计数；Windows 会如实报告原生强边界 unavailable                                                                                 | Windows Job Object/Restricted Token 未落地；204 项 runtime 静态匹配仍需迁移或审计豁免；凭据 ref 的宿主认证解析通道待补 | P0     |
+| 后台人机回路  | 后台任务可暂停、请求权限/输入、恢复和接管                                   | CLI turn child 与 worker 已有绑定校验的 Node IPC；attach 回答会返回同一 child、继续同一 turn，并可向重连客户端重放 pending request                                                                                                  | Desktop/IDE/Remote Control 尚未共用完整 authority/binding 验收向量；worker/child 崩溃后的 pending 持久恢复与全链 E2E 待补 | P0/P1  |
 | 权限控制面    | CLI、交互、SDK、IDE 使用同一权限规则和决策来源                              | Agent Runtime 已有 settings rules + ApprovalGate；`cc permissions` 仍是另一套管理面                                                                                                                                                | 用户可能误以为 `cc permissions` 已直接约束 Agent 工具；安全默认和来源解释需统一                                     | P0/P1  |
 | Hooks         | 完整生命周期；command/http/mcp_tool/prompt/agent 五类；并行、去重、最严合并 | 稳定 command hook、部分事件、async/replay/trace 已有                                                                                                                                                                               | Hook 类型和事件生产者不全；shell 继承全 env；严格并行仍有 opt-in 路径                                               | P1     |
 | MCP 交互      | Elicitation、ElicitationResult、Channels、长调用后台化                      | Tools/Resources/Prompts/OAuth/Tool Search/list changed/roots、Elicitation transport、Desktop/VS Code/JetBrains common schema UX 已有                                                                                               | 完整 schema vocabulary 与部分外部事件 producer 仍待补                                                               | P1     |
 | Event Runtime | 后台会话、任务、外部事件和持续监控统一运行                                  | Agenda watch、durable inbox/outbox、lease/retry/dead-letter、Agent IPC、MCP、Webhook、Telegram、Monitor producer 默认接线与有界队列已接入；`cc status --json` 已暴露跨进程队列压力/过期租约，跨 owner 恢复演练会拒绝旧租约迟到结算 | 所有宿主统一启动/托管 worker 与完整长运行副作用恢复演练仍待补                                                       | P1     |
 | Context       | `/context` 显示 memory、skills、MCP、文件与缓存成本                         | 已显示消息角色、instruction 文件、实际注入 persona Skill 及 persisted MCP schema 的逐来源归因                                                                                                                                      | Skill 按需加载/缓存命中成本仍不完整                                                                                 | P1     |
 | Checkpoint    | 对话与文件按 turn 恢复                                                      | Headless 显式绑定已持久化，REPL 可消费                                                                                                                                                                                             | REPL 还不是统一生产者；child/worktree/user edit/provider tool id 归因不完整                                         | P1     |
-| Plugin 安全   | 插件统一打包、作用域、企业治理                                              | 能力声明、consent、签名、typed options、OS secret store、lockfile/SBOM、插件 MCP/LSP/Hook/Monitor/Bin Broker provenance；CLI/cc ui 与 Desktop 主进程 child_process、node-pty PTY Broker 已接入                                     | Desktop/CLI 原生模块和外部宿主入口仍需统一 Broker                                                                   | P1     |
+| Plugin 安全   | 插件统一打包、作用域、企业治理                                              | 能力声明、consent、签名、typed options、OS secret store、lockfile/SBOM、插件 MCP/LSP/Hook/Monitor/Bin Broker provenance；Desktop Plugin Loader 依赖探测、安装和解压已去 shell 并携带 plugin source；CLI/cc ui 与 Desktop 主进程 child_process、node-pty PTY Broker 已接入 | Desktop/CLI 原生模块和外部宿主入口仍需统一 Broker                                                                   | P1     |
 | 关键状态并发  | 会话、审批、任务和副作用状态应原子持久化                                    | Agenda/Event Runtime/session transcript 已使用 fail-closed file lock                                                                                                                                                               | approval/部分 ledger/IDE session 状态仍需统一迁移，避免不同宿主各自写入                                             | P1     |
 | 结构化输出    | 标准 JSON Schema、启动期校验、最终 validated result                         | 常用 Draft 2020-12 vocabulary（组合、条件、`$ref`、dependent、pattern、contains、format）、显式 external schema registry 及 stream `structured_result`                                                                             | 完整 meta-vocabulary、自动远程 ref 解析与复杂 schema 互操作性仍待补                                                 | P1     |
-| SDK/CI        | TypeScript/Python SDK、版本化事件、GitHub/GitLab 自动化                     | TypeScript SDK 已有                                                                                                                                                                                                                | 部分 goal/approval/turn 事件未完全透传；缺统一发布兼容门；Python/CI 模板按需求决定                                  | P1     |
+| SDK/CI        | TypeScript/Python SDK、版本化事件、GitHub/GitLab 自动化                     | 双语言 SDK 已覆盖 22 类 typed stream 事件、approval/question/MCP elicitation callback、resume 与未知事件无损透传；共享 fixture、GitHub Actions 模板及 21 项 hermetic 测试已落地                                                | SemVer/capability negotiation/deprecation 矩阵、跨宿主 schema package、GitLab 与正式发布兼容门仍待补                | P1     |
 | 验收与文档    | CLI/IDE/SDK 共享运行时和持续发布验证                                        | 单元/集成测试很多                                                                                                                                                                                                                  | MVP 验证脚本没有覆盖完整 Desktop→真实 CLI 链；多份旧文档仍把已完成项列为缺口                                        | P1     |
 | 全进程回滚    | 官方 checkpoint 主要覆盖编辑工具                                            | 已对 shell/外部副作用诚实标记 partial                                                                                                                                                                                              | 可进一步做全工具文件变更捕获，形成强于 Claude Code 的差异化                                                         | P2     |
 
@@ -81,16 +82,22 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 
 ### 4.1 当前证据
 
-- [`agent-sandbox.js`](../packages/cli/src/lib/agent-sandbox.js#L64) 只接受 `docker` 和
-  `bubblewrap`；[`capability-manifest.js`](../packages/cli/src/lib/capability-manifest.js#L83)
-  也只公开这两个引擎。
-- `bubblewrap` 已有真实 Linux 集成测试，Docker 可提供容器边界，但 macOS Seatbelt 和原生
-  Windows 等价实现仍缺。
+- [`agent-sandbox.js`](../packages/cli/src/lib/agent-sandbox.js#L64) 的显式 Agent sandbox 仍只接受
+  `docker` 和 `bubblewrap`；Broker 的
+  [`platform-sandbox.js`](../packages/cli/src/lib/process-execution-broker/platform-sandbox.js)
+  已另行提供 macOS Seatbelt wrapper 与 Linux `prlimit` 执行计划。
+- `bubblewrap` 已有真实 Linux 集成测试，macOS Seatbelt wrapper 有注入式单元测试；原生 Windows
+  Job Object/Restricted Token 尚无 adapter，当前会明确返回
+  `windows_native_job_object_unavailable`，严格模式据此 fail-closed。
 - Hook command 仍从完整 `process.env` 构造执行环境，但已通过 Process Broker；Broker 会移除已识别
   的敏感环境变量。按 executor 声明最小环境 allowlist 尚未完成。
 - `run_shell`、`run_code`、Hook、Plugin Bin、LSP、MCP stdio、CLI/`cc ui` PTY 与 Desktop
   `child_process`/PTY 的已迁移入口现已进入 Broker；静态 spawn 清单中的剩余直接入口、原生模块和
   外部宿主仍无法证明遵守同一文件/网络边界。
+- 2026-07-24 重新生成
+  [`PROCESS_SPAWN_INVENTORY.generated.md`](./cli/PROCESS_SPAWN_INVENTORY.generated.md)：总匹配从
+  317 降至 285，runtime 从 236 降至 204，tooling/test 保持 53/28。该计数用于逐项迁移或记录
+  审计豁免，不能直接等同于 204 个真实绕过。
 - 2026-07-23 已统一 Broker async/sync/PTY 的 CredentialAgent 边界：过滤后的 env 与 argv 会真正
   传给原生执行函数，审计仅记录 env/argv 过滤数量，拒绝路径会先脱敏 argv，过滤器异常时不再让
   sync 路径携带原始凭据继续执行。按 host/process 审批后解析短期值的完整代理闭环仍待补。
@@ -207,7 +214,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 - CLI-Anything 宿主侧的 Python/package 探测、pip install 与 tool help 已进入 `cli-anything:*`
   Broker origin；生成到用户 Skill 的 CLI-Anything/CLI Pack CommonJS handler 也改由 CLI 宿主按
   `shell-exec` capability 注入受限 Broker 门面，缺少门面时 fail-closed，CLI-Anything 参数使用
-  literal argv；Agent `run_skill` 的同门面注入仍待补齐。
+  literal argv；Agent `run_skill` 现已通过 `createSkillProcessBroker(match)` 注入同一门面，仅
+  声明 `shell-exec` 的 Skill 可获得，普通 Skill 收到 `null`，并有 Agent Core 回归测试覆盖。
 - `init ai-media-creator` 生成的 `audio-gen` Skill 已声明 `shell-exec` capability；edge-tts/Python
   探测、异步合成与 piper stdin 路径均只使用宿主注入的无 shell Broker 门面，缺少门面时 fail-closed。
 - `init ai-doc-creator` 生成的 `doc-generate` Skill 已按同一 capability/fail-closed 契约迁移；
@@ -252,6 +260,18 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   `desktop:python-bridge-probe` / `desktop:python-bridge-tool`，均使用无 shell 字面 argv 并支持测试注入。
 - Desktop FineTuningManager 的 llama.cpp 训练进程已进入 `desktop:fine-tuning-llama-cpp` Broker origin；
   训练参数保持独立 argv，取消/进度/结果生命周期不变，并由现有 manager 测试直接注入执行器验证。
+- Desktop 语音链的 Edge TTS、Local Piper 探测/合成及 Whisper 单次/流式转写已分别进入
+  `desktop:speech-edge-tts`、`desktop:speech-local-tts-*` 与 `desktop:speech-whisper-*`；
+  均保留字面 argv、进度/流生命周期和可注入测试执行器。
+- GGUF/GPTQ 量化与 CodeExecutor 的 Python 探测/代码运行已进入 `desktop:quantization-*`、
+  `desktop:code-executor-*`；取消、进度和结果契约不变，代码执行继续使用无 shell argv。
+- Control Panel API、Data Science Python 与 Project Automation 脚本分别进入
+  `desktop:menu-control-panel-api`、`desktop:data-science-python`、
+  `desktop:project-automation-script`，自动化脚本不再依赖 shell 字符串执行。
+- Desktop Plugin Loader 的依赖探测、安装、归档解压与兼容命令入口已进入
+  `desktop:plugin-loader-dependencies`、`desktop:plugin-loader-install`、
+  `desktop:plugin-loader-extract` / `desktop:plugin-loader-command`；Windows npm 使用
+  `npm.cmd`，PowerShell 解压路径只经 `$args` 传入，并记录 `pluginSource` provenance。
 - REPL `/goal exit-zero` 的命令检查已进入 `repl-goal:exit-zero` Broker origin；保留用户条件所需的
   显式 shell 语义，并增加 30 秒执行上限。
 - Headless `--goal-condition exit-zero` 的默认命令检查已进入 `headless-goal:exit-zero` Broker origin；
@@ -321,53 +341,60 @@ ExecutionResult
 - 未批准子进程读取不到长期凭据；审计和 OTel 中也不存在明文。
 - Hook、Plugin、LSP、MCP stdio 与 Tool 使用同一套 provenance 和 side-effect ledger。
 
-## 5. P0：后台 Agent 实时交互总线
+## 5. P0/P1：后台 Agent 实时交互总线产品化
 
-### 5.1 当前证据
+### 5.1 已实现（2026-07-24 复核）
 
-- [`headless-runner.js`](../packages/cli/src/runtime/headless-runner.js#L1431) 明确说明后台
-  `ask_user_question` 没有连接当前子进程的人类通道，只能记录 `needs_input` 后结束该 turn。
-- [`background-agent-worker.js`](../packages/cli/src/workers/background-agent-worker.js#L111)
-  启动 turn 子进程时 stdin 为 ignore。
-- attach 发来的文本进入
-  [`promptQueue`](../packages/cli/src/workers/background-agent-worker.js#L170)，当前子进程退出后才以
-  `-p` 启动下一 turn。
+- [`background-agent-worker.js`](../packages/cli/src/workers/background-agent-worker.js) 启动 turn child
+  时已打开 Node IPC；[`headless-runner.js`](../packages/cli/src/runtime/headless-runner.js) 将后台
+  `ask_user_question` 接到 `backgroundInteractionClient`，当前工具调用会保持挂起。
+- [`background-interaction-resolver.js`](../packages/cli/src/lib/background-interaction-resolver.js)
+  实现版本化的 `interaction-request` / `interaction-response`，并逐字段绑定
+  `backgroundAgentId/sessionId/turnId/toolUseId/sequence`；不匹配的回答不能解析其他请求。
+- worker 通过
+  [`background-session-transport.js`](../packages/cli/src/lib/background-session-transport.js)
+  向 attach 客户端广播 `interaction_request`。客户端回答后，结果经 worker 返回同一个 turn child，
+  不进入下一轮 `promptQueue`；重连时会重放当前 worker 内存中的 pending request。
+- `headless-side-effect-ledger-resume.test.js` 已验证后台问题在同一 turn 内解析；
+  `background-stability-realspawn.test.js` 覆盖真实子进程交互链。
 
-这让状态展示已经“诚实”，但交互语义仍不完整：一个本可继续的当前 turn 被拆成两轮模型调用，
-会增加成本、丢失工具调用现场，也不适合高风险审批。
+因此，“后台提问只能结束当前 turn、回答必须另起一轮”的核心缺口已经关闭。
 
-### 5.2 建议设计
+### 5.2 剩余收口
 
-增加 worker 与 turn child 之间的双向本地 IPC：
+现有双向通道应继续收敛为跨宿主的唯一交互协议：
 
 ```text
-child -> worker
-  interaction.request {
-    request_id, kind: question | permission | elicitation,
-    schema, choices, tool_use_id, policy_digest, expires_at
+turn child -> worker (Node IPC)
+  interaction-request {
+    protocolVersion, requestId, payload,
+    binding { backgroundAgentId, sessionId, turnId, toolUseId, sequence }
   }
 
-worker -> child
-  interaction.resolve {
-    request_id, answer, authority, binding, resolved_at
-  }
+worker -> turn child (Node IPC)
+  interaction-response { protocolVersion, requestId, result | error, binding }
+
+worker <-> attach/Desktop/IDE/Remote
+  interaction_request / interaction_response
 ```
 
-关键约束：
+仍需完成：
 
-- `request_id`、`tool_use_id`、参数摘要和 `policy_digest` 共同绑定，旧回答不能批准新动作。
-- worker 持久化 pending request；attach、Desktop、IDE、Remote Control 共用同一解析入口。
-- 断线后仍保持 `needs_input`/`waiting_permission`，重连可继续，不自动降级成 allow。
-- 支持过期、取消、重复回答幂等、背压和 worker/child 任一侧崩溃恢复。
-- Headless 可采用结构化 `defer` 结果交给 SDK/CI，而不是在非交互环境中挂死。
+- 把 pending request 和 settlement 持久化，worker/child 崩溃后可以确定性恢复、取消或拒绝，而不只依赖
+  当前 worker 内存。
+- attach、Desktop、VS Code、JetBrains 与 Remote Control 共用同一 authority/binding resolver、
+  过期规则和 Golden Fixtures，UI 文本不能自行代表用户授权。
+- question、permission 与 MCP elicitation 共用状态迁移、取消、超时、重复回答幂等和有界背压。
+- Headless 无可交互宿主时返回结构化 `defer`，交给 SDK/CI 处理，不能挂死或静默 allow。
 
-### 5.3 验收标准
+### 5.3 剩余验收标准
 
-- 用户回答后继续同一 turn，不新增一次模型首轮调用。
-- stale、伪造、跨 session 和跨 tool call 的 approval 全部拒绝。
-- worker 或 UI 重启后 pending request 可恢复，且最多执行一次。
-- 本地 attach、WebSocket、Desktop、IDE 使用相同的 authority/binding 测试向量。
-- `working`、`needs_input`、`waiting_permission`、`uncertain_side_effect`、`idle` 状态有唯一生产者和明确迁移表。
+- worker 或 UI 重启后 pending request 可恢复，settlement 最多生效一次。
+- stale、伪造、跨 session、跨 turn 和跨 tool call 的回答在所有宿主上一致拒绝。
+- 本地 attach、WebSocket、Desktop、VS Code、JetBrains 使用相同 authority/binding 测试向量。
+- `working`、`needs_input`、`waiting_permission`、`uncertain_side_effect`、`idle` 状态有唯一生产者和
+  明确迁移表。
+- 真实后台 Agent 的“提问→断线→重连→回答→同 turn 完成”进入三平台 E2E。
 
 ## 6. P1：Hooks v2
 
@@ -605,21 +632,25 @@ remote approval 和不同运行入口中。
 
 ## 12. P1：Agent SDK、CI 与权限默认值
 
-[`packages/agent-sdk`](../packages/agent-sdk/) 已有 TypeScript SDK 和协议 fixture，因此不建议再
-“抽取一套新 SDK”。建议优先补协议收口：
+2026-07-24 复核时，SDK 主体已经从单一 TypeScript 雏形扩展为双语言基线：
 
-- `goal_*`、approval binding、turn/checkpoint、child agent、recovery 和 defer 事件完整透传。
-- CLI、SDK、VS Code、JetBrains、Desktop 共用一份 schema package 和 Golden NDJSON。
-- 协议变更有 SemVer、capability negotiation、deprecation window 和兼容矩阵。
-- WebSocket approval gate 从 opt-in 迁移为安全默认；项目配置不能放宽 managed deny、
-  bypass 或 auto mode 的组织边界。
-- SDK 可替换 SessionStore、审批回调、Elicitation、Hook 和 OTel exporter。
+- [`packages/agent-sdk`](../packages/agent-sdk/) 与
+  [`packages/agent-sdk-python`](../packages/agent-sdk-python/) 均覆盖协议中的 22 类 typed stream
+  事件，并支持 approval、question、MCP elicitation callback、session resume。
+- 两端都会无损保留未知事件，旧消费者不会因新事件类型破坏事件泵；共享 NDJSON fixture 作为
+  跨语言事实源。
+- Python 包已提供穷举 CI consumer、最小权限 GitHub Actions 示例和 21 项 hermetic 测试。
 
-Python SDK 和 GitHub/GitLab CI 模板应按真实用户场景决定：
+因此 Python SDK、基础事件透传和 GitHub Actions 示例不再列为缺口。剩余工作集中在发布兼容门：
 
-- 若要做第三方嵌入平台，Python SDK 提升为 P1。
-- 若主要服务桌面端和自托管 CLI，先把 TypeScript SDK 和协议发布门做稳。
-- CI 集成优先提供最小、可审计的 `--bare --ephemeral --dontAsk` 模板，不要默认开放高风险工具。
+- CLI、TypeScript/Python SDK、VS Code、JetBrains、Desktop 共用版本化 schema package 和
+  Golden NDJSON，而不是由各宿主手工复制 union。
+- 协议变更增加 SemVer、capability negotiation、deprecation window、兼容矩阵和未知字段策略。
+- npm/Python 包发布前执行双语言 fixture、穷举 consumer 与真实 CLI smoke，防止只更新一端。
+- WebSocket approval gate 迁移为安全默认；项目配置不能放宽 managed deny、bypass 或 auto mode
+  的组织边界。
+- GitLab 模板若发布，也沿用最小、可审计的 `--bare --ephemeral --dontAsk` 基线，不默认开放
+  高风险工具或长期凭据。
 
 ## 13. P1：统一验收门与文档治理
 
@@ -707,16 +738,16 @@ mTLS 和团队级成本/失败聚合；继续坚持内容默认不出端。
 | ------------- | -------- | ------------------------------------------------------------------------------- | ----------------------------------------------- |
 | M0 事实基线   | 1 周     | 统一 parity 验收脚本、spawn 清单、文档状态清理、权限双系统标识                  | 当前能力可一键复验，旧待办和权限 UI 不再误导    |
 | M1 可信执行   | 4–6 周   | Process Broker、Linux/macOS/Windows 后端、凭据 default-on、关键状态 fail-closed | 所有生产子进程统一受控，三平台严格测试通过      |
-| M2 实时交互   | 3–4 周   | worker-child IPC、approval/question/elicitation、恢复                           | 当前 turn 可安全暂停与继续，stale approval 全拒 |
+| M2 实时交互   | 2–3 周   | 已有 worker-child IPC 之上的跨宿主 resolver、持久恢复与断线重连 E2E             | 所有宿主同 turn 继续，stale response 全拒且可恢复 |
 | M3 扩展运行时 | 4–6 周   | Hooks v2、常驻 Event Runtime、MCP Elicitation/Channels                          | 事件可恢复、幂等、有界，Hook 协议稳定           |
-| M4 协议收口   | 3–4 周   | Context ledger、统一 turn binding、标准 JSON Schema、SDK/IDE golden gate        | CLI/SDK/IDE/Desktop 事件与恢复语义一致          |
+| M4 协议收口   | 3–4 周   | Context ledger、统一 turn binding、标准 JSON Schema、双语言 SDK/IDE golden gate | CLI/SDK/IDE/Desktop 事件与恢复语义一致          |
 | M5 差异化     | 按需求   | 全工具文件回滚、安全分类器评测、大规模 Agent                                    | 有真实用户指标与故障模型后再投入                |
 
 可以并行的工作：
 
 - M0 可与 M1 的接口设计并行。
-- M2 的协议设计可与 M1 并行，但真正执行必须复用 Broker 和 authority。
-- Context ledger 与 SDK Golden Fixtures 可独立推进。
+- M2 的跨宿主 adapter 与恢复测试可和 M1 剩余入口审计并行，但必须复用同一 authority。
+- Context ledger 与双语言 SDK Golden Fixtures/发布门可独立推进。
 
 不能倒置的依赖：
 
