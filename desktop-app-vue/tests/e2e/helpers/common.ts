@@ -250,7 +250,8 @@ export async function launchElectronApp(
           typeof (window as any).api !== "undefined"
         );
       },
-      { timeout: 10000 },
+      undefined,
+      { timeout: 60000 },
     );
   } catch (error) {
     console.warn("Warning: electronAPI not found, but continuing anyway");

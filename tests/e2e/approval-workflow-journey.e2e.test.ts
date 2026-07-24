@@ -13,7 +13,12 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { launchElectronApp, closeElectronApp, callIPC } from './helpers';
+import {
+  launchElectronApp as launchFreshElectronApp,
+  closeElectronApp as closeFreshElectronApp,
+  callIPC,
+  type ElectronTestContext,
+} from './helpers';
 
 // Test data
 const TEST_ORG_ID = `org-approval-journey-${Date.now()}`;
@@ -24,11 +29,30 @@ const TEST_APPROVER3_DID = `did:key:approver3-${Date.now()}`;
 const TEST_DELEGATE_DID = `did:key:delegate-${Date.now()}`;
 
 test.describe.serial('Approval Workflow Journey', () => {
+  let sharedContext!: ElectronTestContext;
   let workflowId: string;
   let requestId: string;
   let sequentialWorkflowId: string;
   let parallelWorkflowId: string;
   let anyOneWorkflowId: string;
+
+  // Approval phases depend on records created by prior phases. Keep one
+  // Electron/sql.js session for this serial journey instead of restarting the
+  // app after every assertion.
+  const launchElectronApp = async (): Promise<ElectronTestContext> =>
+    sharedContext;
+  const closeElectronApp = (_app: unknown): Promise<void> => {
+    void _app;
+    return Promise.resolve();
+  };
+
+  test.beforeAll(async () => {
+    sharedContext = await launchFreshElectronApp();
+  });
+
+  test.afterAll(async () => {
+    await closeFreshElectronApp(sharedContext.app);
+  });
 
   // ========================================
   // Phase 1: Workflow Creation

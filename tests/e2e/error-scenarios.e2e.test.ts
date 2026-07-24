@@ -12,16 +12,39 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { launchElectronApp, closeElectronApp, callIPC } from './helpers';
+import {
+  launchElectronApp as launchFreshElectronApp,
+  closeElectronApp as closeFreshElectronApp,
+  callIPC,
+  type ElectronTestContext,
+} from './helpers';
 
 const TEST_ORG_ID = `org-error-test-${Date.now()}`;
 const TEST_USER_DID = `did:key:user-${Date.now()}`;
 const NON_EXISTENT_ID = 'non-existent-id-12345';
 
 test.describe.serial('Error Scenarios', () => {
+  let sharedContext!: ElectronTestContext;
   let validProjectId: string;
   let validTeamId: string;
   let validBoardId: string;
+
+  // The valid fixtures created in beforeAll must stay in the same sql.js
+  // session as the error assertions that reference them.
+  const launchElectronApp = async (): Promise<ElectronTestContext> =>
+    sharedContext;
+  const closeElectronApp = (_app: unknown): Promise<void> => {
+    void _app;
+    return Promise.resolve();
+  };
+
+  test.beforeAll(async () => {
+    sharedContext = await launchFreshElectronApp();
+  });
+
+  test.afterAll(async () => {
+    await closeFreshElectronApp(sharedContext.app);
+  });
 
   // Setup: Create valid resources for testing
   test.beforeAll(async () => {
@@ -54,7 +77,7 @@ test.describe.serial('Error Scenarios', () => {
         name: 'Error Test Board',
         description: 'For error scenario testing',
         boardType: 'kanban',
-        createdBy: TEST_USER_DID,
+        ownerDid: TEST_USER_DID,
       });
       validBoardId = boardResult.boardId;
     } finally {

@@ -195,7 +195,7 @@ test.describe.serial('Cross-Organization Collaboration', () => {
         name: 'Cross-Org Sprint Board',
         description: 'Shared board for cross-org collaboration',
         boardType: 'scrum',
-        createdBy: ORG_A_ADMIN.did,
+        ownerDid: ORG_A_ADMIN.did,
       });
 
       expect(boardResult.success).toBe(true);
