@@ -3556,8 +3556,8 @@ class HubLocalViewModelTest {
             assertNull(card.errorMessage)
             verify { travelCredentials.recordSync("travel-baidu-map", any(), 3) }
             assertTrue(
-                "travel import staging file must be deleted after cc consumes it",
                 java.io.File(filesDir, "staging").listFiles()?.isEmpty() ?: true,
+                "travel import staging file must be deleted after cc consumes it",
             )
         }
 
