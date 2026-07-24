@@ -15,10 +15,20 @@ export interface ElectronTestContext {
   window: Page;
 }
 
+export interface LaunchElectronAppOptions {
+  /**
+   * Seed the isolated profile as already onboarded. Set to false only for
+   * tests that explicitly exercise the initial-setup wizard.
+   */
+  completeInitialSetup?: boolean;
+}
+
 /**
  * 启动Electron应用
  */
-export async function launchElectronApp(): Promise<ElectronTestContext> {
+export async function launchElectronApp(
+  options: LaunchElectronAppOptions = {},
+): Promise<ElectronTestContext> {
   // 确定主进程入口文件路径 (从项目根目录的 dist/main/index.js)
   const mainPath = path.join(__dirname, "../../../dist/main/index.js");
 
@@ -88,6 +98,27 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
     fs.writeFileSync(
       path.join(userDataPath, "app-config.json"),
       JSON.stringify(appConfig, null, 2),
+      "utf8",
+    );
+
+    // App.vue checks initial-setup status asynchronously and can schedule the
+    // mandatory wizard after a test has already closed visible modals. Seed
+    // the test-owned profile before Electron starts so unrelated E2E tests do
+    // not race with that delayed overlay.
+    const setupCompleted = options.completeInitialSetup !== false;
+    fs.writeFileSync(
+      path.join(userDataPath, "initial-setup-config.json"),
+      JSON.stringify(
+        {
+          setupCompleted,
+          completedAt: setupCompleted
+            ? "2026-01-01T00:00:00.000Z"
+            : null,
+          edition: "personal",
+        },
+        null,
+        2,
+      ),
       "utf8",
     );
   } catch (e) {
