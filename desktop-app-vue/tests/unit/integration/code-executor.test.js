@@ -8,6 +8,13 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
+const { spawn: nativeSpawn } = require("child_process");
+const spawnWithoutBrokerMetadata = (command, args, options = {}) => {
+  const nativeOptions = { ...options };
+  delete nativeOptions.origin;
+  return nativeSpawn(command, args, nativeOptions);
+};
+
 // Import the CommonJS module
 const {
   CodeExecutor,
@@ -21,7 +28,9 @@ describe("CodeExecutor", () => {
 
   beforeEach(() => {
     // 创建新实例
-    codeExecutor = new CodeExecutor();
+    codeExecutor = new CodeExecutor({
+      spawnProcess: spawnWithoutBrokerMetadata,
+    });
   });
 
   describe("detectLanguage", () => {

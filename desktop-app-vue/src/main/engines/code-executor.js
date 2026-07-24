@@ -4,10 +4,10 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const { spawn } = require("child_process");
 const fs = require("fs").promises;
 const path = require("path");
 const os = require("os");
+const { spawnWithDesktopBroker } = require("../process/desktop-process-broker");
 
 /**
  * Environment variables that change HOW the OS resolves the executable or HOW
@@ -74,9 +74,10 @@ function sanitizeChildEnv(env) {
 }
 
 class CodeExecutor {
-  constructor() {
+  constructor({ spawnProcess = spawnWithDesktopBroker } = {}) {
     this.initialized = false;
     this.pythonPath = null;
+    this.spawnProcess = spawnProcess;
     this.tempDir = path.join(os.tmpdir(), "chainlesschain-code-exec");
 
     // 执行超时时间(毫秒)
@@ -152,7 +153,10 @@ class CodeExecutor {
    */
   getPythonVersion(command) {
     return new Promise((resolve, reject) => {
-      const proc = spawn(command, ["--version"]);
+      const proc = this.spawnProcess(command, ["--version"], {
+        windowsHide: true,
+        origin: "desktop:code-executor-python-probe",
+      });
       let output = "";
 
       proc.stdout.on("data", (data) => {
@@ -327,9 +331,10 @@ class CodeExecutor {
         ...safeEnv,
       };
 
-      const proc = spawn(command, args, {
+      const proc = this.spawnProcess(command, args, {
         cwd: workingDir,
         env: processEnv,
+        origin: "desktop:code-executor-run",
         // SECURITY: never spawn with a shell. With shell:true the args —
         // including a (possibly renderer-supplied) filepath — are
         // shell-interpreted, so an arg like `& calc` injects commands on
