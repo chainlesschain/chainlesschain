@@ -106,6 +106,7 @@ const EXPECTED = {
   name: "chainlesschain-ide",
   version: "9.9.9",
   requireLicense: true,
+  requiredEntries: ["extension/src/vendor/elicitation-schema/index.js"],
 };
 
 const GOOD_PACKAGE = {
@@ -156,6 +157,11 @@ function goodFiles({
       data: "module.exports = {};",
       deflate: true,
     },
+    {
+      name: "extension/src/vendor/elicitation-schema/index.js",
+      data: "module.exports = {};",
+      deflate: true,
+    },
   ];
 }
 
@@ -185,7 +191,7 @@ function test(label, fn) {
 test("zip round-trip: names, stored + deflated bytes, utf-8 content", () => {
   const zip = buildZip(goodFiles());
   const entries = listZipEntries(zip);
-  assert.equal(entries.size, 8);
+  assert.equal(entries.size, 9);
   assert.ok(entries.has("extension/package.json"));
   const readme = readZipEntry(zip, entries.get("extension/readme.md"));
   assert.equal(readme.toString("utf8"), "# readme 中文内容");
@@ -260,6 +266,14 @@ test("missing README / LICENSE / main entry each fail", () => {
   assert.ok(failures.some((f) => f.includes("README packed")));
   assert.ok(failures.some((f) => f.includes("LICENSE packed")));
   assert.ok(failures.some((f) => f.includes("main entry packed")));
+});
+
+test("missing required runtime asset fails", () => {
+  const files = goodFiles().filter(
+    (f) => f.name !== "extension/src/vendor/elicitation-schema/index.js",
+  );
+  const { failures } = runVerifier(buildZip(files));
+  assert.ok(failures.some((f) => f.includes("runtime asset packed")));
 });
 
 test("empty description + missing engines.vscode fail", () => {

@@ -7,7 +7,7 @@
 (function attachElicitationForm(root, factory) {
   const core =
     typeof module === "object" && module.exports
-      ? require("../../../elicitation-schema")
+      ? require("../vendor/elicitation-schema")
       : root.CcElicitationSchema;
   const api = factory(core);
   if (typeof module === "object" && module.exports) {

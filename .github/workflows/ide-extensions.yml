@@ -54,7 +54,9 @@ jobs:
       # owner-only DACL. Exercise both the latest editor and engines.vscode's
       # minimum supported release from a freshly packaged VSIX.
       - name: Package .vsix
-        run: npx --yes @vscode/vsce@latest package --no-dependencies --out chainlesschain-ide.vsix
+        run: |
+          node scripts/sync-elicitation-schema.mjs --check
+          npx --yes @vscode/vsce@latest package --no-dependencies --out chainlesschain-ide.vsix
 
       - name: Verify .vsix metadata
         run: |
@@ -85,7 +87,9 @@ jobs:
 
       # The extension has no runtime npm deps — package straight to a .vsix.
       - name: Package .vsix
-        run: npx --yes @vscode/vsce@latest package --no-dependencies --out chainlesschain-ide.vsix
+        run: |
+          node scripts/sync-elicitation-schema.mjs --check
+          npx --yes @vscode/vsce@latest package --no-dependencies --out chainlesschain-ide.vsix
 
       # Parse gate: a .vsix is a ZIP — crack it open (dependency-free reader
       # in the script) and assert the marketplace metadata is coherent before
