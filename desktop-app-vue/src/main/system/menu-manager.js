@@ -6,7 +6,7 @@
 const { logger } = require("../utils/logger.js");
 const { Menu, shell, app } = require("electron");
 const path = require("path");
-const { spawn } = require("child_process");
+const { spawnWithDesktopBroker } = require("../process/desktop-process-broker");
 
 class MenuManager {
   /**
@@ -26,6 +26,7 @@ class MenuManager {
     this.controlPanelPort = 3001;
     this.getWebShellHandle = options.getWebShellHandle || (() => null);
     this.openExternal = options.openExternal || shell.openExternal.bind(shell);
+    this.spawnProcess = options.spawnProcess || spawnWithDesktopBroker;
   }
 
   /**
@@ -375,13 +376,15 @@ class MenuManager {
 
     logger.info(`启动控制面板API: ${scriptPath}`);
 
-    this.controlPanelProcess = spawn(
+    this.controlPanelProcess = this.spawnProcess(
       "node",
       [scriptPath, this.controlPanelPort],
       {
         cwd: path.dirname(scriptPath),
         detached: false,
         stdio: "ignore",
+        windowsHide: true,
+        origin: "desktop:menu-control-panel-api",
       },
     );
 
