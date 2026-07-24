@@ -47,7 +47,16 @@ const _mockSkills = [
 
 vi.mock("../../src/lib/skill-loader.js", () => ({
   CLISkillLoader: vi.fn(function () {
-    return { getResolvedSkills: vi.fn(() => _mockSkills) };
+    return {
+      getResolvedSkills: vi.fn(() => _mockSkills),
+      getAutoActivatedPersonas: vi.fn(() =>
+        _mockSkills.filter(
+          (skill) =>
+            skill.category === "persona" && skill.activation === "auto",
+        ),
+      ),
+      getCacheLedger: vi.fn(() => []),
+    };
   }),
 }));
 

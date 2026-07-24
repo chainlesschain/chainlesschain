@@ -12,10 +12,7 @@ import {
 import { normalizeGoldenTranscript } from "../../src/harness/golden-transcript.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const fixturePath = join(
-  here,
-  "../fixtures/golden-transcripts/read-file.json",
-);
+const fixturePath = join(here, "../fixtures/golden-transcripts/read-file.json");
 
 async function drain(iterable) {
   const events = [];
@@ -80,11 +77,17 @@ describe("Phase 7 parity: file-backed golden transcripts", () => {
           eventId: "random",
           timestamp: Date.now(),
           sequence: 9,
-          payload: { content: "ok", durationMs: 12 },
+          permission_decision_id: "decision-random",
+          tool_use_id: "call-random",
+          turn_id: "run-random:t1",
+          payload: {
+            content: "ok",
+            durationMs: 12,
+            tool_use_id: "nested-call-random",
+            turn_id: "nested-run-random:t1",
+          },
         },
       ]),
-    ).toEqual([
-      { payload: { content: "ok" }, type: "assistant.completed" },
-    ]);
+    ).toEqual([{ payload: { content: "ok" }, type: "assistant.completed" }]);
   });
 });

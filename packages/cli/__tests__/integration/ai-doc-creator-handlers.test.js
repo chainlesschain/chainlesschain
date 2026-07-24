@@ -26,6 +26,23 @@ let docGenerateHandler;
 let libreConvertHandler;
 let originalCwd;
 
+const unavailableProcessBroker = Object.freeze({
+  runSync: () => ({
+    status: 1,
+    stdout: "",
+    stderr: "Unavailable in integration test",
+  }),
+  runFileSync: () => {
+    const error = new Error("Command unavailable in integration test");
+    error.code = "ENOENT";
+    throw error;
+  },
+});
+
+function withTestProcessBroker(handler) {
+  return (params) => handler(params, unavailableProcessBroker);
+}
+
 beforeAll(() => {
   tmpDir = mkdtempSync(join(tmpdir(), "cc-ai-doc-creator-test-"));
 
@@ -43,11 +60,15 @@ beforeAll(() => {
   });
 
   const req = createRequire(pathToFileURL(join(tmpDir, "index.js")).href);
-  docGenerateHandler = req(
-    join(tmpDir, ".chainlesschain", "skills", "doc-generate", "handler.js"),
+  docGenerateHandler = withTestProcessBroker(
+    req(
+      join(tmpDir, ".chainlesschain", "skills", "doc-generate", "handler.js"),
+    ),
   );
-  libreConvertHandler = req(
-    join(tmpDir, ".chainlesschain", "skills", "libre-convert", "handler.js"),
+  libreConvertHandler = withTestProcessBroker(
+    req(
+      join(tmpDir, ".chainlesschain", "skills", "libre-convert", "handler.js"),
+    ),
   );
 }, 45000);
 
@@ -438,8 +459,8 @@ describe("doc-edit handler: parameter validation", () => {
 
   beforeAll(() => {
     const req = createRequire(pathToFileURL(join(tmpDir, "index.js")).href);
-    docEditHandler = req(
-      join(tmpDir, ".chainlesschain", "skills", "doc-edit", "handler.js"),
+    docEditHandler = withTestProcessBroker(
+      req(join(tmpDir, ".chainlesschain", "skills", "doc-edit", "handler.js")),
     );
   });
 
@@ -503,8 +524,8 @@ describe("doc-edit handler: md format editing", () => {
 
   beforeAll(() => {
     const req = createRequire(pathToFileURL(join(tmpDir, "index.js")).href);
-    docEditHandler = req(
-      join(tmpDir, ".chainlesschain", "skills", "doc-edit", "handler.js"),
+    docEditHandler = withTestProcessBroker(
+      req(join(tmpDir, ".chainlesschain", "skills", "doc-edit", "handler.js")),
     );
   });
 
@@ -555,8 +576,8 @@ describe("doc-edit handler: xlsx/pptx Python dependency detection", () => {
 
   beforeAll(() => {
     const req = createRequire(pathToFileURL(join(tmpDir, "index.js")).href);
-    docEditHandler = req(
-      join(tmpDir, ".chainlesschain", "skills", "doc-edit", "handler.js"),
+    docEditHandler = withTestProcessBroker(
+      req(join(tmpDir, ".chainlesschain", "skills", "doc-edit", "handler.js")),
     );
   });
 
