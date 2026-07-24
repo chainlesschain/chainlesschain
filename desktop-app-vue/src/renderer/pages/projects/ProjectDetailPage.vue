@@ -2162,6 +2162,34 @@ watch(
   gap: 12px;
 }
 
+@media (max-width: 1100px) {
+  .toolbar {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 16px;
+  }
+
+  .toolbar-left {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .toolbar-center {
+    order: 3;
+    flex: 1 1 100%;
+    justify-content: flex-start;
+  }
+
+  .toolbar-right {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    min-width: 0;
+    gap: 8px;
+  }
+}
+
 /* 加载状态 */
 .loading-container {
   flex: 1;

@@ -89,41 +89,36 @@ test.describe('项目详情页 - 导航流程测试', () => {
       console.log('[Test] 查找返回按钮');
       await forceCloseAllModals(window);
 
-      let backButton = await window.$('[data-testid="close-button"]');
-      if (!backButton) {
-        backButton = await window.$('[data-testid="back-to-list-button"]');
-      }
-      if (!backButton) {
-        backButton = await window.$('button:has-text("返回")');
-      }
+      // Use the dedicated breadcrumb link. A comma-separated fallback locator
+      // is DOM-ordered, not selector-priority ordered, and can accidentally
+      // select MainLayout's earlier "返回首页" button.
+      const backButton = window.locator(
+        '[data-testid="back-to-projects-link"]',
+      );
+      await expect(backButton).toBeVisible();
+      console.log('[Test] 点击返回按钮');
+      await backButton.click();
+      await window.waitForTimeout(1000);
 
-      if (backButton) {
-        console.log('[Test] 点击返回按钮');
-        await backButton.click();
+      // 检查确认对话框
+      const confirmModal = await window.$('.ant-modal:has-text("有未保存的更改")');
+      if (confirmModal) {
+        console.log('[Test] 处理确认对话框');
+        const okButton = await window.$('.ant-modal .ant-btn-dangerous');
+        await okButton?.click();
         await window.waitForTimeout(1000);
-
-        // 检查确认对话框
-        const confirmModal = await window.$('.ant-modal:has-text("有未保存的更改")');
-        if (confirmModal) {
-          console.log('[Test] 处理确认对话框');
-          const okButton = await window.$('.ant-modal .ant-btn-dangerous');
-          await okButton?.click();
-          await window.waitForTimeout(1000);
-        }
-
-        // 验证返回到项目列表
-        currentHash = await window.evaluate(() => window.location.hash);
-        console.log('[Test] 当前hash:', currentHash);
-
-        expect(currentHash).toContain('projects');
-        expect(currentHash).not.toContain('projects/');
-
-        await takeScreenshot(window, 'returned-to-projects-list');
-
-        console.log('[Test] ✅ 返回项目列表测试通过');
-      } else {
-        console.log('[Test] ⚠️ 未找到返回按钮');
       }
+
+      // 验证返回到项目列表
+      currentHash = await window.evaluate(() => window.location.hash);
+      console.log('[Test] 当前hash:', currentHash);
+
+      expect(currentHash).toContain('projects');
+      expect(currentHash).not.toContain('projects/');
+
+      await takeScreenshot(window, 'returned-to-projects-list');
+
+      console.log('[Test] ✅ 返回项目列表测试通过');
 
     } finally {
       await closeElectronApp(app);
