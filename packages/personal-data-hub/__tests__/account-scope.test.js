@@ -117,4 +117,89 @@ describe("account-backed adapter scopes", () => {
     expect(first).not.toContain("jd-user");
     expect(first).not.toContain("secret");
   });
+
+  it("supports adapter-declared ephemeral OAuth credentials", () => {
+    const registry = new AdapterRegistry({ vault: {} });
+    const adapter = {
+      name: "doc-baidu-netdisk",
+      runtimeCredentialOption: "accessToken",
+      runtimeScopeIdentityKey: "userId",
+      runtimeScopeDiscriminatorKeys: ["dir", "recursive"],
+      runtimeScopeDiscriminatorDefaults: { recursive: true },
+      defaultScope: "",
+    };
+    const first = registry._resolveScope(adapter, {
+      accessToken: "oauth-secret-a",
+      accountId: "Baidu-Account",
+      dir: "/apps/chainlesschain",
+    });
+    const rotated = registry._resolveScope(adapter, {
+      accessToken: "oauth-secret-b",
+      userId: " baidu-account ",
+      dir: "/apps/chainlesschain",
+    });
+    const missingCredential = registry._resolveScope(adapter, {
+      accountId: "Baidu-Account",
+    });
+    const explicitRecursive = registry._resolveScope(adapter, {
+      accessToken: "oauth-secret-c",
+      accountId: "Baidu-Account",
+      dir: "/apps/chainlesschain",
+      recursive: true,
+    });
+    const otherDirectory = registry._resolveScope(adapter, {
+      accessToken: "oauth-secret-c",
+      accountId: "Baidu-Account",
+      dir: "/apps/chainlesschain/work",
+    });
+    const caseDistinctDirectory = registry._resolveScope(adapter, {
+      accessToken: "oauth-secret-c",
+      accountId: "Baidu-Account",
+      dir: "/apps/chainlesschain/Work",
+    });
+    const compatibilityDistinctDirectory = registry._resolveScope(adapter, {
+      accessToken: "oauth-secret-c",
+      accountId: "Baidu-Account",
+      dir: "/apps/chainlesschain/Ｗork",
+    });
+    const shallow = registry._resolveScope(adapter, {
+      accessToken: "oauth-secret-c",
+      accountId: "Baidu-Account",
+      dir: "/apps/chainlesschain",
+      recursive: false,
+    });
+
+    expect(first).toBe(rotated);
+    expect(first).toBe(explicitRecursive);
+    expect(first).not.toBe(otherDirectory);
+    expect(otherDirectory).not.toBe(caseDistinctDirectory);
+    expect(caseDistinctDirectory).not.toBe(compatibilityDistinctDirectory);
+    expect(first).not.toBe(shallow);
+    expect(first).toMatch(/^account:doc-baidu-netdisk:[a-f0-9]{32}$/u);
+    expect(first).not.toContain("baidu-account");
+    expect(first).not.toContain("oauth-secret");
+    expect(missingCredential).toBe("");
+  });
+
+  it("resolves local default scopes lazily and tolerates discovery failures", () => {
+    const registry = new AdapterRegistry({ vault: {} });
+    let discoveryCalls = 0;
+    const adapter = {
+      name: "browser-history-chrome",
+      defaultScope: "",
+      resolveDefaultScope(options) {
+        discoveryCalls += 1;
+        if (options.fail) throw new Error("profile discovery failed");
+        return "account:browser-history-chrome:0123456789abcdef0123456789abcdef";
+      },
+    };
+
+    expect(discoveryCalls).toBe(0);
+    expect(registry._resolveScope(adapter)).toBe(
+      "account:browser-history-chrome:0123456789abcdef0123456789abcdef",
+    );
+    expect(discoveryCalls).toBe(1);
+    expect(registry._resolveScope(adapter, { fail: true })).toBe("");
+    expect(discoveryCalls).toBe(2);
+  });
 });

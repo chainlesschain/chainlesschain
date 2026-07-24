@@ -335,6 +335,34 @@ const PHASE_16_FTS_DDL = {
   `,
 };
 
+const GIT_PRIVACY_CLEANUP_PENDING_KEY =
+  "git_activity_v02_privacy_cleanup_pending";
+const LOCAL_FILES_PRIVACY_CLEANUP_PENDING_KEY =
+  "local_files_v01_privacy_cleanup_pending";
+const PRIVACY_CLEANUP_PENDING_KEYS = Object.freeze([
+  GIT_PRIVACY_CLEANUP_PENDING_KEY,
+  LOCAL_FILES_PRIVACY_CLEANUP_PENDING_KEY,
+]);
+
+function finalizePendingPrivacyCleanups(db) {
+  const pendingKeys = PRIVACY_CLEANUP_PENDING_KEYS.filter((key) =>
+    db.prepare("SELECT value FROM _meta WHERE key = ?").get(key),
+  );
+  if (pendingKeys.length === 0) return false;
+
+  const [result] = db.pragma("wal_checkpoint(TRUNCATE)");
+  if (result && Number(result.busy) !== 0) {
+    throw new Error("privacy migration WAL checkpoint busy");
+  }
+
+  const deleteMarker = db.prepare("DELETE FROM _meta WHERE key = ?");
+  for (const key of pendingKeys) deleteMarker.run(key);
+  // The marker deletion itself is non-sensitive, but a second best-effort
+  // checkpoint keeps a newly migrated vault from retaining an avoidable WAL.
+  db.pragma("wal_checkpoint(TRUNCATE)");
+  return true;
+}
+
 const MIGRATIONS = [
   {
     version: 1,
@@ -514,6 +542,178 @@ const MIGRATIONS = [
       `);
     },
   },
+  {
+    version: 9,
+    description:
+      "Remove legacy git-activity v0.2 rows that archived absolute repository " +
+      "paths and raw Git object IDs; the v0.4 collector safely replays them " +
+      "with path-free hashed identities.",
+    up(db) {
+      db.prepare(
+        `INSERT INTO _meta (key, value, updated_at) VALUES (?, '1', ?)
+         ON CONFLICT(key) DO UPDATE SET
+           value = excluded.value,
+           updated_at = excluded.updated_at`,
+      ).run(GIT_PRIVACY_CLEANUP_PENDING_KEY, Date.now());
+
+      // SQLite otherwise leaves deleted cell content recoverable in free pages.
+      // FTS5 has its own deletion policy because old segment entries can
+      // outlive their external-content row.
+      db.pragma("secure_delete = ON");
+      const ftsMode = db
+        .prepare("SELECT value FROM _meta WHERE key = 'fts_mode'")
+        .get()?.value;
+      if (ftsMode === "fts5") {
+        db.prepare(
+          "INSERT INTO events_fts(events_fts, rank) VALUES('secure-delete', 1)",
+        ).run();
+      }
+
+      // v0.2 generated this exact prefix from
+      // `git-commit:<absolute repoDir>:<raw sha>`. v0.4 uses the disjoint
+      // `git-activity-commit:<hash>` prefix, so the predicate cannot remove
+      // current path-free rows or another adapter's data.
+      db.prepare(
+        `DELETE FROM events
+         WHERE source_adapter = 'git-activity'
+           AND source_original_id LIKE 'git-commit:%'`,
+      ).run();
+      db.prepare(
+        `DELETE FROM raw_events
+         WHERE adapter = 'git-activity'
+           AND original_id LIKE 'git-commit:%'`,
+      ).run();
+      if (ftsMode === "fts5") {
+        db.prepare(
+          "INSERT INTO events_fts(events_fts) VALUES('delete-all')",
+        ).run();
+        db.exec(PHASE_16_FTS_DDL.backfill);
+      }
+
+      // Archive failures could have copied the path-bearing legacy originalId
+      // into audit details. Keep ordinary lineage rows and current graph
+      // cursor summaries.
+      db.prepare(
+        `DELETE FROM audit_log
+         WHERE target = 'git-activity'
+           AND (
+             details LIKE '%git-commit:%'
+             OR details LIKE '%"repoDir"%'
+           )`,
+      ).run();
+
+      // The old adapter's empty-scope watermark was a numeric count/timestamp.
+      // A user can explicitly choose scope="" with the new graph collector,
+      // so never remove a git-v1 cursor or reset its rate-limit reservation.
+      const emptyScopeWatermark = db
+        .prepare(
+          `SELECT watermark
+           FROM sync_watermarks
+           WHERE adapter = 'git-activity' AND scope = ''`,
+        )
+        .get();
+      if (
+        typeof emptyScopeWatermark?.watermark === "string" &&
+        /^[0-9]+(?:\.[0-9]+)?$/u.test(emptyScopeWatermark.watermark.trim())
+      ) {
+        db.prepare(
+          `DELETE FROM sync_watermarks
+           WHERE adapter = 'git-activity' AND scope = ''`,
+        ).run();
+        db.prepare(
+          `DELETE FROM sync_scan_state
+           WHERE adapter = 'git-activity' AND scope = ''`,
+        ).run();
+      }
+    },
+    afterCommit(db) {
+      // WAL can still contain the pre-migration encrypted pages after the
+      // transaction commits. The durable pending marker makes a busy
+      // checkpoint or process crash retryable even though schema v9 committed.
+      finalizePendingPrivacyCleanups(db);
+    },
+  },
+  {
+    version: 10,
+    description:
+      "Remove local-files v0.1 rows that archived absolute selected roots and " +
+      "file paths; the v0.2 collector safely replays metadata with scoped hashes.",
+    up(db) {
+      db.prepare(
+        `INSERT INTO _meta (key, value, updated_at) VALUES (?, '1', ?)
+         ON CONFLICT(key) DO UPDATE SET
+           value = excluded.value,
+           updated_at = excluded.updated_at`,
+      ).run(LOCAL_FILES_PRIVACY_CLEANUP_PENDING_KEY, Date.now());
+
+      db.pragma("secure_delete = ON");
+      const ftsMode = db
+        .prepare("SELECT value FROM _meta WHERE key = 'fts_mode'")
+        .get()?.value;
+      if (ftsMode === "fts5") {
+        db.prepare(
+          "INSERT INTO events_fts(events_fts, rank) VALUES('secure-delete', 1)",
+        ).run();
+      }
+
+      // v0.1 generated `local-file:<absolute path>:<mtime>`. v0.2 uses the
+      // disjoint path-free `local-file-entry:<hash>` prefix.
+      db.prepare(
+        `DELETE FROM events
+         WHERE source_adapter = 'local-files'
+           AND source_original_id LIKE 'local-file:%'`,
+      ).run();
+      db.prepare(
+        `DELETE FROM raw_events
+         WHERE adapter = 'local-files'
+           AND original_id LIKE 'local-file:%'`,
+      ).run();
+      if (ftsMode === "fts5") {
+        db.prepare(
+          "INSERT INTO events_fts(events_fts) VALUES('delete-all')",
+        ).run();
+        db.exec(PHASE_16_FTS_DDL.backfill);
+      }
+
+      db.prepare(
+        `DELETE FROM audit_log
+         WHERE target = 'local-files'
+           AND (
+             details LIKE '%local-file:%'
+             OR details LIKE '%"path"%'
+             OR details LIKE '%"root"%'
+           )`,
+      ).run();
+
+      // The legacy collector used the empty scope and the registry's count
+      // strategy. The new collector resolves a hashed root scope and stores a
+      // timestamp watermark. Preserve any already-safe hashed scope and all
+      // rate-limit reservations.
+      const emptyScopeWatermark = db
+        .prepare(
+          `SELECT watermark
+           FROM sync_watermarks
+           WHERE adapter = 'local-files' AND scope = ''`,
+        )
+        .get();
+      if (
+        typeof emptyScopeWatermark?.watermark === "string" &&
+        /^[0-9]+(?:\.[0-9]+)?$/u.test(emptyScopeWatermark.watermark.trim())
+      ) {
+        db.prepare(
+          `DELETE FROM sync_watermarks
+           WHERE adapter = 'local-files' AND scope = ''`,
+        ).run();
+        db.prepare(
+          `DELETE FROM sync_scan_state
+           WHERE adapter = 'local-files' AND scope = ''`,
+        ).run();
+      }
+    },
+    afterCommit(db) {
+      finalizePendingPrivacyCleanups(db);
+    },
+  },
 ];
 
 const TARGET_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
@@ -553,7 +753,14 @@ function applyMigrations(db) {
     });
 
     runMigration();
+    if (typeof m.afterCommit === "function") {
+      m.afterCommit(db);
+    }
   }
+
+  // A previous process may have committed a privacy cleanup and exited before
+  // truncating old WAL pages. Retry independently of schema version.
+  finalizePendingPrivacyCleanups(db);
 
   return { previous: current, current: TARGET_VERSION };
 }

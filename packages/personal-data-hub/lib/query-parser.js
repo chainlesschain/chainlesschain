@@ -84,7 +84,10 @@ function parseTimeWindow(text, now = Date.now()) {
   if (/(上个月|上月|上一月)/.test(text) || /\blast\s+month\b/.test(t)) {
     const prevMonth0 = month === 0 ? 11 : month - 1;
     const prevYear = month === 0 ? year - 1 : year;
-    return { since: startOfMonth(prevYear, prevMonth0), until: endOfMonth(prevYear, prevMonth0) };
+    return {
+      since: startOfMonth(prevYear, prevMonth0),
+      until: endOfMonth(prevYear, prevMonth0),
+    };
   }
   // 本月 / 这个月 / 这月 / this month
   if (/(本月|这个月|这月)/.test(text) || /\bthis\s+month\b/.test(t)) {
@@ -92,7 +95,10 @@ function parseTimeWindow(text, now = Date.now()) {
   }
   // 去年 / last year
   if (/去年/.test(text) || /\blast\s+year\b/.test(t)) {
-    return { since: startOfMonth(year - 1, 0), until: endOfMonth(year - 1, 11) };
+    return {
+      since: startOfMonth(year - 1, 0),
+      until: endOfMonth(year - 1, 11),
+    };
   }
   // 今年 / this year
   if (/今年/.test(text) || /\bthis\s+year\b/.test(t)) {
@@ -121,7 +127,8 @@ function parseTimeWindow(text, now = Date.now()) {
   m = text.match(/最近\s*(\d+)\s*周/) || t.match(/past\s+(\d+)\s+weeks?/);
   if (m) {
     const n = parseInt(m[1], 10);
-    if (Number.isFinite(n) && n > 0) return { since: now - n * 7 * DAY_MS, until: now };
+    if (Number.isFinite(n) && n > 0)
+      return { since: now - n * 7 * DAY_MS, until: now };
   }
   m = text.match(/最近\s*(\d+)\s*个?月/) || t.match(/past\s+(\d+)\s+months?/);
   if (m) {
@@ -135,7 +142,11 @@ function parseTimeWindow(text, now = Date.now()) {
       const day = target.getDate();
       target.setDate(1);
       target.setMonth(target.getMonth() - n);
-      const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+      const lastDay = new Date(
+        target.getFullYear(),
+        target.getMonth() + 1,
+        0,
+      ).getDate();
       target.setDate(Math.min(day, lastDay));
       return { since: target.getTime(), until: now };
     }
@@ -157,8 +168,14 @@ function parseTimeWindow(text, now = Date.now()) {
 
 const SUBTYPE_KEYWORDS = [
   // (subtype, keyword regexes)
-  { subtype: "order", patterns: [/(订单|下单|买了|购买|下了几单|下了多少单|order)/i] },
-  { subtype: "payment", patterns: [/(支付|付款|花了|花费|消费|开销|payment|spent|spend)/i] },
+  {
+    subtype: "order",
+    patterns: [/(订单|下单|买了|购买|下了几单|下了多少单|order)/i],
+  },
+  {
+    subtype: "payment",
+    patterns: [/(支付|付款|花了|花费|消费|开销|payment|spent|spend)/i],
+  },
   { subtype: "transfer", patterns: [/(转账|转给|转钱|transfer)/i] },
   // NOTE: bare 收到 ("receive") is deliberately NOT here — you 收到 messages /
   // packages / 红包 too, so it stole "收到多少消息" → income (income is checked
@@ -169,8 +186,15 @@ const SUBTYPE_KEYWORDS = [
   { subtype: "visit", patterns: [/(去过|到过|visited|去了|来到)/i] },
   { subtype: "trip", patterns: [/(出差|旅行|去旅游|trip)/i] },
   { subtype: "browse", patterns: [/(浏览|看了|阅读|browse|read)/i] },
-  { subtype: "ai-message", patterns: [/(问ai|问 ai|deepseek|kimi|通义|智谱|混元|千帆|扣子)/i] },
-  { subtype: "ai-image-generation", patterns: [/(生图|画图|生成图|dreamina|midjourney)/i] },
+  { subtype: "download", patterns: [/(下载|download)/i] },
+  {
+    subtype: "ai-message",
+    patterns: [/(问ai|问 ai|deepseek|kimi|通义|智谱|混元|千帆|扣子)/i],
+  },
+  {
+    subtype: "ai-image-generation",
+    patterns: [/(生图|画图|生成图|dreamina|midjourney)/i],
+  },
 ];
 
 const ADAPTER_KEYWORDS = [
@@ -189,7 +213,10 @@ const ADAPTER_KEYWORDS = [
   { adapter: "12306", patterns: [/12306|火车票|高铁/i] },
   { adapter: "ctrip", patterns: [/携程|ctrip/i] },
   // AI chat
-  { adapter: "ai-chat-history", patterns: [/(deepseek|kimi|通义|智谱|混元|千帆|扣子|chatgpt|claude)/i] },
+  {
+    adapter: "ai-chat-history",
+    patterns: [/(deepseek|kimi|通义|智谱|混元|千帆|扣子|chatgpt|claude)/i],
+  },
 ];
 
 // App-scope adapter LISTS — an app name maps to ALL its message-bearing
@@ -275,7 +302,11 @@ function parseIntent(text) {
   // amount-rank BEFORE sum-amount — a spending breakdown ("哪个平台花最多") is more
   // specific than the bare spend total. "在淘宝花了多少"(no breakdown signal) stays
   // sum-amount.
-  if (SPEND_VERB.test(text) && SPEND_BREAKDOWN.test(text) && !/(谁|哪位|哪个人)/.test(text)) {
+  if (
+    SPEND_VERB.test(text) &&
+    SPEND_BREAKDOWN.test(text) &&
+    !/(谁|哪位|哪个人)/.test(text)
+  ) {
     return "amount-rank";
   }
   if (/(总共|共多少|加起来|sum|total|合计)/.test(text)) {
@@ -325,13 +356,19 @@ function parseIntent(text) {
   // GROUP BY strftime. Needs a bucket signal (parseTimeBucket) + an activity/
   // distribution word, so a bare "几点睡" / "什么时候联系" (a specific event, not a
   // distribution) is NOT caught. Placed before first/latest so 几点/哪个月 win.
-  if (parseTimeBucket(text) && /(活跃|忙|最多|最频繁|最常|分布|规律|作息|集中|高峰)/.test(text)) {
+  if (
+    parseTimeBucket(text) &&
+    /(活跃|忙|最多|最频繁|最常|分布|规律|作息|集中|高峰)/.test(text)
+  ) {
     return "time-histogram";
   }
   // intent=first — "我第一次跟谁联系 / 最早的订单 / 最初的聊天记录 / 我最早什么
   // 时候用微信": the EARLIEST matching event (mirror of latest, ORDER BY occurred_at
   // ASC). Placed before the latest gate. "最早" guarded against 最早上/最早晨 (morning).
-  if (/(第一次|头一次|头一回|最先|最初|first\s+time|earliest)/i.test(text) || /最早(?![上晨])/.test(text)) {
+  if (
+    /(第一次|头一次|头一回|最先|最初|first\s+time|earliest)/i.test(text) ||
+    /最早(?![上晨])/.test(text)
+  ) {
     return "first";
   }
   // intent=entity-latest — "我上次跟妈妈聊是什么时候 / 最近一次给张三转账 / 上次
@@ -429,8 +466,8 @@ const ENTITY_STOP_PATTERNS = [
   /(sum|total|count|amount)/gi,
   // Subtype keywords — compound forms first
   /(下了几单|下了多少单|去旅游)/g,
-  /(订单|下单|买了|购买|支付|付款|花了|花费|消费|开销|金额|转账|转给|转钱|收入|工资|进账|收到|聊天|消息|聊了|对话|朋友圈|动态|去过|到过|去了|来到|出差|旅行|浏览|看了|阅读|发了)/g,
-  /(order|payment|transfer|income|message|chat|moment|post|visited|trip|browse|read|spent|spend)/gi,
+  /(订单|下单|买了|购买|支付|付款|花了|花费|消费|开销|金额|转账|转给|转钱|收入|工资|进账|收到|聊天|消息|聊了|对话|朋友圈|动态|去过|到过|去了|来到|出差|旅行|浏览|看了|阅读|下载|发了)/g,
+  /(order|payment|transfer|income|message|chat|moment|post|visited|trip|browse|read|download|spent|spend)/gi,
   // Adapter keywords — compound forms first
   /(大众点评|百度地图|火车票)/g,
   /(支付宝|微信|邮箱|邮件|淘宝|天猫|京东|拼多多|美团|高德|高铁|携程)/g,
@@ -461,7 +498,9 @@ function extractEntityTerm(text) {
   for (const re of ENTITY_STOP_PATTERNS) {
     s = s.replace(re, " ");
   }
-  const candidates = s.split(/\s+/).filter((t) => t.length >= 2 && t.length <= 10);
+  const candidates = s
+    .split(/\s+/)
+    .filter((t) => t.length >= 2 && t.length <= 10);
   if (candidates.length === 0) return null;
   candidates.sort((a, b) => b.length - a.length);
   return candidates[0];
@@ -513,7 +552,9 @@ function extractPersonNameCandidate(text) {
     .filter((t) => t.length >= 2)
     .sort((a, b) => b.length - a.length);
   if (multi.length > 0) return multi[0];
-  const single = all.find((t) => t.length === 1 && PERSON_RELATION_SINGLE_CHARS_RE.test(t));
+  const single = all.find(
+    (t) => t.length === 1 && PERSON_RELATION_SINGLE_CHARS_RE.test(t),
+  );
   return single || null;
 }
 
@@ -528,7 +569,7 @@ function extractPersonNameCandidate(text) {
 function extractInteractionPerson(text) {
   if (typeof text !== "string") return null;
   const m = text.match(
-    /(?:跟|和|给|与|同|找)\s*([一-龥A-Za-z0-9·\-_]{1,12}?)\s*(?:聊|联系|说话|发(?:消息|信息)?|转账|汇款|通话|打过?电话|视频|语音|见面|来往|往来|沟通|说)/
+    /(?:跟|和|给|与|同|找)\s*([一-龥A-Za-z0-9·\-_]{1,12}?)\s*(?:聊|联系|说话|发(?:消息|信息)?|转账|汇款|通话|打过?电话|视频|语音|见面|来往|往来|沟通|说)/,
   );
   return m && m[1] ? m[1].trim() || null : null;
 }
@@ -558,7 +599,10 @@ function parseRankDimension(text) {
   if (typeof text !== "string") return "actor";
   // A group/conversation question — but only when it's about the group ITSELF
   // ("哪个群…"), not a person within a group ("群里谁发言最多" → actor).
-  if (/(群|群聊|会话|讨论组|聊天群)/.test(text) && !/(谁|哪位|哪个人)/.test(text)) {
+  if (
+    /(群|群聊|会话|讨论组|聊天群)/.test(text) &&
+    !/(谁|哪位|哪个人)/.test(text)
+  ) {
     return "topic";
   }
   return "actor";
@@ -575,8 +619,13 @@ function parseRankDimension(text) {
 function parseTimeBucket(text) {
   if (typeof text !== "string") return null;
   if (/星期几|周几|礼拜几|工作日|周末|weekday/i.test(text)) return "weekday";
-  if (/(哪个|哪几个|每个|每|按)月|哪月|monthly|每月/i.test(text)) return "month";
-  if (/几点|什么时(候|间)(段|点)?|哪个?时段|哪个时间|作息|时间分布|时间段|时段|hour/i.test(text)) {
+  if (/(哪个|哪几个|每个|每|按)月|哪月|monthly|每月/i.test(text))
+    return "month";
+  if (
+    /几点|什么时(候|间)(段|点)?|哪个?时段|哪个时间|作息|时间分布|时间段|时段|hour/i.test(
+      text,
+    )
+  ) {
     return "hour";
   }
   return null;

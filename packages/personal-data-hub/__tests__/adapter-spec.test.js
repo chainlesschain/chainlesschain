@@ -83,6 +83,32 @@ describe("assertAdapter", () => {
     );
   });
 
+  it("validates partitioned watermark stream contracts", () => {
+    const a = new MockAdapter();
+    a.watermarkStrategy = "partitioned";
+    a.watermarkStreams = ["play", "favorite"];
+    a.targetWatermarkKeys = () => ["play", "favorite"];
+    expect(assertAdapter(a).ok).toBe(true);
+
+    a.watermarkStreams = ["play", "play"];
+    a.targetWatermarkKeys = "all";
+    const result = assertAdapter(a);
+    expect(result.ok).toBe(false);
+    expect(
+      result.errors.some((error) => error.includes("watermarkStreams")),
+    ).toBe(true);
+    expect(
+      result.errors.some((error) => error.includes("targetWatermarkKeys")),
+    ).toBe(true);
+
+    const missingStrategy = new MockAdapter();
+    missingStrategy.watermarkStreams = ["play"];
+    missingStrategy.targetWatermarkKeys = () => ["play"];
+    expect(assertAdapter(missingStrategy)).toMatchObject({
+      ok: false,
+    });
+  });
+
   it("validates the optional complete-scan watermark flag", () => {
     const a = new MockAdapter();
     a.watermarkRequiresCompleteScan = true;
@@ -93,6 +119,19 @@ describe("assertAdapter", () => {
     expect(result.ok).toBe(false);
     expect(
       result.errors.some((e) => e.includes("watermarkRequiresCompleteScan")),
+    ).toBe(true);
+  });
+
+  it("validates the optional dynamic file checkpoint mode hook", () => {
+    const a = new MockAdapter();
+    a.fileCheckpointMode = () => "preserve";
+    expect(assertAdapter(a).ok).toBe(true);
+
+    a.fileCheckpointMode = "shared";
+    const result = assertAdapter(a);
+    expect(result.ok).toBe(false);
+    expect(
+      result.errors.some((error) => error.includes("fileCheckpointMode")),
     ).toBe(true);
   });
 

@@ -36,10 +36,29 @@ describe("bounded pagination watermark contract", () => {
       expect(source, `${relative} must honor a bounded page budget`).toMatch(
         /\bmaxPages\b/,
       );
+      const strategy = source.match(
+        /watermarkStrategy\s*=\s*["']([^"']+)["']/,
+      )?.[1];
       expect(
-        source,
-        `${relative} must not use the registry's count watermark`,
-      ).toMatch(/watermarkStrategy\s*=\s*["']max-captured-at["']/);
+        ["max-captured-at", "explicit", "partitioned"],
+        `${relative} must use a lossless watermark strategy`,
+      ).toContain(strategy);
+      if (strategy === "explicit") {
+        expect(
+          source,
+          `${relative} must publish an opaque cursor candidate`,
+        ).toMatch(/updateWatermark/);
+      }
+      if (strategy === "partitioned") {
+        expect(
+          source,
+          `${relative} must declare independent watermark streams`,
+        ).toMatch(/watermarkStreams/);
+        expect(
+          source,
+          `${relative} must select the streams targeted by each sync`,
+        ).toMatch(/targetWatermarkKeys/);
+      }
       expect(
         source,
         `${relative} must defer the watermark when maxPages truncates a scan`,

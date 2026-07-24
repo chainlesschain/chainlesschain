@@ -26,7 +26,30 @@ const { BilibiliAdapter } = require("../lib/adapters/social-bilibili");
 const { TelegramAdapter } = require("../lib/adapters/messaging-telegram");
 const { WhatsAppAdapter } = require("../lib/adapters/messaging-whatsapp");
 const { Train12306Adapter } = require("../lib/adapters/travel-12306");
+const { CtripAdapter } = require("../lib/adapters/travel-ctrip");
+const { TongchengAdapter } = require("../lib/adapters/travel-tongcheng");
+const { DidiAdapter } = require("../lib/adapters/travel-didi");
 const { EmailAdapter } = require("../lib/adapters/email-imap");
+const { TencentDocsAdapter } = require("../lib/adapters/doc-tencent-docs");
+const {
+  BrowserHistoryFirefoxAdapter,
+} = require("../lib/adapters/browser-history-firefox");
+const {
+  BrowserHistoryBraveAdapter,
+} = require("../lib/adapters/browser-history-brave");
+const {
+  BrowserHistoryOperaAdapter,
+} = require("../lib/adapters/browser-history-opera");
+const {
+  BrowserHistoryVivaldiAdapter,
+} = require("../lib/adapters/browser-history-vivaldi");
+const {
+  BrowserHistorySafariAdapter,
+} = require("../lib/adapters/browser-history-safari");
+const { TencentMeetingAdapter } = require("../lib/adapters/meeting-tencent");
+const { HBuilderXAdapter } = require("../lib/adapters/hbuilderx");
+const { LocalFilesAdapter } = require("../lib/adapters/local-files");
+const { ShellHistoryAdapter } = require("../lib/adapters/shell-history");
 const { WechatAdapter } = require("../lib/adapters/wechat");
 const {
   SystemDataAndroidAdapter,
@@ -164,6 +187,213 @@ describe("AdapterRegistry.readiness()", () => {
     expect(r.actionHint).toMatch(/snapshot|table/i);
   });
 
+  it("Tencent Docs requests a local export directory instead of website credentials", async () => {
+    const reg = new AdapterRegistry({ vault: stubVault() });
+    reg.register(new TencentDocsAdapter());
+    const [result] = await reg.readiness();
+
+    expect(result.ready).toBe(false);
+    expect(result.status).toBe(READINESS_STATUS.NEEDS_SETUP);
+    expect(result.reason).toBe("NO_EXPORT_DIR");
+    expect(result.category).toBe(READINESS_CATEGORY.LOCAL);
+    expect(result.actionHint).toMatch(/导出目录/u);
+  });
+
+  it("Firefox requests a local profile directory when no default profile exists", async () => {
+    const reg = new AdapterRegistry({ vault: stubVault() });
+    reg.register(
+      new BrowserHistoryFirefoxAdapter({ defaultProfileDir: () => null }),
+    );
+    const [result] = await reg.readiness();
+
+    expect(result.ready).toBe(false);
+    expect(result.status).toBe(READINESS_STATUS.ERROR);
+    expect(result.reason).toBe("PROFILE_PATH_UNRESOLVED");
+    expect(result.category).toBe(READINESS_CATEGORY.LOCAL);
+    expect(result.capabilities).toContain("sync:profile-directory");
+  });
+
+  it.each([
+    ["Brave", BrowserHistoryBraveAdapter],
+    ["Opera", BrowserHistoryOperaAdapter],
+    ["Vivaldi", BrowserHistoryVivaldiAdapter],
+    ["Safari", BrowserHistorySafariAdapter],
+  ])(
+    "%s requests a local profile directory when no default profile exists",
+    async (_label, Adapter) => {
+      const reg = new AdapterRegistry({ vault: stubVault() });
+      reg.register(new Adapter({ defaultProfileDir: () => null }));
+      const [result] = await reg.readiness();
+
+      expect(result.ready).toBe(false);
+      expect(result.status).toBe(READINESS_STATUS.ERROR);
+      expect(result.reason).toBe("PROFILE_PATH_UNRESOLVED");
+      expect(result.category).toBe(READINESS_CATEGORY.LOCAL);
+      expect(result.capabilities).toContain("sync:profile-directory");
+    },
+  );
+
+  it("maps Safari Full Disk Access denial to an actionable local error", () => {
+    const result = describeReadiness("SAFARI_PERMISSION_DENIED");
+    expect(result.status).toBe(READINESS_STATUS.ERROR);
+    expect(result.category).toBe(READINESS_CATEGORY.LOCAL);
+    expect(result.message).toMatch(/Safari/u);
+    expect(result.actionHint).toMatch(/完全磁盘访问权限/u);
+  });
+
+  it("Tencent Meeting requests a local WeMeet directory when history is absent", async () => {
+    const reg = new AdapterRegistry({ vault: stubVault() });
+    reg.register(new TencentMeetingAdapter({ defaultRoot: () => null }));
+    const [result] = await reg.readiness();
+
+    expect(result.ready).toBe(false);
+    expect(result.status).toBe(READINESS_STATUS.NEEDS_SETUP);
+    expect(result.reason).toBe("MEETING_DATA_NOT_FOUND");
+    expect(result.category).toBe(READINESS_CATEGORY.LOCAL);
+    expect(result.actionHint).toMatch(/路径|数据源/u);
+    expect(result.capabilities).toContain("sync:meeting-history");
+  });
+
+  it("maps Tencent Meeting schema and permission failures to local guidance", () => {
+    const schema = describeReadiness("MEETING_SCHEMA_MISMATCH");
+    expect(schema.status).toBe(READINESS_STATUS.ERROR);
+    expect(schema.category).toBe(READINESS_CATEGORY.LOCAL);
+    expect(schema.message).toMatch(/腾讯会议/u);
+
+    const permission = describeReadiness("MEETING_PERMISSION_DENIED");
+    expect(permission.status).toBe(READINESS_STATUS.ERROR);
+    expect(permission.category).toBe(READINESS_CATEGORY.LOCAL);
+    expect(permission.actionHint).toMatch(/读取权限/u);
+  });
+
+  it("reports unresolved and readable-empty HBuilderX profiles as local setup", async () => {
+    const unresolvedRegistry = new AdapterRegistry({ vault: stubVault() });
+    unresolvedRegistry.register(
+      new HBuilderXAdapter({ defaultHBuilderXHomes: () => [] }),
+    );
+    const [unresolved] = await unresolvedRegistry.readiness();
+    expect(unresolved).toMatchObject({
+      ready: false,
+      status: READINESS_STATUS.NEEDS_SETUP,
+      reason: "HBUILDERX_ROOT_UNRESOLVED",
+      category: READINESS_CATEGORY.LOCAL,
+    });
+
+    const emptyRoot = fs.mkdtempSync(
+      path.join(os.tmpdir(), "pdh-rd-hbuilderx-"),
+    );
+    try {
+      const emptyRegistry = new AdapterRegistry({ vault: stubVault() });
+      emptyRegistry.register(new HBuilderXAdapter({ roots: [emptyRoot] }));
+      const [empty] = await emptyRegistry.readiness();
+      expect(empty).toMatchObject({
+        ready: false,
+        status: READINESS_STATUS.NEEDS_SETUP,
+        reason: "HBUILDERX_FILE_ACTIVITY_NOT_FOUND",
+        category: READINESS_CATEGORY.LOCAL,
+      });
+      expect(empty.capabilities).toContain("sync:profile-directory");
+    } finally {
+      fs.rmSync(emptyRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("does not report missing local-file roots as ready", async () => {
+    const missing = path.join(os.tmpdir(), `pdh-rd-local-files-${Date.now()}`);
+    const registry = new AdapterRegistry({ vault: stubVault() });
+    registry.register(new LocalFilesAdapter({ roots: [missing] }));
+    const [result] = await registry.readiness();
+
+    expect(result).toMatchObject({
+      ready: false,
+      status: READINESS_STATUS.NEEDS_SETUP,
+      reason: "LOCAL_FILES_ROOT_UNRESOLVED",
+      category: READINESS_CATEGORY.LOCAL,
+    });
+    expect(result.capabilities).toContain("sync:scan-directory");
+    expect(result.capabilities).toContain("sync:profile-directory");
+
+    const unreadable = describeReadiness("LOCAL_FILES_NOT_READABLE");
+    expect(unreadable.status).toBe(READINESS_STATUS.ERROR);
+    expect(unreadable.category).toBe(READINESS_CATEGORY.LOCAL);
+    const networkRoot = describeReadiness(
+      "LOCAL_FILES_NETWORK_ROOT_UNSUPPORTED",
+    );
+    expect(networkRoot.status).toBe(READINESS_STATUS.NEEDS_SETUP);
+    expect(networkRoot.category).toBe(READINESS_CATEGORY.LOCAL);
+  });
+
+  it("maps invalid or unreadable local developer metadata to local errors", async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "pdh-rd-hbuilderx-tz-"));
+    try {
+      const registry = new AdapterRegistry({ vault: stubVault() });
+      registry.register(
+        new HBuilderXAdapter({
+          roots: [root],
+          sourceTimezone: "Mars/Olympus_Mons",
+        }),
+      );
+      const [invalidTimezone] = await registry.readiness();
+      expect(invalidTimezone).toMatchObject({
+        ready: false,
+        status: READINESS_STATUS.ERROR,
+        reason: "HBUILDERX_TIMEZONE_INVALID",
+        category: READINESS_CATEGORY.LOCAL,
+      });
+      expect(invalidTimezone.actionHint).toMatch(/sourceTimezone/u);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+
+    const unreadable = describeReadiness("HBUILDERX_NOT_READABLE");
+    expect(unreadable.status).toBe(READINESS_STATUS.ERROR);
+    expect(unreadable.category).toBe(READINESS_CATEGORY.LOCAL);
+    expect(unreadable.message).toMatch(/HBuilderX/u);
+
+    const repositoryScanFailed = describeReadiness("REPOSITORY_SCAN_FAILED");
+    expect(repositoryScanFailed.status).toBe(READINESS_STATUS.ERROR);
+    expect(repositoryScanFailed.category).toBe(READINESS_CATEGORY.LOCAL);
+    expect(repositoryScanFailed.message).toMatch(/Git/u);
+
+    const invalidHistorySource = describeReadiness("INVALID_HISTORY_SOURCE");
+    expect(invalidHistorySource.status).toBe(READINESS_STATUS.ERROR);
+    expect(invalidHistorySource.category).toBe(READINESS_CATEGORY.LOCAL);
+    expect(invalidHistorySource.message).toMatch(/命令行/u);
+  });
+
+  it("does not report absent or invalid shell history files as ready", async () => {
+    const missing = path.join(os.tmpdir(), `pdh-rd-shell-${Date.now()}.txt`);
+    const defaultsRegistry = new AdapterRegistry({ vault: stubVault() });
+    defaultsRegistry.register(
+      new ShellHistoryAdapter({
+        defaultHistorySources: () => [
+          { shell: "bash", file: missing, optional: true },
+        ],
+      }),
+    );
+    const [defaults] = await defaultsRegistry.readiness();
+    expect(defaults).toMatchObject({
+      ready: false,
+      status: READINESS_STATUS.NEEDS_SETUP,
+      reason: "NO_HISTORY_SOURCES",
+      category: READINESS_CATEGORY.LOCAL,
+    });
+
+    const explicitRegistry = new AdapterRegistry({ vault: stubVault() });
+    explicitRegistry.register(
+      new ShellHistoryAdapter({
+        sources: [{ shell: "bash", file: missing }],
+      }),
+    );
+    const [explicit] = await explicitRegistry.readiness();
+    expect(explicit).toMatchObject({
+      ready: false,
+      status: READINESS_STATUS.ERROR,
+      reason: "INVALID_HISTORY_SOURCE",
+      category: READINESS_CATEGORY.LOCAL,
+    });
+  });
+
   it("12306 snapshot adapter → needs_setup", async () => {
     const reg = new AdapterRegistry({ vault: stubVault() });
     reg.register(new Train12306Adapter());
@@ -248,7 +478,7 @@ describe("AdapterRegistry.readiness()", () => {
       authenticate: () => new Promise(() => {}), // never resolves
       healthCheck: async () => ({ ok: true }),
       normalize: (r) => r,
-       
+
       sync: async function* () {},
     });
     const [r] = await reg.readiness({ timeoutMs: 200 });
@@ -267,7 +497,7 @@ describe("AdapterRegistry.readiness()", () => {
       authenticate: async () => ({ ok: false, reason: "TOTALLY_NEW_CODE_42" }),
       healthCheck: async () => ({ ok: true }),
       normalize: (r) => r,
-       
+
       sync: async function* () {},
     });
     const [r] = await reg.readiness();
@@ -365,7 +595,11 @@ describe("AdapterRegistry.readiness() — ADB-capable sources", () => {
       vault: stubVault(),
       adbReadiness: {
         ...oneClick,
-        probe: async () => ({ deviceConnected: true, serial: "ABC123" }),
+        probe: async () => ({
+          authorizedDeviceCount: 1,
+          deviceConnected: true,
+          serial: "ABC123",
+        }),
       },
     });
     reg.register(new BilibiliAdapter());
@@ -382,7 +616,10 @@ describe("AdapterRegistry.readiness() — ADB-capable sources", () => {
       vault: stubVault(),
       adbReadiness: {
         ...oneClick,
-        probe: async () => ({ deviceConnected: false }),
+        probe: async () => ({
+          authorizedDeviceCount: 0,
+          deviceConnected: false,
+        }),
       },
     });
     reg.register(new BilibiliAdapter());
@@ -393,7 +630,49 @@ describe("AdapterRegistry.readiness() — ADB-capable sources", () => {
     expect(r.message).toMatch(/root|USB|手机/);
   });
 
-  it("a probe that throws degrades to ADB_DEVICE_NEEDED (never crashes)", async () => {
+  it("multiple authorized devices → ADB_MULTIPLE_DEVICES instead of ready", async () => {
+    const reg = new AdapterRegistry({
+      vault: stubVault(),
+      adbReadiness: {
+        ...oneClick,
+        probe: async () => ({
+          authorizedDeviceCount: 2,
+          deviceConnected: true,
+        }),
+      },
+    });
+    reg.register(new BilibiliAdapter());
+
+    const [r] = await reg.readiness();
+    expect(r.ready).toBe(false);
+    expect(r.status).toBe(READINESS_STATUS.NEEDS_SETUP);
+    expect(r.reason).toBe("ADB_MULTIPLE_DEVICES");
+    expect(r.category).toBe(READINESS_CATEGORY.DEVICE);
+    expect(r.actionHint).toBeTruthy();
+  });
+
+  it.each([
+    ["Ctrip", CtripAdapter],
+    ["Tongcheng", TongchengAdapter],
+    ["Didi enterprise", DidiAdapter],
+  ])(
+    "%s is not ready when no file or custom fetch source is configured",
+    async (_label, Adapter) => {
+      const registry = new AdapterRegistry({ vault: stubVault() });
+      registry.register(new Adapter());
+
+      const [result] = await registry.readiness();
+
+      expect(result).toMatchObject({
+        ready: false,
+        status: READINESS_STATUS.NEEDS_SETUP,
+        reason: "NO_INPUT",
+        category: READINESS_CATEGORY.SNAPSHOT,
+      });
+    },
+  );
+
+  it("a probe that throws reports ADB_PROBE_FAILED (never crashes)", async () => {
     const reg = new AdapterRegistry({
       vault: stubVault(),
       adbReadiness: {
@@ -405,7 +684,36 @@ describe("AdapterRegistry.readiness() — ADB-capable sources", () => {
     });
     reg.register(new BilibiliAdapter());
     const [r] = await reg.readiness();
-    expect(r.reason).toBe("ADB_DEVICE_NEEDED");
+    expect(r.reason).toBe("ADB_PROBE_FAILED");
+    expect(r.status).toBe(READINESS_STATUS.ERROR);
+  });
+
+  it.each([
+    "ADB_NOT_INSTALLED",
+    "ADB_PROBE_FAILED",
+    "ADB_DEVICE_UNAUTHORIZED",
+    "ADB_DEVICE_OFFLINE",
+    "ADB_SELECTED_DEVICE_NOT_FOUND",
+  ])("preserves the detailed ADB probe reason %s", async (reason) => {
+    const reg = new AdapterRegistry({
+      vault: stubVault(),
+      adbReadiness: {
+        ...oneClick,
+        probe: async () => ({
+          authorizedDeviceCount: 0,
+          deviceConnected: false,
+          reason,
+        }),
+      },
+    });
+    reg.register(new BilibiliAdapter());
+
+    const [result] = await reg.readiness();
+
+    expect(result.ready).toBe(false);
+    expect(result.reason).toBe(reason);
+    expect(result.category).toBe(READINESS_CATEGORY.DEVICE);
+    expect(result.actionHint).toBeTruthy();
   });
 
   it("non-one-click adapter is unaffected by ADB readiness", async () => {
@@ -413,7 +721,10 @@ describe("AdapterRegistry.readiness() — ADB-capable sources", () => {
       vault: stubVault(),
       adbReadiness: {
         oneClickNames: new Set(["social-bilibili"]),
-        probe: async () => ({ deviceConnected: true }),
+        probe: async () => ({
+          authorizedDeviceCount: 1,
+          deviceConnected: true,
+        }),
       },
     });
     reg.register(new TelegramAdapter());
@@ -434,7 +745,11 @@ describe("AdapterRegistry.readiness() — ADB-capable sources", () => {
       vault: stubVault(),
       adbReadiness: {
         oneClickNames: new Set(["system-data-android"]),
-        probe: async () => ({ deviceConnected: true, serial: "ANDROID-1" }),
+        probe: async () => ({
+          authorizedDeviceCount: 1,
+          deviceConnected: true,
+          serial: "ANDROID-1",
+        }),
       },
     });
     reg.register(new SystemDataAndroidAdapter());
@@ -457,7 +772,10 @@ describe("AdapterRegistry.readiness() — ADB-capable sources", () => {
       vault: stubVault(),
       adbReadiness: {
         oneClickNames: new Set(["system-data-android"]),
-        probe: async () => ({ deviceConnected: false }),
+        probe: async () => ({
+          authorizedDeviceCount: 0,
+          deviceConnected: false,
+        }),
       },
     });
     reg.register(new SystemDataAndroidAdapter());
@@ -488,6 +806,7 @@ describe("AdapterRegistry.syncAdapter() — collection input contract", () => {
       normalize: (value) => value,
       sync: async function* (options) {
         syncInputPath = options.inputPath;
+        yield* [];
       },
     });
 
@@ -630,6 +949,7 @@ describe("AdapterRegistry.syncAll() — readiness-aware batch collection", () =>
     );
     reg.get("file-source").sync = async function* (options) {
       receivedInputPath = options.inputPath;
+      yield* [];
     };
 
     const [report] = await reg.syncAll({
@@ -646,7 +966,11 @@ describe("AdapterRegistry.syncAll() — readiness-aware batch collection", () =>
       vault: stubVault(),
       adbReadiness: {
         oneClickNames: new Set(["social-bilibili"]),
-        probe: async () => ({ deviceConnected: true, serial: "ANDROID-1" }),
+        probe: async () => ({
+          authorizedDeviceCount: 1,
+          deviceConnected: true,
+          serial: "ANDROID-1",
+        }),
       },
     });
     reg.register(new BilibiliAdapter());

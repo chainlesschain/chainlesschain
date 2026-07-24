@@ -327,6 +327,11 @@ function buildSourceUrl(request, opts = {}) {
   const url = new URL(request.url);
   assertHttpsUrl(url, opts.allowHttp === true);
   appendQuery(url.searchParams, request.query);
+  // Some official APIs (for example Baidu Netdisk) require OAuth credentials
+  // as URL parameters. Keep those values in a separately named request field
+  // so adapters do not accidentally mix them into ordinary pagination
+  // telemetry. The transport never includes the resulting URL in errors.
+  appendQuery(url.searchParams, request.credentialQuery);
   appendSignedValue(url.searchParams, "sign", request.sign);
   appendSignedValue(url.searchParams, "anti_token", request.antiToken);
   return url;

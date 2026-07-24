@@ -45,6 +45,39 @@ describe("source HTTPS/JSON transport", () => {
     expect(result.orders).toHaveLength(1);
   });
 
+  it("places required OAuth URL parameters without echoing them in transport errors", async () => {
+    const accessToken = "oauth-runtime-secret";
+    const built = buildSourceUrl({
+      url: "https://pan.baidu.com/rest/2.0/xpan/file",
+      query: { method: "list", dir: "/", start: 0, limit: 1000 },
+      credentialQuery: { access_token: accessToken },
+    });
+    expect(built.searchParams.get("access_token")).toBe(accessToken);
+    expect(built.searchParams.get("method")).toBe("list");
+
+    const sourceFetch = createJsonSourceFetch({
+      fetchImpl: async () => new Response("denied", { status: 401 }),
+    });
+    let failure = null;
+    try {
+      await sourceFetch({
+        url: "https://pan.baidu.com/rest/2.0/xpan/file",
+        credentialQuery: { access_token: accessToken },
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+          "x-kso-authorization": "KSO-1 app-id:runtime-signature",
+        },
+      });
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure).toMatchObject({
+      code: "SOURCE_HTTP_ERROR",
+      status: 401,
+    });
+    expect(String(failure)).not.toContain(accessToken);
+  });
+
   it("serializes object bodies as JSON and preserves explicit headers", async () => {
     let captured = null;
     const sourceFetch = createJsonSourceFetch({

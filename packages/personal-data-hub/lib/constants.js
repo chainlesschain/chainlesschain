@@ -28,6 +28,7 @@ const EVENT_SUBTYPES = Object.freeze({
   MESSAGE: "message",
   AI_MESSAGE: "ai-message",
   CALL: "call",
+  MEETING: "meeting",
   POST: "post",
   INTERACTION: "interaction",
 
@@ -48,6 +49,7 @@ const EVENT_SUBTYPES = Object.freeze({
 
   // Content
   BROWSE: "browse",
+  DOWNLOAD: "download",
   LIKE: "like",
   MEDIA: "media",
 

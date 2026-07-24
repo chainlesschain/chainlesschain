@@ -28,7 +28,11 @@ describe("runtime collection input health gate", () => {
   beforeAll(() => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "pdh-health-input-"));
     inputPath = path.join(tempDir, "snapshot.json");
-    fs.writeFileSync(inputPath, "{}", "utf8");
+    fs.writeFileSync(
+      inputPath,
+      JSON.stringify({ schemaVersion: 1, events: [] }),
+      "utf8",
+    );
   });
 
   afterAll(() => {

@@ -41,6 +41,7 @@ const { likeContains } = require("./sql-like");
 // Surface this to the caller so the UI can show a hint instead of a confusing
 // "no results" state.
 const FTS5_MIN_QUERY_LEN = 3;
+const FIRST_OBSERVED_SNAPSHOT = "first-observed-snapshot";
 
 /**
  * Translate a user-typed FTS5 query into a safe-to-bind string. FTS5 has its
@@ -266,10 +267,15 @@ class LocalVault {
       throw wrapped;
     }
 
-    if (!this.readonly) {
-      db.pragma("journal_mode = WAL");
-      db.pragma("foreign_keys = ON");
-      applyMigrations(db);
+    try {
+      if (!this.readonly) {
+        db.pragma("journal_mode = WAL");
+        db.pragma("foreign_keys = ON");
+        applyMigrations(db);
+      }
+    } catch (error) {
+      db.close();
+      throw error;
     }
 
     this.db = db;
@@ -333,6 +339,11 @@ class LocalVault {
   /**
    * Insert or replace an Event. Validates first; throws on invalid input
    * (caller should partition before calling — see batch.partitionBatch).
+   *
+   * Snapshot-like events may opt into preserving their first-observed time by
+   * setting extra.temporalSemantics to "first-observed-snapshot". On conflict,
+   * those events keep the earliest occurredAt while all other fields are
+   * refreshed from the incoming event. Unmarked events remain latest-wins.
    */
   putEvent(event) {
     const r = validate(event);
@@ -351,7 +362,11 @@ class LocalVault {
                 @content, @sourceAdapter, @sourceScope, @sourceOriginalId, @source, @extra, @ingestedAt, @confidence)
         ON CONFLICT(id) DO UPDATE SET
           subtype = excluded.subtype,
-          occurred_at = excluded.occurred_at,
+          occurred_at = CASE
+            WHEN @preserveFirstObserved = 1
+              THEN MIN(events.occurred_at, excluded.occurred_at)
+            ELSE excluded.occurred_at
+          END,
           duration_ms = excluded.duration_ms,
           actor = excluded.actor,
           participants = excluded.participants,
@@ -370,7 +385,11 @@ class LocalVault {
           WHERE source_original_id IS NOT NULL
           DO UPDATE SET
           subtype = excluded.subtype,
-          occurred_at = excluded.occurred_at,
+          occurred_at = CASE
+            WHEN @preserveFirstObserved = 1
+              THEN MIN(events.occurred_at, excluded.occurred_at)
+            ELSE excluded.occurred_at
+          END,
           duration_ms = excluded.duration_ms,
           actor = excluded.actor,
           participants = excluded.participants,
@@ -403,6 +422,8 @@ class LocalVault {
         extra: event.extra ? JSON.stringify(event.extra) : null,
         ingestedAt: event.ingestedAt,
         confidence: event.confidence ?? null,
+        preserveFirstObserved:
+          event.extra?.temporalSemantics === FIRST_OBSERVED_SNAPSHOT ? 1 : 0,
       });
   }
 
@@ -681,8 +702,8 @@ class LocalVault {
 
   /**
    * Append a raw adapter payload to the raw_events archive. Idempotent on
-   * (adapter, originalId) — re-ingest replaces the existing row, preserving
-   * the original capture timestamp.
+   * (adapter, scope, originalId) — re-ingest replaces the payload while
+   * preserving the earliest capture timestamp.
    */
   putRawEvent({ adapter, scope = "", originalId, capturedAt, payload }) {
     if (typeof adapter !== "string" || adapter.length === 0)
@@ -702,7 +723,7 @@ class LocalVault {
         `INSERT INTO raw_events (adapter, scope, original_id, captured_at, payload)
          VALUES (?, ?, ?, ?, ?)
          ON CONFLICT(adapter, scope, original_id) DO UPDATE SET
-           captured_at = excluded.captured_at,
+           captured_at = MIN(raw_events.captured_at, excluded.captured_at),
            payload = excluded.payload`,
       )
       .run(adapter, scope, originalId, capturedAt, json);

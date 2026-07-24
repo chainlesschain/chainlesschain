@@ -104,11 +104,22 @@ const DISPLAY_NAMES = Object.freeze({
   "gov-12123": "交管12123",
   "browser-history-chrome": "Chrome 浏览历史",
   "browser-history-edge": "Edge 浏览历史",
+  "browser-history-brave": "Brave 浏览历史",
+  "browser-history-opera": "Opera 浏览历史",
+  "browser-history-vivaldi": "Vivaldi 浏览历史",
+  "browser-history-safari": "Safari 浏览历史",
+  "browser-history-firefox": "Firefox 浏览历史",
   "browser-history-aosp": "MIUI/AOSP 浏览历史",
+  "meeting-tencent": "腾讯会议历史",
   vscode: "VS Code",
+  vscodium: "VSCodium",
+  cursor: "Cursor",
+  "claude-code": "Claude Code",
+  "jetbrains-ide": "JetBrains IDE",
   "win-recent": "Windows 最近使用",
   "git-activity": "Git 提交记录",
   "shell-history": "命令行历史",
+  hbuilderx: "HBuilderX",
   "local-files": "本地文件",
   "system-data-android": "Android 系统数据",
 });
@@ -299,7 +310,238 @@ const CATEGORY_GUIDES = Object.freeze({
 
 // ── per-adapter overrides (bespoke flows) ────────────────────────────────
 
+const CHROMIUM_BROWSER_GUIDE = Object.freeze({
+  summary:
+    "\u4ece\u672c\u673a Chromium \u914d\u7f6e\u76ee\u5f55\u91c7\u96c6\u6d4f\u89c8\u5386\u53f2\u3001\u4e0b\u8f7d\u8bb0\u5f55\u548c\u4e66\u7b7e\uff0c\u65e0\u9700\u6269\u5c55\u3001\u8d26\u53f7\u6216\u7f51\u7edc\u3002\u914d\u7f6e\u8def\u5f84\u53ea\u7528\u4e8e\u672c\u5730\u8bfb\u53d6\u548c\u54c8\u5e0c\u4f5c\u7528\u57df\uff0c\u4e0d\u5199\u5165\u4e2a\u4eba\u6570\u636e\u5b9e\u4f53\u3002",
+  methods: [
+    {
+      label:
+        "\u81ea\u52a8\u53d1\u73b0\u6700\u8fd1\u4f7f\u7528\u7684\u914d\u7f6e\uff08\u63a8\u8350\uff09",
+      recommended: true,
+      steps: [
+        "\u786e\u8ba4\u6d4f\u89c8\u5668\u5df2\u5728\u672c\u673a\u6253\u5f00\u5e76\u4f7f\u7528\u8fc7\u81f3\u5c11\u4e00\u6b21\u3002",
+        "\u5728\u6570\u636e\u4e2d\u53f0\u5237\u65b0\u6765\u6e90\uff1b\u4e2d\u53f0\u4f1a\u4f18\u5148\u8bfb\u53d6 Local State \u4e2d\u7684\u6700\u8fd1 profile\u3002",
+        "\u70b9\u51fb\u91c7\u96c6\uff1bHistory \u6570\u636e\u5e93\u4f1a\u5148\u590d\u5236\u4e3a\u4e34\u65f6\u53ea\u8bfb\u5feb\u7167\uff0c\u4ece\u4e2d\u89e3\u6790\u8bbf\u95ee\u53ca\u4e0b\u8f7d\u8bb0\u5f55\uff0c\u4e66\u7b7e\u6309\u672c\u5730 JSON \u89e3\u6790\u3002",
+      ],
+      note: "\u9ed8\u8ba4\u8fc7\u6ee4 hidden \u9875\u9762\uff1b\u4e0b\u8f7d\u76ee\u6807\u53ea\u4fdd\u7559\u6587\u4ef6\u540d\u4e0e\u8def\u5f84\u54c8\u5e0c\uff0c\u6765\u6e90 URL \u4f1a\u79fb\u9664\u51ed\u636e\u3001\u67e5\u8be2\u53c2\u6570\u548c\u7247\u6bb5\u3002\u914d\u7f6e\u7edd\u5bf9\u8def\u5f84\u4e0d\u8fdb\u5165\u5b9e\u4f53\u3001\u5ba1\u8ba1\u6216\u6c34\u4f4d\uff0c\u9650\u989d\u672a\u626b\u5b8c\u65f6\u4fdd\u7559\u65e7\u6c34\u4f4d\u3002",
+    },
+    {
+      label: "\u9009\u62e9\u5176\u4ed6\u6d4f\u89c8\u5668 profile",
+      steps: [
+        "\u9009\u62e9\u5305\u542b History\uff08\u8bbf\u95ee\u4e0e\u4e0b\u8f7d\uff0c\u53ef\u9009 Bookmarks\uff09\u7684\u4ea7\u54c1\u914d\u7f6e\u6839\u76ee\u5f55\u3001Default \u6216 Profile N \u76ee\u5f55\u3002",
+        "\u547d\u4ee4\u884c\u6267\u884c `cc hub sync-adapter <adapter> --profile-path <profile\u76ee\u5f55>`\u3002",
+        "\u591a\u4e2a profile \u4f7f\u7528\u5404\u81ea\u7684\u54c8\u5e0c\u4f5c\u7528\u57df\u548c\u7a33\u5b9a\u5b9e\u4f53 ID\u3002",
+      ],
+    },
+  ],
+});
+
+const SAFARI_BROWSER_GUIDE = Object.freeze({
+  summary:
+    "从 macOS Safari 本地配置采集浏览历史、下载记录和书签，无需扩展、账号或网络。支持经典配置和 Safari 17+ 独立 profile；下载目标路径只保留文件名、扩展名和 SHA-256，带凭据或签名参数的来源 URL 会先净化。",
+  methods: [
+    {
+      label: "自动发现 Safari 配置（推荐）",
+      recommended: true,
+      steps: [
+        "确认 Safari 已在这台 Mac 上使用过，并完全退出 Safari 以获得最稳定的数据库快照。",
+        "在数据中台刷新来源并点击采集；中台会复制 History.db 及 WAL 为临时只读快照，同时解析 XML 或二进制 Bookmarks.plist / Downloads.plist。",
+        "若 macOS 拒绝读取，请在「系统设置 → 隐私与安全性 → 完全磁盘访问权限」中允许 ChainlessChain，然后重新打开应用。",
+      ],
+      note: "全程本地处理；临时快照在解析后清理。Safari 默认会在一天后从下载列表移除项目，建议及时采集。限额未扫描到源尾时保留旧水位，配置路径和下载目标绝对路径不会进入实体、审计或同步水位。",
+    },
+    {
+      label: "选择其他 Safari profile",
+      steps: [
+        "选择包含 History.db 的 Safari 目录，或直接选择 History.db；Safari 17+ profile 通常位于 Safari/Profiles 的子目录。",
+        "命令行执行 `cc hub sync-adapter browser-history-safari --profile-path <配置目录或History.db>`。",
+        "不同 profile 使用各自的哈希作用域和稳定实体 ID；中台优先读取 profile 本地书签/下载列表，不存在时回退到 Safari 共享文件。",
+      ],
+      note: "只有 macOS 主机存在 Safari 默认目录；其他系统仍可手动选择从本人 Mac 合法复制的配置目录进行本地导入。",
+    },
+  ],
+});
+
 const ADAPTER_OVERRIDES = Object.freeze({
+  "browser-history-chrome": CHROMIUM_BROWSER_GUIDE,
+  "browser-history-edge": CHROMIUM_BROWSER_GUIDE,
+  "browser-history-brave": CHROMIUM_BROWSER_GUIDE,
+  "browser-history-opera": CHROMIUM_BROWSER_GUIDE,
+  "browser-history-vivaldi": CHROMIUM_BROWSER_GUIDE,
+  "browser-history-safari": SAFARI_BROWSER_GUIDE,
+  vscode: {
+    summary:
+      "\u4ece\u672c\u673a VS Code \u7528\u6237\u6570\u636e\u76ee\u5f55\u91c7\u96c6\u5de5\u4f5c\u533a\u3001\u7ec8\u7aef\u5386\u53f2\u548c Local History \u4fdd\u5b58\u65f6\u95f4\u7ebf\u3002\u4e0d\u9700\u8981\u6269\u5c55\u3001\u8d26\u53f7\u6216\u7f51\u7edc\uff0c\u4e5f\u4e0d\u8bfb\u53d6 Local History \u4fdd\u5b58\u7684\u6e90\u7801\u5185\u5bb9\u3002",
+    methods: [
+      {
+        label:
+          "\u81ea\u52a8\u53d1\u73b0 VS Code \u672c\u5730\u6570\u636e\uff08\u63a8\u8350\uff09",
+        recommended: true,
+        steps: [
+          "\u786e\u8ba4 VS Code \u5df2\u5728\u672c\u673a\u6253\u5f00\u8fc7\u5de5\u4f5c\u533a\uff1b\u7ec8\u7aef\u548c Local History \u9700\u5148\u5728 VS Code \u4e2d\u4ea7\u751f\u8fc7\u76f8\u5e94\u8bb0\u5f55\u3002",
+          "\u5728\u6570\u636e\u4e2d\u53f0\u5237\u65b0\u6765\u6e90\u5e76\u70b9\u51fb\u91c7\u96c6\uff1b\u4e2d\u53f0\u4f1a\u53ea\u8bfb workspaceStorage\u3001globalStorage/state.vscdb \u548c History/*/entries.json\u3002",
+          "\u547d\u4ee4\u884c\u53ef\u6267\u884c `cc hub sync-adapter vscode`\uff1b\u5982\u4e0d\u5e0c\u671b\u91c7\u96c6 Local History \u4fdd\u5b58\u52a8\u4f5c\uff0c\u52a0 `--no-local-history`\u3002",
+        ],
+        note: "\u5de5\u4f5c\u533a\u548c\u7ec8\u7aef\u76ee\u5f55\u7684\u7edd\u5bf9\u8def\u5f84\u4f1a\u5728\u539f\u59cb\u5f52\u6863\u524d\u7f29\u51cf\u4e3a\u672b\u7ea7\u540d\u79f0\u4e0e SHA-256\uff1bLocal History \u53ea\u4fdd\u7559\u6587\u4ef6\u540d\u3001\u6269\u5c55\u540d\u3001URI \u534f\u8bae\u3001\u8def\u5f84\u54c8\u5e0c\u548c\u4fdd\u5b58\u65f6\u95f4\uff0c\u4e0d\u6253\u5f00\u4efb\u4f55\u5386\u53f2\u5185\u5bb9\u6587\u4ef6\u3002\u7ec8\u7aef\u547d\u4ee4\u6b63\u6587\u4ecd\u5c5e\u9ad8\u654f\u611f\u6570\u636e\u3002",
+      },
+    ],
+  },
+  vscodium: {
+    summary:
+      "\u4ece\u672c\u673a VSCodium \u7528\u6237\u6570\u636e\u76ee\u5f55\u91c7\u96c6\u5de5\u4f5c\u533a\u3001\u7ec8\u7aef\u5386\u53f2\u548c Local History \u4fdd\u5b58\u65f6\u95f4\u7ebf\u3002\u4e0d\u9700\u8981\u6269\u5c55\u3001\u8d26\u53f7\u6216\u7f51\u7edc\uff0c\u4e5f\u4e0d\u8bfb\u53d6 Local History \u4fdd\u5b58\u7684\u6e90\u7801\u5185\u5bb9\u3002",
+    methods: [
+      {
+        label:
+          "\u81ea\u52a8\u53d1\u73b0 VSCodium \u672c\u5730\u6570\u636e\uff08\u63a8\u8350\uff09",
+        recommended: true,
+        steps: [
+          "\u786e\u8ba4 VSCodium \u5df2\u5728\u672c\u673a\u6253\u5f00\u8fc7\u5de5\u4f5c\u533a\uff1b\u7ec8\u7aef\u548c Local History \u9700\u5148\u5728 VSCodium \u4e2d\u4ea7\u751f\u8fc7\u76f8\u5e94\u8bb0\u5f55\u3002",
+          "\u5728\u6570\u636e\u4e2d\u53f0\u5237\u65b0\u6765\u6e90\u5e76\u70b9\u51fb\u91c7\u96c6\uff1b\u4e2d\u53f0\u4f1a\u53ea\u8bfb workspaceStorage\u3001globalStorage/state.vscdb \u548c History/*/entries.json\u3002",
+          "\u547d\u4ee4\u884c\u53ef\u6267\u884c `cc hub sync-adapter vscodium`\uff1b\u4e5f\u53ef\u7528 `--profile-path <VSCodium \u7528\u6237\u6570\u636e\u76ee\u5f55>` \u624b\u52a8\u9009\u62e9\uff0c\u7528 `--no-local-history` \u6392\u9664\u4fdd\u5b58\u52a8\u4f5c\u3002",
+        ],
+        note: "\u5de5\u4f5c\u533a\u548c\u7ec8\u7aef\u76ee\u5f55\u7684\u7edd\u5bf9\u8def\u5f84\u4f1a\u5728\u539f\u59cb\u5f52\u6863\u524d\u7f29\u51cf\u4e3a\u672b\u7ea7\u540d\u79f0\u4e0e SHA-256\uff1bLocal History \u53ea\u4fdd\u7559\u6587\u4ef6\u540d\u3001\u6269\u5c55\u540d\u3001URI \u534f\u8bae\u3001\u8def\u5f84\u54c8\u5e0c\u548c\u4fdd\u5b58\u65f6\u95f4\uff0c\u4e0d\u6253\u5f00\u4efb\u4f55\u5386\u53f2\u5185\u5bb9\u6587\u4ef6\u3002\u7ec8\u7aef\u547d\u4ee4\u6b63\u6587\u4ecd\u5c5e\u9ad8\u654f\u611f\u6570\u636e\uff1b\u9650\u989d\u672a\u626b\u5b8c\u65f6\u4fdd\u7559\u65e7\u6c34\u4f4d\u3002",
+      },
+    ],
+  },
+  cursor: {
+    summary:
+      "从本机 Cursor 用户数据目录采集工作区、终端历史、Local History 保存元数据，以及 `.cursor/projects/*/agent-transcripts` 中的 Agent 提问/回答和 `ai-tracking` 中的对话摘要、AI 代码活动元数据。全程只读，不需要 Cursor 账号、网络或扩展。",
+    methods: [
+      {
+        label: "自动发现 Cursor 本地数据（推荐）",
+        recommended: true,
+        steps: [
+          "确认 Cursor 已在本机打开过项目或运行过 Agent；Windows 默认读取 `%APPDATA%\\Cursor` 与 `%USERPROFILE%\\.cursor`，macOS/Linux 使用对应的 Cursor Application Support/config 与 `~/.cursor`。",
+          "在数据中台刷新来源并点击采集；中台会读取 VS Code 同源状态、Agent JSONL transcript，以及可选的 AI tracking SQLite 元数据。",
+          "命令行可执行 `cc hub sync-adapter cursor`；用 `--profile-path <Cursor用户数据目录>` 和 `--cursor-home <.cursor目录>` 手动选择，用 `--no-local-history`、`--no-agent-transcripts` 或 `--no-ai-tracking` 排除对应数据。",
+        ],
+        note: "Agent 提问与回答正文属于高敏感数据。项目/config 绝对路径、项目目录名、会话 UUID、request ID 和跟踪主键会在 raw 归档前哈希或剔除；不查询 `cursorAuth` token/email、`tracked_file_content.content`、gitPath、分支或提交正文，也不打开 Local History 源码副本。文件损坏、内容超限或扫描截断时保留旧水位。",
+      },
+    ],
+  },
+  "claude-code": {
+    summary:
+      "从本机 Claude Code 配置目录采集主会话和子代理 JSONL 中的用户/助手文本，以及 stats-cache.json 的每日消息、会话、工具调用和模型 token 汇总。全程只读，不需要账号凭据或网络。",
+    methods: [
+      {
+        label: "自动发现 Claude Code 本地数据（推荐）",
+        recommended: true,
+        steps: [
+          "确认 Claude Code 已在本机产生可恢复会话；默认读取 `%USERPROFILE%\\.claude`（Windows）或 `~/.claude`，并尊重 `CLAUDE_CONFIG_DIR`。",
+          "在数据中台刷新来源并点击采集；中台会完整扫描 `projects/*/*.jsonl` 和可选的 `projects/*/*/subagents/*.jsonl`，再通过时间水位增量同步。",
+          "命令行可执行 `cc hub sync-adapter claude-code`；用 `--claude-home <目录>` 手动选择，用 `--no-claude-subagents` 或 `--no-claude-stats` 排除对应数据。",
+        ],
+        note: "会话正文属于高敏感数据。项目路径和目录键、session/request/message/agent ID 只保留 SHA-256；不读取 `.credentials.json`、`~/.claude.json`、settings、环境值、history.jsonl、file-history，也不归档 tool_use、tool_result、thinking 或 isMeta 内部消息。文件损坏、超出安全上限或显式 limit 截断时保留旧水位。",
+      },
+    ],
+  },
+  "jetbrains-ide": {
+    summary:
+      "\u4ece\u672c\u673a JetBrains Platform IDE \u7684 `options/recentProjects.xml` \u91c7\u96c6\u6700\u8fd1\u9879\u76ee\u548c\u6700\u540e\u6253\u5f00/\u6fc0\u6d3b\u65f6\u95f4\uff0c\u8986\u76d6 IntelliJ IDEA\u3001WebStorm\u3001PyCharm\u3001GoLand\u3001CLion \u7b49\u4ea7\u54c1\u3002\u4e0d\u8bfb\u53d6\u9879\u76ee\u6587\u4ef6\u3001`.idea` \u76ee\u5f55\u6216 IDE Local History \u6b63\u6587\u3002",
+    methods: [
+      {
+        label:
+          "\u81ea\u52a8\u53d1\u73b0 JetBrains IDE \u914d\u7f6e\uff08\u63a8\u8350\uff09",
+        recommended: true,
+        steps: [
+          "\u786e\u8ba4\u81f3\u5c11\u4e00\u4e2a JetBrains IDE \u5df2\u5728\u672c\u673a\u6253\u5f00\u8fc7\u9879\u76ee\u3002",
+          "\u5728\u6570\u636e\u4e2d\u53f0\u5237\u65b0\u6765\u6e90\u5e76\u70b9\u51fb\u91c7\u96c6\uff1b\u4e2d\u53f0\u4f1a\u5408\u5e76\u9ed8\u8ba4 JetBrains \u914d\u7f6e\u6839\u4e0b\u5404\u4ea7\u54c1\u7248\u672c\u7684\u6700\u8fd1\u9879\u76ee\u6e05\u5355\u3002",
+          "\u547d\u4ee4\u884c\u53ef\u6267\u884c `cc hub sync-adapter jetbrains-ide`\uff1b\u4e5f\u53ef\u7528 `--profile-path <JetBrains\u914d\u7f6e\u6839\u6216\u5355\u4e2a\u4ea7\u54c1\u914d\u7f6e\u76ee\u5f55>` \u624b\u52a8\u9009\u62e9\u3002",
+        ],
+        note: "\u9879\u76ee\u7edd\u5bf9\u8def\u5f84\u5728\u539f\u59cb\u5f52\u6863\u524d\u7f29\u51cf\u4e3a\u672b\u7ea7\u9879\u76ee\u540d\u548c SHA-256\u3002\u7a97\u53e3\u6807\u9898\u3001\u5206\u652f\u540d\u3001workspace UUID\u3001IDE \u5b89\u88c5\u8def\u5f84\u548c\u9690\u85cf\u9879\u76ee\u5747\u4e0d\u5165\u5e93\uff1b\u9650\u989d\u672a\u626b\u5b8c\u65f6\u4fdd\u7559\u65e7\u6c34\u4f4d\u3002",
+      },
+    ],
+  },
+  "git-activity": {
+    summary:
+      "从本机所选代码根目录采集当前 HEAD 可达的非合并 Git 提交活动。增量进度按仓库使用版本化图游标，不依赖提交时间，因此新增仓库、回退或历史改写会安全重放。",
+    methods: [
+      {
+        label: "自动发现本机 Git 仓库（推荐）",
+        recommended: true,
+        steps: [
+          "在数据中台刷新来源并点击采集；默认只检查常见代码根目录及其直接子目录中的结构有效仓库。",
+          "也可选择一个代码根目录或仓库目录，命令行执行 `cc hub sync-adapter git-activity --profile-path <目录>`。",
+          "分页游标会记录仅由仓库哈希和提交哈希派生的安全锚点与恢复偏移；仓库图变化时从当前 HEAD 安全重放并按稳定记录 ID 去重。",
+        ],
+        note: "作者姓名（author name）、作者邮箱（author email）、提交主题（commit subject）和仓库名（repoName）属于高敏感采集字段；绝对根目录和仓库路径、原始 Git SHA、remote URL、凭据、分支名、reflog、diff 与文件内容均不入库。只采当前 HEAD 可达的非 merge 提交；游标或读取失败时保留旧水位。",
+      },
+    ],
+  },
+  "shell-history": {
+    summary:
+      "从本机 PowerShell、bash 与 zsh 的标准历史文件采集命令记录。bash/zsh 内嵌时间优先；无逐条时间时，文件修改时间只作为快照观测时间，并在 vault 中保留首次观测时间。",
+    methods: [
+      {
+        label: "采集本机命令行历史（推荐）",
+        recommended: true,
+        steps: [
+          "确认对应 shell 已生成 PSReadLine、`.bash_history` 或 `.zsh_history` 标准历史文件。",
+          "在数据中台刷新来源并点击采集，或执行 `cc hub sync-adapter shell-history`。",
+          "Bash/zsh 时间分隔记录和 PSReadLine 续行会先合并为完整多行命令；重复命令再按内容、时间来源和出现次数生成稳定 ID。",
+        ],
+        note: "命令正文属于高敏感数据。历史文件绝对路径只用于本地读取，入库前替换为 SHA-256 来源标识；不会读取 profile、启动脚本或命令之外的环境变量。无内嵌时间的记录明确按“首次观测快照”处理，文件后续追加不会移动既有事件时间；文件变化、损坏、缺失或安全预算截断时保留旧水位。",
+      },
+    ],
+  },
+  "local-files": {
+    summary:
+      "\u4ece\u672c\u673a\u5e38\u7528\u7528\u6237\u76ee\u5f55\u6216\u624b\u52a8\u9009\u62e9\u7684\u76ee\u5f55\u91c7\u96c6\u6587\u4ef6\u6d3b\u52a8\u5143\u6570\u636e\u3002\u53ea\u4fdd\u7559\u6587\u4ef6\u540d\u3001\u6269\u5c55\u540d\u3001\u5927\u5c0f\u3001\u4fee\u6539\u65f6\u95f4\u548c\u4f5c\u7528\u57df\u7ed1\u5b9a\u7684 SHA-256\uff1b\u4e0d\u8bfb\u53d6\u6587\u4ef6\u6b63\u6587\u3002",
+    methods: [
+      {
+        label:
+          "\u9009\u62e9\u8981\u626b\u63cf\u7684\u672c\u5730\u76ee\u5f55\uff08\u63a8\u8350\uff09",
+        recommended: true,
+        steps: [
+          "\u5728\u6570\u636e\u4e2d\u53f0\u9009\u62e9\u4e00\u4e2a\u672c\u4eba\u6709\u6743\u5904\u7406\u7684\u76ee\u5f55\uff0c\u7136\u540e\u5f00\u59cb\u91c7\u96c6\uff1b\u5c31\u7eea\u72b6\u6001\u4e0d\u4f1a\u8df3\u8fc7\u8fd9\u4e00\u6388\u6743\u6b65\u9aa4\u3002\u4ec5\u547d\u4ee4\u884c\u65e0\u53c2\u8fd0\u884c\u65f6\uff0c\u4f1a\u81ea\u52a8\u68c0\u67e5 Documents\u3001Desktop\u3001Downloads\u3001Pictures\u3001Videos \u548c Music \u4e2d\u5df2\u5b58\u5728\u4e14\u53ef\u8bfb\u7684\u76ee\u5f55\u3002",
+          "\u547d\u4ee4\u884c\u53ef\u6267\u884c `cc hub sync-adapter local-files --root <\u76ee\u5f55>`\uff1b\u591a\u4e2a\u76ee\u5f55\u8bf7\u91cd\u590d `--root`\uff0c\u542b\u9017\u53f7\u6216\u9996\u5c3e\u7a7a\u683c\u7684\u8def\u5f84\u4f1a\u539f\u6837\u4fdd\u7559\u3002\u65e7 `--roots` \u53ea\u517c\u5bb9\u5355\u4e2a\u65e0\u9017\u53f7\u76ee\u5f55\uff0c\u6b67\u4e49\u503c\u4f1a\u62d2\u7edd\u6267\u884c\u3002",
+          "\u91c7\u96c6\u5668\u4f1a\u8fdb\u884c\u6709\u754c\u7684\u5b8c\u6574\u5143\u6570\u636e\u91cd\u626b\uff0c\u56e0\u6b64\u4e0a\u6b21\u540c\u6b65\u540e\u624d\u590d\u5236\u8fdb\u6765\u7684\u65e7\u65f6\u95f4\u6587\u4ef6\u4e5f\u4e0d\u4f1a\u9057\u6f0f\u3002",
+        ],
+        note: "\u6587\u4ef6\u540d\u5c5e\u4e8e\u9ad8\u654f\u611f\u5143\u6570\u636e\u3002\u7edd\u5bf9\u8def\u5f84\u3001\u76f8\u5bf9\u8def\u5f84\u3001\u6839\u76ee\u5f55\u548c\u6587\u4ef6\u6b63\u6587\u5747\u4e0d\u8fdb\u5165 raw \u5f52\u6863\u6216\u6807\u51c6\u5316\u5b9e\u4f53\uff1bWindows \u7f51\u7edc/\u8bbe\u5907\u547d\u540d\u7a7a\u95f4\u548c\u91cd\u89e3\u6790\u70b9\u6839\u76ee\u5f55\u4f1a\u88ab\u62d2\u7edd\u3002\u9ed8\u8ba4\u8df3\u8fc7\u540d\u79f0\u4ee5 `.` \u5f00\u5934\u7684\u9879\u3001\u7b26\u53f7\u94fe\u63a5\u3001`.git`\u3001`node_modules` \u548c\u5df2\u77e5\u7f13\u5b58\u76ee\u5f55\uff1bWindows Hidden/System \u5c5e\u6027\u672c\u8eab\u4e0d\u4f5c\u4e3a\u8fc7\u6ee4\u6761\u4ef6\uff0c\u8bf7\u901a\u8fc7\u76ee\u5f55\u9009\u62e9\u63a7\u5236\u8303\u56f4\u3002\u4ec5\u6570\u91cf\u622a\u65ad\u4f1a\u4fdd\u7559\u65e7\u6c34\u4f4d\u5e76\u6269\u5927\u4e0b\u6b21\u9884\u7b97\uff1b\u8bfb\u53d6\u5931\u8d25\u3001\u76ee\u5f55\u53d8\u5316\u6216\u5176\u4ed6\u5b89\u5168\u9884\u7b97\u8017\u5c3d\u4f1a\u76f4\u63a5\u62a5\u9519\u4e14\u4e0d\u63a8\u8fdb\u6c34\u4f4d\u3002",
+      },
+    ],
+  },
+  hbuilderx: {
+    summary:
+      "从本机 HBuilderX 配置根目录的直接子级 INI 中采集带时间的文件活动元数据。只保留作用域绑定的路径哈希、文件类型、扩展名和安全编码标识，不读取项目文件或代码正文。",
+    methods: [
+      {
+        label: "自动发现 HBuilderX 本地活动（推荐）",
+        recommended: true,
+        steps: [
+          "确认 HBuilderX 已在本机打开并编辑过文件；Windows 默认检查 `%APPDATA%\\HBuilder X` 与 `%LOCALAPPDATA%\\HBuilder X`。",
+          "在数据中台刷新来源并点击采集；也可选择 HBuilderX 配置目录。采集器只检查根目录直接子级 `.ini`，不会递归进入缓存、插件或项目目录。",
+          "命令行可执行 `cc hub sync-adapter hbuilderx`；便携版或自定义目录使用 `--hbuilderx-home <目录>` 或 `--profile-path <目录>`。如源时间不在系统时区，增加 `--source-timezone <IANA或UTC偏移>`。",
+        ],
+        note: "文件活动属于高敏感元数据。绝对路径、文件名、项目/工作区名和 INI section 名不会入库；语言索引的 lineText/context/value、日志原文、外部命令、Local History、终端和 AI 对话均明确排除。文件变化、解析异常或安全预算截断时保留旧水位。",
+      },
+    ],
+  },
+  "meeting-tencent": {
+    summary:
+      "从本人电脑上的腾讯会议客户端本地数据库采集历史会议时间线，包括主题、开始/加入/离开时间、时长、创建者、参会者以及文档/录制/AI 纪要元数据。不会读取会议密码、登录 token 或聊天正文。",
+    methods: [
+      {
+        label: "自动发现腾讯会议数据（推荐）",
+        recommended: true,
+        steps: [
+          "确认腾讯会议桌面端已登录并产生过历史会议；为获得稳定快照，建议先退出腾讯会议。",
+          "在数据中台刷新来源并点击采集；中台会在腾讯会议 Database 目录中按表结构定位哈希命名的历史库，再复制 SQLite/WAL 临时只读快照。",
+          "该来源标记为高敏感并带法律确认标识；仅应采集本人账号、本人设备中依法可处理的会议数据。",
+        ],
+        note: "Windows 默认根目录为 `%APPDATA%\\Tencent\\WeMeet`；macOS 默认根目录为 `~/Library/Containers/com.tencent.meeting/Data/Library`。会议号、用户 UID 和绝对路径会在原始归档前剔除或哈希。",
+      },
+      {
+        label: "手动选择腾讯会议目录或历史库",
+        steps: [
+          "选择 WeMeet 数据根目录，或选择包含 historical_meetings 表的 SQLite 数据库文件。",
+          "命令行执行 `cc hub sync-adapter meeting-tencent --profile-path <WeMeet目录>`；也可用 `--db-path <历史库.db>`。",
+          "中台会合并本地新历史表和云历史缓存，以 `(meeting_id, period_id)` 去重；数据库变更会重放旧会议以补齐参会者或录制信息。",
+        ],
+        note: "不要选择或上传 authorizeinfo、login_history 等账号凭据库；适配器只读取历史会议表，并明确排除密码、token、会议链接与原始账号 UID。",
+      },
+    ],
+  },
   "email-imap": {
     summary:
       "通过 IMAP 协议拉取邮件（账单、订单、行程、注册信息等会自动分类提取）。",
@@ -387,6 +629,110 @@ const ADAPTER_OVERRIDES = Object.freeze({
     "唯品会",
     "唯品会 userId",
   ),
+
+  "doc-wps": {
+    summary:
+      "采集 WPS 云文档指定驱动盘和目录中的文件清单。稳定路径是导入 schemaVersion 1 快照；在线路径使用 WPS 365 OpenAPI 用户 OAuth 与 kso.file.read 只读权限。",
+    methods: [
+      {
+        label: "导入 WPS 云文档快照（推荐）",
+        recommended: true,
+        steps: [
+          "从已授权的移动端采集器或个人导出流程生成 schemaVersion 1 JSON，事件类型为 document。",
+          "在数据中台选择 doc-wps 并导入快照；快照账号只用于隔离数据作用域。",
+        ],
+      },
+      {
+        label: "临时 OAuth 官方接口采集",
+        steps: [
+          "在 WPS 开放平台创建支持用户授权的应用，申请只读权限 kso.file.read，并按 OAuth 流程取得用户 access_token。",
+          "确认需要采集的 drive_id；根目录 parent_id 为 0。把 access_token 保存到仅当前用户可读的临时文件。",
+          "执行 `cc hub sync-adapter doc-wps --access-token-file <token.txt> --account-id <本地账号标识> --drive-id <drive_id> --parent-id 0`。",
+          "若应用在开放平台开启了接口签名，再附加 `--app-id <APPID> --app-key-file <APPKEY文件>`；中台按官方 KSO-1 HMAC-SHA256 算法签名。",
+          "中台通过 `openapi.wps.cn/v7/drives/{drive_id}/files/{parent_id}/children` 按 page_token 分页，并默认递归子文件夹；可用 `--page-size 500`、`--max-pages` 控制扫描，或用 `--shallow` 只采一层。",
+        ],
+        note: "access_token 与 APPKEY 只在本机本次调用中使用，不写入 adapter、账号库、原始事件、审计或水位；账号、drive 和 parent 只形成哈希作用域。接口错误、游标循环或未扫完时保留旧水位。",
+      },
+    ],
+  },
+
+  "doc-tencent-docs": {
+    summary:
+      "采集自己从腾讯文档导出的本地文件清单。个人版没有可核验的公开 OAuth 文件列表契约，因此不使用网页内部接口或登录 Cookie；企业开放 API 需按腾讯文档企业版合同单独集成。",
+    methods: [
+      {
+        label: "扫描腾讯文档本地导出目录（推荐）",
+        recommended: true,
+        steps: [
+          "在腾讯文档中把需要归档的文档导出到一个专用本地目录；支持 Word、Excel、PowerPoint、PDF、XMind、表单、文本和图片等常见导出格式。",
+          "选择一个只用于本机水位隔离的稳定账号标识；账号原文不会入库。",
+          "执行 `cc hub sync-adapter doc-tencent-docs --export-dir <导出目录> --account-id <本地账号标识>`。",
+          "中台默认递归扫描子目录；可用 `--shallow` 只采直接子文件，或用 `--max-files <数量>` 限制单次检查规模。",
+        ],
+        note: "只保存相对路径、格式、大小和文件时间，不保存导出根目录的绝对路径；账号、根目录和递归方式只形成哈希作用域。符号链接会跳过，限额中断、文件错误或未扫完时保留旧水位。",
+      },
+      {
+        label: "导入腾讯文档 schemaVersion 1 快照",
+        steps: [
+          "从已授权的采集器或个人导出流程生成 schemaVersion 1 JSON，事件类型为 document。",
+          "在数据中台选择 doc-tencent-docs 并导入快照；快照账号只用于隔离数据作用域。",
+        ],
+        note: "腾讯文档企业版/私有化提供面向企业集成的开放 API，但个人 SaaS 文件列表没有已核验的通用公开契约；接入企业接口前需取得租户自己的接口文档、授权范围和测试账号。",
+      },
+    ],
+  },
+
+  "browser-history-firefox": {
+    summary:
+      "从 Firefox 本地 places.sqlite 采集浏览历史、下载记录和书签。无需扩展、账号或网络；下载目标绝对路径只保留文件名、扩展名和 SHA-256，带凭据或签名参数的下载 URL 会先净化。配置目录仅用于读取并转换成哈希作用域，不写入事件、审计或同步水位。",
+    methods: [
+      {
+        label: "自动发现默认 Firefox 配置（推荐）",
+        recommended: true,
+        steps: [
+          "确认 Firefox 已在本机打开并使用过至少一次。",
+          "在数据中台刷新来源；若默认配置状态为「可采集」，直接点击采集。",
+          "中台会复制 places.sqlite 及当前 WAL 为临时只读快照，解析浏览、下载和书签后立即清理临时副本。",
+        ],
+        note: "支持 Windows 普通安装和 Microsoft Store、macOS、Linux、Snap 与 Flatpak 的常见配置根目录；全程本地处理。",
+      },
+      {
+        label: "选择其他 Firefox 配置目录",
+        steps: [
+          "在 Firefox 地址栏打开 `about:profiles`，找到目标配置的「根目录」。",
+          "在数据中台点击「选择配置目录」，选择包含 places.sqlite 的目录。",
+          "命令行可执行 `cc hub sync-adapter browser-history-firefox --profile-path <配置目录>`；也可用 `--input <places.sqlite>` 做一次完整导入。",
+        ],
+        note: "多个配置使用各自的哈希作用域和稳定实体 ID，不会共享增量水位；配置路径和下载目标绝对路径不会写入个人数据中台。",
+      },
+    ],
+  },
+
+  "doc-baidu-netdisk": {
+    summary:
+      "采集自己百度网盘开放应用沙箱中的文件树。稳定路径是导入 schemaVersion 1 快照；在线路径使用百度网盘开放平台官方 OAuth 文件列表接口，access_token 只用于本次同步。",
+    methods: [
+      {
+        label: "导入百度网盘快照（推荐）",
+        recommended: true,
+        steps: [
+          "从已授权的移动端采集器或个人导出流程生成 schemaVersion 1 JSON，事件类型为 document。",
+          "在数据中台选择 doc-baidu-netdisk 并导入快照；快照账号只用于隔离数据作用域。",
+        ],
+      },
+      {
+        label: "临时 OAuth 官方接口采集",
+        steps: [
+          "在百度网盘开放平台创建应用，并按 OAuth 授权流程取得具有网盘权限的 access_token。",
+          "官方接口仅允许访问 `/apps/{appname}` 应用沙箱；确认应用目录，把 access_token 保存到仅当前用户可读的临时文本文件，并选择稳定的本地账号标识。",
+          "执行 `cc hub sync-adapter doc-baidu-netdisk --access-token-file <token.txt> --account-id <本地账号标识> --dir /apps/<appname>`。",
+          "中台默认通过 `pan.baidu.com/rest/2.0/xpan/multimedia?method=listall` 递归文件树，并按 `has_more/cursor` 分页；可用 `--page-size 1000` 和 `--max-pages` 控制扫描。",
+          "如只需目标目录的直接子项，可附加 `--shallow`，此时改用官方 `xpan/file?method=list` 的 start/limit 分页。",
+        ],
+        note: "百度官方接口要求 access_token 位于 HTTPS URL 参数中；中台仅在发起请求时组装该参数，不把 token、原始账号标识或完整请求 URL 写入账号库、原始事件、审计和水位。递归游标循环、接口错误或未扫完时保留旧水位。",
+      },
+    ],
+  },
 
   "social-zhihu": {
     summary:
@@ -727,7 +1073,7 @@ function _inferCategory(name) {
   if (ADAPTER_OVERRIDES[name] && name === "wechat")
     return READINESS_CATEGORY.DEVICE;
   if (
-    /^(email-imap|finance-alipay|alipay-bill|ai-chat-history|weread|doc-wps|doc-tencent-docs|doc-baidu-netdisk|doc-camscanner|recruit-boss|social-csdn|social-douban|social-dongchedi|biz-tianyancha|gov-ixiamen|health-meiyou|gov-tax|bank-cmbc|bank-boc|bank-bankcomm|finance-dcep|gov-12123|bank-icbc)$/.test(
+    /^(email-imap|finance-alipay|alipay-bill|ai-chat-history|weread|doc-wps|doc-baidu-netdisk|doc-camscanner|recruit-boss|social-csdn|social-douban|social-dongchedi|biz-tianyancha|gov-ixiamen|health-meiyou|gov-tax|bank-cmbc|bank-boc|bank-bankcomm|finance-dcep|gov-12123|bank-icbc)$/.test(
       name,
     )
   )
@@ -739,7 +1085,7 @@ function _inferCategory(name) {
   )
     return READINESS_CATEGORY.DEVICE;
   if (
-    /^(browser-history-|vscode|win-recent|git-activity|shell-history|local-files|apple-health)/.test(
+    /^(browser-history-|meeting-tencent|vscode|vscodium|cursor|claude-code|jetbrains-ide|hbuilderx|win-recent|git-activity|shell-history|local-files|apple-health|doc-tencent-docs)/.test(
       name,
     )
   )

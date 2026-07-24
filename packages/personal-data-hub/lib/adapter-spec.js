@@ -37,6 +37,11 @@
 
 "use strict";
 
+const {
+  MAX_PARTITIONED_WATERMARK_STREAMS,
+  assertPartitionedWatermarkKey,
+} = require("./partitioned-watermark");
+
 const SENSITIVITY_LEVELS = Object.freeze(["low", "medium", "high"]);
 
 function isString(v) {
@@ -74,7 +79,14 @@ function isAsyncIterableProducer(fn) {
  * mysteriously mid-sync.
  */
 const EXTRACT_MODES = ["web-api", "device-pull", "file-import"];
-const WATERMARK_STRATEGIES = ["count", "max-captured-at", "explicit", "none"];
+const FILE_CHECKPOINT_MODES = ["preserve", "shared"];
+const WATERMARK_STRATEGIES = [
+  "count",
+  "max-captured-at",
+  "explicit",
+  "partitioned",
+  "none",
+];
 
 function assertAdapter(a) {
   const errors = [];
@@ -108,8 +120,10 @@ function assertAdapter(a) {
   // default used by MockAdapter and older adapters. Timestamp-based adapters
   // opt into `max-captured-at`; opaque cursors (IMAP UID state, WeChat
   // msgSvrId, API continuation tokens) use `explicit` and call the
-  // registry-provided opts.updateWatermark(value). `none` preserves any
-  // existing watermark without advancing it.
+  // registry-provided opts.updateWatermark(value). Multi-stream adapters use
+  // `partitioned`, declare watermarkStreams, and publish/complete each stream
+  // independently. `none` preserves any existing watermark without advancing
+  // it.
   if (
     a.watermarkStrategy !== undefined &&
     !WATERMARK_STRATEGIES.includes(a.watermarkStrategy)
@@ -124,12 +138,64 @@ function assertAdapter(a) {
   ) {
     errors.push("watermarkRequiresCompleteScan must be a boolean when present");
   }
+  if (a.fileCheckpointMode !== undefined && !isFunction(a.fileCheckpointMode)) {
+    errors.push("fileCheckpointMode must be a function when present");
+  }
   if (
     a.watermarkLookbackMs !== undefined &&
     (!Number.isSafeInteger(a.watermarkLookbackMs) || a.watermarkLookbackMs < 0)
   ) {
     errors.push(
       "watermarkLookbackMs must be a non-negative safe integer when present",
+    );
+  }
+  if (a.watermarkStreams !== undefined) {
+    if (
+      !Array.isArray(a.watermarkStreams) ||
+      a.watermarkStreams.length === 0 ||
+      a.watermarkStreams.length > MAX_PARTITIONED_WATERMARK_STREAMS ||
+      new Set(a.watermarkStreams).size !== a.watermarkStreams.length
+    ) {
+      errors.push(
+        "watermarkStreams must be a non-empty array of unique safe stream keys when present",
+      );
+    } else {
+      for (const key of a.watermarkStreams) {
+        try {
+          assertPartitionedWatermarkKey(key);
+        } catch {
+          errors.push(
+            "watermarkStreams must be a non-empty array of unique safe stream keys when present",
+          );
+          break;
+        }
+      }
+    }
+  }
+  if (
+    a.targetWatermarkKeys !== undefined &&
+    !isFunction(a.targetWatermarkKeys)
+  ) {
+    errors.push("targetWatermarkKeys must be a function when present");
+  }
+  if (a.watermarkStrategy === "partitioned") {
+    if (!Array.isArray(a.watermarkStreams) || a.watermarkStreams.length === 0) {
+      errors.push(
+        "partitioned watermark adapters must declare watermarkStreams",
+      );
+    }
+    if (!isFunction(a.targetWatermarkKeys)) {
+      errors.push(
+        "partitioned watermark adapters must implement targetWatermarkKeys",
+      );
+    }
+  }
+  if (
+    a.watermarkStrategy !== "partitioned" &&
+    (a.watermarkStreams !== undefined || a.targetWatermarkKeys !== undefined)
+  ) {
+    errors.push(
+      "watermarkStreams and targetWatermarkKeys require watermarkStrategy partitioned",
     );
   }
   if (
@@ -245,6 +311,7 @@ module.exports = {
   SENSITIVITY_LEVELS,
   assertAdapter,
   EXTRACT_MODES,
+  FILE_CHECKPOINT_MODES,
   WATERMARK_STRATEGIES,
   toError,
 };

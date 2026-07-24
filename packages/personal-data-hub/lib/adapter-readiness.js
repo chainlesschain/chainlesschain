@@ -65,6 +65,63 @@ const REASONS = Object.freeze({
     actionHint: "重新采集生成快照，或检查文件路径",
     appendDetail: true,
   },
+  SNAPSHOT_SYMBOLIC_LINK: {
+    status: READINESS_STATUS.ERROR,
+    category: READINESS_CATEGORY.SNAPSHOT,
+    message: "快照来源不能是符号链接",
+    actionHint: "选择设备直接导出的普通文件",
+  },
+  SNAPSHOT_NOT_REGULAR_FILE: {
+    status: READINESS_STATUS.ERROR,
+    category: READINESS_CATEGORY.SNAPSHOT,
+    message: "选择的快照来源不是普通文件",
+    actionHint: "重新选择一个 JSON 快照文件",
+  },
+  SNAPSHOT_TOO_LARGE: {
+    status: READINESS_STATUS.ERROR,
+    category: READINESS_CATEGORY.SNAPSHOT,
+    message: "快照文件超过安全导入上限",
+    actionHint: "缩小导出范围或拆分快照后重试",
+    appendDetail: true,
+  },
+  SNAPSHOT_JSON_INVALID: {
+    status: READINESS_STATUS.ERROR,
+    category: READINESS_CATEGORY.SNAPSHOT,
+    message: "快照不是有效的 JSON 文件",
+    actionHint: "重新从来源导出快照",
+  },
+  SNAPSHOT_SCHEMA_MISMATCH: {
+    status: READINESS_STATUS.ERROR,
+    category: READINESS_CATEGORY.SNAPSHOT,
+    message: "快照版本与当前采集器不兼容",
+    actionHint: "使用当前版本重新导出快照",
+    appendDetail: true,
+  },
+  SNAPSHOT_SHAPE_INVALID: {
+    status: READINESS_STATUS.ERROR,
+    category: READINESS_CATEGORY.SNAPSHOT,
+    message: "快照结构不完整或不合法",
+    actionHint: "重新从来源导出完整快照",
+    appendDetail: true,
+  },
+  SNAPSHOT_CHANGED: {
+    status: READINESS_STATUS.ERROR,
+    category: READINESS_CATEGORY.SNAPSHOT,
+    message: "读取期间快照文件发生了变化",
+    actionHint: "等待导出完成后重新选择文件",
+  },
+  SNAPSHOT_LIMIT_INVALID: {
+    status: READINESS_STATUS.ERROR,
+    category: READINESS_CATEGORY.SNAPSHOT,
+    message: "快照导入上限配置不合法",
+    actionHint: "恢复默认导入上限后重试",
+  },
+  SNAPSHOT_SIZE_INVALID: {
+    status: READINESS_STATUS.ERROR,
+    category: READINESS_CATEGORY.SNAPSHOT,
+    message: "无法确认快照文件大小",
+    actionHint: "重新导出快照后重试",
+  },
   INPUT_PATH_REQUIRED: {
     status: READINESS_STATUS.NEEDS_SETUP,
     category: READINESS_CATEGORY.SNAPSHOT,
@@ -76,6 +133,30 @@ const REASONS = Object.freeze({
     category: READINESS_CATEGORY.LOCAL,
     message: "尚未选择文件：从来源导出数据后，选择文件即可采集",
     actionHint: "点「选择文件采集」选中导出的文件",
+  },
+  NO_EXPORT_DIR: {
+    status: READINESS_STATUS.NEEDS_SETUP,
+    category: READINESS_CATEGORY.LOCAL,
+    message: "尚未选择本地导出目录",
+    actionHint: "先从来源导出文件，再选择导出目录",
+  },
+  EXPORT_DIR_NOT_DIRECTORY: {
+    status: READINESS_STATUS.ERROR,
+    category: READINESS_CATEGORY.LOCAL,
+    message: "选择的导出路径不是目录",
+    actionHint: "重新选择包含导出文件的目录",
+  },
+  EXPORT_DIR_SYMBOLIC_LINK: {
+    status: READINESS_STATUS.ERROR,
+    category: READINESS_CATEGORY.LOCAL,
+    message: "导出目录不能是符号链接",
+    actionHint: "选择导出文件实际所在的本地目录",
+  },
+  EXPORT_DIR_UNREADABLE: {
+    status: READINESS_STATUS.ERROR,
+    category: READINESS_CATEGORY.LOCAL,
+    message: "导出目录不存在或不可读",
+    actionHint: "检查目录路径和本机读取权限",
   },
 
   // ── device-pull (root / local DB) ───────────────────────────────────────
@@ -89,15 +170,18 @@ const REASONS = Object.freeze({
   ADB_PULL_REQUIRED: {
     status: READINESS_STATUS.NEEDS_SETUP,
     category: READINESS_CATEGORY.DEVICE,
-    message: "可从 Android 自动拉取 WhatsApp 加密备份，还需连接手机并提供自己的备份密钥",
-    actionHint: "开启 USB 调试并连接手机，填写 crypt15 64 位密钥（或 crypt14 key 文件）后同步",
+    message:
+      "可从 Android 自动拉取 WhatsApp 加密备份，还需连接手机并提供自己的备份密钥",
+    actionHint:
+      "开启 USB 调试并连接手机，填写 crypt15 64 位密钥（或 crypt14 key 文件）后同步",
     appendDetail: true,
   },
   KEY_REQUIRED: {
     status: READINESS_STATUS.NEEDS_SETUP,
     category: READINESS_CATEGORY.DEVICE,
     message: "已找到加密备份，但尚未提供用户自己的解密密钥",
-    actionHint: "填写 crypt15 64 位密钥，或选择 crypt14 key / encrypted_backup.key 文件",
+    actionHint:
+      "填写 crypt15 64 位密钥，或选择 crypt14 key / encrypted_backup.key 文件",
     appendDetail: true,
   },
   // 自动发现：已在本机找到 App 的加密数据库，只差解密密钥即可一键采集。
@@ -105,15 +189,54 @@ const REASONS = Object.freeze({
     status: READINESS_STATUS.NEEDS_SETUP,
     category: READINESS_CATEGORY.DEVICE,
     message: "已自动找到本机数据库（已加密），仅需解密密钥即可一键采集",
-    actionHint: "提取该 App 的数据库密钥后点「一键采集」（密钥可从运行中的 App 提取）",
+    actionHint:
+      "提取该 App 的数据库密钥后点「一键采集」（密钥可从运行中的 App 提取）",
     appendDetail: true,
   },
   // ADB 一键平台：后端支持 root 手机 USB 一键采集，但当前未检测到设备。
   ADB_DEVICE_NEEDED: {
     status: READINESS_STATUS.NEEDS_SETUP,
     category: READINESS_CATEGORY.DEVICE,
-    message: "可通过 USB 采集：请连接安卓手机并开启 USB 调试（部分 App 数据需要 root）",
+    message:
+      "可通过 USB 采集：请连接安卓手机并开启 USB 调试（部分 App 数据需要 root）",
     actionHint: "连接并授权手机后刷新，即可开始采集",
+  },
+  ADB_NOT_INSTALLED: {
+    status: READINESS_STATUS.NEEDS_SETUP,
+    category: READINESS_CATEGORY.DEVICE,
+    message: "未找到 ADB，当前无法从 Android 设备采集",
+    actionHint:
+      "安装 Android Platform Tools，或通过 ADB_PATH 指定 adb 可执行文件",
+  },
+  ADB_PROBE_FAILED: {
+    status: READINESS_STATUS.ERROR,
+    category: READINESS_CATEGORY.DEVICE,
+    message: "ADB 状态探测失败，尚不能确认设备是否可采集",
+    actionHint: "检查 adb devices 输出、USB 连接及本机执行权限后重试",
+  },
+  ADB_DEVICE_UNAUTHORIZED: {
+    status: READINESS_STATUS.NEEDS_SETUP,
+    category: READINESS_CATEGORY.DEVICE,
+    message: "Android 设备尚未授权当前电脑进行 USB 调试",
+    actionHint: "在手机上确认 USB 调试授权弹窗，然后重新探测",
+  },
+  ADB_DEVICE_OFFLINE: {
+    status: READINESS_STATUS.NEEDS_SETUP,
+    category: READINESS_CATEGORY.DEVICE,
+    message: "Android 设备处于 offline 状态，当前无法采集",
+    actionHint: "重新连接 USB、重启 adb 服务并确认设备恢复为 device 状态",
+  },
+  ADB_SELECTED_DEVICE_NOT_FOUND: {
+    status: READINESS_STATUS.NEEDS_SETUP,
+    category: READINESS_CATEGORY.DEVICE,
+    message: "指定的 Android 设备不存在或当前未连接",
+    actionHint: "检查 ADB_SERIAL/--serial，并从 adb devices 中选择已授权设备",
+  },
+  ADB_MULTIPLE_DEVICES: {
+    status: READINESS_STATUS.NEEDS_SETUP,
+    category: READINESS_CATEGORY.DEVICE,
+    message: "检测到多台已授权的安卓设备，无法确定要从哪一台采集",
+    actionHint: "断开其它安卓设备，仅保留一台已授权设备后刷新",
   },
   // 自动发现：未检测到 App 的本机数据（未安装 / 未登录 / 非默认目录）。
   APP_NOT_INSTALLED: {
@@ -170,6 +293,7 @@ const REASONS = Object.freeze({
     message: "登录态 Cookie 无效或已过期",
     actionHint: "重新在 App / 网页登录抓取 Cookie",
   },
+  NO_ACCOUNT_ID: accountReason("缺少用于隔离同步水位的本地账号标识"),
   NO_ACCOUNT_PIN: accountReason("缺少账号标识（pin）"),
   NO_ACCOUNT_USER_ID: accountReason("缺少账号标识（user id）"),
   NO_ACCOUNT_USERID: accountReason("缺少账号标识（userId）"),
@@ -180,13 +304,48 @@ const REASONS = Object.freeze({
 
   // ── local (host filesystem present?) ────────────────────────────────────
   NO_DATA_ROOTS: localMissing("未配置可扫描的数据目录"),
+  LOCAL_FILES_ROOT_UNRESOLVED: localMissing("未找到可扫描的本地文件目录"),
+  LOCAL_FILES_NETWORK_ROOT_UNSUPPORTED:
+    localMissing("本地文件采集不支持网络或设备路径"),
+  LOCAL_FILES_REPARSE_ROOT_UNSUPPORTED:
+    localMissing("本地文件采集不支持重解析点目录"),
+  LOCAL_FILES_NOT_READABLE: localError("无法读取本地文件目录"),
   NO_CODE_ROOTS: localMissing("未配置可扫描的代码目录"),
   NO_GIT_REPOS: localMissing("未发现 git 仓库"),
+  REPOSITORY_SCAN_FAILED: localError("无法扫描本地 Git 仓库"),
   NO_HISTORY_SOURCES: localMissing("未发现命令行历史文件"),
+  INVALID_HISTORY_SOURCE: localError("命令行历史数据源配置无效"),
   PROFILE_NOT_FOUND: localMissing("未找到浏览器配置（未安装或从未登录）"),
   PROFILE_PATH_UNRESOLVED: localError("无法解析浏览器配置路径"),
+  SAFARI_PERMISSION_DENIED: {
+    status: READINESS_STATUS.ERROR,
+    category: READINESS_CATEGORY.LOCAL,
+    message: "macOS 拒绝读取 Safari 数据",
+    actionHint:
+      "在「系统设置 → 隐私与安全性 → 完全磁盘访问权限」中允许 ChainlessChain，然后重新打开应用",
+  },
+  MEETING_DATA_NOT_FOUND: localMissing("未找到腾讯会议历史数据"),
+  MEETING_SCHEMA_MISMATCH: localError("所选数据库不是受支持的腾讯会议历史库"),
+  MEETING_PERMISSION_DENIED: {
+    status: READINESS_STATUS.ERROR,
+    category: READINESS_CATEGORY.LOCAL,
+    message: "无法读取腾讯会议本地数据",
+    actionHint:
+      "退出腾讯会议后重试，或检查 ChainlessChain 对腾讯会议数据目录的读取权限",
+  },
   VSCODE_NOT_FOUND: localMissing("未找到 VSCode 数据"),
   VSCODE_ROOT_UNRESOLVED: localError("无法解析 VSCode 路径"),
+  HBUILDERX_ROOT_UNRESOLVED: localMissing("未找到 HBuilderX 数据目录"),
+  HBUILDERX_FILE_ACTIVITY_NOT_FOUND: localMissing(
+    "未找到 HBuilderX 文件活动记录",
+  ),
+  HBUILDERX_NOT_READABLE: localError("无法读取 HBuilderX 本地数据"),
+  HBUILDERX_TIMEZONE_INVALID: {
+    status: READINESS_STATUS.ERROR,
+    category: READINESS_CATEGORY.LOCAL,
+    message: "HBuilderX 源时区配置无效",
+    actionHint: "检查 HBuilderX 数据源的 sourceTimezone 配置",
+  },
   RECENT_DIR_NOT_FOUND: localMissing("未找到最近使用记录目录"),
 
   // ── platform / environment ──────────────────────────────────────────────
@@ -278,8 +437,10 @@ function describeReadiness(reason) {
     return {
       status: READINESS_STATUS.NEEDS_SETUP,
       category: READINESS_CATEGORY.SNAPSHOT,
-      message: "This adapter exposes a custom web-API seam but has no verified built-in fetch implementation",
-      actionHint: "Use snapshot/file import, or configure a fetch implementation for your authorized session",
+      message:
+        "This adapter exposes a custom web-API seam but has no verified built-in fetch implementation",
+      actionHint:
+        "Use snapshot/file import, or configure a fetch implementation for your authorized session",
       appendDetail: true,
     };
   }
@@ -287,8 +448,10 @@ function describeReadiness(reason) {
     return {
       status: READINESS_STATUS.NEEDS_SETUP,
       category: READINESS_CATEGORY.SNAPSHOT,
-      message: "SQLite schema is not field-verified for this app version; verified snapshot/file import remains available",
-      actionHint: "Import an exported snapshot, or provide table names confirmed against your own app database",
+      message:
+        "SQLite schema is not field-verified for this app version; verified snapshot/file import remains available",
+      actionHint:
+        "Import an exported snapshot, or provide table names confirmed against your own app database",
       appendDetail: true,
     };
   }
@@ -296,8 +459,10 @@ function describeReadiness(reason) {
     return {
       status: READINESS_STATUS.NEEDS_SETUP,
       category: READINESS_CATEGORY.SNAPSHOT,
-      message: "Live collection is not field-verified; verified snapshot/file import remains available",
-      actionHint: "Import an exported snapshot, or provide endpoint URLs captured from your own authorized session",
+      message:
+        "Live collection is not field-verified; verified snapshot/file import remains available",
+      actionHint:
+        "Import an exported snapshot, or provide endpoint URLs captured from your own authorized session",
       appendDetail: true,
     };
   }

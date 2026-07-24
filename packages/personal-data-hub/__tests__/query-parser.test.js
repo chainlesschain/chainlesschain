@@ -90,7 +90,9 @@ describe("parseTimeWindow", () => {
 
     // mid-month is unaffected: Mar 15 −1mo → Feb 15.
     const mar15 = new Date(2026, 2, 15, 12, 0, 0).getTime();
-    expect(new Date(parseTimeWindow("最近1个月", mar15).since).getDate()).toBe(15);
+    expect(new Date(parseTimeWindow("最近1个月", mar15).since).getDate()).toBe(
+      15,
+    );
   });
 
   it("YYYY 年 M 月 → that calendar month", () => {
@@ -117,6 +119,8 @@ describe("parseFilters", () => {
     expect(parseFilters("我今年的收入").subtype).toBe("income");
     expect(parseFilters("我跟妈妈聊了什么").subtype).toBe("message");
     expect(parseFilters("我朋友圈发了啥").subtype).toBe("post");
+    expect(parseFilters("最近下载了哪些文件").subtype).toBe("download");
+    expect(parseFilters("show my downloads").subtype).toBe("download");
   });
 
   it("bare 收到 does not steal non-income subtypes (regression)", () => {
@@ -135,13 +139,23 @@ describe("parseFilters", () => {
     expect(parseFilters("支付宝账单").adapter).toBe("alipay-bill");
     expect(parseFilters("微信里我跟谁聊最多").adapter).toBe("wechat");
     expect(parseFilters("高德历史足迹").adapter).toBe("amap");
-    expect(parseFilters("DeepSeek 我之前问过啥").adapter).toBe("ai-chat-history");
+    expect(parseFilters("DeepSeek 我之前问过啥").adapter).toBe(
+      "ai-chat-history",
+    );
   });
 
   it("app-scope adapters (plural) — maps an app to ALL its message adapters (for rank)", () => {
-    expect(parseFilters("谁给我发QQ消息最多").adapters).toEqual(["qq-pc", "messaging-qq"]);
-    expect(parseFilters("谁给我发微信最多").adapters).toEqual(["wechat-pc", "wechat"]);
-    expect(parseFilters("谁给我发抖音最多").adapters).toEqual(["social-douyin"]);
+    expect(parseFilters("谁给我发QQ消息最多").adapters).toEqual([
+      "qq-pc",
+      "messaging-qq",
+    ]);
+    expect(parseFilters("谁给我发微信最多").adapters).toEqual([
+      "wechat-pc",
+      "wechat",
+    ]);
+    expect(parseFilters("谁给我发抖音最多").adapters).toEqual([
+      "social-douyin",
+    ]);
     // no app keyword → no plural scope → global rank
     expect(parseFilters("我最常联系谁").adapters).toBeUndefined();
   });
@@ -423,6 +437,7 @@ describe("extractEntityTerm", () => {
     // "多少钱" must clear before "多少" leaves stranded "钱". With clean
     // stripping there is no leftover ≥2 char chunk → null.
     expect(extractEntityTerm("我总共花了多少钱")).toBeNull();
+    expect(extractEntityTerm("查看最近下载")).toBeNull();
   });
 
   it("ignores single-character residues (verbs leak through; 1-char names skipped first-pass)", () => {

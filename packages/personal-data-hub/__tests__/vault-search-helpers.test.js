@@ -53,7 +53,7 @@ describe("_categoryToWhere", () => {
     expect(r.sql).toMatch(/source_adapter = @cat\d/);
     expect(r.sql).toMatch(/source_adapter LIKE @cat\d/);
     expect(Object.values(r.params)).toEqual(
-      expect.arrayContaining(["wechat", "messaging-%"])
+      expect.arrayContaining(["wechat", "messaging-%"]),
     );
   });
 
@@ -70,20 +70,35 @@ describe("_categoryToWhere", () => {
     expect(r.sql).toMatch(/OR/);
   });
 
+  it("translates 'ai-chat' to the shared prefix plus local AI coding agents", () => {
+    const r = _categoryToWhere("ai-chat");
+    expect(Object.values(r.params).sort()).toEqual([
+      "ai-chat-%",
+      "claude-code",
+      "cursor",
+    ]);
+    expect(r.sql).toContain("OR");
+  });
+
   it("translates 'system' to system-data + browser-history + local-source adapters", () => {
     const r = _categoryToWhere("system");
-    // 7 rules currently map to "system" (see lib/categories.js PREFIX_RULES):
-    //   prefix wildcards: system-data*, browser-*
-    //   exact names:      vscode, win-recent, git-activity, shell-history, local-files
+    // These rules currently map to "system" (see lib/categories.js):
+    //   prefix wildcards: system-data*, browser-*, meeting-*
+    //   exact names:      vscode, vscodium, jetbrains-ide, win-recent,
+    //                     git-activity, shell-history, hbuilderx, local-files
     // If a future adapter joins this bucket, append it here.
     const vals = Object.values(r.params).sort();
     expect(vals).toEqual([
       "browser-%",
       "git-activity",
+      "hbuilderx",
+      "jetbrains-ide",
       "local-files",
+      "meeting-%",
       "shell-history",
       "system-data%",
       "vscode",
+      "vscodium",
       "win-recent",
     ]);
     expect(r.sql).toContain("OR");

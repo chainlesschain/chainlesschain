@@ -28,14 +28,26 @@
 
 "use strict";
 
+const crypto = require("node:crypto");
 const fs = require("node:fs");
-const { assertAdapter, toError } = require("./adapter-spec");
+const {
+  assertAdapter,
+  FILE_CHECKPOINT_MODES,
+  toError,
+} = require("./adapter-spec");
 const {
   createAccountScope,
   createAccountScopeFromSnapshot,
   normalizeIdentity,
 } = require("./account-scope");
+const {
+  assertPartitionedWatermarkKey,
+  normalizePartitionedWatermarks,
+  parsePartitionedWatermark,
+  serializePartitionedWatermark,
+} = require("./partitioned-watermark");
 const { partitionBatch } = require("./batch");
+const { readBoundedSnapshot } = require("./snapshot-file");
 const { scopeNormalizedBatch } = require("./scope-normalized-batch");
 const { deriveBatchTriples } = require("./kg-derive");
 const { deriveBatchDocs } = require("./rag-derive");
@@ -52,6 +64,15 @@ const DEFAULT_SYNC_MAX_RETRIES = 3;
 const DEFAULT_SYNC_RETRY_BASE_DELAY_MS = 500;
 const DEFAULT_SYNC_RETRY_MAX_DELAY_MS = 30_000;
 const SYNC_ATTEMPT_ERROR = Symbol("syncAttemptError");
+const ADB_READINESS_REASONS = new Set([
+  "ADB_NOT_INSTALLED",
+  "ADB_PROBE_FAILED",
+  "ADB_DEVICE_NEEDED",
+  "ADB_DEVICE_UNAUTHORIZED",
+  "ADB_DEVICE_OFFLINE",
+  "ADB_SELECTED_DEVICE_NOT_FOUND",
+  "ADB_MULTIPLE_DEVICES",
+]);
 
 class RawArchiveError extends Error {
   constructor(adapter, message, failures = []) {
@@ -228,6 +249,7 @@ class AdapterRegistry {
         ? opts.sleep
         : (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     this._now = typeof opts.now === "function" ? opts.now : Date.now;
+    this._watermarkTelemetryHmacKey = crypto.randomBytes(32);
 
     // Phase 8.6 — EntityResolver ingest hook. If supplied, every successful
     // putBatch triggers resolver.resolveOnIngest(persons) so cross-source
@@ -239,11 +261,16 @@ class AdapterRegistry {
     // ADB one-click readiness (Phase: social platforms). When supplied by the
     // wiring, readiness() treats the named adapters as "collectable via a
     // rooted-phone USB one-click" — flipping their NO_INPUT / DB_NOT_PULLED
-    // status to "ready (device connected)" or "ADB_DEVICE_NEEDED" depending on
-    // whether a device is currently attached. Keeps the registry generic: the
-    // platform list + the actual `adb devices` probe come from the host wiring.
+    // status to "ready (exactly one device connected)",
+    // "ADB_MULTIPLE_DEVICES", or "ADB_DEVICE_NEEDED" depending on the number
+    // of authorized devices. Keeps the registry generic: the platform list +
+    // the actual `adb devices` probe come from the host wiring.
     //   opts.adbReadiness = {
-    //     probe: async () => ({ deviceConnected: boolean, serial?: string }),
+    //     probe: async () => ({
+    //       authorizedDeviceCount: number,
+    //       deviceConnected: boolean,
+    //       serial?: string,
+    //     }),
     //     oneClickNames: Set<string>,  // adapter names with an *AdbSync path
     //   }
     this._adbReadiness =
@@ -374,7 +401,11 @@ class AdapterRegistry {
           "adb-probe",
         );
       } catch (_e) {
-        adbState = { deviceConnected: false };
+        adbState = {
+          authorizedDeviceCount: 0,
+          deviceConnected: false,
+          reason: "ADB_PROBE_FAILED",
+        };
       }
     }
 
@@ -499,7 +530,13 @@ class AdapterRegistry {
         reason === "INPUT_PATH_REQUIRED" ||
         reason === "DB_NOT_PULLED")
     ) {
-      if (adbState && adbState.deviceConnected) {
+      const authorizedDeviceCount =
+        adbState &&
+        Number.isSafeInteger(adbState.authorizedDeviceCount) &&
+        adbState.authorizedDeviceCount >= 0
+          ? adbState.authorizedDeviceCount
+          : 0;
+      if (authorizedDeviceCount === 1) {
         return {
           ...base,
           ready: true,
@@ -514,13 +551,24 @@ class AdapterRegistry {
           lastError,
         };
       }
-      const adbDesc = describeReadiness("ADB_DEVICE_NEEDED");
+      const reportedAdbReason =
+        adbState &&
+        typeof adbState.reason === "string" &&
+        ADB_READINESS_REASONS.has(adbState.reason)
+          ? adbState.reason
+          : null;
+      const adbReason =
+        reportedAdbReason ||
+        (authorizedDeviceCount > 1
+          ? "ADB_MULTIPLE_DEVICES"
+          : "ADB_DEVICE_NEEDED");
+      const adbDesc = describeReadiness(adbReason);
       return {
         ...base,
         ready: false,
         status: adbDesc.status,
         category: adbDesc.category,
-        reason: "ADB_DEVICE_NEEDED",
+        reason: adbReason,
         message: adbDesc.message,
         actionHint: adbDesc.actionHint,
         mode: null,
@@ -579,6 +627,8 @@ class AdapterRegistry {
    * @param {string} [options.scope=""]
    * @param {number} [options.maxEvents]
    * @param {string|number} [options.sinceWatermark] override stored watermark
+   * @param {Record<string,string|number|bigint>} [options.sinceWatermarks]
+   *        per-stream overrides for partitioned adapters
    * @returns {Promise<SyncReport>}
    *
    * @typedef {object} SyncReport
@@ -601,6 +651,8 @@ class AdapterRegistry {
    * @property {number} scanDeferredCount
    * @property {number} watermarkLookbackMs
    * @property {string|null} collectionSinceWatermark
+   * @property {string[]} committedWatermarkKeys
+   * @property {string[]} deferredWatermarkKeys
    * @property {number} attemptCount
    * @property {number} retryCount
    * @property {number} totalRetryDelayMs
@@ -742,6 +794,8 @@ class AdapterRegistry {
       scanDeferredCount: 0,
       watermarkLookbackMs: 0,
       collectionSinceWatermark: null,
+      committedWatermarkKeys: [],
+      deferredWatermarkKeys: [],
       attemptCount:
         Number.isSafeInteger(attemptMeta.attemptCount) &&
         attemptMeta.attemptCount > 0
@@ -775,11 +829,29 @@ class AdapterRegistry {
       sourceRequestRateLimitRemainingMinute: null,
       sourceRequestRateLimitRemainingDay: null,
     };
-    const scope = this._resolveScope(adapter, options);
+    let scope = "";
     report.scope = scope;
     const watermarkStrategy = adapter.watermarkStrategy || "count";
+    const partitionedWatermark = watermarkStrategy === "partitioned";
+    const explicitFileSync = this._isExplicitFileSync(options);
+    let fileCheckpointMode = null;
+    // Fail closed for explicit file inputs. If the adapter's dynamic policy
+    // hook throws or returns an invalid value, the error path must not create
+    // or mutate a durable live-source checkpoint.
+    let preserveFileCheckpoint = explicitFileSync;
 
     try {
+      // Resolve file checkpoint policy before scope. Shared file inputs are
+      // continuing sources (for example a selected SQLite profile), so their
+      // scope must flow through the adapter's normal runtime/default scope
+      // resolution instead of the snapshot import fallback.
+      fileCheckpointMode = explicitFileSync
+        ? this._resolveFileCheckpointMode(adapter, options)
+        : null;
+      preserveFileCheckpoint = fileCheckpointMode === "preserve";
+      scope = this._resolveScope(adapter, options, { fileCheckpointMode });
+      report.scope = scope;
+
       // 1. Health check (gate)
       // Forward sync-time input (inputPath / cookie / key / ...) to the
       // health gate as well as sync(). File-import adapters cannot validate a
@@ -828,12 +900,14 @@ class AdapterRegistry {
             `${reservation.retryAfterMs}ms`;
           const stored = this.vault.getWatermark(name, scope);
           report.watermark = stored?.watermark ?? null;
-          this.vault.setWatermark(name, scope, {
-            watermark: report.watermark,
-            lastSyncedAt: Date.now(),
-            lastStatus: "rate_limited",
-            lastError: report.error,
-          });
+          if (!preserveFileCheckpoint) {
+            this.vault.setWatermark(name, scope, {
+              watermark: report.watermark,
+              lastSyncedAt: Date.now(),
+              lastStatus: "rate_limited",
+              lastError: report.error,
+            });
+          }
           this.vault.audit("adapter.sync.rate_limited", name, {
             scope,
             reason: reservation.reason,
@@ -861,11 +935,46 @@ class AdapterRegistry {
       // 3. Resolve the durable checkpoint, collection overlap, and adaptive
       // page budget. The checkpoint is never replaced by the overlap value:
       // replaying a recent time window must not move durable progress back.
-      const explicitFileSync = this._isExplicitFileSync(options);
-      const boundedTimestampScan =
-        watermarkStrategy === "max-captured-at" &&
+      let declaredWatermarkKeys = [];
+      let targetWatermarkKeys = [];
+      let targetWatermarkKeySet = new Set();
+      if (partitionedWatermark) {
+        declaredWatermarkKeys = adapter.watermarkStreams.map((key) =>
+          assertPartitionedWatermarkKey(key),
+        );
+        const declaredSet = new Set(declaredWatermarkKeys);
+        const selected = adapter.targetWatermarkKeys(options);
+        if (!Array.isArray(selected)) {
+          throw new TypeError(
+            `AdapterRegistry: ${name}.targetWatermarkKeys() must return an array`,
+          );
+        }
+        targetWatermarkKeys = Array.from(
+          new Set(
+            selected.map((key) =>
+              assertPartitionedWatermarkKey(
+                key,
+                `${name} target watermark stream key`,
+              ),
+            ),
+          ),
+        );
+        for (const key of targetWatermarkKeys) {
+          if (!declaredSet.has(key)) {
+            throw new TypeError(
+              `AdapterRegistry: ${name} selected undeclared watermark stream "${key}"`,
+            );
+          }
+        }
+        targetWatermarkKeySet = new Set(targetWatermarkKeys);
+      }
+      const boundedCompleteScan =
         adapter.watermarkRequiresCompleteScan === true &&
-        !explicitFileSync;
+        !preserveFileCheckpoint &&
+        (!partitionedWatermark || targetWatermarkKeys.length > 0);
+      const boundedTimestampScan =
+        (watermarkStrategy === "max-captured-at" || partitionedWatermark) &&
+        boundedCompleteScan;
       const explicitPageBudget =
         Number.isSafeInteger(options.maxPages) && options.maxPages > 0
           ? options.maxPages
@@ -878,45 +987,159 @@ class AdapterRegistry {
         typeof this.vault.setSyncScanState === "function" &&
         typeof this.vault.clearSyncScanState === "function";
       const adaptivePageBudget =
-        boundedTimestampScan &&
+        boundedCompleteScan &&
         explicitPageBudget === null &&
         !hasExplicitEventLimit &&
         canPersistScanState;
       let scanState = null;
+      const scanStatesByWatermarkKey = {};
+      const pageBudgetsByWatermarkKey = {};
       if (adaptivePageBudget) {
-        scanState = this.vault.getSyncScanState(name, scope);
+        if (partitionedWatermark) {
+          for (const key of targetWatermarkKeys) {
+            scanStatesByWatermarkKey[key] = this.vault.getSyncScanState(
+              name,
+              this._partitionedScanStateScope(scope, key),
+            );
+          }
+        } else {
+          scanState = this.vault.getSyncScanState(name, scope);
+        }
       }
-      if (boundedTimestampScan) {
+      if (boundedCompleteScan) {
         const initialPageBudget =
           Number.isSafeInteger(adapter.initialPageBudget) &&
           adapter.initialPageBudget > 0
             ? adapter.initialPageBudget
             : DEFAULT_SCAN_PAGE_BUDGET;
-        report.pageBudget =
-          explicitPageBudget ||
-          (scanState &&
-          Number.isSafeInteger(scanState.page_budget) &&
-          scanState.page_budget > 0
-            ? scanState.page_budget
-            : initialPageBudget);
-        report.scanDeferredCount =
-          scanState &&
-          Number.isSafeInteger(scanState.deferred_count) &&
-          scanState.deferred_count >= 0
-            ? scanState.deferred_count
-            : 0;
+        if (partitionedWatermark) {
+          for (const key of targetWatermarkKeys) {
+            const state = scanStatesByWatermarkKey[key];
+            pageBudgetsByWatermarkKey[key] =
+              explicitPageBudget ||
+              (state &&
+              Number.isSafeInteger(state.page_budget) &&
+              state.page_budget > 0
+                ? state.page_budget
+                : initialPageBudget);
+          }
+          const budgets = Object.values(pageBudgetsByWatermarkKey);
+          report.pageBudget = budgets.length > 0 ? Math.max(...budgets) : null;
+          report.scanDeferredCount = Math.max(
+            0,
+            ...Object.values(scanStatesByWatermarkKey).map((state) =>
+              state &&
+              Number.isSafeInteger(state.deferred_count) &&
+              state.deferred_count >= 0
+                ? state.deferred_count
+                : 0,
+            ),
+          );
+        } else {
+          report.pageBudget =
+            explicitPageBudget ||
+            (scanState &&
+            Number.isSafeInteger(scanState.page_budget) &&
+            scanState.page_budget > 0
+              ? scanState.page_budget
+              : initialPageBudget);
+          report.scanDeferredCount =
+            scanState &&
+            Number.isSafeInteger(scanState.deferred_count) &&
+            scanState.deferred_count >= 0
+              ? scanState.deferred_count
+              : 0;
+        }
       }
 
-      const watermarkWasOverridden = options.sinceWatermark !== undefined;
-      let checkpointWatermark = options.sinceWatermark;
+      const watermarkWasOverridden = partitionedWatermark
+        ? options.sinceWatermark !== undefined ||
+          options.sinceWatermarks !== undefined
+        : options.sinceWatermark !== undefined;
+      const stored = this.vault.getWatermark(name, scope);
+      const storedWatermarkExact =
+        stored && stored.watermark != null ? stored.watermark : null;
+      const storedWatermark =
+        stored && stored.watermark != null
+          ? this._deserializeWatermark(stored.watermark, watermarkStrategy)
+          : undefined;
+      let checkpointWatermark = partitionedWatermark
+        ? storedWatermark
+        : options.sinceWatermark;
       if (checkpointWatermark === undefined) {
-        const stored = this.vault.getWatermark(name, scope);
-        checkpointWatermark =
-          stored && stored.watermark != null
-            ? this._deserializeWatermark(stored.watermark, watermarkStrategy)
-            : undefined;
+        checkpointWatermark = storedWatermark;
       }
-      if (watermarkStrategy === "max-captured-at") {
+      let checkpointWatermarks = {};
+      let durableCheckpointWatermarks = {};
+      const overriddenWatermarkKeySet = new Set();
+      let partitionedAggregateOverride = null;
+      let partitionedKeyOverrides = {};
+      if (partitionedWatermark) {
+        durableCheckpointWatermarks = parsePartitionedWatermark(
+          checkpointWatermark,
+          {
+            allowedKeys: declaredWatermarkKeys,
+          },
+        );
+        checkpointWatermarks = { ...durableCheckpointWatermarks };
+        if (options.sinceWatermark !== undefined) {
+          if (typeof options.sinceWatermark !== "string") {
+            throw new TypeError(
+              "AdapterRegistry: partitioned sinceWatermark must be a versioned aggregate string",
+            );
+          }
+          partitionedAggregateOverride = parsePartitionedWatermark(
+            options.sinceWatermark,
+            { allowedKeys: targetWatermarkKeys },
+          );
+          for (const key of targetWatermarkKeys) {
+            overriddenWatermarkKeySet.add(key);
+          }
+        }
+        if (options.sinceWatermarks !== undefined) {
+          partitionedKeyOverrides = normalizePartitionedWatermarks(
+            options.sinceWatermarks,
+            {
+              allowedKeys: targetWatermarkKeys,
+              rejectUnknown: true,
+            },
+          );
+          for (const key of Object.keys(partitionedKeyOverrides)) {
+            overriddenWatermarkKeySet.add(key);
+          }
+        }
+        for (const key of targetWatermarkKeys) {
+          if (
+            !Object.prototype.hasOwnProperty.call(checkpointWatermarks, key)
+          ) {
+            continue;
+          }
+          const value = checkpointWatermarks[key];
+          const parsedSince = this._parseFiniteWatermark(value);
+          if (parsedSince === undefined || parsedSince <= startedAt) continue;
+          try {
+            this.vault.audit("adapter.sync.future_watermark_repaired", name, {
+              scope,
+              watermarkKey: key,
+              discardedWatermark: this._watermarkForTelemetry(
+                value,
+                "partitioned",
+              ),
+              syncStartedAt: startedAt,
+            });
+          } catch (_auditError) {
+            // A repair must not depend on observability storage.
+          }
+          delete checkpointWatermarks[key];
+        }
+        // A live partitioned sync migrates legacy/corrupt scalar state to the
+        // versioned aggregate. Snapshot imports have zero target keys and
+        // preserve the stored scalar byte-for-byte.
+        if (targetWatermarkKeys.length > 0 || watermarkWasOverridden) {
+          checkpointWatermark =
+            serializePartitionedWatermark(checkpointWatermarks);
+        }
+      } else if (watermarkStrategy === "max-captured-at") {
         const parsedSince = this._parseFiniteWatermark(checkpointWatermark);
         if (parsedSince !== undefined && parsedSince > startedAt) {
           // A business date (licence expiry, booking departure, bill due
@@ -944,33 +1167,118 @@ class AdapterRegistry {
             ? DEFAULT_WATERMARK_LOOKBACK_MS
             : 0;
       report.watermarkLookbackMs = configuredLookback;
-      let collectionSinceWatermark = checkpointWatermark;
-      const parsedCheckpoint = this._parseFiniteWatermark(checkpointWatermark);
-      if (
-        !watermarkWasOverridden &&
-        parsedCheckpoint !== undefined &&
-        configuredLookback > 0
-      ) {
-        collectionSinceWatermark = Math.max(
-          0,
-          parsedCheckpoint - configuredLookback,
-        );
+      let collectionSinceWatermark = preserveFileCheckpoint
+        ? watermarkWasOverridden
+          ? checkpointWatermark
+          : undefined
+        : checkpointWatermark;
+      let collectionSinceWatermarks = {};
+      if (partitionedWatermark) {
+        collectionSinceWatermarks = preserveFileCheckpoint
+          ? {}
+          : Object.fromEntries(
+              targetWatermarkKeys
+                .filter((key) =>
+                  Object.prototype.hasOwnProperty.call(
+                    checkpointWatermarks,
+                    key,
+                  ),
+                )
+                .map((key) => [key, checkpointWatermarks[key]]),
+            );
+        if (partitionedAggregateOverride) {
+          for (const key of targetWatermarkKeys) {
+            if (
+              Object.prototype.hasOwnProperty.call(
+                partitionedAggregateOverride,
+                key,
+              )
+            ) {
+              collectionSinceWatermarks[key] =
+                partitionedAggregateOverride[key];
+            } else {
+              delete collectionSinceWatermarks[key];
+            }
+          }
+        }
+        Object.assign(collectionSinceWatermarks, partitionedKeyOverrides);
+        for (const [key, value] of Object.entries(collectionSinceWatermarks)) {
+          const parsed = this._parseFiniteWatermark(value);
+          if (parsed === undefined || parsed <= startedAt) continue;
+          try {
+            this.vault.audit("adapter.sync.future_watermark_repaired", name, {
+              scope,
+              watermarkKey: key,
+              source: "sync_override",
+              discardedWatermark: this._watermarkForTelemetry(
+                value,
+                "partitioned",
+              ),
+              syncStartedAt: startedAt,
+            });
+          } catch (_auditError) {
+            // A repair must not depend on observability storage.
+          }
+          delete collectionSinceWatermarks[key];
+        }
+        if (configuredLookback > 0) {
+          for (const [key, value] of Object.entries(
+            collectionSinceWatermarks,
+          )) {
+            if (overriddenWatermarkKeySet.has(key)) continue;
+            const parsed = this._parseFiniteWatermark(value);
+            if (parsed !== undefined) {
+              collectionSinceWatermarks[key] = String(
+                Math.max(0, parsed - configuredLookback),
+              );
+            }
+          }
+        }
+        collectionSinceWatermark =
+          preserveFileCheckpoint &&
+          options.sinceWatermark === undefined &&
+          options.sinceWatermarks === undefined
+            ? undefined
+            : checkpointWatermark == null && targetWatermarkKeys.length === 0
+              ? undefined
+              : serializePartitionedWatermark(collectionSinceWatermarks);
+      } else {
+        const parsedCheckpoint =
+          this._parseFiniteWatermark(checkpointWatermark);
+        if (
+          !watermarkWasOverridden &&
+          parsedCheckpoint !== undefined &&
+          configuredLookback > 0
+        ) {
+          collectionSinceWatermark = Math.max(
+            0,
+            parsedCheckpoint - configuredLookback,
+          );
+        }
       }
       report.collectionSinceWatermark = this._serializeWatermark(
         collectionSinceWatermark,
       );
 
       let nextWatermark = this._serializeWatermark(checkpointWatermark);
+      const nextWatermarks = { ...checkpointWatermarks };
       let maxCapturedAt = this._parseFiniteWatermark(checkpointWatermark);
-      let watermarkComplete =
-        adapter.watermarkRequiresCompleteScan !== true || explicitFileSync;
+      let watermarkComplete = adapter.watermarkRequiresCompleteScan !== true;
+      const completedWatermarkKeySet = new Set();
 
       this._emit({
         kind: "sync.start",
         adapter: name,
         scope,
-        sinceWatermark: collectionSinceWatermark,
-        checkpointWatermark,
+        sinceWatermark: this._watermarkForTelemetry(
+          collectionSinceWatermark,
+          watermarkStrategy,
+        ),
+        checkpointWatermark: this._watermarkForTelemetry(
+          checkpointWatermark,
+          watermarkStrategy,
+        ),
+        watermarkTargetKeys: targetWatermarkKeys,
         pageBudget: report.pageBudget,
       });
 
@@ -990,14 +1298,55 @@ class AdapterRegistry {
       const adapterOnProgress = (msg) => {
         this._emit({ kind: "adapter-progress", adapter: name, ...msg });
       };
-      const adapterUpdateWatermark = (value) => {
-        nextWatermark = this._serializeWatermark(value, {
-          rejectNull: true,
-        });
+      const requireTargetWatermarkKey = (key, action) => {
+        const normalized = assertPartitionedWatermarkKey(
+          key,
+          `${name} ${action} watermark stream key`,
+        );
+        if (!targetWatermarkKeySet.has(normalized)) {
+          throw new TypeError(
+            `AdapterRegistry: ${name}.${action} selected non-target watermark stream "${normalized}"`,
+          );
+        }
+        return normalized;
       };
-      const adapterMarkWatermarkComplete = () => {
-        watermarkComplete = true;
-      };
+      const adapterUpdateWatermark = partitionedWatermark
+        ? (key, value) => {
+            const normalized = requireTargetWatermarkKey(
+              key,
+              "updateWatermark",
+            );
+            const candidate = normalizePartitionedWatermarks(
+              { [normalized]: value },
+              {
+                allowedKeys: [normalized],
+                rejectUnknown: true,
+              },
+            )[normalized];
+            const safeCandidate = String(
+              Math.min(Number(candidate), startedAt),
+            );
+            const previous = this._parseFiniteWatermark(
+              nextWatermarks[normalized],
+            );
+            if (previous === undefined || Number(safeCandidate) > previous) {
+              nextWatermarks[normalized] = safeCandidate;
+            }
+          }
+        : (value) => {
+            nextWatermark = this._serializeWatermark(value, {
+              rejectNull: true,
+            });
+          };
+      const adapterMarkWatermarkComplete = partitionedWatermark
+        ? (key) => {
+            completedWatermarkKeySet.add(
+              requireTargetWatermarkKey(key, "markWatermarkComplete"),
+            );
+          }
+        : () => {
+            watermarkComplete = true;
+          };
       const beforeSourceRequest = this._createSourceRequestPermit({
         adapter,
         scope,
@@ -1012,7 +1361,19 @@ class AdapterRegistry {
       const iter = adapter.sync({
         ...options,
         ...(report.pageBudget !== null ? { maxPages: report.pageBudget } : {}),
-        sinceWatermark: collectionSinceWatermark,
+        ...(partitionedWatermark
+          ? {
+              maxPagesByWatermarkKey: Object.freeze({
+                ...pageBudgetsByWatermarkKey,
+              }),
+            }
+          : {}),
+        sinceWatermark: partitionedWatermark
+          ? undefined
+          : collectionSinceWatermark,
+        sinceWatermarks: partitionedWatermark
+          ? Object.freeze({ ...collectionSinceWatermarks })
+          : options.sinceWatermarks,
         maxEvents: options.maxEvents,
         scope,
         onProgress: adapterOnProgress,
@@ -1030,8 +1391,42 @@ class AdapterRegistry {
             "adapter yielded a non-object raw envelope",
           );
         }
-        if (watermarkStrategy === "max-captured-at") {
-          const capturedAt = this._parseFiniteWatermark(raw.capturedAt);
+        if (partitionedWatermark && targetWatermarkKeys.length > 0) {
+          if (
+            !Object.prototype.hasOwnProperty.call(raw, "watermarkKey") ||
+            !Object.prototype.hasOwnProperty.call(raw, "watermarkAt")
+          ) {
+            throw new TypeError(
+              `AdapterRegistry: ${name} partitioned raw envelopes require watermarkKey and watermarkAt`,
+            );
+          }
+          const watermarkKey = requireTargetWatermarkKey(
+            raw.watermarkKey,
+            "raw",
+          );
+          const candidate = this._parseFiniteWatermark(raw.watermarkAt);
+          const previous = this._parseFiniteWatermark(
+            nextWatermarks[watermarkKey],
+          );
+          const safeCandidate =
+            candidate !== undefined
+              ? Math.min(candidate, startedAt)
+              : undefined;
+          if (
+            safeCandidate !== undefined &&
+            safeCandidate > 0 &&
+            (previous === undefined || safeCandidate > previous)
+          ) {
+            nextWatermarks[watermarkKey] = String(safeCandidate);
+          }
+        } else if (watermarkStrategy === "max-captured-at") {
+          const watermarkValue = Object.prototype.hasOwnProperty.call(
+            raw,
+            "watermarkAt",
+          )
+            ? raw.watermarkAt
+            : raw.capturedAt;
+          const capturedAt = this._parseFiniteWatermark(watermarkValue);
           const safeCapturedAt =
             capturedAt !== undefined
               ? Math.min(capturedAt, startedAt)
@@ -1054,22 +1449,52 @@ class AdapterRegistry {
       await flush();
 
       // 5. Persist final watermark
-      if (watermarkStrategy === "count") {
+      if (preserveFileCheckpoint) {
+        // File/snapshot imports are independent replay sources by default.
+        // They may use an explicit caller-provided collection cursor, but
+        // never read or replace the durable live-source checkpoint.
+        report.watermark = storedWatermarkExact;
+        report.committedWatermarkKeys = [];
+        report.deferredWatermarkKeys = [];
+      } else if (partitionedWatermark) {
+        const committed = [];
+        const deferred = [];
+        for (const key of targetWatermarkKeys) {
+          if (completedWatermarkKeySet.has(key)) {
+            committed.push(key);
+          } else {
+            deferred.push(key);
+            if (
+              Object.prototype.hasOwnProperty.call(
+                durableCheckpointWatermarks,
+                key,
+              )
+            ) {
+              nextWatermarks[key] = durableCheckpointWatermarks[key];
+            } else {
+              delete nextWatermarks[key];
+            }
+          }
+        }
+        report.committedWatermarkKeys = committed;
+        report.deferredWatermarkKeys = deferred;
+        report.watermarkDeferred = deferred.length > 0;
+        report.watermark =
+          committed.length === 0
+            ? this._serializeWatermark(storedWatermark)
+            : serializePartitionedWatermark(nextWatermarks);
+      } else if (boundedCompleteScan && !watermarkComplete) {
+        // A bounded collector may publish a tentative timestamp or opaque
+        // cursor while it scans. Never commit that candidate until the
+        // adapter confirms it is either at the source boundary or has encoded
+        // an exact resumable continuation.
+        report.watermark = this._serializeWatermark(checkpointWatermark);
+        report.watermarkDeferred = true;
+      } else if (watermarkStrategy === "count") {
         const newWatermark =
           report.rawCount +
           (this._parseStoredWatermark(checkpointWatermark) || 0);
         report.watermark = String(newWatermark);
-      } else if (
-        watermarkStrategy === "max-captured-at" &&
-        !watermarkComplete
-      ) {
-        // Descending paginated APIs must not advance a high-water mark when
-        // `limit` / `maxPages` stopped the scan before it reached the prior
-        // watermark or the source's end. Doing so would permanently skip the
-        // unseen middle of a large delta. Preserve the prior checkpoint and
-        // surface the deferral so callers can retry with a larger window.
-        report.watermark = this._serializeWatermark(checkpointWatermark);
-        report.watermarkDeferred = true;
       } else {
         // Timestamp and opaque cursor strategies preserve the previous
         // watermark on an empty successful sync. Explicit candidates are
@@ -1078,64 +1503,122 @@ class AdapterRegistry {
         report.watermark = nextWatermark;
       }
       if (report.watermarkDeferred && adaptivePageBudget) {
-        const currentBudget = report.pageBudget || DEFAULT_SCAN_PAGE_BUDGET;
-        const nextBudget =
-          currentBudget <= Math.floor(Number.MAX_SAFE_INTEGER / 2)
-            ? currentBudget * 2
-            : Number.MAX_SAFE_INTEGER;
-        const nextDeferredCount =
-          report.scanDeferredCount < Number.MAX_SAFE_INTEGER
-            ? report.scanDeferredCount + 1
-            : Number.MAX_SAFE_INTEGER;
-        this.vault.setSyncScanState(name, scope, {
-          pageBudget: nextBudget,
-          deferredCount: nextDeferredCount,
-          updatedAt: Date.now(),
-        });
-        report.nextPageBudget = nextBudget;
-        report.scanDeferredCount = nextDeferredCount;
+        if (partitionedWatermark) {
+          let maxNextBudget = null;
+          let maxDeferredCount = 0;
+          for (const key of report.deferredWatermarkKeys) {
+            const currentBudget =
+              pageBudgetsByWatermarkKey[key] || DEFAULT_SCAN_PAGE_BUDGET;
+            const nextBudget =
+              currentBudget <= Math.floor(Number.MAX_SAFE_INTEGER / 2)
+                ? currentBudget * 2
+                : Number.MAX_SAFE_INTEGER;
+            const state = scanStatesByWatermarkKey[key];
+            const currentDeferredCount =
+              state &&
+              Number.isSafeInteger(state.deferred_count) &&
+              state.deferred_count >= 0
+                ? state.deferred_count
+                : 0;
+            const nextDeferredCount =
+              currentDeferredCount < Number.MAX_SAFE_INTEGER
+                ? currentDeferredCount + 1
+                : Number.MAX_SAFE_INTEGER;
+            this.vault.setSyncScanState(
+              name,
+              this._partitionedScanStateScope(scope, key),
+              {
+                pageBudget: nextBudget,
+                deferredCount: nextDeferredCount,
+                updatedAt: Date.now(),
+              },
+            );
+            maxNextBudget =
+              maxNextBudget == null
+                ? nextBudget
+                : Math.max(maxNextBudget, nextBudget);
+            maxDeferredCount = Math.max(maxDeferredCount, nextDeferredCount);
+          }
+          report.nextPageBudget = maxNextBudget;
+          report.scanDeferredCount = maxDeferredCount;
+        } else {
+          const currentBudget = report.pageBudget || DEFAULT_SCAN_PAGE_BUDGET;
+          const nextBudget =
+            currentBudget <= Math.floor(Number.MAX_SAFE_INTEGER / 2)
+              ? currentBudget * 2
+              : Number.MAX_SAFE_INTEGER;
+          const nextDeferredCount =
+            report.scanDeferredCount < Number.MAX_SAFE_INTEGER
+              ? report.scanDeferredCount + 1
+              : Number.MAX_SAFE_INTEGER;
+          this.vault.setSyncScanState(name, scope, {
+            pageBudget: nextBudget,
+            deferredCount: nextDeferredCount,
+            updatedAt: Date.now(),
+          });
+          report.nextPageBudget = nextBudget;
+          report.scanDeferredCount = nextDeferredCount;
+        }
       }
-      this.vault.setWatermark(name, scope, {
-        watermark: report.watermark,
-        lastSyncedAt: Date.now(),
-        lastStatus: "ok",
-        lastError: null,
-      });
-      report.checkpointCommitted = true;
-      if (
-        boundedTimestampScan &&
-        !report.watermarkDeferred &&
-        canPersistScanState
-      ) {
-        try {
-          this.vault.clearSyncScanState(name, scope);
-        } catch (scanStateError) {
+      if (!preserveFileCheckpoint) {
+        this.vault.setWatermark(name, scope, {
+          watermark: report.watermark,
+          lastSyncedAt: Date.now(),
+          lastStatus: "ok",
+          lastError: null,
+        });
+      }
+      report.checkpointCommitted = preserveFileCheckpoint
+        ? false
+        : partitionedWatermark
+          ? report.committedWatermarkKeys.length > 0
+          : true;
+      if (boundedCompleteScan && canPersistScanState) {
+        const completedScanStateKeys = partitionedWatermark
+          ? report.committedWatermarkKeys
+          : report.watermarkDeferred
+            ? []
+            : [null];
+        for (const key of completedScanStateKeys) {
+          const scanStateScope =
+            key == null ? scope : this._partitionedScanStateScope(scope, key);
           try {
-            this.vault.audit("adapter.sync.scan_state_clear_failed", name, {
-              scope,
-              error: toError(scanStateError, "clearSyncScanState").message,
-            });
-          } catch (_auditError) {
-            // Stale state only causes a larger future rescan; it cannot move
-            // the committed source watermark or lose data.
+            this.vault.clearSyncScanState(name, scanStateScope);
+          } catch (scanStateError) {
+            try {
+              this.vault.audit("adapter.sync.scan_state_clear_failed", name, {
+                scope,
+                watermarkKey: key,
+                error: toError(scanStateError, "clearSyncScanState").message,
+              });
+            } catch (_auditError) {
+              // Stale state only causes a larger future rescan; it cannot move
+              // the committed source watermark or lose data.
+            }
           }
         }
       }
 
+      const telemetryReport = this._syncReportForTelemetry(
+        report,
+        watermarkStrategy,
+      );
       this.vault.audit("adapter.sync.ok", name, {
         scope,
         rawCount: report.rawCount,
         archivedRawCount: report.archivedRawCount,
         archiveFailureCount: report.archiveFailureCount,
         invalidCount: report.invalidCount,
-        watermark: report.watermark,
+        watermark: telemetryReport.watermark,
         watermarkDeferred: report.watermarkDeferred,
         checkpointCommitted: report.checkpointCommitted,
         pageBudget: report.pageBudget,
         nextPageBudget: report.nextPageBudget,
         scanDeferredCount: report.scanDeferredCount,
         watermarkLookbackMs: report.watermarkLookbackMs,
-        collectionSinceWatermark: report.collectionSinceWatermark,
+        collectionSinceWatermark: telemetryReport.collectionSinceWatermark,
+        committedWatermarkKeys: report.committedWatermarkKeys,
+        deferredWatermarkKeys: report.deferredWatermarkKeys,
         attemptCount: report.attemptCount,
         retryCount: report.retryCount,
         totalRetryDelayMs: report.totalRetryDelayMs,
@@ -1148,7 +1631,11 @@ class AdapterRegistry {
         sourceRequestRateLimitRemainingDay:
           report.sourceRequestRateLimitRemainingDay,
       });
-      this._emit({ kind: "sync.ok", adapter: name, ...report });
+      this._emit({
+        kind: "sync.ok",
+        adapter: name,
+        ...telemetryReport,
+      });
     } catch (err) {
       const error = toError(err, `sync ${name}`);
       const requestRateLimited = error instanceof SourceRequestRateLimitError;
@@ -1191,12 +1678,14 @@ class AdapterRegistry {
       try {
         const prev = this.vault.getWatermark(name, scope);
         report.watermark = prev ? prev.watermark : null;
-        this.vault.setWatermark(name, scope, {
-          watermark: prev ? prev.watermark : null,
-          lastSyncedAt: Date.now(),
-          lastStatus: report.status,
-          lastError: error.message,
-        });
+        if (!preserveFileCheckpoint) {
+          this.vault.setWatermark(name, scope, {
+            watermark: prev ? prev.watermark : null,
+            lastSyncedAt: Date.now(),
+            lastStatus: report.status,
+            lastError: error.message,
+          });
+        }
       } catch (_e) {
         // Watermark write failure is non-fatal in the error path.
       }
@@ -1987,7 +2476,51 @@ class AdapterRegistry {
     );
   }
 
-  _resolveScope(adapter, options = {}) {
+  _watermarkForTelemetry(value, strategy) {
+    if (!["explicit", "partitioned"].includes(strategy) || value == null) {
+      return value;
+    }
+    let serialized;
+    try {
+      serialized = this._serializeWatermark(value, { rejectNull: true });
+    } catch {
+      return {
+        format: strategy,
+        valueType: Array.isArray(value) ? "array" : typeof value,
+      };
+    }
+    const byteLength = Buffer.byteLength(serialized, "utf8");
+    return {
+      format: strategy,
+      byteLength,
+      hmacSha256: crypto
+        .createHmac("sha256", this._watermarkTelemetryHmacKey)
+        .update(serialized, "utf8")
+        .digest("hex"),
+    };
+  }
+
+  _syncReportForTelemetry(report, strategy) {
+    const { watermark, collectionSinceWatermark, ...telemetryReport } = report;
+    return {
+      ...telemetryReport,
+      watermark: this._watermarkForTelemetry(watermark, strategy),
+      collectionSinceWatermark: this._watermarkForTelemetry(
+        collectionSinceWatermark,
+        strategy,
+      ),
+    };
+  }
+
+  _partitionedScanStateScope(scope, key) {
+    return JSON.stringify([
+      typeof scope === "string" ? scope : "",
+      "pdh-partitioned-v1",
+      assertPartitionedWatermarkKey(key),
+    ]);
+  }
+
+  _resolveScope(adapter, options = {}, { fileCheckpointMode = null } = {}) {
     if (typeof options.scope === "string") return options.scope;
 
     // JSON snapshots carry the source account inside the file. Resolve that
@@ -2005,43 +2538,96 @@ class AdapterRegistry {
       if (scope) return scope;
     }
     if (
+      fileCheckpointMode !== "shared" &&
       typeof options.inputPath === "string" &&
       options.inputPath.trim().length > 0
     ) {
-      try {
-        const snapshot = JSON.parse(
-          fs.readFileSync(options.inputPath, "utf-8"),
-        );
-        const scope = this._scopeFromSnapshot(adapter, snapshot);
-        if (scope) return scope;
-      } catch (_err) {
-        // The adapter health/sync path owns the user-facing parse error.
+      // Scope discovery must obey the same bounded, no-follow, stable-file
+      // boundary as the adapter itself. Non-JSON imports (XML/SQLite/etc.) do
+      // not carry the standard snapshot account envelope and are skipped.
+      if (/\.json$/iu.test(options.inputPath.trim())) {
+        try {
+          const snapshot = JSON.parse(
+            readBoundedSnapshot(fs, options.inputPath, {
+              maxBytes: options.maxSnapshotBytes,
+            }),
+          );
+          const scope = this._scopeFromSnapshot(adapter, snapshot);
+          if (scope) return scope;
+        } catch (_err) {
+          // The adapter health/sync path owns the user-facing parse error.
+        }
       }
       return "";
     }
 
-    // Ephemeral cookie-mode syncs provide an account id at call time instead
+    // Ephemeral credential syncs provide an account id at call time instead
     // of mutating/persisting the adapter. Keep their cursors isolated exactly
-    // like constructor-configured accounts and snapshots.
+    // like constructor-configured accounts and snapshots. Cookie collectors
+    // use the legacy default; OAuth collectors declare runtimeCredentialOption.
     const runtimeIdentityKey =
       adapter && typeof adapter.runtimeScopeIdentityKey === "string"
         ? adapter.runtimeScopeIdentityKey
         : null;
+    const runtimeCredentialOption =
+      adapter && typeof adapter.runtimeCredentialOption === "string"
+        ? adapter.runtimeCredentialOption
+        : "cookie";
     const runtimeIdentity =
       runtimeIdentityKey && options[runtimeIdentityKey] != null
         ? options[runtimeIdentityKey]
         : options.accountId;
     const normalizedRuntimeIdentity = normalizeIdentity(runtimeIdentity);
+    const runtimeCredential = options[runtimeCredentialOption];
     if (
-      typeof options.cookie === "string" &&
-      options.cookie.trim().length > 0 &&
+      typeof runtimeCredential === "string" &&
+      runtimeCredential.trim().length > 0 &&
       runtimeIdentityKey &&
       normalizedRuntimeIdentity
     ) {
-      return createAccountScope(
-        adapter.name,
+      const identityParts = [
         `${runtimeIdentityKey}:${normalizedRuntimeIdentity}`,
-      );
+      ];
+      const discriminatorKeys =
+        adapter && Array.isArray(adapter.runtimeScopeDiscriminatorKeys)
+          ? adapter.runtimeScopeDiscriminatorKeys
+          : [];
+      const discriminatorDefaults =
+        adapter &&
+        adapter.runtimeScopeDiscriminatorDefaults &&
+        typeof adapter.runtimeScopeDiscriminatorDefaults === "object"
+          ? adapter.runtimeScopeDiscriminatorDefaults
+          : {};
+      for (const key of discriminatorKeys) {
+        if (typeof key !== "string" || key.length === 0) continue;
+        const value =
+          options[key] != null ? options[key] : discriminatorDefaults[key];
+        if (value == null || String(value).trim().length === 0) continue;
+        // Account identifiers are intentionally normalized, while opaque
+        // drive/folder IDs and paths may be case- and Unicode-sensitive.
+        // Encode their exact trimmed UTF-8 bytes before createAccountScope
+        // normalizes the composite.
+        const discriminatorHex = Buffer.from(
+          String(value).trim(),
+          "utf8",
+        ).toString("hex");
+        identityParts.push(`${key}:hex:${discriminatorHex}`);
+      }
+      return createAccountScope(adapter.name, identityParts.join("\0"));
+    }
+
+    // Local profile adapters discover their default account lazily. Merely
+    // constructing an adapter (for example while generating the catalog)
+    // must not inspect browser profile metadata on the host.
+    if (adapter && typeof adapter.resolveDefaultScope === "function") {
+      try {
+        const resolved = adapter.resolveDefaultScope(options);
+        if (typeof resolved === "string" && resolved.length > 0) {
+          return resolved;
+        }
+      } catch {
+        // Authentication/health checks own the actionable discovery error.
+      }
     }
 
     return adapter && typeof adapter.defaultScope === "string"
@@ -2062,6 +2648,19 @@ class AdapterRegistry {
       (key) =>
         typeof options?.[key] === "string" && options[key].trim().length > 0,
     );
+  }
+
+  _resolveFileCheckpointMode(adapter, options) {
+    const mode =
+      typeof adapter.fileCheckpointMode === "function"
+        ? adapter.fileCheckpointMode(options)
+        : "preserve";
+    if (!FILE_CHECKPOINT_MODES.includes(mode)) {
+      throw new TypeError(
+        `AdapterRegistry: ${adapter.name}.fileCheckpointMode() must return one of ${FILE_CHECKPOINT_MODES.join("|")}`,
+      );
+    }
+    return mode;
   }
 
   _emit(msg) {

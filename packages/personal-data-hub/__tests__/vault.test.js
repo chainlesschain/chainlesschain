@@ -1,6 +1,6 @@
 "use strict";
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 
 const fs = require("node:fs");
 const os = require("node:os");
@@ -92,7 +92,9 @@ afterEach(() => {
   if (vault) {
     try {
       vault.close();
-    } catch (_e) {}
+    } catch {
+      // Best-effort test cleanup.
+    }
     vault = null;
   }
   if (tmpDir && fs.existsSync(tmpDir)) {
@@ -397,6 +399,520 @@ describe("LocalVault open + migrations", () => {
     expect(reopen.schemaVersion()).toBe(TARGET_VERSION);
     reopen.close();
   });
+
+  it("migration v9 removes only path-bearing legacy Git rows and empty-scope state", () => {
+    freshVault();
+    const legacyOriginalId =
+      "git-commit:C:\\Users\\alice\\private-repo:" + "a".repeat(40);
+    const currentOriginalId = `git-activity-commit:${"b".repeat(64)}`;
+    const currentScope = `account:git-activity:${"c".repeat(32)}`;
+
+    vault.putRawEvent({
+      adapter: "git-activity",
+      scope: "",
+      originalId: legacyOriginalId,
+      capturedAt: ts(),
+      payload: {
+        repoDir: "C:\\Users\\alice\\private-repo",
+        sha: "a".repeat(40),
+        subject: "legacy private commit",
+      },
+    });
+    vault.putRawEvent({
+      adapter: "git-activity",
+      scope: currentScope,
+      originalId: currentOriginalId,
+      capturedAt: ts(),
+      payload: {
+        repoHash: "d".repeat(64),
+        commitHash: "e".repeat(64),
+        subject: "current safe commit",
+      },
+    });
+    vault.putRawEvent({
+      adapter: "other-adapter",
+      scope: "",
+      originalId: legacyOriginalId,
+      capturedAt: ts(),
+      payload: { retained: true },
+    });
+
+    vault.putEvent(
+      eventOk({
+        id: "legacy-git-event",
+        source: source({
+          adapter: "git-activity",
+          originalId: legacyOriginalId,
+        }),
+        content: { text: "legacy private commit" },
+        extra: {
+          repoDir: "C:\\Users\\alice\\private-repo",
+          sha: "a".repeat(40),
+        },
+      }),
+    );
+    vault.putEvent(
+      eventOk({
+        id: "current-git-event",
+        source: source({
+          adapter: "git-activity",
+          originalId: currentOriginalId,
+        }),
+        content: { text: "current safe commit" },
+      }),
+    );
+
+    vault.setWatermark("git-activity", "", {
+      watermark: "1700000000000",
+      lastStatus: "ok",
+    });
+    vault.setWatermark("git-activity", currentScope, {
+      watermark: `git-v1:${JSON.stringify({ v: 1, repos: {} })}`,
+      lastStatus: "ok",
+    });
+    vault.setSyncScanState("git-activity", "", {
+      pageBudget: 20,
+      deferredCount: 1,
+    });
+    vault.setSyncScanState("git-activity", currentScope, {
+      pageBudget: 40,
+      deferredCount: 2,
+    });
+    vault.db
+      .prepare(
+        `INSERT INTO audit_log (at, action, target, details)
+         VALUES (?, ?, ?, ?)`,
+      )
+      .run(
+        Date.now(),
+        "adapter.sync.invalid_raw",
+        "git-activity",
+        JSON.stringify({ originalId: legacyOriginalId }),
+      );
+    vault.db
+      .prepare(
+        `INSERT INTO audit_log (at, action, target, details)
+         VALUES (?, ?, ?, ?)`,
+      )
+      .run(
+        Date.now(),
+        "adapter.sync.ok",
+        "git-activity",
+        JSON.stringify({ watermark: "git-v1:safe-summary" }),
+      );
+    vault.db
+      .prepare(
+        "UPDATE _meta SET value='8', updated_at=? WHERE key='schema_version'",
+      )
+      .run(Date.now());
+    vault.close();
+
+    const reopen = new LocalVault({ path: vaultPath, key, skipAudit: true });
+    reopen.open();
+
+    expect(reopen.getEvent("legacy-git-event")).toBeNull();
+    expect(reopen.getEvent("current-git-event")).not.toBeNull();
+    expect(
+      reopen.queryRawEvents({
+        adapter: "git-activity",
+        scope: "",
+      }),
+    ).toEqual([]);
+    expect(
+      reopen.queryRawEvents({
+        adapter: "git-activity",
+        scope: currentScope,
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        originalId: currentOriginalId,
+        payload: expect.objectContaining({ subject: "current safe commit" }),
+      }),
+    ]);
+    expect(
+      reopen.queryRawEvents({
+        adapter: "other-adapter",
+        scope: "",
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        originalId: legacyOriginalId,
+        payload: { retained: true },
+      }),
+    ]);
+    expect(reopen.getWatermark("git-activity", "")).toBeNull();
+    expect(reopen.getWatermark("git-activity", currentScope)).not.toBeNull();
+    expect(reopen.getSyncScanState("git-activity", "")).toBeNull();
+    expect(reopen.getSyncScanState("git-activity", currentScope)).toEqual(
+      expect.objectContaining({
+        page_budget: 40,
+        deferred_count: 2,
+      }),
+    );
+    const gitAuditDetails = reopen.db
+      .prepare(
+        "SELECT details FROM audit_log WHERE target = 'git-activity' ORDER BY id",
+      )
+      .all()
+      .map((row) => row.details);
+    expect(gitAuditDetails).toEqual([
+      JSON.stringify({ watermark: "git-v1:safe-summary" }),
+    ]);
+    expect(reopen.db.pragma("secure_delete", { simple: true })).toBe(1);
+    const ftsMode = reopen.db
+      .prepare("SELECT value FROM _meta WHERE key = 'fts_mode'")
+      .get()?.value;
+    if (ftsMode === "fts5") {
+      expect(
+        reopen.db
+          .prepare("SELECT v FROM events_fts_config WHERE k = 'secure-delete'")
+          .get()?.v,
+      ).toBe(1);
+      expect(
+        reopen.db
+          .prepare(
+            "SELECT count(*) count FROM events_fts WHERE events_fts MATCH 'legacy'",
+          )
+          .get().count,
+      ).toBe(0);
+      expect(
+        reopen.db
+          .prepare(
+            "SELECT count(*) count FROM events_fts WHERE events_fts MATCH 'current'",
+          )
+          .get().count,
+      ).toBe(1);
+    }
+    expect(
+      fs.existsSync(`${vaultPath}-wal`)
+        ? fs.statSync(`${vaultPath}-wal`).size
+        : 0,
+    ).toBe(0);
+    expect(reopen.schemaVersion()).toBe(TARGET_VERSION);
+    reopen.close();
+  });
+
+  it("migration v9 preserves a current graph cursor and its empty-scope reservations", () => {
+    freshVault();
+    const currentCursor = `git-v1:${JSON.stringify({ v: 1, repos: {} })}`;
+    vault.setWatermark("git-activity", "", {
+      watermark: currentCursor,
+      lastStatus: "ok",
+    });
+    vault.setSyncScanState("git-activity", "", {
+      pageBudget: 80,
+      deferredCount: 3,
+    });
+    vault.db
+      .prepare(
+        `INSERT INTO sync_rate_limit_state (
+           adapter, scope, minute_window_started_at, minute_count,
+           day_window_started_at, day_count, last_acquired_at, updated_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        "git-activity",
+        "",
+        Date.now(),
+        1,
+        Date.now(),
+        1,
+        Date.now(),
+        Date.now(),
+      );
+    vault.db
+      .prepare(
+        "UPDATE _meta SET value='8', updated_at=? WHERE key='schema_version'",
+      )
+      .run(Date.now());
+    vault.close();
+
+    const reopen = new LocalVault({ path: vaultPath, key, skipAudit: true });
+    reopen.open();
+
+    expect(reopen.getWatermark("git-activity", "")?.watermark).toBe(
+      currentCursor,
+    );
+    expect(reopen.getSyncScanState("git-activity", "")).toEqual(
+      expect.objectContaining({
+        page_budget: 80,
+        deferred_count: 3,
+      }),
+    );
+    expect(
+      reopen.db
+        .prepare(
+          `SELECT minute_count, day_count
+           FROM sync_rate_limit_state
+           WHERE adapter = 'git-activity' AND scope = ''`,
+        )
+        .get(),
+    ).toEqual({ minute_count: 1, day_count: 1 });
+    reopen.close();
+  });
+
+  it("retries a committed v9 privacy checkpoint while its durable marker remains", () => {
+    freshVault();
+    vault.db
+      .prepare(
+        `INSERT INTO _meta (key, value, updated_at)
+         VALUES ('git_activity_v02_privacy_cleanup_pending', '1', ?)`,
+      )
+      .run(Date.now());
+    vault.close();
+
+    const reopen = new LocalVault({ path: vaultPath, key, skipAudit: true });
+    reopen.open();
+
+    expect(
+      reopen.db
+        .prepare(
+          `SELECT value FROM _meta
+           WHERE key = 'git_activity_v02_privacy_cleanup_pending'`,
+        )
+        .get(),
+    ).toBeUndefined();
+    expect(
+      fs.existsSync(`${vaultPath}-wal`)
+        ? fs.statSync(`${vaultPath}-wal`).size
+        : 0,
+    ).toBe(0);
+    reopen.close();
+  });
+
+  it("migration v10 removes only path-bearing legacy local-files data", () => {
+    freshVault();
+    const privateRoot = "C:\\Users\\alice\\Documents\\private";
+    const legacyOriginalId = `local-file:${privateRoot}\\report.txt:1700000000000`;
+    const currentOriginalId = `local-file-entry:${"a".repeat(48)}`;
+    const currentScope = `account:local-files:${"b".repeat(32)}`;
+
+    vault.putRawEvent({
+      adapter: "local-files",
+      scope: "",
+      originalId: legacyOriginalId,
+      capturedAt: ts(),
+      payload: {
+        path: `${privateRoot}\\report.txt`,
+        root: privateRoot,
+        name: "report.txt",
+      },
+    });
+    vault.putRawEvent({
+      adapter: "local-files",
+      scope: currentScope,
+      originalId: currentOriginalId,
+      capturedAt: ts(),
+      payload: {
+        fileHash: "c".repeat(64),
+        rootHash: "d".repeat(64),
+        name: "safe.txt",
+      },
+    });
+    vault.putRawEvent({
+      adapter: "other-adapter",
+      scope: "",
+      originalId: legacyOriginalId,
+      capturedAt: ts(),
+      payload: { retained: true },
+    });
+
+    vault.putEvent(
+      eventOk({
+        id: "legacy-local-file-event",
+        source: source({
+          adapter: "local-files",
+          originalId: legacyOriginalId,
+        }),
+        content: { text: `legacysecret ${privateRoot}\\report.txt` },
+        extra: { path: `${privateRoot}\\report.txt`, root: privateRoot },
+      }),
+    );
+    vault.putEvent(
+      eventOk({
+        id: "current-local-file-event",
+        source: source({
+          adapter: "local-files",
+          originalId: currentOriginalId,
+        }),
+        content: { text: "safemetadata safe.txt" },
+        extra: {
+          fileHash: "c".repeat(64),
+          rootHash: "d".repeat(64),
+        },
+      }),
+    );
+
+    vault.setWatermark("local-files", "", {
+      watermark: "2",
+      lastStatus: "ok",
+    });
+    vault.setWatermark("local-files", currentScope, {
+      watermark: "1700000000000",
+      lastStatus: "ok",
+    });
+    vault.setSyncScanState("local-files", "", {
+      pageBudget: 2,
+      deferredCount: 1,
+    });
+    vault.setSyncScanState("local-files", currentScope, {
+      pageBudget: 4,
+      deferredCount: 2,
+    });
+    vault.db
+      .prepare(
+        `INSERT INTO sync_rate_limit_state (
+           adapter, scope, minute_window_started_at, minute_count,
+           day_window_started_at, day_count, last_acquired_at, updated_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        "local-files",
+        "",
+        Date.now(),
+        1,
+        Date.now(),
+        1,
+        Date.now(),
+        Date.now(),
+      );
+    vault.db
+      .prepare(
+        `INSERT INTO audit_log (at, action, target, details)
+         VALUES (?, ?, ?, ?)`,
+      )
+      .run(
+        Date.now(),
+        "adapter.sync.invalid_raw",
+        "local-files",
+        JSON.stringify({ originalId: legacyOriginalId, path: privateRoot }),
+      );
+    vault.db
+      .prepare(
+        `INSERT INTO audit_log (at, action, target, details)
+         VALUES (?, ?, ?, ?)`,
+      )
+      .run(
+        Date.now(),
+        "adapter.sync.ok",
+        "local-files",
+        JSON.stringify({ originalId: currentOriginalId, rawCount: 1 }),
+      );
+    vault.db
+      .prepare(
+        "UPDATE _meta SET value='9', updated_at=? WHERE key='schema_version'",
+      )
+      .run(Date.now());
+    vault.close();
+
+    const reopen = new LocalVault({ path: vaultPath, key, skipAudit: true });
+    reopen.open();
+
+    expect(reopen.getEvent("legacy-local-file-event")).toBeNull();
+    expect(reopen.getEvent("current-local-file-event")).not.toBeNull();
+    expect(
+      reopen.queryRawEvents({ adapter: "local-files", scope: "" }),
+    ).toEqual([]);
+    expect(
+      reopen.queryRawEvents({
+        adapter: "local-files",
+        scope: currentScope,
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        originalId: currentOriginalId,
+        payload: expect.objectContaining({ name: "safe.txt" }),
+      }),
+    ]);
+    expect(
+      reopen.queryRawEvents({ adapter: "other-adapter", scope: "" }),
+    ).toEqual([
+      expect.objectContaining({
+        originalId: legacyOriginalId,
+        payload: { retained: true },
+      }),
+    ]);
+    expect(reopen.getWatermark("local-files", "")).toBeNull();
+    expect(reopen.getSyncScanState("local-files", "")).toBeNull();
+    expect(reopen.getWatermark("local-files", currentScope)?.watermark).toBe(
+      "1700000000000",
+    );
+    expect(reopen.getSyncScanState("local-files", currentScope)).toEqual(
+      expect.objectContaining({ page_budget: 4, deferred_count: 2 }),
+    );
+    expect(
+      reopen.db
+        .prepare(
+          `SELECT minute_count, day_count
+           FROM sync_rate_limit_state
+           WHERE adapter = 'local-files' AND scope = ''`,
+        )
+        .get(),
+    ).toEqual({ minute_count: 1, day_count: 1 });
+    expect(
+      reopen.db
+        .prepare(
+          "SELECT details FROM audit_log WHERE target = 'local-files' ORDER BY id",
+        )
+        .all()
+        .map((row) => row.details),
+    ).toEqual([JSON.stringify({ originalId: currentOriginalId, rawCount: 1 })]);
+    const ftsMode = reopen.db
+      .prepare("SELECT value FROM _meta WHERE key = 'fts_mode'")
+      .get()?.value;
+    if (ftsMode === "fts5") {
+      expect(
+        reopen.db
+          .prepare(
+            "SELECT count(*) count FROM events_fts WHERE events_fts MATCH 'legacysecret'",
+          )
+          .get().count,
+      ).toBe(0);
+      expect(
+        reopen.db
+          .prepare(
+            "SELECT count(*) count FROM events_fts WHERE events_fts MATCH 'safemetadata'",
+          )
+          .get().count,
+      ).toBe(1);
+    }
+    expect(
+      fs.existsSync(`${vaultPath}-wal`)
+        ? fs.statSync(`${vaultPath}-wal`).size
+        : 0,
+    ).toBe(0);
+    expect(reopen.schemaVersion()).toBe(TARGET_VERSION);
+    reopen.close();
+  });
+
+  it("retries a committed v10 local-files privacy checkpoint", () => {
+    freshVault();
+    vault.db
+      .prepare(
+        `INSERT INTO _meta (key, value, updated_at)
+         VALUES ('local_files_v01_privacy_cleanup_pending', '1', ?)`,
+      )
+      .run(Date.now());
+    vault.close();
+
+    const reopen = new LocalVault({ path: vaultPath, key, skipAudit: true });
+    reopen.open();
+
+    expect(
+      reopen.db
+        .prepare(
+          `SELECT value FROM _meta
+           WHERE key = 'local_files_v01_privacy_cleanup_pending'`,
+        )
+        .get(),
+    ).toBeUndefined();
+    expect(
+      fs.existsSync(`${vaultPath}-wal`)
+        ? fs.statSync(`${vaultPath}-wal`).size
+        : 0,
+    ).toBe(0);
+    reopen.close();
+  });
 });
 
 // ─── Entity put/get ───────────────────────────────────────────────────────
@@ -491,10 +1007,108 @@ describe("LocalVault entity put/get round-trip", () => {
   it("upsert: re-putting same id overwrites", () => {
     freshVault();
     const id = newId();
-    vault.putEvent(eventOk({ id, content: { text: "v1" } }));
-    vault.putEvent(eventOk({ id, content: { text: "v2" } }));
-    expect(vault.getEvent(id).content.text).toBe("v2");
+    const firstAt = 1_700_000_000_000;
+    const latestAt = firstAt + 60_000;
+    vault.putEvent(
+      eventOk({ id, occurredAt: firstAt, content: { text: "v1" } }),
+    );
+    vault.putEvent(
+      eventOk({ id, occurredAt: latestAt, content: { text: "v2" } }),
+    );
+    expect(vault.getEvent(id)).toMatchObject({
+      occurredAt: latestAt,
+      content: { text: "v2" },
+    });
     expect(vault.stats().events).toBe(1);
+  });
+
+  it("preserves the earliest occurredAt for marked id-conflict snapshots", () => {
+    freshVault();
+    const id = newId();
+    const firstAt = 1_700_000_000_000;
+    const laterAt = firstAt + 60_000;
+    const earlierAt = firstAt - 60_000;
+    const extra = {
+      temporalSemantics: "first-observed-snapshot",
+    };
+
+    vault.putEvent(
+      eventOk({
+        id,
+        occurredAt: firstAt,
+        content: { text: "v1" },
+        extra,
+      }),
+    );
+    vault.putEvent(
+      eventOk({
+        id,
+        occurredAt: laterAt,
+        content: { text: "v2" },
+        extra,
+      }),
+    );
+    expect(vault.getEvent(id)).toMatchObject({
+      occurredAt: firstAt,
+      content: { text: "v2" },
+    });
+
+    vault.putEvent(
+      eventOk({
+        id,
+        occurredAt: earlierAt,
+        content: { text: "v3" },
+        extra,
+      }),
+    );
+    expect(vault.getEvent(id)).toMatchObject({
+      occurredAt: earlierAt,
+      content: { text: "v3" },
+    });
+  });
+
+  it("preserves the earliest occurredAt for marked source-conflict snapshots", () => {
+    freshVault();
+    const existingId = newId();
+    const incomingId = newId();
+    const firstAt = 1_700_000_000_000;
+    const laterAt = firstAt + 60_000;
+    const sharedSource = source({
+      scope: "account:test:aaaaaaaa",
+      originalId: "snapshot-42",
+    });
+
+    vault.putEvent(
+      eventOk({
+        id: existingId,
+        occurredAt: firstAt,
+        content: { text: "v1" },
+        source: sharedSource,
+      }),
+    );
+    vault.putEvent(
+      eventOk({
+        id: incomingId,
+        occurredAt: laterAt,
+        content: { text: "v2" },
+        source: sharedSource,
+        extra: {
+          temporalSemantics: "first-observed-snapshot",
+          revision: 2,
+        },
+      }),
+    );
+
+    expect(vault.stats().events).toBe(1);
+    expect(vault.getEvent(incomingId)).toBeNull();
+    expect(vault.getEvent(existingId)).toMatchObject({
+      occurredAt: firstAt,
+      content: { text: "v2" },
+      extra: {
+        temporalSemantics: "first-observed-snapshot",
+        revision: 2,
+      },
+    });
   });
 
   it("keeps identical source IDs from separate accounts as distinct events", () => {
@@ -767,21 +1381,43 @@ describe("LocalVault.distinctActorCount", () => {
 // ─── raw_events ──────────────────────────────────────────────────────────
 
 describe("LocalVault.putRawEvent", () => {
-  it("stores and replaces by (adapter, originalId)", () => {
+  it("updates payload while preserving the earliest capturedAt on re-ingest", () => {
     freshVault();
+    const firstAt = 1_700_000_000_000;
+    const laterAt = firstAt + 60_000;
+    const earlierAt = firstAt - 60_000;
     vault.putRawEvent({
       adapter: "email-imap",
       originalId: "<msg-1@example.com>",
-      capturedAt: ts(),
+      capturedAt: firstAt,
       payload: { from: "a@b.c", subject: "v1" },
     });
     vault.putRawEvent({
       adapter: "email-imap",
       originalId: "<msg-1@example.com>",
-      capturedAt: ts(),
+      capturedAt: laterAt,
       payload: { from: "a@b.c", subject: "v2" },
     });
     expect(vault.stats().rawEvents).toBe(1); // dedup, not duplicate
+    expect(vault.queryRawEvents({ adapter: "email-imap" })).toEqual([
+      expect.objectContaining({
+        capturedAt: firstAt,
+        payload: { from: "a@b.c", subject: "v2" },
+      }),
+    ]);
+
+    vault.putRawEvent({
+      adapter: "email-imap",
+      originalId: "<msg-1@example.com>",
+      capturedAt: earlierAt,
+      payload: { from: "a@b.c", subject: "v3" },
+    });
+    expect(vault.queryRawEvents({ adapter: "email-imap" })).toEqual([
+      expect.objectContaining({
+        capturedAt: earlierAt,
+        payload: { from: "a@b.c", subject: "v3" },
+      }),
+    ]);
   });
 
   it("validates required fields", () => {
