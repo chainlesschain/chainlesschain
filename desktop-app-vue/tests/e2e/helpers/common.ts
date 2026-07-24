@@ -140,7 +140,27 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
     }
 
     try {
+      const initialUrl = candidate.url();
+      if (
+        !initialUrl ||
+        initialUrl === "about:blank" ||
+        initialUrl.startsWith("chrome-error:") ||
+        /splash\.html(?:[?#]|$)/i.test(initialUrl)
+      ) {
+        return false;
+      }
+
       await candidate.waitForLoadState("domcontentloaded", { timeout: 5000 });
+      const loadedUrl = candidate.url();
+      if (
+        !loadedUrl ||
+        loadedUrl === "about:blank" ||
+        loadedUrl.startsWith("chrome-error:") ||
+        /splash\.html(?:[?#]|$)/i.test(loadedUrl)
+      ) {
+        return false;
+      }
+
       return await candidate.evaluate(
         () =>
           typeof (window as any).electronAPI !== "undefined" ||
@@ -182,6 +202,7 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
       `Timed out waiting for the Electron main window; open windows: ${openWindowUrls.join(", ")}`,
     );
   }
+  console.log("[Test Helper] Main window URL:", window.url());
 
   // 等待加载完成
   await window.waitForLoadState("domcontentloaded", {
