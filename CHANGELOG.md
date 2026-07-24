@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Python Agent SDK 0.1.0：PyPI Trusted Publishing 首发 + 公网安装矩阵
+
+> `chainlesschain-agent-sdk==0.1.0` 已发布到 PyPI，支持 Python 3.10–3.13、零运行时依赖，与 TypeScript SDK 共用 Agent Protocol v1 和 canonical NDJSON fixtures。
+
+- **可信发布链**：`python-agent-sdk-v0.1.0` tag 触发独立 build/publish 作业；发布作业仅持有 PyPI OIDC `id-token: write`，不保存长期 API token。
+- **发布前验证**：校验 tag 与包版本一致，执行 21 项 hermetic 测试、跨语言 fixture 回放、wheel/sdist 构建、`twine check`，并在隔离 venv 安装 wheel 后校验版本与公共 API。
+- **发布后验证**：独立 PyPI smoke workflow 强制从公开索引仅安装 wheel；Python 3.10、3.12、3.13 全部通过 metadata、`__version__` 与 `AgentSession` 导入检查。
+- **入口**：[PyPI 项目页](https://pypi.org/project/chainlesschain-agent-sdk/) · [发布工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/30065060091) · [公网安装矩阵](https://github.com/chainlesschain/chainlesschain/actions/runs/30065341896)
+
 ### Fixed — cc CLI 0.162.177：技能生成子进程统一纳入 Process Broker（CLI-only npm 发版）
 
 > `chainlesschain` 0.162.176 → **0.162.177**（2026-07-23）。本版把 CLI-Anything 与 CLI 技能包生成器的同步子进程执行统一收进宿主 Process Broker，补齐技能执行链路最后一处直接 `child_process` 入口。

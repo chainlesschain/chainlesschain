@@ -1,11 +1,33 @@
 # ChainlessChain Agent SDK for Python
 
+[![PyPI version](https://img.shields.io/pypi/v/chainlesschain-agent-sdk.svg)](https://pypi.org/project/chainlesschain-agent-sdk/)
+[![Python versions](https://img.shields.io/pypi/pyversions/chainlesschain-agent-sdk.svg)](https://pypi.org/project/chainlesschain-agent-sdk/)
+
 `chainlesschain-agent-sdk` is the zero-runtime-dependency Python client for
 the same Agent Protocol v1 used by `@chainlesschain/agent-sdk`. It starts one
 `cc agent` subprocess, frames its NDJSON stream safely, exposes frozen typed
 events, and performs approval, question, and MCP elicitation round trips.
 
-Python 3.10 or newer is required.
+Version `0.1.0` is available from
+[PyPI](https://pypi.org/project/chainlesschain-agent-sdk/). Python 3.10 or
+newer is required.
+
+## Install
+
+Install the SDK and a compatible `cc` CLI:
+
+```bash
+python -m pip install "chainlesschain-agent-sdk==0.1.0"
+npm install --global "chainlesschain@0.162.177"
+```
+
+The Python distribution has no runtime dependencies. The CLI is installed
+separately because `AgentSession` controls it as a subprocess:
+
+```bash
+python -c "import chainlesschain_agent_sdk as sdk; print(sdk.__version__)"
+cc --version
+```
 
 ## Basic session
 
@@ -116,4 +138,4 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 ```
 
 The language-neutral contract remains
-[`packages/agent-sdk/docs/PROTOCOL.md`](../agent-sdk/docs/PROTOCOL.md).
+[`packages/agent-sdk/docs/PROTOCOL.md`](https://github.com/chainlesschain/chainlesschain/blob/main/packages/agent-sdk/docs/PROTOCOL.md).

@@ -74,7 +74,7 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 | Plugin 安全   | 插件统一打包、作用域、企业治理                                              | 能力声明、consent、签名、typed options、OS secret store、lockfile/SBOM、插件 MCP/LSP/Hook/Monitor/Bin Broker provenance；Desktop Plugin Loader 依赖探测、安装和解压已去 shell 并携带 plugin source；CLI/cc ui 与 Desktop 主进程 child_process、node-pty PTY Broker 已接入 | Desktop/CLI 原生模块和外部宿主入口仍需统一 Broker                                                                   | P1     |
 | 关键状态并发  | 会话、审批、任务和副作用状态应原子持久化                                    | Agenda/Event Runtime/session transcript 已使用 fail-closed file lock                                                                                                                                                               | approval/部分 ledger/IDE session 状态仍需统一迁移，避免不同宿主各自写入                                             | P1     |
 | 结构化输出    | 标准 JSON Schema、启动期校验、最终 validated result                         | 常用 Draft 2020-12 vocabulary（组合、条件、`$ref`、dependent、pattern、contains、format）、显式 external schema registry 及 stream `structured_result`                                                                             | 完整 meta-vocabulary、自动远程 ref 解析与复杂 schema 互操作性仍待补                                                 | P1     |
-| SDK/CI        | TypeScript/Python SDK、版本化事件、GitHub/GitLab 自动化                     | 双语言 SDK 已覆盖 22 类 typed stream 事件、approval/question/MCP elicitation callback、resume 与未知事件无损透传；共享 fixture、GitHub Actions 模板及 21 项 hermetic 测试已落地                                                | SemVer/capability negotiation/deprecation 矩阵、跨宿主 schema package、GitLab 与正式发布兼容门仍待补                | P1     |
+| SDK/CI        | TypeScript/Python SDK、版本化事件、GitHub/GitLab 自动化                     | 双语言 SDK 已覆盖 22 类 typed stream 事件、approval/question/MCP elicitation callback、resume 与未知事件无损透传；共享 fixture、GitHub Actions 模板及 21 项 hermetic 测试已落地；Python SDK 0.1.0 已发 PyPI，并通过 3.10/3.12/3.13 公网 wheel 安装矩阵 | SemVer/capability negotiation/deprecation 矩阵、跨宿主 schema package、GitLab 与双语言联合发布兼容门仍待补          | P1     |
 | 验收与文档    | CLI/IDE/SDK 共享运行时和持续发布验证                                        | 单元/集成测试很多                                                                                                                                                                                                                  | MVP 验证脚本没有覆盖完整 Desktop→真实 CLI 链；多份旧文档仍把已完成项列为缺口                                        | P1     |
 | 全进程回滚    | 官方 checkpoint 主要覆盖编辑工具                                            | 已对 shell/外部副作用诚实标记 partial                                                                                                                                                                                              | 可进一步做全工具文件变更捕获，形成强于 Claude Code 的差异化                                                         | P2     |
 
@@ -640,13 +640,21 @@ remote approval 和不同运行入口中。
 - 两端都会无损保留未知事件，旧消费者不会因新事件类型破坏事件泵；共享 NDJSON fixture 作为
   跨语言事实源。
 - Python 包已提供穷举 CI consumer、最小权限 GitHub Actions 示例和 21 项 hermetic 测试。
+- `chainlesschain-agent-sdk==0.1.0` 已通过 tag 驱动的 PyPI Trusted Publishing 正式发布；
+  发布门包含版本/tag 一致性、编译、测试、共享 fixture 回放、wheel/sdist 构建、`twine check`
+  和隔离环境 wheel 导入。发布后又从公开 PyPI 在 Python 3.10、3.12、3.13 上完成安装与
+  公共 API 烟测。证据：[PyPI](https://pypi.org/project/chainlesschain-agent-sdk/)、
+  [发布工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/30065060091)、
+  [公网安装矩阵](https://github.com/chainlesschain/chainlesschain/actions/runs/30065341896)。
 
-因此 Python SDK、基础事件透传和 GitHub Actions 示例不再列为缺口。剩余工作集中在发布兼容门：
+因此 Python SDK、基础事件透传、GitHub Actions 示例和 Python 独立发布门不再列为缺口。
+剩余工作集中在跨语言、跨宿主兼容门：
 
 - CLI、TypeScript/Python SDK、VS Code、JetBrains、Desktop 共用版本化 schema package 和
   Golden NDJSON，而不是由各宿主手工复制 union。
 - 协议变更增加 SemVer、capability negotiation、deprecation window、兼容矩阵和未知字段策略。
-- npm/Python 包发布前执行双语言 fixture、穷举 consumer 与真实 CLI smoke，防止只更新一端。
+- 把已落地的 Python 独立发布门扩展为 npm/Python 联合兼容门，加入双语言版本矩阵、
+  穷举 consumer 与真实 CLI smoke，防止只更新一端。
 - WebSocket approval gate 迁移为安全默认；项目配置不能放宽 managed deny、bypass 或 auto mode
   的组织边界。
 - GitLab 模板若发布，也沿用最小、可审计的 `--bare --ephemeral --dontAsk` 基线，不默认开放

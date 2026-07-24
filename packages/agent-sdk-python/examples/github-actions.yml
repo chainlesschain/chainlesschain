@@ -22,22 +22,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: actions/setup-node@v4
         with:
           node-version: "22.12.0"
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
-      # Pin these versions in a production repository. This in-tree template
-      # installs the checked-out SDK and the matching published CLI.
+      # Pin both published clients so a later release cannot silently change
+      # the protocol surface used by this gate.
       - name: Install clients
         run: |
-          python -m pip install --no-deps ./packages/agent-sdk-python
-          npm install --global chainlesschain@0.162.176
+          python -m pip install --no-deps chainlesschain-agent-sdk==0.1.0
+          npm install --global chainlesschain@0.162.177
 
       - name: Run the agent gate
         env:
