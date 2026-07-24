@@ -276,8 +276,9 @@ async function ensureInitialSetup(window: Page, userDataPath: string): Promise<b
 }
 
 async function loginIfNeeded(window: Page): Promise<void> {
-  const hasLogin = await window.locator('[data-testid="login-container"]').count();
-  if (!hasLogin) {
+  const loginContainer = window.locator('[data-testid="login-container"]');
+  const hasVisibleLogin = await loginContainer.isVisible().catch(() => false);
+  if (!hasVisibleLogin) {
     return;
   }
 
@@ -344,10 +345,12 @@ async function performLogin(window: Page): Promise<void> {
     await loginButton.click();
   }
 
-  await window.waitForTimeout(1500);
-
-  const stillOnLogin = await window.locator('[data-testid="login-container"]').count();
-  if (stillOnLogin) {
+  try {
+    await window.locator('[data-testid="login-container"]').waitFor({
+      state: "hidden",
+      timeout: 15000,
+    });
+  } catch {
     throw new Error("Login did not complete successfully");
   }
 }

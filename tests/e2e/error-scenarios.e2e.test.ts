@@ -43,7 +43,9 @@ test.describe.serial('Error Scenarios', () => {
   });
 
   test.afterAll(async () => {
-    await closeFreshElectronApp(sharedContext.app);
+    if (sharedContext?.app) {
+      await closeFreshElectronApp(sharedContext.app);
+    }
   });
 
   // Setup: Create valid resources for testing

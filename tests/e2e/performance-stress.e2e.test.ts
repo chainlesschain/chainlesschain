@@ -44,7 +44,9 @@ test.describe.serial('Performance & Stress Tests', () => {
   });
 
   test.afterAll(async () => {
-    await closeFreshElectronApp(sharedContext.app);
+    if (sharedContext?.app) {
+      await closeFreshElectronApp(sharedContext.app);
+    }
   });
 
   // Setup
@@ -294,7 +296,8 @@ test.describe.serial('Performance & Stress Tests', () => {
       for (const memberDid of membersToGrant) {
         await callIPC(window, 'perm:grant-permission', {
           orgId: TEST_ORG_ID,
-          userDid: memberDid,
+          granteeType: 'user',
+          granteeId: memberDid,
           resourceType: 'task',
           resourceId: '*',
           permission: 'write',
