@@ -1,0 +1,89 @@
+name: Python Agent SDK PyPI Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Published PyPI version to verify"
+        required: true
+        default: "0.1.0"
+        type: string
+  workflow_run:
+    workflows:
+      - "Python Agent SDK Release"
+    types:
+      - completed
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: PyPI install (${{ matrix.python-version }})
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       startsWith(github.event.workflow_run.head_branch, 'python-agent-sdk-v'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12", "3.13"]
+    steps:
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Resolve and validate release version
+        id: release
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          MANUAL_VERSION: ${{ inputs.version }}
+          RELEASE_REF: ${{ github.event.workflow_run.head_branch }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            version="$MANUAL_VERSION"
+          else
+            version="${RELEASE_REF#python-agent-sdk-v}"
+          fi
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Unsupported release version: $version"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Install the wheel from public PyPI
+        env:
+          SDK_VERSION: ${{ steps.release.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5 6; do
+            if python -m pip install \
+              --disable-pip-version-check \
+              --no-deps \
+              --only-binary=:all: \
+              --index-url https://pypi.org/simple/ \
+              "chainlesschain-agent-sdk==${SDK_VERSION}"; then
+              break
+            fi
+            if [[ "$attempt" == "6" ]]; then
+              exit 1
+            fi
+            sleep 10
+          done
+
+      - name: Verify installed metadata and public API
+        env:
+          SDK_VERSION: ${{ steps.release.outputs.version }}
+        run: >-
+          python -c
+          'import os;
+          from importlib.metadata import version;
+          import chainlesschain_agent_sdk as sdk;
+          assert version("chainlesschain-agent-sdk") == os.environ["SDK_VERSION"];
+          assert sdk.__version__ == os.environ["SDK_VERSION"];
+          assert sdk.AgentSession'
