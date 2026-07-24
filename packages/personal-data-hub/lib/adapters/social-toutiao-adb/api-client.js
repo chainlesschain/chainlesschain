@@ -21,8 +21,10 @@
  */
 
 const { NULL_SIGN_PROVIDER } = require("../../sign-providers");
+const { extractRecognizedArray } = require("../../source-page");
 
 const DEFAULT_BASE_URL = "https://www.toutiao.com/";
+const DEFAULT_MAX_PAGES = 10;
 
 const BROWSER_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
@@ -82,11 +84,7 @@ class ToutiaoApiClient {
       return null;
     }
     const passportMatch = /(?:^|; ?)passport_uid=(\d+)/.exec(cookie);
-    if (
-      passportMatch &&
-      passportMatch[1] &&
-      passportMatch[1] !== "0"
-    ) {
+    if (passportMatch && passportMatch[1] && passportMatch[1] !== "0") {
       this._clearLastError();
       return passportMatch[1];
     }
@@ -110,7 +108,13 @@ class ToutiaoApiClient {
     return null;
   }
 
-  async _doGetJson(url, cookie, requireSign, purpose) {
+  async _doGetJson(
+    url,
+    cookie,
+    requireSign,
+    purpose,
+    { returnErrorResponse = false } = {},
+  ) {
     let finalUrl = url;
     if (requireSign) {
       // Phase 6c: ask bridge to sign URL. NULL_SIGN_PROVIDER returns null
@@ -163,6 +167,7 @@ class ToutiaoApiClient {
           obj.err_no,
           String(obj.message || obj.err_tips || `err_no=${obj.err_no}`),
         );
+        if (returnErrorResponse) return obj;
         return null;
       }
       this._clearLastError();
@@ -180,6 +185,49 @@ class ToutiaoApiClient {
   _clearLastError() {
     this.lastErrorCode = 0;
     this.lastErrorMessage = null;
+  }
+
+  _extractSourceArray(response, paths, stream) {
+    const message =
+      response && typeof response.message === "string"
+        ? response.message.trim().toLowerCase()
+        : "";
+    const sourceResponse =
+      message === "error" || message === "failed" || message === "fail"
+        ? { ...response, error: response.message }
+        : response;
+    try {
+      const items = extractRecognizedArray(sourceResponse, paths, {
+        source: "social-toutiao-adb",
+        stream,
+        codeKeys: [
+          "err_no",
+          "status_code",
+          "code",
+          "errno",
+          "errorCode",
+          "error_code",
+        ],
+      });
+      this._clearLastError();
+      return items;
+    } catch (error) {
+      const code =
+        firstNonZeroNumber(
+          response && response.err_no,
+          response && response.status_code,
+          response && response.code,
+          response && response.error_code,
+        ) ?? -6;
+      const detail =
+        response &&
+        (response.message ||
+          response.err_tips ||
+          response.status_msg ||
+          response.error_description);
+      this._setLastError(code, detail ? String(detail) : error.message);
+      throw error;
+    }
   }
 
   /**
@@ -202,18 +250,28 @@ class ToutiaoApiClient {
       typeof obj.status_code === "number" ? obj.status_code : null;
     const message = typeof obj.message === "string" ? obj.message : null;
     const data = obj.data && typeof obj.data === "object" ? obj.data : null;
-    const ok = statusCode === 0 || (statusCode == null && message === "success");
+    const ok =
+      statusCode === 0 || (statusCode == null && message === "success");
     if (!ok) {
       if (data && Number.isFinite(data.error_code)) {
         // passport v2 error envelope — the actionable code + 中文 description.
         this._setLastError(
           data.error_code,
-          String(data.description || data.error_description || `error_code=${data.error_code}`),
+          String(
+            data.description ||
+              data.error_description ||
+              `error_code=${data.error_code}`,
+          ),
         );
       } else if (statusCode != null) {
         this._setLastError(
           statusCode,
-          String(obj.status_msg || message || obj.error_description || `status_code=${statusCode}`),
+          String(
+            obj.status_msg ||
+              message ||
+              obj.error_description ||
+              `status_code=${statusCode}`,
+          ),
         );
       } else {
         this._setLastError(
@@ -229,7 +287,8 @@ class ToutiaoApiClient {
     }
     const rawUid =
       (data.user_id && String(data.user_id)) ||
-      (Number.isFinite(data.user_id_str) && data.user_id_str > 0 &&
+      (Number.isFinite(data.user_id_str) &&
+        data.user_id_str > 0 &&
         String(data.user_id_str)) ||
       null;
     if (!rawUid) {
@@ -241,11 +300,7 @@ class ToutiaoApiClient {
     }
     return {
       uid: rawUid,
-      nickname:
-        data.screen_name ||
-        data.name ||
-        data.nickname ||
-        "(unnamed)",
+      nickname: data.screen_name || data.name || data.nickname || "(unnamed)",
       avatarUrl: data.avatar_url || data.avatar_thumb || null,
       mobile: data.mobile || null,
       description: data.description || data.signature || null,
@@ -264,51 +319,79 @@ class ToutiaoApiClient {
 
   /**
    * Fetch /api/news/feed/v90/?category=__all__ — recommended feed.
-   * Requires _signature. Returns FeedItem[] (empty on failure).
+   * Requires _signature. Transport failures retain the partial-result path;
+   * parsed source errors and unknown list envelopes fail closed.
    */
   async fetchFeed(cookie, opts = {}) {
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 50;
-    const url = new URL("api/news/feed/v90/", this.baseUrl);
-    url.searchParams.set("category", "__all__");
-    url.searchParams.set("aid", AID_TOUTIAO_WEB);
-    url.searchParams.set("client_extra_params", "{}");
-    url.searchParams.set("count", String(limit));
-    const obj = await this._doGetJson(url, cookie, true, "feed");
-    if (!obj) return [];
-    const arr = Array.isArray(obj.data) ? obj.data : [];
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : DEFAULT_MAX_PAGES;
     const out = [];
-    const cap = Math.min(limit, arr.length);
-    for (let i = 0; i < cap; i++) {
-      const raw = arr[i];
-      if (!raw || typeof raw !== "object") continue;
-      // Some feed cells have the real article nested under raw_data
-      // (encoded JSON string); others are top-level.
-      let item = raw;
-      if (typeof raw.raw_data === "string") {
-        try {
-          item = JSON.parse(raw.raw_data);
-        } catch {
-          item = raw;
-        }
+    let cursor = null;
+    const seenItems = new Set();
+    const seenPages = new Set();
+    for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
+      const url = new URL("api/news/feed/v90/", this.baseUrl);
+      url.searchParams.set("category", "__all__");
+      url.searchParams.set("aid", AID_TOUTIAO_WEB);
+      url.searchParams.set("client_extra_params", "{}");
+      url.searchParams.set("count", String(limit));
+      if (cursor != null) {
+        url.searchParams.set("max_behot_time", String(cursor));
       }
-      const id =
-        (item.group_id && String(item.group_id)) ||
-        (item.item_id && String(item.item_id)) ||
-        null;
-      if (!id) continue;
-      out.push({
-        itemId: id,
-        title: item.title || "(no title)",
-        category: item.category || raw.category || null,
-        author:
-          (item.user_info && item.user_info.name) || item.source || null,
-        publishedAt: normalizeMs(item.behot_time || item.publish_time || 0),
-        readDuration: Number.isFinite(item.read_duration)
-          ? item.read_duration
-          : 0,
-        source: item.source || null,
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({
+          operation: "feed",
+          page,
+          cursor,
+        });
+      }
+      const obj = await this._doGetJson(url, cookie, true, "feed", {
+        returnErrorResponse: true,
       });
+      if (!obj) return out;
+      const arr = this._extractSourceArray(obj, [["data"]], "feed");
+      if (isRepeatedPage(seenPages, arr, toutiaoItemKey)) break;
+      for (const raw of arr) {
+        if (out.length >= limit) break;
+        if (!raw || typeof raw !== "object") continue;
+        // Some feed cells have the real article nested under raw_data
+        // (encoded JSON string); others are top-level.
+        let item = raw;
+        if (typeof raw.raw_data === "string") {
+          try {
+            item = JSON.parse(raw.raw_data);
+          } catch {
+            item = raw;
+          }
+        }
+        const id =
+          (item.group_id && String(item.group_id)) ||
+          (item.item_id && String(item.item_id)) ||
+          null;
+        if (!id) continue;
+        if (seenItems.has(id)) continue;
+        seenItems.add(id);
+        out.push({
+          itemId: id,
+          title: item.title || "(no title)",
+          category: item.category || raw.category || null,
+          author:
+            (item.user_info && item.user_info.name) || item.source || null,
+          publishedAt: normalizeMs(item.behot_time || item.publish_time || 0),
+          readDuration: Number.isFinite(item.read_duration)
+            ? item.read_duration
+            : 0,
+          source: item.source || null,
+        });
+      }
+      if (arr.length === 0 || out.length >= limit) break;
+      const nextCursor = toutiaoFeedCursor(obj);
+      if (nextCursor == null || String(nextCursor) === String(cursor)) break;
+      cursor = nextCursor;
     }
     return out;
   }
@@ -320,30 +403,55 @@ class ToutiaoApiClient {
   async fetchCollection(cookie, opts = {}) {
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 200;
-    const url = new URL("article/v2/tab_comments/", this.baseUrl);
-    url.searchParams.set("aid", AID_TOUTIAO_WEB);
-    url.searchParams.set("count", String(limit));
-    const obj = await this._doGetJson(url, cookie, true, "comments");
-    if (!obj) return [];
-    const arr = Array.isArray(obj.data) ? obj.data : [];
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : DEFAULT_MAX_PAGES;
     const out = [];
-    const cap = Math.min(limit, arr.length);
-    for (let i = 0; i < cap; i++) {
-      const item = arr[i];
-      if (!item || typeof item !== "object") continue;
-      const id =
-        (item.group_id && String(item.group_id)) ||
-        (item.item_id && String(item.item_id)) ||
-        null;
-      if (!id) continue;
-      out.push({
-        itemId: id,
-        title: item.title || "(no title)",
-        category: item.category || null,
-        author:
-          (item.user_info && item.user_info.name) || item.source || null,
-        savedAt: normalizeMs(item.behot_time || item.create_time || 0),
+    let offset = 0;
+    const seenItems = new Set();
+    const seenPages = new Set();
+    for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
+      const url = new URL("article/v2/tab_comments/", this.baseUrl);
+      url.searchParams.set("aid", AID_TOUTIAO_WEB);
+      url.searchParams.set("count", String(limit));
+      if (page > 1) url.searchParams.set("offset", String(offset));
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({
+          operation: "collection",
+          page,
+          offset,
+        });
+      }
+      const obj = await this._doGetJson(url, cookie, true, "comments", {
+        returnErrorResponse: true,
       });
+      if (!obj) return out;
+      const arr = this._extractSourceArray(obj, [["data"]], "collection");
+      if (isRepeatedPage(seenPages, arr, toutiaoItemKey)) break;
+      for (const item of arr) {
+        if (out.length >= limit) break;
+        if (!item || typeof item !== "object") continue;
+        const id =
+          (item.group_id && String(item.group_id)) ||
+          (item.item_id && String(item.item_id)) ||
+          null;
+        if (!id) continue;
+        if (seenItems.has(id)) continue;
+        seenItems.add(id);
+        out.push({
+          itemId: id,
+          title: item.title || "(no title)",
+          category: item.category || null,
+          author:
+            (item.user_info && item.user_info.name) || item.source || null,
+          savedAt: normalizeMs(item.behot_time || item.create_time || 0),
+        });
+      }
+      if (arr.length === 0 || out.length >= limit) break;
+      const nextOffset = toutiaoNextOffset(obj, offset, arr.length);
+      if (nextOffset == null || nextOffset <= offset) break;
+      offset = nextOffset;
     }
     return out;
   }
@@ -356,38 +464,148 @@ class ToutiaoApiClient {
   async fetchSearchHistory(cookie, opts = {}) {
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 100;
-    const url = new URL("api/search/content/", this.baseUrl);
-    url.searchParams.set("aid", AID_TOUTIAO_WEB);
-    url.searchParams.set("keyword", "");
-    url.searchParams.set("count", String(limit));
-    const obj = await this._doGetJson(url, cookie, true, "search");
-    if (!obj) return [];
-    const data = obj.data;
-    if (!data || typeof data !== "object") return [];
-    const arr = Array.isArray(data.user_search_history)
-      ? data.user_search_history
-      : Array.isArray(data.search_history)
-        ? data.search_history
-        : [];
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : DEFAULT_MAX_PAGES;
     const out = [];
-    const cap = Math.min(limit, arr.length);
-    const now = this._now();
-    for (let i = 0; i < cap; i++) {
-      const raw = arr[i];
-      let keyword = null;
-      let ts = 0;
-      if (raw && typeof raw === "object") {
-        keyword = raw.keyword || raw.query || null;
-        ts = normalizeMs(raw.time || raw.search_time || 0);
-      } else if (typeof raw === "string") {
-        keyword = raw;
-        ts = now - i * 1000;
+    let offset = 0;
+    const scanStartedAt = this._now();
+    let syntheticIndex = 0;
+    const seenItems = new Set();
+    const seenPages = new Set();
+    for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
+      const url = new URL("api/search/content/", this.baseUrl);
+      url.searchParams.set("aid", AID_TOUTIAO_WEB);
+      url.searchParams.set("keyword", "");
+      url.searchParams.set("count", String(limit));
+      if (page > 1) url.searchParams.set("offset", String(offset));
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({
+          operation: "search-history",
+          page,
+          offset,
+        });
       }
-      if (!keyword) continue;
-      out.push({ keyword, searchedAt: ts });
+      const obj = await this._doGetJson(url, cookie, true, "search", {
+        returnErrorResponse: true,
+      });
+      if (!obj) return out;
+      const arr = this._extractSourceArray(
+        obj,
+        [
+          ["data", "user_search_history"],
+          ["data", "search_history"],
+        ],
+        "search-history",
+      );
+      if (isRepeatedPage(seenPages, arr, toutiaoSearchKey)) break;
+      for (const raw of arr) {
+        if (out.length >= limit) break;
+        let keyword = null;
+        let ts = 0;
+        if (raw && typeof raw === "object") {
+          keyword = raw.keyword || raw.query || null;
+          ts = normalizeMs(raw.time || raw.search_time || 0);
+        } else if (typeof raw === "string") {
+          keyword = raw;
+          ts = scanStartedAt - syntheticIndex * 1000;
+          syntheticIndex += 1;
+        }
+        if (!keyword) continue;
+        const itemKey = `${keyword}:${ts}`;
+        if (seenItems.has(itemKey)) continue;
+        seenItems.add(itemKey);
+        out.push({ keyword, searchedAt: ts });
+      }
+      if (arr.length === 0 || out.length >= limit) break;
+      const nextOffset = toutiaoNextOffset(obj, offset, arr.length);
+      if (nextOffset == null || nextOffset <= offset) break;
+      offset = nextOffset;
     }
     return out;
   }
+}
+
+function firstNonZeroNumber(...values) {
+  for (const value of values) {
+    if (typeof value === "number" && Number.isFinite(value) && value !== 0) {
+      return value;
+    }
+  }
+  return null;
+}
+
+function hasMore(value) {
+  return value === true || value === 1 || value === "1";
+}
+
+function toutiaoFeedCursor(response) {
+  if (!response || typeof response !== "object") return null;
+  if (response.has_more === false || response.hasMore === false) return null;
+  const next =
+    response.next && typeof response.next === "object" ? response.next : {};
+  const cursor =
+    next.max_behot_time ??
+    next.maxBehotTime ??
+    response.max_behot_time ??
+    response.next_max_behot_time;
+  if (cursor == null || cursor === "") return null;
+  if (
+    !hasMore(response.has_more) &&
+    !hasMore(response.hasMore) &&
+    Object.keys(next).length === 0 &&
+    response.next_max_behot_time == null
+  ) {
+    return null;
+  }
+  return cursor;
+}
+
+function toutiaoNextOffset(response, currentOffset, itemCount) {
+  if (!response || typeof response !== "object") return null;
+  if (response.has_more === false || response.hasMore === false) return null;
+  const next =
+    response.next && typeof response.next === "object" ? response.next : {};
+  const explicit = next.offset ?? response.next_offset ?? response.nextOffset;
+  if (explicit != null && Number.isFinite(Number(explicit))) {
+    return Number(explicit);
+  }
+  if (hasMore(response.has_more) || hasMore(response.hasMore)) {
+    return currentOffset + itemCount;
+  }
+  return null;
+}
+
+function isRepeatedPage(seenPages, items, keyForItem) {
+  const pageKey = JSON.stringify(
+    items.map((item) => keyForItem(item) || JSON.stringify(item)),
+  );
+  if (seenPages.has(pageKey)) return true;
+  seenPages.add(pageKey);
+  return false;
+}
+
+function toutiaoItemKey(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  let item = raw;
+  if (typeof raw.raw_data === "string") {
+    try {
+      item = JSON.parse(raw.raw_data);
+    } catch {
+      item = raw;
+    }
+  }
+  const id = item.group_id || item.item_id;
+  return id == null ? null : String(id);
+}
+
+function toutiaoSearchKey(item) {
+  if (typeof item === "string") return `string:${item}`;
+  if (!item || typeof item !== "object") return null;
+  const keyword = item.keyword || item.query;
+  if (!keyword) return null;
+  return `${keyword}:${item.time || item.search_time || 0}`;
 }
 
 module.exports = {

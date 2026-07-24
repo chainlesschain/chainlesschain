@@ -158,7 +158,14 @@ describe("ToutiaoApiClient — signProvider injection", () => {
     const { fakeFetch } = makeFakeFetch([
       ["api/news/feed/v90", { body: JSON.stringify({ data: [] }) }],
       ["article/v2/tab_comments", { body: JSON.stringify({ data: [] }) }],
-      ["api/search/content", { body: JSON.stringify({ data: {} }) }],
+      [
+        "api/search/content",
+        {
+          body: JSON.stringify({
+            data: { user_search_history: [] },
+          }),
+        },
+      ],
     ]);
     const sign = {
       signUrl: vi.fn(async (url) => {
@@ -546,6 +553,47 @@ describe("ToutiaoApiClient — fetchSearchHistory", () => {
     expect(items[0]).toEqual({ keyword: "AI", searchedAt: 1716383021000 });
   });
 
+  it("uses one scan clock and a global index across string pages", async () => {
+    const { fakeFetch } = makeFakeFetch([
+      [
+        "api/search/content",
+        async (url) => {
+          const firstPage = !new URL(url).searchParams.has("offset");
+          return {
+            body: JSON.stringify({
+              data: {
+                user_search_history: [firstPage ? "newer" : "older"],
+              },
+              has_more: firstPage,
+              next_offset: firstPage ? 1 : 2,
+            }),
+          };
+        },
+      ],
+    ]);
+    const sign = {
+      signUrl: vi.fn(async (url) => {
+        const signed = new URL(String(url));
+        signed.searchParams.set("_signature", "X");
+        return signed;
+      }),
+    };
+    const c = new ToutiaoApiClient({
+      fetch: fakeFetch,
+      now: () => 1716383021000,
+      signProvider: sign,
+    });
+
+    const items = await c.fetchSearchHistory("sessionid=abc", {
+      maxPages: 2,
+    });
+
+    expect(items).toEqual([
+      { keyword: "newer", searchedAt: 1716383021000 },
+      { keyword: "older", searchedAt: 1716383020000 },
+    ]);
+  });
+
   it("falls back to data.search_history shape", async () => {
     const { fakeFetch } = makeFakeFetch([
       [
@@ -587,13 +635,19 @@ describe("normalizeMs", () => {
 });
 
 describe("err_no surfacing (HTTP 200 + err_no!=0 must NOT mask as empty)", () => {
-  it("fetchCollection: {err_no:1,'params illegal',data:[]} → [] + lastErrorCode 1", async () => {
+  it("fetchCollection: {err_no:1,'params illegal',data:[]} rejects + preserves lastErrorCode 1", async () => {
     // Real-device 2026-06-11: tab_comments returned this; the old code saw
     // data:[] and reported 0 results with errCode 0, hiding the real failure.
     const { fakeFetch } = makeFakeFetch([
       [
         "article/v2/tab_comments",
-        { body: JSON.stringify({ message: "params illegal", err_no: 1, data: [] }) },
+        {
+          body: JSON.stringify({
+            message: "params illegal",
+            err_no: 1,
+            data: [],
+          }),
+        },
       ],
     ]);
     const sign = {
@@ -604,8 +658,9 @@ describe("err_no surfacing (HTTP 200 + err_no!=0 must NOT mask as empty)", () =>
       }),
     };
     const c = new ToutiaoApiClient({ fetch: fakeFetch, signProvider: sign });
-    const items = await c.fetchCollection("sessionid=abc");
-    expect(items).toEqual([]);
+    await expect(c.fetchCollection("sessionid=abc")).rejects.toMatchObject({
+      code: "SOURCE_PAGE_ERROR",
+    });
     expect(c.lastErrorCode).toBe(1);
     expect(c.lastErrorMessage).toBe("params illegal");
   });
@@ -614,10 +669,21 @@ describe("err_no surfacing (HTTP 200 + err_no!=0 must NOT mask as empty)", () =>
     const { fakeFetch } = makeFakeFetch([
       [
         "article/v2/tab_comments",
-        { body: JSON.stringify({ err_no: 0, data: [{ group_id: "C1", title: "Saved", behot_time: 1700000000 }] }) },
+        {
+          body: JSON.stringify({
+            err_no: 0,
+            data: [{ group_id: "C1", title: "Saved", behot_time: 1700000000 }],
+          }),
+        },
       ],
     ]);
-    const sign = { signUrl: vi.fn(async (url) => { const u = new URL(String(url)); u.searchParams.set("_signature", "X"); return u; }) };
+    const sign = {
+      signUrl: vi.fn(async (url) => {
+        const u = new URL(String(url));
+        u.searchParams.set("_signature", "X");
+        return u;
+      }),
+    };
     const c = new ToutiaoApiClient({ fetch: fakeFetch, signProvider: sign });
     const items = await c.fetchCollection("sessionid=abc");
     expect(items).toHaveLength(1);

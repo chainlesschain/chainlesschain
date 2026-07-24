@@ -39,15 +39,18 @@ async function collect(bridge, opts = {}) {
   }
   const now = opts.now || Date.now;
   const signProvider = opts.signProvider || undefined;
-  const client =
-    opts.apiClient || new KuaishouApiClient({ now, signProvider });
+  const client = opts.apiClient || new KuaishouApiClient({ now, signProvider });
   const limits = opts.limits || {};
+  const sourceRequestOptions = {};
+  if (Number.isInteger(opts.maxPages) && opts.maxPages > 0) {
+    sourceRequestOptions.maxPages = opts.maxPages;
+  }
+  if (typeof opts.beforeSourceRequest === "function") {
+    sourceRequestOptions.beforeSourceRequest = opts.beforeSourceRequest;
+  }
 
   const cookieResult = await bridge.invoke("kuaishou.cookies");
-  if (
-    !cookieResult ||
-    typeof cookieResult.cookie !== "string"
-  ) {
+  if (!cookieResult || typeof cookieResult.cookie !== "string") {
     throw new Error(
       "KuaishouAdbCollector.collect: bridge.invoke('kuaishou.cookies') returned malformed payload — got cookie=" +
         typeof cookieResult?.cookie,
@@ -78,7 +81,9 @@ async function collect(bridge, opts = {}) {
         displayName: opts.displayName,
         snapshottedAt: now(),
       });
-      const snapshotPath = writeSnapshotJson(snapshot, { dir: opts.stagingDir });
+      const snapshotPath = writeSnapshotJson(snapshot, {
+        dir: opts.stagingDir,
+      });
       return {
         snapshotPath,
         uid: cookieUid,
@@ -88,9 +93,7 @@ async function collect(bridge, opts = {}) {
         lastErrorMessage: client.lastErrorMessage,
         cookieDiagnostic: cookieDiagnostic || null,
         profileFetchFailed: true,
-        signProviderUsed: signProvider
-          ? signProvider.constructor.name
-          : "none",
+        signProviderUsed: signProvider ? signProvider.constructor.name : "none",
         signProviderHits: client._bridgeHits,
         signProviderFallbacks: client._fallbackHits,
       };
@@ -99,14 +102,15 @@ async function collect(bridge, opts = {}) {
     // Parallel 3 signed endpoints — partial failure tolerated.
     const [watch, collectPosts, search] = await Promise.all([
       client.fetchWatchHistory(cookie, {
+        ...sourceRequestOptions,
         limit: Number.isInteger(limits.watch) ? limits.watch : undefined,
       }),
       client.fetchProfilePhotos(cookie, profile.uid, {
-        limit: Number.isInteger(limits.collect)
-          ? limits.collect
-          : undefined,
+        ...sourceRequestOptions,
+        limit: Number.isInteger(limits.collect) ? limits.collect : undefined,
       }),
       client.fetchSearchHistory(cookie, {
+        ...sourceRequestOptions,
         limit: Number.isInteger(limits.search) ? limits.search : undefined,
       }),
     ]);

@@ -69,14 +69,22 @@ async function collect(bridge, opts = {}) {
     );
   }
   const limits = opts.limits || {};
-  const client =
-    opts.apiClient || new BilibiliApiClient({ now: opts.now });
+  const sourceRequestOptions = {};
+  if (Number.isInteger(opts.maxPages) && opts.maxPages > 0) {
+    sourceRequestOptions.maxPages = opts.maxPages;
+  }
+  if (typeof opts.beforeSourceRequest === "function") {
+    sourceRequestOptions.beforeSourceRequest = opts.beforeSourceRequest;
+  }
+  const client = opts.apiClient || new BilibiliApiClient({ now: opts.now });
   const now = opts.now || Date.now;
 
   // 1. Pull cookies via Phase 1a extension.
-  const { cookie, uid, diagnostic: cookieDiagnostic } = await bridge.invoke(
-    "bilibili.cookies",
-  );
+  const {
+    cookie,
+    uid,
+    diagnostic: cookieDiagnostic,
+  } = await bridge.invoke("bilibili.cookies");
   if (!cookie || !Number.isFinite(uid) || uid <= 0) {
     throw new Error(
       "BilibiliAdbCollector.collect: bridge.invoke('bilibili.cookies') returned malformed payload — got cookie=" +
@@ -91,15 +99,21 @@ async function collect(bridge, opts = {}) {
   // [] on error rather than throwing, so all four resolve.
   const [history, favourites, dynamics, follows] = await Promise.all([
     client.fetchHistory(cookie, {
+      ...sourceRequestOptions,
       limit: Number.isInteger(limits.history) ? limits.history : undefined,
     }),
     client.fetchFavourites(cookie, uid, {
-      perFolderLimit: Number.isInteger(limits.favourite) ? limits.favourite : undefined,
+      ...sourceRequestOptions,
+      perFolderLimit: Number.isInteger(limits.favourite)
+        ? limits.favourite
+        : undefined,
     }),
     client.fetchDynamics(cookie, {
+      ...sourceRequestOptions,
       limit: Number.isInteger(limits.dynamic) ? limits.dynamic : undefined,
     }),
     client.fetchFollows(cookie, uid, {
+      ...sourceRequestOptions,
       limit: Number.isInteger(limits.follow) ? limits.follow : undefined,
     }),
   ]);

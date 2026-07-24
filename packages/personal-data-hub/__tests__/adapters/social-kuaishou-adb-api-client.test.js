@@ -116,7 +116,9 @@ describe("KuaishouApiClient — fetchProfile (cookie parse, no HTTP)", () => {
   it("returns null on un-decodable api_ph (non-JSON)", async () => {
     const c = new KuaishouApiClient({ fetch: () => {} });
     expect(
-      await c.fetchProfile(`kuaishou.web.cp.api_ph=${encodeURIComponent("base64junk")}`),
+      await c.fetchProfile(
+        `kuaishou.web.cp.api_ph=${encodeURIComponent("base64junk")}`,
+      ),
     ).toBe(null);
     expect(c.lastErrorCode).toBe(-9);
   });
@@ -175,12 +177,12 @@ describe("KuaishouApiClient — signProvider injection", () => {
       ["graphql", HAPPY_GRAPHQL_RESPONSE],
     ]);
     const sign = {
-      signUrl: vi.fn(async (url, _purpose) => {
+      signUrl: vi.fn(async (url) => {
         const u = new URL(String(url));
         u.searchParams.set("__NS_sig3", "BRIDGE_SIG");
         return u;
       }),
-      signedHeaders: vi.fn(async (_url, _purpose) => ({
+      signedHeaders: vi.fn(async () => ({
         kpf: "PC_WEB",
         kpn: "KUAISHOU_VISION",
       })),
@@ -205,7 +207,14 @@ describe("KuaishouApiClient — signProvider injection", () => {
 
   it("forwards <op>|<body> purpose to signUrl + signedHeaders", async () => {
     const { fakeFetch } = makeFakeFetch([
-      ["graphql", { body: JSON.stringify({ data: {} }) }],
+      [
+        "graphql",
+        {
+          body: JSON.stringify({
+            data: { visionFeedRecommend: { feeds: [] } },
+          }),
+        },
+      ],
     ]);
     const sign = {
       signUrl: vi.fn(async (url) => {
@@ -235,7 +244,10 @@ describe("KuaishouApiClient — fetchWatchHistory parsing", () => {
       u.searchParams.set("__NS_sig3", "X");
       return u;
     }),
-    signedHeaders: vi.fn(async () => ({ kpf: "PC_WEB", kpn: "KUAISHOU_VISION" })),
+    signedHeaders: vi.fn(async () => ({
+      kpf: "PC_WEB",
+      kpn: "KUAISHOU_VISION",
+    })),
   };
 
   it("parses nested photo + author", async () => {
@@ -278,7 +290,7 @@ describe("KuaishouApiClient — fetchWatchHistory parsing", () => {
     expect(items[0].photoId).toBe("FLAT1");
   });
 
-  it("returns [] on GraphQL errors response", async () => {
+  it("rejects on GraphQL errors response", async () => {
     const { fakeFetch } = makeFakeFetch([
       [
         "graphql",
@@ -290,8 +302,9 @@ describe("KuaishouApiClient — fetchWatchHistory parsing", () => {
       ],
     ]);
     const c = new KuaishouApiClient({ fetch: fakeFetch, signProvider: sign });
-    const items = await c.fetchWatchHistory("userId=1");
-    expect(items).toEqual([]);
+    await expect(c.fetchWatchHistory("userId=1")).rejects.toMatchObject({
+      code: "SOURCE_PAGE_ERROR",
+    });
     expect(c.lastErrorCode).toBe(-5);
     expect(c.lastErrorMessage).toMatch(/401 unauthorized/);
   });
@@ -313,7 +326,10 @@ describe("KuaishouApiClient — fetchProfilePhotos parsing", () => {
       u.searchParams.set("__NS_sig3", "X");
       return u;
     }),
-    signedHeaders: vi.fn(async () => ({ kpf: "PC_WEB", kpn: "KUAISHOU_VISION" })),
+    signedHeaders: vi.fn(async () => ({
+      kpf: "PC_WEB",
+      kpn: "KUAISHOU_VISION",
+    })),
   };
 
   it("parses own posted photos", async () => {
@@ -359,7 +375,10 @@ describe("KuaishouApiClient — fetchSearchHistory parsing", () => {
       u.searchParams.set("__NS_sig3", "X");
       return u;
     }),
-    signedHeaders: vi.fn(async () => ({ kpf: "PC_WEB", kpn: "KUAISHOU_VISION" })),
+    signedHeaders: vi.fn(async () => ({
+      kpf: "PC_WEB",
+      kpn: "KUAISHOU_VISION",
+    })),
   };
 
   it("parses recentSearchList object shape", async () => {
@@ -406,7 +425,43 @@ describe("KuaishouApiClient — fetchSearchHistory parsing", () => {
     expect(items[0].keyword).toBe("fallback");
   });
 
-  it("returns [] when both shapes missing", async () => {
+  it("uses one scan clock and a global index across string pages", async () => {
+    const { fakeFetch } = makeFakeFetch([
+      [
+        "graphql",
+        async (_url, opts) => {
+          const cursor = JSON.parse(opts.body).variables.pcursor;
+          const firstPage = cursor === "";
+          return {
+            body: JSON.stringify({
+              data: {
+                visionSearchPhoto: {
+                  recentSearchList: [firstPage ? "newer" : "older"],
+                  pcursor: firstPage ? "cursor-2" : "no_more",
+                },
+              },
+            }),
+          };
+        },
+      ],
+    ]);
+    const c = new KuaishouApiClient({
+      fetch: fakeFetch,
+      now: () => 1716383021000,
+      signProvider: sign,
+    });
+
+    const items = await c.fetchSearchHistory("userId=1", {
+      maxPages: 2,
+    });
+
+    expect(items).toEqual([
+      { keyword: "newer", searchedAt: 1716383021000 },
+      { keyword: "older", searchedAt: 1716383020000 },
+    ]);
+  });
+
+  it("rejects when both recognized search-history shapes are missing", async () => {
     const { fakeFetch } = makeFakeFetch([
       [
         "graphql",
@@ -418,7 +473,9 @@ describe("KuaishouApiClient — fetchSearchHistory parsing", () => {
       ],
     ]);
     const c = new KuaishouApiClient({ fetch: fakeFetch, signProvider: sign });
-    expect(await c.fetchSearchHistory("userId=1")).toEqual([]);
+    await expect(c.fetchSearchHistory("userId=1")).rejects.toMatchObject({
+      code: "SOURCE_PAGE_UNRECOGNIZED",
+    });
   });
 });
 
@@ -459,7 +516,10 @@ describe("api_ph base64 fallback (v0.3)", () => {
   });
 
   it("apiPhDecodeCandidates handles url-safe base64 (- _ alphabet)", () => {
-    const urlSafe = b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const urlSafe = b64
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
     const cands = _internals.apiPhDecodeCandidates(urlSafe);
     expect(cands[1]).toBe(profileJson);
   });

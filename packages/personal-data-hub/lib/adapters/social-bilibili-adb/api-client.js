@@ -16,10 +16,10 @@
  *        prepareRequest(cookie, url)      → substitute buvid3 + sign URL
  *        doGetJson(url, cookie)           → browser-like headers
  *
- * Errors don't throw — endpoints that fail return [] and the collector
- * proceeds with whatever it got (partial sync better than no sync). The
- * UI surfaces `lastErrorCode` + `lastErrorMessage` so the user can tell
- * "412 anti-spider, wait a bit" from "-101 not logged in, relog".
+ * Transport failures preserve the legacy partial-result path and set
+ * `lastErrorCode` + `lastErrorMessage`. Parsed source envelopes fail closed:
+ * explicit business errors and unrecognized list shapes throw SourcePageError
+ * instead of being misreported as a legitimate empty page.
  *
  * Test seams (mirrors Kotlin's `internal var` pattern):
  *   - opts.fetch       — substitute global fetch (default = global)
@@ -30,18 +30,20 @@
  */
 
 const crypto = require("node:crypto");
+const { extractRecognizedArray } = require("../../source-page");
 
 const DEFAULT_BASE_URL = "https://api.bilibili.com/";
+const DEFAULT_MAX_PAGES = 10;
 
 // Bilibili WBI signature mixin key reorder table — fixed 64-index list the
 // web client uses to derive `mixin_key` from `img_key + sub_key`. Mirrors
 // BilibiliApiClient.kt line 25-30. If these indexes change, the JS that
 // builds w_rid has changed; refresh from a browser session.
 const WBI_MIXIN_KEY_TABLE = Object.freeze([
-  46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35,
-  27, 43, 5, 49, 33, 9, 42, 19, 29, 28, 14, 39, 12, 38, 41, 13,
-  37, 48, 7, 16, 24, 55, 40, 61, 26, 17, 0, 1, 60, 51, 30, 4,
-  22, 25, 54, 21, 56, 59, 6, 63, 57, 62, 11, 36, 20, 34, 44, 52,
+  46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49,
+  33, 9, 42, 19, 29, 28, 14, 39, 12, 38, 41, 13, 37, 48, 7, 16, 24, 55, 40, 61,
+  26, 17, 0, 1, 60, 51, 30, 4, 22, 25, 54, 21, 56, 59, 6, 63, 57, 62, 11, 36,
+  20, 34, 44, 52,
 ]);
 
 // Chars Bilibili strips from query values before signing (matches their JS).
@@ -142,7 +144,9 @@ function signUrl(url, mixinKey, opts = {}) {
     a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0,
   );
   const sortedQuery = sortedEntries
-    .map(([k, v]) => `${urlEncodeWbi(k)}=${urlEncodeWbi(stripForbiddenChars(v))}`)
+    .map(
+      ([k, v]) => `${urlEncodeWbi(k)}=${urlEncodeWbi(stripForbiddenChars(v))}`,
+    )
     .join("&");
   const wRid = md5Hex(sortedQuery + mixinKey);
   // Rebuild searchParams atomically — appending wts + w_rid on top of the
@@ -227,13 +231,6 @@ class BilibiliApiClient {
         this._setLastError(-3, "parse: " + (e.message || String(e)));
         return null;
       }
-      const code = typeof obj.code === "number" ? obj.code : 0;
-      if (code !== 0) {
-        const msg = (obj.message || "").toString();
-        this._setLastError(code, msg);
-        return null;
-      }
-      this._clearLastError();
       return obj;
     } catch (e) {
       this._setLastError(-2, "IO: " + (e.message || String(e)));
@@ -250,15 +247,43 @@ class BilibiliApiClient {
     this.lastErrorMessage = null;
   }
 
+  _extractSourceArray(response, paths, stream) {
+    try {
+      const items = extractRecognizedArray(response, paths, {
+        source: "social-bilibili-adb",
+        stream,
+      });
+      this._clearLastError();
+      return items;
+    } catch (error) {
+      const code =
+        response && typeof response.code === "number" && response.code !== 0
+          ? response.code
+          : -6;
+      const message =
+        response &&
+        (response.message != null || response.msg != null) &&
+        String(response.message != null ? response.message : response.msg);
+      this._setLastError(code, message || error.message);
+      throw error;
+    }
+  }
+
   /**
    * Mint a fresh buvid3 via /x/frontend/finger/spi. Cached for the
    * process lifetime — buvid3 is a per-device fingerprint, not
    * session-scoped, so one mint suffices across re-logins.
    * Mirrors Kotlin mintBuvid3.
    */
-  async _mintBuvid3() {
+  async _mintBuvid3(beforeSourceRequest) {
     if (this._mintedBuvid3) return this._mintedBuvid3;
     const url = new URL("x/frontend/finger/spi", this.baseUrl);
+    if (typeof beforeSourceRequest === "function") {
+      await beforeSourceRequest({
+        operation: "preflight-spi",
+        page: 1,
+      });
+    }
     try {
       const resp = await this._fetch(url.toString(), {
         method: "GET",
@@ -289,10 +314,16 @@ class BilibiliApiClient {
    * the 32-char mixin key on success, null on transport / format error.
    * Mirrors Kotlin ensureWbiMixinKey.
    */
-  async _ensureWbiMixinKey() {
+  async _ensureWbiMixinKey(beforeSourceRequest) {
     if (this._wbiMixinKey) return this._wbiMixinKey;
     const url = new URL("x/web-interface/nav", this.baseUrl);
     let body;
+    if (typeof beforeSourceRequest === "function") {
+      await beforeSourceRequest({
+        operation: "preflight-nav",
+        page: 1,
+      });
+    }
     try {
       const resp = await this._fetch(url.toString(), {
         method: "GET",
@@ -334,10 +365,10 @@ class BilibiliApiClient {
    * url has wts + w_rid signature appended. If WBI key fetch fails,
    * returns the unsigned url (degraded mode — preserves buvid3-only path).
    */
-  async _prepareRequest(cookie, url) {
-    const b3 = await this._mintBuvid3();
+  async _prepareRequest(cookie, url, opts = {}) {
+    const b3 = await this._mintBuvid3(opts.beforeSourceRequest);
     const effectiveCookie = b3 ? substituteBuvid3(cookie, b3) : cookie;
-    const mixin = await this._ensureWbiMixinKey();
+    const mixin = await this._ensureWbiMixinKey(opts.beforeSourceRequest);
     if (!mixin) return { cookie: effectiveCookie, url };
     let signed;
     try {
@@ -358,31 +389,91 @@ class BilibiliApiClient {
    * @returns {Promise<Array<{bvid, avid, title, viewAt, duration, uploader, uploaderMid, part}>>}
    */
   async fetchHistory(cookie, opts = {}) {
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 200;
-    const rawUrl = new URL("x/web-interface/history/cursor", this.baseUrl);
-    rawUrl.searchParams.set("ps", "30");
-    rawUrl.searchParams.set("type", "archive");
-    const { cookie: effectiveCookie, url } = await this._prepareRequest(cookie, rawUrl);
-    const obj = await this._doGetJson(url, effectiveCookie);
-    if (!obj) return [];
-    const data = obj.data || {};
-    const list = Array.isArray(data.list) ? data.list : [];
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 200;
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : DEFAULT_MAX_PAGES;
     const out = [];
-    for (let i = 0; i < Math.min(limit, list.length); i++) {
-      const item = list[i];
-      if (!item) continue;
-      const hist = item.history || {};
-      const owner = item.owner || {};
-      out.push({
-        bvid: hist.bvid || null,
-        avid: typeof hist.oid === "number" ? hist.oid : typeof item.oid === "number" ? item.oid : null,
-        title: item.title && item.title.length > 0 ? item.title : "(no title)",
-        viewAt: typeof item.view_at === "number" ? item.view_at : 0,
-        duration: typeof item.duration === "number" ? item.duration : null,
-        uploader: owner.name || null,
-        uploaderMid: typeof owner.mid === "number" ? owner.mid : null,
-        part: item.part || null,
+    let cursor = null;
+    let previousCursorKey = null;
+    const seenItems = new Set();
+    const seenPages = new Set();
+
+    for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
+      const rawUrl = new URL("x/web-interface/history/cursor", this.baseUrl);
+      rawUrl.searchParams.set("ps", "30");
+      rawUrl.searchParams.set("type", "archive");
+      if (cursor) {
+        rawUrl.searchParams.set("max", String(cursor.max));
+        rawUrl.searchParams.set("view_at", String(cursor.viewAt));
+        if (cursor.business) {
+          rawUrl.searchParams.set("business", String(cursor.business));
+        }
+      }
+      const prepared = await this._prepareRequest(cookie, rawUrl, {
+        beforeSourceRequest: opts.beforeSourceRequest,
       });
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({
+          operation: "history",
+          page,
+          cursor,
+        });
+      }
+      const obj = await this._doGetJson(prepared.url, prepared.cookie);
+      if (!obj) return out;
+      const list = this._extractSourceArray(obj, [["data", "list"]], "history");
+      if (isRepeatedPage(seenPages, list, bilibiliHistoryKey)) break;
+      for (const item of list) {
+        if (out.length >= limit) break;
+        if (!item) continue;
+        const hist = item.history || {};
+        const owner = item.owner || {};
+        const itemKey = bilibiliHistoryKey(item);
+        if (itemKey && seenItems.has(itemKey)) continue;
+        if (itemKey) seenItems.add(itemKey);
+        out.push({
+          bvid: hist.bvid || null,
+          avid:
+            typeof hist.oid === "number"
+              ? hist.oid
+              : typeof item.oid === "number"
+                ? item.oid
+                : null,
+          title:
+            item.title && item.title.length > 0 ? item.title : "(no title)",
+          viewAt: typeof item.view_at === "number" ? item.view_at : 0,
+          duration: typeof item.duration === "number" ? item.duration : null,
+          uploader: owner.name || null,
+          uploaderMid: typeof owner.mid === "number" ? owner.mid : null,
+          part: item.part || null,
+        });
+      }
+      if (list.length === 0 || out.length >= limit) break;
+      const next = obj.data && obj.data.cursor;
+      const nextMax = next && Number(next.max);
+      const nextViewAt = next && Number(next.view_at);
+      if (
+        !next ||
+        (!Number.isFinite(nextMax) && !Number.isFinite(nextViewAt)) ||
+        (nextMax <= 0 && nextViewAt <= 0)
+      ) {
+        break;
+      }
+      const nextCursor = {
+        max: Number.isFinite(nextMax) ? nextMax : 0,
+        viewAt: Number.isFinite(nextViewAt) ? nextViewAt : 0,
+        business:
+          typeof next.business === "string" && next.business.length > 0
+            ? next.business
+            : null,
+      };
+      const cursorKey = JSON.stringify(nextCursor);
+      if (cursorKey === previousCursorKey) break;
+      previousCursorKey = cursorKey;
+      cursor = nextCursor;
     }
     return out;
   }
@@ -401,52 +492,113 @@ class BilibiliApiClient {
       Number.isInteger(opts.perFolderLimit) && opts.perFolderLimit > 0
         ? opts.perFolderLimit
         : 50;
-    const rawFoldersUrl = new URL("x/v3/fav/folder/created/list-all", this.baseUrl);
-    rawFoldersUrl.searchParams.set("up_mid", String(uid));
-    const { cookie: effectiveCookie, url: foldersUrl } = await this._prepareRequest(
-      cookie,
-      rawFoldersUrl,
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : DEFAULT_MAX_PAGES;
+    const rawFoldersUrl = new URL(
+      "x/v3/fav/folder/created/list-all",
+      this.baseUrl,
     );
+    rawFoldersUrl.searchParams.set("up_mid", String(uid));
+    const { cookie: effectiveCookie, url: foldersUrl } =
+      await this._prepareRequest(cookie, rawFoldersUrl, {
+        beforeSourceRequest: opts.beforeSourceRequest,
+      });
+    if (typeof opts.beforeSourceRequest === "function") {
+      await opts.beforeSourceRequest({
+        operation: "favourites-folders",
+        page: 1,
+      });
+    }
     const foldersJson = await this._doGetJson(foldersUrl, effectiveCookie);
     if (!foldersJson) return [];
-    const foldersData = foldersJson.data || {};
-    const folders = Array.isArray(foldersData.list) ? foldersData.list : [];
+    const folders = this._extractSourceArray(
+      foldersJson,
+      [["data", "list"]],
+      "favourites-folders",
+    );
     const out = [];
+    const seenItems = new Set();
     for (const folder of folders) {
       if (!folder) continue;
       const folderId = typeof folder.id === "number" ? folder.id : 0;
       if (folderId === 0) continue;
       const folderName = folder.title || null;
-      const rawItemsUrl = new URL("x/v3/fav/resource/list", this.baseUrl);
-      rawItemsUrl.searchParams.set("media_id", String(folderId));
-      rawItemsUrl.searchParams.set("ps", String(perFolderLimit));
-      rawItemsUrl.searchParams.set("pn", "1");
-      // Real-device 2026-05-22: missing `platform=web` returns code=-400.
-      rawItemsUrl.searchParams.set("platform", "web");
-      // Sign the per-folder URL too (signature wraps each request).
-      const itemsUrl = this._wbiMixinKey
-        ? signUrl(rawItemsUrl, this._wbiMixinKey, { now: this._now })
-        : rawItemsUrl;
-      const itemsJson = await this._doGetJson(itemsUrl, effectiveCookie);
-      if (!itemsJson) continue;
-      const itemsData = itemsJson.data || {};
-      const medias = Array.isArray(itemsData.medias) ? itemsData.medias : [];
-      for (const m of medias) {
-        if (!m) continue;
-        const upper = m.upper || {};
-        const favSec =
-          typeof m.fav_time === "number" && m.fav_time > 0
-            ? m.fav_time
-            : typeof m.ctime === "number"
-              ? m.ctime
-              : 0;
-        out.push({
-          bvid: m.bvid || null,
-          title: m.title && m.title.length > 0 ? m.title : "(no title)",
-          savedAt: favSec * 1000,
-          folderName,
-          uploader: upper.name || null,
-        });
+      let folderItems = 0;
+      let folderRowsSeen = 0;
+      const seenPages = new Set();
+      for (
+        let page = 1;
+        page <= maxPages && folderItems < perFolderLimit;
+        page += 1
+      ) {
+        const rawItemsUrl = new URL("x/v3/fav/resource/list", this.baseUrl);
+        rawItemsUrl.searchParams.set("media_id", String(folderId));
+        rawItemsUrl.searchParams.set("ps", String(perFolderLimit));
+        rawItemsUrl.searchParams.set("pn", String(page));
+        // Real-device 2026-05-22: missing `platform=web` returns code=-400.
+        rawItemsUrl.searchParams.set("platform", "web");
+        // Sign the per-folder URL too (signature wraps each request).
+        const itemsUrl = this._wbiMixinKey
+          ? signUrl(rawItemsUrl, this._wbiMixinKey, { now: this._now })
+          : rawItemsUrl;
+        if (typeof opts.beforeSourceRequest === "function") {
+          await opts.beforeSourceRequest({
+            operation: "favourites",
+            page,
+            folderId,
+          });
+        }
+        const itemsJson = await this._doGetJson(itemsUrl, effectiveCookie);
+        if (!itemsJson) break;
+        const medias = this._extractSourceArray(
+          itemsJson,
+          [["data", "medias"]],
+          "favourites",
+        );
+        if (
+          isRepeatedPage(seenPages, medias, (media) =>
+            bilibiliFavouriteKey(folderId, media),
+          )
+        ) {
+          break;
+        }
+        folderRowsSeen += medias.length;
+        for (const m of medias) {
+          if (folderItems >= perFolderLimit) break;
+          if (!m) continue;
+          const itemKey = bilibiliFavouriteKey(folderId, m);
+          if (itemKey && seenItems.has(itemKey)) continue;
+          if (itemKey) seenItems.add(itemKey);
+          const upper = m.upper || {};
+          const favSec =
+            typeof m.fav_time === "number" && m.fav_time > 0
+              ? m.fav_time
+              : typeof m.ctime === "number"
+                ? m.ctime
+                : 0;
+          out.push({
+            bvid: m.bvid || null,
+            title: m.title && m.title.length > 0 ? m.title : "(no title)",
+            savedAt: favSec * 1000,
+            folderName,
+            uploader: upper.name || null,
+          });
+          folderItems += 1;
+        }
+        if (
+          medias.length === 0 ||
+          folderItems >= perFolderLimit ||
+          !hasNextPage(itemsJson.data, {
+            page,
+            pageSize: perFolderLimit,
+            pageItemCount: medias.length,
+            seenCount: folderRowsSeen,
+          })
+        ) {
+          break;
+        }
       }
     }
     return out;
@@ -458,40 +610,80 @@ class BilibiliApiClient {
    * code=0 + empty page.
    */
   async fetchDynamics(cookie, opts = {}) {
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 50;
-    const rawUrl = new URL("x/polymer/web-dynamic/v1/feed/all", this.baseUrl);
-    rawUrl.searchParams.set("type", "all");
-    rawUrl.searchParams.set("platform", "web");
-    rawUrl.searchParams.set("timezone_offset", "-480");
-    const { cookie: effectiveCookie, url } = await this._prepareRequest(cookie, rawUrl);
-    const obj = await this._doGetJson(url, effectiveCookie);
-    if (!obj) return [];
-    const data = obj.data || {};
-    const items = Array.isArray(data.items) ? data.items : [];
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 50;
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : DEFAULT_MAX_PAGES;
     const out = [];
-    for (let i = 0; i < Math.min(limit, items.length); i++) {
-      const it = items[i];
-      if (!it) continue;
-      const modules = it.modules || {};
-      const author = modules.module_author || {};
-      const dyn = modules.module_dynamic || {};
-      const desc = dyn.desc || {};
-      const archive = (dyn.major || {}).archive || {};
-      const summary =
-        (typeof desc.text === "string" && desc.text.length > 0 && desc.text) ||
-        archive.title ||
-        "(no summary)";
-      const rawType = typeof it.type === "string" ? it.type : "";
-      const dynamicType =
-        rawType.replace(/^DYNAMIC_TYPE_/, "").toLowerCase() || "unknown";
-      out.push({
-        rid: it.id_str || null,
-        summary,
-        dynamicType,
-        publishedAt: (typeof author.pub_ts === "number" ? author.pub_ts : 0) * 1000,
-        authorMid: typeof author.mid === "number" ? author.mid : null,
-        authorName: author.name || null,
+    let offset = null;
+    const seenItems = new Set();
+    const seenPages = new Set();
+    for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
+      const rawUrl = new URL("x/polymer/web-dynamic/v1/feed/all", this.baseUrl);
+      rawUrl.searchParams.set("type", "all");
+      rawUrl.searchParams.set("platform", "web");
+      rawUrl.searchParams.set("timezone_offset", "-480");
+      if (offset != null) rawUrl.searchParams.set("offset", offset);
+      const prepared = await this._prepareRequest(cookie, rawUrl, {
+        beforeSourceRequest: opts.beforeSourceRequest,
       });
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({
+          operation: "dynamics",
+          page,
+          cursor: offset,
+        });
+      }
+      const obj = await this._doGetJson(prepared.url, prepared.cookie);
+      if (!obj) return out;
+      const items = this._extractSourceArray(
+        obj,
+        [["data", "items"]],
+        "dynamics",
+      );
+      if (isRepeatedPage(seenPages, items, bilibiliDynamicKey)) break;
+      for (const it of items) {
+        if (out.length >= limit) break;
+        if (!it) continue;
+        const itemKey = bilibiliDynamicKey(it);
+        if (itemKey && seenItems.has(itemKey)) continue;
+        if (itemKey) seenItems.add(itemKey);
+        const modules = it.modules || {};
+        const author = modules.module_author || {};
+        const dyn = modules.module_dynamic || {};
+        const desc = dyn.desc || {};
+        const archive = (dyn.major || {}).archive || {};
+        const summary =
+          (typeof desc.text === "string" &&
+            desc.text.length > 0 &&
+            desc.text) ||
+          archive.title ||
+          "(no summary)";
+        const rawType = typeof it.type === "string" ? it.type : "";
+        const dynamicType =
+          rawType.replace(/^DYNAMIC_TYPE_/, "").toLowerCase() || "unknown";
+        out.push({
+          rid: it.id_str || null,
+          summary,
+          dynamicType,
+          publishedAt:
+            (typeof author.pub_ts === "number" ? author.pub_ts : 0) * 1000,
+          authorMid: typeof author.mid === "number" ? author.mid : null,
+          authorName: author.name || null,
+        });
+      }
+      if (items.length === 0 || out.length >= limit) break;
+      const data = obj.data || {};
+      const nextOffset =
+        typeof data.offset === "string" && data.offset.length > 0
+          ? data.offset
+          : null;
+      if (data.has_more !== true || !nextOffset || nextOffset === offset) {
+        break;
+      }
+      offset = nextOffset;
     }
     return out;
   }
@@ -505,35 +697,136 @@ class BilibiliApiClient {
    * @returns {Promise<Array<{mid, uname, face, sign, followedAt}>>}
    */
   async fetchFollows(cookie, uid, opts = {}) {
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 200;
-    const rawUrl = new URL("x/relation/followings", this.baseUrl);
-    rawUrl.searchParams.set("vmid", String(uid));
-    rawUrl.searchParams.set("ps", "50");
-    rawUrl.searchParams.set("pn", "1");
-    rawUrl.searchParams.set("order", "desc");
-    rawUrl.searchParams.set("order_type", "attention");
-    const { cookie: effectiveCookie, url } = await this._prepareRequest(cookie, rawUrl);
-    const obj = await this._doGetJson(url, effectiveCookie);
-    if (!obj) return [];
-    const data = obj.data || {};
-    const list = Array.isArray(data.list) ? data.list : [];
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 200;
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : DEFAULT_MAX_PAGES;
     const out = [];
-    for (let i = 0; i < Math.min(limit, list.length); i++) {
-      const it = list[i];
-      if (!it) continue;
-      const mid = typeof it.mid === "number" ? it.mid : 0;
-      if (mid === 0) continue;
-      out.push({
-        mid,
-        uname: it.uname && it.uname.length > 0 ? it.uname : "(unnamed)",
-        face: it.face || null,
-        sign: it.sign || null,
-        // mtime is unix-seconds modified time of the follow row.
-        followedAt: (typeof it.mtime === "number" ? it.mtime : 0) * 1000,
+    const pageSize = 50;
+    let rowsSeen = 0;
+    const seenItems = new Set();
+    const seenPages = new Set();
+    for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
+      const rawUrl = new URL("x/relation/followings", this.baseUrl);
+      rawUrl.searchParams.set("vmid", String(uid));
+      rawUrl.searchParams.set("ps", String(pageSize));
+      rawUrl.searchParams.set("pn", String(page));
+      rawUrl.searchParams.set("order", "desc");
+      rawUrl.searchParams.set("order_type", "attention");
+      const prepared = await this._prepareRequest(cookie, rawUrl, {
+        beforeSourceRequest: opts.beforeSourceRequest,
       });
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({
+          operation: "follows",
+          page,
+        });
+      }
+      const obj = await this._doGetJson(prepared.url, prepared.cookie);
+      if (!obj) return out;
+      const list = this._extractSourceArray(obj, [["data", "list"]], "follows");
+      if (isRepeatedPage(seenPages, list, bilibiliFollowKey)) break;
+      rowsSeen += list.length;
+      for (const it of list) {
+        if (out.length >= limit) break;
+        if (!it) continue;
+        const mid = typeof it.mid === "number" ? it.mid : 0;
+        if (mid === 0) continue;
+        const itemKey = bilibiliFollowKey(it);
+        if (itemKey && seenItems.has(itemKey)) continue;
+        if (itemKey) seenItems.add(itemKey);
+        out.push({
+          mid,
+          uname: it.uname && it.uname.length > 0 ? it.uname : "(unnamed)",
+          face: it.face || null,
+          sign: it.sign || null,
+          // mtime is unix-seconds modified time of the follow row.
+          followedAt: (typeof it.mtime === "number" ? it.mtime : 0) * 1000,
+        });
+      }
+      if (
+        list.length === 0 ||
+        out.length >= limit ||
+        !hasNextPage(obj.data, {
+          page,
+          pageSize,
+          pageItemCount: list.length,
+          seenCount: rowsSeen,
+        })
+      ) {
+        break;
+      }
     }
     return out;
   }
+}
+
+function hasNextPage(data, { page, pageSize, pageItemCount, seenCount }) {
+  if (!data || typeof data !== "object") return false;
+  if (
+    data.has_more === false ||
+    data.has_more === 0 ||
+    data.has_more === "0" ||
+    data.hasMore === false
+  ) {
+    return false;
+  }
+  if (
+    data.has_more === true ||
+    data.has_more === 1 ||
+    data.has_more === "1" ||
+    data.hasMore === true
+  ) {
+    return true;
+  }
+  const total = Number(data.total ?? (data.info && data.info.media_count));
+  if (Number.isFinite(total)) {
+    const consumed = Number.isFinite(seenCount) ? seenCount : page * pageSize;
+    return consumed < total;
+  }
+  return Number.isFinite(pageItemCount) && pageItemCount > 0;
+}
+
+function isRepeatedPage(seenPages, items, keyForItem) {
+  const pageKey = JSON.stringify(
+    items.map((item) => keyForItem(item) || JSON.stringify(item)),
+  );
+  if (seenPages.has(pageKey)) return true;
+  seenPages.add(pageKey);
+  return false;
+}
+
+function bilibiliHistoryKey(item) {
+  if (!item || typeof item !== "object") return null;
+  const history = item.history || {};
+  const bvid = history.bvid || item.bvid;
+  if (bvid) return `bvid:${bvid}`;
+  const oid =
+    typeof history.oid === "number"
+      ? history.oid
+      : typeof item.oid === "number"
+        ? item.oid
+        : null;
+  return oid == null ? null : `oid:${oid}`;
+}
+
+function bilibiliFavouriteKey(folderId, item) {
+  if (!item || typeof item !== "object") return null;
+  const id = item.bvid || item.id;
+  return id == null ? null : `${folderId}:${id}`;
+}
+
+function bilibiliDynamicKey(item) {
+  if (!item || typeof item !== "object") return null;
+  const id = item.id_str || item.id;
+  return id == null ? null : String(id);
+}
+
+function bilibiliFollowKey(item) {
+  if (!item || typeof item !== "object") return null;
+  return typeof item.mid === "number" && item.mid > 0 ? String(item.mid) : null;
 }
 
 module.exports = {

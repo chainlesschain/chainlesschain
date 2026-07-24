@@ -82,20 +82,38 @@ describe("collect — happy path", () => {
     const apiClient = makeFakeApiClient({
       history: [{ bvid: "BV1", title: "h", viewAt: 1 }],
       favourites: [{ bvid: "BVf", title: "f", savedAt: 2 }],
-      dynamics: [{ rid: "r1", summary: "d", dynamicType: "av", publishedAt: 3 }],
+      dynamics: [
+        { rid: "r1", summary: "d", dynamicType: "av", publishedAt: 3 },
+      ],
       follows: [{ mid: 1, uname: "u", followedAt: 4 }],
     });
-    const result = await collect(bridge, { apiClient, stagingDir });
+    const beforeSourceRequest = vi.fn();
+    const result = await collect(bridge, {
+      apiClient,
+      beforeSourceRequest,
+      maxPages: 3,
+      stagingDir,
+    });
 
     expect(bridge.invoke).toHaveBeenCalledWith("bilibili.cookies");
-    expect(apiClient.fetchHistory).toHaveBeenCalled();
+    expect(apiClient.fetchHistory).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ beforeSourceRequest, maxPages: 3 }),
+    );
     expect(apiClient.fetchFavourites).toHaveBeenCalledWith(
       "SESSDATA=x; DedeUserID=1234567890; ...",
       1234567890,
-      expect.any(Object),
+      expect.objectContaining({ beforeSourceRequest, maxPages: 3 }),
     );
-    expect(apiClient.fetchDynamics).toHaveBeenCalled();
-    expect(apiClient.fetchFollows).toHaveBeenCalled();
+    expect(apiClient.fetchDynamics).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ beforeSourceRequest, maxPages: 3 }),
+    );
+    expect(apiClient.fetchFollows).toHaveBeenCalledWith(
+      expect.any(String),
+      1234567890,
+      expect.objectContaining({ beforeSourceRequest, maxPages: 3 }),
+    );
 
     expect(result.uid).toBe(1234567890);
     expect(result.eventCounts).toEqual({
@@ -157,7 +175,9 @@ describe("collect — happy path", () => {
     await collect(bridge, { apiClient, stagingDir });
     // All 4 "start" events should fire before any "end" event (parallel)
     const firstEnd = order.findIndex((e) => e.endsWith("-end"));
-    const startsBeforeFirstEnd = order.slice(0, firstEnd).filter((e) => e.endsWith("-start"));
+    const startsBeforeFirstEnd = order
+      .slice(0, firstEnd)
+      .filter((e) => e.endsWith("-start"));
     expect(startsBeforeFirstEnd).toHaveLength(4);
   });
 });
@@ -233,7 +253,13 @@ describe("collectAndSync — pipes to registry + cleans up", () => {
           adapter: name,
           status: "ok",
           rawCount: 1,
-          entityCounts: { events: 1, persons: 0, places: 0, items: 0, topics: 0 },
+          entityCounts: {
+            events: 1,
+            persons: 0,
+            places: 0,
+            items: 0,
+            topics: 0,
+          },
         };
       }),
     };

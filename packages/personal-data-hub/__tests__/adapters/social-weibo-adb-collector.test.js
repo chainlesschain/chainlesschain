@@ -65,14 +65,29 @@ describe("collect — happy path", () => {
       favourites: [{ mid: "F1", text: "f", favAt: 2 }],
       follows: [{ uid: 99, screenName: "x", followedAt: 0 }],
     });
-    const result = await collect(bridge, { apiClient, stagingDir });
+    const beforeSourceRequest = vi.fn();
+    const result = await collect(bridge, {
+      apiClient,
+      beforeSourceRequest,
+      maxPages: 4,
+      stagingDir,
+    });
 
     expect(bridge.invoke).toHaveBeenCalledWith("weibo.cookies");
     expect(apiClient.fetchUid).toHaveBeenCalledWith("SUB=abc");
     expect(apiClient.fetchPosts).toHaveBeenCalledWith(
       "SUB=abc",
       1234567890,
-      expect.any(Object),
+      expect.objectContaining({ beforeSourceRequest, maxPages: 4 }),
+    );
+    expect(apiClient.fetchFavourites).toHaveBeenCalledWith(
+      "SUB=abc",
+      expect.objectContaining({ beforeSourceRequest, maxPages: 4 }),
+    );
+    expect(apiClient.fetchFollows).toHaveBeenCalledWith(
+      "SUB=abc",
+      1234567890,
+      expect.objectContaining({ beforeSourceRequest, maxPages: 4 }),
     );
     expect(result.uid).toBe(1234567890);
     expect(result.eventCounts).toEqual({
@@ -117,7 +132,9 @@ describe("collect — failure modes", () => {
     const bridge = makeFakeBridge({
       throwOnInvoke: new Error("WEIBO_NO_ROOT: phone isn't rooted"),
     });
-    await expect(collect(bridge, { stagingDir })).rejects.toThrow(/WEIBO_NO_ROOT/);
+    await expect(collect(bridge, { stagingDir })).rejects.toThrow(
+      /WEIBO_NO_ROOT/,
+    );
   });
 
   it("throws TypeError when bridge missing invoke", async () => {
@@ -127,7 +144,9 @@ describe("collect — failure modes", () => {
 
   it("throws on malformed cookieResult", async () => {
     const bridge = makeFakeBridge({ cookieResult: { cookie: null } });
-    await expect(collect(bridge, { stagingDir })).rejects.toThrow(/malformed payload/);
+    await expect(collect(bridge, { stagingDir })).rejects.toThrow(
+      /malformed payload/,
+    );
   });
 });
 
@@ -148,7 +167,12 @@ describe("collect — partial result tolerance", () => {
       follows: [{ uid: 1, screenName: "x" }],
     });
     const result = await collect(bridge, { apiClient, stagingDir });
-    expect(result.eventCounts).toEqual({ post: 1, favourite: 0, follow: 1, total: 2 });
+    expect(result.eventCounts).toEqual({
+      post: 1,
+      favourite: 0,
+      follow: 1,
+      total: 2,
+    });
   });
 });
 

@@ -20,8 +20,10 @@
 
 const { computeXsXt } = require("./sign");
 const { NULL_SIGN_PROVIDER } = require("../../sign-providers");
+const { extractRecognizedArray } = require("../../source-page");
 
 const DEFAULT_BASE_URL = "https://edith.xiaohongshu.com/";
+const DEFAULT_MAX_PAGES = 10;
 
 const BROWSER_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
@@ -96,7 +98,13 @@ class XhsApiClient {
     this._fallbackHits = 0;
   }
 
-  async _doGetJson(url, cookie, a1, requireSign) {
+  async _doGetJson(
+    url,
+    cookie,
+    a1,
+    requireSign,
+    { returnErrorResponse = false } = {},
+  ) {
     const headers = { ...BROWSER_HEADERS, Cookie: cookie };
     if (requireSign && a1) {
       const pathWithQuery = url.pathname + url.search;
@@ -151,11 +159,13 @@ class XhsApiClient {
       const success = obj.success === undefined ? true : obj.success;
       if (success === false) {
         this._setLastError(-5, "/success=false (no code)");
+        if (returnErrorResponse) return obj;
         return null;
       }
       const code = typeof obj.code === "number" ? obj.code : 0;
       if (code !== 0) {
         this._setLastError(code, (obj.msg || "").toString());
+        if (returnErrorResponse) return obj;
         return null;
       }
       this._clearLastError();
@@ -173,6 +183,30 @@ class XhsApiClient {
   _clearLastError() {
     this.lastErrorCode = 0;
     this.lastErrorMessage = null;
+  }
+
+  _extractSourceArray(response, paths, stream) {
+    try {
+      const items = extractRecognizedArray(response, paths, {
+        source: "social-xiaohongshu-adb",
+        stream,
+      });
+      this._clearLastError();
+      return items;
+    } catch (error) {
+      const code =
+        response && typeof response.code === "number" && response.code !== 0
+          ? response.code
+          : response && response.success === false
+            ? -5
+            : -6;
+      const message =
+        response &&
+        (response.msg != null || response.message != null) &&
+        String(response.msg != null ? response.msg : response.message);
+      this._setLastError(code, message || error.message);
+      throw error;
+    }
   }
 
   /**
@@ -202,37 +236,59 @@ class XhsApiClient {
    * Fetch user's posted notes. Requires X-S signing.
    */
   async fetchNotes(cookie, a1, userId, opts = {}) {
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 30;
-    const url = new URL("api/sns/web/v2/user_posted", this.baseUrl);
-    url.searchParams.set("user_id", userId);
-    url.searchParams.set("num", "30");
-    url.searchParams.set("cursor", "");
-    url.searchParams.set("image_formats", "jpg,webp,avif");
-    const obj = await this._doGetJson(url, cookie, a1, true);
-    if (!obj) return [];
-    const data = obj.data || {};
-    const notes = Array.isArray(data.notes) ? data.notes : [];
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 30;
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : DEFAULT_MAX_PAGES;
     const out = [];
-    for (let i = 0; i < Math.min(limit, notes.length); i++) {
-      const n = notes[i];
-      if (!n) continue;
-      const noteId =
-        (n.note_id && String(n.note_id)) || (n.id && String(n.id));
-      if (!noteId) continue;
-      const interact = n.interact_info || {};
-      out.push({
-        noteId,
-        title:
-          n.display_title ||
-          n.title ||
-          "(no title)",
-        desc: n.desc || null,
-        type: n.type || "normal",
-        createdAt: normalizeMs(typeof n.time === "number" ? n.time : 0),
-        likedCount: parseCount(interact.liked_count),
-        collectedCount: parseCount(interact.collected_count),
-        commentCount: parseCount(interact.comment_count),
+    let cursor = "";
+    const seenItems = new Set();
+    const seenPages = new Set();
+    for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
+      const url = new URL("api/sns/web/v2/user_posted", this.baseUrl);
+      url.searchParams.set("user_id", userId);
+      url.searchParams.set("num", "30");
+      url.searchParams.set("cursor", cursor);
+      url.searchParams.set("image_formats", "jpg,webp,avif");
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({
+          operation: "notes",
+          page,
+          cursor,
+        });
+      }
+      const obj = await this._doGetJson(url, cookie, a1, true, {
+        returnErrorResponse: true,
       });
+      if (!obj) return out;
+      const notes = this._extractSourceArray(obj, [["data", "notes"]], "notes");
+      if (isRepeatedPage(seenPages, notes, xhsNoteKey)) break;
+      for (const n of notes) {
+        if (out.length >= limit) break;
+        if (!n) continue;
+        const noteId =
+          (n.note_id && String(n.note_id)) || (n.id && String(n.id));
+        if (!noteId) continue;
+        if (seenItems.has(noteId)) continue;
+        seenItems.add(noteId);
+        const interact = n.interact_info || {};
+        out.push({
+          noteId,
+          title: n.display_title || n.title || "(no title)",
+          desc: n.desc || null,
+          type: n.type || "normal",
+          createdAt: normalizeMs(typeof n.time === "number" ? n.time : 0),
+          likedCount: parseCount(interact.liked_count),
+          collectedCount: parseCount(interact.collected_count),
+          commentCount: parseCount(interact.comment_count),
+        });
+      }
+      if (notes.length === 0 || out.length >= limit) break;
+      const nextCursor = xhsNextCursor(obj.data);
+      if (!nextCursor || nextCursor === cursor) break;
+      cursor = nextCursor;
     }
     return out;
   }
@@ -241,28 +297,53 @@ class XhsApiClient {
    * Fetch user's liked notes. Requires X-S.
    */
   async fetchLiked(cookie, a1, opts = {}) {
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 30;
-    const url = new URL("api/sns/web/v1/note/like/page", this.baseUrl);
-    url.searchParams.set("num", "20");
-    url.searchParams.set("cursor", "");
-    const obj = await this._doGetJson(url, cookie, a1, true);
-    if (!obj) return [];
-    const data = obj.data || {};
-    const notes = Array.isArray(data.notes) ? data.notes : [];
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 30;
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : DEFAULT_MAX_PAGES;
     const out = [];
-    for (let i = 0; i < Math.min(limit, notes.length); i++) {
-      const n = notes[i];
-      if (!n) continue;
-      const noteId = n.note_id && String(n.note_id);
-      if (!noteId) continue;
-      const user = n.user || {};
-      out.push({
-        noteId,
-        title: n.display_title || n.title || "(no title)",
-        // xhs doesn't return explicit liked_at — collector fills with snapshotted_at
-        likedAt: 0,
-        authorNickname: user.nickname || null,
+    let cursor = "";
+    const seenItems = new Set();
+    const seenPages = new Set();
+    for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
+      const url = new URL("api/sns/web/v1/note/like/page", this.baseUrl);
+      url.searchParams.set("num", "20");
+      url.searchParams.set("cursor", cursor);
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({
+          operation: "liked",
+          page,
+          cursor,
+        });
+      }
+      const obj = await this._doGetJson(url, cookie, a1, true, {
+        returnErrorResponse: true,
       });
+      if (!obj) return out;
+      const notes = this._extractSourceArray(obj, [["data", "notes"]], "liked");
+      if (isRepeatedPage(seenPages, notes, xhsNoteKey)) break;
+      for (const n of notes) {
+        if (out.length >= limit) break;
+        if (!n) continue;
+        const noteId = n.note_id && String(n.note_id);
+        if (!noteId) continue;
+        if (seenItems.has(noteId)) continue;
+        seenItems.add(noteId);
+        const user = n.user || {};
+        out.push({
+          noteId,
+          title: n.display_title || n.title || "(no title)",
+          // xhs doesn't return explicit liked_at — collector fills with snapshotted_at
+          likedAt: 0,
+          authorNickname: user.nickname || null,
+        });
+      }
+      if (notes.length === 0 || out.length >= limit) break;
+      const nextCursor = xhsNextCursor(obj.data);
+      if (!nextCursor || nextCursor === cursor) break;
+      cursor = nextCursor;
     }
     return out;
   }
@@ -271,31 +352,97 @@ class XhsApiClient {
    * Fetch follow list. Requires X-S.
    */
   async fetchFollows(cookie, a1, userId, opts = {}) {
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 100;
-    const url = new URL("api/sns/web/v1/user/follow/list", this.baseUrl);
-    url.searchParams.set("user_id", userId);
-    url.searchParams.set("num", "20");
-    url.searchParams.set("cursor", "");
-    const obj = await this._doGetJson(url, cookie, a1, true);
-    if (!obj) return [];
-    const data = obj.data || {};
-    const users = Array.isArray(data.users) ? data.users : [];
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 100;
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : DEFAULT_MAX_PAGES;
     const out = [];
-    for (let i = 0; i < Math.min(limit, users.length); i++) {
-      const u = users[i];
-      if (!u) continue;
-      const userIdStr = u.user_id && String(u.user_id);
-      if (!userIdStr) continue;
-      out.push({
-        userId: userIdStr,
-        nickname: u.nickname || "(unnamed)",
-        image: u.image || null,
-        // xhs doesn't return explicit follow time
-        followedAt: 0,
+    let cursor = "";
+    const seenItems = new Set();
+    const seenPages = new Set();
+    for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
+      const url = new URL("api/sns/web/v1/user/follow/list", this.baseUrl);
+      url.searchParams.set("user_id", userId);
+      url.searchParams.set("num", "20");
+      url.searchParams.set("cursor", cursor);
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({
+          operation: "follows",
+          page,
+          cursor,
+        });
+      }
+      const obj = await this._doGetJson(url, cookie, a1, true, {
+        returnErrorResponse: true,
       });
+      if (!obj) return out;
+      const users = this._extractSourceArray(
+        obj,
+        [["data", "users"]],
+        "follows",
+      );
+      if (isRepeatedPage(seenPages, users, xhsUserKey)) break;
+      for (const u of users) {
+        if (out.length >= limit) break;
+        if (!u) continue;
+        const userIdStr = u.user_id && String(u.user_id);
+        if (!userIdStr) continue;
+        if (seenItems.has(userIdStr)) continue;
+        seenItems.add(userIdStr);
+        out.push({
+          userId: userIdStr,
+          nickname: u.nickname || "(unnamed)",
+          image: u.image || null,
+          // xhs doesn't return explicit follow time
+          followedAt: 0,
+        });
+      }
+      if (users.length === 0 || out.length >= limit) break;
+      const nextCursor = xhsNextCursor(obj.data);
+      if (!nextCursor || nextCursor === cursor) break;
+      cursor = nextCursor;
     }
     return out;
   }
+}
+
+function xhsNextCursor(data) {
+  if (!data || typeof data !== "object") return null;
+  if (
+    data.has_more === false ||
+    data.has_more === 0 ||
+    data.hasMore === false
+  ) {
+    return null;
+  }
+  const raw = data.cursor ?? data.next_cursor ?? data.nextCursor;
+  if (raw == null || raw === "") return null;
+  if (data.has_more !== true && data.has_more !== 1 && data.hasMore !== true) {
+    return null;
+  }
+  return String(raw);
+}
+
+function isRepeatedPage(seenPages, items, keyForItem) {
+  const pageKey = JSON.stringify(
+    items.map((item) => keyForItem(item) || JSON.stringify(item)),
+  );
+  if (seenPages.has(pageKey)) return true;
+  seenPages.add(pageKey);
+  return false;
+}
+
+function xhsNoteKey(note) {
+  if (!note || typeof note !== "object") return null;
+  const id = note.note_id || note.id;
+  return id == null ? null : String(id);
+}
+
+function xhsUserKey(user) {
+  if (!user || typeof user !== "object") return null;
+  return user.user_id == null ? null : String(user.user_id);
 }
 
 module.exports = {

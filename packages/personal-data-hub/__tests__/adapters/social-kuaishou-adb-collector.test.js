@@ -121,8 +121,14 @@ describe("collect — happy path with signProvider", () => {
       fetch: fakeFetch,
       signProvider: sign,
     });
+    const watchSpy = vi.spyOn(client, "fetchWatchHistory");
+    const photosSpy = vi.spyOn(client, "fetchProfilePhotos");
+    const searchSpy = vi.spyOn(client, "fetchSearchHistory");
+    const beforeSourceRequest = vi.fn();
     const r = await collect(makeBridge(COOKIE_PAYLOAD), {
       apiClient: client,
+      beforeSourceRequest,
+      maxPages: 3,
       signProvider: sign,
       stagingDir: os.tmpdir(),
     });
@@ -137,6 +143,20 @@ describe("collect — happy path with signProvider", () => {
     expect(r.eventCounts.search).toBe(1);
     expect(r.signProviderHits).toBe(3);
     expect(r.signProviderFallbacks).toBe(0);
+    expect(watchSpy).toHaveBeenCalledWith(
+      COOKIE_PAYLOAD.cookie,
+      expect.objectContaining({ beforeSourceRequest, maxPages: 3 }),
+    );
+    expect(photosSpy).toHaveBeenCalledWith(
+      COOKIE_PAYLOAD.cookie,
+      "12345",
+      expect.objectContaining({ beforeSourceRequest, maxPages: 3 }),
+    );
+    expect(searchSpy).toHaveBeenCalledWith(
+      COOKIE_PAYLOAD.cookie,
+      expect.objectContaining({ beforeSourceRequest, maxPages: 3 }),
+    );
+    expect(beforeSourceRequest).toHaveBeenCalledTimes(3);
   });
 });
 
@@ -210,15 +230,13 @@ describe("collect — bridge warmUp failure", () => {
 describe("collect — malformed bridge payload", () => {
   it("throws when bridge returns no cookie", async () => {
     const bridge = { invoke: vi.fn(async () => ({ uid: "1" })) };
-    await expect(
-      collect(bridge, { stagingDir: os.tmpdir() }),
-    ).rejects.toThrow(/malformed payload/);
+    await expect(collect(bridge, { stagingDir: os.tmpdir() })).rejects.toThrow(
+      /malformed payload/,
+    );
   });
 
   it("throws when bridge missing invoke", async () => {
-    await expect(collect({}, {})).rejects.toThrow(
-      /bridge must expose invoke/,
-    );
+    await expect(collect({}, {})).rejects.toThrow(/bridge must expose invoke/);
   });
 });
 

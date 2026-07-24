@@ -14,12 +14,12 @@
  *  - extractWbiKeyFromUrl edge cases
  *  - extractUid edge cases
  *  - 4 endpoint parse — happy-path response shapes mirroring Bilibili's
- *  - Partial-failure: any endpoint returns [] on transport / code-non-zero
+ *  - Transport failures return []; parsed source errors fail closed
  *  - lastErrorCode / lastErrorMessage set on failure
  *  - Endpoint URL contracts: required query params present
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 
 const {
   BilibiliApiClient,
@@ -45,7 +45,9 @@ describe("extractWbiKeyFromUrl", () => {
   });
 
   it("handles missing extension → null", () => {
-    expect(extractWbiKeyFromUrl("https://i0.hdslb.com/bfs/wbi/abc123")).toBe(null);
+    expect(extractWbiKeyFromUrl("https://i0.hdslb.com/bfs/wbi/abc123")).toBe(
+      null,
+    );
   });
 
   it("handles missing slash → null (no path component)", () => {
@@ -206,7 +208,8 @@ function makeClient(responses) {
     calls.push({ url: urlStr, opts });
     for (const [pattern, payload] of responses) {
       if (urlStr.includes(pattern)) {
-        const resolved = typeof payload === "function" ? await payload(urlStr, opts) : payload;
+        const resolved =
+          typeof payload === "function" ? await payload(urlStr, opts) : payload;
         return {
           ok: resolved.status == null || resolved.status === 200,
           status: resolved.status || 200,
@@ -224,14 +227,17 @@ function makeClient(responses) {
   return { client, calls };
 }
 
-const FAKE_COOKIE = "SESSDATA=abc; bili_jct=csrf; DedeUserID=1234567890; DedeUserID__ckMd5=cm; buvid3=oldB3";
+const FAKE_COOKIE =
+  "SESSDATA=abc; bili_jct=csrf; DedeUserID=1234567890; DedeUserID__ckMd5=cm; buvid3=oldB3";
 
 const NAV_RESPONSE_BODY = JSON.stringify({
   code: -101,
   data: {
     wbi_img: {
-      img_url: "https://i0.hdslb.com/bfs/wbi/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png",
-      sub_url: "https://i0.hdslb.com/bfs/wbi/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.png",
+      img_url:
+        "https://i0.hdslb.com/bfs/wbi/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png",
+      sub_url:
+        "https://i0.hdslb.com/bfs/wbi/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.png",
     },
   },
 });
@@ -246,7 +252,10 @@ describe("BilibiliApiClient — bootstrap (mint + nav)", () => {
     const { client, calls } = makeClient([
       ["finger/spi", { body: SPI_RESPONSE_BODY }],
       ["web-interface/nav", { body: NAV_RESPONSE_BODY }],
-      ["history/cursor", { body: JSON.stringify({ code: 0, data: { list: [] } }) }],
+      [
+        "history/cursor",
+        { body: JSON.stringify({ code: 0, data: { list: [] } }) },
+      ],
     ]);
     await client.fetchHistory(FAKE_COOKIE);
     await client.fetchHistory(FAKE_COOKIE);
@@ -268,7 +277,10 @@ describe("BilibiliApiClient — bootstrap (mint + nav)", () => {
     const { client, calls } = makeClient([
       ["finger/spi", { body: SPI_RESPONSE_BODY }],
       ["web-interface/nav", { body: NAV_RESPONSE_BODY }],
-      ["history/cursor", { body: JSON.stringify({ code: 0, data: { list: [] } }) }],
+      [
+        "history/cursor",
+        { body: JSON.stringify({ code: 0, data: { list: [] } }) },
+      ],
     ]);
     await client.fetchHistory(FAKE_COOKIE);
     const histCall = calls.find((c) => c.url.includes("history/cursor"));
@@ -282,7 +294,10 @@ describe("BilibiliApiClient — bootstrap (mint + nav)", () => {
     const { client, calls } = makeClient([
       ["finger/spi", { body: SPI_RESPONSE_BODY }],
       ["web-interface/nav", { body: NAV_RESPONSE_BODY }],
-      ["history/cursor", { body: JSON.stringify({ code: 0, data: { list: [] } }) }],
+      [
+        "history/cursor",
+        { body: JSON.stringify({ code: 0, data: { list: [] } }) },
+      ],
     ]);
     await client.fetchHistory(FAKE_COOKIE);
     const histCall = calls.find((c) => c.url.includes("history/cursor"));
@@ -294,7 +309,10 @@ describe("BilibiliApiClient — bootstrap (mint + nav)", () => {
     const { client, calls } = makeClient([
       ["finger/spi", { body: SPI_RESPONSE_BODY }],
       ["web-interface/nav", { status: 500, body: "Internal Error" }],
-      ["history/cursor", { body: JSON.stringify({ code: 0, data: { list: [] } }) }],
+      [
+        "history/cursor",
+        { body: JSON.stringify({ code: 0, data: { list: [] } }) },
+      ],
     ]);
     const result = await client.fetchHistory(FAKE_COOKIE);
     expect(result).toEqual([]); // succeeds but with unsigned URL → server might 412
@@ -361,13 +379,16 @@ describe("BilibiliApiClient.fetchHistory", () => {
     const { client } = makeClient([
       ["finger/spi", { body: SPI_RESPONSE_BODY }],
       ["web-interface/nav", { body: NAV_RESPONSE_BODY }],
-      ["history/cursor", { body: JSON.stringify({ code: 0, data: { list: items } }) }],
+      [
+        "history/cursor",
+        { body: JSON.stringify({ code: 0, data: { list: items } }) },
+      ],
     ]);
     const history = await client.fetchHistory(FAKE_COOKIE, { limit: 5 });
     expect(history).toHaveLength(5);
   });
 
-  it("returns [] when code != 0 + sets lastError", async () => {
+  it("rejects when code != 0 + sets lastError", async () => {
     const { client } = makeClient([
       ["finger/spi", { body: SPI_RESPONSE_BODY }],
       ["web-interface/nav", { body: NAV_RESPONSE_BODY }],
@@ -376,8 +397,9 @@ describe("BilibiliApiClient.fetchHistory", () => {
         { body: JSON.stringify({ code: -412, message: "anti-spider" }) },
       ],
     ]);
-    const history = await client.fetchHistory(FAKE_COOKIE);
-    expect(history).toEqual([]);
+    await expect(client.fetchHistory(FAKE_COOKIE)).rejects.toMatchObject({
+      code: "SOURCE_PAGE_ERROR",
+    });
     expect(client.lastErrorCode).toBe(-412);
     expect(client.lastErrorMessage).toBe("anti-spider");
   });
@@ -397,12 +419,51 @@ describe("BilibiliApiClient.fetchHistory", () => {
     const { client, calls } = makeClient([
       ["finger/spi", { body: SPI_RESPONSE_BODY }],
       ["web-interface/nav", { body: NAV_RESPONSE_BODY }],
-      ["history/cursor", { body: JSON.stringify({ code: 0, data: { list: [] } }) }],
+      [
+        "history/cursor",
+        { body: JSON.stringify({ code: 0, data: { list: [] } }) },
+      ],
     ]);
     await client.fetchHistory(FAKE_COOKIE);
     const histCall = calls.find((c) => c.url.includes("history/cursor"));
     expect(histCall.url).toContain("type=archive");
     expect(histCall.url).toContain("ps=30");
+  });
+
+  it("permits both preflight requests before permitting the source page", async () => {
+    const { client, calls } = makeClient([
+      ["finger/spi", { body: SPI_RESPONSE_BODY }],
+      ["web-interface/nav", { body: NAV_RESPONSE_BODY }],
+      [
+        "history/cursor",
+        { body: JSON.stringify({ code: 0, data: { list: [] } }) },
+      ],
+    ]);
+    const operations = [];
+
+    await client.fetchHistory(FAKE_COOKIE, {
+      beforeSourceRequest: async ({ operation }) => {
+        operations.push(operation);
+      },
+    });
+
+    expect(operations).toEqual(["preflight-spi", "preflight-nav", "history"]);
+    expect(calls).toHaveLength(3);
+  });
+
+  it("does not fetch when a preflight source permit rejects", async () => {
+    const { client, calls } = makeClient([
+      ["finger/spi", { body: SPI_RESPONSE_BODY }],
+    ]);
+
+    await expect(
+      client.fetchHistory(FAKE_COOKIE, {
+        beforeSourceRequest: async () => {
+          throw new Error("page budget exhausted");
+        },
+      }),
+    ).rejects.toThrow("page budget exhausted");
+    expect(calls).toHaveLength(0);
   });
 });
 
@@ -418,7 +479,12 @@ describe("BilibiliApiClient.fetchFavourites", () => {
         {
           body: JSON.stringify({
             code: 0,
-            data: { list: [{ id: 101, title: "Folder A" }, { id: 102, title: "Folder B" }] },
+            data: {
+              list: [
+                { id: 101, title: "Folder A" },
+                { id: 102, title: "Folder B" },
+              ],
+            },
           }),
         },
       ],
@@ -447,7 +513,12 @@ describe("BilibiliApiClient.fetchFavourites", () => {
               code: 0,
               data: {
                 medias: [
-                  { bvid: "BVf2", title: "Fav in B", fav_time: 1716383022, upper: { name: "upB" } },
+                  {
+                    bvid: "BVf2",
+                    title: "Fav in B",
+                    fav_time: 1716383022,
+                    upper: { name: "upB" },
+                  },
                 ],
               },
             }),
@@ -463,7 +534,7 @@ describe("BilibiliApiClient.fetchFavourites", () => {
     expect(favs[0].savedAt).toBe(1716383021000);
   });
 
-  it("returns [] when folders endpoint fails", async () => {
+  it("rejects when folders endpoint returns an explicit failure", async () => {
     const { client } = makeClient([
       ["finger/spi", { body: SPI_RESPONSE_BODY }],
       ["web-interface/nav", { body: NAV_RESPONSE_BODY }],
@@ -472,8 +543,11 @@ describe("BilibiliApiClient.fetchFavourites", () => {
         { body: JSON.stringify({ code: -400, message: "bad request" }) },
       ],
     ]);
-    const favs = await client.fetchFavourites(FAKE_COOKIE, 1234567890);
-    expect(favs).toEqual([]);
+    await expect(
+      client.fetchFavourites(FAKE_COOKIE, 1234567890),
+    ).rejects.toMatchObject({
+      code: "SOURCE_PAGE_ERROR",
+    });
   });
 
   it("includes platform=web on per-folder items request", async () => {
@@ -497,6 +571,102 @@ describe("BilibiliApiClient.fetchFavourites", () => {
     await client.fetchFavourites(FAKE_COOKIE, 1234567890);
     const itemsCall = calls.find((c) => c.url.includes("fav/resource/list"));
     expect(itemsCall.url).toContain("platform=web");
+  });
+
+  it("applies maxPages per folder instead of dropping folders globally", async () => {
+    const folders = Array.from({ length: 11 }, (_, index) => ({
+      id: index + 1,
+      title: `Folder ${index + 1}`,
+    }));
+    const { client, calls } = makeClient([
+      ["finger/spi", { body: SPI_RESPONSE_BODY }],
+      ["web-interface/nav", { body: NAV_RESPONSE_BODY }],
+      [
+        "fav/folder/created/list-all",
+        {
+          body: JSON.stringify({
+            code: 0,
+            data: { list: folders },
+          }),
+        },
+      ],
+      [
+        "fav/resource/list",
+        async (url) => {
+          const folderId = new URL(url).searchParams.get("media_id");
+          return {
+            body: JSON.stringify({
+              code: 0,
+              data: {
+                medias: [{ bvid: `BV-${folderId}`, title: folderId }],
+                has_more: false,
+              },
+            }),
+          };
+        },
+      ],
+    ]);
+
+    const items = await client.fetchFavourites(FAKE_COOKIE, 1234567890, {
+      maxPages: 1,
+    });
+
+    expect(items).toHaveLength(11);
+    expect(
+      calls.filter((call) => call.url.includes("fav/resource/list")),
+    ).toHaveLength(11);
+  });
+
+  it("uses consumed rows when the server caps the requested page size", async () => {
+    const { client, calls } = makeClient([
+      ["finger/spi", { body: SPI_RESPONSE_BODY }],
+      ["web-interface/nav", { body: NAV_RESPONSE_BODY }],
+      [
+        "fav/folder/created/list-all",
+        {
+          body: JSON.stringify({
+            code: 0,
+            data: { list: [{ id: 101, title: "F" }] },
+          }),
+        },
+      ],
+      [
+        "fav/resource/list",
+        async (url) => {
+          const page = Number(new URL(url).searchParams.get("pn"));
+          const start = (page - 1) * 2;
+          const count = page < 3 ? 2 : 1;
+          return {
+            body: JSON.stringify({
+              code: 0,
+              data: {
+                medias: Array.from({ length: count }, (_, index) => ({
+                  bvid: `BV-${start + index + 1}`,
+                  title: `Item ${start + index + 1}`,
+                })),
+                info: { media_count: 5 },
+              },
+            }),
+          };
+        },
+      ],
+    ]);
+
+    const items = await client.fetchFavourites(FAKE_COOKIE, 1234567890, {
+      maxPages: 5,
+      perFolderLimit: 5,
+    });
+
+    expect(items.map((item) => item.bvid)).toEqual([
+      "BV-1",
+      "BV-2",
+      "BV-3",
+      "BV-4",
+      "BV-5",
+    ]);
+    expect(
+      calls.filter((call) => call.url.includes("fav/resource/list")),
+    ).toHaveLength(3);
   });
 });
 
@@ -562,7 +732,9 @@ describe("BilibiliApiClient.fetchDynamics", () => {
                   type: "DYNAMIC_TYPE_AV",
                   modules: {
                     module_author: { mid: 1, name: "x", pub_ts: 1 },
-                    module_dynamic: { major: { archive: { title: "Archive Title" } } },
+                    module_dynamic: {
+                      major: { archive: { title: "Archive Title" } },
+                    },
                   },
                 },
               ],
@@ -662,7 +834,9 @@ describe("BilibiliApiClient.fetchFollows", () => {
       ],
     ]);
     await client.fetchFollows(FAKE_COOKIE, 1234567890);
-    const followsCall = calls.find((c) => c.url.includes("relation/followings"));
+    const followsCall = calls.find((c) =>
+      c.url.includes("relation/followings"),
+    );
     expect(followsCall.url).toContain("vmid=1234567890");
     expect(followsCall.url).toContain("order=desc");
     expect(followsCall.url).toContain("order_type=attention");
@@ -674,11 +848,17 @@ describe("BilibiliApiClient.fetchFollows", () => {
 describe("BilibiliApiClient — test seams", () => {
   it("setMintedBuvid3ForTest bypasses /spi network call", async () => {
     const { client, calls } = makeClient([
-      ["finger/spi", () => {
-        throw new Error("should not call /spi");
-      }],
+      [
+        "finger/spi",
+        () => {
+          throw new Error("should not call /spi");
+        },
+      ],
       ["web-interface/nav", { body: NAV_RESPONSE_BODY }],
-      ["history/cursor", { body: JSON.stringify({ code: 0, data: { list: [] } }) }],
+      [
+        "history/cursor",
+        { body: JSON.stringify({ code: 0, data: { list: [] } }) },
+      ],
     ]);
     client.setMintedBuvid3ForTest("PRE_SEEDED_B3");
     await client.fetchHistory(FAKE_COOKIE);
@@ -689,10 +869,16 @@ describe("BilibiliApiClient — test seams", () => {
   it("setWbiMixinKeyForTest bypasses /nav network call", async () => {
     const { client, calls } = makeClient([
       ["finger/spi", { body: SPI_RESPONSE_BODY }],
-      ["web-interface/nav", () => {
-        throw new Error("should not call /nav");
-      }],
-      ["history/cursor", { body: JSON.stringify({ code: 0, data: { list: [] } }) }],
+      [
+        "web-interface/nav",
+        () => {
+          throw new Error("should not call /nav");
+        },
+      ],
+      [
+        "history/cursor",
+        { body: JSON.stringify({ code: 0, data: { list: [] } }) },
+      ],
     ]);
     client.setWbiMixinKeyForTest("M".repeat(32));
     await client.fetchHistory(FAKE_COOKIE);

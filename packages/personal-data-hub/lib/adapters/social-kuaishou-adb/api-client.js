@@ -25,8 +25,10 @@
  */
 
 const { NULL_SIGN_PROVIDER } = require("../../sign-providers");
+const { extractRecognizedArray } = require("../../source-page");
 
 const DEFAULT_BASE_URL = "https://www.kuaishou.com/";
+const DEFAULT_MAX_PAGES = 10;
 
 const BROWSER_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
@@ -139,7 +141,9 @@ class KuaishouApiClient {
     const uid =
       pickString(obj.user_id) ||
       pickString(obj.userId) ||
-      (Number.isFinite(obj.user_id) && obj.user_id > 0 && String(obj.user_id)) ||
+      (Number.isFinite(obj.user_id) &&
+        obj.user_id > 0 &&
+        String(obj.user_id)) ||
       (Number.isFinite(obj.userId) && obj.userId > 0 && String(obj.userId)) ||
       null;
     if (!uid || uid === "0") {
@@ -220,15 +224,7 @@ class KuaishouApiClient {
         this._setLastError(-3, "parse: " + (e.message || String(e)));
         return null;
       }
-      // GraphQL errors come back as {errors: [...]} with HTTP 200.
-      if (Array.isArray(obj.errors) && obj.errors.length > 0) {
-        const first = obj.errors[0];
-        const msg = (first && first.message) || "graphql error";
-        this._setLastError(-5, "graphql: " + msg);
-        return null;
-      }
-      this._clearLastError();
-      return obj.data || null;
+      return obj;
     } catch (e) {
       this._setLastError(-2, "IO: " + (e.message || String(e)));
       return null;
@@ -242,23 +238,55 @@ class KuaishouApiClient {
   async fetchWatchHistory(cookie, opts = {}) {
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 50;
-    const data = await this._signedGraphQL(cookie, OP_FEED_RECOMMEND, {
-      pcursor: "",
-      count: limit,
-    });
-    if (!data) return [];
-    const feeds =
-      (data.visionFeedRecommend && data.visionFeedRecommend.feeds) || [];
-    return extractPhotoList(feeds, limit, (item, photo, photoId, caption, ts) => ({
-      photoId,
-      caption,
-      authorName:
-        (item.author && item.author.name) || null,
-      authorId:
-        (item.author && item.author.id) || null,
-      viewedAt: ts,
-      duration: Number.isFinite(photo.duration) ? photo.duration : 0,
-    }));
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : DEFAULT_MAX_PAGES;
+    const out = [];
+    let cursor = "";
+    const seenItems = new Set();
+    const seenPages = new Set();
+    for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({
+          operation: "watch",
+          page,
+          cursor,
+        });
+      }
+      const response = await this._signedGraphQL(cookie, OP_FEED_RECOMMEND, {
+        pcursor: cursor,
+        count: limit,
+      });
+      if (!response) return out;
+      const feeds = this._extractGraphQlArray(
+        response,
+        [["data", OP_FEED_RECOMMEND, "feeds"]],
+        "watch",
+      );
+      if (isRepeatedPage(seenPages, feeds, kuaishouPhotoKey)) break;
+      out.push(
+        ...extractPhotoList(
+          feeds,
+          limit - out.length,
+          (item, photo, photoId, caption, ts) => ({
+            photoId,
+            caption,
+            authorName: (item.author && item.author.name) || null,
+            authorId: (item.author && item.author.id) || null,
+            viewedAt: ts,
+            duration: Number.isFinite(photo.duration) ? photo.duration : 0,
+          }),
+          seenItems,
+        ),
+      );
+      if (feeds.length === 0 || out.length >= limit) break;
+      const root = response.data && response.data[OP_FEED_RECOMMEND];
+      const nextCursor = graphQlNextCursor(root);
+      if (!nextCursor || nextCursor === cursor) break;
+      cursor = nextCursor;
+    }
+    return out;
   }
 
   /**
@@ -268,20 +296,54 @@ class KuaishouApiClient {
   async fetchProfilePhotos(cookie, userId, opts = {}) {
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 100;
-    const data = await this._signedGraphQL(cookie, OP_PROFILE_PHOTOS, {
-      userId,
-      pcursor: "",
-      count: limit,
-      page: "profile",
-    });
-    if (!data) return [];
-    const feeds =
-      (data.visionProfilePhotoList && data.visionProfilePhotoList.feeds) || [];
-    return extractPhotoList(feeds, limit, (_item, _photo, photoId, caption, ts) => ({
-      photoId,
-      caption,
-      postedAt: ts,
-    }));
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : DEFAULT_MAX_PAGES;
+    const out = [];
+    let cursor = "";
+    const seenItems = new Set();
+    const seenPages = new Set();
+    for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({
+          operation: "profile-photos",
+          page,
+          cursor,
+        });
+      }
+      const response = await this._signedGraphQL(cookie, OP_PROFILE_PHOTOS, {
+        userId,
+        pcursor: cursor,
+        count: limit,
+        page: "profile",
+      });
+      if (!response) return out;
+      const feeds = this._extractGraphQlArray(
+        response,
+        [["data", OP_PROFILE_PHOTOS, "feeds"]],
+        "profile-photos",
+      );
+      if (isRepeatedPage(seenPages, feeds, kuaishouPhotoKey)) break;
+      out.push(
+        ...extractPhotoList(
+          feeds,
+          limit - out.length,
+          (_item, _photo, photoId, caption, ts) => ({
+            photoId,
+            caption,
+            postedAt: ts,
+          }),
+          seenItems,
+        ),
+      );
+      if (feeds.length === 0 || out.length >= limit) break;
+      const root = response.data && response.data[OP_PROFILE_PHOTOS];
+      const nextCursor = graphQlNextCursor(root);
+      if (!nextCursor || nextCursor === cursor) break;
+      cursor = nextCursor;
+    }
+    return out;
   }
 
   /**
@@ -293,36 +355,86 @@ class KuaishouApiClient {
   async fetchSearchHistory(cookie, opts = {}) {
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 50;
-    const data = await this._signedGraphQL(cookie, OP_SEARCH_PHOTO, {
-      keyword: "",
-      pcursor: "",
-      page: "search",
-    });
-    if (!data) return [];
-    const root = data.visionSearchPhoto || {};
-    const arr = Array.isArray(root.recentSearchList)
-      ? root.recentSearchList
-      : Array.isArray(root.history)
-        ? root.history
-        : [];
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : DEFAULT_MAX_PAGES;
     const out = [];
-    const cap = Math.min(limit, arr.length);
-    const now = this._now();
-    for (let i = 0; i < cap; i++) {
-      const raw = arr[i];
-      let keyword = null;
-      let ts = 0;
-      if (raw && typeof raw === "object") {
-        keyword = raw.keyword || raw.query || null;
-        ts = normalizeMs(raw.time || raw.searchTime || 0);
-      } else if (typeof raw === "string") {
-        keyword = raw;
-        ts = now - i * 1000;
+    let cursor = "";
+    const scanStartedAt = this._now();
+    let syntheticIndex = 0;
+    const seenItems = new Set();
+    const seenPages = new Set();
+    for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({
+          operation: "search-history",
+          page,
+          cursor,
+        });
       }
-      if (!keyword) continue;
-      out.push({ keyword, searchedAt: ts });
+      const response = await this._signedGraphQL(cookie, OP_SEARCH_PHOTO, {
+        keyword: "",
+        pcursor: cursor,
+        page: "search",
+      });
+      if (!response) return out;
+      const arr = this._extractGraphQlArray(
+        response,
+        [
+          ["data", OP_SEARCH_PHOTO, "recentSearchList"],
+          ["data", OP_SEARCH_PHOTO, "history"],
+        ],
+        "search-history",
+      );
+      if (isRepeatedPage(seenPages, arr, kuaishouSearchKey)) break;
+      for (const raw of arr) {
+        if (out.length >= limit) break;
+        let keyword = null;
+        let ts = 0;
+        if (raw && typeof raw === "object") {
+          keyword = raw.keyword || raw.query || null;
+          ts = normalizeMs(raw.time || raw.searchTime || 0);
+        } else if (typeof raw === "string") {
+          keyword = raw;
+          ts = scanStartedAt - syntheticIndex * 1000;
+          syntheticIndex += 1;
+        }
+        if (!keyword) continue;
+        const itemKey = `${keyword}:${ts}`;
+        if (seenItems.has(itemKey)) continue;
+        seenItems.add(itemKey);
+        out.push({ keyword, searchedAt: ts });
+      }
+      if (arr.length === 0 || out.length >= limit) break;
+      const root = response.data && response.data[OP_SEARCH_PHOTO];
+      const nextCursor = graphQlNextCursor(root);
+      if (!nextCursor || nextCursor === cursor) break;
+      cursor = nextCursor;
     }
     return out;
+  }
+
+  _extractGraphQlArray(response, paths, stream) {
+    const errors =
+      response && Array.isArray(response.errors) ? response.errors : [];
+    const sourceResponse =
+      errors.length > 0 ? { ...response, error: errors[0] } : response;
+    try {
+      const items = extractRecognizedArray(sourceResponse, paths, {
+        source: "social-kuaishou-adb",
+        stream,
+      });
+      this._clearLastError();
+      return items;
+    } catch (error) {
+      const first = errors[0];
+      const message =
+        (first && first.message && `graphql: ${first.message}`) ||
+        error.message;
+      this._setLastError(-5, message);
+      throw error;
+    }
   }
 
   _setLastError(code, message) {
@@ -335,24 +447,66 @@ class KuaishouApiClient {
   }
 }
 
-function extractPhotoList(feeds, limit, build) {
+function graphQlNextCursor(root) {
+  if (!root || typeof root !== "object") return null;
+  if (root.hasMore === false || root.has_more === false) return null;
+  const raw =
+    root.pcursor ?? root.nextCursor ?? root.next_cursor ?? root.cursor;
+  if (raw == null) return null;
+  const cursor = String(raw);
+  if (
+    cursor.length === 0 ||
+    cursor.toLowerCase() === "no_more" ||
+    cursor.toLowerCase() === "nomore"
+  ) {
+    return null;
+  }
+  return cursor;
+}
+
+function extractPhotoList(feeds, limit, build, seenItems = new Set()) {
   if (!Array.isArray(feeds)) return [];
   const out = [];
-  const cap = Math.min(limit, feeds.length);
-  for (let i = 0; i < cap; i++) {
-    const item = feeds[i];
+  for (const item of feeds) {
+    if (out.length >= limit) break;
     if (!item || typeof item !== "object") continue;
     // Kuaishou GraphQL nests the photo under `photo`; flat fallback.
     const photo =
       item.photo && typeof item.photo === "object" ? item.photo : item;
     const photoId = pickString(photo.id);
     if (!photoId) continue;
+    if (seenItems.has(photoId)) continue;
+    seenItems.add(photoId);
     const caption = pickString(photo.caption) || "(no caption)";
     const ts = normalizeMs(photo.timestamp || photo.createTime || 0);
     const built = build(item, photo, photoId, caption, ts);
     if (built) out.push(built);
   }
   return out;
+}
+
+function isRepeatedPage(seenPages, items, keyForItem) {
+  const pageKey = JSON.stringify(
+    items.map((item) => keyForItem(item) || JSON.stringify(item)),
+  );
+  if (seenPages.has(pageKey)) return true;
+  seenPages.add(pageKey);
+  return false;
+}
+
+function kuaishouPhotoKey(item) {
+  if (!item || typeof item !== "object") return null;
+  const photo =
+    item.photo && typeof item.photo === "object" ? item.photo : item;
+  return pickString(photo.id);
+}
+
+function kuaishouSearchKey(item) {
+  if (typeof item === "string") return `string:${item}`;
+  if (!item || typeof item !== "object") return null;
+  const keyword = item.keyword || item.query;
+  if (!keyword) return null;
+  return `${keyword}:${item.time || item.searchTime || 0}`;
 }
 
 /**

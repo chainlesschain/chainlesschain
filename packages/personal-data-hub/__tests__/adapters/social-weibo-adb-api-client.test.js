@@ -8,11 +8,12 @@
  * `android-app/.../WeiboApiClient*Test.kt`.
  */
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 
-const { WeiboApiClient, _internals } = require(
-  "../../lib/adapters/social-weibo-adb/api-client",
-);
+const {
+  WeiboApiClient,
+  _internals,
+} = require("../../lib/adapters/social-weibo-adb/api-client");
 
 function makeClient(responses) {
   const calls = [];
@@ -102,7 +103,12 @@ describe("WeiboApiClient.fetchUid", () => {
     const { client } = makeClient([
       [
         "api/config",
-        { body: JSON.stringify({ ok: 1, data: { login: true, uid: "1234567890" } }) },
+        {
+          body: JSON.stringify({
+            ok: 1,
+            data: { login: true, uid: "1234567890" },
+          }),
+        },
       ],
     ]);
     const uid = await client.fetchUid(FAKE_COOKIE);
@@ -347,15 +353,16 @@ describe("WeiboApiClient.fetchFollows", () => {
 // ─── error code propagation ─────────────────────────────────────────────
 
 describe("WeiboApiClient — error propagation", () => {
-  it("ok != 1 → returns [] + sets lastError", async () => {
+  it("ok != 1 → rejects + sets lastError", async () => {
     const { client } = makeClient([
       [
         "api/container/getIndex",
         { body: JSON.stringify({ ok: -100, msg: "anti-bot" }) },
       ],
     ]);
-    const r = await client.fetchPosts(FAKE_COOKIE, 1);
-    expect(r).toEqual([]);
+    await expect(client.fetchPosts(FAKE_COOKIE, 1)).rejects.toMatchObject({
+      code: "SOURCE_PAGE_ERROR",
+    });
     expect(client.lastErrorCode).toBe(-100);
     expect(client.lastErrorMessage).toBe("anti-bot");
   });

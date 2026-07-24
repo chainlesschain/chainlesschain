@@ -40,9 +40,15 @@ async function collect(bridge, opts = {}) {
   // ~100% X-S hit rate; cli wiring leaves undefined → client falls back
   // to in-process best-effort md5 (~60% GET / <30% POST).
   const signProvider = opts.signProvider || undefined;
-  const client =
-    opts.apiClient || new XhsApiClient({ now, signProvider });
+  const client = opts.apiClient || new XhsApiClient({ now, signProvider });
   const limits = opts.limits || {};
+  const sourceRequestOptions = {};
+  if (Number.isInteger(opts.maxPages) && opts.maxPages > 0) {
+    sourceRequestOptions.maxPages = opts.maxPages;
+  }
+  if (typeof opts.beforeSourceRequest === "function") {
+    sourceRequestOptions.beforeSourceRequest = opts.beforeSourceRequest;
+  }
 
   const cookieResult = await bridge.invoke("xhs.cookies");
   if (
@@ -89,7 +95,9 @@ async function collect(bridge, opts = {}) {
         nickname: opts.displayName,
         snapshottedAt: now(),
       });
-      const snapshotPath = writeSnapshotJson(snapshot, { dir: opts.stagingDir });
+      const snapshotPath = writeSnapshotJson(snapshot, {
+        dir: opts.stagingDir,
+      });
       return {
         snapshotPath,
         userId: null,
@@ -99,9 +107,7 @@ async function collect(bridge, opts = {}) {
         lastErrorMessage: client.lastErrorMessage,
         cookieDiagnostic: cookieDiagnostic || null,
         meFetchFailed: true,
-        signProviderUsed: signProvider
-          ? signProvider.constructor.name
-          : "none",
+        signProviderUsed: signProvider ? signProvider.constructor.name : "none",
         signProviderHits: client._bridgeHits,
         signProviderFallbacks: client._fallbackHits,
       };
@@ -111,12 +117,15 @@ async function collect(bridge, opts = {}) {
     // requests should hit ~100% while fallback hits ~60% GET / <30% POST.
     const [notes, liked, follows] = await Promise.all([
       client.fetchNotes(cookie, a1, me.userId, {
+        ...sourceRequestOptions,
         limit: Number.isInteger(limits.note) ? limits.note : undefined,
       }),
       client.fetchLiked(cookie, a1, {
+        ...sourceRequestOptions,
         limit: Number.isInteger(limits.liked) ? limits.liked : undefined,
       }),
       client.fetchFollows(cookie, a1, me.userId, {
+        ...sourceRequestOptions,
         limit: Number.isInteger(limits.follow) ? limits.follow : undefined,
       }),
     ]);

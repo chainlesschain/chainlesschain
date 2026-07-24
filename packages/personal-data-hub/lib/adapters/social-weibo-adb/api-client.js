@@ -29,11 +29,15 @@
  *   - favourites /api/favorites?page=1
  *   - follows    /api/friendships/friends?uid=<uid>&page=1
  *
- * Errors don't throw — endpoints that fail return [] and lastErrorCode +
- * lastErrorMessage surface the cause for partial-result diagnostics.
+ * Transport failures keep the legacy partial-result diagnostics. Parsed list
+ * responses fail closed on explicit source errors or unknown envelope shapes,
+ * so they cannot be mistaken for a real empty page.
  */
 
+const { extractRecognizedArray } = require("../../source-page");
+
 const DEFAULT_BASE_URL = "https://m.weibo.cn/";
+const DEFAULT_MAX_PAGES = 10;
 
 // Pinned Chrome 120 mobile UA — must look like a browser, default
 // `node-fetch/x.y.z` returns -100 silentband.
@@ -106,7 +110,7 @@ class WeiboApiClient {
    * including the non-JSON-body check (Weibo redirects to login HTML
    * when cookie expired).
    */
-  async _doGetJson(url, cookie) {
+  async _doGetJson(url, cookie, { returnErrorResponse = false } = {}) {
     try {
       const resp = await this._fetch(url.toString(), {
         method: "GET",
@@ -133,9 +137,9 @@ class WeiboApiClient {
       const ok = typeof obj.ok === "number" ? obj.ok : 1;
       if (ok !== 1) {
         this._setLastError(ok, (obj.msg || "").toString());
+        if (returnErrorResponse) return obj;
         return null;
       }
-      this._clearLastError();
       return obj;
     } catch (e) {
       this._setLastError(-2, "IO: " + (e.message || String(e)));
@@ -152,6 +156,32 @@ class WeiboApiClient {
     this.lastErrorMessage = null;
   }
 
+  _extractSourceArray(response, paths, stream) {
+    const explicitFailure =
+      response && response.ok != null && Number(response.ok) !== 1;
+    const sourceResponse = explicitFailure
+      ? { ...response, error: response.msg || `ok=${response.ok}` }
+      : response;
+    try {
+      const items = extractRecognizedArray(sourceResponse, paths, {
+        source: "social-weibo-adb",
+        stream,
+      });
+      this._clearLastError();
+      return items;
+    } catch (error) {
+      const code =
+        response && typeof response.ok === "number" && response.ok !== 1
+          ? response.ok || -5
+          : -6;
+      this._setLastError(
+        code,
+        (response && response.msg && String(response.msg)) || error.message,
+      );
+      throw error;
+    }
+  }
+
   /**
    * Fetch /api/config to get UID + validate login state. Returns numeric
    * UID on success, null on failure (cookie expired / not logged in).
@@ -165,7 +195,9 @@ class WeiboApiClient {
     if (!data.login) return null;
     const uidStr = data.uid;
     const uid = parseInt(uidStr, 10);
-    return Number.isFinite(uid) && uid > 0 ? uid : null;
+    if (!Number.isFinite(uid) || uid <= 0) return null;
+    this._clearLastError();
+    return uid;
   }
 
   /**
@@ -173,100 +205,268 @@ class WeiboApiClient {
    * containerid=107603<uid> is the magic "user's own mblog" container.
    */
   async fetchPosts(cookie, uid, opts = {}) {
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 100;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 100;
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : DEFAULT_MAX_PAGES;
     const containerid = `107603${uid}`;
-    const url = new URL("api/container/getIndex", this.baseUrl);
-    url.searchParams.set("type", "uid");
-    url.searchParams.set("value", String(uid));
-    url.searchParams.set("containerid", containerid);
-    const obj = await this._doGetJson(url, cookie);
-    if (!obj) return [];
-    const data = obj.data || {};
-    const cards = Array.isArray(data.cards) ? data.cards : [];
     const out = [];
-    for (const card of cards) {
-      if (out.length >= limit) break;
-      if (!card || card.card_type !== 9) continue; // card_type=9 = mblog
-      const blog = card.mblog;
-      if (!blog) continue;
-      const mid = (blog.mid && String(blog.mid)) || (blog.id && String(blog.id));
-      if (!mid) continue;
-      out.push({
-        mid,
-        text: stripHtml(blog.text),
-        createdAt: parseWeiboTime(blog.created_at),
-        source: blog.source || null,
-        repostsCount: typeof blog.reposts_count === "number" ? blog.reposts_count : 0,
-        commentsCount:
-          typeof blog.comments_count === "number" ? blog.comments_count : 0,
-        likesCount:
-          typeof blog.attitudes_count === "number" ? blog.attitudes_count : 0,
-        picCount: typeof blog.pic_num === "number" ? blog.pic_num : 0,
+    let cursor = null;
+    const seenItems = new Set();
+    const seenPages = new Set();
+    for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
+      const url = new URL("api/container/getIndex", this.baseUrl);
+      url.searchParams.set("type", "uid");
+      url.searchParams.set("value", String(uid));
+      url.searchParams.set("containerid", containerid);
+      url.searchParams.set("page", String(page));
+      if (cursor != null) url.searchParams.set("since_id", String(cursor));
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({
+          operation: "posts",
+          page,
+          cursor,
+        });
+      }
+      const obj = await this._doGetJson(url, cookie, {
+        returnErrorResponse: true,
       });
+      if (!obj) return out;
+      const cards = this._extractSourceArray(obj, [["data", "cards"]], "posts");
+      if (isRepeatedPage(seenPages, cards, weiboPostKey)) break;
+      for (const card of cards) {
+        if (out.length >= limit) break;
+        if (!card || card.card_type !== 9) continue; // card_type=9 = mblog
+        const blog = card.mblog;
+        if (!blog) continue;
+        const mid =
+          (blog.mid && String(blog.mid)) || (blog.id && String(blog.id));
+        if (!mid) continue;
+        if (seenItems.has(mid)) continue;
+        seenItems.add(mid);
+        out.push({
+          mid,
+          text: stripHtml(blog.text),
+          createdAt: parseWeiboTime(blog.created_at),
+          source: blog.source || null,
+          repostsCount:
+            typeof blog.reposts_count === "number" ? blog.reposts_count : 0,
+          commentsCount:
+            typeof blog.comments_count === "number" ? blog.comments_count : 0,
+          likesCount:
+            typeof blog.attitudes_count === "number" ? blog.attitudes_count : 0,
+          picCount: typeof blog.pic_num === "number" ? blog.pic_num : 0,
+        });
+      }
+      if (cards.length === 0 || out.length >= limit) break;
+      const nextCursor = weiboPostsCursor(obj);
+      if (nextCursor == null) {
+        if (!weiboHasNextPage(obj.data, page)) break;
+        cursor = null;
+      } else if (String(nextCursor) === String(cursor)) {
+        break;
+      } else {
+        cursor = nextCursor;
+      }
     }
     return out;
   }
 
   /** Mirrors fetchFavourites. */
   async fetchFavourites(cookie, opts = {}) {
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 100;
-    const url = new URL("api/favorites", this.baseUrl);
-    url.searchParams.set("page", "1");
-    const obj = await this._doGetJson(url, cookie);
-    if (!obj) return [];
-    const data = obj.data || {};
-    const favs = Array.isArray(data.favorites) ? data.favorites : [];
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 100;
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : DEFAULT_MAX_PAGES;
     const out = [];
-    for (let i = 0; i < Math.min(limit, favs.length); i++) {
-      const fav = favs[i];
-      if (!fav) continue;
-      const status = fav.status;
-      if (!status) continue;
-      const mid = (status.mid && String(status.mid)) || (status.id && String(status.id));
-      if (!mid) continue;
-      const author = status.user || {};
-      const favAt =
-        parseWeiboTime(fav.favorited_time) ||
-        parseWeiboTime(status.created_at) ||
-        0;
-      out.push({
-        mid,
-        text: stripHtml(status.text),
-        favAt,
-        authorScreenName: author.screen_name || null,
+    const seenItems = new Set();
+    const seenPages = new Set();
+    for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
+      const url = new URL("api/favorites", this.baseUrl);
+      url.searchParams.set("page", String(page));
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({
+          operation: "favourites",
+          page,
+        });
+      }
+      const obj = await this._doGetJson(url, cookie, {
+        returnErrorResponse: true,
       });
+      if (!obj) return out;
+      const favs = this._extractSourceArray(
+        obj,
+        [["data", "favorites"]],
+        "favourites",
+      );
+      if (isRepeatedPage(seenPages, favs, weiboFavouriteKey)) break;
+      for (const fav of favs) {
+        if (out.length >= limit) break;
+        if (!fav) continue;
+        const status = fav.status;
+        if (!status) continue;
+        const mid =
+          (status.mid && String(status.mid)) ||
+          (status.id && String(status.id));
+        if (!mid) continue;
+        if (seenItems.has(mid)) continue;
+        seenItems.add(mid);
+        const author = status.user || {};
+        const favAt =
+          parseWeiboTime(fav.favorited_time) ||
+          parseWeiboTime(status.created_at) ||
+          0;
+        out.push({
+          mid,
+          text: stripHtml(status.text),
+          favAt,
+          authorScreenName: author.screen_name || null,
+        });
+      }
+      if (
+        favs.length === 0 ||
+        out.length >= limit ||
+        !weiboHasNextPage(obj.data, page)
+      ) {
+        break;
+      }
     }
     return out;
   }
 
   /** Mirrors fetchFollows. */
   async fetchFollows(cookie, uid, opts = {}) {
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 200;
-    const url = new URL("api/friendships/friends", this.baseUrl);
-    url.searchParams.set("uid", String(uid));
-    url.searchParams.set("page", "1");
-    const obj = await this._doGetJson(url, cookie);
-    if (!obj) return [];
-    const data = obj.data || {};
-    const users = Array.isArray(data.users) ? data.users : [];
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 200;
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : DEFAULT_MAX_PAGES;
     const out = [];
-    for (let i = 0; i < Math.min(limit, users.length); i++) {
-      const u = users[i];
-      if (!u) continue;
-      const followUid = typeof u.id === "number" ? u.id : 0;
-      if (followUid === 0) continue;
-      out.push({
-        uid: followUid,
-        screenName: u.screen_name || "(unnamed)",
-        description: u.description || null,
-        avatarUrl: u.profile_image_url || null,
-        // m.weibo.cn /api/friendships/friends doesn't return follow_time —
-        // 0 lets the snapshot builder fall back to snapshottedAt.
-        followedAt: 0,
+    const seenItems = new Set();
+    const seenPages = new Set();
+    for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
+      const url = new URL("api/friendships/friends", this.baseUrl);
+      url.searchParams.set("uid", String(uid));
+      url.searchParams.set("page", String(page));
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({
+          operation: "follows",
+          page,
+        });
+      }
+      const obj = await this._doGetJson(url, cookie, {
+        returnErrorResponse: true,
       });
+      if (!obj) return out;
+      const users = this._extractSourceArray(
+        obj,
+        [["data", "users"]],
+        "follows",
+      );
+      if (isRepeatedPage(seenPages, users, weiboFollowKey)) break;
+      for (const u of users) {
+        if (out.length >= limit) break;
+        if (!u) continue;
+        const followUid = typeof u.id === "number" ? u.id : 0;
+        if (followUid === 0) continue;
+        const itemKey = String(followUid);
+        if (seenItems.has(itemKey)) continue;
+        seenItems.add(itemKey);
+        out.push({
+          uid: followUid,
+          screenName: u.screen_name || "(unnamed)",
+          description: u.description || null,
+          avatarUrl: u.profile_image_url || null,
+          // m.weibo.cn /api/friendships/friends doesn't return follow_time —
+          // 0 lets the snapshot builder fall back to snapshottedAt.
+          followedAt: 0,
+        });
+      }
+      if (
+        users.length === 0 ||
+        out.length >= limit ||
+        !weiboHasNextPage(obj.data, page)
+      ) {
+        break;
+      }
     }
     return out;
   }
+}
+
+function weiboPostsCursor(response) {
+  const data = response && response.data;
+  if (!data || typeof data !== "object") return null;
+  const info =
+    data.cardlistInfo && typeof data.cardlistInfo === "object"
+      ? data.cardlistInfo
+      : {};
+  if (
+    info.since_id == null ||
+    info.since_id === "" ||
+    info.since_id === 0 ||
+    info.since_id === "0"
+  ) {
+    return null;
+  }
+  return info.since_id;
+}
+
+function weiboHasNextPage(data, page) {
+  if (!data || typeof data !== "object") return false;
+  if (
+    data.has_more === false ||
+    data.has_more === 0 ||
+    data.has_more === "0" ||
+    data.hasMore === false
+  ) {
+    return false;
+  }
+  if (
+    data.has_more === true ||
+    data.has_more === 1 ||
+    data.has_more === "1" ||
+    data.hasMore === true
+  ) {
+    return true;
+  }
+  const maxPage = Number(data.maxPage ?? data.max_page ?? data.max_page_num);
+  return Number.isFinite(maxPage) && page < maxPage;
+}
+
+function isRepeatedPage(seenPages, items, keyForItem) {
+  const pageKey = JSON.stringify(
+    items.map((item) => keyForItem(item) || JSON.stringify(item)),
+  );
+  if (seenPages.has(pageKey)) return true;
+  seenPages.add(pageKey);
+  return false;
+}
+
+function weiboPostKey(card) {
+  if (!card || typeof card !== "object") return null;
+  const blog = card.mblog;
+  if (!blog || typeof blog !== "object") return null;
+  const id = blog.mid || blog.id;
+  return id == null ? null : String(id);
+}
+
+function weiboFavouriteKey(favourite) {
+  if (!favourite || typeof favourite !== "object") return null;
+  const status = favourite.status;
+  if (!status || typeof status !== "object") return null;
+  const id = status.mid || status.id;
+  return id == null ? null : String(id);
+}
+
+function weiboFollowKey(user) {
+  if (!user || typeof user !== "object") return null;
+  return user.id == null ? null : String(user.id);
 }
 
 module.exports = {

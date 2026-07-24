@@ -48,6 +48,13 @@ async function collect(bridge, opts = {}) {
   const now = opts.now || Date.now;
   const client = opts.apiClient || new WeiboApiClient();
   const limits = opts.limits || {};
+  const sourceRequestOptions = {};
+  if (Number.isInteger(opts.maxPages) && opts.maxPages > 0) {
+    sourceRequestOptions.maxPages = opts.maxPages;
+  }
+  if (typeof opts.beforeSourceRequest === "function") {
+    sourceRequestOptions.beforeSourceRequest = opts.beforeSourceRequest;
+  }
 
   // 1. Pull cookies via Phase 3a extension.
   const cookieResult = await bridge.invoke("weibo.cookies");
@@ -89,12 +96,15 @@ async function collect(bridge, opts = {}) {
   // 3. Parallel fetch — partial failure tolerated (client returns []).
   const [posts, favourites, follows] = await Promise.all([
     client.fetchPosts(cookie, uid, {
+      ...sourceRequestOptions,
       limit: Number.isInteger(limits.post) ? limits.post : undefined,
     }),
     client.fetchFavourites(cookie, {
+      ...sourceRequestOptions,
       limit: Number.isInteger(limits.favourite) ? limits.favourite : undefined,
     }),
     client.fetchFollows(cookie, uid, {
+      ...sourceRequestOptions,
       limit: Number.isInteger(limits.follow) ? limits.follow : undefined,
     }),
   ]);

@@ -65,7 +65,13 @@ describe("collect — happy path", () => {
       liked: [{ noteId: "L1", title: "liked" }],
       follows: [{ userId: "U1", nickname: "Friend" }],
     });
-    const result = await collect(bridge, { apiClient, stagingDir });
+    const beforeSourceRequest = vi.fn();
+    const result = await collect(bridge, {
+      apiClient,
+      beforeSourceRequest,
+      maxPages: 5,
+      stagingDir,
+    });
 
     expect(bridge.invoke).toHaveBeenCalledWith("xhs.cookies");
     expect(apiClient.fetchMe).toHaveBeenCalledWith("a1=fp; web_session=tok");
@@ -73,7 +79,18 @@ describe("collect — happy path", () => {
       "a1=fp; web_session=tok",
       "fp",
       "5e8c8f7e1234abcdef",
-      expect.any(Object),
+      expect.objectContaining({ beforeSourceRequest, maxPages: 5 }),
+    );
+    expect(apiClient.fetchLiked).toHaveBeenCalledWith(
+      "a1=fp; web_session=tok",
+      "fp",
+      expect.objectContaining({ beforeSourceRequest, maxPages: 5 }),
+    );
+    expect(apiClient.fetchFollows).toHaveBeenCalledWith(
+      "a1=fp; web_session=tok",
+      "fp",
+      "5e8c8f7e1234abcdef",
+      expect.objectContaining({ beforeSourceRequest, maxPages: 5 }),
     );
     expect(result.userId).toBe("5e8c8f7e1234abcdef");
     expect(result.nickname).toBe("Alice");
@@ -115,7 +132,9 @@ describe("collect — failure modes", () => {
     const bridge = makeFakeBridge({
       throwOnInvoke: new Error("XHS_NO_ROOT: phone isn't rooted"),
     });
-    await expect(collect(bridge, { stagingDir })).rejects.toThrow(/XHS_NO_ROOT/);
+    await expect(collect(bridge, { stagingDir })).rejects.toThrow(
+      /XHS_NO_ROOT/,
+    );
   });
 
   it("throws TypeError when bridge missing invoke", async () => {
@@ -127,7 +146,9 @@ describe("collect — failure modes", () => {
     const bridge = makeFakeBridge({
       cookieResult: { cookie: "web_session=s", a1: null },
     });
-    await expect(collect(bridge, { stagingDir })).rejects.toThrow(/malformed payload/);
+    await expect(collect(bridge, { stagingDir })).rejects.toThrow(
+      /malformed payload/,
+    );
   });
 });
 
@@ -157,7 +178,12 @@ describe("collect — partial result (X-S signing best-effort)", () => {
       follows: [], // 461
     });
     const result = await collect(bridge, { apiClient, stagingDir });
-    expect(result.eventCounts).toEqual({ note: 1, liked: 0, follow: 0, total: 1 });
+    expect(result.eventCounts).toEqual({
+      note: 1,
+      liked: 0,
+      follow: 0,
+      total: 1,
+    });
   });
 });
 

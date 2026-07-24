@@ -39,15 +39,18 @@ async function collect(bridge, opts = {}) {
   }
   const now = opts.now || Date.now;
   const signProvider = opts.signProvider || undefined;
-  const client =
-    opts.apiClient || new ToutiaoApiClient({ now, signProvider });
+  const client = opts.apiClient || new ToutiaoApiClient({ now, signProvider });
   const limits = opts.limits || {};
+  const sourceRequestOptions = {};
+  if (Number.isInteger(opts.maxPages) && opts.maxPages > 0) {
+    sourceRequestOptions.maxPages = opts.maxPages;
+  }
+  if (typeof opts.beforeSourceRequest === "function") {
+    sourceRequestOptions.beforeSourceRequest = opts.beforeSourceRequest;
+  }
 
   const cookieResult = await bridge.invoke("toutiao.cookies");
-  if (
-    !cookieResult ||
-    typeof cookieResult.cookie !== "string"
-  ) {
+  if (!cookieResult || typeof cookieResult.cookie !== "string") {
     throw new Error(
       "ToutiaoAdbCollector.collect: bridge.invoke('toutiao.cookies') returned malformed payload — got cookie=" +
         typeof cookieResult?.cookie,
@@ -112,20 +115,26 @@ async function collect(bridge, opts = {}) {
         displayName: opts.displayName,
         snapshottedAt: now(),
       });
-      const snapshotPath = writeSnapshotJson(snapshot, { dir: opts.stagingDir });
+      const snapshotPath = writeSnapshotJson(snapshot, {
+        dir: opts.stagingDir,
+      });
       return {
         snapshotPath,
         uid: null,
         nickname: null,
-        eventCounts: { profile: 0, feed: 0, collection: 0, search: 0, total: 0 },
+        eventCounts: {
+          profile: 0,
+          feed: 0,
+          collection: 0,
+          search: 0,
+          total: 0,
+        },
         lastErrorCode: profileErrCode,
         lastErrorMessage: profileErrMsg,
         cookieDiagnostic: cookieDiagnostic || null,
         profileFetchFailed: true,
         profileSource,
-        signProviderUsed: signProvider
-          ? signProvider.constructor.name
-          : "none",
+        signProviderUsed: signProvider ? signProvider.constructor.name : "none",
         signProviderHits: client._bridgeHits,
         signProviderFallbacks: client._fallbackHits,
       };
@@ -136,14 +145,17 @@ async function collect(bridge, opts = {}) {
     // through a SignBridge despite a permission-denied profile endpoint.
     const [feed, collection, search] = await Promise.all([
       client.fetchFeed(cookie, {
+        ...sourceRequestOptions,
         limit: Number.isInteger(limits.feed) ? limits.feed : undefined,
       }),
       client.fetchCollection(cookie, {
+        ...sourceRequestOptions,
         limit: Number.isInteger(limits.collection)
           ? limits.collection
           : undefined,
       }),
       client.fetchSearchHistory(cookie, {
+        ...sourceRequestOptions,
         limit: Number.isInteger(limits.search) ? limits.search : undefined,
       }),
     ]);

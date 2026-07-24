@@ -172,10 +172,7 @@ describe("XhsApiClient — fetchMe (cookies-only, no X-S)", () => {
 
   it("surfaces xhs business error code + msg", async () => {
     const { fakeFetch } = makeFakeFetch([
-      [
-        "user/me",
-        { body: JSON.stringify({ code: -100, msg: "登录已过期" }) },
-      ],
+      ["user/me", { body: JSON.stringify({ code: -100, msg: "登录已过期" }) }],
     ]);
     const c = new XhsApiClient({ fetch: fakeFetch });
     expect(await c.fetchMe("a1=fp")).toBe(null);
@@ -220,7 +217,7 @@ describe("XhsApiClient — signProvider injection (bridge vs fallback)", () => {
   it("uses bridge headers verbatim when bridge produces them", async () => {
     const { fakeFetch, calls } = makeFakeFetch([["user_posted", NOTES_OK]]);
     const sign = {
-      signedHeaders: vi.fn(async (_url, _purpose) => ({
+      signedHeaders: vi.fn(async () => ({
         "X-s": "XYW_BRIDGE",
         "X-t": "1716383021000",
         "X-s-common": "common",
@@ -334,9 +331,12 @@ describe("XhsApiClient — fetchNotes parsing", () => {
     ]);
     const c = new XhsApiClient({ fetch: fakeFetch, now: () => 1 });
     const notes = await c.fetchNotes("a1=fp", "fp", "U1", { limit: 3 });
-    // limit caps the SCAN window (first 3 entries), so the skipped
-    // no-id entry leaves 2 results
-    expect(notes.map((n) => n.noteId)).toEqual(["ALIAS", "N2"]);
+    // Invalid rows do not consume the result limit.
+    expect(notes.map((n) => n.noteId)).toEqual([
+      "ALIAS",
+      "N2",
+      "N3-over-limit",
+    ]);
     expect(notes[0].title).toBe("t");
     expect(notes[1].title).toBe("(no title)");
   });
@@ -384,12 +384,14 @@ describe("XhsApiClient — fetchLiked parsing", () => {
     });
   });
 
-  it("returns [] when data.notes missing", async () => {
+  it("rejects when data.notes is missing", async () => {
     const { fakeFetch } = makeFakeFetch([
       ["note/like/page", { body: JSON.stringify({ code: 0, data: {} }) }],
     ]);
     const c = new XhsApiClient({ fetch: fakeFetch, now: () => 1 });
-    expect(await c.fetchLiked("a1=fp", "fp")).toEqual([]);
+    await expect(c.fetchLiked("a1=fp", "fp")).rejects.toMatchObject({
+      code: "SOURCE_PAGE_UNRECOGNIZED",
+    });
   });
 });
 

@@ -90,7 +90,11 @@ function makeBridge(invokeResult, accountResult) {
 const COOKIE_PAYLOAD = {
   cookie: "sessionid=abc; passport_uid=12345",
   uid: "12345",
-  diagnostic: { cookieCount: 2, hadEncrypted: false, cookieNames: ["sessionid", "passport_uid"] },
+  diagnostic: {
+    cookieCount: 2,
+    hadEncrypted: false,
+    cookieNames: ["sessionid", "passport_uid"],
+  },
 };
 
 describe("collect — happy path with signProvider", () => {
@@ -110,8 +114,14 @@ describe("collect — happy path with signProvider", () => {
       fetch: fakeFetch,
       signProvider: sign,
     });
+    const feedSpy = vi.spyOn(client, "fetchFeed");
+    const collectionSpy = vi.spyOn(client, "fetchCollection");
+    const searchSpy = vi.spyOn(client, "fetchSearchHistory");
+    const beforeSourceRequest = vi.fn();
     const r = await collect(makeBridge(COOKIE_PAYLOAD), {
       apiClient: client,
+      beforeSourceRequest,
+      maxPages: 3,
       signProvider: sign,
       stagingDir: os.tmpdir(),
     });
@@ -126,6 +136,19 @@ describe("collect — happy path with signProvider", () => {
     expect(r.eventCounts.profile).toBe(1);
     expect(r.signProviderHits).toBe(3); // 3 signed endpoints
     expect(r.signProviderFallbacks).toBe(0);
+    expect(feedSpy).toHaveBeenCalledWith(
+      COOKIE_PAYLOAD.cookie,
+      expect.objectContaining({ beforeSourceRequest, maxPages: 3 }),
+    );
+    expect(collectionSpy).toHaveBeenCalledWith(
+      COOKIE_PAYLOAD.cookie,
+      expect.objectContaining({ beforeSourceRequest, maxPages: 3 }),
+    );
+    expect(searchSpy).toHaveBeenCalledWith(
+      COOKIE_PAYLOAD.cookie,
+      expect.objectContaining({ beforeSourceRequest, maxPages: 3 }),
+    );
+    expect(beforeSourceRequest).toHaveBeenCalledTimes(3);
   });
 });
 
@@ -219,7 +242,10 @@ describe("collect — profile fetch fails", () => {
       }),
       shutdown: vi.fn(async () => {}),
     };
-    const client = new ToutiaoApiClient({ fetch: fakeFetch, signProvider: sign });
+    const client = new ToutiaoApiClient({
+      fetch: fakeFetch,
+      signProvider: sign,
+    });
     const r = await collect(makeBridge(COOKIE_PAYLOAD), {
       apiClient: client,
       signProvider: sign,
@@ -243,7 +269,12 @@ describe("collect — profile fetch fails", () => {
     const { fakeFetch } = makeFakeFetch([
       [
         "passport/account/info/v2",
-        { body: JSON.stringify({ message: "error", data: { error_code: 16, description: "该应用无权限" } }) },
+        {
+          body: JSON.stringify({
+            message: "error",
+            data: { error_code: 16, description: "该应用无权限" },
+          }),
+        },
       ],
       ...HAPPY_RESPONSES.slice(1),
     ]);
@@ -258,13 +289,22 @@ describe("collect — profile fetch fails", () => {
     };
     const bridge = {
       invoke: vi.fn(async (m) => {
-        if (m === "toutiao.cookies") return { cookie: "sessionid=abc", uid: null, diagnostic: {} };
-        if (m === "toutiao.account") return { uid: "92585279158", nickname: "小明", secUid: "MS4w" };
+        if (m === "toutiao.cookies")
+          return { cookie: "sessionid=abc", uid: null, diagnostic: {} };
+        if (m === "toutiao.account")
+          return { uid: "92585279158", nickname: "小明", secUid: "MS4w" };
         throw new Error("unknown " + m);
       }),
     };
-    const client = new ToutiaoApiClient({ fetch: fakeFetch, signProvider: sign });
-    const r = await collect(bridge, { apiClient: client, signProvider: sign, stagingDir: os.tmpdir() });
+    const client = new ToutiaoApiClient({
+      fetch: fakeFetch,
+      signProvider: sign,
+    });
+    const r = await collect(bridge, {
+      apiClient: client,
+      signProvider: sign,
+      stagingDir: os.tmpdir(),
+    });
     expect(r.profileFetchFailed).toBe(true);
     expect(r.profileSource).toBe("local-account-db");
     expect(r.uid).toBe("92585279158");
@@ -306,15 +346,13 @@ describe("collect — bridge warmUp failure", () => {
 describe("collect — malformed bridge payload", () => {
   it("throws when bridge.invoke returns no cookie", async () => {
     const bridge = { invoke: vi.fn(async () => ({ uid: "1" })) };
-    await expect(
-      collect(bridge, { stagingDir: os.tmpdir() }),
-    ).rejects.toThrow(/malformed payload/);
+    await expect(collect(bridge, { stagingDir: os.tmpdir() })).rejects.toThrow(
+      /malformed payload/,
+    );
   });
 
   it("throws when bridge missing invoke", async () => {
-    await expect(collect({}, {})).rejects.toThrow(
-      /bridge must expose invoke/,
-    );
+    await expect(collect({}, {})).rejects.toThrow(/bridge must expose invoke/);
   });
 });
 
