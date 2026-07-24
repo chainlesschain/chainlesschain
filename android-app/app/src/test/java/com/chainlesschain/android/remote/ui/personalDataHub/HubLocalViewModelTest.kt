@@ -3142,8 +3142,8 @@ class HubLocalViewModelTest {
         assertNull(card.errorMessage)
         io.mockk.verify { aiChatCredentials.recordSync("tongyi", any(), 42) }
         assertTrue(
-            "cookie snapshot must be deleted after successful cc sync",
             java.io.File(filesDir, "staging").listFiles()?.isEmpty() ?: true,
+            "cookie snapshot must be deleted after successful cc sync",
         )
     }
 
@@ -3167,8 +3167,8 @@ class HubLocalViewModelTest {
         assertFalse(card.isSyncing)
         assertTrue(card.errorMessage?.contains("更新内置运行时") == true)
         assertTrue(
-            "cookie snapshot must be deleted after failed cc sync",
             java.io.File(filesDir, "staging").listFiles()?.isEmpty() ?: true,
+            "cookie snapshot must be deleted after failed cc sync",
         )
     }
 
