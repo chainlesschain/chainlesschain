@@ -38,6 +38,7 @@
 const fs = require("node:fs");
 const { createAccountScopeFromAccount } = require("../account-scope");
 const { newId } = require("../ids");
+const { probeJsonSnapshotFile, readJsonSnapshot } = require("../snapshot-file");
 const {
   ENTITY_TYPES,
   EVENT_SUBTYPES,
@@ -84,8 +85,10 @@ function createDocumentAdapter(config) {
   function stableOriginalId(id) {
     const safe =
       (typeof id === "string" && id.length > 0 && id) ||
-      (typeof id === "number" && Number.isFinite(id) && String(id)) ||
-      `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      (typeof id === "number" && Number.isFinite(id) && String(id));
+    if (!safe) {
+      throw new Error(`${NAME}.sync: document record requires a stable id`);
+    }
     return `${platform}:document:${safe}`;
   }
 
@@ -135,16 +138,12 @@ function createDocumentAdapter(config) {
         typeof ctx.inputPath === "string" &&
         ctx.inputPath.length > 0
       ) {
-        try {
-          this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
-        } catch (err) {
-          return {
-            ok: false,
-            reason: "INPUT_PATH_UNREADABLE",
-            message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
-          };
-        }
-        return { ok: true, mode: "snapshot-file" };
+        return probeJsonSnapshotFile(this._deps.fs, ctx.inputPath, {
+          maxBytes: ctx.maxSnapshotBytes,
+          expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+          requiredArrayFields: ["events"],
+          allowedEventKinds: VALID_SNAPSHOT_KINDS,
+        });
       }
       if (this._cookieAuth) {
         const ok = await this._cookieAuth.validate();
@@ -192,8 +191,12 @@ function createDocumentAdapter(config) {
     }
 
     async *_syncViaSnapshot(opts) {
-      const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
-      const snapshot = JSON.parse(raw);
+      const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
+        maxBytes: opts.maxSnapshotBytes,
+        expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        requiredArrayFields: ["events"],
+        allowedEventKinds: VALID_SNAPSHOT_KINDS,
+      });
       if (
         !snapshot ||
         typeof snapshot !== "object" ||
@@ -283,16 +286,20 @@ function createDocumentAdapter(config) {
           query,
           sign,
         });
-        const docs = extractDocs(resp) || [];
-        if (!docs.length) break;
-        let reachedWatermark = false;
+        const docs = extractDocs(resp, KIND_DOCUMENT);
+        if (!Array.isArray(docs)) {
+          throw new TypeError(`${NAME}.sync: extractDocs must return an array`);
+        }
+        if (!docs.length) {
+          scanComplete = true;
+          break;
+        }
         for (const d of docs) {
           const rec = mapDoc(d);
           if (!rec || !rec.docId) continue;
           const ts = rec.updatedMs || rec.createdMs || null;
           if (sinceMs && ts && ts < sinceMs) {
-            reachedWatermark = true;
-            break;
+            continue;
           }
           if (emitted >= limit) return;
           yield {
@@ -300,13 +307,10 @@ function createDocumentAdapter(config) {
             kind: KIND_DOCUMENT,
             originalId: stableOriginalId(rec.docId),
             capturedAt: ts || Date.now(),
+            watermarkAt: ts || null,
             payload: { record: rec },
           };
           emitted += 1;
-        }
-        if (reachedWatermark || docs.length < PAGE_SIZE) {
-          scanComplete = true;
-          break;
         }
         offset += docs.length;
         page += 1;

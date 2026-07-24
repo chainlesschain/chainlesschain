@@ -32,6 +32,11 @@ const {
   EVENT_SUBTYPES,
   CAPTURED_BY,
 } = require("../../constants");
+const { extractRecognizedArray } = require("../../source-page");
+const {
+  probeJsonSnapshotFile,
+  readJsonSnapshot,
+} = require("../../snapshot-file");
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "finance-dcep";
@@ -90,22 +95,20 @@ function mapTx(raw) {
 }
 
 function extractList(resp) {
-  if (!resp || typeof resp !== "object") return [];
-  if (Array.isArray(resp.list)) return resp.list;
-  if (Array.isArray(resp.data)) return resp.data;
-  const d = resp.data;
-  if (d && typeof d === "object") {
-    if (Array.isArray(d.list)) return d.list;
-    if (Array.isArray(d.records)) return d.records;
-  }
-  return [];
+  return extractRecognizedArray(
+    resp,
+    [["list"], ["data"], ["data", "list"], ["data", "records"]],
+    { source: NAME, stream: KIND_TX },
+  );
 }
 
 function stableOriginalId(id) {
   const safe =
     (typeof id === "string" && id.length > 0 && id) ||
-    (typeof id === "number" && Number.isFinite(id) && String(id)) ||
-    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    (typeof id === "number" && Number.isFinite(id) && String(id));
+  if (!safe) {
+    throw new Error(`${NAME}.sync: transaction record requires a stable id`);
+  }
   return `dcep:transaction:${safe}`;
 }
 
@@ -152,16 +155,12 @@ class DcepAdapter {
 
   async authenticate(ctx = {}) {
     if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
-      try {
-        this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
-      } catch (err) {
-        return {
-          ok: false,
-          reason: "INPUT_PATH_UNREADABLE",
-          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
-        };
-      }
-      return { ok: true, mode: "snapshot-file" };
+      return probeJsonSnapshotFile(this._deps.fs, ctx.inputPath, {
+        maxBytes: ctx.maxSnapshotBytes,
+        expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        requiredArrayFields: ["events"],
+        allowedEventKinds: VALID_SNAPSHOT_KINDS,
+      });
     }
     if (this._cookieAuth && !this._liveConfigured) {
       return {
@@ -222,8 +221,12 @@ class DcepAdapter {
   }
 
   async *_syncViaSnapshot(opts) {
-    const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
-    const snapshot = JSON.parse(raw);
+    const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
+      maxBytes: opts.maxSnapshotBytes,
+      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      requiredArrayFields: ["events"],
+      allowedEventKinds: VALID_SNAPSHOT_KINDS,
+    });
     if (
       !snapshot ||
       typeof snapshot !== "object" ||
@@ -253,7 +256,11 @@ class DcepAdapter {
       if (!VALID_SNAPSHOT_KINDS.includes(ev.kind)) continue;
       if (include[ev.kind] === false) continue;
       const rec = mapTx(ev);
-      if (!rec) continue;
+      if (!rec) {
+        throw new Error(
+          `${NAME}.sync: transaction record requires a stable id`,
+        );
+      }
       const capturedAt =
         parseTime(ev.capturedAt) || rec.timeMs || fallbackCapturedAt;
       yield {
@@ -308,13 +315,14 @@ class DcepAdapter {
         scanComplete = true;
         break;
       }
-      let reachedWatermark = false;
       for (const it of items) {
         const rec = mapTx(it);
         if (!rec) continue;
         if (rec.timeMs && rec.timeMs < sinceMs) {
-          reachedWatermark = true;
-          break;
+          // Custom endpoints do not provide a verifiable descending-order
+          // contract. Filter an old row without assuming the rest of the page
+          // is old; a newer transaction may appear later on the same page.
+          continue;
         }
         if (emitted >= limit) return;
         yield {
@@ -322,13 +330,10 @@ class DcepAdapter {
           kind: KIND_TX,
           originalId: stableOriginalId(rec.txId),
           capturedAt: rec.timeMs || Date.now(),
+          watermarkAt: rec.timeMs || null,
           payload: { record: rec, cookie: true },
         };
         emitted += 1;
-      }
-      if (reachedWatermark || items.length < PAGE_SIZE) {
-        scanComplete = true;
-        break;
       }
       page += 1;
     }

@@ -15,7 +15,12 @@
 
 "use strict";
 
-const { createDocumentAdapter, parseTime, SNAPSHOT_SCHEMA_VERSION } = require("../_document-base");
+const {
+  createDocumentAdapter,
+  parseTime,
+  SNAPSHOT_SCHEMA_VERSION,
+} = require("../_document-base");
+const { extractRecognizedArray } = require("../../source-page");
 
 const NAME = "doc-camscanner";
 const VERSION = "0.1.0";
@@ -44,35 +49,40 @@ const TYPE_MAP = {
 function mapCamScannerType(d) {
   const t = d.doc_type != null ? d.doc_type : d.type;
   if (t != null && TYPE_MAP[t] != null) return TYPE_MAP[t];
-  const title = String(d.title || d.doc_title || d.pdf_name || "").toLowerCase();
+  const title = String(
+    d.title || d.doc_title || d.pdf_name || "",
+  ).toLowerCase();
   if (/\.pdf$/.test(title)) return "pdf";
   if (/\.(xlsx?|csv)$/.test(title)) return "excel";
   if (/\.(pptx?)$/.test(title)) return "ppt";
   return "scan";
 }
 
-function extractDocs(resp) {
-  if (!resp || typeof resp !== "object") return [];
-  if (Array.isArray(resp.docs)) return resp.docs;
-  if (Array.isArray(resp.list)) return resp.list;
-  if (Array.isArray(resp.data)) return resp.data;
-  if (resp.data && Array.isArray(resp.data.docs)) return resp.data.docs;
-  if (resp.data && Array.isArray(resp.data.list)) return resp.data.list;
-  return [];
+function extractDocs(resp, stream = "document") {
+  return extractRecognizedArray(
+    resp,
+    [["docs"], ["list"], ["data"], ["data", "docs"], ["data", "list"]],
+    { source: NAME, stream },
+  );
 }
 
 function mapDoc(d) {
   if (!d || typeof d !== "object") return null;
   const docId = d.sync_doc_id || d.doc_id || d.docId || d.id || d.sid;
   if (!docId) return null;
-  const pages = d.page_num != null ? d.page_num : d.pages != null ? d.pages : d.page_count;
+  const pages =
+    d.page_num != null ? d.page_num : d.pages != null ? d.pages : d.page_count;
   return {
     docId: String(docId),
     title: d.title || d.doc_title || d.pdf_name || "(未命名扫描件)",
     docType: mapCamScannerType(d),
     url: d.pdf_url || d.url || d.jump_url || null,
-    createdMs: parseTime(d.create_time || d.upload_time || d.ctime || d.created),
-    updatedMs: parseTime(d.modify_time || d.last_modify_time || d.update_time || d.mtime),
+    createdMs: parseTime(
+      d.create_time || d.upload_time || d.ctime || d.created,
+    ),
+    updatedMs: parseTime(
+      d.modify_time || d.last_modify_time || d.update_time || d.mtime,
+    ),
     extra: {
       pageNum: Number.isFinite(Number(pages)) ? Number(pages) : null,
       tags: Array.isArray(d.tags) ? d.tags : d.tag != null ? [d.tag] : [],

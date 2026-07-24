@@ -20,15 +20,19 @@
 const fs = require("node:fs");
 const crypto = require("node:crypto");
 
-const {
-  EVENT_SUBTYPES,
-  PERSON_SUBTYPES,
-  CAPTURED_BY,
-} = require("../../constants");
+const { PERSON_SUBTYPES, CAPTURED_BY } = require("../../constants");
 const { newId } = require("../../ids");
 const { createAccountScope } = require("../../account-scope");
+const {
+  SnapshotFileError,
+  probeSnapshotFile,
+  readBoundedSnapshotBuffer,
+} = require("../../snapshot-file");
 const { parseAlipayCsvBuffer } = require("./csv-parser");
-const { extractCsvFromZip } = require("./zip-decryptor");
+const {
+  extractCsvFromZip,
+  resolveAlipayImportLimits,
+} = require("./zip-decryptor");
 const {
   classifyCounterparty,
   counterpartyToPersonId,
@@ -81,6 +85,8 @@ class AlipayBillAdapter {
       typeof opts.zipExtractor === "function"
         ? opts.zipExtractor
         : extractCsvFromZip;
+    this._fs = opts.fsImpl || fs;
+    this._importLimits = resolveAlipayImportLimits(opts);
 
     this.name = NAME;
     this.defaultScope = createAccountScope(NAME, this.account.email);
@@ -110,13 +116,21 @@ class AlipayBillAdapter {
         message: "select an Alipay CSV or ZIP export",
       };
     }
-    if (!fs.existsSync(inputPath)) {
+    let limits;
+    try {
+      limits = resolveAlipayImportLimits(ctx, this._importLimits);
+    } catch (error) {
       return {
         ok: false,
-        reason: "INPUT_NOT_FOUND",
-        message: `Alipay bill export not found: ${inputPath}`,
+        reason: error && error.code ? error.code : "SNAPSHOT_LIMIT_INVALID",
+        message: safeImportErrorMessage(error),
       };
     }
+    const isZip = resolveZipPath(ctx, inputPath) !== null;
+    const probe = probeSnapshotFile(this._fs, inputPath, {
+      maxBytes: isZip ? limits.maxArchiveBytes : limits.maxCsvBytes,
+    });
+    if (!probe.ok) return probe;
     return {
       ok: true,
       account: this.account.email,
@@ -129,8 +143,22 @@ class AlipayBillAdapter {
     const inputPath = resolveInputPath(opts);
     // Periodic syncAll without a user-selected file remains a healthy idle
     // no-op. An explicit collection request validates its path before sync.
-    if (inputPath && !fs.existsSync(inputPath)) {
-      return { ok: false, reason: "INPUT_NOT_FOUND", lastChecked: Date.now() };
+    if (inputPath) {
+      try {
+        const limits = resolveAlipayImportLimits(opts, this._importLimits);
+        const isZip = resolveZipPath(opts, inputPath) !== null;
+        const probe = probeSnapshotFile(this._fs, inputPath, {
+          maxBytes: isZip ? limits.maxArchiveBytes : limits.maxCsvBytes,
+        });
+        if (!probe.ok) return { ...probe, lastChecked: Date.now() };
+      } catch (error) {
+        return {
+          ok: false,
+          reason: error && error.code ? error.code : "SNAPSHOT_LIMIT_INVALID",
+          message: safeImportErrorMessage(error),
+          lastChecked: Date.now(),
+        };
+      }
     }
     return { ok: true, lastChecked: Date.now() };
   }
@@ -146,9 +174,14 @@ class AlipayBillAdapter {
    * @param {string} [opts.zipPath]       full path to alipay_record_*.zip
    * @param {string} [opts.csvPath]       full path to a pre-extracted .csv
    * @param {string} [opts.zipPassword]   overrides constructor zipPassword
+   * @param {number} [opts.maxSnapshotBytes]
+   * @param {number} [opts.maxArchiveBytes]
+   * @param {number} [opts.maxCsvBytes]
+   * @param {number} [opts.maxZipEntries]
    * @param {Function} [opts.onProgress]
    */
   async *sync(opts = {}) {
+    const limits = resolveAlipayImportLimits(opts, this._importLimits);
     const inputPath =
       typeof opts.inputPath === "string" && opts.inputPath
         ? opts.inputPath
@@ -170,34 +203,56 @@ class AlipayBillAdapter {
       if (!onProgress) return;
       try {
         onProgress({ phase, adapter: NAME, ...payload });
-      } catch (_e) {}
+      } catch {
+        // Progress observers must not interrupt an import.
+      }
     };
 
-    emit("opening", { zipPath, csvPath });
+    const sourceMode = zipPath ? "zip-import" : "csv-import";
+    emit("opening", { sourceMode });
 
     let csvBuffer;
-    let sourceFile;
     if (zipPath) {
       const password =
         typeof opts.zipPassword === "string"
           ? opts.zipPassword
           : this._zipPassword;
-      const out = await this._zipExtractor(zipPath, { password });
+      const out = await this._zipExtractor(zipPath, {
+        password,
+        fsImpl: this._fs,
+        ...limits,
+      });
       csvBuffer = out.buffer;
-      sourceFile = `${zipPath}::${out.filename}`;
     } else {
-      csvBuffer = fs.readFileSync(csvPath);
-      sourceFile = csvPath;
+      try {
+        csvBuffer = readBoundedSnapshotBuffer(this._fs, csvPath, {
+          maxBytes: limits.maxCsvBytes,
+        });
+      } catch (error) {
+        throw sanitizeFileBoundaryError(error);
+      }
+    }
+    if (!Buffer.isBuffer(csvBuffer)) {
+      throw new SnapshotFileError(
+        "SNAPSHOT_SHAPE_INVALID",
+        "Alipay CSV import must produce a Buffer",
+      );
+    }
+    if (csvBuffer.length > limits.maxCsvBytes) {
+      throw new SnapshotFileError(
+        "SNAPSHOT_TOO_LARGE",
+        `Alipay CSV exceeds the ${limits.maxCsvBytes}-byte import limit`,
+      );
     }
     const fileSha256 = crypto
       .createHash("sha256")
       .update(csvBuffer)
       .digest("hex");
-    emit("parsing", { sourceFile, fileSha256, bytes: csvBuffer.length });
+    emit("parsing", { sourceMode, fileSha256, bytes: csvBuffer.length });
 
     const parsed = this._csvParser(csvBuffer);
     emit("parsed", {
-      sourceFile,
+      sourceMode,
       encoding: parsed.encoding,
       rows: parsed.rows.length,
       header: parsed.header,
@@ -211,7 +266,7 @@ class AlipayBillAdapter {
         txId: row.txId,
       });
       yield this._rowToRawEvent(row, {
-        sourceFile,
+        sourceMode,
         fileSha256,
         accountEmail: this.account.email,
         importedAt: Date.now(),
@@ -220,7 +275,7 @@ class AlipayBillAdapter {
       yielded += 1;
     }
 
-    emit("done", { yielded, sourceFile });
+    emit("done", { yielded, sourceMode });
   }
 
   /**
@@ -361,7 +416,7 @@ class AlipayBillAdapter {
       payload: {
         row,
         accountEmail: ctx.accountEmail,
-        sourceFile: ctx.sourceFile,
+        sourceMode: ctx.sourceMode,
         fileSha256: ctx.fileSha256,
         importedAt: ctx.importedAt,
         billPeriod: ctx.billPeriod,
@@ -378,6 +433,42 @@ function resolveInputPath(opts = {}) {
     (typeof opts.zipPath === "string" && opts.zipPath) ||
     (typeof opts.csvPath === "string" && opts.csvPath) ||
     null
+  );
+}
+
+function resolveZipPath(opts = {}, inputPath = resolveInputPath(opts)) {
+  return (
+    (typeof opts.zipPath === "string" && opts.zipPath) ||
+    (inputPath && /\.zip$/iu.test(inputPath) ? inputPath : null)
+  );
+}
+
+function safeImportErrorMessage(error) {
+  if (
+    error &&
+    typeof error.message === "string" &&
+    (error instanceof SnapshotFileError || typeof error.code === "string")
+  ) {
+    return error.message;
+  }
+  return "Alipay bill export is unavailable or unreadable";
+}
+
+function sanitizeFileBoundaryError(error) {
+  if (
+    error instanceof SnapshotFileError ||
+    (error && typeof error.code === "string")
+  ) {
+    return new SnapshotFileError(
+      error.code,
+      typeof error.message === "string"
+        ? error.message
+        : "Alipay bill export is unavailable or unreadable",
+    );
+  }
+  return new SnapshotFileError(
+    "INPUT_PATH_UNREADABLE",
+    "Alipay bill export is unavailable or unreadable",
   );
 }
 

@@ -66,7 +66,12 @@ function decodeBuffer(buf, opts = {}) {
   }
   // Strip BOM if present (UTF-8 BOM = EF BB BF)
   let work = buf;
-  if (buf.length >= 3 && buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) {
+  if (
+    buf.length >= 3 &&
+    buf[0] === 0xef &&
+    buf[1] === 0xbb &&
+    buf[2] === 0xbf
+  ) {
     work = buf.slice(3);
   }
   const utf8 = work.toString("utf-8");
@@ -75,8 +80,12 @@ function decodeBuffer(buf, opts = {}) {
     return { text: utf8, encoding: "utf-8" };
   }
   // Fall back to GBK
-  const iconv = typeof opts.iconvImpl === "function" ? opts.iconvImpl : loadIconvLite();
-  const decoded = iconv(work, "gbk");
+  const iconv =
+    typeof opts.iconvImpl === "function" ? opts.iconvImpl : loadIconvLite();
+  // GB18030 is a strict superset for the legacy GBK exports and also covers
+  // newer Alipay files containing four-byte characters. Keep the historical
+  // `encoding: "gbk"` label for API compatibility.
+  const decoded = iconv(work, "gb18030");
   return { text: decoded, encoding: "gbk" };
 }
 
@@ -84,7 +93,6 @@ let _iconvCache = null;
 function loadIconvLite() {
   if (_iconvCache) return _iconvCache;
   try {
-    // eslint-disable-next-line global-require
     const il = require("iconv-lite");
     _iconvCache = (buf, enc) => il.decode(buf, enc);
   } catch (err) {
@@ -113,7 +121,9 @@ function parseAlipayCsv(text) {
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i];
     // Match account: 账号:[email@... / phone]
-    const acctMatch = line.match(/账号\s*:?\s*\[?([^\]\s]+@[^\]\s]+|\d{11})\]?/);
+    const acctMatch = line.match(
+      /账号\s*:?\s*\[?([^\]\s]+@[^\]\s]+|\d{11})\]?/,
+    );
     if (acctMatch) header.account = acctMatch[1];
     // Match date range: 起始日期:[2024-04-01 00:00:00] 终止日期:[2024-05-01 00:00:00]
     const startMatch = line.match(/起始日期\s*:?\s*\[?([\d-]+\s+[\d:]+)\]?/);

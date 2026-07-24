@@ -21,16 +21,23 @@ async function collect(gen) {
   return out;
 }
 
-const COOKIES = "wps_sid=abc; uid=1";
-
 describe("doc-wps constants + mappers", () => {
   it("exposes name/version", () => {
     expect(wps.NAME).toBe("doc-wps");
-    expect(wps.VERSION).toBe("0.1.0");
+    expect(wps.VERSION).toBe("0.2.0");
   });
   it("mapDoc maps WPS fields + infers docType from extension", () => {
-    const rec = wps.mapDoc({ id: "F1", fname: "预算.xlsx", ctime: 1716300000, mtime: 1716383000 });
-    expect(rec).toMatchObject({ docId: "F1", title: "预算.xlsx", docType: "sheet" });
+    const rec = wps.mapDoc({
+      id: "F1",
+      fname: "预算.xlsx",
+      ctime: 1716300000,
+      mtime: 1716383000,
+    });
+    expect(rec).toMatchObject({
+      docId: "F1",
+      title: "预算.xlsx",
+      docType: "sheet",
+    });
     expect(rec.createdMs).toBe(1716300000000);
     expect(rec.updatedMs).toBe(1716383000000);
     expect(rec.url).toContain("kdocs.cn");
@@ -41,21 +48,30 @@ describe("doc-wps constants + mappers", () => {
   it("extractDocs tolerant of shapes", () => {
     expect(wps.extractDocs({ files: [{ id: 1 }] })).toHaveLength(1);
     expect(wps.extractDocs({ data: { files: [{ id: 1 }] } })).toHaveLength(1);
-    expect(wps.extractDocs({})).toEqual([]);
+    expect(wps.extractDocs({ data: { items: [{ id: 1 }] } })).toHaveLength(1);
+    expect(() => wps.extractDocs({})).toThrow(/recognized list/u);
   });
 });
 
 describe("doc-tencent-docs constants + mappers", () => {
   it("exposes name/version", () => {
     expect(tdocs.NAME).toBe("doc-tencent-docs");
-    expect(tdocs.VERSION).toBe("0.1.0");
+    expect(tdocs.VERSION).toBe("0.2.0");
   });
   it("mapDoc maps Tencent fields + type codes", () => {
-    const rec = tdocs.mapDoc({ id: "T1", title: "周报", type: "sheet", createTime: 1716300000, lastModifyTime: 1716383000 });
+    const rec = tdocs.mapDoc({
+      id: "T1",
+      title: "周报",
+      type: "sheet",
+      createTime: 1716300000,
+      lastModifyTime: 1716383000,
+    });
     expect(rec).toMatchObject({ docId: "T1", title: "周报", docType: "sheet" });
     expect(rec.url).toContain("docs.qq.com");
     expect(tdocs.mapDoc({ id: "T2", type: 2 }).docType).toBe("sheet");
-    expect(tdocs.mapDoc({ id: "T3", type: "presentation" }).docType).toBe("slide");
+    expect(tdocs.mapDoc({ id: "T3", type: "presentation" }).docType).toBe(
+      "slide",
+    );
     expect(tdocs.mapDoc({ title: "noid" })).toBe(null);
   });
 });
@@ -66,7 +82,16 @@ describe("WpsDocAdapter snapshot mode", () => {
     snapshottedAt: 1716383000000,
     account: { userId: "u1" },
     events: [
-      { kind: "document", id: "doc-D1", docId: "D1", title: "我的文档", docType: "doc", createdTime: 1716300000, updatedTime: 1716383000, url: "https://kdocs.cn/p/D1" },
+      {
+        kind: "document",
+        id: "doc-D1",
+        docId: "D1",
+        title: "我的文档",
+        docType: "doc",
+        createdTime: 1716300000,
+        updatedTime: 1716383000,
+        url: "https://kdocs.cn/p/D1",
+      },
     ],
   });
 
@@ -74,8 +99,16 @@ describe("WpsDocAdapter snapshot mode", () => {
     const p = writeTmp(SNAP);
     try {
       const a = new wps.WpsDocAdapter();
-      expect((await a.authenticate({ inputPath: p })).mode).toBe("snapshot-file");
-      expect((await a.authenticate({ inputPath: path.join(os.tmpdir(), "nope.json") })).reason).toBe("INPUT_PATH_UNREADABLE");
+      expect((await a.authenticate({ inputPath: p })).mode).toBe(
+        "snapshot-file",
+      );
+      expect(
+        (
+          await a.authenticate({
+            inputPath: path.join(os.tmpdir(), "nope.json"),
+          })
+        ).reason,
+      ).toBe("INPUT_PATH_UNREADABLE");
     } finally {
       fs.unlinkSync(p);
     }
@@ -105,73 +138,55 @@ describe("WpsDocAdapter snapshot mode", () => {
     const p = writeTmp(JSON.stringify({ schemaVersion: 9, events: [] }));
     try {
       const a = new wps.WpsDocAdapter();
-      await expect(collect(a.sync({ inputPath: p }))).rejects.toThrow(/schemaVersion mismatch/);
-      expect(() => a.normalize({ payload: {} })).toThrow(/payload.record missing/);
+      await expect(collect(a.sync({ inputPath: p }))).rejects.toThrow(
+        /schemaVersion mismatch/,
+      );
+      expect(() => a.normalize({ payload: {} })).toThrow(
+        /payload.record missing/,
+      );
     } finally {
       fs.unlinkSync(p);
     }
   });
 });
 
-describe("TencentDocsAdapter cookie-api mode", () => {
-  it("authenticate cookie mode (userId optional)", async () => {
-    const a = new tdocs.TencentDocsAdapter({ account: { cookies: COOKIES } });
-    expect(await a.authenticate()).toEqual({ ok: true, account: null, mode: "cookie" });
-  });
-
-  it("sync fetches, paginates, normalizes", async () => {
-    const pages = [
-      { data: { files: [{ id: "T1", title: "项目计划", type: "doc", lastModifyTime: 1716383000 }] } },
-      { data: { files: [] } },
-    ];
-    const calls = [];
-    const fetchFn = async ({ url, cookies, query, sign }) => {
-      calls.push({ url, cookies, offset: query.offset, sign });
-      return query.offset === 0 ? pages[0] : pages[1];
-    };
-    const a = new tdocs.TencentDocsAdapter({ account: { cookies: COOKIES, userId: "u1" }, fetchFn });
-    const items = await collect(a.sync({}));
-    expect(items).toHaveLength(1);
-    expect(items[0].originalId).toBe("tencent-docs:document:T1");
-    expect(calls[0].cookies).toBe(COOKIES);
-    expect(calls[0].sign).toBe(null);
-    const batch = a.normalize(items[0]);
-    expect(batch.items[0].name).toBe("项目计划");
-    expect(batch.items[0].extra.platform).toBe("tencent-docs");
-  });
-
-  it("invokes signProvider when configured", async () => {
-    const signCalls = [];
-    const a = new tdocs.TencentDocsAdapter({
-      account: { cookies: COOKIES },
-      fetchFn: async ({ query }) => (query.offset === 0 ? { files: [{ id: "S1", title: "x" }] } : { files: [] }),
-      signProvider: async (ctx) => { signCalls.push(ctx); return "SIG"; },
+describe("TencentDocsAdapter input contract", () => {
+  it("does not treat website cookies as a supported personal API", async () => {
+    const adapter = new tdocs.TencentDocsAdapter({
+      account: { cookies: "uid=1; secret=private" },
     });
-    const items = await collect(a.sync({}));
-    expect(items).toHaveLength(1);
-    expect(signCalls.length).toBeGreaterThan(0);
-    expect(signCalls[0].cookies).toBe(COOKIES);
-  });
 
-  it("sinceWatermark + limit + empty response", async () => {
-    const a1 = new tdocs.TencentDocsAdapter({
-      account: { cookies: COOKIES },
-      fetchFn: async ({ query }) => query.offset === 0 ? { files: [
-        { id: "NEW", title: "n", lastModifyTime: 2_000_000_000 },
-        { id: "OLD", title: "o", lastModifyTime: 1_000_000_000 },
-      ] } : { files: [] },
+    expect(await adapter.authenticate()).toMatchObject({
+      ok: false,
+      reason: "NO_EXPORT_DIR",
     });
-    const got = await collect(a1.sync({ sinceWatermark: 1_500_000_000_000 }));
-    expect(got.map((x) => x.originalId)).toEqual(["tencent-docs:document:NEW"]);
-
-    const a2 = new tdocs.TencentDocsAdapter({ account: { cookies: COOKIES }, fetchFn: async () => "<html>login</html>" });
-    expect(await collect(a2.sync({}))).toEqual([]);
+    expect(adapter.capabilities).toEqual([
+      "sync:snapshot",
+      "sync:export-directory",
+      "parse:tencent-documents",
+    ]);
+    expect(adapter.extractMode).toBe("file-import");
+    expect(adapter.account).toBe(null);
+    expect(JSON.stringify(adapter)).not.toContain("secret=private");
   });
 
-  it("default fetch throws; no input throws", async () => {
-    const a = new tdocs.TencentDocsAdapter({ account: { cookies: COOKIES } });
-    await expect(collect(a.sync({}))).rejects.toThrow(/no fetchFn configured/);
-    const b = new tdocs.TencentDocsAdapter();
-    await expect(collect(b.sync({}))).rejects.toThrow(/needs opts.inputPath/);
+  it("requires both a readable export directory and a local account id", async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-tencent-docs-"));
+    try {
+      const adapter = new tdocs.TencentDocsAdapter();
+      expect(await adapter.authenticate({ exportDir: root })).toMatchObject({
+        ok: false,
+        reason: "NO_ACCOUNT_ID",
+      });
+      expect(
+        await adapter.authenticate({
+          exportDir: root,
+          accountId: "local-account",
+        }),
+      ).toMatchObject({ ok: true, mode: "export-directory" });
+      await expect(collect(adapter.sync({}))).rejects.toThrow(/exportDir/);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 });

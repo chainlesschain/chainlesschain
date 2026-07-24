@@ -205,26 +205,35 @@ describe("CmbcBankAdapter (via _bank-base)", () => {
       "cmbc:card:C9",
       "cmbc:transaction:T9",
     ]);
+    expect(items.find((item) => item.kind === "transaction").watermarkAt).toBe(
+      1_716_383_000_000,
+    );
+    expect(items.find((item) => item.kind === "card").watermarkAt).toBe(
+      Date.parse("2025-02-01T00:00:00Z"),
+    );
     expect(signed).toBeGreaterThan(0);
     expect(watermarkComplete).toBe(true);
   });
 
-  it("cookie-api: stops at the prior timestamp and defers a capped full page", async () => {
+  it("cookie-api: keeps an excluded kind and a capped scan incomplete", async () => {
     let watermarkComplete = false;
     const older = new cmbc.CmbcBankAdapter({
       account: { cookies: COOKIES, userId: "u1" },
       transactionUrl: "https://captured.example/transactions",
       cardUrl: "https://captured.example/cards",
-      fetchFn: async () => ({
-        list: [
-          {
-            txId: "OLD",
-            time: 1716383000,
-            amount: -1,
-            direction: "debit",
-          },
-        ],
-      }),
+      fetchFn: async ({ query }) =>
+        query.page > 1
+          ? { list: [] }
+          : {
+              list: [
+                {
+                  txId: "OLD",
+                  time: 1716383000,
+                  amount: -1,
+                  direction: "debit",
+                },
+              ],
+            },
     });
     expect(
       await collect(
@@ -237,7 +246,7 @@ describe("CmbcBankAdapter (via _bank-base)", () => {
         }),
       ),
     ).toEqual([]);
-    expect(watermarkComplete).toBe(true);
+    expect(watermarkComplete).toBe(false);
 
     watermarkComplete = false;
     const fullPage = new cmbc.CmbcBankAdapter({
@@ -265,6 +274,90 @@ describe("CmbcBankAdapter (via _bank-base)", () => {
       ),
     ).toHaveLength(30);
     expect(watermarkComplete).toBe(false);
+  });
+
+  it("cookie-api: rejects explicit error pages without confirming the watermark", async () => {
+    let watermarkComplete = false;
+    const a = new cmbc.CmbcBankAdapter({
+      account: { cookies: COOKIES, userId: "u1" },
+      transactionUrl: "https://captured.example/transactions",
+      cardUrl: "https://captured.example/cards",
+      fetchFn: async () => ({ code: 401, list: [], message: "expired" }),
+    });
+
+    await expect(
+      collect(
+        a.sync({
+          include: { card: false },
+          markWatermarkComplete: () => {
+            watermarkComplete = true;
+          },
+        }),
+      ),
+    ).rejects.toMatchObject({ code: "SOURCE_PAGE_ERROR" });
+    expect(watermarkComplete).toBe(false);
+  });
+
+  it("cookie-api: does not treat a non-empty short page as the source boundary", async () => {
+    let watermarkComplete = false;
+    const adapter = new cmbc.CmbcBankAdapter({
+      account: { cookies: COOKIES, userId: "u1" },
+      transactionUrl: "https://captured.example/transactions",
+      cardUrl: "https://captured.example/cards",
+      fetchFn: async () => ({
+        list: [{ txId: "SHORT", time: 1_716_385_000, amount: -1 }],
+      }),
+    });
+
+    await expect(
+      collect(
+        adapter.sync({
+          maxPages: 1,
+          include: { card: false },
+          markWatermarkComplete: () => {
+            watermarkComplete = true;
+          },
+        }),
+      ),
+    ).resolves.toHaveLength(1);
+    expect(watermarkComplete).toBe(false);
+  });
+
+  it("cookie-api: an old transaction does not hide a newer row later on the page", async () => {
+    const a = new cmbc.CmbcBankAdapter({
+      account: { cookies: COOKIES, userId: "u1" },
+      transactionUrl: "https://captured.example/transactions",
+      cardUrl: "https://captured.example/cards",
+      fetchFn: async ({ query }) =>
+        query.page > 1
+          ? { list: [] }
+          : {
+              list: [
+                {
+                  txId: "OLD",
+                  time: 1_716_383_000,
+                  amount: -1,
+                  direction: "debit",
+                },
+                {
+                  txId: "NEW",
+                  time: 1_716_385_000,
+                  amount: -1,
+                  direction: "debit",
+                },
+              ],
+            },
+    });
+
+    const items = await collect(
+      a.sync({
+        sinceWatermark: 1_716_384_000_000,
+        include: { card: false },
+      }),
+    );
+    expect(items.map((item) => item.originalId)).toEqual([
+      "cmbc:transaction:NEW",
+    ]);
   });
 
   it("unverified live endpoints are rejected; no input throws", async () => {

@@ -37,7 +37,11 @@ describe("doc-camscanner mappers", () => {
       pdf_url: "https://cs/DOC123.pdf",
       tags: ["证件"],
     });
-    expect(rec).toMatchObject({ docId: "DOC123", title: "营业执照", docType: "certificate" });
+    expect(rec).toMatchObject({
+      docId: "DOC123",
+      title: "营业执照",
+      docType: "certificate",
+    });
     expect(rec.createdMs).toBe(1716383000000);
     expect(rec.updatedMs).toBe(1716390000000);
     expect(rec.url).toBe("https://cs/DOC123.pdf");
@@ -55,7 +59,7 @@ describe("doc-camscanner mappers", () => {
     expect(cs.extractDocs({ docs: [{ doc_id: 1 }] })).toHaveLength(1);
     expect(cs.extractDocs({ list: [{ doc_id: 1 }] })).toHaveLength(1);
     expect(cs.extractDocs({ data: { docs: [{ doc_id: 1 }] } })).toHaveLength(1);
-    expect(cs.extractDocs({})).toEqual([]);
+    expect(() => cs.extractDocs({})).toThrow(/recognized list/u);
   });
 });
 
@@ -81,7 +85,9 @@ describe("CamScannerDocAdapter (via _document-base)", () => {
     const p = writeTmp(SNAP);
     try {
       const a = new cs.CamScannerDocAdapter();
-      expect((await a.authenticate({ inputPath: p })).mode).toBe("snapshot-file");
+      expect((await a.authenticate({ inputPath: p })).mode).toBe(
+        "snapshot-file",
+      );
       const items = await collect(a.sync({ inputPath: p }));
       expect(items).toHaveLength(1);
       const batch = a.normalize(items[0]);
@@ -94,9 +100,39 @@ describe("CamScannerDocAdapter (via _document-base)", () => {
     }
   });
 
+  it("snapshot rejects an unrecognized event kind during auth and sync", async () => {
+    const p = writeTmp(
+      JSON.stringify({
+        schemaVersion: 1,
+        events: [{ kind: "watch", id: "wrong-family" }],
+      }),
+    );
+    try {
+      const a = new cs.CamScannerDocAdapter();
+      await expect(a.authenticate({ inputPath: p })).resolves.toMatchObject({
+        ok: false,
+        reason: "SNAPSHOT_SHAPE_INVALID",
+      });
+      await expect(collect(a.sync({ inputPath: p }))).rejects.toMatchObject({
+        code: "SNAPSHOT_SHAPE_INVALID",
+      });
+    } finally {
+      fs.unlinkSync(p);
+    }
+  });
+
   it("cookie-api: fetch + paginate + normalize", async () => {
     const pages = [
-      { docs: [{ sync_doc_id: 7, title: "发票.pdf", doc_type: "pdf", modify_time: 1716383000 }] },
+      {
+        docs: [
+          {
+            sync_doc_id: 7,
+            title: "发票.pdf",
+            doc_type: "pdf",
+            modify_time: 1716383000,
+          },
+        ],
+      },
       { docs: [] },
     ];
     const calls = [];
@@ -107,10 +143,15 @@ describe("CamScannerDocAdapter (via _document-base)", () => {
         return query.offset === 0 ? pages[0] : pages[1];
       },
     });
-    expect(await a.authenticate()).toEqual({ ok: true, account: "u1", mode: "cookie" });
+    expect(await a.authenticate()).toEqual({
+      ok: true,
+      account: "u1",
+      mode: "cookie",
+    });
     const items = await collect(a.sync({}));
     expect(items).toHaveLength(1);
     expect(items[0].originalId).toBe("camscanner:document:7");
+    expect(items[0].watermarkAt).toBe(1_716_383_000_000);
     expect(calls[0].cookies).toBe(COOKIES);
     expect(calls[0].sign).toBe(null);
     const batch = a.normalize(items[0]);
@@ -119,11 +160,11 @@ describe("CamScannerDocAdapter (via _document-base)", () => {
   });
 
   it("cookie-api: signProvider seam invoked when present", async () => {
-    let seen = null;
+    const seen = [];
     const a = new cs.CamScannerDocAdapter({
       account: { cookies: COOKIES, userId: "u1" },
       signProvider: async ({ url, query }) => {
-        seen = { url, offset: query.offset };
+        seen.push({ url, offset: query.offset });
         return "sig-abc";
       },
       fetchFn: async ({ sign, query }) => {
@@ -134,9 +175,76 @@ describe("CamScannerDocAdapter (via _document-base)", () => {
     });
     const items = await collect(a.sync({}));
     expect(items).toHaveLength(1);
-    expect(seen.offset).toBe(0);
-    expect(seen.url).toContain("intsig");
+    expect(seen.map((entry) => entry.offset)).toEqual([0, 1]);
+    expect(seen.every((entry) => entry.url.includes("intsig"))).toBe(true);
   });
+
+  it("cookie-api: continues past an old row and completes on an empty page", async () => {
+    let watermarkCompletions = 0;
+    const offsets = [];
+    const a = new cs.CamScannerDocAdapter({
+      account: { cookies: COOKIES },
+      fetchFn: async ({ query }) => {
+        offsets.push(query.offset);
+        return query.offset === 0
+          ? {
+              docs: [
+                {
+                  sync_doc_id: "OLD",
+                  title: "old",
+                  modify_time: 1716382999,
+                },
+                {
+                  sync_doc_id: "NEW",
+                  title: "new",
+                  modify_time: 1716383001,
+                },
+              ],
+            }
+          : { docs: [] };
+      },
+    });
+
+    const items = await collect(
+      a.sync({
+        sinceWatermark: 1716383000000,
+        markWatermarkComplete: () => {
+          watermarkCompletions += 1;
+        },
+      }),
+    );
+
+    expect(items.map((item) => item.originalId)).toEqual([
+      "camscanner:document:NEW",
+    ]);
+    expect(offsets).toEqual([0, 2]);
+    expect(watermarkCompletions).toBe(1);
+  });
+
+  it.each([
+    ["HTML login page", "<html>login</html>", "SOURCE_PAGE_UNRECOGNIZED"],
+    ["business error", { code: 401, docs: [] }, "SOURCE_PAGE_ERROR"],
+  ])(
+    "cookie-api: rejects a %s without completing the watermark",
+    async (_label, response, expectedCode) => {
+      let watermarkCompletions = 0;
+      const a = new cs.CamScannerDocAdapter({
+        account: { cookies: COOKIES },
+        fetchFn: async () => response,
+      });
+
+      await expect(
+        collect(
+          a.sync({
+            markWatermarkComplete: () => {
+              watermarkCompletions += 1;
+            },
+          }),
+        ),
+      ).rejects.toMatchObject({ code: expectedCode });
+      expect(watermarkCompletions).toBe(0);
+    },
+  );
 
   it("default fetch throws; no input throws", async () => {
     const a = new cs.CamScannerDocAdapter({ account: { cookies: COOKIES } });

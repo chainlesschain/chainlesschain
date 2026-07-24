@@ -24,6 +24,10 @@
 const fs = require("node:fs");
 const { newId } = require("../../ids");
 const {
+  probeJsonSnapshotFile,
+  readJsonSnapshot,
+} = require("../../snapshot-file");
+const {
   ENTITY_TYPES,
   PERSON_SUBTYPES,
   EVENT_SUBTYPES,
@@ -41,8 +45,12 @@ const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_PROFILE, KIND_ORDER]);
 function stableOriginalId(kind, id) {
   const safe =
     (typeof id === "string" && id.length > 0 && id) ||
-    (typeof id === "number" && Number.isFinite(id) && String(id)) ||
-    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    (typeof id === "number" && Number.isFinite(id) && String(id));
+  if (!safe) {
+    throw new Error(
+      `${NAME}.sync: ${String(kind)} record requires a stable id`,
+    );
+  }
   return `alipay:${kind}:${safe}`;
 }
 
@@ -84,22 +92,20 @@ class AlipayAdapter {
     this.apiClient = new AlipayApiClient(opts);
     // Test seam: override how the live client is built per-sync (inject fetch).
     this._apiClientFactory =
-      typeof opts.apiClientFactory === "function" ? opts.apiClientFactory : null;
+      typeof opts.apiClientFactory === "function"
+        ? opts.apiClientFactory
+        : null;
     this._deps = { fs };
   }
 
   async authenticate(ctx = {}) {
     if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
-      try {
-        this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
-      } catch (err) {
-        return {
-          ok: false,
-          reason: "INPUT_PATH_UNREADABLE",
-          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
-        };
-      }
-      return { ok: true, mode: "snapshot-file" };
+      return probeJsonSnapshotFile(this._deps.fs, ctx.inputPath, {
+        maxBytes: ctx.maxSnapshotBytes,
+        expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        requiredArrayFields: ["events"],
+        allowedEventKinds: VALID_SNAPSHOT_KINDS,
+      });
     }
     if (ctx && typeof ctx.cookie === "string" && ctx.cookie.length > 0) {
       if (!this.apiClient.hasSession(ctx.cookie)) {
@@ -179,7 +185,9 @@ class AlipayAdapter {
       if (!ev || !VALID_SNAPSHOT_KINDS.includes(ev.kind)) continue;
       if (include[ev.kind] === false) continue;
       const id =
-        (typeof ev.id === "string" && ev.id.length > 0 && ev.id) || ev.uid || null;
+        (typeof ev.id === "string" && ev.id.length > 0 && ev.id) ||
+        ev.uid ||
+        null;
       yield {
         adapter: NAME,
         kind: ev.kind,
@@ -192,17 +200,12 @@ class AlipayAdapter {
   }
 
   async *_syncViaSnapshot(opts) {
-    const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
-    const snapshot = JSON.parse(raw);
-    if (
-      !snapshot ||
-      typeof snapshot !== "object" ||
-      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
-    ) {
-      throw new Error(
-        `finance-alipay.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
-      );
-    }
+    const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
+      maxBytes: opts.maxSnapshotBytes,
+      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      requiredArrayFields: ["events"],
+      allowedEventKinds: VALID_SNAPSHOT_KINDS,
+    });
     const fallbackCapturedAt =
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
@@ -214,19 +217,17 @@ class AlipayAdapter {
     const include = opts.include || {};
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
-    const events = Array.isArray(snapshot.events) ? snapshot.events : [];
+    const events = snapshot.events;
     let emitted = 0;
     for (const ev of events) {
       if (emitted >= limit) return;
-      if (!ev || typeof ev !== "object") continue;
       const kind = ev.kind;
-      if (!VALID_SNAPSHOT_KINDS.includes(kind)) continue;
       if (include[kind] === false) continue;
       const capturedAt = parseTime(ev.capturedAt) || fallbackCapturedAt;
-      const id =
+      const explicitId =
         (typeof ev.id === "string" && ev.id.length > 0 && ev.id) ||
-        ev.uid ||
-        null;
+        (typeof ev.id === "number" && Number.isFinite(ev.id) ? ev.id : null);
+      const id = explicitId ?? (kind === KIND_PROFILE ? ev.uid : null);
       yield {
         adapter: NAME,
         kind,

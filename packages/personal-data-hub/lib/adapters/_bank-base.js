@@ -38,6 +38,8 @@
 const fs = require("node:fs");
 const { newId } = require("../ids");
 const { ENTITY_TYPES, EVENT_SUBTYPES, CAPTURED_BY } = require("../constants");
+const { extractRecognizedArray } = require("../source-page");
+const { probeJsonSnapshotFile, readJsonSnapshot } = require("../snapshot-file");
 
 const SNAPSHOT_SCHEMA_VERSION = 1;
 const KIND_TRANSACTION = "transaction";
@@ -151,17 +153,18 @@ function mapCard(raw) {
 }
 
 function extractList(resp) {
-  if (!resp || typeof resp !== "object") return [];
-  if (Array.isArray(resp.list)) return resp.list;
-  if (Array.isArray(resp.data)) return resp.data;
-  const d = resp.data;
-  if (d && typeof d === "object") {
-    if (Array.isArray(d.list)) return d.list;
-    if (Array.isArray(d.records)) return d.records;
-    if (Array.isArray(d.result)) return d.result;
-    if (Array.isArray(d.details)) return d.details;
-  }
-  return [];
+  return extractRecognizedArray(
+    resp,
+    [
+      ["list"],
+      ["data"],
+      ["data", "list"],
+      ["data", "records"],
+      ["data", "result"],
+      ["data", "details"],
+    ],
+    { source: "bank" },
+  );
 }
 
 function billMonthToMs(billMonth) {
@@ -192,8 +195,12 @@ function createBankAdapter(cfg) {
   function stableOriginalId(kind, id) {
     const safe =
       (typeof id === "string" && id.length > 0 && id) ||
-      (typeof id === "number" && Number.isFinite(id) && String(id)) ||
-      `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      (typeof id === "number" && Number.isFinite(id) && String(id));
+    if (!safe) {
+      throw new Error(
+        `${NAME}.sync: ${String(kind)} record requires a stable id`,
+      );
+    }
     return `${platform}:${kind}:${safe}`;
   }
 
@@ -249,16 +256,12 @@ function createBankAdapter(cfg) {
         typeof ctx.inputPath === "string" &&
         ctx.inputPath.length > 0
       ) {
-        try {
-          this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
-        } catch (err) {
-          return {
-            ok: false,
-            reason: "INPUT_PATH_UNREADABLE",
-            message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
-          };
-        }
-        return { ok: true, mode: "snapshot-file" };
+        return probeJsonSnapshotFile(this._deps.fs, ctx.inputPath, {
+          maxBytes: ctx.maxSnapshotBytes,
+          expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+          requiredArrayFields: ["events"],
+          allowedEventKinds: VALID_SNAPSHOT_KINDS,
+        });
       }
       if (this._cookieAuth && !this._liveConfigured) {
         return {
@@ -317,8 +320,12 @@ function createBankAdapter(cfg) {
     }
 
     async *_syncViaSnapshot(opts) {
-      const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
-      const snapshot = JSON.parse(raw);
+      const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
+        maxBytes: opts.maxSnapshotBytes,
+        expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        requiredArrayFields: ["events"],
+        allowedEventKinds: VALID_SNAPSHOT_KINDS,
+      });
       if (
         !snapshot ||
         typeof snapshot !== "object" ||
@@ -350,7 +357,11 @@ function createBankAdapter(cfg) {
 
         const rec =
           ev.kind === KIND_TRANSACTION ? mapTransaction(ev) : mapCard(ev);
-        if (!rec) continue;
+        if (!rec) {
+          throw new Error(
+            `${NAME}.sync: ${String(ev.kind)} record requires a stable id`,
+          );
+        }
         const recTime =
           ev.kind === KIND_TRANSACTION
             ? rec.timeMs
@@ -406,6 +417,9 @@ function createBankAdapter(cfg) {
         },
       ];
 
+      const allKindsIncluded = plan.every(
+        (step) => include[step.kind] !== false,
+      );
       let emitted = 0;
       let scanComplete = true;
       for (const step of plan) {
@@ -431,14 +445,12 @@ function createBankAdapter(cfg) {
             streamComplete = true;
             break;
           }
-          let reachedWatermark = false;
           for (const it of items) {
             const rec = step.map(it);
             if (!rec) continue;
             const occurredAt = step.ts(rec);
             if (occurredAt && occurredAt < sinceMs) {
-              reachedWatermark = true;
-              break;
+              continue;
             }
             if (emitted >= limit) return;
             yield {
@@ -446,19 +458,20 @@ function createBankAdapter(cfg) {
               kind: step.kind,
               originalId: stableOriginalId(step.kind, step.idOf(rec)),
               capturedAt: occurredAt || Date.now(),
+              watermarkAt: occurredAt || null,
               payload: { record: rec, kind: step.kind, cookie: true },
             };
             emitted += 1;
-          }
-          if (reachedWatermark || items.length < PAGE_SIZE) {
-            streamComplete = true;
-            break;
           }
           page += 1;
         }
         if (!streamComplete) scanComplete = false;
       }
-      if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+      if (
+        scanComplete &&
+        allKindsIncluded &&
+        typeof opts.markWatermarkComplete === "function"
+      ) {
         opts.markWatermarkComplete();
       }
     }
