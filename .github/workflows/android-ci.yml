@@ -215,12 +215,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 2026-05-27: switched from [26, 33] → [28, 30]. The app ships only
-        # armeabi-v7a + arm64-v8a. Use google_apis system images below because
-        # the default x86_64 images do not expose the native bridge and Gradle
-        # rejects them as "0 compatible devices" before tests start.
-        # [[android_e2e_api33_abi_mismatch]] for the full root-cause writeup.
-        api-level: [28, 30] # Test on Android 9 (Pie) and 11 (R)
+        # The full app ships only armeabi-v7a + arm64-v8a native libraries.
+        # GitHub's API 30 google_apis image provides the native translation
+        # needed by its x86_64 emulator; API 28 does not and rejects the APK as
+        # "0 compatible devices". API 28 remains covered by the module-focused
+        # P1/P2 matrix in android-tests.yml.
+        api-level: [30] # Android 11 (R)
 
     steps:
       - name: Checkout code
@@ -270,7 +270,7 @@ jobs:
           # foreign AVD with an incompatible config.ini, the emulator launched
           # but immediately logged "no valid sdk root directory" and never
           # opened port 5554 (run 26479612061 / job 77974125586).
-          key: avd-android-ci-${{ matrix.api-level }}-google-apis-v2
+          key: avd-android-ci-${{ matrix.api-level }}-google-apis-v3
 
       - name: Create AVD and generate snapshot for caching
         if: steps.avd-cache.outputs.cache-hit != 'true'
@@ -284,8 +284,10 @@ jobs:
           disable-animations: false
           script: echo "Generated AVD snapshot for caching."
 
-      # This is a hard gate: a compatible google_apis image must run the app
-      # instrumentation suite successfully on both supported API levels.
+      # This is a hard gate. Scope Gradle to modules with live androidTest
+      # sources: the bare connectedDebugAndroidTest task also runs empty test
+      # modules, whose instrumentation runner exits with a phantom
+      # "Starting 0 tests / Process crashed" failure.
       - name: Run Instrumented Tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -293,16 +295,23 @@ jobs:
           target: google_apis
           arch: x86_64
           force-avd-creation: false
-          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-snapshot-load -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: cd android-app && ./gradlew connectedDebugAndroidTest
+          script: |
+            adb uninstall com.chainlesschain.android.debug || true
+            adb uninstall com.chainlesschain.android.debug.test || true
+            adb uninstall com.chainlesschain.android.feature.knowledge.test || true
+            adb uninstall com.chainlesschain.android.feature.ai.test || true
+            cd android-app && ./gradlew :app:connectedDebugAndroidTest :feature-knowledge:connectedDebugAndroidTest :feature-ai:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.clearPackageData=true --stacktrace --no-daemon --continue
 
       - name: Upload Instrumented Test Results
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: instrumented-test-results-api${{ matrix.api-level }}
-          path: android-app/app/build/reports/androidTests/
+          path: |
+            android-app/**/build/reports/androidTests/
+            android-app/**/build/outputs/androidTest-results/
 
   security-scan:
     name: Security Scan
@@ -366,7 +375,8 @@ jobs:
         run: |
           if [[ "${{ needs.lint.result }}" == "success" && \
                 "${{ needs.test.result }}" == "success" && \
-                "${{ needs.build.result }}" == "success" ]]; then
+                "${{ needs.build.result }}" == "success" && \
+                "${{ needs.instrumented-test.result }}" == "success" ]]; then
             echo "status=success" >> $GITHUB_OUTPUT
           else
             echo "status=failure" >> $GITHUB_OUTPUT
