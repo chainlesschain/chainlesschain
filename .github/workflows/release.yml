@@ -233,7 +233,7 @@ jobs:
         shell: bash
         run: |
           set -e
-          ELECTRON_VER=$(node -p "require('./desktop-app-vue/node_modules/electron/package.json').version")
+          ELECTRON_VER=$(node -p "require(require.resolve('electron/package.json', { paths: [require('node:path').resolve('desktop-app-vue')] })).version")
           echo "Rebuilding bs3mc for Electron $ELECTRON_VER (desktop-app-vue/, prebuild via @electron/rebuild)"
           (cd desktop-app-vue && npx --yes @electron/rebuild@^4 \
             --version "$ELECTRON_VER" \
@@ -480,7 +480,7 @@ jobs:
         shell: bash
         run: |
           set -e
-          ELECTRON_VER=$(node -p "require('./desktop-app-vue/node_modules/electron/package.json').version")
+          ELECTRON_VER=$(node -p "require(require.resolve('electron/package.json', { paths: [require('node:path').resolve('desktop-app-vue')] })).version")
           echo "Rebuilding bs3mc for Electron $ELECTRON_VER (arm64, single-arch)"
           (cd desktop-app-vue && npx --yes @electron/rebuild@^4 \
             --version "$ELECTRON_VER" \
@@ -725,7 +725,7 @@ jobs:
         shell: bash
         run: |
           set -e
-          ELECTRON_VER=$(node -p "require('./desktop-app-vue/node_modules/electron/package.json').version")
+          ELECTRON_VER=$(node -p "require(require.resolve('electron/package.json', { paths: [require('node:path').resolve('desktop-app-vue')] })).version")
           echo "Rebuilding bs3mc for Electron $ELECTRON_VER"
           (cd desktop-app-vue && npx --yes @electron/rebuild@^4 \
             --version "$ELECTRON_VER" \
