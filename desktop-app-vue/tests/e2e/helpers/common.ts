@@ -131,10 +131,57 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
     timeout: 180000, // 180秒启动超时（增加到3分钟）
   });
 
-  // 等待并获取第一个窗口（增加超时）
-  const window = await app.firstWindow({
-    timeout: 120000, // 120秒窗口创建超时（增加到2分钟）
-  });
+  // The splash screen is created before the application window, so
+  // app.firstWindow() can return a page that has no desktop preload API. Wait
+  // for the real application window instead.
+  const hasDesktopApi = async (candidate: Page): Promise<boolean> => {
+    if (candidate.isClosed()) {
+      return false;
+    }
+
+    try {
+      await candidate.waitForLoadState("domcontentloaded", { timeout: 5000 });
+      return await candidate.evaluate(
+        () =>
+          typeof (window as any).electronAPI !== "undefined" ||
+          typeof (window as any).electron !== "undefined" ||
+          typeof (window as any).api !== "undefined",
+      );
+    } catch {
+      return false;
+    }
+  };
+
+  const findMainWindow = async (): Promise<Page | undefined> => {
+    for (const candidate of app.windows()) {
+      if (await hasDesktopApi(candidate)) {
+        return candidate;
+      }
+    }
+    return undefined;
+  };
+
+  const windowDeadline = Date.now() + 120000;
+  let window = await findMainWindow();
+  while (!window && Date.now() < windowDeadline) {
+    try {
+      await app.waitForEvent("window", { timeout: 1000 });
+    } catch {
+      // No new window in this interval; re-check existing pages because the
+      // main preload may have completed without another window event.
+    }
+    window = await findMainWindow();
+  }
+
+  if (!window) {
+    const openWindowUrls = app
+      .windows()
+      .filter((candidate) => !candidate.isClosed())
+      .map((candidate) => candidate.url());
+    throw new Error(
+      `Timed out waiting for the Electron main window; open windows: ${openWindowUrls.join(", ")}`,
+    );
+  }
 
   // 等待加载完成
   await window.waitForLoadState("domcontentloaded", {
