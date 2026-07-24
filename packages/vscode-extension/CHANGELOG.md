@@ -2,12 +2,16 @@
 
 All notable changes to this extension are documented here.
 
-## [Unreleased]
+## [0.37.32] - MCP elicitation and packaged schema (2026-07-24)
 
-- Vendor the shared MCP elicitation schema inside the VSIX so chat activation
-  no longer depends on a monorepo-only sibling path.
-- Verify the vendored schema is current and present in every packaged artifact
-  before Extension Host release gates run.
+- Render MCP form-elicitation requests directly in chat with the shared
+  restricted-schema compiler, typed controls, client-side validation, and
+  structured accept/decline/cancel replies.
+- Restrict lockfile permission downgrades to the branded managed-policy result;
+  caller-controlled booleans can no longer weaken owner-only publication.
+- Vendor the shared elicitation schema inside the VSIX so activation never
+  depends on a monorepo-only sibling path, and verify both source parity and
+  packaged presence before the Extension Host release gates run.
 
 ## [0.37.31] - CLI 0.162.177 compatibility release (2026-07-23)
 
