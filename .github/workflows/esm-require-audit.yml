@@ -31,6 +31,8 @@ on:
     paths:
       - 'packages/cli/src/**'
       - 'scripts/audit-esm-require.mjs'
+      - 'scripts/__tests__/audit-esm-require.test.mjs'
+      - '.github/workflows/esm-require-audit.yml'
 
 permissions:
   contents: read
