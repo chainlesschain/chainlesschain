@@ -33,7 +33,13 @@
 "use strict";
 
 const fs = require("node:fs");
+const { createAccountScopeFromAccount } = require("../../account-scope");
 const { newId } = require("../../ids");
+const { extractRecognizedArray } = require("../../source-page");
+const {
+  probeJsonSnapshotFile,
+  readJsonSnapshot,
+} = require("../../snapshot-file");
 const {
   ENTITY_TYPES,
   EVENT_SUBTYPES,
@@ -43,7 +49,7 @@ const {
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "audio-ximalaya";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_PLAY = "play";
@@ -73,14 +79,22 @@ function parseTime(v) {
 function stableOriginalId(kind, id) {
   const safe =
     (typeof id === "string" && id.length > 0 && id) ||
-    (typeof id === "number" && Number.isFinite(id) && String(id)) ||
-    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    (typeof id === "number" && Number.isFinite(id) && String(id));
+  if (!safe) {
+    throw new Error(
+      `${NAME}.sync: ${String(kind)} record requires a stable id`,
+    );
+  }
   return `ximalaya:${kind}:${safe}`;
 }
 
 class XimalayaAdapter {
   constructor(opts = {}) {
     this.account = opts.account || null;
+    this.defaultScope = createAccountScopeFromAccount(NAME, this.account, [
+      "userId",
+      "uid",
+    ]);
     this._cookieAuth =
       opts.account && opts.account.cookies
         ? new CookieAuth({
@@ -100,7 +114,8 @@ class XimalayaAdapter {
 
     this.name = NAME;
     this.version = VERSION;
-    this.watermarkStrategy = "max-captured-at";
+    this.watermarkStrategy = "partitioned";
+    this.watermarkStreams = VALID_KINDS;
     this.watermarkRequiresCompleteScan = true;
     this.capabilities = [
       "sync:snapshot",
@@ -127,16 +142,12 @@ class XimalayaAdapter {
 
   async authenticate(ctx = {}) {
     if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
-      try {
-        this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
-      } catch (err) {
-        return {
-          ok: false,
-          reason: "INPUT_PATH_UNREADABLE",
-          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
-        };
-      }
-      return { ok: true, mode: "snapshot-file" };
+      return probeJsonSnapshotFile(this._deps.fs, ctx.inputPath, {
+        maxBytes: ctx.maxSnapshotBytes,
+        expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        requiredArrayFields: ["events"],
+        allowedEventKinds: VALID_KINDS,
+      });
     }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
@@ -170,6 +181,14 @@ class XimalayaAdapter {
     return { ok: true, lastChecked: Date.now() };
   }
 
+  targetWatermarkKeys(opts = {}) {
+    if (typeof opts.inputPath === "string" && opts.inputPath.length > 0) {
+      return [];
+    }
+    const include = opts.include || {};
+    return VALID_KINDS.filter((kind) => include[kind] !== false);
+  }
+
   async *sync(opts = {}) {
     if (typeof opts.inputPath === "string" && opts.inputPath.length > 0) {
       yield* this._syncViaSnapshot(opts);
@@ -185,24 +204,12 @@ class XimalayaAdapter {
   }
 
   async *_syncViaSnapshot(opts) {
-    const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
-    let snapshot;
-    try {
-      snapshot = JSON.parse(raw);
-    } catch (err) {
-      throw new Error(
-        `audio-ximalaya.sync: snapshot must be JSON. Got parse error: ${err.message}`,
-      );
-    }
-    if (
-      !snapshot ||
-      typeof snapshot !== "object" ||
-      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
-    ) {
-      throw new Error(
-        `audio-ximalaya.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
-      );
-    }
+    const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
+      maxBytes: opts.maxSnapshotBytes,
+      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      requiredArrayFields: ["events"],
+      allowedEventKinds: VALID_KINDS,
+    });
     const fallback =
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
@@ -214,12 +221,10 @@ class XimalayaAdapter {
     const include = opts.include || {};
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
-    const events = Array.isArray(snapshot.events) ? snapshot.events : [];
+    const events = snapshot.events;
     let emitted = 0;
     for (const ev of events) {
       if (emitted >= limit) return;
-      if (!ev || typeof ev !== "object" || !VALID_KINDS.includes(ev.kind))
-        continue;
       if (include[ev.kind] === false) continue;
       const id =
         (typeof ev.id === "string" && ev.id) ||
@@ -245,10 +250,7 @@ class XimalayaAdapter {
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
-    const sinceMs =
-      opts.sinceWatermark != null
-        ? parseInt(String(opts.sinceWatermark), 10) || 0
-        : 0;
+    const sinceWatermarks = opts.sinceWatermarks || {};
 
     const plan = [
       { kind: KIND_PLAY, url: this._urls.play, map: trackItemToRecord },
@@ -261,12 +263,20 @@ class XimalayaAdapter {
     ];
 
     let emitted = 0;
-    let scanComplete = true;
     for (const step of plan) {
       if (include[step.kind] === false) continue;
+      const sinceMs =
+        sinceWatermarks[step.kind] != null
+          ? parseInt(String(sinceWatermarks[step.kind]), 10) || 0
+          : 0;
+      const streamMaxPages =
+        Number.isInteger(opts.maxPagesByWatermarkKey?.[step.kind]) &&
+        opts.maxPagesByWatermarkKey[step.kind] > 0
+          ? opts.maxPagesByWatermarkKey[step.kind]
+          : maxPages;
       let page = 1;
       let streamComplete = false;
-      while (page <= maxPages) {
+      while (page <= streamMaxPages) {
         const query = { page, pageSize: PAGE_SIZE };
         let sign = null;
         if (this._signProvider) {
@@ -278,18 +288,16 @@ class XimalayaAdapter {
           query,
           sign,
         });
-        const items = extractList(resp);
+        const items = extractList(resp, step.kind);
         if (!items.length) {
           streamComplete = true;
           break;
         }
-        let reachedWatermark = false;
         for (const it of items) {
           const rec = step.map(it);
           if (!rec) continue;
           if (rec.occurredAt && rec.occurredAt < sinceMs) {
-            reachedWatermark = true;
-            break;
+            continue;
           }
           if (emitted >= limit) return;
           yield {
@@ -297,20 +305,17 @@ class XimalayaAdapter {
             kind: step.kind,
             originalId: stableOriginalId(step.kind, rec.id),
             capturedAt: rec.occurredAt || Date.now(),
+            watermarkKey: step.kind,
+            watermarkAt: rec.occurredAt,
             payload: { ...rec, kind: step.kind, cookie: true },
           };
           emitted += 1;
         }
-        if (reachedWatermark || items.length < PAGE_SIZE) {
-          streamComplete = true;
-          break;
-        }
         page += 1;
       }
-      if (!streamComplete) scanComplete = false;
-    }
-    if (scanComplete && typeof opts.markWatermarkComplete === "function") {
-      opts.markWatermarkComplete();
+      if (streamComplete && typeof opts.markWatermarkComplete === "function") {
+        opts.markWatermarkComplete(step.kind);
+      }
     }
   }
 
@@ -343,18 +348,19 @@ class XimalayaAdapter {
 
 // ─── cookie response → intermediate record ───────────────────────────────────
 
-function extractList(resp) {
-  if (!resp || typeof resp !== "object") return [];
-  if (Array.isArray(resp.list)) return resp.list;
-  if (Array.isArray(resp.data)) return resp.data;
-  const d = resp.data;
-  if (d && typeof d === "object") {
-    if (Array.isArray(d.list)) return d.list;
-    if (Array.isArray(d.tracks)) return d.tracks;
-    if (Array.isArray(d.albums)) return d.albums;
-    if (Array.isArray(d.albumsInfo)) return d.albumsInfo;
-  }
-  return [];
+function extractList(resp, stream) {
+  return extractRecognizedArray(
+    resp,
+    [
+      ["list"],
+      ["data"],
+      ["data", "list"],
+      ["data", "tracks"],
+      ["data", "albums"],
+      ["data", "albumsInfo"],
+    ],
+    { source: NAME, stream },
+  );
 }
 
 function trackItemToRecord(it) {

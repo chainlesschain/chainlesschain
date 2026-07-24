@@ -51,7 +51,7 @@ describe("fitness-joyrun", () => {
   it("extractList tolerant", () => {
     expect(jr.extractList({ data: { runs: [{ fid: 1 }] } })).toHaveLength(1);
     expect(jr.extractList({ list: [{ fid: 1 }] })).toHaveLength(1);
-    expect(jr.extractList({})).toEqual([]);
+    expect(() => jr.extractList({})).toThrow(/recognized list/u);
   });
 
   it("snapshot → OTHER event with km title + run extras", async () => {
@@ -134,25 +134,34 @@ describe("fitness-joyrun", () => {
     expect(watermarkComplete).toBe(true);
   });
 
-  it("cookie-api stops after reaching the previous run timestamp", async () => {
+  it("cookie-api continues past an old row and completes on an empty page", async () => {
     let watermarkComplete = false;
+    const pages = [];
     const a = new jr.JoyrunAdapter({
       account: { cookies: COOKIES, userId: "u1" },
       listUrl: "https://captured.example/runs",
-      fetchFn: async () => ({
-        list: [{ fid: "OLD", starttime: 1716383000, meter: 1000 }],
-      }),
+      fetchFn: async ({ query }) => {
+        pages.push(query.page);
+        return query.page === 1
+          ? {
+              list: [
+                { fid: "OLD", starttime: 1716382999, meter: 1000 },
+                { fid: "NEW", starttime: 1716383001, meter: 1000 },
+              ],
+            }
+          : { list: [] };
+      },
     });
-    expect(
-      await collect(
-        a.sync({
-          sinceWatermark: 1716383000001,
-          markWatermarkComplete: () => {
-            watermarkComplete = true;
-          },
-        }),
-      ),
-    ).toEqual([]);
+    const items = await collect(
+      a.sync({
+        sinceWatermark: 1716383000000,
+        markWatermarkComplete: () => {
+          watermarkComplete = true;
+        },
+      }),
+    );
+    expect(items.map((item) => item.originalId)).toEqual(["joyrun:run:NEW"]);
+    expect(pages).toEqual([1, 2]);
     expect(watermarkComplete).toBe(true);
   });
 

@@ -31,6 +31,10 @@
 const fs = require("node:fs");
 const { newId } = require("../../ids");
 const {
+  probeJsonSnapshotFile,
+  readJsonSnapshot,
+} = require("../../snapshot-file");
+const {
   ENTITY_TYPES,
   EVENT_SUBTYPES,
   ITEM_SUBTYPES,
@@ -58,8 +62,12 @@ function parseTime(v) {
 function stableOriginalId(kind, id) {
   const safe =
     (typeof id === "string" && id.length > 0 && id) ||
-    (typeof id === "number" && Number.isFinite(id) && String(id)) ||
-    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    (typeof id === "number" && Number.isFinite(id) && String(id));
+  if (!safe) {
+    throw new Error(
+      `${NAME}.sync: ${String(kind)} record requires a stable id`,
+    );
+  }
   return `netease-music:${kind}:${safe}`;
 }
 
@@ -69,7 +77,9 @@ class NeteaseMusicAdapter {
     this._cookie = opts.cookie || null;
     // Test seam: override how the live client is built per-sync (inject fetch).
     this._apiClientFactory =
-      typeof opts.apiClientFactory === "function" ? opts.apiClientFactory : null;
+      typeof opts.apiClientFactory === "function"
+        ? opts.apiClientFactory
+        : null;
     this.name = NAME;
     this.version = VERSION;
     this.capabilities = [
@@ -103,23 +113,28 @@ class NeteaseMusicAdapter {
     }
     const inputPath = (ctx && ctx.inputPath) || this._dataPath;
     if (inputPath) {
-      try {
-        this._deps.fs.accessSync(inputPath, this._deps.fs.constants.R_OK);
-      } catch (err) {
-        return { ok: false, reason: "INPUT_PATH_UNREADABLE", message: `snapshot not readable: ${err.message}` };
-      }
-      return { ok: true, mode: "snapshot-file" };
+      return probeJsonSnapshotFile(this._deps.fs, inputPath, {
+        maxBytes: ctx.maxSnapshotBytes,
+        expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        requiredArrayFields: ["events"],
+        allowedEventKinds: VALID_KINDS,
+      });
     }
     const cookie = (ctx && ctx.cookie) || this._cookie;
     if (cookie) {
       return /MUSIC_U=/.test(cookie)
         ? { ok: true, mode: "cookie" }
-        : { ok: false, reason: "INVALID_COOKIE", message: "netease-music.authenticate: cookie 缺 MUSIC_U（未登录）" };
+        : {
+            ok: false,
+            reason: "INVALID_COOKIE",
+            message: "netease-music.authenticate: cookie 缺 MUSIC_U（未登录）",
+          };
     }
     return {
       ok: false,
       reason: "NO_INPUT",
-      message: "netease-music.authenticate: needs opts.inputPath (snapshot) or opts.cookie (live weapi)",
+      message:
+        "netease-music.authenticate: needs opts.inputPath (snapshot) or opts.cookie (live weapi)",
     };
   }
 
@@ -139,27 +154,33 @@ class NeteaseMusicAdapter {
         "netease-music.sync: needs opts.inputPath (snapshot JSON) or opts.cookie (live weapi fetch)",
       );
     }
-    if (!this._deps.fs.existsSync(inputPath)) return;
-    const snapshot = JSON.parse(this._deps.fs.readFileSync(inputPath, "utf-8"));
-    if (!snapshot || snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION) {
-      throw new Error(
-        `netease-music.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
-      );
-    }
+    const snapshot = readJsonSnapshot(this._deps.fs, inputPath, {
+      maxBytes: opts.maxSnapshotBytes,
+      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      requiredArrayFields: ["events"],
+      allowedEventKinds: VALID_KINDS,
+    });
     const fallback =
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
         : Date.now();
-    const account = snapshot.account && typeof snapshot.account === "object" ? snapshot.account : null;
+    const account =
+      snapshot.account && typeof snapshot.account === "object"
+        ? snapshot.account
+        : null;
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
-    const events = Array.isArray(snapshot.events) ? snapshot.events : [];
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const events = snapshot.events;
     let emitted = 0;
     for (const ev of events) {
       if (emitted >= limit) return;
-      if (!ev || typeof ev !== "object" || !VALID_KINDS.includes(ev.kind)) continue;
       if (include[ev.kind] === false) continue;
-      const id = (typeof ev.id === "string" && ev.id) || ev.songId || ev.playlistId || null;
+      const id =
+        (typeof ev.id === "string" && ev.id) ||
+        ev.songId ||
+        ev.playlistId ||
+        null;
       yield {
         adapter: NAME,
         kind: ev.kind,
@@ -196,19 +217,26 @@ class NeteaseMusicAdapter {
     });
     if (result === null) {
       const e = client.lastError;
-      throw new Error(`netease-music.sync (live): ${e.message || "fetch failed"} (code ${e.code})`);
+      throw new Error(
+        `netease-music.sync (live): ${e.message || "fetch failed"} (code ${e.code})`,
+      );
     }
     const account = result.account || null;
     emit("fetched", { count: result.events.length });
     const capturedAt = Date.now();
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const include = opts.include || {};
     let emitted = 0;
     for (const ev of result.events) {
       if (emitted >= limit) return;
       if (!ev || !VALID_KINDS.includes(ev.kind)) continue;
       if (include[ev.kind] === false) continue;
-      const id = (typeof ev.id === "string" && ev.id) || ev.songId || ev.playlistId || null;
+      const id =
+        (typeof ev.id === "string" && ev.id) ||
+        ev.songId ||
+        ev.playlistId ||
+        null;
       yield {
         adapter: NAME,
         kind: ev.kind,
@@ -221,12 +249,28 @@ class NeteaseMusicAdapter {
   }
 
   normalize(raw) {
-    if (!raw || !raw.payload) throw new Error("NeteaseMusicAdapter.normalize: payload missing");
+    if (!raw || !raw.payload)
+      throw new Error("NeteaseMusicAdapter.normalize: payload missing");
     const kind = raw.kind || raw.payload.kind;
     const ingestedAt = Date.now();
-    if (kind === KIND_PLAY) return normalizeSong(raw.payload, raw, ingestedAt, EVENT_SUBTYPES.MEDIA, "听了");
-    if (kind === KIND_FAVORITE) return normalizeSong(raw.payload, raw, ingestedAt, EVENT_SUBTYPES.LIKE, "收藏");
-    if (kind === KIND_PLAYLIST) return normalizePlaylist(raw.payload, raw, ingestedAt);
+    if (kind === KIND_PLAY)
+      return normalizeSong(
+        raw.payload,
+        raw,
+        ingestedAt,
+        EVENT_SUBTYPES.MEDIA,
+        "听了",
+      );
+    if (kind === KIND_FAVORITE)
+      return normalizeSong(
+        raw.payload,
+        raw,
+        ingestedAt,
+        EVENT_SUBTYPES.LIKE,
+        "收藏",
+      );
+    if (kind === KIND_PLAYLIST)
+      return normalizePlaylist(raw.payload, raw, ingestedAt);
     throw new Error(`NeteaseMusicAdapter.normalize: unknown kind ${kind}`);
   }
 }
@@ -247,34 +291,55 @@ function normalizeSong(p, raw, ingestedAt, subtype, verb) {
   const song = p.song || "(未知歌曲)";
   const artist = p.artist || "";
   const songId = p.songId != null ? String(p.songId) : null;
-  const itemId = songId ? `item-netease-song-${songId}` : `item-netease-song-${newId()}`;
+  const itemId = songId
+    ? `item-netease-song-${songId}`
+    : `item-netease-song-${newId()}`;
   return {
-    events: [{
-      id: newId(),
-      type: ENTITY_TYPES.EVENT,
-      subtype,
-      occurredAt,
-      actor: "person-self",
-      content: { title: `${verb}: ${song}${artist ? " - " + artist : ""}`, text: `${song} ${artist}`.trim() },
-      ingestedAt,
-      source,
-      extra: {
-        platform: "netease-music",
-        song, artist, album: p.album || null, songId,
-        playCount: p.playCount != null ? p.playCount : null,
-        itemRef: itemId,
+    events: [
+      {
+        id: newId(),
+        type: ENTITY_TYPES.EVENT,
+        subtype,
+        occurredAt,
+        actor: "person-self",
+        content: {
+          title: `${verb}: ${song}${artist ? " - " + artist : ""}`,
+          text: `${song} ${artist}`.trim(),
+        },
+        ingestedAt,
+        source,
+        extra: {
+          platform: "netease-music",
+          song,
+          artist,
+          album: p.album || null,
+          songId,
+          playCount: p.playCount != null ? p.playCount : null,
+          itemRef: itemId,
+        },
       },
-    }],
-    items: [{
-      id: itemId,
-      type: ENTITY_TYPES.ITEM,
-      subtype: ITEM_SUBTYPES.MEDIA,
-      name: artist ? `${song} - ${artist}` : song,
-      ingestedAt,
-      source,
-      extra: { platform: "netease-music", kind: "song", song, artist, album: p.album || null, songId },
-    }],
-    persons: [], places: [], topics: [],
+    ],
+    items: [
+      {
+        id: itemId,
+        type: ENTITY_TYPES.ITEM,
+        subtype: ITEM_SUBTYPES.MEDIA,
+        name: artist ? `${song} - ${artist}` : song,
+        ingestedAt,
+        source,
+        extra: {
+          platform: "netease-music",
+          kind: "song",
+          song,
+          artist,
+          album: p.album || null,
+          songId,
+        },
+      },
+    ],
+    persons: [],
+    places: [],
+    topics: [],
   };
 }
 
@@ -283,21 +348,34 @@ function normalizePlaylist(p, raw, ingestedAt) {
   const source = buildSource(raw, occurredAt);
   const pid = p.playlistId != null ? String(p.playlistId) : null;
   return {
-    events: [], persons: [], places: [], items: [],
-    topics: [{
-      id: pid ? `topic-netease-playlist-${pid}` : `topic-netease-playlist-${newId()}`,
-      type: ENTITY_TYPES.TOPIC,
-      name: p.name || "(未命名歌单)",
-      ingestedAt,
-      source,
-      extra: {
-        platform: "netease-music",
-        playlistId: pid,
-        trackCount: p.trackCount != null ? p.trackCount : null,
-        creator: p.creator || null,
+    events: [],
+    persons: [],
+    places: [],
+    items: [],
+    topics: [
+      {
+        id: pid
+          ? `topic-netease-playlist-${pid}`
+          : `topic-netease-playlist-${newId()}`,
+        type: ENTITY_TYPES.TOPIC,
+        name: p.name || "(未命名歌单)",
+        ingestedAt,
+        source,
+        extra: {
+          platform: "netease-music",
+          playlistId: pid,
+          trackCount: p.trackCount != null ? p.trackCount : null,
+          creator: p.creator || null,
+        },
       },
-    }],
+    ],
   };
 }
 
-module.exports = { NeteaseMusicAdapter, NAME, VERSION, SNAPSHOT_SCHEMA_VERSION, VALID_KINDS };
+module.exports = {
+  NeteaseMusicAdapter,
+  NAME,
+  VERSION,
+  SNAPSHOT_SCHEMA_VERSION,
+  VALID_KINDS,
+};

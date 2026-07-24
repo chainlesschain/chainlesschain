@@ -27,6 +27,10 @@
 const fs = require("node:fs");
 const { newId } = require("../../ids");
 const {
+  probeJsonSnapshotFile,
+  readJsonSnapshot,
+} = require("../../snapshot-file");
+const {
   ENTITY_TYPES,
   EVENT_SUBTYPES,
   ITEM_SUBTYPES,
@@ -54,9 +58,26 @@ function parseTime(v) {
 function stableOriginalId(kind, id) {
   const safe =
     (typeof id === "string" && id.length > 0 && id) ||
-    (typeof id === "number" && Number.isFinite(id) && String(id)) ||
-    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    (typeof id === "number" && Number.isFinite(id) && String(id));
+  if (!safe) {
+    throw new Error(
+      `${NAME}.sync: ${String(kind)} record requires a stable id`,
+    );
+  }
   return `weread:${kind}:${safe}`;
+}
+
+function snapshotEventId(event) {
+  if (
+    (typeof event.id === "string" && event.id.length > 0) ||
+    (typeof event.id === "number" && Number.isFinite(event.id))
+  ) {
+    return event.id;
+  }
+  if (event.kind === KIND_BOOK) return event.bookId || null;
+  if (event.kind === KIND_HIGHLIGHT) return event.bookmarkId || null;
+  if (event.kind === KIND_REVIEW) return event.reviewId || null;
+  return null;
 }
 
 class WeReadAdapter {
@@ -95,22 +116,24 @@ class WeReadAdapter {
       return {
         ok: false,
         reason: "INVALID_COOKIE",
-        message: "weread: 需登录微信读书网页版抓取 cookie（或选择已采集的快照文件）",
+        message:
+          "weread: 需登录微信读书网页版抓取 cookie（或选择已采集的快照文件）",
       };
     }
     if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
-      try {
-        this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
-      } catch (err) {
-        return { ok: false, reason: "INPUT_PATH_UNREADABLE", message: `snapshot not readable: ${err.message}` };
-      }
-      return { ok: true, mode: "snapshot-file" };
+      return probeJsonSnapshotFile(this._deps.fs, ctx.inputPath, {
+        maxBytes: ctx.maxSnapshotBytes,
+        expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        requiredArrayFields: ["events"],
+        allowedEventKinds: VALID_KINDS,
+      });
     }
     if (ctx.cookie || this._cookie) return { ok: true, mode: "cookie" };
     return {
       ok: false,
       reason: "INVALID_COOKIE",
-      message: "weread.authenticate: needs opts.cookie (cookie mode) OR opts.inputPath (snapshot)",
+      message:
+        "weread.authenticate: needs opts.cookie (cookie mode) OR opts.inputPath (snapshot)",
     };
   }
 
@@ -120,7 +143,7 @@ class WeReadAdapter {
 
   async *sync(opts = {}) {
     const inputPath = opts.inputPath || this._dataPath;
-    if (inputPath && this._deps.fs.existsSync(inputPath)) {
+    if (inputPath) {
       yield* this._syncViaSnapshot({ ...opts, inputPath });
       return;
     }
@@ -129,7 +152,9 @@ class WeReadAdapter {
       yield* this._syncViaCookie({ ...opts, cookie });
       return;
     }
-    throw new Error("weread.sync: needs opts.cookie (cookie mode) OR opts.inputPath (snapshot)");
+    throw new Error(
+      "weread.sync: needs opts.cookie (cookie mode) OR opts.inputPath (snapshot)",
+    );
   }
 
   async *_syncViaCookie(opts) {
@@ -142,11 +167,18 @@ class WeReadAdapter {
         });
     const emit = (phase, extra) => {
       if (typeof opts.onProgress === "function") {
-        try { opts.onProgress({ phase, adapter: NAME, ...extra }); } catch (_e) { /* best-effort */ }
+        try {
+          opts.onProgress({ phase, adapter: NAME, ...extra });
+        } catch (_e) {
+          /* best-effort */
+        }
       }
     };
 
-    const maxBooks = Number.isInteger(opts.maxBooks) && opts.maxBooks > 0 ? opts.maxBooks : 500;
+    const maxBooks =
+      Number.isInteger(opts.maxBooks) && opts.maxBooks > 0
+        ? opts.maxBooks
+        : 500;
     const includeNotes = opts.includeNotes !== false; // pull highlights/reviews per book
     const books = await client.getNotebooks();
     emit("notebooks", { count: books.length });
@@ -170,7 +202,7 @@ class WeReadAdapter {
         yield {
           adapter: NAME,
           kind: KIND_HIGHLIGHT,
-          originalId: stableOriginalId(KIND_HIGHLIGHT, m.bookmarkId || `${b.bookId}-${m.createTime}`),
+          originalId: stableOriginalId(KIND_HIGHLIGHT, m.bookmarkId),
           capturedAt: parseTime(m.createTime) || Date.now(),
           payload: { kind: KIND_HIGHLIGHT, ...m, bookTitle: b.title },
         };
@@ -181,40 +213,44 @@ class WeReadAdapter {
         yield {
           adapter: NAME,
           kind: KIND_REVIEW,
-          originalId: stableOriginalId(KIND_REVIEW, r.reviewId || `${b.bookId}-${r.createTime}`),
+          originalId: stableOriginalId(KIND_REVIEW, r.reviewId),
           capturedAt: parseTime(r.createTime) || Date.now(),
           payload: { kind: KIND_REVIEW, ...r, bookTitle: b.title },
         };
       }
-      emit("book-done", { bookId: b.bookId, marks: marks.length, reviews: reviews.length });
+      emit("book-done", {
+        bookId: b.bookId,
+        marks: marks.length,
+        reviews: reviews.length,
+      });
     }
   }
 
   async *_syncViaSnapshot(opts) {
-    const snapshot = JSON.parse(this._deps.fs.readFileSync(opts.inputPath, "utf-8"));
-    if (!snapshot || snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION) {
-      throw new Error(
-        `weread.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
-      );
-    }
+    const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
+      maxBytes: opts.maxSnapshotBytes,
+      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      requiredArrayFields: ["events"],
+      allowedEventKinds: VALID_KINDS,
+    });
     const fallback =
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
         : Date.now();
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
-    const events = Array.isArray(snapshot.events) ? snapshot.events : [];
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const events = snapshot.events;
     let emitted = 0;
     for (const ev of events) {
       if (emitted >= limit) return;
-      if (!ev || typeof ev !== "object" || !VALID_KINDS.includes(ev.kind)) continue;
       if (include[ev.kind] === false) continue;
-      const id = (typeof ev.id === "string" && ev.id) || ev.bookId || ev.bookmarkId || ev.reviewId || null;
       yield {
         adapter: NAME,
         kind: ev.kind,
-        originalId: stableOriginalId(ev.kind, id),
-        capturedAt: parseTime(ev.capturedAt) || parseTime(ev.createTime) || fallback,
+        originalId: stableOriginalId(ev.kind, snapshotEventId(ev)),
+        capturedAt:
+          parseTime(ev.capturedAt) || parseTime(ev.createTime) || fallback,
         payload: { ...ev },
       };
       emitted += 1;
@@ -222,12 +258,15 @@ class WeReadAdapter {
   }
 
   normalize(raw) {
-    if (!raw || !raw.payload) throw new Error("WeReadAdapter.normalize: payload missing");
+    if (!raw || !raw.payload)
+      throw new Error("WeReadAdapter.normalize: payload missing");
     const kind = raw.kind || raw.payload.kind;
     const ingestedAt = Date.now();
     if (kind === KIND_BOOK) return normalizeBook(raw.payload, raw, ingestedAt);
-    if (kind === KIND_HIGHLIGHT) return normalizeHighlight(raw.payload, raw, ingestedAt);
-    if (kind === KIND_REVIEW) return normalizeReview(raw.payload, raw, ingestedAt);
+    if (kind === KIND_HIGHLIGHT)
+      return normalizeHighlight(raw.payload, raw, ingestedAt);
+    if (kind === KIND_REVIEW)
+      return normalizeReview(raw.payload, raw, ingestedAt);
     throw new Error(`WeReadAdapter.normalize: unknown kind ${kind}`);
   }
 }
@@ -252,33 +291,48 @@ function normalizeBook(p, raw, ingestedAt) {
   const title = p.title || "(未知书名)";
   const itemId = bookItemId(p.bookId);
   return {
-    events: [{
-      id: newId(),
-      type: ENTITY_TYPES.EVENT,
-      subtype: EVENT_SUBTYPES.BROWSE,
-      occurredAt,
-      actor: "person-self",
-      content: { title: `读《${title}》`, text: title },
-      ingestedAt,
-      source,
-      extra: {
-        platform: "weread", kind: "book",
-        bookId: p.bookId || null, author: p.author || null,
-        noteCount: p.noteCount != null ? p.noteCount : null,
-        reviewCount: p.reviewCount != null ? p.reviewCount : null,
-        itemRef: itemId,
+    events: [
+      {
+        id: newId(),
+        type: ENTITY_TYPES.EVENT,
+        subtype: EVENT_SUBTYPES.BROWSE,
+        occurredAt,
+        actor: "person-self",
+        content: { title: `读《${title}》`, text: title },
+        ingestedAt,
+        source,
+        extra: {
+          platform: "weread",
+          kind: "book",
+          bookId: p.bookId || null,
+          author: p.author || null,
+          noteCount: p.noteCount != null ? p.noteCount : null,
+          reviewCount: p.reviewCount != null ? p.reviewCount : null,
+          itemRef: itemId,
+        },
       },
-    }],
-    items: [{
-      id: itemId,
-      type: ENTITY_TYPES.ITEM,
-      subtype: ITEM_SUBTYPES.DOCUMENT,
-      name: p.author ? `${title} - ${p.author}` : title,
-      ingestedAt,
-      source,
-      extra: { platform: "weread", kind: "book", bookId: p.bookId || null, author: p.author || null, cover: p.cover || null, category: p.category || null },
-    }],
-    persons: [], places: [], topics: [],
+    ],
+    items: [
+      {
+        id: itemId,
+        type: ENTITY_TYPES.ITEM,
+        subtype: ITEM_SUBTYPES.DOCUMENT,
+        name: p.author ? `${title} - ${p.author}` : title,
+        ingestedAt,
+        source,
+        extra: {
+          platform: "weread",
+          kind: "book",
+          bookId: p.bookId || null,
+          author: p.author || null,
+          cover: p.cover || null,
+          category: p.category || null,
+        },
+      },
+    ],
+    persons: [],
+    places: [],
+    topics: [],
   };
 }
 
@@ -288,23 +342,33 @@ function normalizeHighlight(p, raw, ingestedAt) {
   const text = p.markText || "";
   const book = p.bookTitle || "";
   return {
-    events: [{
-      id: newId(),
-      type: ENTITY_TYPES.EVENT,
-      subtype: EVENT_SUBTYPES.OTHER,
-      occurredAt,
-      actor: "person-self",
-      content: { title: `划线${book ? "《" + book + "》" : ""}: ${text.slice(0, 60)}`, text },
-      ingestedAt,
-      source,
-      extra: {
-        platform: "weread", kind: "highlight",
-        bookId: p.bookId || null, bookTitle: book || null,
-        chapterTitle: p.chapterTitle || null,
-        itemRef: p.bookId ? bookItemId(p.bookId) : null,
+    events: [
+      {
+        id: newId(),
+        type: ENTITY_TYPES.EVENT,
+        subtype: EVENT_SUBTYPES.OTHER,
+        occurredAt,
+        actor: "person-self",
+        content: {
+          title: `划线${book ? "《" + book + "》" : ""}: ${text.slice(0, 60)}`,
+          text,
+        },
+        ingestedAt,
+        source,
+        extra: {
+          platform: "weread",
+          kind: "highlight",
+          bookId: p.bookId || null,
+          bookTitle: book || null,
+          chapterTitle: p.chapterTitle || null,
+          itemRef: p.bookId ? bookItemId(p.bookId) : null,
+        },
       },
-    }],
-    persons: [], places: [], items: [], topics: [],
+    ],
+    persons: [],
+    places: [],
+    items: [],
+    topics: [],
   };
 }
 
@@ -314,24 +378,40 @@ function normalizeReview(p, raw, ingestedAt) {
   const text = p.content || "";
   const book = p.bookTitle || "";
   return {
-    events: [{
-      id: newId(),
-      type: ENTITY_TYPES.EVENT,
-      subtype: EVENT_SUBTYPES.POST,
-      occurredAt,
-      actor: "person-self",
-      content: { title: `想法${book ? "《" + book + "》" : ""}: ${text.slice(0, 60)}`, text },
-      ingestedAt,
-      source,
-      extra: {
-        platform: "weread", kind: "review",
-        bookId: p.bookId || null, bookTitle: book || null,
-        chapterTitle: p.chapterTitle || null,
-        itemRef: p.bookId ? bookItemId(p.bookId) : null,
+    events: [
+      {
+        id: newId(),
+        type: ENTITY_TYPES.EVENT,
+        subtype: EVENT_SUBTYPES.POST,
+        occurredAt,
+        actor: "person-self",
+        content: {
+          title: `想法${book ? "《" + book + "》" : ""}: ${text.slice(0, 60)}`,
+          text,
+        },
+        ingestedAt,
+        source,
+        extra: {
+          platform: "weread",
+          kind: "review",
+          bookId: p.bookId || null,
+          bookTitle: book || null,
+          chapterTitle: p.chapterTitle || null,
+          itemRef: p.bookId ? bookItemId(p.bookId) : null,
+        },
       },
-    }],
-    persons: [], places: [], items: [], topics: [],
+    ],
+    persons: [],
+    places: [],
+    items: [],
+    topics: [],
   };
 }
 
-module.exports = { WeReadAdapter, NAME, VERSION, SNAPSHOT_SCHEMA_VERSION, VALID_KINDS };
+module.exports = {
+  WeReadAdapter,
+  NAME,
+  VERSION,
+  SNAPSHOT_SCHEMA_VERSION,
+  VALID_KINDS,
+};

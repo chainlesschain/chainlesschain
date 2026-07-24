@@ -8,22 +8,28 @@
 
 "use strict";
 
-const { createReadingAdapter, parseTime, SNAPSHOT_SCHEMA_VERSION } = require("../_reading-base");
+const {
+  createReadingAdapter,
+  parseTime,
+  SNAPSHOT_SCHEMA_VERSION,
+} = require("../_reading-base");
+const { extractRecognizedArray } = require("../../source-page");
 
 const NAME = "reading-qimao";
 const VERSION = "0.2.0";
 
 function extractItems(resp) {
-  if (!resp || typeof resp !== "object") return [];
-  if (Array.isArray(resp.list)) return resp.list;
-  if (Array.isArray(resp.data)) return resp.data;
-  const d = resp.data;
-  if (d && typeof d === "object") {
-    if (Array.isArray(d.list)) return d.list;
-    if (Array.isArray(d.books)) return d.books;
-    if (Array.isArray(d.shelf)) return d.shelf;
-  }
-  return [];
+  return extractRecognizedArray(
+    resp,
+    [
+      ["list"],
+      ["data"],
+      ["data", "list"],
+      ["data", "books"],
+      ["data", "shelf"],
+    ],
+    { source: NAME },
+  );
 }
 
 function mapItem(it) {
@@ -52,4 +58,11 @@ const QimaoReadingAdapter = createReadingAdapter({
   mapItem,
 });
 
-module.exports = { QimaoReadingAdapter, extractItems, mapItem, NAME, VERSION, SNAPSHOT_SCHEMA_VERSION };
+module.exports = {
+  QimaoReadingAdapter,
+  extractItems,
+  mapItem,
+  NAME,
+  VERSION,
+  SNAPSHOT_SCHEMA_VERSION,
+};

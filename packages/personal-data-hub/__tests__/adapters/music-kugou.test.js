@@ -65,7 +65,7 @@ const SNAP = JSON.stringify({
 describe("constants + item mappers", () => {
   it("name/version", () => {
     expect(NAME).toBe("music-kugou");
-    expect(VERSION).toBe("0.1.0");
+    expect(VERSION).toBe("0.2.0");
     expect(SNAPSHOT_SCHEMA_VERSION).toBe(1);
   });
   it("songItemToRecord: discrete fields + filename split fallback", () => {
@@ -105,7 +105,10 @@ describe("constants + item mappers", () => {
   it("extractList tolerant", () => {
     expect(extractList({ list: [{ hash: 1 }] })).toHaveLength(1);
     expect(extractList({ data: { info: [{ hash: 1 }] } })).toHaveLength(1);
-    expect(extractList({})).toEqual([]);
+    expect(extractList({ list: [] })).toEqual([]);
+    expect(() => extractList({})).toThrow(
+      expect.objectContaining({ code: "SOURCE_PAGE_UNRECOGNIZED" }),
+    );
   });
 });
 
@@ -138,6 +141,11 @@ describe("KugouMusicAdapter snapshot mode", () => {
         "play",
         "favorite",
         "playlist",
+      ]);
+      expect(items.map((x) => x.originalId)).toEqual([
+        "kugou:play:p1",
+        "kugou:favorite:f1",
+        "kugou:playlist:pl1",
       ]);
 
       const play = a.normalize(items[0]);
@@ -187,6 +195,65 @@ describe("KugouMusicAdapter snapshot mode", () => {
       fs.unlinkSync(bad);
     }
   });
+
+  it("fails closed for malformed, invalid-shape, unknown-kind, oversized, and id-less snapshots", async () => {
+    const paths = [
+      writeTmp("{"),
+      writeTmp(JSON.stringify({ schemaVersion: 1, events: {} })),
+      writeTmp(
+        JSON.stringify({
+          schemaVersion: 1,
+          events: [{ kind: "unknown", id: "x" }],
+        }),
+      ),
+      writeTmp(JSON.stringify({ schemaVersion: 1, events: [] })),
+      writeTmp(
+        JSON.stringify({
+          schemaVersion: 1,
+          events: [{ kind: "play", song: "no stable source id" }],
+        }),
+      ),
+    ];
+    try {
+      const a = new KugouMusicAdapter();
+      expect(await a.authenticate({ inputPath: paths[0] })).toMatchObject({
+        ok: false,
+        reason: "SNAPSHOT_JSON_INVALID",
+      });
+      await expect(
+        collect(a.sync({ inputPath: paths[0] })),
+      ).rejects.toMatchObject({ code: "SNAPSHOT_JSON_INVALID" });
+
+      expect(await a.authenticate({ inputPath: paths[1] })).toMatchObject({
+        ok: false,
+        reason: "SNAPSHOT_SHAPE_INVALID",
+      });
+      await expect(
+        collect(a.sync({ inputPath: paths[2] })),
+      ).rejects.toMatchObject({ code: "SNAPSHOT_SHAPE_INVALID" });
+
+      expect(
+        await a.authenticate({
+          inputPath: paths[3],
+          maxSnapshotBytes: 8,
+        }),
+      ).toMatchObject({ ok: false, reason: "SNAPSHOT_TOO_LARGE" });
+      await expect(
+        collect(
+          a.sync({
+            inputPath: paths[3],
+            maxSnapshotBytes: 8,
+          }),
+        ),
+      ).rejects.toMatchObject({ code: "SNAPSHOT_TOO_LARGE" });
+
+      await expect(collect(a.sync({ inputPath: paths[4] }))).rejects.toThrow(
+        /requires a stable id/,
+      );
+    } finally {
+      for (const p of paths) fs.unlinkSync(p);
+    }
+  });
 });
 
 describe("KugouMusicAdapter cookie-api mode", () => {
@@ -197,7 +264,8 @@ describe("KugouMusicAdapter cookie-api mode", () => {
       account: null,
       mode: "cookie",
     });
-    expect(a.watermarkStrategy).toBe("max-captured-at");
+    expect(a.watermarkStrategy).toBe("partitioned");
+    expect(a.watermarkStreams).toEqual(["play", "favorite", "playlist"]);
     expect(a.watermarkRequiresCompleteScan).toBe(true);
   });
 
@@ -221,7 +289,7 @@ describe("KugouMusicAdapter cookie-api mode", () => {
       playlist: [{ listid: "L1", name: "粤语", count: 50 }],
     };
     const calls = [];
-    let watermarkComplete = false;
+    const completedWatermarkKeys = [];
     const a = new KugouMusicAdapter({
       account: { cookies: COOKIES, userId: "u1" },
       fetchFn: async ({ url, cookies, query, sign }) => {
@@ -232,8 +300,8 @@ describe("KugouMusicAdapter cookie-api mode", () => {
     });
     const items = await collect(
       a.sync({
-        markWatermarkComplete: () => {
-          watermarkComplete = true;
+        markWatermarkComplete: (key) => {
+          completedWatermarkKeys.push(key);
         },
       }),
     );
@@ -242,6 +310,7 @@ describe("KugouMusicAdapter cookie-api mode", () => {
       "play",
       "playlist",
     ]);
+    expect(items.every((item) => item.watermarkKey === item.kind)).toBe(true);
     expect(calls.every((c) => c.cookies === COOKIES && c.sign === null)).toBe(
       true,
     );
@@ -251,7 +320,11 @@ describe("KugouMusicAdapter cookie-api mode", () => {
     expect(fav.events[0].content.title).toBe("收藏: 浮夸 - 陈奕迅"); // filename split
     const pl = a.normalize(items.find((x) => x.kind === "playlist"));
     expect(pl.topics[0].name).toBe("粤语");
-    expect(watermarkComplete).toBe(true);
+    expect(completedWatermarkKeys.sort()).toEqual([
+      "favorite",
+      "play",
+      "playlist",
+    ]);
   });
 
   it("invokes signProvider", async () => {
@@ -292,7 +365,9 @@ describe("KugouMusicAdapter cookie-api mode", () => {
       account: { cookies: COOKIES },
       fetchFn: async () => "<html>login</html>",
     });
-    expect(await collect(a2.sync({}))).toEqual([]);
+    await expect(collect(a2.sync({}))).rejects.toMatchObject({
+      code: "SOURCE_PAGE_UNRECOGNIZED",
+    });
 
     const a3 = new KugouMusicAdapter({ account: { cookies: COOKIES } });
     await expect(collect(a3.sync({}))).rejects.toThrow(/no fetchFn configured/);

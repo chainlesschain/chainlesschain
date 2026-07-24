@@ -33,6 +33,7 @@
 
 const fs = require("node:fs");
 const { newId } = require("../ids");
+const { probeJsonSnapshotFile, readJsonSnapshot } = require("../snapshot-file");
 const {
   ENTITY_TYPES,
   EVENT_SUBTYPES,
@@ -77,8 +78,12 @@ function createReadingAdapter(config) {
   function stableOriginalId(kind, id) {
     const safe =
       (typeof id === "string" && id.length > 0 && id) ||
-      (typeof id === "number" && Number.isFinite(id) && String(id)) ||
-      `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      (typeof id === "number" && Number.isFinite(id) && String(id));
+    if (!safe) {
+      throw new Error(
+        `${NAME}.sync: ${String(kind)} record requires a stable id`,
+      );
+    }
     return `${platform}:${kind}:${safe}`;
   }
 
@@ -133,16 +138,12 @@ function createReadingAdapter(config) {
         typeof ctx.inputPath === "string" &&
         ctx.inputPath.length > 0
       ) {
-        try {
-          this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
-        } catch (err) {
-          return {
-            ok: false,
-            reason: "INPUT_PATH_UNREADABLE",
-            message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
-          };
-        }
-        return { ok: true, mode: "snapshot-file" };
+        return probeJsonSnapshotFile(this._deps.fs, ctx.inputPath, {
+          maxBytes: ctx.maxSnapshotBytes,
+          expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+          requiredArrayFields: ["events"],
+          allowedEventKinds: VALID_SNAPSHOT_KINDS,
+        });
       }
       if (this._cookieAuth && !this._liveConfigured) {
         return {
@@ -200,8 +201,12 @@ function createReadingAdapter(config) {
     }
 
     async *_syncViaSnapshot(opts) {
-      const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
-      const snapshot = JSON.parse(raw);
+      const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
+        maxBytes: opts.maxSnapshotBytes,
+        expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        requiredArrayFields: ["events"],
+        allowedEventKinds: VALID_SNAPSHOT_KINDS,
+      });
       if (
         !snapshot ||
         typeof snapshot !== "object" ||
@@ -269,6 +274,9 @@ function createReadingAdapter(config) {
         { kind: KIND_FAVOURITE, url: this._urls.favourite },
       ];
 
+      const allKindsIncluded = plan.every(
+        (step) => include[step.kind] !== false,
+      );
       let emitted = 0;
       let scanComplete = true;
       for (const step of plan) {
@@ -291,18 +299,23 @@ function createReadingAdapter(config) {
             query,
             sign,
           });
-          const items = extractItems(resp) || [];
+          const items = extractItems(resp);
+          if (!Array.isArray(items)) {
+            const error = new Error(
+              `${NAME}: ${step.kind} source response did not contain a recognized list`,
+            );
+            error.code = "SOURCE_PAGE_UNRECOGNIZED";
+            throw error;
+          }
           if (!items.length) {
             streamComplete = true;
             break;
           }
-          let reachedWatermark = false;
           for (const it of items) {
             const rec = mapItem(it);
             if (!rec || !rec.bookId) continue;
             if (rec.occurredAt && rec.occurredAt < sinceMs) {
-              reachedWatermark = true;
-              break;
+              continue;
             }
             if (emitted >= limit) return;
             yield {
@@ -310,19 +323,20 @@ function createReadingAdapter(config) {
               kind: step.kind,
               originalId: stableOriginalId(step.kind, rec.bookId),
               capturedAt: rec.occurredAt || Date.now(),
+              watermarkAt: rec.occurredAt || null,
               payload: { record: rec, kind: step.kind },
             };
             emitted += 1;
-          }
-          if (reachedWatermark || items.length < PAGE_SIZE) {
-            streamComplete = true;
-            break;
           }
           page += 1;
         }
         if (!streamComplete) scanComplete = false;
       }
-      if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+      if (
+        scanComplete &&
+        allKindsIncluded &&
+        typeof opts.markWatermarkComplete === "function"
+      ) {
         opts.markWatermarkComplete();
       }
     }

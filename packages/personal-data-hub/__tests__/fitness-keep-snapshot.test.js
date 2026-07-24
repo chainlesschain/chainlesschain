@@ -26,6 +26,12 @@ function writeSnapshot(dir, snapshot) {
   return p;
 }
 
+async function collect(gen) {
+  const out = [];
+  for await (const item of gen) out.push(item);
+  return out;
+}
+
 describe("KeepAdapter snapshot mode", () => {
   let tmpDir;
   beforeEach(() => {
@@ -38,7 +44,11 @@ describe("KeepAdapter snapshot mode", () => {
   });
 
   it("authenticate(inputPath) ok; authenticate() no input → NO_INPUT", async () => {
-    const p = writeSnapshot(tmpDir, { schemaVersion: 1, snapshottedAt: Date.now(), events: [] });
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 1,
+      snapshottedAt: Date.now(),
+      events: [],
+    });
     const a = new KeepAdapter();
     expect((await a.authenticate({ inputPath: p })).ok).toBe(true);
     const r = await a.authenticate({});
@@ -47,11 +57,17 @@ describe("KeepAdapter snapshot mode", () => {
   });
 
   it("rejects schemaVersion mismatch", async () => {
-    const p = writeSnapshot(tmpDir, { schemaVersion: 9, snapshottedAt: Date.now(), events: [] });
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 9,
+      snapshottedAt: Date.now(),
+      events: [],
+    });
     const a = new KeepAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({ inputPath: p })) { /* drain */ }
+      for await (const _r of a.sync({ inputPath: p })) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
@@ -61,11 +77,22 @@ describe("KeepAdapter snapshot mode", () => {
   it("running workout → OTHER event '运动: 跑步 X km' + GPS-bearing extra", async () => {
     const now = Date.now();
     const p = writeSnapshot(tmpDir, {
-      schemaVersion: 1, snapshottedAt: now,
+      schemaVersion: 1,
+      snapshottedAt: now,
       account: { userId: "u1" },
       events: [
-        { kind: "workout", id: "w1", workoutId: "9001", type: "running", name: "晨跑",
-          time: 1700000000, distanceMeters: 5230, durationSec: 1800, calories: 320, steps: 6400 },
+        {
+          kind: "workout",
+          id: "w1",
+          workoutId: "9001",
+          type: "running",
+          name: "晨跑",
+          time: 1700000000,
+          distanceMeters: 5230,
+          durationSec: 1800,
+          calories: 320,
+          steps: 6400,
+        },
       ],
     });
     const a = new KeepAdapter();
@@ -84,10 +111,19 @@ describe("KeepAdapter snapshot mode", () => {
   it("non-distance workout (yoga) → '运动: 瑜伽 N 分钟'", async () => {
     const now = Date.now();
     const p = writeSnapshot(tmpDir, {
-      schemaVersion: 1, snapshottedAt: now,
+      schemaVersion: 1,
+      snapshottedAt: now,
       events: [
-        { kind: "workout", id: "w2", workoutId: "9002", type: "yoga", name: "晚间瑜伽",
-          time: now, durationSec: 1500, calories: 120 },
+        {
+          kind: "workout",
+          id: "w2",
+          workoutId: "9002",
+          type: "yoga",
+          name: "晚间瑜伽",
+          time: now,
+          durationSec: 1500,
+          calories: 120,
+        },
       ],
     });
     const a = new KeepAdapter();
@@ -101,8 +137,17 @@ describe("KeepAdapter snapshot mode", () => {
   it("unknown type falls back to raw token; no metrics → bare '运动: <type>'", async () => {
     const now = Date.now();
     const p = writeSnapshot(tmpDir, {
-      schemaVersion: 1, snapshottedAt: now,
-      events: [{ kind: "workout", id: "w3", workoutId: "9003", type: "parkour", time: now }],
+      schemaVersion: 1,
+      snapshottedAt: now,
+      events: [
+        {
+          kind: "workout",
+          id: "w3",
+          workoutId: "9003",
+          type: "parkour",
+          time: now,
+        },
+      ],
     });
     const a = new KeepAdapter();
     const raws = [];
@@ -114,16 +159,25 @@ describe("KeepAdapter snapshot mode", () => {
   it("respects include opt-out + limit", async () => {
     const now = Date.now();
     const events = Array.from({ length: 4 }, (_, i) => ({
-      kind: "workout", id: `w${i}`, workoutId: String(100 + i), type: "running",
-      time: now - i * 1000, distanceMeters: 3000,
+      kind: "workout",
+      id: `w${i}`,
+      workoutId: String(100 + i),
+      type: "running",
+      time: now - i * 1000,
+      distanceMeters: 3000,
     }));
-    const p = writeSnapshot(tmpDir, { schemaVersion: 1, snapshottedAt: now, events });
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 1,
+      snapshottedAt: now,
+      events,
+    });
     const a = new KeepAdapter();
     let raws = [];
     for await (const r of a.sync({ inputPath: p, limit: 2 })) raws.push(r);
     expect(raws.length).toBe(2);
     raws = [];
-    for await (const r of a.sync({ inputPath: p, include: { workout: false } })) raws.push(r);
+    for await (const r of a.sync({ inputPath: p, include: { workout: false } }))
+      raws.push(r);
     expect(raws.length).toBe(0);
   });
 
@@ -140,18 +194,38 @@ describe("KeepAdapter cookie-api mode", () => {
   it("rejects cookie mode until a captured endpoint and fetcher are provided", async () => {
     const a = new KeepAdapter({ account: { cookies: "token=ok" } });
     const res = await a.authenticate();
-    expect(res).toMatchObject({ ok: false, reason: "EXPLICIT_ENDPOINT_REQUIRED" });
+    expect(res).toMatchObject({
+      ok: false,
+      reason: "EXPLICIT_ENDPOINT_REQUIRED",
+    });
   });
 
   it("fetches workouts via fetchFn and normalizes (km vs meters heuristic)", async () => {
-    const fetchFn = async () => ({
-      data: {
-        records: [
-          { workoutId: 555, type: "cycling", name: "骑行", doneDate: 1700000000, distance: 12.5, duration: 2400, kcal: 410 },
-        ],
-      },
+    let page = 0;
+    const fetchFn = async () => {
+      page += 1;
+      if (page > 1) return { list: [] };
+      return {
+        data: {
+          records: [
+            {
+              workoutId: 555,
+              type: "cycling",
+              name: "骑行",
+              doneDate: 1700000000,
+              distance: 12.5,
+              duration: 2400,
+              kcal: 410,
+            },
+          ],
+        },
+      };
+    };
+    const a = new KeepAdapter({
+      account: { userId: "u1", cookies: "token=ok" },
+      fetchFn,
+      listUrl: "https://captured.example/workouts",
     });
-    const a = new KeepAdapter({ account: { userId: "u1", cookies: "token=ok" }, fetchFn, listUrl: "https://captured.example/workouts" });
     const raws = [];
     for await (const r of a.sync({})) raws.push(r);
     expect(raws.length).toBe(1);
@@ -169,31 +243,83 @@ describe("KeepAdapter cookie-api mode", () => {
       seen = opts.sign;
       return { list: [] };
     };
-    const a = new KeepAdapter({ account: { cookies: "x=1" }, fetchFn, signProvider, listUrl: "https://captured.example/workouts" });
-    for await (const _r of a.sync({})) { /* drain */ }
+    const a = new KeepAdapter({
+      account: { cookies: "x=1" },
+      fetchFn,
+      signProvider,
+      listUrl: "https://captured.example/workouts",
+    });
+    for await (const _r of a.sync({})) {
+      /* drain */
+    }
     expect(seen).toBe("SIG");
   });
 
-  it("paginates until short page", async () => {
-    const all = Array.from({ length: 45 }, (_, i) => ({ workoutId: i + 1, type: "running", time: 1700000000, distanceMeters: 3000 }));
+  it("does not treat a short page as terminal and waits for an empty page", async () => {
+    const all = Array.from({ length: 45 }, (_, i) => ({
+      workoutId: i + 1,
+      type: "running",
+      time: 1700000000,
+      distanceMeters: 3000,
+    }));
     const seenPages = [];
+    let watermarkComplete = false;
     const fetchFn = async (opts) => {
       const page = opts.query.page;
       seenPages.push(page);
       return { list: all.slice((page - 1) * 30, page * 30) };
     };
-    const a = new KeepAdapter({ account: { cookies: "x=1" }, fetchFn, listUrl: "https://captured.example/workouts" });
+    const a = new KeepAdapter({
+      account: { cookies: "x=1" },
+      fetchFn,
+      listUrl: "https://captured.example/workouts",
+    });
     const raws = [];
-    for await (const r of a.sync({})) raws.push(r);
+    for await (const r of a.sync({
+      markWatermarkComplete: () => {
+        watermarkComplete = true;
+      },
+    }))
+      raws.push(r);
     expect(raws.length).toBe(45);
-    expect(seenPages).toEqual([1, 2]);
+    expect(seenPages).toEqual([1, 2, 3]);
+    expect(watermarkComplete).toBe(true);
   });
 
+  it.each([
+    ["HTML login page", "<html>login</html>", "SOURCE_PAGE_UNRECOGNIZED"],
+    ["business error", { code: 401, list: [] }, "SOURCE_PAGE_ERROR"],
+  ])(
+    "rejects a %s without completing the watermark",
+    async (_label, response, expectedCode) => {
+      let watermarkCompletions = 0;
+      const a = new KeepAdapter({
+        account: { cookies: "x=1" },
+        fetchFn: async () => response,
+        listUrl: "https://captured.example/workouts",
+      });
+
+      await expect(
+        collect(
+          a.sync({
+            markWatermarkComplete: () => {
+              watermarkCompletions += 1;
+            },
+          }),
+        ),
+      ).rejects.toMatchObject({ code: expectedCode });
+      expect(watermarkCompletions).toBe(0);
+    },
+  );
+
   it("mapWorkout / extractList / typeLabel helpers", () => {
-    expect(mapWorkout({ workoutId: 7, type: "running", distanceMeters: 5000 }).distanceMeters).toBe(5000);
+    expect(
+      mapWorkout({ workoutId: 7, type: "running", distanceMeters: 5000 })
+        .distanceMeters,
+    ).toBe(5000);
     expect(mapWorkout({})).toBe(null);
     expect(extractList({ data: { logs: [1] } })).toEqual([1]);
-    expect(extractList(null)).toEqual([]);
+    expect(() => extractList(null)).toThrow(/JSON object/u);
     expect(typeLabel("yoga")).toBe("瑜伽");
     expect(typeLabel("xyz")).toBe("xyz");
     expect(typeLabel(null)).toBe("运动");
@@ -205,8 +331,14 @@ describe("KeepAdapter cookie-api mode", () => {
       seenUrl = opts.url;
       return { list: [] };
     };
-    const a = new KeepAdapter({ account: { cookies: "x=1" }, fetchFn, listUrl: "https://x/w" });
-    for await (const _r of a.sync({})) { /* drain */ }
+    const a = new KeepAdapter({
+      account: { cookies: "x=1" },
+      fetchFn,
+      listUrl: "https://x/w",
+    });
+    for await (const _r of a.sync({})) {
+      /* drain */
+    }
     expect(seenUrl).toBe("https://x/w");
   });
 
@@ -214,7 +346,9 @@ describe("KeepAdapter cookie-api mode", () => {
     const a = new KeepAdapter({ account: { cookies: "x=1" } });
     let threw = null;
     try {
-      for await (const _r of a.sync({})) { /* drain */ }
+      for await (const _r of a.sync({})) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }

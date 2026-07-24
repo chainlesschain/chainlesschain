@@ -26,6 +26,18 @@ function writeSnapshot(dir, snapshot) {
   return p;
 }
 
+function writeRawSnapshot(dir, content, name = "audio-ximalaya.json") {
+  const p = path.join(dir, name);
+  fs.writeFileSync(p, content, "utf-8");
+  return p;
+}
+
+async function collect(gen) {
+  const out = [];
+  for await (const item of gen) out.push(item);
+  return out;
+}
+
 describe("XimalayaAdapter snapshot mode", () => {
   let tmpDir;
   beforeEach(() => {
@@ -38,7 +50,11 @@ describe("XimalayaAdapter snapshot mode", () => {
   });
 
   it("authenticate(inputPath) ok when readable", async () => {
-    const p = writeSnapshot(tmpDir, { schemaVersion: 1, snapshottedAt: Date.now(), events: [] });
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 1,
+      snapshottedAt: Date.now(),
+      events: [],
+    });
     const a = new XimalayaAdapter();
     const res = await a.authenticate({ inputPath: p });
     expect(res.ok).toBe(true);
@@ -56,7 +72,9 @@ describe("XimalayaAdapter snapshot mode", () => {
     const a = new XimalayaAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({})) { /* drain */ }
+      for await (const _r of a.sync({})) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
@@ -64,25 +82,89 @@ describe("XimalayaAdapter snapshot mode", () => {
   });
 
   it("rejects schemaVersion mismatch", async () => {
-    const p = writeSnapshot(tmpDir, { schemaVersion: 9, snapshottedAt: Date.now(), events: [] });
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 9,
+      snapshottedAt: Date.now(),
+      events: [],
+    });
     const a = new XimalayaAdapter();
     let threw = null;
     try {
-      for await (const _r of a.sync({ inputPath: p })) { /* drain */ }
+      for await (const _r of a.sync({ inputPath: p })) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
     expect(String(threw.message)).toMatch(/schemaVersion mismatch/);
   });
 
+  it("fails closed for malformed, invalid-shape, oversized, and id-less snapshots", async () => {
+    const a = new XimalayaAdapter();
+    const malformed = writeRawSnapshot(tmpDir, "{", "malformed.json");
+    expect(await a.authenticate({ inputPath: malformed })).toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_JSON_INVALID",
+    });
+    await expect(
+      collect(a.sync({ inputPath: malformed })),
+    ).rejects.toMatchObject({ code: "SNAPSHOT_JSON_INVALID" });
+
+    const invalidShape = writeSnapshot(tmpDir, {
+      schemaVersion: 1,
+      events: {},
+    });
+    expect(await a.authenticate({ inputPath: invalidShape })).toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_SHAPE_INVALID",
+    });
+
+    const oversized = writeRawSnapshot(
+      tmpDir,
+      JSON.stringify({ schemaVersion: 1, events: [] }),
+      "oversized.json",
+    );
+    expect(
+      await a.authenticate({
+        inputPath: oversized,
+        maxSnapshotBytes: 8,
+      }),
+    ).toMatchObject({ ok: false, reason: "SNAPSHOT_TOO_LARGE" });
+    await expect(
+      collect(
+        a.sync({
+          inputPath: oversized,
+          maxSnapshotBytes: 8,
+        }),
+      ),
+    ).rejects.toMatchObject({ code: "SNAPSHOT_TOO_LARGE" });
+
+    const missingId = writeSnapshot(tmpDir, {
+      schemaVersion: 1,
+      events: [{ kind: "play", title: "no stable source id" }],
+    });
+    await expect(collect(a.sync({ inputPath: missingId }))).rejects.toThrow(
+      /requires a stable id/,
+    );
+  });
+
   it("play (收听节目) → MEDIA event + MEDIA item", async () => {
     const now = Date.now();
     const p = writeSnapshot(tmpDir, {
-      schemaVersion: 1, snapshottedAt: now,
+      schemaVersion: 1,
+      snapshottedAt: now,
       account: { userId: "u1", name: "alice" },
       events: [
-        { kind: "play", id: "t1", trackId: "98765", title: "第1集 三体广播剧",
-          anchor: "729声工场", album: "三体", durationSec: 1800, capturedAt: now - 1000 },
+        {
+          kind: "play",
+          id: "t1",
+          trackId: "98765",
+          title: "第1集 三体广播剧",
+          anchor: "729声工场",
+          album: "三体",
+          durationSec: 1800,
+          capturedAt: now - 1000,
+        },
       ],
     });
     const a = new XimalayaAdapter();
@@ -93,7 +175,9 @@ describe("XimalayaAdapter snapshot mode", () => {
     const batch = a.normalize(raws[0]);
     expect(validateBatch(batch).valid).toBe(true);
     expect(batch.events[0].subtype).toBe("media");
-    expect(batch.events[0].content.title).toContain("收听: 第1集 三体广播剧 - 729声工场");
+    expect(batch.events[0].content.title).toContain(
+      "收听: 第1集 三体广播剧 - 729声工场",
+    );
     expect(batch.items[0].subtype).toBe("media");
     expect(batch.items[0].name).toBe("第1集 三体广播剧 - 729声工场");
     expect(batch.events[0].extra.album).toBe("三体");
@@ -102,8 +186,17 @@ describe("XimalayaAdapter snapshot mode", () => {
   it("favorite → LIKE event", async () => {
     const now = Date.now();
     const p = writeSnapshot(tmpDir, {
-      schemaVersion: 1, snapshottedAt: now,
-      events: [{ kind: "favorite", id: "f1", trackId: "555", title: "收藏的播客", anchor: "主播X" }],
+      schemaVersion: 1,
+      snapshottedAt: now,
+      events: [
+        {
+          kind: "favorite",
+          id: "f1",
+          trackId: "555",
+          title: "收藏的播客",
+          anchor: "主播X",
+        },
+      ],
     });
     const a = new XimalayaAdapter();
     const raws = [];
@@ -117,9 +210,18 @@ describe("XimalayaAdapter snapshot mode", () => {
   it("subscribe → TOPIC (album)", async () => {
     const now = Date.now();
     const p = writeSnapshot(tmpDir, {
-      schemaVersion: 1, snapshottedAt: now,
-      events: [{ kind: "subscribe", id: "s1", albumId: "30001", album: "得到·精英日课",
-        trackCount: 365, anchor: "罗振宇" }],
+      schemaVersion: 1,
+      snapshottedAt: now,
+      events: [
+        {
+          kind: "subscribe",
+          id: "s1",
+          albumId: "30001",
+          album: "得到·精英日课",
+          trackCount: 365,
+          anchor: "罗振宇",
+        },
+      ],
     });
     const a = new XimalayaAdapter();
     const raws = [];
@@ -140,33 +242,49 @@ describe("XimalayaAdapter snapshot mode", () => {
       { kind: "favorite", id: "f1", trackId: "2", title: "b" },
       { kind: "subscribe", id: "s1", albumId: "3", album: "c" },
     ];
-    const p = writeSnapshot(tmpDir, { schemaVersion: 1, snapshottedAt: now, events });
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 1,
+      snapshottedAt: now,
+      events,
+    });
     const a = new XimalayaAdapter();
     const raws = [];
-    for await (const r of a.sync({ inputPath: p, include: { favorite: false, subscribe: false } })) raws.push(r);
+    for await (const r of a.sync({
+      inputPath: p,
+      include: { favorite: false, subscribe: false },
+    }))
+      raws.push(r);
     expect(raws.length).toBe(1);
     expect(raws[0].kind).toBe("play");
   });
 
-  it("filters unknown kinds", async () => {
+  it("rejects unknown snapshot kinds", async () => {
     const now = Date.now();
     const p = writeSnapshot(tmpDir, {
-      schemaVersion: 1, snapshottedAt: now,
+      schemaVersion: 1,
+      snapshottedAt: now,
       events: [
         { kind: "play", id: "p1", trackId: "1", title: "a", capturedAt: now },
         { kind: "comment", id: "c1" },
       ],
     });
     const a = new XimalayaAdapter();
-    const raws = [];
-    for await (const r of a.sync({ inputPath: p })) raws.push(r);
-    expect(raws.length).toBe(1);
+    expect(await a.authenticate({ inputPath: p })).toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_SHAPE_INVALID",
+    });
+    await expect(collect(a.sync({ inputPath: p }))).rejects.toMatchObject({
+      code: "SNAPSHOT_SHAPE_INVALID",
+    });
   });
 
   it("advertises capabilities + passes assertAdapter", () => {
     const a = new XimalayaAdapter();
     expect(a.capabilities).toContain("sync:snapshot");
     expect(a.capabilities).toContain("sync:cookie-api");
+    expect(a.watermarkStrategy).toBe("partitioned");
+    expect(a.watermarkStreams).toEqual(["play", "favorite", "subscribe"]);
+    expect(a.targetWatermarkKeys({ inputPath: "snapshot.json" })).toEqual([]);
     expect(assertAdapter(a).ok).toBe(true);
   });
 });
@@ -182,21 +300,60 @@ describe("XimalayaAdapter cookie-api mode", () => {
   it("fetches plays/favorites/subscribes and normalizes", async () => {
     const byUrl = (url) => {
       if (url.includes("/history")) {
-        return { data: { list: [{ trackId: 98765, title: "第1集", nickname: "声工场", albumTitle: "三体", duration: 1800, startedAt: 1700000000000 }] } };
+        return {
+          data: {
+            list: [
+              {
+                trackId: 98765,
+                title: "第1集",
+                nickname: "声工场",
+                albumTitle: "三体",
+                duration: 1800,
+                startedAt: 1700000000000,
+              },
+            ],
+          },
+        };
       }
       if (url.includes("/favorite")) {
-        return { data: { tracks: [{ track_id: 555, track_title: "播客A", anchor_name: "主播X" }] } };
+        return {
+          data: {
+            tracks: [
+              { track_id: 555, track_title: "播客A", anchor_name: "主播X" },
+            ],
+          },
+        };
       }
       if (url.includes("/subscribe")) {
-        return { data: { albums: [{ albumId: 30001, albumTitle: "精英日课", includeTrackCount: 365, nickname: "罗振宇" }] } };
+        return {
+          data: {
+            albums: [
+              {
+                albumId: 30001,
+                albumTitle: "精英日课",
+                includeTrackCount: 365,
+                nickname: "罗振宇",
+              },
+            ],
+          },
+        };
       }
-      return {};
+      return { list: [] };
     };
-    const fetchFn = async (opts) => byUrl(opts.url);
-    const a = new XimalayaAdapter({ account: { userId: "u1", cookies: "1&_token=ok" }, fetchFn });
+    const fetchFn = async (opts) =>
+      opts.query.page === 1 ? byUrl(opts.url) : { list: [] };
+    const a = new XimalayaAdapter({
+      account: { userId: "u1", cookies: "1&_token=ok" },
+      fetchFn,
+    });
     const raws = [];
     for await (const r of a.sync({})) raws.push(r);
-    expect(raws.map((r) => r.kind).sort()).toEqual(["favorite", "play", "subscribe"]);
+    expect(raws.map((r) => r.kind).sort()).toEqual([
+      "favorite",
+      "play",
+      "subscribe",
+    ]);
+    expect(raws.every((raw) => raw.watermarkKey === raw.kind)).toBe(true);
 
     const play = raws.find((r) => r.kind === "play");
     const pb = a.normalize(play);
@@ -215,45 +372,111 @@ describe("XimalayaAdapter cookie-api mode", () => {
     const signProvider = async () => "SIG";
     const fetchFn = async (opts) => {
       seen = opts.sign;
-      return {};
+      return { list: [] };
     };
-    const a = new XimalayaAdapter({ account: { cookies: "x=1" }, fetchFn, signProvider });
-    for await (const _r of a.sync({ include: { favorite: false, subscribe: false } })) { /* drain */ }
+    const a = new XimalayaAdapter({
+      account: { cookies: "x=1" },
+      fetchFn,
+      signProvider,
+    });
+    for await (const _r of a.sync({
+      include: { favorite: false, subscribe: false },
+    })) {
+      /* drain */
+    }
     expect(seen).toBe("SIG");
   });
 
-  it("paginates plays until short page", async () => {
-    const all = Array.from({ length: 45 }, (_, i) => ({ trackId: i + 1, title: `t${i}`, startedAt: 1700000000000 }));
+  it("continues past a short page until an explicit empty page", async () => {
+    const all = Array.from({ length: 45 }, (_, i) => ({
+      trackId: i + 1,
+      title: `t${i}`,
+      startedAt: 1700000000000,
+    }));
     const seenPages = [];
     const fetchFn = async (opts) => {
-      if (!opts.url.includes("/history")) return {};
+      if (!opts.url.includes("/history")) return { list: [] };
       const page = opts.query.page;
       seenPages.push(page);
       return { list: all.slice((page - 1) * 30, page * 30) };
     };
     const a = new XimalayaAdapter({ account: { cookies: "x=1" }, fetchFn });
     const raws = [];
-    for await (const r of a.sync({ include: { favorite: false, subscribe: false } })) raws.push(r);
+    for await (const r of a.sync({
+      include: { favorite: false, subscribe: false },
+    }))
+      raws.push(r);
     expect(raws.length).toBe(45);
-    expect(seenPages).toEqual([1, 2]);
+    expect(seenPages).toEqual([1, 2, 3]);
+
+    let watermarkComplete = false;
+    const capped = new XimalayaAdapter({
+      account: { cookies: "x=1" },
+      fetchFn: async (opts) => {
+        const page = opts.query.page;
+        return { list: all.slice((page - 1) * 30, page * 30) };
+      },
+    });
+    expect(
+      await collect(
+        capped.sync({
+          include: { favorite: false, subscribe: false },
+          maxPages: 2,
+          markWatermarkComplete: () => {
+            watermarkComplete = true;
+          },
+        }),
+      ),
+    ).toHaveLength(45);
+    expect(watermarkComplete).toBe(false);
   });
 
   it("extractList + item mappers tolerate shapes", () => {
     expect(extractList({ list: [1] })).toEqual([1]);
     expect(extractList({ data: { tracks: [2] } })).toEqual([2]);
     expect(extractList({ data: { albums: [3] } })).toEqual([3]);
-    expect(extractList(null)).toEqual([]);
+    expect(extractList({ list: [] })).toEqual([]);
+    expect(() => extractList(null)).toThrow(
+      expect.objectContaining({ code: "SOURCE_PAGE_UNRECOGNIZED" }),
+    );
+    expect(() => extractList({})).toThrow(
+      expect.objectContaining({ code: "SOURCE_PAGE_UNRECOGNIZED" }),
+    );
     expect(trackItemToRecord({ trackId: 7, title: "x" }).trackId).toBe("7");
     expect(trackItemToRecord({})).toBe(null);
     expect(albumItemToRecord({ albumId: 9, albumTitle: "A" }).album).toBe("A");
     expect(albumItemToRecord({})).toBe(null);
   });
 
+  it("does not confirm the watermark for an explicit error response", async () => {
+    let watermarkComplete = false;
+    const a = new XimalayaAdapter({
+      account: { cookies: "x=1" },
+      fetchFn: async () => ({
+        code: 401,
+        message: "login expired",
+        list: [],
+      }),
+    });
+
+    await expect(
+      collect(
+        a.sync({
+          include: { favorite: false, subscribe: false },
+          markWatermarkComplete: () => {
+            watermarkComplete = true;
+          },
+        }),
+      ),
+    ).rejects.toMatchObject({ code: "SOURCE_PAGE_ERROR" });
+    expect(watermarkComplete).toBe(false);
+  });
+
   it("uses opts.*Url overrides", async () => {
     const seen = [];
     const fetchFn = async (opts) => {
       seen.push(opts.url);
-      return {};
+      return { list: [] };
     };
     const a = new XimalayaAdapter({
       account: { cookies: "x=1" },
@@ -262,7 +485,9 @@ describe("XimalayaAdapter cookie-api mode", () => {
       favoritesUrl: "https://x/f",
       subscribesUrl: "https://x/s",
     });
-    for await (const _r of a.sync({})) { /* drain */ }
+    for await (const _r of a.sync({})) {
+      /* drain */
+    }
     expect(seen).toEqual(["https://x/p", "https://x/f", "https://x/s"]);
   });
 
@@ -270,7 +495,9 @@ describe("XimalayaAdapter cookie-api mode", () => {
     const a = new XimalayaAdapter({ account: { cookies: "x=1" } });
     let threw = null;
     try {
-      for await (const _r of a.sync({})) { /* drain */ }
+      for await (const _r of a.sync({})) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }

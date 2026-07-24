@@ -23,6 +23,7 @@ const {
 } = require("../../constants");
 const { newId } = require("../../ids");
 const { createAccountScope } = require("../../account-scope");
+const { SnapshotFileError, readJsonSnapshot } = require("../../snapshot-file");
 const { resolveProvider } = require("./providers");
 const {
   ImapSession,
@@ -41,6 +42,80 @@ const NAME = "email-imap";
 const VERSION = "0.8.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 const MAILBOX_WATERMARK_PREFIX = "imap-v2:";
+const SNAPSHOT_RECORD_NULLABLE_STRING_FIELDS = Object.freeze([
+  "subject",
+  "from",
+  "to",
+  "bodyPreview",
+]);
+
+function snapshotShapeError(message) {
+  return new SnapshotFileError("SNAPSHOT_SHAPE_INVALID", message);
+}
+
+function readEmailSnapshot(inputPath, maxSnapshotBytes) {
+  const snapshot = readJsonSnapshot(fs, inputPath, {
+    maxBytes: maxSnapshotBytes,
+    expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+    requiredArrayFields: ["records"],
+  });
+
+  if (
+    typeof snapshot.vendor !== "string" ||
+    snapshot.vendor.trim().length === 0
+  ) {
+    throw snapshotShapeError("snapshot vendor must be a non-empty string");
+  }
+  if (typeof snapshot.user !== "string" || snapshot.user.trim().length === 0) {
+    throw snapshotShapeError("snapshot user must be a non-empty string");
+  }
+  if (!Number.isSafeInteger(snapshot.fetchedAt) || snapshot.fetchedAt <= 0) {
+    throw snapshotShapeError(
+      "snapshot fetchedAt must be a positive safe integer",
+    );
+  }
+
+  for (let index = 0; index < snapshot.records.length; index += 1) {
+    const record = snapshot.records[index];
+    if (!record || typeof record !== "object" || Array.isArray(record)) {
+      throw snapshotShapeError(`snapshot records[${index}] must be an object`);
+    }
+    if (
+      !Number.isSafeInteger(record.messageNumber) ||
+      record.messageNumber <= 0
+    ) {
+      throw snapshotShapeError(
+        `snapshot records[${index}].messageNumber must be a positive safe integer`,
+      );
+    }
+    for (const field of SNAPSHOT_RECORD_NULLABLE_STRING_FIELDS) {
+      if (
+        !Object.hasOwn(record, field) ||
+        (record[field] !== null && typeof record[field] !== "string")
+      ) {
+        throw snapshotShapeError(
+          `snapshot records[${index}].${field} must be a string or null`,
+        );
+      }
+    }
+    if (
+      !Object.hasOwn(record, "sentDateMs") ||
+      (record.sentDateMs !== null &&
+        (!Number.isSafeInteger(record.sentDateMs) || record.sentDateMs <= 0))
+    ) {
+      throw snapshotShapeError(
+        `snapshot records[${index}].sentDateMs must be a positive safe integer or null`,
+      );
+    }
+    if (typeof record.hasAttachments !== "boolean") {
+      throw snapshotShapeError(
+        `snapshot records[${index}].hasAttachments must be a boolean`,
+      );
+    }
+  }
+
+  return snapshot;
+}
 
 class EmailAdapter {
   constructor(opts) {
@@ -253,12 +328,15 @@ class EmailAdapter {
         };
       }
       try {
-        fs.accessSync(ctx.inputPath, fs.constants.R_OK);
+        readEmailSnapshot(ctx.inputPath, ctx.maxSnapshotBytes);
       } catch (err) {
+        const isSnapshotError = err instanceof SnapshotFileError;
         return {
           ok: false,
-          reason: "INPUT_PATH_UNREADABLE",
-          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
+          reason: isSnapshotError ? err.code : "INPUT_PATH_UNREADABLE",
+          message: isSnapshotError
+            ? err.message
+            : "snapshot file is unavailable or unreadable",
         };
       }
       return { ok: true, mode: "snapshot-file" };
@@ -287,7 +365,9 @@ class EmailAdapter {
     } finally {
       try {
         await session.close();
-      } catch (_e) {}
+      } catch {
+        // Preserve the authentication result when best-effort cleanup fails.
+      }
     }
   }
 
@@ -498,7 +578,9 @@ class EmailAdapter {
     } finally {
       try {
         await session.close();
-      } catch (_e) {}
+      } catch {
+        // Preserve the primary sync result/error when cleanup fails.
+      }
     }
   }
 
@@ -523,33 +605,10 @@ class EmailAdapter {
    *   - No flags / cc / size; UID = Android messageNumber (per-folder).
    */
   async *_syncViaSnapshot(opts) {
-    const raw = fs.readFileSync(opts.inputPath, "utf-8");
-    let snapshot;
-    try {
-      snapshot = JSON.parse(raw);
-    } catch (err) {
-      throw new Error(
-        `email-imap.sync (snapshot): bad JSON at ${opts.inputPath}: ${err.message}`,
-      );
-    }
-    if (!snapshot || typeof snapshot !== "object") {
-      throw new Error(
-        `email-imap.sync (snapshot): expected object, got ${typeof snapshot}`,
-      );
-    }
-    if (!Array.isArray(snapshot.records)) {
-      throw new Error(
-        "email-imap.sync (snapshot): expected {records: [...]} shape (Android EmailLocalCollector writes this)",
-      );
-    }
-    const vendor =
-      typeof snapshot.vendor === "string" ? snapshot.vendor : "unknown";
-    const user =
-      typeof snapshot.user === "string" ? snapshot.user : "unknown@snapshot";
-    const fallbackCapturedAt =
-      Number.isFinite(snapshot.fetchedAt) && snapshot.fetchedAt > 0
-        ? Math.floor(snapshot.fetchedAt)
-        : Date.now();
+    const snapshot = readEmailSnapshot(opts.inputPath, opts.maxSnapshotBytes);
+    const vendor = snapshot.vendor;
+    const user = snapshot.user;
+    const fallbackCapturedAt = snapshot.fetchedAt;
 
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
@@ -557,7 +616,6 @@ class EmailAdapter {
 
     for (const r of snapshot.records) {
       if (emitted >= limit) return;
-      if (!r || typeof r !== "object") continue;
       const env = this._androidRecordToEnvelope(
         r,
         vendor,
@@ -1268,4 +1326,5 @@ module.exports = {
   formatMailboxWatermarks,
   NAME,
   VERSION,
+  SNAPSHOT_SCHEMA_VERSION,
 };

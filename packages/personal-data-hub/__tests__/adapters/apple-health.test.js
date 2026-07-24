@@ -1,7 +1,10 @@
 "use strict";
 
-import { describe, it, expect } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 const { AppleHealthAdapter } = require("../../lib/adapters/apple-health");
 const { partitionBatch } = require("../../lib/batch");
 
@@ -15,15 +18,18 @@ const XML = [
   "</HealthData>",
 ].join("\n");
 
-function adapter(xml = XML, { exists = true } = {}) {
+let tmpDir;
+
+function adapter(fsImpl = fs) {
   const a = new AppleHealthAdapter();
-  a._deps.fs = {
-    existsSync: () => exists,
-    readFileSync: () => xml,
-    accessSync: () => {},
-    constants: { R_OK: 4 },
-  };
+  a._deps.fs = fsImpl;
   return a;
+}
+
+function writeExport(xml = XML) {
+  const inputPath = path.join(tmpDir, "export.xml");
+  fs.writeFileSync(inputPath, xml, "utf8");
+  return inputPath;
 }
 
 async function collect(iter) {
@@ -33,6 +39,14 @@ async function collect(iter) {
 }
 
 describe("AppleHealthAdapter", () => {
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "apple-health-test-"));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
   it("readinessOnly → NO_FILE (file-import, not 手机采集)", async () => {
     const a = new AppleHealthAdapter();
     const r = await a.authenticate({ readinessOnly: true });
@@ -40,15 +54,31 @@ describe("AppleHealthAdapter", () => {
     expect(a.extractMode).toBe("file-import");
   });
 
+  it("authenticates a bounded regular export file", async () => {
+    const inputPath = writeExport();
+    expect(await adapter().authenticate({ inputPath })).toEqual({
+      ok: true,
+      mode: "file-import",
+    });
+  });
+
   it("parses Record + Workout lines, ignores other elements", async () => {
-    const raws = await collect(adapter().sync({ inputPath: "/fake/export.xml" }));
+    const inputPath = writeExport();
+    const raws = await collect(adapter().sync({ inputPath }));
     expect(raws.map((r) => r.kind)).toEqual(["record", "record", "workout"]);
   });
 
   it("normalizes to valid events (metrics → other, workout → trip)", async () => {
+    const inputPath = writeExport();
     const a = adapter();
-    const raws = await collect(a.sync({ inputPath: "/fake/export.xml" }));
-    const merged = { events: [], persons: [], places: [], items: [], topics: [] };
+    const raws = await collect(a.sync({ inputPath }));
+    const merged = {
+      events: [],
+      persons: [],
+      places: [],
+      items: [],
+      topics: [],
+    };
     for (const r of raws) {
       const n = a.normalize(r);
       for (const k of Object.keys(merged)) merged[k].push(...n[k]);
@@ -58,7 +88,9 @@ describe("AppleHealthAdapter", () => {
     expect(valid.events).toHaveLength(3);
     const subtypes = valid.events.map((e) => e.subtype).sort();
     expect(subtypes).toEqual(["other", "other", "trip"]);
-    const steps = valid.events.find((e) => e.extra.metric === "HKQuantityTypeIdentifierStepCount");
+    const steps = valid.events.find(
+      (e) => e.extra.metric === "HKQuantityTypeIdentifierStepCount",
+    );
     expect(steps.content.title).toContain("步数");
     expect(steps.content.title).toContain("123");
     const workout = valid.events.find((e) => e.subtype === "trip");
@@ -67,29 +99,111 @@ describe("AppleHealthAdapter", () => {
   });
 
   it("parses the +0800 timezone offset correctly", async () => {
+    const inputPath = writeExport();
     const a = adapter();
-    const raws = await collect(a.sync({ inputPath: "/fake/export.xml" }));
+    const raws = await collect(a.sync({ inputPath }));
     // 2024-01-15 08:30:00 +0800 == 2024-01-15T00:30:00Z
     expect(raws[0].capturedAt).toBe(Date.parse("2024-01-15T00:30:00Z"));
   });
 
   it("respects limit + include", async () => {
+    const inputPath = writeExport();
     const a = adapter();
-    const capped = await collect(a.sync({ inputPath: "/x", limit: 1 }));
+    const capped = await collect(a.sync({ inputPath, limit: 1 }));
     expect(capped).toHaveLength(1);
-    const noWorkout = await collect(a.sync({ inputPath: "/x", include: { workout: false } }));
+    const noWorkout = await collect(
+      a.sync({ inputPath, include: { workout: false } }),
+    );
     expect(noWorkout.every((r) => r.kind === "record")).toBe(true);
   });
 
   it("emits truncated progress when maxRecords exceeded", async () => {
+    const inputPath = writeExport();
     const a = adapter();
     const events = [];
-    await collect(a.sync({ inputPath: "/x", maxRecords: 1, onProgress: (e) => events.push(e) }));
+    await collect(
+      a.sync({
+        inputPath,
+        maxRecords: 1,
+        onProgress: (e) => events.push(e),
+      }),
+    );
     expect(events.find((e) => e.phase === "truncated")).toBeTruthy();
   });
 
-  it("missing file yields nothing", async () => {
-    const raws = await collect(adapter(XML, { exists: false }).sync({ inputPath: "/x" }));
-    expect(raws).toHaveLength(0);
+  it("enforces maxSnapshotBytes during authentication and sync", async () => {
+    const inputPath = writeExport();
+    const a = adapter();
+    expect(
+      await a.authenticate({ inputPath, maxSnapshotBytes: 32 }),
+    ).toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_TOO_LARGE",
+    });
+    await expect(
+      collect(a.sync({ inputPath, maxSnapshotBytes: 32 })),
+    ).rejects.toMatchObject({ code: "SNAPSHOT_TOO_LARGE" });
+  });
+
+  it("rejects non-regular files during authentication and sync", async () => {
+    const a = adapter();
+    expect(await a.authenticate({ inputPath: tmpDir })).toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_NOT_REGULAR_FILE",
+    });
+    await expect(collect(a.sync({ inputPath: tmpDir }))).rejects.toMatchObject({
+      code: "SNAPSHOT_NOT_REGULAR_FILE",
+    });
+  });
+
+  it("rejects symbolic links without following them", async () => {
+    const symbolicFs = {
+      lstatSync: () => ({ isSymbolicLink: () => true }),
+    };
+    const a = adapter(symbolicFs);
+    expect(
+      await a.authenticate({ inputPath: "/private/export.xml" }),
+    ).toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_SYMBOLIC_LINK",
+    });
+    await expect(
+      collect(a.sync({ inputPath: "/private/export.xml" })),
+    ).rejects.toMatchObject({
+      code: "SNAPSHOT_SYMBOLIC_LINK",
+    });
+  });
+
+  it("fails closed when the export changes during the read", async () => {
+    const inputPath = writeExport();
+    const changingFs = Object.create(fs);
+    let fstatCalls = 0;
+    changingFs.fstatSync = (descriptor, options) => {
+      const stat = fs.fstatSync(descriptor, options);
+      fstatCalls += 1;
+      if (fstatCalls === 1) return stat;
+      return {
+        ...stat,
+        size: stat.size + (typeof stat.size === "bigint" ? 1n : 1),
+        isFile: () => true,
+      };
+    };
+
+    await expect(
+      collect(adapter(changingFs).sync({ inputPath })),
+    ).rejects.toMatchObject({
+      code: "SNAPSHOT_CHANGED",
+    });
+  });
+
+  it("fails closed when the selected file is missing", async () => {
+    const inputPath = path.join(tmpDir, "missing.xml");
+    expect(await adapter().authenticate({ inputPath })).toMatchObject({
+      ok: false,
+      reason: "INPUT_PATH_UNREADABLE",
+    });
+    await expect(collect(adapter().sync({ inputPath }))).rejects.toMatchObject({
+      code: "INPUT_PATH_UNREADABLE",
+    });
   });
 });

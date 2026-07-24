@@ -27,12 +27,33 @@ describe("health-meiyou mappers", () => {
     expect(my.VERSION).toBe("0.2.0");
   });
   it("mapPeriod / mapRecord field aliases; no id → null", () => {
-    const p = my.mapPeriod({ record_id: "P1", start_date: 1716383000, end_date: 1716800000, cycle_length: 28, period_length: 5 });
-    expect(p).toMatchObject({ recordId: "P1", cycleLength: 28, periodLength: 5 });
+    const p = my.mapPeriod({
+      record_id: "P1",
+      start_date: 1716383000,
+      end_date: 1716800000,
+      cycle_length: 28,
+      period_length: 5,
+    });
+    expect(p).toMatchObject({
+      recordId: "P1",
+      cycleLength: 28,
+      periodLength: 5,
+    });
     expect(p.startMs).toBe(1716383000000);
     expect(my.mapPeriod({})).toBe(null);
-    const r = my.mapRecord({ id: "R1", record_type: "mood", date: 1716383000, value: "开心", remark: "今天不错" });
-    expect(r).toMatchObject({ recordId: "R1", recordType: "mood", value: "开心", note: "今天不错" });
+    const r = my.mapRecord({
+      id: "R1",
+      record_type: "mood",
+      date: 1716383000,
+      value: "开心",
+      remark: "今天不错",
+    });
+    expect(r).toMatchObject({
+      recordId: "R1",
+      recordType: "mood",
+      value: "开心",
+      note: "今天不错",
+    });
     expect(my.mapRecord({ note: "noid" })).toBe(null);
   });
   it("extractList tolerant", () => {
@@ -48,8 +69,23 @@ describe("MeiyouAdapter (snapshot + cookie-api)", () => {
     snapshottedAt: 1716383000000,
     account: { userId: "u1" },
     events: [
-      { kind: "period", id: "p-P1", recordId: "P1", startDate: 1716383000, endDate: 1716800000, cycleLength: 28, periodLength: 5 },
-      { kind: "record", id: "r-R1", recordId: "R1", recordType: "mood", date: 1716383000, value: "开心" },
+      {
+        kind: "period",
+        id: "p-P1",
+        recordId: "P1",
+        startDate: 1716383000,
+        endDate: 1716800000,
+        cycleLength: 28,
+        periodLength: 5,
+      },
+      {
+        kind: "record",
+        id: "r-R1",
+        recordId: "R1",
+        recordType: "mood",
+        date: 1716383000,
+        value: "开心",
+      },
     ],
   });
 
@@ -57,7 +93,9 @@ describe("MeiyouAdapter (snapshot + cookie-api)", () => {
     const p = writeTmp(SNAP);
     try {
       const a = new my.MeiyouAdapter();
-      expect((await a.authenticate({ inputPath: p })).mode).toBe("snapshot-file");
+      expect((await a.authenticate({ inputPath: p })).mode).toBe(
+        "snapshot-file",
+      );
       const items = await collect(a.sync({ inputPath: p }));
       expect(items).toHaveLength(2);
       const period = a.normalize(items[0]);
@@ -84,7 +122,9 @@ describe("MeiyouAdapter (snapshot + cookie-api)", () => {
     const p = writeTmp(SNAP);
     try {
       const a = new my.MeiyouAdapter();
-      const items = await collect(a.sync({ inputPath: p, include: { record: false } }));
+      const items = await collect(
+        a.sync({ inputPath: p, include: { record: false } }),
+      );
       expect(items).toHaveLength(1);
       expect(items[0].kind).toBe("period");
     } finally {
@@ -106,21 +146,64 @@ describe("MeiyouAdapter (snapshot + cookie-api)", () => {
       fetchFn: async ({ url, query }) => {
         calls.push({ url, page: query.page });
         if (query.page > 1) return { list: [] };
-        if (url.includes("/period")) return { list: [{ recordId: "P9", startDate: 1716383000, cycleLength: 30 }] };
-        return { list: [{ recordId: "R9", recordType: "weight", date: 1716383000, value: 55 }] };
+        if (url.includes("/period"))
+          return {
+            list: [{ recordId: "P9", startDate: 1716383000, cycleLength: 30 }],
+          };
+        return {
+          list: [
+            {
+              recordId: "R9",
+              recordType: "weight",
+              date: 1716383000,
+              value: 55,
+            },
+          ],
+        };
       },
     });
     const auth = await a.authenticate();
     expect(auth).toMatchObject({ ok: true, mode: "cookie", unverified: true });
     const items = await collect(a.sync({}));
     expect(items).toHaveLength(2);
-    expect(items.map((i) => i.originalId).sort()).toEqual(["meiyou:period:P9", "meiyou:record:R9"]);
+    expect(items.map((i) => i.originalId).sort()).toEqual([
+      "meiyou:period:P9",
+      "meiyou:record:R9",
+    ]);
     expect(signed).toBeGreaterThan(0);
+  });
+
+  it("does not complete a capped scan on a non-empty short page", async () => {
+    let watermarkComplete = false;
+    const a = new my.MeiyouAdapter({
+      account: { cookies: COOKIES },
+      periodUrl: "https://captured.example/period",
+      recordUrl: "https://captured.example/record",
+      fetchFn: async () => ({
+        list: [{ recordId: "P-short", startDate: 1716383000 }],
+      }),
+    });
+
+    expect(
+      await collect(
+        a.sync({
+          include: { record: false },
+          maxPages: 1,
+          markWatermarkComplete: () => {
+            watermarkComplete = true;
+          },
+        }),
+      ),
+    ).toHaveLength(1);
+    expect(watermarkComplete).toBe(false);
   });
 
   it("unverified live endpoints are rejected; no input throws", async () => {
     const a = new my.MeiyouAdapter({ account: { cookies: COOKIES } });
-    expect(await a.authenticate()).toMatchObject({ ok: false, reason: "EXPLICIT_ENDPOINT_REQUIRED" });
+    expect(await a.authenticate()).toMatchObject({
+      ok: false,
+      reason: "EXPLICIT_ENDPOINT_REQUIRED",
+    });
     await expect(collect(a.sync({}))).rejects.toThrow(/explicit periodUrl/);
     const b = new my.MeiyouAdapter();
     await expect(collect(b.sync({}))).rejects.toThrow(/needs opts.inputPath/);

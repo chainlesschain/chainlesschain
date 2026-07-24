@@ -10,7 +10,12 @@
 
 "use strict";
 
-const { createVideoAdapter, parseTime, SNAPSHOT_SCHEMA_VERSION } = require("../_video-base");
+const {
+  createVideoAdapter,
+  parseTime,
+  SNAPSHOT_SCHEMA_VERSION,
+} = require("../_video-base");
+const { extractRecognizedArray } = require("../../source-page");
 
 const NAME = "video-iqiyi";
 const VERSION = "0.1.0";
@@ -33,17 +38,12 @@ function mapCategory(it) {
   return it.channelName || it.categoryName || it.category || null;
 }
 
-function extractItems(resp) {
-  if (!resp || typeof resp !== "object") return [];
-  if (Array.isArray(resp.data)) return resp.data;
-  if (Array.isArray(resp.list)) return resp.list;
-  const d = resp.data;
-  if (d && typeof d === "object") {
-    if (Array.isArray(d.list)) return d.list;
-    if (Array.isArray(d.records)) return d.records;
-    if (Array.isArray(d.rc)) return d.rc;
-  }
-  return [];
+function extractItems(resp, stream = "video") {
+  return extractRecognizedArray(
+    resp,
+    [["data"], ["list"], ["data", "list"], ["data", "records"], ["data", "rc"]],
+    { source: NAME, stream },
+  );
 }
 
 function mapItem(it) {
@@ -54,11 +54,25 @@ function mapItem(it) {
     videoId: String(videoId),
     title: it.albumName || it.videoName || it.title || it.name || "(未知视频)",
     category: mapCategory(it),
-    episode: it.videoName && it.albumName && it.videoName !== it.albumName ? it.videoName : it.order ? `第${it.order}集` : null,
+    episode:
+      it.videoName && it.albumName && it.videoName !== it.albumName
+        ? it.videoName
+        : it.order
+          ? `第${it.order}集`
+          : null,
     channel: it.channelName || null,
-    durationSec: Number.isFinite(it.videoDuration) ? it.videoDuration : Number.isFinite(it.duration) ? it.duration : null,
-    url: it.pageUrl || it.url || (it.tvId ? `https://www.iqiyi.com/v_${it.tvId}.html` : null),
-    occurredAt: parseTime(it.addtime || it.playTime || it.updateTime || it.timestamp),
+    durationSec: Number.isFinite(it.videoDuration)
+      ? it.videoDuration
+      : Number.isFinite(it.duration)
+        ? it.duration
+        : null,
+    url:
+      it.pageUrl ||
+      it.url ||
+      (it.tvId ? `https://www.iqiyi.com/v_${it.tvId}.html` : null),
+    occurredAt: parseTime(
+      it.addtime || it.playTime || it.updateTime || it.timestamp,
+    ),
   };
 }
 
@@ -72,4 +86,12 @@ const IqiyiVideoAdapter = createVideoAdapter({
   mapItem,
 });
 
-module.exports = { IqiyiVideoAdapter, extractItems, mapItem, CHANNEL_MAP, NAME, VERSION, SNAPSHOT_SCHEMA_VERSION };
+module.exports = {
+  IqiyiVideoAdapter,
+  extractItems,
+  mapItem,
+  CHANNEL_MAP,
+  NAME,
+  VERSION,
+  SNAPSHOT_SCHEMA_VERSION,
+};

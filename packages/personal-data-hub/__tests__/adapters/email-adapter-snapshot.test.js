@@ -8,16 +8,35 @@ const path = require("node:path");
 
 const {
   EmailAdapter,
+  SNAPSHOT_SCHEMA_VERSION,
 } = require("../../lib/adapters/email-imap/email-adapter");
 const { assertAdapter } = require("../../lib/adapter-spec");
+
+function validSnapshot(overrides = {}) {
+  return {
+    schemaVersion: SNAPSHOT_SCHEMA_VERSION,
+    vendor: "qq",
+    user: "user@qq.com",
+    fetchedAt: 1_700_000_000_000,
+    records: [],
+    ...overrides,
+  };
+}
+
+async function collect(iterable) {
+  const items = [];
+  for await (const item of iterable) items.push(item);
+  return items;
+}
 
 /**
  * Phase 5.8 — snapshot mode for Android EmailLocalCollector ingestion.
  *
  * EmailLocalCollector.kt (android-app) does the IMAP fetch on-device with
  * Jakarta Mail, then writes filesDir/staging/email-<vendor>-<ts>.json with
- * shape `{vendor, user, fetchedAt, records: [{messageNumber, subject, from,
- * to, sentDateMs, bodyPreview, hasAttachments}]}`. The desktop EmailAdapter
+ * shape `{schemaVersion, vendor, user, fetchedAt, records:
+ * [{messageNumber, subject, from, to, sentDateMs, bodyPreview,
+ * hasAttachments}]}`. The desktop EmailAdapter
  * must consume that JSON via syncAdapter("email-imap", path) — without it
  * the UI shows "v0.2 补齐 (邮件已成功抓 X 封到本机临时区)" misleading hint
  * because the local fetch worked but cc couldn't ingest it.
@@ -35,7 +54,11 @@ describe("EmailAdapter snapshot mode", () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "email-snap-"));
   });
   afterEach(() => {
-    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (_e) {}
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch {
+      // Best-effort cleanup for Windows file locking.
+    }
   });
 
   it("snapshotMode constructor accepts no opts.account", () => {
@@ -58,7 +81,7 @@ describe("EmailAdapter snapshot mode", () => {
 
   it("authenticate(ctx.inputPath) returns ok when file readable", async () => {
     const inputPath = path.join(tmpDir, "snap.json");
-    fs.writeFileSync(inputPath, "{}", "utf-8");
+    fs.writeFileSync(inputPath, JSON.stringify(validSnapshot()), "utf-8");
     const a = new EmailAdapter({ snapshotMode: true });
     const auth = await a.authenticate({ inputPath });
     expect(auth.ok).toBe(true);
@@ -75,38 +98,86 @@ describe("EmailAdapter snapshot mode", () => {
 
   it("authenticate with unreadable inputPath returns INPUT_PATH_UNREADABLE", async () => {
     const a = new EmailAdapter({ snapshotMode: true });
-    const auth = await a.authenticate({ inputPath: path.join(tmpDir, "nope.json") });
+    const auth = await a.authenticate({
+      inputPath: path.join(tmpDir, "nope.json"),
+    });
     expect(auth.ok).toBe(false);
     expect(auth.reason).toBe("INPUT_PATH_UNREADABLE");
   });
 
+  it("authenticate rejects a directory instead of treating it as a snapshot", async () => {
+    const a = new EmailAdapter({ snapshotMode: true });
+    const auth = await a.authenticate({ inputPath: tmpDir });
+    expect(auth).toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_NOT_REGULAR_FILE",
+    });
+  });
+
+  it("authenticate and sync enforce schemaVersion", async () => {
+    const inputPath = path.join(tmpDir, "wrong-schema.json");
+    fs.writeFileSync(
+      inputPath,
+      JSON.stringify(validSnapshot({ schemaVersion: 2 })),
+      "utf-8",
+    );
+    const a = new EmailAdapter({ snapshotMode: true });
+
+    await expect(a.authenticate({ inputPath })).resolves.toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_SCHEMA_MISMATCH",
+    });
+    await expect(collect(a.sync({ inputPath }))).rejects.toMatchObject({
+      code: "SNAPSHOT_SCHEMA_MISMATCH",
+    });
+  });
+
+  it("authenticate and sync honor maxSnapshotBytes", async () => {
+    const inputPath = path.join(tmpDir, "oversized.json");
+    fs.writeFileSync(inputPath, JSON.stringify(validSnapshot()), "utf-8");
+    const a = new EmailAdapter({ snapshotMode: true });
+
+    await expect(
+      a.authenticate({ inputPath, maxSnapshotBytes: 8 }),
+    ).resolves.toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_TOO_LARGE",
+    });
+    await expect(
+      collect(a.sync({ inputPath, maxSnapshotBytes: 8 })),
+    ).rejects.toMatchObject({ code: "SNAPSHOT_TOO_LARGE" });
+  });
+
   it("sync(inputPath) yields one raw event per record", async () => {
     const inputPath = path.join(tmpDir, "snap.json");
-    fs.writeFileSync(inputPath, JSON.stringify({
-      vendor: "qq",
-      user: "user@qq.com",
-      fetchedAt: 1_700_000_000_000,
-      records: [
-        {
-          messageNumber: 1,
-          subject: "Test subject 1",
-          from: "Alice <alice@x.com>",
-          to: "user@qq.com",
-          sentDateMs: 1_700_000_100_000,
-          bodyPreview: "hello world",
-          hasAttachments: false,
-        },
-        {
-          messageNumber: 2,
-          subject: "Order confirmation",
-          from: "noreply@shop.com",
-          to: "user@qq.com",
-          sentDateMs: 1_700_000_200_000,
-          bodyPreview: "your order ABC123 has shipped",
-          hasAttachments: true,
-        },
-      ],
-    }), "utf-8");
+    fs.writeFileSync(
+      inputPath,
+      JSON.stringify(
+        validSnapshot({
+          records: [
+            {
+              messageNumber: 1,
+              subject: "Test subject 1",
+              from: "Alice <alice@x.com>",
+              to: "user@qq.com",
+              sentDateMs: 1_700_000_100_000,
+              bodyPreview: "hello world",
+              hasAttachments: false,
+            },
+            {
+              messageNumber: 2,
+              subject: "Order confirmation",
+              from: "noreply@shop.com",
+              to: "user@qq.com",
+              sentDateMs: 1_700_000_200_000,
+              bodyPreview: "your order ABC123 has shipped",
+              hasAttachments: true,
+            },
+          ],
+        }),
+      ),
+      "utf-8",
+    );
 
     const a = new EmailAdapter({ snapshotMode: true });
     const raws = [];
@@ -133,12 +204,17 @@ describe("EmailAdapter snapshot mode", () => {
 
   it("sync(inputPath) on empty records emits nothing", async () => {
     const inputPath = path.join(tmpDir, "empty.json");
-    fs.writeFileSync(inputPath, JSON.stringify({
-      vendor: "163",
-      user: "u@163.com",
-      fetchedAt: Date.now(),
-      records: [],
-    }), "utf-8");
+    fs.writeFileSync(
+      inputPath,
+      JSON.stringify(
+        validSnapshot({
+          vendor: "163",
+          user: "u@163.com",
+          fetchedAt: Date.now(),
+        }),
+      ),
+      "utf-8",
+    );
 
     const a = new EmailAdapter({ snapshotMode: true });
     const raws = [];
@@ -146,34 +222,95 @@ describe("EmailAdapter snapshot mode", () => {
     expect(raws).toHaveLength(0);
   });
 
-  it("sync(inputPath) on malformed JSON throws clear error", async () => {
+  it("authenticate and sync reject malformed JSON", async () => {
     const inputPath = path.join(tmpDir, "bad.json");
     fs.writeFileSync(inputPath, "{not json", "utf-8");
 
     const a = new EmailAdapter({ snapshotMode: true });
-    let threw = null;
-    try {
-      for await (const _r of a.sync({ inputPath })) { /* drain */ }
-    } catch (err) {
-      threw = err;
-    }
-    expect(threw).toBeTruthy();
-    expect(threw.message).toMatch(/bad JSON/);
+    await expect(a.authenticate({ inputPath })).resolves.toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_JSON_INVALID",
+    });
+    await expect(collect(a.sync({ inputPath }))).rejects.toMatchObject({
+      code: "SNAPSHOT_JSON_INVALID",
+    });
   });
 
   it("sync(inputPath) without records[] throws shape error", async () => {
     const inputPath = path.join(tmpDir, "noshape.json");
-    fs.writeFileSync(inputPath, JSON.stringify({ vendor: "qq" }), "utf-8");
+    const snapshot = validSnapshot();
+    delete snapshot.records;
+    fs.writeFileSync(inputPath, JSON.stringify(snapshot), "utf-8");
 
     const a = new EmailAdapter({ snapshotMode: true });
-    let threw = null;
-    try {
-      for await (const _r of a.sync({ inputPath })) { /* drain */ }
-    } catch (err) {
-      threw = err;
-    }
-    expect(threw).toBeTruthy();
-    expect(threw.message).toMatch(/records/);
+    await expect(collect(a.sync({ inputPath }))).rejects.toMatchObject({
+      code: "SNAPSHOT_SHAPE_INVALID",
+    });
+  });
+
+  it.each([
+    ["blank vendor", { vendor: "" }],
+    ["non-string user", { user: null }],
+    ["invalid fetchedAt", { fetchedAt: "1700000000000" }],
+  ])("rejects invalid snapshot metadata: %s", async (_label, overrides) => {
+    const inputPath = path.join(tmpDir, "bad-metadata.json");
+    fs.writeFileSync(
+      inputPath,
+      JSON.stringify(validSnapshot(overrides)),
+      "utf-8",
+    );
+    const a = new EmailAdapter({ snapshotMode: true });
+
+    await expect(a.authenticate({ inputPath })).resolves.toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_SHAPE_INVALID",
+    });
+    await expect(collect(a.sync({ inputPath }))).rejects.toMatchObject({
+      code: "SNAPSHOT_SHAPE_INVALID",
+    });
+  });
+
+  it.each([
+    ["non-object record", null],
+    [
+      "record without a stable messageNumber",
+      {
+        subject: null,
+        from: null,
+        to: null,
+        sentDateMs: null,
+        bodyPreview: null,
+        hasAttachments: false,
+      },
+    ],
+    [
+      "record with the wrong field types",
+      {
+        messageNumber: 1,
+        subject: [],
+        from: null,
+        to: null,
+        sentDateMs: null,
+        bodyPreview: null,
+        hasAttachments: "false",
+      },
+    ],
+  ])("rejects a malformed records[] entry: %s", async (_label, record) => {
+    const inputPath = path.join(tmpDir, "bad-record.json");
+    fs.writeFileSync(
+      inputPath,
+      JSON.stringify(validSnapshot({ records: [record] })),
+      "utf-8",
+    );
+    const a = new EmailAdapter({ snapshotMode: true });
+
+    await expect(a.authenticate({ inputPath })).resolves.toMatchObject({
+      ok: false,
+      reason: "SNAPSHOT_SHAPE_INVALID",
+    });
+    await expect(collect(a.sync({ inputPath }))).rejects.toMatchObject({
+      code: "SNAPSHOT_SHAPE_INVALID",
+    });
   });
 
   it("sync(opts.limit) respected on snapshot record iteration", async () => {
@@ -190,12 +327,17 @@ describe("EmailAdapter snapshot mode", () => {
         hasAttachments: false,
       });
     }
-    fs.writeFileSync(inputPath, JSON.stringify({
-      vendor: "qq",
-      user: "u@q.com",
-      fetchedAt: Date.now(),
-      records,
-    }), "utf-8");
+    fs.writeFileSync(
+      inputPath,
+      JSON.stringify(
+        validSnapshot({
+          user: "u@q.com",
+          fetchedAt: Date.now(),
+          records,
+        }),
+      ),
+      "utf-8",
+    );
 
     const a = new EmailAdapter({ snapshotMode: true });
     const raws = [];
@@ -203,24 +345,29 @@ describe("EmailAdapter snapshot mode", () => {
     expect(raws).toHaveLength(3);
   });
 
-  it("sync(inputPath) handles records with no sentDateMs (falls back to fetchedAt)", async () => {
+  it("sync(inputPath) handles records with null sentDateMs (falls back to fetchedAt)", async () => {
     const inputPath = path.join(tmpDir, "nodate.json");
-    fs.writeFileSync(inputPath, JSON.stringify({
-      vendor: "qq",
-      user: "u@q.com",
-      fetchedAt: 1_700_500_000_000,
-      records: [
-        {
-          messageNumber: 1,
-          subject: "no date",
-          from: "x@x.com",
-          to: "u@q.com",
-          // sentDateMs intentionally omitted
-          bodyPreview: "",
-          hasAttachments: false,
-        },
-      ],
-    }), "utf-8");
+    fs.writeFileSync(
+      inputPath,
+      JSON.stringify(
+        validSnapshot({
+          user: "u@q.com",
+          fetchedAt: 1_700_500_000_000,
+          records: [
+            {
+              messageNumber: 1,
+              subject: "no date",
+              from: "x@x.com",
+              to: "u@q.com",
+              sentDateMs: null,
+              bodyPreview: "",
+              hasAttachments: false,
+            },
+          ],
+        }),
+      ),
+      "utf-8",
+    );
 
     const a = new EmailAdapter({ snapshotMode: true });
     const raws = [];
@@ -231,7 +378,9 @@ describe("EmailAdapter snapshot mode", () => {
 
   it("non-snapshot mode still requires opts.account (preserves Phase 5.1 invariant)", () => {
     expect(() => new EmailAdapter({})).toThrow(/account/);
-    expect(() => new EmailAdapter({ account: { email: "u@x.com" } })).toThrow(/authCode/);
+    expect(() => new EmailAdapter({ account: { email: "u@x.com" } })).toThrow(
+      /authCode/,
+    );
     // But snapshot mode bypasses both:
     expect(() => new EmailAdapter({ snapshotMode: true })).not.toThrow();
   });

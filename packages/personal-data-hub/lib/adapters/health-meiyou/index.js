@@ -38,6 +38,10 @@ const fs = require("node:fs");
 const { createAccountScopeFromAccount } = require("../../account-scope");
 const { newId } = require("../../ids");
 const {
+  probeJsonSnapshotFile,
+  readJsonSnapshot,
+} = require("../../snapshot-file");
+const {
   ENTITY_TYPES,
   EVENT_SUBTYPES,
   CAPTURED_BY,
@@ -70,8 +74,12 @@ function parseTime(v) {
 function stableOriginalId(kind, id) {
   const safe =
     (typeof id === "string" && id.length > 0 && id) ||
-    (typeof id === "number" && Number.isFinite(id) && String(id)) ||
-    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    (typeof id === "number" && Number.isFinite(id) && String(id));
+  if (!safe) {
+    throw new Error(
+      `${NAME}.sync: ${String(kind)} record requires a stable id`,
+    );
+  }
   return `meiyou:${kind}:${safe}`;
 }
 
@@ -172,16 +180,12 @@ class MeiyouAdapter {
 
   async authenticate(ctx = {}) {
     if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
-      try {
-        this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
-      } catch (err) {
-        return {
-          ok: false,
-          reason: "INPUT_PATH_UNREADABLE",
-          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
-        };
-      }
-      return { ok: true, mode: "snapshot-file" };
+      return probeJsonSnapshotFile(this._deps.fs, ctx.inputPath, {
+        maxBytes: ctx.maxSnapshotBytes,
+        expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+        requiredArrayFields: ["events"],
+        allowedEventKinds: VALID_SNAPSHOT_KINDS,
+      });
     }
     if (this._cookieAuth && !this._liveConfigured) {
       return {
@@ -242,17 +246,12 @@ class MeiyouAdapter {
   }
 
   async *_syncViaSnapshot(opts) {
-    const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
-    const snapshot = JSON.parse(raw);
-    if (
-      !snapshot ||
-      typeof snapshot !== "object" ||
-      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
-    ) {
-      throw new Error(
-        `health-meiyou.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
-      );
-    }
+    const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
+      maxBytes: opts.maxSnapshotBytes,
+      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      requiredArrayFields: ["events"],
+      allowedEventKinds: VALID_SNAPSHOT_KINDS,
+    });
     const fallbackCapturedAt =
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
@@ -265,16 +264,18 @@ class MeiyouAdapter {
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
 
-    const events = Array.isArray(snapshot.events) ? snapshot.events : [];
+    const events = snapshot.events;
     let emitted = 0;
     for (const ev of events) {
       if (emitted >= limit) return;
-      if (!ev || typeof ev !== "object") continue;
-      if (!VALID_SNAPSHOT_KINDS.includes(ev.kind)) continue;
       if (include[ev.kind] === false) continue;
 
       const rec = ev.kind === KIND_PERIOD ? mapPeriod(ev) : mapRecord(ev);
-      if (!rec) continue;
+      if (!rec) {
+        throw new Error(
+          `${NAME}.sync: ${String(ev.kind)} record requires a stable id`,
+        );
+      }
       const recTime = ev.kind === KIND_PERIOD ? rec.startMs : rec.dateMs;
       const capturedAt =
         parseTime(ev.capturedAt) || recTime || fallbackCapturedAt;
@@ -344,15 +345,16 @@ class MeiyouAdapter {
           sign,
         });
         const items = extractList(resp);
-        if (!items.length) break;
-        let reachedWatermark = false;
+        if (!items.length) {
+          stepComplete = true;
+          break;
+        }
         for (const it of items) {
           const rec = step.map(it);
           if (!rec) continue;
           const ts = step.ts(rec) || null;
           if (sinceMs && ts && ts < sinceMs) {
-            reachedWatermark = true;
-            break;
+            continue;
           }
           if (emitted >= limit) return;
           yield {
@@ -363,10 +365,6 @@ class MeiyouAdapter {
             payload: { record: rec, kind: step.kind, cookie: true },
           };
           emitted += 1;
-        }
-        if (reachedWatermark || items.length < PAGE_SIZE) {
-          stepComplete = true;
-          break;
         }
         page += 1;
       }

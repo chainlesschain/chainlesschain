@@ -24,8 +24,9 @@
  * Each Record/Workout is one line in practice, so we parse line-by-line and
  * pull attributes with a small regex — robust against attribute reordering
  * and avoids a heavy XML dependency. `export.xml` can be large (100s of MB);
- * v1 reads the whole file with a `maxRecords` cap. (A streaming reader is a
- * later optimization; flagged via diagnostic when the cap truncates.)
+ * the whole-file read is bounded and identity-checked before parsing. A
+ * streaming reader is a later optimization; maxRecords truncation is surfaced
+ * via a diagnostic.
  *
  * Metrics → EVENT subtype "other" (extra carries metric/value/unit).
  * Workouts → EVENT subtype "trip" (a bounded activity with duration/distance).
@@ -33,13 +34,23 @@
 
 const fs = require("node:fs");
 const { newId } = require("../../ids");
-const { ENTITY_TYPES, EVENT_SUBTYPES, CAPTURED_BY } = require("../../constants");
+const {
+  HARD_MAX_SNAPSHOT_BYTES,
+  probeSnapshotFile,
+  readBoundedSnapshot,
+} = require("../../snapshot-file");
+const {
+  ENTITY_TYPES,
+  EVENT_SUBTYPES,
+  CAPTURED_BY,
+} = require("../../constants");
 
 const NAME = "apple-health";
 const VERSION = "0.1.0";
 
 const KIND_RECORD = "record";
 const KIND_WORKOUT = "workout";
+const DEFAULT_MAX_EXPORT_BYTES = HARD_MAX_SNAPSHOT_BYTES;
 
 // Whitelist of high-value metric types → short label. Anything not listed is
 // still ingested (label = the raw type minus the HK prefix) so the user never
@@ -87,7 +98,9 @@ function parseAppleDate(s) {
 }
 
 function stableOriginalId(kind, parts) {
-  const safe = parts.filter(Boolean).join("|") || `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const safe =
+    parts.filter(Boolean).join("|") ||
+    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   return `apple-health:${kind}:${safe}`;
 }
 
@@ -127,15 +140,10 @@ class AppleHealthAdapter {
     }
     const inputPath = (ctx && ctx.inputPath) || this._inputPath;
     if (inputPath) {
-      try {
-        this._deps.fs.accessSync(inputPath, this._deps.fs.constants.R_OK);
-      } catch (err) {
-        return {
-          ok: false,
-          reason: "INPUT_PATH_UNREADABLE",
-          message: `apple-health: export.xml not readable at ${inputPath}: ${err.message}`,
-        };
-      }
+      const result = probeSnapshotFile(this._deps.fs, inputPath, {
+        maxBytes: ctx.maxSnapshotBytes ?? DEFAULT_MAX_EXPORT_BYTES,
+      });
+      if (!result.ok) return result;
       return { ok: true, mode: "file-import" };
     }
     return {
@@ -154,14 +162,18 @@ class AppleHealthAdapter {
     if (!inputPath) {
       throw new Error("apple-health.sync: needs opts.inputPath (export.xml)");
     }
-    if (!this._deps.fs.existsSync(inputPath)) return;
 
     const maxRecords =
-      Number.isInteger(opts.maxRecords) && opts.maxRecords > 0 ? opts.maxRecords : 200_000;
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+      Number.isInteger(opts.maxRecords) && opts.maxRecords > 0
+        ? opts.maxRecords
+        : 200_000;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const include = opts.include || {};
 
-    const content = this._deps.fs.readFileSync(inputPath, "utf-8");
+    const content = readBoundedSnapshot(this._deps.fs, inputPath, {
+      maxBytes: opts.maxSnapshotBytes ?? DEFAULT_MAX_EXPORT_BYTES,
+    });
     const lines = content.split("\n");
     let emitted = 0;
     let seen = 0;
@@ -221,7 +233,9 @@ class AppleHealthAdapter {
           maxRecords,
           message: `export.xml 超过 ${maxRecords} 条，已截断（提高 maxRecords 可全量导入）`,
         });
-      } catch (_e) { /* best-effort */ }
+      } catch {
+        /* best-effort */
+      }
     }
   }
 
@@ -231,8 +245,10 @@ class AppleHealthAdapter {
     }
     const kind = raw.kind || raw.payload.kind;
     const ingestedAt = Date.now();
-    if (kind === KIND_RECORD) return normalizeRecord(raw.payload, raw, ingestedAt);
-    if (kind === KIND_WORKOUT) return normalizeWorkout(raw.payload, raw, ingestedAt);
+    if (kind === KIND_RECORD)
+      return normalizeRecord(raw.payload, raw, ingestedAt);
+    if (kind === KIND_WORKOUT)
+      return normalizeWorkout(raw.payload, raw, ingestedAt);
     throw new Error(`AppleHealthAdapter.normalize: unknown kind ${kind}`);
   }
 }
@@ -249,75 +265,94 @@ function buildSource(raw, occurredAt) {
 
 function normalizeRecord(p, raw, ingestedAt) {
   const occurredAt =
-    parseAppleDate(p.startDate) || parseAppleDate(p.creationDate) || raw.capturedAt || ingestedAt;
+    parseAppleDate(p.startDate) ||
+    parseAppleDate(p.creationDate) ||
+    raw.capturedAt ||
+    ingestedAt;
   const source = buildSource(raw, occurredAt);
   const label = metricLabel(p.type);
   const value = p.value != null ? p.value : "";
   const unit = p.unit || "";
   return {
-    events: [{
-      id: newId(),
-      type: ENTITY_TYPES.EVENT,
-      subtype: EVENT_SUBTYPES.OTHER,
-      occurredAt,
-      actor: "person-self",
-      content: {
-        title: `${label}: ${value}${unit ? " " + unit : ""}`.trim(),
-        text: `${label} ${value} ${unit}`.trim(),
+    events: [
+      {
+        id: newId(),
+        type: ENTITY_TYPES.EVENT,
+        subtype: EVENT_SUBTYPES.OTHER,
+        occurredAt,
+        actor: "person-self",
+        content: {
+          title: `${label}: ${value}${unit ? " " + unit : ""}`.trim(),
+          text: `${label} ${value} ${unit}`.trim(),
+        },
+        ingestedAt,
+        source,
+        extra: {
+          platform: "apple-health",
+          category: "health",
+          metric: p.type || null,
+          metricLabel: label,
+          value: value || null,
+          unit: unit || null,
+          sourceName: p.sourceName || null,
+          endDate: parseAppleDate(p.endDate),
+        },
       },
-      ingestedAt,
-      source,
-      extra: {
-        platform: "apple-health",
-        category: "health",
-        metric: p.type || null,
-        metricLabel: label,
-        value: value || null,
-        unit: unit || null,
-        sourceName: p.sourceName || null,
-        endDate: parseAppleDate(p.endDate),
-      },
-    }],
-    persons: [], places: [], items: [], topics: [],
+    ],
+    persons: [],
+    places: [],
+    items: [],
+    topics: [],
   };
 }
 
 function normalizeWorkout(p, raw, ingestedAt) {
   const occurredAt =
-    parseAppleDate(p.startDate) || parseAppleDate(p.creationDate) || raw.capturedAt || ingestedAt;
+    parseAppleDate(p.startDate) ||
+    parseAppleDate(p.creationDate) ||
+    raw.capturedAt ||
+    ingestedAt;
   const source = buildSource(raw, occurredAt);
   const activity =
     typeof p.workoutActivityType === "string"
       ? p.workoutActivityType.replace(/^HKWorkoutActivityType/, "")
       : "Workout";
   const duration = p.duration ? `${p.duration}${p.durationUnit || ""}` : "";
-  const distance = p.totalDistance ? `${p.totalDistance}${p.totalDistanceUnit || ""}` : "";
+  const distance = p.totalDistance
+    ? `${p.totalDistance}${p.totalDistanceUnit || ""}`
+    : "";
   return {
-    events: [{
-      id: newId(),
-      type: ENTITY_TYPES.EVENT,
-      subtype: EVENT_SUBTYPES.TRIP,
-      occurredAt,
-      actor: "person-self",
-      content: {
-        title: `运动: ${activity}${duration ? " " + duration : ""}${distance ? " " + distance : ""}`.trim(),
-        text: `${activity} ${duration} ${distance}`.trim(),
+    events: [
+      {
+        id: newId(),
+        type: ENTITY_TYPES.EVENT,
+        subtype: EVENT_SUBTYPES.TRIP,
+        occurredAt,
+        actor: "person-self",
+        content: {
+          title:
+            `运动: ${activity}${duration ? " " + duration : ""}${distance ? " " + distance : ""}`.trim(),
+          text: `${activity} ${duration} ${distance}`.trim(),
+        },
+        ingestedAt,
+        source,
+        extra: {
+          platform: "apple-health",
+          category: "workout",
+          activityType: activity,
+          duration: p.duration || null,
+          durationUnit: p.durationUnit || null,
+          totalDistance: p.totalDistance || null,
+          totalDistanceUnit: p.totalDistanceUnit || null,
+          totalEnergyBurned: p.totalEnergyBurned || null,
+          endDate: parseAppleDate(p.endDate),
+        },
       },
-      ingestedAt,
-      source,
-      extra: {
-        platform: "apple-health",
-        category: "workout",
-        activityType: activity,
-        duration: p.duration || null,
-        durationUnit: p.durationUnit || null,
-        totalDistance: p.totalDistance || null,
-        totalDistanceUnit: p.totalDistanceUnit || null,
-        totalEnergyBurned: p.totalEnergyBurned || null,
-        endDate: parseAppleDate(p.endDate),
-      },
-    }],
-    persons: [], places: [], items: [], topics: [],
+    ],
+    persons: [],
+    places: [],
+    items: [],
+    topics: [],
   };
 }
 

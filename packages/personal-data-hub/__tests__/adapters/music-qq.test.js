@@ -23,29 +23,57 @@ const COOKIES = "qqmusic_key=abc; uin=123";
 describe("music-qq mappers", () => {
   it("name/version", () => {
     expect(qm.NAME).toBe("music-qq");
-    expect(qm.VERSION).toBe("0.1.0");
+    expect(qm.VERSION).toBe("0.2.0");
   });
   it("flattenSinger handles array / string / object", () => {
-    expect(qm.flattenSinger([{ name: "周杰伦" }, { name: "费玉清" }])).toBe("周杰伦/费玉清");
+    expect(qm.flattenSinger([{ name: "周杰伦" }, { name: "费玉清" }])).toBe(
+      "周杰伦/费玉清",
+    );
     expect(qm.flattenSinger("林俊杰")).toBe("林俊杰");
     expect(qm.flattenSinger({ name: "邓紫棋" })).toBe("邓紫棋");
     expect(qm.flattenSinger(null)).toBe("");
   });
   it("songItemToRecord (QQ fields: songmid, singer array, album.name)", () => {
-    const r = qm.songItemToRecord({ songmid: "S1", songname: "晴天", singer: [{ name: "周杰伦" }], album: { name: "叶惠美" }, time: 1716383000 });
-    expect(r).toMatchObject({ songId: "S1", song: "晴天", artist: "周杰伦", album: "叶惠美" });
+    const r = qm.songItemToRecord({
+      songmid: "S1",
+      songname: "晴天",
+      singer: [{ name: "周杰伦" }],
+      album: { name: "叶惠美" },
+      time: 1716383000,
+    });
+    expect(r).toMatchObject({
+      songId: "S1",
+      song: "晴天",
+      artist: "周杰伦",
+      album: "叶惠美",
+    });
     expect(r.occurredAt).toBe(1716383000000);
     expect(qm.songItemToRecord({ songname: "x" })).toBe(null);
   });
   it("playlistItemToRecord (dissid/dissname/songnum)", () => {
-    const r = qm.playlistItemToRecord({ dissid: "P1", dissname: "我喜欢", songnum: 42, creator: { name: "我" } });
-    expect(r).toMatchObject({ playlistId: "P1", name: "我喜欢", trackCount: 42, creator: "我" });
+    const r = qm.playlistItemToRecord({
+      dissid: "P1",
+      dissname: "我喜欢",
+      songnum: 42,
+      creator: { name: "我" },
+    });
+    expect(r).toMatchObject({
+      playlistId: "P1",
+      name: "我喜欢",
+      trackCount: 42,
+      creator: "我",
+    });
     expect(qm.playlistItemToRecord({ dissname: "x" })).toBe(null);
   });
   it("extractList tolerant (list / data.songlist)", () => {
     expect(qm.extractList({ list: [{ songmid: 1 }] })).toHaveLength(1);
-    expect(qm.extractList({ data: { songlist: [{ songmid: 1 }] } })).toHaveLength(1);
-    expect(qm.extractList({})).toEqual([]);
+    expect(
+      qm.extractList({ data: { songlist: [{ songmid: 1 }] } }),
+    ).toHaveLength(1);
+    expect(qm.extractList({ list: [] })).toEqual([]);
+    expect(() => qm.extractList({})).toThrow(
+      expect.objectContaining({ code: "SOURCE_PAGE_UNRECOGNIZED" }),
+    );
   });
 });
 
@@ -55,9 +83,28 @@ describe("QQMusicAdapter (snapshot + cookie-api)", () => {
     snapshottedAt: 1716383000000,
     account: { userId: "u1" },
     events: [
-      { kind: "play", id: "play-S1", songId: "S1", song: "晴天", artist: "周杰伦", album: "叶惠美" },
-      { kind: "favorite", id: "fav-S2", songId: "S2", song: "稻香", artist: "周杰伦" },
-      { kind: "playlist", id: "pl-P1", playlistId: "P1", name: "我喜欢", trackCount: 42 },
+      {
+        kind: "play",
+        id: "play-S1",
+        songId: "S1",
+        song: "晴天",
+        artist: "周杰伦",
+        album: "叶惠美",
+      },
+      {
+        kind: "favorite",
+        id: "fav-S2",
+        songId: "S2",
+        song: "稻香",
+        artist: "周杰伦",
+      },
+      {
+        kind: "playlist",
+        id: "pl-P1",
+        playlistId: "P1",
+        name: "我喜欢",
+        trackCount: 42,
+      },
     ],
   });
 
@@ -65,7 +112,9 @@ describe("QQMusicAdapter (snapshot + cookie-api)", () => {
     const p = writeTmp(SNAP);
     try {
       const a = new qm.QQMusicAdapter();
-      expect((await a.authenticate({ inputPath: p })).mode).toBe("snapshot-file");
+      expect((await a.authenticate({ inputPath: p })).mode).toBe(
+        "snapshot-file",
+      );
       const items = await collect(a.sync({ inputPath: p }));
       expect(items).toHaveLength(3);
       const play = a.normalize(items[0]);
@@ -84,29 +133,148 @@ describe("QQMusicAdapter (snapshot + cookie-api)", () => {
     }
   });
 
+  it("fails closed for malformed, invalid-shape, unknown-kind, oversized, and id-less snapshots", async () => {
+    const paths = [
+      writeTmp("{"),
+      writeTmp(JSON.stringify({ schemaVersion: 1, events: {} })),
+      writeTmp(
+        JSON.stringify({
+          schemaVersion: 1,
+          events: [{ kind: "unknown", id: "x" }],
+        }),
+      ),
+      writeTmp(JSON.stringify({ schemaVersion: 1, events: [] })),
+      writeTmp(
+        JSON.stringify({
+          schemaVersion: 1,
+          events: [{ kind: "play", song: "no stable source id" }],
+        }),
+      ),
+    ];
+    try {
+      const a = new qm.QQMusicAdapter();
+      expect(await a.authenticate({ inputPath: paths[0] })).toMatchObject({
+        ok: false,
+        reason: "SNAPSHOT_JSON_INVALID",
+      });
+      await expect(
+        collect(a.sync({ inputPath: paths[0] })),
+      ).rejects.toMatchObject({ code: "SNAPSHOT_JSON_INVALID" });
+
+      expect(await a.authenticate({ inputPath: paths[1] })).toMatchObject({
+        ok: false,
+        reason: "SNAPSHOT_SHAPE_INVALID",
+      });
+      await expect(
+        collect(a.sync({ inputPath: paths[2] })),
+      ).rejects.toMatchObject({ code: "SNAPSHOT_SHAPE_INVALID" });
+
+      expect(
+        await a.authenticate({
+          inputPath: paths[3],
+          maxSnapshotBytes: 8,
+        }),
+      ).toMatchObject({ ok: false, reason: "SNAPSHOT_TOO_LARGE" });
+      await expect(
+        collect(
+          a.sync({
+            inputPath: paths[3],
+            maxSnapshotBytes: 8,
+          }),
+        ),
+      ).rejects.toMatchObject({ code: "SNAPSHOT_TOO_LARGE" });
+
+      await expect(collect(a.sync({ inputPath: paths[4] }))).rejects.toThrow(
+        /requires a stable id/,
+      );
+    } finally {
+      for (const p of paths) fs.unlinkSync(p);
+    }
+  });
+
   it("cookie-api: fetch 3 kinds + sign seam", async () => {
     let signed = 0;
     const a = new qm.QQMusicAdapter({
       account: { cookies: COOKIES, userId: "u1" },
-      signProvider: async () => { signed += 1; return "sig"; },
+      signProvider: async () => {
+        signed += 1;
+        return "sig";
+      },
       fetchFn: async ({ url, query }) => {
         if (query.page > 1) return { list: [] };
-        if (url.includes("/listen")) return { list: [{ songmid: "A", songname: "歌1", singer: [{ name: "歌手" }], time: 1716383000 }] };
-        if (url.includes("/favorite")) return { data: { songlist: [{ songmid: "B", songname: "歌2", singer: "歌手2" }] } };
-        return { data: { list: [{ dissid: "C", dissname: "歌单", songnum: 5 }] } };
+        if (url.includes("/listen"))
+          return {
+            list: [
+              {
+                songmid: "A",
+                songname: "歌1",
+                singer: [{ name: "歌手" }],
+                time: 1716383000,
+              },
+            ],
+          };
+        if (url.includes("/favorite"))
+          return {
+            data: {
+              songlist: [{ songmid: "B", songname: "歌2", singer: "歌手2" }],
+            },
+          };
+        return {
+          data: { list: [{ dissid: "C", dissname: "歌单", songnum: 5 }] },
+        };
       },
     });
-    expect(await a.authenticate()).toEqual({ ok: true, account: "u1", mode: "cookie" });
+    expect(await a.authenticate()).toEqual({
+      ok: true,
+      account: "u1",
+      mode: "cookie",
+    });
     const items = await collect(a.sync({}));
     expect(items).toHaveLength(3);
-    expect(items.map((i) => i.originalId).sort()).toEqual(["qqmusic:favorite:B", "qqmusic:play:A", "qqmusic:playlist:C"]);
+    expect(items.map((i) => i.originalId).sort()).toEqual([
+      "qqmusic:favorite:B",
+      "qqmusic:play:A",
+      "qqmusic:playlist:C",
+    ]);
+    expect(items.every((item) => item.watermarkKey === item.kind)).toBe(true);
+    expect(a.watermarkStrategy).toBe("partitioned");
+    expect(a.targetWatermarkKeys({ inputPath: "snapshot.json" })).toEqual([]);
     expect(signed).toBeGreaterThan(0);
+  });
+
+  it("does not complete a capped scan on a non-empty short page", async () => {
+    let watermarkComplete = false;
+    const a = new qm.QQMusicAdapter({
+      account: { cookies: COOKIES },
+      fetchFn: async () => ({
+        list: [{ songmid: "short", songname: "short page" }],
+      }),
+    });
+
+    expect(
+      await collect(
+        a.sync({
+          include: { favorite: false, playlist: false },
+          maxPages: 1,
+          markWatermarkComplete: () => {
+            watermarkComplete = true;
+          },
+        }),
+      ),
+    ).toHaveLength(1);
+    expect(watermarkComplete).toBe(false);
   });
 
   it("low sensitivity (consumer music); default fetch / no input throw", async () => {
     expect(new qm.QQMusicAdapter().dataDisclosure.sensitivity).toBe("low");
     expect(new qm.QQMusicAdapter().dataDisclosure.legalGate).toBe(false);
-    await expect(collect(new qm.QQMusicAdapter({ account: { cookies: COOKIES } }).sync({}))).rejects.toThrow(/no fetchFn/);
-    await expect(collect(new qm.QQMusicAdapter().sync({}))).rejects.toThrow(/needs opts.inputPath/);
+    await expect(
+      collect(
+        new qm.QQMusicAdapter({ account: { cookies: COOKIES } }).sync({}),
+      ),
+    ).rejects.toThrow(/no fetchFn/);
+    await expect(collect(new qm.QQMusicAdapter().sync({}))).rejects.toThrow(
+      /needs opts.inputPath/,
+    );
   });
 });

@@ -173,27 +173,36 @@ describe("FanqieReadingAdapter (snapshot + cookie-api via _reading-base)", () =>
       "fanqie:favourite:B8",
       "fanqie:read:B9",
     ]);
+    expect(items.find((item) => item.kind === "read").watermarkAt).toBe(
+      1_716_383_000_000,
+    );
+    expect(
+      items.find((item) => item.kind === "favourite").watermarkAt,
+    ).toBeNull();
     expect(signed).toBeGreaterThan(0);
     expect(watermarkComplete).toBe(true);
   });
 
-  it("cookie-api: stops reading history after reaching the prior timestamp", async () => {
+  it("cookie-api: scans past old rows but keeps an excluded kind incomplete", async () => {
     let watermarkComplete = false;
     const a = new fanqie.FanqieReadingAdapter({
       account: { cookies: COOKIES, userId: "u1" },
       readUrl: "https://captured.example/history",
       favouriteUrl: "https://captured.example/bookshelf",
-      fetchFn: async () => ({
-        data: {
-          list: [
-            {
-              book_id: "OLD",
-              book_name: "old book",
-              read_time: 1716383000,
+      fetchFn: async ({ query }) =>
+        query.page > 1
+          ? { data: { list: [] } }
+          : {
+              data: {
+                list: [
+                  {
+                    book_id: "OLD",
+                    book_name: "old book",
+                    read_time: 1716383000,
+                  },
+                ],
+              },
             },
-          ],
-        },
-      }),
     });
     const items = await collect(
       a.sync({
@@ -205,7 +214,93 @@ describe("FanqieReadingAdapter (snapshot + cookie-api via _reading-base)", () =>
       }),
     );
     expect(items).toEqual([]);
-    expect(watermarkComplete).toBe(true);
+    expect(watermarkComplete).toBe(false);
+  });
+
+  it("cookie-api: rejects unrecognized pages without confirming the watermark", async () => {
+    let watermarkComplete = false;
+    const a = new fanqie.FanqieReadingAdapter({
+      account: { cookies: COOKIES, userId: "u1" },
+      readUrl: "https://captured.example/history",
+      favouriteUrl: "https://captured.example/bookshelf",
+      fetchFn: async () => ({ code: 401, message: "expired" }),
+    });
+
+    await expect(
+      collect(
+        a.sync({
+          include: { favourite: false },
+          markWatermarkComplete: () => {
+            watermarkComplete = true;
+          },
+        }),
+      ),
+    ).rejects.toMatchObject({ code: "SOURCE_PAGE_ERROR" });
+    expect(watermarkComplete).toBe(false);
+  });
+
+  it("cookie-api: does not treat a non-empty short page as the source boundary", async () => {
+    let watermarkComplete = false;
+    const adapter = new fanqie.FanqieReadingAdapter({
+      account: { cookies: COOKIES, userId: "u1" },
+      readUrl: "https://captured.example/history",
+      favouriteUrl: "https://captured.example/bookshelf",
+      fetchFn: async () => ({
+        list: [
+          {
+            book_id: "SHORT",
+            book_name: "short page",
+            read_time: 1_716_385_000,
+          },
+        ],
+      }),
+    });
+
+    await expect(
+      collect(
+        adapter.sync({
+          maxPages: 1,
+          include: { favourite: false },
+          markWatermarkComplete: () => {
+            watermarkComplete = true;
+          },
+        }),
+      ),
+    ).resolves.toHaveLength(1);
+    expect(watermarkComplete).toBe(false);
+  });
+
+  it("cookie-api: an old row does not hide a newer row later on the same page", async () => {
+    const a = new fanqie.FanqieReadingAdapter({
+      account: { cookies: COOKIES, userId: "u1" },
+      readUrl: "https://captured.example/history",
+      favouriteUrl: "https://captured.example/bookshelf",
+      fetchFn: async ({ query }) =>
+        query.page > 1
+          ? { list: [] }
+          : {
+              list: [
+                {
+                  book_id: "OLD",
+                  book_name: "old",
+                  read_time: 1_716_383_000,
+                },
+                {
+                  book_id: "NEW",
+                  book_name: "new",
+                  read_time: 1_716_385_000,
+                },
+              ],
+            },
+    });
+
+    const items = await collect(
+      a.sync({
+        sinceWatermark: 1_716_384_000_000,
+        include: { favourite: false },
+      }),
+    );
+    expect(items.map((item) => item.originalId)).toEqual(["fanqie:read:NEW"]);
   });
 
   it("unverified live endpoints / no input throw", async () => {

@@ -46,7 +46,7 @@ describe("video-iqiyi mappers", () => {
   it("extractItems tolerant", () => {
     expect(iqiyi.extractItems({ data: [{ tvId: 1 }] })).toHaveLength(1);
     expect(iqiyi.extractItems({ data: { rc: [{ tvId: 1 }] } })).toHaveLength(1);
-    expect(iqiyi.extractItems({})).toEqual([]);
+    expect(() => iqiyi.extractItems({})).toThrow(/recognized list/u);
   });
 });
 
@@ -147,6 +147,26 @@ describe("IqiyiVideoAdapter (via _video-base)", () => {
       fs.unlinkSync(bad);
     }
   });
+  it("rejects a non-object snapshot event during auth and sync", async () => {
+    const p = writeTmp(
+      JSON.stringify({
+        schemaVersion: 1,
+        events: [null],
+      }),
+    );
+    try {
+      const a = new iqiyi.IqiyiVideoAdapter();
+      await expect(a.authenticate({ inputPath: p })).resolves.toMatchObject({
+        ok: false,
+        reason: "SNAPSHOT_SHAPE_INVALID",
+      });
+      await expect(collect(a.sync({ inputPath: p }))).rejects.toMatchObject({
+        code: "SNAPSHOT_SHAPE_INVALID",
+      });
+    } finally {
+      fs.unlinkSync(p);
+    }
+  });
 });
 
 describe("TencentVideoAdapter cookie-api mode", () => {
@@ -185,6 +205,12 @@ describe("TencentVideoAdapter cookie-api mode", () => {
       }),
     );
     expect(items.map((x) => x.kind).sort()).toEqual(["favourite", "watch"]);
+    expect(items.find((item) => item.kind === "watch").watermarkAt).toBe(
+      1_716_300_000_000,
+    );
+    expect(
+      items.find((item) => item.kind === "favourite").watermarkAt,
+    ).toBeNull();
     expect(calls.every((c) => c.cookies === COOKIES && c.sign === null)).toBe(
       true,
     );
@@ -194,34 +220,47 @@ describe("TencentVideoAdapter cookie-api mode", () => {
     expect(watermarkComplete).toBe(true);
   });
 
-  it("stops at the timestamp watermark and does not complete a capped full page", async () => {
+  it("continues past an old row while excluded/capped scans stay incomplete", async () => {
     let watermarkComplete = false;
-    const older = new tv.TencentVideoAdapter({
+    const mixedPages = [];
+    const mixed = new tv.TencentVideoAdapter({
       account: { cookies: COOKIES },
-      fetchFn: async () => ({
-        data: {
-          list: [
-            {
-              cid: "OLD",
-              cTitle: "old video",
-              viewTime: 1716300000,
-            },
-          ],
-        },
-      }),
+      fetchFn: async ({ query }) => {
+        mixedPages.push(query.page);
+        return {
+          data: {
+            list:
+              query.page === 1
+                ? [
+                    {
+                      cid: "OLD",
+                      cTitle: "old video",
+                      viewTime: 1716382999,
+                    },
+                    {
+                      cid: "NEW",
+                      cTitle: "new video",
+                      viewTime: 1716383001,
+                    },
+                  ]
+                : [],
+          },
+        };
+      },
     });
     expect(
       await collect(
-        older.sync({
-          sinceWatermark: 1716300000001,
+        mixed.sync({
+          sinceWatermark: 1716383000000,
           include: { favourite: false },
           markWatermarkComplete: () => {
             watermarkComplete = true;
           },
         }),
       ),
-    ).toEqual([]);
-    expect(watermarkComplete).toBe(true);
+    ).toMatchObject([{ originalId: "tencent-video:watch:NEW" }]);
+    expect(mixedPages).toEqual([1, 2]);
+    expect(watermarkComplete).toBe(false);
 
     watermarkComplete = false;
     const fullPage = new tv.TencentVideoAdapter({
@@ -250,7 +289,33 @@ describe("TencentVideoAdapter cookie-api mode", () => {
     expect(watermarkComplete).toBe(false);
   });
 
-  it("invokes signProvider + limit + empty + default fetch + no input", async () => {
+  it.each([
+    ["HTML login page", "<html>login</html>", "SOURCE_PAGE_UNRECOGNIZED"],
+    ["business error", { code: 401, list: [] }, "SOURCE_PAGE_ERROR"],
+  ])(
+    "rejects a %s without completing the watermark",
+    async (_label, response, expectedCode) => {
+      let watermarkCompletions = 0;
+      const a = new tv.TencentVideoAdapter({
+        account: { cookies: COOKIES },
+        fetchFn: async () => response,
+      });
+
+      await expect(
+        collect(
+          a.sync({
+            include: { favourite: false },
+            markWatermarkComplete: () => {
+              watermarkCompletions += 1;
+            },
+          }),
+        ),
+      ).rejects.toMatchObject({ code: expectedCode });
+      expect(watermarkCompletions).toBe(0);
+    },
+  );
+
+  it("invokes signProvider + limit + default fetch + no input", async () => {
     const signCalls = [];
     const a = new tv.TencentVideoAdapter({
       account: { cookies: COOKIES },
@@ -272,12 +337,6 @@ describe("TencentVideoAdapter cookie-api mode", () => {
       await collect(a.sync({ limit: 1, include: { favourite: false } })),
     ).toHaveLength(1);
     expect(signCalls.length).toBeGreaterThan(0);
-
-    const a2 = new tv.TencentVideoAdapter({
-      account: { cookies: COOKIES },
-      fetchFn: async () => "<html>login</html>",
-    });
-    expect(await collect(a2.sync({}))).toEqual([]);
 
     const a3 = new tv.TencentVideoAdapter({ account: { cookies: COOKIES } });
     await expect(collect(a3.sync({}))).rejects.toThrow(/no fetchFn configured/);

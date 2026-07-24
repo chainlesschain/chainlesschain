@@ -11,7 +11,12 @@
 
 "use strict";
 
-const { createVideoAdapter, parseTime, SNAPSHOT_SCHEMA_VERSION } = require("../_video-base");
+const {
+  createVideoAdapter,
+  parseTime,
+  SNAPSHOT_SCHEMA_VERSION,
+} = require("../_video-base");
+const { extractRecognizedArray } = require("../../source-page");
 
 const NAME = "video-xigua";
 const VERSION = "0.1.0";
@@ -19,25 +24,34 @@ const VERSION = "0.1.0";
 const WATCH_URL = "https://api.ixigua.com/api/history/list";
 const FAVOURITE_URL = "https://api.ixigua.com/api/favorite/list";
 
-function extractItems(resp) {
-  if (!resp || typeof resp !== "object") return [];
-  if (Array.isArray(resp.data)) return resp.data;
-  if (Array.isArray(resp.list)) return resp.list;
-  const d = resp.data;
-  if (d && typeof d === "object") {
-    if (Array.isArray(d.list)) return d.list;
-    if (Array.isArray(d.records)) return d.records;
-    if (Array.isArray(d.history)) return d.history;
-    if (Array.isArray(d.favorites)) return d.favorites;
-  }
-  return [];
+function extractItems(resp, stream = "video") {
+  return extractRecognizedArray(
+    resp,
+    [
+      ["data"],
+      ["list"],
+      ["data", "list"],
+      ["data", "records"],
+      ["data", "history"],
+      ["data", "favorites"],
+    ],
+    { source: NAME, stream },
+  );
 }
 
 function mapItem(it) {
   if (!it || typeof it !== "object") return null;
   // ByteDance items nest the video under article/item_info on some endpoints.
   const v = it.article || it.item_info || it.video || it;
-  const videoId = v.group_id || v.groupId || v.item_id || v.gid || v.vid || v.id || it.group_id || it.id;
+  const videoId =
+    v.group_id ||
+    v.groupId ||
+    v.item_id ||
+    v.gid ||
+    v.vid ||
+    v.id ||
+    it.group_id ||
+    it.id;
   if (!videoId) return null;
   return {
     videoId: String(videoId),
@@ -50,8 +64,17 @@ function mapItem(it) {
       : Number.isFinite(v.duration)
         ? v.duration
         : null,
-    url: v.share_url || v.url || (videoId ? `https://www.ixigua.com/${videoId}` : null),
-    occurredAt: parseTime(it.behot_time || it.action_time || it.create_time || v.behot_time || v.publish_time),
+    url:
+      v.share_url ||
+      v.url ||
+      (videoId ? `https://www.ixigua.com/${videoId}` : null),
+    occurredAt: parseTime(
+      it.behot_time ||
+        it.action_time ||
+        it.create_time ||
+        v.behot_time ||
+        v.publish_time,
+    ),
   };
 }
 
@@ -65,4 +88,11 @@ const XiguaVideoAdapter = createVideoAdapter({
   mapItem,
 });
 
-module.exports = { XiguaVideoAdapter, extractItems, mapItem, NAME, VERSION, SNAPSHOT_SCHEMA_VERSION };
+module.exports = {
+  XiguaVideoAdapter,
+  extractItems,
+  mapItem,
+  NAME,
+  VERSION,
+  SNAPSHOT_SCHEMA_VERSION,
+};

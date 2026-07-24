@@ -8,22 +8,28 @@
 
 "use strict";
 
-const { createReadingAdapter, parseTime, SNAPSHOT_SCHEMA_VERSION } = require("../_reading-base");
+const {
+  createReadingAdapter,
+  parseTime,
+  SNAPSHOT_SCHEMA_VERSION,
+} = require("../_reading-base");
+const { extractRecognizedArray } = require("../../source-page");
 
 const NAME = "reading-fanqie";
 const VERSION = "0.2.0";
 
 function extractItems(resp) {
-  if (!resp || typeof resp !== "object") return [];
-  if (Array.isArray(resp.list)) return resp.list;
-  if (Array.isArray(resp.data)) return resp.data;
-  const d = resp.data;
-  if (d && typeof d === "object") {
-    if (Array.isArray(d.list)) return d.list;
-    if (Array.isArray(d.books)) return d.books;
-    if (Array.isArray(d.book_list)) return d.book_list;
-  }
-  return [];
+  return extractRecognizedArray(
+    resp,
+    [
+      ["list"],
+      ["data"],
+      ["data", "list"],
+      ["data", "books"],
+      ["data", "book_list"],
+    ],
+    { source: NAME },
+  );
 }
 
 function mapItem(it) {
@@ -40,7 +46,9 @@ function mapItem(it) {
     chapter: it.last_chapter_title || it.chapter || it.last_chapter || null,
     progress: Number.isFinite(progress) ? progress : null,
     url: it.url || (id ? `https://fanqienovel.com/page/${id}` : null),
-    occurredAt: parseTime(it.read_time || it.last_read_time || it.update_time || it.add_time),
+    occurredAt: parseTime(
+      it.read_time || it.last_read_time || it.update_time || it.add_time,
+    ),
   };
 }
 
@@ -52,4 +60,11 @@ const FanqieReadingAdapter = createReadingAdapter({
   mapItem,
 });
 
-module.exports = { FanqieReadingAdapter, extractItems, mapItem, NAME, VERSION, SNAPSHOT_SCHEMA_VERSION };
+module.exports = {
+  FanqieReadingAdapter,
+  extractItems,
+  mapItem,
+  NAME,
+  VERSION,
+  SNAPSHOT_SCHEMA_VERSION,
+};
