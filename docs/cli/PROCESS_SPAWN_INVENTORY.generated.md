@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 317 (runtime: 236, tooling: 53, test: 28).
+Total matches: 285 (runtime: 204, tooling: 53, test: 28).
 
 ## Policy
 
@@ -29,40 +29,13 @@ Total matches: 317 (runtime: 236, tooling: 53, test: 28).
 | `packages/cli/src/commands/agenda.js` | 33 | `execSync: (...args) => executionBroker.execSync(...args),` |
 | `packages/cli/src/commands/agenda.js` | 505 | `const child = _processDeps.spawn(` |
 | `packages/cli/src/commands/agenda.js` | 529 | `return _processDeps.execSync(command, {` |
-| `packages/cli/src/commands/background-session.js` | 527 | `const child = executionBroker.spawn(` |
+| `packages/cli/src/commands/background-session.js` | 530 | `const child = executionBroker.spawn(` |
 | `packages/cli/src/commands/batch.js` | 191 | `return _processDeps.spawn(command, args, {` |
 | `packages/cli/src/commands/batch.js` | 200 | `return _processDeps.execFileSync("git", args, {` |
 | `packages/cli/src/commands/config.js` | 15 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/commands/config.js` | 73 | `return deps.spawnSync(file, [...editorArgs, configPath], {` |
 | `packages/cli/src/commands/eval.js` | 67 | `_deps.spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], {` |
 | `packages/cli/src/commands/eval.js` | 119 | `const child = _deps.spawn(process.execPath, args, {` |
-| `packages/cli/src/commands/init.js` | 611 | `const { execSync, spawn, spawnSync } = require("child_process");` |
-| `packages/cli/src/commands/init.js` | 618 | `execSync(\`\${cmd} --version\`, { stdio: "ignore", encoding: "utf-8" });` |
-| `packages/cli/src/commands/init.js` | 628 | `const proc = spawn("python", ["-m", ...args], { stdio: ["ignore", "pipe", "pipe"] });` |
-| `packages/cli/src/commands/init.js` | 739 | `const r = spawnSync("piper", ["--output_file", outputPath], {` |
-| `packages/cli/src/commands/init.js` | 801 | `execSync(\`python -c "import \${moduleName}"\`, { stdio: "ignore", encoding: "utf-8" });` |
-| `packages/cli/src/commands/init.js` | 972 | `const { spawnSync, execSync } = require("child_process");` |
-| `packages/cli/src/commands/init.js` | 980 | `execSync(\`\${cmd} --version\`, { stdio: "ignore", encoding: "utf-8" });` |
-| `packages/cli/src/commands/init.js` | 1046 | `const result = spawnSync(` |
-| `packages/cli/src/commands/init.js` | 1058 | `const result = spawnSync(` |
-| `packages/cli/src/commands/init.js` | 1083 | `const askResult = spawnSync(` |
-| `packages/cli/src/commands/init.js` | 1355 | `const { spawnSync, execSync } = require("child_process");` |
-| `packages/cli/src/commands/init.js` | 1365 | `execSync(\`\${cmd} --version\`, { stdio: "ignore", encoding: "utf-8" });` |
-| `packages/cli/src/commands/init.js` | 1435 | `const result = spawnSync(` |
-| `packages/cli/src/commands/init.js` | 1604 | `const { execSync, spawnSync } = require("child_process");` |
-| `packages/cli/src/commands/init.js` | 1611 | `const r = spawnSync(cmd, ["--version"], { encoding: "utf-8", timeout: 5000 });` |
-| `packages/cli/src/commands/init.js` | 1620 | `execSync(\`\${pyCmd} -c "import \${moduleName}"\`, { stdio: "ignore", timeout: 10000 });` |
-| `packages/cli/src/commands/init.js` | 1629 | `const r = spawnSync(` |
-| `packages/cli/src/commands/init.js` | 1751 | `const r = spawnSync("pandoc", ["--version"], { encoding: "utf-8", timeout: 5000 });` |
-| `packages/cli/src/commands/init.js` | 1754 | `spawnSync("pandoc", [inputFile, "-o", tmpMd], { encoding: "utf-8", timeout: 60000 });` |
-| `packages/cli/src/commands/init.js` | 1763 | `spawnSync("pandoc", [tmpMd, "-o", outputFile], { encoding: "utf-8", timeout: 60000 });` |
-| `packages/cli/src/commands/init.js` | 1787 | `const rv = spawnSync(soffice, ["--version"], { encoding: "utf-8", timeout: 5000, shell: process.platform === "win32" });` |
-| `packages/cli/src/commands/init.js` | 1790 | `spawnSync(soffice, ["--headless", "--convert-to", "html", inputFile, "--outdir", tmpDir2], {` |
-| `packages/cli/src/commands/init.js` | 1802 | `spawnSync(soffice, ["--headless", "--convert-to", "docx", htmlFile, "--outdir", path.dirname(outputFile)], {` |
-| `packages/cli/src/commands/init.js` | 1857 | `const er = spawnSync(py.command, [tmpExtract], { encoding: "utf-8", timeout: 30000 });` |
-| `packages/cli/src/commands/init.js` | 1907 | `const ar = spawnSync(py.command, [tmpApply], { encoding: "utf-8", timeout: 30000 });` |
-| `packages/cli/src/commands/init.js` | 1964 | `const er = spawnSync(py.command, [tmpExtract], { encoding: "utf-8", timeout: 30000 });` |
-| `packages/cli/src/commands/init.js` | 2015 | `const ar = spawnSync(py.command, [tmpApply], { encoding: "utf-8", timeout: 30000 });` |
 | `packages/cli/src/commands/loop.js` | 73 | `const child = _deps.spawn(cmd, args, {` |
 | `packages/cli/src/commands/memory.js` | 57 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/commands/memory.js` | 63 | `return deps.execFileSync(file, [...editorArgs, filePath], {` |
@@ -97,15 +70,13 @@ Total matches: 317 (runtime: 236, tooling: 53, test: 28).
 | `packages/cli/src/lib/api-key-helper.js` | 37 | `executionBroker.execSync(command, {` |
 | `packages/cli/src/lib/background-agent-supervisor.js` | 46 | `return _deps.spawnSync(file, args, {` |
 | `packages/cli/src/lib/background-agent-supervisor.js` | 842 | `child = _deps.spawn(process.execPath, [worker, jobFile], {` |
-| `packages/cli/src/lib/background-interaction-resolver.js` | 15 | `* @param {import('node:child_process').ChildProcess} child - agent 子进程实例` |
+| `packages/cli/src/lib/background-interaction-resolver.js` | 269 | `* @param {import("node:child_process").ChildProcess\|object} child` |
 | `packages/cli/src/lib/checkpoint-store.js` | 26 | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/lib/checkpoint-store.js` | 48 | `const res = _deps.spawnSync("git", args, {` |
 | `packages/cli/src/lib/chrome-connector.js` | 214 | `const child = deps.spawn(executable, args, {` |
 | `packages/cli/src/lib/claude-code-bridge.js` | 44 | `.execSync(`${command} --version`, {` |
 | `packages/cli/src/lib/claude-code-bridge.js` | 163 | `const proc = _deps.spawn(this.cliCommand, args, {` |
 | `packages/cli/src/lib/cli-anything-bridge.js` | 24 | `return _deps.execFileSync(file, args, {` |
-| `packages/cli/src/lib/cli-anything-bridge.js` | 287 | `const { execSync } = require("child_process");` |
-| `packages/cli/src/lib/cli-anything-bridge.js` | 299 | `const output = execSync(\`${command} \${input}\`, {` |
 | `packages/cli/src/lib/cloud/bundle.js` | 17 | `return executionBroker.execFileSync(file, args, {` |
 | `packages/cli/src/lib/cloud/bundle.js` | 30 | `.execFileSync("git", args, {` |
 | `packages/cli/src/lib/code-agent.js` | 227 | `/child_process.*exec\s*\(\s*[`"'].*\$\{/,` |
@@ -137,7 +108,7 @@ Total matches: 317 (runtime: 236, tooling: 53, test: 28).
 | `packages/cli/src/lib/goal-condition-engine.js` | 194 | `const spawnSync = deps.spawnSync;` |
 | `packages/cli/src/lib/goal-condition-engine.js` | 202 | `const res = spawnSync(condition.command, {` |
 | `packages/cli/src/lib/hook-manager.js` | 293 | `const output = broker.execSync(cmd, {` |
-| `packages/cli/src/lib/hooks-v2-runtime.js` | 240 | `const child = await broker.spawn(` |
+| `packages/cli/src/lib/hooks-v2-runtime.js` | 477 | `const child = await this.executionBroker.spawn(` |
 | `packages/cli/src/lib/host-adb-bridge.js` | 37 | `execFile: (...args) => executionBroker.execFile(...args),` |
 | `packages/cli/src/lib/host-adb-bridge.js` | 42 | `_deps.execFile(file, args, options, (error, stdout, stderr) => {` |
 | `packages/cli/src/lib/lan-pairing-preflight.js` | 28 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
@@ -178,21 +149,21 @@ Total matches: 317 (runtime: 236, tooling: 53, test: 28).
 | `packages/cli/src/lib/pr-create.js` | 15 | `return _deps.execFileSync("git", args, {` |
 | `packages/cli/src/lib/pr-link-ledger.js` | 25 | `execFile: (...args) => executionBroker.execFile(...args),` |
 | `packages/cli/src/lib/pr-link-ledger.js` | 153 | `_deps.execFile(` |
-| `packages/cli/src/lib/process-execution-broker/index.js` | 14 | `// 直接导入原生child_process，避免递归` |
-| `packages/cli/src/lib/process-execution-broker/index.js` | 23 | `} from "node:child_process";` |
-| `packages/cli/src/lib/process-execution-broker/index.js` | 307 | `spawn(command, args, options = {}) {` |
-| `packages/cli/src/lib/process-execution-broker/index.js` | 492 | `spawnSync(command, args, options = {}) {` |
-| `packages/cli/src/lib/process-execution-broker/index.js` | 622 | `* boundary as child_process execution. node-pty owns the native PTY` |
-| `packages/cli/src/lib/process-execution-broker/index.js` | 691 | `const proc = ptyModule.spawn(command, filteredArgs, spawnOptions);` |
-| `packages/cli/src/lib/process-execution-broker/index.js` | 711 | `return this.spawn(command, [], {` |
-| `packages/cli/src/lib/process-execution-broker/index.js` | 718 | `execSync(command, options = {}) {` |
-| `packages/cli/src/lib/process-execution-broker/index.js` | 724 | `const result = this.spawnSync(command, [], spawnOpts);` |
-| `packages/cli/src/lib/process-execution-broker/index.js` | 738 | `execFile(file, args, options, callback) {` |
-| `packages/cli/src/lib/process-execution-broker/index.js` | 753 | `const proc = this.spawn(file, args, options);` |
-| `packages/cli/src/lib/process-execution-broker/index.js` | 829 | `execFileSync(file, args, options = {}) {` |
-| `packages/cli/src/lib/process-execution-broker/index.js` | 834 | `const result = this.spawnSync(file, args, options);` |
-| `packages/cli/src/lib/process-execution-broker/index.js` | 849 | `fork(modulePath, args, options = {}) {` |
-| `packages/cli/src/lib/process-execution-broker/index.js` | 850 | `return this.spawn(process.execPath, [modulePath, ...(args \|\| [])], {` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 15 | `// 直接导入原生child_process，避免递归` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 24 | `} from "node:child_process";` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 600 | `spawn(command, args, options = {}) {` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 783 | `spawnSync(command, args, options = {}) {` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 914 | `* boundary as child_process execution. node-pty owns the native PTY` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 983 | `const proc = ptyModule.spawn(command, filteredArgs, spawnOptions);` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 1003 | `return this.spawn(command, [], {` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 1010 | `execSync(command, options = {}) {` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 1016 | `const result = this.spawnSync(command, [], spawnOpts);` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 1030 | `execFile(file, args, options, callback) {` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 1045 | `const proc = this.spawn(file, args, options);` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 1123 | `execFileSync(file, args, options = {}) {` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 1128 | `const result = this.spawnSync(file, args, options);` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 1143 | `fork(modulePath, args, options = {}) {` |
+| `packages/cli/src/lib/process-execution-broker/index.js` | 1144 | `return this.spawn(process.execPath, [modulePath, ...(args \|\| [])], {` |
 | `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 2 | `* Monkey-patch node:child_process to route ALL spawn/exec calls through ExecutionBroker (M1)` |
 | `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 10 | `// Get the REAL native child_process module (unpatched, from Node.js internals)` |
 | `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 11 | `const nativeCp = require("node:child_process");` |
@@ -204,7 +175,8 @@ Total matches: 317 (runtime: 236, tooling: 53, test: 28).
 | `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 40 | `return executionBroker.fork(modulePath, args, options);` |
 | `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 43 | `// Also patch child_process for CommonJS require` |
 | `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 44 | `const cpModule = require.cache[require.resolve("node:child_process")];` |
-| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 217 | `* is to use `prlimit` (util-linux) wrapper and set `child_process` uid/gid/groups.` |
+| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 42 | `* synchronous. ProcessExecutionBroker.spawn() is synchronous, so strict mode` |
+| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 221 | `* Report Windows sandbox availability. Node's child_process API cannot create` |
 | `packages/cli/src/lib/process-manager.js` | 15 | `spawn: (...args) => executionBroker.spawn(...args),` |
 | `packages/cli/src/lib/process-manager.js` | 16 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/lib/process-manager.js` | 52 | `const child = _deps.spawn(appPath, args, {` |
@@ -222,10 +194,6 @@ Total matches: 317 (runtime: 236, tooling: 53, test: 28).
 | `packages/cli/src/lib/service-manager.js` | 8 | `spawn: (...args) => executionBroker.spawn(...args),` |
 | `packages/cli/src/lib/service-manager.js` | 12 | `return _deps.execFileSync(command, args, {` |
 | `packages/cli/src/lib/service-manager.js` | 92 | `const child = _deps.spawn(` |
-| `packages/cli/src/lib/skill-packs/generator.js` | 179 | `const { spawnSync } = require("child_process");` |
-| `packages/cli/src/lib/skill-packs/generator.js` | 256 | `const result = spawnSync("chainlesschain", cliArgs, {` |
-| `packages/cli/src/lib/skill-packs/generator.js` | 410 | `const { spawnSync } = require("child_process");` |
-| `packages/cli/src/lib/skill-packs/generator.js` | 484 | `const result = spawnSync("chainlesschain", cliArgs, {` |
 | `packages/cli/src/lib/slash-commands.js` | 31 | `execSync: (...args) => executionBroker.execSync(...args),` |
 | `packages/cli/src/lib/slash-commands.js` | 193 | `const out = execSync(cmd, {` |
 | `packages/cli/src/lib/slash-commands.js` | 223 | `const execSync = opts.deps?.execSync \|\| _deps.execSync;` |
@@ -238,14 +206,14 @@ Total matches: 317 (runtime: 236, tooling: 53, test: 28).
 | `packages/cli/src/repl/clipboard-copy.js` | 97 | `res = spawn(cmd, args, {` |
 | `packages/cli/src/repl/pr-comments.js` | 15 | `execFile: (...args) => executionBroker.execFile(...args),` |
 | `packages/cli/src/repl/pr-comments.js` | 21 | `deps.execFile(` |
-| `packages/cli/src/runtime/agent-core.js` | 3310 | `// is the historical spawn(command, {shell:true}) byte-for-byte.` |
-| `packages/cli/src/runtime/agent-core.js` | 3319 | `? broker.spawn(args.command, [], brokerOpts)` |
-| `packages/cli/src/runtime/agent-core.js` | 3320 | `: broker.spawn(shellInv.file, shellInv.argv, brokerOpts);` |
-| `packages/cli/src/runtime/agent-core.js` | 3501 | `output = broker.execSync(args.command, brokerExecOpts);` |
-| `packages/cli/src/runtime/agent-core.js` | 3507 | `const res = broker.spawnSync(shellInv.file, shellInv.argv, {` |
-| `packages/cli/src/runtime/agent-core.js` | 3621 | `// cannot inject a second command. Previously execSync(`git ${cmd}`) ran` |
-| `packages/cli/src/runtime/agent-core.js` | 5472 | `// fully-defaulted spawn (→ "default") touches neither tools nor confirmer nor gate.` |
-| `packages/cli/src/runtime/agent-core.js` | 5528 | `// sub-agent runs, so a policy hook can VETO the spawn (`block`) or INJECT` |
+| `packages/cli/src/runtime/agent-core.js` | 3414 | `// is the historical spawn(command, {shell:true}) byte-for-byte.` |
+| `packages/cli/src/runtime/agent-core.js` | 3423 | `? broker.spawn(args.command, [], brokerOpts)` |
+| `packages/cli/src/runtime/agent-core.js` | 3424 | `: broker.spawn(shellInv.file, shellInv.argv, brokerOpts);` |
+| `packages/cli/src/runtime/agent-core.js` | 3605 | `output = broker.execSync(args.command, brokerExecOpts);` |
+| `packages/cli/src/runtime/agent-core.js` | 3611 | `const res = broker.spawnSync(shellInv.file, shellInv.argv, {` |
+| `packages/cli/src/runtime/agent-core.js` | 3725 | `// cannot inject a second command. Previously execSync(`git ${cmd}`) ran` |
+| `packages/cli/src/runtime/agent-core.js` | 5691 | `// fully-defaulted spawn (→ "default") touches neither tools nor confirmer nor gate.` |
+| `packages/cli/src/runtime/agent-core.js` | 5747 | `// sub-agent runs, so a policy hook can VETO the spawn (`block`) or INJECT` |
 | `packages/cli/src/runtime/diagnostics.js` | 83 | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/runtime/diagnostics.js` | 89 | `deps.execFileSync(file, args, {` |
 | `packages/cli/src/skills/video-editing/media-process.js` | 4 | `spawn: (...args) => executionBroker.spawn(...args),` |
