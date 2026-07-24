@@ -1,7 +1,7 @@
 {
   "tag": "v5.0.3.54",
-  "fetchedAt": "2026-07-23T01:51:56.386Z",
-  "cliVersion": "0.162.175",
+  "fetchedAt": "2026-07-24T02:19:06.167Z",
+  "cliVersion": "0.162.177",
   "sizes": {
     "android-arm64-v8a": {
       "name": "app-arm64-v8a-release.apk",

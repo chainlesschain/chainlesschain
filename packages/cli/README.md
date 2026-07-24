@@ -239,6 +239,11 @@ chainlesschain skill sources            # Show skill layer paths and counts
 
 Automatically wraps 63 CLI commands into 9 Agent-callable domain skill packs:
 
+Since `0.162.177`, generated direct/hybrid handlers execute through a frozen,
+host-scoped Process Broker facade instead of importing `child_process`. The
+host owns skill/plugin provenance, command-domain allowlists remain enforced,
+shell metacharacters are rejected, and a missing Broker fails closed.
+
 ```bash
 chainlesschain skill sync-cli              # Generate/update all 9 CLI skill packs
 chainlesschain skill sync-cli --force      # Force regenerate all packs
@@ -1031,6 +1036,11 @@ chainlesschain social stats                             # Social statistics
 ### `chainlesschain cli-anything <action>`
 
 Discover and register external CLI tools as ChainlessChain skills.
+
+Since `0.162.177`, generated CLI-Anything handlers parse input into literal
+argv and call the host Process Broker with `shell:false`. Unsafe shell
+characters, unmatched quotes, and execution without an injected Broker are
+rejected before the external tool starts.
 
 ```bash
 chainlesschain cli-anything doctor                      # Check Python + CLI-Anything environment

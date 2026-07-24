@@ -45,7 +45,7 @@ features:
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
 
-> **2026-07-22 设计核对**：当前 CLI 运行时版本为 `0.162.175`，顶层命令数保持 175。最新实现已覆盖后台 Agent attach、IPC/TCP 控制通道、跨平台 sandbox、credential agent、Setup/Notification hooks 与 lazy dispatch；新增[运行时实现核对文档](/cli-runtime-current)。
+> **2026-07-24 设计核对**：当前 CLI 运行时版本为 `0.162.177`。CLI-Anything 与 CLI 指令技能包生成的子进程已统一进入宿主 Process Broker；技能只获得冻结 facade，权威来源不可伪造，危险输入或缺失 Broker 时 fail closed。发布门通过 Ubuntu / Windows / macOS 的 unit、integration、E2E、打包与启动校验。详见[运行时实现核对文档](/cli-runtime-current)。
 
 ## 快速导航
 

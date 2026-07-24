@@ -11,13 +11,13 @@
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-07-23 当前主线 — **cc CLI 0.162.175：测试金字塔、会话隔离与 Windows 进程生命周期加固**
+## 2026-07-24 当前发布 — **cc CLI 0.162.177 / IDE VS Code 0.37.31：技能子进程统一进入宿主 Process Broker**
 
-> 当前工作树完成了一轮 CLI unit / integration / E2E 稳定性修复：`CHAINLESSCHAIN_HOME` 现在明确表示配置、会话与状态的完整隔离目录；credential agent 只放行 `CC_SESSION_ID` / `CLAUDE_CODE_SESSION_ID` 等明确非秘密标识，未知会话变量仍默认过滤；Windows 后台 shell 与异步 hooks 在 `taskkill` 失败时有受控 fallback，不再把 shell 退出误判为整棵进程树已回收；session export 默认脱敏、无响应会话 resume、LIKE 字面搜索和真实后台 idle/finalize 均有回归覆盖。E2E 全量分片结果：**59 个测试文件、633 项通过，10 项按系统能力跳过**。顶层命令数仍为 **175**。详见 [CLI Runtime 当前实现](docs-site/docs/chainlesschain/cli-runtime-current.md) 与 [运行时设计核对](docs/design/cli-runtime-current.md)。
+> `chainlesschain@0.162.177` 已发布到 npm `latest`，VS Code 扩展 `0.37.31` 已发布到 Open VSX。CLI-Anything 与 CLI 指令技能包生成的 handler 不再直接持有 `child_process`：声明 `shell-exec` 的技能仅获得宿主注入、冻结且带权威来源信息的 Process Broker facade；CLI-Anything 使用字面 argv + `shell:false`，危险字符、未闭合引号或缺少 Broker 时 fail closed。发布门覆盖 Ubuntu / Windows / macOS 的 unit、integration、E2E、打包和真实 CLI/Extension Host 烟测；本地 CLI 单元四分片 **24,562 项通过、5 项跳过**。详见 [CLI Runtime 当前实现](docs-site/docs/chainlesschain/cli-runtime-current.md)、[CLI 技能包用户指南](docs-site/docs/chainlesschain/cli-skill-packs.md) 与 [运行时设计核对](docs/design/cli-runtime-current.md)。
 
-## 2026-07-16 发布 — **IDE 插件 VS Code 0.37.16 / JetBrains 0.4.60：bug-sweep + parity 批（Windows cmd.exe argv 注入加固 / JB EDT 冻结·死锁类修复 / 阻塞后台 Agent 可见 / budget·retry 流事件契约）**
+## 2026-07-23 发布 — **IDE 插件 VS Code 0.37.31：CLI 0.162.177 协同兼容版本**
 
-> VS Code `0.37.15` → **`0.37.16`**（Open VSX）/ JetBrains `0.4.59` → **`0.4.60`**（JetBrains Marketplace）。30+ 修复的插件审计批：**Windows cmd.exe argv 注入加固**（用户文本含 `&`/`|`/引号不再被撕坏或当第二条命令执行，cross-spawn 算法真 cmd.exe 往返验证）+ **JB EDT 冻结/死锁类修复**（`/stop`/`/compact`/审批回复/tab 关闭的阻塞管道 IO 全部移出 UI 线程）+ **ghost-text 进程树击杀**（取消补全不再留孤儿 `cc complete` 白烧 LLM 调用并占 SQLite 锁）+ **阻塞后台 Agent 可见**（`waiting_permission`/`pendingApprovals`，配合 cc ≥ 0.162.168，「等待审批」徽标 + 排最前 + JB Resume 可用）+ **budget/retry 流事件**（API 重连与预算停止渲染为带原因 info 行，fixture 契约钉死双端 parity）+ deep-link 包含性 / Plugin Trust-Untrust scope / JB 会话索引并发安全 / 管道 CJK byte-carry。验证：VS 914 测试全绿 + vsix 解析级包验；JB JUnit+smokeTest 1213/0 + verifyPlugin Compatible。
+> VS Code `0.37.30` → **`0.37.31`**（[Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)）。扩展协议与最低 CLI 版本不变，打包兼容夹具对齐 `0.162.177`；发布前通过 VSIX 元数据校验，以及 VS Code Stable `1.130.0` / 最低支持版 `1.85.2` 的真实 Extension Host 安装、激活、命令和桥接端口烟测。Microsoft VS Marketplace 尚未配置发布令牌，官方 VS Code 用户可从 Open VSX 下载 `.vsix` 安装。
 
 ## 2026-07-16 发布 — **cc CLI 0.162.168：增量 gap-analysis 第二批接线（后台 Agent「等待审批」真实状态 / hook trace·parent 溯源 / LSP 多根+重启退避默认开 / 严格 hook 合并真并行 / 大仓 subagent worktree·子树指令 / run_code install 审计）**
 
