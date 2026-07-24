@@ -5,6 +5,7 @@ import {
   collectionActionDescription,
   collectionActionLabel,
   collectionButtonLabel,
+  directoryCollectionOptions,
   resolveCollectionMode,
 } from "../../src/utils/pdhCollectionMode.js";
 
@@ -59,6 +60,173 @@ describe("pdhCollectionMode", () => {
       (adapter) => adapter.name === "alipay-bill",
     );
     expect(resolveCollectionMode(alipayBill)).toBe("file");
+  });
+
+  it("routes Tencent Docs exports to a directory picker before its snapshot fallback", () => {
+    const tencentDocs = catalog.adapters.find(
+      (adapter) => adapter.name === "doc-tencent-docs",
+    );
+
+    expect(tencentDocs.capabilities).toEqual(
+      expect.arrayContaining(["sync:snapshot", "sync:export-directory"]),
+    );
+    expect(resolveCollectionMode(tencentDocs)).toBe("directory");
+    expect(collectionActionLabel(tencentDocs)).toBe("📁 选择导出目录");
+    expect(collectionButtonLabel(tencentDocs)).toBe("📁 采集");
+    expect(collectionActionDescription(tencentDocs)).toMatch(/导出目录/u);
+  });
+
+  it("routes Firefox profiles to a local configuration-directory picker", () => {
+    const firefox = catalog.adapters.find(
+      (adapter) => adapter.name === "browser-history-firefox",
+    );
+    const tencentDocs = catalog.adapters.find(
+      (adapter) => adapter.name === "doc-tencent-docs",
+    );
+
+    expect(firefox.capabilities).toEqual(
+      expect.arrayContaining([
+        "sync:firefox-places-sqlite",
+        "sync:profile-directory",
+      ]),
+    );
+    expect(resolveCollectionMode(firefox)).toBe("directory");
+    expect(collectionActionLabel(firefox)).toBe("📁 选择配置目录");
+    expect(collectionButtonLabel(firefox)).toBe("📁 采集");
+    expect(collectionActionDescription(firefox)).toMatch(/配置目录/u);
+    expect(directoryCollectionOptions(firefox, "C:\\Firefox\\Profile")).toEqual(
+      {
+        profilePath: "C:\\Firefox\\Profile",
+      },
+    );
+    expect(
+      directoryCollectionOptions(firefox, "C:\\Firefox\\Profile", null),
+    ).toEqual({
+      profilePath: "C:\\Firefox\\Profile",
+    });
+    expect(
+      directoryCollectionOptions(
+        tencentDocs,
+        "C:\\Tencent Docs",
+        " local-user ",
+      ),
+    ).toEqual({
+      exportDir: "C:\\Tencent Docs",
+      accountId: "local-user",
+    });
+    expect(
+      directoryCollectionOptions(tencentDocs, "C:\\Tencent Docs", ""),
+    ).toBeNull();
+  });
+
+  it("routes every desktop browser profile to the directory picker", () => {
+    for (const adapterName of [
+      "browser-history-chrome",
+      "browser-history-edge",
+      "browser-history-brave",
+      "browser-history-opera",
+      "browser-history-vivaldi",
+      "browser-history-safari",
+    ]) {
+      const source = catalog.adapters.find(
+        (adapter) => adapter.name === adapterName,
+      );
+      expect(source, adapterName).toBeDefined();
+      expect(source.capabilities).toContain("sync:profile-directory");
+      expect(resolveCollectionMode(source)).toBe("directory");
+      expect(
+        directoryCollectionOptions(source, "C:\\Browser\\Profile"),
+      ).toEqual({
+        profilePath: "C:\\Browser\\Profile",
+      });
+    }
+  });
+
+  it("routes Tencent Meeting history to the local data-directory picker", () => {
+    const source = catalog.adapters.find(
+      (adapter) => adapter.name === "meeting-tencent",
+    );
+    expect(source).toBeDefined();
+    expect(source.capabilities).toContain("sync:profile-directory");
+    expect(source.capabilities).toContain("sync:meeting-history");
+    expect(resolveCollectionMode(source)).toBe("directory");
+    expect(directoryCollectionOptions(source, "C:\\Tencent\\WeMeet")).toEqual({
+      profilePath: "C:\\Tencent\\WeMeet",
+    });
+  });
+
+  it("routes JetBrains recent projects to the configuration-directory picker", () => {
+    const source = catalog.adapters.find(
+      (adapter) => adapter.name === "jetbrains-ide",
+    );
+    expect(source).toBeDefined();
+    expect(source.capabilities).toEqual(
+      expect.arrayContaining([
+        "sync:jetbrains-recent-projects-xml",
+        "sync:profile-directory",
+      ]),
+    );
+    expect(resolveCollectionMode(source)).toBe("directory");
+    expect(collectionActionLabel(source)).toBe("📁 选择配置目录");
+    expect(
+      directoryCollectionOptions(source, "C:\\AppData\\JetBrains"),
+    ).toEqual({
+      profilePath: "C:\\AppData\\JetBrains",
+    });
+  });
+
+  it("routes local coding-agent state to the configuration-directory picker", () => {
+    for (const adapterName of [
+      "vscode",
+      "vscodium",
+      "cursor",
+      "claude-code",
+      "hbuilderx",
+    ]) {
+      const source = catalog.adapters.find(
+        (adapter) => adapter.name === adapterName,
+      );
+      expect(source, adapterName).toBeDefined();
+      expect(source.capabilities).toContain("sync:profile-directory");
+      expect(resolveCollectionMode(source)).toBe("directory");
+      expect(
+        directoryCollectionOptions(source, `C:\\Editors\\${adapterName}`),
+      ).toEqual({
+        profilePath: `C:\\Editors\\${adapterName}`,
+      });
+    }
+  });
+
+  it("routes local-files to a selected scan directory", () => {
+    const source = catalog.adapters.find(
+      (adapter) => adapter.name === "local-files",
+    );
+    expect(source).toBeDefined();
+    expect(source.capabilities).toEqual(
+      expect.arrayContaining([
+        "sync:local-file-walk",
+        "sync:scan-directory",
+        "sync:profile-directory",
+      ]),
+    );
+    expect(resolveCollectionMode(source)).toBe("directory");
+    expect(collectionActionLabel(source)).toBe(
+      "\ud83d\udcc1 \u9009\u62e9\u626b\u63cf\u76ee\u5f55",
+    );
+    expect(collectionActionDescription(source)).toMatch(/\u5143\u6570\u636e/u);
+    expect(
+      directoryCollectionOptions(source, "C:\\Personal\\Documents"),
+    ).toEqual({
+      roots: ["C:\\Personal\\Documents"],
+    });
+
+    expect(
+      resolveCollectionMode({
+        ...source,
+        ready: true,
+        rootCount: 6,
+      }),
+    ).toBe("directory");
   });
 
   it("uses direct ADB sync for connected Android system data and snapshot import otherwise", () => {
@@ -146,13 +314,13 @@ describe("pdhCollectionMode", () => {
     expect(resolveCollectionMode(null)).toBe("setup");
   });
 
-  it("keeps every catalog snapshot source actionable as file, Cookie, or ADB", () => {
+  it("keeps every catalog snapshot source actionable through a supported collection mode", () => {
     const snapshotAdapters = catalog.adapters.filter((adapter) =>
       adapter.capabilities.includes("sync:snapshot"),
     );
     expect(snapshotAdapters.length).toBeGreaterThan(50);
     for (const adapter of snapshotAdapters) {
-      expect(["file", "cookie", "adb"], adapter.name).toContain(
+      expect(["file", "directory", "cookie", "adb"], adapter.name).toContain(
         resolveCollectionMode(adapter),
       );
     }

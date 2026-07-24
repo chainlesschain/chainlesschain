@@ -7,6 +7,7 @@
 export const COLLECTION_MODE = Object.freeze({
   SYNC: "sync",
   FILE: "file",
+  DIRECTORY: "directory",
   COOKIE: "cookie",
   ADB: "adb",
   SETUP: "setup",
@@ -46,13 +47,27 @@ export function resolveCollectionMode(source) {
   // Therefore ADB must win even over source.ready.
   if (ADB_ONE_CLICK_ADAPTERS.has(source.name)) return COLLECTION_MODE.ADB;
 
+  const capabilities = capabilitiesOf(source);
+  // A scan-directory source needs an explicit user-selected scope for each
+  // collection action. Readiness may only mean that broad default folders are
+  // readable, which is not consent to scan them parameterlessly.
+  if (capabilities.includes("sync:scan-directory")) {
+    return COLLECTION_MODE.DIRECTORY;
+  }
+
   // A configured cookie, local profile, or constructor-supplied snapshot can
   // be reused without asking the user for the same input again.
   if (source.ready === true) return COLLECTION_MODE.SYNC;
 
-  const capabilities = capabilitiesOf(source);
   if (SETUP_REQUIRED_REASONS.has(source.reason)) return COLLECTION_MODE.SETUP;
   if (capabilities.includes("sync:cookie")) return COLLECTION_MODE.COOKIE;
+  if (
+    capabilities.includes("sync:scan-directory") ||
+    capabilities.includes("sync:export-directory") ||
+    capabilities.includes("sync:profile-directory")
+  ) {
+    return COLLECTION_MODE.DIRECTORY;
+  }
   if (
     capabilities.some((capability) =>
       FILE_COLLECTION_CAPABILITIES.has(capability),
@@ -74,6 +89,13 @@ export function collectionActionLabel(source) {
   switch (resolveCollectionMode(source)) {
     case COLLECTION_MODE.FILE:
       return "📂 选择文件采集";
+    case COLLECTION_MODE.DIRECTORY:
+      if (capabilitiesOf(source).includes("sync:scan-directory")) {
+        return "\ud83d\udcc1 \u9009\u62e9\u626b\u63cf\u76ee\u5f55";
+      }
+      return capabilitiesOf(source).includes("sync:profile-directory")
+        ? "📁 选择配置目录"
+        : "📁 选择导出目录";
     case COLLECTION_MODE.COOKIE:
       return "🔑 登录采集";
     case COLLECTION_MODE.ADB:
@@ -89,6 +111,8 @@ export function collectionButtonLabel(source) {
   switch (resolveCollectionMode(source)) {
     case COLLECTION_MODE.FILE:
       return "📂 采集";
+    case COLLECTION_MODE.DIRECTORY:
+      return "📁 采集";
     case COLLECTION_MODE.COOKIE:
       return "🔑 采集";
     case COLLECTION_MODE.ADB:
@@ -104,6 +128,13 @@ export function collectionActionDescription(source) {
   switch (resolveCollectionMode(source)) {
     case COLLECTION_MODE.FILE:
       return "选择导出或解密好的文件，自动入库";
+    case COLLECTION_MODE.DIRECTORY:
+      if (capabilitiesOf(source).includes("sync:scan-directory")) {
+        return "\u9009\u62e9\u672c\u5730\u76ee\u5f55\uff0c\u4ec5\u91c7\u96c6\u5176\u4e2d\u7684\u6587\u4ef6\u6d3b\u52a8\u5143\u6570\u636e";
+      }
+      return capabilitiesOf(source).includes("sync:profile-directory")
+        ? "选择本地配置目录，读取其中的数据文件"
+        : "选择本地导出目录，递归扫描支持的文件";
     case COLLECTION_MODE.COOKIE:
       return "粘贴当前登录 Cookie 后采集入库";
     case COLLECTION_MODE.ADB:
@@ -113,4 +144,23 @@ export function collectionActionDescription(source) {
     default:
       return "先按上述步骤完成采集配置";
   }
+}
+
+export function directoryCollectionOptions(source, directory, accountId) {
+  if (typeof directory !== "string" || directory.length === 0) return null;
+  const capabilities = capabilitiesOf(source);
+  if (capabilities.includes("sync:scan-directory")) {
+    return { roots: [directory] };
+  }
+  if (capabilities.includes("sync:profile-directory")) {
+    return { profilePath: directory };
+  }
+  if (capabilities.includes("sync:export-directory")) {
+    const normalizedAccountId =
+      typeof accountId === "string" ? accountId.trim() : "";
+    return normalizedAccountId
+      ? { exportDir: directory, accountId: normalizedAccountId }
+      : null;
+  }
+  return null;
 }

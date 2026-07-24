@@ -52,25 +52,32 @@ export function categoryLabel(id) {
 // renderer dispatcher can decide which Vue component to render per event
 // without an extra round-trip. Adding a new prefix? Update BOTH.
 const PREFIX_RULES = Object.freeze([
-  ["wechat",          "chat"],
-  ["messaging-",      "chat"],
-  ["social-",         "social"],
-  ["email-",          "email"],
-  ["shopping-",       "shopping"],
-  ["alipay-",         "shopping"],
-  ["travel-",         "travel"],
-  ["system-data",     "system"],
-  ["browser-",        "system"],
-  ["vscode",          "system"],
-  ["win-recent",      "system"],
-  ["git-activity",    "system"],
-  ["shell-history",   "system"],
-  ["local-files",     "system"],
-  ["ai-chat-",        "ai-chat"],
+  ["wechat", "chat"],
+  ["messaging-", "chat"],
+  ["social-", "social"],
+  ["email-", "email"],
+  ["shopping-", "shopping"],
+  ["alipay-", "shopping"],
+  ["travel-", "travel"],
+  ["system-data", "system"],
+  ["browser-", "system"],
+  ["meeting-", "system"],
+  ["vscode", "system"],
+  ["vscodium", "system"],
+  ["jetbrains-ide", "system"],
+  ["win-recent", "system"],
+  ["git-activity", "system"],
+  ["shell-history", "system"],
+  ["hbuilderx", "system"],
+  ["local-files", "system"],
+  ["cursor", "ai-chat"],
+  ["claude-code", "ai-chat"],
+  ["ai-chat-", "ai-chat"],
 ]);
 
 export function getCategory(adapterName) {
-  if (typeof adapterName !== "string" || adapterName.length === 0) return "other";
+  if (typeof adapterName !== "string" || adapterName.length === 0)
+    return "other";
   for (const [pre, cat] of PREFIX_RULES) {
     if (pre.endsWith("-") || pre === "system-data") {
       if (adapterName.startsWith(pre)) return cat;

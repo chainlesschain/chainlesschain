@@ -13,12 +13,55 @@
  */
 
 import { useWsStore } from "../stores/ws.js";
+import { useShellMode } from "./useShellMode.js";
 
 function _unwrap(reply) {
   if (!reply) return reply;
   if (reply.error) throw new Error(reply.error);
   // Server sends { type: "personal-data-hub.X.response", result }
   return reply.result !== undefined ? reply.result : reply;
+}
+
+async function _pickDirectoryResult(
+  ws,
+  opts = {},
+  nativePickerAvailable = true,
+) {
+  try {
+    if (
+      nativePickerAvailable !== true ||
+      !ws ||
+      typeof ws.sendRaw !== "function"
+    ) {
+      return { status: "unavailable", path: null };
+    }
+    const reply = await ws.sendRaw(
+      { type: "fs.openDirectory", title: opts.title },
+      60000,
+    );
+    if (reply && (reply.ok === false || reply.error)) {
+      return { status: "unavailable", path: null };
+    }
+    const result = reply && reply.result !== undefined ? reply.result : reply;
+    if (
+      result &&
+      (result.ok === false || result.error || result.unsupported === true)
+    ) {
+      return { status: "unavailable", path: null };
+    }
+    if (result && result.canceled === true) {
+      return { status: "cancelled", path: null };
+    }
+    if (result && typeof result.path === "string" && result.path.length > 0) {
+      return { status: "selected", path: result.path };
+    }
+    // A successful directory handler always returns either `canceled` or a
+    // non-empty path. Any other shape means this host lacks the capability (or
+    // is an older CLI server), so the view may offer explicit host-path entry.
+    return { status: "unavailable", path: null };
+  } catch {
+    return { status: "unavailable", path: null };
+  }
 }
 
 /**
@@ -75,7 +118,9 @@ function _sendStream(ws, type, payload, onEvent, timeoutMs) {
       clearTimeout(timer);
       try {
         dispose();
-      } catch (_e) {}
+      } catch {
+        // Listener cleanup is best-effort after the stream has settled.
+      }
       fn(value);
     };
 
@@ -94,7 +139,9 @@ function _sendStream(ws, type, payload, onEvent, timeoutMs) {
         if (typeof onEvent === "function") {
           try {
             onEvent(msg.event || msg);
-          } catch (_e) {}
+          } catch {
+            // Consumer progress callbacks must not abort the sync stream.
+          }
         }
         return;
       }
@@ -120,6 +167,7 @@ function _sendStream(ws, type, payload, onEvent, timeoutMs) {
 
 export function usePersonalDataHub() {
   const ws = useWsStore();
+  const shellMode = useShellMode();
   const send = (type, payload = {}, timeoutMs = 30000) =>
     ws.sendRaw({ type, ...payload }, timeoutMs).then(_unwrap);
 
@@ -154,13 +202,47 @@ export function usePersonalDataHub() {
           { type: "fs.openDialog", title: opts.title, filters: opts.filters },
           60000,
         );
-        // fs.openDialog result: { ok, filePath, ... } (may be wrapped)
+        // Desktop fs.openDialog returns `path`; older bridge builds returned
+        // `filePath`. Accept both envelope generations.
         const r = reply && reply.result !== undefined ? reply.result : reply;
-        if (r && r.ok && typeof r.filePath === "string") return r.filePath;
+        const selectedPath =
+          r && typeof r.path === "string"
+            ? r.path
+            : r && typeof r.filePath === "string"
+              ? r.filePath
+              : null;
+        if (r && r.canceled !== true && selectedPath) return selectedPath;
         return null;
-      } catch (_e) {
+      } catch {
         return null; // dialog unavailable (non-Electron shell) → manual entry
       }
+    },
+
+    /**
+     * Capability-aware directory picker result. Pure browser / CLI-hosted
+     * panels do not expose Electron's `fs.openDirectory`; distinguish that
+     * from a deliberate user cancellation so callers only offer manual
+     * host-path entry when the native capability is actually unavailable.
+     *
+     * @param {{title?:string}} [opts]
+     * @returns {Promise<
+     *   {status:"selected",path:string} |
+     *   {status:"cancelled"|"unavailable",path:null}
+     * >}
+     */
+    async pickDirectoryResult(opts = {}) {
+      return await _pickDirectoryResult(ws, opts, shellMode.isEmbedded);
+    },
+
+    /**
+     * Backward-compatible path-only directory picker.
+     *
+     * @param {{title?:string}} [opts]
+     * @returns {Promise<string|null>}
+     */
+    async pickDirectory(opts = {}) {
+      const result = await _pickDirectoryResult(ws, opts, shellMode.isEmbedded);
+      return result.status === "selected" ? result.path : null;
     },
 
     /**

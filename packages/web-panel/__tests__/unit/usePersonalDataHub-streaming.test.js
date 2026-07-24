@@ -37,6 +37,10 @@ vi.mock("../../src/stores/ws.js", () => ({
 }));
 
 import { usePersonalDataHub } from "../../src/composables/usePersonalDataHub.js";
+import {
+  buildSyncIncludeOptions,
+  createDefaultSyncInclude,
+} from "../../src/utils/pdhSyncInclude.js";
 
 /** Push a synthetic server frame into the active onMessage listener. */
 function push(msg) {
@@ -76,8 +80,16 @@ describe("usePersonalDataHub — streaming resolves on .end, not first .event", 
 
     // Server pushes progress events first — these MUST NOT resolve the
     // promise. They go through onEvent.
-    push({ id, type: `${topic}.event`, event: { kind: "sync.start", adapter: "social-toutiao" } });
-    push({ id, type: `${topic}.event`, event: { kind: "adapter-progress", phase: "fetching" } });
+    push({
+      id,
+      type: `${topic}.event`,
+      event: { kind: "sync.start", adapter: "social-toutiao" },
+    });
+    push({
+      id,
+      type: `${topic}.event`,
+      event: { kind: "adapter-progress", phase: "fetching" },
+    });
 
     // Then the .end frame with the real SyncReport carried in `result`.
     const report = {
@@ -98,7 +110,50 @@ describe("usePersonalDataHub — streaming resolves on .end, not first .event", 
     // Caller saw both intermediate events.
     expect(events).toHaveLength(2);
     expect(events[0]).toMatchObject({ kind: "sync.start" });
-    expect(events[1]).toMatchObject({ kind: "adapter-progress", phase: "fetching" });
+    expect(events[1]).toMatchObject({
+      kind: "adapter-progress",
+      phase: "fetching",
+    });
+  });
+
+  it("forwards every Android source opt-out to the sync stream", async () => {
+    const includeByAdapter = createDefaultSyncInclude();
+    for (const key of ["contacts", "apps", "sms", "calls", "media"]) {
+      includeByAdapter["system-data-android"][key] = false;
+    }
+    const options = buildSyncIncludeOptions(
+      "system-data-android",
+      includeByAdapter,
+    );
+
+    const hub = usePersonalDataHub();
+    const promise = hub.syncAdapterStream("system-data-android", options);
+    await Promise.resolve();
+
+    const [envelope] = sendRaw.mock.calls[sendRaw.mock.calls.length - 1];
+    expect(envelope).toMatchObject({
+      type: "personal-data-hub.sync-adapter-stream",
+      name: "system-data-android",
+      options: {
+        include: {
+          contacts: false,
+          apps: false,
+          sms: false,
+          calls: false,
+          media: false,
+        },
+      },
+    });
+
+    push({
+      id: envelope.id,
+      type: "personal-data-hub.sync-adapter-stream.end",
+      result: { adapter: "system-data-android", status: "ok" },
+    });
+    await expect(promise).resolves.toMatchObject({
+      adapter: "system-data-android",
+      status: "ok",
+    });
   });
 
   it("ignores .event frames tagged with a different id", async () => {
@@ -143,7 +198,11 @@ describe("usePersonalDataHub — streaming resolves on .end, not first .event", 
     const id = lastSendRawId();
     const topic = "personal-data-hub.sync-all-stream";
 
-    push({ id, type: `${topic}.event`, event: { kind: "sync.start", adapter: "a" } });
+    push({
+      id,
+      type: `${topic}.event`,
+      event: { kind: "sync.start", adapter: "a" },
+    });
     const reports = [
       { adapter: "a", status: "ok", durationMs: 1 },
       { adapter: "b", status: "ok", durationMs: 2 },

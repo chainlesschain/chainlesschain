@@ -1112,12 +1112,20 @@ import {
   collectionActionLabel as getCollectionActionLabel,
   collectionButtonLabel as getCollectionButtonLabel,
   collectionActionDescription as getCollectionActionDescription,
+  directoryCollectionOptions,
 } from "../utils/pdhCollectionMode.js";
+import { chooseHostDirectory } from "../utils/pdh-host-directory.js";
 import {
   analyzeSyncReport,
   analyzeSyncReports,
   selectImportantSyncReport,
 } from "../utils/pdhSyncResult.js";
+import {
+  buildSyncIncludeOptions,
+  createDefaultSyncInclude,
+  DEFAULT_SYNC_INCLUDE,
+  INCLUDE_KIND_META,
+} from "../utils/pdhSyncInclude.js";
 import AIChatWizard from "../components/AIChatWizard.vue";
 import WechatWizard from "../components/WechatWizard.vue";
 
@@ -1149,13 +1157,10 @@ const lastSync = ref(null);
 // Vue's a-checkbox with `:checked` binding wasn't observing nested
 // ref-of-object mutations cleanly across popover open/close cycles.
 const SYNC_INCLUDE_STORAGE_KEY = "pdh.syncIncludeOptions.v1";
-const DEFAULT_SYNC_INCLUDE = {
-  "system-data-android": { contacts: true, apps: true, sms: true, calls: true },
-};
 function _loadSyncInclude() {
   try {
     const raw = localStorage.getItem(SYNC_INCLUDE_STORAGE_KEY);
-    if (!raw) return JSON.parse(JSON.stringify(DEFAULT_SYNC_INCLUDE));
+    if (!raw) return createDefaultSyncInclude();
     const parsed = JSON.parse(raw);
     return {
       "system-data-android": {
@@ -1164,7 +1169,7 @@ function _loadSyncInclude() {
       },
     };
   } catch (_e) {
-    return JSON.parse(JSON.stringify(DEFAULT_SYNC_INCLUDE));
+    return createDefaultSyncInclude();
   }
 }
 const syncIncludeOptions = reactive(_loadSyncInclude());
@@ -1181,25 +1186,6 @@ function persistSyncInclude() {
   }
 }
 const includePopoverOpen = ref({}); // per-row popover state, keyed by adapter name
-// Metadata for the per-kind UI — order + labels + per-kind sensitivity hint.
-const INCLUDE_KIND_META = {
-  "system-data-android": [
-    { key: "contacts", label: "联系人", hint: "~767 条" },
-    { key: "apps", label: "已安装应用", hint: "~176 个" },
-    {
-      key: "sms",
-      label: "短信内容",
-      hint: "~2400 条 · 高敏感",
-      sensitive: true,
-    },
-    {
-      key: "calls",
-      label: "通话记录",
-      hint: "~18000 条 · 包含号码",
-      sensitive: true,
-    },
-  ],
-};
 function adapterHasIncludeToggles(name) {
   return Object.prototype.hasOwnProperty.call(INCLUDE_KIND_META, name);
 }
@@ -2168,6 +2154,58 @@ async function oneClickCollect(name) {
         ) || undefined;
     }
     await collectViaFile(name, filePath, { key, zipPassword });
+  } else if (mode === "directory") {
+    const capabilities = Array.isArray(r?.capabilities) ? r.capabilities : [];
+    const isScanDirectory = capabilities.includes("sync:scan-directory");
+    const isProfileDirectory =
+      !isScanDirectory && capabilities.includes("sync:profile-directory");
+    const directoryKind = isScanDirectory
+      ? "扫描"
+      : isProfileDirectory
+        ? "配置"
+        : "导出";
+    const pickerResult = await chooseHostDirectory({
+      pickDirectoryResult: (options) => hub.pickDirectoryResult(options),
+      prompt: (text) => window.prompt(text),
+      title: `选择 ${r && r.guide ? r.guide.displayName : name} 的本地${
+        directoryKind
+      }目录`,
+      directoryKind,
+    });
+    if (pickerResult.status === "cancelled") {
+      message.info(
+        pickerResult.manual ? "已取消输入主机目录" : "已取消选择目录",
+      );
+      return;
+    }
+    if (pickerResult.status === "invalid") {
+      message.warning(
+        "请输入 ChainlessChain 主机上的绝对目录路径；相对路径不会用于采集",
+      );
+      return;
+    }
+    const selectedDir = pickerResult.path;
+    if (pickerResult.manual) {
+      message.info("将从运行 ChainlessChain 的主机读取手工指定目录");
+    }
+    const accountId =
+      isProfileDirectory || isScanDirectory
+        ? null
+        : (
+            window.prompt(
+              "请输入一个稳定的本地账号标识，用于隔离同步水位（原文不会写入数据中台）：",
+            ) || ""
+          ).trim();
+    const directoryOptions = directoryCollectionOptions(
+      r,
+      selectedDir,
+      accountId,
+    );
+    if (!directoryOptions) {
+      message.info("已取消：需要本地账号标识才能安全隔离同步水位");
+      return;
+    }
+    await collectViaDirectory(name, directoryOptions);
   } else if (mode === "cookie") {
     const cookie = window.prompt(
       "粘贴登录态 Cookie（在已登录的网页 DevTools → Application → Cookies 复制，或整条 Cookie 请求头）：",
@@ -2226,6 +2264,28 @@ async function collectViaFile(name, filePath, credentials = {}) {
     const options = { inputPath: filePath };
     if (credentials.key) options.key = credentials.key;
     if (credentials.zipPassword) options.zipPassword = credentials.zipPassword;
+    let report;
+    if (typeof hub.syncAdapterStream === "function") {
+      report = await hub.syncAdapterStream(name, options, handleSyncEvent);
+    } else {
+      report = await hub.syncAdapter(name, options);
+    }
+    const result = presentSyncReport(name, report, "采集");
+    if (result.completed) guideDrawerOpen.value = false;
+    await refresh();
+  } catch (err) {
+    message.error(`采集 ${name} 失败: ${err.message}`);
+  } finally {
+    loading.sync[name] = false;
+    syncProgress.active = false;
+  }
+}
+
+async function collectViaDirectory(name, directoryOptions) {
+  loading.sync[name] = true;
+  resetSyncProgress(name);
+  try {
+    const options = { ...directoryOptions };
     let report;
     if (typeof hub.syncAdapterStream === "function") {
       report = await hub.syncAdapterStream(name, options, handleSyncEvent);
@@ -2477,12 +2537,11 @@ async function syncOne(name) {
   resetSyncProgress(name);
   try {
     // Per-kind include toggles — only system-data-android currently
-    // produces multi-kind output (contacts / apps / sms / calls).
+    // produces multi-kind output (contacts / apps / sms / calls / media).
     // For other adapters, options is empty and the server falls through
     // to default behavior (which is auto-pull-from-phone for socials).
     // Persisted in localStorage so the user's choice survives reloads.
-    const includeOpts = syncIncludeOptions[name];
-    const options = includeOpts ? { include: { ...includeOpts } } : {};
+    const options = buildSyncIncludeOptions(name, syncIncludeOptions);
 
     // Phase 5.7: streaming when supported, falls back to plain syncAdapter
     let report;

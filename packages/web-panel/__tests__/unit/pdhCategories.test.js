@@ -21,23 +21,10 @@ import {
 import be from "../../../personal-data-hub/lib/categories.js";
 
 const SAMPLES = [
-  "wechat",
+  ...be.PREFIX_RULES.map(([rule]) =>
+    rule.endsWith("*") ? `${rule.slice(0, -1)}drift-probe` : rule,
+  ),
   "wechat-pc",
-  "messaging-qq",
-  "social-bilibili",
-  "email-imap-qq",
-  "shopping-taobao",
-  "alipay-bill",
-  "travel-12306",
-  "system-data",
-  "system-data-android",
-  "browser-history",
-  "vscode",
-  "win-recent",
-  "git-activity",
-  "shell-history",
-  "local-files",
-  "ai-chat-doubao",
   "unknown-thing",
   "",
 ];
@@ -51,6 +38,10 @@ describe("pdhCategories.getCategory", () => {
     expect(getCategory("shopping-taobao")).toBe("shopping");
     expect(getCategory("travel-12306")).toBe("travel");
     expect(getCategory("system-data-android")).toBe("system");
+    expect(getCategory("hbuilderx")).toBe("system");
+    expect(getCategory("meeting-tencent")).toBe("system");
+    expect(getCategory("cursor")).toBe("ai-chat");
+    expect(getCategory("claude-code")).toBe("ai-chat");
     expect(getCategory("ai-chat-doubao")).toBe("ai-chat");
   });
 
