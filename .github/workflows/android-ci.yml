@@ -211,17 +211,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     needs: [lint]
-    continue-on-error: true
 
     strategy:
       fail-fast: false
       matrix:
-        # 2026-05-27: switched from [26, 33] → [28, 30]. APK ships only
-        # armeabi-v7a + arm64-v8a (app/build.gradle.kts:76). x86_64 emulators
-        # at API 26/33 lack ndk_translation → "No compatible devices
-        # connected" 100% fail. API 28/30 ship ndk_translation and run the
-        # arm APK natively — proven green by android-tests.yml::instrumented
-        # under the same x86_64 runner. See memory
+        # 2026-05-27: switched from [26, 33] → [28, 30]. The app ships only
+        # armeabi-v7a + arm64-v8a. Use google_apis system images below because
+        # the default x86_64 images do not expose the native bridge and Gradle
+        # rejects them as "0 compatible devices" before tests start.
         # [[android_e2e_api33_abi_mismatch]] for the full root-cause writeup.
         api-level: [28, 30] # Test on Android 9 (Pie) and 11 (R)
 
@@ -273,28 +270,27 @@ jobs:
           # foreign AVD with an incompatible config.ini, the emulator launched
           # but immediately logged "no valid sdk root directory" and never
           # opened port 5554 (run 26479612061 / job 77974125586).
-          key: avd-android-ci-${{ matrix.api-level }}-v1
+          key: avd-android-ci-${{ matrix.api-level }}-google-apis-v2
 
       - name: Create AVD and generate snapshot for caching
         if: steps.avd-cache.outputs.cache-hit != 'true'
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
+          target: google_apis
           arch: x86_64
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: false
           script: echo "Generated AVD snapshot for caching."
 
-      # Step-level continue-on-error dropped 2026-05-18 second sweep: was
-      # redundant with the job-level `continue-on-error: true` above (L204).
-      # Double-masking made the step outcome lie — gradle result is now the
-      # source of truth, with the outer job-level mask still keeping emulator
-      # flakiness from blocking the pipeline.
+      # This is a hard gate: a compatible google_apis image must run the app
+      # instrumentation suite successfully on both supported API levels.
       - name: Run Instrumented Tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
+          target: google_apis
           arch: x86_64
           force-avd-creation: false
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
