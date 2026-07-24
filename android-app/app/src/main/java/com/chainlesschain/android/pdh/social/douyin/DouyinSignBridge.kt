@@ -1,12 +1,14 @@
 package com.chainlesschain.android.pdh.social.douyin
 
 import android.content.Context
+import com.chainlesschain.android.pdh.social.SignProvider
 import com.chainlesschain.android.pdh.social.WebSignBridge
 import com.chainlesschain.android.pdh.social.WebSignBridgeHelpers
 import dagger.hilt.android.qualifiers.ApplicationContext
 import okhttp3.HttpUrl
 import org.json.JSONObject
 import timber.log.Timber
+import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -54,8 +56,13 @@ class DouyinSignBridge @Inject constructor(
      * across multiple in-flight requests, but [WebSignBridge.evalMutex]
      * serializes sign() calls anyway.
      */
-    @Volatile private var lastRawUrl: HttpUrl? = null
-    @Volatile private var lastHeaders: Map<String, String> = emptyMap()
+    private data class LegacySignCache(
+        val rawUrl: HttpUrl,
+        val purpose: String,
+        val headers: Map<String, String>,
+    )
+
+    private val legacySignCache = AtomicReference<LegacySignCache?>(null)
 
     override fun buildSignScript(rawUrl: String, purpose: String): String {
         val args = JSONObject().apply {
@@ -89,14 +96,16 @@ class DouyinSignBridge @Inject constructor(
     }
 
     /**
-     * Override the base [signUrl] to parse the JSON result and split it
-     * into URL (with `_signature=` query) + headers (with `X-Bogus`).
-     * The headers go into the single-slot cache for [signedHeaders].
+     * Parse one JS result into an immutable URL + headers pair. This is the
+     * production API; the legacy two-step methods below only remain for
+     * compatibility with existing test signers.
      */
-    override suspend fun signUrl(rawUrl: HttpUrl, purpose: String): HttpUrl? {
+    override suspend fun signRequest(
+        rawUrl: HttpUrl,
+        purpose: String,
+    ): SignProvider.SignedRequest? {
         val rawResult = evalSignResultRaw(rawUrl, purpose) ?: run {
-            lastRawUrl = rawUrl
-            lastHeaders = emptyMap()
+            legacySignCache.set(LegacySignCache(rawUrl, purpose, emptyMap()))
             return null
         }
         // Two output shapes:
@@ -117,9 +126,11 @@ class DouyinSignBridge @Inject constructor(
         if (sig.isNullOrBlank()) {
             // Anti-bot sometimes returns just X-Bogus without _signature.
             // Treat as failure: Douyin endpoints require both.
-            Timber.w("DouyinSignBridge: sign result missing _signature; raw=%s", rawResult.take(120))
-            lastRawUrl = rawUrl
-            lastHeaders = emptyMap()
+            Timber.w(
+                "DouyinSignBridge: sign result missing _signature (resultLength=%d)",
+                rawResult.length,
+            )
+            legacySignCache.set(LegacySignCache(rawUrl, purpose, emptyMap()))
             return null
         }
         val signedUrl = rawUrl.newBuilder().addQueryParameter("_signature", sig).build()
@@ -128,16 +139,25 @@ class DouyinSignBridge @Inject constructor(
         } else {
             emptyMap()
         }
-        lastRawUrl = rawUrl
-        lastHeaders = headers
-        return signedUrl
+        val immutableHeaders = headers.toMap()
+        legacySignCache.set(LegacySignCache(rawUrl, purpose, immutableHeaders))
+        return SignProvider.SignedRequest(signedUrl, immutableHeaders)
+    }
+
+    override suspend fun signUrl(rawUrl: HttpUrl, purpose: String): HttpUrl? {
+        return signRequest(rawUrl, purpose)?.url
     }
 
     override suspend fun signedHeaders(rawUrl: HttpUrl, purpose: String): Map<String, String> {
-        // Strict equality — caller must use the SAME rawUrl object/value.
+        // Strict equality — caller must use the SAME rawUrl and purpose.
         // Mismatch means the cache slot is stale; serve emptyMap rather
-        // than incorrect headers.
-        return if (rawUrl == lastRawUrl) lastHeaders else emptyMap()
+        // than incorrect headers. New callers use atomic signRequest().
+        val cached = legacySignCache.get()
+        return if (rawUrl == cached?.rawUrl && purpose == cached.purpose) {
+            cached.headers
+        } else {
+            emptyMap()
+        }
     }
 
     /**
@@ -154,8 +174,14 @@ class DouyinSignBridge @Inject constructor(
         // through appendSignFragment, so we re-implement the eval inline
         // using the same script. This is a small duplication that keeps
         // the base class simple.
-        return runJsAndDecode(buildSignScript(rawUrl.toString(), purpose))
+        return runSerializedSignScript(buildSignScript(rawUrl.toString(), purpose))
     }
+
+    suspend fun <T> withExclusiveSession(
+        cookie: String,
+        requireWarmUp: Boolean = true,
+        block: suspend () -> T,
+    ): T = runExclusiveSession(cookie, requireWarmUp, block)
 
     private fun tryParseJson(raw: String): JSONObject? = try {
         val trimmed = raw.trim()

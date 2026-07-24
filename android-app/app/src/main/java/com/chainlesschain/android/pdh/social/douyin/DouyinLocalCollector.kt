@@ -2,6 +2,7 @@ package com.chainlesschain.android.pdh.social.douyin
 
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -69,6 +70,21 @@ class DouyinLocalCollector @Inject constructor(
         data class Failed(val reason: String) : SnapshotResult()
     }
 
+    /**
+     * Production entry point for WebView-signed snapshots. The bridge owns
+     * one exclusive warm/fetch/awaited-shutdown session across all streams.
+     */
+    suspend fun snapshotWithExclusiveSession(
+        signBridge: DouyinSignBridge,
+    ): SnapshotResult {
+        val cookie = credentialsStore.getCookie()?.takeIf { it.isNotBlank() }
+            ?: return SnapshotResult.NoCredentials
+        signProvider = signBridge
+        return signBridge.withExclusiveSession(cookie, requireWarmUp = false) {
+            snapshot()
+        }
+    }
+
     suspend fun snapshot(): SnapshotResult = withContext(Dispatchers.IO) {
         if (!credentialsStore.hasCredentials()) {
             return@withContext SnapshotResult.NoCredentials
@@ -81,6 +97,7 @@ class DouyinLocalCollector @Inject constructor(
         val profile = try {
             apiClient.fetchProfile(cookie)
         } catch (t: Throwable) {
+            t.rethrowIfCancellation()
             Timber.w(t, "DouyinLocalCollector: fetchProfile threw")
             null
         }
@@ -108,6 +125,7 @@ class DouyinLocalCollector @Inject constructor(
             val warm = try {
                 signer.warmUp(cookie)
             } catch (t: Throwable) {
+                t.rethrowIfCancellation()
                 Timber.w(t, "DouyinLocalCollector: signProvider.warmUp threw")
                 false
             }
@@ -199,6 +217,7 @@ class DouyinLocalCollector @Inject constructor(
         try {
             snapshotFile.writeText(root.toString(), Charsets.UTF_8)
         } catch (t: Throwable) {
+            t.rethrowIfCancellation()
             Timber.e(t, "DouyinLocalCollector: snapshot write failed")
             return@withContext SnapshotResult.Failed("write failed: ${t.message}")
         }
@@ -246,6 +265,7 @@ class DouyinLocalCollector @Inject constructor(
         try {
             snapshotFile.writeText(prefetchedJson, Charsets.UTF_8)
         } catch (t: Throwable) {
+            t.rethrowIfCancellation()
             Timber.e(t, "DouyinLocalCollector: prefetched write failed")
             return@withContext SnapshotResult.Failed("write failed: ${t.message}")
         }
@@ -305,9 +325,14 @@ class DouyinLocalCollector @Inject constructor(
         return try {
             block()
         } catch (t: Throwable) {
+            t.rethrowIfCancellation()
             Timber.w(t, "DouyinLocalCollector: %s threw", label)
             emptyList()
         }
+    }
+
+    private fun Throwable.rethrowIfCancellation() {
+        if (this is CancellationException) throw this
     }
 
     /**

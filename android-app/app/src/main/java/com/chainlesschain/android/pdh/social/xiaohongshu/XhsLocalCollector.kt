@@ -67,6 +67,22 @@ class XhsLocalCollector @Inject constructor(
         data class Failed(val reason: String) : SnapshotResult()
     }
 
+    /**
+     * Production entry point for WebView-signed snapshots. Warm-up is
+     * optional because the API client retains its documented local X-S/X-T
+     * fallback, but the lifecycle remains exclusive and cleanup is awaited.
+     */
+    suspend fun snapshotWithExclusiveSession(
+        signBridge: XhsSignBridge,
+    ): SnapshotResult {
+        val cookie = credentialsStore.getCookie()?.takeIf { it.isNotBlank() }
+            ?: return SnapshotResult.NoCredentials
+        signProvider = signBridge
+        return signBridge.withExclusiveSession(cookie, requireWarmUp = false) {
+            snapshot()
+        }
+    }
+
     suspend fun snapshot(): SnapshotResult = withContext(Dispatchers.IO) {
         if (!credentialsStore.hasCredentials()) {
             return@withContext SnapshotResult.NoCredentials

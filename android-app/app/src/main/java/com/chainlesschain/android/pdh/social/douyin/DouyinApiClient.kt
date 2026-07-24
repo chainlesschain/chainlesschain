@@ -4,14 +4,21 @@ import com.chainlesschain.android.pdh.social.NullSignProvider
 import com.chainlesschain.android.pdh.social.SignProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Response
+import org.json.JSONArray
 import org.json.JSONObject
 import timber.log.Timber
 import java.io.IOException
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -47,6 +54,9 @@ class DouyinApiClient @Inject constructor() {
     var httpClient: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(false)
+        .followRedirects(false)
+        .followSslRedirects(false)
         .build()
 
     /** Override the base URL for MockWebServer in tests. */
@@ -59,6 +69,22 @@ class DouyinApiClient @Inject constructor() {
      * inject a stub that returns deterministic values + header pair.
      */
     var signProvider: SignProvider = NullSignProvider
+
+    private data class ErrorSnapshot(
+        val code: Int = 0,
+        val message: String? = null,
+    )
+
+    private data class ResolvedIdentity(
+        val cookie: String,
+        val secUid: String,
+    )
+
+    private val errorSnapshot = AtomicReference(ErrorSnapshot())
+    private val resolvedIdentity = AtomicReference<ResolvedIdentity?>(null)
+
+    val lastErrorCode: Int get() = errorSnapshot.get().code
+    val lastErrorMessage: String? get() = errorSnapshot.get().message
 
     data class HistoryItem(
         val awemeId: String,
@@ -113,31 +139,22 @@ class DouyinApiClient @Inject constructor() {
             .addQueryParameter("aid", "2906")
             .build()
         val obj = doGetJson(url, cookie) ?: return@withContext null
-        // Endpoint shape: { status_code: 0, data: { user_id, screen_name, ... } }
-        val statusCode = obj.optInt("status_code", Int.MIN_VALUE)
-        if (statusCode == Int.MIN_VALUE) {
-            // No status_code field at all — likely endpoint shape changed.
+        // Passport-v2 has shipped both `{status_code:0,data:{...}}` and
+        // `{message:"success",data:{...}}`. The transport-level business
+        // validator has already rejected malformed/non-success aliases.
+        val hasBusinessCode = BUSINESS_CODE_KEYS.any(obj::has)
+        val messageSuccess = obj.optStringOrNull("message")
+            ?.equals("success", ignoreCase = true) == true
+        if (!hasBusinessCode && !messageSuccess) {
             val topKeys = obj.keys().asSequence().toList().joinToString(",")
-            // body=%s logging dropped — passport response contains mobile / screen_name
-            // / sec_user_id / avatar_url PII (audit 2026-05-29 §S5 / F2).
             Timber.w(
-                "DouyinApiClient: passport/info/v2 missing status_code; topKeys=[%s] bodyLen=%d",
+                "DouyinApiClient: passport/info/v2 missing business success marker; topKeys=[%s] bodyLen=%d",
                 topKeys, obj.toString().length,
             )
-            setLastError(-5, "passport/info/v2 missing status_code (keys=[$topKeys])")
-            return@withContext null
-        }
-        if (statusCode != 0) {
-            val msg = obj.optStringOrNull("status_msg")
-                ?: obj.optStringOrNull("message")
-                ?: obj.optStringOrNull("error_description")
-                ?: "status_code=$statusCode"
-            // body excerpt dropped — passport JSON contains PII (audit F2)
-            Timber.w(
-                "DouyinApiClient: passport/info/v2 status_code=%d msg=%s bodyLen=%d",
-                statusCode, msg, obj.toString().length,
+            setLastError(
+                -5,
+                "passport/info/v2 missing status_code or message=success (keys=[$topKeys])",
             )
-            setLastError(statusCode, msg)
             return@withContext null
         }
         val data = obj.optJSONObject("data")
@@ -185,13 +202,10 @@ class DouyinApiClient @Inject constructor() {
             awemeCount = data.optInt("aweme_count"),
             favoritingCount = data.optInt("favoriting_count"),
             totalFavorited = data.optInt("total_favorited"),
-        )
+        ).also {
+            resolvedIdentity.set(ResolvedIdentity(cookie = cookie, secUid = it.secUid))
+        }
     }
-
-    @Volatile var lastErrorCode: Int = 0
-        private set
-    @Volatile var lastErrorMessage: String? = null
-        private set
 
     /**
      * v0.3 — Watch history (`/aweme/v1/web/history/read/`). Returns a list

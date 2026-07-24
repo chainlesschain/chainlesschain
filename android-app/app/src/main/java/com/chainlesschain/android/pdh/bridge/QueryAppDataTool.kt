@@ -1,6 +1,6 @@
 package com.chainlesschain.android.pdh.bridge
 
-import com.chainlesschain.android.pdh.social.SignProvider
+import com.chainlesschain.android.pdh.social.WebSignSessionUnavailableException
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliApiClient
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliCredentialsStore
 import com.chainlesschain.android.pdh.social.douyin.DouyinApiClient
@@ -12,6 +12,7 @@ import com.chainlesschain.android.pdh.social.kuaishou.KuaishouSignBridge
 import com.chainlesschain.android.pdh.social.toutiao.ToutiaoApiClient
 import com.chainlesschain.android.pdh.social.toutiao.ToutiaoCredentialsStore
 import com.chainlesschain.android.pdh.social.toutiao.ToutiaoSignBridge
+import com.chainlesschain.android.pdh.social.toutiao.ToutiaoSignSessionUnavailableException
 import com.chainlesschain.android.pdh.social.weibo.WeiboApiClient
 import com.chainlesschain.android.pdh.social.weibo.WeiboCredentialsStore
 import com.chainlesschain.android.pdh.social.xiaohongshu.XhsApiClient
@@ -191,31 +192,35 @@ class QueryAppDataTool(
     private suspend fun queryDouyin(query: String, limit: Int): JsonElement {
         val cookie = douyinCreds.getCookie()?.takeIf { it.isNotBlank() }
             ?: return notLoggedIn("douyin")
-        val items = signed(douyinSign) {
-            douyinApi.signProvider = douyinSign
-            when (query) {
-                "history", "watch" -> buildJsonArray {
-                    douyinApi.fetchHistory(cookie, limit).forEach { h -> addJsonObject {
-                        put("awemeId", h.awemeId); put("desc", h.description)
-                        put("author", h.authorNickname ?: ""); put("watchedAt", h.watchedAt)
-                    } }
+        val items = try {
+            douyinSign.withExclusiveSession(cookie) {
+                douyinApi.signProvider = douyinSign
+                when (query) {
+                    "history", "watch" -> buildJsonArray {
+                        douyinApi.fetchHistory(cookie, limit).forEach { h -> addJsonObject {
+                            put("awemeId", h.awemeId); put("desc", h.description)
+                            put("author", h.authorNickname ?: ""); put("watchedAt", h.watchedAt)
+                        } }
+                    }
+                    "favourites", "favorites" -> buildJsonArray {
+                        douyinApi.fetchFavourites(cookie, limit).forEach { f -> addJsonObject {
+                            put("awemeId", f.awemeId); put("desc", f.description)
+                            put("author", f.authorNickname ?: ""); put("savedAt", f.savedAt)
+                        } }
+                    }
+                    "likes", "like" -> buildJsonArray {
+                        douyinApi.fetchLikes(cookie, limit).forEach { l -> addJsonObject {
+                            put("awemeId", l.awemeId); put("desc", l.description)
+                            put("author", l.authorNickname ?: ""); put("likedAt", l.likedAt)
+                        } }
+                    }
+                    else -> throw IllegalArgumentException(
+                        "unsupported douyin query: $query (history|favourites|likes)",
+                    )
                 }
-                "favourites", "favorites" -> buildJsonArray {
-                    douyinApi.fetchFavourites(cookie, limit).forEach { f -> addJsonObject {
-                        put("awemeId", f.awemeId); put("desc", f.description)
-                        put("author", f.authorNickname ?: ""); put("savedAt", f.savedAt)
-                    } }
-                }
-                "likes", "like" -> buildJsonArray {
-                    douyinApi.fetchLikes(cookie, limit).forEach { l -> addJsonObject {
-                        put("awemeId", l.awemeId); put("desc", l.description)
-                        put("author", l.authorNickname ?: ""); put("likedAt", l.likedAt)
-                    } }
-                }
-                else -> throw IllegalArgumentException(
-                    "unsupported douyin query: $query (history|favourites|likes)",
-                )
             }
+        } catch (e: WebSignSessionUnavailableException) {
+            return signingUnavailable("douyin", e.message)
         }
         return ok("douyin", query, items)
     }
@@ -224,30 +229,36 @@ class QueryAppDataTool(
     private suspend fun queryToutiao(query: String, limit: Int): JsonElement {
         val cookie = toutiaoCreds.getCookie()?.takeIf { it.isNotBlank() }
             ?: return notLoggedIn("toutiao")
-        val items = signed(toutiaoSign) {
-            toutiaoApi.signProvider = toutiaoSign
-            when (query) {
-                "feed", "read" -> buildJsonArray {
-                    toutiaoApi.fetchFeed(cookie, limit).forEach { f -> addJsonObject {
-                        put("itemId", f.itemId); put("title", f.title); put("category", f.category ?: "")
-                        put("author", f.author ?: ""); put("publishedAt", f.publishedAt)
-                    } }
-                }
-                "collection", "collections", "favourites" -> buildJsonArray {
-                    toutiaoApi.fetchCollection(cookie, limit).forEach { c -> addJsonObject {
-                        put("itemId", c.itemId); put("title", c.title)
-                        put("author", c.author ?: ""); put("savedAt", c.savedAt)
-                    } }
-                }
-                "searches", "search" -> buildJsonArray {
-                    toutiaoApi.fetchSearchHistory(cookie, limit).forEach { s -> addJsonObject {
-                        put("keyword", s.keyword); put("searchedAt", s.searchedAt)
-                    } }
-                }
-                else -> throw IllegalArgumentException(
-                    "unsupported toutiao query: $query (feed|collection|searches)",
+        val items = try {
+            toutiaoSign.withExclusiveSession(cookie) {
+                val requestContext = ToutiaoApiClient.RequestContext(
+                    signProvider = toutiaoSign,
                 )
+                when (query) {
+                    "feed", "read" -> buildJsonArray {
+                        toutiaoApi.fetchFeed(cookie, requestContext, limit).forEach { f -> addJsonObject {
+                            put("itemId", f.itemId); put("title", f.title); put("category", f.category ?: "")
+                            put("author", f.author ?: ""); put("publishedAt", f.publishedAt)
+                        } }
+                    }
+                    "collection", "collections", "favourites" -> buildJsonArray {
+                        toutiaoApi.fetchCollection(cookie, requestContext, limit).forEach { c -> addJsonObject {
+                            put("itemId", c.itemId); put("title", c.title)
+                            put("author", c.author ?: ""); put("savedAt", c.savedAt)
+                        } }
+                    }
+                    "searches", "search" -> buildJsonArray {
+                        toutiaoApi.fetchSearchHistory(cookie, requestContext, limit).forEach { s -> addJsonObject {
+                            put("keyword", s.keyword); put("searchedAt", s.searchedAt)
+                        } }
+                    }
+                    else -> throw IllegalArgumentException(
+                        "unsupported toutiao query: $query (feed|collection|searches)",
+                    )
+                }
             }
+        } catch (e: ToutiaoSignSessionUnavailableException) {
+            return signingUnavailable("toutiao", e.message)
         }
         return ok("toutiao", query, items)
     }
@@ -256,24 +267,28 @@ class QueryAppDataTool(
     private suspend fun queryKuaishou(query: String, limit: Int): JsonElement {
         val cookie = kuaishouCreds.getCookie()?.takeIf { it.isNotBlank() }
             ?: return notLoggedIn("kuaishou")
-        val items = signed(kuaishouSign) {
-            kuaishouApi.signProvider = kuaishouSign
-            when (query) {
-                "history", "watch" -> buildJsonArray {
-                    kuaishouApi.fetchWatchHistory(cookie, limit).forEach { w -> addJsonObject {
-                        put("photoId", w.photoId); put("caption", w.caption)
-                        put("author", w.authorName ?: ""); put("viewedAt", w.viewedAt)
-                    } }
+        val items = try {
+            kuaishouSign.withExclusiveSession(cookie) {
+                kuaishouApi.signProvider = kuaishouSign
+                when (query) {
+                    "history", "watch" -> buildJsonArray {
+                        kuaishouApi.fetchWatchHistory(cookie, limit).forEach { w -> addJsonObject {
+                            put("photoId", w.photoId); put("caption", w.caption)
+                            put("author", w.authorName ?: ""); put("viewedAt", w.viewedAt)
+                        } }
+                    }
+                    "searches", "search" -> buildJsonArray {
+                        kuaishouApi.fetchSearchHistory(cookie, limit).forEach { s -> addJsonObject {
+                            put("keyword", s.keyword); put("searchedAt", s.searchedAt)
+                        } }
+                    }
+                    else -> throw IllegalArgumentException(
+                        "unsupported kuaishou query: $query (history|searches)",
+                    )
                 }
-                "searches", "search" -> buildJsonArray {
-                    kuaishouApi.fetchSearchHistory(cookie, limit).forEach { s -> addJsonObject {
-                        put("keyword", s.keyword); put("searchedAt", s.searchedAt)
-                    } }
-                }
-                else -> throw IllegalArgumentException(
-                    "unsupported kuaishou query: $query (history|searches)",
-                )
             }
+        } catch (e: WebSignSessionUnavailableException) {
+            return signingUnavailable("kuaishou", e.message)
         }
         return ok("kuaishou", query, items)
     }
@@ -284,49 +299,42 @@ class QueryAppDataTool(
             ?: return notLoggedIn("xiaohongshu")
         val a1 = xhsCreds.getA1() ?: return notLoggedIn("xiaohongshu")
         val userId = xhsCreds.getUserIdStr() ?: return notLoggedIn("xiaohongshu")
-        val items = signed(xhsSign) {
-            xhsApi.signProvider = xhsSign
-            try {
-                xhsSign.warmUp(cookie)
-            } catch (_: Throwable) {
-                // warm-up is best-effort; signedHeaders fall back if it fails
+        val items = try {
+            xhsSign.withExclusiveSession(cookie) {
+                xhsApi.signProvider = xhsSign
+                when (query) {
+                    "notes", "note" -> buildJsonArray {
+                        xhsApi.fetchNotes(cookie, a1, userId, limit).forEach { n -> addJsonObject {
+                            put("noteId", n.noteId); put("title", n.title); put("desc", n.desc ?: "")
+                            put("type", n.type); put("createdAt", n.createdAt)
+                            put("likes", n.likedCount); put("collects", n.collectedCount)
+                            put("comments", n.commentCount)
+                        } }
+                    }
+                    "liked", "likes" -> buildJsonArray {
+                        xhsApi.fetchLiked(cookie, a1, limit).forEach { l -> addJsonObject {
+                            put("noteId", l.noteId); put("title", l.title)
+                            put("likedAt", l.likedAt); put("author", l.authorNickname ?: "")
+                        } }
+                    }
+                    "follows", "following" -> buildJsonArray {
+                        xhsApi.fetchFollows(cookie, a1, userId, limit).forEach { f -> addJsonObject {
+                            put("userId", f.userId); put("nickname", f.nickname)
+                            put("followedAt", f.followedAt)
+                        } }
+                    }
+                    else -> throw IllegalArgumentException(
+                        "unsupported xiaohongshu query: $query (notes|liked|follows)",
+                    )
+                }
             }
-            when (query) {
-                "notes", "note" -> buildJsonArray {
-                    xhsApi.fetchNotes(cookie, a1, userId, limit).forEach { n -> addJsonObject {
-                        put("noteId", n.noteId); put("title", n.title); put("desc", n.desc ?: "")
-                        put("type", n.type); put("createdAt", n.createdAt)
-                        put("likes", n.likedCount); put("collects", n.collectedCount)
-                        put("comments", n.commentCount)
-                    } }
-                }
-                "liked", "likes" -> buildJsonArray {
-                    xhsApi.fetchLiked(cookie, a1, limit).forEach { l -> addJsonObject {
-                        put("noteId", l.noteId); put("title", l.title)
-                        put("likedAt", l.likedAt); put("author", l.authorNickname ?: "")
-                    } }
-                }
-                "follows", "following" -> buildJsonArray {
-                    xhsApi.fetchFollows(cookie, a1, userId, limit).forEach { f -> addJsonObject {
-                        put("userId", f.userId); put("nickname", f.nickname)
-                        put("followedAt", f.followedAt)
-                    } }
-                }
-                else -> throw IllegalArgumentException(
-                    "unsupported xiaohongshu query: $query (notes|liked|follows)",
-                )
-            }
+        } catch (e: WebSignSessionUnavailableException) {
+            return signingUnavailable("xiaohongshu", e.message)
         }
         return ok("xiaohongshu", query, items)
     }
 
     // ── helpers ───────────────────────────────────────────────────────────
-    private inline fun <T> signed(sign: SignProvider, block: () -> T): T = try {
-        block()
-    } finally {
-        sign.shutdown()
-    }
-
     private fun ok(app: String, query: String, items: JsonArray): JsonElement = buildJsonObject {
         put("status", "ok"); put("app", app); put("query", query)
         put("count", items.size); put("items", items)
@@ -341,6 +349,15 @@ class QueryAppDataTool(
         )
         put("reason", "no stored credentials for $app")
         put("resumeToken", "query_app_data:$app")
+    }
+
+    private fun signingUnavailable(app: String, detail: String?): JsonElement = buildJsonObject {
+        put("status", "assist_required")
+        put("reason", detail ?: "$app signing bridge unavailable")
+        put(
+            "instruction",
+            "$app 签名环境初始化失败，请保持网络可用并稍后重试。",
+        )
     }
 
     private fun str(obj: JsonObject, key: String): String =

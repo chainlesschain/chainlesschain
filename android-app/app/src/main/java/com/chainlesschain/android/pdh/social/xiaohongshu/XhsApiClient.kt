@@ -5,18 +5,24 @@ import com.chainlesschain.android.pdh.social.SignProvider
 import com.chainlesschain.android.pdh.social.SocialCookieWebViewHelpers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import org.json.JSONArray
 import org.json.JSONObject
 import timber.log.Timber
 import java.io.IOException
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -111,6 +117,51 @@ class XhsApiClient @Inject constructor() {
     )
 
     /**
+     * Immutable diagnostic state. Reading [lastErrorSnapshot] once guarantees
+     * that a caller never observes a code from one request paired with the
+     * message from another concurrent request. The scalar getters remain for
+     * source and binary compatibility.
+     */
+    data class ErrorSnapshot(
+        val code: Int = 0,
+        val message: String? = null,
+    )
+
+    private data class ListPage(
+        val data: JSONObject,
+        val items: JSONArray,
+    )
+
+    private data class RawHttpResponse(
+        val code: Int,
+        val successful: Boolean,
+        val body: String?,
+    )
+
+    private sealed class CursorContinuation {
+        object End : CursorContinuation()
+        data class Next(val cursor: String) : CursorContinuation()
+        data class Invalid(val reason: String) : CursorContinuation()
+    }
+
+    private sealed class PageContinuation {
+        object End : PageContinuation()
+        object More : PageContinuation()
+        data class Invalid(val reason: String) : PageContinuation()
+    }
+
+    private val errorSnapshotRef = AtomicReference(ErrorSnapshot())
+
+    val lastErrorSnapshot: ErrorSnapshot
+        get() = errorSnapshotRef.get()
+
+    val lastErrorCode: Int
+        get() = errorSnapshotRef.get().code
+
+    val lastErrorMessage: String?
+        get() = errorSnapshotRef.get().message
+
+    /**
      * 调 /api/sns/web/v1/user/me 拿 user_id + nickname。**不需 X-S 签名**
      * 因为 me 端点只验 cookie 完整性。返 null = cookie 失效或登录未完成。
      */
@@ -187,40 +238,79 @@ class XhsApiClient @Inject constructor() {
             if (lastErrorCode == -461) {  // audit F5
                 return@withContext emptyList()
             }
-            val url = baseUrl.newBuilder()
-                .addPathSegments("api/sns/web/v2/user_posted")
-                .addQueryParameter("user_id", userId)
-                .addQueryParameter("num", "30")
-                .addQueryParameter("cursor", "")
-                .addQueryParameter("image_formats", "jpg,webp,avif")
-                .addQueryParameter("xsec_token", "")
-                .addQueryParameter("xsec_source", "pc_user")
-                .build()
-            val obj = doGetJson(url, cookie, a1 = a1, requireSign = true) ?: return@withContext emptyList()
-            val data = obj.optJSONObject("data") ?: return@withContext emptyList()
-            val notes = data.optJSONArray("notes") ?: return@withContext emptyList()
-            val out = ArrayList<NoteItem>(minOf(limit, notes.length()))
-            for (i in 0 until minOf(limit, notes.length())) {
-                val n = notes.optJSONObject(i) ?: continue
-                val nid = n.optString("note_id").takeIf { it.isNotBlank() }
-                    ?: n.optString("id").takeIf { it.isNotBlank() }
-                    ?: continue
-                val interact = n.optJSONObject("interact_info")
-                out.add(
-                    NoteItem(
-                        noteId = nid,
-                        title = n.optString("display_title").takeIf { it.isNotBlank() }
-                            ?: n.optString("title").takeIf { it.isNotBlank() }
-                            ?: "(no title)",
-                        desc = n.optStringOrNull("desc"),
-                        type = n.optString("type").takeIf { it.isNotBlank() } ?: "normal",
-                        createdAt = n.optLong("time").takeIf { it > 0 }?.let { if (it > 1e12) it else it * 1000 }
-                            ?: 0L,
-                        likedCount = parseCount(interact?.optStringOrNull("liked_count")),
-                        collectedCount = parseCount(interact?.optStringOrNull("collected_count")),
-                        commentCount = parseCount(interact?.optStringOrNull("comment_count")),
+            val resultLimit = limit.coerceAtLeast(0)
+            if (resultLimit == 0) {
+                clearLastError()
+                return@withContext emptyList()
+            }
+            val out = ArrayList<NoteItem>(minOf(resultLimit, NOTES_PAGE_SIZE * MAX_PAGES))
+            val seenItems = HashSet<String>()
+            val seenCursors = HashSet<String>().apply { add("") }
+            var cursor = ""
+            for (pageNumber in 1..MAX_PAGES) {
+                val url = baseUrl.newBuilder()
+                    .addPathSegments("api/sns/web/v2/user_posted")
+                    .addQueryParameter("user_id", userId)
+                    .addQueryParameter("num", NOTES_PAGE_SIZE.toString())
+                    .addQueryParameter("cursor", cursor)
+                    .addQueryParameter("image_formats", "jpg,webp,avif")
+                    .addQueryParameter("xsec_token", "")
+                    .addQueryParameter("xsec_source", "pc_user")
+                    .build()
+                val obj = doGetJson(url, cookie, a1 = a1, requireSign = true) ?: break
+                val page = requireListPage(obj, "notes", "notes") ?: break
+                for (i in 0 until page.items.length()) {
+                    if (out.size >= resultLimit) break
+                    val n = page.items.optJSONObject(i) ?: continue
+                    val nid = n.optString("note_id").takeIf { it.isNotBlank() }
+                        ?: n.optString("id").takeIf { it.isNotBlank() }
+                        ?: continue
+                    if (!seenItems.add(nid)) continue
+                    val interact = n.optJSONObject("interact_info")
+                    out.add(
+                        NoteItem(
+                            noteId = nid,
+                            title = n.optString("display_title").takeIf { it.isNotBlank() }
+                                ?: n.optString("title").takeIf { it.isNotBlank() }
+                                ?: "(no title)",
+                            desc = n.optStringOrNull("desc"),
+                            type = n.optString("type").takeIf { it.isNotBlank() } ?: "normal",
+                            createdAt = n.optLong("time").takeIf { it > 0 }
+                                ?.let { if (it > 1e12) it else it * 1000 }
+                                ?: 0L,
+                            likedCount = parseCount(interact?.optStringOrNull("liked_count")),
+                            collectedCount = parseCount(interact?.optStringOrNull("collected_count")),
+                            commentCount = parseCount(interact?.optStringOrNull("comment_count")),
+                        ),
                     )
-                )
+                }
+                if (out.size >= resultLimit) break
+                when (val continuation = cursorContinuation(page.data, page.items.length())) {
+                    CursorContinuation.End -> break
+                    is CursorContinuation.Invalid -> {
+                        setPaginationError("notes", pageNumber, continuation.reason)
+                        break
+                    }
+                    is CursorContinuation.Next -> {
+                        if (!seenCursors.add(continuation.cursor)) {
+                            setPaginationError(
+                                "notes",
+                                pageNumber,
+                                "repeated cursor '${continuation.cursor}'",
+                            )
+                            break
+                        }
+                        if (pageNumber == MAX_PAGES) {
+                            setPaginationError(
+                                "notes",
+                                pageNumber,
+                                "page cap $MAX_PAGES reached with more data",
+                            )
+                            break
+                        }
+                        cursor = continuation.cursor
+                    }
+                }
             }
             out
         }
@@ -241,19 +331,28 @@ class XhsApiClient @Inject constructor() {
             if (lastErrorCode == -461) {  // audit F5
                 return@withContext emptyList()
             }
-            val url = baseUrl.newBuilder()
-                .addPathSegments("api/sns/web/v1/note/liked")
-                .addQueryParameter("num", "30")
-                .addQueryParameter("cursor", "")
-                .build()
-            val obj = doGetJson(url, cookie, a1 = a1, requireSign = true) ?: return@withContext emptyList()
-            val data = obj.optJSONObject("data") ?: return@withContext emptyList()
-            val notes = data.optJSONArray("notes") ?: return@withContext emptyList()
-            val out = ArrayList<LikedItem>(minOf(limit, notes.length()))
-            for (i in 0 until minOf(limit, notes.length())) {
-                val n = notes.optJSONObject(i) ?: continue
-                val nid = n.optString("note_id").takeIf { it.isNotBlank() }
-                    ?: continue
+            val resultLimit = limit.coerceAtLeast(0)
+            if (resultLimit == 0) {
+                clearLastError()
+                return@withContext emptyList()
+            }
+            val out = ArrayList<LikedItem>(minOf(resultLimit, LIKED_PAGE_SIZE * MAX_PAGES))
+            val seenItems = HashSet<String>()
+            val seenCursors = HashSet<String>().apply { add("") }
+            var cursor = ""
+            for (pageNumber in 1..MAX_PAGES) {
+                val url = baseUrl.newBuilder()
+                    .addPathSegments("api/sns/web/v1/note/liked")
+                    .addQueryParameter("num", LIKED_PAGE_SIZE.toString())
+                    .addQueryParameter("cursor", cursor)
+                    .build()
+                val obj = doGetJson(url, cookie, a1 = a1, requireSign = true) ?: break
+                val page = requireListPage(obj, "liked", "notes") ?: break
+                for (i in 0 until page.items.length()) {
+                    if (out.size >= resultLimit) break
+                    val n = page.items.optJSONObject(i) ?: continue
+                    val nid = n.optString("note_id").takeIf { it.isNotBlank() } ?: continue
+                    if (!seenItems.add(nid)) continue
                 val user = n.optJSONObject("user")
                 out.add(
                     LikedItem(
@@ -264,8 +363,36 @@ class XhsApiClient @Inject constructor() {
                         // xhs 不返显式 liked_at，用 fetch 时间近似 (粗排即可)
                         likedAt = 0L,
                         authorNickname = user?.optStringOrNull("nickname"),
-                    )
+                    ),
                 )
+                }
+                if (out.size >= resultLimit) break
+                when (val continuation = cursorContinuation(page.data, page.items.length())) {
+                    CursorContinuation.End -> break
+                    is CursorContinuation.Invalid -> {
+                        setPaginationError("liked", pageNumber, continuation.reason)
+                        break
+                    }
+                    is CursorContinuation.Next -> {
+                        if (!seenCursors.add(continuation.cursor)) {
+                            setPaginationError(
+                                "liked",
+                                pageNumber,
+                                "repeated cursor '${continuation.cursor}'",
+                            )
+                            break
+                        }
+                        if (pageNumber == MAX_PAGES) {
+                            setPaginationError(
+                                "liked",
+                                pageNumber,
+                                "page cap $MAX_PAGES reached with more data",
+                            )
+                            break
+                        }
+                        cursor = continuation.cursor
+                    }
+                }
             }
             out
         }
@@ -286,19 +413,32 @@ class XhsApiClient @Inject constructor() {
             if (lastErrorCode == -461) {  // audit F5
                 return@withContext emptyList()
             }
-            val url = baseUrl.newBuilder()
-                .addPathSegments("api/sns/web/v1/user/$userId/followings")
-                .addQueryParameter("page", "1")
-                .addQueryParameter("page_size", "20")
-                .build()
-            val obj = doGetJson(url, cookie, a1 = a1, requireSign = true) ?: return@withContext emptyList()
-            val data = obj.optJSONObject("data") ?: return@withContext emptyList()
-            val users = data.optJSONArray("users") ?: return@withContext emptyList()
-            val out = ArrayList<FollowItem>(minOf(limit, users.length()))
-            for (i in 0 until minOf(limit, users.length())) {
-                val u = users.optJSONObject(i) ?: continue
-                val uid = u.optString("user_id").takeIf { it.isNotBlank() }
-                    ?: continue
+            val resultLimit = limit.coerceAtLeast(0)
+            if (resultLimit == 0) {
+                clearLastError()
+                return@withContext emptyList()
+            }
+            val out = ArrayList<FollowItem>(minOf(resultLimit, FOLLOWS_PAGE_SIZE * MAX_PAGES))
+            val seenItems = HashSet<String>()
+            val seenPages = HashSet<String>()
+            for (pageNumber in 1..MAX_PAGES) {
+                val url = baseUrl.newBuilder()
+                    .addPathSegments("api/sns/web/v1/user/$userId/followings")
+                    .addQueryParameter("page", pageNumber.toString())
+                    .addQueryParameter("page_size", FOLLOWS_PAGE_SIZE.toString())
+                    .build()
+                val obj = doGetJson(url, cookie, a1 = a1, requireSign = true) ?: break
+                val page = requireListPage(obj, "follows", "users", "followings") ?: break
+                val fingerprint = page.items.toString()
+                if (!seenPages.add(fingerprint)) {
+                    setPaginationError("follows", pageNumber, "repeated page")
+                    break
+                }
+                for (i in 0 until page.items.length()) {
+                    if (out.size >= resultLimit) break
+                    val u = page.items.optJSONObject(i) ?: continue
+                    val uid = u.optString("user_id").takeIf { it.isNotBlank() } ?: continue
+                    if (!seenItems.add(uid)) continue
                 out.add(
                     FollowItem(
                         userId = uid,
@@ -306,16 +446,30 @@ class XhsApiClient @Inject constructor() {
                             ?: "(unnamed)",
                         image = u.optStringOrNull("image"),
                         followedAt = 0L, // xhs 不返显式 follow time
-                    )
+                    ),
                 )
+                }
+                if (out.size >= resultLimit) break
+                when (val continuation = pageContinuation(page.data, page.items.length())) {
+                    PageContinuation.End -> break
+                    is PageContinuation.Invalid -> {
+                        setPaginationError("follows", pageNumber, continuation.reason)
+                        break
+                    }
+                    PageContinuation.More -> {
+                        if (pageNumber == MAX_PAGES) {
+                            setPaginationError(
+                                "follows",
+                                pageNumber,
+                                "page cap $MAX_PAGES reached with more data",
+                            )
+                            break
+                        }
+                    }
+                }
             }
             out
         }
-
-    @Volatile var lastErrorCode: Int = 0
-        private set
-    @Volatile var lastErrorMessage: String? = null
-        private set
 
     private suspend fun doGetJson(
         url: HttpUrl,
@@ -344,14 +498,10 @@ class XhsApiClient @Inject constructor() {
             // back to computeXsXt so v0.2 callers keep partial coverage.
             val pathWithQuery = url.encodedPath + (url.encodedQuery?.let { "?$it" } ?: "")
             val purpose = "$pathWithQuery|"  // GET => empty body part
-            val bridgeSigned = signProvider.signUrl(url, purpose)
-            val bridgeHeaders = if (bridgeSigned != null) {
-                signProvider.signedHeaders(url, purpose)
-            } else {
-                emptyMap()
-            }
-            if (bridgeHeaders.isNotEmpty()) {
-                for ((k, v) in bridgeHeaders) builder.header(k, v)
+            val signedRequest = signProvider.signRequest(url, purpose)
+            if (signedRequest != null && signedRequest.headers.isNotEmpty()) {
+                builder.url(signedRequest.url)
+                for ((k, v) in signedRequest.headers) builder.header(k, v)
             } else {
                 val (xs, xt) = computeXsXt(pathWithQuery, null, a1)
                 builder.header("X-S", xs).header("X-T", xt.toString())

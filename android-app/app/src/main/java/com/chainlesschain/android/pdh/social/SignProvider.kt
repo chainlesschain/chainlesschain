@@ -32,6 +32,30 @@ import okhttp3.HttpUrl
  */
 interface SignProvider {
     /**
+     * URL and headers produced by one signer evaluation.
+     *
+     * Some platforms derive both values from the same ephemeral JS state.
+     * Keeping them in one immutable value prevents a second coroutine from
+     * replacing a shared header cache between [signUrl] and [signedHeaders].
+     */
+    data class SignedRequest(
+        val url: HttpUrl,
+        val headers: Map<String, String> = emptyMap(),
+    )
+
+    /**
+     * Atomically sign one source request. New callers should prefer this
+     * method over the legacy two-step [signUrl]/[signedHeaders] API.
+     */
+    suspend fun signRequest(rawUrl: HttpUrl, purpose: String): SignedRequest? {
+        val signedUrl = signUrl(rawUrl, purpose) ?: return null
+        return SignedRequest(
+            url = signedUrl,
+            headers = signedHeaders(rawUrl, purpose).toMap(),
+        )
+    }
+
+    /**
      * Sign [rawUrl] for [purpose] (Toutiao's `_signature` algorithm takes
      * a different code path for feed vs search). Returns the signed
      * [HttpUrl] with sign params appended, or null on failure.
@@ -72,4 +96,9 @@ interface SignProvider {
  */
 object NullSignProvider : SignProvider {
     override suspend fun signUrl(rawUrl: HttpUrl, purpose: String): HttpUrl? = null
+
+    override suspend fun signRequest(
+        rawUrl: HttpUrl,
+        purpose: String,
+    ): SignProvider.SignedRequest? = null
 }

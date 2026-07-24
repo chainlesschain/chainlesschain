@@ -30,6 +30,7 @@ import com.chainlesschain.android.pdh.social.douyin.DouyinCredentialsStore
 import com.chainlesschain.android.pdh.social.douyin.DouyinLocalCollector
 import com.chainlesschain.android.pdh.social.kuaishou.KuaishouCredentialsStore
 import com.chainlesschain.android.pdh.social.kuaishou.KuaishouLocalCollector
+import com.chainlesschain.android.pdh.social.toutiao.ToutiaoApiClient
 import com.chainlesschain.android.pdh.social.toutiao.ToutiaoCredentialsStore
 import com.chainlesschain.android.pdh.social.toutiao.ToutiaoLocalCollector
 import com.chainlesschain.android.pdh.social.weibo.WeiboCredentialsStore
@@ -3778,16 +3779,7 @@ class HubLocalViewModel @Inject constructor(
             // finally-shutdown pattern as Toutiao to free the 30-50MB hidden
             // WebView heap; re-warm next sync costs ~3s dominated by user
             // click anyway.
-            douyinCollector.signProvider = douyinSignBridge
-            val result = try {
-                douyinCollector.snapshot()
-            } finally {
-                try {
-                    douyinSignBridge.shutdown()
-                } catch (t: Throwable) {
-                    Timber.w(t, "HubLocalViewModel: douyinSignBridge.shutdown threw")
-                }
-            }
+            val result = douyinCollector.snapshotWithExclusiveSession(douyinSignBridge)
             when (result) {
                 is DouyinLocalCollector.SnapshotResult.NoCredentials -> {
                     _state.update {
@@ -4271,16 +4263,7 @@ class HubLocalViewModel @Inject constructor(
             // reliability upgrade (~60% GET hit rate → ~100% when bridge
             // succeeds). Bridge null/failure falls through to computeXsXt
             // in the ApiClient. finally-shutdown releases the WebView heap.
-            xhsCollector.signProvider = xhsSignBridge
-            val result = try {
-                xhsCollector.snapshot()
-            } finally {
-                try {
-                    xhsSignBridge.shutdown()
-                } catch (t: Throwable) {
-                    Timber.w(t, "HubLocalViewModel: xhsSignBridge.shutdown threw")
-                }
-            }
+            val result = xhsCollector.snapshotWithExclusiveSession(xhsSignBridge)
             when (result) {
                 is XhsLocalCollector.SnapshotResult.NoCredentials -> {
                     _state.update {
@@ -4709,25 +4692,78 @@ class HubLocalViewModel @Inject constructor(
     }
 
     fun onToutiaoLoginCookie(cookie: String) {
-        // acceptLoginCookie 不是 suspend (没有网络调用)，但保持与 Douyin 同
-        // launch + state-update 风格，便于将来 v0.2 加 network 时 1:1 升级
+        // Keep the accepted flag and its diagnostic request-local: reading
+        // legacy scalar getters after this suspend call could observe a
+        // concurrent request's error.
         viewModelScope.launch {
-            val accepted = toutiaoCollector.acceptLoginCookie(cookie, null)
+            val loginResult = toutiaoCollector.acceptLoginCookieResult(cookie, null)
             _state.update {
                 it.copy(
                     pendingLogin = null,
                     toutiao = it.toutiao.copy(
-                        errorMessage = if (!accepted) {
-                            val code = toutiaoCollector.lastLoginErrorCode
-                            val detail = toutiaoCollector.lastLoginErrorMessage
-                                ?: "cookie 缺 passport_uid / multi_sids"
-                            "登录未完成 — code=$code $detail（请确认已登录后重试）"
+                        errorMessage = if (!loginResult.accepted) {
+                            toutiaoLoginFailureMessage(loginResult.error)
                         } else null,
                     ),
                 )
             }
-            if (accepted) refreshToutiaoFromStore()
+            if (loginResult.accepted) refreshToutiaoFromStore()
         }
+    }
+
+    private fun toutiaoLoginFailureMessage(
+        error: ToutiaoApiClient.ErrorSnapshot,
+    ): String {
+        // ErrorSnapshot.message currently comes from extractUid. Use it only
+        // to recognize that fixed failure class; never render the raw text,
+        // since future implementations may include cookie/account details.
+        val rawMessage = error.message.orEmpty()
+        val isExtractUidFailure = when (error.code) {
+            -1 -> rawMessage == "cookie 为空"
+            -7 -> rawMessage.startsWith("cookie 缺 ")
+            else -> false
+        }
+        val safeCode = error.code.takeIf { it != 0 }?.let { "（code=$it）" }.orEmpty()
+        return if (isExtractUidFailure) {
+            "登录未完成$safeCode — 未检测到有效登录账号，请确认已登录并等待首页加载后重试"
+        } else {
+            "登录未完成$safeCode — 登录校验失败，请重新登录（错误详情已隐藏）"
+        }
+    }
+
+    private fun toutiaoPartialFailureSummary(
+        result: ToutiaoLocalCollector.SnapshotResult.Ok,
+    ): String? {
+        val hasFailureSignal = result.lastErrorCode != 0 ||
+            !result.lastErrorMessage.isNullOrBlank() ||
+            result.streamFailures.isNotEmpty()
+        if (!hasFailureSignal) return null
+
+        // Collector/API error text can contain request URLs, cookie fragments,
+        // account identifiers, or search terms. Surface only trusted stream
+        // labels and numeric error codes; never pass raw messages/names to UI.
+        val streamDetails = result.streamFailures
+            .map { failure ->
+                val label = when (failure.stream) {
+                    "profile" -> "profile"
+                    "signer" -> "签名"
+                    "feed" -> "推荐"
+                    "collection" -> "收藏"
+                    "search", "search-history" -> "搜索"
+                    else -> "数据流"
+                }
+                if (failure.code != 0) "$label(code=${failure.code})" else label
+            }
+            .distinct()
+
+        val safeDetail = when {
+            streamDetails.isNotEmpty() -> streamDetails.joinToString("、")
+            result.lastErrorCode != 0 -> "数据流(code=${result.lastErrorCode})"
+            else -> "数据流异常"
+        }
+        val hasHiddenMessage = !result.lastErrorMessage.isNullOrBlank() ||
+            result.streamFailures.any { !it.message.isNullOrBlank() }
+        return safeDetail + if (hasHiddenMessage) "（详细错误已隐藏）" else ""
     }
 
     fun syncToutiao() {
@@ -4747,19 +4783,12 @@ class HubLocalViewModel @Inject constructor(
             // feed/comments/search. The bridge gracefully degrades when its
             // WebView fails to load or acrawler.js rotates its function
             // name — collector then falls back to v0.2 profile-only.
-            // Bridge holds a ~30-50MB hidden WebView while warm; we shut it
-            // down right after snapshot to free the heap (re-warm next sync
-            // costs ~3s, dominated by the user's manual click anyway).
+            // The collector owns the bridge's exclusive
+            // warm/fetch/awaited-shutdown session under its mutex. Do not
+            // shut it down here: an outer async teardown could destroy the
+            // next Query/Collect session after it acquires that mutex.
             toutiaoCollector.signProvider = toutiaoSignBridge
-            val result = try {
-                toutiaoCollector.snapshot()
-            } finally {
-                try {
-                    toutiaoSignBridge.shutdown()
-                } catch (t: Throwable) {
-                    Timber.w(t, "HubLocalViewModel: toutiaoSignBridge.shutdown threw")
-                }
-            }
+            val result = toutiaoCollector.snapshot()
             when (result) {
                 is ToutiaoLocalCollector.SnapshotResult.NoCredentials -> {
                     _state.update {
@@ -4795,19 +4824,47 @@ class HubLocalViewModel @Inject constructor(
                     )) {
                         is LocalCcRunner.CcResult.Ok -> {
                             _state.update {
+                                val partialFailure = toutiaoPartialFailureSummary(result)
                                 val banner = if (r.report.status != "ok" && r.report.error != null) {
                                     "入库状态: ${r.report.status} (${r.report.error})"
                                 } else if (result.v03Attempted &&
                                     (result.readCount + result.collectionCount + result.searchCount) > 0
                                 ) {
-                                    // v0.3 happy path — bridge worked, counts are real.
-                                    "已同步 profile + ${result.readCount} 推荐 / ${result.collectionCount} 收藏 / ${result.searchCount} 搜索"
+                                    // Preserve successful stream counts while
+                                    // making any sibling-stream failure visible.
+                                    val counts = if (result.profileCount > 0) {
+                                        "已同步 profile + ${result.readCount} 推荐 / " +
+                                            "${result.collectionCount} 收藏 / ${result.searchCount} 搜索"
+                                    } else {
+                                        "profile 未获取；已同步 ${result.readCount} 推荐 / " +
+                                            "${result.collectionCount} 收藏 / ${result.searchCount} 搜索"
+                                    }
+                                    if (partialFailure != null) {
+                                        "$counts；部分数据流失败：$partialFailure"
+                                    } else {
+                                        counts
+                                    }
                                 } else if (result.v03Attempted) {
-                                    // v0.3 attempted but counts all 0 — bridge warm-up failed
-                                    // or acrawler.js rotated (lastErrorCode=-99 from ApiClient).
-                                    "已同步账号 profile。v0.3 签名 bridge 未就绪 — 历史/收藏/搜索本次未抓到（代码 ${result.lastErrorCode}），稍后再同步。"
+                                    val profileStatus = if (result.profileCount > 0) {
+                                        "已同步账号 profile"
+                                    } else {
+                                        "profile 未获取"
+                                    }
+                                    if (partialFailure != null) {
+                                        "$profileStatus。v0.3 部分数据流同步失败 — " +
+                                            "历史/收藏/搜索本次未完整获取（$partialFailure），稍后再同步。"
+                                    } else {
+                                        "$profileStatus。v0.3 签名数据流同步成功，" +
+                                            "本次无历史/收藏/搜索记录。"
+                                    }
                                 } else {
-                                    "已同步账号 profile（v0.2 含昵称/头像/粉丝数）。历史/收藏/搜索需 v0.3 _signature 签名接通。"
+                                    if (result.profileCount > 0) {
+                                        "已同步账号 profile（v0.2 含昵称/头像/粉丝数）。" +
+                                            "历史/收藏/搜索需 v0.3 _signature 签名接通。"
+                                    } else {
+                                        "profile 未获取（v0.2 profile 返回空）。" +
+                                            "历史/收藏/搜索需 v0.3 _signature 签名接通。"
+                                    }
                                 }
                                 it.copy(
                                     globalSyncingAdapter = null,
@@ -5254,16 +5311,7 @@ class HubLocalViewModel @Inject constructor(
             }
             // v0.3 — wire KuaishouSignBridge for NS_sig3 + kpf/kpn. Same
             // finally-shutdown pattern as Toutiao/Douyin to free the WebView.
-            kuaishouCollector.signProvider = kuaishouSignBridge
-            val result = try {
-                kuaishouCollector.snapshot()
-            } finally {
-                try {
-                    kuaishouSignBridge.shutdown()
-                } catch (t: Throwable) {
-                    Timber.w(t, "HubLocalViewModel: kuaishouSignBridge.shutdown threw")
-                }
-            }
+            val result = kuaishouCollector.snapshotWithExclusiveSession(kuaishouSignBridge)
             when (result) {
                 is KuaishouLocalCollector.SnapshotResult.NoCredentials -> {
                     _state.update {

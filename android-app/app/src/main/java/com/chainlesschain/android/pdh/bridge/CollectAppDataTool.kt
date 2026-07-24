@@ -89,22 +89,18 @@ class CollectAppDataTool(
             "weibo" -> toSnap(weibo.snapshot()) to "social-weibo"
             "bilibili" -> toSnap(bilibili.snapshot()) to "social-bilibili"
             "12306" -> toSnap(kyfw12306.snapshot()) to "travel-12306"
-            "douyin" -> signed(douyinSign) {
-                douyin.signProvider = douyinSign
-                toSnap(douyin.snapshot())
-            } to "social-douyin"
-            "xiaohongshu", "xhs" -> signed(xhsSign) {
-                xhs.signProvider = xhsSign
-                toSnap(xhs.snapshot())
-            } to "social-xiaohongshu"
-            "toutiao" -> signed(toutiaoSign) {
+            "douyin" ->
+                toSnap(douyin.snapshotWithExclusiveSession(douyinSign)) to "social-douyin"
+            "xiaohongshu", "xhs" ->
+                toSnap(xhs.snapshotWithExclusiveSession(xhsSign)) to "social-xiaohongshu"
+            // ToutiaoLocalCollector owns the bridge's exclusive
+            // warm/fetch/awaited-shutdown session.
+            "toutiao" -> {
                 toutiao.signProvider = toutiaoSign
-                toSnap(toutiao.snapshot())
-            } to "social-toutiao"
-            "kuaishou" -> signed(kuaishouSign) {
-                kuaishou.signProvider = kuaishouSign
-                toSnap(kuaishou.snapshot())
-            } to "social-kuaishou"
+                toSnap(toutiao.snapshot()) to "social-toutiao"
+            }
+            "kuaishou" ->
+                toSnap(kuaishou.snapshotWithExclusiveSession(kuaishouSign)) to "social-kuaishou"
             else -> throw IllegalArgumentException(
                 "unsupported app: $app (supported: ${SUPPORTED.joinToString()})",
             )
@@ -146,16 +142,6 @@ class CollectAppDataTool(
                     throw RuntimeException("$adapter sync failed: ${cc.reason}")
             }
         }
-    }
-
-    /** Run a signing-gated snapshot, always shutting the WebView bridge after. */
-    private inline fun signed(
-        sign: com.chainlesschain.android.pdh.social.SignProvider,
-        block: () -> Snap,
-    ): Snap = try {
-        block()
-    } finally {
-        sign.shutdown()
     }
 
     // Per-collector result → common Snap (distinct sealed types, handled each).

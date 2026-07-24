@@ -128,6 +128,7 @@ class EmailLocalCollector @Inject constructor(
         val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
         val outFile = File(staging, "email-$vendor-$stamp.json")
         val payload = JSONObject().apply {
+            put("schemaVersion", 1)
             put("vendor", vendor)
             put("user", user)
             put("fetchedAt", System.currentTimeMillis())

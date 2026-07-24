@@ -8,6 +8,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -91,6 +92,7 @@ abstract class WebSignBridge(
     @Volatile private var warmCookie: String? = null
     private val warmMutex = Mutex()
     private val evalMutex = Mutex()
+    private val exclusiveSession = ExclusiveWebSignSession(javaClass.simpleName)
 
     @SuppressLint("SetJavaScriptEnabled")
     override suspend fun warmUp(cookie: String): Boolean {
@@ -146,21 +148,27 @@ abstract class WebSignBridge(
     }
 
     override suspend fun signUrl(rawUrl: okhttp3.HttpUrl, purpose: String): okhttp3.HttpUrl? {
-        if (!ready) {
-            Timber.w("WebSignBridge.signUrl called before warmUp — call warmUp(cookie) first")
-            return null
-        }
-        val signed = withTimeoutOrNull(signTimeoutMs) {
-            evalMutex.withLock {
-                evalSignFragment(rawUrl.toString(), purpose)
-            }
-        }
+        val signed = runSerializedSignScript(buildSignScript(rawUrl.toString(), purpose))
         if (signed.isNullOrBlank()) return null
         return appendSignFragment(rawUrl, signed)
     }
 
-    private suspend fun evalSignFragment(rawUrl: String, purpose: String): String? =
-        runJsAndDecode(buildSignScript(rawUrl, purpose))
+    /**
+     * Evaluate one signing script behind the WebView-wide mutex and timeout.
+     * Platform overrides must use this method rather than [runJsAndDecode]
+     * directly so two coroutines cannot interleave signer state.
+     */
+    protected suspend fun runSerializedSignScript(script: String): String? {
+        if (!ready) {
+            Timber.w("WebSignBridge signing requested before warmUp")
+            return null
+        }
+        return withTimeoutOrNull(signTimeoutMs) {
+            evalMutex.withLock {
+                runJsAndDecode(script)
+            }
+        }
+    }
 
     /**
      * Run [script] in the WebView and return the JSON-decoded result.
@@ -168,8 +176,9 @@ abstract class WebSignBridge(
      * a sign-fragment that the base flow appends to the URL) can call
      * this directly — see [com.chainlesschain.android.pdh.social.douyin.DouyinSignBridge].
      *
-     * Caller is responsible for serialization via [evalMutex] if needed.
-     * Returns null on bridge not ready / timeout / evaluateJavascript throw.
+     * Low-level primitive for [runSerializedSignScript]. Platform signers
+     * should not call it directly because it does not acquire [evalMutex].
+     * Returns null when there is no active WebView or JS evaluation throws.
      */
     protected suspend fun runJsAndDecode(script: String): String? =
         withContext(Dispatchers.Main) {
@@ -196,6 +205,36 @@ abstract class WebSignBridge(
             destroyWebView()
         }
     }
+
+    /**
+     * Synchronous coroutine counterpart used by exclusive signing sessions.
+     * Cleanup is non-cancellable and completes on Main before the caller
+     * releases its session lock, preventing a queued destroy from tearing
+     * down the next operation's freshly warmed WebView.
+     */
+    protected suspend fun shutdownAndAwait() {
+        withContext(NonCancellable + Dispatchers.Main.immediate) {
+            destroyWebView()
+        }
+    }
+
+    /**
+     * Serialize a complete warm/sign/fetch/awaited-shutdown lifecycle.
+     *
+     * [requireWarmUp] is false for snapshot collectors that can still emit a
+     * profile or use a documented unsigned fallback. Direct signed queries
+     * should keep it true and surface [WebSignSessionUnavailableException].
+     */
+    protected suspend fun <T> runExclusiveSession(
+        cookie: String,
+        requireWarmUp: Boolean = true,
+        block: suspend () -> T,
+    ): T = exclusiveSession.run(
+        requireWarmUp = requireWarmUp,
+        warmUp = { warmUp(cookie) },
+        shutdown = { shutdownAndAwait() },
+        block = block,
+    )
 
     private fun destroyWebView() {
         webView?.let { wv ->
@@ -229,7 +268,11 @@ abstract class WebSignBridge(
                 try {
                     cookieMgr.setCookie("https://$cleanCookieDomain/", "$pair; Domain=$cookieDomain; Path=/")
                 } catch (t: Throwable) {
-                    Timber.w(t, "WebSignBridge: setCookie failed for %s", pair.take(40))
+                    Timber.w(
+                        t,
+                        "WebSignBridge: setCookie failed for cookie name=%s",
+                        pair.substringBefore('='),
+                    )
                 }
             }
         cookieMgr.flush()

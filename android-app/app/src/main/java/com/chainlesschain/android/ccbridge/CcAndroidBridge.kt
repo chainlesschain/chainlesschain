@@ -256,7 +256,7 @@ object CcAndroidBridge {
         } catch (e: Exception) {
             return errorJson("INTERNAL_ERROR", e.message ?: "")
         }
-        return JSONObject().put("messages", arr).toString()
+        return JSONObject().put("sms", arr).toString()
     }
 
     // ─── calls.query ───────────────────────────────────────────────────────
@@ -290,7 +290,7 @@ object CcAndroidBridge {
                             .put("number", c.getString(1) ?: "")
                             .put("name", c.getString(2) ?: "")
                             .put("date", c.getLong(3))
-                            .put("durationSec", c.getLong(4))
+                            .put("duration", c.getLong(4))
                             .put("type", c.getInt(5))
                     )
                 }

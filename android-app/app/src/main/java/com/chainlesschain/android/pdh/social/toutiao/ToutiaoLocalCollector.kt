@@ -2,6 +2,7 @@ package com.chainlesschain.android.pdh.social.toutiao
 
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -59,6 +60,23 @@ class ToutiaoLocalCollector @Inject constructor(
      */
     var signProvider: com.chainlesschain.android.pdh.social.SignProvider? = null
 
+    /**
+     * Production request-budget/permit hook. It is forwarded before profile
+     * and signed v0.3 requests so every actual source attempt is observable.
+     */
+    var beforeSourceRequest: (suspend (ToutiaoApiClient.SourceRequest) -> Unit)? = null
+
+    data class StreamFailure(
+        val stream: String,
+        val code: Int,
+        val message: String?,
+    )
+
+    data class AcceptLoginResult(
+        val accepted: Boolean,
+        val error: ToutiaoApiClient.ErrorSnapshot = ToutiaoApiClient.ErrorSnapshot(),
+    )
+
     sealed class SnapshotResult {
         data class Ok(
             val snapshotPath: String,
@@ -73,6 +91,7 @@ class ToutiaoLocalCollector @Inject constructor(
             val lastErrorMessage: String? = null,
             /** True if v0.3 endpoints were attempted (signProvider was wired). */
             val v03Attempted: Boolean = false,
+            val streamFailures: List<StreamFailure> = emptyList(),
         ) : SnapshotResult()
 
         object NoCredentials : SnapshotResult()
@@ -87,36 +106,100 @@ class ToutiaoLocalCollector @Inject constructor(
         val cookie = credentialsStore.getCookie() ?: return@withContext SnapshotResult.NoCredentials
         val storedUid = credentialsStore.getUid() ?: return@withContext SnapshotResult.NoCredentials
 
-        val profile = try {
-            apiClient.fetchProfile(cookie)
-        } catch (t: Throwable) {
-            Timber.w(t, "ToutiaoLocalCollector: fetchProfile threw")
-            null
+        val signer = signProvider
+        val requestContext = ToutiaoApiClient.RequestContext(
+            signProvider = signer ?: com.chainlesschain.android.pdh.social.NullSignProvider,
+            beforeSourceRequest = beforeSourceRequest,
+        )
+        val failures = mutableListOf<StreamFailure>()
+        val profile = safelyFetchValue("profile", failures) {
+            apiClient.fetchProfileResult(cookie, requestContext)
         }
 
         // v0.3 — try to warm the sign bridge, then call the three signed
         // endpoints. Each is best-effort: a failure on one doesn't tank the
         // others. ApiClient handles _signature unavailable by returning
         // emptyList with lastErrorCode=-99 (short-circuit, no HTTP issued).
-        val signer = signProvider
-        apiClient.signProvider = signer ?: com.chainlesschain.android.pdh.social.NullSignProvider
         val v03Attempted = signer != null
         var feed: List<ToutiaoApiClient.FeedItem> = emptyList()
         var collection: List<ToutiaoApiClient.CollectionItem> = emptyList()
         var searches: List<ToutiaoApiClient.SearchItem> = emptyList()
-        if (signer != null) {
+        val fetchSignedStreams: suspend () -> Unit = {
+            feed = safelyFetch("feed", failures) {
+                apiClient.fetchFeedResult(cookie, requestContext)
+            }
+            collection = safelyFetch("collection", failures) {
+                apiClient.fetchCollectionResult(cookie, requestContext)
+            }
+            searches = safelyFetch("search-history", failures) {
+                apiClient.fetchSearchHistoryResult(cookie, requestContext)
+            }
+        }
+        if (signer is ToutiaoSignBridge) {
+            try {
+                // Production owns warm-up, all page signs/fetches, and an
+                // awaited shutdown under the bridge's exclusive session.
+                signer.withExclusiveSession(cookie) {
+                    fetchSignedStreams()
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: ToutiaoSignSessionUnavailableException) {
+                failures.add(
+                    StreamFailure(
+                        stream = "signer",
+                        code = ERROR_SIGNER_UNAVAILABLE,
+                        message = e.message,
+                    ),
+                )
+            } catch (t: Throwable) {
+                Timber.w(t, "ToutiaoLocalCollector: exclusive signing session threw")
+                failures.add(
+                    StreamFailure(
+                        stream = "signer",
+                        code = ERROR_SIGNER_UNAVAILABLE,
+                        message = "exclusive signing session threw: " +
+                            (t.message ?: t.javaClass.simpleName),
+                    ),
+                )
+            }
+        } else if (signer != null) {
             // Warm the bridge once — costs ~3-5s the first time, ~0ms subsequent.
             val warm = try {
                 signer.warmUp(cookie)
+            } catch (e: CancellationException) {
+                throw e
             } catch (t: Throwable) {
                 Timber.w(t, "ToutiaoLocalCollector: signProvider.warmUp threw")
+                failures.add(
+                    StreamFailure(
+                        stream = "signer",
+                        code = ERROR_SIGNER_UNAVAILABLE,
+                        message = "signProvider.warmUp threw: ${t.message ?: t.javaClass.simpleName}",
+                    ),
+                )
                 false
             }
             if (warm) {
-                feed = safelyFetch("fetchFeed") { apiClient.fetchFeed(cookie) }
-                collection = safelyFetch("fetchCollection") { apiClient.fetchCollection(cookie) }
-                searches = safelyFetch("fetchSearchHistory") { apiClient.fetchSearchHistory(cookie) }
+                feed = safelyFetch("feed", failures) {
+                    apiClient.fetchFeedResult(cookie, requestContext)
+                }
+                collection = safelyFetch("collection", failures) {
+                    apiClient.fetchCollectionResult(cookie, requestContext)
+                }
+                searches = safelyFetch("search-history", failures) {
+                    apiClient.fetchSearchHistoryResult(cookie, requestContext)
+                }
             } else {
+                if (failures.none { it.stream == "signer" }) {
+                    failures.add(
+                        StreamFailure(
+                            stream = "signer",
+                            code = ERROR_SIGNER_UNAVAILABLE,
+                            message = "signProvider.warmUp returned false",
+                        ),
+                    )
+                }
                 Timber.w("ToutiaoLocalCollector: signProvider.warmUp returned false — skipping v0.3 endpoints")
             }
         }
@@ -206,6 +289,11 @@ class ToutiaoLocalCollector @Inject constructor(
         }
 
         credentialsStore.recordSync(snapshottedAt, total)
+        val aggregateErrorCode = failures.firstOrNull()?.code ?: 0
+        val aggregateErrorMessage = failures.takeIf { it.isNotEmpty() }
+            ?.joinToString("; ") { failure ->
+                "${failure.stream}: ${failure.message ?: "code=${failure.code}"}"
+            }
 
         SnapshotResult.Ok(
             snapshotPath = snapshotFile.absolutePath,
@@ -216,9 +304,10 @@ class ToutiaoLocalCollector @Inject constructor(
             totalEvents = total,
             everythingEmpty = total == 0,
             snapshottedAt = snapshottedAt,
-            lastErrorCode = apiClient.lastErrorCode,
-            lastErrorMessage = apiClient.lastErrorMessage,
+            lastErrorCode = aggregateErrorCode,
+            lastErrorMessage = aggregateErrorMessage,
             v03Attempted = v03Attempted,
+            streamFailures = failures.toList(),
         )
     }
 
@@ -297,13 +386,67 @@ class ToutiaoLocalCollector @Inject constructor(
         credentialsStore.recordSync(System.currentTimeMillis(), eventCount)
     }
 
-    private suspend fun <T> safelyFetch(label: String, block: suspend () -> List<T>): List<T> {
+    private suspend fun <T> safelyFetch(
+        label: String,
+        failures: MutableList<StreamFailure>,
+        block: suspend () -> ToutiaoApiClient.FetchResult<List<T>>,
+    ): List<T> {
         return try {
-            block()
+            val result = block()
+            captureClientFailure(label, failures, result.error)
+            result.value
+        } catch (e: CancellationException) {
+            throw e
         } catch (t: Throwable) {
             Timber.w(t, "ToutiaoLocalCollector: %s threw", label)
+            failures.add(
+                StreamFailure(
+                    stream = label,
+                    code = ERROR_STREAM_EXCEPTION,
+                    message = t.message ?: t.javaClass.simpleName,
+                ),
+            )
             emptyList()
         }
+    }
+
+    private suspend fun <T> safelyFetchValue(
+        label: String,
+        failures: MutableList<StreamFailure>,
+        block: suspend () -> ToutiaoApiClient.FetchResult<T?>,
+    ): T? {
+        return try {
+            val result = block()
+            captureClientFailure(label, failures, result.error)
+            result.value
+        } catch (e: CancellationException) {
+            throw e
+        } catch (t: Throwable) {
+            Timber.w(t, "ToutiaoLocalCollector: %s threw", label)
+            failures.add(
+                StreamFailure(
+                    stream = label,
+                    code = ERROR_STREAM_EXCEPTION,
+                    message = t.message ?: t.javaClass.simpleName,
+                ),
+            )
+            null
+        }
+    }
+
+    private fun captureClientFailure(
+        label: String,
+        failures: MutableList<StreamFailure>,
+        error: ToutiaoApiClient.ErrorSnapshot,
+    ) {
+        if (error.code == 0) return
+        failures.add(
+            StreamFailure(
+                stream = label,
+                code = error.code,
+                message = error.message,
+            ),
+        )
     }
 
     /**
@@ -313,12 +456,27 @@ class ToutiaoLocalCollector @Inject constructor(
      *
      * 返 false = cookie 不含可识别 uid (登录未完成 / 仅游客态)，上层 surface 引导。
      */
-    suspend fun acceptLoginCookie(cookie: String, displayName: String? = null): Boolean {
-        val uid = apiClient.extractUid(cookie) ?: return false
+    suspend fun acceptLoginCookie(cookie: String, displayName: String? = null): Boolean =
+        acceptLoginCookieResult(cookie, displayName).accepted
+
+    suspend fun acceptLoginCookieResult(
+        cookie: String,
+        displayName: String? = null,
+    ): AcceptLoginResult {
+        val requestContext = ToutiaoApiClient.RequestContext(
+            signProvider = signProvider
+                ?: com.chainlesschain.android.pdh.social.NullSignProvider,
+            beforeSourceRequest = beforeSourceRequest,
+        )
+        val uidResult = apiClient.extractUidResult(cookie)
+        val uid = uidResult.value
+            ?: return AcceptLoginResult(accepted = false, error = uidResult.error)
         val profile = try {
-            apiClient.fetchProfile(cookie)
+            apiClient.fetchProfileResult(cookie, requestContext).value
+        } catch (e: CancellationException) {
+            throw e
         } catch (t: Throwable) {
-            Timber.w(t, "ToutiaoLocalCollector.acceptLoginCookie: fetchProfile threw")
+            Timber.w(t, "ToutiaoLocalCollector.acceptLoginCookieResult: fetchProfile threw")
             null
         }
         credentialsStore.saveCredentials(
@@ -326,14 +484,17 @@ class ToutiaoLocalCollector @Inject constructor(
             uid = profile?.uid ?: uid,
             displayName = profile?.nickname ?: displayName,
         )
-        return true
+        return AcceptLoginResult(accepted = true)
     }
 
     fun logout() {
         credentialsStore.clear()
     }
 
+    @Deprecated("Use acceptLoginCookieResult().error for a request-local diagnostic")
     val lastLoginErrorCode: Int get() = apiClient.lastErrorCode
+
+    @Deprecated("Use acceptLoginCookieResult().error for a request-local diagnostic")
     val lastLoginErrorMessage: String? get() = apiClient.lastErrorMessage
 
     companion object {
@@ -342,5 +503,7 @@ class ToutiaoLocalCollector @Inject constructor(
          * Bump in lockstep — verify with grep across the two files.
          */
         const val SNAPSHOT_SCHEMA_VERSION = 1
+        private const val ERROR_SIGNER_UNAVAILABLE = -99
+        private const val ERROR_STREAM_EXCEPTION = -500
     }
 }

@@ -73,6 +73,21 @@ class KuaishouLocalCollector @Inject constructor(
         data class Failed(val reason: String) : SnapshotResult()
     }
 
+    /**
+     * Production entry point for WebView-signed snapshots. The bridge owns
+     * one exclusive warm/fetch/awaited-shutdown session across all streams.
+     */
+    suspend fun snapshotWithExclusiveSession(
+        signBridge: KuaishouSignBridge,
+    ): SnapshotResult {
+        val cookie = credentialsStore.getCookie()?.takeIf { it.isNotBlank() }
+            ?: return SnapshotResult.NoCredentials
+        signProvider = signBridge
+        return signBridge.withExclusiveSession(cookie, requireWarmUp = false) {
+            snapshot()
+        }
+    }
+
     suspend fun snapshot(): SnapshotResult = withContext(Dispatchers.IO) {
         if (!credentialsStore.hasCredentials()) {
             return@withContext SnapshotResult.NoCredentials

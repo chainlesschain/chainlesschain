@@ -204,7 +204,8 @@ object CcAndroidBridgeServer {
                 "caps" -> CcAndroidBridge.caps()
                 "contacts.query" -> CcAndroidBridge.queryContacts(params.optLong("since", 0L))
                 "sms.query" -> CcAndroidBridge.querySms(params.optLong("since", 0L))
-                "calls.query" -> CcAndroidBridge.queryCalls(params.optLong("since", 0L))
+                "call.query", "calls.query" ->
+                    CcAndroidBridge.queryCalls(params.optLong("since", 0L))
                 "app.list" -> CcAndroidBridge.listApps(params.optBoolean("includeSystem", false))
                 "app.launch" -> CcAndroidBridge.launchApp(params.optString("pkg"))
                 "app.intent" -> CcAndroidBridge.fireIntent(

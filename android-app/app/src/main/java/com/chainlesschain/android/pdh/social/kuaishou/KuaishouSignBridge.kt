@@ -1,11 +1,13 @@
 package com.chainlesschain.android.pdh.social.kuaishou
 
 import android.content.Context
+import com.chainlesschain.android.pdh.social.SignProvider
 import com.chainlesschain.android.pdh.social.WebSignBridge
 import dagger.hilt.android.qualifiers.ApplicationContext
 import okhttp3.HttpUrl
 import org.json.JSONObject
 import timber.log.Timber
+import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -47,8 +49,13 @@ class KuaishouSignBridge @Inject constructor(
      */
     override val postLoadDelayMs: Long = 3000L
 
-    @Volatile private var lastRawUrl: HttpUrl? = null
-    @Volatile private var lastHeaders: Map<String, String> = emptyMap()
+    private data class LegacySignCache(
+        val rawUrl: HttpUrl,
+        val purpose: String,
+        val headers: Map<String, String>,
+    )
+
+    private val legacySignCache = AtomicReference<LegacySignCache?>(null)
 
     override fun buildSignScript(rawUrl: String, purpose: String): String {
         // purpose carries "<queryName>|<bodyJson>" — split + pass to signer.
@@ -92,10 +99,12 @@ class KuaishouSignBridge @Inject constructor(
         """.trimIndent()
     }
 
-    override suspend fun signUrl(rawUrl: HttpUrl, purpose: String): HttpUrl? {
-        val rawResult = runJsAndDecode(buildSignScript(rawUrl.toString(), purpose)) ?: run {
-            lastRawUrl = rawUrl
-            lastHeaders = emptyMap()
+    override suspend fun signRequest(
+        rawUrl: HttpUrl,
+        purpose: String,
+    ): SignProvider.SignedRequest? {
+        val rawResult = runSerializedSignScript(buildSignScript(rawUrl.toString(), purpose)) ?: run {
+            legacySignCache.set(LegacySignCache(rawUrl, purpose, emptyMap()))
             return null
         }
         val parsed = try {
@@ -119,23 +128,40 @@ class KuaishouSignBridge @Inject constructor(
             kpn = "KUAISHOU_VISION"
         }
         if (sigValue.isNullOrBlank()) {
-            Timber.w("KuaishouSignBridge: sign result missing __NS_sig3; raw=%s", rawResult.take(120))
-            lastRawUrl = rawUrl
-            lastHeaders = emptyMap()
+            Timber.w(
+                "KuaishouSignBridge: sign result missing __NS_sig3 (resultLength=%d)",
+                rawResult.length,
+            )
+            legacySignCache.set(LegacySignCache(rawUrl, purpose, emptyMap()))
             return null
         }
         val signedUrl = rawUrl.newBuilder().addQueryParameter("__NS_sig3", sigValue).build()
-        lastRawUrl = rawUrl
-        lastHeaders = mapOf(
+        val headers = mapOf(
             "kpf" to (kpf ?: "PC_WEB"),
             "kpn" to (kpn ?: "KUAISHOU_VISION"),
         )
-        return signedUrl
+        legacySignCache.set(LegacySignCache(rawUrl, purpose, headers))
+        return SignProvider.SignedRequest(signedUrl, headers)
+    }
+
+    override suspend fun signUrl(rawUrl: HttpUrl, purpose: String): HttpUrl? {
+        return signRequest(rawUrl, purpose)?.url
     }
 
     override suspend fun signedHeaders(rawUrl: HttpUrl, purpose: String): Map<String, String> {
-        return if (rawUrl == lastRawUrl) lastHeaders else emptyMap()
+        val cached = legacySignCache.get()
+        return if (rawUrl == cached?.rawUrl && purpose == cached.purpose) {
+            cached.headers
+        } else {
+            emptyMap()
+        }
     }
+
+    suspend fun <T> withExclusiveSession(
+        cookie: String,
+        requireWarmUp: Boolean = true,
+        block: suspend () -> T,
+    ): T = runExclusiveSession(cookie, requireWarmUp, block)
 
     private fun JSONObject.optStringOrNull(key: String): String? {
         if (!has(key) || isNull(key)) return null

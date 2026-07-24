@@ -1,11 +1,13 @@
 package com.chainlesschain.android.pdh.social.xiaohongshu
 
 import android.content.Context
+import com.chainlesschain.android.pdh.social.SignProvider
 import com.chainlesschain.android.pdh.social.WebSignBridge
 import dagger.hilt.android.qualifiers.ApplicationContext
 import okhttp3.HttpUrl
 import org.json.JSONObject
 import timber.log.Timber
+import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -49,8 +51,13 @@ class XhsSignBridge @Inject constructor(
      */
     override val postLoadDelayMs: Long = 2500L
 
-    @Volatile private var lastRawUrl: HttpUrl? = null
-    @Volatile private var lastHeaders: Map<String, String> = emptyMap()
+    private data class LegacySignCache(
+        val rawUrl: HttpUrl,
+        val purpose: String,
+        val headers: Map<String, String>,
+    )
+
+    private val legacySignCache = AtomicReference<LegacySignCache?>(null)
 
     /**
      * Encode purpose as `"<pathWithQuery>|<bodyJsonOrEmpty>"` so the signing
@@ -102,13 +109,14 @@ class XhsSignBridge @Inject constructor(
 
     /**
      * For xhs, the URL is unchanged by signing — all signature data goes
-     * into HEADERS. We return rawUrl identity as a "signing succeeded"
-     * sentinel and stash the headers for [signedHeaders] to serve.
+     * into HEADERS. Return both from the same serialized JS evaluation.
      */
-    override suspend fun signUrl(rawUrl: HttpUrl, purpose: String): HttpUrl? {
-        val rawResult = runJsAndDecode(buildSignScript(rawUrl.toString(), purpose)) ?: run {
-            lastRawUrl = rawUrl
-            lastHeaders = emptyMap()
+    override suspend fun signRequest(
+        rawUrl: HttpUrl,
+        purpose: String,
+    ): SignProvider.SignedRequest? {
+        val rawResult = runSerializedSignScript(buildSignScript(rawUrl.toString(), purpose)) ?: run {
+            legacySignCache.set(LegacySignCache(rawUrl, purpose, emptyMap()))
             return null
         }
         val parsed = try {
@@ -139,9 +147,11 @@ class XhsSignBridge @Inject constructor(
             xsCommon = null
         }
         if (xs.isNullOrBlank() || xt.isNullOrBlank()) {
-            Timber.w("XhsSignBridge: sign result missing X-s/X-t; raw=%s", rawResult.take(200))
-            lastRawUrl = rawUrl
-            lastHeaders = emptyMap()
+            Timber.w(
+                "XhsSignBridge: sign result missing X-s/X-t (resultLength=%d)",
+                rawResult.length,
+            )
+            legacySignCache.set(LegacySignCache(rawUrl, purpose, emptyMap()))
             return null
         }
         val headers = buildMap<String, String> {
@@ -149,14 +159,29 @@ class XhsSignBridge @Inject constructor(
             put("X-t", xt)
             if (!xsCommon.isNullOrBlank()) put("X-s-common", xsCommon)
         }
-        lastRawUrl = rawUrl
-        lastHeaders = headers
-        return rawUrl
+        val immutableHeaders = headers.toMap()
+        legacySignCache.set(LegacySignCache(rawUrl, purpose, immutableHeaders))
+        return SignProvider.SignedRequest(rawUrl, immutableHeaders)
+    }
+
+    override suspend fun signUrl(rawUrl: HttpUrl, purpose: String): HttpUrl? {
+        return signRequest(rawUrl, purpose)?.url
     }
 
     override suspend fun signedHeaders(rawUrl: HttpUrl, purpose: String): Map<String, String> {
-        return if (rawUrl == lastRawUrl) lastHeaders else emptyMap()
+        val cached = legacySignCache.get()
+        return if (rawUrl == cached?.rawUrl && purpose == cached.purpose) {
+            cached.headers
+        } else {
+            emptyMap()
+        }
     }
+
+    suspend fun <T> withExclusiveSession(
+        cookie: String,
+        requireWarmUp: Boolean = true,
+        block: suspend () -> T,
+    ): T = runExclusiveSession(cookie, requireWarmUp, block)
 
     private fun JSONObject.optStringOrNull(key: String): String? {
         if (!has(key) || isNull(key)) return null

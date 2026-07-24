@@ -34,6 +34,8 @@ class ToutiaoSignBridge @Inject constructor(
     @ApplicationContext context: Context,
 ) : WebSignBridge(context) {
 
+    private val exclusiveSession = ToutiaoExclusiveSignSession()
+
     override val homepageUrl: String = "https://www.toutiao.com/"
 
     // Leading dot enables matching for www.toutiao.com / sf.toutiao.com /
@@ -109,6 +111,20 @@ class ToutiaoSignBridge @Inject constructor(
         val rebuilt = rawUrl.newBuilder().addQueryParameter("_signature", sig).build()
         return rebuilt
     }
+
+    /**
+     * Own the complete warm/sign/fetch/shutdown lifecycle for one caller.
+     * Sessions are exclusive because the injected bridge is a singleton and
+     * WebView signing state cannot be shared safely across independent jobs.
+     */
+    suspend fun <T> withExclusiveSession(
+        cookie: String,
+        block: suspend () -> T,
+    ): T = exclusiveSession.run(
+        warmUp = { warmUp(cookie) },
+        shutdown = { shutdownAndAwait() },
+        block = block,
+    )
 
     companion object {
         const val AID_TOUTIAO_WEB = "24"

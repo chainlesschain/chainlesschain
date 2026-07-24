@@ -24,6 +24,7 @@ import com.chainlesschain.android.pdh.social.douyin.DouyinCredentialsStore
 import com.chainlesschain.android.pdh.social.douyin.DouyinLocalCollector
 import com.chainlesschain.android.pdh.social.kuaishou.KuaishouCredentialsStore
 import com.chainlesschain.android.pdh.social.kuaishou.KuaishouLocalCollector
+import com.chainlesschain.android.pdh.social.toutiao.ToutiaoApiClient
 import com.chainlesschain.android.pdh.social.toutiao.ToutiaoCredentialsStore
 import com.chainlesschain.android.pdh.social.toutiao.ToutiaoLocalCollector
 import com.chainlesschain.android.pdh.social.toutiao.ToutiaoSignBridge
@@ -213,8 +214,6 @@ class HubLocalViewModelTest {
         every { toutiaoCredentials.getDisplayName() } returns null
         every { toutiaoCredentials.getLastSyncAt() } returns null
         every { toutiaoCredentials.getLastSyncCount() } returns 0
-        every { toutiaoCollector.lastLoginErrorCode } returns 0
-        every { toutiaoCollector.lastLoginErrorMessage } returns null
         // Phase 7.1.2 — Mode B path B mocks. Default: hasCredentials=false
         // so syncToutiaoRoot short-circuits cleanly without hitting su.
         toutiaoRootCollector = mockk(relaxed = true)
@@ -1831,14 +1830,16 @@ class HubLocalViewModelTest {
 
         assertNotNull(vm.state.value.pendingLogin)
         assertEquals("social-douyin", vm.state.value.pendingLogin!!.adapterName)
-        io.mockk.coVerify(exactly = 0) { douyinCollector.snapshot() }
+        io.mockk.coVerify(exactly = 0) {
+            douyinCollector.snapshotWithExclusiveSession(any())
+        }
     }
 
     @Test
     fun `syncDouyin NoCredentials path surfaces 未登录 error`() = runTest(testDispatcher) {
         every { douyinCredentials.hasCredentials() } returns true
         every { douyinCredentials.getSecUid() } returns "MS4wLjABAAAA"
-        coEvery { douyinCollector.snapshot() } returns
+        coEvery { douyinCollector.snapshotWithExclusiveSession(any()) } returns
             DouyinLocalCollector.SnapshotResult.NoCredentials
 
         val vm = newVm()
@@ -1856,7 +1857,7 @@ class HubLocalViewModelTest {
     fun `syncDouyin everythingEmpty path surfaces token expired hint`() = runTest(testDispatcher) {
         every { douyinCredentials.hasCredentials() } returns true
         every { douyinCredentials.getSecUid() } returns "MS4wLjABAAAA"
-        coEvery { douyinCollector.snapshot() } returns
+        coEvery { douyinCollector.snapshotWithExclusiveSession(any()) } returns
             DouyinLocalCollector.SnapshotResult.Ok(
                 snapshotPath = "/tmp/douyin-empty.json",
                 profileCount = 0,
@@ -1882,7 +1883,7 @@ class HubLocalViewModelTest {
         every { douyinCredentials.hasCredentials() } returns true
         every { douyinCredentials.getSecUid() } returns "MS4wLjABAAAA"
         val syncAt = 1716000000000L
-        coEvery { douyinCollector.snapshot() } returns
+        coEvery { douyinCollector.snapshotWithExclusiveSession(any()) } returns
             DouyinLocalCollector.SnapshotResult.Ok(
                 snapshotPath = "/tmp/douyin-snap.json",
                 profileCount = 1,
@@ -1919,7 +1920,7 @@ class HubLocalViewModelTest {
     fun `syncDouyin ccRunner Failed surfaces error`() = runTest(testDispatcher) {
         every { douyinCredentials.hasCredentials() } returns true
         every { douyinCredentials.getSecUid() } returns "MS4wLjABAAAA"
-        coEvery { douyinCollector.snapshot() } returns
+        coEvery { douyinCollector.snapshotWithExclusiveSession(any()) } returns
             DouyinLocalCollector.SnapshotResult.Ok(
                 snapshotPath = "/tmp/douyin-snap.json",
                 profileCount = 1,
@@ -4054,27 +4055,41 @@ class HubLocalViewModelTest {
 
     @Test
     fun `onToutiaoLoginCookie success persists + refreshes`() = runTest(testDispatcher) {
-        coEvery { toutiaoCollector.acceptLoginCookie(any(), any()) } returns true
+        coEvery {
+            toutiaoCollector.acceptLoginCookieResult(any(), any())
+        } returns ToutiaoLocalCollector.AcceptLoginResult(accepted = true)
         every { toutiaoCredentials.hasCredentials() } returnsMany listOf(false, true)
         every { toutiaoCredentials.getUid() } returnsMany listOf(null, "99999")
         val vm = newVm()
         advanceUntilIdle()
+        val cookie = "passport_uid=99999; tt_webid=abc"
         vm.requestToutiaoLogin()
-        vm.onToutiaoLoginCookie("passport_uid=99999; tt_webid=abc")
+        vm.onToutiaoLoginCookie(cookie)
         advanceUntilIdle()
         val s = vm.state.value.toutiao
         assertTrue(s.isLoggedIn)
         assertEquals(99_999L, s.uid)
         assertNull(s.errorMessage)
         assertNull(vm.state.value.pendingLogin)
+        coVerify(exactly = 1) {
+            toutiaoCollector.acceptLoginCookieResult(cookie, null)
+        }
     }
 
     @Test
-    fun `onToutiaoLoginCookie acceptance failure surfaces login incomplete error`() =
+    fun `onToutiaoLoginCookie uses request-local error and redacts raw detail`() =
         runTest(testDispatcher) {
-            coEvery { toutiaoCollector.acceptLoginCookie(any(), any()) } returns false
-            every { toutiaoCollector.lastLoginErrorCode } returns -7
-            every { toutiaoCollector.lastLoginErrorMessage } returns "cookie 缺 passport_uid"
+            val privateDetail = "passport_uid=12345; mobile=13800000000"
+            coEvery {
+                toutiaoCollector.acceptLoginCookieResult(any(), any())
+            } returns
+                ToutiaoLocalCollector.AcceptLoginResult(
+                    accepted = false,
+                    error = ToutiaoApiClient.ErrorSnapshot(
+                        code = -7,
+                        message = "cookie 缺 $privateDetail",
+                    ),
+                )
             val vm = newVm()
             advanceUntilIdle()
             vm.requestToutiaoLogin()
@@ -4083,7 +4098,15 @@ class HubLocalViewModelTest {
             val s = vm.state.value.toutiao
             assertFalse(s.isLoggedIn)
             assertTrue(s.errorMessage!!.contains("登录未完成"))
-            assertTrue(s.errorMessage!!.contains("passport_uid"))
+            assertTrue(s.errorMessage!!.contains("code=-7"))
+            assertTrue(s.errorMessage!!.contains("未检测到有效登录账号"))
+            assertFalse(s.errorMessage!!.contains("passport_uid"))
+            assertFalse(s.errorMessage!!.contains("13800000000"))
+            coVerify(exactly = 1) {
+                toutiaoCollector.acceptLoginCookieResult("tt_webid=anon-only", null)
+            }
+            verify(exactly = 0) { toutiaoCollector.lastLoginErrorCode }
+            verify(exactly = 0) { toutiaoCollector.lastLoginErrorMessage }
         }
 
     @Test
@@ -4133,6 +4156,205 @@ class HubLocalViewModelTest {
             assertTrue(s.errorMessage!!.contains("v0.2"))
             assertTrue(s.errorMessage!!.contains("v0.3"))
             assertTrue(s.errorMessage!!.contains("_signature"))
+            assertNull(vm.state.value.globalSyncingAdapter)
+        }
+
+    @Test
+    fun `syncToutiao partial v0_3 success without profile keeps counts and redacts details`() =
+        runTest(testDispatcher) {
+            every { toutiaoCredentials.hasCredentials() } returns true
+            every { toutiaoCredentials.getUid() } returns "12345"
+            val privateDetail = "passport_uid=987654321; email=private@example.com"
+            coEvery { toutiaoCollector.snapshot() } returns
+                ToutiaoLocalCollector.SnapshotResult.Ok(
+                    snapshotPath = "/tmp/social-toutiao.json",
+                    profileCount = 0,
+                    readCount = 2,
+                    collectionCount = 1,
+                    searchCount = 0,
+                    totalEvents = 3,
+                    everythingEmpty = false,
+                    snapshottedAt = 1_700_000_000_000L,
+                    lastErrorCode = 429,
+                    lastErrorMessage = "search-history: $privateDetail",
+                    v03Attempted = true,
+                    streamFailures = listOf(
+                        ToutiaoLocalCollector.StreamFailure(
+                            stream = "search-history",
+                            code = 429,
+                            message = privateDetail,
+                        ),
+                        ToutiaoLocalCollector.StreamFailure(
+                            stream = "unknown-$privateDetail",
+                            code = -500,
+                            message = "request failed for $privateDetail",
+                        ),
+                    ),
+                )
+            coEvery {
+                ccRunner.syncAdapter(
+                    adapterName = "social-toutiao",
+                    inputPath = any(),
+                )
+            } returns
+                LocalCcRunner.CcResult.Ok(
+                    report = LocalCcRunner.SyncReport(
+                        adapter = "social-toutiao",
+                        status = "ok",
+                        ingested = 3,
+                        invalidCount = 0,
+                        kgTriples = 0,
+                        ragDocs = 0,
+                        durationMs = 100L,
+                        error = null,
+                    ),
+                    rawJson = "{}",
+                )
+
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncToutiao()
+            advanceUntilIdle()
+
+            val state = vm.state.value.toutiao
+            val banner = state.errorMessage.orEmpty()
+            assertFalse(state.isSyncing)
+            assertEquals(1_700_000_000_000L, state.lastSyncAt)
+            assertEquals(3, state.lastSyncCount)
+            assertTrue(banner.contains("profile 未获取"))
+            assertFalse(banner.contains("已同步 profile"))
+            assertTrue(banner.contains("2 推荐 / 1 收藏 / 0 搜索"))
+            assertTrue(banner.contains("部分数据流失败"))
+            assertTrue(banner.contains("搜索(code=429)"))
+            assertTrue(banner.contains("数据流(code=-500)"))
+            assertTrue(banner.contains("详细错误已隐藏"))
+            assertFalse(banner.contains("passport_uid"))
+            assertFalse(banner.contains("private@example.com"))
+            assertNull(vm.state.value.globalSyncingAdapter)
+        }
+
+    @Test
+    fun `syncToutiao clean empty v0_3 reports success without bridge error`() =
+        runTest(testDispatcher) {
+            every { toutiaoCredentials.hasCredentials() } returns true
+            every { toutiaoCredentials.getUid() } returns "12345"
+            coEvery { toutiaoCollector.snapshot() } returns
+                ToutiaoLocalCollector.SnapshotResult.Ok(
+                    snapshotPath = "/tmp/social-toutiao.json",
+                    profileCount = 1,
+                    readCount = 0,
+                    collectionCount = 0,
+                    searchCount = 0,
+                    totalEvents = 1,
+                    everythingEmpty = false,
+                    snapshottedAt = 1_700_000_000_000L,
+                    lastErrorCode = 0,
+                    lastErrorMessage = null,
+                    v03Attempted = true,
+                    streamFailures = emptyList(),
+                )
+            coEvery {
+                ccRunner.syncAdapter(
+                    adapterName = "social-toutiao",
+                    inputPath = any(),
+                )
+            } returns
+                LocalCcRunner.CcResult.Ok(
+                    report = LocalCcRunner.SyncReport(
+                        adapter = "social-toutiao",
+                        status = "ok",
+                        ingested = 1,
+                        invalidCount = 0,
+                        kgTriples = 0,
+                        ragDocs = 0,
+                        durationMs = 100L,
+                        error = null,
+                    ),
+                    rawJson = "{}",
+                )
+
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncToutiao()
+            advanceUntilIdle()
+
+            val state = vm.state.value.toutiao
+            val banner = state.errorMessage.orEmpty()
+            assertFalse(state.isSyncing)
+            assertEquals(1_700_000_000_000L, state.lastSyncAt)
+            assertEquals(1, state.lastSyncCount)
+            assertTrue(banner.contains("已同步账号 profile"))
+            assertTrue(banner.contains("签名数据流同步成功"))
+            assertTrue(banner.contains("本次无历史/收藏/搜索记录"))
+            assertFalse(banner.contains("bridge"))
+            assertFalse(banner.contains("未就绪"))
+            assertFalse(banner.contains("code=0"))
+            assertFalse(banner.contains("同步失败"))
+            assertNull(vm.state.value.globalSyncingAdapter)
+        }
+
+    @Test
+    fun `syncToutiao all zero with profile failure does not claim profile success`() =
+        runTest(testDispatcher) {
+            every { toutiaoCredentials.hasCredentials() } returns true
+            every { toutiaoCredentials.getUid() } returns "12345"
+            val privateDetail = "passport_uid=12345; mobile=13800000000"
+            coEvery { toutiaoCollector.snapshot() } returns
+                ToutiaoLocalCollector.SnapshotResult.Ok(
+                    snapshotPath = "/tmp/social-toutiao.json",
+                    profileCount = 0,
+                    readCount = 0,
+                    collectionCount = 0,
+                    searchCount = 0,
+                    totalEvents = 0,
+                    everythingEmpty = true,
+                    snapshottedAt = 1_700_000_000_000L,
+                    lastErrorCode = 401,
+                    lastErrorMessage = "profile: $privateDetail",
+                    v03Attempted = true,
+                    streamFailures = listOf(
+                        ToutiaoLocalCollector.StreamFailure(
+                            stream = "profile",
+                            code = 401,
+                            message = privateDetail,
+                        ),
+                    ),
+                )
+            coEvery {
+                ccRunner.syncAdapter(
+                    adapterName = "social-toutiao",
+                    inputPath = any(),
+                )
+            } returns
+                LocalCcRunner.CcResult.Ok(
+                    report = LocalCcRunner.SyncReport(
+                        adapter = "social-toutiao",
+                        status = "ok",
+                        ingested = 0,
+                        invalidCount = 0,
+                        kgTriples = 0,
+                        ragDocs = 0,
+                        durationMs = 100L,
+                        error = null,
+                    ),
+                    rawJson = "{}",
+                )
+
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncToutiao()
+            advanceUntilIdle()
+
+            val state = vm.state.value.toutiao
+            val banner = state.errorMessage.orEmpty()
+            assertFalse(state.isSyncing)
+            assertEquals(0, state.lastSyncCount)
+            assertTrue(banner.contains("profile 未获取"))
+            assertFalse(banner.contains("已同步账号 profile"))
+            assertTrue(banner.contains("profile(code=401)"))
+            assertTrue(banner.contains("详细错误已隐藏"))
+            assertFalse(banner.contains("passport_uid"))
+            assertFalse(banner.contains("13800000000"))
             assertNull(vm.state.value.globalSyncingAdapter)
         }
 
@@ -4359,7 +4581,9 @@ class HubLocalViewModelTest {
             vm.syncKuaishou()
             advanceUntilIdle()
             assertNotNull(vm.state.value.pendingLogin)
-            coVerify(exactly = 0) { kuaishouCollector.snapshot() }
+            coVerify(exactly = 0) {
+                kuaishouCollector.snapshotWithExclusiveSession(any())
+            }
         }
 
     @Test
@@ -4367,7 +4591,7 @@ class HubLocalViewModelTest {
         runTest(testDispatcher) {
             every { kuaishouCredentials.hasCredentials() } returns true
             every { kuaishouCredentials.getUid() } returns "98765"
-            coEvery { kuaishouCollector.snapshot() } returns
+            coEvery { kuaishouCollector.snapshotWithExclusiveSession(any()) } returns
                 KuaishouLocalCollector.SnapshotResult.Ok(
                     snapshotPath = "/tmp/social-kuaishou.json",
                     profileCount = 1,
@@ -4405,7 +4629,7 @@ class HubLocalViewModelTest {
     fun `syncKuaishou Failed surfaces reason`() = runTest(testDispatcher) {
         every { kuaishouCredentials.hasCredentials() } returns true
         every { kuaishouCredentials.getUid() } returns "98765"
-        coEvery { kuaishouCollector.snapshot() } returns
+        coEvery { kuaishouCollector.snapshotWithExclusiveSession(any()) } returns
             KuaishouLocalCollector.SnapshotResult.Failed("write failed: disk full")
         val vm = newVm()
         advanceUntilIdle()
