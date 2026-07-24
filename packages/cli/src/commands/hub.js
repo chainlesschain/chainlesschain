@@ -444,7 +444,6 @@ async function cmdRepl(options = {}) {
     if (processing) return;
     processing = true;
     while (queue.length) {
-       
       await answerOne(queue.shift());
     }
     processing = false;
