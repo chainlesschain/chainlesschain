@@ -145,9 +145,16 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:get-tasks", async (_event, params) => {
     try {
+      if (params.boardId) {
+        const { getTeamTaskManager } = require("./team-task-manager");
+        const manager = getTeamTaskManager(resolveDatabase(database));
+        return await manager.getTasks(params.boardId, params.options || {});
+      }
+
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
-      return await manager.getTasks(params.boardId, params.options || {});
+      const tasks = await manager.getTasks(params.options || params.filters || {});
+      return { success: true, tasks };
     } catch (error) {
       logger.error("[IPC] task:get-tasks failed:", error);
       throw error;
@@ -263,6 +270,17 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:delete-task", async (_event, params) => {
     try {
+      const db = resolveDatabase(database).getDatabase();
+      const isTeamTask = db
+        .prepare("SELECT id FROM team_tasks WHERE id = ?")
+        .get(params.taskId);
+
+      if (isTeamTask) {
+        const { getTeamTaskManager } = require("./team-task-manager");
+        const manager = getTeamTaskManager(resolveDatabase(database));
+        return await manager.deleteTask(params.taskId);
+      }
+
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
       return await manager.deleteTask(params.taskId);

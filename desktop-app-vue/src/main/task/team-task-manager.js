@@ -113,6 +113,92 @@ class TeamTaskManager {
   }
 
   /**
+   * Get all team tasks for a board.
+   */
+  async getTasks(boardId, options = {}) {
+    try {
+      const db = this.database.getDatabase();
+      let sql = `
+        SELECT * FROM team_tasks
+        WHERE board_id = ?
+      `;
+      const params = [boardId];
+
+      if (options.columnId) {
+        sql += ' AND column_id = ?';
+        params.push(options.columnId);
+      }
+      if (options.status) {
+        sql += ' AND status = ?';
+        params.push(options.status);
+      }
+      if (options.priority) {
+        sql += ' AND priority = ?';
+        params.push(options.priority);
+      }
+      if (options.assigneeDid) {
+        sql += ' AND assignee_did = ?';
+        params.push(options.assigneeDid);
+      }
+      if (options.sprintId) {
+        sql += ' AND sprint_id = ?';
+        params.push(options.sprintId);
+      }
+
+      sql += ' ORDER BY position ASC, created_at DESC';
+
+      if (Number.isInteger(options.limit) && options.limit > 0) {
+        sql += ' LIMIT ?';
+        params.push(options.limit);
+
+        if (Number.isInteger(options.offset) && options.offset >= 0) {
+          sql += ' OFFSET ?';
+          params.push(options.offset);
+        }
+      }
+
+      const tasks = db.prepare(sql).all(...params).map((task) => {
+        let labels = [];
+        try {
+          labels = task.labels ? JSON.parse(task.labels) : [];
+        } catch (_error) {
+          labels = [];
+        }
+
+        return {
+          id: task.id,
+          boardId: task.board_id,
+          columnId: task.column_id,
+          title: task.title,
+          description: task.description,
+          priority: task.priority,
+          status: task.status,
+          taskType: task.task_type,
+          parentTaskId: task.parent_task_id,
+          assigneeDid: task.assignee_did,
+          reporterDid: task.reporter_did,
+          dueDate: task.due_date,
+          startDate: task.start_date,
+          storyPoints: task.story_points,
+          estimatedHours: task.estimated_hours,
+          actualHours: task.actual_hours,
+          labels,
+          position: task.position,
+          sprintId: task.sprint_id,
+          createdAt: task.created_at,
+          updatedAt: task.updated_at,
+          completedAt: task.completed_at
+        };
+      });
+
+      return { success: true, tasks };
+    } catch (error) {
+      logger.error('[TeamTaskManager] Get tasks failed:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Update a task
    */
   async updateTask(taskId, updates, actorDid) {
