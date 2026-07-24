@@ -12,7 +12,14 @@ const {
 describe("PDH categories taxonomy", () => {
   it("CATEGORIES covers the 8 known buckets and is frozen", () => {
     expect(CATEGORIES).toEqual([
-      "chat", "social", "email", "shopping", "travel", "system", "ai-chat", "other",
+      "chat",
+      "social",
+      "email",
+      "shopping",
+      "travel",
+      "system",
+      "ai-chat",
+      "other",
     ]);
     expect(Object.isFrozen(CATEGORIES)).toBe(true);
   });
@@ -51,6 +58,17 @@ describe("PDH categories taxonomy", () => {
     ["system-data", "system"],
     ["system-data-android", "system"],
     ["browser-history-chrome", "system"],
+    ["browser-history-brave", "system"],
+    ["browser-history-opera", "system"],
+    ["browser-history-vivaldi", "system"],
+    ["browser-history-safari", "system"],
+    ["browser-history-firefox", "system"],
+    ["meeting-tencent", "system"],
+    ["vscodium", "system"],
+    ["jetbrains-ide", "system"],
+    ["hbuilderx", "system"],
+    ["cursor", "ai-chat"],
+    ["claude-code", "ai-chat"],
     ["ai-chat-history", "ai-chat"],
     ["ai-chat-deepseek", "ai-chat"],
   ])("getCategory(%s) → %s", (adapter, cat) => {

@@ -16,14 +16,18 @@ middleware.
 > Ollama / Volcengine / Anthropic / Gemini / DeepSeek), **CcKgSink**, **CcRagSink**
 > — injected at the desktop/CLI entry so this package stays decoupled (Phase 3.5).
 >
-> **89 adapters are now live** (no longer "later phases"): Email IMAP,
+> **92 adapter contracts are exported and registered.** This is a capability
+> inventory, not a claim that every default instance performs field-verified
+> live collection: the set includes live local/official collectors, offline
+> import parsers, custom-fetch seams, and experimental schema readers. Email IMAP,
 > Alipay bill, 9 AI-chat vendors, WeChat / QQ / Weibo / Bilibili / Douyin /
 > Xiaohongshu / Toutiao / Kuaishou / Douban social, Telegram / WhatsApp messaging,
 > Taobao / JD / Meituan / Pinduoduo / Eleme / Xianyu / Vipshop shopping, Amap /
 > Baidu-map / Tencent-map / Ctrip / 12306 / Didi travel, Kugou / Ximalaya audio,
 > Keep / Joyrun fitness, system-data (contacts / calls / sms / location),
-> and the developer-activity set (git / shell / vscode / browser-history /
-> local-files / win-recent). See `lib/adapters/` for the full list.
+> and the developer-activity set (git / shell / vscode / vscodium / cursor / claude-code / jetbrains-ide / hbuilderx /
+> browser-history / local-files / win-recent). See `lib/adapters/` for the full
+> list.
 >
 > **On-device root forensics (rooted devices):** beyond cookie/sign-based
 > collection, PDH can pull a logged-in app's local encrypted DB directly via
@@ -40,6 +44,59 @@ middleware.
 > Android; new local-direct-read sources (Douyin, WeChat PC, QQ-NT, DingTalk,
 > Feishu, WeRead, Apple Health, NetEase Music); email-bill LLM gap-fill
 > (Phase 5.5); and iOS encrypted-backup decryption (Phase 7.5b).
+>
+> **Collection-integrity hardening (2026-07-25):** factory-backed bank,
+> document, reading, and video snapshots, plus DCEP, now share a bounded
+> JSON-file boundary: regular files only, no symlinks, 64 MiB default /
+> 256 MiB hard limit, exact BigInt file identity and revision checks, strict
+> schema / event-kind validation, path-safe errors, and stable source IDs.
+> Live JSON collectors now share a recognized-page contract across AI chat,
+> finance, reading, document, video, audio/music, government, fitness, business,
+> recruitment, and social sources. HTML/login failures, business errors, and
+> schema drift fail closed; only a recognized empty page ends an unverified
+> custom-endpoint scan, while old rows and non-empty short pages keep scanning.
+> Archive time is separated from source `watermarkAt`, and bank/reading/video
+> opt-outs preserve the prior shared watermark. ADB one-click readiness requires
+> exactly one authorized device; CLI and Web Panel expose contacts/apps/SMS/
+> calls/media opt-outs for Android system data. Ctrip, Tongcheng, and Didi no
+> longer claim readiness or silently emit zero rows without a source. Tencent
+> Docs export recursion binds every directory and file to its canonical root
+> and preserves the old watermark on junction, symlink, or path swaps.
+>
+> **Collection-integrity follow-up (2026-07-25):** forty adapters that consume
+> `schemaVersion + events[]` snapshots now use the shared bounded importer in
+> both authentication and sync, with required-array/kind validation and stable
+> source identities. `system-data-android` validates inline snapshots before
+> private, exclusive staging; bridge collection rejects unknown page shapes or
+> records, forwards an explicit device serial, and ADB readiness distinguishes
+> missing ADB, probe failure, no device, unauthorized/offline devices, a missing
+> selection, and multiple devices. A requested serial (`ADB_SERIAL` or
+> `--serial`) is bound to every collection command. Email JSON snapshots and
+> Apple Health `export.xml` now use bounded, regular-file-only, no-symlink,
+> identity-checked imports; email additionally requires schema version 1 and
+> strict records.
+>
+> The versioned `pdh-partitioned-v1` checkpoint keeps independent stream
+> watermarks. `audio-ximalaya`, `music-qq`, and `music-kugou` are the first
+> migrations, so incomplete or disabled streams do not advance unrelated
+> streams. For both explicit and partitioned strategies, sync/audit telemetry
+> exposes only the strategy, byte length, and an HMAC-SHA-256 digest made with a
+> random process-local key; exact checkpoint values remain only in Vault storage
+> and direct sync reports.
+>
+> Explicit file imports now default to a checkpoint-preserving replay: they do
+> not inherit or replace a live-source cursor, even when the snapshot contains
+> newer records. Only continuing sources explicitly returning
+> `fileCheckpointMode() === "shared"` reuse the durable cursor; the initial
+> exceptions are AI-chat cookie handoff, a pulled WeChat database, and a
+> Tencent Meeting profile/database, and complete-scan handshakes still apply.
+> Legacy Didi, Didi Consumer, Ctrip, Tongcheng, Mercedes me, and 12306 JSON/
+> JSONL imports also use the bounded regular-file boundary while retaining
+> their existing array, object-envelope, and JSONL formats. Alipay bill CSV/
+> ZIP imports use the byte-preserving variant so GBK/GB18030 remains intact;
+> archive and inflated CSV bytes, entry count, central-directory bounds, and
+> classic-ZIP shape are checked before extraction, and selected paths or entry
+> names are not archived.
 >
 > Editing `lib/**` requires bumping the package version + `npm publish` +
 > the Android `USR_VERSION` sentinel, or real devices keep running stale code
@@ -65,10 +122,13 @@ lib/
 │                     split out from the loose healthCheck sync gate
 ├── adapter-guide.js  category-driven import guides (single source of import
 │                     steps reused across web-shell / desktop / CLI / Android)
-├── adapters/         51 live adapters (email-imap, alipay-bill, ai-chat-history,
+├── snapshot-file.js  bounded, stable, schema-aware JSON snapshot import
+├── source-page.js    fail-closed recognition for paginated JSON source lists
+├── adapters/         92 exported adapter contracts (email-imap, alipay-bill, ai-chat-history,
 │                     wechat / wechat-pc, qq-pc, dingtalk-pc, feishu-pc, weread,
 │                     apple-health, netease-music, social-*, shopping-*,
-│                     travel-*, system-data, git-activity, vscode, ...)
+│                     travel-*, system-data, git-activity, vscode, vscodium, cursor, claude-code,
+│                     jetbrains-ide, hbuilderx, ...)
 ├── kg-derive.js      UnifiedSchema → KG triples (rdf:type / by / involves /
 │                     happened-at / etc.) — engine-agnostic
 ├── rag-derive.js     UnifiedSchema → RAG (text, metadata) docs for indexing
@@ -104,15 +164,16 @@ lib/
 Mirrors §5.1 of the design doc. Every adapter normalizes its raw rows into
 these five types so the KG / RAG / analysis layers see a consistent shape.
 
-| Type   | Examples                                       |
-|--------|------------------------------------------------|
-| Person | self / contact / merchant / ai-agent           |
+| Type   | Examples                                                                          |
+| ------ | --------------------------------------------------------------------------------- |
+| Person | self / contact / merchant / ai-agent                                              |
 | Event  | message / order / payment / visit / post / ai-message / ai-image-generation / ... |
-| Place  | home / restaurant / mom's place                |
-| Item   | product / link / media / document              |
-| Topic  | "mom's health" / "Python learning" / "AI conversation with DeepSeek" |
+| Place  | home / restaurant / mom's place                                                   |
+| Item   | product / link / media / document                                                 |
+| Topic  | "mom's health" / "Python learning" / "AI conversation with DeepSeek"              |
 
 All entities share `BaseEntity` fields:
+
 - `id` — UUID v7 (time-ordered)
 - `source` — `{ adapter, adapterVersion, capturedAt, capturedBy, originalId? }`
 - `ingestedAt` — ms timestamp
@@ -169,33 +230,58 @@ const { valid, invalid, invalidReasons } = partitionBatch(rawBatch);
 ## LocalVault quick demo
 
 ```js
-const fs = require("fs"), os = require("os"), path = require("path");
+const fs = require("fs"),
+  os = require("os"),
+  path = require("path");
 const {
-  LocalVault, generateKeyHex, newId, emptyBatch,
-  PERSON_SUBTYPES, EVENT_SUBTYPES,
+  LocalVault,
+  generateKeyHex,
+  newId,
+  emptyBatch,
+  PERSON_SUBTYPES,
+  EVENT_SUBTYPES,
 } = require("@chainlesschain/personal-data-hub");
 
 const v = new LocalVault({
   path: path.join(os.homedir(), ".chainlesschain", "hub.db"),
-  key: generateKeyHex(),  // production: pull from a KeyProvider
+  key: generateKeyHex(), // production: pull from a KeyProvider
 });
 v.open();
 
 const now = Date.now();
 const mom = {
-  id: newId(), type: "person", subtype: PERSON_SUBTYPES.CONTACT,
-  names: ["妈妈"], identifiers: { phone: ["13800001111"] },
+  id: newId(),
+  type: "person",
+  subtype: PERSON_SUBTYPES.CONTACT,
+  names: ["妈妈"],
+  identifiers: { phone: ["13800001111"] },
   ingestedAt: now,
-  source: { adapter: "demo", adapterVersion: "0.1.0", capturedAt: now, capturedBy: "manual" },
+  source: {
+    adapter: "demo",
+    adapterVersion: "0.1.0",
+    capturedAt: now,
+    capturedBy: "manual",
+  },
 };
 const order = {
-  id: newId(), type: "event", subtype: EVENT_SUBTYPES.ORDER,
+  id: newId(),
+  type: "event",
+  subtype: EVENT_SUBTYPES.ORDER,
   occurredAt: now - 86400000,
   actor: "person-self",
   participants: [mom.id],
-  content: { title: "妈妈生日蛋白粉", amount: { value: 288.5, currency: "CNY", direction: "out" } },
+  content: {
+    title: "妈妈生日蛋白粉",
+    amount: { value: 288.5, currency: "CNY", direction: "out" },
+  },
   ingestedAt: now,
-  source: { adapter: "demo", adapterVersion: "0.1.0", capturedAt: now, capturedBy: "manual", originalId: "ord-42" },
+  source: {
+    adapter: "demo",
+    adapterVersion: "0.1.0",
+    capturedAt: now,
+    capturedBy: "manual",
+    originalId: "ord-42",
+  },
 };
 
 v.putBatch({ ...emptyBatch(), persons: [mom], events: [order] });
@@ -235,7 +321,7 @@ contract:
 The package ships `InMemoryKeyProvider` (tests) and `FileKeyProvider`
 (dev fallback, stores 0600-perm files on disk). Recommended key names:
 
-- `vault:<vault-id>`      master key for a vault
+- `vault:<vault-id>` master key for a vault
 - `vault:<vault-id>:prev` retained pre-rotation key for emergency recovery
 - `adapter:<name>:cookie` per-adapter blobs (used by later-phase adapters)
 
@@ -257,12 +343,12 @@ tolerance), and the 1k events <30s ingest perf gate.
 
 ## Not in this package (yet)
 
-| Concern               | Lives in                                          |
-|-----------------------|---------------------------------------------------|
+| Concern                                         | Lives in                                                                                       |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | Platform KeyProviders (DPAPI/Keychain/Keystore) | desktop-app-vue main-process bridge (the package ships the contract + InMemory/File providers) |
-| Qdrant vector retrieval | wired into the existing RAG engine at the cc entry (BM25 derivation ships here) |
-| AI analysis skills    | `skills/personal-analysis-*/` (the 5 built-in analysis skills) |
-| Native SQLCipher build | `better-sqlite3-multiple-ciphers` — host/Electron ABI dual-load handled at the cc entry |
+| Qdrant vector retrieval                         | wired into the existing RAG engine at the cc entry (BM25 derivation ships here)                |
+| AI analysis skills                              | `skills/personal-analysis-*/` (the 5 built-in analysis skills)                                 |
+| Native SQLCipher build                          | `better-sqlite3-multiple-ciphers` — host/Electron ABI dual-load handled at the cc entry        |
 
 ## License
 

@@ -119,14 +119,28 @@ const mobileExtractor = require("./mobile-extractor");
 const systemDataAndroid = require("./adapters/system-data-android");
 const browserHistoryChrome = require("./adapters/browser-history-chrome");
 const browserHistoryEdge = require("./adapters/browser-history-edge");
+const browserHistoryBrave = require("./adapters/browser-history-brave");
+const browserHistoryOpera = require("./adapters/browser-history-opera");
+const browserHistoryVivaldi = require("./adapters/browser-history-vivaldi");
+const browserHistorySafari = require("./adapters/browser-history-safari");
+const browserHistoryFirefox = require("./adapters/browser-history-firefox");
 const browserHistoryAosp = require("./adapters/browser-history-aosp");
 const vscodeAdapter = require("./adapters/vscode");
+const vscodiumAdapter = require("./adapters/vscodium");
+const cursorAdapter = require("./adapters/cursor");
+const claudeCodeAdapter = require("./adapters/claude-code");
+const jetbrainsIdeAdapter = require("./adapters/jetbrains-ide");
 const winRecentAdapter = require("./adapters/win-recent");
 const gitActivityAdapter = require("./adapters/git-activity");
 const shellHistoryAdapter = require("./adapters/shell-history");
+const hbuilderxAdapter = require("./adapters/hbuilderx");
 const localFilesAdapter = require("./adapters/local-files");
+const tencentMeetingAdapter = require("./adapters/meeting-tencent");
 const categories = require("./categories");
 const sourceHttp = require("./source-http");
+const snapshotFile = require("./snapshot-file");
+const sourcePage = require("./source-page");
+const partitionedWatermark = require("./partitioned-watermark");
 
 module.exports = {
   // Constants / enums
@@ -171,6 +185,9 @@ module.exports = {
   // Adapter contract
   SENSITIVITY_LEVELS: adapterSpec.SENSITIVITY_LEVELS,
   assertAdapter: adapterSpec.assertAdapter,
+  FILE_CHECKPOINT_MODES: adapterSpec.FILE_CHECKPOINT_MODES,
+  WATERMARK_STRATEGIES: adapterSpec.WATERMARK_STRATEGIES,
+  ...partitionedWatermark,
   createAccountScope: accountScope.createAccountScope,
   createAccountScopeFromAccount: accountScope.createAccountScopeFromAccount,
   createAccountScopeFromSnapshot: accountScope.createAccountScopeFromSnapshot,
@@ -337,6 +354,16 @@ module.exports = {
   hasRuntimeCookie: shoppingBase.hasRuntimeCookie,
   resolveCookieContext: shoppingBase.resolveCookieContext,
   createJsonSourceFetch: sourceHttp.createJsonSourceFetch,
+  DEFAULT_MAX_SNAPSHOT_BYTES: snapshotFile.DEFAULT_MAX_SNAPSHOT_BYTES,
+  HARD_MAX_SNAPSHOT_BYTES: snapshotFile.HARD_MAX_SNAPSHOT_BYTES,
+  SnapshotFileError: snapshotFile.SnapshotFileError,
+  probeSnapshotFile: snapshotFile.probeSnapshotFile,
+  probeJsonSnapshotFile: snapshotFile.probeJsonSnapshotFile,
+  readBoundedSnapshot: snapshotFile.readBoundedSnapshot,
+  readBoundedSnapshotBuffer: snapshotFile.readBoundedSnapshotBuffer,
+  readJsonSnapshot: snapshotFile.readJsonSnapshot,
+  SourcePageError: sourcePage.SourcePageError,
+  extractRecognizedArray: sourcePage.extractRecognizedArray,
   TaobaoAdapter,
   JdAdapter,
   MeituanAdapter,
@@ -425,17 +452,84 @@ module.exports = {
   BROWSER_HISTORY_EDGE_NAME: browserHistoryEdge.BROWSER_HISTORY_EDGE_NAME,
   BROWSER_HISTORY_EDGE_VERSION: browserHistoryEdge.BROWSER_HISTORY_EDGE_VERSION,
 
+  // Brave — Chromium schema with Brave's platform-specific profile roots.
+  BrowserHistoryBraveAdapter: browserHistoryBrave.BrowserHistoryBraveAdapter,
+  BROWSER_HISTORY_BRAVE_NAME: browserHistoryBrave.BROWSER_HISTORY_BRAVE_NAME,
+  BROWSER_HISTORY_BRAVE_VERSION:
+    browserHistoryBrave.BROWSER_HISTORY_BRAVE_VERSION,
+
+  // Opera / Opera GX — direct Chromium profile roots on most platforms.
+  BrowserHistoryOperaAdapter: browserHistoryOpera.BrowserHistoryOperaAdapter,
+  BROWSER_HISTORY_OPERA_NAME: browserHistoryOpera.BROWSER_HISTORY_OPERA_NAME,
+  BROWSER_HISTORY_OPERA_VERSION:
+    browserHistoryOpera.BROWSER_HISTORY_OPERA_VERSION,
+  defaultOperaProfileDir: browserHistoryChrome.defaultOperaProfileDir,
+
+  // Vivaldi — Chromium schema with Vivaldi's User Data roots.
+  BrowserHistoryVivaldiAdapter:
+    browserHistoryVivaldi.BrowserHistoryVivaldiAdapter,
+  BROWSER_HISTORY_VIVALDI_NAME:
+    browserHistoryVivaldi.BROWSER_HISTORY_VIVALDI_NAME,
+  BROWSER_HISTORY_VIVALDI_VERSION:
+    browserHistoryVivaldi.BROWSER_HISTORY_VIVALDI_VERSION,
+  defaultVivaldiProfileDir: browserHistoryChrome.defaultVivaldiProfileDir,
+
+  // Safari — History.db plus XML/binary Bookmarks.plist, including
+  // Safari 17+ profile directories. Paths are represented only by hashes.
+  BrowserHistorySafariAdapter: browserHistorySafari.BrowserHistorySafariAdapter,
+  BROWSER_HISTORY_SAFARI_NAME: browserHistorySafari.BROWSER_HISTORY_SAFARI_NAME,
+  BROWSER_HISTORY_SAFARI_VERSION:
+    browserHistorySafari.BROWSER_HISTORY_SAFARI_VERSION,
+  defaultSafariProfileDir: browserHistorySafari.defaultSafariProfileDir,
+  findSafariProfiles: browserHistorySafari.findSafariProfiles,
+
+  // Firefox — places.sqlite contains history and bookmarks in one local DB.
+  // Profile paths are hashed before they enter adapter scope or entities.
+  BrowserHistoryFirefoxAdapter:
+    browserHistoryFirefox.BrowserHistoryFirefoxAdapter,
+  BROWSER_HISTORY_FIREFOX_NAME:
+    browserHistoryFirefox.BROWSER_HISTORY_FIREFOX_NAME,
+  BROWSER_HISTORY_FIREFOX_VERSION:
+    browserHistoryFirefox.BROWSER_HISTORY_FIREFOX_VERSION,
+  defaultFirefoxProfileDir: browserHistoryFirefox.defaultFirefoxProfileDir,
+  findFirefoxProfiles: browserHistoryFirefox.findFirefoxProfiles,
+
   // AOSP / MIUI stock browser — different schema (browser2.db, ms timestamps),
   // reuses the Chrome normalize() for an identical BROWSE Event / LINK Item shape.
   BrowserHistoryAospAdapter: browserHistoryAosp.BrowserHistoryAospAdapter,
   BROWSER_HISTORY_AOSP_NAME: browserHistoryAosp.BROWSER_HISTORY_AOSP_NAME,
   BROWSER_HISTORY_AOSP_VERSION: browserHistoryAosp.BROWSER_HISTORY_AOSP_VERSION,
 
-  // VS Code — workspace history + global terminal command/dir history.
+  // VS Code — workspace, terminal, and Local History save metadata.
   VSCodeAdapter: vscodeAdapter.VSCodeAdapter,
   VSCODE_NAME: vscodeAdapter.VSCODE_NAME,
   VSCODE_VERSION: vscodeAdapter.VSCODE_VERSION,
   defaultVscodeRoot: vscodeAdapter.defaultVscodeRoot,
+
+  // VSCodium — the telemetry-free VS Code build, with an isolated data root.
+  VSCodiumAdapter: vscodiumAdapter.VSCodiumAdapter,
+  VSCODIUM_NAME: vscodiumAdapter.VSCODIUM_NAME,
+  VSCODIUM_VERSION: vscodiumAdapter.VSCODIUM_VERSION,
+  defaultVscodiumRoot: vscodiumAdapter.defaultVscodiumRoot,
+
+  // Cursor — editor activity, local Agent transcripts, and AI code metadata.
+  CursorAdapter: cursorAdapter.CursorAdapter,
+  CURSOR_NAME: cursorAdapter.CURSOR_NAME,
+  CURSOR_VERSION: cursorAdapter.CURSOR_VERSION,
+  defaultCursorRoot: cursorAdapter.defaultCursorRoot,
+  defaultCursorHome: cursorAdapter.defaultCursorHome,
+
+  // Claude Code — local main/subagent conversations and aggregate usage.
+  ClaudeCodeAdapter: claudeCodeAdapter.ClaudeCodeAdapter,
+  CLAUDE_CODE_NAME: claudeCodeAdapter.CLAUDE_CODE_NAME,
+  CLAUDE_CODE_VERSION: claudeCodeAdapter.CLAUDE_CODE_VERSION,
+  defaultClaudeCodeHome: claudeCodeAdapter.defaultClaudeCodeHome,
+
+  // JetBrains IDEs — recent projects and latest open/activation metadata.
+  JetBrainsIdeAdapter: jetbrainsIdeAdapter.JetBrainsIdeAdapter,
+  JETBRAINS_IDE_NAME: jetbrainsIdeAdapter.JETBRAINS_IDE_NAME,
+  JETBRAINS_IDE_VERSION: jetbrainsIdeAdapter.JETBRAINS_IDE_VERSION,
+  defaultJetBrainsConfigRoot: jetbrainsIdeAdapter.defaultJetBrainsConfigRoot,
 
   // Windows Recent — .lnk shortcut list from %APPDATA%\Microsoft\Windows\Recent.
   // Cross-application "what did I open and when" timeline (Win-only adapter).
@@ -456,12 +550,27 @@ module.exports = {
   SHELL_HISTORY_VERSION: shellHistoryAdapter.SHELL_HISTORY_VERSION,
   defaultShellHistorySources: shellHistoryAdapter.defaultHistorySources,
 
+  // HBuilderX — privacy-minimized local file-activity metadata.
+  HBuilderXAdapter: hbuilderxAdapter.HBuilderXAdapter,
+  HBUILDERX_NAME: hbuilderxAdapter.HBUILDERX_NAME,
+  HBUILDERX_VERSION: hbuilderxAdapter.HBUILDERX_VERSION,
+  defaultHBuilderXHomes: hbuilderxAdapter.defaultHBuilderXHomes,
+
   // Phase 18 — local files (file walk under Documents / Desktop / Downloads /
   // Pictures / Videos / Music). Cross-application "what files do I have"
   // timeline rooted in mtime, with app-cache excludes baked in.
   LocalFilesAdapter: localFilesAdapter.LocalFilesAdapter,
   LOCAL_FILES_NAME: localFilesAdapter.LOCAL_FILES_NAME,
   LOCAL_FILES_VERSION: localFilesAdapter.LOCAL_FILES_VERSION,
+
+  // Tencent Meeting — local history timeline from the client's hash-named
+  // SQLite cache; meeting/user identifiers are redacted before raw archival.
+  TencentMeetingAdapter: tencentMeetingAdapter.TencentMeetingAdapter,
+  TENCENT_MEETING_NAME: tencentMeetingAdapter.TENCENT_MEETING_NAME,
+  TENCENT_MEETING_VERSION: tencentMeetingAdapter.TENCENT_MEETING_VERSION,
+  defaultTencentMeetingRoot: tencentMeetingAdapter.defaultTencentMeetingRoot,
+  findTencentMeetingHistoryDb:
+    tencentMeetingAdapter.findTencentMeetingHistoryDb,
   defaultLocalFileRoots: localFilesAdapter.defaultRoots,
 
   // Phase 6 — AlipayBillAdapter (CSV import)

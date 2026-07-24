@@ -8,7 +8,10 @@ import { fileURLToPath } from "node:url";
 const pdh = require("../lib");
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const CATALOG_PATH = path.resolve(HERE, "../../../docs/internal/pdh-app-data-catalog.json");
+const CATALOG_PATH = path.resolve(
+  HERE,
+  "../../../docs/internal/pdh-app-data-catalog.json",
+);
 
 function exportedCollectors() {
   const baseOpts = {
@@ -24,11 +27,25 @@ function exportedCollectors() {
   const collectors = [];
   const failed = [];
   for (const [exportName, Collector] of Object.entries(pdh)) {
-    if (!/Adapter$/u.test(exportName) || exportName === "MockAdapter" || exportName === "CcLLMAdapter") continue;
-    if (typeof Collector !== "function" || typeof Collector.prototype?.sync !== "function") continue;
+    if (
+      !/Adapter$/u.test(exportName) ||
+      exportName === "MockAdapter" ||
+      exportName === "CcLLMAdapter"
+    )
+      continue;
+    if (
+      typeof Collector !== "function" ||
+      typeof Collector.prototype?.sync !== "function"
+    )
+      continue;
     let instance = null;
     const errors = [];
-    for (const opts of [baseOpts, { snapshotMode: true }, { ...baseOpts, account: undefined }, {}]) {
+    for (const opts of [
+      baseOpts,
+      { snapshotMode: true },
+      { ...baseOpts, account: undefined },
+      {},
+    ]) {
       try {
         instance = new Collector(opts);
         break;
@@ -37,14 +54,16 @@ function exportedCollectors() {
       }
     }
     if (!instance || !instance.name) failed.push({ exportName, errors });
-    else collectors.push({
-      exportName,
-      name: instance.name,
-      extractMode: instance.extractMode || "web-api",
-      capabilities: instance.capabilities || [],
-      placeholderFetch:
-        typeof instance._fetchFn === "function" && instance._fetchFn.name === "defaultFetch",
-    });
+    else
+      collectors.push({
+        exportName,
+        name: instance.name,
+        extractMode: instance.extractMode || "web-api",
+        capabilities: instance.capabilities || [],
+        placeholderFetch:
+          typeof instance._fetchFn === "function" &&
+          instance._fetchFn.name === "defaultFetch",
+      });
   }
   return { collectors, failed };
 }
@@ -62,18 +81,24 @@ describe("generated app-data catalog completeness", () => {
     expect(catalog.count).toBe(catalog.adapters.length);
     expect(catalogNames).toEqual(exportedNames);
 
-    const catalogByName = new Map(catalog.adapters.map((item) => [item.name, item]));
+    const catalogByName = new Map(
+      catalog.adapters.map((item) => [item.name, item]),
+    );
     for (const collector of collectors) {
       expect(catalogByName.get(collector.name).extractMode).toBe(
         collector.extractMode,
       );
     }
-    for (const collector of collectors.filter((item) => item.placeholderFetch)) {
+    for (const collector of collectors.filter(
+      (item) => item.placeholderFetch,
+    )) {
       const capabilities = catalogByName.get(collector.name).capabilities;
       expect(capabilities).not.toContain("sync:cookie-api");
       if (collector.capabilities.includes("sync:cookie-api")) {
         expect(capabilities).toContain("sync:custom-cookie-api");
       }
     }
+    expect(catalogByName.get("hbuilderx").category).toBe("本地/系统");
+    expect(catalogByName.get("jetbrains-ide").category).toBe("本地/系统");
   });
 });

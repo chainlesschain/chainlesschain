@@ -39,7 +39,10 @@ let bs3mcSkipReason = "";
 try {
   const probeDir = fs.mkdtempSync(path.join(os.tmpdir(), "bs3mc-probe-"));
   const probePath = path.join(probeDir, "p.db");
-  const { LocalVault: ProbeVault, generateKeyHex: probeKey } = require("../../lib");
+  const {
+    LocalVault: ProbeVault,
+    generateKeyHex: probeKey,
+  } = require("../../lib");
   const v = new ProbeVault({ path: probePath, key: probeKey() });
   v.open();
   v.close();
@@ -50,11 +53,7 @@ try {
 }
 const itOrSkip = bs3mcAvailable ? it : it.skip;
 
-const {
-  LocalVault,
-  generateKeyHex,
-  AdapterRegistry,
-} = require("../../lib");
+const { LocalVault, generateKeyHex, AdapterRegistry } = require("../../lib");
 const {
   BrowserHistoryChromeAdapter,
   epochMsToWebkitUs,
@@ -99,7 +98,10 @@ function cleanup(r) {
 
 // ─── Fixtures ──────────────────────────────────────────────────────────
 
-function buildChromeFixture(profileDir, { visits = [], bookmarks = null } = {}) {
+function buildChromeFixture(
+  profileDir,
+  { visits = [], bookmarks = null } = {},
+) {
   fs.mkdirSync(profileDir, { recursive: true });
   const db = new Database(path.join(profileDir, "History"));
   db.exec(`
@@ -133,11 +135,18 @@ function buildChromeFixture(profileDir, { visits = [], bookmarks = null } = {}) 
   }
   db.close();
   if (bookmarks) {
-    fs.writeFileSync(path.join(profileDir, "Bookmarks"), JSON.stringify(bookmarks), "utf-8");
+    fs.writeFileSync(
+      path.join(profileDir, "Bookmarks"),
+      JSON.stringify(bookmarks),
+      "utf-8",
+    );
   }
 }
 
-function buildVscodeFixture(vscodeRoot, { workspaces = [], commands = [], dirs = [] } = {}) {
+function buildVscodeFixture(
+  vscodeRoot,
+  { workspaces = [], commands = [], dirs = [], localHistory = [] } = {},
+) {
   const wsRoot = path.join(vscodeRoot, "User", "workspaceStorage");
   fs.mkdirSync(wsRoot, { recursive: true });
   for (const w of workspaces) {
@@ -154,15 +163,45 @@ function buildVscodeFixture(vscodeRoot, { workspaces = [], commands = [], dirs =
   const put = db.prepare("INSERT INTO ItemTable(key, value) VALUES(?, ?)");
   put.run(
     "terminal.history.entries.commands",
-    JSON.stringify({ entries: commands.map((c) => ({ key: c, value: { shellType: "pwsh" } })) }),
+    JSON.stringify({
+      entries: commands.map((c) => ({ key: c, value: { shellType: "pwsh" } })),
+    }),
   );
   put.run(
     "terminal.history.entries.dirs",
-    JSON.stringify({ entries: dirs.map((d) => ({ key: d, value: { shellType: "pwsh" } })) }),
+    JSON.stringify({
+      entries: dirs.map((d) => ({ key: d, value: { shellType: "pwsh" } })),
+    }),
   );
   put.run("terminal.history.timestamp.commands", String(1_700_000_010_000));
   put.run("terminal.history.timestamp.dirs", String(1_700_000_020_000));
   db.close();
+
+  for (const history of localHistory) {
+    const historyDir = path.join(
+      vscodeRoot,
+      "User",
+      "History",
+      history.storageId,
+    );
+    fs.mkdirSync(historyDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(historyDir, "entries.json"),
+      JSON.stringify({
+        version: 1,
+        resource: history.resource,
+        entries: history.entries,
+      }),
+      "utf-8",
+    );
+    for (const entry of history.entries) {
+      fs.writeFileSync(
+        path.join(historyDir, entry.id),
+        "source content that must not be imported",
+        "utf-8",
+      );
+    }
+  }
 }
 
 function buildRecentFixture(recentDir, lnks = []) {
@@ -189,185 +228,275 @@ afterEach(() => {
 // ─── Per-adapter pipeline tests ────────────────────────────────────────
 
 describe("browser-history-chrome pipeline", () => {
-  itOrSkip("syncs visits + bookmarks into vault, status=ok, entityCounts match", async () => {
-    const profileDir = path.join(rig.dir, "ChromeProfile");
-    buildChromeFixture(profileDir, {
-      visits: [
-        { url: "https://anthropic.com", title: "Anthropic", visitTimeMs: 1_700_000_001_000 },
-        { url: "https://example.com", title: "Example", visitTimeMs: 1_700_000_002_000 },
-      ],
-      bookmarks: {
-        version: 1,
-        roots: {
-          bookmark_bar: {
-            type: "folder",
-            name: "bar",
-            children: [
-              {
-                type: "url",
-                id: "1",
-                guid: "g1",
-                url: "https://saved.test",
-                name: "Saved",
-                date_added: "13300000000000000",
-              },
-            ],
+  itOrSkip(
+    "syncs visits + bookmarks into vault, status=ok, entityCounts match",
+    async () => {
+      const profileDir = path.join(rig.dir, "ChromeProfile");
+      buildChromeFixture(profileDir, {
+        visits: [
+          {
+            url: "https://anthropic.com",
+            title: "Anthropic",
+            visitTimeMs: 1_700_000_001_000,
+          },
+          {
+            url: "https://example.com",
+            title: "Example",
+            visitTimeMs: 1_700_000_002_000,
+          },
+        ],
+        bookmarks: {
+          version: 1,
+          roots: {
+            bookmark_bar: {
+              type: "folder",
+              name: "bar",
+              children: [
+                {
+                  type: "url",
+                  id: "1",
+                  guid: "g1",
+                  url: "https://saved.test",
+                  name: "Saved",
+                  date_added: "13300000000000000",
+                },
+              ],
+            },
           },
         },
-      },
-    });
-    const adapter = new BrowserHistoryChromeAdapter({ profilePath: profileDir });
-    rig.registry.register(adapter);
-    const report = await rig.registry.syncAdapter("browser-history-chrome");
-    expect(report.status).toBe("ok");
-    expect(report.rawCount).toBe(3); // 2 visits + 1 bookmark
-    expect(report.entityCounts.events).toBe(2);
-    expect(report.entityCounts.items).toBe(1);
-    expect(report.invalidCount).toBe(0);
+      });
+      const adapter = new BrowserHistoryChromeAdapter({
+        profilePath: profileDir,
+      });
+      rig.registry.register(adapter);
+      const report = await rig.registry.syncAdapter("browser-history-chrome");
+      expect(report.status).toBe("ok");
+      expect(report.rawCount).toBe(3); // 2 visits + 1 bookmark
+      expect(report.entityCounts.events).toBe(2);
+      expect(report.entityCounts.items).toBe(1);
+      expect(report.invalidCount).toBe(0);
 
-    // Vault row count crosscheck (proves entities really persisted)
-    const eventsN = rig.vault.db.prepare("SELECT COUNT(*) AS n FROM events").get().n;
-    const itemsN = rig.vault.db.prepare("SELECT COUNT(*) AS n FROM items").get().n;
-    expect(eventsN).toBe(2);
-    expect(itemsN).toBe(1);
-  });
+      // Vault row count crosscheck (proves entities really persisted)
+      const eventsN = rig.vault.db
+        .prepare("SELECT COUNT(*) AS n FROM events")
+        .get().n;
+      const itemsN = rig.vault.db
+        .prepare("SELECT COUNT(*) AS n FROM items")
+        .get().n;
+      expect(eventsN).toBe(2);
+      expect(itemsN).toBe(1);
+    },
+  );
 
-  itOrSkip("re-sync is idempotent — same originalId, no duplicate rows", async () => {
-    const profileDir = path.join(rig.dir, "ChromeProfile");
-    buildChromeFixture(profileDir, {
-      visits: [{ url: "https://idem.test", title: "Idem", visitTimeMs: 1_700_000_000_000 }],
-    });
-    const adapter = new BrowserHistoryChromeAdapter({ profilePath: profileDir });
-    rig.registry.register(adapter);
-    await rig.registry.syncAdapter("browser-history-chrome");
-    await rig.registry.syncAdapter("browser-history-chrome");
-    const n = rig.vault.db.prepare("SELECT COUNT(*) AS n FROM events").get().n;
-    expect(n).toBe(1); // dedup by source.originalId UNIQUE constraint
-  });
+  itOrSkip(
+    "re-sync is idempotent — same originalId, no duplicate rows",
+    async () => {
+      const profileDir = path.join(rig.dir, "ChromeProfile");
+      buildChromeFixture(profileDir, {
+        visits: [
+          {
+            url: "https://idem.test",
+            title: "Idem",
+            visitTimeMs: 1_700_000_000_000,
+          },
+        ],
+      });
+      const adapter = new BrowserHistoryChromeAdapter({
+        profilePath: profileDir,
+      });
+      rig.registry.register(adapter);
+      await rig.registry.syncAdapter("browser-history-chrome");
+      await rig.registry.syncAdapter("browser-history-chrome");
+      const n = rig.vault.db
+        .prepare("SELECT COUNT(*) AS n FROM events")
+        .get().n;
+      expect(n).toBe(1); // dedup by source.originalId UNIQUE constraint
+    },
+  );
 });
 
 describe("browser-history-edge pipeline (Chromium subclass)", () => {
-  itOrSkip("syncs visits with edge-tagged source.adapter, not chrome", async () => {
-    const profileDir = path.join(rig.dir, "EdgeProfile");
-    buildChromeFixture(profileDir, {
-      visits: [{ url: "https://bing.com", title: "Bing", visitTimeMs: 1_700_000_001_000 }],
-    });
-    const adapter = new BrowserHistoryEdgeAdapter({ profilePath: profileDir });
-    rig.registry.register(adapter);
-    const report = await rig.registry.syncAdapter("browser-history-edge");
-    expect(report.status).toBe("ok");
-    expect(report.entityCounts.events).toBe(1);
+  itOrSkip(
+    "syncs visits with edge-tagged source.adapter, not chrome",
+    async () => {
+      const profileDir = path.join(rig.dir, "EdgeProfile");
+      buildChromeFixture(profileDir, {
+        visits: [
+          {
+            url: "https://bing.com",
+            title: "Bing",
+            visitTimeMs: 1_700_000_001_000,
+          },
+        ],
+      });
+      const adapter = new BrowserHistoryEdgeAdapter({
+        profilePath: profileDir,
+      });
+      rig.registry.register(adapter);
+      const report = await rig.registry.syncAdapter("browser-history-edge");
+      expect(report.status).toBe("ok");
+      expect(report.entityCounts.events).toBe(1);
 
-    // Drill into the row to confirm the subclass set source.adapter correctly
-    const row = rig.vault.db.prepare("SELECT source FROM events LIMIT 1").get();
-    const source = JSON.parse(row.source);
-    expect(source.adapter).toBe("browser-history-edge");
-    expect(source.originalId).toMatch(/^edge-visit:/);
-  });
+      // Drill into the row to confirm the subclass set source.adapter correctly
+      const row = rig.vault.db
+        .prepare("SELECT source FROM events LIMIT 1")
+        .get();
+      const source = JSON.parse(row.source);
+      expect(source.adapter).toBe("browser-history-edge");
+      expect(source.originalId).toMatch(/^edge-visit:/);
+    },
+  );
 });
 
 describe("vscode pipeline", () => {
-  itOrSkip("syncs workspaces (items) + terminal commands+dirs (events)", async () => {
-    const vscodeRoot = path.join(rig.dir, "VSCode");
-    buildVscodeFixture(vscodeRoot, {
-      workspaces: [
-        { hash: "h1", folderUri: "file:///c%3A/code/foo", mtimeMs: 1_700_000_001_000 },
-        { hash: "h2", folderUri: "file:///c%3A/code/bar", mtimeMs: 1_700_000_002_000 },
-      ],
-      commands: ["ls", "git status"],
-      dirs: ["/c/code/foo"],
-    });
-    const adapter = new VSCodeAdapter({ vscodeRoot });
-    rig.registry.register(adapter);
-    const report = await rig.registry.syncAdapter("vscode");
-    expect(report.status).toBe("ok");
-    expect(report.entityCounts.items).toBe(2); // 2 workspaces
-    expect(report.entityCounts.events).toBe(3); // 2 commands + 1 dir
-    expect(report.invalidCount).toBe(0);
+  itOrSkip(
+    "syncs workspaces (items) + terminal commands+dirs (events)",
+    async () => {
+      const vscodeRoot = path.join(rig.dir, "VSCode");
+      buildVscodeFixture(vscodeRoot, {
+        workspaces: [
+          {
+            hash: "h1",
+            folderUri: "file:///c%3A/code/foo",
+            mtimeMs: 1_700_000_001_000,
+          },
+          {
+            hash: "h2",
+            folderUri: "file:///c%3A/code/bar",
+            mtimeMs: 1_700_000_002_000,
+          },
+        ],
+        commands: ["ls", "git status"],
+        dirs: ["/c/code/foo"],
+        localHistory: [
+          {
+            storageId: "history-a",
+            resource: "file:///c%3A/code/foo/index.js",
+            entries: [{ id: "a1.js", timestamp: 1_700_000_030_000 }],
+          },
+        ],
+      });
+      const adapter = new VSCodeAdapter({ vscodeRoot });
+      rig.registry.register(adapter);
+      const report = await rig.registry.syncAdapter("vscode");
+      expect(report.status).toBe("ok");
+      expect(report.entityCounts.items).toBe(2); // 2 workspaces
+      expect(report.entityCounts.events).toBe(4); // 2 commands + 1 dir + 1 save
+      expect(report.invalidCount).toBe(0);
 
-    const items = rig.vault.db
-      .prepare("SELECT name, category FROM items ORDER BY name")
-      .all();
-    expect(items.map((i) => i.category)).toEqual(["code-project", "code-project"]);
-  });
+      const items = rig.vault.db
+        .prepare("SELECT name, category FROM items ORDER BY name")
+        .all();
+      expect(items.map((i) => i.category)).toEqual([
+        "code-project",
+        "code-project",
+      ]);
+    },
+  );
 });
 
 describe("win-recent pipeline", () => {
-  itOrSkip("syncs recent shortcuts to Event(OTHER) with '打开了 X' title", async () => {
-    const recentDir = path.join(rig.dir, "Recent");
-    buildRecentFixture(recentDir, [
-      { name: "report.docx.lnk", mtimeMs: 1_700_000_001_000 },
-      { name: "todo.txt.lnk", mtimeMs: 1_700_000_002_000 },
-    ]);
-    const adapter = new WinRecentAdapter({ recentDir });
-    rig.registry.register(adapter);
-    const report = await rig.registry.syncAdapter("win-recent");
-    expect(report.status).toBe("ok");
-    expect(report.entityCounts.events).toBe(2);
+  itOrSkip(
+    "syncs recent shortcuts to Event(OTHER) with '打开了 X' title",
+    async () => {
+      const recentDir = path.join(rig.dir, "Recent");
+      buildRecentFixture(recentDir, [
+        { name: "report.docx.lnk", mtimeMs: 1_700_000_001_000 },
+        { name: "todo.txt.lnk", mtimeMs: 1_700_000_002_000 },
+      ]);
+      const adapter = new WinRecentAdapter({ recentDir });
+      rig.registry.register(adapter);
+      const report = await rig.registry.syncAdapter("win-recent");
+      expect(report.status).toBe("ok");
+      expect(report.entityCounts.events).toBe(2);
 
-    const titles = rig.vault.db
-      .prepare("SELECT content FROM events ORDER BY occurred_at")
-      .all()
-      .map((r) => JSON.parse(r.content).title);
-    expect(titles).toEqual(["打开了 report.docx", "打开了 todo.txt"]);
-  });
+      const titles = rig.vault.db
+        .prepare("SELECT content FROM events ORDER BY occurred_at")
+        .all()
+        .map((r) => JSON.parse(r.content).title);
+      expect(titles).toEqual(["打开了 report.docx", "打开了 todo.txt"]);
+    },
+  );
 });
 
 // ─── Cross-adapter / mixed registry ────────────────────────────────────
 
 describe("all 4 adapters registered together", () => {
-  itOrSkip("each adapter writes its own source-tagged rows; counts add up", async () => {
-    const chromeDir = path.join(rig.dir, "ChromeProfile");
-    const edgeDir = path.join(rig.dir, "EdgeProfile");
-    const vscodeRoot = path.join(rig.dir, "VSCode");
-    const recentDir = path.join(rig.dir, "Recent");
+  itOrSkip(
+    "each adapter writes its own source-tagged rows; counts add up",
+    async () => {
+      const chromeDir = path.join(rig.dir, "ChromeProfile");
+      const edgeDir = path.join(rig.dir, "EdgeProfile");
+      const vscodeRoot = path.join(rig.dir, "VSCode");
+      const recentDir = path.join(rig.dir, "Recent");
 
-    buildChromeFixture(chromeDir, {
-      visits: [{ url: "https://a.test", title: "A", visitTimeMs: 1_700_000_001_000 }],
-    });
-    buildChromeFixture(edgeDir, {
-      visits: [{ url: "https://b.test", title: "B", visitTimeMs: 1_700_000_002_000 }],
-    });
-    buildVscodeFixture(vscodeRoot, {
-      workspaces: [{ hash: "hX", folderUri: "file:///c%3A/x", mtimeMs: 1_700_000_001_000 }],
-      commands: ["ls"],
-    });
-    buildRecentFixture(recentDir, [{ name: "x.txt.lnk", mtimeMs: 1_700_000_001_000 }]);
+      buildChromeFixture(chromeDir, {
+        visits: [
+          { url: "https://a.test", title: "A", visitTimeMs: 1_700_000_001_000 },
+        ],
+      });
+      buildChromeFixture(edgeDir, {
+        visits: [
+          { url: "https://b.test", title: "B", visitTimeMs: 1_700_000_002_000 },
+        ],
+      });
+      buildVscodeFixture(vscodeRoot, {
+        workspaces: [
+          {
+            hash: "hX",
+            folderUri: "file:///c%3A/x",
+            mtimeMs: 1_700_000_001_000,
+          },
+        ],
+        commands: ["ls"],
+      });
+      buildRecentFixture(recentDir, [
+        { name: "x.txt.lnk", mtimeMs: 1_700_000_001_000 },
+      ]);
 
-    rig.registry.register(new BrowserHistoryChromeAdapter({ profilePath: chromeDir }));
-    rig.registry.register(new BrowserHistoryEdgeAdapter({ profilePath: edgeDir }));
-    rig.registry.register(new VSCodeAdapter({ vscodeRoot }));
-    rig.registry.register(new WinRecentAdapter({ recentDir }));
+      rig.registry.register(
+        new BrowserHistoryChromeAdapter({ profilePath: chromeDir }),
+      );
+      rig.registry.register(
+        new BrowserHistoryEdgeAdapter({ profilePath: edgeDir }),
+      );
+      rig.registry.register(new VSCodeAdapter({ vscodeRoot }));
+      rig.registry.register(new WinRecentAdapter({ recentDir }));
 
-    const r1 = await rig.registry.syncAdapter("browser-history-chrome");
-    const r2 = await rig.registry.syncAdapter("browser-history-edge");
-    const r3 = await rig.registry.syncAdapter("vscode");
-    const r4 = await rig.registry.syncAdapter("win-recent");
+      const r1 = await rig.registry.syncAdapter("browser-history-chrome");
+      const r2 = await rig.registry.syncAdapter("browser-history-edge");
+      const r3 = await rig.registry.syncAdapter("vscode");
+      const r4 = await rig.registry.syncAdapter("win-recent");
 
-    expect([r1, r2, r3, r4].every((r) => r.status === "ok")).toBe(true);
+      expect([r1, r2, r3, r4].every((r) => r.status === "ok")).toBe(true);
 
-    // Totals across vault
-    const eventsTotal = rig.vault.db.prepare("SELECT COUNT(*) AS n FROM events").get().n;
-    const itemsTotal = rig.vault.db.prepare("SELECT COUNT(*) AS n FROM items").get().n;
-    // Chrome 1 visit + Edge 1 visit + VSCode 1 command + Win 1 recent = 4 events
-    // VSCode 1 workspace = 1 item
-    expect(eventsTotal).toBe(4);
-    expect(itemsTotal).toBe(1);
+      // Totals across vault
+      const eventsTotal = rig.vault.db
+        .prepare("SELECT COUNT(*) AS n FROM events")
+        .get().n;
+      const itemsTotal = rig.vault.db
+        .prepare("SELECT COUNT(*) AS n FROM items")
+        .get().n;
+      // Chrome 1 visit + Edge 1 visit + VSCode 1 command + Win 1 recent = 4 events
+      // VSCode 1 workspace = 1 item
+      expect(eventsTotal).toBe(4);
+      expect(itemsTotal).toBe(1);
 
-    // Source-tagged distribution
-    const sourceCounts = rig.vault.db
-      .prepare("SELECT source FROM events")
-      .all()
-      .map((r) => JSON.parse(r.source).adapter)
-      .reduce((acc, a) => {
-        acc[a] = (acc[a] || 0) + 1;
-        return acc;
-      }, {});
-    expect(sourceCounts).toEqual({
-      "browser-history-chrome": 1,
-      "browser-history-edge": 1,
-      vscode: 1,
-      "win-recent": 1,
-    });
-  });
+      // Source-tagged distribution
+      const sourceCounts = rig.vault.db
+        .prepare("SELECT source FROM events")
+        .all()
+        .map((r) => JSON.parse(r.source).adapter)
+        .reduce((acc, a) => {
+          acc[a] = (acc[a] || 0) + 1;
+          return acc;
+        }, {});
+      expect(sourceCounts).toEqual({
+        "browser-history-chrome": 1,
+        "browser-history-edge": 1,
+        vscode: 1,
+        "win-recent": 1,
+      });
+    },
+  );
 });
