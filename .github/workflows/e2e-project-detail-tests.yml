@@ -38,7 +38,7 @@ jobs:
   e2e-project-detail:
     name: Project Detail E2E Tests
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 60
     # Allow failures for Windows due to known flakiness
     continue-on-error: ${{ matrix.os == 'windows-latest' }}
 
@@ -73,6 +73,10 @@ jobs:
       - name: Build main process
         working-directory: ./desktop-app-vue
         run: npm run build:main
+
+      - name: Build renderer
+        working-directory: ./desktop-app-vue
+        run: npm run build:renderer
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
