@@ -30,6 +30,24 @@ function appliedPlan(command, args, options, overrides = {}) {
 }
 
 describe("platform sandbox adapter contract", () => {
+  it("reports the implicit macOS profile unavailable without altering the invocation", () => {
+    const options = { shell: true, cwd: "/workspace" };
+    const plan = applySandbox("echo ready", [], options, "default", {
+      platform: "darwin",
+      fs: { existsSync: vi.fn(() => true) },
+    });
+
+    expect(plan).toMatchObject({
+      applied: false,
+      platform: "darwin",
+      profile: "default",
+      command: "echo ready",
+      args: [],
+      options,
+      reason: "macos_default_profile_requires_explicit_policy",
+    });
+  });
+
   it("returns a macOS Seatbelt wrapper as the executable spawn plan", () => {
     const fsRuntime = {
       existsSync: vi.fn(() => true),
@@ -63,6 +81,33 @@ describe("platform sandbox adapter contract", () => {
     expect(fsRuntime.unlinkSync).toHaveBeenCalledOnce();
   });
 
+  it("preserves shell command semantics behind an explicit macOS wrapper", () => {
+    const fsRuntime = {
+      existsSync: vi.fn(() => true),
+      writeFileSync: vi.fn(),
+      unlinkSync: vi.fn(),
+    };
+    const plan = applySandbox(
+      "node script.js",
+      [],
+      { shell: true, cwd: "/workspace" },
+      "network-only",
+      {
+        platform: "darwin",
+        fs: fsRuntime,
+        tmpdir: () => "/sandbox-tmp",
+        randomBytes: () => Buffer.from("0123456789abcdef", "hex"),
+      },
+    );
+
+    expect(plan.args.slice(-3)).toEqual(["/bin/sh", "-c", "node script.js"]);
+    expect(plan.options).toMatchObject({
+      cwd: "/workspace",
+      shell: false,
+    });
+    plan.cleanup();
+  });
+
   it("returns the Linux prlimit wrapper and marked child environment", () => {
     const options = { cwd: "/workspace", env: { PATH: "/usr/bin" } };
     const plan = applySandbox("node", ["script.js"], options, "default", {
@@ -81,7 +126,6 @@ describe("platform sandbox adapter contract", () => {
     expect(plan.args).toEqual([
       "--cpu=30",
       "--nofile=256",
-      "--nproc=64",
       "--",
       "node",
       "script.js",
@@ -91,6 +135,25 @@ describe("platform sandbox adapter contract", () => {
       CHAINLESS_SANDBOXED: "1",
     });
     expect(options.env).toEqual({ PATH: "/usr/bin" });
+  });
+
+  it("preserves shell command semantics behind the Linux wrapper", () => {
+    const plan = applySandbox(
+      "node script.js",
+      [],
+      { shell: true, cwd: "/workspace" },
+      "default",
+      {
+        platform: "linux",
+        fs: { existsSync: vi.fn(() => true) },
+      },
+    );
+
+    expect(plan.args.slice(-3)).toEqual(["/bin/sh", "-c", "node script.js"]);
+    expect(plan.options).toMatchObject({
+      cwd: "/workspace",
+      shell: false,
+    });
   });
 
   it("does not claim Windows native isolation before it is implemented", () => {
