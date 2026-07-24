@@ -79,6 +79,7 @@ describe("TurnBindingLog", () => {
       toolCallIds: ["call-a"],
       permissionDecisionIds: ["ra-1"],
       childAgentIds: ["sub-abc"],
+      childBindings: [],
       worktreeId: "agent/t1",
       coverage: TURN_COVERAGE.FULL, // edit + checkpoint
     });
