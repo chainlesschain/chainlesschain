@@ -39,8 +39,6 @@ jobs:
     name: Project Detail E2E Tests
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
-    # Allow failures for Windows due to known flakiness
-    continue-on-error: ${{ matrix.os == 'windows-latest' }}
 
     strategy:
       fail-fast: false
@@ -86,8 +84,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y xvfb
 
       # Run Active Tests (Week 1 + fixes) - 8 tests, expected 100% pass rate.
-      # No continue-on-error: failures here block the workflow (matrix-level
-      # c-o-e still allows windows-latest to fail per line 41).
+      # No continue-on-error: failures on either platform block the workflow.
       - name: Run Active Tests (Week 1)
         id: active-tests
         if: ${{ github.event.inputs.test-suite == 'all' || github.event.inputs.test-suite == 'active-tests' || github.event.inputs.test-suite == '' }}
