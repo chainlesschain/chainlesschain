@@ -173,7 +173,7 @@ export default defineConfig({
           text: "⭐ 最新功能（Claude Code 平价）",
           items: [
             {
-              text: "Agent SDK — TypeScript 接入套件 ⭐NEW",
+              text: "Agent SDK — TypeScript + Python ⭐NEW",
               link: "/chainlesschain/agent-sdk",
             },
             {
