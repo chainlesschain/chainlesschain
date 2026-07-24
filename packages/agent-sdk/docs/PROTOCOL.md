@@ -1,10 +1,12 @@
 # ChainlessChain Agent Protocol — v1
 
-The language-neutral wire contract behind `@chainlesschain/agent-sdk`.
-TypeScript consumers (VS Code extension, web-panel) get these shapes as
-types from `@chainlesschain/agent-sdk/protocol`; non-TypeScript consumers
-(the JetBrains plugin's `ChatEvents.java` / `AgentChatSession.java`) implement
-this document directly. **The protocol — not any SDK — is the contract.**
+The language-neutral wire contract behind `@chainlesschain/agent-sdk` and
+`chainlesschain-agent-sdk` (Python). TypeScript consumers (VS Code extension,
+web-panel) get these shapes from `@chainlesschain/agent-sdk/protocol`; Python
+consumers get frozen dataclasses and a lossless unknown-event wrapper from
+`packages/agent-sdk-python`; the JetBrains plugin's
+`ChatEvents.java` / `AgentChatSession.java` implements this document directly.
+**The protocol — not any SDK — is the contract.**
 
 Source of truth in the CLI:
 

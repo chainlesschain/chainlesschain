@@ -50,7 +50,8 @@ const KIND_FOLLOW = "follow";
 const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_FAVOURITE, KIND_FOLLOW]);
 
 // Best-effort dongchedi.com endpoints. Overridable via opts.*Url.
-const FAVOURITES_URL = "https://www.dongchedi.com/motor/profile/get_favorite_list";
+const FAVOURITES_URL =
+  "https://www.dongchedi.com/motor/profile/get_favorite_list";
 const FOLLOWS_URL = "https://www.dongchedi.com/motor/profile/get_follow_list";
 const PAGE_SIZE = 20;
 
@@ -80,9 +81,13 @@ class DongchediAdapter {
     this.account = opts.account || null;
     this._cookieAuth =
       opts.account && opts.account.cookies
-        ? new CookieAuth({ platform: "dongchedi", cookies: opts.account.cookies })
+        ? new CookieAuth({
+            platform: "dongchedi",
+            cookies: opts.account.cookies,
+          })
         : null;
-    this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+    this._fetchFn =
+      typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
     this._signProvider =
       typeof opts.signProvider === "function" ? opts.signProvider : null;
     this._urls = {
@@ -92,6 +97,8 @@ class DongchediAdapter {
 
     this.name = NAME;
     this.version = VERSION;
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
     this.capabilities = [
       "sync:snapshot",
       "sync:cookie-api",
@@ -128,8 +135,17 @@ class DongchediAdapter {
     }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
-      if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
-      return { ok: true, account: (this.account && this.account.userId) || null, mode: "cookie" };
+      if (!ok)
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          error: "cookies missing",
+        };
+      return {
+        ok: true,
+        account: (this.account && this.account.userId) || null,
+        mode: "cookie",
+      };
     }
     return {
       ok: false,
@@ -142,7 +158,9 @@ class DongchediAdapter {
   async healthCheck() {
     if (this._cookieAuth) {
       const r = await this.authenticate();
-      return r.ok ? { ok: true, lastChecked: Date.now() } : { ok: false, reason: r.reason, error: r.error };
+      return r.ok
+        ? { ok: true, lastChecked: Date.now() }
+        : { ok: false, reason: r.reason, error: r.error };
     }
     return { ok: true, lastChecked: Date.now() };
   }
@@ -164,7 +182,11 @@ class DongchediAdapter {
   async *_syncViaSnapshot(opts) {
     const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
     const snapshot = JSON.parse(raw);
-    if (!snapshot || typeof snapshot !== "object" || snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION) {
+    if (
+      !snapshot ||
+      typeof snapshot !== "object" ||
+      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
+    ) {
       throw new Error(
         `social-dongchedi.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
       );
@@ -173,16 +195,29 @@ class DongchediAdapter {
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
         : Date.now();
-    const account = snapshot.account && typeof snapshot.account === "object" ? snapshot.account : null;
+    const account =
+      snapshot.account && typeof snapshot.account === "object"
+        ? snapshot.account
+        : null;
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const events = Array.isArray(snapshot.events) ? snapshot.events : [];
     let emitted = 0;
     for (const ev of events) {
       if (emitted >= limit) return;
-      if (!ev || typeof ev !== "object" || !VALID_SNAPSHOT_KINDS.includes(ev.kind)) continue;
+      if (
+        !ev ||
+        typeof ev !== "object" ||
+        !VALID_SNAPSHOT_KINDS.includes(ev.kind)
+      )
+        continue;
       if (include[ev.kind] === false) continue;
-      const id = (typeof ev.id === "string" && ev.id) || ev.itemId || ev.followId || null;
+      const id =
+        (typeof ev.id === "string" && ev.id) ||
+        ev.itemId ||
+        ev.followId ||
+        null;
       yield {
         adapter: NAME,
         kind: ev.kind,
@@ -198,8 +233,14 @@ class DongchediAdapter {
     if (!(await this._cookieAuth.validate())) return;
     const cookies = this._cookieAuth.toHeader();
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
-    const maxPages = Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+    const sinceMs =
+      opts.sinceWatermark != null
+        ? parseInt(String(opts.sinceWatermark), 10) || 0
+        : 0;
 
     const plan = [
       { kind: KIND_FAVOURITE, url: this._urls.favourites },
@@ -207,43 +248,73 @@ class DongchediAdapter {
     ];
 
     let emitted = 0;
+    let scanComplete = true;
     for (const step of plan) {
       if (include[step.kind] === false) continue;
       let offset = 0;
       let page = 0;
+      let streamComplete = false;
       while (page < maxPages) {
         const query = { offset, count: PAGE_SIZE };
         let sign = null;
         if (this._signProvider) {
           sign = await this._signProvider({ url: step.url, query, cookies });
         }
-        const resp = await this._fetchFn({ url: step.url, cookies, query, sign });
+        if (typeof opts.beforeSourceRequest === "function") {
+          await opts.beforeSourceRequest({ operation: step.kind, page });
+        }
+        const resp = await this._fetchFn({
+          url: step.url,
+          cookies,
+          query,
+          sign,
+        });
         const items = extractData(resp);
-        if (!items.length) break;
+        if (!items.length) {
+          streamComplete = true;
+          break;
+        }
+        let reachedWatermark = false;
         for (const it of items) {
           if (!it || typeof it !== "object") continue;
+          const capturedAt =
+            parseTime(it.create_time || it.favorite_time || it.follow_time) ||
+            Date.now();
+          if (capturedAt < sinceMs) {
+            reachedWatermark = true;
+            break;
+          }
           if (emitted >= limit) return;
-          const id = step.kind === KIND_FOLLOW
-            ? it.follow_id || it.user_id || it.series_id || it.id
-            : it.group_id || it.item_id || it.id;
+          const id =
+            step.kind === KIND_FOLLOW
+              ? it.follow_id || it.user_id || it.series_id || it.id
+              : it.group_id || it.item_id || it.id;
           yield {
             adapter: NAME,
             kind: step.kind,
             originalId: stableOriginalId(step.kind, id),
-            capturedAt: parseTime(it.create_time || it.favorite_time || it.follow_time) || Date.now(),
+            capturedAt,
             payload: { item: it, kind: step.kind, cookie: true },
           };
           emitted += 1;
         }
-        if (isEnd(resp) || items.length < PAGE_SIZE) break;
+        if (reachedWatermark || isEnd(resp) || items.length < PAGE_SIZE) {
+          streamComplete = true;
+          break;
+        }
         offset += items.length;
         page += 1;
       }
+      if (!streamComplete) scanComplete = false;
+    }
+    if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+      opts.markWatermarkComplete();
     }
   }
 
   normalize(raw) {
-    if (!raw || !raw.payload) throw new Error("DongchediAdapter.normalize: payload missing");
+    if (!raw || !raw.payload)
+      throw new Error("DongchediAdapter.normalize: payload missing");
     const ingestedAt = Date.now();
     const kind = raw.kind || raw.payload.kind;
     if (kind === KIND_FAVOURITE) return normalizeFavourite(raw, ingestedAt);
@@ -269,8 +340,10 @@ function extractData(resp) {
 }
 
 function isEnd(resp) {
-  const d = resp && resp.data && typeof resp.data === "object" ? resp.data : resp;
-  if (d && typeof d === "object" && (d.has_more === false || d.has_more === 0)) return true;
+  const d =
+    resp && resp.data && typeof resp.data === "object" ? resp.data : resp;
+  if (d && typeof d === "object" && (d.has_more === false || d.has_more === 0))
+    return true;
   return false;
 }
 
@@ -290,7 +363,10 @@ function normalizeFavourite(raw, ingestedAt) {
   const p = raw.payload;
   const it = p.cookie ? p.item : p;
   const title = it.title || it.group_title || it.name || "";
-  const occurredAt = parseTime(it.capturedAt || it.create_time || it.favorite_time || raw.capturedAt) || ingestedAt;
+  const occurredAt =
+    parseTime(
+      it.capturedAt || it.create_time || it.favorite_time || raw.capturedAt,
+    ) || ingestedAt;
   const source = buildSource(raw, occurredAt);
   return {
     events: [
@@ -305,8 +381,10 @@ function normalizeFavourite(raw, ingestedAt) {
         source,
         extra: {
           platform: "dongchedi",
-          itemId: (it.itemId || it.group_id || it.item_id || it.id) != null
-            ? String(it.itemId || it.group_id || it.item_id || it.id) : null,
+          itemId:
+            (it.itemId || it.group_id || it.item_id || it.id) != null
+              ? String(it.itemId || it.group_id || it.item_id || it.id)
+              : null,
           contentType: it.contentType || it.content_type || it.type || null,
           url: it.url || it.share_url || null,
         },
@@ -322,10 +400,19 @@ function normalizeFavourite(raw, ingestedAt) {
 function normalizeFollow(raw, ingestedAt) {
   const p = raw.payload;
   const it = p.cookie ? p.item : p;
-  const followId = it.followId || it.follow_id || it.user_id || it.series_id || it.id || `unknown-${newId()}`;
-  const name = it.name || it.series_name || it.user_name || it.screen_name || "(unnamed)";
-  const followType = it.followType || it.follow_type || (it.series_id ? "series" : "creator");
-  const occurredAt = parseTime(it.capturedAt || it.follow_time || raw.capturedAt) || ingestedAt;
+  const followId =
+    it.followId ||
+    it.follow_id ||
+    it.user_id ||
+    it.series_id ||
+    it.id ||
+    `unknown-${newId()}`;
+  const name =
+    it.name || it.series_name || it.user_name || it.screen_name || "(unnamed)";
+  const followType =
+    it.followType || it.follow_type || (it.series_id ? "series" : "creator");
+  const occurredAt =
+    parseTime(it.capturedAt || it.follow_time || raw.capturedAt) || ingestedAt;
   const source = buildSource(raw, occurredAt);
   const person = {
     id: `person-dongchedi-${followId}`,
@@ -346,7 +433,9 @@ function normalizeFollow(raw, ingestedAt) {
 }
 
 async function defaultFetch(_opts) {
-  throw new Error("social-dongchedi: no fetchFn configured for cookie-api mode");
+  throw new Error(
+    "social-dongchedi: no fetchFn configured for cookie-api mode",
+  );
 }
 
 module.exports = {

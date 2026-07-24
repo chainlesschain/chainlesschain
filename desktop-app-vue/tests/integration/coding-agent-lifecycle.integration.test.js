@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EventEmitter } from "events";
+import { WebSocketInteractionAdapter } from "../../../packages/cli/src/lib/interaction-adapter.js";
+import elicitationSchema from "../../../packages/elicitation-schema/index.js";
 
 vi.mock("../../src/main/utils/logger.js", () => ({
   logger: {
@@ -644,6 +646,21 @@ class MockBridge extends EventEmitter {
     this.sentMessages.push(message);
   }
 
+  async request(type, payload = {}, awaitTypes = []) {
+    const id = `${type}-transport-request`;
+    this.sentMessages.push({ id, type, ...payload });
+    if (type === "session-answer") {
+      this.onSessionAnswer?.(payload);
+    }
+    return {
+      id,
+      type: awaitTypes.includes("command.response")
+        ? "command.response"
+        : awaitTypes[0],
+      success: true,
+    };
+  }
+
   async shutdown() {
     return undefined;
   }
@@ -770,6 +787,330 @@ describe("Coding agent lifecycle integration", () => {
     });
     expect(bridge.interruptedSessions).toContain("session-x");
     expect(bridge.closedSessions).not.toContain("session-x");
+  });
+
+  it("round-trips a bound AskUserQuestion and rejects stale or cross-session answers", async () => {
+    await ipcMainMock.handlers["coding-agent:create-session"]({}, {});
+
+    const ws = {
+      OPEN: 1,
+      readyState: 1,
+      send: vi.fn((data) => bridge.emit("message", JSON.parse(String(data)))),
+    };
+    const interaction = new WebSocketInteractionAdapter(ws, "session-x");
+    interaction._requestId = () => "question-7";
+    bridge.onSessionAnswer = ({ requestId, answer, binding }) => {
+      interaction.resolveAnswer(requestId, answer, binding);
+    };
+    const sameTurnCompletion = interaction.askUser({
+      question: "Which environment should I deploy?",
+      options: [
+        { label: "Staging", value: "staging" },
+        { label: "Production", value: "production" },
+      ],
+      multiSelect: false,
+      timeoutMs: 30_000,
+      turnId: "turn-3",
+      toolUseId: "tool-use-9",
+    });
+
+    const questionEvent = mainWindow.webContents.send.mock.calls
+      .map((call) => call[1])
+      .find((event) => event.type === "question_request");
+    expect(questionEvent).toMatchObject({
+      sessionId: "session-x",
+      requestId: "question-7",
+      payload: {
+        requestId: "question-7",
+        sessionId: "session-x",
+        turnId: "turn-3",
+        toolUseId: "tool-use-9",
+        question: "Which environment should I deploy?",
+      },
+    });
+    expect(service.getSessionState("session-x")).toMatchObject({
+      success: true,
+      session: {
+        status: "waiting_input",
+        pendingQuestions: [
+          {
+            sessionId: "session-x",
+            requestId: "question-7",
+            turnId: "turn-3",
+            toolUseId: "tool-use-9",
+          },
+        ],
+      },
+    });
+
+    const sentBeforeMismatch = bridge.sentMessages.length;
+    const mismatchedBinding = await ipcMainMock.handlers[
+      "coding-agent:respond-elicitation"
+    ](
+      {},
+      {
+        sessionId: "session-x",
+        requestId: "question-7",
+        turnId: "turn-3",
+        toolUseId: "another-tool-use",
+        action: "accept",
+        answer: "production",
+      },
+    );
+    expect(mismatchedBinding).toMatchObject({
+      success: false,
+      error: expect.stringContaining("toolUseId does not match"),
+    });
+    expect(bridge.sentMessages).toHaveLength(sentBeforeMismatch);
+
+    const response = await ipcMainMock.handlers[
+      "coding-agent:respond-elicitation"
+    ](
+      {},
+      {
+        sessionId: "session-x",
+        requestId: "question-7",
+        turnId: "turn-3",
+        toolUseId: "tool-use-9",
+        action: "accept",
+        answer: "staging",
+      },
+    );
+
+    expect(response).toMatchObject({
+      success: true,
+      sessionId: "session-x",
+      requestId: "question-7",
+      turnId: "turn-3",
+      toolUseId: "tool-use-9",
+      transportRequestId: "session-answer-transport-request",
+    });
+    expect(bridge.sentMessages.at(-1)).toMatchObject({
+      id: expect.stringMatching(/^session-answer-/),
+      type: "session-answer",
+      sessionId: "session-x",
+      requestId: "question-7",
+      answer: "staging",
+      turnId: "turn-3",
+      turn_id: "turn-3",
+      toolUseId: "tool-use-9",
+      tool_use_id: "tool-use-9",
+    });
+    await expect(sameTurnCompletion).resolves.toBe("staging");
+
+    const completed = service
+      .getSessionEvents("session-x")
+      .events.find(
+        (event) =>
+          event.type === "question_resolved" &&
+          event.requestId === "question-7",
+      );
+    expect(completed).toMatchObject({
+      sessionId: "session-x",
+      requestId: "question-7",
+      payload: {
+        turnId: "turn-3",
+        toolUseId: "tool-use-9",
+        via: "user-answer",
+      },
+    });
+    expect(
+      service.getSessionState("session-x").session.pendingQuestions,
+    ).toEqual([]);
+
+    const stale = await ipcMainMock.handlers[
+      "coding-agent:respond-elicitation"
+    ](
+      {},
+      {
+        sessionId: "session-x",
+        requestId: "question-7",
+        turnId: "turn-3",
+        toolUseId: "tool-use-9",
+        action: "accept",
+        answer: "production",
+      },
+    );
+    expect(stale).toMatchObject({
+      success: false,
+      error: expect.stringContaining("no longer pending"),
+    });
+
+    service.sessions.set("session-y", {
+      ...service.sessions.get("session-x"),
+      sessionId: "session-y",
+      events: [],
+      pendingRequests: [],
+    });
+    bridge.emit("message", {
+      type: "question_request",
+      id: "question-cross",
+      session_id: "session-x",
+      question: "Continue?",
+      turn_id: "turn-4",
+      tool_use_id: "tool-use-10",
+    });
+    const crossSession = await ipcMainMock.handlers[
+      "coding-agent:respond-elicitation"
+    ](
+      {},
+      {
+        sessionId: "session-y",
+        requestId: "question-cross",
+        turnId: "turn-4",
+        toolUseId: "tool-use-10",
+        action: "accept",
+        answer: "yes",
+      },
+    );
+    expect(crossSession).toMatchObject({
+      success: false,
+      error: expect.stringContaining("different session"),
+    });
+  });
+
+  it("round-trips a validated MCP schema answer through the real CLI WS adapter and Desktop IPC", async () => {
+    await ipcMainMock.handlers["coding-agent:create-session"]({}, {});
+
+    const ws = {
+      OPEN: 1,
+      readyState: 1,
+      send: vi.fn((data) => bridge.emit("message", JSON.parse(String(data)))),
+    };
+    const interaction = new WebSocketInteractionAdapter(ws, "session-x");
+    interaction._requestId = () => "mcp-question-8";
+    bridge.onSessionAnswer = ({ requestId, answer, binding }) => {
+      interaction.resolveAnswer(requestId, answer, binding);
+    };
+    const requestedSchema = {
+      type: "object",
+      properties: {
+        email: {
+          type: "string",
+          title: "Contact email",
+          format: "email",
+        },
+        rating: {
+          type: "integer",
+          title: "Rating",
+          minimum: 1,
+          maximum: 5,
+        },
+        channel: {
+          type: "string",
+          title: "Release channel",
+          oneOf: [
+            { const: "stable", title: "Stable" },
+            { const: "preview", title: "Preview" },
+          ],
+        },
+        scopes: {
+          type: "array",
+          title: "Scopes",
+          items: {
+            anyOf: [
+              { const: "read", title: "Read only" },
+              { const: "write", title: "Read and write" },
+            ],
+          },
+          minItems: 1,
+          maxItems: 1,
+        },
+      },
+      required: ["email", "rating", "channel", "scopes"],
+    };
+    const sameRequestCompletion = interaction.askElicitation({
+      server: "release-mcp",
+      requestId: "server-request-42",
+      message: "Configure the release",
+      requestedSchema,
+      timeoutMs: 30_000,
+    });
+
+    const questionEvent = mainWindow.webContents.send.mock.calls
+      .map((call) => call[1])
+      .find((event) => event.requestId === "mcp-question-8");
+    expect(questionEvent).toMatchObject({
+      sessionId: "session-x",
+      requestId: "mcp-question-8",
+      payload: {
+        question: "Configure the release",
+        requestedSchema,
+        metadata: {
+          kind: "mcp_elicitation",
+          server: "release-mcp",
+          requestId: "server-request-42",
+        },
+      },
+    });
+
+    const sentBeforeInvalid = bridge.sentMessages.length;
+    const invalid = await ipcMainMock.handlers[
+      "coding-agent:respond-elicitation"
+    ](
+      {},
+      {
+        sessionId: "session-x",
+        requestId: "mcp-question-8",
+        action: "accept",
+        answer: {
+          email: "not-an-email",
+          rating: 8,
+          channel: "preview",
+          scopes: [],
+        },
+      },
+    );
+    expect(invalid).toMatchObject({
+      success: false,
+      error: expect.stringContaining("MCP elicitation answer is invalid"),
+    });
+    expect(bridge.sentMessages).toHaveLength(sentBeforeInvalid);
+
+    const submission = elicitationSchema.prepareElicitationSubmission(
+      requestedSchema,
+      {
+        email: "dev@example.com",
+        rating: "5",
+        channel: "preview",
+        scopes: ["read"],
+        injected: "must not cross the protocol boundary",
+      },
+    );
+    expect(submission.valid).toBe(true);
+    const accepted = await ipcMainMock.handlers[
+      "coding-agent:respond-elicitation"
+    ](
+      {},
+      {
+        sessionId: "session-x",
+        requestId: "mcp-question-8",
+        action: "accept",
+        answer: submission.value,
+      },
+    );
+    expect(accepted).toMatchObject({
+      success: true,
+      sessionId: "session-x",
+      requestId: "mcp-question-8",
+    });
+    expect(bridge.sentMessages.at(-1)).toMatchObject({
+      type: "session-answer",
+      sessionId: "session-x",
+      requestId: "mcp-question-8",
+      answer: {
+        email: "dev@example.com",
+        rating: 5,
+        channel: "preview",
+        scopes: ["read"],
+      },
+    });
+    await expect(sameRequestCompletion).resolves.toEqual({
+      email: "dev@example.com",
+      rating: 5,
+      channel: "preview",
+      scopes: ["read"],
+    });
   });
 
   it("handles plan-mode lifecycle: enter → show → approve → reject", async () => {

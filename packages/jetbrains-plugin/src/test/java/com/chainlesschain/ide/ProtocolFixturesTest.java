@@ -148,6 +148,9 @@ class ProtocolFixturesTest {
                 p.put("question", ui.get("question"));
                 p.put("multiSelect", truthy(ui.get("multiSelect")));
                 p.put("hasOptions", ui.get("options") != null);
+                p.put("elicitation", truthy(ui.get("elicitation")));
+                p.put("server", ui.get("server"));
+                p.put("hasSchema", ui.get("requestedSchema") != null);
                 break;
             case "plan":
                 p.put("active", truthy(ui.get("active")));

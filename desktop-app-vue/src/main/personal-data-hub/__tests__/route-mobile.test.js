@@ -2,14 +2,14 @@
  * route-mobile dispatcher unit tests (Phase 14.1.1 follow-up).
  *
  * Verifies the kebab-case → hub-method mapping + Android-envelope wrapping
- * for the 21 methods routeMobileCommand can hit from Android P2P.
+ * for the methods routeMobileCommand can hit from Android P2P.
  *
  * `hubWiring.getHub()` is mocked via the module's exported `_DISPATCH` table
  * — we call dispatch functions directly against a hand-built fake hub so the
  * real LocalVault / LLMManager singletons are never touched.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { _DISPATCH, dispatchPersonalDataHubMethod } from "../route-mobile.js";
 
 // Build a minimal fake hub matching the surface route-mobile expects. Each
@@ -72,6 +72,10 @@ function makeFakeHub(overrides = {}) {
       calls.registerEmail = { account, opts };
       return { name: "email-imap@" + account.email, version: "1.0" };
     },
+    activateEmailAdapter: async (email) => {
+      calls.activateEmail = email;
+      return { name: "email-imap", active: true };
+    },
     unregisterEmailAdapter: async (email) => {
       calls.unregisterEmail = email;
       return { ok: true, removed: email };
@@ -82,6 +86,10 @@ function makeFakeHub(overrides = {}) {
     registerAlipayAdapter: async ({ account, opts }) => {
       calls.registerAlipay = { account, opts };
       return { name: "alipay@" + account.email, version: "1.0" };
+    },
+    activateAlipayAdapter: async (email) => {
+      calls.activateAlipay = email;
+      return { name: "alipay-bill", active: true };
     },
     unregisterAlipayAdapter: async (email) => {
       calls.unregisterAlipay = email;
@@ -167,6 +175,31 @@ describe("route-mobile DISPATCH table", () => {
     expect(r.reports).toHaveLength(2);
   });
 
+  it("sync-all runs a connected source's dedicated host collector", async () => {
+    const hub = makeFakeHub();
+    hub.registry.syncAll = async () => [
+      {
+        adapter: "social-bilibili",
+        status: "skipped",
+        skipReason: "DEDICATED_COLLECTOR_REQUIRED",
+      },
+    ];
+    const collected = {
+      adapter: "social-bilibili",
+      status: "ok",
+      rawCount: 4,
+      entityCounts: { events: 4 },
+    };
+    hub.bilibiliAdbSync = vi
+      .fn()
+      .mockResolvedValue({ ok: true, report: collected });
+
+    const result = await _DISPATCH["sync-all"](hub, {});
+
+    expect(result.reports).toEqual([collected]);
+    expect(hub.bilibiliAdbSync).toHaveBeenCalledWith({});
+  });
+
   it("query-events wraps in EventsResponse envelope and forwards all filters", async () => {
     const hub = makeFakeHub();
     const r = await _DISPATCH["query-events"](hub, {
@@ -219,11 +252,29 @@ describe("route-mobile DISPATCH table", () => {
     expect(r.accounts[0].email).toBe("me@qq.com");
   });
 
+  it("activate-email switches to a persisted account", async () => {
+    const hub = makeFakeHub();
+    const r = await _DISPATCH["activate-email"](hub, {
+      email: "saved@qq.com",
+    });
+    expect(hub._calls.activateEmail).toBe("saved@qq.com");
+    expect(r.active).toBe(true);
+  });
+
   it("list-alipay-accounts wraps in AlipayAccountsResponse envelope", async () => {
     const hub = makeFakeHub();
     const r = await _DISPATCH["list-alipay-accounts"](hub);
     expect(r).toHaveProperty("accounts");
     expect(r.accounts[0].email).toBe("a@b.com");
+  });
+
+  it("activate-alipay switches to a persisted account", async () => {
+    const hub = makeFakeHub();
+    const r = await _DISPATCH["activate-alipay"](hub, {
+      email: "saved@alipay.com",
+    });
+    expect(hub._calls.activateAlipay).toBe("saved@alipay.com");
+    expect(r.active).toBe(true);
   });
 
   it("unregister returns ok + removed name (Android UnregisterResponse)", async () => {
@@ -235,9 +286,9 @@ describe("route-mobile DISPATCH table", () => {
 
   it("stream methods require ctx.sendEventToPeer (mobile-only entry)", async () => {
     const hub = makeFakeHub();
-    await expect(_DISPATCH["sync-adapter-stream"](hub, { name: "x" }, {})).rejects.toThrow(
-      /sendEventToPeer/,
-    );
+    await expect(
+      _DISPATCH["sync-adapter-stream"](hub, { name: "x" }, {}),
+    ).rejects.toThrow(/sendEventToPeer/);
     await expect(_DISPATCH["sync-all-stream"](hub, {}, {})).rejects.toThrow(
       /sendEventToPeer/,
     );
@@ -251,7 +302,9 @@ describe("sync-adapter-stream wiring", () => {
     const hub = makeFakeHub();
     // Track when sync actually completes vs when streamId is returned
     let syncResolve;
-    const syncPromise = new Promise((resolve) => { syncResolve = resolve; });
+    const syncPromise = new Promise((resolve) => {
+      syncResolve = resolve;
+    });
     hub.registry.syncAdapter = async (name) => {
       await syncPromise; // block until test resolves
       return { adapter: name, ingested: 42, durationMs: 1000 };
@@ -302,8 +355,12 @@ describe("sync-adapter-stream wiring", () => {
     };
     // Replace the onSyncEvent setter to capture what route-mobile installs.
     Object.defineProperty(hub.registry, "onSyncEvent", {
-      get() { return capturedHook; },
-      set(v) { capturedHook = v; },
+      get() {
+        return capturedHook;
+      },
+      set(v) {
+        capturedHook = v;
+      },
       configurable: true,
     });
 
@@ -368,7 +425,8 @@ describe("sync-adapter-stream wiring", () => {
 
     const doneEvent = events.find((e) => e.params.kind === "done");
     expect(doneEvent.params.adapter).toBe("*");
-    expect(doneEvent.params.report).toHaveLength(2);
+    expect(doneEvent.params.report).toBeUndefined();
+    expect(doneEvent.params.reports).toHaveLength(2);
   });
 
   it("restores original onSyncEvent after sync done", async () => {
@@ -376,8 +434,12 @@ describe("sync-adapter-stream wiring", () => {
     const originalHook = (msg) => {};
     let currentHook = originalHook;
     Object.defineProperty(hub.registry, "onSyncEvent", {
-      get() { return currentHook; },
-      set(v) { currentHook = v; },
+      get() {
+        return currentHook;
+      },
+      set(v) {
+        currentHook = v;
+      },
       configurable: true,
     });
     hub.registry.syncAdapter = async () => ({ adapter: "x", ingested: 0 });

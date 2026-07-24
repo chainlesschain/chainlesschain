@@ -61,6 +61,7 @@ import { SIDE_EFFECT_LEDGER_EVENT } from "../lib/side-effect-ledger-store.js";
 import { TurnBindingLog, createTurnBindingFeed } from "../lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../lib/turn-binding-store.js";
 import { operationIdempotencyKey } from "../lib/idempotency.js";
+import { CLISkillLoader } from "../lib/skill-loader.js";
 import { expandFileRefsAsync } from "./file-ref-expander.js";
 import { composeSystemPrompt } from "./system-prompt.js";
 import { buildUserContent } from "../lib/image-input.js";
@@ -79,6 +80,7 @@ import {
 } from "../lib/exit-codes.cjs";
 import { isolationLevel } from "../lib/agent-sandbox.js";
 import { createBackgroundPhaseReporter } from "../lib/background-phase-reporter.js";
+import { createBackgroundInteractionClient } from "../lib/background-interaction-resolver.js";
 import { withQuietStdout } from "./quiet-stdout.js";
 import { CostBudget } from "../lib/cost-budget.js";
 import { estimateTokens } from "../harness/prompt-compressor.js";
@@ -734,21 +736,51 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     deps.backgroundPhaseReporter || createBackgroundPhaseReporter();
 
   const sideEffectRunNonce = String(deps.now ? deps.now() : Date.now());
+  const _backgroundPolicyDigest = _bgPhase.enabled
+    ? computePolicyDigest({
+        permissionMode: options.permissionMode,
+        allowedTools: options.allowedTools,
+        disallowedTools: options.disallowedTools,
+        permissionRules,
+      })
+    : null;
+  const _backgroundInteraction = _bgPhase.enabled
+    ? deps.backgroundInteractionClient ||
+      createBackgroundInteractionClient({
+        backgroundAgentId: process.env.CC_BACKGROUND_AGENT_ID,
+        sessionId,
+        // One headless invocation is one user turn even when its model/tool
+        // loop contains several internal iterations.
+        turnId: options.turnId || sideEffectRunNonce,
+      })
+    : null;
   let sideEffectLedger = new SideEffectLedger({ clock: deps.now || null });
+  let sideEffectLedgerLoadError = null;
   let sideEffectSeq = 0;
   let currentSideEffectOpId = null;
   let resumeSideEffectContext = null;
   let resumeAsyncHookContext = null;
   const persistSideEffectLedger = () => {
     if (!persist) return;
+    if (sideEffectLedgerLoadError) throw sideEffectLedgerLoadError;
     try {
-      store.appendEvent(
+      const persisted = store.appendEvent(
         sessionId,
         SIDE_EFFECT_LEDGER_EVENT,
         sideEffectLedger.toJSON(),
       );
-    } catch {
-      // best-effort — never fail the run over ledger persistence
+      if (persisted === false) {
+        throw new Error("session store rejected the ledger snapshot");
+      }
+    } catch (cause) {
+      const error = new Error(
+        `Side-effect ledger persistence failed for ${sessionId}: ${
+          cause?.message || String(cause)
+        }`,
+        { cause },
+      );
+      error.code = "SIDE_EFFECT_LEDGER_PERSIST_FAILED";
+      throw error;
     }
   };
   // P1 explicit turn→checkpoint binding: feed the TurnBindingLog in real time
@@ -761,6 +793,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   // context. Only writes when a turn actually recorded something, and only for
   // persisted runs — a tool-free Q&A or ephemeral run stays byte-identical.
   let turnBindingLog = new TurnBindingLog();
+  let turnBindingLoadError = null;
   if (persist) {
     try {
       const events = store.readEvents(sessionId) || [];
@@ -776,8 +809,15 @@ export async function runAgentHeadless(options = {}, deps = {}) {
           break;
         }
       }
-    } catch {
-      // fresh log — best effort
+    } catch (cause) {
+      const error = new Error(
+        `Turn binding read failed for ${sessionId}: ${
+          cause?.message || String(cause)
+        }`,
+        { cause },
+      );
+      error.code = "TURN_BINDING_READ_FAILED";
+      turnBindingLoadError = error;
     }
   }
   // Event→table folding + id synthesis live in the SHARED feeder core
@@ -788,11 +828,26 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     : null;
   const persistTurnBindingLog = () => {
     if (!turnBindingFeed || !turnBindingFeed.isDirty()) return;
+    if (turnBindingLoadError) throw turnBindingLoadError;
     try {
-      store.appendEvent(sessionId, TURN_BINDING_EVENT, turnBindingLog.toJSON());
+      const persisted = store.appendEvent(
+        sessionId,
+        TURN_BINDING_EVENT,
+        turnBindingLog.toJSON(),
+      );
+      if (persisted === false) {
+        throw new Error("session store rejected the binding snapshot");
+      }
       turnBindingFeed.clearDirty();
-    } catch {
-      // best-effort — never fail the run over binding persistence
+    } catch (cause) {
+      const error = new Error(
+        `Turn binding persistence failed for ${sessionId}: ${
+          cause?.message || String(cause)
+        }`,
+        { cause },
+      );
+      error.code = "TURN_BINDING_PERSIST_FAILED";
+      throw error;
     }
   };
   if (persist) {
@@ -812,8 +867,17 @@ export async function runAgentHeadless(options = {}, deps = {}) {
           break;
         }
       }
-    } catch {
-      // fresh ledger — best effort
+    } catch (cause) {
+      const error = new Error(
+        `Side-effect ledger read failed for ${sessionId}: ${
+          cause?.message || String(cause)
+        }`,
+        { cause },
+      );
+      error.code = "SIDE_EFFECT_LEDGER_READ_FAILED";
+      // Keep read-only turns available; classified side effects call the
+      // persistence gate above before the generator can execute the tool.
+      sideEffectLedgerLoadError = error;
     }
     // On resume, surface any operation that was in flight when the prior run
     // died: its outcome is UNKNOWN, so the model is told to VERIFY before any
@@ -968,10 +1032,19 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   const _leanNoProjectMemory = options.projectMemory === false;
   let _loadedInstructions = null;
   let _loadedPersonaSkills = [];
+  let _skillCacheLedger = null;
+  const _runtimeSkillLoader =
+    options.skillLoader || new CLISkillLoader();
   const systemContent = composeSystemPrompt(
     buildSystemPrompt(cwd, {
       additionalDirectories,
       projectMemory: options.projectMemory,
+      sessionId,
+      skillLoader: _runtimeSkillLoader,
+      onSkillsLoaded: (skills, cacheLedger) => {
+        _loadedPersonaSkills = Array.isArray(skills) ? skills : [];
+        _skillCacheLedger = cacheLedger || null;
+      },
     }),
     {
       systemPrompt: options.systemPrompt,
@@ -981,9 +1054,6 @@ export async function runAgentHeadless(options = {}, deps = {}) {
       projectMemory: _leanNoProjectMemory ? false : undefined,
       onInstructionsLoaded: (loaded) => {
         _loadedInstructions = loaded;
-      },
-      onSkillsLoaded: (skills) => {
-        _loadedPersonaSkills = Array.isArray(skills) ? skills : [];
       },
     },
   );
@@ -1367,10 +1437,17 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   // Persist the admitted runtime schema surface so `cc context --sources` can
   // attribute MCP cost to the actual server/tool definitions used by this run,
   // rather than guessing from the current environment on a later invocation.
-  if (
-    persist &&
-    (mcp?.extraToolDefinitions?.length || _loadedPersonaSkills.length)
-  ) {
+  const persistContextSources = () => {
+    if (!persist) return false;
+    _skillCacheLedger =
+      _runtimeSkillLoader.getCacheLedger?.() || _skillCacheLedger;
+    if (
+      !mcp?.extraToolDefinitions?.length &&
+      !_loadedPersonaSkills.length &&
+      !_skillCacheLedger?.descriptors?.resident
+    ) {
+      return false;
+    }
     try {
       store.appendEvent(sessionId, "context_sources", {
         mcp: (mcp?.extraToolDefinitions || []).map((definition) => ({
@@ -1384,13 +1461,22 @@ export async function runAgentHeadless(options = {}, deps = {}) {
           id: skill?.id || skill?.displayName || "skill",
           displayName: skill?.displayName || skill?.id || "skill",
           source: skill?.source || "skill",
-          body: typeof skill?.body === "string" ? skill.body : "",
+          tokens: estimateTokens(
+            `## Persona: ${skill?.displayName || skill?.id || "skill"}\n${
+              typeof skill?.body === "string" ? skill.body : ""
+            }`,
+          ),
+          bodyLoaded: skill?.bodyLoaded === true,
         })),
+        skillCache: _skillCacheLedger,
       });
+      return true;
     } catch {
       // Source attribution is observability-only; never fail the agent run.
+      return false;
     }
-  }
+  };
+  persistContextSources();
 
   const loopOptions = {
     model,
@@ -1409,6 +1495,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     baseUrl,
     apiKey,
     cwd,
+    skillLoader: _runtimeSkillLoader,
     additionalDirectories,
     sandbox: options.sandbox || null,
     sessionId,
@@ -1435,27 +1522,39 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     disabledTools,
     iterationBudget: budget,
     toolAdmission: options.toolAdmission || null,
-    // `ask_user_question` in a BACKGROUND turn child (P0 state-machine
-    // producer for `needs_input`): there is no live channel to a human
-    // mid-turn, but the question IS the structured needs-input signal. Park
-    // it — record `phase: "needs_input"` + the question in the shared state
-    // file (dashboard "Needs input" gets real data; the user's reply arrives
-    // as the next attach prompt) and tell the model to end the turn. A
-    // non-background run supplies no interaction → the handler's existing
-    // `user_not_reachable` path stays byte-identical.
+    // `ask_user_question` in a BACKGROUND turn child: send a bound request to
+    // the worker over Node IPC and await the answer here. `executeTool` remains
+    // suspended, so the model continues the SAME turn/tool call after the user
+    // answers instead of receiving the answer as a follow-up turn.
     ...(_bgPhase.enabled
       ? {
           interaction: {
-            askUser: async ({ question, options: qOptions } = {}) => {
+            askUser: async ({
+              question,
+              options: qOptions,
+              multiSelect,
+              timeoutMs,
+              defaultValue,
+              toolUseId,
+              turnId,
+              policyDigest,
+            } = {}) => {
               _bgPhase.reportQuestion({
                 question: typeof question === "string" ? question : "",
                 options: Array.isArray(qOptions) ? qOptions : null,
               });
-              throw new Error(
-                "question parked for the user (background session). End this " +
-                  "turn now — the user's reply will arrive as the next " +
-                  "message. Do not repeat the question.",
-              );
+              return _backgroundInteraction.request({
+                kind: "question",
+                question,
+                options: qOptions,
+                multiSelect,
+                timeoutMs,
+                defaultValue,
+                toolUseId,
+                turnId,
+                policyDigest: policyDigest || _backgroundPolicyDigest,
+                sessionId,
+              });
             },
           },
         }
@@ -1824,10 +1923,15 @@ export async function runAgentHeadless(options = {}, deps = {}) {
             if (isText) writeErr(line + "\n");
             emitStream({
               type: "tool_use",
+              ...(event.tool_use_id ? { id: event.tool_use_id } : {}),
               tool: event.tool,
               args: event.args,
             });
-            toolCalls.push({ tool: event.tool, args: event.args });
+            toolCalls.push({
+              ...(event.tool_use_id ? { id: event.tool_use_id } : {}),
+              tool: event.tool,
+              args: event.args,
+            });
             // P0-2: record an irreversible effect as STARTED (persisted before
             // it settles) so a crash before the matching tool-result leaves a
             // reconcilable "in flight" marker instead of a silent replay.
@@ -1882,6 +1986,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
             if (isText && err) writeErr(`  Error: ${err}\n`);
             emitStream({
               type: "tool_result",
+              ...(event.tool_use_id ? { id: event.tool_use_id } : {}),
               tool: event.tool,
               is_error: Boolean(err),
               error: err,
@@ -2198,6 +2303,14 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     // "the model call failed" from "the run itself errored" (1).
     return { exitCode: classifyLoopError(err), result: message, isError: true };
   } finally {
+    // Capture body-cache hits/misses caused by list_skills/run_skill during the
+    // turn. `cc context --sources` reads the newest snapshot.
+    persistContextSources();
+    try {
+      _backgroundInteraction?.close?.();
+    } catch {
+      // Best-effort listener cleanup; never mask the run result.
+    }
     // Drop the signal handlers first — a normal return must not leave a
     // process-wide SIGINT/SIGTERM listener behind (a later Ctrl-C would wrongly
     // exit with 130, and repeated in-process runs would leak listeners).

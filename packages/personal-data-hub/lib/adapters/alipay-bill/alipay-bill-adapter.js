@@ -5,8 +5,8 @@
  * a CSV bill from the Alipay app (我的 → 账单 → 开具交易流水证明 → 发到
  * 邮箱), then drop the resulting `alipay_record_*.zip` into our UI.
  *
- * The adapter's `sync()` therefore takes an explicit `csvPath` (or
- * `zipPath` + password) opt rather than auto-fetching. Registry calls
+ * The adapter's `sync()` therefore takes an explicit `inputPath`, `csvPath`
+ * (or `zipPath` + password) opt rather than auto-fetching. Registry calls
  * with no opt → no-op (returns immediately). UI drives sync per-file.
  *
  * Watermark: Alipay CSVs are full-month exports; no incremental
@@ -20,8 +20,13 @@
 const fs = require("node:fs");
 const crypto = require("node:crypto");
 
-const { EVENT_SUBTYPES, PERSON_SUBTYPES, CAPTURED_BY } = require("../../constants");
+const {
+  EVENT_SUBTYPES,
+  PERSON_SUBTYPES,
+  CAPTURED_BY,
+} = require("../../constants");
 const { newId } = require("../../ids");
+const { createAccountScope } = require("../../account-scope");
 const { parseAlipayCsvBuffer } = require("./csv-parser");
 const { extractCsvFromZip } = require("./zip-decryptor");
 const {
@@ -30,7 +35,7 @@ const {
 } = require("./counterparty");
 
 const NAME = "alipay-bill";
-const VERSION = "0.1.0"; // Phase 6 — initial CSV-import adapter
+const VERSION = "0.2.0"; // generic file-import/readiness contract
 
 /**
  * Map Alipay's `类型` string → UnifiedSchema Event.subtype.
@@ -57,20 +62,35 @@ class AlipayBillAdapter {
       throw new Error("AlipayBillAdapter: opts.account required");
     }
     if (typeof account.email !== "string" || account.email.length === 0) {
-      throw new Error("AlipayBillAdapter: account.email required (Alipay account identifier)");
+      throw new Error(
+        "AlipayBillAdapter: account.email required (Alipay account identifier)",
+      );
     }
     this.account = account;
     // ZIP password (= 身份证后 6 位 by default). Optional — if the user's
     // export is unencrypted (rare) or they extract manually first, pass
     // csvPath at sync() time.
-    this._zipPassword = typeof opts.zipPassword === "string" ? opts.zipPassword : null;
+    this._zipPassword =
+      typeof opts.zipPassword === "string" ? opts.zipPassword : null;
     // Test seams
-    this._csvParser = typeof opts.csvParser === "function" ? opts.csvParser : parseAlipayCsvBuffer;
-    this._zipExtractor = typeof opts.zipExtractor === "function" ? opts.zipExtractor : extractCsvFromZip;
+    this._csvParser =
+      typeof opts.csvParser === "function"
+        ? opts.csvParser
+        : parseAlipayCsvBuffer;
+    this._zipExtractor =
+      typeof opts.zipExtractor === "function"
+        ? opts.zipExtractor
+        : extractCsvFromZip;
 
     this.name = NAME;
+    this.defaultScope = createAccountScope(NAME, this.account.email);
     this.version = VERSION;
-    this.capabilities = ["import:csv-zip", "parse:transactions"];
+    this.capabilities = [
+      "sync:file-import",
+      "import:csv-zip",
+      "parse:transactions",
+    ];
+    this.extractMode = "file-import";
     this.rateLimits = {};
     this.dataDisclosure = {
       fields: [
@@ -81,12 +101,37 @@ class AlipayBillAdapter {
     };
   }
 
-  async authenticate(_ctx = {}) {
-    // No server auth — adapter is always "ok" once configured.
-    return { ok: true, account: this.account.email, provider: "alipay-bill" };
+  async authenticate(ctx = {}) {
+    const inputPath = resolveInputPath(ctx);
+    if (!inputPath) {
+      return {
+        ok: false,
+        reason: "NO_INPUT",
+        message: "select an Alipay CSV or ZIP export",
+      };
+    }
+    if (!fs.existsSync(inputPath)) {
+      return {
+        ok: false,
+        reason: "INPUT_NOT_FOUND",
+        message: `Alipay bill export not found: ${inputPath}`,
+      };
+    }
+    return {
+      ok: true,
+      account: this.account.email,
+      provider: "alipay-bill",
+      mode: "file-import",
+    };
   }
 
-  async healthCheck() {
+  async healthCheck(opts = {}) {
+    const inputPath = resolveInputPath(opts);
+    // Periodic syncAll without a user-selected file remains a healthy idle
+    // no-op. An explicit collection request validates its path before sync.
+    if (inputPath && !fs.existsSync(inputPath)) {
+      return { ok: false, reason: "INPUT_NOT_FOUND", lastChecked: Date.now() };
+    }
     return { ok: true, lastChecked: Date.now() };
   }
 
@@ -97,23 +142,35 @@ class AlipayBillAdapter {
    * checks — same as Phase 5 EmailAdapter handles authcode-not-set.
    *
    * @param {object} opts
+   * @param {string} [opts.inputPath]   generic .csv/.zip file-import alias
    * @param {string} [opts.zipPath]       full path to alipay_record_*.zip
    * @param {string} [opts.csvPath]       full path to a pre-extracted .csv
    * @param {string} [opts.zipPassword]   overrides constructor zipPassword
    * @param {Function} [opts.onProgress]
    */
   async *sync(opts = {}) {
-    const zipPath = typeof opts.zipPath === "string" ? opts.zipPath : null;
-    const csvPath = typeof opts.csvPath === "string" ? opts.csvPath : null;
+    const inputPath =
+      typeof opts.inputPath === "string" && opts.inputPath
+        ? opts.inputPath
+        : null;
+    const zipPath =
+      (typeof opts.zipPath === "string" && opts.zipPath) ||
+      (inputPath && /\.zip$/iu.test(inputPath) ? inputPath : null);
+    const csvPath =
+      (typeof opts.csvPath === "string" && opts.csvPath) ||
+      (inputPath && !zipPath ? inputPath : null);
     if (!zipPath && !csvPath) {
       // Idle — no file to import this run
       return;
     }
 
-    const onProgress = typeof opts.onProgress === "function" ? opts.onProgress : null;
+    const onProgress =
+      typeof opts.onProgress === "function" ? opts.onProgress : null;
     const emit = (phase, payload = {}) => {
       if (!onProgress) return;
-      try { onProgress({ phase, adapter: NAME, ...payload }); } catch (_e) {}
+      try {
+        onProgress({ phase, adapter: NAME, ...payload });
+      } catch (_e) {}
     };
 
     emit("opening", { zipPath, csvPath });
@@ -121,7 +178,10 @@ class AlipayBillAdapter {
     let csvBuffer;
     let sourceFile;
     if (zipPath) {
-      const password = typeof opts.zipPassword === "string" ? opts.zipPassword : this._zipPassword;
+      const password =
+        typeof opts.zipPassword === "string"
+          ? opts.zipPassword
+          : this._zipPassword;
       const out = await this._zipExtractor(zipPath, { password });
       csvBuffer = out.buffer;
       sourceFile = `${zipPath}::${out.filename}`;
@@ -129,7 +189,10 @@ class AlipayBillAdapter {
       csvBuffer = fs.readFileSync(csvPath);
       sourceFile = csvPath;
     }
-    const fileSha256 = crypto.createHash("sha256").update(csvBuffer).digest("hex");
+    const fileSha256 = crypto
+      .createHash("sha256")
+      .update(csvBuffer)
+      .digest("hex");
     emit("parsing", { sourceFile, fileSha256, bytes: csvBuffer.length });
 
     const parsed = this._csvParser(csvBuffer);
@@ -142,7 +205,11 @@ class AlipayBillAdapter {
 
     let yielded = 0;
     for (const row of parsed.rows) {
-      emit("row", { current: yielded + 1, total: parsed.rows.length, txId: row.txId });
+      emit("row", {
+        current: yielded + 1,
+        total: parsed.rows.length,
+        txId: row.txId,
+      });
       yield this._rowToRawEvent(row, {
         sourceFile,
         fileSha256,
@@ -162,7 +229,9 @@ class AlipayBillAdapter {
    */
   normalize(raw) {
     if (!raw || typeof raw !== "object" || !raw.payload) {
-      throw new Error("AlipayBillAdapter.normalize: missing raw or raw.payload");
+      throw new Error(
+        "AlipayBillAdapter.normalize: missing raw or raw.payload",
+      );
     }
     const row = raw.payload.row;
     if (!row || typeof row !== "object") {
@@ -171,7 +240,11 @@ class AlipayBillAdapter {
 
     // Parse the amount and timestamps
     const amount = parseFloat(row.amount);
-    const occurredAt = parseAlipayDateTime(row.paidAt) || parseAlipayDateTime(row.createdAt) || raw.capturedAt || Date.now();
+    const occurredAt =
+      parseAlipayDateTime(row.paidAt) ||
+      parseAlipayDateTime(row.createdAt) ||
+      raw.capturedAt ||
+      Date.now();
 
     // Counterparty → Person (with stable id for dedup)
     const counterpartyId = counterpartyToPersonId(row.counterparty);
@@ -183,7 +256,8 @@ class AlipayBillAdapter {
 
     // Skip closed / failed transactions — they polluted vault with
     // "transaction never happened" rows. Mark as cancelled instead.
-    const isCancelled = subtype === "cancelled" || /关闭|失败/.test(row.status || "");
+    const isCancelled =
+      subtype === "cancelled" || /关闭|失败/.test(row.status || "");
 
     const ingestedAt = Date.now();
     const source = {
@@ -191,7 +265,7 @@ class AlipayBillAdapter {
       adapterVersion: VERSION,
       originalId: row.txId,
       capturedAt: raw.capturedAt || occurredAt,
-      capturedBy: CAPTURED_BY ? (CAPTURED_BY.EXPORT || "export") : "export",
+      capturedBy: CAPTURED_BY ? CAPTURED_BY.EXPORT || "export" : "export",
     };
 
     const event = {
@@ -232,21 +306,28 @@ class AlipayBillAdapter {
       },
     };
 
-    const persons = [{
-      id: counterpartyId,
-      type: "person",
-      subtype: counterpartyKind === "contact"
-        ? (PERSON_SUBTYPES ? (PERSON_SUBTYPES.CONTACT || "contact") : "contact")
-        : (PERSON_SUBTYPES ? (PERSON_SUBTYPES.MERCHANT || "merchant") : "merchant"),
-      names: [row.counterparty || "(unknown)"],
-      identifiers: {},
-      ingestedAt,
-      source,
-      extra: {
-        ...(counterpartyKind === "unknown" ? { needsResolve: true } : {}),
-        firstSeenAt: occurredAt,
+    const persons = [
+      {
+        id: counterpartyId,
+        type: "person",
+        subtype:
+          counterpartyKind === "contact"
+            ? PERSON_SUBTYPES
+              ? PERSON_SUBTYPES.CONTACT || "contact"
+              : "contact"
+            : PERSON_SUBTYPES
+              ? PERSON_SUBTYPES.MERCHANT || "merchant"
+              : "merchant",
+        names: [row.counterparty || "(unknown)"],
+        identifiers: {},
+        ingestedAt,
+        source,
+        extra: {
+          ...(counterpartyKind === "unknown" ? { needsResolve: true } : {}),
+          firstSeenAt: occurredAt,
+        },
       },
-    }];
+    ];
 
     // Item (only when an itemName is present and not just an alipayType)
     const items = [];
@@ -273,7 +354,10 @@ class AlipayBillAdapter {
     return {
       adapter: NAME,
       originalId: row.txId,
-      capturedAt: parseAlipayDateTime(row.paidAt) || parseAlipayDateTime(row.createdAt) || ctx.importedAt,
+      capturedAt:
+        parseAlipayDateTime(row.paidAt) ||
+        parseAlipayDateTime(row.createdAt) ||
+        ctx.importedAt,
       payload: {
         row,
         accountEmail: ctx.accountEmail,
@@ -287,6 +371,15 @@ class AlipayBillAdapter {
 }
 
 // ─── helpers ────────────────────────────────────────────────────────────
+
+function resolveInputPath(opts = {}) {
+  return (
+    (typeof opts.inputPath === "string" && opts.inputPath) ||
+    (typeof opts.zipPath === "string" && opts.zipPath) ||
+    (typeof opts.csvPath === "string" && opts.csvPath) ||
+    null
+  );
+}
 
 /**
  * Parse "2024-04-01 09:23:13" → ms epoch (local time). Alipay timestamps

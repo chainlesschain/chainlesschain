@@ -152,7 +152,7 @@ async function followBackgroundAgent(id, options = {}) {
   }
 
   logger.log(chalk.gray(`Attached to ${id}. Streaming logs; Ctrl-C detaches.`));
-  // eslint-disable-next-line no-constant-condition
+   
   while (true) {
     await new Promise((resolve) => setTimeout(resolve, 1000));
     const next = readLogFromOffset(logFile, offset);
@@ -235,6 +235,7 @@ export async function interactiveAttach(id, state, options = {}) {
               options: opts,
               multiSelect,
               timeoutMs,
+              binding,
             } = message;
             logger.log("");
             logger.log(chalk.cyan.bold("? Agent asks for your input:"));
@@ -298,6 +299,7 @@ export async function interactiveAttach(id, state, options = {}) {
               conn.send({
                 type: "interaction_response",
                 intId,
+                binding,
                 answer: resolved,
               });
               logger.log(chalk.gray("— response sent to agent"));
@@ -332,7 +334,8 @@ export async function interactiveAttach(id, state, options = {}) {
   // was issued before this client attached, or a previous client detached
   // without answering), re-prompt immediately.
   const preExistingQuestion =
-    state.status === "awaiting-input" && state.pendingQuestion
+    (state.phase === "needs_input" || state.status === "awaiting-input") &&
+    state.pendingQuestion
       ? { ...state.pendingQuestion }
       : null;
 

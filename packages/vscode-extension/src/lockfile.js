@@ -30,6 +30,7 @@ const _deps = {
 };
 
 const MANAGED_POLICY_KEY = "allowInsecureLockfilePermissions";
+const MANAGED_POLICY_BRAND = Symbol("chainlesschain.managedIdeBridgePolicy");
 
 // Warn at most once per session when an administrator explicitly allows the
 // bridge to run without verified owner-only lockfile permissions.
@@ -81,7 +82,11 @@ function managedSettingsPath() {
  */
 function loadLockfileSecurityPolicy(file = managedSettingsPath()) {
   if (!fs.existsSync(file)) {
-    return { allowInsecurePermissions: false, managedFile: null };
+    return Object.freeze({
+      allowInsecurePermissions: false,
+      managedFile: null,
+      [MANAGED_POLICY_BRAND]: true,
+    });
   }
   let settings;
   try {
@@ -98,10 +103,29 @@ function loadLockfileSecurityPolicy(file = managedSettingsPath()) {
     settings && typeof settings.ideBridge === "object"
       ? settings.ideBridge
       : {};
-  return {
+  return Object.freeze({
     allowInsecurePermissions: bridge[MANAGED_POLICY_KEY] === true,
     managedFile: file,
-  };
+    [MANAGED_POLICY_BRAND]: true,
+  });
+}
+
+/**
+ * Resolve the downgrade policy from the canonical managed layer. Callers may
+ * pass the opaque result returned by loadLockfileSecurityPolicy so startup can
+ * log the same policy decision it uses for publication. A bare boolean or
+ * user/workspace-shaped object is never accepted as downgrade authority.
+ */
+function _resolveLockfileSecurityPolicy(policy) {
+  if (policy === undefined) return loadLockfileSecurityPolicy();
+  if (!policy || policy[MANAGED_POLICY_BRAND] !== true) {
+    const error = new TypeError(
+      "IDE bridge lockfile downgrade requires an explicit managed policy",
+    );
+    error.code = "CC_IDE_LOCKFILE_POLICY_UNMANAGED";
+    throw error;
+  }
+  return policy;
 }
 
 // Read only the owner and access-control portions through .NET. Using Get-Acl
@@ -610,7 +634,8 @@ function generateToken() {
  * @param {string} [o.urlPath] default "/mcp"
  * @param {string} [o.url] full url (overrides host/port/urlPath)
  * @param {number} [o.pid]
- * @param {boolean} [o.allowInsecurePermissions] true only from managed policy
+ * @param {object} [o.securityPolicy] opaque managed policy returned by
+ *   loadLockfileSecurityPolicy
  * @returns {string} the lockfile path
  */
 function writeLock({
@@ -622,8 +647,19 @@ function writeLock({
   urlPath = "/mcp",
   url,
   pid = process.pid,
-  allowInsecurePermissions = false,
+  securityPolicy,
+  // Kept only to reject the historical caller-controlled downgrade loudly.
+  allowInsecurePermissions,
 }) {
+  if (allowInsecurePermissions !== undefined) {
+    _resolveLockfileSecurityPolicy({
+      allowInsecurePermissions,
+    });
+  }
+  const resolvedSecurityPolicy =
+    _resolveLockfileSecurityPolicy(securityPolicy);
+  const managedAllowInsecure =
+    resolvedSecurityPolicy.allowInsecurePermissions === true;
   const dir = ideLockDir();
   const file = path.join(dir, `${port}.json`);
   const tmp = path.join(
@@ -660,7 +696,7 @@ function writeLock({
       const enforced = _enforceOwnerOnly(
         p,
         mode,
-        allowInsecurePermissions === true,
+        managedAllowInsecure,
       );
       if (!enforced) warnSkip("permission enforcement failed");
       return enforced;
@@ -710,8 +746,19 @@ async function writeLockAsync({
   urlPath = "/mcp",
   url,
   pid = process.pid,
-  allowInsecurePermissions = false,
+  securityPolicy,
+  // Kept only to reject the historical caller-controlled downgrade loudly.
+  allowInsecurePermissions,
 }) {
+  if (allowInsecurePermissions !== undefined) {
+    _resolveLockfileSecurityPolicy({
+      allowInsecurePermissions,
+    });
+  }
+  const resolvedSecurityPolicy =
+    _resolveLockfileSecurityPolicy(securityPolicy);
+  const managedAllowInsecure =
+    resolvedSecurityPolicy.allowInsecurePermissions === true;
   if (_deps.platform() !== "win32") {
     return writeLock({
       port,
@@ -722,7 +769,7 @@ async function writeLockAsync({
       urlPath,
       url,
       pid,
-      allowInsecurePermissions,
+      securityPolicy: resolvedSecurityPolicy,
     });
   }
 
@@ -758,7 +805,7 @@ async function writeLockAsync({
     _safeUnlink(tmp);
     _safeUnlink(file);
 
-    if (allowInsecurePermissions === true) {
+    if (managedAllowInsecure) {
       _warnAclOnce(error?.message || String(error));
       try {
         fs.mkdirSync(dir, { recursive: true, mode: 0o700 });

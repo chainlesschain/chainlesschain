@@ -118,14 +118,17 @@ function registerCodingAgentIPCV3(options = {}) {
     }
   });
 
-  ipc.handle("coding-agent:set-permission-rule", async (_event, payload = {}) => {
-    try {
-      return await service.setPermissionRule(payload);
-    } catch (error) {
-      logger.error("[CodingAgentIPCV3] set-permission-rule failed:", error);
-      return { success: false, error: error.message };
-    }
-  });
+  ipc.handle(
+    "coding-agent:set-permission-rule",
+    async (_event, payload = {}) => {
+      try {
+        return await service.setPermissionRule(payload);
+      } catch (error) {
+        logger.error("[CodingAgentIPCV3] set-permission-rule failed:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   ipc.handle(
     "coding-agent:create-remote-session",
@@ -240,9 +243,13 @@ function registerCodingAgentIPCV3(options = {}) {
     "coding-agent:respond-elicitation",
     async (_event, payload = {}) => {
       try {
-        return await service.respondElicitation(payload.sessionId, payload);
+        const respond =
+          typeof service.respondQuestion === "function"
+            ? service.respondQuestion.bind(service)
+            : service.respondElicitation.bind(service);
+        return await respond(payload.sessionId, payload);
       } catch (error) {
-        logger.error("[CodingAgentIPCV3] respond-elicitation failed:", error);
+        logger.error("[CodingAgentIPCV3] respond-question failed:", error);
         return { success: false, error: error.message };
       }
     },

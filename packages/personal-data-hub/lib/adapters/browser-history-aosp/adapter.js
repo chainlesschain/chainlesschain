@@ -14,7 +14,7 @@
 // browser providers block `content query`, so collection is root-read +
 // pull, mirroring system-data-android). `opts.dbPath` (preferred) or
 // `opts.profilePath`; a directory is accepted and `browser2.db` looked up
-// inside it.
+// inside it. `opts.inputPath` is the generic UI/CLI file-import alias.
 //
 // Device-verified schema 2026-06-17, docs/internal/pdh-app-db-schemas.md.
 
@@ -26,7 +26,7 @@ const {
 const reader = require("./aosp-db-reader");
 
 const NAME = "browser-history-aosp";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const DB_FILENAME = "browser2.db";
 
 class BrowserHistoryAospAdapter extends BrowserHistoryChromeAdapter {
@@ -35,6 +35,7 @@ class BrowserHistoryAospAdapter extends BrowserHistoryChromeAdapter {
     // Parent set Chrome-shaped capabilities (json bookmarks) + profile fields;
     // correct them for the AOSP SQLite-bookmarks / db-file layout.
     this.capabilities = [
+      "sync:file-import",
       "sync:aosp-browser-history-sqlite",
       "sync:aosp-browser-bookmarks-sqlite",
     ];
@@ -61,6 +62,7 @@ class BrowserHistoryAospAdapter extends BrowserHistoryChromeAdapter {
 
   _resolveDbPath(opts = {}) {
     const raw =
+      (typeof opts.inputPath === "string" && opts.inputPath) ||
       (typeof opts.dbPath === "string" && opts.dbPath) ||
       (typeof opts.profilePath === "string" && opts.profilePath) ||
       this._dbPathOverride;
@@ -98,8 +100,8 @@ class BrowserHistoryAospAdapter extends BrowserHistoryChromeAdapter {
     return { ok: true, mode: "file-import", dbPath };
   }
 
-  async healthCheck() {
-    const dbPath = this._resolveDbPath({});
+  async healthCheck(opts = {}) {
+    const dbPath = this._resolveDbPath(opts);
     const ok = !!dbPath && this._deps.fs.existsSync(dbPath);
     return { ok, lastChecked: Date.now() };
   }

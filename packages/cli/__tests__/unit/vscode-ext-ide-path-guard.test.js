@@ -7,7 +7,7 @@
  *   2. wiring: buildIdeTools handlers refuse out-of-workspace paths for the
  *      write tools (openDiff / openMultiDiff) and the read scope
  *      (getDiagnostics), forwarding the RESOLVED path when allowed
- *   3. Windows lockfile ACL tightening (icacls seam): correct argv, fail-open.
+ *   3. Windows lockfile ACL tightening: exact protected DACL, fail-closed.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "fs";
@@ -340,12 +340,23 @@ describe("buildIdeTools — path boundary wiring", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Task 2: Windows lockfile ACL tightening (icacls seam, fail-open).
+// Task 2: Windows lockfile ACL tightening (injectable seam, fail-closed).
 // ---------------------------------------------------------------------------
 
 describe("lockfile — Windows ACL tightening", () => {
   let tmpHome;
   const saved = {};
+
+  function managedSecurityPolicy(name = "managed-settings.json") {
+    const file = path.join(tmpHome, name);
+    fs.writeFileSync(
+      file,
+      JSON.stringify({
+        ideBridge: { allowInsecureLockfilePermissions: true },
+      }),
+    );
+    return lockfile.loadLockfileSecurityPolicy(file);
+  }
 
   beforeEach(() => {
     tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "cc-ide-acl-"));
@@ -540,7 +551,7 @@ describe("lockfile — Windows ACL tightening", () => {
     const file = await lockfile.writeLockAsync({
       port: 4328,
       token: "c".repeat(64),
-      allowInsecurePermissions: true,
+      securityPolicy: managedSecurityPolicy("managed-async.json"),
     });
 
     expect(fs.existsSync(file)).toBe(true);
@@ -569,10 +580,36 @@ describe("lockfile — Windows ACL tightening", () => {
     const file = lockfile.writeLock({
       port: 4323,
       token: "t",
-      allowInsecurePermissions: true,
+      securityPolicy: managedSecurityPolicy("managed-sync.json"),
     });
     expect(fs.existsSync(file)).toBe(true);
     expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a caller-controlled downgrade boolean", () => {
+    lockfile._deps.platform = () => "win32";
+    lockfile._deps.spawnSync = () => ({ status: 5 });
+    expect(() =>
+      lockfile.writeLock({
+        port: 4330,
+        token: "t",
+        allowInsecurePermissions: true,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "CC_IDE_LOCKFILE_POLICY_UNMANAGED",
+      }),
+    );
+  });
+
+  it("fails closed when the managed policy is malformed", () => {
+    const managedFile = path.join(tmpHome, "managed-invalid.json");
+    fs.writeFileSync(managedFile, "{not-json");
+    expect(() => lockfile.loadLockfileSecurityPolicy(managedFile)).toThrowError(
+      expect.objectContaining({
+        code: "CC_MANAGED_SETTINGS_INVALID",
+      }),
+    );
   });
 
   it("win32: non-zero ACL exit is fail-closed by default", () => {

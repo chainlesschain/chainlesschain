@@ -288,12 +288,70 @@ describe("createTurnBindingFeed (shared producer core)", () => {
     expect(feed.isDirty()).toBe(true);
   });
 
-  it("beginTurn alone stays clean (dirty-gated) and events before it are ignored", () => {
+  it("preserves provider tool ids, decision ids, and IDE user-edit coverage", () => {
+    const feed = createTurnBindingFeed({ nonce: "N" });
+    feed.beginTurn(3);
+    feed.handleEvent({
+      type: "tool-executing",
+      tool: "write_file",
+      tool_use_id: "provider-call-17",
+    });
+    feed.handleEvent({
+      type: "tool-result",
+      tool: "write_file",
+      tool_use_id: "provider-call-17",
+      permission_decision_id: "decision-42",
+      result: {
+        userEdited: true,
+        policy: { decision: "allow", via: "ide-diff" },
+      },
+    });
+
+    const turn = feed.log.get("N:t0");
+    expect(turn.toolCallIds).toEqual(["provider-call-17"]);
+    expect(turn.permissionDecisionIds).toEqual(["decision-42"]);
+    expect(turn.coverage).toBe(TURN_COVERAGE.PARTIAL);
+  });
+
+  it("persists child checkpoint/worktree/trace lineage in the parent turn", () => {
+    const feed = createTurnBindingFeed({ nonce: "N" });
+    feed.beginTurn(2);
+    feed.handleEvent({
+      type: "background-sub-agent-result",
+      subAgentId: "sub-1",
+      childBinding: {
+        childAgentId: "sub-1",
+        parentAgentId: "parent-1",
+        traceId: "child-trace",
+        parentTraceId: "parent-trace",
+        checkpointIds: ["cp-child-1"],
+        toolUseIds: ["child-tool-1"],
+        worktreeId: "agent/sub-1",
+        worktreePath: "C:/tmp/sub-1",
+      },
+    });
+
+    expect(feed.log.get("N:t0").childBindings).toEqual([
+      {
+        childAgentId: "sub-1",
+        parentAgentId: "parent-1",
+        traceId: "child-trace",
+        parentTraceId: "parent-trace",
+        checkpointIds: ["cp-child-1"],
+        toolUseIds: ["child-tool-1"],
+        worktreeId: "agent/sub-1",
+        worktreePath: "C:/tmp/sub-1",
+      },
+    ]);
+  });
+
+  it("beginTurn records a tool-free turn and events before it are ignored", () => {
     const feed = createTurnBindingFeed({ nonce: "N" });
     expect(feed.handleEvent(events[0])).toBe(false); // no current turn yet
     feed.beginTurn(1);
-    expect(feed.isDirty()).toBe(false);
+    expect(feed.isDirty()).toBe(true);
     expect(feed.log.list()).toHaveLength(1);
+    expect(feed.log.list()[0].coverage).toBe(TURN_COVERAGE.FULL);
   });
 
   it("supersede prunes stale same-timeline records and marks dirty", () => {
@@ -312,16 +370,17 @@ describe("createTurnBindingFeed (shared producer core)", () => {
     const feed = createTurnBindingFeed({ log: prior, nonce: "N" });
     feed.beginTurn(5);
     expect(feed.log.list()).toHaveLength(2);
-    expect(feed.isDirty()).toBe(false);
+    expect(feed.isDirty()).toBe(true);
   });
 
-  it("stamps a worktreeId onto the turn record without dirtying by itself", () => {
+  it("stamps a worktreeId onto the persisted tool-free turn", () => {
     const feed = createTurnBindingFeed({ nonce: "N" });
     feed.beginTurn(1, { worktreeId: "agent/task-1" });
     expect(feed.log.get("N:t0").worktreeId).toBe("agent/task-1");
-    expect(feed.isDirty()).toBe(false); // tool-free worktree turn writes nothing
+    expect(feed.isDirty()).toBe(true);
+    feed.clearDirty();
     feed.handleEvent(events[1]);
-    expect(feed.isDirty()).toBe(true); // real signal → the stamp persists along
+    expect(feed.isDirty()).toBe(true);
   });
 
   it("clearDirty resets after a persist; new events re-dirty", () => {

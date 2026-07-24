@@ -219,6 +219,12 @@ class PersonalDataHubCommands @Inject constructor(
         return client.invoke("personal-data-hub.register-email", params)
     }
 
+    /** Activate a persisted email account without resubmitting its auth code. */
+    suspend fun activateEmail(email: String): Result<AdapterRegisterResponse> {
+        require(email.isNotBlank()) { "activateEmail: email empty" }
+        return client.invoke("personal-data-hub.activate-email", mapOf("email" to email))
+    }
+
     /** 注销邮箱配置（vault 数据保留）。**Privileged**。 */
     suspend fun unregisterEmail(email: String): Result<UnregisterResponse> =
         client.invoke("personal-data-hub.unregister-email", mapOf("email" to email))
@@ -254,6 +260,12 @@ class PersonalDataHubCommands @Inject constructor(
         val params = mutableMapOf<String, Any>("account" to accountMap)
         opts?.let { params["opts"] = it }
         return client.invoke("personal-data-hub.register-alipay", params)
+    }
+
+    /** Activate a persisted Alipay account without rewriting its credentials. */
+    suspend fun activateAlipay(email: String): Result<AdapterRegisterResponse> {
+        require(email.isNotBlank()) { "activateAlipay: email empty" }
+        return client.invoke("personal-data-hub.activate-alipay", mapOf("email" to email))
     }
 
     /** 注销支付宝配置。**Privileged**。 */
@@ -427,13 +439,87 @@ data class AdaptersResponse(val adapters: List<AdapterMeta> = emptyList())
 @Serializable
 data class SyncReport(
     val adapter: String? = null,
+    val status: String? = null,
+    val rawCount: Long = 0,
+    val archivedRawCount: Long = 0,
+    val archiveFailureCount: Long = 0,
+    val entityCounts: Map<String, Long> = emptyMap(),
+    val invalidCount: Long = 0,
+    val kgTripleCount: Long = 0,
+    val ragDocCount: Long = 0,
+    val error: String? = null,
+    val watermark: String? = null,
+    val watermarkDeferred: Boolean = false,
+    val checkpointCommitted: Boolean? = null,
+    val pageBudget: Long? = null,
+    val nextPageBudget: Long? = null,
+    val scanDeferredCount: Long = 0,
+    val watermarkLookbackMs: Long = 0,
+    val collectionSinceWatermark: String? = null,
+    val attemptCount: Long = 0,
+    val retryCount: Long = 0,
+    val totalRetryDelayMs: Long = 0,
+    val retryExhausted: Boolean = false,
+    val retryAfterMs: Long? = null,
+    val rateLimitReason: String? = null,
+    val rateLimitRemainingMinute: Long? = null,
+    val rateLimitRemainingDay: Long? = null,
+    val sourceRequestCount: Long = 0,
+    val sourceRequestThrottleMs: Long = 0,
+    val sourceRequestRateLimitRemainingMinute: Long? = null,
+    val sourceRequestRateLimitRemainingDay: Long? = null,
+    val skipReason: String? = null,
+    val skipMessage: String? = null,
+    // Legacy transport fields retained for compatibility with older peers.
     val ingested: Long = 0,
     val kgTriples: Long = 0,
     val ragDocs: Long = 0,
     val durationMs: Long = 0,
     val partitions: Map<String, PartitionReport> = emptyMap(),
-    val errors: List<String> = emptyList()
-)
+    val errors: List<String> = emptyList(),
+) {
+    val totalEntities: Long
+        get() =
+            if (entityCounts.isNotEmpty()) {
+                listOf("events", "persons", "places", "items", "topics")
+                    .sumOf { entityCounts[it] ?: 0L }
+            } else {
+                ingested
+            }
+
+    val effectiveKgTriples: Long
+        get() = if (kgTripleCount != 0L || kgTriples == 0L) kgTripleCount else kgTriples
+
+    val effectiveRagDocs: Long
+        get() = if (ragDocCount != 0L || ragDocs == 0L) ragDocCount else ragDocs
+
+    val isSkipped: Boolean
+        get() = status == "skipped"
+
+    val isPartial: Boolean
+        get() =
+            watermarkDeferred ||
+                archiveFailureCount > 0 ||
+                checkpointCommitted == false ||
+                invalidCount > 0 ||
+                (rawCount > 0 && totalEntities == 0L)
+
+    val isSuccessful: Boolean
+        get() =
+            when (status) {
+                null -> error == null && errors.isEmpty()
+                "ok" -> true
+                else -> false
+            }
+
+    val failureMessage: String
+        get() =
+            error
+                ?: skipMessage
+                ?: errors.firstOrNull()
+                ?: status
+                ?: "unknown sync failure"
+}
 
 @Serializable
 data class PartitionReport(
@@ -539,7 +625,8 @@ data class EmailAccountInfo(
     val provider: String,
     val folders: List<String> = emptyList(),
     val registeredAt: Long,
-    val pdfPasswordHints: List<String> = emptyList()
+    val pdfPasswordHints: List<String> = emptyList(),
+    val active: Boolean = false
 )
 
 @Serializable
@@ -549,7 +636,8 @@ data class EmailAccountsResponse(val accounts: List<EmailAccountInfo> = emptyLis
 data class AlipayAccountInfo(
     val email: String,
     val hasZipPassword: Boolean,
-    val registeredAt: Long
+    val registeredAt: Long,
+    val active: Boolean = false
 )
 
 @Serializable

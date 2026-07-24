@@ -26,41 +26,82 @@ export const _deps = {
   readEvents: storeReadEvents,
 };
 
+export class SideEffectLedgerPersistenceError extends Error {
+  constructor(operation, sessionId, cause) {
+    const detail = cause?.message || String(cause || "unknown persistence error");
+    super(`Side-effect ledger ${operation} failed for ${sessionId}: ${detail}`, {
+      cause,
+    });
+    this.name = "SideEffectLedgerPersistenceError";
+    this.code =
+      operation === "read"
+        ? "SIDE_EFFECT_LEDGER_READ_FAILED"
+        : "SIDE_EFFECT_LEDGER_PERSIST_FAILED";
+    this.operation = operation;
+    this.sessionId = sessionId;
+  }
+}
+
+function persistenceFailure(operation, sessionId, cause, failIfUnavailable) {
+  if (!failIfUnavailable) return false;
+  throw new SideEffectLedgerPersistenceError(operation, sessionId, cause);
+}
+
 /**
- * Append the current ledger as a chained event. Best-effort — a persistence
- * failure must not crash the operation it is guarding.
+ * Append the current ledger as a chained event. This is Critical state:
+ * persistence failures reject by default so the guarded operation cannot run.
+ * Diagnostic callers may explicitly request advisory best-effort behavior.
  *
  * @param {string} sessionId
  * @param {SideEffectLedger|object} ledger
+ * @param {{failIfUnavailable?:boolean}} [opts]
  * @returns {boolean}
  */
-export function persistSideEffectLedger(sessionId, ledger) {
-  if (!sessionId || !ledger) return false;
-  const snapshot =
-    ledger instanceof SideEffectLedger ? ledger.toJSON() : ledger;
-  if (!snapshot || !Array.isArray(snapshot.ops)) return false;
+export function persistSideEffectLedger(sessionId, ledger, opts = {}) {
+  const failIfUnavailable = opts.failIfUnavailable !== false;
+  if (!sessionId || !ledger) {
+    return persistenceFailure(
+      "write",
+      sessionId || "<missing-session>",
+      new TypeError("sessionId and ledger are required"),
+      failIfUnavailable,
+    );
+  }
+
   try {
+    const snapshot =
+      ledger instanceof SideEffectLedger ? ledger.toJSON() : ledger;
+    if (!snapshot || !Array.isArray(snapshot.ops)) {
+      throw new TypeError("ledger snapshot must contain an ops array");
+    }
     _deps.appendEvent(sessionId, SIDE_EFFECT_LEDGER_EVENT, snapshot);
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    return persistenceFailure("write", sessionId, error, failIfUnavailable);
   }
 }
 
 /**
  * Rebuild the ledger from the LATEST persisted snapshot, or an empty ledger when
- * the session never persisted one (or on read error).
+ * the session never persisted one. Read/corruption errors reject by default.
  *
  * @param {string} sessionId
- * @param {{clock?:Function}} [opts]
+ * @param {{clock?:Function,failIfUnavailable?:boolean}} [opts]
  * @returns {SideEffectLedger}
  */
 export function loadSideEffectLedger(sessionId, opts = {}) {
+  const failIfUnavailable = opts.failIfUnavailable !== false;
   let events = [];
   try {
     events = _deps.readEvents(sessionId) || [];
-  } catch {
-    return new SideEffectLedger(opts);
+  } catch (error) {
+    const fallback = persistenceFailure(
+      "read",
+      sessionId || "<missing-session>",
+      error,
+      failIfUnavailable,
+    );
+    if (fallback === false) return new SideEffectLedger(opts);
   }
   for (let i = events.length - 1; i >= 0; i--) {
     const e = events[i];
@@ -70,7 +111,17 @@ export function loadSideEffectLedger(sessionId, opts = {}) {
       e.data &&
       Array.isArray(e.data.ops)
     ) {
-      return SideEffectLedger.fromJSON(e.data, opts);
+      try {
+        return SideEffectLedger.fromJSON(e.data, opts);
+      } catch (error) {
+        const fallback = persistenceFailure(
+          "read",
+          sessionId || "<missing-session>",
+          error,
+          failIfUnavailable,
+        );
+        if (fallback === false) return new SideEffectLedger(opts);
+      }
     }
   }
   return new SideEffectLedger(opts);

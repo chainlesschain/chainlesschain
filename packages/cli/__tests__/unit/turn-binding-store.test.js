@@ -10,6 +10,7 @@ import {
   resolveRestorePlanFromSession,
   selectTurnRangeFromSession,
   TURN_BINDING_EVENT,
+  TurnBindingPersistenceError,
   _deps,
 } from "../../src/lib/turn-binding-store.js";
 import { TurnBindingLog, RESTORE_SCOPE } from "../../src/lib/turn-binding.js";
@@ -84,21 +85,43 @@ describe("turn-binding-store", () => {
     );
   });
 
-  it("persist is best-effort: bad inputs return false, a throwing store returns false", () => {
-    expect(persistTurnBinding("", sampleLog())).toBe(false);
-    expect(persistTurnBinding("s1", null)).toBe(false);
-    expect(persistTurnBinding("s1", { turns: "nope" })).toBe(false);
+  it("fails closed for invalid input and unavailable critical storage", () => {
+    expect(() => persistTurnBinding("", sampleLog())).toThrow(
+      TurnBindingPersistenceError,
+    );
+    expect(() => persistTurnBinding("s1", null)).toThrow(
+      TurnBindingPersistenceError,
+    );
+    expect(() => persistTurnBinding("s1", { turns: "nope" })).toThrow(
+      TurnBindingPersistenceError,
+    );
     _deps.appendEvent = vi.fn(() => {
       throw new Error("disk full");
     });
-    expect(persistTurnBinding("s1", sampleLog())).toBe(false);
+    expect(() => persistTurnBinding("s1", sampleLog())).toThrowError(
+      expect.objectContaining({ code: "TURN_BINDING_PERSIST_FAILED" }),
+    );
   });
 
-  it("load degrades to an empty log when the store read throws", () => {
+  it("supports an explicit advisory fallback", () => {
+    _deps.appendEvent = vi.fn(() => {
+      throw new Error("disk full");
+    });
+    expect(
+      persistTurnBinding("s1", sampleLog(), { failIfUnavailable: false }),
+    ).toBe(false);
+  });
+
+  it("load fails closed when the store read throws", () => {
     _deps.readEvents = vi.fn(() => {
       throw new Error("unreadable");
     });
-    expect(loadTurnBindingLog("s1").list()).toEqual([]);
+    expect(() => loadTurnBindingLog("s1")).toThrowError(
+      expect.objectContaining({ code: "TURN_BINDING_READ_FAILED" }),
+    );
+    expect(
+      loadTurnBindingLog("s1", { failIfUnavailable: false }).list(),
+    ).toEqual([]);
   });
 
   it("resolveRestorePlanFromSession yields an honest plan for a persisted turn", () => {

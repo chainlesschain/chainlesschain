@@ -81,16 +81,41 @@ function normDirection(raw) {
 
 function mapTransaction(raw) {
   if (!raw || typeof raw !== "object") return null;
-  const id = raw.txId || raw.tx_id || raw.id || raw.serialNo || raw.tranSeq || raw.seq;
+  const id =
+    raw.txId || raw.tx_id || raw.id || raw.serialNo || raw.tranSeq || raw.seq;
   if (id == null) return null;
-  const amt = toAmount(raw.amount != null ? raw.amount : raw.tranAmount != null ? raw.tranAmount : raw.amt);
+  const amt = toAmount(
+    raw.amount != null
+      ? raw.amount
+      : raw.tranAmount != null
+        ? raw.tranAmount
+        : raw.amt,
+  );
   return {
     txId: String(id),
-    timeMs: parseTime(raw.time || raw.tranTime || raw.tran_time || raw.date || raw.transactionTime),
+    timeMs: parseTime(
+      raw.time ||
+        raw.tranTime ||
+        raw.tran_time ||
+        raw.date ||
+        raw.transactionTime,
+    ),
     amount: amt != null ? Math.abs(amt) : null,
     direction: normDirection(raw),
-    counterparty: raw.counterparty || raw.counterParty || raw.payee || raw.oppName || raw.merchant || null,
-    summary: raw.summary || raw.abstract || raw.remark || raw.desc || raw.tranType || "交易",
+    counterparty:
+      raw.counterparty ||
+      raw.counterParty ||
+      raw.payee ||
+      raw.oppName ||
+      raw.merchant ||
+      null,
+    summary:
+      raw.summary ||
+      raw.abstract ||
+      raw.remark ||
+      raw.desc ||
+      raw.tranType ||
+      "交易",
     balance: toAmount(raw.balance != null ? raw.balance : raw.bal),
     channel: raw.channel || raw.chnl || null,
   };
@@ -98,13 +123,28 @@ function mapTransaction(raw) {
 
 function mapCard(raw) {
   if (!raw || typeof raw !== "object") return null;
-  const id = raw.billId || raw.bill_id || raw.id || raw.statementId || raw.billMonth || raw.bill_month;
+  const id =
+    raw.billId ||
+    raw.bill_id ||
+    raw.id ||
+    raw.statementId ||
+    raw.billMonth ||
+    raw.bill_month;
   if (id == null) return null;
   return {
     billId: String(id),
-    billMonth: raw.billMonth || raw.bill_month || raw.month || raw.period || null,
-    statementAmount: toAmount(raw.statementAmount != null ? raw.statementAmount : raw.amount != null ? raw.amount : raw.totalAmount),
-    minPayment: toAmount(raw.minPayment != null ? raw.minPayment : raw.minRepay),
+    billMonth:
+      raw.billMonth || raw.bill_month || raw.month || raw.period || null,
+    statementAmount: toAmount(
+      raw.statementAmount != null
+        ? raw.statementAmount
+        : raw.amount != null
+          ? raw.amount
+          : raw.totalAmount,
+    ),
+    minPayment: toAmount(
+      raw.minPayment != null ? raw.minPayment : raw.minRepay,
+    ),
     dueMs: parseTime(raw.dueDate || raw.due_date || raw.repayDate),
     status: raw.status || raw.statusName || raw.state || null,
   };
@@ -128,7 +168,9 @@ function billMonthToMs(billMonth) {
   if (billMonth == null) return null;
   const m = String(billMonth).match(/^(\d{4})[-/]?(\d{1,2})/);
   if (m) {
-    const t = Date.parse(`${m[1]}-${String(m[2]).padStart(2, "0")}-01T00:00:00Z`);
+    const t = Date.parse(
+      `${m[1]}-${String(m[2]).padStart(2, "0")}-01T00:00:00Z`,
+    );
     return Number.isFinite(t) ? t : null;
   }
   return parseTime(billMonth);
@@ -162,18 +204,24 @@ function createBankAdapter(cfg) {
         opts.account && opts.account.cookies
           ? new CookieAuth({ platform, cookies: opts.account.cookies })
           : null;
-      this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
-      this._signProvider = typeof opts.signProvider === "function" ? opts.signProvider : null;
+      this._fetchFn =
+        typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+      this._signProvider =
+        typeof opts.signProvider === "function" ? opts.signProvider : null;
       this._urls = {
         transaction: opts.transactionUrl || opts.listUrl || null,
         card: opts.cardUrl || null,
       };
       this._liveConfigured = Boolean(
-        this._urls.transaction && this._urls.card && typeof opts.fetchFn === "function",
+        this._urls.transaction &&
+        this._urls.card &&
+        typeof opts.fetchFn === "function",
       );
 
       this.name = NAME;
       this.version = VERSION;
+      this.watermarkStrategy = "max-captured-at";
+      this.watermarkRequiresCompleteScan = true;
       this.capabilities = [
         "sync:snapshot",
         ...(this._liveConfigured ? ["sync:custom-cookie-api"] : []),
@@ -196,11 +244,19 @@ function createBankAdapter(cfg) {
     }
 
     async authenticate(ctx = {}) {
-      if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
+      if (
+        ctx &&
+        typeof ctx.inputPath === "string" &&
+        ctx.inputPath.length > 0
+      ) {
         try {
           this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
         } catch (err) {
-          return { ok: false, reason: "INPUT_PATH_UNREADABLE", message: `snapshot not readable at ${ctx.inputPath}: ${err.message}` };
+          return {
+            ok: false,
+            reason: "INPUT_PATH_UNREADABLE",
+            message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
+          };
         }
         return { ok: true, mode: "snapshot-file" };
       }
@@ -213,8 +269,18 @@ function createBankAdapter(cfg) {
       }
       if (this._cookieAuth) {
         const ok = await this._cookieAuth.validate();
-        if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
-        return { ok: true, account: (this.account && this.account.userId) || null, mode: "cookie", unverified: true };
+        if (!ok)
+          return {
+            ok: false,
+            reason: "INVALID_COOKIE",
+            error: "cookies missing",
+          };
+        return {
+          ok: true,
+          account: (this.account && this.account.userId) || null,
+          mode: "cookie",
+          unverified: true,
+        };
       }
       return {
         ok: false,
@@ -223,10 +289,12 @@ function createBankAdapter(cfg) {
       };
     }
 
-    async healthCheck() {
+    async healthCheck(opts = {}) {
       if (this._cookieAuth) {
-        const r = await this.authenticate();
-        return r.ok ? { ok: true, lastChecked: Date.now(), unverified: true } : { ok: false, reason: r.reason, error: r.error };
+        const r = await this.authenticate(opts);
+        return r.ok
+          ? { ok: true, lastChecked: Date.now(), unverified: true }
+          : { ok: false, reason: r.reason, error: r.error };
       }
       return { ok: true, lastChecked: Date.now() };
     }
@@ -241,7 +309,9 @@ function createBankAdapter(cfg) {
         return;
       }
       if (this._cookieAuth) {
-        throw new Error(`${NAME}.sync: explicit transactionUrl + cardUrl and fetchFn required for custom cookie collection`);
+        throw new Error(
+          `${NAME}.sync: explicit transactionUrl + cardUrl and fetchFn required for custom cookie collection`,
+        );
       }
       throw new Error(`${NAME}.sync: needs opts.inputPath (snapshot mode)`);
     }
@@ -249,14 +319,26 @@ function createBankAdapter(cfg) {
     async *_syncViaSnapshot(opts) {
       const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
       const snapshot = JSON.parse(raw);
-      if (!snapshot || typeof snapshot !== "object" || snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION) {
-        throw new Error(`${NAME}.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`);
+      if (
+        !snapshot ||
+        typeof snapshot !== "object" ||
+        snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
+      ) {
+        throw new Error(
+          `${NAME}.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
+        );
       }
       const fallbackCapturedAt =
-        Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0 ? Math.floor(snapshot.snapshottedAt) : Date.now();
-      const account = snapshot.account && typeof snapshot.account === "object" ? snapshot.account : null;
+        Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
+          ? Math.floor(snapshot.snapshottedAt)
+          : Date.now();
+      const account =
+        snapshot.account && typeof snapshot.account === "object"
+          ? snapshot.account
+          : null;
       const include = opts.include || {};
-      const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+      const limit =
+        Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
 
       const events = Array.isArray(snapshot.events) ? snapshot.events : [];
       let emitted = 0;
@@ -266,14 +348,22 @@ function createBankAdapter(cfg) {
         if (!VALID_SNAPSHOT_KINDS.includes(ev.kind)) continue;
         if (include[ev.kind] === false) continue;
 
-        const rec = ev.kind === KIND_TRANSACTION ? mapTransaction(ev) : mapCard(ev);
+        const rec =
+          ev.kind === KIND_TRANSACTION ? mapTransaction(ev) : mapCard(ev);
         if (!rec) continue;
-        const recTime = ev.kind === KIND_TRANSACTION ? rec.timeMs : billMonthToMs(rec.billMonth) || rec.dueMs;
-        const capturedAt = parseTime(ev.capturedAt) || recTime || fallbackCapturedAt;
+        const recTime =
+          ev.kind === KIND_TRANSACTION
+            ? rec.timeMs
+            : billMonthToMs(rec.billMonth);
+        const capturedAt =
+          parseTime(ev.capturedAt) || recTime || fallbackCapturedAt;
         yield {
           adapter: NAME,
           kind: ev.kind,
-          originalId: stableOriginalId(ev.kind, ev.kind === KIND_TRANSACTION ? rec.txId : rec.billId),
+          originalId: stableOriginalId(
+            ev.kind,
+            ev.kind === KIND_TRANSACTION ? rec.txId : rec.billId,
+          ),
           capturedAt,
           payload: { record: rec, kind: ev.kind, account },
         };
@@ -285,41 +375,91 @@ function createBankAdapter(cfg) {
       if (!(await this._cookieAuth.validate())) return;
       const cookies = this._cookieAuth.toHeader();
       const include = opts.include || {};
-      const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
-      const maxPages = Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 12;
+      const limit =
+        Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+      const maxPages =
+        Number.isInteger(opts.maxPages) && opts.maxPages > 0
+          ? opts.maxPages
+          : 12;
+      const sinceMs =
+        opts.sinceWatermark != null
+          ? parseInt(String(opts.sinceWatermark), 10) || 0
+          : 0;
 
       const plan = [
-        { kind: KIND_TRANSACTION, url: this._urls.transaction, map: mapTransaction, idOf: (r) => r.txId, ts: (r) => r.timeMs },
-        { kind: KIND_CARD, url: this._urls.card, map: mapCard, idOf: (r) => r.billId, ts: (r) => billMonthToMs(r.billMonth) || r.dueMs },
+        {
+          kind: KIND_TRANSACTION,
+          url: this._urls.transaction,
+          map: mapTransaction,
+          idOf: (r) => r.txId,
+          ts: (r) => r.timeMs,
+        },
+        {
+          kind: KIND_CARD,
+          url: this._urls.card,
+          map: mapCard,
+          idOf: (r) => r.billId,
+          // A due date can be months in the future and must never become a
+          // source high-water mark. Prefer the statement month; otherwise use
+          // collection time below.
+          ts: (r) => billMonthToMs(r.billMonth),
+        },
       ];
 
       let emitted = 0;
+      let scanComplete = true;
       for (const step of plan) {
         if (include[step.kind] === false) continue;
         let page = 1;
+        let streamComplete = false;
         while (page <= maxPages) {
           const query = { page, size: PAGE_SIZE };
           let sign = null;
-          if (this._signProvider) sign = await this._signProvider({ url: step.url, query, cookies });
-          const resp = await this._fetchFn({ url: step.url, cookies, query, sign });
+          if (this._signProvider)
+            sign = await this._signProvider({ url: step.url, query, cookies });
+          if (typeof opts.beforeSourceRequest === "function") {
+            await opts.beforeSourceRequest({ operation: step.kind, page });
+          }
+          const resp = await this._fetchFn({
+            url: step.url,
+            cookies,
+            query,
+            sign,
+          });
           const items = extractList(resp);
-          if (!items.length) break;
+          if (!items.length) {
+            streamComplete = true;
+            break;
+          }
+          let reachedWatermark = false;
           for (const it of items) {
             const rec = step.map(it);
             if (!rec) continue;
+            const occurredAt = step.ts(rec);
+            if (occurredAt && occurredAt < sinceMs) {
+              reachedWatermark = true;
+              break;
+            }
             if (emitted >= limit) return;
             yield {
               adapter: NAME,
               kind: step.kind,
               originalId: stableOriginalId(step.kind, step.idOf(rec)),
-              capturedAt: step.ts(rec) || Date.now(),
+              capturedAt: occurredAt || Date.now(),
               payload: { record: rec, kind: step.kind, cookie: true },
             };
             emitted += 1;
           }
-          if (items.length < PAGE_SIZE) break;
+          if (reachedWatermark || items.length < PAGE_SIZE) {
+            streamComplete = true;
+            break;
+          }
           page += 1;
         }
+        if (!streamComplete) scanComplete = false;
+      }
+      if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+        opts.markWatermarkComplete();
       }
     }
 
@@ -349,7 +489,10 @@ function createBankAdapter(cfg) {
               subtype: EVENT_SUBTYPES.PAYMENT,
               occurredAt,
               actor: "person-self",
-              content: { title: `${arrow}: ${rec.summary}`.slice(0, 80), text: rec.summary },
+              content: {
+                title: `${arrow}: ${rec.summary}`.slice(0, 80),
+                text: rec.summary,
+              },
               ingestedAt,
               source,
               extra: {
@@ -370,7 +513,11 @@ function createBankAdapter(cfg) {
         };
       }
       // card
-      const occurredAt = billMonthToMs(rec.billMonth) || rec.dueMs || raw.capturedAt || ingestedAt;
+      const occurredAt =
+        billMonthToMs(rec.billMonth) ||
+        rec.dueMs ||
+        raw.capturedAt ||
+        ingestedAt;
       return {
         events: [
           {
@@ -379,7 +526,14 @@ function createBankAdapter(cfg) {
             subtype: EVENT_SUBTYPES.OTHER,
             occurredAt,
             actor: "person-self",
-            content: { title: `信用卡账单${rec.billMonth ? ` ${rec.billMonth}` : ""}`.slice(0, 80), text: "信用卡账单" },
+            content: {
+              title:
+                `信用卡账单${rec.billMonth ? ` ${rec.billMonth}` : ""}`.slice(
+                  0,
+                  80,
+                ),
+              text: "信用卡账单",
+            },
             ingestedAt,
             source,
             extra: {

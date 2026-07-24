@@ -105,6 +105,79 @@ class HubAdaptersViewModelTest {
     }
 
     @Test
+    fun `sync uses canonical entityCounts from current SyncReport`() = runTest(testDispatcher) {
+        coEvery { hub.listAdapters() } returns Result.success(AdaptersResponse())
+        coEvery { hub.syncAdapter(name = "email-imap") } returns Result.success(
+            SyncReport(
+                adapter = "email-imap",
+                status = "ok",
+                rawCount = 7,
+                entityCounts = mapOf(
+                    "events" to 4L,
+                    "persons" to 2L,
+                    "items" to 1L,
+                ),
+                kgTripleCount = 12,
+                ragDocCount = 7,
+            )
+        )
+
+        val vm = HubAdaptersViewModel(hub, syncDispatcher, systemDataCollector)
+        advanceUntilIdle()
+        vm.sync("email-imap")
+        advanceUntilIdle()
+
+        val report = vm.uiState.value.lastReport
+        assertEquals(7L, report?.totalEntities)
+        assertEquals(12L, report?.effectiveKgTriples)
+        assertEquals(7L, report?.effectiveRagDocs)
+        assertNull(vm.uiState.value.errorMessage)
+    }
+
+    @Test
+    fun `non-throwing unhealthy report is surfaced as sync failure`() = runTest(testDispatcher) {
+        coEvery { hub.listAdapters() } returns Result.success(AdaptersResponse())
+        coEvery { hub.syncAdapter(name = "email-imap") } returns Result.success(
+            SyncReport(
+                adapter = "email-imap",
+                status = "unhealthy",
+                error = "NO_INPUT",
+            )
+        )
+
+        val vm = HubAdaptersViewModel(hub, syncDispatcher, systemDataCollector)
+        advanceUntilIdle()
+        vm.sync("email-imap")
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.syncingAdapter)
+        assertEquals("NO_INPUT", vm.uiState.value.errorMessage)
+        assertEquals("unhealthy", vm.uiState.value.lastReport?.status)
+    }
+
+    @Test
+    fun `readiness skipped report is informational not sync failure`() = runTest(testDispatcher) {
+        coEvery { hub.listAdapters() } returns Result.success(AdaptersResponse())
+        coEvery { hub.syncAdapter(name = "apple-health") } returns Result.success(
+            SyncReport(
+                adapter = "apple-health",
+                status = "skipped",
+                skipReason = "NO_INPUT",
+                skipMessage = "需要选择 export.xml",
+            )
+        )
+
+        val vm = HubAdaptersViewModel(hub, syncDispatcher, systemDataCollector)
+        advanceUntilIdle()
+        vm.sync("apple-health")
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.syncingAdapter)
+        assertNull(vm.uiState.value.errorMessage)
+        assertTrue(vm.uiState.value.lastReport?.isSkipped == true)
+    }
+
+    @Test
     fun `sync failure clears syncingAdapter and sets errorMessage`() = runTest(testDispatcher) {
         coEvery { hub.listAdapters() } returns Result.success(AdaptersResponse())
         coEvery { hub.syncAdapter(name = "email-imap") } returns Result.failure(
@@ -198,6 +271,69 @@ class HubAdaptersViewModelTest {
         assertEquals("INBOX", s.syncProgressPartition)
         assertEquals(200L, s.syncProgressDetail?.get("uidsScanned"))
         assertEquals("email-imap", s.syncingAdapter)
+    }
+
+    @Test
+    fun `dispatcher retry event exposes next attempt and delay`() = runTest(testDispatcher) {
+        coEvery { hub.listAdapters() } returns Result.success(AdaptersResponse())
+        coEvery { hub.syncAdapterStream(name = "email-imap") } returns
+            Result.success(HubStreamStartResponse(streamId = "s-1"))
+
+        val vm = HubAdaptersViewModel(hub, syncDispatcher, systemDataCollector)
+        advanceUntilIdle()
+        vm.syncStream("email-imap")
+        advanceUntilIdle()
+
+        dispatcherEvents.emit(
+            HubSyncEvent(
+                kind = "sync.retry",
+                adapter = "email-imap",
+                nextAttempt = 3,
+                retryCount = 2,
+                delayMs = 1000,
+                error = "ECONNRESET",
+            ),
+        )
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertEquals("retrying", state.syncProgressKind)
+        assertEquals("ECONNRESET", state.syncProgressPartition)
+        assertEquals(3L, state.syncProgressDetail?.get("nextAttempt"))
+        assertEquals(1000L, state.syncProgressDetail?.get("delayMs"))
+        assertEquals("email-imap", state.syncingAdapter)
+    }
+
+    @Test
+    fun `dispatcher request throttle event exposes page and delay`() = runTest(testDispatcher) {
+        coEvery { hub.listAdapters() } returns Result.success(AdaptersResponse())
+        coEvery { hub.syncAdapterStream(name = "email-imap") } returns
+            Result.success(HubStreamStartResponse(streamId = "s-1"))
+
+        val vm = HubAdaptersViewModel(hub, syncDispatcher, systemDataCollector)
+        advanceUntilIdle()
+        vm.syncStream("email-imap")
+        advanceUntilIdle()
+
+        dispatcherEvents.emit(
+            HubSyncEvent(
+                kind = "sync.request_throttled",
+                adapter = "email-imap",
+                operation = "messages",
+                page = 3,
+                sourceRequestCount = 2,
+                delayMs = 1000,
+                reason = "min_interval",
+            ),
+        )
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertEquals("request_throttled", state.syncProgressKind)
+        assertEquals("messages", state.syncProgressPartition)
+        assertEquals(3L, state.syncProgressDetail?.get("page"))
+        assertEquals(1000L, state.syncProgressDetail?.get("delayMs"))
+        assertEquals(2L, state.syncProgressDetail?.get("sourceRequestCount"))
     }
 
     @Test

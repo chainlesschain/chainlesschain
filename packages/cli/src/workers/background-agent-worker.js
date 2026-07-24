@@ -155,41 +155,16 @@ function startTurn(argv, promptText) {
     prompt: promptText || null,
   });
 
-  // P0-2: 挂载人机交互请求处理器，转发给 attach 客户端
+  // P0-2: keep the active tool call suspended in this turn while the request
+  // is routed to an attached client. The resolver returns the answer to the
+  // same child over Node IPC; it never queues the answer as a follow-up turn.
   detachInteractionHandler = attachInteractionRequestHandler(
     child,
-    async (payload, msg) => {
+    async (payload, msg, { signal }) => {
       const requestId = msg.requestId;
-      // 如果有 attach 客户端，转发给它等待响应
-      if (server && server.clientCount() > 0) {
-        return new Promise((resolve, reject) => {
-          const timer = setTimeout(
-            () => {
-              pendingInteractions.delete(requestId);
-              if (payload.defaultValue !== undefined) {
-                resolve(payload.defaultValue);
-              } else {
-                reject(new Error(`Interaction timed out: ${payload.question}`));
-              }
-            },
-            payload.timeoutMs || 5 * 60 * 1000,
-          );
-          timer.unref?.();
-          pendingInteractions.set(requestId, {
-            resolve,
-            reject,
-            timer,
-            payload,
-          });
-          server.broadcastInteractionRequest(requestId, payload);
-        });
-      }
-      // 没有客户端连接，返回默认值（如果有的话）
-      if (payload.defaultValue !== undefined) {
-        return payload.defaultValue;
-      }
-      // 没有默认值，记录到 state 让用户后续 attach 时能看到
+      phase = "needs_input";
       mergeState({
+        phase,
         pendingQuestion: {
           intId: requestId,
           requestId,
@@ -199,12 +174,57 @@ function startTurn(argv, promptText) {
           multiSelect: payload.multiSelect,
           timeoutMs: payload.timeoutMs,
           askedAt: Date.now(),
+          binding: msg.binding,
         },
       });
-      // 等待用户 attach 后回复
-      return new Promise((resolve) => {
-        pendingInteractions.set(requestId, { resolve });
+
+      return new Promise((resolve, reject) => {
+        let settled = false;
+        const cleanup = () => {
+          if (settled) return false;
+          settled = true;
+          pendingInteractions.delete(requestId);
+          const current = readBackgroundAgentState(job.id);
+          if (
+            current?.pendingQuestion?.requestId === requestId ||
+            current?.pendingQuestion?.intId === requestId
+          ) {
+            phase = "turn";
+            mergeState({ phase, pendingQuestion: null });
+          }
+          signal?.removeEventListener?.("abort", onAbort);
+          return true;
+        };
+        const onAbort = () => {
+          if (!cleanup()) return;
+          const error = new Error("Background interaction was cancelled");
+          error.code = "INTERACTION_CANCELLED";
+          reject(error);
+        };
+        const entry = {
+          payload,
+          binding: msg.binding,
+          resolve(answer) {
+            if (!cleanup()) return;
+            resolve(answer);
+          },
+          reject(error) {
+            if (!cleanup()) return;
+            reject(error);
+          },
+        };
+        pendingInteractions.set(requestId, entry);
+        signal?.addEventListener?.("abort", onAbort, { once: true });
+        if (signal?.aborted) {
+          onAbort();
+          return;
+        }
+        server?.broadcastInteractionRequest(requestId, payload, msg.binding);
       });
+    },
+    {
+      backgroundAgentId: job.id,
+      sessionId: job.sessionId || null,
     },
   );
 
@@ -214,7 +234,8 @@ function startTurn(argv, promptText) {
     // 清理交互处理器
     detachInteractionHandler?.();
     detachInteractionHandler = null;
-    // 清理所有 pending 交互
+    // Reject any request that survived an abnormal child exit. Normal
+    // responses remove themselves from this map before the turn continues.
     for (const [, pending] of pendingInteractions) {
       pending.reject?.(new Error("Agent exited"));
     }
@@ -323,6 +344,18 @@ async function main() {
         }
       },
       onClientChange: (count) => {
+        // A UI/terminal may attach after the request was created. Re-broadcast
+        // every still-pending interaction so reconnecting clients can resume
+        // the exact suspended tool call.
+        if (count > 0) {
+          for (const [requestId, pending] of pendingInteractions) {
+            server?.broadcastInteractionRequest(
+              requestId,
+              pending.payload,
+              pending.binding,
+            );
+          }
+        }
         // Last client detached while the session is idle → nothing left to
         // wait for; finalize with the last turn's exit code.
         if (count === 0 && !child && promptQueue.length === 0) {
@@ -333,14 +366,13 @@ async function main() {
         // Support both field names: requestId (from transport) and intId (legacy)
         const resolvedId = requestId ?? intId;
         const entry = pendingInteractions.get(resolvedId);
-        if (!entry) return;
-        pendingInteractions.delete(resolvedId);
-        clearTimeout(entry.timer);
+        if (!entry) return false;
         if (error) {
           entry.reject(new Error(error));
         } else {
           entry.resolve(answer);
         }
+        return true;
       },
     });
     transportState = { pipe: server.pipePath, token };

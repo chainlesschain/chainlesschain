@@ -1,42 +1,147 @@
 {
   "_doc": "Independent cross-language contract: for each fixture file, the expected UI-mapping projection of every NDJSON line, in order. A FRESH turn-state is used per file (a text/thinking delta before a `result` in the same file sets sawDelta, which suppresses the repeated result text). Projection schema per line — see README.md §Projection. `kind:null` means the event is UI-silent OR an unknown forward-compat type (both sides return null). Human-readable strings that legitimately differ between the TS and Java panels (the benign tool_result note wording) are projected as `hasNote` booleans, never asserted verbatim.",
   "session-lifecycle.ndjson": [
-    { "kind": "init", "model": "claude-sonnet-4-5", "provider": "anthropic", "sessionId": "sess-fx-1" },
+    {
+      "kind": "init",
+      "model": "claude-sonnet-4-5",
+      "provider": "anthropic",
+      "sessionId": "sess-fx-1"
+    },
     { "kind": "init", "model": "", "provider": "", "sessionId": "sess-fx-min" },
     { "kind": null },
     { "kind": "turn_end", "isError": false, "text": "Done.", "hasUsage": true },
-    { "kind": "turn_end", "isError": false, "text": "Second", "hasUsage": false },
+    {
+      "kind": "turn_end",
+      "isError": false,
+      "text": "Second",
+      "hasUsage": false
+    },
     { "kind": "turn_end", "isError": true, "text": "boom", "hasUsage": false },
-    { "kind": "turn_end", "isError": true, "text": "failed output", "hasUsage": false },
-    { "kind": "turn_end", "isError": true, "text": "turn failed", "hasUsage": false },
-    { "kind": "turn_end", "isError": true, "text": "blocked by UserPromptSubmit hook", "hasUsage": false },
-    { "kind": "turn_end", "isError": false, "text": "⏹ interrupted", "hasUsage": false }
+    {
+      "kind": "turn_end",
+      "isError": true,
+      "text": "failed output",
+      "hasUsage": false
+    },
+    {
+      "kind": "turn_end",
+      "isError": true,
+      "text": "turn failed",
+      "hasUsage": false
+    },
+    {
+      "kind": "turn_end",
+      "isError": true,
+      "text": "blocked by UserPromptSubmit hook",
+      "hasUsage": false
+    },
+    {
+      "kind": "turn_end",
+      "isError": false,
+      "text": "⏹ interrupted",
+      "hasUsage": false
+    }
   ],
   "assistant-stream.ndjson": [
     { "kind": "delta", "text": "Hello, " },
     { "kind": "delta", "text": "world" },
     { "kind": "thinking", "text": "let me check the file first" },
     { "kind": "turn_end", "isError": false, "text": null, "hasUsage": true },
-    { "kind": "turn_end", "isError": false, "text": "Second turn, no deltas", "hasUsage": false },
+    {
+      "kind": "turn_end",
+      "isError": false,
+      "text": "Second turn, no deltas",
+      "hasUsage": false
+    },
     { "kind": null },
     { "kind": null }
   ],
   "tools.ndjson": [
     { "kind": "tool", "tool": "read_file", "summary": "src/index.js" },
-    { "kind": "tool_done", "tool": "read_file", "isError": false, "hasNote": false },
+    {
+      "kind": "tool_done",
+      "tool": "read_file",
+      "isError": false,
+      "hasNote": false
+    },
     { "kind": "tool", "tool": "run_shell", "summary": "npm test" },
-    { "kind": "tool_done", "tool": "run_shell", "isError": true, "hasNote": false },
-    { "kind": "tool_done", "tool": "ask_user_question", "isError": false, "hasNote": true },
-    { "kind": "tool_done", "tool": "ask_user_question", "isError": false, "hasNote": true },
-    { "kind": "tool", "tool": "run_shell", "summary": "echo aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa…" },
+    {
+      "kind": "tool_done",
+      "tool": "run_shell",
+      "isError": true,
+      "hasNote": false
+    },
+    {
+      "kind": "tool_done",
+      "tool": "ask_user_question",
+      "isError": false,
+      "hasNote": true
+    },
+    {
+      "kind": "tool_done",
+      "tool": "ask_user_question",
+      "isError": false,
+      "hasNote": true
+    },
+    {
+      "kind": "tool",
+      "tool": "run_shell",
+      "summary": "echo aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa…"
+    },
     { "kind": "tool", "tool": "custom_tool", "summary": "" }
   ],
   "interaction.ndjson": [
-    { "kind": "approval", "id": "appr-1", "tool": "run_shell", "command": "rm -rf build", "risk": "high", "rule": null, "reason": "destructive command" },
-    { "kind": "approval_done", "id": "appr-1", "approved": true, "via": "user" },
-    { "kind": "approval_done", "id": "appr-2", "approved": false, "via": "timeout" },
-    { "kind": "question", "id": "q-1", "question": "Which environment?", "multiSelect": false, "hasOptions": true },
-    { "kind": "question", "id": "q-2", "question": "Free-form input?", "multiSelect": false, "hasOptions": false },
+    {
+      "kind": "approval",
+      "id": "appr-1",
+      "tool": "run_shell",
+      "command": "rm -rf build",
+      "risk": "high",
+      "rule": null,
+      "reason": "destructive command"
+    },
+    {
+      "kind": "approval_done",
+      "id": "appr-1",
+      "approved": true,
+      "via": "user"
+    },
+    {
+      "kind": "approval_done",
+      "id": "appr-2",
+      "approved": false,
+      "via": "timeout"
+    },
+    {
+      "kind": "question",
+      "id": "q-1",
+      "question": "Which environment?",
+      "multiSelect": false,
+      "hasOptions": true,
+      "elicitation": false,
+      "server": null,
+      "hasSchema": false
+    },
+    {
+      "kind": "question",
+      "id": "q-2",
+      "question": "Free-form input?",
+      "multiSelect": false,
+      "hasOptions": false,
+      "elicitation": false,
+      "server": null,
+      "hasSchema": false
+    },
+    {
+      "kind": "question",
+      "id": "mcp-q-1",
+      "question": "Configure release",
+      "multiSelect": false,
+      "hasOptions": false,
+      "elicitation": true,
+      "server": "release-mcp",
+      "hasSchema": true
+    },
     { "kind": "info", "text": "✓ answered" },
     { "kind": "info", "text": "ask_user_question: no answer — proceeding" }
   ],
@@ -52,14 +157,27 @@
     { "kind": "info", "text": "⏹ turn budget exhausted (50 turns)" },
     { "kind": "error", "text": "spawn cc ENOENT" },
     { "kind": "info", "text": "provider fell back to ollama" },
-    { "kind": "info", "text": "⚠ API connection dropped - retrying (attempt 2)" },
+    {
+      "kind": "info",
+      "text": "⚠ API connection dropped - retrying (attempt 2)"
+    },
     { "kind": null },
     { "kind": null },
     { "kind": null },
     { "kind": null },
     { "kind": "info", "text": "⏹ cost budget exhausted ($0.52 of $1.00)" },
-    { "kind": "turn_end", "isError": true, "text": "partial answer\n⏹ stopped: turn budget exhausted", "hasUsage": false },
-    { "kind": "turn_end", "isError": true, "text": "⏹ stopped: cost budget exhausted", "hasUsage": false },
+    {
+      "kind": "turn_end",
+      "isError": true,
+      "text": "partial answer\n⏹ stopped: turn budget exhausted",
+      "hasUsage": false
+    },
+    {
+      "kind": "turn_end",
+      "isError": true,
+      "text": "⏹ stopped: cost budget exhausted",
+      "hasUsage": false
+    },
     { "kind": "info", "text": "📸 snapshot before write_file" }
   ]
 }

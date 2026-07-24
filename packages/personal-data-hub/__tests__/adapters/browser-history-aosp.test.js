@@ -80,6 +80,7 @@ describe("BrowserHistoryAospAdapter — contract", () => {
     expect(adapter.name).toBe("browser-history-aosp");
     expect(adapter.version).toBe(BROWSER_HISTORY_AOSP_VERSION);
     expect(adapter.extractMode).toBe("file-import");
+    expect(adapter.capabilities).toContain("sync:file-import");
     expect(adapter.capabilities).toContain("sync:aosp-browser-history-sqlite");
     expect(adapter.capabilities).toContain("sync:aosp-browser-bookmarks-sqlite");
     expect(adapter.dataDisclosure.sensitivity).toBe("high");
@@ -123,6 +124,15 @@ describe("BrowserHistoryAospAdapter.authenticate", () => {
     const r = await adapter.authenticate({ dbPath });
     expect(r.ok).toBe(true);
   });
+
+  it("accepts the generic ctx.inputPath file-import alias", async () => {
+    buildFixture({ history: [{ url: "https://x.test", title: "X", date: 1_700_000_000_000 }] });
+    const adapter = new BrowserHistoryAospAdapter();
+    const r = await adapter.authenticate({ inputPath: dbPath });
+    expect(r.ok).toBe(true);
+    expect(r.dbPath).toBe(dbPath);
+    expect((await adapter.healthCheck({ inputPath: dbPath })).ok).toBe(true);
+  });
 });
 
 describe("BrowserHistoryAospAdapter.sync", () => {
@@ -156,6 +166,18 @@ describe("BrowserHistoryAospAdapter.sync", () => {
       if (r.kind === "visit") urls.push(r.payload.url);
     }
     expect(urls).toEqual(["https://new.test"]);
+  });
+
+  it("sync accepts the generic inputPath file-import alias", async () => {
+    buildFixture({
+      history: [{ url: "https://alias.test", title: "Alias", date: 1_700_000_000_000 }],
+    });
+    const adapter = new BrowserHistoryAospAdapter();
+    const urls = [];
+    for await (const r of adapter.sync({ inputPath: dbPath })) {
+      if (r.kind === "visit") urls.push(r.payload.url);
+    }
+    expect(urls).toEqual(["https://alias.test"]);
   });
 
   it("normalizes second-granularity dates to ms", async () => {

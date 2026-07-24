@@ -10,6 +10,8 @@ import {
   readJsonLines,
   runAgentHeadlessStream,
 } from "../../src/runtime/headless-stream.js";
+import { TurnBindingLog } from "../../src/lib/turn-binding.js";
+import { TURN_BINDING_EVENT } from "../../src/lib/turn-binding-store.js";
 
 describe("parseInputEvent", () => {
   it("returns null for blank lines", () => {
@@ -597,5 +599,178 @@ describe("runAgentHeadlessStream — custom slash-command macros (panel parity)"
     expect(uses.map((u) => u.id)).toEqual(dones.map((d) => d.id));
     // …and ids are session-unique across turns (counter never resets).
     expect(uses.map((u) => u.id)).toEqual(["tu-1", "tu-2", "tu-3", "tu-4"]);
+  });
+
+  it("preserves provider tool_use_id instead of synthesizing a stream id", async () => {
+    const agentLoop = async function* () {
+      yield {
+        type: "tool-executing",
+        tool: "read_file",
+        args: { path: "a" },
+        tool_use_id: "provider-call-9",
+      };
+      yield {
+        type: "tool-result",
+        tool: "read_file",
+        result: { ok: true },
+        tool_use_id: "provider-call-9",
+      };
+      yield { type: "response-complete", content: "done" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const deps = baseDeps({
+      agentLoop,
+      input: input({ type: "user", text: "go" }),
+    });
+    await runAgentHeadlessStream({ expandFileRefs: false }, deps);
+
+    const events = parseEmitted(deps._lines);
+    expect(events.find((event) => event.type === "tool_use")?.id).toBe(
+      "provider-call-9",
+    );
+    expect(events.find((event) => event.type === "tool_result")?.id).toBe(
+      "provider-call-9",
+    );
+  });
+
+  it("persists stream turn bindings with provider ids and tool-free coverage", async () => {
+    const snapshots = [];
+    let turn = 0;
+    const agentLoop = async function* () {
+      turn += 1;
+      if (turn === 1) {
+        yield {
+          type: "tool-executing",
+          tool: "read_file",
+          args: { path: "a" },
+          tool_use_id: "provider-stream-call-1",
+        };
+        yield {
+          type: "tool-result",
+          tool: "read_file",
+          result: { ok: true },
+          tool_use_id: "provider-stream-call-1",
+        };
+      }
+      yield { type: "response-complete", content: `done-${turn}` };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const deps = baseDeps({
+      agentLoop,
+      input: input(
+        { type: "user", text: "one" },
+        { type: "user", text: "two" },
+      ),
+      sessionExists: () => false,
+      startSession: () => {},
+      appendUserMessage: () => {},
+      appendAssistantMessage: () => {},
+      rebuildMessages: () => [],
+      readEvents: () => [],
+      appendEvent: (sessionId, type, data) =>
+        snapshots.push({ sessionId, type, data }),
+      loadSideEffectLedger: () => null,
+    });
+
+    await runAgentHeadlessStream(
+      {
+        sessionId: "stream-binding-session",
+        expandFileRefs: false,
+      },
+      deps,
+    );
+
+    expect(snapshots).toHaveLength(2);
+    expect(snapshots.every((entry) => entry.type === TURN_BINDING_EVENT)).toBe(
+      true,
+    );
+    const turns = TurnBindingLog.fromJSON(snapshots.at(-1).data).list();
+    expect(turns).toHaveLength(2);
+    expect(turns[0].toolCallIds).toEqual(["provider-stream-call-1"]);
+    expect(turns[1].toolCallIds).toEqual([]);
+    expect(turns[1].coverage).toBe("full");
+  });
+
+  it("stops the stream when a critical turn-binding snapshot cannot persist", async () => {
+    const deps = baseDeps({
+      agentLoop: async function* () {
+        yield { type: "response-complete", content: "done" };
+        yield { type: "run-ended", reason: "complete" };
+      },
+      input: input({ type: "user", text: "one" }),
+      sessionExists: () => false,
+      startSession: () => {},
+      appendUserMessage: () => {},
+      appendAssistantMessage: () => {},
+      rebuildMessages: () => [],
+      readEvents: () => [],
+      appendEvent: (_sessionId, type) => {
+        if (type === TURN_BINDING_EVENT) {
+          throw new Error("binding lock unavailable");
+        }
+      },
+      loadSideEffectLedger: () => null,
+    });
+
+    const outcome = await runAgentHeadlessStream(
+      {
+        sessionId: "stream-binding-session",
+        expandFileRefs: false,
+      },
+      deps,
+    );
+
+    expect(outcome.exitCode).toBe(1);
+    const events = parseEmitted(deps._lines);
+    expect(events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "recovery_degraded",
+          component: "turn_binding",
+          error: expect.stringMatching(/binding lock unavailable/),
+        }),
+        expect.objectContaining({
+          type: "result",
+          subtype: "error",
+          is_error: true,
+          error: expect.stringMatching(/binding lock unavailable/),
+        }),
+      ]),
+    );
+  });
+
+  it("does not start a turn when persisted turn bindings cannot be read", async () => {
+    let loopStarted = false;
+    const deps = baseDeps({
+      agentLoop: async function* () {
+        loopStarted = true;
+        yield { type: "response-complete", content: "must-not-run" };
+      },
+      input: input({ type: "user", text: "one" }),
+      sessionExists: () => true,
+      rebuildMessages: () => [],
+      readEvents: () => {
+        throw new Error("binding transcript unreadable");
+      },
+      loadSideEffectLedger: () => null,
+    });
+
+    const outcome = await runAgentHeadlessStream(
+      {
+        sessionId: "stream-binding-session",
+        expandFileRefs: false,
+      },
+      deps,
+    );
+
+    expect(outcome.exitCode).toBe(1);
+    expect(loopStarted).toBe(false);
+    expect(
+      parseEmitted(deps._lines).find(
+        (event) =>
+          event.type === "recovery_degraded" &&
+          event.component === "turn_binding",
+      )?.error,
+    ).toMatch(/binding transcript unreadable/);
   });
 });

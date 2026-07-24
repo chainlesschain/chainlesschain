@@ -1,17 +1,16 @@
 /**
  * Platform-specific sandbox enforcement for ProcessExecutionBroker (P0-1)
  *
- * Implements OS-level sandboxing primitives:
- * - Windows: Job Object + restricted token + basic mitigations
- * - macOS: Seatbelt sandbox profiles
- * - Linux: seccomp-bpf (when available) + NO_NEW_PRIVS + resource limits
+ * Platform enforcement currently available:
+ * - macOS: Seatbelt sandbox-exec profiles
+ * - Linux: prlimit resource-limit wrapper
+ * - Windows: explicitly unavailable until a native Job Object + restricted
+ *   token adapter is installed
  *
  * Security model:
- * 1. All child processes are placed into an isolated sandbox before exec
- * 2. Filesystem access is restricted by default (explicit allowlist only)
- * 3. Network access is blocked by default (explicit opt-in)
- * 4. Privilege escalation is prevented (NO_NEW_PRIVS, restricted tokens)
- * 5. Resource limits prevent DoS (CPU, memory, process count)
+ * Adapters return a truthful spawn plan. An unavailable primitive is never
+ * represented as applied; ProcessExecutionBroker decides whether to fail
+ * closed (strict mode) or record the unavailable boundary.
  *
  * Part of Phase 1 Implementation - 2026-07-22
  */
@@ -20,11 +19,61 @@ import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
 import crypto from "node:crypto";
-import { createRequire } from "node:module";
+const DEFAULT_RUNTIME = Object.freeze({
+  platform: os.platform(),
+  fs,
+  tmpdir: () => os.tmpdir(),
+  homedir: () => os.homedir(),
+  randomBytes: (size) => crypto.randomBytes(size),
+  resolvePath: (value) => path.resolve(value),
+  joinPath: (...parts) => path.join(...parts),
+});
 
-const require = createRequire(import.meta.url);
+function resolveRuntime(overrides = {}) {
+  return { ...DEFAULT_RUNTIME, ...overrides };
+}
 
-const platform = os.platform();
+/**
+ * Every platform adapter returns the same immutable spawn-plan shape. The
+ * broker must consume `command`, `args`, and `options` from this object rather
+ * than relying on adapters to mutate caller-owned values.
+ *
+ * A required post-spawn enforcement step must declare whether it is
+ * synchronous. ProcessExecutionBroker.spawn() is synchronous, so strict mode
+ * rejects an asynchronous required step before starting the child.
+ *
+ * @param {Object} input
+ * @returns {{
+ *   contractVersion: 1,
+ *   applied: boolean,
+ *   platform: string,
+ *   profile: string,
+ *   command: string,
+ *   args: string[],
+ *   options: Object,
+ *   enforcement: string|null,
+ *   reason: string|null,
+ *   cleanup?: Function,
+ *   postSpawn: {required: boolean, mode: "none"|"sync"|"async"}
+ * }}
+ */
+function createSandboxPlan(input) {
+  const postSpawn = Object.freeze({
+    required: false,
+    mode: "none",
+    ...(input.postSpawn || {}),
+  });
+  return Object.freeze({
+    contractVersion: 1,
+    applied: false,
+    enforcement: null,
+    reason: null,
+    ...input,
+    args: Object.freeze([...(input.args || [])]),
+    options: Object.freeze({ ...(input.options || {}) }),
+    postSpawn,
+  });
+}
 
 // ---------------------------------------------------------------------------
 // macOS Seatbelt Sandbox
@@ -41,7 +90,8 @@ const platform = os.platform();
  * @param {boolean} [opts.allowExec=true] - Allow process exec (subprocess spawning)
  * @returns {string} sandbox profile content
  */
-export function generateMacSeatbeltProfile(opts = {}) {
+export function generateMacSeatbeltProfile(opts = {}, runtimeOverrides = {}) {
+  const runtime = resolveRuntime(runtimeOverrides);
   const {
     allowRead = [],
     allowWrite = [],
@@ -54,9 +104,9 @@ export function generateMacSeatbeltProfile(opts = {}) {
     "(deny default)",
     // Basic system operations always allowed
     "(allow signal (target self))",
-    "(allow process-exec (literal \"/usr/bin/env\"))",
-    "(allow process-exec (literal \"/bin/sh\"))",
-    "(allow process-exec (literal \"/bin/bash\"))",
+    '(allow process-exec (literal "/usr/bin/env"))',
+    '(allow process-exec (literal "/bin/sh"))',
+    '(allow process-exec (literal "/bin/bash"))',
     "(allow sysctl-read)",
     "(allow mach-lookup)",
   ];
@@ -72,12 +122,12 @@ export function generateMacSeatbeltProfile(opts = {}) {
 
   // Allow read/write to specific paths
   for (const p of allowRead) {
-    const abs = path.resolve(p);
+    const abs = runtime.resolvePath(p);
     lines.push(`(allow file-read* (subpath "${abs}"))`);
   }
 
   for (const p of allowWrite) {
-    const abs = path.resolve(p);
+    const abs = runtime.resolvePath(p);
     lines.push(`(allow file-read* file-write* (subpath "${abs}"))`);
   }
 
@@ -99,147 +149,173 @@ export function generateMacSeatbeltProfile(opts = {}) {
  *
  * @param {string} command - Original command
  * @param {string[]} args - Original args
- * @param {Object} spawnOpts - Spawn options to mutate (adds sandbox-exec wrapper)
+ * @param {Object} spawnOpts - Original spawn options
  * @param {Object} sandboxOpts - Sandbox options
  */
-export function applyMacSandbox(command, args, spawnOpts, sandboxOpts = {}) {
-  if (platform !== "darwin") return { applied: false };
+export function applyMacSandbox(
+  command,
+  args,
+  spawnOpts,
+  sandboxOpts = {},
+  runtimeOverrides = {},
+) {
+  const runtime = resolveRuntime(runtimeOverrides);
+  const base = {
+    platform: runtime.platform,
+    profile: sandboxOpts.profileName || "default",
+    command,
+    args,
+    options: spawnOpts,
+  };
+  if (runtime.platform !== "darwin") {
+    return createSandboxPlan({
+      ...base,
+      reason: "platform_mismatch",
+    });
+  }
+
+  const sandboxExecutable = "/usr/bin/sandbox-exec";
+  if (!runtime.fs.existsSync(sandboxExecutable)) {
+    return createSandboxPlan({
+      ...base,
+      reason: "macos_sandbox_exec_unavailable",
+    });
+  }
 
   // Generate temporary profile file
-  const profileContent = generateMacSeatbeltProfile(sandboxOpts);
-  const profilePath = path.join(
-    os.tmpdir(),
-    `chainless-sb-${crypto.randomBytes(8).toString("hex")}.sb`,
+  const profileContent = generateMacSeatbeltProfile(
+    sandboxOpts,
+    runtimeOverrides,
+  );
+  const profilePath = runtime.joinPath(
+    runtime.tmpdir(),
+    `chainless-sb-${runtime.randomBytes(8).toString("hex")}.sb`,
   );
 
-  fs.writeFileSync(profilePath, profileContent, { mode: 0o600 });
+  runtime.fs.writeFileSync(profilePath, profileContent, { mode: 0o600 });
 
   // Wrap command with sandbox-exec
   const newArgs = ["-f", profilePath, command, ...args];
 
-  return {
+  return createSandboxPlan({
+    ...base,
     applied: true,
-    wrapper: "sandbox-exec",
-    profilePath,
-    newCommand: "sandbox-exec",
-    newArgs,
+    enforcement: "macos-seatbelt",
+    command: sandboxExecutable,
+    args: newArgs,
     cleanup: () => {
       try {
-        fs.unlinkSync(profilePath);
+        runtime.fs.unlinkSync(profilePath);
       } catch {
         // ignore cleanup errors
       }
     },
-  };
+  });
 }
 
 // ---------------------------------------------------------------------------
-// Windows Job Object Sandbox
+// Windows Job Object availability
 // ---------------------------------------------------------------------------
 
 /**
- * Apply Windows Job Object limits + basic mitigations.
- *
- * On Windows we:
- * 1. Set CREATE_BREAKAWAY_FROM_JOB to ensure child can be placed into our own job
- * 2. Add JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE so children die when parent exits
- * 3. Set basic process memory/CPU limits if specified
- * 4. Set creation flags for restricted token (best-effort)
- *
- * Note: Full Win32 Job Object API requires ffi/n-rap invocation.
- * This function sets the spawn flags and returns metadata for post-spawn association.
+ * Report Windows sandbox availability. Node's child_process API cannot create
+ * and synchronously assign a Job Object or restricted token by itself.
  *
  * @param {string} command
  * @param {string[]} args
  * @param {Object} spawnOpts
  * @param {Object} sandboxOpts
  */
-export function applyWindowsSandbox(command, args, spawnOpts, sandboxOpts = {}) {
-  if (platform !== "win32") return { applied: false };
-
-  // Set creation flags for Job Object support
-  // CREATE_BREAKAWAY_FROM_JOB = 0x01000000
-  // CREATE_NO_WINDOW = 0x08000000
-  const CREATE_BREAKAWAY_FROM_JOB = 0x01000000;
-  const CREATE_NO_WINDOW = 0x08000000;
-
-  const existingFlags = spawnOpts.windowsHide
-    ? CREATE_NO_WINDOW
-    : 0;
-  spawnOpts.windowsVerbatimArguments = false;
-
-  // Set environment variable to signal sandboxed mode to any child-aware tools
-  const env = { ...(spawnOpts.env || process.env) };
-  env.CHAINLESS_SANDBOXED = "1";
-  spawnOpts.env = env;
-
-  return {
-    applied: true,
-    needsPostSpawn: true,
-    jobFlags: CREATE_BREAKAWAY_FROM_JOB | existingFlags,
-    limits: sandboxOpts.limits || null,
+export function applyWindowsSandbox(
+  command,
+  args,
+  spawnOpts,
+  sandboxOpts = {},
+  runtimeOverrides = {},
+) {
+  const runtime = resolveRuntime(runtimeOverrides);
+  const base = {
+    platform: runtime.platform,
+    profile: sandboxOpts.profileName || "default",
+    command,
+    args,
+    options: spawnOpts,
   };
+  if (runtime.platform !== "win32") {
+    return createSandboxPlan({
+      ...base,
+      reason: "platform_mismatch",
+    });
+  }
+
+  // Node does not expose Job Object or restricted-token primitives. Mark the
+  // platform unavailable instead of treating CREATE_NO_WINDOW or an
+  // environment marker as a security boundary. A future native adapter may
+  // return an applied plan with a synchronous postSpawn step.
+  return createSandboxPlan({
+    ...base,
+    reason: "windows_native_job_object_unavailable",
+  });
 }
 
 /**
- * Post-spawn: associate a Windows process with a Job Object.
- * Uses PowerShell for lightweight isolation (best-effort; full ffi approach
- * requires koffi/n-rap).
+ * Reject an attempted Windows post-spawn association until a native adapter is
+ * available.
  *
  * @param {ChildProcess} proc - The spawned child process
  * @param {Object} sandboxResult - Result from applyWindowsSandbox
  */
-export async function postSpawnWindowsSandbox(proc, sandboxResult) {
-  if (platform !== "win32" || !proc.pid) return;
-
-  // Best-effort: set CPU affinity and priority via Node's built-in methods
-  try {
-    proc.renice && proc.renice(10); // Lower priority
-  } catch {
-    // ignore
+export function postSpawnWindowsSandbox(
+  proc,
+  sandboxResult,
+  runtimeOverrides = {},
+) {
+  const runtime = resolveRuntime(runtimeOverrides);
+  if (runtime.platform !== "win32" || !sandboxResult?.postSpawn?.required) {
+    return;
   }
-
-  // Full Job Object association via ffi would go here when koffi is available.
-  // For now, we rely on:
-  // 1. Parent process explicitly killing children on exit (broker handles this)
-  // 2. CREATE_NO_WINDOW for UI isolation
-  // 3. Environment variable signaling sandbox mode
+  const error = new Error(
+    "Windows native Job Object enforcement is unavailable",
+  );
+  error.code = "ERR_WINDOWS_SANDBOX_UNAVAILABLE";
+  throw error;
 }
 
 // ---------------------------------------------------------------------------
-// Linux seccomp/resource-limit Sandbox
+// Linux resource-limit enforcement
 // ---------------------------------------------------------------------------
 
 /**
- * Apply Linux sandbox: NO_NEW_PRIVS + rlimits + (optionally) seccomp.
- *
- * For Node.js spawned children, the most portable approach without native deps
- * is to use `prlimit` (util-linux) wrapper and set `child_process` uid/gid/groups.
+ * Apply Linux resource limits through the util-linux `prlimit` wrapper.
  *
  * @param {string} command
  * @param {string[]} args
  * @param {Object} spawnOpts
  * @param {Object} sandboxOpts
  */
-export function applyLinuxSandbox(command, args, spawnOpts, sandboxOpts = {}) {
-  if (platform !== "linux") return { applied: false };
+export function applyLinuxSandbox(
+  command,
+  args,
+  spawnOpts,
+  sandboxOpts = {},
+  runtimeOverrides = {},
+) {
+  const runtime = resolveRuntime(runtimeOverrides);
+  const base = {
+    platform: runtime.platform,
+    profile: sandboxOpts.profileName || "default",
+    command,
+    args,
+    options: spawnOpts,
+  };
+  if (runtime.platform !== "linux") {
+    return createSandboxPlan({
+      ...base,
+      reason: "platform_mismatch",
+    });
+  }
 
   const { limits = {} } = sandboxOpts;
-
-  // Apply resource limits via spawn options (if supported by Node version)
-  // Node 19+ supports `gid`, `uid` in spawn options for privilege dropping
-  spawnOpts.gid = spawnOpts.gid || undefined;
-  spawnOpts.uid = spawnOpts.uid || undefined;
-
-  // Mark environment
-  const env = { ...(spawnOpts.env || process.env) };
-  env.CHAINLESS_SANDBOXED = "1";
-  spawnOpts.env = env;
-
-  // If we want hard limits and prlimit is available, wrap the command.
-  // Prlimit path: /usr/bin/prlimit
-  let newCommand = command;
-  let newArgs = [...args];
 
   const prlimitParts = [];
   if (limits.cpu) prlimitParts.push(`--cpu=${limits.cpu}`);
@@ -247,17 +323,35 @@ export function applyLinuxSandbox(command, args, spawnOpts, sandboxOpts = {}) {
   if (limits.nofile) prlimitParts.push(`--nofile=${limits.nofile}`);
   if (limits.nproc) prlimitParts.push(`--nproc=${limits.nproc}`);
 
-  if (prlimitParts.length > 0 && fs.existsSync("/usr/bin/prlimit")) {
-    newCommand = "/usr/bin/prlimit";
-    newArgs = [...prlimitParts, command, ...args];
+  if (prlimitParts.length === 0) {
+    return createSandboxPlan({
+      ...base,
+      reason: "linux_resource_limits_not_configured",
+    });
+  }
+  if (!runtime.fs.existsSync("/usr/bin/prlimit")) {
+    return createSandboxPlan({
+      ...base,
+      reason: "linux_prlimit_unavailable",
+    });
   }
 
-  return {
-    applied: true,
-    newCommand,
-    newArgs,
-    needsSetSid: true, // Use setsid to create new process group for clean killing
+  const options = {
+    ...spawnOpts,
+    env: {
+      ...(spawnOpts.env || process.env),
+      CHAINLESS_SANDBOXED: "1",
+    },
   };
+
+  return createSandboxPlan({
+    ...base,
+    applied: true,
+    enforcement: "linux-prlimit",
+    command: "/usr/bin/prlimit",
+    args: [...prlimitParts, "--", command, ...args],
+    options,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -269,17 +363,24 @@ export function applyLinuxSandbox(command, args, spawnOpts, sandboxOpts = {}) {
  *
  * @param {string} command
  * @param {string[]} args
- * @param {Object} spawnOpts - Will be MUTATED with sandbox flags/env
+ * @param {Object} spawnOpts - Original spawn options
  * @param {"default"|"strict"|"network-only"} profileName
- * @returns {{ applied: boolean, wrapper?: string, newCommand?: string, newArgs?: string[], cleanup?: Function, needsPostSpawn?: boolean }}
+ * @returns {ReturnType<typeof createSandboxPlan>}
  */
-export function applySandbox(command, args, spawnOpts, profileName = "default") {
+export function applySandbox(
+  command,
+  args,
+  spawnOpts,
+  profileName = "default",
+  runtimeOverrides = {},
+) {
+  const runtime = resolveRuntime(runtimeOverrides);
   const profiles = {
     default: {
       allowNetwork: false,
       allowExec: true,
-      allowRead: [os.homedir(), "/tmp"],
-      allowWrite: [os.tmpdir()],
+      allowRead: [runtime.homedir(), "/tmp"],
+      allowWrite: [runtime.tmpdir()],
       limits: {
         cpu: 30, // seconds
         nofile: 256,
@@ -290,7 +391,7 @@ export function applySandbox(command, args, spawnOpts, profileName = "default") 
       allowNetwork: false,
       allowExec: false,
       allowRead: [],
-      allowWrite: [os.tmpdir()],
+      allowWrite: [runtime.tmpdir()],
       limits: {
         cpu: 10,
         as: 256 * 1024 * 1024, // 256MB address space
@@ -301,8 +402,8 @@ export function applySandbox(command, args, spawnOpts, profileName = "default") 
     "network-only": {
       allowNetwork: true,
       allowExec: true,
-      allowRead: [os.homedir()],
-      allowWrite: [os.tmpdir()],
+      allowRead: [runtime.homedir()],
+      allowWrite: [runtime.tmpdir()],
       limits: {
         cpu: 60,
         nofile: 512,
@@ -311,33 +412,56 @@ export function applySandbox(command, args, spawnOpts, profileName = "default") 
     },
   };
 
-  const profile = profiles[profileName] || profiles.default;
+  const profile = {
+    ...(profiles[profileName] || profiles.default),
+    profileName: profiles[profileName] ? profileName : "default",
+  };
 
   // Dispatch to platform handler
-  if (platform === "darwin") {
-    return applyMacSandbox(command, args, spawnOpts, profile);
+  if (runtime.platform === "darwin") {
+    return applyMacSandbox(command, args, spawnOpts, profile, runtimeOverrides);
   }
-  if (platform === "win32") {
-    return applyWindowsSandbox(command, args, spawnOpts, profile);
+  if (runtime.platform === "win32") {
+    return applyWindowsSandbox(
+      command,
+      args,
+      spawnOpts,
+      profile,
+      runtimeOverrides,
+    );
   }
-  if (platform === "linux") {
-    return applyLinuxSandbox(command, args, spawnOpts, profile);
+  if (runtime.platform === "linux") {
+    return applyLinuxSandbox(
+      command,
+      args,
+      spawnOpts,
+      profile,
+      runtimeOverrides,
+    );
   }
 
   // Unknown platform - no sandbox applied
-  return { applied: false };
+  return createSandboxPlan({
+    platform: runtime.platform,
+    profile: profile.profileName,
+    command,
+    args,
+    options: spawnOpts,
+    reason: "unsupported_platform",
+  });
 }
 
 /**
  * Post-spawn sandbox setup (called after child process starts).
- * Currently only needed on Windows for Job Object association.
+ * Reserved for adapters that require a synchronous native association step.
  *
  * @param {ChildProcess} proc
  * @param {Object} sandboxResult
  */
-export async function postSpawnSandbox(proc, sandboxResult) {
-  if (platform === "win32" && sandboxResult?.needsPostSpawn) {
-    await postSpawnWindowsSandbox(proc, sandboxResult);
+export function postSpawnSandbox(proc, sandboxResult, runtimeOverrides = {}) {
+  const runtime = resolveRuntime(runtimeOverrides);
+  if (runtime.platform === "win32" && sandboxResult?.postSpawn?.required) {
+    return postSpawnWindowsSandbox(proc, sandboxResult, runtimeOverrides);
   }
 }
 

@@ -100,7 +100,17 @@ export class EventRuntimeStore {
     );
   }
 
-  enqueue(queue, event, { id = null, metadata = null } = {}) {
+  enqueue(
+    queue,
+    event,
+    {
+      id = null,
+      metadata = null,
+      claimOwner = null,
+      leaseMs = this.leaseMs,
+      availableAt = null,
+    } = {},
+  ) {
     const key = eventId(event, id);
     return this._mutate(queue, (records) => {
       const existing = records.find((record) => record.id === key);
@@ -118,15 +128,27 @@ export class EventRuntimeStore {
         error.code = "CC_EVENT_RUNTIME_BACKPRESSURE";
         throw error;
       }
+      const createdAt = this._now();
+      const claimed = claimOwner != null && String(claimOwner);
       const record = {
         id: key,
         event: clone(event || {}),
         metadata: clone(metadata),
-        status: "pending",
-        attempts: 0,
-        createdAt: this._now(),
-        nextAttemptAt: this._now(),
-        lease: null,
+        status: claimed ? "processing" : "pending",
+        attempts: claimed ? 1 : 0,
+        fence: claimed ? 1 : 0,
+        createdAt,
+        nextAttemptAt:
+          availableAt == null ? createdAt : Math.max(createdAt, Number(availableAt)),
+        lease: claimed
+          ? {
+              owner: String(claimOwner),
+              fence: 1,
+              claimedAt: createdAt,
+              expiresAt:
+                createdAt + Math.max(1, Number(leaseMs) || this.leaseMs),
+            }
+          : null,
       };
       records.push(record);
       return clone(record);
@@ -160,7 +182,13 @@ export class EventRuntimeStore {
         if (Number(record.nextAttemptAt || 0) > t) continue;
         record.status = "processing";
         record.attempts = Number(record.attempts || 0) + 1;
-        record.lease = { owner: this.owner, claimedAt: t, expiresAt: t + ttl };
+        record.fence = Number(record.fence || 0) + 1;
+        record.lease = {
+          owner: this.owner,
+          fence: record.fence,
+          claimedAt: t,
+          expiresAt: t + ttl,
+        };
         claimed.push(clone(record));
       }
       return claimed;
@@ -175,16 +203,68 @@ export class EventRuntimeStore {
     return this.claim("outbox", options);
   }
 
-  acknowledge(queue, id, result = null, { owner = null } = {}) {
+  _leaseMatches(record, { owner = null, fence = null, now = this._now() } = {}) {
+    const expectedOwner = owner == null ? null : String(owner);
+    const expectedFence =
+      fence == null || !Number.isFinite(Number(fence)) ? null : Number(fence);
+    if (expectedOwner == null && expectedFence == null) return true;
+    if (record.status !== "processing" || !record.lease) return false;
+    if (expectedOwner != null && record.lease.owner !== expectedOwner) {
+      return false;
+    }
+    if (
+      expectedFence != null &&
+      Number(record.lease.fence) !== expectedFence
+    ) {
+      return false;
+    }
+    // A holder that let its lease expire must renew before it is allowed to
+    // commit. This closes the gap where a slow worker could settle just before
+    // a recovery worker claims the same record.
+    return Number(record.lease.expiresAt) > Number(now);
+  }
+
+  renew(
+    queue,
+    id,
+    {
+      owner = this.owner,
+      fence = null,
+      now = this._now(),
+      leaseMs = this.leaseMs,
+    } = {},
+  ) {
+    const t = Number(now);
+    const ttl = Math.max(1, Number(leaseMs) || this.leaseMs);
+    return this._mutate(queue, (records) => {
+      const record = records.find((item) => item.id === String(id));
+      if (!record || !this._leaseMatches(record, { owner, fence, now: t })) {
+        return null;
+      }
+      record.lease.expiresAt = t + ttl;
+      record.lease.renewedAt = t;
+      return clone(record);
+    });
+  }
+
+  renewInbox(id, options) {
+    return this.renew("inbox", id, options);
+  }
+
+  renewOutbox(id, options) {
+    return this.renew("outbox", id, options);
+  }
+
+  acknowledge(
+    queue,
+    id,
+    result = null,
+    { owner = null, fence = null, now = this._now() } = {},
+  ) {
     return this._mutate(queue, (records) => {
       const record = records.find((item) => item.id === String(id));
       if (!record) return null;
-      const expectedOwner = owner ? String(owner) : null;
-      if (
-        expectedOwner &&
-        (record.status !== "processing" ||
-          record.lease?.owner !== expectedOwner)
-      ) {
+      if (!this._leaseMatches(record, { owner, fence, now })) {
         return null;
       }
       record.status = "done";
@@ -207,17 +287,18 @@ export class EventRuntimeStore {
     queue,
     id,
     error,
-    { retryDelayMs = 1000, maxAttempts = this.maxAttempts, owner = null } = {},
+    {
+      retryDelayMs = 1000,
+      maxAttempts = this.maxAttempts,
+      owner = null,
+      fence = null,
+      now = this._now(),
+    } = {},
   ) {
     return this._mutate(queue, (records) => {
       const record = records.find((item) => item.id === String(id));
       if (!record) return null;
-      const expectedOwner = owner ? String(owner) : null;
-      if (
-        expectedOwner &&
-        (record.status !== "processing" ||
-          record.lease?.owner !== expectedOwner)
-      ) {
+      if (!this._leaseMatches(record, { owner, fence, now })) {
         return null;
       }
       record.error = String(error || "event delivery failed").slice(0, 1000);

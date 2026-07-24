@@ -22,6 +22,7 @@ const migrations = require("./migrations");
 const keyProviders = require("./key-providers");
 const { LocalVault } = require("./vault");
 const adapterSpec = require("./adapter-spec");
+const accountScope = require("./account-scope");
 const adapterReadiness = require("./adapter-readiness");
 const adapterGuide = require("./adapter-guide");
 const kgDerive = require("./kg-derive");
@@ -31,7 +32,11 @@ const { MockAdapter } = require("./mock-adapter");
 const queryParser = require("./query-parser");
 const promptBuilder = require("./prompt-builder");
 const { MockLLMClient, OllamaClient } = require("./llm-client");
-const { AnalysisEngine, DEFAULT_MAX_FACTS, DEFAULT_MAX_QUERY_LIMIT } = require("./analysis");
+const {
+  AnalysisEngine,
+  DEFAULT_MAX_FACTS,
+  DEFAULT_MAX_QUERY_LIMIT,
+} = require("./analysis");
 const bridges = require("./bridges");
 const emailImapAdapter = require("./adapters/email-imap");
 const alipayBillAdapter = require("./adapters/alipay-bill");
@@ -121,6 +126,7 @@ const gitActivityAdapter = require("./adapters/git-activity");
 const shellHistoryAdapter = require("./adapters/shell-history");
 const localFilesAdapter = require("./adapters/local-files");
 const categories = require("./categories");
+const sourceHttp = require("./source-http");
 
 module.exports = {
   // Constants / enums
@@ -165,6 +171,11 @@ module.exports = {
   // Adapter contract
   SENSITIVITY_LEVELS: adapterSpec.SENSITIVITY_LEVELS,
   assertAdapter: adapterSpec.assertAdapter,
+  createAccountScope: accountScope.createAccountScope,
+  createAccountScopeFromAccount: accountScope.createAccountScopeFromAccount,
+  createAccountScopeFromSnapshot: accountScope.createAccountScopeFromSnapshot,
+  SNAPSHOT_ACCOUNT_IDENTITY_FIELDS:
+    accountScope.SNAPSHOT_ACCOUNT_IDENTITY_FIELDS,
 
   // Adapter readiness (why-can't-I-collect descriptors)
   describeReadiness: adapterReadiness.describeReadiness,
@@ -264,11 +275,13 @@ module.exports = {
   EntityResolver: entityResolver.EntityResolver,
   entityResolverRuleStage: entityResolver.entityResolverRuleStage,
   entityResolverSharedIdentifier: entityResolver.entityResolverSharedIdentifier,
-  ENTITY_RESOLVER_STRONG_IDENTIFIER_KEYS: entityResolver.ENTITY_RESOLVER_STRONG_IDENTIFIER_KEYS,
+  ENTITY_RESOLVER_STRONG_IDENTIFIER_KEYS:
+    entityResolver.ENTITY_RESOLVER_STRONG_IDENTIFIER_KEYS,
   EntityResolverEmbeddingStage: entityResolver.EntityResolverEmbeddingStage,
   entityResolverCosineSimilarity: entityResolver.entityResolverCosineSimilarity,
   EntityResolverLLMStage: entityResolver.EntityResolverLLMStage,
-  ENTITY_RESOLVER_LLM_SYSTEM_PROMPT: entityResolver.ENTITY_RESOLVER_LLM_SYSTEM_PROMPT,
+  ENTITY_RESOLVER_LLM_SYSTEM_PROMPT:
+    entityResolver.ENTITY_RESOLVER_LLM_SYSTEM_PROMPT,
   parseEntityResolverLLMResponse: entityResolver.parseEntityResolverLLMResponse,
   EntityResolverWorker: entityResolver.EntityResolverWorker,
 
@@ -321,6 +334,9 @@ module.exports = {
   // Phase 7 — Shopping three-pack
   normalizeOrderRecord: shoppingBase.normalizeOrderRecord,
   CookieAuth: shoppingBase.CookieAuth,
+  hasRuntimeCookie: shoppingBase.hasRuntimeCookie,
+  resolveCookieContext: shoppingBase.resolveCookieContext,
+  createJsonSourceFetch: sourceHttp.createJsonSourceFetch,
   TaobaoAdapter,
   JdAdapter,
   MeituanAdapter,
@@ -400,7 +416,8 @@ module.exports = {
   // SQLite snapshot copy + Bookmarks JSON parse; no network, no extension.
   BrowserHistoryChromeAdapter: browserHistoryChrome.BrowserHistoryChromeAdapter,
   BROWSER_HISTORY_CHROME_NAME: browserHistoryChrome.BROWSER_HISTORY_CHROME_NAME,
-  BROWSER_HISTORY_CHROME_VERSION: browserHistoryChrome.BROWSER_HISTORY_CHROME_VERSION,
+  BROWSER_HISTORY_CHROME_VERSION:
+    browserHistoryChrome.BROWSER_HISTORY_CHROME_VERSION,
   defaultChromeProfileDir: browserHistoryChrome.defaultChromeProfileDir,
 
   // Edge — Chromium under the hood, same readers, different profile root.

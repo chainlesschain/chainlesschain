@@ -31,6 +31,7 @@ import { parseSkillMcpServers } from "./skill-mcp.js";
 import { normalizeSkillPaths } from "./skill-path-scope.js";
 import { discoverPluginSkillLayers } from "./plugin-runtime/skills.js";
 import settingsLoader from "./settings-loader.cjs";
+import contextSourceLedger from "./context-source-ledger.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -219,6 +220,40 @@ export function parseSkillMd(content) {
 }
 
 /**
+ * Read only enough of SKILL.md to parse its YAML frontmatter. The markdown
+ * body is deliberately not retained during discovery; it is materialized by
+ * CLISkillLoader.materializeSkill() only when a persona or run_skill needs it.
+ */
+function readSkillFrontmatter(skillMd, maxBytes = 256 * 1024) {
+  const fd = fs.openSync(skillMd, "r");
+  const chunks = [];
+  let total = 0;
+  try {
+    while (total < maxBytes) {
+      const chunk = Buffer.allocUnsafe(Math.min(8192, maxBytes - total));
+      const read = fs.readSync(fd, chunk, 0, chunk.length, total);
+      if (read <= 0) break;
+      chunks.push(chunk.subarray(0, read));
+      total += read;
+      const prefix = Buffer.concat(chunks).toString("utf-8").replace(/^\uFEFF/, "");
+      const firstLineEnd = prefix.search(/\r?\n/);
+      if (firstLineEnd >= 0 && prefix.slice(0, firstLineEnd).trim() !== "---") {
+        return {};
+      }
+      const match = prefix.match(/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/);
+      if (match) return parseSkillMd(match[0]).data;
+    }
+    return {};
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+function estimateSkillTokens(text) {
+  return Math.ceil(String(text || "").length / 4);
+}
+
+/**
  * Substitute $ARGUMENTS / $1 / $2 / ... placeholders in a skill body.
  * Inspired by open-agents substituteArguments.
  *
@@ -290,8 +325,17 @@ export function prepareSkillBody(skill, args) {
  * Multi-layer CLI skill loader
  */
 export class CLISkillLoader {
-  constructor() {
+  constructor({ contextLedger = contextSourceLedger } = {}) {
     this._cache = null;
+    this._bodyCache = new Map();
+    this._contextLedger = contextLedger;
+    this._cacheStats = {
+      descriptorScans: 0,
+      descriptorCacheHits: 0,
+      bodyCacheHits: 0,
+      bodyCacheMisses: 0,
+      bodyLoads: new Map(),
+    };
   }
 
   /**
@@ -449,8 +493,8 @@ export class CLISkillLoader {
         continue;
       }
       try {
-        const content = fs.readFileSync(skillMd, "utf-8");
-        const { data, body } = parseSkillMd(content);
+        const data = readSkillFrontmatter(skillMd);
+        const stat = fs.statSync(skillMd);
 
         out.push({
           id: data.name || entry.name,
@@ -474,12 +518,17 @@ export class CLISkillLoader {
           paths: normalizeSkillPaths(data),
           dirName: entry.name,
           hasHandler: fs.existsSync(path.join(skillDir, "handler.js")),
-          body,
-          // Skill-Embedded MCP: inline server declarations in a
-          // ```mcp-servers fenced code block. Empty array if absent.
-          mcpServers: parseSkillMcpServers(body),
+          isolation: data.isolation === true,
+          // Two-tier loading: discovery retains only the descriptor. The body
+          // and embedded MCP declarations are populated on first use.
+          body: null,
+          bodyLoaded: false,
+          mcpServers: [],
           source: layer,
           skillDir,
+          skillMdPath: skillMd,
+          skillFileBytes: stat.size,
+          skillFileMtimeMs: stat.mtimeMs,
         });
       } catch {
         // Skip malformed skill files
@@ -488,11 +537,148 @@ export class CLISkillLoader {
   }
 
   /**
+   * Materialize a descriptor's markdown body and embedded MCP declarations.
+   * Cache entries are invalidated by file size/mtime and never include content
+   * in provenance records.
+   */
+  materializeSkill(skill, context = {}) {
+    if (!skill || !skill.skillMdPath) {
+      throw new TypeError("A discovered skill descriptor is required");
+    }
+    const stat = fs.statSync(skill.skillMdPath);
+    const signature = `${stat.size}:${stat.mtimeMs}`;
+    let cached = this._bodyCache.get(skill.skillMdPath);
+    let cacheRead = false;
+    if (cached?.signature === signature) {
+      this._cacheStats.bodyCacheHits += 1;
+      cacheRead = true;
+    } else {
+      const content = fs.readFileSync(skill.skillMdPath, "utf-8");
+      const { body } = parseSkillMd(content);
+      cached = {
+        signature,
+        body,
+        mcpServers: parseSkillMcpServers(body),
+        rawChars: body.length,
+        estimatedTokens: estimateSkillTokens(body),
+      };
+      this._bodyCache.set(skill.skillMdPath, cached);
+      this._cacheStats.bodyCacheMisses += 1;
+    }
+
+    skill.body = cached.body;
+    skill.mcpServers = cached.mcpServers;
+    skill.bodyLoaded = true;
+    skill.skillFileBytes = stat.size;
+    skill.skillFileMtimeMs = stat.mtimeMs;
+
+    const prior = this._cacheStats.bodyLoads.get(skill.skillMdPath) || {
+      id: skill.id,
+      source: skill.source,
+      rawChars: cached.rawChars,
+      estimatedTokens: cached.estimatedTokens,
+      loads: 0,
+      cacheHits: 0,
+      loadedBecause: [],
+    };
+    prior.loads += 1;
+    if (cacheRead) prior.cacheHits += 1;
+    const reason = context.loadedBecause || "explicit";
+    if (!prior.loadedBecause.includes(reason)) prior.loadedBecause.push(reason);
+    this._cacheStats.bodyLoads.set(skill.skillMdPath, prior);
+
+    try {
+      this._contextLedger?.recordRead?.({
+        sessionId: context.sessionId || "unknown",
+        turnId: context.turnId || "unknown",
+        sourceType: "skill",
+        sourceId: skill.id,
+        permissionMode: context.permissionMode || "agent",
+        tokenCount: cached.estimatedTokens,
+        metadata: {
+          source: skill.source,
+          loadedBecause: reason,
+          cacheRead,
+          bodyIncluded: context.bodyIncluded === true,
+        },
+      });
+    } catch {
+      // Context observability must never make a valid skill unloadable.
+    }
+    return skill;
+  }
+
+  /** Record descriptor text that was actually returned to a model/tool caller. */
+  recordDescriptorUse(skills, context = {}) {
+    for (const skill of Array.isArray(skills) ? skills : []) {
+      const descriptorText = `${skill.id}\n${skill.description || ""}\n${skill.category || ""}`;
+      try {
+        this._contextLedger?.recordRead?.({
+          sessionId: context.sessionId || "unknown",
+          turnId: context.turnId || "unknown",
+          sourceType: "skill_descriptor",
+          sourceId: skill.id,
+          permissionMode: context.permissionMode || "agent",
+          tokenCount: estimateSkillTokens(descriptorText),
+          metadata: {
+            source: skill.source,
+            loadedBecause: context.loadedBecause || "list_skills",
+            bodyLoaded: skill.bodyLoaded === true,
+          },
+        });
+      } catch {
+        // Observability only.
+      }
+    }
+  }
+
+  /** Content-free cache/cost snapshot for `cc context --sources`. */
+  getCacheLedger() {
+    const descriptors = Array.isArray(this._cache) ? this._cache : [];
+    const descriptorChars = descriptors.reduce(
+      (sum, skill) =>
+        sum +
+        `${skill.id}\n${skill.displayName}\n${skill.description}\n${skill.category}`.length,
+      0,
+    );
+    const residentPaths = new Set(this._bodyCache.keys());
+    const lazyFileBytes = descriptors.reduce(
+      (sum, skill) =>
+        sum +
+        (residentPaths.has(skill.skillMdPath) ? 0 : skill.skillFileBytes || 0),
+      0,
+    );
+    const bodyLoads = Array.from(this._cacheStats.bodyLoads.values()).map(
+      (entry) => ({ ...entry, loadedBecause: [...entry.loadedBecause] }),
+    );
+    return {
+      descriptors: {
+        resident: descriptors.length,
+        scans: this._cacheStats.descriptorScans,
+        cacheHits: this._cacheStats.descriptorCacheHits,
+        rawChars: descriptorChars,
+        estimatedTokens: estimateSkillTokens(descriptorChars),
+      },
+      bodies: {
+        resident: this._bodyCache.size,
+        cacheHits: this._cacheStats.bodyCacheHits,
+        cacheMisses: this._cacheStats.bodyCacheMisses,
+        entries: bodyLoads,
+      },
+      savings: {
+        lazyFileBytes,
+        estimatedTokensAvoided: estimateSkillTokens(lazyFileBytes),
+      },
+    };
+  }
+
+  /**
    * Load all skills from all layers, applying priority override
    * Higher-priority layers override same-name skills from lower layers.
    * @returns {object[]} Resolved skill list
    */
   loadAll(options = {}) {
+    this._cacheStats.descriptorScans += 1;
     // `cc agent --bare` (CC_SKILLS=0): no skill layer loads at all — cache the
     // empty result so getResolvedSkills stays cheap on every call.
     if (allSkillsDisabled(options)) {
@@ -552,7 +738,10 @@ export class CLISkillLoader {
    * @returns {object[]}
    */
   getResolvedSkills() {
-    if (this._cache) return this._cache;
+    if (this._cache) {
+      this._cacheStats.descriptorCacheHits += 1;
+      return this._cache;
+    }
     return this.loadAll();
   }
 
@@ -560,10 +749,16 @@ export class CLISkillLoader {
    * Get auto-activated persona skills
    * @returns {object[]} skills with category "persona" and activation "auto"
    */
-  getAutoActivatedPersonas() {
-    return this.getResolvedSkills().filter(
-      (s) => s.category === "persona" && s.activation === "auto",
-    );
+  getAutoActivatedPersonas(context = {}) {
+    return this.getResolvedSkills()
+      .filter((s) => s.category === "persona" && s.activation === "auto")
+      .map((skill) =>
+        this.materializeSkill(skill, {
+          ...context,
+          loadedBecause: context.loadedBecause || "persona_auto",
+          bodyIncluded: true,
+        }),
+      );
   }
 
   /**
@@ -571,6 +766,14 @@ export class CLISkillLoader {
    */
   clearCache() {
     this._cache = null;
+    this._bodyCache.clear();
+    this._cacheStats = {
+      descriptorScans: 0,
+      descriptorCacheHits: 0,
+      bodyCacheHits: 0,
+      bodyCacheMisses: 0,
+      bodyLoads: new Map(),
+    };
   }
 }
 

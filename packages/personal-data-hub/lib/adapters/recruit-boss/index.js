@@ -52,7 +52,8 @@ const KIND_APPLICATION = "application";
 const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_CHAT, KIND_APPLICATION]);
 
 const CHATS_URL = "https://www.zhipin.com/wapi/zpchat/geek/contactList";
-const DELIVERIES_URL = "https://www.zhipin.com/wapi/zpgeek/mobile/geek/deliver/list.json";
+const DELIVERIES_URL =
+  "https://www.zhipin.com/wapi/zpgeek/mobile/geek/deliver/list.json";
 const PAGE_SIZE = 20;
 
 function parseTime(v) {
@@ -83,7 +84,8 @@ class BossZhipinAdapter {
       opts.account && opts.account.cookies
         ? new CookieAuth({ platform: "boss", cookies: opts.account.cookies })
         : null;
-    this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+    this._fetchFn =
+      typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
     this._signProvider =
       typeof opts.signProvider === "function" ? opts.signProvider : null;
     this._urls = {
@@ -93,6 +95,8 @@ class BossZhipinAdapter {
 
     this.name = NAME;
     this.version = VERSION;
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
     this.capabilities = [
       "sync:snapshot",
       "sync:cookie-api",
@@ -129,7 +133,12 @@ class BossZhipinAdapter {
     }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
-      if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
+      if (!ok)
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          error: "cookies missing",
+        };
       return {
         ok: true,
         account: (this.account && this.account.userId) || null,
@@ -185,9 +194,12 @@ class BossZhipinAdapter {
         ? Math.floor(snapshot.snapshottedAt)
         : Date.now();
     const account =
-      snapshot.account && typeof snapshot.account === "object" ? snapshot.account : null;
+      snapshot.account && typeof snapshot.account === "object"
+        ? snapshot.account
+        : null;
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
 
     const events = Array.isArray(snapshot.events) ? snapshot.events : [];
     let emitted = 0;
@@ -223,31 +235,58 @@ class BossZhipinAdapter {
     if (!(await this._cookieAuth.validate())) return;
     const cookies = this._cookieAuth.toHeader();
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+    const sinceMs =
+      opts.sinceWatermark != null
+        ? parseInt(String(opts.sinceWatermark), 10) || 0
+        : 0;
 
     const plan = [
       { kind: KIND_CHAT, url: this._urls.chats, map: chatItemToRecord },
-      { kind: KIND_APPLICATION, url: this._urls.deliveries, map: applicationItemToRecord },
+      {
+        kind: KIND_APPLICATION,
+        url: this._urls.deliveries,
+        map: applicationItemToRecord,
+      },
     ];
 
     let emitted = 0;
+    let scanComplete = true;
     for (const step of plan) {
       if (include[step.kind] === false) continue;
       let page = 1;
+      let streamComplete = false;
       while (page <= maxPages) {
         const query = { page, pageSize: PAGE_SIZE };
         let sign = null;
         if (this._signProvider) {
           sign = await this._signProvider({ url: step.url, query, cookies });
         }
-        const resp = await this._fetchFn({ url: step.url, cookies, query, sign });
+        if (typeof opts.beforeSourceRequest === "function") {
+          await opts.beforeSourceRequest({ operation: step.kind, page });
+        }
+        const resp = await this._fetchFn({
+          url: step.url,
+          cookies,
+          query,
+          sign,
+        });
         const items = extractData(resp);
-        if (!items.length) break;
+        if (!items.length) {
+          streamComplete = true;
+          break;
+        }
+        let reachedWatermark = false;
         for (const it of items) {
           const rec = step.map(it);
           if (!rec) continue;
+          if (rec.occurredAt && rec.occurredAt < sinceMs) {
+            reachedWatermark = true;
+            break;
+          }
           if (emitted >= limit) return;
           yield {
             adapter: NAME,
@@ -258,9 +297,16 @@ class BossZhipinAdapter {
           };
           emitted += 1;
         }
-        if (items.length < PAGE_SIZE) break;
+        if (reachedWatermark || items.length < PAGE_SIZE) {
+          streamComplete = true;
+          break;
+        }
         page += 1;
       }
+      if (!streamComplete) scanComplete = false;
+    }
+    if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+      opts.markWatermarkComplete();
     }
   }
 
@@ -303,7 +349,9 @@ function chatItemToRecord(it) {
     hrId: it.bossId || it.encryptBossId || it.hrId || null,
     salary: it.salaryDesc || it.salary || null,
     city: it.cityName || it.city || null,
-    occurredAt: parseTime(it.lastChatTime || it.updateTime || it.noneReadCountUpdateTime),
+    occurredAt: parseTime(
+      it.lastChatTime || it.updateTime || it.noneReadCountUpdateTime,
+    ),
   };
 }
 
@@ -337,7 +385,8 @@ function normalizeChat(raw, ingestedAt) {
   const r = p.cookie ? p.record : p;
   const jobTitle = r.jobTitle || "";
   const company = r.company || "";
-  const occurredAt = parseTime(r.occurredAt || r.lastChatTime || raw.capturedAt) || ingestedAt;
+  const occurredAt =
+    parseTime(r.occurredAt || r.lastChatTime || raw.capturedAt) || ingestedAt;
   const source = buildSource(raw, occurredAt);
   const persons = [];
   let hrPersonId = null;
@@ -393,7 +442,8 @@ function normalizeApplication(raw, ingestedAt) {
   const r = p.cookie ? p.record : p;
   const jobTitle = r.jobTitle || "";
   const company = r.company || "";
-  const occurredAt = parseTime(r.occurredAt || r.deliverTime || raw.capturedAt) || ingestedAt;
+  const occurredAt =
+    parseTime(r.occurredAt || r.deliverTime || raw.capturedAt) || ingestedAt;
   const source = buildSource(raw, occurredAt);
   return {
     events: [

@@ -210,7 +210,7 @@ public actor PersonalDataHubCommands {
         )
     }
 
-    // MARK: - 5. Email Adapter 管理 (5 method, Privileged)
+    // MARK: - 5. Email Adapter 管理 (6 methods, Privileged)
 
     /// 注册 IMAP 邮箱（持久化授权码）。**Privileged** — 桌面端二次 ApprovalUI。
     public func registerEmail(
@@ -227,6 +227,21 @@ public actor PersonalDataHubCommands {
         return try await invokeAndDecode(
             pcPeerId: pcPeerId, method: "personal-data-hub.register-email",
             params: params, mobileDid: mobileDid,
+            decoder: HubAdapterRegisterResponse.decode
+        )
+    }
+
+    /// Activate a persisted email account without resubmitting its auth code.
+    public func activateEmail(
+        pcPeerId: String, email: String,
+        mobileDid: String? = nil
+    ) async throws -> HubAdapterRegisterResponse {
+        guard !email.isEmpty else {
+            throw RemoteSkillError.invalidArgument("hub.activateEmail: email empty")
+        }
+        return try await invokeAndDecode(
+            pcPeerId: pcPeerId, method: "personal-data-hub.activate-email",
+            params: ["email": email], mobileDid: mobileDid,
             decoder: HubAdapterRegisterResponse.decode
         )
     }
@@ -273,7 +288,7 @@ public actor PersonalDataHubCommands {
         )
     }
 
-    // MARK: - 6. Alipay Adapter 管理 (4 method)
+    // MARK: - 6. Alipay Adapter 管理 (5 methods)
 
     /// 注册支付宝账单导入账号（含 ZIP 密码）。**Privileged**。
     public func registerAlipay(
@@ -293,6 +308,21 @@ public actor PersonalDataHubCommands {
         return try await invokeAndDecode(
             pcPeerId: pcPeerId, method: "personal-data-hub.register-alipay",
             params: params, mobileDid: mobileDid,
+            decoder: HubAdapterRegisterResponse.decode
+        )
+    }
+
+    /// Activate a persisted Alipay account without rewriting its credentials.
+    public func activateAlipay(
+        pcPeerId: String, email: String,
+        mobileDid: String? = nil
+    ) async throws -> HubAdapterRegisterResponse {
+        guard !email.isEmpty else {
+            throw RemoteSkillError.invalidArgument("hub.activateAlipay: email empty")
+        }
+        return try await invokeAndDecode(
+            pcPeerId: pcPeerId, method: "personal-data-hub.activate-alipay",
+            params: ["email": email], mobileDid: mobileDid,
             decoder: HubAdapterRegisterResponse.decode
         )
     }

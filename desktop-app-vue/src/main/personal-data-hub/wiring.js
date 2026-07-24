@@ -30,6 +30,7 @@ const path = require("node:path");
 const fs = require("node:fs");
 const { app } = require("electron");
 const { logger } = require("../utils/logger.js");
+const { finalizeOneClickSyncReport } = require("./sync-result.js");
 
 const {
   LocalVault,
@@ -120,6 +121,7 @@ const {
   AmapAdapter,
   TelegramAdapter,
   WhatsAppAdapter,
+  createJsonSourceFetch,
   AIChatHistoryAdapter,
   EntityResolver,
   EntityResolverEmbeddingStage,
@@ -321,9 +323,9 @@ async function initHub() {
   }
 
   // Registry with whatever sinks are available.
-  // ADB one-click readiness for the social platforms — mirror of the CLI
-  // wiring. One `adb devices` lets readiness() show "已连接手机，点一键采集" vs
-  // "请插上 root 手机". Best-effort; never throws into the readiness probe.
+  // ADB one-click readiness for the social platforms plus Android system
+  // data — mirror of the CLI wiring. One `adb devices` lets readiness() show
+  // the real connected/disconnected state. Best-effort; never throws.
   const ADB_ONE_CLICK_NAMES = new Set([
     "social-bilibili",
     "social-weibo",
@@ -331,6 +333,7 @@ async function initHub() {
     "social-xiaohongshu",
     "social-toutiao",
     "social-kuaishou",
+    "system-data-android",
   ]);
   const adbReadinessProbe = async () => {
     try {
@@ -394,26 +397,22 @@ async function initHub() {
   // than what's already there. Phase 4 will DPAPI/Keychain-wrap both.
   const emailAccountsPath = path.join(hubDir, "email-accounts.json");
   const emailAccounts = loadEmailAccounts(emailAccountsPath);
-  for (const cfg of emailAccounts) {
-    try {
-      const adapter = new EmailAdapter({
+  registerNewestValidAccount({
+    registry,
+    accounts: emailAccounts,
+    createAdapter: (cfg) =>
+      new EmailAdapter({
         account: cfg.account,
         ...(cfg.opts || {}),
-      });
-      registry.register(adapter);
-      logger.info(
-        "[PersonalDataHub] auto-registered email account",
-        cfg.account.email,
-        "(name=" + adapter.name + ")",
-      );
-    } catch (err) {
+      }),
+    onError: (cfg, err) => {
       logger.warn(
-        "[PersonalDataHub] failed to auto-register email account",
+        "[PersonalDataHub] skipped invalid persisted email account",
         cfg.account && cfg.account.email,
         err && err.message,
       );
-    }
-  }
+    },
+  });
 
   // Plan A — register SystemDataAndroidAdapter on every desktop boot.
   //
@@ -478,12 +477,9 @@ async function initHub() {
         "whatsapp.backup": createWhatsAppBackupExtension(),
       },
     });
-    const sda = new SystemDataAndroidAdapter();
-    // SystemDataAndroidAdapter's constructor ignores opts.bridgeProvider
-    // and hardcodes `_deps.bridgeProvider = () => null`. Mutate after
-    // construction. (Better: teach the adapter to accept the override
-    // via constructor opts. Tracked as follow-up.)
-    sda._deps.bridgeProvider = () => desktopAdbBridge;
+    const sda = new SystemDataAndroidAdapter({
+      bridgeProvider: () => desktopAdbBridge,
+    });
     if (!registry.has(sda.name)) {
       registry.register(sda);
     }
@@ -634,6 +630,19 @@ async function initHub() {
   // alias. The sqlite sync still requires user to pre-extract DB (Telegram
   // unencrypted, WhatsApp needs Crypt key, Amap needs root ADB pull) but the
   // registry slot is claimed so syncAdapter("<name>", path) routes correctly.
+  const runtimeCookieAdapterClasses = new Set([
+    TaobaoAdapter,
+    JdAdapter,
+    MeituanAdapter,
+    ElemeAdapter,
+    PinduoduoAdapter,
+    DianpingAdapter,
+    XianyuAdapter,
+    VipshopAdapter,
+    Train12306Adapter,
+    ZhihuAdapter,
+  ]);
+  const sourceJsonFetch = createJsonSourceFetch();
   for (const Cls of [
     WeiboAdapter,
     ZhihuAdapter,
@@ -704,9 +713,12 @@ async function initHub() {
     WhatsAppAdapter,
   ]) {
     try {
-      const adapter = Cls === WhatsAppAdapter
-        ? new Cls({ bridgeProvider: () => desktopAdbBridge })
-        : new Cls();
+      const adapter =
+        Cls === WhatsAppAdapter
+          ? new Cls({ bridgeProvider: () => desktopAdbBridge })
+          : runtimeCookieAdapterClasses.has(Cls)
+            ? new Cls({ fetchFn: sourceJsonFetch })
+            : new Cls();
       if (!registry.has(adapter.name)) {
         registry.register(adapter);
       }
@@ -740,23 +752,22 @@ async function initHub() {
   // Phase 6: same file-based persistence for Alipay accounts.
   const alipayAccountsPath = path.join(hubDir, "alipay-accounts.json");
   const alipayAccounts = loadAlipayAccounts(alipayAccountsPath);
-  for (const cfg of alipayAccounts) {
-    try {
-      const adapter = new AlipayBillAdapter({
+  registerNewestValidAccount({
+    registry,
+    accounts: alipayAccounts,
+    createAdapter: (cfg) =>
+      new AlipayBillAdapter({
         account: cfg.account,
         ...(cfg.opts || {}),
-      });
-      if (!registry.has(adapter.name)) {
-        registry.register(adapter);
-      }
-    } catch (err) {
+      }),
+    onError: (cfg, err) => {
       logger.warn(
-        "[PersonalDataHub] failed to auto-register Alipay account",
+        "[PersonalDataHub] skipped invalid persisted Alipay account",
         cfg.account && cfg.account.email,
         err && err.message,
       );
-    }
-  }
+    },
+  });
 
   // Phase 10.3.5 — AIChat HealthChecker. Periodically re-validates persisted
   // AIChat cookies against the vendor SPEC so the wizard UI can render the
@@ -940,8 +951,10 @@ async function initHub() {
       }
       registry.register(adapter);
       const accounts = loadEmailAccounts(emailAccountsPath);
-      // De-dupe by adapter name (which encodes email)
-      const next = accounts.filter((c) => c.account.email !== account.email);
+      const next = accounts.filter(
+        (c) =>
+          !sameAccountIdentity(c.account && c.account.email, account.email),
+      );
       next.push({ account, opts, registeredAt: Date.now() });
       saveEmailAccounts(emailAccountsPath, next);
       return {
@@ -952,30 +965,84 @@ async function initHub() {
       };
     },
 
+    async activateEmailAdapter(emailAddress) {
+      if (!emailAddress || typeof emailAddress !== "string") {
+        throw new Error("email required");
+      }
+      const activated = activatePersistedAdapter({
+        registry,
+        accounts: loadEmailAccounts(emailAccountsPath),
+        identity: emailAddress,
+        identityOf: (cfg) => cfg.account && cfg.account.email,
+        createAdapter: (cfg) =>
+          new EmailAdapter({
+            account: cfg.account,
+            ...(cfg.opts || {}),
+          }),
+      });
+      if (!activated) {
+        throw new Error("Saved email account not found");
+      }
+      const { adapter } = activated;
+      return {
+        name: adapter.name,
+        version: adapter.version,
+        capabilities: adapter.capabilities,
+        sensitivity: adapter.dataDisclosure.sensitivity,
+        active: true,
+      };
+    },
+
     /**
      * Phase 5.6: unregister an email adapter + remove its persisted config.
      * Vault data is preserved (events stay queryable / askable).
      */
     async unregisterEmailAdapter(emailAddress) {
       const accounts = loadEmailAccounts(emailAccountsPath);
-      const target = accounts.find((c) => c.account.email === emailAddress);
-      const next = accounts.filter((c) => c.account.email !== emailAddress);
+      const target = accounts.find((c) =>
+        sameAccountIdentity(c.account && c.account.email, emailAddress),
+      );
+      const next = accounts.filter(
+        (c) => !sameAccountIdentity(c.account && c.account.email, emailAddress),
+      );
+      const active = registry.get("email-imap");
+      const removingActive =
+        !!target &&
+        !!active &&
+        !active._snapshotMode &&
+        sameAccountIdentity(
+          active.account && active.account.email,
+          emailAddress,
+        );
       saveEmailAccounts(emailAccountsPath, next);
-      // The adapter is registered under `email-imap` for all; if multiple
-      // email accounts existed they would collide. v0 supports a single
-      // email at a time (the latest registered wins via duplicate-name
-      // guard). Unregister by name.
-      if (target) {
+      if (removingActive) {
         registry.unregister("email-imap");
-        // Phase 5.8 — restore the snapshot stub so Android sync paths still
-        // work after the user unregisters their explicit IMAP account.
-        try {
-          registry.register(new EmailAdapter({ snapshotMode: true }));
-        } catch (err) {
-          logger.warn(
-            "[PersonalDataHub] failed to restore email-imap snapshot adapter",
-            err && err.message,
-          );
+        const fallback = registerNewestValidAccount({
+          registry,
+          accounts: next,
+          createAdapter: (cfg) =>
+            new EmailAdapter({
+              account: cfg.account,
+              ...(cfg.opts || {}),
+            }),
+          onError: (cfg, err) => {
+            logger.warn(
+              "[PersonalDataHub] failed to activate fallback email account",
+              cfg.account && cfg.account.email,
+              err && err.message,
+            );
+          },
+        });
+        if (!fallback) {
+          // Restore snapshot collection only when no configured account remains.
+          try {
+            registry.register(new EmailAdapter({ snapshotMode: true }));
+          } catch (err) {
+            logger.warn(
+              "[PersonalDataHub] failed to restore email-imap snapshot adapter",
+              err && err.message,
+            );
+          }
         }
       }
       return { ok: true, removed: !!target };
@@ -983,11 +1050,17 @@ async function initHub() {
 
     /** Phase 5.6: list persisted email accounts (without authCode). */
     listEmailAccounts() {
+      const active = registry.get("email-imap");
+      const activeEmail =
+        active && !active._snapshotMode && active.account
+          ? active.account.email
+          : null;
       return loadEmailAccounts(emailAccountsPath).map((c) => ({
         email: c.account.email,
         provider: c.account.provider,
         folders: c.account.folders || null,
         registeredAt: c.registeredAt || null,
+        active: sameAccountIdentity(c.account.email, activeEmail),
         pdfPasswordHints:
           c.opts && c.opts.pdfPasswordHints
             ? Object.keys(c.opts.pdfPasswordHints)
@@ -1044,7 +1117,10 @@ async function initHub() {
       }
       registry.register(adapter);
       const accounts = loadAlipayAccounts(alipayAccountsPath);
-      const next = accounts.filter((c) => c.account.email !== account.email);
+      const next = accounts.filter(
+        (c) =>
+          !sameAccountIdentity(c.account && c.account.email, account.email),
+      );
       next.push({ account, opts, registeredAt: Date.now() });
       saveAlipayAccounts(alipayAccountsPath, next);
       return {
@@ -1055,18 +1131,74 @@ async function initHub() {
       };
     },
 
+    async activateAlipayAdapter(email) {
+      if (!email || typeof email !== "string") {
+        throw new Error("email required");
+      }
+      const activated = activatePersistedAdapter({
+        registry,
+        accounts: loadAlipayAccounts(alipayAccountsPath),
+        identity: email,
+        identityOf: (cfg) => cfg.account && cfg.account.email,
+        createAdapter: (cfg) =>
+          new AlipayBillAdapter({
+            account: cfg.account,
+            ...(cfg.opts || {}),
+          }),
+      });
+      if (!activated) {
+        throw new Error("Saved Alipay account not found");
+      }
+      const { adapter } = activated;
+      return {
+        name: adapter.name,
+        version: adapter.version,
+        capabilities: adapter.capabilities,
+        sensitivity: adapter.dataDisclosure.sensitivity,
+        active: true,
+      };
+    },
+
     async unregisterAlipayAdapter(email) {
       const accounts = loadAlipayAccounts(alipayAccountsPath);
-      const target = accounts.find((c) => c.account.email === email);
-      const next = accounts.filter((c) => c.account.email !== email);
+      const target = accounts.find((c) =>
+        sameAccountIdentity(c.account && c.account.email, email),
+      );
+      const next = accounts.filter(
+        (c) => !sameAccountIdentity(c.account && c.account.email, email),
+      );
+      const active = registry.get("alipay-bill");
+      const removingActive =
+        !!target &&
+        !!active &&
+        sameAccountIdentity(active.account && active.account.email, email);
       saveAlipayAccounts(alipayAccountsPath, next);
-      if (target) {
+      if (removingActive) {
         registry.unregister("alipay-bill");
+        registerNewestValidAccount({
+          registry,
+          accounts: next,
+          createAdapter: (cfg) =>
+            new AlipayBillAdapter({
+              account: cfg.account,
+              ...(cfg.opts || {}),
+            }),
+          onError: (cfg, err) => {
+            logger.warn(
+              "[PersonalDataHub] failed to activate fallback Alipay account",
+              cfg.account && cfg.account.email,
+              err && err.message,
+            );
+          },
+        });
       }
       return { ok: true, removed: !!target };
     },
 
     listAlipayAccounts() {
+      const active = registry.get("alipay-bill");
+      const activeEmail =
+        active && active.account ? active.account.email : null;
       return loadAlipayAccounts(alipayAccountsPath).map((c) => ({
         email: c.account.email,
         hasZipPassword: !!(
@@ -1074,6 +1206,7 @@ async function initHub() {
           (c.opts && c.opts.zipPassword)
         ),
         registeredAt: c.registeredAt || null,
+        active: sameAccountIdentity(c.account.email, activeEmail),
       }));
     },
 
@@ -1162,7 +1295,8 @@ async function initHub() {
       // Persist (scrubbed) account row
       const accounts = loadWechatAccounts(wechatAccountsPath);
       const next = accounts.filter(
-        (c) => !(c.account && c.account.uin === opts.account.uin),
+        (c) =>
+          !sameAccountIdentity(c.account && c.account.uin, opts.account.uin),
       );
       next.push({
         account: { uin: opts.account.uin },
@@ -1187,17 +1321,80 @@ async function initHub() {
       };
     },
 
+    async activateWechatAdapter(uin, opts = {}) {
+      if (!uin || typeof uin !== "string") {
+        return { ok: false, reason: "UIN_REQUIRED" };
+      }
+      const accounts = loadWechatAccounts(wechatAccountsPath);
+      const config = accounts.find((row) =>
+        sameAccountIdentity(row.account && row.account.uin, uin),
+      );
+      if (!config) {
+        return {
+          ok: false,
+          reason: "ACCOUNT_NOT_FOUND",
+          message: "Saved WeChat account not found",
+        };
+      }
+
+      let r;
+      try {
+        r = await bootstrapWechatAdapter({
+          account: config.account,
+          dbPath: config.dbPath || null,
+          wechatDataPath: config.wechatDataPath || null,
+          fridaOpts: opts.fridaOpts || null,
+          keyProviderOverride:
+            opts.keyProviderOverride || config.chosenKeyProvider || null,
+          exec: opts.exec,
+          _probe: opts._probe,
+        });
+      } catch (err) {
+        return {
+          ok: false,
+          reason: "BOOTSTRAP_THREW",
+          message: err && err.message ? err.message : String(err),
+        };
+      }
+      if (!r.ok) {
+        return r;
+      }
+
+      if (registry.has(r.adapter.name)) {
+        registry.unregister(r.adapter.name);
+      }
+      registry.register(r.adapter);
+      return {
+        ok: true,
+        name: r.adapter.name,
+        version: r.adapter.version,
+        capabilities: r.adapter.capabilities,
+        sensitivity: r.adapter.dataDisclosure.sensitivity,
+        chosenKeyProvider: r.keyProvider && r.keyProvider.name,
+        probe: r.probe,
+        registeredAt: config.registeredAt || null,
+        active: true,
+      };
+    },
+
     async unregisterWechatAdapter(uin) {
       if (!uin || typeof uin !== "string") {
         return { ok: false, reason: "UIN_REQUIRED" };
       }
       const accounts = loadWechatAccounts(wechatAccountsPath);
-      const target = accounts.find((c) => c.account && c.account.uin === uin);
-      const next = accounts.filter(
-        (c) => !(c.account && c.account.uin === uin),
+      const target = accounts.find((c) =>
+        sameAccountIdentity(c.account && c.account.uin, uin),
       );
+      const next = accounts.filter(
+        (c) => !sameAccountIdentity(c.account && c.account.uin, uin),
+      );
+      const active = registry.get("wechat");
+      const removingActive =
+        !!target &&
+        !!active &&
+        sameAccountIdentity(active.account && active.account.uin, uin);
       saveWechatAccounts(wechatAccountsPath, next);
-      if (target && registry.has("wechat")) {
+      if (removingActive) {
         registry.unregister("wechat");
       }
       return { ok: true, removed: !!target, uin };
@@ -1209,7 +1406,12 @@ async function initHub() {
      * paths and the chosenKeyProvider so the UI can show a row per uin.
      */
     listWechatAccounts() {
-      return loadWechatAccounts(wechatAccountsPath).map(scrubWechatRow);
+      const active = registry.get("wechat");
+      const activeUin = active && active.account ? active.account.uin : null;
+      return loadWechatAccounts(wechatAccountsPath).map((row) => ({
+        ...scrubWechatRow(row),
+        active: sameAccountIdentity(row.account && row.account.uin, activeUin),
+      }));
     },
 
     // ─── Phase 1e — Bilibili C 路径 dry-run env probe ────────────────────
@@ -1281,7 +1483,7 @@ async function initHub() {
           registry,
           opts,
         );
-        return { ok: true, report };
+        return finalizeOneClickSyncReport(report);
       } catch (err) {
         const msg = err && err.message ? err.message : String(err);
         const m = msg.match(/^(BILIBILI_[A-Z_]+)/);
@@ -1323,7 +1525,7 @@ async function initHub() {
           registry,
           opts,
         );
-        return { ok: true, report };
+        return finalizeOneClickSyncReport(report);
       } catch (err) {
         const msg = err && err.message ? err.message : String(err);
         const m = msg.match(/^(WEIBO_[A-Z_]+)/);
@@ -1382,7 +1584,7 @@ async function initHub() {
           registry,
           { ...opts, signProvider },
         );
-        return { ok: true, report };
+        return finalizeOneClickSyncReport(report);
       } catch (err) {
         const msg = err && err.message ? err.message : String(err);
         const m = msg.match(/^(XHS_[A-Z_]+)/);
@@ -1438,7 +1640,7 @@ async function initHub() {
           registry,
           { ...opts, signProvider },
         );
-        return { ok: true, report };
+        return finalizeOneClickSyncReport(report);
       } catch (err) {
         const msg = err && err.message ? err.message : String(err);
         const m = msg.match(/^(TOUTIAO_[A-Z_]+)/);
@@ -1496,7 +1698,7 @@ async function initHub() {
           registry,
           { ...opts, signProvider },
         );
-        return { ok: true, report };
+        return finalizeOneClickSyncReport(report);
       } catch (err) {
         const msg = err && err.message ? err.message : String(err);
         const m = msg.match(/^(KUAISHOU_[A-Z_]+)/);
@@ -1615,7 +1817,7 @@ async function initHub() {
           registry,
           opts,
         );
-        return { ok: true, report };
+        return finalizeOneClickSyncReport(report);
       } catch (err) {
         const msg = err && err.message ? err.message : String(err);
         const m = msg.match(/^(DOUYIN_[A-Z_]+)/);
@@ -1706,6 +1908,88 @@ function saveAlipayAccounts(filePath, accounts) {
   }
 }
 
+function sameAccountIdentity(left, right) {
+  if (left == null || right == null) {
+    return false;
+  }
+  return (
+    String(left).normalize("NFKC").trim().toLowerCase() ===
+    String(right).normalize("NFKC").trim().toLowerCase()
+  );
+}
+
+function accountRowsNewestFirst(accounts) {
+  if (!Array.isArray(accounts)) {
+    return [];
+  }
+  return accounts
+    .map((row, index) => ({
+      row,
+      index,
+      registeredAt: Number.isFinite(Number(row && row.registeredAt))
+        ? Number(row.registeredAt)
+        : 0,
+    }))
+    .sort(
+      (left, right) =>
+        right.registeredAt - left.registeredAt || right.index - left.index,
+    )
+    .map(({ row }) => row);
+}
+
+function registerNewestValidAccount({
+  registry,
+  accounts,
+  createAdapter,
+  onError,
+}) {
+  for (const cfg of accountRowsNewestFirst(accounts)) {
+    try {
+      const adapter = createAdapter(cfg);
+      registry.register(adapter);
+      return adapter;
+    } catch (err) {
+      if (typeof onError === "function") {
+        onError(cfg, err);
+      }
+    }
+  }
+  return null;
+}
+
+function activatePersistedAdapter({
+  registry,
+  accounts,
+  identity,
+  identityOf,
+  createAdapter,
+}) {
+  const config = (Array.isArray(accounts) ? accounts : []).find((row) =>
+    sameAccountIdentity(identityOf(row), identity),
+  );
+  if (!config) {
+    return null;
+  }
+
+  // Construct before replacing the registry slot so corrupt persisted
+  // configuration cannot evict the currently active adapter.
+  const adapter = createAdapter(config);
+  const previous =
+    typeof registry.get === "function" ? registry.get(adapter.name) : null;
+  if (registry.has(adapter.name)) {
+    registry.unregister(adapter.name);
+  }
+  try {
+    registry.register(adapter);
+  } catch (err) {
+    if (previous) {
+      registry.register(previous);
+    }
+    throw err;
+  }
+  return { adapter, config };
+}
+
 /**
  * Idempotent init. Multiple parallel callers will share the same in-flight
  * init promise instead of triggering double-init on the vault.
@@ -1763,4 +2047,5 @@ module.exports = {
   getHub,
   close,
   resolveHubDir,
+  activatePersistedAdapter,
 };

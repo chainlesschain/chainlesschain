@@ -1103,10 +1103,21 @@ describe("executeTool — web_fetch / todo_write / ask_user_question", () => {
     const result = await executeTool(
       "ask_user_question",
       { question: "Proceed?", options: ["yes", "no"] },
-      { interaction: { emit: () => {}, askUser } },
+      {
+        interaction: { emit: () => {}, askUser },
+        sessionId: "session-1",
+        turnId: "turn-1",
+        toolCallId: "tool-call-1",
+      },
     );
     expect(askUser).toHaveBeenCalledWith(
-      expect.objectContaining({ question: "Proceed?", options: ["yes", "no"] }),
+      expect.objectContaining({
+        question: "Proceed?",
+        options: ["yes", "no"],
+        sessionId: "session-1",
+        turnId: "turn-1",
+        toolUseId: "tool-call-1",
+      }),
     );
     expect(result.answer).toBe("yes");
   });
@@ -1123,6 +1134,46 @@ describe("executeTool — web_fetch / todo_write / ask_user_question", () => {
       { interaction: { emit: () => {}, askUser } },
     );
     expect(result.error).toBe("user_timeout");
+  });
+
+  it("ask_user_question applies the declared timeout fallback policy", async () => {
+    const err = new Error("timed out");
+    err.code = "USER_TIMEOUT";
+    const askUser = vi.fn(async () => {
+      throw err;
+    });
+    const result = await executeTool(
+      "ask_user_question",
+      {
+        question: "Proceed?",
+        onTimeout: "useDefault",
+        defaultValue: "no",
+      },
+      { interaction: { askUser } },
+    );
+    expect(result).toMatchObject({
+      answer: "no",
+      fallback: "default",
+      reason: "timeout",
+    });
+  });
+
+  it("ask_user_question applies the declared rejection policy", async () => {
+    const err = new Error("declined");
+    err.code = "USER_REJECTED";
+    const askUser = vi.fn(async () => {
+      throw err;
+    });
+    const result = await executeTool(
+      "ask_user_question",
+      { question: "Proceed?", onReject: "skip" },
+      { interaction: { askUser } },
+    );
+    expect(result).toMatchObject({
+      answer: null,
+      skipped: true,
+      reason: "reject",
+    });
   });
 
   it("web_fetch blocks invalid URL", async () => {
@@ -1610,6 +1661,10 @@ describe("agentLoop", () => {
 
     const execEvent = events.find((e) => e.type === "tool-executing");
     expect(execEvent.tool).toBe("list_dir");
+    expect(execEvent.tool_use_id).toBe("call-1");
+    const resultEvent = events.find((e) => e.type === "tool-result");
+    expect(resultEvent.tool_use_id).toBe("call-1");
+    expect(resultEvent.turn_id).toBe(execEvent.turn_id);
   });
 
   it("does not crash on a malformed tool call (missing function) and stays balanced", async () => {

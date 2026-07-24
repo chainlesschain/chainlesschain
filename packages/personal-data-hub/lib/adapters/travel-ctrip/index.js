@@ -37,7 +37,11 @@
 "use strict";
 
 const fs = require("node:fs");
-const { normalizeTravelRecord, parseChineseDateTime } = require("../travel-base");
+const { createAccountScopeFromAccount } = require("../../account-scope");
+const {
+  normalizeTravelRecord,
+  parseChineseDateTime,
+} = require("../travel-base");
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "travel-ctrip";
@@ -46,8 +50,7 @@ const VERSION = "0.7.0"; // §9.3c — cookie-api live fetch path (signProvider 
 // Best-effort Ctrip order-centre list endpoint. Overridable via opts.ordersUrl
 // (Ctrip rotates SOA service numbers; the injected fetchFn host may also point
 // at whichever order API the captured cookie is currently scoped to).
-const CTRIP_ORDERS_URL =
-  "https://m.ctrip.com/restapi/soa2/24690/getOrderList";
+const CTRIP_ORDERS_URL = "https://m.ctrip.com/restapi/soa2/24690/getOrderList";
 const DEFAULT_PAGE_SIZE = 20;
 const DEFAULT_MAX_PAGES = 10;
 
@@ -59,6 +62,9 @@ class CtripAdapter {
     // auto-register at boot → Android collector ship JSON staging path
     // failed with silent "no adapter travel-ctrip".
     this.account = opts.account || null;
+    this.defaultScope = createAccountScopeFromAccount(NAME, this.account, [
+      "email",
+    ]);
     this._dataPath = opts.dataPath || null;
 
     // §9.3c cookie-api mode — activates when account.cookies is supplied.
@@ -69,7 +75,8 @@ class CtripAdapter {
     // The actual HTTP call is delegated to an injected fetchFn so this module
     // stays a pure-Node parser/orchestrator (same seam as the shopping +
     // travel-12306 adapters). fetchFn({ url, cookies, query, sign }) → JSON.
-    this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+    this._fetchFn =
+      typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
     // sign seam — async fn({ url, query, cookies }) → string|null. When absent,
     // requests carry sign: null (best-effort, the endpoint may reject).
     this._signProvider =
@@ -80,6 +87,8 @@ class CtripAdapter {
         : CTRIP_ORDERS_URL;
 
     this.name = NAME;
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
     this.version = VERSION;
     this.capabilities = [
       "import:json",
@@ -107,16 +116,25 @@ class CtripAdapter {
     // / dataPath is provided. Takes priority over cookie mode when both given.
     const filePath = (ctx && ctx.inputPath) || ctx.dataPath || this._dataPath;
     if (filePath) {
-      try { this._deps.fs.accessSync(filePath, this._deps.fs.constants.R_OK); }
-      catch (err) {
-        return { ok: false, reason: "INPUT_PATH_UNREADABLE", message: `not readable at ${filePath}: ${err.message}` };
+      try {
+        this._deps.fs.accessSync(filePath, this._deps.fs.constants.R_OK);
+      } catch (err) {
+        return {
+          ok: false,
+          reason: "INPUT_PATH_UNREADABLE",
+          message: `not readable at ${filePath}: ${err.message}`,
+        };
       }
       return { ok: true, mode: "snapshot-file" };
     }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
       if (!ok) {
-        return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          error: "cookies missing",
+        };
       }
       // account is OPTIONAL in cookie mode — the .ctrip.com cookie carries identity.
       return {
@@ -125,7 +143,11 @@ class CtripAdapter {
         mode: "cookie",
       };
     }
-    return { ok: true, account: this.account ? this.account.email : null, mode: "ready" };
+    return {
+      ok: true,
+      account: this.account ? this.account.email : null,
+      mode: "ready",
+    };
   }
 
   async healthCheck() {
@@ -180,7 +202,9 @@ class CtripAdapter {
       opts.sinceWatermark != null
         ? parseInt(String(opts.sinceWatermark), 10) || 0
         : Date.now() - 365 * 24 * 3600_000; // default last year
-    const pageSize = Number.isFinite(opts.pageSize) ? opts.pageSize : DEFAULT_PAGE_SIZE;
+    const pageSize = Number.isFinite(opts.pageSize)
+      ? opts.pageSize
+      : DEFAULT_PAGE_SIZE;
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0
         ? opts.maxPages
@@ -190,14 +214,24 @@ class CtripAdapter {
 
     let emitted = 0;
     let pageIndex = 1;
+    let scanComplete = false;
     while (pageIndex <= maxPages) {
       const query = { pageIndex, pageSize, ts: Date.now() };
       // sign seam — best-effort. null when no signProvider.
       let sign = null;
       if (this._signProvider) {
-        sign = await this._signProvider({ url: this._ordersUrl, query, cookies });
+        sign = await this._signProvider({
+          url: this._ordersUrl,
+          query,
+          cookies,
+        });
       }
-      const resp = await this._fetchFn({ url: this._ordersUrl, cookies, query, sign });
+      const resp = await this._fetchFn({
+        url: this._ordersUrl,
+        cookies,
+        query,
+        sign,
+      });
       const orders = extractOrders(resp);
       if (!orders.length) break;
 
@@ -221,8 +255,15 @@ class CtripAdapter {
         };
         emitted += 1;
       }
-      if (reachedWatermark || !pageHasNew || orders.length < pageSize) break;
+      if (reachedWatermark || orders.length < pageSize) {
+        scanComplete = true;
+        break;
+      }
+      if (!pageHasNew) break;
       pageIndex += 1;
+    }
+    if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+      opts.markWatermarkComplete();
     }
   }
 
@@ -297,26 +338,52 @@ function orderToRecord(o, opts = {}) {
     vendorId: "ctrip",
     recordId: String(recordId),
     vehicleType,
-    from: o.fromCity || o.from_city || o.depCity || o.departCity
-      ? { city: o.fromCity || o.from_city || o.depCity || o.departCity }
-      : null,
-    to: o.toCity || o.to_city || o.arrCity || o.arriveCity || o.hotelCity
-      ? { city: o.toCity || o.to_city || o.arrCity || o.arriveCity || o.hotelCity }
-      : null,
+    from:
+      o.fromCity || o.from_city || o.depCity || o.departCity
+        ? { city: o.fromCity || o.from_city || o.depCity || o.departCity }
+        : null,
+    to:
+      o.toCity || o.to_city || o.arrCity || o.arriveCity || o.hotelCity
+        ? {
+            city:
+              o.toCity || o.to_city || o.arrCity || o.arriveCity || o.hotelCity,
+          }
+        : null,
     departureMs: numberOrParse(
-      o.departureTime || o.dep_time || o.departureDate || o.checkIn || o.check_in || o.startDate,
+      o.departureTime ||
+        o.dep_time ||
+        o.departureDate ||
+        o.checkIn ||
+        o.check_in ||
+        o.startDate,
     ),
     arrivalMs: numberOrParse(
-      o.arrivalTime || o.arr_time || o.arrivalDate || o.checkOut || o.check_out || o.endDate,
+      o.arrivalTime ||
+        o.arr_time ||
+        o.arrivalDate ||
+        o.checkOut ||
+        o.check_out ||
+        o.endDate,
     ),
     carrier:
-      o.carrier || o.airline || o.hotelName || o.hotel_name || o.orderTitle || o.title || "携程",
+      o.carrier ||
+      o.airline ||
+      o.hotelName ||
+      o.hotel_name ||
+      o.orderTitle ||
+      o.title ||
+      "携程",
     vehicleNumber: o.flightNumber || o.flight_no || o.trainNumber || o.train_no,
-    totalCost: priceRaw != null
-      ? { value: parseFloat(priceRaw), currency: o.currency || "CNY" }
-      : null,
+    totalCost:
+      priceRaw != null
+        ? { value: parseFloat(priceRaw), currency: o.currency || "CNY" }
+        : null,
     traveler:
-      o.passengerName || o.passenger || o.guestName || o.guest_name || o.contactName,
+      o.passengerName ||
+      o.passenger ||
+      o.guestName ||
+      o.guest_name ||
+      o.contactName,
     confirmationCode: o.confirmationCode || o.pnr || o.confirmation_no,
     bookedAt: numberOrParse(
       o.bookedAt || o.order_time || o.orderDate || o.createTime || o.orderTime,
@@ -346,7 +413,8 @@ function extractOrders(resp) {
     if (Array.isArray(data.orderList)) return data.orderList;
     if (Array.isArray(data.list)) return data.list;
   }
-  const result = resp.result && typeof resp.result === "object" ? resp.result : null;
+  const result =
+    resp.result && typeof resp.result === "object" ? resp.result : null;
   if (result) {
     if (Array.isArray(result.orderList)) return result.orderList;
     if (Array.isArray(result.list)) return result.list;

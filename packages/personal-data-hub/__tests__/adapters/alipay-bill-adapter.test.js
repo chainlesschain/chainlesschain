@@ -277,15 +277,17 @@ describe("AlipayBillAdapter contract", () => {
 
   it("name + version + capabilities + sensitivity", () => {
     expect(a.name).toBe("alipay-bill");
-    expect(a.version).toBe("0.1.0");
+    expect(a.version).toBe("0.2.0");
+    expect(a.extractMode).toBe("file-import");
+    expect(a.capabilities).toContain("sync:file-import");
     expect(a.capabilities).toContain("import:csv-zip");
     expect(a.dataDisclosure.sensitivity).toBe("high");
   });
 
-  it("authenticate returns ok:true (no server auth)", async () => {
+  it("readiness requires a user-selected export", async () => {
     const r = await a.authenticate();
-    expect(r.ok).toBe(true);
-    expect(r.account).toBe("u@example.com");
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("NO_INPUT");
   });
 
   it("healthCheck returns ok:true", async () => {
@@ -308,7 +310,7 @@ describe("AlipayBillAdapter.sync", () => {
     expect(raws).toHaveLength(0);
   });
 
-  it("yields one raw per row when csvPath provided (mocked parser)", async () => {
+  it("yields one raw per row through the generic inputPath alias", async () => {
     // Write a temp CSV file
     const fs = require("node:fs");
     const os = require("node:os");
@@ -322,8 +324,10 @@ describe("AlipayBillAdapter.sync", () => {
       // Use real parser; CSV is a valid Alipay export shape
     });
     const raws = [];
+    expect((await a.authenticate({ inputPath: tmp })).ok).toBe(true);
+    expect((await a.healthCheck({ inputPath: tmp })).ok).toBe(true);
     for await (const r of a.sync({
-      csvPath: tmp,
+      inputPath: tmp,
       onProgress: (e) => events.push(e.phase),
     })) raws.push(r);
 

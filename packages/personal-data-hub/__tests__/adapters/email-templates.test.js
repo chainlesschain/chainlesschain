@@ -833,11 +833,11 @@ describe("EmailAdapter — Phase 5.4 extraction integration", () => {
     expect(raws[0].payload.extraction.warnings[0]).toContain("boom");
   });
 
-  it("version reflects 0.6.0 (Phase 5.7)", () => {
+  it("version reflects the runtime-input health-gate release", () => {
     const a = new EmailAdapter({
       account: { provider: "qq", email: "u@qq.com", authCode: "x" },
       sessionFactory: makeSession([]),
     });
-    expect(a.version).toBe("0.7.0");
+    expect(a.version).toBe("0.8.0");
   });
 });

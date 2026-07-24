@@ -153,14 +153,16 @@ describe("MobileSkillWhitelist — Personal Data Hub (Phase 14.1)", () => {
     ],
     approvalChannelsForMobile: [
       "personal-data-hub.register-email",
+      "personal-data-hub.activate-email",
       "personal-data-hub.unregister-email",
       "personal-data-hub.register-alipay",
+      "personal-data-hub.activate-alipay",
       "personal-data-hub.unregister-alipay",
       "personal-data-hub.unregister",
     ],
   };
 
-  it("namespace wildcard allows all 24 PDH methods", () => {
+  it("namespace wildcard allows all 26 PDH methods", () => {
     const wl = new MobileSkillWhitelist(PDH_RECOMMENDED_CONFIG);
     const PDH_METHODS = [
       "personal-data-hub.ask",
@@ -177,10 +179,12 @@ describe("MobileSkillWhitelist — Personal Data Hub (Phase 14.1)", () => {
       "personal-data-hub.recent-audit",
       "personal-data-hub.event-detail",
       "personal-data-hub.register-email",
+      "personal-data-hub.activate-email",
       "personal-data-hub.unregister-email",
       "personal-data-hub.test-email-auth",
       "personal-data-hub.list-email-accounts",
       "personal-data-hub.register-alipay",
+      "personal-data-hub.activate-alipay",
       "personal-data-hub.unregister-alipay",
       "personal-data-hub.import-alipay-bill",
       "personal-data-hub.list-alipay-accounts",
@@ -191,15 +195,17 @@ describe("MobileSkillWhitelist — Personal Data Hub (Phase 14.1)", () => {
     for (const method of PDH_METHODS) {
       expect(wl.isAllowed(method)).toBe(true);
     }
-    expect(PDH_METHODS).toHaveLength(24);
+    expect(PDH_METHODS).toHaveLength(26);
   });
 
-  it("5 Privileged PDH methods require approval", () => {
+  it("7 Privileged PDH methods require approval", () => {
     const wl = new MobileSkillWhitelist(PDH_RECOMMENDED_CONFIG);
     const PRIVILEGED = [
       "personal-data-hub.register-email",
+      "personal-data-hub.activate-email",
       "personal-data-hub.unregister-email",
       "personal-data-hub.register-alipay",
+      "personal-data-hub.activate-alipay",
       "personal-data-hub.unregister-alipay",
       "personal-data-hub.unregister",
     ];
@@ -271,14 +277,17 @@ describe("MobileSkillWhitelist — Personal Data Hub (Phase 14.1)", () => {
     // post-release security review.
     const required = [
       "personal-data-hub.register-email",
+      "personal-data-hub.activate-email",
       "personal-data-hub.unregister-email",
       "personal-data-hub.register-alipay",
+      "personal-data-hub.activate-alipay",
       "personal-data-hub.unregister-alipay",
       "personal-data-hub.unregister",
       "personal-data-hub.destroy",
       "personal-data-hub.aichat-register-vendor",
       "personal-data-hub.unregister-aichat",
       "personal-data-hub.register-wechat",
+      "personal-data-hub.activate-wechat",
       "personal-data-hub.unregister-wechat",
     ];
     for (const method of required) {
@@ -298,14 +307,17 @@ describe("MobileSkillWhitelist — Personal Data Hub (Phase 14.1)", () => {
     const wl = new MobileSkillWhitelist(defaults.mobileBridge);
     for (const method of [
       "personal-data-hub.register-email",
+      "personal-data-hub.activate-email",
       "personal-data-hub.unregister-email",
       "personal-data-hub.register-alipay",
+      "personal-data-hub.activate-alipay",
       "personal-data-hub.unregister-alipay",
       "personal-data-hub.unregister",
       "personal-data-hub.destroy",
       "personal-data-hub.aichat-register-vendor",
       "personal-data-hub.unregister-aichat",
       "personal-data-hub.register-wechat",
+      "personal-data-hub.activate-wechat",
       "personal-data-hub.unregister-wechat",
     ]) {
       expect(wl.isAllowed(method)).toBe(true);

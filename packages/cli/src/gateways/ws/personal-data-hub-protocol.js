@@ -23,6 +23,7 @@ import {
 } from "../../lib/personal-data-hub-wiring.js";
 import { importPdh } from "../../lib/pdh-load-error.js";
 import { getAIChatWizard } from "../../lib/personal-data-hub-aichat-wizard.js";
+import { runDedicatedBatchCollectors } from "../../lib/pdh-dedicated-batch-collectors.js";
 import {
   existsSync,
   unlinkSync,
@@ -224,7 +225,10 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
     }),
 
   "personal-data-hub.sync-all": async (msg) =>
-    withHub(async (hub) => await hub.registry.syncAll(msg.options || {})),
+    withHub(async (hub) => {
+      const reports = await hub.registry.syncAll(msg.options || {});
+      return await runDedicatedBatchCollectors(hub, reports);
+    }),
 
   "personal-data-hub.register-mock": async (msg) =>
     withHub((hub) => {
@@ -361,6 +365,9 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
         }),
     ),
 
+  "personal-data-hub.activate-email": async (msg) =>
+    withHub(async (hub) => await hub.activateEmailAdapter(msg.email)),
+
   "personal-data-hub.unregister-email": async (msg) =>
     withHub(async (hub) => await hub.unregisterEmailAdapter(msg.email)),
 
@@ -380,6 +387,9 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
           opts: msg.opts || {},
         }),
     ),
+
+  "personal-data-hub.activate-alipay": async (msg) =>
+    withHub(async (hub) => await hub.activateAlipayAdapter(msg.email)),
 
   "personal-data-hub.unregister-alipay": async (msg) =>
     withHub(async (hub) => await hub.unregisterAlipayAdapter(msg.email)),
@@ -409,6 +419,15 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
           account: msg.account,
           dbPath: msg.dbPath,
           wechatDataPath: msg.wechatDataPath,
+          fridaOpts: msg.fridaOpts,
+          keyProviderOverride: msg.keyProviderOverride,
+        }),
+    ),
+
+  "personal-data-hub.activate-wechat": async (msg) =>
+    withHub(
+      async (hub) =>
+        await hub.activateWechatAdapter(msg.uin, {
           fridaOpts: msg.fridaOpts,
           keyProviderOverride: msg.keyProviderOverride,
         }),
@@ -658,7 +677,8 @@ export const PERSONAL_DATA_HUB_STREAMING_HANDLERS = {
       }
     };
     try {
-      const reports = await hub.registry.syncAll(msg.options || {});
+      const registryReports = await hub.registry.syncAll(msg.options || {});
+      const reports = await runDedicatedBatchCollectors(hub, registryReports);
       return { result: reports };
     } finally {
       hub.registry.onSyncEvent = original;

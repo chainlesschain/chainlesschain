@@ -246,6 +246,13 @@ private struct HubAdaptersView: View {
                         .foregroundColor(.red)
                 }
             }
+            if let notice = vm.noticeMessage {
+                Section {
+                    Text(notice)
+                        .font(.footnote)
+                        .foregroundColor(.orange)
+                }
+            }
             Section("已注册 Adapter (\(vm.adapters.count))") {
                 if vm.isLoading {
                     HStack {
@@ -261,6 +268,7 @@ private struct HubAdaptersView: View {
                             ? progressTextFor(event: vm.progress[adapter.name])
                             : nil,
                         lastIngested: vm.completedReports[adapter.name]?.ingested,
+                        lastPartial: vm.completedReports[adapter.name]?.isPartial == true,
                         onSync: { Task { await vm.syncStream(name: adapter.name) } }
                     )
                 }
@@ -275,6 +283,7 @@ private struct AdapterRow: View {
     let isSyncing: Bool
     let progressText: String?
     let lastIngested: Int?
+    let lastPartial: Bool
     let onSync: () -> Void
 
     var body: some View {
@@ -302,9 +311,11 @@ private struct AdapterRow: View {
                         .foregroundColor(.accentColor)
                         .padding(.top, 2)
                 } else if !isSyncing, let ingested = lastIngested {
-                    Text("上次 +\(ingested) 事件")
+                    Text(lastPartial
+                        ? "上次 +\(ingested) 事件 · 分页待续"
+                        : "上次 +\(ingested) 事件")
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(lastPartial ? .orange : .secondary)
                         .padding(.top, 2)
                 }
             }
@@ -343,6 +354,19 @@ internal func progressTextFor(event: HubSyncEvent?) -> String {
     case "normalizing":
         let built = ev.detail?["eventsBuilt"] ?? ev.detail?.values.first
         return "归一化中" + (built.map { " · \($0) 事件" } ?? "")
+    case "sync.retry":
+        let attempt = ev.nextAttempt.map { String($0) } ?? "?"
+        let delay = ev.delayMs.map { " · \($0)ms 后" } ?? ""
+        return "网络波动，准备第 \(attempt) 次尝试\(delay)"
+    case "sync.request_throttled":
+        let operation = ev.operation.map { " (\($0))" } ?? ""
+        let page = ev.page.map { " · 第 \($0) 页" } ?? ""
+        let delay = ev.delayMs.map { " · 等待 \($0)ms" } ?? ""
+        return "来源请求节流\(operation)\(page)\(delay)"
+    case "sync.rate_limited":
+        let reason = ev.reason.map { " (\($0))" } ?? ""
+        let delay = ev.retryAfterMs.map { " · \($0)ms 后可重试" } ?? ""
+        return "来源限流\(reason)\(delay)"
     default:
         return "同步中…(\(ev.kind))"
     }

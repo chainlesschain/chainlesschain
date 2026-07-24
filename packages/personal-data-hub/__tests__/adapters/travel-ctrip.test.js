@@ -162,9 +162,9 @@ describe("CtripAdapter", () => {
         currency: "CNY",
         direction: "out",
       });
-      expect(
-        batch.persons.find((x) => x.subtype === "merchant").names,
-      ).toEqual(["国航"]);
+      expect(batch.persons.find((x) => x.subtype === "merchant").names).toEqual(
+        ["国航"],
+      );
     } finally {
       fs.unlinkSync(p);
     }
@@ -243,8 +243,12 @@ describe("orderToRecord web-API aliases (cookie-api mode)", () => {
 describe("extractOrders", () => {
   it("pulls the list from common Ctrip response shapes", () => {
     expect(extractOrders({ orders: [{ orderId: "A" }] })).toHaveLength(1);
-    expect(extractOrders({ data: { orderList: [{ orderId: "B" }] } })).toHaveLength(1);
-    expect(extractOrders({ result: { list: [{ orderId: "C" }] } })).toHaveLength(1);
+    expect(
+      extractOrders({ data: { orderList: [{ orderId: "B" }] } }),
+    ).toHaveLength(1);
+    expect(
+      extractOrders({ result: { list: [{ orderId: "C" }] } }),
+    ).toHaveLength(1);
     expect(extractOrders({})).toEqual([]);
     expect(extractOrders(null)).toEqual([]);
   });
@@ -295,11 +299,20 @@ describe("CtripAdapter cookie-api mode", () => {
       fetchFn,
       // no signProvider → sign should be null (best-effort unsigned)
     });
-    const items = await collect(a.sync({ sinceWatermark: 0 }));
+    let watermarkComplete = false;
+    const items = await collect(
+      a.sync({
+        sinceWatermark: 0,
+        markWatermarkComplete: () => {
+          watermarkComplete = true;
+        },
+      }),
+    );
     expect(items).toHaveLength(1);
     expect(items[0]).toMatchObject({ adapter: NAME, originalId: "CK1" });
     expect(calls[0].cookies).toBe(COOKIES);
     expect(calls[0].sign).toBe(null);
+    expect(watermarkComplete).toBe(true);
     const batch = a.normalize(items[0]);
     expect(batch.events[0].content.title).toBe("flight: 上海 → 北京");
     expect(batch.events[0].content.amount).toMatchObject({ value: 1200 });
@@ -307,13 +320,19 @@ describe("CtripAdapter cookie-api mode", () => {
 
   it("invokes signProvider when configured", async () => {
     const fetchFn = async ({ query }) =>
-      query.pageIndex === 1 ? { orders: [{ orderId: "S1", type: "hotel" }] } : { orders: [] };
+      query.pageIndex === 1
+        ? { orders: [{ orderId: "S1", type: "hotel" }] }
+        : { orders: [] };
     const signCalls = [];
     const signProvider = async (ctx) => {
       signCalls.push(ctx);
       return "SIGNED-TOKEN";
     };
-    const a = new CtripAdapter({ account: { cookies: COOKIES }, fetchFn, signProvider });
+    const a = new CtripAdapter({
+      account: { cookies: COOKIES },
+      fetchFn,
+      signProvider,
+    });
     const items = await collect(a.sync({ sinceWatermark: 0 }));
     expect(items).toHaveLength(1);
     expect(signCalls).toHaveLength(1);
@@ -328,7 +347,9 @@ describe("CtripAdapter cookie-api mode", () => {
       ],
     });
     const a = new CtripAdapter({ account: { cookies: COOKIES }, fetchFn });
-    const items = await collect(a.sync({ sinceWatermark: 1_500_000_000_000, maxPages: 1 }));
+    const items = await collect(
+      a.sync({ sinceWatermark: 1_500_000_000_000, maxPages: 1 }),
+    );
     expect(items.map((x) => x.originalId)).toEqual(["NEW"]);
   });
 
@@ -340,8 +361,42 @@ describe("CtripAdapter cookie-api mode", () => {
       ],
     });
     const a = new CtripAdapter({ account: { cookies: COOKIES }, fetchFn });
-    const items = await collect(a.sync({ sinceWatermark: 0, limit: 1, maxPages: 1 }));
+    let watermarkComplete = false;
+    const items = await collect(
+      a.sync({
+        sinceWatermark: 0,
+        limit: 1,
+        maxPages: 1,
+        markWatermarkComplete: () => {
+          watermarkComplete = true;
+        },
+      }),
+    );
     expect(items).toHaveLength(1);
+    expect(watermarkComplete).toBe(false);
+  });
+
+  it("does not complete the watermark when maxPages truncates a full page", async () => {
+    const fetchFn = async () => ({
+      orderList: [
+        { orderId: "P1", type: "flight", orderDate: 2_000_000_000_000 },
+        { orderId: "P2", type: "flight", orderDate: 1_900_000_000_000 },
+      ],
+    });
+    const a = new CtripAdapter({ account: { cookies: COOKIES }, fetchFn });
+    let watermarkComplete = false;
+    const items = await collect(
+      a.sync({
+        sinceWatermark: 0,
+        pageSize: 2,
+        maxPages: 1,
+        markWatermarkComplete: () => {
+          watermarkComplete = true;
+        },
+      }),
+    );
+    expect(items).toHaveLength(2);
+    expect(watermarkComplete).toBe(false);
   });
 
   it("empty/login-redirect response yields zero (no crash)", async () => {

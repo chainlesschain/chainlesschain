@@ -182,7 +182,7 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   脚本名保持独立 argv，并统一保留 10 秒超时、stderr 捕获和无 shell 执行语义。
 - REPL `!` 命令的 Windows `cmd.exe` 与 POSIX `/bin/sh` 执行已进入 `repl:bang-command`
   Broker origin；显式 shell 文本继续作为单一 argv 传递，并保留输出上限、超时和上下文回填语义。
-- Slash command 模板中的 `!`cmd`` 展开已进入 `slash-command:bang` Broker origin；
+- Slash command 模板中的 `!`cmd``展开已进入`slash-command:bang` Broker origin；
   保留显式 shell 与失败降级为提示文本的兼容语义，同时获得危险命令、凭据和审计边界。
 - Orchestrator 的配置化 CI gate 已进入 `orchestrator:ci` Broker origin；保留显式 shell、
   180 秒超时、64 MiB 输出上限及失败重试/重派发语义。
@@ -250,6 +250,8 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   保留自定义 shell 命令、输出解析、LRU 与进程生命周期语义，并提供无真实进程的测试注入点。
 - Desktop PythonBridge 的 Python 版本探测与工具脚本启动已分别进入
   `desktop:python-bridge-probe` / `desktop:python-bridge-tool`，均使用无 shell 字面 argv 并支持测试注入。
+- Desktop FineTuningManager 的 llama.cpp 训练进程已进入 `desktop:fine-tuning-llama-cpp` Broker origin；
+  训练参数保持独立 argv，取消/进度/结果生命周期不变，并由现有 manager 测试直接注入执行器验证。
 - REPL `/goal exit-zero` 的命令检查已进入 `repl-goal:exit-zero` Broker origin；保留用户条件所需的
   显式 shell 语义，并增加 30 秒执行上限。
 - Headless `--goal-condition exit-zero` 的默认命令检查已进入 `headless-goal:exit-zero` Broker origin；
@@ -429,7 +431,7 @@ Claude Code 当前官方 Hook 面已包括更完整的生命周期，并支持 `
 - Monitor 已有确定性 event id、authority envelope 和去重原语，但注释仍指向“future resident daemon”。
 - [`mcp-client.js`](../packages/cli/src/harness/mcp-client.js#L1054) 已处理 tools/resources
   `list_changed`；Elicitation transport、REPL/Headless/SDK 核心链路及 Desktop
-  原生 schema UI 已接入，CLI validator 已补齐 dependent/pattern/contains/propertyNames 等常用 vocabulary；VS Code/JetBrains 已支持 MCP object schema 的常用字段表单，完整 meta-vocabulary 仍待补。
+  原生 schema UI 已接入，CLI validator 已补齐 dependent/pattern/contains/propertyNames 等常用 vocabulary。Desktop/VS Code 已复用共享 core，JetBrains 通过同一 fixture 对拍，覆盖 MCP form elicitation 规定的受限 flat vocabulary 与提交前校验；这不等于完整 JSON Schema meta-vocabulary。
 
 2026-07-22 另补齐 Agenda 的持久执行 lease 和常驻入口：`AgentScheduleStore.claimDue()`
 通过跨进程锁标记 due 条目，完成/失败时释放，进程异常后由过期 lease 回收，避免两个
@@ -440,7 +442,11 @@ daemon loop 持续轮询。`EventRuntimeStore` 与可停止的 `EventRuntimeWork
 handler，或通过 `elicitation-request` 事件交给宿主；支持 `accept/decline/cancel` 规范化、
 超时取消和无宿主时 fail-closed decline。启用 `CC_INTERACTIVE_QUESTIONS=1` 的
 stream/headless 路径会复用现有结构化问题通道。WS question channel、REPL、Desktop 原生表单以及 SDK
-schema fixture 已接入；VS Code/JetBrains 已补 MCP object schema 的 enum、required、默认值、boolean/number/password 字段表单；完整 schema vocabulary 仍待补，因此 P1-5 仍为部分完成。
+schema fixture 已接入；Desktop/VS Code/JetBrains 已补齐 MCP 受限 form vocabulary：
+字符串长度和四种标准格式、数值上下界、`enum`/`enumNames`/带标题 `oneOf`、多选
+`items.enum`/`items.anyOf` 与 item 数约束，并在提交前使用同一 conformance contract
+校验。URL-mode/defer 尚未接入；嵌套 schema、`$ref`（含远程解析）和完整 Draft 2020-12
+不属于该 form-mode 完成口径，因此 P1-5 仍保留为部分完成。
 
 ### 7.2 建议
 

@@ -22,7 +22,11 @@
 "use strict";
 
 const fs = require("node:fs");
-const { normalizeTravelRecord, parseChineseDateTime } = require("../travel-base");
+const { createAccountScopeFromAccount } = require("../../account-scope");
+const {
+  normalizeTravelRecord,
+  parseChineseDateTime,
+} = require("../travel-base");
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "travel-didi";
@@ -49,13 +53,17 @@ function rideProductLabel(o) {
 class DidiAdapter {
   constructor(opts = {}) {
     this.account = opts.account || null;
+    this.defaultScope = createAccountScopeFromAccount(NAME, this.account, [
+      "email",
+    ]);
     this._dataPath = opts.dataPath || null;
 
     this._cookieAuth =
       opts.account && opts.account.cookies
         ? new CookieAuth({ platform: "didi", cookies: opts.account.cookies })
         : null;
-    this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+    this._fetchFn =
+      typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
     this._signProvider =
       typeof opts.signProvider === "function" ? opts.signProvider : null;
     this._ordersUrl =
@@ -64,6 +72,8 @@ class DidiAdapter {
         : DIDI_ORDERS_URL;
 
     this.name = NAME;
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
     this.version = VERSION;
     this.capabilities = [
       "import:json",
@@ -100,14 +110,23 @@ class DidiAdapter {
     }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
-      if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
+      if (!ok)
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          error: "cookies missing",
+        };
       return {
         ok: true,
         account: (this.account && this.account.email) || null,
         mode: "cookie",
       };
     }
-    return { ok: true, account: this.account ? this.account.email : null, mode: "ready" };
+    return {
+      ok: true,
+      account: this.account ? this.account.email : null,
+      mode: "ready",
+    };
   }
 
   async healthCheck() {
@@ -153,20 +172,35 @@ class DidiAdapter {
       opts.sinceWatermark != null
         ? parseInt(String(opts.sinceWatermark), 10) || 0
         : Date.now() - 365 * 24 * 3600_000;
-    const pageSize = Number.isFinite(opts.pageSize) ? opts.pageSize : DEFAULT_PAGE_SIZE;
+    const pageSize = Number.isFinite(opts.pageSize)
+      ? opts.pageSize
+      : DEFAULT_PAGE_SIZE;
     const maxPages =
-      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : DEFAULT_MAX_PAGES;
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : DEFAULT_MAX_PAGES;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
 
     let emitted = 0;
     let pageIndex = 1;
+    let scanComplete = false;
     while (pageIndex <= maxPages) {
       const query = { pageIndex, pageSize, ts: Date.now() };
       let sign = null;
       if (this._signProvider) {
-        sign = await this._signProvider({ url: this._ordersUrl, query, cookies });
+        sign = await this._signProvider({
+          url: this._ordersUrl,
+          query,
+          cookies,
+        });
       }
-      const resp = await this._fetchFn({ url: this._ordersUrl, cookies, query, sign });
+      const resp = await this._fetchFn({
+        url: this._ordersUrl,
+        cookies,
+        query,
+        sign,
+      });
       const rides = extractOrders(resp);
       if (!rides.length) break;
 
@@ -190,8 +224,15 @@ class DidiAdapter {
         };
         emitted += 1;
       }
-      if (reachedWatermark || !pageHasNew || rides.length < pageSize) break;
+      if (reachedWatermark || rides.length < pageSize) {
+        scanComplete = true;
+        break;
+      }
+      if (!pageHasNew) break;
       pageIndex += 1;
+    }
+    if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+      opts.markWatermarkComplete();
     }
   }
 
@@ -242,8 +283,14 @@ function orderToRecord(o, opts = {}) {
     o.total_price,
   ]);
 
-  const fromAddr = o.fromAddress || o.from_address || o.startName || o.startAddress || o.fromName;
-  const toAddr = o.toAddress || o.to_address || o.endName || o.endAddress || o.toName;
+  const fromAddr =
+    o.fromAddress ||
+    o.from_address ||
+    o.startName ||
+    o.startAddress ||
+    o.fromName;
+  const toAddr =
+    o.toAddress || o.to_address || o.endName || o.endAddress || o.toName;
 
   return {
     vendorId: "didi",
@@ -252,15 +299,27 @@ function orderToRecord(o, opts = {}) {
     from: fromAddr ? { name: fromAddr } : null,
     to: toAddr ? { name: toAddr } : null,
     departureMs: numberOrParse(
-      o.departTime || o.depart_time || o.boardTime || o.startTime || o.beginChargeTime || o.setupTime,
+      o.departTime ||
+        o.depart_time ||
+        o.boardTime ||
+        o.startTime ||
+        o.beginChargeTime ||
+        o.setupTime,
     ),
-    arrivalMs: numberOrParse(o.arriveTime || o.arrive_time || o.endTime || o.finishTime),
+    arrivalMs: numberOrParse(
+      o.arriveTime || o.arrive_time || o.endTime || o.finishTime,
+    ),
     carrier: "滴滴",
     vehicleNumber: o.carNo || o.plateNo || o.car_plate || null,
-    totalCost: fareRaw != null ? { value: parseFareYuan(fareRaw), currency: "CNY" } : null,
+    totalCost:
+      fareRaw != null
+        ? { value: parseFareYuan(fareRaw), currency: "CNY" }
+        : null,
     traveler: o.passengerName || o.passenger || o.riderName || o.userName,
     confirmationCode: null,
-    bookedAt: numberOrParse(o.createTime || o.create_time || o.orderTime || o.bookedAt),
+    bookedAt: numberOrParse(
+      o.createTime || o.create_time || o.orderTime || o.bookedAt,
+    ),
     extras: {
       type: "car",
       ...(product ? { productType: product } : {}),

@@ -876,6 +876,22 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
           type: "number",
           description: "Max wait for user reply in ms (default: 60000)",
         },
+        defaultValue: {
+          description:
+            "Fallback answer used only when onTimeout/onReject is useDefault",
+        },
+        onTimeout: {
+          type: "string",
+          enum: ["error", "useDefault", "skip"],
+          description:
+            "Timeout policy: error (default), useDefault, or skip with a null answer",
+        },
+        onReject: {
+          type: "string",
+          enum: ["error", "useDefault", "skip"],
+          description:
+            "User-rejection policy: error (default), useDefault, or skip with a null answer",
+        },
       },
       required: ["question"],
     },

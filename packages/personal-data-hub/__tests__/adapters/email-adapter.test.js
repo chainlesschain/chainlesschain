@@ -6,6 +6,8 @@ const {
   EmailAdapter,
   parseWatermark,
   formatWatermark,
+  parseMailboxWatermarks,
+  formatMailboxWatermarks,
 } = require("../../lib/adapters/email-imap/email-adapter");
 const { assertAdapter } = require("../../lib/adapter-spec");
 const { validateBatch } = require("../../lib/batch");
@@ -42,7 +44,11 @@ function makeMockSession(spec = {}) {
         };
       },
       async *fetchEnvelopesSince(sinceUid = 0) {
-        recorder.fetchRanges.push({ mailbox: openMb && openMb.name, sinceUid, mode: "envelope" });
+        recorder.fetchRanges.push({
+          mailbox: openMb && openMb.name,
+          sinceUid,
+          mode: "envelope",
+        });
         if (!openMb) return;
         for (const env of openMb.envelopes || []) {
           if (env.uid > sinceUid) yield env;
@@ -53,7 +59,11 @@ function makeMockSession(spec = {}) {
       // adapter parses it via its injected parser (or skips parsing
       // when source is empty).
       async *fetchFullSince(sinceUid = 0) {
-        recorder.fetchRanges.push({ mailbox: openMb && openMb.name, sinceUid, mode: "full" });
+        recorder.fetchRanges.push({
+          mailbox: openMb && openMb.name,
+          sinceUid,
+          mode: "full",
+        });
         if (!openMb) return;
         for (const env of openMb.envelopes || []) {
           if (env.uid > sinceUid) {
@@ -71,7 +81,9 @@ function makeMockSession(spec = {}) {
 
 const env = (uid, overrides = {}) => ({
   uid,
-  internalDate: new Date(`2026-04-${String(uid % 30).padStart(2, "0")}T10:00:00Z`),
+  internalDate: new Date(
+    `2026-04-${String(uid % 30).padStart(2, "0")}T10:00:00Z`,
+  ),
   flags: ["\\Seen"],
   messageId: `<msg-${uid}@example.com>`,
   subject: `Subject ${uid}`,
@@ -100,7 +112,7 @@ describe("EmailAdapter contract", () => {
       sessionFactory: makeMockSession({}).factory,
     });
     expect(a.name).toBe("email-imap");
-    expect(a.version).toBe("0.7.0"); // Phase 5.8 — snapshot mode for Android in-APK IMAP fetch
+    expect(a.version).toBe("0.8.0"); // runtime snapshot input reaches health gate
     expect(a.capabilities).toContain("sync:imap");
     expect(a.capabilities).toContain("auth:authcode");
     expect(a.capabilities).toContain("parse:mime-body");
@@ -112,8 +124,12 @@ describe("EmailAdapter contract", () => {
     expect(() => new EmailAdapter()).toThrow();
     expect(() => new EmailAdapter({})).toThrow(/account/);
     expect(() => new EmailAdapter({ account: {} })).toThrow(/email/);
-    expect(() => new EmailAdapter({ account: { email: "noatsign" } })).toThrow(/email/);
-    expect(() => new EmailAdapter({ account: { email: "u@x.com" } })).toThrow(/authCode/);
+    expect(() => new EmailAdapter({ account: { email: "noatsign" } })).toThrow(
+      /email/,
+    );
+    expect(() => new EmailAdapter({ account: { email: "u@x.com" } })).toThrow(
+      /authCode/,
+    );
   });
 });
 
@@ -133,7 +149,9 @@ describe("EmailAdapter.authenticate", () => {
   });
 
   it("returns ok:false reason=AUTH_FAILED on credential error", async () => {
-    const { ImapAuthFailedError } = require("../../lib/adapters/email-imap/imap-session");
+    const {
+      ImapAuthFailedError,
+    } = require("../../lib/adapters/email-imap/imap-session");
     const { factory } = makeMockSession({
       connectThrows: new ImapAuthFailedError("bad pass"),
     });
@@ -147,7 +165,9 @@ describe("EmailAdapter.authenticate", () => {
   });
 
   it("returns ok:false reason=CONNECTION_FAILED on network error", async () => {
-    const { ImapConnectionFailedError } = require("../../lib/adapters/email-imap/imap-session");
+    const {
+      ImapConnectionFailedError,
+    } = require("../../lib/adapters/email-imap/imap-session");
     const { factory } = makeMockSession({
       connectThrows: new ImapConnectionFailedError("ECONNREFUSED"),
     });
@@ -212,7 +232,12 @@ describe("EmailAdapter.sync", () => {
       mailboxes: { INBOX: { uidValidity: 1, envelopes: [env(1)] } },
     });
     const a = new EmailAdapter({
-      account: { provider: "qq", email: "u@qq.com", authCode: "x", folders: ["INBOX"] },
+      account: {
+        provider: "qq",
+        email: "u@qq.com",
+        authCode: "x",
+        folders: ["INBOX"],
+      },
       sessionFactory: factory,
     });
     const raws = [];
@@ -227,7 +252,12 @@ describe("EmailAdapter.sync", () => {
       },
     });
     const a = new EmailAdapter({
-      account: { provider: "qq", email: "u@qq.com", authCode: "x", folders: ["INBOX"] },
+      account: {
+        provider: "qq",
+        email: "u@qq.com",
+        authCode: "x",
+        folders: ["INBOX"],
+      },
       sessionFactory: factory,
     });
     const raws = [];
@@ -244,7 +274,12 @@ describe("EmailAdapter.sync", () => {
       },
     });
     const a = new EmailAdapter({
-      account: { provider: "qq", email: "u@qq.com", authCode: "x", folders: ["INBOX"] },
+      account: {
+        provider: "qq",
+        email: "u@qq.com",
+        authCode: "x",
+        folders: ["INBOX"],
+      },
       sessionFactory: factory,
     });
     const raws = [];
@@ -259,7 +294,12 @@ describe("EmailAdapter.sync", () => {
       },
     });
     const a = new EmailAdapter({
-      account: { provider: "qq", email: "u@qq.com", authCode: "x", folders: ["INBOX"] },
+      account: {
+        provider: "qq",
+        email: "u@qq.com",
+        authCode: "x",
+        folders: ["INBOX"],
+      },
       sessionFactory: factory,
     });
     const raws = [];
@@ -268,13 +308,113 @@ describe("EmailAdapter.sync", () => {
     expect(raws.map((r) => r.payload.uid).sort()).toEqual([1, 2]);
   });
 
+  it("advances and resumes independent UID cursors for every mailbox", async () => {
+    const firstSession = makeMockSession({
+      mailboxes: {
+        INBOX: { uidValidity: 1, envelopes: [env(1), env(2)] },
+        Sent: { uidValidity: 7, envelopes: [env(10), env(11)] },
+      },
+    });
+    const first = new EmailAdapter({
+      account: {
+        provider: "qq",
+        email: "u@qq.com",
+        authCode: "x",
+        folders: ["INBOX", "Sent"],
+      },
+      sessionFactory: firstSession.factory,
+    });
+    let cursor;
+    const firstRaws = [];
+    for await (const raw of first.sync({
+      updateWatermark: (value) => {
+        cursor = value;
+      },
+    })) {
+      firstRaws.push(raw);
+    }
+
+    expect(firstRaws).toHaveLength(4);
+    expect(parseMailboxWatermarks(cursor).mailboxes).toEqual({
+      INBOX: { uidValidity: "1", lastUid: 2 },
+      Sent: { uidValidity: "7", lastUid: 11 },
+    });
+
+    const secondSession = makeMockSession({
+      mailboxes: {
+        INBOX: {
+          uidValidity: 1,
+          envelopes: [env(1), env(2), env(3)],
+        },
+        Sent: {
+          uidValidity: 7,
+          envelopes: [env(10), env(11), env(12)],
+        },
+      },
+    });
+    const second = new EmailAdapter({
+      account: {
+        provider: "qq",
+        email: "u@qq.com",
+        authCode: "x",
+        folders: ["INBOX", "Sent"],
+      },
+      sessionFactory: secondSession.factory,
+    });
+    const secondRaws = [];
+    for await (const raw of second.sync({ sinceWatermark: cursor })) {
+      secondRaws.push(raw);
+    }
+
+    expect(
+      secondSession.recorder.fetchRanges.map(({ mailbox, sinceUid }) => ({
+        mailbox,
+        sinceUid,
+      })),
+    ).toEqual([
+      { mailbox: "INBOX", sinceUid: 2 },
+      { mailbox: "Sent", sinceUid: 11 },
+    ]);
+    expect(secondRaws.map((raw) => raw.payload.uid)).toEqual([3, 12]);
+  });
+
+  it("migrates an ambiguous legacy cursor with a safe multi-mailbox re-scan", async () => {
+    const { factory, recorder } = makeMockSession({
+      mailboxes: {
+        INBOX: { uidValidity: 1, envelopes: [env(1)] },
+        Sent: { uidValidity: 1, envelopes: [env(2)] },
+      },
+    });
+    const adapter = new EmailAdapter({
+      account: {
+        provider: "qq",
+        email: "u@qq.com",
+        authCode: "x",
+        folders: ["INBOX", "Sent"],
+      },
+      sessionFactory: factory,
+    });
+    const raws = [];
+    for await (const raw of adapter.sync({ sinceWatermark: "1:100" })) {
+      raws.push(raw);
+    }
+
+    expect(recorder.fetchRanges.map((entry) => entry.sinceUid)).toEqual([0, 0]);
+    expect(raws).toHaveLength(2);
+  });
+
   it("respects maxPerFolder cap", async () => {
     const big = Array.from({ length: 50 }, (_, i) => env(i + 1));
     const { factory } = makeMockSession({
       mailboxes: { INBOX: { uidValidity: 1, envelopes: big } },
     });
     const a = new EmailAdapter({
-      account: { provider: "qq", email: "u@qq.com", authCode: "x", folders: ["INBOX"] },
+      account: {
+        provider: "qq",
+        email: "u@qq.com",
+        authCode: "x",
+        folders: ["INBOX"],
+      },
       sessionFactory: factory,
     });
     const raws = [];
@@ -299,7 +439,12 @@ describe("EmailAdapter.sync", () => {
     };
     const factory = () => exploding;
     const a = new EmailAdapter({
-      account: { provider: "qq", email: "u@qq.com", authCode: "x", folders: ["INBOX"] },
+      account: {
+        provider: "qq",
+        email: "u@qq.com",
+        authCode: "x",
+        folders: ["INBOX"],
+      },
       sessionFactory: factory,
     });
     const raws = [];
@@ -372,12 +517,23 @@ describe("EmailAdapter.normalize", () => {
       account: { provider: "qq", email: "u@qq.com", authCode: "x" },
       sessionFactory: makeMockSession({}).factory,
     });
-    const senderEnv = (uid) => env(uid, {
-      from: [{ name: "Bob", address: "bob@example.com" }],
-      messageId: `<m-${uid}@x>`,
+    const senderEnv = (uid) =>
+      env(uid, {
+        from: [{ name: "Bob", address: "bob@example.com" }],
+        messageId: `<m-${uid}@x>`,
+      });
+    const b1 = a.normalize({
+      adapter: "email-imap",
+      originalId: "<m-1@x>",
+      capturedAt: 0,
+      payload: { ...senderEnv(1), folder: "INBOX" },
     });
-    const b1 = a.normalize({ adapter: "email-imap", originalId: "<m-1@x>", capturedAt: 0, payload: { ...senderEnv(1), folder: "INBOX" } });
-    const b2 = a.normalize({ adapter: "email-imap", originalId: "<m-2@x>", capturedAt: 0, payload: { ...senderEnv(2), folder: "INBOX" } });
+    const b2 = a.normalize({
+      adapter: "email-imap",
+      originalId: "<m-2@x>",
+      capturedAt: 0,
+      payload: { ...senderEnv(2), folder: "INBOX" },
+    });
     expect(b1.persons[0].id).toBe(b2.persons[0].id);
     expect(b1.persons[0].id).toBe("person-email-bob@example.com");
   });
@@ -400,15 +556,22 @@ describe("EmailAdapter — body parsing (Phase 5.2)", () => {
       mailboxes: {
         INBOX: {
           uidValidity: 1,
-          envelopes: [{
-            ...env(1),
-            source: Buffer.from("RAW BYTES", "utf8"),
-          }],
+          envelopes: [
+            {
+              ...env(1),
+              source: Buffer.from("RAW BYTES", "utf8"),
+            },
+          ],
         },
       },
     });
     const a = new EmailAdapter({
-      account: { provider: "qq", email: "u@qq.com", authCode: "x", folders: ["INBOX"] },
+      account: {
+        provider: "qq",
+        email: "u@qq.com",
+        authCode: "x",
+        folders: ["INBOX"],
+      },
       sessionFactory: factory,
       // Inject a fake parser so test doesn't depend on mailparser
       parser: async (raw) => ({
@@ -416,8 +579,15 @@ describe("EmailAdapter — body parsing (Phase 5.2)", () => {
         textBody: "this is the parsed text body",
         htmlBody: "",
         attachments: [
-          { filename: "a.pdf", contentType: "application/pdf", contentDisposition: "attachment",
-            size: 42, sha256: "abc123", isInline: false, isEncrypted: false },
+          {
+            filename: "a.pdf",
+            contentType: "application/pdf",
+            contentDisposition: "attachment",
+            size: 42,
+            sha256: "abc123",
+            isInline: false,
+            isEncrypted: false,
+          },
         ],
         contentSha256: "deadbeef",
         sourceBytes: raw.length,
@@ -429,7 +599,9 @@ describe("EmailAdapter — body parsing (Phase 5.2)", () => {
     for await (const r of a.sync()) raws.push(r);
     expect(raws).toHaveLength(1);
     expect(raws[0].payload.parsedBody).toBeDefined();
-    expect(raws[0].payload.parsedBody.textBody).toBe("this is the parsed text body");
+    expect(raws[0].payload.parsedBody.textBody).toBe(
+      "this is the parsed text body",
+    );
     expect(raws[0].payload.parsedBody.attachments).toHaveLength(1);
     // Source bytes themselves get stripped from the payload to avoid bloat
     expect(raws[0].payload.source).toBeUndefined();
@@ -458,9 +630,13 @@ describe("EmailAdapter — body parsing (Phase 5.2)", () => {
       },
     };
     const batch = a.normalize(raw);
-    expect(batch.events[0].content.text).toBe("Dear user, your account statement is attached.");
+    expect(batch.events[0].content.text).toBe(
+      "Dear user, your account statement is attached.",
+    );
     expect(batch.events[0].extra.rawSha256).toBe("abc");
-    expect(batch.events[0].extra.indicatorHeaders["list-unsubscribe"]).toBe("<mailto:unsub@bank.com>");
+    expect(batch.events[0].extra.indicatorHeaders["list-unsubscribe"]).toBe(
+      "<mailto:unsub@bank.com>",
+    );
   });
 
   it("normalize falls back to envelope prose when parsedBody is absent", () => {
@@ -547,8 +723,15 @@ describe("EmailAdapter — body parsing (Phase 5.2)", () => {
           textBody: "see attached",
           htmlBody: "",
           attachments: [
-            { filename: "stmt.pdf", contentType: "application/pdf", contentDisposition: "attachment",
-              size: 12345, sha256: "abc", isInline: false, isEncrypted: true },
+            {
+              filename: "stmt.pdf",
+              contentType: "application/pdf",
+              contentDisposition: "attachment",
+              size: 12345,
+              sha256: "abc",
+              isInline: false,
+              isEncrypted: true,
+            },
           ],
         },
       },
@@ -564,13 +747,23 @@ describe("EmailAdapter — body parsing (Phase 5.2)", () => {
   it("sync degrades gracefully when parser throws (parseError captured)", async () => {
     const { factory } = makeMockSession({
       mailboxes: {
-        INBOX: { uidValidity: 1, envelopes: [{ ...env(1), source: Buffer.from("garbage", "utf8") }] },
+        INBOX: {
+          uidValidity: 1,
+          envelopes: [{ ...env(1), source: Buffer.from("garbage", "utf8") }],
+        },
       },
     });
     const a = new EmailAdapter({
-      account: { provider: "qq", email: "u@qq.com", authCode: "x", folders: ["INBOX"] },
+      account: {
+        provider: "qq",
+        email: "u@qq.com",
+        authCode: "x",
+        folders: ["INBOX"],
+      },
       sessionFactory: factory,
-      parser: async () => { throw new Error("malformed MIME"); },
+      parser: async () => {
+        throw new Error("malformed MIME");
+      },
     });
     const raws = [];
     for await (const r of a.sync()) raws.push(r);
@@ -602,7 +795,12 @@ describe("EmailAdapter — classification (Phase 5.3)", () => {
       mailboxes: { INBOX: { uidValidity: 1, envelopes: [bankEnv()] } },
     });
     const a = new EmailAdapter({
-      account: { provider: "qq", email: "u@qq.com", authCode: "x", folders: ["INBOX"] },
+      account: {
+        provider: "qq",
+        email: "u@qq.com",
+        authCode: "x",
+        folders: ["INBOX"],
+      },
       sessionFactory: factory,
       parser: async () => ({ textBody: "stmt", attachments: [] }),
     });
@@ -624,7 +822,10 @@ describe("EmailAdapter — classification (Phase 5.3)", () => {
       originalId: "<m@x>",
       capturedAt: 0,
       payload: {
-        ...env(1, { from: [{ address: "x@cmbchina.com" }], subject: "招商银行账单" }),
+        ...env(1, {
+          from: [{ address: "x@cmbchina.com" }],
+          subject: "招商银行账单",
+        }),
         folder: "INBOX",
         classification: {
           category: "bill_bank",
@@ -638,30 +839,42 @@ describe("EmailAdapter — classification (Phase 5.3)", () => {
     expect(batch.events[0].extra.classified).toBe("bill_bank");
     expect(batch.events[0].extra.classification.category).toBe("bill_bank");
     expect(batch.events[0].extra.classification.layer).toBe("L1");
-    expect(batch.events[0].extra.classification.ruleName).toContain("bill_bank");
+    expect(batch.events[0].extra.classification.ruleName).toContain(
+      "bill_bank",
+    );
   });
 
   it("ambiguous email triggers Layer 2 when LLM is provided", async () => {
     const { MockLLMClient } = require("../../lib/llm-client");
     const llm = new MockLLMClient({
-      reply: '{"category":"register","confidence":0.85,"reason":"verification code"}',
+      reply:
+        '{"category":"register","confidence":0.85,"reason":"verification code"}',
     });
     const { factory } = makeMockSession({
       mailboxes: {
         INBOX: {
           uidValidity: 1,
-          envelopes: [env(2, {
-            from: [{ address: "noreply@unknown-service.example" }],
-            subject: "Welcome",
-            source: Buffer.from("RAW", "utf8"),
-          })],
+          envelopes: [
+            env(2, {
+              from: [{ address: "noreply@unknown-service.example" }],
+              subject: "Welcome",
+              source: Buffer.from("RAW", "utf8"),
+            }),
+          ],
         },
       },
     });
     const a = new EmailAdapter({
-      account: { provider: "qq", email: "u@qq.com", authCode: "x", folders: ["INBOX"] },
+      account: {
+        provider: "qq",
+        email: "u@qq.com",
+        authCode: "x",
+        folders: ["INBOX"],
+      },
       sessionFactory: factory,
-      parser: async () => ({ textBody: "Welcome aboard, here is your verification link." }),
+      parser: async () => ({
+        textBody: "Welcome aboard, here is your verification link.",
+      }),
       llm,
     });
     const raws = [];
@@ -677,16 +890,25 @@ describe("EmailAdapter — classification (Phase 5.3)", () => {
       mailboxes: { INBOX: { uidValidity: 1, envelopes: [bankEnv()] } },
     });
     const a = new EmailAdapter({
-      account: { provider: "qq", email: "u@qq.com", authCode: "x", folders: ["INBOX"] },
+      account: {
+        provider: "qq",
+        email: "u@qq.com",
+        authCode: "x",
+        folders: ["INBOX"],
+      },
       sessionFactory: factory,
       parser: async () => ({}),
-      classifier: async () => { throw new Error("classifier exploded"); },
+      classifier: async () => {
+        throw new Error("classifier exploded");
+      },
     });
     const raws = [];
     for await (const r of a.sync()) raws.push(r);
     expect(raws).toHaveLength(1);
     expect(raws[0].payload.classification.category).toBe("other");
-    expect(raws[0].payload.classification.error).toContain("classifier exploded");
+    expect(raws[0].payload.classification.error).toContain(
+      "classifier exploded",
+    );
   });
 
   it("disableClassification skips both layers entirely", async () => {
@@ -694,7 +916,12 @@ describe("EmailAdapter — classification (Phase 5.3)", () => {
       mailboxes: { INBOX: { uidValidity: 1, envelopes: [bankEnv()] } },
     });
     const a = new EmailAdapter({
-      account: { provider: "qq", email: "u@qq.com", authCode: "x", folders: ["INBOX"] },
+      account: {
+        provider: "qq",
+        email: "u@qq.com",
+        authCode: "x",
+        folders: ["INBOX"],
+      },
       sessionFactory: factory,
       parser: async () => ({}),
       disableClassification: true,
@@ -724,13 +951,19 @@ describe("EmailAdapter — classification (Phase 5.3)", () => {
 
 describe("parseWatermark / formatWatermark", () => {
   it("parses well-formed strings", () => {
-    expect(parseWatermark("42:100")).toEqual({ uidValidity: "42", lastUid: 100 });
+    expect(parseWatermark("42:100")).toEqual({
+      uidValidity: "42",
+      lastUid: 100,
+    });
     expect(parseWatermark("abc:0")).toEqual({ uidValidity: "abc", lastUid: 0 });
   });
 
   it("falls back to null/0 for malformed input", () => {
     expect(parseWatermark("")).toEqual({ uidValidity: null, lastUid: 0 });
-    expect(parseWatermark("no-colon")).toEqual({ uidValidity: null, lastUid: 0 });
+    expect(parseWatermark("no-colon")).toEqual({
+      uidValidity: null,
+      lastUid: 0,
+    });
     expect(parseWatermark(null)).toEqual({ uidValidity: null, lastUid: 0 });
   });
 
@@ -738,5 +971,25 @@ describe("parseWatermark / formatWatermark", () => {
     expect(formatWatermark(42, 100)).toBe("42:100");
     expect(formatWatermark("abc", 0)).toBe("abc:0");
     expect(formatWatermark(null, 5)).toBe(":5");
+  });
+
+  it("round-trips deterministic per-mailbox v2 watermarks", () => {
+    const formatted = formatMailboxWatermarks({
+      Sent: { uidValidity: 7, lastUid: 11 },
+      INBOX: { uidValidity: "1", lastUid: 2 },
+    });
+    expect(formatted).toBe(
+      'imap-v2:{"INBOX":{"uidValidity":"1","lastUid":2},"Sent":{"uidValidity":"7","lastUid":11}}',
+    );
+    expect(parseMailboxWatermarks(formatted).mailboxes).toEqual({
+      INBOX: { uidValidity: "1", lastUid: 2 },
+      Sent: { uidValidity: "7", lastUid: 11 },
+    });
+  });
+
+  it("fails malformed v2 watermarks open to a safe full re-scan", () => {
+    const parsed = parseMailboxWatermarks("imap-v2:{broken");
+    expect(parsed.mailboxes).toEqual({});
+    expect(parsed.legacy).toEqual({ uidValidity: null, lastUid: 0 });
   });
 });

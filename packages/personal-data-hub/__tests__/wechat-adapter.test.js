@@ -26,7 +26,11 @@ const { validateBatch } = require("../lib/batch");
 
 describe("parseWeChatContent — type 1 text", () => {
   it("plain text message", () => {
-    const r = parseWeChatContent({ type: 1, content: "你好", talker: "wxid_friend" });
+    const r = parseWeChatContent({
+      type: 1,
+      content: "你好",
+      talker: "wxid_friend",
+    });
     expect(r.kind).toBe("text");
     expect(r.text).toBe("你好");
   });
@@ -44,8 +48,13 @@ describe("parseWeChatContent — type 1 text", () => {
 
 describe("parseWeChatContent — media types", () => {
   it("type 3 image", () => {
-    const xml = '<img cdnbigimgurl="https://x.cn/a" md5="abc123" length="12345" />';
-    const r = parseWeChatContent({ type: 3, content: xml, talker: "wxid_friend" });
+    const xml =
+      '<img cdnbigimgurl="https://x.cn/a" md5="abc123" length="12345" />';
+    const r = parseWeChatContent({
+      type: 3,
+      content: xml,
+      talker: "wxid_friend",
+    });
     expect(r.kind).toBe("image");
     expect(r.text).toBe("[图片]");
     expect(r.structured.cdnUrl).toBe("https://x.cn/a");
@@ -55,14 +64,22 @@ describe("parseWeChatContent — media types", () => {
 
   it("type 34 voice", () => {
     const xml = '<voicemsg voicelength="3000" clientmsgid="voice123" />';
-    const r = parseWeChatContent({ type: 34, content: xml, talker: "wxid_friend" });
+    const r = parseWeChatContent({
+      type: 34,
+      content: xml,
+      talker: "wxid_friend",
+    });
     expect(r.kind).toBe("voice");
     expect(r.structured.voiceLength).toBe(3000);
   });
 
   it("type 48 location", () => {
     const xml = '<location x="31.23" y="121.47" label="上海" poiname="外滩" />';
-    const r = parseWeChatContent({ type: 48, content: xml, talker: "wxid_friend" });
+    const r = parseWeChatContent({
+      type: 48,
+      content: xml,
+      talker: "wxid_friend",
+    });
     expect(r.kind).toBe("location");
     expect(r.structured.x).toBe(31.23);
     expect(r.structured.y).toBe(121.47);
@@ -72,8 +89,13 @@ describe("parseWeChatContent — media types", () => {
 
 describe("parseWeChatContent — type 49 appmsg sub-types", () => {
   it("sub 5 link", () => {
-    const xml = '<msg><appmsg type="5"><title>趣文一篇</title><des>简介</des><url>https://x.cn</url></appmsg></msg>';
-    const r = parseWeChatContent({ type: 49, content: xml, talker: "wxid_friend" });
+    const xml =
+      '<msg><appmsg type="5"><title>趣文一篇</title><des>简介</des><url>https://x.cn</url></appmsg></msg>';
+    const r = parseWeChatContent({
+      type: 49,
+      content: xml,
+      talker: "wxid_friend",
+    });
     expect(r.kind).toBe("link");
     expect(r.structured.title).toBe("趣文一篇");
     expect(r.structured.url).toBe("https://x.cn");
@@ -81,14 +103,23 @@ describe("parseWeChatContent — type 49 appmsg sub-types", () => {
 
   it("sub 21 redpacket", () => {
     const xml = '<msg><appmsg type="21"><title>恭喜发财</title></appmsg></msg>';
-    const r = parseWeChatContent({ type: 49, content: xml, talker: "wxid_friend" });
+    const r = parseWeChatContent({
+      type: 49,
+      content: xml,
+      talker: "wxid_friend",
+    });
     expect(r.kind).toBe("redpacket");
     expect(r.structured.redPacketTitle).toBe("恭喜发财");
   });
 
   it("sub 6 file", () => {
-    const xml = '<msg><appmsg type="6"><title>合同.pdf</title><totallen>523456</totallen></appmsg></msg>';
-    const r = parseWeChatContent({ type: 49, content: xml, talker: "wxid_friend" });
+    const xml =
+      '<msg><appmsg type="6"><title>合同.pdf</title><totallen>523456</totallen></appmsg></msg>';
+    const r = parseWeChatContent({
+      type: 49,
+      content: xml,
+      talker: "wxid_friend",
+    });
     expect(r.kind).toBe("file");
     expect(r.structured.fileName).toBe("合同.pdf");
     expect(r.structured.fileSize).toBe("523456");
@@ -97,13 +128,21 @@ describe("parseWeChatContent — type 49 appmsg sub-types", () => {
 
 describe("parseWeChatContent — system + unknown", () => {
   it("type 10000 system", () => {
-    const r = parseWeChatContent({ type: 10000, content: '<msg>"张三"加入了群聊</msg>', talker: "12345@chatroom" });
+    const r = parseWeChatContent({
+      type: 10000,
+      content: '<msg>"张三"加入了群聊</msg>',
+      talker: "12345@chatroom",
+    });
     expect(r.kind).toBe("system");
     expect(r.text).toContain("加入了群聊");
   });
 
   it("unknown type falls through with kind=type-N", () => {
-    const r = parseWeChatContent({ type: 99999, content: "x", talker: "wxid_f" });
+    const r = parseWeChatContent({
+      type: 99999,
+      content: "x",
+      talker: "wxid_f",
+    });
     expect(r.kind).toBe("type-99999");
   });
 
@@ -119,7 +158,11 @@ describe("deriveWeChatLegacyKey", () => {
   it("matches MD5(IMEI+UIN)[:7]", () => {
     const imei = "123456789012345";
     const uin = "987654321";
-    const expected = crypto.createHash("md5").update(imei + uin, "utf-8").digest("hex").slice(0, 7);
+    const expected = crypto
+      .createHash("md5")
+      .update(imei + uin, "utf-8")
+      .digest("hex")
+      .slice(0, 7);
     expect(deriveWeChatLegacyKey(imei, uin)).toBe(expected);
   });
 
@@ -140,7 +183,9 @@ describe("extractWeChatKey", () => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), "wechat-key-"));
   });
   afterEach(() => {
-    try { fs.rmSync(dir, { recursive: true, force: true }); } catch (_e) {}
+    try {
+      fs.rmSync(dir, { recursive: true, force: true });
+    } catch (_e) {}
   });
 
   function writeAuthXml(uin = "1234567890") {
@@ -214,7 +259,9 @@ describe("isWeChatGroupTalker", () => {
 
 describe("wxidToWeChatPersonId", () => {
   it("stable id format", () => {
-    expect(wxidToWeChatPersonId("wxid_friend")).toBe("person-wechat-wxid_friend");
+    expect(wxidToWeChatPersonId("wxid_friend")).toBe(
+      "person-wechat-wxid_friend",
+    );
   });
   it("null wxid → null", () => {
     expect(wxidToWeChatPersonId(null)).toBeNull();
@@ -226,8 +273,13 @@ describe("wxidToWeChatPersonId", () => {
 describe("normalizeWeChatMessage", () => {
   it("1-on-1 text inbound", () => {
     const row = {
-      msgId: 1, msgSvrId: 100, talker: "wxid_friend",
-      content: "你好", type: 1, createTime: Date.now(), isSend: 0,
+      msgId: 1,
+      msgSvrId: 100,
+      talker: "wxid_friend",
+      content: "你好",
+      type: 1,
+      createTime: Date.now(),
+      isSend: 0,
     };
     const b = normalizeWeChatMessage(row, { accountUin: "self123" });
     expect(b.events).toHaveLength(1);
@@ -242,8 +294,12 @@ describe("normalizeWeChatMessage", () => {
 
   it("1-on-1 text outbound — self is the stable canonical id, NOT keyed off accountUin", () => {
     const row = {
-      msgSvrId: 101, talker: "wxid_friend",
-      content: "你好", type: 1, createTime: Date.now(), isSend: 1,
+      msgSvrId: 101,
+      talker: "wxid_friend",
+      content: "你好",
+      type: 1,
+      createTime: Date.now(),
+      isSend: 1,
     };
     // accountUin varies per collection run (uin / wxid / md5); keying self off
     // it fragmented "self" into several fake top contacts. Self must be stable.
@@ -255,8 +311,12 @@ describe("normalizeWeChatMessage", () => {
 
   it("group message produces Topic + isGroup extra", () => {
     const row = {
-      msgSvrId: 102, talker: "1234@chatroom",
-      content: "wxid_friend:\n大家好", type: 1, createTime: Date.now(), isSend: 0,
+      msgSvrId: 102,
+      talker: "1234@chatroom",
+      content: "wxid_friend:\n大家好",
+      type: 1,
+      createTime: Date.now(),
+      isSend: 0,
     };
     const b = normalizeWeChatMessage(row, {
       accountUin: "self123",
@@ -272,9 +332,12 @@ describe("normalizeWeChatMessage", () => {
 
   it("media types map to media subtype", () => {
     const row = {
-      msgSvrId: 103, talker: "wxid_friend",
+      msgSvrId: 103,
+      talker: "wxid_friend",
       content: '<img cdnbigimgurl="https://x.cn/i" md5="x" />',
-      type: 3, createTime: Date.now(), isSend: 0,
+      type: 3,
+      createTime: Date.now(),
+      isSend: 0,
     };
     const b = normalizeWeChatMessage(row, { accountUin: "self123" });
     expect(b.events[0].subtype).toBe("media");
@@ -282,9 +345,12 @@ describe("normalizeWeChatMessage", () => {
 
   it("redpacket appmsg maps to redenvelope", () => {
     const row = {
-      msgSvrId: 104, talker: "wxid_friend",
+      msgSvrId: 104,
+      talker: "wxid_friend",
       content: '<msg><appmsg type="21"><title>红包</title></appmsg></msg>',
-      type: 49, createTime: Date.now(), isSend: 0,
+      type: 49,
+      createTime: Date.now(),
+      isSend: 0,
     };
     const b = normalizeWeChatMessage(row, { accountUin: "self123" });
     expect(b.events[0].subtype).toBe("redenvelope");
@@ -292,9 +358,12 @@ describe("normalizeWeChatMessage", () => {
 
   it("system messages map to interaction subtype", () => {
     const row = {
-      msgSvrId: 105, talker: "1234@chatroom",
+      msgSvrId: 105,
+      talker: "1234@chatroom",
       content: '"张三"加入了群聊',
-      type: 10000, createTime: Date.now(), isSend: 0,
+      type: 10000,
+      createTime: Date.now(),
+      isSend: 0,
     };
     const b = normalizeWeChatMessage(row, { accountUin: "self123" });
     expect(b.events[0].subtype).toBe("interaction");
@@ -412,19 +481,82 @@ describe("WechatAdapter contract", () => {
 });
 
 describe("WechatAdapter.sync with mocked DB reader", () => {
+  it("accepts sync-time inputPath from the generic file collector", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "wechat-input-alias-"));
+    const dbPath = path.join(dir, "EnMicroMsg.db");
+    fs.writeFileSync(dbPath, "fake-db-bytes");
+    let receivedPath = null;
+    const dbReaderFactory = (opts) => {
+      receivedPath = opts.dbPath;
+      return {
+        open: async () => ({ profile: "wcdb-legacy", tables: 2 }),
+        isEnMicroMsg: () => true,
+        fetchContacts: () => [],
+        fetchChatrooms: () => [],
+        fetchMessages: () => [],
+        close: () => {},
+      };
+    };
+    try {
+      const adapter = new WechatAdapter({
+        account: { uin: "self123" },
+        keyProvider: { getKey: async () => "fakekey" },
+        dbReaderFactory,
+      });
+      const raws = [];
+      for await (const raw of adapter.sync({ inputPath: dbPath }))
+        raws.push(raw);
+      expect(receivedPath).toBe(dbPath);
+      expect(raws).toEqual([]);
+      const readiness = await adapter.authenticate({
+        inputPath: dbPath,
+        readinessOnly: true,
+      });
+      expect(readiness).toEqual({ ok: true, mode: "configured" });
+      expect((await adapter.healthCheck({ inputPath: dbPath })).ok).toBe(true);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("yields contact + message raw events", async () => {
     const fakeMessages = [
-      { msgId: 1, msgSvrId: 100, talker: "wxid_friend", content: "你好", type: 1, createTime: 1700000000000, isSend: 0 },
-      { msgId: 2, msgSvrId: 101, talker: "wxid_friend", content: "再见", type: 1, createTime: 1700000001000, isSend: 1 },
+      {
+        msgId: 1,
+        msgSvrId: "9223372036854775800",
+        talker: "wxid_friend",
+        content: "你好",
+        type: 1,
+        createTime: 1700000000000,
+        isSend: 0,
+      },
+      {
+        msgId: 2,
+        msgSvrId: "9223372036854775806",
+        talker: "wxid_friend",
+        content: "再见",
+        type: 1,
+        createTime: 1700000001000,
+        isSend: 1,
+      },
     ];
     const fakeContacts = [
-      { username: "wxid_friend", alias: "x", nickname: "好友", conRemark: "", type: 1 },
+      {
+        username: "wxid_friend",
+        alias: "x",
+        nickname: "好友",
+        conRemark: "",
+        type: 1,
+      },
     ];
     const fakeChatrooms = [];
 
     let openCalled = false;
     const dbReaderFactory = (opts) => ({
-      open: async () => { openCalled = true; return { profile: "wcdb-legacy", tables: 5 }; },
+      open: async () => {
+        openCalled = true;
+        return { profile: "wcdb-legacy", tables: 5 };
+      },
       isEnMicroMsg: () => true,
       listTables: () => ["message", "rcontact"],
       fetchContacts: () => fakeContacts,
@@ -447,7 +579,15 @@ describe("WechatAdapter.sync with mocked DB reader", () => {
         dbReaderFactory,
       });
       const raws = [];
-      for await (const r of a.sync({ onProgress: (e) => events.push(e.phase) })) raws.push(r);
+      let watermark;
+      for await (const r of a.sync({
+        onProgress: (e) => events.push(e.phase),
+        updateWatermark: (value) => {
+          watermark = value;
+        },
+      })) {
+        raws.push(r);
+      }
       expect(openCalled).toBe(true);
       // 1 contact + 2 messages
       expect(raws).toHaveLength(3);
@@ -456,6 +596,7 @@ describe("WechatAdapter.sync with mocked DB reader", () => {
       expect(events).toContain("opening");
       expect(events).toContain("opened");
       expect(events).toContain("done");
+      expect(watermark).toBe("9223372036854775806");
 
       // Now normalize each raw and verify they pass schema
       for (const raw of raws) {
@@ -469,7 +610,7 @@ describe("WechatAdapter.sync with mocked DB reader", () => {
   });
 
   // sjqz parity audit follow-up — fetchContacts must exclude
-   // @stranger and fake_* by default (vault pollution prevention).
+  // @stranger and fake_* by default (vault pollution prevention).
   it("fetchContacts excludes @stranger and fake_* by default", async () => {
     // Pure DI smoke — capture the SQL passed to .prepare() to verify the
     // junk filter is in the query. We mock just enough of better-sqlite3's
@@ -533,7 +674,13 @@ describe("WechatAdapter.sync with mocked DB reader", () => {
           return {
             all: () => {
               if (sql.startsWith("PRAGMA table_info")) {
-                return ["username", "alias", "nickname", "conRemark", "type"].map((name) => ({ name }));
+                return [
+                  "username",
+                  "alias",
+                  "nickname",
+                  "conRemark",
+                  "type",
+                ].map((name) => ({ name }));
               }
               if (sql.startsWith("SELECT count")) return [{ n: 5 }];
               return [];
@@ -585,7 +732,8 @@ describe("WechatAdapter.sync with mocked DB reader", () => {
     try {
       const a = new WechatAdapter({
         account: { uin: "self123" },
-        dbPath, keyProvider: { getKey: async () => "fakekey" },
+        dbPath,
+        keyProvider: { getKey: async () => "fakekey" },
         dbReaderFactory,
       });
       const raws = [];

@@ -267,12 +267,14 @@ describe("UnifiedConfigManager", () => {
       expect(defaultConfig.mobileBridge.exposeRemoteSkills).toContain(
         "personal-data-hub.*",
       );
-      // 5 PDH Privileged methods must be in approvalChannelsForMobile (kebab-case)
+      // Privileged PDH mutations must be in approvalChannelsForMobile.
       const approvalChannels =
         defaultConfig.mobileBridge.approvalChannelsForMobile;
       expect(approvalChannels).toContain("personal-data-hub.register-email");
+      expect(approvalChannels).toContain("personal-data-hub.activate-email");
       expect(approvalChannels).toContain("personal-data-hub.unregister-email");
       expect(approvalChannels).toContain("personal-data-hub.register-alipay");
+      expect(approvalChannels).toContain("personal-data-hub.activate-alipay");
       expect(approvalChannels).toContain("personal-data-hub.unregister-alipay");
       expect(approvalChannels).toContain("personal-data-hub.unregister");
       expect(approvalChannels).toContain("personal-data-hub.destroy");
@@ -280,6 +282,7 @@ describe("UnifiedConfigManager", () => {
         "personal-data-hub.aichat-register-vendor",
       );
       expect(approvalChannels).toContain("personal-data-hub.unregister-aichat");
+      expect(approvalChannels).toContain("personal-data-hub.activate-wechat");
       expect(defaultConfig.mobileBridge.approvalTimeoutMs).toBe(60_000);
 
       // Regex invariant: any approval channel matching `personal-data-hub.<method>`

@@ -25,8 +25,8 @@
  *   `opts.signProvider` (async ({ url, query, cookies }) → string|null). On
  *   Android the in-APK WebView JS VM produces it; in tests a stub returns a
  *   fixed value. When no signProvider is configured the request is still issued
- *   with `sign: null` — best-effort: the endpoint may 4xx, which surfaces as
- *   zero events rather than a crash.
+ *   with `sign: null`; HTTP/non-JSON rejection is surfaced as a sync failure so
+ *   the previous watermark is preserved.
  *
  *   ⚠️ The default endpoint (ELEME_ORDERS_URL) is best-effort and NOT
  *   field-verified — override via `opts.ordersUrl` once the real SOA path is
@@ -53,7 +53,13 @@
 "use strict";
 
 const fs = require("node:fs");
-const { normalizeOrderRecord, CookieAuth } = require("../shopping-base");
+const { createAccountScopeFromAccount } = require("../../account-scope");
+const {
+  normalizeOrderRecord,
+  CookieAuth,
+  hasRuntimeCookie,
+  resolveCookieContext,
+} = require("../shopping-base");
 
 const NAME = "shopping-eleme";
 const VERSION = "0.1.0";
@@ -61,6 +67,7 @@ const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_ORDER = "order";
 const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_ORDER]);
+const UNKNOWN_ORDERS = Object.freeze([]);
 
 // Best-effort, NOT field-verified. Override via opts.ordersUrl.
 const ELEME_ORDERS_URL = "https://www.ele.me/restapi/bos/v2/users/orders";
@@ -71,11 +78,15 @@ class ElemeAdapter {
     // activates only when account.cookies is supplied; account.userId is then
     // required (checked at sync time).
     this.account = opts.account || null;
+    this.defaultScope = createAccountScopeFromAccount(NAME, this.account, [
+      "userId",
+    ]);
     this._cookieAuth =
       opts.account && opts.account.cookies
         ? new CookieAuth({ platform: "eleme", cookies: opts.account.cookies })
         : null;
-    this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+    this._fetchFn =
+      typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
     // mtop signing seam — see file header. Async fn({ url, query, cookies }) →
     // string|null. When absent, requests carry sign: null.
     this._signProvider =
@@ -86,12 +97,21 @@ class ElemeAdapter {
         : ELEME_ORDERS_URL;
 
     this.name = NAME;
+    this.runtimeScopeIdentityKey = "userId";
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
     this.version = VERSION;
-    this.capabilities = ["sync:snapshot", "sync:cookie-api", "parse:eleme-orders"];
+    this.capabilities = [
+      "sync:snapshot",
+      "sync:cookie-api",
+      "parse:eleme-orders",
+    ];
     this.extractMode = "web-api";
     this.rateLimits = { perMinute: 8, perDay: 200 };
     this.dataDisclosure = {
-      fields: ["eleme:orderId / restaurantName / dishes / totalAmount / deliveryAddress"],
+      fields: [
+        "eleme:orderId / restaurantName / dishes / totalAmount / deliveryAddress",
+      ],
       sensitivity: "high",
       legalGate: false,
       defaultInclude: { order: true },
@@ -115,17 +135,29 @@ class ElemeAdapter {
       }
       return { ok: true, mode: "snapshot-file" };
     }
-    if (this._cookieAuth) {
-      const ok = await this._cookieAuth.validate();
-      if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
-      if (!this.account || !this.account.userId) {
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts: ctx,
+      platform: "eleme",
+      identityKey: "userId",
+    });
+    if (cookieAuth) {
+      const ok = await cookieAuth.validate();
+      if (!ok)
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          error: "cookies missing",
+        };
+      if (!account || !account.userId) {
         return {
           ok: false,
           reason: "NO_ACCOUNT_USER_ID",
           message: "cookie-api mode requires account.userId",
         };
       }
-      return { ok: true, account: this.account.userId, mode: "cookie" };
+      return { ok: true, account: account.userId, mode: "cookie" };
     }
     return {
       ok: false,
@@ -135,9 +167,9 @@ class ElemeAdapter {
     };
   }
 
-  async healthCheck() {
-    if (this._cookieAuth) {
-      const r = await this.authenticate();
+  async healthCheck(opts = {}) {
+    if (this._cookieAuth || hasRuntimeCookie(opts)) {
+      const r = await this.authenticate(opts);
       return r.ok
         ? { ok: true, lastChecked: Date.now() }
         : { ok: false, reason: r.reason, error: r.error };
@@ -150,12 +182,12 @@ class ElemeAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    if (this._cookieAuth) {
+    if (this._cookieAuth || hasRuntimeCookie(opts)) {
       yield* this._syncViaCookie(opts);
       return;
     }
     throw new Error(
-      "ElemeAdapter.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode; Ele.me's mtop API requires signing supplied via opts.signProvider)",
+      "ElemeAdapter.sync: needs opts.inputPath OR configured account.cookies OR opts.cookie + opts.accountId (cookie-api signing via signProvider)",
     );
   }
 
@@ -221,12 +253,19 @@ class ElemeAdapter {
   }
 
   async *_syncViaCookie(opts = {}) {
-    if (!this.account || !this.account.userId) {
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts,
+      platform: "eleme",
+      identityKey: "userId",
+    });
+    if (!account || !account.userId) {
       throw new Error(
-        "ElemeAdapter._syncViaCookie: account.userId required (set via new ElemeAdapter({ account: { userId, cookies } }))",
+        "ElemeAdapter._syncViaCookie: account.userId or opts.accountId required",
       );
     }
-    if (!(await this._cookieAuth.validate())) return;
+    if (!cookieAuth || !(await cookieAuth.validate())) return;
     const sinceMs =
       opts.sinceWatermark != null
         ? parseInt(String(opts.sinceWatermark), 10) || 0
@@ -234,27 +273,37 @@ class ElemeAdapter {
     const pageSize = Number.isFinite(opts.pageSize) ? opts.pageSize : 10;
     const include = opts.include || {};
     if (include[KIND_ORDER] === false) return;
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
 
-    let offset = 0;
-    while (true) {
-      const query = { limit: pageSize, offset, userId: this.account.userId };
+    let page = 1;
+    let scanComplete = false;
+    while (page <= maxPages) {
+      const offset = (page - 1) * pageSize;
+      const query = { limit: pageSize, offset, userId: account.userId };
       // mtop signing seam — best-effort. null when no signProvider.
       let sign = null;
       if (this._signProvider) {
         sign = await this._signProvider({
           url: this._ordersUrl,
           query,
-          cookies: this._cookieAuth.toHeader(),
+          cookies: cookieAuth.toHeader(),
         });
+      }
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({ operation: KIND_ORDER, page });
       }
       const resp = await this._fetchFn({
         url: this._ordersUrl,
-        cookies: this._cookieAuth.toHeader(),
+        cookies: cookieAuth.toHeader(),
         sign,
         query,
       });
       const orders = extractOrders(resp);
-      if (!orders.length) break;
+      if (!orders.length) {
+        scanComplete = orders !== UNKNOWN_ORDERS;
+        break;
+      }
       let pageHasNew = false;
       let reachedWatermark = false;
       for (const rawOrder of orders) {
@@ -272,8 +321,15 @@ class ElemeAdapter {
           payload: { record: rec },
         };
       }
-      if (reachedWatermark || !pageHasNew || orders.length < pageSize) break;
-      offset += pageSize;
+      if (reachedWatermark || (pageHasNew && orders.length < pageSize)) {
+        scanComplete = true;
+        break;
+      }
+      if (!pageHasNew) break;
+      page += 1;
+    }
+    if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+      opts.markWatermarkComplete();
     }
   }
 
@@ -312,15 +368,16 @@ function stableOriginalId(kind, id) {
  * `{ orders }`. Tolerant of all common shapes.
  */
 function extractOrders(resp) {
-  if (!resp || typeof resp !== "object") return [];
+  if (!resp || typeof resp !== "object") return UNKNOWN_ORDERS;
   if (Array.isArray(resp)) return resp;
   if (Array.isArray(resp.orders)) return resp.orders;
   if (Array.isArray(resp.order_list)) return resp.order_list;
   if (Array.isArray(resp.list)) return resp.list;
   if (resp.data && Array.isArray(resp.data.orders)) return resp.data.orders;
   if (resp.data && Array.isArray(resp.data.list)) return resp.data.list;
-  if (resp.result && Array.isArray(resp.result.orders)) return resp.result.orders;
-  return [];
+  if (resp.result && Array.isArray(resp.result.orders))
+    return resp.result.orders;
+  return UNKNOWN_ORDERS;
 }
 
 /**
@@ -342,7 +399,13 @@ function orderToRecord(o) {
 
   const items = [];
   const dishes =
-    o.basket || o.dishes || o.items || o.item_list || o.itemList || o.foods || [];
+    o.basket ||
+    o.dishes ||
+    o.items ||
+    o.item_list ||
+    o.itemList ||
+    o.foods ||
+    [];
   for (const it of Array.isArray(dishes) ? dishes : []) {
     if (!it) continue;
     items.push({
@@ -356,17 +419,33 @@ function orderToRecord(o) {
   return {
     vendorId: "eleme",
     orderId: String(orderId),
-    placedAt: parseTime(o.time_pass_string || o.order_time || o.createTime || o.created_at || o.create_at),
+    placedAt: parseTime(
+      o.time_pass_string ||
+        o.order_time ||
+        o.createTime ||
+        o.created_at ||
+        o.create_at,
+    ),
     paidAt: parseTime(o.pay_time || o.payTime || o.paid_at),
-    status: mapStatus(o.status_bar_text || o.statusText || o.status_text || o.status),
+    status: mapStatus(
+      o.status_bar_text || o.statusText || o.status_text || o.status,
+    ),
     merchantName: merchant,
     totalAmount: {
-      value: parseFloat(o.total_amount || o.totalAmount || o.total || o.pay_amount || o.original_price || 0),
+      value: parseFloat(
+        o.total_amount ||
+          o.totalAmount ||
+          o.total ||
+          o.pay_amount ||
+          o.original_price ||
+          0,
+      ),
       currency: "CNY",
     },
     items,
     recipient: o.consignee || o.recipient || o.receiver || o.user_name || null,
-    shippingAddress: o.address || o.delivery_address || o.deliveryAddress || o.addr || null,
+    shippingAddress:
+      o.address || o.delivery_address || o.deliveryAddress || o.addr || null,
     extras: { capturedBy: "cookie-api", platform: "eleme" },
   };
 }
@@ -421,8 +500,20 @@ function mapStatus(s) {
   const t = String(s || "").toLowerCase();
   if (t.includes("退款") || t.includes("refund")) return "refunded";
   if (t.includes("取消") || t.includes("cancel")) return "cancelled";
-  if (t.includes("配送中") || t.includes("派送") || t.includes("商家已接单") || t.includes("shipped")) return "shipped";
-  if (t.includes("已完成") || t.includes("已送达") || t.includes("已收货") || t.includes("delivered")) return "delivered";
+  if (
+    t.includes("配送中") ||
+    t.includes("派送") ||
+    t.includes("商家已接单") ||
+    t.includes("shipped")
+  )
+    return "shipped";
+  if (
+    t.includes("已完成") ||
+    t.includes("已送达") ||
+    t.includes("已收货") ||
+    t.includes("delivered")
+  )
+    return "delivered";
   return "placed";
 }
 

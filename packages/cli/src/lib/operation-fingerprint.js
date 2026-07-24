@@ -244,10 +244,11 @@ export function resolveOperationApproval(pending, resolution, opts = {}) {
  * fs/RNG — so it is fully unit-testable and serializable alongside a session.
  */
 export class OperationApprovalRegistry {
-  constructor({ clock } = {}) {
+  constructor({ clock, store = null } = {}) {
     this._byFingerprint = new Map(); // fingerprint -> pending record
     this._activeByLogicalKey = new Map(); // logical key -> active fingerprint
     this._clock = typeof clock === "function" ? clock : null;
+    this._store = store;
   }
 
   _now() {
@@ -260,9 +261,39 @@ export class OperationApprovalRegistry {
    * can resolve.
    * @returns {{fingerprint:string, shortId:string, summary:string}}
    */
-  issue(desc = {}) {
+  issue(desc = {}, opts = {}) {
     const fingerprint = computeOperationFingerprint(desc);
     const logicalKey = operationDescriptorKey(desc);
+
+    if (this._store) {
+      const card = this._store.issueRequest({
+        requestId: opts.requestId,
+        descriptor: desc,
+        binding: opts.binding,
+        now: opts.now !== undefined ? opts.now : this._now(),
+      });
+      this._byFingerprint.set(card.fingerprint, {
+        fingerprint: card.fingerprint,
+        logicalKey,
+        requestId: card.requestId,
+        binding: opts.binding,
+        sessionId: desc.session ?? null,
+        revision: card.revision,
+        status: card.status,
+      });
+      this._activeByLogicalKey.set(logicalKey, card.fingerprint);
+      return card;
+    }
+
+    // Reissuing the exact same card must never reset a resolved record.
+    const exact = this._byFingerprint.get(fingerprint);
+    if (exact) {
+      return {
+        fingerprint,
+        shortId: shortOperationId(fingerprint),
+        summary: summarizeOperation(desc),
+      };
+    }
 
     const priorFp = this._activeByLogicalKey.get(logicalKey);
     if (priorFp && priorFp !== fingerprint) {
@@ -296,6 +327,37 @@ export class OperationApprovalRegistry {
    * @returns {{ok:boolean, reason:(string|null)}}
    */
   resolve(fingerprint, opts = {}) {
+    if (this._store) {
+      const cached = this._byFingerprint.get(fingerprint);
+      const requestId = opts.requestId ?? cached?.requestId;
+      if (!requestId) {
+        return { ok: false, approved: false, reason: "unknown" };
+      }
+      try {
+        const verdict = this._store.resolveRequest(requestId, {
+          fingerprint: opts.fingerprint,
+          binding: opts.binding,
+          sessionId: opts.sessionId,
+          decision: opts.decision,
+          authority: opts.authority,
+          expectedRevision: opts.expectedRevision,
+          now: opts.now !== undefined ? opts.now : this._now(),
+        });
+        if (verdict.ok && cached) {
+          cached.status = verdict.approved ? "resolved" : "rejected";
+          cached.revision = verdict.revision;
+        }
+        return verdict;
+      } catch (error) {
+        return {
+          ok: false,
+          approved: false,
+          reason: "state-unavailable",
+          errorCode: error?.code || "CC_APPROVAL_STATE_UNKNOWN",
+        };
+      }
+    }
+
     const pending = this._byFingerprint.get(fingerprint);
     if (!pending) return { ok: false, reason: "unknown" };
     const now = opts.now !== undefined ? intOrNull(opts.now) : this._now();
@@ -304,9 +366,52 @@ export class OperationApprovalRegistry {
     return verdict;
   }
 
+  /**
+   * Persist a timeout/close transition. It can only reduce authority.
+   */
+  cancel(fingerprint, opts = {}) {
+    if (this._store) {
+      const cached = this._byFingerprint.get(fingerprint);
+      const requestId = opts.requestId ?? cached?.requestId;
+      if (!requestId) {
+        return { ok: false, approved: false, reason: "unknown" };
+      }
+      try {
+        const verdict = this._store.cancelRequest(requestId, {
+          expectedRevision: opts.expectedRevision ?? cached?.revision,
+          reason: opts.reason,
+          now: opts.now !== undefined ? opts.now : this._now(),
+        });
+        if (verdict.ok && cached) {
+          cached.status =
+            verdict.reason === "expired" ? "expired" : "cancelled";
+          cached.revision = verdict.revision;
+        }
+        return verdict;
+      } catch (error) {
+        return {
+          ok: false,
+          approved: false,
+          reason: "state-unavailable",
+          errorCode: error?.code || "CC_APPROVAL_STATE_UNKNOWN",
+        };
+      }
+    }
+
+    const pending = this._byFingerprint.get(fingerprint);
+    if (!pending) return { ok: false, reason: "unknown" };
+    if (pending.resolved) return { ok: false, reason: "duplicate" };
+    pending.resolved = true;
+    return { ok: true, approved: false, reason: opts.reason || "cancelled" };
+  }
+
   /** A read-only view of a pending card (or null). */
   get(fingerprint) {
     const p = this._byFingerprint.get(fingerprint);
+    if (this._store && p?.requestId) {
+      const durable = this._store.getRequest(p.requestId);
+      return durable ? { ...durable } : null;
+    }
     return p ? { ...p } : null;
   }
 }

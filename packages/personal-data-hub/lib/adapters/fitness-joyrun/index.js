@@ -28,7 +28,11 @@
 
 const fs = require("node:fs");
 const { newId } = require("../../ids");
-const { ENTITY_TYPES, EVENT_SUBTYPES, CAPTURED_BY } = require("../../constants");
+const {
+  ENTITY_TYPES,
+  EVENT_SUBTYPES,
+  CAPTURED_BY,
+} = require("../../constants");
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "fitness-joyrun";
@@ -65,18 +69,43 @@ function mapRun(raw) {
   const id = raw.runId || raw.run_id || raw.id || raw.fid || raw.postRunId;
   if (id == null) return null;
   // distance may arrive in meters or kilometers; meter field wins, else km*1000.
-  let meters = toNum(raw.distanceMeters != null ? raw.distanceMeters : raw.meter != null ? raw.meter : raw.distance);
-  if (meters != null && meters < 1000 && raw.distanceMeters == null && raw.meter == null) {
+  let meters = toNum(
+    raw.distanceMeters != null
+      ? raw.distanceMeters
+      : raw.meter != null
+        ? raw.meter
+        : raw.distance,
+  );
+  if (
+    meters != null &&
+    meters < 1000 &&
+    raw.distanceMeters == null &&
+    raw.meter == null
+  ) {
     // looked like kilometers
     meters = meters * 1000;
   }
   return {
     runId: String(id),
-    timeMs: parseTime(raw.time || raw.starttime || raw.start_time || raw.date || raw.utc),
+    timeMs: parseTime(
+      raw.time || raw.starttime || raw.start_time || raw.date || raw.utc,
+    ),
     distanceMeters: meters,
-    durationSec: toNum(raw.durationSec != null ? raw.durationSec : raw.second != null ? raw.second : raw.totaltime),
+    durationSec: toNum(
+      raw.durationSec != null
+        ? raw.durationSec
+        : raw.second != null
+          ? raw.second
+          : raw.totaltime,
+    ),
     paceSecPerKm: toNum(raw.paceSecPerKm != null ? raw.paceSecPerKm : raw.pace),
-    calories: toNum(raw.calories != null ? raw.calories : raw.cal != null ? raw.cal : raw.dohas),
+    calories: toNum(
+      raw.calories != null
+        ? raw.calories
+        : raw.cal != null
+          ? raw.cal
+          : raw.dohas,
+    ),
     steps: toNum(raw.steps != null ? raw.steps : raw.stepcount),
   };
 }
@@ -106,14 +135,25 @@ class JoyrunAdapter {
   constructor(opts = {}) {
     this.account = opts.account || null;
     this._cookieAuth =
-      opts.account && opts.account.cookies ? new CookieAuth({ platform: "joyrun", cookies: opts.account.cookies }) : null;
-    this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
-    this._signProvider = typeof opts.signProvider === "function" ? opts.signProvider : null;
-    this._listUrl = typeof opts.listUrl === "string" && opts.listUrl.length > 0 ? opts.listUrl : null;
-    this._liveConfigured = Boolean(this._listUrl && typeof opts.fetchFn === "function");
+      opts.account && opts.account.cookies
+        ? new CookieAuth({ platform: "joyrun", cookies: opts.account.cookies })
+        : null;
+    this._fetchFn =
+      typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+    this._signProvider =
+      typeof opts.signProvider === "function" ? opts.signProvider : null;
+    this._listUrl =
+      typeof opts.listUrl === "string" && opts.listUrl.length > 0
+        ? opts.listUrl
+        : null;
+    this._liveConfigured = Boolean(
+      this._listUrl && typeof opts.fetchFn === "function",
+    );
 
     this.name = NAME;
     this.version = VERSION;
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
     this.capabilities = [
       "sync:snapshot",
       ...(this._liveConfigured ? ["sync:custom-cookie-api"] : []),
@@ -122,7 +162,9 @@ class JoyrunAdapter {
     this.extractMode = this._liveConfigured ? "web-api" : "file-import";
     this.rateLimits = {};
     this.dataDisclosure = {
-      fields: ["joyrun:run (distance / duration / pace / calories / steps — carries GPS route)"],
+      fields: [
+        "joyrun:run (distance / duration / pace / calories / steps — carries GPS route)",
+      ],
       sensitivity: "medium",
       legalGate: false,
       defaultInclude: { run: true },
@@ -135,7 +177,11 @@ class JoyrunAdapter {
       try {
         this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
       } catch (err) {
-        return { ok: false, reason: "INPUT_PATH_UNREADABLE", message: `snapshot not readable at ${ctx.inputPath}: ${err.message}` };
+        return {
+          ok: false,
+          reason: "INPUT_PATH_UNREADABLE",
+          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
+        };
       }
       return { ok: true, mode: "snapshot-file" };
     }
@@ -143,25 +189,39 @@ class JoyrunAdapter {
       return {
         ok: false,
         reason: "EXPLICIT_ENDPOINT_REQUIRED",
-        message: "fitness-joyrun: cookie collection requires captured listUrl and fetchFn; snapshot import is ready",
+        message:
+          "fitness-joyrun: cookie collection requires captured listUrl and fetchFn; snapshot import is ready",
       };
     }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
-      if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
-      return { ok: true, account: (this.account && this.account.userId) || null, mode: "cookie", unverified: true };
+      if (!ok)
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          error: "cookies missing",
+        };
+      return {
+        ok: true,
+        account: (this.account && this.account.userId) || null,
+        mode: "cookie",
+        unverified: true,
+      };
     }
     return {
       ok: false,
       reason: "NO_INPUT",
-      message: "fitness-joyrun.authenticate: needs opts.inputPath; custom live mode also requires cookies, listUrl, and fetchFn",
+      message:
+        "fitness-joyrun.authenticate: needs opts.inputPath; custom live mode also requires cookies, listUrl, and fetchFn",
     };
   }
 
-  async healthCheck() {
+  async healthCheck(opts = {}) {
     if (this._cookieAuth) {
-      const r = await this.authenticate();
-      return r.ok ? { ok: true, lastChecked: Date.now(), unverified: true } : { ok: false, reason: r.reason, error: r.error };
+      const r = await this.authenticate(opts);
+      return r.ok
+        ? { ok: true, lastChecked: Date.now(), unverified: true }
+        : { ok: false, reason: r.reason, error: r.error };
     }
     return { ok: true, lastChecked: Date.now() };
   }
@@ -176,27 +236,48 @@ class JoyrunAdapter {
       return;
     }
     if (this._cookieAuth) {
-      throw new Error("fitness-joyrun.sync: explicit listUrl and fetchFn required for custom cookie collection");
+      throw new Error(
+        "fitness-joyrun.sync: explicit listUrl and fetchFn required for custom cookie collection",
+      );
     }
-    throw new Error("fitness-joyrun.sync: needs opts.inputPath (snapshot mode)");
+    throw new Error(
+      "fitness-joyrun.sync: needs opts.inputPath (snapshot mode)",
+    );
   }
 
   async *_syncViaSnapshot(opts) {
     const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
     const snapshot = JSON.parse(raw);
-    if (!snapshot || typeof snapshot !== "object" || snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION) {
-      throw new Error(`fitness-joyrun.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`);
+    if (
+      !snapshot ||
+      typeof snapshot !== "object" ||
+      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
+    ) {
+      throw new Error(
+        `fitness-joyrun.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
+      );
     }
     const fallback =
-      Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0 ? Math.floor(snapshot.snapshottedAt) : Date.now();
-    const account = snapshot.account && typeof snapshot.account === "object" ? snapshot.account : null;
+      Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
+        ? Math.floor(snapshot.snapshottedAt)
+        : Date.now();
+    const account =
+      snapshot.account && typeof snapshot.account === "object"
+        ? snapshot.account
+        : null;
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const events = Array.isArray(snapshot.events) ? snapshot.events : [];
     let emitted = 0;
     for (const ev of events) {
       if (emitted >= limit) return;
-      if (!ev || typeof ev !== "object" || !VALID_SNAPSHOT_KINDS.includes(ev.kind)) continue;
+      if (
+        !ev ||
+        typeof ev !== "object" ||
+        !VALID_SNAPSHOT_KINDS.includes(ev.kind)
+      )
+        continue;
       if (include[ev.kind] === false) continue;
       const rec = mapRun(ev);
       if (!rec) continue;
@@ -216,22 +297,48 @@ class JoyrunAdapter {
     if (!(await this._cookieAuth.validate())) return;
     const cookies = this._cookieAuth.toHeader();
     const include = opts.include || {};
-    if (include[KIND_RUN] === false) return;
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
-    const maxPages = Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+    if (include[KIND_RUN] === false) {
+      if (typeof opts.markWatermarkComplete === "function") {
+        opts.markWatermarkComplete();
+      }
+      return;
+    }
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+    const sinceMs =
+      opts.sinceWatermark != null
+        ? parseInt(String(opts.sinceWatermark), 10) || 0
+        : 0;
 
     let emitted = 0;
     let page = 1;
+    let scanComplete = false;
     while (page <= maxPages) {
       const query = { page, pageSize: PAGE_SIZE };
       let sign = null;
-      if (this._signProvider) sign = await this._signProvider({ url: this._listUrl, query, cookies });
-      const resp = await this._fetchFn({ url: this._listUrl, cookies, query, sign });
+      if (this._signProvider)
+        sign = await this._signProvider({ url: this._listUrl, query, cookies });
+      const resp = await this._fetchFn({
+        url: this._listUrl,
+        cookies,
+        query,
+        sign,
+      });
       const items = extractList(resp);
-      if (!items.length) break;
+      if (!items.length) {
+        scanComplete = true;
+        break;
+      }
+      let reachedWatermark = false;
       for (const it of items) {
         const rec = mapRun(it);
         if (!rec) continue;
+        if (rec.timeMs && rec.timeMs < sinceMs) {
+          reachedWatermark = true;
+          break;
+        }
         if (emitted >= limit) return;
         yield {
           adapter: NAME,
@@ -242,8 +349,14 @@ class JoyrunAdapter {
         };
         emitted += 1;
       }
-      if (items.length < PAGE_SIZE) break;
+      if (reachedWatermark || items.length < PAGE_SIZE) {
+        scanComplete = true;
+        break;
+      }
       page += 1;
+    }
+    if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+      opts.markWatermarkComplete();
     }
   }
 
@@ -261,7 +374,10 @@ class JoyrunAdapter {
       capturedAt: raw.capturedAt || occurredAt,
       capturedBy: CAPTURED_BY.API,
     };
-    const km = rec.distanceMeters != null ? (rec.distanceMeters / 1000).toFixed(2) : null;
+    const km =
+      rec.distanceMeters != null
+        ? (rec.distanceMeters / 1000).toFixed(2)
+        : null;
     return {
       events: [
         {
@@ -270,7 +386,10 @@ class JoyrunAdapter {
           subtype: EVENT_SUBTYPES.OTHER,
           occurredAt,
           actor: "person-self",
-          content: { title: km != null ? `跑步 ${km} km` : "跑步记录", text: "跑步记录" },
+          content: {
+            title: km != null ? `跑步 ${km} km` : "跑步记录",
+            text: "跑步记录",
+          },
           ingestedAt,
           source,
           extra: {

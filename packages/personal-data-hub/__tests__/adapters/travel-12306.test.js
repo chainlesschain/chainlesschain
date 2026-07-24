@@ -19,6 +19,7 @@ const {
   SNAPSHOT_SCHEMA_VERSION,
   VALID_SNAPSHOT_KINDS,
 } = require("../../lib/adapters/travel-12306");
+const { createJsonSourceFetch } = require("../../lib/source-http");
 
 function writeTmp(content) {
   const p = path.join(os.tmpdir(), `cc-12306-test-${crypto.randomUUID()}.json`);
@@ -315,8 +316,12 @@ const COOKIE = "tk=abc; JSESSIONID=xyz; RAIL_DEVICEID=dev";
 
 describe("cookie-api helpers", () => {
   it("extractCompletedOrders tolerates shape variants + junk", () => {
-    expect(extractCompletedOrders({ data: { OrderDTODataList: [1, 2] } })).toEqual([1, 2]);
-    expect(extractCompletedOrders({ data: { orderDTODataList: [3] } })).toEqual([3]);
+    expect(
+      extractCompletedOrders({ data: { OrderDTODataList: [1, 2] } }),
+    ).toEqual([1, 2]);
+    expect(extractCompletedOrders({ data: { orderDTODataList: [3] } })).toEqual(
+      [3],
+    );
     expect(extractCompletedOrders(null)).toEqual([]);
     expect(extractCompletedOrders({ data: {} })).toEqual([]);
     expect(extractCompletedOrders("nope")).toEqual([]);
@@ -386,7 +391,9 @@ describe("cookie-api helpers", () => {
 
   it("parse12306DateTime handles date / date-time / Chinese / blank", () => {
     // 2024-03-20 09:00 Shanghai = 2024-03-20 01:00 UTC
-    expect(parse12306DateTime("2024-03-20 09:00")).toBe(Date.UTC(2024, 2, 20, 1, 0));
+    expect(parse12306DateTime("2024-03-20 09:00")).toBe(
+      Date.UTC(2024, 2, 20, 1, 0),
+    );
     expect(parse12306DateTime("2024-03-20")).toBe(Date.UTC(2024, 2, 19, 16, 0));
     expect(parse12306DateTime("")).toBeNull();
     expect(parse12306DateTime(null)).toBeNull();
@@ -424,13 +431,36 @@ describe("authenticate — cookie-api mode", () => {
     });
     expect((await a.authenticate({})).mode).toBe("cookie");
   });
+
+  it("accepts transient cookie + accountId without mutating the adapter", async () => {
+    const a = new Train12306Adapter({ fetchFn: async () => ({}) });
+    expect(
+      await a.authenticate({
+        cookie: COOKIE,
+        accountId: "rail-user",
+      }),
+    ).toEqual({
+      ok: true,
+      account: "rail-user",
+      mode: "cookie",
+    });
+    expect(
+      (
+        await a.authenticate({
+          cookie: COOKIE,
+        })
+      ).reason,
+    ).toBe("NO_ACCOUNT_USERNAME");
+    expect(a.account).toBe(null);
+    expect(a._cookieAuth).toBe(null);
+  });
 });
 
 describe("sync — cookie-api mode", () => {
   it("yields flattened ticket events from completed + pending", async () => {
     const calls = [];
-    const fetchFn = async ({ url, cookies, form }) => {
-      calls.push({ url, cookies, form });
+    const fetchFn = async ({ url, cookies, headers, form }) => {
+      calls.push({ url, cookies, headers, form });
       if (url.includes("NoComplete")) {
         return { data: { orderDBList: [rawOrder("PEND1")] } };
       }
@@ -453,6 +483,11 @@ describe("sync — cookie-api mode", () => {
       pageSize: "50",
       pageIndex: "1",
     });
+    expect(calls[0].headers).toMatchObject({
+      referer: "https://kyfw.12306.cn/otn/view/index.html",
+      "if-modified-since": "0",
+      "x-requested-with": "XMLHttpRequest",
+    });
   });
 
   it("paginates completed orders until a short page", async () => {
@@ -461,7 +496,9 @@ describe("sync — cookie-api mode", () => {
       const page = parseInt(form.pageIndex, 10);
       if (page === 1) {
         // exactly PAGE_SIZE (50) → triggers page 2
-        const orders = Array.from({ length: 50 }, (_, i) => rawOrder(`P1-${i}`));
+        const orders = Array.from({ length: 50 }, (_, i) =>
+          rawOrder(`P1-${i}`),
+        );
         return { data: { OrderDTODataList: orders } };
       }
       if (page === 2) return { data: { OrderDTODataList: [rawOrder("P2-0")] } };
@@ -479,7 +516,9 @@ describe("sync — cookie-api mode", () => {
         : { data: { OrderDTODataList: [rawOrder("A"), rawOrder("B")] } };
     const a = new Train12306Adapter({ account: { cookies: COOKIE }, fetchFn });
     expect(await collect(a.sync({ limit: 1 }))).toHaveLength(1);
-    expect(await collect(a.sync({ include: { ticket: false } }))).toHaveLength(0);
+    expect(await collect(a.sync({ include: { ticket: false } }))).toHaveLength(
+      0,
+    );
   });
 
   it("empty responses yield nothing (expired cookie / no orders)", async () => {
@@ -508,5 +547,140 @@ describe("sync — cookie-api mode", () => {
       capturedVia: "cookie-api",
       idLast6: "011234",
     });
+  });
+
+  it("runs with transient credentials and never copies them into raw records", async () => {
+    const requests = [];
+    const fetchFn = async (request) => {
+      requests.push(request);
+      return request.url.includes("NoComplete")
+        ? { data: { orderDBList: [] } }
+        : { data: { OrderDTODataList: [rawOrder("RUNTIME")] } };
+    };
+    const a = new Train12306Adapter({ fetchFn });
+    const items = await collect(
+      a.sync({
+        cookie: COOKIE,
+        accountId: "rail-user",
+      }),
+    );
+
+    expect(items).toHaveLength(1);
+    expect(requests).toHaveLength(2);
+    expect(requests.every((request) => request.cookies === COOKIE)).toBe(true);
+    expect(JSON.stringify(items)).not.toContain(COOKIE);
+    expect(JSON.stringify(items)).not.toContain("rail-user");
+    expect(a.account).toBe(null);
+    expect(a._cookieAuth).toBe(null);
+  });
+
+  it("composes with the host transport as real form POST requests", async () => {
+    const calls = [];
+    const sourceFetch = createJsonSourceFetch({
+      fetchImpl: async (url, init) => {
+        calls.push({ url: String(url), init });
+        const payload = String(url).includes("NoComplete")
+          ? { data: { orderDBList: [] } }
+          : { data: { OrderDTODataList: [rawOrder("TRANSPORT")] } };
+        return new Response(JSON.stringify(payload), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      },
+    });
+    const a = new Train12306Adapter({ fetchFn: sourceFetch });
+    expect(
+      await collect(
+        a.sync({
+          cookie: COOKIE,
+          accountId: "rail-user",
+        }),
+      ),
+    ).toHaveLength(1);
+
+    expect(calls).toHaveLength(2);
+    expect(calls[0].init.method).toBe("POST");
+    expect(calls[0].init.headers.get("cookie")).toBe(COOKIE);
+    expect(calls[0].init.headers.get("x-requested-with")).toBe(
+      "XMLHttpRequest",
+    );
+    expect(calls[0].url).not.toContain(COOKIE);
+    const form = new URLSearchParams(String(calls[0].init.body));
+    expect(form.get("pageIndex")).toBe("1");
+    expect(form.get("queryType")).toBe("1");
+    expect(String(calls[1].init.body)).toBe("");
+  });
+
+  it("shares maxPages across completed/pending lists and commits only recognized complete scans", async () => {
+    let requests = 0;
+    let completions = 0;
+    const paced = [];
+    const validEmpty = new Train12306Adapter({
+      fetchFn: async ({ url }) => {
+        requests += 1;
+        return url.includes("NoComplete")
+          ? { data: { orderDBList: [] } }
+          : { data: { OrderDTODataList: [] } };
+      },
+    });
+    expect(
+      await collect(
+        validEmpty.sync({
+          cookie: COOKIE,
+          accountId: "rail-user",
+          maxPages: 2,
+          beforeSourceRequest: async (request) => paced.push(request),
+          markWatermarkComplete: () => {
+            completions += 1;
+          },
+        }),
+      ),
+    ).toEqual([]);
+    expect(requests).toBe(2);
+    expect(paced.map((request) => request.operation)).toEqual([
+      "completed-orders",
+      "pending-orders",
+    ]);
+    expect(completions).toBe(1);
+
+    requests = 0;
+    completions = 0;
+    const budgeted = new Train12306Adapter({
+      fetchFn: async () => {
+        requests += 1;
+        return { data: { OrderDTODataList: [] } };
+      },
+    });
+    await collect(
+      budgeted.sync({
+        cookie: COOKIE,
+        accountId: "rail-user",
+        maxPages: 1,
+        markWatermarkComplete: () => {
+          completions += 1;
+        },
+      }),
+    );
+    expect(requests).toBe(1);
+    expect(completions).toBe(0);
+
+    completions = 0;
+    const unrecognized = new Train12306Adapter({
+      fetchFn: async ({ url }) =>
+        url.includes("NoComplete")
+          ? { data: { orderDBList: [] } }
+          : { unexpected: [] },
+    });
+    await collect(
+      unrecognized.sync({
+        cookie: COOKIE,
+        accountId: "rail-user",
+        maxPages: 2,
+        markWatermarkComplete: () => {
+          completions += 1;
+        },
+      }),
+    );
+    expect(completions).toBe(0);
   });
 });

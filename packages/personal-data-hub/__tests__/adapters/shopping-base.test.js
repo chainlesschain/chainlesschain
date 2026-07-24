@@ -6,6 +6,8 @@ const {
   normalizeOrderRecord,
   mapStatusToSubtype,
   CookieAuth,
+  hasRuntimeCookie,
+  resolveCookieContext,
 } = require("../../lib/adapters/shopping-base");
 
 describe("normalizeOrderRecord", () => {
@@ -188,5 +190,60 @@ describe("CookieAuth", () => {
     expect(c.getCookieValue("bad")).toBe("%zz");
     // well-formed values still decode
     expect(c.getCookieValue("ok")).toBe("张");
+  });
+});
+
+describe("runtime cookie context", () => {
+  it("accepts a non-empty sync-time cookie and maps accountId to the adapter identity field", async () => {
+    const configuredAccount = { userId: "configured" };
+    const result = resolveCookieContext({
+      account: configuredAccount,
+      cookieAuth: null,
+      opts: { cookie: "sid=runtime", accountId: "runtime-user" },
+      platform: "taobao",
+      identityKey: "userId",
+    });
+
+    expect(hasRuntimeCookie({ cookie: " sid=runtime " })).toBe(true);
+    expect(hasRuntimeCookie({ cookie: " " })).toBe(false);
+    expect(result.account).toEqual({
+      userId: "runtime-user",
+      cookies: "sid=runtime",
+    });
+    expect(result.account).not.toBe(configuredAccount);
+    expect(configuredAccount).toEqual({ userId: "configured" });
+    expect(result.cookieAuth.toHeader()).toBe("sid=runtime");
+    expect(await result.cookieAuth.validate()).toBe(true);
+  });
+
+  it("prefers the adapter-specific identity option and preserves configured credentials otherwise", () => {
+    const configuredAccount = { pin: "configured" };
+    const configuredAuth = new CookieAuth({
+      platform: "jd",
+      cookies: "configured=1",
+    });
+
+    expect(
+      resolveCookieContext({
+        account: configuredAccount,
+        cookieAuth: configuredAuth,
+        opts: {},
+        platform: "jd",
+        identityKey: "pin",
+      }),
+    ).toEqual({ account: configuredAccount, cookieAuth: configuredAuth });
+
+    const runtime = resolveCookieContext({
+      account: configuredAccount,
+      cookieAuth: configuredAuth,
+      opts: {
+        cookie: "runtime=1",
+        accountId: "generic",
+        pin: "specific",
+      },
+      platform: "jd",
+      identityKey: "pin",
+    });
+    expect(runtime.account.pin).toBe("specific");
   });
 });

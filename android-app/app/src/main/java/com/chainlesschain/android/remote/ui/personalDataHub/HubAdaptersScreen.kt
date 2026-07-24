@@ -112,6 +112,9 @@ fun HubAdaptersScreen(
                         lastIngested = state.lastReport
                             ?.takeIf { it.adapter == adapter.name }
                             ?.ingested,
+                        lastPartial = state.lastReport
+                            ?.takeIf { it.adapter == adapter.name }
+                            ?.isPartial == true,
                         onSync = {
                             if (adapter.name == "system-data-android") {
                                 // Path C — phone-native collect → desktop ingest. Ask for
@@ -163,6 +166,26 @@ internal fun progressTextFor(
                 ?: detail?.values?.firstOrNull()
             "归一化中" + (built?.let { " · $it 事件" }.orEmpty())
         }
+        "retrying" -> {
+            val nextAttempt = detail?.get("nextAttempt")
+            val delayMs = detail?.get("delayMs")
+            "网络波动，准备第 ${nextAttempt ?: "?"} 次尝试" +
+                (delayMs?.let { " · ${it}ms 后" }.orEmpty())
+        }
+        "request_throttled" -> {
+            val delayMs = detail?.get("delayMs")
+            val page = detail?.get("page")?.takeIf { it > 0 }
+            val operation = partition?.let { " ($it)" }.orEmpty()
+            "来源请求节流$operation" +
+                (page?.let { " · 第 $it 页" }.orEmpty()) +
+                (delayMs?.let { " · 等待 ${it}ms" }.orEmpty())
+        }
+        "rate_limited" -> {
+            val retryAfterMs = detail?.get("retryAfterMs")
+            val reason = partition?.let { " ($it)" }.orEmpty()
+            "来源限流$reason" +
+                (retryAfterMs?.let { " · ${it}ms 后可重试" }.orEmpty())
+        }
         else -> "同步中…($kind)"
     }
 }
@@ -176,6 +199,7 @@ private fun AdapterRow(
     isSyncing: Boolean,
     progressText: String?,
     lastIngested: Long?,
+    lastPartial: Boolean,
     onSync: () -> Unit
 ) {
     Card(colors = CardDefaults.cardColors()) {
@@ -217,9 +241,17 @@ private fun AdapterRow(
                 } else if (!isSyncing && lastIngested != null) {
                     Spacer(Modifier.size(4.dp))
                     Text(
-                        "上次 +$lastIngested 事件",
+                        if (lastPartial) {
+                            "上次 +$lastIngested 事件 · 分页待续"
+                        } else {
+                            "上次 +$lastIngested 事件"
+                        },
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (lastPartial) {
+                            MaterialTheme.colorScheme.tertiary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                     )
                 }
             }

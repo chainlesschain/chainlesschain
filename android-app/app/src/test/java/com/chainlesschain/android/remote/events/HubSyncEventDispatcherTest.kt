@@ -121,6 +121,68 @@ class HubSyncEventDispatcherTest {
     }
 
     @Test
+    fun `retry kind preserves backoff progress fields`() = runTest(testDispatcher) {
+        val collected = mutableListOf<HubSyncEvent>()
+        val job = backgroundScope.launch { dispatcher.events.collect { collected += it } }
+        advanceUntilIdle()
+
+        dispatcher.emitForTest(
+            eventOf(
+                mapOf(
+                    "kind" to "sync.retry",
+                    "adapter" to "shopping-taobao",
+                    "attemptCount" to 2L,
+                    "nextAttempt" to 3L,
+                    "retryCount" to 2L,
+                    "delayMs" to 1000L,
+                    "error" to "ECONNRESET",
+                ),
+            ),
+        )
+        advanceUntilIdle()
+
+        assertEquals(1, collected.size)
+        assertEquals("sync.retry", collected[0].kind)
+        assertEquals(2L, collected[0].attemptCount)
+        assertEquals(3L, collected[0].nextAttempt)
+        assertEquals(2L, collected[0].retryCount)
+        assertEquals(1000L, collected[0].delayMs)
+        assertEquals("ECONNRESET", collected[0].error)
+        job.cancel()
+    }
+
+    @Test
+    fun `request throttle kind preserves page pacing fields`() = runTest(testDispatcher) {
+        val collected = mutableListOf<HubSyncEvent>()
+        val job = backgroundScope.launch { dispatcher.events.collect { collected += it } }
+        advanceUntilIdle()
+
+        dispatcher.emitForTest(
+            eventOf(
+                mapOf(
+                    "kind" to "sync.request_throttled",
+                    "adapter" to "shopping-taobao",
+                    "reason" to "min_interval",
+                    "delayMs" to 10_000L,
+                    "sourceRequestCount" to 2L,
+                    "operation" to "order",
+                    "page" to 3L,
+                ),
+            ),
+        )
+        advanceUntilIdle()
+
+        val event = collected.single()
+        assertEquals("sync.request_throttled", event.kind)
+        assertEquals("min_interval", event.reason)
+        assertEquals(10_000L, event.delayMs)
+        assertEquals(2L, event.sourceRequestCount)
+        assertEquals("order", event.operation)
+        assertEquals(3L, event.page)
+        job.cancel()
+    }
+
+    @Test
     fun `done kind parsed with SyncReport`() = runTest(testDispatcher) {
         val collected = mutableListOf<HubSyncEvent>()
         val job = backgroundScope.launch { dispatcher.events.collect { collected += it } }
@@ -149,6 +211,41 @@ class HubSyncEventDispatcherTest {
         assertEquals(30L, collected[0].report?.ingested)
         assertEquals(90L, collected[0].report?.kgTriples)
         assertEquals(18200L, collected[0].report?.durationMs)
+        job.cancel()
+    }
+
+    @Test
+    fun `batch done kind parses SyncReport list`() = runTest(testDispatcher) {
+        val collected = mutableListOf<HubSyncEvent>()
+        val job = backgroundScope.launch { dispatcher.events.collect { collected += it } }
+        advanceUntilIdle()
+
+        dispatcher.emitForTest(
+            eventOf(
+                mapOf(
+                    "kind" to "done",
+                    "adapter" to "*",
+                    "reports" to listOf(
+                        mapOf(
+                            "adapter" to "email-imap",
+                            "status" to "ok",
+                            "entityCounts" to mapOf("events" to 3L),
+                        ),
+                        mapOf(
+                            "adapter" to "apple-health",
+                            "status" to "skipped",
+                            "skipReason" to "NO_INPUT",
+                        ),
+                    ),
+                ),
+            ),
+        )
+        advanceUntilIdle()
+
+        val reports = collected.single().reports
+        assertEquals(2, reports?.size)
+        assertEquals(3L, reports?.first()?.totalEntities)
+        assertEquals("skipped", reports?.last()?.status)
         job.cancel()
     }
 

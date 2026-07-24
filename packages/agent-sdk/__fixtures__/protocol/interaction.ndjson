@@ -3,5 +3,6 @@
 {"type":"approval_resolved","id":"appr-2","approved":false,"via":"timeout","session_id":"sess-fx-1"}
 {"type":"question_request","id":"q-1","question":"Which environment?","options":["dev","prod"],"multiSelect":false,"session_id":"sess-fx-1","seq":12}
 {"type":"question_request","id":"q-2","question":"Free-form input?"}
+{"type":"question_request","id":"mcp-q-1","question":"Configure release","session_id":"sess-fx-1","metadata":{"kind":"mcp_elicitation","server":"release-mcp","requestId":"server-42","requestedSchema":{"type":"object","properties":{"email":{"type":"string","title":"Contact email","format":"email"},"channel":{"type":"string","oneOf":[{"const":"stable","title":"Stable"},{"const":"preview","title":"Preview"}]},"scopes":{"type":"array","items":{"anyOf":[{"const":"read","title":"Read only"},{"const":"write","title":"Read and write"}]},"minItems":1,"maxItems":1}},"required":["email","channel","scopes"]}}}
 {"type":"question_resolved","id":"q-1","answer":"dev","via":"user-answer"}
 {"type":"question_resolved","id":"q-2","via":"user_timeout"}

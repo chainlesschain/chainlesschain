@@ -33,7 +33,12 @@
 
 const fs = require("node:fs");
 const { newId } = require("../ids");
-const { ENTITY_TYPES, EVENT_SUBTYPES, ITEM_SUBTYPES, CAPTURED_BY } = require("../constants");
+const {
+  ENTITY_TYPES,
+  EVENT_SUBTYPES,
+  ITEM_SUBTYPES,
+  CAPTURED_BY,
+} = require("../constants");
 
 const SNAPSHOT_SCHEMA_VERSION = 1;
 const KIND_READ = "read";
@@ -81,16 +86,27 @@ function createReadingAdapter(config) {
     constructor(opts = {}) {
       this.account = opts.account || null;
       this._cookieAuth =
-        opts.account && opts.account.cookies ? new CookieAuth({ platform, cookies: opts.account.cookies }) : null;
-      this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
-      this._signProvider = typeof opts.signProvider === "function" ? opts.signProvider : null;
-      this._urls = { read: opts.readUrl || null, favourite: opts.favouriteUrl || null };
+        opts.account && opts.account.cookies
+          ? new CookieAuth({ platform, cookies: opts.account.cookies })
+          : null;
+      this._fetchFn =
+        typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+      this._signProvider =
+        typeof opts.signProvider === "function" ? opts.signProvider : null;
+      this._urls = {
+        read: opts.readUrl || null,
+        favourite: opts.favouriteUrl || null,
+      };
       this._liveConfigured = Boolean(
-        this._urls.read && this._urls.favourite && typeof opts.fetchFn === "function",
+        this._urls.read &&
+        this._urls.favourite &&
+        typeof opts.fetchFn === "function",
       );
 
       this.name = NAME;
       this.version = VERSION;
+      this.watermarkStrategy = "max-captured-at";
+      this.watermarkRequiresCompleteScan = true;
       this.capabilities = [
         "sync:snapshot",
         ...(this._liveConfigured ? ["sync:custom-cookie-api"] : []),
@@ -100,7 +116,10 @@ function createReadingAdapter(config) {
       this.extractMode = this._liveConfigured ? "web-api" : "file-import";
       this.rateLimits = {};
       this.dataDisclosure = {
-        fields: [`${platform}:read (书名 / 作者 / 分类 / 进度)`, `${platform}:favourite (收藏的书)`],
+        fields: [
+          `${platform}:read (书名 / 作者 / 分类 / 进度)`,
+          `${platform}:favourite (收藏的书)`,
+        ],
         sensitivity: "low",
         legalGate: false,
         defaultInclude: { read: true, favourite: true },
@@ -109,11 +128,19 @@ function createReadingAdapter(config) {
     }
 
     async authenticate(ctx = {}) {
-      if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
+      if (
+        ctx &&
+        typeof ctx.inputPath === "string" &&
+        ctx.inputPath.length > 0
+      ) {
         try {
           this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
         } catch (err) {
-          return { ok: false, reason: "INPUT_PATH_UNREADABLE", message: `snapshot not readable at ${ctx.inputPath}: ${err.message}` };
+          return {
+            ok: false,
+            reason: "INPUT_PATH_UNREADABLE",
+            message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
+          };
         }
         return { ok: true, mode: "snapshot-file" };
       }
@@ -126,8 +153,17 @@ function createReadingAdapter(config) {
       }
       if (this._cookieAuth) {
         const ok = await this._cookieAuth.validate();
-        if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
-        return { ok: true, account: (this.account && this.account.userId) || null, mode: "cookie" };
+        if (!ok)
+          return {
+            ok: false,
+            reason: "INVALID_COOKIE",
+            error: "cookies missing",
+          };
+        return {
+          ok: true,
+          account: (this.account && this.account.userId) || null,
+          mode: "cookie",
+        };
       }
       return {
         ok: false,
@@ -136,10 +172,12 @@ function createReadingAdapter(config) {
       };
     }
 
-    async healthCheck() {
+    async healthCheck(opts = {}) {
       if (this._cookieAuth) {
-        const r = await this.authenticate();
-        return r.ok ? { ok: true, lastChecked: Date.now() } : { ok: false, reason: r.reason, error: r.error };
+        const r = await this.authenticate(opts);
+        return r.ok
+          ? { ok: true, lastChecked: Date.now() }
+          : { ok: false, reason: r.reason, error: r.error };
       }
       return { ok: true, lastChecked: Date.now() };
     }
@@ -154,7 +192,9 @@ function createReadingAdapter(config) {
         return;
       }
       if (this._cookieAuth) {
-        throw new Error(`${NAME}.sync: explicit readUrl + favouriteUrl and fetchFn required for custom cookie collection`);
+        throw new Error(
+          `${NAME}.sync: explicit readUrl + favouriteUrl and fetchFn required for custom cookie collection`,
+        );
       }
       throw new Error(`${NAME}.sync: needs opts.inputPath (snapshot mode)`);
     }
@@ -162,19 +202,36 @@ function createReadingAdapter(config) {
     async *_syncViaSnapshot(opts) {
       const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
       const snapshot = JSON.parse(raw);
-      if (!snapshot || typeof snapshot !== "object" || snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION) {
-        throw new Error(`${NAME}.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`);
+      if (
+        !snapshot ||
+        typeof snapshot !== "object" ||
+        snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
+      ) {
+        throw new Error(
+          `${NAME}.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
+        );
       }
       const fallback =
-        Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0 ? Math.floor(snapshot.snapshottedAt) : Date.now();
-      const account = snapshot.account && typeof snapshot.account === "object" ? snapshot.account : null;
+        Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
+          ? Math.floor(snapshot.snapshottedAt)
+          : Date.now();
+      const account =
+        snapshot.account && typeof snapshot.account === "object"
+          ? snapshot.account
+          : null;
       const include = opts.include || {};
-      const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+      const limit =
+        Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
       const events = Array.isArray(snapshot.events) ? snapshot.events : [];
       let emitted = 0;
       for (const ev of events) {
         if (emitted >= limit) return;
-        if (!ev || typeof ev !== "object" || !VALID_SNAPSHOT_KINDS.includes(ev.kind)) continue;
+        if (
+          !ev ||
+          typeof ev !== "object" ||
+          !VALID_SNAPSHOT_KINDS.includes(ev.kind)
+        )
+          continue;
         if (include[ev.kind] === false) continue;
         const id = (typeof ev.id === "string" && ev.id) || ev.bookId || null;
         yield {
@@ -182,7 +239,11 @@ function createReadingAdapter(config) {
           kind: ev.kind,
           originalId: stableOriginalId(ev.kind, id),
           capturedAt: parseTime(ev.capturedAt) || fallback,
-          payload: { record: snapshotEventToRecord(ev), kind: ev.kind, account },
+          payload: {
+            record: snapshotEventToRecord(ev),
+            kind: ev.kind,
+            account,
+          },
         };
         emitted += 1;
       }
@@ -192,8 +253,16 @@ function createReadingAdapter(config) {
       if (!(await this._cookieAuth.validate())) return;
       const cookies = this._cookieAuth.toHeader();
       const include = opts.include || {};
-      const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
-      const maxPages = Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+      const limit =
+        Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+      const maxPages =
+        Number.isInteger(opts.maxPages) && opts.maxPages > 0
+          ? opts.maxPages
+          : 10;
+      const sinceMs =
+        opts.sinceWatermark != null
+          ? parseInt(String(opts.sinceWatermark), 10) || 0
+          : 0;
 
       const plan = [
         { kind: KIND_READ, url: this._urls.read },
@@ -201,22 +270,40 @@ function createReadingAdapter(config) {
       ];
 
       let emitted = 0;
+      let scanComplete = true;
       for (const step of plan) {
         if (include[step.kind] === false) continue;
         if (!step.url) continue;
         let page = 1;
+        let streamComplete = false;
         while (page <= maxPages) {
           const query = { page, pageSize: PAGE_SIZE };
           let sign = null;
           if (this._signProvider) {
             sign = await this._signProvider({ url: step.url, query, cookies });
           }
-          const resp = await this._fetchFn({ url: step.url, cookies, query, sign });
+          if (typeof opts.beforeSourceRequest === "function") {
+            await opts.beforeSourceRequest({ operation: step.kind, page });
+          }
+          const resp = await this._fetchFn({
+            url: step.url,
+            cookies,
+            query,
+            sign,
+          });
           const items = extractItems(resp) || [];
-          if (!items.length) break;
+          if (!items.length) {
+            streamComplete = true;
+            break;
+          }
+          let reachedWatermark = false;
           for (const it of items) {
             const rec = mapItem(it);
             if (!rec || !rec.bookId) continue;
+            if (rec.occurredAt && rec.occurredAt < sinceMs) {
+              reachedWatermark = true;
+              break;
+            }
             if (emitted >= limit) return;
             yield {
               adapter: NAME,
@@ -227,9 +314,16 @@ function createReadingAdapter(config) {
             };
             emitted += 1;
           }
-          if (items.length < PAGE_SIZE) break;
+          if (reachedWatermark || items.length < PAGE_SIZE) {
+            streamComplete = true;
+            break;
+          }
           page += 1;
         }
+        if (!streamComplete) scanComplete = false;
+      }
+      if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+        opts.markWatermarkComplete();
       }
     }
 
@@ -238,9 +332,18 @@ function createReadingAdapter(config) {
         throw new Error(`${NAME}.normalize: payload.record missing`);
       }
       const kind = raw.kind || raw.payload.kind;
-      const subtype = kind === KIND_FAVOURITE ? EVENT_SUBTYPES.LIKE : EVENT_SUBTYPES.MEDIA;
+      const subtype =
+        kind === KIND_FAVOURITE ? EVENT_SUBTYPES.LIKE : EVENT_SUBTYPES.MEDIA;
       const verb = kind === KIND_FAVOURITE ? "收藏" : "读了";
-      return normalizeBookRecord(raw.payload.record, raw, platform, NAME, VERSION, subtype, verb);
+      return normalizeBookRecord(
+        raw.payload.record,
+        raw,
+        platform,
+        NAME,
+        VERSION,
+        subtype,
+        verb,
+      );
     }
   }
 
@@ -304,7 +407,13 @@ function normalizeBookRecord(rec, raw, platform, NAME, VERSION, subtype, verb) {
         name: rec.author ? `${title} - ${rec.author}` : title,
         ingestedAt,
         source,
-        extra: { platform, kind: "book", bookId: rec.bookId, author: rec.author || null, category: rec.category || null },
+        extra: {
+          platform,
+          kind: "book",
+          bookId: rec.bookId,
+          author: rec.author || null,
+          category: rec.category || null,
+        },
       },
     ],
     persons: [],

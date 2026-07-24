@@ -23,8 +23,9 @@
  *   requires an `x-sign`/`x-mini-wua` token computed by client-side JS. No
  *   pure-Node implementation survives the rotation, so signing is injected via
  *   `opts.signProvider` (async ({ url, query, cookies }) → string|null). When no
- *   signProvider is configured the request is still issued with `sign: null` —
- *   best-effort: the endpoint may 4xx, surfacing as zero events not a crash.
+ *   signProvider is configured the request is still issued with `sign: null`;
+ *   HTTP/non-JSON rejection is surfaced as a sync failure and preserves the
+ *   previous watermark.
  *
  *   ⚠️ The default endpoint (XIANYU_ORDERS_URL) is best-effort and NOT
  *   field-verified — override via `opts.ordersUrl` once the real mtop path is
@@ -52,7 +53,13 @@
 "use strict";
 
 const fs = require("node:fs");
-const { normalizeOrderRecord, CookieAuth } = require("../shopping-base");
+const { createAccountScopeFromAccount } = require("../../account-scope");
+const {
+  normalizeOrderRecord,
+  CookieAuth,
+  hasRuntimeCookie,
+  resolveCookieContext,
+} = require("../shopping-base");
 
 const NAME = "shopping-xianyu";
 const VERSION = "0.1.0";
@@ -60,9 +67,11 @@ const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_ORDER = "order";
 const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_ORDER]);
+const UNKNOWN_ORDERS = Object.freeze([]);
 
 // Best-effort, NOT field-verified. Override via opts.ordersUrl.
-const XIANYU_ORDERS_URL = "https://h5api.m.goofish.com/h5/mtop.idle.trade.order.list/1.0/";
+const XIANYU_ORDERS_URL =
+  "https://h5api.m.goofish.com/h5/mtop.idle.trade.order.list/1.0/";
 
 class XianyuAdapter {
   constructor(opts = {}) {
@@ -70,11 +79,15 @@ class XianyuAdapter {
     // activates only when account.cookies is supplied; account.userId is then
     // required (checked at sync time).
     this.account = opts.account || null;
+    this.defaultScope = createAccountScopeFromAccount(NAME, this.account, [
+      "userId",
+    ]);
     this._cookieAuth =
       opts.account && opts.account.cookies
         ? new CookieAuth({ platform: "xianyu", cookies: opts.account.cookies })
         : null;
-    this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+    this._fetchFn =
+      typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
     // mtop signing seam — see file header. Async fn({ url, query, cookies }) →
     // string|null. When absent, requests carry sign: null.
     this._signProvider =
@@ -85,12 +98,21 @@ class XianyuAdapter {
         : XIANYU_ORDERS_URL;
 
     this.name = NAME;
+    this.runtimeScopeIdentityKey = "userId";
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
     this.version = VERSION;
-    this.capabilities = ["sync:snapshot", "sync:cookie-api", "parse:xianyu-orders"];
+    this.capabilities = [
+      "sync:snapshot",
+      "sync:cookie-api",
+      "parse:xianyu-orders",
+    ];
     this.extractMode = "web-api";
     this.rateLimits = { perMinute: 8, perDay: 200 };
     this.dataDisclosure = {
-      fields: ["xianyu:orderId / side / itemTitle / counterparty / amount / address"],
+      fields: [
+        "xianyu:orderId / side / itemTitle / counterparty / amount / address",
+      ],
       sensitivity: "high",
       legalGate: false,
       defaultInclude: { order: true },
@@ -114,17 +136,29 @@ class XianyuAdapter {
       }
       return { ok: true, mode: "snapshot-file" };
     }
-    if (this._cookieAuth) {
-      const ok = await this._cookieAuth.validate();
-      if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
-      if (!this.account || !this.account.userId) {
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts: ctx,
+      platform: "xianyu",
+      identityKey: "userId",
+    });
+    if (cookieAuth) {
+      const ok = await cookieAuth.validate();
+      if (!ok)
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          error: "cookies missing",
+        };
+      if (!account || !account.userId) {
         return {
           ok: false,
           reason: "NO_ACCOUNT_USER_ID",
           message: "cookie-api mode requires account.userId",
         };
       }
-      return { ok: true, account: this.account.userId, mode: "cookie" };
+      return { ok: true, account: account.userId, mode: "cookie" };
     }
     return {
       ok: false,
@@ -134,9 +168,9 @@ class XianyuAdapter {
     };
   }
 
-  async healthCheck() {
-    if (this._cookieAuth) {
-      const r = await this.authenticate();
+  async healthCheck(opts = {}) {
+    if (this._cookieAuth || hasRuntimeCookie(opts)) {
+      const r = await this.authenticate(opts);
       return r.ok
         ? { ok: true, lastChecked: Date.now() }
         : { ok: false, reason: r.reason, error: r.error };
@@ -149,12 +183,12 @@ class XianyuAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    if (this._cookieAuth) {
+    if (this._cookieAuth || hasRuntimeCookie(opts)) {
       yield* this._syncViaCookie(opts);
       return;
     }
     throw new Error(
-      "XianyuAdapter.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode; 闲鱼's mtop API requires signing supplied via opts.signProvider)",
+      "XianyuAdapter.sync: needs opts.inputPath OR configured account.cookies OR opts.cookie + opts.accountId (cookie-api signing via signProvider)",
     );
   }
 
@@ -220,12 +254,19 @@ class XianyuAdapter {
   }
 
   async *_syncViaCookie(opts = {}) {
-    if (!this.account || !this.account.userId) {
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts,
+      platform: "xianyu",
+      identityKey: "userId",
+    });
+    if (!account || !account.userId) {
       throw new Error(
-        "XianyuAdapter._syncViaCookie: account.userId required (set via new XianyuAdapter({ account: { userId, cookies } }))",
+        "XianyuAdapter._syncViaCookie: account.userId or opts.accountId required",
       );
     }
-    if (!(await this._cookieAuth.validate())) return;
+    if (!cookieAuth || !(await cookieAuth.validate())) return;
     const sinceMs =
       opts.sinceWatermark != null
         ? parseInt(String(opts.sinceWatermark), 10) || 0
@@ -234,29 +275,57 @@ class XianyuAdapter {
     const include = opts.include || {};
     if (include[KIND_ORDER] === false) return;
     // 闲鱼 has separate buy/sell tabs; default to both. opts.sides overrides.
-    const sides = Array.isArray(opts.sides) && opts.sides.length ? opts.sides : ["buy", "sell"];
+    const defaultSides = ["buy", "sell"];
+    const sides =
+      Array.isArray(opts.sides) && opts.sides.length
+        ? opts.sides
+        : defaultSides;
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+    let pagesFetched = 0;
+    let allScansComplete = true;
 
     for (const side of sides) {
+      if (pagesFetched >= maxPages) {
+        allScansComplete = false;
+        break;
+      }
       let pageNumber = 1;
-      while (true) {
-        const query = { pageNumber, pageSize, tab: side, userId: this.account.userId };
+      let sideComplete = false;
+      while (pagesFetched < maxPages) {
+        const query = {
+          pageNumber,
+          pageSize,
+          tab: side,
+          userId: account.userId,
+        };
         // mtop signing seam — best-effort. null when no signProvider.
         let sign = null;
         if (this._signProvider) {
           sign = await this._signProvider({
             url: this._ordersUrl,
             query,
-            cookies: this._cookieAuth.toHeader(),
+            cookies: cookieAuth.toHeader(),
+          });
+        }
+        if (typeof opts.beforeSourceRequest === "function") {
+          await opts.beforeSourceRequest({
+            operation: KIND_ORDER,
+            page: pageNumber,
           });
         }
         const resp = await this._fetchFn({
           url: this._ordersUrl,
-          cookies: this._cookieAuth.toHeader(),
+          cookies: cookieAuth.toHeader(),
           sign,
           query,
         });
+        pagesFetched += 1;
         const orders = extractOrders(resp);
-        if (!orders.length) break;
+        if (!orders.length) {
+          sideComplete = orders !== UNKNOWN_ORDERS;
+          break;
+        }
         let pageHasNew = false;
         let reachedWatermark = false;
         for (const rawOrder of orders) {
@@ -274,9 +343,22 @@ class XianyuAdapter {
             payload: { record: rec },
           };
         }
-        if (reachedWatermark || !pageHasNew || orders.length < pageSize) break;
+        if (reachedWatermark || (pageHasNew && orders.length < pageSize)) {
+          sideComplete = true;
+          break;
+        }
+        if (!pageHasNew) break;
         pageNumber += 1;
       }
+      if (!sideComplete) allScansComplete = false;
+    }
+    const scannedAllSides = defaultSides.every((side) => sides.includes(side));
+    if (
+      scannedAllSides &&
+      allScansComplete &&
+      typeof opts.markWatermarkComplete === "function"
+    ) {
+      opts.markWatermarkComplete();
     }
   }
 
@@ -315,16 +397,18 @@ function stableOriginalId(kind, id) {
  * all common shapes (mtop wraps under data.* ).
  */
 function extractOrders(resp) {
-  if (!resp || typeof resp !== "object") return [];
+  if (!resp || typeof resp !== "object") return UNKNOWN_ORDERS;
   if (Array.isArray(resp)) return resp;
   if (Array.isArray(resp.orders)) return resp.orders;
   if (Array.isArray(resp.order_list)) return resp.order_list;
   if (Array.isArray(resp.list)) return resp.list;
   if (resp.data && Array.isArray(resp.data.orders)) return resp.data.orders;
-  if (resp.data && Array.isArray(resp.data.orderList)) return resp.data.orderList;
+  if (resp.data && Array.isArray(resp.data.orderList))
+    return resp.data.orderList;
   if (resp.data && Array.isArray(resp.data.list)) return resp.data.list;
-  if (resp.data && resp.data.cardList && Array.isArray(resp.data.cardList)) return resp.data.cardList;
-  return [];
+  if (resp.data && resp.data.cardList && Array.isArray(resp.data.cardList))
+    return resp.data.cardList;
+  return UNKNOWN_ORDERS;
 }
 
 /**
@@ -332,9 +416,18 @@ function extractOrders(resp) {
  * various spellings (bought/sold, 买到/卖出, role codes).
  */
 function normSide(side, o) {
-  const s = String(side || (o && (o.tab || o.bizType || o.role || o.orderType)) || "").toLowerCase();
-  if (s.includes("sell") || s.includes("sold") || s.includes("卖") || s === "2") return "sell";
-  if (s.includes("buy") || s.includes("bought") || s.includes("买") || s === "1") return "buy";
+  const s = String(
+    side || (o && (o.tab || o.bizType || o.role || o.orderType)) || "",
+  ).toLowerCase();
+  if (s.includes("sell") || s.includes("sold") || s.includes("卖") || s === "2")
+    return "sell";
+  if (
+    s.includes("buy") ||
+    s.includes("bought") ||
+    s.includes("买") ||
+    s === "1"
+  )
+    return "buy";
   return "buy"; // default: most 闲鱼 history is purchases
 }
 
@@ -346,45 +439,81 @@ function normSide(side, o) {
  */
 function orderToRecord(o, side) {
   if (!o || typeof o !== "object") return null;
-  const orderId = o.order_id || o.orderId || o.bizOrderId || o.id || o.mainOrderId;
+  const orderId =
+    o.order_id || o.orderId || o.bizOrderId || o.id || o.mainOrderId;
   if (!orderId) return null;
   const resolvedSide = normSide(side, o);
-  const title = o.title || o.itemTitle || o.item_title || o.subject || o.auctionTitle || "闲鱼商品";
+  const title =
+    o.title ||
+    o.itemTitle ||
+    o.item_title ||
+    o.subject ||
+    o.auctionTitle ||
+    "闲鱼商品";
   // On a buy the counterparty is the seller; on a sell it's the buyer.
   const counterparty =
     resolvedSide === "sell"
       ? o.buyer_nick || o.buyerNick || o.buyer || o.counterparty || null
       : o.seller_nick || o.sellerNick || o.seller || o.counterparty || null;
 
-  const items = [{
-    name: title,
-    quantity: parseInt(o.quantity || o.itemNum || 1, 10),
-    unitPrice: parseFloat(o.price || o.item_price || o.unitPrice || o.actualFee || 0),
-    sku: o.item_id || o.itemId || o.auctionId || null,
-  }];
+  const items = [
+    {
+      name: title,
+      quantity: parseInt(o.quantity || o.itemNum || 1, 10),
+      unitPrice: parseFloat(
+        o.price || o.item_price || o.unitPrice || o.actualFee || 0,
+      ),
+      sku: o.item_id || o.itemId || o.auctionId || null,
+    },
+  ];
 
   return {
     vendorId: "xianyu",
     orderId: String(orderId),
-    placedAt: parseTime(o.order_time || o.createTime || o.created_at || o.create_at || o.gmtCreate),
+    placedAt: parseTime(
+      o.order_time ||
+        o.createTime ||
+        o.created_at ||
+        o.create_at ||
+        o.gmtCreate,
+    ),
     paidAt: parseTime(o.pay_time || o.payTime || o.paid_at),
-    status: mapStatus(o.status_text || o.statusText || o.status_desc || o.orderStatus || o.status),
+    status: mapStatus(
+      o.status_text ||
+        o.statusText ||
+        o.status_desc ||
+        o.orderStatus ||
+        o.status,
+    ),
     merchantName: counterparty || (resolvedSide === "sell" ? "买家" : "卖家"),
     totalAmount: {
-      value: parseFloat(o.total_amount || o.totalAmount || o.actualFee || o.payAmount || o.price || 0),
+      value: parseFloat(
+        o.total_amount ||
+          o.totalAmount ||
+          o.actualFee ||
+          o.payAmount ||
+          o.price ||
+          0,
+      ),
       currency: "CNY",
     },
     items,
     recipient: o.receiver || o.recipient || o.receiverName || null,
-    shippingAddress: o.address || o.delivery_address || o.deliveryAddress || null,
-    extras: { capturedBy: "cookie-api", platform: "xianyu", side: resolvedSide },
+    shippingAddress:
+      o.address || o.delivery_address || o.deliveryAddress || null,
+    extras: {
+      capturedBy: "cookie-api",
+      platform: "xianyu",
+      side: resolvedSide,
+    },
   };
 }
 
 function snapshotEventToRecord(ev) {
   const side = normSide(ev.side, ev);
   const title = ev.title || ev.itemTitle || ev.name || "闲鱼商品";
-  const rawItems = Array.isArray(ev.items) && ev.items.length ? ev.items : [{ name: title }];
+  const rawItems =
+    Array.isArray(ev.items) && ev.items.length ? ev.items : [{ name: title }];
   const items = [];
   for (const it of rawItems) {
     if (!it) continue;
@@ -431,10 +560,25 @@ function parseTime(v) {
 
 function mapStatus(s) {
   const t = String(s || "").toLowerCase();
-  if (t.includes("退款") || t.includes("退货") || t.includes("refund")) return "refunded";
-  if (t.includes("取消") || t.includes("关闭") || t.includes("cancel")) return "cancelled";
-  if (t.includes("待收货") || t.includes("已发货") || t.includes("运送") || t.includes("shipped")) return "shipped";
-  if (t.includes("已完成") || t.includes("交易成功") || t.includes("已收货") || t.includes("delivered") || t.includes("success")) return "delivered";
+  if (t.includes("退款") || t.includes("退货") || t.includes("refund"))
+    return "refunded";
+  if (t.includes("取消") || t.includes("关闭") || t.includes("cancel"))
+    return "cancelled";
+  if (
+    t.includes("待收货") ||
+    t.includes("已发货") ||
+    t.includes("运送") ||
+    t.includes("shipped")
+  )
+    return "shipped";
+  if (
+    t.includes("已完成") ||
+    t.includes("交易成功") ||
+    t.includes("已收货") ||
+    t.includes("delivered") ||
+    t.includes("success")
+  )
+    return "delivered";
   return "placed";
 }
 

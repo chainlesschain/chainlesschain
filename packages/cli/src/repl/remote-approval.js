@@ -8,10 +8,9 @@
  *     publishes permission.resolved so the phone/web UI clears it)
  *   - remote answer first → cancel the local readline prompt and print
  *     the outcome
- *   - remote leg times out or the bridge closes mid-ask → NOT a decision:
- *     keep waiting on the terminal. A silent phone must never auto-deny a
- *     user sitting at the keyboard — the fail-closed timeout is headless
- *     semantics only.
+ *   - remote leg times out or the bridge closes mid-ask → NOT a remote human
+ *     decision, so keep waiting on the terminal. A later local answer still
+ *     needs the bridge's durable CAS; an expired/closed card cannot be revived.
  *
  * Pure over an injected bridge + local prompt handle ({promise, cancel}),
  * so the race is unit-testable without a WS server or readline.
@@ -46,8 +45,9 @@ export function describeAskContext({
   };
 }
 
-// Remote outcomes that are NOT a decision for an interactive session: the
-// devices went silent (timeout) or the bridge was torn down mid-ask (closed).
+// These outcomes are not a remote human decision. The terminal may still
+// answer, but its result is accepted only if resolveLocally can durably settle
+// the same live card.
 const NON_DECISIVE_REMOTE = new Set(["timeout", "closed"]);
 
 /**
@@ -90,14 +90,14 @@ export async function raceLocalAndRemote({
     winner = await localLeg;
   }
   if (winner.src === "local") {
-    if (requestId) {
-      try {
-        bridge.resolveLocally(requestId, winner.approved);
-      } catch {
-        // clearing the device card is best-effort
-      }
+    if (!requestId) return false;
+    try {
+      const persisted = bridge.resolveLocally(requestId, winner.approved);
+      return persisted === true && winner.approved === true;
+    } catch {
+      // A local "yes" without a durable CAS is not an approval.
+      return false;
     }
-    return winner.approved;
   }
   try {
     local.cancel?.();

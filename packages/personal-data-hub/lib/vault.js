@@ -27,7 +27,11 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const { validate } = require("./schemas");
-const { applyMigrations, getSchemaVersion, getFtsMode } = require("./migrations");
+const {
+  applyMigrations,
+  getSchemaVersion,
+  getFtsMode,
+} = require("./migrations");
 const { isValidKeyHex } = require("./key-providers");
 const { getCategory, PREFIX_RULES } = require("./categories");
 const { likeContains } = require("./sql-like");
@@ -106,6 +110,8 @@ function _categoryToWhere(category, paramPrefix = "cat") {
 const DEFAULT_CIPHER = "sqlcipher";
 const DEFAULT_KDF_ITER = 256000;
 const DEFAULT_CIPHER_PAGE_SIZE = 4096;
+const SYNC_RATE_MINUTE_MS = 60_000;
+const SYNC_RATE_DAY_MS = 24 * 60 * 60_000;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 
@@ -254,7 +260,7 @@ class LocalVault {
     } catch (err) {
       db.close();
       const wrapped = new Error(
-        "LocalVault.open: decryption failed (likely wrong key or corrupted file)"
+        "LocalVault.open: decryption failed (likely wrong key or corrupted file)",
       );
       wrapped.cause = err;
       throw wrapped;
@@ -269,7 +275,9 @@ class LocalVault {
     this.db = db;
 
     if (!this.readonly && !this._skipAudit) {
-      this._auditDirect("vault.opened", this.path, { schemaVersion: getSchemaVersion(db) });
+      this._auditDirect("vault.opened", this.path, {
+        schemaVersion: getSchemaVersion(db),
+      });
     }
 
     return db;
@@ -307,6 +315,13 @@ class LocalVault {
     return this.db;
   }
 
+  _tableHasColumn(table, column) {
+    return this._requireOpen()
+      .prepare(`PRAGMA table_info(${table})`)
+      .all()
+      .some((entry) => entry.name === column);
+  }
+
   // ─── Schema-versioned ID dedup ─────────────────────────────────────────
 
   schemaVersion() {
@@ -323,7 +338,7 @@ class LocalVault {
     const r = validate(event);
     if (!r.valid) {
       throw new Error(
-        `LocalVault.putEvent: invalid event ${event && event.id} — ${r.errors.join("; ")}`
+        `LocalVault.putEvent: invalid event ${event && event.id} — ${r.errors.join("; ")}`,
       );
     }
     const db = this._requireOpen();
@@ -331,9 +346,9 @@ class LocalVault {
       .prepare(
         `INSERT INTO events
         (id, subtype, occurred_at, duration_ms, actor, participants, place, items, topics,
-         content, source_adapter, source_original_id, source, extra, ingested_at, confidence)
+         content, source_adapter, source_scope, source_original_id, source, extra, ingested_at, confidence)
         VALUES (@id, @subtype, @occurredAt, @durationMs, @actor, @participants, @place, @items, @topics,
-                @content, @sourceAdapter, @sourceOriginalId, @source, @extra, @ingestedAt, @confidence)
+                @content, @sourceAdapter, @sourceScope, @sourceOriginalId, @source, @extra, @ingestedAt, @confidence)
         ON CONFLICT(id) DO UPDATE SET
           subtype = excluded.subtype,
           occurred_at = excluded.occurred_at,
@@ -345,12 +360,13 @@ class LocalVault {
           topics = excluded.topics,
           content = excluded.content,
           source_adapter = excluded.source_adapter,
+          source_scope = excluded.source_scope,
           source_original_id = excluded.source_original_id,
           source = excluded.source,
           extra = excluded.extra,
           ingested_at = excluded.ingested_at,
           confidence = excluded.confidence
-        ON CONFLICT(source_adapter, source_original_id)
+        ON CONFLICT(source_adapter, source_scope, source_original_id)
           WHERE source_original_id IS NOT NULL
           DO UPDATE SET
           subtype = excluded.subtype,
@@ -365,7 +381,7 @@ class LocalVault {
           source = excluded.source,
           extra = excluded.extra,
           ingested_at = excluded.ingested_at,
-          confidence = excluded.confidence`
+          confidence = excluded.confidence`,
       )
       .run({
         id: event.id,
@@ -373,12 +389,15 @@ class LocalVault {
         occurredAt: event.occurredAt,
         durationMs: event.durationMs ?? null,
         actor: event.actor ?? null,
-        participants: event.participants ? JSON.stringify(event.participants) : null,
+        participants: event.participants
+          ? JSON.stringify(event.participants)
+          : null,
         place: event.place ?? null,
         items: event.items ? JSON.stringify(event.items) : null,
         topics: event.topics ? JSON.stringify(event.topics) : null,
         content: JSON.stringify(event.content),
         sourceAdapter: event.source.adapter,
+        sourceScope: event.source.scope ?? "",
         sourceOriginalId: event.source.originalId ?? null,
         source: JSON.stringify(event.source),
         extra: event.extra ? JSON.stringify(event.extra) : null,
@@ -391,7 +410,7 @@ class LocalVault {
     const r = validate(person);
     if (!r.valid) {
       throw new Error(
-        `LocalVault.putPerson: invalid person ${person && person.id} — ${r.errors.join("; ")}`
+        `LocalVault.putPerson: invalid person ${person && person.id} — ${r.errors.join("; ")}`,
       );
     }
     const db = this._requireOpen();
@@ -399,9 +418,9 @@ class LocalVault {
       .prepare(
         `INSERT INTO persons
         (id, subtype, names, identifiers, relation, notes,
-         source_adapter, source_original_id, source, extra, ingested_at, confidence)
+         source_adapter, source_scope, source_original_id, source, extra, ingested_at, confidence)
         VALUES (@id, @subtype, @names, @identifiers, @relation, @notes,
-                @sourceAdapter, @sourceOriginalId, @source, @extra, @ingestedAt, @confidence)
+                @sourceAdapter, @sourceScope, @sourceOriginalId, @source, @extra, @ingestedAt, @confidence)
         ON CONFLICT(id) DO UPDATE SET
           subtype = excluded.subtype,
           names = excluded.names,
@@ -409,12 +428,13 @@ class LocalVault {
           relation = excluded.relation,
           notes = excluded.notes,
           source_adapter = excluded.source_adapter,
+          source_scope = excluded.source_scope,
           source_original_id = excluded.source_original_id,
           source = excluded.source,
           extra = excluded.extra,
           ingested_at = excluded.ingested_at,
           confidence = excluded.confidence
-        ON CONFLICT(source_adapter, source_original_id)
+        ON CONFLICT(source_adapter, source_scope, source_original_id)
           WHERE source_original_id IS NOT NULL
           DO UPDATE SET
           subtype = excluded.subtype,
@@ -425,16 +445,19 @@ class LocalVault {
           source = excluded.source,
           extra = excluded.extra,
           ingested_at = excluded.ingested_at,
-          confidence = excluded.confidence`
+          confidence = excluded.confidence`,
       )
       .run({
         id: person.id,
         subtype: person.subtype,
         names: JSON.stringify(person.names),
-        identifiers: person.identifiers ? JSON.stringify(person.identifiers) : null,
+        identifiers: person.identifiers
+          ? JSON.stringify(person.identifiers)
+          : null,
         relation: person.relation ?? null,
         notes: person.notes ?? null,
         sourceAdapter: person.source.adapter,
+        sourceScope: person.source.scope ?? "",
         sourceOriginalId: person.source.originalId ?? null,
         source: JSON.stringify(person.source),
         extra: person.extra ? JSON.stringify(person.extra) : null,
@@ -447,7 +470,7 @@ class LocalVault {
     const r = validate(place);
     if (!r.valid) {
       throw new Error(
-        `LocalVault.putPlace: invalid place ${place && place.id} — ${r.errors.join("; ")}`
+        `LocalVault.putPlace: invalid place ${place && place.id} — ${r.errors.join("; ")}`,
       );
     }
     const db = this._requireOpen();
@@ -455,9 +478,9 @@ class LocalVault {
       .prepare(
         `INSERT INTO places
         (id, name, coordinates_lat, coordinates_lng, address, category, aliases,
-         source_adapter, source_original_id, source, extra, ingested_at, confidence)
+         source_adapter, source_scope, source_original_id, source, extra, ingested_at, confidence)
         VALUES (@id, @name, @lat, @lng, @address, @category, @aliases,
-                @sourceAdapter, @sourceOriginalId, @source, @extra, @ingestedAt, @confidence)
+                @sourceAdapter, @sourceScope, @sourceOriginalId, @source, @extra, @ingestedAt, @confidence)
         ON CONFLICT(id) DO UPDATE SET
           name = excluded.name,
           coordinates_lat = excluded.coordinates_lat,
@@ -466,12 +489,13 @@ class LocalVault {
           category = excluded.category,
           aliases = excluded.aliases,
           source_adapter = excluded.source_adapter,
+          source_scope = excluded.source_scope,
           source_original_id = excluded.source_original_id,
           source = excluded.source,
           extra = excluded.extra,
           ingested_at = excluded.ingested_at,
           confidence = excluded.confidence
-        ON CONFLICT(source_adapter, source_original_id)
+        ON CONFLICT(source_adapter, source_scope, source_original_id)
           WHERE source_original_id IS NOT NULL
           DO UPDATE SET
           name = excluded.name,
@@ -483,7 +507,7 @@ class LocalVault {
           source = excluded.source,
           extra = excluded.extra,
           ingested_at = excluded.ingested_at,
-          confidence = excluded.confidence`
+          confidence = excluded.confidence`,
       )
       .run({
         id: place.id,
@@ -494,6 +518,7 @@ class LocalVault {
         category: place.category ?? null,
         aliases: JSON.stringify(place.aliases),
         sourceAdapter: place.source.adapter,
+        sourceScope: place.source.scope ?? "",
         sourceOriginalId: place.source.originalId ?? null,
         source: JSON.stringify(place.source),
         extra: place.extra ? JSON.stringify(place.extra) : null,
@@ -506,7 +531,7 @@ class LocalVault {
     const r = validate(item);
     if (!r.valid) {
       throw new Error(
-        `LocalVault.putItem: invalid item ${item && item.id} — ${r.errors.join("; ")}`
+        `LocalVault.putItem: invalid item ${item && item.id} — ${r.errors.join("; ")}`,
       );
     }
     const db = this._requireOpen();
@@ -515,10 +540,10 @@ class LocalVault {
         `INSERT INTO items
         (id, subtype, name, category, price_value, price_currency, merchant,
          external_url, thumbnail_local_path,
-         source_adapter, source_original_id, source, extra, ingested_at, confidence)
+         source_adapter, source_scope, source_original_id, source, extra, ingested_at, confidence)
         VALUES (@id, @subtype, @name, @category, @priceValue, @priceCurrency, @merchant,
                 @externalUrl, @thumbnailLocalPath,
-                @sourceAdapter, @sourceOriginalId, @source, @extra, @ingestedAt, @confidence)
+                @sourceAdapter, @sourceScope, @sourceOriginalId, @source, @extra, @ingestedAt, @confidence)
         ON CONFLICT(id) DO UPDATE SET
           subtype = excluded.subtype,
           name = excluded.name,
@@ -529,12 +554,13 @@ class LocalVault {
           external_url = excluded.external_url,
           thumbnail_local_path = excluded.thumbnail_local_path,
           source_adapter = excluded.source_adapter,
+          source_scope = excluded.source_scope,
           source_original_id = excluded.source_original_id,
           source = excluded.source,
           extra = excluded.extra,
           ingested_at = excluded.ingested_at,
           confidence = excluded.confidence
-        ON CONFLICT(source_adapter, source_original_id)
+        ON CONFLICT(source_adapter, source_scope, source_original_id)
           WHERE source_original_id IS NOT NULL
           DO UPDATE SET
           subtype = excluded.subtype,
@@ -548,7 +574,7 @@ class LocalVault {
           source = excluded.source,
           extra = excluded.extra,
           ingested_at = excluded.ingested_at,
-          confidence = excluded.confidence`
+          confidence = excluded.confidence`,
       )
       .run({
         id: item.id,
@@ -561,6 +587,7 @@ class LocalVault {
         externalUrl: item.externalUrl ?? null,
         thumbnailLocalPath: item.thumbnailLocalPath ?? null,
         sourceAdapter: item.source.adapter,
+        sourceScope: item.source.scope ?? "",
         sourceOriginalId: item.source.originalId ?? null,
         source: JSON.stringify(item.source),
         extra: item.extra ? JSON.stringify(item.extra) : null,
@@ -573,7 +600,7 @@ class LocalVault {
     const r = validate(topic);
     if (!r.valid) {
       throw new Error(
-        `LocalVault.putTopic: invalid topic ${topic && topic.id} — ${r.errors.join("; ")}`
+        `LocalVault.putTopic: invalid topic ${topic && topic.id} — ${r.errors.join("; ")}`,
       );
     }
     const db = this._requireOpen();
@@ -581,26 +608,30 @@ class LocalVault {
       .prepare(
         `INSERT INTO topics
         (id, name, parent_topic, derived_from_events,
-         source_adapter, source_original_id, source, extra, ingested_at, confidence)
+         source_adapter, source_scope, source_original_id, source, extra, ingested_at, confidence)
         VALUES (@id, @name, @parentTopic, @derivedFromEvents,
-                @sourceAdapter, @sourceOriginalId, @source, @extra, @ingestedAt, @confidence)
+                @sourceAdapter, @sourceScope, @sourceOriginalId, @source, @extra, @ingestedAt, @confidence)
         ON CONFLICT(id) DO UPDATE SET
           name = excluded.name,
           parent_topic = excluded.parent_topic,
           derived_from_events = excluded.derived_from_events,
           source_adapter = excluded.source_adapter,
+          source_scope = excluded.source_scope,
           source_original_id = excluded.source_original_id,
           source = excluded.source,
           extra = excluded.extra,
           ingested_at = excluded.ingested_at,
-          confidence = excluded.confidence`
+          confidence = excluded.confidence`,
       )
       .run({
         id: topic.id,
         name: topic.name,
         parentTopic: topic.parentTopic ?? null,
-        derivedFromEvents: topic.derivedFromEvents ? JSON.stringify(topic.derivedFromEvents) : null,
+        derivedFromEvents: topic.derivedFromEvents
+          ? JSON.stringify(topic.derivedFromEvents)
+          : null,
         sourceAdapter: topic.source.adapter,
+        sourceScope: topic.source.scope ?? "",
         sourceOriginalId: topic.source.originalId ?? null,
         source: JSON.stringify(topic.source),
         extra: topic.extra ? JSON.stringify(topic.extra) : null,
@@ -653,25 +684,28 @@ class LocalVault {
    * (adapter, originalId) — re-ingest replaces the existing row, preserving
    * the original capture timestamp.
    */
-  putRawEvent({ adapter, originalId, capturedAt, payload }) {
+  putRawEvent({ adapter, scope = "", originalId, capturedAt, payload }) {
     if (typeof adapter !== "string" || adapter.length === 0)
       throw new Error("putRawEvent: adapter required");
+    if (typeof scope !== "string")
+      throw new Error("putRawEvent: scope must be a string");
     if (typeof originalId !== "string" || originalId.length === 0)
       throw new Error("putRawEvent: originalId required");
     if (!Number.isInteger(capturedAt) || capturedAt <= 0)
       throw new Error("putRawEvent: capturedAt must be positive integer ms");
 
     const db = this._requireOpen();
-    const json = typeof payload === "string" ? payload : JSON.stringify(payload);
+    const json =
+      typeof payload === "string" ? payload : JSON.stringify(payload);
     return db
       .prepare(
-        `INSERT INTO raw_events (adapter, original_id, captured_at, payload)
-         VALUES (?, ?, ?, ?)
-         ON CONFLICT(adapter, original_id) DO UPDATE SET
+        `INSERT INTO raw_events (adapter, scope, original_id, captured_at, payload)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(adapter, scope, original_id) DO UPDATE SET
            captured_at = excluded.captured_at,
-           payload = excluded.payload`
+           payload = excluded.payload`,
       )
-      .run(adapter, originalId, capturedAt, json);
+      .run(adapter, scope, originalId, capturedAt, json);
   }
 
   /**
@@ -686,16 +720,31 @@ class LocalVault {
    * @param {number} [opts.offset=0] Skip first N rows
    * @returns {Array<{adapter: string, originalId: string, capturedAt: number, payload: object}>}
    */
-  queryRawEvents({ adapter, limit, offset = 0 } = {}) {
+  queryRawEvents({ adapter, scope, limit, offset = 0 } = {}) {
     const db = this._requireOpen();
+    const hasScope = this._tableHasColumn("raw_events", "scope");
     let sql =
-      "SELECT adapter, original_id, captured_at, payload FROM raw_events";
+      "SELECT adapter, " +
+      (hasScope ? "scope" : "'' AS scope") +
+      ", original_id, captured_at, payload FROM raw_events";
     const args = [];
+    const where = [];
     if (adapter) {
-      sql += " WHERE adapter = ?";
+      where.push("adapter = ?");
       args.push(adapter);
     }
-    sql += " ORDER BY adapter, captured_at, original_id";
+    if (scope !== undefined) {
+      if (typeof scope !== "string") {
+        throw new Error("queryRawEvents: scope must be a string");
+      }
+      if (!hasScope && scope.length > 0) return [];
+      if (hasScope) {
+        where.push("scope = ?");
+        args.push(scope);
+      }
+    }
+    if (where.length > 0) sql += ` WHERE ${where.join(" AND ")}`;
+    sql += " ORDER BY adapter, scope, captured_at, original_id";
     if (Number.isInteger(limit) && limit > 0) {
       sql += " LIMIT ? OFFSET ?";
       args.push(limit, Number.isInteger(offset) ? offset : 0);
@@ -706,6 +755,7 @@ class LocalVault {
     const rows = db.prepare(sql).all(...args);
     return rows.map((r) => ({
       adapter: r.adapter,
+      scope: r.scope,
       originalId: r.original_id,
       capturedAt: r.captured_at,
       payload: (() => {
@@ -722,27 +772,37 @@ class LocalVault {
 
   getEvent(id) {
     ensureValidId(id, "getEvent");
-    const row = this._requireOpen().prepare("SELECT * FROM events WHERE id = ?").get(id);
+    const row = this._requireOpen()
+      .prepare("SELECT * FROM events WHERE id = ?")
+      .get(id);
     return row ? this._rowToEvent(row) : null;
   }
   getPerson(id) {
     ensureValidId(id, "getPerson");
-    const row = this._requireOpen().prepare("SELECT * FROM persons WHERE id = ?").get(id);
+    const row = this._requireOpen()
+      .prepare("SELECT * FROM persons WHERE id = ?")
+      .get(id);
     return row ? this._rowToPerson(row) : null;
   }
   getPlace(id) {
     ensureValidId(id, "getPlace");
-    const row = this._requireOpen().prepare("SELECT * FROM places WHERE id = ?").get(id);
+    const row = this._requireOpen()
+      .prepare("SELECT * FROM places WHERE id = ?")
+      .get(id);
     return row ? this._rowToPlace(row) : null;
   }
   getItem(id) {
     ensureValidId(id, "getItem");
-    const row = this._requireOpen().prepare("SELECT * FROM items WHERE id = ?").get(id);
+    const row = this._requireOpen()
+      .prepare("SELECT * FROM items WHERE id = ?")
+      .get(id);
     return row ? this._rowToItem(row) : null;
   }
   getTopic(id) {
     ensureValidId(id, "getTopic");
-    const row = this._requireOpen().prepare("SELECT * FROM topics WHERE id = ?").get(id);
+    const row = this._requireOpen()
+      .prepare("SELECT * FROM topics WHERE id = ?")
+      .get(id);
     return row ? this._rowToTopic(row) : null;
   }
 
@@ -751,14 +811,31 @@ class LocalVault {
    * before normalizing — adapters do this in their sync loop to skip rows
    * already in the vault.
    */
-  findBySource(table, adapter, originalId) {
+  findBySource(table, adapter, originalId, scope = "") {
     if (!["events", "persons", "places", "items", "topics"].includes(table)) {
       throw new Error(`findBySource: unknown table "${table}"`);
     }
-    if (typeof adapter !== "string" || typeof originalId !== "string") return null;
-    const row = this._requireOpen()
-      .prepare(`SELECT * FROM ${table} WHERE source_adapter = ? AND source_original_id = ?`)
-      .get(adapter, originalId);
+    if (
+      typeof adapter !== "string" ||
+      typeof originalId !== "string" ||
+      typeof scope !== "string"
+    )
+      return null;
+    const hasScope = this._tableHasColumn(table, "source_scope");
+    if (!hasScope && scope.length > 0) return null;
+    const row = hasScope
+      ? this._requireOpen()
+          .prepare(
+            `SELECT * FROM ${table} ` +
+              `WHERE source_adapter = ? AND source_scope = ? AND source_original_id = ?`,
+          )
+          .get(adapter, scope, originalId)
+      : this._requireOpen()
+          .prepare(
+            `SELECT * FROM ${table} ` +
+              `WHERE source_adapter = ? AND source_original_id = ?`,
+          )
+          .get(adapter, originalId);
     if (!row) return null;
     switch (table) {
       case "events":
@@ -818,14 +895,18 @@ class LocalVault {
       // synthetic collection-time occurredAt and would otherwise dominate any
       // time-ordered (occurred_at DESC) query. Rows with no extra.kind are kept.
       const placeholders = q.excludeExtraKinds.map((_v, i) => `@xk${i}`);
-      q.excludeExtraKinds.forEach((v, i) => { params[`xk${i}`] = v; });
+      q.excludeExtraKinds.forEach((v, i) => {
+        params[`xk${i}`] = v;
+      });
       where.push(
         "(json_extract(extra, '$.kind') IS NULL OR json_extract(extra, '$.kind') NOT IN (" +
-        placeholders.join(", ") + "))",
+          placeholders.join(", ") +
+          "))",
       );
     }
 
-    const limit = Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 10000) : 100;
+    const limit =
+      Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 10000) : 100;
     const offset = Number.isInteger(q.offset) && q.offset >= 0 ? q.offset : 0;
     params.limit = limit;
     params.offset = offset;
@@ -867,7 +948,8 @@ class LocalVault {
       where.push("source_adapter = @adapter");
       params.adapter = q.adapter;
     }
-    const limit = Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 10000) : 100;
+    const limit =
+      Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 10000) : 100;
     const offset = Number.isInteger(q.offset) && q.offset >= 0 ? q.offset : 0;
     params.limit = limit;
     params.offset = offset;
@@ -920,7 +1002,7 @@ class LocalVault {
         "identifiers LIKE @qPat ESCAPE '\\' OR " +
         "notes LIKE @qPat ESCAPE '\\' OR " +
         "relation LIKE @qPat ESCAPE '\\'" +
-        ")"
+        ")",
     );
     if (q.subtype) {
       where.push("subtype = @subtype");
@@ -930,12 +1012,14 @@ class LocalVault {
       where.push("source_adapter = @adapter");
       params.adapter = q.adapter;
     }
-    const limit = Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 10000) : 100;
+    const limit =
+      Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 10000) : 100;
     const offset = Number.isInteger(q.offset) && q.offset >= 0 ? q.offset : 0;
     params.limit = limit;
     params.offset = offset;
     const sql =
-      "SELECT * FROM persons WHERE " + where.join(" AND ") +
+      "SELECT * FROM persons WHERE " +
+      where.join(" AND ") +
       " ORDER BY (confidence IS NULL) ASC, confidence DESC, ingested_at DESC" +
       " LIMIT @limit OFFSET @offset";
     return this._requireOpen()
@@ -970,7 +1054,8 @@ class LocalVault {
       where.push("category = @category");
       params.category = q.category;
     }
-    const limit = Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 10000) : 100;
+    const limit =
+      Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 10000) : 100;
     const offset = Number.isInteger(q.offset) && q.offset >= 0 ? q.offset : 0;
     params.limit = limit;
     params.offset = offset;
@@ -1019,7 +1104,8 @@ class LocalVault {
   searchEvents(q = {}) {
     const db = this._requireOpen();
     const mode = this.ftsMode();
-    const limit = Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 500) : 50;
+    const limit =
+      Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 500) : 50;
 
     const where = [];
     const params = { limit: limit + 1 }; // +1 to detect "is there a next page?"
@@ -1043,7 +1129,7 @@ class LocalVault {
       } else {
         params.qLike = likeContains(rawQ);
         where.push(
-          "(subtype LIKE @qLike ESCAPE '\\' OR content LIKE @qLike ESCAPE '\\' OR actor LIKE @qLike ESCAPE '\\' OR place LIKE @qLike ESCAPE '\\' OR extra LIKE @qLike ESCAPE '\\')"
+          "(subtype LIKE @qLike ESCAPE '\\' OR content LIKE @qLike ESCAPE '\\' OR actor LIKE @qLike ESCAPE '\\' OR place LIKE @qLike ESCAPE '\\' OR extra LIKE @qLike ESCAPE '\\')",
         );
       }
     }
@@ -1073,7 +1159,11 @@ class LocalVault {
     }
     // Cursor: rows strictly older than the cursor's (occurred_at, id) tuple.
     // SQLite tuple comparison handles this natively.
-    if (q.cursor && Number.isFinite(q.cursor.occurredAt) && typeof q.cursor.id === "string") {
+    if (
+      q.cursor &&
+      Number.isFinite(q.cursor.occurredAt) &&
+      typeof q.cursor.id === "string"
+    ) {
       where.push("(occurred_at, e.id) < (@cursorAt, @cursorId)");
       params.cursorAt = q.cursor.occurredAt;
       params.cursorId = q.cursor.id;
@@ -1092,7 +1182,8 @@ class LocalVault {
     const last = rows[rows.length - 1];
     return {
       rows: events,
-      nextCursor: hasMore && last ? { occurredAt: last.occurred_at, id: last.id } : null,
+      nextCursor:
+        hasMore && last ? { occurredAt: last.occurred_at, id: last.id } : null,
       mode,
       shortQuery,
     };
@@ -1127,7 +1218,7 @@ class LocalVault {
       } else {
         params.qLike = likeContains(rawQ);
         where.push(
-          "(subtype LIKE @qLike ESCAPE '\\' OR content LIKE @qLike ESCAPE '\\' OR actor LIKE @qLike ESCAPE '\\' OR place LIKE @qLike ESCAPE '\\' OR extra LIKE @qLike ESCAPE '\\')"
+          "(subtype LIKE @qLike ESCAPE '\\' OR content LIKE @qLike ESCAPE '\\' OR actor LIKE @qLike ESCAPE '\\' OR place LIKE @qLike ESCAPE '\\' OR extra LIKE @qLike ESCAPE '\\')",
         );
       }
     }
@@ -1141,16 +1232,19 @@ class LocalVault {
     }
 
     const baseFrom =
-      "FROM events e" + (joinFts ? " JOIN events_fts f ON e.rowid = f.rowid" : "");
+      "FROM events e" +
+      (joinFts ? " JOIN events_fts f ON e.rowid = f.rowid" : "");
     const whereSql = where.length ? " WHERE " + where.join(" AND ") : "";
 
     const adapterRows = db
       .prepare(
-        `SELECT source_adapter AS k, COUNT(*) AS n ${baseFrom}${whereSql} GROUP BY source_adapter`
+        `SELECT source_adapter AS k, COUNT(*) AS n ${baseFrom}${whereSql} GROUP BY source_adapter`,
       )
       .all(params);
     const subtypeRows = db
-      .prepare(`SELECT e.subtype AS k, COUNT(*) AS n ${baseFrom}${whereSql} GROUP BY e.subtype`)
+      .prepare(
+        `SELECT e.subtype AS k, COUNT(*) AS n ${baseFrom}${whereSql} GROUP BY e.subtype`,
+      )
       .all(params);
 
     const byAdapter = {};
@@ -1192,7 +1286,8 @@ class LocalVault {
       params.adapter = q.adapter;
     }
     const sql =
-      "SELECT COUNT(*) as n FROM events" + (where.length ? " WHERE " + where.join(" AND ") : "");
+      "SELECT COUNT(*) as n FROM events" +
+      (where.length ? " WHERE " + where.join(" AND ") : "");
     return this._requireOpen().prepare(sql).get(params).n;
   }
 
@@ -1233,7 +1328,9 @@ class LocalVault {
       // Multi-subtype filter (e.g. all SPEND_SUBTYPES at once) so callers can
       // aggregate a money figure across payment/transfer/refund/… in one SQL
       // pass instead of summing a row-capped JS loop.
-      const names = q.subtypes.filter((s) => typeof s === "string" && s.length > 0);
+      const names = q.subtypes.filter(
+        (s) => typeof s === "string" && s.length > 0,
+      );
       if (names.length > 0) {
         const placeholders = names.map((_s, i) => `@subtype_${i}`);
         where.push(`subtype IN (${placeholders.join(", ")})`);
@@ -1294,7 +1391,10 @@ class LocalVault {
     const primary =
       currencies.length === 0
         ? "CNY"
-        : currencies.reduce((a, b) => (acc[b].count > acc[a].count ? b : a), currencies[0]);
+        : currencies.reduce(
+            (a, b) => (acc[b].count > acc[a].count ? b : a),
+            currencies[0],
+          );
     const byCurrency = {};
     for (const cur of currencies) {
       const e = acc[cur];
@@ -1336,7 +1436,9 @@ class LocalVault {
       params.subtype = q.subtype;
     }
     if (Array.isArray(q.subtypes) && q.subtypes.length > 0) {
-      const names = q.subtypes.filter((s) => typeof s === "string" && s.length > 0);
+      const names = q.subtypes.filter(
+        (s) => typeof s === "string" && s.length > 0,
+      );
       if (names.length > 0) {
         const ph = names.map((_s, i) => `@st_${i}`);
         where.push(`subtype IN (${ph.join(", ")})`);
@@ -1354,7 +1456,8 @@ class LocalVault {
       params.until = q.until;
     }
     const whereSql = where.length ? " WHERE " + where.join(" AND ") : "";
-    const limit = Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 50) : 10;
+    const limit =
+      Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 50) : 10;
     const sql =
       "SELECT adapter, cur, SUM(amt) AS s, COUNT(*) AS c FROM (" +
       "SELECT source_adapter AS adapter, " +
@@ -1378,22 +1481,44 @@ class LocalVault {
       const c = Number(r.c) || 0;
       const e = perCur[cur] || (perCur[cur] = { count: 0, adapters: {} });
       e.count += c;
-      const a = e.adapters[r.adapter] || (e.adapters[r.adapter] = { total: 0, count: 0 });
+      const a =
+        e.adapters[r.adapter] ||
+        (e.adapters[r.adapter] = { total: 0, count: 0 });
       a.total += s;
       a.count += c;
     }
     const curs = Object.keys(perCur);
-    if (curs.length === 0) return { by: "adapter", currency: "CNY", total: 0, count: 0, adapters: [] };
-    const primary = curs.reduce((a, b) => (perCur[b].count > perCur[a].count ? b : a), curs[0]);
+    if (curs.length === 0)
+      return {
+        by: "adapter",
+        currency: "CNY",
+        total: 0,
+        count: 0,
+        adapters: [],
+      };
+    const primary = curs.reduce(
+      (a, b) => (perCur[b].count > perCur[a].count ? b : a),
+      curs[0],
+    );
     const round2 = (n) => Math.round(n * 100) / 100;
     const e = perCur[primary];
     const ranked = Object.entries(e.adapters)
-      .map(([adapter, v]) => ({ adapter, total: round2(v.total), count: v.count }))
+      .map(([adapter, v]) => ({
+        adapter,
+        total: round2(v.total),
+        count: v.count,
+      }))
       .sort((x, y) => y.total - x.total || x.adapter.localeCompare(y.adapter));
     // total = grand spending across ALL adapters in the primary currency (so the
     // LLM knows what fraction the returned top-N covers), not just the top-N sum.
     const total = round2(ranked.reduce((s, a) => s + a.total, 0));
-    return { by: "adapter", currency: primary, total, count: e.count, adapters: ranked.slice(0, limit) };
+    return {
+      by: "adapter",
+      currency: primary,
+      total,
+      count: e.count,
+      adapters: ranked.slice(0, limit),
+    };
   }
 
   /**
@@ -1429,7 +1554,9 @@ class LocalVault {
     if (Array.isArray(q.adapters) && q.adapters.length > 0) {
       // Multi-adapter scope (e.g. QQ = qq-pc + messaging-qq) so "谁发QQ最多"
       // ranks across all of an app's adapters. Takes precedence over single.
-      const names = q.adapters.filter((a) => typeof a === "string" && a.length > 0);
+      const names = q.adapters.filter(
+        (a) => typeof a === "string" && a.length > 0,
+      );
       if (names.length > 0) {
         const ph = names.map((_a, i) => `@ad_${i}`);
         where.push(`source_adapter IN (${ph.join(", ")})`);
@@ -1442,7 +1569,9 @@ class LocalVault {
       params.adapter = q.adapter;
     }
     if (Array.isArray(q.excludeActors) && q.excludeActors.length > 0) {
-      const names = q.excludeActors.filter((a) => typeof a === "string" && a.length > 0);
+      const names = q.excludeActors.filter(
+        (a) => typeof a === "string" && a.length > 0,
+      );
       if (names.length > 0) {
         const ph = names.map((_a, i) => `@ex_${i}`);
         where.push(`actor NOT IN (${ph.join(", ")})`);
@@ -1460,12 +1589,15 @@ class LocalVault {
       where.push("actor != 'self'");
       where.push("actor NOT LIKE '%-self'");
     }
-    const limit = Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 50) : 10;
+    const limit =
+      Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 50) : 10;
     const whereSql = " WHERE " + where.join(" AND ");
     const db = this._requireOpen();
 
     // Grand total of matching events (so the LLM knows what fraction top-N covers).
-    const totalRow = db.prepare("SELECT COUNT(*) AS c FROM events" + whereSql).get(params);
+    const totalRow = db
+      .prepare("SELECT COUNT(*) AS c FROM events" + whereSql)
+      .get(params);
     const total = totalRow ? Number(totalRow.c) || 0 : 0;
 
     // names is a correlated subquery on the group key (e.actor) — runs once per
@@ -1484,7 +1616,8 @@ class LocalVault {
         try {
           const parsed = JSON.parse(r.names);
           if (Array.isArray(parsed)) {
-            name = parsed.find((n) => typeof n === "string" && n.trim()) || null;
+            name =
+              parsed.find((n) => typeof n === "string" && n.trim()) || null;
           } else if (typeof parsed === "string" && parsed.trim()) {
             name = parsed.trim();
           }
@@ -1525,7 +1658,9 @@ class LocalVault {
       params.until = q.until;
     }
     if (Array.isArray(q.adapters) && q.adapters.length > 0) {
-      const names = q.adapters.filter((a) => typeof a === "string" && a.length > 0);
+      const names = q.adapters.filter(
+        (a) => typeof a === "string" && a.length > 0,
+      );
       if (names.length > 0) {
         const ph = names.map((_a, i) => `@ad_${i}`);
         where.push(`e.source_adapter IN (${ph.join(", ")})`);
@@ -1537,8 +1672,10 @@ class LocalVault {
       where.push("e.source_adapter = @adapter");
       params.adapter = q.adapter;
     }
-    const limit = Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 50) : 10;
-    const baseFrom = "FROM events e, json_each(e.topics) je WHERE " + where.join(" AND ");
+    const limit =
+      Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 50) : 10;
+    const baseFrom =
+      "FROM events e, json_each(e.topics) je WHERE " + where.join(" AND ");
     const db = this._requireOpen();
 
     const totalRow = db.prepare("SELECT COUNT(*) AS c " + baseFrom).get(params);
@@ -1583,7 +1720,9 @@ class LocalVault {
       params.until = q.until;
     }
     if (Array.isArray(q.adapters) && q.adapters.length > 0) {
-      const names = q.adapters.filter((a) => typeof a === "string" && a.length > 0);
+      const names = q.adapters.filter(
+        (a) => typeof a === "string" && a.length > 0,
+      );
       if (names.length > 0) {
         const ph = names.map((_a, i) => `@ad_${i}`);
         where.push(`source_adapter IN (${ph.join(", ")})`);
@@ -1602,7 +1741,10 @@ class LocalVault {
     const whereSql = " WHERE " + where.join(" AND ");
     const db = this._requireOpen();
     const row = db
-      .prepare("SELECT COUNT(DISTINCT actor) AS d, COUNT(*) AS e FROM events" + whereSql)
+      .prepare(
+        "SELECT COUNT(DISTINCT actor) AS d, COUNT(*) AS e FROM events" +
+          whereSql,
+      )
       .get(params);
     return {
       distinct: row ? Number(row.d) || 0 : 0,
@@ -1624,7 +1766,9 @@ class LocalVault {
    *            buckets: Array<{bucket:string,label:string,count:number}> }}
    */
   eventHistogram(q = {}) {
-    const bucket = ["hour", "weekday", "month"].includes(q.bucket) ? q.bucket : "hour";
+    const bucket = ["hour", "weekday", "month"].includes(q.bucket)
+      ? q.bucket
+      : "hour";
     const expr = {
       hour: "strftime('%H', occurred_at/1000.0, 'unixepoch', 'localtime')",
       weekday: "strftime('%w', occurred_at/1000.0, 'unixepoch', 'localtime')",
@@ -1646,7 +1790,9 @@ class LocalVault {
       params.until = q.until;
     }
     if (Array.isArray(q.adapters) && q.adapters.length > 0) {
-      const names = q.adapters.filter((a) => typeof a === "string" && a.length > 0);
+      const names = q.adapters.filter(
+        (a) => typeof a === "string" && a.length > 0,
+      );
       if (names.length > 0) {
         const ph = names.map((_a, i) => `@ad_${i}`);
         where.push(`source_adapter IN (${ph.join(", ")})`);
@@ -1660,11 +1806,15 @@ class LocalVault {
     }
     // Exclude inventory snapshots (synthetic collection-time stamps).
     where.push(
-      "(json_extract(extra, '$.kind') IS NULL OR json_extract(extra, '$.kind') NOT IN ('app-snapshot', 'contact-snapshot', 'app-usage-profile'))"
+      "(json_extract(extra, '$.kind') IS NULL OR json_extract(extra, '$.kind') NOT IN ('app-snapshot', 'contact-snapshot', 'app-usage-profile'))",
     );
 
     const sql =
-      "SELECT " + expr + " AS b, COUNT(*) AS c FROM events WHERE " + where.join(" AND ") + " GROUP BY b";
+      "SELECT " +
+      expr +
+      " AS b, COUNT(*) AS c FROM events WHERE " +
+      where.join(" AND ") +
+      " GROUP BY b";
     const rows = this._requireOpen().prepare(sql).all(params);
 
     const counts = {};
@@ -1675,17 +1825,35 @@ class LocalVault {
       total += Number(r.c) || 0;
     }
 
-    const WEEKDAY_LABELS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+    const WEEKDAY_LABELS = [
+      "周日",
+      "周一",
+      "周二",
+      "周三",
+      "周四",
+      "周五",
+      "周六",
+    ];
     let keys;
-    if (bucket === "hour") keys = Array.from({ length: 24 }, (_v, i) => String(i).padStart(2, "0"));
+    if (bucket === "hour")
+      keys = Array.from({ length: 24 }, (_v, i) => String(i).padStart(2, "0"));
     else if (bucket === "weekday") keys = ["0", "1", "2", "3", "4", "5", "6"];
     else keys = Object.keys(counts).sort(); // months chronological
     const label = (k) =>
-      bucket === "hour" ? `${parseInt(k, 10)}点` : bucket === "weekday" ? WEEKDAY_LABELS[parseInt(k, 10)] : k;
+      bucket === "hour"
+        ? `${parseInt(k, 10)}点`
+        : bucket === "weekday"
+          ? WEEKDAY_LABELS[parseInt(k, 10)]
+          : k;
 
-    const buckets = keys.map((k) => ({ bucket: k, label: label(k), count: counts[k] || 0 }));
+    const buckets = keys.map((k) => ({
+      bucket: k,
+      label: label(k),
+      count: counts[k] || 0,
+    }));
     let peak = null;
-    for (const b of buckets) if (b.count > 0 && (!peak || b.count > peak.count)) peak = b;
+    for (const b of buckets)
+      if (b.count > 0 && (!peak || b.count > peak.count)) peak = b;
     return { by: bucket, total, peak, buckets };
   }
 
@@ -1700,7 +1868,7 @@ class LocalVault {
    */
   latestWithPerson(q = {}) {
     const ids = (Array.isArray(q.personIds) ? q.personIds : []).filter(
-      (s) => typeof s === "string" && s.length > 0
+      (s) => typeof s === "string" && s.length > 0,
     );
     if (ids.length === 0) return [];
     const ph = ids.map((_x, i) => `@p${i}`);
@@ -1720,7 +1888,8 @@ class LocalVault {
       where.push("occurred_at <= @until");
       params.until = q.until;
     }
-    const limit = Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 50) : 3;
+    const limit =
+      Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 50) : 3;
     params.limit = limit;
     const sql =
       "SELECT * FROM events WHERE " +
@@ -1741,7 +1910,7 @@ class LocalVault {
     const row = this._requireOpen()
       .prepare(
         `SELECT adapter, scope, watermark, last_synced_at, last_status, last_error
-         FROM sync_watermarks WHERE adapter = ? AND scope = ?`
+         FROM sync_watermarks WHERE adapter = ? AND scope = ?`,
       )
       .get(adapter, scope);
     return row || null;
@@ -1763,7 +1932,7 @@ class LocalVault {
            watermark = excluded.watermark,
            last_synced_at = excluded.last_synced_at,
            last_status = excluded.last_status,
-           last_error = excluded.last_error`
+           last_error = excluded.last_error`,
       )
       .run(
         adapter,
@@ -1771,11 +1940,337 @@ class LocalVault {
         record.watermark != null ? String(record.watermark) : null,
         Number.isInteger(record.lastSyncedAt) ? record.lastSyncedAt : null,
         record.lastStatus != null ? String(record.lastStatus) : null,
-        record.lastError != null ? String(record.lastError) : null
+        record.lastError != null ? String(record.lastError) : null,
       );
   }
 
   // ─── Audit log ─────────────────────────────────────────────────────────
+
+  getSyncScanState(adapter, scope = "") {
+    if (typeof adapter !== "string" || adapter.length === 0) {
+      throw new Error("getSyncScanState: adapter required");
+    }
+    if (typeof scope !== "string") {
+      throw new Error("getSyncScanState: scope must be a string");
+    }
+    return (
+      this._requireOpen()
+        .prepare(
+          `SELECT adapter, scope, page_budget, deferred_count, updated_at
+           FROM sync_scan_state WHERE adapter = ? AND scope = ?`,
+        )
+        .get(adapter, scope) || null
+    );
+  }
+
+  setSyncScanState(adapter, scope, record) {
+    if (typeof adapter !== "string" || adapter.length === 0) {
+      throw new Error("setSyncScanState: adapter required");
+    }
+    if (typeof scope !== "string") {
+      throw new Error("setSyncScanState: scope must be a string");
+    }
+    if (!record || typeof record !== "object") {
+      throw new Error("setSyncScanState: record must be a plain object");
+    }
+    if (!Number.isSafeInteger(record.pageBudget) || record.pageBudget <= 0) {
+      throw new Error(
+        "setSyncScanState: pageBudget must be a positive integer",
+      );
+    }
+    const deferredCount =
+      record.deferredCount === undefined ? 0 : record.deferredCount;
+    if (!Number.isSafeInteger(deferredCount) || deferredCount < 0) {
+      throw new Error(
+        "setSyncScanState: deferredCount must be a non-negative integer",
+      );
+    }
+    const updatedAt = Number.isInteger(record.updatedAt)
+      ? record.updatedAt
+      : Date.now();
+    return this._requireOpen()
+      .prepare(
+        `INSERT INTO sync_scan_state
+           (adapter, scope, page_budget, deferred_count, updated_at)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(adapter, scope) DO UPDATE SET
+           page_budget = excluded.page_budget,
+           deferred_count = excluded.deferred_count,
+           updated_at = excluded.updated_at`,
+      )
+      .run(adapter, scope, record.pageBudget, deferredCount, updatedAt);
+  }
+
+  clearSyncScanState(adapter, scope = "") {
+    if (typeof adapter !== "string" || adapter.length === 0) {
+      throw new Error("clearSyncScanState: adapter required");
+    }
+    if (typeof scope !== "string") {
+      throw new Error("clearSyncScanState: scope must be a string");
+    }
+    return this._requireOpen()
+      .prepare("DELETE FROM sync_scan_state WHERE adapter = ? AND scope = ?")
+      .run(adapter, scope);
+  }
+
+  getSyncRateLimitState(adapter, scope = "") {
+    return this._getRateLimitState(
+      "sync_rate_limit_state",
+      "getSyncRateLimitState",
+      adapter,
+      scope,
+    );
+  }
+
+  getSourceRequestRateLimitState(adapter, scope = "") {
+    return this._getRateLimitState(
+      "source_request_rate_limit_state",
+      "getSourceRequestRateLimitState",
+      adapter,
+      scope,
+    );
+  }
+
+  _getRateLimitState(table, operation, adapter, scope) {
+    if (typeof adapter !== "string" || adapter.length === 0) {
+      throw new Error(`${operation}: adapter required`);
+    }
+    if (typeof scope !== "string") {
+      throw new Error(`${operation}: scope must be a string`);
+    }
+    return (
+      this._requireOpen()
+        .prepare(
+          `SELECT adapter, scope, minute_window_started_at, minute_count,
+                  day_window_started_at, day_count, last_acquired_at, updated_at
+           FROM ${table} WHERE adapter = ? AND scope = ?`,
+        )
+        .get(adapter, scope) || null
+    );
+  }
+
+  /**
+   * Atomically reserve one adapter sync attempt against its declared limits.
+   * Fixed UTC minute/day windows are used so the state stays compact and can
+   * be shared safely by multiple registry processes opening the same vault.
+   *
+   * A value of zero disables that individual limit. Every allowed attempt is
+   * still counted in both windows so changing a declaration cannot erase
+   * traffic that already happened in the current window.
+   */
+  acquireSyncRateLimit(adapter, scope = "", rateLimits = {}, now = Date.now()) {
+    return this._acquireRateLimit(
+      "sync_rate_limit_state",
+      "acquireSyncRateLimit",
+      adapter,
+      scope,
+      rateLimits,
+      now,
+    );
+  }
+
+  /**
+   * Atomically reserve one outbound source request. This state intentionally
+   * lives in a table separate from sync trigger limits: both "how often may a
+   * collection start?" and "how quickly may its pages hit the source?" are
+   * enforced without one counter consuming the other counter's quota.
+   */
+  acquireSourceRequestRateLimit(
+    adapter,
+    scope = "",
+    rateLimits = {},
+    now = Date.now(),
+  ) {
+    return this._acquireRateLimit(
+      "source_request_rate_limit_state",
+      "acquireSourceRequestRateLimit",
+      adapter,
+      scope,
+      rateLimits,
+      now,
+    );
+  }
+
+  _acquireRateLimit(table, operation, adapter, scope, rateLimits, now) {
+    if (typeof adapter !== "string" || adapter.length === 0) {
+      throw new Error(`${operation}: adapter required`);
+    }
+    if (typeof scope !== "string") {
+      throw new Error(`${operation}: scope must be a string`);
+    }
+    if (!rateLimits || typeof rateLimits !== "object") {
+      throw new Error(`${operation}: rateLimits must be an object`);
+    }
+    if (!Number.isSafeInteger(now) || now < 0) {
+      throw new Error(`${operation}: now must be a non-negative safe integer`);
+    }
+    const readLimit = (field) => {
+      const value = rateLimits[field] === undefined ? 0 : rateLimits[field];
+      if (!Number.isSafeInteger(value) || value < 0) {
+        throw new Error(
+          `${operation}: ${field} must be a non-negative safe integer`,
+        );
+      }
+      return value;
+    };
+    const perMinute = readLimit("perMinute");
+    const perDay = readLimit("perDay");
+    const minIntervalMs = readLimit("minIntervalMs");
+    const minuteWindowStartedAt =
+      Math.floor(now / SYNC_RATE_MINUTE_MS) * SYNC_RATE_MINUTE_MS;
+    const dayWindowStartedAt =
+      Math.floor(now / SYNC_RATE_DAY_MS) * SYNC_RATE_DAY_MS;
+    const minuteResetAt = minuteWindowStartedAt + SYNC_RATE_MINUTE_MS;
+    const dayResetAt = dayWindowStartedAt + SYNC_RATE_DAY_MS;
+    const db = this._requireOpen();
+
+    const reserve = db.transaction(() => {
+      const row = db
+        .prepare(
+          `SELECT minute_window_started_at, minute_count,
+                  day_window_started_at, day_count, last_acquired_at
+           FROM ${table} WHERE adapter = ? AND scope = ?`,
+        )
+        .get(adapter, scope);
+      const minuteCount =
+        row && row.minute_window_started_at === minuteWindowStartedAt
+          ? row.minute_count
+          : 0;
+      const dayCount =
+        row && row.day_window_started_at === dayWindowStartedAt
+          ? row.day_count
+          : 0;
+      // A wall-clock rollback or corrupted future timestamp must not lock an
+      // adapter forever. Repair it to "now", deny one minimum interval, and
+      // persist the repair below.
+      const lastAcquiredAt =
+        row &&
+        Number.isSafeInteger(row.last_acquired_at) &&
+        row.last_acquired_at <= now
+          ? row.last_acquired_at
+          : row && row.last_acquired_at != null
+            ? now
+            : null;
+
+      const gates = [];
+      if (
+        minIntervalMs > 0 &&
+        lastAcquiredAt !== null &&
+        now - lastAcquiredAt < minIntervalMs
+      ) {
+        gates.push({
+          reason: "min_interval",
+          waitMs: minIntervalMs - (now - lastAcquiredAt),
+        });
+      }
+      if (perMinute > 0 && minuteCount >= perMinute) {
+        gates.push({
+          reason: "per_minute",
+          waitMs: Math.max(1, minuteResetAt - now),
+        });
+      }
+      if (perDay > 0 && dayCount >= perDay) {
+        gates.push({
+          reason: "per_day",
+          waitMs: Math.max(1, dayResetAt - now),
+        });
+      }
+      gates.sort((left, right) => right.waitMs - left.waitMs);
+      const blockingGate = gates[0] || null;
+
+      const persist = (nextMinuteCount, nextDayCount, acquiredAt) =>
+        db
+          .prepare(
+            `INSERT INTO ${table}
+               (adapter, scope, minute_window_started_at, minute_count,
+                day_window_started_at, day_count, last_acquired_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             ON CONFLICT(adapter, scope) DO UPDATE SET
+               minute_window_started_at = excluded.minute_window_started_at,
+               minute_count = excluded.minute_count,
+               day_window_started_at = excluded.day_window_started_at,
+               day_count = excluded.day_count,
+               last_acquired_at = excluded.last_acquired_at,
+               updated_at = excluded.updated_at`,
+          )
+          .run(
+            adapter,
+            scope,
+            minuteWindowStartedAt,
+            nextMinuteCount,
+            dayWindowStartedAt,
+            nextDayCount,
+            acquiredAt,
+            now,
+          );
+
+      if (blockingGate) {
+        // Persist window rollover and future-clock repair without consuming a
+        // new slot. This makes the next process observe the same decision.
+        persist(minuteCount, dayCount, lastAcquiredAt);
+        return {
+          allowed: false,
+          reason: blockingGate.reason,
+          retryAfterMs: blockingGate.waitMs,
+          retryAt: now + blockingGate.waitMs,
+          remainingMinute:
+            perMinute > 0 ? Math.max(0, perMinute - minuteCount) : null,
+          remainingDay: perDay > 0 ? Math.max(0, perDay - dayCount) : null,
+          minuteResetAt,
+          dayResetAt,
+        };
+      }
+
+      const nextMinuteCount = minuteCount + 1;
+      const nextDayCount = dayCount + 1;
+      persist(nextMinuteCount, nextDayCount, now);
+      return {
+        allowed: true,
+        reason: null,
+        retryAfterMs: 0,
+        retryAt: null,
+        remainingMinute:
+          perMinute > 0 ? Math.max(0, perMinute - nextMinuteCount) : null,
+        remainingDay: perDay > 0 ? Math.max(0, perDay - nextDayCount) : null,
+        minuteResetAt,
+        dayResetAt,
+      };
+    });
+
+    return typeof reserve.immediate === "function"
+      ? reserve.immediate()
+      : reserve();
+  }
+
+  clearSyncRateLimitState(adapter, scope = "") {
+    return this._clearRateLimitState(
+      "sync_rate_limit_state",
+      "clearSyncRateLimitState",
+      adapter,
+      scope,
+    );
+  }
+
+  clearSourceRequestRateLimitState(adapter, scope = "") {
+    return this._clearRateLimitState(
+      "source_request_rate_limit_state",
+      "clearSourceRequestRateLimitState",
+      adapter,
+      scope,
+    );
+  }
+
+  _clearRateLimitState(table, operation, adapter, scope) {
+    if (typeof adapter !== "string" || adapter.length === 0) {
+      throw new Error(`${operation}: adapter required`);
+    }
+    if (typeof scope !== "string") {
+      throw new Error(`${operation}: scope must be a string`);
+    }
+    return this._requireOpen()
+      .prepare(`DELETE FROM ${table} WHERE adapter = ? AND scope = ?`)
+      .run(adapter, scope);
+  }
 
   audit(action, target, details) {
     return this._auditDirect(action, target, details);
@@ -1787,13 +2282,17 @@ class LocalVault {
     }
     return this._requireOpen()
       .prepare(
-        "INSERT INTO audit_log (at, action, target, details) VALUES (?, ?, ?, ?)"
+        "INSERT INTO audit_log (at, action, target, details) VALUES (?, ?, ?, ?)",
       )
       .run(
         Date.now(),
         action,
         target == null ? null : String(target),
-        details == null ? null : typeof details === "string" ? details : JSON.stringify(details)
+        details == null
+          ? null
+          : typeof details === "string"
+            ? details
+            : JSON.stringify(details),
       );
   }
 
@@ -1808,7 +2307,8 @@ class LocalVault {
       where.push("action = @action");
       params.action = action;
     }
-    params.limit = Number.isInteger(limit) && limit > 0 ? Math.min(limit, 10000) : 100;
+    params.limit =
+      Number.isInteger(limit) && limit > 0 ? Math.min(limit, 10000) : 100;
 
     const sql =
       "SELECT * FROM audit_log" +
@@ -1821,9 +2321,14 @@ class LocalVault {
 
   stats() {
     const db = this._requireOpen();
-    const count = (tbl) => db.prepare(`SELECT COUNT(*) as n FROM ${tbl}`).get().n;
+    const count = (tbl) =>
+      db.prepare(`SELECT COUNT(*) as n FROM ${tbl}`).get().n;
     const safeCount = (tbl) => {
-      try { return count(tbl); } catch (_e) { return 0; }
+      try {
+        return count(tbl);
+      } catch (_e) {
+        return 0;
+      }
     };
     return {
       schemaVersion: getSchemaVersion(db),
@@ -1835,6 +2340,11 @@ class LocalVault {
       rawEvents: count("raw_events"),
       auditLog: count("audit_log"),
       watermarks: count("sync_watermarks"),
+      scanStates: safeCount("sync_scan_state"),
+      rateLimitStates: safeCount("sync_rate_limit_state"),
+      sourceRequestRateLimitStates: safeCount(
+        "source_request_rate_limit_state",
+      ),
       // Phase 8 — EntityResolver tables (safeCount because v1 vaults
       // don't have these yet until migrate).
       mergeGroups: safeCount("merge_groups"),
@@ -1857,13 +2367,17 @@ class LocalVault {
       throw new Error("enqueueResolve: personId required");
     }
     const db = this._requireOpen();
-    const existing = db.prepare(
-      "SELECT id FROM resolve_queue WHERE person_id = ? AND status IN ('pending','in-progress')"
-    ).get(personId);
+    const existing = db
+      .prepare(
+        "SELECT id FROM resolve_queue WHERE person_id = ? AND status IN ('pending','in-progress')",
+      )
+      .get(personId);
     if (existing) return existing.id;
-    const info = db.prepare(
-      "INSERT INTO resolve_queue (person_id, enqueued_at, status) VALUES (?, ?, 'pending')"
-    ).run(personId, Date.now());
+    const info = db
+      .prepare(
+        "INSERT INTO resolve_queue (person_id, enqueued_at, status) VALUES (?, ?, 'pending')",
+      )
+      .run(personId, Date.now());
     return info.lastInsertRowid;
   }
 
@@ -1874,12 +2388,14 @@ class LocalVault {
   claimResolveBatch(limit = 50) {
     const db = this._requireOpen();
     const tx = db.transaction(() => {
-      const rows = db.prepare(
-        "SELECT id, person_id, attempts FROM resolve_queue WHERE status = 'pending' ORDER BY enqueued_at LIMIT ?"
-      ).all(limit);
+      const rows = db
+        .prepare(
+          "SELECT id, person_id, attempts FROM resolve_queue WHERE status = 'pending' ORDER BY enqueued_at LIMIT ?",
+        )
+        .all(limit);
       if (rows.length === 0) return [];
       const stmt = db.prepare(
-        "UPDATE resolve_queue SET status = 'in-progress', attempts = attempts + 1 WHERE id = ?"
+        "UPDATE resolve_queue SET status = 'in-progress', attempts = attempts + 1 WHERE id = ?",
       );
       for (const r of rows) stmt.run(r.id);
       return rows;
@@ -1892,7 +2408,9 @@ class LocalVault {
    */
   completeResolve(queueId) {
     const db = this._requireOpen();
-    db.prepare("UPDATE resolve_queue SET status = 'done' WHERE id = ?").run(queueId);
+    db.prepare("UPDATE resolve_queue SET status = 'done' WHERE id = ?").run(
+      queueId,
+    );
   }
 
   /**
@@ -1905,7 +2423,7 @@ class LocalVault {
       `UPDATE resolve_queue
          SET status = CASE WHEN attempts >= 3 THEN 'error' ELSE 'pending' END,
              last_error = ?
-       WHERE id = ?`
+       WHERE id = ?`,
     ).run(errMsg || "unknown", queueId);
   }
 
@@ -1925,16 +2443,26 @@ class LocalVault {
          confidence = excluded.confidence,
          decided_at = excluded.decided_at,
          decided_by = excluded.decided_by,
-         reason = excluded.reason`
-    ).run(lo, hi, verdict, confidence, Date.now(), decidedBy || "rule", reason || null);
+         reason = excluded.reason`,
+    ).run(
+      lo,
+      hi,
+      verdict,
+      confidence,
+      Date.now(),
+      decidedBy || "rule",
+      reason || null,
+    );
   }
 
   getResolveDecision(aId, bId) {
     const db = this._requireOpen();
     const [lo, hi] = aId < bId ? [aId, bId] : [bId, aId];
-    return db.prepare(
-      "SELECT * FROM resolve_decisions WHERE a_person_id = ? AND b_person_id = ?"
-    ).get(lo, hi);
+    return db
+      .prepare(
+        "SELECT * FROM resolve_decisions WHERE a_person_id = ? AND b_person_id = ?",
+      )
+      .get(lo, hi);
   }
 
   /**
@@ -1945,8 +2473,12 @@ class LocalVault {
   mergePair({ aId, bId, joinedBy = "rule" }) {
     const db = this._requireOpen();
     const tx = db.transaction(() => {
-      const aGroup = db.prepare("SELECT group_id FROM merge_members WHERE person_id = ?").get(aId);
-      const bGroup = db.prepare("SELECT group_id FROM merge_members WHERE person_id = ?").get(bId);
+      const aGroup = db
+        .prepare("SELECT group_id FROM merge_members WHERE person_id = ?")
+        .get(aId);
+      const bGroup = db
+        .prepare("SELECT group_id FROM merge_members WHERE person_id = ?")
+        .get(bId);
       const now = Date.now();
 
       if (aGroup && bGroup && aGroup.group_id === bGroup.group_id) {
@@ -1955,40 +2487,42 @@ class LocalVault {
       if (aGroup && bGroup) {
         // Merge two existing groups → keep aGroup, move bGroup members in
         db.prepare(
-          "UPDATE merge_members SET group_id = ? WHERE group_id = ?"
+          "UPDATE merge_members SET group_id = ? WHERE group_id = ?",
         ).run(aGroup.group_id, bGroup.group_id);
-        db.prepare("DELETE FROM merge_groups WHERE id = ?").run(bGroup.group_id);
+        db.prepare("DELETE FROM merge_groups WHERE id = ?").run(
+          bGroup.group_id,
+        );
         db.prepare(
-          "UPDATE merge_groups SET member_count = (SELECT COUNT(*) FROM merge_members WHERE group_id = ?), last_updated = ? WHERE id = ?"
+          "UPDATE merge_groups SET member_count = (SELECT COUNT(*) FROM merge_members WHERE group_id = ?), last_updated = ? WHERE id = ?",
         ).run(aGroup.group_id, now, aGroup.group_id);
         return aGroup.group_id;
       }
       if (aGroup) {
         // Add b to a's group
         db.prepare(
-          "INSERT INTO merge_members (group_id, person_id, joined_at, joined_by) VALUES (?, ?, ?, ?)"
+          "INSERT INTO merge_members (group_id, person_id, joined_at, joined_by) VALUES (?, ?, ?, ?)",
         ).run(aGroup.group_id, bId, now, joinedBy);
         db.prepare(
-          "UPDATE merge_groups SET member_count = member_count + 1, last_updated = ? WHERE id = ?"
+          "UPDATE merge_groups SET member_count = member_count + 1, last_updated = ? WHERE id = ?",
         ).run(now, aGroup.group_id);
         return aGroup.group_id;
       }
       if (bGroup) {
         db.prepare(
-          "INSERT INTO merge_members (group_id, person_id, joined_at, joined_by) VALUES (?, ?, ?, ?)"
+          "INSERT INTO merge_members (group_id, person_id, joined_at, joined_by) VALUES (?, ?, ?, ?)",
         ).run(bGroup.group_id, aId, now, joinedBy);
         db.prepare(
-          "UPDATE merge_groups SET member_count = member_count + 1, last_updated = ? WHERE id = ?"
+          "UPDATE merge_groups SET member_count = member_count + 1, last_updated = ? WHERE id = ?",
         ).run(now, bGroup.group_id);
         return bGroup.group_id;
       }
       // Neither in any group — create new
       const groupId = newGroupId();
       db.prepare(
-        "INSERT INTO merge_groups (id, primary_id, member_count, created_at, last_updated) VALUES (?, ?, 2, ?, ?)"
+        "INSERT INTO merge_groups (id, primary_id, member_count, created_at, last_updated) VALUES (?, ?, 2, ?, ?)",
       ).run(groupId, aId, now, now);
       const ins = db.prepare(
-        "INSERT INTO merge_members (group_id, person_id, joined_at, joined_by) VALUES (?, ?, ?, ?)"
+        "INSERT INTO merge_members (group_id, person_id, joined_at, joined_by) VALUES (?, ?, ?, ?)",
       );
       ins.run(groupId, aId, now, joinedBy);
       ins.run(groupId, bId, now, joinedBy);
@@ -2004,22 +2538,22 @@ class LocalVault {
   unmergePerson(personId) {
     const db = this._requireOpen();
     const tx = db.transaction(() => {
-      const row = db.prepare(
-        "SELECT group_id FROM merge_members WHERE person_id = ?"
-      ).get(personId);
+      const row = db
+        .prepare("SELECT group_id FROM merge_members WHERE person_id = ?")
+        .get(personId);
       if (!row) return { ok: false, reason: "not in any group" };
       const groupId = row.group_id;
       db.prepare("DELETE FROM merge_members WHERE person_id = ?").run(personId);
-      const remaining = db.prepare(
-        "SELECT COUNT(*) as n FROM merge_members WHERE group_id = ?"
-      ).get(groupId).n;
+      const remaining = db
+        .prepare("SELECT COUNT(*) as n FROM merge_members WHERE group_id = ?")
+        .get(groupId).n;
       if (remaining < 2) {
         // Group of 1 or 0 — delete the group + remaining member row
         db.prepare("DELETE FROM merge_members WHERE group_id = ?").run(groupId);
         db.prepare("DELETE FROM merge_groups WHERE id = ?").run(groupId);
       } else {
         db.prepare(
-          "UPDATE merge_groups SET member_count = ?, last_updated = ? WHERE id = ?"
+          "UPDATE merge_groups SET member_count = ?, last_updated = ? WHERE id = ?",
         ).run(remaining, Date.now(), groupId);
       }
       return { ok: true, groupId, remaining };
@@ -2034,13 +2568,16 @@ class LocalVault {
    */
   getMergeGroupMembers(personId) {
     const db = this._requireOpen();
-    const groupRow = db.prepare(
-      "SELECT group_id FROM merge_members WHERE person_id = ?"
-    ).get(personId);
+    const groupRow = db
+      .prepare("SELECT group_id FROM merge_members WHERE person_id = ?")
+      .get(personId);
     if (!groupRow) return [personId];
-    return db.prepare(
-      "SELECT person_id FROM merge_members WHERE group_id = ? ORDER BY joined_at"
-    ).all(groupRow.group_id).map((r) => r.person_id);
+    return db
+      .prepare(
+        "SELECT person_id FROM merge_members WHERE group_id = ? ORDER BY joined_at",
+      )
+      .all(groupRow.group_id)
+      .map((r) => r.person_id);
   }
 
   /**
@@ -2050,11 +2587,21 @@ class LocalVault {
   enqueueReview({ aId, bId, embedSim, llmVerdict, llmReason, llmConfidence }) {
     const db = this._requireOpen();
     const [lo, hi] = aId < bId ? [aId, bId] : [bId, aId];
-    const info = db.prepare(
-      `INSERT INTO review_queue
+    const info = db
+      .prepare(
+        `INSERT INTO review_queue
          (a_person_id, b_person_id, embed_sim, llm_verdict, llm_reason, llm_confidence, enqueued_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).run(lo, hi, embedSim || null, llmVerdict || null, llmReason || null, llmConfidence || null, Date.now());
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        lo,
+        hi,
+        embedSim || null,
+        llmVerdict || null,
+        llmReason || null,
+        llmConfidence || null,
+        Date.now(),
+      );
     return info.lastInsertRowid;
   }
 
@@ -2063,9 +2610,11 @@ class LocalVault {
    */
   listReviewQueue({ limit = 50 } = {}) {
     const db = this._requireOpen();
-    return db.prepare(
-      "SELECT * FROM review_queue WHERE reviewed_at IS NULL ORDER BY enqueued_at ASC LIMIT ?"
-    ).all(Math.min(limit, 1000));
+    return db
+      .prepare(
+        "SELECT * FROM review_queue WHERE reviewed_at IS NULL ORDER BY enqueued_at ASC LIMIT ?",
+      )
+      .all(Math.min(limit, 1000));
   }
 
   /**
@@ -2076,19 +2625,23 @@ class LocalVault {
       throw new Error(`invalid review decision: ${decision}`);
     }
     const db = this._requireOpen();
-    const row = db.prepare("SELECT * FROM review_queue WHERE id = ?").get(reviewId);
+    const row = db
+      .prepare("SELECT * FROM review_queue WHERE id = ?")
+      .get(reviewId);
     if (!row) throw new Error(`review row ${reviewId} not found`);
     db.prepare(
-      "UPDATE review_queue SET reviewed_at = ?, user_decision = ? WHERE id = ?"
+      "UPDATE review_queue SET reviewed_at = ?, user_decision = ? WHERE id = ?",
     ).run(Date.now(), decision, reviewId);
     return row;
   }
 
   resolveQueueStats() {
     const db = this._requireOpen();
-    const rows = db.prepare(
-      "SELECT status, COUNT(*) as n FROM resolve_queue GROUP BY status"
-    ).all();
+    const rows = db
+      .prepare(
+        "SELECT status, COUNT(*) as n FROM resolve_queue GROUP BY status",
+      )
+      .all();
     const out = { pending: 0, "in-progress": 0, done: 0, error: 0 };
     for (const r of rows) out[r.status] = r.n;
     return out;
@@ -2113,7 +2666,9 @@ class LocalVault {
       throw new Error("rotateKey: newKeyHex must be 64 hex chars (32 bytes)");
     }
     if (newKeyHex === this._key) {
-      throw new Error("rotateKey: new key equals current key — refusing no-op rotation");
+      throw new Error(
+        "rotateKey: new key equals current key — refusing no-op rotation",
+      );
     }
     const db = this._requireOpen();
 
@@ -2160,7 +2715,9 @@ class LocalVault {
       occurredAt: row.occurred_at,
       ...(row.duration_ms != null ? { durationMs: row.duration_ms } : {}),
       ...(row.actor != null ? { actor: row.actor } : {}),
-      ...(row.participants ? { participants: this._parseJson(row.participants, []) } : {}),
+      ...(row.participants
+        ? { participants: this._parseJson(row.participants, []) }
+        : {}),
       ...(row.place != null ? { place: row.place } : {}),
       ...(row.items ? { items: this._parseJson(row.items, []) } : {}),
       ...(row.topics ? { topics: this._parseJson(row.topics, []) } : {}),
@@ -2178,7 +2735,9 @@ class LocalVault {
       type: "person",
       subtype: row.subtype,
       names: this._parseJson(row.names, []),
-      ...(row.identifiers ? { identifiers: this._parseJson(row.identifiers, {}) } : {}),
+      ...(row.identifiers
+        ? { identifiers: this._parseJson(row.identifiers, {}) }
+        : {}),
       ...(row.relation != null ? { relation: row.relation } : {}),
       ...(row.notes != null ? { notes: row.notes } : {}),
       source: this._parseJson(row.source, {}),
@@ -2194,7 +2753,9 @@ class LocalVault {
       type: "place",
       name: row.name,
       ...(row.coordinates_lat != null && row.coordinates_lng != null
-        ? { coordinates: { lat: row.coordinates_lat, lng: row.coordinates_lng } }
+        ? {
+            coordinates: { lat: row.coordinates_lat, lng: row.coordinates_lng },
+          }
         : {}),
       ...(row.address != null ? { address: row.address } : {}),
       ...(row.category != null ? { category: row.category } : {}),

@@ -11,7 +11,7 @@ const { newId } = require("../../ids");
 const { parseContent, isGroupTalker } = require("./content-parser");
 
 const NAME = "wechat";
-const VERSION = "0.5.0"; // Phase 12 v0.5 — frida-indep slice
+const VERSION = "0.6.0"; // generic inputPath file-import alias
 
 /**
  * Map a single message row to a NormalizedBatch.

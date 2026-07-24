@@ -33,6 +33,9 @@ const { ipcMain } = require("electron");
 const { logger } = require("../utils/logger.js");
 const hubWiring = require("../personal-data-hub/wiring.js");
 const {
+  runDedicatedBatchCollectors,
+} = require("../personal-data-hub/sync-result.js");
+const {
   getAIChatWizard,
 } = require("../personal-data-hub/aichat-wizard-factory.js");
 const {
@@ -163,7 +166,8 @@ function register() {
     `${NS}:sync-all`,
     safe(async ({ options }) => {
       const hub = await hubWiring.getHub();
-      return await hub.registry.syncAll(options || {});
+      const registryReports = await hub.registry.syncAll(options || {});
+      return await runDedicatedBatchCollectors(hub, registryReports);
     }),
   );
 
@@ -304,6 +308,14 @@ function register() {
   );
 
   ipcMain.handle(
+    `${NS}:activate-email`,
+    safe(async ({ email }) => {
+      const hub = await hubWiring.getHub();
+      return await hub.activateEmailAdapter(email);
+    }),
+  );
+
+  ipcMain.handle(
     `${NS}:unregister-email`,
     safe(async ({ email }) => {
       const hub = await hubWiring.getHub();
@@ -334,6 +346,14 @@ function register() {
     safe(async ({ account, opts }) => {
       const hub = await hubWiring.getHub();
       return await hub.registerAlipayAdapter({ account, opts: opts || {} });
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:activate-alipay`,
+    safe(async ({ email }) => {
+      const hub = await hubWiring.getHub();
+      return await hub.activateAlipayAdapter(email);
     }),
   );
 
@@ -391,6 +411,17 @@ function register() {
         });
       },
     ),
+  );
+
+  ipcMain.handle(
+    `${NS}:activate-wechat`,
+    safe(async ({ uin, fridaOpts, keyProviderOverride }) => {
+      const hub = await hubWiring.getHub();
+      return await hub.activateWechatAdapter(uin, {
+        fridaOpts,
+        keyProviderOverride,
+      });
+    }),
   );
 
   ipcMain.handle(
@@ -610,7 +641,8 @@ function register() {
           }
         };
         try {
-          return await hub.registry.syncAll(options || {});
+          const registryReports = await hub.registry.syncAll(options || {});
+          return await runDedicatedBatchCollectors(hub, registryReports);
         } finally {
           hub.registry.onSyncEvent = original;
         }
@@ -660,6 +692,7 @@ function unregister() {
     // Phase 5.6
     "test-email-auth",
     "register-email",
+    "activate-email",
     "unregister-email",
     "list-email-accounts",
     "event-detail",
@@ -668,9 +701,16 @@ function unregister() {
     "sync-all-stream",
     // Phase 6 — Alipay bill import
     "register-alipay",
+    "activate-alipay",
     "unregister-alipay",
     "list-alipay-accounts",
     "import-alipay-bill",
+    // Phase 12.6.8 — WeChat account management
+    "wechat-env-probe",
+    "register-wechat",
+    "activate-wechat",
+    "unregister-wechat",
+    "list-wechat-accounts",
     // Phase 10.3 — AIChat WebView wizard
     "aichat-open-login",
     "aichat-probe-cookies",

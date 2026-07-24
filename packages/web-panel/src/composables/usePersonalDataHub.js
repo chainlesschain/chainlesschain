@@ -73,7 +73,9 @@ function _sendStream(ws, type, payload, onEvent, timeoutMs) {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      try { dispose(); } catch (_e) {}
+      try {
+        dispose();
+      } catch (_e) {}
       fn(value);
     };
 
@@ -90,7 +92,9 @@ function _sendStream(ws, type, payload, onEvent, timeoutMs) {
       if (msg.id !== id && msg.requestId !== id) return;
       if (msg.type === eventType) {
         if (typeof onEvent === "function") {
-          try { onEvent(msg.event || msg); } catch (_e) {}
+          try {
+            onEvent(msg.event || msg);
+          } catch (_e) {}
         }
         return;
       }
@@ -108,7 +112,9 @@ function _sendStream(ws, type, payload, onEvent, timeoutMs) {
     // reply (the first `.event`); we ignore its promise to avoid an
     // unhandled-rejection if the server returns an error frame — that
     // path is already covered by the onMessage handler above.
-    Promise.resolve(ws.sendRaw({ id, type, ...payload }, timeoutMs)).catch(() => {});
+    Promise.resolve(ws.sendRaw({ id, type, ...payload }, timeoutMs)).catch(
+      () => {},
+    );
   });
 }
 
@@ -159,7 +165,7 @@ export function usePersonalDataHub() {
 
     /**
      * Per-adapter readiness — "能否采集 + 不能的原因". Each entry:
-     *   { name, version, extractMode, sensitivity, legalGate,
+     *   { name, version, capabilities, extractMode, sensitivity, legalGate,
      *     ready, status, category, reason, message, actionHint, mode,
      *     lastSyncedAt, lastStatus, lastError }
      * status ∈ ready | needs_setup | unavailable | error.
@@ -187,11 +193,7 @@ export function usePersonalDataHub() {
 
     /** Run every registered adapter sequentially. */
     async syncAll(options = {}) {
-      return await send(
-        "personal-data-hub.sync-all",
-        { options },
-        600_000,
-      );
+      return await send("personal-data-hub.sync-all", { options }, 600_000);
     },
 
     /** Register the bundled MockAdapter (dev / demo only). */
@@ -230,11 +232,7 @@ export function usePersonalDataHub() {
      * Returns array of Event entities (with `extra`, `participants`, etc. intact).
      */
     async queryEvents(filters = {}) {
-      return await send(
-        "personal-data-hub.query-events",
-        filters,
-        10000,
-      );
+      return await send("personal-data-hub.query-events", filters, 10000);
     },
 
     /** Recent audit rows. Args: { since, action, limit } */
@@ -273,7 +271,11 @@ export function usePersonalDataHub() {
      * @param {{provider, email, authCode, host?, port?, secure?}} account
      */
     async testEmailAuth(account) {
-      return await send("personal-data-hub.test-email-auth", { account }, 30_000);
+      return await send(
+        "personal-data-hub.test-email-auth",
+        { account },
+        30_000,
+      );
     },
 
     /**
@@ -291,16 +293,17 @@ export function usePersonalDataHub() {
 
     /** Remove an email account by address. Vault data stays. */
     async unregisterEmail(email) {
-      return await send(
-        "personal-data-hub.unregister-email",
-        { email },
-        5000,
-      );
+      return await send("personal-data-hub.unregister-email", { email }, 5000);
     },
 
     /** List persisted email accounts (authCode is NOT returned). */
     async listEmailAccounts() {
       return await send("personal-data-hub.list-email-accounts", {}, 5000);
+    },
+
+    /** Activate a saved email account without resubmitting its auth code. */
+    async activateEmail(email) {
+      return await send("personal-data-hub.activate-email", { email }, 5000);
     },
 
     /**
@@ -309,11 +312,7 @@ export function usePersonalDataHub() {
      * "click a citation in ask result" → drill-down panel.
      */
     async eventDetail(eventId) {
-      return await send(
-        "personal-data-hub.event-detail",
-        { eventId },
-        5000,
-      );
+      return await send("personal-data-hub.event-detail", { eventId }, 5000);
     },
 
     /**
@@ -365,15 +364,16 @@ export function usePersonalDataHub() {
     },
 
     async unregisterAlipay(email) {
-      return await send(
-        "personal-data-hub.unregister-alipay",
-        { email },
-        5000,
-      );
+      return await send("personal-data-hub.unregister-alipay", { email }, 5000);
     },
 
     async listAlipayAccounts() {
       return await send("personal-data-hub.list-alipay-accounts", {}, 5000);
+    },
+
+    /** Activate a saved Alipay account without rewriting its configuration. */
+    async activateAlipay(email) {
+      return await send("personal-data-hub.activate-alipay", { email }, 5000);
     },
 
     /**
@@ -520,11 +520,7 @@ export function usePersonalDataHub() {
      *   lastHealth: { ok, reason?, at? }, cookieSpecVersion, cookieNames }]
      */
     async listAichatAccounts() {
-      return await send(
-        "personal-data-hub.list-aichat-accounts",
-        {},
-        5_000,
-      );
+      return await send("personal-data-hub.list-aichat-accounts", {}, 5_000);
     },
 
     /**
@@ -570,7 +566,13 @@ export function usePersonalDataHub() {
      * `adb pull`. Server selects md5 / frida provider automatically per
      * env-probe; `keyProviderOverride` forces the choice if needed.
      */
-    async registerWechat({ account, dbPath, wechatDataPath, fridaOpts, keyProviderOverride } = {}) {
+    async registerWechat({
+      account,
+      dbPath,
+      wechatDataPath,
+      fridaOpts,
+      keyProviderOverride,
+    } = {}) {
       return await send(
         "personal-data-hub.register-wechat",
         { account, dbPath, wechatDataPath, fridaOpts, keyProviderOverride },
@@ -580,6 +582,18 @@ export function usePersonalDataHub() {
 
     async listWechatAccounts() {
       return await send("personal-data-hub.list-wechat-accounts", {}, 5_000);
+    },
+
+    async activateWechat(uin, opts = {}) {
+      return await send(
+        "personal-data-hub.activate-wechat",
+        {
+          uin,
+          fridaOpts: opts.fridaOpts,
+          keyProviderOverride: opts.keyProviderOverride,
+        },
+        45_000,
+      );
     },
 
     async unregisterWechat(uin) {

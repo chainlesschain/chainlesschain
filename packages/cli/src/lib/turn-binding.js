@@ -13,6 +13,7 @@
  *     -> toolCallIds[]            (tool_use_ids this turn issued)
  *     -> permissionDecisionIds[]  (approval decisions made this turn)
  *     -> childAgentIds[]          (sub-agents spawned this turn)
+ *     -> childBindings[]          (child trace/checkpoint/worktree lineage)
  *     -> worktreeId               (isolation worktree, if any)
  *     -> coverage: full | partial | none
  *
@@ -90,6 +91,7 @@ function emptyRecord(turnId, conversationOffset) {
     toolCallIds: [],
     permissionDecisionIds: [],
     childAgentIds: [],
+    childBindings: [],
     worktreeId: null,
     // side-effect flags → coverage (kept internal; surfaced via `coverage`)
     _flags: {
@@ -157,6 +159,39 @@ export class TurnBindingLog {
 
   recordChildAgent(turnId, childAgentId) {
     pushUnique(this._rec(turnId).childAgentIds, childAgentId);
+    return this;
+  }
+
+  recordChildBinding(turnId, binding) {
+    if (!binding || typeof binding !== "object") return this;
+    const childAgentId =
+      binding.childAgentId == null ? null : String(binding.childAgentId);
+    if (!childAgentId) return this;
+    const normalized = {
+      childAgentId,
+      parentAgentId:
+        binding.parentAgentId == null ? null : String(binding.parentAgentId),
+      traceId: binding.traceId == null ? null : String(binding.traceId),
+      parentTraceId:
+        binding.parentTraceId == null ? null : String(binding.parentTraceId),
+      checkpointIds: Array.isArray(binding.checkpointIds)
+        ? [...new Set(binding.checkpointIds.map(String))]
+        : [],
+      toolUseIds: Array.isArray(binding.toolUseIds)
+        ? [...new Set(binding.toolUseIds.map(String))]
+        : [],
+      worktreeId:
+        binding.worktreeId == null ? null : String(binding.worktreeId),
+      worktreePath:
+        binding.worktreePath == null ? null : String(binding.worktreePath),
+    };
+    const rec = this._rec(turnId);
+    const index = rec.childBindings.findIndex(
+      (item) => item.childAgentId === childAgentId,
+    );
+    if (index === -1) rec.childBindings.push(normalized);
+    else rec.childBindings[index] = normalized;
+    pushUnique(rec.childAgentIds, childAgentId);
     return this;
   }
 
@@ -231,6 +266,11 @@ export class TurnBindingLog {
       toolCallIds: [...rec.toolCallIds],
       permissionDecisionIds: [...rec.permissionDecisionIds],
       childAgentIds: [...rec.childAgentIds],
+      childBindings: rec.childBindings.map((binding) => ({
+        ...binding,
+        checkpointIds: [...binding.checkpointIds],
+        toolUseIds: [...binding.toolUseIds],
+      })),
       worktreeId: rec.worktreeId,
       coverage: computeCoverage(rec._flags),
     };
@@ -259,6 +299,22 @@ export class TurnBindingLog {
           : [],
         childAgentIds: Array.isArray(r.childAgentIds)
           ? [...r.childAgentIds]
+          : [],
+        childBindings: Array.isArray(r.childBindings)
+          ? r.childBindings.map((binding) => ({
+              childAgentId: String(binding.childAgentId),
+              parentAgentId: binding.parentAgentId ?? null,
+              traceId: binding.traceId ?? null,
+              parentTraceId: binding.parentTraceId ?? null,
+              checkpointIds: Array.isArray(binding.checkpointIds)
+                ? binding.checkpointIds.map(String)
+                : [],
+              toolUseIds: Array.isArray(binding.toolUseIds)
+                ? binding.toolUseIds.map(String)
+                : [],
+              worktreeId: binding.worktreeId ?? null,
+              worktreePath: binding.worktreePath ?? null,
+            }))
           : [],
         worktreeId: r.worktreeId ?? null,
         _flags: { ...emptyRecord(id)._flags, ...(r._flags || {}) },
@@ -428,16 +484,12 @@ export function buildTurnBindingFromMarks(turns = [], marks = []) {
 /**
  * Stateful feeder turning raw agent-loop events into TurnBindingLog records —
  * the SHARED producer core for every runner (headless and the interactive
- * REPL), so id synthesis and the event→table mapping can never drift between
- * them. Provider tool_use ids are not visible on the yielded event stream, so
- * tool-call ids are synthesized `<nonce>:c<seq>` and turn ids `<nonce>:t<seq>`
- * (mirrors the side-effect ledger's op-id scheme — stable within a run, unique
- * across resumes as long as `nonce` is per-run unique).
+ * REPL). Provider tool ids are consumed directly; ids are synthesized only for
+ * legacy/custom event sources that omit `tool_use_id`.
  *
- * Dirty-gating: `beginTurn` alone never marks the table dirty, so a tool-free
- * turn costs the caller zero persistence writes; only a recorded signal
- * (checkpoint / tool call / permission decision / child agent / a supersede
- * prune) does.
+ * Every begun turn marks the table dirty. Tool-free turns still need an
+ * explicit `full` coverage record; otherwise restore/history consumers cannot
+ * distinguish "nothing happened" from "the producer failed to record".
  *
  * @param {{log?: TurnBindingLog, nonce?: string}} [opts]
  */
@@ -458,8 +510,7 @@ export function createTurnBindingFeed({
      * contract `pickPersistedTurn` relies on). `supersede: true` first prunes
      * records at/after that offset (live-REPL rewind/clear/compaction rule);
      * append-only runners leave it off. `worktreeId` stamps the run's isolation
-     * worktree onto the record (does NOT mark dirty by itself — a tool-free
-     * turn in a worktree still writes nothing).
+     * worktree onto the record.
      */
     beginTurn(
       conversationOffset,
@@ -471,6 +522,7 @@ export function createTurnBindingFeed({
       currentTurnId = `${nonce}:t${turnSeq++}`;
       log.startTurn(currentTurnId, { conversationOffset });
       if (worktreeId != null) log.setWorktree(currentTurnId, worktreeId);
+      dirty = true;
       return currentTurnId;
     },
     currentTurnId: () => currentTurnId,
@@ -486,27 +538,41 @@ export function createTurnBindingFeed({
           }
           break;
         case "tool-executing": {
-          const callId = `${nonce}:c${callSeq++}`;
+          const callId =
+            event.tool_use_id == null
+              ? `${nonce}:c${callSeq++}`
+              : String(event.tool_use_id);
           currentCallId = callId;
           log.recordToolCall(turnId, callId, { name: event.tool });
           dirty = true;
           break;
         }
         case "tool-result": {
-          // A gated tool surfaces its permission decision on `result.policy`;
-          // re-derive a stable decision id feeder-side (core's own id hangs
-          // off the provider call id, which the event stream does not expose).
+          const callId =
+            event.tool_use_id == null
+              ? currentCallId
+              : String(event.tool_use_id);
+          // New core events expose the exact decision id. Legacy/custom event
+          // sources retain the deterministic compatibility derivation.
           const policy = event.result?.policy;
           if (policy && (policy.via || policy.decision)) {
             log.recordPermissionDecision(
               turnId,
-              `${currentCallId || "call"}:perm:${policy.via || policy.decision}`,
+              event.permission_decision_id ||
+                `${callId || "call"}:perm:${policy.via || policy.decision}`,
             );
+            dirty = true;
+          }
+          if (event.result?.userEdited === true) {
+            log.markUserEdit(turnId);
             dirty = true;
           }
           // Foreground spawn_sub_agent reports its child id on the result.
           if (event.result?.subAgentId) {
             log.recordChildAgent(turnId, event.result.subAgentId);
+            if (event.result.childBinding) {
+              log.recordChildBinding(turnId, event.result.childBinding);
+            }
             dirty = true;
           }
           currentCallId = null;
@@ -515,6 +581,9 @@ export function createTurnBindingFeed({
         case "background-sub-agent-result":
           if (event.subAgentId) {
             log.recordChildAgent(turnId, event.subAgentId);
+            if (event.childBinding) {
+              log.recordChildBinding(turnId, event.childBinding);
+            }
             dirty = true;
           }
           break;

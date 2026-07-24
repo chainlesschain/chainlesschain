@@ -341,6 +341,68 @@ final class HubViewModelsTests: XCTestCase {
         XCTAssertEqual(vm.lastReport?.durationMs, 5000)
     }
 
+    func test_adapters_sync_unhealthy_report_surfaces_error_without_throwing() async throws {
+        let s = await makeSetup()
+        let dispatcher = HubSyncEventDispatcher(eventStream: AsyncStream { _ in })
+        let vm = HubAdaptersViewModel(
+            pcPeerId: "pc", commands: s.cmds, dispatcher: dispatcher
+        )
+        try await tick()
+        _ = try await respondToLast(
+            s, method: "personal-data-hub.list-adapters",
+            result: ["adapters": []]
+        )
+        try await tick()
+
+        Task { await vm.sync(name: "email-imap") }
+        try await tick()
+        _ = try await respondToLast(
+            s, method: "personal-data-hub.sync-adapter",
+            result: [
+                "adapter": "email-imap",
+                "status": "unhealthy",
+                "error": "NO_INPUT"
+            ]
+        )
+        try await tick()
+
+        XCTAssertNil(vm.syncingAdapter)
+        XCTAssertEqual(vm.lastReport?.status, "unhealthy")
+        XCTAssertEqual(vm.errorMessage, "同步失败：NO_INPUT")
+    }
+
+    func test_adapters_sync_skipped_report_surfaces_notice_not_error() async throws {
+        let s = await makeSetup()
+        let dispatcher = HubSyncEventDispatcher(eventStream: AsyncStream { _ in })
+        let vm = HubAdaptersViewModel(
+            pcPeerId: "pc", commands: s.cmds, dispatcher: dispatcher
+        )
+        try await tick()
+        _ = try await respondToLast(
+            s, method: "personal-data-hub.list-adapters",
+            result: ["adapters": []]
+        )
+        try await tick()
+
+        Task { await vm.sync(name: "apple-health") }
+        try await tick()
+        _ = try await respondToLast(
+            s, method: "personal-data-hub.sync-adapter",
+            result: [
+                "adapter": "apple-health",
+                "status": "skipped",
+                "skipReason": "NO_INPUT",
+                "skipMessage": "需要选择 export.xml"
+            ]
+        )
+        try await tick()
+
+        XCTAssertNil(vm.syncingAdapter)
+        XCTAssertNil(vm.errorMessage)
+        XCTAssertEqual(vm.noticeMessage, "未同步：需要选择 export.xml")
+        XCTAssertTrue(vm.lastReport?.isSkipped == true)
+    }
+
     func test_adapters_syncStream_mirrors_dispatcher_progress() async throws {
         let s = await makeSetup()
         let dispatcher = HubSyncEventDispatcher(eventStream: AsyncStream { _ in })

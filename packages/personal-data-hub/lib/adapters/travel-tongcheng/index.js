@@ -35,7 +35,11 @@
 "use strict";
 
 const fs = require("node:fs");
-const { normalizeTravelRecord, parseChineseDateTime } = require("../travel-base");
+const { createAccountScopeFromAccount } = require("../../account-scope");
+const {
+  normalizeTravelRecord,
+  parseChineseDateTime,
+} = require("../travel-base");
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "travel-tongcheng";
@@ -81,14 +85,21 @@ const TYPE_MAP = {
 class TongchengAdapter {
   constructor(opts = {}) {
     this.account = opts.account || null;
+    this.defaultScope = createAccountScopeFromAccount(NAME, this.account, [
+      "email",
+    ]);
     this._dataPath = opts.dataPath || null;
 
     // cookie-api mode — activates when account.cookies is supplied.
     this._cookieAuth =
       opts.account && opts.account.cookies
-        ? new CookieAuth({ platform: "tongcheng", cookies: opts.account.cookies })
+        ? new CookieAuth({
+            platform: "tongcheng",
+            cookies: opts.account.cookies,
+          })
         : null;
-    this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+    this._fetchFn =
+      typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
     this._signProvider =
       typeof opts.signProvider === "function" ? opts.signProvider : null;
     this._ordersUrl =
@@ -97,6 +108,8 @@ class TongchengAdapter {
         : TONGCHENG_ORDERS_URL;
 
     this.name = NAME;
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
     this.version = VERSION;
     this.capabilities = [
       "import:json",
@@ -135,7 +148,11 @@ class TongchengAdapter {
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
       if (!ok) {
-        return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          error: "cookies missing",
+        };
       }
       // account is OPTIONAL in cookie mode — the .ly.com cookie carries identity.
       return {
@@ -200,7 +217,9 @@ class TongchengAdapter {
       opts.sinceWatermark != null
         ? parseInt(String(opts.sinceWatermark), 10) || 0
         : Date.now() - 365 * 24 * 3600_000; // default last year
-    const pageSize = Number.isFinite(opts.pageSize) ? opts.pageSize : DEFAULT_PAGE_SIZE;
+    const pageSize = Number.isFinite(opts.pageSize)
+      ? opts.pageSize
+      : DEFAULT_PAGE_SIZE;
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0
         ? opts.maxPages
@@ -210,14 +229,24 @@ class TongchengAdapter {
 
     let emitted = 0;
     let pageIndex = 1;
+    let scanComplete = false;
     while (pageIndex <= maxPages) {
       const query = { pageIndex, pageSize, ts: Date.now() };
       // sign seam — best-effort. null when no signProvider.
       let sign = null;
       if (this._signProvider) {
-        sign = await this._signProvider({ url: this._ordersUrl, query, cookies });
+        sign = await this._signProvider({
+          url: this._ordersUrl,
+          query,
+          cookies,
+        });
       }
-      const resp = await this._fetchFn({ url: this._ordersUrl, cookies, query, sign });
+      const resp = await this._fetchFn({
+        url: this._ordersUrl,
+        cookies,
+        query,
+        sign,
+      });
       const orders = extractOrders(resp);
       if (!orders.length) break;
 
@@ -241,8 +270,15 @@ class TongchengAdapter {
         };
         emitted += 1;
       }
-      if (reachedWatermark || !pageHasNew || orders.length < pageSize) break;
+      if (reachedWatermark || orders.length < pageSize) {
+        scanComplete = true;
+        break;
+      }
+      if (!pageHasNew) break;
       pageIndex += 1;
+    }
+    if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+      opts.markWatermarkComplete();
     }
   }
 
@@ -279,7 +315,12 @@ function parseRecords(text) {
 function orderToRecord(o, opts = {}) {
   if (!o || typeof o !== "object") return null;
   const recordId =
-    o.orderId || o.orderSerialId || o.serialId || o.id || o.order_no || o.orderNo;
+    o.orderId ||
+    o.orderSerialId ||
+    o.serialId ||
+    o.id ||
+    o.order_no ||
+    o.orderNo;
   if (!recordId) return null;
   const type = (
     o.type ||
@@ -318,26 +359,66 @@ function orderToRecord(o, opts = {}) {
         ? { city: o.fromCity || o.from_city || o.depCity || o.departureCity }
         : null,
     to:
-      o.toCity || o.to_city || o.arrCity || o.arrivalCity || o.hotelCity || o.sceneryName
-        ? { city: o.toCity || o.to_city || o.arrCity || o.arrivalCity || o.hotelCity || o.sceneryName }
+      o.toCity ||
+      o.to_city ||
+      o.arrCity ||
+      o.arrivalCity ||
+      o.hotelCity ||
+      o.sceneryName
+        ? {
+            city:
+              o.toCity ||
+              o.to_city ||
+              o.arrCity ||
+              o.arrivalCity ||
+              o.hotelCity ||
+              o.sceneryName,
+          }
         : null,
     departureMs: numberOrParse(
-      o.departureTime || o.dep_time || o.departureDate || o.useDate || o.checkIn || o.check_in || o.startDate,
+      o.departureTime ||
+        o.dep_time ||
+        o.departureDate ||
+        o.useDate ||
+        o.checkIn ||
+        o.check_in ||
+        o.startDate,
     ),
     arrivalMs: numberOrParse(
-      o.arrivalTime || o.arr_time || o.arrivalDate || o.checkOut || o.check_out || o.endDate,
+      o.arrivalTime ||
+        o.arr_time ||
+        o.arrivalDate ||
+        o.checkOut ||
+        o.check_out ||
+        o.endDate,
     ),
     carrier:
-      o.carrier || o.airline || o.airlineName || o.hotelName || o.hotel_name || o.sceneryName || o.title || "同程",
-    vehicleNumber: o.flightNumber || o.flight_no || o.trainNumber || o.train_no || o.trainNo,
+      o.carrier ||
+      o.airline ||
+      o.airlineName ||
+      o.hotelName ||
+      o.hotel_name ||
+      o.sceneryName ||
+      o.title ||
+      "同程",
+    vehicleNumber:
+      o.flightNumber || o.flight_no || o.trainNumber || o.train_no || o.trainNo,
     totalCost:
       priceRaw != null
         ? { value: parseFloat(priceRaw), currency: o.currency || "CNY" }
         : null,
     traveler:
-      o.passengerName || o.passenger || o.guestName || o.guest_name || o.linkName || o.contactName,
-    confirmationCode: o.confirmationCode || o.pnr || o.confirmation_no || o.serialId,
-    bookedAt: numberOrParse(o.bookedAt || o.order_time || o.orderDate || o.createDate || o.createTime),
+      o.passengerName ||
+      o.passenger ||
+      o.guestName ||
+      o.guest_name ||
+      o.linkName ||
+      o.contactName,
+    confirmationCode:
+      o.confirmationCode || o.pnr || o.confirmation_no || o.serialId,
+    bookedAt: numberOrParse(
+      o.bookedAt || o.order_time || o.orderDate || o.createDate || o.createTime,
+    ),
     extras: {
       type,
       ...(o.nights != null ? { nights: o.nights } : {}),
@@ -379,7 +460,9 @@ async function defaultFetch(_opts) {
   // Pure-Node has no HTTP layer; the host (Android cc → OkHttp; desktop hub →
   // Electron WebView net) injects a real fetchFn. A missing fetchFn is a wiring
   // bug, not a runtime data condition, so it throws loudly (mirrors travel-ctrip).
-  throw new Error("travel-tongcheng: no fetchFn configured for cookie-api mode");
+  throw new Error(
+    "travel-tongcheng: no fetchFn configured for cookie-api mode",
+  );
 }
 
 module.exports = {

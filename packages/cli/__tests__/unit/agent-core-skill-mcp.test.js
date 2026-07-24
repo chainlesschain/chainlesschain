@@ -56,6 +56,7 @@ describe("run_skill: Skill-Embedded MCP integration", () => {
   function registerSkill({
     id,
     mcpServers = [],
+    capabilities = [],
     handlerBody = "return { success: true, receivedMcp: !!taskContext.mcpClient, mounted: taskContext.mountedMcpServers };",
   }) {
     const skillDir = join(tempDir, id);
@@ -81,6 +82,7 @@ describe("run_skill: Skill-Embedded MCP integration", () => {
       description: id,
       skillDir,
       mcpServers,
+      capabilities,
       isolation: false,
     });
   }
@@ -162,6 +164,34 @@ describe("run_skill: Skill-Embedded MCP integration", () => {
     expect(result.success).toBe(true);
     expect(fakeMcp.connect).not.toHaveBeenCalled();
     expect(fakeMcp.disconnect).not.toHaveBeenCalled();
+  });
+
+  it("injects a process facade only for shell-exec skills", async () => {
+    registerSkill({
+      id: "shell-skill",
+      capabilities: ["shell-exec"],
+      handlerBody:
+        "return { success: true, brokered: !!taskContext.processBroker };",
+    });
+    registerSkill({
+      id: "plain-skill",
+      handlerBody:
+        "return { success: true, brokered: !!taskContext.processBroker };",
+    });
+
+    const shellResult = await executeTool(
+      "run_skill",
+      { skill_name: "shell-skill", input: "x" },
+      { cwd: tempDir },
+    );
+    const plainResult = await executeTool(
+      "run_skill",
+      { skill_name: "plain-skill", input: "x" },
+      { cwd: tempDir },
+    );
+
+    expect(shellResult.brokered).toBe(true);
+    expect(plainResult.brokered).toBe(false);
   });
 
   it("skips mounting when mcpClient is null but still runs handler", async () => {

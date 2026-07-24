@@ -19,6 +19,11 @@ describe("useCodingAgentStore", () => {
 
     codingAgentApi = {
       respondApproval: vi.fn().mockResolvedValue({ success: true }),
+      respondQuestion: vi.fn().mockResolvedValue({
+        success: true,
+        sessionId: "session-1",
+        requestId: "question-1",
+      }),
       interrupt: vi.fn().mockResolvedValue({ success: true }),
       getSessionState: vi.fn().mockResolvedValue({
         success: true,
@@ -389,6 +394,60 @@ describe("useCodingAgentStore", () => {
     await store.interrupt();
 
     expect(codingAgentApi.interrupt).toHaveBeenCalledWith("session-1");
+  });
+
+  it("answers a bound AskUserQuestion through the shared question bridge", async () => {
+    const { useCodingAgentStore } = await import("../coding-agent");
+    const store = useCodingAgentStore();
+    store.currentSessionId = "session-1";
+    store.events = [
+      {
+        id: "event-question-1",
+        type: "question_request",
+        timestamp: new Date().toISOString(),
+        sessionId: "session-1",
+        requestId: "question-1",
+        payload: {
+          id: "question-1",
+          question: "Choose an environment",
+          options: ["staging", "production"],
+          turnId: "turn-1",
+          toolUseId: "tool-use-1",
+        },
+      },
+    ] as any;
+
+    expect(store.latestQuestionRequest?.requestId).toBe("question-1");
+    expect(store.latestMcpElicitation).toBeNull();
+
+    const answered = await store.respondQuestion({
+      sessionId: "session-1",
+      requestId: "question-1",
+      turnId: "turn-1",
+      toolUseId: "tool-use-1",
+      action: "accept",
+      answer: "staging",
+    });
+
+    expect(answered).toBe(true);
+    expect(codingAgentApi.respondQuestion).toHaveBeenCalledWith({
+      sessionId: "session-1",
+      requestId: "question-1",
+      turnId: "turn-1",
+      toolUseId: "tool-use-1",
+      action: "accept",
+      answer: "staging",
+    });
+    expect(store.latestQuestionRequest).toBeNull();
+
+    const crossSession = await store.respondQuestion({
+      sessionId: "session-2",
+      requestId: "question-1",
+      action: "accept",
+      answer: "production",
+    });
+    expect(crossSession).toBe(false);
+    expect(codingAgentApi.respondQuestion).toHaveBeenCalledTimes(1);
   });
 
   it("initEventListeners prefers subscribeEvents when available", async () => {

@@ -7,13 +7,17 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
-const { execFileSync } = require("node:child_process");
+const { execFile } = require("node:child_process");
 
 function defaultCodeRoots() {
   const home = os.homedir();
   if (process.platform === "win32") {
     // Most devs on Windows use C:\code\ or ~/code/.
-    const candidates = ["C:\\code", path.join(home, "code"), path.join(home, "projects")];
+    const candidates = [
+      "C:\\code",
+      path.join(home, "code"),
+      path.join(home, "projects"),
+    ];
     return candidates.filter((d) => {
       try {
         return fs.statSync(d).isDirectory();
@@ -22,15 +26,17 @@ function defaultCodeRoots() {
       }
     });
   }
-  return [path.join(home, "code"), path.join(home, "projects"), path.join(home, "src")].filter(
-    (d) => {
-      try {
-        return fs.statSync(d).isDirectory();
-      } catch {
-        return false;
-      }
-    },
-  );
+  return [
+    path.join(home, "code"),
+    path.join(home, "projects"),
+    path.join(home, "src"),
+  ].filter((d) => {
+    try {
+      return fs.statSync(d).isDirectory();
+    } catch {
+      return false;
+    }
+  });
 }
 
 // Find every `.git` directory one level under each root. Skips bare /
@@ -64,14 +70,18 @@ const FIELD_SEP = ""; // SOH — guaranteed absent from commit metadata
 const ROW_SEP = ""; // RS
 
 function listCommits(repoDir, opts = {}) {
-  const sinceMs = Number.isInteger(opts.since) && opts.since > 0 ? opts.since : 0;
+  const sinceMs =
+    Number.isInteger(opts.since) && opts.since > 0 ? opts.since : 0;
   // git wants ISO-ish dates or relative; use unix-seconds for precision.
-  const sinceArg = sinceMs > 0 ? `--since=@${Math.floor(sinceMs / 1000)}` : "--since=180.days";
-  const maxN = Number.isInteger(opts.maxPerRepo) && opts.maxPerRepo > 0 ? opts.maxPerRepo : 500;
+  const sinceArg =
+    sinceMs > 0 ? `--since=@${Math.floor(sinceMs / 1000)}` : "--since=180.days";
+  const maxN =
+    Number.isInteger(opts.maxPerRepo) && opts.maxPerRepo > 0
+      ? opts.maxPerRepo
+      : 500;
   const fmt = ["%H", "%aI", "%an", "%ae", "%s"].join(FIELD_SEP) + ROW_SEP;
-  let stdout = "";
-  try {
-    stdout = execFileSync(
+  return new Promise((resolve) => {
+    execFile(
       "git",
       [
         "-C",
@@ -89,13 +99,21 @@ function listCommits(repoDir, opts = {}) {
         stdio: ["ignore", "pipe", "ignore"],
         maxBuffer: 32 * 1024 * 1024, // 32 MB — handles repos with many commits
       },
+      (error, stdout) => {
+        if (error) {
+          resolve([]);
+          return;
+        }
+        resolve(parseGitLog(stdout, repoDir));
+      },
     );
-  } catch {
-    return [];
-  }
+  });
+}
+
+function parseGitLog(stdout, repoDir) {
   const repoName = path.basename(repoDir);
   const out = [];
-  for (const raw of stdout.split(ROW_SEP)) {
+  for (const raw of String(stdout || "").split(ROW_SEP)) {
     const line = raw.replace(/^[\r\n]+/, "").replace(/[\r\n]+$/, "");
     if (!line) continue;
     const parts = line.split(FIELD_SEP);
@@ -122,4 +140,5 @@ module.exports = {
   defaultCodeRoots,
   findGitRepos,
   listCommits,
+  parseGitLog,
 };

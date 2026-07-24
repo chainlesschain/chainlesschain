@@ -805,8 +805,10 @@ class UnifiedConfigManager {
         // run the privileged method directly.
         approvalChannelsForMobile: [
           "personal-data-hub.register-email",
+          "personal-data-hub.activate-email",
           "personal-data-hub.unregister-email",
           "personal-data-hub.register-alipay",
+          "personal-data-hub.activate-alipay",
           "personal-data-hub.unregister-alipay",
           "personal-data-hub.unregister",
           // destroy wipes the entire PDH vault (potentially years of personal
@@ -831,6 +833,7 @@ class UnifiedConfigManager {
           // from silently wiring a WeChat adapter against an attacker-
           // controlled DB path or forcing a Frida session.
           "personal-data-hub.register-wechat",
+          "personal-data-hub.activate-wechat",
           // unregister-wechat drops the row + unregisters the adapter
           // from the in-memory registry; mirror gating policy.
           "personal-data-hub.unregister-wechat",

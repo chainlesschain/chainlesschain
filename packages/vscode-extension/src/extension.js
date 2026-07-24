@@ -212,7 +212,7 @@ async function startBridge(context) {
       port: _port,
       token,
       workspaceFolders: _workspaceFolders,
-      allowInsecurePermissions: lockfileSecurity.allowInsecurePermissions,
+      securityPolicy: lockfileSecurity,
     });
   } catch (e) {
     // A permission/verification failure happens after the ephemeral port was

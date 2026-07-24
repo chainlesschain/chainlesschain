@@ -19,8 +19,9 @@
  *   VIP's mapi endpoints require an `api_sign`/`fdc_area_id` style token. No
  *   pure-Node implementation survives the rotation, so signing is injected via
  *   `opts.signProvider` (async ({ url, query, cookies }) → string|null). When no
- *   signProvider is configured the request is still issued with `sign: null` —
- *   best-effort: the endpoint may 4xx, surfacing as zero events not a crash.
+ *   signProvider is configured the request is still issued with `sign: null`;
+ *   HTTP/non-JSON rejection is surfaced as a sync failure and preserves the
+ *   previous watermark.
  *
  *   ⚠️ The default endpoint (VIPSHOP_ORDERS_URL) is best-effort and NOT
  *   field-verified — override via `opts.ordersUrl` once the real path is
@@ -47,7 +48,13 @@
 "use strict";
 
 const fs = require("node:fs");
-const { normalizeOrderRecord, CookieAuth } = require("../shopping-base");
+const { createAccountScopeFromAccount } = require("../../account-scope");
+const {
+  normalizeOrderRecord,
+  CookieAuth,
+  hasRuntimeCookie,
+  resolveCookieContext,
+} = require("../shopping-base");
 
 const NAME = "shopping-vipshop";
 const VERSION = "0.1.0";
@@ -55,9 +62,11 @@ const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_ORDER = "order";
 const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_ORDER]);
+const UNKNOWN_ORDERS = Object.freeze([]);
 
 // Best-effort, NOT field-verified. Override via opts.ordersUrl.
-const VIPSHOP_ORDERS_URL = "https://mapi.vip.com/vips-mobile/rest/order/list/v2";
+const VIPSHOP_ORDERS_URL =
+  "https://mapi.vip.com/vips-mobile/rest/order/list/v2";
 
 class VipshopAdapter {
   constructor(opts = {}) {
@@ -65,11 +74,15 @@ class VipshopAdapter {
     // activates only when account.cookies is supplied; account.userId is then
     // required (checked at sync time).
     this.account = opts.account || null;
+    this.defaultScope = createAccountScopeFromAccount(NAME, this.account, [
+      "userId",
+    ]);
     this._cookieAuth =
       opts.account && opts.account.cookies
         ? new CookieAuth({ platform: "vipshop", cookies: opts.account.cookies })
         : null;
-    this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+    this._fetchFn =
+      typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
     // VIP signing seam — see file header. Async fn({ url, query, cookies }) →
     // string|null. When absent, requests carry sign: null.
     this._signProvider =
@@ -80,12 +93,21 @@ class VipshopAdapter {
         : VIPSHOP_ORDERS_URL;
 
     this.name = NAME;
+    this.runtimeScopeIdentityKey = "userId";
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
     this.version = VERSION;
-    this.capabilities = ["sync:snapshot", "sync:cookie-api", "parse:vipshop-orders"];
+    this.capabilities = [
+      "sync:snapshot",
+      "sync:cookie-api",
+      "parse:vipshop-orders",
+    ];
     this.extractMode = "web-api";
     this.rateLimits = { perMinute: 8, perDay: 200 };
     this.dataDisclosure = {
-      fields: ["vipshop:orderSn / brandName / goods / amount / deliveryAddress"],
+      fields: [
+        "vipshop:orderSn / brandName / goods / amount / deliveryAddress",
+      ],
       sensitivity: "high",
       legalGate: false,
       defaultInclude: { order: true },
@@ -109,17 +131,29 @@ class VipshopAdapter {
       }
       return { ok: true, mode: "snapshot-file" };
     }
-    if (this._cookieAuth) {
-      const ok = await this._cookieAuth.validate();
-      if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
-      if (!this.account || !this.account.userId) {
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts: ctx,
+      platform: "vipshop",
+      identityKey: "userId",
+    });
+    if (cookieAuth) {
+      const ok = await cookieAuth.validate();
+      if (!ok)
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          error: "cookies missing",
+        };
+      if (!account || !account.userId) {
         return {
           ok: false,
           reason: "NO_ACCOUNT_USER_ID",
           message: "cookie-api mode requires account.userId",
         };
       }
-      return { ok: true, account: this.account.userId, mode: "cookie" };
+      return { ok: true, account: account.userId, mode: "cookie" };
     }
     return {
       ok: false,
@@ -129,9 +163,9 @@ class VipshopAdapter {
     };
   }
 
-  async healthCheck() {
-    if (this._cookieAuth) {
-      const r = await this.authenticate();
+  async healthCheck(opts = {}) {
+    if (this._cookieAuth || hasRuntimeCookie(opts)) {
+      const r = await this.authenticate(opts);
       return r.ok
         ? { ok: true, lastChecked: Date.now() }
         : { ok: false, reason: r.reason, error: r.error };
@@ -144,12 +178,12 @@ class VipshopAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    if (this._cookieAuth) {
+    if (this._cookieAuth || hasRuntimeCookie(opts)) {
       yield* this._syncViaCookie(opts);
       return;
     }
     throw new Error(
-      "VipshopAdapter.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode; VIP's mapi requires signing supplied via opts.signProvider)",
+      "VipshopAdapter.sync: needs opts.inputPath OR configured account.cookies OR opts.cookie + opts.accountId (cookie-api signing via signProvider)",
     );
   }
 
@@ -215,12 +249,19 @@ class VipshopAdapter {
   }
 
   async *_syncViaCookie(opts = {}) {
-    if (!this.account || !this.account.userId) {
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts,
+      platform: "vipshop",
+      identityKey: "userId",
+    });
+    if (!account || !account.userId) {
       throw new Error(
-        "VipshopAdapter._syncViaCookie: account.userId required (set via new VipshopAdapter({ account: { userId, cookies } }))",
+        "VipshopAdapter._syncViaCookie: account.userId or opts.accountId required",
       );
     }
-    if (!(await this._cookieAuth.validate())) return;
+    if (!cookieAuth || !(await cookieAuth.validate())) return;
     const sinceMs =
       opts.sinceWatermark != null
         ? parseInt(String(opts.sinceWatermark), 10) || 0
@@ -228,27 +269,36 @@ class VipshopAdapter {
     const pageSize = Number.isFinite(opts.pageSize) ? opts.pageSize : 10;
     const include = opts.include || {};
     if (include[KIND_ORDER] === false) return;
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
 
     let page = 1;
-    while (true) {
-      const query = { page, pageSize, userId: this.account.userId };
+    let scanComplete = false;
+    while (page <= maxPages) {
+      const query = { page, pageSize, userId: account.userId };
       // VIP signing seam — best-effort. null when no signProvider.
       let sign = null;
       if (this._signProvider) {
         sign = await this._signProvider({
           url: this._ordersUrl,
           query,
-          cookies: this._cookieAuth.toHeader(),
+          cookies: cookieAuth.toHeader(),
         });
+      }
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({ operation: KIND_ORDER, page });
       }
       const resp = await this._fetchFn({
         url: this._ordersUrl,
-        cookies: this._cookieAuth.toHeader(),
+        cookies: cookieAuth.toHeader(),
         sign,
         query,
       });
       const orders = extractOrders(resp);
-      if (!orders.length) break;
+      if (!orders.length) {
+        scanComplete = orders !== UNKNOWN_ORDERS;
+        break;
+      }
       let pageHasNew = false;
       let reachedWatermark = false;
       for (const rawOrder of orders) {
@@ -266,8 +316,15 @@ class VipshopAdapter {
           payload: { record: rec },
         };
       }
-      if (reachedWatermark || !pageHasNew || orders.length < pageSize) break;
+      if (reachedWatermark || (pageHasNew && orders.length < pageSize)) {
+        scanComplete = true;
+        break;
+      }
+      if (!pageHasNew) break;
       page += 1;
+    }
+    if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+      opts.markWatermarkComplete();
     }
   }
 
@@ -306,15 +363,16 @@ function stableOriginalId(kind, id) {
  * `{ orders }`. Tolerant of all common shapes (VIP wraps under data.orders).
  */
 function extractOrders(resp) {
-  if (!resp || typeof resp !== "object") return [];
+  if (!resp || typeof resp !== "object") return UNKNOWN_ORDERS;
   if (Array.isArray(resp)) return resp;
   if (Array.isArray(resp.orders)) return resp.orders;
   if (Array.isArray(resp.orderList)) return resp.orderList;
   if (Array.isArray(resp.list)) return resp.list;
   if (resp.data && Array.isArray(resp.data.orders)) return resp.data.orders;
-  if (resp.data && Array.isArray(resp.data.orderList)) return resp.data.orderList;
+  if (resp.data && Array.isArray(resp.data.orderList))
+    return resp.data.orderList;
   if (resp.data && Array.isArray(resp.data.list)) return resp.data.list;
-  return [];
+  return UNKNOWN_ORDERS;
 }
 
 /**
@@ -327,16 +385,29 @@ function orderToRecord(o) {
   const orderId = o.order_sn || o.orderSn || o.order_id || o.orderId || o.id;
   if (!orderId) return null;
   const merchant =
-    o.brand_name || o.brandName || o.store_name || o.storeName || o.supplier_name || o.merchantName || "唯品会";
+    o.brand_name ||
+    o.brandName ||
+    o.store_name ||
+    o.storeName ||
+    o.supplier_name ||
+    o.merchantName ||
+    "唯品会";
 
   const items = [];
-  const goods = o.goods_list || o.goodsList || o.goods || o.products || o.items || [];
+  const goods =
+    o.goods_list || o.goodsList || o.goods || o.products || o.items || [];
   for (const it of Array.isArray(goods) ? goods : []) {
     if (!it) continue;
     items.push({
-      name: it.goods_name || it.goodsName || it.product_name || it.name || it.title,
-      quantity: parseInt(it.goods_num || it.num || it.quantity || it.count || 1, 10),
-      unitPrice: parseFloat(it.vipshop_price || it.price || it.unitPrice || it.sale_price || 0),
+      name:
+        it.goods_name || it.goodsName || it.product_name || it.name || it.title,
+      quantity: parseInt(
+        it.goods_num || it.num || it.quantity || it.count || 1,
+        10,
+      ),
+      unitPrice: parseFloat(
+        it.vipshop_price || it.price || it.unitPrice || it.sale_price || 0,
+      ),
       sku: it.size_id || it.sizeId || it.goods_id || it.sku || null,
     });
   }
@@ -344,17 +415,39 @@ function orderToRecord(o) {
   return {
     vendorId: "vipshop",
     orderId: String(orderId),
-    placedAt: parseTime(o.add_time || o.order_time || o.create_time || o.createTime || o.created_at),
+    placedAt: parseTime(
+      o.add_time ||
+        o.order_time ||
+        o.create_time ||
+        o.createTime ||
+        o.created_at,
+    ),
     paidAt: parseTime(o.pay_time || o.payTime || o.paid_at),
-    status: mapStatus(o.order_status_name || o.statusName || o.status_text || o.statusText || o.order_status || o.status),
+    status: mapStatus(
+      o.order_status_name ||
+        o.statusName ||
+        o.status_text ||
+        o.statusText ||
+        o.order_status ||
+        o.status,
+    ),
     merchantName: merchant,
     totalAmount: {
-      value: parseFloat(o.money || o.order_amount || o.orderAmount || o.total_amount || o.pay_total || o.payAmount || 0),
+      value: parseFloat(
+        o.money ||
+          o.order_amount ||
+          o.orderAmount ||
+          o.total_amount ||
+          o.pay_total ||
+          o.payAmount ||
+          0,
+      ),
       currency: "CNY",
     },
     items,
     recipient: o.consignee || o.receiver || o.recipient || o.user_name || null,
-    shippingAddress: o.address || o.delivery_address || o.deliveryAddress || o.addr || null,
+    shippingAddress:
+      o.address || o.delivery_address || o.deliveryAddress || o.addr || null,
     extras: { capturedBy: "cookie-api", platform: "vipshop" },
   };
 }
@@ -407,10 +500,25 @@ function parseTime(v) {
 
 function mapStatus(s) {
   const t = String(s || "").toLowerCase();
-  if (t.includes("退款") || t.includes("退货") || t.includes("refund")) return "refunded";
-  if (t.includes("取消") || t.includes("关闭") || t.includes("cancel")) return "cancelled";
-  if (t.includes("待收货") || t.includes("已发货") || t.includes("配送") || t.includes("shipped")) return "shipped";
-  if (t.includes("已完成") || t.includes("交易成功") || t.includes("已收货") || t.includes("delivered") || t.includes("success")) return "delivered";
+  if (t.includes("退款") || t.includes("退货") || t.includes("refund"))
+    return "refunded";
+  if (t.includes("取消") || t.includes("关闭") || t.includes("cancel"))
+    return "cancelled";
+  if (
+    t.includes("待收货") ||
+    t.includes("已发货") ||
+    t.includes("配送") ||
+    t.includes("shipped")
+  )
+    return "shipped";
+  if (
+    t.includes("已完成") ||
+    t.includes("交易成功") ||
+    t.includes("已收货") ||
+    t.includes("delivered") ||
+    t.includes("success")
+  )
+    return "delivered";
   return "placed";
 }
 

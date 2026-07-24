@@ -110,6 +110,11 @@ export class SubAgentContext {
     // symlinkDirectories } — only materialize the needed packages and reuse
     // approved dep dirs. null → full checkout (byte-identical default).
     this._worktreeOptions = options.worktreeOptions || null;
+    // Recovery lineage collected from the child agent-loop event stream.
+    // These are provider/runtime identifiers, not reconstructed log labels.
+    this._runId = null;
+    this._checkpointIds = [];
+    this._toolUseIds = [];
 
     // ── Isolated state ──────────────────────────────────────────────
     // Independent message history — never shared with parent
@@ -399,6 +404,22 @@ export class SubAgentContext {
       for await (const event of gen) {
         this._iterationCount++;
 
+        if (event.type === "run-started" && event.runId) {
+          this._runId = String(event.runId);
+        }
+        if (event.type === "checkpoint" && event.id) {
+          const checkpointId = String(event.id);
+          if (!this._checkpointIds.includes(checkpointId)) {
+            this._checkpointIds.push(checkpointId);
+          }
+        }
+        if (event.type === "tool-executing" && event.tool_use_id) {
+          const toolUseId = String(event.tool_use_id);
+          if (!this._toolUseIds.includes(toolUseId)) {
+            this._toolUseIds.push(toolUseId);
+          }
+        }
+
         if (event.type === "token-usage" && this._onUsage) {
           // Forward real usage to the spawner. A nested child's event already
           // carries its own attribution frame — preserve it (deepest wins).
@@ -605,6 +626,26 @@ export class SubAgentContext {
   }
 
   /**
+   * Serializable child→parent recovery lineage. Worktree paths are included
+   * for local restore UX; executable merge callbacks and tool payloads are not.
+   */
+  recoveryBinding(result = this.result) {
+    const worktree = result?.worktree || null;
+    return {
+      childAgentId: this.id,
+      parentAgentId: this.parentId || null,
+      traceId: this._runId,
+      parentTraceId: this._hookParentTraceId || null,
+      checkpointIds: [...this._checkpointIds],
+      toolUseIds: [...this._toolUseIds],
+      worktreeId:
+        worktree?.branch || this._worktreeBranch || null,
+      worktreePath:
+        worktree?.path || this._worktreePath || null,
+    };
+  }
+
+  /**
    * True when this sub-agent has been asked to stop — either via an external
    * abort signal or via this context's own `abort()` (precise single-agent
    * cancel). The agent loop checks this each iteration and winds down
@@ -647,6 +688,7 @@ export class SubAgentContext {
       iterationCount: this._iterationCount,
       createdAt: this.createdAt,
       completedAt: this.completedAt,
+      recoveryBinding: this.recoveryBinding(),
       worktree: this._worktreePath
         ? { path: this._worktreePath, branch: this._worktreeBranch }
         : null,

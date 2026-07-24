@@ -27,7 +27,11 @@
 
 const fs = require("node:fs");
 const { newId } = require("../../ids");
-const { ENTITY_TYPES, EVENT_SUBTYPES, CAPTURED_BY } = require("../../constants");
+const {
+  ENTITY_TYPES,
+  EVENT_SUBTYPES,
+  CAPTURED_BY,
+} = require("../../constants");
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "finance-dcep";
@@ -78,8 +82,10 @@ function mapTx(raw) {
     timeMs: parseTime(raw.time || raw.tradeTime || raw.trade_time || raw.date),
     amount: amt != null ? Math.abs(amt) : null,
     direction: normDirection(raw),
-    counterparty: raw.counterparty || raw.merchant || raw.payee || raw.oppName || null,
-    walletType: raw.walletType || raw.wallet_type || raw.subWallet || raw.bank || null,
+    counterparty:
+      raw.counterparty || raw.merchant || raw.payee || raw.oppName || null,
+    walletType:
+      raw.walletType || raw.wallet_type || raw.subWallet || raw.bank || null,
   };
 }
 
@@ -107,14 +113,25 @@ class DcepAdapter {
   constructor(opts = {}) {
     this.account = opts.account || null;
     this._cookieAuth =
-      opts.account && opts.account.cookies ? new CookieAuth({ platform: "dcep", cookies: opts.account.cookies }) : null;
-    this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
-    this._signProvider = typeof opts.signProvider === "function" ? opts.signProvider : null;
-    this._listUrl = typeof opts.listUrl === "string" && opts.listUrl.length > 0 ? opts.listUrl : null;
-    this._liveConfigured = Boolean(this._listUrl && typeof opts.fetchFn === "function");
+      opts.account && opts.account.cookies
+        ? new CookieAuth({ platform: "dcep", cookies: opts.account.cookies })
+        : null;
+    this._fetchFn =
+      typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+    this._signProvider =
+      typeof opts.signProvider === "function" ? opts.signProvider : null;
+    this._listUrl =
+      typeof opts.listUrl === "string" && opts.listUrl.length > 0
+        ? opts.listUrl
+        : null;
+    this._liveConfigured = Boolean(
+      this._listUrl && typeof opts.fetchFn === "function",
+    );
 
     this.name = NAME;
     this.version = VERSION;
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
     this.capabilities = [
       "sync:snapshot",
       ...(this._liveConfigured ? ["sync:custom-cookie-api"] : []),
@@ -123,7 +140,9 @@ class DcepAdapter {
     this.extractMode = this._liveConfigured ? "web-api" : "file-import";
     this.rateLimits = { perMinute: 5, perDay: 60 };
     this.dataDisclosure = {
-      fields: ["dcep:transaction (time / amount / direction / counterparty / walletType)"],
+      fields: [
+        "dcep:transaction (time / amount / direction / counterparty / walletType)",
+      ],
       sensitivity: "high",
       legalGate: true,
       defaultInclude: { transaction: true },
@@ -136,7 +155,11 @@ class DcepAdapter {
       try {
         this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
       } catch (err) {
-        return { ok: false, reason: "INPUT_PATH_UNREADABLE", message: `snapshot not readable at ${ctx.inputPath}: ${err.message}` };
+        return {
+          ok: false,
+          reason: "INPUT_PATH_UNREADABLE",
+          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
+        };
       }
       return { ok: true, mode: "snapshot-file" };
     }
@@ -144,25 +167,39 @@ class DcepAdapter {
       return {
         ok: false,
         reason: "EXPLICIT_ENDPOINT_REQUIRED",
-        message: "finance-dcep: cookie collection requires captured listUrl and fetchFn; snapshot import is ready",
+        message:
+          "finance-dcep: cookie collection requires captured listUrl and fetchFn; snapshot import is ready",
       };
     }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
-      if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
-      return { ok: true, account: (this.account && this.account.userId) || null, mode: "cookie", unverified: true };
+      if (!ok)
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          error: "cookies missing",
+        };
+      return {
+        ok: true,
+        account: (this.account && this.account.userId) || null,
+        mode: "cookie",
+        unverified: true,
+      };
     }
     return {
       ok: false,
       reason: "NO_INPUT",
-      message: "finance-dcep.authenticate: needs opts.inputPath; custom live mode also requires cookies, listUrl, and fetchFn",
+      message:
+        "finance-dcep.authenticate: needs opts.inputPath; custom live mode also requires cookies, listUrl, and fetchFn",
     };
   }
 
-  async healthCheck() {
+  async healthCheck(opts = {}) {
     if (this._cookieAuth) {
-      const r = await this.authenticate();
-      return r.ok ? { ok: true, lastChecked: Date.now(), unverified: true } : { ok: false, reason: r.reason, error: r.error };
+      const r = await this.authenticate(opts);
+      return r.ok
+        ? { ok: true, lastChecked: Date.now(), unverified: true }
+        : { ok: false, reason: r.reason, error: r.error };
     }
     return { ok: true, lastChecked: Date.now() };
   }
@@ -177,7 +214,9 @@ class DcepAdapter {
       return;
     }
     if (this._cookieAuth) {
-      throw new Error("finance-dcep.sync: explicit listUrl and fetchFn required for custom cookie collection");
+      throw new Error(
+        "finance-dcep.sync: explicit listUrl and fetchFn required for custom cookie collection",
+      );
     }
     throw new Error("finance-dcep.sync: needs opts.inputPath (snapshot mode)");
   }
@@ -185,14 +224,26 @@ class DcepAdapter {
   async *_syncViaSnapshot(opts) {
     const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
     const snapshot = JSON.parse(raw);
-    if (!snapshot || typeof snapshot !== "object" || snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION) {
-      throw new Error(`finance-dcep.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`);
+    if (
+      !snapshot ||
+      typeof snapshot !== "object" ||
+      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
+    ) {
+      throw new Error(
+        `finance-dcep.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
+      );
     }
     const fallbackCapturedAt =
-      Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0 ? Math.floor(snapshot.snapshottedAt) : Date.now();
-    const account = snapshot.account && typeof snapshot.account === "object" ? snapshot.account : null;
+      Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
+        ? Math.floor(snapshot.snapshottedAt)
+        : Date.now();
+    const account =
+      snapshot.account && typeof snapshot.account === "object"
+        ? snapshot.account
+        : null;
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
 
     const events = Array.isArray(snapshot.events) ? snapshot.events : [];
     let emitted = 0;
@@ -203,7 +254,8 @@ class DcepAdapter {
       if (include[ev.kind] === false) continue;
       const rec = mapTx(ev);
       if (!rec) continue;
-      const capturedAt = parseTime(ev.capturedAt) || rec.timeMs || fallbackCapturedAt;
+      const capturedAt =
+        parseTime(ev.capturedAt) || rec.timeMs || fallbackCapturedAt;
       yield {
         adapter: NAME,
         kind: KIND_TX,
@@ -219,22 +271,51 @@ class DcepAdapter {
     if (!(await this._cookieAuth.validate())) return;
     const cookies = this._cookieAuth.toHeader();
     const include = opts.include || {};
-    if (include[KIND_TX] === false) return;
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
-    const maxPages = Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 12;
+    if (include[KIND_TX] === false) {
+      if (typeof opts.markWatermarkComplete === "function") {
+        opts.markWatermarkComplete();
+      }
+      return;
+    }
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 12;
+    const sinceMs =
+      opts.sinceWatermark != null
+        ? parseInt(String(opts.sinceWatermark), 10) || 0
+        : 0;
 
     let emitted = 0;
     let page = 1;
+    let scanComplete = false;
     while (page <= maxPages) {
       const query = { page, size: PAGE_SIZE };
       let sign = null;
-      if (this._signProvider) sign = await this._signProvider({ url: this._listUrl, query, cookies });
-      const resp = await this._fetchFn({ url: this._listUrl, cookies, query, sign });
+      if (this._signProvider)
+        sign = await this._signProvider({ url: this._listUrl, query, cookies });
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({ operation: KIND_TX, page });
+      }
+      const resp = await this._fetchFn({
+        url: this._listUrl,
+        cookies,
+        query,
+        sign,
+      });
       const items = extractList(resp);
-      if (!items.length) break;
+      if (!items.length) {
+        scanComplete = true;
+        break;
+      }
+      let reachedWatermark = false;
       for (const it of items) {
         const rec = mapTx(it);
         if (!rec) continue;
+        if (rec.timeMs && rec.timeMs < sinceMs) {
+          reachedWatermark = true;
+          break;
+        }
         if (emitted >= limit) return;
         yield {
           adapter: NAME,
@@ -245,8 +326,14 @@ class DcepAdapter {
         };
         emitted += 1;
       }
-      if (items.length < PAGE_SIZE) break;
+      if (reachedWatermark || items.length < PAGE_SIZE) {
+        scanComplete = true;
+        break;
+      }
       page += 1;
+    }
+    if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+      opts.markWatermarkComplete();
     }
   }
 
@@ -274,7 +361,11 @@ class DcepAdapter {
           occurredAt,
           actor: "person-self",
           content: {
-            title: `数字人民币${arrow}${rec.counterparty ? `: ${rec.counterparty}` : ""}`.slice(0, 80),
+            title:
+              `数字人民币${arrow}${rec.counterparty ? `: ${rec.counterparty}` : ""}`.slice(
+                0,
+                80,
+              ),
             text: rec.counterparty || "数字人民币交易",
           },
           ingestedAt,

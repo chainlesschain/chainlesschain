@@ -24,11 +24,10 @@
  *      Some zhihu /api/v4 endpoints require an `x-zse-96` signature header
  *      computed by client-side JS (analogous to 抖音 X-Bogus). No pure-Node impl
  *      survives the rotation, so signing is injected via `opts.signProvider`
- *      (or constructor `signProvider`). When absent the request is still issued
- *      unsigned — best-effort, the endpoint may reject it, which surfaces as zero
- *      events rather than a crash. Endpoint constants are best-effort and
- *      overridable via opts.*Url; zhihu rotates these (FAMILY-23 playbook —
- *      endpoints are not field-verified here).
+ *      (or constructor `signProvider`). The signature is sent only as a header;
+ *      it is never appended to the URL. When absent the request is issued
+ *      unsigned and an HTTP authentication / anti-bot rejection is surfaced by
+ *      the host transport without advancing the watermark.
  *
  * Snapshot schema (schemaVersion 1):
  *
@@ -51,6 +50,7 @@
 "use strict";
 
 const fs = require("node:fs");
+const { createAccountScopeFromAccount } = require("../../account-scope");
 const { newId } = require("../../ids");
 const {
   ENTITY_TYPES,
@@ -58,23 +58,39 @@ const {
   EVENT_SUBTYPES,
   CAPTURED_BY,
 } = require("../../constants");
-const { CookieAuth } = require("../shopping-base");
+const {
+  CookieAuth,
+  hasRuntimeCookie,
+  resolveCookieContext,
+} = require("../shopping-base");
 
 const NAME = "social-zhihu";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_ANSWER = "answer";
 const KIND_FAVOURITE = "favourite";
 const KIND_FOLLOW = "follow";
-const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_ANSWER, KIND_FAVOURITE, KIND_FOLLOW]);
+const VALID_SNAPSHOT_KINDS = Object.freeze([
+  KIND_ANSWER,
+  KIND_FAVOURITE,
+  KIND_FOLLOW,
+]);
 
 // Best-effort zhihu /api/v4 endpoints. `{token}` is replaced with url_token.
 // Overridable via opts.answersUrl / opts.followeesUrl / opts.collectionsUrl.
 const ANSWERS_URL = "https://www.zhihu.com/api/v4/members/{token}/answers";
 const FOLLOWEES_URL = "https://www.zhihu.com/api/v4/members/{token}/followees";
-const COLLECTIONS_URL = "https://www.zhihu.com/api/v4/people/{token}/collections";
+const COLLECTIONS_URL =
+  "https://www.zhihu.com/api/v4/people/{token}/collections";
 const PAGE_LIMIT = 20;
+const ZHIHU_REQUEST_HEADERS = Object.freeze({
+  "user-agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  accept: "application/json, text/plain, */*",
+  "x-requested-with": "XMLHttpRequest",
+});
 
 function stableOriginalId(kind, id) {
   const stringified =
@@ -103,12 +119,16 @@ function parseTime(v) {
 class ZhihuAdapter {
   constructor(opts = {}) {
     this.account = opts.account || null;
+    this.defaultScope = createAccountScopeFromAccount(NAME, this.account, [
+      "urlToken",
+    ]);
 
     this._cookieAuth =
       opts.account && opts.account.cookies
         ? new CookieAuth({ platform: "zhihu", cookies: opts.account.cookies })
         : null;
-    this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+    this._fetchFn =
+      typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
     this._signProvider =
       typeof opts.signProvider === "function" ? opts.signProvider : null;
     this._urls = {
@@ -118,7 +138,10 @@ class ZhihuAdapter {
     };
 
     this.name = NAME;
+    this.runtimeScopeIdentityKey = "urlToken";
     this.version = VERSION;
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
     this.capabilities = [
       "sync:snapshot",
       "sync:cookie-api",
@@ -156,34 +179,56 @@ class ZhihuAdapter {
       }
       return { ok: true, mode: "snapshot-file" };
     }
-    if (this._cookieAuth) {
-      const ok = await this._cookieAuth.validate();
-      if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
-      if (!this.account || !this.account.urlToken) {
+    if (hasRuntimeCookie(ctx) && !hasRuntimeUrlToken(ctx)) {
+      return {
+        ok: false,
+        reason: "NO_ACCOUNT_URL_TOKEN",
+        message:
+          "cookie-api mode requires opts.accountId (Zhihu member url_token) for an isolated watermark scope",
+      };
+    }
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts: ctx,
+      platform: "zhihu",
+      identityKey: "urlToken",
+    });
+    if (cookieAuth) {
+      const ok = await cookieAuth.validate();
+      if (!ok)
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          error: "cookies missing",
+        };
+      if (!account || !account.urlToken) {
         return {
           ok: false,
           reason: "NO_ACCOUNT_URL_TOKEN",
-          message: "cookie-api mode requires account.urlToken (zhihu member url_token)",
+          message:
+            "cookie-api mode requires account.urlToken or opts.accountId (Zhihu member url_token)",
         };
       }
-      return { ok: true, account: this.account.urlToken, mode: "cookie" };
+      return { ok: true, account: account.urlToken, mode: "cookie" };
     }
     return {
       ok: false,
       reason: "NO_INPUT",
       message:
-        "social-zhihu.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies + urlToken (cookie-api mode)",
+        "social-zhihu.authenticate: needs opts.inputPath (snapshot mode) OR configured account.cookies + urlToken OR opts.cookie + opts.accountId (cookie-api mode)",
     };
   }
 
-  async healthCheck() {
-    if (this._cookieAuth) {
-      const r = await this.authenticate();
-      return r.ok
-        ? { ok: true, lastChecked: Date.now() }
-        : { ok: false, reason: r.reason, error: r.error };
-    }
-    return { ok: true, lastChecked: Date.now() };
+  async healthCheck(opts = {}) {
+    const result = await this.authenticate(opts);
+    return result.ok
+      ? { ok: true, lastChecked: Date.now() }
+      : {
+          ok: false,
+          reason: result.reason,
+          error: result.error || result.message,
+        };
   }
 
   async *sync(opts = {}) {
@@ -191,12 +236,12 @@ class ZhihuAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    if (this._cookieAuth) {
+    if (this._cookieAuth || hasRuntimeCookie(opts)) {
       yield* this._syncViaCookie(opts);
       return;
     }
     throw new Error(
-      "social-zhihu.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies + urlToken (cookie-api mode; some zhihu endpoints need x-zse-96 via opts.signProvider)",
+      "social-zhihu.sync: needs opts.inputPath (snapshot mode) OR configured account.cookies + urlToken OR opts.cookie + opts.accountId (cookie-api mode; some Zhihu endpoints need x-zse-96 via opts.signProvider)",
     );
   }
 
@@ -217,9 +262,12 @@ class ZhihuAdapter {
         ? Math.floor(snapshot.snapshottedAt)
         : Date.now();
     const account =
-      snapshot.account && typeof snapshot.account === "object" ? snapshot.account : null;
+      snapshot.account && typeof snapshot.account === "object"
+        ? snapshot.account
+        : null;
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
 
     const events = Array.isArray(snapshot.events) ? snapshot.events : [];
     let emitted = 0;
@@ -231,7 +279,9 @@ class ZhihuAdapter {
       if (include[kind] === false) continue;
 
       const capturedAt =
-        parseTime(ev.capturedAt) || parseTime(ev.createdTime) || fallbackCapturedAt;
+        parseTime(ev.capturedAt) ||
+        parseTime(ev.createdTime) ||
+        fallbackCapturedAt;
       const id =
         (typeof ev.id === "string" && ev.id.length > 0 && ev.id) ||
         ev.answerId ||
@@ -251,64 +301,126 @@ class ZhihuAdapter {
   }
 
   async *_syncViaCookie(opts = {}) {
-    if (!this.account || !this.account.urlToken) {
+    if (hasRuntimeCookie(opts) && !hasRuntimeUrlToken(opts)) {
       throw new Error(
-        "social-zhihu._syncViaCookie: account.urlToken required (set via new ZhihuAdapter({ account: { urlToken, cookies } }))",
+        "social-zhihu._syncViaCookie: opts.accountId required for transient cookie collection",
       );
     }
-    if (!(await this._cookieAuth.validate())) return;
-    const token = encodeURIComponent(this.account.urlToken);
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts,
+      platform: "zhihu",
+      identityKey: "urlToken",
+    });
+    if (!account || !account.urlToken) {
+      throw new Error(
+        "social-zhihu._syncViaCookie: account.urlToken or opts.accountId required",
+      );
+    }
+    if (!cookieAuth || !(await cookieAuth.validate())) return;
+    const cookies = cookieAuth.toHeader();
+    const token = encodeURIComponent(account.urlToken);
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+    const sinceMs =
+      opts.sinceWatermark != null
+        ? parseInt(String(opts.sinceWatermark), 10) || 0
+        : 0;
 
     const plan = [
-      { kind: KIND_ANSWER, url: this._urls.answers, idOf: (it) => it.id, mapId: (it) => `answer-${it.id}` },
-      { kind: KIND_FOLLOW, url: this._urls.followees, idOf: (it) => it.url_token || it.id, mapId: (it) => `follow-${it.url_token || it.id}` },
-      { kind: KIND_FAVOURITE, url: this._urls.collections, idOf: (it) => it.id, mapId: (it) => `fav-${it.id}` },
+      {
+        kind: KIND_ANSWER,
+        url: this._urls.answers,
+        mapId: (it) => `answer-${it.id}`,
+      },
+      {
+        kind: KIND_FOLLOW,
+        url: this._urls.followees,
+        mapId: (it) => `follow-${it.url_token || it.id}`,
+      },
+      {
+        kind: KIND_FAVOURITE,
+        url: this._urls.collections,
+        mapId: (it) => `fav-${it.id}`,
+      },
     ];
+    if (plan.every((step) => include[step.kind] === false)) return;
 
     let emitted = 0;
+    let scanComplete = true;
+    let sourceRequests = 0;
     for (const step of plan) {
       if (include[step.kind] === false) continue;
+      if (sourceRequests >= maxPages) {
+        scanComplete = false;
+        break;
+      }
       const baseUrl = step.url.replace("{token}", token);
       let offset = 0;
       let page = 0;
-      while (page < maxPages) {
+      let streamComplete = false;
+      while (sourceRequests < maxPages) {
         const query = { limit: PAGE_LIMIT, offset };
-        let sign = null;
+        let signature = null;
         if (this._signProvider) {
-          sign = await this._signProvider({
+          signature = await this._signProvider({
             url: baseUrl,
             query,
-            cookies: this._cookieAuth.toHeader(),
+            cookies,
           });
         }
+        if (typeof opts.beforeSourceRequest === "function") {
+          await opts.beforeSourceRequest({ operation: step.kind, page });
+        }
+        sourceRequests += 1;
         const resp = await this._fetchFn({
           url: baseUrl,
-          cookies: this._cookieAuth.toHeader(),
+          cookies,
           query,
-          sign,
+          headers: buildZhihuHeaders(account.urlToken, signature),
         });
+        if (!hasDataList(resp)) break;
         const items = extractData(resp);
-        if (!items.length) break;
+        if (!items.length) {
+          streamComplete = true;
+          break;
+        }
+        let reachedWatermark = false;
         for (const it of items) {
           if (!it || typeof it !== "object") continue;
+          const capturedAt = cookieItemTime(step.kind, it);
+          if (capturedAt < sinceMs) {
+            reachedWatermark = true;
+            break;
+          }
           if (emitted >= limit) return;
           yield {
             adapter: NAME,
             kind: step.kind,
             originalId: stableOriginalId(step.kind, step.mapId(it)),
-            capturedAt: cookieItemTime(step.kind, it),
+            capturedAt,
             payload: { item: it, kind: step.kind, cookie: true },
           };
           emitted += 1;
         }
-        if (isEnd(resp) || items.length < PAGE_LIMIT) break;
+        if (
+          reachedWatermark ||
+          responseEndsStream(resp, items.length, PAGE_LIMIT)
+        ) {
+          streamComplete = true;
+          break;
+        }
         offset += items.length;
         page += 1;
       }
+      if (!streamComplete) scanComplete = false;
+    }
+    if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+      opts.markWatermarkComplete();
     }
   }
 
@@ -335,8 +447,51 @@ function extractData(resp) {
   return [];
 }
 
-function isEnd(resp) {
-  return !!(resp && resp.paging && resp.paging.is_end === true);
+function hasDataList(resp) {
+  return !!(
+    resp &&
+    typeof resp === "object" &&
+    (Array.isArray(resp.data) || Array.isArray(resp.items))
+  );
+}
+
+function responseEndsStream(resp, itemCount, pageLimit) {
+  if (
+    resp &&
+    resp.paging &&
+    typeof resp.paging === "object" &&
+    typeof resp.paging.is_end === "boolean"
+  ) {
+    return resp.paging.is_end;
+  }
+  return itemCount < pageLimit;
+}
+
+function buildZhihuHeaders(urlToken, signature) {
+  const headers = {
+    ...ZHIHU_REQUEST_HEADERS,
+    referer: `https://www.zhihu.com/people/${encodeURIComponent(urlToken)}`,
+  };
+  const xZse96 =
+    typeof signature === "string"
+      ? signature
+      : signature && typeof signature === "object"
+        ? signature.xZse96 ||
+          signature["x-zse-96"] ||
+          (signature.headers && signature.headers["x-zse-96"])
+        : null;
+  if (typeof xZse96 === "string" && xZse96.trim().length > 0) {
+    headers["x-zse-96"] = xZse96;
+  }
+  return headers;
+}
+
+function hasRuntimeUrlToken(opts = {}) {
+  const value = opts.urlToken != null ? opts.urlToken : opts.accountId;
+  return (
+    (typeof value === "string" && value.trim().length > 0) ||
+    (typeof value === "number" && Number.isFinite(value))
+  );
 }
 
 function cookieItemTime(kind, it) {
@@ -370,7 +525,9 @@ function normalizeAnswer(raw, ingestedAt) {
   const excerpt = it.excerpt || it.excerpt_new || it.content || "";
   const answerId = it.answerId || it.id || null;
   const occurredAt =
-    parseTime(it.createdTime || it.created_time || it.created || raw.capturedAt) || ingestedAt;
+    parseTime(
+      it.createdTime || it.created_time || it.created || raw.capturedAt,
+    ) || ingestedAt;
   const source = buildSource(raw, occurredAt);
   return {
     events: [
@@ -390,8 +547,10 @@ function normalizeAnswer(raw, ingestedAt) {
           platform: "zhihu",
           zhihuAnswerId: answerId != null ? String(answerId) : null,
           questionTitle: questionTitle || null,
-          voteupCount: it.voteupCount != null ? it.voteupCount : it.voteup_count || 0,
-          commentCount: it.commentCount != null ? it.commentCount : it.comment_count || 0,
+          voteupCount:
+            it.voteupCount != null ? it.voteupCount : it.voteup_count || 0,
+          commentCount:
+            it.commentCount != null ? it.commentCount : it.comment_count || 0,
           url:
             it.url ||
             (answerId ? `https://www.zhihu.com/answer/${answerId}` : null),
@@ -428,7 +587,8 @@ function normalizeFavourite(raw, ingestedAt) {
         source,
         extra: {
           platform: "zhihu",
-          zhihuItemId: (it.itemId || it.id) != null ? String(it.itemId || it.id) : null,
+          zhihuItemId:
+            (it.itemId || it.id) != null ? String(it.itemId || it.id) : null,
           collectionName: it.collectionName || it.title || null,
           isPublic: it.is_public != null ? it.is_public : undefined,
           url: it.url || null,
@@ -445,7 +605,8 @@ function normalizeFavourite(raw, ingestedAt) {
 function normalizeFollow(raw, ingestedAt) {
   const p = raw.payload;
   const it = p.cookie ? p.item : p;
-  const memberToken = it.memberToken || it.url_token || it.id || `unknown-${newId()}`;
+  const memberToken =
+    it.memberToken || it.url_token || it.id || `unknown-${newId()}`;
   const name = it.name || "(unnamed)";
   const occurredAt = parseTime(it.capturedAt || raw.capturedAt) || ingestedAt;
   const source = buildSource(raw, occurredAt);

@@ -30,7 +30,11 @@
 
 const fs = require("node:fs");
 const { newId } = require("../../ids");
-const { ENTITY_TYPES, EVENT_SUBTYPES, CAPTURED_BY } = require("../../constants");
+const {
+  ENTITY_TYPES,
+  EVENT_SUBTYPES,
+  CAPTURED_BY,
+} = require("../../constants");
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "gov-12123";
@@ -50,7 +54,9 @@ const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_VIOLATION, KIND_LICENSE]);
 // recoverable — override via opts.violationUrl / opts.licenseUrl when known).
 const DEFAULT_PROVINCE = "bj";
 function provinceBase(province) {
-  const p = /^[a-z]{2}$/.test(String(province || "")) ? province : DEFAULT_PROVINCE;
+  const p = /^[a-z]{2}$/.test(String(province || ""))
+    ? province
+    : DEFAULT_PROVINCE;
   return `https://${p}.122.gov.cn/app`;
 }
 const PAGE_SIZE = 30;
@@ -79,27 +85,45 @@ function toNum(v) {
 
 function mapViolation(raw) {
   if (!raw || typeof raw !== "object") return null;
-  const id = raw.violationId || raw.violation_id || raw.id || raw.wzbh || raw.serialNo;
+  const id =
+    raw.violationId || raw.violation_id || raw.id || raw.wzbh || raw.serialNo;
   if (id == null) return null;
   return {
     violationId: String(id),
     timeMs: parseTime(raw.time || raw.violationTime || raw.wfsj || raw.date),
     location: raw.location || raw.address || raw.wfdz || raw.place || null,
     reason: raw.reason || raw.behavior || raw.wfxw || raw.desc || "交通违法",
-    fine: toNum(raw.fine != null ? raw.fine : raw.fkje != null ? raw.fkje : raw.amount),
-    points: toNum(raw.points != null ? raw.points : raw.wfjfs != null ? raw.wfjfs : raw.score),
+    fine: toNum(
+      raw.fine != null ? raw.fine : raw.fkje != null ? raw.fkje : raw.amount,
+    ),
+    points: toNum(
+      raw.points != null
+        ? raw.points
+        : raw.wfjfs != null
+          ? raw.wfjfs
+          : raw.score,
+    ),
   };
 }
 
 function mapLicense(raw) {
   if (!raw || typeof raw !== "object") return null;
-  const id = raw.licenseId || raw.license_id || raw.id || raw.dabh || raw.fileNo;
+  const id =
+    raw.licenseId || raw.license_id || raw.id || raw.dabh || raw.fileNo;
   if (id == null) return null;
   return {
     licenseId: String(id),
     status: raw.status || raw.statusName || raw.zt || raw.state || null,
-    cumulativePoints: toNum(raw.cumulativePoints != null ? raw.cumulativePoints : raw.ljjf != null ? raw.ljjf : raw.totalPoints),
-    validUntilMs: parseTime(raw.validUntil || raw.yxqz || raw.expireDate || raw.valid_until),
+    cumulativePoints: toNum(
+      raw.cumulativePoints != null
+        ? raw.cumulativePoints
+        : raw.ljjf != null
+          ? raw.ljjf
+          : raw.totalPoints,
+    ),
+    validUntilMs: parseTime(
+      raw.validUntil || raw.yxqz || raw.expireDate || raw.valid_until,
+    ),
   };
 }
 
@@ -120,7 +144,8 @@ function extractList(resp) {
 function extractLicense(resp) {
   if (!resp || typeof resp !== "object") return [];
   if (Array.isArray(resp.list)) return resp.list;
-  if (resp.data && typeof resp.data === "object" && !Array.isArray(resp.data)) return [resp.data];
+  if (resp.data && typeof resp.data === "object" && !Array.isArray(resp.data))
+    return [resp.data];
   if (resp.licenseId || resp.dabh || resp.id) return [resp];
   return extractList(resp);
 }
@@ -137,21 +162,31 @@ class Tmri12123Adapter {
   constructor(opts = {}) {
     this.account = opts.account || null;
     this._cookieAuth =
-      opts.account && opts.account.cookies ? new CookieAuth({ platform: "12123", cookies: opts.account.cookies }) : null;
-    this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
-    this._signProvider = typeof opts.signProvider === "function" ? opts.signProvider : null;
+      opts.account && opts.account.cookies
+        ? new CookieAuth({ platform: "12123", cookies: opts.account.cookies })
+        : null;
+    this._fetchFn =
+      typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+    this._signProvider =
+      typeof opts.signProvider === "function" ? opts.signProvider : null;
     // Host VERIFIED province-prefixed `.122.gov.cn/app`; sub-paths best-effort.
-    this.province = /^[a-z]{2}$/.test(String(opts.province || "")) ? opts.province : DEFAULT_PROVINCE;
+    this.province = /^[a-z]{2}$/.test(String(opts.province || ""))
+      ? opts.province
+      : DEFAULT_PROVINCE;
     this._urls = {
       violation: opts.violationUrl || opts.listUrl || null,
       license: opts.licenseUrl || null,
     };
     this._liveConfigured = Boolean(
-      this._urls.violation && this._urls.license && typeof opts.fetchFn === "function",
+      this._urls.violation &&
+      this._urls.license &&
+      typeof opts.fetchFn === "function",
     );
 
     this.name = NAME;
     this.version = VERSION;
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
     this.capabilities = [
       "sync:snapshot",
       ...(this._liveConfigured ? ["sync:custom-cookie-api"] : []),
@@ -177,7 +212,11 @@ class Tmri12123Adapter {
       try {
         this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
       } catch (err) {
-        return { ok: false, reason: "INPUT_PATH_UNREADABLE", message: `snapshot not readable at ${ctx.inputPath}: ${err.message}` };
+        return {
+          ok: false,
+          reason: "INPUT_PATH_UNREADABLE",
+          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
+        };
       }
       return { ok: true, mode: "snapshot-file" };
     }
@@ -190,20 +229,33 @@ class Tmri12123Adapter {
     }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
-      if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
-      return { ok: true, account: (this.account && this.account.userId) || null, mode: "cookie", unverified: true };
+      if (!ok)
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          error: "cookies missing",
+        };
+      return {
+        ok: true,
+        account: (this.account && this.account.userId) || null,
+        mode: "cookie",
+        unverified: true,
+      };
     }
     return {
       ok: false,
       reason: "NO_INPUT",
-      message: "gov-12123.authenticate: needs opts.inputPath; custom live mode also requires cookies, violationUrl, licenseUrl, and fetchFn",
+      message:
+        "gov-12123.authenticate: needs opts.inputPath; custom live mode also requires cookies, violationUrl, licenseUrl, and fetchFn",
     };
   }
 
-  async healthCheck() {
+  async healthCheck(opts = {}) {
     if (this._cookieAuth) {
-      const r = await this.authenticate();
-      return r.ok ? { ok: true, lastChecked: Date.now(), unverified: true } : { ok: false, reason: r.reason, error: r.error };
+      const r = await this.authenticate(opts);
+      return r.ok
+        ? { ok: true, lastChecked: Date.now(), unverified: true }
+        : { ok: false, reason: r.reason, error: r.error };
     }
     return { ok: true, lastChecked: Date.now() };
   }
@@ -218,7 +270,9 @@ class Tmri12123Adapter {
       return;
     }
     if (this._cookieAuth) {
-      throw new Error("gov-12123.sync: explicit violationUrl + licenseUrl and fetchFn required for custom cookie collection");
+      throw new Error(
+        "gov-12123.sync: explicit violationUrl + licenseUrl and fetchFn required for custom cookie collection",
+      );
     }
     throw new Error("gov-12123.sync: needs opts.inputPath (snapshot mode)");
   }
@@ -226,14 +280,26 @@ class Tmri12123Adapter {
   async *_syncViaSnapshot(opts) {
     const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
     const snapshot = JSON.parse(raw);
-    if (!snapshot || typeof snapshot !== "object" || snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION) {
-      throw new Error(`gov-12123.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`);
+    if (
+      !snapshot ||
+      typeof snapshot !== "object" ||
+      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
+    ) {
+      throw new Error(
+        `gov-12123.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
+      );
     }
     const fallbackCapturedAt =
-      Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0 ? Math.floor(snapshot.snapshottedAt) : Date.now();
-    const account = snapshot.account && typeof snapshot.account === "object" ? snapshot.account : null;
+      Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
+        ? Math.floor(snapshot.snapshottedAt)
+        : Date.now();
+    const account =
+      snapshot.account && typeof snapshot.account === "object"
+        ? snapshot.account
+        : null;
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
 
     const events = Array.isArray(snapshot.events) ? snapshot.events : [];
     let emitted = 0;
@@ -242,14 +308,19 @@ class Tmri12123Adapter {
       if (!ev || typeof ev !== "object") continue;
       if (!VALID_SNAPSHOT_KINDS.includes(ev.kind)) continue;
       if (include[ev.kind] === false) continue;
-      const rec = ev.kind === KIND_VIOLATION ? mapViolation(ev) : mapLicense(ev);
+      const rec =
+        ev.kind === KIND_VIOLATION ? mapViolation(ev) : mapLicense(ev);
       if (!rec) continue;
-      const recTime = ev.kind === KIND_VIOLATION ? rec.timeMs : rec.validUntilMs;
-      const capturedAt = parseTime(ev.capturedAt) || recTime || fallbackCapturedAt;
+      const recTime = ev.kind === KIND_VIOLATION ? rec.timeMs : null;
+      const capturedAt =
+        parseTime(ev.capturedAt) || recTime || fallbackCapturedAt;
       yield {
         adapter: NAME,
         kind: ev.kind,
-        originalId: stableOriginalId(ev.kind, ev.kind === KIND_VIOLATION ? rec.violationId : rec.licenseId),
+        originalId: stableOriginalId(
+          ev.kind,
+          ev.kind === KIND_VIOLATION ? rec.violationId : rec.licenseId,
+        ),
         capturedAt,
         payload: { record: rec, kind: ev.kind, account },
       };
@@ -261,24 +332,56 @@ class Tmri12123Adapter {
     if (!(await this._cookieAuth.validate())) return;
     const cookies = this._cookieAuth.toHeader();
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
-    const maxPages = Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+    const sinceMs =
+      opts.sinceWatermark != null
+        ? parseInt(String(opts.sinceWatermark), 10) || 0
+        : 0;
 
     let emitted = 0;
+    let scanComplete = true;
 
     // violations (paginated)
     if (include[KIND_VIOLATION] !== false) {
       let page = 1;
+      let streamComplete = false;
       while (page <= maxPages) {
         const query = { page, size: PAGE_SIZE };
         let sign = null;
-        if (this._signProvider) sign = await this._signProvider({ url: this._urls.violation, query, cookies });
-        const resp = await this._fetchFn({ url: this._urls.violation, cookies, query, sign });
+        if (this._signProvider)
+          sign = await this._signProvider({
+            url: this._urls.violation,
+            query,
+            cookies,
+          });
+        if (typeof opts.beforeSourceRequest === "function") {
+          await opts.beforeSourceRequest({
+            operation: KIND_VIOLATION,
+            page,
+          });
+        }
+        const resp = await this._fetchFn({
+          url: this._urls.violation,
+          cookies,
+          query,
+          sign,
+        });
         const items = extractList(resp);
-        if (!items.length) break;
+        if (!items.length) {
+          streamComplete = true;
+          break;
+        }
+        let reachedWatermark = false;
         for (const it of items) {
           const rec = mapViolation(it);
           if (!rec) continue;
+          if (rec.timeMs && rec.timeMs < sinceMs) {
+            reachedWatermark = true;
+            break;
+          }
           if (emitted >= limit) return;
           yield {
             adapter: NAME,
@@ -289,16 +392,33 @@ class Tmri12123Adapter {
           };
           emitted += 1;
         }
-        if (items.length < PAGE_SIZE) break;
+        if (reachedWatermark || items.length < PAGE_SIZE) {
+          streamComplete = true;
+          break;
+        }
         page += 1;
       }
+      if (!streamComplete) scanComplete = false;
     }
 
     // license (single fetch)
     if (include[KIND_LICENSE] !== false) {
       let sign = null;
-      if (this._signProvider) sign = await this._signProvider({ url: this._urls.license, query: {}, cookies });
-      const resp = await this._fetchFn({ url: this._urls.license, cookies, query: {}, sign });
+      if (this._signProvider)
+        sign = await this._signProvider({
+          url: this._urls.license,
+          query: {},
+          cookies,
+        });
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({ operation: KIND_LICENSE });
+      }
+      const resp = await this._fetchFn({
+        url: this._urls.license,
+        cookies,
+        query: {},
+        sign,
+      });
       for (const it of extractLicense(resp)) {
         const rec = mapLicense(it);
         if (!rec) continue;
@@ -307,11 +427,17 @@ class Tmri12123Adapter {
           adapter: NAME,
           kind: KIND_LICENSE,
           originalId: stableOriginalId(KIND_LICENSE, rec.licenseId),
-          capturedAt: rec.validUntilMs || Date.now(),
+          // validUntil is a future business date, not a source cursor. Using
+          // it as the high-water mark would suppress newer violations until
+          // the licence expires.
+          capturedAt: Date.now(),
           payload: { record: rec, kind: KIND_LICENSE, cookie: true },
         };
         emitted += 1;
       }
+    }
+    if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+      opts.markWatermarkComplete();
     }
   }
 
@@ -340,7 +466,10 @@ class Tmri12123Adapter {
             subtype: EVENT_SUBTYPES.OTHER,
             occurredAt,
             actor: "person-self",
-            content: { title: `交通违章: ${rec.reason}`.slice(0, 80), text: rec.reason },
+            content: {
+              title: `交通违章: ${rec.reason}`.slice(0, 80),
+              text: rec.reason,
+            },
             ingestedAt,
             source,
             extra: {
@@ -368,7 +497,10 @@ class Tmri12123Adapter {
           subtype: EVENT_SUBTYPES.OTHER,
           occurredAt,
           actor: "person-self",
-          content: { title: `驾驶证状态: ${rec.status || "未知"}`.slice(0, 80), text: "驾驶证状态" },
+          content: {
+            title: `驾驶证状态: ${rec.status || "未知"}`.slice(0, 80),
+            text: "驾驶证状态",
+          },
           ingestedAt,
           source,
           extra: {

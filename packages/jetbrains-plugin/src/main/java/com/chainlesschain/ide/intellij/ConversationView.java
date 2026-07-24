@@ -6,6 +6,7 @@ import com.chainlesschain.ide.ContextStatus;
 import com.chainlesschain.ide.CliLauncher;
 import com.chainlesschain.ide.CliVersionCheck;
 import com.chainlesschain.ide.ConversationManager;
+import com.chainlesschain.ide.ElicitationSchema;
 import com.chainlesschain.ide.IntrospectArgs;
 import com.chainlesschain.ide.IdeSessionIndex;
 import com.chainlesschain.ide.LlmConfig;
@@ -1343,66 +1344,174 @@ final class ConversationView {
         queueSessionEvent(ev);
     }
 
-    /** MCP elicitation round-trip: render the common object-schema vocabulary
-     * as a compact native form, while preserving cancel/timeout as null. */
+    /**
+     * MCP elicitation round-trip: render the restricted MCP form vocabulary as
+     * a native form and validate/coerce it with the shared conformance model.
+     * Unsupported (for example nested) schemas stay on an explicit raw-JSON
+     * fallback instead of being silently flattened.
+     */
     @SuppressWarnings("unchecked")
     private void askElicitation(Map<String, Object> ui) {
         String id = ui.get("id") == null ? "" : String.valueOf(ui.get("id"));
         if (id.isEmpty()) return;
         String question = ui.get("question") == null ? CcBundle.message("chat.question.title") : String.valueOf(ui.get("question"));
         Object schemaO = ui.get("requestedSchema");
-        if (!(schemaO instanceof Map)) { askQuestion(ui); return; }
-        Map<String, Object> schema = (Map<String, Object>) schemaO;
-        Object propsO = schema.get("properties");
-        if (!(propsO instanceof Map) || ((Map<?, ?>) propsO).isEmpty()) { askQuestion(ui); return; }
-        java.util.Set<String> required = new java.util.HashSet<>();
-        Object reqO = schema.get("required");
-        if (reqO instanceof java.util.List) for (Object r : (java.util.List<?>) reqO) required.add(String.valueOf(r));
+        ElicitationSchema.Model model = ElicitationSchema.compile(schemaO);
+        String title = String.valueOf(ui.get("server") == null
+                ? "MCP elicitation" : "MCP: " + ui.get("server"));
+        if (!model.supported) {
+            Object answer = askRawElicitation(question, title);
+            sendElicitationAnswer(id, answer);
+            return;
+        }
+
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.add(new JLabel("<html>" + question + "</html>"));
-        java.util.Map<String, javax.swing.JComponent> fields = new java.util.LinkedHashMap<>();
-        java.util.Map<String, Object> specs = new java.util.LinkedHashMap<>();
-        for (Map.Entry<?, ?> entry : ((Map<?, ?>) propsO).entrySet()) {
-            String name = String.valueOf(entry.getKey());
-            if (!(entry.getValue() instanceof Map)) continue;
-            Map<String, Object> spec = (Map<String, Object>) entry.getValue();
-            specs.put(name, spec);
+        if (model.fields.isEmpty()) {
+            panel.add(new JLabel("No fields are required."));
+        }
+        Map<String, java.util.function.Supplier<Object>> readers =
+                new LinkedHashMap<>();
+        Map<String, Object> initial = ElicitationSchema.initialValues(model);
+        for (ElicitationSchema.Field field : model.fields) {
             JPanel row = new JPanel(new java.awt.BorderLayout(8, 0));
-            row.add(new JLabel(name + (required.contains(name) ? " *" : "")), java.awt.BorderLayout.WEST);
+            JPanel caption = new JPanel();
+            caption.setLayout(new BoxLayout(caption, BoxLayout.Y_AXIS));
+            caption.add(new JLabel(field.title + (field.required ? " *" : "")));
+            if (!field.description.isEmpty()) {
+                JLabel description = new JLabel(field.description);
+                description.setForeground(java.awt.Color.GRAY);
+                caption.add(description);
+            }
+            row.add(caption, java.awt.BorderLayout.WEST);
             javax.swing.JComponent component;
-            Object enumO = spec.get("enum");
-            if (enumO instanceof java.util.List && !((java.util.List<?>) enumO).isEmpty()) {
-                javax.swing.JComboBox<String> combo = new javax.swing.JComboBox<>();
-                for (Object value : (java.util.List<?>) enumO) combo.addItem(String.valueOf(value));
+            if (field.kind == ElicitationSchema.Kind.SINGLE_SELECT) {
+                javax.swing.JComboBox<ElicitationSchema.Option> combo =
+                        new javax.swing.JComboBox<>();
+                if (!field.required && !field.hasDefault) {
+                    combo.addItem(new ElicitationSchema.Option("", "—"));
+                }
+                for (ElicitationSchema.Option option : field.options) {
+                    combo.addItem(option);
+                    if (option.value.equals(initial.get(field.name))) {
+                        combo.setSelectedItem(option);
+                    }
+                }
                 component = combo;
-            } else if ("boolean".equals(spec.get("type"))) {
-                component = new javax.swing.JCheckBox();
-           } else {
-                javax.swing.JTextField input = "password".equals(spec.get("format"))
-                        ? new javax.swing.JPasswordField() : new javax.swing.JTextField();
-                if (spec.get("default") != null) input.setText(String.valueOf(spec.get("default")));
+                readers.put(field.name, () -> {
+                    Object selected = combo.getSelectedItem();
+                    return selected instanceof ElicitationSchema.Option
+                            ? ((ElicitationSchema.Option) selected).value : "";
+                });
+            } else if (field.kind == ElicitationSchema.Kind.MULTI_SELECT) {
+                JPanel choices = new JPanel();
+                choices.setLayout(new BoxLayout(choices, BoxLayout.Y_AXIS));
+                List<javax.swing.JCheckBox> boxes = new ArrayList<>();
+                java.util.Set<?> selected = initial.get(field.name) instanceof List
+                        ? new java.util.HashSet<>((List<?>) initial.get(field.name))
+                        : java.util.Set.of();
+                for (ElicitationSchema.Option option : field.options) {
+                    javax.swing.JCheckBox box =
+                            new javax.swing.JCheckBox(option.label);
+                    box.setSelected(selected.contains(option.value));
+                    box.putClientProperty("elicitationValue", option.value);
+                    boxes.add(box);
+                    choices.add(box);
+                }
+                component = choices;
+                readers.put(field.name, () -> {
+                    List<String> values = new ArrayList<>();
+                    for (javax.swing.JCheckBox box : boxes) {
+                        if (box.isSelected()) {
+                            values.add(String.valueOf(
+                                    box.getClientProperty("elicitationValue")));
+                        }
+                    }
+                    return values;
+                });
+            } else if (field.kind == ElicitationSchema.Kind.BOOLEAN) {
+                javax.swing.JCheckBox checkbox = new javax.swing.JCheckBox();
+                checkbox.setSelected(Boolean.TRUE.equals(initial.get(field.name)));
+                component = checkbox;
+                readers.put(field.name, checkbox::isSelected);
+            } else {
+                javax.swing.JTextField input = new javax.swing.JTextField();
+                if (initial.get(field.name) != null) {
+                    input.setText(String.valueOf(initial.get(field.name)));
+                }
+                if (field.minimum != null) {
+                    input.setToolTipText("Minimum: " + field.minimum);
+                }
+                if (field.maximum != null) {
+                    input.setToolTipText("Maximum: " + field.maximum);
+                }
                 component = input;
+                readers.put(field.name, input::getText);
             }
-            fields.put(name, component); row.add(component, java.awt.BorderLayout.CENTER); panel.add(row);
+            row.add(component, java.awt.BorderLayout.CENTER);
+            panel.add(row);
         }
-        com.intellij.openapi.ui.DialogBuilder builder = new com.intellij.openapi.ui.DialogBuilder(project);
-        builder.setTitle(String.valueOf(ui.get("server") == null ? "MCP elicitation" : "MCP: " + ui.get("server")));
-        builder.setCenterPanel(panel); builder.addOkAction(); builder.addCancelAction();
+
         Object answer = null;
-        if (builder.show() == com.intellij.openapi.ui.DialogWrapper.OK_EXIT_CODE) {
-            java.util.Map<String, Object> content = new java.util.LinkedHashMap<>();
-            for (Map.Entry<String, javax.swing.JComponent> field : fields.entrySet()) {
-                Object specO = specs.get(field.getKey());
-                String type = specO instanceof Map ? String.valueOf(((Map<?, ?>) specO).get("type")) : "string";
-                javax.swing.JComponent component = field.getValue();
-                if (component instanceof javax.swing.JCheckBox) content.put(field.getKey(), ((javax.swing.JCheckBox) component).isSelected());
-                else if (component instanceof javax.swing.JComboBox) content.put(field.getKey(), ((javax.swing.JComboBox<?>) component).getSelectedItem());
-                else { String value = component instanceof javax.swing.JPasswordField ? new String(((javax.swing.JPasswordField) component).getPassword()) : ((javax.swing.JTextField) component).getText(); if (!value.isEmpty() || required.contains(field.getKey())) content.put(field.getKey(), "integer".equals(type) ? Integer.valueOf(value) : "number".equals(type) ? Double.valueOf(value) : value); }
+        while (true) {
+            com.intellij.openapi.ui.DialogBuilder builder =
+                    new com.intellij.openapi.ui.DialogBuilder(project);
+            builder.setTitle(title);
+            builder.setCenterPanel(panel);
+            builder.addOkAction();
+            builder.addCancelAction();
+            if (builder.show()
+                    != com.intellij.openapi.ui.DialogWrapper.OK_EXIT_CODE) {
+                break;
             }
-            answer = content;
+            Map<String, Object> raw = new LinkedHashMap<>();
+            for (Map.Entry<String, java.util.function.Supplier<Object>> entry
+                    : readers.entrySet()) {
+                raw.put(entry.getKey(), entry.getValue().get());
+            }
+            ElicitationSchema.Submission submission =
+                    ElicitationSchema.prepare(model, raw);
+            if (submission.valid) {
+                answer = submission.value;
+                break;
+            }
+            StringBuilder problem = new StringBuilder();
+            for (ElicitationSchema.Issue issue : submission.errors) {
+                if (problem.length() > 0) problem.append("\n");
+                problem.append("• ").append(issue.message);
+            }
+            com.intellij.openapi.ui.Messages.showErrorDialog(
+                    project, problem.toString(), "Invalid MCP input");
         }
-        Map<String, Object> ev = new LinkedHashMap<>(); ev.put("type", "answer"); ev.put("id", id); ev.put("answer", answer); queueSessionEvent(ev);
+        sendElicitationAnswer(id, answer);
+    }
+
+    private Object askRawElicitation(String question, String title) {
+        while (true) {
+            String raw = com.intellij.openapi.ui.Messages.showInputDialog(
+                    project,
+                    question + "\nEnter a JSON object (unsupported schema fallback).",
+                    title,
+                    null);
+            if (raw == null) return null;
+            try {
+                Object parsed = com.chainlesschain.ide.MiniJson.parse(raw);
+                if (parsed instanceof Map) return parsed;
+            } catch (IllegalArgumentException ignored) {
+                // The error dialog below gives the user another attempt.
+            }
+            com.intellij.openapi.ui.Messages.showErrorDialog(
+                    project, "Enter a valid JSON object.", "Invalid MCP input");
+        }
+    }
+
+    private void sendElicitationAnswer(String id, Object answer) {
+        Map<String, Object> ev = new LinkedHashMap<>();
+        ev.put("type", "answer");
+        ev.put("id", id);
+        ev.put("answer", answer);
+        queueSessionEvent(ev);
     }
 
     /**

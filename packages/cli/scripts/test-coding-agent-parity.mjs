@@ -162,26 +162,35 @@ function suiteContract() {
 function suiteBroker() {
   console.log(color("cyan", "\n◆ Suite: broker (process-execution-broker)"));
   runCheck("Broker can be imported and returns singleton", () => {
-    // Dynamic import — needs to be CJS-compat. For parity script we do a lightweight check
-    // via a Node subprocess to avoid ESM interop issues from CJS tests.
+    // Verify the package's actual ESM contract in an isolated Node process.
     const r = sh(
       process.execPath,
       [
+        "--input-type=module",
         "-e",
         `
-const { getBroker, isAllowlisted } = require('./src/lib/process-execution-broker/index.js').default
-  ? require('./src/lib/process-execution-broker/index.js')
-  : require('./src/lib/process-execution-broker/index.js');
-const b = typeof getBroker === 'function' ? getBroker() : null;
-if (!b || typeof b.spawn !== 'function') process.exit(1);
-if (!isAllowlisted('git')) process.exit(2);
-if (isAllowlisted('/tmp/malicious')) process.exit(3);
+const first = await import('./src/lib/process-execution-broker/index.js');
+const second = await import('./src/lib/process-execution-broker/index.js');
+if (!first.executionBroker || typeof first.executionBroker.spawn !== 'function') process.exit(1);
+if (first.executionBroker !== second.executionBroker) process.exit(2);
 console.log('ok');
 `,
       ],
       { allowFailure: false },
     );
     assert(r.stdout.includes("ok"), "broker self-check failed");
+  });
+  runCheck("Platform sandbox spawn-plan contract tests pass", () => {
+    sh(
+      process.execPath,
+      [
+        path.resolve(CLI_ROOT, "node_modules/vitest/vitest.mjs"),
+        "run",
+        "__tests__/unit/process-execution-broker-platform-sandbox.test.js",
+        "--reporter=dot",
+      ],
+      { timeout: 120_000 },
+    );
   });
   runCheck("spawn-audit.json exists from M0 audit", () => {
     assert(fileExists("src/lib/process-execution-broker/spawn-audit.json"), "missing spawn audit");

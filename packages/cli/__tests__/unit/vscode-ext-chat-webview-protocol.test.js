@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { Window } from "happy-dom";
 
 import {
   buildChatHtml,
   CHAT_UI_PROTOCOL_VERSION,
 } from "../../../vscode-extension/src/chat/chat-html.js";
+import { renderElicitationForm } from "../../../vscode-extension/src/chat/elicitation-form.js";
 import { ChatViewProvider } from "../../../vscode-extension/src/chat/chat-view.js";
 
 function makeHarness() {
@@ -169,5 +171,94 @@ describe("chat Webview UI protocol self-heal", () => {
     expect(html).toContain('if (m.kind === "protocolProbe")');
     expect(html).toContain('type: "protocol"');
     expect(html).toContain("uiProtocolVersion: CC_CHAT_UI_PROTOCOL_VERSION");
+    expect(html).toContain("CcElicitationSchema");
+    expect(html).toContain("CcElicitationForm");
+  });
+});
+
+describe("VS Code MCP elicitation form", () => {
+  it("renders and validates the shared restricted schema before replying", () => {
+    const window = new Window();
+    const document = window.document;
+    const card = document.createElement("section");
+    const actions = document.createElement("div");
+    const onSubmit = vi.fn();
+
+    const rendered = renderElicitationForm({
+      document,
+      container: card,
+      actions,
+      schema: {
+        type: "object",
+        properties: {
+          email: {
+            type: "string",
+            title: "Contact email",
+            description: "Used for release notices",
+            format: "email",
+          },
+          channel: {
+            type: "string",
+            title: "Release channel",
+            oneOf: [
+              { const: "stable", title: "Stable" },
+              { const: "preview", title: "Preview" },
+            ],
+          },
+          rating: {
+            type: "integer",
+            title: "Rating",
+            minimum: 1,
+            maximum: 5,
+          },
+          scopes: {
+            type: "array",
+            title: "Scopes",
+            items: {
+              anyOf: [
+                { const: "read", title: "Read only" },
+                { const: "write", title: "Read and write" },
+              ],
+            },
+            minItems: 1,
+            maxItems: 1,
+          },
+        },
+        required: ["email", "channel", "rating", "scopes"],
+      },
+      onSubmit,
+    });
+
+    expect(rendered.rendered).toBe(true);
+    expect(card.textContent).toContain("Contact email *");
+    expect(card.textContent).toContain("Used for release notices");
+    expect(card.textContent).toContain("Preview");
+    expect(card.textContent).toContain("Read and write");
+
+    const rows = [...card.querySelectorAll(".elicitation-field")];
+    const row = (title) =>
+      rows.find((candidate) =>
+        candidate.querySelector("label")?.textContent?.startsWith(title),
+      );
+    row("Contact email").querySelector("input").value = "invalid";
+    row("Release channel").querySelector("select").value = "preview";
+    row("Rating").querySelector("input").value = "8";
+    row("Scopes").querySelector('input[value="read"]').checked = true;
+    rendered.submit.click();
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(card.textContent).toContain("must be a valid email");
+    expect(card.textContent).toContain("must be at most 5");
+
+    row("Contact email").querySelector("input").value = "dev@example.com";
+    row("Rating").querySelector("input").value = "5";
+    rendered.submit.click();
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      email: "dev@example.com",
+      channel: "preview",
+      rating: 5,
+      scopes: ["read"],
+    });
   });
 });

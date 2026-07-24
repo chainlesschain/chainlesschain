@@ -18,8 +18,9 @@
  *      orchestrator. Completed orders paginate via `pageIndex` (≤50/page, last
  *      90 days by default); pending orders are a single call. account OPTIONAL —
  *      the cookie carries identity. Cookie expires after ~30min idle → the
- *      endpoint returns an HTML login redirect, surfaced by the fetchFn as a
- *      non-object / empty response, which yields zero events rather than crashing.
+ *      endpoint returns an HTML login redirect. The host transport rejects
+ *      HTTP/non-JSON responses explicitly so a login page cannot be mistaken
+ *      for a valid empty order list or advance the watermark.
  *
  *   3. file-import mode (opts.dataPath, legacy v0.5): user-uploaded JSON
  *      dump from a 3rd-party 12306 scraper or hand-curated. Preserved for
@@ -52,8 +53,16 @@
 "use strict";
 
 const fs = require("node:fs");
-const { normalizeTravelRecord, parseChineseDateTime } = require("../travel-base");
-const { CookieAuth } = require("../shopping-base");
+const { createAccountScopeFromAccount } = require("../../account-scope");
+const {
+  normalizeTravelRecord,
+  parseChineseDateTime,
+} = require("../travel-base");
+const {
+  CookieAuth,
+  hasRuntimeCookie,
+  resolveCookieContext,
+} = require("../shopping-base");
 
 const NAME = "travel-12306";
 const VERSION = "0.7.0"; // §2.5 v0.3 — cookie-api live fetch path
@@ -62,10 +71,19 @@ const SNAPSHOT_SCHEMA_VERSION = 1;
 const KIND_TICKET = "ticket";
 const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_TICKET]);
 
-const KYFW_COMPLETED_URL =
-  "https://kyfw.12306.cn/otn/queryOrder/queryMyOrder";
+const KYFW_COMPLETED_URL = "https://kyfw.12306.cn/otn/queryOrder/queryMyOrder";
 const KYFW_PENDING_URL =
   "https://kyfw.12306.cn/otn/queryOrder/queryMyOrderNoComplete";
+const KYFW_REQUEST_HEADERS = Object.freeze({
+  "user-agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  referer: "https://kyfw.12306.cn/otn/view/index.html",
+  "if-modified-since": "0",
+  "cache-control": "no-cache",
+  accept: "application/json, text/plain, */*",
+  "x-requested-with": "XMLHttpRequest",
+});
 const DAYS_90_MS = 90 * 24 * 3600_000;
 const PAGE_SIZE = 50; // 12306 returns ≤50 completed orders per page
 
@@ -75,6 +93,9 @@ class Train12306Adapter {
     // doesn't need a pre-known username. file-import mode still requires it,
     // checked at sync time, not construction.
     this.account = opts.account || null;
+    this.defaultScope = createAccountScopeFromAccount(NAME, this.account, [
+      "username",
+    ]);
     this._dataPath = opts.dataPath || null;
 
     // §2.5 v0.3 cookie-api mode — activates when account.cookies is supplied.
@@ -86,9 +107,13 @@ class Train12306Adapter {
     // The actual HTTP call is delegated to an injected fetchFn so this module
     // stays a pure-Node parser/orchestrator (same seam as the shopping
     // adapters). fetchFn({ url, cookies, form }) → parsed JSON response object.
-    this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+    this._fetchFn =
+      typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
 
     this.name = NAME;
+    this.runtimeScopeIdentityKey = "username";
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
     this.version = VERSION;
     this.capabilities = [
       "sync:snapshot",
@@ -97,7 +122,7 @@ class Train12306Adapter {
       "parse:12306-orders",
     ];
     this.extractMode = "device-pull";
-    this.rateLimits = {};
+    this.rateLimits = { perMinute: 6, perDay: 100 };
     this.dataDisclosure = {
       fields: [
         "12306:orderSequenceNo / ticketNumber / passengerName / trainNumber / fromStation / toStation / departureMs / arrivalMs / seat / price",
@@ -128,15 +153,34 @@ class Train12306Adapter {
       }
       return { ok: true, mode: "snapshot-file" };
     }
-    if (this._cookieAuth) {
-      const ok = await this._cookieAuth.validate();
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts: ctx,
+      platform: "12306",
+      identityKey: "username",
+    });
+    if (cookieAuth) {
+      const ok = await cookieAuth.validate();
       if (!ok) {
-        return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          error: "cookies missing",
+        };
       }
       // account is OPTIONAL in cookie mode — the 12306 cookie carries identity.
+      if (hasRuntimeCookie(ctx) && (!account || !account.username)) {
+        return {
+          ok: false,
+          reason: "NO_ACCOUNT_USERNAME",
+          message:
+            "travel-12306 cookie-api mode requires opts.accountId for an isolated watermark scope",
+        };
+      }
       return {
         ok: true,
-        account: (this.account && this.account.username) || null,
+        account: (account && account.username) || null,
         mode: "cookie",
       };
     }
@@ -145,7 +189,8 @@ class Train12306Adapter {
         return {
           ok: false,
           reason: "NO_ACCOUNT_USERNAME",
-          message: "travel-12306.authenticate: file-import mode requires account.username",
+          message:
+            "travel-12306.authenticate: file-import mode requires account.username",
         };
       }
       return { ok: true, account: this.account.username, mode: "file-import" };
@@ -154,12 +199,19 @@ class Train12306Adapter {
       ok: false,
       reason: "NO_INPUT",
       message:
-        "travel-12306.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode) OR opts.dataPath (file-import mode)",
+        "travel-12306.authenticate: needs opts.inputPath (snapshot mode) OR configured account.cookies OR opts.cookie + opts.accountId (cookie-api mode) OR opts.dataPath (file-import mode)",
     };
   }
 
-  async healthCheck() {
-    return { ok: true, lastChecked: Date.now() };
+  async healthCheck(opts = {}) {
+    const result = await this.authenticate(opts);
+    return result.ok
+      ? { ok: true, lastChecked: Date.now() }
+      : {
+          ok: false,
+          reason: result.reason,
+          error: result.error || result.message,
+        };
   }
 
   async *sync(opts = {}) {
@@ -167,7 +219,7 @@ class Train12306Adapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    if (this._cookieAuth) {
+    if (this._cookieAuth || hasRuntimeCookie(opts)) {
       yield* this._syncViaCookie(opts);
       return;
     }
@@ -177,7 +229,7 @@ class Train12306Adapter {
       return;
     }
     throw new Error(
-      "travel-12306.sync: needs opts.inputPath (snapshot mode, Android in-APK cc) OR opts.account.cookies (cookie-api mode, kyfw.12306.cn live fetch) OR opts.dataPath (file-import mode, user-uploaded JSON)",
+      "travel-12306.sync: needs opts.inputPath (snapshot mode, Android in-APK cc) OR configured account.cookies OR opts.cookie + opts.accountId (cookie-api mode, kyfw.12306.cn live fetch) OR opts.dataPath (file-import mode, user-uploaded JSON)",
     );
   }
 
@@ -189,8 +241,20 @@ class Train12306Adapter {
    * existing snapshot normalize path applies unchanged.
    */
   async *_syncViaCookie(opts = {}) {
-    if (!(await this._cookieAuth.validate())) return;
-    const cookies = this._cookieAuth.toHeader();
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts,
+      platform: "12306",
+      identityKey: "username",
+    });
+    if (hasRuntimeCookie(opts) && (!account || !account.username)) {
+      throw new Error(
+        "travel-12306._syncViaCookie: opts.accountId required for transient cookie collection",
+      );
+    }
+    if (!cookieAuth || !(await cookieAuth.validate())) return;
+    const cookies = cookieAuth.toHeader();
     const include = opts.include || {};
     if (include[KIND_TICKET] === false) return;
 
@@ -198,7 +262,9 @@ class Train12306Adapter {
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 4;
-    const endDateMs = Number.isFinite(opts.endDateMs) ? opts.endDateMs : Date.now();
+    const endDateMs = Number.isFinite(opts.endDateMs)
+      ? opts.endDateMs
+      : Date.now();
     // queryMyOrder caps the range at 90 days; honour an explicit start /
     // sinceWatermark but never reach back further than 90d in one query.
     const requestedStart = Number.isFinite(opts.startDateMs)
@@ -211,10 +277,12 @@ class Train12306Adapter {
     const queryEndDate = fmtDateShanghai(endDateMs);
 
     let emitted = 0;
+    let sourceRequests = 0;
 
     // ── completed orders (paginated) ──────────────────────────────────────
     let page = 1;
-    while (page <= maxPages) {
+    let completedScanComplete = false;
+    while (sourceRequests < maxPages) {
       const form = {
         come_from_flag: "my_order",
         queryStartDate,
@@ -225,9 +293,25 @@ class Train12306Adapter {
         pageIndex: String(page),
         query_where: "G",
       };
-      const resp = await this._fetchFn({ url: KYFW_COMPLETED_URL, cookies, form });
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({
+          operation: "completed-orders",
+          page,
+        });
+      }
+      sourceRequests += 1;
+      const resp = await this._fetchFn({
+        url: KYFW_COMPLETED_URL,
+        cookies,
+        headers: KYFW_REQUEST_HEADERS,
+        form,
+      });
       const orders = extractCompletedOrders(resp);
-      if (!orders.length) break;
+      if (!hasCompletedOrderList(resp)) break;
+      if (orders.length === 0) {
+        completedScanComplete = true;
+        break;
+      }
       for (const order of orders) {
         for (const ev of ticketsFromOrder(order, true)) {
           if (emitted >= limit) return;
@@ -235,17 +319,30 @@ class Train12306Adapter {
           emitted += 1;
         }
       }
-      if (orders.length < PAGE_SIZE) break; // last page
+      if (orders.length < PAGE_SIZE) {
+        completedScanComplete = true;
+        break; // last page
+      }
       page += 1;
     }
 
     // ── pending orders (single call, usually empty) ───────────────────────
-    if (emitted < limit) {
+    let pendingScanComplete = false;
+    if (emitted < limit && sourceRequests < maxPages) {
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({
+          operation: "pending-orders",
+          page: 1,
+        });
+      }
+      sourceRequests += 1;
       const resp = await this._fetchFn({
         url: KYFW_PENDING_URL,
         cookies,
+        headers: KYFW_REQUEST_HEADERS,
         form: {},
       });
+      pendingScanComplete = hasPendingOrderList(resp);
       for (const order of extractPendingOrders(resp)) {
         for (const ev of ticketsFromOrder(order, false)) {
           if (emitted >= limit) return;
@@ -253,6 +350,13 @@ class Train12306Adapter {
           emitted += 1;
         }
       }
+    }
+    if (
+      completedScanComplete &&
+      pendingScanComplete &&
+      typeof opts.markWatermarkComplete === "function"
+    ) {
+      opts.markWatermarkComplete();
     }
   }
 
@@ -318,7 +422,9 @@ class Train12306Adapter {
     try {
       records = parseRecords(buf);
     } catch (err) {
-      throw new Error(`travel-12306._syncViaFileImport: parse failed: ${err.message}`);
+      throw new Error(
+        `travel-12306._syncViaFileImport: parse failed: ${err.message}`,
+      );
     }
     for (const r of records) {
       yield {
@@ -343,7 +449,9 @@ class Train12306Adapter {
       });
     }
     if (!raw.payload.record) {
-      throw new Error("Train12306Adapter.normalize: raw.payload.record missing");
+      throw new Error(
+        "Train12306Adapter.normalize: raw.payload.record missing",
+      );
     }
     return normalizeTravelRecord(raw.payload.record, {
       adapterName: NAME,
@@ -425,13 +533,14 @@ function orderToRecord(o) {
       station: o.toStation || o.to_station || o.to,
       city: o.toCity || o.to_city,
     },
-    departureMs: numberOrParse(o.departureTime || o.departure_time || o.start_time),
+    departureMs: numberOrParse(
+      o.departureTime || o.departure_time || o.start_time,
+    ),
     arrivalMs: numberOrParse(o.arrivalTime || o.arrival_time || o.end_time),
     carrier: "12306",
     vehicleNumber: o.trainNumber || o.train_no || o.trainNo,
-    totalCost: o.price != null
-      ? { value: parseFloat(o.price), currency: "CNY" }
-      : null,
+    totalCost:
+      o.price != null ? { value: parseFloat(o.price), currency: "CNY" } : null,
     traveler: o.passengerName || o.passenger || o.name,
     confirmationCode: o.ticketNumber || o.ticket_no || recordId,
     bookedAt: numberOrParse(o.bookedAt || o.order_time),
@@ -478,12 +587,31 @@ function extractCompletedOrders(resp) {
   return Array.isArray(list) ? list : [];
 }
 
+function hasCompletedOrderList(resp) {
+  const data = resp && typeof resp === "object" ? resp.data : null;
+  return !!(
+    data &&
+    typeof data === "object" &&
+    (Array.isArray(data.OrderDTODataList) ||
+      Array.isArray(data.orderDTODataList))
+  );
+}
+
 /** Pull the pending-order array out of a queryMyOrderNoComplete response. */
 function extractPendingOrders(resp) {
   const data = resp && typeof resp === "object" ? resp.data : null;
   if (!data || typeof data !== "object") return [];
   const list = data.orderDBList || data.orderDbList;
   return Array.isArray(list) ? list : [];
+}
+
+function hasPendingOrderList(resp) {
+  const data = resp && typeof resp === "object" ? resp.data : null;
+  return !!(
+    data &&
+    typeof data === "object" &&
+    (Array.isArray(data.orderDBList) || Array.isArray(data.orderDbList))
+  );
 }
 
 /**
@@ -496,8 +624,12 @@ function ticketsFromOrder(order, isCompleted) {
   if (!order || typeof order !== "object") return [];
   const sequenceNo = pickStr(order.sequence_no) || pickStr(order.sequenceNo);
   if (!sequenceNo) return [];
-  const orderDateMs = parseYyyymmdd(pickStr(order.order_date) || pickStr(order.orderDate));
-  const orderTotalPrice = toNum(order.ticket_total_price || order.ticketTotalPrice);
+  const orderDateMs = parseYyyymmdd(
+    pickStr(order.order_date) || pickStr(order.orderDate),
+  );
+  const orderTotalPrice = toNum(
+    order.ticket_total_price || order.ticketTotalPrice,
+  );
   const tickets = Array.isArray(order.tickets) ? order.tickets : [];
   const out = [];
   tickets.forEach((t, i) => {
@@ -527,11 +659,11 @@ function ticketsFromOrder(order, isCompleted) {
         pickStr(t.start_train_date_page) || pickStr(t.start_train_date),
       ),
       arrivalMs: parse12306DateTime(pickStr(t.arrive_train_date_page)),
-      seatTypeName: pickStr(t.seat_type_name) || pickStr(t.seatTypeName) || null,
+      seatTypeName:
+        pickStr(t.seat_type_name) || pickStr(t.seatTypeName) || null,
       coachNo: pickStr(t.coach_no) || pickStr(t.coachNo) || null,
       seatNo: pickStr(t.seat_no) || pickStr(t.seatNo) || null,
-      ticketPrice:
-        toNum(t.ticket_price) || toNum(t.ticketPrice) || 0,
+      ticketPrice: toNum(t.ticket_price) || toNum(t.ticketPrice) || 0,
       orderDateMs,
       orderTotalPrice,
       isCompleted,

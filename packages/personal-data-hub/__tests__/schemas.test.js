@@ -82,7 +82,11 @@ describe("validatePerson", () => {
 
   it("accepts ai-agent subtype (for AI vendors)", () => {
     const r = validatePerson(
-      personOk({ subtype: "ai-agent", names: ["DeepSeek"], identifiers: { vendor: "deepseek" } })
+      personOk({
+        subtype: "ai-agent",
+        names: ["DeepSeek"],
+        identifiers: { vendor: "deepseek" },
+      }),
     );
     expect(r.valid).toBe(true);
   });
@@ -107,8 +111,12 @@ describe("validatePerson", () => {
   it("accepts identifiers with string or string[] values", () => {
     const r = validatePerson(
       personOk({
-        identifiers: { phone: ["138-0000-1111"], email: "mom@example.com", wechatId: "wxid_xyz" },
-      })
+        identifiers: {
+          phone: ["138-0000-1111"],
+          email: "mom@example.com",
+          wechatId: "wxid_xyz",
+        },
+      }),
     );
     expect(r.valid).toBe(true);
   });
@@ -128,6 +136,31 @@ describe("validateEvent", () => {
     expect(r.valid).toBe(true);
   });
 
+  it("accepts a non-empty account scope and rejects an empty one", () => {
+    expect(
+      validateEvent(
+        eventOk({
+          source: {
+            ...sourceOk(),
+            scope: "account:email-imap:aaaaaaaa",
+          },
+        }),
+      ).valid,
+    ).toBe(true);
+    const invalid = validateEvent(
+      eventOk({
+        source: {
+          ...sourceOk(),
+          scope: "",
+        },
+      }),
+    );
+    expect(invalid.valid).toBe(false);
+    expect(invalid.errors).toContain(
+      "source.scope must be a non-empty string when present",
+    );
+  });
+
   it("accepts an order event with amount", () => {
     const r = validateEvent(
       eventOk({
@@ -136,14 +169,14 @@ describe("validateEvent", () => {
           title: "蛋白粉",
           amount: { value: 288.5, currency: "CNY", direction: "out" },
         },
-      })
+      }),
     );
     expect(r.valid).toBe(true);
   });
 
   it("rejects amount missing direction", () => {
     const r = validateEvent(
-      eventOk({ content: { amount: { value: 100, currency: "CNY" } } })
+      eventOk({ content: { amount: { value: 100, currency: "CNY" } } }),
     );
     expect(r.valid).toBe(false);
     expect(r.errors.some((e) => e.includes("direction"))).toBe(true);
@@ -151,7 +184,11 @@ describe("validateEvent", () => {
 
   it("rejects amount with non-number value", () => {
     const r = validateEvent(
-      eventOk({ content: { amount: { value: "100", currency: "CNY", direction: "out" } } })
+      eventOk({
+        content: {
+          amount: { value: "100", currency: "CNY", direction: "out" },
+        },
+      }),
     );
     expect(r.valid).toBe(false);
   });
@@ -170,8 +207,12 @@ describe("validateEvent", () => {
     const r = validateEvent(
       eventOk({
         subtype: "ai-message",
-        extra: { vendor: "deepseek", role: "assistant", modelName: "deepseek-r1" },
-      })
+        extra: {
+          vendor: "deepseek",
+          role: "assistant",
+          modelName: "deepseek-r1",
+        },
+      }),
     );
     expect(r.valid).toBe(true);
   });
@@ -188,7 +229,10 @@ describe("validateEvent", () => {
 
   it("accepts media event with mediaRefs", () => {
     const r = validateEvent(
-      eventOk({ subtype: "media", content: { mediaRefs: ["/var/data/img1.jpg"] } })
+      eventOk({
+        subtype: "media",
+        content: { mediaRefs: ["/var/data/img1.jpg"] },
+      }),
     );
     expect(r.valid).toBe(true);
   });
@@ -203,7 +247,9 @@ describe("validatePlace", () => {
   });
 
   it("accepts place with coordinates", () => {
-    const r = validatePlace(placeOk({ coordinates: { lat: 24.4798, lng: 118.0894 } }));
+    const r = validatePlace(
+      placeOk({ coordinates: { lat: 24.4798, lng: 118.0894 } }),
+    );
     expect(r.valid).toBe(true);
   });
 
@@ -249,7 +295,11 @@ describe("validateItem", () => {
 
   it("accepts link subtype", () => {
     const r = validateItem(
-      itemOk({ subtype: "link", name: "Some article", externalUrl: "https://example.com/x" })
+      itemOk({
+        subtype: "link",
+        name: "Some article",
+        externalUrl: "https://example.com/x",
+      }),
     );
     expect(r.valid).toBe(true);
   });
@@ -265,7 +315,7 @@ describe("validateTopic", () => {
 
   it("accepts topic with derivedFromEvents", () => {
     const r = validateTopic(
-      topicOk({ derivedFromEvents: [newId(), newId(), newId()] })
+      topicOk({ derivedFromEvents: [newId(), newId(), newId()] }),
     );
     expect(r.valid).toBe(true);
   });

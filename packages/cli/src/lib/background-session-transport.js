@@ -261,12 +261,13 @@ export function startBackgroundSessionServer(opts) {
         broadcast: (message) => {
           for (const socket of clients) writeMessage(socket, message);
         },
-        broadcastInteractionRequest: (intId, payload) => {
+        broadcastInteractionRequest: (intId, payload, binding = null) => {
           for (const socket of clients)
             writeMessage(socket, {
               type: "interaction_request",
               intId,
               requestId: intId,
+              binding,
               question:
                 payload.question || payload.prompt || "Agent needs your input",
               prompt: payload.question || payload.prompt || "",
@@ -274,6 +275,7 @@ export function startBackgroundSessionServer(opts) {
               options: payload.options || null,
               multiSelect: payload.multiSelect || false,
               defaultValue: payload.defaultValue,
+              policyDigest: payload.policyDigest || null,
             });
         },
         close: () =>

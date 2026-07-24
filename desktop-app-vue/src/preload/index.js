@@ -297,6 +297,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("coding-agent:close-remote-session", remoteSessionId),
     sendMessage: (payload) =>
       ipcRenderer.invoke("coding-agent:send-message", payload),
+    respondQuestion: (payload) =>
+      ipcRenderer.invoke("coding-agent:respond-elicitation", payload),
     respondElicitation: (payload) =>
       ipcRenderer.invoke("coding-agent:respond-elicitation", payload),
     enterPlanMode: (sessionId) =>

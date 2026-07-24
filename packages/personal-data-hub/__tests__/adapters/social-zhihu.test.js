@@ -13,6 +13,7 @@ const {
   VERSION,
   SNAPSHOT_SCHEMA_VERSION,
 } = require("../../lib/adapters/social-zhihu");
+const { createJsonSourceFetch } = require("../../lib/source-http");
 
 function writeTmp(content) {
   const p = path.join(os.tmpdir(), `cc-zhihu-${crypto.randomUUID()}.json`);
@@ -67,7 +68,7 @@ const SNAPSHOT = JSON.stringify({
 describe("constants", () => {
   it("exposes name/version/schema", () => {
     expect(NAME).toBe("social-zhihu");
-    expect(VERSION).toBe("0.1.0");
+    expect(VERSION).toBe("0.2.0");
     expect(SNAPSHOT_SCHEMA_VERSION).toBe(1);
   });
 });
@@ -86,8 +87,12 @@ describe("ZhihuAdapter snapshot mode", () => {
     const p = writeTmp(SNAPSHOT);
     try {
       const a = new ZhihuAdapter();
-      expect((await a.authenticate({ inputPath: p })).mode).toBe("snapshot-file");
-      const bad = await a.authenticate({ inputPath: path.join(os.tmpdir(), "nope-z.json") });
+      expect((await a.authenticate({ inputPath: p })).mode).toBe(
+        "snapshot-file",
+      );
+      const bad = await a.authenticate({
+        inputPath: path.join(os.tmpdir(), "nope-z.json"),
+      });
       expect(bad.ok).toBe(false);
       expect(bad.reason).toBe("INPUT_PATH_UNREADABLE");
     } finally {
@@ -101,7 +106,11 @@ describe("ZhihuAdapter snapshot mode", () => {
       const a = new ZhihuAdapter();
       const real = await collect(a.sync({ inputPath: p }));
       expect(real).toHaveLength(3);
-      expect(real.map((x) => x.kind)).toEqual(["answer", "favourite", "follow"]);
+      expect(real.map((x) => x.kind)).toEqual([
+        "answer",
+        "favourite",
+        "follow",
+      ]);
 
       const ans = a.normalize(real[0]);
       expect(ans.events[0].subtype).toBe("post");
@@ -126,7 +135,9 @@ describe("ZhihuAdapter snapshot mode", () => {
     const p = writeTmp(SNAPSHOT);
     try {
       const a = new ZhihuAdapter();
-      const onlyFollow = await collect(a.sync({ inputPath: p, include: { answer: false, favourite: false } }));
+      const onlyFollow = await collect(
+        a.sync({ inputPath: p, include: { answer: false, favourite: false } }),
+      );
       expect(onlyFollow.map((x) => x.kind)).toEqual(["follow"]);
       const limited = await collect(a.sync({ inputPath: p, limit: 1 }));
       expect(limited).toHaveLength(1);
@@ -139,7 +150,9 @@ describe("ZhihuAdapter snapshot mode", () => {
     const p = writeTmp(JSON.stringify({ schemaVersion: 9, events: [] }));
     try {
       const a = new ZhihuAdapter();
-      await expect(collect(a.sync({ inputPath: p }))).rejects.toThrow(/schemaVersion mismatch/);
+      await expect(collect(a.sync({ inputPath: p }))).rejects.toThrow(
+        /schemaVersion mismatch/,
+      );
     } finally {
       fs.unlinkSync(p);
     }
@@ -147,7 +160,9 @@ describe("ZhihuAdapter snapshot mode", () => {
 
   it("normalize throws on unknown kind", () => {
     const a = new ZhihuAdapter();
-    expect(() => a.normalize({ kind: "bogus", payload: {} })).toThrow(/unknown kind/);
+    expect(() => a.normalize({ kind: "bogus", payload: {} })).toThrow(
+      /unknown kind/,
+    );
   });
 });
 
@@ -155,8 +170,56 @@ describe("ZhihuAdapter cookie-api mode", () => {
   it("authenticate cookie mode requires urlToken", async () => {
     const noTok = new ZhihuAdapter({ account: { cookies: COOKIES } });
     expect((await noTok.authenticate()).reason).toBe("NO_ACCOUNT_URL_TOKEN");
-    const ok = new ZhihuAdapter({ account: { cookies: COOKIES, urlToken: "alice" } });
-    expect(await ok.authenticate()).toEqual({ ok: true, account: "alice", mode: "cookie" });
+    const ok = new ZhihuAdapter({
+      account: { cookies: COOKIES, urlToken: "alice" },
+    });
+    expect(await ok.authenticate()).toEqual({
+      ok: true,
+      account: "alice",
+      mode: "cookie",
+    });
+  });
+
+  it("accepts transient cookie + accountId without mutating the adapter", async () => {
+    const a = new ZhihuAdapter({ fetchFn: async () => ({ data: [] }) });
+    expect(
+      await a.authenticate({
+        cookie: COOKIES,
+        accountId: "alice",
+      }),
+    ).toEqual({
+      ok: true,
+      account: "alice",
+      mode: "cookie",
+    });
+    expect(
+      (
+        await a.authenticate({
+          cookie: COOKIES,
+        })
+      ).reason,
+    ).toBe("NO_ACCOUNT_URL_TOKEN");
+    expect(a.account).toBe(null);
+    expect(a._cookieAuth).toBe(null);
+
+    const configured = new ZhihuAdapter({
+      account: { cookies: COOKIES, urlToken: "configured-token" },
+      fetchFn: async () => ({ data: [], paging: { is_end: true } }),
+    });
+    expect(
+      (
+        await configured.authenticate({
+          cookie: "z_c0=another-account",
+        })
+      ).reason,
+    ).toBe("NO_ACCOUNT_URL_TOKEN");
+    await expect(
+      collect(
+        configured.sync({
+          cookie: "z_c0=another-account",
+        }),
+      ),
+    ).rejects.toThrow(/opts\.accountId required/u);
   });
 
   it("sync fetches answers/followees/collections, paginates, normalizes", async () => {
@@ -168,23 +231,50 @@ describe("ZhihuAdapter cookie-api mode", () => {
     };
     const data = {
       answers: [
-        { id: "A1", question: { title: "Q1" }, excerpt: "ans1", voteup_count: 9, created_time: 1716300000 },
+        {
+          id: "A1",
+          question: { title: "Q1" },
+          excerpt: "ans1",
+          voteup_count: 9,
+          created_time: 1716300000,
+        },
       ],
       followees: [{ url_token: "bob", name: "Bob", headline: "eng" }],
       collections: [{ id: "C1", title: "我的收藏", is_public: true }],
     };
     const calls = [];
-    const fetchFn = async ({ url, cookies, query, sign }) => {
+    let watermarkComplete = false;
+    const fetchFn = async ({ url, cookies, query, headers }) => {
       const k = byUrl(url);
-      calls.push({ k, cookies, offset: query.offset, sign });
+      calls.push({ k, cookies, offset: query.offset, headers });
       // single page each
-      return { data: query.offset === 0 ? data[k] : [], paging: { is_end: query.offset !== 0 } };
+      return {
+        data: data[k],
+        paging: { is_end: true },
+      };
     };
-    const a = new ZhihuAdapter({ account: { cookies: COOKIES, urlToken: "alice" }, fetchFn });
-    const items = await collect(a.sync({}));
-    expect(items.map((x) => x.kind).sort()).toEqual(["answer", "favourite", "follow"]);
+    const a = new ZhihuAdapter({
+      account: { cookies: COOKIES, urlToken: "alice" },
+      fetchFn,
+    });
+    const items = await collect(
+      a.sync({
+        markWatermarkComplete: () => {
+          watermarkComplete = true;
+        },
+      }),
+    );
+    expect(items.map((x) => x.kind).sort()).toEqual([
+      "answer",
+      "favourite",
+      "follow",
+    ]);
     expect(calls.every((c) => c.cookies === COOKIES)).toBe(true);
-    expect(calls.every((c) => c.sign === null)).toBe(true);
+    expect(calls).toHaveLength(3);
+    expect(calls[0].headers).toMatchObject({
+      referer: "https://www.zhihu.com/people/alice",
+      "x-requested-with": "XMLHttpRequest",
+    });
 
     const ans = a.normalize(items.find((x) => x.kind === "answer"));
     expect(ans.events[0].content.title).toBe("Q1");
@@ -194,24 +284,46 @@ describe("ZhihuAdapter cookie-api mode", () => {
     expect(fol.persons[0].identifiers["zhihu-token"]).toEqual(["bob"]);
     const fav = a.normalize(items.find((x) => x.kind === "favourite"));
     expect(fav.events[0].content.title).toBe("我的收藏");
+    expect(a.watermarkStrategy).toBe("max-captured-at");
+    expect(a.watermarkRequiresCompleteScan).toBe(true);
+    expect(watermarkComplete).toBe(true);
   });
 
   it("invokes signProvider when configured", async () => {
     const signCalls = [];
+    const fetchCalls = [];
     const a = new ZhihuAdapter({
       account: { cookies: COOKIES, urlToken: "alice" },
-      fetchFn: async ({ query }) =>
-        query.offset === 0 ? { data: [{ id: "A1", question: { title: "Q" }, excerpt: "x" }], paging: { is_end: true } } : { data: [], paging: { is_end: true } },
+      fetchFn: async (request) => {
+        fetchCalls.push(request);
+        return {
+          data: [{ id: "A1", question: { title: "Q" }, excerpt: "x" }],
+          paging: { is_end: true },
+        };
+      },
       signProvider: async (ctx) => {
         signCalls.push(ctx);
-        return "x-zse-96-value";
+        return {
+          xZse96: "x-zse-96-value",
+          query: { sign: "must-not-enter-url" },
+          headers: {
+            cookie: "must-not-override-cookie",
+            "x-extra": "must-not-be-forwarded",
+          },
+        };
       },
       // only answers to keep it short
     });
-    const items = await collect(a.sync({ include: { follow: false, favourite: false } }));
+    const items = await collect(
+      a.sync({ include: { follow: false, favourite: false } }),
+    );
     expect(items.length).toBeGreaterThan(0);
     expect(signCalls.length).toBeGreaterThan(0);
     expect(signCalls[0].cookies).toBe(COOKIES);
+    expect(fetchCalls[0].headers["x-zse-96"]).toBe("x-zse-96-value");
+    expect(fetchCalls[0].headers).not.toHaveProperty("cookie");
+    expect(fetchCalls[0].headers).not.toHaveProperty("x-extra");
+    expect(fetchCalls[0].query).not.toHaveProperty("sign");
   });
 
   it("respects opts.limit across kinds", async () => {
@@ -219,23 +331,177 @@ describe("ZhihuAdapter cookie-api mode", () => {
       account: { cookies: COOKIES, urlToken: "alice" },
       fetchFn: async ({ query }) =>
         query.offset === 0
-          ? { data: [{ id: "A1", question: { title: "Q" }, excerpt: "x" }, { id: "A2", question: { title: "Q2" }, excerpt: "y" }], paging: { is_end: true } }
+          ? {
+              data: [
+                { id: "A1", question: { title: "Q" }, excerpt: "x" },
+                { id: "A2", question: { title: "Q2" }, excerpt: "y" },
+              ],
+              paging: { is_end: true },
+            }
           : { data: [], paging: { is_end: true } },
     });
     const items = await collect(a.sync({ limit: 1 }));
     expect(items).toHaveLength(1);
   });
 
-  it("is_end stops pagination; empty data yields zero (no crash)", async () => {
+  it("unknown responses yield zero without advancing the watermark", async () => {
+    let watermarkComplete = false;
     const a = new ZhihuAdapter({
       account: { cookies: COOKIES, urlToken: "alice" },
       fetchFn: async () => "not-json-login-redirect",
     });
-    expect(await collect(a.sync({}))).toEqual([]);
+    expect(
+      await collect(
+        a.sync({
+          markWatermarkComplete: () => {
+            watermarkComplete = true;
+          },
+        }),
+      ),
+    ).toEqual([]);
+    expect(watermarkComplete).toBe(false);
+  });
+
+  it("shares maxPages across streams and only checkpoints a complete scan", async () => {
+    const operations = [];
+    let budgetedComplete = false;
+    const budgeted = new ZhihuAdapter({
+      account: { cookies: COOKIES, urlToken: "alice" },
+      fetchFn: async () => ({
+        data: Array.from({ length: 20 }, (_, index) => ({
+          id: `A-${index}`,
+          question: { title: `Q-${index}` },
+          excerpt: "x",
+        })),
+        paging: { is_end: false },
+      }),
+    });
+    expect(
+      await collect(
+        budgeted.sync({
+          maxPages: 1,
+          beforeSourceRequest: ({ operation }) => operations.push(operation),
+          markWatermarkComplete: () => {
+            budgetedComplete = true;
+          },
+        }),
+      ),
+    ).toHaveLength(20);
+    expect(operations).toEqual(["answer"]);
+    expect(budgetedComplete).toBe(false);
+
+    let emptyComplete = false;
+    const validEmpty = new ZhihuAdapter({
+      account: { cookies: COOKIES, urlToken: "alice" },
+      fetchFn: async () => ({
+        data: [],
+        paging: { is_end: true },
+      }),
+    });
+    expect(
+      await collect(
+        validEmpty.sync({
+          maxPages: 3,
+          markWatermarkComplete: () => {
+            emptyComplete = true;
+          },
+        }),
+      ),
+    ).toEqual([]);
+    expect(emptyComplete).toBe(true);
+  });
+
+  it("composes runtime credentials with the constrained host transport", async () => {
+    const calls = [];
+    const sourceFetch = createJsonSourceFetch({
+      fetchImpl: async (url, init) => {
+        calls.push({ url: String(url), init });
+        return new Response(
+          JSON.stringify({
+            data: [],
+            paging: { is_end: true },
+          }),
+          {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          },
+        );
+      },
+    });
+    const a = new ZhihuAdapter({ fetchFn: sourceFetch });
+
+    expect(
+      await collect(
+        a.sync({
+          cookie: COOKIES,
+          accountId: "alice",
+          maxPages: 3,
+        }),
+      ),
+    ).toEqual([]);
+    expect(calls).toHaveLength(3);
+    expect(calls.every((call) => call.init.method === "GET")).toBe(true);
+    expect(
+      calls.every((call) => call.init.headers.get("cookie") === COOKIES),
+    ).toBe(true);
+    expect(
+      calls.every(
+        (call) =>
+          call.init.headers.get("referer") ===
+          "https://www.zhihu.com/people/alice",
+      ),
+    ).toBe(true);
+    expect(
+      calls.every(
+        (call) =>
+          call.init.headers.get("x-requested-with") === "XMLHttpRequest",
+      ),
+    ).toBe(true);
+    expect(calls.every((call) => !call.url.includes("z_c0"))).toBe(true);
+    expect(a.account).toBe(null);
+    expect(a._cookieAuth).toBe(null);
+  });
+
+  it("surfaces HTTP authentication failures without completing the watermark", async () => {
+    let watermarkComplete = false;
+    const sourceFetch = createJsonSourceFetch({
+      fetchImpl: async () =>
+        new Response(
+          JSON.stringify({
+            error: {
+              code: 602,
+              message: "authentication required",
+            },
+          }),
+          {
+            status: 401,
+            headers: { "content-type": "application/json" },
+          },
+        ),
+    });
+    const a = new ZhihuAdapter({ fetchFn: sourceFetch });
+
+    await expect(
+      collect(
+        a.sync({
+          cookie: COOKIES,
+          accountId: "alice",
+          markWatermarkComplete: () => {
+            watermarkComplete = true;
+          },
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: "SOURCE_HTTP_ERROR",
+      status: 401,
+    });
+    expect(watermarkComplete).toBe(false);
   });
 
   it("default fetch throws when no fetchFn", async () => {
-    const a = new ZhihuAdapter({ account: { cookies: COOKIES, urlToken: "alice" } });
+    const a = new ZhihuAdapter({
+      account: { cookies: COOKIES, urlToken: "alice" },
+    });
     await expect(collect(a.sync({}))).rejects.toThrow(/no fetchFn configured/);
   });
 

@@ -17,6 +17,7 @@
     "./migrations": "./lib/migrations.js",
     "./key-providers": "./lib/key-providers.js",
     "./adapter-spec": "./lib/adapter-spec.js",
+    "./account-scope": "./lib/account-scope.js",
     "./categories": "./lib/categories.js",
     "./kg-derive": "./lib/kg-derive.js",
     "./rag-derive": "./lib/rag-derive.js",

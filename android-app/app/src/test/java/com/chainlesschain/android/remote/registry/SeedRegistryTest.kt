@@ -13,23 +13,27 @@ class SeedRegistryTest {
     }
 
     @Test
-    fun `seed total methodCount equals 816`() {
+    fun `seed total methodCount equals 818`() {
         val total = SeedRegistry.SKILLS.sumOf { it.methodCount }
         assertEquals(SeedRegistry.EXPECTED_METHOD_COUNT, total)
     }
 
     @Test
-    fun `personal-data-hub entry is present with 21 methods`() {
+    fun `personal-data-hub entry is present with 23 methods`() {
         val hub = SeedRegistry.SKILLS.firstOrNull { it.namespace == "personal-data-hub" }
         assertNotNull("Phase 14 personal-data-hub seed entry must exist", hub)
-        assertEquals("Hub method count must match desktop 21 IPC topics",
-            21, hub!!.methodCount)
-        assertEquals("Hub methods list must enumerate all 21 method names",
-            21, hub.methods.size)
+        assertEquals("Hub method count must include account activation topics",
+            23, hub!!.methodCount)
+        assertEquals("Hub methods list must enumerate all 23 method names",
+            23, hub.methods.size)
         assertTrue("ask method must be present",
             hub.methods.any { it.name == "ask" })
         assertTrue("syncAdapterStream method must be present",
             hub.methods.any { it.name == "syncAdapterStream" })
+        assertTrue("activateEmail method must be present",
+            hub.methods.any { it.name == "activateEmail" })
+        assertTrue("activateAlipay method must be present",
+            hub.methods.any { it.name == "activateAlipay" })
     }
 
     @Test

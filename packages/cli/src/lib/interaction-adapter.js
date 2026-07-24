@@ -179,6 +179,7 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
 
       this._sendWs({
         ...message,
+        ...(message.type === "question_request" ? { id: requestId } : {}),
         sessionId: this.sessionId,
         requestId,
         // Ride the binding out so the remote UI/bridge can echo it back on the
@@ -236,6 +237,71 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
     // Normalize to boolean
     if (typeof answer === "boolean") return answer;
     return answer === "true" || answer === "yes" || answer === "y";
+  }
+
+  /**
+   * Agent-core AskUserQuestion transport for Desktop/WebSocket consumers.
+   * It uses the same pending map and `session-answer` resolver as MCP
+   * elicitation, while exposing the stream protocol's `question_request`
+   * shape so capable UIs can render options natively.
+   */
+  async askUser({
+    question,
+    options = null,
+    multiSelect = false,
+    timeoutMs,
+    defaultValue,
+    onTimeout,
+    onReject,
+    turnId,
+    toolUseId,
+    metadata = null,
+  } = {}) {
+    const normalizedTurnId =
+      turnId === undefined || turnId === null ? null : String(turnId);
+    const normalizedToolUseId =
+      toolUseId === undefined || toolUseId === null ? null : String(toolUseId);
+    const questionMetadata = {
+      ...(metadata && typeof metadata === "object" ? metadata : {}),
+      kind: "ask_user_question",
+      ...(normalizedTurnId
+        ? { turnId: normalizedTurnId, turn_id: normalizedTurnId }
+        : {}),
+      ...(normalizedToolUseId
+        ? {
+            toolUseId: normalizedToolUseId,
+            tool_use_id: normalizedToolUseId,
+          }
+        : {}),
+    };
+
+    return this._request(
+      {
+        type: "question_request",
+        questionType: "ask_user_question",
+        question: typeof question === "string" ? question : "",
+        options: Array.isArray(options) ? options : null,
+        multiSelect: multiSelect === true,
+        ...(defaultValue !== undefined ? { defaultValue } : {}),
+        ...(onTimeout ? { onTimeout } : {}),
+        ...(onReject ? { onReject } : {}),
+        ...(Number(timeoutMs) > 0 ? { timeoutMs: Number(timeoutMs) } : {}),
+        ...(normalizedTurnId
+          ? { turnId: normalizedTurnId, turn_id: normalizedTurnId }
+          : {}),
+        ...(normalizedToolUseId
+          ? {
+              toolUseId: normalizedToolUseId,
+              tool_use_id: normalizedToolUseId,
+            }
+          : {}),
+        metadata: questionMetadata,
+      },
+      {
+        kind: "question",
+        ...(Number(timeoutMs) > 0 ? { timeoutMs: Number(timeoutMs) } : {}),
+      },
+    );
   }
 
   /**

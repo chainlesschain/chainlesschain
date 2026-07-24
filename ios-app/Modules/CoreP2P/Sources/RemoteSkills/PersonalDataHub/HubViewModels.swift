@@ -192,11 +192,13 @@ public final class HubAdaptersViewModel: ObservableObject {
     @Published public private(set) var isLoading: Bool = false
     @Published public private(set) var syncingAdapter: String?
     @Published public private(set) var errorMessage: String?
+    @Published public private(set) var noticeMessage: String?
     @Published public private(set) var lastReport: HubSyncReport?
 
     /// dispatcher.progress 镜像 — 每次 dispatcher 更新由 sink 同步过来。
     @Published public private(set) var progress: [String: HubSyncEvent] = [:]
     @Published public private(set) var completedReports: [String: HubSyncReport] = [:]
+    @Published public private(set) var skippedReports: [String: HubSyncReport] = [:]
     @Published public private(set) var adapterErrors: [String: String] = [:]
 
     // MARK: - Deps
@@ -233,6 +235,17 @@ public final class HubAdaptersViewModel: ObservableObject {
                self?.progress[adapter] == nil {
                 self?.syncingAdapter = nil
                 self?.lastReport = new[adapter]
+                self?.noticeMessage = nil
+            }
+        }.store(in: &subscriptions)
+
+        dispatcher.$skippedReports.sink { [weak self] new in
+            self?.skippedReports = new
+            if let adapter = self?.syncingAdapter, let report = new[adapter] {
+                self?.syncingAdapter = nil
+                self?.lastReport = report
+                self?.errorMessage = nil
+                self?.noticeMessage = "未同步：\(report.failureMessage)"
             }
         }.store(in: &subscriptions)
 
@@ -240,6 +253,7 @@ public final class HubAdaptersViewModel: ObservableObject {
             self?.adapterErrors = new
             if let adapter = self?.syncingAdapter, let msg = new[adapter] {
                 self?.syncingAdapter = nil
+                self?.noticeMessage = nil
                 self?.errorMessage = msg
             }
         }.store(in: &subscriptions)
@@ -270,6 +284,7 @@ public final class HubAdaptersViewModel: ObservableObject {
         guard !name.isEmpty else { return }
         syncingAdapter = name
         errorMessage = nil
+        noticeMessage = nil
         defer {
             if syncingAdapter == name { syncingAdapter = nil }
         }
@@ -279,6 +294,11 @@ public final class HubAdaptersViewModel: ObservableObject {
                 mobileDid: currentDIDProvider()
             )
             lastReport = report
+            if report.isSkipped {
+                noticeMessage = "未同步：\(report.failureMessage)"
+            } else if !report.isSuccessful {
+                errorMessage = "同步失败：\(report.failureMessage)"
+            }
         } catch {
             errorMessage = "同步失败：\((error as NSError).localizedDescription)"
         }
@@ -294,6 +314,7 @@ public final class HubAdaptersViewModel: ObservableObject {
         dispatcher.resetForNewSync(adapter: name)
         syncingAdapter = name
         errorMessage = nil
+        noticeMessage = nil
 
         do {
             _ = try await commands.syncAdapterStream(

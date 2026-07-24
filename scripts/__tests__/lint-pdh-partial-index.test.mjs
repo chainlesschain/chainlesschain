@@ -11,12 +11,14 @@ import assert from "node:assert/strict";
 import { findViolations } from "../lint-pdh-partial-index.mjs";
 
 test("flags CREATE UNIQUE INDEX missing WHERE clause", () => {
-  const bad = "`CREATE UNIQUE INDEX IF NOT EXISTS uniq_events_source ON events(source_adapter, source_original_id)`,";
+  const bad =
+    "`CREATE UNIQUE INDEX IF NOT EXISTS uniq_events_source ON events(source_adapter, source_original_id)`,";
   assert.equal(findViolations(bad).length, 1);
 });
 
 test("accepts CREATE UNIQUE INDEX with WHERE on same line", () => {
-  const good = "`CREATE UNIQUE INDEX IF NOT EXISTS uniq_events_source ON events(source_adapter, source_original_id) WHERE source_original_id IS NOT NULL`,";
+  const good =
+    "`CREATE UNIQUE INDEX IF NOT EXISTS uniq_events_source ON events(source_adapter, source_original_id) WHERE source_original_id IS NOT NULL`,";
   assert.equal(findViolations(good).length, 0);
 });
 
@@ -24,6 +26,21 @@ test("accepts CREATE UNIQUE INDEX with WHERE on next line", () => {
   const good =
     "`CREATE UNIQUE INDEX IF NOT EXISTS uniq_events_source ON events(source_adapter, source_original_id)\n" +
     "  WHERE source_original_id IS NOT NULL`,";
+  assert.equal(findViolations(good).length, 0);
+});
+
+test("flags scoped source index missing WHERE clause", () => {
+  const bad =
+    "`CREATE UNIQUE INDEX uniq_events_source ON events" +
+    "(source_adapter, source_scope, source_original_id)`";
+  assert.equal(findViolations(bad).length, 1);
+});
+
+test("accepts scoped source index with partial WHERE clause", () => {
+  const good =
+    "`CREATE UNIQUE INDEX uniq_events_source ON events" +
+    "(source_adapter, source_scope, source_original_id) " +
+    "WHERE source_original_id IS NOT NULL`";
   assert.equal(findViolations(good).length, 0);
 });
 

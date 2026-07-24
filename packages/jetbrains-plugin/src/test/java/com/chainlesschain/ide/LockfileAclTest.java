@@ -7,23 +7,28 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.AclEntry;
+import java.nio.file.attribute.AclEntryPermission;
+import java.nio.file.attribute.AclEntryType;
 import java.nio.file.attribute.AclFileAttributeView;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.UserPrincipal;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
- * Windows lockfile ACL tightening (IDE gap P1) — the JB twin of the VS Code
- * icacls hardening. On NTFS the POSIX 0600/0700 chmod is a no-op, leaving the
- * bearer token readable by other local users; LockfileWriter replaces the ACL
- * with an owner-only entry via AclFileAttributeView (pure JDK, fail-open).
+ * Cross-platform owner-only lockfile enforcement. POSIX permissions are read
+ * back exactly; Windows uses a protected owner-only DACL and verifies the final
+ * descriptor before publication.
  *
- * The real ACL effect is only assertable on Windows (AclFileAttributeView is
- * absent on POSIX filesystems), so those assertions are guarded with
- * assumeTrue; the fail-open contract is checked cross-platform.
+ * <p>The real ACL effect is only assertable on Windows and the real mode effect
+ * only on POSIX, so platform-specific assertions are guarded. Injected failure
+ * tests cover the fail-closed and managed-policy branches everywhere.
  */
 final class LockfileAclTest {
 
@@ -54,10 +59,13 @@ final class LockfileAclTest {
         assertNotNull(view, "expected an ACL view on Windows");
         UserPrincipal owner = Files.getOwner(file);
         List<AclEntry> acl = view.getAcl();
-        assertFalse(acl.isEmpty(), "ACL must not be empty");
+        assertEquals(1, acl.size(), "ACL must contain exactly one owner ACE");
         for (AclEntry e : acl) {
             assertEquals(owner, e.principal(),
                     "every ACL entry must belong to the owner (no other principals)");
+            assertEquals(AclEntryType.ALLOW, e.type());
+            assertTrue(e.permissions().containsAll(
+                    EnumSet.allOf(AclEntryPermission.class)));
         }
     }
 
@@ -74,26 +82,51 @@ final class LockfileAclTest {
                 Files.getFileAttributeView(ide, AclFileAttributeView.class);
         assertNotNull(view);
         UserPrincipal owner = Files.getOwner(ide);
-        for (AclEntry e : view.getAcl()) {
+        List<AclEntry> acl = view.getAcl();
+        assertEquals(1, acl.size(), "directory ACL must contain one owner ACE");
+        for (AclEntry e : acl) {
             assertEquals(owner, e.principal());
+            assertEquals(AclEntryType.ALLOW, e.type());
+            assertTrue(e.permissions().containsAll(
+                    EnumSet.allOf(AclEntryPermission.class)));
         }
     }
 
     @Test
-    void tightenOwnerOnlyAclIsFailOpenOnMissingFile(@TempDir Path tmp) {
-        // A non-existent path must not throw — fail-open contract (returns
-        // false, never propagates). Verified on every platform.
+    void compatibilityProbeReportsMissingTargetAsUnsecured(@TempDir Path tmp) {
         boolean tightened = LockfileWriter.tightenOwnerOnlyAcl(tmp.resolve("nope.json"));
-        assertFalse(tightened, "missing file → no ACL applied, but no throw");
+        assertFalse(tightened, "a missing target cannot be reported as secured");
     }
 
     @Test
-    void tightenOwnerOnlyAclReturnsFalseOnPosix(@TempDir Path tmp) throws Exception {
+    void compatibilityProbeDoesNotPretendWindowsAclExistsOnPosix(@TempDir Path tmp)
+            throws Exception {
         assumeTrue(!WINDOWS, "POSIX-only: no AclFileAttributeView");
         Path f = Files.createFile(tmp.resolve("f.json"));
-        // On POSIX there is no ACL view → helper reports "not applied" but never
-        // throws; chmod already handled permissions on that filesystem.
         assertFalse(LockfileWriter.tightenOwnerOnlyAcl(f));
+    }
+
+    @Test
+    void posixModesAreExactForDirectoryAndPublishedFile(@TempDir Path tmp)
+            throws Exception {
+        Path ide = tmp.resolve("ide");
+        assumeTrue(Files.getFileAttributeView(
+                tmp, PosixFileAttributeView.class) != null,
+                "POSIX attribute view required");
+        LockfileWriter w = new LockfileWriter(ide);
+        Path file = w.write(4325, "tok", Collections.singletonList(tmp.toString()),
+                "http://127.0.0.1:4325/mcp", System.currentTimeMillis(),
+                ProcessHandle.current().pid());
+
+        Set<PosixFilePermission> expectedDir = EnumSet.of(
+                PosixFilePermission.OWNER_READ,
+                PosixFilePermission.OWNER_WRITE,
+                PosixFilePermission.OWNER_EXECUTE);
+        Set<PosixFilePermission> expectedFile = EnumSet.of(
+                PosixFilePermission.OWNER_READ,
+                PosixFilePermission.OWNER_WRITE);
+        assertEquals(expectedDir, Files.getPosixFilePermissions(ide));
+        assertEquals(expectedFile, Files.getPosixFilePermissions(file));
     }
 
     @Test
@@ -106,5 +139,29 @@ final class LockfileAclTest {
                 "http://127.0.0.1:4324/mcp", System.currentTimeMillis(),
                 ProcessHandle.current().pid()));
         assertFalse(Files.exists(tmp.resolve("ide").resolve("4324.json")));
+    }
+
+    @Test
+    void onlyExplicitManagedPolicyMayDowngradePermissionFailure(@TempDir Path tmp)
+            throws Exception {
+        LockfileWriter w = new LockfileWriter(tmp.resolve("ide"), pid -> false,
+                (path, permissions) -> { throw new IOException("denied"); },
+                () -> true);
+        Path file = w.write(4326, "tok", Collections.singletonList(tmp.toString()),
+                "http://127.0.0.1:4326/mcp", System.currentTimeMillis(),
+                ProcessHandle.current().pid());
+        assertTrue(Files.exists(file));
+    }
+
+    @Test
+    void unreadableManagedPolicyFailsBeforePublication(@TempDir Path tmp) {
+        LockfileWriter w = new LockfileWriter(tmp.resolve("ide"), pid -> false,
+                (path, permissions) -> {},
+                () -> { throw new IOException("malformed managed settings"); });
+        assertThrows(IOException.class, () -> w.write(4327, "tok",
+                Collections.singletonList(tmp.toString()),
+                "http://127.0.0.1:4327/mcp", System.currentTimeMillis(),
+                ProcessHandle.current().pid()));
+        assertFalse(Files.exists(tmp.resolve("ide").resolve("4327.json")));
     }
 }

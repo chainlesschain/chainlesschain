@@ -41,6 +41,7 @@ const INITIAL_DDL = [
     topics TEXT,
     content TEXT NOT NULL,
     source_adapter TEXT NOT NULL,
+    source_scope TEXT NOT NULL DEFAULT '',
     source_original_id TEXT,
     source TEXT NOT NULL,
     extra TEXT,
@@ -52,7 +53,7 @@ const INITIAL_DDL = [
   `CREATE INDEX IF NOT EXISTS idx_events_actor ON events(actor)`,
   `CREATE INDEX IF NOT EXISTS idx_events_place ON events(place)`,
   `CREATE INDEX IF NOT EXISTS idx_events_adapter ON events(source_adapter)`,
-  `CREATE UNIQUE INDEX IF NOT EXISTS uniq_events_source ON events(source_adapter, source_original_id)
+  `CREATE UNIQUE INDEX IF NOT EXISTS uniq_events_source ON events(source_adapter, source_scope, source_original_id)
     WHERE source_original_id IS NOT NULL`,
 
   // ── persons ─────────────────────────────────────────────────────────────
@@ -64,6 +65,7 @@ const INITIAL_DDL = [
     relation TEXT,
     notes TEXT,
     source_adapter TEXT NOT NULL,
+    source_scope TEXT NOT NULL DEFAULT '',
     source_original_id TEXT,
     source TEXT NOT NULL,
     extra TEXT,
@@ -72,7 +74,7 @@ const INITIAL_DDL = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_persons_subtype ON persons(subtype)`,
   `CREATE INDEX IF NOT EXISTS idx_persons_adapter ON persons(source_adapter)`,
-  `CREATE UNIQUE INDEX IF NOT EXISTS uniq_persons_source ON persons(source_adapter, source_original_id)
+  `CREATE UNIQUE INDEX IF NOT EXISTS uniq_persons_source ON persons(source_adapter, source_scope, source_original_id)
     WHERE source_original_id IS NOT NULL`,
 
   // ── places ──────────────────────────────────────────────────────────────
@@ -85,6 +87,7 @@ const INITIAL_DDL = [
     category TEXT,
     aliases TEXT NOT NULL,
     source_adapter TEXT NOT NULL,
+    source_scope TEXT NOT NULL DEFAULT '',
     source_original_id TEXT,
     source TEXT NOT NULL,
     extra TEXT,
@@ -93,7 +96,7 @@ const INITIAL_DDL = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_places_name ON places(name)`,
   `CREATE INDEX IF NOT EXISTS idx_places_category ON places(category)`,
-  `CREATE UNIQUE INDEX IF NOT EXISTS uniq_places_source ON places(source_adapter, source_original_id)
+  `CREATE UNIQUE INDEX IF NOT EXISTS uniq_places_source ON places(source_adapter, source_scope, source_original_id)
     WHERE source_original_id IS NOT NULL`,
 
   // ── items ───────────────────────────────────────────────────────────────
@@ -108,6 +111,7 @@ const INITIAL_DDL = [
     external_url TEXT,
     thumbnail_local_path TEXT,
     source_adapter TEXT NOT NULL,
+    source_scope TEXT NOT NULL DEFAULT '',
     source_original_id TEXT,
     source TEXT NOT NULL,
     extra TEXT,
@@ -116,7 +120,7 @@ const INITIAL_DDL = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_items_subtype ON items(subtype)`,
   `CREATE INDEX IF NOT EXISTS idx_items_merchant ON items(merchant)`,
-  `CREATE UNIQUE INDEX IF NOT EXISTS uniq_items_source ON items(source_adapter, source_original_id)
+  `CREATE UNIQUE INDEX IF NOT EXISTS uniq_items_source ON items(source_adapter, source_scope, source_original_id)
     WHERE source_original_id IS NOT NULL`,
 
   // ── topics ──────────────────────────────────────────────────────────────
@@ -126,6 +130,7 @@ const INITIAL_DDL = [
     parent_topic TEXT,
     derived_from_events TEXT,
     source_adapter TEXT NOT NULL,
+    source_scope TEXT NOT NULL DEFAULT '',
     source_original_id TEXT,
     source TEXT NOT NULL,
     extra TEXT,
@@ -166,15 +171,16 @@ const INITIAL_DDL = [
   `CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_log(action)`,
 
   // ── raw_events ──────────────────────────────────────────────────────────
-  // Verbatim adapter payload, primary key (adapter, originalId). Lets us
+  // Verbatim adapter payload, primary key (adapter, scope, originalId). Lets us
   // re-derive UnifiedSchema rows without re-syncing if normalization logic
   // changes (e.g. parser upgrade).
   `CREATE TABLE IF NOT EXISTS raw_events (
     adapter TEXT NOT NULL,
+    scope TEXT NOT NULL DEFAULT '',
     original_id TEXT NOT NULL,
     captured_at INTEGER NOT NULL,
     payload TEXT NOT NULL,
-    PRIMARY KEY (adapter, original_id)
+    PRIMARY KEY (adapter, scope, original_id)
   )`,
   `CREATE INDEX IF NOT EXISTS idx_raw_captured ON raw_events(captured_at)`,
 ];
@@ -271,7 +277,7 @@ function _hasFts5Trigram(db) {
   // a compile option. The CREATE is the ground truth.
   try {
     db.exec(
-      "CREATE VIRTUAL TABLE temp._fts_probe USING fts5(x, tokenize='trigram')"
+      "CREATE VIRTUAL TABLE temp._fts_probe USING fts5(x, tokenize='trigram')",
     );
     db.exec("DROP TABLE temp._fts_probe");
     return true;
@@ -332,14 +338,16 @@ const PHASE_16_FTS_DDL = {
 const MIGRATIONS = [
   {
     version: 1,
-    description: "Initial UnifiedSchema tables + sync_watermarks + audit_log + raw_events",
+    description:
+      "Initial UnifiedSchema tables + sync_watermarks + audit_log + raw_events",
     up(db) {
       for (const sql of INITIAL_DDL) db.exec(sql);
     },
   },
   {
     version: 2,
-    description: "Phase 8 EntityResolver — merge_groups + merge_members + resolve_decisions + resolve_queue + review_queue",
+    description:
+      "Phase 8 EntityResolver — merge_groups + merge_members + resolve_decisions + resolve_queue + review_queue",
     up(db) {
       for (const sql of PHASE_8_DDL) db.exec(sql);
     },
@@ -356,7 +364,7 @@ const MIGRATIONS = [
       const now = Date.now();
       db.prepare(
         `INSERT INTO _meta (key, value, updated_at) VALUES ('fts_mode', ?, ?)
-         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
       ).run(supported ? "fts5" : "like", now);
       if (!supported) return;
 
@@ -385,9 +393,125 @@ const MIGRATIONS = [
         db.exec(`DROP INDEX IF EXISTS uniq_${t}_source`);
         db.exec(
           `CREATE UNIQUE INDEX uniq_${t}_source ON ${t}(source_adapter, source_original_id) ` +
-            `WHERE source_original_id IS NOT NULL`
+            `WHERE source_original_id IS NOT NULL`,
         );
       }
+    },
+  },
+  {
+    version: 5,
+    description:
+      "Scope raw archives and normalized source dedup by account so identical " +
+      "business IDs from different accounts cannot overwrite each other.",
+    up(db) {
+      const entityTables = ["events", "persons", "places", "items", "topics"];
+      for (const table of entityTables) {
+        const columns = db.prepare(`PRAGMA table_info(${table})`).all();
+        if (!columns.some((column) => column.name === "source_scope")) {
+          db.exec(
+            `ALTER TABLE ${table} ADD COLUMN source_scope TEXT NOT NULL DEFAULT ''`,
+          );
+        }
+      }
+
+      for (const table of ["events", "persons", "places", "items"]) {
+        db.exec(`DROP INDEX IF EXISTS uniq_${table}_source`);
+        db.exec(
+          `CREATE UNIQUE INDEX uniq_${table}_source ` +
+            `ON ${table}(source_adapter, source_scope, source_original_id) ` +
+            `WHERE source_original_id IS NOT NULL`,
+        );
+      }
+
+      const rawColumns = db.prepare("PRAGMA table_info(raw_events)").all();
+      if (!rawColumns.some((column) => column.name === "scope")) {
+        db.exec("ALTER TABLE raw_events RENAME TO raw_events_pre_scope");
+        db.exec(`
+          CREATE TABLE raw_events (
+            adapter TEXT NOT NULL,
+            scope TEXT NOT NULL DEFAULT '',
+            original_id TEXT NOT NULL,
+            captured_at INTEGER NOT NULL,
+            payload TEXT NOT NULL,
+            PRIMARY KEY (adapter, scope, original_id)
+          )
+        `);
+        db.exec(`
+          INSERT INTO raw_events (adapter, scope, original_id, captured_at, payload)
+          SELECT adapter, '', original_id, captured_at, payload
+          FROM raw_events_pre_scope
+        `);
+        db.exec("DROP TABLE raw_events_pre_scope");
+      }
+      db.exec(
+        "CREATE INDEX IF NOT EXISTS idx_raw_captured ON raw_events(captured_at)",
+      );
+    },
+  },
+  {
+    version: 6,
+    description:
+      "Persist adaptive page budgets for bounded collectors so an incomplete " +
+      "scan can continue deeper after process restart without advancing its " +
+      "durable source watermark.",
+    up(db) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS sync_scan_state (
+          adapter        TEXT NOT NULL,
+          scope          TEXT NOT NULL DEFAULT '',
+          page_budget    INTEGER NOT NULL CHECK (page_budget > 0),
+          deferred_count INTEGER NOT NULL DEFAULT 0 CHECK (deferred_count >= 0),
+          updated_at     INTEGER NOT NULL,
+          PRIMARY KEY (adapter, scope)
+        )
+      `);
+    },
+  },
+  {
+    version: 7,
+    description:
+      "Persist per-adapter sync rate-limit windows so process restarts cannot " +
+      "bypass declared per-minute, per-day, or minimum-interval limits.",
+    up(db) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS sync_rate_limit_state (
+          adapter                  TEXT NOT NULL,
+          scope                    TEXT NOT NULL DEFAULT '',
+          minute_window_started_at INTEGER NOT NULL,
+          minute_count             INTEGER NOT NULL DEFAULT 0
+                                     CHECK (minute_count >= 0),
+          day_window_started_at    INTEGER NOT NULL,
+          day_count                INTEGER NOT NULL DEFAULT 0
+                                     CHECK (day_count >= 0),
+          last_acquired_at         INTEGER,
+          updated_at               INTEGER NOT NULL,
+          PRIMARY KEY (adapter, scope)
+        )
+      `);
+    },
+  },
+  {
+    version: 8,
+    description:
+      "Persist source-request rate-limit windows separately from sync trigger " +
+      "limits so paginated collectors cannot burst or bypass quotas after a " +
+      "process restart.",
+    up(db) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS source_request_rate_limit_state (
+          adapter                  TEXT NOT NULL,
+          scope                    TEXT NOT NULL DEFAULT '',
+          minute_window_started_at INTEGER NOT NULL,
+          minute_count             INTEGER NOT NULL DEFAULT 0
+                                     CHECK (minute_count >= 0),
+          day_window_started_at    INTEGER NOT NULL,
+          day_count                INTEGER NOT NULL DEFAULT 0
+                                     CHECK (day_count >= 0),
+          last_acquired_at         INTEGER,
+          updated_at               INTEGER NOT NULL,
+          PRIMARY KEY (adapter, scope)
+        )
+      `);
     },
   },
 ];
@@ -411,7 +535,9 @@ function applyMigrations(db) {
     updated_at INTEGER NOT NULL
   )`);
 
-  const row = db.prepare("SELECT value FROM _meta WHERE key = 'schema_version'").get();
+  const row = db
+    .prepare("SELECT value FROM _meta WHERE key = 'schema_version'")
+    .get();
   const current = row ? parseInt(row.value, 10) : 0;
 
   for (const m of MIGRATIONS) {
@@ -422,7 +548,7 @@ function applyMigrations(db) {
       const now = Date.now();
       db.prepare(
         `INSERT INTO _meta (key, value, updated_at) VALUES ('schema_version', ?, ?)
-         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
       ).run(String(m.version), now);
     });
 
@@ -434,7 +560,9 @@ function applyMigrations(db) {
 
 function getSchemaVersion(db) {
   try {
-    const row = db.prepare("SELECT value FROM _meta WHERE key = 'schema_version'").get();
+    const row = db
+      .prepare("SELECT value FROM _meta WHERE key = 'schema_version'")
+      .get();
     return row ? parseInt(row.value, 10) : 0;
   } catch (_err) {
     return 0;
@@ -447,8 +575,12 @@ function getSchemaVersion(db) {
  */
 function getFtsMode(db) {
   try {
-    const row = db.prepare("SELECT value FROM _meta WHERE key = 'fts_mode'").get();
-    return row && (row.value === "fts5" || row.value === "like") ? row.value : "like";
+    const row = db
+      .prepare("SELECT value FROM _meta WHERE key = 'fts_mode'")
+      .get();
+    return row && (row.value === "fts5" || row.value === "like")
+      ? row.value
+      : "like";
   } catch (_err) {
     return "like";
   }

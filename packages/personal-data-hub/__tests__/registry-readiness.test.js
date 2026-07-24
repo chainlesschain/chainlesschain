@@ -28,6 +28,9 @@ const { WhatsAppAdapter } = require("../lib/adapters/messaging-whatsapp");
 const { Train12306Adapter } = require("../lib/adapters/travel-12306");
 const { EmailAdapter } = require("../lib/adapters/email-imap");
 const { WechatAdapter } = require("../lib/adapters/wechat");
+const {
+  SystemDataAndroidAdapter,
+} = require("../lib/adapters/system-data-android");
 
 // ─── Stub vault — readiness() only needs getWatermark ─────────────────────
 
@@ -36,6 +39,9 @@ function stubVault(watermarks = {}) {
     _wm: watermarks,
     getWatermark(adapter /*, scope */) {
       return this._wm[adapter] || null;
+    },
+    setWatermark(adapter, _scope, value) {
+      this._wm[adapter] = value;
     },
     audit() {},
   };
@@ -58,6 +64,60 @@ describe("AdapterRegistry.readiness()", () => {
     expect(typeof r.message).toBe("string");
     expect(r.message.length).toBeGreaterThan(0);
     expect(r.actionHint).toBeTruthy();
+    expect(r.capabilities).toEqual(expect.arrayContaining(["sync:snapshot"]));
+  });
+
+  it("list and readiness expose collection-routing metadata", async () => {
+    const reg = new AdapterRegistry({ vault: stubVault() });
+    reg.register(new TelegramAdapter());
+    const [listed] = reg.list();
+    const [ready] = await reg.readiness();
+    expect(listed.extractMode).toBe("device-pull");
+    expect(listed.capabilities).toContain("sync:sqlite");
+    expect(ready.extractMode).toBe(listed.extractMode);
+    expect(ready.capabilities).toEqual(listed.capabilities);
+    expect(ready.capabilities).not.toBe(listed.capabilities);
+  });
+
+  it("probes with bounded concurrency while preserving registration order", async () => {
+    const reg = new AdapterRegistry({ vault: stubVault() });
+    let active = 0;
+    let maxActive = 0;
+    const names = Array.from({ length: 6 }, (_, index) => `source-${index}`);
+
+    for (const [index, name] of names.entries()) {
+      reg.register({
+        name,
+        version: "1.0.0",
+        capabilities: ["sync:snapshot"],
+        extractMode: "file-import",
+        dataDisclosure: { fields: [], sensitivity: "low" },
+        authenticate: async () => {
+          active += 1;
+          maxActive = Math.max(maxActive, active);
+          await new Promise((resolve) =>
+            setTimeout(resolve, (names.length - index) * 5),
+          );
+          active -= 1;
+          return { ok: true, mode: "configured" };
+        },
+        healthCheck: async () => ({ ok: true }),
+        normalize: () => ({
+          events: [],
+          persons: [],
+          places: [],
+          items: [],
+          topics: [],
+        }),
+        sync: async function* () {},
+      });
+    }
+
+    const reports = await reg.readiness({ concurrency: 2 });
+
+    expect(maxActive).toBe(2);
+    expect(reports.map((report) => report.name)).toEqual(names);
+    expect(reports.every((report) => report.ready)).toBe(true);
   });
 
   it("device-pull adapter (telegram) → needs_setup / DB_NOT_PULLED / device", async () => {
@@ -72,7 +132,9 @@ describe("AdapterRegistry.readiness()", () => {
 
   it("WhatsApp ADB pull remains needs_setup until the user supplies a key", async () => {
     const reg = new AdapterRegistry({ vault: stubVault() });
-    reg.register(new WhatsAppAdapter({ bridgeProvider: () => ({ invoke() {} }) }));
+    reg.register(
+      new WhatsAppAdapter({ bridgeProvider: () => ({ invoke() {} }) }),
+    );
     const [r] = await reg.readiness();
     expect(r.ready).toBe(false);
     expect(r.status).toBe(READINESS_STATUS.NEEDS_SETUP);
@@ -121,7 +183,11 @@ describe("AdapterRegistry.readiness()", () => {
   it("email per-account → ready=configured WITHOUT opening an IMAP session", async () => {
     let sessionFactoryCalled = false;
     const adapter = new EmailAdapter({
-      account: { email: "user@gmail.com", authCode: "secret", provider: "gmail" },
+      account: {
+        email: "user@gmail.com",
+        authCode: "secret",
+        provider: "gmail",
+      },
       // If readiness wrongly performed a live login it would call this.
       sessionFactory: () => {
         sessionFactoryCalled = true;
@@ -182,7 +248,7 @@ describe("AdapterRegistry.readiness()", () => {
       authenticate: () => new Promise(() => {}), // never resolves
       healthCheck: async () => ({ ok: true }),
       normalize: (r) => r,
-      // eslint-disable-next-line require-yield
+       
       sync: async function* () {},
     });
     const [r] = await reg.readiness({ timeoutMs: 200 });
@@ -201,7 +267,7 @@ describe("AdapterRegistry.readiness()", () => {
       authenticate: async () => ({ ok: false, reason: "TOTALLY_NEW_CODE_42" }),
       healthCheck: async () => ({ ok: true }),
       normalize: (r) => r,
-      // eslint-disable-next-line require-yield
+       
       sync: async function* () {},
     });
     const [r] = await reg.readiness();
@@ -212,7 +278,9 @@ describe("AdapterRegistry.readiness()", () => {
 
   it("does not report ready when cookie mode only has a placeholder fetch seam", async () => {
     const reg = new AdapterRegistry({ vault: stubVault() });
-    const defaultFetch = async () => { throw new Error("not configured"); };
+    const defaultFetch = async () => {
+      throw new Error("not configured");
+    };
     reg.register({
       name: "custom-web-seam",
       version: "1.0.0",
@@ -283,18 +351,22 @@ describe("AdapterRegistry.readiness()", () => {
       expect(r).toHaveProperty("status");
       expect(r).toHaveProperty("category");
       expect(r).toHaveProperty("message");
+      expect(Array.isArray(r.capabilities)).toBe(true);
     }
     expect(byName(reports, "messaging-telegram").reason).toBe("DB_NOT_PULLED");
   });
 });
 
-describe("AdapterRegistry.readiness() — ADB one-click (social)", () => {
+describe("AdapterRegistry.readiness() — ADB-capable sources", () => {
   const oneClick = { oneClickNames: new Set(["social-bilibili"]) };
 
   it("device connected → ready via adb-oneclick", async () => {
     const reg = new AdapterRegistry({
       vault: stubVault(),
-      adbReadiness: { ...oneClick, probe: async () => ({ deviceConnected: true, serial: "ABC123" }) },
+      adbReadiness: {
+        ...oneClick,
+        probe: async () => ({ deviceConnected: true, serial: "ABC123" }),
+      },
     });
     reg.register(new BilibiliAdapter());
     const [r] = await reg.readiness();
@@ -308,7 +380,10 @@ describe("AdapterRegistry.readiness() — ADB one-click (social)", () => {
   it("no device → ADB_DEVICE_NEEDED (actionable, not the snapshot message)", async () => {
     const reg = new AdapterRegistry({
       vault: stubVault(),
-      adbReadiness: { ...oneClick, probe: async () => ({ deviceConnected: false }) },
+      adbReadiness: {
+        ...oneClick,
+        probe: async () => ({ deviceConnected: false }),
+      },
     });
     reg.register(new BilibiliAdapter());
     const [r] = await reg.readiness();
@@ -321,7 +396,12 @@ describe("AdapterRegistry.readiness() — ADB one-click (social)", () => {
   it("a probe that throws degrades to ADB_DEVICE_NEEDED (never crashes)", async () => {
     const reg = new AdapterRegistry({
       vault: stubVault(),
-      adbReadiness: { ...oneClick, probe: async () => { throw new Error("adb missing"); } },
+      adbReadiness: {
+        ...oneClick,
+        probe: async () => {
+          throw new Error("adb missing");
+        },
+      },
     });
     reg.register(new BilibiliAdapter());
     const [r] = await reg.readiness();
@@ -331,7 +411,10 @@ describe("AdapterRegistry.readiness() — ADB one-click (social)", () => {
   it("non-one-click adapter is unaffected by ADB readiness", async () => {
     const reg = new AdapterRegistry({
       vault: stubVault(),
-      adbReadiness: { oneClickNames: new Set(["social-bilibili"]), probe: async () => ({ deviceConnected: true }) },
+      adbReadiness: {
+        oneClickNames: new Set(["social-bilibili"]),
+        probe: async () => ({ deviceConnected: true }),
+      },
     });
     reg.register(new TelegramAdapter());
     const [r] = await reg.readiness();
@@ -344,5 +427,250 @@ describe("AdapterRegistry.readiness() — ADB one-click (social)", () => {
     reg.register(new BilibiliAdapter());
     const [r] = await reg.readiness();
     expect(r.reason).toBe("NO_INPUT");
+  });
+
+  it("marks Android system-data direct collection ready when a device is connected", async () => {
+    const reg = new AdapterRegistry({
+      vault: stubVault(),
+      adbReadiness: {
+        oneClickNames: new Set(["system-data-android"]),
+        probe: async () => ({ deviceConnected: true, serial: "ANDROID-1" }),
+      },
+    });
+    reg.register(new SystemDataAndroidAdapter());
+
+    const [r] = await reg.readiness();
+    expect(r).toMatchObject({
+      name: "system-data-android",
+      ready: true,
+      status: READINESS_STATUS.READY,
+      category: READINESS_CATEGORY.DEVICE,
+      mode: "adb-oneclick",
+    });
+    expect(r.capabilities).toEqual(
+      expect.arrayContaining(["sync:snapshot", "sync:adb"]),
+    );
+  });
+
+  it("keeps Android system-data snapshot import available when no device is connected", async () => {
+    const reg = new AdapterRegistry({
+      vault: stubVault(),
+      adbReadiness: {
+        oneClickNames: new Set(["system-data-android"]),
+        probe: async () => ({ deviceConnected: false }),
+      },
+    });
+    reg.register(new SystemDataAndroidAdapter());
+
+    const [r] = await reg.readiness();
+    expect(r.ready).toBe(false);
+    expect(r.reason).toBe("ADB_DEVICE_NEEDED");
+    expect(r.capabilities).toContain("sync:snapshot");
+  });
+});
+
+describe("AdapterRegistry.syncAdapter() — collection input contract", () => {
+  it("forwards sync-time options to the pre-sync health gate", async () => {
+    let healthInputPath = null;
+    let syncInputPath = null;
+    const reg = new AdapterRegistry({ vault: stubVault() });
+    reg.register({
+      name: "file-contract",
+      version: "1.0.0",
+      capabilities: ["sync:file-import"],
+      extractMode: "file-import",
+      dataDisclosure: { fields: [], sensitivity: "low" },
+      authenticate: async () => ({ ok: false, reason: "NO_INPUT" }),
+      healthCheck: async (options) => {
+        healthInputPath = options.inputPath;
+        return { ok: healthInputPath === "fixture.json" };
+      },
+      normalize: (value) => value,
+      sync: async function* (options) {
+        syncInputPath = options.inputPath;
+      },
+    });
+
+    const report = await reg.syncAdapter("file-contract", {
+      inputPath: "fixture.json",
+    });
+
+    expect(report.status).toBe("ok");
+    expect(healthInputPath).toBe("fixture.json");
+    expect(syncInputPath).toBe("fixture.json");
+  });
+});
+
+describe("AdapterRegistry.syncAll() — readiness-aware batch collection", () => {
+  function emptyAdapter({
+    name,
+    authenticate,
+    healthCheck = async () => ({ ok: true }),
+    capabilities = ["sync:snapshot"],
+  }) {
+    return {
+      name,
+      version: "1.0.0",
+      capabilities,
+      extractMode: "file-import",
+      dataDisclosure: { fields: [], sensitivity: "low" },
+      authenticate,
+      healthCheck,
+      normalize: () => ({
+        events: [],
+        persons: [],
+        places: [],
+        items: [],
+        topics: [],
+      }),
+      sync: async function* () {},
+    };
+  }
+
+  it("runs ready adapters and emits explicit skipped reports for setup-bound sources", async () => {
+    let blockedHealthCalls = 0;
+    const reg = new AdapterRegistry({ vault: stubVault() });
+    reg.register(
+      emptyAdapter({
+        name: "ready-source",
+        authenticate: async () => ({ ok: true, mode: "configured" }),
+      }),
+    );
+    reg.register(
+      emptyAdapter({
+        name: "needs-file",
+        authenticate: async () => ({ ok: false, reason: "NO_INPUT" }),
+        healthCheck: async () => {
+          blockedHealthCalls += 1;
+          return { ok: false, reason: "NO_INPUT" };
+        },
+      }),
+    );
+
+    const reports = await reg.syncAll();
+    expect(reports).toHaveLength(2);
+    expect(reports[0].status).toBe("ok");
+    expect(reports[1]).toMatchObject({
+      adapter: "needs-file",
+      status: "skipped",
+      skipReason: "NO_INPUT",
+      error: null,
+    });
+    expect(blockedHealthCalls).toBe(0);
+  });
+
+  it("emits ordered batch lifecycle progress for ready and skipped sources", async () => {
+    const events = [];
+    const reg = new AdapterRegistry({
+      vault: stubVault(),
+      onSyncEvent: (event) => events.push(event),
+    });
+    reg.register(
+      emptyAdapter({
+        name: "ready-source",
+        authenticate: async () => ({ ok: true, mode: "configured" }),
+      }),
+    );
+    reg.register(
+      emptyAdapter({
+        name: "needs-file",
+        authenticate: async () => ({ ok: false, reason: "NO_INPUT" }),
+      }),
+    );
+
+    await reg.syncAll();
+
+    const batchEvents = events.filter((event) =>
+      event.kind.startsWith("sync.batch."),
+    );
+    expect(batchEvents).toEqual([
+      expect.objectContaining({
+        kind: "sync.batch.start",
+        current: 0,
+        total: 2,
+      }),
+      expect.objectContaining({
+        kind: "sync.batch.progress",
+        adapter: "ready-source",
+        current: 1,
+        total: 2,
+        status: "ok",
+      }),
+      expect.objectContaining({
+        kind: "sync.batch.progress",
+        adapter: "needs-file",
+        current: 2,
+        total: 2,
+        status: "skipped",
+      }),
+      expect.objectContaining({
+        kind: "sync.batch.done",
+        current: 2,
+        total: 2,
+        statusCounts: { ok: 1, skipped: 1 },
+      }),
+    ]);
+  });
+
+  it("uses adapterOptions as explicit intent even when baseline readiness needs setup", async () => {
+    let receivedInputPath = null;
+    const reg = new AdapterRegistry({ vault: stubVault() });
+    reg.register(
+      emptyAdapter({
+        name: "file-source",
+        authenticate: async (options) =>
+          options.inputPath
+            ? { ok: true, mode: "snapshot-file" }
+            : { ok: false, reason: "NO_INPUT" },
+        healthCheck: async (options) => ({
+          ok: options.inputPath === "fixture.json",
+          reason: "NO_INPUT",
+        }),
+      }),
+    );
+    reg.get("file-source").sync = async function* (options) {
+      receivedInputPath = options.inputPath;
+    };
+
+    const [report] = await reg.syncAll({
+      adapterOptions: {
+        "file-source": { inputPath: "fixture.json" },
+      },
+    });
+    expect(report.status).toBe("ok");
+    expect(receivedInputPath).toBe("fixture.json");
+  });
+
+  it("does not send host-only ADB collectors through the generic adapter sync path", async () => {
+    const reg = new AdapterRegistry({
+      vault: stubVault(),
+      adbReadiness: {
+        oneClickNames: new Set(["social-bilibili"]),
+        probe: async () => ({ deviceConnected: true, serial: "ANDROID-1" }),
+      },
+    });
+    reg.register(new BilibiliAdapter());
+
+    const [report] = await reg.syncAll();
+    expect(report).toMatchObject({
+      adapter: "social-bilibili",
+      status: "skipped",
+      skipReason: "DEDICATED_COLLECTOR_REQUIRED",
+    });
+  });
+
+  it("supports the legacy force-all mode when readyOnly is false", async () => {
+    const reg = new AdapterRegistry({ vault: stubVault() });
+    reg.register(
+      emptyAdapter({
+        name: "forced-source",
+        authenticate: async () => ({ ok: false, reason: "NO_INPUT" }),
+        healthCheck: async () => ({ ok: false, reason: "NO_INPUT" }),
+      }),
+    );
+
+    const [report] = await reg.syncAll({ readyOnly: false });
+    expect(report.status).toBe("unhealthy");
+    expect(report).not.toHaveProperty("skipReason");
   });
 });

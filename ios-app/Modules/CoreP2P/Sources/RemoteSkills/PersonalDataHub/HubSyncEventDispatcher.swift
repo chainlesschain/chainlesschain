@@ -56,6 +56,9 @@ public final class HubSyncEventDispatcher: ObservableObject {
     /// syncStream 时本字典**不清**（保留"上次同步 +N 事件"显示）。
     @Published public private(set) var completedReports: [String: HubSyncReport] = [:]
 
+    /// adapter → 最近一次 readiness-aware 跳过报告（不是失败）。
+    @Published public private(set) var skippedReports: [String: HubSyncReport] = [:]
+
     /// adapter → 最近一次同步失败的 error message。用户触发新一轮 syncStream 时
     /// 本字典**不清**（保留错误信息直到下一次成功）；新一轮 done 会覆盖。
     @Published public private(set) var errors: [String: String] = [:]
@@ -97,12 +100,14 @@ public final class HubSyncEventDispatcher: ObservableObject {
     public func resetForNewSync(adapter: String) {
         progress.removeValue(forKey: adapter)
         errors.removeValue(forKey: adapter)
+        skippedReports.removeValue(forKey: adapter)
     }
 
     /// 完全清掉某 adapter 的所有状态（progress + completed + error）— UI"清除"按钮调。
     public func clearAdapter(_ adapter: String) {
         progress.removeValue(forKey: adapter)
         completedReports.removeValue(forKey: adapter)
+        skippedReports.removeValue(forKey: adapter)
         errors.removeValue(forKey: adapter)
     }
 
@@ -134,12 +139,42 @@ public final class HubSyncEventDispatcher: ObservableObject {
             // 进入新一轮 in-flight；不主动清 error/completed — 让 done/error 覆盖
         case "done":
             progress.removeValue(forKey: event.adapter)
-            errors.removeValue(forKey: event.adapter)
+            if let reports = event.reports {
+                for report in reports {
+                    guard let adapter = report.adapter, !adapter.isEmpty else { continue }
+                    if report.isSkipped {
+                        completedReports.removeValue(forKey: adapter)
+                        errors.removeValue(forKey: adapter)
+                        skippedReports[adapter] = report
+                    } else if report.isSuccessful {
+                        errors.removeValue(forKey: adapter)
+                        skippedReports.removeValue(forKey: adapter)
+                        completedReports[adapter] = report
+                    } else {
+                        completedReports.removeValue(forKey: adapter)
+                        skippedReports.removeValue(forKey: adapter)
+                        errors[adapter] = report.failureMessage
+                    }
+                }
+            }
             if let report = event.report {
-                completedReports[event.adapter] = report
+                if report.isSkipped {
+                    completedReports.removeValue(forKey: event.adapter)
+                    errors.removeValue(forKey: event.adapter)
+                    skippedReports[event.adapter] = report
+                } else if report.isSuccessful {
+                    errors.removeValue(forKey: event.adapter)
+                    skippedReports.removeValue(forKey: event.adapter)
+                    completedReports[event.adapter] = report
+                } else {
+                    completedReports.removeValue(forKey: event.adapter)
+                    skippedReports.removeValue(forKey: event.adapter)
+                    errors[event.adapter] = report.failureMessage
+                }
             }
         case "error":
             progress.removeValue(forKey: event.adapter)
+            skippedReports.removeValue(forKey: event.adapter)
             errors[event.adapter] = event.message ?? "未知错误"
         default:
             // forward-compat: unknown kind treated as in-flight progress

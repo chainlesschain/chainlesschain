@@ -170,6 +170,33 @@ describe("sub-agent-context", () => {
     });
   });
 
+  describe("recoveryBinding()", () => {
+    it("surfaces child trace, provider tools, checkpoints, and worktree", () => {
+      const ctx = SubAgentContext.create({
+        role: "test",
+        task: "task",
+        parentId: "parent-1",
+        hookParentTraceId: "parent-trace",
+      });
+      ctx._runId = "child-trace";
+      ctx._toolUseIds = ["tool-1"];
+      ctx._checkpointIds = ["cp-1"];
+      ctx._worktreeBranch = "agent/task-1";
+      ctx._worktreePath = "C:/tmp/task-1";
+
+      expect(ctx.recoveryBinding()).toEqual({
+        childAgentId: ctx.id,
+        parentAgentId: "parent-1",
+        traceId: "child-trace",
+        parentTraceId: "parent-trace",
+        checkpointIds: ["cp-1"],
+        toolUseIds: ["tool-1"],
+        worktreeId: "agent/task-1",
+        worktreePath: "C:/tmp/task-1",
+      });
+    });
+  });
+
   // ─── abort() / isAborted() ───────────────────────────────
 
   describe("abort()", () => {

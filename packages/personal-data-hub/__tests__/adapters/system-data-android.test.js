@@ -53,6 +53,9 @@ describe("SystemDataAndroidAdapter — contract", () => {
     expect(adapter.name).toBe(SYSTEM_DATA_ANDROID_NAME);
     expect(adapter.version).toBe(SYSTEM_DATA_ANDROID_VERSION);
     expect(adapter.extractMode).toBe("device-pull");
+    expect(adapter.capabilities).toEqual(
+      expect.arrayContaining(["sync:snapshot", "sync:adb"]),
+    );
     // v0.2 bumped sensitivity medium → high when sms/call_log were added
     // (real address book + SMS body are firmly PII-grade).
     expect(adapter.dataDisclosure.sensitivity).toBe("high");
@@ -388,15 +391,31 @@ describe("SystemDataAndroidAdapter — bridge-direct sync", () => {
   });
 
   it("auto-engages bridge when inputPath omitted AND bridge.available", async () => {
-    const adapter = new SystemDataAndroidAdapter();
-    adapter._deps.bridgeProvider = () =>
-      makeBridge({
-        contacts: [{ lookupKey: "auto", displayName: "Auto" }],
-      });
+    const adapter = new SystemDataAndroidAdapter({
+      bridgeProvider: () =>
+        makeBridge({
+          contacts: [{ lookupKey: "auto", displayName: "Auto" }],
+        }),
+    });
     const out = [];
     for await (const r of adapter.sync({})) out.push(r);
     expect(out).toHaveLength(1);
     expect(out[0].payload.displayName).toBe("Auto");
+  });
+
+  it("accepts the host bridge provider through its public constructor", async () => {
+    const bridge = makeBridge({
+      apps: [{ packageName: "com.constructor.bridge" }],
+    });
+    const adapter = new SystemDataAndroidAdapter({
+      bridgeProvider: () => bridge,
+    });
+
+    expect(adapter._deps.bridgeProvider()).toBe(bridge);
+    const out = [];
+    for await (const raw of adapter.sync({})) out.push(raw);
+    expect(out).toHaveLength(1);
+    expect(out[0].payload.packageName).toBe("com.constructor.bridge");
   });
 
   it("respects include.contacts=false in bridge mode", async () => {

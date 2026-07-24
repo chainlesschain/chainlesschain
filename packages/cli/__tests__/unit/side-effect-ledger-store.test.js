@@ -9,6 +9,7 @@ import {
   loadSideEffectLedger,
   reconcileSessionSideEffects,
   SIDE_EFFECT_LEDGER_EVENT,
+  SideEffectLedgerPersistenceError,
   _deps,
 } from "../../src/lib/side-effect-ledger-store.js";
 import {
@@ -67,14 +68,51 @@ describe("side-effect-ledger-store", () => {
     expect(loadSideEffectLedger("s1").list()).toEqual([]);
   });
 
-  it("persist is best-effort — bad inputs and a throwing store return false", () => {
-    expect(persistSideEffectLedger("", crashedLedger())).toBe(false);
-    expect(persistSideEffectLedger("s1", null)).toBe(false);
-    expect(persistSideEffectLedger("s1", { ops: "nope" })).toBe(false);
+  it("fails closed on invalid input or an unavailable critical store", () => {
+    expect(() => persistSideEffectLedger("", crashedLedger())).toThrow(
+      SideEffectLedgerPersistenceError,
+    );
+    expect(() => persistSideEffectLedger("s1", null)).toThrow(
+      SideEffectLedgerPersistenceError,
+    );
+    expect(() => persistSideEffectLedger("s1", { ops: "nope" })).toThrow(
+      SideEffectLedgerPersistenceError,
+    );
     _deps.appendEvent = vi.fn(() => {
       throw new Error("disk full");
     });
-    expect(persistSideEffectLedger("s1", crashedLedger())).toBe(false);
+    expect(() => persistSideEffectLedger("s1", crashedLedger())).toThrowError(
+      expect.objectContaining({
+        code: "SIDE_EFFECT_LEDGER_PERSIST_FAILED",
+        operation: "write",
+      }),
+    );
+  });
+
+  it("retains an explicit advisory best-effort escape hatch", () => {
+    _deps.appendEvent = vi.fn(() => {
+      throw new Error("disk full");
+    });
+    expect(
+      persistSideEffectLedger("s1", crashedLedger(), {
+        failIfUnavailable: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("fails closed on read errors unless explicitly advisory", () => {
+    _deps.readEvents = vi.fn(() => {
+      throw new Error("disk unavailable");
+    });
+    expect(() => loadSideEffectLedger("s1")).toThrowError(
+      expect.objectContaining({
+        code: "SIDE_EFFECT_LEDGER_READ_FAILED",
+        operation: "read",
+      }),
+    );
+    expect(
+      loadSideEffectLedger("s1", { failIfUnavailable: false }).list(),
+    ).toEqual([]);
   });
 
   it("reconcileSessionSideEffects is the recovery entry point — inspect the crashed push, skip the read", () => {

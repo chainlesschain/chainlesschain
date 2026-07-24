@@ -39,8 +39,13 @@
 "use strict";
 
 const fs = require("node:fs");
+const { createAccountScopeFromAccount } = require("../../account-scope");
 const { newId } = require("../../ids");
-const { ENTITY_TYPES, EVENT_SUBTYPES, CAPTURED_BY } = require("../../constants");
+const {
+  ENTITY_TYPES,
+  EVENT_SUBTYPES,
+  CAPTURED_BY,
+} = require("../../constants");
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "gov-ixiamen";
@@ -109,19 +114,43 @@ function stableOriginalId(id) {
 function mapService(raw) {
   if (!raw || typeof raw !== "object") return null;
   const serviceId =
-    raw.serviceId || raw.service_id || raw.id || raw.bizId || raw.biz_id || raw.orderNo;
+    raw.serviceId ||
+    raw.service_id ||
+    raw.id ||
+    raw.bizId ||
+    raw.biz_id ||
+    raw.orderNo;
   if (!serviceId) return null;
   const serviceName =
-    raw.serviceName || raw.service_name || raw.name || raw.title || raw.itemName || "(未命名事项)";
+    raw.serviceName ||
+    raw.service_name ||
+    raw.name ||
+    raw.title ||
+    raw.itemName ||
+    "(未命名事项)";
   return {
     serviceId: String(serviceId),
     serviceName: String(serviceName),
-    category: inferCategory(serviceName, raw.category || raw.categoryName || raw.type),
+    category: inferCategory(
+      serviceName,
+      raw.category || raw.categoryName || raw.type,
+    ),
     handledMs: parseTime(
-      raw.handledTime || raw.handle_time || raw.handledAt || raw.createTime || raw.create_time || raw.time,
+      raw.handledTime ||
+        raw.handle_time ||
+        raw.handledAt ||
+        raw.createTime ||
+        raw.create_time ||
+        raw.time,
     ),
     status: raw.status || raw.statusName || raw.state || null,
-    dept: raw.dept || raw.deptName || raw.department || raw.org || raw.handleOrg || null,
+    dept:
+      raw.dept ||
+      raw.deptName ||
+      raw.department ||
+      raw.org ||
+      raw.handleOrg ||
+      null,
   };
 }
 
@@ -141,20 +170,28 @@ function extractList(resp) {
 class IXiamenAdapter {
   constructor(opts = {}) {
     this.account = opts.account || null;
+    this.defaultScope = createAccountScopeFromAccount(NAME, this.account, [
+      "userId",
+    ]);
     this._cookieAuth =
       opts.account && opts.account.cookies
         ? new CookieAuth({ platform: "ixiamen", cookies: opts.account.cookies })
         : null;
-    this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+    this._fetchFn =
+      typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
     this._signProvider =
       typeof opts.signProvider === "function" ? opts.signProvider : null;
     this._listUrl =
       typeof opts.listUrl === "string" && opts.listUrl.length > 0
         ? opts.listUrl
         : null;
-    this._liveConfigured = Boolean(this._listUrl && typeof opts.fetchFn === "function");
+    this._liveConfigured = Boolean(
+      this._listUrl && typeof opts.fetchFn === "function",
+    );
 
     this.name = NAME;
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
     this.version = VERSION;
     this.capabilities = [
       "sync:snapshot",
@@ -164,7 +201,9 @@ class IXiamenAdapter {
     this.extractMode = this._liveConfigured ? "web-api" : "file-import";
     this.rateLimits = { perMinute: 6, perDay: 100 };
     this.dataDisclosure = {
-      fields: ["ixiamen:service (serviceName / category / handledTime / status / dept)"],
+      fields: [
+        "ixiamen:service (serviceName / category / handledTime / status / dept)",
+      ],
       // Gov real-name service records are sensitive personal data.
       sensitivity: "high",
       legalGate: true,
@@ -196,7 +235,12 @@ class IXiamenAdapter {
     }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
-      if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
+      if (!ok)
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          error: "cookies missing",
+        };
       return {
         ok: true,
         account: (this.account && this.account.userId) || null,
@@ -213,9 +257,9 @@ class IXiamenAdapter {
     };
   }
 
-  async healthCheck() {
+  async healthCheck(opts = {}) {
     if (this._cookieAuth) {
-      const r = await this.authenticate();
+      const r = await this.authenticate(opts);
       return r.ok
         ? { ok: true, lastChecked: Date.now(), unverified: true }
         : { ok: false, reason: r.reason, error: r.error };
@@ -237,9 +281,7 @@ class IXiamenAdapter {
         "gov-ixiamen.sync: explicit listUrl and fetchFn required for custom cookie collection",
       );
     }
-    throw new Error(
-      "gov-ixiamen.sync: needs opts.inputPath (snapshot mode)",
-    );
+    throw new Error("gov-ixiamen.sync: needs opts.inputPath (snapshot mode)");
   }
 
   async *_syncViaSnapshot(opts) {
@@ -259,9 +301,12 @@ class IXiamenAdapter {
         ? Math.floor(snapshot.snapshottedAt)
         : Date.now();
     const account =
-      snapshot.account && typeof snapshot.account === "object" ? snapshot.account : null;
+      snapshot.account && typeof snapshot.account === "object"
+        ? snapshot.account
+        : null;
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
 
     const events = Array.isArray(snapshot.events) ? snapshot.events : [];
     let emitted = 0;
@@ -273,7 +318,8 @@ class IXiamenAdapter {
 
       const rec = mapService(ev);
       if (!rec) continue;
-      const capturedAt = parseTime(ev.capturedAt) || rec.handledMs || fallbackCapturedAt;
+      const capturedAt =
+        parseTime(ev.capturedAt) || rec.handledMs || fallbackCapturedAt;
       yield {
         adapter: NAME,
         kind: KIND_SERVICE,
@@ -291,20 +337,32 @@ class IXiamenAdapter {
     const include = opts.include || {};
     if (include[KIND_SERVICE] === false) return;
     const sinceMs =
-      opts.sinceWatermark != null ? parseInt(String(opts.sinceWatermark), 10) || 0 : 0;
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+      opts.sinceWatermark != null
+        ? parseInt(String(opts.sinceWatermark), 10) || 0
+        : 0;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
 
     let emitted = 0;
     let page = 1;
+    let scanComplete = false;
     while (page <= maxPages) {
       const query = { page, size: PAGE_SIZE };
       let sign = null;
       if (this._signProvider) {
         sign = await this._signProvider({ url: this._listUrl, query, cookies });
       }
-      const resp = await this._fetchFn({ url: this._listUrl, cookies, query, sign });
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({ operation: KIND_SERVICE, page });
+      }
+      const resp = await this._fetchFn({
+        url: this._listUrl,
+        cookies,
+        query,
+        sign,
+      });
       const items = extractList(resp);
       if (!items.length) break;
       let reachedWatermark = false;
@@ -326,8 +384,14 @@ class IXiamenAdapter {
         };
         emitted += 1;
       }
-      if (reachedWatermark || items.length < PAGE_SIZE) break;
+      if (reachedWatermark || items.length < PAGE_SIZE) {
+        scanComplete = true;
+        break;
+      }
       page += 1;
+    }
+    if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+      opts.markWatermarkComplete();
     }
   }
 

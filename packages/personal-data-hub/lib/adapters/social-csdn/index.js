@@ -50,7 +50,11 @@ const SNAPSHOT_SCHEMA_VERSION = 1;
 const KIND_ARTICLE = "article";
 const KIND_FAVOURITE = "favourite";
 const KIND_FOLLOW = "follow";
-const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_ARTICLE, KIND_FAVOURITE, KIND_FOLLOW]);
+const VALID_SNAPSHOT_KINDS = Object.freeze([
+  KIND_ARTICLE,
+  KIND_FAVOURITE,
+  KIND_FOLLOW,
+]);
 
 // Best-effort CSDN home-api endpoints. `{user}` replaced with username.
 const ARTICLES_URL =
@@ -92,7 +96,8 @@ class CsdnAdapter {
       opts.account && opts.account.cookies
         ? new CookieAuth({ platform: "csdn", cookies: opts.account.cookies })
         : null;
-    this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+    this._fetchFn =
+      typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
     this._signProvider =
       typeof opts.signProvider === "function" ? opts.signProvider : null;
     this._urls = {
@@ -103,6 +108,8 @@ class CsdnAdapter {
 
     this.name = NAME;
     this.version = VERSION;
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
     this.capabilities = [
       "sync:snapshot",
       "sync:cookie-api",
@@ -141,12 +148,18 @@ class CsdnAdapter {
     }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
-      if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
+      if (!ok)
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          error: "cookies missing",
+        };
       if (!this.account || !this.account.username) {
         return {
           ok: false,
           reason: "NO_ACCOUNT_USERNAME",
-          message: "cookie-api mode requires account.username (CSDN blog username)",
+          message:
+            "cookie-api mode requires account.username (CSDN blog username)",
         };
       }
       return { ok: true, account: this.account.username, mode: "cookie" };
@@ -159,9 +172,9 @@ class CsdnAdapter {
     };
   }
 
-  async healthCheck() {
+  async healthCheck(opts = {}) {
     if (this._cookieAuth) {
-      const r = await this.authenticate();
+      const r = await this.authenticate(opts);
       return r.ok
         ? { ok: true, lastChecked: Date.now() }
         : { ok: false, reason: r.reason, error: r.error };
@@ -200,9 +213,12 @@ class CsdnAdapter {
         ? Math.floor(snapshot.snapshottedAt)
         : Date.now();
     const account =
-      snapshot.account && typeof snapshot.account === "object" ? snapshot.account : null;
+      snapshot.account && typeof snapshot.account === "object"
+        ? snapshot.account
+        : null;
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
 
     const events = Array.isArray(snapshot.events) ? snapshot.events : [];
     let emitted = 0;
@@ -213,7 +229,9 @@ class CsdnAdapter {
       if (include[ev.kind] === false) continue;
 
       const capturedAt =
-        parseTime(ev.capturedAt) || parseTime(ev.createdTime) || fallbackCapturedAt;
+        parseTime(ev.capturedAt) ||
+        parseTime(ev.createdTime) ||
+        fallbackCapturedAt;
       const id =
         (typeof ev.id === "string" && ev.id.length > 0 && ev.id) ||
         ev.articleId ||
@@ -241,26 +259,56 @@ class CsdnAdapter {
     if (!(await this._cookieAuth.validate())) return;
     const user = encodeURIComponent(this.account.username);
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+    const sinceMs =
+      opts.sinceWatermark != null
+        ? parseInt(String(opts.sinceWatermark), 10) || 0
+        : 0;
 
     const plan = [
-      { kind: KIND_ARTICLE, url: this._urls.articles, mapId: (it) => `article-${it.articleId || it.id || it.url}` },
-      { kind: KIND_FAVOURITE, url: this._urls.favourites, mapId: (it) => `fav-${it.id || it.source_id || it.url}` },
-      { kind: KIND_FOLLOW, url: this._urls.followees, mapId: (it) => `follow-${it.username || it.userName || it.id}` },
+      {
+        kind: KIND_ARTICLE,
+        url: this._urls.articles,
+        mapId: (it) => `article-${it.articleId || it.id || it.url}`,
+      },
+      {
+        kind: KIND_FAVOURITE,
+        url: this._urls.favourites,
+        mapId: (it) => `fav-${it.id || it.source_id || it.url}`,
+      },
+      {
+        kind: KIND_FOLLOW,
+        url: this._urls.followees,
+        mapId: (it) => `follow-${it.username || it.userName || it.id}`,
+      },
     ];
 
     let emitted = 0;
+    let scanComplete = true;
     for (const step of plan) {
       if (include[step.kind] === false) continue;
       const baseUrl = step.url.replace("{user}", user);
       let page = 1;
+      let streamComplete = false;
       while (page <= maxPages) {
-        const query = { page, size: PAGE_SIZE, username: this.account.username };
+        const query = {
+          page,
+          size: PAGE_SIZE,
+          username: this.account.username,
+        };
         let sign = null;
         if (this._signProvider) {
-          sign = await this._signProvider({ url: baseUrl, query, cookies: this._cookieAuth.toHeader() });
+          sign = await this._signProvider({
+            url: baseUrl,
+            query,
+            cookies: this._cookieAuth.toHeader(),
+          });
+        }
+        if (typeof opts.beforeSourceRequest === "function") {
+          await opts.beforeSourceRequest({ operation: step.kind, page });
         }
         const resp = await this._fetchFn({
           url: baseUrl,
@@ -269,22 +317,38 @@ class CsdnAdapter {
           sign,
         });
         const items = extractList(resp);
-        if (!items.length) break;
+        if (!items.length) {
+          streamComplete = true;
+          break;
+        }
+        let reachedWatermark = false;
         for (const it of items) {
           if (!it || typeof it !== "object") continue;
+          const capturedAt = cookieItemTime(step.kind, it);
+          if (capturedAt < sinceMs) {
+            reachedWatermark = true;
+            break;
+          }
           if (emitted >= limit) return;
           yield {
             adapter: NAME,
             kind: step.kind,
             originalId: stableOriginalId(step.kind, step.mapId(it)),
-            capturedAt: cookieItemTime(step.kind, it),
+            capturedAt,
             payload: { item: it, kind: step.kind, cookie: true },
           };
           emitted += 1;
         }
-        if (items.length < PAGE_SIZE) break;
+        if (reachedWatermark || items.length < PAGE_SIZE) {
+          streamComplete = true;
+          break;
+        }
         page += 1;
       }
+      if (!streamComplete) scanComplete = false;
+    }
+    if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+      opts.markWatermarkComplete();
     }
   }
 
@@ -318,10 +382,17 @@ function extractList(resp) {
 
 function cookieItemTime(kind, it) {
   if (kind === KIND_ARTICLE) {
-    return parseTime(it.createdTime || it.formatTime || it.postTime || it.created_at) || Date.now();
+    return (
+      parseTime(
+        it.createdTime || it.formatTime || it.postTime || it.created_at,
+      ) || Date.now()
+    );
   }
   if (kind === KIND_FAVOURITE) {
-    return parseTime(it.created_at || it.create_time || it.favoriteTime) || Date.now();
+    return (
+      parseTime(it.created_at || it.create_time || it.favoriteTime) ||
+      Date.now()
+    );
   }
   return Date.now();
 }
@@ -344,7 +415,9 @@ function normalizeArticle(raw, ingestedAt) {
   const title = stripHtml(it.title || "");
   const articleId = it.articleId || it.id || null;
   const occurredAt =
-    parseTime(it.createdTime || it.created_at || it.postTime || raw.capturedAt) || ingestedAt;
+    parseTime(
+      it.createdTime || it.created_at || it.postTime || raw.capturedAt,
+    ) || ingestedAt;
   const source = buildSource(raw, occurredAt);
   return {
     events: [
@@ -361,7 +434,8 @@ function normalizeArticle(raw, ingestedAt) {
           platform: "csdn",
           csdnArticleId: articleId != null ? String(articleId) : null,
           viewCount: it.viewCount != null ? it.viewCount : it.view_count || 0,
-          collectCount: it.collectCount != null ? it.collectCount : it.favor_count || 0,
+          collectCount:
+            it.collectCount != null ? it.collectCount : it.favor_count || 0,
           url: it.url || null,
         },
       },
@@ -393,7 +467,10 @@ function normalizeFavourite(raw, ingestedAt) {
         source,
         extra: {
           platform: "csdn",
-          csdnItemId: (it.itemId || it.id || it.source_id) != null ? String(it.itemId || it.id || it.source_id) : null,
+          csdnItemId:
+            (it.itemId || it.id || it.source_id) != null
+              ? String(it.itemId || it.id || it.source_id)
+              : null,
           source: it.source || it.url_source || null,
           url: it.url || it.source_url || null,
         },
@@ -423,7 +500,8 @@ function normalizeFollow(raw, ingestedAt) {
     identifiers: { "csdn-username": [String(uname)] },
     extra: {
       platform: "csdn",
-      url: it.url || (it.username ? `https://blog.csdn.net/${it.username}` : null),
+      url:
+        it.url || (it.username ? `https://blog.csdn.net/${it.username}` : null),
       followedAt: occurredAt,
     },
   };

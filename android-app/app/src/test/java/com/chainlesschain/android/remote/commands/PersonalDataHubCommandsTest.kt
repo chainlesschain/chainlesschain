@@ -191,6 +191,91 @@ class PersonalDataHubCommandsTest {
     }
 
     @Test
+    fun `deferred watermark is exposed as a successful partial report`() {
+        val report =
+            SyncReport(
+                adapter = "travel-ctrip",
+                status = "ok",
+                rawCount = 20,
+                entityCounts = mapOf("events" to 20L),
+                watermarkDeferred = true,
+                pageBudget = 10,
+                nextPageBudget = 20,
+                scanDeferredCount = 1,
+                watermarkLookbackMs = 86_400_000,
+                collectionSinceWatermark = "1700000000000",
+                attemptCount = 3,
+                retryCount = 2,
+                totalRetryDelayMs = 1500,
+                rateLimitRemainingMinute = 5,
+                rateLimitRemainingDay = 100,
+                sourceRequestCount = 4,
+                sourceRequestThrottleMs = 20_000,
+                sourceRequestRateLimitRemainingMinute = 2,
+                sourceRequestRateLimitRemainingDay = 196,
+            )
+
+        assertTrue(report.isSuccessful)
+        assertTrue(report.isPartial)
+        assertTrue(report.watermarkDeferred)
+        assertEquals(10L, report.pageBudget)
+        assertEquals(20L, report.nextPageBudget)
+        assertEquals(1L, report.scanDeferredCount)
+        assertEquals(86_400_000L, report.watermarkLookbackMs)
+        assertEquals("1700000000000", report.collectionSinceWatermark)
+        assertEquals(3L, report.attemptCount)
+        assertEquals(2L, report.retryCount)
+        assertEquals(1500L, report.totalRetryDelayMs)
+        assertFalse(report.retryExhausted)
+        assertEquals(5L, report.rateLimitRemainingMinute)
+        assertEquals(100L, report.rateLimitRemainingDay)
+        assertEquals(4L, report.sourceRequestCount)
+        assertEquals(20_000L, report.sourceRequestThrottleMs)
+        assertEquals(2L, report.sourceRequestRateLimitRemainingMinute)
+        assertEquals(196L, report.sourceRequestRateLimitRemainingDay)
+    }
+
+    @Test
+    fun `rate limit report preserves retry timing and remaining quota`() {
+        val report =
+            SyncReport(
+                adapter = "shopping-taobao",
+                status = "rate_limited",
+                error = "retry later",
+                retryAfterMs = 45_000,
+                rateLimitReason = "per_minute",
+                rateLimitRemainingMinute = 0,
+                rateLimitRemainingDay = 12,
+            )
+
+        assertFalse(report.isSuccessful)
+        assertEquals(45_000L, report.retryAfterMs)
+        assertEquals("per_minute", report.rateLimitReason)
+        assertEquals(0L, report.rateLimitRemainingMinute)
+        assertEquals(12L, report.rateLimitRemainingDay)
+    }
+
+    @Test
+    fun `raw archive failure exposes an uncommitted checkpoint`() {
+        val report =
+            SyncReport(
+                adapter = "email-imap",
+                status = "error",
+                rawCount = 5,
+                archivedRawCount = 4,
+                archiveFailureCount = 1,
+                checkpointCommitted = false,
+                error = "raw archive incomplete",
+            )
+
+        assertFalse(report.isSuccessful)
+        assertTrue(report.isPartial)
+        assertEquals(4, report.archivedRawCount)
+        assertEquals(1, report.archiveFailureCount)
+        assertFalse(report.checkpointCommitted!!)
+    }
+
+    @Test
     fun `syncAll dispatches to syncAll method`() = runTest {
         coEvery {
             mockClient.invoke<SyncReportList>("personal-data-hub.sync-all", any(), any())
@@ -332,6 +417,28 @@ class PersonalDataHubCommandsTest {
     }
 
     @Test
+    fun `activateEmail invokes saved-account activation`() = runTest {
+        coEvery {
+            mockClient.invoke<AdapterRegisterResponse>(
+                "personal-data-hub.activate-email",
+                any(),
+                any()
+            )
+        } returns Result.success(AdapterRegisterResponse(name = "email-imap"))
+
+        val result = hub.activateEmail("saved@qq.com")
+
+        assertTrue(result.isSuccess)
+        coVerify {
+            mockClient.invoke<AdapterRegisterResponse>(
+                "personal-data-hub.activate-email",
+                match { it["email"] == "saved@qq.com" },
+                any()
+            )
+        }
+    }
+
+    @Test
     fun `unregisterEmail passes email`() = runTest {
         coEvery {
             mockClient.invoke<UnregisterResponse>("personal-data-hub.unregister-email", any(), any())
@@ -357,12 +464,13 @@ class PersonalDataHubCommandsTest {
         coEvery {
             mockClient.invoke<EmailAccountsResponse>("personal-data-hub.list-email-accounts", any(), any())
         } returns Result.success(EmailAccountsResponse(accounts = listOf(
-            EmailAccountInfo("me@qq.com", "qq", listOf("INBOX"), 1000L)
+            EmailAccountInfo("me@qq.com", "qq", listOf("INBOX"), 1000L, active = true)
         )))
 
         val result = hub.listEmailAccounts().getOrNull()!!
         assertEquals(1, result.accounts.size)
         assertEquals("me@qq.com", result.accounts[0].email)
+        assertEquals(true, result.accounts[0].active)
     }
 
     // ==================== Alipay Adapter ====================
@@ -383,6 +491,28 @@ class PersonalDataHubCommandsTest {
                     val acc = params["account"] as Map<String, Any>
                     acc["email"] == "me@anywhere.com" && acc["zipPassword"] == "pw123"
                 },
+                any()
+            )
+        }
+    }
+
+    @Test
+    fun `activateAlipay invokes saved-account activation`() = runTest {
+        coEvery {
+            mockClient.invoke<AdapterRegisterResponse>(
+                "personal-data-hub.activate-alipay",
+                any(),
+                any()
+            )
+        } returns Result.success(AdapterRegisterResponse(name = "alipay-bill"))
+
+        val result = hub.activateAlipay("saved@alipay.com")
+
+        assertTrue(result.isSuccess)
+        coVerify {
+            mockClient.invoke<AdapterRegisterResponse>(
+                "personal-data-hub.activate-alipay",
+                match { it["email"] == "saved@alipay.com" },
                 any()
             )
         }
@@ -431,11 +561,12 @@ class PersonalDataHubCommandsTest {
         coEvery {
             mockClient.invoke<AlipayAccountsResponse>("personal-data-hub.list-alipay-accounts", any(), any())
         } returns Result.success(AlipayAccountsResponse(accounts = listOf(
-            AlipayAccountInfo("a@b.com", hasZipPassword = true, registeredAt = 2000L)
+            AlipayAccountInfo("a@b.com", hasZipPassword = true, registeredAt = 2000L, active = true)
         )))
 
         val result = hub.listAlipayAccounts().getOrNull()!!
         assertEquals(1, result.accounts.size)
+        assertEquals(true, result.accounts[0].active)
     }
 
     // ==================== Dev / Misc ====================

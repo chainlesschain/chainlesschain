@@ -37,7 +37,13 @@
 "use strict";
 
 const fs = require("node:fs");
-const { normalizeOrderRecord, CookieAuth } = require("../shopping-base");
+const { createAccountScopeFromAccount } = require("../../account-scope");
+const {
+  normalizeOrderRecord,
+  CookieAuth,
+  hasRuntimeCookie,
+  resolveCookieContext,
+} = require("../shopping-base");
 
 const NAME = "shopping-jd";
 const VERSION = "0.6.0";
@@ -53,18 +59,27 @@ class JdAdapter {
     // §2.4b v0.2: account.pin OPTIONAL — snapshot mode is stateless. Cookie
     // mode requires it; checked at sync time, not construction.
     this.account = opts.account || null;
+    this.defaultScope = createAccountScopeFromAccount(NAME, this.account, [
+      "pin",
+    ]);
     this._cookieAuth = opts.account
       ? new CookieAuth({ platform: "jd", cookies: opts.account.cookies || "" })
       : null;
-    this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+    this._fetchFn =
+      typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
 
     this.name = NAME;
+    this.runtimeScopeIdentityKey = "pin";
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
     this.version = VERSION;
     this.capabilities = ["sync:snapshot", "sync:cookie-api", "parse:jd-orders"];
     this.extractMode = "web-api";
     this.rateLimits = { perMinute: 6, perDay: 200 };
     this.dataDisclosure = {
-      fields: ["jd:orderId / venderName / productList / orderTotalPrice / address"],
+      fields: [
+        "jd:orderId / venderName / productList / orderTotalPrice / address",
+      ],
       sensitivity: "high",
       legalGate: false,
       defaultInclude: { order: true },
@@ -88,24 +103,41 @@ class JdAdapter {
       }
       return { ok: true, mode: "snapshot-file" };
     }
-    if (this._cookieAuth) {
-      const ok = await this._cookieAuth.validate();
-      if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
-      if (!this.account || !this.account.pin) {
-        return { ok: false, reason: "NO_ACCOUNT_PIN", message: "cookie mode requires account.pin" };
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts: ctx,
+      platform: "jd",
+      identityKey: "pin",
+    });
+    if (cookieAuth) {
+      const ok = await cookieAuth.validate();
+      if (!ok)
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          error: "cookies missing",
+        };
+      if (!account || !account.pin) {
+        return {
+          ok: false,
+          reason: "NO_ACCOUNT_PIN",
+          message: "cookie mode requires account.pin",
+        };
       }
-      return { ok: true, account: this.account.pin, mode: "cookie" };
+      return { ok: true, account: account.pin, mode: "cookie" };
     }
     return {
       ok: false,
       reason: "NO_INPUT",
-      message: "JdAdapter.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie mode)",
+      message:
+        "JdAdapter.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie mode)",
     };
   }
 
-  async healthCheck() {
-    if (this._cookieAuth) {
-      const r = await this.authenticate();
+  async healthCheck(opts = {}) {
+    if (this._cookieAuth || hasRuntimeCookie(opts)) {
+      const r = await this.authenticate(opts);
       return r.ok
         ? { ok: true, lastChecked: Date.now() }
         : { ok: false, reason: r.reason, error: r.error };
@@ -118,12 +150,12 @@ class JdAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    if (this._cookieAuth) {
+    if (this._cookieAuth || hasRuntimeCookie(opts)) {
       yield* this._syncViaCookie(opts);
       return;
     }
     throw new Error(
-      "JdAdapter.sync: needs opts.inputPath (snapshot mode, Android in-APK cc) OR opts.account.cookies (cookie mode)",
+      "JdAdapter.sync: needs opts.inputPath OR configured account.cookies OR opts.cookie + opts.accountId",
     );
   }
 
@@ -191,28 +223,50 @@ class JdAdapter {
   }
 
   async *_syncViaCookie(opts = {}) {
-    if (!this.account || !this.account.pin) {
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts,
+      platform: "jd",
+      identityKey: "pin",
+    });
+    if (!account || !account.pin) {
       throw new Error(
-        "JdAdapter._syncViaCookie: account.pin required (set via new JdAdapter({ account: { pin } }))",
+        "JdAdapter._syncViaCookie: account.pin or opts.accountId required",
       );
     }
-    if (!(await this._cookieAuth.validate())) return;
-    const sinceMs = opts.sinceWatermark != null
-      ? parseInt(String(opts.sinceWatermark), 10) || 0
-      : (Date.now() - 365 * 24 * 3600_000);
+    if (!cookieAuth || !(await cookieAuth.validate())) return;
+    const sinceMs =
+      opts.sinceWatermark != null
+        ? parseInt(String(opts.sinceWatermark), 10) || 0
+        : Date.now() - 365 * 24 * 3600_000;
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
     let page = 1;
-    while (true) {
+    let scanComplete = false;
+    while (page <= maxPages) {
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({ operation: KIND_ORDER, page });
+      }
       const resp = await this._fetchFn({
         url: JD_ORDERS_URL,
-        cookies: this._cookieAuth.toHeader(),
+        cookies: cookieAuth.toHeader(),
         query: { page },
       });
       if (!resp || !Array.isArray(resp.orders)) break;
+      if (resp.orders.length === 0) {
+        scanComplete = true;
+        break;
+      }
       let pageHasNew = false;
+      let reachedWatermark = false;
       for (const raw of resp.orders) {
         const rec = orderToRecord(raw);
         if (!rec) continue;
-        if (rec.placedAt && rec.placedAt < sinceMs) break;
+        if (rec.placedAt && rec.placedAt < sinceMs) {
+          reachedWatermark = true;
+          break;
+        }
         pageHasNew = true;
         yield {
           adapter: NAME,
@@ -221,8 +275,15 @@ class JdAdapter {
           payload: { record: rec },
         };
       }
-      if (!pageHasNew || resp.orders.length < 10) break;
+      if (reachedWatermark || (pageHasNew && resp.orders.length < 10)) {
+        scanComplete = true;
+        break;
+      }
+      if (!pageHasNew) break;
       page += 1;
+    }
+    if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+      opts.markWatermarkComplete();
     }
   }
 
@@ -234,13 +295,15 @@ class JdAdapter {
     // directly on the event.
     if (raw.payload.record) {
       return normalizeOrderRecord(raw.payload.record, {
-        adapterName: NAME, adapterVersion: VERSION,
+        adapterName: NAME,
+        adapterVersion: VERSION,
       });
     }
     // Snapshot-mode: rebuild OrderRecord from flat snapshot event.
     const rec = snapshotEventToRecord(raw.payload);
     return normalizeOrderRecord(rec, {
-      adapterName: NAME, adapterVersion: VERSION,
+      adapterName: NAME,
+      adapterVersion: VERSION,
     });
   }
 }
@@ -315,7 +378,10 @@ function orderToRecord(o) {
     paidAt: parseTime(o.paymentTime || o.payTime),
     status: mapStatus(o.orderStatusText || o.statusName || o.status),
     merchantName: merchant,
-    totalAmount: { value: parseFloat(o.orderTotalPrice || o.totalPrice || 0), currency: "CNY" },
+    totalAmount: {
+      value: parseFloat(o.orderTotalPrice || o.totalPrice || 0),
+      currency: "CNY",
+    },
     items,
     recipient: o.consigneeName || o.receiverName,
     shippingAddress: o.address || o.consigneeAddress,
@@ -341,8 +407,10 @@ function mapStatus(s) {
   const t = String(s || "").toLowerCase();
   if (t.includes("退款") || t.includes("refund")) return "refunded";
   if (t.includes("取消") || t.includes("cancel")) return "cancelled";
-  if (t.includes("已发货") || t.includes("配送") || t.includes("shipped")) return "shipped";
-  if (t.includes("已完成") || t.includes("已收货") || t.includes("delivered")) return "delivered";
+  if (t.includes("已发货") || t.includes("配送") || t.includes("shipped"))
+    return "shipped";
+  if (t.includes("已完成") || t.includes("已收货") || t.includes("delivered"))
+    return "delivered";
   return "placed";
 }
 
@@ -350,4 +418,10 @@ async function defaultFetch(_opts) {
   throw new Error("JdAdapter: no fetchFn configured");
 }
 
-module.exports = { JdAdapter, orderToRecord, NAME, VERSION, SNAPSHOT_SCHEMA_VERSION };
+module.exports = {
+  JdAdapter,
+  orderToRecord,
+  NAME,
+  VERSION,
+  SNAPSHOT_SCHEMA_VERSION,
+};

@@ -112,8 +112,8 @@ const REASONS = Object.freeze({
   ADB_DEVICE_NEEDED: {
     status: READINESS_STATUS.NEEDS_SETUP,
     category: READINESS_CATEGORY.DEVICE,
-    message: "可一键采集：请插上已 root 的安卓手机并开启 USB 调试（adb 可见后点「一键采集」）",
-    actionHint: "连接手机后刷新，即可一键拉取",
+    message: "可通过 USB 采集：请连接安卓手机并开启 USB 调试（部分 App 数据需要 root）",
+    actionHint: "连接并授权手机后刷新，即可开始采集",
   },
   // 自动发现：未检测到 App 的本机数据（未安装 / 未登录 / 非默认目录）。
   APP_NOT_INSTALLED: {

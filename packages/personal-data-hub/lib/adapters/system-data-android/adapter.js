@@ -29,6 +29,10 @@ const {
 } = require("../../constants");
 
 const NAME = "system-data-android";
+// v0.4.0 (2026-07-24): make the existing snapshot + host-ADB dual path a
+// first-class adapter contract. `sync:snapshot` lets shells offer a file
+// picker when no phone is connected, while constructor bridge injection
+// removes the CLI/desktop post-construction `_deps` mutation.
 // v0.3.4 (2026-07-23): preserve the job title already exposed by Android's
 //   Contacts provider. The snapshot writer previously queried TITLE but
 //   discarded it. It now lands on both person.extra and the synthetic event.
@@ -58,7 +62,7 @@ const NAME = "system-data-android";
 // v0.2.0 (2026-05-24): added kind="sms" + kind="call" via bridge mode.
 //   Snapshot mode still v1 schema — sms/calls/media only land via
 //   bridge path until Android snapshot writer is updated to include them.
-const VERSION = "0.3.4";
+const VERSION = "0.4.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 // Stable per-source originalId — registry.putRawEvent rejects null originalId
@@ -110,6 +114,8 @@ class SystemDataAndroidAdapter {
     this.name = NAME;
     this.version = VERSION;
     this.capabilities = [
+      "sync:snapshot",
+      "sync:adb",
       "sync:android-content-provider",
       "sync:android-package-manager",
       "sync:android-sms",
@@ -144,16 +150,17 @@ class SystemDataAndroidAdapter {
       },
     };
 
-    // _deps for test injection — mirrors the pattern in cli-dev.md so test
-    // harness can swap fs without resorting to vi.mock("fs") which doesn't
-    // intercept require() under inlined CJS. `bridgeProvider` is lazy because
-    // the cc-android-bridge module sits in `packages/cli` and is not always
-    // available in environments that load this adapter directly (e.g. desktop
-    // CLI building a snapshot ingest pipeline). Resolves to null when bridge
-    // is unreachable, in which case sync() falls back to inputPath mode.
+    // _deps for test/host injection — mirrors the pattern in cli-dev.md.
+    // `bridgeProvider` is lazy because the bridge implementation belongs to
+    // the host shell and is not always available when the PDH package loads.
+    // Resolves to null when unreachable, in which case sync() falls back to
+    // inputPath snapshot mode.
     this._deps = {
       fs: require("node:fs"),
-      bridgeProvider: () => null,
+      bridgeProvider:
+        typeof opts.bridgeProvider === "function"
+          ? opts.bridgeProvider
+          : () => null,
     };
   }
 

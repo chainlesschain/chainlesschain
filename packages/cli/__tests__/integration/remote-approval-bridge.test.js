@@ -8,6 +8,9 @@
  *   remote-session-control to the host → bridge settles the confirmer.
  */
 
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChainlessChainWSServer } from "../../src/gateways/ws/ws-server.js";
 import { WsRpcClient } from "../../src/lib/ws-rpc-client.js";
@@ -31,12 +34,27 @@ function waitForEvent(client, predicate, timeoutMs = 5000) {
   });
 }
 
+function approvalResolveEvent(request, answer) {
+  return {
+    type: "approval.resolve",
+    requestId: request.event.requestId,
+    fingerprint: request.event.fingerprint,
+    binding: request.event.binding,
+    revision: request.event.revision,
+    answer,
+  };
+}
+
 describe("remote approval bridge (integration)", () => {
   let server;
   let bridge;
   let device;
+  let approvalDirectory;
 
   beforeEach(async () => {
+    approvalDirectory = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-remote-approval-integration-"),
+    );
     server = new ChainlessChainWSServer({
       port: 0, // OS-assigned; server.port is read back after start()
       host: "127.0.0.1",
@@ -49,6 +67,7 @@ describe("remote approval bridge (integration)", () => {
       token: TOKEN,
       agentSessionId: "headless-local-1",
       scopes: ["observe", "approve"],
+      approvalStateFile: path.join(approvalDirectory, "approval-state.json"),
     });
     await bridge.start();
 
@@ -68,6 +87,9 @@ describe("remote approval bridge (integration)", () => {
     device?.close();
     await bridge?.close();
     await server?.stop().catch(() => undefined);
+    if (approvalDirectory) {
+      fs.rmSync(approvalDirectory, { recursive: true, force: true });
+    }
   });
 
   it("approves a gate from the paired device", async () => {
@@ -88,6 +110,9 @@ describe("remote approval bridge (integration)", () => {
     const request = await devicePermissionRequest;
     expect(request.event.tool).toBe("run_shell");
     expect(request.event.detail).toBe("npm publish");
+    expect(request.event.fingerprint).toMatch(/^opf_[0-9a-f]{40}$/);
+    expect(request.event.binding).toMatch(/^ab_[0-9a-f]{32}$/);
+    expect(request.event.revision).toBe(1);
 
     const resolvedSeen = waitForEvent(
       device,
@@ -98,17 +123,22 @@ describe("remote approval bridge (integration)", () => {
     await device.request("remote-session-publish", {
       remoteSessionId: bridge.remoteSessionId,
       commandId: "dev-cmd-1",
-      event: {
-        type: "approval.resolve",
-        requestId: request.event.requestId,
-        answer: true,
-      },
+      event: approvalResolveEvent(request, true),
     });
 
     await expect(decisionPromise).resolves.toBe(true);
     // Devices see the resolution so UIs can clear the pending card.
     const resolved = await resolvedSeen;
     expect(resolved.event.approved).toBe(true);
+    expect(
+      bridge._approvalStore.getRequest(request.event.requestId, {
+        bestEffort: false,
+      }),
+    ).toMatchObject({
+      status: "resolved",
+      decision: true,
+      revision: 2,
+    });
   });
 
   it("denies from the device and replays idempotently on reconnect re-send", async () => {
@@ -124,11 +154,7 @@ describe("remote approval bridge (integration)", () => {
     const first = await device.request("remote-session-publish", {
       remoteSessionId: bridge.remoteSessionId,
       commandId: "dev-cmd-2",
-      event: {
-        type: "approval.resolve",
-        requestId: request.event.requestId,
-        answer: false,
-      },
+      event: approvalResolveEvent(request, false),
     });
     expect(first.forwardedToHost).toBe(true);
 
@@ -141,11 +167,7 @@ describe("remote approval bridge (integration)", () => {
     const replay = await device.request("remote-session-publish", {
       remoteSessionId: bridge.remoteSessionId,
       commandId: "dev-cmd-2",
-      event: {
-        type: "approval.resolve",
-        requestId: request.event.requestId,
-        answer: false,
-      },
+      event: approvalResolveEvent(request, false),
     });
     expect(replay.replayed).toBe(true);
   });
@@ -163,6 +185,15 @@ describe("remote approval bridge (integration)", () => {
     await expect(confirmer({ tool: "write_file" })).resolves.toBe(true);
     const resolved = await resolvedSeen;
     expect(resolved.event.approved).toBe(true);
+    expect(
+      bridge._approvalStore.getRequest(resolved.event.requestId, {
+        bestEffort: false,
+      }),
+    ).toMatchObject({
+      status: "resolved",
+      decision: true,
+      revision: 2,
+    });
   });
 
   it("fails closed on timeout", async () => {
@@ -196,17 +227,13 @@ describe("remote approval bridge (integration)", () => {
     await device.request("remote-session-publish", {
       remoteSessionId: bridge.remoteSessionId,
       commandId: "dev-cmd-race-1",
-      event: {
-        type: "approval.resolve",
-        requestId: request.event.requestId,
-        answer: true,
-      },
+      event: approvalResolveEvent(request, true),
     });
     await expect(race).resolves.toBe(true);
     expect(cancel).toHaveBeenCalledTimes(1);
   });
 
-  it("REPL race: remote timeout keeps the terminal authoritative", async () => {
+  it("REPL race: a local yes cannot revive a durably expired card", async () => {
     let answerLocal;
     const race = raceLocalAndRemote({
       bridge,
@@ -220,9 +247,10 @@ describe("remote approval bridge (integration)", () => {
       },
       writeOut: () => {},
     });
-    // Give the remote leg time to fail-timeout, then answer at the keyboard.
+    // Once timeout is durably persisted, a later local "yes" cannot revive the
+    // expired card without a fresh request/revision.
     await new Promise((resolve) => setTimeout(resolve, 300));
     answerLocal(true);
-    await expect(race).resolves.toBe(true);
+    await expect(race).resolves.toBe(false);
   });
 });

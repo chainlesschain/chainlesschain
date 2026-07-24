@@ -97,6 +97,9 @@ function project(ui: Record<string, unknown> | null): Record<string, unknown> {
         question: ui.question,
         multiSelect: ui.multiSelect === true,
         hasOptions: ui.options != null,
+        elicitation: ui.elicitation === true,
+        server: ui.server ?? null,
+        hasSchema: ui.requestedSchema != null,
       };
     case "plan":
       return { kind, active: ui.active === true, state: ui.state ?? null };

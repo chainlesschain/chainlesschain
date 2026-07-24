@@ -19,7 +19,13 @@
 "use strict";
 
 const fs = require("node:fs");
-const { normalizeOrderRecord, CookieAuth } = require("../shopping-base");
+const { createAccountScopeFromAccount } = require("../../account-scope");
+const {
+  normalizeOrderRecord,
+  CookieAuth,
+  hasRuntimeCookie,
+  resolveCookieContext,
+} = require("../shopping-base");
 
 const NAME = "shopping-taobao";
 const VERSION = "0.6.0"; // §2.4d snapshot mode for Android in-APK cc
@@ -37,17 +43,28 @@ class TaobaoAdapter {
     // at sync time, not construction. Earlier strict ctor blocked auto-register
     // at boot → user-driven HTML import worked but JSON snapshot path didn't.
     this.account = opts.account || null;
+    this.defaultScope = createAccountScopeFromAccount(NAME, this.account, [
+      "userId",
+    ]);
     this._cookieAuth = opts.account
       ? new CookieAuth({
           platform: "taobao",
           cookies: opts.account.cookies || "",
         })
       : null;
-    this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+    this._fetchFn =
+      typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
 
     this.name = NAME;
+    this.runtimeScopeIdentityKey = "userId";
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
     this.version = VERSION;
-    this.capabilities = ["sync:snapshot", "sync:cookie-api", "parse:taobao-orders"];
+    this.capabilities = [
+      "sync:snapshot",
+      "sync:cookie-api",
+      "parse:taobao-orders",
+    ];
     this.extractMode = "web-api";
     this.rateLimits = { perMinute: 6, perDay: 200 }; // respect Taobao风控
     this.dataDisclosure = {
@@ -76,24 +93,41 @@ class TaobaoAdapter {
       }
       return { ok: true, mode: "snapshot-file" };
     }
-    if (this._cookieAuth) {
-      const ok = await this._cookieAuth.validate();
-      if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing or empty" };
-      if (!this.account || !this.account.userId) {
-        return { ok: false, reason: "NO_ACCOUNT_USERID", message: "cookie mode requires account.userId" };
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts: ctx,
+      platform: "taobao",
+      identityKey: "userId",
+    });
+    if (cookieAuth) {
+      const ok = await cookieAuth.validate();
+      if (!ok)
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          error: "cookies missing or empty",
+        };
+      if (!account || !account.userId) {
+        return {
+          ok: false,
+          reason: "NO_ACCOUNT_USERID",
+          message: "cookie mode requires account.userId",
+        };
       }
-      return { ok: true, account: this.account.userId, mode: "cookie" };
+      return { ok: true, account: account.userId, mode: "cookie" };
     }
     return {
       ok: false,
       reason: "NO_INPUT",
-      message: "TaobaoAdapter.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie mode)",
+      message:
+        "TaobaoAdapter.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie mode)",
     };
   }
 
-  async healthCheck() {
-    if (this._cookieAuth) {
-      const r = await this.authenticate();
+  async healthCheck(opts = {}) {
+    if (this._cookieAuth || hasRuntimeCookie(opts)) {
+      const r = await this.authenticate(opts);
       return r.ok
         ? { ok: true, lastChecked: Date.now() }
         : { ok: false, reason: r.reason, error: r.error };
@@ -106,12 +140,12 @@ class TaobaoAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    if (this._cookieAuth) {
+    if (this._cookieAuth || hasRuntimeCookie(opts)) {
       yield* this._syncViaCookie(opts);
       return;
     }
     throw new Error(
-      "TaobaoAdapter.sync: needs opts.inputPath (snapshot mode, Android in-APK cc) OR opts.account.cookies (cookie mode)",
+      "TaobaoAdapter.sync: needs opts.inputPath OR configured account.cookies OR opts.cookie + opts.accountId",
     );
   }
 
@@ -177,29 +211,51 @@ class TaobaoAdapter {
   }
 
   async *_syncViaCookie(opts = {}) {
-    if (!this.account || !this.account.userId) {
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts,
+      platform: "taobao",
+      identityKey: "userId",
+    });
+    if (!account || !account.userId) {
       throw new Error(
-        "TaobaoAdapter._syncViaCookie: account.userId required (set via new TaobaoAdapter({ account: { userId } }))",
+        "TaobaoAdapter._syncViaCookie: account.userId or opts.accountId required",
       );
     }
-    if (!(await this._cookieAuth.validate())) return;
-    const sinceMs = opts.sinceWatermark != null
-      ? parseWatermarkMs(opts.sinceWatermark)
-      : (Date.now() - 365 * 24 * 3600_000); // default last year
+    if (!cookieAuth || !(await cookieAuth.validate())) return;
+    const sinceMs =
+      opts.sinceWatermark != null
+        ? parseWatermarkMs(opts.sinceWatermark)
+        : Date.now() - 365 * 24 * 3600_000; // default last year
     const pageSize = Number.isFinite(opts.pageSize) ? opts.pageSize : 20;
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
     let page = 1;
-    while (true) {
+    let scanComplete = false;
+    while (page <= maxPages) {
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({ operation: KIND_ORDER, page });
+      }
       const resp = await this._fetchFn({
         url: TAOBAO_ORDERS_URL,
-        cookies: this._cookieAuth.toHeader(),
+        cookies: cookieAuth.toHeader(),
         query: { page, pageSize, ts: Date.now() },
       });
       if (!resp || !Array.isArray(resp.orders)) break;
+      if (resp.orders.length === 0) {
+        scanComplete = true;
+        break;
+      }
       let pageHasNew = false;
+      let reachedWatermark = false;
       for (const raw of resp.orders) {
         const rec = orderToRecord(raw);
         if (!rec) continue;
-        if (rec.placedAt && rec.placedAt < sinceMs) break; // older than watermark
+        if (rec.placedAt && rec.placedAt < sinceMs) {
+          reachedWatermark = true;
+          break; // older than watermark
+        }
         pageHasNew = true;
         yield {
           adapter: NAME,
@@ -208,8 +264,15 @@ class TaobaoAdapter {
           payload: { record: rec },
         };
       }
-      if (!pageHasNew || resp.orders.length < pageSize) break;
+      if (reachedWatermark || (pageHasNew && resp.orders.length < pageSize)) {
+        scanComplete = true;
+        break;
+      }
+      if (!pageHasNew) break;
       page += 1;
+    }
+    if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+      opts.markWatermarkComplete();
     }
   }
 
@@ -270,7 +333,10 @@ function orderToRecord(o) {
     paidAt: parseTaobaoTime(o.payTime || o.paidAt),
     status: mapStatus(o.statusText || o.statusDesc || o.status),
     merchantName: merchant,
-    totalAmount: { value: parseFloat(o.actualFee || o.payAmount || o.totalAmount || 0), currency: "CNY" },
+    totalAmount: {
+      value: parseFloat(o.actualFee || o.payAmount || o.totalAmount || 0),
+      currency: "CNY",
+    },
     items,
     recipient: o.receiverName || o.address?.receiverName || null,
     shippingAddress: o.fullAddress || o.address?.fullAddress || null,
@@ -300,9 +366,11 @@ function parseWatermarkMs(wm) {
 function mapStatus(s) {
   const t = String(s || "").toLowerCase();
   if (t.includes("退款") || t.includes("refund")) return "refunded";
-  if (t.includes("已取消") || t.includes("cancel") || t.includes("已关闭")) return "cancelled";
+  if (t.includes("已取消") || t.includes("cancel") || t.includes("已关闭"))
+    return "cancelled";
   if (t.includes("已发货") || t.includes("shipped")) return "shipped";
-  if (t.includes("已签收") || t.includes("已完成") || t.includes("delivered")) return "delivered";
+  if (t.includes("已签收") || t.includes("已完成") || t.includes("delivered"))
+    return "delivered";
   return "placed";
 }
 
@@ -310,7 +378,15 @@ async function defaultFetch(_opts) {
   // Default: no-op so adapter doesn't accidentally hit real Taobao when
   // user hasn't configured a fetcher. Production wires a real HTTPS
   // fetch via the desktop main process (not from renderer).
-  throw new Error("TaobaoAdapter: no fetchFn configured (use a desktop-main wrapper)");
+  throw new Error(
+    "TaobaoAdapter: no fetchFn configured (use a desktop-main wrapper)",
+  );
 }
 
-module.exports = { TaobaoAdapter, orderToRecord, parseTaobaoTime, NAME, VERSION };
+module.exports = {
+  TaobaoAdapter,
+  orderToRecord,
+  parseTaobaoTime,
+  NAME,
+  VERSION,
+};

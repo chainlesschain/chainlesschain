@@ -1,0 +1,59 @@
+name: Python Agent SDK
+
+on:
+  pull_request:
+    paths:
+      - "packages/agent-sdk-python/**"
+      - "packages/agent-sdk/src/protocol.ts"
+      - "packages/agent-sdk/__fixtures__/protocol/**"
+      - ".github/workflows/python-agent-sdk.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/agent-sdk-python/**"
+      - "packages/agent-sdk/src/protocol.ts"
+      - "packages/agent-sdk/__fixtures__/protocol/**"
+      - ".github/workflows/python-agent-sdk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Compile the typed package and example
+        run: >-
+          python -m compileall -q
+          packages/agent-sdk-python/src
+          packages/agent-sdk-python/examples
+
+      - name: Run hermetic SDK and subprocess tests
+        env:
+          PYTHONPATH: packages/agent-sdk-python/src:packages/agent-sdk-python
+        run: >-
+          python -m unittest discover
+          -s packages/agent-sdk-python/tests
+          -v
+
+      - name: Replay the canonical cross-language stream
+        if: matrix.python-version == '3.12'
+        env:
+          PYTHONPATH: packages/agent-sdk-python/src
+        run: >-
+          python packages/agent-sdk-python/examples/ci_gate.py
+          --replay packages/agent-sdk/__fixtures__/protocol/*.ndjson
+          --output "${{ runner.temp }}/agent-protocol-events.ndjson"

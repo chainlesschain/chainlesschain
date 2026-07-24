@@ -1,0 +1,63 @@
+# Copy to .github/workflows/chainlesschain-agent.yml.
+# Manual dispatch avoids exposing model credentials to untrusted pull requests.
+name: ChainlessChain agent gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: Task for the repository agent
+        required: true
+        default: Run the focused unit tests and fix only implementation failures.
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chainlesschain-agent-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Pin these versions in a production repository. This in-tree template
+      # installs the checked-out SDK and the matching published CLI.
+      - name: Install clients
+        run: |
+          python -m pip install --no-deps ./packages/agent-sdk-python
+          npm install --global chainlesschain@0.162.176
+
+      - name: Run the agent gate
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AGENT_PROMPT: ${{ inputs.prompt }}
+        run: >-
+          python packages/agent-sdk-python/examples/ci_gate.py
+          --prompt "$AGENT_PROMPT"
+          --provider openai
+          --session-id "gha-${{ github.run_id }}-${{ github.run_attempt }}"
+          --output agent-events.ndjson
+
+      # Raw events may contain prompts, model output, and tool results. Keep
+      # retention short and do not use this artifact in a public workflow when
+      # those values are sensitive.
+      - name: Preserve the lossless event journal
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chainlesschain-agent-events
+          path: agent-events.ndjson
+          if-no-files-found: error
+          retention-days: 7

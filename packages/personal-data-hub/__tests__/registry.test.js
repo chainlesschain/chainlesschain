@@ -28,7 +28,9 @@ function freshVault() {
 
 afterEach(() => {
   if (vault) {
-    try { vault.close(); } catch (_e) {}
+    try {
+      vault.close();
+    } catch (_e) {}
     vault = null;
   }
   if (tmpDir && fs.existsSync(tmpDir)) {
@@ -52,7 +54,12 @@ describe("AdapterRegistry registration", () => {
     reg.register(a);
     reg.register(b);
     expect(reg.has("mock-a")).toBe(true);
-    expect(reg.list().map((x) => x.name).sort()).toEqual(["mock-a", "mock-b"]);
+    expect(
+      reg
+        .list()
+        .map((x) => x.name)
+        .sort(),
+    ).toEqual(["mock-a", "mock-b"]);
     expect(reg.get("mock-a")).toBe(a);
     expect(reg.get("unknown")).toBeNull();
   });
@@ -61,7 +68,9 @@ describe("AdapterRegistry registration", () => {
     freshVault();
     const reg = new AdapterRegistry({ vault });
     reg.register(new MockAdapter({ name: "dup" }));
-    expect(() => reg.register(new MockAdapter({ name: "dup" }))).toThrow(/already registered/);
+    expect(() => reg.register(new MockAdapter({ name: "dup" }))).toThrow(
+      /already registered/,
+    );
   });
 
   it("rejects malformed adapter (assertAdapter gate)", () => {
@@ -92,6 +101,9 @@ describe("AdapterRegistry.syncAdapter", () => {
 
     expect(report.status).toBe("ok");
     expect(report.rawCount).toBe(30);
+    expect(report.archivedRawCount).toBe(30);
+    expect(report.archiveFailureCount).toBe(0);
+    expect(report.checkpointCommitted).toBe(true);
     expect(report.invalidCount).toBe(0);
     expect(report.entityCounts.events).toBe(30);
     // ~2/3 of variants have a person (variants 1 and 2)
@@ -155,7 +167,9 @@ describe("AdapterRegistry.syncAdapter", () => {
     expect(report.invalidCount).toBeGreaterThanOrEqual(1);
     expect(report.entityCounts.events).toBeLessThan(10);
 
-    const audits = vault.queryAudit({ action: "adapter.sync.normalize_failed" });
+    const audits = vault.queryAudit({
+      action: "adapter.sync.normalize_failed",
+    });
     expect(audits.length).toBe(1);
   });
 
@@ -195,7 +209,9 @@ describe("AdapterRegistry.syncAdapter", () => {
     // Depending on event-loop timing this might race the other way; we just
     // assert no double-sync corruption. The active-sync invariant is
     // additionally enforced by the activeSync flag.
-    expect(racedReject == null || /already syncing/.test(racedReject.message)).toBe(true);
+    expect(
+      racedReject == null || /already syncing/.test(racedReject.message),
+    ).toBe(true);
   }, 30_000);
 });
 
@@ -229,8 +245,12 @@ describe("AdapterRegistry pluggable sinks", () => {
     freshVault();
     const reg = new AdapterRegistry({
       vault,
-      kgSink: () => { throw new Error("downstream KG died"); },
-      ragSink: () => { throw new Error("downstream RAG died"); },
+      kgSink: () => {
+        throw new Error("downstream KG died");
+      },
+      ragSink: () => {
+        throw new Error("downstream RAG died");
+      },
     });
     reg.register(new MockAdapter({ count: 3 }));
 
@@ -239,8 +259,12 @@ describe("AdapterRegistry pluggable sinks", () => {
     expect(report.rawCount).toBe(3);
     expect(report.entityCounts.events).toBe(3);
 
-    const kgAudits = vault.queryAudit({ action: "adapter.sync.kg_sink_failed" });
-    const ragAudits = vault.queryAudit({ action: "adapter.sync.rag_sink_failed" });
+    const kgAudits = vault.queryAudit({
+      action: "adapter.sync.kg_sink_failed",
+    });
+    const ragAudits = vault.queryAudit({
+      action: "adapter.sync.rag_sink_failed",
+    });
     expect(kgAudits.length).toBeGreaterThan(0);
     expect(ragAudits.length).toBeGreaterThan(0);
   });
@@ -279,8 +303,12 @@ describe("Phase 2 perf gate: 1k events ingest", () => {
     let ragCount = 0;
     const reg = new AdapterRegistry({
       vault,
-      kgSink: (ts) => { kgCount += ts.length; },
-      ragSink: (ds) => { ragCount += ds.length; },
+      kgSink: (ts) => {
+        kgCount += ts.length;
+      },
+      ragSink: (ds) => {
+        ragCount += ds.length;
+      },
       batchSize: 200,
     });
     reg.register(new MockAdapter({ count: 1000, seed: 7 }));
@@ -392,11 +420,15 @@ describe("AdapterRegistry.rederive", () => {
     reg.register(new MockAdapter({ name: "adapter-a" }));
     reg.register(new MockAdapter({ name: "adapter-b" }));
     vault.putRawEvent({
-      adapter: "adapter-a", originalId: "a1", capturedAt: 1_700_000_000_001,
+      adapter: "adapter-a",
+      originalId: "a1",
+      capturedAt: 1_700_000_000_001,
       payload: { variant: 1, senderName: "S", text: "ta", index: 1 },
     });
     vault.putRawEvent({
-      adapter: "adapter-b", originalId: "b1", capturedAt: 1_700_000_000_002,
+      adapter: "adapter-b",
+      originalId: "b1",
+      capturedAt: 1_700_000_000_002,
       payload: { variant: 1, senderName: "S", text: "tb", index: 1 },
     });
     const report = await reg.rederive({ adapter: "adapter-a" });
@@ -409,12 +441,54 @@ describe("AdapterRegistry.rederive", () => {
     const reg = new AdapterRegistry({ vault });
     reg.register(new MockAdapter({ name: "idemp" }));
     vault.putRawEvent({
-      adapter: "idemp", originalId: "x", capturedAt: 1_700_000_000_000,
+      adapter: "idemp",
+      originalId: "x",
+      capturedAt: 1_700_000_000_000,
       payload: { variant: 1, senderName: "Alice", text: "hi", index: 0 },
     });
     await reg.rederive();
     const eventsAfterFirst = vault.stats().events;
     await reg.rederive();
     expect(vault.stats().events).toBe(eventsAfterFirst);
+  });
+
+  it("re-derives colliding raw IDs independently for every account scope", async () => {
+    freshVault();
+    const reg = new AdapterRegistry({ vault });
+    reg.register(new MockAdapter({ name: "scoped-rederive" }));
+    const scopeA = "account:scoped-rederive:aaaaaaaa";
+    const scopeB = "account:scoped-rederive:bbbbbbbb";
+    const raw = {
+      adapter: "scoped-rederive",
+      originalId: "same-message-id",
+      capturedAt: 1_700_000_000_000,
+      payload: {
+        variant: 0,
+        text: "same source id",
+        index: 0,
+      },
+    };
+    vault.putRawEvent({ ...raw, scope: scopeA });
+    vault.putRawEvent({ ...raw, scope: scopeB });
+
+    const report = await reg.rederive();
+
+    expect(report.rawSeen).toBe(2);
+    expect(report.entityCounts.events).toBe(2);
+    expect(vault.stats().events).toBe(2);
+    expect(
+      new Set(
+        vault
+          .queryEvents({ adapter: "scoped-rederive", limit: 10 })
+          .map((event) => event.source.scope),
+      ),
+    ).toEqual(new Set([scopeA, scopeB]));
+
+    const onlyA = await reg.rederive({
+      adapter: "scoped-rederive",
+      scope: scopeA,
+    });
+    expect(onlyA.rawSeen).toBe(1);
+    expect(vault.stats().events).toBe(2);
   });
 });

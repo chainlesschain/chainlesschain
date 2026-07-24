@@ -14,10 +14,9 @@
  *      anchored at/after its own offset — under `pickPersistedTurn`'s
  *      exact-offset matching a stale record from the discarded timeline would
  *      otherwise shadow the new turn and could offer the wrong checkpoint.
- *   3. Per-settle persistence: dirty-gated `persistTurnBinding` after each turn
- *      (a tool-free Q&A turn writes nothing), best-effort — the producer is
- *      advisory and must NEVER disturb the turn itself, so every method
- *      swallows its own failures.
+ *   3. Per-settle persistence: `persistTurnBinding` after each turn, including
+ *      tool-free turns. Failures are reported through `onError` and fail closed
+ *      by default; tests/diagnostics may explicitly request advisory mode.
  *
  * I/O goes through `_deps` so tests drive the producer hermetically.
  */
@@ -37,15 +36,35 @@ export const _deps = {
 };
 
 /**
- * @param {{sessionId?: string, nonce?: string}} [opts]
+ * @param {{sessionId?: string, nonce?: string, failClosed?:boolean,
+ *          onError?:(error:Error, phase:string)=>void}} [opts]
  * @returns {object|null}  null when the session cannot persist (no sessionId)
  */
-export function createReplTurnBindingProducer({ sessionId, nonce } = {}) {
+export function createReplTurnBindingProducer({
+  sessionId,
+  nonce,
+  onError,
+  failClosed = true,
+} = {}) {
   if (!sessionId) return null;
   // Per-process nonce (mirrors the headless runner's per-run nonce): restored
   // turn ids keep their original nonce, new ids can't collide across resumes.
   const runNonce = nonce || String(_deps.now());
   let feed = null;
+  let lastError = null;
+  const report = (error, phase) => {
+    lastError = error instanceof Error ? error : new Error(String(error));
+    try {
+      onError?.(lastError, phase);
+    } catch {
+      // Reporting must not replace the underlying recovery warning.
+    }
+  };
+  const rejectOr = (error, phase, fallback) => {
+    report(error, phase);
+    if (failClosed) throw lastError;
+    return fallback;
+  };
   return {
     /**
      * Anchor a new interactive turn. Call just AFTER the user message was
@@ -61,8 +80,8 @@ export function createReplTurnBindingProducer({ sessionId, nonce } = {}) {
           });
         }
         return feed.beginTurn(conversationOffset, { supersede: true });
-      } catch {
-        return null; // advisory — never disturb the turn
+      } catch (error) {
+        return rejectOr(error, "load", null);
       }
     },
     /** Fold one agent-loop event into the current turn (fed by agentLoop). */
@@ -70,21 +89,32 @@ export function createReplTurnBindingProducer({ sessionId, nonce } = {}) {
       if (!feed) return false;
       try {
         return feed.handleEvent(event);
-      } catch {
-        return false;
+      } catch (error) {
+        return rejectOr(error, "event", false);
       }
     },
-    /** Persist the table after a settled turn (dirty-gated, best-effort). */
+    /** Persist the table after a settled turn (dirty-gated, fail-closed). */
     persistIfDirty() {
       if (!feed || !feed.isDirty()) return false;
+      let ok = false;
       try {
-        const ok = _deps.persistTurnBinding(sessionId, feed.log);
-        if (ok) feed.clearDirty();
-        return ok;
-      } catch {
-        return false;
+        ok = _deps.persistTurnBinding(sessionId, feed.log);
+      } catch (error) {
+        return rejectOr(error, "persist", false);
       }
+      if (!ok) {
+        return rejectOr(
+          new Error("turn-binding snapshot was not persisted"),
+          "persist",
+          false,
+        );
+      }
+      feed.clearDirty();
+      lastError = null;
+      return true;
     },
+    lastError: () => lastError,
+    sessionId: () => sessionId,
     /** The live table (for tests / future in-process consumers). */
     log: () => (feed ? feed.log : null),
   };

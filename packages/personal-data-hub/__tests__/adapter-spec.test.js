@@ -50,16 +50,100 @@ describe("assertAdapter", () => {
     expect(r.ok).toBe(false);
   });
 
-  it("rejects rateLimits with negative value", () => {
+  it("requires rateLimits to be non-negative safe integers", () => {
     const a = new MockAdapter();
     a.rateLimits = { perMinute: -1 };
     expect(assertAdapter(a).ok).toBe(false);
+
+    a.rateLimits = { perMinute: 1.5, perDay: Number.MAX_SAFE_INTEGER + 1 };
+    const result = assertAdapter(a);
+    expect(result.ok).toBe(false);
+    expect(result.errors.some((error) => error.includes("perMinute"))).toBe(
+      true,
+    );
+    expect(result.errors.some((error) => error.includes("perDay"))).toBe(true);
   });
 
   it("accepts adapter without rateLimits (optional field)", () => {
     const a = new MockAdapter();
     delete a.rateLimits;
     expect(assertAdapter(a).ok).toBe(true);
+  });
+
+  it("accepts known watermark strategies and rejects unknown values", () => {
+    const a = new MockAdapter();
+    a.watermarkStrategy = "max-captured-at";
+    expect(assertAdapter(a).ok).toBe(true);
+
+    a.watermarkStrategy = "latest-ish";
+    const result = assertAdapter(a);
+    expect(result.ok).toBe(false);
+    expect(result.errors.some((e) => e.includes("watermarkStrategy"))).toBe(
+      true,
+    );
+  });
+
+  it("validates the optional complete-scan watermark flag", () => {
+    const a = new MockAdapter();
+    a.watermarkRequiresCompleteScan = true;
+    expect(assertAdapter(a).ok).toBe(true);
+
+    a.watermarkRequiresCompleteScan = "sometimes";
+    const result = assertAdapter(a);
+    expect(result.ok).toBe(false);
+    expect(
+      result.errors.some((e) => e.includes("watermarkRequiresCompleteScan")),
+    ).toBe(true);
+  });
+
+  it("validates lookback windows and adaptive initial page budgets", () => {
+    const a = new MockAdapter();
+    a.watermarkLookbackMs = 86_400_000;
+    a.initialPageBudget = 12;
+    expect(assertAdapter(a).ok).toBe(true);
+
+    a.watermarkLookbackMs = -1;
+    a.initialPageBudget = 0;
+    const result = assertAdapter(a);
+    expect(result.ok).toBe(false);
+    expect(
+      result.errors.some((error) => error.includes("watermarkLookbackMs")),
+    ).toBe(true);
+    expect(
+      result.errors.some((error) => error.includes("initialPageBudget")),
+    ).toBe(true);
+  });
+
+  it("validates the optional account-backed default scope", () => {
+    const a = new MockAdapter();
+    a.defaultScope = "account:mock:abc123";
+    expect(assertAdapter(a).ok).toBe(true);
+
+    a.defaultScope = "";
+    const result = assertAdapter(a);
+    expect(result.ok).toBe(false);
+    expect(result.errors.some((e) => e.includes("defaultScope"))).toBe(true);
+  });
+
+  it("validates optional snapshot account scope hints", () => {
+    const a = new MockAdapter();
+    a.snapshotScopeIdentityFields = ["email"];
+    a.snapshotScopeTopLevelFields = ["user"];
+    a.snapshotScopeIdentityIncludesField = false;
+    expect(assertAdapter(a).ok).toBe(true);
+
+    a.snapshotScopeIdentityFields = ["email", ""];
+    a.snapshotScopeIdentityIncludesField = "no";
+    const result = assertAdapter(a);
+    expect(result.ok).toBe(false);
+    expect(
+      result.errors.some((e) => e.includes("snapshotScopeIdentityFields")),
+    ).toBe(true);
+    expect(
+      result.errors.some((e) =>
+        e.includes("snapshotScopeIdentityIncludesField"),
+      ),
+    ).toBe(true);
   });
 
   it("rejects non-function authenticate / sync / normalize / healthCheck", () => {

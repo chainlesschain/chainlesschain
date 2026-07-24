@@ -24,8 +24,14 @@
 const fs = require("node:fs");
 
 const { CAPTURED_BY } = require("../../constants");
+const { createAccountScope } = require("../../account-scope");
 const { WeChatDBReader } = require("./db-reader");
-const { normalizeMessage, normalizeContact, NAME, VERSION } = require("./normalize");
+const {
+  normalizeMessage,
+  normalizeContact,
+  NAME,
+  VERSION,
+} = require("./normalize");
 
 class WechatAdapter {
   constructor(opts = {}) {
@@ -36,22 +42,25 @@ class WechatAdapter {
       throw new Error("WechatAdapter: opts.account required");
     }
     if (!opts.account.uin) {
-      throw new Error("WechatAdapter: opts.account.uin required (WeChat user identifier)");
+      throw new Error(
+        "WechatAdapter: opts.account.uin required (WeChat user identifier)",
+      );
     }
     this.account = opts.account;
     // dbPath: local path to the (already-pulled) decrypted-source
     // EnMicroMsg.db. Test seam.
-    this._dbPath = opts.dbPath || null;
+    this._dbPath = opts.dbPath || opts.inputPath || null;
     // keyProvider: { getKey(): Promise<string> }. v0.5 default is
     // a synthetic provider for tests; production wires this to either
     // KeyExtractor (legacy) or Frida bridge (Phase 12.6).
     this._keyProvider = opts.keyProvider || null;
     // DI seam for tests — swap the DB reader
-    this._dbReaderFactory = typeof opts.dbReaderFactory === "function"
-      ? opts.dbReaderFactory
-      : null;
+    this._dbReaderFactory =
+      typeof opts.dbReaderFactory === "function" ? opts.dbReaderFactory : null;
 
     this.name = NAME;
+    this.watermarkStrategy = "explicit";
+    this.defaultScope = createAccountScope(NAME, this.account.uin);
     this.version = VERSION;
     this.capabilities = [
       "sync:sqlite",
@@ -74,11 +83,20 @@ class WechatAdapter {
 
   async authenticate(ctx = {}) {
     // No server auth; sanity check the on-disk state.
-    if (!this._dbPath || !fs.existsSync(this._dbPath)) {
-      return { ok: false, reason: "DB_NOT_PULLED", error: `DB path missing: ${this._dbPath}` };
+    const dbPath = this._resolveDbPath(ctx);
+    if (!dbPath || !fs.existsSync(dbPath)) {
+      return {
+        ok: false,
+        reason: "DB_NOT_PULLED",
+        error: `DB path missing: ${dbPath}`,
+      };
     }
     if (!this._keyProvider || typeof this._keyProvider.getKey !== "function") {
-      return { ok: false, reason: "NO_KEY_PROVIDER", error: "keyProvider required" };
+      return {
+        ok: false,
+        reason: "NO_KEY_PROVIDER",
+        error: "keyProvider required",
+      };
     }
     // Readiness probe — DB + key provider present means "configured". Do NOT
     // invoke the (possibly frida-backed, expensive/side-effectful) key
@@ -88,15 +106,24 @@ class WechatAdapter {
     }
     try {
       const key = await this._keyProvider.getKey();
-      if (!key) return { ok: false, reason: "EMPTY_KEY", error: "keyProvider returned empty key" };
+      if (!key)
+        return {
+          ok: false,
+          reason: "EMPTY_KEY",
+          error: "keyProvider returned empty key",
+        };
       return { ok: true, account: this.account.uin };
     } catch (err) {
-      return { ok: false, reason: "KEY_PROVIDER_THREW", error: err && err.message ? err.message : String(err) };
+      return {
+        ok: false,
+        reason: "KEY_PROVIDER_THREW",
+        error: err && err.message ? err.message : String(err),
+      };
     }
   }
 
-  async healthCheck() {
-    const r = await this.authenticate();
+  async healthCheck(ctx = {}) {
+    const r = await this.authenticate(ctx);
     if (r.ok) return { ok: true, lastChecked: Date.now() };
     return { ok: false, reason: r.reason, error: r.error };
   }
@@ -111,30 +138,40 @@ class WechatAdapter {
    * @param {Function} [opts.onProgress]
    */
   async *sync(opts = {}) {
-    const onProgress = typeof opts.onProgress === "function" ? opts.onProgress : null;
+    const onProgress =
+      typeof opts.onProgress === "function" ? opts.onProgress : null;
     const emit = (phase, payload = {}) => {
       if (!onProgress) return;
-      try { onProgress({ phase, adapter: NAME, ...payload }); } catch (_e) {}
+      try {
+        onProgress({ phase, adapter: NAME, ...payload });
+      } catch (_e) {}
     };
 
-    if (!this._dbPath || !fs.existsSync(this._dbPath)) {
+    const dbPath = this._resolveDbPath(opts);
+    if (!dbPath || !fs.existsSync(dbPath)) {
       // No DB pulled yet — registry-safe idle no-op
-      emit("idle", { reason: "no DB at " + this._dbPath });
+      emit("idle", { reason: "no DB at " + dbPath });
       return;
     }
-    const maxPerType = Number.isFinite(opts.maxPerType) ? opts.maxPerType : 10_000;
+    const maxPerType = Number.isFinite(opts.maxPerType)
+      ? opts.maxPerType
+      : 10_000;
     const sinceMsgSvrId = parseWatermark(opts.sinceWatermark);
 
-    emit("opening", { dbPath: this._dbPath });
-    const Reader = this._dbReaderFactory || ((readerOpts) => new WeChatDBReader(readerOpts));
-    const reader = Reader({ dbPath: this._dbPath, keyProvider: this._keyProvider });
+    emit("opening", { dbPath });
+    const Reader =
+      this._dbReaderFactory || ((readerOpts) => new WeChatDBReader(readerOpts));
+    const reader = Reader({ dbPath, keyProvider: this._keyProvider });
 
     try {
       const openInfo = await reader.open();
       emit("opened", { profile: openInfo.profile, tables: openInfo.tables });
 
       if (!reader.isEnMicroMsg()) {
-        emit("error", { phase: "verify", message: "not an EnMicroMsg.db (missing message/rcontact)" });
+        emit("error", {
+          phase: "verify",
+          message: "not an EnMicroMsg.db (missing message/rcontact)",
+        });
         return;
       }
 
@@ -150,23 +187,39 @@ class WechatAdapter {
       // Chatrooms — produce Topics
       const chatrooms = reader.fetchChatrooms({ limit: 5000 });
       const chatroomByName = {};
-      for (const cr of chatrooms) chatroomByName[cr.chatroomname] = cr.displayname || cr.chatroomname;
+      for (const cr of chatrooms)
+        chatroomByName[cr.chatroomname] = cr.displayname || cr.chatroomname;
       emit("chatrooms-loaded", { count: chatrooms.length });
 
       // Messages
-      const messages = reader.fetchMessages({ sinceMsgSvrId, limit: maxPerType });
+      const messages = reader.fetchMessages({
+        sinceMsgSvrId,
+        limit: maxPerType,
+      });
       emit("messages-loaded", { count: messages.length, since: sinceMsgSvrId });
       let count = 0;
-      let maxSvr = sinceMsgSvrId;
+      let maxSvr = String(sinceMsgSvrId);
       for (const m of messages) {
         count += 1;
-        if (Number(m.msgSvrId) > maxSvr) maxSvr = Number(m.msgSvrId);
-        emit("processing", { current: count, total: messages.length, msgSvrId: m.msgSvrId });
-        yield this._rowToRaw("message", m, { contactByUsername, chatroomByName });
+        maxSvr = maxDecimalCursor(maxSvr, m.msgSvrId);
+        emit("processing", {
+          current: count,
+          total: messages.length,
+          msgSvrId: m.msgSvrId,
+        });
+        yield this._rowToRaw("message", m, {
+          contactByUsername,
+          chatroomByName,
+        });
+      }
+      if (count > 0 && typeof opts.updateWatermark === "function") {
+        opts.updateWatermark(maxSvr);
       }
       emit("done", { messagesYielded: count, newWatermark: maxSvr });
     } finally {
-      try { reader.close(); } catch (_e) {}
+      try {
+        reader.close();
+      } catch (_e) {}
     }
   }
 
@@ -185,10 +238,15 @@ class WechatAdapter {
     return normalizeMessage(raw.payload.row, ctx);
   }
 
+  _resolveDbPath(opts = {}) {
+    return opts.inputPath || opts.dbPath || this._dbPath;
+  }
+
   _rowToRaw(kind, row, ctxExtras = {}) {
-    const originalId = kind === "message"
-      ? String(row.msgSvrId || row.msgId)
-      : `contact-${row.username}`;
+    const originalId =
+      kind === "message"
+        ? String(row.msgSvrId || row.msgId)
+        : `contact-${row.username}`;
     return {
       adapter: NAME,
       originalId,
@@ -204,8 +262,22 @@ class WechatAdapter {
 
 function parseWatermark(wm) {
   if (wm == null) return 0;
-  const n = parseInt(String(wm), 10);
-  return Number.isFinite(n) && n > 0 ? n : 0;
+  const text = String(wm).trim();
+  if (!/^\d+$/.test(text)) return 0;
+  try {
+    const cursor = BigInt(text);
+    return cursor > 0n ? cursor.toString() : 0;
+  } catch (_err) {
+    return 0;
+  }
+}
+
+function maxDecimalCursor(current, candidate) {
+  const a = parseWatermark(current);
+  const b = parseWatermark(candidate);
+  if (b === 0) return String(a);
+  if (a === 0) return String(b);
+  return BigInt(b) > BigInt(a) ? String(b) : String(a);
 }
 
 module.exports = { WechatAdapter, NAME, VERSION };

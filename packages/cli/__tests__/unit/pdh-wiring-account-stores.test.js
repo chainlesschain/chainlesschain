@@ -13,6 +13,9 @@ import {
   loadAlipayAccounts,
   loadWechatAccounts,
   _atomicWriteJson600,
+  sameAccountIdentity,
+  accountRowsNewestFirst,
+  activatePersistedAdapter,
 } from "../../src/lib/personal-data-hub-wiring.js";
 
 // The PDH account stores hold login credentials (cookies/tokens). The loaders
@@ -67,4 +70,91 @@ describe("personal-data-hub-wiring account stores", () => {
       });
     });
   }
+
+  it("compares account identifiers canonically", () => {
+    expect(sameAccountIdentity(" User@Example.COM ", "user@example.com")).toBe(
+      true,
+    );
+    expect(sameAccountIdentity("123456", "１２３４５６")).toBe(true);
+    expect(sameAccountIdentity("alice@example.com", "bob@example.com")).toBe(
+      false,
+    );
+    expect(sameAccountIdentity(null, null)).toBe(false);
+  });
+
+  it("orders persisted accounts by registration time with array order as a tie-breaker", () => {
+    const oldest = { account: { id: "oldest" }, registeredAt: 100 };
+    const newerFirst = { account: { id: "newer-first" }, registeredAt: 200 };
+    const newerLast = { account: { id: "newer-last" }, registeredAt: 200 };
+    const missingTimestamp = { account: { id: "missing" } };
+
+    expect(
+      accountRowsNewestFirst([
+        oldest,
+        newerFirst,
+        missingTimestamp,
+        newerLast,
+      ]).map((row) => row.account.id),
+    ).toEqual(["newer-last", "newer-first", "oldest", "missing"]);
+  });
+
+  it("activates the requested persisted account without rewriting its row", () => {
+    const current = { name: "email-imap", account: { email: "old@test.com" } };
+    const slots = new Map([[current.name, current]]);
+    const registry = {
+      has: (name) => slots.has(name),
+      unregister: (name) => slots.delete(name),
+      register: (adapter) => slots.set(adapter.name, adapter),
+    };
+    const accounts = [
+      {
+        account: { email: "first@test.com", authCode: "secret-1" },
+        opts: { folders: ["INBOX"] },
+        registeredAt: 100,
+      },
+      {
+        account: { email: "Second@Test.com", authCode: "secret-2" },
+        registeredAt: 200,
+      },
+    ];
+    const before = structuredClone(accounts);
+
+    const result = activatePersistedAdapter({
+      registry,
+      accounts,
+      identity: " second@test.com ",
+      identityOf: (row) => row.account.email,
+      createAdapter: (row) => ({
+        name: "email-imap",
+        account: row.account,
+      }),
+    });
+
+    expect(result.config).toBe(accounts[1]);
+    expect(slots.get("email-imap").account.email).toBe("Second@Test.com");
+    expect(accounts).toEqual(before);
+  });
+
+  it("keeps the active adapter when the requested persisted row is invalid", () => {
+    const current = { name: "email-imap", account: { email: "old@test.com" } };
+    const slots = new Map([[current.name, current]]);
+    const registry = {
+      has: (name) => slots.has(name),
+      unregister: (name) => slots.delete(name),
+      register: (adapter) => slots.set(adapter.name, adapter),
+    };
+
+    expect(() =>
+      activatePersistedAdapter({
+        registry,
+        accounts: [{ account: { email: "broken@test.com" } }],
+        identity: "broken@test.com",
+        identityOf: (row) => row.account.email,
+        createAdapter: () => {
+          throw new Error("invalid persisted config");
+        },
+      }),
+    ).toThrow(/invalid persisted config/);
+    expect(slots.get("email-imap")).toBe(current);
+  });
 });

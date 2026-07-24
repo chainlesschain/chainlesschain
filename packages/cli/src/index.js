@@ -9,6 +9,10 @@ import { pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import manifest from "./command-manifest.json" with { type: "json" };
+import {
+  startDefaultEventRuntimeHost,
+  stopDefaultEventRuntimeHost,
+} from "./lib/event-runtime-host.js";
 
 // The manifest entry is the canonical registration point for learning.  Keep
 // these names visible here for tooling that audits the CLI's command surface:
@@ -132,12 +136,19 @@ const isDirectRun =
     process.argv[1].endsWith("\\cli\\bin\\cli.js"));
 
 if (isDirectRun) {
+  // One lifecycle owner for every CLI surface. The timer is unref'ed, so a
+  // short command is never kept alive solely by the Event Runtime; resident
+  // commands keep draining while their own handles are active.
+  startDefaultEventRuntimeHost();
   const program = createProgram();
-  program.parseAsync(process.argv).catch((err) => {
-    console.error(chalk.red("\nUnexpected error:"), err.message);
-    if (process.env.DEBUG) {
-      console.error(err.stack);
-    }
-    process.exit(1);
-  });
+  program
+    .parseAsync(process.argv)
+    .catch((err) => {
+      console.error(chalk.red("\nUnexpected error:"), err.message);
+      if (process.env.DEBUG) {
+        console.error(err.stack);
+      }
+      process.exitCode = 1;
+    })
+    .finally(() => stopDefaultEventRuntimeHost({ drain: true }));
 }

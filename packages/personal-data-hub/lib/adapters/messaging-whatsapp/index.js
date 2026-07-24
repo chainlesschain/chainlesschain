@@ -29,7 +29,9 @@ const {
 const { createWhatsAppBackupExtension } = require("./adb-extension");
 
 const NAME = "messaging-whatsapp";
-const VERSION = "0.7.0";
+// v0.8.0: forward sync-time inputPath/key options through the health gate.
+// Previously Registry.syncAdapter rejected valid file imports before sync().
+const VERSION = "0.8.0";
 
 class WhatsAppAdapter {
   constructor(opts = {}) {
@@ -103,8 +105,8 @@ class WhatsAppAdapter {
     return { ok: true, account: this.account ? this.account.phone : null, mode: "snapshot-file" };
   }
 
-  async healthCheck() {
-    const r = await this.authenticate();
+  async healthCheck(opts = {}) {
+    const r = await this.authenticate(opts);
     return r.ok ? { ok: true, lastChecked: Date.now() } : r;
   }
 

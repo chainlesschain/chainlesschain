@@ -216,24 +216,201 @@ public struct HubAdaptersResponse: Sendable, Equatable {
 // MARK: - 5. SyncReport / SyncReportList
 
 public struct HubSyncReport: Sendable, Equatable {
+    public let adapter: String?
+    public let status: String?
+    public let rawCount: Int
+    public let archivedRawCount: Int
+    public let archiveFailureCount: Int
+    public let entityCounts: [String: Int]
+    public let invalidCount: Int
+    public let kgTripleCount: Int
+    public let ragDocCount: Int
+    public let error: String?
+    public let errors: [String]
+    public let watermark: String?
+    public let watermarkDeferred: Bool
+    public let checkpointCommitted: Bool?
+    public let pageBudget: Int?
+    public let nextPageBudget: Int?
+    public let scanDeferredCount: Int
+    public let watermarkLookbackMs: Int
+    public let collectionSinceWatermark: String?
+    public let attemptCount: Int
+    public let retryCount: Int
+    public let totalRetryDelayMs: Int
+    public let retryExhausted: Bool
+    public let retryAfterMs: Int?
+    public let rateLimitReason: String?
+    public let rateLimitRemainingMinute: Int?
+    public let rateLimitRemainingDay: Int?
+    public let sourceRequestCount: Int
+    public let sourceRequestThrottleMs: Int
+    public let sourceRequestRateLimitRemainingMinute: Int?
+    public let sourceRequestRateLimitRemainingDay: Int?
+    public let skipReason: String?
+    public let skipMessage: String?
+
+    // Compatibility projections used by existing views and older peers.
     public let ingested: Int
     public let kgTriples: Int
     public let ragDocs: Int
     public let durationMs: Int
 
-    public init(ingested: Int, kgTriples: Int = 0, ragDocs: Int = 0, durationMs: Int = 0) {
-        self.ingested = ingested; self.kgTriples = kgTriples
-        self.ragDocs = ragDocs; self.durationMs = durationMs
+    public init(
+        ingested: Int = 0,
+        kgTriples: Int = 0,
+        ragDocs: Int = 0,
+        durationMs: Int = 0,
+        adapter: String? = nil,
+        status: String? = nil,
+        rawCount: Int = 0,
+        archivedRawCount: Int = 0,
+        archiveFailureCount: Int = 0,
+        entityCounts: [String: Int] = [:],
+        invalidCount: Int = 0,
+        kgTripleCount: Int? = nil,
+        ragDocCount: Int? = nil,
+        error: String? = nil,
+        errors: [String] = [],
+        watermark: String? = nil,
+        watermarkDeferred: Bool = false,
+        checkpointCommitted: Bool? = nil,
+        pageBudget: Int? = nil,
+        nextPageBudget: Int? = nil,
+        scanDeferredCount: Int = 0,
+        watermarkLookbackMs: Int = 0,
+        collectionSinceWatermark: String? = nil,
+        attemptCount: Int = 0,
+        retryCount: Int = 0,
+        totalRetryDelayMs: Int = 0,
+        retryExhausted: Bool = false,
+        retryAfterMs: Int? = nil,
+        rateLimitReason: String? = nil,
+        rateLimitRemainingMinute: Int? = nil,
+        rateLimitRemainingDay: Int? = nil,
+        sourceRequestCount: Int = 0,
+        sourceRequestThrottleMs: Int = 0,
+        sourceRequestRateLimitRemainingMinute: Int? = nil,
+        sourceRequestRateLimitRemainingDay: Int? = nil,
+        skipReason: String? = nil,
+        skipMessage: String? = nil
+    ) {
+        let canonicalTotal = Self.entityTotal(entityCounts)
+        let effectiveKgTriples = kgTripleCount ?? kgTriples
+        let effectiveRagDocs = ragDocCount ?? ragDocs
+        self.adapter = adapter
+        self.status = status
+        self.rawCount = rawCount
+        self.archivedRawCount = archivedRawCount
+        self.archiveFailureCount = archiveFailureCount
+        self.entityCounts = entityCounts
+        self.invalidCount = invalidCount
+        self.kgTripleCount = effectiveKgTriples
+        self.ragDocCount = effectiveRagDocs
+        self.error = error
+        self.errors = errors
+        self.watermark = watermark
+        self.watermarkDeferred = watermarkDeferred
+        self.checkpointCommitted = checkpointCommitted
+        self.pageBudget = pageBudget
+        self.nextPageBudget = nextPageBudget
+        self.scanDeferredCount = scanDeferredCount
+        self.watermarkLookbackMs = watermarkLookbackMs
+        self.collectionSinceWatermark = collectionSinceWatermark
+        self.attemptCount = attemptCount
+        self.retryCount = retryCount
+        self.totalRetryDelayMs = totalRetryDelayMs
+        self.retryExhausted = retryExhausted
+        self.retryAfterMs = retryAfterMs
+        self.rateLimitReason = rateLimitReason
+        self.rateLimitRemainingMinute = rateLimitRemainingMinute
+        self.rateLimitRemainingDay = rateLimitRemainingDay
+        self.sourceRequestCount = sourceRequestCount
+        self.sourceRequestThrottleMs = sourceRequestThrottleMs
+        self.sourceRequestRateLimitRemainingMinute = sourceRequestRateLimitRemainingMinute
+        self.sourceRequestRateLimitRemainingDay = sourceRequestRateLimitRemainingDay
+        self.skipReason = skipReason
+        self.skipMessage = skipMessage
+        self.ingested = entityCounts.isEmpty ? ingested : canonicalTotal
+        self.kgTriples = effectiveKgTriples
+        self.ragDocs = effectiveRagDocs
+        self.durationMs = durationMs
+    }
+
+    public var isSkipped: Bool { status == "skipped" }
+
+    public var isPartial: Bool {
+        watermarkDeferred ||
+            archiveFailureCount > 0 ||
+            checkpointCommitted == false ||
+            invalidCount > 0 ||
+            (rawCount > 0 && ingested == 0)
+    }
+
+    public var isSuccessful: Bool {
+        guard let status else { return error == nil && errors.isEmpty }
+        return status == "ok"
+    }
+
+    public var failureMessage: String {
+        error ?? skipMessage ?? errors.first ?? status ?? "unknown sync failure"
     }
 
     public static func decode(_ json: String) throws -> HubSyncReport {
-        let d = try parseHubDict(json)
+        from(try parseHubDict(json))
+    }
+
+    internal static func from(_ d: [String: Any]) -> HubSyncReport {
+        let countsRaw = d["entityCounts"] as? [String: Any] ?? [:]
+        let counts = countsRaw.reduce(into: [String: Int]()) { result, entry in
+            if let value = pickHubInt64(entry.value) {
+                result[entry.key] = Int(value)
+            }
+        }
         return HubSyncReport(
-            ingested: (d["ingested"] as? Int) ?? 0,
-            kgTriples: (d["kgTriples"] as? Int) ?? 0,
-            ragDocs: (d["ragDocs"] as? Int) ?? 0,
-            durationMs: (d["durationMs"] as? Int) ?? 0
+            ingested: Int(pickHubInt64(d["ingested"]) ?? 0),
+            kgTriples: Int(pickHubInt64(d["kgTriples"]) ?? 0),
+            ragDocs: Int(pickHubInt64(d["ragDocs"]) ?? 0),
+            durationMs: Int(pickHubInt64(d["durationMs"]) ?? 0),
+            adapter: d["adapter"] as? String,
+            status: d["status"] as? String,
+            rawCount: Int(pickHubInt64(d["rawCount"]) ?? 0),
+            archivedRawCount: Int(pickHubInt64(d["archivedRawCount"]) ?? 0),
+            archiveFailureCount: Int(pickHubInt64(d["archiveFailureCount"]) ?? 0),
+            entityCounts: counts,
+            invalidCount: Int(pickHubInt64(d["invalidCount"]) ?? 0),
+            kgTripleCount: pickHubInt64(d["kgTripleCount"]).map { Int($0) },
+            ragDocCount: pickHubInt64(d["ragDocCount"]).map { Int($0) },
+            error: d["error"] as? String,
+            errors: d["errors"] as? [String] ?? [],
+            watermark: d["watermark"] as? String,
+            watermarkDeferred: d["watermarkDeferred"] as? Bool ?? false,
+            checkpointCommitted: d["checkpointCommitted"] as? Bool,
+            pageBudget: pickHubInt64(d["pageBudget"]).map { Int($0) },
+            nextPageBudget: pickHubInt64(d["nextPageBudget"]).map { Int($0) },
+            scanDeferredCount: Int(pickHubInt64(d["scanDeferredCount"]) ?? 0),
+            watermarkLookbackMs: Int(pickHubInt64(d["watermarkLookbackMs"]) ?? 0),
+            collectionSinceWatermark: d["collectionSinceWatermark"] as? String,
+            attemptCount: Int(pickHubInt64(d["attemptCount"]) ?? 0),
+            retryCount: Int(pickHubInt64(d["retryCount"]) ?? 0),
+            totalRetryDelayMs: Int(pickHubInt64(d["totalRetryDelayMs"]) ?? 0),
+            retryExhausted: d["retryExhausted"] as? Bool ?? false,
+            retryAfterMs: pickHubInt64(d["retryAfterMs"]).map { Int($0) },
+            rateLimitReason: d["rateLimitReason"] as? String,
+            rateLimitRemainingMinute: pickHubInt64(d["rateLimitRemainingMinute"]).map { Int($0) },
+            rateLimitRemainingDay: pickHubInt64(d["rateLimitRemainingDay"]).map { Int($0) },
+            sourceRequestCount: Int(pickHubInt64(d["sourceRequestCount"]) ?? 0),
+            sourceRequestThrottleMs: Int(pickHubInt64(d["sourceRequestThrottleMs"]) ?? 0),
+            sourceRequestRateLimitRemainingMinute: pickHubInt64(d["sourceRequestRateLimitRemainingMinute"]).map { Int($0) },
+            sourceRequestRateLimitRemainingDay: pickHubInt64(d["sourceRequestRateLimitRemainingDay"]).map { Int($0) },
+            skipReason: d["skipReason"] as? String,
+            skipMessage: d["skipMessage"] as? String
         )
+    }
+
+    private static func entityTotal(_ counts: [String: Int]) -> Int {
+        ["events", "persons", "places", "items", "topics"]
+            .reduce(0) { $0 + (counts[$1] ?? 0) }
     }
 }
 
@@ -246,22 +423,13 @@ public struct HubSyncReportList: Sendable, Equatable {
             throw RemoteSkillError.malformedResult("hub.sync-all: invalid utf8")
         }
         if let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-            return HubSyncReportList(reports: arr.map(HubSyncReportList.reportFrom))
+            return HubSyncReportList(reports: arr.map(HubSyncReport.from))
         }
         if let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let arr = obj["reports"] as? [[String: Any]] {
-            return HubSyncReportList(reports: arr.map(HubSyncReportList.reportFrom))
+            return HubSyncReportList(reports: arr.map(HubSyncReport.from))
         }
         throw RemoteSkillError.malformedResult("hub.sync-all: unexpected shape")
-    }
-
-    private static func reportFrom(_ d: [String: Any]) -> HubSyncReport {
-        HubSyncReport(
-            ingested: (d["ingested"] as? Int) ?? 0,
-            kgTriples: (d["kgTriples"] as? Int) ?? 0,
-            ragDocs: (d["ragDocs"] as? Int) ?? 0,
-            durationMs: (d["durationMs"] as? Int) ?? 0
-        )
     }
 }
 
@@ -546,13 +714,16 @@ public struct HubEmailAccountInfo: Sendable, Equatable, Identifiable {
     public let folders: [String]
     public let registeredAt: Int64
     public let pdfPasswordHints: [String]
+    public let active: Bool
 
     public var id: String { email }
 
     public init(email: String, provider: String, folders: [String] = [],
-                registeredAt: Int64 = 0, pdfPasswordHints: [String] = []) {
+                registeredAt: Int64 = 0, pdfPasswordHints: [String] = [],
+                active: Bool = false) {
         self.email = email; self.provider = provider; self.folders = folders
         self.registeredAt = registeredAt; self.pdfPasswordHints = pdfPasswordHints
+        self.active = active
     }
 
     internal static func from(_ d: [String: Any]) -> HubEmailAccountInfo {
@@ -561,7 +732,8 @@ public struct HubEmailAccountInfo: Sendable, Equatable, Identifiable {
             provider: (d["provider"] as? String) ?? "",
             folders: (d["folders"] as? [String]) ?? [],
             registeredAt: pickHubInt64(d["registeredAt"]) ?? 0,
-            pdfPasswordHints: (d["pdfPasswordHints"] as? [String]) ?? []
+            pdfPasswordHints: (d["pdfPasswordHints"] as? [String]) ?? [],
+            active: (d["active"] as? Bool) ?? false
         )
     }
 }
@@ -591,19 +763,23 @@ public struct HubAlipayAccountInfo: Sendable, Equatable, Identifiable {
     public let email: String
     public let hasZipPassword: Bool
     public let registeredAt: Int64
+    public let active: Bool
 
     public var id: String { email }
 
-    public init(email: String, hasZipPassword: Bool = false, registeredAt: Int64 = 0) {
+    public init(email: String, hasZipPassword: Bool = false,
+                registeredAt: Int64 = 0, active: Bool = false) {
         self.email = email; self.hasZipPassword = hasZipPassword
         self.registeredAt = registeredAt
+        self.active = active
     }
 
     internal static func from(_ d: [String: Any]) -> HubAlipayAccountInfo {
         HubAlipayAccountInfo(
             email: (d["email"] as? String) ?? "",
             hasZipPassword: (d["hasZipPassword"] as? Bool) ?? false,
-            registeredAt: pickHubInt64(d["registeredAt"]) ?? 0
+            registeredAt: pickHubInt64(d["registeredAt"]) ?? 0,
+            active: (d["active"] as? Bool) ?? false
         )
     }
 }
@@ -662,7 +838,18 @@ public struct HubSyncEvent: Sendable, Equatable {
     public let partition: String?
     public let detail: [String: Int64]?
     public let report: HubSyncReport?
+    public let reports: [HubSyncReport]?
     public let message: String?
+    public let error: String?
+    public let attemptCount: Int?
+    public let nextAttempt: Int?
+    public let retryCount: Int?
+    public let delayMs: Int?
+    public let retryAfterMs: Int?
+    public let reason: String?
+    public let sourceRequestCount: Int?
+    public let operation: String?
+    public let page: Int?
 
     public init(
         kind: String,
@@ -670,11 +857,29 @@ public struct HubSyncEvent: Sendable, Equatable {
         partition: String? = nil,
         detail: [String: Int64]? = nil,
         report: HubSyncReport? = nil,
-        message: String? = nil
+        reports: [HubSyncReport]? = nil,
+        message: String? = nil,
+        error: String? = nil,
+        attemptCount: Int? = nil,
+        nextAttempt: Int? = nil,
+        retryCount: Int? = nil,
+        delayMs: Int? = nil,
+        retryAfterMs: Int? = nil,
+        reason: String? = nil,
+        sourceRequestCount: Int? = nil,
+        operation: String? = nil,
+        page: Int? = nil
     ) {
         self.kind = kind; self.adapter = adapter
         self.partition = partition; self.detail = detail
-        self.report = report; self.message = message
+        self.report = report; self.reports = reports; self.message = message
+        self.error = error; self.attemptCount = attemptCount
+        self.nextAttempt = nextAttempt; self.retryCount = retryCount
+        self.delayMs = delayMs; self.retryAfterMs = retryAfterMs
+        self.reason = reason
+        self.sourceRequestCount = sourceRequestCount
+        self.operation = operation
+        self.page = page
     }
 
     /// Parse from the raw envelope wire format. Desktop sends:
@@ -712,13 +917,9 @@ public struct HubSyncEvent: Sendable, Equatable {
         let detail = detailRaw?.compactMapValues(pickHubInt64)
         let report: HubSyncReport? = {
             guard let r = params["report"] as? [String: Any] else { return nil }
-            return HubSyncReport(
-                ingested: (r["ingested"] as? Int) ?? 0,
-                kgTriples: (r["kgTriples"] as? Int) ?? 0,
-                ragDocs: (r["ragDocs"] as? Int) ?? 0,
-                durationMs: (r["durationMs"] as? Int) ?? 0
-            )
+            return HubSyncReport.from(r)
         }()
+        let reports = (params["reports"] as? [[String: Any]])?.map(HubSyncReport.from)
         let message = params["message"] as? String
         return HubSyncEvent(
             kind: kind,
@@ -726,7 +927,18 @@ public struct HubSyncEvent: Sendable, Equatable {
             partition: partition,
             detail: detail?.isEmpty == false ? detail : nil,
             report: report,
-            message: message
+            reports: reports,
+            message: message,
+            error: params["error"] as? String,
+            attemptCount: pickHubInt64(params["attemptCount"]).map { Int($0) },
+            nextAttempt: pickHubInt64(params["nextAttempt"]).map { Int($0) },
+            retryCount: pickHubInt64(params["retryCount"]).map { Int($0) },
+            delayMs: pickHubInt64(params["delayMs"]).map { Int($0) },
+            retryAfterMs: pickHubInt64(params["retryAfterMs"]).map { Int($0) },
+            reason: params["reason"] as? String,
+            sourceRequestCount: pickHubInt64(params["sourceRequestCount"]).map { Int($0) },
+            operation: params["operation"] as? String,
+            page: pickHubInt64(params["page"]).map { Int($0) }
         )
     }
 }

@@ -4,7 +4,8 @@
  *
  * 统一拦截所有子进程执行：
  * - M1: 所有子进程唯一入口，权限检查
- * - **P0-1**: 三平台原生沙箱 (macOS Seatbelt / Windows Job Object / Linux seccomp)
+ * - **P0-1**: 可审计的平台执行计划（macOS Seatbelt / Linux prlimit；
+ *   Windows 原生 Job Object 未实现时明确报告 unavailable）
  * - **P0-1**: 凭据代理 default-on（secrets 永远不裸传给子进程）
  * - M3: 集成W3C trace context自动传播
  * - M4: 自动写入Runtime Provenance Ledger (RPL)
@@ -110,6 +111,10 @@ class ProcessExecutionBroker extends EventEmitter {
     // plugin path use the same switches as the general broker path.
     this._credentialAgentEnabled = true;
     this._platformSandboxEnabled = true;
+    this._sandboxAdapter = {
+      applySandbox: _applySandbox,
+      postSpawnSandbox: _postSpawnSandbox,
+    };
 
     this._ensureLogDir();
     this._loadPermissions();
@@ -118,7 +123,9 @@ class ProcessExecutionBroker extends EventEmitter {
   _ensureLogDir() {
     try {
       fs.mkdirSync(path.dirname(this._logPath), { recursive: true });
-    } catch {}
+    } catch {
+      // Audit persistence is best-effort; in-memory audit remains available.
+    }
   }
 
   _loadPermissions() {
@@ -167,7 +174,9 @@ class ProcessExecutionBroker extends EventEmitter {
       (this._stats.byOrigin[entry.origin] || 0) + 1;
     try {
       fs.appendFileSync(this._logPath, JSON.stringify(entry) + "\n");
-    } catch {}
+    } catch {
+      // Audit persistence is best-effort; the in-memory entry is retained.
+    }
     this.emit("spawn", entry);
   }
 
@@ -178,6 +187,286 @@ class ProcessExecutionBroker extends EventEmitter {
       safe.windowsHide = true;
     }
     return safe;
+  }
+
+  _sandboxStrictEnabled() {
+    return process.env.CC_SANDBOX_STRICT === "1";
+  }
+
+  _sandboxDisabledByEnvironment() {
+    return process.env.CC_SANDBOX_DISABLE === "1";
+  }
+
+  _sandboxUnavailablePlan(command, args, options, reason) {
+    return {
+      contractVersion: 1,
+      applied: false,
+      platform: process.platform,
+      profile: "default",
+      command,
+      args: [...(args || [])],
+      options: { ...options },
+      enforcement: null,
+      reason,
+      postSpawn: { required: false, mode: "none" },
+    };
+  }
+
+  _sandboxError(reason, message = reason) {
+    const error = new Error(message);
+    error.code = "ERR_PROCESS_SANDBOX";
+    error.sandboxReason = reason;
+    return error;
+  }
+
+  _validateSandboxPlan(plan) {
+    if (!plan || typeof plan !== "object") {
+      throw this._sandboxError(
+        "invalid_sandbox_plan",
+        "Sandbox adapter returned no spawn plan",
+      );
+    }
+    if (plan.contractVersion !== 1) {
+      throw this._sandboxError(
+        "invalid_sandbox_plan",
+        "Sandbox spawn plan contractVersion must be 1",
+      );
+    }
+    if (typeof plan.applied !== "boolean") {
+      throw this._sandboxError(
+        "invalid_sandbox_plan",
+        "Sandbox spawn plan is missing applied:boolean",
+      );
+    }
+    if (typeof plan.command !== "string" || !Array.isArray(plan.args)) {
+      throw this._sandboxError(
+        "invalid_sandbox_plan",
+        "Sandbox spawn plan must provide command and args",
+      );
+    }
+    if (!plan.options || typeof plan.options !== "object") {
+      throw this._sandboxError(
+        "invalid_sandbox_plan",
+        "Sandbox spawn plan must provide options",
+      );
+    }
+    if (plan.applied && typeof plan.enforcement !== "string") {
+      throw this._sandboxError(
+        "invalid_sandbox_plan",
+        "Applied sandbox spawn plan must name its enforcement",
+      );
+    }
+    if (!plan.applied && typeof plan.reason !== "string") {
+      throw this._sandboxError(
+        "invalid_sandbox_plan",
+        "Unavailable sandbox spawn plan must provide a reason",
+      );
+    }
+    const postSpawn = plan.postSpawn || { required: false, mode: "none" };
+    if (
+      postSpawn.required &&
+      postSpawn.mode !== "sync" &&
+      postSpawn.mode !== "async"
+    ) {
+      throw this._sandboxError(
+        "invalid_sandbox_plan",
+        "Required post-spawn enforcement must declare sync or async mode",
+      );
+    }
+    return {
+      ...plan,
+      args: [...plan.args],
+      options: { ...plan.options },
+      postSpawn: { ...postSpawn },
+    };
+  }
+
+  _prepareSandboxPlan(command, args, options, { sync = false } = {}) {
+    const strict = this._sandboxStrictEnabled();
+    let disabledReason = null;
+    if (this._sandboxDisabledByEnvironment()) {
+      disabledReason = "disabled_by_environment";
+    } else if (
+      this._sandboxEnabled === false ||
+      this._platformSandboxEnabled === false
+    ) {
+      disabledReason = "disabled_by_broker";
+    }
+
+    if (disabledReason) {
+      if (strict) {
+        throw this._sandboxError(
+          disabledReason,
+          `Sandbox is unavailable in strict mode: ${disabledReason}`,
+        );
+      }
+      return this._sandboxUnavailablePlan(
+        command,
+        args,
+        options,
+        disabledReason,
+      );
+    }
+
+    const plan = this._validateSandboxPlan(
+      this._sandboxAdapter.applySandbox(
+        command,
+        args || [],
+        options,
+        "default",
+      ),
+    );
+
+    if (!plan.applied && strict) {
+      throw this._sandboxError(
+        plan.reason || "sandbox_unavailable",
+        `Sandbox is unavailable in strict mode: ${
+          plan.reason || "unknown reason"
+        }`,
+      );
+    }
+
+    if (plan.applied && plan.postSpawn.required) {
+      if (typeof this._sandboxAdapter.postSpawnSandbox !== "function") {
+        throw this._sandboxError(
+          "post_spawn_adapter_unavailable",
+          "Required post-spawn sandbox adapter is unavailable",
+        );
+      }
+      if (sync) {
+        throw this._sandboxError(
+          "post_spawn_unavailable_for_sync",
+          "spawnSync cannot satisfy required post-spawn sandbox enforcement",
+        );
+      }
+      if (strict && plan.postSpawn.mode !== "sync") {
+        throw this._sandboxError(
+          "async_post_spawn_disallowed_in_strict_mode",
+          "Strict sandbox mode requires synchronous post-spawn enforcement",
+        );
+      }
+    }
+    return plan;
+  }
+
+  _applySandboxAudit(auditEntry, plan, applied) {
+    auditEntry.sandboxed = applied;
+    auditEntry.sandboxProfile = plan?.profile || null;
+    auditEntry.sandboxEnforcement = applied
+      ? plan?.enforcement || "platform"
+      : null;
+    auditEntry.sandboxReason = applied ? null : plan?.reason || null;
+    auditEntry.sandboxState = applied ? "ready" : "unavailable";
+  }
+
+  _recordSandboxDenial(auditEntry, error, startTime) {
+    auditEntry.permissionDecision = "deny";
+    auditEntry.sandboxed = false;
+    auditEntry.sandboxState = "denied";
+    auditEntry.sandboxReason =
+      error.sandboxReason || "sandbox_initialization_failed";
+    auditEntry.deniedReason = `sandbox-init-failed: ${error.message}`;
+    auditEntry.endTime = Date.now();
+    auditEntry.durationMs = auditEntry.endTime - startTime;
+    this._recordAudit(auditEntry);
+    this._writeRplEntry(auditEntry, "denied", error);
+  }
+
+  _scheduleSandboxCleanup(proc, cleanup) {
+    if (typeof cleanup !== "function") return () => {};
+    let cleaned = false;
+    const run = () => {
+      if (cleaned) return;
+      cleaned = true;
+      cleanup();
+    };
+    if (proc && typeof proc.once === "function") {
+      proc.once("error", run);
+      proc.once("exit", run);
+    }
+    return run;
+  }
+
+  _runPostSpawnSandbox(proc, plan, auditEntry) {
+    if (!plan.applied || !plan.postSpawn.required) {
+      this._applySandboxAudit(auditEntry, plan, plan.applied);
+      if (plan.applied) this._stats.sandboxed++;
+      const ready = Promise.resolve({ applied: plan.applied });
+      proc.sandboxReady = ready;
+      return;
+    }
+
+    let postSpawnResult;
+    try {
+      postSpawnResult = this._sandboxAdapter.postSpawnSandbox(proc, plan);
+    } catch (error) {
+      this._applySandboxAudit(auditEntry, plan, false);
+      auditEntry.sandboxState = "failed";
+      auditEntry.sandboxReason = `post_spawn_failed: ${error.message}`;
+      if (this._sandboxStrictEnabled()) {
+        if (typeof proc.once === "function") proc.once("error", () => {});
+        try {
+          proc.kill?.();
+        } catch {
+          // The sandbox failure remains fatal even if the child already exited.
+        }
+        throw this._sandboxError(
+          "post_spawn_failed",
+          `Post-spawn sandbox setup failed: ${error.message}`,
+        );
+      }
+      process.emitWarning(
+        `Post-spawn sandbox setup failed (continuing without): ${error.message}`,
+      );
+      proc.sandboxReady = Promise.resolve({ applied: false, error });
+      return;
+    }
+
+    if (
+      postSpawnResult &&
+      typeof postSpawnResult.then === "function"
+    ) {
+      if (this._sandboxStrictEnabled()) {
+        Promise.resolve(postSpawnResult).catch(() => {});
+        if (typeof proc.once === "function") proc.once("error", () => {});
+        try {
+          proc.kill?.();
+        } catch {
+          // The sandbox failure remains fatal even if the child already exited.
+        }
+        throw this._sandboxError(
+          "async_post_spawn_contract_violation",
+          "Strict sandbox adapter returned an asynchronous post-spawn result",
+        );
+      }
+      auditEntry.sandboxed = false;
+      auditEntry.sandboxState = "pending";
+      const ready = Promise.resolve(postSpawnResult).then(
+        () => {
+          this._applySandboxAudit(auditEntry, plan, true);
+          this._stats.sandboxed++;
+          return { applied: true };
+        },
+        (error) => {
+          this._applySandboxAudit(auditEntry, plan, false);
+          auditEntry.sandboxState = "failed";
+          auditEntry.sandboxReason = `post_spawn_failed: ${error.message}`;
+          process.emitWarning(
+            `Post-spawn sandbox setup failed (continuing without): ${error.message}`,
+          );
+          throw error;
+        },
+      );
+      // Keep failures observable to callers without creating an unhandled
+      // rejection when a legacy caller does not inspect sandboxReady.
+      ready.catch(() => {});
+      proc.sandboxReady = ready;
+      return;
+    }
+
+    this._applySandboxAudit(auditEntry, plan, true);
+    this._stats.sandboxed++;
+    proc.sandboxReady = Promise.resolve({ applied: true });
   }
 
   _credentialBoundaryEnabled() {
@@ -293,7 +582,9 @@ class ProcessExecutionBroker extends EventEmitter {
         },
         auditEntry.origin,
       );
-    } catch (e) {}
+    } catch {
+      // Provenance reporting must not hide the process execution result.
+    }
   }
 
   _emitHooksEvent(event, data) {
@@ -301,7 +592,9 @@ class ProcessExecutionBroker extends EventEmitter {
     if (!hooks || !hooks.hooksV2) return;
     try {
       hooks.hooksV2.emit(event, data);
-    } catch {}
+    } catch {
+      // Hook reporting must not hide the process execution result.
+    }
   }
 
   spawn(command, args, options = {}) {
@@ -388,59 +681,57 @@ class ProcessExecutionBroker extends EventEmitter {
     }
 
     // P0-1: Platform sandbox wrapping — apply macOS/Windows/Linux sandbox
-    const optsForSpawn = { ...spawnOpts };
-    let sandboxApplied = false;
-    let sandboxProfile = null;
-    if (this._platformSandboxEnabled) {
-      try {
-        const result = _applySandbox(
-          command,
-          args || [],
-          optsForSpawn,
-          "default",
-        );
-        if (result && result.applied) {
-          Object.assign(optsForSpawn, result.options || {});
-          if (result.command) command = result.command;
-          if (result.args) args = result.args;
-          sandboxApplied = true;
-          sandboxProfile = result.profile || null;
-          this._stats.sandboxed++;
-        }
-        auditEntry.sandboxed = sandboxApplied;
-        auditEntry.sandboxProfile = sandboxProfile;
-      } catch (sandboxErr) {
-        // Fail closed: if sandbox setup fails on strict, deny spawn
-        if (process.env.CC_SANDBOX_STRICT === "1") {
-          auditEntry.deniedReason = `sandbox-init-failed: ${sandboxErr.message}`;
-          this._auditLog.push(auditEntry);
-          const err = new Error(`Sandbox init failed: ${sandboxErr.message}`);
-          err.auditEntry = auditEntry;
-          throw err;
-        }
-        // Non-strict: warn but allow (development mode)
-        process.emitWarning(
-          `Sandbox init failed (continuing without): ${sandboxErr.message}`,
-        );
+    let sandboxPlan;
+    try {
+      sandboxPlan = this._prepareSandboxPlan(command, args || [], spawnOpts);
+    } catch (sandboxErr) {
+      if (this._sandboxStrictEnabled()) {
+        this._recordSandboxDenial(auditEntry, sandboxErr, startTime);
+        sandboxErr.auditEntry = auditEntry;
+        throw sandboxErr;
       }
+      process.emitWarning(
+        `Sandbox init failed (continuing without): ${sandboxErr.message}`,
+      );
+      sandboxPlan = this._sandboxUnavailablePlan(
+        command,
+        args || [],
+        spawnOpts,
+        `sandbox_init_failed: ${sandboxErr.message}`,
+      );
     }
+    command = sandboxPlan.command;
+    args = [...sandboxPlan.args];
+    const optsForSpawn = { ...sandboxPlan.options };
+    this._applySandboxAudit(
+      auditEntry,
+      sandboxPlan,
+      sandboxPlan.applied && !sandboxPlan.postSpawn.required,
+    );
 
     // Use native spawn from _native (set by patch-child-process.js)
     const nativeSpawnFn = this._native?.spawn || nativeSpawn;
-    const proc = nativeSpawnFn(command, args, optsForSpawn);
-
-    // P0-1: Post-spawn sandbox setup (Windows Job Object association, etc.)
-    if (sandboxApplied && proc.pid) {
-      try {
-        _postSpawnSandbox(proc, sandboxProfile);
-      } catch (postErr) {
-        process.emitWarning(
-          `Post-spawn sandbox setup failed: ${postErr.message}`,
-        );
-      }
+    let proc;
+    try {
+      proc = nativeSpawnFn(command, args, optsForSpawn);
+    } catch (spawnError) {
+      sandboxPlan.cleanup?.();
+      throw spawnError;
+    }
+    auditEntry.pid = proc.pid;
+    const cleanupSandbox = this._scheduleSandboxCleanup(
+      proc,
+      sandboxPlan.cleanup,
+    );
+    try {
+      this._runPostSpawnSandbox(proc, sandboxPlan, auditEntry);
+    } catch (postSpawnError) {
+      cleanupSandbox();
+      this._recordSandboxDenial(auditEntry, postSpawnError, startTime);
+      postSpawnError.auditEntry = auditEntry;
+      throw postSpawnError;
     }
 
-    auditEntry.pid = proc.pid;
     this._recordAudit(auditEntry);
     this._writeRplEntry(auditEntry, "started");
     this._emitHooksEvent("tool:start", {
@@ -563,44 +854,43 @@ class ProcessExecutionBroker extends EventEmitter {
     }
 
     // P0-1: Platform sandbox wrapping (sync path)
-    const optsForSync = { ...spawnOpts };
-    let sandboxApplied = false;
-    let sandboxProfile = null;
-    if (this._platformSandboxEnabled) {
-      try {
-        const result = _applySandbox(
-          command,
-          args || [],
-          optsForSync,
-          "default",
-        );
-        if (result && result.applied) {
-          Object.assign(optsForSync, result.options || {});
-          if (result.command) command = result.command;
-          if (result.args) args = result.args;
-          sandboxApplied = true;
-          sandboxProfile = result.profile || null;
-          this._stats.sandboxed++;
-        }
-        auditEntry.sandboxed = sandboxApplied;
-        auditEntry.sandboxProfile = sandboxProfile;
-      } catch (sandboxErr) {
-        if (process.env.CC_SANDBOX_STRICT === "1") {
-          auditEntry.deniedReason = `sandbox-init-failed: ${sandboxErr.message}`;
-          this._recordAudit(auditEntry);
-          const err = new Error(`Sandbox init failed: ${sandboxErr.message}`);
-          err.auditEntry = auditEntry;
-          throw err;
-        }
-        process.emitWarning(
-          `Sandbox init failed (sync): ${sandboxErr.message}`,
-        );
+    let sandboxPlan;
+    try {
+      sandboxPlan = this._prepareSandboxPlan(
+        command,
+        args || [],
+        spawnOpts,
+        { sync: true },
+      );
+    } catch (sandboxErr) {
+      if (this._sandboxStrictEnabled()) {
+        this._recordSandboxDenial(auditEntry, sandboxErr, startTime);
+        sandboxErr.auditEntry = auditEntry;
+        throw sandboxErr;
       }
+      process.emitWarning(
+        `Sandbox init failed (sync, continuing without): ${sandboxErr.message}`,
+      );
+      sandboxPlan = this._sandboxUnavailablePlan(
+        command,
+        args || [],
+        spawnOpts,
+        `sandbox_init_failed: ${sandboxErr.message}`,
+      );
     }
+    command = sandboxPlan.command;
+    args = [...sandboxPlan.args];
+    const optsForSync = { ...sandboxPlan.options };
+    this._applySandboxAudit(
+      auditEntry,
+      sandboxPlan,
+      sandboxPlan.applied,
+    );
 
     const nativeSpawnSyncFn = this._native?.spawnSync || nativeSpawnSync;
     try {
       const result = nativeSpawnSyncFn(command, args, optsForSync);
+      if (sandboxPlan.applied) this._stats.sandboxed++;
       auditEntry.exitCode = result.status;
       auditEntry.endTime = Date.now();
       auditEntry.durationMs = auditEntry.endTime - startTime;
@@ -614,6 +904,8 @@ class ProcessExecutionBroker extends EventEmitter {
       this._recordAudit(auditEntry);
       this._writeRplEntry(auditEntry, "error", err);
       throw err;
+    } finally {
+      sandboxPlan.cleanup?.();
     }
   }
 
@@ -803,7 +1095,9 @@ class ProcessExecutionBroker extends EventEmitter {
           completionError.stream = streamName;
           try {
             proc.kill(options.killSignal || "SIGTERM");
-          } catch {}
+          } catch {
+            // The maxBuffer error remains authoritative if the child exited.
+          }
         }
       });
     };

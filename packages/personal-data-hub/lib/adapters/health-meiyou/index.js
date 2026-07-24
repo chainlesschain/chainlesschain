@@ -35,8 +35,13 @@
 "use strict";
 
 const fs = require("node:fs");
+const { createAccountScopeFromAccount } = require("../../account-scope");
 const { newId } = require("../../ids");
-const { ENTITY_TYPES, EVENT_SUBTYPES, CAPTURED_BY } = require("../../constants");
+const {
+  ENTITY_TYPES,
+  EVENT_SUBTYPES,
+  CAPTURED_BY,
+} = require("../../constants");
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "health-meiyou";
@@ -72,14 +77,17 @@ function stableOriginalId(kind, id) {
 
 function mapPeriod(raw) {
   if (!raw || typeof raw !== "object") return null;
-  const id = raw.recordId || raw.record_id || raw.id || raw.startDate || raw.start_date;
+  const id =
+    raw.recordId || raw.record_id || raw.id || raw.startDate || raw.start_date;
   if (id == null) return null;
   return {
     recordId: String(id),
     startMs: parseTime(raw.startDate || raw.start_date || raw.start),
     endMs: parseTime(raw.endDate || raw.end_date || raw.end),
-    cycleLength: raw.cycleLength != null ? raw.cycleLength : raw.cycle_length ?? null,
-    periodLength: raw.periodLength != null ? raw.periodLength : raw.period_length ?? null,
+    cycleLength:
+      raw.cycleLength != null ? raw.cycleLength : (raw.cycle_length ?? null),
+    periodLength:
+      raw.periodLength != null ? raw.periodLength : (raw.period_length ?? null),
   };
 }
 
@@ -90,8 +98,11 @@ function mapRecord(raw) {
   return {
     recordId: String(id),
     recordType: raw.recordType || raw.record_type || raw.type || "other",
-    dateMs: parseTime(raw.date || raw.recordTime || raw.record_time || raw.time),
-    value: raw.value != null ? raw.value : raw.content != null ? raw.content : null,
+    dateMs: parseTime(
+      raw.date || raw.recordTime || raw.record_time || raw.time,
+    ),
+    value:
+      raw.value != null ? raw.value : raw.content != null ? raw.content : null,
     note: raw.note || raw.remark || null,
   };
 }
@@ -112,11 +123,15 @@ function extractList(resp) {
 class MeiyouAdapter {
   constructor(opts = {}) {
     this.account = opts.account || null;
+    this.defaultScope = createAccountScopeFromAccount(NAME, this.account, [
+      "userId",
+    ]);
     this._cookieAuth =
       opts.account && opts.account.cookies
         ? new CookieAuth({ platform: "meiyou", cookies: opts.account.cookies })
         : null;
-    this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+    this._fetchFn =
+      typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
     this._signProvider =
       typeof opts.signProvider === "function" ? opts.signProvider : null;
     this._urls = {
@@ -124,10 +139,14 @@ class MeiyouAdapter {
       record: opts.recordUrl || null,
     };
     this._liveConfigured = Boolean(
-      this._urls.period && this._urls.record && typeof opts.fetchFn === "function",
+      this._urls.period &&
+      this._urls.record &&
+      typeof opts.fetchFn === "function",
     );
 
     this.name = NAME;
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
     this.version = VERSION;
     this.capabilities = [
       "sync:snapshot",
@@ -168,12 +187,18 @@ class MeiyouAdapter {
       return {
         ok: false,
         reason: "EXPLICIT_ENDPOINT_REQUIRED",
-        message: "health-meiyou: cookie collection requires captured periodUrl + recordUrl and fetchFn; snapshot import is ready",
+        message:
+          "health-meiyou: cookie collection requires captured periodUrl + recordUrl and fetchFn; snapshot import is ready",
       };
     }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
-      if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
+      if (!ok)
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          error: "cookies missing",
+        };
       return {
         ok: true,
         account: (this.account && this.account.userId) || null,
@@ -189,9 +214,9 @@ class MeiyouAdapter {
     };
   }
 
-  async healthCheck() {
+  async healthCheck(opts = {}) {
     if (this._cookieAuth) {
-      const r = await this.authenticate();
+      const r = await this.authenticate(opts);
       return r.ok
         ? { ok: true, lastChecked: Date.now(), unverified: true }
         : { ok: false, reason: r.reason, error: r.error };
@@ -213,9 +238,7 @@ class MeiyouAdapter {
         "health-meiyou.sync: explicit periodUrl + recordUrl and fetchFn required for custom cookie collection",
       );
     }
-    throw new Error(
-      "health-meiyou.sync: needs opts.inputPath (snapshot mode)",
-    );
+    throw new Error("health-meiyou.sync: needs opts.inputPath (snapshot mode)");
   }
 
   async *_syncViaSnapshot(opts) {
@@ -235,9 +258,12 @@ class MeiyouAdapter {
         ? Math.floor(snapshot.snapshottedAt)
         : Date.now();
     const account =
-      snapshot.account && typeof snapshot.account === "object" ? snapshot.account : null;
+      snapshot.account && typeof snapshot.account === "object"
+        ? snapshot.account
+        : null;
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
 
     const events = Array.isArray(snapshot.events) ? snapshot.events : [];
     let emitted = 0;
@@ -250,7 +276,8 @@ class MeiyouAdapter {
       const rec = ev.kind === KIND_PERIOD ? mapPeriod(ev) : mapRecord(ev);
       if (!rec) continue;
       const recTime = ev.kind === KIND_PERIOD ? rec.startMs : rec.dateMs;
-      const capturedAt = parseTime(ev.capturedAt) || recTime || fallbackCapturedAt;
+      const capturedAt =
+        parseTime(ev.capturedAt) || recTime || fallbackCapturedAt;
       yield {
         adapter: NAME,
         kind: ev.kind,
@@ -266,28 +293,56 @@ class MeiyouAdapter {
     if (!(await this._cookieAuth.validate())) return;
     const cookies = this._cookieAuth.toHeader();
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
     const sinceMs =
-      opts.sinceWatermark != null ? parseInt(String(opts.sinceWatermark), 10) || 0 : 0;
+      opts.sinceWatermark != null
+        ? parseInt(String(opts.sinceWatermark), 10) || 0
+        : 0;
 
     const plan = [
-      { kind: KIND_PERIOD, url: this._urls.period, map: mapPeriod, ts: (r) => r.startMs },
-      { kind: KIND_RECORD, url: this._urls.record, map: mapRecord, ts: (r) => r.dateMs },
+      {
+        kind: KIND_PERIOD,
+        url: this._urls.period,
+        map: mapPeriod,
+        ts: (r) => r.startMs,
+      },
+      {
+        kind: KIND_RECORD,
+        url: this._urls.record,
+        map: mapRecord,
+        ts: (r) => r.dateMs,
+      },
     ];
 
     let emitted = 0;
+    let scanComplete = true;
+    let selectedKinds = 0;
     for (const step of plan) {
-      if (include[step.kind] === false) continue;
+      if (include[step.kind] === false) {
+        scanComplete = false;
+        continue;
+      }
+      selectedKinds += 1;
       let page = 1;
+      let stepComplete = false;
       while (page <= maxPages) {
         const query = { page, size: PAGE_SIZE };
         let sign = null;
         if (this._signProvider) {
           sign = await this._signProvider({ url: step.url, query, cookies });
         }
-        const resp = await this._fetchFn({ url: step.url, cookies, query, sign });
+        if (typeof opts.beforeSourceRequest === "function") {
+          await opts.beforeSourceRequest({ operation: step.kind, page });
+        }
+        const resp = await this._fetchFn({
+          url: step.url,
+          cookies,
+          query,
+          sign,
+        });
         const items = extractList(resp);
         if (!items.length) break;
         let reachedWatermark = false;
@@ -309,9 +364,20 @@ class MeiyouAdapter {
           };
           emitted += 1;
         }
-        if (reachedWatermark || items.length < PAGE_SIZE) break;
+        if (reachedWatermark || items.length < PAGE_SIZE) {
+          stepComplete = true;
+          break;
+        }
         page += 1;
       }
+      if (!stepComplete) scanComplete = false;
+    }
+    if (
+      scanComplete &&
+      selectedKinds > 0 &&
+      typeof opts.markWatermarkComplete === "function"
+    ) {
+      opts.markWatermarkComplete();
     }
   }
 

@@ -77,7 +77,15 @@ function parseTime(v) {
  *        VideoRecord = { videoId, title, category, episode, channel, durationSec, url, occurredAt? }
  */
 function createVideoAdapter(config) {
-  const { NAME, VERSION, platform, watchUrl, favouriteUrl, extractItems, mapItem } = config;
+  const {
+    NAME,
+    VERSION,
+    platform,
+    watchUrl,
+    favouriteUrl,
+    extractItems,
+    mapItem,
+  } = config;
   const { CookieAuth } = require("./shopping-base");
 
   function stableOriginalId(kind, id) {
@@ -95,7 +103,8 @@ function createVideoAdapter(config) {
         opts.account && opts.account.cookies
           ? new CookieAuth({ platform, cookies: opts.account.cookies })
           : null;
-      this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+      this._fetchFn =
+        typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
       this._signProvider =
         typeof opts.signProvider === "function" ? opts.signProvider : null;
       this._urls = {
@@ -105,11 +114,21 @@ function createVideoAdapter(config) {
 
       this.name = NAME;
       this.version = VERSION;
-      this.capabilities = ["sync:snapshot", "sync:cookie-api", `parse:${platform}-watch`, `parse:${platform}-favourite`];
+      this.watermarkStrategy = "max-captured-at";
+      this.watermarkRequiresCompleteScan = true;
+      this.capabilities = [
+        "sync:snapshot",
+        "sync:cookie-api",
+        `parse:${platform}-watch`,
+        `parse:${platform}-favourite`,
+      ];
       this.extractMode = "web-api";
       this.rateLimits = {};
       this.dataDisclosure = {
-        fields: [`${platform}:watch (title / category / episode / channel)`, `${platform}:favourite (title / category)`],
+        fields: [
+          `${platform}:watch (title / category / episode / channel)`,
+          `${platform}:favourite (title / category)`,
+        ],
         sensitivity: "low",
         legalGate: false,
         defaultInclude: { watch: true, favourite: true },
@@ -118,18 +137,35 @@ function createVideoAdapter(config) {
     }
 
     async authenticate(ctx = {}) {
-      if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
+      if (
+        ctx &&
+        typeof ctx.inputPath === "string" &&
+        ctx.inputPath.length > 0
+      ) {
         try {
           this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
         } catch (err) {
-          return { ok: false, reason: "INPUT_PATH_UNREADABLE", message: `snapshot not readable at ${ctx.inputPath}: ${err.message}` };
+          return {
+            ok: false,
+            reason: "INPUT_PATH_UNREADABLE",
+            message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
+          };
         }
         return { ok: true, mode: "snapshot-file" };
       }
       if (this._cookieAuth) {
         const ok = await this._cookieAuth.validate();
-        if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
-        return { ok: true, account: (this.account && this.account.userId) || null, mode: "cookie" };
+        if (!ok)
+          return {
+            ok: false,
+            reason: "INVALID_COOKIE",
+            error: "cookies missing",
+          };
+        return {
+          ok: true,
+          account: (this.account && this.account.userId) || null,
+          mode: "cookie",
+        };
       }
       return {
         ok: false,
@@ -141,7 +177,9 @@ function createVideoAdapter(config) {
     async healthCheck() {
       if (this._cookieAuth) {
         const r = await this.authenticate();
-        return r.ok ? { ok: true, lastChecked: Date.now() } : { ok: false, reason: r.reason, error: r.error };
+        return r.ok
+          ? { ok: true, lastChecked: Date.now() }
+          : { ok: false, reason: r.reason, error: r.error };
       }
       return { ok: true, lastChecked: Date.now() };
     }
@@ -155,13 +193,19 @@ function createVideoAdapter(config) {
         yield* this._syncViaCookie(opts);
         return;
       }
-      throw new Error(`${NAME}.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)`);
+      throw new Error(
+        `${NAME}.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)`,
+      );
     }
 
     async *_syncViaSnapshot(opts) {
       const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
       const snapshot = JSON.parse(raw);
-      if (!snapshot || typeof snapshot !== "object" || snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION) {
+      if (
+        !snapshot ||
+        typeof snapshot !== "object" ||
+        snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
+      ) {
         throw new Error(
           `${NAME}.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
         );
@@ -170,14 +214,23 @@ function createVideoAdapter(config) {
         Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
           ? Math.floor(snapshot.snapshottedAt)
           : Date.now();
-      const account = snapshot.account && typeof snapshot.account === "object" ? snapshot.account : null;
+      const account =
+        snapshot.account && typeof snapshot.account === "object"
+          ? snapshot.account
+          : null;
       const include = opts.include || {};
-      const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+      const limit =
+        Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
       const events = Array.isArray(snapshot.events) ? snapshot.events : [];
       let emitted = 0;
       for (const ev of events) {
         if (emitted >= limit) return;
-        if (!ev || typeof ev !== "object" || !VALID_SNAPSHOT_KINDS.includes(ev.kind)) continue;
+        if (
+          !ev ||
+          typeof ev !== "object" ||
+          !VALID_SNAPSHOT_KINDS.includes(ev.kind)
+        )
+          continue;
         if (include[ev.kind] === false) continue;
         const id = (typeof ev.id === "string" && ev.id) || ev.videoId || null;
         yield {
@@ -185,7 +238,11 @@ function createVideoAdapter(config) {
           kind: ev.kind,
           originalId: stableOriginalId(ev.kind, id),
           capturedAt: parseTime(ev.capturedAt) || fallback,
-          payload: { record: snapshotEventToRecord(ev), kind: ev.kind, account },
+          payload: {
+            record: snapshotEventToRecord(ev),
+            kind: ev.kind,
+            account,
+          },
         };
         emitted += 1;
       }
@@ -195,8 +252,16 @@ function createVideoAdapter(config) {
       if (!(await this._cookieAuth.validate())) return;
       const cookies = this._cookieAuth.toHeader();
       const include = opts.include || {};
-      const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
-      const maxPages = Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+      const limit =
+        Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+      const maxPages =
+        Number.isInteger(opts.maxPages) && opts.maxPages > 0
+          ? opts.maxPages
+          : 10;
+      const sinceMs =
+        opts.sinceWatermark != null
+          ? parseInt(String(opts.sinceWatermark), 10) || 0
+          : 0;
 
       const plan = [
         { kind: KIND_WATCH, url: this._urls.watch },
@@ -204,22 +269,40 @@ function createVideoAdapter(config) {
       ];
 
       let emitted = 0;
+      let scanComplete = true;
       for (const step of plan) {
         if (include[step.kind] === false) continue;
         if (!step.url) continue;
         let page = 1;
+        let streamComplete = false;
         while (page <= maxPages) {
           const query = { page, pageSize: PAGE_SIZE };
           let sign = null;
           if (this._signProvider) {
             sign = await this._signProvider({ url: step.url, query, cookies });
           }
-          const resp = await this._fetchFn({ url: step.url, cookies, query, sign });
+          if (typeof opts.beforeSourceRequest === "function") {
+            await opts.beforeSourceRequest({ operation: step.kind, page });
+          }
+          const resp = await this._fetchFn({
+            url: step.url,
+            cookies,
+            query,
+            sign,
+          });
           const items = extractItems(resp) || [];
-          if (!items.length) break;
+          if (!items.length) {
+            streamComplete = true;
+            break;
+          }
+          let reachedWatermark = false;
           for (const it of items) {
             const rec = mapItem(it);
             if (!rec || !rec.videoId) continue;
+            if (rec.occurredAt && rec.occurredAt < sinceMs) {
+              reachedWatermark = true;
+              break;
+            }
             if (emitted >= limit) return;
             yield {
               adapter: NAME,
@@ -230,9 +313,16 @@ function createVideoAdapter(config) {
             };
             emitted += 1;
           }
-          if (items.length < PAGE_SIZE) break;
+          if (reachedWatermark || items.length < PAGE_SIZE) {
+            streamComplete = true;
+            break;
+          }
           page += 1;
         }
+        if (!streamComplete) scanComplete = false;
+      }
+      if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+        opts.markWatermarkComplete();
       }
     }
 
@@ -241,9 +331,18 @@ function createVideoAdapter(config) {
         throw new Error(`${NAME}.normalize: payload.record missing`);
       }
       const kind = raw.kind || raw.payload.kind;
-      const subtype = kind === KIND_FAVOURITE ? EVENT_SUBTYPES.LIKE : EVENT_SUBTYPES.MEDIA;
+      const subtype =
+        kind === KIND_FAVOURITE ? EVENT_SUBTYPES.LIKE : EVENT_SUBTYPES.MEDIA;
       const verb = kind === KIND_FAVOURITE ? "收藏" : "观看";
-      return normalizeVideoRecord(raw.payload.record, raw, platform, NAME, VERSION, subtype, verb);
+      return normalizeVideoRecord(
+        raw.payload.record,
+        raw,
+        platform,
+        NAME,
+        VERSION,
+        subtype,
+        verb,
+      );
     }
   }
 
@@ -263,7 +362,15 @@ function snapshotEventToRecord(ev) {
   };
 }
 
-function normalizeVideoRecord(rec, raw, platform, NAME, VERSION, subtype, verb) {
+function normalizeVideoRecord(
+  rec,
+  raw,
+  platform,
+  NAME,
+  VERSION,
+  subtype,
+  verb,
+) {
   const ingestedAt = Date.now();
   const occurredAt = rec.occurredAt || raw.capturedAt || ingestedAt;
   const source = {
@@ -307,7 +414,13 @@ function normalizeVideoRecord(rec, raw, platform, NAME, VERSION, subtype, verb) 
         name: title,
         ingestedAt,
         source,
-        extra: { platform, kind: "video", videoId: rec.videoId, category: rec.category || null, channel: rec.channel || null },
+        extra: {
+          platform,
+          kind: "video",
+          videoId: rec.videoId,
+          category: rec.category || null,
+          channel: rec.channel || null,
+        },
       },
     ],
     persons: [],

@@ -72,10 +72,13 @@ import {
   startSession as jsonlStartSession,
   appendUserMessage as jsonlAppendUserMessage,
   appendAssistantMessage as jsonlAppendAssistantMessage,
+  appendEvent as jsonlAppendEvent,
+  readEvents as jsonlReadEvents,
   rebuildMessages as jsonlRebuildMessages,
   sessionExists as jsonlSessionExists,
 } from "../harness/jsonl-session-store.js";
 import {
+  SideEffectLedger,
   reconcileSideEffects,
   classifyToolSideEffect,
 } from "../lib/side-effect-ledger.js";
@@ -85,6 +88,8 @@ import {
   persistSideEffectLedger,
 } from "../lib/side-effect-ledger-store.js";
 import { operationIdempotencyKey } from "../lib/idempotency.js";
+import { TurnBindingLog, createTurnBindingFeed } from "../lib/turn-binding.js";
+import { TURN_BINDING_EVENT } from "../lib/turn-binding-store.js";
 import { getPlanModeManager } from "../lib/plan-mode.js";
 import {
   SESSION_SLASH_COMMANDS,
@@ -697,7 +702,15 @@ function buildSideEffectRecovery(ledger) {
 async function runTurn(
   messages,
   loopOptions,
-  { runLoop, emit, costBudget, nextToolUseId, sideEffects, turnNumber },
+  {
+    runLoop,
+    emit,
+    costBudget,
+    nextToolUseId,
+    sideEffects,
+    turnNumber,
+    turnBindingFeed,
+  },
 ) {
   const usage = {
     input_tokens: 0,
@@ -741,12 +754,15 @@ async function runTurn(
     collapseConsecutiveMessagesInPlace(messages);
   }
   for await (const event of runLoop(messages, loopOptions)) {
+    turnBindingFeed?.handleEvent(event);
     switch (event.type) {
       case "tool-executing": {
         // Additive protocol-v1 correlation id ("tu-<n>", session-scoped —
         // agent-sdk docs/PROTOCOL.md §1.2.1): the matching tool_result below
         // echoes the same id so UIs can pair calls without adjacency.
-        const toolUseId = nextToolUseId ? nextToolUseId() : undefined;
+        const toolUseId =
+          event.tool_use_id ||
+          (nextToolUseId ? nextToolUseId() : undefined);
         const pm = getPlanModeManager();
         const planItem = pm.startPlanItemForTool(event.tool, {
           toolUseId,
@@ -826,7 +842,10 @@ async function runTurn(
         // recent tool_use (same adjacency rule the is_error attribution
         // below has always used).
         const lastCall =
-          toolCalls.length > 0 ? toolCalls[toolCalls.length - 1] : null;
+          (event.tool_use_id
+            ? toolCalls.find((call) => call.id === event.tool_use_id)
+            : null) ||
+          (toolCalls.length > 0 ? toolCalls[toolCalls.length - 1] : null);
         if (lastCall) lastCall.is_error = Boolean(err);
         const pm = getPlanModeManager();
         const settledItem = lastCall?.planItemId
@@ -1107,6 +1126,8 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     appendUserMessage: deps.appendUserMessage || jsonlAppendUserMessage,
     appendAssistantMessage:
       deps.appendAssistantMessage || jsonlAppendAssistantMessage,
+    appendEvent: deps.appendEvent || jsonlAppendEvent,
+    readEvents: deps.readEvents || jsonlReadEvents,
     rebuildMessages: deps.rebuildMessages || jsonlRebuildMessages,
   };
   // --ephemeral forces persistence OFF even with an explicit session id (the
@@ -1125,12 +1146,15 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   const loadLedger = deps.loadSideEffectLedger || loadSideEffectLedger;
   const persistLedger = deps.persistSideEffectLedger || persistSideEffectLedger;
   let sideEffectLedger = null;
+  let sideEffectLedgerLoadError = null;
   if (persist) {
     try {
       sideEffectLedger = loadLedger(sessionId);
-    } catch {
-      // ledger is best-effort — never block the stream over it
-      sideEffectLedger = null;
+    } catch (error) {
+      // Read-only turns remain available, but the first classified side effect
+      // fails before the generator can resume into the actual operation.
+      sideEffectLedger = new SideEffectLedger();
+      sideEffectLedgerLoadError = error;
     }
   }
   let sideEffectSeq = 0;
@@ -1141,10 +1165,110 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   const sideEffects = sideEffectLedger
     ? {
         ledger: sideEffectLedger,
-        persist: () => persistLedger(sessionId, sideEffectLedger),
+        persist: () => {
+          if (sideEffectLedgerLoadError) throw sideEffectLedgerLoadError;
+          const persisted = persistLedger(sessionId, sideEffectLedger);
+          if (persisted === false) {
+            const error = new Error(
+              `Side-effect ledger persistence was rejected for ${sessionId}`,
+            );
+            error.code = "SIDE_EFFECT_LEDGER_PERSIST_FAILED";
+            throw error;
+          }
+          return persisted;
+        },
         nextOpId: () => `${sideEffectRunNonce}:${sideEffectSeq++}`,
       }
     : null;
+
+  // P1 unified turn/checkpoint producer for long-lived stream sessions. Load
+  // the latest snapshot on resume, then append one explicit coverage record
+  // for every input turn (including tool-free turns).
+  let turnBindingLog = new TurnBindingLog();
+  let turnBindingPersistenceError = null;
+  let turnBindingDegradationEmitted = false;
+  let turnBindingTerminalEmitted = false;
+  const recordTurnBindingFailure = (error, operation) => {
+    if (turnBindingPersistenceError) return turnBindingPersistenceError;
+    const wrapped = new Error(
+      `Turn binding ${operation} failed for ${sessionId}: ${
+        error?.message || String(error)
+      }`,
+      { cause: error },
+    );
+    wrapped.code =
+      operation === "read"
+        ? "TURN_BINDING_READ_FAILED"
+        : "TURN_BINDING_PERSIST_FAILED";
+    turnBindingPersistenceError = wrapped;
+    return wrapped;
+  };
+  const emitTurnBindingFailure = () => {
+    if (!turnBindingPersistenceError) return false;
+    if (!turnBindingDegradationEmitted) {
+      emit({
+        type: "recovery_degraded",
+        component: "turn_binding",
+        session_id: sessionId,
+        error: turnBindingPersistenceError.message,
+      });
+      turnBindingDegradationEmitted = true;
+    }
+    if (!turnBindingTerminalEmitted) {
+      emit({
+        type: "result",
+        subtype: "error",
+        is_error: true,
+        error: turnBindingPersistenceError.message,
+        session_id: sessionId,
+      });
+      turnBindingTerminalEmitted = true;
+    }
+    return true;
+  };
+  if (persist) {
+    try {
+      const priorEvents = store.readEvents(sessionId) || [];
+      for (let index = priorEvents.length - 1; index >= 0; index--) {
+        const event = priorEvents[index];
+        if (
+          event?.type === TURN_BINDING_EVENT &&
+          event.data &&
+          typeof event.data === "object"
+        ) {
+          turnBindingLog = TurnBindingLog.fromJSON(event.data);
+          break;
+        }
+      }
+    } catch (error) {
+      recordTurnBindingFailure(error, "read");
+    }
+  }
+  const turnBindingFeed = persist
+    ? createTurnBindingFeed({
+        log: turnBindingLog,
+        nonce: sideEffectRunNonce,
+      })
+    : null;
+  const persistTurnBindingLog = () => {
+    if (!turnBindingFeed?.isDirty()) return true;
+    if (turnBindingPersistenceError) return false;
+    try {
+      const persisted = store.appendEvent(
+        sessionId,
+        TURN_BINDING_EVENT,
+        turnBindingLog.toJSON(),
+      );
+      if (persisted === false) {
+        throw new Error("session store rejected the binding snapshot");
+      }
+      turnBindingFeed.clearDirty();
+      return true;
+    } catch (error) {
+      recordTurnBindingFailure(error, "persistence");
+      return false;
+    }
+  };
 
   // ── Interactive approvals (--interactive-approvals; chat-panel UX) ────────
   // CONFIRM-tier decisions (risky shell via the ApprovalGate, settings/hook
@@ -1962,6 +2086,11 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   for (;;) {
     const parsed = await nextEvent();
     if (parsed == null) break; // stdin closed
+    if (turnBindingPersistenceError) {
+      emitTurnBindingFailure();
+      sawError = true;
+      break;
+    }
 
     if (parsed.slashCommand) {
       const requestId =
@@ -2418,6 +2547,9 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       }
     }
     turns += 1;
+    turnBindingFeed?.beginTurn(messages.length, {
+      worktreeId: options.worktreeId ?? null,
+    });
 
     // Per-turn abort scope: an {"type":"interrupt"} from the pump above
     // aborts THIS turn (LLM fetch included — the signal reaches chatWithTools)
@@ -2488,6 +2620,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
           nextToolUseId,
           sideEffects,
           turnNumber: turns,
+          turnBindingFeed,
         },
       );
     } catch (err) {
@@ -2531,6 +2664,13 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       });
       sawError = true;
       continue;
+    } finally {
+      persistTurnBindingLog();
+    }
+    if (turnBindingPersistenceError) {
+      emitTurnBindingFailure();
+      sawError = true;
+      break;
     }
     currentAbort = null;
 

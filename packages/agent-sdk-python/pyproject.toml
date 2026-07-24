@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chainlesschain-agent-sdk"
+version = "0.1.0"
+description = "Typed async Python SDK for the ChainlessChain cc agent NDJSON protocol"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "ChainlessChain Team" }]
+keywords = ["chainlesschain", "agent", "sdk", "ndjson", "asyncio"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Typing :: Typed",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/chainlesschain/chainlesschain"
+Repository = "https://github.com/chainlesschain/chainlesschain"
+Protocol = "https://github.com/chainlesschain/chainlesschain/blob/main/packages/agent-sdk/docs/PROTOCOL.md"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+chainlesschain_agent_sdk = ["py.typed"]
+
+[tool.unittest]
+start-directory = "tests"
+

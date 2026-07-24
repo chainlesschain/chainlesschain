@@ -57,7 +57,11 @@ function isAsyncIterableProducer(fn) {
   // accept either ctor name OR a function (we'll call it and check at runtime).
   if (!isFunction(fn)) return false;
   const ctor = fn.constructor && fn.constructor.name;
-  return ctor === "AsyncGeneratorFunction" || ctor === "Function" || ctor === "AsyncFunction";
+  return (
+    ctor === "AsyncGeneratorFunction" ||
+    ctor === "Function" ||
+    ctor === "AsyncFunction"
+  );
 }
 
 /**
@@ -70,6 +74,7 @@ function isAsyncIterableProducer(fn) {
  * mysteriously mid-sync.
  */
 const EXTRACT_MODES = ["web-api", "device-pull", "file-import"];
+const WATERMARK_STRATEGIES = ["count", "max-captured-at", "explicit", "none"];
 
 function assertAdapter(a) {
   const errors = [];
@@ -80,7 +85,8 @@ function assertAdapter(a) {
 
   // Identity
   if (!isNonEmptyString(a.name)) errors.push("name must be a non-empty string");
-  if (!isNonEmptyString(a.version)) errors.push("version must be a non-empty string");
+  if (!isNonEmptyString(a.version))
+    errors.push("version must be a non-empty string");
 
   // Capabilities (array of strings, may be empty)
   if (!Array.isArray(a.capabilities) || !a.capabilities.every(isString)) {
@@ -92,8 +98,71 @@ function assertAdapter(a) {
   // gate sync on device-connection state.
   if (a.extractMode !== undefined) {
     if (!EXTRACT_MODES.includes(a.extractMode)) {
-      errors.push(`extractMode must be one of ${EXTRACT_MODES.join("|")} when present`);
+      errors.push(
+        `extractMode must be one of ${EXTRACT_MODES.join("|")} when present`,
+      );
     }
+  }
+
+  // Incremental-sync watermark contract. `count` is the backward-compatible
+  // default used by MockAdapter and older adapters. Timestamp-based adapters
+  // opt into `max-captured-at`; opaque cursors (IMAP UID state, WeChat
+  // msgSvrId, API continuation tokens) use `explicit` and call the
+  // registry-provided opts.updateWatermark(value). `none` preserves any
+  // existing watermark without advancing it.
+  if (
+    a.watermarkStrategy !== undefined &&
+    !WATERMARK_STRATEGIES.includes(a.watermarkStrategy)
+  ) {
+    errors.push(
+      `watermarkStrategy must be one of ${WATERMARK_STRATEGIES.join("|")} when present`,
+    );
+  }
+  if (
+    a.watermarkRequiresCompleteScan !== undefined &&
+    typeof a.watermarkRequiresCompleteScan !== "boolean"
+  ) {
+    errors.push("watermarkRequiresCompleteScan must be a boolean when present");
+  }
+  if (
+    a.watermarkLookbackMs !== undefined &&
+    (!Number.isSafeInteger(a.watermarkLookbackMs) || a.watermarkLookbackMs < 0)
+  ) {
+    errors.push(
+      "watermarkLookbackMs must be a non-negative safe integer when present",
+    );
+  }
+  if (
+    a.initialPageBudget !== undefined &&
+    (!Number.isSafeInteger(a.initialPageBudget) || a.initialPageBudget <= 0)
+  ) {
+    errors.push(
+      "initialPageBudget must be a positive safe integer when present",
+    );
+  }
+  if (a.defaultScope !== undefined && !isNonEmptyString(a.defaultScope)) {
+    errors.push("defaultScope must be a non-empty string when present");
+  }
+  for (const field of [
+    "snapshotScopeIdentityFields",
+    "snapshotScopeTopLevelFields",
+  ]) {
+    if (
+      a[field] !== undefined &&
+      (!Array.isArray(a[field]) || !a[field].every(isNonEmptyString))
+    ) {
+      errors.push(
+        `${field} must be an array of non-empty strings when present`,
+      );
+    }
+  }
+  if (
+    a.snapshotScopeIdentityIncludesField !== undefined &&
+    typeof a.snapshotScopeIdentityIncludesField !== "boolean"
+  ) {
+    errors.push(
+      "snapshotScopeIdentityIncludesField must be a boolean when present",
+    );
   }
 
   // Rate limits (optional, but if present must be an object with numeric fields)
@@ -103,8 +172,13 @@ function assertAdapter(a) {
       errors.push("rateLimits must be an object when present");
     } else {
       for (const field of ["perMinute", "perDay", "minIntervalMs"]) {
-        if (rl[field] !== undefined && (typeof rl[field] !== "number" || !Number.isFinite(rl[field]) || rl[field] < 0)) {
-          errors.push(`rateLimits.${field} must be a non-negative finite number when present`);
+        if (
+          rl[field] !== undefined &&
+          (!Number.isSafeInteger(rl[field]) || rl[field] < 0)
+        ) {
+          errors.push(
+            `rateLimits.${field} must be a non-negative safe integer when present`,
+          );
         }
       }
     }
@@ -120,23 +194,31 @@ function assertAdapter(a) {
     }
     if (!SENSITIVITY_LEVELS.includes(dd.sensitivity)) {
       errors.push(
-        `dataDisclosure.sensitivity must be one of ${SENSITIVITY_LEVELS.join("|")}`
+        `dataDisclosure.sensitivity must be one of ${SENSITIVITY_LEVELS.join("|")}`,
       );
     }
     if (dd.legalGate !== undefined && typeof dd.legalGate !== "boolean") {
       errors.push("dataDisclosure.legalGate must be a boolean when present");
     }
-    if (dd.retentionDays !== undefined && (typeof dd.retentionDays !== "number" || dd.retentionDays <= 0)) {
-      errors.push("dataDisclosure.retentionDays must be a positive number when present");
+    if (
+      dd.retentionDays !== undefined &&
+      (typeof dd.retentionDays !== "number" || dd.retentionDays <= 0)
+    ) {
+      errors.push(
+        "dataDisclosure.retentionDays must be a positive number when present",
+      );
     }
   }
 
   // Required methods
-  if (!isFunction(a.authenticate)) errors.push("authenticate must be a function");
+  if (!isFunction(a.authenticate))
+    errors.push("authenticate must be a function");
   if (!isFunction(a.healthCheck)) errors.push("healthCheck must be a function");
   if (!isFunction(a.normalize)) errors.push("normalize must be a function");
   if (!isAsyncIterableProducer(a.sync)) {
-    errors.push("sync must be a function (async generator or async fn returning AsyncIterable)");
+    errors.push(
+      "sync must be a function (async generator or async fn returning AsyncIterable)",
+    );
   }
 
   return errors.length === 0 ? { ok: true } : { ok: false, errors };
@@ -153,7 +235,7 @@ function toError(thrown, context) {
     return thrown;
   }
   const e = new Error(
-    `${context ? context + ": " : ""}${typeof thrown === "string" ? thrown : JSON.stringify(thrown)}`
+    `${context ? context + ": " : ""}${typeof thrown === "string" ? thrown : JSON.stringify(thrown)}`,
   );
   e.cause = thrown;
   return e;
@@ -163,5 +245,6 @@ module.exports = {
   SENSITIVITY_LEVELS,
   assertAdapter,
   EXTRACT_MODES,
+  WATERMARK_STRATEGIES,
   toError,
 };

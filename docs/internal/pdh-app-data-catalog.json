@@ -7,8 +7,10 @@
       "name": "browser-history-aosp",
       "display": "MIUI/AOSP 浏览历史",
       "category": "本地/系统",
-      "version": "0.1.0",
+      "version": "0.2.0",
+      "extractMode": "file-import",
       "capabilities": [
+        "sync:file-import",
         "sync:aosp-browser-history-sqlite",
         "sync:aosp-browser-bookmarks-sqlite"
       ],
@@ -25,6 +27,7 @@
       "display": "Chrome 浏览历史",
       "category": "本地/系统",
       "version": "0.1.0",
+      "extractMode": "file-import",
       "capabilities": [
         "sync:chrome-history-sqlite",
         "sync:chrome-bookmarks-json"
@@ -42,10 +45,8 @@
       "display": "Edge 浏览历史",
       "category": "本地/系统",
       "version": "0.1.0",
-      "capabilities": [
-        "sync:edge-history-sqlite",
-        "sync:edge-bookmarks-json"
-      ],
+      "extractMode": "file-import",
+      "capabilities": ["sync:edge-history-sqlite", "sync:edge-bookmarks-json"],
       "fields": [
         "visits:url,title,visitTimeMs,transition,visitDurationMs,hidden",
         "bookmarks:url,name,dateAddedMs,folderPath"
@@ -58,10 +59,9 @@
       "name": "git-activity",
       "display": "Git 提交记录",
       "category": "本地/系统",
-      "version": "0.1.0",
-      "capabilities": [
-        "sync:git-log-local"
-      ],
+      "version": "0.2.0",
+      "extractMode": "file-import",
+      "capabilities": ["sync:git-log-local"],
       "fields": [
         "commits:sha,authoredAtMs,authorName,authorEmail,subject,repoName"
       ],
@@ -74,12 +74,9 @@
       "display": "本地文件",
       "category": "本地/系统",
       "version": "0.1.0",
-      "capabilities": [
-        "sync:local-file-walk"
-      ],
-      "fields": [
-        "files:path,name,ext,size,mtimeMs,root"
-      ],
+      "extractMode": "file-import",
+      "capabilities": ["sync:local-file-walk"],
+      "fields": ["files:path,name,ext,size,mtimeMs,root"],
       "sensitivity": "high",
       "legalGate": false
     },
@@ -89,12 +86,9 @@
       "display": "命令行历史",
       "category": "本地/系统",
       "version": "0.1.0",
-      "capabilities": [
-        "sync:shell-history-files"
-      ],
-      "fields": [
-        "commands:shell,value,sourceIndex,snapshotTs"
-      ],
+      "extractMode": "file-import",
+      "capabilities": ["sync:shell-history-files"],
+      "fields": ["commands:shell,value,sourceIndex,snapshotTs"],
       "sensitivity": "high",
       "legalGate": false
     },
@@ -103,8 +97,11 @@
       "name": "system-data-android",
       "display": "Android 系统数据",
       "category": "本地/系统",
-      "version": "0.3.4",
+      "version": "0.4.0",
+      "extractMode": "device-pull",
       "capabilities": [
+        "sync:snapshot",
+        "sync:adb",
         "sync:android-content-provider",
         "sync:android-package-manager",
         "sync:android-sms",
@@ -127,6 +124,7 @@
       "display": "VS Code",
       "category": "本地/系统",
       "version": "0.1.0",
+      "extractMode": "file-import",
       "capabilities": [
         "sync:vscode-workspace-storage",
         "sync:vscode-globalstorage-sqlite"
@@ -145,12 +143,9 @@
       "display": "Windows 最近使用",
       "category": "本地/系统",
       "version": "0.1.0",
-      "capabilities": [
-        "sync:win-recent-shortcuts"
-      ],
-      "fields": [
-        "recent:name,mtimeMs,size,lnkPath"
-      ],
+      "extractMode": "file-import",
+      "capabilities": ["sync:win-recent-shortcuts"],
+      "fields": ["recent:name,mtimeMs,size,lnkPath"],
       "sensitivity": "high",
       "legalGate": false
     },
@@ -160,6 +155,7 @@
       "display": "奔驰 Mercedes me",
       "category": "出行/车",
       "version": "0.2.0",
+      "extractMode": "file-import",
       "capabilities": [
         "import:json",
         "sync:snapshot",
@@ -177,6 +173,7 @@
       "display": "12306 铁路",
       "category": "出行/车",
       "version": "0.7.0",
+      "extractMode": "device-pull",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
@@ -195,6 +192,7 @@
       "display": "高德地图",
       "category": "出行/车",
       "version": "0.7.0",
+      "extractMode": "device-pull",
       "capabilities": [
         "sync:sqlite",
         "sync:snapshot",
@@ -216,6 +214,7 @@
       "display": "百度地图",
       "category": "出行/车",
       "version": "0.7.0",
+      "extractMode": "device-pull",
       "capabilities": [
         "sync:snapshot",
         "sync:sqlite",
@@ -238,6 +237,7 @@
       "display": "携程",
       "category": "出行/车",
       "version": "0.7.0",
+      "extractMode": "file-import",
       "capabilities": [
         "import:json",
         "sync:snapshot",
@@ -256,6 +256,7 @@
       "display": "滴滴企业版",
       "category": "出行/车",
       "version": "0.1.0",
+      "extractMode": "file-import",
       "capabilities": [
         "import:json",
         "sync:snapshot",
@@ -274,11 +275,8 @@
       "display": "滴滴出行",
       "category": "出行/车",
       "version": "0.2.0",
-      "capabilities": [
-        "import:json",
-        "sync:snapshot",
-        "parse:didi-rides"
-      ],
+      "extractMode": "file-import",
+      "capabilities": ["import:json", "sync:snapshot", "parse:didi-rides"],
       "fields": [
         "didi:orderId / fromAddress / toAddress / departTime / arriveTime / fare / carType"
       ],
@@ -291,6 +289,7 @@
       "display": "腾讯地图",
       "category": "出行/车",
       "version": "0.3.0",
+      "extractMode": "file-import",
       "capabilities": [
         "sync:snapshot",
         "parse:tencent-map-favourite",
@@ -311,6 +310,7 @@
       "display": "同程旅行",
       "category": "出行/车",
       "version": "0.1.0",
+      "extractMode": "file-import",
       "capabilities": [
         "import:json",
         "sync:snapshot",
@@ -329,14 +329,13 @@
       "display": "大众点评",
       "category": "购物/电商",
       "version": "0.1.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
         "parse:dianping-orders"
       ],
-      "fields": [
-        "dianping:orderId / poiName / deals / totalPrice / address"
-      ],
+      "fields": ["dianping:orderId / poiName / deals / totalPrice / address"],
       "sensitivity": "high",
       "legalGate": false
     },
@@ -346,6 +345,7 @@
       "display": "饿了么",
       "category": "购物/电商",
       "version": "0.1.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
@@ -363,6 +363,7 @@
       "display": "京东",
       "category": "购物/电商",
       "version": "0.6.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
@@ -380,6 +381,7 @@
       "display": "美团",
       "category": "购物/电商",
       "version": "0.6.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
@@ -397,6 +399,7 @@
       "display": "拼多多",
       "category": "购物/电商",
       "version": "0.2.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
@@ -414,6 +417,7 @@
       "display": "淘宝",
       "category": "购物/电商",
       "version": "0.6.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
@@ -431,6 +435,7 @@
       "display": "唯品会",
       "category": "购物/电商",
       "version": "0.1.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
@@ -448,6 +453,7 @@
       "display": "闲鱼",
       "category": "购物/电商",
       "version": "0.1.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
@@ -465,10 +471,8 @@
       "display": "钉钉（电脑版）",
       "category": "即时通讯",
       "version": "0.1.0",
-      "capabilities": [
-        "sync:sqlite",
-        "parse:local-im-message"
-      ],
+      "extractMode": "device-pull",
+      "capabilities": ["sync:sqlite", "parse:local-im-message"],
       "fields": [
         "dingtalk:messages (time / sender / peer / best-effort text; raw row preserved)"
       ],
@@ -481,10 +485,8 @@
       "display": "飞书（电脑版）",
       "category": "即时通讯",
       "version": "0.1.0",
-      "capabilities": [
-        "sync:sqlite",
-        "parse:local-im-message"
-      ],
+      "extractMode": "device-pull",
+      "capabilities": ["sync:sqlite", "parse:local-im-message"],
       "fields": [
         "feishu:messages (time / sender / peer / best-effort text; raw row preserved)"
       ],
@@ -497,6 +499,7 @@
       "display": "QQ（手机）",
       "category": "即时通讯",
       "version": "0.6.0",
+      "extractMode": "device-pull",
       "capabilities": [
         "sync:snapshot",
         "sync:sqlite",
@@ -518,15 +521,14 @@
       "name": "messaging-telegram",
       "display": "Telegram",
       "category": "即时通讯",
-      "version": "0.6.0",
+      "version": "0.7.0",
+      "extractMode": "device-pull",
       "capabilities": [
         "sync:sqlite",
         "sync:snapshot",
         "parse:telegram-messages"
       ],
-      "fields": [
-        "telegram:users / chats / messages / dialogs"
-      ],
+      "fields": ["telegram:users / chats / messages / dialogs"],
       "sensitivity": "high",
       "legalGate": true
     },
@@ -535,7 +537,8 @@
       "name": "messaging-whatsapp",
       "display": "WhatsApp",
       "category": "即时通讯",
-      "version": "0.7.0",
+      "version": "0.8.0",
+      "extractMode": "device-pull",
       "capabilities": [
         "sync:sqlite",
         "sync:snapshot",
@@ -558,6 +561,7 @@
       "display": "QQ（电脑版 NT）",
       "category": "即时通讯",
       "version": "0.1.0",
+      "extractMode": "device-pull",
       "capabilities": [
         "sync:sqlite",
         "decrypt:sqlcipher-qqnt",
@@ -574,7 +578,8 @@
       "name": "wechat",
       "display": "微信（手机）",
       "category": "即时通讯",
-      "version": "0.5.0",
+      "version": "0.6.0",
+      "extractMode": "device-pull",
       "capabilities": [
         "sync:sqlite",
         "auth:keystore",
@@ -595,6 +600,7 @@
       "display": "微信（电脑版）",
       "category": "即时通讯",
       "version": "0.1.0",
+      "extractMode": "device-pull",
       "capabilities": [
         "sync:sqlite",
         "decrypt:sqlcipher-pc",
@@ -614,10 +620,8 @@
       "display": "企业微信（电脑版）",
       "category": "即时通讯",
       "version": "0.1.0",
-      "capabilities": [
-        "sync:sqlite",
-        "parse:local-im-message"
-      ],
+      "extractMode": "device-pull",
+      "capabilities": ["sync:sqlite", "parse:local-im-message"],
       "fields": [
         "wework:messages (time / sender / peer / best-effort text; raw row preserved)"
       ],
@@ -630,6 +634,7 @@
       "display": "Apple 健康",
       "category": "健康/运动",
       "version": "0.1.0",
+      "extractMode": "file-import",
       "capabilities": [
         "sync:file-import",
         "parse:healthkit-record",
@@ -648,10 +653,8 @@
       "display": "悦跑圈",
       "category": "健康/运动",
       "version": "0.2.0",
-      "capabilities": [
-        "sync:snapshot",
-        "parse:joyrun-run"
-      ],
+      "extractMode": "file-import",
+      "capabilities": ["sync:snapshot", "parse:joyrun-run"],
       "fields": [
         "joyrun:run (distance / duration / pace / calories / steps — carries GPS route)"
       ],
@@ -664,10 +667,8 @@
       "display": "Keep",
       "category": "健康/运动",
       "version": "0.2.0",
-      "capabilities": [
-        "sync:snapshot",
-        "parse:keep-workout"
-      ],
+      "extractMode": "file-import",
+      "capabilities": ["sync:snapshot", "parse:keep-workout"],
       "fields": [
         "keep:workout (type / distance / duration / calories / steps — outdoor carries GPS route)"
       ],
@@ -680,6 +681,7 @@
       "display": "美柚",
       "category": "健康/运动",
       "version": "0.2.0",
+      "extractMode": "file-import",
       "capabilities": [
         "sync:snapshot",
         "parse:meiyou-period",
@@ -698,6 +700,7 @@
       "display": "华为教育中心",
       "category": "教育/学习",
       "version": "0.2.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:cookie",
@@ -717,6 +720,7 @@
       "display": "作业帮",
       "category": "教育/学习",
       "version": "0.2.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:cookie",
@@ -735,8 +739,10 @@
       "name": "alipay-bill",
       "display": "支付宝账单",
       "category": "金融/支付",
-      "version": "0.1.0",
+      "version": "0.2.0",
+      "extractMode": "file-import",
       "capabilities": [
+        "sync:file-import",
         "import:csv-zip",
         "parse:transactions"
       ],
@@ -752,6 +758,7 @@
       "display": "交通银行",
       "category": "金融/支付",
       "version": "0.2.0",
+      "extractMode": "file-import",
       "capabilities": [
         "sync:snapshot",
         "parse:bankcomm-transaction",
@@ -770,6 +777,7 @@
       "display": "中国银行",
       "category": "金融/支付",
       "version": "0.2.0",
+      "extractMode": "file-import",
       "capabilities": [
         "sync:snapshot",
         "parse:boc-transaction",
@@ -788,6 +796,7 @@
       "display": "民生银行",
       "category": "金融/支付",
       "version": "0.2.0",
+      "extractMode": "file-import",
       "capabilities": [
         "sync:snapshot",
         "parse:cmbc-transaction",
@@ -806,6 +815,7 @@
       "display": "工商银行",
       "category": "金融/支付",
       "version": "0.2.0",
+      "extractMode": "file-import",
       "capabilities": [
         "sync:snapshot",
         "parse:icbc-transaction",
@@ -824,6 +834,7 @@
       "display": "支付宝",
       "category": "金融/支付",
       "version": "0.2.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:cookie",
@@ -843,10 +854,8 @@
       "display": "数字人民币",
       "category": "金融/支付",
       "version": "0.2.0",
-      "capabilities": [
-        "sync:snapshot",
-        "parse:dcep-transaction"
-      ],
+      "extractMode": "file-import",
+      "capabilities": ["sync:snapshot", "parse:dcep-transaction"],
       "fields": [
         "dcep:transaction (time / amount / direction / counterparty / walletType)"
       ],
@@ -859,6 +868,7 @@
       "display": "喜马拉雅",
       "category": "媒体/阅读",
       "version": "0.1.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
@@ -880,6 +890,7 @@
       "display": "酷狗音乐",
       "category": "媒体/阅读",
       "version": "0.1.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
@@ -901,6 +912,7 @@
       "display": "QQ音乐",
       "category": "媒体/阅读",
       "version": "0.1.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
@@ -922,6 +934,7 @@
       "display": "番茄小说",
       "category": "媒体/阅读",
       "version": "0.2.0",
+      "extractMode": "file-import",
       "capabilities": [
         "sync:snapshot",
         "parse:fanqie-read",
@@ -940,6 +953,7 @@
       "display": "七猫小说",
       "category": "媒体/阅读",
       "version": "0.2.0",
+      "extractMode": "file-import",
       "capabilities": [
         "sync:snapshot",
         "parse:qimao-read",
@@ -958,6 +972,7 @@
       "display": "爱奇艺",
       "category": "媒体/阅读",
       "version": "0.1.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
@@ -977,6 +992,7 @@
       "display": "腾讯视频",
       "category": "媒体/阅读",
       "version": "0.1.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
@@ -996,6 +1012,7 @@
       "display": "西瓜视频",
       "category": "媒体/阅读",
       "version": "0.1.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
@@ -1015,6 +1032,7 @@
       "display": "网易云音乐",
       "category": "其它",
       "version": "0.2.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:cookie",
@@ -1036,6 +1054,7 @@
       "display": "微信读书",
       "category": "其它",
       "version": "0.1.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:cookie",
         "sync:snapshot",
@@ -1057,6 +1076,7 @@
       "display": "天眼查",
       "category": "企业/工商",
       "version": "0.1.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
@@ -1076,6 +1096,7 @@
       "display": "哔哩哔哩",
       "category": "社交/内容",
       "version": "0.6.0",
+      "extractMode": "device-pull",
       "capabilities": [
         "sync:snapshot",
         "sync:sqlite",
@@ -1099,6 +1120,7 @@
       "display": "CSDN",
       "category": "社交/内容",
       "version": "0.1.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
@@ -1120,6 +1142,7 @@
       "display": "懂车帝",
       "category": "社交/内容",
       "version": "0.1.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
@@ -1139,6 +1162,7 @@
       "display": "豆瓣",
       "category": "社交/内容",
       "version": "0.1.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
@@ -1160,6 +1184,7 @@
       "display": "抖音",
       "category": "社交/内容",
       "version": "0.6.0",
+      "extractMode": "device-pull",
       "capabilities": [
         "sync:snapshot",
         "sync:sqlite",
@@ -1185,6 +1210,7 @@
       "display": "快手",
       "category": "社交/内容",
       "version": "0.2.1",
+      "extractMode": "device-pull",
       "capabilities": [
         "sync:snapshot",
         "sync:sqlite",
@@ -1208,6 +1234,7 @@
       "display": "今日头条",
       "category": "社交/内容",
       "version": "0.2.1",
+      "extractMode": "device-pull",
       "capabilities": [
         "sync:snapshot",
         "sync:sqlite",
@@ -1231,6 +1258,7 @@
       "display": "微博",
       "category": "社交/内容",
       "version": "0.8.0",
+      "extractMode": "device-pull",
       "capabilities": [
         "sync:snapshot",
         "sync:sqlite",
@@ -1257,6 +1285,7 @@
       "display": "小红书",
       "category": "社交/内容",
       "version": "0.6.0",
+      "extractMode": "device-pull",
       "capabilities": [
         "sync:snapshot",
         "sync:sqlite",
@@ -1280,6 +1309,7 @@
       "display": "知乎",
       "category": "社交/内容",
       "version": "0.1.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
@@ -1301,6 +1331,7 @@
       "display": "百度网盘",
       "category": "文档/云盘",
       "version": "0.1.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
@@ -1318,14 +1349,13 @@
       "display": "扫描全能王",
       "category": "文档/云盘",
       "version": "0.1.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
         "parse:camscanner-documents"
       ],
-      "fields": [
-        "camscanner:document (title / docType / createdTime / url)"
-      ],
+      "fields": ["camscanner:document (title / docType / createdTime / url)"],
       "sensitivity": "medium",
       "legalGate": false
     },
@@ -1335,14 +1365,13 @@
       "display": "腾讯文档",
       "category": "文档/云盘",
       "version": "0.1.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
         "parse:tencent-docs-documents"
       ],
-      "fields": [
-        "tencent-docs:document (title / docType / createdTime / url)"
-      ],
+      "fields": ["tencent-docs:document (title / docType / createdTime / url)"],
       "sensitivity": "medium",
       "legalGate": false
     },
@@ -1352,14 +1381,13 @@
       "display": "WPS 云文档",
       "category": "文档/云盘",
       "version": "0.1.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
         "parse:wps-documents"
       ],
-      "fields": [
-        "wps:document (title / docType / createdTime / url)"
-      ],
+      "fields": ["wps:document (title / docType / createdTime / url)"],
       "sensitivity": "medium",
       "legalGate": false
     },
@@ -1368,7 +1396,8 @@
       "name": "email-imap",
       "display": "邮箱（IMAP）",
       "category": "邮件",
-      "version": "0.7.0",
+      "version": "0.8.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "parse:mime-body",
@@ -1394,6 +1423,7 @@
       "display": "原神",
       "category": "游戏",
       "version": "0.2.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:cookie",
@@ -1413,6 +1443,7 @@
       "display": "王者荣耀",
       "category": "游戏",
       "version": "0.2.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:camp-token",
@@ -1432,6 +1463,7 @@
       "display": "BOSS 直聘",
       "category": "招聘",
       "version": "0.1.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
         "sync:custom-cookie-api",
@@ -1451,6 +1483,7 @@
       "display": "交管12123",
       "category": "政务",
       "version": "0.2.0",
+      "extractMode": "file-import",
       "capabilities": [
         "sync:snapshot",
         "parse:12123-violation",
@@ -1469,10 +1502,8 @@
       "display": "i厦门",
       "category": "政务",
       "version": "0.3.0",
-      "capabilities": [
-        "sync:snapshot",
-        "parse:ixiamen-service"
-      ],
+      "extractMode": "file-import",
+      "capabilities": ["sync:snapshot", "parse:ixiamen-service"],
       "fields": [
         "ixiamen:service (serviceName / category / handledTime / status / dept)"
       ],
@@ -1485,6 +1516,7 @@
       "display": "个人所得税",
       "category": "政务",
       "version": "0.2.0",
+      "extractMode": "file-import",
       "capabilities": [
         "sync:snapshot",
         "parse:tax-income",
@@ -1503,6 +1535,7 @@
       "display": "AI 对话历史",
       "category": "AI 对话",
       "version": "0.2.0",
+      "extractMode": "web-api",
       "capabilities": [
         "sync:cookie-multi-vendor",
         "sync:persisted-cookie-accounts",

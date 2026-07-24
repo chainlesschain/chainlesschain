@@ -96,6 +96,93 @@ describe("EventRuntimeWorker", () => {
     });
   });
 
+  it("renews long-running work with the claim fence before settlement", async () => {
+    const calls = [];
+    let renewTick;
+    const store = {
+      leaseMs: 90,
+      claimInbox: () => [
+        {
+          id: "long",
+          event: { value: 1 },
+          lease: { owner: "host-a", fence: 7, expiresAt: 1090 },
+        },
+      ],
+      claimOutbox: () => [],
+      renewInbox: (id, options) => {
+        calls.push(["renew", id, options]);
+        return { id, lease: { ...options, expiresAt: 1180 } };
+      },
+      acknowledgeInbox: (id, result, options) => {
+        calls.push(["ack", id, result, options]);
+        return { id, status: "done" };
+      },
+    };
+    const worker = new EventRuntimeWorker({
+      store,
+      setIntervalFn: (fn) => {
+        renewTick = fn;
+        return { unref() {} };
+      },
+      clearIntervalFn: () => {},
+      onInbox: async () => {
+        renewTick();
+        return { delivered: true };
+      },
+    });
+
+    await expect(worker.runOnce()).resolves.toMatchObject({
+      inboxAcked: 1,
+      inboxLeaseLost: 0,
+    });
+    expect(calls).toEqual([
+      ["renew", "long", { owner: "host-a", fence: 7 }],
+      [
+        "ack",
+        "long",
+        { delivered: true },
+        { owner: "host-a", fence: 7 },
+      ],
+    ]);
+  });
+
+  it("does not settle after lease renewal loses its fence", async () => {
+    let renewTick;
+    let acknowledged = false;
+    const worker = new EventRuntimeWorker({
+      store: {
+        leaseMs: 90,
+        claimInbox: () => [
+          {
+            id: "lost",
+            event: {},
+            lease: { owner: "host-a", fence: 1, expiresAt: 1090 },
+          },
+        ],
+        claimOutbox: () => [],
+        renewInbox: () => null,
+        acknowledgeInbox: () => {
+          acknowledged = true;
+        },
+      },
+      setIntervalFn: (fn) => {
+        renewTick = fn;
+        return { unref() {} };
+      },
+      clearIntervalFn: () => {},
+      onInbox: async () => {
+        renewTick();
+        return { delivered: true };
+      },
+    });
+
+    await expect(worker.runOnce()).resolves.toMatchObject({
+      inboxAcked: 0,
+      inboxLeaseLost: 1,
+    });
+    expect(acknowledged).toBe(false);
+  });
+
   it("recovers an expired lease across owners and rejects stale settlement", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-event-recovery-"));
     let now = 1000;

@@ -60,6 +60,43 @@ class HubAdaptersProgressTextTest {
     }
 
     @Test
+    fun `retrying shows next attempt and delay`() {
+        val text =
+            progressTextFor(
+                "retrying",
+                null,
+                mapOf("nextAttempt" to 3L, "delayMs" to 1000L),
+            )
+        assertTrue(text.contains("3"))
+        assertTrue(text.contains("1000ms"))
+    }
+
+    @Test
+    fun `request throttled shows operation page and delay`() {
+        val text =
+            progressTextFor(
+                "request_throttled",
+                "order",
+                mapOf("page" to 3L, "delayMs" to 10000L),
+            )
+        assertTrue(text.contains("order"))
+        assertTrue(text.contains("3"))
+        assertTrue(text.contains("10000ms"))
+    }
+
+    @Test
+    fun `rate limited shows reason and retry delay`() {
+        val text =
+            progressTextFor(
+                "rate_limited",
+                "per_minute",
+                mapOf("retryAfterMs" to 45000L),
+            )
+        assertTrue(text.contains("per_minute"))
+        assertTrue(text.contains("45000ms"))
+    }
+
+    @Test
     fun `unknown kind shows generic with kind in parens`() {
         val text = progressTextFor("xyz", null, null)
         assertTrue(text.contains("xyz"))

@@ -36,6 +36,7 @@
 "use strict";
 
 const fs = require("node:fs");
+const { createAccountScopeFromAccount } = require("../account-scope");
 const { newId } = require("../ids");
 const {
   ENTITY_TYPES,
@@ -75,14 +76,8 @@ function parseTime(v) {
  *        DocumentRecord = { docId, title, docType, url, createdMs, updatedMs, extra? }
  */
 function createDocumentAdapter(config) {
-  const {
-    NAME,
-    VERSION,
-    platform,
-    defaultListUrl,
-    extractDocs,
-    mapDoc,
-  } = config;
+  const { NAME, VERSION, platform, defaultListUrl, extractDocs, mapDoc } =
+    config;
 
   const { CookieAuth } = require("./shopping-base");
 
@@ -97,11 +92,15 @@ function createDocumentAdapter(config) {
   class DocumentAdapter {
     constructor(opts = {}) {
       this.account = opts.account || null;
+      this.defaultScope = createAccountScopeFromAccount(NAME, this.account, [
+        "userId",
+      ]);
       this._cookieAuth =
         opts.account && opts.account.cookies
           ? new CookieAuth({ platform, cookies: opts.account.cookies })
           : null;
-      this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+      this._fetchFn =
+        typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
       this._signProvider =
         typeof opts.signProvider === "function" ? opts.signProvider : null;
       this._listUrl =
@@ -110,8 +109,14 @@ function createDocumentAdapter(config) {
           : defaultListUrl;
 
       this.name = NAME;
+      this.watermarkStrategy = "max-captured-at";
+      this.watermarkRequiresCompleteScan = true;
       this.version = VERSION;
-      this.capabilities = ["sync:snapshot", "sync:cookie-api", `parse:${platform}-documents`];
+      this.capabilities = [
+        "sync:snapshot",
+        "sync:cookie-api",
+        `parse:${platform}-documents`,
+      ];
       this.extractMode = "web-api";
       this.rateLimits = { perMinute: 8, perDay: 200 };
       this.dataDisclosure = {
@@ -125,7 +130,11 @@ function createDocumentAdapter(config) {
     }
 
     async authenticate(ctx = {}) {
-      if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
+      if (
+        ctx &&
+        typeof ctx.inputPath === "string" &&
+        ctx.inputPath.length > 0
+      ) {
         try {
           this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
         } catch (err) {
@@ -139,7 +148,12 @@ function createDocumentAdapter(config) {
       }
       if (this._cookieAuth) {
         const ok = await this._cookieAuth.validate();
-        if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
+        if (!ok)
+          return {
+            ok: false,
+            reason: "INVALID_COOKIE",
+            error: "cookies missing",
+          };
         return {
           ok: true,
           account: (this.account && this.account.userId) || null,
@@ -194,9 +208,12 @@ function createDocumentAdapter(config) {
           ? Math.floor(snapshot.snapshottedAt)
           : Date.now();
       const account =
-        snapshot.account && typeof snapshot.account === "object" ? snapshot.account : null;
+        snapshot.account && typeof snapshot.account === "object"
+          ? snapshot.account
+          : null;
       const include = opts.include || {};
-      const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+      const limit =
+        Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
 
       const events = Array.isArray(snapshot.events) ? snapshot.events : [];
       let emitted = 0;
@@ -212,7 +229,9 @@ function createDocumentAdapter(config) {
           parseTime(ev.createdTime) ||
           fallbackCapturedAt;
         const id =
-          (typeof ev.id === "string" && ev.id.length > 0 && ev.id) || ev.docId || null;
+          (typeof ev.id === "string" && ev.id.length > 0 && ev.id) ||
+          ev.docId ||
+          null;
 
         yield {
           adapter: NAME,
@@ -234,20 +253,36 @@ function createDocumentAdapter(config) {
         opts.sinceWatermark != null
           ? parseInt(String(opts.sinceWatermark), 10) || 0
           : 0;
-      const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+      const limit =
+        Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
       const maxPages =
-        Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 20;
+        Number.isInteger(opts.maxPages) && opts.maxPages > 0
+          ? opts.maxPages
+          : 20;
 
       let emitted = 0;
       let offset = 0;
       let page = 0;
+      let scanComplete = false;
       while (page < maxPages) {
         const query = { offset, limit: PAGE_SIZE };
         let sign = null;
         if (this._signProvider) {
-          sign = await this._signProvider({ url: this._listUrl, query, cookies });
+          sign = await this._signProvider({
+            url: this._listUrl,
+            query,
+            cookies,
+          });
         }
-        const resp = await this._fetchFn({ url: this._listUrl, cookies, query, sign });
+        if (typeof opts.beforeSourceRequest === "function") {
+          await opts.beforeSourceRequest({ operation: KIND_DOCUMENT, page });
+        }
+        const resp = await this._fetchFn({
+          url: this._listUrl,
+          cookies,
+          query,
+          sign,
+        });
         const docs = extractDocs(resp) || [];
         if (!docs.length) break;
         let reachedWatermark = false;
@@ -269,9 +304,15 @@ function createDocumentAdapter(config) {
           };
           emitted += 1;
         }
-        if (reachedWatermark || docs.length < PAGE_SIZE) break;
+        if (reachedWatermark || docs.length < PAGE_SIZE) {
+          scanComplete = true;
+          break;
+        }
         offset += docs.length;
         page += 1;
+      }
+      if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+        opts.markWatermarkComplete();
       }
     }
 
@@ -279,7 +320,13 @@ function createDocumentAdapter(config) {
       if (!raw || !raw.payload || !raw.payload.record) {
         throw new Error(`${NAME}.normalize: payload.record missing`);
       }
-      return normalizeDocumentRecord(raw.payload.record, raw, platform, NAME, VERSION);
+      return normalizeDocumentRecord(
+        raw.payload.record,
+        raw,
+        platform,
+        NAME,
+        VERSION,
+      );
     }
   }
 
@@ -301,7 +348,8 @@ function snapshotEventToRecord(ev) {
 
 function normalizeDocumentRecord(rec, raw, platform, NAME, VERSION) {
   const ingestedAt = Date.now();
-  const occurredAt = rec.updatedMs || rec.createdMs || raw.capturedAt || ingestedAt;
+  const occurredAt =
+    rec.updatedMs || rec.createdMs || raw.capturedAt || ingestedAt;
   const source = {
     adapter: NAME,
     adapterVersion: VERSION,

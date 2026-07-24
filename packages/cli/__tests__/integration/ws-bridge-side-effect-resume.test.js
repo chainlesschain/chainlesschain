@@ -152,6 +152,39 @@ describe("WS bridge side-effect resume", () => {
     ).toBe(false);
   });
 
+  it("fails closed before a dangerous tool when the ledger write is unavailable", async () => {
+    const session = makeSession();
+    const interaction = { emit: vi.fn(), rejectAllPending: vi.fn() };
+    const handler = new WSAgentHandler({ session, interaction, db: null });
+    let effectExecuted = false;
+    agentLoop.mockReturnValue(
+      (async function* () {
+        yield {
+          type: "tool-executing",
+          tool: "git",
+          args: { command: "push origin main" },
+        };
+        effectExecuted = true;
+        yield { type: "tool-result", tool: "git", result: { ok: true } };
+      })(),
+    );
+    seStore._deps.appendEvent = () => {
+      throw new Error("ledger lock unavailable");
+    };
+
+    await handler.handleMessage("push it", "req-1");
+
+    expect(effectExecuted).toBe(false);
+    expect(interaction.emit).toHaveBeenCalledWith(
+      "error",
+      expect.objectContaining({
+        requestId: "req-1",
+        code: "AGENT_ERROR",
+        message: expect.stringMatching(/ledger lock unavailable/),
+      }),
+    );
+  });
+
   it("persists a bound Diff Review audit on a committed file write", async () => {
     const session = makeSession();
     const interaction = { emit: vi.fn(), rejectAllPending: vi.fn() };

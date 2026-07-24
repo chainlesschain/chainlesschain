@@ -275,12 +275,12 @@ describe("EmailAdapter — Phase 5.7.2 onProgress callback", () => {
 // ─── version + capability advertise the new surfaces ─────────────────────
 
 describe("EmailAdapter — Phase 5.7 surface advertising", () => {
-  it("version reflects 0.6.0", () => {
+  it("version reflects the runtime-input health-gate release", () => {
     const a = new EmailAdapter({
       account: { provider: "qq", email: "u@qq.com", authCode: "x" },
       sessionFactory: makeFlakySession({}).factory,
     });
-    expect(a.version).toBe("0.7.0");
+    expect(a.version).toBe("0.8.0");
   });
 
   it("capabilities advertise sync:retry-backoff + sync:progress-stream", () => {

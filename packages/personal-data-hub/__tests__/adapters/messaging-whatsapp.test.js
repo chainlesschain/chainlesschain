@@ -48,7 +48,7 @@ function makeFakeDriverFactory(tables, log = {}) {
 describe("constants", () => {
   it("exposes name/version + high sensitivity & legal gate", () => {
     expect(NAME).toBe("messaging-whatsapp");
-    expect(VERSION).toBe("0.7.0");
+    expect(VERSION).toBe("0.8.0");
     const a = new WhatsAppAdapter();
     expect(a.dataDisclosure.sensitivity).toBe("high");
     expect(a.dataDisclosure.legalGate).toBe(true);
@@ -80,6 +80,9 @@ describe("authenticate", () => {
         ok: true,
         account: "8613800138000",
         mode: "snapshot-file",
+      });
+      expect(await a.healthCheck({ inputPath: p })).toMatchObject({
+        ok: true,
       });
     } finally {
       fs.unlinkSync(p);

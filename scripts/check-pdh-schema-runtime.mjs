@@ -5,8 +5,8 @@
  * Complements the static regex in scripts/lint-pdh-partial-index.mjs by
  * actually executing migrations.js against a real SQLite instance, then
  * dumping `sqlite_master.sql` for each `uniq_{events,persons,places,items}_source`
- * index and verifying the `WHERE source_original_id IS NOT NULL` clause is
- * present on each.
+ * index and verifying both the account-scoped source tuple and the
+ * `WHERE source_original_id IS NOT NULL` clause are present on each.
  *
  * Catches drift the regex misses (e.g. typos like `WHERE source_original_id
  * IS_NOT NULL`, conditional construction, dead code paths that build the
@@ -45,6 +45,8 @@ const REPO_ROOT = resolve(__filename, "..", "..");
 
 const EXPECTED_TABLES = ["events", "persons", "places", "items"];
 const WHERE_CLAUSE_RE = /WHERE\s+source_original_id\s+IS\s+NOT\s+NULL/i;
+const SCOPED_SOURCE_TUPLE_RE =
+  /\(\s*source_adapter\s*,\s*source_scope\s*,\s*source_original_id\s*\)/i;
 
 function loadBetterSqlite3() {
   try {
@@ -73,7 +75,7 @@ function loadMigrations() {
 function fetchPartialIndexDdls(db) {
   const rows = db
     .prepare(
-      "SELECT name, sql FROM sqlite_master WHERE type = 'index' AND name LIKE 'uniq_%_source'"
+      "SELECT name, sql FROM sqlite_master WHERE type = 'index' AND name LIKE 'uniq_%_source'",
     )
     .all();
   const out = Object.create(null);
@@ -92,7 +94,14 @@ function verifyAllPartial(ddls, label) {
     }
     if (!WHERE_CLAUSE_RE.test(ddl)) {
       failures.push(
-        `${label}: index ${name} DDL missing 'WHERE source_original_id IS NOT NULL':\n    ${ddl}`
+        `${label}: index ${name} DDL missing 'WHERE source_original_id IS NOT NULL':\n    ${ddl}`,
+      );
+    }
+    if (!SCOPED_SOURCE_TUPLE_RE.test(ddl)) {
+      failures.push(
+        `${label}: index ${name} is not account-scoped by ` +
+          "(source_adapter, source_scope, source_original_id):\n" +
+          `    ${ddl}`,
       );
     }
   }
@@ -102,7 +111,9 @@ function verifyAllPartial(ddls, label) {
 // ── Scenario A: fresh vault → all 4 indices partial ────────────────────────
 
 function scenarioFreshVault(BetterSqlite3, applyMigrations) {
-  console.log("Scenario A: fresh vault, run migrations → expect partial indices");
+  console.log(
+    "Scenario A: fresh vault, run migrations → expect partial indices",
+  );
   const db = new BetterSqlite3(":memory:");
   try {
     applyMigrations(db);
@@ -121,11 +132,13 @@ function scenarioFreshVault(BetterSqlite3, applyMigrations) {
 
 function scenarioDriftFix(BetterSqlite3, applyMigrations) {
   console.log("");
-  console.log("Scenario B: simulated pre-v4 vault drift → migrations.v4 replaces non-partial");
+  console.log(
+    "Scenario B: simulated pre-v4 vault drift → migrations.v4 replaces non-partial",
+  );
   const db = new BetterSqlite3(":memory:");
   try {
     // Build the base tables (mirrors migration v1 just enough for index creation).
-    for (const t of EXPECTED_TABLES) {
+    for (const t of [...EXPECTED_TABLES, "topics"]) {
       db.exec(`
         CREATE TABLE IF NOT EXISTS ${t} (
           id TEXT PRIMARY KEY,
@@ -135,17 +148,28 @@ function scenarioDriftFix(BetterSqlite3, applyMigrations) {
         )
       `);
     }
+    db.exec(`
+      CREATE TABLE raw_events (
+        adapter TEXT NOT NULL,
+        original_id TEXT NOT NULL,
+        captured_at INTEGER NOT NULL,
+        payload TEXT NOT NULL,
+        PRIMARY KEY (adapter, original_id)
+      )
+    `);
     // Stamp _meta to "version 3" so migrations.applyMigrations runs only v4.
-    db.exec(`CREATE TABLE IF NOT EXISTS _meta (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at INTEGER NOT NULL)`);
+    db.exec(
+      `CREATE TABLE IF NOT EXISTS _meta (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at INTEGER NOT NULL)`,
+    );
     db.prepare(
-      `INSERT INTO _meta (key, value, updated_at) VALUES ('schema_version', '3', ?)`
+      `INSERT INTO _meta (key, value, updated_at) VALUES ('schema_version', '3', ?)`,
     ).run(Date.now());
 
     // Create the OLD (non-partial) index for each table — this is what a
     // pre-44c4188a8 vault has on disk.
     for (const t of EXPECTED_TABLES) {
       db.exec(
-        `CREATE UNIQUE INDEX uniq_${t}_source ON ${t}(source_adapter, source_original_id)`
+        `CREATE UNIQUE INDEX uniq_${t}_source ON ${t}(source_adapter, source_original_id)`,
       );
     }
 
@@ -156,7 +180,7 @@ function scenarioDriftFix(BetterSqlite3, applyMigrations) {
       console.log(`    ${name}: ${ddl.replace(/\s+/g, " ")}`);
     }
     const stillNonPartial = Object.entries(before).filter(
-      ([, ddl]) => !WHERE_CLAUSE_RE.test(ddl)
+      ([, ddl]) => !WHERE_CLAUSE_RE.test(ddl),
     );
     if (stillNonPartial.length !== EXPECTED_TABLES.length) {
       return [
@@ -196,11 +220,15 @@ try {
 
 console.log("");
 if (allFailures.length === 0) {
-  console.log("✓ PDH partial-index runtime schema check passed (both scenarios).");
+  console.log(
+    "✓ PDH partial-index runtime schema check passed (both scenarios).",
+  );
   process.exit(0);
 }
 
-console.error(`✘ PDH partial-index runtime schema check FAILED (${allFailures.length} issue${allFailures.length === 1 ? "" : "s"}):`);
+console.error(
+  `✘ PDH partial-index runtime schema check FAILED (${allFailures.length} issue${allFailures.length === 1 ? "" : "s"}):`,
+);
 for (const f of allFailures) console.error(`  - ${f}`);
 console.error("");
 console.error("Trap #25: see docs/internal/hidden-risk-traps.md and memory");

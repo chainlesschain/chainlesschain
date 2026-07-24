@@ -5,8 +5,8 @@
  * Key interactive semantics under test:
  *   - local answer wins  → the device card is settled too (resolveLocally)
  *   - remote answer wins → the local prompt handle is canceled + noted
- *   - remote timeout / bridge close are NOT decisions — the terminal stays
- *     authoritative (headless fail-closed timeout must not leak in here)
+ *   - remote timeout / bridge close are not remote human decisions; a terminal
+ *     answer still needs resolveLocally to complete the durable CAS
  */
 
 import { describe, it, expect, vi } from "vitest";
@@ -15,9 +15,16 @@ import {
   raceLocalAndRemote,
 } from "../../src/repl/remote-approval.js";
 
-function fakeBridge({ requestId = "req-1" } = {}) {
+function fakeBridge({
+  requestId = "req-1",
+  resolveResult = true,
+  resolveError = null,
+} = {}) {
   let settleRemote;
-  const resolveLocally = vi.fn(() => true);
+  const resolveLocally = vi.fn(() => {
+    if (resolveError) throw resolveError;
+    return resolveResult;
+  });
   const bridge = {
     requestDecision({ onRequestId } = {}) {
       if (requestId) onRequestId?.(requestId);
@@ -118,7 +125,7 @@ describe("raceLocalAndRemote", () => {
     expect(out.join("")).toContain("denied from paired device");
   });
 
-  it("remote timeout is NOT a decision — the terminal stays authoritative", async () => {
+  it("waits for the terminal after a non-decisive remote timeout", async () => {
     const { bridge, remote } = fakeBridge();
     const { local, answer, cancel } = pendingLocal();
     const race = raceLocalAndRemote({ bridge, ask: {}, local });
@@ -150,12 +157,25 @@ describe("raceLocalAndRemote", () => {
     expect(resolveLocally).toHaveBeenCalledWith("req-1", false);
   });
 
-  it("tolerates a bridge that never reports a requestId", async () => {
+  it("denies a local yes when its durable CAS fails or throws", async () => {
+    for (const options of [
+      { resolveResult: false },
+      { resolveError: new Error("state unavailable") },
+    ]) {
+      const { bridge } = fakeBridge(options);
+      const { local, answer } = pendingLocal();
+      const race = raceLocalAndRemote({ bridge, ask: {}, local });
+      answer(true);
+      await expect(race).resolves.toBe(false);
+    }
+  });
+
+  it("fails closed when a bridge never reports a requestId", async () => {
     const { bridge, resolveLocally } = fakeBridge({ requestId: null });
     const { local, answer } = pendingLocal();
     const race = raceLocalAndRemote({ bridge, ask: {}, local });
     answer(true);
-    await expect(race).resolves.toBe(true);
+    await expect(race).resolves.toBe(false);
     expect(resolveLocally).not.toHaveBeenCalled();
   });
 });

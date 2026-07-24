@@ -46,7 +46,12 @@ describe("usePersonalDataHub — Phase 12.6.10 WeChat wizard topics", () => {
 
   it("registerWechat sends register-wechat with all 5 fields + 45s timeout", async () => {
     sendRaw.mockResolvedValueOnce({
-      result: { ok: true, name: "wechat", chosenKeyProvider: "md5", sensitivity: "high" },
+      result: {
+        ok: true,
+        name: "wechat",
+        chosenKeyProvider: "md5",
+        sensitivity: "high",
+      },
     });
     const hub = usePersonalDataHub();
     await hub.registerWechat({
@@ -79,7 +84,9 @@ describe("usePersonalDataHub — Phase 12.6.10 WeChat wizard topics", () => {
   });
 
   it("listWechatAccounts sends list-wechat-accounts with 5s timeout", async () => {
-    sendRaw.mockResolvedValueOnce({ result: [{ uin: "1", chosenKeyProvider: "md5" }] });
+    sendRaw.mockResolvedValueOnce({
+      result: [{ uin: "1", chosenKeyProvider: "md5" }],
+    });
     const hub = usePersonalDataHub();
     const r = await hub.listWechatAccounts();
     const [envelope, timeout] = sendRaw.mock.calls[0];
@@ -88,8 +95,55 @@ describe("usePersonalDataHub — Phase 12.6.10 WeChat wizard topics", () => {
     expect(r).toEqual([{ uin: "1", chosenKeyProvider: "md5" }]);
   });
 
+  it("activateWechat sends the saved uin and runtime overrides", async () => {
+    sendRaw.mockResolvedValueOnce({
+      result: { ok: true, name: "wechat", active: true },
+    });
+    const hub = usePersonalDataHub();
+    const r = await hub.activateWechat("1234567890", {
+      keyProviderOverride: "frida",
+      fridaOpts: { deviceId: "DEVICE_X" },
+    });
+    const [envelope, timeout] = sendRaw.mock.calls[0];
+    expect(envelope.type).toBe("personal-data-hub.activate-wechat");
+    expect(envelope.uin).toBe("1234567890");
+    expect(envelope.keyProviderOverride).toBe("frida");
+    expect(envelope.fridaOpts).toEqual({ deviceId: "DEVICE_X" });
+    expect(timeout).toBe(45_000);
+    expect(r.active).toBe(true);
+  });
+
+  it("activates saved email and Alipay accounts by identifier", async () => {
+    sendRaw
+      .mockResolvedValueOnce({
+        result: { name: "email-imap", active: true },
+      })
+      .mockResolvedValueOnce({
+        result: { name: "alipay-bill", active: true },
+      });
+    const hub = usePersonalDataHub();
+
+    await hub.activateEmail("saved@qq.com");
+    await hub.activateAlipay("saved@alipay.com");
+
+    expect(sendRaw.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        type: "personal-data-hub.activate-email",
+        email: "saved@qq.com",
+      }),
+    );
+    expect(sendRaw.mock.calls[1][0]).toEqual(
+      expect.objectContaining({
+        type: "personal-data-hub.activate-alipay",
+        email: "saved@alipay.com",
+      }),
+    );
+  });
+
   it("unregisterWechat sends unregister-wechat with uin", async () => {
-    sendRaw.mockResolvedValueOnce({ result: { ok: true, removed: true, uin: "X" } });
+    sendRaw.mockResolvedValueOnce({
+      result: { ok: true, removed: true, uin: "X" },
+    });
     const hub = usePersonalDataHub();
     const r = await hub.unregisterWechat("X");
     const [envelope, timeout] = sendRaw.mock.calls[0];

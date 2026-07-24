@@ -69,6 +69,7 @@ for (const key of Object.keys(pdh)) {
     display: displayName(inst.name),
     category: (typeof inferCategory === "function" ? inferCategory(inst.name) : "unknown") || "unknown",
     version: inst.version || null,
+    extractMode: inst.extractMode || "web-api",
     capabilities,
     fields: Array.isArray(dd.fields) ? dd.fields : [],
     sensitivity: dd.sensitivity || "unknown",
@@ -90,17 +91,17 @@ let md = `# PDH App 数据目录（自动生成，供 AI 找数据）
 > 有什么数据、怎么采、敏感度」。**共 ${rows.length} 个 adapter。** 详细表/字段级 schema 见
 > \`pdh-app-db-schemas.md\`（微信/抖音等已展开）。重新生成：\`node scripts/pdh/gen-app-data-catalog.js\`。
 >
-> 列含义：**采集方式** = capabilities（sync:cookie-api/sqlite/snapshot/...）；**敏感度** =
+> 列含义：**底层模式** = adapter.extractMode；**采集方式** = capabilities（sync:cookie-api/sqlite/snapshot/...）；**敏感度** =
 > dataDisclosure.sensitivity；🔒 = legalGate（需法律/用户同意门）。
 
 `;
 for (const cat of Object.keys(byCat).sort()) {
   md += `\n## 分类: ${cat}（${byCat[cat].length}）\n\n`;
-  md += `| App | 名称 | 采集方式 | 敏感度 | 数据字段（摘要）|\n|---|---|---|---|---|\n`;
+  md += `| App | 名称 | 底层模式 | 采集方式 | 敏感度 | 数据字段（摘要）|\n|---|---|---|---|---|---|\n`;
   for (const r of byCat[cat]) {
     const caps = r.capabilities.filter((c) => c.startsWith("sync:")).map((c) => c.slice(5)).join("/") || "—";
     const fields = (r.fields.slice(0, 4).join("; ") || "—").replace(/\|/g, "/").slice(0, 120);
-    md += `| ${r.display} | \`${r.name}\` | ${caps} | ${r.sensitivity}${r.legalGate ? " 🔒" : ""} | ${fields} |\n`;
+    md += `| ${r.display} | \`${r.name}\` | ${r.extractMode} | ${caps} | ${r.sensitivity}${r.legalGate ? " 🔒" : ""} | ${fields} |\n`;
   }
 }
 if (failed.length) md += `\n> 未能自省（需特殊构造参数）：${failed.join(", ")}\n`;

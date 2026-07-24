@@ -23,11 +23,29 @@ const COOKIES = "joyrun_sid=abc";
 describe("fitness-joyrun", () => {
   it("name + mapRun (meter wins; km*1000 fallback; no id → null)", () => {
     expect(jr.NAME).toBe("fitness-joyrun");
-    const r = jr.mapRun({ fid: "R1", starttime: 1716383000, meter: 5230, second: 1800, pace: 344, dohas: 320, stepcount: 6400 });
-    expect(r).toMatchObject({ runId: "R1", distanceMeters: 5230, durationSec: 1800, paceSecPerKm: 344, calories: 320, steps: 6400 });
+    const r = jr.mapRun({
+      fid: "R1",
+      starttime: 1716383000,
+      meter: 5230,
+      second: 1800,
+      pace: 344,
+      dohas: 320,
+      stepcount: 6400,
+    });
+    expect(r).toMatchObject({
+      runId: "R1",
+      distanceMeters: 5230,
+      durationSec: 1800,
+      paceSecPerKm: 344,
+      calories: 320,
+      steps: 6400,
+    });
     expect(r.timeMs).toBe(1716383000000);
     // distance given as km (5.23) with no meter field → *1000
-    expect(jr.mapRun({ id: "R2", distance: 5.23 }).distanceMeters).toBeCloseTo(5230, 0);
+    expect(jr.mapRun({ id: "R2", distance: 5.23 }).distanceMeters).toBeCloseTo(
+      5230,
+      0,
+    );
     expect(jr.mapRun({ meter: 100 })).toBe(null);
   });
   it("extractList tolerant", () => {
@@ -41,7 +59,18 @@ describe("fitness-joyrun", () => {
       schemaVersion: 1,
       snapshottedAt: 1716383000000,
       account: { userId: "u1" },
-      events: [{ kind: "run", id: "r-R1", runId: "R1", time: 1716383000, distanceMeters: 5230, durationSec: 1800, paceSecPerKm: 344, calories: 320 }],
+      events: [
+        {
+          kind: "run",
+          id: "r-R1",
+          runId: "R1",
+          time: 1716383000,
+          distanceMeters: 5230,
+          durationSec: 1800,
+          paceSecPerKm: 344,
+          calories: 320,
+        },
+      ],
     });
     const p = writeTmp(SNAP);
     try {
@@ -61,25 +90,85 @@ describe("fitness-joyrun", () => {
 
   it("cookie-api: unverified flag + sign seam + paginate", async () => {
     let signed = 0;
+    let watermarkComplete = false;
     const a = new jr.JoyrunAdapter({
       account: { cookies: COOKIES, userId: "u1" },
       listUrl: "https://captured.example/runs",
-      signProvider: async () => { signed += 1; return "sig"; },
-      fetchFn: async ({ query }) => (query.page > 1 ? { list: [] } : { data: { runs: [{ fid: "R9", starttime: 1716383000, meter: 10000, second: 3600 }] } }),
+      signProvider: async () => {
+        signed += 1;
+        return "sig";
+      },
+      fetchFn: async ({ query }) =>
+        query.page > 1
+          ? { list: [] }
+          : {
+              data: {
+                runs: [
+                  {
+                    fid: "R9",
+                    starttime: 1716383000,
+                    meter: 10000,
+                    second: 3600,
+                  },
+                ],
+              },
+            },
     });
-    expect(await a.authenticate()).toMatchObject({ ok: true, mode: "cookie", unverified: true });
-    const items = await collect(a.sync({}));
+    expect(await a.authenticate()).toMatchObject({
+      ok: true,
+      mode: "cookie",
+      unverified: true,
+    });
+    const items = await collect(
+      a.sync({
+        markWatermarkComplete: () => {
+          watermarkComplete = true;
+        },
+      }),
+    );
     expect(items).toHaveLength(1);
     expect(items[0].originalId).toBe("joyrun:run:R9");
     expect(signed).toBeGreaterThan(0);
+    expect(a.watermarkStrategy).toBe("max-captured-at");
+    expect(a.watermarkRequiresCompleteScan).toBe(true);
+    expect(watermarkComplete).toBe(true);
+  });
+
+  it("cookie-api stops after reaching the previous run timestamp", async () => {
+    let watermarkComplete = false;
+    const a = new jr.JoyrunAdapter({
+      account: { cookies: COOKIES, userId: "u1" },
+      listUrl: "https://captured.example/runs",
+      fetchFn: async () => ({
+        list: [{ fid: "OLD", starttime: 1716383000, meter: 1000 }],
+      }),
+    });
+    expect(
+      await collect(
+        a.sync({
+          sinceWatermark: 1716383000001,
+          markWatermarkComplete: () => {
+            watermarkComplete = true;
+          },
+        }),
+      ),
+    ).toEqual([]);
+    expect(watermarkComplete).toBe(true);
   });
 
   it("medium sensitivity (GPS route); default fetch / no input throw", async () => {
     expect(new jr.JoyrunAdapter().dataDisclosure.sensitivity).toBe("medium");
     expect(new jr.JoyrunAdapter().dataDisclosure.legalGate).toBe(false);
     const unverified = new jr.JoyrunAdapter({ account: { cookies: COOKIES } });
-    expect(await unverified.authenticate()).toMatchObject({ ok: false, reason: "EXPLICIT_ENDPOINT_REQUIRED" });
-    await expect(collect(unverified.sync({}))).rejects.toThrow(/explicit listUrl/);
-    await expect(collect(new jr.JoyrunAdapter().sync({}))).rejects.toThrow(/needs opts.inputPath/);
+    expect(await unverified.authenticate()).toMatchObject({
+      ok: false,
+      reason: "EXPLICIT_ENDPOINT_REQUIRED",
+    });
+    await expect(collect(unverified.sync({}))).rejects.toThrow(
+      /explicit listUrl/,
+    );
+    await expect(collect(new jr.JoyrunAdapter().sync({}))).rejects.toThrow(
+      /needs opts.inputPath/,
+    );
   });
 });

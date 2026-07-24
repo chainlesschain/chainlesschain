@@ -1,6 +1,7 @@
 # Personal Data Hub Architecture — 个人数据中台（让数据回归个人）
 
 > **状态**：v0.7（2026-06-18，随 v5.0.3.119 ship）。采集面再扩 **61 → 89 个 adapter 真接通**（+ 多个同形平台共享 base 工厂 `_bank-base` / `_reading-base` / `_python-sidecar-base` / `_local-im-db-reader` / `_local-im-pc-adapter` 等）；PDH 测试 ~139 → **184 文件 / 2876 测试**；pdh npm 包 0.4.18 → **0.4.28**。本轮两条主线：
+>
 > 1. **Root 设备端侧取证采集（核心新能力）**——绕开 cookie/签名风控，直取已登录加密 app 的本地库。**方法 B**：免密钥 `/proc/<pid>/mem` 内存扫描（引擎无关、扛反调试、无需登录口令，rooted 设备首选）；**方法 C**：frida `sqlcipher_export` 在线解密加密 IM（可复现脚本 + runbook）；SQLite 叶子页 **salvager**（+`--unaligned` 扫描，从损坏 mem dump 救出明文页）→ PDH ingest glue；**D1/D2 root 采集**（WCDB2/抖音叶子页命中 + 扫描生命周期硬化）；多 app 并采 + 来源归属。运维 runbook 见 [`../internal/pdh-db-decryption-runbook.md`](https://github.com/chainlesschain/chainlesschain/blob/main/docs/internal/pdh-db-decryption-runbook.md)。证据驱动收口：抖音/头条 ByteDance 栈 WCDB2·IM 经真机确认 salvage 不支持，已诚实标注状态表。
 > 2. **AI 分析增强**：analysis 管线去噪（话题名分组 / 兴趣过滤 / timeline inventory 排除）+ `analysis.overview` 跨 app 统一快照（决策支持），`ask({crossApp})` 把跨 app 概览注入 AnalysisEngine prompt；schema 字典升级到设备级精确（微信 sjqz 258 表 + 抖音/头条 ByteDance IM 库字段字典 + 解密状态）。
 >
@@ -60,17 +61,17 @@ ChainlessChain 作为**个人数据中台**：
 
 ### 1.3 与既有架构的关系
 
-| 既有能力 | 中台用法 |
-|---|---|
-| KG 引擎 | 跨源实体图谱的存储后端 |
-| RAG 流水线 | 检索增强：让 LLM 看到相关历史数据 |
-| SQLCipher LocalVault | 原始 adapter 数据落地 + 派生 KG 持久化 |
-| DID 身份 | 跨设备同步时 adapter 数据的归属凭证 |
-| U-Key/SIMKey | LocalVault 主密钥的硬件保护 |
-| Skill 系统 | 每个 adapter = 一个 skill，自然接入既有 marketplace |
-| Ollama 本地 LLM | 数据分析引擎（默认本地，不外传） |
-| Cowork 多代理 | 复杂分析任务的并行编排 |
-| Workflow 引擎 | 周期性数据采集 / 报告生成 |
+| 既有能力             | 中台用法                                            |
+| -------------------- | --------------------------------------------------- |
+| KG 引擎              | 跨源实体图谱的存储后端                              |
+| RAG 流水线           | 检索增强：让 LLM 看到相关历史数据                   |
+| SQLCipher LocalVault | 原始 adapter 数据落地 + 派生 KG 持久化              |
+| DID 身份             | 跨设备同步时 adapter 数据的归属凭证                 |
+| U-Key/SIMKey         | LocalVault 主密钥的硬件保护                         |
+| Skill 系统           | 每个 adapter = 一个 skill，自然接入既有 marketplace |
+| Ollama 本地 LLM      | 数据分析引擎（默认本地，不外传）                    |
+| Cowork 多代理        | 复杂分析任务的并行编排                              |
+| Workflow 引擎        | 周期性数据采集 / 报告生成                           |
 
 **新增的只有**：UnifiedSchema 定义 + EntityResolver + AdapterRegistry + 每个 adapter 实现 + 数据分析专用 prompt/skill。
 
@@ -80,17 +81,17 @@ ChainlessChain 作为**个人数据中台**：
 
 ### 2.1 目标 (v1 in scope)
 
-| # | 项 | 验收 |
-|---|---|---|
-| G1 | UnifiedSchema 定义 5 类实体 + JSON Schema | schema 文档完成 + 校验器单测 ≥ 20 |
-| G2 | AdapterRegistry + Adapter 接口规范 | 接口文档 + reference impl (Alipay) 通过 |
-| G3 | EntityResolver 跨源 Person/Place 消歧 | 召回 ≥ 80% / 准确 ≥ 90%（标注集 ≥ 200 条） |
-| G4 | LocalVault 加密落地 + Keystore 主密钥 | 单测：密钥旋转、损坏恢复；密钥不落明文盘 |
-| G5 | KG ingestion pipeline（Adapter → UnifiedEvent → KG triple） | 单测：1k 事件 ingest < 30s；KG 完整性校验 |
-| G6 | **AI 分析层**：自然语言 Q&A on 个人数据 | E2E：用户问 "上个月在淘宝买了啥总共花了多少" → 本地 LLM 给出准确答复 |
-| G7 | 增量同步：每 adapter watermark + 去重 | 重复 ingest 相同窗口 → 0 重复事件 |
-| G8 | 隐私 SOP：数据流向可审计 + 一键擦除 | 审计日志记录每条数据来源；擦除验收 0 残留 |
-| G9 | 首个 adapter（Alipay）端到端打通 | 见 `Adapter_Alipay_Bill.md` |
+| #   | 项                                                          | 验收                                                                 |
+| --- | ----------------------------------------------------------- | -------------------------------------------------------------------- |
+| G1  | UnifiedSchema 定义 5 类实体 + JSON Schema                   | schema 文档完成 + 校验器单测 ≥ 20                                    |
+| G2  | AdapterRegistry + Adapter 接口规范                          | 接口文档 + reference impl (Alipay) 通过                              |
+| G3  | EntityResolver 跨源 Person/Place 消歧                       | 召回 ≥ 80% / 准确 ≥ 90%（标注集 ≥ 200 条）                           |
+| G4  | LocalVault 加密落地 + Keystore 主密钥                       | 单测：密钥旋转、损坏恢复；密钥不落明文盘                             |
+| G5  | KG ingestion pipeline（Adapter → UnifiedEvent → KG triple） | 单测：1k 事件 ingest < 30s；KG 完整性校验                            |
+| G6  | **AI 分析层**：自然语言 Q&A on 个人数据                     | E2E：用户问 "上个月在淘宝买了啥总共花了多少" → 本地 LLM 给出准确答复 |
+| G7  | 增量同步：每 adapter watermark + 去重                       | 重复 ingest 相同窗口 → 0 重复事件                                    |
+| G8  | 隐私 SOP：数据流向可审计 + 一键擦除                         | 审计日志记录每条数据来源；擦除验收 0 残留                            |
+| G9  | 首个 adapter（Alipay）端到端打通                            | 见 `Adapter_Alipay_Bill.md`                                          |
 
 ### 2.2 非目标 (defer)
 
@@ -230,17 +231,18 @@ ChainlessChain 作为**个人数据中台**：
 
 > 为什么引入 Python sidecar 而不是纯 JS 实现：
 
-| 维度 | 纯 JS 重写 | Python sidecar（采纳） |
-|---|---|---|
-| 工期 | 每 adapter +2-3 天 reverse-engineering | sjqz 已有 17 parser 现成可用 |
-| WeChat 解密 | 自研 SQLCipher 密钥派生（高风险） | sjqz `wechat_decrypt.py` 437 行成熟代码 |
-| Android 提取 | 自研 ADB / Root / APK 降级 4 种方法 | sjqz `android/extractor.py` 已覆盖 |
-| iOS 提取 | 自研 iTunes backup + AFC + 加密解密 | sjqz `ios/extractor.py` 已覆盖 |
-| 部署 | 单一 Node 进程 | 多一个 Python runtime（已有 `backend/ai-service` 先例） |
-| 进程隔离 | 同 hub 进程 | 独立 sandbox，崩溃不拖垮 hub |
-| 工具链生态 | 部分（如 SQLCipher Node binding）缺乏 prebuilt wheel | Python `pysqlcipher3` / `pymobiledevice3` 等更成熟 |
+| 维度         | 纯 JS 重写                                           | Python sidecar（采纳）                                  |
+| ------------ | ---------------------------------------------------- | ------------------------------------------------------- |
+| 工期         | 每 adapter +2-3 天 reverse-engineering               | sjqz 已有 17 parser 现成可用                            |
+| WeChat 解密  | 自研 SQLCipher 密钥派生（高风险）                    | sjqz `wechat_decrypt.py` 437 行成熟代码                 |
+| Android 提取 | 自研 ADB / Root / APK 降级 4 种方法                  | sjqz `android/extractor.py` 已覆盖                      |
+| iOS 提取     | 自研 iTunes backup + AFC + 加密解密                  | sjqz `ios/extractor.py` 已覆盖                          |
+| 部署         | 单一 Node 进程                                       | 多一个 Python runtime（已有 `backend/ai-service` 先例） |
+| 进程隔离     | 同 hub 进程                                          | 独立 sandbox，崩溃不拖垮 hub                            |
+| 工具链生态   | 部分（如 SQLCipher Node binding）缺乏 prebuilt wheel | Python `pysqlcipher3` / `pymobiledevice3` 等更成熟      |
 
 **进程隔离原则**：
+
 - `forensics-bridge`（数据采集）与 `ai-service`（AI 推理）**独立 Python 进程**，各自资源/崩溃域隔离
 - hub 主进程（Node）作 supervisor，按需 spawn / health-check / 重启 sidecar
 - IPC 走 stdio JSON-lines（不开网络端口，零外网暴露面）
@@ -256,18 +258,18 @@ ChainlessChain 作为**个人数据中台**：
 ```typescript
 // 所有实体共有
 interface BaseEntity {
-  id: string;              // UUID v7（含时间序）
-  source: SourceRef;       // 来源（adapter + 原始 id）
-  ingestedAt: number;      // 入库时间戳 ms
-  confidence: number;      // 0-1，源数据可信度（如 OCR < 1.0）
+  id: string; // UUID v7（含时间序）
+  source: SourceRef; // 来源（adapter + 原始 id）
+  ingestedAt: number; // 入库时间戳 ms
+  confidence: number; // 0-1，源数据可信度（如 OCR < 1.0）
   extra?: Record<string, any>; // schemaless 兜底
 }
 
 interface SourceRef {
-  adapter: string;         // "alipay" / "wechat" / ...
-  adapterVersion: string;  // "0.1.0"
-  originalId?: string;     // 源 app 内的 id（如订单号）
-  capturedAt: number;      // 源 app 中的时间戳（可早于 ingestedAt）
+  adapter: string; // "alipay" / "wechat" / ...
+  adapterVersion: string; // "0.1.0"
+  originalId?: string; // 源 app 内的 id（如订单号）
+  capturedAt: number; // 源 app 中的时间戳（可早于 ingestedAt）
   capturedBy: "export" | "api" | "sqlite" | "accessibility" | "ocr";
 }
 
@@ -275,7 +277,7 @@ interface SourceRef {
 interface Person extends BaseEntity {
   type: "person";
   subtype: "self" | "contact" | "merchant" | "unknown";
-  names: string[];         // ["妈妈", "老妈", "陈女士"] 多别名
+  names: string[]; // ["妈妈", "老妈", "陈女士"] 多别名
   identifiers?: {
     phone?: string[];
     email?: string[];
@@ -283,32 +285,42 @@ interface Person extends BaseEntity {
     alipayUid?: string;
     didId?: string;
   };
-  relation?: string;       // "母亲" / "前同事" / "客户" (用户 / LLM 标注)
+  relation?: string; // "母亲" / "前同事" / "客户" (用户 / LLM 标注)
   notes?: string;
 }
 
 // === 2. Event ===
 interface Event extends BaseEntity {
   type: "event";
-  subtype: "message" | "post" | "order" | "payment" | "visit"
-         | "browse" | "like" | "trip" | "call" | "media" | "other";
-  occurredAt: number;      // 事件发生时间
-  durationMs?: number;     // 跨时段事件
+  subtype:
+    | "message"
+    | "post"
+    | "order"
+    | "payment"
+    | "visit"
+    | "browse"
+    | "like"
+    | "trip"
+    | "call"
+    | "media"
+    | "other";
+  occurredAt: number; // 事件发生时间
+  durationMs?: number; // 跨时段事件
   // 参与方
-  actor?: string;          // Person.id（发起者）
+  actor?: string; // Person.id（发起者）
   participants?: string[]; // Person.id[]
   // 位置
-  place?: string;          // Place.id
+  place?: string; // Place.id
   // 关联物
-  items?: string[];        // Item.id[]
+  items?: string[]; // Item.id[]
   // 主题
-  topics?: string[];       // Topic.id[]
+  topics?: string[]; // Topic.id[]
   // 内容（结构化）
   content: {
     text?: string;
     title?: string;
     amount?: { value: number; currency: string; direction: "in" | "out" };
-    mediaRefs?: string[];  // 本地文件路径 or 占位符
+    mediaRefs?: string[]; // 本地文件路径 or 占位符
   };
 }
 
@@ -318,7 +330,7 @@ interface Place extends BaseEntity {
   name: string;
   coordinates?: { lat: number; lng: number };
   address?: string;
-  category?: string;       // "home" / "office" / "restaurant" / "store"
+  category?: string; // "home" / "office" / "restaurant" / "store"
   // 别名（不同 app 称呼可能不同）
   aliases: string[];
 }
@@ -328,9 +340,9 @@ interface Item extends BaseEntity {
   type: "item";
   subtype: "product" | "media" | "link" | "document" | "other";
   name: string;
-  category?: string;       // "电子" / "图书" / "餐饮" / ...
+  category?: string; // "电子" / "图书" / "餐饮" / ...
   price?: { value: number; currency: string };
-  merchant?: string;       // Person.id (subtype=merchant)
+  merchant?: string; // Person.id (subtype=merchant)
   externalUrl?: string;
   thumbnailLocalPath?: string;
 }
@@ -338,8 +350,8 @@ interface Item extends BaseEntity {
 // === 5. Topic ===
 interface Topic extends BaseEntity {
   type: "topic";
-  name: string;            // "母亲健康" / "Python 学习" / "厦门旅行"
-  parentTopic?: string;    // Topic.id（层级）
+  name: string; // "母亲健康" / "Python 学习" / "厦门旅行"
+  parentTopic?: string; // Topic.id（层级）
   // 由 LLM 抽出 / 用户标注
   derivedFromEvents?: string[]; // Event.id[]
 }
@@ -462,22 +474,22 @@ LocalVault.db
 
 ### 8.1 分析三态
 
-| 态 | 触发 | 用例 |
-|---|---|---|
-| **Q&A 态**（按需问答） | 用户在 ChatPanel 输入问题 | "我妈生日那周买了啥送哪儿？" |
-| **报告态**（定期主动） | Workflow 调度 | 月度消费分析报告 / 季度足迹回顾 |
-| **告警态**（异常检测） | 后台监控 | "本月外卖支出比上月翻倍" / "你妈妈最近 3 周没主动联系你" |
+| 态                     | 触发                      | 用例                                                     |
+| ---------------------- | ------------------------- | -------------------------------------------------------- |
+| **Q&A 态**（按需问答） | 用户在 ChatPanel 输入问题 | "我妈生日那周买了啥送哪儿？"                             |
+| **报告态**（定期主动） | Workflow 调度             | 月度消费分析报告 / 季度足迹回顾                          |
+| **告警态**（异常检测） | 后台监控                  | "本月外卖支出比上月翻倍" / "你妈妈最近 3 周没主动联系你" |
 
 ### 8.2 内置分析 skill（v1）
 
-| Skill | 输入 | 输出 |
-|---|---|---|
-| `analysis.spending` | 时间范围 + 维度（商家/类别/收款人） | 消费明细 + 趋势 + 异常 |
-| `analysis.relations` | Person 或 "所有联系人" | 互动频率 / 主动方占比 / 情感倾向（基于聊天 LLM 抽） |
-| `analysis.footprint` | 时间范围 | 常去地点 / 出行模式 / 异常足迹 |
-| `analysis.interests` | （无） | 从浏览/点赞/购买中抽兴趣画像 |
-| `analysis.timeline` | 时间范围 + 主题 | 跨源时间线（聊天 + 购买 + 出行 串成故事） |
-| `analysis.ask` | 自然语言问题 | RAG 召回 + LLM 推理，开放 Q&A |
+| Skill                | 输入                                | 输出                                                |
+| -------------------- | ----------------------------------- | --------------------------------------------------- |
+| `analysis.spending`  | 时间范围 + 维度（商家/类别/收款人） | 消费明细 + 趋势 + 异常                              |
+| `analysis.relations` | Person 或 "所有联系人"              | 互动频率 / 主动方占比 / 情感倾向（基于聊天 LLM 抽） |
+| `analysis.footprint` | 时间范围                            | 常去地点 / 出行模式 / 异常足迹                      |
+| `analysis.interests` | （无）                              | 从浏览/点赞/购买中抽兴趣画像                        |
+| `analysis.timeline`  | 时间范围 + 主题                     | 跨源时间线（聊天 + 购买 + 出行 串成故事）           |
+| `analysis.ask`       | 自然语言问题                        | RAG 召回 + LLM 推理，开放 Q&A                       |
 
 每个 skill = 一个 prompt 模板 + 一组 KG 查询 + LLM 推理 chain。
 
@@ -489,7 +501,6 @@ LocalVault.db
 > 总结：count 走 `TOTALS` 旁路（vault.stats 给真数）；latest 无 timeWindow
 > 时硬限 3 条；list 抽到实体名时 FTS5 追加补召回；sum-amount 只拉 4 类
 > amount-bearing subtype。Android 小模型 prompt 预算紧时尤其受益。
-
 
 ```
 用户问 "上个月我妈生日那周买了啥送哪儿？"
@@ -541,9 +552,9 @@ LocalVault.db
 
 ```typescript
 interface PersonalDataAdapter {
-  readonly name: string;          // "alipay" / "wechat" / ...
-  readonly version: string;       // semver
-  readonly capabilities: string[];// ["import:csv", "sync:cookie", ...]
+  readonly name: string; // "alipay" / "wechat" / ...
+  readonly version: string; // semver
+  readonly capabilities: string[]; // ["import:csv", "sync:cookie", ...]
 
   // 鉴权（一次性 / cookie 刷新 / 文件导入路径 / Accessibility 启用）
   authenticate(ctx: AuthContext): Promise<AuthResult>;
@@ -562,9 +573,9 @@ interface PersonalDataAdapter {
 
   // 元数据声明：用户应知的数据采集范围
   readonly dataDisclosure: {
-    fields: string[];           // ["order:title,amount,address", ...]
-    sensitivity: "low"|"med"|"high"; // 决定 UI 警示等级
-    retentionDays?: number;     // 默认无限期，用户可设
+    fields: string[]; // ["order:title,amount,address", ...]
+    sensitivity: "low" | "med" | "high"; // 决定 UI 警示等级
+    retentionDays?: number; // 默认无限期，用户可设
   };
 }
 
@@ -572,6 +583,12 @@ interface SyncOptions {
   sinceWatermark?: string;
   maxEvents?: number;
   dryRun?: boolean;
+  cookie?: string; // 单次临时凭据，不持久化、不写入报告
+  accountId?: string; // 仅用于生成隐私哈希 account scope
+  beforeSourceRequest?: (detail: {
+    operation?: string;
+    page?: number;
+  }) => Promise<void>;
 }
 
 interface NormalizedBatch {
@@ -613,7 +630,7 @@ sync（增量循环）
 ```typescript
 interface PythonSidecarAdapter extends PersonalDataAdapter {
   readonly transport: "python-sidecar";
-  readonly sidecarMethod: string;  // sidecar 内 method 名，如 "wechat.parse" / "android.extract"
+  readonly sidecarMethod: string; // sidecar 内 method 名，如 "wechat.parse" / "android.extract"
 
   // JS 一侧 sync() 实现 = 通过 IPC 调 sidecar，把返回流式 yield
   // 不需要重写 sjqz 解析逻辑，只做 NormalizedBatch 字段映射
@@ -646,6 +663,41 @@ interface PythonSidecarAdapter extends PersonalDataAdapter {
 - **定时触发**：复用既有 Workflow 引擎，每 adapter 独立 cron（如每天凌晨 3 点）
 - **失败重试**：指数退避，最多 3 次
 - **限流尊重**：adapter 声明的 rateLimits 强制执行
+
+实现约束：
+
+- Registry 只重试可判定为瞬时的网络、超时、HTTP 429/5xx 故障；认证、权限、参数、
+  schema、原始归档和本地落库错误立即失败。adapter 可用
+  `isRetryableSyncError(error)` 覆盖分类。
+- 重试期间已成功写入 `raw_events` 的批次保留并依赖来源唯一键幂等重放；只有某次
+  完整成功后才提交 watermark。默认退避为 500ms 起、30s 封顶，最多重试 3 次。
+- `perMinute`、`perDay`、`minIntervalMs` 按 `(adapter, scope)` 在
+  `sync_rate_limit_state` 中事务性计数，因此重启或多进程不能绕过限额。这里约束的是
+  Sync 尝试次数。
+- Registry 同时向 SyncOptions 注入 `beforeSourceRequest()`；分页 adapter 必须在每次
+  实际访问来源前调用。请求窗口独立持久化在
+  `source_request_rate_limit_state`，避免与触发次数互相消耗配额，并保证重启、多
+  Registry/进程共享同一账号配额。
+- 请求节奏取显式 `minIntervalMs` 与 `ceil(60000 / perMinute)` 的较大值，避免固定分钟
+  窗口开头的突发流量。分钟/最小间隔门槛会等待后继续当前页；日配额耗尽会返回
+  `rate_limited` 且不提交部分扫描 watermark。已有独立请求客户端限流器（如 AI
+  Chat vendor client）的 adapter 不重复领取 Registry 页配额。
+- 声明 `watermarkRequiresCompleteScan=true` 的分页 adapter 必须遵守 Registry 注入的
+  `maxPages`。预算耗尽只结束本轮并保留旧 watermark；仅在空页、短页或已越过旧
+  watermark 时调用 `markWatermarkComplete()`。同一 adapter 含多个列表（如美团业务线、
+  闲鱼买卖双侧）时共享总页预算，不能按列表倍增来源请求。
+- 临时 Cookie 直采通过主进程 `createJsonSourceFetch()` 执行：只允许无 URL 凭据的
+  HTTPS，重定向只跟随有上限的同源 GET/HEAD；统一设置超时、Cookie 头上限和流式响应
+  字节上限，支持 JSON body 与 `application/x-www-form-urlencoded` 表单 POST，并把
+  HTTP、空响应、非 JSON 明确记为失败。Cookie 不持久化；`accountId` 先规范化、哈希为
+  account scope，确保不同账号不共享 watermark。
+- `travel-12306` 的临时 Cookie 路径复用该 transport 访问已完成/待支付订单接口；两个
+  列表共享 `maxPages` 和来源请求限流预算，只有两个响应结构均被识别且完整扫描时才推进
+  watermark。临时调用必须提供 `accountId`，避免不同铁路账号共享游标。
+- `social-zhihu` 的临时 Cookie 路径把 `accountId` 解释为个人主页 `url_token`，分页
+  读取回答、关注和收藏夹。三条流共享 `maxPages`；未知 JSON 结构、HTTP 鉴权失败或预算
+  耗尽均不推进 watermark。可选签名提供器返回的 `x-zse-96` 只进入请求头，不得作为 URL
+  查询参数或持久化字段。
 
 ### 10.2 增量 watermark
 
@@ -698,35 +750,37 @@ last_error TEXT
 > **本节基于 2026-05-19 真机 inventory 重排**：Redmi 24115RA8EC / Android 16 / SDK 36 上 175 个第三方 app 的实际分布，决定了 adapter 顺序与优先级。原 hypothetical 顺序（"先 Alipay 后 Taobao 后 WeChat"）已被以下基于 ROI × 风险评估的真实路线替代。
 >
 > **关键决策**：
+>
 > 1. **Foundation 5 phase（0-4）尽量薄**，把 AI 分析骨架快速搭起来，让每个新 adapter 接入立即产生用户价值
 > 2. **EmailAdapter 提前到 Phase 5**——首个真实 adapter 不再选 Alipay，而是 IMAP。因为邮箱是**银行账单 + 订单确认 + 注册凭证 + 行程通知**的元数据中枢，一拍多得，ROI 远高于 Alipay 单一源
 > 3. **EntityResolver 推迟到 Phase 8**——需要 2-3 个 adapter 的真实跨源数据来训练 / 标注，pre-data 阶段做是空对空
 > 4. **AIChatHistoryAdapter（Phase 10）作为旗舰差异化** — 用户装了 8 家 AI（DeepSeek/Kimi/智谱/通义/混元/千帆/扣子/Dreamina），跨厂商对话史合一是任何单厂商做不到的独家价值
 > 5. **WeChat 压轴（Phase 12）** — 难度最高 + 价值最高，放最后给团队最长准备期处理 Frida hook 与 SQLCipher 密钥提取的工程不确定性
 
-| Phase | 内容 | 工期 | 验收 |
-|---|---|---|---|
-| **Phase 0** | UnifiedSchema 定义 + JSON Schema 校验器 + 文档 | 3d | schema 文档 + 单测 ≥ 20 |
-| **Phase 1** | LocalVault 表结构 + Keystore 主密钥 + SQLCipher 加密读写 | 5d | 单测密钥旋转 / 损坏恢复 / 跨设备同步 |
-| **Phase 2** | AdapterRegistry + Adapter 接口规范 + KG ingestor + RAG 适配（mock adapter 验证管道） | 5d | mock adapter ingest 1k 事件 < 30s + RAG E2E |
-| **Phase 3** | **AI 分析层骨架** — `analysis.ask` 自然语言 Q&A + LLM prompt 工程（Ollama Qwen2.5-7B 默认） | 5d | mock 数据集 5 类典型问题答案准 |
-| **Phase 4** | 隐私 SOP UI（toggle / 范围 / 期限 / 审计 / 导出 / 擦除）+ Sync 引擎（手动 + Workflow 定时） | 5d | UI 全 + Workflow 定时跑 7 天稳定 |
-| **Phase 4.5** | **Python sidecar 基础设施 + 系统数据 adapter**（通讯录 / 通话记录 / 短信 / WiFi，作 EntityResolver 种子） | 4d | PyInstaller 单文件 sidecar 启动 ≤ 1s；Android 通讯录 200+ 条灌入 LocalVault；通讯录电话号成为后续 Phase 5-12 Person 实体的权威 `identifiers.phone` 主键；详见 [`Adapter_System_Data.md`](./Adapter_System_Data.md) |
-| **Phase 5** | **EmailAdapter (IMAP)** — 首个真实 adapter，一拍多得 | 7d | QQ 邮箱 (`com.tencent.androidqqmail`) + 189 邮箱 (`com.corp21cn.mail189`) 3 年邮件 → LocalVault → 自然语言查 "上个月有哪些银行账单到" |
-| **Phase 6** | **AlipayAdapter** (官方 CSV 导出 + 字段映射，详见 `Adapter_Alipay_Bill.md`) | 3d | 12 个月账单 CSV → 完整消费 timeline，可问 "上月在外卖花了多少" |
-| **Phase 7** | **Shopping 三件套**：TaobaoAdapter + JdAdapter + MeituanAdapter（Cookie + web API 框架可复用） | 7d | `com.taobao.taobao` + `com.jingdong.app.mall` + `com.sankuai.meituan` 订单 + 评价 + 收货地址 全接入 |
-| **Phase 8** | **EntityResolver 三段 pipeline**（规则剪枝 + embedding 召回 + LLM 仲裁，本地 Ollama） | 5d | 基于 Phase 5-7 真实跨源数据标 200 条 → 召回 ≥ 80% / 准确 ≥ 90%；UI review 队列上线 |
-| **Phase 9** | **Travel 四件套**：AmapAdapter + BaiduMapAdapter + CtripAdapter + Train12306Adapter | 7d | `com.autonavi.minimap` + `com.baidu.BaiduMap` + `ctrip.android.view` + `com.MobileTicket` 足迹 + 行程合并 E2E |
-| **Phase 10** | **AIChatHistoryAdapter（旗舰差异化）** — 跨 8 家 AI 厂商对话史合一 | 7d | DeepSeek (`com.deepseek.chat`) + Kimi (`com.moonshot.kimichat`) + 通义 (`com.aliyun.tongyi`) + 智谱清言 (`com.zhipuai.qingyan`) + 混元 (`com.tencent.hunyuan.app.chat`) + 千帆 (`com.baidu.qianfan.llmkitchat`) + 扣子 (`com.coze.space`) + Dreamina (`com.bytedance.dreamina`) — 本地 LLM 能引用所有跨厂商历史问答 |
-| **Phase 11** | **内置分析 skill 5 个** — spending / relations / footprint / interests / timeline + 月度报告 Workflow | 7d | 每个 skill UI 卡片 + 单测 + 真机典型问题验收 |
-| **Phase 12** | **WeChatAdapter（压轴）** — 微信聊天 + 朋友圈 + 公众号收藏（root + SQLCipher EnMicroMsg.db/SnsMicroMsg.db；密钥优先走 sjqz `wechat_decrypt.py` 的 IMEI+UIN MD5[:7] 方案，8.0+ 走 Frida hook libwechatmm.so 兜底） | 7d（原 10d，sjqz 降险后 −3d） | `com.tencent.mm` Redmi 24115RA8EC 真机 5 年消息全量；sidecar `wechat.decrypt` + `wechat.parse` 两 method 复用；密钥提取脚本 + 文档可复用其它机器 |
-| **Phase 13+** | **Long-tail 渐进**（按用户实际需求触发，非 v1 必选）：知乎 / 小红书 / 抖音 / 微博 / BOSS / 银行 PDF 邮件解析 / 个税 APP / i 厦门 / WPS + 腾讯文档 / 百度网盘 / 飞书 + 钉钉 + 企微 / 携程同程互补 / 滴滴 / 美柚 / 12123 / 网易云音乐 / 酷狗 / 爱奇艺 / 腾讯视频 / 头条 / 西瓜 / CSDN | ongoing | 每加一个不破现有；adapter 模板成熟后单 adapter 平均 2-3 天 |
-| **Phase 17 v0.1.0 (2026-05-24)** | **桌面本机数据五件套**：`browser-history-chrome` + `browser-history-edge`（Chromium 子类） + `vscode`（workspace + 全局终端历史） + `win-recent`（跨应用 .lnk 时间线） + `system-data-android v0.3.0`（媒体清单 5 类 /sdcard） | 1d | 全部 desktop-local 文件直读（零扩展、零网络、零账号）；4 adapter 真机实测：14689 visits + 27 bookmarks (Chrome) / 2022 visits (Edge) / 22 workspace + 32 命令 + 13 路径 (VSCode) / 52 .lnk (Win Recent) / 3751 media files (Android v0.3)；76 新单测 + 整合 + e2e 测试（bs3mc ABI 不匹配时本地 skip，CI Linux 真跑） |
+| Phase                            | 内容                                                                                                                                                                                                                                                                                | 工期                          | 验收                                                                                                                                                                                                                                                                                                                 |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Phase 0**                      | UnifiedSchema 定义 + JSON Schema 校验器 + 文档                                                                                                                                                                                                                                      | 3d                            | schema 文档 + 单测 ≥ 20                                                                                                                                                                                                                                                                                              |
+| **Phase 1**                      | LocalVault 表结构 + Keystore 主密钥 + SQLCipher 加密读写                                                                                                                                                                                                                            | 5d                            | 单测密钥旋转 / 损坏恢复 / 跨设备同步                                                                                                                                                                                                                                                                                 |
+| **Phase 2**                      | AdapterRegistry + Adapter 接口规范 + KG ingestor + RAG 适配（mock adapter 验证管道）                                                                                                                                                                                                | 5d                            | mock adapter ingest 1k 事件 < 30s + RAG E2E                                                                                                                                                                                                                                                                          |
+| **Phase 3**                      | **AI 分析层骨架** — `analysis.ask` 自然语言 Q&A + LLM prompt 工程（Ollama Qwen2.5-7B 默认）                                                                                                                                                                                         | 5d                            | mock 数据集 5 类典型问题答案准                                                                                                                                                                                                                                                                                       |
+| **Phase 4**                      | 隐私 SOP UI（toggle / 范围 / 期限 / 审计 / 导出 / 擦除）+ Sync 引擎（手动 + Workflow 定时）                                                                                                                                                                                         | 5d                            | UI 全 + Workflow 定时跑 7 天稳定                                                                                                                                                                                                                                                                                     |
+| **Phase 4.5**                    | **Python sidecar 基础设施 + 系统数据 adapter**（通讯录 / 通话记录 / 短信 / WiFi，作 EntityResolver 种子）                                                                                                                                                                           | 4d                            | PyInstaller 单文件 sidecar 启动 ≤ 1s；Android 通讯录 200+ 条灌入 LocalVault；通讯录电话号成为后续 Phase 5-12 Person 实体的权威 `identifiers.phone` 主键；详见 [`Adapter_System_Data.md`](./Adapter_System_Data.md)                                                                                                   |
+| **Phase 5**                      | **EmailAdapter (IMAP)** — 首个真实 adapter，一拍多得                                                                                                                                                                                                                                | 7d                            | QQ 邮箱 (`com.tencent.androidqqmail`) + 189 邮箱 (`com.corp21cn.mail189`) 3 年邮件 → LocalVault → 自然语言查 "上个月有哪些银行账单到"                                                                                                                                                                                |
+| **Phase 6**                      | **AlipayAdapter** (官方 CSV 导出 + 字段映射，详见 `Adapter_Alipay_Bill.md`)                                                                                                                                                                                                         | 3d                            | 12 个月账单 CSV → 完整消费 timeline，可问 "上月在外卖花了多少"                                                                                                                                                                                                                                                       |
+| **Phase 7**                      | **Shopping 三件套**：TaobaoAdapter + JdAdapter + MeituanAdapter（Cookie + web API 框架可复用）                                                                                                                                                                                      | 7d                            | `com.taobao.taobao` + `com.jingdong.app.mall` + `com.sankuai.meituan` 订单 + 评价 + 收货地址 全接入                                                                                                                                                                                                                  |
+| **Phase 8**                      | **EntityResolver 三段 pipeline**（规则剪枝 + embedding 召回 + LLM 仲裁，本地 Ollama）                                                                                                                                                                                               | 5d                            | 基于 Phase 5-7 真实跨源数据标 200 条 → 召回 ≥ 80% / 准确 ≥ 90%；UI review 队列上线                                                                                                                                                                                                                                   |
+| **Phase 9**                      | **Travel 四件套**：AmapAdapter + BaiduMapAdapter + CtripAdapter + Train12306Adapter                                                                                                                                                                                                 | 7d                            | `com.autonavi.minimap` + `com.baidu.BaiduMap` + `ctrip.android.view` + `com.MobileTicket` 足迹 + 行程合并 E2E                                                                                                                                                                                                        |
+| **Phase 10**                     | **AIChatHistoryAdapter（旗舰差异化）** — 跨 8 家 AI 厂商对话史合一                                                                                                                                                                                                                  | 7d                            | DeepSeek (`com.deepseek.chat`) + Kimi (`com.moonshot.kimichat`) + 通义 (`com.aliyun.tongyi`) + 智谱清言 (`com.zhipuai.qingyan`) + 混元 (`com.tencent.hunyuan.app.chat`) + 千帆 (`com.baidu.qianfan.llmkitchat`) + 扣子 (`com.coze.space`) + Dreamina (`com.bytedance.dreamina`) — 本地 LLM 能引用所有跨厂商历史问答  |
+| **Phase 11**                     | **内置分析 skill 5 个** — spending / relations / footprint / interests / timeline + 月度报告 Workflow                                                                                                                                                                               | 7d                            | 每个 skill UI 卡片 + 单测 + 真机典型问题验收                                                                                                                                                                                                                                                                         |
+| **Phase 12**                     | **WeChatAdapter（压轴）** — 微信聊天 + 朋友圈 + 公众号收藏（root + SQLCipher EnMicroMsg.db/SnsMicroMsg.db；密钥优先走 sjqz `wechat_decrypt.py` 的 IMEI+UIN MD5[:7] 方案，8.0+ 走 Frida hook libwechatmm.so 兜底）                                                                   | 7d（原 10d，sjqz 降险后 −3d） | `com.tencent.mm` Redmi 24115RA8EC 真机 5 年消息全量；sidecar `wechat.decrypt` + `wechat.parse` 两 method 复用；密钥提取脚本 + 文档可复用其它机器                                                                                                                                                                     |
+| **Phase 13+**                    | **Long-tail 渐进**（按用户实际需求触发，非 v1 必选）：知乎 / 小红书 / 抖音 / 微博 / BOSS / 银行 PDF 邮件解析 / 个税 APP / i 厦门 / WPS + 腾讯文档 / 百度网盘 / 飞书 + 钉钉 + 企微 / 携程同程互补 / 滴滴 / 美柚 / 12123 / 网易云音乐 / 酷狗 / 爱奇艺 / 腾讯视频 / 头条 / 西瓜 / CSDN | ongoing                       | 每加一个不破现有；adapter 模板成熟后单 adapter 平均 2-3 天                                                                                                                                                                                                                                                           |
+| **Phase 17 v0.1.0 (2026-05-24)** | **桌面本机数据五件套**：`browser-history-chrome` + `browser-history-edge`（Chromium 子类） + `vscode`（workspace + 全局终端历史） + `win-recent`（跨应用 .lnk 时间线） + `system-data-android v0.3.0`（媒体清单 5 类 /sdcard）                                                      | 1d                            | 全部 desktop-local 文件直读（零扩展、零网络、零账号）；4 adapter 真机实测：14689 visits + 27 bookmarks (Chrome) / 2022 visits (Edge) / 22 workspace + 32 命令 + 13 路径 (VSCode) / 52 .lnk (Win Recent) / 3751 media files (Android v0.3)；76 新单测 + 整合 + e2e 测试（bs3mc ABI 不匹配时本地 skip，CI Linux 真跑） |
 
 **总工期估**：Phase 0-12 ≈ 77 天 ≈ **11 周（单人）**。
+
 - v0.3 调整：+Phase 4.5 (4d) − Phase 12 (3d, sjqz 降险) = 净 +1d；不显著拖长 v1 工期
-**可并行压缩**：Phase 0-1（基础设施）+ Phase 2-4（管道）+ Phase 4.5（sidecar + 系统数据）+ Phase 5（首 adapter）三段可三人并行 → 8-9 周完成 v1。
-**已落地里程碑**（建议）：
+  **可并行压缩**：Phase 0-1（基础设施）+ Phase 2-4（管道）+ Phase 4.5（sidecar + 系统数据）+ Phase 5（首 adapter）三段可三人并行 → 8-9 周完成 v1。
+  **已落地里程碑**（建议）：
 - **M1 = Phase 4.5 结束**（基础设施 + sidecar + 系统数据 ready，EntityResolver 种子集到位）— 4-5 周
 - **M2 = Phase 7 结束**（购物 + 邮箱 + 支付宝合一，覆盖 70% 消费场景）— 6 周
 - **M3 = Phase 10 结束**（出行 + AI 对话合一，旗舰功能展示）— 9 周
@@ -736,62 +790,63 @@ last_error TEXT
 
 下表把 Redmi 24115RA8EC 上 175 个第三方 app 中**有数据采集价值的**全部列入，每个标对应 Phase 和 ROI 评级（⭐⭐⭐⭐⭐ = 必须 / ⭐⭐⭐ = v1 内含 / ⭐ = long-tail）：
 
-| Phase | App 包名 | ROI | 主要数据 |
-|---|---|---|---|
-| 5 | `com.tencent.androidqqmail` (QQ 邮箱) | ⭐⭐⭐⭐⭐ | 银行账单 / 订单确认 / 注册凭证 |
-| 5 | `com.corp21cn.mail189` (189 邮箱) | ⭐⭐⭐⭐ | 同上 |
-| 6 | `com.eg.android.AlipayGphone` (支付宝) | ⭐⭐⭐⭐⭐ | 账单 + 出行 + 健康 + 缴费 |
-| 7 | `com.taobao.taobao` (淘宝) | ⭐⭐⭐⭐⭐ | 订单 + 评价 + 收货地址 + 浏览 |
-| 7 | `com.jingdong.app.mall` (京东) | ⭐⭐⭐⭐ | 同上 + 京豆 + 白条 |
-| 7 | `com.sankuai.meituan` (美团) | ⭐⭐⭐⭐⭐ | 外卖 + 团购 + 酒店 + 打车 |
-| 7 | `com.xunmeng.pinduoduo` (拼多多) | ⭐⭐⭐ | 订单 + 砍价社交 |
-| 7 | `com.dianping.v1` (大众点评) | ⭐⭐⭐⭐ | 浏览 + 收藏 + 评价 |
-| 9 | `com.autonavi.minimap` (高德地图) | ⭐⭐⭐⭐⭐ | 足迹 + 搜索 + 导航 + 收藏地点 |
-| 9 | `com.baidu.BaiduMap` (百度地图) | ⭐⭐⭐⭐ | 同上 |
-| 9 | `com.MobileTicket` (12306) | ⭐⭐⭐⭐ | 火车行程历史 |
-| 9 | `ctrip.android.view` (携程) | ⭐⭐⭐⭐ | 机票 + 酒店 + 火车 |
-| 9 | `com.tongcheng.android` (同程) | ⭐⭐⭐ | 与携程互补 |
-| 9 | `com.didi.es.psngr` (滴滴企业版) | ⭐⭐ | 出差打车 |
-| 10 | `com.deepseek.chat` (DeepSeek) | ⭐⭐⭐⭐ | AI 对话史 |
-| 10 | `com.moonshot.kimichat` (Kimi) | ⭐⭐⭐⭐ | AI 对话史 |
-| 10 | `com.aliyun.tongyi` (通义千问) | ⭐⭐⭐⭐ | AI 对话史 |
-| 10 | `com.zhipuai.qingyan` (智谱清言) | ⭐⭐⭐⭐ | AI 对话史 |
-| 10 | `com.tencent.hunyuan.app.chat` (混元) | ⭐⭐⭐ | AI 对话史 |
-| 10 | `com.baidu.qianfan.llmkitchat` (千帆) | ⭐⭐⭐ | AI 对话史 |
-| 10 | `com.coze.space` (扣子) | ⭐⭐⭐ | AI agent 对话 |
-| 10 | `com.bytedance.dreamina` (Dreamina) | ⭐⭐⭐ | AI 生图历史 |
-| 12 | `com.tencent.mm` (微信) | ⭐⭐⭐⭐⭐ | 聊天 5+ 年 + 朋友圈 + 公众号 + 支付 |
-| 13+ | `com.zhihu.android` (知乎) | ⭐⭐⭐ | 收藏 + 关注 + 自己回答 |
-| 13+ | `com.xingin.xhs` (小红书) | ⭐⭐⭐⭐ | 浏览 + 收藏 + 笔记 |
-| 13+ | `com.ss.android.ugc.aweme` (抖音) | ⭐⭐⭐ | 点赞 + 关注 + 浏览 |
-| 13+ | `com.sina.weibo` (微博) | ⭐⭐ | 关注 + 发布 |
-| 13+ | `com.hpbr.bosszhipin` (BOSS 直聘) | ⭐⭐⭐ | 沟通职位 + 简历 |
-| 13+ | `cn.gov.tax.its` (个税 APP) | ⭐⭐⭐⭐ | 收入 + 雇主 + 申报 |
-| 13+ | `com.com.cmbc.newmbank` (民生银行) | ⭐⭐⭐ | 交易明细 + 信用卡 |
-| 13+ | `com.chinamworld.bocmbci` (中国银行) | ⭐⭐⭐ | 同上 |
-| 13+ | `com.bankcomm.maidanba` (交通银行) | ⭐⭐⭐ | 同上 |
-| 13+ | `cn.gov.pbc.dcep` (数字人民币) | ⭐⭐⭐ | DCEP 交易 |
-| 13+ | `com.tmri.app.main` (交管 12123) | ⭐⭐ | 驾驶证 + 违章 |
-| 13+ | `com.xmgov.xmapp` (i 厦门) | ⭐⭐ | 本地政务 |
-| 13+ | `cn.wps.moffice_eng` (WPS) | ⭐⭐⭐ | 自创文档列表 |
-| 13+ | `com.tencent.docs` (腾讯文档) | ⭐⭐⭐ | 同上 |
-| 13+ | `com.baidu.netdisk` (百度网盘) | ⭐⭐⭐ | 文件 + 外链 |
-| 13+ | `com.alibaba.android.rimet` (钉钉) | ⭐⭐⭐ | 工作消息 + 文档 + 审批 |
-| 13+ | `com.ss.android.lark` (飞书) | ⭐⭐⭐ | 同上（API 最开放） |
-| 13+ | `com.tencent.wework` (企微) | ⭐⭐⭐ | 同上 |
-| 13+ | `com.lingan.seeyou` (美柚) | ⭐⭐ | 周期健康 |
-| 13+ | `com.intsig.camscanner` (扫描全能王) | ⭐⭐ | 扫描文档归档 |
-| 13+ | `com.tianyancha.skyeye` (天眼查) | ⭐⭐ | 自查公司关联 |
-| 13+ | `com.kugou.android` (酷狗) | ⭐⭐ | 听歌历史 |
-| 13+ | `com.ss.android.article.news` (今日头条) | ⭐⭐ | 阅读偏好 |
-| 13+ | `net.csdn.csdnplus` (CSDN) | ⭐⭐⭐ | 技术阅读 + 收藏 |
-| 13+ | `com.ss.android.auto` (懂车帝) | ⭐⭐ | 汽车关注 |
-| 13+ | `com.qiyi.video` (爱奇艺) | ⭐ | 观看历史 |
-| 13+ | `com.tencent.qqlive` (腾讯视频) | ⭐ | 观看历史 |
-| 13+ | `com.tencent.mobileqq` (QQ) | ⭐⭐ | 与微信重叠，老人脉补全 |
-| 13+ | `com.smile.gifmaker` (快手) | ⭐⭐ | 与抖音互补 |
+| Phase | App 包名                                 | ROI        | 主要数据                            |
+| ----- | ---------------------------------------- | ---------- | ----------------------------------- |
+| 5     | `com.tencent.androidqqmail` (QQ 邮箱)    | ⭐⭐⭐⭐⭐ | 银行账单 / 订单确认 / 注册凭证      |
+| 5     | `com.corp21cn.mail189` (189 邮箱)        | ⭐⭐⭐⭐   | 同上                                |
+| 6     | `com.eg.android.AlipayGphone` (支付宝)   | ⭐⭐⭐⭐⭐ | 账单 + 出行 + 健康 + 缴费           |
+| 7     | `com.taobao.taobao` (淘宝)               | ⭐⭐⭐⭐⭐ | 订单 + 评价 + 收货地址 + 浏览       |
+| 7     | `com.jingdong.app.mall` (京东)           | ⭐⭐⭐⭐   | 同上 + 京豆 + 白条                  |
+| 7     | `com.sankuai.meituan` (美团)             | ⭐⭐⭐⭐⭐ | 外卖 + 团购 + 酒店 + 打车           |
+| 7     | `com.xunmeng.pinduoduo` (拼多多)         | ⭐⭐⭐     | 订单 + 砍价社交                     |
+| 7     | `com.dianping.v1` (大众点评)             | ⭐⭐⭐⭐   | 浏览 + 收藏 + 评价                  |
+| 9     | `com.autonavi.minimap` (高德地图)        | ⭐⭐⭐⭐⭐ | 足迹 + 搜索 + 导航 + 收藏地点       |
+| 9     | `com.baidu.BaiduMap` (百度地图)          | ⭐⭐⭐⭐   | 同上                                |
+| 9     | `com.MobileTicket` (12306)               | ⭐⭐⭐⭐   | 火车行程历史                        |
+| 9     | `ctrip.android.view` (携程)              | ⭐⭐⭐⭐   | 机票 + 酒店 + 火车                  |
+| 9     | `com.tongcheng.android` (同程)           | ⭐⭐⭐     | 与携程互补                          |
+| 9     | `com.didi.es.psngr` (滴滴企业版)         | ⭐⭐       | 出差打车                            |
+| 10    | `com.deepseek.chat` (DeepSeek)           | ⭐⭐⭐⭐   | AI 对话史                           |
+| 10    | `com.moonshot.kimichat` (Kimi)           | ⭐⭐⭐⭐   | AI 对话史                           |
+| 10    | `com.aliyun.tongyi` (通义千问)           | ⭐⭐⭐⭐   | AI 对话史                           |
+| 10    | `com.zhipuai.qingyan` (智谱清言)         | ⭐⭐⭐⭐   | AI 对话史                           |
+| 10    | `com.tencent.hunyuan.app.chat` (混元)    | ⭐⭐⭐     | AI 对话史                           |
+| 10    | `com.baidu.qianfan.llmkitchat` (千帆)    | ⭐⭐⭐     | AI 对话史                           |
+| 10    | `com.coze.space` (扣子)                  | ⭐⭐⭐     | AI agent 对话                       |
+| 10    | `com.bytedance.dreamina` (Dreamina)      | ⭐⭐⭐     | AI 生图历史                         |
+| 12    | `com.tencent.mm` (微信)                  | ⭐⭐⭐⭐⭐ | 聊天 5+ 年 + 朋友圈 + 公众号 + 支付 |
+| 13+   | `com.zhihu.android` (知乎)               | ⭐⭐⭐     | 收藏 + 关注 + 自己回答              |
+| 13+   | `com.xingin.xhs` (小红书)                | ⭐⭐⭐⭐   | 浏览 + 收藏 + 笔记                  |
+| 13+   | `com.ss.android.ugc.aweme` (抖音)        | ⭐⭐⭐     | 点赞 + 关注 + 浏览                  |
+| 13+   | `com.sina.weibo` (微博)                  | ⭐⭐       | 关注 + 发布                         |
+| 13+   | `com.hpbr.bosszhipin` (BOSS 直聘)        | ⭐⭐⭐     | 沟通职位 + 简历                     |
+| 13+   | `cn.gov.tax.its` (个税 APP)              | ⭐⭐⭐⭐   | 收入 + 雇主 + 申报                  |
+| 13+   | `com.com.cmbc.newmbank` (民生银行)       | ⭐⭐⭐     | 交易明细 + 信用卡                   |
+| 13+   | `com.chinamworld.bocmbci` (中国银行)     | ⭐⭐⭐     | 同上                                |
+| 13+   | `com.bankcomm.maidanba` (交通银行)       | ⭐⭐⭐     | 同上                                |
+| 13+   | `cn.gov.pbc.dcep` (数字人民币)           | ⭐⭐⭐     | DCEP 交易                           |
+| 13+   | `com.tmri.app.main` (交管 12123)         | ⭐⭐       | 驾驶证 + 违章                       |
+| 13+   | `com.xmgov.xmapp` (i 厦门)               | ⭐⭐       | 本地政务                            |
+| 13+   | `cn.wps.moffice_eng` (WPS)               | ⭐⭐⭐     | 自创文档列表                        |
+| 13+   | `com.tencent.docs` (腾讯文档)            | ⭐⭐⭐     | 同上                                |
+| 13+   | `com.baidu.netdisk` (百度网盘)           | ⭐⭐⭐     | 文件 + 外链                         |
+| 13+   | `com.alibaba.android.rimet` (钉钉)       | ⭐⭐⭐     | 工作消息 + 文档 + 审批              |
+| 13+   | `com.ss.android.lark` (飞书)             | ⭐⭐⭐     | 同上（API 最开放）                  |
+| 13+   | `com.tencent.wework` (企微)              | ⭐⭐⭐     | 同上                                |
+| 13+   | `com.lingan.seeyou` (美柚)               | ⭐⭐       | 周期健康                            |
+| 13+   | `com.intsig.camscanner` (扫描全能王)     | ⭐⭐       | 扫描文档归档                        |
+| 13+   | `com.tianyancha.skyeye` (天眼查)         | ⭐⭐       | 自查公司关联                        |
+| 13+   | `com.kugou.android` (酷狗)               | ⭐⭐       | 听歌历史                            |
+| 13+   | `com.ss.android.article.news` (今日头条) | ⭐⭐       | 阅读偏好                            |
+| 13+   | `net.csdn.csdnplus` (CSDN)               | ⭐⭐⭐     | 技术阅读 + 收藏                     |
+| 13+   | `com.ss.android.auto` (懂车帝)           | ⭐⭐       | 汽车关注                            |
+| 13+   | `com.qiyi.video` (爱奇艺)                | ⭐         | 观看历史                            |
+| 13+   | `com.tencent.qqlive` (腾讯视频)          | ⭐         | 观看历史                            |
+| 13+   | `com.tencent.mobileqq` (QQ)              | ⭐⭐       | 与微信重叠，老人脉补全              |
+| 13+   | `com.smile.gifmaker` (快手)              | ⭐⭐       | 与抖音互补                          |
 
 **显式跳过**（v1 + v2 不接入）：
+
 - 厂商预装：所有 `com.miui.*` / `com.xiaomi.*`（除 `com.miui.notes` 用户笔记 v3+ 可考虑）
 - 输入法：搜狗 / 讯飞 / 百度 / QQ 输入法 — 隐私敏感 + 提取难
 - IoT / 摄像头：萤石 / IPC360 / 优视 / 蓝牙工具 / DroidCam
@@ -803,37 +858,37 @@ last_error TEXT
 
 ## 13. 与现有系统集成
 
-| 系统 | 集成点 | 改动量 |
-|---|---|---|
-| KG 引擎 | KG ingestor 调既有 triple 写入 API | 新增 ingest 适配器，引擎不改 |
-| RAG 流水线 | `analysis.ask` 走 RAG 检索 UnifiedEvent | 新增 collection "personal-data"，复用 pipeline |
-| Skill 系统 | 每个 adapter / 每个分析模板 = skill | 走既有 manifest + sandbox，零改动 |
-| SQLCipher LocalVault | 新增 hub 专用 db（与既有 chat/note db 并列） | 仅加表 + 主密钥派生分支 |
-| Cowork 多代理 | `PersonalAnalysisAgent` 走 Cowork 复杂分析 | 新增 agent 定义，引擎不改 |
-| Workflow 引擎 | Adapter 定时同步 + 报告生成 | 新增 workflow 模板 |
-| Ollama 集成 | LLM 推理走既有 client | 零改动 |
-| DID + U-Key | 主密钥派生 / 跨设备分发 | 复用既有密钥派生 chain |
-| P2P 同步 | 跨设备 vault 同步 | 复用既有 sync feature（Phase 3b/3c/3d） |
+| 系统                 | 集成点                                       | 改动量                                         |
+| -------------------- | -------------------------------------------- | ---------------------------------------------- |
+| KG 引擎              | KG ingestor 调既有 triple 写入 API           | 新增 ingest 适配器，引擎不改                   |
+| RAG 流水线           | `analysis.ask` 走 RAG 检索 UnifiedEvent      | 新增 collection "personal-data"，复用 pipeline |
+| Skill 系统           | 每个 adapter / 每个分析模板 = skill          | 走既有 manifest + sandbox，零改动              |
+| SQLCipher LocalVault | 新增 hub 专用 db（与既有 chat/note db 并列） | 仅加表 + 主密钥派生分支                        |
+| Cowork 多代理        | `PersonalAnalysisAgent` 走 Cowork 复杂分析   | 新增 agent 定义，引擎不改                      |
+| Workflow 引擎        | Adapter 定时同步 + 报告生成                  | 新增 workflow 模板                             |
+| Ollama 集成          | LLM 推理走既有 client                        | 零改动                                         |
+| DID + U-Key          | 主密钥派生 / 跨设备分发                      | 复用既有密钥派生 chain                         |
+| P2P 同步             | 跨设备 vault 同步                            | 复用既有 sync feature（Phase 3b/3c/3d）        |
 
 ---
 
 ## 14. Traps & 风险
 
-| # | Trap | 描述 | 缓解 |
-|---|---|---|---|
-| T1 | EntityResolver 误合并 | "我爸"和"老板"都被 LLM 判为"老男人"误合 | 三段 pipeline + review 队列 + 用户可拆分 |
-| T2 | adapter 触发 app 风控 | 频繁调淘宝 web API → 账号被风控 | 限流 + adapter 实现尊重 robots/正常用户节奏 |
-| T3 | 微信 SQLCipher 密钥提取失败（风险 高→**中**, v0.3 sjqz 引入后降级） | 微信 8.0+ 密钥从 IMEI 派生**部分**失效（仍适用 7.x + 8.0 早期版本） | (1) sjqz `wechat_decrypt.py` IMEI+UIN MD5[:7] 方案作主路径，覆盖大量历史版本；(2) Frida hook libwechatmm.so 拿运行时密钥作 fallback；(3) "用户自己提供密钥"作最终兜底；(4) 验证脚本 `verify_sqlcipher_key()` 已现成 |
-| T4 | KG ingest 过载 | 历史 5 年数据初次 ingest → 几百万事件卡死 | 分批 ingest + 进度条 + 后台慢跑 |
-| T5 | LLM 幻觉 | 数据稀疏时 LLM 编造金额/地点 | prompt 强制引 Event.id + UI 渲染回链 + RAG 空时显式 fallback |
-| T6 | Keystore 不可用 | 部分设备 Keystore broken / TEE 故障 | fallback 到 DPAPI/file-based with PIN（明确告知用户安全降级） |
-| T7 | adapter ABI breaking | adapter 升级 schema 不兼容旧数据 | adapter manifest 强制 semver + migration script |
-| T8 | 用户期待"零配置全自动" | 实际首次接入要扫码 / 输密码 / 开 root | 文案 + 渐进引导 + 完成感反馈 |
-| T9 | 数据导出后用户上传到云端 | "数据回归个人"承诺被用户自己破坏 | UI 警示 + 默认导出格式带"勿外传"提示；产品边界 |
-| T10 | OCR 失真致 Event 错误 | 截图 OCR 把 "¥38.00" 读成 "¥3800" | source.confidence < 1.0；UI 标记"低置信"badge；分析层加权 |
-| T11 | RAG 召回不准 | 用户问"上次跟妈妈聊去医院"召回与"医院"无关 | 多路召回（关键词 + embedding + KG 实体）+ rerank |
-| T12 | 跨设备同步冲突 | 两台设备同时改同一 Person 的别名 | LWW + 审计 + UI 冲突视图 |
-| T13 | Python sidecar 跨平台部署（v0.3 新增） | Win/Mac/Linux 三平台需各自打包；Android/iOS 端无法跑 Python sidecar | (1) PyInstaller 单文件三平台分别 build + 加入 release asset；(2) 移动端（Android/iOS）走 native adapter 直接读手机本地数据，不调 sidecar；(3) sidecar 仅 desktop 侧用，作"远程提取手机数据"通道（手机配对后 USB ADB / AFC 走 sidecar） |
+| #   | Trap                                                                | 描述                                                                | 缓解                                                                                                                                                                                                                                   |
+| --- | ------------------------------------------------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T1  | EntityResolver 误合并                                               | "我爸"和"老板"都被 LLM 判为"老男人"误合                             | 三段 pipeline + review 队列 + 用户可拆分                                                                                                                                                                                               |
+| T2  | adapter 触发 app 风控                                               | 频繁调淘宝 web API → 账号被风控                                     | 限流 + adapter 实现尊重 robots/正常用户节奏                                                                                                                                                                                            |
+| T3  | 微信 SQLCipher 密钥提取失败（风险 高→**中**, v0.3 sjqz 引入后降级） | 微信 8.0+ 密钥从 IMEI 派生**部分**失效（仍适用 7.x + 8.0 早期版本） | (1) sjqz `wechat_decrypt.py` IMEI+UIN MD5[:7] 方案作主路径，覆盖大量历史版本；(2) Frida hook libwechatmm.so 拿运行时密钥作 fallback；(3) "用户自己提供密钥"作最终兜底；(4) 验证脚本 `verify_sqlcipher_key()` 已现成                    |
+| T4  | KG ingest 过载                                                      | 历史 5 年数据初次 ingest → 几百万事件卡死                           | 分批 ingest + 进度条 + 后台慢跑                                                                                                                                                                                                        |
+| T5  | LLM 幻觉                                                            | 数据稀疏时 LLM 编造金额/地点                                        | prompt 强制引 Event.id + UI 渲染回链 + RAG 空时显式 fallback                                                                                                                                                                           |
+| T6  | Keystore 不可用                                                     | 部分设备 Keystore broken / TEE 故障                                 | fallback 到 DPAPI/file-based with PIN（明确告知用户安全降级）                                                                                                                                                                          |
+| T7  | adapter ABI breaking                                                | adapter 升级 schema 不兼容旧数据                                    | adapter manifest 强制 semver + migration script                                                                                                                                                                                        |
+| T8  | 用户期待"零配置全自动"                                              | 实际首次接入要扫码 / 输密码 / 开 root                               | 文案 + 渐进引导 + 完成感反馈                                                                                                                                                                                                           |
+| T9  | 数据导出后用户上传到云端                                            | "数据回归个人"承诺被用户自己破坏                                    | UI 警示 + 默认导出格式带"勿外传"提示；产品边界                                                                                                                                                                                         |
+| T10 | OCR 失真致 Event 错误                                               | 截图 OCR 把 "¥38.00" 读成 "¥3800"                                   | source.confidence < 1.0；UI 标记"低置信"badge；分析层加权                                                                                                                                                                              |
+| T11 | RAG 召回不准                                                        | 用户问"上次跟妈妈聊去医院"召回与"医院"无关                          | 多路召回（关键词 + embedding + KG 实体）+ rerank                                                                                                                                                                                       |
+| T12 | 跨设备同步冲突                                                      | 两台设备同时改同一 Person 的别名                                    | LWW + 审计 + UI 冲突视图                                                                                                                                                                                                               |
+| T13 | Python sidecar 跨平台部署（v0.3 新增）                              | Win/Mac/Linux 三平台需各自打包；Android/iOS 端无法跑 Python sidecar | (1) PyInstaller 单文件三平台分别 build + 加入 release asset；(2) 移动端（Android/iOS）走 native adapter 直接读手机本地数据，不调 sidecar；(3) sidecar 仅 desktop 侧用，作"远程提取手机数据"通道（手机配对后 USB ADB / AFC 走 sidecar） |
 
 ---
 

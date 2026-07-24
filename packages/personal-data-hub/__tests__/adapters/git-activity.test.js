@@ -6,11 +6,11 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
 
-// Every test here spawns real `git` (init/config/commit) across throwaway
-// repos. On Windows, under the full-suite parallel worker pool, that subprocess
-// fan-out routinely blows past the 10s default and flakes. Give the whole file
-// generous headroom — the work is real, the default timeout is just too tight.
-vi.setConfig({ testTimeout: 30000, hookTimeout: 30000 });
+// The end-to-end commit test spawns real `git` across a throwaway repo. On
+// Windows, under the full-suite parallel worker pool, those subprocesses can
+// slow down substantially, so retain headroom without making structural tests
+// pay the same process cost.
+vi.setConfig({ testTimeout: 60000, hookTimeout: 60000 });
 
 const {
   GitActivityAdapter,
@@ -48,22 +48,55 @@ function makeRepo(name, commits) {
       stdio: ["ignore", "pipe", "pipe"],
     });
   G(["init", "-q", "-b", "main"]);
-  G(["config", "user.email", "test@example.com"]);
-  G(["config", "user.name", "Test"]);
-  G(["config", "commit.gpgsign", "false"]);
   let i = 0;
   for (const c of commits) {
     const file = join(dir, `f${i}.txt`);
     writeFileSync(file, `content ${i}\n`, "utf-8");
     G(["add", "."]);
     const dt = new Date(c.tsMs).toISOString();
-    G(["commit", "-m", c.subject, "--author", `${c.author || "Test User"} <test@example.com>`], {
-      GIT_AUTHOR_DATE: dt,
-      GIT_COMMITTER_DATE: dt,
-    });
+    G(
+      [
+        "-c",
+        "user.email=test@example.com",
+        "-c",
+        "user.name=Test",
+        "-c",
+        "commit.gpgsign=false",
+        "commit",
+        "-m",
+        c.subject,
+        "--author",
+        `${c.author || "Test User"} <test@example.com>`,
+      ],
+      {
+        GIT_AUTHOR_DATE: dt,
+        GIT_COMMITTER_DATE: dt,
+      },
+    );
     i++;
   }
   return dir;
+}
+
+// Discovery/limit tests only need the filesystem shape. Real `git log`
+// coverage stays in the end-to-end commit test; using init/add/commit for every
+// structural assertion makes the suite depend on machine-wide process load.
+function makeRepoMarker(name) {
+  const dir = join(codeRoot, name);
+  mkdirSync(join(dir, ".git"), { recursive: true });
+  return dir;
+}
+
+function fakeCommit(repoDir, suffix = "1") {
+  return {
+    sha: `${repoDir}-${suffix}`,
+    repoDir,
+    repoName: repoDir.split(/[\\/]/).pop(),
+    authoredAtMs: ts(1),
+    authorName: "Test",
+    authorEmail: "test@example.com",
+    subject: `commit ${suffix}`,
+  };
 }
 
 beforeEach(() => {
@@ -99,7 +132,7 @@ describe("GitActivityAdapter.authenticate", () => {
   });
 
   it("ok when at least one repo exists", async () => {
-    makeRepo("a", [{ subject: "init", tsMs: ts(0) }]);
+    makeRepoMarker("a");
     const a = new GitActivityAdapter({ codeRoots: [codeRoot] });
     const r = await a.authenticate({});
     expect(r.ok).toBe(true);
@@ -130,10 +163,11 @@ describe("GitActivityAdapter.sync", () => {
   });
 
   it("multi-repo: enumerates every .git dir under the root", async () => {
-    makeRepo("repo-a", [{ subject: "a1", tsMs: ts(1) }]);
-    makeRepo("repo-b", [{ subject: "b1", tsMs: ts(2) }]);
-    makeRepo("repo-c", [{ subject: "c1", tsMs: ts(3) }]);
+    makeRepoMarker("repo-a");
+    makeRepoMarker("repo-b");
+    makeRepoMarker("repo-c");
     const a = new GitActivityAdapter({ codeRoots: [codeRoot] });
+    a._deps.listCommits = async (repoDir) => [fakeCommit(repoDir)];
     const raws = [];
     for await (const r of a.sync()) raws.push(r);
     const repoNames = new Set(raws.map((r) => r.payload.repoName));
@@ -141,26 +175,90 @@ describe("GitActivityAdapter.sync", () => {
   });
 
   it("respects limit", async () => {
-    makeRepo("a", [
-      { subject: "1", tsMs: ts(1) },
-      { subject: "2", tsMs: ts(2) },
-      { subject: "3", tsMs: ts(3) },
-    ]);
+    const repoDir = makeRepoMarker("a");
     const a = new GitActivityAdapter({ codeRoots: [codeRoot] });
+    a._deps.listCommits = async () => [
+      fakeCommit(repoDir, "1"),
+      fakeCommit(repoDir, "2"),
+      fakeCommit(repoDir, "3"),
+    ];
     const raws = [];
     for await (const r of a.sync({ limit: 2 })) raws.push(r);
     expect(raws).toHaveLength(2);
   });
 
   it("skips non-.git directories silently", async () => {
-    makeRepo("real-repo", [{ subject: "x", tsMs: ts(1) }]);
+    const repoDir = makeRepoMarker("real-repo");
     mkdirSync(join(codeRoot, "not-a-repo"), { recursive: true });
-    writeFileSync(join(codeRoot, "not-a-repo", "README.md"), "no .git here", "utf-8");
+    writeFileSync(
+      join(codeRoot, "not-a-repo", "README.md"),
+      "no .git here",
+      "utf-8",
+    );
     const a = new GitActivityAdapter({ codeRoots: [codeRoot] });
+    a._deps.listCommits = async () => [fakeCommit(repoDir)];
     const raws = [];
     for await (const r of a.sync()) raws.push(r);
     expect(raws).toHaveLength(1);
     expect(raws[0].payload.repoName).toBe("real-repo");
+  });
+
+  it("reads independent repositories concurrently while preserving repo order", async () => {
+    const a = new GitActivityAdapter({ codeRoots: [codeRoot] });
+    a._deps.findRepos = () => ["repo-a", "repo-b", "repo-c"];
+    let inFlight = 0;
+    let maxInFlight = 0;
+    a._deps.listCommits = async (repoDir) => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      const delay = repoDir === "repo-a" ? 30 : repoDir === "repo-b" ? 20 : 10;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      inFlight -= 1;
+      return [
+        {
+          sha: repoDir,
+          repoDir,
+          repoName: repoDir,
+          authoredAtMs: ts(1),
+          subject: repoDir,
+        },
+      ];
+    };
+
+    const raws = [];
+    for await (const raw of a.sync({ repoConcurrency: 3 })) raws.push(raw);
+
+    expect(maxInFlight).toBe(3);
+    expect(raws.map((raw) => raw.payload.repoName)).toEqual([
+      "repo-a",
+      "repo-b",
+      "repo-c",
+    ]);
+  });
+
+  it("isolates a failed repository and continues collecting the others", async () => {
+    const a = new GitActivityAdapter({ codeRoots: [codeRoot] });
+    a._deps.findRepos = () => ["good-a", "broken", "good-b"];
+    a._deps.listCommits = async (repoDir) => {
+      if (repoDir === "broken") throw new Error("repository disappeared");
+      return [
+        {
+          sha: repoDir,
+          repoDir,
+          repoName: repoDir,
+          authoredAtMs: ts(1),
+          subject: repoDir,
+        },
+      ];
+    };
+
+    const raws = [];
+    for await (const raw of a.sync()) raws.push(raw);
+
+    expect(raws.map((raw) => raw.payload.repoName)).toEqual([
+      "good-a",
+      "good-b",
+    ]);
   });
 });
 

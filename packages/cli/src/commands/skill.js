@@ -327,7 +327,7 @@ export function registerSkillCommand(program) {
     .option("--json", "Output as JSON")
     .action(async (name, inputParts, options) => {
       const skills = loader.loadAll();
-      const s = skills.find((sk) => sk.id === name || sk.dirName === name);
+      let s = skills.find((sk) => sk.id === name || sk.dirName === name);
 
       if (!s) {
         logger.error(`Skill not found: ${name}`);
@@ -343,6 +343,16 @@ export function registerSkillCommand(program) {
 
       if (!canRunOnPlatform(s)) {
         logger.error(`Skill "${s.id}" is not supported on ${process.platform}`);
+        process.exit(1);
+      }
+
+      try {
+        s = loader.materializeSkill(s, {
+          loadedBecause: "cli_skill_run",
+          bodyIncluded: false,
+        });
+      } catch (error) {
+        logger.error(`Skill "${s.id}" body could not be loaded: ${error.message}`);
         process.exit(1);
       }
 

@@ -23,10 +23,12 @@
 
 import { randomBytes } from "crypto";
 import { WsRpcClient } from "./ws-rpc-client.js";
+import { ORIGIN, approvalBindingDigest } from "./agent-authority.js";
 import {
-  fingerprintsMatch,
-  OperationApprovalRegistry,
-} from "./operation-fingerprint.js";
+  ApprovalAuthorityStore,
+  defaultApprovalAuthorityStatePath,
+} from "./approval-authority-store.js";
+import { OperationApprovalRegistry } from "./operation-fingerprint.js";
 import {
   buildDirectPairingUri,
   pickLanAddress,
@@ -46,6 +48,9 @@ export class RemoteApprovalBridge {
     decisionTimeoutMs = DEFAULT_DECISION_TIMEOUT_MS,
     createClient = null,
     now = Date.now,
+    approvalStore = undefined,
+    approvalStateFile = null,
+    onSecurityError = null,
   } = {}) {
     if (!wsUrl) throw new Error("wsUrl is required");
     if (!agentSessionId) throw new Error("agentSessionId is required");
@@ -63,12 +68,65 @@ export class RemoteApprovalBridge {
     this._pending = new Map(); // requestId → { resolve, timer, fingerprint }
     this._counter = 0;
     this._closed = false;
+    this._securityErrors = [];
+    this._onSecurityError =
+      typeof onSecurityError === "function" ? onSecurityError : null;
+    const durableStore =
+      approvalStore === undefined
+        ? new ApprovalAuthorityStore({
+            filePath:
+              approvalStateFile ||
+              defaultApprovalAuthorityStatePath(agentSessionId),
+            now: () => this._now(),
+          })
+        : approvalStore;
+    if (
+      !durableStore ||
+      typeof durableStore.issueRequest !== "function" ||
+      typeof durableStore.resolveRequest !== "function" ||
+      typeof durableStore.cancelRequest !== "function"
+    ) {
+      throw new Error(
+        "approvalStore must implement issueRequest/resolveRequest/cancelRequest",
+      );
+    }
     // §8.2 cross-device approval registry: full-tuple operation fingerprints,
     // single-winner across concurrent cards for one logical operation, at-most-
     // once resolution, and validity-window enforcement — all fail-closed.
     this._registry = new OperationApprovalRegistry({
       clock: () => this._now(),
+      store: durableStore,
     });
+    this._approvalStore = durableStore;
+  }
+
+  _recordSecurityError({ action, requestId = null, reason, errorCode = null }) {
+    const entry = {
+      timestamp: this._now(),
+      action: String(action || "approval"),
+      requestId: requestId ? String(requestId) : null,
+      reason: String(reason || "rejected"),
+      errorCode: errorCode ? String(errorCode) : null,
+    };
+    this._securityErrors.push(entry);
+    if (this._securityErrors.length > 1000) this._securityErrors.shift();
+    if (this._onSecurityError) {
+      try {
+        this._onSecurityError({ ...entry });
+      } catch {
+        // Observability is advisory; the approval remains denied.
+      }
+    }
+    return entry;
+  }
+
+  getSecurityErrors(limit = this._securityErrors.length) {
+    const count = Math.max(
+      0,
+      Math.min(Math.floor(Number(limit) || 0), this._securityErrors.length),
+    );
+    if (count === 0) return [];
+    return this._securityErrors.slice(-count).map((entry) => ({ ...entry }));
   }
 
   /** Connect, register the client-hosted remote session, start listening. */
@@ -123,31 +181,73 @@ export class RemoteApprovalBridge {
     const requestId = message.event.requestId || message.event.approvalId;
     const pending = requestId ? this._pending.get(requestId) : null;
     if (!pending) return;
-    // Confused-deputy guard: a resolve that echoes a fingerprint must match the
-    // operation this ask published. A mismatch (stale card / replayed / swapped
-    // body / different session·workspace·env·policy) is rejected — the ask stays
-    // pending and fails closed on timeout. An absent fingerprint is a legacy
-    // device: resolved via this ask's own fingerprint (still window-guarded).
-    if (
-      message.event.fingerprint != null &&
-      !fingerprintsMatch(pending.fingerprint, message.event.fingerprint)
-    ) {
+    // The device must echo the complete durable capability tuple. Missing,
+    // mismatched, stale, duplicate, or expired resolutions never settle an
+    // approval; only the store's successful CAS can return approved=true.
+    const rawAnswer = message.event.answer ?? message.event.approved;
+    const hasDecision =
+      rawAnswer === true ||
+      rawAnswer === false ||
+      rawAnswer === "true" ||
+      rawAnswer === "false" ||
+      rawAnswer === "yes" ||
+      rawAnswer === "no";
+    if (!hasDecision) {
+      this._recordSecurityError({
+        action: "approval.resolve",
+        requestId,
+        reason: "decision-required",
+      });
       return;
     }
-    // Fail-closed §8.2 enforcement: single-winner (superseded card), at-most-once
-    // (duplicate), and validity window (not-yet-valid / expired). A rejected
-    // verdict leaves the ask pending so it still fails closed on timeout.
+    const decision =
+      rawAnswer === true || rawAnswer === "true" || rawAnswer === "yes";
+    const authority = {
+      origin: ORIGIN.REMOTE,
+      authenticated: true,
+      scopes: ["approve"],
+      principalId: message.from || "paired-device",
+      sessionId: this.agentSessionId,
+    };
     const verdict = this._registry.resolve(pending.fingerprint, {
+      requestId,
+      fingerprint: message.event.fingerprint,
+      binding: message.event.binding,
+      sessionId: this.agentSessionId,
+      decision,
+      authority,
+      expectedRevision: message.event.revision,
       now: this._now(),
     });
-    if (!verdict.ok) return;
+    if (!verdict.ok) {
+      this._recordSecurityError({
+        action: "approval.resolve",
+        requestId,
+        reason: verdict.reason,
+        errorCode: verdict.errorCode,
+      });
+      if (verdict.reason === "state-unavailable") {
+        this._settleDeniedForStateFailure(requestId, pending, verdict);
+      }
+      return;
+    }
     this._pending.delete(requestId);
     clearTimeout(pending.timer);
-    const answer = message.event.answer ?? message.event.approved;
     pending.resolve({
-      approved: answer === true || answer === "true" || answer === "yes",
+      approved: verdict.ok === true && verdict.approved === true,
       via: "remote",
       from: message.from || null,
+    });
+  }
+
+  _settleDeniedForStateFailure(requestId, pending, verdict) {
+    this._pending.delete(requestId);
+    clearTimeout(pending.timer);
+    pending.resolve({
+      approved: false,
+      via: "state-error",
+      from: null,
+      errorCode: verdict?.errorCode || null,
     });
   }
 
@@ -202,7 +302,42 @@ export class RemoteApprovalBridge {
           ? askedAt + effectiveTimeout
           : null,
     };
-    const card = this._registry.issue(desc);
+    const binding = approvalBindingDigest({
+      toolCallId: requestId,
+      args: {
+        tool: tool || null,
+        action,
+        detail,
+        workspace,
+        session: desc.session,
+        targetEnv,
+      },
+      policyDigest: policyVersion,
+    });
+    let card;
+    try {
+      // Persist first. A card that was not durably issued must never become
+      // visible to a device and can therefore never authorize a side effect.
+      card = this._registry.issue(desc, {
+        requestId,
+        binding,
+        now: askedAt,
+      });
+    } catch (error) {
+      const errorCode = error?.code || "CC_APPROVAL_STATE_UNKNOWN";
+      this._recordSecurityError({
+        action: "approval.request",
+        requestId,
+        reason: "state-unavailable",
+        errorCode,
+      });
+      return Promise.resolve({
+        approved: false,
+        via: "state-error",
+        from: null,
+        errorCode,
+      });
+    }
     if (onRequestId) {
       try {
         onRequestId(requestId);
@@ -212,6 +347,20 @@ export class RemoteApprovalBridge {
     }
     return new Promise((resolve) => {
       const timer = setTimeout(() => {
+        const verdict = this._registry.cancel(card.fingerprint, {
+          requestId,
+          expectedRevision: card.revision,
+          reason: "timeout",
+          now: this._now(),
+        });
+        if (!verdict.ok) {
+          this._recordSecurityError({
+            action: "approval.cancel",
+            requestId,
+            reason: verdict.reason,
+            errorCode: verdict.errorCode,
+          });
+        }
         this._pending.delete(requestId);
         this._publish({
           type: "permission.resolved",
@@ -225,6 +374,8 @@ export class RemoteApprovalBridge {
       this._pending.set(requestId, {
         timer,
         fingerprint: card.fingerprint,
+        binding,
+        revision: card.revision,
         resolve: (decision) => {
           this._publish({
             type: "permission.resolved",
@@ -244,6 +395,8 @@ export class RemoteApprovalBridge {
         // Full fingerprint (protocol) + short id / secret-free summary (what the
         // operator eyeballs on the device to confirm it is the SAME card).
         fingerprint: card.fingerprint,
+        binding,
+        revision: card.revision,
         shortId: card.shortId,
         summary: card.summary,
         notBefore: desc.notBefore,
@@ -257,12 +410,39 @@ export class RemoteApprovalBridge {
   resolveLocally(requestId, approved) {
     const pending = this._pending.get(requestId);
     if (!pending) return false;
+    const verdict = this._registry.resolve(pending.fingerprint, {
+      requestId,
+      fingerprint: pending.fingerprint,
+      binding: pending.binding,
+      sessionId: this.agentSessionId,
+      decision: approved === true,
+      authority: {
+        origin: ORIGIN.USER,
+        principalId: "local-terminal",
+        sessionId: this.agentSessionId,
+      },
+      expectedRevision: pending.revision,
+      now: this._now(),
+    });
+    if (!verdict.ok) {
+      this._recordSecurityError({
+        action: "approval.resolve",
+        requestId,
+        reason: verdict.reason,
+        errorCode: verdict.errorCode,
+      });
+      if (verdict.reason === "state-unavailable") {
+        this._settleDeniedForStateFailure(requestId, pending, verdict);
+      }
+      return false;
+    }
     this._pending.delete(requestId);
     clearTimeout(pending.timer);
-    // Consume the registry card so a late remote resolve for the SAME operation
-    // is a `duplicate`, never a second settle.
-    this._registry.resolve(pending.fingerprint, { now: this._now() });
-    pending.resolve({ approved, via: "local", from: null });
+    pending.resolve({
+      approved: verdict.ok === true && verdict.approved === true,
+      via: "local",
+      from: null,
+    });
     return true;
   }
 
@@ -327,10 +507,12 @@ export class RemoteApprovalBridge {
       const decision = await Promise.race([remote, local]);
       // Local answer won → settle the remote ask too (publishes
       // permission.resolved so device UIs clear the pending card).
-      if (decision.via === "local" && requestId) {
-        this.resolveLocally(requestId, decision.approved);
+      if (decision.via === "local") {
+        if (!requestId) return false;
+        const persisted = this.resolveLocally(requestId, decision.approved);
+        return persisted && decision.approved === true;
       }
-      return decision.approved;
+      return decision.approved === true;
     };
   }
 
@@ -338,6 +520,20 @@ export class RemoteApprovalBridge {
     this._closed = true;
     for (const [requestId, pending] of this._pending) {
       clearTimeout(pending.timer);
+      const verdict = this._registry.cancel(pending.fingerprint, {
+        requestId,
+        expectedRevision: pending.revision,
+        reason: "closed",
+        now: this._now(),
+      });
+      if (!verdict.ok) {
+        this._recordSecurityError({
+          action: "approval.cancel",
+          requestId,
+          reason: verdict.reason,
+          errorCode: verdict.errorCode,
+        });
+      }
       pending.resolve({ approved: false, via: "closed", from: null });
       this._pending.delete(requestId);
     }

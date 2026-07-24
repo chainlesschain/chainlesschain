@@ -20,9 +20,10 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import {
   effectiveBackgroundAgentState,
   isProcessAlive,
@@ -277,4 +278,106 @@ describe("8. log tail — truncation while the worker is appending (real spawn)"
     expect(tail).toContain("line-19"); // fresh content is all there
     expect(tail).not.toContain("line-0"); // truncated content is not duplicated back
   }, 20_000);
+});
+
+describe("P0-2 same-turn question round-trip (real worker/child IPC)", () => {
+  it("answers a suspended tool call and completes without starting a follow-up turn", async () => {
+    const evidenceFile = join(dir, "same-turn-result.json");
+    const interactionModule = pathToFileURL(
+      join(
+        process.cwd(),
+        "src",
+        "lib",
+        "background-interaction-resolver.js",
+      ),
+    ).href;
+    const state = launch({
+      script: [
+        `import { createBackgroundInteractionClient } from ${JSON.stringify(interactionModule)};`,
+        `import { writeFileSync } from "node:fs";`,
+        `const client = createBackgroundInteractionClient({`,
+        `  sessionId: "sid-same-turn",`,
+        `  turnId: "provider-turn-1",`,
+        `});`,
+        `const beforePid = process.pid;`,
+        `const answer = await client.request({`,
+        `  question: "Deploy to production?",`,
+        `  options: ["yes", "no"],`,
+        `  toolUseId: "provider-tool-call-1",`,
+        `  timeoutMs: 15000,`,
+        `});`,
+        `writeFileSync(${JSON.stringify(evidenceFile)}, JSON.stringify({`,
+        `  beforePid, afterPid: process.pid, answer`,
+        `}));`,
+        `client.close();`,
+        "",
+      ].join("\n"),
+      followUpArgv: ["--unused-follow-up"],
+      title: "same-turn",
+    });
+
+    const transport = await pollUntil(
+      () => readBackgroundAgentState(state.id)?.transport || null,
+    );
+    expect(transport?.pipe).toBeTruthy();
+
+    const interactionEvents = [];
+    let conn = null;
+    const queuedResponses = [];
+    const respond = (message) => {
+      const response = {
+        type: "interaction_response",
+        requestId: message.requestId,
+        binding: message.binding,
+        answer: "yes",
+      };
+      if (conn) conn.send(response);
+      else queuedResponses.push(response);
+    };
+    conn = await connectBackgroundSession({
+      pipePath: transport.pipe,
+      token: transport.token,
+      onEvent: (message) => {
+        if (message.type !== "interaction_request") return;
+        interactionEvents.push(message);
+        respond(message);
+      },
+    });
+    for (const response of queuedResponses.splice(0)) conn.send(response);
+
+    const evidence = await pollUntil(() => {
+      try {
+        return JSON.parse(readFileSync(evidenceFile, "utf8"));
+      } catch {
+        return null;
+      }
+    }, { timeoutMs: 20_000 });
+    expect(evidence).toEqual({
+      beforePid: expect.any(Number),
+      afterPid: expect.any(Number),
+      answer: "yes",
+    });
+    expect(evidence.afterPid).toBe(evidence.beforePid);
+    // Once the suspended turn has consumed the answer, detach. Keeping the
+    // client connected intentionally parks a completed interactive session in
+    // idle, so terminal-state verification must happen after detach.
+    conn.close();
+
+    const completed = await pollUntil(() => {
+      const current = readBackgroundAgentState(state.id);
+      return current?.status === "completed" ? current : null;
+    }, { timeoutMs: 20_000 });
+    expect(completed?.turnCount).toBe(1);
+    expect(interactionEvents).toHaveLength(1);
+    expect(interactionEvents[0]).toMatchObject({
+      question: "Deploy to production?",
+      binding: {
+        backgroundAgentId: state.id,
+        sessionId: "sid-same-turn",
+        turnId: "provider-turn-1",
+        toolUseId: "provider-tool-call-1",
+        sequence: 1,
+      },
+    });
+  }, 30_000);
 });

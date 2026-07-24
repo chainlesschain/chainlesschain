@@ -22,6 +22,14 @@ const SLASH_SOURCE = fs.readFileSync(
   path.join(__dirname, "slash-commands.js"),
   "utf8",
 );
+const ELICITATION_SCHEMA_SOURCE = fs.readFileSync(
+  path.join(__dirname, "../../../elicitation-schema/index.js"),
+  "utf8",
+);
+const ELICITATION_FORM_SOURCE = fs.readFileSync(
+  path.join(__dirname, "elicitation-form.js"),
+  "utf8",
+);
 
 // Bump whenever an older retained Webview DOM is not safe to keep talking to
 // the current Extension Host. VS Code can preserve that DOM across an
@@ -87,6 +95,12 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
   .approval .risk-high { color: var(--vscode-errorForeground); font-weight:bold; }
   .approval .buttons { display:flex; gap:6px; }
   .approval.done { opacity:.65; border-color: var(--vscode-panel-border); }
+  .elicitation-field { display:flex; flex-direction:column; gap:3px; margin:8px 0; }
+  .elicitation-field > label { font-weight:600; }
+  .elicitation-description { opacity:.7; font-size:.88em; }
+  .elicitation-multi { display:flex; flex-direction:column; gap:3px; }
+  .elicitation-error { color:var(--vscode-errorForeground); font-size:.88em; }
+  .elicitation-error[hidden] { display:none; }
   #bar { display:flex; gap:4px; padding:6px; border-top:1px solid var(--vscode-panel-border); }
   #input { flex:1; resize:none; min-height:34px; max-height:120px;
            background: var(--vscode-input-background); color: var(--vscode-input-foreground);
@@ -137,6 +151,8 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
 <script nonce="${nonce}">${MD_LITE_SOURCE}</script>
 <script nonce="${nonce}">${AT_MENTION_SOURCE}</script>
 <script nonce="${nonce}">${SLASH_SOURCE}</script>
+<script nonce="${nonce}">${ELICITATION_SCHEMA_SOURCE}</script>
+<script nonce="${nonce}">${ELICITATION_FORM_SOURCE}</script>
   <div id="tabs"></div>
   <div id="log"></div>
   <div id="plan">
@@ -782,48 +798,23 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
          btns.className = "buttons";
          const schema = m.elicitation && m.requestedSchema && typeof m.requestedSchema === "object"
            ? m.requestedSchema : null;
-         const properties = schema && schema.properties && typeof schema.properties === "object"
-           ? schema.properties : null;
-         const required = new Set(schema && Array.isArray(schema.required) ? schema.required : []);
-         const fields = [];
-         if (properties && Object.keys(properties).length) {
-           Object.entries(properties).forEach(([name, spec]) => {
-             if (!spec || typeof spec !== "object") return;
-             const row = document.createElement("label");
-             row.style.display = "block";
-             row.appendChild(document.createTextNode(name + (required.has(name) ? " *" : "")));
-             let input;
-             if (Array.isArray(spec.enum) && spec.enum.length) {
-               input = document.createElement("select");
-               spec.enum.forEach((value) => {
-                 const option = document.createElement("option");
-                 option.value = String(value); option.textContent = String(value);
-                 input.appendChild(option);
-               });
-             } else if (spec.type === "boolean") {
-               input = document.createElement("input"); input.type = "checkbox";
-             } else {
-               input = document.createElement("input");
-               input.type = spec.format === "password" ? "password" : spec.type === "number" || spec.type === "integer" ? "number" : "text";
-               if (spec.description) input.placeholder = String(spec.description);
-             }
-             if (spec.default !== undefined && input.type !== "checkbox") input.value = String(spec.default);
-             if (spec.default === true && input.type === "checkbox") input.checked = true;
-             fields.push({ name, spec, input });
-             row.appendChild(input);
-             card.appendChild(row);
-           });
-           const submit = document.createElement("button");
-           submit.textContent = "Submit";
-           submit.addEventListener("click", () => {
-             const answer = {};
-             fields.forEach(({ name, spec, input }) => {
-               if (input.type === "checkbox") answer[name] = input.checked;
-               else if (input.value !== "" || required.has(name)) answer[name] = spec.type === "number" ? Number(input.value) : spec.type === "integer" ? Math.trunc(Number(input.value)) : input.value;
-             });
-             reply(answer);
-           });
-           btns.appendChild(submit);
+         const schemaForm = schema
+           ? CcElicitationForm.renderElicitationForm({
+               document,
+               container: card,
+               actions: btns,
+               schema,
+               onSubmit: reply,
+             })
+           : { rendered: false };
+         if (schema && !schemaForm.rendered) {
+           const warning = document.createElement("div");
+           warning.className = "info";
+           warning.textContent = "This schema is outside the supported MCP form vocabulary; enter a JSON object.";
+           card.appendChild(warning);
+         }
+         if (schemaForm.rendered) {
+           // The shared schema form populated the card and actions.
          } else if (opts.length && m.multiSelect === true) {
           const boxes = [];
           for (const o of opts) {
@@ -853,11 +844,30 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
         } else {
           const inp = document.createElement("input");
           inp.type = "text";
-          inp.placeholder = "Type your answer, Enter to send";
+          inp.placeholder = schema
+            ? "Enter a JSON object, Enter to send"
+            : "Type your answer, Enter to send";
           inp.style.flex = "1";
           const submit = document.createElement("button");
           submit.textContent = "Send";
-          const go = () => reply(inp.value);
+          const go = () => {
+            if (!schema) {
+              reply(inp.value);
+              return;
+            }
+            try {
+              const value = JSON.parse(inp.value);
+              if (!value || typeof value !== "object" || Array.isArray(value)) {
+                throw new Error("object required");
+              }
+              reply(value);
+            } catch {
+              const error = document.createElement("div");
+              error.className = "elicitation-error";
+              error.textContent = "Enter a valid JSON object.";
+              card.appendChild(error);
+            }
+          };
           submit.addEventListener("click", go);
           inp.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
           btns.appendChild(inp); btns.appendChild(submit);

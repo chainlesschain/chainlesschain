@@ -10,6 +10,8 @@ import {
   breakdownInstructionSources,
   breakdownMcpSchemas,
   breakdownSkillSources,
+  breakdownSkillCache,
+  buildContextOptimizations,
   rankContextSources,
 } from "../../src/lib/context-breakdown.js";
 
@@ -93,6 +95,49 @@ describe("rankContextSources", () => {
       tokens: 22,
     });
     expect(skills.total).toBe(22);
+  });
+
+  it("uses persisted Skill token totals without retaining the body", () => {
+    const skills = breakdownSkillSources(
+      [{ id: "private", source: "managed", tokens: 123 }],
+      est,
+    );
+    expect(skills).toEqual({
+      sources: [{ skill: "private", source: "managed", tokens: 123 }],
+      total: 123,
+    });
+  });
+
+  it("normalizes the two-tier Skill cache and produces actionable savings", () => {
+    const cache = breakdownSkillCache({
+      descriptors: { resident: 8, scans: 1, cacheHits: 3, estimatedTokens: 90 },
+      bodies: {
+        resident: 1,
+        cacheHits: 2,
+        cacheMisses: 1,
+        entries: [
+          {
+            id: "review",
+            source: "workspace",
+            estimatedTokens: 400,
+            loads: 3,
+            cacheHits: 2,
+            loadedBecause: ["run_skill"],
+          },
+        ],
+      },
+      savings: { lazyFileBytes: 12000, estimatedTokensAvoided: 3000 },
+    });
+    expect(cache.bodies.entries[0]).toMatchObject({
+      id: "review",
+      cacheHits: 2,
+    });
+    expect(
+      buildContextOptimizations({ skillCache: cache })[0],
+    ).toMatchObject({
+      kind: "skill_lazy_loading",
+      estimatedTokens: 3000,
+    });
   });
 
   it("attributes MCP schema tokens by server/tool source", () => {

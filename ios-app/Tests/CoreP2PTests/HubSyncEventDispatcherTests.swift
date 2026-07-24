@@ -32,13 +32,19 @@ final class HubSyncEventDispatcherTests: XCTestCase {
         partition: String? = nil,
         detail: [String: Int64]? = nil,
         report: [String: Int]? = nil,
-        message: String? = nil
+        reports: [[String: Any]]? = nil,
+        message: String? = nil,
+        extra: [String: Any]? = nil
     ) -> String {
         var params: [String: Any] = ["kind": kind, "adapter": adapter]
         if let p = partition { params["partition"] = p }
         if let d = detail { params["detail"] = d.mapValues { Int($0) } }
         if let r = report { params["report"] = r }
+        if let rs = reports { params["reports"] = rs }
         if let m = message { params["message"] = m }
+        if let extra {
+            for (key, value) in extra { params[key] = value }
+        }
         let envelope: [String: Any] = [
             "type": "chainlesschain:event:notification",
             "payload": [
@@ -97,6 +103,57 @@ final class HubSyncEventDispatcherTests: XCTestCase {
         XCTAssertNil(d.progress["email-imap"])  // cleared
         XCTAssertEqual(d.completedReports["email-imap"]?.ingested, 30)
         XCTAssertEqual(d.completedReports["email-imap"]?.durationMs, 18200)
+    }
+
+    func test_done_kind_with_failed_report_records_error_not_completion() async {
+        let src = StreamSource()
+        let d = HubSyncEventDispatcher(eventStream: src.stream)
+        d._testApply(HubSyncEvent(kind: "fetching", adapter: "email-imap"))
+
+        d._testApply(
+            HubSyncEvent(
+                kind: "done", adapter: "email-imap",
+                report: HubSyncReport(
+                    adapter: "email-imap",
+                    status: "unhealthy",
+                    error: "NO_INPUT"
+                )
+            )
+        )
+
+        XCTAssertNil(d.progress["email-imap"])
+        XCTAssertNil(d.completedReports["email-imap"])
+        XCTAssertEqual(d.errors["email-imap"], "NO_INPUT")
+    }
+
+    func test_batch_done_distributes_reports_by_adapter() async {
+        let src = StreamSource()
+        let d = HubSyncEventDispatcher(eventStream: src.stream)
+
+        d._testApply(
+            HubSyncEvent(
+                kind: "done",
+                adapter: "*",
+                reports: [
+                    HubSyncReport(
+                        adapter: "email-imap",
+                        status: "ok",
+                        entityCounts: ["events": 3]
+                    ),
+                    HubSyncReport(
+                        adapter: "apple-health",
+                        status: "skipped",
+                        skipReason: "NO_INPUT",
+                        skipMessage: "需要选择 export.xml"
+                    )
+                ]
+            )
+        )
+
+        XCTAssertEqual(d.completedReports["email-imap"]?.ingested, 3)
+        XCTAssertNil(d.completedReports["apple-health"])
+        XCTAssertNil(d.errors["apple-health"])
+        XCTAssertEqual(d.skippedReports["apple-health"]?.skipReason, "NO_INPUT")
     }
 
     func test_error_kind_clears_progress_and_stores_message() async {
@@ -159,6 +216,86 @@ final class HubSyncEventDispatcherTests: XCTestCase {
         XCTAssertEqual(ev?.kind, "fetching")
         XCTAssertEqual(ev?.partition, "INBOX")
         XCTAssertEqual(ev?.detail?["uidsScanned"], 200)
+    }
+
+    func test_full_envelope_parse_preserves_retry_progress() async {
+        let src = StreamSource()
+        let d = HubSyncEventDispatcher(eventStream: src.stream)
+        let raw = envelopeFor(
+            kind: "sync.retry",
+            adapter: "shopping-taobao",
+            extra: [
+                "attemptCount": 2,
+                "nextAttempt": 3,
+                "retryCount": 2,
+                "delayMs": 1000,
+                "error": "ECONNRESET"
+            ]
+        )
+        await d._testHandle(raw: raw)
+
+        let event = d.progress["shopping-taobao"]
+        XCTAssertEqual(event?.kind, "sync.retry")
+        XCTAssertEqual(event?.attemptCount, 2)
+        XCTAssertEqual(event?.nextAttempt, 3)
+        XCTAssertEqual(event?.retryCount, 2)
+        XCTAssertEqual(event?.delayMs, 1_000)
+        XCTAssertEqual(event?.error, "ECONNRESET")
+    }
+
+    func test_full_envelope_parse_preserves_request_throttle_progress() async {
+        let src = StreamSource()
+        let d = HubSyncEventDispatcher(eventStream: src.stream)
+        let raw = envelopeFor(
+            kind: "sync.request_throttled",
+            adapter: "shopping-taobao",
+            extra: [
+                "reason": "min_interval",
+                "delayMs": 10_000,
+                "sourceRequestCount": 2,
+                "operation": "order",
+                "page": 3
+            ]
+        )
+        await d._testHandle(raw: raw)
+
+        let event = d.progress["shopping-taobao"]
+        XCTAssertEqual(event?.kind, "sync.request_throttled")
+        XCTAssertEqual(event?.reason, "min_interval")
+        XCTAssertEqual(event?.delayMs, 10_000)
+        XCTAssertEqual(event?.sourceRequestCount, 2)
+        XCTAssertEqual(event?.operation, "order")
+        XCTAssertEqual(event?.page, 3)
+    }
+
+    func test_full_envelope_parse_routes_batch_reports() async {
+        let src = StreamSource()
+        let d = HubSyncEventDispatcher(eventStream: src.stream)
+        let raw = envelopeFor(
+            kind: "done",
+            adapter: "*",
+            reports: [
+                [
+                    "adapter": "email-imap",
+                    "status": "ok",
+                    "entityCounts": ["events": 3]
+                ],
+                [
+                    "adapter": "apple-health",
+                    "status": "skipped",
+                    "skipMessage": "需要选择 export.xml"
+                ]
+            ]
+        )
+
+        await d._testHandle(raw: raw)
+
+        XCTAssertEqual(d.completedReports["email-imap"]?.ingested, 3)
+        XCTAssertNil(d.errors["apple-health"])
+        XCTAssertEqual(
+            d.skippedReports["apple-health"]?.failureMessage,
+            "需要选择 export.xml"
+        )
     }
 
     func test_non_PDH_event_envelope_is_dropped() async {

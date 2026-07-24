@@ -4,7 +4,7 @@ package com.chainlesschain.android.remote.registry
  * 24 个 *Commands.kt 的 file-level 种子数据（来源：M1 [Android_REMOTE_commands_inventory.md]）。
  * 注：remote/commands/ 下共 25 个 *Commands.kt 文件，本 SKILLS 列表 seed 其中 24 个。
  *
- * - 数量与 inventory 表对齐：24 entries，total methodCount = 816
+ * - 数量与 inventory 表对齐：24 entries，total methodCount = 818
  * - risk 取**每文件最高档**（mutating + privileged → Privileged；safe + mutating → Mutating；
  *   safe + privileged → Privileged）
  * - requiresApproval 默认从 risk 推导（Privileged 强 ApprovalUI）
@@ -391,7 +391,7 @@ internal object SeedRegistry {
             category = "data",
             risk = SkillRiskTag.Mutating,
             androidSourceFile = "PersonalDataHubCommands.kt",
-            methodCount = 21,
+            methodCount = 23,
             methods = listOf(
                 MethodMetadata(
                     name = "ask",
@@ -477,6 +477,15 @@ internal object SeedRegistry {
                     requiresApprovalOverride = true,
                 ),
                 MethodMetadata(
+                    name = "activateEmail",
+                    description = "切换到已保存的 IMAP 邮箱账号",
+                    paramCount = 1,
+                    paramSummary = "email",
+                    returnTypeHint = "AdapterRegisterResponse",
+                    riskOverride = SkillRiskTag.Privileged,
+                    requiresApprovalOverride = true,
+                ),
+                MethodMetadata(
                     name = "unregisterEmail",
                     description = "注销邮箱配置（vault 数据保留）",
                     paramCount = 1,
@@ -505,6 +514,15 @@ internal object SeedRegistry {
                     description = "注册支付宝账单导入账号（含 ZIP 密码）",
                     paramCount = 2,
                     paramSummary = "account, opts?",
+                    returnTypeHint = "AdapterRegisterResponse",
+                    riskOverride = SkillRiskTag.Privileged,
+                    requiresApprovalOverride = true,
+                ),
+                MethodMetadata(
+                    name = "activateAlipay",
+                    description = "切换到已保存的支付宝账号",
+                    paramCount = 1,
+                    paramSummary = "email",
                     returnTypeHint = "AdapterRegisterResponse",
                     riskOverride = SkillRiskTag.Privileged,
                     requiresApprovalOverride = true,
@@ -557,12 +575,12 @@ internal object SeedRegistry {
         ),
     )
 
-    /** sanity check: 24 entries with total methodCount 816（与 M1 inventory 表合计一致 + Phase 14 hub）。 */
+    /** sanity check: 24 entries with total methodCount 818（与 M1 inventory 表合计一致 + Phase 14 hub）。 */
     fun verifyCounts(): Boolean {
         return SKILLS.size == EXPECTED_FILE_COUNT &&
             SKILLS.sumOf { it.methodCount } == EXPECTED_METHOD_COUNT
     }
 
     const val EXPECTED_FILE_COUNT = 24
-    const val EXPECTED_METHOD_COUNT = 816
+    const val EXPECTED_METHOD_COUNT = 818
 }

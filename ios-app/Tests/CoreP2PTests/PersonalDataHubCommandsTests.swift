@@ -237,6 +237,131 @@ final class PersonalDataHubCommandsTests: XCTestCase {
         } catch { XCTFail("wrong: \(error)") }
     }
 
+    func testSyncReportDecodesCanonicalRegistryFields() throws {
+        let report = try HubSyncReport.decode("""
+        {
+          "adapter": "email-imap",
+          "status": "ok",
+          "rawCount": 7,
+          "archivedRawCount": 7,
+          "archiveFailureCount": 0,
+          "entityCounts": {
+            "events": 4,
+            "persons": 2,
+            "places": 0,
+            "items": 1,
+            "topics": 0
+          },
+          "invalidCount": 1,
+          "kgTripleCount": 12,
+          "ragDocCount": 7,
+          "durationMs": 1234,
+          "watermark": "7",
+          "watermarkDeferred": true,
+          "checkpointCommitted": true,
+          "pageBudget": 10,
+          "nextPageBudget": 20,
+          "scanDeferredCount": 1,
+          "watermarkLookbackMs": 86400000,
+          "collectionSinceWatermark": "1700000000000",
+          "attemptCount": 3,
+          "retryCount": 2,
+          "totalRetryDelayMs": 1500,
+          "retryExhausted": false,
+          "retryAfterMs": 45000,
+          "rateLimitReason": "per_minute",
+          "rateLimitRemainingMinute": 0,
+          "rateLimitRemainingDay": 12,
+          "sourceRequestCount": 4,
+          "sourceRequestThrottleMs": 20000,
+          "sourceRequestRateLimitRemainingMinute": 2,
+          "sourceRequestRateLimitRemainingDay": 196
+        }
+        """)
+
+        XCTAssertEqual(report.adapter, "email-imap")
+        XCTAssertEqual(report.status, "ok")
+        XCTAssertTrue(report.isSuccessful)
+        XCTAssertTrue(report.isPartial)
+        XCTAssertTrue(report.watermarkDeferred)
+        XCTAssertEqual(report.ingested, 7)
+        XCTAssertEqual(report.rawCount, 7)
+        XCTAssertEqual(report.archivedRawCount, 7)
+        XCTAssertEqual(report.archiveFailureCount, 0)
+        XCTAssertEqual(report.checkpointCommitted, true)
+        XCTAssertEqual(report.pageBudget, 10)
+        XCTAssertEqual(report.nextPageBudget, 20)
+        XCTAssertEqual(report.scanDeferredCount, 1)
+        XCTAssertEqual(report.watermarkLookbackMs, 86_400_000)
+        XCTAssertEqual(report.collectionSinceWatermark, "1700000000000")
+        XCTAssertEqual(report.attemptCount, 3)
+        XCTAssertEqual(report.retryCount, 2)
+        XCTAssertEqual(report.totalRetryDelayMs, 1_500)
+        XCTAssertFalse(report.retryExhausted)
+        XCTAssertEqual(report.retryAfterMs, 45_000)
+        XCTAssertEqual(report.rateLimitReason, "per_minute")
+        XCTAssertEqual(report.rateLimitRemainingMinute, 0)
+        XCTAssertEqual(report.rateLimitRemainingDay, 12)
+        XCTAssertEqual(report.sourceRequestCount, 4)
+        XCTAssertEqual(report.sourceRequestThrottleMs, 20_000)
+        XCTAssertEqual(report.sourceRequestRateLimitRemainingMinute, 2)
+        XCTAssertEqual(report.sourceRequestRateLimitRemainingDay, 196)
+        XCTAssertEqual(report.invalidCount, 1)
+        XCTAssertEqual(report.kgTriples, 12)
+        XCTAssertEqual(report.ragDocs, 7)
+        XCTAssertEqual(report.entityCounts["persons"], 2)
+    }
+
+    func testSyncReportExposesRawArchiveFailure() throws {
+        let report = try HubSyncReport.decode("""
+        {
+          "adapter": "email-imap",
+          "status": "error",
+          "rawCount": 5,
+          "archivedRawCount": 4,
+          "archiveFailureCount": 1,
+          "checkpointCommitted": false,
+          "error": "raw archive incomplete"
+        }
+        """)
+
+        XCTAssertFalse(report.isSuccessful)
+        XCTAssertTrue(report.isPartial)
+        XCTAssertEqual(report.archivedRawCount, 4)
+        XCTAssertEqual(report.archiveFailureCount, 1)
+        XCTAssertEqual(report.checkpointCommitted, false)
+    }
+
+    func testSyncReportPreservesReadinessAwareSkip() throws {
+        let report = try HubSyncReport.decode("""
+        {
+          "adapter": "apple-health",
+          "status": "skipped",
+          "entityCounts": {},
+          "skipReason": "NO_INPUT",
+          "skipMessage": "需要选择 export.xml"
+        }
+        """)
+
+        XCTAssertTrue(report.isSkipped)
+        XCTAssertFalse(report.isSuccessful)
+        XCTAssertEqual(report.skipReason, "NO_INPUT")
+        XCTAssertEqual(report.failureMessage, "需要选择 export.xml")
+        XCTAssertEqual(report.ingested, 0)
+    }
+
+    func testLegacySyncReportErrorsAreNotTreatedAsSuccess() throws {
+        let report = try HubSyncReport.decode("""
+        {
+          "adapter": "email-imap",
+          "errors": ["IMAP timeout"]
+        }
+        """)
+
+        XCTAssertFalse(report.isSuccessful)
+        XCTAssertEqual(report.failureMessage, "IMAP timeout")
+    }
+
     // MARK: - 6. syncAll
 
     func testSyncAllHappyPath() async throws {
@@ -413,6 +538,23 @@ final class PersonalDataHubCommandsTests: XCTestCase {
         } catch { XCTFail("wrong: \(error)") }
     }
 
+    func testActivateEmailHappyPath() async throws {
+        let s = await makeSetup()
+        let task = Task {
+            try await s.cmds.activateEmail(pcPeerId: "pc", email: "saved@qq.com")
+        }
+        try await waitForOutbound()
+
+        let raw = s.transport.dcSent[0]
+        XCTAssertEqual(try methodFrom(raw), "personal-data-hub.activate-email")
+        XCTAssertEqual(try paramsFrom(raw)["email"] as? String, "saved@qq.com")
+
+        let id = try reqIdFrom(raw)
+        s.inbound.send(try responseRaw(reqId: id, result: ["name": "email-imap"]))
+        let r = try await task.value
+        XCTAssertEqual(r.name, "email-imap")
+    }
+
     // MARK: - 13. unregisterEmail
 
     func testUnregisterEmailHappyPath() async throws {
@@ -460,11 +602,13 @@ final class PersonalDataHubCommandsTests: XCTestCase {
 
         let id = try reqIdFrom(raw)
         s.inbound.send(try responseRaw(reqId: id, result: [
-            ["email": "u@qq.com", "provider": "qq", "registeredAt": 1700000000]
+            ["email": "u@qq.com", "provider": "qq",
+             "registeredAt": 1700000000, "active": true]
         ]))
         let r = try await task.value
         XCTAssertEqual(r.accounts.count, 1)
         XCTAssertEqual(r.accounts[0].provider, "qq")
+        XCTAssertTrue(r.accounts[0].active)
     }
 
     // MARK: - 16. registerAlipay
@@ -482,6 +626,26 @@ final class PersonalDataHubCommandsTests: XCTestCase {
         let account = params["account"] as? [String: Any]
         XCTAssertEqual(account?["email"] as? String, "u@a.com")
         XCTAssertEqual(account?["zipPassword"] as? String, "p")
+
+        let id = try reqIdFrom(raw)
+        s.inbound.send(try responseRaw(reqId: id, result: ["name": "alipay-bill"]))
+        let r = try await task.value
+        XCTAssertEqual(r.name, "alipay-bill")
+    }
+
+    func testActivateAlipayHappyPath() async throws {
+        let s = await makeSetup()
+        let task = Task {
+            try await s.cmds.activateAlipay(pcPeerId: "pc", email: "saved@alipay.com")
+        }
+        try await waitForOutbound()
+
+        let raw = s.transport.dcSent[0]
+        XCTAssertEqual(try methodFrom(raw), "personal-data-hub.activate-alipay")
+        XCTAssertEqual(
+            try paramsFrom(raw)["email"] as? String,
+            "saved@alipay.com"
+        )
 
         let id = try reqIdFrom(raw)
         s.inbound.send(try responseRaw(reqId: id, result: ["name": "alipay-bill"]))
@@ -548,11 +712,13 @@ final class PersonalDataHubCommandsTests: XCTestCase {
 
         let id = try reqIdFrom(raw)
         s.inbound.send(try responseRaw(reqId: id, result: [
-            ["email": "u@a.com", "hasZipPassword": true, "registeredAt": 1700000000]
+            ["email": "u@a.com", "hasZipPassword": true,
+             "registeredAt": 1700000000, "active": true]
         ]))
         let r = try await task.value
         XCTAssertEqual(r.accounts.count, 1)
         XCTAssertTrue(r.accounts[0].hasZipPassword)
+        XCTAssertTrue(r.accounts[0].active)
     }
 
     // MARK: - 20. registerMock

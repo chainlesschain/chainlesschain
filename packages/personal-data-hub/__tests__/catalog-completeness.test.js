@@ -40,6 +40,7 @@ function exportedCollectors() {
     else collectors.push({
       exportName,
       name: instance.name,
+      extractMode: instance.extractMode || "web-api",
       capabilities: instance.capabilities || [],
       placeholderFetch:
         typeof instance._fetchFn === "function" && instance._fetchFn.name === "defaultFetch",
@@ -62,6 +63,11 @@ describe("generated app-data catalog completeness", () => {
     expect(catalogNames).toEqual(exportedNames);
 
     const catalogByName = new Map(catalog.adapters.map((item) => [item.name, item]));
+    for (const collector of collectors) {
+      expect(catalogByName.get(collector.name).extractMode).toBe(
+        collector.extractMode,
+      );
+    }
     for (const collector of collectors.filter((item) => item.placeholderFetch)) {
       const capabilities = catalogByName.get(collector.name).capabilities;
       expect(capabilities).not.toContain("sync:cookie-api");

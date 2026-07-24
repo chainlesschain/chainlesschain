@@ -127,12 +127,18 @@ describe("LocalVault open + migrations", () => {
     vault.close();
 
     const wrongKey = generateKeyHex();
-    const bad = new LocalVault({ path: vaultPath, key: wrongKey, skipAudit: true });
+    const bad = new LocalVault({
+      path: vaultPath,
+      key: wrongKey,
+      skipAudit: true,
+    });
     expect(() => bad.open()).toThrow(/decryption failed/);
   });
 
   it("rejects construction with invalid key", () => {
-    expect(() => new LocalVault({ path: "/tmp/x.db", key: "tooshort" })).toThrow(/hex/);
+    expect(
+      () => new LocalVault({ path: "/tmp/x.db", key: "tooshort" }),
+    ).toThrow(/hex/);
     expect(() => new LocalVault({ path: "/tmp/x.db" })).toThrow(/key/);
     expect(() => new LocalVault({})).toThrow(/path/);
   });
@@ -142,7 +148,11 @@ describe("LocalVault open + migrations", () => {
     vault.putEvent(eventOk());
     vault.close();
 
-    const wrong = new LocalVault({ path: vaultPath, key: generateKeyHex(), skipAudit: true });
+    const wrong = new LocalVault({
+      path: vaultPath,
+      key: generateKeyHex(),
+      skipAudit: true,
+    });
     expect(() => wrong.open()).toThrow();
   });
 
@@ -159,10 +169,13 @@ describe("LocalVault open + migrations", () => {
       const row = vault.db
         .prepare(`SELECT sql FROM sqlite_master WHERE type='index' AND name=?`)
         .get(`uniq_${t}_source`);
-      expect(row, `index uniq_${t}_source must exist on fresh vault`).toBeTruthy();
+      expect(
+        row,
+        `index uniq_${t}_source must exist on fresh vault`,
+      ).toBeTruthy();
       expect(
         row.sql,
-        `uniq_${t}_source must include WHERE source_original_id IS NOT NULL`
+        `uniq_${t}_source must include WHERE source_original_id IS NOT NULL`,
       ).toContain("source_original_id IS NOT NULL");
     }
   });
@@ -173,11 +186,13 @@ describe("LocalVault open + migrations", () => {
     for (const t of tables) {
       vault.db.exec(`DROP INDEX uniq_${t}_source`);
       vault.db.exec(
-        `CREATE UNIQUE INDEX uniq_${t}_source ON ${t}(source_adapter, source_original_id)`
+        `CREATE UNIQUE INDEX uniq_${t}_source ON ${t}(source_adapter, source_original_id)`,
       );
     }
     vault.db
-      .prepare(`UPDATE _meta SET value=?, updated_at=? WHERE key='schema_version'`)
+      .prepare(
+        `UPDATE _meta SET value=?, updated_at=? WHERE key='schema_version'`,
+      )
       .run("3", Date.now());
     vault.close();
 
@@ -189,7 +204,7 @@ describe("LocalVault open + migrations", () => {
         .get(`uniq_${t}_source`);
       expect(
         row.sql,
-        `migration v4 must add WHERE clause to uniq_${t}_source`
+        `migration v4 must add WHERE clause to uniq_${t}_source`,
       ).toContain("source_original_id IS NOT NULL");
     }
     expect(reopen.schemaVersion()).toBe(TARGET_VERSION);
@@ -200,7 +215,7 @@ describe("LocalVault open + migrations", () => {
     freshVault();
     vault.db.exec(`DROP INDEX uniq_events_source`);
     vault.db.exec(
-      `CREATE UNIQUE INDEX uniq_events_source ON events(source_adapter, source_original_id)`
+      `CREATE UNIQUE INDEX uniq_events_source ON events(source_adapter, source_original_id)`,
     );
     vault.db
       .prepare(`UPDATE _meta SET value='3' WHERE key='schema_version'`)
@@ -210,12 +225,176 @@ describe("LocalVault open + migrations", () => {
     const reopen = new LocalVault({ path: vaultPath, key, skipAudit: true });
     reopen.open();
     const baseSource = source({ originalId: "test:dup:1" });
-    expect(() => reopen.putEvent(eventOk({ source: baseSource }))).not.toThrow();
+    expect(() =>
+      reopen.putEvent(eventOk({ source: baseSource })),
+    ).not.toThrow();
     expect(() =>
       reopen.putEvent(
-        eventOk({ source: baseSource, content: { text: "updated" } })
-      )
+        eventOk({ source: baseSource, content: { text: "updated" } }),
+      ),
     ).not.toThrow();
+    reopen.close();
+  });
+
+  it("migration v5 preserves legacy raw rows and adds account scope keys", () => {
+    freshVault();
+    vault.db.exec("DROP TABLE raw_events");
+    vault.db.exec(`
+      CREATE TABLE raw_events (
+        adapter TEXT NOT NULL,
+        original_id TEXT NOT NULL,
+        captured_at INTEGER NOT NULL,
+        payload TEXT NOT NULL,
+        PRIMARY KEY (adapter, original_id)
+      )
+    `);
+    vault.db
+      .prepare(
+        "INSERT INTO raw_events (adapter, original_id, captured_at, payload) VALUES (?, ?, ?, ?)",
+      )
+      .run("legacy-adapter", "same-id", ts(), '{"legacy":true}');
+    expect(vault.queryRawEvents()).toEqual([
+      expect.objectContaining({
+        scope: "",
+        originalId: "same-id",
+      }),
+    ]);
+    expect(
+      vault.queryRawEvents({
+        adapter: "legacy-adapter",
+        scope: "account:legacy-adapter:aaaaaaaa",
+      }),
+    ).toEqual([]);
+    vault.db
+      .prepare(
+        "UPDATE _meta SET value='4', updated_at=? WHERE key='schema_version'",
+      )
+      .run(Date.now());
+    vault.close();
+
+    const reopen = new LocalVault({
+      path: vaultPath,
+      key,
+      skipAudit: true,
+    });
+    reopen.open();
+
+    expect(
+      reopen.db
+        .prepare("PRAGMA table_info(raw_events)")
+        .all()
+        .map((column) => column.name),
+    ).toContain("scope");
+    expect(reopen.queryRawEvents()).toEqual([
+      expect.objectContaining({
+        adapter: "legacy-adapter",
+        scope: "",
+        originalId: "same-id",
+        payload: { legacy: true },
+      }),
+    ]);
+    for (const table of ["events", "persons", "places", "items"]) {
+      const columns = reopen.db
+        .prepare(`PRAGMA index_info(uniq_${table}_source)`)
+        .all()
+        .map((column) => column.name);
+      expect(columns).toEqual([
+        "source_adapter",
+        "source_scope",
+        "source_original_id",
+      ]);
+    }
+    expect(reopen.schemaVersion()).toBe(TARGET_VERSION);
+    reopen.close();
+  });
+
+  it("migration v6 creates persistent account-scoped scan continuation state", () => {
+    freshVault();
+    vault.db.exec("DROP TABLE sync_scan_state");
+    vault.db
+      .prepare(
+        "UPDATE _meta SET value='5', updated_at=? WHERE key='schema_version'",
+      )
+      .run(Date.now());
+    vault.close();
+
+    const reopen = new LocalVault({ path: vaultPath, key, skipAudit: true });
+    reopen.open();
+
+    const columns = reopen.db
+      .prepare("PRAGMA table_info(sync_scan_state)")
+      .all()
+      .map((column) => column.name);
+    expect(columns).toEqual([
+      "adapter",
+      "scope",
+      "page_budget",
+      "deferred_count",
+      "updated_at",
+    ]);
+    expect(reopen.schemaVersion()).toBe(TARGET_VERSION);
+    reopen.close();
+  });
+
+  it("migration v7 creates persistent account-scoped sync rate-limit state", () => {
+    freshVault();
+    vault.db.exec("DROP TABLE sync_rate_limit_state");
+    vault.db
+      .prepare(
+        "UPDATE _meta SET value='6', updated_at=? WHERE key='schema_version'",
+      )
+      .run(Date.now());
+    vault.close();
+
+    const reopen = new LocalVault({ path: vaultPath, key, skipAudit: true });
+    reopen.open();
+
+    const columns = reopen.db
+      .prepare("PRAGMA table_info(sync_rate_limit_state)")
+      .all()
+      .map((column) => column.name);
+    expect(columns).toEqual([
+      "adapter",
+      "scope",
+      "minute_window_started_at",
+      "minute_count",
+      "day_window_started_at",
+      "day_count",
+      "last_acquired_at",
+      "updated_at",
+    ]);
+    expect(reopen.schemaVersion()).toBe(TARGET_VERSION);
+    reopen.close();
+  });
+
+  it("migration v8 creates persistent source-request rate-limit state", () => {
+    freshVault();
+    vault.db.exec("DROP TABLE source_request_rate_limit_state");
+    vault.db
+      .prepare(
+        "UPDATE _meta SET value='7', updated_at=? WHERE key='schema_version'",
+      )
+      .run(Date.now());
+    vault.close();
+
+    const reopen = new LocalVault({ path: vaultPath, key, skipAudit: true });
+    reopen.open();
+
+    const columns = reopen.db
+      .prepare("PRAGMA table_info(source_request_rate_limit_state)")
+      .all()
+      .map((column) => column.name);
+    expect(columns).toEqual([
+      "adapter",
+      "scope",
+      "minute_window_started_at",
+      "minute_count",
+      "day_window_started_at",
+      "day_count",
+      "last_acquired_at",
+      "updated_at",
+    ]);
+    expect(reopen.schemaVersion()).toBe(TARGET_VERSION);
     reopen.close();
   });
 });
@@ -226,7 +405,11 @@ describe("LocalVault entity put/get round-trip", () => {
   it("event round-trips with content + extra preserved", () => {
     freshVault();
     const e = eventOk({
-      content: { text: "买妈妈生日礼物", title: "淘宝订单", amount: { value: 288.5, currency: "CNY", direction: "out" } },
+      content: {
+        text: "买妈妈生日礼物",
+        title: "淘宝订单",
+        amount: { value: 288.5, currency: "CNY", direction: "out" },
+      },
       extra: { vendor: "taobao", orderId: "T-12345" },
     });
     vault.putEvent(e);
@@ -265,7 +448,10 @@ describe("LocalVault entity put/get round-trip", () => {
 
   it("item round-trips with price object", () => {
     freshVault();
-    const it = itemOk({ price: { value: 288.5, currency: "CNY" }, merchant: "person-taobao" });
+    const it = itemOk({
+      price: { value: 288.5, currency: "CNY" },
+      merchant: "person-taobao",
+    });
     vault.putItem(it);
     const got = vault.getItem(it.id);
     expect(got.price).toEqual({ value: 288.5, currency: "CNY" });
@@ -275,7 +461,10 @@ describe("LocalVault entity put/get round-trip", () => {
   it("topic round-trips with parent + derivedFromEvents", () => {
     freshVault();
     const eId = newId();
-    const t = topicOk({ parentTopic: "topic-family", derivedFromEvents: [eId] });
+    const t = topicOk({
+      parentTopic: "topic-family",
+      derivedFromEvents: [eId],
+    });
     vault.putTopic(t);
     const got = vault.getTopic(t.id);
     expect(got.parentTopic).toBe("topic-family");
@@ -284,10 +473,12 @@ describe("LocalVault entity put/get round-trip", () => {
 
   it("put with invalid entity throws (validators gate the vault)", () => {
     freshVault();
-    expect(() => vault.putEvent({ id: "x", type: "event" })).toThrow(/invalid event/);
-    expect(() => vault.putPerson({ id: "x", type: "person", subtype: "alien", names: [] })).toThrow(
-      /invalid person/
+    expect(() => vault.putEvent({ id: "x", type: "event" })).toThrow(
+      /invalid event/,
     );
+    expect(() =>
+      vault.putPerson({ id: "x", type: "person", subtype: "alien", names: [] }),
+    ).toThrow(/invalid person/);
   });
 
   it("get returns null for unknown id", () => {
@@ -305,6 +496,35 @@ describe("LocalVault entity put/get round-trip", () => {
     expect(vault.getEvent(id).content.text).toBe("v2");
     expect(vault.stats().events).toBe(1);
   });
+
+  it("keeps identical source IDs from separate accounts as distinct events", () => {
+    freshVault();
+    const originalId = "shared-order-42";
+    const accountA = source({
+      originalId,
+      scope: "account:test:aaaaaaaa",
+    });
+    const accountB = source({
+      originalId,
+      scope: "account:test:bbbbbbbb",
+    });
+
+    const eventA = eventOk({ source: accountA });
+    const eventB = eventOk({ source: accountB });
+    vault.putEvent(eventA);
+    vault.putEvent(eventB);
+
+    expect(vault.stats().events).toBe(2);
+    expect(
+      vault.findBySource("events", "test", originalId, "account:test:aaaaaaaa")
+        .id,
+    ).toBe(eventA.id);
+    expect(
+      vault.findBySource("events", "test", originalId, "account:test:bbbbbbbb")
+        .id,
+    ).toBe(eventB.id);
+    expect(vault.findBySource("events", "test", originalId)).toBeNull();
+  });
 });
 
 // ─── putBatch (transactional) ─────────────────────────────────────────────
@@ -320,7 +540,13 @@ describe("LocalVault.putBatch", () => {
       topics: [topicOk()],
     };
     const counts = vault.putBatch(batch);
-    expect(counts).toEqual({ events: 2, persons: 3, places: 1, items: 0, topics: 1 });
+    expect(counts).toEqual({
+      events: 2,
+      persons: 3,
+      places: 1,
+      items: 0,
+      topics: 1,
+    });
     expect(vault.stats().events).toBe(2);
     expect(vault.stats().persons).toBe(3);
   });
@@ -332,7 +558,7 @@ describe("LocalVault.putBatch", () => {
       vault.putBatch({
         events: [eventOk(), { id: "bad", type: "event" /* invalid */ }],
         persons: [],
-      })
+      }),
     ).toThrow(/invalid event/);
     const after = vault.stats();
     expect(after.events).toBe(before.events); // no partial commit
@@ -379,20 +605,34 @@ describe("LocalVault.topActors", () => {
     expect(ids).not.toContain("self");
     expect(ids).not.toContain("person-wechat-self");
     expect(ids).not.toContain(null);
-    expect(r.actors[0]).toMatchObject({ actor: "person-qq-100", count: 5, name: "Alice" });
-    expect(r.actors[1]).toMatchObject({ actor: "person-qq-200", count: 3, name: null });
+    expect(r.actors[0]).toMatchObject({
+      actor: "person-qq-100",
+      count: 5,
+      name: "Alice",
+    });
+    expect(r.actors[1]).toMatchObject({
+      actor: "person-qq-200",
+      count: 3,
+      name: null,
+    });
     expect(r.total).toBe(10); // 5 + 3 + 2 non-self non-null
 
     // adapter filter scopes to one app.
     const q = vault.topActors({ adapter: "qq-pc", excludeSelf: true });
-    expect(q.actors.map((a) => a.actor)).toEqual(["person-qq-100", "person-qq-200"]);
+    expect(q.actors.map((a) => a.actor)).toEqual([
+      "person-qq-100",
+      "person-qq-200",
+    ]);
     expect(q.total).toBe(8);
 
     // adapters (plural) scopes across an app's adapter list (IN clause), taking
     // precedence over single adapter.
-    const multi = vault.topActors({ adapters: ["qq-pc", "wechat"], excludeSelf: true });
+    const multi = vault.topActors({
+      adapters: ["qq-pc", "wechat"],
+      excludeSelf: true,
+    });
     expect(multi.actors.map((a) => a.actor).sort()).toEqual(
-      ["person-qq-100", "person-qq-200", "person-wechat-300"].sort()
+      ["person-qq-100", "person-qq-200", "person-wechat-300"].sort(),
     );
     expect(multi.total).toBe(10); // qq-pc 5+3 + wechat 2 (self/null excluded)
 
@@ -401,7 +641,9 @@ describe("LocalVault.topActors", () => {
     expect(all.actors[0]).toMatchObject({ actor: "self", count: 9 });
 
     // limit caps results.
-    expect(vault.topActors({ excludeSelf: true, limit: 1 }).actors.length).toBe(1);
+    expect(vault.topActors({ excludeSelf: true, limit: 1 }).actors.length).toBe(
+      1,
+    );
   });
 
   it("returns empty actors (not a throw) for an empty vault", () => {
@@ -419,7 +661,7 @@ describe("LocalVault.topTopics", () => {
       eventOk({
         topics: topicId ? [topicId] : undefined,
         source: source({ adapter, originalId: newId() }),
-      })
+      }),
     );
 
   it("ranks topics by message count (json_each), resolves names, adapter + limit + total", () => {
@@ -440,9 +682,20 @@ describe("LocalVault.topTopics", () => {
 
     const r = vault.topTopics({ limit: 10 });
     expect(r.by).toBe("topic");
-    expect(r.topics[0]).toMatchObject({ topic: "group-A", count: 5, name: "工作群" });
-    expect(r.topics[1]).toMatchObject({ topic: "group-B", count: 3, name: "家庭群" });
-    expect(r.topics.find((t) => t.topic === "group-C")).toMatchObject({ count: 2, name: null });
+    expect(r.topics[0]).toMatchObject({
+      topic: "group-A",
+      count: 5,
+      name: "工作群",
+    });
+    expect(r.topics[1]).toMatchObject({
+      topic: "group-B",
+      count: 3,
+      name: "家庭群",
+    });
+    expect(r.topics.find((t) => t.topic === "group-C")).toMatchObject({
+      count: 2,
+      name: null,
+    });
     expect(r.total).toBe(10); // 5+3+2; the null-topic events drop out
 
     // adapter scope
@@ -456,7 +709,11 @@ describe("LocalVault.topTopics", () => {
 
   it("returns empty topics (not a throw) for an empty vault", () => {
     freshVault();
-    expect(vault.topTopics({})).toMatchObject({ by: "topic", total: 0, topics: [] });
+    expect(vault.topTopics({})).toMatchObject({
+      by: "topic",
+      total: 0,
+      topics: [],
+    });
   });
 });
 
@@ -487,7 +744,9 @@ describe("LocalVault.distinctActorCount", () => {
     expect(r.events).toBe(10); // 5+3+2 matching events
 
     // adapter scope
-    expect(vault.distinctActorCount({ adapter: "qq-pc", excludeSelf: true })).toMatchObject({
+    expect(
+      vault.distinctActorCount({ adapter: "qq-pc", excludeSelf: true }),
+    ).toMatchObject({
       distinct: 2, // a, b
       events: 8,
     });
@@ -498,7 +757,10 @@ describe("LocalVault.distinctActorCount", () => {
 
   it("returns zeros (not a throw) for an empty vault", () => {
     freshVault();
-    expect(vault.distinctActorCount({})).toMatchObject({ distinct: 0, events: 0 });
+    expect(vault.distinctActorCount({})).toMatchObject({
+      distinct: 0,
+      events: 0,
+    });
   });
 });
 
@@ -525,14 +787,77 @@ describe("LocalVault.putRawEvent", () => {
   it("validates required fields", () => {
     freshVault();
     expect(() =>
-      vault.putRawEvent({ adapter: "", originalId: "x", capturedAt: ts(), payload: {} })
+      vault.putRawEvent({
+        adapter: "",
+        originalId: "x",
+        capturedAt: ts(),
+        payload: {},
+      }),
     ).toThrow(/adapter/);
     expect(() =>
-      vault.putRawEvent({ adapter: "a", originalId: "", capturedAt: ts(), payload: {} })
+      vault.putRawEvent({
+        adapter: "a",
+        originalId: "",
+        capturedAt: ts(),
+        payload: {},
+      }),
     ).toThrow(/originalId/);
     expect(() =>
-      vault.putRawEvent({ adapter: "a", originalId: "x", capturedAt: 0, payload: {} })
+      vault.putRawEvent({
+        adapter: "a",
+        originalId: "x",
+        capturedAt: 0,
+        payload: {},
+      }),
     ).toThrow(/capturedAt/);
+  });
+
+  it("deduplicates within an account but never across accounts", () => {
+    freshVault();
+    const base = {
+      adapter: "shopping-test",
+      originalId: "order-42",
+      capturedAt: ts(),
+    };
+    vault.putRawEvent({
+      ...base,
+      scope: "account:shopping-test:aaaaaaaa",
+      payload: { account: "A", version: 1 },
+    });
+    vault.putRawEvent({
+      ...base,
+      scope: "account:shopping-test:aaaaaaaa",
+      payload: { account: "A", version: 2 },
+    });
+    vault.putRawEvent({
+      ...base,
+      scope: "account:shopping-test:bbbbbbbb",
+      payload: { account: "B", version: 1 },
+    });
+
+    expect(vault.stats().rawEvents).toBe(2);
+    expect(
+      vault.queryRawEvents({
+        adapter: "shopping-test",
+        scope: "account:shopping-test:aaaaaaaa",
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        scope: "account:shopping-test:aaaaaaaa",
+        payload: { account: "A", version: 2 },
+      }),
+    ]);
+    expect(
+      vault.queryRawEvents({
+        adapter: "shopping-test",
+        scope: "account:shopping-test:bbbbbbbb",
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        scope: "account:shopping-test:bbbbbbbb",
+        payload: { account: "B", version: 1 },
+      }),
+    ]);
   });
 });
 
@@ -568,7 +893,9 @@ describe("LocalVault.queryEvents + countEvents", () => {
     freshVault();
     const t0 = ts() - 1_000_000;
     for (let i = 0; i < 5; i++) {
-      vault.putEvent(eventOk({ subtype: "message", occurredAt: t0 + i * 1000 }));
+      vault.putEvent(
+        eventOk({ subtype: "message", occurredAt: t0 + i * 1000 }),
+      );
     }
     const page1 = vault.queryEvents({ limit: 2, offset: 0 });
     const page2 = vault.queryEvents({ limit: 2, offset: 2 });
@@ -581,7 +908,9 @@ describe("LocalVault.queryEvents + countEvents", () => {
     freshVault();
     const t0 = ts() - 1_000_000;
     for (let i = 0; i < 4; i++) {
-      vault.putEvent(eventOk({ subtype: "message", occurredAt: t0 + i * 1000 }));
+      vault.putEvent(
+        eventOk({ subtype: "message", occurredAt: t0 + i * 1000 }),
+      );
     }
     const asc = vault.queryEvents({ order: "asc", limit: 3 });
     expect(asc.length).toBe(3);
@@ -612,14 +941,18 @@ describe("LocalVault.searchPersons", () => {
 
   it("matches against identifiers (phone numbers)", () => {
     freshVault();
-    vault.putPerson(personOk({
-      names: ["张三"],
-      identifiers: { phone: ["13800001111"] },
-    }));
-    vault.putPerson(personOk({
-      names: ["李四"],
-      identifiers: { phone: ["13900002222"] },
-    }));
+    vault.putPerson(
+      personOk({
+        names: ["张三"],
+        identifiers: { phone: ["13800001111"] },
+      }),
+    );
+    vault.putPerson(
+      personOk({
+        names: ["李四"],
+        identifiers: { phone: ["13900002222"] },
+      }),
+    );
 
     const r = vault.searchPersons({ q: "13800" });
     expect(r.length).toBe(1);
@@ -628,9 +961,13 @@ describe("LocalVault.searchPersons", () => {
 
   it("matches against notes + relation", () => {
     freshVault();
-    vault.putPerson(personOk({
-      names: ["陈某某"], relation: "母亲", notes: "best mom ever",
-    }));
+    vault.putPerson(
+      personOk({
+        names: ["陈某某"],
+        relation: "母亲",
+        notes: "best mom ever",
+      }),
+    );
     vault.putPerson(personOk({ names: ["路人甲"], relation: "stranger" }));
 
     expect(vault.searchPersons({ q: "母亲" }).length).toBe(1);
@@ -660,17 +997,27 @@ describe("LocalVault.searchPersons", () => {
 
   it("respects subtype + adapter filters", () => {
     freshVault();
-    vault.putPerson(personOk({
-      subtype: "contact", names: ["张三"],
-      source: source({ adapter: "wechat" }),
-    }));
-    vault.putPerson(personOk({
-      subtype: "merchant", names: ["张三"],
-      source: source({ adapter: "system-data-android" }),
-    }));
+    vault.putPerson(
+      personOk({
+        subtype: "contact",
+        names: ["张三"],
+        source: source({ adapter: "wechat" }),
+      }),
+    );
+    vault.putPerson(
+      personOk({
+        subtype: "merchant",
+        names: ["张三"],
+        source: source({ adapter: "system-data-android" }),
+      }),
+    );
 
-    expect(vault.searchPersons({ q: "张三", subtype: "merchant" }).length).toBe(1);
-    expect(vault.searchPersons({ q: "张三", adapter: "wechat" }).length).toBe(1);
+    expect(vault.searchPersons({ q: "张三", subtype: "merchant" }).length).toBe(
+      1,
+    );
+    expect(vault.searchPersons({ q: "张三", adapter: "wechat" }).length).toBe(
+      1,
+    );
   });
 
   it("returns empty array when no match", () => {
@@ -716,6 +1063,229 @@ describe("LocalVault sync watermarks", () => {
     vault.setWatermark("a", "s", { watermark: "v2", lastStatus: "ok" });
     expect(vault.getWatermark("a", "s").watermark).toBe("v2");
   });
+
+  it("persists, scopes, updates, and clears adaptive scan state", () => {
+    freshVault();
+    expect(vault.getSyncScanState("travel", "account:a")).toBeNull();
+
+    vault.setSyncScanState("travel", "account:a", {
+      pageBudget: 20,
+      deferredCount: 1,
+      updatedAt: 1700000000000,
+    });
+    vault.setSyncScanState("travel", "account:b", {
+      pageBudget: 40,
+      deferredCount: 2,
+    });
+    vault.close();
+    vault = new LocalVault({ path: vaultPath, key, skipAudit: true });
+    vault.open();
+    expect(vault.getSyncScanState("travel", "account:a")).toMatchObject({
+      adapter: "travel",
+      scope: "account:a",
+      page_budget: 20,
+      deferred_count: 1,
+      updated_at: 1700000000000,
+    });
+
+    vault.setSyncScanState("travel", "account:a", {
+      pageBudget: 80,
+      deferredCount: 3,
+    });
+    expect(vault.getSyncScanState("travel", "account:a")).toMatchObject({
+      page_budget: 80,
+      deferred_count: 3,
+    });
+    expect(vault.getSyncScanState("travel", "account:b")).toMatchObject({
+      page_budget: 40,
+      deferred_count: 2,
+    });
+    expect(vault.stats().scanStates).toBe(2);
+
+    expect(vault.clearSyncScanState("travel", "account:a").changes).toBe(1);
+    expect(vault.getSyncScanState("travel", "account:a")).toBeNull();
+    expect(vault.getSyncScanState("travel", "account:b")).not.toBeNull();
+  });
+
+  it("rejects invalid adaptive scan state", () => {
+    freshVault();
+    expect(() =>
+      vault.setSyncScanState("travel", "", { pageBudget: 0 }),
+    ).toThrow(/pageBudget/);
+    expect(() =>
+      vault.setSyncScanState("travel", "", {
+        pageBudget: 10,
+        deferredCount: -1,
+      }),
+    ).toThrow(/deferredCount/);
+  });
+
+  it("atomically enforces and persists scoped minute/day sync limits", () => {
+    freshVault();
+    const now = Date.UTC(2026, 6, 24, 1, 2, 3);
+    const limits = { perMinute: 2, perDay: 3, minIntervalMs: 1_000 };
+
+    expect(
+      vault.acquireSyncRateLimit("shopping", "account:a", limits, now),
+    ).toMatchObject({
+      allowed: true,
+      remainingMinute: 1,
+      remainingDay: 2,
+    });
+    expect(
+      vault.acquireSyncRateLimit("shopping", "account:a", limits, now + 100),
+    ).toMatchObject({
+      allowed: false,
+      reason: "min_interval",
+      retryAfterMs: 900,
+    });
+    expect(
+      vault.acquireSyncRateLimit("shopping", "account:a", limits, now + 1_000),
+    ).toMatchObject({
+      allowed: true,
+      remainingMinute: 0,
+      remainingDay: 1,
+    });
+
+    vault.close();
+    vault = new LocalVault({ path: vaultPath, key, skipAudit: true });
+    vault.open();
+    const blocked = vault.acquireSyncRateLimit(
+      "shopping",
+      "account:a",
+      limits,
+      now + 2_000,
+    );
+    expect(blocked).toMatchObject({
+      allowed: false,
+      reason: "per_minute",
+      remainingMinute: 0,
+      remainingDay: 1,
+    });
+
+    const nextMinute = Math.floor(now / 60_000) * 60_000 + 60_000;
+    expect(
+      vault.acquireSyncRateLimit("shopping", "account:a", limits, nextMinute),
+    ).toMatchObject({
+      allowed: true,
+      remainingMinute: 1,
+      remainingDay: 0,
+    });
+    expect(
+      vault.acquireSyncRateLimit(
+        "shopping",
+        "account:a",
+        limits,
+        nextMinute + 1_000,
+      ),
+    ).toMatchObject({
+      allowed: false,
+      reason: "per_day",
+      remainingDay: 0,
+    });
+    expect(
+      vault.acquireSyncRateLimit(
+        "shopping",
+        "account:b",
+        limits,
+        nextMinute + 1_000,
+      ),
+    ).toMatchObject({
+      allowed: true,
+      remainingMinute: 1,
+      remainingDay: 2,
+    });
+    expect(vault.getSyncRateLimitState("shopping", "account:a")).toMatchObject({
+      minute_count: 1,
+      day_count: 3,
+      last_acquired_at: nextMinute,
+    });
+    expect(vault.stats().rateLimitStates).toBe(2);
+    expect(vault.clearSyncRateLimitState("shopping", "account:a").changes).toBe(
+      1,
+    );
+  });
+
+  it("rejects invalid sync rate-limit reservations", () => {
+    freshVault();
+    expect(() =>
+      vault.acquireSyncRateLimit("shopping", "", { perMinute: 1.5 }, 1000),
+    ).toThrow(/perMinute/);
+    expect(() =>
+      vault.acquireSyncRateLimit("shopping", "", { minIntervalMs: -1 }, 1000),
+    ).toThrow(/minIntervalMs/);
+    expect(() => vault.acquireSyncRateLimit("shopping", "", {}, -1)).toThrow(
+      /now/,
+    );
+  });
+
+  it("keeps persistent source-request quotas separate from sync triggers", () => {
+    freshVault();
+    const now = Date.UTC(2026, 6, 24, 2, 3, 4);
+    const limits = { perMinute: 2, perDay: 2, minIntervalMs: 1_000 };
+
+    expect(
+      vault.acquireSyncRateLimit("shopping", "account:a", limits, now),
+    ).toMatchObject({ allowed: true, remainingMinute: 1 });
+    expect(
+      vault.acquireSourceRequestRateLimit("shopping", "account:a", limits, now),
+    ).toMatchObject({
+      allowed: true,
+      remainingMinute: 1,
+      remainingDay: 1,
+    });
+    expect(
+      vault.acquireSourceRequestRateLimit(
+        "shopping",
+        "account:a",
+        limits,
+        now + 100,
+      ),
+    ).toMatchObject({
+      allowed: false,
+      reason: "min_interval",
+      retryAfterMs: 900,
+    });
+
+    vault.close();
+    vault = new LocalVault({ path: vaultPath, key, skipAudit: true });
+    vault.open();
+    expect(
+      vault.acquireSourceRequestRateLimit(
+        "shopping",
+        "account:a",
+        limits,
+        now + 1_000,
+      ),
+    ).toMatchObject({
+      allowed: true,
+      remainingMinute: 0,
+      remainingDay: 0,
+    });
+    expect(
+      vault.acquireSourceRequestRateLimit(
+        "shopping",
+        "account:a",
+        limits,
+        now + 2_000,
+      ),
+    ).toMatchObject({
+      allowed: false,
+      reason: "per_day",
+      remainingDay: 0,
+    });
+    expect(
+      vault.getSourceRequestRateLimitState("shopping", "account:a"),
+    ).toMatchObject({
+      minute_count: 2,
+      day_count: 2,
+      last_acquired_at: now + 1_000,
+    });
+    expect(vault.stats().sourceRequestRateLimitStates).toBe(1);
+    expect(
+      vault.clearSourceRequestRateLimitState("shopping", "account:a").changes,
+    ).toBe(1);
+  });
 });
 
 // ─── audit log ────────────────────────────────────────────────────────────
@@ -727,7 +1297,9 @@ describe("LocalVault audit_log", () => {
     vault.audit("test.event", "target-2");
     const rows = vault.queryAudit({ action: "test.event" });
     expect(rows.length).toBe(2);
-    expect(JSON.parse(rows.find((r) => r.target === "target-1").details).foo).toBe("bar");
+    expect(
+      JSON.parse(rows.find((r) => r.target === "target-1").details).foo,
+    ).toBe("bar");
   });
 
   it("filters by since + sorts DESC", () => {
@@ -754,11 +1326,19 @@ describe("LocalVault.rotateKey", () => {
     vault.close();
 
     // Old key should fail.
-    const withOldKey = new LocalVault({ path: vaultPath, key, skipAudit: true });
+    const withOldKey = new LocalVault({
+      path: vaultPath,
+      key,
+      skipAudit: true,
+    });
     expect(() => withOldKey.open()).toThrow();
 
     // New key opens fine and data is intact.
-    const withNewKey = new LocalVault({ path: vaultPath, key: newKey, skipAudit: true });
+    const withNewKey = new LocalVault({
+      path: vaultPath,
+      key: newKey,
+      skipAudit: true,
+    });
     withNewKey.open();
     expect(withNewKey.stats().events).toBe(1);
     expect(withNewKey.stats().persons).toBe(1);
@@ -855,7 +1435,9 @@ describe("LocalVault.sumEventAmount", () => {
 
   it("sums content.amount (shopping/travel) split by direction", () => {
     freshVault();
-    vault.putEvent(shopEvent({ value: 100, currency: "CNY", direction: "out" }));
+    vault.putEvent(
+      shopEvent({ value: 100, currency: "CNY", direction: "out" }),
+    );
     vault.putEvent(shopEvent({ value: 30, currency: "CNY", direction: "out" }));
     vault.putEvent(shopEvent({ value: 50, currency: "CNY", direction: "in" }));
     const r = vault.sumEventAmount();
@@ -878,7 +1460,13 @@ describe("LocalVault.sumEventAmount", () => {
 
   it("excludes events with no extractable amount (messages/visits)", () => {
     freshVault();
-    vault.putEvent(eventOk({ subtype: "message", content: { text: "hi" }, source: source({ adapter: "wechat" }) }));
+    vault.putEvent(
+      eventOk({
+        subtype: "message",
+        content: { text: "hi" },
+        source: source({ adapter: "wechat" }),
+      }),
+    );
     vault.putEvent(shopEvent({ value: 10, currency: "CNY", direction: "out" }));
     const r = vault.sumEventAmount();
     expect(r.count).toBe(1);
@@ -887,8 +1475,18 @@ describe("LocalVault.sumEventAmount", () => {
 
   it("filters by adapter and by time window", () => {
     freshVault();
-    vault.putEvent(shopEvent({ value: 10, currency: "CNY", direction: "out" }, { occurredAt: 1000, source: source({ adapter: "shopping-jd" }) }));
-    vault.putEvent(shopEvent({ value: 20, currency: "CNY", direction: "out" }, { occurredAt: 5000, source: source({ adapter: "shopping-taobao" }) }));
+    vault.putEvent(
+      shopEvent(
+        { value: 10, currency: "CNY", direction: "out" },
+        { occurredAt: 1000, source: source({ adapter: "shopping-jd" }) },
+      ),
+    );
+    vault.putEvent(
+      shopEvent(
+        { value: 20, currency: "CNY", direction: "out" },
+        { occurredAt: 5000, source: source({ adapter: "shopping-taobao" }) },
+      ),
+    );
     expect(vault.sumEventAmount({ adapter: "shopping-jd" }).total).toBe(10);
     expect(vault.sumEventAmount({ since: 2000 }).total).toBe(20);
     expect(vault.sumEventAmount({ until: 2000 }).total).toBe(10);
@@ -896,11 +1494,23 @@ describe("LocalVault.sumEventAmount", () => {
 
   it("filters by a subtypes[] set (used by overview to aggregate all SPEND_SUBTYPES in one pass)", () => {
     freshVault();
-    vault.putEvent(shopEvent({ value: 10, currency: "CNY", direction: "out" }, { subtype: "order" }));
+    vault.putEvent(
+      shopEvent(
+        { value: 10, currency: "CNY", direction: "out" },
+        { subtype: "order" },
+      ),
+    );
     vault.putEvent(alipayEvent(2000, "out", { subtype: "payment" })); // 20 yuan
-    vault.putEvent(shopEvent({ value: 999, currency: "CNY", direction: "out" }, { subtype: "browse" })); // not a spend subtype
+    vault.putEvent(
+      shopEvent(
+        { value: 999, currency: "CNY", direction: "out" },
+        { subtype: "browse" },
+      ),
+    ); // not a spend subtype
     // Only order + payment are in the set → 10 + 20 = 30 (browse's 999 excluded)
-    const r = vault.sumEventAmount({ subtypes: ["payment", "order", "refund"] });
+    const r = vault.sumEventAmount({
+      subtypes: ["payment", "order", "refund"],
+    });
     expect(r.count).toBe(2);
     expect(r.byDirection.out).toBe(30);
     // empty / non-array subtypes → no extra filter (back-compat)
@@ -909,7 +1519,9 @@ describe("LocalVault.sumEventAmount", () => {
 
   it("mixed shapes coexist; per-currency breakdown, NO cross-currency sum", () => {
     freshVault();
-    vault.putEvent(shopEvent({ value: 100, currency: "CNY", direction: "out" }));
+    vault.putEvent(
+      shopEvent({ value: 100, currency: "CNY", direction: "out" }),
+    );
     vault.putEvent(alipayEvent(20000, "out")); // 200 元 (CNY, alipay shape)
     vault.putEvent(shopEvent({ value: 5, currency: "USD", direction: "out" }));
     const r = vault.sumEventAmount();
@@ -919,8 +1531,16 @@ describe("LocalVault.sumEventAmount", () => {
     expect(r.total).toBe(300);
     expect(r.byDirection.out).toBe(300);
     // Full breakdown per currency.
-    expect(r.byCurrency.CNY).toEqual({ total: 300, count: 2, byDirection: { out: 300, in: 0 } });
-    expect(r.byCurrency.USD).toEqual({ total: 5, count: 1, byDirection: { out: 5, in: 0 } });
+    expect(r.byCurrency.CNY).toEqual({
+      total: 300,
+      count: 2,
+      byDirection: { out: 300, in: 0 },
+    });
+    expect(r.byCurrency.USD).toEqual({
+      total: 5,
+      count: 1,
+      byDirection: { out: 5, in: 0 },
+    });
   });
 
   it("single currency → byCurrency has one entry matching top-level", () => {
@@ -929,7 +1549,11 @@ describe("LocalVault.sumEventAmount", () => {
     vault.putEvent(shopEvent({ value: 10, currency: "CNY", direction: "in" }));
     const r = vault.sumEventAmount();
     expect(Object.keys(r.byCurrency)).toEqual(["CNY"]);
-    expect(r.byCurrency.CNY).toEqual({ total: 50, count: 2, byDirection: { out: 40, in: 10 } });
+    expect(r.byCurrency.CNY).toEqual({
+      total: 50,
+      count: 2,
+      byDirection: { out: 40, in: 10 },
+    });
     expect(r.total).toBe(50);
     expect(r.currency).toBe("CNY");
   });
@@ -984,9 +1608,22 @@ describe("LocalVault.topSpendingByAdapter", () => {
     const r = vault.topSpendingByAdapter({ limit: 10 });
     expect(r.by).toBe("adapter");
     expect(r.currency).toBe("CNY"); // most spend events
-    expect(r.adapters.map((a) => a.adapter)).toEqual(["taobao", "alipay-bill", "wechat-pay", "jd"]);
-    expect(r.adapters[0]).toMatchObject({ adapter: "taobao", total: 200, count: 2 });
-    expect(r.adapters[1]).toMatchObject({ adapter: "alipay-bill", total: 150, count: 3 }); // income row excluded
+    expect(r.adapters.map((a) => a.adapter)).toEqual([
+      "taobao",
+      "alipay-bill",
+      "wechat-pay",
+      "jd",
+    ]);
+    expect(r.adapters[0]).toMatchObject({
+      adapter: "taobao",
+      total: 200,
+      count: 2,
+    });
+    expect(r.adapters[1]).toMatchObject({
+      adapter: "alipay-bill",
+      total: 150,
+      count: 3,
+    }); // income row excluded
     expect(r.total).toBe(400); // 200+150+30+20 CNY out; income + USD excluded
     expect(r.count).toBe(7); // CNY out events only
   });
@@ -994,7 +1631,11 @@ describe("LocalVault.topSpendingByAdapter", () => {
   it("limit caps the adapter list but total stays the grand total", () => {
     freshVault();
     vault.putBatch({
-      events: [spend("a", 50, "out"), spend("b", 30, "out"), spend("c", 10, "out")],
+      events: [
+        spend("a", 50, "out"),
+        spend("b", 30, "out"),
+        spend("c", 10, "out"),
+      ],
     });
     const r = vault.topSpendingByAdapter({ limit: 1 });
     expect(r.adapters.length).toBe(1);
@@ -1005,7 +1646,11 @@ describe("LocalVault.topSpendingByAdapter", () => {
   it("returns empty (not a throw) when there are no amounts", () => {
     freshVault();
     vault.putBatch({ events: [eventOk({ content: { text: "hi" } })] });
-    expect(vault.topSpendingByAdapter({})).toMatchObject({ by: "adapter", total: 0, adapters: [] });
+    expect(vault.topSpendingByAdapter({})).toMatchObject({
+      by: "adapter",
+      total: 0,
+      adapters: [],
+    });
   });
 });
 
@@ -1036,7 +1681,13 @@ describe("LocalVault.eventHistogram", () => {
     const r = vault.eventHistogram({ bucket: "weekday" });
     expect(r.buckets.length).toBe(7);
     expect(r.buckets.map((b) => b.label)).toEqual([
-      "周日", "周一", "周二", "周三", "周四", "周五", "周六",
+      "周日",
+      "周一",
+      "周二",
+      "周三",
+      "周四",
+      "周五",
+      "周六",
     ]);
     expect(r.total).toBe(1);
   });
@@ -1046,7 +1697,11 @@ describe("LocalVault.eventHistogram", () => {
     const jun = Date.UTC(2020, 5, 15, 12, 0, 0); // 2020-06-15 noon UTC
     const mar = Date.UTC(2021, 2, 15, 12, 0, 0); // 2021-03-15 noon UTC
     vault.putBatch({
-      events: [eventOk({ occurredAt: jun }), eventOk({ occurredAt: jun }), eventOk({ occurredAt: mar })],
+      events: [
+        eventOk({ occurredAt: jun }),
+        eventOk({ occurredAt: jun }),
+        eventOk({ occurredAt: mar }),
+      ],
     });
     const r = vault.eventHistogram({ bucket: "month" });
     expect(r.buckets.map((b) => b.bucket)).toEqual(["2020-06", "2021-03"]);
@@ -1071,7 +1726,11 @@ describe("LocalVault.latestWithPerson", () => {
     vault.putBatch({
       events: [
         eventOk({ occurredAt: t - 3000, actor: "person-mom" }), // mom's inbound
-        eventOk({ occurredAt: t - 1000, actor: "self", participants: ["self", "person-mom"] }), // my outbound to mom
+        eventOk({
+          occurredAt: t - 1000,
+          actor: "self",
+          participants: ["self", "person-mom"],
+        }), // my outbound to mom
         eventOk({ occurredAt: t - 2000, actor: "person-dad" }), // unrelated → excluded
       ],
     });

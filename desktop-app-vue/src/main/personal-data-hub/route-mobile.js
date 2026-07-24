@@ -27,6 +27,7 @@ const hubWiring = require("./wiring.js");
 const {
   ingestSystemDataAndroidSnapshot,
 } = require("@chainlesschain/personal-data-hub");
+const { runDedicatedBatchCollectors } = require("./sync-result.js");
 
 /**
  * action (kebab-case, no `personal-data-hub.` prefix) → async (hub, params) => result.
@@ -89,7 +90,8 @@ const DISPATCH = {
 
   // Android expects SyncReportList(reports: [...])
   "sync-all": async (hub, p) => {
-    const reports = await hub.registry.syncAll(p.options || {});
+    const registryReports = await hub.registry.syncAll(p.options || {});
+    const reports = await runDedicatedBatchCollectors(hub, registryReports);
     return { reports: Array.isArray(reports) ? reports : [reports] };
   },
 
@@ -136,6 +138,8 @@ const DISPATCH = {
   "register-email": async (hub, p) =>
     await hub.registerEmailAdapter({ account: p.account, opts: p.opts || {} }),
 
+  "activate-email": async (hub, p) => await hub.activateEmailAdapter(p.email),
+
   "unregister-email": async (hub, p) =>
     await hub.unregisterEmailAdapter(p.email),
 
@@ -146,6 +150,8 @@ const DISPATCH = {
 
   "register-alipay": async (hub, p) =>
     await hub.registerAlipayAdapter({ account: p.account, opts: p.opts || {} }),
+
+  "activate-alipay": async (hub, p) => await hub.activateAlipayAdapter(p.email),
 
   "unregister-alipay": async (hub, p) =>
     await hub.unregisterAlipayAdapter(p.email),
@@ -185,10 +191,18 @@ const DISPATCH = {
     ),
 
   "sync-all-stream": async (hub, p, ctx) =>
-    runSyncStream(hub, ctx, () => hub.registry.syncAll(p.options || {}), {
-      adapter: "*",
-      streamIdPrefix: "pdh-saa",
-    }),
+    runSyncStream(
+      hub,
+      ctx,
+      async () => {
+        const registryReports = await hub.registry.syncAll(p.options || {});
+        return await runDedicatedBatchCollectors(hub, registryReports);
+      },
+      {
+        adapter: "*",
+        streamIdPrefix: "pdh-saa",
+      },
+    ),
 };
 
 /**
@@ -232,12 +246,19 @@ function runSyncStream(hub, ctx, runFn, meta) {
   // Use queueMicrotask so the return runs before the async body proceeds.
   Promise.resolve().then(async () => {
     try {
-      const report = await runFn();
+      const result = await runFn();
       try {
-        ctx.sendEventToPeer("personal-data-hub.sync.progress", {
+        const completedPayload = {
           kind: "done",
           adapter: meta.adapter,
-          report,
+        };
+        if (Array.isArray(result)) {
+          completedPayload.reports = result;
+        } else {
+          completedPayload.report = result;
+        }
+        ctx.sendEventToPeer("personal-data-hub.sync.progress", {
+          ...completedPayload,
         });
       } catch (_e) {}
     } catch (err) {

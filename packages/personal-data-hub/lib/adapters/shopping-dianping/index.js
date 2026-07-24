@@ -23,8 +23,8 @@
  *      client-side JS. No pure-Node implementation survives the rotation, so
  *      signing is injected via `opts.signProvider` (or constructor
  *      `signProvider`). When absent the request is still issued with
- *      `sign: null` — best-effort, the endpoint may reject it, which surfaces
- *      as zero events rather than a crash. The endpoint constant is best-effort
+ *      `sign: null`; HTTP/non-JSON rejection is surfaced as a sync failure and
+ *      preserves the previous watermark. The endpoint constant is best-effort
  *      and overridable via `opts.ordersUrl`; Dianping/Meituan rotate H5 paths,
  *      so adjust / pass opts.ordersUrl if it drifts (FAMILY-23 playbook —
  *      endpoints are not field-verified here).
@@ -54,7 +54,13 @@
 "use strict";
 
 const fs = require("node:fs");
-const { normalizeOrderRecord, CookieAuth } = require("../shopping-base");
+const { createAccountScopeFromAccount } = require("../../account-scope");
+const {
+  normalizeOrderRecord,
+  CookieAuth,
+  hasRuntimeCookie,
+  resolveCookieContext,
+} = require("../shopping-base");
 
 const NAME = "shopping-dianping";
 const VERSION = "0.1.0";
@@ -62,6 +68,7 @@ const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_ORDER = "order";
 const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_ORDER]);
+const UNKNOWN_ORDERS = Object.freeze([]);
 
 // Best-effort Dianping order-centre list endpoint (shares Meituan's H5 infra).
 // Overridable via opts.ordersUrl; the injected fetchFn host may also point at
@@ -74,11 +81,18 @@ class DianpingAdapter {
     // only when account.cookies is supplied; account.userId is then required
     // (checked at sync time).
     this.account = opts.account || null;
+    this.defaultScope = createAccountScopeFromAccount(NAME, this.account, [
+      "userId",
+    ]);
     this._cookieAuth =
       opts.account && opts.account.cookies
-        ? new CookieAuth({ platform: "dianping", cookies: opts.account.cookies })
+        ? new CookieAuth({
+            platform: "dianping",
+            cookies: opts.account.cookies,
+          })
         : null;
-    this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+    this._fetchFn =
+      typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
     // sign seam — async fn({ url, query, cookies }) → string|null. When absent,
     // requests carry sign: null (best-effort, the endpoint may reject).
     this._signProvider =
@@ -89,8 +103,15 @@ class DianpingAdapter {
         : DIANPING_ORDERS_URL;
 
     this.name = NAME;
+    this.runtimeScopeIdentityKey = "userId";
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
     this.version = VERSION;
-    this.capabilities = ["sync:snapshot", "sync:cookie-api", "parse:dianping-orders"];
+    this.capabilities = [
+      "sync:snapshot",
+      "sync:cookie-api",
+      "parse:dianping-orders",
+    ];
     this.extractMode = "web-api";
     this.rateLimits = { perMinute: 8, perDay: 200 };
     this.dataDisclosure = {
@@ -118,17 +139,29 @@ class DianpingAdapter {
       }
       return { ok: true, mode: "snapshot-file" };
     }
-    if (this._cookieAuth) {
-      const ok = await this._cookieAuth.validate();
-      if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
-      if (!this.account || !this.account.userId) {
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts: ctx,
+      platform: "dianping",
+      identityKey: "userId",
+    });
+    if (cookieAuth) {
+      const ok = await cookieAuth.validate();
+      if (!ok)
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          error: "cookies missing",
+        };
+      if (!account || !account.userId) {
         return {
           ok: false,
           reason: "NO_ACCOUNT_USER_ID",
           message: "cookie-api mode requires account.userId",
         };
       }
-      return { ok: true, account: this.account.userId, mode: "cookie" };
+      return { ok: true, account: account.userId, mode: "cookie" };
     }
     return {
       ok: false,
@@ -138,9 +171,9 @@ class DianpingAdapter {
     };
   }
 
-  async healthCheck() {
-    if (this._cookieAuth) {
-      const r = await this.authenticate();
+  async healthCheck(opts = {}) {
+    if (this._cookieAuth || hasRuntimeCookie(opts)) {
+      const r = await this.authenticate(opts);
       return r.ok
         ? { ok: true, lastChecked: Date.now() }
         : { ok: false, reason: r.reason, error: r.error };
@@ -153,12 +186,12 @@ class DianpingAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    if (this._cookieAuth) {
+    if (this._cookieAuth || hasRuntimeCookie(opts)) {
       yield* this._syncViaCookie(opts);
       return;
     }
     throw new Error(
-      "DianpingAdapter.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode; Dianping's H5 API requires an anti-bot sign supplied via opts.signProvider)",
+      "DianpingAdapter.sync: needs opts.inputPath OR configured account.cookies OR opts.cookie + opts.accountId (cookie-api signing via signProvider)",
     );
   }
 
@@ -224,13 +257,20 @@ class DianpingAdapter {
   }
 
   async *_syncViaCookie(opts = {}) {
-    if (!this.account || !this.account.userId) {
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts,
+      platform: "dianping",
+      identityKey: "userId",
+    });
+    if (!account || !account.userId) {
       throw new Error(
-        "DianpingAdapter._syncViaCookie: account.userId required (set via new DianpingAdapter({ account: { userId, cookies } }))",
+        "DianpingAdapter._syncViaCookie: account.userId or opts.accountId required",
       );
     }
-    if (!(await this._cookieAuth.validate())) return;
-    const cookies = this._cookieAuth.toHeader();
+    if (!cookieAuth || !(await cookieAuth.validate())) return;
+    const cookies = cookieAuth.toHeader();
     const sinceMs =
       opts.sinceWatermark != null
         ? parseInt(String(opts.sinceWatermark), 10) || 0
@@ -240,19 +280,37 @@ class DianpingAdapter {
     if (include[KIND_ORDER] === false) return;
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
 
     let emitted = 0;
     let page = 1;
-    while (true) {
+    let scanComplete = false;
+    while (page <= maxPages) {
       const query = { page, pageSize, ts: Date.now() };
       // sign seam — best-effort. null when no signProvider.
       let sign = null;
       if (this._signProvider) {
-        sign = await this._signProvider({ url: this._ordersUrl, query, cookies });
+        sign = await this._signProvider({
+          url: this._ordersUrl,
+          query,
+          cookies,
+        });
       }
-      const resp = await this._fetchFn({ url: this._ordersUrl, cookies, query, sign });
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({ operation: KIND_ORDER, page });
+      }
+      const resp = await this._fetchFn({
+        url: this._ordersUrl,
+        cookies,
+        query,
+        sign,
+      });
       const orders = extractOrders(resp);
-      if (!orders.length) break;
+      if (!orders.length) {
+        scanComplete = orders !== UNKNOWN_ORDERS;
+        break;
+      }
       let pageHasNew = false;
       let reachedWatermark = false;
       for (const raw of orders) {
@@ -272,8 +330,15 @@ class DianpingAdapter {
         };
         emitted += 1;
       }
-      if (reachedWatermark || !pageHasNew || orders.length < pageSize) break;
+      if (reachedWatermark || (pageHasNew && orders.length < pageSize)) {
+        scanComplete = true;
+        break;
+      }
+      if (!pageHasNew) break;
       page += 1;
+    }
+    if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+      opts.markWatermarkComplete();
     }
   }
 
@@ -312,7 +377,7 @@ function stableOriginalId(kind, id) {
  * also pre-flatten to `{ orders }`. Tolerant of all common shapes.
  */
 function extractOrders(resp) {
-  if (!resp || typeof resp !== "object") return [];
+  if (!resp || typeof resp !== "object") return UNKNOWN_ORDERS;
   if (Array.isArray(resp.orders)) return resp.orders;
   if (Array.isArray(resp.orderList)) return resp.orderList;
   if (Array.isArray(resp.list)) return resp.list;
@@ -323,7 +388,7 @@ function extractOrders(resp) {
     if (Array.isArray(data.list)) return data.list;
     if (Array.isArray(data.records)) return data.records;
   }
-  return [];
+  return UNKNOWN_ORDERS;
 }
 
 /**
@@ -338,7 +403,12 @@ function orderToRecord(o) {
     o.orderId || o.unifiedOrderId || o.dealId || o.id || o.order_id;
   if (!orderId) return null;
   const merchant =
-    o.shopName || o.poiName || o.dealTitle || o.title || o.merchantName || "大众点评";
+    o.shopName ||
+    o.poiName ||
+    o.dealTitle ||
+    o.title ||
+    o.merchantName ||
+    "大众点评";
 
   const items = [];
   const rawItems = o.dealList || o.deals || o.itemList || o.items || [];
@@ -355,7 +425,9 @@ function orderToRecord(o) {
   return {
     vendorId: "dianping",
     orderId: String(orderId),
-    placedAt: parseTime(o.orderTime || o.addTime || o.createTime || o.order_time),
+    placedAt: parseTime(
+      o.orderTime || o.addTime || o.createTime || o.order_time,
+    ),
     paidAt: parseTime(o.payTime || o.paidTime || o.pay_time),
     status: mapStatus(o.statusText || o.statusDesc || o.statusName || o.status),
     merchantName: merchant,
@@ -376,7 +448,8 @@ function orderToRecord(o) {
     },
     items,
     recipient: o.recipientName || o.contactName || null,
-    shippingAddress: o.recipientAddress || o.deliveryAddress || o.address || null,
+    shippingAddress:
+      o.recipientAddress || o.deliveryAddress || o.address || null,
     extras: { capturedBy: "cookie-api", platform: "dianping" },
   };
 }
@@ -445,9 +518,12 @@ function parseTime(v) {
 
 function mapStatus(s) {
   const t = String(s || "").toLowerCase();
-  if (t.includes("退款") || t.includes("退订") || t.includes("refund")) return "refunded";
-  if (t.includes("取消") || t.includes("cancel") || t.includes("已关闭")) return "cancelled";
-  if (t.includes("配送") || t.includes("派送") || t.includes("shipped")) return "shipped";
+  if (t.includes("退款") || t.includes("退订") || t.includes("refund"))
+    return "refunded";
+  if (t.includes("取消") || t.includes("cancel") || t.includes("已关闭"))
+    return "cancelled";
+  if (t.includes("配送") || t.includes("派送") || t.includes("shipped"))
+    return "shipped";
   if (
     t.includes("已完成") ||
     t.includes("已消费") ||

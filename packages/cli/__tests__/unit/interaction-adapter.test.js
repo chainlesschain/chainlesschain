@@ -157,6 +157,46 @@ describe("WebSocketInteractionAdapter", () => {
     await expect(promise).resolves.toEqual({ color: "blue" });
   });
 
+  it("askUser emits a bound question_request and resumes the same promise", async () => {
+    const promise = adapter.askUser({
+      question: "Which environment?",
+      options: [
+        { label: "Staging", value: "staging" },
+        { label: "Production", value: "production" },
+      ],
+      multiSelect: false,
+      timeoutMs: 30_000,
+      defaultValue: "staging",
+      turnId: "turn-3",
+      toolUseId: "tool-use-9",
+    });
+
+    const sent = JSON.parse(ws.send.mock.calls[0][0]);
+    expect(sent).toMatchObject({
+      type: "question_request",
+      questionType: "ask_user_question",
+      sessionId: "session-123",
+      question: "Which environment?",
+      multiSelect: false,
+      timeoutMs: 30_000,
+      defaultValue: "staging",
+      turnId: "turn-3",
+      turn_id: "turn-3",
+      toolUseId: "tool-use-9",
+      tool_use_id: "tool-use-9",
+      metadata: {
+        kind: "ask_user_question",
+        turnId: "turn-3",
+        toolUseId: "tool-use-9",
+      },
+    });
+    expect(sent.id).toBe(sent.requestId);
+
+    adapter.resolveAnswer(sent.requestId, "staging");
+    await expect(promise).resolves.toBe("staging");
+    expect(adapter._pending.size).toBe(0);
+  });
+
   it("askSelect sends question with choices", async () => {
     const choices = [
       { name: "Red", value: "red" },

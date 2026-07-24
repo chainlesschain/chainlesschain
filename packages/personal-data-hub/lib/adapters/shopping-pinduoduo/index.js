@@ -23,8 +23,8 @@
  *   the signing itself is injected via `opts.signProvider` (or constructor
  *   `signProvider`). On Android the in-APK WebView JS VM produces the token;
  *   in tests a stub returns a fixed value. When no signProvider is configured
- *   the request is still issued with `antiToken: null` — best-effort, the
- *   endpoint may 403, which surfaces as zero events rather than a crash.
+ *   the request is still issued with `antiToken: null`; HTTP/non-JSON
+ *   rejection is surfaced as a sync failure and preserves the old watermark.
  *
  * Snapshot schema (mirrors PinduoduoLocalCollector.SNAPSHOT_SCHEMA_VERSION):
  *
@@ -55,7 +55,13 @@
 "use strict";
 
 const fs = require("node:fs");
-const { normalizeOrderRecord, CookieAuth } = require("../shopping-base");
+const { createAccountScopeFromAccount } = require("../../account-scope");
+const {
+  normalizeOrderRecord,
+  CookieAuth,
+  hasRuntimeCookie,
+  resolveCookieContext,
+} = require("../shopping-base");
 
 const NAME = "shopping-pinduoduo";
 const VERSION = "0.2.0";
@@ -63,6 +69,7 @@ const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_ORDER = "order";
 const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_ORDER]);
+const UNKNOWN_ORDERS = Object.freeze([]);
 
 const PINDUODUO_ORDERS_URL =
   "https://mobile.yangkeduo.com/proxy/api/galerie/transaction/transaction_list";
@@ -73,19 +80,33 @@ class PinduoduoAdapter {
     // activates only when account.cookies is supplied; account.uid is then
     // required (checked at sync time).
     this.account = opts.account || null;
+    this.defaultScope = createAccountScopeFromAccount(NAME, this.account, [
+      "uid",
+    ]);
     this._cookieAuth =
       opts.account && opts.account.cookies
-        ? new CookieAuth({ platform: "pinduoduo", cookies: opts.account.cookies })
+        ? new CookieAuth({
+            platform: "pinduoduo",
+            cookies: opts.account.cookies,
+          })
         : null;
-    this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+    this._fetchFn =
+      typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
     // anti_token signing seam — see file header. Async fn({ url, query,
     // cookies }) → string|null. When absent, requests carry antiToken: null.
     this._signProvider =
       typeof opts.signProvider === "function" ? opts.signProvider : null;
 
     this.name = NAME;
+    this.runtimeScopeIdentityKey = "uid";
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
     this.version = VERSION;
-    this.capabilities = ["sync:snapshot", "sync:cookie-api", "parse:pinduoduo-orders"];
+    this.capabilities = [
+      "sync:snapshot",
+      "sync:cookie-api",
+      "parse:pinduoduo-orders",
+    ];
     this.extractMode = "web-api";
     this.rateLimits = { perMinute: 8, perDay: 200 };
     this.dataDisclosure = {
@@ -115,17 +136,29 @@ class PinduoduoAdapter {
       }
       return { ok: true, mode: "snapshot-file" };
     }
-    if (this._cookieAuth) {
-      const ok = await this._cookieAuth.validate();
-      if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
-      if (!this.account || !this.account.uid) {
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts: ctx,
+      platform: "pinduoduo",
+      identityKey: "uid",
+    });
+    if (cookieAuth) {
+      const ok = await cookieAuth.validate();
+      if (!ok)
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          error: "cookies missing",
+        };
+      if (!account || !account.uid) {
         return {
           ok: false,
           reason: "NO_ACCOUNT_UID",
           message: "cookie-api mode requires account.uid",
         };
       }
-      return { ok: true, account: this.account.uid, mode: "cookie" };
+      return { ok: true, account: account.uid, mode: "cookie" };
     }
     return {
       ok: false,
@@ -135,9 +168,9 @@ class PinduoduoAdapter {
     };
   }
 
-  async healthCheck() {
-    if (this._cookieAuth) {
-      const r = await this.authenticate();
+  async healthCheck(opts = {}) {
+    if (this._cookieAuth || hasRuntimeCookie(opts)) {
+      const r = await this.authenticate(opts);
       return r.ok
         ? { ok: true, lastChecked: Date.now() }
         : { ok: false, reason: r.reason, error: r.error };
@@ -150,12 +183,12 @@ class PinduoduoAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    if (this._cookieAuth) {
+    if (this._cookieAuth || hasRuntimeCookie(opts)) {
       yield* this._syncViaCookie(opts);
       return;
     }
     throw new Error(
-      "PinduoduoAdapter.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode; pinduoduo's web API requires anti_token signing supplied via opts.signProvider)",
+      "PinduoduoAdapter.sync: needs opts.inputPath OR configured account.cookies OR opts.cookie + opts.accountId (anti_token signing via signProvider)",
     );
   }
 
@@ -223,12 +256,19 @@ class PinduoduoAdapter {
   }
 
   async *_syncViaCookie(opts = {}) {
-    if (!this.account || !this.account.uid) {
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts,
+      platform: "pinduoduo",
+      identityKey: "uid",
+    });
+    if (!account || !account.uid) {
       throw new Error(
-        "PinduoduoAdapter._syncViaCookie: account.uid required (set via new PinduoduoAdapter({ account: { uid, cookies } }))",
+        "PinduoduoAdapter._syncViaCookie: account.uid or opts.accountId required",
       );
     }
-    if (!(await this._cookieAuth.validate())) return;
+    if (!cookieAuth || !(await cookieAuth.validate())) return;
     const sinceMs =
       opts.sinceWatermark != null
         ? parseInt(String(opts.sinceWatermark), 10) || 0
@@ -236,9 +276,12 @@ class PinduoduoAdapter {
     const pageSize = Number.isFinite(opts.pageSize) ? opts.pageSize : 10;
     const include = opts.include || {};
     if (include[KIND_ORDER] === false) return;
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
 
     let pageNumber = 1;
-    while (true) {
+    let scanComplete = false;
+    while (pageNumber <= maxPages) {
       const query = { pageNumber, pageSize, ts: Date.now() };
       // anti_token signing seam — best-effort. null when no signProvider.
       let antiToken = null;
@@ -246,17 +289,26 @@ class PinduoduoAdapter {
         antiToken = await this._signProvider({
           url: PINDUODUO_ORDERS_URL,
           query,
-          cookies: this._cookieAuth.toHeader(),
+          cookies: cookieAuth.toHeader(),
+        });
+      }
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({
+          operation: KIND_ORDER,
+          page: pageNumber,
         });
       }
       const resp = await this._fetchFn({
         url: PINDUODUO_ORDERS_URL,
-        cookies: this._cookieAuth.toHeader(),
+        cookies: cookieAuth.toHeader(),
         antiToken,
         query,
       });
       const orders = extractOrders(resp);
-      if (!orders.length) break;
+      if (!orders.length) {
+        scanComplete = orders !== UNKNOWN_ORDERS;
+        break;
+      }
       let pageHasNew = false;
       let reachedWatermark = false;
       for (const raw of orders) {
@@ -276,8 +328,15 @@ class PinduoduoAdapter {
       }
       // Stop once we've crossed the watermark, drained the page, or the page
       // came back short (last page).
-      if (reachedWatermark || !pageHasNew || orders.length < pageSize) break;
+      if (reachedWatermark || (pageHasNew && orders.length < pageSize)) {
+        scanComplete = true;
+        break;
+      }
+      if (!pageHasNew) break;
       pageNumber += 1;
+    }
+    if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+      opts.markWatermarkComplete();
     }
   }
 
@@ -318,13 +377,14 @@ function stableOriginalId(kind, id) {
  * pre-flatten to `{ orders }`. Tolerant of all common shapes.
  */
 function extractOrders(resp) {
-  if (!resp || typeof resp !== "object") return [];
+  if (!resp || typeof resp !== "object") return UNKNOWN_ORDERS;
   if (Array.isArray(resp.orders)) return resp.orders;
   if (Array.isArray(resp.order_list)) return resp.order_list;
   if (Array.isArray(resp.list)) return resp.list;
-  if (resp.result && Array.isArray(resp.result.order_list)) return resp.result.order_list;
+  if (resp.result && Array.isArray(resp.result.order_list))
+    return resp.result.order_list;
   if (resp.result && Array.isArray(resp.result.list)) return resp.result.list;
-  return [];
+  return UNKNOWN_ORDERS;
 }
 
 /**
@@ -336,16 +396,23 @@ function orderToRecord(o) {
   if (!o || typeof o !== "object") return null;
   const orderId = o.order_sn || o.orderSn || o.orderId || o.id;
   if (!orderId) return null;
-  const merchant = o.mall_name || o.mallName || o.merchantName || o.shop_name || "拼多多";
+  const merchant =
+    o.mall_name || o.mallName || o.merchantName || o.shop_name || "拼多多";
 
   const items = [];
-  const rawItems = o.goods_list || o.order_goods || o.goodsList || o.items || [];
+  const rawItems =
+    o.goods_list || o.order_goods || o.goodsList || o.items || [];
   for (const it of Array.isArray(rawItems) ? rawItems : []) {
     if (!it) continue;
     items.push({
       name: it.goods_name || it.goodsName || it.name || it.skuName,
-      quantity: parseInt(it.goods_number || it.goods_count || it.quantity || 1, 10),
-      unitPrice: centsToYuan(it.goods_price || it.goodsPrice || it.unitPrice || 0),
+      quantity: parseInt(
+        it.goods_number || it.goods_count || it.quantity || 1,
+        10,
+      ),
+      unitPrice: centsToYuan(
+        it.goods_price || it.goodsPrice || it.unitPrice || 0,
+      ),
       sku: it.sku_id || it.skuId || it.goods_id || it.sku || null,
     });
   }
@@ -353,18 +420,24 @@ function orderToRecord(o) {
   return {
     vendorId: "pinduoduo",
     orderId: String(orderId),
-    placedAt: parseTime(o.order_time || o.create_at || o.createAt || o.order_create_at),
+    placedAt: parseTime(
+      o.order_time || o.create_at || o.createAt || o.order_create_at,
+    ),
     paidAt: parseTime(o.pay_time || o.payTime || o.group_order_pay_time),
     status: mapStatus(pickStatusText(o)),
     merchantName: merchant,
     totalAmount: {
-      value: centsToYuan(o.order_amount || o.orderAmount || o.pay_amount || o.total_amount || 0),
+      value: centsToYuan(
+        o.order_amount || o.orderAmount || o.pay_amount || o.total_amount || 0,
+      ),
       currency: "CNY",
     },
     items,
     recipient: o.receive_name || o.receiver || o.recipient || null,
-    shippingAddress: o.address || o.receive_address || o.shippingAddress || null,
-    trackingNumber: o.tracking_number || o.waybill_no || o.trackingNumber || null,
+    shippingAddress:
+      o.address || o.receive_address || o.shippingAddress || null,
+    trackingNumber:
+      o.tracking_number || o.waybill_no || o.trackingNumber || null,
     extras: { capturedBy: "cookie-api", platform: "pinduoduo" },
   };
 }
@@ -460,11 +533,15 @@ function parseTime(v) {
 function mapStatus(s) {
   const t = String(s || "").toLowerCase();
   if (t.includes("退款") || t.includes("refund")) return "refunded";
-  if (t.includes("取消") || t.includes("cancel") || t.includes("已关闭")) return "cancelled";
-  if (t.includes("已发货") || t.includes("配送") || t.includes("shipped")) return "shipped";
-  if (t.includes("已完成") || t.includes("已收货") || t.includes("delivered")) return "delivered";
+  if (t.includes("取消") || t.includes("cancel") || t.includes("已关闭"))
+    return "cancelled";
+  if (t.includes("已发货") || t.includes("配送") || t.includes("shipped"))
+    return "shipped";
+  if (t.includes("已完成") || t.includes("已收货") || t.includes("delivered"))
+    return "delivered";
   // Pinduoduo-specific statuses
-  if (t === "placed" || t.includes("待付款") || t.includes("待支付")) return "placed";
+  if (t === "placed" || t.includes("待付款") || t.includes("待支付"))
+    return "placed";
   return "placed";
 }
 

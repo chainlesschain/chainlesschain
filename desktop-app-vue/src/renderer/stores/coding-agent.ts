@@ -35,6 +35,15 @@ const SERVER_READY_EVENT_TYPES = ["runtime.server.ready", "server-ready"];
 const SERVER_STOPPED_EVENT_TYPES = ["runtime.server.stopped", "server-stopped"];
 const SESSION_STARTED_EVENT_TYPES = ["session.started", "session-created"];
 const SESSION_RESUMED_EVENT_TYPES = ["session.resumed", "session-resumed"];
+const QUESTION_REQUEST_EVENT_TYPES = [
+  "question",
+  "question_request",
+  "question.requested",
+];
+const QUESTION_RESOLVED_EVENT_TYPES = [
+  "question_resolved",
+  "question.resolved",
+];
 const SUB_AGENT_STARTED_EVENT_TYPES = ["sub-agent.started"];
 const SUB_AGENT_COMPLETED_EVENT_TYPES = ["sub-agent.completed"];
 const SUB_AGENT_FAILED_EVENT_TYPES = ["sub-agent.failed"];
@@ -97,6 +106,47 @@ function matchesEventType(
   candidates: string[],
 ): boolean {
   return !!type && candidates.includes(type);
+}
+
+function questionRequestId(
+  event: CodingAgentEvent | null | undefined,
+): string | null {
+  const value =
+    event?.requestId ?? event?.payload?.requestId ?? event?.payload?.id ?? null;
+  return value === null || value === undefined || value === ""
+    ? null
+    : String(value);
+}
+
+function questionResolutionKey(
+  sessionId: string | null | undefined,
+  requestId: string | number | null | undefined,
+): string | null {
+  if (!sessionId || requestId === null || requestId === undefined) {
+    return null;
+  }
+  return `${sessionId}\u0000${String(requestId)}`;
+}
+
+function reconcileQuestionResolution(
+  resolvedQuestions: Record<string, boolean>,
+  event: CodingAgentEvent,
+): void {
+  if (
+    !matchesEventType(event.type, [
+      ...QUESTION_REQUEST_EVENT_TYPES,
+      ...QUESTION_RESOLVED_EVENT_TYPES,
+    ])
+  ) {
+    return;
+  }
+  const key = questionResolutionKey(event.sessionId, questionRequestId(event));
+  if (!key) return;
+  if (matchesEventType(event.type, QUESTION_RESOLVED_EVENT_TYPES)) {
+    resolvedQuestions[key] = true;
+  } else {
+    delete resolvedQuestions[key];
+  }
 }
 
 interface CodingAgentSessionSummary {
@@ -177,7 +227,7 @@ interface CodingAgentState {
   worktreeLoading: boolean;
   error: string | null;
   permissionRules: CodingAgentPermissionRules | null;
-  resolvedMcpElicitations: Record<string, boolean>;
+  resolvedQuestions: Record<string, boolean>;
   unsubscribe: (() => void) | null;
 }
 
@@ -209,7 +259,7 @@ export const useCodingAgentStore = defineStore("coding-agent", {
     worktreeLoading: false,
     error: null,
     permissionRules: null,
-    resolvedMcpElicitations: {},
+    resolvedQuestions: {},
     unsubscribe: null,
   }),
 
@@ -275,18 +325,32 @@ export const useCodingAgentStore = defineStore("coding-agent", {
       );
     },
 
+    latestQuestionRequest(): CodingAgentEvent | null {
+      return (
+        [...this.sessionEvents].reverse().find((event) => {
+          if (!matchesEventType(event.type, QUESTION_REQUEST_EVENT_TYPES)) {
+            return false;
+          }
+          const requestId = questionRequestId(event);
+          const key = questionResolutionKey(event.sessionId, requestId);
+          return !!requestId && !!key && !this.resolvedQuestions[key];
+        }) || null
+      );
+    },
+
     latestMcpElicitation(): CodingAgentEvent | null {
       return (
-        [...this.sessionEvents]
-          .reverse()
-          .find(
-            (event) =>
-              event.type === "question" &&
-              event.payload?.metadata?.kind === "mcp_elicitation" &&
-              !this.resolvedMcpElicitations[
-                String(event.requestId || event.payload?.requestId || event.id)
-              ],
-          ) || null
+        [...this.sessionEvents].reverse().find((event) => {
+          if (
+            !matchesEventType(event.type, QUESTION_REQUEST_EVENT_TYPES) ||
+            event.payload?.metadata?.kind !== "mcp_elicitation"
+          ) {
+            return false;
+          }
+          const requestId = questionRequestId(event);
+          const key = questionResolutionKey(event.sessionId, requestId);
+          return !!requestId && !!key && !this.resolvedQuestions[key];
+        }) || null
       );
     },
 
@@ -410,7 +474,9 @@ export const useCodingAgentStore = defineStore("coding-agent", {
 
     async refreshPermissionRules(): Promise<CodingAgentPermissionRules | null> {
       try {
-        const result = await (window as any).electronAPI.codingAgent.getPermissionRules();
+        const result = await (
+          window as any
+        ).electronAPI.codingAgent.getPermissionRules();
         if (result?.rules) {
           this.permissionRules = {
             allow: Array.isArray(result.rules.allow) ? result.rules.allow : [],
@@ -435,8 +501,13 @@ export const useCodingAgentStore = defineStore("coding-agent", {
       scope?: "project" | "local" | "user";
     }): Promise<boolean> {
       try {
-        const result = await (window as any).electronAPI.codingAgent.setPermissionRule(payload);
-        if (result?.type === "permission-rule-updated" || result?.added === true) {
+        const result = await (
+          window as any
+        ).electronAPI.codingAgent.setPermissionRule(payload);
+        if (
+          result?.type === "permission-rule-updated" ||
+          result?.added === true
+        ) {
           await this.refreshPermissionRules();
           return true;
         }
@@ -1243,29 +1314,51 @@ export const useCodingAgentStore = defineStore("coding-agent", {
       }
     },
 
-    async respondElicitation(payload: {
+    async respondQuestion(payload: {
+      sessionId?: string;
       requestId: string | number;
+      turnId?: string | null;
+      toolUseId?: string | null;
       action: "accept" | "decline" | "cancel";
       answer?: any;
     }): Promise<boolean> {
-      if (!this.currentSessionId || payload?.requestId == null) return false;
+      const sessionId = payload.sessionId || this.currentSessionId;
+      if (!sessionId || payload?.requestId == null) return false;
+      if (this.currentSessionId && sessionId !== this.currentSessionId) {
+        this.error = "Question belongs to a different coding agent session";
+        return false;
+      }
       try {
-        const result = await (
-          window as any
-        ).electronAPI.codingAgent.respondElicitation({
-          sessionId: this.currentSessionId,
+        const api = (window as any).electronAPI.codingAgent;
+        const respond = api.respondQuestion || api.respondElicitation;
+        const result = await respond({
+          sessionId,
           ...payload,
         });
         if (!result?.success) {
-          throw new Error(result?.error || "Failed to answer MCP elicitation");
+          throw new Error(result?.error || "Failed to answer question");
         }
-        this.resolvedMcpElicitations[String(payload.requestId)] = true;
+        const key = questionResolutionKey(sessionId, payload.requestId);
+        if (key) {
+          this.resolvedQuestions[key] = true;
+        }
         return true;
       } catch (error: any) {
         this.error = error.message;
-        codingAgentLogger.error("respondElicitation failed:", error);
+        codingAgentLogger.error("respondQuestion failed:", error);
         return false;
       }
+    },
+
+    async respondElicitation(payload: {
+      sessionId?: string;
+      requestId: string | number;
+      turnId?: string | null;
+      toolUseId?: string | null;
+      action: "accept" | "decline" | "cancel";
+      answer?: any;
+    }): Promise<boolean> {
+      return this.respondQuestion(payload);
     },
 
     async enterPlanMode(): Promise<void> {
@@ -1647,6 +1740,9 @@ export const useCodingAgentStore = defineStore("coding-agent", {
           ...this.events.filter((event) => event.sessionId !== targetId),
           ...result.events,
         ];
+        for (const event of result.events) {
+          reconcileQuestionResolution(this.resolvedQuestions, event);
+        }
       }
     },
 
@@ -1680,6 +1776,8 @@ export const useCodingAgentStore = defineStore("coding-agent", {
           }
           return;
         }
+
+        reconcileQuestionResolution(this.resolvedQuestions, event);
 
         if (event.sessionId === this.currentSessionId) {
           this.fetchSessionState(event.sessionId).catch((error: any) => {

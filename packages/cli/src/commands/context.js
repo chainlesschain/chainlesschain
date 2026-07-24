@@ -138,6 +138,8 @@ export function registerContextCommand(program) {
             breakdownInstructionSources,
             breakdownMcpSchemas,
             breakdownSkillSources,
+            breakdownSkillCache,
+            buildContextOptimizations,
             rankContextSources,
           } =
             await import("../lib/context-breakdown.js");
@@ -169,6 +171,9 @@ export function registerContextCommand(program) {
             recordedContextSources?.skills || [],
             estimateTokens,
           );
+          const skillCache = breakdownSkillCache(
+            recordedContextSources?.skillCache,
+          );
           const ranked = rankContextSources({
             instructionTotal: instr.total,
             buckets,
@@ -192,6 +197,12 @@ export function registerContextCommand(program) {
             mcpSchemaTokens: mcp.total,
             skills: skills.sources,
             skillTokens: skills.total,
+            skillCache,
+            optimizations: buildContextOptimizations({
+              instructions: instr.sources,
+              mcpSchemas: mcp.sources,
+              skillCache,
+            }),
             ranked: ranked.sources,
             combinedTotal: ranked.total,
           };
@@ -223,6 +234,10 @@ export function registerContextCommand(program) {
                     instructionTokens: sourceReport.instructionTokens,
                     mcpSchemas: sourceReport.mcpSchemas,
                     mcpSchemaTokens: sourceReport.mcpSchemaTokens,
+                    skills: sourceReport.skills,
+                    skillTokens: sourceReport.skillTokens,
+                    skillCache: sourceReport.skillCache,
+                    optimizations: sourceReport.optimizations,
                     combinedTotal: sourceReport.combinedTotal,
                     cwd: sourceReport.cwd,
                   }
@@ -314,6 +329,23 @@ export function registerContextCommand(program) {
               `${chalk.cyan(bar(s.share))} ${String(Math.round(s.share * 100)).padStart(3)}%`,
           );
         }
+        if (sourceReport.skillCache.descriptors.resident > 0) {
+          logger.log("");
+          logger.log(
+            chalk.gray(
+              `  Skill cache: ${sourceReport.skillCache.descriptors.resident} descriptors, ` +
+                `${sourceReport.skillCache.bodies.resident} bodies resident, ` +
+                `${sourceReport.skillCache.savings.estimatedTokensAvoided} estimated tokens kept lazy`,
+            ),
+          );
+        }
+        if (sourceReport.optimizations.length > 0) {
+          logger.log("");
+          logger.log(chalk.bold("Optimization hints"));
+          for (const hint of sourceReport.optimizations) {
+            logger.log(chalk.gray("  路 ") + hint.message);
+          }
+        }
         logger.log(
           chalk.gray(
             "  note: instructions reflect the current cwd (what a new run here",
@@ -326,7 +358,7 @@ export function registerContextCommand(program) {
         );
         logger.log(
           chalk.gray(
-            "  tool schemas load at runtime and are not counted here.",
+            "  costs come from the newest persisted runtime source snapshot.",
           ),
         );
       }

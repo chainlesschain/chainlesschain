@@ -165,7 +165,7 @@ describe("stream side-effect ledger — resume reconcile + recovery notice", () 
     ).toBeUndefined();
   });
 
-  it("a broken injected loader never fails the stream", async () => {
+  it("keeps a read-only stream available when the critical ledger cannot be loaded", async () => {
     const h = harness({
       options: { sessionId: "chat-abc" },
       over: {
@@ -179,9 +179,7 @@ describe("stream side-effect ledger — resume reconcile + recovery notice", () 
     });
     const outcome = await h.run();
     expect(outcome.exitCode).toBe(0);
-    expect(
-      h.events().find((e) => e.subtype === "side_effect_recovery"),
-    ).toBeUndefined();
+    expect(h.seenTurns).toHaveLength(1);
   });
 });
 
@@ -215,6 +213,88 @@ describe("stream side-effect ledger — turn-time recording", () => {
     expect(op.key).toBe("a.txt");
     expect(op.meta.tool).toBe("write_file");
     expect(op.meta.idempotencyKey).toBeTruthy();
+  });
+
+  it("does not resume the generator into a dangerous tool when STARTED cannot persist", async () => {
+    const ledger = new SideEffectLedger();
+    let effectExecuted = false;
+    const loop = async function* () {
+      yield {
+        type: "tool-executing",
+        tool: "write_file",
+        args: { path: "blocked.txt", content: "must-not-run" },
+      };
+      effectExecuted = true;
+      yield {
+        type: "tool-result",
+        tool: "write_file",
+        result: { ok: true },
+      };
+    };
+    const h = harness({
+      options: { sessionId: "chat-abc" },
+      over: {
+        loadSideEffectLedger: () => ledger,
+        persistSideEffectLedger: () => {
+          const error = new Error("ledger disk full");
+          error.code = "SIDE_EFFECT_LEDGER_PERSIST_FAILED";
+          throw error;
+        },
+      },
+      loop,
+    });
+
+    const outcome = await h.run();
+    expect(outcome.exitCode).toBe(1);
+    expect(effectExecuted).toBe(false);
+    expect(ledger.list()[0].state).toBe("started");
+    expect(
+      h.events().find(
+        (event) =>
+          event.type === "result" &&
+          event.subtype === "error" &&
+          /ledger disk full/.test(event.error || ""),
+      ),
+    ).toBeTruthy();
+  });
+
+  it("does not execute a dangerous tool when the prior ledger cannot be read", async () => {
+    let effectExecuted = false;
+    const loop = async function* () {
+      yield {
+        type: "tool-executing",
+        tool: "write_file",
+        args: { path: "blocked.txt", content: "must-not-run" },
+      };
+      effectExecuted = true;
+      yield {
+        type: "tool-result",
+        tool: "write_file",
+        result: { ok: true },
+      };
+    };
+    const h = harness({
+      options: { sessionId: "chat-abc" },
+      over: {
+        loadSideEffectLedger: () => {
+          throw new Error("ledger read unavailable");
+        },
+        persistSideEffectLedger: vi.fn(),
+      },
+      loop,
+    });
+
+    const outcome = await h.run();
+    expect(outcome.exitCode).toBe(1);
+    expect(effectExecuted).toBe(false);
+    expect(
+      h.events().find(
+        (event) =>
+          event.type === "result" &&
+          event.subtype === "error" &&
+          /ledger read unavailable/.test(event.error || ""),
+      ),
+    ).toBeTruthy();
   });
 
   it("a failing dangerous tool settles as failed with the error reason", async () => {

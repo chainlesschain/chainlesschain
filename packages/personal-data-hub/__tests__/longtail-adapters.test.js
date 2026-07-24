@@ -245,6 +245,9 @@ describe("TelegramAdapter", () => {
       const auth = await a.authenticate({ inputPath: dbPath });
       expect(auth.ok).toBe(true);
       expect(auth.mode).toBe("snapshot-file");
+      expect(await a.healthCheck({ inputPath: dbPath })).toMatchObject({
+        ok: true,
+      });
     } finally { cleanup(dir); }
   });
 

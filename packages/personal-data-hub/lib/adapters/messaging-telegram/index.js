@@ -18,7 +18,9 @@ const fs = require("node:fs");
 const { newId } = require("../../ids");
 
 const NAME = "messaging-telegram";
-const VERSION = "0.6.0"; // 2026-05-25 — account.userId OPTIONAL + inputPath alias
+// v0.7.0: validate the sync-time inputPath in healthCheck instead of checking
+// only constructor state. This unblocks Registry.syncAdapter(..., { inputPath }).
+const VERSION = "0.7.0";
 
 class TelegramAdapter {
   constructor(opts = {}) {
@@ -53,8 +55,8 @@ class TelegramAdapter {
     return { ok: true, account: this.account ? this.account.userId : null, mode: "snapshot-file" };
   }
 
-  async healthCheck() {
-    const r = await this.authenticate();
+  async healthCheck(opts = {}) {
+    const r = await this.authenticate(opts);
     return r.ok ? { ok: true, lastChecked: Date.now() } : r;
   }
 

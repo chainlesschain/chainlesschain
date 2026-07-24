@@ -83,9 +83,13 @@ class XimalayaAdapter {
     this.account = opts.account || null;
     this._cookieAuth =
       opts.account && opts.account.cookies
-        ? new CookieAuth({ platform: "ximalaya", cookies: opts.account.cookies })
+        ? new CookieAuth({
+            platform: "ximalaya",
+            cookies: opts.account.cookies,
+          })
         : null;
-    this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+    this._fetchFn =
+      typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
     this._signProvider =
       typeof opts.signProvider === "function" ? opts.signProvider : null;
     this._urls = {
@@ -96,6 +100,8 @@ class XimalayaAdapter {
 
     this.name = NAME;
     this.version = VERSION;
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
     this.capabilities = [
       "sync:snapshot",
       "sync:cookie-api",
@@ -134,7 +140,12 @@ class XimalayaAdapter {
     }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
-      if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
+      if (!ok)
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          error: "cookies missing",
+        };
       return {
         ok: true,
         account: (this.account && this.account.userId) || null,
@@ -144,14 +155,17 @@ class XimalayaAdapter {
     return {
       ok: false,
       reason: "NO_INPUT",
-      message: "audio-ximalaya.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)",
+      message:
+        "audio-ximalaya.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)",
     };
   }
 
   async healthCheck() {
     if (this._cookieAuth) {
       const r = await this.authenticate();
-      return r.ok ? { ok: true, lastChecked: Date.now() } : { ok: false, reason: r.reason, error: r.error };
+      return r.ok
+        ? { ok: true, lastChecked: Date.now() }
+        : { ok: false, reason: r.reason, error: r.error };
     }
     return { ok: true, lastChecked: Date.now() };
   }
@@ -176,9 +190,15 @@ class XimalayaAdapter {
     try {
       snapshot = JSON.parse(raw);
     } catch (err) {
-      throw new Error(`audio-ximalaya.sync: snapshot must be JSON. Got parse error: ${err.message}`);
+      throw new Error(
+        `audio-ximalaya.sync: snapshot must be JSON. Got parse error: ${err.message}`,
+      );
     }
-    if (!snapshot || typeof snapshot !== "object" || snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION) {
+    if (
+      !snapshot ||
+      typeof snapshot !== "object" ||
+      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
+    ) {
       throw new Error(
         `audio-ximalaya.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
       );
@@ -187,16 +207,25 @@ class XimalayaAdapter {
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
         : Date.now();
-    const account = snapshot.account && typeof snapshot.account === "object" ? snapshot.account : null;
+    const account =
+      snapshot.account && typeof snapshot.account === "object"
+        ? snapshot.account
+        : null;
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const events = Array.isArray(snapshot.events) ? snapshot.events : [];
     let emitted = 0;
     for (const ev of events) {
       if (emitted >= limit) return;
-      if (!ev || typeof ev !== "object" || !VALID_KINDS.includes(ev.kind)) continue;
+      if (!ev || typeof ev !== "object" || !VALID_KINDS.includes(ev.kind))
+        continue;
       if (include[ev.kind] === false) continue;
-      const id = (typeof ev.id === "string" && ev.id) || ev.trackId || ev.albumId || null;
+      const id =
+        (typeof ev.id === "string" && ev.id) ||
+        ev.trackId ||
+        ev.albumId ||
+        null;
       yield {
         adapter: NAME,
         kind: ev.kind,
@@ -212,31 +241,56 @@ class XimalayaAdapter {
     if (!(await this._cookieAuth.validate())) return;
     const cookies = this._cookieAuth.toHeader();
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
-    const maxPages = Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+    const sinceMs =
+      opts.sinceWatermark != null
+        ? parseInt(String(opts.sinceWatermark), 10) || 0
+        : 0;
 
     const plan = [
       { kind: KIND_PLAY, url: this._urls.play, map: trackItemToRecord },
       { kind: KIND_FAVORITE, url: this._urls.favorite, map: trackItemToRecord },
-      { kind: KIND_SUBSCRIBE, url: this._urls.subscribe, map: albumItemToRecord },
+      {
+        kind: KIND_SUBSCRIBE,
+        url: this._urls.subscribe,
+        map: albumItemToRecord,
+      },
     ];
 
     let emitted = 0;
+    let scanComplete = true;
     for (const step of plan) {
       if (include[step.kind] === false) continue;
       let page = 1;
+      let streamComplete = false;
       while (page <= maxPages) {
         const query = { page, pageSize: PAGE_SIZE };
         let sign = null;
         if (this._signProvider) {
           sign = await this._signProvider({ url: step.url, query, cookies });
         }
-        const resp = await this._fetchFn({ url: step.url, cookies, query, sign });
+        const resp = await this._fetchFn({
+          url: step.url,
+          cookies,
+          query,
+          sign,
+        });
         const items = extractList(resp);
-        if (!items.length) break;
+        if (!items.length) {
+          streamComplete = true;
+          break;
+        }
+        let reachedWatermark = false;
         for (const it of items) {
           const rec = step.map(it);
           if (!rec) continue;
+          if (rec.occurredAt && rec.occurredAt < sinceMs) {
+            reachedWatermark = true;
+            break;
+          }
           if (emitted >= limit) return;
           yield {
             adapter: NAME,
@@ -247,19 +301,42 @@ class XimalayaAdapter {
           };
           emitted += 1;
         }
-        if (items.length < PAGE_SIZE) break;
+        if (reachedWatermark || items.length < PAGE_SIZE) {
+          streamComplete = true;
+          break;
+        }
         page += 1;
       }
+      if (!streamComplete) scanComplete = false;
+    }
+    if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+      opts.markWatermarkComplete();
     }
   }
 
   normalize(raw) {
-    if (!raw || !raw.payload) throw new Error("XimalayaAdapter.normalize: payload missing");
+    if (!raw || !raw.payload)
+      throw new Error("XimalayaAdapter.normalize: payload missing");
     const kind = raw.kind || raw.payload.kind;
     const ingestedAt = Date.now();
-    if (kind === KIND_PLAY) return normalizeTrack(raw.payload, raw, ingestedAt, EVENT_SUBTYPES.MEDIA, "收听");
-    if (kind === KIND_FAVORITE) return normalizeTrack(raw.payload, raw, ingestedAt, EVENT_SUBTYPES.LIKE, "收藏");
-    if (kind === KIND_SUBSCRIBE) return normalizeSubscribe(raw.payload, raw, ingestedAt);
+    if (kind === KIND_PLAY)
+      return normalizeTrack(
+        raw.payload,
+        raw,
+        ingestedAt,
+        EVENT_SUBTYPES.MEDIA,
+        "收听",
+      );
+    if (kind === KIND_FAVORITE)
+      return normalizeTrack(
+        raw.payload,
+        raw,
+        ingestedAt,
+        EVENT_SUBTYPES.LIKE,
+        "收藏",
+      );
+    if (kind === KIND_SUBSCRIBE)
+      return normalizeSubscribe(raw.payload, raw, ingestedAt);
     throw new Error(`XimalayaAdapter.normalize: unknown kind ${kind}`);
   }
 }
@@ -287,11 +364,29 @@ function trackItemToRecord(it) {
   return {
     id: String(id),
     trackId: String(id),
-    title: it.title || it.trackTitle || it.track_title || it.name || "(未知声音)",
-    anchor: it.nickname || it.anchorName || it.anchor_name || it.anchor || it.nickName || null,
+    title:
+      it.title || it.trackTitle || it.track_title || it.name || "(未知声音)",
+    anchor:
+      it.nickname ||
+      it.anchorName ||
+      it.anchor_name ||
+      it.anchor ||
+      it.nickName ||
+      null,
     album: it.albumTitle || it.album_title || it.albumName || it.album || null,
-    durationSec: Number.isFinite(it.duration) ? it.duration : Number.isFinite(it.durationSec) ? it.durationSec : null,
-    occurredAt: parseTime(it.startedAt || it.playedAt || it.updateTime || it.update_time || it.createTime || it.timestamp),
+    durationSec: Number.isFinite(it.duration)
+      ? it.duration
+      : Number.isFinite(it.durationSec)
+        ? it.durationSec
+        : null,
+    occurredAt: parseTime(
+      it.startedAt ||
+        it.playedAt ||
+        it.updateTime ||
+        it.update_time ||
+        it.createTime ||
+        it.timestamp,
+    ),
   };
 }
 
@@ -302,14 +397,20 @@ function albumItemToRecord(it) {
   return {
     id: String(id),
     albumId: String(id),
-    album: it.albumTitle || it.album_title || it.title || it.name || "(未命名专辑)",
+    album:
+      it.albumTitle || it.album_title || it.title || it.name || "(未命名专辑)",
     trackCount:
-      it.includeTrackCount != null ? it.includeTrackCount
-      : it.tracks != null ? it.tracks
-      : it.trackCount != null ? it.trackCount
-      : null,
+      it.includeTrackCount != null
+        ? it.includeTrackCount
+        : it.tracks != null
+          ? it.tracks
+          : it.trackCount != null
+            ? it.trackCount
+            : null,
     anchor: it.nickname || it.anchorName || it.anchor_name || it.anchor || null,
-    occurredAt: parseTime(it.subscribeTime || it.subscribe_time || it.createTime || it.updateTime),
+    occurredAt: parseTime(
+      it.subscribeTime || it.subscribe_time || it.createTime || it.updateTime,
+    ),
   };
 }
 
@@ -326,12 +427,15 @@ function buildSource(raw, occurredAt) {
 }
 
 function normalizeTrack(p, raw, ingestedAt, subtype, verb) {
-  const occurredAt = parseTime(p.occurredAt || p.capturedAt) || raw.capturedAt || ingestedAt;
+  const occurredAt =
+    parseTime(p.occurredAt || p.capturedAt) || raw.capturedAt || ingestedAt;
   const source = buildSource(raw, occurredAt);
   const title = p.title || "(未知声音)";
   const anchor = p.anchor || "";
   const trackId = p.trackId != null ? String(p.trackId) : null;
-  const itemId = trackId ? `item-ximalaya-track-${trackId}` : `item-ximalaya-track-${newId()}`;
+  const itemId = trackId
+    ? `item-ximalaya-track-${trackId}`
+    : `item-ximalaya-track-${newId()}`;
   return {
     events: [
       {
@@ -340,7 +444,10 @@ function normalizeTrack(p, raw, ingestedAt, subtype, verb) {
         subtype,
         occurredAt,
         actor: "person-self",
-        content: { title: `${verb}: ${title}${anchor ? " - " + anchor : ""}`, text: `${title} ${anchor}`.trim() },
+        content: {
+          title: `${verb}: ${title}${anchor ? " - " + anchor : ""}`,
+          text: `${title} ${anchor}`.trim(),
+        },
         ingestedAt,
         source,
         extra: {
@@ -362,7 +469,14 @@ function normalizeTrack(p, raw, ingestedAt, subtype, verb) {
         name: anchor ? `${title} - ${anchor}` : title,
         ingestedAt,
         source,
-        extra: { platform: "ximalaya", kind: "track", title, anchor, album: p.album || null, trackId },
+        extra: {
+          platform: "ximalaya",
+          kind: "track",
+          title,
+          anchor,
+          album: p.album || null,
+          trackId,
+        },
       },
     ],
     persons: [],
@@ -372,7 +486,8 @@ function normalizeTrack(p, raw, ingestedAt, subtype, verb) {
 }
 
 function normalizeSubscribe(p, raw, ingestedAt) {
-  const occurredAt = parseTime(p.occurredAt || p.capturedAt) || raw.capturedAt || ingestedAt;
+  const occurredAt =
+    parseTime(p.occurredAt || p.capturedAt) || raw.capturedAt || ingestedAt;
   const source = buildSource(raw, occurredAt);
   const aid = p.albumId != null ? String(p.albumId) : null;
   return {
@@ -382,7 +497,9 @@ function normalizeSubscribe(p, raw, ingestedAt) {
     items: [],
     topics: [
       {
-        id: aid ? `topic-ximalaya-album-${aid}` : `topic-ximalaya-album-${newId()}`,
+        id: aid
+          ? `topic-ximalaya-album-${aid}`
+          : `topic-ximalaya-album-${newId()}`,
         type: ENTITY_TYPES.TOPIC,
         name: p.album || "(未命名专辑)",
         ingestedAt,

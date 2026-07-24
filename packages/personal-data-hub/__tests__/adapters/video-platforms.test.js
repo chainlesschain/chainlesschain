@@ -25,8 +25,20 @@ const COOKIES = "P00001=abc; QC005=xyz";
 describe("video-iqiyi mappers", () => {
   it("name/version + mapItem (channel code → category)", () => {
     expect(iqiyi.NAME).toBe("video-iqiyi");
-    const rec = iqiyi.mapItem({ tvId: "100", albumName: "庆余年", channelId: 2, videoName: "庆余年", addtime: 1716300000, videoDuration: 2700 });
-    expect(rec).toMatchObject({ videoId: "100", title: "庆余年", category: "tv", durationSec: 2700 });
+    const rec = iqiyi.mapItem({
+      tvId: "100",
+      albumName: "庆余年",
+      channelId: 2,
+      videoName: "庆余年",
+      addtime: 1716300000,
+      videoDuration: 2700,
+    });
+    expect(rec).toMatchObject({
+      videoId: "100",
+      title: "庆余年",
+      category: "tv",
+      durationSec: 2700,
+    });
     expect(rec.occurredAt).toBe(1716300000000);
     expect(rec.url).toContain("iqiyi.com");
     expect(iqiyi.mapItem({ albumName: "noid" })).toBe(null);
@@ -41,8 +53,19 @@ describe("video-iqiyi mappers", () => {
 describe("video-tencent mappers", () => {
   it("name/version + mapItem (typeId → category)", () => {
     expect(tv.NAME).toBe("video-tencent");
-    const rec = tv.mapItem({ cid: "C9", cTitle: "三体", cTypeId: 4, viewTime: 1716310000, duration: 3000 });
-    expect(rec).toMatchObject({ videoId: "C9", title: "三体", category: "anime", durationSec: 3000 });
+    const rec = tv.mapItem({
+      cid: "C9",
+      cTitle: "三体",
+      cTypeId: 4,
+      viewTime: 1716310000,
+      duration: 3000,
+    });
+    expect(rec).toMatchObject({
+      videoId: "C9",
+      title: "三体",
+      category: "anime",
+      durationSec: 3000,
+    });
     expect(rec.url).toContain("v.qq.com");
     expect(tv.mapItem({ cTitle: "noid" })).toBe(null);
   });
@@ -54,8 +77,23 @@ describe("IqiyiVideoAdapter (via _video-base)", () => {
     snapshottedAt: 1716383000000,
     account: { userId: "u1" },
     events: [
-      { kind: "watch", id: "w1", videoId: "V1", title: "狂飙", category: "tv", episode: "第5集", durationSec: 2600, capturedAt: 1716300000000 },
-      { kind: "favourite", id: "fa1", videoId: "V2", title: "流浪地球2", category: "movie" },
+      {
+        kind: "watch",
+        id: "w1",
+        videoId: "V1",
+        title: "狂飙",
+        category: "tv",
+        episode: "第5集",
+        durationSec: 2600,
+        capturedAt: 1716300000000,
+      },
+      {
+        kind: "favourite",
+        id: "fa1",
+        videoId: "V2",
+        title: "流浪地球2",
+        category: "movie",
+      },
     ],
   });
 
@@ -63,6 +101,8 @@ describe("IqiyiVideoAdapter (via _video-base)", () => {
     const p = writeTmp(SNAP);
     try {
       const a = new iqiyi.IqiyiVideoAdapter();
+      expect(a.watermarkStrategy).toBe("max-captured-at");
+      expect(a.watermarkRequiresCompleteScan).toBe(true);
       const items = await collect(a.sync({ inputPath: p }));
       expect(items.map((x) => x.kind)).toEqual(["watch", "favourite"]);
 
@@ -85,16 +125,24 @@ describe("IqiyiVideoAdapter (via _video-base)", () => {
     const p = writeTmp(SNAP);
     try {
       const a = new iqiyi.IqiyiVideoAdapter();
-      expect((await collect(a.sync({ inputPath: p, include: { watch: false } }))).map((x) => x.kind)).toEqual(["favourite"]);
+      expect(
+        (
+          await collect(a.sync({ inputPath: p, include: { watch: false } }))
+        ).map((x) => x.kind),
+      ).toEqual(["favourite"]);
       expect(await collect(a.sync({ inputPath: p, limit: 1 }))).toHaveLength(1);
-      expect(() => a.normalize({ payload: {} })).toThrow(/payload.record missing/);
+      expect(() => a.normalize({ payload: {} })).toThrow(
+        /payload.record missing/,
+      );
     } finally {
       fs.unlinkSync(p);
     }
     const bad = writeTmp(JSON.stringify({ schemaVersion: 9, events: [] }));
     try {
       const a = new iqiyi.IqiyiVideoAdapter();
-      await expect(collect(a.sync({ inputPath: bad }))).rejects.toThrow(/schemaVersion mismatch/);
+      await expect(collect(a.sync({ inputPath: bad }))).rejects.toThrow(
+        /schemaVersion mismatch/,
+      );
     } finally {
       fs.unlinkSync(bad);
     }
@@ -104,16 +152,23 @@ describe("IqiyiVideoAdapter (via _video-base)", () => {
 describe("TencentVideoAdapter cookie-api mode", () => {
   it("authenticate cookie (userId optional)", async () => {
     const a = new tv.TencentVideoAdapter({ account: { cookies: COOKIES } });
-    expect(await a.authenticate()).toEqual({ ok: true, account: null, mode: "cookie" });
+    expect(await a.authenticate()).toEqual({
+      ok: true,
+      account: null,
+      mode: "cookie",
+    });
   });
 
   it("sync fetches watch+favourite, paginates, normalizes", async () => {
     const byUrl = (u) => (u.includes("History") ? "watch" : "favourite");
     const data = {
-      watch: [{ cid: "C1", cTitle: "漫长的季节", cTypeId: 1, viewTime: 1716300000 }],
+      watch: [
+        { cid: "C1", cTitle: "漫长的季节", cTypeId: 1, viewTime: 1716300000 },
+      ],
       favourite: [{ cid: "C2", cTitle: "繁花", cTypeId: 1 }],
     };
     const calls = [];
+    let watermarkComplete = false;
     const a = new tv.TencentVideoAdapter({
       account: { cookies: COOKIES, userId: "u1" },
       fetchFn: async ({ url, cookies, query, sign }) => {
@@ -122,25 +177,106 @@ describe("TencentVideoAdapter cookie-api mode", () => {
         return { data: { list: query.page === 1 ? data[k] : [] } };
       },
     });
-    const items = await collect(a.sync({}));
+    const items = await collect(
+      a.sync({
+        markWatermarkComplete: () => {
+          watermarkComplete = true;
+        },
+      }),
+    );
     expect(items.map((x) => x.kind).sort()).toEqual(["favourite", "watch"]);
-    expect(calls.every((c) => c.cookies === COOKIES && c.sign === null)).toBe(true);
+    expect(calls.every((c) => c.cookies === COOKIES && c.sign === null)).toBe(
+      true,
+    );
     const watch = a.normalize(items.find((x) => x.kind === "watch"));
     expect(watch.events[0].content.title).toBe("观看: 漫长的季节");
     expect(watch.items[0].extra.platform).toBe("tencent-video");
+    expect(watermarkComplete).toBe(true);
+  });
+
+  it("stops at the timestamp watermark and does not complete a capped full page", async () => {
+    let watermarkComplete = false;
+    const older = new tv.TencentVideoAdapter({
+      account: { cookies: COOKIES },
+      fetchFn: async () => ({
+        data: {
+          list: [
+            {
+              cid: "OLD",
+              cTitle: "old video",
+              viewTime: 1716300000,
+            },
+          ],
+        },
+      }),
+    });
+    expect(
+      await collect(
+        older.sync({
+          sinceWatermark: 1716300000001,
+          include: { favourite: false },
+          markWatermarkComplete: () => {
+            watermarkComplete = true;
+          },
+        }),
+      ),
+    ).toEqual([]);
+    expect(watermarkComplete).toBe(true);
+
+    watermarkComplete = false;
+    const fullPage = new tv.TencentVideoAdapter({
+      account: { cookies: COOKIES },
+      fetchFn: async () => ({
+        data: {
+          list: Array.from({ length: 30 }, (_, index) => ({
+            cid: `NEW-${index}`,
+            cTitle: `video ${index}`,
+            viewTime: 1716400000 + index,
+          })),
+        },
+      }),
+    });
+    expect(
+      await collect(
+        fullPage.sync({
+          maxPages: 1,
+          include: { favourite: false },
+          markWatermarkComplete: () => {
+            watermarkComplete = true;
+          },
+        }),
+      ),
+    ).toHaveLength(30);
+    expect(watermarkComplete).toBe(false);
   });
 
   it("invokes signProvider + limit + empty + default fetch + no input", async () => {
     const signCalls = [];
     const a = new tv.TencentVideoAdapter({
       account: { cookies: COOKIES },
-      fetchFn: async ({ query }) => ({ list: query.page === 1 ? [{ cid: "C1", cTitle: "x" }, { cid: "C2", cTitle: "y" }] : [] }),
-      signProvider: async (ctx) => { signCalls.push(ctx); return "sig"; },
+      fetchFn: async ({ query }) => ({
+        list:
+          query.page === 1
+            ? [
+                { cid: "C1", cTitle: "x" },
+                { cid: "C2", cTitle: "y" },
+              ]
+            : [],
+      }),
+      signProvider: async (ctx) => {
+        signCalls.push(ctx);
+        return "sig";
+      },
     });
-    expect(await collect(a.sync({ limit: 1, include: { favourite: false } }))).toHaveLength(1);
+    expect(
+      await collect(a.sync({ limit: 1, include: { favourite: false } })),
+    ).toHaveLength(1);
     expect(signCalls.length).toBeGreaterThan(0);
 
-    const a2 = new tv.TencentVideoAdapter({ account: { cookies: COOKIES }, fetchFn: async () => "<html>login</html>" });
+    const a2 = new tv.TencentVideoAdapter({
+      account: { cookies: COOKIES },
+      fetchFn: async () => "<html>login</html>",
+    });
     expect(await collect(a2.sync({}))).toEqual([]);
 
     const a3 = new tv.TencentVideoAdapter({ account: { cookies: COOKIES } });

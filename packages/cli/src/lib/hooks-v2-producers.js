@@ -3,13 +3,38 @@
  * Hook failures never change the surrounding agent or interaction result.
  */
 export function emitHooksV2Event(eventName, context = {}, options = {}) {
-  void import("./hooks-v2-runtime.js")
-    .then(({ default: runtime }) => {
-      if (!runtime || typeof runtime.executeHooks !== "function") return;
-      return runtime.executeHooks(eventName, context, options);
-    })
-    .catch(() => {
-      // Hooks are an optional extension; producer delivery is best-effort.
-    });
+  void executeHooksV2Event(eventName, context, options);
 }
 
+/**
+ * Decision-capable producer bridge. Callers at a real gate (PreToolUse,
+ * Setup, prompt expansion) await this result; observer producers can keep
+ * using emitHooksV2Event().
+ */
+export async function executeHooksV2Event(
+  eventName,
+  context = {},
+  options = {},
+) {
+  try {
+    const { default: runtime } = await import("./hooks-v2-runtime.js");
+    if (!runtime || typeof runtime.executeHooks !== "function") {
+      return {
+        success: options.failClosed !== true,
+        blocked: options.failClosed === true,
+        decision: options.failClosed === true ? "block" : "continue",
+        unavailable: true,
+        results: [],
+      };
+    }
+    return await runtime.executeHooks(eventName, context, options);
+  } catch (error) {
+    return {
+      success: options.failClosed !== true,
+      blocked: options.failClosed === true,
+      decision: options.failClosed === true ? "block" : "continue",
+      error: error?.message || String(error),
+      results: [],
+    };
+  }
+}

@@ -1504,11 +1504,33 @@ class LocalCcRunner @Inject constructor(
         val adapter: String,
         val status: String,
         val ingested: Int,
+        val rawCount: Int = 0,
+        val archivedRawCount: Int = 0,
+        val archiveFailureCount: Int = 0,
         val invalidCount: Int,
         val kgTriples: Int,
         val ragDocs: Int,
         val durationMs: Long,
         val error: String?,
+        val watermarkDeferred: Boolean = false,
+        val checkpointCommitted: Boolean? = null,
+        val pageBudget: Long? = null,
+        val nextPageBudget: Long? = null,
+        val scanDeferredCount: Long = 0,
+        val watermarkLookbackMs: Long = 0,
+        val collectionSinceWatermark: String? = null,
+        val attemptCount: Long = 0,
+        val retryCount: Long = 0,
+        val totalRetryDelayMs: Long = 0,
+        val retryExhausted: Boolean = false,
+        val retryAfterMs: Long? = null,
+        val rateLimitReason: String? = null,
+        val rateLimitRemainingMinute: Long? = null,
+        val rateLimitRemainingDay: Long? = null,
+        val sourceRequestCount: Long = 0,
+        val sourceRequestThrottleMs: Long = 0,
+        val sourceRequestRateLimitRemainingMinute: Long? = null,
+        val sourceRequestRateLimitRemainingDay: Long? = null,
     )
 
     private fun parseSyncReport(stdout: String): SyncReport {
@@ -1530,11 +1552,83 @@ class LocalCcRunner @Inject constructor(
             adapter = obj.optString("adapter", ""),
             status = obj.optString("status", "unknown"),
             ingested = ingested,
+            rawCount = obj.optInt("rawCount", 0),
+            archivedRawCount = obj.optInt("archivedRawCount", 0),
+            archiveFailureCount = obj.optInt("archiveFailureCount", 0),
             invalidCount = obj.optInt("invalidCount", 0),
             kgTriples = obj.optInt("kgTripleCount", obj.optInt("kgTriples", 0)),
             ragDocs = obj.optInt("ragDocCount", obj.optInt("ragDocs", 0)),
             durationMs = obj.optLong("durationMs", 0L),
             error = obj.optString("error", "").takeIf { it.isNotEmpty() && it != "null" },
+            watermarkDeferred = obj.optBoolean("watermarkDeferred", false),
+            checkpointCommitted =
+                if (obj.has("checkpointCommitted") && !obj.isNull("checkpointCommitted")) {
+                    obj.optBoolean("checkpointCommitted")
+                } else {
+                    null
+                },
+            pageBudget =
+                if (obj.has("pageBudget") && !obj.isNull("pageBudget")) {
+                    obj.optLong("pageBudget")
+                } else {
+                    null
+                },
+            nextPageBudget =
+                if (obj.has("nextPageBudget") && !obj.isNull("nextPageBudget")) {
+                    obj.optLong("nextPageBudget")
+                } else {
+                    null
+                },
+            scanDeferredCount = obj.optLong("scanDeferredCount", 0L),
+            watermarkLookbackMs = obj.optLong("watermarkLookbackMs", 0L),
+            collectionSinceWatermark =
+                obj.optString("collectionSinceWatermark", "")
+                    .takeIf { it.isNotEmpty() && it != "null" },
+            attemptCount = obj.optLong("attemptCount", 0L),
+            retryCount = obj.optLong("retryCount", 0L),
+            totalRetryDelayMs = obj.optLong("totalRetryDelayMs", 0L),
+            retryExhausted = obj.optBoolean("retryExhausted", false),
+            retryAfterMs =
+                if (obj.has("retryAfterMs") && !obj.isNull("retryAfterMs")) {
+                    obj.optLong("retryAfterMs")
+                } else {
+                    null
+                },
+            rateLimitReason =
+                obj.optString("rateLimitReason", "")
+                    .takeIf { it.isNotEmpty() && it != "null" },
+            rateLimitRemainingMinute =
+                if (obj.has("rateLimitRemainingMinute") && !obj.isNull("rateLimitRemainingMinute")) {
+                    obj.optLong("rateLimitRemainingMinute")
+                } else {
+                    null
+                },
+            rateLimitRemainingDay =
+                if (obj.has("rateLimitRemainingDay") && !obj.isNull("rateLimitRemainingDay")) {
+                    obj.optLong("rateLimitRemainingDay")
+                } else {
+                    null
+                },
+            sourceRequestCount = obj.optLong("sourceRequestCount", 0L),
+            sourceRequestThrottleMs = obj.optLong("sourceRequestThrottleMs", 0L),
+            sourceRequestRateLimitRemainingMinute =
+                if (
+                    obj.has("sourceRequestRateLimitRemainingMinute") &&
+                    !obj.isNull("sourceRequestRateLimitRemainingMinute")
+                ) {
+                    obj.optLong("sourceRequestRateLimitRemainingMinute")
+                } else {
+                    null
+                },
+            sourceRequestRateLimitRemainingDay =
+                if (
+                    obj.has("sourceRequestRateLimitRemainingDay") &&
+                    !obj.isNull("sourceRequestRateLimitRemainingDay")
+                ) {
+                    obj.optLong("sourceRequestRateLimitRemainingDay")
+                } else {
+                    null
+                },
         )
     }
 

@@ -54,6 +54,47 @@ describe("EventRuntimeStore", () => {
     const reclaimed = store.claimInbox();
     expect(reclaimed).toHaveLength(1);
     expect(reclaimed[0].attempts).toBe(2);
+    expect(reclaimed[0].lease.fence).toBe(2);
+  });
+
+  it("renews a live fenced lease and rejects expired or stale holders", () => {
+    store.enqueueInbox({ event_id: "evt-renew" });
+    const [first] = store.claimInbox();
+    expect(first.lease.fence).toBe(1);
+
+    now = 1050;
+    const renewed = store.renewInbox(first.id, {
+      owner: first.lease.owner,
+      fence: first.lease.fence,
+    });
+    expect(renewed.lease).toMatchObject({
+      fence: 1,
+      renewedAt: 1050,
+      expiresAt: 1150,
+    });
+
+    now = 1151;
+    expect(
+      store.acknowledgeInbox(first.id, { stale: true }, {
+        owner: first.lease.owner,
+        fence: first.lease.fence,
+      }),
+    ).toBeNull();
+
+    const [second] = store.claimInbox();
+    expect(second.lease.fence).toBe(2);
+    expect(
+      store.renewInbox(second.id, {
+        owner: first.lease.owner,
+        fence: first.lease.fence,
+      }),
+    ).toBeNull();
+    expect(
+      store.acknowledgeInbox(second.id, { delivered: true }, {
+        owner: second.lease.owner,
+        fence: second.lease.fence,
+      }),
+    ).toMatchObject({ status: "done", result: { delivered: true } });
   });
 
   it("retries failures and moves exhausted records to dead letter", () => {

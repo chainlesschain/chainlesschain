@@ -286,9 +286,9 @@
             </template>
           </a-alert>
           <CodingAgentElicitationPanel
-            :request="codingAgentStore.latestMcpElicitation"
-            @accept="handleMcpElicitationAccept"
-            @cancel="handleMcpElicitationCancel"
+            :request="codingAgentStore.latestQuestionRequest"
+            @accept="handleQuestionAccept"
+            @cancel="handleQuestionCancel"
           />
           <div v-if="showHarnessPanel" class="coding-agent-harness-panel">
             <div class="harness-panel-header">
@@ -1502,21 +1502,42 @@ const { handleCodingAgentEvent, ensurePendingAgentMessage } =
     currentHighRiskToolNames,
   });
 
-const handleMcpElicitationAccept = async (answer) => {
-  const request = codingAgentStore.latestMcpElicitation;
-  if (request?.requestId == null) return;
-  await codingAgentStore.respondElicitation({
-    requestId: request.requestId,
+const getQuestionResponseBinding = (request) => {
+  const payload = request?.payload || {};
+  return {
+    sessionId: request?.sessionId || codingAgentStore.currentSessionId,
+    requestId: request?.requestId ?? payload.requestId ?? payload.id,
+    turnId: payload.turnId ?? payload.turn_id ?? null,
+    toolUseId:
+      payload.toolUseId ??
+      payload.tool_use_id ??
+      payload.toolCallId ??
+      payload.tool_call_id ??
+      null,
+  };
+};
+
+const handleQuestionAccept = async (answer) => {
+  const request = codingAgentStore.latestQuestionRequest;
+  const binding = getQuestionResponseBinding(request);
+  if (binding.requestId == null) {
+    return;
+  }
+  await codingAgentStore.respondQuestion({
+    ...binding,
     action: "accept",
     answer,
   });
 };
 
-const handleMcpElicitationCancel = async () => {
-  const request = codingAgentStore.latestMcpElicitation;
-  if (request?.requestId == null) return;
-  await codingAgentStore.respondElicitation({
-    requestId: request.requestId,
+const handleQuestionCancel = async () => {
+  const request = codingAgentStore.latestQuestionRequest;
+  const binding = getQuestionResponseBinding(request);
+  if (binding.requestId == null) {
+    return;
+  }
+  await codingAgentStore.respondQuestion({
+    ...binding,
     action: "cancel",
   });
 };

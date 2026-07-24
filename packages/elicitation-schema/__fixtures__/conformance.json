@@ -1,0 +1,221 @@
+{
+  "version": "mcp-restricted-form-v1",
+  "cases": [
+    {
+      "name": "full restricted form vocabulary",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "title": "Display name",
+            "description": "Shown to collaborators",
+            "minLength": 2,
+            "maxLength": 20,
+            "default": "Ada"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email",
+            "format": "email"
+          },
+          "website": {
+            "type": "string",
+            "title": "Website",
+            "format": "uri"
+          },
+          "birthday": {
+            "type": "string",
+            "title": "Birthday",
+            "format": "date"
+          },
+          "meeting": {
+            "type": "string",
+            "title": "Meeting time",
+            "format": "date-time"
+          },
+          "rating": {
+            "type": "integer",
+            "title": "Rating",
+            "minimum": 1,
+            "maximum": 5,
+            "default": 3
+          },
+          "budget": {
+            "type": "number",
+            "title": "Budget",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "notifications": {
+            "type": "boolean",
+            "title": "Notifications",
+            "default": true
+          },
+          "theme": {
+            "type": "string",
+            "title": "Theme",
+            "enum": ["light", "dark"],
+            "enumNames": ["Light mode", "Dark mode"],
+            "default": "dark"
+          },
+          "channel": {
+            "type": "string",
+            "title": "Channel",
+            "oneOf": [
+              { "const": "stable", "title": "Stable" },
+              { "const": "preview", "title": "Preview" }
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "title": "Tags",
+            "items": {
+              "type": "string",
+              "enum": ["docs", "code", "tests"]
+            },
+            "minItems": 1,
+            "maxItems": 2,
+            "default": ["code"]
+          },
+          "scopes": {
+            "type": "array",
+            "title": "Scopes",
+            "items": {
+              "anyOf": [
+                { "const": "read", "title": "Read only" },
+                { "const": "write", "title": "Read and write" }
+              ]
+            },
+            "maxItems": 1
+          }
+        },
+        "required": ["displayName", "email", "rating", "tags"]
+      },
+      "expectedFields": [
+        {
+          "name": "displayName",
+          "kind": "text",
+          "inputType": "text",
+          "required": true
+        },
+        {
+          "name": "email",
+          "kind": "text",
+          "inputType": "email",
+          "required": true
+        },
+        {
+          "name": "website",
+          "kind": "text",
+          "inputType": "url",
+          "required": false
+        },
+        {
+          "name": "birthday",
+          "kind": "text",
+          "inputType": "date",
+          "required": false
+        },
+        {
+          "name": "meeting",
+          "kind": "text",
+          "inputType": "text",
+          "required": false
+        },
+        { "name": "rating", "kind": "integer", "required": true },
+        { "name": "budget", "kind": "number", "required": false },
+        { "name": "notifications", "kind": "boolean", "required": false },
+        {
+          "name": "theme",
+          "kind": "single-select",
+          "required": false,
+          "options": [
+            { "value": "light", "label": "Light mode" },
+            { "value": "dark", "label": "Dark mode" }
+          ]
+        },
+        {
+          "name": "channel",
+          "kind": "single-select",
+          "required": false,
+          "options": [
+            { "value": "stable", "label": "Stable" },
+            { "value": "preview", "label": "Preview" }
+          ]
+        },
+        {
+          "name": "tags",
+          "kind": "multi-select",
+          "required": true,
+          "options": [
+            { "value": "docs", "label": "docs" },
+            { "value": "code", "label": "code" },
+            { "value": "tests", "label": "tests" }
+          ]
+        },
+        {
+          "name": "scopes",
+          "kind": "multi-select",
+          "required": false,
+          "options": [
+            { "value": "read", "label": "Read only" },
+            { "value": "write", "label": "Read and write" }
+          ]
+        }
+      ],
+      "rawValid": {
+        "displayName": "Grace",
+        "email": "grace@example.com",
+        "website": "https://example.com/profile",
+        "birthday": "1906-12-09",
+        "meeting": "2026-07-24T09:30:00Z",
+        "rating": "5",
+        "budget": "42.5",
+        "notifications": false,
+        "theme": "light",
+        "channel": "stable",
+        "tags": ["docs", "tests"],
+        "scopes": ["read"],
+        "ignored": "not forwarded"
+      },
+      "expectedValue": {
+        "displayName": "Grace",
+        "email": "grace@example.com",
+        "website": "https://example.com/profile",
+        "birthday": "1906-12-09",
+        "meeting": "2026-07-24T09:30:00Z",
+        "rating": 5,
+        "budget": 42.5,
+        "notifications": false,
+        "theme": "light",
+        "channel": "stable",
+        "tags": ["docs", "tests"],
+        "scopes": ["read"]
+      },
+      "rawInvalid": {
+        "displayName": "A",
+        "email": "not-an-email",
+        "rating": "5.5",
+        "tags": []
+      },
+      "expectedErrorCodes": ["minLength", "format", "type", "minItems"]
+    },
+    {
+      "name": "unsupported nested object remains an explicit boundary",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" }
+            }
+          }
+        }
+      },
+      "expectedSupported": false,
+      "expectedSchemaErrorCodes": ["unsupported_type"]
+    }
+  ]
+}

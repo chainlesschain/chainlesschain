@@ -63,6 +63,7 @@ describe("EmailAdapter snapshot mode", () => {
     const auth = await a.authenticate({ inputPath });
     expect(auth.ok).toBe(true);
     expect(auth.mode).toBe("snapshot-file");
+    expect(await a.healthCheck({ inputPath })).toMatchObject({ ok: true });
   });
 
   it("authenticate without inputPath in snapshotMode returns NO_INPUT", async () => {

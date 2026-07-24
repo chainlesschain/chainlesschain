@@ -45,7 +45,7 @@ const DISPLAY_NAMES = Object.freeze({
   "messaging-qq": "QQ（手机）",
   "messaging-telegram": "Telegram",
   "messaging-whatsapp": "WhatsApp",
-  "wechat": "微信（手机）",
+  wechat: "微信（手机）",
   "wechat-pc": "微信（电脑版）",
   "qq-pc": "QQ（电脑版 NT）",
   "dingtalk-pc": "钉钉（电脑版）",
@@ -88,7 +88,7 @@ const DISPLAY_NAMES = Object.freeze({
   "video-iqiyi": "爱奇艺",
   "video-tencent": "腾讯视频",
   "video-xigua": "西瓜视频",
-  "weread": "微信读书",
+  weread: "微信读书",
   "doc-wps": "WPS 云文档",
   "doc-tencent-docs": "腾讯文档",
   "doc-baidu-netdisk": "百度网盘",
@@ -105,7 +105,7 @@ const DISPLAY_NAMES = Object.freeze({
   "browser-history-chrome": "Chrome 浏览历史",
   "browser-history-edge": "Edge 浏览历史",
   "browser-history-aosp": "MIUI/AOSP 浏览历史",
-  "vscode": "VS Code",
+  vscode: "VS Code",
   "win-recent": "Windows 最近使用",
   "git-activity": "Git 提交记录",
   "shell-history": "命令行历史",
@@ -116,7 +116,11 @@ const DISPLAY_NAMES = Object.freeze({
 // Shared guide for honest best-effort desktop IM local-DB sources (钉钉/飞书).
 function localImPcGuide(platform) {
   const adapterName =
-    platform === "钉钉" ? "dingtalk-pc" : platform === "企业微信" ? "wework-pc" : "feishu-pc";
+    platform === "钉钉"
+      ? "dingtalk-pc"
+      : platform === "企业微信"
+        ? "wework-pc"
+        : "feishu-pc";
   return {
     summary: `采集${platform}电脑版的聊天记录（来自本地数据库）。⚠️ v0.1 实验性：${platform}桌面库为私有结构、可能加密、随版本变化，文本解析为尽力而为，原始行会完整保留以便后续解析。`,
     methods: [
@@ -158,6 +162,32 @@ function socialAdbGuide(platform, dataDesc) {
           "在手机 ChainlessChain App 内进入「数据源」，找到该平台点「采集」。",
           "按提示在内置浏览器登录，App 采完生成快照并同步到中台。",
         ],
+      },
+    ],
+  };
+}
+
+function shoppingCookieGuide(adapterName, platform, accountLabel) {
+  return {
+    summary: `采集${platform}订单。支持兼容快照导入，也支持用单次临时 Cookie 从电脑直接拉取；若手机端已有该平台采集入口，也可由手机生成快照。临时凭据不会写入账号库。`,
+    methods: [
+      {
+        label: "手机或快照文件采集（稳定路径）",
+        recommended: true,
+        steps: [
+          `若手机 ChainlessChain App 的数据源页已提供${platform}采集入口，可在手机端生成订单快照；否则使用已有的兼容快照文件。`,
+          "在中台选择符合 schemaVersion 1 的对应订单快照 JSON 文件导入；手机生成的快照可按其同步流程进入中台。",
+        ],
+      },
+      {
+        label: "临时 Cookie 直采（实验性）",
+        steps: [
+          `在浏览器登录${platform}，从开发者工具复制当前登录会话的 Cookie。`,
+          `把 Cookie 保存到仅当前用户可读的文本文件，并确认账号标识（${accountLabel}）。`,
+          `执行 \`cc hub sync-adapter ${adapterName} --cookie-file <cookie.txt> --account-id <账号标识>\`。`,
+          "中台通过受限 HTTPS/JSON transport 拉取；HTTP、非 JSON、超时会明确失败并保留旧水位。",
+        ],
+        note: "平台接口及签名会变化；若返回登录页或签名错误，请重新获取 Cookie，或改用快照路径。Cookie 只用于本次命令，不持久化。",
       },
     ],
   };
@@ -286,9 +316,7 @@ const ADAPTER_OVERRIDES = Object.freeze({
       },
       {
         label: "手机 App 内采集邮件快照",
-        steps: [
-          "在手机 App 内完成邮箱采集，生成快照后同步到中台。",
-        ],
+        steps: ["在手机 App 内完成邮箱采集，生成快照后同步到中台。"],
       },
     ],
   },
@@ -323,7 +351,94 @@ const ADAPTER_OVERRIDES = Object.freeze({
     ],
   },
 
-  "wechat": {
+  "shopping-taobao": shoppingCookieGuide(
+    "shopping-taobao",
+    "淘宝",
+    "淘宝 userId",
+  ),
+  "shopping-jd": shoppingCookieGuide("shopping-jd", "京东", "pt_pin / pin"),
+  "shopping-meituan": shoppingCookieGuide(
+    "shopping-meituan",
+    "美团",
+    "美团 userId",
+  ),
+  "shopping-eleme": shoppingCookieGuide(
+    "shopping-eleme",
+    "饿了么",
+    "饿了么 userId",
+  ),
+  "shopping-pinduoduo": shoppingCookieGuide(
+    "shopping-pinduoduo",
+    "拼多多",
+    "拼多多 uid",
+  ),
+  "shopping-dianping": shoppingCookieGuide(
+    "shopping-dianping",
+    "大众点评",
+    "大众点评 userId",
+  ),
+  "shopping-xianyu": shoppingCookieGuide(
+    "shopping-xianyu",
+    "闲鱼",
+    "闲鱼 userId",
+  ),
+  "shopping-vipshop": shoppingCookieGuide(
+    "shopping-vipshop",
+    "唯品会",
+    "唯品会 userId",
+  ),
+
+  "social-zhihu": {
+    summary:
+      "采集自己发布的知乎回答、关注账号和收藏夹。稳定路径是导入 schemaVersion 1 快照；也可用单次临时 Cookie 调用知乎 JSON 接口，凭据不会写入账号库。",
+    methods: [
+      {
+        label: "导入知乎数据快照（推荐）",
+        recommended: true,
+        steps: [
+          "从已授权的浏览器扩展、移动端采集器或个人导出流程生成 schemaVersion 1 JSON，包含 answer、follow、favourite 事件。",
+          "在数据中台选择 social-zhihu 并导入该快照；快照中的账号标识只用于隔离数据作用域。",
+        ],
+      },
+      {
+        label: "临时 Cookie 接口采集",
+        steps: [
+          "在浏览器登录知乎，复制 www.zhihu.com 会话 Cookie，并保存到仅当前用户可读的文本文件。",
+          "从个人主页 `/people/<url_token>` 取得自己的 url_token；该值必须作为 `--account-id`，中台只持久化其哈希作用域。",
+          "执行 `cc hub sync-adapter social-zhihu --cookie-file <cookie.txt> --account-id <url_token>`。",
+          "中台以受限 HTTPS GET 分页读取回答、关注和收藏夹；HTTP 鉴权、反爬、非 JSON 或未知响应都会明确失败或保留旧水位。",
+        ],
+        note: "部分知乎接口会要求轮换的 x-zse-96。命令行路径不会伪造签名；若当前会话仍被拒绝，请改用快照采集。Cookie 与原始 url_token 均不持久化。",
+      },
+    ],
+  },
+
+  "travel-12306": {
+    summary:
+      "采集 12306 已完成与待支付车票。稳定路径是 Android 采集快照或兼容 JSON；也可用单次临时 Cookie 从官方订单接口直采，Cookie 不写入账号库。",
+    methods: [
+      {
+        label: "手机或快照文件采集（稳定路径）",
+        recommended: true,
+        steps: [
+          "在已提供 12306 采集器的 Android 客户端生成 schemaVersion 1 车票快照，或准备已有兼容 JSON。",
+          "在中台导入快照；采集器生成的临时文件会按其同步流程进入中台并清理。",
+        ],
+      },
+      {
+        label: "临时 Cookie 官方接口直采",
+        steps: [
+          "在浏览器登录 12306，从 kyfw.12306.cn 会话复制当前 Cookie，并保存到仅当前用户可读的文本文件。",
+          "选择一个稳定的本地账号标识；它只会规范化并哈希为水位作用域。",
+          "执行 `cc hub sync-adapter travel-12306 --cookie-file <cookie.txt> --account-id <本地账号标识>`。",
+          "中台以受限 HTTPS 表单 POST 拉取已完成和待支付订单；HTTP、登录页、非 JSON 或超时会明确失败并保留旧水位。",
+        ],
+        note: "12306 Cookie 通常会过期，直采默认最多查询最近 90 天；凭据只用于本次命令，不持久化。",
+      },
+    ],
+  },
+
+  wechat: {
     summary:
       "采集微信聊天记录 / 联系人 / 群（来自本地加密数据库 EnMicroMsg.db）。需要 root 手机或电脑本地解密。",
     methods: [
@@ -394,7 +509,7 @@ const ADAPTER_OVERRIDES = Object.freeze({
         steps: [
           "在电脑上打开并登录 QQ（NT 新版，数据在 文档\\Tencent Files\\<QQ号>\\nt_qq\\nt_db\\nt_msg.db）。",
           "下载并运行 qq-win-db-key（github.com/QQBackup/qq-win-db-key 的 windows_ntqq_get_key.ps1）。它会全关 QQ → 以调试器启动 QQ → 你登录后自动抓出 16 位密钥（形如 5{sww#,6aq=)8=A@）。",
-          "回到中台执行 `cc hub sync-adapter qq-pc --passphrase \"<那串密钥>\"`（或点该行「一键采集」并粘贴密钥）。",
+          '回到中台执行 `cc hub sync-adapter qq-pc --passphrase "<那串密钥>"`（或点该行「一键采集」并粘贴密钥）。',
           "中台自动解密 + 解析 c2c_msg_table / group_msg_table → 可读消息入库（私聊 + 群聊，含昵称/群号）。",
         ],
         note: "QQ 每次重启密钥会变，重采时重新跑 qq-win-db-key 取一次即可。纯个人使用、全程本地；首次会要求法律确认。依赖随中台分发的 Python（含 cryptography）。",
@@ -436,7 +551,10 @@ const ADAPTER_OVERRIDES = Object.freeze({
   "feishu-pc": localImPcGuide("飞书"),
   "wework-pc": localImPcGuide("企业微信"),
 
-  "social-bilibili": socialAdbGuide("哔哩哔哩", "观看历史 / 收藏 / 动态 / 关注"),
+  "social-bilibili": socialAdbGuide(
+    "哔哩哔哩",
+    "观看历史 / 收藏 / 动态 / 关注",
+  ),
   "social-weibo": socialAdbGuide("微博", "微博 / 收藏 / 关注"),
   "social-xiaohongshu": socialAdbGuide("小红书", "笔记 / 点赞收藏 / 关注"),
   "social-toutiao": socialAdbGuide("今日头条", "阅读 feed / 收藏 / 搜索历史"),
@@ -473,7 +591,7 @@ const ADAPTER_OVERRIDES = Object.freeze({
     ],
   },
 
-  "weread": {
+  weread: {
     summary:
       "采集微信读书的书架 / 划线 / 想法，构建你的阅读画像。走网页版 cookie——登录一次抓取登录态即可，无需 root。",
     methods: [
@@ -593,7 +711,8 @@ const ADAPTER_OVERRIDES = Object.freeze({
 function getAdapterGuide(name, category) {
   const override = ADAPTER_OVERRIDES[name];
   const cat = category || _inferCategory(name);
-  const base = CATEGORY_GUIDES[cat] || CATEGORY_GUIDES[READINESS_CATEGORY.LOCAL];
+  const base =
+    CATEGORY_GUIDES[cat] || CATEGORY_GUIDES[READINESS_CATEGORY.LOCAL];
   return {
     displayName: displayName(name),
     category: cat,
@@ -605,10 +724,19 @@ function getAdapterGuide(name, category) {
 // Fallback category inference when caller doesn't pass one (keeps the guide
 // usable standalone, e.g. CLI without a live readiness probe).
 function _inferCategory(name) {
-  if (ADAPTER_OVERRIDES[name] && name === "wechat") return READINESS_CATEGORY.DEVICE;
-  if (/^(email-imap|finance-alipay|alipay-bill|ai-chat-history|weread|doc-wps|doc-tencent-docs|doc-baidu-netdisk|doc-camscanner|recruit-boss|social-csdn|social-douban|social-dongchedi|biz-tianyancha|gov-ixiamen|health-meiyou|gov-tax|bank-cmbc|bank-boc|bank-bankcomm|finance-dcep|gov-12123|bank-icbc)$/.test(name))
+  if (ADAPTER_OVERRIDES[name] && name === "wechat")
+    return READINESS_CATEGORY.DEVICE;
+  if (
+    /^(email-imap|finance-alipay|alipay-bill|ai-chat-history|weread|doc-wps|doc-tencent-docs|doc-baidu-netdisk|doc-camscanner|recruit-boss|social-csdn|social-douban|social-dongchedi|biz-tianyancha|gov-ixiamen|health-meiyou|gov-tax|bank-cmbc|bank-boc|bank-bankcomm|finance-dcep|gov-12123|bank-icbc)$/.test(
+      name,
+    )
+  )
     return READINESS_CATEGORY.CREDENTIAL;
-  if (/^(messaging-(telegram|whatsapp)|wechat|wechat-pc|messaging-qq|qq-pc|dingtalk-pc|feishu-pc|wework-pc|travel-amap)$/.test(name))
+  if (
+    /^(messaging-(telegram|whatsapp)|wechat|wechat-pc|messaging-qq|qq-pc|dingtalk-pc|feishu-pc|wework-pc|travel-amap)$/.test(
+      name,
+    )
+  )
     return READINESS_CATEGORY.DEVICE;
   if (
     /^(browser-history-|vscode|win-recent|git-activity|shell-history|local-files|apple-health)/.test(

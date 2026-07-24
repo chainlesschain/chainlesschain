@@ -81,7 +81,10 @@ function stableOriginalId(kind, id) {
 function splitFilename(name) {
   if (typeof name !== "string" || !name.includes(" - ")) return null;
   const idx = name.indexOf(" - ");
-  return { artist: name.slice(0, idx).trim(), song: name.slice(idx + 3).trim() };
+  return {
+    artist: name.slice(0, idx).trim(),
+    song: name.slice(idx + 3).trim(),
+  };
 }
 
 class KugouMusicAdapter {
@@ -91,7 +94,8 @@ class KugouMusicAdapter {
       opts.account && opts.account.cookies
         ? new CookieAuth({ platform: "kugou", cookies: opts.account.cookies })
         : null;
-    this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+    this._fetchFn =
+      typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
     this._signProvider =
       typeof opts.signProvider === "function" ? opts.signProvider : null;
     this._urls = {
@@ -102,6 +106,8 @@ class KugouMusicAdapter {
 
     this.name = NAME;
     this.version = VERSION;
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
     this.capabilities = [
       "sync:snapshot",
       "sync:cookie-api",
@@ -140,7 +146,12 @@ class KugouMusicAdapter {
     }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
-      if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
+      if (!ok)
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          error: "cookies missing",
+        };
       return {
         ok: true,
         account: (this.account && this.account.userId) || null,
@@ -150,14 +161,17 @@ class KugouMusicAdapter {
     return {
       ok: false,
       reason: "NO_INPUT",
-      message: "music-kugou.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)",
+      message:
+        "music-kugou.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)",
     };
   }
 
   async healthCheck() {
     if (this._cookieAuth) {
       const r = await this.authenticate();
-      return r.ok ? { ok: true, lastChecked: Date.now() } : { ok: false, reason: r.reason, error: r.error };
+      return r.ok
+        ? { ok: true, lastChecked: Date.now() }
+        : { ok: false, reason: r.reason, error: r.error };
     }
     return { ok: true, lastChecked: Date.now() };
   }
@@ -179,7 +193,11 @@ class KugouMusicAdapter {
   async *_syncViaSnapshot(opts) {
     const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
     const snapshot = JSON.parse(raw);
-    if (!snapshot || typeof snapshot !== "object" || snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION) {
+    if (
+      !snapshot ||
+      typeof snapshot !== "object" ||
+      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
+    ) {
       throw new Error(
         `music-kugou.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
       );
@@ -188,16 +206,25 @@ class KugouMusicAdapter {
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
         : Date.now();
-    const account = snapshot.account && typeof snapshot.account === "object" ? snapshot.account : null;
+    const account =
+      snapshot.account && typeof snapshot.account === "object"
+        ? snapshot.account
+        : null;
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const events = Array.isArray(snapshot.events) ? snapshot.events : [];
     let emitted = 0;
     for (const ev of events) {
       if (emitted >= limit) return;
-      if (!ev || typeof ev !== "object" || !VALID_KINDS.includes(ev.kind)) continue;
+      if (!ev || typeof ev !== "object" || !VALID_KINDS.includes(ev.kind))
+        continue;
       if (include[ev.kind] === false) continue;
-      const id = (typeof ev.id === "string" && ev.id) || ev.songId || ev.playlistId || null;
+      const id =
+        (typeof ev.id === "string" && ev.id) ||
+        ev.songId ||
+        ev.playlistId ||
+        null;
       yield {
         adapter: NAME,
         kind: ev.kind,
@@ -213,31 +240,56 @@ class KugouMusicAdapter {
     if (!(await this._cookieAuth.validate())) return;
     const cookies = this._cookieAuth.toHeader();
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
-    const maxPages = Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+    const sinceMs =
+      opts.sinceWatermark != null
+        ? parseInt(String(opts.sinceWatermark), 10) || 0
+        : 0;
 
     const plan = [
       { kind: KIND_PLAY, url: this._urls.play, map: songItemToRecord },
       { kind: KIND_FAVORITE, url: this._urls.favorite, map: songItemToRecord },
-      { kind: KIND_PLAYLIST, url: this._urls.playlist, map: playlistItemToRecord },
+      {
+        kind: KIND_PLAYLIST,
+        url: this._urls.playlist,
+        map: playlistItemToRecord,
+      },
     ];
 
     let emitted = 0;
+    let scanComplete = true;
     for (const step of plan) {
       if (include[step.kind] === false) continue;
       let page = 1;
+      let streamComplete = false;
       while (page <= maxPages) {
         const query = { page, pagesize: PAGE_SIZE };
         let sign = null;
         if (this._signProvider) {
           sign = await this._signProvider({ url: step.url, query, cookies });
         }
-        const resp = await this._fetchFn({ url: step.url, cookies, query, sign });
+        const resp = await this._fetchFn({
+          url: step.url,
+          cookies,
+          query,
+          sign,
+        });
         const items = extractList(resp);
-        if (!items.length) break;
+        if (!items.length) {
+          streamComplete = true;
+          break;
+        }
+        let reachedWatermark = false;
         for (const it of items) {
           const rec = step.map(it);
           if (!rec) continue;
+          if (rec.occurredAt && rec.occurredAt < sinceMs) {
+            reachedWatermark = true;
+            break;
+          }
           if (emitted >= limit) return;
           yield {
             adapter: NAME,
@@ -248,19 +300,42 @@ class KugouMusicAdapter {
           };
           emitted += 1;
         }
-        if (items.length < PAGE_SIZE) break;
+        if (reachedWatermark || items.length < PAGE_SIZE) {
+          streamComplete = true;
+          break;
+        }
         page += 1;
       }
+      if (!streamComplete) scanComplete = false;
+    }
+    if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+      opts.markWatermarkComplete();
     }
   }
 
   normalize(raw) {
-    if (!raw || !raw.payload) throw new Error("KugouMusicAdapter.normalize: payload missing");
+    if (!raw || !raw.payload)
+      throw new Error("KugouMusicAdapter.normalize: payload missing");
     const kind = raw.kind || raw.payload.kind;
     const ingestedAt = Date.now();
-    if (kind === KIND_PLAY) return normalizeSong(raw.payload, raw, ingestedAt, EVENT_SUBTYPES.MEDIA, "听了");
-    if (kind === KIND_FAVORITE) return normalizeSong(raw.payload, raw, ingestedAt, EVENT_SUBTYPES.LIKE, "收藏");
-    if (kind === KIND_PLAYLIST) return normalizePlaylist(raw.payload, raw, ingestedAt);
+    if (kind === KIND_PLAY)
+      return normalizeSong(
+        raw.payload,
+        raw,
+        ingestedAt,
+        EVENT_SUBTYPES.MEDIA,
+        "听了",
+      );
+    if (kind === KIND_FAVORITE)
+      return normalizeSong(
+        raw.payload,
+        raw,
+        ingestedAt,
+        EVENT_SUBTYPES.LIKE,
+        "收藏",
+      );
+    if (kind === KIND_PLAYLIST)
+      return normalizePlaylist(raw.payload, raw, ingestedAt);
     throw new Error(`KugouMusicAdapter.normalize: unknown kind ${kind}`);
   }
 }
@@ -285,7 +360,8 @@ function songItemToRecord(it) {
   const id = it.hash || it.mixsongid || it.songid || it.audio_id || it.id;
   if (!id) return null;
   let song = it.songname || it.song_name || it.name || null;
-  let artist = it.singername || it.singer_name || it.author_name || it.singer || null;
+  let artist =
+    it.singername || it.singer_name || it.author_name || it.singer || null;
   if ((!song || !artist) && it.filename) {
     const split = splitFilename(it.filename);
     if (split) {
@@ -299,7 +375,9 @@ function songItemToRecord(it) {
     song: song || "(未知歌曲)",
     artist: artist || "",
     album: it.album_name || it.albumname || it.album || null,
-    occurredAt: parseTime(it.addtime || it.playtime || it.update_time || it.timestamp),
+    occurredAt: parseTime(
+      it.addtime || it.playtime || it.update_time || it.timestamp,
+    ),
   };
 }
 
@@ -311,7 +389,12 @@ function playlistItemToRecord(it) {
     id: String(id),
     playlistId: String(id),
     name: it.name || it.list_name || it.specialname || "(未命名歌单)",
-    trackCount: it.count != null ? it.count : it.song_count != null ? it.song_count : null,
+    trackCount:
+      it.count != null
+        ? it.count
+        : it.song_count != null
+          ? it.song_count
+          : null,
     creator: it.nickname || it.list_create_username || it.creator || null,
     occurredAt: parseTime(it.create_time || it.addtime),
   };
@@ -330,12 +413,15 @@ function buildSource(raw, occurredAt) {
 }
 
 function normalizeSong(p, raw, ingestedAt, subtype, verb) {
-  const occurredAt = parseTime(p.occurredAt || p.capturedAt) || raw.capturedAt || ingestedAt;
+  const occurredAt =
+    parseTime(p.occurredAt || p.capturedAt) || raw.capturedAt || ingestedAt;
   const source = buildSource(raw, occurredAt);
   const song = p.song || "(未知歌曲)";
   const artist = p.artist || "";
   const songId = p.songId != null ? String(p.songId) : null;
-  const itemId = songId ? `item-kugou-song-${songId}` : `item-kugou-song-${newId()}`;
+  const itemId = songId
+    ? `item-kugou-song-${songId}`
+    : `item-kugou-song-${newId()}`;
   return {
     events: [
       {
@@ -344,7 +430,10 @@ function normalizeSong(p, raw, ingestedAt, subtype, verb) {
         subtype,
         occurredAt,
         actor: "person-self",
-        content: { title: `${verb}: ${song}${artist ? " - " + artist : ""}`, text: `${song} ${artist}`.trim() },
+        content: {
+          title: `${verb}: ${song}${artist ? " - " + artist : ""}`,
+          text: `${song} ${artist}`.trim(),
+        },
         ingestedAt,
         source,
         extra: {
@@ -366,7 +455,14 @@ function normalizeSong(p, raw, ingestedAt, subtype, verb) {
         name: artist ? `${song} - ${artist}` : song,
         ingestedAt,
         source,
-        extra: { platform: "kugou", kind: "song", song, artist, album: p.album || null, songId },
+        extra: {
+          platform: "kugou",
+          kind: "song",
+          song,
+          artist,
+          album: p.album || null,
+          songId,
+        },
       },
     ],
     persons: [],
@@ -376,7 +472,8 @@ function normalizeSong(p, raw, ingestedAt, subtype, verb) {
 }
 
 function normalizePlaylist(p, raw, ingestedAt) {
-  const occurredAt = parseTime(p.occurredAt || p.capturedAt) || raw.capturedAt || ingestedAt;
+  const occurredAt =
+    parseTime(p.occurredAt || p.capturedAt) || raw.capturedAt || ingestedAt;
   const source = buildSource(raw, occurredAt);
   const pid = p.playlistId != null ? String(p.playlistId) : null;
   return {
@@ -386,7 +483,9 @@ function normalizePlaylist(p, raw, ingestedAt) {
     items: [],
     topics: [
       {
-        id: pid ? `topic-kugou-playlist-${pid}` : `topic-kugou-playlist-${newId()}`,
+        id: pid
+          ? `topic-kugou-playlist-${pid}`
+          : `topic-kugou-playlist-${newId()}`,
         type: ENTITY_TYPES.TOPIC,
         name: p.name || "(未命名歌单)",
         ingestedAt,

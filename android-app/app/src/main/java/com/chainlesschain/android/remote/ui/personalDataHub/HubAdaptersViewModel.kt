@@ -75,10 +75,40 @@ class HubAdaptersViewModel @Inject constructor(
             _uiState.update { it.copy(syncingAdapter = name, errorMessage = null) }
             hub.syncAdapter(name = name)
                 .onSuccess { report ->
-                    _uiState.update {
-                        it.copy(syncingAdapter = null, lastReport = report)
+                    if (report.isSkipped) {
+                        _uiState.update {
+                            it.copy(
+                                syncingAdapter = null,
+                                lastReport = report,
+                                errorMessage = null,
+                            )
+                        }
+                        _events.emit(
+                            HubAdaptersEvent.ShowToast(
+                                "$name 未同步: ${report.failureMessage}"
+                            )
+                        )
+                    } else if (report.isSuccessful) {
+                        _uiState.update {
+                            it.copy(syncingAdapter = null, lastReport = report)
+                        }
+                        _events.emit(
+                            HubAdaptersEvent.ShowToast(
+                                "$name 同步完成 (+${report.totalEntities} 条)"
+                            )
+                        )
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                syncingAdapter = null,
+                                lastReport = report,
+                                errorMessage = report.failureMessage,
+                            )
+                        }
+                        _events.emit(
+                            HubAdaptersEvent.ShowToast("同步失败: ${report.failureMessage}")
+                        )
                     }
-                    _events.emit(HubAdaptersEvent.ShowToast("$name 同步完成 (+${report.ingested} 事件)"))
                 }
                 .onFailure { err ->
                     Timber.w(err, "HubAdaptersViewModel: syncAdapter($name) failed")
@@ -173,20 +203,54 @@ class HubAdaptersViewModel @Inject constructor(
 
             hub.ingestSystemDataAndroid(snapshot.toMap())
                 .onSuccess { report ->
-                    _uiState.update {
-                        it.copy(
-                            syncingAdapter = null,
-                            syncProgressKind = null,
-                            syncProgressPartition = null,
-                            syncProgressDetail = null,
-                            lastReport = report,
+                    if (report.isSkipped) {
+                        _uiState.update {
+                            it.copy(
+                                syncingAdapter = null,
+                                syncProgressKind = null,
+                                syncProgressPartition = null,
+                                syncProgressDetail = null,
+                                lastReport = report,
+                                errorMessage = null,
+                            )
+                        }
+                        _events.emit(
+                            HubAdaptersEvent.ShowToast(
+                                "$name 未同步: ${report.failureMessage}"
+                            )
+                        )
+                    } else if (report.isSuccessful) {
+                        _uiState.update {
+                            it.copy(
+                                syncingAdapter = null,
+                                syncProgressKind = null,
+                                syncProgressPartition = null,
+                                syncProgressDetail = null,
+                                lastReport = report,
+                            )
+                        }
+                        _events.emit(
+                            HubAdaptersEvent.ShowToast(
+                                "$name 同步完成 (+${report.totalEntities} 条)"
+                            )
+                        )
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                syncingAdapter = null,
+                                syncProgressKind = null,
+                                syncProgressPartition = null,
+                                syncProgressDetail = null,
+                                lastReport = report,
+                                errorMessage = report.failureMessage,
+                            )
+                        }
+                        _events.emit(
+                            HubAdaptersEvent.ShowToast(
+                                "同步失败: ${report.failureMessage}"
+                            )
                         )
                     }
-                    _events.emit(
-                        HubAdaptersEvent.ShowToast(
-                            "$name 同步完成 (+${report.ingested} 事件)"
-                        )
-                    )
                 }
                 .onFailure { err ->
                     Timber.w(err, "HubAdaptersViewModel: ingestSystemDataAndroid failed")
@@ -225,18 +289,93 @@ class HubAdaptersViewModel @Inject constructor(
                     )
                 }
             }
-            "done" -> {
+            "sync.retry" -> {
                 _uiState.update {
                     it.copy(
-                        syncingAdapter = null,
-                        syncProgressKind = null,
-                        syncProgressPartition = null,
-                        syncProgressDetail = null,
-                        lastReport = ev.report ?: it.lastReport,
+                        syncProgressKind = "retrying",
+                        syncProgressPartition = ev.error,
+                        syncProgressDetail =
+                            mapOf(
+                                "nextAttempt" to (ev.nextAttempt ?: 0L),
+                                "retryCount" to (ev.retryCount ?: 0L),
+                                "delayMs" to (ev.delayMs ?: 0L),
+                            ),
                     )
                 }
-                val ingested = ev.report?.ingested ?: 0L
-                _events.emit(HubAdaptersEvent.ShowToast("${ev.adapter} 同步完成 (+$ingested 事件)"))
+            }
+            "sync.request_throttled" -> {
+                _uiState.update {
+                    it.copy(
+                        syncProgressKind = "request_throttled",
+                        syncProgressPartition = ev.operation ?: ev.reason,
+                        syncProgressDetail =
+                            mapOf(
+                                "delayMs" to (ev.delayMs ?: 0L),
+                                "sourceRequestCount" to (ev.sourceRequestCount ?: 0L),
+                                "page" to (ev.page ?: 0L),
+                            ),
+                    )
+                }
+            }
+            "sync.rate_limited" -> {
+                _uiState.update {
+                    it.copy(
+                        syncProgressKind = "rate_limited",
+                        syncProgressPartition = ev.reason,
+                        syncProgressDetail =
+                            mapOf("retryAfterMs" to (ev.retryAfterMs ?: 0L)),
+                    )
+                }
+            }
+            "done" -> {
+                val report = ev.report
+                if (report?.isSkipped == true) {
+                    _uiState.update {
+                        it.copy(
+                            syncingAdapter = null,
+                            syncProgressKind = null,
+                            syncProgressPartition = null,
+                            syncProgressDetail = null,
+                            lastReport = report,
+                            errorMessage = null,
+                        )
+                    }
+                    _events.emit(
+                        HubAdaptersEvent.ShowToast(
+                            "${ev.adapter} 未同步: ${report.failureMessage}"
+                        )
+                    )
+                } else if (report != null && !report.isSuccessful) {
+                    _uiState.update {
+                        it.copy(
+                            syncingAdapter = null,
+                            syncProgressKind = null,
+                            syncProgressPartition = null,
+                            syncProgressDetail = null,
+                            lastReport = report,
+                            errorMessage = report.failureMessage,
+                        )
+                    }
+                    _events.emit(
+                        HubAdaptersEvent.ShowToast("同步失败: ${report.failureMessage}")
+                    )
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            syncingAdapter = null,
+                            syncProgressKind = null,
+                            syncProgressPartition = null,
+                            syncProgressDetail = null,
+                            lastReport = report ?: it.lastReport,
+                        )
+                    }
+                    val ingested = report?.totalEntities ?: 0L
+                    _events.emit(
+                        HubAdaptersEvent.ShowToast(
+                            "${ev.adapter} 同步完成 (+$ingested 条)"
+                        )
+                    )
+                }
             }
             "error" -> {
                 _uiState.update {

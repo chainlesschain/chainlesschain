@@ -33,7 +33,11 @@
 
 const fs = require("node:fs");
 const { newId } = require("../../ids");
-const { ENTITY_TYPES, EVENT_SUBTYPES, CAPTURED_BY } = require("../../constants");
+const {
+  ENTITY_TYPES,
+  EVENT_SUBTYPES,
+  CAPTURED_BY,
+} = require("../../constants");
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "biz-tianyancha";
@@ -45,8 +49,10 @@ const KIND_SEARCH = "search";
 const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_MONITOR, KIND_SEARCH]);
 
 // Best-effort tianyancha.com endpoints. Overridable via opts.*Url.
-const MONITOR_URL = "https://capi.tianyancha.com/cloud-monitor-app/monitor/list";
-const SEARCH_URL = "https://capi.tianyancha.com/cloud-search-app/search/history";
+const MONITOR_URL =
+  "https://capi.tianyancha.com/cloud-monitor-app/monitor/list";
+const SEARCH_URL =
+  "https://capi.tianyancha.com/cloud-search-app/search/history";
 const PAGE_SIZE = 20;
 
 function parseTime(v) {
@@ -75,9 +81,13 @@ class TianyanchaAdapter {
     this.account = opts.account || null;
     this._cookieAuth =
       opts.account && opts.account.cookies
-        ? new CookieAuth({ platform: "tianyancha", cookies: opts.account.cookies })
+        ? new CookieAuth({
+            platform: "tianyancha",
+            cookies: opts.account.cookies,
+          })
         : null;
-    this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+    this._fetchFn =
+      typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
     this._signProvider =
       typeof opts.signProvider === "function" ? opts.signProvider : null;
     this._urls = {
@@ -87,6 +97,8 @@ class TianyanchaAdapter {
 
     this.name = NAME;
     this.version = VERSION;
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
     this.capabilities = [
       "sync:snapshot",
       "sync:cookie-api",
@@ -123,8 +135,17 @@ class TianyanchaAdapter {
     }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
-      if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
-      return { ok: true, account: (this.account && this.account.userId) || null, mode: "cookie" };
+      if (!ok)
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          error: "cookies missing",
+        };
+      return {
+        ok: true,
+        account: (this.account && this.account.userId) || null,
+        mode: "cookie",
+      };
     }
     return {
       ok: false,
@@ -137,7 +158,9 @@ class TianyanchaAdapter {
   async healthCheck() {
     if (this._cookieAuth) {
       const r = await this.authenticate();
-      return r.ok ? { ok: true, lastChecked: Date.now() } : { ok: false, reason: r.reason, error: r.error };
+      return r.ok
+        ? { ok: true, lastChecked: Date.now() }
+        : { ok: false, reason: r.reason, error: r.error };
     }
     return { ok: true, lastChecked: Date.now() };
   }
@@ -159,7 +182,11 @@ class TianyanchaAdapter {
   async *_syncViaSnapshot(opts) {
     const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
     const snapshot = JSON.parse(raw);
-    if (!snapshot || typeof snapshot !== "object" || snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION) {
+    if (
+      !snapshot ||
+      typeof snapshot !== "object" ||
+      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
+    ) {
       throw new Error(
         `biz-tianyancha.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
       );
@@ -168,16 +195,29 @@ class TianyanchaAdapter {
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
         : Date.now();
-    const account = snapshot.account && typeof snapshot.account === "object" ? snapshot.account : null;
+    const account =
+      snapshot.account && typeof snapshot.account === "object"
+        ? snapshot.account
+        : null;
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const events = Array.isArray(snapshot.events) ? snapshot.events : [];
     let emitted = 0;
     for (const ev of events) {
       if (emitted >= limit) return;
-      if (!ev || typeof ev !== "object" || !VALID_SNAPSHOT_KINDS.includes(ev.kind)) continue;
+      if (
+        !ev ||
+        typeof ev !== "object" ||
+        !VALID_SNAPSHOT_KINDS.includes(ev.kind)
+      )
+        continue;
       if (include[ev.kind] === false) continue;
-      const id = (typeof ev.id === "string" && ev.id) || ev.companyId || ev.query || null;
+      const id =
+        (typeof ev.id === "string" && ev.id) ||
+        ev.companyId ||
+        ev.query ||
+        null;
       yield {
         adapter: NAME,
         kind: ev.kind,
@@ -193,47 +233,94 @@ class TianyanchaAdapter {
     if (!(await this._cookieAuth.validate())) return;
     const cookies = this._cookieAuth.toHeader();
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
-    const maxPages = Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+    const sinceMs =
+      opts.sinceWatermark != null
+        ? parseInt(String(opts.sinceWatermark), 10) || 0
+        : 0;
 
     const plan = [
-      { kind: KIND_MONITOR, url: this._urls.monitor, idOf: (it) => it.graphId || it.companyId || it.id },
-      { kind: KIND_SEARCH, url: this._urls.search, idOf: (it) => it.id || it.keyword || it.word },
+      {
+        kind: KIND_MONITOR,
+        url: this._urls.monitor,
+        idOf: (it) => it.graphId || it.companyId || it.id,
+      },
+      {
+        kind: KIND_SEARCH,
+        url: this._urls.search,
+        idOf: (it) => it.id || it.keyword || it.word,
+      },
     ];
 
     let emitted = 0;
+    let scanComplete = true;
     for (const step of plan) {
       if (include[step.kind] === false) continue;
       let pageNum = 1;
+      let streamComplete = false;
       while (pageNum <= maxPages) {
         const query = { pageNum, pageSize: PAGE_SIZE };
         let sign = null;
         if (this._signProvider) {
           sign = await this._signProvider({ url: step.url, query, cookies });
         }
-        const resp = await this._fetchFn({ url: step.url, cookies, query, sign });
+        if (typeof opts.beforeSourceRequest === "function") {
+          await opts.beforeSourceRequest({
+            operation: step.kind,
+            page: pageNum,
+          });
+        }
+        const resp = await this._fetchFn({
+          url: step.url,
+          cookies,
+          query,
+          sign,
+        });
         const items = extractData(resp);
-        if (!items.length) break;
+        if (!items.length) {
+          streamComplete = true;
+          break;
+        }
+        let reachedWatermark = false;
         for (const it of items) {
           if (!it || typeof it !== "object") continue;
+          const capturedAt =
+            parseTime(
+              it.createTime || it.monitorTime || it.searchTime || it.gmtCreate,
+            ) || Date.now();
+          if (capturedAt < sinceMs) {
+            reachedWatermark = true;
+            break;
+          }
           if (emitted >= limit) return;
           yield {
             adapter: NAME,
             kind: step.kind,
             originalId: stableOriginalId(step.kind, step.idOf(it)),
-            capturedAt: parseTime(it.createTime || it.monitorTime || it.searchTime || it.gmtCreate) || Date.now(),
+            capturedAt,
             payload: { item: it, kind: step.kind, cookie: true },
           };
           emitted += 1;
         }
-        if (items.length < PAGE_SIZE) break;
+        if (reachedWatermark || items.length < PAGE_SIZE) {
+          streamComplete = true;
+          break;
+        }
         pageNum += 1;
       }
+      if (!streamComplete) scanComplete = false;
+    }
+    if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+      opts.markWatermarkComplete();
     }
   }
 
   normalize(raw) {
-    if (!raw || !raw.payload) throw new Error("TianyanchaAdapter.normalize: payload missing");
+    if (!raw || !raw.payload)
+      throw new Error("TianyanchaAdapter.normalize: payload missing");
     const ingestedAt = Date.now();
     const kind = raw.kind || raw.payload.kind;
     if (kind === KIND_MONITOR) return normalizeMonitor(raw, ingestedAt);
@@ -274,7 +361,10 @@ function normalizeMonitor(raw, ingestedAt) {
   const p = raw.payload;
   const it = p.cookie ? p.item : p;
   const company = it.companyName || it.name || it.company || "";
-  const occurredAt = parseTime(it.capturedAt || it.createTime || it.monitorTime || raw.capturedAt) || ingestedAt;
+  const occurredAt =
+    parseTime(
+      it.capturedAt || it.createTime || it.monitorTime || raw.capturedAt,
+    ) || ingestedAt;
   const source = buildSource(raw, occurredAt);
   return {
     events: [
@@ -289,7 +379,10 @@ function normalizeMonitor(raw, ingestedAt) {
         source,
         extra: {
           platform: "tianyancha",
-          companyId: (it.companyId || it.graphId || it.id) != null ? String(it.companyId || it.graphId || it.id) : null,
+          companyId:
+            (it.companyId || it.graphId || it.id) != null
+              ? String(it.companyId || it.graphId || it.id)
+              : null,
           companyName: company || null,
           legalPerson: it.legalPerson || it.legalPersonName || null,
           regStatus: it.regStatus || it.status || null,
@@ -307,7 +400,10 @@ function normalizeSearch(raw, ingestedAt) {
   const p = raw.payload;
   const it = p.cookie ? p.item : p;
   const q = it.query || it.keyword || it.word || it.companyName || "";
-  const occurredAt = parseTime(it.capturedAt || it.searchTime || it.createTime || raw.capturedAt) || ingestedAt;
+  const occurredAt =
+    parseTime(
+      it.capturedAt || it.searchTime || it.createTime || raw.capturedAt,
+    ) || ingestedAt;
   const source = buildSource(raw, occurredAt);
   return {
     events: [

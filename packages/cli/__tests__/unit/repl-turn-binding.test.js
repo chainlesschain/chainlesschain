@@ -47,7 +47,10 @@ describe("createReplTurnBindingProducer", () => {
   });
 
   it("feeds one interactive turn and persists it at settle (honest coverage)", () => {
-    const p = createReplTurnBindingProducer({ sessionId: "sess-R" });
+    const p = createReplTurnBindingProducer({
+      sessionId: "sess-R",
+      failClosed: false,
+    });
     p.beginTurn(2); // messages.length just after the user push
     for (const e of toolEvents) p.handleEvent(e);
     expect(p.persistIfDirty()).toBe(true);
@@ -67,11 +70,33 @@ describe("createReplTurnBindingProducer", () => {
     expect(snapshots).toHaveLength(1);
   });
 
-  it("a tool-free Q&A turn persists nothing", () => {
+  it("a tool-free Q&A turn persists explicit full coverage", () => {
     const p = createReplTurnBindingProducer({ sessionId: "sess-R" });
     p.beginTurn(2);
+    expect(p.persistIfDirty()).toBe(true);
+    expect(snapshots).toHaveLength(1);
+    const turn = TurnBindingLog.fromJSON(snapshots[0].data).list()[0];
+    expect(turn.coverage).toBe(TURN_COVERAGE.FULL);
+    expect(turn.toolCallIds).toEqual([]);
+  });
+
+  it("reports persistence degradation without clearing the dirty snapshot", () => {
+    const errors = [];
+    _deps.persistTurnBinding = () => false;
+    const p = createReplTurnBindingProducer({
+      sessionId: "sess-R",
+      failClosed: false,
+      onError: (error, phase) => errors.push([phase, error.message]),
+    });
+    p.beginTurn(2);
+
     expect(p.persistIfDirty()).toBe(false);
-    expect(snapshots).toHaveLength(0);
+    expect(errors).toEqual([
+      ["persist", "turn-binding snapshot was not persisted"],
+    ]);
+    expect(p.lastError()).toBeInstanceOf(Error);
+
+    _deps.persistTurnBinding = originalDeps.persistTurnBinding;
   });
 
   it("rehydrates the persisted table on first turn and APPENDS to it", () => {
@@ -81,7 +106,10 @@ describe("createReplTurnBindingProducer", () => {
     _deps.loadTurnBindingLog = (id) =>
       id === "sess-R" ? TurnBindingLog.fromJSON(prior.toJSON()) : null;
 
-    const p = createReplTurnBindingProducer({ sessionId: "sess-R" });
+    const p = createReplTurnBindingProducer({
+      sessionId: "sess-R",
+      failClosed: false,
+    });
     p.beginTurn(4);
     p.handleEvent(toolEvents[1]);
     p.handleEvent(toolEvents[2]);
@@ -120,7 +148,10 @@ describe("createReplTurnBindingProducer", () => {
       snapshots.push({ sessionId, data: log.toJSON() });
       return true;
     };
-    const p = createReplTurnBindingProducer({ sessionId: "sess-R" });
+    const p = createReplTurnBindingProducer({
+      sessionId: "sess-R",
+      failClosed: false,
+    });
     p.beginTurn(2);
     p.handleEvent(toolEvents[1]);
     expect(p.persistIfDirty()).toBe(false);
@@ -129,13 +160,26 @@ describe("createReplTurnBindingProducer", () => {
     expect(snapshots).toHaveLength(1);
   });
 
-  it("is advisory: a throwing store never breaks the turn", () => {
+  it("supports explicit advisory mode for diagnostics", () => {
     _deps.loadTurnBindingLog = () => {
       throw new Error("boom");
     };
-    const p = createReplTurnBindingProducer({ sessionId: "sess-R" });
+    const p = createReplTurnBindingProducer({
+      sessionId: "sess-R",
+      failClosed: false,
+    });
     expect(p.beginTurn(2)).toBeNull();
     expect(p.handleEvent(toolEvents[0])).toBe(false);
     expect(p.persistIfDirty()).toBe(false);
+  });
+
+  it("fails closed by default when critical binding storage is unavailable", () => {
+    _deps.persistTurnBinding = () => {
+      throw new Error("binding lock unavailable");
+    };
+    const p = createReplTurnBindingProducer({ sessionId: "sess-R" });
+    p.beginTurn(2);
+    expect(() => p.persistIfDirty()).toThrow("binding lock unavailable");
+    expect(p.lastError()).toBeInstanceOf(Error);
   });
 });

@@ -1,7 +1,7 @@
 # Protocol cross-language fixtures
 
 Shared, platform-neutral fixtures that lock the **stream-json event → UI
-message** mapping across the two IDE consumers of Agent Protocol v1:
+message** mapping and lossless decoding across Agent Protocol v1 consumers:
 
 - **TypeScript** — `packages/vscode-extension/src/chat/chat-events.js`
   (`mapAgentEvent`), asserted by
@@ -9,11 +9,16 @@ message** mapping across the two IDE consumers of Agent Protocol v1:
 - **Java** — `packages/jetbrains-plugin/.../ChatEvents.java`
   (`mapAgentEvent`), asserted by
   `packages/jetbrains-plugin/src/test/java/.../ProtocolFixturesTest.java`.
+- **Python** — `packages/agent-sdk-python` parses these files directly into
+  dataclass events and asserts exact `event.to_dict()` round trips, including
+  `UnknownAgentEvent` cases. Its exhaustive CI example replays the same files.
 
-Both sides read **these same files directly** (never copied, never
-per-side edited) and MUST produce byte-identical projections. A drift in
-either panel's mapping fails one side's test loudly — the same twin-fixture
-discipline as `packages/vscode-extension/src/__fixtures__/managed-cli/`.
+All sides read **these same files directly** (never copied, never per-side
+edited). The two UI adapters MUST produce byte-identical projections, while
+the Python transport MUST reproduce every original JSON object without
+dropping unknown types. Drift fails the corresponding conformance test
+loudly — the same twin-fixture discipline as
+`packages/vscode-extension/src/__fixtures__/managed-cli/`.
 
 The contract is the protocol document
 (`packages/agent-sdk/docs/PROTOCOL.md`), not either SDK. When the protocol
@@ -37,7 +42,8 @@ tests keep the two panels honest.
     (`user_not_reachable` / `user_timeout` → not a failure), 80-char
     argument-summary truncation, and an empty-summary tool.
   - `interaction.ndjson` — `approval_request` / `approval_resolved` and
-    `question_request` / `question_resolved` (answered vs. timed-out).
+    `question_request` / `question_resolved` (answered vs. timed-out),
+    including an MCP elicitation request carrying a restricted form schema.
   - `misc.ndjson` — `token_usage`, `plan_update`, `compaction`,
     `iteration_warning`, `iteration_budget_exhausted` (info line),
     `stream_retry` (info line — a reconnect loop must not look like a
@@ -57,22 +63,22 @@ some human-readable strings legitimately differ between the two panels (the
 benign `tool_result` note wording), the tests compare a **stable
 projection** of that map, not the whole map. The projection is:
 
-| UI `kind`      | Projected keys |
-| -------------- | -------------- |
-| _null_ (silent/unknown) | `{ kind: null }` |
-| `init`         | `kind, model, provider, sessionId` |
-| `delta`        | `kind, text` |
-| `thinking`     | `kind, text` |
-| `tool`         | `kind, tool, summary` |
-| `tool_done`    | `kind, tool, isError, hasNote` (`note != null`) |
-| `turn_end`     | `kind, isError, text` (may be `null`), `hasUsage` (`usage != null`) |
-| `approval`     | `kind, id, tool, command, risk, rule, reason` |
-| `approval_done`| `kind, id, approved, via` |
-| `question`     | `kind, id, question, multiSelect, hasOptions` (`options != null`) |
-| `plan`         | `kind, active, state` |
-| `usage`        | `kind` |
-| `info`         | `kind, text` |
-| `error`        | `kind, text` |
+| UI `kind`               | Projected keys                                                                                          |
+| ----------------------- | ------------------------------------------------------------------------------------------------------- |
+| _null_ (silent/unknown) | `{ kind: null }`                                                                                        |
+| `init`                  | `kind, model, provider, sessionId`                                                                      |
+| `delta`                 | `kind, text`                                                                                            |
+| `thinking`              | `kind, text`                                                                                            |
+| `tool`                  | `kind, tool, summary`                                                                                   |
+| `tool_done`             | `kind, tool, isError, hasNote` (`note != null`)                                                         |
+| `turn_end`              | `kind, isError, text` (may be `null`), `hasUsage` (`usage != null`)                                     |
+| `approval`              | `kind, id, tool, command, risk, rule, reason`                                                           |
+| `approval_done`         | `kind, id, approved, via`                                                                               |
+| `question`              | `kind, id, question, multiSelect, hasOptions` (`options != null`), `elicitation`, `server`, `hasSchema` |
+| `plan`                  | `kind, active, state`                                                                                   |
+| `usage`                 | `kind`                                                                                                  |
+| `info`                  | `kind, text`                                                                                            |
+| `error`                 | `kind, text`                                                                                            |
 
 **Turn state.** Each `*.ndjson` file is processed with ONE fresh
 `createTurnState()`, feeding events top-to-bottom. A text/thinking delta

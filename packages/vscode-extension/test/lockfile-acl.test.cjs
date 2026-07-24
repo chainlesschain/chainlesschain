@@ -30,14 +30,36 @@ try {
     "default lockfile publication must fail closed",
   );
 
+  assert.throws(
+    () =>
+      lockfile.writeLock({
+        port: 43125,
+        token: "b".repeat(64),
+        allowInsecurePermissions: true,
+      }),
+    /explicit managed policy/,
+    "a caller-controlled boolean must not authorize downgrade",
+  );
+
+  const managedFile = path.join(root, "managed-settings.json");
+  fs.writeFileSync(
+    managedFile,
+    JSON.stringify({
+      ideBridge: { allowInsecureLockfilePermissions: true },
+    }),
+  );
+  const managedPolicy = lockfile.loadLockfileSecurityPolicy(managedFile);
   const published = lockfile.writeLock({
-    port: 43125,
-    token: "b".repeat(64),
-    allowInsecurePermissions: true,
+    port: 43126,
+    token: "c".repeat(64),
+    securityPolicy: managedPolicy,
   });
   assert.equal(fs.existsSync(published), true);
-  assert.equal(JSON.parse(fs.readFileSync(published, "utf8")).token, "b".repeat(64));
-  console.log("lockfile-acl: 3 assertions passed");
+  assert.equal(
+    JSON.parse(fs.readFileSync(published, "utf8")).token,
+    "c".repeat(64),
+  );
+  console.log("lockfile-acl: 4 assertions passed");
 } finally {
   lockfile._deps.homedir = original.homedir;
   lockfile._deps.platform = original.platform;

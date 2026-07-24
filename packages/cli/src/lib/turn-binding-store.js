@@ -35,46 +35,85 @@ export const _deps = {
   readEvents: storeReadEvents,
 };
 
+export class TurnBindingPersistenceError extends Error {
+  constructor(operation, sessionId, cause) {
+    const detail = cause?.message || String(cause || "unknown persistence error");
+    super(`Turn binding ${operation} failed for ${sessionId}: ${detail}`, {
+      cause,
+    });
+    this.name = "TurnBindingPersistenceError";
+    this.code =
+      operation === "read"
+        ? "TURN_BINDING_READ_FAILED"
+        : "TURN_BINDING_PERSIST_FAILED";
+    this.operation = operation;
+    this.sessionId = sessionId;
+  }
+}
+
+function persistenceFailure(operation, sessionId, cause, failIfUnavailable) {
+  if (!failIfUnavailable) return false;
+  throw new TurnBindingPersistenceError(operation, sessionId, cause);
+}
+
 /**
  * Append the current binding table as a new chained event. Each call writes the
  * FULL table (append-only snapshot), so the newest event is authoritative — a
  * later `loadTurnBindingLog` never has to merge partial deltas across a chain
  * that a compaction could have truncated.
  *
- * Best-effort: a persistence failure must not crash the turn it is recording, so
- * the caller gets `false` instead of a throw.
+ * Turn/checkpoint binding is Critical state. Persistence fails closed by
+ * default; diagnostic callers may explicitly opt into advisory behavior.
  *
  * @param {string} sessionId
  * @param {TurnBindingLog|object} log  a TurnBindingLog or its toJSON() shape
+ * @param {{failIfUnavailable?:boolean}} [opts]
  * @returns {boolean} true when the snapshot was written
  */
-export function persistTurnBinding(sessionId, log) {
-  if (!sessionId || !log) return false;
-  const snapshot = log instanceof TurnBindingLog ? log.toJSON() : log;
-  if (!snapshot || !Array.isArray(snapshot.turns)) return false;
+export function persistTurnBinding(sessionId, log, opts = {}) {
+  const failIfUnavailable = opts.failIfUnavailable !== false;
+  if (!sessionId || !log) {
+    return persistenceFailure(
+      "write",
+      sessionId || "<missing-session>",
+      new TypeError("sessionId and binding log are required"),
+      failIfUnavailable,
+    );
+  }
   try {
+    const snapshot = log instanceof TurnBindingLog ? log.toJSON() : log;
+    if (!snapshot || !Array.isArray(snapshot.turns)) {
+      throw new TypeError("binding snapshot must contain a turns array");
+    }
     _deps.appendEvent(sessionId, TURN_BINDING_EVENT, snapshot);
     return true;
-  } catch {
-    // Persistence is advisory — never let it break the agent turn.
-    return false;
+  } catch (error) {
+    return persistenceFailure("write", sessionId, error, failIfUnavailable);
   }
 }
 
 /**
  * Rebuild the TurnBindingLog from the LATEST persisted snapshot in a session
- * transcript. Returns an empty log when the session has no binding event (or on
- * any read error) so callers can treat "never persisted" and "unreadable" alike.
+ * transcript. Returns an empty log when the session has no binding event.
+ * Read/corruption errors fail closed unless explicitly marked advisory.
  *
  * @param {string} sessionId
+ * @param {{failIfUnavailable?:boolean}} [opts]
  * @returns {TurnBindingLog}
  */
-export function loadTurnBindingLog(sessionId) {
+export function loadTurnBindingLog(sessionId, opts = {}) {
+  const failIfUnavailable = opts.failIfUnavailable !== false;
   let events = [];
   try {
     events = _deps.readEvents(sessionId) || [];
-  } catch {
-    return new TurnBindingLog();
+  } catch (error) {
+    const fallback = persistenceFailure(
+      "read",
+      sessionId || "<missing-session>",
+      error,
+      failIfUnavailable,
+    );
+    if (fallback === false) return new TurnBindingLog();
   }
   // Newest snapshot wins — scan backwards for the first well-formed one.
   for (let i = events.length - 1; i >= 0; i--) {
@@ -85,7 +124,17 @@ export function loadTurnBindingLog(sessionId) {
       e.data &&
       Array.isArray(e.data.turns)
     ) {
-      return TurnBindingLog.fromJSON(e.data);
+      try {
+        return TurnBindingLog.fromJSON(e.data);
+      } catch (error) {
+        const fallback = persistenceFailure(
+          "read",
+          sessionId || "<missing-session>",
+          error,
+          failIfUnavailable,
+        );
+        if (fallback === false) return new TurnBindingLog();
+      }
     }
   }
   return new TurnBindingLog();

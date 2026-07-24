@@ -84,12 +84,91 @@ export function breakdownSkillSources(skills, estimateTokens) {
     .map((skill) => ({
       source: skill?.source || "skill",
       skill: String(skill?.id || skill?.displayName || "skill"),
-      tokens: est(
-        `## Persona: ${skill?.displayName || skill?.id || "skill"}\n${skill?.body || ""}`,
-      ),
+      tokens: Number.isFinite(skill?.tokens)
+        ? Math.max(0, skill.tokens)
+        : est(
+            `## Persona: ${skill?.displayName || skill?.id || "skill"}\n${skill?.body || ""}`,
+          ),
     }))
     .filter((row) => row.tokens > 0);
   return { sources, total: sources.reduce((sum, row) => sum + row.tokens, 0) };
+}
+
+/** Normalize the content-free two-tier Skill cache snapshot. */
+export function breakdownSkillCache(cache) {
+  const descriptors = cache?.descriptors || {};
+  const bodies = cache?.bodies || {};
+  const savings = cache?.savings || {};
+  return {
+    descriptors: {
+      resident: Number(descriptors.resident) || 0,
+      scans: Number(descriptors.scans) || 0,
+      cacheHits: Number(descriptors.cacheHits) || 0,
+      estimatedTokens: Number(descriptors.estimatedTokens) || 0,
+    },
+    bodies: {
+      resident: Number(bodies.resident) || 0,
+      cacheHits: Number(bodies.cacheHits) || 0,
+      cacheMisses: Number(bodies.cacheMisses) || 0,
+      entries: Array.isArray(bodies.entries)
+        ? bodies.entries.map((entry) => ({
+            id: String(entry?.id || "skill"),
+            source: String(entry?.source || "skill"),
+            estimatedTokens: Number(entry?.estimatedTokens) || 0,
+            loads: Number(entry?.loads) || 0,
+            cacheHits: Number(entry?.cacheHits) || 0,
+            loadedBecause: Array.isArray(entry?.loadedBecause)
+              ? entry.loadedBecause.map(String)
+              : [],
+          }))
+        : [],
+    },
+    savings: {
+      lazyFileBytes: Number(savings.lazyFileBytes) || 0,
+      estimatedTokensAvoided: Number(savings.estimatedTokensAvoided) || 0,
+    },
+  };
+}
+
+/** Actionable, content-free suggestions derived from the measured sources. */
+export function buildContextOptimizations({
+  instructions = [],
+  mcpSchemas = [],
+  skillCache = null,
+} = {}) {
+  const suggestions = [];
+  if (skillCache?.savings?.estimatedTokensAvoided > 0) {
+    suggestions.push({
+      kind: "skill_lazy_loading",
+      estimatedTokens: skillCache.savings.estimatedTokensAvoided,
+      message:
+        `${skillCache.descriptors.resident} Skill descriptors stayed discoverable while ` +
+        `${skillCache.savings.estimatedTokensAvoided} estimated body tokens remained lazy.`,
+    });
+  }
+  const largestMcp = [...(mcpSchemas || [])].sort(
+    (a, b) => (b.tokens || 0) - (a.tokens || 0),
+  )[0];
+  if (largestMcp?.tokens > 0) {
+    suggestions.push({
+      kind: "mcp_tool_search",
+      estimatedTokens: largestMcp.tokens,
+      source: largestMcp.tool || largestMcp.source,
+      message: `Consider Tool Search or a narrower MCP allow-list for ${largestMcp.tool || largestMcp.source}.`,
+    });
+  }
+  const largestInstruction = [...(instructions || [])].sort(
+    (a, b) => (b.tokens || 0) - (a.tokens || 0),
+  )[0];
+  if (largestInstruction?.tokens > 0) {
+    suggestions.push({
+      kind: "instruction_scope",
+      estimatedTokens: largestInstruction.tokens,
+      source: largestInstruction.source,
+      message: `Scope or split ${largestInstruction.source} if it is not needed for every turn.`,
+    });
+  }
+  return suggestions.slice(0, 5);
 }
 
 // role bucket key → { label, kind } for the ranked source list.

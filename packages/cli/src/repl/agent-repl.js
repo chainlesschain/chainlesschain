@@ -1123,8 +1123,10 @@ export async function startAgentRepl(options = {}) {
   // P1 explicit turn→checkpoint binding — the REPL as PRODUCER (mirrors the
   // headless runner's feed via the shared feeder core): one record per
   // interactive turn, persisted dirty-gated at each settle. Lazily created on
-  // the first prompt turn of a persistable (JSONL) session; advisory only.
+  // the first prompt turn of a persistable (JSONL) session. This is Critical
+  // recovery state: a failure blocks subsequent model/tool turns.
   let _turnBindingProducer = null;
+  let _turnBindingCriticalError = null;
   // Apply --output-style or the settings.json `outputStyle` default at startup.
   try {
     const { resolveOutputStyle } = await import("../lib/output-styles.js");
@@ -3650,6 +3652,11 @@ export async function startAgentRepl(options = {}) {
             _sanitizeRolesNextTurn =
               messages[messages.length - 1]?.role === "user";
             sessionId = resumeId;
+            // The producer owns one immutable session id. Recreate it lazily
+            // on the next turn so bindings from the resumed conversation can
+            // never be appended to the previously active session.
+            _turnBindingProducer = null;
+            _turnBindingCriticalError = null;
             // The prior session's checkpoint marks (turn-index → checkpoint id)
             // no longer map to this swapped-in history; keeping them would make
             // a later /rewind restore files from the WRONG session's snapshot.
@@ -3671,6 +3678,8 @@ export async function startAgentRepl(options = {}) {
               _sanitizeRolesNextTurn =
                 messages[messages.length - 1]?.role === "user";
               sessionId = existing.id;
+              _turnBindingProducer = null;
+              _turnBindingCriticalError = null;
               // Drop the prior session's checkpoint marks (see JSONL branch).
               _checkpointMarks.length = 0;
               _clearedConversation = null; // stash belongs to the swapped-out session
@@ -5267,6 +5276,15 @@ export async function startAgentRepl(options = {}) {
       }
     }
 
+    if (_turnBindingCriticalError) {
+      logger.error(
+        `[recovery] critical turn-binding state is unavailable: ${_turnBindingCriticalError.message}. ` +
+          "Resume or start a healthy session before running another model/tool turn.",
+      );
+      prompt();
+      return;
+    }
+
     // Add user message (keep the object ref so a /btw aside can be injected for
     // this turn's model call and then stripped before persistence).
     const _userMsg = { role: "user", content: _userMessageContent };
@@ -5283,11 +5301,26 @@ export async function startAgentRepl(options = {}) {
         if (!_turnBindingProducer) {
           const { createReplTurnBindingProducer } =
             await import("./repl-turn-binding.js");
-          _turnBindingProducer = createReplTurnBindingProducer({ sessionId });
+          _turnBindingProducer = createReplTurnBindingProducer({
+            sessionId,
+            onError: (error, phase) => {
+              _turnBindingCriticalError = error;
+              logger.warn(
+                `[recovery] turn binding ${phase} failed for ${sessionId}: ${error.message}`,
+              );
+            },
+          });
         }
         _turnBindingProducer?.beginTurn(messages.length);
-      } catch {
-        /* advisory — never disturb the turn */
+      } catch (error) {
+        _turnBindingCriticalError =
+          error instanceof Error ? error : new Error(String(error));
+        if (messages[messages.length - 1] === _userMsg) messages.pop();
+        logger.error(
+          `[recovery] refusing the turn because binding state is unavailable: ${_turnBindingCriticalError.message}`,
+        );
+        prompt();
+        return;
       }
     }
 
@@ -5722,8 +5755,9 @@ export async function startAgentRepl(options = {}) {
           // Non-critical
         }
       }
-      // Persist the explicit turn-binding table for this settled turn
-      // (dirty-gated: a tool-free Q&A turn writes nothing; never throws).
+      // Persist the explicit turn-binding table for this settled turn,
+      // including tool-free turns. A failure is Critical: the producer throws,
+      // this turn reports an error, and the guard above blocks later turns.
       _turnBindingProducer?.persistIfDirty();
       // Auto-compact when context grows too large
       if (

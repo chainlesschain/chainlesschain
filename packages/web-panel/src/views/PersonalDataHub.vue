@@ -5,7 +5,8 @@
       <div>
         <h2 class="page-title">个人数据中台</h2>
         <p class="page-sub">
-          让数据回归个人 — 各 app 数据本地加密落盘，本地 LLM 跨源分析，零云端外传。
+          让数据回归个人 — 各 app 数据本地加密落盘，本地 LLM
+          跨源分析，零云端外传。
         </p>
       </div>
       <a-space>
@@ -13,7 +14,7 @@
           <template #icon><ReloadOutlined /></template>
           刷新
         </a-button>
-        <a-badge :count="resolverStats.reviewQueue" :offset="[0,0]">
+        <a-badge :count="resolverStats.reviewQueue" :offset="[0, 0]">
           <a-button type="primary" ghost @click="openReviewQueue">
             <template #icon><LinkOutlined /></template>
             待消歧
@@ -27,20 +28,23 @@
     </div>
 
     <!-- Health row -->
-    <a-row :gutter="16" style="margin-bottom: 16px;">
+    <a-row :gutter="16" style="margin-bottom: 16px">
       <a-col :xs="24" :sm="12" :md="6">
         <a-card size="small" :title="'Vault'">
           <template #extra>
             <a-tag :color="health?.vault?.ok ? 'green' : 'red'">
-              {{ health?.vault?.ok ? '正常' : '未就绪' }}
+              {{ health?.vault?.ok ? "正常" : "未就绪" }}
             </a-tag>
           </template>
-          <div class="kv">schema v{{ health?.vault?.schemaVersion ?? '?' }}</div>
+          <div class="kv">
+            schema v{{ health?.vault?.schemaVersion ?? "?" }}
+          </div>
           <div class="kv" v-if="stats?.vault">
             事件 {{ stats.vault.events }} · 联系人 {{ stats.vault.persons }}
           </div>
           <div class="kv" v-if="stats?.vault">
-            地点 {{ stats.vault.places }} · 商品 {{ stats.vault.items }} · 主题 {{ stats.vault.topics }}
+            地点 {{ stats.vault.places }} · 商品 {{ stats.vault.items }} · 主题
+            {{ stats.vault.topics }}
           </div>
         </a-card>
       </a-col>
@@ -48,11 +52,25 @@
       <a-col :xs="24" :sm="12" :md="6">
         <a-card size="small" :title="'本地 LLM'">
           <template #extra>
-            <a-tag :color="health?.llm?.ok ? (health.llm.isLocal ? 'green' : 'orange') : 'red'">
-              {{ health?.llm?.ok ? (health.llm.isLocal ? '本地' : '非本地') : '未就绪' }}
+            <a-tag
+              :color="
+                health?.llm?.ok
+                  ? health.llm.isLocal
+                    ? 'green'
+                    : 'orange'
+                  : 'red'
+              "
+            >
+              {{
+                health?.llm?.ok
+                  ? health.llm.isLocal
+                    ? "本地"
+                    : "非本地"
+                  : "未就绪"
+              }}
             </a-tag>
           </template>
-          <div class="kv">{{ health?.llm?.name || '—' }}</div>
+          <div class="kv">{{ health?.llm?.name || "—" }}</div>
           <div class="kv hint" v-if="health?.llm?.ok && !health.llm.isLocal">
             ⚠️ 非本地 — ask 会被隐私 gate 拒绝，除非显式 acceptNonLocal
           </div>
@@ -63,10 +81,12 @@
         <a-card size="small" :title="'KG 索引'">
           <template #extra>
             <a-tag :color="health?.kgSink?.ok ? 'green' : 'default'">
-              {{ health?.kgSink?.ok ? '已连接' : '不可用' }}
+              {{ health?.kgSink?.ok ? "已连接" : "不可用" }}
             </a-tag>
           </template>
-          <div class="kv">events / persons → cc knowledge-graph 实体 + 关系</div>
+          <div class="kv">
+            events / persons → cc knowledge-graph 实体 + 关系
+          </div>
         </a-card>
       </a-col>
 
@@ -74,7 +94,7 @@
         <a-card size="small" :title="'RAG 索引'">
           <template #extra>
             <a-tag :color="health?.ragSink?.ok ? 'green' : 'default'">
-              {{ health?.ragSink?.ok ? '已连接' : '不可用' }}
+              {{ health?.ragSink?.ok ? "已连接" : "不可用" }}
             </a-tag>
           </template>
           <div class="kv">文本 → BM25（vector 留待后续 phase）</div>
@@ -83,7 +103,7 @@
     </a-row>
 
     <!-- Ask box -->
-    <a-card style="margin-bottom: 16px;">
+    <a-card style="margin-bottom: 16px">
       <template #title>
         <a-space><MessageOutlined /><span>问我数据</span></a-space>
       </template>
@@ -93,46 +113,70 @@
         placeholder="例：上个月在淘宝总共花了多少？／我妈生日那周买了啥送哪儿？"
         @keydown.enter.exact.prevent="ask"
       />
-      <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
-        <a-checkbox v-model:checked="acceptNonLocal">允许非本地 LLM (volcengine / anthropic 等)</a-checkbox>
-        <a-button type="primary" :loading="loading.ask" :disabled="!askInput.trim()" @click="ask">
+      <div
+        style="
+          margin-top: 12px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        "
+      >
+        <a-checkbox v-model:checked="acceptNonLocal"
+          >允许非本地 LLM (volcengine / anthropic 等)</a-checkbox
+        >
+        <a-button
+          type="primary"
+          :loading="loading.ask"
+          :disabled="!askInput.trim()"
+          @click="ask"
+        >
           <template #icon><SendOutlined /></template>
           提问
         </a-button>
       </div>
 
-      <div v-if="askError" style="margin-top: 12px;">
+      <div v-if="askError" style="margin-top: 12px">
         <a-alert type="error" show-icon :message="askError" />
       </div>
 
-      <div v-if="askResult" style="margin-top: 12px;">
+      <div v-if="askResult" style="margin-top: 12px">
         <a-alert
           v-if="askResult.warning === 'no-facts'"
           type="warning"
           show-icon
           message="vault 里没找到匹配的事件（'no-facts'）—— 先同步几个 adapter 让数据进 vault"
-          style="margin-bottom: 12px;"
+          style="margin-bottom: 12px"
         />
         <a-alert
           v-else-if="askResult.warning === 'hallucinated-citations'"
           type="warning"
           show-icon
           :message="`LLM 引用了 ${askResult.hallucinatedCitations?.length || 0} 个不存在的 event id —— 模型在编造`"
-          style="margin-bottom: 12px;"
+          style="margin-bottom: 12px"
         />
         <div class="answer">{{ askResult.answer }}</div>
-        <div style="margin-top: 8px; font-size: 12px; color: var(--text-color-secondary, #888);">
-          引用 {{ askResult.citations?.length || 0 }} 条事实 · {{ askResult.facts?.length || 0 }} facts 入 prompt ·
+        <div
+          style="
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-color-secondary, #888);
+          "
+        >
+          引用 {{ askResult.citations?.length || 0 }} 条事实 ·
+          {{ askResult.facts?.length || 0 }} facts 入 prompt ·
           {{ askResult.durationMs }}ms · {{ askResult.model }}
         </div>
-        <div v-if="askResult.citations?.length" style="margin-top: 8px;">
-          <span style="font-size: 12px; color: var(--text-color-secondary, #888);">事件链接（点击查看明细 / PDF 解密结果）：</span>
-          <a-space style="margin-top: 4px;" wrap>
+        <div v-if="askResult.citations?.length" style="margin-top: 8px">
+          <span
+            style="font-size: 12px; color: var(--text-color-secondary, #888)"
+            >事件链接（点击查看明细 / PDF 解密结果）：</span
+          >
+          <a-space style="margin-top: 4px" wrap>
             <a-tag
               v-for="cid in askResult.citations"
               :key="cid"
               color="blue"
-              style="cursor: pointer;"
+              style="cursor: pointer"
               @click="showEventDetail(cid)"
             >
               {{ cid }}
@@ -143,7 +187,7 @@
     </a-card>
 
     <!-- Phase 11 — Analysis Skills cards -->
-    <a-card style="margin-bottom: 16px;">
+    <a-card style="margin-bottom: 16px">
       <template #title>
         <a-space><BulbOutlined /><span>分析 skill (Phase 11)</span></a-space>
       </template>
@@ -151,33 +195,56 @@
         <a-tag color="purple">5 内置</a-tag>
       </template>
       <a-row :gutter="[12, 12]">
-        <a-col :xs="24" :sm="12" :md="8" v-for="s in analysisSkills" :key="s.name">
+        <a-col
+          :xs="24"
+          :sm="12"
+          :md="8"
+          v-for="s in analysisSkills"
+          :key="s.name"
+        >
           <a-card size="small" hoverable @click="runSkill(s.name)">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <component :is="s.icon" style="font-size: 18px; color: #722ed1;" />
+            <div style="display: flex; align-items: center; gap: 8px">
+              <component :is="s.icon" style="font-size: 18px; color: #722ed1" />
               <strong>{{ s.label }}</strong>
             </div>
-            <div class="hint" style="margin-top: 4px;">{{ s.description }}</div>
+            <div class="hint" style="margin-top: 4px">{{ s.description }}</div>
           </a-card>
         </a-col>
       </a-row>
-      <div v-if="skillResult" style="margin-top: 16px;">
-        <a-divider plain orientation="left">{{ skillResult.skill }} 结果</a-divider>
+      <div v-if="skillResult" style="margin-top: 16px">
+        <a-divider plain orientation="left"
+          >{{ skillResult.skill }} 结果</a-divider
+        >
         <a-spin :spinning="loading.skill">
-          <pre class="json-pre" style="max-height: 300px; overflow: auto;">{{ JSON.stringify(skillResult, null, 2) }}</pre>
-          <div v-if="skillResult.llm_commentary || skillResult.llm_narrative" style="margin-top: 8px;">
-            <a-alert type="info" :message="skillResult.llm_commentary || skillResult.llm_narrative" />
+          <pre class="json-pre" style="max-height: 300px; overflow: auto">{{
+            JSON.stringify(skillResult, null, 2)
+          }}</pre>
+          <div
+            v-if="skillResult.llm_commentary || skillResult.llm_narrative"
+            style="margin-top: 8px"
+          >
+            <a-alert
+              type="info"
+              :message="skillResult.llm_commentary || skillResult.llm_narrative"
+            />
           </div>
         </a-spin>
       </div>
     </a-card>
 
     <!-- Adapters -->
-    <a-card style="margin-bottom: 16px;">
+    <a-card style="margin-bottom: 16px">
       <template #title>
         <a-space>
           <AppstoreOutlined /><span>Adapters</span>
-          <a-tag v-if="readinessSummary" :color="readinessSummary.ready === readinessSummary.total ? 'green' : 'orange'">
+          <a-tag
+            v-if="readinessSummary"
+            :color="
+              readinessSummary.ready === readinessSummary.total
+                ? 'green'
+                : 'orange'
+            "
+          >
             {{ readinessSummary.ready }}/{{ readinessSummary.total }} 可采集
           </a-tag>
         </a-space>
@@ -200,7 +267,10 @@
             <template #icon><WechatOutlined /></template>
             添加 WeChat
           </a-button>
-          <a-button @click="bilibiliAdbDoctor" :loading="loading.bilibiliAdbDoctor">
+          <a-button
+            @click="bilibiliAdbDoctor"
+            :loading="loading.bilibiliAdbDoctor"
+          >
             诊断 Bilibili ADB
           </a-button>
           <a-button @click="bilibiliAdbSync" :loading="loading.bilibiliAdbSync">
@@ -227,7 +297,12 @@
           <a-button @click="addMock" :loading="loading.addMock">
             注册 MockAdapter（开发）
           </a-button>
-          <a-button type="primary" @click="syncAll" :loading="loading.syncAll" :disabled="!adapters.length">
+          <a-button
+            type="primary"
+            @click="syncAll"
+            :loading="loading.syncAll"
+            :disabled="!adapters.length"
+          >
             同步全部
           </a-button>
         </a-space>
@@ -247,25 +322,38 @@
               <a-tooltip>
                 <template #title>
                   <div>{{ readinessOf(record.name).message }}</div>
-                  <div v-if="readinessOf(record.name).actionHint" style="margin-top: 4px; opacity: 0.85;">
+                  <div
+                    v-if="readinessOf(record.name).actionHint"
+                    style="margin-top: 4px; opacity: 0.85"
+                  >
                     → {{ readinessOf(record.name).actionHint }}
                   </div>
-                  <div v-if="readinessOf(record.name).lastError" style="margin-top: 4px; color: #ffb3b3;">
+                  <div
+                    v-if="readinessOf(record.name).lastError"
+                    style="margin-top: 4px; color: #ffb3b3"
+                  >
                     上次同步错误: {{ readinessOf(record.name).lastError }}
                   </div>
                 </template>
-                <a-tag :color="readinessStatusColor(readinessOf(record.name).status)">
+                <a-tag
+                  :color="readinessStatusColor(readinessOf(record.name).status)"
+                >
                   {{ readinessStatusLabel(readinessOf(record.name)) }}
                 </a-tag>
               </a-tooltip>
-              <span style="color: #999; font-size: 12px; margin-left: 2px;">
+              <span style="color: #999; font-size: 12px; margin-left: 2px">
                 {{ readinessCategoryLabel(readinessOf(record.name).category) }}
               </span>
               <!-- inline reason for the non-ready rows so the user doesn't
                    have to hover to learn why a source can't collect -->
               <div
                 v-if="!readinessOf(record.name).ready"
-                style="color: #8c8c8c; font-size: 12px; margin-top: 2px; line-height: 1.4;"
+                style="
+                  color: #8c8c8c;
+                  font-size: 12px;
+                  margin-top: 2px;
+                  line-height: 1.4;
+                "
               >
                 {{ readinessOf(record.name).message }}
               </div>
@@ -273,28 +361,40 @@
             <a-tag v-else color="default">检测中</a-tag>
           </template>
           <template v-else-if="column.key === 'sensitivity'">
-            <a-tag :color="sensitivityColor(record.sensitivity)">{{ record.sensitivity }}</a-tag>
-            <a-tag v-if="record.legalGate" color="red" style="margin-left: 4px;">需法律确认</a-tag>
+            <a-tag :color="sensitivityColor(record.sensitivity)">{{
+              record.sensitivity
+            }}</a-tag>
+            <a-tag v-if="record.legalGate" color="red" style="margin-left: 4px"
+              >需法律确认</a-tag
+            >
           </template>
           <template v-else-if="column.key === 'capabilities'">
-            <a-tag v-for="c in record.capabilities" :key="c" style="margin-right: 4px;">{{ c }}</a-tag>
+            <a-tag
+              v-for="c in record.capabilities"
+              :key="c"
+              style="margin-right: 4px"
+              >{{ c }}</a-tag
+            >
           </template>
           <template v-else-if="column.key === 'actions'">
             <a-space>
-              <a-button size="small" type="link" @click="openGuide(record.name)">
+              <a-button
+                size="small"
+                type="link"
+                @click="openGuide(record.name)"
+              >
                 如何导入
               </a-button>
-              <!-- one-click: file-collect sources open a native picker; local
-                   sources sync directly; snapshot sources try ADB auto-pull.
-                   Routing via oneClickCollect so the button is always correct -->
+              <!-- Capability/readiness-driven primary action: file picker,
+                   Cookie prompt, dedicated ADB pull, direct sync, or guide. -->
               <a-button
                 size="small"
                 type="primary"
-                :title="collectMode(readinessOf(record.name) || record) === 'file' ? '选择文件采集' : '采集入库'"
+                :title="collectActionLabel(adapterDescriptor(record.name))"
                 :loading="loading.sync[record.name]"
                 @click="oneClickCollect(record.name)"
               >
-                {{ collectMode(readinessOf(record.name) || record) === 'file' ? '📂 采集' : '采集' }}
+                {{ collectButtonLabel(adapterDescriptor(record.name)) }}
               </a-button>
               <!-- Per-kind include toggles (only adapters with multi-kind
                    bridge output show this — currently just system-data-android).
@@ -309,24 +409,36 @@
                 :title="`${record.name} 采集范围`"
               >
                 <template #content>
-                  <div style="min-width: 220px;">
+                  <div style="min-width: 220px">
                     <div
                       v-for="kind in INCLUDE_KIND_META[record.name]"
                       :key="kind.key"
-                      style="margin: 6px 0;"
+                      style="margin: 6px 0"
                     >
                       <a-checkbox
-                        :checked="syncIncludeOptions[record.name][kind.key] !== false"
-                        @change="onIncludeKindToggle(record.name, kind.key, $event)"
+                        :checked="
+                          syncIncludeOptions[record.name][kind.key] !== false
+                        "
+                        @change="
+                          onIncludeKindToggle(record.name, kind.key, $event)
+                        "
                       >
                         {{ kind.label }}
-                        <span style="color: #999; font-size: 12px; margin-left: 4px;">
+                        <span
+                          style="color: #999; font-size: 12px; margin-left: 4px"
+                        >
                           {{ kind.hint }}
                         </span>
-                        <a-tag v-if="kind.sensitive" color="orange" size="small" style="margin-left: 4px;">敏感</a-tag>
+                        <a-tag
+                          v-if="kind.sensitive"
+                          color="orange"
+                          size="small"
+                          style="margin-left: 4px"
+                          >敏感</a-tag
+                        >
                       </a-checkbox>
                     </div>
-                    <div style="margin-top: 8px; font-size: 11px; color: #999;">
+                    <div style="margin-top: 8px; font-size: 11px; color: #999">
                       取消勾选的数据本次同步不会拉取入库
                     </div>
                   </div>
@@ -343,39 +455,53 @@
           </template>
         </template>
       </a-table>
-      <a-empty v-else description="无已注册 adapter — 点上方按钮注册 MockAdapter 看效果" />
+      <a-empty
+        v-else
+        description="无已注册 adapter — 点上方按钮注册 MockAdapter 看效果"
+      />
 
       <!-- Phase 5.7 — live sync progress -->
-      <div v-if="syncProgress.active" style="margin-top: 12px;">
+      <div v-if="syncProgress.active" style="margin-top: 12px">
         <a-card size="small" :bordered="true">
-          <div class="kv" style="margin-bottom: 4px;">
-            <strong>同步进行中</strong> · {{ syncProgress.adapter }} · {{ syncProgress.phase || '...' }}
-            <span v-if="syncProgress.attempt && syncProgress.attempt > 1" style="color: #faad14;">
+          <div class="kv" style="margin-bottom: 4px">
+            <strong>同步进行中</strong> · {{ syncProgress.adapter }} ·
+            {{ syncProgress.phase || "..." }}
+            <span
+              v-if="syncProgress.attempt && syncProgress.attempt > 1"
+              style="color: #faad14"
+            >
               (重试 #{{ syncProgress.attempt }})
             </span>
           </div>
           <a-progress
             v-if="syncProgress.total > 0"
-            :percent="Math.round((syncProgress.current / syncProgress.total) * 100)"
+            :percent="
+              Math.round((syncProgress.current / syncProgress.total) * 100)
+            "
             :status="syncProgress.errorMessage ? 'exception' : 'active'"
             size="small"
           />
           <a-progress v-else :percent="0" status="active" size="small" />
           <div class="kv hint" v-if="syncProgress.mailbox">
-            邮箱 {{ syncProgress.mailbox }} · {{ syncProgress.current }} / {{ syncProgress.total }}
+            邮箱 {{ syncProgress.mailbox }} · {{ syncProgress.current }} /
+            {{ syncProgress.total }}
           </div>
-          <div v-if="syncProgress.errorMessage" class="kv hint" style="color: #ff4d4f;">
+          <div
+            v-if="syncProgress.errorMessage"
+            class="kv hint"
+            style="color: #ff4d4f"
+          >
             {{ syncProgress.errorMessage }}
           </div>
         </a-card>
       </div>
 
       <!-- Last sync report -->
-      <div v-if="lastSync" style="margin-top: 12px;">
+      <div v-if="lastSync" style="margin-top: 12px">
         <a-alert
-          :type="lastSync.status === 'ok' ? 'success' : 'error'"
+          :type="syncAlertType(lastSync)"
           show-icon
-          :message="`同步 ${lastSync.adapter}: ${lastSync.status}`"
+          :message="syncAlertMessage(lastSync)"
           :description="syncSummary(lastSync)"
         />
       </div>
@@ -394,7 +520,7 @@
         message="数据回归个人 — 凭证落本地加密文件（与 vault 主密钥同目录），同步动作 100% 本地。"
         type="info"
         show-icon
-        style="margin-bottom: 16px;"
+        style="margin-bottom: 16px"
       />
 
       <a-form layout="vertical" :model="emailForm">
@@ -410,7 +536,11 @@
         </a-form-item>
 
         <a-form-item label="邮箱地址" required>
-          <a-input v-model:value="emailForm.email" placeholder="you@qq.com" autocomplete="off" />
+          <a-input
+            v-model:value="emailForm.email"
+            placeholder="you@qq.com"
+            autocomplete="off"
+          />
         </a-form-item>
 
         <a-form-item required>
@@ -418,7 +548,7 @@
             <a-space>
               <span>授权码（非登录密码）</span>
               <a-tooltip :title="providerAuthHint(emailForm.provider)">
-                <InfoCircleOutlined style="color: #888;" />
+                <InfoCircleOutlined style="color: #888" />
               </a-tooltip>
             </a-space>
           </template>
@@ -430,29 +560,55 @@
         </a-form-item>
 
         <a-form-item v-if="emailForm.provider === 'custom'" label="IMAP host">
-          <a-input v-model:value="emailForm.host" placeholder="mail.example.com" />
+          <a-input
+            v-model:value="emailForm.host"
+            placeholder="mail.example.com"
+          />
         </a-form-item>
         <a-form-item v-if="emailForm.provider === 'custom'" label="端口">
-          <a-input-number v-model:value="emailForm.port" :min="1" :max="65535" :default-value="993" />
+          <a-input-number
+            v-model:value="emailForm.port"
+            :min="1"
+            :max="65535"
+            :default-value="993"
+          />
         </a-form-item>
 
         <a-divider orientation="left" plain>PDF 账单解密提示（可选）</a-divider>
-        <p class="hint">银行 PDF 月结大多加密；提供几个常用候选项让 Phase 5.5 自动解锁：</p>
+        <p class="hint">
+          银行 PDF 月结大多加密；提供几个常用候选项让 Phase 5.5 自动解锁：
+        </p>
         <a-form-item label="身份证后 6 位">
-          <a-input v-model:value="emailForm.pdfPasswordHints.idCardLast6" placeholder="123456" autocomplete="off" />
+          <a-input
+            v-model:value="emailForm.pdfPasswordHints.idCardLast6"
+            placeholder="123456"
+            autocomplete="off"
+          />
         </a-form-item>
         <a-form-item label="手机后 6 位">
-          <a-input v-model:value="emailForm.pdfPasswordHints.phoneLast6" placeholder="123456" autocomplete="off" />
+          <a-input
+            v-model:value="emailForm.pdfPasswordHints.phoneLast6"
+            placeholder="123456"
+            autocomplete="off"
+          />
         </a-form-item>
         <a-form-item label="信用卡尾 6 位">
-          <a-input v-model:value="emailForm.pdfPasswordHints.cardLast6" placeholder="123456" autocomplete="off" />
+          <a-input
+            v-model:value="emailForm.pdfPasswordHints.cardLast6"
+            placeholder="123456"
+            autocomplete="off"
+          />
         </a-form-item>
 
-        <div v-if="emailTestResult" style="margin-top: 8px;">
+        <div v-if="emailTestResult" style="margin-top: 8px">
           <a-alert
             :type="emailTestResult.ok ? 'success' : 'error'"
             show-icon
-            :message="emailTestResult.ok ? '凭证有效 — 可以保存' : `认证失败: ${emailTestResult.reason || emailTestResult.error}`"
+            :message="
+              emailTestResult.ok
+                ? '凭证有效 — 可以保存'
+                : `认证失败: ${emailTestResult.reason || emailTestResult.error}`
+            "
           />
         </div>
       </a-form>
@@ -460,7 +616,11 @@
       <template #footer>
         <a-space>
           <a-button @click="emailConfigOpen = false">取消</a-button>
-          <a-button :loading="loading.testEmail" :disabled="!emailFormValid" @click="testEmailAuth">
+          <a-button
+            :loading="loading.testEmail"
+            :disabled="!emailFormValid"
+            @click="testEmailAuth"
+          >
             测试连接
           </a-button>
           <a-button
@@ -485,30 +645,58 @@
     >
       <template v-if="eventDetail">
         <a-descriptions :column="1" size="small" bordered>
-          <a-descriptions-item label="类型">{{ eventDetail.event.subtype }}</a-descriptions-item>
+          <a-descriptions-item label="类型">{{
+            eventDetail.event.subtype
+          }}</a-descriptions-item>
           <a-descriptions-item label="发生于">
             {{ new Date(eventDetail.event.occurredAt).toLocaleString() }}
           </a-descriptions-item>
-          <a-descriptions-item label="actor">{{ eventDetail.event.actor }}</a-descriptions-item>
-          <a-descriptions-item v-if="eventDetail.event.content?.title" label="标题">
+          <a-descriptions-item label="actor">{{
+            eventDetail.event.actor
+          }}</a-descriptions-item>
+          <a-descriptions-item
+            v-if="eventDetail.event.content?.title"
+            label="标题"
+          >
             {{ eventDetail.event.content.title }}
           </a-descriptions-item>
-          <a-descriptions-item v-if="eventDetail.event.source?.adapter" label="来源 adapter">
-            {{ eventDetail.event.source.adapter }} @ v{{ eventDetail.event.source.adapterVersion }}
+          <a-descriptions-item
+            v-if="eventDetail.event.source?.adapter"
+            label="来源 adapter"
+          >
+            {{ eventDetail.event.source.adapter }} @ v{{
+              eventDetail.event.source.adapterVersion
+            }}
           </a-descriptions-item>
         </a-descriptions>
 
-        <a-divider v-if="eventDetail.classification" orientation="left" plain>分类</a-divider>
+        <a-divider v-if="eventDetail.classification" orientation="left" plain
+          >分类</a-divider
+        >
         <div v-if="eventDetail.classification">
           <a-tag color="blue">{{ eventDetail.classification.category }}</a-tag>
           <a-tag>{{ eventDetail.classification.layer }}</a-tag>
-          <span style="margin-left: 8px;">置信 {{ Math.round((eventDetail.classification.confidence || 0) * 100) }}%</span>
+          <span style="margin-left: 8px"
+            >置信
+            {{
+              Math.round((eventDetail.classification.confidence || 0) * 100)
+            }}%</span
+          >
         </div>
 
-        <a-divider v-if="eventDetail.extraction" orientation="left" plain>结构化字段（{{ eventDetail.extraction.template }}）</a-divider>
-        <pre v-if="eventDetail.extraction" class="json-pre">{{ JSON.stringify(eventDetail.extraction.fields, null, 2) }}</pre>
+        <a-divider v-if="eventDetail.extraction" orientation="left" plain
+          >结构化字段（{{ eventDetail.extraction.template }}）</a-divider
+        >
+        <pre v-if="eventDetail.extraction" class="json-pre">{{
+          JSON.stringify(eventDetail.extraction.fields, null, 2)
+        }}</pre>
 
-        <a-divider v-if="eventDetail.extraction?.pdfExtraction" orientation="left" plain>PDF 解密 / 解析</a-divider>
+        <a-divider
+          v-if="eventDetail.extraction?.pdfExtraction"
+          orientation="left"
+          plain
+          >PDF 解密 / 解析</a-divider
+        >
         <a-list
           v-if="eventDetail.extraction?.pdfExtraction"
           :data-source="eventDetail.extraction.pdfExtraction"
@@ -520,14 +708,19 @@
                 <template #description>
                   <div>
                     <a-tag :color="item.decrypted ? 'green' : 'red'">
-                      {{ item.decrypted ? '已解密' : '解密失败' }}
+                      {{ item.decrypted ? "已解密" : "解密失败" }}
                     </a-tag>
-                    <span style="margin-left: 6px;">尝试 {{ item.attempted }} 次</span>
-                    <span v-if="item.transactionsExtracted != null" style="margin-left: 6px;">
+                    <span style="margin-left: 6px"
+                      >尝试 {{ item.attempted }} 次</span
+                    >
+                    <span
+                      v-if="item.transactionsExtracted != null"
+                      style="margin-left: 6px"
+                    >
                       · 提取 {{ item.transactionsExtracted }} 条交易
                     </span>
                   </div>
-                  <div v-if="item.error" class="hint" style="margin-top: 4px;">
+                  <div v-if="item.error" class="hint" style="margin-top: 4px">
                     {{ item.error }}
                   </div>
                 </template>
@@ -550,8 +743,15 @@
                 {{ new Date(record.occurredAtMs).toLocaleDateString() }}
               </template>
               <template v-else-if="column.key === 'amount'">
-                <span :class="record.amount.direction === 'in' ? 'amount-in' : 'amount-out'">
-                  {{ record.amount.direction === 'in' ? '+' : '-' }}{{ record.amount.value.toFixed(2) }}
+                <span
+                  :class="
+                    record.amount.direction === 'in'
+                      ? 'amount-in'
+                      : 'amount-out'
+                  "
+                >
+                  {{ record.amount.direction === "in" ? "+" : "-"
+                  }}{{ record.amount.value.toFixed(2) }}
                   {{ record.amount.currency }}
                 </span>
               </template>
@@ -575,12 +775,12 @@
         message="支付宝官方导出 CSV — 服务器侧全量、稳定无风控。3 分钟拿到 12 个月流水。"
         type="info"
         show-icon
-        style="margin-bottom: 16px;"
+        style="margin-bottom: 16px"
       />
 
-      <a-collapse :bordered="false" style="margin-bottom: 12px;">
+      <a-collapse :bordered="false" style="margin-bottom: 12px">
         <a-collapse-panel header="如何导出账单（首次必看）">
-          <ol style="padding-left: 18px; font-size: 13px;">
+          <ol style="padding-left: 18px; font-size: 13px">
             <li>支付宝 app → 我的 → 账单 → 右上角 ⋯</li>
             <li>点 "开具交易流水证明"</li>
             <li>选月份范围（最长 12 个月）</li>
@@ -605,8 +805,10 @@
           <template #label>
             <a-space>
               <span>ZIP 密码（身份证后 6 位）</span>
-              <a-tooltip title="支付宝 ZIP 默认密码 = 身份证号后 6 位。也支持自定义密码。">
-                <InfoCircleOutlined style="color: #888;" />
+              <a-tooltip
+                title="支付宝 ZIP 默认密码 = 身份证号后 6 位。也支持自定义密码。"
+              >
+                <InfoCircleOutlined style="color: #888" />
               </a-tooltip>
             </a-space>
           </template>
@@ -615,7 +817,7 @@
             placeholder="例：123456"
             autocomplete="off"
           />
-          <div class="hint" style="margin-top: 4px;">
+          <div class="hint" style="margin-top: 4px">
             空白则解析时再问，或导入的 ZIP 未加密。
           </div>
         </a-form-item>
@@ -627,17 +829,25 @@
             placeholder="C:\\Users\\you\\Downloads\\alipay_record_xxx.zip"
             allow-clear
           />
-          <div class="hint" style="margin-top: 4px;">
+          <div class="hint" style="margin-top: 4px">
             桌面版可通过 Electron 文件选择器自动填充；web-shell 复制完整路径。
           </div>
         </a-form-item>
 
-        <div v-if="alipayResult" style="margin-top: 8px;">
+        <div v-if="alipayResult" style="margin-top: 8px">
           <a-alert
             :type="alipayResult.status === 'ok' ? 'success' : 'error'"
             show-icon
-            :message="alipayResult.status === 'ok' ? `导入成功 — ${alipayResult.entityCounts?.events || 0} 笔交易` : `导入失败: ${alipayResult.error || alipayResult.status}`"
-            :description="alipayResult.status === 'ok' ? `${alipayResult.entityCounts?.persons || 0} 个交易对方 · ${alipayResult.kgTripleCount || 0} KG triples · ${alipayResult.durationMs || 0}ms` : null"
+            :message="
+              alipayResult.status === 'ok'
+                ? `导入成功 — ${alipayResult.entityCounts?.events || 0} 笔交易`
+                : `导入失败: ${alipayResult.error || alipayResult.status}`
+            "
+            :description="
+              alipayResult.status === 'ok'
+                ? `${alipayResult.entityCounts?.persons || 0} 个交易对方 · ${alipayResult.kgTripleCount || 0} KG triples · ${alipayResult.durationMs || 0}ms`
+                : null
+            "
           />
         </div>
       </a-form>
@@ -670,9 +880,9 @@
         type="success"
         show-icon
         message="无待消歧 pair — 所有跨源 Person 已确定。"
-        style="margin-bottom: 12px;"
+        style="margin-bottom: 12px"
       />
-      <div style="margin-bottom: 12px;">
+      <div style="margin-bottom: 12px">
         <a-space>
           <a-button :loading="loading.reviewQueue" @click="loadReviewQueue">
             <template #icon><ReloadOutlined /></template>
@@ -694,25 +904,53 @@
       >
         <template #renderItem="{ item }">
           <a-list-item>
-            <a-card size="small" style="width: 100%;">
+            <a-card size="small" style="width: 100%">
               <div class="kv">
                 <strong>Pair #{{ item.id }}</strong>
-                <a-tag v-if="item.embed_sim" color="blue" style="margin-left: 8px;">
+                <a-tag
+                  v-if="item.embed_sim"
+                  color="blue"
+                  style="margin-left: 8px"
+                >
                   sim {{ Number(item.embed_sim).toFixed(2) }}
                 </a-tag>
-                <a-tag v-if="item.llm_verdict" :color="item.llm_verdict === 'yes' ? 'green' : item.llm_verdict === 'no' ? 'red' : 'orange'" style="margin-left: 4px;">
+                <a-tag
+                  v-if="item.llm_verdict"
+                  :color="
+                    item.llm_verdict === 'yes'
+                      ? 'green'
+                      : item.llm_verdict === 'no'
+                        ? 'red'
+                        : 'orange'
+                  "
+                  style="margin-left: 4px"
+                >
                   LLM: {{ item.llm_verdict }}
                 </a-tag>
               </div>
-              <div class="kv" style="margin-top: 4px;">A: {{ item.a_person_id }}</div>
+              <div class="kv" style="margin-top: 4px">
+                A: {{ item.a_person_id }}
+              </div>
               <div class="kv">B: {{ item.b_person_id }}</div>
-              <div v-if="item.llm_reason" class="hint" style="margin-top: 4px;">
+              <div v-if="item.llm_reason" class="hint" style="margin-top: 4px">
                 LLM 理由: {{ item.llm_reason }}
               </div>
-              <a-space style="margin-top: 8px;">
-                <a-button size="small" type="primary" @click="decideReview(item.id, 'same')">同一人</a-button>
-                <a-button size="small" danger @click="decideReview(item.id, 'different')">不同人</a-button>
-                <a-button size="small" @click="decideReview(item.id, 'skip')">跳过</a-button>
+              <a-space style="margin-top: 8px">
+                <a-button
+                  size="small"
+                  type="primary"
+                  @click="decideReview(item.id, 'same')"
+                  >同一人</a-button
+                >
+                <a-button
+                  size="small"
+                  danger
+                  @click="decideReview(item.id, 'different')"
+                  >不同人</a-button
+                >
+                <a-button size="small" @click="decideReview(item.id, 'skip')"
+                  >跳过</a-button
+                >
               </a-space>
             </a-card>
           </a-list-item>
@@ -740,7 +978,7 @@
             {{ new Date(record.at).toLocaleString() }}
           </template>
           <template v-else-if="column.key === 'details'">
-            <code style="font-size: 11px;">{{ record.details || '—' }}</code>
+            <code style="font-size: 11px">{{ record.details || "—" }}</code>
           </template>
         </template>
       </a-table>
@@ -762,55 +1000,64 @@
     <!-- 如何导入 — per-source onboarding guide -->
     <a-drawer
       v-model:open="guideDrawerOpen"
-      :title="guideTarget && guideTarget.guide ? `如何导入：${guideTarget.guide.displayName}` : '如何导入'"
+      :title="
+        guideTarget && guideTarget.guide
+          ? `如何导入：${guideTarget.guide.displayName}`
+          : '如何导入'
+      "
       width="520"
       placement="right"
     >
       <template v-if="guideTarget && guideTarget.guide">
-        <a-space style="margin-bottom: 12px;" wrap>
+        <a-space style="margin-bottom: 12px" wrap>
           <a-tag :color="readinessStatusColor(guideTarget.status)">
             {{ readinessStatusLabel(guideTarget) }}
           </a-tag>
-          <a-tag>{{ readinessCategoryLabel(guideTarget.guide.category) }}</a-tag>
+          <a-tag>{{
+            readinessCategoryLabel(guideTarget.guide.category)
+          }}</a-tag>
         </a-space>
 
         <a-alert
           type="info"
           :message="guideTarget.guide.summary"
           show-icon
-          style="margin-bottom: 8px;"
+          style="margin-bottom: 8px"
         />
         <a-alert
           v-if="!guideTarget.ready && guideTarget.message"
           type="warning"
           :message="`当前状态：${guideTarget.message}`"
           show-icon
-          style="margin-bottom: 16px;"
+          style="margin-bottom: 16px"
         />
 
         <div
           v-for="(m, mi) in guideTarget.guide.methods"
           :key="mi"
-          style="margin-bottom: 20px;"
+          style="margin-bottom: 20px"
         >
-          <div style="font-weight: 600; margin-bottom: 8px;">
+          <div style="font-weight: 600; margin-bottom: 8px">
             {{ m.label }}
-            <a-tag v-if="m.recommended" color="green" style="margin-left: 6px;">推荐</a-tag>
+            <a-tag v-if="m.recommended" color="green" style="margin-left: 6px"
+              >推荐</a-tag
+            >
           </div>
-          <ol style="margin: 0; padding-left: 20px; line-height: 1.9;">
+          <ol style="margin: 0; padding-left: 20px; line-height: 1.9">
             <li v-for="(s, si) in m.steps" :key="si">{{ s }}</li>
           </ol>
           <div
             v-if="m.note"
-            style="margin-top: 6px; font-size: 12px; color: #52c41a;"
+            style="margin-top: 6px; font-size: 12px; color: #52c41a"
           >
             {{ m.note }}
           </div>
         </div>
 
-        <a-divider style="margin: 12px 0;" />
+        <a-divider style="margin: 12px 0" />
         <a-space>
           <a-button
+            v-if="collectMode(guideTarget) !== 'setup'"
             type="primary"
             size="large"
             :loading="loading.sync[guideTarget.name]"
@@ -818,14 +1065,17 @@
           >
             {{ collectActionLabel(guideTarget) }}
           </a-button>
-          <span style="font-size: 12px; color: #999;">
-            {{
-              collectMode(guideTarget) === 'file'
-                ? '选择导出/解密好的文件，自动入库'
-                : collectMode(guideTarget) === 'sync'
-                  ? '直接读取本机数据入库'
-                  : '完成上述步骤后点此入库'
-            }}
+          <a-button
+            v-else
+            type="primary"
+            size="large"
+            :loading="loading.refresh"
+            @click="recheckGuideTarget"
+          >
+            重新检测
+          </a-button>
+          <span style="font-size: 12px; color: #999">
+            {{ collectActionDescription(guideTarget) }}
           </span>
         </a-space>
       </template>
@@ -835,36 +1085,60 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
-import { message } from 'ant-design-vue'
+import { ref, reactive, onMounted, computed } from "vue";
+import { message } from "ant-design-vue";
 import {
-  ReloadOutlined, FileSearchOutlined, MessageOutlined, SendOutlined,
-  AppstoreOutlined, MailOutlined, InfoCircleOutlined, WalletOutlined, LinkOutlined,
-  BulbOutlined, DollarOutlined, TeamOutlined, EnvironmentOutlined, HeartOutlined, ClockCircleOutlined,
-  RobotOutlined, WechatOutlined,
-} from '@ant-design/icons-vue'
-import { usePersonalDataHub } from '../composables/usePersonalDataHub.js'
-import AIChatWizard from '../components/AIChatWizard.vue'
-import WechatWizard from '../components/WechatWizard.vue'
+  ReloadOutlined,
+  FileSearchOutlined,
+  MessageOutlined,
+  SendOutlined,
+  AppstoreOutlined,
+  MailOutlined,
+  InfoCircleOutlined,
+  WalletOutlined,
+  LinkOutlined,
+  BulbOutlined,
+  DollarOutlined,
+  TeamOutlined,
+  EnvironmentOutlined,
+  HeartOutlined,
+  ClockCircleOutlined,
+  RobotOutlined,
+  WechatOutlined,
+} from "@ant-design/icons-vue";
+import { usePersonalDataHub } from "../composables/usePersonalDataHub.js";
+import {
+  resolveCollectionMode,
+  collectionActionLabel as getCollectionActionLabel,
+  collectionButtonLabel as getCollectionButtonLabel,
+  collectionActionDescription as getCollectionActionDescription,
+} from "../utils/pdhCollectionMode.js";
+import {
+  analyzeSyncReport,
+  analyzeSyncReports,
+  selectImportantSyncReport,
+} from "../utils/pdhSyncResult.js";
+import AIChatWizard from "../components/AIChatWizard.vue";
+import WechatWizard from "../components/WechatWizard.vue";
 
-const hub = usePersonalDataHub()
+const hub = usePersonalDataHub();
 
 // State
-const health = ref(null)
-const stats = ref(null)
-const adapters = ref([])
+const health = ref(null);
+const stats = ref(null);
+const adapters = ref([]);
 // Per-adapter readiness keyed by name — { ready, status, category, reason,
 // message, actionHint, lastError, ... }. Populated in refresh() from
 // hub.adapterReadiness(); tells the user WHY a source can't collect
 // (待配置 / 需手机采集 / 需 root / 不支持) instead of a misleading "健康".
-const readinessMap = ref({})
-const askInput = ref('')
-const askResult = ref(null)
-const askError = ref('')
-const acceptNonLocal = ref(false)
-const auditOpen = ref(false)
-const auditRows = ref([])
-const lastSync = ref(null)
+const readinessMap = ref({});
+const askInput = ref("");
+const askResult = ref(null);
+const askError = ref("");
+const acceptNonLocal = ref(false);
+const auditOpen = ref(false);
+const auditRows = ref([]);
+const lastSync = ref(null);
 
 // Per-adapter include toggles. Only adapters with multi-kind bridge
 // output need this; for now that's just system-data-android.
@@ -874,139 +1148,186 @@ const lastSync = ref(null)
 // Uses `reactive()` (deep proxy) instead of `ref()` because Ant Design
 // Vue's a-checkbox with `:checked` binding wasn't observing nested
 // ref-of-object mutations cleanly across popover open/close cycles.
-const SYNC_INCLUDE_STORAGE_KEY = 'pdh.syncIncludeOptions.v1'
+const SYNC_INCLUDE_STORAGE_KEY = "pdh.syncIncludeOptions.v1";
 const DEFAULT_SYNC_INCLUDE = {
-  'system-data-android': { contacts: true, apps: true, sms: true, calls: true },
-}
+  "system-data-android": { contacts: true, apps: true, sms: true, calls: true },
+};
 function _loadSyncInclude() {
   try {
-    const raw = localStorage.getItem(SYNC_INCLUDE_STORAGE_KEY)
-    if (!raw) return JSON.parse(JSON.stringify(DEFAULT_SYNC_INCLUDE))
-    const parsed = JSON.parse(raw)
+    const raw = localStorage.getItem(SYNC_INCLUDE_STORAGE_KEY);
+    if (!raw) return JSON.parse(JSON.stringify(DEFAULT_SYNC_INCLUDE));
+    const parsed = JSON.parse(raw);
     return {
-      'system-data-android': {
-        ...DEFAULT_SYNC_INCLUDE['system-data-android'],
-        ...(parsed['system-data-android'] || {}),
+      "system-data-android": {
+        ...DEFAULT_SYNC_INCLUDE["system-data-android"],
+        ...(parsed["system-data-android"] || {}),
       },
-    }
+    };
   } catch (_e) {
-    return JSON.parse(JSON.stringify(DEFAULT_SYNC_INCLUDE))
+    return JSON.parse(JSON.stringify(DEFAULT_SYNC_INCLUDE));
   }
 }
-const syncIncludeOptions = reactive(_loadSyncInclude())
+const syncIncludeOptions = reactive(_loadSyncInclude());
 function persistSyncInclude() {
   try {
-    localStorage.setItem(SYNC_INCLUDE_STORAGE_KEY, JSON.stringify(syncIncludeOptions))
+    localStorage.setItem(
+      SYNC_INCLUDE_STORAGE_KEY,
+      JSON.stringify(syncIncludeOptions),
+    );
     // eslint-disable-next-line no-console
-    console.log('[PDH-include] persisted:', JSON.stringify(syncIncludeOptions))
-  } catch (e) { console.warn('[PDH-include] persist failed:', e && e.message) }
+    console.log("[PDH-include] persisted:", JSON.stringify(syncIncludeOptions));
+  } catch (e) {
+    console.warn("[PDH-include] persist failed:", e && e.message);
+  }
 }
-const includePopoverOpen = ref({}) // per-row popover state, keyed by adapter name
+const includePopoverOpen = ref({}); // per-row popover state, keyed by adapter name
 // Metadata for the per-kind UI — order + labels + per-kind sensitivity hint.
 const INCLUDE_KIND_META = {
-  'system-data-android': [
-    { key: 'contacts', label: '联系人', hint: '~767 条' },
-    { key: 'apps', label: '已安装应用', hint: '~176 个' },
-    { key: 'sms', label: '短信内容', hint: '~2400 条 · 高敏感', sensitive: true },
-    { key: 'calls', label: '通话记录', hint: '~18000 条 · 包含号码', sensitive: true },
+  "system-data-android": [
+    { key: "contacts", label: "联系人", hint: "~767 条" },
+    { key: "apps", label: "已安装应用", hint: "~176 个" },
+    {
+      key: "sms",
+      label: "短信内容",
+      hint: "~2400 条 · 高敏感",
+      sensitive: true,
+    },
+    {
+      key: "calls",
+      label: "通话记录",
+      hint: "~18000 条 · 包含号码",
+      sensitive: true,
+    },
   ],
-}
+};
 function adapterHasIncludeToggles(name) {
-  return Object.prototype.hasOwnProperty.call(INCLUDE_KIND_META, name)
+  return Object.prototype.hasOwnProperty.call(INCLUDE_KIND_META, name);
 }
 function onIncludeKindToggle(adapterName, kindKey, e) {
-  const checked = e && e.target ? !!e.target.checked : !!e
+  const checked = e && e.target ? !!e.target.checked : !!e;
   // eslint-disable-next-line no-console
-  console.log('[PDH-include] toggle', adapterName, kindKey, '=>', checked)
+  console.log("[PDH-include] toggle", adapterName, kindKey, "=>", checked);
   if (!syncIncludeOptions[adapterName]) {
-    syncIncludeOptions[adapterName] = {}
+    syncIncludeOptions[adapterName] = {};
   }
-  syncIncludeOptions[adapterName][kindKey] = checked
-  persistSyncInclude()
+  syncIncludeOptions[adapterName][kindKey] = checked;
+  persistSyncInclude();
 }
 
 // Phase 5.6 — email config + event detail
-const emailConfigOpen = ref(false)
+const emailConfigOpen = ref(false);
 const emailForm = reactive({
-  provider: 'qq',
-  email: '',
-  authCode: '',
-  host: '',
+  provider: "qq",
+  email: "",
+  authCode: "",
+  host: "",
   port: 993,
   pdfPasswordHints: {
-    idCardLast6: '',
-    phoneLast6: '',
-    cardLast6: '',
+    idCardLast6: "",
+    phoneLast6: "",
+    cardLast6: "",
   },
-})
-const emailTestResult = ref(null)
-const eventDetailOpen = ref(false)
-const eventDetail = ref(null)
-const emailAccounts = ref([])
+});
+const emailTestResult = ref(null);
+const eventDetailOpen = ref(false);
+const eventDetail = ref(null);
+const emailAccounts = ref([]);
 
 // Phase 11 — analysis skills state
-const skillResult = ref(null)
+const skillResult = ref(null);
 const analysisSkills = [
-  { name: 'analysis.spending', label: '消费分析', icon: DollarOutlined, description: '总支出 / 商家排行 / 月度趋势' },
-  { name: 'analysis.relations', label: '人际关系', icon: TeamOutlined, description: '与每个人的互动频率 / 主动比例' },
-  { name: 'analysis.footprint', label: '足迹', icon: EnvironmentOutlined, description: '常去地点 / 出行模式' },
-  { name: 'analysis.interests', label: '兴趣画像', icon: HeartOutlined, description: '从购买 / 浏览 / 收藏抽兴趣' },
-  { name: 'analysis.timeline', label: '时间线', icon: ClockCircleOutlined, description: '跨源事件串成故事' },
-]
+  {
+    name: "analysis.spending",
+    label: "消费分析",
+    icon: DollarOutlined,
+    description: "总支出 / 商家排行 / 月度趋势",
+  },
+  {
+    name: "analysis.relations",
+    label: "人际关系",
+    icon: TeamOutlined,
+    description: "与每个人的互动频率 / 主动比例",
+  },
+  {
+    name: "analysis.footprint",
+    label: "足迹",
+    icon: EnvironmentOutlined,
+    description: "常去地点 / 出行模式",
+  },
+  {
+    name: "analysis.interests",
+    label: "兴趣画像",
+    icon: HeartOutlined,
+    description: "从购买 / 浏览 / 收藏抽兴趣",
+  },
+  {
+    name: "analysis.timeline",
+    label: "时间线",
+    icon: ClockCircleOutlined,
+    description: "跨源事件串成故事",
+  },
+];
 
 // Phase 8 — EntityResolver review queue state
-const reviewQueueOpen = ref(false)
-const reviewRows = ref([])
-const resolverStats = reactive({ queue: { pending: 0 }, mergeGroups: 0, reviewQueue: 0 })
+const reviewQueueOpen = ref(false);
+const reviewRows = ref([]);
+const resolverStats = reactive({
+  queue: { pending: 0 },
+  mergeGroups: 0,
+  reviewQueue: 0,
+});
 
 // Phase 10.3 — AIChat WebView wizard state
-const aichatWizardOpen = ref(false)
-const aichatAccounts = ref([])
+const aichatWizardOpen = ref(false);
+const aichatAccounts = ref([]);
 function onAichatRegistered(payload) {
   if (payload?.unregistered) {
-    message.success(`已注销 ${payload.vendor}`)
+    message.success(`已注销 ${payload.vendor}`);
   } else {
-    message.success(`已接入 ${payload.vendor}`)
+    message.success(`已接入 ${payload.vendor}`);
   }
   // The drawer auto-closes via emit('update:open', false) in resetWizard;
   // refresh adapters list so the new aichat-history adapter shows up.
-  refresh()
+  refresh();
 }
 
 // Phase 12.6.10 — WeChat env-probe + register wizard state
-const wechatWizardOpen = ref(false)
+const wechatWizardOpen = ref(false);
 function onWechatRegistered(payload) {
-  message.success(`WeChat 已接入 (uin=${payload.uin}, provider=${payload.chosenKeyProvider})`)
-  refresh()
+  message.success(
+    `WeChat 已接入 (uin=${payload.uin}, provider=${payload.chosenKeyProvider})`,
+  );
+  refresh();
 }
 
 // Phase 6 — Alipay import state
-const alipayConfigOpen = ref(false)
+const alipayConfigOpen = ref(false);
 const alipayForm = reactive({
-  email: '',
-  zipPassword: '',
-  filePath: '',
-})
-const alipayResult = ref(null)
+  email: "",
+  zipPassword: "",
+  filePath: "",
+});
+const alipayResult = ref(null);
 
 // Phase 5.7 — live sync progress state
 const syncProgress = reactive({
   active: false,
-  adapter: '',
-  phase: '',
-  mailbox: '',
+  batchMode: false,
+  adapter: "",
+  phase: "",
+  mailbox: "",
   current: 0,
   total: 0,
   attempt: 1,
-  errorMessage: '',
-})
+  errorMessage: "",
+});
 
 const loading = reactive({
   refresh: false,
   ask: false,
   addMock: false,
   syncAll: false,
-  sync: {},      // per-adapter
+  sync: {}, // per-adapter
   audit: false,
   testEmail: false,
   saveEmail: false,
@@ -1023,10 +1344,10 @@ const loading = reactive({
   toutiaoAdbSync: false,
   kuaishouAdbSync: false,
   bridgeDoctor: false,
-})
+});
 
 // Phase 6e — last bridge-doctor report kept for inspection (raw JSON)
-const bridgeDoctorReport = ref(null)
+const bridgeDoctorReport = ref(null);
 
 /**
  * Phase 1d — UI surface for the `cc hub bilibili-adb-sync` flow.
@@ -1059,25 +1380,25 @@ const bridgeDoctorReport = ref(null)
  */
 function bilibiliReasonMessage(reason) {
   switch (reason) {
-    case 'BRIDGE_UNAVAILABLE':
-      return 'adb 未安装或不在 PATH — 请安装 Android Platform Tools 或设置 ADB_PATH 环境变量'
-    case 'MODULE_LOAD_FAILED':
-      return 'PDH adapter 模块缺失 — 请重装 cc'
-    case 'BILIBILI_NO_ROOT':
-      return '手机未 root — Bilibili 正式版 APK 不是 debuggable，需 Magisk root 才能读 Cookies DB'
-    case 'BILIBILI_NOT_INSTALLED_OR_NEVER_LOGGED_IN':
-      return '请在手机上安装 Bilibili App 并登录一次，然后重试'
-    case 'BILIBILI_COOKIES_INCOMPLETE':
-      return 'Cookie 缺关键字段 — 请在手机 Bilibili App 上重新登录'
-    case 'BILIBILI_COOKIES_TRUNCATED':
-      return 'ADB 流被截断 — 拔插 USB 重试，或检查 `adb logcat` 是否有 MIUI ROM 干扰'
-    case 'BILIBILI_NOT_SQLITE':
-      return 'ADB 拉回的文件不是 sqlite — 可能 base64 stream 被 MIUI/HyperOS 干扰，拔插 USB 重试'
-    case 'BILIBILI_INVALID_UID':
-      return 'Cookie 中 DedeUserID 不是正整数 — 请重新登录'
-    case 'SYNC_FAILED':
+    case "BRIDGE_UNAVAILABLE":
+      return "adb 未安装或不在 PATH — 请安装 Android Platform Tools 或设置 ADB_PATH 环境变量";
+    case "MODULE_LOAD_FAILED":
+      return "PDH adapter 模块缺失 — 请重装 cc";
+    case "BILIBILI_NO_ROOT":
+      return "手机未 root — Bilibili 正式版 APK 不是 debuggable，需 Magisk root 才能读 Cookies DB";
+    case "BILIBILI_NOT_INSTALLED_OR_NEVER_LOGGED_IN":
+      return "请在手机上安装 Bilibili App 并登录一次，然后重试";
+    case "BILIBILI_COOKIES_INCOMPLETE":
+      return "Cookie 缺关键字段 — 请在手机 Bilibili App 上重新登录";
+    case "BILIBILI_COOKIES_TRUNCATED":
+      return "ADB 流被截断 — 拔插 USB 重试，或检查 `adb logcat` 是否有 MIUI ROM 干扰";
+    case "BILIBILI_NOT_SQLITE":
+      return "ADB 拉回的文件不是 sqlite — 可能 base64 stream 被 MIUI/HyperOS 干扰，拔插 USB 重试";
+    case "BILIBILI_INVALID_UID":
+      return "Cookie 中 DedeUserID 不是正整数 — 请重新登录";
+    case "SYNC_FAILED":
     default:
-      return '同步失败 — 详见 message 字段'
+      return "同步失败 — 详见 message 字段";
   }
 }
 
@@ -1094,27 +1415,27 @@ function bilibiliReasonMessage(reason) {
  */
 function douyinReasonMessage(reason) {
   switch (reason) {
-    case 'BRIDGE_UNAVAILABLE':
-      return 'adb 未安装或不在 PATH — 请安装 Android Platform Tools 或设置 ADB_PATH 环境变量'
-    case 'MODULE_LOAD_FAILED':
-      return 'PDH adapter 模块缺失 — 请重装 cc'
-    case 'DOUYIN_NO_ROOT':
-      return '手机未 root — 抖音正式版 APK 不是 debuggable，需 Magisk root 才能读 IM 数据库'
-    case 'DOUYIN_NOT_INSTALLED':
-      return '请在手机上安装抖音 App，然后重试'
-    case 'DOUYIN_NO_IM_DB':
-      return '抖音 App 已装但未生成 IM 数据库 — 请登录抖音并打开任一聊天会话后重试'
-    case 'DOUYIN_MULTIPLE_USERS':
-      return '此手机登录了多个抖音账号 — 请加 --uid <19位数字> 选一个'
-    case 'DOUYIN_UID_NOT_FOUND':
-      return '指定的 uid 不在设备上的抖音账号列表里'
-    case 'DOUYIN_PULL_FAILED':
-      return 'ADB 流传输失败 — 拔插 USB 重试，或检查 `adb logcat` 是否有 MIUI ROM 干扰'
-    case 'DOUYIN_NOT_SQLITE':
-      return '拉回的文件不是 sqlite — 可能 base64 stream 被 MIUI/HyperOS 干扰，拔插 USB 重试'
-    case 'SYNC_FAILED':
+    case "BRIDGE_UNAVAILABLE":
+      return "adb 未安装或不在 PATH — 请安装 Android Platform Tools 或设置 ADB_PATH 环境变量";
+    case "MODULE_LOAD_FAILED":
+      return "PDH adapter 模块缺失 — 请重装 cc";
+    case "DOUYIN_NO_ROOT":
+      return "手机未 root — 抖音正式版 APK 不是 debuggable，需 Magisk root 才能读 IM 数据库";
+    case "DOUYIN_NOT_INSTALLED":
+      return "请在手机上安装抖音 App，然后重试";
+    case "DOUYIN_NO_IM_DB":
+      return "抖音 App 已装但未生成 IM 数据库 — 请登录抖音并打开任一聊天会话后重试";
+    case "DOUYIN_MULTIPLE_USERS":
+      return "此手机登录了多个抖音账号 — 请加 --uid <19位数字> 选一个";
+    case "DOUYIN_UID_NOT_FOUND":
+      return "指定的 uid 不在设备上的抖音账号列表里";
+    case "DOUYIN_PULL_FAILED":
+      return "ADB 流传输失败 — 拔插 USB 重试，或检查 `adb logcat` 是否有 MIUI ROM 干扰";
+    case "DOUYIN_NOT_SQLITE":
+      return "拉回的文件不是 sqlite — 可能 base64 stream 被 MIUI/HyperOS 干扰，拔插 USB 重试";
+    case "SYNC_FAILED":
     default:
-      return '同步失败 — 详见 message 字段'
+      return "同步失败 — 详见 message 字段";
   }
 }
 
@@ -1132,27 +1453,27 @@ function douyinReasonMessage(reason) {
  */
 function weiboReasonMessage(reason) {
   switch (reason) {
-    case 'BRIDGE_UNAVAILABLE':
-      return 'adb 未安装或不在 PATH — 请安装 Android Platform Tools 或设置 ADB_PATH 环境变量'
-    case 'MODULE_LOAD_FAILED':
-      return 'PDH adapter 模块缺失 — 请重装 cc'
-    case 'WEIBO_NO_ROOT':
-      return '手机未 root — 微博正式版 APK 不是 debuggable，需 Magisk root 才能读 Cookies DB'
-    case 'WEIBO_NOT_INSTALLED':
-      return '请在手机上安装微博 App 并登录一次，然后重试 (或微博使用了非默认 WebView 数据目录)'
-    case 'WEIBO_COOKIES_EMPTY':
-      return 'ADB 流返 0 字节 — MIUI/HyperOS silent 失败？拔插 USB 重试'
-    case 'WEIBO_COOKIES_TRUNCATED':
-      return 'ADB 流被截断 — 拔插 USB 重试，或检查 `adb logcat` 是否有 MIUI ROM 干扰'
-    case 'WEIBO_NOT_SQLITE':
-      return '拉回的文件不是 sqlite — 可能 base64 stream 被 MIUI 干扰，拔插 USB 重试'
-    case 'WEIBO_BASE64_PARSE':
-      return 'base64 解码失败 — adb 终端编码问题，请检查 `chcp 65001`'
-    case 'WEIBO_COOKIES_INCOMPLETE':
-      return 'SUB cookie 缺失 — 请在手机微博 App 上重新登录'
-    case 'SYNC_FAILED':
+    case "BRIDGE_UNAVAILABLE":
+      return "adb 未安装或不在 PATH — 请安装 Android Platform Tools 或设置 ADB_PATH 环境变量";
+    case "MODULE_LOAD_FAILED":
+      return "PDH adapter 模块缺失 — 请重装 cc";
+    case "WEIBO_NO_ROOT":
+      return "手机未 root — 微博正式版 APK 不是 debuggable，需 Magisk root 才能读 Cookies DB";
+    case "WEIBO_NOT_INSTALLED":
+      return "请在手机上安装微博 App 并登录一次，然后重试 (或微博使用了非默认 WebView 数据目录)";
+    case "WEIBO_COOKIES_EMPTY":
+      return "ADB 流返 0 字节 — MIUI/HyperOS silent 失败？拔插 USB 重试";
+    case "WEIBO_COOKIES_TRUNCATED":
+      return "ADB 流被截断 — 拔插 USB 重试，或检查 `adb logcat` 是否有 MIUI ROM 干扰";
+    case "WEIBO_NOT_SQLITE":
+      return "拉回的文件不是 sqlite — 可能 base64 stream 被 MIUI 干扰，拔插 USB 重试";
+    case "WEIBO_BASE64_PARSE":
+      return "base64 解码失败 — adb 终端编码问题，请检查 `chcp 65001`";
+    case "WEIBO_COOKIES_INCOMPLETE":
+      return "SUB cookie 缺失 — 请在手机微博 App 上重新登录";
+    case "SYNC_FAILED":
     default:
-      return '同步失败 — 详见 message 字段'
+      return "同步失败 — 详见 message 字段";
   }
 }
 
@@ -1164,82 +1485,82 @@ function weiboReasonMessage(reason) {
  */
 function xhsReasonMessage(reason) {
   switch (reason) {
-    case 'BRIDGE_UNAVAILABLE':
-      return 'adb 未安装或不在 PATH — 请安装 Android Platform Tools 或设置 ADB_PATH 环境变量'
-    case 'MODULE_LOAD_FAILED':
-      return 'PDH adapter 模块缺失 — 请重装 cc'
-    case 'XHS_NO_ROOT':
-      return '手机未 root — 小红书正式版 APK 不是 debuggable，需 Magisk root 才能读 Cookies DB'
-    case 'XHS_NOT_INSTALLED':
-      return '请在手机上安装小红书 App 并登录一次，然后重试'
-    case 'XHS_COOKIES_EMPTY':
-      return 'ADB 流返 0 字节 — MIUI/HyperOS silent 失败？拔插 USB 重试'
-    case 'XHS_COOKIES_TRUNCATED':
-      return 'ADB 流被截断 — 拔插 USB 重试，或检查 `adb logcat` 是否有 MIUI ROM 干扰'
-    case 'XHS_NOT_SQLITE':
-      return '拉回的文件不是 sqlite — 可能 base64 stream 被 MIUI 干扰，拔插 USB 重试'
-    case 'XHS_BASE64_PARSE':
-      return 'base64 解码失败 — adb 终端编码问题，请检查 `chcp 65001`'
-    case 'XHS_COOKIES_INCOMPLETE':
-      return 'a1 或 web_session cookie 缺失 — 请在手机小红书 App 上重新登录 (X-S 签名需要 a1 字段)'
-    case 'SYNC_FAILED':
+    case "BRIDGE_UNAVAILABLE":
+      return "adb 未安装或不在 PATH — 请安装 Android Platform Tools 或设置 ADB_PATH 环境变量";
+    case "MODULE_LOAD_FAILED":
+      return "PDH adapter 模块缺失 — 请重装 cc";
+    case "XHS_NO_ROOT":
+      return "手机未 root — 小红书正式版 APK 不是 debuggable，需 Magisk root 才能读 Cookies DB";
+    case "XHS_NOT_INSTALLED":
+      return "请在手机上安装小红书 App 并登录一次，然后重试";
+    case "XHS_COOKIES_EMPTY":
+      return "ADB 流返 0 字节 — MIUI/HyperOS silent 失败？拔插 USB 重试";
+    case "XHS_COOKIES_TRUNCATED":
+      return "ADB 流被截断 — 拔插 USB 重试，或检查 `adb logcat` 是否有 MIUI ROM 干扰";
+    case "XHS_NOT_SQLITE":
+      return "拉回的文件不是 sqlite — 可能 base64 stream 被 MIUI 干扰，拔插 USB 重试";
+    case "XHS_BASE64_PARSE":
+      return "base64 解码失败 — adb 终端编码问题，请检查 `chcp 65001`";
+    case "XHS_COOKIES_INCOMPLETE":
+      return "a1 或 web_session cookie 缺失 — 请在手机小红书 App 上重新登录 (X-S 签名需要 a1 字段)";
+    case "SYNC_FAILED":
     default:
-      return '同步失败 — 详见 message 字段'
+      return "同步失败 — 详见 message 字段";
   }
 }
 
 async function xhsAdbSync() {
-  if (loading.xhsAdbSync) return
-  loading.xhsAdbSync = true
+  if (loading.xhsAdbSync) return;
+  loading.xhsAdbSync = true;
   try {
-    const result = await hub.xhsAdbSync({})
+    const result = await hub.xhsAdbSync({});
     if (!result || !result.ok) {
-      const reason = (result && result.reason) || 'SYNC_FAILED'
-      const human = xhsReasonMessage(reason)
-      const detail = (result && result.message) || ''
+      const reason = (result && result.reason) || "SYNC_FAILED";
+      const human = xhsReasonMessage(reason);
+      const detail = (result && result.message) || "";
       message.error({
         content: `Xhs ADB 同步失败：${human}`,
         description: detail,
         duration: 8,
-      })
-      return
+      });
+      return;
     }
-    const report = result.report || {}
-    const xhs = report.xhs || {}
-    const counts = xhs.eventCounts || {}
+    const report = result.report || {};
+    const xhs = report.xhs || {};
+    const counts = xhs.eventCounts || {};
     if (xhs.meFetchFailed) {
       message.warning({
         content: `Xhs 同步未拉到 user_id — /user/me 返空 data`,
-        description: `lastErrorCode=${xhs.lastErrorCode}, ${xhs.lastErrorMessage || ''}。可能 cookie 已过期或 web_session 缺失，请在手机重新登录。`,
+        description: `lastErrorCode=${xhs.lastErrorCode}, ${xhs.lastErrorMessage || ""}。可能 cookie 已过期或 web_session 缺失，请在手机重新登录。`,
         duration: 10,
-      })
+      });
     } else if (xhs.lastErrorCode === 461) {
       message.warning({
         content: `Xhs X-S 签名被拒 (461) — 部分接口未抓到`,
         description: `命中 ${counts.total || 0} events。我们的 X-S 算法 best-effort (~60% GET / <30% POST hit)，461 在 POST 较常见。稍后重试 (X-S 算法可能 4-8 周 rotate)。`,
         duration: 10,
-      })
+      });
     } else if (xhs.lastErrorCode) {
       message.warning({
         content: `Xhs 同步部分完成 (${counts.total || 0} events)`,
-        description: `lastErrorCode=${xhs.lastErrorCode}, ${xhs.lastErrorMessage || ''}`,
+        description: `lastErrorCode=${xhs.lastErrorCode}, ${xhs.lastErrorMessage || ""}`,
         duration: 8,
-      })
+      });
     } else {
       message.success(
-        `Xhs 同步成功：notes=${counts.note || 0} / liked=${counts.liked || 0} / follow=${counts.follow || 0} (total=${counts.total || 0})${xhs.nickname ? ' [' + xhs.nickname + ']' : ''}`,
-      )
+        `Xhs 同步成功：notes=${counts.note || 0} / liked=${counts.liked || 0} / follow=${counts.follow || 0} (total=${counts.total || 0})${xhs.nickname ? " [" + xhs.nickname + "]" : ""}`,
+      );
     }
-    lastSync.value = report
-    refresh()
+    lastSync.value = report;
+    refresh();
   } catch (err) {
     message.error({
-      content: 'Xhs ADB 同步异常',
+      content: "Xhs ADB 同步异常",
       description: err && err.message ? err.message : String(err),
       duration: 8,
-    })
+    });
   } finally {
-    loading.xhsAdbSync = false
+    loading.xhsAdbSync = false;
   }
 }
 
@@ -1253,58 +1574,60 @@ async function xhsAdbSync() {
  */
 function toutiaoReasonMessage(reason) {
   switch (reason) {
-    case 'BRIDGE_UNAVAILABLE':
-      return 'adb 未安装或不在 PATH — 请安装 Android Platform Tools 或设置 ADB_PATH 环境变量'
-    case 'MODULE_LOAD_FAILED':
-      return 'PDH adapter 模块缺失 — 请重装 cc'
-    case 'TOUTIAO_NO_ROOT':
-      return '手机未 root — 头条正式版 APK 不是 debuggable，需 Magisk root 才能读 Cookies DB'
-    case 'TOUTIAO_NOT_INSTALLED':
-      return '请在手机上安装今日头条 App（com.ss.android.article.news，不是极速版）并登录后随便点开一篇文章（让 WebView 写入 cookies），再重试'
-    case 'TOUTIAO_COOKIES_EMPTY':
-      return 'ADB 流返 0 字节 — MIUI/HyperOS silent 失败？拔插 USB 重试'
-    case 'TOUTIAO_COOKIES_TRUNCATED':
-      return 'ADB 流被截断 — 拔插 USB 重试，或检查 `adb logcat` 是否有 MIUI ROM 干扰'
-    case 'TOUTIAO_NOT_SQLITE':
-      return '拉回的文件不是 sqlite — 可能 base64 stream 被 MIUI 干扰，拔插 USB 重试'
-    case 'TOUTIAO_BASE64_PARSE':
-      return 'base64 解码失败 — adb 终端编码问题，请检查 `chcp 65001`'
-    case 'TOUTIAO_COOKIES_INCOMPLETE':
-      return 'sessionid / sessionid_ss cookie 缺失 — 请在手机头条 App 上重新登录'
-    case 'SYNC_FAILED':
+    case "BRIDGE_UNAVAILABLE":
+      return "adb 未安装或不在 PATH — 请安装 Android Platform Tools 或设置 ADB_PATH 环境变量";
+    case "MODULE_LOAD_FAILED":
+      return "PDH adapter 模块缺失 — 请重装 cc";
+    case "TOUTIAO_NO_ROOT":
+      return "手机未 root — 头条正式版 APK 不是 debuggable，需 Magisk root 才能读 Cookies DB";
+    case "TOUTIAO_NOT_INSTALLED":
+      return "请在手机上安装今日头条 App（com.ss.android.article.news，不是极速版）并登录后随便点开一篇文章（让 WebView 写入 cookies），再重试";
+    case "TOUTIAO_COOKIES_EMPTY":
+      return "ADB 流返 0 字节 — MIUI/HyperOS silent 失败？拔插 USB 重试";
+    case "TOUTIAO_COOKIES_TRUNCATED":
+      return "ADB 流被截断 — 拔插 USB 重试，或检查 `adb logcat` 是否有 MIUI ROM 干扰";
+    case "TOUTIAO_NOT_SQLITE":
+      return "拉回的文件不是 sqlite — 可能 base64 stream 被 MIUI 干扰，拔插 USB 重试";
+    case "TOUTIAO_BASE64_PARSE":
+      return "base64 解码失败 — adb 终端编码问题，请检查 `chcp 65001`";
+    case "TOUTIAO_COOKIES_INCOMPLETE":
+      return "sessionid / sessionid_ss cookie 缺失 — 请在手机头条 App 上重新登录";
+    case "SYNC_FAILED":
     default:
-      return '同步失败 — 详见 message 字段'
+      return "同步失败 — 详见 message 字段";
   }
 }
 
 async function toutiaoAdbSync() {
-  if (loading.toutiaoAdbSync) return
-  loading.toutiaoAdbSync = true
+  if (loading.toutiaoAdbSync) return;
+  loading.toutiaoAdbSync = true;
   try {
-    const result = await hub.toutiaoAdbSync({})
+    const result = await hub.toutiaoAdbSync({});
     if (!result || !result.ok) {
-      const reason = (result && result.reason) || 'SYNC_FAILED'
-      const human = toutiaoReasonMessage(reason)
-      const detail = (result && result.message) || ''
+      const reason = (result && result.reason) || "SYNC_FAILED";
+      const human = toutiaoReasonMessage(reason);
+      const detail = (result && result.message) || "";
       message.error({
         content: `Toutiao ADB 同步失败：${human}`,
         description: detail,
         duration: 8,
-      })
-      return
+      });
+      return;
     }
-    const report = result.report || {}
-    const toutiao = report.toutiao || {}
-    const counts = toutiao.eventCounts || {}
+    const report = result.report || {};
+    const toutiao = report.toutiao || {};
+    const counts = toutiao.eventCounts || {};
     if (toutiao.profileFetchFailed) {
       message.warning({
         content: `Toutiao 同步未拉到 user_id — passport/info/v2 返失败`,
-        description: `lastErrorCode=${toutiao.lastErrorCode}, ${toutiao.lastErrorMessage || ''}。可能 cookie 已过期或 sessionid 缺失，请在手机重新登录。`,
+        description: `lastErrorCode=${toutiao.lastErrorCode}, ${toutiao.lastErrorMessage || ""}。可能 cookie 已过期或 sessionid 缺失，请在手机重新登录。`,
         duration: 10,
-      })
+      });
     } else if (
-      toutiao.signProviderUsed === 'none' &&
-      (counts.feed === 0 && counts.collection === 0 && counts.search === 0)
+      toutiao.signProviderUsed === "none" &&
+      counts.feed === 0 &&
+      counts.collection === 0 &&
+      counts.search === 0
     ) {
       // Phase 6c — web-shell context lacks ToutiaoSignBridge (Electron
       // only). 3 signed endpoints short-circuit silently to save
@@ -1313,28 +1636,28 @@ async function toutiaoAdbSync() {
         content: `Toutiao 同步仅获取了 profile (${counts.profile || 0} event)`,
         description: `当前 web-shell 上下文不支持 _signature 签名（仅 desktop app 提供 ToutiaoSignBridge）。打开桌面 app 同步可获取 feed / collection / search。`,
         duration: 12,
-      })
+      });
     } else if (toutiao.lastErrorCode) {
       message.warning({
         content: `Toutiao 同步部分完成 (${counts.total || 0} events)`,
-        description: `lastErrorCode=${toutiao.lastErrorCode}, ${toutiao.lastErrorMessage || ''}`,
+        description: `lastErrorCode=${toutiao.lastErrorCode}, ${toutiao.lastErrorMessage || ""}`,
         duration: 8,
-      })
+      });
     } else {
       message.success(
-        `Toutiao 同步成功：profile=${counts.profile || 0} / feed=${counts.feed || 0} / collection=${counts.collection || 0} / search=${counts.search || 0} (total=${counts.total || 0})${toutiao.nickname ? ' [' + toutiao.nickname + ']' : ''}`,
-      )
+        `Toutiao 同步成功：profile=${counts.profile || 0} / feed=${counts.feed || 0} / collection=${counts.collection || 0} / search=${counts.search || 0} (total=${counts.total || 0})${toutiao.nickname ? " [" + toutiao.nickname + "]" : ""}`,
+      );
     }
-    lastSync.value = report
-    refresh()
+    lastSync.value = report;
+    refresh();
   } catch (err) {
     message.error({
-      content: 'Toutiao ADB 同步异常',
+      content: "Toutiao ADB 同步异常",
       description: err && err.message ? err.message : String(err),
       duration: 8,
-    })
+    });
   } finally {
-    loading.toutiaoAdbSync = false
+    loading.toutiaoAdbSync = false;
   }
 }
 
@@ -1348,86 +1671,88 @@ async function toutiaoAdbSync() {
  */
 function kuaishouReasonMessage(reason) {
   switch (reason) {
-    case 'BRIDGE_UNAVAILABLE':
-      return 'adb 未安装或不在 PATH — 请安装 Android Platform Tools 或设置 ADB_PATH 环境变量'
-    case 'MODULE_LOAD_FAILED':
-      return 'PDH adapter 模块缺失 — 请重装 cc'
-    case 'KUAISHOU_NO_ROOT':
-      return '手机未 root — 快手正式版 APK 不是 debuggable，需 Magisk root 才能读 Cookies DB'
-    case 'KUAISHOU_NOT_INSTALLED':
-      return '请在手机上安装快手 App（com.smile.gifmaker，不是极速版 com.kuaishou.nebula）并登录后随便看一个视频（让 WebView 写入 cookies），再重试'
-    case 'KUAISHOU_COOKIES_EMPTY':
-      return 'ADB 流返 0 字节 — MIUI/HyperOS silent 失败？拔插 USB 重试'
-    case 'KUAISHOU_COOKIES_TRUNCATED':
-      return 'ADB 流被截断 — 拔插 USB 重试，或检查 `adb logcat` 是否有 MIUI ROM 干扰'
-    case 'KUAISHOU_NOT_SQLITE':
-      return '拉回的文件不是 sqlite — 可能 base64 stream 被 MIUI 干扰，拔插 USB 重试'
-    case 'KUAISHOU_BASE64_PARSE':
-      return 'base64 解码失败 — adb 终端编码问题，请检查 `chcp 65001`'
-    case 'KUAISHOU_COOKIES_INCOMPLETE':
-      return 'userId / kuaishou.web.cp.api_ph cookie 缺失 — 请在手机快手 App 上重新登录'
-    case 'SYNC_FAILED':
+    case "BRIDGE_UNAVAILABLE":
+      return "adb 未安装或不在 PATH — 请安装 Android Platform Tools 或设置 ADB_PATH 环境变量";
+    case "MODULE_LOAD_FAILED":
+      return "PDH adapter 模块缺失 — 请重装 cc";
+    case "KUAISHOU_NO_ROOT":
+      return "手机未 root — 快手正式版 APK 不是 debuggable，需 Magisk root 才能读 Cookies DB";
+    case "KUAISHOU_NOT_INSTALLED":
+      return "请在手机上安装快手 App（com.smile.gifmaker，不是极速版 com.kuaishou.nebula）并登录后随便看一个视频（让 WebView 写入 cookies），再重试";
+    case "KUAISHOU_COOKIES_EMPTY":
+      return "ADB 流返 0 字节 — MIUI/HyperOS silent 失败？拔插 USB 重试";
+    case "KUAISHOU_COOKIES_TRUNCATED":
+      return "ADB 流被截断 — 拔插 USB 重试，或检查 `adb logcat` 是否有 MIUI ROM 干扰";
+    case "KUAISHOU_NOT_SQLITE":
+      return "拉回的文件不是 sqlite — 可能 base64 stream 被 MIUI 干扰，拔插 USB 重试";
+    case "KUAISHOU_BASE64_PARSE":
+      return "base64 解码失败 — adb 终端编码问题，请检查 `chcp 65001`";
+    case "KUAISHOU_COOKIES_INCOMPLETE":
+      return "userId / kuaishou.web.cp.api_ph cookie 缺失 — 请在手机快手 App 上重新登录";
+    case "SYNC_FAILED":
     default:
-      return '同步失败 — 详见 message 字段'
+      return "同步失败 — 详见 message 字段";
   }
 }
 
 async function kuaishouAdbSync() {
-  if (loading.kuaishouAdbSync) return
-  loading.kuaishouAdbSync = true
+  if (loading.kuaishouAdbSync) return;
+  loading.kuaishouAdbSync = true;
   try {
-    const result = await hub.kuaishouAdbSync({})
+    const result = await hub.kuaishouAdbSync({});
     if (!result || !result.ok) {
-      const reason = (result && result.reason) || 'SYNC_FAILED'
-      const human = kuaishouReasonMessage(reason)
-      const detail = (result && result.message) || ''
+      const reason = (result && result.reason) || "SYNC_FAILED";
+      const human = kuaishouReasonMessage(reason);
+      const detail = (result && result.message) || "";
       message.error({
         content: `Kuaishou ADB 同步失败：${human}`,
         description: detail,
         duration: 8,
-      })
-      return
+      });
+      return;
     }
-    const report = result.report || {}
-    const kuaishou = report.kuaishou || {}
-    const counts = kuaishou.eventCounts || {}
+    const report = result.report || {};
+    const kuaishou = report.kuaishou || {};
+    const counts = kuaishou.eventCounts || {};
     if (kuaishou.profileFetchFailed) {
       message.warning({
         content: `Kuaishou 同步 cookie 缺 api_ph payload`,
-        description: `lastErrorCode=${kuaishou.lastErrorCode}, ${kuaishou.lastErrorMessage || ''}。可能 cookie 已过期或登录态不完整（仅有 userId 但没有 api_ph），请在手机重新登录。`,
+        description: `lastErrorCode=${kuaishou.lastErrorCode}, ${kuaishou.lastErrorMessage || ""}。可能 cookie 已过期或登录态不完整（仅有 userId 但没有 api_ph），请在手机重新登录。`,
         duration: 10,
-      })
+      });
     } else if (
-      kuaishou.signProviderUsed === 'none' &&
-      counts.watch === 0 && counts.collect === 0 && counts.search === 0
+      kuaishou.signProviderUsed === "none" &&
+      counts.watch === 0 &&
+      counts.collect === 0 &&
+      counts.search === 0
     ) {
       // Phase 6d — web-shell context lacks KuaishouSignBridge (Electron only)
       message.warning({
         content: `Kuaishou 同步仅获取了 profile (${counts.profile || 0} event)`,
         description: `当前 web-shell 上下文不支持 __NS_sig3 签名（仅 desktop app 提供 KuaishouSignBridge）。打开桌面 app 同步可获取 watch / collect / search。`,
         duration: 12,
-      })
+      });
     } else if (kuaishou.lastErrorCode) {
       message.warning({
         content: `Kuaishou 同步部分完成 (${counts.total || 0} events)`,
-        description: `lastErrorCode=${kuaishou.lastErrorCode}, ${kuaishou.lastErrorMessage || ''}`,
+        description: `lastErrorCode=${kuaishou.lastErrorCode}, ${kuaishou.lastErrorMessage || ""}`,
         duration: 8,
-      })
+      });
     } else {
       message.success(
-        `Kuaishou 同步成功：profile=${counts.profile || 0} / watch=${counts.watch || 0} / collect=${counts.collect || 0} / search=${counts.search || 0} (total=${counts.total || 0})${kuaishou.nickname ? ' [' + kuaishou.nickname + ']' : ''}`,
-      )
+        `Kuaishou 同步成功：profile=${counts.profile || 0} / watch=${counts.watch || 0} / collect=${counts.collect || 0} / search=${counts.search || 0} (total=${counts.total || 0})${kuaishou.nickname ? " [" + kuaishou.nickname + "]" : ""}`,
+      );
     }
-    lastSync.value = report
-    refresh()
+    lastSync.value = report;
+    refresh();
   } catch (err) {
     message.error({
-      content: 'Kuaishou ADB 同步异常',
+      content: "Kuaishou ADB 同步异常",
       description: err && err.message ? err.message : String(err),
       duration: 8,
-    })
+    });
   } finally {
-    loading.kuaishouAdbSync = false
+    loading.kuaishouAdbSync = false;
   }
 }
 
@@ -1442,666 +1767,814 @@ async function kuaishouAdbSync() {
  * returns MODULE_LOAD_FAILED — banner explains.
  */
 async function bridgeDoctor() {
-  if (loading.bridgeDoctor) return
-  loading.bridgeDoctor = true
+  if (loading.bridgeDoctor) return;
+  loading.bridgeDoctor = true;
   try {
-    const result = await hub.bridgeDoctor()
+    const result = await hub.bridgeDoctor();
     if (!result || !result.ok) {
-      const reason = (result && result.reason) || 'BRIDGE_DOCTOR_FAILED'
-      const detail = (result && result.message) || ''
-      if (reason === 'MODULE_LOAD_FAILED') {
+      const reason = (result && result.reason) || "BRIDGE_DOCTOR_FAILED";
+      const detail = (result && result.message) || "";
+      if (reason === "MODULE_LOAD_FAILED") {
         message.error({
-          content: 'Bridge doctor 不可用',
+          content: "Bridge doctor 不可用",
           description:
-            '当前上下文不是 Electron desktop app（cli / web-shell-only 无 sign-bridge 模块）。请从桌面 app 运行此诊断。',
+            "当前上下文不是 Electron desktop app（cli / web-shell-only 无 sign-bridge 模块）。请从桌面 app 运行此诊断。",
           duration: 10,
-        })
+        });
       } else {
         message.error({
           content: `Bridge doctor 失败：${reason}`,
           description: detail,
           duration: 8,
-        })
+        });
       }
-      return
+      return;
     }
-    const r = result.results || {}
-    const platforms = ['xhs', 'toutiao', 'kuaishou']
-    const okCount = platforms.filter((p) => r[p] && r[p].anyCandidatePresent).length
-    const totalCount = platforms.length
-    const lines = []
+    const r = result.results || {};
+    const platforms = ["xhs", "toutiao", "kuaishou"];
+    const okCount = platforms.filter(
+      (p) => r[p] && r[p].anyCandidatePresent,
+    ).length;
+    const totalCount = platforms.length;
+    const lines = [];
     for (const p of platforms) {
-      const entry = r[p]
+      const entry = r[p];
       if (!entry || !entry.ok) {
-        lines.push(`${p}: ✗ ${entry && entry.error ? entry.error : 'unknown error'}`)
-        continue
+        lines.push(
+          `${p}: ✗ ${entry && entry.error ? entry.error : "unknown error"}`,
+        );
+        continue;
       }
-      const cands = entry.candidates || {}
-      const presentNames = Object.keys(cands).filter((k) => cands[k] === true)
-      const totalCandidates = Object.keys(cands).length
-      const tag = entry.anyCandidatePresent ? '✓' : '⚠'
+      const cands = entry.candidates || {};
+      const presentNames = Object.keys(cands).filter((k) => cands[k] === true);
+      const totalCandidates = Object.keys(cands).length;
+      const tag = entry.anyCandidatePresent ? "✓" : "⚠";
       const desc = entry.anyCandidatePresent
-        ? `${presentNames.length}/${totalCandidates} candidate(s): ${presentNames.join(', ')}`
-        : `0/${totalCandidates} candidates (rotation? 需更新 buildSignScript)`
+        ? `${presentNames.length}/${totalCandidates} candidate(s): ${presentNames.join(", ")}`
+        : `0/${totalCandidates} candidates (rotation? 需更新 buildSignScript)`;
       lines.push(
         `${p}: ${tag} ${desc} (warmUp=${entry.warmUpMs}ms, probe=${entry.probeMs}ms)`,
-      )
+      );
     }
     const overall =
       okCount === totalCount
         ? message.success
         : okCount === 0
           ? message.error
-          : message.warning
+          : message.warning;
     overall({
       content: `Bridge doctor: ${okCount}/${totalCount} 平台签名可用`,
-      description: lines.join('\n'),
+      description: lines.join("\n"),
       duration: 15,
-    })
-    bridgeDoctorReport.value = result
+    });
+    bridgeDoctorReport.value = result;
   } catch (err) {
     message.error({
-      content: 'Bridge doctor 异常',
+      content: "Bridge doctor 异常",
       description: err && err.message ? err.message : String(err),
       duration: 8,
-    })
+    });
   } finally {
-    loading.bridgeDoctor = false
+    loading.bridgeDoctor = false;
   }
 }
 
 async function weiboAdbSync() {
-  if (loading.weiboAdbSync) return
-  loading.weiboAdbSync = true
+  if (loading.weiboAdbSync) return;
+  loading.weiboAdbSync = true;
   try {
-    const result = await hub.weiboAdbSync({})
+    const result = await hub.weiboAdbSync({});
     if (!result || !result.ok) {
-      const reason = (result && result.reason) || 'SYNC_FAILED'
-      const human = weiboReasonMessage(reason)
-      const detail = (result && result.message) || ''
+      const reason = (result && result.reason) || "SYNC_FAILED";
+      const human = weiboReasonMessage(reason);
+      const detail = (result && result.message) || "";
       message.error({
         content: `Weibo ADB 同步失败：${human}`,
         description: detail,
         duration: 8,
-      })
-      return
+      });
+      return;
     }
-    const report = result.report || {}
-    const wb = report.weibo || {}
-    const counts = wb.eventCounts || {}
+    const report = result.report || {};
+    const wb = report.weibo || {};
+    const counts = wb.eventCounts || {};
     if (wb.uidFetchFailed) {
       message.warning({
         content: `Weibo 同步未拉到 UID — /api/config 返 login=false`,
-        description: `lastErrorCode=${wb.lastErrorCode}, ${wb.lastErrorMessage || ''}。可能 cookie 已过期 (请在手机重新登录) 或微博触发 anti-bot redirect。事件数 0，未入 vault。`,
+        description: `lastErrorCode=${wb.lastErrorCode}, ${wb.lastErrorMessage || ""}。可能 cookie 已过期 (请在手机重新登录) 或微博触发 anti-bot redirect。事件数 0，未入 vault。`,
         duration: 10,
-      })
+      });
     } else if (wb.lastErrorCode) {
       message.warning({
         content: `Weibo 同步部分完成 (${counts.total || 0} events)`,
-        description: `lastErrorCode=${wb.lastErrorCode}, ${wb.lastErrorMessage || ''} — 部分接口受反爬限制，稍后重试可补齐`,
+        description: `lastErrorCode=${wb.lastErrorCode}, ${wb.lastErrorMessage || ""} — 部分接口受反爬限制，稍后重试可补齐`,
         duration: 8,
-      })
+      });
     } else {
       message.success(
         `Weibo 同步成功：posts=${counts.post || 0} / fav=${counts.favourite || 0} / follow=${counts.follow || 0} (total=${counts.total || 0})`,
-      )
+      );
     }
-    lastSync.value = report
-    refresh()
+    lastSync.value = report;
+    refresh();
   } catch (err) {
     message.error({
-      content: 'Weibo ADB 同步异常',
+      content: "Weibo ADB 同步异常",
       description: err && err.message ? err.message : String(err),
       duration: 8,
-    })
+    });
   } finally {
-    loading.weiboAdbSync = false
+    loading.weiboAdbSync = false;
   }
 }
 
 async function douyinAdbSync() {
-  if (loading.douyinAdbSync) return
-  loading.douyinAdbSync = true
+  if (loading.douyinAdbSync) return;
+  loading.douyinAdbSync = true;
   try {
-    const result = await hub.douyinAdbSync({})
+    const result = await hub.douyinAdbSync({});
     if (!result || !result.ok) {
-      const reason = (result && result.reason) || 'SYNC_FAILED'
-      const human = douyinReasonMessage(reason)
-      const detail = (result && result.message) || ''
+      const reason = (result && result.reason) || "SYNC_FAILED";
+      const human = douyinReasonMessage(reason);
+      const detail = (result && result.message) || "";
       message.error({
         content: `Douyin ADB 同步失败：${human}`,
         description: detail,
         duration: 8,
-      })
-      return
+      });
+      return;
     }
-    const report = result.report || {}
-    const dy = report.douyin || {}
-    const counts = dy.eventCounts || {}
-    const diag = dy.parserDiagnostic || {}
+    const report = result.report || {};
+    const dy = report.douyin || {};
+    const counts = dy.eventCounts || {};
+    const diag = dy.parserDiagnostic || {};
     if (!diag.hadMsgTable && !diag.hadSimpleUserTable) {
       message.warning({
         content: `Douyin 同步完成但 0 events`,
-        description: 'msg 和 SIMPLE_USER 表都未在 IM 数据库中找到 — 抖音 App 版本可能用了不同 schema',
+        description:
+          "msg 和 SIMPLE_USER 表都未在 IM 数据库中找到 — 抖音 App 版本可能用了不同 schema",
         duration: 10,
-      })
+      });
     } else if (!diag.hadMsgTable || !diag.hadSimpleUserTable) {
-      const missing = []
-      if (!diag.hadMsgTable) missing.push('msg (私信)')
-      if (!diag.hadSimpleUserTable) missing.push('SIMPLE_USER (联系人)')
+      const missing = [];
+      if (!diag.hadMsgTable) missing.push("msg (私信)");
+      if (!diag.hadSimpleUserTable) missing.push("SIMPLE_USER (联系人)");
       message.warning({
         content: `Douyin 部分同步：msg=${counts.message || 0} contacts=${counts.contact || 0}`,
-        description: `${missing.join('、')} 表未找到，未入库部分数据`,
+        description: `${missing.join("、")} 表未找到，未入库部分数据`,
         duration: 8,
-      })
+      });
     } else {
       message.success(
         `Douyin 同步成功：messages=${counts.message || 0} contacts=${counts.contact || 0} (total=${counts.total || 0})`,
-      )
+      );
     }
-    lastSync.value = report
-    refresh()
+    lastSync.value = report;
+    refresh();
   } catch (err) {
     message.error({
-      content: 'Douyin ADB 同步异常',
+      content: "Douyin ADB 同步异常",
       description: err && err.message ? err.message : String(err),
       duration: 8,
-    })
+    });
   } finally {
-    loading.douyinAdbSync = false
+    loading.douyinAdbSync = false;
   }
 }
 
 async function bilibiliAdbDoctor() {
-  if (loading.bilibiliAdbDoctor) return
-  loading.bilibiliAdbDoctor = true
+  if (loading.bilibiliAdbDoctor) return;
+  loading.bilibiliAdbDoctor = true;
   try {
-    const result = await hub.bilibiliAdbDoctor()
+    const result = await hub.bilibiliAdbDoctor();
     if (!result || !result.ok) {
-      const reason = (result && result.reason) || 'PROBE_FAILED'
-      const human = bilibiliReasonMessage(reason)
-      const detail = (result && result.message) || ''
+      const reason = (result && result.reason) || "PROBE_FAILED";
+      const human = bilibiliReasonMessage(reason);
+      const detail = (result && result.message) || "";
       message.error({
         content: `Bilibili 诊断失败：${human}`,
         description: detail,
         duration: 8,
-      })
-      return
+      });
+      return;
     }
-    const diag = result.cookieDiagnostic || {}
+    const diag = result.cookieDiagnostic || {};
     if (diag.hadEncrypted) {
       message.warning({
         content: `Bilibili 环境就绪 (uid=${result.uid}) — 但发现 Keystore 加密 cookie`,
-        description: `cookies 数=${diag.cookieCount || '?'}; 部分行使用 Android Keystore 加密 (跳过)。可能是较新 Bilibili App + Android 14+。可继续同步，但可能数据不全。`,
+        description: `cookies 数=${diag.cookieCount || "?"}; 部分行使用 Android Keystore 加密 (跳过)。可能是较新 Bilibili App + Android 14+。可继续同步，但可能数据不全。`,
         duration: 10,
-      })
+      });
     } else {
       message.success(
-        `Bilibili 环境就绪 — uid=${result.uid}, 找到 ${diag.cookieCount || '?'} 个 cookie，可以同步`,
-      )
+        `Bilibili 环境就绪 — uid=${result.uid}, 找到 ${diag.cookieCount || "?"} 个 cookie，可以同步`,
+      );
     }
   } catch (err) {
     message.error({
-      content: 'Bilibili 诊断异常',
+      content: "Bilibili 诊断异常",
       description: err && err.message ? err.message : String(err),
       duration: 8,
-    })
+    });
   } finally {
-    loading.bilibiliAdbDoctor = false
+    loading.bilibiliAdbDoctor = false;
   }
 }
 
 async function bilibiliAdbSync() {
-  if (loading.bilibiliAdbSync) return
-  loading.bilibiliAdbSync = true
+  if (loading.bilibiliAdbSync) return;
+  loading.bilibiliAdbSync = true;
   try {
-    const result = await hub.bilibiliAdbSync({})
+    const result = await hub.bilibiliAdbSync({});
     if (!result || !result.ok) {
-      const reason = (result && result.reason) || 'SYNC_FAILED'
-      const human = bilibiliReasonMessage(reason)
-      const detail = (result && result.message) || ''
+      const reason = (result && result.reason) || "SYNC_FAILED";
+      const human = bilibiliReasonMessage(reason);
+      const detail = (result && result.message) || "";
       message.error({
         content: `Bilibili ADB 同步失败：${human}`,
         description: detail,
         duration: 8,
-      })
-      return
+      });
+      return;
     }
-    const report = result.report || {}
-    const bili = report.bilibili || {}
-    const counts = bili.eventCounts || {}
+    const report = result.report || {};
+    const bili = report.bilibili || {};
+    const counts = bili.eventCounts || {};
     if (bili.lastErrorCode) {
       message.warning({
         content: `Bilibili 同步部分完成 (${counts.total || 0} events)`,
-        description: `lastErrorCode=${bili.lastErrorCode}, ${bili.lastErrorMessage || ''} — 部分接口受反爬限制，稍后重试可补齐`,
+        description: `lastErrorCode=${bili.lastErrorCode}, ${bili.lastErrorMessage || ""} — 部分接口受反爬限制，稍后重试可补齐`,
         duration: 8,
-      })
+      });
     } else {
       message.success(
         `Bilibili 同步成功：history=${counts.history || 0} / fav=${counts.favourite || 0} / dyn=${counts.dynamic || 0} / follow=${counts.follow || 0} (total=${counts.total || 0})`,
-      )
+      );
     }
     // Refresh adapter list + stats so the user sees the new event count.
-    lastSync.value = report
-    refresh()
+    lastSync.value = report;
+    refresh();
   } catch (err) {
     message.error({
-      content: 'Bilibili ADB 同步异常',
+      content: "Bilibili ADB 同步异常",
       description: err && err.message ? err.message : String(err),
       duration: 8,
-    })
+    });
   } finally {
-    loading.bilibiliAdbSync = false
+    loading.bilibiliAdbSync = false;
   }
 }
 
 // Table columns
 const adapterColumns = [
-  { title: '名称', dataIndex: 'name', key: 'name', width: 140 },
-  { title: '版本', dataIndex: 'version', key: 'version', width: 70 },
-  { title: '就绪状态', key: 'readiness', width: 220 },
-  { title: '能力', key: 'capabilities' },
-  { title: '敏感度', key: 'sensitivity', width: 140 },
-  { title: '操作', key: 'actions', width: 160, align: 'right' },
-]
+  { title: "名称", dataIndex: "name", key: "name", width: 140 },
+  { title: "版本", dataIndex: "version", key: "version", width: 70 },
+  { title: "就绪状态", key: "readiness", width: 220 },
+  { title: "能力", key: "capabilities" },
+  { title: "敏感度", key: "sensitivity", width: 140 },
+  { title: "操作", key: "actions", width: 160, align: "right" },
+];
 
 // ─── Readiness display helpers ───────────────────────────────────────────
 
 function readinessOf(name) {
-  return readinessMap.value[name] || null
+  return readinessMap.value[name] || null;
+}
+
+function adapterDescriptor(name) {
+  const adapter = adapters.value.find((item) => item.name === name) || {};
+  const readiness = readinessOf(name) || {};
+  return {
+    ...adapter,
+    ...readiness,
+    name,
+    capabilities: readiness.capabilities || adapter.capabilities || [],
+  };
 }
 
 // ─── Import-guide drawer ─────────────────────────────────────────────────
 // "如何导入" — per-source step-by-step onboarding. The guide payload rides
 // on each readiness report (report.guide), so no extra round trip.
-const guideDrawerOpen = ref(false)
-const guideTarget = ref(null) // the readiness report (incl .guide) being shown
+const guideDrawerOpen = ref(false);
+const guideTarget = ref(null); // the readiness report (incl .guide) being shown
 
 function openGuide(name) {
-  const r = readinessOf(name)
-  guideTarget.value =
-    r || { name, status: 'needs_setup', guide: null }
-  guideDrawerOpen.value = true
+  guideTarget.value = adapterDescriptor(name);
+  guideDrawerOpen.value = true;
+}
+
+async function recheckGuideTarget() {
+  const name = guideTarget.value?.name;
+  await refresh();
+  if (name) guideTarget.value = adapterDescriptor(name);
 }
 
 // status → Ant tag color
 const READINESS_STATUS_COLOR = {
-  ready: 'green',
-  needs_setup: 'orange',
-  unavailable: 'default',
-  error: 'red',
-}
+  ready: "green",
+  needs_setup: "orange",
+  unavailable: "default",
+  error: "red",
+};
 function readinessStatusColor(status) {
-  return READINESS_STATUS_COLOR[status] || 'default'
+  return READINESS_STATUS_COLOR[status] || "default";
 }
 
 // status → short Chinese label for the tag
 const READINESS_STATUS_LABEL = {
-  ready: '可采集',
-  needs_setup: '待配置',
-  unavailable: '不支持',
-  error: '异常',
-}
+  ready: "可采集",
+  needs_setup: "待配置",
+  unavailable: "不支持",
+  error: "异常",
+};
 function readinessStatusLabel(r) {
-  if (!r) return '检测中'
-  return READINESS_STATUS_LABEL[r.status] || r.status
+  if (!r) return "检测中";
+  return READINESS_STATUS_LABEL[r.status] || r.status;
 }
 
 // category → human label (how this source is collected)
 const READINESS_CATEGORY_LABEL = {
-  local: '本机直采',
-  snapshot: '需手机采集',
-  device: '需 root/本地解密',
-  credential: '需登录授权',
-  platform: '平台限制',
-}
+  local: "本机直采",
+  snapshot: "需手机采集",
+  device: "需 root/本地解密",
+  credential: "需登录授权",
+  platform: "平台限制",
+};
 function readinessCategoryLabel(category) {
-  return READINESS_CATEGORY_LABEL[category] || category || ''
+  return READINESS_CATEGORY_LABEL[category] || category || "";
 }
 
 // ─── One-click collect (友好引导 + 一键采集) ─────────────────────────────
-// Each source maps to ONE primary action so the user doesn't have to think:
-//   - file   : 📂 选择文件采集 — native picker → sync(inputPath) (file-import
-//              + local-DB direct-read sources)
-//   - sync    : ⚡ 立即采集 — read host-local data directly (browser/git/…)
-//   - snapshot: needs a device-side collector → show guidance (the dedicated
-//              ADB buttons cover the rooted-phone path)
-const FILE_COLLECT_ADAPTERS = new Set([
-  'apple-health',
-  'alipay-bill',
-  'finance-alipay',
-  'netease-music',
-  'wechat-pc',
-  'qq-pc',
-  'dingtalk-pc',
-  'feishu-pc',
-  'social-douyin', // <uid>_im.db direct read
-  'messaging-telegram',
-  'messaging-whatsapp',
-  'travel-amap',
-])
 // SQLCipher-encrypted local DBs that accept an optional --key.
-const KEYED_FILE_ADAPTERS = new Set(['wechat-pc', 'qq-pc', 'dingtalk-pc', 'feishu-pc'])
-// Cookie-mode sources: paste login cookie → sync (weread).
-const COOKIE_COLLECT_ADAPTERS = new Set(['weread'])
+const KEYED_FILE_ADAPTERS = new Set([
+  "wechat-pc",
+  "qq-pc",
+  "dingtalk-pc",
+  "feishu-pc",
+  "messaging-whatsapp",
+]);
+const PASSWORD_FILE_ADAPTERS = new Set(["alipay-bill"]);
+
+const ADB_COLLECT_ACTIONS = Object.freeze({
+  "social-bilibili": bilibiliAdbSync,
+  "social-weibo": weiboAdbSync,
+  "social-douyin": douyinAdbSync,
+  "social-xiaohongshu": xhsAdbSync,
+  "social-toutiao": toutiaoAdbSync,
+  "social-kuaishou": kuaishouAdbSync,
+});
 
 function collectMode(report) {
-  if (!report) return 'snapshot'
-  if (COOKIE_COLLECT_ADAPTERS.has(report.name)) return 'cookie'
-  if (FILE_COLLECT_ADAPTERS.has(report.name)) return 'file'
-  if (report.category === 'local') return 'sync'
-  return 'snapshot'
+  return resolveCollectionMode(report);
 }
 
 function collectActionLabel(report) {
-  const m = collectMode(report)
-  if (m === 'file') return '📂 选择文件采集'
-  if (m === 'cookie') return '🔑 登录采集'
-  if (m === 'sync') return '⚡ 立即采集'
-  return '立即同步'
+  return getCollectionActionLabel(report);
+}
+
+function collectButtonLabel(report) {
+  return getCollectionButtonLabel(report);
+}
+
+function collectActionDescription(report) {
+  return getCollectionActionDescription(report);
 }
 
 // One-click: pick a file (if needed) then sync. Friendly toasts throughout.
 async function oneClickCollect(name) {
-  const r = readinessOf(name)
-  const mode = collectMode(r)
-  if (mode === 'file') {
+  const r = adapterDescriptor(name);
+  const mode = collectMode(r);
+  if (mode === "file") {
     const filePath = await hub.pickFile({
       title: `选择 ${r && r.guide ? r.guide.displayName : name} 的数据文件`,
-    })
+    });
     if (!filePath) {
-      message.info('已取消选择文件')
-      return
+      message.info("已取消选择文件");
+      return;
     }
-    let key
+    let key;
+    let zipPassword;
     if (KEYED_FILE_ADAPTERS.has(name)) {
       // Plaintext DB needs no key; encrypted ones can pass --key. We try
       // plaintext first (most users decrypt first), key entry is optional.
-      key = window.prompt('如该数据库已解密为明文，直接确定即可；若为加密库请粘贴 64 位十六进制密钥：') || undefined
+      key =
+        window.prompt(
+          "如数据库已解密为明文，直接确定即可；若为加密库，请粘贴密钥或输入密钥文件路径：",
+        ) || undefined;
+    } else if (PASSWORD_FILE_ADAPTERS.has(name) && /\.zip$/i.test(filePath)) {
+      zipPassword =
+        window.prompt(
+          "请输入支付宝账单 ZIP 密码；如该 ZIP 未加密可直接确定：",
+        ) || undefined;
     }
-    await collectViaFile(name, filePath, key)
-  } else if (mode === 'cookie') {
+    await collectViaFile(name, filePath, { key, zipPassword });
+  } else if (mode === "cookie") {
     const cookie = window.prompt(
-      '粘贴登录态 Cookie（在已登录的网页 DevTools → Application → Cookies 复制，或整条 Cookie 请求头）：',
-    )
+      "粘贴登录态 Cookie（在已登录的网页 DevTools → Application → Cookies 复制，或整条 Cookie 请求头）：",
+    );
     if (!cookie || !cookie.trim()) {
-      message.info('已取消')
-      return
+      message.info("已取消");
+      return;
     }
-    await collectViaCookie(name, cookie.trim())
+    await collectViaCookie(name, cookie.trim());
+  } else if (mode === "adb") {
+    const collect = ADB_COLLECT_ACTIONS[name];
+    if (!collect) {
+      openGuide(name);
+      return;
+    }
+    loading.sync[name] = true;
+    try {
+      await collect();
+    } finally {
+      loading.sync[name] = false;
+    }
+  } else if (mode === "sync") {
+    const result = await syncOne(name);
+    if (result?.completed) guideDrawerOpen.value = false;
   } else {
-    // sync / snapshot both go through syncOne (snapshot tries ADB auto-pull)
-    await syncOne(name)
-    guideDrawerOpen.value = false
+    openGuide(name);
   }
 }
 
 async function collectViaCookie(name, cookie) {
-  loading.sync[name] = true
-  resetSyncProgress(name)
+  loading.sync[name] = true;
+  resetSyncProgress(name);
   try {
-    const options = { cookie }
-    if (typeof hub.syncAdapterStream === 'function') {
-      lastSync.value = await hub.syncAdapterStream(name, options, handleSyncEvent)
+    const options = { cookie };
+    let report;
+    if (typeof hub.syncAdapterStream === "function") {
+      report = await hub.syncAdapterStream(name, options, handleSyncEvent);
     } else {
-      lastSync.value = await hub.syncAdapter(name, options)
+      report = await hub.syncAdapter(name, options);
     }
-    const ec = (lastSync.value && lastSync.value.entityCounts) || {}
-    const total = (ec.events || 0) + (ec.persons || 0) + (ec.items || 0) + (ec.topics || 0)
-    message.success(`采集完成：${name} 入库 ${total} 条`)
-    guideDrawerOpen.value = false
-    await refresh()
+    const result = presentSyncReport(name, report, "采集");
+    if (result.completed) guideDrawerOpen.value = false;
+    await refresh();
   } catch (err) {
-    message.error(`采集 ${name} 失败: ${err.message}`)
+    message.error(`采集 ${name} 失败: ${err.message}`);
   } finally {
-    loading.sync[name] = false
-    syncProgress.active = false
+    loading.sync[name] = false;
+    syncProgress.active = false;
   }
 }
 
-async function collectViaFile(name, filePath, key) {
-  loading.sync[name] = true
-  resetSyncProgress(name)
+async function collectViaFile(name, filePath, credentials = {}) {
+  loading.sync[name] = true;
+  resetSyncProgress(name);
   try {
-    const options = { inputPath: filePath }
-    if (key) options.key = key
-    if (typeof hub.syncAdapterStream === 'function') {
-      lastSync.value = await hub.syncAdapterStream(name, options, handleSyncEvent)
+    const options = { inputPath: filePath };
+    if (credentials.key) options.key = credentials.key;
+    if (credentials.zipPassword) options.zipPassword = credentials.zipPassword;
+    let report;
+    if (typeof hub.syncAdapterStream === "function") {
+      report = await hub.syncAdapterStream(name, options, handleSyncEvent);
     } else {
-      lastSync.value = await hub.syncAdapter(name, options)
+      report = await hub.syncAdapter(name, options);
     }
-    const ec = (lastSync.value && lastSync.value.entityCounts) || {}
-    const total = (ec.events || 0) + (ec.persons || 0) + (ec.items || 0) + (ec.topics || 0)
-    message.success(`采集完成：${name} 入库 ${total} 条`)
-    guideDrawerOpen.value = false
-    await refresh()
+    const result = presentSyncReport(name, report, "采集");
+    if (result.completed) guideDrawerOpen.value = false;
+    await refresh();
   } catch (err) {
-    message.error(`采集 ${name} 失败: ${err.message}`)
+    message.error(`采集 ${name} 失败: ${err.message}`);
   } finally {
-    loading.sync[name] = false
-    syncProgress.active = false
+    loading.sync[name] = false;
+    syncProgress.active = false;
   }
 }
 
 // "X/N 可采集" summary for the header
 const readinessSummary = computed(() => {
-  const list = adapters.value || []
-  if (!list.length) return null
-  let ready = 0
+  const list = adapters.value || [];
+  if (!list.length) return null;
+  let ready = 0;
   for (const a of list) {
-    const r = readinessOf(a.name)
-    if (r && r.ready) ready += 1
+    const r = readinessOf(a.name);
+    if (r && r.ready) ready += 1;
   }
-  return { ready, total: list.length }
-})
+  return { ready, total: list.length };
+});
 const auditColumns = [
-  { title: '时间', key: 'at', dataIndex: 'at', width: 170 },
-  { title: '动作', dataIndex: 'action', key: 'action', width: 200 },
-  { title: '详情', key: 'details' },
-]
+  { title: "时间", key: "at", dataIndex: "at", width: 170 },
+  { title: "动作", dataIndex: "action", key: "action", width: 200 },
+  { title: "详情", key: "details" },
+];
 const transactionColumns = [
-  { title: '日期', key: 'occurredAt', width: 100 },
-  { title: '描述', dataIndex: 'description', key: 'description' },
-  { title: '金额', key: 'amount', width: 140, align: 'right' },
-]
+  { title: "日期", key: "occurredAt", width: 100 },
+  { title: "描述", dataIndex: "description", key: "description" },
+  { title: "金额", key: "amount", width: 140, align: "right" },
+];
 
 function sensitivityColor(s) {
-  return s === 'high' ? 'red' : s === 'medium' ? 'orange' : 'default'
+  return s === "high" ? "red" : s === "medium" ? "orange" : "default";
 }
 
 function syncSummary(r) {
-  if (!r) return ''
-  const ec = r.entityCounts || {}
-  const stats = `events=${ec.events ?? 0} persons=${ec.persons ?? 0} | raw=${r.rawCount ?? 0} invalid=${r.invalidCount ?? 0} | KG triples=${r.kgTripleCount ?? 0} RAG docs=${r.ragDocCount ?? 0} | ${r.durationMs ?? 0}ms`
+  if (!r) return "";
+  if (r.status === "skipped") {
+    return `${r.skipReason || "NOT_READY"}：${r.skipMessage || "来源当前未就绪"}`;
+  }
+  const ec = r.entityCounts || {};
+  const stats = `events=${ec.events ?? 0} persons=${ec.persons ?? 0} places=${ec.places ?? 0} items=${ec.items ?? 0} topics=${ec.topics ?? 0} | raw=${r.rawCount ?? 0} invalid=${r.invalidCount ?? 0} | KG triples=${r.kgTripleCount ?? 0} RAG docs=${r.ragDocCount ?? 0} | ${r.durationMs ?? 0}ms`;
   // Surface the adapter-reported error (registry.syncAdapter sets this
   // on the catch path). Without it the user only sees the all-zero
   // stats line and has no way to know WHY a sync failed.
   // Ant Design Alert.description is plain text — `\n` would render as
   // a space. Use a leading separator + 错误 prefix instead so the
   // adapter-reported message reads cleanly inline.
-  if (r.error) return `${stats}  ·  错误: ${r.error}`
-  return stats
+  if (r.error) return `${stats}  ·  错误: ${r.error}`;
+  return stats;
+}
+
+function syncAlertType(report) {
+  return analyzeSyncReport(report).level;
+}
+
+function syncAlertMessage(report) {
+  const result = analyzeSyncReport(report);
+  const adapter = report?.adapter || "未知来源";
+  const label = {
+    success: "成功",
+    empty: "无新数据",
+    partial: "部分有效",
+    skipped: "已跳过",
+    failed: "失败",
+  }[result.kind];
+  return `同步 ${adapter}: ${label}`;
+}
+
+function presentSyncReport(name, report, action = "同步") {
+  const normalizedReport =
+    report && typeof report === "object"
+      ? report
+      : {
+          adapter: name,
+          status: "error",
+          rawCount: 0,
+          invalidCount: 0,
+          entityCounts: {},
+          error: "未收到有效同步报告",
+        };
+  lastSync.value = normalizedReport;
+  const result = analyzeSyncReport(normalizedReport);
+  const adapter = normalizedReport.adapter || name;
+
+  if (result.kind === "failed") {
+    message.error(`${action} ${adapter} 失败：${result.error}`);
+  } else if (result.kind === "skipped") {
+    message.info(`${action}已跳过：${adapter}，${result.skipMessage}`);
+  } else if (result.kind === "partial") {
+    const detail = result.watermarkDeferred
+      ? `本次入库 ${result.total} 条，但分页窗口尚未扫描完，水位未推进；扩大采集窗口后可安全续扫`
+      : result.total > 0
+        ? `入库 ${result.total} 条，${result.invalidCount} 条无效`
+        : `读取 ${result.rawCount} 条，但没有形成有效数据`;
+    message.warning(`${action}部分完成：${adapter}，${detail}`);
+  } else if (result.kind === "empty") {
+    message.info(`${action}完成：${adapter}，未发现新数据`);
+  } else {
+    message.success(`${action}完成：${adapter} 入库 ${result.total} 条`);
+  }
+
+  return result;
+}
+
+function presentSyncAll(reports) {
+  const summary = analyzeSyncReports(reports);
+  lastSync.value = selectImportantSyncReport(reports);
+  const text =
+    `同步 ${summary.totalReports} 个来源：` +
+    `${summary.success} 成功，${summary.empty} 无新数据，` +
+    `${summary.partial} 部分有效，${summary.skipped} 已跳过，` +
+    `${summary.failed} 失败，` +
+    `共入库 ${summary.totalEntities} 条`;
+
+  if (summary.level === "error") message.error(text);
+  else if (summary.level === "warning") message.warning(text);
+  else if (summary.level === "info") message.info(text);
+  else message.success(text);
+
+  return summary;
 }
 
 // Actions
 async function refresh() {
-  loading.refresh = true
+  loading.refresh = true;
   try {
-    health.value = await hub.health()
-    stats.value = await hub.stats()
-    adapters.value = await hub.listAdapters()
+    health.value = await hub.health();
+    stats.value = await hub.stats();
+    adapters.value = await hub.listAdapters();
     // Per-adapter readiness — WHY each source can / can't collect. Fetched
     // after the list so the table renders immediately and the 就绪状态 column
     // fills in. Non-fatal on older hubs without the topic (column shows
     // "检测中" / falls back to nothing).
     try {
-      const rd = await hub.adapterReadiness()
-      const map = {}
-      for (const r of Array.isArray(rd) ? rd : []) map[r.name] = r
-      readinessMap.value = map
+      const rd = await hub.adapterReadiness();
+      const map = {};
+      for (const r of Array.isArray(rd) ? rd : []) map[r.name] = r;
+      readinessMap.value = map;
     } catch (_e) {
       // Older hub without adapter-readiness topic — leave map empty.
     }
     // Phase 10.3.5 — also refresh AIChat account list so the wizard's
     // existing-accounts prop is up to date when the drawer is reopened.
     try {
-      aichatAccounts.value = await hub.listAichatAccounts()
+      aichatAccounts.value = await hub.listAichatAccounts();
     } catch (_e) {
       // Non-fatal — older hubs without the topic just keep the previous list.
     }
   } catch (err) {
-    message.error('刷新失败: ' + err.message)
+    message.error("刷新失败: " + err.message);
   } finally {
-    loading.refresh = false
+    loading.refresh = false;
   }
 }
 
 async function ask() {
-  if (!askInput.value.trim()) return
-  loading.ask = true
-  askError.value = ''
-  askResult.value = null
+  if (!askInput.value.trim()) return;
+  loading.ask = true;
+  askError.value = "";
+  askResult.value = null;
   try {
-    askResult.value = await hub.ask(askInput.value.trim(), { acceptNonLocal: acceptNonLocal.value })
+    askResult.value = await hub.ask(askInput.value.trim(), {
+      acceptNonLocal: acceptNonLocal.value,
+    });
   } catch (err) {
-    askError.value = err.message
+    askError.value = err.message;
   } finally {
-    loading.ask = false
+    loading.ask = false;
   }
 }
 
 async function addMock() {
-  loading.addMock = true
+  loading.addMock = true;
   try {
-    await hub.registerMock({ count: 30, seed: Date.now() % 1000 })
-    await refresh()
-    message.success('MockAdapter 已注册（30 条 mock 数据 ready 同步）')
+    await hub.registerMock({ count: 30, seed: Date.now() % 1000 });
+    await refresh();
+    message.success("MockAdapter 已注册（30 条 mock 数据 ready 同步）");
   } catch (err) {
-    message.error('注册失败: ' + err.message)
+    message.error("注册失败: " + err.message);
   } finally {
-    loading.addMock = false
+    loading.addMock = false;
   }
 }
 
-function resetSyncProgress(adapterName = '') {
-  syncProgress.active = true
-  syncProgress.adapter = adapterName
-  syncProgress.phase = 'starting'
-  syncProgress.mailbox = ''
-  syncProgress.current = 0
-  syncProgress.total = 0
-  syncProgress.attempt = 1
-  syncProgress.errorMessage = ''
+function resetSyncProgress(adapterName = "", batchMode = false) {
+  syncProgress.active = true;
+  syncProgress.batchMode = batchMode;
+  syncProgress.adapter = adapterName;
+  syncProgress.phase = "starting";
+  syncProgress.mailbox = "";
+  syncProgress.current = 0;
+  syncProgress.total = 0;
+  syncProgress.attempt = 1;
+  syncProgress.errorMessage = "";
 }
 
 function handleSyncEvent(evt) {
-  if (!evt) return
-  if (evt.adapter) syncProgress.adapter = evt.adapter
-  if (evt.phase) syncProgress.phase = evt.phase
-  if (typeof evt.current === 'number') syncProgress.current = evt.current
-  if (typeof evt.total === 'number') syncProgress.total = evt.total
-  if (typeof evt.attempt === 'number') syncProgress.attempt = evt.attempt
-  if (evt.mailbox) syncProgress.mailbox = evt.mailbox
-  if (evt.phase === 'error') {
-    syncProgress.errorMessage = evt.message || 'sync error'
+  if (!evt) return;
+
+  if (evt.kind === "sync.batch.start") {
+    syncProgress.batchMode = true;
+    syncProgress.adapter = "(all)";
+    syncProgress.phase = "preparing";
+    syncProgress.current = evt.current || 0;
+    syncProgress.total = evt.total || 0;
+    return;
+  }
+  if (evt.kind === "sync.batch.progress") {
+    syncProgress.batchMode = true;
+    syncProgress.adapter = evt.adapter || "(all)";
+    syncProgress.phase = evt.status || "completed";
+    syncProgress.current = evt.current || 0;
+    syncProgress.total = evt.total || syncProgress.total;
+    return;
+  }
+  if (evt.kind === "sync.batch.done") {
+    syncProgress.batchMode = true;
+    syncProgress.adapter = "(all)";
+    syncProgress.phase = "done";
+    syncProgress.current = evt.current || 0;
+    syncProgress.total = evt.total || syncProgress.total;
+    return;
+  }
+
+  if (evt.adapter) syncProgress.adapter = evt.adapter;
+  if (evt.phase) syncProgress.phase = evt.phase;
+  if (!syncProgress.batchMode) {
+    if (typeof evt.current === "number") syncProgress.current = evt.current;
+    if (typeof evt.total === "number") syncProgress.total = evt.total;
+  }
+  if (typeof evt.attempt === "number") syncProgress.attempt = evt.attempt;
+  if (evt.mailbox) syncProgress.mailbox = evt.mailbox;
+  if (evt.phase === "error") {
+    syncProgress.errorMessage = evt.message || "sync error";
   }
 }
 
 async function syncOne(name) {
-  loading.sync[name] = true
-  resetSyncProgress(name)
+  loading.sync[name] = true;
+  resetSyncProgress(name);
   try {
     // Per-kind include toggles — only system-data-android currently
     // produces multi-kind output (contacts / apps / sms / calls).
     // For other adapters, options is empty and the server falls through
     // to default behavior (which is auto-pull-from-phone for socials).
     // Persisted in localStorage so the user's choice survives reloads.
-    const includeOpts = syncIncludeOptions[name]
-    const options = includeOpts ? { include: { ...includeOpts } } : {}
+    const includeOpts = syncIncludeOptions[name];
+    const options = includeOpts ? { include: { ...includeOpts } } : {};
 
     // Phase 5.7: streaming when supported, falls back to plain syncAdapter
-    if (typeof hub.syncAdapterStream === 'function') {
-      lastSync.value = await hub.syncAdapterStream(name, options, handleSyncEvent)
+    let report;
+    if (typeof hub.syncAdapterStream === "function") {
+      report = await hub.syncAdapterStream(name, options, handleSyncEvent);
     } else {
-      lastSync.value = await hub.syncAdapter(name, options)
+      report = await hub.syncAdapter(name, options);
     }
-    await refresh()
+    const result = presentSyncReport(name, report);
+    await refresh();
+    return result;
   } catch (err) {
-    message.error(`同步 ${name} 失败: ${err.message}`)
+    message.error(`同步 ${name} 失败: ${err.message}`);
+    return null;
   } finally {
-    loading.sync[name] = false
-    syncProgress.active = false
+    loading.sync[name] = false;
+    syncProgress.active = false;
   }
 }
 
 async function syncAll() {
-  loading.syncAll = true
-  resetSyncProgress('(all)')
+  loading.syncAll = true;
+  resetSyncProgress("(all)", true);
   try {
-    const reports = typeof hub.syncAllStream === 'function'
-      ? await hub.syncAllStream({}, handleSyncEvent)
-      : await hub.syncAll()
-    lastSync.value = reports?.[reports.length - 1] || null
-    await refresh()
-    message.success(`已同步 ${reports?.length || 0} 个 adapter`)
+    const reports =
+      typeof hub.syncAllStream === "function"
+        ? await hub.syncAllStream({ readyOnly: true }, handleSyncEvent)
+        : await hub.syncAll({ readyOnly: true });
+    presentSyncAll(reports);
+    await refresh();
   } catch (err) {
-    message.error('同步失败: ' + err.message)
+    message.error("同步失败: " + err.message);
   } finally {
-    loading.syncAll = false
-    syncProgress.active = false
+    loading.syncAll = false;
+    syncProgress.active = false;
   }
 }
 
 async function unregisterAdapter(name) {
   try {
-    await hub.unregister(name)
-    await refresh()
+    await hub.unregister(name);
+    await refresh();
   } catch (err) {
-    message.error('移除失败: ' + err.message)
+    message.error("移除失败: " + err.message);
   }
 }
 
 async function loadAudit(open) {
-  if (!open) return
-  loading.audit = true
+  if (!open) return;
+  loading.audit = true;
   try {
-    auditRows.value = await hub.recentAudit({ limit: 200 })
+    auditRows.value = await hub.recentAudit({ limit: 200 });
   } catch (err) {
-    message.error('审计日志加载失败: ' + err.message)
+    message.error("审计日志加载失败: " + err.message);
   } finally {
-    loading.audit = false
+    loading.audit = false;
   }
 }
 
 // ─── Phase 5.6 — email config handlers ─────────────────────────────────
 
 const emailFormValid = computed(() => {
-  if (!emailForm.email || !emailForm.email.includes('@')) return false
-  if (!emailForm.authCode || emailForm.authCode.length < 4) return false
-  if (emailForm.provider === 'custom' && !emailForm.host) return false
-  return true
-})
+  if (!emailForm.email || !emailForm.email.includes("@")) return false;
+  if (!emailForm.authCode || emailForm.authCode.length < 4) return false;
+  if (emailForm.provider === "custom" && !emailForm.host) return false;
+  return true;
+});
 
 function providerAuthHint(provider) {
   const hints = {
-    qq: 'QQ: 邮箱 → 设置 → 账户 → IMAP/SMTP → 开启 → 生成授权码',
-    163: '163: 邮箱 → 设置 → POP3/SMTP/IMAP → 开启 IMAP/SMTP 服务 → 授权密码',
-    189: '189: 设置 → 第三方客户端授权码',
-    outlook: 'Outlook: account.microsoft.com/security → App password',
-    gmail: 'Gmail: myaccount.google.com/apppasswords (需开启 2FA)',
-    custom: '联系你的邮箱管理员获取 IMAP 端点 + app-password',
-  }
-  return hints[provider] || '请输入服务商授权码（不是登录密码）'
+    qq: "QQ: 邮箱 → 设置 → 账户 → IMAP/SMTP → 开启 → 生成授权码",
+    163: "163: 邮箱 → 设置 → POP3/SMTP/IMAP → 开启 IMAP/SMTP 服务 → 授权密码",
+    189: "189: 设置 → 第三方客户端授权码",
+    outlook: "Outlook: account.microsoft.com/security → App password",
+    gmail: "Gmail: myaccount.google.com/apppasswords (需开启 2FA)",
+    custom: "联系你的邮箱管理员获取 IMAP 端点 + app-password",
+  };
+  return hints[provider] || "请输入服务商授权码（不是登录密码）";
 }
 
 function resetEmailForm() {
-  emailForm.provider = 'qq'
-  emailForm.email = ''
-  emailForm.authCode = ''
-  emailForm.host = ''
-  emailForm.port = 993
-  emailForm.pdfPasswordHints = { idCardLast6: '', phoneLast6: '', cardLast6: '' }
-  emailTestResult.value = null
+  emailForm.provider = "qq";
+  emailForm.email = "";
+  emailForm.authCode = "";
+  emailForm.host = "";
+  emailForm.port = 993;
+  emailForm.pdfPasswordHints = {
+    idCardLast6: "",
+    phoneLast6: "",
+    cardLast6: "",
+  };
+  emailTestResult.value = null;
 }
 
 function buildEmailAccountPayload() {
@@ -2109,188 +2582,198 @@ function buildEmailAccountPayload() {
     provider: emailForm.provider,
     email: emailForm.email.trim(),
     authCode: emailForm.authCode,
+  };
+  if (emailForm.provider === "custom") {
+    account.host = emailForm.host.trim();
+    account.port = emailForm.port || 993;
+    account.secure = true;
   }
-  if (emailForm.provider === 'custom') {
-    account.host = emailForm.host.trim()
-    account.port = emailForm.port || 993
-    account.secure = true
-  }
-  return account
+  return account;
 }
 
 function buildPdfHints() {
-  const hints = {}
+  const hints = {};
   for (const k of Object.keys(emailForm.pdfPasswordHints)) {
-    const v = emailForm.pdfPasswordHints[k]
-    if (typeof v === 'string' && v.trim().length > 0) hints[k] = v.trim()
+    const v = emailForm.pdfPasswordHints[k];
+    if (typeof v === "string" && v.trim().length > 0) hints[k] = v.trim();
   }
-  return Object.keys(hints).length > 0 ? hints : null
+  return Object.keys(hints).length > 0 ? hints : null;
 }
 
 async function testEmailAuth() {
-  if (!emailFormValid.value) return
-  loading.testEmail = true
-  emailTestResult.value = null
+  if (!emailFormValid.value) return;
+  loading.testEmail = true;
+  emailTestResult.value = null;
   try {
-    emailTestResult.value = await hub.testEmailAuth(buildEmailAccountPayload())
+    emailTestResult.value = await hub.testEmailAuth(buildEmailAccountPayload());
   } catch (err) {
-    emailTestResult.value = { ok: false, error: err.message }
+    emailTestResult.value = { ok: false, error: err.message };
   } finally {
-    loading.testEmail = false
+    loading.testEmail = false;
   }
 }
 
 async function saveEmail() {
-  if (!emailFormValid.value || !emailTestResult.value?.ok) return
-  loading.saveEmail = true
+  if (!emailFormValid.value || !emailTestResult.value?.ok) return;
+  loading.saveEmail = true;
   try {
-    const opts = {}
-    const hints = buildPdfHints()
-    if (hints) opts.pdfPasswordHints = hints
-    await hub.registerEmail(buildEmailAccountPayload(), opts)
-    message.success('邮箱账号已注册')
-    emailConfigOpen.value = false
-    resetEmailForm()
-    await refresh()
+    const opts = {};
+    const hints = buildPdfHints();
+    if (hints) opts.pdfPasswordHints = hints;
+    await hub.registerEmail(buildEmailAccountPayload(), opts);
+    message.success("邮箱账号已注册");
+    emailConfigOpen.value = false;
+    resetEmailForm();
+    await refresh();
   } catch (err) {
-    message.error('保存失败: ' + err.message)
+    message.error("保存失败: " + err.message);
   } finally {
-    loading.saveEmail = false
+    loading.saveEmail = false;
   }
 }
 
 // ─── Phase 6 — Alipay import ───────────────────────────────────────────
 
 const alipayFormValid = computed(() => {
-  if (!alipayForm.email || !alipayForm.email.includes('@')) return false
-  if (!alipayForm.filePath || alipayForm.filePath.length < 3) return false
-  return true
-})
+  if (!alipayForm.email || !alipayForm.email.includes("@")) return false;
+  if (!alipayForm.filePath || alipayForm.filePath.length < 3) return false;
+  return true;
+});
 
 function resetAlipayForm() {
-  alipayForm.email = ''
-  alipayForm.zipPassword = ''
-  alipayForm.filePath = ''
-  alipayResult.value = null
+  alipayForm.email = "";
+  alipayForm.zipPassword = "";
+  alipayForm.filePath = "";
+  alipayResult.value = null;
 }
 
 async function importAlipay() {
-  if (!alipayFormValid.value) return
-  loading.importAlipay = true
-  alipayResult.value = null
+  if (!alipayFormValid.value) return;
+  loading.importAlipay = true;
+  alipayResult.value = null;
   try {
     // Register the account (also persists config + auto-registers on next boot)
     await hub.registerAlipay({
       email: alipayForm.email.trim(),
       zipPassword: alipayForm.zipPassword || undefined,
-    })
+    });
     // Detect zip vs csv from extension
-    const isZip = /\.zip$/i.test(alipayForm.filePath)
+    const isZip = /\.zip$/i.test(alipayForm.filePath);
     const payload = isZip
-      ? { zipPath: alipayForm.filePath, zipPassword: alipayForm.zipPassword || undefined }
-      : { csvPath: alipayForm.filePath }
-    alipayResult.value = await hub.importAlipayBill(payload)
-    if (alipayResult.value?.status === 'ok') {
-      message.success(`导入成功 — ${alipayResult.value.entityCounts?.events || 0} 笔交易`)
-      await refresh()
+      ? {
+          zipPath: alipayForm.filePath,
+          zipPassword: alipayForm.zipPassword || undefined,
+        }
+      : { csvPath: alipayForm.filePath };
+    alipayResult.value = await hub.importAlipayBill(payload);
+    if (alipayResult.value?.status === "ok") {
+      message.success(
+        `导入成功 — ${alipayResult.value.entityCounts?.events || 0} 笔交易`,
+      );
+      await refresh();
     } else {
-      message.error('导入失败: ' + (alipayResult.value?.error || alipayResult.value?.status))
+      message.error(
+        "导入失败: " +
+          (alipayResult.value?.error || alipayResult.value?.status),
+      );
     }
   } catch (err) {
-    alipayResult.value = { status: 'error', error: err.message }
-    message.error('导入失败: ' + err.message)
+    alipayResult.value = { status: "error", error: err.message };
+    message.error("导入失败: " + err.message);
   } finally {
-    loading.importAlipay = false
+    loading.importAlipay = false;
   }
 }
 
 // ─── Phase 5.6 — event detail ──────────────────────────────────────────
 
 async function showEventDetail(eventId) {
-  if (!eventId) return
-  loading.eventDetail = true
-  eventDetailOpen.value = true
+  if (!eventId) return;
+  loading.eventDetail = true;
+  eventDetailOpen.value = true;
   try {
-    eventDetail.value = await hub.eventDetail(eventId)
+    eventDetail.value = await hub.eventDetail(eventId);
   } catch (err) {
-    eventDetail.value = null
-    message.error('事件详情加载失败: ' + err.message)
+    eventDetail.value = null;
+    message.error("事件详情加载失败: " + err.message);
   } finally {
-    loading.eventDetail = false
+    loading.eventDetail = false;
   }
 }
 
 // Expose for template-level event handlers (e.g. citation click)
-defineExpose({ showEventDetail })
+defineExpose({ showEventDetail });
 
 // Phase 11 — analysis skills handler
 async function runSkill(name) {
-  loading.skill = true
-  skillResult.value = null
+  loading.skill = true;
+  skillResult.value = null;
   try {
-    skillResult.value = await hub.runSkill(name, {})
+    skillResult.value = await hub.runSkill(name, {});
   } catch (err) {
-    message.error(`${name} 失败: ${err.message}`)
+    message.error(`${name} 失败: ${err.message}`);
   } finally {
-    loading.skill = false
+    loading.skill = false;
   }
 }
 
 // Phase 8 — EntityResolver UI handlers
 async function loadReviewQueue() {
-  loading.reviewQueue = true
+  loading.reviewQueue = true;
   try {
-    reviewRows.value = await hub.reviewQueueList(50)
-    const stats = await hub.resolverStats()
-    Object.assign(resolverStats, stats)
+    reviewRows.value = await hub.reviewQueueList(50);
+    const stats = await hub.resolverStats();
+    Object.assign(resolverStats, stats);
   } catch (err) {
-    message.error('待消歧加载失败: ' + err.message)
+    message.error("待消歧加载失败: " + err.message);
   } finally {
-    loading.reviewQueue = false
+    loading.reviewQueue = false;
   }
 }
 
 async function openReviewQueue() {
-  reviewQueueOpen.value = true
-  await loadReviewQueue()
+  reviewQueueOpen.value = true;
+  await loadReviewQueue();
 }
 
 async function decideReview(reviewId, decision) {
   try {
-    await hub.reviewDecision(reviewId, decision)
-    message.success(`已记录决策: ${decision}`)
-    await loadReviewQueue()
+    await hub.reviewDecision(reviewId, decision);
+    message.success(`已记录决策: ${decision}`);
+    await loadReviewQueue();
   } catch (err) {
-    message.error('决策失败: ' + err.message)
+    message.error("决策失败: " + err.message);
   }
 }
 
 async function drainResolver() {
-  loading.resolverDrain = true
+  loading.resolverDrain = true;
   try {
-    const r = await hub.resolverDrain(20)
-    message.success(`drain 完成 — same=${r.same} different=${r.different} review=${r.review}`)
-    await loadReviewQueue()
+    const r = await hub.resolverDrain(20);
+    message.success(
+      `drain 完成 — same=${r.same} different=${r.different} review=${r.review}`,
+    );
+    await loadReviewQueue();
   } catch (err) {
-    message.error('drain 失败: ' + err.message)
+    message.error("drain 失败: " + err.message);
   } finally {
-    loading.resolverDrain = false
+    loading.resolverDrain = false;
   }
 }
 
 async function loadResolverStats() {
   try {
-    const stats = await hub.resolverStats()
-    Object.assign(resolverStats, stats)
+    const stats = await hub.resolverStats();
+    Object.assign(resolverStats, stats);
   } catch (_e) {
     // Silent — endpoint may not be available
   }
 }
 
 onMounted(() => {
-  refresh()
-  loadResolverStats()
-})
+  refresh();
+  loadResolverStats();
+});
 </script>
 
 <style scoped>

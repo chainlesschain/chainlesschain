@@ -852,7 +852,7 @@ describe("headless-runner — session resume + persistence", () => {
 
   /** A capturing fake JSONL session store wired into deps. */
   function makeStore(seed = {}) {
-    const events = { user: [], assistant: [], started: [] };
+    const events = { user: [], assistant: [], started: [], raw: [] };
     const existing = { ...seed }; // id -> rebuilt messages array
     return {
       events,
@@ -866,6 +866,14 @@ describe("headless-runner — session resume + persistence", () => {
         appendAssistantMessage: (id, c) =>
           events.assistant.push({ id, content: c }),
         appendTokenUsage: () => {},
+        // Persisted headless turns also write recovery/binding metadata. Keep
+        // this fake faithful to the JSONL store contract so fail-closed
+        // metadata persistence does not abort before the assistant message.
+        readEvents: () => events.raw,
+        appendEvent: (id, type, data) => {
+          events.raw.push({ id, type, data });
+          return true;
+        },
       },
     };
   }

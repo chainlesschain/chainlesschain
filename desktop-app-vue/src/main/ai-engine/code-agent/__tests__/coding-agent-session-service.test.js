@@ -684,6 +684,21 @@ describe("CodingAgentSessionService", () => {
 
   it("routes structured MCP elicitation answers back to the CLI bridge", async () => {
     await service.createSession();
+    bridge.emit("message", {
+      type: "question",
+      sessionId: "session-1",
+      requestId: "q-42",
+      questionType: "elicitation",
+      question: "Choose a color",
+      metadata: {
+        kind: "mcp_elicitation",
+        server: "demo",
+        requestedSchema: {
+          type: "object",
+          properties: { color: { type: "string" } },
+        },
+      },
+    });
 
     const result = await service.respondElicitation("session-1", {
       requestId: "q-42",
@@ -695,9 +710,13 @@ describe("CodingAgentSessionService", () => {
       success: true,
       sessionId: "session-1",
       requestId: "q-42",
+      turnId: null,
+      toolUseId: null,
+      transportRequestId: expect.stringMatching(/^session-answer-/),
       action: "accept",
     });
     expect(bridge.sentMessages.at(-1)).toMatchObject({
+      id: expect.stringMatching(/^session-answer-/),
       type: "session-answer",
       sessionId: "session-1",
       requestId: "q-42",

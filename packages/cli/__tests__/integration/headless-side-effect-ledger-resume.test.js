@@ -216,6 +216,81 @@ describe("headless side-effect ledger — record + resume reconcile", () => {
     );
   });
 
+  it("fails closed before a dangerous tool when the STARTED snapshot cannot persist", async () => {
+    const store = makeStore();
+    let effectExecuted = false;
+    const loop = async function* () {
+      yield {
+        type: "tool-executing",
+        tool: "write_file",
+        args: { path: "blocked.txt", content: "must-not-run" },
+      };
+      effectExecuted = true;
+      yield {
+        type: "tool-result",
+        tool: "write_file",
+        result: { ok: true },
+      };
+    };
+    const deps = baseDeps(store, loop);
+    deps.appendEvent = (_sessionId, type, data) => {
+      if (type === "side_effect_ledger") throw new Error("ledger disk full");
+      store.events.push({ type, data });
+    };
+
+    const outcome = await runAgentHeadless(
+      {
+        prompt: "write",
+        sessionId: "sid",
+        persistSession: true,
+        outputFormat: "json",
+        expandFileRefs: false,
+      },
+      deps,
+    );
+
+    expect(outcome.exitCode).toBe(1);
+    expect(outcome.result).toMatch(/ledger disk full/);
+    expect(effectExecuted).toBe(false);
+  });
+
+  it("fails closed before a dangerous tool when prior ledger state cannot be read", async () => {
+    const store = makeStore();
+    let effectExecuted = false;
+    const loop = async function* () {
+      yield {
+        type: "tool-executing",
+        tool: "git",
+        args: { command: "push origin main" },
+      };
+      effectExecuted = true;
+      yield {
+        type: "tool-result",
+        tool: "git",
+        result: { ok: true },
+      };
+    };
+    const deps = baseDeps(store, loop);
+    deps.readEvents = () => {
+      throw new Error("ledger read unavailable");
+    };
+
+    const outcome = await runAgentHeadless(
+      {
+        prompt: "push",
+        sessionId: "sid",
+        persistSession: true,
+        outputFormat: "json",
+        expandFileRefs: false,
+      },
+      deps,
+    );
+
+    expect(outcome.exitCode).toBe(1);
+    expect(outcome.result).toMatch(/ledger read unavailable/);
+    expect(effectExecuted).toBe(false);
+  });
+
   it("links a revised Diff proposal to the Request Changes ledger record", async () => {
     const store = makeStore();
     const requested = {
@@ -444,9 +519,13 @@ describe("background state-machine producers (uncertain_side_effect + needs_inpu
     expect(reporter.calls).toContainEqual(["uncertain", 1]);
   });
 
-  it("a background child parks ask_user_question as needs_input and tells the model to end the turn", async () => {
+  it("a background child resolves ask_user_question inside the same turn", async () => {
     const store = makeStore();
     const reporter = makeFakeReporter(true);
+    const backgroundInteractionClient = {
+      request: vi.fn(async () => "yes"),
+      close: vi.fn(),
+    };
     let loopOptions = null;
     const loop = async function* (_messages, options) {
       loopOptions = options;
@@ -459,7 +538,11 @@ describe("background state-machine producers (uncertain_side_effect + needs_inpu
         expandFileRefs: false,
         persistSession: false,
       },
-      { ...baseDeps(store, loop), backgroundPhaseReporter: reporter },
+      {
+        ...baseDeps(store, loop),
+        backgroundPhaseReporter: reporter,
+        backgroundInteractionClient,
+      },
     );
 
     expect(loopOptions.interaction).toBeTruthy();
@@ -467,8 +550,19 @@ describe("background state-machine producers (uncertain_side_effect + needs_inpu
       loopOptions.interaction.askUser({
         question: "Deploy to prod?",
         options: ["yes", "no"],
+        toolUseId: "tool-call-1",
+        turnId: "turn-1",
       }),
-    ).rejects.toThrow(/parked for the user/i);
+    ).resolves.toBe("yes");
+    expect(backgroundInteractionClient.request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: "question",
+        question: "Deploy to prod?",
+        options: ["yes", "no"],
+        toolUseId: "tool-call-1",
+        turnId: "turn-1",
+      }),
+    );
     expect(reporter.calls).toContainEqual([
       "question",
       { question: "Deploy to prod?", options: ["yes", "no"] },

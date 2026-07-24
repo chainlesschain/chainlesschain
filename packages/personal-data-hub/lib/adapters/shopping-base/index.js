@@ -39,8 +39,10 @@ function normalizeOrderRecord(rec, ctx = {}) {
   if (!rec || typeof rec !== "object") {
     throw new Error("normalizeOrderRecord: rec required");
   }
-  if (!rec.orderId) throw new Error("normalizeOrderRecord: rec.orderId required");
-  if (!rec.merchantName) throw new Error("normalizeOrderRecord: rec.merchantName required");
+  if (!rec.orderId)
+    throw new Error("normalizeOrderRecord: rec.orderId required");
+  if (!rec.merchantName)
+    throw new Error("normalizeOrderRecord: rec.merchantName required");
 
   const now = Date.now();
   const occurredAt = Number.isFinite(rec.placedAt) ? rec.placedAt : now;
@@ -57,16 +59,18 @@ function normalizeOrderRecord(rec, ctx = {}) {
 
   // Merchant Person
   const merchantId = `person-${adapterName}-merchant-${slug(rec.merchantName)}`;
-  const persons = [{
-    id: merchantId,
-    type: "person",
-    subtype: "merchant",
-    names: [rec.merchantName],
-    identifiers: {},
-    ingestedAt: now,
-    source,
-    extra: { fromAdapter: adapterName, merchant: true },
-  }];
+  const persons = [
+    {
+      id: merchantId,
+      type: "person",
+      subtype: "merchant",
+      names: [rec.merchantName],
+      identifiers: {},
+      ingestedAt: now,
+      source,
+      extra: { fromAdapter: adapterName, merchant: true },
+    },
+  ];
 
   // Items
   const items = [];
@@ -79,9 +83,13 @@ function normalizeOrderRecord(rec, ctx = {}) {
         subtype: "product",
         name: it.name,
         merchant: merchantId,
-        price: it.unitPrice != null
-          ? { value: Number(it.unitPrice) || 0, currency: rec.totalAmount?.currency || "CNY" }
-          : null,
+        price:
+          it.unitPrice != null
+            ? {
+                value: Number(it.unitPrice) || 0,
+                currency: rec.totalAmount?.currency || "CNY",
+              }
+            : null,
         ingestedAt: now,
         source,
         extra: {
@@ -106,9 +114,21 @@ function normalizeOrderRecord(rec, ctx = {}) {
     content: {
       title: `${rec.merchantName} 订单 ${rec.orderId}`,
       ...(rec.totalAmount && Number.isFinite(rec.totalAmount.value)
-        ? { amount: { value: rec.totalAmount.value, currency: rec.totalAmount.currency || "CNY", direction: subtype === "refund" ? "in" : "out" } }
+        ? {
+            amount: {
+              value: rec.totalAmount.value,
+              currency: rec.totalAmount.currency || "CNY",
+              direction: subtype === "refund" ? "in" : "out",
+            },
+          }
         : {}),
-      ...(items.length > 0 ? { text: items.map((i) => `${i.name} x${i.extra.quantity || 1}`).join("; ") } : {}),
+      ...(items.length > 0
+        ? {
+            text: items
+              .map((i) => `${i.name} x${i.extra.quantity || 1}`)
+              .join("; "),
+          }
+        : {}),
     },
     ingestedAt: now,
     source,
@@ -134,7 +154,13 @@ function normalizeOrderRecord(rec, ctx = {}) {
 function mapStatusToSubtype(status) {
   const s = String(status || "").toLowerCase();
   if (s.includes("refund") || s.includes("退款")) return "refund";
-  if (s.includes("cancel") || s.includes("close") || s.includes("已取消") || s.includes("已关闭")) return "cancelled";
+  if (
+    s.includes("cancel") ||
+    s.includes("close") ||
+    s.includes("已取消") ||
+    s.includes("已关闭")
+  )
+    return "cancelled";
   // All other order states ("placed", "shipped", "delivered") map to
   // `order` subtype — the lifecycle status is in extra.orderStatus.
   return "order";
@@ -204,6 +230,35 @@ class CookieAuth {
   }
 }
 
+function hasRuntimeCookie(opts = {}) {
+  return typeof opts.cookie === "string" && opts.cookie.trim().length > 0;
+}
+
+/**
+ * Resolve configured credentials or an ephemeral sync-time cookie/account id.
+ * Runtime credentials are never written back to the adapter instance.
+ */
+function resolveCookieContext({
+  account,
+  cookieAuth,
+  opts = {},
+  platform,
+  identityKey,
+}) {
+  if (!hasRuntimeCookie(opts)) return { account, cookieAuth };
+  const runtimeIdentity =
+    opts[identityKey] != null ? opts[identityKey] : opts.accountId;
+  const runtimeAccount = {
+    ...(account || {}),
+    cookies: opts.cookie,
+    ...(runtimeIdentity == null ? {} : { [identityKey]: runtimeIdentity }),
+  };
+  return {
+    account: runtimeAccount,
+    cookieAuth: new CookieAuth({ platform, cookies: opts.cookie }),
+  };
+}
+
 function escapeRegex(s) {
   return String(s).replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
 }
@@ -212,4 +267,6 @@ module.exports = {
   normalizeOrderRecord,
   mapStatusToSubtype,
   CookieAuth,
+  hasRuntimeCookie,
+  resolveCookieContext,
 };

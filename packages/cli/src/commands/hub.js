@@ -24,6 +24,7 @@ import { loadConfig } from "../lib/config-manager.js";
 import { isCloudHubConfigured } from "../lib/hub-llm-client.js";
 import { importPdh } from "../lib/pdh-load-error.js";
 import { getAIChatWizard } from "../lib/personal-data-hub-aichat-wizard.js";
+import { runDedicatedBatchCollectors } from "../lib/pdh-dedicated-batch-collectors.js";
 
 function printJson(obj) {
   console.log(JSON.stringify(obj, null, 2));
@@ -37,9 +38,9 @@ function printJson(obj) {
  * + read commands are all-done after the report, no reason to keep idling.
  * Real-device repro on Xiaomi 24115RA8EC 2026-05-23.
  */
-function jsonAndExit(obj) {
+function jsonAndExit(obj, exitCode = 0) {
   process.stdout.write(JSON.stringify(obj, null, 2) + "\n", () =>
-    process.exit(0),
+    process.exit(exitCode),
   );
 }
 
@@ -55,6 +56,232 @@ function parsePositiveInt(raw) {
   const n = Number.parseInt(raw, 10);
   if (!Number.isFinite(n) || n <= 0) return null;
   return n;
+}
+
+const SYNC_ENTITY_KEYS = ["events", "persons", "places", "items", "topics"];
+const MAX_SYNC_COOKIE_BYTES = 64 * 1024;
+
+function resolveSyncCookie(options = {}, env = process.env) {
+  if (options.cookie && options.cookieFile) {
+    throw new Error("Use either --cookie or --cookie-file, not both");
+  }
+  let raw = options.cookie || env.CC_PDH_COOKIE || null;
+  if (options.cookieFile) {
+    raw = readFileSync(String(options.cookieFile), "utf8");
+    if (Buffer.byteLength(raw, "utf8") > MAX_SYNC_COOKIE_BYTES) {
+      throw new Error(`Cookie file exceeds ${MAX_SYNC_COOKIE_BYTES} bytes`);
+    }
+  }
+  if (raw == null) return null;
+  const normalized = String(raw).trim();
+  if (Buffer.byteLength(normalized, "utf8") > MAX_SYNC_COOKIE_BYTES) {
+    throw new Error(`Cookie exceeds ${MAX_SYNC_COOKIE_BYTES} bytes`);
+  }
+  return normalized || null;
+}
+
+function syncCount(value) {
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+function optionalSyncCount(value) {
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function optionalNonNegativeSyncCount(value) {
+  return Number.isFinite(value) && value >= 0 ? value : null;
+}
+
+function syncEntityTotal(report) {
+  const counts = report?.entityCounts;
+  if (!counts || typeof counts !== "object") return 0;
+  return SYNC_ENTITY_KEYS.reduce(
+    (total, key) => total + syncCount(counts[key]),
+    0,
+  );
+}
+
+function analyzeSyncReport(report) {
+  const valid = !!report && typeof report === "object";
+  const status =
+    valid && typeof report.status === "string" ? report.status : "invalid";
+  const total = syncEntityTotal(report);
+  const rawCount = syncCount(report?.rawCount);
+  const archivedRawCount = syncCount(report?.archivedRawCount);
+  const archiveFailureCount = syncCount(report?.archiveFailureCount);
+  const invalidCount = syncCount(report?.invalidCount);
+  const watermarkDeferred = report?.watermarkDeferred === true;
+  const checkpointCommitted =
+    typeof report?.checkpointCommitted === "boolean"
+      ? report.checkpointCommitted
+      : null;
+  const durability = {
+    archivedRawCount,
+    archiveFailureCount,
+    checkpointCommitted,
+  };
+  const pagination = {
+    pageBudget: optionalSyncCount(report?.pageBudget),
+    nextPageBudget: optionalSyncCount(report?.nextPageBudget),
+    scanDeferredCount: syncCount(report?.scanDeferredCount),
+    watermarkLookbackMs: syncCount(report?.watermarkLookbackMs),
+    collectionSinceWatermark:
+      typeof report?.collectionSinceWatermark === "string"
+        ? report.collectionSinceWatermark
+        : null,
+  };
+  const recovery = {
+    attemptCount: syncCount(report?.attemptCount),
+    retryCount: syncCount(report?.retryCount),
+    totalRetryDelayMs: syncCount(report?.totalRetryDelayMs),
+    retryExhausted: report?.retryExhausted === true,
+    retryAfterMs: optionalSyncCount(report?.retryAfterMs),
+    rateLimitReason:
+      typeof report?.rateLimitReason === "string"
+        ? report.rateLimitReason
+        : null,
+    rateLimitRemainingMinute: optionalNonNegativeSyncCount(
+      report?.rateLimitRemainingMinute,
+    ),
+    rateLimitRemainingDay: optionalNonNegativeSyncCount(
+      report?.rateLimitRemainingDay,
+    ),
+    sourceRequestCount: syncCount(report?.sourceRequestCount),
+    sourceRequestThrottleMs: syncCount(report?.sourceRequestThrottleMs),
+    sourceRequestRateLimitRemainingMinute: optionalNonNegativeSyncCount(
+      report?.sourceRequestRateLimitRemainingMinute,
+    ),
+    sourceRequestRateLimitRemainingDay: optionalNonNegativeSyncCount(
+      report?.sourceRequestRateLimitRemainingDay,
+    ),
+  };
+  if (valid && status === "skipped") {
+    return {
+      kind: "skipped",
+      ok: true,
+      total,
+      rawCount,
+      ...durability,
+      ...pagination,
+      ...recovery,
+      invalidCount,
+      error: null,
+      skipReason: report.skipReason || "NOT_READY",
+      skipMessage: report.skipMessage || "source is not ready",
+    };
+  }
+  if (!valid || status !== "ok") {
+    return {
+      kind: "failed",
+      ok: false,
+      total,
+      rawCount,
+      ...durability,
+      ...pagination,
+      ...recovery,
+      invalidCount,
+      error:
+        (valid && typeof report.error === "string" && report.error.trim()) ||
+        (status === "invalid" ? "invalid sync report" : `status=${status}`),
+    };
+  }
+  if (
+    watermarkDeferred ||
+    archiveFailureCount > 0 ||
+    checkpointCommitted === false ||
+    invalidCount > 0 ||
+    (rawCount > 0 && total === 0)
+  ) {
+    return {
+      kind: "partial",
+      ok: true,
+      total,
+      rawCount,
+      ...durability,
+      ...pagination,
+      ...recovery,
+      invalidCount,
+      watermarkDeferred,
+      error: null,
+    };
+  }
+  return {
+    kind: total === 0 ? "empty" : "success",
+    ok: true,
+    total,
+    rawCount,
+    ...durability,
+    ...pagination,
+    ...recovery,
+    invalidCount,
+    watermarkDeferred,
+    error: null,
+  };
+}
+
+function summarizeSyncReports(reports) {
+  const analyses = Array.isArray(reports)
+    ? reports.map(analyzeSyncReport)
+    : [analyzeSyncReport(null)];
+  return {
+    total: Array.isArray(reports) ? reports.length : 0,
+    success: analyses.filter((item) => item.kind === "success").length,
+    empty: analyses.filter((item) => item.kind === "empty").length,
+    partial: analyses.filter((item) => item.kind === "partial").length,
+    skipped: analyses.filter((item) => item.kind === "skipped").length,
+    failed: analyses.filter((item) => item.kind === "failed").length,
+    entities: analyses.reduce((total, item) => total + item.total, 0),
+  };
+}
+
+function formatSyncReportLine(report) {
+  const analysis = analyzeSyncReport(report);
+  const adapter = report?.adapter || "unknown";
+  return (
+    `${adapter} status=${report?.status || "invalid"} ` +
+    `raw=${analysis.rawCount} archived=${analysis.archivedRawCount} ` +
+    `archiveFailed=${analysis.archiveFailureCount} entities=${analysis.total} ` +
+    `invalid=${analysis.invalidCount} kgTriples=${syncCount(report?.kgTripleCount)} ` +
+    `ragDocs=${syncCount(report?.ragDocCount)} durationMs=${syncCount(report?.durationMs)}` +
+    (analysis.kind === "skipped"
+      ? ` skipReason=${analysis.skipReason} message=${analysis.skipMessage}`
+      : "") +
+    (analysis.watermarkDeferred ? " watermark=deferred" : "") +
+    (analysis.pageBudget !== null
+      ? ` pages=${analysis.pageBudget}` +
+        (analysis.nextPageBudget !== null ? `->${analysis.nextPageBudget}` : "")
+      : "") +
+    (analysis.scanDeferredCount > 0
+      ? ` deferredScans=${analysis.scanDeferredCount}`
+      : "") +
+    (analysis.retryCount > 0
+      ? ` attempts=${analysis.attemptCount} retries=${analysis.retryCount}` +
+        ` retryDelayMs=${analysis.totalRetryDelayMs}` +
+        (analysis.retryExhausted ? " retryExhausted=true" : "")
+      : "") +
+    (analysis.rateLimitReason
+      ? ` rateLimit=${analysis.rateLimitReason}` +
+        (analysis.retryAfterMs !== null
+          ? ` retryAfterMs=${analysis.retryAfterMs}`
+          : "") +
+        (analysis.rateLimitRemainingMinute !== null
+          ? ` remainingMinute=${analysis.rateLimitRemainingMinute}`
+          : "") +
+        (analysis.rateLimitRemainingDay !== null
+          ? ` remainingDay=${analysis.rateLimitRemainingDay}`
+          : "")
+      : "") +
+    (analysis.sourceRequestCount > 0
+      ? ` sourceRequests=${analysis.sourceRequestCount}` +
+        (analysis.sourceRequestThrottleMs > 0
+          ? ` sourceThrottleMs=${analysis.sourceRequestThrottleMs}`
+          : "")
+      : "") +
+    (analysis.checkpointCommitted === false
+      ? " checkpoint=not-committed"
+      : "") +
+    (analysis.error ? ` error=${analysis.error}` : "")
+  );
 }
 
 function fail(spinner, err, asJson) {
@@ -150,11 +377,14 @@ async function cmdRepl(options = {}) {
     fail(boot, err, false);
     return;
   }
-  boot.succeed("Hub loaded — vault open, engine warm. Type a question, or .exit to quit.");
+  boot.succeed(
+    "Hub loaded — vault open, engine warm. Type a question, or .exit to quit.",
+  );
 
   // Resolve cloud-egress consent ONCE (same precedence as cmdAsk).
   const envAllow =
-    process.env.CC_HUB_ALLOW_NON_LOCAL === "1" || process.env.CC_HUB_ALLOW_NON_LOCAL === "true";
+    process.env.CC_HUB_ALLOW_NON_LOCAL === "1" ||
+    process.env.CC_HUB_ALLOW_NON_LOCAL === "true";
   let cfgCloudHub = false;
   try {
     cfgCloudHub = isCloudHubConfigured(loadConfig());
@@ -196,8 +426,12 @@ async function cmdRepl(options = {}) {
           logger.log(chalk.gray(`\n依据: ${result.citations.join(", ")}`));
         }
         if (result.llmName) {
-          const tag = result.isLocal ? chalk.green("[local]") : chalk.yellow("[remote]");
-          logger.log(chalk.gray(`-- ${result.llmName} ${tag} · ${Date.now() - t0}ms`));
+          const tag = result.isLocal
+            ? chalk.green("[local]")
+            : chalk.yellow("[remote]");
+          logger.log(
+            chalk.gray(`-- ${result.llmName} ${tag} · ${Date.now() - t0}ms`),
+          );
         }
       }
     } catch (err) {
@@ -210,7 +444,7 @@ async function cmdRepl(options = {}) {
     if (processing) return;
     processing = true;
     while (queue.length) {
-      // eslint-disable-next-line no-await-in-loop
+       
       await answerOne(queue.shift());
     }
     processing = false;
@@ -228,7 +462,9 @@ async function cmdRepl(options = {}) {
       if (!processing) rl.prompt();
       return;
     }
-    if (["exit", "quit", ".exit", ".quit", "\\q"].includes(question.toLowerCase())) {
+    if (
+      ["exit", "quit", ".exit", ".quit", "\\q"].includes(question.toLowerCase())
+    ) {
       rl.close();
       return;
     }
@@ -519,7 +755,7 @@ async function cmdReadiness(options) {
 async function cmdSyncAdapter(name, options) {
   const spinner = options.json ? null : ora(`syncing ${name}...`).start();
   try {
-    const hub = await getHub();
+    const hub = await (options._getHub || getHub)();
     const opts = {};
     if (options.since) opts.since = Number(options.since);
     if (options.until) opts.until = Number(options.until);
@@ -540,8 +776,18 @@ async function cmdSyncAdapter(name, options) {
     // QQ NT (qq-pc): the SQLCipher passphrase from qq-win-db-key (ASCII, e.g.
     // "5{sww#,6aq=)8=A@"). Routes qq-pc through the decrypt+parse sidecar.
     if (options.passphrase) opts.passphrase = String(options.passphrase);
-    // Cookie-mode sources (weread): pass the login cookie through to the adapter.
-    if (options.cookie) opts.cookie = String(options.cookie);
+    // Cookie-mode sources: a file/env path avoids exposing the secret in shell
+    // history and process listings. The value remains transient.
+    const runtimeCookie = resolveSyncCookie(options);
+    if (runtimeCookie) opts.cookie = runtimeCookie;
+    // Constructor-optional cookie collectors use a transient account identity
+    // to isolate watermarks without persisting the cookie or account id.
+    const runtimeAccountId = options.accountId || process.env.CC_PDH_ACCOUNT_ID;
+    if (runtimeAccountId) opts.accountId = String(runtimeAccountId);
+    // Alipay bill ZIP exports may be password protected. Environment fallback
+    // keeps the password out of shell history for automated collection.
+    const zipPassword = options.zipPassword || process.env.CC_PDH_ZIP_PASSWORD;
+    if (zipPassword) opts.zipPassword = String(zipPassword);
     // L1 local files (module 101): the local-files adapter walks directories
     // given via opts.roots (comma-separated dirs → array). Without this the
     // adapter falls back to its default user-data dirs.
@@ -552,7 +798,7 @@ async function cmdSyncAdapter(name, options) {
         .filter(Boolean);
     }
     const report = await hub.registry.syncAdapter(name, opts);
-    if (spinner) spinner.succeed(`synced ${name}`);
+    const analysis = analyzeSyncReport(report);
     // 2026-05-24 in-APK Android exit + flush-race fix. Real-device repro on
     // Xiaomi 24115RA8EC:
     //
@@ -574,12 +820,32 @@ async function cmdSyncAdapter(name, options) {
     //
     // Fix: explicit drain-then-exit (jsonAndExit helper at top of file).
     if (options.json) {
-      jsonAndExit(report);
+      jsonAndExit(report, analysis.ok ? 0 : 1);
       return;
     }
-    logger.log(
-      `ingested=${report.ingested} kgTriples=${report.kgTriples} ragDocs=${report.ragDocs} durationMs=${report.durationMs}`,
-    );
+    if (!analysis.ok) {
+      if (spinner) spinner.fail(`sync ${name} failed`);
+      logger.error(chalk.red(`✗ ${formatSyncReportLine(report)}`));
+      process.exit(1);
+      return;
+    }
+    if (spinner) {
+      if (analysis.kind === "partial") {
+        spinner.warn(
+          analysis.watermarkDeferred
+            ? `synced ${name}; watermark deferred until the full page window is scanned` +
+                (analysis.nextPageBudget
+                  ? ` (next page budget: ${analysis.nextPageBudget})`
+                  : "")
+            : `synced ${name} with invalid data`,
+        );
+      } else if (analysis.kind === "empty") {
+        spinner.succeed(`synced ${name} (no new data)`);
+      } else {
+        spinner.succeed(`synced ${name}`);
+      }
+    }
+    logger.log(formatSyncReportLine(report));
     process.exit(0);
   } catch (err) {
     fail(spinner, err, options.json);
@@ -589,22 +855,47 @@ async function cmdSyncAdapter(name, options) {
 async function cmdSyncAll(options) {
   const spinner = options.json ? null : ora("syncing all...").start();
   try {
-    const hub = await getHub();
-    const opts = {};
+    const hub = await (options._getHub || getHub)();
+    const opts = { readyOnly: options.includeUnready !== true };
     if (options.since) opts.since = Number(options.since);
     if (options.until) opts.until = Number(options.until);
     if (options.limit) opts.limit = Number(options.limit);
-    const reports = await hub.registry.syncAll(opts);
-    if (spinner) spinner.succeed(`synced ${reports.length} adapters`);
+    const registryReports = await hub.registry.syncAll(opts);
+    const reports = await runDedicatedBatchCollectors(hub, registryReports);
+    const summary = summarizeSyncReports(reports);
+    if (spinner) {
+      if (summary.failed > 0 || summary.partial > 0) {
+        spinner.warn(
+          `sync completed: ${summary.success} success, ${summary.empty} empty, ` +
+            `${summary.partial} partial, ${summary.skipped} skipped, ` +
+            `${summary.failed} failed`,
+        );
+      } else if (summary.skipped > 0) {
+        spinner.info(
+          `sync completed: ${summary.success} success, ${summary.empty} empty, ` +
+            `${summary.skipped} skipped (${summary.entities} entities)`,
+        );
+      } else {
+        spinner.succeed(
+          `synced ${summary.total} adapters (${summary.entities} entities)`,
+        );
+      }
+    }
     if (options.json) {
       printJson(reports);
     } else {
       for (const r of reports) {
+        const line = formatSyncReportLine(r);
         logger.log(
-          `${chalk.cyan(r.adapter)}  ingested=${r.ingested} dur=${r.durationMs}ms`,
+          analyzeSyncReport(r).kind === "failed"
+            ? chalk.red(line)
+            : analyzeSyncReport(r).kind === "skipped"
+              ? chalk.gray(line)
+              : chalk.cyan(line),
         );
       }
     }
+    if (summary.failed > 0) process.exitCode = 1;
   } catch (err) {
     fail(spinner, err, options.json);
   }
@@ -1529,39 +1820,105 @@ async function cmdCollectWechat(options) {
 // p_skey cookie; this derives g_tk and pulls the owner's feeds. The cookie is
 // passed via --cookie or --cookie-file (kept out of argv/history when staged).
 async function cmdCollectQzone(options) {
-  const spinner = options.json ? null : ora("collect-qzone (API + ingest)...").start();
+  const spinner = options.json
+    ? null
+    : ora("collect-qzone (API + ingest)...").start();
   try {
     const { createRequire } = await import("module");
     const require = createRequire(import.meta.url);
     const fs = require("fs");
     const qz = options._qzoneCore
       ? options._qzoneCore
-      : await importPdh("@chainlesschain/personal-data-hub/forensics/qzone-collect");
+      : await importPdh(
+          "@chainlesschain/personal-data-hub/forensics/qzone-collect",
+        );
     let cookie = options.cookie;
     if (!cookie && options.cookieFile && fs.existsSync(options.cookieFile))
       cookie = fs.readFileSync(options.cookieFile, "utf8").trim();
-    if (!cookie) throw new Error("need --cookie \"<qzone cookie>\" or --cookie-file <path> (must contain uin + p_skey)");
-    const what = (options.what || "shuoshuo,msgb,album").split(",").map((s) => s.trim()).filter(Boolean);
+    if (!cookie)
+      throw new Error(
+        'need --cookie "<qzone cookie>" or --cookie-file <path> (must contain uin + p_skey)',
+      );
+    const what = (options.what || "shuoshuo,msgb,album")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
     const max = Number.isFinite(+options.max) ? +options.max : 1000;
 
-    const result = await qz.collectQzone({ uin: options.uin, cookie, what, max, fetchImpl: options._fetch });
+    const result = await qz.collectQzone({
+      uin: options.uin,
+      cookie,
+      what,
+      max,
+      fetchImpl: options._fetch,
+    });
     if (!result.ok) {
       const report = { ok: false, reason: result.reason };
-      if (options.json) { jsonAndExit(report); return; }
+      if (options.json) {
+        jsonAndExit(report);
+        return;
+      }
       if (spinner) spinner.fail(`collect-qzone: ${result.reason}`);
       process.exit(2);
     }
 
     const hub = await (options._getHub || getHub)();
     const vault = hub.vault;
-    try { vault.putPerson({ type: "person", subtype: "contact", id: qz.SELF_ID, names: ["我(QQ空间)"], source: { adapter: "qzone", adapterVersion: "0.1.0", originalId: qz.SELF_ID, capturedAt: Date.now(), capturedBy: "api" }, ingestedAt: Date.now() }); } catch { /* dup */ }
-    for (const p of result.persons) { try { vault.putPerson(p); } catch { /* dup */ } }
+    try {
+      vault.putPerson({
+        type: "person",
+        subtype: "contact",
+        id: qz.SELF_ID,
+        names: ["我(QQ空间)"],
+        source: {
+          adapter: "qzone",
+          adapterVersion: "0.1.0",
+          originalId: qz.SELF_ID,
+          capturedAt: Date.now(),
+          capturedBy: "api",
+        },
+        ingestedAt: Date.now(),
+      });
+    } catch {
+      /* dup */
+    }
+    for (const p of result.persons) {
+      try {
+        vault.putPerson(p);
+      } catch {
+        /* dup */
+      }
+    }
     let ingested = 0;
-    for (const ev of result.events) { try { vault.putEvent(ev); ingested++; } catch { /* dup */ } }
+    for (const ev of result.events) {
+      try {
+        vault.putEvent(ev);
+        ingested++;
+      } catch {
+        /* dup */
+      }
+    }
 
-    const report = { ok: true, uin: result.uin, counts: result.counts, events: result.events.length, persons: result.persons.length, ingested };
-    if (spinner) spinner.succeed(`collect-qzone: ${ingested} events → vault (${Object.entries(result.counts).map(([k, v]) => k + ":" + v).join(" ")})`);
-    if (options.json) { jsonAndExit(report); return; }
+    const report = {
+      ok: true,
+      uin: result.uin,
+      counts: result.counts,
+      events: result.events.length,
+      persons: result.persons.length,
+      ingested,
+    };
+    if (spinner)
+      spinner.succeed(
+        `collect-qzone: ${ingested} events → vault (${Object.entries(
+          result.counts,
+        )
+          .map(([k, v]) => k + ":" + v)
+          .join(" ")})`,
+      );
+    if (options.json) {
+      jsonAndExit(report);
+      return;
+    }
     logger.log(chalk.green("✓ Qzone collect succeeded"));
     logger.log(`  counts:    ${JSON.stringify(result.counts)}`);
     logger.log(`  ingested:  ${ingested}`);
@@ -1860,10 +2217,40 @@ async function cmdWechatList(options) {
     }
     logger.log(chalk.bold("Registered WeChat accounts:"));
     for (const row of rows) {
+      const active = row.active ? chalk.green(" [active]") : "";
       logger.log(
-        `  • uin=${chalk.cyan(row.uin)} provider=${row.chosenKeyProvider || "?"} db=${row.dbPath || "(none)"} regAt=${row.registeredAt ? new Date(row.registeredAt).toISOString() : "?"}`,
+        `  • uin=${chalk.cyan(row.uin)}${active} provider=${row.chosenKeyProvider || "?"} db=${row.dbPath || "(none)"} regAt=${row.registeredAt ? new Date(row.registeredAt).toISOString() : "?"}`,
       );
     }
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
+async function cmdWechatActivate(uin, options) {
+  try {
+    if (!uin) throw new Error("uin argument required");
+    const hub = await (options._getHub || getHub)();
+    const r = await hub.activateWechatAdapter(uin, {
+      keyProviderOverride: options.forceProvider || null,
+      fridaOpts: options.fridaDeviceId
+        ? { deviceId: options.fridaDeviceId }
+        : null,
+    });
+    if (options.json) {
+      printJson(r);
+      return;
+    }
+    if (!r.ok) {
+      logger.error(
+        chalk.red(
+          `activate failed: ${r.reason || "unknown"} ${r.message || ""}`,
+        ),
+      );
+      process.exit(1);
+    }
+    logger.log(chalk.green(`WeChat account activated (uin=${uin})`));
+    logger.log(`  provider: ${chalk.cyan(r.chosenKeyProvider || "?")}`);
   } catch (err) {
     fail(null, err, options.json);
   }
@@ -2935,7 +3322,10 @@ export function registerHubCommand(program) {
       "Allow non-local LLM (sends data off device — required when provider is not Ollama/vLLM)",
     )
     .option("--max-facts <n>", "Cap facts in prompt (default 80)")
-    .option("--max-query-limit <n>", "Cap vault queryEvents limit (default 200)")
+    .option(
+      "--max-query-limit <n>",
+      "Cap vault queryEvents limit (default 200)",
+    )
     .addHelpText(
       "after",
       "\nSame per-question semantics + cloud-egress gate as `cc hub ask`, but the\n" +
@@ -3039,7 +3429,19 @@ export function registerHubCommand(program) {
     )
     .option(
       "--cookie <cookie>",
-      "Login cookie for cookie-mode sources (e.g. weread)",
+      "Login cookie for supported shopping, travel, and social collectors",
+    )
+    .option(
+      "--cookie-file <path>",
+      "Read the login cookie from a local file (preferred over putting it in shell history)",
+    )
+    .option(
+      "--account-id <id>",
+      "Platform account identity (for example a Zhihu url_token; stored only as a hashed scope)",
+    )
+    .option(
+      "--zip-password <password>",
+      "Password for an Alipay bill ZIP (or set CC_PDH_ZIP_PASSWORD to keep it out of shell history)",
     )
     .option("--json", "Output JSON")
     .action(cmdSyncAdapter);
@@ -3050,6 +3452,10 @@ export function registerHubCommand(program) {
     .option("--since <ms>", "Override watermark for all")
     .option("--until <ms>", "Stop at this unix-ms")
     .option("--limit <n>", "Cap each adapter")
+    .option(
+      "--include-unready",
+      "Force every registered adapter to run instead of skipping sources that need setup",
+    )
     .option("--json", "Output JSON")
     .action(cmdSyncAll);
 
@@ -3415,10 +3821,20 @@ export function registerHubCommand(program) {
     .description(
       "QQ空间 (Qzone): collect 说说/留言板/相册 via the Qzone CGI API. No local DB — needs the qzone-domain p_skey cookie (from the in-app WebView or a browser login to user.qzone.qq.com; base .qq.com skey is rejected). Derives g_tk from p_skey and ingests as post/message/media events.",
     )
-    .option("--cookie <cookie>", "Qzone cookie string (must contain uin + p_skey)")
-    .option("--cookie-file <path>", "File holding the cookie (preferred — keeps it out of argv)")
+    .option(
+      "--cookie <cookie>",
+      "Qzone cookie string (must contain uin + p_skey)",
+    )
+    .option(
+      "--cookie-file <path>",
+      "File holding the cookie (preferred — keeps it out of argv)",
+    )
     .option("--uin <uin>", "Account uin (else parsed from cookie)")
-    .option("--what <list>", "Comma list: shuoshuo,msgb,album (default all)", "shuoshuo,msgb,album")
+    .option(
+      "--what <list>",
+      "Comma list: shuoshuo,msgb,album (default all)",
+      "shuoshuo,msgb,album",
+    )
     .option("--max <n>", "Max items per source", "1000")
     .option("--json", "Output JSON")
     .action(cmdCollectQzone);
@@ -3544,6 +3960,17 @@ export function registerHubCommand(program) {
     .action(cmdWechatList);
 
   wechat
+    .command("activate <uin>")
+    .description("Activate a saved WeChat account without registering it again")
+    .option("--force-provider <md5|frida>", "Override the saved key provider")
+    .option(
+      "--frida-device-id <id>",
+      "Frida device id (defaults to first USB device)",
+    )
+    .option("--json", "Output JSON")
+    .action(cmdWechatActivate);
+
+  wechat
     .command("unregister <uin>")
     .description(
       "Remove a registered WeChat account (does not touch vault data)",
@@ -3574,6 +4001,13 @@ export const _internal = {
   cmdQueryEvents,
   cmdEventDetail,
   parsePositiveInt,
+  syncEntityTotal,
+  analyzeSyncReport,
+  summarizeSyncReports,
+  formatSyncReportLine,
+  resolveSyncCookie,
+  cmdSyncAdapter,
+  cmdSyncAll,
   cmdAIChatList,
   cmdAIChatLogin,
   cmdAIChatProbe,
@@ -3583,6 +4017,7 @@ export const _internal = {
   cmdWechatEnvProbe,
   cmdWechatRegister,
   cmdWechatList,
+  cmdWechatActivate,
   cmdWechatUnregister,
   cmdWechatDoctor,
   cmdBilibiliAdbSync,

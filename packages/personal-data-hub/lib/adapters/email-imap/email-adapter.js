@@ -22,6 +22,7 @@ const {
   CAPTURED_BY,
 } = require("../../constants");
 const { newId } = require("../../ids");
+const { createAccountScope } = require("../../account-scope");
 const { resolveProvider } = require("./providers");
 const {
   ImapSession,
@@ -35,8 +36,11 @@ const { extractPdfText, passwordsFromHints } = require("./pdf-extractor");
 const { extractTransactions } = require("./transactions");
 
 const NAME = "email-imap";
-const VERSION = "0.7.0"; // Phase 5.8 — snapshot mode for Android in-APK IMAP fetch
+// v0.8.0: healthCheck now validates sync-time snapshot input instead of
+// discarding it, allowing Registry.syncAdapter(..., { inputPath }) to proceed.
+const VERSION = "0.8.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
+const MAILBOX_WATERMARK_PREFIX = "imap-v2:";
 
 class EmailAdapter {
   constructor(opts) {
@@ -61,8 +65,13 @@ class EmailAdapter {
       if (typeof account.email !== "string" || !account.email.includes("@")) {
         throw new Error("EmailAdapter: account.email must be a full address");
       }
-      if (typeof account.authCode !== "string" || account.authCode.length === 0) {
-        throw new Error("EmailAdapter: account.authCode required (provider authorization code)");
+      if (
+        typeof account.authCode !== "string" ||
+        account.authCode.length === 0
+      ) {
+        throw new Error(
+          "EmailAdapter: account.authCode required (provider authorization code)",
+        );
       }
       this.account = account;
       this._provider = resolveProvider(account);
@@ -70,23 +79,29 @@ class EmailAdapter {
       // Snapshot-mode stub: account fields used by _envelopeToRawEvent/
       // normalize fall back to "(snapshot)" placeholders. Real per-record
       // vendor + user surface in the snapshot envelope payload instead.
-      this.account = opts.account || { email: "(snapshot)", authCode: "(snapshot)" };
+      this.account = opts.account || {
+        email: "(snapshot)",
+        authCode: "(snapshot)",
+      };
       this._provider = null;
     }
 
-    this._sessionFactory = typeof opts.sessionFactory === "function"
-      ? opts.sessionFactory
-      : (cfg) => new ImapSession(cfg);
+    this._sessionFactory =
+      typeof opts.sessionFactory === "function"
+        ? opts.sessionFactory
+        : (cfg) => new ImapSession(cfg);
 
     // Phase 5.2: opt-out hook for tests that don't want to depend on
     // mailparser. parser must be `async (rawBuffer) => ParsedEmail`.
-    this._parser = typeof opts.parser === "function" ? opts.parser : parseRawEmail;
+    this._parser =
+      typeof opts.parser === "function" ? opts.parser : parseRawEmail;
     // Soft cap on bodies stored in vault content.text — long newsletter
     // HTML can be megabytes; trimming keeps `events` row + KG triple
     // + RAG embed budgets sane.
-    this._maxBodyChars = Number.isFinite(opts.maxBodyChars) && opts.maxBodyChars > 0
-      ? opts.maxBodyChars
-      : 8000;
+    this._maxBodyChars =
+      Number.isFinite(opts.maxBodyChars) && opts.maxBodyChars > 0
+        ? opts.maxBodyChars
+        : 8000;
 
     // Phase 5.3: classifier configuration.
     // - opts.llm: optional LLMClient for Layer 2 + Phase-5.4 `other`-template
@@ -94,8 +109,10 @@ class EmailAdapter {
     // - opts.classifier: custom orchestrator (override for tests).
     // - opts.minLayer1Confidence: short-circuit threshold (default 0.85).
     // - opts.disableClassification: skip both layers entirely.
-    this._llm = opts.llm && typeof opts.llm.chat === "function" ? opts.llm : null;
-    this._classifier = typeof opts.classifier === "function" ? opts.classifier : classifyEmail;
+    this._llm =
+      opts.llm && typeof opts.llm.chat === "function" ? opts.llm : null;
+    this._classifier =
+      typeof opts.classifier === "function" ? opts.classifier : classifyEmail;
     this._minLayer1Confidence = Number.isFinite(opts.minLayer1Confidence)
       ? opts.minLayer1Confidence
       : 0.85;
@@ -105,20 +122,27 @@ class EmailAdapter {
     // - opts.extractor: custom dispatcher (test seam).
     // - opts.disableExtraction: skip the per-email field-extraction call
     //   (e.g. when the registry only needs envelope+classification).
-    this._extractor = typeof opts.extractor === "function" ? opts.extractor : extractFields;
+    this._extractor =
+      typeof opts.extractor === "function" ? opts.extractor : extractFields;
     this._disableExtraction = !!opts.disableExtraction;
 
     // Phase 5.5: PDF attachment decryption + transactions extraction.
     // See pdf-extractor.js + transactions.js. Test seam: opts.pdfExtractor.
-    this._pdfExtractor = typeof opts.pdfExtractor === "function" ? opts.pdfExtractor : extractPdfText;
-    this._transactionsExtractor = typeof opts.transactionsExtractor === "function"
-      ? opts.transactionsExtractor
-      : extractTransactions;
+    this._pdfExtractor =
+      typeof opts.pdfExtractor === "function"
+        ? opts.pdfExtractor
+        : extractPdfText;
+    this._transactionsExtractor =
+      typeof opts.transactionsExtractor === "function"
+        ? opts.transactionsExtractor
+        : extractTransactions;
     const hintsList = passwordsFromHints(opts.pdfPasswordHints || {});
     const userList = Array.isArray(opts.pdfPasswords)
       ? opts.pdfPasswords.filter((p) => typeof p === "string")
       : [];
-    this._pdfPasswords = [...userList, ...hintsList].filter((v, i, arr) => arr.indexOf(v) === i);
+    this._pdfPasswords = [...userList, ...hintsList].filter(
+      (v, i, arr) => arr.indexOf(v) === i,
+    );
     this._disablePdfExtraction = !!opts.disablePdfExtraction;
 
     // Phase 5.7: connection retry + progress streaming.
@@ -138,15 +162,28 @@ class EmailAdapter {
     //     "decrypting-pdf" {filename}
     //     "done"         {emitted, durationMs}
     //     "error"        {phase, message, retriable?}
-    this._maxConnectRetries = Number.isFinite(opts.maxConnectRetries) && opts.maxConnectRetries > 0
-      ? opts.maxConnectRetries
-      : 3;
-    this._retryBaseDelayMs = Number.isFinite(opts.retryBaseDelayMs) && opts.retryBaseDelayMs > 0
-      ? opts.retryBaseDelayMs
-      : 200;
-    this._onProgress = typeof opts.onProgress === "function" ? opts.onProgress : null;
+    this._maxConnectRetries =
+      Number.isFinite(opts.maxConnectRetries) && opts.maxConnectRetries > 0
+        ? opts.maxConnectRetries
+        : 3;
+    this._retryBaseDelayMs =
+      Number.isFinite(opts.retryBaseDelayMs) && opts.retryBaseDelayMs > 0
+        ? opts.retryBaseDelayMs
+        : 200;
+    this._onProgress =
+      typeof opts.onProgress === "function" ? opts.onProgress : null;
 
     this.name = NAME;
+    this.watermarkStrategy = "explicit";
+    // Android EmailLocalCollector writes the address as top-level `user`
+    // rather than `account.email`. Use raw-value hashing to match the direct
+    // IMAP adapter's createAccountScope(NAME, email) convention.
+    this.snapshotScopeIdentityFields = ["email"];
+    this.snapshotScopeTopLevelFields = ["user"];
+    this.snapshotScopeIdentityIncludesField = false;
+    if (!this._snapshotMode) {
+      this.defaultScope = createAccountScope(NAME, this.account.email);
+    }
     this.version = VERSION;
     this.capabilities = [
       ...(this._snapshotMode ? ["sync:snapshot"] : ["sync:imap"]),
@@ -157,7 +194,9 @@ class EmailAdapter {
       ...(this._llm ? ["classify:layer2-llm"] : []),
       "extract:6-templates",
       ...(this._disablePdfExtraction ? [] : ["decrypt:pdf-bills"]),
-      ...(this._snapshotMode ? [] : ["sync:retry-backoff", "sync:progress-stream"]),
+      ...(this._snapshotMode
+        ? []
+        : ["sync:retry-backoff", "sync:progress-stream"]),
     ];
     this.rateLimits = { perMinute: 60 };
     this.dataDisclosure = {
@@ -198,8 +237,15 @@ class EmailAdapter {
     // Phase 5.8 — snapshot mode authenticate: validate ctx.inputPath is
     // readable; no IMAP login. Snapshot mode WITHOUT inputPath in ctx
     // returns NO_INPUT (parallel to travel-12306 / travel-baidu-map shape).
-    if (this._snapshotMode || (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0)) {
-      if (!ctx || typeof ctx.inputPath !== "string" || ctx.inputPath.length === 0) {
+    if (
+      this._snapshotMode ||
+      (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0)
+    ) {
+      if (
+        !ctx ||
+        typeof ctx.inputPath !== "string" ||
+        ctx.inputPath.length === 0
+      ) {
         return {
           ok: false,
           reason: "NO_INPUT",
@@ -221,7 +267,11 @@ class EmailAdapter {
     const session = this._sessionFactory(this._sessionConfig());
     try {
       await session.connect();
-      return { ok: true, account: this.account.email, provider: this._provider.providerId };
+      return {
+        ok: true,
+        account: this.account.email,
+        provider: this._provider.providerId,
+      };
     } catch (err) {
       if (err instanceof ImapAuthFailedError) {
         return { ok: false, reason: "AUTH_FAILED", error: err.message };
@@ -229,14 +279,20 @@ class EmailAdapter {
       if (err instanceof ImapConnectionFailedError) {
         return { ok: false, reason: "CONNECTION_FAILED", error: err.message };
       }
-      return { ok: false, reason: "UNKNOWN", error: err && err.message ? err.message : String(err) };
+      return {
+        ok: false,
+        reason: "UNKNOWN",
+        error: err && err.message ? err.message : String(err),
+      };
     } finally {
-      try { await session.close(); } catch (_e) {}
+      try {
+        await session.close();
+      } catch (_e) {}
     }
   }
 
-  async healthCheck() {
-    const r = await this.authenticate();
+  async healthCheck(opts = {}) {
+    const r = await this.authenticate(opts);
     if (r.ok) return { ok: true, lastChecked: Date.now() };
     return { ok: false, reason: r.reason || "unknown", error: r.error };
   }
@@ -247,25 +303,32 @@ class EmailAdapter {
     // Classification + extraction reused on envelope-only data (bodyPreview
     // is the only text we get; PDF decryption skipped since attachment
     // buffers never crossed the Android → desktop boundary).
-    if (this._snapshotMode || (typeof opts.inputPath === "string" && opts.inputPath.length > 0)) {
+    if (
+      this._snapshotMode ||
+      (typeof opts.inputPath === "string" && opts.inputPath.length > 0)
+    ) {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    const folders = Array.isArray(opts.folders) && opts.folders.length > 0
-      ? opts.folders
-      : this._provider.folders;
-    const maxPerFolder = Number.isFinite(opts.maxPerFolder) && opts.maxPerFolder > 0
-      ? opts.maxPerFolder
-      : 5000;
-    const watermark = typeof opts.sinceWatermark === "string" ? opts.sinceWatermark : "";
-    const { uidValidity: prevUv, lastUid: prevLastUid } = parseWatermark(watermark);
+    const folders =
+      Array.isArray(opts.folders) && opts.folders.length > 0
+        ? opts.folders
+        : this._provider.folders;
+    const maxPerFolder =
+      Number.isFinite(opts.maxPerFolder) && opts.maxPerFolder > 0
+        ? opts.maxPerFolder
+        : 5000;
+    const watermark =
+      opts.sinceWatermark == null ? "" : String(opts.sinceWatermark);
+    const watermarkState = parseMailboxWatermarks(watermark);
 
     // Phase 5.7: per-sync progress hook is the union of constructor + opts.
     // Callers (registry / tests) can pass a fresh callback per sync without
     // mutating the adapter instance.
-    const syncOnProgress = typeof opts.onProgress === "function"
-      ? opts.onProgress
-      : this._onProgress;
+    const syncOnProgress =
+      typeof opts.onProgress === "function"
+        ? opts.onProgress
+        : this._onProgress;
     const emitProgress = (phase, payload = {}) => {
       if (!syncOnProgress) return;
       try {
@@ -289,10 +352,25 @@ class EmailAdapter {
           exists: mb.exists,
           uidValidity: mb.uidValidity,
         });
-        const uvChanged = prevUv !== null && String(prevUv) !== String(mb.uidValidity);
-        const since = uvChanged ? 0 : prevLastUid;
+        const hasMailboxCursor = Object.prototype.hasOwnProperty.call(
+          watermarkState.mailboxes,
+          folder,
+        );
+        // A v1 cursor carried no folder identity. Reusing it for multiple
+        // folders can skip lower UIDs in another mailbox, so migrate that
+        // ambiguous case through a safe full re-scan (vault IDs dedupe it).
+        const previous = hasMailboxCursor
+          ? watermarkState.mailboxes[folder]
+          : folders.length === 1
+            ? watermarkState.legacy
+            : { uidValidity: null, lastUid: 0 };
+        const uvChanged =
+          previous.uidValidity !== null &&
+          String(previous.uidValidity) !== String(mb.uidValidity);
+        const since = uvChanged ? 0 : previous.lastUid;
 
         let emitted = 0;
+        let lastUid = since;
         for await (const env of session.fetchFullSince(since)) {
           emitProgress("fetching", {
             mailbox: folder,
@@ -320,7 +398,10 @@ class EmailAdapter {
             // Layer 1 classifier rules can still fire on envelope-only
             // facts; we just lose body text + attachments for this email.
             parsedBody = {
-              parseError: parseErr && parseErr.message ? parseErr.message : String(parseErr),
+              parseError:
+                parseErr && parseErr.message
+                  ? parseErr.message
+                  : String(parseErr),
             };
           }
 
@@ -336,7 +417,7 @@ class EmailAdapter {
                 {
                   llm: this._llm,
                   minLayer1Confidence: this._minLayer1Confidence,
-                }
+                },
               );
             } catch (err) {
               classification = {
@@ -357,14 +438,16 @@ class EmailAdapter {
               extraction = await this._extractor(
                 this._classifierInput(env, parsedBody),
                 classification || { category: CATEGORIES.OTHER },
-                { llm: this._llm }
+                { llm: this._llm },
               );
             } catch (err) {
               extraction = {
                 template: "other",
                 fields: {},
                 confidence: 0,
-                warnings: [`extractor threw: ${err && err.message ? err.message : err}`],
+                warnings: [
+                  `extractor threw: ${err && err.message ? err.message : err}`,
+                ],
               };
             }
           }
@@ -374,25 +457,48 @@ class EmailAdapter {
           // has at least one PDF attachment whose buffer is available.
           // Errors captured per-attachment, never thrown.
           if (
-            !this._disablePdfExtraction
-            && extraction
-            && (extraction.template === "bill" || extraction.template === "travel")
-            && parsedBody
-            && Array.isArray(parsedBody.attachments)
-            && parsedBody.attachments.some((a) => isPdfAttachment(a))
+            !this._disablePdfExtraction &&
+            extraction &&
+            (extraction.template === "bill" ||
+              extraction.template === "travel") &&
+            parsedBody &&
+            Array.isArray(parsedBody.attachments) &&
+            parsedBody.attachments.some((a) => isPdfAttachment(a))
           ) {
             await this._runPdfExtraction(parsedBody, extraction);
           }
 
-          yield this._envelopeToRawEvent(env, folder, parsedBody, classification, extraction);
+          yield this._envelopeToRawEvent(
+            env,
+            folder,
+            parsedBody,
+            classification,
+            extraction,
+          );
           emitted += 1;
           totalEmitted += 1;
+          const uid = Number(env.uid);
+          if (Number.isFinite(uid) && uid > lastUid) lastUid = uid;
           if (emitted >= maxPerFolder) break;
         }
+        setMailboxCursor(watermarkState.mailboxes, folder, {
+          uidValidity: mb.uidValidity == null ? null : String(mb.uidValidity),
+          lastUid,
+        });
+        if (typeof opts.updateWatermark === "function") {
+          opts.updateWatermark(
+            formatMailboxWatermarks(watermarkState.mailboxes),
+          );
+        }
       }
-      emitProgress("done", { emitted: totalEmitted, durationMs: Date.now() - syncStart });
+      emitProgress("done", {
+        emitted: totalEmitted,
+        durationMs: Date.now() - syncStart,
+      });
     } finally {
-      try { await session.close(); } catch (_e) {}
+      try {
+        await session.close();
+      } catch (_e) {}
     }
   }
 
@@ -436,27 +542,41 @@ class EmailAdapter {
         "email-imap.sync (snapshot): expected {records: [...]} shape (Android EmailLocalCollector writes this)",
       );
     }
-    const vendor = typeof snapshot.vendor === "string" ? snapshot.vendor : "unknown";
-    const user = typeof snapshot.user === "string" ? snapshot.user : "unknown@snapshot";
+    const vendor =
+      typeof snapshot.vendor === "string" ? snapshot.vendor : "unknown";
+    const user =
+      typeof snapshot.user === "string" ? snapshot.user : "unknown@snapshot";
     const fallbackCapturedAt =
       Number.isFinite(snapshot.fetchedAt) && snapshot.fetchedAt > 0
         ? Math.floor(snapshot.fetchedAt)
         : Date.now();
 
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     let emitted = 0;
 
     for (const r of snapshot.records) {
       if (emitted >= limit) return;
       if (!r || typeof r !== "object") continue;
-      const env = this._androidRecordToEnvelope(r, vendor, user, fallbackCapturedAt);
+      const env = this._androidRecordToEnvelope(
+        r,
+        vendor,
+        user,
+        fallbackCapturedAt,
+      );
       // bodyPreview is the only text we have — wrap as a thin parsedBody so
       // the classifier sees the same shape it does for IMAP-fetched mail.
       const parsedBody = {
         textBody: typeof r.bodyPreview === "string" ? r.bodyPreview : "",
         htmlBody: "",
         attachments: r.hasAttachments
-          ? [{ filename: "(unknown)", contentType: "application/octet-stream", size: 0 }]
+          ? [
+              {
+                filename: "(unknown)",
+                contentType: "application/octet-stream",
+                size: 0,
+              },
+            ]
           : [],
         headers: {},
       };
@@ -490,7 +610,9 @@ class EmailAdapter {
           extraction = {
             template: null,
             fields: null,
-            warnings: [`extractor threw: ${err && err.message ? err.message : err}`],
+            warnings: [
+              `extractor threw: ${err && err.message ? err.message : err}`,
+            ],
           };
         }
       }
@@ -498,7 +620,13 @@ class EmailAdapter {
       // PDF extraction intentionally skipped — attachment buffers never crossed
       // the Android → desktop boundary. Bill-template extractions on snapshot
       // records get extraction.fields but no transactions list.
-      yield this._envelopeToRawEvent(env, "INBOX", parsedBody, classification, extraction);
+      yield this._envelopeToRawEvent(
+        env,
+        "INBOX",
+        parsedBody,
+        classification,
+        extraction,
+      );
       emitted += 1;
     }
   }
@@ -510,21 +638,29 @@ class EmailAdapter {
    * `to` strings split on comma.
    */
   _androidRecordToEnvelope(r, vendor, user, fallbackCapturedAt) {
-    const messageNumber = Number.isInteger(r.messageNumber) ? r.messageNumber : 0;
-    const sentDate = Number.isFinite(r.sentDateMs) && r.sentDateMs > 0
-      ? new Date(r.sentDateMs)
-      : new Date(fallbackCapturedAt);
+    const messageNumber = Number.isInteger(r.messageNumber)
+      ? r.messageNumber
+      : 0;
+    const sentDate =
+      Number.isFinite(r.sentDateMs) && r.sentDateMs > 0
+        ? new Date(r.sentDateMs)
+        : new Date(fallbackCapturedAt);
     return {
       uid: messageNumber,
       messageId: `android-snapshot:${vendor}:${user}:${messageNumber}`,
       folder: "INBOX",
       subject: typeof r.subject === "string" ? r.subject : "(no subject)",
-      from: typeof r.from === "string" && r.from.length > 0
-        ? [parseSnapshotAddress(r.from)]
-        : [],
-      to: typeof r.to === "string" && r.to.length > 0
-        ? r.to.split(",").map((s) => parseSnapshotAddress(s.trim())).filter(Boolean)
-        : [],
+      from:
+        typeof r.from === "string" && r.from.length > 0
+          ? [parseSnapshotAddress(r.from)]
+          : [],
+      to:
+        typeof r.to === "string" && r.to.length > 0
+          ? r.to
+              .split(",")
+              .map((s) => parseSnapshotAddress(s.trim()))
+              .filter(Boolean)
+          : [],
       cc: [],
       flags: [],
       size: 0,
@@ -577,10 +713,11 @@ class EmailAdapter {
     }
     const env = raw.payload;
     const ingestedAt = Date.now();
-    const occurredAt = (env.internalDate instanceof Date ? env.internalDate.getTime() : 0)
-      || (env.date instanceof Date ? env.date.getTime() : 0)
-      || raw.capturedAt
-      || ingestedAt;
+    const occurredAt =
+      (env.internalDate instanceof Date ? env.internalDate.getTime() : 0) ||
+      (env.date instanceof Date ? env.date.getTime() : 0) ||
+      raw.capturedAt ||
+      ingestedAt;
 
     const persons = [];
     let actorId = "person-self";
@@ -610,9 +747,17 @@ class EmailAdapter {
     // failed or the email was envelope-only fetched.
     const parsedBody = env.parsedBody || null;
     let contentText;
-    if (parsedBody && typeof parsedBody.textBody === "string" && parsedBody.textBody.length > 0) {
+    if (
+      parsedBody &&
+      typeof parsedBody.textBody === "string" &&
+      parsedBody.textBody.length > 0
+    ) {
       contentText = trim(parsedBody.textBody, this._maxBodyChars);
-    } else if (parsedBody && typeof parsedBody.htmlBody === "string" && parsedBody.htmlBody.length > 0) {
+    } else if (
+      parsedBody &&
+      typeof parsedBody.htmlBody === "string" &&
+      parsedBody.htmlBody.length > 0
+    ) {
       // For HTML-only newsletters where the text/plain part is empty,
       // keep a crude strip — analysis prompts handle HTML fine, but
       // BM25 tokenization works better on stripped text.
@@ -679,8 +824,12 @@ class EmailAdapter {
                 category: env.classification.category,
                 confidence: env.classification.confidence,
                 layer: env.classification.layer,
-                ...(env.classification.ruleName ? { ruleName: env.classification.ruleName } : {}),
-                ...(env.classification.reason ? { reason: env.classification.reason } : {}),
+                ...(env.classification.ruleName
+                  ? { ruleName: env.classification.ruleName }
+                  : {}),
+                ...(env.classification.reason
+                  ? { reason: env.classification.reason }
+                  : {}),
               },
             }
           : {}),
@@ -711,10 +860,12 @@ class EmailAdapter {
     // an "expired" OTP is sensitive evidence of session activity.
     // Adapter_Email_IMAP.md §9.2 mandates "verificationCodePresent =
     // store metadata only".
-    if (env.extraction
-        && env.extraction.template === "register"
-        && env.extraction.fields
-        && env.extraction.fields.verificationCodePresent) {
+    if (
+      env.extraction &&
+      env.extraction.template === "register" &&
+      env.extraction.fields &&
+      env.extraction.fields.verificationCodePresent
+    ) {
       event.content.text = "(redacted: verification code email)";
     }
 
@@ -732,12 +883,14 @@ class EmailAdapter {
   }
 
   _envelopeToRawEvent(env, folder, parsedBody, classification, extraction) {
-    const originalId = env.messageId && env.messageId.length > 0
-      ? env.messageId
-      : `mid-fallback:${this.account.email}:${folder}:${env.uid}`;
-    const capturedAt = env.internalDate instanceof Date && env.internalDate.getTime() > 0
-      ? env.internalDate.getTime()
-      : Date.now();
+    const originalId =
+      env.messageId && env.messageId.length > 0
+        ? env.messageId
+        : `mid-fallback:${this.account.email}:${folder}:${env.uid}`;
+    const capturedAt =
+      env.internalDate instanceof Date && env.internalDate.getTime() > 0
+        ? env.internalDate.getTime()
+        : Date.now();
     // Strip the raw `source` Buffer from payload — keeping it would
     // bloat the vault's raw_events archive 100x (raw is in worst case
     // hundreds of KB per email; the parsed body alone is enough for
@@ -788,7 +941,9 @@ class EmailAdapter {
         continue;
       }
       try {
-        const r = await this._pdfExtractor(a.buffer, { passwords: this._pdfPasswords });
+        const r = await this._pdfExtractor(a.buffer, {
+          passwords: this._pdfPasswords,
+        });
         const summary = {
           filename: a.filename,
           decrypted: r.decrypted,
@@ -832,7 +987,10 @@ class EmailAdapter {
     return {
       from: env.from,
       subject: env.subject,
-      attachments: parsedBody && Array.isArray(parsedBody.attachments) ? parsedBody.attachments : [],
+      attachments:
+        parsedBody && Array.isArray(parsedBody.attachments)
+          ? parsedBody.attachments
+          : [],
       textBody: (parsedBody && parsedBody.textBody) || "",
       htmlBody: (parsedBody && parsedBody.htmlBody) || "",
       headers: parsedBody && parsedBody.headers ? parsedBody.headers : {},
@@ -843,11 +1001,15 @@ class EmailAdapter {
     return {
       adapter: NAME,
       adapterVersion: VERSION,
-      capturedAt: internalDate instanceof Date && internalDate.getTime() > 0
-        ? internalDate.getTime()
-        : Date.now(),
+      capturedAt:
+        internalDate instanceof Date && internalDate.getTime() > 0
+          ? internalDate.getTime()
+          : Date.now(),
       capturedBy: CAPTURED_BY.API,
-      originalId: typeof originalId === "string" && originalId.length > 0 ? originalId : undefined,
+      originalId:
+        typeof originalId === "string" && originalId.length > 0
+          ? originalId
+          : undefined,
     };
   }
 }
@@ -870,6 +1032,75 @@ function formatWatermark(uidValidity, lastUid) {
   const uv = uidValidity == null ? "" : String(uidValidity);
   const uid = Number.isFinite(lastUid) && lastUid > 0 ? lastUid : 0;
   return `${uv}:${uid}`;
+}
+
+/**
+ * Parse the per-mailbox v2 IMAP cursor while retaining support for the
+ * original single `<uidValidity>:<lastUid>` watermark. A legacy cursor is
+ * applied only when syncing one configured folder. For multiple folders its
+ * origin is ambiguous, so the adapter safely re-scans and lets vault IDs
+ * deduplicate before the successful run writes v2.
+ */
+function parseMailboxWatermarks(s) {
+  const empty = {
+    mailboxes: {},
+    legacy: { uidValidity: null, lastUid: 0 },
+  };
+  if (typeof s !== "string" || !s.startsWith(MAILBOX_WATERMARK_PREFIX)) {
+    return { ...empty, legacy: parseWatermark(s) };
+  }
+  try {
+    const parsed = JSON.parse(s.slice(MAILBOX_WATERMARK_PREFIX.length));
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return empty;
+    }
+    const mailboxes = {};
+    for (const [folder, cursor] of Object.entries(parsed)) {
+      if (
+        typeof folder !== "string" ||
+        !cursor ||
+        typeof cursor !== "object" ||
+        Array.isArray(cursor)
+      ) {
+        continue;
+      }
+      const uid = Number(cursor.lastUid);
+      setMailboxCursor(mailboxes, folder, {
+        uidValidity:
+          cursor.uidValidity == null ? null : String(cursor.uidValidity),
+        lastUid: Number.isFinite(uid) && uid > 0 ? Math.floor(uid) : 0,
+      });
+    }
+    return { mailboxes, legacy: empty.legacy };
+  } catch (_err) {
+    // A malformed opaque cursor must fail safe by re-reading and relying on
+    // vault deduplication, never by skipping data.
+    return empty;
+  }
+}
+
+function formatMailboxWatermarks(mailboxes) {
+  const stable = {};
+  for (const folder of Object.keys(mailboxes || {}).sort()) {
+    const cursor = mailboxes[folder];
+    if (!cursor || typeof cursor !== "object") continue;
+    const uid = Number(cursor.lastUid);
+    setMailboxCursor(stable, folder, {
+      uidValidity:
+        cursor.uidValidity == null ? null : String(cursor.uidValidity),
+      lastUid: Number.isFinite(uid) && uid > 0 ? Math.floor(uid) : 0,
+    });
+  }
+  return MAILBOX_WATERMARK_PREFIX + JSON.stringify(stable);
+}
+
+function setMailboxCursor(target, folder, cursor) {
+  Object.defineProperty(target, folder, {
+    value: cursor,
+    enumerable: true,
+    configurable: true,
+    writable: true,
+  });
 }
 
 function formatAddr(a) {
@@ -963,7 +1194,8 @@ function pickIndicatorHeaders(headers) {
  */
 function isTransientImapError(err) {
   if (!err) return false;
-  if (err.code === "AUTH_FAILED" || err.code === "MAILBOX_NOT_FOUND") return false;
+  if (err.code === "AUTH_FAILED" || err.code === "MAILBOX_NOT_FOUND")
+    return false;
   if (err.code === "CONNECTION_FAILED") return true;
   // Node-level network error codes
   const networkCodes = new Set([
@@ -976,15 +1208,16 @@ function isTransientImapError(err) {
     "ENOTFOUND", // DNS can be transient on flaky networks
   ]);
   if (err.code && networkCodes.has(err.code)) return true;
-  if (err.cause && err.cause.code && networkCodes.has(err.cause.code)) return true;
+  if (err.cause && err.cause.code && networkCodes.has(err.cause.code))
+    return true;
   const msg = (err.message || "").toLowerCase();
   if (
-    msg.includes("timed out")
-    || msg.includes("timeout")
-    || msg.includes("socket disconnect")
-    || msg.includes("connection lost")
-    || msg.includes("connection reset")
-    || msg.includes("write after end")
+    msg.includes("timed out") ||
+    msg.includes("timeout") ||
+    msg.includes("socket disconnect") ||
+    msg.includes("connection lost") ||
+    msg.includes("connection reset") ||
+    msg.includes("write after end")
   ) {
     return true;
   }
@@ -1001,7 +1234,11 @@ function sleep(ms) {
  */
 function isPdfAttachment(a) {
   if (!a || typeof a !== "object") return false;
-  if (typeof a.contentType === "string" && a.contentType.toLowerCase().includes("pdf")) return true;
+  if (
+    typeof a.contentType === "string" &&
+    a.contentType.toLowerCase().includes("pdf")
+  )
+    return true;
   if (typeof a.filename === "string" && /\.pdf$/i.test(a.filename)) return true;
   return false;
 }
@@ -1027,6 +1264,8 @@ module.exports = {
   EmailAdapter,
   parseWatermark,
   formatWatermark,
+  parseMailboxWatermarks,
+  formatMailboxWatermarks,
   NAME,
   VERSION,
 };

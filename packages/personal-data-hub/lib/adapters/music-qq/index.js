@@ -24,7 +24,12 @@
 
 const fs = require("node:fs");
 const { newId } = require("../../ids");
-const { ENTITY_TYPES, EVENT_SUBTYPES, ITEM_SUBTYPES, CAPTURED_BY } = require("../../constants");
+const {
+  ENTITY_TYPES,
+  EVENT_SUBTYPES,
+  ITEM_SUBTYPES,
+  CAPTURED_BY,
+} = require("../../constants");
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "music-qq";
@@ -66,10 +71,14 @@ function stableOriginalId(kind, id) {
 /** QQ音乐 `singer` is usually an array of {name}; flatten to "A/B". */
 function flattenSinger(singer) {
   if (Array.isArray(singer)) {
-    return singer.map((s) => (s && (s.name || s.title)) || "").filter(Boolean).join("/");
+    return singer
+      .map((s) => (s && (s.name || s.title)) || "")
+      .filter(Boolean)
+      .join("/");
   }
   if (typeof singer === "string") return singer;
-  if (singer && typeof singer === "object") return singer.name || singer.title || "";
+  if (singer && typeof singer === "object")
+    return singer.name || singer.title || "";
   return "";
 }
 
@@ -77,9 +86,13 @@ class QQMusicAdapter {
   constructor(opts = {}) {
     this.account = opts.account || null;
     this._cookieAuth =
-      opts.account && opts.account.cookies ? new CookieAuth({ platform: "qqmusic", cookies: opts.account.cookies }) : null;
-    this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
-    this._signProvider = typeof opts.signProvider === "function" ? opts.signProvider : null;
+      opts.account && opts.account.cookies
+        ? new CookieAuth({ platform: "qqmusic", cookies: opts.account.cookies })
+        : null;
+    this._fetchFn =
+      typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+    this._signProvider =
+      typeof opts.signProvider === "function" ? opts.signProvider : null;
     this._urls = {
       play: opts.playsUrl || PLAYS_URL,
       favorite: opts.favoritesUrl || FAVORITES_URL,
@@ -88,11 +101,23 @@ class QQMusicAdapter {
 
     this.name = NAME;
     this.version = VERSION;
-    this.capabilities = ["sync:snapshot", "sync:cookie-api", "parse:qqmusic-play", "parse:qqmusic-favorite", "parse:qqmusic-playlist"];
+    this.watermarkStrategy = "max-captured-at";
+    this.watermarkRequiresCompleteScan = true;
+    this.capabilities = [
+      "sync:snapshot",
+      "sync:cookie-api",
+      "parse:qqmusic-play",
+      "parse:qqmusic-favorite",
+      "parse:qqmusic-playlist",
+    ];
     this.extractMode = "web-api";
     this.rateLimits = {};
     this.dataDisclosure = {
-      fields: ["qqmusic:play (歌名 / 歌手 / 专辑)", "qqmusic:favorite (收藏的歌)", "qqmusic:playlist (歌单名 / 曲目数)"],
+      fields: [
+        "qqmusic:play (歌名 / 歌手 / 专辑)",
+        "qqmusic:favorite (收藏的歌)",
+        "qqmusic:playlist (歌单名 / 曲目数)",
+      ],
       sensitivity: "low",
       legalGate: false,
       defaultInclude: { play: true, favorite: true, playlist: true },
@@ -106,26 +131,42 @@ class QQMusicAdapter {
       try {
         this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
       } catch (err) {
-        return { ok: false, reason: "INPUT_PATH_UNREADABLE", message: `snapshot not readable at ${ctx.inputPath}: ${err.message}` };
+        return {
+          ok: false,
+          reason: "INPUT_PATH_UNREADABLE",
+          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
+        };
       }
       return { ok: true, mode: "snapshot-file" };
     }
     if (this._cookieAuth) {
       const ok = await this._cookieAuth.validate();
-      if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing" };
-      return { ok: true, account: (this.account && this.account.userId) || null, mode: "cookie" };
+      if (!ok)
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          error: "cookies missing",
+        };
+      return {
+        ok: true,
+        account: (this.account && this.account.userId) || null,
+        mode: "cookie",
+      };
     }
     return {
       ok: false,
       reason: "NO_INPUT",
-      message: "music-qq.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)",
+      message:
+        "music-qq.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)",
     };
   }
 
   async healthCheck() {
     if (this._cookieAuth) {
       const r = await this.authenticate();
-      return r.ok ? { ok: true, lastChecked: Date.now() } : { ok: false, reason: r.reason, error: r.error };
+      return r.ok
+        ? { ok: true, lastChecked: Date.now() }
+        : { ok: false, reason: r.reason, error: r.error };
     }
     return { ok: true, lastChecked: Date.now() };
   }
@@ -139,27 +180,46 @@ class QQMusicAdapter {
       yield* this._syncViaCookie(opts);
       return;
     }
-    throw new Error("music-qq.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)");
+    throw new Error(
+      "music-qq.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)",
+    );
   }
 
   async *_syncViaSnapshot(opts) {
     const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
     const snapshot = JSON.parse(raw);
-    if (!snapshot || typeof snapshot !== "object" || snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION) {
-      throw new Error(`music-qq.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`);
+    if (
+      !snapshot ||
+      typeof snapshot !== "object" ||
+      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
+    ) {
+      throw new Error(
+        `music-qq.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
+      );
     }
     const fallback =
-      Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0 ? Math.floor(snapshot.snapshottedAt) : Date.now();
-    const account = snapshot.account && typeof snapshot.account === "object" ? snapshot.account : null;
+      Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
+        ? Math.floor(snapshot.snapshottedAt)
+        : Date.now();
+    const account =
+      snapshot.account && typeof snapshot.account === "object"
+        ? snapshot.account
+        : null;
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const events = Array.isArray(snapshot.events) ? snapshot.events : [];
     let emitted = 0;
     for (const ev of events) {
       if (emitted >= limit) return;
-      if (!ev || typeof ev !== "object" || !VALID_KINDS.includes(ev.kind)) continue;
+      if (!ev || typeof ev !== "object" || !VALID_KINDS.includes(ev.kind))
+        continue;
       if (include[ev.kind] === false) continue;
-      const id = (typeof ev.id === "string" && ev.id) || ev.songId || ev.playlistId || null;
+      const id =
+        (typeof ev.id === "string" && ev.id) ||
+        ev.songId ||
+        ev.playlistId ||
+        null;
       yield {
         adapter: NAME,
         kind: ev.kind,
@@ -175,29 +235,55 @@ class QQMusicAdapter {
     if (!(await this._cookieAuth.validate())) return;
     const cookies = this._cookieAuth.toHeader();
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
-    const maxPages = Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const maxPages =
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+    const sinceMs =
+      opts.sinceWatermark != null
+        ? parseInt(String(opts.sinceWatermark), 10) || 0
+        : 0;
 
     const plan = [
       { kind: KIND_PLAY, url: this._urls.play, map: songItemToRecord },
       { kind: KIND_FAVORITE, url: this._urls.favorite, map: songItemToRecord },
-      { kind: KIND_PLAYLIST, url: this._urls.playlist, map: playlistItemToRecord },
+      {
+        kind: KIND_PLAYLIST,
+        url: this._urls.playlist,
+        map: playlistItemToRecord,
+      },
     ];
 
     let emitted = 0;
+    let scanComplete = true;
     for (const step of plan) {
       if (include[step.kind] === false) continue;
       let page = 1;
+      let streamComplete = false;
       while (page <= maxPages) {
         const query = { page, num: PAGE_SIZE };
         let sign = null;
-        if (this._signProvider) sign = await this._signProvider({ url: step.url, query, cookies });
-        const resp = await this._fetchFn({ url: step.url, cookies, query, sign });
+        if (this._signProvider)
+          sign = await this._signProvider({ url: step.url, query, cookies });
+        const resp = await this._fetchFn({
+          url: step.url,
+          cookies,
+          query,
+          sign,
+        });
         const items = extractList(resp);
-        if (!items.length) break;
+        if (!items.length) {
+          streamComplete = true;
+          break;
+        }
+        let reachedWatermark = false;
         for (const it of items) {
           const rec = step.map(it);
           if (!rec) continue;
+          if (rec.occurredAt && rec.occurredAt < sinceMs) {
+            reachedWatermark = true;
+            break;
+          }
           if (emitted >= limit) return;
           yield {
             adapter: NAME,
@@ -208,19 +294,42 @@ class QQMusicAdapter {
           };
           emitted += 1;
         }
-        if (items.length < PAGE_SIZE) break;
+        if (reachedWatermark || items.length < PAGE_SIZE) {
+          streamComplete = true;
+          break;
+        }
         page += 1;
       }
+      if (!streamComplete) scanComplete = false;
+    }
+    if (scanComplete && typeof opts.markWatermarkComplete === "function") {
+      opts.markWatermarkComplete();
     }
   }
 
   normalize(raw) {
-    if (!raw || !raw.payload) throw new Error("QQMusicAdapter.normalize: payload missing");
+    if (!raw || !raw.payload)
+      throw new Error("QQMusicAdapter.normalize: payload missing");
     const kind = raw.kind || raw.payload.kind;
     const ingestedAt = Date.now();
-    if (kind === KIND_PLAY) return normalizeSong(raw.payload, raw, ingestedAt, EVENT_SUBTYPES.MEDIA, "听了");
-    if (kind === KIND_FAVORITE) return normalizeSong(raw.payload, raw, ingestedAt, EVENT_SUBTYPES.LIKE, "收藏");
-    if (kind === KIND_PLAYLIST) return normalizePlaylist(raw.payload, raw, ingestedAt);
+    if (kind === KIND_PLAY)
+      return normalizeSong(
+        raw.payload,
+        raw,
+        ingestedAt,
+        EVENT_SUBTYPES.MEDIA,
+        "听了",
+      );
+    if (kind === KIND_FAVORITE)
+      return normalizeSong(
+        raw.payload,
+        raw,
+        ingestedAt,
+        EVENT_SUBTYPES.LIKE,
+        "收藏",
+      );
+    if (kind === KIND_PLAYLIST)
+      return normalizePlaylist(raw.payload, raw, ingestedAt);
     throw new Error(`QQMusicAdapter.normalize: unknown kind ${kind}`);
   }
 }
@@ -251,8 +360,14 @@ function songItemToRecord(it) {
     songId: String(id),
     song: song || "(未知歌曲)",
     artist: artist || "",
-    album: (it.album && (it.album.name || it.album.title)) || it.albumname || it.album_name || null,
-    occurredAt: parseTime(it.time || it.playtime || it.update_time || it.timestamp),
+    album:
+      (it.album && (it.album.name || it.album.title)) ||
+      it.albumname ||
+      it.album_name ||
+      null,
+    occurredAt: parseTime(
+      it.time || it.playtime || it.update_time || it.timestamp,
+    ),
   };
 }
 
@@ -264,8 +379,19 @@ function playlistItemToRecord(it) {
     id: String(id),
     playlistId: String(id),
     name: it.dissname || it.title || it.name || "(未命名歌单)",
-    trackCount: it.songnum != null ? it.songnum : it.song_count != null ? it.song_count : it.count != null ? it.count : null,
-    creator: (it.creator && (it.creator.name || it.creator.nick)) || it.nickname || it.creator_name || null,
+    trackCount:
+      it.songnum != null
+        ? it.songnum
+        : it.song_count != null
+          ? it.song_count
+          : it.count != null
+            ? it.count
+            : null,
+    creator:
+      (it.creator && (it.creator.name || it.creator.nick)) ||
+      it.nickname ||
+      it.creator_name ||
+      null,
     occurredAt: parseTime(it.createtime || it.create_time || it.addtime),
   };
 }
@@ -283,12 +409,15 @@ function buildSource(raw, occurredAt) {
 }
 
 function normalizeSong(p, raw, ingestedAt, subtype, verb) {
-  const occurredAt = parseTime(p.occurredAt || p.capturedAt) || raw.capturedAt || ingestedAt;
+  const occurredAt =
+    parseTime(p.occurredAt || p.capturedAt) || raw.capturedAt || ingestedAt;
   const source = buildSource(raw, occurredAt);
   const song = p.song || "(未知歌曲)";
   const artist = p.artist || "";
   const songId = p.songId != null ? String(p.songId) : null;
-  const itemId = songId ? `item-qqmusic-song-${songId}` : `item-qqmusic-song-${newId()}`;
+  const itemId = songId
+    ? `item-qqmusic-song-${songId}`
+    : `item-qqmusic-song-${newId()}`;
   return {
     events: [
       {
@@ -297,7 +426,10 @@ function normalizeSong(p, raw, ingestedAt, subtype, verb) {
         subtype,
         occurredAt,
         actor: "person-self",
-        content: { title: `${verb}: ${song}${artist ? " - " + artist : ""}`, text: `${song} ${artist}`.trim() },
+        content: {
+          title: `${verb}: ${song}${artist ? " - " + artist : ""}`,
+          text: `${song} ${artist}`.trim(),
+        },
         ingestedAt,
         source,
         extra: {
@@ -319,7 +451,14 @@ function normalizeSong(p, raw, ingestedAt, subtype, verb) {
         name: artist ? `${song} - ${artist}` : song,
         ingestedAt,
         source,
-        extra: { platform: "qqmusic", kind: "song", song, artist, album: p.album || null, songId },
+        extra: {
+          platform: "qqmusic",
+          kind: "song",
+          song,
+          artist,
+          album: p.album || null,
+          songId,
+        },
       },
     ],
     persons: [],
@@ -329,7 +468,8 @@ function normalizeSong(p, raw, ingestedAt, subtype, verb) {
 }
 
 function normalizePlaylist(p, raw, ingestedAt) {
-  const occurredAt = parseTime(p.occurredAt || p.capturedAt) || raw.capturedAt || ingestedAt;
+  const occurredAt =
+    parseTime(p.occurredAt || p.capturedAt) || raw.capturedAt || ingestedAt;
   const source = buildSource(raw, occurredAt);
   const pid = p.playlistId != null ? String(p.playlistId) : null;
   return {
@@ -339,7 +479,9 @@ function normalizePlaylist(p, raw, ingestedAt) {
     items: [],
     topics: [
       {
-        id: pid ? `topic-qqmusic-playlist-${pid}` : `topic-qqmusic-playlist-${newId()}`,
+        id: pid
+          ? `topic-qqmusic-playlist-${pid}`
+          : `topic-qqmusic-playlist-${newId()}`,
         type: ENTITY_TYPES.TOPIC,
         name: p.name || "(未命名歌单)",
         ingestedAt,

@@ -41,6 +41,14 @@ function fakeHub(overrides = {}) {
         ...overrides.register,
       };
     }),
+    activateWechatAdapter: vi.fn(async (uin, opts) => ({
+      ok: true,
+      name: "wechat",
+      chosenKeyProvider: opts.keyProviderOverride || "md5",
+      uin,
+      active: true,
+      ...overrides.activate,
+    })),
     listWechatAccounts: vi.fn(
       () =>
         overrides.list || [
@@ -51,6 +59,7 @@ function fakeHub(overrides = {}) {
             chosenKeyProvider: "md5",
             registeredAt: 1716280000000,
             lastSyncAt: null,
+            active: true,
           },
         ],
     ),
@@ -214,6 +223,7 @@ describe("cc hub wechat list", () => {
     await _internal.cmdWechatList({ _getHub: async () => hub });
     const out = logSpy.mock.calls.map((c) => c.join(" ")).join("\n");
     expect(out).toMatch(/uin=1234567890/);
+    expect(out).toMatch(/\[active\]/);
     expect(out).toMatch(/provider=md5/);
   });
 
@@ -262,6 +272,41 @@ describe("cc hub wechat unregister", () => {
     const parsed = JSON.parse(out);
     expect(parsed).toEqual(
       expect.objectContaining({ ok: true, removed: true, uin: "1234567890" }),
+    );
+  });
+});
+
+describe("cc hub wechat activate", () => {
+  it("activates a saved account and forwards runtime provider options", async () => {
+    const hub = fakeHub();
+    await _internal.cmdWechatActivate("1234567890", {
+      _getHub: async () => hub,
+      forceProvider: "frida",
+      fridaDeviceId: "DEVICE_X",
+    });
+
+    expect(hub.activateWechatAdapter).toHaveBeenCalledWith("1234567890", {
+      keyProviderOverride: "frida",
+      fridaOpts: { deviceId: "DEVICE_X" },
+    });
+    const out = logSpy.mock.calls.map((c) => c.join(" ")).join("\n");
+    expect(out).toMatch(/activated.*1234567890/i);
+    expect(out).toMatch(/provider.*frida/i);
+  });
+
+  it("--json prints the activation response", async () => {
+    const hub = fakeHub();
+    await _internal.cmdWechatActivate("1234567890", {
+      _getHub: async () => hub,
+      json: true,
+    });
+    const parsed = JSON.parse(logSpy.mock.calls[0][0]);
+    expect(parsed).toEqual(
+      expect.objectContaining({
+        ok: true,
+        active: true,
+        uin: "1234567890",
+      }),
     );
   });
 });

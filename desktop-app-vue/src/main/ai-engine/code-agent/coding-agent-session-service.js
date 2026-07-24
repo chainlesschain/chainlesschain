@@ -13,8 +13,32 @@ const { CodingAgentToolAdapter } = require("./coding-agent-tool-adapter.js");
 const {
   CodingAgentPermissionGate,
 } = require("./coding-agent-permission-gate.js");
+const {
+  compileElicitationSchema,
+  prepareElicitationSubmission,
+} = require("../../../../../packages/elicitation-schema");
 
 const MAX_SESSION_EVENTS = 200;
+const QUESTION_REQUEST_EVENT_TYPES = new Set([
+  "question",
+  "question_request",
+  "question.requested",
+]);
+const QUESTION_RESOLVED_EVENT_TYPES = new Set([
+  "question_resolved",
+  "question.resolved",
+]);
+
+function firstDefined(...values) {
+  return values.find((value) => value !== undefined && value !== null) ?? null;
+}
+
+function normalizeCorrelationId(value) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+  return String(value);
+}
 
 // Phase 5: parallel service-envelope emission over a dedicated IPC channel.
 // Renderer listeners for the legacy `coding-agent:event` channel are untouched;
@@ -148,6 +172,10 @@ class CodingAgentSessionService extends EventEmitter {
 
     this.sessions = new Map();
     this.requestSessionMap = new Map();
+    // Pending human questions are keyed by both session and request. Keeping
+    // this binding in the trusted main process prevents a renderer from
+    // answering a stale card or a request that belongs to another session.
+    this.pendingQuestions = new Map();
     this.globalEventSequence = 0;
     // Per-instance tracker so monotonic sequences are scoped to this service
     // instead of leaking through the process-global defaultSequenceTracker.
@@ -828,23 +856,140 @@ class CodingAgentSessionService extends EventEmitter {
     };
   }
 
-  /** Respond to an MCP elicitation request forwarded by the WS bridge. */
-  async respondElicitation(sessionId, payload = {}) {
+  /**
+   * Respond to a question forwarded by the CLI WS bridge. MCP elicitation and
+   * AskUserQuestion deliberately share the same `session-answer` wire
+   * protocol; the only difference is how the renderer presents the payload.
+   */
+  async respondQuestion(sessionId, payload = {}) {
     const session = this._requireSession(sessionId);
-    const requestId = payload.requestId;
-    if (!requestId) throw new Error("MCP elicitation requestId is required");
+    const requestId = normalizeCorrelationId(payload.requestId);
+    if (!requestId) {
+      throw new Error("Question requestId is required");
+    }
+
+    const questionKey = this._questionKey(session.sessionId, requestId);
+    const pending = this.pendingQuestions.get(questionKey);
+    if (!pending) {
+      const belongsToAnotherSession = [...this.pendingQuestions.values()].some(
+        (entry) =>
+          entry.requestId === requestId &&
+          entry.sessionId !== session.sessionId,
+      );
+      if (belongsToAnotherSession) {
+        throw new Error(
+          `Question request ${requestId} belongs to a different session`,
+        );
+      }
+      throw new Error(`Question request is no longer pending: ${requestId}`);
+    }
+    if (pending.expiresAt && Date.now() >= pending.expiresAt) {
+      this.pendingQuestions.delete(questionKey);
+      if (session.status === "waiting_input") {
+        session.status = "running";
+      }
+      throw new Error(`Question request is no longer pending: ${requestId}`);
+    }
+
+    this._assertQuestionBinding(pending, payload);
+
     const action = ["accept", "decline", "cancel"].includes(payload.action)
       ? payload.action
       : payload.answer == null
         ? "cancel"
         : "accept";
-    this.bridge.send({
-      type: "session-answer",
+    let acceptedAnswer = payload.answer ?? null;
+    if (
+      action === "accept" &&
+      pending.metadataKind === "mcp_elicitation" &&
+      pending.requestedSchema
+    ) {
+      const model = compileElicitationSchema(pending.requestedSchema);
+      // Unsupported schemas stay on the explicit raw-JSON fallback path. For
+      // the MCP restricted vocabulary, however, the trusted main process
+      // validates and sanitizes the renderer response before it reaches CLI.
+      if (model.supported) {
+        const submission = prepareElicitationSubmission(model, acceptedAnswer);
+        if (!submission.valid) {
+          throw new Error(
+            `MCP elicitation answer is invalid: ${submission.errors
+              .slice(0, 3)
+              .map((error) => error.message)
+              .join("; ")}`,
+          );
+        }
+        acceptedAnswer = submission.value;
+      }
+    }
+
+    const answerPayload = {
       sessionId: session.sessionId,
-      requestId,
-      answer: action === "accept" ? payload.answer ?? null : null,
-    });
-    return { success: true, sessionId: session.sessionId, requestId, action };
+      requestId: pending.requestId,
+      answer: action === "accept" ? acceptedAnswer : null,
+      ...(pending.turnId
+        ? { turnId: pending.turnId, turn_id: pending.turnId }
+        : {}),
+      ...(pending.toolUseId
+        ? {
+            toolUseId: pending.toolUseId,
+            tool_use_id: pending.toolUseId,
+          }
+        : {}),
+      ...(pending.binding !== null ? { binding: pending.binding } : {}),
+    };
+    let transportRequestId = null;
+    if (typeof this.bridge.request === "function") {
+      const response = await this.bridge.request(
+        "session-answer",
+        answerPayload,
+        ["command.response", "result"],
+      );
+      transportRequestId = response?.id || response?.requestId || null;
+    } else {
+      transportRequestId = `session-answer-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      this.bridge.send({
+        id: transportRequestId,
+        type: "session-answer",
+        ...answerPayload,
+      });
+    }
+
+    this.pendingQuestions.delete(questionKey);
+    session.status = "running";
+    session.updatedAt = new Date().toISOString();
+
+    this._storeEvent(
+      session.sessionId,
+      this._createEvent(
+        "question_resolved",
+        {
+          requestId: pending.requestId,
+          action,
+          via: action === "accept" ? "user-answer" : "user-cancel",
+          turnId: pending.turnId,
+          toolUseId: pending.toolUseId,
+        },
+        {
+          sessionId: session.sessionId,
+          requestId: pending.requestId,
+        },
+      ),
+    );
+
+    return {
+      success: true,
+      sessionId: session.sessionId,
+      requestId: pending.requestId,
+      turnId: pending.turnId,
+      toolUseId: pending.toolUseId,
+      transportRequestId,
+      action,
+    };
+  }
+
+  /** Backward-compatible renderer/Main API name for MCP callers. */
+  async respondElicitation(sessionId, payload = {}) {
+    return this.respondQuestion(sessionId, payload);
   }
 
   async enterPlanMode(sessionId) {
@@ -1008,6 +1153,9 @@ class CodingAgentSessionService extends EventEmitter {
         pendingRequests: Array.isArray(session.pendingRequests)
           ? [...session.pendingRequests]
           : [],
+        pendingQuestions: [...this.pendingQuestions.values()]
+          .filter((question) => question.sessionId === String(sessionId))
+          .map((question) => ({ ...question })),
         lastPlanSummary: session.lastPlanSummary || null,
         lastPlanItems: Array.isArray(session.lastPlanItems)
           ? [...session.lastPlanItems]
@@ -1400,8 +1548,15 @@ class CodingAgentSessionService extends EventEmitter {
       return;
     }
 
+    const messagePayload =
+      message?.payload && typeof message.payload === "object"
+        ? message.payload
+        : null;
     const sessionId =
       message.sessionId ||
+      message.session_id ||
+      messagePayload?.sessionId ||
+      messagePayload?.session_id ||
       (message.id ? this.requestSessionMap.get(message.id) : null) ||
       null;
 
@@ -1434,6 +1589,11 @@ class CodingAgentSessionService extends EventEmitter {
 
     const normalized = this._normalizeMessage(message, sessionId);
     if (sessionId) {
+      if (QUESTION_REQUEST_EVENT_TYPES.has(normalized.type)) {
+        this._trackPendingQuestion(sessionId, normalized);
+      } else if (QUESTION_RESOLVED_EVENT_TYPES.has(normalized.type)) {
+        this._resolvePendingQuestionFromEvent(sessionId, normalized);
+      }
       this._storeEvent(sessionId, normalized);
       const policyChanged = this._applySessionMutation(sessionId, normalized);
       if (policyChanged) {
@@ -1458,7 +1618,17 @@ class CodingAgentSessionService extends EventEmitter {
   _normalizeMessage(message, sessionId) {
     // Always prefer the resolved sessionId (from requestSessionMap) over the
     // raw message.sessionId, which the CLI sometimes omits on response messages.
-    const resolvedSessionId = sessionId || message.sessionId || null;
+    const resolvedSessionId =
+      sessionId ||
+      message.sessionId ||
+      message.session_id ||
+      message.payload?.sessionId ||
+      message.payload?.session_id ||
+      null;
+
+    if (QUESTION_REQUEST_EVENT_TYPES.has(message?.type)) {
+      return this._normalizeQuestionMessage(message, resolvedSessionId);
+    }
 
     // CLI runtime now emits unified envelopes natively (source: "cli-runtime").
     // Detect them by the v1.0 envelope shape and pass through unchanged so we
@@ -1486,6 +1656,195 @@ class CodingAgentSessionService extends EventEmitter {
     });
   }
 
+  _normalizeQuestionMessage(message, sessionId) {
+    const isEnvelope =
+      message &&
+      message.version === "1.0" &&
+      message.payload &&
+      typeof message.payload === "object" &&
+      Object.prototype.hasOwnProperty.call(message, "eventId");
+    const source = isEnvelope ? message.payload : message;
+    const requestId = this._questionRequestId(message);
+    const metadata =
+      source?.metadata && typeof source.metadata === "object"
+        ? source.metadata
+        : {};
+    const bindingObject =
+      source?.binding && typeof source.binding === "object"
+        ? source.binding
+        : null;
+    const turnId = normalizeCorrelationId(
+      firstDefined(
+        source?.turnId,
+        source?.turn_id,
+        metadata.turnId,
+        metadata.turn_id,
+        bindingObject?.turnId,
+        bindingObject?.turn_id,
+      ),
+    );
+    const toolUseId = normalizeCorrelationId(
+      firstDefined(
+        source?.toolUseId,
+        source?.tool_use_id,
+        source?.toolCallId,
+        source?.tool_call_id,
+        metadata.toolUseId,
+        metadata.tool_use_id,
+        metadata.toolCallId,
+        metadata.tool_call_id,
+        bindingObject?.toolUseId,
+        bindingObject?.tool_use_id,
+        bindingObject?.toolCallId,
+        bindingObject?.tool_call_id,
+      ),
+    );
+    const payload = {
+      ...source,
+      requestId,
+      sessionId,
+      ...(turnId ? { turnId, turn_id: turnId } : {}),
+      ...(toolUseId ? { toolUseId, tool_use_id: toolUseId } : {}),
+    };
+
+    if (isEnvelope) {
+      return {
+        ...message,
+        sessionId,
+        requestId,
+        payload,
+      };
+    }
+
+    return this._createEvent(message.type, payload, {
+      sessionId,
+      requestId,
+    });
+  }
+
+  _questionRequestId(message) {
+    const source =
+      message?.payload && typeof message.payload === "object"
+        ? message.payload
+        : message;
+    const requestId =
+      message?.type === "question_request"
+        ? firstDefined(
+            source?.id,
+            source?.requestId,
+            message?.requestId,
+            message?.id,
+          )
+        : firstDefined(
+            source?.requestId,
+            source?.id,
+            message?.requestId,
+            message?.id,
+          );
+    return normalizeCorrelationId(requestId);
+  }
+
+  _questionKey(sessionId, requestId) {
+    return `${String(sessionId)}\u0000${String(requestId)}`;
+  }
+
+  _trackPendingQuestion(sessionId, event) {
+    const session = this.sessions.get(sessionId);
+    const requestId = this._questionRequestId(event);
+    if (!session || !requestId) {
+      logger.warn(
+        `[CodingAgentSessionService] Ignoring question without session/request binding session=${sessionId || "-"} request=${requestId || "-"}`,
+      );
+      return;
+    }
+
+    const payload = event.payload || {};
+    const metadata =
+      payload.metadata && typeof payload.metadata === "object"
+        ? payload.metadata
+        : {};
+    const timeoutMs = Number(
+      firstDefined(payload.timeoutMs, payload.metadata?.timeoutMs),
+    );
+    const binding =
+      payload.binding === undefined || payload.binding === null
+        ? null
+        : payload.binding;
+    const pending = {
+      sessionId: String(sessionId),
+      requestId,
+      turnId: normalizeCorrelationId(
+        firstDefined(payload.turnId, payload.turn_id),
+      ),
+      toolUseId: normalizeCorrelationId(
+        firstDefined(
+          payload.toolUseId,
+          payload.tool_use_id,
+          payload.toolCallId,
+          payload.tool_call_id,
+        ),
+      ),
+      binding,
+      metadataKind: typeof metadata.kind === "string" ? metadata.kind : null,
+      requestedSchema: firstDefined(
+        payload.requestedSchema,
+        metadata.requestedSchema,
+      ),
+      receivedAt: event.timestamp || new Date().toISOString(),
+      expiresAt:
+        Number.isFinite(timeoutMs) && timeoutMs > 0
+          ? Date.now() + timeoutMs
+          : null,
+    };
+
+    this.pendingQuestions.set(this._questionKey(sessionId, requestId), pending);
+    session.status = "waiting_input";
+    session.updatedAt = pending.receivedAt;
+  }
+
+  _resolvePendingQuestionFromEvent(sessionId, event) {
+    const requestId = this._questionRequestId(event);
+    if (!requestId) {
+      return;
+    }
+    this.pendingQuestions.delete(this._questionKey(sessionId, requestId));
+    const session = this.sessions.get(sessionId);
+    if (session && session.status === "waiting_input") {
+      session.status = "running";
+      session.updatedAt = event.timestamp || new Date().toISOString();
+    }
+  }
+
+  _assertQuestionBinding(pending, payload) {
+    const suppliedTurnId = normalizeCorrelationId(
+      firstDefined(payload.turnId, payload.turn_id),
+    );
+    const suppliedToolUseId = normalizeCorrelationId(
+      firstDefined(
+        payload.toolUseId,
+        payload.tool_use_id,
+        payload.toolCallId,
+        payload.tool_call_id,
+      ),
+    );
+
+    for (const [label, expected, actual] of [
+      ["turnId", pending.turnId, suppliedTurnId],
+      ["toolUseId", pending.toolUseId, suppliedToolUseId],
+    ]) {
+      if (expected && !actual) {
+        throw new Error(
+          `Question response ${label} is required for request ${pending.requestId}`,
+        );
+      }
+      if (expected && actual !== expected) {
+        throw new Error(
+          `Question response ${label} does not match request ${pending.requestId}`,
+        );
+      }
+    }
+  }
+
   _applySessionMutation(sessionId, event) {
     const session = this.sessions.get(sessionId);
     if (!session) {
@@ -1498,6 +1857,7 @@ class CodingAgentSessionService extends EventEmitter {
     switch (event.type) {
       case CODING_AGENT_EVENT_TYPES.SESSION_STARTED:
       case CODING_AGENT_EVENT_TYPES.SESSION_RESUMED:
+        this._removePendingQuestionsForSession(sessionId);
         session.status = "ready";
         session.planModeState = "inactive";
         session.lastPlanItems = [];
@@ -1538,6 +1898,7 @@ class CodingAgentSessionService extends EventEmitter {
         }
         break;
       case CODING_AGENT_EVENT_TYPES.ASSISTANT_FINAL:
+        this._removePendingQuestionsForSession(sessionId);
         session.status = "ready";
         if (event.payload.content) {
           session.history.push({
@@ -1594,6 +1955,7 @@ class CodingAgentSessionService extends EventEmitter {
         this._completePendingRequest(session, event.requestId);
         break;
       case CODING_AGENT_EVENT_TYPES.ERROR:
+        this._removePendingQuestionsForSession(sessionId);
         session.status = "failed";
         this._completePendingRequest(session, event.requestId);
         break;
@@ -1921,6 +2283,15 @@ class CodingAgentSessionService extends EventEmitter {
     }
 
     session.pendingRequests = [];
+    this._removePendingQuestionsForSession(session.sessionId);
+  }
+
+  _removePendingQuestionsForSession(sessionId) {
+    for (const [questionKey, question] of this.pendingQuestions.entries()) {
+      if (question.sessionId === String(sessionId)) {
+        this.pendingQuestions.delete(questionKey);
+      }
+    }
   }
 
   _inferApprovalType(session) {

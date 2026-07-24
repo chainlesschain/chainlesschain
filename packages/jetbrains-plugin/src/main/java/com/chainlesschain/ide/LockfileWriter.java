@@ -9,19 +9,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
-import java.nio.file.attribute.AclEntry;
-import java.nio.file.attribute.AclEntryFlag;
-import java.nio.file.attribute.AclEntryPermission;
-import java.nio.file.attribute.AclEntryType;
-import java.nio.file.attribute.AclFileAttributeView;
+import java.nio.file.attribute.PosixFileAttributes;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.UserPrincipal;
 import java.security.SecureRandom;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -276,49 +272,113 @@ public final class LockfileWriter {
      */
     private static void restrictToOwner(Path p, Set<PosixFilePermission> perms)
             throws IOException {
-        if (!tryChmod(p, perms)) {
-            if (!tightenOwnerOnlyAcl(p)) {
-                throw new IOException("owner-only ACL could not be verified for " + p);
+        if (Files.isSymbolicLink(p)) {
+            throw new IOException("refusing to secure symbolic-link lockfile path: " + p);
+        }
+
+        IOException posixFailure = null;
+        try {
+            if (applyAndVerifyPosixPermissions(p, perms)) {
+                return;
+            }
+        } catch (IOException failure) {
+            posixFailure = failure;
+        }
+
+        if (isWindows()) {
+            try {
+                WindowsOwnerOnlyAcl.enforce(p);
+                return;
+            } catch (IOException windowsFailure) {
+                if (posixFailure != null) {
+                    windowsFailure.addSuppressed(posixFailure);
+                }
+                throw new IOException(
+                        "owner-only Windows ACL could not be verified for " + p,
+                        windowsFailure);
             }
         }
-    }
 
-    /** @return true when POSIX permissions were applied (POSIX filesystem). */
-    private static boolean tryChmod(Path p, Set<PosixFilePermission> perms) {
-        try {
-            Files.setPosixFilePermissions(p, perms);
-            return true;
-        } catch (UnsupportedOperationException nonPosix) {
-            return false; // Windows / non-POSIX filesystem → try the ACL route
-        } catch (IOException ignore) {
-            // POSIX filesystem but chmod failed. Do not claim the lock is
-            // protected; enforceOwnerOnly will fail closed unless an
-            // organization-managed downgrade is explicitly enabled.
-            return false;
+        if (posixFailure != null) {
+            throw posixFailure;
         }
+        throw new IOException(
+                "filesystem exposes neither verifiable POSIX permissions nor Windows ACLs for " + p);
     }
 
     /**
-     * Windows twin of the 0600/0700 chmod: replace the ACL with a single
-     * entry granting the file's owner full control (pure JDK, no icacls
-     * subprocess). Returns false when the ACL cannot be applied or verified;
-     * the caller decides whether a managed downgrade is allowed.
+     * Apply and read back exact POSIX owner-only permissions.
+     *
+     * @return false only when the filesystem has no POSIX attribute view
+     */
+    static boolean applyAndVerifyPosixPermissions(
+            Path p, Set<PosixFilePermission> perms) throws IOException {
+        PosixFileAttributeView view = Files.getFileAttributeView(
+                p, PosixFileAttributeView.class, LinkOption.NOFOLLOW_LINKS);
+        if (view == null) {
+            return false;
+        }
+        if (Files.isSymbolicLink(p)) {
+            throw new IOException("refusing to secure symbolic-link lockfile path: " + p);
+        }
+
+        view.setPermissions(perms);
+        PosixFileAttributes actual = view.readAttributes();
+        if (actual.isSymbolicLink()) {
+            throw new IOException("lockfile path became a symbolic link while securing it: " + p);
+        }
+        if (!actual.permissions().equals(perms)) {
+            throw new IOException(
+                    "POSIX permission verification failed for "
+                            + p
+                            + ": expected "
+                            + perms
+                            + ", got "
+                            + actual.permissions());
+        }
+
+        UserPrincipal expectedOwner = currentUserPrincipal();
+        if (!actual.owner().equals(expectedOwner)) {
+            throw new IOException(
+                    "POSIX owner verification failed for "
+                            + p
+                            + ": expected "
+                            + expectedOwner
+                            + ", got "
+                            + actual.owner());
+        }
+        return true;
+    }
+
+    private static UserPrincipal currentUserPrincipal() throws IOException {
+        String userName = System.getProperty("user.name", "").trim();
+        if (userName.isEmpty()) {
+            throw new IOException("current user name is unavailable");
+        }
+        return FileSystems.getDefault()
+                .getUserPrincipalLookupService()
+                .lookupPrincipalByName(userName);
+    }
+
+    private static boolean isWindows() {
+        return System.getProperty("os.name", "")
+                .toLowerCase(Locale.ROOT)
+                .contains("win");
+    }
+
+    /**
+     * Compatibility seam retained for focused tests. Production enforcement
+     * uses the throwing helper so failures cannot be mistaken for success.
      */
     static boolean tightenOwnerOnlyAcl(Path p) {
+        if (!isWindows()) {
+            return false;
+        }
         try {
-            AclFileAttributeView view =
-                    Files.getFileAttributeView(p, AclFileAttributeView.class);
-            if (view == null) return false; // POSIX fs → chmod already handled it
-            UserPrincipal owner = Files.getOwner(p);
-            AclEntry ownerAll = AclEntry.newBuilder()
-                    .setType(AclEntryType.ALLOW)
-                    .setPrincipal(owner)
-                    .setPermissions(EnumSet.allOf(AclEntryPermission.class))
-                    .build();
-            view.setAcl(Collections.singletonList(ownerAll));
+            WindowsOwnerOnlyAcl.enforce(p);
             return true;
         } catch (Exception ignore) {
-            return false; // fail-open: never block bridge startup
+            return false;
         }
     }
 }

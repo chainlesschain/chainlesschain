@@ -59,6 +59,7 @@ import {
 } from "../lib/idempotency.js";
 import { buildSearchCommand } from "../lib/search-command.js";
 import { discoverCommands } from "../lib/slash-commands.js";
+import { createSkillProcessBroker } from "../lib/skill-process-broker.js";
 import {
   isRetryableStreamError,
   STREAM_RETRY_BASE_MS,
@@ -79,7 +80,10 @@ import {
   imageUrlBlockToAnthropic,
 } from "../lib/image-input.js";
 import { executeToolSearch, gateDeferredMcpCall } from "./mcp-tool-search.js";
-import { emitHooksV2Event } from "../lib/hooks-v2-producers.js";
+import {
+  emitHooksV2Event,
+  executeHooksV2Event,
+} from "../lib/hooks-v2-producers.js";
 import {
   admitTool,
   buildToolAttribution,
@@ -660,6 +664,33 @@ async function requestInteractivePermission(
   cwd,
   confirmArgs,
 ) {
+  const hooksV2 = await executeHooksV2Event(
+    "PermissionRequest",
+    {
+      schema_version: 1,
+      session_id: context.sessionId || null,
+      turn_id: context.turnId || null,
+      tool_use_id: context.toolCallId || null,
+      tool_name: name,
+      input_keys:
+        args && typeof args === "object" ? Object.keys(args).sort() : [],
+      reason: confirmArgs?.reason || null,
+      cwd,
+    },
+    { failClosed: true },
+  );
+  if (hooksV2.decision === "allow") return true;
+  if (hooksV2.blocked || hooksV2.decision === "block") {
+    emitHooksV2Event("PermissionDenied", {
+      schema_version: 1,
+      session_id: context.sessionId || null,
+      turn_id: context.turnId || null,
+      tool_use_id: context.toolCallId || null,
+      tool_name: name,
+      source: "hooks-v2",
+    });
+    return false;
+  }
   const verdict = runSettingsPermissionRequestHooks(
     name,
     args,
@@ -668,9 +699,31 @@ async function requestInteractivePermission(
     confirmArgs?.reason,
   );
   if (verdict.decision === "allow") return true;
-  if (verdict.decision === "deny") return false;
+  if (verdict.decision === "deny") {
+    emitHooksV2Event("PermissionDenied", {
+      schema_version: 1,
+      session_id: context.sessionId || null,
+      turn_id: context.turnId || null,
+      tool_use_id: context.toolCallId || null,
+      tool_name: name,
+      source: "settings-hook",
+    });
+    return false;
+  }
   const confirm = context.permissionConfirm || context.shellConfirm || null;
-  return typeof confirm === "function" ? await confirm(confirmArgs) : false;
+  const approved =
+    typeof confirm === "function" ? await confirm(confirmArgs) : false;
+  if (!approved) {
+    emitHooksV2Event("PermissionDenied", {
+      schema_version: 1,
+      session_id: context.sessionId || null,
+      turn_id: context.turnId || null,
+      tool_use_id: context.toolCallId || null,
+      tool_name: name,
+      source: typeof confirm === "function" ? "user" : "no-confirmer",
+    });
+  }
+  return approved;
 }
 
 // ─── Tool definitions ────────────────────────────────────────────────────
@@ -1006,13 +1059,14 @@ export function buildSystemPrompt(cwd, opts = {}) {
 
   // Append auto-activated persona skills
   try {
-    const loader = new CLISkillLoader();
-    const allSkills = loader.getResolvedSkills();
-    const personaSkills = allSkills.filter(
-      (s) => s.category === "persona" && s.activation === "auto",
-    );
+    const loader = opts.skillLoader || new CLISkillLoader();
+    const personaSkills = loader.getAutoActivatedPersonas({
+      sessionId: opts.sessionId,
+      turnId: opts.turnId,
+      loadedBecause: "persona_auto",
+    });
     if (typeof opts.onSkillsLoaded === "function") {
-      opts.onSkillsLoaded(personaSkills);
+      opts.onSkillsLoaded(personaSkills, loader.getCacheLedger());
     }
     for (const p of personaSkills) {
       if (p.body?.trim()) {
@@ -1810,6 +1864,52 @@ export async function executeTool(name, args, context = {}) {
   // capable: a `block` (exit 2 / {decision:block}) stops the tool here, an
   // `ask` routes to the confirmer. Runs after permission resolution so a
   // settings deny / host deny short-circuits before any hook process spawns.
+  const hooksV2Pre = await executeHooksV2Event(
+    "PreToolUse",
+    {
+      schema_version: 1,
+      session_id: context.sessionId || null,
+      turn_id: context.turnId || null,
+      tool_use_id: context.toolCallId || null,
+      tool_name: name,
+      input_keys:
+        args && typeof args === "object" ? Object.keys(args).sort() : [],
+      cwd,
+    },
+    { failClosed: true },
+  );
+  if (hooksV2Pre.blocked || hooksV2Pre.decision === "block") {
+    return {
+      error: `[Hook v2] PreToolUse blocked "${name}".`,
+      policy: { decision: "block", via: "hooks-v2" },
+    };
+  }
+  if (hooksV2Pre.requiresApproval || hooksV2Pre.decision === "ask") {
+    const confirm = context.permissionConfirm || context.shellConfirm || null;
+    const approved =
+      typeof confirm === "function"
+        ? await confirm({
+            tool: name,
+            args,
+            reason: "Hooks v2 PreToolUse requested confirmation",
+            source: "hooks-v2",
+          })
+        : false;
+    if (!approved) {
+      emitHooksV2Event("PermissionDenied", {
+        schema_version: 1,
+        session_id: context.sessionId || null,
+        turn_id: context.turnId || null,
+        tool_use_id: context.toolCallId || null,
+        tool_name: name,
+        source: "hooks-v2",
+      });
+      return {
+        error: `[Hook v2] PreToolUse confirmation denied for "${name}".`,
+        policy: { decision: "deny", via: "hooks-v2" },
+      };
+    }
+  }
   if (hookDb) {
     try {
       await executeHooks(hookDb, HookEvents.PreToolUse, {
@@ -1849,6 +1949,8 @@ export async function executeTool(name, args, context = {}) {
       parentMessages: context.parentMessages,
       interaction: context.interaction,
       sessionId: context.sessionId || null,
+      turnId: context.turnId || null,
+      toolCallId: context.toolCallId || null,
       // Parent LLM config — documented at toolContext as forwarded to
       // spawn_sub_agent for provider/key inheritance; without this line it
       // never actually reached executeToolInner (sub-agents silently fell
@@ -2660,6 +2762,8 @@ async function executeToolInner(
     parentMessages,
     interaction,
     sessionId,
+    turnId,
+    toolCallId,
     hostManagedToolPolicy,
     externalToolDescriptors,
     externalToolExecutors,
@@ -3883,14 +3987,60 @@ async function executeToolInner(
           multiSelect: args.multiSelect === true,
           timeoutMs:
             typeof args.timeoutMs === "number" ? args.timeoutMs : 60000,
+          defaultValue: args.defaultValue,
+          onTimeout: args.onTimeout || "error",
+          onReject: args.onReject || "error",
           sessionId,
+          turnId,
+          toolUseId: toolCallId,
         });
         return attachDescriptor({ answer });
       } catch (err) {
-        if (err && err.code === "USER_TIMEOUT") {
+        const failureKind =
+          err?.code === "USER_TIMEOUT"
+            ? "timeout"
+            : [
+                  "USER_REJECTED",
+                  "INTERACTION_REJECTED",
+                  "INTERACTION_CANCELLED",
+                ].includes(err?.code)
+              ? "reject"
+              : null;
+        const strategy =
+          failureKind === "timeout"
+            ? args.onTimeout || "error"
+            : failureKind === "reject"
+              ? args.onReject || "error"
+              : "error";
+        if (failureKind && strategy === "useDefault") {
+          if (!Object.prototype.hasOwnProperty.call(args, "defaultValue")) {
+            return attachDescriptor({
+              error: `${failureKind === "timeout" ? "user_timeout" : "user_rejected"}: useDefault requires defaultValue`,
+            });
+          }
+          return attachDescriptor({
+            answer: args.defaultValue,
+            fallback: "default",
+            reason: failureKind,
+          });
+        }
+        if (failureKind && strategy === "skip") {
+          return attachDescriptor({
+            answer: null,
+            skipped: true,
+            reason: failureKind,
+          });
+        }
+        if (failureKind === "timeout") {
           return attachDescriptor({
             error: "user_timeout",
             hint: "User did not respond in time. Proceed with best judgement.",
+          });
+        }
+        if (failureKind === "reject") {
+          return attachDescriptor({
+            error: "user_rejected",
+            hint: "The user declined this question. Do not assume consent.",
           });
         }
         return attachDescriptor({
@@ -4421,12 +4571,26 @@ async function executeToolInner(
             : "No skills found. Make sure you're in the ChainlessChain project root or have skills installed.",
         });
       }
-      const match = allSkills.find(
+      let match = allSkills.find(
         (s) => s.id === args.skill_name || s.dirName === args.skill_name,
       );
       if (!match || !match.hasHandler) {
         return attachDescriptor({
           error: `Skill "${args.skill_name}" not found or has no handler. Use list_skills to see available skills.`,
+        });
+      }
+      try {
+        if (typeof skillLoader.materializeSkill === "function") {
+          match = skillLoader.materializeSkill(match, {
+            sessionId,
+            turnId,
+            loadedBecause: "run_skill",
+            bodyIncluded: false,
+          });
+        }
+      } catch (error) {
+        return attachDescriptor({
+          error: `Skill "${args.skill_name}" body could not be loaded: ${error.message}`,
         });
       }
 
@@ -4534,6 +4698,7 @@ async function executeToolInner(
         const taskContext = {
           projectRoot: cwd,
           workspacePath: cwd,
+          processBroker: createSkillProcessBroker(match),
           // Expose the MCP client + mounted servers so the skill handler
           // can call MCP tools directly without going through the agent
           // loop. Handlers that don't need MCP can ignore these.
@@ -4586,6 +4751,11 @@ async function executeToolInner(
             s.category.toLowerCase().includes(q),
         );
       }
+      skillLoader.recordDescriptorUse?.(skills, {
+        sessionId,
+        turnId,
+        loadedBecause: "list_skills",
+      });
       return attachDescriptor({
         count: skills.length,
         skills: skills.map((s) => ({
@@ -5119,6 +5289,55 @@ export function safeStringifyToolResult(value) {
       }
     }
   }
+}
+
+function emitToolHookLifecycle({
+  tool,
+  args,
+  result,
+  error = null,
+  sessionId = null,
+  turnId = null,
+  toolUseId = null,
+  cwd = process.cwd(),
+}) {
+  const failed = Boolean(error || result?.error);
+  const base = {
+    schema_version: 1,
+    session_id: sessionId,
+    turn_id: turnId,
+    tool_use_id: toolUseId,
+    tool_name: tool,
+    duration_ms: Number(result?.toolTelemetryRecord?.durationMs || 0),
+    cwd,
+  };
+  emitHooksV2Event(failed ? "PostToolUseFailure" : "PostToolUse", {
+    ...base,
+    ...(failed
+      ? {
+          error_code:
+            result?.error?.code ||
+            result?.code ||
+            (typeof error === "object" ? error?.code : null) ||
+            "tool_error",
+        }
+      : {}),
+  });
+  if (!failed && GUARDED_FILE_MUTATION_TOOLS.has(tool)) {
+    const changedPath =
+      args?.path ||
+      args?.filePath ||
+      args?.file_path ||
+      args?.targetPath ||
+      args?.target_path ||
+      null;
+    emitHooksV2Event("FileChanged", {
+      ...base,
+      path: changedPath == null ? null : String(changedPath),
+      operation: tool,
+    });
+  }
+  return failed;
 }
 
 /**
@@ -5784,6 +6003,8 @@ async function _executeSpawnSubAgent(args, ctx) {
       outcome: null,
       hookFeedback: null,
       promise: null,
+      recoveryBinding: () =>
+        subCtx.recoveryBinding(entry.outcome?.result || null),
     };
     // Settle-capture wrapper: the stored promise NEVER rejects, so an
     // unconsumed handle can't surface as an unhandled rejection.
@@ -5830,6 +6051,7 @@ async function _executeSpawnSubAgent(args, ctx) {
       subAgentId: subCtx.id,
       role: subCtx.role,
       parentSessionId,
+      childBinding: subCtx.recoveryBinding(),
       note: "Sub-agent is running in the background. Its result will be delivered to you automatically in a later turn — continue with other work; the run will not finish before the result arrives.",
     };
   }
@@ -5877,6 +6099,7 @@ async function _executeSpawnSubAgent(args, ctx) {
       subAgentId: subCtx.id,
       role: subCtx.role,
       parentSessionId,
+      childBinding: subCtx.recoveryBinding(result),
       summary: result.summary,
       toolsUsed: result.toolsUsed,
       iterationCount: result.iterationCount,
@@ -5908,6 +6131,7 @@ async function _executeSpawnSubAgent(args, ctx) {
       subAgentId: subCtx.id,
       role: subCtx.role,
       parentSessionId,
+      childBinding: subCtx.recoveryBinding(subCtx.result),
     };
   }
 }
@@ -7333,6 +7557,10 @@ export async function* agentLoop(messages, options) {
     cwd: options.cwd || process.cwd(),
     planManager: options.planManager || null,
     sessionId: options.sessionId || null,
+    // One agentLoop invocation represents one user turn even when it performs
+    // several model/tool iterations. Hosts may supply their persisted turn id;
+    // otherwise the run id is the stable in-process binding.
+    turnId: options.turnId || runId,
     hostManagedToolPolicy: options.hostManagedToolPolicy || null,
     externalToolDescriptors: options.externalToolDescriptors || null,
     externalToolExecutors: options.externalToolExecutors || null,
@@ -7762,6 +7990,7 @@ export async function* agentLoop(messages, options) {
           role: entry.role,
           error: entry.outcome?.error || null,
           summary: entry.outcome?.result?.summary || null,
+          childBinding: entry.recoveryBinding?.() || null,
         };
       }
     }
@@ -7905,6 +8134,7 @@ export async function* agentLoop(messages, options) {
             role: entry.role,
             error: entry.outcome?.error || null,
             summary: entry.outcome?.result?.summary || null,
+            childBinding: entry.recoveryBinding?.() || null,
           };
         }
         continue;
@@ -8050,6 +8280,8 @@ export async function* agentLoop(messages, options) {
           type: "tool-executing",
           tool: call.function.name,
           args: toolArgs,
+          tool_use_id: call.id,
+          turn_id: `${runId}:t${budget.consumed}`,
         };
         const { result: toolResult, error: toolError } = await promise;
         throwIfAborted(signal);
@@ -8065,6 +8297,12 @@ export async function* agentLoop(messages, options) {
           tool: call.function.name,
           result: toolResult,
           error: toolError,
+          tool_use_id: call.id,
+          turn_id: `${runId}:t${budget.consumed}`,
+          permission_decision_id: permissionDecisionId(
+            call.id,
+            toolResult?.policy,
+          ),
         };
         messages.push({
           role: "tool",
@@ -8093,6 +8331,8 @@ export async function* agentLoop(messages, options) {
           tool: "(unknown)",
           result: { error: reason },
           error: reason,
+          tool_use_id: call?.id || null,
+          turn_id: `${runId}:t${budget.consumed}`,
         };
         messages.push({
           role: "tool",
@@ -8119,9 +8359,22 @@ export async function* agentLoop(messages, options) {
         toolName,
         toolArgs,
       );
-      if (cpId) yield { type: "checkpoint", id: cpId, tool: toolName };
+      if (cpId)
+        yield {
+          type: "checkpoint",
+          id: cpId,
+          tool: toolName,
+          tool_use_id: call.id,
+          turn_id: `${runId}:t${budget.consumed}`,
+        };
 
-      yield { type: "tool-executing", tool: toolName, args: toolArgs };
+      yield {
+        type: "tool-executing",
+        tool: toolName,
+        args: toolArgs,
+        tool_use_id: call.id,
+        turn_id: `${runId}:t${budget.consumed}`,
+      };
 
       let toolResult;
       let toolError = null;
@@ -8218,6 +8471,12 @@ export async function* agentLoop(messages, options) {
         tool: toolName,
         result: toolResult,
         error: toolError,
+        tool_use_id: call.id,
+        turn_id: `${runId}:t${budget.consumed}`,
+        permission_decision_id: permissionDecisionId(
+          call.id,
+          toolResult?.policy,
+        ),
       };
 
       messages.push({

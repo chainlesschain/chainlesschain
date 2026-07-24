@@ -242,6 +242,16 @@ export interface CodingAgentEvent {
   payload: any;
 }
 
+export interface CodingAgentPendingQuestion {
+  sessionId: string;
+  requestId: string;
+  turnId?: string | null;
+  toolUseId?: string | null;
+  binding?: unknown;
+  receivedAt?: string;
+  expiresAt?: number | null;
+}
+
 export interface CodingAgentToolDescriptor {
   name: string;
   description: string;
@@ -297,6 +307,7 @@ export interface CodingAgentSessionState {
   updatedAt?: string;
   history?: Array<{ role: string; content: string }>;
   pendingRequests?: string[];
+  pendingQuestions?: CodingAgentPendingQuestion[];
   lastPlanSummary?: string | null;
   lastPlanItems?: any[];
   planModeState?: string | null;
@@ -388,9 +399,19 @@ export interface CodingAgentAPI {
     scope?: "project" | "local" | "user";
   }): Promise<any>;
   sendMessage(payload: { sessionId: string; content: string }): Promise<any>;
+  respondQuestion(payload: {
+    sessionId: string;
+    requestId: string | number;
+    turnId?: string | null;
+    toolUseId?: string | null;
+    action: "accept" | "decline" | "cancel";
+    answer?: any;
+  }): Promise<any>;
   respondElicitation(payload: {
     sessionId: string;
     requestId: string | number;
+    turnId?: string | null;
+    toolUseId?: string | null;
     action: "accept" | "decline" | "cancel";
     answer?: any;
   }): Promise<any>;

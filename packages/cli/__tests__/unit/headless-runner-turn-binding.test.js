@@ -119,13 +119,17 @@ describe("headless-runner — turn→checkpoint binding feed + persistence", () 
     expect(last.turns[0].childAgentIds).toEqual(["sub-fg-1"]);
   });
 
-  it("a tool-free persisted turn writes no binding event (dirty-gated)", async () => {
+  it("a tool-free persisted turn writes an explicit full-coverage binding", async () => {
     const { deps, appended } = makeDeps();
     deps.agentLoop = loopWith([]);
 
     await runAgentHeadless({ prompt: "hi", resume: "sess-T" }, deps);
 
-    expect(bindingSnapshots(appended)).toHaveLength(0);
+    const snapshots = bindingSnapshots(appended);
+    expect(snapshots).toHaveLength(1);
+    const turn = TurnBindingLog.fromJSON(snapshots[0].data).list()[0];
+    expect(turn.coverage).toBe("full");
+    expect(turn.toolCallIds).toEqual([]);
   });
 
   it("a non-persisted one-shot run writes nothing even with tools", async () => {
@@ -177,5 +181,23 @@ describe("headless-runner — turn→checkpoint binding feed + persistence", () 
     expect(last.turns[0].turnId).toBe("old:t0");
     expect(last.turns[0].toolCallIds).toEqual(["old:c0"]);
     expect(last.turns[1].toolCallIds).toHaveLength(1);
+  });
+
+  it("fails the run when a critical turn-binding snapshot cannot persist", async () => {
+    const { deps } = makeDeps();
+    deps.agentLoop = loopWith([]);
+    deps.appendEvent = (_id, type) => {
+      if (type === TURN_BINDING_EVENT) {
+        throw new Error("binding lock unavailable");
+      }
+    };
+
+    const outcome = await runAgentHeadless(
+      { prompt: "read-only answer", resume: "sess-T" },
+      deps,
+    );
+
+    expect(outcome.exitCode).toBe(1);
+    expect(outcome.result).toMatch(/binding lock unavailable/);
   });
 });
