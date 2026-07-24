@@ -6,11 +6,13 @@
 const { logger } = require("../utils/logger.js");
 const fs = require("fs").promises;
 const path = require("path");
-const { spawn } = require("child_process");
+const { spawnWithDesktopBroker } = require("../process/desktop-process-broker");
 
 class DataScienceToolsHandler {
-  constructor() {
+  constructor({ fsPromises = fs, spawnProcess = spawnWithDesktopBroker } = {}) {
     this.name = "DataScienceToolsHandler";
+    this.fs = fsPromises;
+    this.spawnProcess = spawnProcess;
   }
 
   /**
@@ -25,10 +27,14 @@ class DataScienceToolsHandler {
       );
 
       // 写入脚本
-      fs.writeFile(tmpScript, scriptContent, "utf-8")
+      this.fs
+        .writeFile(tmpScript, scriptContent, "utf-8")
         .then(() => {
           // 执行Python脚本
-          const python = spawn("python", [tmpScript, ...args]);
+          const python = this.spawnProcess("python", [tmpScript, ...args], {
+            windowsHide: true,
+            origin: "desktop:data-science-python",
+          });
 
           let stdout = "";
           let stderr = "";
@@ -43,7 +49,7 @@ class DataScienceToolsHandler {
 
           python.on("close", (code) => {
             // 删除临时文件
-            fs.unlink(tmpScript).catch(console.error);
+            this.fs.unlink(tmpScript).catch(console.error);
 
             if (code === 0) {
               resolve({ stdout, stderr });
@@ -190,7 +196,7 @@ print(json.dumps(result))
       // 如果提供了数据源文件，先读取数据
       let chartData = data;
       if (dataSource && !data) {
-        const fileContent = await fs.readFile(dataSource, "utf-8");
+        const fileContent = await this.fs.readFile(dataSource, "utf-8");
         // 简单的CSV解析
         const lines = fileContent.split("\n").filter((l) => l.trim());
         const headers = lines[0].split(",");
@@ -398,7 +404,7 @@ result = {
 print(json.dumps(result))
 `;
 
-      await fs.writeFile(scriptPath, pythonScript, "utf-8");
+      await this.fs.writeFile(scriptPath, pythonScript, "utf-8");
 
       const { stdout } = await this.executePythonScript(pythonScript);
       const result = JSON.parse(stdout.trim());
