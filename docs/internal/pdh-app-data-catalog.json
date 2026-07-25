@@ -1197,10 +1197,9 @@
       "display": "腾讯视频",
       "category": "媒体/阅读",
       "version": "0.1.0",
-      "extractMode": "web-api",
+      "extractMode": "file-import",
       "capabilities": [
         "sync:snapshot",
-        "sync:cookie-api",
         "parse:tencent-video-watch",
         "parse:tencent-video-favourite"
       ],

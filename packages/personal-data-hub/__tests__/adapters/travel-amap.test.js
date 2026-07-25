@@ -16,7 +16,7 @@ function writeTmpDb() {
   // sync() only checks fs.existsSync before handing the path to the
   // injected driver — content is irrelevant for the fake.
   const p = path.join(os.tmpdir(), `cc-amap-test-${crypto.randomUUID()}.db`);
-  fs.writeFileSync(p, "fake");
+  fs.writeFileSync(p, Buffer.from("SQLite format 3\0fixture"));
   return p;
 }
 
@@ -78,23 +78,83 @@ describe("constants", () => {
 });
 
 describe("authenticate", () => {
-  it("ready mode when no db path", async () => {
+  it("reports NO_INPUT when no snapshot path is provided", async () => {
     const a = new AmapAdapter();
-    expect(await a.authenticate({})).toEqual({
-      ok: true,
-      account: null,
-      mode: "ready",
+    expect(await a.authenticate({})).toMatchObject({
+      ok: false,
+      reason: "NO_INPUT",
     });
   });
 
-  it("snapshot-file mode when dbPath exists", async () => {
+  it.each(["inputPath", "dataPath", "dbPath"])(
+    "accepts an existing SQLite snapshot via %s",
+    async (pathOption) => {
+      const p = writeTmpDb();
+      try {
+        const a = new AmapAdapter({ account: { deviceId: "DEV1" } });
+        expect(await a.authenticate({ [pathOption]: p })).toEqual({
+          ok: true,
+          account: "DEV1",
+          mode: "snapshot-file",
+        });
+      } finally {
+        fs.unlinkSync(p);
+      }
+    },
+  );
+
+  it("rejects a missing snapshot file", async () => {
+    const a = new AmapAdapter();
+    expect(
+      await a.authenticate({
+        inputPath: path.join(os.tmpdir(), "nonexistent-amap-auth.db"),
+      }),
+    ).toMatchObject({
+      ok: false,
+      reason: "INPUT_PATH_UNREADABLE",
+    });
+  });
+
+  it("rejects a regular file without the SQLite magic header", async () => {
+    const p = path.join(
+      os.tmpdir(),
+      `cc-amap-invalid-${crypto.randomUUID()}.db`,
+    );
+    fs.writeFileSync(p, "not a sqlite database");
+    try {
+      const a = new AmapAdapter();
+      expect(await a.authenticate({ inputPath: p })).toMatchObject({
+        ok: false,
+        reason: "SNAPSHOT_SCHEMA_MISMATCH",
+      });
+      expect(await a.healthCheck({ inputPath: p })).toMatchObject({
+        ok: false,
+        reason: "SNAPSHOT_SCHEMA_MISMATCH",
+      });
+    } finally {
+      fs.unlinkSync(p);
+    }
+  });
+});
+
+describe("healthCheck", () => {
+  it("delegates its no-input result to authenticate", async () => {
+    const a = new AmapAdapter();
+    expect(await a.healthCheck({})).toMatchObject({
+      ok: false,
+      reason: "NO_INPUT",
+      error: expect.stringContaining("inputPath/dataPath"),
+      lastChecked: expect.any(Number),
+    });
+  });
+
+  it("passes a valid runtime snapshot file", async () => {
     const p = writeTmpDb();
     try {
-      const a = new AmapAdapter({ account: { deviceId: "DEV1" } });
-      expect(await a.authenticate({ dbPath: p })).toEqual({
+      const a = new AmapAdapter();
+      expect(await a.healthCheck({ dataPath: p })).toMatchObject({
         ok: true,
-        account: "DEV1",
-        mode: "snapshot-file",
+        lastChecked: expect.any(Number),
       });
     } finally {
       fs.unlinkSync(p);
@@ -179,12 +239,21 @@ describe("sync — fake sqlite driver", () => {
     }
   });
 
-  it("returns silently when db file missing", async () => {
+  it("throws instead of reporting a successful empty run without input", async () => {
+    const a = new AmapAdapter({
+      dbDriverFactory: makeFakeDriverFactory({}),
+    });
+    await expect(collect(a.sync({}))).rejects.toThrow(/inputPath\/dataPath/);
+  });
+
+  it("rejects a missing db file", async () => {
     const a = new AmapAdapter({
       dbPath: path.join(os.tmpdir(), "nonexistent-amap.db"),
       dbDriverFactory: makeFakeDriverFactory({}),
     });
-    expect(await collect(a.sync({}))).toEqual([]);
+    await expect(collect(a.sync({}))).rejects.toThrow(
+      /snapshot file is unavailable or unreadable/,
+    );
   });
 });
 

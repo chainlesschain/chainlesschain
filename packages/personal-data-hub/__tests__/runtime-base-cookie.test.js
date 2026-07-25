@@ -36,7 +36,13 @@ const CASES = [
   },
   {
     name: "video-tencent",
-    create: (fetchFn, account) => new TencentVideoAdapter({ fetchFn, account }),
+    create: (fetchFn, account) =>
+      new TencentVideoAdapter({
+        fetchFn: fetchFn || (async () => ({ data: { list: [] } })),
+        account,
+        watchUrl: "https://video.example.test/GetHistory",
+        favouriteUrl: "https://video.example.test/GetFavorite",
+      }),
     sourceRequestCount: 3,
     response: ({ url, query }, suffix) => ({
       data: {

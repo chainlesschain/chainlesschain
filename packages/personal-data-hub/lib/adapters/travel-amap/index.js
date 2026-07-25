@@ -16,10 +16,15 @@
 "use strict";
 
 const fs = require("node:fs");
-const { normalizeTravelRecord, parseChineseDateTime } = require("../travel-base");
+const { probeSnapshotFile } = require("../../snapshot-file");
+const {
+  normalizeTravelRecord,
+  parseChineseDateTime,
+} = require("../travel-base");
 
 const NAME = "travel-amap";
 const VERSION = "0.7.0";
+const SQLITE_MAGIC = Buffer.from("SQLite format 3\0", "ascii");
 
 class AmapAdapter {
   constructor(opts = {}) {
@@ -29,7 +34,7 @@ class AmapAdapter {
     // ctor blocked auto-register at boot → silent "no adapter travel-amap"
     // when Android collector ships extracted db.
     this.account = opts.account || null;
-    this._dbPath = opts.dbPath || opts.inputPath || null;
+    this._dbPath = opts.inputPath || opts.dataPath || opts.dbPath || null;
     this._dbDriverFactory = opts.dbDriverFactory || null;
 
     this.name = NAME;
@@ -55,29 +60,81 @@ class AmapAdapter {
   }
 
   async authenticate(ctx = {}) {
-    const dbPath = (ctx && (ctx.inputPath || ctx.dbPath)) || this._dbPath;
-    if (!dbPath || !fs.existsSync(dbPath)) {
-      return { ok: true, account: this.account ? this.account.deviceId : null, mode: "ready" };
+    const dbPath =
+      (ctx && (ctx.inputPath || ctx.dataPath || ctx.dbPath)) || this._dbPath;
+    if (!dbPath) {
+      return {
+        ok: false,
+        reason: "NO_INPUT",
+        message:
+          "travel-amap.authenticate: needs opts.inputPath/dataPath (pre-pulled Amap SQLite snapshot)",
+      };
     }
-    return { ok: true, account: this.account ? this.account.deviceId : null, mode: "snapshot-file" };
+    const probe = probeSnapshotFile(fs, dbPath, {
+      maxBytes: ctx && ctx.maxSnapshotBytes,
+    });
+    if (!probe.ok) {
+      return probe;
+    }
+    if (!hasSqliteMagic(fs, dbPath)) {
+      return {
+        ok: false,
+        reason: "SNAPSHOT_SCHEMA_MISMATCH",
+        message: "travel-amap snapshot is not a SQLite database",
+      };
+    }
+    return {
+      ok: true,
+      account: this.account ? this.account.deviceId : null,
+      mode: "snapshot-file",
+    };
   }
 
-  async healthCheck() {
-    return { ok: true, lastChecked: Date.now() };
+  async healthCheck(opts = {}) {
+    const result = await this.authenticate(opts);
+    return result.ok
+      ? { ok: true, lastChecked: Date.now() }
+      : {
+          ok: false,
+          reason: result.reason,
+          error: result.error || result.message,
+          lastChecked: Date.now(),
+        };
   }
 
   async *sync(opts = {}) {
-    const dbPath = opts.inputPath || opts.dbPath || this._dbPath;
-    if (!dbPath || !fs.existsSync(dbPath)) return;
-    const Database = this._dbDriverFactory || (() => require("better-sqlite3-multiple-ciphers"));
+    const dbPath =
+      opts.inputPath || opts.dataPath || opts.dbPath || this._dbPath;
+    if (!dbPath) {
+      throw new Error(
+        "travel-amap.sync: needs opts.inputPath/dataPath (pre-pulled Amap SQLite snapshot)",
+      );
+    }
+    const probe = probeSnapshotFile(fs, dbPath, {
+      maxBytes: opts.maxSnapshotBytes,
+    });
+    if (!probe.ok) {
+      throw new Error(`travel-amap.sync: ${probe.message || probe.reason}`);
+    }
+    if (!hasSqliteMagic(fs, dbPath)) {
+      const error = new Error(
+        "travel-amap.sync: snapshot is not a SQLite database",
+      );
+      error.code = "SNAPSHOT_SCHEMA_MISMATCH";
+      throw error;
+    }
+    const Database =
+      this._dbDriverFactory ||
+      (() => require("better-sqlite3-multiple-ciphers"));
     const Driver = typeof Database === "function" ? Database() : Database;
     const db = new Driver(dbPath, { readonly: true });
 
     try {
       // History routes (most analytically valuable)
-      const routes = trySelect(db, "SELECT * FROM history_route LIMIT 5000")
-        || trySelect(db, "SELECT * FROM ROUTE_HISTORY LIMIT 5000")
-        || [];
+      const routes =
+        trySelect(db, "SELECT * FROM history_route LIMIT 5000") ||
+        trySelect(db, "SELECT * FROM ROUTE_HISTORY LIMIT 5000") ||
+        [];
       for (const r of routes) {
         const rec = routeRowToRecord(r);
         if (rec) {
@@ -90,7 +147,8 @@ class AmapAdapter {
         }
       }
       // History search (queries — produce trip events of type "visit")
-      const searches = trySelect(db, "SELECT * FROM history_search LIMIT 5000") || [];
+      const searches =
+        trySelect(db, "SELECT * FROM history_search LIMIT 5000") || [];
       for (const r of searches) {
         const rec = searchRowToRecord(r);
         if (rec) {
@@ -119,7 +177,11 @@ class AmapAdapter {
         }
       }
     } finally {
-      try { db.close(); } catch (_e) {}
+      try {
+        db.close();
+      } catch {
+        // Best-effort close; preserve the primary sync result or error.
+      }
     }
   }
 
@@ -134,10 +196,33 @@ class AmapAdapter {
   }
 }
 
+function hasSqliteMagic(fsImpl, filePath) {
+  let descriptor;
+  try {
+    const readOnly = Number(fsImpl.constants && fsImpl.constants.O_RDONLY) || 0;
+    const noFollow =
+      Number(fsImpl.constants && fsImpl.constants.O_NOFOLLOW) || 0;
+    descriptor = fsImpl.openSync(filePath, readOnly | noFollow);
+    const header = Buffer.alloc(SQLITE_MAGIC.length);
+    const bytesRead = fsImpl.readSync(descriptor, header, 0, header.length, 0);
+    return bytesRead === header.length && header.equals(SQLITE_MAGIC);
+  } catch {
+    return false;
+  } finally {
+    if (descriptor !== undefined) {
+      try {
+        fsImpl.closeSync(descriptor);
+      } catch {
+        // best-effort close
+      }
+    }
+  }
+}
+
 function trySelect(db, sql) {
   try {
     return db.prepare(sql).all();
-  } catch (_e) {
+  } catch {
     return null;
   }
 }
@@ -149,9 +234,17 @@ function routeRowToRecord(row) {
   return {
     vendorId: "amap",
     recordId: `route-${id}`,
-    vehicleType: row.mode === "drive" ? "car" : (row.mode || "trip"),
-    from: { name: row.from_name || row.fromName || row.start, lat: row.from_lat || null, lng: row.from_lng || null },
-    to: { name: row.to_name || row.toName || row.dest, lat: row.to_lat || null, lng: row.to_lng || null },
+    vehicleType: row.mode === "drive" ? "car" : row.mode || "trip",
+    from: {
+      name: row.from_name || row.fromName || row.start,
+      lat: row.from_lat || null,
+      lng: row.from_lng || null,
+    },
+    to: {
+      name: row.to_name || row.toName || row.dest,
+      lat: row.to_lat || null,
+      lng: row.to_lng || null,
+    },
     departureMs: numberOrParse(row.time || row.create_time || row.start_time),
     carrier: "高德地图",
     extras: { mode: row.mode },
@@ -167,7 +260,12 @@ function searchRowToRecord(row) {
     vendorId: "amap",
     recordId: `search-${id}`,
     vehicleType: "visit",
-    to: { name: row.keyword || row.query || row.poiname, lat: row.lat || null, lng: row.lng || null, city: row.city },
+    to: {
+      name: row.keyword || row.query || row.poiname,
+      lat: row.lat || null,
+      lng: row.lng || null,
+      city: row.city,
+    },
     departureMs: numberOrParse(row.time || row.create_time),
     carrier: "高德地图",
     extras: { query: row.keyword || row.query },
@@ -178,7 +276,8 @@ function favouriteRowToRecord(row) {
   if (!row) return null;
   const id = row.id || row._id || row.guid || row.poi_id || row.poiid;
   if (!id) return null;
-  const name = row.name || row.title || row.poiname || row.poi_name || row.address;
+  const name =
+    row.name || row.title || row.poiname || row.poi_name || row.address;
   if (!name) return null;
   return {
     vendorId: "amap",
@@ -213,12 +312,12 @@ function numberOrNull(v) {
 function numberOrParse(v) {
   if (Number.isFinite(v)) {
     // Amap timestamps are sometimes seconds — heuristic upgrade to ms
-    return v > 1e12 ? v : (v > 1e10 ? v : v * 1000);
+    return v > 1e12 ? v : v > 1e10 ? v : v * 1000;
   }
   if (typeof v === "string") {
     if (/^\d+$/.test(v)) {
       const n = parseInt(v, 10);
-      return n > 1e12 ? n : (n > 1e10 ? n : n * 1000);
+      return n > 1e12 ? n : n > 1e10 ? n : n * 1000;
     }
     return parseChineseDateTime(v);
   }

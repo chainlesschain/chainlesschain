@@ -29,6 +29,7 @@ const { Train12306Adapter } = require("../lib/adapters/travel-12306");
 const { CtripAdapter } = require("../lib/adapters/travel-ctrip");
 const { TongchengAdapter } = require("../lib/adapters/travel-tongcheng");
 const { DidiAdapter } = require("../lib/adapters/travel-didi");
+const { AmapAdapter } = require("../lib/adapters/travel-amap");
 const { EmailAdapter } = require("../lib/adapters/email-imap");
 const { TencentDocsAdapter } = require("../lib/adapters/doc-tencent-docs");
 const {
@@ -88,6 +89,25 @@ describe("AdapterRegistry.readiness()", () => {
     expect(r.message.length).toBeGreaterThan(0);
     expect(r.actionHint).toBeTruthy();
     expect(r.capabilities).toEqual(expect.arrayContaining(["sync:snapshot"]));
+  });
+
+  it("Amap requires a selected SQLite snapshot instead of reporting ready", async () => {
+    const reg = new AdapterRegistry({ vault: stubVault() });
+    reg.register(new AmapAdapter());
+
+    const [result] = await reg.readiness();
+
+    expect(result).toMatchObject({
+      name: "travel-amap",
+      ready: false,
+      status: READINESS_STATUS.NEEDS_SETUP,
+      reason: "NO_INPUT",
+      category: READINESS_CATEGORY.SNAPSHOT,
+      mode: null,
+    });
+    expect(result.capabilities).toEqual(
+      expect.arrayContaining(["sync:snapshot", "sync:sqlite"]),
+    );
   });
 
   it("list and readiness expose collection-routing metadata", async () => {
@@ -191,6 +211,20 @@ describe("AdapterRegistry.readiness()", () => {
       expect(r.category).toBe(READINESS_CATEGORY.CREDENTIAL);
       expect(r.actionHint).toMatch(/HTTPS.*official/i);
     }
+  });
+
+  it.each([
+    "NO_ACCESS_TOKEN",
+    "INVALID_ACCESS_TOKEN",
+    "NO_DRIVE_ID",
+    "INCOMPLETE_KSO1_CREDENTIALS",
+    "INVALID_DIRECTORY",
+  ])("maps OAuth setup reason %s to actionable credential setup", (reason) => {
+    const result = describeReadiness(reason);
+    expect(result.status).toBe(READINESS_STATUS.NEEDS_SETUP);
+    expect(result.category).toBe(READINESS_CATEGORY.CREDENTIAL);
+    expect(result.message).not.toMatch(/未知原因/u);
+    expect(result.actionHint).toBeTruthy();
   });
 
   it("maps unverified SQLite schemas to snapshot setup instead of ready", () => {

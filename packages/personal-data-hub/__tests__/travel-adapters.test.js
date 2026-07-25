@@ -434,7 +434,7 @@ describe("AmapAdapter", () => {
   it("sync yields route + search + favourite records via mocked driver", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "amap-"));
     const dbPath = path.join(dir, "amap.db");
-    fs.writeFileSync(dbPath, "fake");
+    fs.writeFileSync(dbPath, Buffer.from("SQLite format 3\0fixture"));
 
     const mockDriver = function (path, opts) {
       return {

@@ -2,10 +2,9 @@
  * §13+ — 腾讯视频 (Tencent Video, com.tencent.qqlive) adapter. §12.1 Phase 13+
  * ROI ⭐⭐ "观看历史". Thin wrapper over _video-base.
  *
- * Tencent Video exposes the user's watch history + 追剧/收藏 via v.qq.com APIs;
- * this adapter supplies the endpoints + field mapping, the base handles snapshot
- * + cookie-api orchestration + normalize. Endpoints best-effort + overridable
- * (not field-verified — FAMILY-23 playbook).
+ * No field-verified Tencent Video history endpoint is currently shipped.
+ * Snapshot import is the default product path. Integrators may explicitly
+ * provide both endpoints and a transport through the constructor seam.
  */
 
 "use strict";
@@ -19,11 +18,6 @@ const { extractRecognizedArray } = require("../../source-page");
 
 const NAME = "video-tencent";
 const VERSION = "0.1.0";
-
-const WATCH_URL =
-  "https://pbaccess.video.qq.com/trpc.v...history.HistoryServer/GetHistory";
-const FAVOURITE_URL =
-  "https://pbaccess.video.qq.com/trpc.v...favorite.FavoriteServer/GetFavorite";
 
 const TYPE_MAP = {
   1: "tv",
@@ -91,8 +85,7 @@ const TencentVideoAdapter = createVideoAdapter({
   NAME,
   VERSION,
   platform: "tencent-video",
-  watchUrl: WATCH_URL,
-  favouriteUrl: FAVOURITE_URL,
+  customCookieApiOnly: true,
   extractItems,
   mapItem,
 });

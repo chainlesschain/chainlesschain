@@ -75,7 +75,7 @@
 | 番茄小说 | `reading-fanqie` | file-import | snapshot            | low    | fanqie:read (书名 / 作者 / 分类 / 进度); fanqie:favourite (收藏的书)                                           |
 | 七猫小说 | `reading-qimao`  | file-import | snapshot            | low    | qimao:read (书名 / 作者 / 分类 / 进度); qimao:favourite (收藏的书)                                             |
 | 爱奇艺   | `video-iqiyi`    | web-api     | snapshot/cookie-api | low    | iqiyi:watch (title / category / episode / channel); iqiyi:favourite (title / category)                         |
-| 腾讯视频 | `video-tencent`  | web-api     | snapshot/cookie-api | low    | tencent-video:watch (title / category / episode / channel); tencent-video:favourite (title / category)         |
+| 腾讯视频 | `video-tencent`  | file-import | snapshot            | low    | tencent-video:watch (title / category / episode / channel); tencent-video:favourite (title / category)         |
 | 西瓜视频 | `video-xigua`    | web-api     | snapshot/cookie-api | low    | xigua:watch (title / category / episode / channel); xigua:favourite (title / category)                         |
 
 ## 分类: 工作/会议（1）

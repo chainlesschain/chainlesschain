@@ -66,6 +66,34 @@ describe("pdhCollectionMode", () => {
     expect(resolveCollectionMode(alipayBill)).toBe("file");
   });
 
+  it("routes the default Tencent Video adapter to snapshot import", () => {
+    const tencentVideo = catalog.adapters.find(
+      (adapter) => adapter.name === "video-tencent",
+    );
+
+    expect(tencentVideo.extractMode).toBe("file-import");
+    expect(tencentVideo.capabilities).toContain("sync:snapshot");
+    expect(tencentVideo.capabilities).not.toContain("sync:cookie-api");
+    expect(tencentVideo.capabilities).not.toContain("sync:custom-cookie-api");
+    expect(resolveCollectionMode(tencentVideo)).toBe("file");
+  });
+
+  it("routes Amap NO_INPUT readiness to the file collection flow", () => {
+    const amap = {
+      name: "travel-amap",
+      ready: false,
+      reason: "NO_INPUT",
+      extractMode: "device-pull",
+      capabilities: ["sync:snapshot", "sync:sqlite"],
+    };
+
+    expect(resolveCollectionMode(amap)).toBe("file");
+    expect(collectionActionLabel(amap)).toBe(
+      "\u{1f4c2} \u9009\u62e9\u6587\u4ef6\u91c7\u96c6",
+    );
+    expect(collectionButtonLabel(amap)).toBe("\u{1f4c2} \u91c7\u96c6");
+  });
+
   it("routes Tencent Docs exports to a directory picker before its snapshot fallback", () => {
     const tencentDocs = catalog.adapters.find(
       (adapter) => adapter.name === "doc-tencent-docs",

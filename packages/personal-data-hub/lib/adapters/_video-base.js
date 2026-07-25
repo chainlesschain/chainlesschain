@@ -85,6 +85,7 @@ function createVideoAdapter(config) {
     platform,
     watchUrl,
     favouriteUrl,
+    customCookieApiOnly = false,
     extractItems,
     mapItem,
   } = config;
@@ -116,13 +117,30 @@ function createVideoAdapter(config) {
         opts.account && opts.account.cookies
           ? new CookieAuth({ platform, cookies: opts.account.cookies })
           : null;
-      this._fetchFn =
-        typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
+      const hasCustomTransport = typeof opts.fetchFn === "function";
+      const resolvedWatchUrl = normalizeEndpoint(
+        customCookieApiOnly ? opts.watchUrl : opts.watchUrl || watchUrl,
+        `${NAME} watch`,
+      );
+      const resolvedFavouriteUrl = normalizeEndpoint(
+        customCookieApiOnly
+          ? opts.favouriteUrl
+          : opts.favouriteUrl || favouriteUrl,
+        `${NAME} favourite`,
+      );
+      this._customCookieApiConfigured =
+        customCookieApiOnly &&
+        hasCustomTransport &&
+        Boolean(resolvedWatchUrl) &&
+        Boolean(resolvedFavouriteUrl);
+      this._liveApiConfigured =
+        !customCookieApiOnly || this._customCookieApiConfigured;
+      this._fetchFn = hasCustomTransport ? opts.fetchFn : defaultFetch;
       this._signProvider =
         typeof opts.signProvider === "function" ? opts.signProvider : null;
       this._urls = {
-        watch: opts.watchUrl || watchUrl,
-        favourite: opts.favouriteUrl || favouriteUrl,
+        watch: resolvedWatchUrl,
+        favourite: resolvedFavouriteUrl,
       };
 
       this.name = NAME;
@@ -132,11 +150,18 @@ function createVideoAdapter(config) {
       this.watermarkRequiresCompleteScan = true;
       this.capabilities = [
         "sync:snapshot",
-        "sync:cookie-api",
+        ...(customCookieApiOnly
+          ? this._customCookieApiConfigured
+            ? ["sync:custom-cookie-api"]
+            : []
+          : ["sync:cookie-api"]),
         `parse:${platform}-watch`,
         `parse:${platform}-favourite`,
       ];
-      this.extractMode = "web-api";
+      this.extractMode =
+        customCookieApiOnly && !this._customCookieApiConfigured
+          ? "file-import"
+          : "web-api";
       this.rateLimits = { perMinute: 30, perDay: 500 };
       this.dataDisclosure = {
         fields: [
@@ -162,6 +187,13 @@ function createVideoAdapter(config) {
           requiredArrayFields: ["events"],
           allowedEventKinds: VALID_SNAPSHOT_KINDS,
         });
+      }
+      if (!this._liveApiConfigured) {
+        return {
+          ok: false,
+          reason: "NO_INPUT",
+          message: `${NAME}.authenticate: needs opts.inputPath (snapshot mode)`,
+        };
       }
       if (hasRuntimeCookie(ctx) && !hasRuntimeAccountId(ctx)) {
         return {
@@ -215,12 +247,17 @@ function createVideoAdapter(config) {
         yield* this._syncViaSnapshot(opts);
         return;
       }
-      if (this._cookieAuth || hasRuntimeCookie(opts)) {
+      if (
+        this._liveApiConfigured &&
+        (this._cookieAuth || hasRuntimeCookie(opts))
+      ) {
         yield* this._syncViaCookie(opts);
         return;
       }
       throw new Error(
-        `${NAME}.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)`,
+        this._liveApiConfigured
+          ? `${NAME}.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)`
+          : `${NAME}.sync: needs opts.inputPath (snapshot mode)`,
       );
     }
 
@@ -279,6 +316,11 @@ function createVideoAdapter(config) {
     }
 
     async *_syncViaCookie(opts = {}) {
+      if (!this._liveApiConfigured) {
+        throw new Error(
+          `${NAME}._syncViaCookie: custom cookie API is not configured`,
+        );
+      }
       if (hasRuntimeCookie(opts) && !hasRuntimeAccountId(opts)) {
         throw new Error(
           `${NAME}._syncViaCookie: opts.accountId required for transient cookie collection`,
@@ -492,7 +534,29 @@ function hasRuntimeAccountId(opts = {}) {
   );
 }
 
-async function defaultFetch(_opts) {
+function normalizeEndpoint(value, label) {
+  if (value == null || value === "") return null;
+  if (typeof value !== "string" || value.includes("...")) {
+    throw new TypeError(`${label} endpoint must be a complete HTTPS URL`);
+  }
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new TypeError(`${label} endpoint must be a complete HTTPS URL`);
+  }
+  if (
+    parsed.protocol !== "https:" ||
+    parsed.username ||
+    parsed.password ||
+    parsed.hash
+  ) {
+    throw new TypeError(`${label} endpoint must be a complete HTTPS URL`);
+  }
+  return parsed.href;
+}
+
+async function defaultFetch() {
   throw new Error("video-base: no fetchFn configured for cookie-api mode");
 }
 

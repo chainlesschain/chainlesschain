@@ -21,6 +21,17 @@ async function collect(gen) {
 }
 
 const COOKIES = "P00001=abc; QC005=xyz";
+const TENCENT_CUSTOM_ENDPOINTS = Object.freeze({
+  watchUrl: "https://video.example.test/GetHistory",
+  favouriteUrl: "https://video.example.test/GetFavorite",
+});
+
+function createTencentLive(opts = {}) {
+  return new tv.TencentVideoAdapter({
+    ...TENCENT_CUSTOM_ENDPOINTS,
+    ...opts,
+  });
+}
 
 describe("video-iqiyi mappers", () => {
   it("name/version + mapItem (channel code → category)", () => {
@@ -68,6 +79,62 @@ describe("video-tencent mappers", () => {
     });
     expect(rec.url).toContain("v.qq.com");
     expect(tv.mapItem({ cTitle: "noid" })).toBe(null);
+  });
+
+  it("ships snapshot-only metadata without placeholder endpoints", async () => {
+    let fetchCalls = 0;
+    const adapter = new tv.TencentVideoAdapter({
+      fetchFn: async () => {
+        fetchCalls += 1;
+        return { data: { list: [] } };
+      },
+    });
+
+    expect(adapter.capabilities).toContain("sync:snapshot");
+    expect(adapter.capabilities).not.toContain("sync:cookie-api");
+    expect(adapter.capabilities).not.toContain("sync:custom-cookie-api");
+    expect(adapter.extractMode).toBe("file-import");
+    await expect(
+      adapter.authenticate({ cookie: COOKIES, accountId: "u1" }),
+    ).resolves.toMatchObject({ ok: false, reason: "NO_INPUT" });
+    await expect(
+      collect(adapter.sync({ cookie: COOKIES, accountId: "u1" })),
+    ).rejects.toThrow(/needs opts\.inputPath/u);
+    expect(fetchCalls).toBe(0);
+
+    const source = fs.readFileSync(
+      require.resolve("../../lib/adapters/video-tencent"),
+      "utf8",
+    );
+    expect(source).not.toMatch(/https?:\/\/[^\s"'`]*\.\.\./u);
+  });
+
+  it("keeps snapshot collection available in the default instance", async () => {
+    const snapshotPath = writeTmp(
+      JSON.stringify({
+        schemaVersion: 1,
+        events: [
+          {
+            kind: "watch",
+            id: "tw1",
+            videoId: "TV1",
+            title: "Snapshot video",
+          },
+        ],
+      }),
+    );
+    try {
+      const items = await collect(
+        new tv.TencentVideoAdapter().sync({ inputPath: snapshotPath }),
+      );
+      expect(items).toHaveLength(1);
+      expect(items[0]).toMatchObject({
+        kind: "watch",
+        originalId: "tencent-video:watch:tw1",
+      });
+    } finally {
+      fs.unlinkSync(snapshotPath);
+    }
   });
 });
 
@@ -169,9 +236,14 @@ describe("IqiyiVideoAdapter (via _video-base)", () => {
   });
 });
 
-describe("TencentVideoAdapter cookie-api mode", () => {
+describe("TencentVideoAdapter custom cookie-api mode", () => {
   it("authenticate cookie (userId optional)", async () => {
-    const a = new tv.TencentVideoAdapter({ account: { cookies: COOKIES } });
+    const a = createTencentLive({
+      account: { cookies: COOKIES },
+      fetchFn: async () => ({ list: [] }),
+    });
+    expect(a.capabilities).not.toContain("sync:cookie-api");
+    expect(a.capabilities).toContain("sync:custom-cookie-api");
     expect(await a.authenticate()).toEqual({
       ok: true,
       account: null,
@@ -189,7 +261,7 @@ describe("TencentVideoAdapter cookie-api mode", () => {
     };
     const calls = [];
     let watermarkComplete = false;
-    const a = new tv.TencentVideoAdapter({
+    const a = createTencentLive({
       account: { cookies: COOKIES, userId: "u1" },
       fetchFn: async ({ url, cookies, query, sign }) => {
         const k = byUrl(url);
@@ -223,7 +295,7 @@ describe("TencentVideoAdapter cookie-api mode", () => {
   it("continues past an old row while excluded/capped scans stay incomplete", async () => {
     let watermarkComplete = false;
     const mixedPages = [];
-    const mixed = new tv.TencentVideoAdapter({
+    const mixed = createTencentLive({
       account: { cookies: COOKIES },
       fetchFn: async ({ query }) => {
         mixedPages.push(query.page);
@@ -263,7 +335,7 @@ describe("TencentVideoAdapter cookie-api mode", () => {
     expect(watermarkComplete).toBe(false);
 
     watermarkComplete = false;
-    const fullPage = new tv.TencentVideoAdapter({
+    const fullPage = createTencentLive({
       account: { cookies: COOKIES },
       fetchFn: async () => ({
         data: {
@@ -296,7 +368,7 @@ describe("TencentVideoAdapter cookie-api mode", () => {
     "rejects a %s without completing the watermark",
     async (_label, response, expectedCode) => {
       let watermarkCompletions = 0;
-      const a = new tv.TencentVideoAdapter({
+      const a = createTencentLive({
         account: { cookies: COOKIES },
         fetchFn: async () => response,
       });
@@ -315,9 +387,9 @@ describe("TencentVideoAdapter cookie-api mode", () => {
     },
   );
 
-  it("invokes signProvider + limit + default fetch + no input", async () => {
+  it("invokes signProvider + limit and requires the complete custom seam", async () => {
     const signCalls = [];
-    const a = new tv.TencentVideoAdapter({
+    const a = createTencentLive({
       account: { cookies: COOKIES },
       fetchFn: async ({ query }) => ({
         list:
@@ -338,10 +410,24 @@ describe("TencentVideoAdapter cookie-api mode", () => {
     ).toHaveLength(1);
     expect(signCalls.length).toBeGreaterThan(0);
 
-    const a3 = new tv.TencentVideoAdapter({ account: { cookies: COOKIES } });
-    await expect(collect(a3.sync({}))).rejects.toThrow(/no fetchFn configured/);
+    const endpointsWithoutTransport = new tv.TencentVideoAdapter({
+      ...TENCENT_CUSTOM_ENDPOINTS,
+      account: { cookies: COOKIES },
+    });
+    expect(endpointsWithoutTransport.capabilities).not.toContain(
+      "sync:custom-cookie-api",
+    );
+    await expect(collect(endpointsWithoutTransport.sync({}))).rejects.toThrow(
+      /needs opts\.inputPath/u,
+    );
 
-    const a4 = new tv.TencentVideoAdapter();
-    await expect(collect(a4.sync({}))).rejects.toThrow(/needs opts.inputPath/);
+    expect(
+      () =>
+        new tv.TencentVideoAdapter({
+          watchUrl: "https://video.example.test/.../history",
+          favouriteUrl: TENCENT_CUSTOM_ENDPOINTS.favouriteUrl,
+          fetchFn: async () => ({ list: [] }),
+        }),
+    ).toThrow(/complete HTTPS URL/u);
   });
 });
