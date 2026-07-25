@@ -124,12 +124,16 @@ describe("QQAdapter snapshot mode", () => {
         },
         {
           kind: "message",
-          id: "msg-m1",
+          id: "msg-9007199254740993123",
           capturedAt: now - 3000,
-          msgId: "m1",
-          msgType: -1000,
-          senderUin: "99999",
-          peerUin: "12345",
+          msgId: "9007199254740993123",
+          sequence: "3003",
+          msgType: 11,
+          senderUid: "u_sender_from_40020",
+          peerUin: "peer-from-40021",
+          senderType: 30,
+          senderUin: "400330033",
+          readState: 40,
           isGroup: false,
           isSend: false,
           text: "你好",
@@ -147,7 +151,8 @@ describe("QQAdapter snapshot mode", () => {
     // Each originalId namespaced under qq:<kind>:<id>
     expect(raws[0].originalId).toMatch(/^qq:contact:/);
     expect(raws[1].originalId).toMatch(/^qq:group:/);
-    expect(raws[2].originalId).toMatch(/^qq:message:/);
+    expect(raws[2].originalId).toBe("qq:message:msg-9007199254740993123");
+    expect(raws[2].payload.msgId).toBe("9007199254740993123");
 
     // Normalize each + validate
     for (const raw of raws) {
@@ -172,8 +177,15 @@ describe("QQAdapter snapshot mode", () => {
     const msgBatch = a.normalize(raws[2]);
     expect(msgBatch.events.length).toBe(1);
     expect(msgBatch.events[0].subtype).toBe("message");
-    expect(msgBatch.events[0].extra.peerUin).toBe("12345");
-    expect(msgBatch.events[0].extra.senderUin).toBe("99999");
+    expect(msgBatch.events[0].source.originalId).toBe(
+      "qq:message:msg-9007199254740993123",
+    );
+    expect(msgBatch.events[0].extra.peerUin).toBe("peer-from-40021");
+    expect(msgBatch.events[0].extra.senderUin).toBe("400330033");
+    expect(msgBatch.events[0].extra.sequence).toBe("3003");
+    expect(msgBatch.events[0].extra.senderUid).toBe("u_sender_from_40020");
+    expect(msgBatch.events[0].extra.senderType).toBe(30);
+    expect(msgBatch.events[0].extra.readState).toBe(40);
     expect(msgBatch.events[0].extra.isGroup).toBe(false);
     expect(msgBatch.events[0].extra.isSend).toBe(false);
     expect(msgBatch.events[0].content.text).toBe("你好");

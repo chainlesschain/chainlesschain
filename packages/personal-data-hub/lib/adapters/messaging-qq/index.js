@@ -499,7 +499,8 @@ function normalizeGroup(p, raw, ingestedAt) {
 }
 
 function normalizeMessage(p, raw, ingestedAt) {
-  // Snapshot: { msgId, msgType, senderUin, peerUin, isGroup, isSend, text, capturedAt }
+  // Snapshot: { msgId, sequence, msgType, senderUid, senderType, senderUin,
+  //             peerUin, readState, isGroup, isSend, text, capturedAt }
   // Sqlite:   { msgId, msgType, senderUin, peerUin, isGroup, isSend, text, _table }
   const text = p.text || "";
   const occurredAt = parseTime(p.capturedAt) || raw.capturedAt || ingestedAt;
@@ -522,6 +523,10 @@ function normalizeMessage(p, raw, ingestedAt) {
           platform: "qq",
           peerUin: p.peerUin || null,
           senderUin: p.senderUin || null,
+          sequence: p.sequence != null ? String(p.sequence) : null,
+          senderUid: p.senderUid != null ? String(p.senderUid) : null,
+          senderType: Number.isFinite(p.senderType) ? p.senderType : null,
+          readState: Number.isFinite(p.readState) ? p.readState : null,
           isGroup: !!p.isGroup,
           isSend: !!p.isSend,
           msgType: p.msgType != null ? p.msgType : null,
