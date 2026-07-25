@@ -66,6 +66,7 @@ const {
   canonicalQqGroupOriginalId,
   canonicalQqNtOriginalId,
   canonicalQqPersonOriginalId,
+  createQqAccountScope,
 } = require("../../qq-source-identity");
 
 const NAME = "messaging-qq";
@@ -157,6 +158,9 @@ class QQAdapter {
 
     this.name = NAME;
     this.version = VERSION;
+    this.scopeNamespace = "qq";
+    this.snapshotScopeIdentityFields = ["qq"];
+    this.snapshotScopeIdentityIncludesField = false;
     this.capabilities = [
       "sync:snapshot",
       "sync:sqlite",
@@ -231,6 +235,16 @@ class QQAdapter {
 
   async healthCheck() {
     return { ok: true, lastChecked: Date.now() };
+  }
+
+  resolveDefaultScope(options = {}) {
+    return createQqAccountScope(
+      options.qqUin ||
+        options.qq ||
+        options.account?.qq ||
+        this.account?.qq ||
+        null,
+    );
   }
 
   async *sync(opts = {}) {

@@ -2796,6 +2796,16 @@ class AdapterRegistry {
           // The adapter health/sync path owns the user-facing parse error.
         }
       }
+      if (adapter && typeof adapter.resolveInputScope === "function") {
+        try {
+          const resolved = adapter.resolveInputScope(options);
+          if (typeof resolved === "string" && resolved.length > 0) {
+            return resolved;
+          }
+        } catch {
+          // Authentication/health checks own invalid input diagnostics.
+        }
+      }
       return "";
     }
 
@@ -2874,7 +2884,12 @@ class AdapterRegistry {
   }
 
   _scopeFromSnapshot(adapter, snapshot) {
-    return createAccountScopeFromSnapshot(adapter.name, snapshot, {
+    const namespace =
+      typeof adapter.scopeNamespace === "string" &&
+      adapter.scopeNamespace.length > 0
+        ? adapter.scopeNamespace
+        : adapter.name;
+    return createAccountScopeFromSnapshot(namespace, snapshot, {
       identityFields: adapter.snapshotScopeIdentityFields,
       topLevelFields: adapter.snapshotScopeTopLevelFields,
       includeField: adapter.snapshotScopeIdentityIncludesField,

@@ -6,6 +6,8 @@ const {
   canonicalQqGroupOriginalId,
   canonicalQqNtOriginalId,
   canonicalQqPersonOriginalId,
+  createQqAccountScope,
+  createQqPathScope,
   exactDecimalIdentifier,
 } = require("../lib/qq-source-identity");
 
@@ -58,5 +60,16 @@ describe("QQ canonical source identity", () => {
     expect(canonicalQqGroupOriginalId("20002")).toBe("group-qq-20002");
     expect(canonicalQqPersonOriginalId("unknown")).toBeNull();
     expect(canonicalQqGroupOriginalId("group-1")).toBeNull();
+  });
+
+  it("creates privacy-preserving account and path fallback scopes", () => {
+    const accountScope = createQqAccountScope("10001");
+    const pathScope = createQqPathScope("C:\\QQ\\nt_msg.db");
+    expect(accountScope).toMatch(/^account:qq:[0-9a-f]{32}$/u);
+    expect(pathScope).toMatch(/^account:qq-pc-profile:[0-9a-f]{32}$/u);
+    expect(accountScope).not.toContain("10001");
+    expect(pathScope).not.toContain("nt_msg");
+    expect(createQqAccountScope("u_not-a-uin")).toBeNull();
+    expect(createQqPathScope("")).toBeNull();
   });
 });

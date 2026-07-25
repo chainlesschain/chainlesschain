@@ -18,6 +18,7 @@
  */
 
 const fs = require("node:fs");
+const path = require("node:path");
 const { newId } = require("../../ids");
 const {
   ENTITY_TYPES,
@@ -29,6 +30,8 @@ const {
   C2C_MESSAGE_TABLE,
   GROUP_MESSAGE_TABLE,
   canonicalQqNtOriginalId,
+  createQqAccountScope,
+  createQqPathScope,
 } = require("../../qq-source-identity");
 
 const NAME = "qq-pc";
@@ -62,9 +65,12 @@ class QQPcAdapter {
     // QQ NT passphrase (16-char ASCII from qq-win-db-key). When present, sync
     // routes through the Python sidecar (decrypt + protobuf parse).
     this._passphrase = opts.passphrase || null;
+    this.account = opts.account || null;
+    this._qqUin = opts.qqUin || opts.qq || this.account?.qq || null;
 
     this.name = NAME;
     this.version = VERSION;
+    this.scopeNamespace = "qq";
     this.capabilities = [
       "sync:sqlite",
       "decrypt:sqlcipher-qqnt",
@@ -163,6 +169,19 @@ class QQPcAdapter {
 
   async healthCheck() {
     return { ok: true, lastChecked: Date.now() };
+  }
+
+  resolveDefaultScope(options = {}) {
+    const accountScope = createQqAccountScope(
+      options.qqUin || options.qq || options.account?.qq || this._qqUin || null,
+    );
+    if (accountScope) return accountScope;
+    const dbPath = options.dbPath || options.inputPath || this._dbPath || null;
+    return dbPath ? createQqPathScope(path.resolve(dbPath)) : null;
+  }
+
+  resolveInputScope(options = {}) {
+    return this.resolveDefaultScope(options);
   }
 
   async *sync(opts = {}) {

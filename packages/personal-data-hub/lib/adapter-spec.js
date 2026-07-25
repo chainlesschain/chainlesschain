@@ -147,6 +147,12 @@ function assertAdapter(a) {
   ) {
     errors.push("buildResolvedIngestOptions must be a function when present");
   }
+  if (a.resolveInputScope !== undefined && !isFunction(a.resolveInputScope)) {
+    errors.push("resolveInputScope must be a function when present");
+  }
+  if (a.scopeNamespace !== undefined && !isNonEmptyString(a.scopeNamespace)) {
+    errors.push("scopeNamespace must be a non-empty string when present");
+  }
   if (
     a.watermarkLookbackMs !== undefined &&
     (!Number.isSafeInteger(a.watermarkLookbackMs) || a.watermarkLookbackMs < 0)

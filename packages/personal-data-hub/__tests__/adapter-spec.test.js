@@ -150,6 +150,24 @@ describe("assertAdapter", () => {
     ).toBe(true);
   });
 
+  it("validates optional shared namespace and explicit-input scope hooks", () => {
+    const a = new MockAdapter();
+    a.scopeNamespace = "qq";
+    a.resolveInputScope = () => "account:qq:test";
+    expect(assertAdapter(a).ok).toBe(true);
+
+    a.scopeNamespace = "";
+    a.resolveInputScope = "account:qq:test";
+    const result = assertAdapter(a);
+    expect(result.ok).toBe(false);
+    expect(
+      result.errors.some((error) => error.includes("scopeNamespace")),
+    ).toBe(true);
+    expect(
+      result.errors.some((error) => error.includes("resolveInputScope")),
+    ).toBe(true);
+  });
+
   it("validates lookback windows and adaptive initial page budgets", () => {
     const a = new MockAdapter();
     a.watermarkLookbackMs = 86_400_000;

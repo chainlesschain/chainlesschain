@@ -1,5 +1,7 @@
 "use strict";
 
+const { createAccountScope } = require("./account-scope");
+
 const C2C_MESSAGE_TABLE = "c2c_msg_table";
 const GROUP_MESSAGE_TABLE = "group_msg_table";
 const QQ_NT_MESSAGE_TABLES = new Set([C2C_MESSAGE_TABLE, GROUP_MESSAGE_TABLE]);
@@ -44,11 +46,24 @@ function canonicalQqGroupOriginalId(value) {
   return uin ? `group-qq-${uin}` : null;
 }
 
+function createQqAccountScope(value) {
+  const uin = exactDecimalIdentifier(value);
+  return uin ? createAccountScope("qq", uin) : null;
+}
+
+function createQqPathScope(value) {
+  if (typeof value !== "string" || value.trim().length === 0) return null;
+  const pathHex = Buffer.from(value.trim(), "utf8").toString("hex");
+  return createAccountScope("qq-pc-profile", pathHex);
+}
+
 module.exports = {
   C2C_MESSAGE_TABLE,
   GROUP_MESSAGE_TABLE,
   canonicalQqGroupOriginalId,
   canonicalQqNtOriginalId,
   canonicalQqPersonOriginalId,
+  createQqAccountScope,
+  createQqPathScope,
   exactDecimalIdentifier,
 };
