@@ -295,6 +295,7 @@ def parse_qq_messages(plain_path, limit=50000):
             )
             messages.append({
                 "kind": kind,                       # c2c | group
+                "tableName": table,
                 "messageId": message_id,
                 "sequence": sequence,
                 "peer": peer,

@@ -617,15 +617,36 @@ class LocalVault {
     const table = ENTITY_TABLE_BY_TYPE[entityType];
     const rows = this._requireOpen()
       .prepare(
-        `SELECT *
-         FROM ${table}
-         WHERE source_adapter = ?
-           AND source_scope = ?
-           AND source_original_id = ?
-         ORDER BY ingested_at DESC, id
+        `SELECT entity.*
+         FROM ${table} entity
+         WHERE (
+           entity.source_adapter = ?
+           AND entity.source_scope = ?
+           AND entity.source_original_id = ?
+         )
+         OR EXISTS (
+           SELECT 1
+           FROM source_identity_aliases alias
+           WHERE alias.entity_type = ?
+             AND alias.alias_adapter = entity.source_adapter
+             AND alias.alias_scope = entity.source_scope
+             AND alias.alias_original_id = entity.source_original_id
+             AND alias.canonical_adapter = ?
+             AND alias.canonical_scope = ?
+             AND alias.canonical_original_id = ?
+         )
+         ORDER BY entity.ingested_at DESC, entity.id
          LIMIT 2`,
       )
-      .all(identity.adapter, identity.scope, identity.originalId);
+      .all(
+        identity.adapter,
+        identity.scope,
+        identity.originalId,
+        entityType,
+        identity.adapter,
+        identity.scope,
+        identity.originalId,
+      );
     if (rows.length > 1) {
       throw entityIdentityError(
         "ENTITY_SOURCE_AMBIGUOUS",
@@ -1213,7 +1234,14 @@ class LocalVault {
 
           if (candidate) {
             const matchedBy = [...candidate.matchedBy].sort();
-            const existing = cloneEntityForResolvedWrite(slot.entity);
+            let existing = cloneEntityForResolvedWrite(slot.entity);
+            if (
+              sourceIdentity &&
+              (candidate.matchedBy.has("source") ||
+                candidate.matchedBy.has("batch-source"))
+            ) {
+              existing = applySourceIdentity(existing, sourceIdentity);
+            }
             let merged = conflictResolver
               ? conflictResolver({
                   entityType,

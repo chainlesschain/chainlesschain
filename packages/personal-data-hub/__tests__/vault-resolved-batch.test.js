@@ -319,6 +319,81 @@ describe("LocalVault.putBatchResolved", () => {
     });
   });
 
+  it("finds and rekeys a previously stored legacy source through its canonical alias", () => {
+    const legacyOriginalId = "qq-pc:message:9007199254740993123";
+    const canonicalOriginalId = "c2c_msg_table:9007199254740993123";
+    vault.putEvent(
+      event("event-legacy", legacyOriginalId, {
+        content: { title: "legacy", text: "" },
+      }),
+    );
+    let resolverExistingSource;
+
+    const result = vault.putBatchResolved(
+      emptyBatch({
+        events: [
+          event("event-canonical-candidate", canonicalOriginalId, {
+            content: { title: "decoded", text: "decoded text" },
+          }),
+        ],
+      }),
+      {
+        sourceAliases: [
+          {
+            entityType: "event",
+            alias: {
+              adapter: "qq-pc",
+              scope: SCOPE,
+              originalId: legacyOriginalId,
+            },
+            canonical: {
+              adapter: "qq-pc",
+              scope: SCOPE,
+              originalId: canonicalOriginalId,
+            },
+            createdAt: NOW,
+          },
+        ],
+        conflictResolver({ existing, incoming }) {
+          resolverExistingSource = existing.source;
+          return {
+            ...existing,
+            ...incoming,
+            id: existing.id,
+          };
+        },
+      },
+    );
+
+    expect(resolverExistingSource).toMatchObject({
+      adapter: "qq-pc",
+      scope: SCOPE,
+      originalId: canonicalOriginalId,
+    });
+    expect(result.conflicts).toEqual([
+      expect.objectContaining({
+        entityType: "event",
+        incomingId: "event-canonical-candidate",
+        persistedId: "event-legacy",
+        matchedBy: ["source"],
+      }),
+    ]);
+    expect(result.resolvedBatch.events[0]).toMatchObject({
+      id: "event-legacy",
+      content: { text: "decoded text" },
+      source: {
+        adapter: "qq-pc",
+        scope: SCOPE,
+        originalId: canonicalOriginalId,
+      },
+    });
+    expect(vault.stats().events).toBe(1);
+    expect(vault.getEvent("event-canonical-candidate")).toBeNull();
+    expect(vault.getEvent("event-legacy")).toEqual(
+      result.resolvedBatch.events[0],
+    );
+  });
+
   it("collapses duplicate canonical sources inside one batch and rewrites references once", () => {
     const first = person("person-first", "person:10001", ["Alice"]);
     const second = person("person-second", "person:10001", ["10001"]);

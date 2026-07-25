@@ -176,6 +176,7 @@ def test_parse_qq_messages_reads_both_tables(tmp_path):
     msgs = qq.parse_qq_messages(str(p))
     assert len(msgs) == 2
     g = next(m for m in msgs if m["kind"] == "group")
+    assert g["tableName"] == "group_msg_table"
     assert g["text"] == "今天天气不错"
     assert g["senderName"] == "疯子"
     assert g["messageId"] == "9007199254740993"
@@ -191,6 +192,7 @@ def test_parse_qq_messages_reads_both_tables(tmp_path):
     # Transitional ID remains derived from the old raw columns 40033 + 40003.
     assert g["originalId"] == "qq-pc:group:38181604:7"
     c = next(m for m in msgs if m["kind"] == "c2c")
+    assert c["tableName"] == "c2c_msg_table"
     assert c["text"] == "在吗"
     assert c["messageId"] == "9007199254740995"
     assert c["sequence"] == "0"

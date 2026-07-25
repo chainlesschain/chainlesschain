@@ -189,6 +189,7 @@ function readMsgTable(db, tableName, isGroup, limit, diag) {
     delete rawRow[EXACT_MSG_ID_ALIAS];
     if (messageId && resolved.msgId) rawRow[resolved.msgId] = messageId;
     return {
+      tableName,
       msgId: messageId || `${tableName}-${idx}`,
       messageId,
       sequence: resolved.sequence ? exactString(row[resolved.sequence]) : null,

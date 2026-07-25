@@ -24,10 +24,14 @@ const {
   EVENT_SUBTYPES,
   CAPTURED_BY,
 } = require("../../constants");
+const { mergeQqEntityConflict } = require("../../qq-quality-merge");
 
 const NAME = "qq-pc";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const KIND_MESSAGE = "message";
+const C2C_MESSAGE_TABLE = "c2c_msg_table";
+const GROUP_MESSAGE_TABLE = "group_msg_table";
+const QQ_NT_MESSAGE_TABLES = new Set([C2C_MESSAGE_TABLE, GROUP_MESSAGE_TABLE]);
 
 function stableOriginalId(id) {
   const safe =
@@ -35,6 +39,40 @@ function stableOriginalId(id) {
     (typeof id === "number" && Number.isFinite(id) && String(id)) ||
     `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   return `qq-pc:message:${safe}`;
+}
+
+function canonicalQqNtOriginalId(payload) {
+  if (!payload || typeof payload !== "object") return null;
+  const messageId =
+    typeof payload.messageId === "string" && payload.messageId.length > 0
+      ? payload.messageId
+      : typeof payload.messageId === "number" &&
+          Number.isSafeInteger(payload.messageId)
+        ? String(payload.messageId)
+        : null;
+  if (!messageId) return null;
+  const inferredTable =
+    payload.isGroup === true
+      ? GROUP_MESSAGE_TABLE
+      : payload.isGroup === false
+        ? C2C_MESSAGE_TABLE
+        : null;
+  const tableName = QQ_NT_MESSAGE_TABLES.has(payload.tableName)
+    ? payload.tableName
+    : inferredTable;
+  return tableName ? `${tableName}:${messageId}` : null;
+}
+
+function observationProducer(raw) {
+  const declared =
+    raw?.producer ||
+    raw?.payload?.observationProducer ||
+    raw?.payload?.producer;
+  if (typeof declared === "string" && declared.length > 0) return declared;
+  if (/^qq-pc:(?:c2c|group):/u.test(raw?.originalId || "")) {
+    return "qq-pc/sidecar";
+  }
+  return "qq-pc/direct";
 }
 
 class QQPcAdapter {
@@ -200,12 +238,20 @@ class QQPcAdapter {
         (m.peerUin && m.createdTimeMs
           ? `${m.peerUin}-${m.createdTimeMs}`
           : `msg-${emitted}`);
+      const originalId = stableOriginalId(idPart);
+      const payload = {
+        kind: KIND_MESSAGE,
+        ...m,
+        observationProducer: "qq-pc/direct",
+      };
       yield {
         adapter: NAME,
         kind: KIND_MESSAGE,
-        originalId: stableOriginalId(idPart),
+        originalId,
+        canonicalOriginalId: canonicalQqNtOriginalId(payload),
+        producer: "qq-pc/direct",
         capturedAt,
-        payload: { kind: KIND_MESSAGE, ...m },
+        payload,
       };
       emitted += 1;
     }
@@ -260,6 +306,8 @@ class QQPcAdapter {
           : null;
       const payload = {
         kind: KIND_MESSAGE,
+        tableName:
+          m.tableName || (isGroup ? GROUP_MESSAGE_TABLE : C2C_MESSAGE_TABLE),
         text: typeof m.text === "string" ? m.text : "",
         messageId: m.messageId != null ? String(m.messageId) : null,
         sequence: m.sequence != null ? String(m.sequence) : null,
@@ -275,18 +323,78 @@ class QQPcAdapter {
         senderType: typeof m.senderType === "number" ? m.senderType : null,
         readState: typeof m.readState === "number" ? m.readState : null,
         createdTimeMs,
+        observationProducer: "qq-pc/sidecar",
       };
+      const originalId =
+        m.originalId ||
+        stableOriginalId(`${m.peer}-${createdTimeMs}-${emitted}`);
       yield {
         adapter: NAME,
         kind: KIND_MESSAGE,
-        originalId:
-          m.originalId ||
-          stableOriginalId(`${m.peer}-${createdTimeMs}-${emitted}`),
+        originalId,
+        canonicalOriginalId: canonicalQqNtOriginalId(payload),
+        producer: "qq-pc/sidecar",
         capturedAt: createdTimeMs || fallbackCapturedAt,
         payload,
       };
       emitted += 1;
     }
+  }
+
+  buildResolvedIngestOptions({ rawBatch, scope }) {
+    const sourceAliases = [];
+    const rawObservations = [];
+    const seenAliases = new Set();
+
+    for (const raw of Array.isArray(rawBatch) ? rawBatch : []) {
+      if (
+        !raw ||
+        typeof raw.originalId !== "string" ||
+        raw.originalId.length === 0
+      ) {
+        continue;
+      }
+      const canonicalOriginalId =
+        canonicalQqNtOriginalId(raw.payload) ||
+        (typeof raw.canonicalOriginalId === "string" &&
+        raw.canonicalOriginalId.length > 0
+          ? raw.canonicalOriginalId
+          : raw.originalId);
+      if (canonicalOriginalId !== raw.originalId) {
+        const aliasKey = JSON.stringify([raw.originalId, canonicalOriginalId]);
+        if (!seenAliases.has(aliasKey)) {
+          seenAliases.add(aliasKey);
+          sourceAliases.push({
+            entityType: ENTITY_TYPES.EVENT,
+            alias: {
+              adapter: NAME,
+              scope,
+              originalId: raw.originalId,
+            },
+            canonical: {
+              adapter: NAME,
+              scope,
+              originalId: canonicalOriginalId,
+            },
+          });
+        }
+      }
+      rawObservations.push({
+        adapter: NAME,
+        scope,
+        canonicalOriginalId,
+        producer: observationProducer(raw),
+        producerOriginalId: raw.originalId,
+        capturedAt: raw.capturedAt,
+        payload: raw.payload,
+      });
+    }
+
+    return {
+      conflictResolver: mergeQqEntityConflict,
+      sourceAliases,
+      rawObservations,
+    };
   }
 
   normalize(raw) {
@@ -306,7 +414,12 @@ class QQPcAdapter {
     const source = {
       adapter: NAME,
       adapterVersion: VERSION,
-      originalId: raw.originalId,
+      originalId:
+        canonicalQqNtOriginalId(p) ||
+        (typeof raw.canonicalOriginalId === "string" &&
+        raw.canonicalOriginalId.length > 0
+          ? raw.canonicalOriginalId
+          : raw.originalId),
       capturedAt: raw.capturedAt || occurredAt,
       capturedBy: CAPTURED_BY.SQLITE,
     };
@@ -345,6 +458,7 @@ class QQPcAdapter {
             // later decoder can backfill text without re-reading the DB.
             rawRow: p.rawRow || null,
             textResolved: typeof p.text === "string" && p.text.length > 0,
+            observationProducer: observationProducer(raw),
           },
         },
       ],

@@ -227,6 +227,9 @@ describe("QQPcAdapter — nt_msg.db (numeric/obfuscated + BLOB body)", () => {
     expect(ev.extra.textResolved).toBe(false);
     expect(ev.extra.rawRow).toBeTruthy(); // nothing lost
     expect(raws[0].originalId).toBe("qq-pc:message:9007199254740993");
+    expect(raws[0].canonicalOriginalId).toBe("c2c_msg_table:9007199254740993");
+    expect(raws[0].producer).toBe("qq-pc/direct");
+    expect(raws[0].payload.tableName).toBe("c2c_msg_table");
     expect(raws[0].payload.msgId).toBe("9007199254740993");
     expect(raws[0].payload.messageId).toBe("9007199254740993");
     expect(raws[0].payload.sequence).toBe("73");
@@ -248,6 +251,8 @@ describe("QQPcAdapter — nt_msg.db (numeric/obfuscated + BLOB body)", () => {
     expect(ev.extra.senderType).toBe(42);
     expect(ev.extra.subtype).toBe(99);
     expect(ev.extra.readState).toBe(1);
+    expect(ev.extra.observationProducer).toBe("qq-pc/direct");
+    expect(ev.source.originalId).toBe("c2c_msg_table:9007199254740993");
     // diagnostic tells the user what resolved
     const diag = events.find((e) => e.phase === "qq-nt-read");
     expect(diag.hadC2cTable).toBe(true);
@@ -362,6 +367,11 @@ describe("QQPcAdapter — QQ NT sidecar path (passphrase)", () => {
     expect(raws[0].payload.subtype).toBe(99);
     expect(raws[0].payload.readState).toBe(1);
     expect(raws[0].originalId).toBe("qq-pc:group:38181604:7");
+    expect(raws[0].canonicalOriginalId).toBe(
+      "group_msg_table:9007199254740993",
+    );
+    expect(raws[0].producer).toBe("qq-pc/sidecar");
+    expect(raws[0].payload.tableName).toBe("group_msg_table");
     expect(raws[0].payload.senderName).toBe("疯子");
     expect(raws[1].payload.isGroup).toBe(false);
 
