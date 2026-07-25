@@ -32,7 +32,6 @@ function loadDatabaseClass() {
   for (const mod of ["better-sqlite3-multiple-ciphers", "better-sqlite3"]) {
     let cls;
     try {
-      // eslint-disable-next-line global-require
       cls = require(mod);
     } catch (_e) {
       continue;
@@ -77,27 +76,51 @@ function normalizeEpochMs(v) {
 // Tune the numeric lists on a real device; unknowns just fall through to
 // rawRow (loud diagnostic), never a silent 0.
 const COL_CANDIDATES = Object.freeze({
-  msgId: ["msgId", "msg_id", "40001", "40020"],
+  msgId: ["msgId", "messageId", "msg_id", "40001"],
+  sequence: ["sequence", "seq", "msgSeq", "40003"],
   time: ["msgTime", "time", "timestamp", "40050"],
-  type: ["msgType", "type", "40011", "40012"],
-  sender: ["senderUin", "sender", "senderUid", "40033", "40030"],
-  peer: ["peerUin", "peer", "peerUid", "40021", "40027"],
+  type: ["msgType", "type", "40011"],
+  subtype: ["msgSubtype", "subtype", "40012"],
+  senderUid: ["senderUid", "40020"],
+  peerUin: ["peerUin", "peer", "40021"],
+  peerUid: ["peerUid", "40027"],
+  senderType: ["senderType", "40030"],
+  senderUin: ["senderUin", "sender", "40033"],
+  readState: ["readState", "isRead", "40040"],
   content: ["content", "text", "msgContent", "40080", "40800"],
 });
+
+const EXACT_MSG_ID_ALIAS = "__cc_exact_message_id";
+
+function exactString(v) {
+  if (typeof v === "string") return v;
+  if (typeof v === "bigint") return String(v);
+  if (typeof v === "number" && Number.isSafeInteger(v)) return String(v);
+  return null;
+}
+
+function finiteNumber(v) {
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
+}
 
 /**
  * Open a QQ NT DB (plaintext OR SQLCipher-with-key). Mirrors wechat-pc.
  */
 function openNtDb(dbPath, opts = {}) {
   const Database = opts._databaseClass || loadDatabaseClass();
-  const key = typeof opts.key === "string" && opts.key.length > 0 ? opts.key : null;
+  const key =
+    typeof opts.key === "string" && opts.key.length > 0 ? opts.key : null;
   if (!key) {
     const db = new Database(dbPath, { readonly: true });
     try {
       db.prepare("SELECT count(*) AS n FROM sqlite_master").get();
       return { db, mode: "plaintext" };
     } catch (err) {
-      try { db.close(); } catch (_e) { /* ignore */ }
+      try {
+        db.close();
+      } catch (_e) {
+        /* ignore */
+      }
       const e = new Error(
         `qq-pc-nt-db-reader: db is not plaintext SQLite (decrypt nt_msg.db first, or pass --key): ${err.message}`,
       );
@@ -113,7 +136,11 @@ function openNtDb(dbPath, opts = {}) {
     db.prepare("SELECT count(*) AS n FROM sqlite_master").get();
     return { db, mode: "sqlcipher" };
   } catch (err) {
-    try { db.close(); } catch (_e) { /* ignore */ }
+    try {
+      db.close();
+    } catch (_e) {
+      /* ignore */
+    }
     const e = new Error(
       `qq-pc-nt-db-reader: SQLCipher open failed (key wrong, or decrypt to plaintext first): ${err.message}`,
     );
@@ -128,38 +155,74 @@ function readMsgTable(db, tableName, isGroup, limit, diag) {
   const cols = new Set(info.map((r) => r.name));
   const resolved = {
     msgId: pickCol(cols, COL_CANDIDATES.msgId),
+    sequence: pickCol(cols, COL_CANDIDATES.sequence),
     time: pickCol(cols, COL_CANDIDATES.time),
     type: pickCol(cols, COL_CANDIDATES.type),
-    sender: pickCol(cols, COL_CANDIDATES.sender),
-    peer: pickCol(cols, COL_CANDIDATES.peer),
+    subtype: pickCol(cols, COL_CANDIDATES.subtype),
+    senderUid: pickCol(cols, COL_CANDIDATES.senderUid),
+    peerUin: pickCol(cols, COL_CANDIDATES.peerUin),
+    peerUid: pickCol(cols, COL_CANDIDATES.peerUid),
+    senderType: pickCol(cols, COL_CANDIDATES.senderType),
+    senderUin: pickCol(cols, COL_CANDIDATES.senderUin),
+    readState: pickCol(cols, COL_CANDIDATES.readState),
     content: pickCol(cols, COL_CANDIDATES.content),
   };
   diag.resolvedColumns[tableName] = resolved;
   // Select ALL columns so the full raw row is preserved (protobuf bodies,
   // unknown columns) — we map the resolved fields on top of it.
   const orderBy = resolved.time ? ` ORDER BY "${resolved.time}" DESC` : "";
+  const exactMsgIdSelect = resolved.msgId
+    ? `, CAST("${resolved.msgId}" AS TEXT) AS "${EXACT_MSG_ID_ALIAS}"`
+    : "";
   const rows =
-    trySelect(db, `SELECT * FROM ${tableName}${orderBy} LIMIT ${limit}`) || [];
+    trySelect(
+      db,
+      `SELECT *${exactMsgIdSelect} FROM ${tableName}${orderBy} LIMIT ${limit}`,
+    ) || [];
   return rows.map((row, idx) => {
     const rawTime = resolved.time ? row[resolved.time] : null;
     const contentVal = resolved.content ? row[resolved.content] : null;
+    const messageId =
+      exactString(row[EXACT_MSG_ID_ALIAS]) ||
+      (resolved.msgId ? exactString(row[resolved.msgId]) : null);
+    const rawRow = { ...row };
+    delete rawRow[EXACT_MSG_ID_ALIAS];
+    if (messageId && resolved.msgId) rawRow[resolved.msgId] = messageId;
     return {
-      msgId:
-        (resolved.msgId && row[resolved.msgId] != null && String(row[resolved.msgId])) ||
-        `${tableName}-${idx}`,
+      msgId: messageId || `${tableName}-${idx}`,
+      messageId,
+      sequence: resolved.sequence ? exactString(row[resolved.sequence]) : null,
       isGroup,
       createdTimeMs:
         typeof rawTime === "number" ? normalizeEpochMs(rawTime) : null,
-      type:
-        resolved.type && typeof row[resolved.type] === "number"
-          ? row[resolved.type]
+      type: resolved.type ? finiteNumber(row[resolved.type]) : null,
+      subtype: resolved.subtype ? finiteNumber(row[resolved.subtype]) : null,
+      senderUid:
+        resolved.senderUid && row[resolved.senderUid] != null
+          ? String(row[resolved.senderUid])
           : null,
-      senderUin: resolved.sender && row[resolved.sender] != null ? String(row[resolved.sender]) : null,
-      peerUin: resolved.peer && row[resolved.peer] != null ? String(row[resolved.peer]) : null,
+      peerUin:
+        resolved.peerUin && row[resolved.peerUin] != null
+          ? String(row[resolved.peerUin])
+          : null,
+      peerUid:
+        resolved.peerUid && row[resolved.peerUid] != null
+          ? String(row[resolved.peerUid])
+          : null,
+      senderType: resolved.senderType
+        ? finiteNumber(row[resolved.senderType])
+        : null,
+      senderUin:
+        resolved.senderUin && row[resolved.senderUin] != null
+          ? String(row[resolved.senderUin])
+          : null,
+      readState: resolved.readState
+        ? finiteNumber(row[resolved.readState])
+        : null,
       // Only treat content as text when it's a real string (not a BLOB).
       text: typeof contentVal === "string" ? contentVal : null,
       // Preserve the full raw row so a later protobuf decoder loses nothing.
-      rawRow: row,
+      rawRow,
     };
   });
 }
@@ -190,14 +253,20 @@ function readQqNt(dbPath, opts = {}) {
     const c2c = readMsgTable(db, "c2c_msg_table", false, limit, diagnostic);
     if (diagnostic.resolvedColumns.c2c_msg_table) diagnostic.hadC2cTable = true;
     const group = readMsgTable(db, "group_msg_table", true, limit, diagnostic);
-    if (diagnostic.resolvedColumns.group_msg_table) diagnostic.hadGroupTable = true;
+    if (diagnostic.resolvedColumns.group_msg_table)
+      diagnostic.hadGroupTable = true;
     for (const m of [...c2c, ...group]) {
       messages.push(m);
-      if (typeof m.text === "string" && m.text.length > 0) diagnostic.textCount += 1;
+      if (typeof m.text === "string" && m.text.length > 0)
+        diagnostic.textCount += 1;
     }
     diagnostic.messageCount = messages.length;
   } finally {
-    try { db.close(); } catch (_e) { /* ignore */ }
+    try {
+      db.close();
+    } catch (_e) {
+      /* ignore */
+    }
   }
   return { messages, diagnostic };
 }

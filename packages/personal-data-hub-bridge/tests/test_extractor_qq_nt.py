@@ -154,20 +154,44 @@ def test_parse_qq_messages_reads_both_tables(tmp_path):
     con = sqlite3.connect(str(p)); cur = con.cursor()
     for table in ("c2c_msg_table", "group_msg_table"):
         cur.execute(
-            f"CREATE TABLE `{table}` (`40050` INTEGER, `40030` INTEGER, `40033` INTEGER, "
-            f"`40020` TEXT, `40093` TEXT, `40090` TEXT, `40040` INTEGER, `40800` BLOB, `40003` INTEGER)"
+            f"CREATE TABLE `{table}` (`40001` INTEGER PRIMARY KEY, `40003` INTEGER, "
+            f"`40020` TEXT, `40021` INTEGER, `40027` INTEGER, `40030` INTEGER, "
+            f"`40033` INTEGER, `40011` INTEGER, `40012` INTEGER, `40040` INTEGER, "
+            f"`40050` INTEGER, `40093` TEXT, `40090` TEXT, `40800` BLOB)"
         )
     body = _pb_str_field(1, "u_peer") + _pb_str_field(2, "今天天气不错")
-    cur.execute("INSERT INTO group_msg_table VALUES (1700000100, 38181604, 88966001, 'u_peer', '疯子', '', 0, ?, 7)", (body,))
-    cur.execute("INSERT INTO c2c_msg_table VALUES (1700000000, 111, 222, 'u_x', '张三', '', 0, ?, 3)",
-                (_pb_str_field(2, "在吗"),))
+    cur.execute(
+        "INSERT INTO group_msg_table VALUES "
+        "(9007199254740993, 7, 'u_sender', 88966001, 7654, 42, "
+        "38181604, 2, 99, 1, 1700000100, '疯子', '', ?)",
+        (body,),
+    )
+    cur.execute(
+        "INSERT INTO c2c_msg_table VALUES "
+        "(9007199254740995, 0, 'u_c2c_sender', 222, 8765, 24, "
+        "111, 1, 11, 0, 1700000000, '张三', '', ?)",
+        (_pb_str_field(2, "在吗"),),
+    )
     con.commit(); con.close()
     msgs = qq.parse_qq_messages(str(p))
     assert len(msgs) == 2
     g = next(m for m in msgs if m["kind"] == "group")
     assert g["text"] == "今天天气不错"
     assert g["senderName"] == "疯子"
-    assert g["peer"] == 88966001
-    assert g["originalId"] == "qq-pc:group:88966001:7"
+    assert g["messageId"] == "9007199254740993"
+    assert g["sequence"] == "7"
+    assert g["senderUid"] == "u_sender"
+    assert g["senderUin"] == "38181604"
+    assert g["peer"] == "88966001"
+    assert g["peerUid"] == "7654"
+    assert g["senderType"] == 42
+    assert g["type"] == 2
+    assert g["subtype"] == 99
+    assert g["readState"] == 1
+    # Transitional ID remains derived from the old raw columns 40033 + 40003.
+    assert g["originalId"] == "qq-pc:group:38181604:7"
     c = next(m for m in msgs if m["kind"] == "c2c")
     assert c["text"] == "在吗"
+    assert c["messageId"] == "9007199254740995"
+    assert c["sequence"] == "0"
+    assert c["originalId"] == "qq-pc:c2c:111:1700000000"

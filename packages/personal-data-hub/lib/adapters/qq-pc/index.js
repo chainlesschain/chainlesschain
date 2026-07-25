@@ -19,7 +19,11 @@
 
 const fs = require("node:fs");
 const { newId } = require("../../ids");
-const { ENTITY_TYPES, EVENT_SUBTYPES, CAPTURED_BY } = require("../../constants");
+const {
+  ENTITY_TYPES,
+  EVENT_SUBTYPES,
+  CAPTURED_BY,
+} = require("../../constants");
 
 const NAME = "qq-pc";
 const VERSION = "0.1.0";
@@ -50,6 +54,7 @@ class QQPcAdapter {
     ];
     this.extractMode = "device-pull";
     this.rateLimits = {};
+    this.watermarkStrategy = "none";
     this.dataDisclosure = {
       fields: [
         "qq-pc:messages (time / type / sender / peer / best-effort text from nt_msg.db; raw row preserved)",
@@ -71,7 +76,6 @@ class QQPcAdapter {
   _autoDiscover() {
     if (this._discovered !== undefined) return this._discovered;
     try {
-      // eslint-disable-next-line global-require
       const { discover } = require("../_pc-local-discovery");
       this._discovered = discover("qq-pc", this._deps.discoveryDeps || {});
     } catch (_e) {
@@ -100,7 +104,9 @@ class QQPcAdapter {
       return {
         ok: false,
         reason: "APP_NOT_INSTALLED",
-        message: (disc && disc.note) || "未检测到本机 QQ NT 数据（可能未安装或未登录）",
+        message:
+          (disc && disc.note) ||
+          "未检测到本机 QQ NT 数据（可能未安装或未登录）",
       };
     }
     const dbPath =
@@ -132,7 +138,8 @@ class QQPcAdapter {
     return {
       ok: false,
       reason: "APP_NOT_INSTALLED",
-      message: "qq-pc.authenticate: 未检测到本机 QQ NT 库，也未提供 dbPath / inputPath",
+      message:
+        "qq-pc.authenticate: 未检测到本机 QQ NT 库，也未提供 dbPath / inputPath",
     };
   }
 
@@ -150,26 +157,35 @@ class QQPcAdapter {
     }
 
     const dbPath =
-      opts.dbPath || opts.inputPath || this._dbPath || this._resolveDiscoveredDbPath();
+      opts.dbPath ||
+      opts.inputPath ||
+      this._dbPath ||
+      this._resolveDiscoveredDbPath();
     if (!dbPath) {
-      throw new Error("qq-pc.sync: 未找到本机 QQ NT 库且未提供 opts.dbPath / opts.inputPath（或提供 opts.passphrase 走 sidecar 解密）");
+      throw new Error(
+        "qq-pc.sync: 未找到本机 QQ NT 库且未提供 opts.dbPath / opts.inputPath（或提供 opts.passphrase 走 sidecar 解密）",
+      );
     }
     if (!this._deps.fs.existsSync(dbPath)) return;
 
-    // eslint-disable-next-line global-require
     const { readQqNt } = require("./nt-db-reader");
     const readOpts = { key: opts.key || this._key || null };
-    if (Number.isInteger(opts.limitMessages)) readOpts.limitMessages = opts.limitMessages;
-    if (this._deps.dbDriverFactory) readOpts._databaseClass = this._deps.dbDriverFactory();
+    if (Number.isInteger(opts.limitMessages))
+      readOpts.limitMessages = opts.limitMessages;
+    if (this._deps.dbDriverFactory)
+      readOpts._databaseClass = this._deps.dbDriverFactory();
 
     const { messages, diagnostic } = readQqNt(dbPath, readOpts);
     if (typeof opts.onProgress === "function") {
       try {
         opts.onProgress({ phase: "qq-nt-read", adapter: NAME, ...diagnostic });
-      } catch (_e) { /* progress best-effort */ }
+      } catch (_e) {
+        /* progress best-effort */
+      }
     }
 
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const fallbackCapturedAt = Date.now();
     let emitted = 0;
     for (const m of messages) {
@@ -181,7 +197,9 @@ class QQPcAdapter {
           : fallbackCapturedAt;
       const idPart =
         m.msgId ||
-        (m.peerUin && m.createdTimeMs ? `${m.peerUin}-${m.createdTimeMs}` : `msg-${emitted}`);
+        (m.peerUin && m.createdTimeMs
+          ? `${m.peerUin}-${m.createdTimeMs}`
+          : `msg-${emitted}`);
       yield {
         adapter: NAME,
         kind: KIND_MESSAGE,
@@ -199,47 +217,71 @@ class QQPcAdapter {
   async *_syncViaSidecar(opts = {}, passphrase) {
     let collect = this._deps.qqCollector;
     if (!collect) {
-      // eslint-disable-next-line global-require
       collect = require("./qqnt-sidecar").collectQqNt;
     }
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : undefined;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : undefined;
     const result = await collect({
       passphrase,
       key: opts.key || this._key || undefined,
-      dbPath: opts.dbPath || this._dbPath || this._resolveDiscoveredDbPath() || undefined,
+      dbPath:
+        opts.dbPath ||
+        opts.inputPath ||
+        this._dbPath ||
+        this._resolveDiscoveredDbPath() ||
+        undefined,
       limit,
       pythonExe: opts.pythonExe,
       bridgeDir: opts.bridgeDir,
       timeoutMs: opts.timeoutMs,
+      signal: opts.signal,
       onProgress:
         typeof opts.onProgress === "function"
-          ? (m) => { try { opts.onProgress({ phase: "qq-nt", adapter: NAME, ...m }); } catch (_e) { /* best-effort */ } }
+          ? (m) => {
+              try {
+                opts.onProgress({ phase: "qq-nt", adapter: NAME, ...m });
+              } catch (_e) {
+                /* best-effort */
+              }
+            }
           : undefined,
       _supervisorFactory: opts._supervisorFactory,
     });
-    const messages = (result && Array.isArray(result.messages)) ? result.messages : [];
+    const messages =
+      result && Array.isArray(result.messages) ? result.messages : [];
     const fallbackCapturedAt = Date.now();
     let emitted = 0;
     for (const m of messages) {
       if (!m || typeof m !== "object") continue;
       const isGroup = m.kind === "group";
       const createdTimeMs =
-        typeof m.createTime === "number" && m.createTime > 0 ? m.createTime * 1000 : null;
+        typeof m.createTime === "number" && m.createTime > 0
+          ? m.createTime * 1000
+          : null;
       const payload = {
         kind: KIND_MESSAGE,
         text: typeof m.text === "string" ? m.text : "",
+        messageId: m.messageId != null ? String(m.messageId) : null,
+        sequence: m.sequence != null ? String(m.sequence) : null,
         peerUin: m.peer != null ? String(m.peer) : null,
-        peerName: m.conversationName || null,   // group name / c2c peer nickname (best-effort)
+        peerUid: m.peerUid != null ? String(m.peerUid) : null,
+        peerName: m.conversationName || null, // group name / c2c peer nickname (best-effort)
+        senderUid: m.senderUid != null ? String(m.senderUid) : null,
         senderUin: m.senderUin != null ? String(m.senderUin) : null,
         senderName: m.senderName || null,
         isGroup,
         type: typeof m.type === "number" ? m.type : null,
+        subtype: typeof m.subtype === "number" ? m.subtype : null,
+        senderType: typeof m.senderType === "number" ? m.senderType : null,
+        readState: typeof m.readState === "number" ? m.readState : null,
         createdTimeMs,
       };
       yield {
         adapter: NAME,
         kind: KIND_MESSAGE,
-        originalId: m.originalId || stableOriginalId(`${m.peer}-${createdTimeMs}-${emitted}`),
+        originalId:
+          m.originalId ||
+          stableOriginalId(`${m.peer}-${createdTimeMs}-${emitted}`),
         capturedAt: createdTimeMs || fallbackCapturedAt,
         payload,
       };
@@ -258,7 +300,9 @@ class QQPcAdapter {
     const p = raw.payload;
     const ingestedAt = Date.now();
     const occurredAt =
-      (typeof p.createdTimeMs === "number" && p.createdTimeMs) || raw.capturedAt || ingestedAt;
+      (typeof p.createdTimeMs === "number" && p.createdTimeMs) ||
+      raw.capturedAt ||
+      ingestedAt;
     const source = {
       adapter: NAME,
       adapterVersion: VERSION,
@@ -268,33 +312,42 @@ class QQPcAdapter {
     };
     const text = typeof p.text === "string" ? p.text : "";
     return {
-      events: [{
-        id: newId(),
-        type: ENTITY_TYPES.EVENT,
-        subtype: EVENT_SUBTYPES.MESSAGE,
-        occurredAt,
-        actor: "person-self",
-        content: {
-          title: text ? text.slice(0, 80) : "(待解析消息体)",
-          text,
+      events: [
+        {
+          id: newId(),
+          type: ENTITY_TYPES.EVENT,
+          subtype: EVENT_SUBTYPES.MESSAGE,
+          occurredAt,
+          actor: "person-self",
+          content: {
+            title: text ? text.slice(0, 80) : "(待解析消息体)",
+            text,
+          },
+          ingestedAt,
+          source,
+          extra: {
+            platform: "qq",
+            source: "pc-nt",
+            messageId: p.messageId != null ? String(p.messageId) : null,
+            sequence: p.sequence != null ? String(p.sequence) : null,
+            peerUin: p.peerUin || null,
+            peerUid: p.peerUid != null ? String(p.peerUid) : null,
+            ...(p.peerName ? { peerName: p.peerName } : {}),
+            senderUid: p.senderUid != null ? String(p.senderUid) : null,
+            senderUin: p.senderUin || null,
+            ...(p.senderName ? { senderName: p.senderName } : {}),
+            isGroup: !!p.isGroup,
+            senderType: typeof p.senderType === "number" ? p.senderType : null,
+            qqMsgType: typeof p.type === "number" ? p.type : null,
+            subtype: typeof p.subtype === "number" ? p.subtype : null,
+            readState: typeof p.readState === "number" ? p.readState : null,
+            // Full raw row preserved — protobuf bodies + unknown columns — so a
+            // later decoder can backfill text without re-reading the DB.
+            rawRow: p.rawRow || null,
+            textResolved: typeof p.text === "string" && p.text.length > 0,
+          },
         },
-        ingestedAt,
-        source,
-        extra: {
-          platform: "qq",
-          source: "pc-nt",
-          peerUin: p.peerUin || null,
-          ...(p.peerName ? { peerName: p.peerName } : {}),
-          senderUin: p.senderUin || null,
-          ...(p.senderName ? { senderName: p.senderName } : {}),
-          isGroup: !!p.isGroup,
-          qqMsgType: typeof p.type === "number" ? p.type : null,
-          // Full raw row preserved — protobuf bodies + unknown columns — so a
-          // later decoder can backfill text without re-reading the DB.
-          rawRow: p.rawRow || null,
-          textResolved: typeof p.text === "string" && p.text.length > 0,
-        },
-      }],
+      ],
       persons: [],
       places: [],
       items: [],

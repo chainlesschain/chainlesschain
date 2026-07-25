@@ -35,6 +35,13 @@ function pythonCandidates(explicit) {
   return [...new Set(list)];
 }
 
+function isAbortError(err, signal) {
+  return (
+    (signal && signal.aborted) ||
+    (err && (err.name === "AbortError" || err.code === "ABORT_ERR"))
+  );
+}
+
 /**
  * @param {object} [opts]
  * @param {string} [opts.passphrase]  QQ NT key (ASCII passphrase from qq-win-db-key)
@@ -44,6 +51,7 @@ function pythonCandidates(explicit) {
  * @param {string} [opts.pythonExe]
  * @param {string} [opts.bridgeDir]
  * @param {number} [opts.timeoutMs]
+ * @param {AbortSignal} [opts.signal]
  * @param {(msg:object)=>void} [opts.onProgress]
  * @param {object} [opts._supervisorFactory]  test seam
  * @returns {Promise<{account:string,messageCount:number,c2c:number,group:number,messages:object[]}>}
@@ -53,7 +61,6 @@ async function collectQqNt(opts = {}) {
   const makeSupervisor =
     opts._supervisorFactory ||
     ((command, cwd) => {
-      // eslint-disable-next-line global-require
       const { SidecarSupervisor } = require("../../sidecar");
       return new SidecarSupervisor({
         command,
@@ -79,22 +86,36 @@ async function collectQqNt(opts = {}) {
 
   let lastErr = null;
   for (const py of pythonCandidates(opts.pythonExe)) {
-    const sup = makeSupervisor([py, "-m", "forensics_bridge.ipc_server"], bridgeDir);
+    const sup = makeSupervisor(
+      [py, "-m", "forensics_bridge.ipc_server"],
+      bridgeDir,
+    );
     try {
       await sup.start({ readyTimeoutMs: opts.readyTimeoutMs || 15_000 });
       const result = await sup.invoke("qq_nt.collect", params, {
         timeoutMs: opts.timeoutMs || 120_000,
         onProgress: opts.onProgress,
+        signal: opts.signal,
       });
-      try { await sup.stop(); } catch (_e) { /* best-effort */ }
+      try {
+        await sup.stop();
+      } catch (_e) {
+        /* best-effort */
+      }
       return result;
     } catch (err) {
       lastErr = err;
-      try { await sup.stop(); } catch (_e) { /* best-effort */ }
+      try {
+        await sup.stop();
+      } catch (_e) {
+        /* best-effort */
+      }
+      if (isAbortError(err, opts.signal)) throw err;
       const msg = (err && err.message) || "";
       // Real QQ-side failures (key/db) surface immediately; sidecar-availability
       // problems (missing python / cryptography / spawn death) → try next python.
-      const isDataError = /KEY_REQUIRED|KEY_VERIFY|APP_NOT|DB_TOO|BAD_LAYOUT/i.test(msg);
+      const isDataError =
+        /KEY_REQUIRED|KEY_VERIFY|APP_NOT|DB_TOO|BAD_LAYOUT/i.test(msg);
       if (isDataError) throw err;
     }
   }
@@ -106,4 +127,7 @@ async function collectQqNt(opts = {}) {
   throw e;
 }
 
-module.exports = { collectQqNt, _internals: { resolveBridgeDir, pythonCandidates } };
+module.exports = {
+  collectQqNt,
+  _internals: { resolveBridgeDir, pythonCandidates, isAbortError },
+};

@@ -157,12 +157,18 @@ def find_accounts() -> List[Dict[str, Any]]:
 #
 # QQ NT message tables use numeric-obfuscated column names + a protobuf body.
 # Verified against a real nt_msg.db:
-#   40050 = send time (unix seconds)   40030 = sender uin
-#   40033 = group code / c2c peer uin  40020 = peer uid (string "u_...")
-#   40093 / 40090 = sender display name 40040 = msg type (0 = normal)
+#   40001 = message id (19-digit PK)   40003 = conversation sequence
+#   40020 = sender uid                 40021 = group code / c2c peer uin
+#   40027 = numeric peer uid           40030 = sender type
+#   40033 = sender uin                 40011 / 40012 = type / subtype
+#   40040 = read state                 40050 = send time (unix seconds)
+#   40093 / 40090 = sender display name
 #   40800 = protobuf body (the text is a UTF-8 string element inside)
 
-_MSG_COLS = ("40050", "40030", "40033", "40020", "40093", "40090", "40040", "40800", "40003")
+_MSG_COLS = (
+    "40001", "40003", "40020", "40021", "40027", "40030", "40033",
+    "40011", "40012", "40040", "40050", "40093", "40090", "40800",
+)
 
 
 def _varint(b, i):
@@ -242,6 +248,10 @@ def parse_qq_messages(plain_path, limit=50000):
     def _S(v):
         return v.decode("utf-8", "replace") if isinstance(v, (bytes, bytearray)) else v
 
+    def _string(v):
+        value = _S(v)
+        return str(value) if value is not None else None
+
     messages = []
     for table, kind in (("c2c_msg_table", "c2c"), ("group_msg_table", "group")):
         try:
@@ -268,18 +278,37 @@ def parse_qq_messages(plain_path, limit=50000):
             t = g(row, "40050")
             name = _S(g(row, "40093")) or _S(g(row, "40090"))
             text = _extract_text(g(row, "40800"), name)
-            peer = g(row, "40033")
-            msgid = g(row, "40003") or g(row, "40050")
+            message_id = _string(g(row, "40001"))
+            sequence = _string(g(row, "40003"))
+            peer = _string(g(row, "40021"))
+            peer_uid = _string(g(row, "40027"))
+            sender_uid = _string(g(row, "40020"))
+            sender_uin = _string(g(row, "40033"))
+            # Transitional boundary: preserve the legacy sidecar originalId
+            # until normalized merge semantics can safely unify all producers.
+            legacy_peer = _string(g(row, "40033"))
+            legacy_sequence = g(row, "40003")
+            legacy_message_id = (
+                _string(legacy_sequence)
+                if legacy_sequence
+                else _string(g(row, "40050"))
+            )
             messages.append({
                 "kind": kind,                       # c2c | group
-                "peer": peer,                       # group code / c2c peer uin
-                "peerUid": _S(g(row, "40020")),
-                "senderUin": g(row, "40030"),
+                "messageId": message_id,
+                "sequence": sequence,
+                "peer": peer,
+                "peerUid": peer_uid,
+                "senderUid": sender_uid,
+                "senderUin": sender_uin,
+                "senderType": g(row, "40030"),
                 "senderName": name,
-                "type": g(row, "40040"),
+                "type": g(row, "40011"),
+                "subtype": g(row, "40012"),
+                "readState": g(row, "40040"),
                 "createTime": t,                    # seconds
                 "text": text,
-                "originalId": f"qq-pc:{kind}:{peer}:{msgid}",
+                "originalId": f"qq-pc:{kind}:{legacy_peer}:{legacy_message_id}",
             })
     con.close()
     return messages
