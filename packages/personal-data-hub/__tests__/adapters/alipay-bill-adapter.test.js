@@ -12,7 +12,6 @@ const {
   parseAlipayCsvBuffer,
   decodeBuffer,
   splitCsvLine,
-  FIELD_ORDER,
 } = require("../../lib/adapters/alipay-bill/csv-parser");
 const {
   classifyCounterparty,
@@ -45,7 +44,10 @@ describe("csv-parser — splitCsvLine", () => {
 describe("csv-parser — decodeBuffer", () => {
   it("UTF-8 with BOM strips BOM and matches Alipay header", () => {
     const text = "支付宝交易记录明细查询\n交易号,商家订单号";
-    const buf = Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(text, "utf-8")]);
+    const buf = Buffer.concat([
+      Buffer.from([0xef, 0xbb, 0xbf]),
+      Buffer.from(text, "utf-8"),
+    ]);
     const r = decodeBuffer(buf);
     expect(r.encoding).toBe("utf-8");
     expect(r.text).toContain("支付宝交易记录");
@@ -208,7 +210,9 @@ describe("counterparty — counterpartyToPersonId", () => {
   });
 
   it("different names → different ids", () => {
-    expect(counterpartyToPersonId("淘宝")).not.toBe(counterpartyToPersonId("京东"));
+    expect(counterpartyToPersonId("淘宝")).not.toBe(
+      counterpartyToPersonId("京东"),
+    );
   });
 
   it("strips parens before slugifying", () => {
@@ -277,8 +281,10 @@ describe("AlipayBillAdapter contract", () => {
 
   it("name + version + capabilities + sensitivity", () => {
     expect(a.name).toBe("alipay-bill");
-    expect(a.version).toBe("0.2.0");
+    expect(a.version).toBe("0.3.0");
     expect(a.extractMode).toBe("file-import");
+    expect(a.watermarkStrategy).toBe("explicit");
+    expect(a.fileCheckpointMode()).toBe("shared");
     expect(a.capabilities).toContain("sync:file-import");
     expect(a.capabilities).toContain("import:csv-zip");
     expect(a.dataDisclosure.sensitivity).toBe("high");
@@ -329,7 +335,8 @@ describe("AlipayBillAdapter.sync", () => {
     for await (const r of a.sync({
       inputPath: tmp,
       onProgress: (e) => events.push(e.phase),
-    })) raws.push(r);
+    }))
+      raws.push(r);
 
     expect(raws).toHaveLength(3);
     expect(raws[0].adapter).toBe("alipay-bill");
@@ -350,7 +357,10 @@ describe("AlipayBillAdapter.sync", () => {
       zipPassword: "OPENME-mock",
       zipExtractor: async (zipPath, opts) => {
         events.push({ kind: "zip", zipPath, password: opts.password });
-        return { buffer: Buffer.from(SAMPLE_CSV, "utf-8"), filename: "test.csv" };
+        return {
+          buffer: Buffer.from(SAMPLE_CSV, "utf-8"),
+          filename: "test.csv",
+        };
       },
     });
     const raws = [];
@@ -446,14 +456,22 @@ describe("AlipayBillAdapter.normalize", () => {
       capturedAt: Date.now(),
       payload: {
         row: {
-          txId: "TX3", merchantOrderNumber: "REFUND123",
-          createdAt: "2024-04-10 10:00:00", paidAt: "2024-04-10 10:00:05",
+          txId: "TX3",
+          merchantOrderNumber: "REFUND123",
+          createdAt: "2024-04-10 10:00:00",
+          paidAt: "2024-04-10 10:00:05",
           lastModifiedAt: "2024-04-10 10:00:05",
-          sourceChannel: "支付宝网站", alipayType: "退款",
-          counterparty: "淘宝", itemName: "运动鞋退款", amount: "299.00",
-          direction: "收入", status: "退款成功",
-          serviceFee: "0.00", refundedAmount: "299.00",
-          note: "", fundStatus: "已收入",
+          sourceChannel: "支付宝网站",
+          alipayType: "退款",
+          counterparty: "淘宝",
+          itemName: "运动鞋退款",
+          amount: "299.00",
+          direction: "收入",
+          status: "退款成功",
+          serviceFee: "0.00",
+          refundedAmount: "299.00",
+          note: "",
+          fundStatus: "已收入",
         },
         accountEmail: "u@example.com",
       },
@@ -466,18 +484,27 @@ describe("AlipayBillAdapter.normalize", () => {
 
   it("cancelled transactions get subtype=cancelled", () => {
     const raw = {
-      adapter: "alipay-bill", originalId: "TX4",
+      adapter: "alipay-bill",
+      originalId: "TX4",
       capturedAt: Date.now(),
       payload: {
         row: {
-          txId: "TX4", merchantOrderNumber: "",
-          createdAt: "2024-04-15 12:00:00", paidAt: "2024-04-15 12:00:00",
+          txId: "TX4",
+          merchantOrderNumber: "",
+          createdAt: "2024-04-15 12:00:00",
+          paidAt: "2024-04-15 12:00:00",
           lastModifiedAt: "2024-04-15 12:00:00",
-          sourceChannel: "支付宝网站", alipayType: "即时到账交易",
-          counterparty: "测试商家", itemName: "test", amount: "100.00",
-          direction: "支出", status: "交易关闭",
-          serviceFee: "0.00", refundedAmount: "0.00",
-          note: "", fundStatus: "冻结",
+          sourceChannel: "支付宝网站",
+          alipayType: "即时到账交易",
+          counterparty: "测试商家",
+          itemName: "test",
+          amount: "100.00",
+          direction: "支出",
+          status: "交易关闭",
+          serviceFee: "0.00",
+          refundedAmount: "0.00",
+          note: "",
+          fundStatus: "冻结",
         },
         accountEmail: "u@example.com",
       },
@@ -488,18 +515,27 @@ describe("AlipayBillAdapter.normalize", () => {
 
   it("unknown counterparty stamps needsResolve=true", () => {
     const raw = {
-      adapter: "alipay-bill", originalId: "TX5",
+      adapter: "alipay-bill",
+      originalId: "TX5",
       capturedAt: Date.now(),
       payload: {
         row: {
-          txId: "TX5", merchantOrderNumber: "",
-          createdAt: "2024-04-20 09:00:00", paidAt: "2024-04-20 09:00:00",
+          txId: "TX5",
+          merchantOrderNumber: "",
+          createdAt: "2024-04-20 09:00:00",
+          paidAt: "2024-04-20 09:00:00",
           lastModifiedAt: "2024-04-20 09:00:00",
-          sourceChannel: "支付宝网站", alipayType: "即时到账交易",
-          counterparty: "ABC123XYZ", itemName: "unclassifiable", amount: "10.00",
-          direction: "支出", status: "交易成功",
-          serviceFee: "0.00", refundedAmount: "0.00",
-          note: "", fundStatus: "已支出",
+          sourceChannel: "支付宝网站",
+          alipayType: "即时到账交易",
+          counterparty: "ABC123XYZ",
+          itemName: "unclassifiable",
+          amount: "10.00",
+          direction: "支出",
+          status: "交易成功",
+          serviceFee: "0.00",
+          refundedAmount: "0.00",
+          note: "",
+          fundStatus: "已支出",
         },
         accountEmail: "u@example.com",
       },
@@ -512,18 +548,27 @@ describe("AlipayBillAdapter.normalize", () => {
 
   it("creates an Item when itemName is distinct from alipayType", () => {
     const raw = {
-      adapter: "alipay-bill", originalId: "TX6",
+      adapter: "alipay-bill",
+      originalId: "TX6",
       capturedAt: Date.now(),
       payload: {
         row: {
-          txId: "TX6", merchantOrderNumber: "MO6",
-          createdAt: "2024-04-25 09:00:00", paidAt: "2024-04-25 09:00:00",
+          txId: "TX6",
+          merchantOrderNumber: "MO6",
+          createdAt: "2024-04-25 09:00:00",
+          paidAt: "2024-04-25 09:00:00",
           lastModifiedAt: "2024-04-25 09:00:00",
-          sourceChannel: "支付宝网站", alipayType: "即时到账交易",
-          counterparty: "京东", itemName: "iPhone 17 Pro 256GB", amount: "9999.00",
-          direction: "支出", status: "交易成功",
-          serviceFee: "0.00", refundedAmount: "0.00",
-          note: "", fundStatus: "已支出",
+          sourceChannel: "支付宝网站",
+          alipayType: "即时到账交易",
+          counterparty: "京东",
+          itemName: "iPhone 17 Pro 256GB",
+          amount: "9999.00",
+          direction: "支出",
+          status: "交易成功",
+          serviceFee: "0.00",
+          refundedAmount: "0.00",
+          note: "",
+          fundStatus: "已支出",
         },
         accountEmail: "u@example.com",
       },

@@ -25,6 +25,7 @@ const { newId } = require("../../ids");
 const { createAccountScope } = require("../../account-scope");
 const {
   SnapshotFileError,
+  inspectSnapshotFile,
   probeSnapshotFile,
   readBoundedSnapshotBuffer,
 } = require("../../snapshot-file");
@@ -37,9 +38,16 @@ const {
   classifyCounterparty,
   counterpartyToPersonId,
 } = require("./counterparty");
+const {
+  advanceCursor,
+  assertScanIdentity,
+  beginScan,
+  parseCursor,
+  serializeCursor,
+} = require("./scan-cursor");
 
 const NAME = "alipay-bill";
-const VERSION = "0.2.0"; // generic file-import/readiness contract
+const VERSION = "0.3.0";
 
 /**
  * Map Alipay's `类型` string → UnifiedSchema Event.subtype.
@@ -98,6 +106,7 @@ class AlipayBillAdapter {
     ];
     this.extractMode = "file-import";
     this.rateLimits = {};
+    this.watermarkStrategy = "explicit";
     this.dataDisclosure = {
       fields: [
         "alipay:txId, createdAt, paidAt, counterparty, itemName, amount, direction, status, note",
@@ -105,6 +114,27 @@ class AlipayBillAdapter {
       sensitivity: "high",
       legalGate: false,
     };
+  }
+
+  fileCheckpointMode() {
+    return "shared";
+  }
+
+  resolveDefaultScope(options = {}) {
+    const inputPath = resolveInputPath(options);
+    if (!inputPath) return this.defaultScope;
+    const limits = resolveAlipayImportLimits(options, this._importLimits);
+    const isZip = resolveZipPath(options, inputPath) !== null;
+    return scopeForImport(
+      this._fs,
+      inputPath,
+      isZip ? limits.maxArchiveBytes : limits.maxCsvBytes,
+      this.account.email,
+    );
+  }
+
+  resolveInputScope(options = {}) {
+    return this.resolveDefaultScope(options);
   }
 
   async authenticate(ctx = {}) {
@@ -258,10 +288,38 @@ class AlipayBillAdapter {
       header: parsed.header,
     });
 
+    const limit =
+      Number.isSafeInteger(opts.limit) && opts.limit > 0
+        ? opts.limit
+        : Infinity;
+    let cursor = parseCursor(opts.sinceWatermark).cursor;
+    if (cursor.upper === null) {
+      cursor = beginScan(cursor, {
+        source: fileSha256,
+        upper: parsed.rows.length,
+      });
+    } else {
+      cursor = assertScanIdentity(cursor, {
+        source: fileSha256,
+        upper: parsed.rows.length,
+      });
+    }
+    const publish = () => {
+      if (typeof opts.updateWatermark === "function") {
+        opts.updateWatermark(serializeCursor(cursor));
+      }
+    };
+
+    const importedAt = Date.now();
     let yielded = 0;
-    for (const row of parsed.rows) {
+    let ordinal = cursor.after ?? 0;
+    while (cursor.upper !== null && yielded < limit) {
+      ordinal += 1;
+      const row = parsed.rows[ordinal - 1];
+      cursor = advanceCursor(cursor, ordinal);
+      publish();
       emit("row", {
-        current: yielded + 1,
+        current: ordinal,
         total: parsed.rows.length,
         txId: row.txId,
       });
@@ -269,12 +327,13 @@ class AlipayBillAdapter {
         sourceMode,
         fileSha256,
         accountEmail: this.account.email,
-        importedAt: Date.now(),
+        importedAt,
         billPeriod: parsed.header,
       });
       yielded += 1;
     }
 
+    publish();
     emit("done", { yielded, sourceMode });
   }
 
@@ -426,6 +485,26 @@ class AlipayBillAdapter {
 }
 
 // ─── helpers ────────────────────────────────────────────────────────────
+
+function scopeForImport(fsMod, inputPath, maxBytes, accountEmail) {
+  const inspected = inspectSnapshotFile(fsMod, inputPath, { maxBytes });
+  const revision =
+    inspected.stat.mtimeNs ??
+    inspected.stat.mtimeMs ??
+    inspected.stat.ctimeNs ??
+    inspected.stat.ctimeMs ??
+    "";
+  return createAccountScope(
+    NAME,
+    [
+      `account:${accountEmail}`,
+      "import",
+      inspected.realPath,
+      String(inspected.size),
+      String(revision),
+    ].join("\0"),
+  );
+}
 
 function resolveInputPath(opts = {}) {
   return (
