@@ -276,7 +276,9 @@ class DongchediAdapter {
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
-      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : Number.POSITIVE_INFINITY;
     const sinceMs =
       opts.sinceWatermark != null
         ? parseInt(String(opts.sinceWatermark), 10) || 0
@@ -485,7 +487,7 @@ function normalizeFollow(raw, ingestedAt) {
   return { events: [], persons: [person], places: [], items: [], topics: [] };
 }
 
-async function defaultFetch(_opts) {
+async function defaultFetch() {
   throw new Error(
     "social-dongchedi: no fetchFn configured for cookie-api mode",
   );

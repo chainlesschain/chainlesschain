@@ -324,7 +324,9 @@ class ZhihuAdapter {
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
-      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : Number.POSITIVE_INFINITY;
     const sinceMs =
       opts.sinceWatermark != null
         ? parseInt(String(opts.sinceWatermark), 10) || 0
@@ -443,14 +445,6 @@ function extractData(resp) {
     source: NAME,
     stream: "items",
   });
-}
-
-function hasDataList(resp) {
-  return !!(
-    resp &&
-    typeof resp === "object" &&
-    (Array.isArray(resp.data) || Array.isArray(resp.items))
-  );
 }
 
 function responseEndsStream(resp, itemCount, pageLimit) {
@@ -633,7 +627,7 @@ function stripHtml(s) {
   return s.replace(/<[^>]+>/g, "").trim();
 }
 
-async function defaultFetch(_opts) {
+async function defaultFetch() {
   throw new Error("social-zhihu: no fetchFn configured for cookie-api mode");
 }
 
