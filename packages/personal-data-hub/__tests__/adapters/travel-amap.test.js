@@ -73,7 +73,7 @@ const SEARCH_ROW = {
 describe("constants", () => {
   it("exposes name/version", () => {
     expect(NAME).toBe("travel-amap");
-    expect(VERSION).toBe("0.7.0");
+    expect(VERSION).toBe("0.8.0");
   });
 });
 

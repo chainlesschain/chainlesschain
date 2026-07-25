@@ -16,14 +16,29 @@
 "use strict";
 
 const fs = require("node:fs");
-const { probeSnapshotFile } = require("../../snapshot-file");
+const crypto = require("node:crypto");
+const {
+  createAccountScope,
+  createAccountScopeFromAccount,
+} = require("../../account-scope");
+const {
+  inspectSnapshotFile,
+  probeSnapshotFile,
+} = require("../../snapshot-file");
 const {
   normalizeTravelRecord,
   parseChineseDateTime,
 } = require("../travel-base");
+const {
+  advanceCursor,
+  assertScanIdentity,
+  beginScan,
+  parseCursor,
+  serializeCursor,
+} = require("./scan-cursor");
 
 const NAME = "travel-amap";
-const VERSION = "0.7.0";
+const VERSION = "0.8.0";
 const SQLITE_MAGIC = Buffer.from("SQLite format 3\0", "ascii");
 
 class AmapAdapter {
@@ -38,6 +53,11 @@ class AmapAdapter {
     this._dbDriverFactory = opts.dbDriverFactory || null;
 
     this.name = NAME;
+    this.defaultScope = createAccountScopeFromAccount(
+      NAME,
+      this.account || opts,
+      ["deviceId", "uid", "userId", "accountId"],
+    );
     this.version = VERSION;
     this.capabilities = [
       "sync:sqlite",
@@ -48,6 +68,7 @@ class AmapAdapter {
     ];
     this.extractMode = "device-pull";
     this.rateLimits = {};
+    this.watermarkStrategy = "explicit";
     this.dataDisclosure = {
       fields: [
         "amap:search_history (query / time / location)",
@@ -57,6 +78,28 @@ class AmapAdapter {
       sensitivity: "medium",
       legalGate: false,
     };
+  }
+
+  fileCheckpointMode() {
+    return "shared";
+  }
+
+  resolveDefaultScope(options = {}) {
+    const inputPath =
+      options.inputPath || options.dataPath || options.dbPath || this._dbPath;
+    if (typeof inputPath !== "string" || inputPath.length === 0) {
+      return this.defaultScope;
+    }
+    return scopeForSqliteFile(
+      fs,
+      inputPath,
+      options.maxSnapshotBytes,
+      this.defaultScope,
+    );
+  }
+
+  resolveInputScope(options = {}) {
+    return this.resolveDefaultScope(options);
   }
 
   async authenticate(ctx = {}) {
@@ -123,6 +166,10 @@ class AmapAdapter {
       error.code = "SNAPSHOT_SCHEMA_MISMATCH";
       throw error;
     }
+    const inspected = inspectSnapshotFile(fs, dbPath, {
+      maxBytes: opts.maxSnapshotBytes,
+    });
+    const fallbackCapturedAt = fileCapturedAt(inspected.stat);
     const Database =
       this._dbDriverFactory ||
       (() => require("better-sqlite3-multiple-ciphers"));
@@ -130,52 +177,62 @@ class AmapAdapter {
     const db = new Driver(dbPath, { readonly: true });
 
     try {
+      const records = [];
       // History routes (most analytically valuable)
       const routes =
-        trySelect(db, "SELECT * FROM history_route LIMIT 5000") ||
-        trySelect(db, "SELECT * FROM ROUTE_HISTORY LIMIT 5000") ||
+        trySelect(db, "SELECT * FROM history_route") ||
+        trySelect(db, "SELECT * FROM ROUTE_HISTORY") ||
         [];
       for (const r of routes) {
         const rec = routeRowToRecord(r);
         if (rec) {
-          yield {
+          records.push({
             adapter: NAME,
             originalId: rec.recordId,
-            capturedAt: rec.bookedAt || Date.now(),
+            capturedAt: rec.departureMs || fallbackCapturedAt,
             payload: { record: rec, kind: "route" },
-          };
+          });
         }
       }
       // History search (queries — produce trip events of type "visit")
-      const searches =
-        trySelect(db, "SELECT * FROM history_search LIMIT 5000") || [];
+      const searches = trySelect(db, "SELECT * FROM history_search") || [];
       for (const r of searches) {
         const rec = searchRowToRecord(r);
         if (rec) {
-          yield {
+          records.push({
             adapter: NAME,
             originalId: rec.recordId,
-            capturedAt: rec.bookedAt || Date.now(),
+            capturedAt: rec.departureMs || fallbackCapturedAt,
             payload: { record: rec, kind: "search" },
-          };
+          });
         }
       }
       const favourites =
-        trySelect(db, "SELECT * FROM favourites LIMIT 5000") ||
-        trySelect(db, "SELECT * FROM favorite LIMIT 5000") ||
-        trySelect(db, "SELECT * FROM favorite_poi LIMIT 5000") ||
+        trySelect(db, "SELECT * FROM favourites") ||
+        trySelect(db, "SELECT * FROM favorite") ||
+        trySelect(db, "SELECT * FROM favorite_poi") ||
         [];
       for (const row of favourites) {
         const rec = favouriteRowToRecord(row);
         if (rec) {
-          yield {
+          records.push({
             adapter: NAME,
             originalId: rec.recordId,
-            capturedAt: rec.bookedAt || Date.now(),
+            capturedAt: rec.departureMs || fallbackCapturedAt,
             payload: { record: rec, kind: "favourite" },
-          };
+          });
         }
       }
+      records.sort(compareCollectionRecords);
+      const include = opts.include || {};
+      const selected = records.filter(
+        (record) => include[record.payload.kind] !== false,
+      );
+      yield* yieldCollection(opts, {
+        config: collectionConfig(include),
+        records: selected,
+        source: collectionSource(selected),
+      });
     } finally {
       try {
         db.close();
@@ -194,6 +251,138 @@ class AmapAdapter {
       adapterVersion: VERSION,
     });
   }
+}
+
+function fileCapturedAt(stat) {
+  const value = Number(stat && stat.mtimeMs);
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : Date.now();
+}
+
+function digest(value) {
+  return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+function collectionConfig(include) {
+  return digest(
+    Buffer.from(
+      JSON.stringify({
+        include: {
+          favourite: include.favourite !== false,
+          route: include.route !== false,
+          search: include.search !== false,
+        },
+        mode: "sqlite",
+      }),
+      "utf8",
+    ),
+  );
+}
+
+function collectionSource(records) {
+  return digest(
+    Buffer.from(
+      stableStringify(
+        records.map((record) => ({
+          kind: record.payload.kind,
+          originalId: record.originalId,
+          record: record.payload.record,
+        })),
+      ),
+      "utf8",
+    ),
+  );
+}
+
+function stableStringify(value) {
+  return JSON.stringify(canonicalDigestValue(value));
+}
+
+function canonicalDigestValue(value) {
+  if (typeof value === "bigint") {
+    return { $bigint: value.toString() };
+  }
+  if (Buffer.isBuffer(value)) {
+    return { $buffer: value.toString("base64") };
+  }
+  if (Array.isArray(value)) return value.map(canonicalDigestValue);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, canonicalDigestValue(value[key])]),
+    );
+  }
+  return value;
+}
+
+function compareCollectionRecords(left, right) {
+  const kinds = ["route", "search", "favourite"];
+  const kindOrder =
+    kinds.indexOf(left.payload.kind) - kinds.indexOf(right.payload.kind);
+  if (kindOrder !== 0) return kindOrder;
+  const leftTime = Number.isFinite(left.capturedAt)
+    ? left.capturedAt
+    : Number.NEGATIVE_INFINITY;
+  const rightTime = Number.isFinite(right.capturedAt)
+    ? right.capturedAt
+    : Number.NEGATIVE_INFINITY;
+  if (leftTime !== rightTime) return rightTime - leftTime;
+  return left.originalId.localeCompare(right.originalId, "en");
+}
+
+function prepareCursor(sinceWatermark, identity) {
+  let cursor = parseCursor(sinceWatermark).cursor;
+  cursor =
+    cursor.upper === null
+      ? beginScan(cursor, identity)
+      : assertScanIdentity(cursor, identity);
+  return cursor;
+}
+
+async function* yieldCollection(opts, { config, records, source }) {
+  const limit =
+    Number.isSafeInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+  let cursor = prepareCursor(opts.sinceWatermark, {
+    mode: "sqlite",
+    source,
+    config,
+    upper: records.length,
+  });
+  const publish = () => {
+    if (typeof opts.updateWatermark === "function") {
+      opts.updateWatermark(serializeCursor(cursor));
+    }
+  };
+  let emitted = 0;
+  let ordinal = cursor.after ?? 0;
+  while (cursor.upper !== null && emitted < limit) {
+    ordinal += 1;
+    cursor = advanceCursor(cursor, ordinal);
+    publish();
+    yield records[ordinal - 1];
+    emitted += 1;
+  }
+  publish();
+}
+
+function scopeForSqliteFile(fsMod, inputPath, maxBytes, accountScope) {
+  const inspected = inspectSnapshotFile(fsMod, inputPath, { maxBytes });
+  const revision =
+    inspected.stat.mtimeNs ??
+    inspected.stat.mtimeMs ??
+    inspected.stat.ctimeNs ??
+    inspected.stat.ctimeMs ??
+    "";
+  return createAccountScope(
+    NAME,
+    [
+      accountScope || "unscoped",
+      "sqlite",
+      inspected.realPath,
+      String(inspected.size),
+      String(revision),
+    ].join("\0"),
+  );
 }
 
 function hasSqliteMagic(fsImpl, filePath) {
