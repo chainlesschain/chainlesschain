@@ -228,6 +228,161 @@ function readMsgTable(db, tableName, isGroup, limit, diag) {
   });
 }
 
+function resolveCursorTable(db, tableName) {
+  const info = trySelect(db, `PRAGMA table_info(${tableName})`);
+  if (!Array.isArray(info) || info.length === 0) return null;
+  const cols = new Set(info.map((row) => row.name));
+  return {
+    msgId: pickCol(cols, COL_CANDIDATES.msgId),
+    sequence: pickCol(cols, COL_CANDIDATES.sequence),
+    time: pickCol(cols, COL_CANDIDATES.time),
+    type: pickCol(cols, COL_CANDIDATES.type),
+    subtype: pickCol(cols, COL_CANDIDATES.subtype),
+    senderUid: pickCol(cols, COL_CANDIDATES.senderUid),
+    peerUin: pickCol(cols, COL_CANDIDATES.peerUin),
+    peerUid: pickCol(cols, COL_CANDIDATES.peerUid),
+    senderType: pickCol(cols, COL_CANDIDATES.senderType),
+    senderUin: pickCol(cols, COL_CANDIDATES.senderUin),
+    readState: pickCol(cols, COL_CANDIDATES.readState),
+    content: pickCol(cols, COL_CANDIDATES.content),
+  };
+}
+
+function cursorRowToMessage(row, resolved, tableName, isGroup, idx) {
+  const rawTime = resolved.time ? row[resolved.time] : null;
+  const contentValue = resolved.content ? row[resolved.content] : null;
+  const messageId =
+    exactString(row[EXACT_MSG_ID_ALIAS]) ||
+    (resolved.msgId ? exactString(row[resolved.msgId]) : null);
+  const rawRow = { ...row };
+  delete rawRow[EXACT_MSG_ID_ALIAS];
+  if (messageId && resolved.msgId) rawRow[resolved.msgId] = messageId;
+  return {
+    tableName,
+    msgId: messageId || `${tableName}-${idx}`,
+    messageId,
+    sequence: resolved.sequence ? exactString(row[resolved.sequence]) : null,
+    isGroup,
+    createdTimeMs:
+      typeof rawTime === "number" ? normalizeEpochMs(rawTime) : null,
+    type: resolved.type ? finiteNumber(row[resolved.type]) : null,
+    subtype: resolved.subtype ? finiteNumber(row[resolved.subtype]) : null,
+    senderUid:
+      resolved.senderUid && row[resolved.senderUid] != null
+        ? String(row[resolved.senderUid])
+        : null,
+    peerUin:
+      resolved.peerUin && row[resolved.peerUin] != null
+        ? String(row[resolved.peerUin])
+        : null,
+    peerUid:
+      resolved.peerUid && row[resolved.peerUid] != null
+        ? String(row[resolved.peerUid])
+        : null,
+    senderType: resolved.senderType
+      ? finiteNumber(row[resolved.senderType])
+      : null,
+    senderUin:
+      resolved.senderUin && row[resolved.senderUin] != null
+        ? String(row[resolved.senderUin])
+        : null,
+    readState: resolved.readState
+      ? finiteNumber(row[resolved.readState])
+      : null,
+    text: typeof contentValue === "string" ? contentValue : null,
+    rawRow,
+  };
+}
+
+function cursorTablePage(db, tableName, isGroup, { after, upper, limit }) {
+  const resolved = resolveCursorTable(db, tableName);
+  if (!resolved || !resolved.msgId) {
+    return { upper: null, messages: [], hasMore: false };
+  }
+  const idColumn = `"${resolved.msgId}"`;
+  const upperRow = db
+    .prepare(
+      `SELECT CAST(${idColumn} AS TEXT) AS "${EXACT_MSG_ID_ALIAS}"
+       FROM ${tableName}
+       WHERE ${idColumn} IS NOT NULL
+       ORDER BY ${idColumn} DESC
+       LIMIT 1`,
+    )
+    .get();
+  const currentUpper = exactString(upperRow?.[EXACT_MSG_ID_ALIAS]);
+  const frozenUpper = upper === undefined ? currentUpper : upper;
+  if (frozenUpper === null || frozenUpper === undefined) {
+    return { upper: currentUpper, messages: [], hasMore: false };
+  }
+
+  const where = [`${idColumn} IS NOT NULL`, `${idColumn} <= ?`];
+  const params = [frozenUpper];
+  if (after !== null) {
+    where.push(`${idColumn} > ?`);
+    params.push(after);
+  }
+  params.push(limit + 1);
+  const exactSelect = `, CAST(${idColumn} AS TEXT) AS "${EXACT_MSG_ID_ALIAS}"`;
+  const rows = db
+    .prepare(
+      `SELECT *${exactSelect}
+       FROM ${tableName}
+       WHERE ${where.join(" AND ")}
+       ORDER BY ${idColumn} ASC
+       LIMIT ?`,
+    )
+    .all(...params);
+  const hasMore = rows.length > limit;
+  return {
+    upper: currentUpper,
+    messages: rows
+      .slice(0, limit)
+      .map((row, idx) =>
+        cursorRowToMessage(row, resolved, tableName, isGroup, idx),
+      ),
+    hasMore,
+  };
+}
+
+function readQqNtCursorPage(dbPath, opts = {}) {
+  if (typeof dbPath !== "string" || dbPath.length === 0) {
+    throw new TypeError(
+      "readQqNtCursorPage: dbPath must be a non-empty string",
+    );
+  }
+  const limit =
+    Number.isSafeInteger(opts.limit) && opts.limit > 0
+      ? Math.min(opts.limit, 10_000)
+      : 1000;
+  const after = opts.after || { c2c: null, group: null };
+  const frozenUpper = opts.upper || {};
+  const { db, mode } = openNtDb(dbPath, opts);
+  try {
+    const c2c = cursorTablePage(db, "c2c_msg_table", false, {
+      after: after.c2c ?? null,
+      upper: frozenUpper.c2c,
+      limit,
+    });
+    const group = cursorTablePage(db, "group_msg_table", true, {
+      after: after.group ?? null,
+      upper: frozenUpper.group,
+      limit,
+    });
+    return {
+      mode,
+      upperBounds: { c2c: c2c.upper, group: group.upper },
+      messages: { c2c: c2c.messages, group: group.messages },
+      hasMore: { c2c: c2c.hasMore, group: group.hasMore },
+    };
+  } finally {
+    try {
+      db.close();
+    } catch {
+      // Best-effort close.
+    }
+  }
+}
+
 /**
  * Read messages out of a QQ NT nt_msg.db. Returns `{messages, diagnostic}`.
  * Reads c2c_msg_table + group_msg_table (whichever exist).
@@ -274,7 +429,14 @@ function readQqNt(dbPath, opts = {}) {
 
 module.exports = {
   readQqNt,
+  readQqNtCursorPage,
   openNtDb,
   COL_CANDIDATES,
-  _internals: { loadDatabaseClass, normalizeEpochMs, pickCol, readMsgTable },
+  _internals: {
+    cursorTablePage,
+    loadDatabaseClass,
+    normalizeEpochMs,
+    pickCol,
+    readMsgTable,
+  },
 };

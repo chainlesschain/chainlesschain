@@ -164,7 +164,7 @@ describe("QQPcAdapter — readiness + construction", () => {
       env: {},
     };
     expect(a.name).toBe("qq-pc");
-    expect(a.watermarkStrategy).toBe("none");
+    expect(a.watermarkStrategy).toBe("explicit");
     expect(a.dataDisclosure.legalGate).toBe(true);
     const r = await a.authenticate({ readinessOnly: true });
     expect(r.reason).toBe("APP_NOT_INSTALLED");

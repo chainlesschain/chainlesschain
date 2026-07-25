@@ -197,3 +197,53 @@ def test_parse_qq_messages_reads_both_tables(tmp_path):
     assert c["messageId"] == "9007199254740995"
     assert c["sequence"] == "0"
     assert c["originalId"] == "qq-pc:c2c:111:1700000000"
+
+    page = qq.parse_qq_messages(
+        str(p),
+        limit=1,
+        page={
+            "after": {"c2c": None, "group": None},
+            "upper": {},
+        },
+    )
+    assert page["upperBounds"] == {
+        "c2c": "9007199254740995",
+        "group": "9007199254740993",
+    }
+    assert page["hasMore"] == {"c2c": False, "group": False}
+    assert sorted(m["messageId"] for m in page["messages"]) == [
+        "9007199254740993",
+        "9007199254740995",
+    ]
+
+    con = sqlite3.connect(str(p))
+    cur = con.cursor()
+    cur.execute(
+        "INSERT INTO c2c_msg_table (`40001`, `40050`, `40800`) "
+        "VALUES (9007199254740997, 1700000200, ?)",
+        (_pb_str_field(2, "new-c2c"),),
+    )
+    cur.execute(
+        "INSERT INTO group_msg_table (`40001`, `40050`, `40800`) "
+        "VALUES (9007199254740999, 1700000300, ?)",
+        (_pb_str_field(2, "new-group"),),
+    )
+    con.commit()
+    con.close()
+
+    frozen = qq.parse_qq_messages(
+        str(p),
+        limit=2,
+        page={
+            "after": {"c2c": None, "group": None},
+            "upper": page["upperBounds"],
+        },
+    )
+    assert frozen["upperBounds"] == {
+        "c2c": "9007199254740997",
+        "group": "9007199254740999",
+    }
+    assert sorted(m["messageId"] for m in frozen["messages"]) == [
+        "9007199254740993",
+        "9007199254740995",
+    ]

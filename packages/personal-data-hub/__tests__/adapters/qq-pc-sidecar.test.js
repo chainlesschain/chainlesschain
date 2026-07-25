@@ -31,6 +31,39 @@ describe("qq-pc sidecar invocation", () => {
     expect(supervisor.stop).toHaveBeenCalledTimes(1);
   });
 
+  it("forwards explicit cursor pages to the Python collector", async () => {
+    let invokeParams;
+    const page = {
+      after: { c2c: "9007199254740993", group: "9007199254740994" },
+      upper: { c2c: "9007199254740995", group: "9007199254740996" },
+    };
+    const result = {
+      messages: [],
+      upperBounds: page.upper,
+      hasMore: { c2c: false, group: false },
+    };
+    const supervisor = {
+      start: vi.fn().mockResolvedValue(undefined),
+      invoke: vi.fn().mockImplementation(async (_method, params) => {
+        invokeParams = params;
+        return result;
+      }),
+      stop: vi.fn().mockResolvedValue(undefined),
+    };
+
+    await expect(
+      collectQqNt({
+        passphrase: "test-passphrase",
+        page,
+        bridgeDir: "/unused-in-injected-test",
+        _supervisorFactory: () => supervisor,
+      }),
+    ).resolves.toBe(result);
+
+    expect(invokeParams.page).toEqual(page);
+    expect(supervisor.stop).toHaveBeenCalledTimes(1);
+  });
+
   it("rethrows abort errors without trying another Python candidate", async () => {
     const abortError = Object.assign(new Error("collection aborted"), {
       name: "AbortError",

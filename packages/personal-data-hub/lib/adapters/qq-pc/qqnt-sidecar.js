@@ -48,6 +48,7 @@ function isAbortError(err, signal) {
  * @param {string} [opts.key]         alternatively a hex key
  * @param {string} [opts.dbPath]      nt_msg.db path (sidecar auto-discovers if omitted)
  * @param {number} [opts.limit]
+ * @param {{after:object,upper?:object}} [opts.page]
  * @param {string} [opts.pythonExe]
  * @param {string} [opts.bridgeDir]
  * @param {number} [opts.timeoutMs]
@@ -80,6 +81,7 @@ async function collectQqNt(opts = {}) {
 
   const params = {};
   if (Number.isInteger(opts.limit) && opts.limit > 0) params.limit = opts.limit;
+  if (opts.page && typeof opts.page === "object") params.page = opts.page;
   if (opts.passphrase) params.passphrase = opts.passphrase;
   else if (opts.key) params.key = opts.key;
   if (opts.dbPath) params.db_path = opts.dbPath;

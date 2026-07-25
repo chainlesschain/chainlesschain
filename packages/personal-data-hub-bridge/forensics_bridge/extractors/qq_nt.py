@@ -238,7 +238,7 @@ def _extract_text(blob, sender_name):
     return max(cands, key=len) if cands else None
 
 
-def parse_qq_messages(plain_path, limit=50000):
+def parse_qq_messages(plain_path, limit=50000, page=None):
     """Read c2c_msg_table + group_msg_table → readable messages."""
     import sqlite3
     con = sqlite3.connect(plain_path)
@@ -252,6 +252,11 @@ def parse_qq_messages(plain_path, limit=50000):
         value = _S(v)
         return str(value) if value is not None else None
 
+    page_mode = isinstance(page, dict)
+    after = page.get("after", {}) if page_mode else {}
+    frozen_upper = page.get("upper", {}) if page_mode else {}
+    upper_bounds = {"c2c": None, "group": None}
+    has_more = {"c2c": False, "group": False}
     messages = []
     for table, kind in (("c2c_msg_table", "c2c"), ("group_msg_table", "group")):
         try:
@@ -264,16 +269,49 @@ def parse_qq_messages(plain_path, limit=50000):
             continue
         sel = ", ".join(f"`{c}`" for c in cols)
         try:
-            cur.execute(f"SELECT {sel} FROM `{table}` ORDER BY `40050` DESC")
+            if page_mode:
+                if "40001" not in cols:
+                    continue
+                cur.execute(
+                    f"SELECT CAST(`40001` AS TEXT) FROM `{table}` "
+                    "WHERE `40001` IS NOT NULL ORDER BY `40001` DESC LIMIT 1"
+                )
+                upper_row = cur.fetchone()
+                current_upper = _string(upper_row[0]) if upper_row else None
+                upper_bounds[kind] = current_upper
+                bound = frozen_upper.get(kind, current_upper)
+                if bound is None:
+                    continue
+                where = ["`40001` IS NOT NULL", "`40001` <= ?"]
+                query_params = [int(bound)]
+                after_value = after.get(kind)
+                if after_value is not None:
+                    where.append("`40001` > ?")
+                    query_params.append(int(after_value))
+                query_params.append(limit + 1)
+                cur.execute(
+                    f"SELECT {sel} FROM `{table}` "
+                    f"WHERE {' AND '.join(where)} "
+                    "ORDER BY `40001` ASC LIMIT ?",
+                    query_params,
+                )
+            else:
+                cur.execute(
+                    f"SELECT {sel} FROM `{table}` ORDER BY `40050` DESC"
+                )
         except sqlite3.Error:
             continue
+        rows = cur.fetchall()
+        if page_mode:
+            has_more[kind] = len(rows) > limit
+            rows = rows[:limit]
         idx = {c: i for i, c in enumerate(cols)}
 
         def g(row, c):
             return row[idx[c]] if c in idx else None
 
-        for row in cur.fetchall():
-            if len(messages) >= limit:
+        for row in rows:
+            if not page_mode and len(messages) >= limit:
                 break
             t = g(row, "40050")
             name = _S(g(row, "40093")) or _S(g(row, "40090"))
@@ -312,6 +350,12 @@ def parse_qq_messages(plain_path, limit=50000):
                 "originalId": f"qq-pc:{kind}:{legacy_peer}:{legacy_message_id}",
             })
     con.close()
+    if page_mode:
+        return {
+            "messages": messages,
+            "upperBounds": upper_bounds,
+            "hasMore": has_more,
+        }
     return messages
 
 
@@ -457,12 +501,19 @@ def m_collect(params, progress, _chunk):
     with open(out, "wb") as f:
         f.write(plaintext)
     try:
-        messages = parse_qq_messages(out, limit=limit)
+        parsed = parse_qq_messages(
+            out,
+            limit=limit,
+            page=params.get("page"),
+        )
     finally:
         try:
             os.remove(out)
         except OSError:
             pass
+
+    page_result = parsed if isinstance(parsed, dict) else None
+    messages = page_result["messages"] if page_result else parsed
 
     # Enrich: group code → group name, uin → friend nickname (best-effort from
     # the sibling profile_info.db / group_info.db); label non-text messages.
@@ -478,7 +529,7 @@ def m_collect(params, progress, _chunk):
             m["text"] = "[非文本/媒体消息]"
 
     c2c = sum(1 for m in messages if m["kind"] == "c2c")
-    return {
+    result = {
         "account": account,
         "hmacVariant": variant,
         "messageCount": len(messages),
@@ -486,6 +537,10 @@ def m_collect(params, progress, _chunk):
         "group": len(messages) - c2c,
         "messages": messages,
     }
+    if page_result:
+        result["upperBounds"] = page_result["upperBounds"]
+        result["hasMore"] = page_result["hasMore"]
+    return result
 
 
 if __name__ == "__main__":

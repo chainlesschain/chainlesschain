@@ -33,10 +33,18 @@ const {
   createQqAccountScope,
   createQqPathScope,
 } = require("../../qq-source-identity");
+const {
+  advanceCursor,
+  beginScan,
+  completeStream,
+  parseCursor,
+  serializeCursor,
+} = require("../../qq-nt/scan-cursor");
 
 const NAME = "qq-pc";
 const VERSION = "0.2.0";
 const KIND_MESSAGE = "message";
+const DEFAULT_CURSOR_PAGE_SIZE = 1000;
 
 function stableOriginalId(id) {
   const safe =
@@ -56,6 +64,125 @@ function observationProducer(raw) {
     return "qq-pc/sidecar";
   }
   return "qq-pc/direct";
+}
+
+function usesExplicitCursor(opts) {
+  return (
+    typeof opts?.updateWatermark === "function" ||
+    opts?.sinceWatermark !== undefined
+  );
+}
+
+function compareDecimalIds(left, right) {
+  const leftValue = String(left);
+  const rightValue = String(right);
+  if (leftValue.length !== rightValue.length) {
+    return leftValue.length - rightValue.length;
+  }
+  return leftValue.localeCompare(rightValue);
+}
+
+function cursorPageError(message) {
+  const error = new Error(`qq-pc: ${message}`);
+  error.code = "QQNT_CURSOR_PAGE_INVALID";
+  return error;
+}
+
+function validatePageBoundaries(page, cursor) {
+  for (const stream of ["c2c", "group"]) {
+    if (!Object.prototype.hasOwnProperty.call(page.upperBounds, stream)) {
+      throw cursorPageError(`cursor page omitted the ${stream} upper boundary`);
+    }
+    const currentUpper = page.upperBounds[stream];
+    if (
+      currentUpper !== null &&
+      (typeof currentUpper !== "string" ||
+        !/^(?:0|[1-9][0-9]*)$/u.test(currentUpper))
+    ) {
+      throw cursorPageError(
+        `${stream} upper boundary must be an exact decimal string or null`,
+      );
+    }
+    if (
+      cursor.scan !== null &&
+      !cursor.scan.done[stream] &&
+      (currentUpper === null ||
+        compareDecimalIds(currentUpper, cursor.scan.upper[stream]) < 0)
+    ) {
+      throw cursorPageError(
+        `${stream} source boundary regressed below the frozen scan`,
+      );
+    }
+  }
+}
+
+function directRawFromMessage(message, index, fallbackCapturedAt) {
+  const capturedAt =
+    typeof message.createdTimeMs === "number" && message.createdTimeMs > 0
+      ? message.createdTimeMs
+      : fallbackCapturedAt;
+  const idPart =
+    message.msgId ||
+    (message.peerUin && message.createdTimeMs
+      ? `${message.peerUin}-${message.createdTimeMs}`
+      : `msg-${index}`);
+  const originalId = stableOriginalId(idPart);
+  const payload = {
+    kind: KIND_MESSAGE,
+    ...message,
+    observationProducer: "qq-pc/direct",
+  };
+  return {
+    adapter: NAME,
+    kind: KIND_MESSAGE,
+    originalId,
+    canonicalOriginalId: canonicalQqNtOriginalId(payload),
+    producer: "qq-pc/direct",
+    capturedAt,
+    payload,
+  };
+}
+
+function sidecarRawFromMessage(message, index, fallbackCapturedAt) {
+  const isGroup = message.kind === "group";
+  const createdTimeMs =
+    typeof message.createTime === "number" && message.createTime > 0
+      ? message.createTime * 1000
+      : null;
+  const payload = {
+    kind: KIND_MESSAGE,
+    tableName:
+      message.tableName || (isGroup ? GROUP_MESSAGE_TABLE : C2C_MESSAGE_TABLE),
+    text: typeof message.text === "string" ? message.text : "",
+    messageId: message.messageId != null ? String(message.messageId) : null,
+    sequence: message.sequence != null ? String(message.sequence) : null,
+    peerUin: message.peer != null ? String(message.peer) : null,
+    peerUid: message.peerUid != null ? String(message.peerUid) : null,
+    peerName: message.conversationName || null,
+    senderUid: message.senderUid != null ? String(message.senderUid) : null,
+    senderUin: message.senderUin != null ? String(message.senderUin) : null,
+    senderName: message.senderName || null,
+    isGroup,
+    type: typeof message.type === "number" ? message.type : null,
+    subtype: typeof message.subtype === "number" ? message.subtype : null,
+    senderType:
+      typeof message.senderType === "number" ? message.senderType : null,
+    readState: typeof message.readState === "number" ? message.readState : null,
+    createdTimeMs,
+    observationProducer: "qq-pc/sidecar",
+  };
+  const originalId =
+    message.originalId ||
+    stableOriginalId(`${message.peer}-${createdTimeMs}-${index}`);
+  return {
+    adapter: NAME,
+    kind: KIND_MESSAGE,
+    originalId,
+    canonicalOriginalId: canonicalQqNtOriginalId(payload),
+    producer: "qq-pc/sidecar",
+    capturedAt: createdTimeMs || fallbackCapturedAt,
+    payload,
+  };
 }
 
 class QQPcAdapter {
@@ -78,7 +205,7 @@ class QQPcAdapter {
     ];
     this.extractMode = "device-pull";
     this.rateLimits = {};
-    this.watermarkStrategy = "none";
+    this.watermarkStrategy = "explicit";
     this.dataDisclosure = {
       fields: [
         "qq-pc:messages (time / type / sender / peer / best-effort text from nt_msg.db; raw row preserved)",
@@ -205,12 +332,24 @@ class QQPcAdapter {
     }
     if (!this._deps.fs.existsSync(dbPath)) return;
 
-    const { readQqNt } = require("./nt-db-reader");
+    const { readQqNt, readQqNtCursorPage } = require("./nt-db-reader");
     const readOpts = { key: opts.key || this._key || null };
     if (Number.isInteger(opts.limitMessages))
       readOpts.limitMessages = opts.limitMessages;
     if (this._deps.dbDriverFactory)
       readOpts._databaseClass = this._deps.dbDriverFactory();
+    if (usesExplicitCursor(opts)) {
+      yield* this._syncCursorPage(
+        opts,
+        (page) =>
+          readQqNtCursorPage(dbPath, {
+            ...readOpts,
+            ...page,
+          }),
+        directRawFromMessage,
+      );
+      return;
+    }
 
     const { messages, diagnostic } = readQqNt(dbPath, readOpts);
     if (typeof opts.onProgress === "function") {
@@ -228,30 +367,7 @@ class QQPcAdapter {
     for (const m of messages) {
       if (emitted >= limit) return;
       if (!m || typeof m !== "object") continue;
-      const capturedAt =
-        typeof m.createdTimeMs === "number" && m.createdTimeMs > 0
-          ? m.createdTimeMs
-          : fallbackCapturedAt;
-      const idPart =
-        m.msgId ||
-        (m.peerUin && m.createdTimeMs
-          ? `${m.peerUin}-${m.createdTimeMs}`
-          : `msg-${emitted}`);
-      const originalId = stableOriginalId(idPart);
-      const payload = {
-        kind: KIND_MESSAGE,
-        ...m,
-        observationProducer: "qq-pc/direct",
-      };
-      yield {
-        adapter: NAME,
-        kind: KIND_MESSAGE,
-        originalId,
-        canonicalOriginalId: canonicalQqNtOriginalId(payload),
-        producer: "qq-pc/direct",
-        capturedAt,
-        payload,
-      };
+      yield directRawFromMessage(m, emitted, fallbackCapturedAt);
       emitted += 1;
     }
   }
@@ -266,7 +382,7 @@ class QQPcAdapter {
     }
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : undefined;
-    const result = await collect({
+    const collectOptions = {
       passphrase,
       key: opts.key || this._key || undefined,
       dbPath:
@@ -291,52 +407,119 @@ class QQPcAdapter {
             }
           : undefined,
       _supervisorFactory: opts._supervisorFactory,
-    });
+    };
+    if (usesExplicitCursor(opts)) {
+      yield* this._syncCursorPage(
+        opts,
+        async (page) => {
+          const result = await collect({
+            ...collectOptions,
+            limit: page.limit,
+            page: {
+              after: page.after,
+              ...(page.upper ? { upper: page.upper } : {}),
+            },
+          });
+          const messages = { c2c: [], group: [] };
+          for (const message of Array.isArray(result?.messages)
+            ? result.messages
+            : []) {
+            const stream =
+              message.kind === "group" ||
+              message.tableName === GROUP_MESSAGE_TABLE
+                ? "group"
+                : "c2c";
+            messages[stream].push(message);
+          }
+          return {
+            upperBounds: result?.upperBounds,
+            hasMore: result?.hasMore,
+            messages,
+          };
+        },
+        sidecarRawFromMessage,
+      );
+      return;
+    }
+
+    const result = await collect(collectOptions);
     const messages =
       result && Array.isArray(result.messages) ? result.messages : [];
     const fallbackCapturedAt = Date.now();
     let emitted = 0;
     for (const m of messages) {
       if (!m || typeof m !== "object") continue;
-      const isGroup = m.kind === "group";
-      const createdTimeMs =
-        typeof m.createTime === "number" && m.createTime > 0
-          ? m.createTime * 1000
-          : null;
-      const payload = {
-        kind: KIND_MESSAGE,
-        tableName:
-          m.tableName || (isGroup ? GROUP_MESSAGE_TABLE : C2C_MESSAGE_TABLE),
-        text: typeof m.text === "string" ? m.text : "",
-        messageId: m.messageId != null ? String(m.messageId) : null,
-        sequence: m.sequence != null ? String(m.sequence) : null,
-        peerUin: m.peer != null ? String(m.peer) : null,
-        peerUid: m.peerUid != null ? String(m.peerUid) : null,
-        peerName: m.conversationName || null, // group name / c2c peer nickname (best-effort)
-        senderUid: m.senderUid != null ? String(m.senderUid) : null,
-        senderUin: m.senderUin != null ? String(m.senderUin) : null,
-        senderName: m.senderName || null,
-        isGroup,
-        type: typeof m.type === "number" ? m.type : null,
-        subtype: typeof m.subtype === "number" ? m.subtype : null,
-        senderType: typeof m.senderType === "number" ? m.senderType : null,
-        readState: typeof m.readState === "number" ? m.readState : null,
-        createdTimeMs,
-        observationProducer: "qq-pc/sidecar",
-      };
-      const originalId =
-        m.originalId ||
-        stableOriginalId(`${m.peer}-${createdTimeMs}-${emitted}`);
-      yield {
-        adapter: NAME,
-        kind: KIND_MESSAGE,
-        originalId,
-        canonicalOriginalId: canonicalQqNtOriginalId(payload),
-        producer: "qq-pc/sidecar",
-        capturedAt: createdTimeMs || fallbackCapturedAt,
-        payload,
-      };
+      yield sidecarRawFromMessage(m, emitted, fallbackCapturedAt);
       emitted += 1;
+    }
+  }
+
+  async *_syncCursorPage(opts, fetchPage, rawFromMessage) {
+    let cursor = parseCursor(opts.sinceWatermark).cursor;
+    const limit =
+      Number.isSafeInteger(opts.limit) && opts.limit > 0
+        ? Math.min(opts.limit, 10_000)
+        : DEFAULT_CURSOR_PAGE_SIZE;
+    const page = await fetchPage({
+      after: { ...cursor.after },
+      ...(cursor.scan ? { upper: { ...cursor.scan.upper } } : {}),
+      limit,
+    });
+    if (
+      !page ||
+      !page.upperBounds ||
+      !page.messages ||
+      !Array.isArray(page.messages.c2c) ||
+      !Array.isArray(page.messages.group) ||
+      !page.hasMore ||
+      typeof page.hasMore.c2c !== "boolean" ||
+      typeof page.hasMore.group !== "boolean"
+    ) {
+      throw cursorPageError(
+        "cursor page source returned an incomplete boundary",
+      );
+    }
+    validatePageBoundaries(page, cursor);
+    if (cursor.scan === null) {
+      cursor = beginScan(cursor, page.upperBounds);
+    }
+
+    const messages = {
+      c2c: [...page.messages.c2c].sort((left, right) =>
+        compareDecimalIds(left.messageId, right.messageId),
+      ),
+      group: [...page.messages.group].sort((left, right) =>
+        compareDecimalIds(left.messageId, right.messageId),
+      ),
+    };
+    const indexes = { c2c: 0, group: 0 };
+    const fallbackCapturedAt = Date.now();
+    let emitted = 0;
+
+    while (cursor.scan !== null && emitted < limit) {
+      const stream = cursor.next;
+      const message = messages[stream][indexes[stream]];
+      if (message) {
+        if (
+          typeof message.messageId !== "string" ||
+          !/^(?:0|[1-9][0-9]*)$/u.test(message.messageId)
+        ) {
+          throw cursorPageError(
+            `${stream} cursor page returned an invalid exact messageId`,
+          );
+        }
+        indexes[stream] += 1;
+        cursor = advanceCursor(cursor, stream, message.messageId);
+        yield rawFromMessage(message, emitted, fallbackCapturedAt);
+        emitted += 1;
+        continue;
+      }
+      if (page.hasMore[stream]) break;
+      cursor = completeStream(cursor, stream);
+    }
+
+    if (typeof opts.updateWatermark === "function") {
+      opts.updateWatermark(serializeCursor(cursor));
     }
   }
 
