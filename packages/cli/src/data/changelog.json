@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.162.180",
+      "cliVersions": ["0.162.180"],
+      "date": "2026-07-26",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added — cc CLI 0.162.180 + PDH 0.4.56: transactional multi-source ingest",
+          "body": "> `chainlesschain` **0.162.180** bundles\n> `@chainlesschain/personal-data-hub` **0.4.56** (2026-07-26).\n\n- **Transactional identity resolution**: adapters can persist source aliases,\n  raw observations, and field-level conflict decisions in one transaction;\n  entity resolution, KG, and RAG sinks now consume the exact persisted IDs and\n  rewritten references.\n- **QQ NT evidence convergence**: direct database reads and Python sidecar\n  decoding share canonical message identities while retaining both raw\n  observations. Rich decoded text and mutable read state merge without losing\n  older evidence, and pre-upgrade rows are rekeyed instead of duplicated.\n- **Reliable bounded sync**: harden cancellation, checkpoint, lookback, and\n  resume boundaries for long-running sidecars plus Android and Windows\n  incremental collectors.\n- **Release validation**: 253 PDH test files / 4215 tests, the focused\n  multi-source ingest suite, and 110 Python bridge tests passed before release."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.162.179",
       "cliVersions": ["0.162.179"],
       "date": "2026-07-25",
@@ -23,7 +36,7 @@
       "sections": [
         {
           "heading": "Fixed — cc CLI 0.162.178 + IDE provider 403 diagnosis hotfix",
-          "body": "- Preserve structured provider error codes/messages for failed LLM requests and\n  `cc llm test`, with credential-shaped text redacted before display.\n- Do not classify every HTTP 403 as an invalid API key: overdue accounts,\n  billing failures, and model-access denials now retain their real corrective\n  action in CLI, VS Code, and JetBrains.\n- Release VS Code 0.37.33 and JetBrains 0.4.70 with corrected setup guidance."
+          "body": "- Preserve structured provider error codes/messages for failed LLM requests and\n  `cc llm test`, with credential-shaped text redacted before display.\n- Do not classify every HTTP 403 as an invalid API key: overdue accounts,\n  billing failures, and model-access denials now retain their real corrective\n  action in CLI, VS Code, and JetBrains.\n- Release VS Code 0.37.33 and JetBrains 0.4.71 with corrected setup guidance;\n  JetBrains 0.4.70 was deleted during Marketplace review and superseded after\n  clearing the IntelliJ 2026.2 internal-API warning.\n- Prepare JetBrains 0.4.72 so `/status` and the other live-session slash\n  commands use the same routing, output, aliases, arguments, and help text as\n  the VS Code panel, including `/expand` reasoning-block toggling."
         }
       ]
     },

@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.162.180 + PDH 0.4.56: transactional multi-source ingest
+
+> `chainlesschain` **0.162.180** bundles
+> `@chainlesschain/personal-data-hub` **0.4.56** (2026-07-26).
+
+- **Transactional identity resolution**: adapters can persist source aliases,
+  raw observations, and field-level conflict decisions in one transaction;
+  entity resolution, KG, and RAG sinks now consume the exact persisted IDs and
+  rewritten references.
+- **QQ NT evidence convergence**: direct database reads and Python sidecar
+  decoding share canonical message identities while retaining both raw
+  observations. Rich decoded text and mutable read state merge without losing
+  older evidence, and pre-upgrade rows are rekeyed instead of duplicated.
+- **Reliable bounded sync**: harden cancellation, checkpoint, lookback, and
+  resume boundaries for long-running sidecars plus Android and Windows
+  incremental collectors.
+- **Release validation**: 253 PDH test files / 4215 tests, the focused
+  multi-source ingest suite, and 110 Python bridge tests passed before release.
+
 ### Added — cc CLI 0.162.179 + PDH 0.4.55：跨端实时采集与输入安全收口
 
 > `chainlesschain` **0.162.179** 搭载
