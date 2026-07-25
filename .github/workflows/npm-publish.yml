@@ -78,8 +78,9 @@ jobs:
       - name: Test and build the bundled Web Panel
         working-directory: packages/web-panel
         run: |
-          npm test
-          npm run build:no-sync
+          npm ci --legacy-peer-deps --no-audit --no-fund
+          npm run build
+          npm test -- --reporter=default --silent=passed-only
 
       - name: Run CLI tests
         working-directory: packages/cli
