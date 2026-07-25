@@ -346,7 +346,7 @@ describe("Tencent Docs local export collection", () => {
       rawCount: 0,
       watermark: first.watermark,
       watermarkDeferred: true,
-      checkpointCommitted: true,
+      checkpointCommitted: false,
     });
     expect(vault.getWatermark("doc-tencent-docs", first.scope).watermark).toBe(
       first.watermark,
