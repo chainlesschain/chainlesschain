@@ -33,6 +33,7 @@ const {
 } = require("../travel-base");
 const {
   CookieAuth,
+  extractShoppingOrders,
   hasRuntimeCookie,
   resolveCookieContext,
 } = require("../shopping-base");
@@ -256,14 +257,13 @@ class DidiAdapter {
         signal: opts.signal,
       });
       const rides = extractOrders(resp);
-      const recognizedPage = hasOrderList(resp);
       if (!rides.length) {
         const pageState = sourcePageState(resp, sourceItemsSeen);
-        if (recognizedPage && pageState === "more") {
+        if (pageState === "more") {
           pageIndex += 1;
           continue;
         }
-        scanComplete = recognizedPage;
+        scanComplete = true;
         break;
       }
       sourceItemsSeen += rides.length;
@@ -404,17 +404,7 @@ function parseFareYuan(v) {
 }
 
 function extractOrders(resp) {
-  if (!resp || typeof resp !== "object") return [];
-  if (Array.isArray(resp.orders)) return resp.orders;
-  if (Array.isArray(resp.rides)) return resp.rides;
-  if (Array.isArray(resp.list)) return resp.list;
-  const data = resp.data && typeof resp.data === "object" ? resp.data : null;
-  if (data) {
-    if (Array.isArray(data.orders)) return data.orders;
-    if (Array.isArray(data.list)) return data.list;
-    if (Array.isArray(data.records)) return data.records;
-  }
-  return [];
+  return extractShoppingOrders(resp, { source: NAME });
 }
 
 function hasOrderList(resp) {

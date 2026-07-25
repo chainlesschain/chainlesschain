@@ -79,6 +79,33 @@ describe("source page recognition", () => {
         successStatuses: ["complete"],
       }),
     ).toEqual([]);
+    expect(extractRecognizedArray({ status: true, list: [] }, paths)).toEqual(
+      [],
+    );
+    expect(
+      extractRecognizedArray({ ret: ["SUCCESS::调用成功"], list: [] }, paths),
+    ).toEqual([]);
+  });
+
+  it("accepts a top-level list only when the empty path is explicit", () => {
+    expect(extractRecognizedArray([{ id: 1 }], [[], ["list"]])).toEqual([
+      { id: 1 },
+    ]);
+    expect(() => extractRecognizedArray([{ id: 1 }], [["list"]])).toThrow(
+      expect.objectContaining({ code: "SOURCE_PAGE_UNRECOGNIZED" }),
+    );
+  });
+
+  it("rejects an MTOP failure token even when a recognized list is present", () => {
+    expect(() =>
+      extractRecognizedArray(
+        {
+          ret: ["FAIL_SYS_SESSION_EXPIRED::会话过期"],
+          data: { list: [] },
+        },
+        paths,
+      ),
+    ).toThrow(expect.objectContaining({ code: "SOURCE_PAGE_ERROR" }));
   });
 
   it("does not echo response bodies or credentials in errors", () => {

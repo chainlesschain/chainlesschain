@@ -552,8 +552,12 @@ describe("PinduoduoAdapter cookie-api mode", () => {
     expect(extractOrders({ list: [3] })).toEqual([3]);
     expect(extractOrders({ result: { order_list: [4] } })).toEqual([4]);
     expect(extractOrders({ result: { list: [5] } })).toEqual([5]);
-    expect(extractOrders({})).toEqual([]);
-    expect(extractOrders(null)).toEqual([]);
+    expect(() => extractOrders({})).toThrow(
+      expect.objectContaining({ code: "SOURCE_PAGE_UNRECOGNIZED" }),
+    );
+    expect(() => extractOrders(null)).toThrow(
+      expect.objectContaining({ code: "SOURCE_PAGE_UNRECOGNIZED" }),
+    );
   });
 
   it("default fetchFn throws a legible error when cookie mode used without injection", async () => {

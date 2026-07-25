@@ -29,6 +29,41 @@
 "use strict";
 
 const { newId } = require("../../ids");
+const { extractRecognizedArray } = require("../../source-page");
+
+const SHOPPING_ORDER_PATHS = Object.freeze([
+  Object.freeze([]),
+  Object.freeze(["orders"]),
+  Object.freeze(["rides"]),
+  Object.freeze(["orderList"]),
+  Object.freeze(["order_list"]),
+  Object.freeze(["list"]),
+  Object.freeze(["data", "orders"]),
+  Object.freeze(["data", "rides"]),
+  Object.freeze(["data", "orderList"]),
+  Object.freeze(["data", "order_list"]),
+  Object.freeze(["data", "list"]),
+  Object.freeze(["data", "records"]),
+  Object.freeze(["data", "cardList"]),
+  Object.freeze(["result", "orders"]),
+  Object.freeze(["result", "orderList"]),
+  Object.freeze(["result", "order_list"]),
+  Object.freeze(["result", "list"]),
+  Object.freeze(["result", "records"]),
+]);
+
+function extractShoppingOrders(response, opts = {}) {
+  return extractRecognizedArray(response, SHOPPING_ORDER_PATHS, {
+    source: opts.source || "shopping",
+    stream: opts.stream || "orders",
+    ...(Array.isArray(opts.successCodes)
+      ? { successCodes: opts.successCodes }
+      : {}),
+    ...(Array.isArray(opts.successStatuses)
+      ? { successStatuses: opts.successStatuses }
+      : {}),
+  });
+}
 
 /**
  * @param {OrderRecord} rec
@@ -260,12 +295,13 @@ function resolveCookieContext({
 }
 
 function escapeRegex(s) {
-  return String(s).replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 module.exports = {
   normalizeOrderRecord,
   mapStatusToSubtype,
+  extractShoppingOrders,
   CookieAuth,
   hasRuntimeCookie,
   resolveCookieContext,

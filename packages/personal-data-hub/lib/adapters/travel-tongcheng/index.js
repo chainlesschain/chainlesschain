@@ -46,6 +46,7 @@ const {
 } = require("../travel-base");
 const {
   CookieAuth,
+  extractShoppingOrders,
   hasRuntimeCookie,
   resolveCookieContext,
 } = require("../shopping-base");
@@ -302,14 +303,13 @@ class TongchengAdapter {
         signal: opts.signal,
       });
       const orders = extractOrders(resp);
-      const recognizedPage = hasOrderList(resp);
       if (!orders.length) {
         const pageState = sourcePageState(resp, sourceItemsSeen);
-        if (recognizedPage && pageState === "more") {
+        if (pageState === "more") {
           pageIndex += 1;
           continue;
         }
-        scanComplete = recognizedPage;
+        scanComplete = true;
         break;
       }
       sourceItemsSeen += orders.length;
@@ -498,18 +498,7 @@ function orderToRecord(o, opts = {}) {
  * may also pre-flatten to `{ orders }`. Tolerant of all common shapes.
  */
 function extractOrders(resp) {
-  if (!resp || typeof resp !== "object") return [];
-  if (Array.isArray(resp.orders)) return resp.orders;
-  if (Array.isArray(resp.orderList)) return resp.orderList;
-  if (Array.isArray(resp.list)) return resp.list;
-  const data = resp.data && typeof resp.data === "object" ? resp.data : null;
-  if (data) {
-    if (Array.isArray(data.orders)) return data.orders;
-    if (Array.isArray(data.orderList)) return data.orderList;
-    if (Array.isArray(data.list)) return data.list;
-    if (Array.isArray(data.records)) return data.records;
-  }
-  return [];
+  return extractShoppingOrders(resp, { source: NAME });
 }
 
 function hasOrderList(resp) {

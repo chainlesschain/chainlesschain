@@ -329,22 +329,26 @@ function rawOrder(seq, overrides = {}) {
 const COOKIE = "tk=abc; JSESSIONID=xyz; RAIL_DEVICEID=dev";
 
 describe("cookie-api helpers", () => {
-  it("extractCompletedOrders tolerates shape variants + junk", () => {
+  it("extractCompletedOrders accepts known variants and rejects junk", () => {
     expect(
       extractCompletedOrders({ data: { OrderDTODataList: [1, 2] } }),
     ).toEqual([1, 2]);
     expect(extractCompletedOrders({ data: { orderDTODataList: [3] } })).toEqual(
       [3],
     );
-    expect(extractCompletedOrders(null)).toEqual([]);
-    expect(extractCompletedOrders({ data: {} })).toEqual([]);
-    expect(extractCompletedOrders("nope")).toEqual([]);
+    for (const response of [null, { data: {} }, "nope"]) {
+      expect(() => extractCompletedOrders(response)).toThrow(
+        expect.objectContaining({ code: "SOURCE_PAGE_UNRECOGNIZED" }),
+      );
+    }
   });
 
-  it("extractPendingOrders tolerates shape variants + junk", () => {
+  it("extractPendingOrders accepts known variants and rejects junk", () => {
     expect(extractPendingOrders({ data: { orderDBList: [1] } })).toEqual([1]);
     expect(extractPendingOrders({ data: { orderDbList: [2] } })).toEqual([2]);
-    expect(extractPendingOrders({})).toEqual([]);
+    expect(() => extractPendingOrders({})).toThrow(
+      expect.objectContaining({ code: "SOURCE_PAGE_UNRECOGNIZED" }),
+    );
   });
 
   it("ticketsFromOrder flattens tickets with snake/camel fallbacks", () => {
@@ -536,8 +540,11 @@ describe("sync — cookie-api mode", () => {
     );
   });
 
-  it("empty responses yield nothing (expired cookie / no orders)", async () => {
-    const fetchFn = async () => ({});
+  it("explicit empty order lists yield nothing", async () => {
+    const fetchFn = async ({ url }) =>
+      url.includes("NoComplete")
+        ? { data: { orderDBList: [] } }
+        : { data: { OrderDTODataList: [] } };
     const a = new Train12306Adapter({ account: { cookies: COOKIE }, fetchFn });
     expect(await collect(a.sync({}))).toHaveLength(0);
   });
@@ -705,16 +712,43 @@ describe("sync — cookie-api mode", () => {
           ? { data: { orderDBList: [] } }
           : { unexpected: [] },
     });
-    await collect(
-      unrecognized.sync({
-        cookie: COOKIE,
-        accountId: "rail-user",
-        maxPages: 2,
-        markWatermarkComplete: () => {
-          completions += 1;
-        },
+    await expect(
+      collect(
+        unrecognized.sync({
+          cookie: COOKIE,
+          accountId: "rail-user",
+          maxPages: 2,
+          markWatermarkComplete: () => {
+            completions += 1;
+          },
+        }),
+      ),
+    ).rejects.toMatchObject({ code: "SOURCE_PAGE_UNRECOGNIZED" });
+    expect(completions).toBe(0);
+  });
+
+  it("rejects a 200 business error without completing the watermark", async () => {
+    let completions = 0;
+    const adapter = new Train12306Adapter({
+      fetchFn: async () => ({
+        status: false,
+        messages: ["login expired"],
+        data: { OrderDTODataList: [] },
       }),
-    );
+    });
+
+    await expect(
+      collect(
+        adapter.sync({
+          cookie: COOKIE,
+          accountId: "rail-user",
+          maxPages: 1,
+          markWatermarkComplete: () => {
+            completions += 1;
+          },
+        }),
+      ),
+    ).rejects.toMatchObject({ code: "SOURCE_PAGE_ERROR" });
     expect(completions).toBe(0);
   });
 });

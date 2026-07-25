@@ -54,6 +54,7 @@ const {
   probeJsonSnapshotFile,
   readJsonSnapshot,
 } = require("../../snapshot-file");
+const { extractRecognizedArray } = require("../../source-page");
 const { createAccountScopeFromAccount } = require("../../account-scope");
 const { newId } = require("../../ids");
 const {
@@ -381,7 +382,6 @@ class ZhihuAdapter {
           query,
           headers: buildZhihuHeaders(account.urlToken, signature),
         });
-        if (!hasDataList(resp)) break;
         const items = extractData(resp);
         if (!items.length) {
           streamComplete = true;
@@ -439,10 +439,10 @@ class ZhihuAdapter {
 
 /** Pull the data array from a zhihu /api/v4 paginated response. */
 function extractData(resp) {
-  if (!resp || typeof resp !== "object") return [];
-  if (Array.isArray(resp.data)) return resp.data;
-  if (Array.isArray(resp.items)) return resp.items;
-  return [];
+  return extractRecognizedArray(resp, [["data"], ["items"]], {
+    source: NAME,
+    stream: "items",
+  });
 }
 
 function hasDataList(resp) {

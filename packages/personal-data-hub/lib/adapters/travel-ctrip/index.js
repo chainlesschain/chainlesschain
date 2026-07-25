@@ -48,6 +48,7 @@ const {
 } = require("../travel-base");
 const {
   CookieAuth,
+  extractShoppingOrders,
   hasRuntimeCookie,
   resolveCookieContext,
 } = require("../shopping-base");
@@ -287,14 +288,13 @@ class CtripAdapter {
         signal: opts.signal,
       });
       const orders = extractOrders(resp);
-      const recognizedPage = hasOrderList(resp);
       if (!orders.length) {
         const pageState = sourcePageState(resp, sourceItemsSeen);
-        if (recognizedPage && pageState === "more") {
+        if (pageState === "more") {
           pageIndex += 1;
           continue;
         }
-        scanComplete = recognizedPage;
+        scanComplete = true;
         break;
       }
       sourceItemsSeen += orders.length;
@@ -468,23 +468,7 @@ function orderToRecord(o, opts = {}) {
  * pre-flatten to `{ orders }`. Tolerant of all common shapes.
  */
 function extractOrders(resp) {
-  if (!resp || typeof resp !== "object") return [];
-  if (Array.isArray(resp.orders)) return resp.orders;
-  if (Array.isArray(resp.orderList)) return resp.orderList;
-  if (Array.isArray(resp.list)) return resp.list;
-  const data = resp.data && typeof resp.data === "object" ? resp.data : null;
-  if (data) {
-    if (Array.isArray(data.orders)) return data.orders;
-    if (Array.isArray(data.orderList)) return data.orderList;
-    if (Array.isArray(data.list)) return data.list;
-  }
-  const result =
-    resp.result && typeof resp.result === "object" ? resp.result : null;
-  if (result) {
-    if (Array.isArray(result.orderList)) return result.orderList;
-    if (Array.isArray(result.list)) return result.list;
-  }
-  return [];
+  return extractShoppingOrders(resp, { source: NAME });
 }
 
 function hasOrderList(resp) {

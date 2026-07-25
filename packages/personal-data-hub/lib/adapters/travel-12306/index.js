@@ -60,6 +60,7 @@ const {
   readBoundedSnapshot,
   readJsonSnapshot,
 } = require("../../snapshot-file");
+const { extractRecognizedArray } = require("../../source-page");
 const {
   normalizeTravelRecord,
   parseChineseDateTime,
@@ -322,7 +323,6 @@ class Train12306Adapter {
         form,
       });
       const orders = extractCompletedOrders(resp);
-      if (!hasCompletedOrderList(resp)) break;
       const pageState = sourcePageState(
         resp,
         completedItemsSeen + orders.length,
@@ -368,7 +368,6 @@ class Train12306Adapter {
       });
       const pendingOrders = extractPendingOrders(resp);
       pendingScanComplete =
-        hasPendingOrderList(resp) &&
         sourcePageState(resp, pendingOrders.length) !== "more";
       for (const order of pendingOrders) {
         for (const ev of ticketsFromOrder(order, false)) {
@@ -615,10 +614,14 @@ function cookieEventToRecord(ev) {
 
 /** Pull the completed-order array out of a queryMyOrder response. */
 function extractCompletedOrders(resp) {
-  const data = resp && typeof resp === "object" ? resp.data : null;
-  if (!data || typeof data !== "object") return [];
-  const list = data.OrderDTODataList || data.orderDTODataList;
-  return Array.isArray(list) ? list : [];
+  return extractRecognizedArray(
+    resp,
+    [
+      ["data", "OrderDTODataList"],
+      ["data", "orderDTODataList"],
+    ],
+    { source: NAME, stream: "completed-orders" },
+  );
 }
 
 function hasCompletedOrderList(resp) {
@@ -633,10 +636,14 @@ function hasCompletedOrderList(resp) {
 
 /** Pull the pending-order array out of a queryMyOrderNoComplete response. */
 function extractPendingOrders(resp) {
-  const data = resp && typeof resp === "object" ? resp.data : null;
-  if (!data || typeof data !== "object") return [];
-  const list = data.orderDBList || data.orderDbList;
-  return Array.isArray(list) ? list : [];
+  return extractRecognizedArray(
+    resp,
+    [
+      ["data", "orderDBList"],
+      ["data", "orderDbList"],
+    ],
+    { source: NAME, stream: "pending-orders" },
+  );
 }
 
 function hasPendingOrderList(resp) {

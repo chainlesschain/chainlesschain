@@ -36,10 +36,21 @@ function normalizeCodeToken(value) {
   }
   if (typeof value !== "string") return null;
   const normalized = value.trim().toLowerCase();
-  return normalized.length > 0 ? normalized : null;
+  if (normalized.length === 0) return null;
+  const namespaceSeparator = normalized.indexOf("::");
+  return namespaceSeparator >= 0
+    ? normalized.slice(0, namespaceSeparator)
+    : normalized;
 }
 
 function allowedCode(value, allowlist) {
+  if (value === true) return true;
+  if (value === false) return false;
+  if (Array.isArray(value)) {
+    return (
+      value.length > 0 && value.every((item) => allowedCode(item, allowlist))
+    );
+  }
   const token = normalizeCodeToken(value);
   if (token === null) return value == null || value === "";
   return allowlist.map(normalizeCodeToken).includes(token);
@@ -163,7 +174,11 @@ function extractRecognizedArray(response, paths, opts = {}) {
     );
   }
   for (const path of paths) {
-    if (!Array.isArray(path) || path.length === 0) continue;
+    if (!Array.isArray(path)) continue;
+    if (path.length === 0) {
+      if (Array.isArray(response)) return response;
+      continue;
+    }
     const value = valueAtPath(response, path);
     if (Array.isArray(value)) return value;
   }

@@ -44,6 +44,7 @@ const {
 } = require("../../snapshot-file");
 const {
   normalizeOrderRecord,
+  extractShoppingOrders,
   CookieAuth,
   hasRuntimeCookie,
   resolveCookieContext,
@@ -243,8 +244,8 @@ class JdAdapter {
         cookies: cookieAuth.toHeader(),
         query: { page },
       });
-      if (!resp || !Array.isArray(resp.orders)) break;
-      if (resp.orders.length === 0) {
+      const orders = extractShoppingOrders(resp, { source: NAME });
+      if (orders.length === 0) {
         const pageState = sourcePageState(resp, sourceItemsSeen);
         if (pageState === "more") {
           page += 1;
@@ -253,11 +254,11 @@ class JdAdapter {
         scanComplete = true;
         break;
       }
-      sourceItemsSeen += resp.orders.length;
+      sourceItemsSeen += orders.length;
       const pageState = sourcePageState(resp, sourceItemsSeen);
       let pageHasNew = false;
       let reachedWatermark = false;
-      for (const raw of resp.orders) {
+      for (const raw of orders) {
         const rec = orderToRecord(raw);
         if (!rec) continue;
         if (rec.placedAt && rec.placedAt < sinceMs) {

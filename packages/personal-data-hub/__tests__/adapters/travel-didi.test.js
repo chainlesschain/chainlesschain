@@ -89,7 +89,9 @@ describe("orderToRecord", () => {
   it("extractOrders tolerant of shapes", () => {
     expect(extractOrders({ orders: [{ orderId: 1 }] })).toHaveLength(1);
     expect(extractOrders({ data: { list: [{ orderId: 1 }] } })).toHaveLength(1);
-    expect(extractOrders({})).toEqual([]);
+    expect(() => extractOrders({})).toThrow(
+      expect.objectContaining({ code: "SOURCE_PAGE_UNRECOGNIZED" }),
+    );
   });
 });
 
@@ -253,7 +255,11 @@ describe("DidiAdapter cookie-api mode", () => {
       account: { cookies: COOKIES },
       fetchFn: async () => "<html>login</html>",
     });
-    expect(await collect(a2.sync({ sinceWatermark: 0 }))).toEqual([]);
+    await expect(collect(a2.sync({ sinceWatermark: 0 }))).rejects.toMatchObject(
+      {
+        code: "SOURCE_PAGE_UNRECOGNIZED",
+      },
+    );
 
     const a3 = new DidiAdapter({ account: { cookies: COOKIES } });
     expect(await a3.authenticate()).toMatchObject({

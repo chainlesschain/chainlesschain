@@ -46,6 +46,7 @@ const {
 } = require("../../snapshot-file");
 const {
   normalizeOrderRecord,
+  extractShoppingOrders,
   CookieAuth,
   hasRuntimeCookie,
   resolveCookieContext,
@@ -261,8 +262,11 @@ class MeituanAdapter {
           query: { page, platform },
         });
         pagesFetched += 1;
-        if (!resp || !Array.isArray(resp.orders)) break;
-        if (resp.orders.length === 0) {
+        const orders = extractShoppingOrders(resp, {
+          source: NAME,
+          stream: platform,
+        });
+        if (orders.length === 0) {
           const pageState = sourcePageState(resp, sourceItemsSeen);
           if (pageState === "more") {
             page += 1;
@@ -271,11 +275,11 @@ class MeituanAdapter {
           platformComplete = true;
           break;
         }
-        sourceItemsSeen += resp.orders.length;
+        sourceItemsSeen += orders.length;
         const pageState = sourcePageState(resp, sourceItemsSeen);
         let pageHasNew = false;
         let reachedWatermark = false;
-        for (const raw of resp.orders) {
+        for (const raw of orders) {
           const rec = orderToRecord(raw, platform);
           if (!rec) continue;
           if (rec.placedAt && rec.placedAt < sinceMs) {

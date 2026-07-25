@@ -62,6 +62,7 @@ const {
 } = require("../../snapshot-file");
 const {
   normalizeOrderRecord,
+  extractShoppingOrders,
   CookieAuth,
   hasRuntimeCookie,
   resolveCookieContext,
@@ -73,7 +74,6 @@ const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_ORDER = "order";
 const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_ORDER]);
-const UNKNOWN_ORDERS = Object.freeze([]);
 
 const PINDUODUO_ORDERS_URL =
   "https://mobile.yangkeduo.com/proxy/api/galerie/transaction/transaction_list";
@@ -296,13 +296,12 @@ class PinduoduoAdapter {
       });
       const orders = extractOrders(resp);
       if (!orders.length) {
-        const recognizedPage = orders !== UNKNOWN_ORDERS;
         const pageState = sourcePageState(resp, sourceItemsSeen);
-        if (recognizedPage && pageState === "more") {
+        if (pageState === "more") {
           pageNumber += 1;
           continue;
         }
-        scanComplete = recognizedPage;
+        scanComplete = true;
         break;
       }
       sourceItemsSeen += orders.length;
@@ -373,14 +372,7 @@ function stableOriginalId(kind, id) {
  * pre-flatten to `{ orders }`. Tolerant of all common shapes.
  */
 function extractOrders(resp) {
-  if (!resp || typeof resp !== "object") return UNKNOWN_ORDERS;
-  if (Array.isArray(resp.orders)) return resp.orders;
-  if (Array.isArray(resp.order_list)) return resp.order_list;
-  if (Array.isArray(resp.list)) return resp.list;
-  if (resp.result && Array.isArray(resp.result.order_list))
-    return resp.result.order_list;
-  if (resp.result && Array.isArray(resp.result.list)) return resp.result.list;
-  return UNKNOWN_ORDERS;
+  return extractShoppingOrders(resp, { source: NAME });
 }
 
 /**

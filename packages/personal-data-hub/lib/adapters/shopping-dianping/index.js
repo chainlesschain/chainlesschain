@@ -61,6 +61,7 @@ const {
 } = require("../../snapshot-file");
 const {
   normalizeOrderRecord,
+  extractShoppingOrders,
   CookieAuth,
   hasRuntimeCookie,
   resolveCookieContext,
@@ -72,7 +73,6 @@ const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_ORDER = "order";
 const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_ORDER]);
-const UNKNOWN_ORDERS = Object.freeze([]);
 
 // Best-effort Dianping order-centre list endpoint (shares Meituan's H5 infra).
 // Overridable via opts.ordersUrl; the injected fetchFn host may also point at
@@ -300,13 +300,12 @@ class DianpingAdapter {
       });
       const orders = extractOrders(resp);
       if (!orders.length) {
-        const recognizedPage = orders !== UNKNOWN_ORDERS;
         const pageState = sourcePageState(resp, sourceItemsSeen);
-        if (recognizedPage && pageState === "more") {
+        if (pageState === "more") {
           page += 1;
           continue;
         }
-        scanComplete = recognizedPage;
+        scanComplete = true;
         break;
       }
       sourceItemsSeen += orders.length;
@@ -377,18 +376,7 @@ function stableOriginalId(kind, id) {
  * also pre-flatten to `{ orders }`. Tolerant of all common shapes.
  */
 function extractOrders(resp) {
-  if (!resp || typeof resp !== "object") return UNKNOWN_ORDERS;
-  if (Array.isArray(resp.orders)) return resp.orders;
-  if (Array.isArray(resp.orderList)) return resp.orderList;
-  if (Array.isArray(resp.list)) return resp.list;
-  const data = resp.data && typeof resp.data === "object" ? resp.data : null;
-  if (data) {
-    if (Array.isArray(data.orders)) return data.orders;
-    if (Array.isArray(data.orderList)) return data.orderList;
-    if (Array.isArray(data.list)) return data.list;
-    if (Array.isArray(data.records)) return data.records;
-  }
-  return UNKNOWN_ORDERS;
+  return extractShoppingOrders(resp, { source: NAME });
 }
 
 /**

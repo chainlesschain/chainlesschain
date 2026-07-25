@@ -55,6 +55,7 @@ const {
 } = require("../../snapshot-file");
 const {
   normalizeOrderRecord,
+  extractShoppingOrders,
   CookieAuth,
   hasRuntimeCookie,
   resolveCookieContext,
@@ -66,7 +67,6 @@ const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_ORDER = "order";
 const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_ORDER]);
-const UNKNOWN_ORDERS = Object.freeze([]);
 
 // Best-effort, NOT field-verified. Override via opts.ordersUrl.
 const VIPSHOP_ORDERS_URL =
@@ -288,13 +288,12 @@ class VipshopAdapter {
       });
       const orders = extractOrders(resp);
       if (!orders.length) {
-        const recognizedPage = orders !== UNKNOWN_ORDERS;
         const pageState = sourcePageState(resp, sourceItemsSeen);
-        if (recognizedPage && pageState === "more") {
+        if (pageState === "more") {
           page += 1;
           continue;
         }
-        scanComplete = recognizedPage;
+        scanComplete = true;
         break;
       }
       sourceItemsSeen += orders.length;
@@ -363,16 +362,7 @@ function stableOriginalId(kind, id) {
  * `{ orders }`. Tolerant of all common shapes (VIP wraps under data.orders).
  */
 function extractOrders(resp) {
-  if (!resp || typeof resp !== "object") return UNKNOWN_ORDERS;
-  if (Array.isArray(resp)) return resp;
-  if (Array.isArray(resp.orders)) return resp.orders;
-  if (Array.isArray(resp.orderList)) return resp.orderList;
-  if (Array.isArray(resp.list)) return resp.list;
-  if (resp.data && Array.isArray(resp.data.orders)) return resp.data.orders;
-  if (resp.data && Array.isArray(resp.data.orderList))
-    return resp.data.orderList;
-  if (resp.data && Array.isArray(resp.data.list)) return resp.data.list;
-  return UNKNOWN_ORDERS;
+  return extractShoppingOrders(resp, { source: NAME });
 }
 
 /**

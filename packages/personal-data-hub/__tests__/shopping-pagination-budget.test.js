@@ -238,8 +238,8 @@ describe("shopping cookie pagination budget", () => {
   });
 
   it.each(CASES)(
-    "%s preserves the watermark for an unrecognized response",
-    async (_name, Adapter, account, expectedRequests) => {
+    "%s rejects an unrecognized response without advancing the watermark",
+    async (_name, Adapter, account) => {
       let requests = 0;
       let completions = 0;
       const adapter = new Adapter({
@@ -250,18 +250,49 @@ describe("shopping cookie pagination budget", () => {
         },
       });
 
-      const records = await collect(
-        adapter.sync({
-          sinceWatermark: 0,
-          maxPages: expectedRequests,
-          markWatermarkComplete: () => {
-            completions += 1;
-          },
-        }),
-      );
+      await expect(
+        collect(
+          adapter.sync({
+            sinceWatermark: 0,
+            maxPages: 2,
+            markWatermarkComplete: () => {
+              completions += 1;
+            },
+          }),
+        ),
+      ).rejects.toMatchObject({ code: "SOURCE_PAGE_UNRECOGNIZED" });
 
-      expect(records).toHaveLength(0);
-      expect(requests).toBe(expectedRequests);
+      expect(requests).toBe(1);
+      expect(completions).toBe(0);
+    },
+  );
+
+  it.each(CASES)(
+    "%s rejects an explicit business error without advancing the watermark",
+    async (_name, Adapter, account) => {
+      let requests = 0;
+      let completions = 0;
+      const adapter = new Adapter({
+        account: { ...account, cookies: "sid=test" },
+        fetchFn: async () => {
+          requests += 1;
+          return { code: 401, message: "expired", orders: [] };
+        },
+      });
+
+      await expect(
+        collect(
+          adapter.sync({
+            sinceWatermark: 0,
+            maxPages: 2,
+            markWatermarkComplete: () => {
+              completions += 1;
+            },
+          }),
+        ),
+      ).rejects.toMatchObject({ code: "SOURCE_PAGE_ERROR" });
+
+      expect(requests).toBe(1);
       expect(completions).toBe(0);
     },
   );

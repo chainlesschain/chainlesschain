@@ -493,8 +493,12 @@ describe("ElemeAdapter cookie-api mode", () => {
     expect(extractOrders({ list: [3] })).toEqual([3]);
     expect(extractOrders({ data: { orders: [4] } })).toEqual([4]);
     expect(extractOrders([5])).toEqual([5]);
-    expect(extractOrders({})).toEqual([]);
-    expect(extractOrders(null)).toEqual([]);
+    expect(() => extractOrders({})).toThrow(
+      expect.objectContaining({ code: "SOURCE_PAGE_UNRECOGNIZED" }),
+    );
+    expect(() => extractOrders(null)).toThrow(
+      expect.objectContaining({ code: "SOURCE_PAGE_UNRECOGNIZED" }),
+    );
   });
 
   it("uses opts.ordersUrl override when provided", async () => {

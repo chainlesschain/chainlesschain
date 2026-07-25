@@ -60,6 +60,7 @@ const {
 } = require("../../snapshot-file");
 const {
   normalizeOrderRecord,
+  extractShoppingOrders,
   CookieAuth,
   hasRuntimeCookie,
   resolveCookieContext,
@@ -71,7 +72,6 @@ const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_ORDER = "order";
 const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_ORDER]);
-const UNKNOWN_ORDERS = Object.freeze([]);
 
 // Best-effort, NOT field-verified. Override via opts.ordersUrl.
 const XIANYU_ORDERS_URL =
@@ -315,13 +315,12 @@ class XianyuAdapter {
         pagesFetched += 1;
         const orders = extractOrders(resp);
         if (!orders.length) {
-          const recognizedPage = orders !== UNKNOWN_ORDERS;
           const pageState = sourcePageState(resp, sourceItemsSeen);
-          if (recognizedPage && pageState === "more") {
+          if (pageState === "more") {
             pageNumber += 1;
             continue;
           }
-          sideComplete = recognizedPage;
+          sideComplete = true;
           break;
         }
         sourceItemsSeen += orders.length;
@@ -397,18 +396,7 @@ function stableOriginalId(kind, id) {
  * all common shapes (mtop wraps under data.* ).
  */
 function extractOrders(resp) {
-  if (!resp || typeof resp !== "object") return UNKNOWN_ORDERS;
-  if (Array.isArray(resp)) return resp;
-  if (Array.isArray(resp.orders)) return resp.orders;
-  if (Array.isArray(resp.order_list)) return resp.order_list;
-  if (Array.isArray(resp.list)) return resp.list;
-  if (resp.data && Array.isArray(resp.data.orders)) return resp.data.orders;
-  if (resp.data && Array.isArray(resp.data.orderList))
-    return resp.data.orderList;
-  if (resp.data && Array.isArray(resp.data.list)) return resp.data.list;
-  if (resp.data && resp.data.cardList && Array.isArray(resp.data.cardList))
-    return resp.data.cardList;
-  return UNKNOWN_ORDERS;
+  return extractShoppingOrders(resp, { source: NAME });
 }
 
 /**

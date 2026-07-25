@@ -77,8 +77,12 @@ describe("extractData", () => {
   it("pulls data/items arrays; tolerant of bad shapes", () => {
     expect(extractData({ data: [{ id: 1 }] })).toHaveLength(1);
     expect(extractData({ items: [{ id: 1 }] })).toHaveLength(1);
-    expect(extractData({})).toEqual([]);
-    expect(extractData(null)).toEqual([]);
+    expect(() => extractData({})).toThrow(
+      expect.objectContaining({ code: "SOURCE_PAGE_UNRECOGNIZED" }),
+    );
+    expect(() => extractData(null)).toThrow(
+      expect.objectContaining({ code: "SOURCE_PAGE_UNRECOGNIZED" }),
+    );
   });
 });
 
@@ -344,21 +348,44 @@ describe("ZhihuAdapter cookie-api mode", () => {
     expect(items).toHaveLength(1);
   });
 
-  it("unknown responses yield zero without advancing the watermark", async () => {
+  it("rejects unknown responses without advancing the watermark", async () => {
     let watermarkComplete = false;
     const a = new ZhihuAdapter({
       account: { cookies: COOKIES, urlToken: "alice" },
       fetchFn: async () => "not-json-login-redirect",
     });
-    expect(
-      await collect(
+    await expect(
+      collect(
         a.sync({
           markWatermarkComplete: () => {
             watermarkComplete = true;
           },
         }),
       ),
-    ).toEqual([]);
+    ).rejects.toMatchObject({ code: "SOURCE_PAGE_UNRECOGNIZED" });
+    expect(watermarkComplete).toBe(false);
+  });
+
+  it("rejects a 200 business error without advancing the watermark", async () => {
+    let watermarkComplete = false;
+    const a = new ZhihuAdapter({
+      account: { cookies: COOKIES, urlToken: "alice" },
+      fetchFn: async () => ({
+        code: 401,
+        message: "expired",
+        data: [],
+      }),
+    });
+
+    await expect(
+      collect(
+        a.sync({
+          markWatermarkComplete: () => {
+            watermarkComplete = true;
+          },
+        }),
+      ),
+    ).rejects.toMatchObject({ code: "SOURCE_PAGE_ERROR" });
     expect(watermarkComplete).toBe(false);
   });
 

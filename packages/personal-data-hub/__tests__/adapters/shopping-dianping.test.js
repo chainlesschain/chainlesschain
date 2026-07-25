@@ -96,8 +96,12 @@ describe("extractOrders", () => {
       extractOrders({ data: { records: [{ orderId: "B" }] } }),
     ).toHaveLength(1);
     expect(extractOrders({ orderList: [{ orderId: "C" }] })).toHaveLength(1);
-    expect(extractOrders({})).toEqual([]);
-    expect(extractOrders(null)).toEqual([]);
+    expect(() => extractOrders({})).toThrow(
+      expect.objectContaining({ code: "SOURCE_PAGE_UNRECOGNIZED" }),
+    );
+    expect(() => extractOrders(null)).toThrow(
+      expect.objectContaining({ code: "SOURCE_PAGE_UNRECOGNIZED" }),
+    );
   });
 });
 
@@ -274,12 +278,14 @@ describe("DianpingAdapter cookie-api mode", () => {
     expect(items).toHaveLength(1);
   });
 
-  it("empty/login-redirect response yields zero (no crash)", async () => {
+  it("rejects a login redirect instead of treating it as an empty account", async () => {
     const a = new DianpingAdapter({
       account: { cookies: COOKIES, userId: "u1" },
       fetchFn: async () => "<html>login</html>",
     });
-    expect(await collect(a.sync({ sinceWatermark: 0 }))).toEqual([]);
+    await expect(collect(a.sync({ sinceWatermark: 0 }))).rejects.toMatchObject({
+      code: "SOURCE_PAGE_UNRECOGNIZED",
+    });
   });
 
   it("default fetch throws when no fetchFn (wiring bug)", async () => {
