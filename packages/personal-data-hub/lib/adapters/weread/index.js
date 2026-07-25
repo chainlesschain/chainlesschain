@@ -234,6 +234,7 @@ class WeReadAdapter {
       selectedCount: selectedBooks.length,
     });
 
+    let lastCompletedBook = null;
     for (const b of selectedBooks) {
       yield {
         adapter: NAME,
@@ -243,7 +244,10 @@ class WeReadAdapter {
         payload: { kind: KIND_BOOK, ...b },
       };
 
-      if (!includeNotes || !b.bookId) continue;
+      if (!includeNotes || !b.bookId) {
+        lastCompletedBook = b;
+        continue;
+      }
       // Highlights
       const marks = await client.getBookmarks(b.bookId);
       sourceRequestAudit.throwIfPermitFailed();
@@ -273,10 +277,10 @@ class WeReadAdapter {
         marks: marks.length,
         reviews: reviews.length,
       });
+      lastCompletedBook = b;
     }
-    const lastBook = selectedBooks[selectedBooks.length - 1];
-    if (lastBook && typeof opts.updateWatermark === "function") {
-      opts.updateWatermark(serializeBookCursor(lastBook.bookId));
+    if (lastCompletedBook && typeof opts.updateWatermark === "function") {
+      opts.updateWatermark(serializeBookCursor(lastCompletedBook.bookId));
     }
   }
 

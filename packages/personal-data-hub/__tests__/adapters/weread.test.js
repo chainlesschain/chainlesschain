@@ -86,6 +86,13 @@ async function collect(iter) {
   return out;
 }
 
+function cursorAfter(bookId) {
+  return JSON.stringify({
+    v: 1,
+    after: crypto.createHash("sha256").update(bookId, "utf8").digest("hex"),
+  });
+}
+
 describe("WeReadApiClient (cookie HTTP, stub fetch)", () => {
   it("parses notebooks / bookmarks / reviews defensively", async () => {
     const c = new WeReadApiClient({
@@ -105,15 +112,94 @@ describe("WeReadApiClient (cookie HTTP, stub fetch)", () => {
     expect(() => new WeReadApiClient({})).toThrow(/cookie/);
   });
 
-  it("degrades a failing endpoint to empty (no throw)", async () => {
-    const c = new WeReadApiClient({
+  it("propagates non-cookie network, HTTP, and JSON failures", async () => {
+    const networkError = new Error("network down");
+    const networkClient = new WeReadApiClient({
       cookie: "x",
       fetch: async () => {
-        throw new Error("network down");
+        throw networkError;
       },
     });
-    expect(await c.getNotebooks()).toEqual([]);
-    expect(c.lastErrorCode).toBeTruthy();
+    networkClient._http._maxRetries = 0;
+    await expect(networkClient.getNotebooks()).rejects.toBe(networkError);
+    expect(networkClient.lastErrorCode).toBe("network down");
+
+    const httpClient = new WeReadApiClient({
+      cookie: "x",
+      fetch: async () => ({
+        ok: false,
+        status: 418,
+        headers: { get: () => null },
+        json: async () => ({}),
+      }),
+    });
+    await expect(httpClient.getNotebooks()).rejects.toThrow(/HTTP 418/u);
+
+    const jsonError = new SyntaxError("invalid JSON");
+    const jsonClient = new WeReadApiClient({
+      cookie: "x",
+      fetch: async () => ({
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        json: async () => {
+          throw jsonError;
+        },
+      }),
+    });
+    await expect(jsonClient.getNotebooks()).rejects.toBe(jsonError);
+  });
+
+  it.each([
+    {
+      stream: "notebooks",
+      body: {},
+      read: (client) => client.getNotebooks(),
+    },
+    {
+      stream: "bookmarks",
+      body: { updated: {} },
+      read: (client) => client.getBookmarks("b1"),
+    },
+    {
+      stream: "reviews",
+      body: { reviews: {} },
+      read: (client) => client.getReviews("b1"),
+    },
+  ])(
+    "rejects an unrecognized $stream response contract",
+    async ({ body, read }) => {
+      const client = new WeReadApiClient({
+        cookie: "x",
+        fetch: async () => ({
+          ok: true,
+          status: 200,
+          headers: { get: () => null },
+          json: async () => body,
+        }),
+      });
+
+      await expect(read(client)).rejects.toMatchObject({
+        code: "SOURCE_PAGE_UNRECOGNIZED",
+      });
+      expect(client.lastErrorCode).toBe("SOURCE_PAGE_UNRECOGNIZED");
+    },
+  );
+
+  it("rejects an explicit source error even when it contains a list", async () => {
+    const client = new WeReadApiClient({
+      cookie: "x",
+      fetch: async () => ({
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        json: async () => ({ code: 401, books: [] }),
+      }),
+    });
+
+    await expect(client.getNotebooks()).rejects.toMatchObject({
+      code: "SOURCE_PAGE_ERROR",
+    });
   });
 });
 
@@ -254,6 +340,57 @@ describe("WeReadAdapter — cookie mode", () => {
     expect(raws).toHaveLength(100);
     expect(a.rateLimits).toEqual({ perMinute: 30, perDay: 1200 });
   });
+
+  it.each(["notebooks", "bookmarks", "reviews"])(
+    "does not advance the opaque cursor when %s fails",
+    async (failedStream) => {
+      const books = [
+        { bookId: "book-0", title: "Book 0" },
+        { bookId: "book-1", title: "Book 1" },
+        { bookId: "book-2", title: "Book 2" },
+      ];
+      const failure = new Error(`${failedStream} failed`);
+      const a = new WeReadAdapter({
+        apiClientFactory: () => ({
+          getNotebooks: async () => {
+            if (failedStream === "notebooks") throw failure;
+            return books;
+          },
+          getBookmarks: async (bookId) => {
+            if (failedStream === "bookmarks" && bookId === "book-1") {
+              throw failure;
+            }
+            return [];
+          },
+          getReviews: async (bookId) => {
+            if (failedStream === "reviews" && bookId === "book-1") {
+              throw failure;
+            }
+            return [];
+          },
+        }),
+      });
+      const previousWatermark = cursorAfter("book-0");
+      let persistedWatermark = previousWatermark;
+      const watermarkUpdates = [];
+
+      await expect(
+        collect(
+          a.sync({
+            cookie: "wr_skey=x",
+            accountId: ACCOUNT_ID,
+            sinceWatermark: previousWatermark,
+            updateWatermark: (value) => {
+              persistedWatermark = value;
+              watermarkUpdates.push(value);
+            },
+          }),
+        ),
+      ).rejects.toBe(failure);
+      expect(persistedWatermark).toBe(previousWatermark);
+      expect(watermarkUpdates).toEqual([]);
+    },
+  );
 });
 
 describe("WeReadAdapter — snapshot mode", () => {

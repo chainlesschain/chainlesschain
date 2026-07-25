@@ -8,9 +8,8 @@
  * accepts the web login cookie (key cookies: wr_vid, wr_skey, wr_name).
  *
  * Endpoints (community-documented; best-effort v0.1 — WeRead occasionally
- * rotates params / adds light signing on some routes, so each method is
- * defensive and a failing endpoint degrades to an empty list rather than
- * aborting the whole sync):
+ * rotates params / adds light signing on some routes. Unknown response shapes
+ * fail closed so a source/API change cannot be mistaken for an empty account):
  *
  *   GET /user/notebooks                 → 有笔记/划线的书 (notebooks)
  *   GET /book/bookmarklist?bookId=      → 划线 (highlights)
@@ -21,7 +20,11 @@
  * CookieExpiredError so the UI can prompt re-login.
  */
 
-const { HttpClient, CookieExpiredError } = require("../ai-chat-history/http-client");
+const {
+  HttpClient,
+  CookieExpiredError,
+} = require("../ai-chat-history/http-client");
+const { extractRecognizedArray } = require("../../source-page");
 
 const DEFAULT_BASE = "https://i.weread.qq.com";
 const DEFAULT_UA =
@@ -50,26 +53,50 @@ class WeReadApiClient {
   }
 
   _headers() {
-    return { Cookie: this._cookie, "User-Agent": DEFAULT_UA, Accept: "application/json" };
+    return {
+      Cookie: this._cookie,
+      "User-Agent": DEFAULT_UA,
+      Accept: "application/json",
+    };
+  }
+
+  _rememberError(err) {
+    if (err instanceof CookieExpiredError) {
+      this.lastErrorCode = "COOKIE_EXPIRED";
+      return;
+    }
+    this.lastErrorCode = (err && (err.code || err.message)) || String(err);
   }
 
   async _get(path) {
     try {
-      return await this._http.getJson(`${this._base}${path}`, { headers: this._headers() });
+      const data = await this._http.getJson(`${this._base}${path}`, {
+        headers: this._headers(),
+      });
+      this.lastErrorCode = null;
+      return data;
     } catch (err) {
-      if (err instanceof CookieExpiredError) {
-        this.lastErrorCode = "COOKIE_EXPIRED";
-        throw err;
-      }
-      this.lastErrorCode = err && err.message ? err.message : String(err);
-      return null; // degrade — caller treats as empty
+      this._rememberError(err);
+      throw err;
+    }
+  }
+
+  _extractRows(data, paths, stream) {
+    try {
+      return extractRecognizedArray(data, paths, {
+        source: "weread",
+        stream,
+      });
+    } catch (err) {
+      this._rememberError(err);
+      throw err;
     }
   }
 
   /** Books that have notes/highlights. Returns array of {bookId, title, author, cover, noteCount, reviewCount}. */
   async getNotebooks() {
     const data = await this._get("/user/notebooks");
-    const books = (data && Array.isArray(data.books) && data.books) || [];
+    const books = this._extractRows(data, [["books"]], "notebooks");
     return books.map((b) => {
       const book = b.book || b;
       return {
@@ -88,9 +115,15 @@ class WeReadApiClient {
 
   /** Highlights (划线) for one book. */
   async getBookmarks(bookId) {
-    const data = await this._get(`/book/bookmarklist?bookId=${encodeURIComponent(bookId)}`);
-    const rows = (data && (data.updated || data.bookmarks)) || [];
-    return (Array.isArray(rows) ? rows : []).map((m) => ({
+    const data = await this._get(
+      `/book/bookmarklist?bookId=${encodeURIComponent(bookId)}`,
+    );
+    const rows = this._extractRows(
+      data,
+      [["updated"], ["bookmarks"]],
+      "bookmarks",
+    );
+    return rows.map((m) => ({
       bookmarkId: String(m.bookmarkId || ""),
       bookId: String(m.bookId || bookId),
       chapterTitle: m.chapterTitle || m.chapterName || null,
@@ -105,8 +138,8 @@ class WeReadApiClient {
     const data = await this._get(
       `/review/list?bookId=${encodeURIComponent(bookId)}&listType=11&mine=1&synckey=0`,
     );
-    const rows = (data && data.reviews) || [];
-    return (Array.isArray(rows) ? rows : []).map((r) => {
+    const rows = this._extractRows(data, [["reviews"]], "reviews");
+    return rows.map((r) => {
       const rev = r.review || r;
       return {
         reviewId: String(rev.reviewId || ""),
