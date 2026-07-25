@@ -72,6 +72,7 @@ const {
   advanceCursor,
   beginScan,
   comparePositions,
+  compareTextIds,
   completeScan,
   parseCursor,
   serializeCursor,
@@ -90,6 +91,8 @@ const VALID_SNAPSHOT_KINDS = Object.freeze([
   KIND_GROUP,
   KIND_MESSAGE,
 ]);
+const SQLITE_CURSOR_PAGE_SIZE = 1000;
+const EXACT_ID_ALIAS = "__pdh_exact_id";
 
 function stableOriginalId(kind, id) {
   const safe =
@@ -122,6 +125,266 @@ function trySelect(db, sql) {
   } catch (_e) {
     return null;
   }
+}
+
+function quoteSqliteIdentifier(value) {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new TypeError("messaging-qq: SQLite identifier must be non-empty");
+  }
+  if (/^[A-Za-z_][A-Za-z0-9_]*$/u.test(value)) return value;
+  return `"${value.replace(/"/gu, '""')}"`;
+}
+
+function selectRows(db, sql, params = []) {
+  return db.prepare(sql).all(...params);
+}
+
+function exactRowId(row, fallbackColumn) {
+  const value =
+    row?.[EXACT_ID_ALIAS] != null ? row[EXACT_ID_ALIAS] : row?.[fallbackColumn];
+  return value == null ? null : String(value);
+}
+
+function maxExactId(rows, fallbackColumn) {
+  let maximum = null;
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const id = exactRowId(row, fallbackColumn);
+    if (id === null) continue;
+    if (maximum === null || compareTextIds(id, maximum) > 0) maximum = id;
+  }
+  return maximum;
+}
+
+function resolveContactSource(db) {
+  const candidates = [
+    {
+      table: "Friends",
+      select:
+        "CAST(uin AS TEXT) AS \"__pdh_exact_id\", uin, name AS nickname, '' AS remark",
+    },
+    {
+      table: "friends",
+      select:
+        "CAST(uin AS TEXT) AS \"__pdh_exact_id\", uin, name AS nickname, '' AS remark",
+    },
+    {
+      table: "tb_recent_contact",
+      select:
+        'CAST(uin AS TEXT) AS "__pdh_exact_id", uin, name AS nickname, remark',
+    },
+  ];
+  for (const candidate of candidates) {
+    const table = quoteSqliteIdentifier(candidate.table);
+    const probe = trySelect(
+      db,
+      `SELECT ${candidate.select} FROM ${table} WHERE uin IS NOT NULL ORDER BY uin ASC LIMIT 1`,
+    );
+    if (probe !== null) return candidate;
+  }
+  return null;
+}
+
+function contactUpper(db, source) {
+  if (!source) return null;
+  const table = quoteSqliteIdentifier(source.table);
+  const rows = selectRows(
+    db,
+    `SELECT CAST(uin AS TEXT) AS "${EXACT_ID_ALIAS}", uin
+     FROM ${table}
+     WHERE uin IS NOT NULL
+     ORDER BY uin DESC
+     LIMIT 1`,
+  );
+  return maxExactId(rows, "uin");
+}
+
+function contactPage(db, source, { after, upper, limit }) {
+  if (!source || limit <= 0) return [];
+  const table = quoteSqliteIdentifier(source.table);
+  const where = ["uin IS NOT NULL"];
+  const params = [];
+  if (after !== null) {
+    where.push("uin > ?");
+    params.push(after);
+  }
+  if (upper !== null) {
+    where.push("uin <= ?");
+    params.push(upper);
+  }
+  params.push(limit);
+  const rows = selectRows(
+    db,
+    `SELECT ${source.select}
+     FROM ${table}
+     WHERE ${where.join(" AND ")}
+     ORDER BY uin ASC
+     LIMIT ?`,
+    params,
+  );
+  return rows
+    .map((row) => ({ row, id: exactRowId(row, "uin") }))
+    .filter(
+      ({ id }) =>
+        id !== null &&
+        (after === null || compareTextIds(id, after) > 0) &&
+        (upper === null || compareTextIds(id, upper) <= 0),
+    )
+    .sort((left, right) => compareTextIds(left.id, right.id))
+    .slice(0, limit);
+}
+
+function groupUpper(db) {
+  const rows = trySelect(
+    db,
+    `SELECT CAST(troopuin AS TEXT) AS "${EXACT_ID_ALIAS}", troopuin
+     FROM TroopInfoV2
+     WHERE troopuin IS NOT NULL
+     ORDER BY troopuin DESC
+     LIMIT 1`,
+  );
+  return rows === null ? null : maxExactId(rows, "troopuin");
+}
+
+function groupPage(db, { after, upper, limit }) {
+  if (limit <= 0) return [];
+  const where = ["troopuin IS NOT NULL"];
+  const params = [];
+  if (after !== null) {
+    where.push("troopuin > ?");
+    params.push(after);
+  }
+  if (upper !== null) {
+    where.push("troopuin <= ?");
+    params.push(upper);
+  }
+  params.push(limit);
+  let rows;
+  try {
+    rows = selectRows(
+      db,
+      `SELECT CAST(troopuin AS TEXT) AS "${EXACT_ID_ALIAS}",
+              troopuin AS troop_uin,
+              troopname AS troop_name,
+              membernum AS member_count,
+              troopowneruin AS owner_uin
+       FROM TroopInfoV2
+       WHERE ${where.join(" AND ")}
+       ORDER BY troopuin ASC
+       LIMIT ?`,
+      params,
+    );
+  } catch (_error) {
+    return [];
+  }
+  return rows
+    .map((row) => ({ row, id: exactRowId(row, "troop_uin") }))
+    .filter(
+      ({ id }) =>
+        id !== null &&
+        (after === null || compareTextIds(id, after) > 0) &&
+        (upper === null || compareTextIds(id, upper) <= 0),
+    )
+    .sort((left, right) => compareTextIds(left.id, right.id))
+    .slice(0, limit);
+}
+
+function messageTables(db) {
+  const rows =
+    trySelect(
+      db,
+      "SELECT name FROM sqlite_master WHERE type='table' AND (name LIKE 'mr_friend_%_New' OR name LIKE 'mr_troop_%_New') ORDER BY name ASC",
+    ) || [];
+  return Array.from(
+    new Set(
+      rows
+        .map((row) => row?.name)
+        .filter(
+          (name) =>
+            typeof name === "string" &&
+            (name.startsWith("mr_friend_") || name.startsWith("mr_troop_")) &&
+            name.endsWith("_New"),
+        ),
+    ),
+  ).sort();
+}
+
+function messageUpper(db, tableName) {
+  const table = quoteSqliteIdentifier(tableName);
+  const rows = selectRows(
+    db,
+    `SELECT CAST(msgId AS TEXT) AS "${EXACT_ID_ALIAS}", msgId
+     FROM ${table}
+     WHERE msgId IS NOT NULL
+     ORDER BY msgId DESC
+     LIMIT 1`,
+  );
+  return maxExactId(rows, "msgId");
+}
+
+function messagePage(db, tableName, { after, upper, limit }) {
+  if (limit <= 0) return [];
+  const table = quoteSqliteIdentifier(tableName);
+  const where = ["msgId IS NOT NULL"];
+  const params = [];
+  if (after !== null) {
+    where.push("msgId > ?");
+    params.push(after);
+  }
+  if (upper !== null) {
+    where.push("msgId <= ?");
+    params.push(upper);
+  }
+  params.push(limit);
+  const rows = selectRows(
+    db,
+    `SELECT CAST(msgId AS TEXT) AS "${EXACT_ID_ALIAS}",
+            msgtype,
+            senderuin,
+            time,
+            msgData,
+            issend,
+            frienduin,
+            troopuin
+     FROM ${table}
+     WHERE ${where.join(" AND ")}
+     ORDER BY msgId ASC
+     LIMIT ?`,
+    params,
+  );
+  return rows
+    .map((row) => ({ row, id: exactRowId(row, "msgId") }))
+    .filter(
+      ({ id }) =>
+        id !== null &&
+        (after === null || compareTextIds(id, after) > 0) &&
+        (upper === null || compareTextIds(id, upper) <= 0),
+    )
+    .sort((left, right) => compareTextIds(left.id, right.id))
+    .slice(0, limit);
+}
+
+function resolveSqliteUpper(db, contactSource, tables) {
+  for (let index = tables.length - 1; index >= 0; index -= 1) {
+    const table = tables[index];
+    let id;
+    try {
+      id = messageUpper(db, table);
+    } catch {
+      continue;
+    }
+    if (id !== null) return { kind: KIND_MESSAGE, table, id };
+  }
+  const groupId = groupUpper(db);
+  if (groupId !== null) return { kind: KIND_GROUP, id: groupId };
+  const contactId = contactUpper(db, contactSource);
+  return contactId === null ? null : { kind: KIND_CONTACT, id: contactId };
+}
+
+function sqliteCursorSourceError(message) {
+  const error = new Error(`messaging-qq: ${message}`);
+  error.code = "QQ_ANDROID_CURSOR_SOURCE_REGRESSED";
+  error.retryable = false;
+  return error;
 }
 
 function observationProducer(raw) {
@@ -455,109 +718,9 @@ class QQAdapter {
       ? this._deps.dbDriverFactory()
       : require("better-sqlite3-multiple-ciphers");
     const db = new Driver(dbPath, { readonly: true });
-    const raws = [];
-    const fallbackCapturedAt = Date.now();
 
     try {
-      // Friends: probe 3 known table names across QQ version drift.
-      const friends =
-        trySelect(
-          db,
-          "SELECT uin, name AS nickname, '' AS remark FROM Friends LIMIT 5000",
-        ) ||
-        trySelect(
-          db,
-          "SELECT uin, name AS nickname, '' AS remark FROM friends LIMIT 5000",
-        ) ||
-        trySelect(
-          db,
-          "SELECT uin, name AS nickname, remark FROM tb_recent_contact LIMIT 5000",
-        ) ||
-        [];
-      for (const row of friends) {
-        raws.push({
-          adapter: NAME,
-          kind: KIND_CONTACT,
-          originalId: stableOriginalId(KIND_CONTACT, row.uin),
-          producer: "qq-pc/android-sqlite",
-          capturedAt: fallbackCapturedAt,
-          payload: {
-            kind: KIND_CONTACT,
-            uin: row.uin != null ? String(row.uin) : null,
-            nickname: row.nickname || "",
-            remark: row.remark || "",
-            observationProducer: "qq-pc/android-sqlite",
-          },
-        });
-      }
-      // Groups
-      const groups =
-        trySelect(
-          db,
-          "SELECT troopuin AS troop_uin, troopname AS troop_name, membernum AS member_count, troopowneruin AS owner_uin FROM TroopInfoV2 LIMIT 1000",
-        ) || [];
-      for (const row of groups) {
-        raws.push({
-          adapter: NAME,
-          kind: KIND_GROUP,
-          originalId: stableOriginalId(KIND_GROUP, row.troop_uin),
-          producer: "qq-pc/android-sqlite",
-          capturedAt: fallbackCapturedAt,
-          payload: {
-            kind: KIND_GROUP,
-            troopUin: row.troop_uin != null ? String(row.troop_uin) : null,
-            troopName: row.troop_name || "",
-            memberCount: row.member_count || 0,
-            ownerUin: row.owner_uin != null ? String(row.owner_uin) : null,
-            observationProducer: "qq-pc/android-sqlite",
-          },
-        });
-      }
-      // Messages: discover mr_friend_*_New and mr_troop_*_New tables, then
-      // walk each in DESC-time order. Per sjqz qq.py the table-name format
-      // is mr_friend_<MD5(peer_uin).upper()>_New — we don't reverse it; we
-      // surface peerUin from row.frienduin / row.troopuin if present.
-      const tables =
-        trySelect(
-          db,
-          "SELECT name FROM sqlite_master WHERE type='table' AND (name LIKE 'mr_friend_%_New' OR name LIKE 'mr_troop_%_New')",
-        ) || [];
-      for (const t of tables) {
-        const isGroup = String(t.name).startsWith("mr_troop_");
-        const msgs =
-          trySelect(
-            db,
-            `SELECT CAST(msgId AS TEXT) AS msgId, msgtype, senderuin, time, msgData, issend, frienduin, troopuin FROM ${t.name} ORDER BY time DESC LIMIT 1000`,
-          ) || [];
-        for (const row of msgs) {
-          const decrypted = xorDecrypt(row.msgData, imeiBytes);
-          raws.push({
-            adapter: NAME,
-            kind: KIND_MESSAGE,
-            originalId: stableOriginalId(KIND_MESSAGE, row.msgId),
-            producer: "qq-pc/android-sqlite",
-            capturedAt: parseTime(row.time),
-            payload: {
-              kind: KIND_MESSAGE,
-              msgId: row.msgId != null ? String(row.msgId) : null,
-              msgType: row.msgtype,
-              senderUin: row.senderuin != null ? String(row.senderuin) : null,
-              peerUin: isGroup
-                ? row.troopuin != null
-                  ? String(row.troopuin)
-                  : null
-                : row.frienduin != null
-                  ? String(row.frienduin)
-                  : null,
-              isGroup,
-              isSend: !!row.issend,
-              text: decrypted,
-              _table: t.name,
-              observationProducer: "qq-pc/android-sqlite",
-            },
-          });
-        }
-      }
+      yield* this._syncViaSqliteCursor(opts, db, imeiBytes);
     } finally {
       try {
         db.close();
@@ -565,7 +728,207 @@ class QQAdapter {
         /* ignore */
       }
     }
-    yield* this._yieldRecords(opts, raws);
+  }
+
+  async *_syncViaSqliteCursor(opts, db, imeiBytes) {
+    const limit =
+      Number.isSafeInteger(opts.limit) && opts.limit > 0
+        ? opts.limit
+        : Infinity;
+    const fallbackCapturedAt = Date.now();
+    const contactSource = resolveContactSource(db);
+    const tables = messageTables(db);
+    let cursor = parseCursor(opts.sinceWatermark).cursor;
+    if (cursor.upper === null) {
+      cursor = beginScan(cursor, resolveSqliteUpper(db, contactSource, tables));
+    }
+    if (cursor.upper?.kind === KIND_MESSAGE) {
+      let currentUpper = null;
+      try {
+        currentUpper = tables.includes(cursor.upper.table)
+          ? messageUpper(db, cursor.upper.table)
+          : null;
+      } catch {
+        currentUpper = null;
+      }
+      if (
+        currentUpper === null ||
+        compareTextIds(currentUpper, cursor.upper.id) < 0
+      ) {
+        throw sqliteCursorSourceError(
+          "active SQLite message boundary is no longer readable",
+        );
+      }
+    }
+
+    const publish = () => {
+      if (typeof opts.updateWatermark === "function") {
+        opts.updateWatermark(serializeCursor(cursor));
+      }
+    };
+    const pageSize = (emitted) => {
+      const remaining = limit === Infinity ? Infinity : limit - emitted;
+      return Math.min(SQLITE_CURSOR_PAGE_SIZE, remaining);
+    };
+    let emitted = 0;
+
+    if (
+      cursor.upper !== null &&
+      (cursor.after === null || cursor.after.kind === KIND_CONTACT)
+    ) {
+      let after = cursor.after?.kind === KIND_CONTACT ? cursor.after.id : null;
+      const upper = cursor.upper.kind === KIND_CONTACT ? cursor.upper.id : null;
+      while (cursor.upper !== null && emitted < limit) {
+        const requested = pageSize(emitted);
+        const page = contactPage(db, contactSource, {
+          after,
+          upper,
+          limit: requested,
+        });
+        if (page.length === 0) break;
+        for (const { row, id } of page) {
+          cursor = advanceCursor(cursor, { kind: KIND_CONTACT, id });
+          publish();
+          yield {
+            adapter: NAME,
+            kind: KIND_CONTACT,
+            originalId: stableOriginalId(KIND_CONTACT, id),
+            producer: "qq-pc/android-sqlite",
+            capturedAt: fallbackCapturedAt,
+            payload: {
+              kind: KIND_CONTACT,
+              uin: id,
+              nickname: row.nickname || "",
+              remark: row.remark || "",
+              observationProducer: "qq-pc/android-sqlite",
+            },
+          };
+          emitted += 1;
+          after = id;
+          if (cursor.upper === null || emitted >= limit) break;
+        }
+        if (page.length < requested) break;
+      }
+    }
+
+    if (
+      cursor.upper !== null &&
+      cursor.upper.kind !== KIND_CONTACT &&
+      (cursor.after === null ||
+        cursor.after.kind === KIND_CONTACT ||
+        cursor.after.kind === KIND_GROUP)
+    ) {
+      let after = cursor.after?.kind === KIND_GROUP ? cursor.after.id : null;
+      const upper = cursor.upper.kind === KIND_GROUP ? cursor.upper.id : null;
+      while (cursor.upper !== null && emitted < limit) {
+        const requested = pageSize(emitted);
+        const page = groupPage(db, { after, upper, limit: requested });
+        if (page.length === 0) break;
+        for (const { row, id } of page) {
+          cursor = advanceCursor(cursor, { kind: KIND_GROUP, id });
+          publish();
+          yield {
+            adapter: NAME,
+            kind: KIND_GROUP,
+            originalId: stableOriginalId(KIND_GROUP, id),
+            producer: "qq-pc/android-sqlite",
+            capturedAt: fallbackCapturedAt,
+            payload: {
+              kind: KIND_GROUP,
+              troopUin: id,
+              troopName: row.troop_name || "",
+              memberCount: row.member_count || 0,
+              ownerUin: row.owner_uin != null ? String(row.owner_uin) : null,
+              observationProducer: "qq-pc/android-sqlite",
+            },
+          };
+          emitted += 1;
+          after = id;
+          if (cursor.upper === null || emitted >= limit) break;
+        }
+        if (page.length < requested) break;
+      }
+    }
+
+    if (cursor.upper?.kind === KIND_MESSAGE && emitted < limit) {
+      const afterPosition =
+        cursor.after?.kind === KIND_MESSAGE ? cursor.after : null;
+      const eligibleTables = tables.filter(
+        (table) =>
+          table <= cursor.upper.table &&
+          (afterPosition === null || table >= afterPosition.table),
+      );
+      for (const table of eligibleTables) {
+        let after =
+          afterPosition !== null && table === afterPosition.table
+            ? afterPosition.id
+            : null;
+        const upper = table === cursor.upper.table ? cursor.upper.id : null;
+        while (cursor.upper !== null && emitted < limit) {
+          const requested = pageSize(emitted);
+          let page;
+          try {
+            page = messagePage(db, table, {
+              after,
+              upper,
+              limit: requested,
+            });
+          } catch {
+            if (table === cursor.upper.table) {
+              throw sqliteCursorSourceError(
+                `active SQLite message table ${table} is unreadable`,
+              );
+            }
+            break;
+          }
+          if (page.length === 0) break;
+          for (const { row, id } of page) {
+            const isGroup = table.startsWith("mr_troop_");
+            cursor = advanceCursor(cursor, {
+              kind: KIND_MESSAGE,
+              table,
+              id,
+            });
+            publish();
+            yield {
+              adapter: NAME,
+              kind: KIND_MESSAGE,
+              originalId: stableOriginalId(KIND_MESSAGE, id),
+              producer: "qq-pc/android-sqlite",
+              capturedAt: parseTime(row.time),
+              payload: {
+                kind: KIND_MESSAGE,
+                msgId: id,
+                msgType: row.msgtype,
+                senderUin: row.senderuin != null ? String(row.senderuin) : null,
+                peerUin: isGroup
+                  ? row.troopuin != null
+                    ? String(row.troopuin)
+                    : null
+                  : row.frienduin != null
+                    ? String(row.frienduin)
+                    : null,
+                isGroup,
+                isSend: !!row.issend,
+                text: xorDecrypt(row.msgData, imeiBytes),
+                _table: table,
+                observationProducer: "qq-pc/android-sqlite",
+              },
+            };
+            emitted += 1;
+            after = id;
+            if (cursor.upper === null || emitted >= limit) break;
+          }
+          if (page.length < requested) break;
+        }
+        if (cursor.upper === null || emitted >= limit) break;
+      }
+    }
+
+    if (cursor.upper !== null && emitted < limit) {
+      cursor = completeScan(cursor);
+    }
+    publish();
   }
 
   buildResolvedIngestOptions({ rawBatch, scope }) {

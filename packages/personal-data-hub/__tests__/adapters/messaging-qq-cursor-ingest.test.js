@@ -301,4 +301,291 @@ describe("messaging-qq SQLite exact identifiers", () => {
       upper: null,
     });
   });
+
+  it("keyset-pages beyond the former 1000-message table cap", async () => {
+    const Database = require("better-sqlite3-multiple-ciphers");
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pdh-qq-android-page-"));
+    const dbPath = path.join(tmpDir, "12345.db");
+    const db = new Database(dbPath);
+    db.exec(
+      `CREATE TABLE mr_friend_LARGE_New (
+        msgId INTEGER PRIMARY KEY,
+        msgtype INTEGER,
+        senderuin INTEGER,
+        time INTEGER,
+        msgData BLOB,
+        issend INTEGER,
+        frienduin INTEGER,
+        troopuin INTEGER
+      );
+      WITH RECURSIVE seq(value) AS (
+        SELECT 1
+        UNION ALL
+        SELECT value + 1 FROM seq WHERE value < 1505
+      )
+      INSERT INTO mr_friend_LARGE_New
+      SELECT
+        value,
+        -1000,
+        999,
+        1750000000 + value,
+        X'595B',
+        0,
+        999,
+        NULL
+      FROM seq`,
+    );
+    db.close();
+    const adapter = new QQAdapter({
+      account: { qq: "12345" },
+      dbPath,
+      keyProvider: { getKey: async () => "12" },
+      dbDriverFactory: () => Database,
+    });
+    let watermark;
+
+    const first = await collect(
+      adapter.sync({
+        limit: 1200,
+        updateWatermark(value) {
+          watermark = value;
+        },
+      }),
+    );
+    expect(first).toHaveLength(1200);
+    expect(first[0].payload.msgId).toBe("1");
+    expect(first[1199].payload.msgId).toBe("1200");
+    expect(parseCursor(watermark).cursor).toMatchObject({
+      after: {
+        kind: "message",
+        table: "mr_friend_LARGE_New",
+        id: "1200",
+      },
+      upper: {
+        kind: "message",
+        table: "mr_friend_LARGE_New",
+        id: "1505",
+      },
+    });
+
+    const second = await collect(
+      adapter.sync({
+        limit: 1200,
+        sinceWatermark: watermark,
+        updateWatermark(value) {
+          watermark = value;
+        },
+      }),
+    );
+    expect(second).toHaveLength(305);
+    expect(second[0].payload.msgId).toBe("1201");
+    expect(second[304].payload.msgId).toBe("1505");
+    expect(parseCursor(watermark).cursor).toEqual({
+      v: 1,
+      after: null,
+      upper: null,
+    });
+  });
+
+  it("fails closed when an active message boundary regresses", async () => {
+    const Database = require("better-sqlite3-multiple-ciphers");
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pdh-qq-android-regress-"));
+    const dbPath = path.join(tmpDir, "12345.db");
+    const db = new Database(dbPath);
+    db.exec(
+      `CREATE TABLE mr_friend_REGRESS_New (
+        msgId INTEGER PRIMARY KEY,
+        msgtype INTEGER,
+        senderuin INTEGER,
+        time INTEGER,
+        msgData BLOB,
+        issend INTEGER,
+        frienduin INTEGER,
+        troopuin INTEGER
+      );
+      INSERT INTO mr_friend_REGRESS_New VALUES
+        (1, -1000, 999, 1750000001, X'595B', 0, 999, NULL),
+        (2, -1000, 999, 1750000002, X'595B', 0, 999, NULL),
+        (3, -1000, 999, 1750000003, X'595B', 0, 999, NULL)`,
+    );
+    db.close();
+    const adapter = new QQAdapter({
+      account: { qq: "12345" },
+      dbPath,
+      keyProvider: { getKey: async () => "12" },
+      dbDriverFactory: () => Database,
+    });
+    let watermark;
+    await collect(
+      adapter.sync({
+        limit: 1,
+        updateWatermark(value) {
+          watermark = value;
+        },
+      }),
+    );
+    const changed = new Database(dbPath);
+    changed.exec("DELETE FROM mr_friend_REGRESS_New WHERE msgId > 1");
+    changed.close();
+
+    await expect(
+      collect(
+        adapter.sync({
+          limit: 1,
+          sinceWatermark: watermark,
+          updateWatermark(value) {
+            watermark = value;
+          },
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: "QQ_ANDROID_CURSOR_SOURCE_REGRESSED",
+      retryable: false,
+    });
+  });
+
+  it("resumes across lexicographically ordered message shards", async () => {
+    const Database = require("better-sqlite3-multiple-ciphers");
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pdh-qq-android-shards-"));
+    const dbPath = path.join(tmpDir, "12345.db");
+    const db = new Database(dbPath);
+    for (const table of ["mr_friend_A_New", "mr_friend_B_New"]) {
+      db.exec(
+        `CREATE TABLE ${table} (
+          msgId INTEGER PRIMARY KEY,
+          msgtype INTEGER,
+          senderuin INTEGER,
+          time INTEGER,
+          msgData BLOB,
+          issend INTEGER,
+          frienduin INTEGER,
+          troopuin INTEGER
+        )`,
+      );
+    }
+    db.exec(
+      `INSERT INTO mr_friend_A_New VALUES
+        (1, -1000, 999, 1750000001, X'595B', 0, 999, NULL),
+        (2, -1000, 999, 1750000002, X'595B', 0, 999, NULL);
+      INSERT INTO mr_friend_B_New VALUES
+        (3, -1000, 999, 1750000003, X'595B', 0, 999, NULL),
+        (4, -1000, 999, 1750000004, X'595B', 0, 999, NULL)`,
+    );
+    db.close();
+    const adapter = new QQAdapter({
+      account: { qq: "12345" },
+      dbPath,
+      keyProvider: { getKey: async () => "12" },
+      dbDriverFactory: () => Database,
+    });
+    let watermark;
+
+    const first = await collect(
+      adapter.sync({
+        limit: 3,
+        updateWatermark(value) {
+          watermark = value;
+        },
+      }),
+    );
+    expect(first.map((raw) => [raw.payload._table, raw.payload.msgId])).toEqual(
+      [
+        ["mr_friend_A_New", "1"],
+        ["mr_friend_A_New", "2"],
+        ["mr_friend_B_New", "3"],
+      ],
+    );
+    expect(parseCursor(watermark).cursor.after).toEqual({
+      kind: "message",
+      table: "mr_friend_B_New",
+      id: "3",
+    });
+
+    const second = await collect(
+      adapter.sync({
+        limit: 3,
+        sinceWatermark: watermark,
+        updateWatermark(value) {
+          watermark = value;
+        },
+      }),
+    );
+    expect(
+      second.map((raw) => [raw.payload._table, raw.payload.msgId]),
+    ).toEqual([["mr_friend_B_New", "4"]]);
+    expect(parseCursor(watermark).cursor).toEqual({
+      v: 1,
+      after: null,
+      upper: null,
+    });
+  });
+
+  it("continues from contacts into groups when no message shard exists", async () => {
+    const Database = require("better-sqlite3-multiple-ciphers");
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pdh-qq-android-meta-"));
+    const dbPath = path.join(tmpDir, "12345.db");
+    const db = new Database(dbPath);
+    db.exec(
+      `CREATE TABLE Friends (
+        uin INTEGER PRIMARY KEY,
+        name TEXT
+      );
+      INSERT INTO Friends VALUES (100, 'A'), (200, 'B');
+      CREATE TABLE TroopInfoV2 (
+        troopuin INTEGER PRIMARY KEY,
+        troopname TEXT,
+        membernum INTEGER,
+        troopowneruin INTEGER
+      );
+      INSERT INTO TroopInfoV2 VALUES
+        (300, 'G1', 10, 100),
+        (400, 'G2', 20, 200)`,
+    );
+    db.close();
+    const adapter = new QQAdapter({
+      account: { qq: "12345" },
+      dbPath,
+      keyProvider: { getKey: async () => "12" },
+      dbDriverFactory: () => Database,
+    });
+    let watermark;
+
+    const first = await collect(
+      adapter.sync({
+        limit: 3,
+        updateWatermark(value) {
+          watermark = value;
+        },
+      }),
+    );
+    expect(
+      first.map((raw) => [raw.kind, raw.payload.uin || raw.payload.troopUin]),
+    ).toEqual([
+      ["contact", "100"],
+      ["contact", "200"],
+      ["group", "300"],
+    ]);
+    expect(parseCursor(watermark).cursor.after).toEqual({
+      kind: "group",
+      id: "300",
+    });
+
+    const second = await collect(
+      adapter.sync({
+        limit: 3,
+        sinceWatermark: watermark,
+        updateWatermark(value) {
+          watermark = value;
+        },
+      }),
+    );
+    expect(second.map((raw) => [raw.kind, raw.payload.troopUin])).toEqual([
+      ["group", "400"],
+    ]);
+    expect(parseCursor(watermark).cursor).toEqual({
+      v: 1,
+      after: null,
+      upper: null,
+    });
+  });
 });

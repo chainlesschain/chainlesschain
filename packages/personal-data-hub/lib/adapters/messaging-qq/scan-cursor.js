@@ -243,6 +243,7 @@ module.exports = {
   advanceCursor,
   beginScan,
   comparePositions,
+  compareTextIds,
   completeScan,
   initCursor,
   parseCursor,
