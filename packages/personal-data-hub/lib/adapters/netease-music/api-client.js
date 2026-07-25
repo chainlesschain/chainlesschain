@@ -35,10 +35,16 @@ const SECKEY_ALPHABET =
 const BROWSER_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
   "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+const DEFAULT_PLAYLIST_PAGE_SIZE = 100;
+const DEFAULT_MAX_PLAYLIST_PAGES = 10_000;
 
 /** AES-128-CBC encrypt `text` with `key` (utf-8, fixed IV) → base64. */
 function aesEncrypt(text, key) {
-  const cipher = crypto.createCipheriv("aes-128-cbc", Buffer.from(key, "utf8"), Buffer.from(AES_IV, "utf8"));
+  const cipher = crypto.createCipheriv(
+    "aes-128-cbc",
+    Buffer.from(key, "utf8"),
+    Buffer.from(AES_IV, "utf8"),
+  );
   return cipher.update(text, "utf8", "base64") + cipher.final("base64");
 }
 
@@ -79,7 +85,8 @@ class NeteaseMusicApiClient {
   constructor(opts = {}) {
     this.baseUrl = (opts.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, "");
     this._fetch =
-      opts.fetch || (typeof globalThis.fetch === "function" ? globalThis.fetch : null);
+      opts.fetch ||
+      (typeof globalThis.fetch === "function" ? globalThis.fetch : null);
     this._rand = opts.rand || Math.random;
     // Test seam: force a fixed secKey so weapi output is deterministic.
     this._secKey = opts.secKey || null;
@@ -117,7 +124,10 @@ class NeteaseMusicApiClient {
    */
   async _post(path, payload, cookie) {
     if (typeof this._fetch !== "function") {
-      this._setLastError(-2, "NeteaseMusicApiClient: fetch not available — pass opts.fetch or run on Node 18+");
+      this._setLastError(
+        -2,
+        "NeteaseMusicApiClient: fetch not available — pass opts.fetch or run on Node 18+",
+      );
       return null;
     }
     const { params, encSecKey } = weapiEncrypt(payload, this._genSecKey());
@@ -135,7 +145,10 @@ class NeteaseMusicApiClient {
         body,
       });
     } catch (e) {
-      this._setLastError(-4, "network: " + (e && e.message ? e.message : String(e)));
+      this._setLastError(
+        -4,
+        "network: " + (e && e.message ? e.message : String(e)),
+      );
       return null;
     }
     const txt = await resp.text();
@@ -147,12 +160,18 @@ class NeteaseMusicApiClient {
     try {
       obj = JSON.parse(txt);
     } catch (e) {
-      this._setLastError(-3, "parse: " + (e && e.message ? e.message : String(e)));
+      this._setLastError(
+        -3,
+        "parse: " + (e && e.message ? e.message : String(e)),
+      );
       return null;
     }
     const code = typeof obj.code === "number" ? obj.code : 200;
     if (code !== 200) {
-      this._setLastError(code, (obj.message || obj.msg || `code ${code}`).toString());
+      this._setLastError(
+        code,
+        (obj.message || obj.msg || `code ${code}`).toString(),
+      );
       return null;
     }
     this._clearLastError();
@@ -163,8 +182,10 @@ class NeteaseMusicApiClient {
   async getAccount(cookie) {
     const obj = await this._post("/weapi/w/nuser/account/get", {}, cookie);
     if (obj === null) return null;
-    const profile = obj.profile && typeof obj.profile === "object" ? obj.profile : null;
-    const account = obj.account && typeof obj.account === "object" ? obj.account : null;
+    const profile =
+      obj.profile && typeof obj.profile === "object" ? obj.profile : null;
+    const account =
+      obj.account && typeof obj.account === "object" ? obj.account : null;
     const uid =
       (profile && profile.userId != null && String(profile.userId)) ||
       (account && account.id != null && String(account.id)) ||
@@ -181,17 +202,25 @@ class NeteaseMusicApiClient {
    * @returns {Promise<Array<{songId,song,artist,album,playCount}>|null>}
    */
   async getPlayRecord(cookie, uid, type = 1) {
-    const obj = await this._post("/weapi/v1/play/record", { uid, type }, cookie);
+    const obj = await this._post(
+      "/weapi/v1/play/record",
+      { uid, type },
+      cookie,
+    );
     if (obj === null) return null;
-    const rows = Array.isArray(obj.weekData) && obj.weekData.length > 0
-      ? obj.weekData
-      : Array.isArray(obj.allData)
-        ? obj.allData
-        : [];
+    const rows =
+      Array.isArray(obj.weekData) && obj.weekData.length > 0
+        ? obj.weekData
+        : Array.isArray(obj.allData)
+          ? obj.allData
+          : [];
     return rows.map((r) => {
       const song = r && r.song ? r.song : {};
       const artist = Array.isArray(song.ar)
-        ? song.ar.map((a) => a && a.name).filter(Boolean).join(" / ")
+        ? song.ar
+            .map((a) => a && a.name)
+            .filter(Boolean)
+            .join(" / ")
         : "";
       return {
         songId: song.id != null ? String(song.id) : null,
@@ -203,24 +232,87 @@ class NeteaseMusicApiClient {
     });
   }
 
-  /**
-   * 用户歌单。
-   * @returns {Promise<Array<{playlistId,name,trackCount,creator}>|null>}
-   */
-  async getUserPlaylists(cookie, uid, limit = 100) {
+  /** Fetch one user-playlist page and retain the authoritative `more` flag. */
+  async getUserPlaylistsPage(
+    cookie,
+    uid,
+    { limit = DEFAULT_PLAYLIST_PAGE_SIZE, offset = 0 } = {},
+  ) {
     const obj = await this._post(
       "/weapi/user/playlist",
-      { uid, limit, offset: 0, includeVideo: true },
+      { uid, limit, offset, includeVideo: true },
       cookie,
     );
     if (obj === null) return null;
     const list = Array.isArray(obj.playlist) ? obj.playlist : [];
-    return list.map((p) => ({
-      playlistId: p.id != null ? String(p.id) : null,
-      name: p.name || "(未命名歌单)",
-      trackCount: Number.isFinite(p.trackCount) ? p.trackCount : null,
-      creator: p.creator && p.creator.nickname ? p.creator.nickname : null,
-    }));
+    return {
+      rows: list.map((p) => ({
+        playlistId: p.id != null ? String(p.id) : null,
+        name: p.name || "(未命名歌单)",
+        trackCount: Number.isFinite(p.trackCount) ? p.trackCount : null,
+        creator: p.creator && p.creator.nickname ? p.creator.nickname : null,
+      })),
+      more: typeof obj.more === "boolean" ? obj.more : null,
+    };
+  }
+
+  async getUserPlaylists(cookie, uid, limit = DEFAULT_PLAYLIST_PAGE_SIZE) {
+    const page = await this.getUserPlaylistsPage(cookie, uid, {
+      limit,
+      offset: 0,
+    });
+    return page === null ? null : page.rows;
+  }
+
+  /** Fetch every user-playlist page, failing closed on stalled pagination. */
+  async getAllUserPlaylists(cookie, uid, opts = {}) {
+    const pageSize =
+      Number.isSafeInteger(opts.pageSize) && opts.pageSize > 0
+        ? opts.pageSize
+        : DEFAULT_PLAYLIST_PAGE_SIZE;
+    const maxPages =
+      Number.isSafeInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : DEFAULT_MAX_PLAYLIST_PAGES;
+    const rows = [];
+    const seen = new Set();
+    let offset = 0;
+
+    for (let pageNumber = 1; pageNumber <= maxPages; pageNumber += 1) {
+      const page = await this.getUserPlaylistsPage(cookie, uid, {
+        limit: pageSize,
+        offset,
+      });
+      if (page === null) return null;
+      let added = 0;
+      for (const row of page.rows) {
+        const key = row.playlistId;
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        rows.push(row);
+        added += 1;
+      }
+      offset += page.rows.length;
+      if (
+        page.more === false ||
+        (page.more === null && page.rows.length < pageSize) ||
+        page.rows.length === 0
+      ) {
+        return rows;
+      }
+      if (added === 0) {
+        this._setLastError(
+          -8,
+          "playlist pagination made no progress; refusing a partial import",
+        );
+        return null;
+      }
+    }
+    this._setLastError(
+      -8,
+      `playlist pagination exceeded ${maxPages} pages; refusing a partial import`,
+    );
+    return null;
   }
 
   /**
@@ -239,7 +331,11 @@ class NeteaseMusicApiClient {
     const include = opts.include || {};
 
     if (include.play !== false) {
-      const plays = await this.getPlayRecord(cookie, account.uid, opts.recordType != null ? opts.recordType : 1);
+      const plays = await this.getPlayRecord(
+        cookie,
+        account.uid,
+        opts.recordType != null ? opts.recordType : 1,
+      );
       if (plays === null) return null;
       for (const r of plays) {
         events.push({
@@ -255,7 +351,10 @@ class NeteaseMusicApiClient {
     }
 
     if (include.playlist !== false) {
-      const lists = await this.getUserPlaylists(cookie, account.uid, opts.playlistLimit || 100);
+      const lists = await this.getAllUserPlaylists(cookie, account.uid, {
+        pageSize: opts.playlistPageSize || opts.playlistLimit,
+        maxPages: opts.maxPlaylistPages,
+      });
       if (lists === null) return null;
       for (const p of lists) {
         events.push({
@@ -270,7 +369,10 @@ class NeteaseMusicApiClient {
     }
 
     this._clearLastError();
-    return { account: { uid: account.uid, nickname: account.nickname }, events };
+    return {
+      account: { uid: account.uid, nickname: account.nickname },
+      events,
+    };
   }
 }
 
@@ -281,4 +383,6 @@ module.exports = {
   aesEncrypt,
   rsaEncrypt,
   modpow,
+  DEFAULT_PLAYLIST_PAGE_SIZE,
+  DEFAULT_MAX_PLAYLIST_PAGES,
 };

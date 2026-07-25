@@ -266,9 +266,9 @@ describe("NeteaseMusicAdapter — cookie (live) sync mode", () => {
     expect(bad.reason).toBe("INVALID_COOKIE");
   });
 
-  it("capabilities/version reflect v0.2 live mode", () => {
+  it("capabilities/version reflect live mode", () => {
     const a = new NeteaseMusicAdapter();
-    expect(a.version).toBe("0.2.0");
+    expect(a.version).toBe("0.3.0");
     expect(a.capabilities).toContain("sync:cookie");
   });
 

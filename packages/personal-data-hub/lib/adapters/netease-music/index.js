@@ -29,11 +29,18 @@
  */
 
 const fs = require("node:fs");
+const crypto = require("node:crypto");
 const { newId } = require("../../ids");
-const { createAccountScopeFromAccount } = require("../../account-scope");
 const {
+  createAccountScope,
+  createAccountScopeFromAccount,
+} = require("../../account-scope");
+const {
+  SnapshotFileError,
+  inspectSnapshotFile,
   probeJsonSnapshotFile,
-  readJsonSnapshot,
+  readBoundedSnapshotBuffer,
+  validateJsonSnapshot,
 } = require("../../snapshot-file");
 const {
   ENTITY_TYPES,
@@ -49,9 +56,21 @@ const {
   healthCheckFromAuthenticate,
   runtimeAccountIdFailure,
 } = require("../_runtime-cookie-source");
+const {
+  DEFAULT_MAX_PLAYLIST_PAGES,
+  DEFAULT_PLAYLIST_PAGE_SIZE,
+  NeteaseMusicApiClient,
+} = require("./api-client");
+const {
+  advanceCursor,
+  assertScanIdentity,
+  beginScan,
+  parseCursor,
+  serializeCursor,
+} = require("./scan-cursor");
 
 const NAME = "netease-music";
-const VERSION = "0.2.0";
+const VERSION = "0.3.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_PLAY = "play";
@@ -107,6 +126,7 @@ class NeteaseMusicAdapter {
     ];
     this.extractMode = "web-api";
     this.rateLimits = { perMinute: 8, perDay: 200 };
+    this.watermarkStrategy = "explicit";
     this.dataDisclosure = {
       fields: [
         "netease:play (歌名 / 歌手 / 专辑 / 播放次数)",
@@ -117,6 +137,26 @@ class NeteaseMusicAdapter {
       legalGate: false,
     };
     this._deps = { fs };
+  }
+
+  fileCheckpointMode() {
+    return "shared";
+  }
+
+  resolveDefaultScope(options = {}) {
+    const inputPath = options.inputPath || this._dataPath;
+    return inputPath
+      ? scopeForSnapshot(
+          this._deps.fs,
+          inputPath,
+          options.maxSnapshotBytes,
+          this.defaultScope,
+        )
+      : this.defaultScope;
+  }
+
+  resolveInputScope(options = {}) {
+    return this.resolveDefaultScope(options);
   }
 
   async authenticate(ctx = {}) {
@@ -180,12 +220,11 @@ class NeteaseMusicAdapter {
         "netease-music.sync: needs opts.inputPath (snapshot JSON) or opts.cookie (live weapi fetch)",
       );
     }
-    const snapshot = readJsonSnapshot(this._deps.fs, inputPath, {
-      maxBytes: opts.maxSnapshotBytes,
-      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
-      requiredArrayFields: ["events"],
-      allowedEventKinds: VALID_KINDS,
-    });
+    const { snapshot, source } = readSnapshotSource(
+      this._deps.fs,
+      inputPath,
+      opts.maxSnapshotBytes,
+    );
     const fallback =
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
@@ -195,27 +234,44 @@ class NeteaseMusicAdapter {
         ? snapshot.account
         : null;
     const include = opts.include || {};
-    const limit =
-      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
-    const events = snapshot.events;
-    let emitted = 0;
-    for (const ev of events) {
-      if (emitted >= limit) return;
-      if (include[ev.kind] === false) continue;
+    const records = snapshot.events.map((ev) => {
       const id =
         (typeof ev.id === "string" && ev.id) ||
         ev.songId ||
         ev.playlistId ||
         null;
-      yield {
+      return {
         adapter: NAME,
         kind: ev.kind,
         originalId: stableOriginalId(ev.kind, id),
         capturedAt: parseTime(ev.capturedAt) || fallback,
         payload: { ...ev, account },
       };
+    });
+    const config = collectionConfig("snapshot", opts);
+    const limit =
+      Number.isSafeInteger(opts.limit) && opts.limit > 0
+        ? opts.limit
+        : Infinity;
+    let cursor = prepareCursor(opts.sinceWatermark, {
+      mode: "snapshot",
+      source,
+      config,
+      upper: records.length,
+    });
+    const publish = () => publishCursor(opts, cursor);
+    let emitted = 0;
+    let ordinal = cursor.after ?? 0;
+    while (cursor.upper !== null && emitted < limit) {
+      ordinal += 1;
+      const raw = records[ordinal - 1];
+      cursor = advanceCursor(cursor, ordinal);
+      publish();
+      if (include[raw.kind] === false) continue;
+      yield raw;
       emitted += 1;
     }
+    publish();
   }
 
   async *_syncViaCookie(opts) {
@@ -227,7 +283,7 @@ class NeteaseMusicAdapter {
     const liveOpts = { ...opts, fetch: sourceRequestAudit.fetch };
     const client = this._apiClientFactory
       ? this._apiClientFactory(liveOpts)
-      : new (require("./api-client").NeteaseMusicApiClient)({
+      : new NeteaseMusicApiClient({
           fetch: sourceRequestAudit.fetch,
           rand: opts.rand,
           secKey: opts.secKey,
@@ -237,15 +293,16 @@ class NeteaseMusicAdapter {
       if (typeof opts.onProgress === "function") {
         try {
           opts.onProgress({ phase, adapter: NAME, ...extra });
-        } catch (_e) {
+        } catch {
           /* progress callback errors are best-effort */
         }
       }
     };
     const result = await client.fetchSnapshot(opts.cookie, {
       include: opts.include || {},
-      recordType: opts.recordType,
-      playlistLimit: opts.playlistLimit,
+      recordType: resolveRecordType(opts.recordType),
+      playlistPageSize: resolvePlaylistPageSize(opts),
+      maxPlaylistPages: resolveMaxPlaylistPages(opts.maxPlaylistPages),
     });
     sourceRequestAudit.throwIfPermitFailed();
     if (result === null) {
@@ -257,28 +314,53 @@ class NeteaseMusicAdapter {
     const account = result.account || null;
     emit("fetched", { count: result.events.length });
     const capturedAt = Date.now();
-    const limit =
-      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
-    const include = opts.include || {};
-    let emitted = 0;
-    for (const ev of result.events) {
-      if (emitted >= limit) return;
-      if (!ev || !VALID_KINDS.includes(ev.kind)) continue;
-      if (include[ev.kind] === false) continue;
+    const records = result.events.map((ev) => {
+      if (!ev || !VALID_KINDS.includes(ev.kind)) {
+        throw new Error(`${NAME}.sync: live source returned an unknown kind`);
+      }
       const id =
         (typeof ev.id === "string" && ev.id) ||
         ev.songId ||
         ev.playlistId ||
         null;
-      yield {
+      return {
         adapter: NAME,
         kind: ev.kind,
         originalId: stableOriginalId(ev.kind, id),
         capturedAt,
         payload: { ...ev, capturedAt, account },
       };
+    });
+    const source = digest(
+      Buffer.from(
+        JSON.stringify(records.map((record) => record.originalId)),
+        "utf8",
+      ),
+    );
+    const config = collectionConfig("live", opts);
+    const limit =
+      Number.isSafeInteger(opts.limit) && opts.limit > 0
+        ? opts.limit
+        : Infinity;
+    let cursor = prepareCursor(opts.sinceWatermark, {
+      mode: "live",
+      source,
+      config,
+      upper: records.length,
+    });
+    const publish = () => publishCursor(opts, cursor);
+    let emitted = 0;
+    let ordinal = cursor.after ?? 0;
+    while (cursor.upper !== null && emitted < limit) {
+      ordinal += 1;
+      const raw = records[ordinal - 1];
+      cursor = advanceCursor(cursor, ordinal);
+      publish();
+      yield raw;
       emitted += 1;
     }
+    publish();
+    emit("done", { yielded: emitted, count: records.length });
   }
 
   normalize(raw) {
@@ -306,6 +388,106 @@ class NeteaseMusicAdapter {
       return normalizePlaylist(raw.payload, raw, ingestedAt);
     throw new Error(`NeteaseMusicAdapter.normalize: unknown kind ${kind}`);
   }
+}
+
+function readSnapshotSource(fsMod, inputPath, maxBytes) {
+  const buffer = readBoundedSnapshotBuffer(fsMod, inputPath, { maxBytes });
+  let snapshot;
+  try {
+    snapshot = JSON.parse(buffer.toString("utf8"));
+  } catch (error) {
+    throw new SnapshotFileError(
+      "SNAPSHOT_JSON_INVALID",
+      "snapshot file must contain valid JSON",
+      { cause: error },
+    );
+  }
+  validateJsonSnapshot(snapshot, {
+    expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+    requiredArrayFields: ["events"],
+    allowedEventKinds: VALID_KINDS,
+  });
+  return { snapshot, source: digest(buffer) };
+}
+
+function digest(value) {
+  return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+function collectionConfig(mode, opts) {
+  const include = opts.include || {};
+  const config = {
+    include: {
+      favorite: include[KIND_FAVORITE] !== false,
+      play: include[KIND_PLAY] !== false,
+      playlist: include[KIND_PLAYLIST] !== false,
+    },
+    mode,
+  };
+  if (mode === "live") {
+    config.recordType = resolveRecordType(opts.recordType);
+    config.playlistPageSize = resolvePlaylistPageSize(opts);
+    config.maxPlaylistPages = resolveMaxPlaylistPages(opts.maxPlaylistPages);
+  }
+  return digest(Buffer.from(JSON.stringify(config), "utf8"));
+}
+
+function resolveRecordType(value) {
+  return Number.isSafeInteger(value) && value >= 0 ? value : 1;
+}
+
+function resolvePlaylistPageSize(opts) {
+  if (
+    Number.isSafeInteger(opts.playlistPageSize) &&
+    opts.playlistPageSize > 0
+  ) {
+    return opts.playlistPageSize;
+  }
+  if (Number.isSafeInteger(opts.playlistLimit) && opts.playlistLimit > 0) {
+    return opts.playlistLimit;
+  }
+  return DEFAULT_PLAYLIST_PAGE_SIZE;
+}
+
+function resolveMaxPlaylistPages(value) {
+  return Number.isSafeInteger(value) && value > 0
+    ? value
+    : DEFAULT_MAX_PLAYLIST_PAGES;
+}
+
+function prepareCursor(sinceWatermark, identity) {
+  let cursor = parseCursor(sinceWatermark).cursor;
+  cursor =
+    cursor.upper === null
+      ? beginScan(cursor, identity)
+      : assertScanIdentity(cursor, identity);
+  return cursor;
+}
+
+function publishCursor(opts, cursor) {
+  if (typeof opts.updateWatermark === "function") {
+    opts.updateWatermark(serializeCursor(cursor));
+  }
+}
+
+function scopeForSnapshot(fsMod, inputPath, maxBytes, accountScope) {
+  const inspected = inspectSnapshotFile(fsMod, inputPath, { maxBytes });
+  const revision =
+    inspected.stat.mtimeNs ??
+    inspected.stat.mtimeMs ??
+    inspected.stat.ctimeNs ??
+    inspected.stat.ctimeMs ??
+    "";
+  return createAccountScope(
+    NAME,
+    [
+      accountScope || "unscoped",
+      "snapshot",
+      inspected.realPath,
+      String(inspected.size),
+      String(revision),
+    ].join("\0"),
+  );
 }
 
 function buildSource(raw, occurredAt) {
