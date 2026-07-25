@@ -55,7 +55,7 @@ const PLATFORMS = [
     label: "作业帮",
     Adapter: lib.ZuoyebangAdapter,
     name: "edu-zuoyebang",
-    version: "0.2.0", // live web fetcher landed (see edu-zuoyebang-live.test.js)
+    version: "0.3.0", // complete paging + explicit cursor
     sensitivity: "medium",
     eventKind: "study",
     eventSubtype: "other",
