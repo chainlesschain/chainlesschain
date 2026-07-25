@@ -220,11 +220,10 @@ class SystemDataAndroidAdapter {
     this.rateLimits = { perDay: 24 };
     // Contacts, installed apps, SMS, calls, and media do not share a durable
     // cursor. A row count is not a source position and can hide replayed
-    // prefixes, so never invent or advance one. `watermarkRequiresCompleteScan`
-    // makes a bounded run observable as `watermarkDeferred` until this adapter
-    // calls markWatermarkComplete().
+    // prefixes, so never invent or advance one. Registry still reports a
+    // bounded `none` run as watermarkDeferred without pretending this
+    // non-watermarked collector has a resumable complete-scan contract.
     this.watermarkStrategy = "none";
-    this.watermarkRequiresCompleteScan = true;
     this.dataDisclosure = {
       fields: [
         "contacts:displayName,phones,emails,starred,organization,jobTitle,photoUri",

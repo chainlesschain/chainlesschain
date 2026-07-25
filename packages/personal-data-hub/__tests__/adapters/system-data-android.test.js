@@ -54,7 +54,7 @@ describe("SystemDataAndroidAdapter — contract", () => {
     expect(adapter.version).toBe(SYSTEM_DATA_ANDROID_VERSION);
     expect(adapter.extractMode).toBe("device-pull");
     expect(adapter.watermarkStrategy).toBe("none");
-    expect(adapter.watermarkRequiresCompleteScan).toBe(true);
+    expect(adapter.watermarkRequiresCompleteScan).toBeUndefined();
     expect(adapter.defaultScope).toBeUndefined();
     expect(adapter.capabilities).toEqual(
       expect.arrayContaining(["sync:snapshot", "sync:adb"]),
