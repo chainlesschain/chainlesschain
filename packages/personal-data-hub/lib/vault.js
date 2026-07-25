@@ -123,6 +123,18 @@ const SOURCE_IDENTITY_ENTITY_TYPES = new Set([
 const MAX_SOURCE_ALIAS_DEPTH = 64;
 const DEFAULT_RAW_OBSERVATION_QUERY_LIMIT = 100;
 const MAX_RAW_OBSERVATION_QUERY_LIMIT = 10_000;
+const RESOLVED_BATCH_COLLECTIONS = Object.freeze([
+  ["events", "event", "events"],
+  ["persons", "person", "persons"],
+  ["places", "place", "places"],
+  ["items", "item", "items"],
+  ["topics", "topic", "topics"],
+]);
+const ENTITY_TABLE_BY_TYPE = Object.freeze(
+  Object.fromEntries(
+    RESOLVED_BATCH_COLLECTIONS.map(([, type, table]) => [type, table]),
+  ),
+);
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 
@@ -327,6 +339,124 @@ function serializeRawPayload(payload, label) {
   return json;
 }
 
+function cloneEntityForResolvedWrite(entity) {
+  const clone = {
+    ...entity,
+    ...(entity.source ? { source: { ...entity.source } } : {}),
+    ...(entity.content ? { content: { ...entity.content } } : {}),
+    ...(entity.extra ? { extra: { ...entity.extra } } : {}),
+  };
+  for (const key of [
+    "participants",
+    "items",
+    "topics",
+    "names",
+    "aliases",
+    "derivedFromEvents",
+  ]) {
+    if (Array.isArray(entity[key])) clone[key] = [...entity[key]];
+  }
+  if (entity.identifiers && typeof entity.identifiers === "object") {
+    clone.identifiers = Object.fromEntries(
+      Object.entries(entity.identifiers).map(([key, value]) => [
+        key,
+        Array.isArray(value) ? [...value] : value,
+      ]),
+    );
+  }
+  return clone;
+}
+
+function sourceIdentityFromEntity(entity, label) {
+  const source = entity && entity.source;
+  if (
+    !source ||
+    typeof source.originalId !== "string" ||
+    source.originalId.length === 0
+  ) {
+    return null;
+  }
+  return normalizeSourceIdentity(source, label);
+}
+
+function applySourceIdentity(entity, identity) {
+  const source = { ...entity.source };
+  source.adapter = identity.adapter;
+  source.originalId = identity.originalId;
+  if (identity.scope.length > 0) source.scope = identity.scope;
+  else delete source.scope;
+  return { ...entity, source };
+}
+
+function mapResolvedReference(idMaps, type, value) {
+  if (typeof value !== "string") return value;
+  return idMaps[type].get(value) || value;
+}
+
+function mapResolvedReferences(idMaps, type, values) {
+  return Array.isArray(values)
+    ? Array.from(
+        new Set(
+          values.map((value) => mapResolvedReference(idMaps, type, value)),
+        ),
+      )
+    : values;
+}
+
+function rewriteResolvedReferences(entity, idMaps) {
+  const rewritten = cloneEntityForResolvedWrite(entity);
+  if (entity.type === "event") {
+    if (entity.actor !== undefined) {
+      rewritten.actor = mapResolvedReference(idMaps, "person", entity.actor);
+    }
+    if (entity.participants !== undefined) {
+      rewritten.participants = mapResolvedReferences(
+        idMaps,
+        "person",
+        entity.participants,
+      );
+    }
+    if (entity.place !== undefined) {
+      rewritten.place = mapResolvedReference(idMaps, "place", entity.place);
+    }
+    if (entity.items !== undefined) {
+      rewritten.items = mapResolvedReferences(idMaps, "item", entity.items);
+    }
+    if (entity.topics !== undefined) {
+      rewritten.topics = mapResolvedReferences(idMaps, "topic", entity.topics);
+    }
+  } else if (entity.type === "item" && entity.merchant !== undefined) {
+    rewritten.merchant = mapResolvedReference(
+      idMaps,
+      "person",
+      entity.merchant,
+    );
+  } else if (entity.type === "topic") {
+    if (entity.parentTopic !== undefined) {
+      rewritten.parentTopic = mapResolvedReference(
+        idMaps,
+        "topic",
+        entity.parentTopic,
+      );
+    }
+    if (entity.derivedFromEvents !== undefined) {
+      rewritten.derivedFromEvents = mapResolvedReferences(
+        idMaps,
+        "event",
+        entity.derivedFromEvents,
+      );
+    }
+  }
+  return rewritten;
+}
+
+function entityIdentityError(code, message, details) {
+  const error = new Error(message);
+  error.code = code;
+  if (details !== undefined) error.details = details;
+  return error;
+}
+
 // ─── LocalVault ──────────────────────────────────────────────────────────
 
 class LocalVault {
@@ -457,6 +587,62 @@ class LocalVault {
 
   schemaVersion() {
     return getSchemaVersion(this._requireOpen());
+  }
+
+  // ─── Entity identity lookups ───────────────────────────────────────────
+
+  _entityFromRow(entityType, row) {
+    if (entityType === "event") return this._rowToEvent(row);
+    if (entityType === "person") return this._rowToPerson(row);
+    if (entityType === "place") return this._rowToPlace(row);
+    if (entityType === "item") return this._rowToItem(row);
+    if (entityType === "topic") return this._rowToTopic(row);
+    throw new Error(`LocalVault: unsupported entity type ${entityType}`);
+  }
+
+  _findEntityById(entityType, id) {
+    const table = ENTITY_TABLE_BY_TYPE[entityType];
+    const row = this._requireOpen()
+      .prepare(`SELECT * FROM ${table} WHERE id = ?`)
+      .get(id);
+    return row
+      ? {
+          id: row.id,
+          entity: this._entityFromRow(entityType, row),
+        }
+      : null;
+  }
+
+  _findEntityBySource(entityType, identity) {
+    const table = ENTITY_TABLE_BY_TYPE[entityType];
+    const rows = this._requireOpen()
+      .prepare(
+        `SELECT *
+         FROM ${table}
+         WHERE source_adapter = ?
+           AND source_scope = ?
+           AND source_original_id = ?
+         ORDER BY ingested_at DESC, id
+         LIMIT 2`,
+      )
+      .all(identity.adapter, identity.scope, identity.originalId);
+    if (rows.length > 1) {
+      throw entityIdentityError(
+        "ENTITY_SOURCE_AMBIGUOUS",
+        `LocalVault.putBatchResolved: ${entityType} source identity maps to multiple rows`,
+        {
+          entityType,
+          adapter: identity.adapter,
+          ids: rows.map((row) => row.id),
+        },
+      );
+    }
+    return rows.length === 1
+      ? {
+          id: rows[0].id,
+          entity: this._entityFromRow(entityType, rows[0]),
+        }
+      : null;
   }
 
   // ─── Entity put ────────────────────────────────────────────────────────
@@ -823,6 +1009,359 @@ class LocalVault {
     tx();
 
     return counts;
+  }
+
+  /**
+   * Resolve source aliases and entity conflicts, rewrite every in-batch
+   * reference to the persisted IDs, then store the exact resolved batch in
+   * one transaction. Existing putBatch semantics remain unchanged; callers
+   * opt in by choosing this method.
+   *
+   * `conflictResolver` must be synchronous and return a complete entity. It
+   * receives `{ entityType, existing, incoming, matchedBy, sourceIdentity }`.
+   * Alias registrations and raw observations supplied here share the same
+   * transaction, so an identity split or invalid merged entity rolls all of
+   * them back.
+   */
+  putBatchResolved(
+    batch,
+    {
+      resolveSourceAliases = true,
+      conflictResolver = null,
+      sourceAliases = [],
+      rawObservations = [],
+    } = {},
+  ) {
+    if (!batch || typeof batch !== "object" || Array.isArray(batch)) {
+      throw new Error(
+        "LocalVault.putBatchResolved: batch must be a plain object",
+      );
+    }
+    if (conflictResolver !== null && typeof conflictResolver !== "function") {
+      throw new Error(
+        "LocalVault.putBatchResolved: conflictResolver must be a function",
+      );
+    }
+    if (
+      conflictResolver &&
+      conflictResolver.constructor &&
+      conflictResolver.constructor.name === "AsyncFunction"
+    ) {
+      throw entityIdentityError(
+        "ENTITY_CONFLICT_RESOLVER_ASYNC",
+        "LocalVault.putBatchResolved: conflictResolver must be synchronous",
+      );
+    }
+    if (typeof resolveSourceAliases !== "boolean") {
+      throw new Error(
+        "LocalVault.putBatchResolved: resolveSourceAliases must be boolean",
+      );
+    }
+    if (!Array.isArray(sourceAliases)) {
+      throw new Error(
+        "LocalVault.putBatchResolved: sourceAliases must be an array",
+      );
+    }
+    if (!Array.isArray(rawObservations)) {
+      throw new Error(
+        "LocalVault.putBatchResolved: rawObservations must be an array",
+      );
+    }
+
+    for (const [collection, entityType] of RESOLVED_BATCH_COLLECTIONS) {
+      const entities = batch[collection] || [];
+      if (!Array.isArray(entities)) {
+        throw new Error(
+          `LocalVault.putBatchResolved: ${collection} must be an array`,
+        );
+      }
+      for (const entity of entities) {
+        if (!entity || entity.type !== entityType) {
+          throw new Error(
+            `LocalVault.putBatchResolved: ${collection} must contain ${entityType} entities`,
+          );
+        }
+        const result = validate(entity);
+        if (!result.valid) {
+          throw new Error(
+            `LocalVault.putBatchResolved: invalid ${entityType} ${entity.id} - ${result.errors.join("; ")}`,
+          );
+        }
+      }
+    }
+
+    const db = this._requireOpen();
+    const tx = db.transaction(() => {
+      let aliasesRegistered = 0;
+      for (const aliasRecord of sourceAliases) {
+        aliasesRegistered += this.registerSourceAlias(aliasRecord).changes;
+      }
+
+      const idMaps = Object.fromEntries(
+        Array.from(SOURCE_IDENTITY_ENTITY_TYPES, (type) => [type, new Map()]),
+      );
+      const slotsByType = Object.fromEntries(
+        Array.from(SOURCE_IDENTITY_ENTITY_TYPES, (type) => [type, []]),
+      );
+      const slotsById = Object.fromEntries(
+        Array.from(SOURCE_IDENTITY_ENTITY_TYPES, (type) => [type, new Map()]),
+      );
+      const slotsBySource = Object.fromEntries(
+        Array.from(SOURCE_IDENTITY_ENTITY_TYPES, (type) => [type, new Map()]),
+      );
+      const conflicts = [];
+
+      for (const [collection, entityType] of RESOLVED_BATCH_COLLECTIONS) {
+        for (const originalEntity of batch[collection] || []) {
+          let incoming = cloneEntityForResolvedWrite(originalEntity);
+          let sourceIdentity = sourceIdentityFromEntity(
+            incoming,
+            `LocalVault.putBatchResolved ${entityType}`,
+          );
+          if (sourceIdentity && resolveSourceAliases) {
+            sourceIdentity = resolveSourceIdentityInDb(
+              db,
+              entityType,
+              sourceIdentity,
+            ).identity;
+            incoming = applySourceIdentity(incoming, sourceIdentity);
+          }
+
+          const candidates = new Map();
+          const addCandidate = ({ id, match, entity = null, slot = null }) => {
+            if (!id) return;
+            const candidate = candidates.get(id) || {
+              id,
+              entity: null,
+              slot: null,
+              matchedBy: new Set(),
+            };
+            if (entity) candidate.entity = entity;
+            if (slot) candidate.slot = slot;
+            candidate.matchedBy.add(match);
+            candidates.set(id, candidate);
+          };
+
+          const byId = this._findEntityById(entityType, incoming.id);
+          if (byId) {
+            addCandidate({
+              id: byId.id,
+              match: "id",
+              entity: byId.entity,
+            });
+          }
+          if (sourceIdentity) {
+            const bySource = this._findEntityBySource(
+              entityType,
+              sourceIdentity,
+            );
+            if (bySource) {
+              addCandidate({
+                id: bySource.id,
+                match: "source",
+                entity: bySource.entity,
+              });
+            }
+          }
+
+          const batchIdSlot = slotsById[entityType].get(incoming.id);
+          if (batchIdSlot) {
+            addCandidate({
+              id: batchIdSlot.id,
+              match: "batch-id",
+              slot: batchIdSlot,
+            });
+          }
+          if (sourceIdentity) {
+            const batchSourceSlot =
+              slotsBySource[entityType].get(
+                sourceIdentityKey(sourceIdentity),
+              ) || null;
+            if (batchSourceSlot) {
+              addCandidate({
+                id: batchSourceSlot.id,
+                match: "batch-source",
+                slot: batchSourceSlot,
+              });
+            }
+          }
+
+          if (candidates.size > 1) {
+            throw entityIdentityError(
+              "ENTITY_IDENTITY_SPLIT",
+              `LocalVault.putBatchResolved: ${entityType} id and canonical source resolve to different rows`,
+              {
+                entityType,
+                incomingId: incoming.id,
+                candidateIds: [...candidates.keys()],
+              },
+            );
+          }
+
+          const candidate =
+            candidates.size === 1 ? [...candidates.values()][0] : null;
+          let slot = candidate ? candidate.slot : null;
+          if (!slot) {
+            slot = {
+              id: candidate ? candidate.id : incoming.id,
+              entity: candidate
+                ? cloneEntityForResolvedWrite(candidate.entity)
+                : null,
+            };
+            slotsByType[entityType].push(slot);
+          }
+
+          if (candidate) {
+            const matchedBy = [...candidate.matchedBy].sort();
+            const existing = cloneEntityForResolvedWrite(slot.entity);
+            let merged = conflictResolver
+              ? conflictResolver({
+                  entityType,
+                  existing,
+                  incoming: cloneEntityForResolvedWrite(incoming),
+                  matchedBy,
+                  sourceIdentity: sourceIdentity ? { ...sourceIdentity } : null,
+                })
+              : incoming;
+            if (merged && typeof merged.then === "function") {
+              if (typeof merged.catch === "function") {
+                merged.catch(() => {});
+              }
+              throw entityIdentityError(
+                "ENTITY_CONFLICT_RESOLVER_ASYNC",
+                "LocalVault.putBatchResolved: conflictResolver must be synchronous",
+              );
+            }
+            if (
+              !merged ||
+              typeof merged !== "object" ||
+              Array.isArray(merged)
+            ) {
+              throw entityIdentityError(
+                "ENTITY_CONFLICT_RESOLVER_INVALID",
+                "LocalVault.putBatchResolved: conflictResolver must return an entity",
+              );
+            }
+            merged = {
+              ...cloneEntityForResolvedWrite(merged),
+              id: slot.id,
+              type: entityType,
+            };
+            if (
+              sourceIdentity &&
+              (candidate.matchedBy.has("source") ||
+                candidate.matchedBy.has("batch-source"))
+            ) {
+              merged = applySourceIdentity(merged, sourceIdentity);
+            }
+            slot.entity = merged;
+            conflicts.push({
+              entityType,
+              incomingId: incoming.id,
+              persistedId: slot.id,
+              matchedBy,
+            });
+          } else {
+            slot.entity = { ...incoming, id: slot.id, type: entityType };
+          }
+
+          idMaps[entityType].set(incoming.id, slot.id);
+          slotsById[entityType].set(incoming.id, slot);
+          slotsById[entityType].set(slot.id, slot);
+          if (sourceIdentity) {
+            slotsBySource[entityType].set(
+              sourceIdentityKey(sourceIdentity),
+              slot,
+            );
+          }
+          const storedSourceIdentity = sourceIdentityFromEntity(
+            slot.entity,
+            `LocalVault.putBatchResolved resolved ${entityType}`,
+          );
+          if (storedSourceIdentity) {
+            slotsBySource[entityType].set(
+              sourceIdentityKey(storedSourceIdentity),
+              slot,
+            );
+          }
+        }
+      }
+
+      const resolvedBatch = {};
+      for (const [collection, entityType] of RESOLVED_BATCH_COLLECTIONS) {
+        resolvedBatch[collection] = slotsByType[entityType].map((slot) =>
+          rewriteResolvedReferences(slot.entity, idMaps),
+        );
+        for (const entity of resolvedBatch[collection]) {
+          const result = validate(entity);
+          if (!result.valid) {
+            throw entityIdentityError(
+              "ENTITY_CONFLICT_RESOLUTION_INVALID",
+              `LocalVault.putBatchResolved: resolved ${entityType} ${entity.id} is invalid - ${result.errors.join("; ")}`,
+            );
+          }
+        }
+      }
+
+      let rawObservationWrites = 0;
+      for (const rawObservation of rawObservations) {
+        let observation = rawObservation;
+        if (resolveSourceAliases && rawObservation) {
+          const identity = normalizeSourceIdentity(
+            {
+              adapter: rawObservation.adapter,
+              scope: rawObservation.scope,
+              originalId: rawObservation.canonicalOriginalId,
+            },
+            "LocalVault.putBatchResolved raw observation",
+          );
+          const canonical = resolveSourceIdentityInDb(
+            db,
+            "event",
+            identity,
+          ).identity;
+          observation = {
+            ...rawObservation,
+            adapter: canonical.adapter,
+            scope: canonical.scope,
+            canonicalOriginalId: canonical.originalId,
+          };
+        }
+        this.putRawObservation(observation);
+        rawObservationWrites += 1;
+      }
+
+      const counts = {
+        events: 0,
+        persons: 0,
+        places: 0,
+        items: 0,
+        topics: 0,
+      };
+      const putters = {
+        events: (entity) => this.putEvent(entity),
+        persons: (entity) => this.putPerson(entity),
+        places: (entity) => this.putPlace(entity),
+        items: (entity) => this.putItem(entity),
+        topics: (entity) => this.putTopic(entity),
+      };
+      for (const [collection] of RESOLVED_BATCH_COLLECTIONS) {
+        for (const entity of resolvedBatch[collection]) {
+          putters[collection](entity);
+          counts[collection] += 1;
+        }
+      }
+
+      return {
+        counts,
+        resolvedBatch,
+        conflicts,
+        aliasesRegistered,
+        rawObservationWrites,
+      };
+    });
+
+    return tx();
   }
 
   /**
