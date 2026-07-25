@@ -75,7 +75,7 @@ const SNAPSHOT = {
 describe("constants", () => {
   it("exposes name/version/schema", () => {
     expect(NAME).toBe("travel-tencent-map");
-    expect(VERSION).toBe("0.3.0");
+    expect(VERSION).toBe("0.4.0");
     expect(SNAPSHOT_SCHEMA_VERSION).toBe(1);
   });
 });
