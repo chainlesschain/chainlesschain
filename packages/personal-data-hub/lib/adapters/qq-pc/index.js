@@ -510,6 +510,9 @@ class QQPcAdapter {
         }
         indexes[stream] += 1;
         cursor = advanceCursor(cursor, stream, message.messageId);
+        if (typeof opts.updateWatermark === "function") {
+          opts.updateWatermark(serializeCursor(cursor));
+        }
         yield rawFromMessage(message, emitted, fallbackCapturedAt);
         emitted += 1;
         continue;

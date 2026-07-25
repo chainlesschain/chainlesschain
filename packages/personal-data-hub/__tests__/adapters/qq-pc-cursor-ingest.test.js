@@ -125,6 +125,41 @@ describe("QQPcAdapter explicit scan cursor", () => {
     expect(qqCollector.calls()).toBe(2);
   });
 
+  it("publishes continuation before a bounded consumer closes the stream", async () => {
+    const qqCollector = pagedCollector();
+    const adapter = new QQPcAdapter({ qqCollector });
+    let watermark;
+
+    for await (const raw of adapter.sync({
+      passphrase: "test-passphrase",
+      limit: 1,
+      updateWatermark(value) {
+        watermark = value;
+      },
+    })) {
+      expect(raw.payload.messageId).toBe("1");
+      break;
+    }
+
+    expect(parseCursor(watermark).cursor).toMatchObject({
+      next: "group",
+      after: { c2c: "1", group: null },
+      scan: { upper: { c2c: "3", group: "4" } },
+    });
+
+    const resumed = await collect(
+      adapter.sync({
+        passphrase: "test-passphrase",
+        limit: 1,
+        sinceWatermark: watermark,
+        updateWatermark(value) {
+          watermark = value;
+        },
+      }),
+    );
+    expect(resumed.map((raw) => raw.payload.messageId)).toEqual(["2"]);
+  });
+
   it("fails closed when the source omits completion evidence", async () => {
     const adapter = new QQPcAdapter({
       qqCollector: async () => ({
