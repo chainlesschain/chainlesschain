@@ -38,9 +38,17 @@
 "use strict";
 
 const fs = require("node:fs");
+const crypto = require("node:crypto");
 const {
+  createAccountScope,
+  createAccountScopeFromAccount,
+} = require("../../account-scope");
+const {
+  SnapshotFileError,
+  inspectSnapshotFile,
   probeJsonSnapshotFile,
-  readJsonSnapshot,
+  readBoundedSnapshotBuffer,
+  validateJsonSnapshot,
 } = require("../../snapshot-file");
 const { newId } = require("../../ids");
 const {
@@ -49,9 +57,16 @@ const {
   EVENT_SUBTYPES,
   CAPTURED_BY,
 } = require("../../constants");
+const {
+  advanceCursor,
+  assertScanIdentity,
+  beginScan,
+  parseCursor,
+  serializeCursor,
+} = require("./scan-cursor");
 
 const NAME = "social-kuaishou";
-const VERSION = "0.2.1";
+const VERSION = "0.3.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_PROFILE = "profile";
@@ -99,7 +114,7 @@ function parseTime(v) {
 function trySelect(db, sql) {
   try {
     return db.prepare(sql).all();
-  } catch (_e) {
+  } catch {
     return null;
   }
 }
@@ -112,6 +127,11 @@ class KuaishouAdapter {
     this._dbPath = opts.dbPath || null;
 
     this.name = NAME;
+    this.defaultScope = createAccountScopeFromAccount(
+      NAME,
+      this.account || opts,
+      ["uid", "userId", "accountId"],
+    );
     this.version = VERSION;
     this.capabilities = [
       "sync:snapshot",
@@ -123,6 +143,7 @@ class KuaishouAdapter {
     ];
     this.extractMode = "device-pull";
     this.rateLimits = {};
+    this.watermarkStrategy = "explicit";
     this.dataDisclosure = {
       fields: [
         "kuaishou:profile (user_id / user_name / kuaishou_id / headurl / sex / city)",
@@ -144,6 +165,30 @@ class KuaishouAdapter {
       fs,
       dbDriverFactory: opts.dbDriverFactory || null,
     };
+  }
+
+  fileCheckpointMode() {
+    return "shared";
+  }
+
+  resolveDefaultScope(options = {}) {
+    const inputPath =
+      typeof options.inputPath === "string" && options.inputPath.length > 0
+        ? options.inputPath
+        : typeof options.dbPath === "string" && options.dbPath.length > 0
+          ? options.dbPath
+          : this._dbPath;
+    if (!inputPath) return this.defaultScope;
+    return scopeForLocalFile(this._deps.fs, inputPath, {
+      accountScope: this.defaultScope,
+      maxBytes:
+        options.inputPath === inputPath ? options.maxSnapshotBytes : null,
+      mode: options.inputPath === inputPath ? "snapshot" : "sqlite",
+    });
+  }
+
+  resolveInputScope(options = {}) {
+    return this.resolveDefaultScope(options);
   }
 
   async authenticate(ctx = {}) {
@@ -194,12 +239,11 @@ class KuaishouAdapter {
   }
 
   async *_syncViaSnapshot(opts) {
-    const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
-      maxBytes: opts.maxSnapshotBytes,
-      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
-      requiredArrayFields: ["events"],
-      allowedEventKinds: VALID_SNAPSHOT_KINDS,
-    });
+    const { snapshot, source } = readSnapshotSource(
+      this._deps.fs,
+      opts.inputPath,
+      opts.maxSnapshotBytes,
+    );
     const fallbackCapturedAt =
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
@@ -210,18 +254,8 @@ class KuaishouAdapter {
         ? snapshot.account
         : null;
     const include = opts.include || {};
-    const limit =
-      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
-
-    const events = Array.isArray(snapshot.events) ? snapshot.events : [];
-    let emitted = 0;
-    for (const ev of events) {
-      if (emitted >= limit) return;
-      if (!ev || typeof ev !== "object") continue;
+    const records = snapshot.events.map((ev) => {
       const kind = ev.kind;
-      if (!VALID_SNAPSHOT_KINDS.includes(kind)) continue;
-      if (include[kind] === false) continue;
-
       const capturedAt =
         parseTime(ev.capturedAt) || parseTime(ev.time) || fallbackCapturedAt;
       const id =
@@ -232,16 +266,20 @@ class KuaishouAdapter {
         ev.photoId ||
         ev.keyword ||
         null;
-
-      yield {
+      return {
         adapter: NAME,
         kind,
         originalId: stableOriginalId(kind, id),
         capturedAt,
         payload: { ...ev, account },
       };
-      emitted += 1;
-    }
+    });
+    yield* this._yieldCollection(opts, {
+      config: collectionConfig("snapshot", include),
+      mode: "snapshot",
+      records: records.filter((record) => include[record.kind] !== false),
+      source,
+    });
   }
 
   async *_syncViaSqlite(opts) {
@@ -252,6 +290,7 @@ class KuaishouAdapter {
     }
     const dbPath = opts.dbPath;
     if (!dbPath || !this._deps.fs.existsSync(dbPath)) return;
+    inspectSqliteFile(this._deps.fs, dbPath);
     const Driver = this._deps.dbDriverFactory
       ? this._deps.dbDriverFactory()
       : require("better-sqlite3-multiple-ciphers");
@@ -259,53 +298,96 @@ class KuaishouAdapter {
 
     try {
       const watched =
-        trySelect(
-          db,
-          "SELECT * FROM photo_history ORDER BY view_time DESC LIMIT 5000",
-        ) || [];
-      for (const row of watched) {
-        yield {
-          adapter: NAME,
-          originalId: `photo-${row.id || row._id || row.photo_id}`,
-          capturedAt: parseTime(row.view_time || row.time || row.create_time),
-          payload: { row, kind: KIND_WATCH },
-        };
-      }
+        trySelect(db, "SELECT * FROM photo_history ORDER BY view_time DESC") ||
+        [];
+      const records = watched.map((row) => ({
+        adapter: NAME,
+        kind: KIND_WATCH,
+        originalId: sqliteOriginalId(
+          "photo",
+          row.id || row._id || row.photo_id,
+        ),
+        capturedAt: parseTime(row.view_time || row.time || row.create_time),
+        payload: { row, kind: KIND_WATCH },
+      }));
 
       const collected =
         trySelect(
           db,
-          "SELECT * FROM user_collect ORDER BY collect_time DESC LIMIT 5000",
+          "SELECT * FROM user_collect ORDER BY collect_time DESC",
         ) || [];
-      for (const row of collected) {
-        yield {
+      records.push(
+        ...collected.map((row) => ({
           adapter: NAME,
-          originalId: `collect-${row.id || row.photo_id}`,
+          kind: KIND_COLLECT,
+          originalId: sqliteOriginalId("collect", row.id || row.photo_id),
           capturedAt: parseTime(row.collect_time || row.time),
           payload: { row, kind: KIND_COLLECT },
-        };
-      }
+        })),
+      );
 
       const searches =
         trySelect(
           db,
-          "SELECT * FROM search_record ORDER BY search_time DESC LIMIT 5000",
+          "SELECT * FROM search_record ORDER BY search_time DESC",
         ) || [];
-      for (const row of searches) {
-        yield {
+      records.push(
+        ...searches.map((row) => ({
           adapter: NAME,
-          originalId: `search-${row.id || row.keyword + ":" + row.search_time}`,
+          kind: KIND_SEARCH,
+          originalId: sqliteOriginalId(
+            "search",
+            row.id ||
+              (row.keyword != null && row.search_time != null
+                ? `${row.keyword}:${row.search_time}`
+                : null),
+          ),
           capturedAt: parseTime(row.search_time || row.time),
           payload: { row, kind: KIND_SEARCH },
-        };
-      }
+        })),
+      );
+      records.sort(compareCollectionRecords);
+      const include = opts.include || {};
+      const selected = records.filter(
+        (record) => include[record.kind] !== false,
+      );
+      yield* this._yieldCollection(opts, {
+        config: collectionConfig("sqlite", include),
+        mode: "sqlite",
+        records: selected,
+        source: collectionSource(selected),
+      });
     } finally {
       try {
         db.close();
-      } catch (_e) {
+      } catch {
         /* ignore */
       }
     }
+  }
+
+  async *_yieldCollection(opts, { config, mode, records, source }) {
+    const limit =
+      Number.isSafeInteger(opts.limit) && opts.limit > 0
+        ? opts.limit
+        : Infinity;
+    let cursor = prepareCursor(opts.sinceWatermark, {
+      mode,
+      source,
+      config,
+      upper: records.length,
+    });
+    const publish = () => publishCursor(opts, cursor);
+    let emitted = 0;
+    let ordinal = cursor.after ?? 0;
+    while (cursor.upper !== null && emitted < limit) {
+      ordinal += 1;
+      cursor = advanceCursor(cursor, ordinal);
+      publish();
+      yield records[ordinal - 1];
+      emitted += 1;
+    }
+    publish();
   }
 
   normalize(raw) {
@@ -330,6 +412,196 @@ class KuaishouAdapter {
     }
     throw new Error(`KuaishouAdapter.normalize: unknown kind ${kind}`);
   }
+}
+
+function sqliteOriginalId(prefix, id) {
+  const safe =
+    (typeof id === "string" && id.length > 0 && id) ||
+    (typeof id === "number" && Number.isFinite(id) && String(id)) ||
+    null;
+  if (!safe) {
+    throw new Error(
+      `${NAME}.sync: ${prefix} SQLite row requires a stable source id`,
+    );
+  }
+  return `${prefix}-${safe}`;
+}
+
+function readSnapshotSource(fsMod, inputPath, maxBytes) {
+  const buffer = readBoundedSnapshotBuffer(fsMod, inputPath, { maxBytes });
+  let snapshot;
+  try {
+    snapshot = JSON.parse(buffer.toString("utf8"));
+  } catch (error) {
+    throw new SnapshotFileError(
+      "SNAPSHOT_JSON_INVALID",
+      "snapshot file must contain valid JSON",
+      { cause: error },
+    );
+  }
+  validateJsonSnapshot(snapshot, {
+    expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+    requiredArrayFields: ["events"],
+    allowedEventKinds: VALID_SNAPSHOT_KINDS,
+  });
+  return { snapshot, source: digest(buffer) };
+}
+
+function digest(value) {
+  return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+function collectionConfig(mode, include) {
+  const kinds =
+    mode === "sqlite"
+      ? [KIND_WATCH, KIND_COLLECT, KIND_SEARCH]
+      : VALID_SNAPSHOT_KINDS;
+  return digest(
+    Buffer.from(
+      JSON.stringify({
+        include: Object.fromEntries(
+          kinds.map((kind) => [kind, include[kind] !== false]),
+        ),
+        mode,
+      }),
+      "utf8",
+    ),
+  );
+}
+
+function collectionSource(records) {
+  return digest(
+    Buffer.from(
+      stableStringify(
+        records.map((record) => ({
+          capturedAt: record.capturedAt,
+          kind: record.kind,
+          originalId: record.originalId,
+          payload: Object.fromEntries(
+            Object.entries(record.payload).filter(([key]) => key !== "row"),
+          ),
+          row: record.payload.row,
+        })),
+      ),
+      "utf8",
+    ),
+  );
+}
+
+function stableStringify(value) {
+  return JSON.stringify(canonicalDigestValue(value));
+}
+
+function canonicalDigestValue(value) {
+  if (typeof value === "bigint") {
+    return { $bigint: value.toString() };
+  }
+  if (Buffer.isBuffer(value)) {
+    return { $buffer: value.toString("base64") };
+  }
+  if (Array.isArray(value)) return value.map(canonicalDigestValue);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, canonicalDigestValue(value[key])]),
+    );
+  }
+  return value;
+}
+
+function compareCollectionRecords(left, right) {
+  const kindOrder =
+    VALID_SNAPSHOT_KINDS.indexOf(left.kind) -
+    VALID_SNAPSHOT_KINDS.indexOf(right.kind);
+  if (kindOrder !== 0) return kindOrder;
+  const leftTime = Number.isFinite(left.capturedAt)
+    ? left.capturedAt
+    : Number.NEGATIVE_INFINITY;
+  const rightTime = Number.isFinite(right.capturedAt)
+    ? right.capturedAt
+    : Number.NEGATIVE_INFINITY;
+  if (leftTime !== rightTime) return rightTime - leftTime;
+  return left.originalId.localeCompare(right.originalId, "en");
+}
+
+function prepareCursor(sinceWatermark, identity) {
+  let cursor = parseCursor(sinceWatermark).cursor;
+  cursor =
+    cursor.upper === null
+      ? beginScan(cursor, identity)
+      : assertScanIdentity(cursor, identity);
+  return cursor;
+}
+
+function publishCursor(opts, cursor) {
+  if (typeof opts.updateWatermark === "function") {
+    opts.updateWatermark(serializeCursor(cursor));
+  }
+}
+
+function scopeForLocalFile(fsMod, inputPath, { accountScope, maxBytes, mode }) {
+  const inspected =
+    mode === "snapshot"
+      ? inspectSnapshotFile(fsMod, inputPath, { maxBytes })
+      : inspectSqliteFile(fsMod, inputPath);
+  const revision =
+    inspected.stat.mtimeNs ??
+    inspected.stat.mtimeMs ??
+    inspected.stat.ctimeNs ??
+    inspected.stat.ctimeMs ??
+    "";
+  return createAccountScope(
+    NAME,
+    [
+      accountScope || "unscoped",
+      mode,
+      inspected.realPath,
+      String(inspected.size),
+      String(revision),
+    ].join("\0"),
+  );
+}
+
+function inspectSqliteFile(fsMod, inputPath) {
+  let linkStat;
+  let stat;
+  let realPath;
+  try {
+    linkStat = fsMod.lstatSync(inputPath, { bigint: true });
+    if (
+      typeof linkStat.isSymbolicLink === "function" &&
+      linkStat.isSymbolicLink()
+    ) {
+      throw new SnapshotFileError(
+        "SNAPSHOT_SYMBOLIC_LINK",
+        "SQLite source must not be a symbolic link",
+      );
+    }
+    stat = fsMod.statSync(inputPath, { bigint: true });
+    realPath = fsMod.realpathSync(inputPath);
+  } catch (error) {
+    if (error instanceof SnapshotFileError) throw error;
+    throw new SnapshotFileError(
+      "INPUT_PATH_UNREADABLE",
+      "SQLite source is unavailable or unreadable",
+      { cause: error },
+    );
+  }
+  if (typeof stat.isFile !== "function" || !stat.isFile()) {
+    throw new SnapshotFileError(
+      "SNAPSHOT_NOT_REGULAR_FILE",
+      "SQLite source must be a regular file",
+    );
+  }
+  const size = Number(stat.size);
+  if (!Number.isSafeInteger(size) || size < 0) {
+    throw new SnapshotFileError(
+      "SNAPSHOT_SIZE_INVALID",
+      "SQLite source size is invalid",
+    );
+  }
+  return { linkStat, realPath, size, stat };
 }
 
 function normalizeProfile(p, raw, ingestedAt) {
