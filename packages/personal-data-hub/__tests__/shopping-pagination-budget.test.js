@@ -31,6 +31,10 @@ function makeOrders(count) {
   }));
 }
 
+function sourceName(request) {
+  return request.query?.platform || request.query?.tab || "orders";
+}
+
 function sourcePage(request) {
   const query = request.query || {};
   if (Number.isInteger(query.page)) return query.page;
@@ -48,6 +52,107 @@ async function collect(iterable) {
 }
 
 describe("shopping cookie pagination budget", () => {
+  it.each(CASES)(
+    "%s drains more than ten pages by default",
+    async (_name, Adapter, account, sourceCount) => {
+      let requests = 0;
+      let completions = 0;
+      const adapter = new Adapter({
+        account: { ...account, cookies: "sid=test" },
+        fetchFn: async (request) => {
+          requests += 1;
+          const page = sourcePage(request);
+          return {
+            orders:
+              page <= 11
+                ? [
+                    {
+                      orderId: `${sourceName(request)}-${page}`,
+                      merchantName: "Test merchant",
+                      createTime: 2_000_000_000_000 - page,
+                      totalAmount: 10,
+                    },
+                  ]
+                : [],
+          };
+        },
+      });
+
+      const records = await collect(
+        adapter.sync({
+          pageSize: 10,
+          markWatermarkComplete: () => {
+            completions += 1;
+          },
+        }),
+      );
+
+      expect(records).toHaveLength(sourceCount * 11);
+      expect(requests).toBe(sourceCount * 12);
+      expect(completions).toBe(1);
+    },
+  );
+
+  it.each(CASES)(
+    "%s includes orders older than one year on the initial scan",
+    async (_name, Adapter, account, sourceCount) => {
+      let completions = 0;
+      const adapter = new Adapter({
+        account: { ...account, cookies: "sid=test" },
+        fetchFn: async (request) => ({
+          orders: [
+            {
+              orderId: `${sourceName(request)}-historical`,
+              merchantName: "Historical merchant",
+              createTime: 1_000_000_000_000,
+              totalAmount: 10,
+            },
+          ],
+          hasMore: false,
+        }),
+      });
+
+      const records = await collect(
+        adapter.sync({
+          markWatermarkComplete: () => {
+            completions += 1;
+          },
+        }),
+      );
+
+      expect(records).toHaveLength(sourceCount);
+      expect(completions).toBe(1);
+    },
+  );
+
+  it.each(CASES)(
+    "%s rejects a repeated source page during an uncapped scan",
+    async (_name, Adapter, account) => {
+      let requests = 0;
+      let completions = 0;
+      const adapter = new Adapter({
+        account: { ...account, cookies: "sid=test" },
+        fetchFn: async () => {
+          requests += 1;
+          return { orders: makeOrders(1) };
+        },
+      });
+
+      await expect(
+        collect(
+          adapter.sync({
+            markWatermarkComplete: () => {
+              completions += 1;
+            },
+          }),
+        ),
+      ).rejects.toMatchObject({ code: "SOURCE_PAGE_STALLED" });
+
+      expect(requests).toBe(2);
+      expect(completions).toBe(0);
+    },
+  );
+
   it.each(CASES)(
     "%s accepts ephemeral cookie + accountId credentials",
     async (_name, Adapter, account) => {

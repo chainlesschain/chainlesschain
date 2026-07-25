@@ -47,6 +47,7 @@ const {
 const {
   normalizeOrderRecord,
   extractShoppingOrders,
+  createShoppingPageGuard,
   CookieAuth,
   hasRuntimeCookie,
   resolveCookieContext,
@@ -236,11 +237,17 @@ class MeituanAdapter {
     const sinceMs =
       opts.sinceWatermark != null
         ? parseInt(String(opts.sinceWatermark), 10) || 0
-        : Date.now() - 365 * 24 * 3600_000;
+        : 0;
     const defaultPlatforms = ["waimai", "groupbuy"];
     const platforms = opts.platforms || defaultPlatforms;
     const maxPages =
-      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : Number.POSITIVE_INFINITY;
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createShoppingPageGuard(NAME)
+        : null;
     let pagesFetched = 0;
     let allScansComplete = true;
 
@@ -266,6 +273,7 @@ class MeituanAdapter {
           source: NAME,
           stream: platform,
         });
+        pageGuard?.observe(platform, orders);
         if (orders.length === 0) {
           const pageState = sourcePageState(resp, sourceItemsSeen);
           if (pageState === "more") {
@@ -478,7 +486,7 @@ function mapStatus(s) {
   return "placed";
 }
 
-async function defaultFetch(_opts) {
+async function defaultFetch() {
   throw new Error("MeituanAdapter: no fetchFn configured");
 }
 

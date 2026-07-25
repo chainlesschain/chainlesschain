@@ -261,19 +261,26 @@ describe("JdAdapter snapshot mode", () => {
   it("legacy cookie mode still works (regression guard)", async () => {
     const a = new JdAdapter({
       account: { pin: "alice", cookies: "pt_key=abc; pt_pin=alice" },
-      fetchFn: async () => ({
-        orders: [
-          {
-            orderId: "JD-LEGACY-1",
-            venderName: "京东自营",
-            orderStartTime: "2026-05-22 10:00:00",
-            orderTotalPrice: 99,
-            productList: [
-              { productName: "test", productQuantity: 1, productPrice: 99 },
-            ],
-            orderStatusText: "已完成",
-          },
-        ],
+      fetchFn: async ({ query }) => ({
+        orders:
+          query.page === 1
+            ? [
+                {
+                  orderId: "JD-LEGACY-1",
+                  venderName: "京东自营",
+                  orderStartTime: "2026-05-22 10:00:00",
+                  orderTotalPrice: 99,
+                  productList: [
+                    {
+                      productName: "test",
+                      productQuantity: 1,
+                      productPrice: 99,
+                    },
+                  ],
+                  orderStatusText: "已完成",
+                },
+              ]
+            : [],
       }),
     });
     const raws = [];
@@ -442,17 +449,20 @@ describe("MeituanAdapter snapshot mode", () => {
   it("legacy cookie mode still works (regression guard)", async () => {
     const a = new MeituanAdapter({
       account: { userId: "alice", cookies: "iuuid=abc" },
-      fetchFn: async () => ({
-        orders: [
-          {
-            orderId: "MT-LEGACY-1",
-            poiName: "测试餐厅",
-            orderTime: "2026-05-22 12:00:00",
-            totalPrice: 50,
-            dishes: [{ name: "测试菜", quantity: 1, price: 50 }],
-            statusDesc: "已完成",
-          },
-        ],
+      fetchFn: async ({ query }) => ({
+        orders:
+          query.page === 1
+            ? [
+                {
+                  orderId: "MT-LEGACY-1",
+                  poiName: "测试餐厅",
+                  orderTime: "2026-05-22 12:00:00",
+                  totalPrice: 50,
+                  dishes: [{ name: "测试菜", quantity: 1, price: 50 }],
+                  statusDesc: "已完成",
+                },
+              ]
+            : [],
       }),
     });
     const raws = [];

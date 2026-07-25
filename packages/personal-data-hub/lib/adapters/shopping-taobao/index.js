@@ -27,6 +27,7 @@ const {
 const {
   normalizeOrderRecord,
   extractShoppingOrders,
+  createShoppingPageGuard,
   CookieAuth,
   hasRuntimeCookie,
   resolveCookieContext,
@@ -217,12 +218,16 @@ class TaobaoAdapter {
     }
     if (!cookieAuth || !(await cookieAuth.validate())) return;
     const sinceMs =
-      opts.sinceWatermark != null
-        ? parseWatermarkMs(opts.sinceWatermark)
-        : Date.now() - 365 * 24 * 3600_000; // default last year
+      opts.sinceWatermark != null ? parseWatermarkMs(opts.sinceWatermark) : 0;
     const pageSize = Number.isFinite(opts.pageSize) ? opts.pageSize : 20;
     const maxPages =
-      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : Number.POSITIVE_INFINITY;
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createShoppingPageGuard(NAME)
+        : null;
     let page = 1;
     let sourceItemsSeen = 0;
     let scanComplete = false;
@@ -236,6 +241,7 @@ class TaobaoAdapter {
         query: { page, pageSize, ts: Date.now() },
       });
       const orders = extractShoppingOrders(resp, { source: NAME });
+      pageGuard?.observe(KIND_ORDER, orders);
       if (orders.length === 0) {
         const pageState = sourcePageState(resp, sourceItemsSeen);
         if (pageState === "more") {
@@ -421,7 +427,7 @@ function mapStatus(s) {
   return "placed";
 }
 
-async function defaultFetch(_opts) {
+async function defaultFetch() {
   // Default: no-op so adapter doesn't accidentally hit real Taobao when
   // user hasn't configured a fetcher. Production wires a real HTTPS
   // fetch via the desktop main process (not from renderer).

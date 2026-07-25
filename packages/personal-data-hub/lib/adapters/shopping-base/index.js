@@ -28,8 +28,12 @@
 
 "use strict";
 
+const crypto = require("node:crypto");
 const { newId } = require("../../ids");
-const { extractRecognizedArray } = require("../../source-page");
+const {
+  SourcePageError,
+  extractRecognizedArray,
+} = require("../../source-page");
 
 const SHOPPING_ORDER_PATHS = Object.freeze([
   Object.freeze([]),
@@ -63,6 +67,48 @@ function extractShoppingOrders(response, opts = {}) {
       ? { successStatuses: opts.successStatuses }
       : {}),
   });
+}
+
+function createShoppingPageGuard(source = "shopping") {
+  const seenByStream = new Map();
+
+  return {
+    observe(stream = "orders", orders = []) {
+      if (!Array.isArray(orders) || orders.length === 0) return;
+
+      const streamName = String(stream || "orders");
+      const seen = seenByStream.get(streamName) || new Set();
+      const signature = crypto
+        .createHash("sha256")
+        .update(JSON.stringify(canonicalizePageValue(orders)))
+        .digest("hex");
+
+      if (seen.has(signature)) {
+        throw new SourcePageError(
+          "SOURCE_PAGE_STALLED",
+          `${source}: ${streamName} pagination repeated a source page`,
+        );
+      }
+
+      seen.add(signature);
+      seenByStream.set(streamName, seen);
+    },
+  };
+}
+
+function canonicalizePageValue(value) {
+  if (Array.isArray(value)) {
+    return value.map(canonicalizePageValue);
+  }
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  return Object.fromEntries(
+    Object.keys(value)
+      .sort()
+      .map((key) => [key, canonicalizePageValue(value[key])]),
+  );
 }
 
 /**
@@ -302,6 +348,7 @@ module.exports = {
   normalizeOrderRecord,
   mapStatusToSubtype,
   extractShoppingOrders,
+  createShoppingPageGuard,
   CookieAuth,
   hasRuntimeCookie,
   resolveCookieContext,

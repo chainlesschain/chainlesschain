@@ -61,6 +61,7 @@ const {
 const {
   normalizeOrderRecord,
   extractShoppingOrders,
+  createShoppingPageGuard,
   CookieAuth,
   hasRuntimeCookie,
   resolveCookieContext,
@@ -261,7 +262,7 @@ class XianyuAdapter {
     const sinceMs =
       opts.sinceWatermark != null
         ? parseInt(String(opts.sinceWatermark), 10) || 0
-        : Date.now() - 365 * 24 * 3600_000; // default last year
+        : 0;
     const pageSize = Number.isFinite(opts.pageSize) ? opts.pageSize : 10;
     const include = opts.include || {};
     if (include[KIND_ORDER] === false) return;
@@ -272,7 +273,13 @@ class XianyuAdapter {
         ? opts.sides
         : defaultSides;
     const maxPages =
-      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : Number.POSITIVE_INFINITY;
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createShoppingPageGuard(NAME)
+        : null;
     let pagesFetched = 0;
     let allScansComplete = true;
 
@@ -314,6 +321,7 @@ class XianyuAdapter {
         });
         pagesFetched += 1;
         const orders = extractOrders(resp);
+        pageGuard?.observe(side, orders);
         if (!orders.length) {
           const pageState = sourcePageState(resp, sourceItemsSeen);
           if (pageState === "more") {
@@ -610,7 +618,7 @@ function mapStatus(s) {
   return "placed";
 }
 
-async function defaultFetch(_opts) {
+async function defaultFetch() {
   throw new Error("XianyuAdapter: no fetchFn configured");
 }
 
