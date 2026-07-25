@@ -68,6 +68,14 @@ const {
   canonicalQqPersonOriginalId,
   createQqAccountScope,
 } = require("../../qq-source-identity");
+const {
+  advanceCursor,
+  beginScan,
+  comparePositions,
+  completeScan,
+  parseCursor,
+  serializeCursor,
+} = require("./scan-cursor");
 
 const NAME = "messaging-qq";
 const VERSION = "0.7.0";
@@ -147,6 +155,51 @@ function canonicalEntityIdentity(raw) {
   return originalId ? { entityType, originalId } : null;
 }
 
+function usesExplicitCursor(opts) {
+  return (
+    typeof opts?.updateWatermark === "function" ||
+    opts?.sinceWatermark !== undefined
+  );
+}
+
+function collectionPosition(raw) {
+  const payload = raw?.payload || {};
+  if (raw?.kind === KIND_CONTACT) {
+    return {
+      kind: KIND_CONTACT,
+      id: String(payload.uin ?? raw.originalId),
+    };
+  }
+  if (raw?.kind === KIND_GROUP) {
+    return {
+      kind: KIND_GROUP,
+      id: String(payload.troopUin ?? raw.originalId),
+    };
+  }
+  if (raw?.kind === KIND_MESSAGE) {
+    return {
+      kind: KIND_MESSAGE,
+      table:
+        payload._table ||
+        payload.tableName ||
+        (payload.isGroup ? "group_msg_table" : "c2c_msg_table"),
+      id: String(payload.msgId ?? payload.messageId ?? raw.originalId),
+    };
+  }
+  throw new Error(`${NAME}.sync: unsupported cursor record kind ${raw?.kind}`);
+}
+
+function dedupeAndSortRecords(raws) {
+  const recordsByPosition = new Map();
+  for (const raw of raws) {
+    const position = collectionPosition(raw);
+    recordsByPosition.set(JSON.stringify(position), { position, raw });
+  }
+  return [...recordsByPosition.values()].sort((left, right) =>
+    comparePositions(left.position, right.position),
+  );
+}
+
 class QQAdapter {
   constructor(opts = {}) {
     // §Phase 13.5 v0.2: account.qq now OPTIONAL at construction — snapshot
@@ -172,6 +225,7 @@ class QQAdapter {
     // Kept as device-pull — both modes are sourced from on-device data.
     this.extractMode = "device-pull";
     this.rateLimits = {};
+    this.watermarkStrategy = "explicit";
     this.dataDisclosure = {
       fields: [
         "qq:contacts (uin / nickname / remark)",
@@ -282,13 +336,10 @@ class QQAdapter {
         ? snapshot.account
         : null;
     const include = opts.include || {};
-    const limit =
-      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
 
     const events = snapshot.events;
-    let emitted = 0;
+    const raws = [];
     for (const ev of events) {
-      if (emitted >= limit) return;
       const kind = ev.kind;
       if (include[kind] === false) continue;
 
@@ -320,13 +371,59 @@ class QQAdapter {
       };
       const canonicalIdentity = canonicalEntityIdentity(raw);
 
-      yield {
+      raws.push({
         ...raw,
         ...(canonicalIdentity
           ? { canonicalOriginalId: canonicalIdentity.originalId }
           : {}),
-      };
+      });
+    }
+    yield* this._yieldRecords(opts, raws);
+  }
+
+  async *_yieldRecords(opts, raws) {
+    const limit =
+      Number.isSafeInteger(opts.limit) && opts.limit > 0
+        ? opts.limit
+        : Infinity;
+    if (!usesExplicitCursor(opts)) {
+      for (const raw of raws.slice(0, limit)) yield raw;
+      return;
+    }
+
+    let cursor = parseCursor(opts.sinceWatermark).cursor;
+    const records = dedupeAndSortRecords(raws);
+    if (cursor.upper === null) {
+      cursor = beginScan(
+        cursor,
+        records.length > 0 ? records[records.length - 1].position : null,
+      );
+    }
+    const candidates =
+      cursor.upper === null
+        ? []
+        : records.filter(
+            ({ position }) =>
+              (cursor.after === null ||
+                comparePositions(position, cursor.after) > 0) &&
+              comparePositions(position, cursor.upper) <= 0,
+          );
+
+    let emitted = 0;
+    for (const { position, raw } of candidates) {
+      if (emitted >= limit) break;
+      cursor = advanceCursor(cursor, position);
+      if (typeof opts.updateWatermark === "function") {
+        opts.updateWatermark(serializeCursor(cursor));
+      }
+      yield raw;
       emitted += 1;
+    }
+    if (emitted === candidates.length && cursor.upper !== null) {
+      cursor = completeScan(cursor);
+    }
+    if (typeof opts.updateWatermark === "function") {
+      opts.updateWatermark(serializeCursor(cursor));
     }
   }
 
@@ -358,6 +455,8 @@ class QQAdapter {
       ? this._deps.dbDriverFactory()
       : require("better-sqlite3-multiple-ciphers");
     const db = new Driver(dbPath, { readonly: true });
+    const raws = [];
+    const fallbackCapturedAt = Date.now();
 
     try {
       // Friends: probe 3 known table names across QQ version drift.
@@ -376,12 +475,12 @@ class QQAdapter {
         ) ||
         [];
       for (const row of friends) {
-        yield {
+        raws.push({
           adapter: NAME,
           kind: KIND_CONTACT,
           originalId: stableOriginalId(KIND_CONTACT, row.uin),
           producer: "qq-pc/android-sqlite",
-          capturedAt: Date.now(),
+          capturedAt: fallbackCapturedAt,
           payload: {
             kind: KIND_CONTACT,
             uin: row.uin != null ? String(row.uin) : null,
@@ -389,7 +488,7 @@ class QQAdapter {
             remark: row.remark || "",
             observationProducer: "qq-pc/android-sqlite",
           },
-        };
+        });
       }
       // Groups
       const groups =
@@ -398,12 +497,12 @@ class QQAdapter {
           "SELECT troopuin AS troop_uin, troopname AS troop_name, membernum AS member_count, troopowneruin AS owner_uin FROM TroopInfoV2 LIMIT 1000",
         ) || [];
       for (const row of groups) {
-        yield {
+        raws.push({
           adapter: NAME,
           kind: KIND_GROUP,
           originalId: stableOriginalId(KIND_GROUP, row.troop_uin),
           producer: "qq-pc/android-sqlite",
-          capturedAt: Date.now(),
+          capturedAt: fallbackCapturedAt,
           payload: {
             kind: KIND_GROUP,
             troopUin: row.troop_uin != null ? String(row.troop_uin) : null,
@@ -412,7 +511,7 @@ class QQAdapter {
             ownerUin: row.owner_uin != null ? String(row.owner_uin) : null,
             observationProducer: "qq-pc/android-sqlite",
           },
-        };
+        });
       }
       // Messages: discover mr_friend_*_New and mr_troop_*_New tables, then
       // walk each in DESC-time order. Per sjqz qq.py the table-name format
@@ -428,11 +527,11 @@ class QQAdapter {
         const msgs =
           trySelect(
             db,
-            `SELECT msgId, msgtype, senderuin, time, msgData, issend, frienduin, troopuin FROM ${t.name} ORDER BY time DESC LIMIT 1000`,
+            `SELECT CAST(msgId AS TEXT) AS msgId, msgtype, senderuin, time, msgData, issend, frienduin, troopuin FROM ${t.name} ORDER BY time DESC LIMIT 1000`,
           ) || [];
         for (const row of msgs) {
           const decrypted = xorDecrypt(row.msgData, imeiBytes);
-          yield {
+          raws.push({
             adapter: NAME,
             kind: KIND_MESSAGE,
             originalId: stableOriginalId(KIND_MESSAGE, row.msgId),
@@ -456,7 +555,7 @@ class QQAdapter {
               _table: t.name,
               observationProducer: "qq-pc/android-sqlite",
             },
-          };
+          });
         }
       }
     } finally {
@@ -466,6 +565,7 @@ class QQAdapter {
         /* ignore */
       }
     }
+    yield* this._yieldRecords(opts, raws);
   }
 
   buildResolvedIngestOptions({ rawBatch, scope }) {

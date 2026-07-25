@@ -37,6 +37,7 @@ describe("QQAdapter snapshot mode", () => {
   it("exports SNAPSHOT_SCHEMA_VERSION = 1 + 3 VALID_SNAPSHOT_KINDS", () => {
     expect(SNAPSHOT_SCHEMA_VERSION).toBe(1);
     expect(VALID_SNAPSHOT_KINDS).toEqual(["contact", "group", "message"]);
+    expect(new QQAdapter().watermarkStrategy).toBe("explicit");
   });
 
   it("authenticate(inputPath) ok when readable", async () => {
