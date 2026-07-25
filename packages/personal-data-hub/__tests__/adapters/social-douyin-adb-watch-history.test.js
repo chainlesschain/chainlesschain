@@ -32,7 +32,11 @@ function makeFakeDb(tablesToRows) {
             return Object.keys(tablesToRows).map((name) => ({ name }));
           }
           const tm = /FROM "([^"]+)"/.exec(sql);
-          if (tm && /table_info/.test(sql) === false && /COUNT/.test(sql) === false) {
+          if (
+            tm &&
+            /table_info/.test(sql) === false &&
+            /COUNT/.test(sql) === false
+          ) {
             return tablesToRows[tm[1]] || [];
           }
           if (/table_info/.test(sql)) {
@@ -46,7 +50,8 @@ function makeFakeDb(tablesToRows) {
         },
         get: () => {
           const tm = /FROM "([^"]+)"/.exec(sql);
-          if (/COUNT/.test(sql) && tm) return { c: (tablesToRows[tm[1]] || []).length };
+          if (/COUNT/.test(sql) && tm)
+            return { c: (tablesToRows[tm[1]] || []).length };
           return undefined;
         },
       };
@@ -56,12 +61,51 @@ function makeFakeDb(tablesToRows) {
 }
 
 describe("readDouyinWatchHistory", () => {
+  it("does not truncate records at the former 5000-row default", () => {
+    const rows = Array.from({ length: 5001 }, (_, index) => ({
+      aid: `all-${index}`,
+      view_time_timestamp: 1717800000 + index,
+      enter_from: "homepage_hot",
+    }));
+    const Db = makeFakeDb({ record_0: rows });
+    const result = _internals.readDouyinWatchHistory("x.db", {
+      _databaseClass: Db,
+    });
+    expect(result.records).toHaveLength(5001);
+  });
+
+  it("keeps an explicit positive limit", () => {
+    const Db = makeFakeDb({
+      record_0: [
+        { aid: "a1", view_time_timestamp: 1717800001 },
+        { aid: "a2", view_time_timestamp: 1717800002 },
+        { aid: "a3", view_time_timestamp: 1717800003 },
+      ],
+    });
+    const result = _internals.readDouyinWatchHistory("x.db", {
+      _databaseClass: Db,
+      limit: 2,
+    });
+    expect(result.records.map((record) => record.awemeId)).toEqual([
+      "a3",
+      "a2",
+    ]);
+  });
+
   it("merges record_0 + record_<uid>, attributes uid to the largest uid table, parses rows → ms", () => {
     const Db = makeFakeDb({
       record_0: [{ aid: "xrec0", view_time_timestamp: 1, enter_from: "a" }],
       record_92585448288: [
-        { aid: "7480000000000000001", view_time_timestamp: 1717800000, enter_from: "homepage_hot" },
-        { aid: "7480000000000000002", view_time_timestamp: 1717800600, enter_from: "homepage_follow" },
+        {
+          aid: "7480000000000000001",
+          view_time_timestamp: 1717800000,
+          enter_from: "homepage_hot",
+        },
+        {
+          aid: "7480000000000000002",
+          view_time_timestamp: 1717800600,
+          enter_from: "homepage_follow",
+        },
       ],
     });
     const r = _internals.readDouyinWatchHistory("x.db", { _databaseClass: Db });
@@ -77,14 +121,26 @@ describe("readDouyinWatchHistory", () => {
     const ids = r.records.map((x) => x.awemeId);
     expect(ids).toContain("xrec0"); // the formerly-lost record_0 row
     const rec0 = r.records.find((x) => x.awemeId === "xrec0");
-    expect(rec0).toEqual({ awemeId: "xrec0", capturedAt: 1000, enterFrom: "a" });
+    expect(rec0).toEqual({
+      awemeId: "xrec0",
+      capturedAt: 1000,
+      enterFrom: "a",
+    });
   });
 
   it("recovers history from record_0 alone (uid:null) — the bulk-in-record_0 device case", () => {
     const Db = makeFakeDb({
       record_0: [
-        { aid: "a1", view_time_timestamp: 1717800000, enter_from: "homepage_hot" },
-        { aid: "a2", view_time_timestamp: 1717800600, enter_from: "homepage_hot" },
+        {
+          aid: "a1",
+          view_time_timestamp: 1717800000,
+          enter_from: "homepage_hot",
+        },
+        {
+          aid: "a2",
+          view_time_timestamp: 1717800600,
+          enter_from: "homepage_hot",
+        },
       ],
     });
     const r = _internals.readDouyinWatchHistory("x.db", { _databaseClass: Db });
@@ -95,8 +151,20 @@ describe("readDouyinWatchHistory", () => {
 
   it("dedups the same (aid, timestamp) appearing in two record_* tables", () => {
     const Db = makeFakeDb({
-      record_0: [{ aid: "dup", view_time_timestamp: 1717800000, enter_from: "homepage_hot" }],
-      record_111: [{ aid: "dup", view_time_timestamp: 1717800000, enter_from: "homepage_hot" }],
+      record_0: [
+        {
+          aid: "dup",
+          view_time_timestamp: 1717800000,
+          enter_from: "homepage_hot",
+        },
+      ],
+      record_111: [
+        {
+          aid: "dup",
+          view_time_timestamp: 1717800000,
+          enter_from: "homepage_hot",
+        },
+      ],
     });
     const r = _internals.readDouyinWatchHistory("x.db", { _databaseClass: Db });
     expect(r.records).toHaveLength(1);
@@ -130,30 +198,39 @@ describe("pullVideoRecordDbViaSu — diagnosis", () => {
   });
 
   it("missing db + installed → DOUYIN_VIDEO_RECORD_MISSING", async () => {
-    const adb = makeAdb({ ls: "NOT_FOUND\r\n", pm: "package:com.ss.android.ugc.aweme\r\n" });
-    await expect(_internals.pullVideoRecordDbViaSu(adb, "s", {})).rejects.toThrow(
-      /DOUYIN_VIDEO_RECORD_MISSING/,
-    );
+    const adb = makeAdb({
+      ls: "NOT_FOUND\r\n",
+      pm: "package:com.ss.android.ugc.aweme\r\n",
+    });
+    await expect(
+      _internals.pullVideoRecordDbViaSu(adb, "s", {}),
+    ).rejects.toThrow(/DOUYIN_VIDEO_RECORD_MISSING/);
   });
 
   it("missing db + not installed → DOUYIN_NOT_INSTALLED", async () => {
     const adb = makeAdb({ ls: "NOT_FOUND\r\n", pm: "" });
-    await expect(_internals.pullVideoRecordDbViaSu(adb, "s", {})).rejects.toThrow(
-      /DOUYIN_NOT_INSTALLED/,
-    );
+    await expect(
+      _internals.pullVideoRecordDbViaSu(adb, "s", {}),
+    ).rejects.toThrow(/DOUYIN_NOT_INSTALLED/);
   });
 
   it("non-root → DOUYIN_NO_ROOT", async () => {
     const adb = makeAdb({ ls: VIDEO_RECORD_DB_REMOTE_PATH, id: "2000\r\n" });
-    await expect(_internals.pullVideoRecordDbViaSu(adb, "s", {})).rejects.toThrow(/DOUYIN_NO_ROOT/);
+    await expect(
+      _internals.pullVideoRecordDbViaSu(adb, "s", {}),
+    ).rejects.toThrow(/DOUYIN_NO_ROOT/);
   });
 
   it("non-sqlite payload → DOUYIN_VIDEO_RECORD_NOT_SQLITE", async () => {
     const buf = Buffer.alloc(2048, 0x41);
-    const adb = makeAdb({ ls: VIDEO_RECORD_DB_REMOTE_PATH, id: "uid=0(root)", b64: buf.toString("base64") });
-    await expect(_internals.pullVideoRecordDbViaSu(adb, "s", {})).rejects.toThrow(
-      /DOUYIN_VIDEO_RECORD_NOT_SQLITE/,
-    );
+    const adb = makeAdb({
+      ls: VIDEO_RECORD_DB_REMOTE_PATH,
+      id: "uid=0(root)",
+      b64: buf.toString("base64"),
+    });
+    await expect(
+      _internals.pullVideoRecordDbViaSu(adb, "s", {}),
+    ).rejects.toThrow(/DOUYIN_VIDEO_RECORD_NOT_SQLITE/);
   });
 });
 
@@ -168,15 +245,26 @@ describe("collectWatchHistory → social-douyin history events", () => {
           return {
             uid: "92585448288",
             records: [
-              { awemeId: "7480000000000000001", capturedAt: 1717800000000, enterFrom: "homepage_hot" },
-              { awemeId: "7480000000000000002", capturedAt: 1717800600000, enterFrom: "homepage_follow" },
+              {
+                awemeId: "7480000000000000001",
+                capturedAt: 1717800000000,
+                enterFrom: "homepage_hot",
+              },
+              {
+                awemeId: "7480000000000000002",
+                capturedAt: 1717800600000,
+                enterFrom: "homepage_follow",
+              },
             ],
           };
         }
         throw new Error("unknown " + m);
       }),
     };
-    const r = await collectWatchHistory(bridge, { stagingDir: os.tmpdir(), now: () => 1717900000000 });
+    const r = await collectWatchHistory(bridge, {
+      stagingDir: os.tmpdir(),
+      now: () => 1717900000000,
+    });
     expect(r.uid).toBe("92585448288");
     expect(r.eventCounts.history).toBe(2);
     // The written snapshot ingests through the real adapter normalize.
@@ -201,15 +289,41 @@ describe("collectWatchHistory → social-douyin history events", () => {
     }
   });
 
+  it("requests the full bridge history by default and preserves explicit limits", async () => {
+    const fs = require("node:fs");
+    const bridge = {
+      invoke: vi.fn(async () => ({ uid: "1", records: [] })),
+    };
+    const first = await collectWatchHistory(bridge, {});
+    const second = await collectWatchHistory(bridge, { limit: 123 });
+    try {
+      expect(bridge.invoke).toHaveBeenNthCalledWith(
+        1,
+        "douyin.watch-history",
+        {},
+      );
+      expect(bridge.invoke).toHaveBeenNthCalledWith(2, "douyin.watch-history", {
+        limit: 123,
+      });
+    } finally {
+      fs.unlinkSync(first.snapshotPath);
+      fs.unlinkSync(second.snapshotPath);
+    }
+  });
+
   it("throws on malformed bridge payload (no records array)", async () => {
     const bridge = { invoke: vi.fn(async () => ({ uid: "1" })) };
-    await expect(collectWatchHistory(bridge, {})).rejects.toThrow(/malformed payload/);
+    await expect(collectWatchHistory(bridge, {})).rejects.toThrow(
+      /malformed payload/,
+    );
   });
 });
 
 describe("createDouyinWatchExtension contract", () => {
   it("rejects when ctx lacks {adb, pickDevice}", async () => {
-    await expect(createDouyinWatchExtension()({}, {})).rejects.toThrow(/ctx must provide/);
+    await expect(createDouyinWatchExtension()({}, {})).rejects.toThrow(
+      /ctx must provide/,
+    );
   });
 });
 
@@ -227,21 +341,48 @@ describe("watchHistoryToVault — real sqlite + real vault", () => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), "dy-watch-"));
     dbPath = path.join(dir, "video_record.db");
     const db = new Database(dbPath);
-    db.exec("CREATE TABLE record_0 (aid TEXT, view_time_timestamp INTEGER, enter_from TEXT)");
-    db.exec("CREATE TABLE record_92585448288 (aid TEXT, view_time_timestamp INTEGER, enter_from TEXT)");
-    db.prepare("INSERT INTO record_0 VALUES (?,?,?)").run("7644480728574545765", 1781706182375, "homepage_hot");
-    db.prepare("INSERT INTO record_92585448288 VALUES (?,?,?)").run("7480000000000000002", 1717800600000, "others_homepage");
+    db.exec(
+      "CREATE TABLE record_0 (aid TEXT, view_time_timestamp INTEGER, enter_from TEXT)",
+    );
+    db.exec(
+      "CREATE TABLE record_92585448288 (aid TEXT, view_time_timestamp INTEGER, enter_from TEXT)",
+    );
+    db.prepare("INSERT INTO record_0 VALUES (?,?,?)").run(
+      "7644480728574545765",
+      1781706182375,
+      "homepage_hot",
+    );
+    db.prepare("INSERT INTO record_92585448288 VALUES (?,?,?)").run(
+      "7480000000000000002",
+      1717800600000,
+      "others_homepage",
+    );
     db.close();
 
     vdir = fs.mkdtempSync(path.join(os.tmpdir(), "dy-watch-vault-"));
-    vault = new LocalVault({ path: path.join(vdir, "v.db"), key: generateKeyHex() });
+    vault = new LocalVault({
+      path: path.join(vdir, "v.db"),
+      key: generateKeyHex(),
+    });
     vault.open();
   });
 
   afterAll(() => {
-    try { vault.close(); } catch (_e) { /* best-effort */ }
-    try { fs.rmSync(dir, { recursive: true, force: true }); } catch (_e) { /* best-effort */ }
-    try { fs.rmSync(vdir, { recursive: true, force: true }); } catch (_e) { /* best-effort */ }
+    try {
+      vault.close();
+    } catch {
+      /* best-effort */
+    }
+    try {
+      fs.rmSync(dir, { recursive: true, force: true });
+    } catch {
+      /* best-effort */
+    }
+    try {
+      fs.rmSync(vdir, { recursive: true, force: true });
+    } catch {
+      /* best-effort */
+    }
   });
 
   it("merges record_0 + uid table and ingests canonical BROWSE events", () => {
@@ -254,7 +395,9 @@ describe("watchHistoryToVault — real sqlite + real vault", () => {
       (e) => e.subtype === "browse" && e.source.adapter === "social-douyin",
     );
     expect(browse.length).toBe(2);
-    expect(browse.some((e) => e.extra.awemeId === "7644480728574545765")).toBe(true);
+    expect(browse.some((e) => e.extra.awemeId === "7644480728574545765")).toBe(
+      true,
+    );
     expect(browse.some((e) => e.extra.enterFrom === "homepage_hot")).toBe(true);
   });
 

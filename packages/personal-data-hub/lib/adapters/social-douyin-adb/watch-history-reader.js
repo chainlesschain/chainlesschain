@@ -45,7 +45,12 @@ function toEpochMs(v) {
 async function pullVideoRecordDbViaSu(adb, serial, opts = {}) {
   const adbOpts = { serial, timeoutMs: opts.timeoutMs || 60_000 };
   const lsOut = await adb(
-    ["shell", "su", "-c", `ls ${VIDEO_RECORD_DB_REMOTE_PATH} 2>/dev/null || echo NOT_FOUND`],
+    [
+      "shell",
+      "su",
+      "-c",
+      `ls ${VIDEO_RECORD_DB_REMOTE_PATH} 2>/dev/null || echo NOT_FOUND`,
+    ],
     adbOpts,
   );
   const lsLine = lsOut.replace(/\r+$/gm, "").trim();
@@ -54,35 +59,58 @@ async function pullVideoRecordDbViaSu(adb, serial, opts = {}) {
       ["shell", "su", "-c", `pm list packages ${DOUYIN_PACKAGE}`],
       adbOpts,
     );
-    const installed = pmOut.replace(/\r/g, "").includes(`package:${DOUYIN_PACKAGE}`);
+    const installed = pmOut
+      .replace(/\r/g, "")
+      .includes(`package:${DOUYIN_PACKAGE}`);
     throw new Error(
       installed
         ? "DOUYIN_VIDEO_RECORD_MISSING: 抖音已安装但无 video_record.db（未观看过视频？）— " +
-          VIDEO_RECORD_DB_REMOTE_PATH +
-          " 不存在。"
-        : "DOUYIN_NOT_INSTALLED: " + VIDEO_RECORD_DB_REMOTE_PATH + " not found and package not installed.",
+            VIDEO_RECORD_DB_REMOTE_PATH +
+            " 不存在。"
+        : "DOUYIN_NOT_INSTALLED: " +
+            VIDEO_RECORD_DB_REMOTE_PATH +
+            " not found and package not installed.",
     );
   }
   const idOut = await adb(["shell", "su", "-c", "id -u"], adbOpts);
   const idLine = idOut.replace(/\r+$/gm, "").trim();
   if (idLine !== "0" && !idLine.includes("uid=0")) {
     throw new Error(
-      "DOUYIN_NO_ROOT: su not uid 0 (`" + idLine.substring(0, 60) + "`); root required to read video_record.db.",
+      "DOUYIN_NO_ROOT: su not uid 0 (`" +
+        idLine.substring(0, 60) +
+        "`); root required to read video_record.db.",
     );
   }
   const b64 = await adb(
-    ["shell", "su", "-c", `base64 ${VIDEO_RECORD_DB_REMOTE_PATH} | tr -d '\\n\\r'`],
+    [
+      "shell",
+      "su",
+      "-c",
+      `base64 ${VIDEO_RECORD_DB_REMOTE_PATH} | tr -d '\\n\\r'`,
+    ],
     { ...adbOpts, timeoutMs: opts.timeoutMs || 60_000 },
   );
   const b64Clean = b64.replace(/[\r\n\t ]+/g, "");
   if (b64Clean.length === 0) {
-    throw new Error("DOUYIN_VIDEO_RECORD_EMPTY: base64 stream returned 0 bytes (su may have silently failed on MIUI).");
+    throw new Error(
+      "DOUYIN_VIDEO_RECORD_EMPTY: base64 stream returned 0 bytes (su may have silently failed on MIUI).",
+    );
   }
   const buf = Buffer.from(b64Clean, "base64");
-  if (buf.length < 1024 || !buf.subarray(0, 15).toString("latin1").startsWith("SQLite format 3")) {
-    throw new Error("DOUYIN_VIDEO_RECORD_NOT_SQLITE: decoded file lacks `SQLite format 3` magic (" + buf.length + " bytes).");
+  if (
+    buf.length < 1024 ||
+    !buf.subarray(0, 15).toString("latin1").startsWith("SQLite format 3")
+  ) {
+    throw new Error(
+      "DOUYIN_VIDEO_RECORD_NOT_SQLITE: decoded file lacks `SQLite format 3` magic (" +
+        buf.length +
+        " bytes).",
+    );
   }
-  const tmpFile = path.join(os.tmpdir(), `cc-douyin-vrec-${crypto.randomUUID()}.db`);
+  const tmpFile = path.join(
+    os.tmpdir(),
+    `cc-douyin-vrec-${crypto.randomUUID()}.db`,
+  );
   fs.writeFileSync(tmpFile, buf);
   return tmpFile;
 }
@@ -106,11 +134,14 @@ async function pullVideoRecordDbViaSu(adb, serial, opts = {}) {
  */
 function readDouyinWatchHistory(dbPath, opts = {}) {
   const Database = opts._databaseClass || loadDatabaseClass();
-  const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 5000;
+  const limit =
+    Number.isSafeInteger(opts.limit) && opts.limit > 0 ? opts.limit : null;
   const db = new Database(dbPath, { readonly: true });
   try {
     const tables = db
-      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'record\\_%' ESCAPE '\\'")
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'record\\_%' ESCAPE '\\'",
+      )
       .all()
       .map((t) => t.name)
       .filter((name) => /^record_\d+$/.test(name));
@@ -123,14 +154,17 @@ function readDouyinWatchHistory(dbPath, opts = {}) {
       let count = 0;
       try {
         count = db.prepare(`SELECT COUNT(*) c FROM "${name}"`).get().c;
-      } catch (_e) {
+      } catch {
         continue;
       }
       if (m && m[1] !== "0" && (!bestUid || count > bestUid.count)) {
         bestUid = { uid: m[1], count };
       }
       const cols = new Set(
-        db.prepare(`PRAGMA table_info("${name}")`).all().map((c) => c.name),
+        db
+          .prepare(`PRAGMA table_info("${name}")`)
+          .all()
+          .map((c) => c.name),
       );
       const hasEnter = cols.has("enter_from");
       const hasTs = cols.has("view_time_timestamp");
@@ -139,10 +173,11 @@ function readDouyinWatchHistory(dbPath, opts = {}) {
         rows = db
           .prepare(
             `SELECT aid${hasTs ? ", view_time_timestamp" : ""}${hasEnter ? ", enter_from" : ""} ` +
-              `FROM "${name}"${hasTs ? " ORDER BY view_time_timestamp DESC" : ""} LIMIT ${limit}`,
+              `FROM "${name}"${hasTs ? " ORDER BY view_time_timestamp DESC" : ""}` +
+              (limit === null ? "" : ` LIMIT ${limit}`),
           )
           .all();
-      } catch (_e) {
+      } catch {
         continue;
       }
       for (const r of rows) {
@@ -159,14 +194,15 @@ function readDouyinWatchHistory(dbPath, opts = {}) {
       }
     }
     // Most-recent first (null timestamps sink to the end), then cap.
-    const records = Array.from(merged.values())
-      .sort((a, b) => (b.capturedAt || 0) - (a.capturedAt || 0))
-      .slice(0, limit);
+    const records = Array.from(merged.values()).sort(
+      (a, b) => (b.capturedAt || 0) - (a.capturedAt || 0),
+    );
+    if (limit !== null && records.length > limit) records.length = limit;
     return { uid: bestUid ? bestUid.uid : null, records };
   } finally {
     try {
       db.close();
-    } catch (_e) {
+    } catch {
       /* best-effort */
     }
   }
@@ -224,8 +260,14 @@ function createDouyinWatchExtension(factoryOpts = {}) {
   const timeoutMs = factoryOpts.timeoutMs || 60_000;
   const onCleanupFailed = factoryOpts.onCleanupFailed || (() => {});
   return async function douyinWatchHandler(params, ctx) {
-    if (!ctx || typeof ctx.adb !== "function" || typeof ctx.pickDevice !== "function") {
-      throw new TypeError("douyin.watch-history extension: ctx must provide {adb, pickDevice}");
+    if (
+      !ctx ||
+      typeof ctx.adb !== "function" ||
+      typeof ctx.pickDevice !== "function"
+    ) {
+      throw new TypeError(
+        "douyin.watch-history extension: ctx must provide {adb, pickDevice}",
+      );
     }
     const serial = await ctx.pickDevice();
     let tmpFile = null;
@@ -239,7 +281,7 @@ function createDouyinWatchExtension(factoryOpts = {}) {
       if (tmpFile) {
         try {
           fs.unlinkSync(tmpFile);
-        } catch (_e) {
+        } catch {
           onCleanupFailed(tmpFile);
         }
       }

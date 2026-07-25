@@ -40,7 +40,7 @@ function safeParse(s) {
   if (typeof s !== "string" || s.length < 2) return null;
   try {
     return JSON.parse(s);
-  } catch (_e) {
+  } catch {
     return null;
   }
 }
@@ -51,7 +51,8 @@ function extractTitle(row) {
   let title = si && (si.title || si.share_title);
   if (!title) {
     const ej = safeParse(row.ext_json);
-    title = ej && (ej.title || ej.share_title || (ej.article && ej.article.title));
+    title =
+      ej && (ej.title || ej.share_title || (ej.article && ej.article.title));
   }
   if (typeof title !== "string" || !title.trim()) return null;
   return title.replace(TITLE_SUFFIX, "").trim();
@@ -85,7 +86,8 @@ function extractCategory(row) {
  */
 function readToutiaoArticles(dbPath, opts = {}) {
   const Database = opts._databaseClass || loadDatabaseClass();
-  const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 5000;
+  const limit =
+    Number.isSafeInteger(opts.limit) && opts.limit > 0 ? opts.limit : null;
   const db = new Database(dbPath, { readonly: true });
   try {
     const exists = db
@@ -94,19 +96,27 @@ function readToutiaoArticles(dbPath, opts = {}) {
     if (!exists) return { articles: [] };
 
     const cols = new Set(
-      db.prepare(`PRAGMA table_info("${ARTICLE_TABLE}")`).all().map((c) => c.name),
+      db
+        .prepare(`PRAGMA table_info("${ARTICLE_TABLE}")`)
+        .all()
+        .map((c) => c.name),
     );
     const hasBehot = cols.has("behot_time");
     const rows = db
       .prepare(
-        `SELECT * FROM "${ARTICLE_TABLE}"${hasBehot ? " ORDER BY behot_time DESC" : ""} LIMIT ${limit}`,
+        `SELECT * FROM "${ARTICLE_TABLE}"${hasBehot ? " ORDER BY behot_time DESC" : ""}` +
+          (limit === null ? "" : ` LIMIT ${limit}`),
       )
       .all();
 
     const articles = [];
     for (const r of rows) {
       const groupId =
-        r.group_id != null ? String(r.group_id) : r.item_id != null ? String(r.item_id) : null;
+        r.group_id != null
+          ? String(r.group_id)
+          : r.item_id != null
+            ? String(r.item_id)
+            : null;
       if (!groupId) continue;
       const title = extractTitle(r);
       if (!title) continue; // untitled cache rows carry no signal
@@ -116,7 +126,9 @@ function readToutiaoArticles(dbPath, opts = {}) {
         url: extractUrl(r),
         category: extractCategory(r),
         behotTime: hasBehot ? toEpochMs(r.behot_time) : null,
-        readTimestamp: cols.has("read_timestamp") ? toEpochMs(r.read_timestamp) : null,
+        readTimestamp: cols.has("read_timestamp")
+          ? toEpochMs(r.read_timestamp)
+          : null,
         digg: cols.has("is_user_digg") ? !!r.is_user_digg : false,
         repin: cols.has("is_user_repin") ? !!r.is_user_repin : false,
       });
@@ -125,7 +137,7 @@ function readToutiaoArticles(dbPath, opts = {}) {
   } finally {
     try {
       db.close();
-    } catch (_e) {
+    } catch {
       /* best-effort */
     }
   }
@@ -195,7 +207,9 @@ function articlesToVault(vault, dbPath, opts = {}) {
     ingested: res.events || 0,
     articles: articles.length,
     digg: articles.filter((a) => a.digg).length,
-    read: articles.filter((a) => Number.isFinite(a.readTimestamp) && a.readTimestamp > 0).length,
+    read: articles.filter(
+      (a) => Number.isFinite(a.readTimestamp) && a.readTimestamp > 0,
+    ).length,
   };
 }
 

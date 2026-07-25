@@ -104,7 +104,7 @@ async function collect(bridge, opts = {}) {
     if (typeof cleanupDbCohort === "function") {
       try {
         cleanupDbCohort();
-      } catch (_e) {
+      } catch {
         // best-effort
       }
     }
@@ -138,14 +138,14 @@ async function collectAndSync(bridge, registry, opts = {}) {
   } finally {
     try {
       cleanupSnapshotJson(collectResult.snapshotPath);
-    } catch (_e) {
+    } catch {
       cleanupFailed = true;
     }
     // Always cleanup the pulled db cohort.
     if (typeof collectResult._dbCohortCleanup === "function") {
       try {
         collectResult._dbCohortCleanup();
-      } catch (_e) {
+      } catch {
         cleanupFailed = true;
       }
     }
@@ -185,7 +185,9 @@ async function collectAndSync(bridge, registry, opts = {}) {
  */
 function salvageDumpToSnapshot(dumpPath, opts = {}) {
   if (typeof dumpPath !== "string" || dumpPath.length === 0) {
-    throw new TypeError("salvageDumpToSnapshot: dumpPath must be a non-empty string");
+    throw new TypeError(
+      "salvageDumpToSnapshot: dumpPath must be a non-empty string",
+    );
   }
   const now = opts.now || Date.now;
   const { records, pages } = salvageFile(dumpPath, {
@@ -196,11 +198,13 @@ function salvageDumpToSnapshot(dumpPath, opts = {}) {
   });
   // Leaf pages carry no column names — use the caller's explicit order when
   // known (most accurate), else heuristically infer content/created_time.
-  const columns = Array.isArray(opts.columns) && opts.columns.length
-    ? opts.columns
-    : inferMsgColumns(records);
+  const columns =
+    Array.isArray(opts.columns) && opts.columns.length
+      ? opts.columns
+      : inferMsgColumns(records);
   const messages = mapMsgRecords(records, columns);
-  const uid = typeof opts.uid === "string" && opts.uid.length ? opts.uid : "salvage";
+  const uid =
+    typeof opts.uid === "string" && opts.uid.length ? opts.uid : "salvage";
   const snapshot = buildSnapshot({
     uid,
     displayName: opts.displayName,
@@ -241,7 +245,7 @@ async function salvageAndSync(registry, dumpPath, opts = {}) {
   } finally {
     try {
       cleanupSnapshotJson(res.snapshotPath);
-    } catch (_e) {
+    } catch {
       cleanupFailed = true;
     }
   }
@@ -271,8 +275,11 @@ async function collectWatchHistory(bridge, opts = {}) {
     );
   }
   const now = opts.now || Date.now;
-  const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 2000;
-  const res = await bridge.invoke("douyin.watch-history", { limit });
+  const params = {};
+  if (Number.isSafeInteger(opts.limit) && opts.limit > 0) {
+    params.limit = opts.limit;
+  }
+  const res = await bridge.invoke("douyin.watch-history", params);
   if (!res || !Array.isArray(res.records)) {
     throw new Error(
       "DouyinAdbCollector.collectWatchHistory: bridge.invoke('douyin.watch-history') returned malformed payload",
@@ -305,7 +312,12 @@ async function collectWatchHistory(bridge, opts = {}) {
     // Resolve most-recent first (events come back DESC by view time).
     const titles = await client.resolveMany(
       events.map((e) => e.awemeId),
-      { limit: Number.isInteger(opts.titleLimit) && opts.titleLimit > 0 ? opts.titleLimit : 60 },
+      {
+        limit:
+          Number.isInteger(opts.titleLimit) && opts.titleLimit > 0
+            ? opts.titleLimit
+            : 60,
+      },
     );
     for (const e of events) {
       const t = titles.get(e.awemeId);
@@ -353,7 +365,7 @@ async function collectWatchHistoryAndSync(bridge, registry, opts = {}) {
   } finally {
     try {
       cleanupSnapshotJson(collectResult.snapshotPath);
-    } catch (_e) {
+    } catch {
       cleanupFailed = true;
     }
   }

@@ -26,16 +26,29 @@ const {
   _internals,
 } = require("../../lib/adapters/social-toutiao-adb/article-reader");
 
-function makeFakeDb(rows, { table = ARTICLE_TABLE } = {}) {
+function makeFakeDb(rows, { table = ARTICLE_TABLE, queries = [] } = {}) {
   const cols = [
-    "group_id", "item_id", "share_info", "ext_json", "share_url",
-    "behot_time", "read_timestamp", "is_user_digg", "is_user_repin",
+    "group_id",
+    "item_id",
+    "share_info",
+    "ext_json",
+    "share_url",
+    "behot_time",
+    "read_timestamp",
+    "is_user_digg",
+    "is_user_repin",
   ];
   return class FakeDb {
     constructor() {}
     prepare(sql) {
+      queries.push(sql);
       return {
-        get: (arg) => (/sqlite_master/.test(sql) ? (arg === table ? { name: table } : undefined) : undefined),
+        get: (arg) =>
+          /sqlite_master/.test(sql)
+            ? arg === table
+              ? { name: table }
+              : undefined
+            : undefined,
         all: () => {
           if (/table_info/.test(sql)) return cols.map((name) => ({ name }));
           if (/FROM "/.test(sql)) return rows;
@@ -48,11 +61,44 @@ function makeFakeDb(rows, { table = ARTICLE_TABLE } = {}) {
 }
 
 describe("readToutiaoArticles (injected fake db)", () => {
+  it("does not add the former 5000-row default cap", () => {
+    const queries = [];
+    const rows = Array.from({ length: 5001 }, (_, index) => ({
+      group_id: index + 1,
+      share_info: JSON.stringify({ title: `article-${index + 1}` }),
+      behot_time: 1781700000 + index,
+    }));
+    const Db = makeFakeDb(rows, { queries });
+    const { articles } = readToutiaoArticles("x.db", {
+      _databaseClass: Db,
+    });
+    expect(articles).toHaveLength(5001);
+    expect(
+      queries.find((sql) => /SELECT \* FROM "article"/u.test(sql)),
+    ).not.toMatch(/\bLIMIT\b/u);
+  });
+
+  it("keeps an explicit positive SQL limit", () => {
+    const queries = [];
+    const Db = makeFakeDb([], { queries });
+    readToutiaoArticles("x.db", { _databaseClass: Db, limit: 17 });
+    expect(
+      queries.find((sql) => /SELECT \* FROM "article"/u.test(sql)),
+    ).toMatch(/\bLIMIT 17$/u);
+  });
+
   it("parses title from share_info, strips the brand suffix, drops url tracking query", () => {
     const Db = makeFakeDb([
       {
-        group_id: 100, behot_time: 1781700000, read_timestamp: 0, is_user_digg: 1, is_user_repin: 0,
-        share_info: JSON.stringify({ title: "5月汽车出口延续快速增长态势 - 今日头条", share_url: "https://m.toutiao.com/g/100/?app=x&category_new=headline" }),
+        group_id: 100,
+        behot_time: 1781700000,
+        read_timestamp: 0,
+        is_user_digg: 1,
+        is_user_repin: 0,
+        share_info: JSON.stringify({
+          title: "5月汽车出口延续快速增长态势 - 今日头条",
+          share_url: "https://m.toutiao.com/g/100/?app=x&category_new=headline",
+        }),
         share_url: "https://m.toutiao.com/g/100/?category_new=headline",
       },
     ]);
@@ -67,7 +113,11 @@ describe("readToutiaoArticles (injected fake db)", () => {
 
   it("falls back to ext_json.title when share_info has none, and skips untitled rows", () => {
     const Db = makeFakeDb([
-      { group_id: 1, ext_json: JSON.stringify({ title: "来自 ext_json 的标题" }), share_info: "{}" },
+      {
+        group_id: 1,
+        ext_json: JSON.stringify({ title: "来自 ext_json 的标题" }),
+        share_info: "{}",
+      },
       { group_id: 2, share_info: "{}", ext_json: "{}" }, // untitled → dropped
     ]);
     const { articles } = readToutiaoArticles("x.db", { _databaseClass: Db });
@@ -77,12 +127,25 @@ describe("readToutiaoArticles (injected fake db)", () => {
 
   it("returns no articles when the table is absent", () => {
     const Db = makeFakeDb([], { table: "other" });
-    expect(readToutiaoArticles("x.db", { _databaseClass: Db }).articles).toEqual([]);
+    expect(
+      readToutiaoArticles("x.db", { _databaseClass: Db }).articles,
+    ).toEqual([]);
   });
 
   it("buildArticleEvents → BROWSE events, social-toutiao source, stable originalId, read flag", () => {
     const { events } = buildArticleEvents(
-      [{ groupId: "55", title: "标题", url: "u", category: "headline", behotTime: 2, readTimestamp: 1781700000000, digg: true, repin: false }],
+      [
+        {
+          groupId: "55",
+          title: "标题",
+          url: "u",
+          category: "headline",
+          behotTime: 2,
+          readTimestamp: 1781700000000,
+          digg: true,
+          repin: false,
+        },
+      ],
       { now: 1781800000000 },
     );
     expect(events).toHaveLength(1);
@@ -97,8 +160,16 @@ describe("readToutiaoArticles (injected fake db)", () => {
   });
 
   it("extractCategory / extractUrl helpers", () => {
-    expect(_internals.extractCategory({ share_url: "x?a=1&category_new=my_tabs_digg&b=2" })).toBe("my_tabs_digg");
-    expect(_internals.extractUrl({ share_info: JSON.stringify({ share_url: "https://h/g/1/?t=1" }) })).toBe("https://h/g/1/");
+    expect(
+      _internals.extractCategory({
+        share_url: "x?a=1&category_new=my_tabs_digg&b=2",
+      }),
+    ).toBe("my_tabs_digg");
+    expect(
+      _internals.extractUrl({
+        share_info: JSON.stringify({ share_url: "https://h/g/1/?t=1" }),
+      }),
+    ).toBe("https://h/g/1/");
   });
 
   it("extractCategory: malformed percent-sequence falls back to raw (no throw)", () => {
@@ -127,20 +198,57 @@ describe("articlesToVault — real sqlite + real vault", () => {
     const ins = db.prepare(
       "INSERT INTO article (group_id, share_info, share_url, behot_time, read_timestamp, is_user_digg, is_user_repin) VALUES (?,?,?,?,?,?,?)",
     );
-    ins.run(101, JSON.stringify({ title: "新华视点丨三峡水运新通道 - 今日头条", share_url: "https://m.toutiao.com/g/101/?x=1&category_new=headline" }), "https://m.toutiao.com/g/101/?category_new=headline", 1781700000, 0, 0, 0);
-    ins.run(102, JSON.stringify({ title: "5月汽车出口延续快速增长态势 - 今日头条", share_url: "https://m.toutiao.com/g/102/" }), "https://m.toutiao.com/g/102/?category_new=my_tabs_digg", 1781700100, 1781700200, 1, 0);
+    ins.run(
+      101,
+      JSON.stringify({
+        title: "新华视点丨三峡水运新通道 - 今日头条",
+        share_url: "https://m.toutiao.com/g/101/?x=1&category_new=headline",
+      }),
+      "https://m.toutiao.com/g/101/?category_new=headline",
+      1781700000,
+      0,
+      0,
+      0,
+    );
+    ins.run(
+      102,
+      JSON.stringify({
+        title: "5月汽车出口延续快速增长态势 - 今日头条",
+        share_url: "https://m.toutiao.com/g/102/",
+      }),
+      "https://m.toutiao.com/g/102/?category_new=my_tabs_digg",
+      1781700100,
+      1781700200,
+      1,
+      0,
+    );
     ins.run(103, "{}", "https://m.toutiao.com/g/103/", 1781700300, 0, 0, 0); // untitled → not ingested
     db.close();
 
     vdir = fs.mkdtempSync(path.join(os.tmpdir(), "tt-article-vault-"));
-    vault = new LocalVault({ path: path.join(vdir, "v.db"), key: generateKeyHex() });
+    vault = new LocalVault({
+      path: path.join(vdir, "v.db"),
+      key: generateKeyHex(),
+    });
     vault.open();
   });
 
   afterAll(() => {
-    try { vault.close(); } catch (_e) { /* best-effort */ }
-    try { fs.rmSync(dir, { recursive: true, force: true }); } catch (_e) { /* best-effort */ }
-    try { fs.rmSync(vdir, { recursive: true, force: true }); } catch (_e) { /* best-effort */ }
+    try {
+      vault.close();
+    } catch {
+      /* best-effort */
+    }
+    try {
+      fs.rmSync(dir, { recursive: true, force: true });
+    } catch {
+      /* best-effort */
+    }
+    try {
+      fs.rmSync(vdir, { recursive: true, force: true });
+    } catch {
+      /* best-effort */
+    }
   });
 
   it("reads titled articles and ingests valid BROWSE events", () => {
