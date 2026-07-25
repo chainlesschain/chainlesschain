@@ -163,6 +163,32 @@ function resolveSyncRoots(options = {}) {
   return roots;
 }
 
+function applySyncSinceOverride(registry, name, options = {}) {
+  if (!Object.prototype.hasOwnProperty.call(options, "since")) return options;
+  const adapter =
+    registry && typeof registry.get === "function" ? registry.get(name) : null;
+  if (adapter?.watermarkStrategy !== "partitioned") {
+    options.sinceWatermark = options.since;
+    return options;
+  }
+
+  const targetKeys =
+    typeof adapter.targetWatermarkKeys === "function"
+      ? adapter.targetWatermarkKeys(options)
+      : adapter.watermarkStreams;
+  const keys = Array.isArray(targetKeys)
+    ? targetKeys.filter(
+        (key) => typeof key === "string" && key.trim().length > 0,
+      )
+    : [];
+  if (keys.length > 0) {
+    options.sinceWatermarks = Object.fromEntries(
+      keys.map((key) => [key, options.since]),
+    );
+  }
+  return options;
+}
+
 function syncCount(value) {
   return Number.isFinite(value) && value > 0 ? value : 0;
 }
@@ -839,7 +865,10 @@ async function cmdSyncAdapter(name, options) {
   try {
     const hub = await (options._getHub || getHub)();
     const opts = {};
-    if (options.since) opts.since = Number(options.since);
+    if (options.since) {
+      const sinceWatermark = Number(options.since);
+      opts.since = sinceWatermark;
+    }
     if (options.until) opts.until = Number(options.until);
     if (options.limit) opts.limit = Number(options.limit);
     // Plan A v0.1 — system-data-android needs a snapshot file path. Generic
@@ -874,6 +903,8 @@ async function cmdSyncAdapter(name, options) {
     // identity to isolate watermarks without persisting credentials or ids.
     const runtimeAccountId = options.accountId || process.env.CC_PDH_ACCOUNT_ID;
     if (runtimeAccountId) opts.accountId = String(runtimeAccountId);
+    const runtimeSourceUrl = options.sourceUrl || process.env.CC_PDH_SOURCE_URL;
+    if (runtimeSourceUrl) opts.sourceUrl = String(runtimeSourceUrl);
     const runtimeDriveId = options.driveId || process.env.CC_PDH_DRIVE_ID;
     if (runtimeDriveId) opts.driveId = String(runtimeDriveId);
     if (options.parentId) opts.parentId = String(options.parentId);
@@ -930,6 +961,7 @@ async function cmdSyncAdapter(name, options) {
     // The deprecated --roots alias accepts one unambiguous exact path only.
     const roots = resolveSyncRoots(options);
     if (roots.length > 0) opts.roots = roots;
+    applySyncSinceOverride(hub.registry, name, opts);
     const report = await hub.registry.syncAdapter(name, opts);
     const analysis = analyzeSyncReport(report);
     // 2026-05-24 in-APK Android exit + flush-race fix. Real-device repro on
@@ -3595,6 +3627,10 @@ export function registerHubCommand(program) {
       "Stable local platform account identity; stored only as a hashed scope",
     )
     .option(
+      "--source-url <https-url>",
+      "One-shot HTTPS source endpoint for collectors that require an explicitly captured API URL (or set CC_PDH_SOURCE_URL)",
+    )
+    .option(
       "--dir <path>",
       "Baidu Netdisk application directory (required; /apps/{appname} or a subdirectory)",
     )
@@ -4273,6 +4309,7 @@ export const _internal = {
   resolveSyncAppKey,
   collectSyncRoot,
   resolveSyncRoots,
+  applySyncSinceOverride,
   cmdSyncAdapter,
   cmdSyncAll,
   cmdAIChatList,

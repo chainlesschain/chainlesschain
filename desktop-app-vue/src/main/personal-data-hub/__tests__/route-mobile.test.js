@@ -159,12 +159,22 @@ describe("route-mobile DISPATCH table", () => {
   it("sync-adapter forwards name + options", async () => {
     const hub = makeFakeHub();
     await _DISPATCH["sync-adapter"](hub, {
-      name: "email-imap",
-      options: { since: 100 },
+      name: "travel-didi-consumer",
+      options: {
+        cookie: "sid=runtime-secret",
+        accountId: "account-a",
+        sourceUrl:
+          "https://api.xiaojukeji.com/orders?session=runtime-url-secret",
+      },
     });
     expect(hub._calls.syncAdapter).toEqual({
-      name: "email-imap",
-      options: { since: 100 },
+      name: "travel-didi-consumer",
+      options: {
+        cookie: "sid=runtime-secret",
+        accountId: "account-a",
+        sourceUrl:
+          "https://api.xiaojukeji.com/orders?session=runtime-url-secret",
+      },
     });
   });
 

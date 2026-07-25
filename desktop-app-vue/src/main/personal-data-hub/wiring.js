@@ -133,6 +133,7 @@ const {
   TelegramAdapter,
   WhatsAppAdapter,
   createJsonSourceFetch,
+  createJsonResponseSourceFetch,
   AIChatHistoryAdapter,
   EntityResolver,
   EntityResolverEmbeddingStage,
@@ -802,9 +803,33 @@ async function initHub() {
     XianyuAdapter,
     VipshopAdapter,
     Train12306Adapter,
+    CtripAdapter,
+    TongchengAdapter,
+    DidiAdapter,
+    DidiConsumerAdapter,
     ZhihuAdapter,
+    XimalayaAdapter,
+    TianyanchaAdapter,
+    KugouMusicAdapter,
+    QQMusicAdapter,
+    BossZhipinAdapter,
+    DoubanAdapter,
+    CsdnAdapter,
+    DongchediAdapter,
+    IqiyiVideoAdapter,
+    TencentVideoAdapter,
+    XiguaVideoAdapter,
+    CamScannerDocAdapter,
     BaiduNetdiskAdapter,
     WpsDocAdapter,
+  ]);
+  const runtimeCookieHostSuffixes = new Map([
+    [GenshinAdapter, ["api-takumi.mihoyo.com", "api-takumi-record.mihoyo.com"]],
+    [ZuoyebangAdapter, ["www.zuoyebang.com"]],
+    [AlipayAdapter, ["mobilegw.alipay.com"]],
+    [HuaweiLearningAdapter, ["educenter.hicloud.com"]],
+    [NeteaseMusicAdapter, ["music.163.com"]],
+    [WeReadAdapter, ["i.weread.qq.com"]],
   ]);
   const sourceJsonFetch = createJsonSourceFetch();
   for (const Cls of [
@@ -880,9 +905,15 @@ async function initHub() {
       const adapter =
         Cls === WhatsAppAdapter
           ? new Cls({ bridgeProvider: () => desktopAdbBridge })
-          : runtimeSourceAdapterClasses.has(Cls)
-            ? new Cls({ fetchFn: sourceJsonFetch })
-            : new Cls();
+          : runtimeCookieHostSuffixes.has(Cls)
+            ? new Cls({
+                fetch: createJsonResponseSourceFetch({
+                  allowedHostSuffixes: runtimeCookieHostSuffixes.get(Cls),
+                }),
+              })
+            : runtimeSourceAdapterClasses.has(Cls)
+              ? new Cls({ fetchFn: sourceJsonFetch })
+              : new Cls();
       if (!registry.has(adapter.name)) {
         registry.register(adapter);
       }

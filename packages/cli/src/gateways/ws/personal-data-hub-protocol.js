@@ -78,6 +78,25 @@ export const ADB_AUTO_PULL_BYPASS_ADAPTERS = Object.freeze([
 ]);
 
 const ADB_AUTO_PULL_BYPASS_SET = new Set(ADB_AUTO_PULL_BYPASS_ADAPTERS);
+const EXPLICIT_LIVE_SOURCE_OPTION_KEYS = Object.freeze([
+  "cookie",
+  "cookies",
+  "accessToken",
+  "appKey",
+  "apiKey",
+  "token",
+  "sourceUrl",
+]);
+
+export function hasExplicitLiveSourceOptions(options) {
+  if (!options || typeof options !== "object") return false;
+  return EXPLICIT_LIVE_SOURCE_OPTION_KEYS.some((key) => {
+    const value = options[key];
+    if (typeof value === "string") return value.trim().length > 0;
+    if (Array.isArray(value)) return value.length > 0;
+    return value != null && typeof value === "object";
+  });
+}
 
 /**
  * If the caller didn't pass `inputPath`, try to pull a snapshot for
@@ -100,13 +119,20 @@ const ADB_AUTO_PULL_BYPASS_SET = new Set(ADB_AUTO_PULL_BYPASS_ADAPTERS);
  * return the original options unchanged so the adapter's normal error
  * path fires and the UI banner shows a meaningful message.
  */
-async function _tryAdbAutoPullInputPath(hub, name, options) {
+export async function _tryAdbAutoPullInputPath(hub, name, options) {
   if (
     options &&
     typeof options.inputPath === "string" &&
     options.inputPath.length > 0
   ) {
     return options; // caller already supplied a path
+  }
+  // An explicit live credential or endpoint is a stronger user intent than
+  // an implicit, potentially stale Android staging snapshot. Every dual-mode
+  // adapter checks inputPath first, so adding an auto-pulled path here would
+  // silently turn a requested live sync into a snapshot import.
+  if (hasExplicitLiveSourceOptions(options)) {
+    return options;
   }
   // Skip auto-pull for adapters that have a live bridge mode — pulling
   // a stale snapshot file would short-circuit the bridge path which

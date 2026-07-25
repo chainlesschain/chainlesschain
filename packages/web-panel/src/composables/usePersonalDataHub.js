@@ -269,7 +269,7 @@ export function usePersonalDataHub() {
       return await send(
         "personal-data-hub.sync-adapter",
         { name, options },
-        120_000,
+        600_000,
       );
     },
 

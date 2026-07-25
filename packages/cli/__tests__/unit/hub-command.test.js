@@ -137,6 +137,7 @@ describe("cc hub command surface", () => {
         "--app-key",
         "--app-key-file",
         "--account-id",
+        "--source-url",
         "--root",
         "--roots",
         "--dir",
@@ -227,6 +228,38 @@ describe("cc hub command surface", () => {
         roots: "C:\\Documents,C:\\Downloads",
       }),
     ).toThrow(/ambiguous comma-separated values.*--root/u);
+  });
+
+  it("maps --since to scalar or partitioned registry watermark overrides", () => {
+    const scalar = { since: 100 };
+    expect(
+      _internal.applySyncSinceOverride(
+        { get: () => ({ watermarkStrategy: "max-captured-at" }) },
+        "travel-didi",
+        scalar,
+      ),
+    ).toMatchObject({ since: 100, sinceWatermark: 100 });
+
+    const partitioned = {
+      since: 200,
+      include: { history: true, favourite: false },
+    };
+    _internal.applySyncSinceOverride(
+      {
+        get: () => ({
+          watermarkStrategy: "partitioned",
+          targetWatermarkKeys: (options) =>
+            options.include.favourite === false ? ["history"] : [],
+        }),
+      },
+      "audio-ximalaya",
+      partitioned,
+    );
+    expect(partitioned).toEqual({
+      since: 200,
+      include: { history: true, favourite: false },
+      sinceWatermarks: { history: 200 },
+    });
   });
 
   it("resolves transient cookies from direct, environment, or bounded file input", () => {
@@ -618,12 +651,14 @@ describe("cc hub sync report semantics", () => {
     try {
       await _internal.cmdSyncAdapter("wechat", {
         json: true,
+        since: "1716383000000",
         zipPassword: "zip-secret",
         cookie: "sid=runtime-secret",
         accessToken: "oauth-runtime-secret",
         appId: "app-id",
         appKey: "app-key-runtime-secret",
         accountId: "shopping-user",
+        sourceUrl: "https://captured.example/orders?token=url-secret",
         driveId: "drive-id",
         parentId: "parent-id",
         shallow: true,
@@ -682,11 +717,16 @@ describe("cc hub sync report semantics", () => {
     });
     expect(exitCode).toBe(1);
     expect(receivedOptions.zipPassword).toBe("zip-secret");
+    expect(receivedOptions.since).toBe(1716383000000);
+    expect(receivedOptions.sinceWatermark).toBe(1716383000000);
     expect(receivedOptions.cookie).toBe("sid=runtime-secret");
     expect(receivedOptions.accessToken).toBe("oauth-runtime-secret");
     expect(receivedOptions.appId).toBe("app-id");
     expect(receivedOptions.appKey).toBe("app-key-runtime-secret");
     expect(receivedOptions.accountId).toBe("shopping-user");
+    expect(receivedOptions.sourceUrl).toBe(
+      "https://captured.example/orders?token=url-secret",
+    );
     expect(receivedOptions.driveId).toBe("drive-id");
     expect(receivedOptions.parentId).toBe("parent-id");
     expect(receivedOptions.recursive).toBe(false);
@@ -730,6 +770,7 @@ describe("cc hub sync report semantics", () => {
     expect(stdout).not.toContain("zip-secret");
     expect(stdout).not.toContain("runtime-secret");
     expect(stdout).not.toContain("oauth-runtime-secret");
+    expect(stdout).not.toContain("url-secret");
     expect(stdout).not.toContain("app-key-runtime-secret");
     expect(stdout).not.toContain("shopping-user");
   });

@@ -426,21 +426,21 @@ cc ui                # 起本地 web-shell（默认 http://localhost:7331）
 
 无 UI 场景（脚本 / SSH / Plan A 手机内嵌终端）下，**`cc hub <verb>`** 把同一组 IPC/WS 主题直接暴露为 11 个 verb，全部 `--json` 可机读：
 
-| Verb                                                                                                           | 用途                                                                                                                                                                           | 关键 flag                                                                 |
-| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| `ask <question>`                                                                                               | 自然语言问答                                                                                                                                                                   | `--no-use-rag` / `--accept-non-local` / `--json`                          |
-| `stats`                                                                                                        | vault 行数 + adapter list + 路径                                                                                                                                               | `--json`                                                                  |
-| `health`                                                                                                       | vault / llm / kgSink / ragSink 4 件套（彩色 [local]/[remote] 标签）                                                                                                            | `--json`                                                                  |
-| `list-adapters`                                                                                                | 已注册 adapter 列表                                                                                                                                                            | `--json`                                                                  |
-| `sync-adapter <name>`                                                                                          | 触发单 adapter ingest                                                                                                                                                          | `--since` / `--until` / `--limit`                                         |
-| `sync-all`                                                                                                     | 顺序跑全部 adapter                                                                                                                                                             | 同上                                                                      |
-| `query-events`                                                                                                 | 事件查询                                                                                                                                                                       | `--subtype` / `--since` / `--until` / `--actor` / `--adapter` / `--limit` |
-| `recent-audit`                                                                                                 | 审计日志                                                                                                                                                                       | `--since` / `--action` / `--limit`                                        |
-| `register-mock`                                                                                                | 注册 MockAdapter（dev/smoke 用）                                                                                                                                               | `--name` / `--count` / `--seed`                                           |
-| `run-skill <name>`                                                                                             | 5 内置分析 skill（spending/relations/footprint/interests/timeline）                                                                                                            | `--since` / `--until` / `--json`                                          |
-| `aichat list / login <v> / probe <v> --cookies / register <v> --cookies / health / unregister <v>` (v5.0.3.73) | AIChat WebView 鉴权向导 — 列 9 vendor / 拿 loginUrl / 校验 cookie / 注册 / 一次性 health / 注销                                                                                | `--cookies "<paste>"` / `--json`                                          |
-| `wechat env-probe / register --uin --db --wechat-data-path / list / unregister <uin>` (v5.0.3.75)              | WeChat adapter — adb 设备 + frida-server + WeChat 版本探测 / 按 env-probe 自动选 md5\|frida provider 注册 / 列已注册 / 注销；`--force-provider md5\|frida` 旁路 env-probe 建议 | `--json` 全 verb 可机读                                                   |
-| `destroy --confirm`                                                                                            | 销毁 vault.db + WAL（不动 adapter 配置）                                                                                                                                       | `--confirm`（必填，缺即拒）                                               |
+| Verb                                                                                                           | 用途                                                                                                                                                                           | 关键 flag                                                                             |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| `ask <question>`                                                                                               | 自然语言问答                                                                                                                                                                   | `--no-use-rag` / `--accept-non-local` / `--json`                                      |
+| `stats`                                                                                                        | vault 行数 + adapter list + 路径                                                                                                                                               | `--json`                                                                              |
+| `health`                                                                                                       | vault / llm / kgSink / ragSink 4 件套（彩色 [local]/[remote] 标签）                                                                                                            | `--json`                                                                              |
+| `list-adapters`                                                                                                | 已注册 adapter 列表                                                                                                                                                            | `--json`                                                                              |
+| `sync-adapter <name>`                                                                                          | 触发单 adapter ingest；支持单次临时 Cookie 采集，滴滴个人版另需显式官方 HTTPS 数据源                                                                                           | `--input` / `--cookie-file` / `--account-id` / `--source-url` / `--since` / `--limit` |
+| `sync-all`                                                                                                     | 顺序跑全部 adapter                                                                                                                                                             | 同上                                                                                  |
+| `query-events`                                                                                                 | 事件查询                                                                                                                                                                       | `--subtype` / `--since` / `--until` / `--actor` / `--adapter` / `--limit`             |
+| `recent-audit`                                                                                                 | 审计日志                                                                                                                                                                       | `--since` / `--action` / `--limit`                                                    |
+| `register-mock`                                                                                                | 注册 MockAdapter（dev/smoke 用）                                                                                                                                               | `--name` / `--count` / `--seed`                                                       |
+| `run-skill <name>`                                                                                             | 5 内置分析 skill（spending/relations/footprint/interests/timeline）                                                                                                            | `--since` / `--until` / `--json`                                                      |
+| `aichat list / login <v> / probe <v> --cookies / register <v> --cookies / health / unregister <v>` (v5.0.3.73) | AIChat WebView 鉴权向导 — 列 9 vendor / 拿 loginUrl / 校验 cookie / 注册 / 一次性 health / 注销                                                                                | `--cookies "<paste>"` / `--json`                                                      |
+| `wechat env-probe / register --uin --db --wechat-data-path / list / unregister <uin>` (v5.0.3.75)              | WeChat adapter — adb 设备 + frida-server + WeChat 版本探测 / 按 env-probe 自动选 md5\|frida provider 注册 / 列已注册 / 注销；`--force-provider md5\|frida` 旁路 env-probe 建议 | `--json` 全 verb 可机读                                                               |
+| `destroy --confirm`                                                                                            | 销毁 vault.db + WAL（不动 adapter 配置）                                                                                                                                       | `--confirm`（必填，缺即拒）                                                           |
 
 示例：
 
@@ -454,6 +454,27 @@ cc hub health
 
 # 跑分析 skill 拿 JSON 给后续脚本用
 cc hub run-skill analysis.spending --since 1746028800000 --json | jq '.summary.totalSpend'
+
+# 临时 Cookie 直采（同理可用 travel-tongcheng / travel-didi）
+# account-id 只参与本地哈希水位隔离；Cookie 与明文账号标识不会写入 Vault
+cc hub sync-adapter travel-ctrip \
+  --cookie-file ./ctrip.cookie \
+  --account-id my-ctrip-account \
+  --json
+
+# 同一运行时 Cookie 契约也覆盖 game-genshin / edu-zuoyebang /
+# finance-alipay / edu-huawei-learning / netease-music / weread；
+# 默认 CLI 与 Electron 注册会把请求固定到各客户端的官方 API 主机。
+# 分页媒体源使用持久化请求配额；weread 每轮默认处理 25 本、最多 100 本，
+# 并以不含原始书籍 ID 的游标续扫，避免单轮超时或日配额中途失败。
+
+# 滴滴个人版没有内置订单端点：URL 仅本次使用，且只接受 xiaojukeji.com 官方 HTTPS 域
+# 若 URL 含会话签名参数，优先通过 CC_PDH_SOURCE_URL 注入，避免写入命令历史
+cc hub sync-adapter travel-didi-consumer \
+  --cookie-file ./didi.cookie \
+  --account-id my-didi-account \
+  --source-url 'https://api.xiaojukeji.com/captured/orders' \
+  --json
 
 # Plan A — Android 在 app 内嵌终端里直接跑（cc 已 bundle 进 APK）
 $ cc hub ask "上个月跟妈妈消息多少？"

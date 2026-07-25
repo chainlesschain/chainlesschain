@@ -5,7 +5,9 @@ import {
   collectionActionDescription,
   collectionActionLabel,
   collectionButtonLabel,
+  cookieCollectionOptions,
   directoryCollectionOptions,
+  requiresExplicitSourceUrl,
   resolveCollectionMode,
 } from "../../src/utils/pdhCollectionMode.js";
 
@@ -284,6 +286,85 @@ describe("pdhCollectionMode", () => {
         ready: false,
       }),
     ).toBe("setup");
+  });
+
+  it("routes a wired Cookie API through transient login collection", () => {
+    expect(
+      resolveCollectionMode({
+        name: "travel-ctrip",
+        capabilities: ["sync:snapshot", "sync:cookie-api"],
+        ready: false,
+      }),
+    ).toBe("cookie");
+    expect(
+      resolveCollectionMode({
+        name: "unwired-cookie-api",
+        capabilities: ["sync:cookie-api"],
+        ready: false,
+        reason: "CUSTOM_FETCH_REQUIRED",
+      }),
+    ).toBe("setup");
+  });
+
+  it("routes only the explicit Didi consumer custom endpoint through login collection", () => {
+    const didiConsumer = {
+      name: "travel-didi-consumer",
+      capabilities: ["sync:snapshot", "sync:custom-cookie-api"],
+      ready: false,
+    };
+    expect(resolveCollectionMode(didiConsumer)).toBe("cookie");
+    expect(requiresExplicitSourceUrl(didiConsumer)).toBe(true);
+    expect(collectionActionDescription(didiConsumer)).toMatch(
+      /Cookie.*账号.*HTTPS/u,
+    );
+    expect(
+      resolveCollectionMode({
+        name: "custom-api",
+        capabilities: ["sync:snapshot", "sync:custom-cookie-api"],
+        ready: false,
+      }),
+    ).toBe("file");
+  });
+
+  it("builds one-shot cookie options and validates Didi's official HTTPS endpoint", () => {
+    expect(
+      cookieCollectionOptions(
+        { name: "travel-ctrip" },
+        " sid=secret ",
+        " account-a ",
+      ),
+    ).toEqual({
+      cookie: "sid=secret",
+      accountId: "account-a",
+    });
+
+    const source = { name: "travel-didi-consumer" };
+    expect(
+      cookieCollectionOptions(
+        source,
+        " sid=secret ",
+        " account-a ",
+        " https://api.xiaojukeji.com/orders?token=runtime ",
+      ),
+    ).toEqual({
+      cookie: "sid=secret",
+      accountId: "account-a",
+      sourceUrl: "https://api.xiaojukeji.com/orders?token=runtime",
+    });
+    for (const invalidUrl of [
+      "",
+      "http://api.xiaojukeji.com/orders",
+      "https://user:pass@api.xiaojukeji.com/orders",
+      "https://api.xiaojukeji.com/orders#fragment",
+      "https://api.xiaojukeji.com:8443/orders",
+      "https://xiaojukeji.com.evil.example/orders",
+      "https://127.0.0.1/orders",
+    ]) {
+      expect(
+        cookieCollectionOptions(source, "sid=secret", "account-a", invalidUrl),
+        invalidUrl,
+      ).toBeNull();
+    }
   });
 
   it("opens setup guidance when a file alone cannot satisfy key-provider requirements", () => {

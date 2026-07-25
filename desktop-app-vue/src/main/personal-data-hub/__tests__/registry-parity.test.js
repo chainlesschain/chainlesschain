@@ -112,6 +112,10 @@ describe("Personal Data Hub default registry parity", () => {
       expect(source).toContain("createJsonSourceFetch");
       expect(source).toContain("runtimeSourceAdapterClasses");
       expect(source).toContain("new Cls({ fetchFn: sourceJsonFetch })");
+      const runtimeSet = source.match(
+        /const runtimeSourceAdapterClasses = new Set\(\[([\s\S]*?)\]\);/u,
+      );
+      expect(runtimeSet).not.toBeNull();
       for (const className of [
         "TaobaoAdapter",
         "JdAdapter",
@@ -122,13 +126,50 @@ describe("Personal Data Hub default registry parity", () => {
         "XianyuAdapter",
         "VipshopAdapter",
         "Train12306Adapter",
+        "CtripAdapter",
+        "TongchengAdapter",
+        "DidiAdapter",
+        "DidiConsumerAdapter",
         "ZhihuAdapter",
+        "XimalayaAdapter",
+        "TianyanchaAdapter",
+        "KugouMusicAdapter",
+        "QQMusicAdapter",
+        "BossZhipinAdapter",
+        "DoubanAdapter",
+        "CsdnAdapter",
+        "DongchediAdapter",
+        "IqiyiVideoAdapter",
+        "TencentVideoAdapter",
+        "XiguaVideoAdapter",
+        "CamScannerDocAdapter",
         "BaiduNetdiskAdapter",
         "WpsDocAdapter",
       ]) {
-        expect(source).toMatch(
-          new RegExp(`runtimeSourceAdapterClasses[\\s\\S]+${className}`),
-        );
+        expect(runtimeSet[1]).toContain(`${className},`);
+      }
+    }
+  });
+
+  it("pins legacy cookie clients to the same official API hosts in both gateways", () => {
+    for (const filePath of [DESKTOP_WIRING, CLI_WIRING]) {
+      const source = fs.readFileSync(filePath, "utf8");
+      expect(source).toContain("createJsonResponseSourceFetch");
+      expect(source).toContain("runtimeCookieHostSuffixes");
+      expect(source).toContain(
+        "allowedHostSuffixes: runtimeCookieHostSuffixes.get(Cls)",
+      );
+      for (const [className, host] of [
+        ["GenshinAdapter", "api-takumi.mihoyo.com"],
+        ["GenshinAdapter", "api-takumi-record.mihoyo.com"],
+        ["ZuoyebangAdapter", "www.zuoyebang.com"],
+        ["AlipayAdapter", "mobilegw.alipay.com"],
+        ["HuaweiLearningAdapter", "educenter.hicloud.com"],
+        ["NeteaseMusicAdapter", "music.163.com"],
+        ["WeReadAdapter", "i.weread.qq.com"],
+      ]) {
+        expect(source).toContain(`${className}, [`);
+        expect(source).toContain(`"${host}"`);
       }
     }
   });

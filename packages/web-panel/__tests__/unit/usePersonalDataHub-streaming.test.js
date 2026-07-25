@@ -66,6 +66,23 @@ describe("usePersonalDataHub — streaming resolves on .end, not first .event", 
     sendRaw.mockReturnValue(new Promise(() => {}));
   });
 
+  it("gives non-streaming adapter syncs the same ten-minute budget", async () => {
+    const report = { adapter: "weread", status: "ok" };
+    sendRaw.mockResolvedValueOnce({ result: report });
+
+    await expect(
+      usePersonalDataHub().syncAdapter("weread", { maxBooks: 25 }),
+    ).resolves.toEqual(report);
+    expect(sendRaw).toHaveBeenCalledWith(
+      {
+        type: "personal-data-hub.sync-adapter",
+        name: "weread",
+        options: { maxBooks: 25 },
+      },
+      600_000,
+    );
+  });
+
   it("syncAdapterStream resolves to the .end report — not the first .event", async () => {
     const hub = usePersonalDataHub();
     const events = [];
@@ -152,6 +169,33 @@ describe("usePersonalDataHub — streaming resolves on .end, not first .event", 
     });
     await expect(promise).resolves.toMatchObject({
       adapter: "system-data-android",
+      status: "ok",
+    });
+  });
+
+  it("forwards one-shot cookie, account, and source URL options unchanged", async () => {
+    const hub = usePersonalDataHub();
+    const options = {
+      cookie: "sid=runtime-secret",
+      accountId: "account-a",
+      sourceUrl: "https://api.xiaojukeji.com/orders?session=runtime-url-secret",
+    };
+    const promise = hub.syncAdapterStream("travel-didi-consumer", options);
+    await Promise.resolve();
+
+    const [envelope] = sendRaw.mock.calls[sendRaw.mock.calls.length - 1];
+    expect(envelope).toMatchObject({
+      type: "personal-data-hub.sync-adapter-stream",
+      name: "travel-didi-consumer",
+      options,
+    });
+    push({
+      id: envelope.id,
+      type: "personal-data-hub.sync-adapter-stream.end",
+      result: { adapter: "travel-didi-consumer", status: "ok" },
+    });
+    await expect(promise).resolves.toMatchObject({
+      adapter: "travel-didi-consumer",
       status: "ok",
     });
   });

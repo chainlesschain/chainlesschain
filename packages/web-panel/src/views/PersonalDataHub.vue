@@ -1112,7 +1112,9 @@ import {
   collectionActionLabel as getCollectionActionLabel,
   collectionButtonLabel as getCollectionButtonLabel,
   collectionActionDescription as getCollectionActionDescription,
+  cookieCollectionOptions,
   directoryCollectionOptions,
+  requiresExplicitSourceUrl,
 } from "../utils/pdhCollectionMode.js";
 import { chooseHostDirectory } from "../utils/pdh-host-directory.js";
 import {
@@ -2214,7 +2216,29 @@ async function oneClickCollect(name) {
       message.info("已取消");
       return;
     }
-    await collectViaCookie(name, cookie.trim());
+    const accountId = window.prompt(
+      "输入该平台账号的稳定标识（若接口需要用户名/UID，请填写真实平台标识；否则可用本地别名。只会持久化其哈希同步水位）：",
+    );
+    if (!accountId || !accountId.trim()) {
+      message.info("已取消：需要账号标识才能安全隔离同步水位");
+      return;
+    }
+    let sourceUrl;
+    if (requiresExplicitSourceUrl(r)) {
+      sourceUrl = window.prompt(
+        "粘贴本次授权会话中捕获的滴滴订单接口 HTTPS URL（仅允许 xiaojukeji.com 官方域名，不会保存）：",
+      );
+      if (!sourceUrl || !sourceUrl.trim()) {
+        message.info("已取消：该数据源需要本次使用的 HTTPS 订单接口");
+        return;
+      }
+    }
+    const options = cookieCollectionOptions(r, cookie, accountId, sourceUrl);
+    if (!options) {
+      message.error("采集参数无效：请检查 Cookie、账号标识和 HTTPS 接口");
+      return;
+    }
+    await collectViaCookie(name, options);
   } else if (mode === "adb") {
     const collect = ADB_COLLECT_ACTIONS[name];
     if (!collect) {
@@ -2235,11 +2259,10 @@ async function oneClickCollect(name) {
   }
 }
 
-async function collectViaCookie(name, cookie) {
+async function collectViaCookie(name, options) {
   loading.sync[name] = true;
   resetSyncProgress(name);
   try {
-    const options = { cookie };
     let report;
     if (typeof hub.syncAdapterStream === "function") {
       report = await hub.syncAdapterStream(name, options, handleSyncEvent);

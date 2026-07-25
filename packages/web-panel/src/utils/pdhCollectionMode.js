@@ -22,10 +22,19 @@ export const ADB_ONE_CLICK_ADAPTERS = new Set([
   "social-kuaishou",
 ]);
 
+export const EXPLICIT_SOURCE_URL_COOKIE_ADAPTERS = new Set([
+  "travel-didi-consumer",
+]);
+
 const FILE_COLLECTION_CAPABILITIES = new Set([
   "sync:file-import",
   "sync:snapshot",
   "sync:sqlite",
+]);
+
+const COOKIE_COLLECTION_CAPABILITIES = new Set([
+  "sync:cookie",
+  "sync:cookie-api",
 ]);
 
 const SETUP_REQUIRED_REASONS = new Set([
@@ -33,6 +42,7 @@ const SETUP_REQUIRED_REASONS = new Set([
   "EMPTY_KEY",
   "KEY_PROVIDER_THREW",
   "ENV_UNSUPPORTED",
+  "CUSTOM_FETCH_REQUIRED",
 ]);
 
 function capabilitiesOf(source) {
@@ -60,7 +70,15 @@ export function resolveCollectionMode(source) {
   if (source.ready === true) return COLLECTION_MODE.SYNC;
 
   if (SETUP_REQUIRED_REASONS.has(source.reason)) return COLLECTION_MODE.SETUP;
-  if (capabilities.includes("sync:cookie")) return COLLECTION_MODE.COOKIE;
+  if (
+    capabilities.some((capability) =>
+      COOKIE_COLLECTION_CAPABILITIES.has(capability),
+    ) ||
+    (EXPLICIT_SOURCE_URL_COOKIE_ADAPTERS.has(source.name) &&
+      capabilities.includes("sync:custom-cookie-api"))
+  ) {
+    return COLLECTION_MODE.COOKIE;
+  }
   if (
     capabilities.includes("sync:scan-directory") ||
     capabilities.includes("sync:export-directory") ||
@@ -125,6 +143,12 @@ export function collectionButtonLabel(source) {
 }
 
 export function collectionActionDescription(source) {
+  if (
+    resolveCollectionMode(source) === COLLECTION_MODE.COOKIE &&
+    requiresExplicitSourceUrl(source)
+  ) {
+    return "粘贴登录 Cookie、稳定账号标识和本次使用的滴滴 HTTPS 订单接口后采集入库";
+  }
   switch (resolveCollectionMode(source)) {
     case COLLECTION_MODE.FILE:
       return "选择导出或解密好的文件，自动入库";
@@ -144,6 +168,47 @@ export function collectionActionDescription(source) {
     default:
       return "先按上述步骤完成采集配置";
   }
+}
+
+export function requiresExplicitSourceUrl(source) {
+  return EXPLICIT_SOURCE_URL_COOKIE_ADAPTERS.has(source?.name);
+}
+
+export function cookieCollectionOptions(source, cookie, accountId, sourceUrl) {
+  const normalizedCookie = typeof cookie === "string" ? cookie.trim() : "";
+  const normalizedAccountId =
+    typeof accountId === "string" ? accountId.trim() : "";
+  if (!normalizedCookie || !normalizedAccountId) return null;
+
+  const options = {
+    cookie: normalizedCookie,
+    accountId: normalizedAccountId,
+  };
+  if (!requiresExplicitSourceUrl(source)) return options;
+
+  const normalizedSourceUrl =
+    typeof sourceUrl === "string" ? sourceUrl.trim() : "";
+  if (!normalizedSourceUrl) return null;
+  try {
+    const parsed = new URL(normalizedSourceUrl);
+    if (
+      parsed.protocol !== "https:" ||
+      parsed.username ||
+      parsed.password ||
+      parsed.hash ||
+      (parsed.port && parsed.port !== "443") ||
+      !(
+        parsed.hostname === "xiaojukeji.com" ||
+        parsed.hostname.endsWith(".xiaojukeji.com")
+      )
+    ) {
+      return null;
+    }
+    options.sourceUrl = parsed.href;
+  } catch (_error) {
+    return null;
+  }
+  return options;
 }
 
 export function directoryCollectionOptions(source, directory, accountId) {
