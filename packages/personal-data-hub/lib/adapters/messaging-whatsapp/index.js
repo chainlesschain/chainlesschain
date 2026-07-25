@@ -21,18 +21,33 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { newId } = require("../../ids");
+const { createAccountScopeFromAccount } = require("../../account-scope");
 const {
   decryptWhatsAppBackupToFile,
   inspectWhatsAppBackupFile,
   isEncryptedWhatsAppBackup,
 } = require("./backup-decryptor");
 const { createWhatsAppBackupExtension } = require("./adb-extension");
+const {
+  POSITION_KINDS,
+  advanceCursor,
+  beginScan,
+  comparePositions,
+  compareTextIds,
+  parseCursor,
+  serializeCursor,
+} = require("./scan-cursor");
 
 const NAME = "messaging-whatsapp";
-// v0.9.0: let a runtime key + wired ADB bridge pass the Registry health gate.
-// Previously Registry.syncAdapter returned ADB_PULL_REQUIRED before sync()
-// could invoke the public-backup extension.
-const VERSION = "0.9.0";
+const VERSION = "1.0.0";
+const CURSOR_PAGE_SIZE = 1000;
+const EXACT_ID_ALIAS = "__pdh_exact_id";
+const RELATION_ID_ALIAS = "__pdh_relation_message_id";
+const KIND_CONTACT = "contact";
+const KIND_CHAT = "chat";
+const KIND_MODERN_MESSAGE = "modern-message";
+const KIND_LEGACY_MESSAGE = "legacy-message";
+const KIND_CALL = "call";
 
 class WhatsAppAdapter {
   constructor(opts = {}) {
@@ -48,6 +63,9 @@ class WhatsAppAdapter {
 
     this.name = NAME;
     this.version = VERSION;
+    this.scopeNamespace = "whatsapp";
+    this.snapshotScopeIdentityFields = ["phone"];
+    this.snapshotScopeIdentityIncludesField = false;
     this.capabilities = [
       "sync:sqlite",
       "sync:snapshot",
@@ -58,6 +76,7 @@ class WhatsAppAdapter {
     ];
     this.extractMode = "device-pull";
     this.rateLimits = {};
+    this.watermarkStrategy = "explicit";
     this.dataDisclosure = {
       fields: [
         "whatsapp:jid (contacts + chats)",
@@ -137,6 +156,18 @@ class WhatsAppAdapter {
     return r.ok ? { ok: true, lastChecked: Date.now() } : r;
   }
 
+  resolveDefaultScope(options = {}) {
+    return createAccountScopeFromAccount(
+      this.scopeNamespace,
+      options.account || this.account,
+      this.snapshotScopeIdentityFields,
+    );
+  }
+
+  resolveInputScope(options = {}) {
+    return this.resolveDefaultScope(options);
+  }
+
   async *sync(opts = {}) {
     let dbPath = opts.inputPath || opts.dbPath || this._dbPath;
     let sourceCleanup = null;
@@ -210,114 +241,7 @@ class WhatsAppAdapter {
         ? this._dbDriverFactory()
         : require("better-sqlite3-multiple-ciphers");
       db = new Driver(openPath, { readonly: true });
-      const jids = trySelect(db, "SELECT * FROM jid LIMIT 5000") || [];
-      for (const row of jids) {
-        yield {
-          adapter: NAME,
-          originalId: `jid-${row._id}`,
-          capturedAt: Date.now(),
-          payload: { row, kind: "contact" },
-        };
-      }
-      const chats =
-        trySelect(
-          db,
-          `
-        SELECT chat.*, jid.raw_string AS chat_jid
-        FROM chat
-        LEFT JOIN jid ON jid._id = chat.jid_row_id
-        LIMIT 1000
-      `,
-        ) ||
-        trySelect(db, "SELECT * FROM chat LIMIT 1000") ||
-        [];
-      for (const row of chats) {
-        yield {
-          adapter: NAME,
-          originalId: `chat-${row._id}`,
-          capturedAt: Date.now(),
-          payload: { row, kind: "chat" },
-        };
-      }
-      const modernMessages =
-        trySelect(
-          db,
-          `
-        SELECT message.*, chat_jid.raw_string AS chat_jid,
-               sender_jid.raw_string AS sender_jid
-        FROM message
-        LEFT JOIN chat ON chat._id = message.chat_row_id
-        LEFT JOIN jid AS chat_jid ON chat_jid._id = chat.jid_row_id
-        LEFT JOIN jid AS sender_jid ON sender_jid._id = message.sender_jid_row_id
-        ORDER BY message.timestamp DESC
-        LIMIT 10000
-      `,
-        ) ||
-        trySelect(
-          db,
-          "SELECT * FROM message ORDER BY timestamp DESC LIMIT 10000",
-        ) ||
-        [];
-      const related = loadModernMessageRelations(db);
-      const modernRows = modernMessages.map((row) =>
-        attachMessageRelations(row, related),
-      );
-
-      // Upgraded databases can retain pre-migration rows in `messages` while
-      // newer rows are written to `message`. Read both and deduplicate by the
-      // stable WhatsApp key_id instead of treating the old table as fallback.
-      const legacyRows =
-        trySelect(
-          db,
-          "SELECT * FROM messages ORDER BY timestamp DESC LIMIT 10000",
-        ) || [];
-      const seenMessages = new Set(modernRows.map(messageFingerprint));
-      for (const row of modernRows) {
-        yield {
-          adapter: NAME,
-          originalId: `msg-${row._id}`,
-          capturedAt: parseTime(row.timestamp || row.received_timestamp),
-          payload: { row, kind: "message", schema: "modern" },
-        };
-      }
-      for (const row of legacyRows) {
-        if (seenMessages.has(messageFingerprint(row))) continue;
-        const id = modernRows.some((modern) => modern._id === row._id)
-          ? `msg-legacy-${row._id}`
-          : `msg-${row._id}`;
-        yield {
-          adapter: NAME,
-          originalId: id,
-          capturedAt: parseTime(row.timestamp || row.received_timestamp),
-          payload: { row, kind: "message", schema: "legacy" },
-        };
-      }
-      const calls =
-        trySelect(
-          db,
-          `
-        SELECT call_log.*, jid.raw_string AS jid,
-               group_jid.raw_string AS group_jid
-        FROM call_log
-        LEFT JOIN jid ON jid._id = call_log.jid_row_id
-        LEFT JOIN jid AS group_jid ON group_jid._id = call_log.group_jid_row_id
-        ORDER BY call_log.timestamp DESC
-        LIMIT 5000
-      `,
-        ) ||
-        trySelect(
-          db,
-          "SELECT * FROM call_log ORDER BY timestamp DESC LIMIT 5000",
-        ) ||
-        [];
-      for (const row of calls) {
-        yield {
-          adapter: NAME,
-          originalId: `call-${row._id}`,
-          capturedAt: parseTime(row.timestamp),
-          payload: { row, kind: "call" },
-        };
-      }
+      yield* this._syncCursor(opts, db);
     } finally {
       try {
         if (db) db.close();
@@ -327,6 +251,103 @@ class WhatsAppAdapter {
       removeTempDir(tempDir);
       runCleanup(sourceCleanup);
     }
+  }
+
+  async *_syncCursor(opts, db) {
+    let cursor = parseCursor(opts.sinceWatermark).cursor;
+    const limit =
+      Number.isSafeInteger(opts.limit) && opts.limit > 0
+        ? opts.limit
+        : Infinity;
+    if (cursor.upper === null) {
+      cursor = beginScan(cursor, resolveSourceBounds(db));
+    } else {
+      assertFrozenSources(db, cursor.upper);
+    }
+
+    const publish = () => {
+      if (typeof opts.updateWatermark === "function") {
+        opts.updateWatermark(serializeCursor(cursor));
+      }
+    };
+    const pageSize = (emitted) => {
+      const remaining = limit === Infinity ? Infinity : limit - emitted;
+      return Math.min(CURSOR_PAGE_SIZE, remaining);
+    };
+    const fallbackCapturedAt = Date.now();
+    let emitted = 0;
+
+    for (const kind of POSITION_KINDS) {
+      if (cursor.upper === null || emitted >= limit) break;
+      const upper = cursor.upper[kind];
+      if (upper === null) continue;
+      if (
+        cursor.after !== null &&
+        comparePositions(cursor.after, { kind, id: upper }) > 0
+      ) {
+        continue;
+      }
+      let after = cursor.after?.kind === kind ? cursor.after.id : null;
+      while (cursor.upper !== null && emitted < limit) {
+        const requested = pageSize(emitted);
+        let page = readSourcePage(db, kind, {
+          after,
+          upper,
+          limit: requested,
+        });
+        if (page.length === 0) {
+          if (after === upper) break;
+          throw sourceRegression(
+            `${kind} source no longer reaches its frozen boundary`,
+          );
+        }
+        if (kind === KIND_MODERN_MESSAGE) {
+          const related = loadModernMessageRelations(
+            db,
+            page.map(({ id }) => id),
+          );
+          page = page.map(({ row, id }) => ({
+            id,
+            row: attachMessageRelations(row, related, id),
+          }));
+        }
+        const modernIndex =
+          kind === KIND_LEGACY_MESSAGE
+            ? loadModernMessageIndex(
+                db,
+                cursor.upper[KIND_MODERN_MESSAGE],
+                page,
+              )
+            : null;
+
+        for (const { row, id } of page) {
+          cursor = advanceCursor(cursor, { kind, id });
+          publish();
+          after = id;
+
+          if (
+            kind === KIND_LEGACY_MESSAGE &&
+            modernIndex.fingerprints.has(messageFingerprint(row))
+          ) {
+            if (cursor.upper === null) break;
+            continue;
+          }
+
+          yield rawFromCursorRow({
+            kind,
+            id,
+            row,
+            modernIdCollision:
+              kind === KIND_LEGACY_MESSAGE && modernIndex.ids.has(id),
+            fallbackCapturedAt,
+          });
+          emitted += 1;
+          if (cursor.upper === null || emitted >= limit) break;
+        }
+        if (cursor.upper === null || page.length < requested) break;
+      }
+    }
+    publish();
   }
 
   normalize(raw) {
@@ -530,13 +551,250 @@ class WhatsAppAdapter {
   }
 }
 
-function trySelect(db, sql) {
+function trySelect(db, sql, params = []) {
   try {
-    return db.prepare(sql).all();
+    return db.prepare(sql).all(...params);
   } catch {
     return null;
   }
 }
+
+function exactRowId(row, fallbackColumn = "_id") {
+  const value =
+    row?.[EXACT_ID_ALIAS] != null ? row[EXACT_ID_ALIAS] : row?.[fallbackColumn];
+  return value == null ? null : String(value);
+}
+
+function withExactId(row, id, fallbackColumn = "_id") {
+  const payloadRow = { ...row, [fallbackColumn]: id };
+  delete payloadRow[EXACT_ID_ALIAS];
+  return payloadRow;
+}
+
+function normalizedPage(rows, { after, upper, limit }) {
+  return (Array.isArray(rows) ? rows : [])
+    .map((row) => {
+      const id = exactRowId(row);
+      return id === null ? null : { id, row: withExactId(row, id) };
+    })
+    .filter(
+      (entry) =>
+        entry !== null &&
+        (after === null || compareTextIds(entry.id, after) > 0) &&
+        compareTextIds(entry.id, upper) <= 0,
+    )
+    .sort((left, right) => compareTextIds(left.id, right.id))
+    .slice(0, limit);
+}
+
+function sourceUpper(db, table) {
+  const rows = trySelect(
+    db,
+    `SELECT CAST(source._id AS TEXT) AS "${EXACT_ID_ALIAS}", source.*
+     FROM ${table} AS source
+     WHERE source._id IS NOT NULL
+     ORDER BY source._id DESC
+     LIMIT 1`,
+  );
+  if (rows === null) return null;
+  let maximum = null;
+  for (const row of rows) {
+    const id = exactRowId(row);
+    if (id !== null && (maximum === null || compareTextIds(id, maximum) > 0)) {
+      maximum = id;
+    }
+  }
+  return maximum;
+}
+
+function sourceHasExactId(db, table, id) {
+  const rows = trySelect(
+    db,
+    `SELECT CAST(source._id AS TEXT) AS "${EXACT_ID_ALIAS}", source._id
+     FROM ${table} AS source
+     WHERE source._id = ?
+     LIMIT 1`,
+    [id],
+  );
+  return (
+    rows !== null &&
+    rows.some((row) => {
+      const candidate = exactRowId(row);
+      return candidate !== null && compareTextIds(candidate, id) === 0;
+    })
+  );
+}
+
+function resolveSourceBounds(db) {
+  return {
+    [KIND_CONTACT]: sourceUpper(db, "jid"),
+    [KIND_CHAT]: sourceUpper(db, "chat"),
+    [KIND_MODERN_MESSAGE]: sourceUpper(db, "message"),
+    [KIND_LEGACY_MESSAGE]: sourceUpper(db, "messages"),
+    [KIND_CALL]: sourceUpper(db, "call_log"),
+  };
+}
+
+function sourceTable(kind) {
+  switch (kind) {
+    case KIND_CONTACT:
+      return "jid";
+    case KIND_CHAT:
+      return "chat";
+    case KIND_MODERN_MESSAGE:
+      return "message";
+    case KIND_LEGACY_MESSAGE:
+      return "messages";
+    case KIND_CALL:
+      return "call_log";
+    default:
+      throw new Error(`${NAME}: unsupported cursor source ${String(kind)}`);
+  }
+}
+
+function assertFrozenSources(db, upper) {
+  for (const kind of POSITION_KINDS) {
+    const boundary = upper[kind];
+    if (
+      boundary !== null &&
+      !sourceHasExactId(db, sourceTable(kind), boundary)
+    ) {
+      throw sourceRegression(`${kind} frozen boundary is no longer readable`);
+    }
+  }
+}
+
+function sourceRegression(message) {
+  const error = new Error(`${NAME}: ${message}`);
+  error.code = "WHATSAPP_CURSOR_SOURCE_REGRESSED";
+  error.retryable = false;
+  return error;
+}
+
+function pageWindow(column, { after, upper, limit }) {
+  const where = [`${column} IS NOT NULL`];
+  const params = [];
+  if (after !== null) {
+    where.push(`${column} > ?`);
+    params.push(after);
+  }
+  where.push(`${column} <= ?`);
+  params.push(upper, limit);
+  return { where: where.join(" AND "), params };
+}
+
+function readSourcePage(db, kind, window) {
+  const table = sourceTable(kind);
+  const alias = table;
+  const { where, params } = pageWindow(`${alias}._id`, window);
+  let rows;
+  if (kind === KIND_CHAT) {
+    rows = trySelect(
+      db,
+      `SELECT CAST(chat._id AS TEXT) AS "${EXACT_ID_ALIAS}",
+              chat.*, jid.raw_string AS chat_jid
+       FROM chat AS chat
+       LEFT JOIN jid ON jid._id = chat.jid_row_id
+       WHERE ${where}
+       ORDER BY chat._id ASC
+       LIMIT ?`,
+      params,
+    );
+  } else if (kind === KIND_MODERN_MESSAGE) {
+    rows = trySelect(
+      db,
+      `SELECT CAST(message._id AS TEXT) AS "${EXACT_ID_ALIAS}",
+              message.*, chat_jid.raw_string AS chat_jid,
+              sender_jid.raw_string AS sender_jid
+       FROM message AS message
+       LEFT JOIN chat ON chat._id = message.chat_row_id
+       LEFT JOIN jid AS chat_jid ON chat_jid._id = chat.jid_row_id
+       LEFT JOIN jid AS sender_jid
+         ON sender_jid._id = message.sender_jid_row_id
+       WHERE ${where}
+       ORDER BY message._id ASC
+       LIMIT ?`,
+      params,
+    );
+  } else if (kind === KIND_CALL) {
+    rows = trySelect(
+      db,
+      `SELECT CAST(call_log._id AS TEXT) AS "${EXACT_ID_ALIAS}",
+              call_log.*, jid.raw_string AS jid,
+              group_jid.raw_string AS group_jid
+       FROM call_log AS call_log
+       LEFT JOIN jid ON jid._id = call_log.jid_row_id
+       LEFT JOIN jid AS group_jid
+         ON group_jid._id = call_log.group_jid_row_id
+       WHERE ${where}
+       ORDER BY call_log._id ASC
+       LIMIT ?`,
+      params,
+    );
+  }
+  if (rows === null || rows === undefined) {
+    rows = trySelect(
+      db,
+      `SELECT CAST(${alias}._id AS TEXT) AS "${EXACT_ID_ALIAS}", ${alias}.*
+       FROM ${table} AS ${alias}
+       WHERE ${where}
+       ORDER BY ${alias}._id ASC
+       LIMIT ?`,
+      params,
+    );
+  }
+  if (rows === null) {
+    throw sourceRegression(`${kind} source became unreadable`);
+  }
+  return normalizedPage(rows, window);
+}
+
+function rawFromCursorRow({
+  kind,
+  id,
+  row,
+  modernIdCollision,
+  fallbackCapturedAt,
+}) {
+  if (kind === KIND_CONTACT) {
+    return {
+      adapter: NAME,
+      originalId: `jid-${id}`,
+      capturedAt: fallbackCapturedAt,
+      payload: { row, kind: "contact" },
+    };
+  }
+  if (kind === KIND_CHAT) {
+    return {
+      adapter: NAME,
+      originalId: `chat-${id}`,
+      capturedAt: fallbackCapturedAt,
+      payload: { row, kind: "chat" },
+    };
+  }
+  if (kind === KIND_MODERN_MESSAGE || kind === KIND_LEGACY_MESSAGE) {
+    const schema = kind === KIND_MODERN_MESSAGE ? "modern" : "legacy";
+    return {
+      adapter: NAME,
+      originalId:
+        schema === "legacy" && modernIdCollision
+          ? `msg-legacy-${id}`
+          : `msg-${id}`,
+      capturedAt: parseTime(row.timestamp || row.received_timestamp),
+      payload: { row, kind: "message", schema },
+    };
+  }
+  if (kind === KIND_CALL) {
+    return {
+      adapter: NAME,
+      originalId: `call-${id}`,
+      capturedAt: parseTime(row.timestamp),
+      payload: { row, kind: "call" },
+    };
+  }
+  throw new Error(`${NAME}: unsupported cursor record kind ${String(kind)}`);
+}
+
 function resolveBridge(provider) {
   return typeof provider === "function" ? provider() : provider;
 }
@@ -558,18 +816,32 @@ function runCleanup(cleanup) {
     // Cleanup is best-effort and must not mask the primary sync result.
   }
 }
-function loadModernMessageRelations(db) {
-  const query = (table) =>
-    trySelect(
-      db,
-      `
-    SELECT related.*
-    FROM ${table} AS related
-    INNER JOIN (
-      SELECT _id FROM message ORDER BY timestamp DESC LIMIT 10000
-    ) AS recent ON recent._id = related.message_row_id
-  `,
-    ) || [];
+function loadModernMessageRelations(db, messageIds) {
+  const ids = [...new Set(messageIds.map(String))];
+  const query = (table) => {
+    const rows = [];
+    for (const chunk of chunks(ids, 400)) {
+      const selected =
+        trySelect(
+          db,
+          `SELECT CAST(related.message_row_id AS TEXT)
+                    AS "${RELATION_ID_ALIAS}",
+                  related.*
+           FROM ${table} AS related
+           WHERE related.message_row_id IN (${placeholders(chunk.length)})`,
+          chunk,
+        ) || [];
+      const wanted = new Set(chunk);
+      for (const row of selected) {
+        const id = relationMessageId(row);
+        if (id === null || !wanted.has(id)) continue;
+        const payloadRow = { ...row, message_row_id: id };
+        delete payloadRow[RELATION_ID_ALIAS];
+        rows.push(payloadRow);
+      }
+    }
+    return rows;
+  };
   return {
     media: indexOne(query("message_media")),
     location: indexOne(query("message_location")),
@@ -577,26 +849,115 @@ function loadModernMessageRelations(db) {
     quoted: indexOne(query("message_quoted")),
   };
 }
+
+function relationMessageId(row) {
+  const value =
+    row?.[RELATION_ID_ALIAS] != null
+      ? row[RELATION_ID_ALIAS]
+      : row?.message_row_id;
+  return value == null ? null : String(value);
+}
+
 function indexOne(rows) {
-  return new Map(rows.map((row) => [row.message_row_id, row]));
+  return new Map(rows.map((row) => [String(row.message_row_id), row]));
 }
 function indexMany(rows) {
   const indexed = new Map();
   for (const row of rows) {
-    const values = indexed.get(row.message_row_id) || [];
+    const id = String(row.message_row_id);
+    const values = indexed.get(id) || [];
     values.push(row);
-    indexed.set(row.message_row_id, values);
+    indexed.set(id, values);
   }
   return indexed;
 }
-function attachMessageRelations(row, related) {
+function attachMessageRelations(row, related, id) {
   return {
     ...row,
-    _media: related.media.get(row._id) || null,
-    _location: related.location.get(row._id) || null,
-    _vcards: related.vcards.get(row._id) || [],
-    _quoted: related.quoted.get(row._id) || null,
+    _media: related.media.get(id) || null,
+    _location: related.location.get(id) || null,
+    _vcards: related.vcards.get(id) || [],
+    _quoted: related.quoted.get(id) || null,
   };
+}
+
+function loadModernMessageIndex(db, modernUpper, legacyPage) {
+  const index = { fingerprints: new Set(), ids: new Set() };
+  if (modernUpper === null || legacyPage.length === 0) return index;
+  const legacyIds = [...new Set(legacyPage.map(({ id }) => id))];
+  const keyIds = [
+    ...new Set(
+      legacyPage
+        .map(({ row }) => row.key_id)
+        .filter(isPresent)
+        .map(String),
+    ),
+  ];
+  const candidates = [];
+
+  for (const chunk of chunks(legacyIds, 400)) {
+    const rows =
+      trySelect(
+        db,
+        `SELECT CAST(modern._id AS TEXT) AS "${EXACT_ID_ALIAS}", modern.*
+         FROM message AS modern
+         WHERE modern._id <= ?
+           AND modern._id IN (${placeholders(chunk.length)})`,
+        [modernUpper, ...chunk],
+      ) || [];
+    const wanted = new Set(chunk);
+    for (const row of rows) {
+      const id = exactRowId(row);
+      if (
+        id !== null &&
+        wanted.has(id) &&
+        compareTextIds(id, modernUpper) <= 0
+      ) {
+        candidates.push(withExactId(row, id));
+      }
+    }
+  }
+
+  for (const chunk of chunks(keyIds, 400)) {
+    const rows =
+      trySelect(
+        db,
+        `SELECT CAST(modern._id AS TEXT) AS "${EXACT_ID_ALIAS}", modern.*
+         FROM message AS modern
+         WHERE modern._id <= ?
+           AND modern.key_id IN (${placeholders(chunk.length)})`,
+        [modernUpper, ...chunk],
+      ) || [];
+    const wanted = new Set(chunk);
+    for (const row of rows) {
+      const id = exactRowId(row);
+      if (
+        id !== null &&
+        wanted.has(String(row.key_id)) &&
+        compareTextIds(id, modernUpper) <= 0
+      ) {
+        candidates.push(withExactId(row, id));
+      }
+    }
+  }
+
+  for (const row of candidates) {
+    index.ids.add(String(row._id));
+    index.fingerprints.add(messageFingerprint(row));
+  }
+  return index;
+}
+
+function placeholders(count) {
+  return Array.from({ length: count }, () => "?").join(",");
+}
+
+function chunks(values, size) {
+  const result = [];
+  for (let index = 0; index < values.length; index += size) {
+    result.push(values.slice(index, index + size));
+  }
+  return result;
 }
 function isPresent(value) {
   return value !== null && value !== undefined && value !== "";

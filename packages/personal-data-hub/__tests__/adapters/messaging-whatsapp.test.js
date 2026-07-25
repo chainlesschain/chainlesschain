@@ -48,7 +48,7 @@ function makeFakeDriverFactory(tables, log = {}) {
 describe("constants", () => {
   it("exposes name/version + high sensitivity & legal gate", () => {
     expect(NAME).toBe("messaging-whatsapp");
-    expect(VERSION).toBe("0.9.0");
+    expect(VERSION).toBe("1.0.0");
     const a = new WhatsAppAdapter();
     expect(a.dataDisclosure.sensitivity).toBe("high");
     expect(a.dataDisclosure.legalGate).toBe(true);
@@ -221,10 +221,10 @@ describe("sync — fake sqlite driver", () => {
           ],
           "FROM message_vcard": [{ message_row_id: 7, vcard: "BEGIN:VCARD" }],
           "FROM message_quoted": [{ message_row_id: 7, text_data: "quoted" }],
-          "FROM message\n": [modern],
+          "FROM message AS": [modern],
           "FROM messages ": [
             {
-              _id: 7,
+              _id: 8,
               key_id: "same-key",
               key_from_me: 0,
               data: "duplicate",
