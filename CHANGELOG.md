@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.162.179 + PDH 0.4.55：跨端实时采集与输入安全收口
+
+> `chainlesschain` **0.162.179** 搭载
+> `@chainlesschain/personal-data-hub` **0.4.55**（2026-07-25）。
+
+- **跨端实时采集**：CLI、桌面端与 Web Panel 统一暴露实时采集控制和流式结果，
+  支持有界 cookie 运行时采集、临时 OAuth 输入及 Android ADB 数据桥接。
+- **可达性与失败闭合**：readiness 只报告当前可达的输入路径；缺失或无效的
+  cookie 来源页、采集输入和 WhatsApp 备份不再被误报为成功。
+- **采集可靠性**：支持带密钥的 WhatsApp ADB 同步，WeRead 源错误时保留游标，
+  并恢复 Bilibili Android 采集客户端。
+- **发布链安全**：npm 发布工作流启用 Trusted Publishing/OIDC 与 provenance，
+  同时保留 `NPM_TOKEN` 作为当前发布的备用通道。
+
 ### Fixed — cc CLI 0.162.178 + IDE provider 403 diagnosis hotfix
 
 - Preserve structured provider error codes/messages for failed LLM requests and
