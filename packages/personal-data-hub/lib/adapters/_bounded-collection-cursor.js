@@ -3,7 +3,7 @@
 const CURSOR_VERSION = 1;
 const MAX_CURSOR_BYTES = 4096;
 const DIGEST_PATTERN = /^[0-9a-f]{64}$/u;
-const MODE_PATTERN = /^(?:live|snapshot)$/u;
+const MODE_PATTERN = /^(?:live|snapshot|sqlite)$/u;
 const DECIMAL_PATTERN = /^(?:0|[1-9][0-9]*)$/u;
 
 function createBoundedCollectionCursor({ namespace, codePrefix }) {
@@ -54,7 +54,7 @@ function createBoundedCollectionCursor({ namespace, codePrefix }) {
   };
   const normalizeMode = (value, label = "cursor.mode") => {
     if (typeof value !== "string" || !MODE_PATTERN.test(value)) {
-      invalid(`${label} must be live or snapshot`);
+      invalid(`${label} must be live, snapshot, or sqlite`);
     }
     return value;
   };
