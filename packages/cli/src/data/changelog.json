@@ -2,6 +2,19 @@
   "source": "CHANGELOG.md",
   "releases": [
     {
+      "productVersion": null,
+      "cliVersion": "0.162.178",
+      "cliVersions": ["0.162.178"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed — cc CLI 0.162.178 + IDE provider 403 diagnosis hotfix",
+          "body": "- Preserve structured provider error codes/messages for failed LLM requests and\n  `cc llm test`, with credential-shaped text redacted before display.\n- Do not classify every HTTP 403 as an invalid API key: overdue accounts,\n  billing failures, and model-access denials now retain their real corrective\n  action in CLI, VS Code, and JetBrains.\n- Release VS Code 0.37.33 and JetBrains 0.4.70 with corrected setup guidance."
+        }
+      ]
+    },
+    {
       "productVersion": "v5.0.3.135",
       "cliVersion": "0.162.177",
       "cliVersions": [
