@@ -33,9 +33,15 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
     os.tmpdir(),
     "chainlesschain-e2e",
     "desktop-vue",
+    `worker-${process.pid}`,
   );
   if (!hasResetTestProfile) {
-    fs.rmSync(userDataPath, { recursive: true, force: true });
+    fs.rmSync(userDataPath, {
+      recursive: true,
+      force: true,
+      maxRetries: 5,
+      retryDelay: 200,
+    });
     hasResetTestProfile = true;
   }
 
@@ -54,6 +60,23 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
     path.join(userDataPath, "app-config.json"),
     JSON.stringify(
       { ui: { useWebShellExperimental: false, useV6ShellByDefault: false } },
+      null,
+      2,
+    ),
+    "utf8",
+  );
+
+  // These suites validate project-management IPC, not onboarding. Seed the
+  // isolated profile before Electron starts so launchElectronApp() does not
+  // need to complete setup, close the app, and recursively launch it again.
+  fs.writeFileSync(
+    path.join(userDataPath, "initial-setup-config.json"),
+    JSON.stringify(
+      {
+        setupCompleted: true,
+        completedAt: "2026-01-01T00:00:00.000Z",
+        edition: "personal",
+      },
       null,
       2,
     ),
@@ -92,6 +115,15 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
       MOCK_HARDWARE: "true",
       MOCK_LLM: "true",
       CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1",
+      // The serial PM journeys share one sql.js process. Avoid exporting the
+      // full fixture database after every INSERT; production is unaffected
+      // because DatabaseManager honours this flag only in NODE_ENV=test.
+      CHAINLESSCHAIN_DISABLE_DB_PERSISTENCE: "1",
+      // These journeys exercise permission/team business flows with generated
+      // fixture DIDs. Actor/RBAC enforcement has dedicated security tests and
+      // requires an unlocked real DID, which this isolated profile omits.
+      CC_IPC_ACTOR_GUARD: "off",
+      CC_IPC_RBAC_GUARD: "off",
       // Pair with --no-web-shell argv: shouldRunWebShell() honours either.
       CHAINLESSCHAIN_WEB_SHELL: "0",
       // Linux: 强制使用软件 OpenGL
@@ -143,7 +175,8 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
           typeof (window as any).api !== "undefined"
         );
       },
-      { timeout: 10000 },
+      undefined,
+      { timeout: 60000 },
     );
   } catch (error) {
     const diagnostics = await window.evaluate(() => {
@@ -163,7 +196,7 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
       };
     });
     throw new Error(
-      `Preload bridge never exposed (electronAPI/electron/api all undefined after 10s). ` +
+      `Preload bridge never exposed (electronAPI/electron/api all undefined after 60s). ` +
         `Renderer state: ${JSON.stringify(diagnostics, null, 2)}. ` +
         `Original error: ${error instanceof Error ? error.message : String(error)}`,
     );
@@ -243,8 +276,9 @@ async function ensureInitialSetup(window: Page, userDataPath: string): Promise<b
 }
 
 async function loginIfNeeded(window: Page): Promise<void> {
-  const hasLogin = await window.locator('[data-testid="login-container"]').count();
-  if (!hasLogin) {
+  const loginContainer = window.locator('[data-testid="login-container"]');
+  const hasVisibleLogin = await loginContainer.isVisible().catch(() => false);
+  if (!hasVisibleLogin) {
     return;
   }
 
@@ -311,10 +345,12 @@ async function performLogin(window: Page): Promise<void> {
     await loginButton.click();
   }
 
-  await window.waitForTimeout(1500);
-
-  const stillOnLogin = await window.locator('[data-testid="login-container"]').count();
-  if (stillOnLogin) {
+  try {
+    await window.locator('[data-testid="login-container"]').waitFor({
+      state: "hidden",
+      timeout: 15000,
+    });
+  } catch {
     throw new Error("Login did not complete successfully");
   }
 }

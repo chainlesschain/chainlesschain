@@ -23,7 +23,7 @@ const SLASH_SOURCE = fs.readFileSync(
   "utf8",
 );
 const ELICITATION_SCHEMA_SOURCE = fs.readFileSync(
-  path.join(__dirname, "../../../elicitation-schema/index.js"),
+  path.join(__dirname, "../vendor/elicitation-schema/index.js"),
   "utf8",
 );
 const ELICITATION_FORM_SOURCE = fs.readFileSync(

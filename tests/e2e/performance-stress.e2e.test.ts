@@ -12,17 +12,42 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { launchElectronApp, closeElectronApp, callIPC } from './helpers';
+import {
+  launchElectronApp as launchFreshElectronApp,
+  closeElectronApp as closeFreshElectronApp,
+  callIPC,
+  type ElectronTestContext,
+} from './helpers';
 
 const TEST_ORG_ID = `org-perf-test-${Date.now()}`;
 const TEST_USER_DID = `did:key:perf-user-${Date.now()}`;
 
 test.describe.serial('Performance & Stress Tests', () => {
+  let sharedContext!: ElectronTestContext;
   let boardId: string;
   let columnId: string;
   let teamId: string;
   const taskIds: string[] = [];
   const memberDids: string[] = [];
+
+  // Performance phases build on the same board, tasks, and team. A single
+  // Electron session also keeps app startup outside the measured operations.
+  const launchElectronApp = async (): Promise<ElectronTestContext> =>
+    sharedContext;
+  const closeElectronApp = (_app: unknown): Promise<void> => {
+    void _app;
+    return Promise.resolve();
+  };
+
+  test.beforeAll(async () => {
+    sharedContext = await launchFreshElectronApp();
+  });
+
+  test.afterAll(async () => {
+    if (sharedContext?.app) {
+      await closeFreshElectronApp(sharedContext.app);
+    }
+  });
 
   // Setup
   test.beforeAll(async () => {
@@ -35,7 +60,7 @@ test.describe.serial('Performance & Stress Tests', () => {
         name: 'Performance Test Board',
         description: 'For performance testing',
         boardType: 'kanban',
-        createdBy: TEST_USER_DID,
+        ownerDid: TEST_USER_DID,
       });
       boardId = boardResult.boardId;
 
@@ -271,7 +296,8 @@ test.describe.serial('Performance & Stress Tests', () => {
       for (const memberDid of membersToGrant) {
         await callIPC(window, 'perm:grant-permission', {
           orgId: TEST_ORG_ID,
-          userDid: memberDid,
+          granteeType: 'user',
+          granteeId: memberDid,
           resourceType: 'task',
           resourceId: '*',
           permission: 'write',

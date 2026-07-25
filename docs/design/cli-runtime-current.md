@@ -1,6 +1,6 @@
-# CLI Runtime 当前实现核对（0.162.175）
+# CLI Runtime 当前实现核对（0.162.177）
 
-> 更新时间：2026-07-23。本文只记录已经进入当前代码的运行时能力；路线图与实验性设计仍以各自的计划文档为准。
+> 更新时间：2026-07-24。本文只记录已经进入当前代码的运行时能力；路线图与实验性设计仍以各自的计划文档为准。
 
 ## 当前边界
 
@@ -14,6 +14,8 @@ cc entry
   ├─ process-execution-broker
   │    ├─ platform sandbox
   │    └─ credential agent
+  ├─ skill-process-broker
+  │    └─ host-owned facade → process-execution-broker
   └─ session hooks (Setup / Notification / lifecycle)
 ```
 
@@ -37,6 +39,10 @@ cc entry
 ### 3. 执行安全
 
 - `process-execution-broker` 统一 shell 执行入口，跨平台 sandbox 与 credential agent 默认接入。
+- 声明 `capabilities: [shell-exec]` 的技能不会直接获得 Node.js `child_process`。宿主通过 `createSkillProcessBroker()` 注入窄化且冻结的 `run`、`runSync`、`runFileSync` facade；没有声明该能力的技能得到 `null`。
+- 执行来源由宿主写入并覆盖 handler 传入值：`origin=skill:<id>`、`scope=skill`、`policy=allow`，以及可用的插件 id/version/source。技能不能伪造来源或绕开统一审计。
+- CLI-Anything 生成 handler 会把输入解析为字面 argv，经 `runFileSync(..., shell:false)` 执行；危险 shell 字符、未闭合引号和缺失 Broker 都会拒绝执行。
+- CLI 指令技能包的 direct/hybrid handler 经 `processBroker.runSync` 调用 `chainlesschain`，先校验域内命令白名单与 shell 元字符。Windows `.cmd` shim 仍可显式请求 `shell:true`，但执行、来源和生命周期继续由宿主 Broker 管理。
 - 凭据代理向子进程提供受控占位符，避免把长效凭据直接暴露给 agent 工具链。
 - 非秘密运行标识使用显式 allowlist：`CC_SESSION_ID`、`CLAUDE_CODE_SESSION_ID` 可以跨 broker 边界；未知 `*_SESSION` 与凭据型变量仍默认过滤。这样既不破坏会话关联，也不放宽通用环境透传。
 - sandbox 支持平台能力探测；严格配置下引擎不可用会拒绝启动，而不是静默宣称已隔离。
@@ -60,15 +66,18 @@ cc entry
 
 ## 关键入口
 
-| 领域           | 实现                                                                             |
-| -------------- | -------------------------------------------------------------------------------- |
-| 命令分发       | `packages/cli/src/lazy-dispatch.js`、`command-manifest.json`                     |
-| 后台监督       | `packages/cli/src/lib/background-agent-supervisor.js`                            |
-| 交互协议       | `packages/cli/src/lib/ipc-attach-protocol.js`、`background-session-transport.js` |
-| 执行安全       | `packages/cli/src/lib/process-execution-broker/`                                 |
-| 路径契约       | `packages/cli/src/lib/paths.js`、`harness/jsonl-session-store.js`                |
-| 异步 hook 回收 | `packages/cli/src/lib/async-hook-supervisor.cjs`                                 |
-| hooks          | `packages/cli/src/lib/session-hooks.js`、`hook-manager.js`                       |
+| 领域            | 实现                                                                             |
+| --------------- | -------------------------------------------------------------------------------- |
+| 命令分发        | `packages/cli/src/lazy-dispatch.js`、`command-manifest.json`                     |
+| 后台监督        | `packages/cli/src/lib/background-agent-supervisor.js`                            |
+| 交互协议        | `packages/cli/src/lib/ipc-attach-protocol.js`、`background-session-transport.js` |
+| 执行安全        | `packages/cli/src/lib/process-execution-broker/`                                 |
+| 技能进程 facade | `packages/cli/src/lib/skill-process-broker.js`                                   |
+| 技能生成入口    | `packages/cli/src/lib/cli-anything-bridge.js`、`lib/skill-packs/generator.js`    |
+| 技能注入入口    | `packages/cli/src/commands/skill.js`、`runtime/agent-core.js`                    |
+| 路径契约        | `packages/cli/src/lib/paths.js`、`harness/jsonl-session-store.js`                |
+| 异步 hook 回收  | `packages/cli/src/lib/async-hook-supervisor.cjs`                                 |
+| hooks           | `packages/cli/src/lib/session-hooks.js`、`hook-manager.js`                       |
 
 ## 验证口径
 
@@ -81,6 +90,6 @@ npm run test:integration
 npm run test:e2e
 ```
 
-2026-07-23 本轮已完成 E2E 全量分片验证：**59 个测试文件、633 项通过；10 项按环境能力跳过**。单元层新增 Windows 进程表解析与 taskkill-denied 叶子优先 fallback；集成层覆盖真实 hook spawn、后台 idle/finalize、loop home 隔离、plan approval 和文档转换失败路径。
+`0.162.177` 发布门已在 Ubuntu、Windows、macOS 上完成 unit / integration / E2E 全矩阵，另通过 Linux 打包 dry-run 和三平台 `--version` / `--help` 启动校验。本地单元测试四分片合计 **24,562 项通过、5 项跳过**；技能 Broker、CLI-Anything、技能包生成器、Agent 注入和变更日志等定向回归为 **9 个文件、122 项通过**。
 
 Windows 还应覆盖 `.cmd` 启动、后台 attach、停止自 PID 记录、hook 输出清理和进程树能力探测；TCP attach 需要运行对应的 IPC/transport 回归测试。真实系统能力不可用时，测试必须明确跳过并由注入测试补齐，不得把权限拒绝伪装成功。

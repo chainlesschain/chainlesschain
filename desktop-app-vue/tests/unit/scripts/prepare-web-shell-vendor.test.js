@@ -37,7 +37,8 @@ afterEach(() => {
 
 describe("vendorWebShellInto", () => {
   it("exposes the expected REPO_ROOT / CLI_SRC / WEB_PANEL_DIST constants", () => {
-    expect(REPO_ROOT.endsWith("chainlesschain")).toBe(true);
+    expect(path.isAbsolute(REPO_ROOT)).toBe(true);
+    expect(fs.existsSync(path.join(REPO_ROOT, "package.json"))).toBe(true);
     expect(CLI_SRC).toBe(path.join(REPO_ROOT, "packages", "cli", "src"));
     expect(WEB_PANEL_DIST).toBe(
       path.join(REPO_ROOT, "packages", "web-panel", "dist"),

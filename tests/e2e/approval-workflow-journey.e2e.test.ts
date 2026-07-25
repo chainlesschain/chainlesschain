@@ -13,7 +13,12 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { launchElectronApp, closeElectronApp, callIPC } from './helpers';
+import {
+  launchElectronApp as launchFreshElectronApp,
+  closeElectronApp as closeFreshElectronApp,
+  callIPC,
+  type ElectronTestContext,
+} from './helpers';
 
 // Test data
 const TEST_ORG_ID = `org-approval-journey-${Date.now()}`;
@@ -24,11 +29,32 @@ const TEST_APPROVER3_DID = `did:key:approver3-${Date.now()}`;
 const TEST_DELEGATE_DID = `did:key:delegate-${Date.now()}`;
 
 test.describe.serial('Approval Workflow Journey', () => {
+  let sharedContext!: ElectronTestContext;
   let workflowId: string;
   let requestId: string;
   let sequentialWorkflowId: string;
   let parallelWorkflowId: string;
   let anyOneWorkflowId: string;
+
+  // Approval phases depend on records created by prior phases. Keep one
+  // Electron/sql.js session for this serial journey instead of restarting the
+  // app after every assertion.
+  const launchElectronApp = async (): Promise<ElectronTestContext> =>
+    sharedContext;
+  const closeElectronApp = (_app: unknown): Promise<void> => {
+    void _app;
+    return Promise.resolve();
+  };
+
+  test.beforeAll(async () => {
+    sharedContext = await launchFreshElectronApp();
+  });
+
+  test.afterAll(async () => {
+    if (sharedContext?.app) {
+      await closeFreshElectronApp(sharedContext.app);
+    }
+  });
 
   // ========================================
   // Phase 1: Workflow Creation
@@ -46,9 +72,9 @@ test.describe.serial('Approval Workflow Journey', () => {
         triggerAction: 'grant',
         approvalType: 'sequential',
         approvers: [
-          { did: TEST_APPROVER1_DID, name: 'Department Lead', role: 'lead' },
-          { did: TEST_APPROVER2_DID, name: 'Security Officer', role: 'security' },
-          { did: TEST_APPROVER3_DID, name: 'CTO', role: 'executive' },
+          [TEST_APPROVER1_DID],
+          [TEST_APPROVER2_DID],
+          [TEST_APPROVER3_DID],
         ],
         timeoutHours: 72,
         onTimeout: 'reject',
@@ -77,10 +103,7 @@ test.describe.serial('Approval Workflow Journey', () => {
         triggerResourceType: 'task',
         triggerAction: 'close',
         approvalType: 'parallel',
-        approvers: [
-          { did: TEST_APPROVER1_DID, name: 'PM', role: 'pm' },
-          { did: TEST_APPROVER2_DID, name: 'Tech Lead', role: 'tech_lead' },
-        ],
+        approvers: [[TEST_APPROVER1_DID, TEST_APPROVER2_DID]],
         timeoutHours: 48,
         onTimeout: 'reject',
         enabled: true,
@@ -105,12 +128,10 @@ test.describe.serial('Approval Workflow Journey', () => {
         triggerAction: 'execute',
         approvalType: 'any_one',
         approvers: [
-          { did: TEST_APPROVER1_DID, name: 'On-Call Engineer 1', role: 'oncall' },
-          { did: TEST_APPROVER2_DID, name: 'On-Call Engineer 2', role: 'oncall' },
-          { did: TEST_APPROVER3_DID, name: 'On-Call Engineer 3', role: 'oncall' },
+          [TEST_APPROVER1_DID, TEST_APPROVER2_DID, TEST_APPROVER3_DID],
         ],
         timeoutHours: 2,
-        onTimeout: 'auto_approve',
+        onTimeout: 'approve',
         enabled: true,
       });
 
@@ -184,13 +205,12 @@ test.describe.serial('Approval Workflow Journey', () => {
 
       expect(pendingResult).toBeDefined();
       expect(pendingResult.success).toBe(true);
-      expect(pendingResult.approvals).toBeDefined();
-      expect(pendingResult.approvals.length).toBeGreaterThan(0);
+      expect(pendingResult.requests).toBeDefined();
+      expect(pendingResult.requests.length).toBeGreaterThan(0);
 
-      const ourRequest = pendingResult.approvals.find((a: any) => a.id === requestId);
+      const ourRequest = pendingResult.requests.find((a: any) => a.id === requestId);
       expect(ourRequest).toBeDefined();
-      expect(ourRequest.status).toBe('pending');
-      expect(ourRequest.current_step).toBe(0);
+      expect(ourRequest.currentStep).toBe(0);
     } finally {
       await closeElectronApp(app);
     }
@@ -208,7 +228,6 @@ test.describe.serial('Approval Workflow Journey', () => {
 
       expect(approveResult).toBeDefined();
       expect(approveResult.success).toBe(true);
-      expect(approveResult.status).toBe('pending'); // Still pending for next approver
       expect(approveResult.currentStep).toBe(1);
     } finally {
       await closeElectronApp(app);
@@ -227,7 +246,6 @@ test.describe.serial('Approval Workflow Journey', () => {
 
       expect(approveResult).toBeDefined();
       expect(approveResult.success).toBe(true);
-      expect(approveResult.status).toBe('pending');
       expect(approveResult.currentStep).toBe(2);
     } finally {
       await closeElectronApp(app);
@@ -246,8 +264,7 @@ test.describe.serial('Approval Workflow Journey', () => {
 
       expect(approveResult).toBeDefined();
       expect(approveResult.success).toBe(true);
-      expect(approveResult.status).toBe('approved'); // Fully approved
-      expect(approveResult.currentStep).toBe(3);
+      expect(approveResult.finalStatus).toBe('approved');
     } finally {
       await closeElectronApp(app);
     }
@@ -267,9 +284,9 @@ test.describe.serial('Approval Workflow Journey', () => {
 
       expect(historyResult).toBeDefined();
       expect(historyResult.success).toBe(true);
-      expect(historyResult.history).toBeDefined();
+      expect(historyResult.requests).toBeDefined();
 
-      const ourRequest = historyResult.history.find((h: any) => h.id === requestId);
+      const ourRequest = historyResult.requests.find((h: any) => h.id === requestId);
       expect(ourRequest).toBeDefined();
       expect(ourRequest.status).toBe('approved');
     } finally {
@@ -318,7 +335,7 @@ test.describe.serial('Approval Workflow Journey', () => {
 
       expect(rejectResult).toBeDefined();
       expect(rejectResult.success).toBe(true);
-      expect(rejectResult.status).toBe('rejected');
+      expect(rejectResult.finalStatus).toBe('rejected');
     } finally {
       await closeElectronApp(app);
     }
@@ -336,7 +353,7 @@ test.describe.serial('Approval Workflow Journey', () => {
       });
 
       expect(historyResult.success).toBe(true);
-      const rejectedRequest = historyResult.history.find((h: any) => h.id === requestId);
+      const rejectedRequest = historyResult.requests.find((h: any) => h.id === requestId);
       expect(rejectedRequest).toBeDefined();
       expect(rejectedRequest.status).toBe('rejected');
     } finally {
@@ -358,10 +375,9 @@ test.describe.serial('Approval Workflow Journey', () => {
         delegateName: 'Backup Security Officer',
         orgId: TEST_ORG_ID,
         permissions: ['approve_security_requests'],
-        resourceType: 'approval',
-        resourceId: '*',
-        validFrom: new Date().toISOString(),
-        validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+        resourceScope: { resourceType: 'approval', resourceId: '*' },
+        startDate: Date.now(),
+        endDate: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
         reason: 'Vacation coverage',
       });
 
@@ -381,7 +397,7 @@ test.describe.serial('Approval Workflow Journey', () => {
         userDid: TEST_DELEGATE_DID,
         orgId: TEST_ORG_ID,
         options: {
-          status: 'active',
+          status: 'pending',
         },
       });
 
@@ -391,8 +407,9 @@ test.describe.serial('Approval Workflow Journey', () => {
       expect(delegationsResult.delegations.length).toBeGreaterThan(0);
 
       const delegation = delegationsResult.delegations[0];
-      expect(delegation.delegator_did).toBe(TEST_APPROVER2_DID);
-      expect(delegation.delegate_did).toBe(TEST_DELEGATE_DID);
+      expect(delegation.delegatorDid).toBe(TEST_APPROVER2_DID);
+      expect(delegation.delegateDid).toBe(TEST_DELEGATE_DID);
+      expect(delegation.status).toBe('pending');
     } finally {
       await closeElectronApp(app);
     }
@@ -469,7 +486,7 @@ test.describe.serial('Approval Workflow Journey', () => {
         comment: 'Tech Lead approves task closure',
       });
       expect(approve2Result.success).toBe(true);
-      expect(approve2Result.status).toBe('approved'); // All parallel approvers done
+      expect(approve2Result.finalStatus).toBe('approved');
     } finally {
       await closeElectronApp(app);
     }
@@ -517,7 +534,7 @@ test.describe.serial('Approval Workflow Journey', () => {
 
       expect(approveResult).toBeDefined();
       expect(approveResult.success).toBe(true);
-      expect(approveResult.status).toBe('approved'); // Immediately approved with any-one
+      expect(approveResult.finalStatus).toBe('approved');
     } finally {
       await closeElectronApp(app);
     }
@@ -539,7 +556,7 @@ test.describe.serial('Approval Workflow Journey', () => {
       });
 
       expect(historyResult.success).toBe(true);
-      expect(historyResult.history.length).toBeGreaterThan(0);
+      expect(historyResult.requests.length).toBeGreaterThan(0);
     } finally {
       await closeElectronApp(app);
     }

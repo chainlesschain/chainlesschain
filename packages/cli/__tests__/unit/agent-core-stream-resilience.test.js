@@ -24,15 +24,38 @@ import {
 } from "../../src/runtime/agent-core.js";
 
 describe("formatProviderHttpError (actionable auth errors)", () => {
-  it("names the provider and points at the fix on 401/403", () => {
-    for (const status of [401, 403]) {
-      const msg = formatProviderHttpError("anthropic", status);
-      expect(msg).toContain("anthropic");
-      expect(msg).toContain(String(status));
-      expect(msg).toMatch(/authentication failed/i);
-      expect(msg).toContain("cc config get llm.provider");
-      expect(msg).toMatch(/differs from the one you configured/);
-    }
+  it("names the provider and points at the key fix on 401", () => {
+    const msg = formatProviderHttpError("anthropic", 401);
+    expect(msg).toContain("anthropic");
+    expect(msg).toContain("401");
+    expect(msg).toMatch(/authentication failed/i);
+    expect(msg).toContain("cc config get llm.provider");
+  });
+  it("does not misclassify a generic 403 as a bad API key", () => {
+    const msg = formatProviderHttpError("volcengine", 403);
+    expect(msg).toMatch(/access forbidden/i);
+    expect(msg).toMatch(/model access permissions/i);
+    expect(msg).toMatch(/account status\/balance/i);
+    expect(msg).not.toMatch(/authentication failed/i);
+  });
+  it("preserves an overdue-account response and gives the billing action", () => {
+    const msg = formatProviderHttpError("volcengine", 403, {
+      error: {
+        code: "AccountOverdueError",
+        message:
+          "The request failed because your account has an overdue balance.",
+      },
+    });
+    expect(msg).toContain("AccountOverdueError");
+    expect(msg).toMatch(/overdue balance/i);
+    expect(msg).toMatch(/account balance\/billing status/i);
+    expect(msg).not.toMatch(/authentication failed/i);
+  });
+  it("still classifies a provider-confirmed invalid-key 403 as auth", () => {
+    const msg = formatProviderHttpError("volcengine", 403, {
+      error: { code: "InvalidApiKey", message: "Invalid API key" },
+    });
+    expect(msg).toMatch(/authentication failed/i);
   });
   it("flags rate limiting on 429 and is terse otherwise", () => {
     expect(formatProviderHttpError("volcengine", 429)).toMatch(/rate limited/i);

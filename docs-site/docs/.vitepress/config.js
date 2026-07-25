@@ -173,7 +173,7 @@ export default defineConfig({
           text: "⭐ 最新功能（Claude Code 平价）",
           items: [
             {
-              text: "Agent SDK — TypeScript 接入套件 ⭐NEW",
+              text: "Agent SDK — TypeScript + Python ⭐NEW",
               link: "/chainlesschain/agent-sdk",
             },
             {
@@ -217,7 +217,7 @@ export default defineConfig({
               link: "/chainlesschain/cli-background-agents",
             },
             {
-              text: "当前 CLI Runtime 实现 (0.162.175) ⭐NEW",
+              text: "当前 CLI Runtime 实现 (0.162.177) ⭐NEW",
               link: "/chainlesschain/cli-runtime-current",
             },
             {
@@ -1775,6 +1775,10 @@ export default defineConfig({
             {
               text: "78 CLI Agent Runtime重构计划 ⭐",
               link: "/design/modules/78-cli-agent-runtime",
+            },
+            {
+              text: "CLI Runtime 当前实现核对 (0.162.177) ⭐NEW",
+              link: "/design/cli-runtime-current",
             },
             {
               text: "79 Coding Agent系统 ⭐",

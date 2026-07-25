@@ -18,6 +18,9 @@ const VOLATILE_KEYS = new Set([
   "updatedAt",
   "duration",
   "durationMs",
+  "permission_decision_id",
+  "tool_use_id",
+  "turn_id",
   "toolTelemetryRecord",
 ]);
 

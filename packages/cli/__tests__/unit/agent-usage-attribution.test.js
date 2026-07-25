@@ -29,6 +29,16 @@ vi.mock("../../src/lib/sub-agent-context.js", () => {
       completedAt: null,
       _opts: opts,
       _signal: opts.signal || null,
+      recoveryBinding: vi.fn(() => ({
+        childAgentId: ctx.id,
+        parentAgentId: opts.parentId || null,
+        traceId: null,
+        parentTraceId: opts.hookParentTraceId || null,
+        checkpointIds: [],
+        toolUseIds: [],
+        worktreeId: null,
+        worktreePath: null,
+      })),
       forceComplete: vi.fn(function (reason) {
         ctx.status = "completed";
         if (!ctx.result) {

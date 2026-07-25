@@ -26,7 +26,7 @@ import { EventEmitter } from "node:events";
 import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
-import fs from "node:fs";
+import * as fs from "node:fs";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
@@ -422,10 +422,7 @@ class ProcessExecutionBroker extends EventEmitter {
       return;
     }
 
-    if (
-      postSpawnResult &&
-      typeof postSpawnResult.then === "function"
-    ) {
+    if (postSpawnResult && typeof postSpawnResult.then === "function") {
       if (this._sandboxStrictEnabled()) {
         Promise.resolve(postSpawnResult).catch(() => {});
         if (typeof proc.once === "function") proc.once("error", () => {});
@@ -856,12 +853,9 @@ class ProcessExecutionBroker extends EventEmitter {
     // P0-1: Platform sandbox wrapping (sync path)
     let sandboxPlan;
     try {
-      sandboxPlan = this._prepareSandboxPlan(
-        command,
-        args || [],
-        spawnOpts,
-        { sync: true },
-      );
+      sandboxPlan = this._prepareSandboxPlan(command, args || [], spawnOpts, {
+        sync: true,
+      });
     } catch (sandboxErr) {
       if (this._sandboxStrictEnabled()) {
         this._recordSandboxDenial(auditEntry, sandboxErr, startTime);
@@ -881,11 +875,7 @@ class ProcessExecutionBroker extends EventEmitter {
     command = sandboxPlan.command;
     args = [...sandboxPlan.args];
     const optsForSync = { ...sandboxPlan.options };
-    this._applySandboxAudit(
-      auditEntry,
-      sandboxPlan,
-      sandboxPlan.applied,
-    );
+    this._applySandboxAudit(auditEntry, sandboxPlan, sandboxPlan.applied);
 
     const nativeSpawnSyncFn = this._native?.spawnSync || nativeSpawnSync;
     try {

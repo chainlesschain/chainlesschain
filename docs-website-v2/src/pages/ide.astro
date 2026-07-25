@@ -10,7 +10,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
     <div class="container-wide relative pt-20 pb-20 md:pt-28 md:pb-24">
       <div class="max-w-4xl">
-        <div class="chip mb-6 animate-fade-in">IDE 集成 · VS Code + JetBrains 双扩展已上架</div>
+        <div class="chip mb-6 animate-fade-in">IDE 集成 · VS Code 0.37.31（Open VSX）+ JetBrains</div>
         <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
           agent 进编辑器：<br/><span class="italic text-ember">看你所看，改你所审</span>。
         </h1>
@@ -23,6 +23,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           <a href="https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge" rel="noopener" target="_blank" class="btn-ghost">JetBrains Marketplace ↗</a>
           <a href="https://docs.chainlesschain.com/chainlesschain/ide-bridge.html" rel="noopener" class="btn-ghost">完整文档 ↗</a>
         </div>
+        <p class="mt-5 text-sm text-muted">
+          当前 VS Code 版 <strong class="text-ink">0.37.31</strong> 已在 Open VSX 上架，并完成与 CLI <strong class="text-ink">0.162.177</strong> 的兼容夹具对齐；桥接协议与最低 CLI 版本不变。
+        </p>
       </div>
     </div>
   </section>
@@ -91,8 +94,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <div class="max-w-3xl">
         <h2 class="text-3xl md:text-4xl mb-6 font-display">两步装好</h2>
         <ol class="space-y-4 text-muted leading-relaxed">
-          <li><strong class="text-ink">1. 装 CLI：</strong><code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">npm i -g chainlesschain</code>（≥ 0.162.47，<code class="font-mono text-sm">cc ide doctor</code> 可诊断连接）</li>
-          <li><strong class="text-ink">2. 装扩展：</strong>VSCodium / Cursor 等在扩展面板搜 <strong class="text-ink">ChainlessChain IDE</strong>（Open VSX）；IDEA / PyCharm / WebStorm 在 Settings → Plugins → Marketplace 搜同名（2024.2+）。官方版 VS Code 暂未上架 Marketplace，可从源码打 .vsix 本地装。</li>
+          <li><strong class="text-ink">1. 装 CLI：</strong><code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">npm i -g chainlesschain</code>（推荐当前 <code class="font-mono text-sm">0.162.177</code>，桥接最低 <code class="font-mono text-sm">0.162.47</code>；<code class="font-mono text-sm">cc ide doctor</code> 可诊断连接）</li>
+          <li><strong class="text-ink">2. 装扩展：</strong>VSCodium / Cursor 等在扩展面板搜 <strong class="text-ink">ChainlessChain IDE</strong>（Open VSX 当前 <code class="font-mono text-sm">0.37.31</code>）；IDEA / PyCharm / WebStorm 在 Settings → Plugins → Marketplace 搜同名（2024.2+）。官方版 VS Code 暂未上架 Marketplace，可从 Open VSX 页面下载 <code class="font-mono text-sm">.vsix</code> 本地安装。</li>
         </ol>
         <p class="mt-6 text-sm text-muted">
           安全默认：server 仅绑定 localhost + 每实例随机 Bearer token + 锁文件 0600；CLI 端 <code class="font-mono text-xs">--no-ide</code> / <code class="font-mono text-xs">CC_IDE_CONTEXT=0</code> / <code class="font-mono text-xs">CC_IDE_DIFF_APPROVAL=0</code> 随时关闭对应行为。

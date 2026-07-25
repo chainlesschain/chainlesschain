@@ -19,18 +19,21 @@ name: ESM require() Audit (hard gate, trap #33)
 #   scripts/__tests__/audit-esm-require.test.mjs
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
-      - 'packages/cli/src/**'
-      - 'scripts/audit-esm-require.mjs'
-      - 'scripts/__tests__/audit-esm-require.test.mjs'
-      - '.github/workflows/esm-require-audit.yml'
+      - "packages/cli/src/**"
+      - "scripts/audit-esm-require.mjs"
+      - "scripts/__tests__/audit-esm-require.test.mjs"
+      - ".github/workflows/esm-require-audit.yml"
   push:
     branches:
       - main
     paths:
-      - 'packages/cli/src/**'
-      - 'scripts/audit-esm-require.mjs'
+      - "packages/cli/src/**"
+      - "scripts/audit-esm-require.mjs"
+      - "scripts/__tests__/audit-esm-require.test.mjs"
+      - ".github/workflows/esm-require-audit.yml"
 
 permissions:
   contents: read
@@ -43,17 +46,19 @@ jobs:
   audit:
     name: Bare CJS globals in ESM (mandatory)
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Install audit parser deps
         # acorn + eslint-scope are dev tooling for the audit only; install them
-        # standalone (no workspace lifecycle scripts / native builds).
-        run: npm install acorn eslint-scope --no-save --no-audit --no-fund --no-package-lock --legacy-peer-deps
+        # beneath scripts/ so npm never resolves the monorepo workspaces or
+        # native desktop dependencies. Node's ESM resolver finds this nearest
+        # node_modules directory from scripts/audit-esm-require.mjs.
+        run: npm install --prefix scripts acorn eslint-scope --no-save --no-audit --no-fund --no-package-lock --ignore-scripts
 
       - name: Run audit unit tests
         run: node --test scripts/__tests__/audit-esm-require.test.mjs

@@ -17,7 +17,7 @@
 
 import os from "node:os";
 import path from "node:path";
-import fs from "node:fs";
+import * as fs from "node:fs";
 import crypto from "node:crypto";
 const DEFAULT_RUNTIME = Object.freeze({
   platform: os.platform(),
@@ -31,6 +31,36 @@ const DEFAULT_RUNTIME = Object.freeze({
 
 function resolveRuntime(overrides = {}) {
   return { ...DEFAULT_RUNTIME, ...overrides };
+}
+
+/**
+ * A native `spawn(..., { shell: true })` asks Node to execute one command
+ * string through the platform shell. Once a sandbox wrapper becomes the
+ * executable, leaving `shell: true` makes the host shell parse the wrapper
+ * argv instead, and the original command is no longer one atomic `-c`
+ * payload. Linux `prlimit` then tries to exec a file literally named
+ * "node script.js"; macOS Seatbelt has the same ambiguity.
+ *
+ * Materialize the requested POSIX shell before adding either wrapper. The
+ * sandbox executable itself is always spawned directly.
+ */
+function normalizeWrappedInvocation(command, args, spawnOpts, platform) {
+  if (!spawnOpts?.shell || platform === "win32") {
+    return {
+      command,
+      args: [...(args || [])],
+      options: { ...(spawnOpts || {}) },
+    };
+  }
+
+  const shell =
+    typeof spawnOpts.shell === "string" ? spawnOpts.shell : "/bin/sh";
+  const shellCommand = [command, ...(args || [])].map(String).join(" ");
+  return {
+    command: shell,
+    args: ["-c", shellCommand],
+    options: { ...spawnOpts, shell: false },
+  };
 }
 
 /**
@@ -160,17 +190,36 @@ export function applyMacSandbox(
   runtimeOverrides = {},
 ) {
   const runtime = resolveRuntime(runtimeOverrides);
+  const invocation = normalizeWrappedInvocation(
+    command,
+    args,
+    spawnOpts,
+    runtime.platform,
+  );
   const base = {
     platform: runtime.platform,
     profile: sandboxOpts.profileName || "default",
     command,
     args,
-    options: spawnOpts,
+    options: { ...(spawnOpts || {}) },
   };
   if (runtime.platform !== "darwin") {
     return createSandboxPlan({
       ...base,
       reason: "platform_mismatch",
+    });
+  }
+
+  // A deny-by-default Seatbelt profile cannot safely infer the filesystem,
+  // IPC, and inherited-descriptor access required by an arbitrary command.
+  // Keep the boundary truthful for the broker's implicit default profile:
+  // non-strict mode records the unavailable primitive and executes the
+  // original invocation, while strict mode fails closed. Explicit strict or
+  // network-only profiles still opt in to the sandbox-exec wrapper below.
+  if ((sandboxOpts.profileName || "default") === "default") {
+    return createSandboxPlan({
+      ...base,
+      reason: "macos_default_profile_requires_explicit_policy",
     });
   }
 
@@ -195,7 +244,7 @@ export function applyMacSandbox(
   runtime.fs.writeFileSync(profilePath, profileContent, { mode: 0o600 });
 
   // Wrap command with sandbox-exec
-  const newArgs = ["-f", profilePath, command, ...args];
+  const newArgs = ["-f", profilePath, invocation.command, ...invocation.args];
 
   return createSandboxPlan({
     ...base,
@@ -203,6 +252,7 @@ export function applyMacSandbox(
     enforcement: "macos-seatbelt",
     command: sandboxExecutable,
     args: newArgs,
+    options: invocation.options,
     cleanup: () => {
       try {
         runtime.fs.unlinkSync(profilePath);
@@ -301,12 +351,18 @@ export function applyLinuxSandbox(
   runtimeOverrides = {},
 ) {
   const runtime = resolveRuntime(runtimeOverrides);
+  const invocation = normalizeWrappedInvocation(
+    command,
+    args,
+    spawnOpts,
+    runtime.platform,
+  );
   const base = {
     platform: runtime.platform,
     profile: sandboxOpts.profileName || "default",
     command,
     args,
-    options: spawnOpts,
+    options: { ...(spawnOpts || {}) },
   };
   if (runtime.platform !== "linux") {
     return createSandboxPlan({
@@ -337,9 +393,9 @@ export function applyLinuxSandbox(
   }
 
   const options = {
-    ...spawnOpts,
+    ...invocation.options,
     env: {
-      ...(spawnOpts.env || process.env),
+      ...(invocation.options.env || process.env),
       CHAINLESS_SANDBOXED: "1",
     },
   };
@@ -349,7 +405,7 @@ export function applyLinuxSandbox(
     applied: true,
     enforcement: "linux-prlimit",
     command: "/usr/bin/prlimit",
-    args: [...prlimitParts, "--", command, ...args],
+    args: [...prlimitParts, "--", invocation.command, ...invocation.args],
     options,
   });
 }
@@ -382,9 +438,11 @@ export function applySandbox(
       allowRead: [runtime.homedir(), "/tmp"],
       allowWrite: [runtime.tmpdir()],
       limits: {
+        // RLIMIT_NPROC is intentionally omitted. Linux applies it per real
+        // user ID rather than to this child tree, so it can starve unrelated
+        // CI workers and prevent Node from creating its own helper threads.
         cpu: 30, // seconds
         nofile: 256,
-        nproc: 64,
       },
     },
     strict: {
@@ -396,7 +454,6 @@ export function applySandbox(
         cpu: 10,
         as: 256 * 1024 * 1024, // 256MB address space
         nofile: 64,
-        nproc: 8,
       },
     },
     "network-only": {
@@ -407,7 +464,6 @@ export function applySandbox(
       limits: {
         cpu: 60,
         nofile: 512,
-        nproc: 128,
       },
     },
   };

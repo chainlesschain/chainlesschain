@@ -446,7 +446,21 @@ public final class PureLogicSmokeMain {
         // looksLikeLlmConfigError: nudge to the wizard only on auth/key failures.
         check(LlmConfig.looksLikeLlmConfigError("Anthropic error: 401"), "401 -> config error");
         check(LlmConfig.looksLikeLlmConfigError("ANTHROPIC_API_KEY required"), "api key -> config error");
-        check(LlmConfig.looksLikeLlmConfigError("403 Forbidden"), "403 -> config error");
+        check(
+            LlmConfig.looksLikeLlmConfigError(
+                "HTTP 403 — authentication failed: API key missing or invalid"),
+            "confirmed auth 403 -> config error");
+        check(
+            !LlmConfig.looksLikeLlmConfigError("403 Forbidden"),
+            "bare 403 -> not necessarily config error");
+        check(
+            !LlmConfig.looksLikeLlmConfigError(
+                "HTTP 403 — AccountOverdueError: overdue balance"),
+            "billing 403 -> not config error");
+        check(
+            !LlmConfig.looksLikeLlmConfigError(
+                "HTTP 403 — check model access permissions"),
+            "model-access 403 -> not config error");
         check(!LlmConfig.looksLikeLlmConfigError("network timeout"), "network -> not config error");
         check(!LlmConfig.looksLikeLlmConfigError(null), "null -> not config error");
 

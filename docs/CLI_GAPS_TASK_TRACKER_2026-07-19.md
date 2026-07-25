@@ -4,7 +4,8 @@
 > 创建日期：2026-07-19
 > 当前 CLI 版本：`0.162.177`
 > 状态：P0-2 当前 turn 交互核心已完成；P0-1 Broker/凭据/macOS 核心已落地，
-> Windows 原生强边界与静态进程清单收口仍在进行；P1-12 双语言 SDK 已完成
+> Windows 原生强边界与静态进程清单收口仍在进行；P1-12 双语言 SDK 已完成，
+> Python SDK 0.1.0 已发布 PyPI
 > 最后更新：2026-07-24（按当前源码与生成清单复核）
 
 ---
@@ -183,7 +184,7 @@
 | P1-9  | Plugin 安全强化      | 🟡 OS secret + Broker provenance 已补       | 签名/manifest SHA-256、trusted key、安装后 SBOM 文件摘要、capability consent、managed allow/deny、DPAPI/Keychain/Secret Service、插件 MCP/LSP/Hook/Monitor/Bin 与 Agent `run_skill` Broker 门面已有；Desktop Plugin Loader 的依赖探测/安装/解压已去 shell 并携带 plugin source；原生模块和外部宿主全路径仍待补 |
 | P1-10 | 并发状态 fail-closed | 🟡 关键调度/会话状态已补                    | `withFileLock(failIfUnavailable)` + Agenda claim lease、Event Runtime 与 JSONL session append 已 fail-closed；approval/部分 ledger/IDE session 状态仍待统一迁移                                                                                                                                  |
 | P1-11 | JSON Schema 完整支持 | 🟡 常用 vocabulary + external registry 已补 | Draft 2020-12 常用关键字、dependent/pattern/contains/propertyNames、local `$ref`、显式 external schema registry、组合/条件、format、structured_result 已有；完整 meta-vocabulary、自动远程 ref 与复杂互操作仍待补                                                                                |
-| P1-12 | SDK/CI 事件透传      | ✅ 已完成                                   | TypeScript + Python SDK 已覆盖契约中的 22 类 typed stream 事件、approval/question/MCP elicitation callback、resume 与未知事件无损透传；共享 protocol fixture、穷举 CI consumer、GitHub Actions 模板及 21 项 hermetic 测试已补                                                                    |
+| P1-12 | SDK/CI 事件透传      | ✅ 已完成并发布 Python 0.1.0                | TypeScript + Python SDK 已覆盖契约中的 22 类 typed stream 事件、approval/question/MCP elicitation callback、resume 与未知事件无损透传；共享 protocol fixture、穷举 CI consumer、GitHub Actions 模板及 21 项 hermetic 测试已补；Python 包已通过 Trusted Publishing 发布 PyPI，并在 3.10/3.12/3.13 上完成公网 wheel 安装烟测 |
 | P1-13 | 验收门与文档清理     | ✅ 已完成                                   | 统一 parity 10/10；旧文档持续维护                                                                                                                                                                                                                                                                |
 
 **2026-07-24 P1-5 进度**：三端表单已覆盖 MCP form elicitation 规定的受限 schema：
@@ -252,7 +253,7 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 
 - [x] **P0-1 Broker async/sync/PTY 凭据边界 + macOS Seatbelt/Linux 执行计划**
 - [x] **P0-2 CLI 当前 turn 提问/回答/继续核心链**
-- [x] **P1-12 TypeScript/Python SDK、共享 fixture 与 GitHub Actions 示例**
+- [x] **P1-12 TypeScript/Python SDK、共享 fixture、GitHub Actions 示例与 Python 0.1.0 PyPI 发布**
 - [x] **2026-07-21 历史主仓验证**：当时的 Code Quality、CI Tests、E2E Tests 与 Full Test Automation 通过；不替代当前剩余严格隔离验收
 - [x] Notification Hook 事件（2026-07-20）
 - [x] M0: `process-execution-broker` 单例 + spawn 审计清单

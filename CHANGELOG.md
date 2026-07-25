@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — cc CLI 0.162.178 + IDE provider 403 diagnosis hotfix
+
+- Preserve structured provider error codes/messages for failed LLM requests and
+  `cc llm test`, with credential-shaped text redacted before display.
+- Do not classify every HTTP 403 as an invalid API key: overdue accounts,
+  billing failures, and model-access denials now retain their real corrective
+  action in CLI, VS Code, and JetBrains.
+- Release VS Code 0.37.33 and JetBrains 0.4.70 with corrected setup guidance.
+
+## [v5.0.3.135] - 2026-07-24 — Python Agent SDK 0.1.0 + CLI/IDE 运行时收口 + 跨端 CI 稳定性
+
+> 本版汇总 v5.0.3.134 之后的 Python Agent SDK 首发、CLI/IDE 运行时收口、桌面端项目管理与审批链路修复，以及跨 Android、Electron、Node.js 和 Python 的 CI 稳定性治理。
+
+### Release hardening
+
+- **Python Agent SDK**：`chainlesschain-agent-sdk==0.1.0` 已通过 PyPI Trusted Publishing 发布，并由 Python 3.10、3.12、3.13 公网安装矩阵验证。
+- **桌面项目管理**：修复团队任务查询/删除路由、异步数据库解析、SQL.js fallback 持久化、审批工作流契约与测试登录稳定性；项目管理旅程、错误场景、性能压力和审批工作流矩阵全部通过。
+- **跨平台 CI**：修复 Android 合并标记、断言与并发审计写入问题，恢复 Electron 渲染器与 E2E 初始化路径，并为 Windows CLI 全局安装保留原生依赖解析所需的 runner 波动余量。
+- **发布门禁**：CI Tests、Code Quality & Security、三平台 Electron E2E、Full Test Automation、Project Management E2E、Android 四套工作流、CLI CI、ESM 审计与文档生成均已验证成功。
+
+### Version sync
+
+- productVersion `v5.0.3.134` → `v5.0.3.135`
+- desktop-app-vue `5.0.3-alpha.134` → `5.0.3-alpha.135`
+- Android `versionCode 503134` → `503135` / `versionName 5.0.3.134` → `5.0.3.135`
+- iOS `CFBundleVersion 134` → `135`
+
+### Added — Python Agent SDK 0.1.0：PyPI Trusted Publishing 首发 + 公网安装矩阵
+
+> `chainlesschain-agent-sdk==0.1.0` 已发布到 PyPI，支持 Python 3.10–3.13、零运行时依赖，与 TypeScript SDK 共用 Agent Protocol v1 和 canonical NDJSON fixtures。
+
+- **可信发布链**：`python-agent-sdk-v0.1.0` tag 触发独立 build/publish 作业；发布作业仅持有 PyPI OIDC `id-token: write`，不保存长期 API token。
+- **发布前验证**：校验 tag 与包版本一致，执行 21 项 hermetic 测试、跨语言 fixture 回放、wheel/sdist 构建、`twine check`，并在隔离 venv 安装 wheel 后校验版本与公共 API。
+- **发布后验证**：独立 PyPI smoke workflow 强制从公开索引仅安装 wheel；Python 3.10、3.12、3.13 全部通过 metadata、`__version__` 与 `AgentSession` 导入检查。
+- **入口**：[PyPI 项目页](https://pypi.org/project/chainlesschain-agent-sdk/) · [发布工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/30065060091) · [公网安装矩阵](https://github.com/chainlesschain/chainlesschain/actions/runs/30065341896)
+
 ### Fixed — cc CLI 0.162.177：技能生成子进程统一纳入 Process Broker（CLI-only npm 发版）
 
 > `chainlesschain` 0.162.176 → **0.162.177**（2026-07-23）。本版把 CLI-Anything 与 CLI 技能包生成器的同步子进程执行统一收进宿主 Process Broker，补齐技能执行链路最后一处直接 `child_process` 入口。

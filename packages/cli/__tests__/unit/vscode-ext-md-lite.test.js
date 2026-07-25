@@ -110,12 +110,14 @@ describe("embedding constraints", () => {
     expect(src.toLowerCase().includes("</script")).toBe(false);
   });
 
-  it("ALL embedded webview scripts parse (md-lite + at-mention + slash + main)", () => {
+  it("ALL embedded webview scripts parse and helpers precede main", () => {
     const page = buildChatHtml({ cspSource: "x:", nonce: "N" });
     const scripts = [
       ...page.matchAll(/<script nonce="N">([\s\S]*?)<\/script>/g),
     ];
-    expect(scripts.length).toBe(4);
+    // New independent webview features may add nonce-protected scripts. Keep
+    // the minimum helper contract while parsing every script that is present.
+    expect(scripts.length).toBeGreaterThanOrEqual(4);
     for (const [, body] of scripts) {
       expect(() => new Function(body)).not.toThrow();
     }

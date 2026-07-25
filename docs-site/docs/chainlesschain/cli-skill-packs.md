@@ -1,6 +1,8 @@
 # CLI 指令技能包系统
 
 > **v5.0.1.9 新增** — 将 62 个 CLI 指令按功能域自动封装为 **9 个 Agent 可调用技能包**，实现 Agent 对 CLI 指令的结构化感知与智能调用。
+>
+> **CLI 0.162.177 安全更新** — direct/hybrid 生成 handler 已统一经宿主 Process Broker 执行，不再直接导入 `child_process`。升级后建议运行一次 `chainlesschain skill sync-cli --force` 重新生成本地技能包。
 
 ## 概述
 
@@ -50,12 +52,12 @@ chainlesschain skill run cli-infra-pack "status"
 
 ## 执行模式说明
 
-| 模式           | 标识        | 行为                                        | 适用场景                  |
-| -------------- | ----------- | ------------------------------------------- | ------------------------- |
-| **直接执行**   | `direct`    | `spawnSync` 调用 CLI 子进程，返回 JSON 结果 | 绝大多数指令，无需 LLM    |
-| **LLM 查询**   | `llm-query` | 单次非交互式 LLM 调用                       | ask、llm 等 AI 查询指令   |
-| **Agent 模式** | `agent`     | 不执行！返回如何在终端运行的使用说明        | chat、agent 等交互式 REPL |
-| **混合模式**   | `hybrid`    | 大部分直接执行，少量指令路由到 Agent 模式   | 集成扩展包                |
+| 模式           | 标识        | 行为                                           | 适用场景                  |
+| -------------- | ----------- | ---------------------------------------------- | ------------------------- |
+| **直接执行**   | `direct`    | 经宿主 Process Broker 调用 CLI，返回 JSON 结果 | 绝大多数指令，无需 LLM    |
+| **LLM 查询**   | `llm-query` | 单次非交互式 LLM 调用                          | ask、llm 等 AI 查询指令   |
+| **Agent 模式** | `agent`     | 不执行！返回如何在终端运行的使用说明           | chat、agent 等交互式 REPL |
+| **混合模式**   | `hybrid`    | 大部分直接执行，少量指令路由到 Agent 模式      | 集成扩展包                |
 
 ### 为什么 Agent 模式包不直接执行？
 
@@ -209,7 +211,7 @@ handler: handler.js
 │  ├─ cli-identity-pack         ├─ readExistingHash() 读取已有哈希     │
 │  ├─ cli-infra-pack            ├─ generateSkillMd() 生成 SKILL.md    │
 │  ├─ cli-ai-query-pack         └─ generate*Handler() 生成 handler.js │
-│  ├─ cli-agent-mode-pack           ├─ DirectHandler (spawnSync)      │
+│  ├─ cli-agent-mode-pack           ├─ DirectHandler (Process Broker) │
 │  ├─ cli-web3-pack                 ├─ AgentHandler (返回使用说明)     │
 │  ├─ cli-security-pack             └─ HybridHandler (混合路由)       │
 │  ├─ cli-enterprise-pack                    │                        │
@@ -225,6 +227,8 @@ handler: handler.js
 **数据流**: `schema.js` 定义 9 个域 (指令分组 + 执行模式) → `generator.js` 逐域计算 SHA-256 哈希，比对已有文件 → 变化时生成 SKILL.md + handler.js → 写入 workspace 层技能目录 → `skill-loader` 在 Agent 会话启动时自动加载
 
 **哈希算法**: `SHA-256(PACK_SCHEMA_VERSION | CLI版本 | 域Key | 排序后指令列表)[0:16]`，任一因子变化即触发重新生成。
+
+**执行链路（0.162.177+）**: `skill run` / Agent `run_skill` → 宿主根据技能的 `shell-exec` capability 创建冻结 facade → handler 调用 `processBroker.runSync("chainlesschain", argv, options)` → Process Broker 追加不可伪造的 skill/plugin 来源并执行。缺少 facade 时 handler 返回错误，不会退回直接子进程。
 
 ## 配置参考
 
@@ -309,6 +313,18 @@ chainlesschain skill run cli-knowledge-pack "chainlesschain note list"
 
 确认 `packages/cli/package.json` 的 `scripts.postinstall` 配置正确，且全局安装时 npm 有权限写入技能目录。
 
+### 报错 “Process Broker unavailable for skill execution”
+
+这表示技能 handler 没有从受支持的 CLI/Agent 宿主获得进程 facade。不要修改生成文件绕过检查：
+
+```bash
+npm i -g chainlesschain@latest
+chainlesschain skill sync-cli --force
+chainlesschain skill run cli-infra-pack "status"
+```
+
+自定义宿主必须使用 ChainlessChain 的技能加载/执行入口，并为声明 `capabilities: [shell-exec]` 的技能注入 Broker；直接 `require()` 后调用生成的 handler 会按设计拒绝执行。
+
 ## 测试覆盖率
 
 ```
@@ -326,22 +342,25 @@ packages/cli/__tests__/unit/
 
 ## 安全考虑
 
-- **同权限执行**: 技能包通过 `spawnSync("chainlesschain", args)` 调用 CLI 子进程，以当前用户权限运行，无特权提升
+- **宿主控制执行**: handler 只能调用冻结的 `processBroker` facade；`origin=skill:<id>`、`scope=skill` 与插件来源由宿主写入，不能被技能覆盖
+- **同权限执行**: Process Broker 以当前用户权限运行 `chainlesschain` 子进程，无特权提升
 - **指令白名单**: 每个 handler.js 内置 `VALID_COMMANDS` Set，只允许该域定义的指令通过，输入的第一个词必须匹配白名单
-- **Shell 注入防护**: 输入通过自定义 tokenizer 解析（处理单引号/双引号），拆分为参数数组后传给 `spawnSync`，不进行 shell 字符串拼接
+- **Shell 注入防护**: 输入通过 tokenizer 拆成 argv，并拒绝 `;`、`&`、`|`、`` ` ``、`$`、`<`、`>`、`(`、`)` 与换行。Windows 为运行 `.cmd` shim 可显式使用 `shell:true`，因此这道字符校验不可移除
+- **Fail closed**: 未声明 `shell-exec` 或宿主未注入 Broker 时，handler 返回 `Process Broker unavailable`，不会退回 `child_process`
 - **超时保护**: 所有子进程设置 30 秒超时 (`timeout: 30000`)
 - **无远程代码执行**: 技能包仅包装本地 CLI 指令，不涉及远程服务器调用或代码下载
 - **可审计**: 生成的 handler.js 包含 "自动生成 -- 请勿手动修改" 注释，所有生成/删除操作可通过 `sync-cli --dry-run` 预览
 
 ## 关键文件
 
-| 文件                                             | 说明                                                                        |
-| ------------------------------------------------ | --------------------------------------------------------------------------- |
-| `packages/cli/src/lib/skill-packs/schema.js`     | 9 域定义（`CLI_PACK_DOMAINS`）、执行模式说明、Agent 模式指令集、schema 版本 |
-| `packages/cli/src/lib/skill-packs/generator.js`  | 包生成器（哈希计算、SKILL.md 生成、三种 handler 模板、批量生成/检查/删除）  |
-| `packages/cli/src/commands/skill.js`             | `sync-cli` 子命令注册入口                                                   |
-| `~/.chainlesschain/skills/cli-*-pack/SKILL.md`   | 生成的技能元数据（含 `execution-mode`、`cli-version-hash` 扩展字段）        |
-| `~/.chainlesschain/skills/cli-*-pack/handler.js` | 生成的执行处理器（CJS，DirectHandler/AgentHandler/HybridHandler 三种模板）  |
+| 文件                                             | 说明                                                                         |
+| ------------------------------------------------ | ---------------------------------------------------------------------------- |
+| `packages/cli/src/lib/skill-packs/schema.js`     | 9 域定义（`CLI_PACK_DOMAINS`）、执行模式说明、Agent 模式指令集、schema 版本  |
+| `packages/cli/src/lib/skill-packs/generator.js`  | 包生成器（哈希计算、SKILL.md 生成、Broker handler 模板、批量生成/检查/删除） |
+| `packages/cli/src/lib/skill-process-broker.js`   | 宿主创建技能专用、冻结且带权威来源的进程 facade                              |
+| `packages/cli/src/commands/skill.js`             | `sync-cli` 子命令注册入口                                                    |
+| `~/.chainlesschain/skills/cli-*-pack/SKILL.md`   | 生成的技能元数据（含 `execution-mode`、`cli-version-hash` 扩展字段）         |
+| `~/.chainlesschain/skills/cli-*-pack/handler.js` | 生成的执行处理器（CJS，DirectHandler/AgentHandler/HybridHandler 三种模板）   |
 
 ## 使用示例
 

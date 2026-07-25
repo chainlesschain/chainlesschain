@@ -2,6 +2,24 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.33] - Provider 403 diagnosis hotfix (2026-07-25)
+
+- Stop treating every provider HTTP 403 as an invalid API key.
+- Preserve billing/account and model-access guidance from the shared CLI, and
+  add a billing/permission caveat when an older CLI emits the legacy auth text.
+- Keep the Configure LLM card for confirmed key/authentication failures.
+
+## [0.37.32] - MCP elicitation and packaged schema (2026-07-24)
+
+- Render MCP form-elicitation requests directly in chat with the shared
+  restricted-schema compiler, typed controls, client-side validation, and
+  structured accept/decline/cancel replies.
+- Restrict lockfile permission downgrades to the branded managed-policy result;
+  caller-controlled booleans can no longer weaken owner-only publication.
+- Vendor the shared elicitation schema inside the VSIX so activation never
+  depends on a monorepo-only sibling path, and verify both source parity and
+  packaged presence before the Extension Host release gates run.
+
 ## [0.37.31] - CLI 0.162.177 compatibility release (2026-07-23)
 
 - Align the packaged compatibility fixtures with CLI 0.162.177, whose generated

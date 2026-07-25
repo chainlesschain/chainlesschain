@@ -167,7 +167,7 @@ function registerPermissionIPC(database) {
   ipcMain.handle("perm:check-permission", async (_event, params) => {
     try {
       const { getPermissionEngine } = require("./permission-engine");
-      const engine = getPermissionEngine(resolveDatabase(database));
+      const engine = getPermissionEngine(await resolveDatabase(database));
       return await engine.checkPermission(params);
     } catch (error) {
       logger.error("[IPC] perm:check-permission failed:", error);
@@ -178,7 +178,7 @@ function registerPermissionIPC(database) {
   ipcMain.handle("perm:get-user-permissions", async (_event, params) => {
     try {
       const { getPermissionEngine } = require("./permission-engine");
-      const engine = getPermissionEngine(resolveDatabase(database));
+      const engine = getPermissionEngine(await resolveDatabase(database));
       return await engine.getUserPermissions(params.userDid, params.orgId);
     } catch (error) {
       logger.error("[IPC] perm:get-user-permissions failed:", error);
@@ -189,7 +189,7 @@ function registerPermissionIPC(database) {
   ipcMain.handle("perm:get-resource-permissions", async (_event, params) => {
     try {
       const { getPermissionEngine } = require("./permission-engine");
-      const engine = getPermissionEngine(resolveDatabase(database));
+      const engine = getPermissionEngine(await resolveDatabase(database));
       return await engine.getResourcePermissions(
         params.orgId,
         params.resourceType,
@@ -224,7 +224,7 @@ function registerPermissionIPC(database) {
   ipcMain.handle("perm:inherit-permissions", async (_event, params) => {
     try {
       const { getPermissionEngine } = require("./permission-engine");
-      const engine = getPermissionEngine(resolveDatabase(database));
+      const engine = getPermissionEngine(await resolveDatabase(database));
       return await engine.inheritPermissions(params);
     } catch (error) {
       logger.error("[IPC] perm:inherit-permissions failed:", error);
@@ -235,7 +235,7 @@ function registerPermissionIPC(database) {
   ipcMain.handle("perm:get-effective-permissions", async (_event, params) => {
     try {
       const { getPermissionEngine } = require("./permission-engine");
-      const engine = getPermissionEngine(resolveDatabase(database));
+      const engine = getPermissionEngine(await resolveDatabase(database));
       return await engine.getEffectivePermissions(
         params.userDid,
         params.orgId,
@@ -257,7 +257,9 @@ function registerPermissionIPC(database) {
       const {
         getApprovalWorkflowManager,
       } = require("./approval-workflow-manager");
-      const manager = getApprovalWorkflowManager(resolveDatabase(database));
+      const manager = getApprovalWorkflowManager(
+        await resolveDatabase(database),
+      );
       const { orgId, ...options } = params || {};
       return await manager.getWorkflows(orgId, options);
     } catch (error) {
@@ -271,7 +273,9 @@ function registerPermissionIPC(database) {
       const {
         getApprovalWorkflowManager,
       } = require("./approval-workflow-manager");
-      const manager = getApprovalWorkflowManager(resolveDatabase(database));
+      const manager = getApprovalWorkflowManager(
+        await resolveDatabase(database),
+      );
       return await manager.createWorkflow(params);
     } catch (error) {
       logger.error("[IPC] perm:create-workflow failed:", error);
@@ -284,7 +288,9 @@ function registerPermissionIPC(database) {
       const {
         getApprovalWorkflowManager,
       } = require("./approval-workflow-manager");
-      const manager = getApprovalWorkflowManager(resolveDatabase(database));
+      const manager = getApprovalWorkflowManager(
+        await resolveDatabase(database),
+      );
       return await manager.updateWorkflow(params.workflowId, params.updates);
     } catch (error) {
       logger.error("[IPC] perm:update-workflow failed:", error);
@@ -297,7 +303,9 @@ function registerPermissionIPC(database) {
       const {
         getApprovalWorkflowManager,
       } = require("./approval-workflow-manager");
-      const manager = getApprovalWorkflowManager(resolveDatabase(database));
+      const manager = getApprovalWorkflowManager(
+        await resolveDatabase(database),
+      );
       return await manager.deleteWorkflow(params.workflowId);
     } catch (error) {
       logger.error("[IPC] perm:delete-workflow failed:", error);
@@ -310,7 +318,9 @@ function registerPermissionIPC(database) {
       const {
         getApprovalWorkflowManager,
       } = require("./approval-workflow-manager");
-      const manager = getApprovalWorkflowManager(resolveDatabase(database));
+      const manager = getApprovalWorkflowManager(
+        await resolveDatabase(database),
+      );
       params.requesterDid = resolveActorDid(params.requesterDid, {
         field: "requesterDid",
         channel: "perm:submit-approval",
@@ -327,7 +337,9 @@ function registerPermissionIPC(database) {
       const {
         getApprovalWorkflowManager,
       } = require("./approval-workflow-manager");
-      const manager = getApprovalWorkflowManager(resolveDatabase(database));
+      const manager = getApprovalWorkflowManager(
+        await resolveDatabase(database),
+      );
       params.approverDid = resolveActorDid(params.approverDid, {
         field: "approverDid",
         channel: "perm:approve-request",
@@ -348,7 +360,9 @@ function registerPermissionIPC(database) {
       const {
         getApprovalWorkflowManager,
       } = require("./approval-workflow-manager");
-      const manager = getApprovalWorkflowManager(resolveDatabase(database));
+      const manager = getApprovalWorkflowManager(
+        await resolveDatabase(database),
+      );
       params.approverDid = resolveActorDid(params.approverDid, {
         field: "approverDid",
         channel: "perm:reject-request",
@@ -369,7 +383,9 @@ function registerPermissionIPC(database) {
       const {
         getApprovalWorkflowManager,
       } = require("./approval-workflow-manager");
-      const manager = getApprovalWorkflowManager(resolveDatabase(database));
+      const manager = getApprovalWorkflowManager(
+        await resolveDatabase(database),
+      );
       params.approverDid = resolveActorDid(params.approverDid, {
         field: "approverDid",
         channel: "perm:get-pending-approvals",
@@ -389,7 +405,9 @@ function registerPermissionIPC(database) {
       const {
         getApprovalWorkflowManager,
       } = require("./approval-workflow-manager");
-      const manager = getApprovalWorkflowManager(resolveDatabase(database));
+      const manager = getApprovalWorkflowManager(
+        await resolveDatabase(database),
+      );
       return await manager.getApprovalHistory(
         params.orgId,
         params.options || {},
@@ -431,7 +449,7 @@ function registerPermissionIPC(database) {
   ipcMain.handle("perm:revoke-delegation", async (_event, params) => {
     try {
       const { getDelegationManager } = require("./delegation-manager");
-      const manager = getDelegationManager(resolveDatabase(database));
+      const manager = getDelegationManager(await resolveDatabase(database));
       params.revokerDid = resolveActorDid(params.revokerDid, {
         field: "revokerDid",
         channel: "perm:revoke-delegation",
@@ -449,7 +467,7 @@ function registerPermissionIPC(database) {
   ipcMain.handle("perm:get-delegations", async (_event, params) => {
     try {
       const { getDelegationManager } = require("./delegation-manager");
-      const manager = getDelegationManager(resolveDatabase(database));
+      const manager = getDelegationManager(await resolveDatabase(database));
       return await manager.getDelegations(
         params.userDid,
         params.orgId,
@@ -464,7 +482,7 @@ function registerPermissionIPC(database) {
   ipcMain.handle("perm:accept-delegation", async (_event, params) => {
     try {
       const { getDelegationManager } = require("./delegation-manager");
-      const manager = getDelegationManager(resolveDatabase(database));
+      const manager = getDelegationManager(await resolveDatabase(database));
       params.delegateDid = resolveActorDid(params.delegateDid, {
         field: "delegateDid",
         channel: "perm:accept-delegation",
@@ -627,7 +645,7 @@ function registerPermissionIPC(database) {
 
   ipcMain.handle("permission:get-audit-log", async (_event, params) => {
     try {
-      const db = resolveDatabase(database).getDatabase();
+      const db = (await resolveDatabase(database)).getDatabase();
       const {
         orgId,
         userDID,
@@ -685,7 +703,7 @@ function registerPermissionIPC(database) {
 
   ipcMain.handle("permission:get-overrides", async (_event, params) => {
     try {
-      const db = resolveDatabase(database).getDatabase();
+      const db = (await resolveDatabase(database)).getDatabase();
       const { orgId, userDID, resourceType, resourceId } = params;
 
       let query = "SELECT * FROM permission_overrides WHERE org_id = ?";
@@ -716,7 +734,7 @@ function registerPermissionIPC(database) {
 
   ipcMain.handle("permission:get-templates", async (_event, params) => {
     try {
-      const db = resolveDatabase(database).getDatabase();
+      const db = (await resolveDatabase(database)).getDatabase();
       const { orgId, templateType } = params;
 
       let query =
@@ -745,7 +763,7 @@ function registerPermissionIPC(database) {
 
   ipcMain.handle("permission:get-groups", async (_event, params) => {
     try {
-      const db = resolveDatabase(database).getDatabase();
+      const db = (await resolveDatabase(database)).getDatabase();
       const { orgId } = params;
 
       const groups = db
@@ -769,7 +787,7 @@ function registerPermissionIPC(database) {
 
   ipcMain.handle("permission:get-statistics", async (_event, params) => {
     try {
-      const db = resolveDatabase(database).getDatabase();
+      const db = (await resolveDatabase(database)).getDatabase();
       const { orgId, startDate, endDate } = params;
 
       let whereClause = "WHERE org_id = ?";
@@ -816,7 +834,7 @@ function registerPermissionIPC(database) {
 
   ipcMain.handle("permission:create-override", async (_event, params) => {
     try {
-      const db = resolveDatabase(database).getDatabase();
+      const db = (await resolveDatabase(database)).getDatabase();
       const {
         orgId,
         targetUserDID,
@@ -881,7 +899,7 @@ function registerPermissionIPC(database) {
 
   ipcMain.handle("permission:delete-override", async (_event, params) => {
     try {
-      const db = resolveDatabase(database).getDatabase();
+      const db = (await resolveDatabase(database)).getDatabase();
       const { orgId, overrideId, userDID } = params;
 
       const override = db
@@ -920,7 +938,7 @@ function registerPermissionIPC(database) {
 
   ipcMain.handle("permission:create-template", async (_event, params) => {
     try {
-      const db = resolveDatabase(database).getDatabase();
+      const db = (await resolveDatabase(database)).getDatabase();
       const {
         orgId,
         templateName,
@@ -966,7 +984,7 @@ function registerPermissionIPC(database) {
 
   ipcMain.handle("permission:apply-template", async (_event, params) => {
     try {
-      const db = resolveDatabase(database).getDatabase();
+      const db = (await resolveDatabase(database)).getDatabase();
       const { orgId, templateId, targetType, targetId, userDID } = params;
 
       const template = db
@@ -1011,7 +1029,7 @@ function registerPermissionIPC(database) {
 
   ipcMain.handle("permission:create-group", async (_event, params) => {
     try {
-      const db = resolveDatabase(database).getDatabase();
+      const db = (await resolveDatabase(database)).getDatabase();
       const {
         orgId,
         groupName,
@@ -1057,7 +1075,7 @@ function registerPermissionIPC(database) {
 
   ipcMain.handle("permission:assign-group", async (_event, params) => {
     try {
-      const db = resolveDatabase(database).getDatabase();
+      const db = (await resolveDatabase(database)).getDatabase();
       const { orgId, roleName, groupId, userDID } = params;
 
       db.prepare(

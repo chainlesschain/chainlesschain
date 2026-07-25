@@ -1,0 +1,118 @@
+name: Python Agent SDK Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "python-agent-sdk-v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-agent-sdk-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and verify distributions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Verify tag matches package version
+        if: startsWith(github.ref, 'refs/tags/python-agent-sdk-v')
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="${RELEASE_TAG#python-agent-sdk-v}"
+          actual="$(python -c 'import tomllib; print(tomllib.load(open("packages/agent-sdk-python/pyproject.toml", "rb"))["project"]["version"])')"
+          if [[ "$expected" != "$actual" ]]; then
+            echo "::error::Tag version $expected does not match package version $actual"
+            exit 1
+          fi
+
+      - name: Install packaging tools
+        run: python -m pip install --upgrade build twine
+
+      - name: Compile package and examples
+        env:
+          PYTHONPYCACHEPREFIX: ${{ runner.temp }}/python-agent-sdk-pycache
+        run: >-
+          python -m compileall -q
+          packages/agent-sdk-python/src
+          packages/agent-sdk-python/examples
+
+      - name: Run hermetic SDK and subprocess tests
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+          PYTHONPATH: packages/agent-sdk-python/src:packages/agent-sdk-python
+        run: >-
+          python -m unittest discover
+          -s packages/agent-sdk-python/tests
+          -v
+
+      - name: Replay canonical cross-language protocol fixtures
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+          PYTHONPATH: packages/agent-sdk-python/src
+        run: >-
+          python packages/agent-sdk-python/examples/ci_gate.py
+          --replay packages/agent-sdk/__fixtures__/protocol/*.ndjson
+          --output "${{ runner.temp }}/agent-protocol-events.ndjson"
+
+      - name: Build wheel and source distribution
+        run: >-
+          python -m build
+          --outdir dist/python-agent-sdk
+          packages/agent-sdk-python
+
+      - name: Validate distribution metadata
+        run: python -m twine check dist/python-agent-sdk/*
+
+      - name: Install and import the built wheel
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m venv "${RUNNER_TEMP}/agent-sdk-smoke"
+          "${RUNNER_TEMP}/agent-sdk-smoke/bin/python" -m pip install --no-deps dist/python-agent-sdk/*.whl
+          "${RUNNER_TEMP}/agent-sdk-smoke/bin/python" -c 'from importlib.metadata import version; import chainlesschain_agent_sdk as sdk; assert version("chainlesschain-agent-sdk") == sdk.__version__; assert sdk.AgentSession'
+
+      - name: Upload verified distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-agent-sdk-distributions
+          path: dist/python-agent-sdk/
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish distributions to PyPI
+    if: startsWith(github.ref, 'refs/tags/python-agent-sdk-v')
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/p/chainlesschain-agent-sdk
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Download verified distributions
+        uses: actions/download-artifact@v5
+        with:
+          name: python-agent-sdk-distributions
+          path: dist/
+
+      - name: Publish distributions with Trusted Publishing
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/

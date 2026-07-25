@@ -6,9 +6,9 @@ inputs:
     required: false
     default: "."
   install-command:
-    description: "Primary install command (e.g. 'npm install --legacy-peer-deps' or 'npm ci')"
+    description: "Primary install command (defaults to a lockfile-clean npm ci)"
     required: false
-    default: "npm install --legacy-peer-deps"
+    default: "npm ci --legacy-peer-deps"
   extra-packages:
     description: "Space-separated extra npm packages to install alongside the rollup binary (e.g. 'electron-installer-debian')"
     required: false

@@ -4,6 +4,15 @@
   "private": true,
   "description": "Shared MCP form-elicitation schema normalizer, coercer, and validator",
   "main": "index.js",
+  "module": "index.mjs",
   "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.mjs",
+      "require": "./index.js",
+      "default": "./index.js"
+    }
+  },
   "type": "commonjs"
 }

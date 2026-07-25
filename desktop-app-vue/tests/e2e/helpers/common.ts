@@ -15,10 +15,20 @@ export interface ElectronTestContext {
   window: Page;
 }
 
+export interface LaunchElectronAppOptions {
+  /**
+   * Seed the isolated profile as already onboarded. Set to false only for
+   * tests that explicitly exercise the initial-setup wizard.
+   */
+  completeInitialSetup?: boolean;
+}
+
 /**
  * 启动Electron应用
  */
-export async function launchElectronApp(): Promise<ElectronTestContext> {
+export async function launchElectronApp(
+  options: LaunchElectronAppOptions = {},
+): Promise<ElectronTestContext> {
   // 确定主进程入口文件路径 (从项目根目录的 dist/main/index.js)
   const mainPath = path.join(__dirname, "../../../dist/main/index.js");
 
@@ -90,6 +100,27 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
       JSON.stringify(appConfig, null, 2),
       "utf8",
     );
+
+    // App.vue checks initial-setup status asynchronously and can schedule the
+    // mandatory wizard after a test has already closed visible modals. Seed
+    // the test-owned profile before Electron starts so unrelated E2E tests do
+    // not race with that delayed overlay.
+    const setupCompleted = options.completeInitialSetup !== false;
+    fs.writeFileSync(
+      path.join(userDataPath, "initial-setup-config.json"),
+      JSON.stringify(
+        {
+          setupCompleted,
+          completedAt: setupCompleted
+            ? "2026-01-01T00:00:00.000Z"
+            : null,
+          edition: "personal",
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
   } catch (e) {
     console.warn(
       "[Test Helper] could not seed isolated userData, falling back to real:",
@@ -131,10 +162,78 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
     timeout: 180000, // 180秒启动超时（增加到3分钟）
   });
 
-  // 等待并获取第一个窗口（增加超时）
-  const window = await app.firstWindow({
-    timeout: 120000, // 120秒窗口创建超时（增加到2分钟）
-  });
+  // The splash screen is created before the application window, so
+  // app.firstWindow() can return a page that has no desktop preload API. Wait
+  // for the real application window instead.
+  const hasDesktopApi = async (candidate: Page): Promise<boolean> => {
+    if (candidate.isClosed()) {
+      return false;
+    }
+
+    try {
+      const initialUrl = candidate.url();
+      if (
+        !initialUrl ||
+        initialUrl === "about:blank" ||
+        initialUrl.startsWith("chrome-error:") ||
+        /splash\.html(?:[?#]|$)/i.test(initialUrl)
+      ) {
+        return false;
+      }
+
+      await candidate.waitForLoadState("domcontentloaded", { timeout: 5000 });
+      const loadedUrl = candidate.url();
+      if (
+        !loadedUrl ||
+        loadedUrl === "about:blank" ||
+        loadedUrl.startsWith("chrome-error:") ||
+        /splash\.html(?:[?#]|$)/i.test(loadedUrl)
+      ) {
+        return false;
+      }
+
+      return await candidate.evaluate(
+        () =>
+          typeof (window as any).electronAPI !== "undefined" ||
+          typeof (window as any).electron !== "undefined" ||
+          typeof (window as any).api !== "undefined",
+      );
+    } catch {
+      return false;
+    }
+  };
+
+  const findMainWindow = async (): Promise<Page | undefined> => {
+    for (const candidate of app.windows()) {
+      if (await hasDesktopApi(candidate)) {
+        return candidate;
+      }
+    }
+    return undefined;
+  };
+
+  const windowDeadline = Date.now() + 120000;
+  let window = await findMainWindow();
+  while (!window && Date.now() < windowDeadline) {
+    try {
+      await app.waitForEvent("window", { timeout: 1000 });
+    } catch {
+      // No new window in this interval; re-check existing pages because the
+      // main preload may have completed without another window event.
+    }
+    window = await findMainWindow();
+  }
+
+  if (!window) {
+    const openWindowUrls = app
+      .windows()
+      .filter((candidate) => !candidate.isClosed())
+      .map((candidate) => candidate.url());
+    throw new Error(
+      `Timed out waiting for the Electron main window; open windows: ${openWindowUrls.join(", ")}`,
+    );
+  }
+  console.log("[Test Helper] Main window URL:", window.url());
 
   // 等待加载完成
   await window.waitForLoadState("domcontentloaded", {
@@ -151,7 +250,8 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
           typeof (window as any).api !== "undefined"
         );
       },
-      { timeout: 10000 },
+      undefined,
+      { timeout: 60000 },
     );
   } catch (error) {
     console.warn("Warning: electronAPI not found, but continuing anyway");

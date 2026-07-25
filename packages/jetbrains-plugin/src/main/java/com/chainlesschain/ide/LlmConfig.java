@@ -247,7 +247,12 @@ public final class LlmConfig {
     public static boolean looksLikeLlmConfigError(String message) {
         if (message == null) return false;
         String m = message.toLowerCase();
-        return m.contains("401") || m.contains("403")
+        if (m.contains("accountoverdue") || m.contains("overdue balance")
+                || m.contains("account balance/billing")
+                || m.contains("model access permissions")) {
+            return false;
+        }
+        return m.contains("401")
                 || m.contains("api key") || m.contains("api_key")
                 || m.contains("unauthorized")
                 || m.contains("authentication failed")

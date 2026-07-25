@@ -1118,7 +1118,7 @@ function activate(context) {
             } else {
               vscode.window.showWarningMessage(
                 vscode.l10n.t(
-                  "Config written, but the connectivity test failed: {0} — check the key/network, then re-run ChainlessChain: Configure LLM.",
+                  "Config written, but the connectivity test failed: {0} — check the key, provider billing/account balance, model access, and network, then re-run ChainlessChain: Configure LLM.",
                   t.detail || vscode.l10n.t("see output"),
                 ),
               );

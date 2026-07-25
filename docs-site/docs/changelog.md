@@ -5,6 +5,15 @@
 
 ## [Unreleased]
 
+#### Added — Python Agent SDK 0.1.0：PyPI 首发 + 公开 wheel 安装矩阵
+
+> `chainlesschain-agent-sdk==0.1.0` 已通过 PyPI Trusted Publishing 正式发布；支持 Python 3.10–3.13、零运行时依赖，与 TypeScript SDK 共用 Agent Protocol v1。
+
+- **安装**：`python -m pip install "chainlesschain-agent-sdk==0.1.0"`；`cc` CLI 单独安装，SDK 通过 `asyncio` 子进程驱动。
+- **发布门**：tag/package 版本一致性、21 项 hermetic 测试、canonical fixture 回放、wheel/sdist、`twine check` 与隔离 venv wheel 导入全部通过。
+- **发布后验证**：Python 3.10、3.12、3.13 均从公开 PyPI 仅安装 wheel，并通过 metadata、`__version__` 与 `AgentSession` 公共 API 校验。
+- **入口**：[使用指南](/chainlesschain/agent-sdk) · [PyPI](https://pypi.org/project/chainlesschain-agent-sdk/) · [发布作业](https://github.com/chainlesschain/chainlesschain/actions/runs/30065060091) · [公网安装矩阵](https://github.com/chainlesschain/chainlesschain/actions/runs/30065341896)
+
 #### Added — IDE 扩展 VS Code 0.37.17 + JetBrains 0.4.61：`uncertain_side_effect`/`needs_input` 阻塞可见（配 cc 0.162.169 生产者）+ JB deep-link 包含性 + EDT 冻结/泄漏清尾（上架待发）
 
 > VS Code `0.37.16` → **`0.37.17`** / JetBrains `0.4.60` → **`0.4.61`**。承接 cc 0.162.169 的后台状态机生产者与 headless-stream 副作用台账。发版前验证：VS 914/0；JB JUnit 595/0 + smokeTest 1213/0 + verifyPlugin Compatible。

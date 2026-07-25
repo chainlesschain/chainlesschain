@@ -1,6 +1,8 @@
 # CLI-Anything 集成 (cli-anything)
 
 > 将 [CLI-Anything](https://github.com/HKUDS/CLI-Anything) 生成的 Agent 原生 CLI 工具自动注册为 ChainlessChain 技能，Agent REPL 即刻可用。
+>
+> **CLI 0.162.177 安全更新** — 新注册/重新注册的 handler 使用宿主 Process Broker 与字面 argv 执行，`shell:false`；危险 shell 字符、未闭合引号或缺少 Broker 时直接拒绝。
 
 ## 概述
 
@@ -124,7 +126,7 @@ chainlesschain cli-anything register gimp
 chainlesschain agent
   > "用 GIMP 创建一个 1920x1080 的项目"
   → LLM 调用 run_skill("cli-anything-gimp", "project new --width 1920 ...")
-  → handler.js 执行 execSync("cli-anything-gimp project new ...")
+  → handler.js 调用 processBroker.runFileSync("cli-anything-gimp", argv)
   → 返回结果给 LLM
 ```
 
@@ -166,7 +168,8 @@ CLI-Anything 技能不会覆盖内置或市场层技能，但会被项目级 wor
 - **版本检测**: 通过 `doctor` 子命令检测 Python 版本、CLI-Anything 版本和已安装工具数量
 - **健康检查**: 环境诊断覆盖 Python 解释器、pip 包状态、PATH 工具三个维度
 - **Agent 可调用**: 注册后的工具自动出现在 managed 技能层，Agent REPL 通过 `run_skill` 工具直接调用
-- **参数验证**: 生成的 handler.js 通过 `execSync` 调用原始 CLI 工具，输入参数由外部工具自身校验
+- **安全执行**: 生成的 handler.js 把输入解析成字面 argv，经宿主 `processBroker.runFileSync(..., shell:false)` 调用原始工具
+- **Fail closed**: 危险 shell 字符、未闭合引号或缺少 Broker 时，在外部工具启动前拒绝执行
 
 ## 系统架构
 
@@ -186,7 +189,7 @@ CLI-Anything 技能不会覆盖内置或市场层技能，但会被项目级 wor
 │                                       ▼                          │
 │                              registerTool(db, name, opts)        │
 │                              ├─ 生成 SKILL.md (元数据)            │
-│                              ├─ 生成 handler.js (execSync 包装)   │
+│                              ├─ 生成 handler.js (Broker facade)  │
 │                              └─ 写入 cli_anything_tools 表        │
 │                                       │                          │
 │                                       ▼                          │
@@ -198,7 +201,7 @@ CLI-Anything 技能不会覆盖内置或市场层技能，但会被项目级 wor
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-核心流程: **scan** (发现 PATH 中工具) → **detect** (解析 --help 获取描述和子命令) → **register** (生成 SKILL.md + handler.js + 写入 DB) → **skill wrapper** (managed 层技能) → **Agent 调用** (通过 `run_skill`)
+核心流程: **scan** (发现 PATH 中工具) → **detect** (解析 --help 获取描述和子命令) → **register** (生成 SKILL.md + handler.js + 写入 DB) → **skill wrapper** (managed 层技能) → **Agent 调用** (通过 `run_skill`) → **宿主 Process Broker** (权威来源 + `shell:false` 执行)
 
 ## 配置参考
 
@@ -226,14 +229,14 @@ chainlesschain cli-anything <subcommand> [options]
 
 ## 性能指标
 
-| 操作                                | 目标       | 实际       | 状态 |
-| ----------------------------------- | ---------- | ---------- | ---- |
-| doctor 环境探测                     | < 500ms    | ~180ms     | ✅   |
-| scan PATH 扫描                      | < 300ms    | ~120ms     | ✅   |
-| register 解析 --help                | < 800ms    | ~350ms     | ✅   |
-| register 生成 SKILL.md + handler.js | < 100ms    | ~40ms      | ✅   |
-| list 查询（含 DB）                  | < 50ms     | ~20ms      | ✅   |
-| Agent 调用已注册工具（execSync）    | < 60s 上限 | 取决于工具 | ✅   |
+| 操作                                   | 目标       | 实际       | 状态 |
+| -------------------------------------- | ---------- | ---------- | ---- |
+| doctor 环境探测                        | < 500ms    | ~180ms     | ✅   |
+| scan PATH 扫描                         | < 300ms    | ~120ms     | ✅   |
+| register 解析 --help                   | < 800ms    | ~350ms     | ✅   |
+| register 生成 SKILL.md + handler.js    | < 100ms    | ~40ms      | ✅   |
+| list 查询（含 DB）                     | < 50ms     | ~20ms      | ✅   |
+| Agent 调用已注册工具（Process Broker） | < 60s 上限 | 取决于工具 | ✅   |
 
 ## 测试覆盖率
 
@@ -350,10 +353,27 @@ where cli-anything-gimp    # Windows
 chainlesschain cli-anything register gimp --force
 ```
 
+从 `chainlesschain` 0.162.176 或更早版本升级到 0.162.177+ 后，也应对已有注册执行一次 `--force`，让磁盘上的生成 handler 切换到 Broker 版本。
+
+### 报错 “Process Broker unavailable for skill execution”
+
+生成 handler 只允许在 ChainlessChain 的技能宿主内运行。先升级 CLI 并重新注册：
+
+```bash
+npm i -g chainlesschain@latest
+chainlesschain cli-anything register gimp --force
+chainlesschain skill run cli-anything-gimp "project list"
+```
+
+若你直接 `require()` 生成的 `handler.js` 并调用 `execute()`，因为没有宿主注入的 `context.processBroker`，它会按设计拒绝执行。
+
 ## 安全考虑
 
 - **PATH 限定**: 只扫描和注册系统 PATH 中已存在的 `cli-anything-*` 可执行文件，不会下载或安装任何外部程序
-- **参数透传**: handler.js 通过 `execSync` 将用户输入作为命令行参数传递给原始工具，由工具自身负责参数校验和权限控制
+- **字面 argv**: handler.js 自己解析单/双引号，把参数数组交给 `runFileSync`，并强制 `shell:false`，不会拼接 shell 命令字符串
+- **输入拒绝**: `;`、`&`、`|`、`` ` ``、`$`、`<`、`>`、`(`、`)`、换行与未闭合引号会在进程启动前被拒绝
+- **宿主来源**: `origin=skill:<id>`、`scope=skill` 及插件 id/version/source 由宿主写入冻结 facade，handler 无法伪造
+- **Fail closed**: 未声明 `shell-exec` 或没有 `context.processBroker` 时不会回退直接执行
 - **超时保护**: 所有子进程调用设置 60 秒超时（`timeout: 60000`），防止工具挂起
 - **工作目录隔离**: 执行时使用 `context.projectRoot` 或 `process.cwd()` 作为工作目录
 - **无特权提升**: 注册的技能以当前用户权限运行，不涉及 sudo 或管理员提权
@@ -361,13 +381,14 @@ chainlesschain cli-anything register gimp --force
 
 ## 关键文件
 
-| 文件                                          | 说明                                                                 |
-| --------------------------------------------- | -------------------------------------------------------------------- |
-| `packages/cli/src/commands/cli-anything.js`   | 命令注册入口（doctor/scan/register/list/remove 五个子命令）          |
-| `packages/cli/src/lib/cli-anything-bridge.js` | 核心桥接库（Python 检测、PATH 扫描、--help 解析、技能生成、DB 操作） |
-| `packages/cli/src/lib/paths.js`               | `getElectronUserDataDir()` 提供 managed 层技能目录路径               |
-| `<userData>/skills/cli-anything-*/SKILL.md`   | 生成的技能元数据文件                                                 |
-| `<userData>/skills/cli-anything-*/handler.js` | 生成的执行处理器（CJS，execSync 包装）                               |
+| 文件                                           | 说明                                                                 |
+| ---------------------------------------------- | -------------------------------------------------------------------- |
+| `packages/cli/src/commands/cli-anything.js`    | 命令注册入口（doctor/scan/register/list/remove 五个子命令）          |
+| `packages/cli/src/lib/cli-anything-bridge.js`  | 核心桥接库（Python 检测、PATH 扫描、--help 解析、技能生成、DB 操作） |
+| `packages/cli/src/lib/paths.js`                | `getElectronUserDataDir()` 提供 managed 层技能目录路径               |
+| `<userData>/skills/cli-anything-*/SKILL.md`    | 生成的技能元数据文件                                                 |
+| `packages/cli/src/lib/skill-process-broker.js` | 创建技能专用、冻结且带权威来源的进程 facade                          |
+| `<userData>/skills/cli-anything-*/handler.js`  | 生成的执行处理器（CJS，Process Broker + literal argv）               |
 
 ## 相关文档
 

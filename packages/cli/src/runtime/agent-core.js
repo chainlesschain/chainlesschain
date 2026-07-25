@@ -89,6 +89,12 @@ import {
   buildToolAttribution,
 } from "../lib/agent-tool-admission.js";
 import { evaluateUnattendedShellAction } from "../lib/unattended-action-policy.js";
+import {
+  formatProviderHttpError,
+  formatProviderResponseError,
+} from "../lib/provider-http-error.js";
+
+export { formatProviderHttpError };
 
 /**
  * Names of MCP servers currently mounted by an in-flight run_skill call.
@@ -6222,7 +6228,7 @@ export async function chatWithTools(rawMessages, options) {
       }),
     });
     if (!response.ok) {
-      throw new Error(formatProviderHttpError("ollama", response.status));
+      throw new Error(await formatProviderResponseError("ollama", response));
     }
     const data = await response.json();
     if (data.prompt_eval_count || data.eval_count) {
@@ -6349,7 +6355,7 @@ export async function chatWithTools(rawMessages, options) {
     });
 
     if (!response.ok) {
-      throw new Error(formatProviderHttpError("anthropic", response.status));
+      throw new Error(await formatProviderResponseError("anthropic", response));
     }
 
     const data = await response.json();
@@ -6456,7 +6462,7 @@ export async function chatWithTools(rawMessages, options) {
   });
 
   if (!response.ok) {
-    throw new Error(formatProviderHttpError(provider, response.status));
+    throw new Error(await formatProviderResponseError(provider, response));
   }
 
   const data = await response.json();
@@ -6579,23 +6585,9 @@ export function _streamErrorDisposition(err, signal, partialText) {
  * means a missing/invalid API key for the ACTIVE provider — and because the
  * provider is resolved from config, a surprise "anthropic 401" usually means
  * the effective provider differs from what the user configured. Name the
- * provider and point at the fix instead of dumping a bare status code. Pure +
- * exported for tests.
+ * provider and point at the appropriate key, billing, or permission fix
+ * instead of dumping a bare status code. Pure + exported for tests.
  */
-export function formatProviderHttpError(provider, status) {
-  const base = `${provider} API error: HTTP ${status}`;
-  if (status === 401 || status === 403) {
-    return (
-      `${base} — authentication failed: the API key for provider "${provider}" ` +
-      `is missing or invalid. Check "cc config get llm.provider" and ` +
-      `"cc config get llm.apiKey" (or run Configure LLM). A surprise "${provider}" ` +
-      `here usually means the effective provider differs from the one you configured.`
-    );
-  }
-  if (status === 429) return `${base} — rate limited; please retry shortly.`;
-  return base;
-}
-
 /**
  * Is this error from a streaming chat request a transient API CONNECTION drop
  * that is safe to retry? True only for genuine network failures (reset /
@@ -6789,7 +6781,7 @@ async function _chatOllamaStreaming(
     body: JSON.stringify({ ...body, stream: true }),
   });
   if (!response.ok) {
-    throw new Error(formatProviderHttpError("ollama", response.status));
+    throw new Error(await formatProviderResponseError("ollama", response));
   }
   const state = _ollamaInitState();
   const reader = response.body.getReader();
@@ -6975,7 +6967,7 @@ async function _chatAnthropicStreaming(
     body: JSON.stringify(body),
   });
   if (!response.ok) {
-    throw new Error(formatProviderHttpError("anthropic", response.status));
+    throw new Error(await formatProviderResponseError("anthropic", response));
   }
   const state = _anthropicInitState();
   const reader = response.body.getReader();
@@ -7127,7 +7119,7 @@ async function _chatOpenAIStreaming(
     body: JSON.stringify(body),
   });
   if (!response.ok) {
-    throw new Error(formatProviderHttpError(provider, response.status));
+    throw new Error(await formatProviderResponseError(provider, response));
   }
   const state = _openaiInitState();
   const reader = response.body.getReader();

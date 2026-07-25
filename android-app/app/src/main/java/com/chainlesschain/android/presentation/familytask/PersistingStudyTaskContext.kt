@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -36,6 +38,7 @@ class PersistingStudyTaskContext @Inject constructor(
 ) : StudyTaskContext {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val persistenceMutex = Mutex()
 
     private val _activeTask = MutableStateFlow<StudyTask?>(null)
     override val activeTask: StateFlow<StudyTask?> = _activeTask.asStateFlow()
@@ -50,7 +53,9 @@ class PersistingStudyTaskContext @Inject constructor(
         callLog.update { it + call }
         scope.launch {
             // "normal" | "answer_seeking" — 与 AiCallLogEntry.kind 契约对齐。
-            repo.appendAiCall(call.taskId, AiCallLogEntry(call.timestamp, call.kind.name.lowercase()))
+            persistenceMutex.withLock {
+                repo.appendAiCall(call.taskId, AiCallLogEntry(call.timestamp, call.kind.name.lowercase()))
+            }
         }
     }
 

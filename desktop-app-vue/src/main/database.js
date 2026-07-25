@@ -208,6 +208,7 @@ class DatabaseManager {
 
           return true;
         } catch (error) {
+          await this._resetFailedAdapterState();
           logger.warn(
             "[Database] Better-SQLite3 初始化失败，尝试其他方式:",
             error.message,
@@ -229,6 +230,7 @@ class DatabaseManager {
 
           return true;
         } catch (error) {
+          await this._resetFailedAdapterState();
           // Fail-closed：加密为必需时，绝不静默回退到明文 sql.js。
           if (this.requireEncryption) {
             logger.error(
@@ -269,6 +271,31 @@ class DatabaseManager {
       logger.error("数据库初始化失败:", error);
       logger.error("错误堆栈:", error.stack);
       throw error;
+    }
+  }
+
+  /**
+   * Clear a partially initialized native adapter before falling back to
+   * sql.js. saveToFile() branches on this.adapter, so retaining a failed
+   * adapter would silently prevent the sql.js database from being persisted.
+   */
+  async _resetFailedAdapterState() {
+    const failedDb = this.db;
+    const failedAdapter = this.adapter;
+
+    this.db = null;
+    this.adapter = null;
+
+    try {
+      failedDb?.close?.();
+    } catch (error) {
+      logger.warn("[Database] Failed database cleanup error:", error.message);
+    }
+
+    try {
+      await failedAdapter?.close?.();
+    } catch (error) {
+      logger.warn("[Database] Failed adapter cleanup error:", error.message);
     }
   }
 
@@ -720,6 +747,17 @@ class DatabaseManager {
   saveToFile() {
     if (!this.db) {
       throw new Error("数据库未初始化");
+    }
+
+    // The project-management E2E journeys keep one isolated in-memory sql.js
+    // session. Exporting the entire database after every fixture INSERT makes
+    // startup and bulk-operation timings meaningless. The opt-out is accepted
+    // only in NODE_ENV=test so production persistence cannot be disabled.
+    if (
+      process.env.NODE_ENV === "test" &&
+      process.env.CHAINLESSCHAIN_DISABLE_DB_PERSISTENCE === "1"
+    ) {
+      return;
     }
 
     // 如果使用适配器（SQLCipher），数据库自动保存

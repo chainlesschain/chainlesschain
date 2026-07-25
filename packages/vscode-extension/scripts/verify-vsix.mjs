@@ -123,7 +123,8 @@ export function parseVsixManifest(xml) {
  * @param {string[]} args.entryNames all entry names inside the vsix
  * @param {object} args.packaged parsed extension/package.json from the vsix
  * @param {object} args.manifest parseVsixManifest() result
- * @param {object} args.expected { publisher, name, version, requireLicense }
+ * @param {object} args.expected { publisher, name, version, requireLicense,
+ *   requiredEntries? }
  * @returns {{passes: string[], failures: string[]}}
  */
 export function verifyVsixMetadata({
@@ -210,6 +211,13 @@ export function verifyVsixMetadata({
     "[Content_Types].xml present",
     "vsix is missing the OPC content-types part",
   );
+  for (const requiredEntry of expected.requiredEntries || []) {
+    check(
+      names.has(requiredEntry),
+      `runtime asset packed (${requiredEntry})`,
+      "required by extension runtime but missing from vsix",
+    );
+  }
 
   // extension.vsixmanifest identity must agree with package.json
   eq("vsixmanifest Identity Id", manifest.id, expected.name);
@@ -246,6 +254,7 @@ function main() {
     name: source.name,
     version: source.version,
     requireLicense: true, // repo ships packages/vscode-extension/LICENSE
+    requiredEntries: ["extension/src/vendor/elicitation-schema/index.js"],
   };
 
   let entries;
