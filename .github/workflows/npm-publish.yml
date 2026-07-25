@@ -71,11 +71,26 @@ jobs:
           npm run build
           npx vitest run
 
+      - name: Run Personal Data Hub tests
+        working-directory: packages/personal-data-hub
+        run: npm test
+
+      - name: Test and build the bundled Web Panel
+        working-directory: packages/web-panel
+        run: |
+          npm test
+          npm run build:no-sync
+
       - name: Run CLI tests
         working-directory: packages/cli
-        run: npx vitest run
+        # Large suites can overwhelm Vitest's reporter RPC when every passing
+        # assertion is streamed. CI still runs the complete suite.
+        run: npx vitest run --silent=passed-only
 
-  # Publish all packages in dependency order
+  # Publish all packages in dependency order.
+  # NODE_AUTH_TOKEN is intentionally retained during the OIDC rollout. npm
+  # prefers Trusted Publishing and falls back to this token if OIDC is not yet
+  # configured for this workflow.
   publish:
     needs: [test]
     if: always() && (needs.test.result == 'success' || needs.test.result == 'skipped')
@@ -90,8 +105,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: "22.12.0"
+          # npm Trusted Publishing requires Node.js 22.14.0 or newer.
+          node-version: "22.14.0"
           registry-url: "https://registry.npmjs.org"
+
+      - name: Enable npm Trusted Publishing support
+        run: |
+          npm install --global npm@11.18.0
+          npm --version
 
       - name: Install root dependencies (workspaces)
         run: |
@@ -130,12 +151,10 @@ jobs:
       - name: "Publish @chainlesschain/core-env"
         working-directory: packages/core-env
         run: |
-          VERSION="${{ steps.version.outputs.VERSION }}"
-          CURRENT=$(npm view @chainlesschain/core-env version 2>/dev/null || echo "0.0.0")
           PKG_VER=$(node -p "require('./package.json').version")
-          echo "npm: $CURRENT | local: $PKG_VER"
-          if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
-            echo "Already published, skipping"
+          echo "target: @chainlesschain/core-env@$PKG_VER"
+          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/core-env@$PKG_VER" version >/dev/null 2>&1; then
+            echo "Exact version already published, skipping"
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
@@ -146,11 +165,10 @@ jobs:
       - name: "Publish @chainlesschain/core-mtc"
         working-directory: packages/core-mtc
         run: |
-          CURRENT=$(npm view @chainlesschain/core-mtc version 2>/dev/null || echo "0.0.0")
           PKG_VER=$(node -p "require('./package.json').version")
-          echo "npm: $CURRENT | local: $PKG_VER"
-          if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
-            echo "Already published, skipping"
+          echo "target: @chainlesschain/core-mtc@$PKG_VER"
+          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/core-mtc@$PKG_VER" version >/dev/null 2>&1; then
+            echo "Exact version already published, skipping"
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
@@ -162,11 +180,10 @@ jobs:
       - name: "Publish @chainlesschain/core-multisig"
         working-directory: packages/core-multisig
         run: |
-          CURRENT=$(npm view @chainlesschain/core-multisig version 2>/dev/null || echo "0.0.0")
           PKG_VER=$(node -p "require('./package.json').version")
-          echo "npm: $CURRENT | local: $PKG_VER"
-          if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
-            echo "Already published, skipping"
+          echo "target: @chainlesschain/core-multisig@$PKG_VER"
+          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/core-multisig@$PKG_VER" version >/dev/null 2>&1; then
+            echo "Exact version already published, skipping"
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
@@ -178,11 +195,10 @@ jobs:
       - name: "Publish @chainlesschain/core-settlement"
         working-directory: packages/core-settlement
         run: |
-          CURRENT=$(npm view @chainlesschain/core-settlement version 2>/dev/null || echo "0.0.0")
           PKG_VER=$(node -p "require('./package.json').version")
-          echo "npm: $CURRENT | local: $PKG_VER"
-          if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
-            echo "Already published, skipping"
+          echo "target: @chainlesschain/core-settlement@$PKG_VER"
+          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/core-settlement@$PKG_VER" version >/dev/null 2>&1; then
+            echo "Exact version already published, skipping"
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
@@ -192,11 +208,10 @@ jobs:
       - name: "Publish @chainlesschain/shared-logger"
         working-directory: packages/shared-logger
         run: |
-          CURRENT=$(npm view @chainlesschain/shared-logger version 2>/dev/null || echo "0.0.0")
           PKG_VER=$(node -p "require('./package.json').version")
-          echo "npm: $CURRENT | local: $PKG_VER"
-          if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
-            echo "Already published, skipping"
+          echo "target: @chainlesschain/shared-logger@$PKG_VER"
+          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/shared-logger@$PKG_VER" version >/dev/null 2>&1; then
+            echo "Exact version already published, skipping"
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
@@ -206,11 +221,10 @@ jobs:
       - name: "Publish @chainlesschain/core-config"
         working-directory: packages/core-config
         run: |
-          CURRENT=$(npm view @chainlesschain/core-config version 2>/dev/null || echo "0.0.0")
           PKG_VER=$(node -p "require('./package.json').version")
-          echo "npm: $CURRENT | local: $PKG_VER"
-          if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
-            echo "Already published, skipping"
+          echo "target: @chainlesschain/core-config@$PKG_VER"
+          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/core-config@$PKG_VER" version >/dev/null 2>&1; then
+            echo "Exact version already published, skipping"
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
@@ -220,11 +234,10 @@ jobs:
       - name: "Publish @chainlesschain/core-db"
         working-directory: packages/core-db
         run: |
-          CURRENT=$(npm view @chainlesschain/core-db version 2>/dev/null || echo "0.0.0")
           PKG_VER=$(node -p "require('./package.json').version")
-          echo "npm: $CURRENT | local: $PKG_VER"
-          if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
-            echo "Already published, skipping"
+          echo "target: @chainlesschain/core-db@$PKG_VER"
+          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/core-db@$PKG_VER" version >/dev/null 2>&1; then
+            echo "Exact version already published, skipping"
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
@@ -234,11 +247,10 @@ jobs:
       - name: "Publish @chainlesschain/core-infra"
         working-directory: packages/core-infra
         run: |
-          CURRENT=$(npm view @chainlesschain/core-infra version 2>/dev/null || echo "0.0.0")
           PKG_VER=$(node -p "require('./package.json').version")
-          echo "npm: $CURRENT | local: $PKG_VER"
-          if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
-            echo "Already published, skipping"
+          echo "target: @chainlesschain/core-infra@$PKG_VER"
+          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/core-infra@$PKG_VER" version >/dev/null 2>&1; then
+            echo "Exact version already published, skipping"
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
@@ -248,11 +260,10 @@ jobs:
       - name: "Publish @chainlesschain/session-core"
         working-directory: packages/session-core
         run: |
-          CURRENT=$(npm view @chainlesschain/session-core version 2>/dev/null || echo "0.0.0")
           PKG_VER=$(node -p "require('./package.json').version")
-          echo "npm: $CURRENT | local: $PKG_VER"
-          if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
-            echo "Already published, skipping"
+          echo "target: @chainlesschain/session-core@$PKG_VER"
+          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/session-core@$PKG_VER" version >/dev/null 2>&1; then
+            echo "Exact version already published, skipping"
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
@@ -267,22 +278,18 @@ jobs:
       - name: "Publish @chainlesschain/agent-sdk"
         working-directory: packages/agent-sdk
         run: |
-          if [ "${{ inputs.dry-run }}" = "true" ]; then
-            echo "Dry run: @chainlesschain/agent-sdk is already published; skipping standalone package"
-            exit 0
-          fi
-          npm install --no-audit --no-fund
-          CURRENT=$(npm view @chainlesschain/agent-sdk version 2>/dev/null || echo "0.0.0")
           PKG_VER=$(node -p "require('./package.json').version")
-          echo "npm: $CURRENT | local: $PKG_VER"
-          if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
-            echo "Already published, skipping"
+          echo "target: @chainlesschain/agent-sdk@$PKG_VER"
+          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/agent-sdk@$PKG_VER" version >/dev/null 2>&1; then
+            echo "Exact version already published, skipping"
           elif [ "${{ inputs.dry-run }}" = "true" ]; then
             # Validate the standalone package tarball without asking npm to
             # publish an already-published scoped version.
+            npm install --no-audit --no-fund
             npm run build
             npm pack --dry-run
           else
+            npm install --no-audit --no-fund
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
         env:
@@ -295,11 +302,10 @@ jobs:
       - name: "Publish @chainlesschain/personal-data-hub"
         working-directory: packages/personal-data-hub
         run: |
-          CURRENT=$(npm view @chainlesschain/personal-data-hub version 2>/dev/null || echo "0.0.0")
           PKG_VER=$(node -p "require('./package.json').version")
-          echo "npm: $CURRENT | local: $PKG_VER"
-          if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
-            echo "Already published, skipping"
+          echo "target: @chainlesschain/personal-data-hub@$PKG_VER"
+          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/personal-data-hub@$PKG_VER" version >/dev/null 2>&1; then
+            echo "Exact version already published, skipping"
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
@@ -310,8 +316,6 @@ jobs:
         working-directory: packages/cli
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
-          CURRENT=$(npm view chainlesschain version 2>/dev/null || echo "0.0.0")
-          echo "npm: $CURRENT | target: $VERSION"
 
           # Sync version if provided
           if [ -n "${{ inputs.version }}" ]; then
@@ -319,8 +323,9 @@ jobs:
           fi
 
           PKG_VER=$(node -p "require('./package.json').version")
-          if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
-            echo "Already published, skipping"
+          echo "target: chainlesschain@$PKG_VER"
+          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "chainlesschain@$PKG_VER" version >/dev/null 2>&1; then
+            echo "Exact version already published, skipping"
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
@@ -332,11 +337,15 @@ jobs:
           VERSION="${{ steps.version.outputs.VERSION }}"
           V_ENV=$(node -p "require('./packages/core-env/package.json').version")
           V_MTC=$(node -p "require('./packages/core-mtc/package.json').version")
+          V_MULTISIG=$(node -p "require('./packages/core-multisig/package.json').version")
+          V_SETTLEMENT=$(node -p "require('./packages/core-settlement/package.json').version")
           V_LOG=$(node -p "require('./packages/shared-logger/package.json').version")
           V_CFG=$(node -p "require('./packages/core-config/package.json').version")
           V_DB=$(node -p "require('./packages/core-db/package.json').version")
           V_INF=$(node -p "require('./packages/core-infra/package.json').version")
           V_SC=$(node -p "require('./packages/session-core/package.json').version")
+          V_AGENT=$(node -p "require('./packages/agent-sdk/package.json').version")
+          V_PDH=$(node -p "require('./packages/personal-data-hub/package.json').version")
           {
             echo "## Publish Summary"
             echo ""
@@ -350,11 +359,15 @@ jobs:
             echo "|---------|---------|"
             echo "| @chainlesschain/core-env | $V_ENV |"
             echo "| @chainlesschain/core-mtc | $V_MTC |"
+            echo "| @chainlesschain/core-multisig | $V_MULTISIG |"
+            echo "| @chainlesschain/core-settlement | $V_SETTLEMENT |"
             echo "| @chainlesschain/shared-logger | $V_LOG |"
             echo "| @chainlesschain/core-config | $V_CFG |"
             echo "| @chainlesschain/core-db | $V_DB |"
             echo "| @chainlesschain/core-infra | $V_INF |"
             echo "| @chainlesschain/session-core | $V_SC |"
+            echo "| @chainlesschain/agent-sdk | $V_AGENT |"
+            echo "| @chainlesschain/personal-data-hub | $V_PDH |"
             echo "| chainlesschain | $VERSION |"
           } >> $GITHUB_STEP_SUMMARY
 
@@ -384,6 +397,7 @@ jobs:
             "@chainlesschain/core-multisig"
             "@chainlesschain/core-settlement"
             "@chainlesschain/session-core"
+            "@chainlesschain/agent-sdk"
             "@chainlesschain/personal-data-hub"
             "chainlesschain"
           )

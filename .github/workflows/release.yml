@@ -56,6 +56,10 @@ jobs:
   # irreversible regardless of timing (per memory `github-immutable-release-
   # tag-burn` cousin: npm publish == permanent). Better to publish-then-fail
   # than to never publish and block all future re-runs.
+  #
+  # npm-publish.yml is the canonical OIDC publisher. This release job waits
+  # for that workflow first, while NODE_AUTH_TOKEN remains an explicit rollback
+  # path for manual releases or a failed primary publish.
   publish-deps:
     name: Publish workspace deps (precondition for desktop builds)
     runs-on: ubuntu-latest
@@ -69,19 +73,78 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: "22.12.0"
+          # npm Trusted Publishing requires Node.js 22.14.0 or newer.
+          node-version: "22.14.0"
           registry-url: "https://registry.npmjs.org"
+
+      - name: Enable npm Trusted Publishing support
+        run: |
+          npm install --global npm@11.18.0
+          npm --version
 
       - name: Install dependencies (workspaces)
         uses: ./.github/actions/setup-node-deps
         with:
           install-command: npm ci
 
-      - name: "Publish workspace packages (idempotent, in dep order)"
+      - name: "Await OIDC publish or use token fallback (workspace packages)"
         env:
+          EVENT_NAME: ${{ github.event_name }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set -e
+          version_is_published() {
+            npm view "$1@$2" version 2>/dev/null | grep -Fx "$2" >/dev/null
+          }
+
+          await_primary_publish() {
+            name="$1"
+            version="$2"
+
+            if version_is_published "$name" "$version"; then
+              return 0
+            fi
+
+            # Tag pushes also start npm-publish.yml, the canonical OIDC
+            # publisher. Give it time to finish its test gate before using the
+            # retained NPM_TOKEN rollback path. Manual release runs have no
+            # sibling workflow, so they fall back immediately.
+            if [ "$EVENT_NAME" != "push" ]; then
+              return 1
+            fi
+
+            echo "Waiting up to 15 minutes for $name@$version from npm-publish.yml"
+            for attempt in $(seq 1 60); do
+              sleep 15
+              if version_is_published "$name" "$version"; then
+                echo "  $name@$version published by the OIDC workflow"
+                return 0
+              fi
+              echo "  attempt $attempt/60: not visible yet"
+            done
+
+            return 1
+          }
+
+          publish_with_race_guard() {
+            dir="$1"
+            name="$2"
+            version="$3"
+
+            echo "Token fallback: publishing $name@$version"
+            if (cd "$dir" && npm publish --provenance --access public); then
+              return 0
+            fi
+
+            # The OIDC workflow may have won the race after our final check.
+            if version_is_published "$name" "$version"; then
+              echo "  $name@$version is now published; accepting peer success"
+              return 0
+            fi
+
+            return 1
+          }
+
           # Dep order matters: each package may require earlier ones at
           # install time; npm publish itself doesn't enforce this, but
           # downstream `npm install` does. Order mirrors the original
@@ -89,32 +152,61 @@ jobs:
           for pkg in core-env shared-logger core-config core-db core-infra core-mtc core-multisig core-settlement session-core personal-data-hub; do
             dir="packages/$pkg"
             name="@chainlesschain/$pkg"
-            CURRENT=$(npm view "$name" version 2>/dev/null || echo "0.0.0")
             PKG_VER=$(node -p "require('./$dir/package.json').version")
-            if [ "$CURRENT" = "$PKG_VER" ]; then
+            if await_primary_publish "$name" "$PKG_VER"; then
               echo "  $name@$PKG_VER already published, skip"
             else
-              echo "📦 Publishing $name@$PKG_VER (was $CURRENT)"
-              (cd "$dir" && npm publish --provenance --access public)
+              publish_with_race_guard "$dir" "$name" "$PKG_VER"
             fi
           done
 
-      - name: "Publish @chainlesschain/agent-sdk (standalone, own install + TS build)"
+      - name: "Await OIDC publish or use token fallback (@chainlesschain/agent-sdk)"
         env:
+          EVENT_NAME: ${{ github.event_name }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         working-directory: packages/agent-sdk
         run: |
           set -e
+          version_is_published() {
+            npm view "$1@$2" version 2>/dev/null | grep -Fx "$2" >/dev/null
+          }
+
+          await_primary_publish() {
+            name="$1"
+            version="$2"
+
+            if version_is_published "$name" "$version"; then
+              return 0
+            fi
+            if [ "$EVENT_NAME" != "push" ]; then
+              return 1
+            fi
+
+            echo "Waiting up to 15 minutes for $name@$version from npm-publish.yml"
+            for attempt in $(seq 1 60); do
+              sleep 15
+              if version_is_published "$name" "$version"; then
+                echo "  $name@$version published by the OIDC workflow"
+                return 0
+              fi
+              echo "  attempt $attempt/60: not visible yet"
+            done
+
+            return 1
+          }
+
           # Not an npm workspace member — needs its own devDeps for the
           # prepublishOnly TypeScript dual build (see npm-publish.yml twin).
-          CURRENT=$(npm view @chainlesschain/agent-sdk version 2>/dev/null || echo "0.0.0")
           PKG_VER=$(node -p "require('./package.json').version")
-          if [ "$CURRENT" = "$PKG_VER" ]; then
+          if await_primary_publish "@chainlesschain/agent-sdk" "$PKG_VER"; then
             echo "  @chainlesschain/agent-sdk@$PKG_VER already published, skip"
           else
             npm install --no-audit --no-fund
-            echo "📦 Publishing @chainlesschain/agent-sdk@$PKG_VER (was $CURRENT)"
-            npm publish --provenance --access public
+            echo "Token fallback: publishing @chainlesschain/agent-sdk@$PKG_VER"
+            if ! npm publish --provenance --access public; then
+              # The OIDC workflow may have won the race after our final check.
+              version_is_published "@chainlesschain/agent-sdk" "$PKG_VER"
+            fi
           fi
 
   # Build for Windows
@@ -1455,7 +1547,8 @@ jobs:
           echo "✅ create-release done (state: $(gh release view "$VERSION" --json isDraft -q 'if .isDraft then "draft" else "published" end'))"
           echo "🔗 https://github.com/${{ github.repository }}/releases/tag/${VERSION}"
 
-  # Publish all packages to npm (core packages + CLI)
+  # Verify the canonical npm workflow completed, with a token-backed CLI
+  # fallback for manual releases or a failed primary publish.
   # Precheck: resolve the published version + decide whether tests should run.
   # Split from publish-cli so tests can live in their own reusable workflow
   # (./.github/workflows/_cli-test.yml) — see that file for shard rationale.
@@ -1539,6 +1632,7 @@ jobs:
     # Wait on cli-tests so a red shard blocks publish. Use `always()` plus an
     # explicit success-or-skipped check so the job still runs when cli-tests
     # was skipped (already-published or skip_tests=true case).
+    # NODE_AUTH_TOKEN remains a temporary rollback path while OIDC is verified.
     needs: [publish-cli-precheck, cli-tests]
     if: |
       always() &&
@@ -1555,8 +1649,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: "22.12.0"
+          # npm Trusted Publishing requires Node.js 22.14.0 or newer.
+          node-version: "22.14.0"
           registry-url: "https://registry.npmjs.org"
+
+      - name: Enable npm Trusted Publishing support
+        run: |
+          npm install --global npm@11.18.0
+          npm --version
 
       - name: Install dependencies (workspaces)
         uses: ./.github/actions/setup-node-deps
@@ -1583,7 +1683,15 @@ jobs:
       - name: Publish CLI to npm
         if: needs.publish-cli-precheck.outputs.already_published != 'true'
         working-directory: packages/cli
-        run: npm publish --provenance --access public
+        run: |
+          VERSION="${{ needs.publish-cli-precheck.outputs.version }}"
+          if npm publish --provenance --access public; then
+            exit 0
+          fi
+
+          # The canonical OIDC workflow may have won the race after precheck.
+          npm view "chainlesschain@${VERSION}" version 2>/dev/null |
+            grep -Fx "$VERSION" >/dev/null
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
