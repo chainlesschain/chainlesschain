@@ -32,10 +32,15 @@ console.log("[DEBUG] Starting Electron main process...");
 const { app, BrowserWindow, ipcMain, Notification } = require("electron");
 // Route Desktop main-process child_process APIs through one provenance/audit
 // boundary while preserving Node's native execution behavior.
-const { installDesktopProcessBroker } = require("./process/desktop-process-broker");
+const {
+  installDesktopProcessBroker,
+} = require("./process/desktop-process-broker");
 installDesktopProcessBroker();
 console.log("[DEBUG] Electron modules loaded");
 const { logger } = require("./utils/logger.js");
+const {
+  summarizeMobileCommandMessage,
+} = require("./p2p/mobile-command-log.js");
 console.log("[DEBUG] Logger loaded");
 const path = require("path");
 const fs = require("fs");
@@ -1694,7 +1699,10 @@ class ChainlessChainApp {
         logger.info("[Main] ========================================");
         logger.info("[Main] 收到 message-from-mobile 事件");
         logger.info("[Main] mobilePeerId:", data.mobilePeerId);
-        logger.info("[Main] message.type:", data.message?.type);
+        logger.info(
+          "[Main] message.type:",
+          summarizeMobileCommandMessage(data.message).type,
+        );
         logger.info("[Main] message.payload存在:", !!data.message?.payload);
         logger.info("[Main] ========================================");
 
@@ -1933,7 +1941,8 @@ class ChainlessChainApp {
     logger.info("[Main] ========================================");
     logger.info("[Main] handleMobileCommand 开始处理");
     logger.info("[Main] mobilePeerId:", mobilePeerId);
-    logger.info("[Main] message:", JSON.stringify(message).slice(0, 300));
+    const messageLogSummary = summarizeMobileCommandMessage(message);
+    logger.info("[Main] message:", messageLogSummary);
 
     // 消息类型常量
     const MESSAGE_TYPES = {
@@ -1944,12 +1953,12 @@ class ChainlessChainApp {
     try {
       // 检查消息格式
       if (!message || !message.type) {
-        logger.warn("[Main] 移动端消息格式无效:", message);
+        logger.warn("[Main] 移动端消息格式无效:", messageLogSummary);
         logger.info("[Main] ========================================");
         return;
       }
 
-      logger.info("[Main] 消息类型:", message.type);
+      logger.info("[Main] 消息类型:", messageLogSummary.type);
       logger.info("[Main] 期望类型:", MESSAGE_TYPES.COMMAND_REQUEST);
       logger.info(
         "[Main] 类型匹配:",
@@ -1958,7 +1967,7 @@ class ChainlessChainApp {
 
       // 只处理命令请求
       if (message.type !== MESSAGE_TYPES.COMMAND_REQUEST) {
-        logger.debug("[Main] 非命令请求消息，跳过:", message.type);
+        logger.debug("[Main] 非命令请求消息，跳过:", messageLogSummary.type);
         logger.info("[Main] ========================================");
         return;
       }
@@ -1974,7 +1983,9 @@ class ChainlessChainApp {
         logger.info("[Main] payload.id:", payload?.id);
         logger.info("[Main] payload.method:", payload?.method);
       } catch (e) {
-        logger.error("[Main] 解析命令 payload 失败:", e);
+        logger.error("[Main] 解析命令 payload 失败:", {
+          name: e && e.name ? e.name : "Error",
+        });
         logger.info("[Main] ========================================");
         return;
       }
