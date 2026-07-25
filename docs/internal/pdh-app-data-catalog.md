@@ -145,18 +145,18 @@
 
 ## 分类: 社交/内容（10）
 
-| App      | 名称                 | 底层模式    | 采集方式            | 敏感度 | 数据字段（摘要）                                                                                                         |
-| -------- | -------------------- | ----------- | ------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
-| 哔哩哔哩 | `social-bilibili`    | device-pull | snapshot/sqlite     | medium | bilibili:history (avid / bvid / title / view_at / duration / uploader); bilibili:favourite (folder / video / save_time / |
-| CSDN     | `social-csdn`        | web-api     | snapshot/cookie-api | medium | csdn:article (title / viewCount / collectCount); csdn:favourite (title / url / source); csdn:follow (username / name)    |
-| 懂车帝   | `social-dongchedi`   | web-api     | snapshot/cookie-api | low    | dongchedi:favourite (title / contentType / url); dongchedi:follow (name / followType)                                    |
-| 豆瓣     | `social-douban`      | web-api     | snapshot/cookie-api | medium | douban:interest (subjectType / title / status / myRating / comment); douban:review (title / subjectTitle / rating); doub |
-| 抖音     | `social-douyin`      | device-pull | snapshot/sqlite     | medium | douyin:profile (sec_user_id / nickname / signature / counts); douyin:history (aweme_id / title / author / view_time); do |
-| 快手     | `social-kuaishou`    | device-pull | snapshot/sqlite     | medium | kuaishou:profile (user_id / user_name / kuaishou_id / headurl / sex / city); kuaishou:photo_history (photo_id / caption  |
-| 今日头条 | `social-toutiao`     | device-pull | snapshot/sqlite     | high   | toutiao:profile (user_id / screen_name / avatar / mobile / following / followers); toutiao:read_history (item_id / title |
-| 微博     | `social-weibo`       | device-pull | snapshot/sqlite     | medium | weibo:posts (text / created_at / reposts_count / comments_count / likes); weibo:favourite (mid / text / author); weibo:f |
-| 小红书   | `social-xiaohongshu` | device-pull | snapshot/sqlite     | medium | xhs:notes (own posts, title / desc / type / engagement counts); xhs:liked (notes the user liked); xhs:follow (followed u |
-| 知乎     | `social-zhihu`       | web-api     | snapshot/cookie-api | medium | zhihu:answer (questionTitle / excerpt / voteupCount); zhihu:favourite (title / url / collectionName); zhihu:follow (memb |
+| App      | 名称                 | 底层模式    | 采集方式                  | 敏感度 | 数据字段（摘要）                                                                                                         |
+| -------- | -------------------- | ----------- | ------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
+| 哔哩哔哩 | `social-bilibili`    | device-pull | snapshot/sqlite           | medium | bilibili:history (avid / bvid / title / view_at / duration / uploader); bilibili:favourite (folder / video / save_time / |
+| CSDN     | `social-csdn`        | web-api     | snapshot/cookie-api       | medium | csdn:article (title / viewCount / collectCount); csdn:favourite (title / url / source); csdn:follow (username / name)    |
+| 懂车帝   | `social-dongchedi`   | web-api     | snapshot/cookie-api       | low    | dongchedi:favourite (title / contentType / url); dongchedi:follow (name / followType)                                    |
+| 豆瓣     | `social-douban`      | web-api     | snapshot/cookie-api       | medium | douban:interest (subjectType / title / status / myRating / comment); douban:review (title / subjectTitle / rating); doub |
+| 抖音     | `social-douyin`      | device-pull | snapshot/sqlite/im-sqlite | medium | douyin:profile (sec_user_id / nickname / signature / counts); douyin:history (aweme_id / title / author / view_time); do |
+| 快手     | `social-kuaishou`    | device-pull | snapshot/sqlite           | medium | kuaishou:profile (user_id / user_name / kuaishou_id / headurl / sex / city); kuaishou:photo_history (photo_id / caption  |
+| 今日头条 | `social-toutiao`     | device-pull | snapshot/sqlite           | high   | toutiao:profile (user_id / screen_name / avatar / mobile / following / followers); toutiao:read_history (item_id / title |
+| 微博     | `social-weibo`       | device-pull | snapshot/sqlite           | medium | weibo:posts (text / created_at / reposts_count / comments_count / likes); weibo:favourite (mid / text / author); weibo:f |
+| 小红书   | `social-xiaohongshu` | device-pull | snapshot/sqlite           | medium | xhs:notes (own posts, title / desc / type / engagement counts); xhs:liked (notes the user liked); xhs:follow (followed u |
+| 知乎     | `social-zhihu`       | web-api     | snapshot/cookie-api       | medium | zhihu:answer (questionTitle / excerpt / voteupCount); zhihu:favourite (title / url / collectionName); zhihu:follow (memb |
 
 ## 分类: 购物/电商（8）
 

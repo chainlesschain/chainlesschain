@@ -571,7 +571,7 @@
       "name": "shopping-jd",
       "display": "京东",
       "category": "购物/电商",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "extractMode": "web-api",
       "capabilities": ["sync:snapshot", "sync:cookie-api", "parse:jd-orders"],
       "fields": [
@@ -1392,6 +1392,7 @@
       "capabilities": [
         "sync:snapshot",
         "sync:sqlite",
+        "sync:im-sqlite",
         "parse:douyin-profile",
         "parse:douyin-history",
         "parse:douyin-favourite",

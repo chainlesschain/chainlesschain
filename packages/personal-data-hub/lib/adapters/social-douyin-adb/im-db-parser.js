@@ -56,16 +56,15 @@ function loadDatabaseClass() {
   for (const mod of ["better-sqlite3-multiple-ciphers", "better-sqlite3"]) {
     let cls;
     try {
-      // eslint-disable-next-line global-require
       cls = require(mod);
-    } catch (_e) {
+    } catch {
       continue;
     }
     try {
       const probe = new cls(":memory:");
       probe.close();
       return cls;
-    } catch (_e) {
+    } catch {
       // ABI mismatch — try next
     }
   }
@@ -90,9 +89,10 @@ function extractTextFromContent(blob) {
       // Modern shape: {text: "...", display_name: "...", url: {url_list: [...]}}
       if (typeof parsed.text === "string") return parsed.text;
       // Some versions wrap text in `content` nested
-      if (parsed.content && typeof parsed.content.text === "string") return parsed.content.text;
+      if (parsed.content && typeof parsed.content.text === "string")
+        return parsed.content.text;
     }
-  } catch (_e) {
+  } catch {
     // Not JSON — return the raw value (could be a legacy plaintext row)
     return blob;
   }
@@ -123,17 +123,17 @@ function parseImDb(dbPath, opts = {}) {
   const limitMessages =
     Number.isInteger(opts.limitMessages) && opts.limitMessages > 0
       ? opts.limitMessages
-      : 10_000;
+      : null;
   const limitContacts =
     Number.isInteger(opts.limitContacts) && opts.limitContacts > 0
       ? opts.limitContacts
-      : 5_000;
+      : null;
   const Database = opts._databaseClass || loadDatabaseClass();
   const db = new Database(dbPath, { readonly: true });
   const limitConversations =
     Number.isInteger(opts.limitConversations) && opts.limitConversations > 0
       ? opts.limitConversations
-      : 5_000;
+      : null;
   const out = {
     messages: [],
     contacts: [],
@@ -150,10 +150,7 @@ function parseImDb(dbPath, opts = {}) {
   };
   try {
     // ─── msg table ───────────────────────────────────────────────────────
-    const msgTableInfo = trySelect(
-      db,
-      "PRAGMA table_info(msg)",
-    );
+    const msgTableInfo = trySelect(db, "PRAGMA table_info(msg)");
     if (Array.isArray(msgTableInfo) && msgTableInfo.length > 0) {
       out.diagnostic.hadMsgTable = true;
       const columns = new Set(msgTableInfo.map((r) => r.name));
@@ -177,7 +174,7 @@ function parseImDb(dbPath, opts = {}) {
           `SELECT ${senderCol} AS sender, ${timeCol} AS createdTime, ${contentCol} AS content` +
           (convCol ? `, ${convCol} AS conversationId` : "") +
           (readCol ? `, ${readCol} AS readStatus` : "") +
-          ` FROM msg ORDER BY ${timeCol} DESC LIMIT ${limitMessages}`;
+          ` FROM msg ORDER BY ${timeCol} DESC${sqlLimit(limitMessages)}`;
         const rows = trySelect(db, sql) || [];
         for (const r of rows) {
           const createdTimeMs = normalizeEpochMs(r.createdTime);
@@ -191,8 +188,7 @@ function parseImDb(dbPath, opts = {}) {
             conversationId: r.conversationId ? String(r.conversationId) : null,
             createdTimeMs,
             text: extractTextFromContent(r.content),
-            readStatus:
-              typeof r.readStatus === "number" ? r.readStatus : null,
+            readStatus: typeof r.readStatus === "number" ? r.readStatus : null,
             contentBlob: typeof r.content === "string" ? r.content : null,
           });
         }
@@ -201,10 +197,7 @@ function parseImDb(dbPath, opts = {}) {
     }
 
     // ─── SIMPLE_USER table ───────────────────────────────────────────────
-    const userTableInfo = trySelect(
-      db,
-      "PRAGMA table_info(SIMPLE_USER)",
-    );
+    const userTableInfo = trySelect(db, "PRAGMA table_info(SIMPLE_USER)");
     if (Array.isArray(userTableInfo) && userTableInfo.length > 0) {
       out.diagnostic.hadSimpleUserTable = true;
       const columns = new Set(userTableInfo.map((r) => r.name));
@@ -223,7 +216,9 @@ function parseImDb(dbPath, opts = {}) {
         if (nameCol) fields.push(`${nameCol} AS name`);
         if (avatarCol) fields.push(`${avatarCol} AS avatarUrl`);
         if (followCol) fields.push(`${followCol} AS followStatus`);
-        const sql = `SELECT ${fields.join(", ")} FROM SIMPLE_USER LIMIT ${limitContacts}`;
+        const sql =
+          `SELECT ${fields.join(", ")} FROM SIMPLE_USER` +
+          sqlLimit(limitContacts);
         const rows = trySelect(db, sql) || [];
         for (const r of rows) {
           out.contacts.push({
@@ -252,12 +247,10 @@ function parseImDb(dbPath, opts = {}) {
       const columns = new Set(partTableInfo.map((r) => r.name));
       const uidCol = pickCol(columns, ["user_id", "uid", "UID"]);
       if (uidCol) {
-        const seen = new Set(
-          out.contacts.map((c) => c.uid).filter(Boolean),
-        );
+        const seen = new Set(out.contacts.map((c) => c.uid).filter(Boolean));
         const sql =
           `SELECT DISTINCT ${uidCol} AS uid FROM participant ` +
-          `WHERE ${uidCol} IS NOT NULL LIMIT ${limitContacts}`;
+          `WHERE ${uidCol} IS NOT NULL${sqlLimit(limitContacts)}`;
         const rows = trySelect(db, sql) || [];
         for (const r of rows) {
           const uid = r.uid != null ? String(r.uid) : null;
@@ -284,7 +277,11 @@ function parseImDb(dbPath, opts = {}) {
       out.diagnostic.hadConversationListTable = true;
       const columns = new Set(convTableInfo.map((r) => r.name));
       const idCol = pickCol(columns, ["conversation_id", "conv_id", "id"]);
-      const typeCol = pickCol(columns, ["type", "conversation_type", "conv_type"]);
+      const typeCol = pickCol(columns, [
+        "type",
+        "conversation_type",
+        "conv_type",
+      ]);
       const lastTimeCol = pickCol(columns, [
         "last_msg_create_time",
         "last_message_time",
@@ -299,7 +296,8 @@ function parseImDb(dbPath, opts = {}) {
         const orderBy = lastTimeCol ? ` ORDER BY ${lastTimeCol} DESC` : "";
         const sql =
           `SELECT ${fields.join(", ")} FROM conversation_list` +
-          `${orderBy} LIMIT ${limitConversations}`;
+          orderBy +
+          sqlLimit(limitConversations);
         const rows = trySelect(db, sql) || [];
         for (const r of rows) {
           if (r.convId == null) continue;
@@ -308,8 +306,7 @@ function parseImDb(dbPath, opts = {}) {
             conversationType:
               typeof r.convType === "number" ? r.convType : null,
             lastMsgTimeMs: normalizeEpochMs(r.lastMsgTime),
-            stranger:
-              typeof r.stranger === "number" ? r.stranger === 1 : null,
+            stranger: typeof r.stranger === "number" ? r.stranger === 1 : null,
           });
         }
         out.diagnostic.conversationCount = out.conversations.length;
@@ -319,6 +316,10 @@ function parseImDb(dbPath, opts = {}) {
     db.close();
   }
   return out;
+}
+
+function sqlLimit(value) {
+  return value === null ? "" : ` LIMIT ${value}`;
 }
 
 /**
@@ -344,7 +345,7 @@ function normalizeEpochMs(v) {
 function trySelect(db, sql) {
   try {
     return db.prepare(sql).all();
-  } catch (_e) {
+  } catch {
     return null;
   }
 }
