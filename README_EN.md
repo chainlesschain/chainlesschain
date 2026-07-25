@@ -11,6 +11,14 @@
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
 
+## 2026-07-25 Current mainline — **v5.0.3.135 / CLI 0.162.179 / PDH 0.4.55 / VS Code 0.37.33**
+
+> npm `latest` now resolves to `chainlesschain@0.162.179` and `@chainlesschain/personal-data-hub@0.4.55`; Desktop and Android are at `5.0.3.135`, and the VS Code extension is at `0.37.33`. Python Agent SDK `chainlesschain-agent-sdk==0.1.0` has shipped through PyPI Trusted Publishing.
+>
+> This release centers on live Personal Data Hub collection across clients: **92 registered collection contracts in 18 categories** report honest readiness for the current host and inputs, while Desktop, Web Panel, and CLI share six collection paths—direct sync, file, directory, transient Cookie, transient OAuth, and Android ADB. Cookie/OAuth secrets are not persisted; missing backups, invalid source pages, and unreachable inputs fail closed; long-running scans advance checkpoints only after a complete stable pass, so cancellation and interruption can resume safely. The release also corrects QQ NT field semantics, Windows Recent and Android system-data resume behavior, keyed WhatsApp backups, and WeRead cursor preservation.
+>
+> See the [Personal Data Hub user guide](docs-site/docs/chainlesschain/personal-data-hub.md), [architecture and security boundaries](docs/design/Personal_Data_Hub_Architecture.md), and [changelog](CHANGELOG.md).
+
 ## 2026-07-24 Current release — **cc CLI 0.162.177 / VS Code extension 0.37.31: generated skill processes are now host-brokered**
 
 > `chainlesschain@0.162.177` is live on npm `latest`, and VS Code extension `0.37.31` is live on Open VSX. Generated CLI-Anything and CLI Skill Pack handlers no longer hold `child_process` directly: a skill declaring `shell-exec` receives only a frozen, host-injected Process Broker facade with authoritative provenance. CLI-Anything executes literal argv with `shell:false`; unsafe metacharacters, unmatched quotes, or a missing Broker fail closed. Release gates covered unit, integration, E2E, packaging, and real CLI/Extension Host smoke tests across Ubuntu, Windows, and macOS; the local four-shard CLI unit run finished with **24,562 passing and 5 skipped**. See the [CLI Runtime guide](docs-site/docs/chainlesschain/cli-runtime-current.md), [CLI Skill Packs user guide](docs-site/docs/chainlesschain/cli-skill-packs.md), and [runtime design check](docs/design/cli-runtime-current.md).

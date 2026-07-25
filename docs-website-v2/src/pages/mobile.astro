@@ -5,7 +5,7 @@ import releaseSizes from '../data/release-sizes.json';
 
 const PRODUCT_VERSION = rootPkg.productVersion;
 const ANDROID_TAG = releaseSizes.tag || PRODUCT_VERSION;
-const ANDROID_VERSION = ANDROID_TAG;
+const ANDROID_VERSION = releaseSizes.productVersion || PRODUCT_VERSION;
 const ANDROID_RELEASE_URL = `https://github.com/chainlesschain/chainlesschain/releases/tag/${ANDROID_TAG}`;
 const dl = (key) => {
   const s = releaseSizes.sizes[key];

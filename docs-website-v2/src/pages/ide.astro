@@ -1,5 +1,10 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import cliPkg from '../../../packages/cli/package.json';
+import vscodePkg from '../../../packages/vscode-extension/package.json';
+
+const CLI_VERSION = cliPkg.version;
+const VSCODE_VERSION = vscodePkg.version;
 ---
 <BaseLayout
   title="IDE 集成 — VS Code + JetBrains 双扩展，agent 进编辑器 | ChainlessChain"
@@ -10,7 +15,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
     <div class="container-wide relative pt-20 pb-20 md:pt-28 md:pb-24">
       <div class="max-w-4xl">
-        <div class="chip mb-6 animate-fade-in">IDE 集成 · VS Code 0.37.31（Open VSX）+ JetBrains</div>
+        <div class="chip mb-6 animate-fade-in">IDE 集成 · VS Code {VSCODE_VERSION}（Open VSX）+ JetBrains</div>
         <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
           agent 进编辑器：<br/><span class="italic text-ember">看你所看，改你所审</span>。
         </h1>
@@ -24,7 +29,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           <a href="https://docs.chainlesschain.com/chainlesschain/ide-bridge.html" rel="noopener" class="btn-ghost">完整文档 ↗</a>
         </div>
         <p class="mt-5 text-sm text-muted">
-          当前 VS Code 版 <strong class="text-ink">0.37.31</strong> 已在 Open VSX 上架，并完成与 CLI <strong class="text-ink">0.162.177</strong> 的兼容夹具对齐；桥接协议与最低 CLI 版本不变。
+          当前 VS Code 版 <strong class="text-ink">{VSCODE_VERSION}</strong> 已在 Open VSX 上架，推荐搭配 CLI <strong class="text-ink">{CLI_VERSION}</strong>；0.37.33 还会保留供应商返回的真实 403 原因并在展示前脱敏，欠费、模型权限与 API Key 错误不再混成同一个提示。
         </p>
       </div>
     </div>
@@ -43,7 +48,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           ['预览', 'App 内嵌预览', 'Start App Preview 自动识别项目 dev 脚本 → 拉起 dev server → 解析本地 URL → 编辑器内嵌打开（VS Code 内置 Simple Browser / JetBrains JCEF 浏览器，不支持时回退外部浏览器）；dev server 的 HMR 负责改文件即时热重载；dev server 意外退出时报崩溃并一键 Restart，不再默默停掉。'],
           ['终端', '终端上下文共享', 'getTerminalOutput 让 agent 看到你刚在集成终端跑的命令、输出、退出码（VS Code 1.93+ shell integration）——它知道你刚跑了什么、怎么失败的。每轮自动注入 <ide-context> + 显式 @terminal at-mention。'],
           ['同步', 'CLI 版本对齐', '激活时检测 cc --version，低于扩展所需最低版本一键提示升级；命令面板「Upgrade CLI」随时从 IDE 跑 npm i -g chainlesschain@latest——扩展（Open VSX）与 CLI（npm）独立发版轨,这条让它们对齐。'],
-          ['补全', '@ 文件 / 斜杠命令', 'REPL 里 @ 路径 TAB 补全把编辑器打开的文件排最前；面板 @ 补全含 @selection / @diagnostics / @terminal；支持 /new /plan /approve /reject /stop。'],
+          ['补全', '@ 文件 / 实时斜杠命令', 'REPL 里 @ 路径 TAB 补全把编辑器打开的文件排最前；面板 @ 补全含 @selection / @diagnostics / @terminal；/status /doctor /mcp /hooks /permissions /agents /tasks /memory 读取当前会话，另含 /new /plan /approve /reject /stop /expand。'],
         ].map(([tag, title, desc]) => (
           <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
             <div class="font-mono text-xs text-ember mb-3">{tag}</div>
@@ -94,8 +99,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <div class="max-w-3xl">
         <h2 class="text-3xl md:text-4xl mb-6 font-display">两步装好</h2>
         <ol class="space-y-4 text-muted leading-relaxed">
-          <li><strong class="text-ink">1. 装 CLI：</strong><code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">npm i -g chainlesschain</code>（推荐当前 <code class="font-mono text-sm">0.162.177</code>，桥接最低 <code class="font-mono text-sm">0.162.47</code>；<code class="font-mono text-sm">cc ide doctor</code> 可诊断连接）</li>
-          <li><strong class="text-ink">2. 装扩展：</strong>VSCodium / Cursor 等在扩展面板搜 <strong class="text-ink">ChainlessChain IDE</strong>（Open VSX 当前 <code class="font-mono text-sm">0.37.31</code>）；IDEA / PyCharm / WebStorm 在 Settings → Plugins → Marketplace 搜同名（2024.2+）。官方版 VS Code 暂未上架 Marketplace，可从 Open VSX 页面下载 <code class="font-mono text-sm">.vsix</code> 本地安装。</li>
+          <li><strong class="text-ink">1. 装 CLI：</strong><code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">npm i -g chainlesschain</code>（推荐当前 <code class="font-mono text-sm">{CLI_VERSION}</code>，桥接最低 <code class="font-mono text-sm">0.162.47</code>；<code class="font-mono text-sm">cc ide doctor</code> 可诊断连接）</li>
+          <li><strong class="text-ink">2. 装扩展：</strong>VSCodium / Cursor 等在扩展面板搜 <strong class="text-ink">ChainlessChain IDE</strong>（Open VSX 当前 <code class="font-mono text-sm">{VSCODE_VERSION}</code>）；IDEA / PyCharm / WebStorm 在 Settings → Plugins → Marketplace 搜同名（2024.2+）。官方版 VS Code 暂未上架 Marketplace，可从 Open VSX 页面下载 <code class="font-mono text-sm">.vsix</code> 本地安装。</li>
         </ol>
         <p class="mt-6 text-sm text-muted">
           安全默认：server 仅绑定 localhost + 每实例随机 Bearer token + 锁文件 0600；CLI 端 <code class="font-mono text-xs">--no-ide</code> / <code class="font-mono text-xs">CC_IDE_CONTEXT=0</code> / <code class="font-mono text-xs">CC_IDE_DIFF_APPROVAL=0</code> 随时关闭对应行为。

@@ -374,8 +374,9 @@ const categories = [
     name: '个人数据中心 & 移动伴侣',
     key: 'hub',
     cmds: [
-      ['hub adapter list', 'Personal Data Hub 本地适配器列表'],
-      ['hub sync', '同步本地知识库 / AnalysisEngine'],
+      ['hub list-adapters', '92 个采集契约 + 当前 readiness / setup 原因'],
+      ['hub sync-adapter <name>', '单源采集：同步 / 文件 / 目录 / 临时 Cookie / OAuth / ADB'],
+      ['hub sync-all', '仅同步当前 ready 的来源，并汇总成功 / 空结果 / 跳过 / 失败'],
       ['hub ask', '基于本地数据的提问'],
       ['pair preflight', '局域网配对预检诊断'],
       ['pair token', '签发配对 token'],
@@ -600,6 +601,9 @@ const packs = [
         </p>
         <p class="mt-4 text-lg text-muted">
           CLI <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">0.162.177</code> 进一步把 CLI-Anything 与 CLI 指令技能包生成的子进程收进宿主 Process Broker：技能只拿到冻结的窄 facade，执行来源由宿主写入；CLI-Anything 使用字面 argv + <code class="font-mono text-sm">shell:false</code>，危险字符、未闭合引号或缺少 Broker 时 fail closed。发布门已通过 Ubuntu / Windows / macOS 的 unit、integration、E2E、打包与 CLI 启动校验；本地单元四分片 24,562 项通过、5 项跳过。
+        </p>
+        <p class="mt-4 text-lg text-muted">
+          当前 CLI <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> 搭载 PDH 0.4.55：桌面端、Web Panel 与命令行共用实时采集协议，临时 Cookie/OAuth 不落配置；缺失备份、无效来源页或不可达输入失败闭合；取消、超时与不完整分页保留旧水位，可在下一轮安全续扫。
         </p>
       </div>
     </div>

@@ -3,16 +3,21 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Terminal from '../components/Terminal.astro';
 import rootPkg from '../../../package.json';
 import cliPkg from '../../../packages/cli/package.json';
+import pdhPkg from '../../../packages/personal-data-hub/package.json';
+import pdhCatalog from '../../../docs/internal/pdh-app-data-catalog.json';
 import releaseSizes from '../data/release-sizes.json';
 
 const PRODUCT_VERSION = rootPkg.productVersion;
+const PDH_VERSION = pdhPkg.version;
+const PDH_ADAPTER_COUNT = pdhCatalog.count;
 // Published npm CLI version (release-sizes.json, pinned at build by
 // fetch-release-sizes.mjs from npm's `latest` dist-tag). Falls back to the
 // in-repo package.json only if the registry fetch + cache both failed — that
 // fallback can drift ahead of npm during dev, so the pinned value is the norm.
 const CLI_VERSION = releaseSizes.cliVersion || cliPkg.version;
 const ANDROID_TAG = releaseSizes.tag || PRODUCT_VERSION;
-const ANDROID_VERSION = ANDROID_TAG;
+const DOWNLOAD_VERSION = releaseSizes.productVersion || PRODUCT_VERSION;
+const ANDROID_VERSION = DOWNLOAD_VERSION;
 const ANDROID_RELEASE_URL = `https://github.com/chainlesschain/chainlesschain/releases/tag/${ANDROID_TAG}`;
 const androidArm64 = releaseSizes.sizes['android-arm64-v8a'];
 const androidUniversal = releaseSizes.sizes['android-universal'];
@@ -81,7 +86,7 @@ const everyday = [
 const badges = [
   { icon: '🏆', label: '4 项发明专利' },
   { icon: '🔒', label: '军事级加密' },
-  { icon: '⭐', label: 'Open VSX 插件安装 1.7 万+' },
+  { icon: '⭐', label: 'Open VSX 插件下载 1.8 万+' },
   { icon: '✅', label: '等保三级认证' },
   { icon: '📋', label: '参编《人工智能 智能体内生安全技术要求》T/ZGCMCA 023—2025', href: 'https://www.ttbz.org.cn/standardDetail.html?id=jy42azxbb1ymwtf6tm371ejs6jcuwz7' },
 ];
@@ -97,8 +102,8 @@ const badges = [
           <span class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> {PRODUCT_VERSION} · Evolution Edition</span>
           <span class="chip">CLI v{CLI_VERSION}</span>
           <span class="chip">175 命令</span>
-          <a href="https://open-vsx.org/extension/chainlesschain/chainlesschain-ide" target="_blank" rel="noopener" class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> 🎉 VS Code 插件 Open VSX 安装 1.7 万+</a>
-          <a href="https://www.npmjs.com/package/chainlesschain" target="_blank" rel="noopener" class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> 📦 CLI npm 月下载 2.2 万+</a>
+          <a href="https://open-vsx.org/extension/chainlesschain/chainlesschain-ide" target="_blank" rel="noopener" class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> 🎉 VS Code 插件 Open VSX 下载 1.8 万+</a>
+          <a href="https://www.npmjs.com/search?q=chainlesschain" target="_blank" rel="noopener" class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> 📦 ChainlessChain 系列 npm 包月下载 5 万+</a>
           <span class="chip">Web Shell（默认）</span>
           <span class="chip">Web Panel i18n（中英）</span>
           <span class="chip">MTC v0.11</span>
@@ -208,18 +213,18 @@ const badges = [
       <div class="max-w-4xl mb-16">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ember/15 border border-ember/30 mb-6">
           <span class="w-1.5 h-1.5 bg-ember rounded-full animate-pulse"></span>
-          <span class="font-mono text-[11px] text-ember uppercase tracking-widest">个人数据中台 · v5.0.3.134 · 50+ 数据源真机生效</span>
+          <span class="font-mono text-[11px] text-ember uppercase tracking-widest">个人数据中台 · {PRODUCT_VERSION} · {PDH_ADAPTER_COUNT} 个注册采集契约</span>
         </div>
         <h2 class="text-display-md md:text-5xl leading-tight font-display">
           把散落各处的数字足迹，<br/>
           <span class="italic text-ember">汇成一份只属于你的金库。</span>
         </h2>
         <p class="mt-6 text-xl md:text-2xl text-cream/80 leading-relaxed">
-          邮件 · 微信 · 支付宝 · 9 家 AI Chat · 社交平台 · 电商 · 旅行 · 健康 · 音乐 · 阅读 · 电脑版 IM · Android 系统数据 ——<br class="hidden md:block"/>
-          <span class="text-cream">50+ 数据源端到端拉回本地</span>，谁也拿不走。
+          邮件 · 即时通讯 · 9 家 AI Chat · 社交 · 电商 · 出行 · 健康 · 文档 · 本机活动 · Android 系统数据 ——<br class="hidden md:block"/>
+          <span class="text-cream">{PDH_ADAPTER_COUNT} 个契约覆盖 18 类来源</span>，按当前设备与输入诚实显示可用状态。
         </p>
         <p class="mt-5 text-base text-cream/60 italic max-w-2xl">
-          "让数据主权回归个人" 不是口号 —— 是 51 个真接通的适配器、5 个内置分析技能、1 份本地加密金库。
+          “让数据主权回归个人”不是口号 —— 是跨桌面、Web Panel 与 CLI 的实时采集入口、5 个内置分析技能、1 份本地加密金库。
         </p>
       </div>
 
@@ -280,7 +285,7 @@ const badges = [
             <li>· Android ADB 备份</li>
             <li>· iOS 加密备份解密</li>
             <li>· Apple 健康 · 网易云音乐 · 微信读书</li>
-            <li class="text-ember/80 font-mono text-[10px] pt-1">+ 开发者本机活动 7 件套（git/vscode/shell/浏览器…）</li>
+            <li class="text-ember/80 font-mono text-[10px] pt-1">+ 17 个本机/系统采集契约（git / IDE / shell / 浏览器…）</li>
           </ul>
         </div>
       </div>
@@ -296,8 +301,8 @@ const badges = [
           <div class="text-sm text-cream/85 leading-relaxed">消费趋势 · 出行画像 · 沟通频率 · 内容偏好 · 时间分布 —— LLM 直接调，问"我去年在哪三家店花得最多"立刻有答案。</div>
         </div>
         <div class="p-5 rounded-xl bg-ember/[0.08] border border-ember/25">
-          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">实体归一化（EntityResolver）</div>
-          <div class="text-sm text-cream/85 leading-relaxed">"张三" / "Zhang San" / "+86 138-xxxx" 自动认成同一人 —— 跨邮件/微信/通讯录的关系图谱真接得起来。</div>
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">可达性与完整性</div>
+          <div class="text-sm text-cream/85 leading-relaxed">每个来源明确显示可采集 / 需配置 / 不可用；取消、超时或不完整分页不推进水位，下次可安全续扫。</div>
         </div>
       </div>
 
@@ -309,7 +314,7 @@ const badges = [
         <a href="https://design.chainlesschain.com/Personal_Data_Hub_Architecture.html" rel="noopener" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md border border-cream/20 text-cream/80 hover:border-ember hover:text-cream transition-all">
           架构设计文档 ↗
         </a>
-        <span class="text-xs font-mono text-cream/40 ml-2">出行/购物/社交/文档/音乐/视频/招聘全覆盖 · 9 / 9 AIChat vendor 真接通 · WeChat MD5+Frida 双路径 · 电脑版 IM 本地直读 · pdh npm 0.4.51</span>
+        <span class="text-xs font-mono text-cream/40 ml-2">立即同步 / 文件 / 目录 / 临时 Cookie / 临时 OAuth / Android ADB · 9 家 AI Chat · 电脑版 IM 本地直读 · pdh npm {PDH_VERSION}</span>
       </div>
     </div>
   </section>
@@ -694,7 +699,8 @@ const badges = [
     <div class="container-wide">
       <div class="max-w-3xl mb-14">
         <div class="chip mb-6">下载</div>
-        <h2 class="text-display-md md:text-5xl leading-tight">三端同源 · {PRODUCT_VERSION}</h2>
+        <h2 class="text-display-md md:text-5xl leading-tight">三端同源 · 当前主线 {PRODUCT_VERSION}</h2>
+        <p class="mt-4 text-muted">桌面与 Android 当前可下载版本：{DOWNLOAD_VERSION}</p>
       </div>
       <div class="grid md:grid-cols-3 gap-6">
         <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
@@ -704,7 +710,7 @@ const badges = [
           <p class="text-sm text-muted">支持 npm / yarn / pnpm / bun · 约 2MB</p>
         </div>
         <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
-          <div class="font-mono text-xs text-muted mb-3">DESKTOP · {PRODUCT_VERSION}</div>
+          <div class="font-mono text-xs text-muted mb-3">DESKTOP · {DOWNLOAD_VERSION}</div>
           <h3 class="font-display text-2xl mb-3">桌面应用</h3>
           <div class="flex flex-wrap gap-2 mb-4">
             <a href={ANDROID_RELEASE_URL} target="_blank" rel="noopener" class="chip hover:bg-ember hover:text-cream transition-colors">Windows</a>

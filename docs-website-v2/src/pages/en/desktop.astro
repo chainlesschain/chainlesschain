@@ -3,6 +3,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import rootPkg from '../../../../package.json';
 import releaseSizes from '../../data/release-sizes.json';
 const PRODUCT_VERSION = rootPkg.productVersion;
+const DOWNLOAD_VERSION = releaseSizes.productVersion || PRODUCT_VERSION;
 const RELEASE_TAG_URL = `https://github.com/chainlesschain/chainlesschain/releases/tag/${releaseSizes.tag || PRODUCT_VERSION}`;
 ---
 <BaseLayout
@@ -147,7 +148,7 @@ const RELEASE_TAG_URL = `https://github.com/chainlesschain/chainlesschain/releas
   <section id="download" class="py-24">
     <div class="container-wide">
       <div class="max-w-3xl mb-12">
-        <div class="chip mb-6">Download · {PRODUCT_VERSION}</div>
+        <div class="chip mb-6">Download · {DOWNLOAD_VERSION}</div>
         <h2 class="text-4xl md:text-5xl leading-tight">Three platforms, one experience.</h2>
       </div>
       <div class="grid md:grid-cols-3 gap-6">

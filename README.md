@@ -11,6 +11,14 @@
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
+## 2026-07-25 当前主线 — **v5.0.3.135 / CLI 0.162.179 / PDH 0.4.55 / VS Code 0.37.33**
+
+> npm 公网 `latest` 已对齐 `chainlesschain@0.162.179` 与 `@chainlesschain/personal-data-hub@0.4.55`；桌面端与 Android 当前为 `5.0.3.135`，VS Code 扩展为 `0.37.33`。Python Agent SDK `chainlesschain-agent-sdk==0.1.0` 已通过 PyPI Trusted Publishing 发布。
+>
+> 本轮主线是个人数据中台跨端实时采集：**92 个已注册采集契约 / 18 类数据源**按当前宿主和输入显示真实 readiness，桌面端、Web Panel 与 CLI 统一支持立即同步、文件、目录、临时 Cookie、临时 OAuth 和 Android ADB 六类入口。Cookie/OAuth 不持久化；缺失备份、无效来源页或不可达输入失败闭合；长任务只有完整稳定扫描后才推进水位，取消或中断可安全续扫。另修复 QQ NT 字段语义、Windows Recent / Android 系统数据续扫、WhatsApp 带密钥备份和微信读书游标保留。
+>
+> 详见[个人数据中台用户指南](docs-site/docs/chainlesschain/personal-data-hub.md)、[系统架构与安全边界](docs/design/Personal_Data_Hub_Architecture.md)及[更新日志](CHANGELOG.md)。
+
 ## 2026-07-24 当前发布 — **cc CLI 0.162.177 / IDE VS Code 0.37.31：技能子进程统一进入宿主 Process Broker**
 
 > `chainlesschain@0.162.177` 已发布到 npm `latest`，VS Code 扩展 `0.37.31` 已发布到 Open VSX。CLI-Anything 与 CLI 指令技能包生成的 handler 不再直接持有 `child_process`：声明 `shell-exec` 的技能仅获得宿主注入、冻结且带权威来源信息的 Process Broker facade；CLI-Anything 使用字面 argv + `shell:false`，危险字符、未闭合引号或缺少 Broker 时 fail closed。发布门覆盖 Ubuntu / Windows / macOS 的 unit、integration、E2E、打包和真实 CLI/Extension Host 烟测；本地 CLI 单元四分片 **24,562 项通过、5 项跳过**。详见 [CLI Runtime 当前实现](docs-site/docs/chainlesschain/cli-runtime-current.md)、[CLI 技能包用户指南](docs-site/docs/chainlesschain/cli-skill-packs.md) 与 [运行时设计核对](docs/design/cli-runtime-current.md)。

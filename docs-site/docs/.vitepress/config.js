@@ -6,6 +6,13 @@ export default defineConfig({
   lang: "zh-CN",
   ignoreDeadLinks: true,
 
+  transformPageData(pageData) {
+    if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
+      pageData.frontmatter.hero.tagline =
+        "v5.0.3.135 · CLI 0.162.179 · PDH 0.4.55 · VS Code 0.37.33｜92 个采集契约覆盖 18 类数据源，桌面 / Web Panel / CLI 统一实时采集入口";
+    }
+  },
+
   head: [
     ["meta", { charset: "utf-8" }],
     // Umami self-hosted analytics (data stays on our server; /u/ → 127.0.0.1:3017)

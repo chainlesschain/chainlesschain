@@ -43,7 +43,7 @@ features:
     details: 单元、集成、E2E 与文档持续对齐，减少设计与实现偏移。
 ---
 
-> **2026-07-24 当前发布快照**：CLI `0.162.177` 已发布到 npm `latest`，VS Code IDE 扩展 `0.37.31` 已发布到 Open VSX。CLI-Anything 与 CLI 指令技能包生成的子进程现统一经宿主 Process Broker 执行，来源元数据由宿主掌控，缺少 Broker 时 fail closed。详细入口：[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)、[CLI 指令技能包](/chainlesschain/cli-skill-packs) 与 [CLI-Anything](/chainlesschain/cli-cli-anything)。
+> **2026-07-25 当前主线快照**：桌面/Android 源码版本 `5.0.3.135`；CLI `0.162.179`、PDH `0.4.55` 与 VS Code IDE 扩展 `0.37.33` 已分别发布。个人数据中台现注册 92 个采集契约 / 18 类数据源，桌面端、Web Panel 与 CLI 共用立即同步、文件、目录、临时 Cookie、临时 OAuth 和 Android ADB 六类入口；readiness、取消、完整扫描水位和失败闭合边界已统一。详细入口：[个人数据中台](/chainlesschain/personal-data-hub)、[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current) 与 [Python Agent SDK](/chainlesschain/python-agent-sdk)。
 
 > 2026-04-08 更新：文档站已对齐 CLI Agent Runtime 重构、统一 runtime event、session record、后台任务增强、Worktree 合并助手、压缩观测、会话迁移，以及 **Coding Agent Phase 5 最小 Harness + 真实 interrupt**。
 >

@@ -1,6 +1,6 @@
 # 个人数据中台 (Personal Data Hub)
 
-> **状态（2026-07-23）：81 个 adapter / 17 类已注册且构造失败 0；代码采集路径可用，真机/真账号发布验收按平台单独标注**
+> **状态（2026-07-25）：92 个采集契约 / 18 类已注册；PDH 0.4.55 + CLI 0.162.179 已发布。92 是能力清单，不代表每个来源都已在当前设备或账号上可用；页面会按真实输入与宿主能力显示“可采集 / 需配置 / 不可用”。**
 >
 > 让数据回归个人。各 App 的数据先落到你自己设备上，本地 LLM 才能用它帮你回答跨源问题。任何分析都不经云端 — 默认拒绝非本地 LLM，除非显式 opt-in。
 
@@ -26,6 +26,20 @@
 ## 最新更新
 
 > 本节汇总近几个版本的采集能力更新；更细的逐 Phase 落地记录见 [系统架构 → Phase 历史](#phase-历史)。
+
+### 跨端实时采集与可靠性收口（v5.0.3.135 / CLI 0.162.179 / PDH 0.4.55）
+
+桌面端、`cc ui` Web Panel 和 CLI 现在共用同一套实时采集能力。数据源卡片会根据 adapter 契约显示对应入口：**立即采集、选择文件、选择目录、登录 Cookie、OAuth 授权、USB 一键采集**或“查看步骤”，不会再对缺失输入的来源发起注定失败的空同步。
+
+常用操作：
+
+1. 打开“个人数据中台 → 数据源”，先看来源的就绪状态与原因。
+2. 本地/已配置来源点“立即采集”；文件或目录来源只扫描你本次明确选择的范围。
+3. Cookie 与 OAuth 只用于本次采集。百度网盘与 WPS 的 access token / App Key 不写入本地配置、数据中台、审计日志或同步水位，提交后表单立即清空。
+4. Android 来源连接一台已授权设备后使用“USB 一键采集”；多设备时先明确选择 serial，避免采错设备。
+5. 采集中可查看 connecting / fetching / normalizing / done / error 流式状态；取消、超时、来源变化或不完整分页不会推进旧水位，下次可安全续扫。
+
+本轮还修复了 QQ NT 字段语义、Windows Recent 与 Android 系统数据续扫、带密钥 WhatsApp ADB 备份、微信读书游标保留和 Python sidecar 协作取消。无效 Cookie 来源页、缺失备份或不可达输入统一失败闭合，不再显示“成功但 0 条”。
 
 ### 本机零配置开发者数据源（Phase 17/18，v5.0.3.83+）
 
@@ -65,7 +79,7 @@
 
 此外：**email 账单 LLM 补全（Phase 5.5）** — 邮件账单解析在结构化字段缺失时走 LLM gap-fill 补齐金额 / 商户 / 时间；**iOS 加密备份解密（Phase 7.5b）** — 移动提取层支持解密 iOS 加密备份后导入。当前 PDH 包共 **51 个 Adapter**、**121 测试文件 / 2040 测试**。
 
-> 注：改动 `packages/personal-data-hub/lib/**` 发版时必同步 bump pdh 包 version + npm publish + Android `USR_VERSION`（否则真机走 fast-path 跳解压用旧代码）。本工作区目标为 pdh 0.4.54 / CLI 0.162.175 / binariesVersion 20260711 / USR_VERSION 78；npm 与 Android runtime bundle 发布仍是独立发布步骤。
+> 注：改动 `packages/personal-data-hub/lib/**` 发版时必同步 bump pdh 包 version + npm publish + Android `USR_VERSION`（否则真机走 fast-path 跳解压用旧代码）。当前公网版本为 PDH 0.4.55 / CLI 0.162.179；Android runtime bundle 仍按独立发布步骤与应用版本同步。
 
 ## 核心特性
 
@@ -276,7 +290,7 @@
 | 12.6.9 (+)                 | **WeChat cc hub wechat CLI**                               | `cc hub wechat env-probe / register --uin --db --wechat-data-path [--force-provider] / list / unregister <uin>` 4 个 verb 镜像 4 WS 主题；`--json` 全 verb 可机读；脚本/Plan A 手机内嵌终端可用，无需 Vue UI（同 `cc hub aichat` 模式）                                                                                                                                                                                                                                                                                                                                     | +14 单测                                                                                                                                                                                                                                                                                                                             |
 | 12.6.10 (+)                | **WeChat Vue UI 鉴权向导 (web-panel)**                     | `WechatWizard.vue` 3-step drawer：Step 1 env-probe checklist（adb/root/frida/wechat 5 行）→ Step 2 uin + dbPath + wechatDataPath + forceProvider 表单 → Step 3 result + reasons 反馈；`usePersonalDataHub.js` 加 `probeWechatEnv` / `registerWechat` / `listWechatAccounts` / `unregisterWechat` 4 method 镜像 WS topics；`PersonalDataHub.vue` 顶部加「添加 WeChat」按钮 + `WechatOutlined` 图标                                                                                                                                                                           | +6 composable 单测                                                                                                                                                                                                                                                                                                                   |
 | 阶段性快照（v5.0.3.85 时） | —                                                          | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | 67 文件 / 1223 测试（含 Phase 10.2 集成 + E2E 6 + 3 场景；doubao scaffold + toutiao/kuaishou scaffold + analysis-skills backfill + WeChat Phase 12.6 §18.1-10 全套：KeyProvider + Frida agent + env-probe + Setup + 12.6.7 bootstrap + 12.6.8 IPC/WS wiring + 12.6.9 CLI + 12.6.10 Vue UI + 2026-05-21 Phase 10.3.1-10.3.6 全 land） |
-| **当前目录（2026-07-23）** | —                                                          | 生成器从所有导出 collector 构造并核对目录，包含 `email-imap` 与 `ai-chat-history`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | **81 个 adapter / 17 类 / 构造失败 0**；能力回归与真机/真账号验收分层记录                                                                                                                                                                                                                                                            |
+| **当前目录（2026-07-25）** | —                                                          | 生成器从所有导出 collector 构造并核对目录，包含 `email-imap` 与 `ai-chat-history`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | **92 个采集契约 / 18 类**；能力清单、当前 readiness 与真机/真账号验收分层记录                                                                                                                                                                                                                                                        |
 
 > 全部路线图的代码路径已实施。剩余发布验收依赖外部条件：9 厂商 AIChat 真账号 smoke；Doubao 私有接口真实 HAR fixture pin；Toutiao/Kuaishou 等动态签名命中率；WhatsApp 用户备份 + key 的真机 UX；WeChat 8.0+ rooted-device E2E。
 
