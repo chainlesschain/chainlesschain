@@ -153,6 +153,33 @@ describe("QQAdapter snapshot mode", () => {
     expect(raws[1].originalId).toMatch(/^qq:group:/);
     expect(raws[2].originalId).toBe("qq:message:msg-9007199254740993123");
     expect(raws[2].payload.msgId).toBe("9007199254740993123");
+    expect(raws.map((raw) => raw.canonicalOriginalId)).toEqual([
+      "person-qq-99999",
+      "group-qq-88888",
+      "c2c_msg_table:9007199254740993123",
+    ]);
+    expect(raws.every((raw) => raw.producer === "qq-pc/android-snapshot")).toBe(
+      true,
+    );
+
+    const resolvedOptions = a.buildResolvedIngestOptions({
+      rawBatch: raws,
+      batch: {
+        events: [],
+        persons: [],
+        places: [],
+        items: [],
+        topics: [],
+      },
+      scope: "account:qq:test",
+    });
+    expect(resolvedOptions.sourceAliases).toHaveLength(3);
+    expect(resolvedOptions.rawObservations).toHaveLength(3);
+    expect(
+      resolvedOptions.sourceAliases.every(
+        (alias) => alias.canonical.adapter === "qq-pc",
+      ),
+    ).toBe(true);
 
     // Normalize each + validate
     for (const raw of raws) {
@@ -166,6 +193,10 @@ describe("QQAdapter snapshot mode", () => {
     // remark + nickname + uin all surface as names (priority order)
     expect(contactBatch.persons[0].names).toEqual(["工作组", "好友A", "99999"]);
     expect(contactBatch.persons[0].identifiers["qq-uin"]).toEqual(["99999"]);
+    expect(contactBatch.persons[0].source).toMatchObject({
+      adapter: "qq-pc",
+      originalId: "person-qq-99999",
+    });
 
     const groupBatch = a.normalize(raws[1]);
     expect(groupBatch.events.length).toBe(0);
@@ -173,13 +204,18 @@ describe("QQAdapter snapshot mode", () => {
     expect(groupBatch.topics[0].name).toBe("测试群");
     expect(groupBatch.topics[0].extra.troopUin).toBe("88888");
     expect(groupBatch.topics[0].extra.memberCount).toBe(30);
+    expect(groupBatch.topics[0].source).toMatchObject({
+      adapter: "qq-pc",
+      originalId: "group-qq-88888",
+    });
 
     const msgBatch = a.normalize(raws[2]);
     expect(msgBatch.events.length).toBe(1);
     expect(msgBatch.events[0].subtype).toBe("message");
     expect(msgBatch.events[0].source.originalId).toBe(
-      "qq:message:msg-9007199254740993123",
+      "c2c_msg_table:9007199254740993123",
     );
+    expect(msgBatch.events[0].source.adapter).toBe("qq-pc");
     expect(msgBatch.events[0].extra.peerUin).toBe("peer-from-40021");
     expect(msgBatch.events[0].extra.senderUin).toBe("400330033");
     expect(msgBatch.events[0].extra.sequence).toBe("3003");
@@ -188,6 +224,11 @@ describe("QQAdapter snapshot mode", () => {
     expect(msgBatch.events[0].extra.readState).toBe(40);
     expect(msgBatch.events[0].extra.isGroup).toBe(false);
     expect(msgBatch.events[0].extra.isSend).toBe(false);
+    expect(msgBatch.events[0].extra.messageId).toBe("9007199254740993123");
+    expect(msgBatch.events[0].extra.textResolved).toBe(true);
+    expect(msgBatch.events[0].extra.observationProducer).toBe(
+      "qq-pc/android-snapshot",
+    );
     expect(msgBatch.events[0].content.text).toBe("你好");
   });
 

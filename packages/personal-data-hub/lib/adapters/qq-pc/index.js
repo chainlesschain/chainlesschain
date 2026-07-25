@@ -25,13 +25,15 @@ const {
   CAPTURED_BY,
 } = require("../../constants");
 const { mergeQqEntityConflict } = require("../../qq-quality-merge");
+const {
+  C2C_MESSAGE_TABLE,
+  GROUP_MESSAGE_TABLE,
+  canonicalQqNtOriginalId,
+} = require("../../qq-source-identity");
 
 const NAME = "qq-pc";
 const VERSION = "0.2.0";
 const KIND_MESSAGE = "message";
-const C2C_MESSAGE_TABLE = "c2c_msg_table";
-const GROUP_MESSAGE_TABLE = "group_msg_table";
-const QQ_NT_MESSAGE_TABLES = new Set([C2C_MESSAGE_TABLE, GROUP_MESSAGE_TABLE]);
 
 function stableOriginalId(id) {
   const safe =
@@ -39,28 +41,6 @@ function stableOriginalId(id) {
     (typeof id === "number" && Number.isFinite(id) && String(id)) ||
     `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   return `qq-pc:message:${safe}`;
-}
-
-function canonicalQqNtOriginalId(payload) {
-  if (!payload || typeof payload !== "object") return null;
-  const messageId =
-    typeof payload.messageId === "string" && payload.messageId.length > 0
-      ? payload.messageId
-      : typeof payload.messageId === "number" &&
-          Number.isSafeInteger(payload.messageId)
-        ? String(payload.messageId)
-        : null;
-  if (!messageId) return null;
-  const inferredTable =
-    payload.isGroup === true
-      ? GROUP_MESSAGE_TABLE
-      : payload.isGroup === false
-        ? C2C_MESSAGE_TABLE
-        : null;
-  const tableName = QQ_NT_MESSAGE_TABLES.has(payload.tableName)
-    ? payload.tableName
-    : inferredTable;
-  return tableName ? `${tableName}:${messageId}` : null;
 }
 
 function observationProducer(raw) {

@@ -61,9 +61,16 @@ const {
   EVENT_SUBTYPES,
   CAPTURED_BY,
 } = require("../../constants");
+const { mergeQqEntityConflict } = require("../../qq-quality-merge");
+const {
+  canonicalQqGroupOriginalId,
+  canonicalQqNtOriginalId,
+  canonicalQqPersonOriginalId,
+} = require("../../qq-source-identity");
 
 const NAME = "messaging-qq";
-const VERSION = "0.6.0";
+const VERSION = "0.7.0";
+const CANONICAL_QQ_ADAPTER = "qq-pc";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_CONTACT = "contact";
@@ -106,6 +113,37 @@ function trySelect(db, sql) {
   } catch (_e) {
     return null;
   }
+}
+
+function observationProducer(raw) {
+  const declared =
+    raw?.producer ||
+    raw?.payload?.observationProducer ||
+    raw?.payload?.producer;
+  if (typeof declared === "string" && declared.length > 0) return declared;
+  return raw?.payload?._table
+    ? "qq-pc/android-sqlite"
+    : "qq-pc/android-snapshot";
+}
+
+function canonicalEntityIdentity(raw) {
+  const payload = raw?.payload;
+  const kind = raw?.kind || payload?.kind;
+  let originalId = null;
+  let entityType = null;
+  if (kind === KIND_MESSAGE) {
+    originalId = canonicalQqNtOriginalId(payload);
+    entityType = ENTITY_TYPES.EVENT;
+  } else if (kind === KIND_CONTACT) {
+    originalId = canonicalQqPersonOriginalId(payload?.uin || payload?.row?.uin);
+    entityType = ENTITY_TYPES.PERSON;
+  } else if (kind === KIND_GROUP) {
+    originalId = canonicalQqGroupOriginalId(
+      payload?.troopUin || payload?.row?.troop_uin,
+    );
+    entityType = ENTITY_TYPES.TOPIC;
+  }
+  return originalId ? { entityType, originalId } : null;
 }
 
 class QQAdapter {
@@ -252,13 +290,27 @@ class QQAdapter {
           : kind === KIND_GROUP
             ? ev.troopUin
             : ev.msgId);
-
-      yield {
+      const payload = {
+        ...ev,
+        account,
+        observationProducer: "qq-pc/android-snapshot",
+      };
+      const originalId = stableOriginalId(kind, id);
+      const raw = {
         adapter: NAME,
         kind,
-        originalId: stableOriginalId(kind, id),
+        originalId,
+        producer: "qq-pc/android-snapshot",
         capturedAt,
-        payload: { ...ev, account },
+        payload,
+      };
+      const canonicalIdentity = canonicalEntityIdentity(raw);
+
+      yield {
+        ...raw,
+        ...(canonicalIdentity
+          ? { canonicalOriginalId: canonicalIdentity.originalId }
+          : {}),
       };
       emitted += 1;
     }
@@ -314,12 +366,14 @@ class QQAdapter {
           adapter: NAME,
           kind: KIND_CONTACT,
           originalId: stableOriginalId(KIND_CONTACT, row.uin),
+          producer: "qq-pc/android-sqlite",
           capturedAt: Date.now(),
           payload: {
             kind: KIND_CONTACT,
             uin: row.uin != null ? String(row.uin) : null,
             nickname: row.nickname || "",
             remark: row.remark || "",
+            observationProducer: "qq-pc/android-sqlite",
           },
         };
       }
@@ -334,6 +388,7 @@ class QQAdapter {
           adapter: NAME,
           kind: KIND_GROUP,
           originalId: stableOriginalId(KIND_GROUP, row.troop_uin),
+          producer: "qq-pc/android-sqlite",
           capturedAt: Date.now(),
           payload: {
             kind: KIND_GROUP,
@@ -341,6 +396,7 @@ class QQAdapter {
             troopName: row.troop_name || "",
             memberCount: row.member_count || 0,
             ownerUin: row.owner_uin != null ? String(row.owner_uin) : null,
+            observationProducer: "qq-pc/android-sqlite",
           },
         };
       }
@@ -366,6 +422,7 @@ class QQAdapter {
             adapter: NAME,
             kind: KIND_MESSAGE,
             originalId: stableOriginalId(KIND_MESSAGE, row.msgId),
+            producer: "qq-pc/android-sqlite",
             capturedAt: parseTime(row.time),
             payload: {
               kind: KIND_MESSAGE,
@@ -383,6 +440,7 @@ class QQAdapter {
               isSend: !!row.issend,
               text: decrypted,
               _table: t.name,
+              observationProducer: "qq-pc/android-sqlite",
             },
           };
         }
@@ -394,6 +452,61 @@ class QQAdapter {
         /* ignore */
       }
     }
+  }
+
+  buildResolvedIngestOptions({ rawBatch, scope }) {
+    const sourceAliases = [];
+    const rawObservations = [];
+    const seenAliases = new Set();
+
+    for (const raw of Array.isArray(rawBatch) ? rawBatch : []) {
+      if (
+        !raw ||
+        typeof raw.originalId !== "string" ||
+        raw.originalId.length === 0
+      ) {
+        continue;
+      }
+      const canonicalIdentity = canonicalEntityIdentity(raw);
+      if (canonicalIdentity) {
+        const aliasKey = JSON.stringify([
+          canonicalIdentity.entityType,
+          raw.originalId,
+          canonicalIdentity.originalId,
+        ]);
+        if (!seenAliases.has(aliasKey)) {
+          seenAliases.add(aliasKey);
+          sourceAliases.push({
+            entityType: canonicalIdentity.entityType,
+            alias: {
+              adapter: NAME,
+              scope,
+              originalId: raw.originalId,
+            },
+            canonical: {
+              adapter: CANONICAL_QQ_ADAPTER,
+              scope,
+              originalId: canonicalIdentity.originalId,
+            },
+          });
+        }
+      }
+      rawObservations.push({
+        adapter: canonicalIdentity ? CANONICAL_QQ_ADAPTER : NAME,
+        scope,
+        canonicalOriginalId: canonicalIdentity?.originalId || raw.originalId,
+        producer: observationProducer(raw),
+        producerOriginalId: raw.originalId,
+        capturedAt: raw.capturedAt,
+        payload: raw.payload,
+      });
+    }
+
+    return {
+      conflictResolver: mergeQqEntityConflict,
+      sourceAliases,
+      rawObservations,
+    };
   }
 
   normalize(raw) {
@@ -418,10 +531,11 @@ class QQAdapter {
 }
 
 function buildSource(raw, occurredAt, capturedBy) {
+  const canonicalIdentity = canonicalEntityIdentity(raw);
   return {
-    adapter: NAME,
+    adapter: canonicalIdentity ? CANONICAL_QQ_ADAPTER : NAME,
     adapterVersion: VERSION,
-    originalId: raw.originalId,
+    originalId: canonicalIdentity?.originalId || raw.originalId,
     capturedAt: raw.capturedAt || occurredAt,
     capturedBy: capturedBy || CAPTURED_BY.SQLITE,
   };
@@ -456,6 +570,7 @@ function normalizeContact(p, raw, ingestedAt) {
         extra: {
           platform: "qq",
           remark: remark || null,
+          observationProducer: observationProducer(raw),
         },
       },
     ],
@@ -492,6 +607,7 @@ function normalizeGroup(p, raw, ingestedAt) {
           troopUin,
           memberCount,
           ownerUin,
+          observationProducer: observationProducer(raw),
         },
       },
     ],
@@ -521,6 +637,7 @@ function normalizeMessage(p, raw, ingestedAt) {
         source,
         extra: {
           platform: "qq",
+          messageId: p.msgId != null ? String(p.msgId) : null,
           peerUin: p.peerUin || null,
           senderUin: p.senderUin || null,
           sequence: p.sequence != null ? String(p.sequence) : null,
@@ -530,6 +647,8 @@ function normalizeMessage(p, raw, ingestedAt) {
           isGroup: !!p.isGroup,
           isSend: !!p.isSend,
           msgType: p.msgType != null ? p.msgType : null,
+          textResolved: typeof p.text === "string" && p.text.length > 0,
+          observationProducer: observationProducer(raw),
         },
       },
     ],
