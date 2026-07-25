@@ -11,9 +11,10 @@
  *    capturedAt, payload} envelopes. `payload` is the already-normalized
  *    UnifiedSchema entity emitted by the sidecar — `normalize()` then routes
  *    it into the right NormalizedBatch bucket (events / persons / places / etc).
- *  - Cancellation works through SidecarSupervisor's per-invoke timeout. The
- *    registry's batchSize-driven iteration means partial progress is preserved
- *    even if a later parse_* method times out mid-stream.
+ *  - `sync(opts)` derives a per-run AbortSignal. External aborts and consumer
+ *    `return()` both stop queue growth immediately; subclasses should pass
+ *    `opts.signal` to SidecarSupervisor.invoke for cooperative sidecar cancel.
+ *    Partial progress already yielded to the registry remains preserved.
  *
  * Subclass contract:
  *
@@ -32,6 +33,20 @@
 
 "use strict";
 
+function createAbortError(reason, message = "sidecar stream consumer closed") {
+  const detail =
+    reason instanceof Error
+      ? reason.message
+      : reason === undefined
+        ? message
+        : String(reason);
+  const error = new Error(detail);
+  error.name = "AbortError";
+  error.code = "ABORT_ERR";
+  if (reason !== undefined) error.cause = reason;
+  return error;
+}
+
 class PythonSidecarAdapter {
   /**
    * @param {object} opts
@@ -45,7 +60,11 @@ class PythonSidecarAdapter {
     }
     this.supervisor = opts.supervisor;
     if (opts.name) this.name = opts.name;
-    this._logger = opts.logger || { info: () => {}, warn: () => {}, error: () => {} };
+    this._logger = opts.logger || {
+      info: () => {},
+      warn: () => {},
+      error: () => {},
+    };
   }
 
   // -------------------------------------------------------------------------
@@ -63,10 +82,17 @@ class PythonSidecarAdapter {
 
   async healthCheck() {
     try {
-      const pong = await this.supervisor.invoke("sidecar.ping", {}, { timeoutMs: 3000 });
+      const pong = await this.supervisor.invoke(
+        "sidecar.ping",
+        {},
+        { timeoutMs: 3000 },
+      );
       return { ok: true, version: pong.version };
     } catch (err) {
-      return { ok: false, reason: `sidecar.ping failed: ${err.code || err.message}` };
+      return {
+        ok: false,
+        reason: `sidecar.ping failed: ${err.code || err.message}`,
+      };
     }
   }
 
@@ -79,7 +105,13 @@ class PythonSidecarAdapter {
    * Yields a normalized batch with exactly one entity in one bucket.
    */
   normalize(raw) {
-    const empty = { events: [], persons: [], places: [], items: [], topics: [] };
+    const empty = {
+      events: [],
+      persons: [],
+      places: [],
+      items: [],
+      topics: [],
+    };
     if (!raw || typeof raw !== "object" || !raw.payload) return empty;
     const t = raw.entityType;
     const p = raw.payload;
@@ -105,33 +137,58 @@ class PythonSidecarAdapter {
     let done = false;
     let runErr = null;
     let resumeWaiter = null;
+    let consumerClosed = false;
+    const runController = new AbortController();
+    const externalSignal = opts.signal;
+
+    const wakeConsumer = () => {
+      if (!resumeWaiter) return;
+      const resolve = resumeWaiter;
+      resumeWaiter = null;
+      resolve();
+    };
+
+    const onExternalAbort = () => {
+      if (!runController.signal.aborted) {
+        runController.abort(externalSignal.reason);
+      }
+      queue.length = 0;
+      wakeConsumer();
+    };
+    if (externalSignal?.aborted) {
+      onExternalAbort();
+    } else {
+      externalSignal?.addEventListener("abort", onExternalAbort, {
+        once: true,
+      });
+    }
 
     const emit = (raw) => {
+      if (consumerClosed || runController.signal.aborted) return false;
       queue.push(raw);
-      if (resumeWaiter) {
-        const r = resumeWaiter;
-        resumeWaiter = null;
-        r();
-      }
+      wakeConsumer();
+      return true;
     };
 
     const runPromise = (async () => {
       try {
-        await this._runSidecar(opts, emit);
+        if (runController.signal.aborted) {
+          throw createAbortError(runController.signal.reason);
+        }
+        await this._runSidecar({ ...opts, signal: runController.signal }, emit);
       } catch (err) {
         runErr = err;
       } finally {
         done = true;
-        if (resumeWaiter) {
-          const r = resumeWaiter;
-          resumeWaiter = null;
-          r();
-        }
+        wakeConsumer();
       }
     })();
 
     try {
       while (true) {
+        if (runController.signal.aborted) {
+          throw createAbortError(runController.signal.reason);
+        }
         if (queue.length > 0) {
           yield queue.shift();
           continue;
@@ -145,12 +202,18 @@ class PythonSidecarAdapter {
       while (queue.length > 0) yield queue.shift();
       if (runErr) throw runErr;
     } finally {
-      // Make sure the producer task is awaited even if the consumer aborts.
-      try {
-        await runPromise;
-      } catch (_e) {
-        /* already captured in runErr */
+      consumerClosed = true;
+      queue.length = 0;
+      externalSignal?.removeEventListener("abort", onExternalAbort);
+      if (!done && !runController.signal.aborted) {
+        runController.abort(createAbortError());
       }
+      wakeConsumer();
+      // runPromise catches producer failures internally. Do not await it here:
+      // a callback-based sidecar producer may still be unwinding (or may not
+      // support cooperative cancellation), and iterator.return() must remain
+      // prompt. `emit()` drops all late chunks once the consumer is closed.
+      void runPromise;
     }
   }
 
@@ -190,8 +253,7 @@ class PythonSidecarAdapter {
           entityType,
           originalId:
             (entity.source && entity.source.originalId) || entity.id || null,
-          capturedAt:
-            (entity.source && entity.source.capturedAt) || Date.now(),
+          capturedAt: (entity.source && entity.source.capturedAt) || Date.now(),
           payload: entity,
         });
       }

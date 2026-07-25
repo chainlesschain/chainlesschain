@@ -519,10 +519,7 @@ def collect_system_data(params, progress, _chunk):
         raise IpcError("INVALID_PARAMS", "params.local_dir required")
     pulled, errors = [], []
     for i, (name, remote) in enumerate(_SYSTEM_DATA_TARGETS.items()):
-        try:
-            progress(i + 1, len(_SYSTEM_DATA_TARGETS), f"pulling {name}")
-        except Exception:
-            pass
+        progress(i + 1, len(_SYSTEM_DATA_TARGETS), f"pulling {name}")
         try:
             root_pull(
                 {"remote_path": remote, "local_dir": local_dir,

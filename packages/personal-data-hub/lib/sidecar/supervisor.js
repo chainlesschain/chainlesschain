@@ -45,6 +45,22 @@ class SidecarMethodError extends Error {
   }
 }
 
+class SidecarAbortError extends Error {
+  constructor(method, reason) {
+    const detail =
+      reason instanceof Error
+        ? reason.message
+        : reason === undefined
+          ? "operation was aborted"
+          : String(reason);
+    super(`sidecar method '${method}' aborted: ${detail}`);
+    this.name = "AbortError";
+    this.code = "ABORT_ERR";
+    this.retryable = false;
+    if (reason !== undefined) this.cause = reason;
+  }
+}
+
 class SidecarNotRunningError extends Error {
   constructor(method) {
     super(`sidecar is not running; cannot invoke '${method}'`);
@@ -139,6 +155,7 @@ class SidecarSupervisor extends EventEmitter {
    * @param {object} params
    * @param {object} [opts]
    * @param {number} [opts.timeoutMs]
+   * @param {AbortSignal} [opts.signal]
    * @param {(data: object) => void} [opts.onProgress] - invoked on progress envelopes
    * @param {(data: object) => void} [opts.onChunk]    - invoked on chunk envelopes
    * @returns {Promise<object>} resolves with the final `result.data`
@@ -147,6 +164,9 @@ class SidecarSupervisor extends EventEmitter {
     if (!this._proc || this._proc.killed || this._stopping) {
       return Promise.reject(new SidecarNotRunningError(method));
     }
+    if (opts.signal?.aborted) {
+      return Promise.reject(new SidecarAbortError(method, opts.signal.reason));
+    }
     const timeoutMs = opts.timeoutMs ?? this._defaultTimeoutMs;
     const id =
       typeof crypto.randomUUID === "function"
@@ -154,32 +174,55 @@ class SidecarSupervisor extends EventEmitter {
         : `req-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        this._pending.delete(id);
-        // Best-effort cancel on the sidecar side; don't await the response.
+      const sendCancel = () => {
+        // Cancellation is deliberately fire-and-forget. Its acknowledgement
+        // has a distinct id and will surface as an orphan envelope.
         this._writeLine({
           id: `cancel-${id}`,
           method: "request.cancel",
           params: { id },
         }).catch(() => {});
+      };
+      const cleanup = (pending) => {
+        clearTimeout(pending.timer);
+        pending.signal?.removeEventListener("abort", pending.onAbort);
+      };
+      const timer = setTimeout(() => {
+        const pending = this._pending.get(id);
+        if (!pending) return;
+        this._pending.delete(id);
+        cleanup(pending);
+        sendCancel();
         reject(new SidecarTimeoutError(method, timeoutMs));
       }, timeoutMs);
       // Allow the process to exit even if a sidecar invocation timer is pending.
       if (typeof timer.unref === "function") timer.unref();
 
-      this._pending.set(id, {
+      const pending = {
         resolve,
         reject,
         timer,
         onProgress: opts.onProgress,
         onChunk: opts.onChunk,
         method,
-      });
+        signal: opts.signal,
+        onAbort: null,
+      };
+      pending.onAbort = () => {
+        if (this._pending.get(id) !== pending) return;
+        this._pending.delete(id);
+        cleanup(pending);
+        sendCancel();
+        reject(new SidecarAbortError(method, opts.signal.reason));
+      };
+      this._pending.set(id, pending);
+      opts.signal?.addEventListener("abort", pending.onAbort, { once: true });
 
       const envelope = { id, method, params, timeout_ms: timeoutMs };
       this._writeLine(envelope).catch((err) => {
-        clearTimeout(timer);
+        if (this._pending.get(id) !== pending) return;
         this._pending.delete(id);
+        cleanup(pending);
         reject(err);
       });
     });
@@ -287,6 +330,7 @@ class SidecarSupervisor extends EventEmitter {
     }
     // Terminal frames remove the pending entry.
     clearTimeout(pending.timer);
+    pending.signal?.removeEventListener("abort", pending.onAbort);
     this._pending.delete(env.id);
 
     if (env.type === "result") {
@@ -333,6 +377,7 @@ class SidecarSupervisor extends EventEmitter {
   _failAllPending(err) {
     for (const [, pending] of this._pending) {
       clearTimeout(pending.timer);
+      pending.signal?.removeEventListener("abort", pending.onAbort);
       pending.reject(err);
     }
     this._pending.clear();
@@ -355,5 +400,6 @@ module.exports = {
   SidecarSupervisor,
   SidecarTimeoutError,
   SidecarMethodError,
+  SidecarAbortError,
   SidecarNotRunningError,
 };

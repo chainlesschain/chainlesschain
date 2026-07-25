@@ -33,7 +33,10 @@ class FakeSupervisor {
   async invoke(method, params = {}, opts = {}) {
     this.calls.push({ method, params, opts });
     const handler = this.handlers[method];
-    if (!handler) throw Object.assign(new Error(`unhandled method: ${method}`), { code: "TEST_NO_HANDLER" });
+    if (!handler)
+      throw Object.assign(new Error(`unhandled method: ${method}`), {
+        code: "TEST_NO_HANDLER",
+      });
     return await handler(params, opts);
   }
 }
@@ -86,7 +89,12 @@ function callEventPayload(callId, occurredAt = 1_700_000_000_000) {
       capturedAt: occurredAt,
       capturedBy: "sqlite",
     },
-    extra: { callType: "outgoing", callTypeCode: 2, isRead: true, rawNumber: "13800001111" },
+    extra: {
+      callType: "outgoing",
+      callTypeCode: 2,
+      isRead: true,
+      rawNumber: "13800001111",
+    },
   };
 }
 
@@ -140,7 +148,9 @@ describe("SystemDataAdapter contract", () => {
     expect(adapter.dataDisclosure.sensitivity).toBe("high");
     expect(adapter.dataDisclosure.legalGate).toBe(true);
     expect(adapter.dataDisclosure.notice).toMatch(/不向任何服务器上传/);
-    expect(adapter.dataDisclosure.fields.some((f) => f.startsWith("sms:"))).toBe(true);
+    expect(
+      adapter.dataDisclosure.fields.some((f) => f.startsWith("sms:")),
+    ).toBe(true);
   });
 });
 
@@ -151,7 +161,9 @@ describe("SystemDataAdapter.authenticate", () => {
     });
     const adapter = new SystemDataAdapter({ supervisor: sup });
 
-    const out = await adapter.authenticate({ dataPaths: { contacts: "/tmp/c.db" } });
+    const out = await adapter.authenticate({
+      dataPaths: { contacts: "/tmp/c.db" },
+    });
     expect(out).toEqual({ ok: true, mode: "offline", sidecarVersion: "0.1.0" });
     expect(sup.calls.map((c) => c.method)).toEqual(["sidecar.ping"]);
   });
@@ -165,7 +177,9 @@ describe("SystemDataAdapter.authenticate", () => {
       },
     });
     const adapter = new SystemDataAdapter({ supervisor: sup });
-    await expect(adapter.authenticate({ dataPaths: { contacts: "/x" } })).rejects.toThrow();
+    await expect(
+      adapter.authenticate({ dataPaths: { contacts: "/x" } }),
+    ).rejects.toThrow();
   });
 
   it("device mode lists devices and accepts any authorized one", async () => {
@@ -215,6 +229,40 @@ describe("SystemDataAdapter.authenticate", () => {
     expect(out.ok).toBe(true);
     expect(out.devices).toEqual([{ serial: "xyz", state: "device" }]);
   });
+
+  it("passes the caller signal to ping and device discovery", async () => {
+    const sup = new FakeSupervisor({
+      "sidecar.ping": async () => ({ version: "0.1.0" }),
+      "android.list_devices": async () => ({ devices: [] }),
+    });
+    const adapter = new SystemDataAdapter({ supervisor: sup });
+    const controller = new AbortController();
+
+    await adapter.authenticate({ signal: controller.signal });
+
+    expect(sup.calls).toHaveLength(2);
+    expect(
+      sup.calls.every((call) => call.opts.signal === controller.signal),
+    ).toBe(true);
+  });
+
+  it("does not turn a cancelled device discovery into an auth failure", async () => {
+    const abortError = Object.assign(new Error("user cancelled"), {
+      name: "AbortError",
+      code: "ABORT_ERR",
+    });
+    const sup = new FakeSupervisor({
+      "sidecar.ping": async () => ({ version: "0.1.0" }),
+      "android.list_devices": async () => {
+        throw abortError;
+      },
+    });
+    const adapter = new SystemDataAdapter({ supervisor: sup });
+
+    await expect(
+      adapter.authenticate({ signal: new AbortController().signal }),
+    ).rejects.toBe(abortError);
+  });
 });
 
 describe("SystemDataAdapter.sync via dataPaths (no ADB)", () => {
@@ -224,20 +272,47 @@ describe("SystemDataAdapter.sync via dataPaths (no ADB)", () => {
   beforeEach(() => {
     sup = new FakeSupervisor({
       "system.parse_contacts": chunkingHandler(
-        [{ events: [], persons: [personPayload(1, "妈妈", ["138"])], places: [], items: [] }],
-        { status: "ok", totalPersons: 1, watermark: null, stats: { with_phone: 1, with_email: 0, starred: 0 } },
+        [
+          {
+            events: [],
+            persons: [personPayload(1, "妈妈", ["138"])],
+            places: [],
+            items: [],
+          },
+        ],
+        {
+          status: "ok",
+          totalPersons: 1,
+          watermark: null,
+          stats: { with_phone: 1, with_email: 0, starred: 0 },
+        },
       ),
       "system.parse_calllog": chunkingHandler(
-        [{
-          events: [callEventPayload(101)],
-          persons: [personPayload("unknown:139", "139")],
-          places: [],
-          items: [],
-        }],
-        { status: "ok", totalEvents: 1, totalPersonsCreated: 1, watermark: null, stats: {} },
+        [
+          {
+            events: [callEventPayload(101)],
+            persons: [personPayload("unknown:139", "139")],
+            places: [],
+            items: [],
+          },
+        ],
+        {
+          status: "ok",
+          totalEvents: 1,
+          totalPersonsCreated: 1,
+          watermark: null,
+          stats: {},
+        },
       ),
       "system.parse_wifi": chunkingHandler(
-        [{ events: [], persons: [], places: [placePayload("HomeWiFi")], items: [] }],
+        [
+          {
+            events: [],
+            persons: [],
+            places: [placePayload("HomeWiFi")],
+            items: [],
+          },
+        ],
         { status: "ok", totalPlaces: 1, watermark: null, stats: {} },
       ),
     });
@@ -305,7 +380,9 @@ describe("SystemDataAdapter.sync via dataPaths (no ADB)", () => {
     })) {
       raws.push(raw);
     }
-    expect(sup.calls.find((c) => c.method === "system.parse_sms")).toBeUndefined();
+    expect(
+      sup.calls.find((c) => c.method === "system.parse_sms"),
+    ).toBeUndefined();
     expect(raws.length).toBeGreaterThan(0);
   });
 
@@ -327,12 +404,63 @@ describe("SystemDataAdapter.sync via dataPaths (no ADB)", () => {
       dataPaths: { contacts: "/c", calllog: "/cl", wifi: "/w" },
       onProgress: (msg) => events.push(msg),
     });
-    for await (const _ of iter) { /* drain */ }
+    for await (const _ of iter) {
+      /* drain */
+    }
 
     const phases = events.map((e) => `${e.source}:${e.phase}`);
     expect(phases).toContain("contacts:parsing");
     expect(phases).toContain("calllog:parsing");
     expect(phases).toContain("wifi:parsing");
+  });
+
+  it("cancels an in-flight parse through the derived sync signal", async () => {
+    let resolveStarted;
+    let parseSignal;
+    const started = new Promise((resolve) => {
+      resolveStarted = resolve;
+    });
+    const sup = new FakeSupervisor({
+      "system.parse_contacts": async (_params, opts) => {
+        parseSignal = opts.signal;
+        resolveStarted();
+        return await new Promise((_resolve, reject) => {
+          const onAbort = () => reject(opts.signal.reason);
+          if (opts.signal.aborted) onAbort();
+          else opts.signal.addEventListener("abort", onAbort, { once: true });
+        });
+      },
+    });
+    const adapter = new SystemDataAdapter({ supervisor: sup });
+    const controller = new AbortController();
+    const reason = new Error("stop parsing");
+    const next = adapter
+      .sync({
+        signal: controller.signal,
+        include: {
+          contacts: true,
+          calllog: false,
+          sms: false,
+          wifi: false,
+        },
+        dataPaths: { contacts: "/tmp/contacts2.db" },
+      })
+      .next();
+
+    await started;
+    controller.abort(reason);
+
+    await expect(next).rejects.toMatchObject({
+      name: "AbortError",
+      code: "ABORT_ERR",
+      cause: reason,
+    });
+    expect(parseSignal.aborted).toBe(true);
+    expect(parseSignal.reason).toBe(reason);
+    expect(sup.calls[0]).toMatchObject({
+      method: "system.parse_contacts",
+      opts: { signal: parseSignal },
+    });
   });
 });
 
@@ -342,11 +470,31 @@ describe("SystemDataAdapter.sync ADB pull flow", () => {
     const sup = new FakeSupervisor({
       "android.pull_file": async (params) => {
         pullCalls.push(params.remote_path);
-        return { remote: params.remote_path, local: `/scratch/${pullCalls.length}.db`, bytes: 100 };
+        return {
+          remote: params.remote_path,
+          local: `/scratch/${pullCalls.length}.db`,
+          bytes: 100,
+        };
       },
-      "system.parse_contacts": chunkingHandler([], { status: "ok", totalPersons: 0, watermark: null, stats: {} }),
-      "system.parse_calllog": chunkingHandler([], { status: "ok", totalEvents: 0, totalPersonsCreated: 0, watermark: null, stats: {} }),
-      "system.parse_wifi": chunkingHandler([], { status: "ok", totalPlaces: 0, watermark: null, stats: {} }),
+      "system.parse_contacts": chunkingHandler([], {
+        status: "ok",
+        totalPersons: 0,
+        watermark: null,
+        stats: {},
+      }),
+      "system.parse_calllog": chunkingHandler([], {
+        status: "ok",
+        totalEvents: 0,
+        totalPersonsCreated: 0,
+        watermark: null,
+        stats: {},
+      }),
+      "system.parse_wifi": chunkingHandler([], {
+        status: "ok",
+        totalPlaces: 0,
+        watermark: null,
+        stats: {},
+      }),
     });
     const adapter = new SystemDataAdapter({ supervisor: sup });
 
@@ -354,13 +502,20 @@ describe("SystemDataAdapter.sync ADB pull flow", () => {
     // an absolute "/scratch": it mkdir's at FS root, which is EACCES on Linux CI
     // (passed on Windows where /scratch maps to a creatable drive-relative path).
     const iter = adapter.sync({ serial: "redmi" });
-    for await (const _ of iter) { /* drain */ }
+    for await (const _ of iter) {
+      /* drain */
+    }
 
     expect(pullCalls).toEqual([
       "/data/data/com.android.providers.contacts/databases/contacts2.db",
       "/data/data/com.android.providers.contacts/databases/calllog.db",
       "/data/misc/wifi/",
     ]);
+    const signals = sup.calls.map((call) => call.opts.signal);
+    expect(
+      signals.every((signal) => typeof signal?.addEventListener === "function"),
+    ).toBe(true);
+    expect(new Set(signals).size).toBe(1);
   });
 
   it("sdcard mode uses /sdcard/Download/ paths", async () => {
@@ -368,16 +523,38 @@ describe("SystemDataAdapter.sync ADB pull flow", () => {
     const sup = new FakeSupervisor({
       "android.pull_file": async (params) => {
         pullCalls.push(params.remote_path);
-        return { remote: params.remote_path, local: `/scratch/${pullCalls.length}`, bytes: 100 };
+        return {
+          remote: params.remote_path,
+          local: `/scratch/${pullCalls.length}`,
+          bytes: 100,
+        };
       },
-      "system.parse_contacts": chunkingHandler([], { status: "ok", totalPersons: 0, watermark: null, stats: {} }),
-      "system.parse_calllog": chunkingHandler([], { status: "ok", totalEvents: 0, totalPersonsCreated: 0, watermark: null, stats: {} }),
-      "system.parse_wifi": chunkingHandler([], { status: "ok", totalPlaces: 0, watermark: null, stats: {} }),
+      "system.parse_contacts": chunkingHandler([], {
+        status: "ok",
+        totalPersons: 0,
+        watermark: null,
+        stats: {},
+      }),
+      "system.parse_calllog": chunkingHandler([], {
+        status: "ok",
+        totalEvents: 0,
+        totalPersonsCreated: 0,
+        watermark: null,
+        stats: {},
+      }),
+      "system.parse_wifi": chunkingHandler([], {
+        status: "ok",
+        totalPlaces: 0,
+        watermark: null,
+        stats: {},
+      }),
     });
     const adapter = new SystemDataAdapter({ supervisor: sup });
 
     const iter = adapter.sync({ serial: "redmi", extractMode: "sdcard" });
-    for await (const _ of iter) { /* drain */ }
+    for await (const _ of iter) {
+      /* drain */
+    }
 
     for (const p of pullCalls) expect(p).toMatch(/^\/sdcard\/Download\//);
   });
@@ -385,10 +562,16 @@ describe("SystemDataAdapter.sync ADB pull flow", () => {
   it("throws when a source is enabled but neither serial nor dataPaths present", async () => {
     const sup = new FakeSupervisor();
     const adapter = new SystemDataAdapter({ supervisor: sup });
-    const iter = adapter.sync({ include: { contacts: true, calllog: false, sms: false, wifi: false } });
-    await expect((async () => {
-      for await (const _ of iter) { /* */ }
-    })()).rejects.toThrow(/no serial.*dataPaths/i);
+    const iter = adapter.sync({
+      include: { contacts: true, calllog: false, sms: false, wifi: false },
+    });
+    await expect(
+      (async () => {
+        for await (const _ of iter) {
+          /* */
+        }
+      })(),
+    ).rejects.toThrow(/no serial.*dataPaths/i);
   });
 
   it("skips wifi gracefully when pull_file fails with EXTRACT_PERMISSION_DENIED", async () => {
@@ -401,8 +584,19 @@ describe("SystemDataAdapter.sync ADB pull flow", () => {
         }
         return { remote: params.remote_path, local: `/scratch/x`, bytes: 1 };
       },
-      "system.parse_contacts": chunkingHandler([], { status: "ok", totalPersons: 0, watermark: null, stats: {} }),
-      "system.parse_calllog": chunkingHandler([], { status: "ok", totalEvents: 0, totalPersonsCreated: 0, watermark: null, stats: {} }),
+      "system.parse_contacts": chunkingHandler([], {
+        status: "ok",
+        totalPersons: 0,
+        watermark: null,
+        stats: {},
+      }),
+      "system.parse_calllog": chunkingHandler([], {
+        status: "ok",
+        totalEvents: 0,
+        totalPersonsCreated: 0,
+        watermark: null,
+        stats: {},
+      }),
     });
     const adapter = new SystemDataAdapter({ supervisor: sup });
     const events = [];
@@ -411,11 +605,46 @@ describe("SystemDataAdapter.sync ADB pull flow", () => {
       include: { contacts: true, calllog: true, sms: false, wifi: true },
       onProgress: (msg) => events.push(msg),
     });
-    for await (const _ of iter) { /* drain */ }
+    for await (const _ of iter) {
+      /* drain */
+    }
 
-    const wifiSkipped = events.find((e) => e.source === "wifi" && e.phase === "skipped");
+    const wifiSkipped = events.find(
+      (e) => e.source === "wifi" && e.phase === "skipped",
+    );
     expect(wifiSkipped).toBeDefined();
     expect(wifiSkipped.reason).toBe("EXTRACT_PERMISSION_DENIED");
+  });
+
+  it("does not swallow AbortError from the wifi pull fallback", async () => {
+    const abortError = Object.assign(new Error("cancel wifi pull"), {
+      name: "AbortError",
+      code: "ABORT_ERR",
+    });
+    const sup = new FakeSupervisor({
+      "android.pull_file": async () => {
+        throw abortError;
+      },
+    });
+    const adapter = new SystemDataAdapter({ supervisor: sup });
+    const progress = [];
+    const drain = (async () => {
+      for await (const raw of adapter.sync({
+        serial: "redmi",
+        include: {
+          contacts: false,
+          calllog: false,
+          sms: false,
+          wifi: true,
+        },
+        onProgress: (event) => progress.push(event),
+      })) {
+        throw new Error(`unexpected row: ${JSON.stringify(raw)}`);
+      }
+    })();
+
+    await expect(drain).rejects.toBe(abortError);
+    expect(progress.some((event) => event.phase === "skipped")).toBe(false);
   });
 });
 
@@ -439,5 +668,24 @@ describe("SystemDataAdapter.healthCheck", () => {
     const r = await adapter.healthCheck();
     expect(r.ok).toBe(false);
     expect(r.reason).toMatch(/TIMEOUT/);
+  });
+
+  it("passes signal to ping and rethrows AbortError", async () => {
+    const abortError = Object.assign(new Error("cancel health check"), {
+      name: "AbortError",
+      code: "ABORT_ERR",
+    });
+    const controller = new AbortController();
+    const sup = new FakeSupervisor({
+      "sidecar.ping": async (_params, opts) => {
+        expect(opts.signal).toBe(controller.signal);
+        throw abortError;
+      },
+    });
+    const adapter = new SystemDataAdapter({ supervisor: sup });
+
+    await expect(
+      adapter.healthCheck({ signal: controller.signal }),
+    ).rejects.toBe(abortError);
   });
 });

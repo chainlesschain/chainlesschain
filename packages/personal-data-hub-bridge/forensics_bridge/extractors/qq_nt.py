@@ -417,10 +417,7 @@ def m_collect(params, progress, _chunk):
             raise IpcError("APP_NOT_INSTALLED", "no QQ NT nt_msg.db found")
         db_path = accts[0]["msgDb"]
         account = accts[0]["uin"]
-    try:
-        progress(phase="decrypt", db="nt_msg.db")
-    except Exception:
-        pass
+    progress(0, 1, "decrypt nt_msg.db")
     with open(db_path, "rb") as f:
         raw = f.read()
     plaintext, variant = decrypt_nt_msg(raw, passphrase)

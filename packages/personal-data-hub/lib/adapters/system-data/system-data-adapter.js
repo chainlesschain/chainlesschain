@@ -30,6 +30,10 @@ const { PythonSidecarAdapter } = require("../_python-sidecar-base");
 const NAME = "system-data";
 const VERSION = "0.1.0";
 
+function isAbortError(err) {
+  return err?.name === "AbortError" || err?.code === "ABORT_ERR";
+}
+
 const DEFAULT_INCLUDE = Object.freeze({
   contacts: true,
   calllog: true,
@@ -42,8 +46,7 @@ const DEFAULT_INCLUDE = Object.freeze({
  * a device uses a non-stock layout.
  */
 const DEFAULT_REMOTE_PATHS = Object.freeze({
-  contacts:
-    "/data/data/com.android.providers.contacts/databases/contacts2.db",
+  contacts: "/data/data/com.android.providers.contacts/databases/contacts2.db",
   calllog: "/data/data/com.android.providers.contacts/databases/calllog.db",
   sms: "/data/data/com.android.providers.telephony/databases/mmssms.db",
   wifi: "/data/misc/wifi/", // directory — pull_file works for one file, so wifi mode-A is dataPaths
@@ -94,6 +97,23 @@ class SystemDataAdapter extends PythonSidecarAdapter {
   // PersonalDataAdapter — authenticate / healthCheck override
   // -----------------------------------------------------------------------
 
+  async healthCheck(opts = {}) {
+    try {
+      const pong = await this.supervisor.invoke(
+        "sidecar.ping",
+        {},
+        { timeoutMs: 3000, signal: opts.signal },
+      );
+      return { ok: true, version: pong.version };
+    } catch (err) {
+      if (isAbortError(err)) throw err;
+      return {
+        ok: false,
+        reason: `sidecar.ping failed: ${err.code || err.message}`,
+      };
+    }
+  }
+
   /**
    * Verify the sidecar is reachable AND there is at least one usable ADB
    * device (unless caller signals offline-import mode by passing dataPaths).
@@ -103,15 +123,24 @@ class SystemDataAdapter extends PythonSidecarAdapter {
    * @param {string} [ctx.serial]    Optional serial; auth checks just that device.
    */
   async authenticate(ctx = {}) {
-    const pong = await this.supervisor.invoke("sidecar.ping", {}, { timeoutMs: 3000 });
+    const pong = await this.supervisor.invoke(
+      "sidecar.ping",
+      {},
+      { timeoutMs: 3000, signal: ctx.signal },
+    );
     if (ctx.dataPaths && Object.keys(ctx.dataPaths).length > 0) {
       return { ok: true, mode: "offline", sidecarVersion: pong.version };
     }
     let devices;
     try {
-      const out = await this.supervisor.invoke("android.list_devices", {}, { timeoutMs: 5000 });
+      const out = await this.supervisor.invoke(
+        "android.list_devices",
+        {},
+        { timeoutMs: 5000, signal: ctx.signal },
+      );
       devices = out.devices || [];
     } catch (err) {
+      if (isAbortError(err)) throw err;
       return {
         ok: false,
         reason: `android.list_devices failed: ${err.code || err.message}`,
@@ -169,7 +198,8 @@ class SystemDataAdapter extends PythonSidecarAdapter {
       fs.mkdtempSync(path.join(os.tmpdir(), "system-data-sync-"));
     fs.mkdirSync(scratchDir, { recursive: true });
 
-    const onProgress = typeof opts.onProgress === "function" ? opts.onProgress : null;
+    const onProgress =
+      typeof opts.onProgress === "function" ? opts.onProgress : null;
     const tellProgress = (source, phase, extra = {}) => {
       if (onProgress) onProgress({ source, phase, ...extra });
     };
@@ -193,7 +223,7 @@ class SystemDataAdapter extends PythonSidecarAdapter {
             remote_path: remotePaths.contacts,
             local_dir: scratchDir,
           },
-          { timeoutMs: 60_000 },
+          { timeoutMs: 60_000, signal: opts.signal },
         );
         contactsLocal = pulled.local;
       }
@@ -203,6 +233,7 @@ class SystemDataAdapter extends PythonSidecarAdapter {
         { data_path: contactsLocal, device_serial: opts.serial || null },
         {
           timeoutMs: 120_000,
+          signal: opts.signal,
           onChunk: (batch) => this._emitChunkAsRaws(batch, emit),
           onProgress: (p) => tellProgress("contacts", "progress", p),
         },
@@ -215,7 +246,9 @@ class SystemDataAdapter extends PythonSidecarAdapter {
       let calllogLocal = dataPaths.calllog || null;
       if (!calllogLocal) {
         if (!opts.serial) {
-          throw new Error("system-data: calllog enabled but no serial/dataPaths.calllog");
+          throw new Error(
+            "system-data: calllog enabled but no serial/dataPaths.calllog",
+          );
         }
         tellProgress("calllog", "pulling");
         try {
@@ -226,12 +259,16 @@ class SystemDataAdapter extends PythonSidecarAdapter {
               remote_path: remotePaths.calllog,
               local_dir: scratchDir,
             },
-            { timeoutMs: 60_000 },
+            { timeoutMs: 60_000, signal: opts.signal },
           );
           calllogLocal = pulled.local;
         } catch (err) {
           // Calls table may live in contacts2.db on pre-Android-11 builds.
-          if (err.code === "EXTRACT_PERMISSION_DENIED" && contactsLocal) {
+          if (
+            !isAbortError(err) &&
+            err.code === "EXTRACT_PERMISSION_DENIED" &&
+            contactsLocal
+          ) {
             calllogLocal = contactsLocal;
           } else {
             throw err;
@@ -248,6 +285,7 @@ class SystemDataAdapter extends PythonSidecarAdapter {
         },
         {
           timeoutMs: 180_000,
+          signal: opts.signal,
           onChunk: (batch) => this._emitChunkAsRaws(batch, emit),
           onProgress: (p) => tellProgress("calllog", "progress", p),
         },
@@ -260,7 +298,9 @@ class SystemDataAdapter extends PythonSidecarAdapter {
       let smsLocal = dataPaths.sms || null;
       if (!smsLocal) {
         if (!opts.serial) {
-          throw new Error("system-data: sms enabled but no serial/dataPaths.sms");
+          throw new Error(
+            "system-data: sms enabled but no serial/dataPaths.sms",
+          );
         }
         tellProgress("sms", "pulling");
         const pulled = await this.supervisor.invoke(
@@ -270,7 +310,7 @@ class SystemDataAdapter extends PythonSidecarAdapter {
             remote_path: remotePaths.sms,
             local_dir: scratchDir,
           },
-          { timeoutMs: 60_000 },
+          { timeoutMs: 60_000, signal: opts.signal },
         );
         smsLocal = pulled.local;
       }
@@ -284,6 +324,7 @@ class SystemDataAdapter extends PythonSidecarAdapter {
         },
         {
           timeoutMs: 300_000, // SMS can be 10K+ rows on long-term devices
+          signal: opts.signal,
           onChunk: (batch) => this._emitChunkAsRaws(batch, emit),
           onProgress: (p) => tellProgress("sms", "progress", p),
         },
@@ -297,7 +338,9 @@ class SystemDataAdapter extends PythonSidecarAdapter {
       if (!wifiLocal) {
         // WiFi config is a single file, but two possible names. Prefer XML.
         if (!opts.serial) {
-          throw new Error("system-data: wifi enabled but no serial/dataPaths.wifi");
+          throw new Error(
+            "system-data: wifi enabled but no serial/dataPaths.wifi",
+          );
         }
         tellProgress("wifi", "pulling");
         try {
@@ -308,11 +351,14 @@ class SystemDataAdapter extends PythonSidecarAdapter {
               remote_path: remotePaths.wifi,
               local_dir: scratchDir,
             },
-            { timeoutMs: 30_000 },
+            { timeoutMs: 30_000, signal: opts.signal },
           );
           wifiLocal = path.dirname(pulled.local);
         } catch (err) {
-          // Non-fatal — wifi often inaccessible without root. Skip this source.
+          if (isAbortError(err) || err.code !== "EXTRACT_PERMISSION_DENIED") {
+            throw err;
+          }
+          // Non-fatal — wifi is often inaccessible without root.
           tellProgress("wifi", "skipped", { reason: err.code || err.message });
           return { sources: sourcesRun, scratchDir };
         }
@@ -323,6 +369,7 @@ class SystemDataAdapter extends PythonSidecarAdapter {
         { data_path: wifiLocal, device_serial: opts.serial || null },
         {
           timeoutMs: 30_000,
+          signal: opts.signal,
           onChunk: (batch) => this._emitChunkAsRaws(batch, emit),
           onProgress: (p) => tellProgress("wifi", "progress", p),
         },

@@ -619,10 +619,7 @@ def m_collect(params, progress, _chunk):
         # Back-compat single-key override (applies to all DBs of the account).
         keymap = {s: provided for s in salts}
     else:
-        try:
-            progress(phase="extract-keys", count=len(salts))
-        except Exception:
-            pass
+        progress(0, len(salts), "extract-keys")
         keymap = extract_keys_for_salts(salts, params.get("pid"))
         if not keymap:
             raise IpcError("KEY_NOT_FOUND", "no DB key found in Weixin.exe memory (is WeChat open + logged in?)")
@@ -648,10 +645,7 @@ def m_collect(params, progress, _chunk):
     name_map: Dict[str, Any] = {}
     contacts: List[Dict[str, Any]] = []
     if contact_db:
-        try:
-            progress(phase="decrypt", db=os.path.basename(contact_db))
-        except Exception:
-            pass
+        progress(0, 1, f"decrypt {os.path.basename(contact_db)}")
         opened, reason = _open_db(contact_db)
         if opened:
             cplain, _crep = opened
@@ -670,10 +664,7 @@ def m_collect(params, progress, _chunk):
     for i, (dbp, src) in enumerate(msg_sources):
         if len(all_messages) >= limit:
             break
-        try:
-            progress(phase="decrypt", db=os.path.basename(dbp), index=i)
-        except Exception:
-            pass
+        progress(i, len(msg_sources), f"decrypt {os.path.basename(dbp)}")
         opened, reason = _open_db(dbp)
         if not opened:
             db_reports.append({"db": os.path.basename(dbp), "source": src, "error": reason})
@@ -779,7 +770,7 @@ if __name__ == "__main__":
         print(json.dumps(m_extract_key({}, None, None), ensure_ascii=False, indent=2))
     elif cmd == "collect":
         lim = int(sys.argv[2]) if len(sys.argv) > 2 else 20
-        res = m_collect({"limit": lim}, lambda **k: None, None)
+        res = m_collect({"limit": lim}, lambda *_args, **_kwargs: None, None)
         res_preview = {**res, "messages": res["messages"][:lim]}
         print(json.dumps(res_preview, ensure_ascii=False, indent=2))
     else:
