@@ -221,7 +221,7 @@ describe("HuaweiLearningAdapter — cookie (live) sync mode", () => {
 
   it("version/capabilities reflect v0.2 live mode", () => {
     const a = new HuaweiLearningAdapter();
-    expect(a.version).toBe("0.2.0");
+    expect(a.version).toBe("0.3.0");
     expect(a.capabilities).toContain("sync:cookie");
   });
 

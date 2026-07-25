@@ -16,7 +16,9 @@ const {
 const {
   ZuoyebangApiClient,
 } = require("../../lib/adapters/edu-zuoyebang/api-client");
-const { AlipayApiClient } = require("../../lib/adapters/finance-alipay/api-client");
+const {
+  AlipayApiClient,
+} = require("../../lib/adapters/finance-alipay/api-client");
 const {
   HuaweiLearningApiClient,
 } = require("../../lib/adapters/edu-huawei-learning/api-client");
@@ -41,7 +43,13 @@ const PLATFORMS = [
     eventKind: "play",
     eventSubtype: "media",
     idKey: "hok-uid",
-    sample: { kind: "play", id: "p1", durationMs: 1800000, mode: "rank", startAt: 1700000000000 },
+    sample: {
+      kind: "play",
+      id: "p1",
+      durationMs: 1800000,
+      mode: "rank",
+      startAt: 1700000000000,
+    },
   },
   {
     label: "作业帮",
@@ -52,7 +60,13 @@ const PLATFORMS = [
     eventKind: "study",
     eventSubtype: "other",
     idKey: "zuoyebang-uid",
-    sample: { kind: "study", id: "s1", subject: "math", durationMs: 1200000, startAt: 1700000000000 },
+    sample: {
+      kind: "study",
+      id: "s1",
+      subject: "math",
+      durationMs: 1200000,
+      startAt: 1700000000000,
+    },
   },
   {
     label: "支付宝",
@@ -63,18 +77,31 @@ const PLATFORMS = [
     eventKind: "order",
     eventSubtype: "payment",
     idKey: "alipay-uid",
-    sample: { kind: "order", id: "o1", merchant: "便利店", amountFen: 350, direction: "out", startAt: 1700000000000 },
+    sample: {
+      kind: "order",
+      id: "o1",
+      merchant: "便利店",
+      amountFen: 350,
+      direction: "out",
+      startAt: 1700000000000,
+    },
   },
   {
     label: "华为学习中心",
     Adapter: lib.HuaweiLearningAdapter,
     name: "edu-huawei-learning",
-    version: "0.2.0", // live web fetcher landed (see edu-huawei-learning-live.test.js)
+    version: "0.3.0", // complete paging + explicit cursor
     sensitivity: "medium",
     eventKind: "study",
     eventSubtype: "other",
     idKey: "huawei-learning-uid",
-    sample: { kind: "study", id: "h1", course: "物理", durationMs: 900000, startAt: 1700000000000 },
+    sample: {
+      kind: "study",
+      id: "h1",
+      course: "物理",
+      durationMs: 900000,
+      startAt: 1700000000000,
+    },
   },
 ];
 
@@ -102,7 +129,12 @@ for (const P of PLATFORMS) {
         snapshottedAt: 1700000000000,
         account: { uid: "12345", displayName: "kid" },
         events: [
-          { kind: "profile", id: "profile-12345", uid: "12345", nickname: "kid" },
+          {
+            kind: "profile",
+            id: "profile-12345",
+            uid: "12345",
+            nickname: "kid",
+          },
           P.sample,
         ],
       });

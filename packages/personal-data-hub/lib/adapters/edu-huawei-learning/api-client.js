@@ -22,13 +22,16 @@ const PATH_STUDY_RECORDS = "/edu/api/study/v1/records";
 const BROWSER_UA =
   "Mozilla/5.0 (Linux; Android 12; HarmonyOS) AppleWebKit/537.36 " +
   "(KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36";
+const DEFAULT_STUDY_PAGE_SIZE = 100;
+const DEFAULT_MAX_STUDY_PAGES = 10_000;
 
 class HuaweiLearningApiClient {
   constructor(opts = {}) {
     this._lastErrorCode = 0;
     this._lastErrorMsg = "";
     this._fetch =
-      opts.fetch || (typeof globalThis.fetch === "function" ? globalThis.fetch : null);
+      opts.fetch ||
+      (typeof globalThis.fetch === "function" ? globalThis.fetch : null);
     this.baseUrl = (opts.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, "");
     this.userInfoPath = opts.userInfoPath || PATH_USER_INFO;
     this.studyRecordsPath = opts.studyRecordsPath || PATH_STUDY_RECORDS;
@@ -102,9 +105,15 @@ class HuaweiLearningApiClient {
     }
     let resp;
     try {
-      resp = await this._fetch(url, { method: "GET", headers: this._headers(cookie) });
+      resp = await this._fetch(url, {
+        method: "GET",
+        headers: this._headers(cookie),
+      });
     } catch (e) {
-      this._setLastError(-4, "network: " + (e && e.message ? e.message : String(e)));
+      this._setLastError(
+        -4,
+        "network: " + (e && e.message ? e.message : String(e)),
+      );
       return null;
     }
     const txt = await resp.text();
@@ -116,14 +125,21 @@ class HuaweiLearningApiClient {
     try {
       obj = JSON.parse(txt);
     } catch (e) {
-      this._setLastError(-3, "parse: " + (e && e.message ? e.message : String(e)));
+      this._setLastError(
+        -3,
+        "parse: " + (e && e.message ? e.message : String(e)),
+      );
       return null;
     }
     const code = pick(obj, ["code", "resultCode", "errorCode"], 0);
     if (Number(code) !== 0) {
       this._setLastError(
         Number(code),
-        pick(obj, ["message", "msg", "desc", "errorMsg"], `code ${code}`).toString(),
+        pick(
+          obj,
+          ["message", "msg", "desc", "errorMsg"],
+          `code ${code}`,
+        ).toString(),
       );
       return null;
     }
@@ -134,13 +150,22 @@ class HuaweiLearningApiClient {
 
   /** 用户信息 → { uid, nickname } or null. */
   async getUserInfo(cookie) {
-    const data = await this._doGetJson(`${this.baseUrl}${this.userInfoPath}`, cookie);
+    const data = await this._doGetJson(
+      `${this.baseUrl}${this.userInfoPath}`,
+      cookie,
+    );
     if (data === null) return null;
     const u = pick(data, ["user", "userInfo", "account"], data);
     const uid = pick(u, ["uid", "userId", "accountId"]);
     return {
       uid: uid != null ? String(uid) : null,
-      nickname: pick(u, ["nickName", "nickname", "displayName", "userName", "name"]),
+      nickname: pick(u, [
+        "nickName",
+        "nickname",
+        "displayName",
+        "userName",
+        "name",
+      ]),
     };
   }
 
@@ -149,22 +174,114 @@ class HuaweiLearningApiClient {
    * @param {string} cookie
    * @param {object} [opts] { limit, offset }
    */
-  async getStudyRecords(cookie, opts = {}) {
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 20;
-    const offset = Number.isInteger(opts.offset) && opts.offset > 0 ? opts.offset : 0;
+  async getStudyRecordsPage(cookie, opts = {}) {
+    const limit =
+      Number.isSafeInteger(opts.limit) && opts.limit > 0
+        ? opts.limit
+        : DEFAULT_STUDY_PAGE_SIZE;
+    const offset =
+      Number.isSafeInteger(opts.offset) && opts.offset > 0 ? opts.offset : 0;
     const url = `${this.baseUrl}${this.studyRecordsPath}?offset=${offset}&limit=${limit}`;
     const data = await this._doGetJson(url, cookie);
     if (data === null) return null;
-    const list = pick(data, ["records", "list", "items"], Array.isArray(data) ? data : []);
-    if (!Array.isArray(list)) return [];
-    return list.map((r) => ({
-      recordId: pick(r, ["recordId", "id", "logId"]),
-      course: pick(r, ["courseName", "course", "title", "name"]),
-      durationMs: toDurationMs(
-        pick(r, ["studyDuration", "duration", "learnTime", "durationMs"], 0),
+    const list = pick(
+      data,
+      ["records", "list", "items"],
+      Array.isArray(data) ? data : [],
+    );
+    const paging = pick(data, ["page", "pagination", "pageInfo"], {});
+    if (!Array.isArray(list)) {
+      return { rows: [], hasMore: false, total: null };
+    }
+    return {
+      rows: list.map((r) => ({
+        recordId: pick(r, ["recordId", "id", "logId"]),
+        course: pick(r, ["courseName", "course", "title", "name"]),
+        durationMs: toDurationMs(
+          pick(r, ["studyDuration", "duration", "learnTime", "durationMs"], 0),
+        ),
+        startAt: toEpochMs(
+          pick(r, ["startTime", "studyTime", "createTime", "beginTime"]),
+        ),
+      })),
+      hasMore: toOptionalBoolean(
+        pick(data, ["hasMore", "has_more", "more", "hasNext"], null) ??
+          pick(paging, ["hasMore", "has_more", "more", "hasNext"], null),
       ),
-      startAt: toEpochMs(pick(r, ["startTime", "studyTime", "createTime", "beginTime"])),
-    }));
+      total: toOptionalCount(
+        pick(data, ["total", "totalCount"], null) ??
+          pick(paging, ["total", "totalCount"], null),
+      ),
+    };
+  }
+
+  async getStudyRecords(cookie, opts = {}) {
+    const page = await this.getStudyRecordsPage(cookie, opts);
+    return page === null ? null : page.rows;
+  }
+
+  async getAllStudyRecords(cookie, opts = {}) {
+    const pageSize =
+      Number.isSafeInteger(opts.pageSize) && opts.pageSize > 0
+        ? opts.pageSize
+        : DEFAULT_STUDY_PAGE_SIZE;
+    const maxPages =
+      Number.isSafeInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : DEFAULT_MAX_STUDY_PAGES;
+    let offset =
+      Number.isSafeInteger(opts.offset) && opts.offset > 0 ? opts.offset : 0;
+    const rows = [];
+    const seen = new Set();
+
+    for (let pageNumber = 1; pageNumber <= maxPages; pageNumber += 1) {
+      const page = await this.getStudyRecordsPage(cookie, {
+        limit: pageSize,
+        offset,
+      });
+      if (page === null) return null;
+      let added = 0;
+      for (const row of page.rows) {
+        const key =
+          row.recordId == null ? null : String(row.recordId).normalize("NFKC");
+        if (!key) {
+          this._setLastError(
+            -9,
+            "study record has no stable source id; refusing a partial import",
+          );
+          return null;
+        }
+        if (seen.has(key)) continue;
+        seen.add(key);
+        rows.push(row);
+        added += 1;
+      }
+      offset += page.rows.length;
+      if (
+        page.hasMore === false ||
+        (page.hasMore !== true &&
+          page.total !== null &&
+          offset >= page.total) ||
+        page.rows.length === 0 ||
+        (page.hasMore === null &&
+          page.total === null &&
+          page.rows.length < pageSize)
+      ) {
+        return rows;
+      }
+      if (added === 0) {
+        this._setLastError(
+          -8,
+          "study pagination made no progress; refusing a partial import",
+        );
+        return null;
+      }
+    }
+    this._setLastError(
+      -8,
+      `study pagination exceeded ${maxPages} pages; refusing a partial import`,
+    );
+    return null;
   }
 
   /**
@@ -191,9 +308,10 @@ class HuaweiLearningApiClient {
     }
 
     if (include.study !== false) {
-      const records = await this.getStudyRecords(cookie, {
-        limit: opts.limit,
+      const records = await this.getAllStudyRecords(cookie, {
+        pageSize: opts.pageSize || opts.limit,
         offset: opts.offset,
+        maxPages: opts.maxPages,
       });
       if (records === null) return null;
       for (const r of records) {
@@ -212,9 +330,24 @@ class HuaweiLearningApiClient {
   }
 }
 
+function toOptionalBoolean(value) {
+  if (typeof value === "boolean") return value;
+  if (value === 1 || value === "1" || value === "true") return true;
+  if (value === 0 || value === "0" || value === "false") return false;
+  return null;
+}
+
+function toOptionalCount(value) {
+  if (value == null || value === "") return null;
+  const number = Number(value);
+  return Number.isSafeInteger(number) && number >= 0 ? number : null;
+}
+
 module.exports = {
   HuaweiLearningApiClient,
   // Exported for tests / endpoint introspection.
   PATH_USER_INFO,
   PATH_STUDY_RECORDS,
+  DEFAULT_STUDY_PAGE_SIZE,
+  DEFAULT_MAX_STUDY_PAGES,
 };
