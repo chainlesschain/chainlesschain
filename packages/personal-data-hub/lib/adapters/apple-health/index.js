@@ -25,28 +25,39 @@
  * pull attributes with a small regex — robust against attribute reordering
  * and avoids a heavy XML dependency. `export.xml` can be large (100s of MB);
  * the whole-file read is bounded and identity-checked before parsing. A
- * streaming reader is a later optimization; maxRecords truncation is surfaced
- * via a diagnostic.
+ * streaming reader is a later optimization. Collection uses a source-bound
+ * ordinal cursor so event/maxRecords budgets pause instead of truncating the
+ * export permanently.
  *
  * Metrics → EVENT subtype "other" (extra carries metric/value/unit).
  * Workouts → EVENT subtype "trip" (a bounded activity with duration/distance).
  */
 
 const fs = require("node:fs");
+const crypto = require("node:crypto");
 const { newId } = require("../../ids");
+const { createAccountScope } = require("../../account-scope");
 const {
   HARD_MAX_SNAPSHOT_BYTES,
+  inspectSnapshotFile,
   probeSnapshotFile,
-  readBoundedSnapshot,
+  readBoundedSnapshotBuffer,
 } = require("../../snapshot-file");
 const {
   ENTITY_TYPES,
   EVENT_SUBTYPES,
   CAPTURED_BY,
 } = require("../../constants");
+const {
+  advanceCursor,
+  assertScanIdentity,
+  beginScan,
+  parseCursor,
+  serializeCursor,
+} = require("./scan-cursor");
 
 const NAME = "apple-health";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 
 const KIND_RECORD = "record";
 const KIND_WORKOUT = "workout";
@@ -117,6 +128,7 @@ class AppleHealthAdapter {
     ];
     this.extractMode = "file-import";
     this.rateLimits = {};
+    this.watermarkStrategy = "explicit";
     this.dataDisclosure = {
       fields: [
         "apple-health:records (步数 / 心率 / 睡眠 / 体重 / 距离 / 能量 …)",
@@ -157,6 +169,25 @@ class AppleHealthAdapter {
     return { ok: true, lastChecked: Date.now() };
   }
 
+  fileCheckpointMode() {
+    return "shared";
+  }
+
+  resolveDefaultScope(options = {}) {
+    const inputPath = options.inputPath || this._inputPath;
+    return inputPath
+      ? scopeForExport(
+          this._deps.fs,
+          inputPath,
+          options.maxSnapshotBytes ?? DEFAULT_MAX_EXPORT_BYTES,
+        )
+      : undefined;
+  }
+
+  resolveInputScope(options = {}) {
+    return this.resolveDefaultScope(options);
+  }
+
   async *sync(opts = {}) {
     const inputPath = opts.inputPath || this._inputPath;
     if (!inputPath) {
@@ -164,35 +195,63 @@ class AppleHealthAdapter {
     }
 
     const maxRecords =
-      Number.isInteger(opts.maxRecords) && opts.maxRecords > 0
+      Number.isSafeInteger(opts.maxRecords) && opts.maxRecords > 0
         ? opts.maxRecords
-        : 200_000;
+        : Infinity;
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const include = opts.include || {};
 
-    const content = readBoundedSnapshot(this._deps.fs, inputPath, {
+    const buffer = readBoundedSnapshotBuffer(this._deps.fs, inputPath, {
       maxBytes: opts.maxSnapshotBytes ?? DEFAULT_MAX_EXPORT_BYTES,
     });
+    const source = crypto.createHash("sha256").update(buffer).digest("hex");
+    const content = buffer.toString("utf8");
     const lines = content.split("\n");
-    let emitted = 0;
-    let seen = 0;
-    let truncated = false;
-
+    const entries = [];
     for (const line of lines) {
-      if (emitted >= limit) break;
       const trimmed = line.trimStart();
-      const isRecord = trimmed.startsWith("<Record ");
-      const isWorkout = trimmed.startsWith("<Workout ");
-      if (!isRecord && !isWorkout) continue;
-      seen += 1;
-      if (seen > maxRecords) {
-        truncated = true;
-        break;
+      if (trimmed.startsWith("<Record ")) {
+        entries.push({ kind: KIND_RECORD, line: trimmed });
+      } else if (trimmed.startsWith("<Workout ")) {
+        entries.push({ kind: KIND_WORKOUT, line: trimmed });
       }
-      const attrs = parseAttrs(trimmed);
+    }
 
-      if (isRecord && include[KIND_RECORD] !== false) {
+    const filter = includeFilter(include);
+    let cursor = parseCursor(opts.sinceWatermark).cursor;
+    if (cursor.upper === null) {
+      cursor = beginScan(cursor, {
+        source,
+        filter,
+        upper: entries.length,
+      });
+    } else {
+      cursor = assertScanIdentity(cursor, {
+        source,
+        filter,
+        upper: entries.length,
+      });
+    }
+    const publish = () => {
+      if (typeof opts.updateWatermark === "function") {
+        opts.updateWatermark(serializeCursor(cursor));
+      }
+    };
+
+    let emitted = 0;
+    let scanned = 0;
+    let ordinal = cursor.after ?? 0;
+
+    while (cursor.upper !== null && emitted < limit && scanned < maxRecords) {
+      ordinal += 1;
+      const entry = entries[ordinal - 1];
+      cursor = advanceCursor(cursor, ordinal);
+      publish();
+      scanned += 1;
+      const attrs = parseAttrs(entry.line);
+
+      if (entry.kind === KIND_RECORD && include[KIND_RECORD] !== false) {
         const occurredAt =
           parseAppleDate(attrs.startDate) || parseAppleDate(attrs.creationDate);
         yield {
@@ -202,12 +261,17 @@ class AppleHealthAdapter {
             attrs.type,
             attrs.startDate,
             attrs.value,
+            attrs.sourceName,
+            String(ordinal),
           ]),
           capturedAt: occurredAt || Date.now(),
           payload: { kind: KIND_RECORD, ...attrs },
         };
         emitted += 1;
-      } else if (isWorkout && include[KIND_WORKOUT] !== false) {
+      } else if (
+        entry.kind === KIND_WORKOUT &&
+        include[KIND_WORKOUT] !== false
+      ) {
         const occurredAt =
           parseAppleDate(attrs.startDate) || parseAppleDate(attrs.creationDate);
         yield {
@@ -217,6 +281,7 @@ class AppleHealthAdapter {
             attrs.workoutActivityType,
             attrs.startDate,
             attrs.duration,
+            String(ordinal),
           ]),
           capturedAt: occurredAt || Date.now(),
           payload: { kind: KIND_WORKOUT, ...attrs },
@@ -225,13 +290,18 @@ class AppleHealthAdapter {
       }
     }
 
-    if (truncated && typeof opts.onProgress === "function") {
+    publish();
+    if (
+      cursor.upper !== null &&
+      scanned >= maxRecords &&
+      typeof opts.onProgress === "function"
+    ) {
       try {
         opts.onProgress({
           phase: "truncated",
           adapter: NAME,
           maxRecords,
-          message: `export.xml 超过 ${maxRecords} 条，已截断（提高 maxRecords 可全量导入）`,
+          message: `export.xml 本批已处理 ${maxRecords} 条，下一批将从游标继续`,
         });
       } catch {
         /* best-effort */
@@ -251,6 +321,34 @@ class AppleHealthAdapter {
       return normalizeWorkout(raw.payload, raw, ingestedAt);
     throw new Error(`AppleHealthAdapter.normalize: unknown kind ${kind}`);
   }
+}
+
+function scopeForExport(fsMod, inputPath, maxBytes) {
+  const inspected = inspectSnapshotFile(fsMod, inputPath, { maxBytes });
+  const revision =
+    inspected.stat.mtimeNs ??
+    inspected.stat.mtimeMs ??
+    inspected.stat.ctimeNs ??
+    inspected.stat.ctimeMs ??
+    "";
+  return createAccountScope(
+    NAME,
+    [
+      "export",
+      inspected.realPath,
+      String(inspected.size),
+      String(revision),
+    ].join("\0"),
+  );
+}
+
+function includeFilter(include = {}) {
+  const record = include[KIND_RECORD] !== false;
+  const workout = include[KIND_WORKOUT] !== false;
+  if (record && workout) return "record+workout";
+  if (record) return "record";
+  if (workout) return "workout";
+  return "none";
 }
 
 function buildSource(raw, occurredAt) {
