@@ -113,6 +113,16 @@ const DEFAULT_KDF_ITER = 256000;
 const DEFAULT_CIPHER_PAGE_SIZE = 4096;
 const SYNC_RATE_MINUTE_MS = 60_000;
 const SYNC_RATE_DAY_MS = 24 * 60 * 60_000;
+const SOURCE_IDENTITY_ENTITY_TYPES = new Set([
+  "event",
+  "person",
+  "place",
+  "item",
+  "topic",
+]);
+const MAX_SOURCE_ALIAS_DEPTH = 64;
+const DEFAULT_RAW_OBSERVATION_QUERY_LIMIT = 100;
+const MAX_RAW_OBSERVATION_QUERY_LIMIT = 10_000;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 
@@ -200,6 +210,121 @@ function ensureValidId(id, label) {
   if (typeof id !== "string" || id.length === 0) {
     throw new Error(`${label} must be a non-empty string id`);
   }
+}
+
+function sourceIdentityError(code, message) {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+}
+
+function normalizeEntityType(entityType, label) {
+  if (!SOURCE_IDENTITY_ENTITY_TYPES.has(entityType)) {
+    throw new Error(
+      `${label}: entityType must be one of event, person, place, item, topic`,
+    );
+  }
+  return entityType;
+}
+
+function normalizeSourceIdentity(identity, label) {
+  if (!identity || typeof identity !== "object" || Array.isArray(identity)) {
+    throw new Error(`${label}: source identity must be an object`);
+  }
+  if (typeof identity.adapter !== "string" || identity.adapter.length === 0) {
+    throw new Error(`${label}: adapter required`);
+  }
+  const scope = identity.scope === undefined ? "" : identity.scope;
+  if (typeof scope !== "string") {
+    throw new Error(`${label}: scope must be a string`);
+  }
+  if (
+    typeof identity.originalId !== "string" ||
+    identity.originalId.length === 0
+  ) {
+    throw new Error(`${label}: originalId required`);
+  }
+  return {
+    adapter: identity.adapter,
+    scope,
+    originalId: identity.originalId,
+  };
+}
+
+function sourceIdentityKey(identity) {
+  return JSON.stringify([
+    identity.adapter,
+    identity.scope,
+    identity.originalId,
+  ]);
+}
+
+function sameSourceIdentity(a, b) {
+  return (
+    a.adapter === b.adapter &&
+    a.scope === b.scope &&
+    a.originalId === b.originalId
+  );
+}
+
+function resolveSourceIdentityInDb(db, entityType, identity) {
+  const lookup = db.prepare(
+    `SELECT canonical_adapter, canonical_scope, canonical_original_id
+     FROM source_identity_aliases
+     WHERE entity_type = ?
+       AND alias_adapter = ?
+       AND alias_scope = ?
+       AND alias_original_id = ?`,
+  );
+  const seen = new Set();
+  let current = identity;
+
+  for (let depth = 0; depth < MAX_SOURCE_ALIAS_DEPTH; depth += 1) {
+    const key = sourceIdentityKey(current);
+    if (seen.has(key)) {
+      throw sourceIdentityError(
+        "SOURCE_IDENTITY_ALIAS_CYCLE",
+        `source identity alias cycle detected for ${entityType}`,
+      );
+    }
+    seen.add(key);
+
+    const row = lookup.get(
+      entityType,
+      current.adapter,
+      current.scope,
+      current.originalId,
+    );
+    if (!row) {
+      return { identity: current, depth };
+    }
+    current = {
+      adapter: row.canonical_adapter,
+      scope: row.canonical_scope,
+      originalId: row.canonical_original_id,
+    };
+  }
+
+  throw sourceIdentityError(
+    "SOURCE_IDENTITY_ALIAS_DEPTH",
+    `source identity alias chain exceeds ${MAX_SOURCE_ALIAS_DEPTH} links`,
+  );
+}
+
+function serializeRawPayload(payload, label) {
+  if (typeof payload === "string") return payload;
+  let json;
+  try {
+    json = JSON.stringify(payload);
+  } catch (error) {
+    const wrapped = new Error(`${label}: payload must be JSON-serializable`);
+    wrapped.cause = error;
+    throw wrapped;
+  }
+  if (typeof json !== "string") {
+    throw new Error(`${label}: payload must be JSON-serializable`);
+  }
+  return json;
 }
 
 // ─── LocalVault ──────────────────────────────────────────────────────────
@@ -787,6 +912,361 @@ class LocalVault {
         }
       })(),
     }));
+  }
+
+  // ─── Source identity + producer observations ───────────────────────────
+
+  /**
+   * Register an immutable alias from one source identity to a canonical source
+   * identity. Canonical targets are resolved to their root before insertion,
+   * keeping newly written aliases flat. Existing identical mappings are
+   * idempotent; conflicting remaps fail closed.
+   *
+   * @param {object} record
+   * @param {'event'|'person'|'place'|'item'|'topic'} record.entityType
+   * @param {{adapter:string, scope?:string, originalId:string}} record.alias
+   * @param {{adapter:string, scope?:string, originalId:string}} record.canonical
+   * @param {number} [record.createdAt]
+   * @returns {{changes:number, entityType:string, alias:object, canonical:object}}
+   */
+  registerSourceAlias({
+    entityType,
+    alias,
+    canonical,
+    createdAt = Date.now(),
+  } = {}) {
+    const normalizedType = normalizeEntityType(
+      entityType,
+      "registerSourceAlias",
+    );
+    const normalizedAlias = normalizeSourceIdentity(
+      alias,
+      "registerSourceAlias alias",
+    );
+    const normalizedCanonical = normalizeSourceIdentity(
+      canonical,
+      "registerSourceAlias canonical",
+    );
+    if (!Number.isSafeInteger(createdAt) || createdAt <= 0) {
+      throw new Error(
+        "registerSourceAlias: createdAt must be a positive safe integer ms",
+      );
+    }
+    if (sameSourceIdentity(normalizedAlias, normalizedCanonical)) {
+      throw sourceIdentityError(
+        "SOURCE_IDENTITY_ALIAS_SELF",
+        "registerSourceAlias: alias and canonical identity must differ",
+      );
+    }
+
+    const db = this._requireOpen();
+    const tx = db.transaction(() => {
+      const canonicalRoot = resolveSourceIdentityInDb(
+        db,
+        normalizedType,
+        normalizedCanonical,
+      ).identity;
+      if (sameSourceIdentity(normalizedAlias, canonicalRoot)) {
+        throw sourceIdentityError(
+          "SOURCE_IDENTITY_ALIAS_CYCLE",
+          "registerSourceAlias: canonical identity resolves back to alias",
+        );
+      }
+
+      const existing = db
+        .prepare(
+          `SELECT canonical_adapter, canonical_scope, canonical_original_id
+           FROM source_identity_aliases
+           WHERE entity_type = ?
+             AND alias_adapter = ?
+             AND alias_scope = ?
+             AND alias_original_id = ?`,
+        )
+        .get(
+          normalizedType,
+          normalizedAlias.adapter,
+          normalizedAlias.scope,
+          normalizedAlias.originalId,
+        );
+      if (existing) {
+        const existingRoot = resolveSourceIdentityInDb(
+          db,
+          normalizedType,
+          normalizedAlias,
+        ).identity;
+        if (sameSourceIdentity(existingRoot, canonicalRoot)) {
+          return {
+            changes: 0,
+            entityType: normalizedType,
+            alias: normalizedAlias,
+            canonical: canonicalRoot,
+          };
+        }
+        throw sourceIdentityError(
+          "SOURCE_IDENTITY_ALIAS_CONFLICT",
+          "registerSourceAlias: alias already maps to a different canonical identity",
+        );
+      }
+
+      // A canonical root cannot silently become an alias. Doing so would
+      // redirect every dependent alias and make canonical identity mutable.
+      // A future explicit re-key operation can perform that rewrite
+      // transactionally together with normalized entity references.
+      const hasDependents = db
+        .prepare(
+          `SELECT 1
+           FROM source_identity_aliases
+           WHERE entity_type = ?
+             AND canonical_adapter = ?
+             AND canonical_scope = ?
+             AND canonical_original_id = ?
+           LIMIT 1`,
+        )
+        .get(
+          normalizedType,
+          normalizedAlias.adapter,
+          normalizedAlias.scope,
+          normalizedAlias.originalId,
+        );
+      if (hasDependents) {
+        throw sourceIdentityError(
+          "SOURCE_IDENTITY_CANONICAL_IMMUTABLE",
+          "registerSourceAlias: identity is already a canonical target",
+        );
+      }
+
+      const info = db
+        .prepare(
+          `INSERT INTO source_identity_aliases (
+             entity_type,
+             alias_adapter,
+             alias_scope,
+             alias_original_id,
+             canonical_adapter,
+             canonical_scope,
+             canonical_original_id,
+             created_at
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          normalizedType,
+          normalizedAlias.adapter,
+          normalizedAlias.scope,
+          normalizedAlias.originalId,
+          canonicalRoot.adapter,
+          canonicalRoot.scope,
+          canonicalRoot.originalId,
+          createdAt,
+        );
+      return {
+        changes: info.changes,
+        entityType: normalizedType,
+        alias: normalizedAlias,
+        canonical: canonicalRoot,
+      };
+    });
+
+    return tx();
+  }
+
+  /**
+   * Resolve a source identity through the immutable alias map. Identities
+   * without an alias are returned unchanged.
+   */
+  resolveSourceIdentity(entityType, identity) {
+    const normalizedType = normalizeEntityType(
+      entityType,
+      "resolveSourceIdentity",
+    );
+    const normalizedIdentity = normalizeSourceIdentity(
+      identity,
+      "resolveSourceIdentity",
+    );
+    return resolveSourceIdentityInDb(
+      this._requireOpen(),
+      normalizedType,
+      normalizedIdentity,
+    ).identity;
+  }
+
+  /**
+   * Store one producer's raw observation for a canonical event. Unlike
+   * raw_events, the primary key includes producer identity so direct,
+   * sidecar, and Android evidence can coexist. Re-ingest keeps the earliest
+   * capture time and the payload from the latest capture time.
+   */
+  putRawObservation({
+    adapter,
+    scope = "",
+    canonicalOriginalId,
+    producer,
+    producerOriginalId,
+    capturedAt,
+    payload,
+  } = {}) {
+    if (typeof adapter !== "string" || adapter.length === 0) {
+      throw new Error("putRawObservation: adapter required");
+    }
+    if (typeof scope !== "string") {
+      throw new Error("putRawObservation: scope must be a string");
+    }
+    if (
+      typeof canonicalOriginalId !== "string" ||
+      canonicalOriginalId.length === 0
+    ) {
+      throw new Error("putRawObservation: canonicalOriginalId required");
+    }
+    if (typeof producer !== "string" || producer.length === 0) {
+      throw new Error("putRawObservation: producer required");
+    }
+    if (
+      typeof producerOriginalId !== "string" ||
+      producerOriginalId.length === 0
+    ) {
+      throw new Error("putRawObservation: producerOriginalId required");
+    }
+    if (!Number.isSafeInteger(capturedAt) || capturedAt <= 0) {
+      throw new Error(
+        "putRawObservation: capturedAt must be a positive safe integer ms",
+      );
+    }
+    const json = serializeRawPayload(payload, "putRawObservation");
+
+    return this._requireOpen()
+      .prepare(
+        `INSERT INTO raw_event_observations (
+           adapter,
+           scope,
+           canonical_original_id,
+           producer,
+           producer_original_id,
+           first_captured_at,
+           last_captured_at,
+           payload
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(adapter, scope, producer, producer_original_id)
+         DO UPDATE SET
+           canonical_original_id = CASE
+             WHEN excluded.last_captured_at >=
+                  raw_event_observations.last_captured_at
+               THEN excluded.canonical_original_id
+             ELSE raw_event_observations.canonical_original_id
+           END,
+           first_captured_at = MIN(
+             raw_event_observations.first_captured_at,
+             excluded.first_captured_at
+           ),
+           last_captured_at = MAX(
+             raw_event_observations.last_captured_at,
+             excluded.last_captured_at
+           ),
+           payload = CASE
+             WHEN excluded.last_captured_at >=
+                  raw_event_observations.last_captured_at
+               THEN excluded.payload
+             ELSE raw_event_observations.payload
+           END`,
+      )
+      .run(
+        adapter,
+        scope,
+        canonicalOriginalId,
+        producer,
+        producerOriginalId,
+        capturedAt,
+        capturedAt,
+        json,
+      );
+  }
+
+  /**
+   * Query producer-specific observations with deterministic, bounded paging.
+   */
+  queryRawObservations({
+    adapter,
+    scope,
+    canonicalOriginalId,
+    producer,
+    limit = DEFAULT_RAW_OBSERVATION_QUERY_LIMIT,
+    offset = 0,
+  } = {}) {
+    const filters = [
+      ["adapter", adapter],
+      ["scope", scope],
+      ["canonicalOriginalId", canonicalOriginalId],
+      ["producer", producer],
+    ];
+    for (const [name, value] of filters) {
+      if (value !== undefined && typeof value !== "string") {
+        throw new Error(`queryRawObservations: ${name} must be a string`);
+      }
+    }
+    if (!Number.isSafeInteger(limit) || limit <= 0) {
+      throw new Error(
+        "queryRawObservations: limit must be a positive safe integer",
+      );
+    }
+    if (!Number.isSafeInteger(offset) || offset < 0) {
+      throw new Error(
+        "queryRawObservations: offset must be a non-negative safe integer",
+      );
+    }
+
+    const where = [];
+    const params = {};
+    if (adapter !== undefined) {
+      where.push("adapter = @adapter");
+      params.adapter = adapter;
+    }
+    if (scope !== undefined) {
+      where.push("scope = @scope");
+      params.scope = scope;
+    }
+    if (canonicalOriginalId !== undefined) {
+      where.push("canonical_original_id = @canonicalOriginalId");
+      params.canonicalOriginalId = canonicalOriginalId;
+    }
+    if (producer !== undefined) {
+      where.push("producer = @producer");
+      params.producer = producer;
+    }
+    params.limit = Math.min(limit, MAX_RAW_OBSERVATION_QUERY_LIMIT);
+    params.offset = offset;
+
+    const sql = `
+      SELECT
+        adapter,
+        scope,
+        canonical_original_id,
+        producer,
+        producer_original_id,
+        first_captured_at,
+        last_captured_at,
+        payload
+      FROM raw_event_observations
+      ${where.length > 0 ? `WHERE ${where.join(" AND ")}` : ""}
+      ORDER BY
+        adapter,
+        scope,
+        canonical_original_id,
+        producer,
+        first_captured_at,
+        producer_original_id
+      LIMIT @limit OFFSET @offset
+    `;
+    return this._requireOpen()
+      .prepare(sql)
+      .all(params)
+      .map((row) => ({
+        adapter: row.adapter,
+        scope: row.scope,
+        canonicalOriginalId: row.canonical_original_id,
+        producer: row.producer,
+        producerOriginalId: row.producer_original_id,
+        firstCapturedAt: row.first_captured_at,
+        lastCapturedAt: row.last_captured_at,
+        payload: this._parseJson(row.payload, row.payload),
+      }));
   }
 
   // ─── Entity reads ──────────────────────────────────────────────────────
@@ -2359,6 +2839,8 @@ class LocalVault {
       items: count("items"),
       topics: count("topics"),
       rawEvents: count("raw_events"),
+      rawObservations: safeCount("raw_event_observations"),
+      sourceIdentityAliases: safeCount("source_identity_aliases"),
       auditLog: count("audit_log"),
       watermarks: count("sync_watermarks"),
       scanStates: safeCount("sync_scan_state"),

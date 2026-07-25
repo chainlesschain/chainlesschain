@@ -339,9 +339,12 @@ const GIT_PRIVACY_CLEANUP_PENDING_KEY =
   "git_activity_v02_privacy_cleanup_pending";
 const LOCAL_FILES_PRIVACY_CLEANUP_PENDING_KEY =
   "local_files_v01_privacy_cleanup_pending";
+const PRIVACY_CLEANUP_FINAL_CHECKPOINT_PENDING_KEY =
+  "privacy_cleanup_final_checkpoint_pending";
 const PRIVACY_CLEANUP_PENDING_KEYS = Object.freeze([
   GIT_PRIVACY_CLEANUP_PENDING_KEY,
   LOCAL_FILES_PRIVACY_CLEANUP_PENDING_KEY,
+  PRIVACY_CLEANUP_FINAL_CHECKPOINT_PENDING_KEY,
 ]);
 
 function finalizePendingPrivacyCleanups(db) {
@@ -630,7 +633,7 @@ const MIGRATIONS = [
       // WAL can still contain the pre-migration encrypted pages after the
       // transaction commits. The durable pending marker makes a busy
       // checkpoint or process crash retryable even though schema v9 committed.
-      finalizePendingPrivacyCleanups(db);
+      return finalizePendingPrivacyCleanups(db);
     },
   },
   {
@@ -711,7 +714,84 @@ const MIGRATIONS = [
       }
     },
     afterCommit(db) {
-      finalizePendingPrivacyCleanups(db);
+      return finalizePendingPrivacyCleanups(db);
+    },
+  },
+  {
+    version: 11,
+    description:
+      "Add immutable source-identity aliases and producer-specific raw " +
+      "observations so multiple collectors can converge on one canonical " +
+      "entity without overwriting each other's source evidence.",
+    up(db) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS source_identity_aliases (
+          entity_type           TEXT NOT NULL
+                                  CHECK (entity_type IN (
+                                    'event', 'person', 'place', 'item', 'topic'
+                                  )),
+          alias_adapter         TEXT NOT NULL CHECK (length(alias_adapter) > 0),
+          alias_scope           TEXT NOT NULL DEFAULT '',
+          alias_original_id     TEXT NOT NULL
+                                  CHECK (length(alias_original_id) > 0),
+          canonical_adapter     TEXT NOT NULL
+                                  CHECK (length(canonical_adapter) > 0),
+          canonical_scope       TEXT NOT NULL DEFAULT '',
+          canonical_original_id TEXT NOT NULL
+                                  CHECK (length(canonical_original_id) > 0),
+          created_at            INTEGER NOT NULL CHECK (created_at > 0),
+          PRIMARY KEY (
+            entity_type, alias_adapter, alias_scope, alias_original_id
+          ),
+          CHECK (
+            alias_adapter <> canonical_adapter
+            OR alias_scope <> canonical_scope
+            OR alias_original_id <> canonical_original_id
+          )
+        )
+      `);
+      db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_source_identity_aliases_canonical
+        ON source_identity_aliases (
+          entity_type,
+          canonical_adapter,
+          canonical_scope,
+          canonical_original_id
+        )
+      `);
+
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS raw_event_observations (
+          adapter              TEXT NOT NULL CHECK (length(adapter) > 0),
+          scope                TEXT NOT NULL DEFAULT '',
+          canonical_original_id TEXT NOT NULL
+                                 CHECK (length(canonical_original_id) > 0),
+          producer             TEXT NOT NULL CHECK (length(producer) > 0),
+          producer_original_id TEXT NOT NULL
+                                 CHECK (length(producer_original_id) > 0),
+          first_captured_at    INTEGER NOT NULL CHECK (first_captured_at > 0),
+          last_captured_at     INTEGER NOT NULL
+                                 CHECK (last_captured_at >= first_captured_at),
+          payload              TEXT NOT NULL,
+          PRIMARY KEY (
+            adapter, scope, producer, producer_original_id
+          )
+        )
+      `);
+      db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_raw_event_observations_canonical
+        ON raw_event_observations (
+          adapter,
+          scope,
+          canonical_original_id,
+          producer,
+          first_captured_at
+        )
+      `);
+      db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_raw_event_observations_captured
+        ON raw_event_observations (last_captured_at)
+      `);
     },
   },
 ];
@@ -739,6 +819,7 @@ function applyMigrations(db) {
     .prepare("SELECT value FROM _meta WHERE key = 'schema_version'")
     .get();
   const current = row ? parseInt(row.value, 10) : 0;
+  let finalizedPrivacyCleanup = false;
 
   for (const m of MIGRATIONS) {
     if (m.version <= current) continue;
@@ -754,13 +835,29 @@ function applyMigrations(db) {
 
     runMigration();
     if (typeof m.afterCommit === "function") {
-      m.afterCommit(db);
+      finalizedPrivacyCleanup =
+        m.afterCommit(db) === true || finalizedPrivacyCleanup;
     }
   }
 
   // A previous process may have committed a privacy cleanup and exited before
   // truncating old WAL pages. Retry independently of schema version.
-  finalizePendingPrivacyCleanups(db);
+  finalizedPrivacyCleanup =
+    finalizePendingPrivacyCleanups(db) || finalizedPrivacyCleanup;
+
+  if (finalizedPrivacyCleanup) {
+    // Later safe schema migrations can write a new WAL after a privacy
+    // migration has already truncated the sensitive pages. Persist a separate
+    // marker before the final checkpoint so a busy connection or process
+    // crash retries the externally verifiable zero-WAL postcondition on open.
+    db.prepare(
+      `INSERT INTO _meta (key, value, updated_at) VALUES (?, '1', ?)
+       ON CONFLICT(key) DO UPDATE SET
+         value = excluded.value,
+         updated_at = excluded.updated_at`,
+    ).run(PRIVACY_CLEANUP_FINAL_CHECKPOINT_PENDING_KEY, Date.now());
+    finalizePendingPrivacyCleanups(db);
+  }
 
   return { previous: current, current: TARGET_VERSION };
 }
