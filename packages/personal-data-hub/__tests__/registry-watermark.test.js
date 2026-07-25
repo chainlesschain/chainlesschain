@@ -763,7 +763,7 @@ describe("AdapterRegistry watermark strategies", () => {
     expect(report.rawCount).toBe(0);
     expect(report.watermark).toBe(null);
     expect(report.watermarkDeferred).toBe(true);
-    expect(report.checkpointCommitted).toBe(true);
+    expect(report.checkpointCommitted).toBe(false);
   });
 
   it("repairs stored future watermarks and never commits a future candidate", async () => {

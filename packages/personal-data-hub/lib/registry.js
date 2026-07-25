@@ -148,6 +148,9 @@ const RETRYABLE_SYNC_CODES = new Set([
 
 function isRetryableSyncError(error, adapter) {
   if (!error || error instanceof RawArchiveError) return false;
+  const code =
+    typeof error.code === "string" ? error.code.trim().toUpperCase() : "";
+  if (error.name === "AbortError" || code === "ABORT_ERR") return false;
   if (typeof adapter?.isRetryableSyncError === "function") {
     try {
       const decision = adapter.isRetryableSyncError(error);
@@ -158,8 +161,6 @@ function isRetryableSyncError(error, adapter) {
   }
   if (typeof error.retryable === "boolean") return error.retryable;
 
-  const code =
-    typeof error.code === "string" ? error.code.trim().toUpperCase() : "";
   if (NON_RETRYABLE_SYNC_CODES.has(code)) return false;
   if (RETRYABLE_SYNC_CODES.has(code)) return true;
 
@@ -726,6 +727,36 @@ class AdapterRegistry {
           return report;
         }
 
+        try {
+          this._throwIfAborted(options.signal);
+        } catch (abortError) {
+          report.error = toError(abortError, `sync ${name}`).message;
+          report.retryAfterMs = null;
+          report.durationMs = Date.now() - overallStartedAt;
+          try {
+            this.vault.audit("adapter.sync.error", name, {
+              scope: report.scope,
+              message: report.error,
+              checkpointCommitted: false,
+              phase: "retry_backoff",
+              attemptCount: report.attemptCount,
+              retryCount: report.retryCount,
+            });
+          } catch {
+            // Cancellation reporting must not depend on observability storage.
+          }
+          this._emit({
+            kind: "sync.error",
+            adapter: name,
+            scope: report.scope,
+            error: report.error,
+            attemptCount: report.attemptCount,
+            retryCount: report.retryCount,
+            retryExhausted: false,
+          });
+          return report;
+        }
+
         const exponentialDelay = Math.min(
           this.syncRetryMaxDelayMs,
           this.syncRetryBaseDelayMs * 2 ** retryCount,
@@ -762,7 +793,35 @@ class AdapterRegistry {
           delayMs,
           error: report.error,
         });
-        await this._sleep(delayMs);
+        try {
+          await this._sleepWithSignal(delayMs, options.signal);
+        } catch (abortError) {
+          report.error = toError(abortError, `sync ${name}`).message;
+          report.retryAfterMs = null;
+          report.durationMs = Date.now() - overallStartedAt;
+          try {
+            this.vault.audit("adapter.sync.error", name, {
+              scope: report.scope,
+              message: report.error,
+              checkpointCommitted: false,
+              phase: "retry_backoff",
+              attemptCount: report.attemptCount,
+              retryCount: report.retryCount,
+            });
+          } catch {
+            // Cancellation reporting must not depend on observability storage.
+          }
+          this._emit({
+            kind: "sync.error",
+            adapter: name,
+            scope: report.scope,
+            error: report.error,
+            attemptCount: report.attemptCount,
+            retryCount: report.retryCount,
+            retryExhausted: false,
+          });
+          return report;
+        }
         retryCount = nextRetryCount;
         totalRetryDelayMs += delayMs;
       }
@@ -841,6 +900,8 @@ class AdapterRegistry {
     let preserveFileCheckpoint = explicitFileSync;
 
     try {
+      this._throwIfAborted(options.signal);
+
       // Resolve file checkpoint policy before scope. Shared file inputs are
       // continuing sources (for example a selected SQLite profile), so their
       // scope must flow through the adapter's normal runtime/default scope
@@ -857,6 +918,7 @@ class AdapterRegistry {
       // health gate as well as sync(). File-import adapters cannot validate a
       // path that only exists in options if this call is parameterless.
       const health = await adapter.healthCheck(options);
+      this._throwIfAborted(options.signal);
       if (!health || !health.ok) {
         report.status = "unhealthy";
         report.error =
@@ -979,9 +1041,14 @@ class AdapterRegistry {
         Number.isSafeInteger(options.maxPages) && options.maxPages > 0
           ? options.maxPages
           : null;
-      const hasExplicitEventLimit =
-        (Number.isSafeInteger(options.limit) && options.limit > 0) ||
-        (Number.isSafeInteger(options.maxEvents) && options.maxEvents > 0);
+      const configuredEventLimits = [options.limit, options.maxEvents].filter(
+        (value) => Number.isSafeInteger(value) && value > 0,
+      );
+      const eventLimit =
+        configuredEventLimits.length > 0
+          ? Math.min(...configuredEventLimits)
+          : null;
+      const hasExplicitEventLimit = eventLimit !== null;
       const canPersistScanState =
         typeof this.vault.getSyncScanState === "function" &&
         typeof this.vault.setSyncScanState === "function" &&
@@ -1264,6 +1331,8 @@ class AdapterRegistry {
       const nextWatermarks = { ...checkpointWatermarks };
       let maxCapturedAt = this._parseFiniteWatermark(checkpointWatermark);
       let watermarkComplete = adapter.watermarkRequiresCompleteScan !== true;
+      let explicitContinuationPublished = false;
+      let eventLimitReached = false;
       const completedWatermarkKeySet = new Set();
 
       this._emit({
@@ -1288,6 +1357,7 @@ class AdapterRegistry {
         if (buffer.length === 0) return;
         await this._ingestRawBatch(adapter, buffer, report, scope);
         buffer = [];
+        this._throwIfAborted(options.signal);
       };
 
       // Phase 5.7: forward adapter progress events through onSyncEvent so
@@ -1337,6 +1407,9 @@ class AdapterRegistry {
             nextWatermark = this._serializeWatermark(value, {
               rejectNull: true,
             });
+            if (watermarkStrategy === "explicit") {
+              explicitContinuationPublished = true;
+            }
           };
       const adapterMarkWatermarkComplete = partitionedWatermark
         ? (key) => {
@@ -1374,7 +1447,9 @@ class AdapterRegistry {
         sinceWatermarks: partitionedWatermark
           ? Object.freeze({ ...collectionSinceWatermarks })
           : options.sinceWatermarks,
-        maxEvents: options.maxEvents,
+        ...(eventLimit === null
+          ? { maxEvents: options.maxEvents }
+          : { limit: eventLimit, maxEvents: eventLimit }),
         scope,
         onProgress: adapterOnProgress,
         updateWatermark: adapterUpdateWatermark,
@@ -1383,6 +1458,7 @@ class AdapterRegistry {
       });
 
       for await (const raw of iter) {
+        this._throwIfAborted(options.signal);
         if (!raw || typeof raw !== "object") {
           report.invalidCount += 1;
           report.archiveFailureCount += 1;
@@ -1442,13 +1518,30 @@ class AdapterRegistry {
         }
         buffer.push(raw);
         report.rawCount += 1;
+        this._throwIfAborted(options.signal);
         if (buffer.length >= this.batchSize) {
           await flush();
         }
+        if (eventLimit !== null && report.rawCount >= eventLimit) {
+          eventLimitReached = true;
+          break;
+        }
       }
+      this._throwIfAborted(options.signal);
       await flush();
+      this._throwIfAborted(options.signal);
 
       // 5. Persist final watermark
+      const eventLimitHasExactContinuation =
+        eventLimitReached &&
+        (watermarkStrategy === "count" ||
+          (watermarkStrategy === "explicit" && explicitContinuationPublished));
+      const checkpointBlockedByEventLimit =
+        eventLimitReached && !eventLimitHasExactContinuation;
+      if (checkpointBlockedByEventLimit) {
+        watermarkComplete = false;
+        completedWatermarkKeySet.clear();
+      }
       if (preserveFileCheckpoint) {
         // File/snapshot imports are independent replay sources by default.
         // They may use an explicit caller-provided collection cursor, but
@@ -1483,7 +1576,12 @@ class AdapterRegistry {
           committed.length === 0
             ? this._serializeWatermark(storedWatermark)
             : serializePartitionedWatermark(nextWatermarks);
-      } else if (boundedCompleteScan && !watermarkComplete) {
+      } else if (
+        checkpointBlockedByEventLimit ||
+        (boundedCompleteScan &&
+          !watermarkComplete &&
+          !eventLimitHasExactContinuation)
+      ) {
         // A bounded collector may publish a tentative timestamp or opaque
         // cursor while it scans. Never commit that candidate until the
         // adapter confirms it is either at the source boundary or has encoded
@@ -1507,6 +1605,7 @@ class AdapterRegistry {
           let maxNextBudget = null;
           let maxDeferredCount = 0;
           for (const key of report.deferredWatermarkKeys) {
+            this._throwIfAborted(options.signal);
             const currentBudget =
               pageBudgetsByWatermarkKey[key] || DEFAULT_SCAN_PAGE_BUDGET;
             const nextBudget =
@@ -1542,6 +1641,7 @@ class AdapterRegistry {
           report.nextPageBudget = maxNextBudget;
           report.scanDeferredCount = maxDeferredCount;
         } else {
+          this._throwIfAborted(options.signal);
           const currentBudget = report.pageBudget || DEFAULT_SCAN_PAGE_BUDGET;
           const nextBudget =
             currentBudget <= Math.floor(Number.MAX_SAFE_INTEGER / 2)
@@ -1561,6 +1661,7 @@ class AdapterRegistry {
         }
       }
       if (!preserveFileCheckpoint) {
+        this._throwIfAborted(options.signal);
         this.vault.setWatermark(name, scope, {
           watermark: report.watermark,
           lastSyncedAt: Date.now(),
@@ -1572,7 +1673,7 @@ class AdapterRegistry {
         ? false
         : partitionedWatermark
           ? report.committedWatermarkKeys.length > 0
-          : true;
+          : !report.watermarkDeferred;
       if (boundedCompleteScan && canPersistScanState) {
         const completedScanStateKeys = partitionedWatermark
           ? report.committedWatermarkKeys
@@ -1603,41 +1704,48 @@ class AdapterRegistry {
         report,
         watermarkStrategy,
       );
-      this.vault.audit("adapter.sync.ok", name, {
-        scope,
-        rawCount: report.rawCount,
-        archivedRawCount: report.archivedRawCount,
-        archiveFailureCount: report.archiveFailureCount,
-        invalidCount: report.invalidCount,
-        watermark: telemetryReport.watermark,
-        watermarkDeferred: report.watermarkDeferred,
-        checkpointCommitted: report.checkpointCommitted,
-        pageBudget: report.pageBudget,
-        nextPageBudget: report.nextPageBudget,
-        scanDeferredCount: report.scanDeferredCount,
-        watermarkLookbackMs: report.watermarkLookbackMs,
-        collectionSinceWatermark: telemetryReport.collectionSinceWatermark,
-        committedWatermarkKeys: report.committedWatermarkKeys,
-        deferredWatermarkKeys: report.deferredWatermarkKeys,
-        attemptCount: report.attemptCount,
-        retryCount: report.retryCount,
-        totalRetryDelayMs: report.totalRetryDelayMs,
-        rateLimitRemainingMinute: report.rateLimitRemainingMinute,
-        rateLimitRemainingDay: report.rateLimitRemainingDay,
-        sourceRequestCount: report.sourceRequestCount,
-        sourceRequestThrottleMs: report.sourceRequestThrottleMs,
-        sourceRequestRateLimitRemainingMinute:
-          report.sourceRequestRateLimitRemainingMinute,
-        sourceRequestRateLimitRemainingDay:
-          report.sourceRequestRateLimitRemainingDay,
-      });
+      try {
+        this.vault.audit("adapter.sync.ok", name, {
+          scope,
+          rawCount: report.rawCount,
+          archivedRawCount: report.archivedRawCount,
+          archiveFailureCount: report.archiveFailureCount,
+          invalidCount: report.invalidCount,
+          watermark: telemetryReport.watermark,
+          watermarkDeferred: report.watermarkDeferred,
+          checkpointCommitted: report.checkpointCommitted,
+          pageBudget: report.pageBudget,
+          nextPageBudget: report.nextPageBudget,
+          scanDeferredCount: report.scanDeferredCount,
+          watermarkLookbackMs: report.watermarkLookbackMs,
+          collectionSinceWatermark: telemetryReport.collectionSinceWatermark,
+          committedWatermarkKeys: report.committedWatermarkKeys,
+          deferredWatermarkKeys: report.deferredWatermarkKeys,
+          attemptCount: report.attemptCount,
+          retryCount: report.retryCount,
+          totalRetryDelayMs: report.totalRetryDelayMs,
+          rateLimitRemainingMinute: report.rateLimitRemainingMinute,
+          rateLimitRemainingDay: report.rateLimitRemainingDay,
+          sourceRequestCount: report.sourceRequestCount,
+          sourceRequestThrottleMs: report.sourceRequestThrottleMs,
+          sourceRequestRateLimitRemainingMinute:
+            report.sourceRequestRateLimitRemainingMinute,
+          sourceRequestRateLimitRemainingDay:
+            report.sourceRequestRateLimitRemainingDay,
+        });
+      } catch {
+        // A completed sync must not depend on observability storage.
+      }
       this._emit({
         kind: "sync.ok",
         adapter: name,
         ...telemetryReport,
       });
     } catch (err) {
-      const error = toError(err, `sync ${name}`);
+      const error =
+        options.signal && options.signal.aborted
+          ? new SyncAbortedError(options.signal.reason)
+          : toError(err, `sync ${name}`);
       const requestRateLimited = error instanceof SourceRequestRateLimitError;
       report.status = requestRateLimited ? "rate_limited" : "error";
       report.error = error.message;
@@ -1651,29 +1759,33 @@ class AdapterRegistry {
           configurable: false,
         });
       }
-      this.vault.audit(
-        requestRateLimited
-          ? "adapter.sync.request_rate_limited"
-          : "adapter.sync.error",
-        name,
-        {
-          scope,
-          message: error.message,
-          rawCount: report.rawCount,
-          archivedRawCount: report.archivedRawCount,
-          archiveFailureCount: report.archiveFailureCount,
-          checkpointCommitted: report.checkpointCommitted,
-          pageBudget: report.pageBudget,
-          nextPageBudget: report.nextPageBudget,
-          scanDeferredCount: report.scanDeferredCount,
-          attemptCount: report.attemptCount,
-          retryCount: report.retryCount,
-          sourceRequestCount: report.sourceRequestCount,
-          sourceRequestThrottleMs: report.sourceRequestThrottleMs,
-          rateLimitReason: report.rateLimitReason,
-          retryAfterMs: report.retryAfterMs,
-        },
-      );
+      try {
+        this.vault.audit(
+          requestRateLimited
+            ? "adapter.sync.request_rate_limited"
+            : "adapter.sync.error",
+          name,
+          {
+            scope,
+            message: error.message,
+            rawCount: report.rawCount,
+            archivedRawCount: report.archivedRawCount,
+            archiveFailureCount: report.archiveFailureCount,
+            checkpointCommitted: report.checkpointCommitted,
+            pageBudget: report.pageBudget,
+            nextPageBudget: report.nextPageBudget,
+            scanDeferredCount: report.scanDeferredCount,
+            attemptCount: report.attemptCount,
+            retryCount: report.retryCount,
+            sourceRequestCount: report.sourceRequestCount,
+            sourceRequestThrottleMs: report.sourceRequestThrottleMs,
+            rateLimitReason: report.rateLimitReason,
+            retryAfterMs: report.retryAfterMs,
+          },
+        );
+      } catch {
+        // A failed sync must retain its original result when auditing fails.
+      }
       // Update watermark with error status (preserve last successful watermark value)
       try {
         const prev = this.vault.getWatermark(name, scope);
