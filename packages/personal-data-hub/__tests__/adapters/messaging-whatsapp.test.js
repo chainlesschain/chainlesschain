@@ -264,12 +264,14 @@ describe("sync — fake sqlite driver", () => {
     }
   });
 
-  it("returns silently when db file missing", async () => {
+  it("rejects when an explicit db file is missing", async () => {
     const a = new WhatsAppAdapter({
       dbPath: path.join(os.tmpdir(), "nonexistent-wa.db"),
       dbDriverFactory: makeFakeDriverFactory({}),
     });
-    expect(await collect(a.sync({}))).toEqual([]);
+    await expect(collect(a.sync({}))).rejects.toMatchObject({
+      code: "INPUT_PATH_UNREADABLE",
+    });
   });
 });
 

@@ -333,6 +333,41 @@ describe("WhatsApp crypt14/crypt15 backup decryption", () => {
     expect(fs.existsSync(sourceDir)).toBe(false);
   });
 
+  it.each([
+    ["an empty bridge result", undefined, "WHATSAPP_BACKUP_NOT_FOUND"],
+    [
+      "a missing bridge file",
+      path.join(os.tmpdir(), "missing-whatsapp-adb-backup.crypt15"),
+      "INPUT_PATH_UNREADABLE",
+    ],
+  ])(
+    "fails closed for %s and runs bridge cleanup once",
+    async (_label, localPath, expectedCode) => {
+      let cleanupCalls = 0;
+      const adapter = new WhatsAppAdapter({
+        bridgeProvider: () => ({
+          invoke: async () => ({
+            localPath,
+            cleanup: () => {
+              cleanupCalls += 1;
+            },
+          }),
+        }),
+      });
+
+      await expect(
+        (async () => {
+          for await (const _row of adapter.sync({
+            key: crypto.randomBytes(32),
+          })) {
+            // No row may be emitted when the bridge failed to return a file.
+          }
+        })(),
+      ).rejects.toMatchObject({ code: expectedCode });
+      expect(cleanupCalls).toBe(1);
+    },
+  );
+
   it("passes the Registry health gate before pulling an ADB public backup", async () => {
     const sourceDir = tempDir();
     const rootKey = crypto.randomBytes(32);

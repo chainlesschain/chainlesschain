@@ -142,7 +142,13 @@ class WhatsAppAdapter {
     let sourceCleanup = null;
     if (!dbPath) {
       const bridge = resolveBridge(opts.bridgeProvider || this._bridgeProvider);
-      if (!bridge || typeof bridge.invoke !== "function") return;
+      if (!bridge || typeof bridge.invoke !== "function") {
+        const error = new Error(
+          "messaging-whatsapp: ADB backup bridge is unavailable",
+        );
+        error.code = "WHATSAPP_ADB_BRIDGE_UNAVAILABLE";
+        throw error;
+      }
       const pulled = await bridge.invoke("whatsapp.backup", {
         serial: opts.serial,
         business: opts.business === true,
@@ -155,7 +161,16 @@ class WhatsAppAdapter {
     }
     if (!dbPath || !fs.existsSync(dbPath)) {
       runCleanup(sourceCleanup);
-      return;
+      sourceCleanup = null;
+      const error = new Error(
+        dbPath
+          ? "messaging-whatsapp: input database not found"
+          : "messaging-whatsapp: ADB backup did not provide a local path",
+      );
+      error.code = dbPath
+        ? "INPUT_PATH_UNREADABLE"
+        : "WHATSAPP_BACKUP_NOT_FOUND";
+      throw error;
     }
     let openPath = dbPath;
     let tempDir = null;
