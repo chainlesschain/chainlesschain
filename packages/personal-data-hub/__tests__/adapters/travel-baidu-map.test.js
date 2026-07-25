@@ -83,7 +83,7 @@ const SNAPSHOT = {
 describe("constants", () => {
   it("exposes name/version/schema", () => {
     expect(NAME).toBe("travel-baidu-map");
-    expect(VERSION).toBe("0.7.0");
+    expect(VERSION).toBe("0.8.0");
     expect(SNAPSHOT_SCHEMA_VERSION).toBe(1);
   });
 });
