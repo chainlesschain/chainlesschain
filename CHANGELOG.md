@@ -28,7 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Do not classify every HTTP 403 as an invalid API key: overdue accounts,
   billing failures, and model-access denials now retain their real corrective
   action in CLI, VS Code, and JetBrains.
-- Release VS Code 0.37.33 and JetBrains 0.4.70 with corrected setup guidance.
+- Release VS Code 0.37.33 and JetBrains 0.4.71 with corrected setup guidance;
+  JetBrains 0.4.70 was deleted during Marketplace review and superseded after
+  clearing the IntelliJ 2026.2 internal-API warning.
 
 ## [v5.0.3.135] - 2026-07-24 — Python Agent SDK 0.1.0 + CLI/IDE 运行时收口 + 跨端 CI 稳定性
 

@@ -1,5 +1,18 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.71] - IntelliJ 2026.2 Marketplace verifier clean (2026-07-25)
+
+- Removed the sole internal-API usage reported by IntelliJ IDEA 2026.2.1:
+  Diagnose Bridge now reads the plugin version from a generated classpath
+  metadata resource instead of
+  `PluginManagerCore.getPlugin()`.
+- Keeps the existing IntelliJ 2024.2+ compatibility floor; the change uses only
+  the Java runtime and does not alter diagnostic behavior.
+- Passes the owner-only ACL helper script through Windows PowerShell 5.1's
+  UTF-16LE `-EncodedCommand`, restoring the real Windows ACL test and smoke
+  gates.
+- 0.4.70 was deleted while pending Marketplace review; 0.4.71 supersedes it.
+
 ## [0.4.70] - Provider 403 diagnosis hotfix (2026-07-25)
 
 - Stop routing account-overdue and model-access 403 responses to API-key setup.

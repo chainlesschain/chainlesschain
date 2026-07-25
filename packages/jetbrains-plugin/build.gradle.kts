@@ -5,6 +5,7 @@
 // com.chainlesschain.ide is pure JDK and is also compiled + interop-tested
 // independently (see README "Verification").
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
+import org.gradle.api.tasks.WriteProperties
 
 plugins {
     id("java")
@@ -18,7 +19,7 @@ plugins {
 }
 
 group = "com.chainlesschain"
-version = "0.4.70"
+version = "0.4.71"
 
 repositories {
     mavenCentral()
@@ -89,6 +90,25 @@ kotlin {
 // strings (✓ ⚠ ℹ …) would be miscompiled into mojibake without this.
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
+}
+
+// Generate a uniquely named classpath resource for Diagnose Bridge. Reading the
+// descriptor via PluginManagerCore.getPlugin() became an internal-API usage in
+// IntelliJ 2026.2; this keeps the version sourced from project.version without
+// depending on the IntelliJ Gradle plugin's composed-JAR manifest behavior.
+val generatedPluginMetadataDir =
+    layout.buildDirectory.dir("generated/pluginMetadata")
+val generatePluginMetadata by tasks.registering(WriteProperties::class) {
+    destinationFile.set(generatedPluginMetadataDir.map {
+        it.file("META-INF/chainlesschain-plugin.properties")
+    })
+    property("version", project.version.toString())
+    encoding = "UTF-8"
+    lineSeparator = "\n"
+}
+sourceSets["main"].resources.srcDir(generatedPluginMetadataDir)
+tasks.processResources {
+    dependsOn(generatePluginMetadata)
 }
 
 /**

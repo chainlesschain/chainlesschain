@@ -4,7 +4,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -20,7 +22,7 @@ final class WindowsOwnerOnlyAclTest {
     @Test
     void commandProtectsAndReadsBackExactOwnerOnlyDacl(@TempDir Path tmp)
             throws Exception {
-        Path target = tmp.resolve("bridge token.json");
+        Path target = tmp.resolve("bridge token's.json");
         AtomicReference<List<String>> captured = new AtomicReference<>();
         AtomicLong timeout = new AtomicLong();
 
@@ -36,15 +38,17 @@ final class WindowsOwnerOnlyAclTest {
         assertTrue(command.contains("-NoProfile"));
         assertTrue(command.contains("-NonInteractive"));
         assertEquals(30, timeout.get());
-        assertEquals(target.toAbsolutePath().toString(),
-                command.get(command.size() - 1));
 
-        String script = command.get(command.indexOf("-Command") + 1);
+        String script = new String(Base64.getDecoder().decode(
+                command.get(command.indexOf("-EncodedCommand") + 1)),
+                StandardCharsets.UTF_16LE);
         assertTrue(script.contains("SetAccessRuleProtection($true, $false)"));
         assertTrue(script.contains("AreAccessRulesProtected"));
         assertTrue(script.contains("$rules.Count -eq 1"));
         assertTrue(script.contains("$actual.IsInherited"));
         assertTrue(script.contains("FileSystemRights]::FullControl"));
+        assertTrue(script.endsWith(" '" + target.toAbsolutePath()
+                .toString().replace("'", "''") + "'"));
     }
 
     @Test

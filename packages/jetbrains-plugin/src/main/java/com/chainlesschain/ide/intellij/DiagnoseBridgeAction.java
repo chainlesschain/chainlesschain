@@ -6,13 +6,10 @@ import com.chainlesschain.ide.IdeDoctor;
 import com.chainlesschain.ide.RemoteDoctor;
 import com.chainlesschain.ide.RemoteDoctorFixes;
 import com.chainlesschain.ide.RuntimeCompatibility;
-import com.intellij.ide.plugins.IdeaPluginDescriptor;
-import com.intellij.ide.plugins.PluginManagerCore;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationInfo;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.extensions.PluginId;
 import com.intellij.openapi.fileChooser.FileChooserFactory;
 import com.intellij.openapi.fileChooser.FileSaverDescriptor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
@@ -36,11 +33,14 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.datatransfer.StringSelection;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 /**
  * Tools-menu "Diagnose Bridge": this project's bridge state + the CLI's own
@@ -120,9 +120,17 @@ public final class DiagnoseBridgeAction extends AnAction {
     }
 
     private static String pluginVersion() {
-        IdeaPluginDescriptor descriptor = PluginManagerCore.getPlugin(
-                PluginId.getId("com.chainlesschain.ide"));
-        return descriptor == null ? "unknown" : descriptor.getVersion();
+        try (InputStream input = DiagnoseBridgeAction.class.getResourceAsStream(
+                "/META-INF/chainlesschain-plugin.properties")) {
+            if (input == null) return "unknown";
+            Properties metadata = new Properties();
+            metadata.load(input);
+            String version = metadata.getProperty("version");
+            return version == null || version.trim().isEmpty()
+                    ? "unknown" : version.trim();
+        } catch (IOException ignored) {
+            return "unknown";
+        }
     }
 
     /** Quick loopback probe: does something accept a TCP connection on {@code port}? */

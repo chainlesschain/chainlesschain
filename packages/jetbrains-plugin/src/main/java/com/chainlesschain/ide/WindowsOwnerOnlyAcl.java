@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -96,10 +97,10 @@ final class WindowsOwnerOnlyAcl {
             "  }",
             "}",
             "if (-not $ownerOnly) {",
-            "  throw (\"final ACL is not owner-only for $target \" +",
-            "    \"(protected=$($acl.AreAccessRulesProtected), \" +",
-            "    \"owner=$owner, current=$($currentSid.Value), \" +",
-            "    \"aceCount=$($rules.Count))\")",
+            "  throw \"final ACL is not owner-only for $target " +
+                    "(protected=$($acl.AreAccessRulesProtected), " +
+                    "owner=$owner, current=$($currentSid.Value), " +
+                    "aceCount=$($rules.Count))\"",
             "}");
 
     @FunctionalInterface
@@ -125,6 +126,12 @@ final class WindowsOwnerOnlyAcl {
 
     /** Test seam: executes the real command plan through an injected runner. */
     static void enforce(Path target, Runner runner) throws IOException {
+        String targetLiteral = "'" + target.toAbsolutePath()
+                .toString()
+                .replace("'", "''") + "'";
+        String encodedCommand = Base64.getEncoder().encodeToString(
+                ("& { " + APPLY_AND_VERIFY_SCRIPT + " } " + targetLiteral)
+                        .getBytes(StandardCharsets.UTF_16LE));
         List<String> command = Arrays.asList(
                 "powershell.exe",
                 "-NoLogo",
@@ -132,9 +139,8 @@ final class WindowsOwnerOnlyAcl {
                 "-NonInteractive",
                 "-ExecutionPolicy",
                 "Bypass",
-                "-Command",
-                "& { " + APPLY_AND_VERIFY_SCRIPT + " }",
-                target.toAbsolutePath().toString());
+                "-EncodedCommand",
+                encodedCommand);
         Result result = runner.run(command, TIMEOUT_SECONDS);
         if (result == null || result.exitCode != 0) {
             String detail = result == null ? "no process result" : result.output.trim();
