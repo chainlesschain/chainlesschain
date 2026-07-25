@@ -20,6 +20,7 @@ const { validateBatch } = require("../../lib/batch");
 
 const COOKIE = "ALIPAYJSESSIONID=sess-abc; userId=2088123";
 const COOKIE_TOKEN_ONLY = "ALIPAYJSESSIONID=sess-abc";
+const ACCOUNT_ID = "2088123";
 
 function makeFetch(routes, calls) {
   return async (url, init) => {
@@ -29,12 +30,15 @@ function makeFetch(routes, calls) {
       headers: (init && init.headers) || {},
     });
     const route = routes.find((r) => url.includes(r.match));
-    if (!route) return { ok: false, status: 404, text: async () => "not mapped" };
+    if (!route)
+      return { ok: false, status: 404, text: async () => "not mapped" };
     return {
       ok: route.status ? route.status >= 200 && route.status < 300 : true,
       status: route.status || 200,
       text: async () =>
-        typeof route.body === "string" ? route.body : JSON.stringify(route.body),
+        typeof route.body === "string"
+          ? route.body
+          : JSON.stringify(route.body),
     };
   };
 }
@@ -50,7 +54,10 @@ describe("alipay amount/direction derivation", () => {
     expect(parseAmountYuan(12.5)).toEqual({ amountFen: 1250, sign: 1 });
     expect(parseAmountYuan("-25.00")).toEqual({ amountFen: 2500, sign: -1 });
     expect(parseAmountYuan("+3.50")).toEqual({ amountFen: 350, sign: 1 });
-    expect(parseAmountYuan("¥ 1,200.00")).toEqual({ amountFen: 120000, sign: 1 });
+    expect(parseAmountYuan("¥ 1,200.00")).toEqual({
+      amountFen: 120000,
+      sign: 1,
+    });
     expect(parseAmountYuan("abc")).toBeNull();
     expect(parseAmountYuan(null)).toBeNull();
   });
@@ -87,8 +94,19 @@ describe("AlipayApiClient.fetchSnapshot — live (mocked fetch)", () => {
             result: {
               success: true,
               billList: [
-                { billId: "b1", displayName: "便利店", amount: "-12.50", gmtCreate: 1700000000 },
-                { tradeNo: "b2", merchantName: "红包", amount: "+5.00", inOut: "收入", createTime: "1700003600" },
+                {
+                  billId: "b1",
+                  displayName: "便利店",
+                  amount: "-12.50",
+                  gmtCreate: 1700000000,
+                },
+                {
+                  tradeNo: "b2",
+                  merchantName: "红包",
+                  amount: "+5.00",
+                  inOut: "收入",
+                  createTime: "1700003600",
+                },
               ],
             },
           },
@@ -120,7 +138,9 @@ describe("AlipayApiClient.fetchSnapshot — live (mocked fetch)", () => {
     });
     const call = calls[0];
     expect(call.headers.Cookie).toBe(COOKIE);
-    expect(call.headers["Content-Type"]).toContain("application/x-www-form-urlencoded");
+    expect(call.headers["Content-Type"]).toContain(
+      "application/x-www-form-urlencoded",
+    );
     expect(call.body).toContain("operationType=alipay.mobile.bill.list");
     expect(call.body).toContain("requestData=");
   });
@@ -132,7 +152,17 @@ describe("AlipayApiClient.fetchSnapshot — live (mocked fetch)", () => {
           match: "/mgw.htm",
           body: {
             resultStatus: 1000,
-            result: JSON.stringify({ success: true, list: [{ id: "s1", title: "公交", amount: "-2.00", tradeTime: 1700000000 }] }),
+            result: JSON.stringify({
+              success: true,
+              list: [
+                {
+                  id: "s1",
+                  title: "公交",
+                  amount: "-2.00",
+                  tradeTime: 1700000000,
+                },
+              ],
+            }),
           },
         },
       ],
@@ -143,17 +173,28 @@ describe("AlipayApiClient.fetchSnapshot — live (mocked fetch)", () => {
     // token-only cookie → no profile event, account null, orders still flow
     expect(result.account).toBeNull();
     expect(result.events.every((e) => e.kind === "order")).toBe(true);
-    expect(result.events[0]).toMatchObject({ merchant: "公交", amountFen: 200, direction: "out" });
+    expect(result.events[0]).toMatchObject({
+      merchant: "公交",
+      amountFen: 200,
+      direction: "out",
+    });
   });
 
   it("signProvider headers are merged into the request", async () => {
     const calls = [];
     const fetch = makeFetch(
-      [{ match: "/mgw.htm", body: { resultStatus: 1000, result: { success: true, billList: [] } } }],
+      [
+        {
+          match: "/mgw.htm",
+          body: { resultStatus: 1000, result: { success: true, billList: [] } },
+        },
+      ],
       calls,
     );
     const signProvider = {
-      buildHeaders: async ({ operationType }) => ({ "X-Sign": `sig-of-${operationType}` }),
+      buildHeaders: async ({ operationType }) => ({
+        "X-Sign": `sig-of-${operationType}`,
+      }),
     };
     const client = new AlipayApiClient({ fetch, signProvider });
     await client.fetchSnapshot(COOKIE);
@@ -173,7 +214,15 @@ describe("AlipayApiClient.fetchSnapshot — live (mocked fetch)", () => {
 
   it("maps business failure (success:false) to null + lastError -6", async () => {
     const fetch = makeFetch(
-      [{ match: "/mgw.htm", body: { resultStatus: 1000, result: { success: false, resultMessage: "无权限" } } }],
+      [
+        {
+          match: "/mgw.htm",
+          body: {
+            resultStatus: 1000,
+            result: { success: false, resultMessage: "无权限" },
+          },
+        },
+      ],
       [],
     );
     const client = new AlipayApiClient({ fetch });
@@ -194,7 +243,11 @@ describe("AlipayApiClient.fetchSnapshot — live (mocked fetch)", () => {
     const calls = [];
     const client = new AlipayApiClient({
       fetch: makeFetch([], calls),
-      signProvider: { buildHeaders: () => { throw new Error("key missing"); } },
+      signProvider: {
+        buildHeaders: () => {
+          throw new Error("key missing");
+        },
+      },
     });
     expect(await client.fetchSnapshot(COOKIE)).toBeNull();
     expect(client.lastError.code).toBe(-5);
@@ -205,8 +258,13 @@ describe("AlipayApiClient.fetchSnapshot — live (mocked fetch)", () => {
 describe("AlipayAdapter — cookie (live) sync mode", () => {
   it("authenticate accepts session cookie; rejects sessionless", async () => {
     const a = new AlipayAdapter();
-    expect((await a.authenticate({ cookie: COOKIE })).mode).toBe("cookie");
-    const bad = await a.authenticate({ cookie: "foo=bar" });
+    expect(
+      (await a.authenticate({ cookie: COOKIE, accountId: ACCOUNT_ID })).mode,
+    ).toBe("cookie");
+    const bad = await a.authenticate({
+      cookie: "foo=bar",
+      accountId: ACCOUNT_ID,
+    });
     expect(bad.ok).toBe(false);
     expect(bad.reason).toBe("INVALID_COOKIE");
   });
@@ -224,14 +282,26 @@ describe("AlipayAdapter — cookie (live) sync mode", () => {
           match: "/mgw.htm",
           body: {
             resultStatus: 1000,
-            result: { success: true, billList: [{ billId: "b1", displayName: "便利店", amount: "-12.50", gmtCreate: 1700000000 }] },
+            result: {
+              success: true,
+              billList: [
+                {
+                  billId: "b1",
+                  displayName: "便利店",
+                  amount: "-12.50",
+                  gmtCreate: 1700000000,
+                },
+              ],
+            },
           },
         },
       ],
       [],
     );
     const a = new AlipayAdapter();
-    const raws = await collect(a.sync({ cookie: COOKIE, fetch }));
+    const raws = await collect(
+      a.sync({ cookie: COOKIE, accountId: ACCOUNT_ID, fetch }),
+    );
     expect(raws.map((r) => r.kind).sort()).toEqual(["order", "profile"]);
     const profileRaw = raws.find((r) => r.kind === "profile");
     expect(profileRaw.originalId).toBe("alipay:profile:profile-2088123");
@@ -240,7 +310,9 @@ describe("AlipayAdapter — cookie (live) sync mode", () => {
       expect(validateBatch(a.normalize(raw)).valid).toBe(true);
     }
     const profileBatch = a.normalize(profileRaw);
-    expect(profileBatch.persons[0].identifiers["alipay-uid"]).toEqual(["2088123"]);
+    expect(profileBatch.persons[0].identifiers["alipay-uid"]).toEqual([
+      "2088123",
+    ]);
     const orderBatch = a.normalize(raws.find((r) => r.kind === "order"));
     expect(orderBatch.events[0].subtype).toBe("payment");
     expect(orderBatch.events[0].extra.amountFen).toBe(1250);
@@ -253,6 +325,8 @@ describe("AlipayAdapter — cookie (live) sync mode", () => {
       [],
     );
     const a = new AlipayAdapter();
-    await expect(collect(a.sync({ cookie: COOKIE, fetch }))).rejects.toThrow(/登录超时|code 2000/);
+    await expect(
+      collect(a.sync({ cookie: COOKIE, accountId: ACCOUNT_ID, fetch })),
+    ).rejects.toThrow(/登录超时|code 2000/);
   });
 });

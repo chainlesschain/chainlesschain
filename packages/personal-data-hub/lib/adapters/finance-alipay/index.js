@@ -23,6 +23,7 @@
 
 const fs = require("node:fs");
 const { newId } = require("../../ids");
+const { createAccountScopeFromAccount } = require("../../account-scope");
 const {
   probeJsonSnapshotFile,
   readJsonSnapshot,
@@ -34,6 +35,14 @@ const {
   CAPTURED_BY,
 } = require("../../constants");
 const { AlipayApiClient } = require("./api-client");
+const {
+  assertRuntimeAccountId,
+  createSourceRequestAudit,
+  hasRuntimeCookie,
+  hasRuntimeAccountId,
+  healthCheckFromAuthenticate,
+  runtimeAccountIdFailure,
+} = require("../_runtime-cookie-source");
 
 const NAME = "finance-alipay";
 const VERSION = "0.2.0";
@@ -71,6 +80,12 @@ class AlipayAdapter {
   constructor(opts = {}) {
     this.account = opts.account || null;
     this.name = NAME;
+    this.defaultScope = createAccountScopeFromAccount(
+      NAME,
+      this.account || opts,
+      ["userId", "uid", "accountId"],
+    );
+    this.runtimeScopeIdentityKey = "userId";
     this.version = VERSION;
     this.capabilities = [
       "sync:snapshot",
@@ -79,7 +94,7 @@ class AlipayAdapter {
       "parse:alipay-order",
     ];
     this.extractMode = "web-api";
-    this.rateLimits = {};
+    this.rateLimits = { perMinute: 8, perDay: 200 };
     this.dataDisclosure = {
       fields: [
         "alipay:profile (uid / nickname)",
@@ -90,6 +105,7 @@ class AlipayAdapter {
       defaultInclude: { profile: true, order: true },
     };
     this.apiClient = new AlipayApiClient(opts);
+    this._fetch = typeof opts.fetch === "function" ? opts.fetch : null;
     // Test seam: override how the live client is built per-sync (inject fetch).
     this._apiClientFactory =
       typeof opts.apiClientFactory === "function"
@@ -107,7 +123,10 @@ class AlipayAdapter {
         allowedEventKinds: VALID_SNAPSHOT_KINDS,
       });
     }
-    if (ctx && typeof ctx.cookie === "string" && ctx.cookie.length > 0) {
+    if (hasRuntimeCookie(ctx) && !hasRuntimeAccountId(ctx)) {
+      return runtimeAccountIdFailure(NAME);
+    }
+    if (hasRuntimeCookie(ctx)) {
       if (!this.apiClient.hasSession(ctx.cookie)) {
         return {
           ok: false,
@@ -115,7 +134,11 @@ class AlipayAdapter {
           message: `finance-alipay.authenticate: ${this.apiClient.lastError.message}`,
         };
       }
-      return { ok: true, mode: "cookie" };
+      return {
+        ok: true,
+        account: String(ctx.accountId).trim(),
+        mode: "cookie",
+      };
     }
     return {
       ok: false,
@@ -125,8 +148,8 @@ class AlipayAdapter {
     };
   }
 
-  async healthCheck() {
-    return { ok: true, lastChecked: Date.now() };
+  async healthCheck(opts = {}) {
+    return healthCheckFromAuthenticate(this, opts);
   }
 
   async *sync(opts = {}) {
@@ -134,7 +157,8 @@ class AlipayAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    if (typeof opts.cookie === "string" && opts.cookie.length > 0) {
+    if (hasRuntimeCookie(opts)) {
+      assertRuntimeAccountId(NAME, opts);
       yield* this._syncViaLive(opts);
       return;
     }
@@ -144,10 +168,17 @@ class AlipayAdapter {
   }
 
   async *_syncViaLive(opts) {
+    assertRuntimeAccountId(NAME, opts);
+    const sourceRequestAudit = createSourceRequestAudit(
+      opts,
+      `${NAME}:live`,
+      this._fetch,
+    );
+    const liveOpts = { ...opts, fetch: sourceRequestAudit.fetch };
     const client = this._apiClientFactory
-      ? this._apiClientFactory(opts)
+      ? this._apiClientFactory(liveOpts)
       : new AlipayApiClient({
-          fetch: opts.fetch,
+          fetch: sourceRequestAudit.fetch,
           baseUrl: opts.baseUrl,
           mgwPath: opts.mgwPath,
           billListOp: opts.billListOp,
@@ -167,6 +198,7 @@ class AlipayAdapter {
       limit: opts.limit,
       offset: opts.offset,
     });
+    sourceRequestAudit.throwIfPermitFailed();
     if (result === null) {
       const e = client.lastError;
       throw new Error(

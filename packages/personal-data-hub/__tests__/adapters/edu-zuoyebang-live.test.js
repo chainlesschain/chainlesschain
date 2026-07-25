@@ -22,17 +22,21 @@ const {
 const { validateBatch } = require("../../lib/batch");
 
 const COOKIE = "ZYBUSS=opaquetoken123; other=1";
+const ACCOUNT_ID = "12345";
 
 function makeFetch(routes, calls) {
   return async (url, init) => {
     calls.push({ url, headers: (init && init.headers) || {} });
     const route = routes.find((r) => url.includes(r.match));
-    if (!route) return { ok: false, status: 404, text: async () => "not mapped" };
+    if (!route)
+      return { ok: false, status: 404, text: async () => "not mapped" };
     return {
       ok: route.status ? route.status >= 200 && route.status < 300 : true,
       status: route.status || 200,
       text: async () =>
-        typeof route.body === "string" ? route.body : JSON.stringify(route.body),
+        typeof route.body === "string"
+          ? route.body
+          : JSON.stringify(route.body),
     };
   };
 }
@@ -84,7 +88,10 @@ describe("ZuoyebangApiClient.fetchSnapshot — live (mocked fetch)", () => {
       [
         {
           match: "/session/pc/getuserinfo",
-          body: { errNo: 0, data: { user: { uid: 12345, uname: "小红", gradeName: "初二" } } },
+          body: {
+            errNo: 0,
+            data: { user: { uid: 12345, uname: "小红", gradeName: "初二" } },
+          },
         },
         {
           match: "/study/pc/record/list",
@@ -92,8 +99,18 @@ describe("ZuoyebangApiClient.fetchSnapshot — live (mocked fetch)", () => {
             errNo: 0,
             data: {
               list: [
-                { recordId: "r1", subjectName: "数学", studyTime: 1200, startTime: 1700000000 },
-                { logId: "r2", subject: "英语", duration: 900000, createTime: "1700003600" },
+                {
+                  recordId: "r1",
+                  subjectName: "数学",
+                  studyTime: 1200,
+                  startTime: 1700000000,
+                },
+                {
+                  logId: "r2",
+                  subject: "英语",
+                  duration: 900000,
+                  createTime: "1700003600",
+                },
               ],
             },
           },
@@ -105,11 +122,25 @@ describe("ZuoyebangApiClient.fetchSnapshot — live (mocked fetch)", () => {
     const result = await client.fetchSnapshot(COOKIE);
     expect(result.account).toEqual({ uid: "12345", displayName: "小红" });
     const profile = result.events.find((e) => e.kind === "profile");
-    expect(profile).toMatchObject({ uid: "12345", nickname: "小红", grade: "初二" });
+    expect(profile).toMatchObject({
+      uid: "12345",
+      nickname: "小红",
+      grade: "初二",
+    });
     const studies = result.events.filter((e) => e.kind === "study");
     expect(studies).toHaveLength(2);
-    expect(studies[0]).toMatchObject({ id: "study-r1", subject: "数学", durationMs: 1200000, startAt: 1700000000000 });
-    expect(studies[1]).toMatchObject({ id: "study-r2", subject: "英语", durationMs: 900000, startAt: 1700003600000 });
+    expect(studies[0]).toMatchObject({
+      id: "study-r1",
+      subject: "数学",
+      durationMs: 1200000,
+      startAt: 1700000000000,
+    });
+    expect(studies[1]).toMatchObject({
+      id: "study-r2",
+      subject: "英语",
+      durationMs: 900000,
+      startAt: 1700003600000,
+    });
     for (const c of calls) {
       expect(c.headers.Cookie).toBe(COOKIE);
     }
@@ -119,8 +150,14 @@ describe("ZuoyebangApiClient.fetchSnapshot — live (mocked fetch)", () => {
     const calls = [];
     const fetch = makeFetch(
       [
-        { match: "/session/pc/getuserinfo", body: { errno: 0, data: { userId: "888", nickName: "阿明" } } },
-        { match: "/study/pc/record/list", body: { errno: 0, data: { records: [] } } },
+        {
+          match: "/session/pc/getuserinfo",
+          body: { errno: 0, data: { userId: "888", nickName: "阿明" } },
+        },
+        {
+          match: "/study/pc/record/list",
+          body: { errno: 0, data: { records: [] } },
+        },
       ],
       calls,
     );
@@ -133,8 +170,14 @@ describe("ZuoyebangApiClient.fetchSnapshot — live (mocked fetch)", () => {
     const calls = [];
     const fetch = makeFetch(
       [
-        { match: "/session/pc/getuserinfo", body: { errNo: 0, data: { uid: 1, uname: "x" } } },
-        { match: "/study/pc/record/list", body: { errNo: 0, data: { list: [] } } },
+        {
+          match: "/session/pc/getuserinfo",
+          body: { errNo: 0, data: { uid: 1, uname: "x" } },
+        },
+        {
+          match: "/study/pc/record/list",
+          body: { errNo: 0, data: { list: [] } },
+        },
       ],
       calls,
     );
@@ -150,7 +193,12 @@ describe("ZuoyebangApiClient.fetchSnapshot — live (mocked fetch)", () => {
 
   it("maps non-zero errNo to null + lastError (e.g. session expired)", async () => {
     const fetch = makeFetch(
-      [{ match: "/session/pc/getuserinfo", body: { errNo: 3, errstr: "未登录" } }],
+      [
+        {
+          match: "/session/pc/getuserinfo",
+          body: { errNo: 3, errstr: "未登录" },
+        },
+      ],
       [],
     );
     const client = new ZuoyebangApiClient({ fetch });
@@ -168,7 +216,10 @@ describe("ZuoyebangApiClient.fetchSnapshot — live (mocked fetch)", () => {
   });
 
   it("HTTP non-2xx → null + lastError with status", async () => {
-    const fetch = makeFetch([{ match: "/session/pc/getuserinfo", status: 503, body: "down" }], []);
+    const fetch = makeFetch(
+      [{ match: "/session/pc/getuserinfo", status: 503, body: "down" }],
+      [],
+    );
     const client = new ZuoyebangApiClient({ fetch });
     expect(await client.fetchSnapshot(COOKIE)).toBeNull();
     expect(client.lastError.code).toBe(503);
@@ -178,8 +229,13 @@ describe("ZuoyebangApiClient.fetchSnapshot — live (mocked fetch)", () => {
 describe("ZuoyebangAdapter — cookie (live) sync mode", () => {
   it("authenticate accepts ZYBUSS cookie; rejects sessionless", async () => {
     const a = new ZuoyebangAdapter();
-    expect((await a.authenticate({ cookie: COOKIE })).mode).toBe("cookie");
-    const bad = await a.authenticate({ cookie: "foo=bar" });
+    expect(
+      (await a.authenticate({ cookie: COOKIE, accountId: ACCOUNT_ID })).mode,
+    ).toBe("cookie");
+    const bad = await a.authenticate({
+      cookie: "foo=bar",
+      accountId: ACCOUNT_ID,
+    });
     expect(bad.ok).toBe(false);
     expect(bad.reason).toBe("INVALID_COOKIE");
   });
@@ -193,13 +249,36 @@ describe("ZuoyebangAdapter — cookie (live) sync mode", () => {
   it("sync via cookie yields profile+study raws → valid normalized batch", async () => {
     const fetch = makeFetch(
       [
-        { match: "/session/pc/getuserinfo", body: { errNo: 0, data: { user: { uid: 12345, uname: "小红", gradeName: "初二" } } } },
-        { match: "/study/pc/record/list", body: { errNo: 0, data: { list: [{ recordId: "r1", subjectName: "数学", studyTime: 1200, startTime: 1700000000 }] } } },
+        {
+          match: "/session/pc/getuserinfo",
+          body: {
+            errNo: 0,
+            data: { user: { uid: 12345, uname: "小红", gradeName: "初二" } },
+          },
+        },
+        {
+          match: "/study/pc/record/list",
+          body: {
+            errNo: 0,
+            data: {
+              list: [
+                {
+                  recordId: "r1",
+                  subjectName: "数学",
+                  studyTime: 1200,
+                  startTime: 1700000000,
+                },
+              ],
+            },
+          },
+        },
       ],
       [],
     );
     const a = new ZuoyebangAdapter();
-    const raws = await collect(a.sync({ cookie: COOKIE, fetch }));
+    const raws = await collect(
+      a.sync({ cookie: COOKIE, accountId: ACCOUNT_ID, fetch }),
+    );
     expect(raws.map((r) => r.kind).sort()).toEqual(["profile", "study"]);
     const profileRaw = raws.find((r) => r.kind === "profile");
     expect(profileRaw.originalId).toBe("zuoyebang:profile:profile-12345");
@@ -208,7 +287,9 @@ describe("ZuoyebangAdapter — cookie (live) sync mode", () => {
       expect(validateBatch(a.normalize(raw)).valid).toBe(true);
     }
     const profileBatch = a.normalize(profileRaw);
-    expect(profileBatch.persons[0].identifiers["zuoyebang-uid"]).toEqual(["12345"]);
+    expect(profileBatch.persons[0].identifiers["zuoyebang-uid"]).toEqual([
+      "12345",
+    ]);
     expect(profileBatch.persons[0].extra.grade).toBe("初二");
     const studyBatch = a.normalize(raws.find((r) => r.kind === "study"));
     expect(studyBatch.events[0].extra.subject).toBe("数学");
@@ -217,10 +298,17 @@ describe("ZuoyebangAdapter — cookie (live) sync mode", () => {
 
   it("sync via cookie throws (mapped lastError) on API error", async () => {
     const fetch = makeFetch(
-      [{ match: "/session/pc/getuserinfo", body: { errNo: 3, errstr: "未登录" } }],
+      [
+        {
+          match: "/session/pc/getuserinfo",
+          body: { errNo: 3, errstr: "未登录" },
+        },
+      ],
       [],
     );
     const a = new ZuoyebangAdapter();
-    await expect(collect(a.sync({ cookie: COOKIE, fetch }))).rejects.toThrow(/未登录|code 3/);
+    await expect(
+      collect(a.sync({ cookie: COOKIE, accountId: ACCOUNT_ID, fetch })),
+    ).rejects.toThrow(/未登录|code 3/);
   });
 });

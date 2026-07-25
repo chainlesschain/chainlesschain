@@ -100,13 +100,6 @@ for (const key of Object.keys(pdh)) {
   const capabilities = Array.isArray(inst.capabilities)
     ? [...inst.capabilities]
     : [];
-  const placeholderFetch =
-    typeof inst._fetchFn === "function" &&
-    inst._fetchFn.name === "defaultFetch";
-  if (placeholderFetch) {
-    const index = capabilities.indexOf("sync:cookie-api");
-    if (index >= 0) capabilities.splice(index, 1, "sync:custom-cookie-api");
-  }
   rows.push({
     export: key,
     name: inst.name,

@@ -17,9 +17,9 @@
 
 ## 分类: 企业/工商（1）
 
-| App    | 名称             | 底层模式 | 采集方式                   | 敏感度 | 数据字段（摘要）                                                                                    |
-| ------ | ---------------- | -------- | -------------------------- | ------ | --------------------------------------------------------------------------------------------------- |
-| 天眼查 | `biz-tianyancha` | web-api  | snapshot/custom-cookie-api | medium | tianyancha:monitor (companyName / legalPerson / regStatus); tianyancha:search (query / companyName) |
+| App    | 名称             | 底层模式 | 采集方式            | 敏感度 | 数据字段（摘要）                                                                                    |
+| ------ | ---------------- | -------- | ------------------- | ------ | --------------------------------------------------------------------------------------------------- |
+| 天眼查 | `biz-tianyancha` | web-api  | snapshot/cookie-api | medium | tianyancha:monitor (companyName / legalPerson / regStatus); tianyancha:search (query / companyName) |
 
 ## 分类: 健康/运动（4）
 
@@ -42,14 +42,14 @@
 | App              | 名称                   | 底层模式    | 采集方式                   | 敏感度 | 数据字段（摘要）                                                                                                         |
 | ---------------- | ---------------------- | ----------- | -------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
 | 奔驰 Mercedes me | `car-mercedesme`       | file-import | snapshot                   | medium | mercedesme:tripId / startAddress / endAddress / startTime / endTime / distanceKm                                         |
-| 12306 铁路       | `travel-12306`         | device-pull | snapshot/custom-cookie-api | medium | 12306:orderSequenceNo / ticketNumber / passengerName / trainNumber / fromStation / toStation / departureMs / arrivalMs / |
+| 12306 铁路       | `travel-12306`         | device-pull | snapshot/cookie-api        | medium | 12306:orderSequenceNo / ticketNumber / passengerName / trainNumber / fromStation / toStation / departureMs / arrivalMs / |
 | 高德地图         | `travel-amap`          | device-pull | sqlite/snapshot            | medium | amap:search_history (query / time / location); amap:route_history (from / to / mode / time); amap:favourites (name / add |
 | 百度地图         | `travel-baidu-map`     | device-pull | snapshot/sqlite            | medium | baidu:account (uid / displayName, cookie scrape); baidu:my_favourite (saved places — home / company / other); baidu:sear |
-| 携程             | `travel-ctrip`         | file-import | snapshot/custom-cookie-api | medium | ctrip:orderId / type / fromCity / toCity / dates / passengerName / price / carrier                                       |
-| 滴滴企业版       | `travel-didi`          | file-import | snapshot/custom-cookie-api | medium | didi:orderId / fromAddress / toAddress / departTime / arriveTime / fare / carType                                        |
-| 滴滴出行         | `travel-didi-consumer` | file-import | snapshot                   | medium | didi:orderId / fromAddress / toAddress / departTime / arriveTime / fare / carType                                        |
+| 携程             | `travel-ctrip`         | file-import | snapshot/cookie-api        | medium | ctrip:orderId / type / fromCity / toCity / dates / passengerName / price / carrier                                       |
+| 滴滴企业版       | `travel-didi`          | file-import | snapshot/cookie-api        | medium | didi:orderId / fromAddress / toAddress / departTime / arriveTime / fare / carType                                        |
+| 滴滴出行         | `travel-didi-consumer` | file-import | snapshot/custom-cookie-api | medium | didi:orderId / fromAddress / toAddress / departTime / arriveTime / fare / carType                                        |
 | 腾讯地图         | `travel-tencent-map`   | file-import | snapshot                   | medium | tencent:account (uid / displayName, cookie scrape); tencent:favourite (saved places — home / company / other); tencent:s |
-| 同程旅行         | `travel-tongcheng`     | file-import | snapshot/custom-cookie-api | medium | tongcheng:orderId / type / fromCity / toCity / dates / passengerName / price / carrier                                   |
+| 同程旅行         | `travel-tongcheng`     | file-import | snapshot/cookie-api        | medium | tongcheng:orderId / type / fromCity / toCity / dates / passengerName / price / carrier                                   |
 
 ## 分类: 即时通讯（9）
 
@@ -67,16 +67,16 @@
 
 ## 分类: 媒体/阅读（8）
 
-| App      | 名称             | 底层模式    | 采集方式                   | 敏感度 | 数据字段（摘要）                                                                                               |
-| -------- | ---------------- | ----------- | -------------------------- | ------ | -------------------------------------------------------------------------------------------------------------- |
-| 喜马拉雅 | `audio-ximalaya` | web-api     | snapshot/custom-cookie-api | low    | ximalaya:play (声音标题 / 主播 / 专辑); ximalaya:favorite (收藏的声音); ximalaya:subscribe (订阅专辑名 / 集数) |
-| 酷狗音乐 | `music-kugou`    | web-api     | snapshot/custom-cookie-api | low    | kugou:play (歌名 / 歌手 / 专辑); kugou:favorite (收藏的歌); kugou:playlist (歌单名 / 曲目数)                   |
-| QQ音乐   | `music-qq`       | web-api     | snapshot/custom-cookie-api | low    | qqmusic:play (歌名 / 歌手 / 专辑); qqmusic:favorite (收藏的歌); qqmusic:playlist (歌单名 / 曲目数)             |
-| 番茄小说 | `reading-fanqie` | file-import | snapshot                   | low    | fanqie:read (书名 / 作者 / 分类 / 进度); fanqie:favourite (收藏的书)                                           |
-| 七猫小说 | `reading-qimao`  | file-import | snapshot                   | low    | qimao:read (书名 / 作者 / 分类 / 进度); qimao:favourite (收藏的书)                                             |
-| 爱奇艺   | `video-iqiyi`    | web-api     | snapshot/custom-cookie-api | low    | iqiyi:watch (title / category / episode / channel); iqiyi:favourite (title / category)                         |
-| 腾讯视频 | `video-tencent`  | web-api     | snapshot/custom-cookie-api | low    | tencent-video:watch (title / category / episode / channel); tencent-video:favourite (title / category)         |
-| 西瓜视频 | `video-xigua`    | web-api     | snapshot/custom-cookie-api | low    | xigua:watch (title / category / episode / channel); xigua:favourite (title / category)                         |
+| App      | 名称             | 底层模式    | 采集方式            | 敏感度 | 数据字段（摘要）                                                                                               |
+| -------- | ---------------- | ----------- | ------------------- | ------ | -------------------------------------------------------------------------------------------------------------- |
+| 喜马拉雅 | `audio-ximalaya` | web-api     | snapshot/cookie-api | low    | ximalaya:play (声音标题 / 主播 / 专辑); ximalaya:favorite (收藏的声音); ximalaya:subscribe (订阅专辑名 / 集数) |
+| 酷狗音乐 | `music-kugou`    | web-api     | snapshot/cookie-api | low    | kugou:play (歌名 / 歌手 / 专辑); kugou:favorite (收藏的歌); kugou:playlist (歌单名 / 曲目数)                   |
+| QQ音乐   | `music-qq`       | web-api     | snapshot/cookie-api | low    | qqmusic:play (歌名 / 歌手 / 专辑); qqmusic:favorite (收藏的歌); qqmusic:playlist (歌单名 / 曲目数)             |
+| 番茄小说 | `reading-fanqie` | file-import | snapshot            | low    | fanqie:read (书名 / 作者 / 分类 / 进度); fanqie:favourite (收藏的书)                                           |
+| 七猫小说 | `reading-qimao`  | file-import | snapshot            | low    | qimao:read (书名 / 作者 / 分类 / 进度); qimao:favourite (收藏的书)                                             |
+| 爱奇艺   | `video-iqiyi`    | web-api     | snapshot/cookie-api | low    | iqiyi:watch (title / category / episode / channel); iqiyi:favourite (title / category)                         |
+| 腾讯视频 | `video-tencent`  | web-api     | snapshot/cookie-api | low    | tencent-video:watch (title / category / episode / channel); tencent-video:favourite (title / category)         |
+| 西瓜视频 | `video-xigua`    | web-api     | snapshot/cookie-api | low    | xigua:watch (title / category / episode / channel); xigua:favourite (title / category)                         |
 
 ## 分类: 工作/会议（1）
 
@@ -86,9 +86,9 @@
 
 ## 分类: 招聘（1）
 
-| App       | 名称           | 底层模式 | 采集方式                   | 敏感度 | 数据字段（摘要）                                                                                                      |
-| --------- | -------------- | -------- | -------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------- |
-| BOSS 直聘 | `recruit-boss` | web-api  | snapshot/custom-cookie-api | medium | boss:chat (jobTitle / company / hrName / salary / city); boss:application (jobTitle / company / status / deliverTime) |
+| App       | 名称           | 底层模式 | 采集方式            | 敏感度 | 数据字段（摘要）                                                                                                      |
+| --------- | -------------- | -------- | ------------------- | ------ | --------------------------------------------------------------------------------------------------------------------- |
+| BOSS 直聘 | `recruit-boss` | web-api  | snapshot/cookie-api | medium | boss:chat (jobTitle / company / hrName / salary / city); boss:application (jobTitle / company / status / deliverTime) |
 
 ## 分类: 政务（3）
 
@@ -110,7 +110,7 @@
 | App        | 名称                | 底层模式    | 采集方式                     | 敏感度 | 数据字段（摘要）                                                           |
 | ---------- | ------------------- | ----------- | ---------------------------- | ------ | -------------------------------------------------------------------------- |
 | 百度网盘   | `doc-baidu-netdisk` | web-api     | snapshot/oauth-api/recursive | medium | baidu-netdisk:document (title / type / path / timestamps / size / md5)     |
-| 扫描全能王 | `doc-camscanner`    | web-api     | snapshot/custom-cookie-api   | medium | camscanner:document (title / docType / createdTime / url)                  |
+| 扫描全能王 | `doc-camscanner`    | web-api     | snapshot/cookie-api          | medium | camscanner:document (title / docType / createdTime / url)                  |
 | 腾讯文档   | `doc-tencent-docs`  | file-import | snapshot/export-directory    | medium | tencent-docs:document (title / relative path / format / timestamps / size) |
 | WPS 云文档 | `doc-wps`           | web-api     | snapshot/oauth-api           | medium | wps:document (title / type / link / timestamps / size / drive / parent)    |
 
@@ -145,31 +145,31 @@
 
 ## 分类: 社交/内容（10）
 
-| App      | 名称                 | 底层模式    | 采集方式                   | 敏感度 | 数据字段（摘要）                                                                                                         |
-| -------- | -------------------- | ----------- | -------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
-| 哔哩哔哩 | `social-bilibili`    | device-pull | snapshot/sqlite            | medium | bilibili:history (avid / bvid / title / view_at / duration / uploader); bilibili:favourite (folder / video / save_time / |
-| CSDN     | `social-csdn`        | web-api     | snapshot/custom-cookie-api | medium | csdn:article (title / viewCount / collectCount); csdn:favourite (title / url / source); csdn:follow (username / name)    |
-| 懂车帝   | `social-dongchedi`   | web-api     | snapshot/custom-cookie-api | low    | dongchedi:favourite (title / contentType / url); dongchedi:follow (name / followType)                                    |
-| 豆瓣     | `social-douban`      | web-api     | snapshot/custom-cookie-api | medium | douban:interest (subjectType / title / status / myRating / comment); douban:review (title / subjectTitle / rating); doub |
-| 抖音     | `social-douyin`      | device-pull | snapshot/sqlite            | medium | douyin:profile (sec_user_id / nickname / signature / counts); douyin:history (aweme_id / title / author / view_time); do |
-| 快手     | `social-kuaishou`    | device-pull | snapshot/sqlite            | medium | kuaishou:profile (user_id / user_name / kuaishou_id / headurl / sex / city); kuaishou:photo_history (photo_id / caption  |
-| 今日头条 | `social-toutiao`     | device-pull | snapshot/sqlite            | high   | toutiao:profile (user_id / screen_name / avatar / mobile / following / followers); toutiao:read_history (item_id / title |
-| 微博     | `social-weibo`       | device-pull | snapshot/sqlite            | medium | weibo:posts (text / created_at / reposts_count / comments_count / likes); weibo:favourite (mid / text / author); weibo:f |
-| 小红书   | `social-xiaohongshu` | device-pull | snapshot/sqlite            | medium | xhs:notes (own posts, title / desc / type / engagement counts); xhs:liked (notes the user liked); xhs:follow (followed u |
-| 知乎     | `social-zhihu`       | web-api     | snapshot/custom-cookie-api | medium | zhihu:answer (questionTitle / excerpt / voteupCount); zhihu:favourite (title / url / collectionName); zhihu:follow (memb |
+| App      | 名称                 | 底层模式    | 采集方式            | 敏感度 | 数据字段（摘要）                                                                                                         |
+| -------- | -------------------- | ----------- | ------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
+| 哔哩哔哩 | `social-bilibili`    | device-pull | snapshot/sqlite     | medium | bilibili:history (avid / bvid / title / view_at / duration / uploader); bilibili:favourite (folder / video / save_time / |
+| CSDN     | `social-csdn`        | web-api     | snapshot/cookie-api | medium | csdn:article (title / viewCount / collectCount); csdn:favourite (title / url / source); csdn:follow (username / name)    |
+| 懂车帝   | `social-dongchedi`   | web-api     | snapshot/cookie-api | low    | dongchedi:favourite (title / contentType / url); dongchedi:follow (name / followType)                                    |
+| 豆瓣     | `social-douban`      | web-api     | snapshot/cookie-api | medium | douban:interest (subjectType / title / status / myRating / comment); douban:review (title / subjectTitle / rating); doub |
+| 抖音     | `social-douyin`      | device-pull | snapshot/sqlite     | medium | douyin:profile (sec_user_id / nickname / signature / counts); douyin:history (aweme_id / title / author / view_time); do |
+| 快手     | `social-kuaishou`    | device-pull | snapshot/sqlite     | medium | kuaishou:profile (user_id / user_name / kuaishou_id / headurl / sex / city); kuaishou:photo_history (photo_id / caption  |
+| 今日头条 | `social-toutiao`     | device-pull | snapshot/sqlite     | high   | toutiao:profile (user_id / screen_name / avatar / mobile / following / followers); toutiao:read_history (item_id / title |
+| 微博     | `social-weibo`       | device-pull | snapshot/sqlite     | medium | weibo:posts (text / created_at / reposts_count / comments_count / likes); weibo:favourite (mid / text / author); weibo:f |
+| 小红书   | `social-xiaohongshu` | device-pull | snapshot/sqlite     | medium | xhs:notes (own posts, title / desc / type / engagement counts); xhs:liked (notes the user liked); xhs:follow (followed u |
+| 知乎     | `social-zhihu`       | web-api     | snapshot/cookie-api | medium | zhihu:answer (questionTitle / excerpt / voteupCount); zhihu:favourite (title / url / collectionName); zhihu:follow (memb |
 
 ## 分类: 购物/电商（8）
 
-| App      | 名称                 | 底层模式 | 采集方式                   | 敏感度 | 数据字段（摘要）                                                        |
-| -------- | -------------------- | -------- | -------------------------- | ------ | ----------------------------------------------------------------------- |
-| 大众点评 | `shopping-dianping`  | web-api  | snapshot/custom-cookie-api | high   | dianping:orderId / poiName / deals / totalPrice / address               |
-| 饿了么   | `shopping-eleme`     | web-api  | snapshot/custom-cookie-api | high   | eleme:orderId / restaurantName / dishes / totalAmount / deliveryAddress |
-| 京东     | `shopping-jd`        | web-api  | snapshot/custom-cookie-api | high   | jd:orderId / venderName / productList / orderTotalPrice / address       |
-| 美团     | `shopping-meituan`   | web-api  | snapshot/custom-cookie-api | high   | meituan:orderId / poiName / dishes / totalPrice / deliveryAddress       |
-| 拼多多   | `shopping-pinduoduo` | web-api  | snapshot/custom-cookie-api | high   | pinduoduo:order_sn / mall_name / goods_list / order_amount / address    |
-| 淘宝     | `shopping-taobao`    | web-api  | snapshot/custom-cookie-api | high   | taobao:bizOrderId / sellerNick / items / payTime / actualFee / address  |
-| 唯品会   | `shopping-vipshop`   | web-api  | snapshot/custom-cookie-api | high   | vipshop:orderSn / brandName / goods / amount / deliveryAddress          |
-| 闲鱼     | `shopping-xianyu`    | web-api  | snapshot/custom-cookie-api | high   | xianyu:orderId / side / itemTitle / counterparty / amount / address     |
+| App      | 名称                 | 底层模式 | 采集方式            | 敏感度 | 数据字段（摘要）                                                        |
+| -------- | -------------------- | -------- | ------------------- | ------ | ----------------------------------------------------------------------- |
+| 大众点评 | `shopping-dianping`  | web-api  | snapshot/cookie-api | high   | dianping:orderId / poiName / deals / totalPrice / address               |
+| 饿了么   | `shopping-eleme`     | web-api  | snapshot/cookie-api | high   | eleme:orderId / restaurantName / dishes / totalAmount / deliveryAddress |
+| 京东     | `shopping-jd`        | web-api  | snapshot/cookie-api | high   | jd:orderId / venderName / productList / orderTotalPrice / address       |
+| 美团     | `shopping-meituan`   | web-api  | snapshot/cookie-api | high   | meituan:orderId / poiName / dishes / totalPrice / deliveryAddress       |
+| 拼多多   | `shopping-pinduoduo` | web-api  | snapshot/cookie-api | high   | pinduoduo:order_sn / mall_name / goods_list / order_amount / address    |
+| 淘宝     | `shopping-taobao`    | web-api  | snapshot/cookie-api | high   | taobao:bizOrderId / sellerNick / items / payTime / actualFee / address  |
+| 唯品会   | `shopping-vipshop`   | web-api  | snapshot/cookie-api | high   | vipshop:orderSn / brandName / goods / amount / deliveryAddress          |
+| 闲鱼     | `shopping-xianyu`    | web-api  | snapshot/cookie-api | high   | xianyu:orderId / side / itemTitle / counterparty / amount / address     |
 
 ## 分类: 邮件（1）
 

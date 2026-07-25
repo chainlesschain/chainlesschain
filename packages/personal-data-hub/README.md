@@ -76,6 +76,42 @@ middleware.
 > identity-checked imports; email additionally requires schema version 1 and
 > strict records.
 >
+> Ctrip, Tongcheng, and Didi enterprise live collection now accepts the CLI /
+> Electron one-shot credential contract: `--cookie-file` plus `--account-id`.
+> Both gateways inject the constrained HTTPS/JSON source transport, each source
+> request passes through registry accounting, and the account id is used only
+> to derive a hashed watermark scope. Neither the cookie nor the account id is
+> persisted in the adapter, Vault rows, or audit log.
+>
+> Didi Consumer (`travel-didi-consumer`) also supports this one-shot contract,
+> but intentionally has no built-in order endpoint. Pass `--source-url` (or
+> `CC_PDH_SOURCE_URL`) with an HTTPS URL captured from the user's authorized
+> session. The adapter accepts only credential-free, default-port URLs on
+> `xiaojukeji.com` or its subdomains, does not retain the URL, and rejects
+> unrecognized/error response pages without advancing the watermark.
+>
+> The same transient credential and request-accounting path now covers
+> Ximalaya, Kugou Music, QQ Music, Tianyancha, BOSS Zhipin, Douban, CSDN,
+> Dongchedi, iQIYI, Tencent Video, Xigua Video, and CamScanner. Runtime
+> `accountId` values produce separate hashed scopes, while CLI and Electron
+> inject the same bounded HTTPS/JSON transport instead of relying on a
+> placeholder or ambient fetch implementation.
+>
+> Genshin, Zuoyebang, Alipay, Huawei Learning, NetEase Music, and WeRead now
+> use that one-shot `cookie + accountId` contract as well. Their legacy
+> WHATWG-fetch clients are wrapped by the same bounded transport and pinned to
+> the exact official API hosts used by each client, so a runtime option cannot
+> redirect a Cookie-bearing request to an arbitrary server.
+>
+> Every live Cookie collector now declares persistent trigger and source-request
+> quotas. The three multi-stream media collectors and three video collectors use
+> a 30/minute, 500/day budget so their bounded default scans still fit existing
+> client timeouts; lower-fan-out sources retain stricter limits. WeRead processes
+> 25 books per sync (hard cap 100), advances an opaque hashed book cursor, and
+> resumes the next batch on a later sync instead of attempting an unfinishable
+> 1,001-request scan. Its 30/minute, 1,200/day quota can cover a complete
+> 500-book cycle across resumable batches.
+>
 > The versioned `pdh-partitioned-v1` checkpoint keeps independent stream
 > watermarks. `audio-ximalaya`, `music-qq`, and `music-kugou` are the first
 > migrations, so incomplete or disabled streams do not advance unrelated

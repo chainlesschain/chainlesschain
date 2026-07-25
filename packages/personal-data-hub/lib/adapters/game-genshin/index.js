@@ -29,6 +29,7 @@
 
 const fs = require("node:fs");
 const { newId } = require("../../ids");
+const { createAccountScopeFromAccount } = require("../../account-scope");
 const {
   probeJsonSnapshotFile,
   readJsonSnapshot,
@@ -40,6 +41,14 @@ const {
   CAPTURED_BY,
 } = require("../../constants");
 const { GenshinApiClient } = require("./api-client");
+const {
+  assertRuntimeAccountId,
+  createSourceRequestAudit,
+  hasRuntimeCookie,
+  hasRuntimeAccountId,
+  healthCheckFromAuthenticate,
+  runtimeAccountIdFailure,
+} = require("../_runtime-cookie-source");
 
 const NAME = "game-genshin";
 const VERSION = "0.2.0";
@@ -78,6 +87,12 @@ class GenshinAdapter {
   constructor(opts = {}) {
     this.account = opts.account || null;
     this.name = NAME;
+    this.defaultScope = createAccountScopeFromAccount(
+      NAME,
+      this.account || opts,
+      ["uid", "userId", "accountId"],
+    );
+    this.runtimeScopeIdentityKey = "uid";
     this.version = VERSION;
     this.capabilities = [
       "sync:snapshot",
@@ -86,7 +101,7 @@ class GenshinAdapter {
       "parse:genshin-play-session",
     ];
     this.extractMode = "web-api";
-    this.rateLimits = {};
+    this.rateLimits = { perMinute: 8, perDay: 200 };
     this.dataDisclosure = {
       fields: [
         "genshin:profile (uid / nickname / level / avatar)",
@@ -97,6 +112,7 @@ class GenshinAdapter {
       defaultInclude: { profile: true, play: true },
     };
     this.apiClient = new GenshinApiClient(opts);
+    this._fetch = typeof opts.fetch === "function" ? opts.fetch : null;
     // Test seam: override how the live client is built per-sync (inject fetch).
     this._apiClientFactory =
       typeof opts.apiClientFactory === "function"
@@ -114,7 +130,10 @@ class GenshinAdapter {
         allowedEventKinds: VALID_SNAPSHOT_KINDS,
       });
     }
-    if (ctx && typeof ctx.cookie === "string" && ctx.cookie.length > 0) {
+    if (hasRuntimeCookie(ctx) && !hasRuntimeAccountId(ctx)) {
+      return runtimeAccountIdFailure(NAME);
+    }
+    if (hasRuntimeCookie(ctx)) {
       const uid = this.apiClient.extractUid(ctx.cookie);
       if (!uid) {
         return {
@@ -123,7 +142,11 @@ class GenshinAdapter {
           message: `game-genshin.authenticate: ${this.apiClient.lastError.message}`,
         };
       }
-      return { ok: true, mode: "cookie" };
+      return {
+        ok: true,
+        account: String(ctx.accountId).trim(),
+        mode: "cookie",
+      };
     }
     return {
       ok: false,
@@ -133,8 +156,8 @@ class GenshinAdapter {
     };
   }
 
-  async healthCheck() {
-    return { ok: true, lastChecked: Date.now() };
+  async healthCheck(opts = {}) {
+    return healthCheckFromAuthenticate(this, opts);
   }
 
   async *sync(opts = {}) {
@@ -142,7 +165,8 @@ class GenshinAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    if (typeof opts.cookie === "string" && opts.cookie.length > 0) {
+    if (hasRuntimeCookie(opts)) {
+      assertRuntimeAccountId(NAME, opts);
       yield* this._syncViaLive(opts);
       return;
     }
@@ -152,10 +176,17 @@ class GenshinAdapter {
   }
 
   async *_syncViaLive(opts) {
+    assertRuntimeAccountId(NAME, opts);
+    const sourceRequestAudit = createSourceRequestAudit(
+      opts,
+      `${NAME}:live`,
+      this._fetch,
+    );
+    const liveOpts = { ...opts, fetch: sourceRequestAudit.fetch };
     const client = this._apiClientFactory
-      ? this._apiClientFactory(opts)
+      ? this._apiClientFactory(liveOpts)
       : new GenshinApiClient({
-          fetch: opts.fetch,
+          fetch: sourceRequestAudit.fetch,
           now: opts.now,
           rand: opts.rand,
           appVersion: opts.appVersion,
@@ -176,6 +207,7 @@ class GenshinAdapter {
       fetchStats: opts.fetchStats !== false,
       limit: opts.limit,
     });
+    sourceRequestAudit.throwIfPermitFailed();
     if (profiles === null) {
       const e = client.lastError;
       throw new Error(

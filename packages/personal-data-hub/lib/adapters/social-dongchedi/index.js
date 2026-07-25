@@ -36,6 +36,7 @@ const {
   probeJsonSnapshotFile,
   readJsonSnapshot,
 } = require("../../snapshot-file");
+const { createAccountScopeFromAccount } = require("../../account-scope");
 const { newId } = require("../../ids");
 const { extractRecognizedArray } = require("../../source-page");
 const {
@@ -44,7 +45,11 @@ const {
   EVENT_SUBTYPES,
   CAPTURED_BY,
 } = require("../../constants");
-const { CookieAuth } = require("../shopping-base");
+const {
+  CookieAuth,
+  hasRuntimeCookie,
+  resolveCookieContext,
+} = require("../shopping-base");
 
 const NAME = "social-dongchedi";
 const VERSION = "0.1.0";
@@ -87,6 +92,9 @@ function stableOriginalId(kind, id) {
 class DongchediAdapter {
   constructor(opts = {}) {
     this.account = opts.account || null;
+    this.defaultScope = createAccountScopeFromAccount(NAME, this.account, [
+      "userId",
+    ]);
     this._cookieAuth =
       opts.account && opts.account.cookies
         ? new CookieAuth({
@@ -104,6 +112,7 @@ class DongchediAdapter {
     };
 
     this.name = NAME;
+    this.runtimeScopeIdentityKey = "userId";
     this.version = VERSION;
     this.watermarkStrategy = "max-captured-at";
     this.watermarkRequiresCompleteScan = true;
@@ -137,8 +146,23 @@ class DongchediAdapter {
         allowedEventKinds: VALID_SNAPSHOT_KINDS,
       });
     }
-    if (this._cookieAuth) {
-      const ok = await this._cookieAuth.validate();
+    if (hasRuntimeCookie(ctx) && !hasRuntimeUserId(ctx)) {
+      return {
+        ok: false,
+        reason: "NO_ACCOUNT_ID",
+        message:
+          "social-dongchedi cookie mode requires opts.accountId for an isolated watermark scope",
+      };
+    }
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts: ctx,
+      platform: "dongchedi",
+      identityKey: "userId",
+    });
+    if (cookieAuth) {
+      const ok = await cookieAuth.validate();
       if (!ok)
         return {
           ok: false,
@@ -147,7 +171,7 @@ class DongchediAdapter {
         };
       return {
         ok: true,
-        account: (this.account && this.account.userId) || null,
+        account: (account && account.userId) || null,
         mode: "cookie",
       };
     }
@@ -155,18 +179,20 @@ class DongchediAdapter {
       ok: false,
       reason: "NO_INPUT",
       message:
-        "social-dongchedi.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)",
+        "social-dongchedi.authenticate: needs opts.inputPath (snapshot mode) OR configured account.cookies OR opts.cookie + opts.accountId (cookie-api mode)",
     };
   }
 
-  async healthCheck() {
-    if (this._cookieAuth) {
-      const r = await this.authenticate();
-      return r.ok
-        ? { ok: true, lastChecked: Date.now() }
-        : { ok: false, reason: r.reason, error: r.error };
-    }
-    return { ok: true, lastChecked: Date.now() };
+  async healthCheck(opts = {}) {
+    const result = await this.authenticate(opts);
+    return result.ok
+      ? { ok: true, lastChecked: Date.now() }
+      : {
+          ok: false,
+          reason: result.reason,
+          error: result.error || result.message,
+          lastChecked: Date.now(),
+        };
   }
 
   async *sync(opts = {}) {
@@ -174,12 +200,12 @@ class DongchediAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    if (this._cookieAuth) {
+    if (this._cookieAuth || hasRuntimeCookie(opts)) {
       yield* this._syncViaCookie(opts);
       return;
     }
     throw new Error(
-      "social-dongchedi.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)",
+      "social-dongchedi.sync: needs opts.inputPath (snapshot mode) OR configured account.cookies OR opts.cookie + opts.accountId (cookie-api mode)",
     );
   }
 
@@ -232,8 +258,20 @@ class DongchediAdapter {
   }
 
   async *_syncViaCookie(opts = {}) {
-    if (!(await this._cookieAuth.validate())) return;
-    const cookies = this._cookieAuth.toHeader();
+    if (hasRuntimeCookie(opts) && !hasRuntimeUserId(opts)) {
+      throw new Error(
+        "social-dongchedi._syncViaCookie: opts.accountId required for transient cookie collection",
+      );
+    }
+    const { cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts,
+      platform: "dongchedi",
+      identityKey: "userId",
+    });
+    if (!cookieAuth || !(await cookieAuth.validate())) return;
+    const cookies = cookieAuth.toHeader();
     const include = opts.include || {};
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
@@ -260,7 +298,12 @@ class DongchediAdapter {
         const query = { offset, count: PAGE_SIZE };
         let sign = null;
         if (this._signProvider) {
-          sign = await this._signProvider({ url: step.url, query, cookies });
+          sign = await this._signProvider({
+            url: step.url,
+            query,
+            cookies,
+            signal: opts.signal,
+          });
         }
         if (typeof opts.beforeSourceRequest === "function") {
           await opts.beforeSourceRequest({ operation: step.kind, page });
@@ -270,6 +313,7 @@ class DongchediAdapter {
           cookies,
           query,
           sign,
+          signal: opts.signal,
         });
         const items = extractData(resp, step.kind);
         if (!items.length) {
@@ -337,6 +381,14 @@ function extractData(resp, stream) {
       ["data", "records"],
     ],
     { source: NAME, stream },
+  );
+}
+
+function hasRuntimeUserId(opts = {}) {
+  const value = opts.userId != null ? opts.userId : opts.accountId;
+  return (
+    (typeof value === "string" && value.trim().length > 0) ||
+    (typeof value === "number" && Number.isFinite(value))
   );
 }
 

@@ -19,18 +19,26 @@ const { partitionBatch } = require("../../lib/batch");
 
 const FIXED_SECKEY = "0123456789abcdef"; // 16 chars → deterministic weapi
 const COOKIE = "MUSIC_U=abcdef0123456789; __csrf=zzz";
+const ACCOUNT_ID = "42";
 
 /** Map endpoint path substrings → JSON bodies; record posted form bodies. */
 function makeFetch(routes, calls) {
   return async (url, init) => {
-    calls.push({ url, body: init && init.body, headers: (init && init.headers) || {} });
+    calls.push({
+      url,
+      body: init && init.body,
+      headers: (init && init.headers) || {},
+    });
     const route = routes.find((r) => url.includes(r.match));
-    if (!route) return { ok: false, status: 404, text: async () => "not mapped" };
+    if (!route)
+      return { ok: false, status: 404, text: async () => "not mapped" };
     return {
       ok: route.status ? route.status >= 200 && route.status < 300 : true,
       status: route.status || 200,
       text: async () =>
-        typeof route.body === "string" ? route.body : JSON.stringify(route.body),
+        typeof route.body === "string"
+          ? route.body
+          : JSON.stringify(route.body),
     };
   };
 }
@@ -76,14 +84,26 @@ describe("NeteaseMusicApiClient.fetchSnapshot — live (mocked fetch)", () => {
       [
         {
           match: "/weapi/w/nuser/account/get",
-          body: { code: 200, profile: { userId: 42, nickname: "听歌的人" }, account: { id: 42 } },
+          body: {
+            code: 200,
+            profile: { userId: 42, nickname: "听歌的人" },
+            account: { id: 42 },
+          },
         },
         {
           match: "/weapi/v1/play/record",
           body: {
             code: 200,
             weekData: [
-              { playCount: 50, song: { id: 186016, name: "晴天", ar: [{ name: "周杰伦" }], al: { name: "叶惠美" } } },
+              {
+                playCount: 50,
+                song: {
+                  id: 186016,
+                  name: "晴天",
+                  ar: [{ name: "周杰伦" }],
+                  al: { name: "叶惠美" },
+                },
+              },
             ],
           },
         },
@@ -91,7 +111,14 @@ describe("NeteaseMusicApiClient.fetchSnapshot — live (mocked fetch)", () => {
           match: "/weapi/user/playlist",
           body: {
             code: 200,
-            playlist: [{ id: 999, name: "我喜欢的音乐", trackCount: 200, creator: { nickname: "听歌的人" } }],
+            playlist: [
+              {
+                id: 999,
+                name: "我喜欢的音乐",
+                trackCount: 200,
+                creator: { nickname: "听歌的人" },
+              },
+            ],
           },
         },
       ],
@@ -102,9 +129,20 @@ describe("NeteaseMusicApiClient.fetchSnapshot — live (mocked fetch)", () => {
     expect(result.account).toEqual({ uid: "42", nickname: "听歌的人" });
     expect(result.events).toHaveLength(2);
     const play = result.events.find((e) => e.kind === "play");
-    expect(play).toMatchObject({ songId: "186016", song: "晴天", artist: "周杰伦", album: "叶惠美", playCount: 50 });
+    expect(play).toMatchObject({
+      songId: "186016",
+      song: "晴天",
+      artist: "周杰伦",
+      album: "叶惠美",
+      playCount: 50,
+    });
     const pl = result.events.find((e) => e.kind === "playlist");
-    expect(pl).toMatchObject({ playlistId: "999", name: "我喜欢的音乐", trackCount: 200, creator: "听歌的人" });
+    expect(pl).toMatchObject({
+      playlistId: "999",
+      name: "我喜欢的音乐",
+      trackCount: 200,
+      creator: "听歌的人",
+    });
     // every POST is form-encoded weapi (params + encSecKey) with the cookie.
     for (const c of calls) {
       expect(c.body).toMatch(/^params=.+&encSecKey=.+$/);
@@ -123,7 +161,17 @@ describe("NeteaseMusicApiClient.fetchSnapshot — live (mocked fetch)", () => {
           body: {
             code: 200,
             weekData: [],
-            allData: [{ playCount: 3, song: { id: 1, name: "S", ar: [{ name: "A" }, { name: "B" }], al: { name: "Al" } } }],
+            allData: [
+              {
+                playCount: 3,
+                song: {
+                  id: 1,
+                  name: "S",
+                  ar: [{ name: "A" }, { name: "B" }],
+                  al: { name: "Al" },
+                },
+              },
+            ],
           },
         },
         { match: "user/playlist", body: { code: 200, playlist: [] } },
@@ -146,7 +194,9 @@ describe("NeteaseMusicApiClient.fetchSnapshot — live (mocked fetch)", () => {
       calls,
     );
     const client = new NeteaseMusicApiClient({ fetch, secKey: FIXED_SECKEY });
-    const result = await client.fetchSnapshot(COOKIE, { include: { play: false } });
+    const result = await client.fetchSnapshot(COOKIE, {
+      include: { play: false },
+    });
     expect(calls.some((c) => c.url.includes("play/record"))).toBe(false);
     expect(result.events.every((e) => e.kind !== "play")).toBe(true);
   });
@@ -165,7 +215,15 @@ describe("NeteaseMusicApiClient.fetchSnapshot — live (mocked fetch)", () => {
 
   it("account with no userId → null + lastError -7", async () => {
     const calls = [];
-    const fetch = makeFetch([{ match: "account/get", body: { code: 200, profile: null, account: null } }], calls);
+    const fetch = makeFetch(
+      [
+        {
+          match: "account/get",
+          body: { code: 200, profile: null, account: null },
+        },
+      ],
+      calls,
+    );
     const client = new NeteaseMusicApiClient({ fetch, secKey: FIXED_SECKEY });
     expect(await client.fetchSnapshot(COOKIE)).toBeNull();
     expect(client.lastError.code).toBe(-7);
@@ -173,7 +231,10 @@ describe("NeteaseMusicApiClient.fetchSnapshot — live (mocked fetch)", () => {
 
   it("empty cookie → null + lastError -1 (no network)", async () => {
     const calls = [];
-    const client = new NeteaseMusicApiClient({ fetch: makeFetch([], calls), secKey: FIXED_SECKEY });
+    const client = new NeteaseMusicApiClient({
+      fetch: makeFetch([], calls),
+      secKey: FIXED_SECKEY,
+    });
     expect(await client.fetchSnapshot("")).toBeNull();
     expect(client.lastError.code).toBe(-1);
     expect(calls).toHaveLength(0);
@@ -181,7 +242,10 @@ describe("NeteaseMusicApiClient.fetchSnapshot — live (mocked fetch)", () => {
 
   it("HTTP non-2xx → null + lastError with status", async () => {
     const calls = [];
-    const fetch = makeFetch([{ match: "account/get", status: 502, body: "bad gw" }], calls);
+    const fetch = makeFetch(
+      [{ match: "account/get", status: 502, body: "bad gw" }],
+      calls,
+    );
     const client = new NeteaseMusicApiClient({ fetch, secKey: FIXED_SECKEY });
     expect(await client.fetchSnapshot(COOKIE)).toBeNull();
     expect(client.lastError.code).toBe(502);
@@ -191,8 +255,13 @@ describe("NeteaseMusicApiClient.fetchSnapshot — live (mocked fetch)", () => {
 describe("NeteaseMusicAdapter — cookie (live) sync mode", () => {
   it("authenticate accepts a cookie with MUSIC_U; rejects without it", async () => {
     const a = new NeteaseMusicAdapter();
-    expect((await a.authenticate({ cookie: COOKIE })).mode).toBe("cookie");
-    const bad = await a.authenticate({ cookie: "foo=bar" });
+    expect(
+      (await a.authenticate({ cookie: COOKIE, accountId: ACCOUNT_ID })).mode,
+    ).toBe("cookie");
+    const bad = await a.authenticate({
+      cookie: "foo=bar",
+      accountId: ACCOUNT_ID,
+    });
     expect(bad.ok).toBe(false);
     expect(bad.reason).toBe("INVALID_COOKIE");
   });
@@ -207,17 +276,53 @@ describe("NeteaseMusicAdapter — cookie (live) sync mode", () => {
     const calls = [];
     const fetch = makeFetch(
       [
-        { match: "account/get", body: { code: 200, profile: { userId: 42, nickname: "me" } } },
+        {
+          match: "account/get",
+          body: { code: 200, profile: { userId: 42, nickname: "me" } },
+        },
         {
           match: "play/record",
-          body: { code: 200, weekData: [{ playCount: 9, song: { id: 5, name: "夜曲", ar: [{ name: "周杰伦" }], al: { name: "11月的萧邦" } } }] },
+          body: {
+            code: 200,
+            weekData: [
+              {
+                playCount: 9,
+                song: {
+                  id: 5,
+                  name: "夜曲",
+                  ar: [{ name: "周杰伦" }],
+                  al: { name: "11月的萧邦" },
+                },
+              },
+            ],
+          },
         },
-        { match: "user/playlist", body: { code: 200, playlist: [{ id: 8, name: "练歌", trackCount: 12, creator: { nickname: "me" } }] } },
+        {
+          match: "user/playlist",
+          body: {
+            code: 200,
+            playlist: [
+              {
+                id: 8,
+                name: "练歌",
+                trackCount: 12,
+                creator: { nickname: "me" },
+              },
+            ],
+          },
+        },
       ],
       calls,
     );
     const a = new NeteaseMusicAdapter();
-    const raws = await collect(a.sync({ cookie: COOKIE, fetch, secKey: FIXED_SECKEY }));
+    const raws = await collect(
+      a.sync({
+        cookie: COOKIE,
+        accountId: ACCOUNT_ID,
+        fetch,
+        secKey: FIXED_SECKEY,
+      }),
+    );
     expect(raws.map((r) => r.kind).sort()).toEqual(["play", "playlist"]);
     const playRaw = raws.find((r) => r.kind === "play");
     expect(playRaw.originalId).toBe("netease-music:play:play-5");
@@ -235,10 +340,20 @@ describe("NeteaseMusicAdapter — cookie (live) sync mode", () => {
 
   it("sync via cookie throws (mapped lastError) on risk-control", async () => {
     const calls = [];
-    const fetch = makeFetch([{ match: "account/get", body: { code: -460, message: "Cheating" } }], calls);
-    const a = new NeteaseMusicAdapter();
-    await expect(collect(a.sync({ cookie: COOKIE, fetch, secKey: FIXED_SECKEY }))).rejects.toThrow(
-      /Cheating|code -460/,
+    const fetch = makeFetch(
+      [{ match: "account/get", body: { code: -460, message: "Cheating" } }],
+      calls,
     );
+    const a = new NeteaseMusicAdapter();
+    await expect(
+      collect(
+        a.sync({
+          cookie: COOKIE,
+          accountId: ACCOUNT_ID,
+          fetch,
+          secKey: FIXED_SECKEY,
+        }),
+      ),
+    ).rejects.toThrow(/Cheating|code -460/);
   });
 });

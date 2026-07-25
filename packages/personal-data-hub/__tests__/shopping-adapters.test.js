@@ -8,6 +8,11 @@ const {
   TaobaoAdapter,
   JdAdapter,
   MeituanAdapter,
+  ElemeAdapter,
+  PinduoduoAdapter,
+  DianpingAdapter,
+  XianyuAdapter,
+  VipshopAdapter,
 } = require("../lib");
 const {
   orderToRecord: taobaoOrderToRecord,
@@ -21,6 +26,23 @@ const {
 } = require("../lib/adapters/shopping-meituan");
 const { assertAdapter } = require("../lib/adapter-spec");
 const { validateBatch } = require("../lib/batch");
+
+describe.each([
+  ["shopping-taobao", TaobaoAdapter],
+  ["shopping-jd", JdAdapter],
+  ["shopping-meituan", MeituanAdapter],
+  ["shopping-eleme", ElemeAdapter],
+  ["shopping-pinduoduo", PinduoduoAdapter],
+  ["shopping-dianping", DianpingAdapter],
+  ["shopping-xianyu", XianyuAdapter],
+  ["shopping-vipshop", VipshopAdapter],
+])("%s health gate", (_name, Adapter) => {
+  it("reports NO_INPUT instead of claiming an empty default sync is healthy", async () => {
+    const result = await new Adapter().healthCheck();
+    expect(result).toMatchObject({ ok: false, reason: "NO_INPUT" });
+    expect(result.lastChecked).toEqual(expect.any(Number));
+  });
+});
 
 // ─── normalizeOrderRecord ───────────────────────────────────────────────
 

@@ -38,6 +38,7 @@ const {
   probeJsonSnapshotFile,
   readJsonSnapshot,
 } = require("../../snapshot-file");
+const { createAccountScopeFromAccount } = require("../../account-scope");
 const { newId } = require("../../ids");
 const { extractRecognizedArray } = require("../../source-page");
 const {
@@ -46,7 +47,11 @@ const {
   EVENT_SUBTYPES,
   CAPTURED_BY,
 } = require("../../constants");
-const { CookieAuth } = require("../shopping-base");
+const {
+  CookieAuth,
+  hasRuntimeCookie,
+  resolveCookieContext,
+} = require("../shopping-base");
 
 const NAME = "social-csdn";
 const VERSION = "0.1.0";
@@ -100,6 +105,9 @@ function stripHtml(s) {
 class CsdnAdapter {
   constructor(opts = {}) {
     this.account = opts.account || null;
+    this.defaultScope = createAccountScopeFromAccount(NAME, this.account, [
+      "username",
+    ]);
     this._cookieAuth =
       opts.account && opts.account.cookies
         ? new CookieAuth({ platform: "csdn", cookies: opts.account.cookies })
@@ -115,6 +123,7 @@ class CsdnAdapter {
     };
 
     this.name = NAME;
+    this.runtimeScopeIdentityKey = "username";
     this.version = VERSION;
     this.watermarkStrategy = "max-captured-at";
     this.watermarkRequiresCompleteScan = true;
@@ -150,40 +159,57 @@ class CsdnAdapter {
         allowedEventKinds: VALID_SNAPSHOT_KINDS,
       });
     }
-    if (this._cookieAuth) {
-      const ok = await this._cookieAuth.validate();
+    if (hasRuntimeCookie(ctx) && !hasRuntimeUsername(ctx)) {
+      return {
+        ok: false,
+        reason: "NO_ACCOUNT_USERNAME",
+        message:
+          "cookie-api mode requires opts.accountId (CSDN blog username) for an isolated watermark scope",
+      };
+    }
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts: ctx,
+      platform: "csdn",
+      identityKey: "username",
+    });
+    if (cookieAuth) {
+      const ok = await cookieAuth.validate();
       if (!ok)
         return {
           ok: false,
           reason: "INVALID_COOKIE",
           error: "cookies missing",
         };
-      if (!this.account || !this.account.username) {
+      if (!account || !account.username) {
         return {
           ok: false,
           reason: "NO_ACCOUNT_USERNAME",
           message:
-            "cookie-api mode requires account.username (CSDN blog username)",
+            "cookie-api mode requires account.username or opts.accountId (CSDN blog username)",
         };
       }
-      return { ok: true, account: this.account.username, mode: "cookie" };
+      return { ok: true, account: account.username, mode: "cookie" };
     }
     return {
       ok: false,
       reason: "NO_INPUT",
       message:
-        "social-csdn.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies + username (cookie-api mode)",
+        "social-csdn.authenticate: needs opts.inputPath (snapshot mode) OR configured account.cookies + username OR opts.cookie + opts.accountId (cookie-api mode)",
     };
   }
 
   async healthCheck(opts = {}) {
-    if (this._cookieAuth) {
-      const r = await this.authenticate(opts);
-      return r.ok
-        ? { ok: true, lastChecked: Date.now() }
-        : { ok: false, reason: r.reason, error: r.error };
-    }
-    return { ok: true, lastChecked: Date.now() };
+    const result = await this.authenticate(opts);
+    return result.ok
+      ? { ok: true, lastChecked: Date.now() }
+      : {
+          ok: false,
+          reason: result.reason,
+          error: result.error || result.message,
+          lastChecked: Date.now(),
+        };
   }
 
   async *sync(opts = {}) {
@@ -191,12 +217,12 @@ class CsdnAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    if (this._cookieAuth) {
+    if (this._cookieAuth || hasRuntimeCookie(opts)) {
       yield* this._syncViaCookie(opts);
       return;
     }
     throw new Error(
-      "social-csdn.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies + username (cookie-api mode)",
+      "social-csdn.sync: needs opts.inputPath (snapshot mode) OR configured account.cookies + username OR opts.cookie + opts.accountId (cookie-api mode)",
     );
   }
 
@@ -253,13 +279,26 @@ class CsdnAdapter {
   }
 
   async *_syncViaCookie(opts = {}) {
-    if (!this.account || !this.account.username) {
+    if (hasRuntimeCookie(opts) && !hasRuntimeUsername(opts)) {
       throw new Error(
-        "social-csdn._syncViaCookie: account.username required (set via new CsdnAdapter({ account: { username, cookies } }))",
+        "social-csdn._syncViaCookie: opts.accountId required for transient cookie collection",
       );
     }
-    if (!(await this._cookieAuth.validate())) return;
-    const user = encodeURIComponent(this.account.username);
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts,
+      platform: "csdn",
+      identityKey: "username",
+    });
+    if (!account || !account.username) {
+      throw new Error(
+        "social-csdn._syncViaCookie: account.username or opts.accountId required",
+      );
+    }
+    if (!cookieAuth || !(await cookieAuth.validate())) return;
+    const cookies = cookieAuth.toHeader();
+    const user = encodeURIComponent(account.username);
     const include = opts.include || {};
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
@@ -299,14 +338,15 @@ class CsdnAdapter {
         const query = {
           page,
           size: PAGE_SIZE,
-          username: this.account.username,
+          username: account.username,
         };
         let sign = null;
         if (this._signProvider) {
           sign = await this._signProvider({
             url: baseUrl,
             query,
-            cookies: this._cookieAuth.toHeader(),
+            cookies,
+            signal: opts.signal,
           });
         }
         if (typeof opts.beforeSourceRequest === "function") {
@@ -314,9 +354,10 @@ class CsdnAdapter {
         }
         const resp = await this._fetchFn({
           url: baseUrl,
-          cookies: this._cookieAuth.toHeader(),
+          cookies,
           query,
           sign,
+          signal: opts.signal,
         });
         const items = extractList(resp, step.kind);
         if (!items.length) {
@@ -392,6 +433,14 @@ function cookieItemTime(kind, it) {
     );
   }
   return Date.now();
+}
+
+function hasRuntimeUsername(opts = {}) {
+  const value = opts.username != null ? opts.username : opts.accountId;
+  return (
+    (typeof value === "string" && value.trim().length > 0) ||
+    (typeof value === "number" && Number.isFinite(value))
+  );
 }
 
 // ─── per-kind normalizers ────────────────────────────────────────────────────

@@ -17,17 +17,21 @@ const {
 const { validateBatch } = require("../../lib/batch");
 
 const COOKIE = "accountId=555; CASTGC=tok-xyz";
+const ACCOUNT_ID = "555";
 
 function makeFetch(routes, calls) {
   return async (url, init) => {
     calls.push({ url, headers: (init && init.headers) || {} });
     const route = routes.find((r) => url.includes(r.match));
-    if (!route) return { ok: false, status: 404, text: async () => "not mapped" };
+    if (!route)
+      return { ok: false, status: 404, text: async () => "not mapped" };
     return {
       ok: route.status ? route.status >= 200 && route.status < 300 : true,
       status: route.status || 200,
       text: async () =>
-        typeof route.body === "string" ? route.body : JSON.stringify(route.body),
+        typeof route.body === "string"
+          ? route.body
+          : JSON.stringify(route.body),
     };
   };
 }
@@ -56,7 +60,10 @@ describe("HuaweiLearningApiClient.fetchSnapshot — live (mocked fetch)", () => 
       [
         {
           match: "/edu/api/user/v1/info",
-          body: { code: 0, data: { user: { accountId: 555, nickName: "小华" } } },
+          body: {
+            code: 0,
+            data: { user: { accountId: 555, nickName: "小华" } },
+          },
         },
         {
           match: "/edu/api/study/v1/records",
@@ -64,8 +71,18 @@ describe("HuaweiLearningApiClient.fetchSnapshot — live (mocked fetch)", () => 
             code: 0,
             data: {
               records: [
-                { recordId: "c1", courseName: "物理", studyDuration: 1500, startTime: 1700000000 },
-                { id: "c2", title: "化学", duration: 600000, createTime: "1700003600" },
+                {
+                  recordId: "c1",
+                  courseName: "物理",
+                  studyDuration: 1500,
+                  startTime: 1700000000,
+                },
+                {
+                  id: "c2",
+                  title: "化学",
+                  duration: 600000,
+                  createTime: "1700003600",
+                },
               ],
             },
           },
@@ -80,8 +97,18 @@ describe("HuaweiLearningApiClient.fetchSnapshot — live (mocked fetch)", () => 
     expect(profile).toMatchObject({ uid: "555", nickname: "小华" });
     const studies = result.events.filter((e) => e.kind === "study");
     expect(studies).toHaveLength(2);
-    expect(studies[0]).toMatchObject({ id: "study-c1", course: "物理", durationMs: 1500000, startAt: 1700000000000 });
-    expect(studies[1]).toMatchObject({ id: "study-c2", course: "化学", durationMs: 600000, startAt: 1700003600000 });
+    expect(studies[0]).toMatchObject({
+      id: "study-c1",
+      course: "物理",
+      durationMs: 1500000,
+      startAt: 1700000000000,
+    });
+    expect(studies[1]).toMatchObject({
+      id: "study-c2",
+      course: "化学",
+      durationMs: 600000,
+      startAt: 1700003600000,
+    });
     for (const c of calls) {
       expect(c.headers.Cookie).toBe(COOKIE);
     }
@@ -90,8 +117,20 @@ describe("HuaweiLearningApiClient.fetchSnapshot — live (mocked fetch)", () => 
   it("handles alternate envelope (resultCode + result + list)", async () => {
     const fetch = makeFetch(
       [
-        { match: "/edu/api/user/v1/info", body: { resultCode: 0, result: { userId: "999", displayName: "阿福" } } },
-        { match: "/edu/api/study/v1/records", body: { resultCode: 0, result: { list: [{ logId: "z1", name: "数学", learnTime: 300 }] } } },
+        {
+          match: "/edu/api/user/v1/info",
+          body: {
+            resultCode: 0,
+            result: { userId: "999", displayName: "阿福" },
+          },
+        },
+        {
+          match: "/edu/api/study/v1/records",
+          body: {
+            resultCode: 0,
+            result: { list: [{ logId: "z1", name: "数学", learnTime: 300 }] },
+          },
+        },
       ],
       [],
     );
@@ -99,15 +138,25 @@ describe("HuaweiLearningApiClient.fetchSnapshot — live (mocked fetch)", () => 
     const result = await client.fetchSnapshot(COOKIE);
     expect(result.account).toEqual({ uid: "999", displayName: "阿福" });
     const study = result.events.find((e) => e.kind === "study");
-    expect(study).toMatchObject({ id: "study-z1", course: "数学", durationMs: 300000 });
+    expect(study).toMatchObject({
+      id: "study-z1",
+      course: "数学",
+      durationMs: 300000,
+    });
   });
 
   it("include.study:false skips records; limit/offset land in the query", async () => {
     const calls = [];
     const fetch = makeFetch(
       [
-        { match: "/edu/api/user/v1/info", body: { code: 0, data: { accountId: 1, nickName: "x" } } },
-        { match: "/edu/api/study/v1/records", body: { code: 0, data: { records: [] } } },
+        {
+          match: "/edu/api/user/v1/info",
+          body: { code: 0, data: { accountId: 1, nickName: "x" } },
+        },
+        {
+          match: "/edu/api/study/v1/records",
+          body: { code: 0, data: { records: [] } },
+        },
       ],
       calls,
     );
@@ -123,7 +172,12 @@ describe("HuaweiLearningApiClient.fetchSnapshot — live (mocked fetch)", () => 
 
   it("maps non-zero code to null + lastError", async () => {
     const fetch = makeFetch(
-      [{ match: "/edu/api/user/v1/info", body: { code: 401, message: "会话过期" } }],
+      [
+        {
+          match: "/edu/api/user/v1/info",
+          body: { code: 401, message: "会话过期" },
+        },
+      ],
       [],
     );
     const client = new HuaweiLearningApiClient({ fetch });
@@ -141,7 +195,10 @@ describe("HuaweiLearningApiClient.fetchSnapshot — live (mocked fetch)", () => 
   });
 
   it("HTTP non-2xx → null + lastError with status", async () => {
-    const fetch = makeFetch([{ match: "/edu/api/user/v1/info", status: 500, body: "err" }], []);
+    const fetch = makeFetch(
+      [{ match: "/edu/api/user/v1/info", status: 500, body: "err" }],
+      [],
+    );
     const client = new HuaweiLearningApiClient({ fetch });
     expect(await client.fetchSnapshot(COOKIE)).toBeNull();
     expect(client.lastError.code).toBe(500);
@@ -151,8 +208,13 @@ describe("HuaweiLearningApiClient.fetchSnapshot — live (mocked fetch)", () => 
 describe("HuaweiLearningAdapter — cookie (live) sync mode", () => {
   it("authenticate accepts a session cookie; rejects empty", async () => {
     const a = new HuaweiLearningAdapter();
-    expect((await a.authenticate({ cookie: COOKIE })).mode).toBe("cookie");
-    const bad = await a.authenticate({ cookie: "garbage" });
+    expect(
+      (await a.authenticate({ cookie: COOKIE, accountId: ACCOUNT_ID })).mode,
+    ).toBe("cookie");
+    const bad = await a.authenticate({
+      cookie: "garbage",
+      accountId: ACCOUNT_ID,
+    });
     expect(bad.ok).toBe(false);
     expect(bad.reason).toBe("INVALID_COOKIE");
   });
@@ -166,13 +228,33 @@ describe("HuaweiLearningAdapter — cookie (live) sync mode", () => {
   it("sync via cookie yields profile+study raws → valid normalized batch", async () => {
     const fetch = makeFetch(
       [
-        { match: "/edu/api/user/v1/info", body: { code: 0, data: { accountId: 555, nickName: "小华" } } },
-        { match: "/edu/api/study/v1/records", body: { code: 0, data: { records: [{ recordId: "c1", courseName: "物理", studyDuration: 1500, startTime: 1700000000 }] } } },
+        {
+          match: "/edu/api/user/v1/info",
+          body: { code: 0, data: { accountId: 555, nickName: "小华" } },
+        },
+        {
+          match: "/edu/api/study/v1/records",
+          body: {
+            code: 0,
+            data: {
+              records: [
+                {
+                  recordId: "c1",
+                  courseName: "物理",
+                  studyDuration: 1500,
+                  startTime: 1700000000,
+                },
+              ],
+            },
+          },
+        },
       ],
       [],
     );
     const a = new HuaweiLearningAdapter();
-    const raws = await collect(a.sync({ cookie: COOKIE, fetch }));
+    const raws = await collect(
+      a.sync({ cookie: COOKIE, accountId: ACCOUNT_ID, fetch }),
+    );
     expect(raws.map((r) => r.kind).sort()).toEqual(["profile", "study"]);
     const profileRaw = raws.find((r) => r.kind === "profile");
     expect(profileRaw.originalId).toBe("huaweilearning:profile:profile-555");
@@ -181,7 +263,9 @@ describe("HuaweiLearningAdapter — cookie (live) sync mode", () => {
       expect(validateBatch(a.normalize(raw)).valid).toBe(true);
     }
     const profileBatch = a.normalize(profileRaw);
-    expect(profileBatch.persons[0].identifiers["huawei-learning-uid"]).toEqual(["555"]);
+    expect(profileBatch.persons[0].identifiers["huawei-learning-uid"]).toEqual([
+      "555",
+    ]);
     const studyBatch = a.normalize(raws.find((r) => r.kind === "study"));
     expect(studyBatch.events[0].extra.course).toBe("物理");
     expect(studyBatch.events[0].extra.durationMs).toBe(1500000);
@@ -189,10 +273,17 @@ describe("HuaweiLearningAdapter — cookie (live) sync mode", () => {
 
   it("sync via cookie throws (mapped lastError) on API error", async () => {
     const fetch = makeFetch(
-      [{ match: "/edu/api/user/v1/info", body: { code: 401, message: "会话过期" } }],
+      [
+        {
+          match: "/edu/api/user/v1/info",
+          body: { code: 401, message: "会话过期" },
+        },
+      ],
       [],
     );
     const a = new HuaweiLearningAdapter();
-    await expect(collect(a.sync({ cookie: COOKIE, fetch }))).rejects.toThrow(/会话过期|code 401/);
+    await expect(
+      collect(a.sync({ cookie: COOKIE, accountId: ACCOUNT_ID, fetch })),
+    ).rejects.toThrow(/会话过期|code 401/);
   });
 });

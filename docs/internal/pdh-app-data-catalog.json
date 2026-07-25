@@ -360,7 +360,7 @@
       "extractMode": "device-pull",
       "capabilities": [
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:cookie-api",
         "import:json",
         "parse:12306-orders"
       ],
@@ -425,7 +425,7 @@
       "capabilities": [
         "import:json",
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:cookie-api",
         "parse:ctrip-orders"
       ],
       "fields": [
@@ -444,7 +444,7 @@
       "capabilities": [
         "import:json",
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:cookie-api",
         "parse:didi-rides"
       ],
       "fields": [
@@ -458,9 +458,14 @@
       "name": "travel-didi-consumer",
       "display": "滴滴出行",
       "category": "出行/车",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "extractMode": "file-import",
-      "capabilities": ["import:json", "sync:snapshot", "parse:didi-rides"],
+      "capabilities": [
+        "import:json",
+        "sync:snapshot",
+        "sync:custom-cookie-api",
+        "parse:didi-rides"
+      ],
       "fields": [
         "didi:orderId / fromAddress / toAddress / departTime / arriveTime / fare / carType"
       ],
@@ -498,7 +503,7 @@
       "capabilities": [
         "import:json",
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:cookie-api",
         "parse:tongcheng-orders"
       ],
       "fields": [
@@ -536,7 +541,7 @@
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:cookie-api",
         "parse:dianping-orders"
       ],
       "fields": ["dianping:orderId / poiName / deals / totalPrice / address"],
@@ -552,7 +557,7 @@
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:cookie-api",
         "parse:eleme-orders"
       ],
       "fields": [
@@ -568,11 +573,7 @@
       "category": "购物/电商",
       "version": "0.6.0",
       "extractMode": "web-api",
-      "capabilities": [
-        "sync:snapshot",
-        "sync:custom-cookie-api",
-        "parse:jd-orders"
-      ],
+      "capabilities": ["sync:snapshot", "sync:cookie-api", "parse:jd-orders"],
       "fields": [
         "jd:orderId / venderName / productList / orderTotalPrice / address"
       ],
@@ -588,7 +589,7 @@
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:cookie-api",
         "parse:meituan-orders"
       ],
       "fields": [
@@ -606,7 +607,7 @@
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:cookie-api",
         "parse:pinduoduo-orders"
       ],
       "fields": [
@@ -624,7 +625,7 @@
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:cookie-api",
         "parse:taobao-orders"
       ],
       "fields": [
@@ -642,7 +643,7 @@
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:cookie-api",
         "parse:vipshop-orders"
       ],
       "fields": [
@@ -660,7 +661,7 @@
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:cookie-api",
         "parse:xianyu-orders"
       ],
       "fields": [
@@ -1075,7 +1076,7 @@
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:cookie-api",
         "parse:ximalaya-play",
         "parse:ximalaya-favorite",
         "parse:ximalaya-subscribe"
@@ -1097,7 +1098,7 @@
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:cookie-api",
         "parse:kugou-play",
         "parse:kugou-favorite",
         "parse:kugou-playlist"
@@ -1119,7 +1120,7 @@
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:cookie-api",
         "parse:qqmusic-play",
         "parse:qqmusic-favorite",
         "parse:qqmusic-playlist"
@@ -1179,7 +1180,7 @@
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:cookie-api",
         "parse:iqiyi-watch",
         "parse:iqiyi-favourite"
       ],
@@ -1199,7 +1200,7 @@
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:cookie-api",
         "parse:tencent-video-watch",
         "parse:tencent-video-favourite"
       ],
@@ -1219,7 +1220,7 @@
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:cookie-api",
         "parse:xigua-watch",
         "parse:xigua-favourite"
       ],
@@ -1257,7 +1258,7 @@
       "name": "weread",
       "display": "微信读书",
       "category": "其它",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "extractMode": "web-api",
       "capabilities": [
         "sync:cookie",
@@ -1283,7 +1284,7 @@
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:cookie-api",
         "parse:tianyancha-monitor",
         "parse:tianyancha-search"
       ],
@@ -1327,7 +1328,7 @@
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:cookie-api",
         "parse:csdn-article",
         "parse:csdn-favourite",
         "parse:csdn-follow"
@@ -1349,7 +1350,7 @@
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:cookie-api",
         "parse:dongchedi-favourite",
         "parse:dongchedi-follow"
       ],
@@ -1369,7 +1370,7 @@
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:cookie-api",
         "parse:douban-interest",
         "parse:douban-review",
         "parse:douban-follow"
@@ -1516,7 +1517,7 @@
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:cookie-api",
         "parse:zhihu-answer",
         "parse:zhihu-favourite",
         "parse:zhihu-follow"
@@ -1557,7 +1558,7 @@
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:cookie-api",
         "parse:camscanner-documents"
       ],
       "fields": ["camscanner:document (title / docType / createdTime / url)"],
@@ -1676,7 +1677,7 @@
       "extractMode": "web-api",
       "capabilities": [
         "sync:snapshot",
-        "sync:custom-cookie-api",
+        "sync:cookie-api",
         "parse:boss-chat",
         "parse:boss-application"
       ],

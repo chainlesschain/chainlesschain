@@ -354,6 +354,7 @@ module.exports = {
   hasRuntimeCookie: shoppingBase.hasRuntimeCookie,
   resolveCookieContext: shoppingBase.resolveCookieContext,
   createJsonSourceFetch: sourceHttp.createJsonSourceFetch,
+  createJsonResponseSourceFetch: sourceHttp.createJsonResponseSourceFetch,
   DEFAULT_MAX_SNAPSHOT_BYTES: snapshotFile.DEFAULT_MAX_SNAPSHOT_BYTES,
   HARD_MAX_SNAPSHOT_BYTES: snapshotFile.HARD_MAX_SNAPSHOT_BYTES,
   SnapshotFileError: snapshotFile.SnapshotFileError,

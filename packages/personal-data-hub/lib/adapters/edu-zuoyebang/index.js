@@ -20,6 +20,7 @@
 
 const fs = require("node:fs");
 const { newId } = require("../../ids");
+const { createAccountScopeFromAccount } = require("../../account-scope");
 const {
   probeJsonSnapshotFile,
   readJsonSnapshot,
@@ -31,6 +32,14 @@ const {
   CAPTURED_BY,
 } = require("../../constants");
 const { ZuoyebangApiClient } = require("./api-client");
+const {
+  assertRuntimeAccountId,
+  createSourceRequestAudit,
+  hasRuntimeCookie,
+  hasRuntimeAccountId,
+  healthCheckFromAuthenticate,
+  runtimeAccountIdFailure,
+} = require("../_runtime-cookie-source");
 
 const NAME = "edu-zuoyebang";
 const VERSION = "0.2.0";
@@ -68,6 +77,12 @@ class ZuoyebangAdapter {
   constructor(opts = {}) {
     this.account = opts.account || null;
     this.name = NAME;
+    this.defaultScope = createAccountScopeFromAccount(
+      NAME,
+      this.account || opts,
+      ["uid", "userId", "accountId"],
+    );
+    this.runtimeScopeIdentityKey = "uid";
     this.version = VERSION;
     this.capabilities = [
       "sync:snapshot",
@@ -76,7 +91,7 @@ class ZuoyebangAdapter {
       "parse:zuoyebang-study-session",
     ];
     this.extractMode = "web-api";
-    this.rateLimits = {};
+    this.rateLimits = { perMinute: 8, perDay: 200 };
     this.dataDisclosure = {
       fields: [
         "zuoyebang:profile (uid / nickname / grade)",
@@ -87,6 +102,7 @@ class ZuoyebangAdapter {
       defaultInclude: { profile: true, study: true },
     };
     this.apiClient = new ZuoyebangApiClient(opts);
+    this._fetch = typeof opts.fetch === "function" ? opts.fetch : null;
     // Test seam: override how the live client is built per-sync (inject fetch).
     this._apiClientFactory =
       typeof opts.apiClientFactory === "function"
@@ -104,7 +120,10 @@ class ZuoyebangAdapter {
         allowedEventKinds: VALID_SNAPSHOT_KINDS,
       });
     }
-    if (ctx && typeof ctx.cookie === "string" && ctx.cookie.length > 0) {
+    if (hasRuntimeCookie(ctx) && !hasRuntimeAccountId(ctx)) {
+      return runtimeAccountIdFailure(NAME);
+    }
+    if (hasRuntimeCookie(ctx)) {
       if (!this.apiClient.hasSession(ctx.cookie)) {
         return {
           ok: false,
@@ -112,7 +131,11 @@ class ZuoyebangAdapter {
           message: `edu-zuoyebang.authenticate: ${this.apiClient.lastError.message}`,
         };
       }
-      return { ok: true, mode: "cookie" };
+      return {
+        ok: true,
+        account: String(ctx.accountId).trim(),
+        mode: "cookie",
+      };
     }
     return {
       ok: false,
@@ -122,8 +145,8 @@ class ZuoyebangAdapter {
     };
   }
 
-  async healthCheck() {
-    return { ok: true, lastChecked: Date.now() };
+  async healthCheck(opts = {}) {
+    return healthCheckFromAuthenticate(this, opts);
   }
 
   async *sync(opts = {}) {
@@ -131,7 +154,8 @@ class ZuoyebangAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    if (typeof opts.cookie === "string" && opts.cookie.length > 0) {
+    if (hasRuntimeCookie(opts)) {
+      assertRuntimeAccountId(NAME, opts);
       yield* this._syncViaLive(opts);
       return;
     }
@@ -141,10 +165,17 @@ class ZuoyebangAdapter {
   }
 
   async *_syncViaLive(opts) {
+    assertRuntimeAccountId(NAME, opts);
+    const sourceRequestAudit = createSourceRequestAudit(
+      opts,
+      `${NAME}:live`,
+      this._fetch,
+    );
+    const liveOpts = { ...opts, fetch: sourceRequestAudit.fetch };
     const client = this._apiClientFactory
-      ? this._apiClientFactory(opts)
+      ? this._apiClientFactory(liveOpts)
       : new ZuoyebangApiClient({
-          fetch: opts.fetch,
+          fetch: sourceRequestAudit.fetch,
           baseUrl: opts.baseUrl,
           userInfoPath: opts.userInfoPath,
           studyRecordsPath: opts.studyRecordsPath,
@@ -163,6 +194,7 @@ class ZuoyebangAdapter {
       limit: opts.limit,
       offset: opts.offset,
     });
+    sourceRequestAudit.throwIfPermitFailed();
     if (result === null) {
       const e = client.lastError;
       throw new Error(

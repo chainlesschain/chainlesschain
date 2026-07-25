@@ -25,7 +25,9 @@
  */
 
 const fs = require("node:fs");
+const crypto = require("node:crypto");
 const { newId } = require("../../ids");
+const { createAccountScopeFromAccount } = require("../../account-scope");
 const {
   probeJsonSnapshotFile,
   readJsonSnapshot,
@@ -36,10 +38,21 @@ const {
   ITEM_SUBTYPES,
   CAPTURED_BY,
 } = require("../../constants");
+const {
+  assertRuntimeAccountId,
+  createSourceRequestAudit,
+  hasRuntimeCookie,
+  hasRuntimeAccountId,
+  healthCheckFromAuthenticate,
+  runtimeAccountIdFailure,
+} = require("../_runtime-cookie-source");
 
 const NAME = "weread";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
+const DEFAULT_MAX_BOOKS_PER_SYNC = 25;
+const MAX_BOOKS_PER_SYNC = 100;
+const CURSOR_VERSION = 1;
 
 const KIND_BOOK = "book";
 const KIND_HIGHLIGHT = "highlight";
@@ -84,9 +97,17 @@ class WeReadAdapter {
   constructor(opts = {}) {
     this._cookie = opts.cookie || null;
     this._dataPath = opts.inputPath || null;
+    this._fetch = typeof opts.fetch === "function" ? opts.fetch : null;
     this._apiClientFactory = opts.apiClientFactory || null; // test seam
 
     this.name = NAME;
+    this.defaultScope = createAccountScopeFromAccount(
+      NAME,
+      opts.account || opts,
+      ["vid", "userId", "accountId"],
+    );
+    this.runtimeScopeIdentityKey = "vid";
+    this.watermarkStrategy = "explicit";
     this.version = VERSION;
     this.capabilities = [
       "sync:cookie",
@@ -96,7 +117,7 @@ class WeReadAdapter {
       "parse:weread-review",
     ];
     this.extractMode = "web-api";
-    this.rateLimits = { perMinute: 30 };
+    this.rateLimits = { perMinute: 30, perDay: 1200 };
     this.dataDisclosure = {
       fields: [
         "weread:book (书名 / 作者 / 笔记数)",
@@ -111,15 +132,6 @@ class WeReadAdapter {
   }
 
   async authenticate(ctx = {}) {
-    if (ctx && ctx.readinessOnly) {
-      if (this._cookie) return { ok: true, mode: "configured" };
-      return {
-        ok: false,
-        reason: "INVALID_COOKIE",
-        message:
-          "weread: 需登录微信读书网页版抓取 cookie（或选择已采集的快照文件）",
-      };
-    }
     if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
       return probeJsonSnapshotFile(this._deps.fs, ctx.inputPath, {
         maxBytes: ctx.maxSnapshotBytes,
@@ -128,7 +140,31 @@ class WeReadAdapter {
         allowedEventKinds: VALID_KINDS,
       });
     }
-    if (ctx.cookie || this._cookie) return { ok: true, mode: "cookie" };
+    if (hasRuntimeCookie(ctx) && !hasRuntimeAccountId(ctx)) {
+      return runtimeAccountIdFailure(NAME);
+    }
+    if (ctx && ctx.readinessOnly) {
+      if (this._cookie || hasRuntimeCookie(ctx)) {
+        return {
+          ok: true,
+          account: hasRuntimeCookie(ctx) ? String(ctx.accountId).trim() : null,
+          mode: this._cookie ? "configured" : "cookie",
+        };
+      }
+      return {
+        ok: false,
+        reason: "INVALID_COOKIE",
+        message:
+          "weread: 需登录微信读书网页版抓取 cookie（或选择已采集的快照文件）",
+      };
+    }
+    if (hasRuntimeCookie(ctx) || this._cookie) {
+      return {
+        ok: true,
+        account: hasRuntimeCookie(ctx) ? String(ctx.accountId).trim() : null,
+        mode: "cookie",
+      };
+    }
     return {
       ok: false,
       reason: "INVALID_COOKIE",
@@ -137,8 +173,8 @@ class WeReadAdapter {
     };
   }
 
-  async healthCheck() {
-    return { ok: true, lastChecked: Date.now() };
+  async healthCheck(opts = {}) {
+    return healthCheckFromAuthenticate(this, opts);
   }
 
   async *sync(opts = {}) {
@@ -147,6 +183,7 @@ class WeReadAdapter {
       yield* this._syncViaSnapshot({ ...opts, inputPath });
       return;
     }
+    assertRuntimeAccountId(NAME, opts);
     const cookie = opts.cookie || this._cookie;
     if (cookie) {
       yield* this._syncViaCookie({ ...opts, cookie });
@@ -158,11 +195,17 @@ class WeReadAdapter {
   }
 
   async *_syncViaCookie(opts) {
+    const sourceRequestAudit = createSourceRequestAudit(
+      opts,
+      `${NAME}:live`,
+      this._fetch,
+    );
+    const liveOpts = { ...opts, fetch: sourceRequestAudit.fetch };
     const client = this._apiClientFactory
-      ? this._apiClientFactory(opts)
+      ? this._apiClientFactory(liveOpts)
       : new (require("./api-client").WeReadApiClient)({
           cookie: opts.cookie,
-          fetch: opts.fetch,
+          fetch: sourceRequestAudit.fetch,
           baseUrl: opts.baseUrl,
         });
     const emit = (phase, extra) => {
@@ -175,18 +218,23 @@ class WeReadAdapter {
       }
     };
 
-    const maxBooks =
+    const requestedMaxBooks =
       Number.isInteger(opts.maxBooks) && opts.maxBooks > 0
         ? opts.maxBooks
-        : 500;
+        : DEFAULT_MAX_BOOKS_PER_SYNC;
+    const maxBooks = Math.min(requestedMaxBooks, MAX_BOOKS_PER_SYNC);
     const includeNotes = opts.includeNotes !== false; // pull highlights/reviews per book
     const books = await client.getNotebooks();
-    emit("notebooks", { count: books.length });
+    sourceRequestAudit.throwIfPermitFailed();
+    const startIndex = resolveBookStartIndex(books, opts.sinceWatermark);
+    const selectedBooks = books.slice(startIndex, startIndex + maxBooks);
+    emit("notebooks", {
+      count: books.length,
+      startIndex,
+      selectedCount: selectedBooks.length,
+    });
 
-    let bookN = 0;
-    for (const b of books) {
-      if (bookN >= maxBooks) break;
-      bookN += 1;
+    for (const b of selectedBooks) {
       yield {
         adapter: NAME,
         kind: KIND_BOOK,
@@ -198,6 +246,7 @@ class WeReadAdapter {
       if (!includeNotes || !b.bookId) continue;
       // Highlights
       const marks = await client.getBookmarks(b.bookId);
+      sourceRequestAudit.throwIfPermitFailed();
       for (const m of marks) {
         yield {
           adapter: NAME,
@@ -209,6 +258,7 @@ class WeReadAdapter {
       }
       // Reviews / thoughts
       const reviews = await client.getReviews(b.bookId);
+      sourceRequestAudit.throwIfPermitFailed();
       for (const r of reviews) {
         yield {
           adapter: NAME,
@@ -223,6 +273,10 @@ class WeReadAdapter {
         marks: marks.length,
         reviews: reviews.length,
       });
+    }
+    const lastBook = selectedBooks[selectedBooks.length - 1];
+    if (lastBook && typeof opts.updateWatermark === "function") {
+      opts.updateWatermark(serializeBookCursor(lastBook.bookId));
     }
   }
 
@@ -269,6 +323,48 @@ class WeReadAdapter {
       return normalizeReview(raw.payload, raw, ingestedAt);
     throw new Error(`WeReadAdapter.normalize: unknown kind ${kind}`);
   }
+}
+
+function resolveBookStartIndex(books, watermark) {
+  const after = parseBookCursor(watermark);
+  if (!after || !Array.isArray(books) || books.length === 0) return 0;
+  const previousIndex = books.findIndex(
+    (book) => bookCursorKey(book && book.bookId) === after,
+  );
+  return previousIndex >= 0 && previousIndex + 1 < books.length
+    ? previousIndex + 1
+    : 0;
+}
+
+function serializeBookCursor(bookId) {
+  return JSON.stringify({
+    v: CURSOR_VERSION,
+    after: bookCursorKey(bookId),
+  });
+}
+
+function parseBookCursor(value) {
+  if (typeof value !== "string" || value.length === 0 || value.length > 256) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(value);
+    return parsed &&
+      parsed.v === CURSOR_VERSION &&
+      typeof parsed.after === "string" &&
+      /^[a-f0-9]{64}$/u.test(parsed.after)
+      ? parsed.after
+      : null;
+  } catch (_error) {
+    return null;
+  }
+}
+
+function bookCursorKey(bookId) {
+  return crypto
+    .createHash("sha256")
+    .update(String(bookId == null ? "" : bookId), "utf8")
+    .digest("hex");
 }
 
 function buildSource(raw, occurredAt) {

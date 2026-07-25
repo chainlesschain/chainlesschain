@@ -10,6 +10,8 @@ const { WeReadAdapter } = require("../../lib/adapters/weread");
 const { WeReadApiClient } = require("../../lib/adapters/weread/api-client");
 const { partitionBatch } = require("../../lib/batch");
 
+const ACCOUNT_ID = "wr-vid-1";
+
 // ── stub fetch returning canned WeRead JSON by URL ──────────────────────
 function makeFetch(routes) {
   return async (url) => {
@@ -132,7 +134,11 @@ describe("WeReadAdapter — cookie mode", () => {
   it("fetches book + highlight + review and normalizes to a valid batch", async () => {
     const a = new WeReadAdapter();
     const raws = await collect(
-      a.sync({ cookie: "wr_skey=x", fetch: makeFetch(ROUTES) }),
+      a.sync({
+        cookie: "wr_skey=x",
+        accountId: ACCOUNT_ID,
+        fetch: makeFetch(ROUTES),
+      }),
     );
     expect(raws.map((r) => r.kind)).toEqual(["book", "highlight", "review"]);
     const merged = {
@@ -161,9 +167,92 @@ describe("WeReadAdapter — cookie mode", () => {
   it("includeNotes:false yields only book events", async () => {
     const a = new WeReadAdapter();
     const raws = await collect(
-      a.sync({ cookie: "x", fetch: makeFetch(ROUTES), includeNotes: false }),
+      a.sync({
+        cookie: "x",
+        accountId: ACCOUNT_ID,
+        fetch: makeFetch(ROUTES),
+        includeNotes: false,
+      }),
     );
     expect(raws.map((r) => r.kind)).toEqual(["book"]);
+  });
+
+  it("resumes bounded notebook batches with an opaque explicit cursor", async () => {
+    const books = Array.from({ length: 55 }, (_unused, index) => ({
+      bookId: `book-${index}`,
+      title: `Book ${index}`,
+    }));
+    const a = new WeReadAdapter({
+      apiClientFactory: () => ({
+        getNotebooks: async () => books,
+        getBookmarks: async () => [],
+        getReviews: async () => [],
+      }),
+    });
+    const run = async (sinceWatermark) => {
+      let watermark = null;
+      const raws = await collect(
+        a.sync({
+          cookie: "wr_skey=x",
+          accountId: ACCOUNT_ID,
+          includeNotes: false,
+          sinceWatermark,
+          updateWatermark: (value) => {
+            watermark = value;
+          },
+        }),
+      );
+      return { raws, watermark };
+    };
+
+    const first = await run();
+    const second = await run(first.watermark);
+    const third = await run(second.watermark);
+    const wrapped = await run(third.watermark);
+
+    expect(a.watermarkStrategy).toBe("explicit");
+    expect(first.raws.map((raw) => raw.payload.bookId)).toEqual(
+      books.slice(0, 25).map((book) => book.bookId),
+    );
+    expect(second.raws.map((raw) => raw.payload.bookId)).toEqual(
+      books.slice(25, 50).map((book) => book.bookId),
+    );
+    expect(third.raws.map((raw) => raw.payload.bookId)).toEqual(
+      books.slice(50).map((book) => book.bookId),
+    );
+    expect(wrapped.raws.map((raw) => raw.payload.bookId)).toEqual(
+      books.slice(0, 25).map((book) => book.bookId),
+    );
+    for (const result of [first, second, third]) {
+      expect(result.watermark).toMatch(/^\{"v":1,"after":"[a-f0-9]{64}"\}$/u);
+      expect(result.watermark).not.toContain("book-");
+    }
+  });
+
+  it("caps an explicit maxBooks override within one source-request budget", async () => {
+    const books = Array.from({ length: 125 }, (_unused, index) => ({
+      bookId: `book-${index}`,
+      title: `Book ${index}`,
+    }));
+    const a = new WeReadAdapter({
+      apiClientFactory: () => ({
+        getNotebooks: async () => books,
+        getBookmarks: async () => [],
+        getReviews: async () => [],
+      }),
+    });
+
+    const raws = await collect(
+      a.sync({
+        cookie: "wr_skey=x",
+        accountId: ACCOUNT_ID,
+        includeNotes: false,
+        maxBooks: 1000,
+      }),
+    );
+
+    expect(raws).toHaveLength(100);
+    expect(a.rateLimits).toEqual({ perMinute: 30, perDay: 1200 });
   });
 });
 

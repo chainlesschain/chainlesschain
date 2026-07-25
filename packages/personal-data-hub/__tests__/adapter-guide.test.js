@@ -110,6 +110,26 @@ describe("adapter-guide", () => {
     expect(text).toMatch(/保留旧水位/u);
   });
 
+  it("documents the guarded one-shot source URL for Didi Consumer", () => {
+    const guide = getAdapterGuide("travel-didi-consumer", "travel");
+    const text = [
+      guide.summary,
+      ...guide.methods.flatMap((method) => [
+        method.label,
+        ...method.steps,
+        method.note || "",
+      ]),
+    ].join(" ");
+
+    expect(guide.methods[0].recommended).toBe(true);
+    expect(text).toContain("sync-adapter travel-didi-consumer");
+    expect(text).toContain("--cookie-file");
+    expect(text).toContain("--account-id");
+    expect(text).toContain("--source-url");
+    expect(text).toContain("xiaojukeji.com");
+    expect(text).toContain("CC_PDH_SOURCE_URL");
+  });
+
   it("documents snapshot-first and transient cookie collection for Zhihu", () => {
     const guide = getAdapterGuide("social-zhihu", "social");
     const text = [

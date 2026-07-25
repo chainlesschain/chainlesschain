@@ -7,6 +7,8 @@
  * playlist). QQ音乐 web (y.qq.com) endpoints fetched via a generic injected
  * `fetchFn` + optional signProvider seam (best-effort, endpoints NOT
  * field-verified — FAMILY-23 playbook; overridable via opts.*Url).
+ * Cookie API mode accepts configured account.cookies or transient opts.cookie +
+ * opts.accountId credentials.
  *
  * Snapshot schema (schemaVersion 1, mirrors music-kugou):
  *   {
@@ -36,7 +38,11 @@ const {
   ITEM_SUBTYPES,
   CAPTURED_BY,
 } = require("../../constants");
-const { CookieAuth } = require("../shopping-base");
+const {
+  CookieAuth,
+  hasRuntimeCookie,
+  resolveCookieContext,
+} = require("../shopping-base");
 
 const NAME = "music-qq";
 const VERSION = "0.2.0";
@@ -115,6 +121,7 @@ class QQMusicAdapter {
     };
 
     this.name = NAME;
+    this.runtimeScopeIdentityKey = "userId";
     this.version = VERSION;
     this.watermarkStrategy = "partitioned";
     this.watermarkStreams = VALID_KINDS;
@@ -127,7 +134,7 @@ class QQMusicAdapter {
       "parse:qqmusic-playlist",
     ];
     this.extractMode = "web-api";
-    this.rateLimits = {};
+    this.rateLimits = { perMinute: 30, perDay: 500 };
     this.dataDisclosure = {
       fields: [
         "qqmusic:play (歌名 / 歌手 / 专辑)",
@@ -151,8 +158,23 @@ class QQMusicAdapter {
         allowedEventKinds: VALID_KINDS,
       });
     }
-    if (this._cookieAuth) {
-      const ok = await this._cookieAuth.validate();
+    if (hasRuntimeCookie(ctx) && !hasRuntimeAccountId(ctx)) {
+      return {
+        ok: false,
+        reason: "NO_ACCOUNT_ID",
+        message:
+          "music-qq cookie mode requires opts.accountId for an isolated watermark scope",
+      };
+    }
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts: ctx,
+      platform: "qqmusic",
+      identityKey: "userId",
+    });
+    if (cookieAuth) {
+      const ok = await cookieAuth.validate();
       if (!ok)
         return {
           ok: false,
@@ -161,7 +183,8 @@ class QQMusicAdapter {
         };
       return {
         ok: true,
-        account: (this.account && this.account.userId) || null,
+        account:
+          (account && (account.userId || account.uin || account.uid)) || null,
         mode: "cookie",
       };
     }
@@ -169,18 +192,20 @@ class QQMusicAdapter {
       ok: false,
       reason: "NO_INPUT",
       message:
-        "music-qq.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)",
+        "music-qq.authenticate: needs opts.inputPath (snapshot mode), configured account.cookies, or opts.cookie + opts.accountId (cookie-api mode)",
     };
   }
 
-  async healthCheck() {
-    if (this._cookieAuth) {
-      const r = await this.authenticate();
-      return r.ok
-        ? { ok: true, lastChecked: Date.now() }
-        : { ok: false, reason: r.reason, error: r.error };
-    }
-    return { ok: true, lastChecked: Date.now() };
+  async healthCheck(opts = {}) {
+    const result = await this.authenticate(opts);
+    return result.ok
+      ? { ok: true, lastChecked: Date.now() }
+      : {
+          ok: false,
+          reason: result.reason,
+          error: result.error || result.message,
+          lastChecked: Date.now(),
+        };
   }
 
   targetWatermarkKeys(opts = {}) {
@@ -196,12 +221,12 @@ class QQMusicAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    if (this._cookieAuth) {
+    if (this._cookieAuth || hasRuntimeCookie(opts)) {
       yield* this._syncViaCookie(opts);
       return;
     }
     throw new Error(
-      "music-qq.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)",
+      "music-qq.sync: needs opts.inputPath (snapshot mode), configured account.cookies, or opts.cookie + opts.accountId (cookie-api mode)",
     );
   }
 
@@ -245,8 +270,20 @@ class QQMusicAdapter {
   }
 
   async *_syncViaCookie(opts = {}) {
-    if (!(await this._cookieAuth.validate())) return;
-    const cookies = this._cookieAuth.toHeader();
+    if (hasRuntimeCookie(opts) && !hasRuntimeAccountId(opts)) {
+      throw new Error(
+        "music-qq._syncViaCookie: opts.accountId required for transient cookie collection",
+      );
+    }
+    const { cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts,
+      platform: "qqmusic",
+      identityKey: "userId",
+    });
+    if (!cookieAuth || !(await cookieAuth.validate())) return;
+    const cookies = cookieAuth.toHeader();
     const include = opts.include || {};
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
@@ -282,12 +319,24 @@ class QQMusicAdapter {
         const query = { page, num: PAGE_SIZE };
         let sign = null;
         if (this._signProvider)
-          sign = await this._signProvider({ url: step.url, query, cookies });
+          sign = await this._signProvider({
+            url: step.url,
+            query,
+            cookies,
+            signal: opts.signal,
+          });
+        if (typeof opts.beforeSourceRequest === "function") {
+          await opts.beforeSourceRequest({
+            operation: step.kind,
+            page,
+          });
+        }
         const resp = await this._fetchFn({
           url: step.url,
           cookies,
           query,
           sign,
+          signal: opts.signal,
         });
         const items = extractList(resp, step.kind);
         if (!items.length) {
@@ -509,6 +558,14 @@ function normalizePlaylist(p, raw, ingestedAt) {
       },
     ],
   };
+}
+
+function hasRuntimeAccountId(opts = {}) {
+  const value = opts.userId != null ? opts.userId : opts.accountId;
+  return (
+    (typeof value === "string" && value.trim().length > 0) ||
+    (typeof value === "number" && Number.isFinite(value))
+  );
 }
 
 async function defaultFetch(_opts) {

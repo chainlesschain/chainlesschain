@@ -44,7 +44,11 @@ const {
   normalizeTravelRecord,
   parseChineseDateTime,
 } = require("../travel-base");
-const { CookieAuth } = require("../shopping-base");
+const {
+  CookieAuth,
+  hasRuntimeCookie,
+  resolveCookieContext,
+} = require("../shopping-base");
 
 const NAME = "travel-tongcheng";
 const VERSION = "0.1.0";
@@ -112,6 +116,7 @@ class TongchengAdapter {
         : TONGCHENG_ORDERS_URL;
 
     this.name = NAME;
+    this.runtimeScopeIdentityKey = "userId";
     this.watermarkStrategy = "max-captured-at";
     this.watermarkRequiresCompleteScan = true;
     this.version = VERSION;
@@ -122,7 +127,7 @@ class TongchengAdapter {
       "parse:tongcheng-orders",
     ];
     this.extractMode = "file-import";
-    this.rateLimits = {};
+    this.rateLimits = { perMinute: 8, perDay: 200 };
     this.dataDisclosure = {
       fields: [
         "tongcheng:orderId / type / fromCity / toCity / dates / passengerName / price / carrier",
@@ -142,8 +147,23 @@ class TongchengAdapter {
         maxBytes: ctx.maxSnapshotBytes,
       });
     }
-    if (this._cookieAuth) {
-      const ok = await this._cookieAuth.validate();
+    if (hasRuntimeCookie(ctx) && !hasRuntimeAccountId(ctx)) {
+      return {
+        ok: false,
+        reason: "NO_ACCOUNT_ID",
+        message:
+          "travel-tongcheng cookie mode requires opts.accountId for an isolated watermark scope",
+      };
+    }
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts: ctx,
+      platform: "tongcheng",
+      identityKey: "userId",
+    });
+    if (cookieAuth) {
+      const ok = await cookieAuth.validate();
       if (!ok) {
         return {
           ok: false,
@@ -162,7 +182,7 @@ class TongchengAdapter {
       // account is OPTIONAL in cookie mode — the .ly.com cookie carries identity.
       return {
         ok: true,
-        account: (this.account && this.account.email) || null,
+        account: (account && (account.email || account.userId)) || null,
         mode: "cookie",
       };
     }
@@ -208,7 +228,7 @@ class TongchengAdapter {
       }
       return;
     }
-    if (this._cookieAuth) {
+    if (this._cookieAuth || hasRuntimeCookie(opts)) {
       yield* this._syncViaCookie(opts);
       return;
     }
@@ -224,8 +244,20 @@ class TongchengAdapter {
    * the existing normalize path applies unchanged) and yields it.
    */
   async *_syncViaCookie(opts = {}) {
-    if (!(await this._cookieAuth.validate())) return;
-    const cookies = this._cookieAuth.toHeader();
+    if (hasRuntimeCookie(opts) && !hasRuntimeAccountId(opts)) {
+      throw new Error(
+        "travel-tongcheng._syncViaCookie: opts.accountId required for transient cookie collection",
+      );
+    }
+    const { cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts,
+      platform: "tongcheng",
+      identityKey: "userId",
+    });
+    if (!cookieAuth || !(await cookieAuth.validate())) return;
+    const cookies = cookieAuth.toHeader();
     const sinceMs =
       opts.sinceWatermark != null
         ? parseInt(String(opts.sinceWatermark), 10) || 0
@@ -253,6 +285,13 @@ class TongchengAdapter {
           url: this._ordersUrl,
           query,
           cookies,
+          signal: opts.signal,
+        });
+      }
+      if (typeof opts.beforeSourceRequest === "function") {
+        await opts.beforeSourceRequest({
+          operation: "orders",
+          page: pageIndex - 1,
         });
       }
       const resp = await this._fetchFn({
@@ -260,6 +299,7 @@ class TongchengAdapter {
         cookies,
         query,
         sign,
+        signal: opts.signal,
       });
       const orders = extractOrders(resp);
       const recognizedPage = hasOrderList(resp);
@@ -532,6 +572,14 @@ function sourcePageState(resp, sourceItemsSeen) {
     }
   }
   return "unknown";
+}
+
+function hasRuntimeAccountId(opts = {}) {
+  const value = opts.userId != null ? opts.userId : opts.accountId;
+  return (
+    (typeof value === "string" && value.trim().length > 0) ||
+    (typeof value === "number" && Number.isFinite(value))
+  );
 }
 
 function numberOrParse(v) {

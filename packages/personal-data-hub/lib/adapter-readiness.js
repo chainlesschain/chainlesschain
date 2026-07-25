@@ -466,6 +466,19 @@ function describeReadiness(reason) {
       appendDetail: true,
     };
   }
+  if (
+    reason === "INVALID_SOURCE_URL" ||
+    (typeof reason === "string" && reason.startsWith("SOURCE_URL_"))
+  ) {
+    return {
+      status: READINESS_STATUS.NEEDS_SETUP,
+      category: READINESS_CATEGORY.CREDENTIAL,
+      message: "The one-shot live source URL is invalid or not allowed",
+      actionHint:
+        "Use a credential-free HTTPS URL on an explicitly allowed official platform domain",
+      appendDetail: true,
+    };
+  }
   const d = (reason && REASONS[reason]) || REASONS.UNKNOWN;
   return {
     status: d.status,

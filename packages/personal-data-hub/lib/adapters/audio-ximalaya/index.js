@@ -11,9 +11,10 @@
  * signProvider seam, keeping this module a pure-Node parser/orchestrator.
  *
  *   1. snapshot mode (opts.inputPath): JSON schemaVersion 1, stateless.
- *   2. cookie-api mode (opts.account.cookies): fetch listen history / favourites /
- *      subscriptions from ximalaya web via the injected fetchFn, paginate; sign
- *      seam (opts.signProvider) for any anti-bot token; endpoints overridable via
+ *   2. cookie-api mode (configured account.cookies or transient opts.cookie +
+ *      opts.accountId): fetch listen history / favourites / subscriptions from
+ *      ximalaya web via the injected fetchFn, paginate; sign seam
+ *      (opts.signProvider) for any anti-bot token; endpoints overridable via
  *      opts.*Url (best-effort, NOT field-verified — FAMILY-23 playbook).
  *
  * Snapshot schema (schemaVersion 1):
@@ -46,7 +47,11 @@ const {
   ITEM_SUBTYPES,
   CAPTURED_BY,
 } = require("../../constants");
-const { CookieAuth } = require("../shopping-base");
+const {
+  CookieAuth,
+  hasRuntimeCookie,
+  resolveCookieContext,
+} = require("../shopping-base");
 
 const NAME = "audio-ximalaya";
 const VERSION = "0.2.0";
@@ -113,6 +118,7 @@ class XimalayaAdapter {
     };
 
     this.name = NAME;
+    this.runtimeScopeIdentityKey = "userId";
     this.version = VERSION;
     this.watermarkStrategy = "partitioned";
     this.watermarkStreams = VALID_KINDS;
@@ -125,7 +131,7 @@ class XimalayaAdapter {
       "parse:ximalaya-subscribe",
     ];
     this.extractMode = "web-api";
-    this.rateLimits = {};
+    this.rateLimits = { perMinute: 30, perDay: 500 };
     this.dataDisclosure = {
       fields: [
         "ximalaya:play (声音标题 / 主播 / 专辑)",
@@ -149,8 +155,23 @@ class XimalayaAdapter {
         allowedEventKinds: VALID_KINDS,
       });
     }
-    if (this._cookieAuth) {
-      const ok = await this._cookieAuth.validate();
+    if (hasRuntimeCookie(ctx) && !hasRuntimeAccountId(ctx)) {
+      return {
+        ok: false,
+        reason: "NO_ACCOUNT_ID",
+        message:
+          "audio-ximalaya cookie mode requires opts.accountId for an isolated watermark scope",
+      };
+    }
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts: ctx,
+      platform: "ximalaya",
+      identityKey: "userId",
+    });
+    if (cookieAuth) {
+      const ok = await cookieAuth.validate();
       if (!ok)
         return {
           ok: false,
@@ -159,7 +180,7 @@ class XimalayaAdapter {
         };
       return {
         ok: true,
-        account: (this.account && this.account.userId) || null,
+        account: (account && (account.userId || account.uid)) || null,
         mode: "cookie",
       };
     }
@@ -167,18 +188,20 @@ class XimalayaAdapter {
       ok: false,
       reason: "NO_INPUT",
       message:
-        "audio-ximalaya.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode)",
+        "audio-ximalaya.authenticate: needs opts.inputPath (snapshot mode), configured account.cookies, or opts.cookie + opts.accountId (cookie-api mode)",
     };
   }
 
-  async healthCheck() {
-    if (this._cookieAuth) {
-      const r = await this.authenticate();
-      return r.ok
-        ? { ok: true, lastChecked: Date.now() }
-        : { ok: false, reason: r.reason, error: r.error };
-    }
-    return { ok: true, lastChecked: Date.now() };
+  async healthCheck(opts = {}) {
+    const result = await this.authenticate(opts);
+    return result.ok
+      ? { ok: true, lastChecked: Date.now() }
+      : {
+          ok: false,
+          reason: result.reason,
+          error: result.error || result.message,
+          lastChecked: Date.now(),
+        };
   }
 
   targetWatermarkKeys(opts = {}) {
@@ -194,12 +217,12 @@ class XimalayaAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    if (this._cookieAuth) {
+    if (this._cookieAuth || hasRuntimeCookie(opts)) {
       yield* this._syncViaCookie(opts);
       return;
     }
     throw new Error(
-      "audio-ximalaya.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie-api mode; ximalaya endpoints may need a sign via opts.signProvider)",
+      "audio-ximalaya.sync: needs opts.inputPath (snapshot mode), configured account.cookies, or opts.cookie + opts.accountId (cookie-api mode; ximalaya endpoints may need a sign via opts.signProvider)",
     );
   }
 
@@ -243,8 +266,20 @@ class XimalayaAdapter {
   }
 
   async *_syncViaCookie(opts = {}) {
-    if (!(await this._cookieAuth.validate())) return;
-    const cookies = this._cookieAuth.toHeader();
+    if (hasRuntimeCookie(opts) && !hasRuntimeAccountId(opts)) {
+      throw new Error(
+        "audio-ximalaya._syncViaCookie: opts.accountId required for transient cookie collection",
+      );
+    }
+    const { cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts,
+      platform: "ximalaya",
+      identityKey: "userId",
+    });
+    if (!cookieAuth || !(await cookieAuth.validate())) return;
+    const cookies = cookieAuth.toHeader();
     const include = opts.include || {};
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
@@ -280,13 +315,25 @@ class XimalayaAdapter {
         const query = { page, pageSize: PAGE_SIZE };
         let sign = null;
         if (this._signProvider) {
-          sign = await this._signProvider({ url: step.url, query, cookies });
+          sign = await this._signProvider({
+            url: step.url,
+            query,
+            cookies,
+            signal: opts.signal,
+          });
+        }
+        if (typeof opts.beforeSourceRequest === "function") {
+          await opts.beforeSourceRequest({
+            operation: step.kind,
+            page,
+          });
         }
         const resp = await this._fetchFn({
           url: step.url,
           cookies,
           query,
           sign,
+          signal: opts.signal,
         });
         const items = extractList(resp, step.kind);
         if (!items.length) {
@@ -519,6 +566,14 @@ function normalizeSubscribe(p, raw, ingestedAt) {
       },
     ],
   };
+}
+
+function hasRuntimeAccountId(opts = {}) {
+  const value = opts.userId != null ? opts.userId : opts.accountId;
+  return (
+    (typeof value === "string" && value.trim().length > 0) ||
+    (typeof value === "number" && Number.isFinite(value))
+  );
 }
 
 async function defaultFetch(_opts) {

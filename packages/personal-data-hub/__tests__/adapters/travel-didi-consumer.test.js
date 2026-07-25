@@ -61,7 +61,7 @@ describe("travel-didi-consumer", () => {
     let signed = 0;
     const a = new dc.DidiConsumerAdapter({
       account: { cookies: COOKIES, phone: "1" },
-      ordersUrl: "https://captured.example/orders",
+      ordersUrl: "https://api.xiaojukeji.com/orders",
       signProvider: async () => {
         signed += 1;
         return "sig";
@@ -93,6 +93,156 @@ describe("travel-didi-consumer", () => {
     expect(signed).toBe(2);
   });
 
+  it("accepts one-shot runtime credentials without mutating the adapter", async () => {
+    const requests = [];
+    let sourceRequests = 0;
+    const a = new dc.DidiConsumerAdapter({
+      fetchFn: async (request) => {
+        requests.push(request);
+        return {
+          orders: [
+            {
+              orderId: "runtime-order",
+              departTime: Date.now(),
+              fromAddress: "A",
+              toAddress: "B",
+            },
+          ],
+          hasMore: false,
+        };
+      },
+    });
+    const options = {
+      cookie: "sid=runtime-secret",
+      accountId: "phone-alias",
+      sourceUrl: "https://api.xiaojukeji.com/orders?session=runtime-url-secret",
+      beforeSourceRequest: async () => {
+        sourceRequests += 1;
+      },
+    };
+
+    expect(await a.authenticate(options)).toMatchObject({
+      ok: true,
+      account: "phone-alias",
+      mode: "cookie",
+      unverified: true,
+    });
+    const items = await collect(a.sync(options));
+    expect(items.map((item) => item.originalId)).toEqual(["runtime-order"]);
+    expect(sourceRequests).toBe(1);
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({
+      url: "https://api.xiaojukeji.com/orders?session=runtime-url-secret",
+      cookies: "sid=runtime-secret",
+    });
+    expect(a.account).toBe(null);
+    expect(a._cookieAuth).toBe(null);
+    expect(a._ordersUrl).toBe(null);
+    expect(a.runtimeScopeIdentityKey).toBe("phone");
+  });
+
+  it("keeps an explicit snapshot ahead of runtime credentials and network", async () => {
+    const p = writeTmp(
+      JSON.stringify([
+        {
+          orderId: "snapshot-wins",
+          fromAddress: "A",
+          toAddress: "B",
+          departTime: 1716383000,
+        },
+      ]),
+    );
+    let fetches = 0;
+    const a = new dc.DidiConsumerAdapter({
+      fetchFn: async () => {
+        fetches += 1;
+        throw new Error("network must not run");
+      },
+    });
+    const options = {
+      inputPath: p,
+      cookie: COOKIES,
+      accountId: "account-a",
+      sourceUrl: "https://evil.example/orders",
+    };
+    try {
+      expect(await a.authenticate(options)).toMatchObject({
+        ok: true,
+        mode: "snapshot-file",
+      });
+      expect(
+        (await collect(a.sync(options))).map((item) => item.originalId),
+      ).toEqual(["snapshot-wins"]);
+      expect(fetches).toBe(0);
+    } finally {
+      fs.unlinkSync(p);
+    }
+  });
+
+  it("rejects missing identity, missing endpoint, and unsafe source URLs", async () => {
+    const a = new dc.DidiConsumerAdapter({ fetchFn: async () => ({}) });
+    expect(
+      await a.authenticate({
+        cookie: COOKIES,
+        sourceUrl: "https://api.xiaojukeji.com/orders",
+      }),
+    ).toMatchObject({ ok: false, reason: "NO_ACCOUNT_ID" });
+    expect(
+      await a.authenticate({ cookie: COOKIES, accountId: "account-a" }),
+    ).toMatchObject({
+      ok: false,
+      reason: "EXPLICIT_ENDPOINT_REQUIRED",
+    });
+
+    const unsafeCases = [
+      ["http://api.xiaojukeji.com/orders", "INVALID_SOURCE_URL"],
+      ["https://user:pass@api.xiaojukeji.com/orders", "INVALID_SOURCE_URL"],
+      [
+        "https://api.xiaojukeji.com/orders#fragment",
+        "SOURCE_URL_FRAGMENT_NOT_ALLOWED",
+      ],
+      ["https://api.xiaojukeji.com:8443/orders", "SOURCE_URL_PORT_NOT_ALLOWED"],
+      [
+        "https://xiaojukeji.com.evil.example/orders",
+        "SOURCE_URL_HOST_NOT_ALLOWED",
+      ],
+      ["https://evilxiaojukeji.com/orders", "SOURCE_URL_HOST_NOT_ALLOWED"],
+      ["https://127.0.0.1/orders", "SOURCE_URL_HOST_NOT_ALLOWED"],
+    ];
+    for (const [sourceUrl, reason] of unsafeCases) {
+      expect(
+        await a.authenticate({
+          cookie: COOKIES,
+          accountId: "account-a",
+          sourceUrl,
+        }),
+        sourceUrl,
+      ).toMatchObject({ ok: false, reason });
+    }
+  });
+
+  it("rejects explicit source errors and unrecognized JSON pages", async () => {
+    const options = {
+      cookie: COOKIES,
+      accountId: "account-a",
+      sourceUrl: "https://api.xiaojukeji.com/orders",
+    };
+    await expect(
+      collect(
+        new dc.DidiConsumerAdapter({
+          fetchFn: async () => ({ success: false, message: "expired" }),
+        }).sync(options),
+      ),
+    ).rejects.toMatchObject({ code: "SOURCE_PAGE_ERROR" });
+    await expect(
+      collect(
+        new dc.DidiConsumerAdapter({
+          fetchFn: async () => ({ data: { unexpected: [] } }),
+        }).sync(options),
+      ),
+    ).rejects.toMatchObject({ code: "SOURCE_PAGE_UNRECOGNIZED" });
+  });
+
   it("medium sensitivity; default fetch throws", async () => {
     expect(new dc.DidiConsumerAdapter().dataDisclosure.sensitivity).toBe(
       "medium",
@@ -105,7 +255,7 @@ describe("travel-didi-consumer", () => {
       reason: "EXPLICIT_ENDPOINT_REQUIRED",
     });
     await expect(collect(unverified.sync({}))).rejects.toThrow(
-      /explicit ordersUrl/,
+      /explicit opts\.sourceUrl or constructor ordersUrl/,
     );
   });
 });

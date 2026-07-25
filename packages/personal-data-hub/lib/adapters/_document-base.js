@@ -80,7 +80,11 @@ function createDocumentAdapter(config) {
   const { NAME, VERSION, platform, defaultListUrl, extractDocs, mapDoc } =
     config;
 
-  const { CookieAuth } = require("./shopping-base");
+  const {
+    CookieAuth,
+    hasRuntimeCookie,
+    resolveCookieContext,
+  } = require("./shopping-base");
 
   function stableOriginalId(id) {
     const safe =
@@ -112,6 +116,7 @@ function createDocumentAdapter(config) {
           : defaultListUrl;
 
       this.name = NAME;
+      this.runtimeScopeIdentityKey = "userId";
       this.watermarkStrategy = "max-captured-at";
       this.watermarkRequiresCompleteScan = true;
       this.version = VERSION;
@@ -145,8 +150,22 @@ function createDocumentAdapter(config) {
           allowedEventKinds: VALID_SNAPSHOT_KINDS,
         });
       }
-      if (this._cookieAuth) {
-        const ok = await this._cookieAuth.validate();
+      if (hasRuntimeCookie(ctx) && !hasRuntimeAccountId(ctx)) {
+        return {
+          ok: false,
+          reason: "NO_ACCOUNT_ID",
+          message: `${NAME} cookie mode requires opts.accountId for an isolated watermark scope`,
+        };
+      }
+      const { account, cookieAuth } = resolveCookieContext({
+        account: this.account,
+        cookieAuth: this._cookieAuth,
+        opts: ctx,
+        platform,
+        identityKey: "userId",
+      });
+      if (cookieAuth) {
+        const ok = await cookieAuth.validate();
         if (!ok)
           return {
             ok: false,
@@ -155,7 +174,7 @@ function createDocumentAdapter(config) {
           };
         return {
           ok: true,
-          account: (this.account && this.account.userId) || null,
+          account: (account && account.userId) || null,
           mode: "cookie",
         };
       }
@@ -166,14 +185,16 @@ function createDocumentAdapter(config) {
       };
     }
 
-    async healthCheck() {
-      if (this._cookieAuth) {
-        const r = await this.authenticate();
-        return r.ok
-          ? { ok: true, lastChecked: Date.now() }
-          : { ok: false, reason: r.reason, error: r.error };
-      }
-      return { ok: true, lastChecked: Date.now() };
+    async healthCheck(opts = {}) {
+      const result = await this.authenticate(opts);
+      return result.ok
+        ? { ok: true, lastChecked: Date.now() }
+        : {
+            ok: false,
+            reason: result.reason,
+            error: result.error || result.message,
+            lastChecked: Date.now(),
+          };
     }
 
     async *sync(opts = {}) {
@@ -181,7 +202,7 @@ function createDocumentAdapter(config) {
         yield* this._syncViaSnapshot(opts);
         return;
       }
-      if (this._cookieAuth) {
+      if (this._cookieAuth || hasRuntimeCookie(opts)) {
         yield* this._syncViaCookie(opts);
         return;
       }
@@ -248,8 +269,20 @@ function createDocumentAdapter(config) {
     }
 
     async *_syncViaCookie(opts = {}) {
-      if (!(await this._cookieAuth.validate())) return;
-      const cookies = this._cookieAuth.toHeader();
+      if (hasRuntimeCookie(opts) && !hasRuntimeAccountId(opts)) {
+        throw new Error(
+          `${NAME}._syncViaCookie: opts.accountId required for transient cookie collection`,
+        );
+      }
+      const { cookieAuth } = resolveCookieContext({
+        account: this.account,
+        cookieAuth: this._cookieAuth,
+        opts,
+        platform,
+        identityKey: "userId",
+      });
+      if (!cookieAuth || !(await cookieAuth.validate())) return;
+      const cookies = cookieAuth.toHeader();
       const include = opts.include || {};
       if (include[KIND_DOCUMENT] === false) return;
       const sinceMs =
@@ -275,6 +308,7 @@ function createDocumentAdapter(config) {
             url: this._listUrl,
             query,
             cookies,
+            signal: opts.signal,
           });
         }
         if (typeof opts.beforeSourceRequest === "function") {
@@ -285,6 +319,7 @@ function createDocumentAdapter(config) {
           cookies,
           query,
           sign,
+          signal: opts.signal,
         });
         const docs = extractDocs(resp, KIND_DOCUMENT);
         if (!Array.isArray(docs)) {
@@ -406,6 +441,14 @@ function normalizeDocumentRecord(rec, raw, platform, NAME, VERSION) {
     places: [],
     topics: [],
   };
+}
+
+function hasRuntimeAccountId(opts = {}) {
+  const value = opts.userId != null ? opts.userId : opts.accountId;
+  return (
+    (typeof value === "string" && value.trim().length > 0) ||
+    (typeof value === "number" && Number.isFinite(value))
+  );
 }
 
 async function defaultFetch(_opts) {

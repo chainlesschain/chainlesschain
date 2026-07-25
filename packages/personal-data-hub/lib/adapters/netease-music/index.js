@@ -30,6 +30,7 @@
 
 const fs = require("node:fs");
 const { newId } = require("../../ids");
+const { createAccountScopeFromAccount } = require("../../account-scope");
 const {
   probeJsonSnapshotFile,
   readJsonSnapshot,
@@ -40,6 +41,14 @@ const {
   ITEM_SUBTYPES,
   CAPTURED_BY,
 } = require("../../constants");
+const {
+  assertRuntimeAccountId,
+  createSourceRequestAudit,
+  hasRuntimeCookie,
+  hasRuntimeAccountId,
+  healthCheckFromAuthenticate,
+  runtimeAccountIdFailure,
+} = require("../_runtime-cookie-source");
 
 const NAME = "netease-music";
 const VERSION = "0.2.0";
@@ -75,12 +84,19 @@ class NeteaseMusicAdapter {
   constructor(opts = {}) {
     this._dataPath = opts.inputPath || null;
     this._cookie = opts.cookie || null;
+    this._fetch = typeof opts.fetch === "function" ? opts.fetch : null;
     // Test seam: override how the live client is built per-sync (inject fetch).
     this._apiClientFactory =
       typeof opts.apiClientFactory === "function"
         ? opts.apiClientFactory
         : null;
     this.name = NAME;
+    this.defaultScope = createAccountScopeFromAccount(
+      NAME,
+      opts.account || opts,
+      ["userId", "uid", "accountId"],
+    );
+    this.runtimeScopeIdentityKey = "userId";
     this.version = VERSION;
     this.capabilities = [
       "sync:snapshot",
@@ -90,7 +106,7 @@ class NeteaseMusicAdapter {
       "parse:netease-playlist",
     ];
     this.extractMode = "web-api";
-    this.rateLimits = {};
+    this.rateLimits = { perMinute: 8, perDay: 200 };
     this.dataDisclosure = {
       fields: [
         "netease:play (歌名 / 歌手 / 专辑 / 播放次数)",
@@ -120,10 +136,19 @@ class NeteaseMusicAdapter {
         allowedEventKinds: VALID_KINDS,
       });
     }
+    if (hasRuntimeCookie(ctx) && !hasRuntimeAccountId(ctx)) {
+      return runtimeAccountIdFailure(NAME);
+    }
     const cookie = (ctx && ctx.cookie) || this._cookie;
     if (cookie) {
       return /MUSIC_U=/.test(cookie)
-        ? { ok: true, mode: "cookie" }
+        ? {
+            ok: true,
+            account: hasRuntimeCookie(ctx)
+              ? String(ctx.accountId).trim()
+              : null,
+            mode: "cookie",
+          }
         : {
             ok: false,
             reason: "INVALID_COOKIE",
@@ -138,13 +163,14 @@ class NeteaseMusicAdapter {
     };
   }
 
-  async healthCheck() {
-    return { ok: true, lastChecked: Date.now() };
+  async healthCheck(opts = {}) {
+    return healthCheckFromAuthenticate(this, opts);
   }
 
   async *sync(opts = {}) {
     const inputPath = opts.inputPath || this._dataPath;
     if (!inputPath) {
+      assertRuntimeAccountId(NAME, opts);
       const cookie = opts.cookie || this._cookie;
       if (cookie) {
         yield* this._syncViaCookie({ ...opts, cookie });
@@ -193,10 +219,16 @@ class NeteaseMusicAdapter {
   }
 
   async *_syncViaCookie(opts) {
+    const sourceRequestAudit = createSourceRequestAudit(
+      opts,
+      `${NAME}:live`,
+      this._fetch,
+    );
+    const liveOpts = { ...opts, fetch: sourceRequestAudit.fetch };
     const client = this._apiClientFactory
-      ? this._apiClientFactory(opts)
+      ? this._apiClientFactory(liveOpts)
       : new (require("./api-client").NeteaseMusicApiClient)({
-          fetch: opts.fetch,
+          fetch: sourceRequestAudit.fetch,
           rand: opts.rand,
           secKey: opts.secKey,
           baseUrl: opts.baseUrl,
@@ -215,6 +247,7 @@ class NeteaseMusicAdapter {
       recordType: opts.recordType,
       playlistLimit: opts.playlistLimit,
     });
+    sourceRequestAudit.throwIfPermitFailed();
     if (result === null) {
       const e = client.lastError;
       throw new Error(

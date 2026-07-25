@@ -51,6 +51,7 @@ const {
   probeJsonSnapshotFile,
   readJsonSnapshot,
 } = require("../../snapshot-file");
+const { createAccountScopeFromAccount } = require("../../account-scope");
 const { newId } = require("../../ids");
 const { extractRecognizedArray } = require("../../source-page");
 const {
@@ -60,7 +61,11 @@ const {
   EVENT_SUBTYPES,
   CAPTURED_BY,
 } = require("../../constants");
-const { CookieAuth } = require("../shopping-base");
+const {
+  CookieAuth,
+  hasRuntimeCookie,
+  resolveCookieContext,
+} = require("../shopping-base");
 
 const NAME = "social-douban";
 const VERSION = "0.1.0";
@@ -131,6 +136,9 @@ function parseTime(v) {
 class DoubanAdapter {
   constructor(opts = {}) {
     this.account = opts.account || null;
+    this.defaultScope = createAccountScopeFromAccount(NAME, this.account, [
+      "userId",
+    ]);
     this._cookieAuth =
       opts.account && opts.account.cookies
         ? new CookieAuth({ platform: "douban", cookies: opts.account.cookies })
@@ -146,6 +154,7 @@ class DoubanAdapter {
     };
 
     this.name = NAME;
+    this.runtimeScopeIdentityKey = "userId";
     this.version = VERSION;
     this.watermarkStrategy = "max-captured-at";
     this.watermarkRequiresCompleteScan = true;
@@ -182,40 +191,57 @@ class DoubanAdapter {
         allowedEventKinds: VALID_SNAPSHOT_KINDS,
       });
     }
-    if (this._cookieAuth) {
-      const ok = await this._cookieAuth.validate();
+    if (hasRuntimeCookie(ctx) && !hasRuntimeUserId(ctx)) {
+      return {
+        ok: false,
+        reason: "NO_ACCOUNT_USER_ID",
+        message:
+          "cookie-api mode requires opts.accountId (douban numeric id) for an isolated watermark scope",
+      };
+    }
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts: ctx,
+      platform: "douban",
+      identityKey: "userId",
+    });
+    if (cookieAuth) {
+      const ok = await cookieAuth.validate();
       if (!ok)
         return {
           ok: false,
           reason: "INVALID_COOKIE",
           error: "cookies missing",
         };
-      if (!this.account || !this.account.userId) {
+      if (!account || !account.userId) {
         return {
           ok: false,
           reason: "NO_ACCOUNT_USER_ID",
           message:
-            "cookie-api mode requires account.userId (douban numeric id)",
+            "cookie-api mode requires account.userId or opts.accountId (douban numeric id)",
         };
       }
-      return { ok: true, account: this.account.userId, mode: "cookie" };
+      return { ok: true, account: account.userId, mode: "cookie" };
     }
     return {
       ok: false,
       reason: "NO_INPUT",
       message:
-        "social-douban.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies + userId (cookie-api mode)",
+        "social-douban.authenticate: needs opts.inputPath (snapshot mode) OR configured account.cookies + userId OR opts.cookie + opts.accountId (cookie-api mode)",
     };
   }
 
   async healthCheck(opts = {}) {
-    if (this._cookieAuth) {
-      const r = await this.authenticate(opts);
-      return r.ok
-        ? { ok: true, lastChecked: Date.now() }
-        : { ok: false, reason: r.reason, error: r.error };
-    }
-    return { ok: true, lastChecked: Date.now() };
+    const result = await this.authenticate(opts);
+    return result.ok
+      ? { ok: true, lastChecked: Date.now() }
+      : {
+          ok: false,
+          reason: result.reason,
+          error: result.error || result.message,
+          lastChecked: Date.now(),
+        };
   }
 
   async *sync(opts = {}) {
@@ -223,12 +249,12 @@ class DoubanAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
-    if (this._cookieAuth) {
+    if (this._cookieAuth || hasRuntimeCookie(opts)) {
       yield* this._syncViaCookie(opts);
       return;
     }
     throw new Error(
-      "social-douban.sync: needs opts.inputPath (snapshot mode) OR opts.account.cookies + userId (cookie-api mode; Frodo endpoints need apikey/_sig via opts.signProvider)",
+      "social-douban.sync: needs opts.inputPath (snapshot mode) OR configured account.cookies + userId OR opts.cookie + opts.accountId (cookie-api mode; Frodo endpoints need apikey/_sig via opts.signProvider)",
     );
   }
 
@@ -286,13 +312,26 @@ class DoubanAdapter {
   }
 
   async *_syncViaCookie(opts = {}) {
-    if (!this.account || !this.account.userId) {
+    if (hasRuntimeCookie(opts) && !hasRuntimeUserId(opts)) {
       throw new Error(
-        "social-douban._syncViaCookie: account.userId required (set via new DoubanAdapter({ account: { userId, cookies } }))",
+        "social-douban._syncViaCookie: opts.accountId required for transient cookie collection",
       );
     }
-    if (!(await this._cookieAuth.validate())) return;
-    const id = encodeURIComponent(this.account.userId);
+    const { account, cookieAuth } = resolveCookieContext({
+      account: this.account,
+      cookieAuth: this._cookieAuth,
+      opts,
+      platform: "douban",
+      identityKey: "userId",
+    });
+    if (!account || !account.userId) {
+      throw new Error(
+        "social-douban._syncViaCookie: account.userId or opts.accountId required",
+      );
+    }
+    if (!cookieAuth || !(await cookieAuth.validate())) return;
+    const cookies = cookieAuth.toHeader();
+    const id = encodeURIComponent(account.userId);
     const include = opts.include || {};
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
@@ -336,7 +375,8 @@ class DoubanAdapter {
           sign = await this._signProvider({
             url: baseUrl,
             query,
-            cookies: this._cookieAuth.toHeader(),
+            cookies,
+            signal: opts.signal,
           });
         }
         if (typeof opts.beforeSourceRequest === "function") {
@@ -344,9 +384,10 @@ class DoubanAdapter {
         }
         const resp = await this._fetchFn({
           url: baseUrl,
-          cookies: this._cookieAuth.toHeader(),
+          cookies,
           query,
           sign,
+          signal: opts.signal,
         });
         const items = extractData(resp, step.kind);
         if (!items.length) {
@@ -420,6 +461,14 @@ function extractData(resp, kind) {
 function isEnd(resp, start, batch) {
   if (resp && Number.isFinite(resp.total)) return start + batch >= resp.total;
   return false;
+}
+
+function hasRuntimeUserId(opts = {}) {
+  const value = opts.userId != null ? opts.userId : opts.accountId;
+  return (
+    (typeof value === "string" && value.trim().length > 0) ||
+    (typeof value === "number" && Number.isFinite(value))
+  );
 }
 
 function itemId(it) {

@@ -143,13 +143,15 @@ class MeituanAdapter {
   }
 
   async healthCheck(opts = {}) {
-    if (this._cookieAuth || hasRuntimeCookie(opts)) {
-      const r = await this.authenticate(opts);
-      return r.ok
-        ? { ok: true, lastChecked: Date.now() }
-        : { ok: false, reason: r.reason, error: r.error };
-    }
-    return { ok: true, lastChecked: Date.now() };
+    const result = await this.authenticate(opts);
+    return result.ok
+      ? { ok: true, lastChecked: Date.now() }
+      : {
+          ok: false,
+          reason: result.reason,
+          error: result.error || result.message,
+          lastChecked: Date.now(),
+        };
   }
 
   async *sync(opts = {}) {

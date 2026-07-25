@@ -60,9 +60,6 @@ function exportedCollectors() {
         name: instance.name,
         extractMode: instance.extractMode || "web-api",
         capabilities: instance.capabilities || [],
-        placeholderFetch:
-          typeof instance._fetchFn === "function" &&
-          instance._fetchFn.name === "defaultFetch",
       });
   }
   return { collectors, failed };
@@ -85,18 +82,9 @@ describe("generated app-data catalog completeness", () => {
       catalog.adapters.map((item) => [item.name, item]),
     );
     for (const collector of collectors) {
-      expect(catalogByName.get(collector.name).extractMode).toBe(
-        collector.extractMode,
-      );
-    }
-    for (const collector of collectors.filter(
-      (item) => item.placeholderFetch,
-    )) {
-      const capabilities = catalogByName.get(collector.name).capabilities;
-      expect(capabilities).not.toContain("sync:cookie-api");
-      if (collector.capabilities.includes("sync:cookie-api")) {
-        expect(capabilities).toContain("sync:custom-cookie-api");
-      }
+      const catalogEntry = catalogByName.get(collector.name);
+      expect(catalogEntry.extractMode).toBe(collector.extractMode);
+      expect(catalogEntry.capabilities).toEqual(collector.capabilities);
     }
     expect(catalogByName.get("hbuilderx").category).toBe("本地/系统");
     expect(catalogByName.get("jetbrains-ide").category).toBe("本地/系统");

@@ -38,6 +38,7 @@
 "use strict";
 
 const fs = require("node:fs");
+const { createAccountScopeFromAccount } = require("../account-scope");
 const { newId } = require("../ids");
 const { probeJsonSnapshotFile, readJsonSnapshot } = require("../snapshot-file");
 const {
@@ -87,7 +88,11 @@ function createVideoAdapter(config) {
     extractItems,
     mapItem,
   } = config;
-  const { CookieAuth } = require("./shopping-base");
+  const {
+    CookieAuth,
+    hasRuntimeCookie,
+    resolveCookieContext,
+  } = require("./shopping-base");
 
   function stableOriginalId(kind, id) {
     const safe =
@@ -104,6 +109,9 @@ function createVideoAdapter(config) {
   class VideoAdapter {
     constructor(opts = {}) {
       this.account = opts.account || null;
+      this.defaultScope = createAccountScopeFromAccount(NAME, this.account, [
+        "userId",
+      ]);
       this._cookieAuth =
         opts.account && opts.account.cookies
           ? new CookieAuth({ platform, cookies: opts.account.cookies })
@@ -118,6 +126,7 @@ function createVideoAdapter(config) {
       };
 
       this.name = NAME;
+      this.runtimeScopeIdentityKey = "userId";
       this.version = VERSION;
       this.watermarkStrategy = "max-captured-at";
       this.watermarkRequiresCompleteScan = true;
@@ -128,7 +137,7 @@ function createVideoAdapter(config) {
         `parse:${platform}-favourite`,
       ];
       this.extractMode = "web-api";
-      this.rateLimits = {};
+      this.rateLimits = { perMinute: 30, perDay: 500 };
       this.dataDisclosure = {
         fields: [
           `${platform}:watch (title / category / episode / channel)`,
@@ -154,8 +163,22 @@ function createVideoAdapter(config) {
           allowedEventKinds: VALID_SNAPSHOT_KINDS,
         });
       }
-      if (this._cookieAuth) {
-        const ok = await this._cookieAuth.validate();
+      if (hasRuntimeCookie(ctx) && !hasRuntimeAccountId(ctx)) {
+        return {
+          ok: false,
+          reason: "NO_ACCOUNT_ID",
+          message: `${NAME} cookie mode requires opts.accountId for an isolated watermark scope`,
+        };
+      }
+      const { account, cookieAuth } = resolveCookieContext({
+        account: this.account,
+        cookieAuth: this._cookieAuth,
+        opts: ctx,
+        platform,
+        identityKey: "userId",
+      });
+      if (cookieAuth) {
+        const ok = await cookieAuth.validate();
         if (!ok)
           return {
             ok: false,
@@ -164,7 +187,7 @@ function createVideoAdapter(config) {
           };
         return {
           ok: true,
-          account: (this.account && this.account.userId) || null,
+          account: (account && account.userId) || null,
           mode: "cookie",
         };
       }
@@ -175,14 +198,16 @@ function createVideoAdapter(config) {
       };
     }
 
-    async healthCheck() {
-      if (this._cookieAuth) {
-        const r = await this.authenticate();
-        return r.ok
-          ? { ok: true, lastChecked: Date.now() }
-          : { ok: false, reason: r.reason, error: r.error };
-      }
-      return { ok: true, lastChecked: Date.now() };
+    async healthCheck(opts = {}) {
+      const result = await this.authenticate(opts);
+      return result.ok
+        ? { ok: true, lastChecked: Date.now() }
+        : {
+            ok: false,
+            reason: result.reason,
+            error: result.error || result.message,
+            lastChecked: Date.now(),
+          };
     }
 
     async *sync(opts = {}) {
@@ -190,7 +215,7 @@ function createVideoAdapter(config) {
         yield* this._syncViaSnapshot(opts);
         return;
       }
-      if (this._cookieAuth) {
+      if (this._cookieAuth || hasRuntimeCookie(opts)) {
         yield* this._syncViaCookie(opts);
         return;
       }
@@ -254,8 +279,20 @@ function createVideoAdapter(config) {
     }
 
     async *_syncViaCookie(opts = {}) {
-      if (!(await this._cookieAuth.validate())) return;
-      const cookies = this._cookieAuth.toHeader();
+      if (hasRuntimeCookie(opts) && !hasRuntimeAccountId(opts)) {
+        throw new Error(
+          `${NAME}._syncViaCookie: opts.accountId required for transient cookie collection`,
+        );
+      }
+      const { cookieAuth } = resolveCookieContext({
+        account: this.account,
+        cookieAuth: this._cookieAuth,
+        opts,
+        platform,
+        identityKey: "userId",
+      });
+      if (!cookieAuth || !(await cookieAuth.validate())) return;
+      const cookies = cookieAuth.toHeader();
       const include = opts.include || {};
       const limit =
         Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
@@ -287,7 +324,12 @@ function createVideoAdapter(config) {
           const query = { page, pageSize: PAGE_SIZE };
           let sign = null;
           if (this._signProvider) {
-            sign = await this._signProvider({ url: step.url, query, cookies });
+            sign = await this._signProvider({
+              url: step.url,
+              query,
+              cookies,
+              signal: opts.signal,
+            });
           }
           if (typeof opts.beforeSourceRequest === "function") {
             await opts.beforeSourceRequest({ operation: step.kind, page });
@@ -297,6 +339,7 @@ function createVideoAdapter(config) {
             cookies,
             query,
             sign,
+            signal: opts.signal,
           });
           const items = extractItems(resp, step.kind);
           if (!Array.isArray(items)) {
@@ -439,6 +482,14 @@ function normalizeVideoRecord(
     places: [],
     topics: [],
   };
+}
+
+function hasRuntimeAccountId(opts = {}) {
+  const value = opts.userId != null ? opts.userId : opts.accountId;
+  return (
+    (typeof value === "string" && value.trim().length > 0) ||
+    (typeof value === "number" && Number.isFinite(value))
+  );
 }
 
 async function defaultFetch(_opts) {

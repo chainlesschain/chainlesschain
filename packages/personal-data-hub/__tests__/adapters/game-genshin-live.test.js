@@ -33,12 +33,15 @@ function makeFetch(routes, calls) {
       ok: route.status ? route.status >= 200 && route.status < 300 : true,
       status: route.status || 200,
       text: async () =>
-        typeof route.body === "string" ? route.body : JSON.stringify(route.body),
+        typeof route.body === "string"
+          ? route.body
+          : JSON.stringify(route.body),
     };
   };
 }
 
 const COOKIE = "account_id_v2=809199; cookie_token_v2=abc; ltoken_v2=xyz";
+const ACCOUNT_ID = "809199";
 
 describe("genDs — DS v1 dynamic-secret signing", () => {
   it("produces `${t},${r},${c}` with c = md5(salt&t&r), deterministic under seams", () => {
@@ -84,12 +87,20 @@ describe("GenshinApiClient.fetchProfiles — live (mocked fetch)", () => {
         },
         {
           match: "game_record/app/genshin/api/index",
-          body: { retcode: 0, message: "OK", data: { stats: { active_day_number: 421 } } },
+          body: {
+            retcode: 0,
+            message: "OK",
+            data: { stats: { active_day_number: 421 } },
+          },
         },
       ],
       calls,
     );
-    const client = new GenshinApiClient({ fetch, now: FIXED_NOW, rand: FIXED_RAND });
+    const client = new GenshinApiClient({
+      fetch,
+      now: FIXED_NOW,
+      rand: FIXED_RAND,
+    });
     const profiles = await client.fetchProfiles(COOKIE);
     expect(profiles).toHaveLength(1);
     expect(profiles[0]).toMatchObject({
@@ -121,13 +132,21 @@ describe("GenshinApiClient.fetchProfiles — live (mocked fetch)", () => {
           match: "getUserGameRolesByCookie",
           body: {
             retcode: 0,
-            data: { list: [{ game_uid: "1", nickname: "a", level: 1, region: "cn_qd01" }] },
+            data: {
+              list: [
+                { game_uid: "1", nickname: "a", level: 1, region: "cn_qd01" },
+              ],
+            },
           },
         },
       ],
       calls,
     );
-    const client = new GenshinApiClient({ fetch, now: FIXED_NOW, rand: FIXED_RAND });
+    const client = new GenshinApiClient({
+      fetch,
+      now: FIXED_NOW,
+      rand: FIXED_RAND,
+    });
     const profiles = await client.fetchProfiles(COOKIE, { fetchStats: false });
     expect(profiles[0].activeDayNumber).toBeNull();
     expect(calls.some((c) => c.url.includes("/index"))).toBe(false);
@@ -136,10 +155,19 @@ describe("GenshinApiClient.fetchProfiles — live (mocked fetch)", () => {
   it("maps mihoyo retcode != 0 to null + lastError (e.g. 1034 risk-control)", async () => {
     const calls = [];
     const fetch = makeFetch(
-      [{ match: "getUserGameRolesByCookie", body: { retcode: 1034, message: "请进行验证" } }],
+      [
+        {
+          match: "getUserGameRolesByCookie",
+          body: { retcode: 1034, message: "请进行验证" },
+        },
+      ],
       calls,
     );
-    const client = new GenshinApiClient({ fetch, now: FIXED_NOW, rand: FIXED_RAND });
+    const client = new GenshinApiClient({
+      fetch,
+      now: FIXED_NOW,
+      rand: FIXED_RAND,
+    });
     const profiles = await client.fetchProfiles(COOKIE);
     expect(profiles).toBeNull();
     expect(client.lastError.code).toBe(1034);
@@ -164,7 +192,11 @@ describe("GenshinApiClient.fetchProfiles — live (mocked fetch)", () => {
       [{ match: "getUserGameRolesByCookie", status: 503, body: "down" }],
       calls,
     );
-    const client = new GenshinApiClient({ fetch, now: FIXED_NOW, rand: FIXED_RAND });
+    const client = new GenshinApiClient({
+      fetch,
+      now: FIXED_NOW,
+      rand: FIXED_RAND,
+    });
     expect(await client.fetchProfiles(COOKIE)).toBeNull();
     expect(client.lastError.code).toBe(503);
   });
@@ -173,14 +205,17 @@ describe("GenshinApiClient.fetchProfiles — live (mocked fetch)", () => {
 describe("GenshinAdapter — cookie (live) sync mode", () => {
   it("authenticate accepts a valid cookie (mode: cookie)", async () => {
     const a = new GenshinAdapter();
-    const r = await a.authenticate({ cookie: COOKIE });
+    const r = await a.authenticate({ cookie: COOKIE, accountId: ACCOUNT_ID });
     expect(r.ok).toBe(true);
     expect(r.mode).toBe("cookie");
   });
 
   it("authenticate rejects guest cookie (no uid)", async () => {
     const a = new GenshinAdapter();
-    const r = await a.authenticate({ cookie: "foo=bar" });
+    const r = await a.authenticate({
+      cookie: "foo=bar",
+      accountId: ACCOUNT_ID,
+    });
     expect(r.ok).toBe(false);
     expect(r.reason).toBe("INVALID_COOKIE");
   });
@@ -195,7 +230,13 @@ describe("GenshinAdapter — cookie (live) sync mode", () => {
             retcode: 0,
             data: {
               list: [
-                { game_uid: "800000001", nickname: "旅行者", level: 58, region: "cn_gf01", region_name: "天空岛" },
+                {
+                  game_uid: "800000001",
+                  nickname: "旅行者",
+                  level: 58,
+                  region: "cn_gf01",
+                  region_name: "天空岛",
+                },
               ],
             },
           },
@@ -209,7 +250,13 @@ describe("GenshinAdapter — cookie (live) sync mode", () => {
     );
     const a = new GenshinAdapter();
     const raws = [];
-    for await (const r of a.sync({ cookie: COOKIE, fetch, now: FIXED_NOW, rand: FIXED_RAND })) {
+    for await (const r of a.sync({
+      cookie: COOKIE,
+      accountId: ACCOUNT_ID,
+      fetch,
+      now: FIXED_NOW,
+      rand: FIXED_RAND,
+    })) {
       raws.push(r);
     }
     expect(raws).toHaveLength(1);
@@ -227,12 +274,24 @@ describe("GenshinAdapter — cookie (live) sync mode", () => {
   it("sync via cookie throws (mapped lastError) on API risk-control", async () => {
     const calls = [];
     const fetch = makeFetch(
-      [{ match: "getUserGameRolesByCookie", body: { retcode: 10001, message: "登录失效" } }],
+      [
+        {
+          match: "getUserGameRolesByCookie",
+          body: { retcode: 10001, message: "登录失效" },
+        },
+      ],
       calls,
     );
     const a = new GenshinAdapter();
     await expect(async () => {
-      for await (const _ of a.sync({ cookie: COOKIE, fetch, now: FIXED_NOW, rand: FIXED_RAND })) void _;
+      for await (const _ of a.sync({
+        cookie: COOKIE,
+        accountId: ACCOUNT_ID,
+        fetch,
+        now: FIXED_NOW,
+        rand: FIXED_RAND,
+      }))
+        void _;
     }).rejects.toThrow(/登录失效|code 10001/);
   });
 });

@@ -180,6 +180,19 @@ describe("AdapterRegistry.readiness()", () => {
     expect(r.actionHint).toMatch(/snapshot|endpoint/i);
   });
 
+  it("maps rejected live source URLs to actionable credential setup", () => {
+    for (const reason of [
+      "INVALID_SOURCE_URL",
+      "SOURCE_URL_HOST_NOT_ALLOWED",
+      "SOURCE_URL_PORT_NOT_ALLOWED",
+    ]) {
+      const r = describeReadiness(reason);
+      expect(r.status).toBe(READINESS_STATUS.NEEDS_SETUP);
+      expect(r.category).toBe(READINESS_CATEGORY.CREDENTIAL);
+      expect(r.actionHint).toMatch(/HTTPS.*official/i);
+    }
+  });
+
   it("maps unverified SQLite schemas to snapshot setup instead of ready", () => {
     const r = describeReadiness("EXPLICIT_SCHEMA_REQUIRED");
     expect(r.status).toBe(READINESS_STATUS.NEEDS_SETUP);

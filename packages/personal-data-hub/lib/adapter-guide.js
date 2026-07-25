@@ -759,6 +759,31 @@ const ADAPTER_OVERRIDES = Object.freeze({
     ],
   },
 
+  "travel-didi-consumer": {
+    summary:
+      "采集滴滴出行个人版行程。推荐导入本人导出的 JSON 快照；也可使用一次性 Cookie、稳定本地账号标识和从本人授权会话捕获的订单接口直接采集。",
+    methods: [
+      {
+        label: "导入滴滴行程 JSON（推荐）",
+        recommended: true,
+        steps: [
+          "从本人设备或个人数据导出流程准备包含订单列表的 JSON 文件。",
+          "在数据中台选择 travel-didi-consumer，并选择该文件采集。",
+        ],
+      },
+      {
+        label: "临时 Cookie + 显式订单接口",
+        steps: [
+          "在本人已登录的滴滴会话中捕获订单列表请求，复制 Cookie 和完整 HTTPS 请求 URL。",
+          "选择稳定的本地账号标识；它只会被哈希后用于隔离同步水位。",
+          "执行 `cc hub sync-adapter travel-didi-consumer --cookie-file <cookie.txt> --account-id <本地账号标识> --source-url <捕获的HTTPS订单URL>`。",
+          "中台只接受 xiaojukeji.com 官方域及其子域、默认 HTTPS 端口和无 URL 凭据的地址。",
+        ],
+        note: "Cookie、明文账号标识和带签名参数的 URL 都仅用于本次调用，不会写入适配器、Vault 或审计日志。若 URL 含敏感查询参数，优先使用 CC_PDH_SOURCE_URL，避免放入命令历史。",
+      },
+    ],
+  },
+
   "travel-12306": {
     summary:
       "采集 12306 已完成与待支付车票。稳定路径是 Android 采集快照或兼容 JSON；也可用单次临时 Cookie 从官方订单接口直采，Cookie 不写入账号库。",
@@ -947,9 +972,9 @@ const ADAPTER_OVERRIDES = Object.freeze({
         steps: [
           "电脑浏览器登录 weread.qq.com（微信扫码）。",
           "在中台点这一行采集，按提示粘贴登录态 cookie（或用内置登录窗口抓取）。",
-          "中台自动拉取你有笔记的书 + 划线 + 想法入库。",
+          "中台每轮默认拉取 25 本有笔记的书 + 划线 + 想法；再次采集会从加密 Vault 中的匿名游标继续。",
         ],
-        note: "cookie 仅本地保存；wr_skey 会过期，过期后重新登录抓取即可。纯个人使用。",
+        note: "Cookie 和明文账号标识只用于本次调用，不会保存；续扫游标不含原始书籍 ID。wr_skey 过期后重新登录抓取即可。纯个人使用。",
       },
       {
         label: "已有快照文件则直接选择采集",
