@@ -1,5 +1,21 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.72] - Live-session slash command parity (2026-07-25)
+
+- Route `/status`, `/doctor`, `/mcp`, `/hooks`, `/permissions`, `/agents`,
+  `/tasks`, and `/memory` through the active agent session, matching VS Code;
+  the output now describes the current tab's model, permissions, MCP servers,
+  hooks, tasks, agents, and loaded memory instead of an unrelated top-level CLI
+  invocation.
+- Use one command manifest for completion, aliases, `/help`, descriptions, and
+  execution routes. The `/resume` alias and all shared command descriptions now
+  match the VS Code panel.
+- Add `/expand` to expand or collapse all extended-reasoning blocks, completing
+  the VS Code panel command list.
+- Preserve session and CLI arguments, render structured session-command
+  results, report older unsupported CLIs, and apply the same read-only
+  `/plugin` argument policy as VS Code.
+
 ## [0.4.71] - IntelliJ 2026.2 Marketplace verifier clean (2026-07-25)
 
 - Removed the sole internal-API usage reported by IntelliJ IDEA 2026.2.1:

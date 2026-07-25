@@ -130,6 +130,39 @@ class ChatEventsTest {
         assertNull(ChatEvents.mapAgentEvent(null, new ChatEvents.TurnState()));
     }
 
+    @Test
+    void successfulSessionSlashResultMapsToPreformattedOutput() {
+        Map<String, Object> event = new LinkedHashMap<>();
+        event.put("type", "slash_command_result");
+        event.put("request_id", "slash-1");
+        event.put("command", "status");
+        event.put("ok", true);
+        event.put("text", "session: ready\nmodel: doubao");
+
+        Map<String, Object> ui =
+                ChatEvents.mapAgentEvent(event, new ChatEvents.TurnState());
+        assertEquals("pre", ui.get("kind"));
+        assertEquals("session: ready\nmodel: doubao", ui.get("text"));
+    }
+
+    @Test
+    void failedSessionSlashResultMapsStructuredMessageToVisibleError() {
+        Map<String, Object> error = new LinkedHashMap<>();
+        error.put("code", "UNSUPPORTED_ARGUMENTS");
+        error.put("message", "/permissions is read-only over stream-json");
+        Map<String, Object> event = new LinkedHashMap<>();
+        event.put("type", "slash_command_result");
+        event.put("request_id", "slash-2");
+        event.put("command", "permissions");
+        event.put("ok", false);
+        event.put("error", error);
+
+        Map<String, Object> ui =
+                ChatEvents.mapAgentEvent(event, new ChatEvents.TurnState());
+        assertEquals("error", ui.get("kind"));
+        assertEquals("/permissions is read-only over stream-json", ui.get("text"));
+    }
+
     // ── stream_retry + budget events (byte-identical to the VS mapper) ──────
 
     @Test

@@ -10,6 +10,8 @@ import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 import java.awt.Color;
 import java.awt.Font;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The chat transcript pane: styled streaming text with the markdown
@@ -29,6 +31,25 @@ final class ChatTranscript {
     // streamed text that gets re-styled as markdown when the run finalizes.
     private int assistantRunStart = -1;
     private boolean inAssistantRun = false;
+    // Extended-thinking deltas form blocks separated by visible non-thinking
+    // output. Their document ranges let /expand replace each block with a
+    // compact placeholder and later restore the exact text.
+    private final List<ThinkingBlock> thinkingBlocks = new ArrayList<>();
+    private ThinkingBlock activeThinkingBlock;
+    private boolean thinkingExpanded = true;
+
+    private static final String THINKING_PLACEHOLDER = "thinking (collapsed)\n";
+
+    private static final class ThinkingBlock {
+        int start;
+        int end;
+        String hiddenText;
+
+        ThinkingBlock(int start, int end) {
+            this.start = start;
+            this.end = end;
+        }
+    }
 
     ChatTranscript() {
         pane.setEditable(false);
@@ -68,6 +89,7 @@ final class ChatTranscript {
     /** A plain transcript line (header / tool / info / error). Ends any pending
      *  assistant markdown run first so it gets re-styled before this line. */
     void append(String s) {
+        closeThinkingBlock();
         finalizeAssistantRun();
         insertStyled(s, stylePlain);
     }
@@ -75,6 +97,7 @@ final class ChatTranscript {
     /** Streaming assistant text — appended plain; re-styled with markdown when
      *  the run finalizes (so streaming stays responsive, then snaps to styled). */
     void appendAssistantDelta(String s) {
+        closeThinkingBlock();
         if (!inAssistantRun) {
             assistantRunStart = pane.getStyledDocument().getLength();
             inAssistantRun = true;
@@ -84,8 +107,86 @@ final class ChatTranscript {
 
     /** Extended-thinking reasoning — streamed dim/italic, not markdown-rendered. */
     void appendThinking(String s) {
+        closeThinkingBlock();
         finalizeAssistantRun();
         insertStyled(s, styleDim);
+    }
+
+    /** A collapsible extended-thinking delta from the live agent session. */
+    void appendReasoning(String s) {
+        finalizeAssistantRun();
+        StyledDocument document = pane.getStyledDocument();
+        if (activeThinkingBlock == null) {
+            int start = document.getLength();
+            activeThinkingBlock = new ThinkingBlock(start, start);
+            thinkingBlocks.add(activeThinkingBlock);
+            if (!thinkingExpanded) {
+                activeThinkingBlock.hiddenText = "";
+                activeThinkingBlock.end =
+                        start + THINKING_PLACEHOLDER.length();
+                insertStyled(THINKING_PLACEHOLDER, styleDim);
+            }
+        }
+        if (thinkingExpanded) {
+            activeThinkingBlock.end = document.getLength() + s.length();
+            insertStyled(s, styleDim);
+            if (activeThinkingBlock != null) {
+                activeThinkingBlock.end =
+                        pane.getStyledDocument().getLength();
+            }
+        } else {
+            activeThinkingBlock.hiddenText += s;
+            trimHiddenReasoning();
+        }
+    }
+
+    /**
+     * Expand every reasoning block when any block is collapsed; otherwise
+     * collapse them all. Returns false when the transcript has no blocks.
+     */
+    boolean toggleAllReasoning() {
+        closeThinkingBlock();
+        finalizeAssistantRun();
+        if (thinkingBlocks.isEmpty()) return false;
+        StyledDocument document = pane.getStyledDocument();
+        final boolean following = isFollowingBottom();
+        try {
+            for (int i = thinkingBlocks.size() - 1; i >= 0; i--) {
+                ThinkingBlock block = thinkingBlocks.get(i);
+                int length = Math.max(0, block.end - block.start);
+                if (thinkingExpanded) {
+                    block.hiddenText = document.getText(block.start, length);
+                    document.remove(block.start, length);
+                    document.insertString(
+                            block.start, THINKING_PLACEHOLDER, styleDim);
+                    block.end = block.start + THINKING_PLACEHOLDER.length();
+                } else {
+                    document.remove(block.start, length);
+                    String text = block.hiddenText == null
+                            ? "" : block.hiddenText;
+                    document.insertString(block.start, text, styleDim);
+                    block.end = block.start + text.length();
+                    block.hiddenText = null;
+                }
+                int delta = (block.end - block.start) - length;
+                for (int j = i + 1; j < thinkingBlocks.size(); j++) {
+                    ThinkingBlock later = thinkingBlocks.get(j);
+                    later.start += delta;
+                    later.end += delta;
+                }
+            }
+            thinkingExpanded = !thinkingExpanded;
+            stickToBottomIfFollowing(following);
+            pane.revalidate();
+            pane.repaint();
+            return true;
+        } catch (BadLocationException ignored) {
+            return false;
+        }
+    }
+
+    private void closeThinkingBlock() {
+        activeThinkingBlock = null;
     }
 
     /** Re-render the just-streamed assistant run as markdown (code → monospace
@@ -119,6 +220,9 @@ final class ChatTranscript {
     void clear() {
         inAssistantRun = false;
         assistantRunStart = -1;
+        activeThinkingBlock = null;
+        thinkingBlocks.clear();
+        thinkingExpanded = true;
         pane.setText("");
     }
 
@@ -135,12 +239,44 @@ final class ChatTranscript {
                     d.getLength(), assistantRunStart, inAssistantRun,
                     TranscriptCap.DEFAULT_MAX_CHARS);
             if (removeLen > 0) {
+                trimThinkingBlocks(removeLen);
                 d.remove(0, removeLen);
                 if (assistantRunStart >= 0) assistantRunStart -= removeLen;
             }
             stickToBottomIfFollowing(following);
         } catch (BadLocationException ignored) {
             /* document offsets are append-only here — should not happen */
+        }
+    }
+
+    /** Shift tracked reasoning ranges when the transcript evicts its prefix. */
+    private void trimThinkingBlocks(int removeLen) {
+        for (int i = thinkingBlocks.size() - 1; i >= 0; i--) {
+            ThinkingBlock block = thinkingBlocks.get(i);
+            if (block.end <= removeLen) {
+                if (activeThinkingBlock == block) activeThinkingBlock = null;
+                thinkingBlocks.remove(i);
+                continue;
+            }
+            block.start = Math.max(0, block.start - removeLen);
+            block.end -= removeLen;
+        }
+    }
+
+    /** Keep hidden reasoning within the same bound as the visible transcript. */
+    private void trimHiddenReasoning() {
+        int total = 0;
+        for (ThinkingBlock block : thinkingBlocks) {
+            if (block.hiddenText != null) total += block.hiddenText.length();
+        }
+        int excess = total - TranscriptCap.DEFAULT_MAX_CHARS;
+        if (excess <= 0) return;
+        for (ThinkingBlock block : thinkingBlocks) {
+            if (excess <= 0) break;
+            if (block.hiddenText == null || block.hiddenText.isEmpty()) continue;
+            int remove = Math.min(excess, block.hiddenText.length());
+            block.hiddenText = block.hiddenText.substring(remove);
+            excess -= remove;
         }
     }
 }

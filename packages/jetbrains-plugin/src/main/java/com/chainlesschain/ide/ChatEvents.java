@@ -217,6 +217,31 @@ public final class ChatEvents {
             m.put("text", "compacted: saved " + (saved == null ? "?" : saved) + " tokens");
             return m;
         }
+        if ("slash_command_result".equals(type)) {
+            String command = str(evt, "command", "").replaceFirst("^/+", "");
+            String fallback = command.isEmpty()
+                    ? "session command" : "/" + command;
+            if (isTrue(evt.get("ok"))) {
+                Map<String, Object> m = ui("pre");
+                String text = str(evt, "text", "");
+                m.put("text", text.isEmpty()
+                        ? fallback + ": (no output)" : text);
+                return m;
+            }
+            Object errorValue = evt.get("error");
+            String error;
+            if (errorValue instanceof Map) {
+                Object message = ((Map<?, ?>) errorValue).get("message");
+                error = message == null ? "" : String.valueOf(message);
+            } else {
+                error = errorValue == null ? "" : String.valueOf(errorValue);
+            }
+            Map<String, Object> m = ui("error");
+            String text = str(evt, "text", "");
+            m.put("text", !error.isEmpty() ? error
+                    : !text.isEmpty() ? text : fallback + " failed");
+            return m;
+        }
         if ("result".equals(type)) {
             boolean sawDelta = state.sawDelta;
             state.sawDelta = false; // reset for the next turn

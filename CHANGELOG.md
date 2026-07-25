@@ -31,6 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Release VS Code 0.37.33 and JetBrains 0.4.71 with corrected setup guidance;
   JetBrains 0.4.70 was deleted during Marketplace review and superseded after
   clearing the IntelliJ 2026.2 internal-API warning.
+- Prepare JetBrains 0.4.72 so `/status` and the other live-session slash
+  commands use the same routing, output, aliases, arguments, and help text as
+  the VS Code panel, including `/expand` reasoning-block toggling.
 
 ## [v5.0.3.135] - 2026-07-24 — Python Agent SDK 0.1.0 + CLI/IDE 运行时收口 + 跨端 CI 稳定性
 

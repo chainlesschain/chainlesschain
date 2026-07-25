@@ -15,6 +15,7 @@ import com.chainlesschain.ide.RemoteHandoff;
 import com.chainlesschain.ide.RewindCommands;
 import com.chainlesschain.ide.SessionArgs;
 import com.chainlesschain.ide.SessionList;
+import com.chainlesschain.ide.SlashCommands;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
@@ -139,6 +140,13 @@ final class ConversationView {
     // click on the SAME still-running child hard-kills it (interrupt can't reach
     // a hung child). EDT-only.
     private AgentChatSession interruptRequested;
+    // The live CLI advertises the session-scoped slash commands it supports in
+    // system/init. Null means init has not arrived yet; an empty set means an
+    // older CLI advertised none. Commands submitted during startup are tracked
+    // so init can surface a precise upgrade message instead of silently hanging.
+    private volatile java.util.Set<String> sessionSlashCommands;
+    private final java.util.Set<String> pendingSessionSlashCommands =
+            java.util.concurrent.ConcurrentHashMap.newKeySet();
     // This tab's last successfully-sent user prompt, for /retry (regenerate).
     // Per-view (= per-conversation), so a retry never replays another tab's
     // prompt (mirrors the VS Code panel's lastSentByTab). EDT-only.
@@ -543,9 +551,28 @@ final class ConversationView {
      */
     private void handleSlash(String raw) {
         String[] parts = raw.trim().split("\\s+", 2);
-        String cmd = parts[0].toLowerCase();
-        if ("/".equals(cmd)) {
+        String submitted = parts[0].toLowerCase(java.util.Locale.ROOT);
+        if ("/".equals(submitted)) {
             append("type / followed by a command, or choose one from the suggestions\n");
+            return;
+        }
+        SlashCommands.Definition definition = SlashCommands.find(submitted);
+        if (definition == null) {
+            append("ℹ unknown command " + submitted + " — try /help\n");
+            return;
+        }
+        String cmd = definition.name;
+        String rawArgs = parts.length > 1 ? parts[1] : "";
+        if (definition.route == SlashCommands.Route.SESSION) {
+            runSessionSlashCommand(definition, rawArgs);
+            return;
+        }
+        if (definition.route == SlashCommands.Route.CLI) {
+            runCliCommand(definition, rawArgs);
+            return;
+        }
+        if (definition.route == SlashCommands.Route.HELP) {
+            append(SlashCommands.formatHelp() + "\n");
             return;
         }
         switch (cmd) {
@@ -560,17 +587,6 @@ final class ConversationView {
             case "/loop":
                 setLoop(parts.length > 1 ? parts[1] : "");
                 return;
-            case "/status": runCliCommand("status"); return;
-            case "/doctor": runCliCommand("doctor"); return;
-            case "/init": runCliCommand("init"); return;
-            case "/mcp": runCliCommand("mcp"); return;
-            case "/hooks": runCliCommand("hook"); return;
-            case "/permissions": runCliCommand("permissions"); return;
-            case "/agents": runCliCommand("agents"); return;
-            case "/tasks": runCliCommand("tasks"); return;
-            case "/memory": runCliCommand("memory"); return;
-            case "/plugin": runCliCommand("plugin"); return;
-            case "/release-notes": runCliCommand("changelog"); return;
             case "/stop": {
                 AgentChatSession s = liveSession();
                 // interrupt() writes+flushes the child's stdin under the session
@@ -668,6 +684,11 @@ final class ConversationView {
                 input.setText(lastSentPrompt);
                 sendCurrentInput();
                 return;
+            case "/expand":
+                if (!transcript.toggleAllReasoning()) {
+                    append("ℹ no reasoning blocks to expand yet\n");
+                }
+                return;
             case "/plan":
                 sendPlanAction("enter");
                 append("ℹ plan mode — write tools blocked until you approve\n");
@@ -677,11 +698,6 @@ final class ConversationView {
                 return;
             case "/reject":
                 respondPlan("reject");
-                return;
-            case "/help":
-                append("ℹ commands: /new /stop /compact /auto /bypass /normal /think "
-                        + "/ultrathink /think-off /plan /approve /reject /context /cost "
-                        + "/review /retry /rewind /sessions /handoff\n");
                 return;
             default:
                 append("ℹ unknown command " + cmd + " — try /help\n");
@@ -741,12 +757,93 @@ final class ConversationView {
         append("loop started: every " + delay + "ms\n");
     }
 
-    private void runCliCommand(String command) {
+    /**
+     * Send a diagnostic command to the active agent process. Unlike a top-level
+     * {@code cc status}, these eight routes report this exact tab's model,
+     * permissions, tools, MCP servers, hooks, tasks and loaded memory.
+     */
+    private void runSessionSlashCommand(
+            SlashCommands.Definition definition, String rawArgs) {
+        final String args = rawArgs == null ? "" : rawArgs.trim();
+        if (args.length() > 4096) {
+            append(definition.name + ": arguments are too long\n");
+            return;
+        }
+        try {
+            sendExecutor.execute(() -> {
+                if (disposed) return;
+                try {
+                    ensureSession();
+                    AgentChatSession session = liveSession();
+                    java.util.Set<String> advertised = sessionSlashCommands;
+                    if (advertised != null
+                            && !advertised.contains(definition.target)) {
+                        SwingUtilities.invokeLater(() -> append(
+                                definition.name
+                                + " is not supported by the installed cc CLI. "
+                                + "Upgrade the CLI and retry.\n"));
+                        return;
+                    }
+                    if (advertised == null) {
+                        pendingSessionSlashCommands.add(definition.target);
+                    }
+                    Map<String, Object> event = SlashCommands.sessionEvent(
+                            definition, args,
+                            "slash-" + java.util.UUID.randomUUID());
+                    boolean sent = session != null && session.sendEvent(event);
+                    if (!sent) {
+                        pendingSessionSlashCommands.remove(definition.target);
+                        SwingUtilities.invokeLater(() -> append(
+                                definition.name
+                                + ": could not reach the agent session\n"));
+                    }
+                } catch (IOException error) {
+                    final String message = error.getMessage();
+                    SwingUtilities.invokeLater(() -> append(
+                            definition.name
+                            + ": could not start the agent session: "
+                            + message + "\n"));
+                }
+            });
+        } catch (java.util.concurrent.RejectedExecutionException ignored) {
+            append(definition.name + ": agent session is closed\n");
+        }
+    }
+
+    /** Run one of the three VS Code-parity top-level CLI routes off the EDT. */
+    private void runCliCommand(
+            SlashCommands.Definition definition, String rawArgs) {
+        if (rawArgs != null && rawArgs.length() > 8192) {
+            append(definition.name + ": arguments are too long\n");
+            return;
+        }
+        final List<String> parsed;
+        try {
+            parsed = SlashCommands.splitArguments(rawArgs);
+        } catch (IllegalArgumentException error) {
+            append(definition.name + ": " + error.getMessage() + "\n");
+            return;
+        }
+        if (parsed.size() > 64) {
+            append(definition.name + ": too many arguments\n");
+            return;
+        }
+        String validationError =
+                SlashCommands.validateCliArguments(definition.target, parsed);
+        if (validationError != null) {
+            append(validationError + "\n");
+            return;
+        }
+        final List<String> argv = new ArrayList<>();
+        argv.add(definition.target);
+        argv.addAll(parsed);
         final File cwd = project.getBasePath() != null ? new File(project.getBasePath()) : null;
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            String out = AgentChatSession.runCapture(java.util.Arrays.asList(command), cwd, 30000);
-            SwingUtilities.invokeLater(() -> append("/" + command + ": "
-                    + (out == null || out.trim().isEmpty() ? "(no output)" : out.trim()) + "\n"));
+            String out = AgentChatSession.runCapture(argv, cwd, 30000);
+            SwingUtilities.invokeLater(() -> append(
+                    out == null || out.trim().isEmpty()
+                            ? definition.name + ": (no output)\n"
+                            : out.trim() + "\n"));
         });
     }
 
@@ -1053,6 +1150,8 @@ final class ConversationView {
      */
     void restartForModeChange() {
         conv.turnState = new ChatEvents.TurnState();
+        sessionSlashCommands = null;
+        pendingSessionSlashCommands.clear();
         indexConversation("stopped");
         try {
             sendExecutor.execute(() -> {
@@ -1113,6 +1212,8 @@ final class ConversationView {
         AgentChatSession existing = liveSession();
         if (existing != null && existing.isRunning()) return;
 
+        sessionSlashCommands = null;
+        pendingSessionSlashCommands.clear();
         AgentChatSession.Options o = new AgentChatSession.Options();
         String basePath = project.getBasePath();
         if (basePath != null) o.cwd = new File(basePath);
@@ -1181,6 +1282,31 @@ final class ConversationView {
         o.onEvent = event -> {
             if (event != null && "system".equals(event.get("type"))
                     && "init".equals(event.get("subtype"))) {
+                java.util.Set<String> advertised = new java.util.LinkedHashSet<>();
+                Object rawCommands = event.get("slash_commands");
+                if (rawCommands instanceof List) {
+                    for (Object name : (List<?>) rawCommands) {
+                        if (name != null && !String.valueOf(name).trim().isEmpty()) {
+                            advertised.add(String.valueOf(name).trim());
+                        }
+                    }
+                }
+                sessionSlashCommands =
+                        java.util.Collections.unmodifiableSet(advertised);
+                java.util.List<String> unsupported = new java.util.ArrayList<>();
+                for (String pending : pendingSessionSlashCommands) {
+                    if (!advertised.contains(pending)) unsupported.add(pending);
+                }
+                pendingSessionSlashCommands.clear();
+                if (!unsupported.isEmpty()) {
+                    SwingUtilities.invokeLater(() -> {
+                        java.util.List<String> names = new java.util.ArrayList<>();
+                        for (String name : unsupported) names.add("/" + name);
+                        append(String.join(", ", names)
+                                + " requires a newer cc CLI. Upgrade the CLI, "
+                                + "then retry.\n");
+                    });
+                }
                 Object sid = event.get("session_id");
                 if (sid != null && !String.valueOf(sid).isEmpty()) {
                     conv.sessionId = String.valueOf(sid);
@@ -1228,10 +1354,13 @@ final class ConversationView {
         String kind = String.valueOf(ui.get("kind"));
         if ("init".equals(kind)) {
             append("── " + ui.get("model") + " · " + ui.get("provider") + " ──\n");
+        } else if ("pre".equals(kind)) {
+            String text = String.valueOf(ui.get("text"));
+            append(text + (text.endsWith("\n") ? "" : "\n"));
         } else if ("delta".equals(kind)) {
             appendAssistantDelta(String.valueOf(ui.get("text")));
         } else if ("thinking".equals(kind)) {
-            appendThinking(String.valueOf(ui.get("text")));
+            appendReasoning(String.valueOf(ui.get("text")));
         } else if ("tool".equals(kind)) {
             String summary = String.valueOf(ui.get("summary"));
             append("\n→ " + ui.get("tool") + (summary.isEmpty() ? "" : " " + summary) + "\n");
@@ -2086,6 +2215,10 @@ final class ConversationView {
 
     private void appendThinking(String s) {
         transcript.appendThinking(s);
+    }
+
+    private void appendReasoning(String s) {
+        transcript.appendReasoning(s);
     }
 
     void appendInfo(String s) {

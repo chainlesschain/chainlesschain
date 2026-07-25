@@ -503,10 +503,10 @@ public final class PureLogicSmokeMain {
         List<String[]> rev = SlashCommands.filter("rev");
         check(rev.size() == 1 && rev.get(0)[0].equals("/review"), "rev -> only /review");
         List<String[]> re = SlashCommands.filter("re");
-        check(re.size() == 5 && re.get(0)[0].equals("/reject") && re.get(1)[0].equals("/review")
-                && re.get(2)[0].equals("/retry") && re.get(3)[0].equals("/rewind")
+        check(re.size() == 5 && re.get(0)[0].equals("/reject") && re.get(1)[0].equals("/rewind")
+                && re.get(2)[0].equals("/retry") && re.get(3)[0].equals("/review")
                 && re.get(4)[0].equals("/release-notes"),
-                "re -> /reject /review /retry /rewind /release-notes (menu order)");
+                "re -> /reject /rewind /retry /review /release-notes (VS menu order)");
         List<String[]> ret = SlashCommands.filter("ret");
         check(ret.size() == 1 && ret.get(0)[0].equals("/retry"), "ret -> only /retry");
         List<String[]> sess = SlashCommands.filter("sess");
@@ -514,6 +514,16 @@ public final class PureLogicSmokeMain {
         // label
         eq(SlashCommands.label(new String[] { "/cost", "token cost" }),
                 "/cost  —  token cost", "label format");
+        eq(SlashCommands.find("/resume").name, "/sessions", "/resume alias");
+        eq(SlashCommands.find("/status").route, SlashCommands.Route.SESSION,
+                "/status routes through live session");
+        Map<String, Object> statusEvent = SlashCommands.sessionEvent(
+                SlashCommands.find("/status"), "--verbose", "slash-smoke");
+        eq(statusEvent.get("type"), "slash_command", "session event type");
+        eq(statusEvent.get("command"), "status", "session event command");
+        check(SlashCommands.formatHelp().contains(
+                "/hooks - show hooks loaded in this session"),
+                "help uses manifest descriptions");
     }
 
     private static void binaryResolution() {
