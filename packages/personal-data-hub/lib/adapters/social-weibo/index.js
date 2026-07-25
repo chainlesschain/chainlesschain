@@ -48,10 +48,19 @@
 "use strict";
 
 const fs = require("node:fs");
+const path = require("node:path");
+const crypto = require("node:crypto");
 const {
+  SnapshotFileError,
+  inspectSnapshotFile,
   probeJsonSnapshotFile,
-  readJsonSnapshot,
+  readBoundedSnapshotBuffer,
+  validateJsonSnapshot,
 } = require("../../snapshot-file");
+const {
+  createAccountScope,
+  createAccountScopeFromAccount,
+} = require("../../account-scope");
 const { newId } = require("../../ids");
 const {
   ENTITY_TYPES,
@@ -59,9 +68,16 @@ const {
   EVENT_SUBTYPES,
   CAPTURED_BY,
 } = require("../../constants");
+const {
+  advanceCursor,
+  assertScanIdentity,
+  beginScan,
+  parseCursor,
+  serializeCursor,
+} = require("./scan-cursor");
 
 const NAME = "social-weibo";
-const VERSION = "0.8.0";
+const VERSION = "0.9.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_POST = "post";
@@ -108,7 +124,7 @@ function parseTime(v) {
 function trySelect(db, sql) {
   try {
     return db.prepare(sql).all();
-  } catch (_e) {
+  } catch {
     return null;
   }
 }
@@ -122,6 +138,11 @@ class WeiboAdapter {
     this._dbPath = opts.dbPath || null;
 
     this.name = NAME;
+    this.defaultScope = createAccountScopeFromAccount(
+      NAME,
+      this.account || opts,
+      ["uid", "userId", "accountId", "deviceId"],
+    );
     this.version = VERSION;
     this.capabilities = [
       "sync:snapshot",
@@ -135,6 +156,7 @@ class WeiboAdapter {
     // sqlite mode is the desktop-side; snapshot mode is in-APK Android).
     this.extractMode = "device-pull";
     this.rateLimits = {};
+    this.watermarkStrategy = "explicit";
     this.dataDisclosure = {
       fields: [
         "weibo:posts (text / created_at / reposts_count / comments_count / likes)",
@@ -162,6 +184,40 @@ class WeiboAdapter {
       fs,
       dbDriverFactory: opts.dbDriverFactory || null,
     };
+  }
+
+  fileCheckpointMode() {
+    return "shared";
+  }
+
+  resolveDefaultScope(options = {}) {
+    const hasInputPath =
+      typeof options.inputPath === "string" && options.inputPath.length > 0;
+    if (hasInputPath) {
+      return scopeForLocalFiles(this._deps.fs, {
+        accountScope: this.defaultScope,
+        inputPath: options.inputPath,
+        maxBytes: options.maxSnapshotBytes,
+        mode: "snapshot",
+      });
+    }
+    const dbPath =
+      typeof options.dbPath === "string" && options.dbPath.length > 0
+        ? options.dbPath
+        : this._dbPath;
+    if (!dbPath) return this.defaultScope;
+    const selfUid = sanitizedUid(this.account && this.account.uid);
+    return scopeForLocalFiles(this._deps.fs, {
+      accountScope: this.defaultScope,
+      dbPath,
+      includeDm: options.includeDm === true,
+      messageDbPath: resolveMessageDbPath(options, dbPath, selfUid),
+      mode: "sqlite",
+    });
+  }
+
+  resolveInputScope(options = {}) {
+    return this.resolveDefaultScope(options);
   }
 
   async authenticate(ctx = {}) {
@@ -212,12 +268,11 @@ class WeiboAdapter {
   }
 
   async *_syncViaSnapshot(opts) {
-    const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
-      maxBytes: opts.maxSnapshotBytes,
-      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
-      requiredArrayFields: ["events"],
-      allowedEventKinds: VALID_SNAPSHOT_KINDS,
-    });
+    const { snapshot, source } = readSnapshotSource(
+      this._deps.fs,
+      opts.inputPath,
+      opts.maxSnapshotBytes,
+    );
     const fallbackCapturedAt =
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
@@ -228,18 +283,8 @@ class WeiboAdapter {
         ? snapshot.account
         : null;
     const include = opts.include || {};
-    const limit =
-      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
-
-    const events = Array.isArray(snapshot.events) ? snapshot.events : [];
-    let emitted = 0;
-    for (const ev of events) {
-      if (emitted >= limit) return;
-      if (!ev || typeof ev !== "object") continue;
+    const records = snapshot.events.map((ev) => {
       const kind = ev.kind;
-      if (!VALID_SNAPSHOT_KINDS.includes(kind)) continue;
-      if (include[kind] === false) continue;
-
       const capturedAt =
         parseTime(ev.capturedAt) || parseTime(ev.time) || fallbackCapturedAt;
       const id =
@@ -251,15 +296,20 @@ class WeiboAdapter {
         ev.uid ||
         null;
 
-      yield {
+      return {
         adapter: NAME,
         kind,
         originalId: stableOriginalId(kind, id),
         capturedAt,
         payload: { ...ev, account },
       };
-      emitted += 1;
-    }
+    });
+    yield* this._yieldCollection(opts, {
+      config: collectionConfig("snapshot", include),
+      mode: "snapshot",
+      records: records.filter((record) => include[record.kind] !== false),
+      source,
+    });
   }
 
   async *_syncViaSqlite(opts) {
@@ -272,94 +322,128 @@ class WeiboAdapter {
     }
     const dbPath = opts.dbPath;
     if (!dbPath || !this._deps.fs.existsSync(dbPath)) return;
+    const inspected = inspectSqliteFile(this._deps.fs, dbPath);
+    const fallbackCapturedAt = fileCapturedAt(inspected.stat);
     const Driver = this._deps.dbDriverFactory
       ? this._deps.dbDriverFactory()
       : require("better-sqlite3-multiple-ciphers");
     const db = new Driver(dbPath, { readonly: true });
     // selfUid sanitised to digits — interpolated into a WHERE clause and
     // sourced from wiring config (numeric uin). Defensive against injection.
-    const selfUid = String(this.account.uid).replace(/[^0-9]/g, "");
+    const selfUid = sanitizedUid(this.account.uid);
+    const entries = [];
+    const files = [collectionFileIdentity("main", inspected)];
 
     try {
       // POSTS — device-verified `home_table` (own posts = uid==selfUid);
       // legacy `post`/`status` kept as fallback for older builds.
-      const posts =
-        (selfUid &&
-          trySelect(
-            db,
-            `SELECT * FROM home_table WHERE uid='${selfUid}' ORDER BY time DESC LIMIT 5000`,
-          )) ||
-        trySelect(
-          db,
-          "SELECT * FROM post ORDER BY created_at DESC LIMIT 5000",
-        ) ||
-        trySelect(
-          db,
-          "SELECT * FROM status ORDER BY created_at DESC LIMIT 5000",
-        ) ||
-        [];
-      for (const row of posts) {
-        yield {
-          adapter: NAME,
-          originalId: `post-${row.mblogid || row.id || row.mid || row.idstr}`,
-          capturedAt: parseTime(row.time || row.created_at),
-          payload: { row, kind: KIND_POST },
-        };
+      const postSelection = selectFirstQuery(db, [
+        ...(selfUid
+          ? [
+              {
+                tableName: "home_table",
+                sql: `SELECT * FROM home_table WHERE uid='${selfUid}' ORDER BY time DESC`,
+              },
+            ]
+          : []),
+        {
+          tableName: "post",
+          sql: "SELECT * FROM post ORDER BY created_at DESC",
+        },
+        {
+          tableName: "status",
+          sql: "SELECT * FROM status ORDER BY created_at DESC",
+        },
+      ]);
+      for (const row of postSelection.rows) {
+        entries.push(
+          sqliteEntry({
+            capturedAt:
+              parseTime(row.time || row.created_at) || fallbackCapturedAt,
+            id: row.mblogid || row.id || row.mid || row.idstr,
+            kind: KIND_POST,
+            prefix: "post",
+            role: "main",
+            row,
+            tableName: postSelection.tableName,
+          }),
+        );
       }
 
       // FAVOURITES — device-verified `like_table` (the account's likes).
       // Legacy sqlite had no favourite path (folded into posts pre-A8).
-      const favourites =
-        trySelect(
-          db,
-          "SELECT * FROM like_table ORDER BY time DESC LIMIT 5000",
-        ) || [];
-      for (const row of favourites) {
-        yield {
-          adapter: NAME,
-          originalId: `fav-${row.mblogid || row.id}`,
-          capturedAt: parseTime(row.time),
-          payload: { row, kind: KIND_FAVOURITE },
-        };
+      const favouriteSelection = selectFirstQuery(db, [
+        {
+          tableName: "like_table",
+          sql: "SELECT * FROM like_table ORDER BY time DESC",
+        },
+      ]);
+      for (const row of favouriteSelection.rows) {
+        entries.push(
+          sqliteEntry({
+            capturedAt: parseTime(row.time) || fallbackCapturedAt,
+            id: row.mblogid || row.id,
+            kind: KIND_FAVOURITE,
+            prefix: "fav",
+            role: "main",
+            row,
+            tableName: favouriteSelection.tableName,
+          }),
+        );
       }
 
       // FOLLOWS — device-verified `follower_table`; following=1 ⇒ accounts
       // the user follows (vs followers). Fallback to the whole table.
-      const follows =
-        trySelect(
-          db,
-          "SELECT * FROM follower_table WHERE following=1 ORDER BY user_id LIMIT 5000",
-        ) ||
-        trySelect(db, "SELECT * FROM follower_table LIMIT 5000") ||
-        [];
-      for (const row of follows) {
-        yield {
-          adapter: NAME,
-          originalId: `follow-${row.user_id || row.id}`,
-          capturedAt: parseTime(row.time) || Date.now(),
-          payload: { row, kind: KIND_FOLLOW },
-        };
+      const followSelection = selectFirstQuery(db, [
+        {
+          tableName: "follower_table:following",
+          sql: "SELECT * FROM follower_table WHERE following=1 ORDER BY user_id",
+        },
+        {
+          tableName: "follower_table",
+          sql: "SELECT * FROM follower_table",
+        },
+      ]);
+      for (const row of followSelection.rows) {
+        entries.push(
+          sqliteEntry({
+            capturedAt: parseTime(row.time) || fallbackCapturedAt,
+            id: row.user_id || row.id,
+            kind: KIND_FOLLOW,
+            prefix: "follow",
+            role: "main",
+            row,
+            tableName: followSelection.tableName,
+          }),
+        );
       }
 
       // SEARCH — legacy only (`search_history` doesn't exist on modern
       // weibo; trySelect returns null gracefully, loop is skipped).
-      const searches =
-        trySelect(
-          db,
-          "SELECT * FROM search_history ORDER BY time DESC LIMIT 5000",
-        ) || [];
-      for (const row of searches) {
-        yield {
-          adapter: NAME,
-          originalId: `search-${row.id || row._id}`,
-          capturedAt: parseTime(row.time || row.create_at),
-          payload: { row, kind: KIND_SEARCH },
-        };
+      const searchSelection = selectFirstQuery(db, [
+        {
+          tableName: "search_history",
+          sql: "SELECT * FROM search_history ORDER BY time DESC",
+        },
+      ]);
+      for (const row of searchSelection.rows) {
+        entries.push(
+          sqliteEntry({
+            capturedAt:
+              parseTime(row.time || row.create_at) || fallbackCapturedAt,
+            id: row.id || row._id,
+            kind: KIND_SEARCH,
+            prefix: "search",
+            role: "main",
+            row,
+            tableName: searchSelection.tableName,
+          }),
+        );
       }
     } finally {
       try {
         db.close();
-      } catch (_e) {
+      } catch {
         /* ignore */
       }
     }
@@ -367,8 +451,26 @@ class WeiboAdapter {
     // Private messages live in a SEPARATE sibling DB `message_<uid>.db`.
     // High-sensitivity → opt-in only (opts.includeDm === true).
     if (opts.includeDm === true) {
-      yield* this._syncDmMessages(opts, selfUid);
+      const dmCollection = this._readDmCollection(opts, selfUid);
+      entries.push(...dmCollection.entries);
+      files.push(dmCollection.file);
     }
+    entries.sort((left, right) =>
+      compareCollectionRecords(left.raw, right.raw),
+    );
+    const include = opts.include || {};
+    const selected = entries.filter(
+      (entry) => include[entry.raw.payload.kind] !== false,
+    );
+    yield* this._yieldCollection(opts, {
+      config: collectionConfig("sqlite", include, {
+        includeDm: opts.includeDm === true,
+        selfUid,
+      }),
+      mode: "sqlite",
+      records: selected.map((entry) => entry.raw),
+      source: collectionSource(selected, files),
+    });
   }
 
   // Reads the Weibo private-message DB `message_<uid>.db` (a sibling of the
@@ -378,67 +480,108 @@ class WeiboAdapter {
   //   t_message → EVENT   (messages: time/outgoing/content_type/content/sender_id)
   // Columns confirmed against a real populated device (2026-06-28); t_message
   // content encoding is best-effort (no rows on the reference account).
-  async *_syncDmMessages(opts, selfUid) {
-    const path = require("node:path");
+  _readDmCollection(opts, selfUid) {
     const baseDbPath = opts.dbPath || this._dbPath;
-    const msgDbPath =
-      opts.messageDbPath ||
-      (baseDbPath
-        ? path.join(path.dirname(baseDbPath), `message_${selfUid}.db`)
-        : null);
-    if (!msgDbPath || !this._deps.fs.existsSync(msgDbPath)) return;
+    const msgDbPath = resolveMessageDbPath(opts, baseDbPath, selfUid);
+    if (!msgDbPath || !this._deps.fs.existsSync(msgDbPath)) {
+      return {
+        entries: [],
+        file: missingCollectionFileIdentity("message", msgDbPath),
+      };
+    }
+    const inspected = inspectSqliteFile(this._deps.fs, msgDbPath);
+    const fallbackCapturedAt = fileCapturedAt(inspected.stat);
     const Driver = this._deps.dbDriverFactory
       ? this._deps.dbDriverFactory()
       : require("better-sqlite3-multiple-ciphers");
     const db = new Driver(msgDbPath, { readonly: true });
+    const entries = [];
     try {
       // BUDDIES → PERSON
-      const buddies = trySelect(db, "SELECT * FROM t_buddy LIMIT 5000") || [];
+      const buddies = trySelect(db, "SELECT * FROM t_buddy") || [];
       for (const row of buddies) {
         if (row.uid == null) continue;
-        yield {
-          adapter: NAME,
-          originalId: `dm-buddy-${row.uid}`,
-          capturedAt: Date.now(),
-          payload: { row, kind: KIND_DM_BUDDY },
-        };
+        entries.push(
+          sqliteEntry({
+            capturedAt: fallbackCapturedAt,
+            id: row.uid,
+            kind: KIND_DM_BUDDY,
+            prefix: "dm-buddy",
+            role: "message",
+            row,
+            tableName: "t_buddy",
+          }),
+        );
       }
       // SESSIONS → TOPIC
       const sessions =
-        trySelect(
-          db,
-          "SELECT * FROM t_session ORDER BY update_time DESC LIMIT 5000",
-        ) || [];
+        trySelect(db, "SELECT * FROM t_session ORDER BY update_time DESC") ||
+        [];
       for (const row of sessions) {
         if (row.session_id == null) continue;
-        yield {
-          adapter: NAME,
-          originalId: `dm-session-${row.session_id}`,
-          capturedAt: parseTime(row.update_time) || Date.now(),
-          payload: { row, kind: KIND_DM_SESSION },
-        };
+        entries.push(
+          sqliteEntry({
+            capturedAt: parseTime(row.update_time) || fallbackCapturedAt,
+            id: row.session_id,
+            kind: KIND_DM_SESSION,
+            prefix: "dm-session",
+            role: "message",
+            row,
+            tableName: "t_session",
+          }),
+        );
       }
       // MESSAGES → EVENT (content best-effort; schema device-verified)
       const messages =
-        trySelect(
-          db,
-          "SELECT * FROM t_message ORDER BY time DESC LIMIT 10000",
-        ) || [];
+        trySelect(db, "SELECT * FROM t_message ORDER BY time DESC") || [];
       for (const row of messages) {
-        yield {
-          adapter: NAME,
-          originalId: `dm-msg-${row.global_id || row.id}`,
-          capturedAt: parseTime(row.time) || Date.now(),
-          payload: { row, kind: KIND_DM_MESSAGE },
-        };
+        entries.push(
+          sqliteEntry({
+            capturedAt: parseTime(row.time) || fallbackCapturedAt,
+            id: row.global_id || row.id,
+            kind: KIND_DM_MESSAGE,
+            prefix: "dm-msg",
+            role: "message",
+            row,
+            tableName: "t_message",
+          }),
+        );
       }
     } finally {
       try {
         db.close();
-      } catch (_e) {
+      } catch {
         /* ignore */
       }
     }
+    return {
+      entries,
+      file: collectionFileIdentity("message", inspected),
+    };
+  }
+
+  async *_yieldCollection(opts, { config, mode, records, source }) {
+    const limit =
+      Number.isSafeInteger(opts.limit) && opts.limit > 0
+        ? opts.limit
+        : Infinity;
+    let cursor = prepareCursor(opts.sinceWatermark, {
+      mode,
+      source,
+      config,
+      upper: records.length,
+    });
+    const publish = () => publishCursor(opts, cursor);
+    let emitted = 0;
+    let ordinal = cursor.after ?? 0;
+    while (cursor.upper !== null && emitted < limit) {
+      ordinal += 1;
+      cursor = advanceCursor(cursor, ordinal);
+      publish();
+      yield records[ordinal - 1];
+      emitted += 1;
+    }
+    publish();
   }
 
   normalize(raw) {
@@ -474,6 +617,312 @@ class WeiboAdapter {
     }
     throw new Error(`WeiboAdapter.normalize: unknown kind ${kind}`);
   }
+}
+
+function readSnapshotSource(fsMod, inputPath, maxBytes) {
+  const buffer = readBoundedSnapshotBuffer(fsMod, inputPath, { maxBytes });
+  let snapshot;
+  try {
+    snapshot = JSON.parse(buffer.toString("utf8"));
+  } catch (error) {
+    throw new SnapshotFileError(
+      "SNAPSHOT_JSON_INVALID",
+      "snapshot file must contain valid JSON",
+      { cause: error },
+    );
+  }
+  validateJsonSnapshot(snapshot, {
+    expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+    requiredArrayFields: ["events"],
+    allowedEventKinds: VALID_SNAPSHOT_KINDS,
+  });
+  return { snapshot, source: digest(buffer) };
+}
+
+function digest(value) {
+  return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+function collectionConfig(mode, include, sqlite = {}) {
+  const includeDm = mode === "sqlite" && sqlite.includeDm === true;
+  const kinds =
+    mode === "snapshot"
+      ? VALID_SNAPSHOT_KINDS
+      : [
+          KIND_POST,
+          KIND_FAVOURITE,
+          KIND_FOLLOW,
+          KIND_SEARCH,
+          KIND_DM_BUDDY,
+          KIND_DM_SESSION,
+          KIND_DM_MESSAGE,
+        ];
+  return digest(
+    Buffer.from(
+      JSON.stringify({
+        include: Object.fromEntries(
+          kinds.map((kind) => [
+            kind,
+            kind.startsWith("dm-")
+              ? includeDm && include[kind] !== false
+              : include[kind] !== false,
+          ]),
+        ),
+        includeDm,
+        mode,
+        selfUid: mode === "sqlite" ? sqlite.selfUid || null : null,
+      }),
+      "utf8",
+    ),
+  );
+}
+
+function collectionSource(entries, files) {
+  return digest(
+    Buffer.from(
+      stableStringify({
+        entries: entries.map(({ raw, role, row, tableName }) => ({
+          kind: raw.payload.kind,
+          originalId: raw.originalId,
+          role,
+          row,
+          tableName,
+        })),
+        files,
+      }),
+      "utf8",
+    ),
+  );
+}
+
+function stableStringify(value) {
+  return JSON.stringify(canonicalDigestValue(value));
+}
+
+function canonicalDigestValue(value) {
+  if (typeof value === "bigint") {
+    return { $bigint: value.toString() };
+  }
+  if (Buffer.isBuffer(value)) {
+    return { $buffer: value.toString("base64") };
+  }
+  if (Array.isArray(value)) return value.map(canonicalDigestValue);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, canonicalDigestValue(value[key])]),
+    );
+  }
+  return value;
+}
+
+function compareCollectionRecords(left, right) {
+  const kinds = [
+    KIND_POST,
+    KIND_FAVOURITE,
+    KIND_FOLLOW,
+    KIND_SEARCH,
+    KIND_DM_BUDDY,
+    KIND_DM_SESSION,
+    KIND_DM_MESSAGE,
+  ];
+  const leftKind = left.kind || left.payload.kind;
+  const rightKind = right.kind || right.payload.kind;
+  const kindOrder = kinds.indexOf(leftKind) - kinds.indexOf(rightKind);
+  if (kindOrder !== 0) return kindOrder;
+  const leftTime = Number.isFinite(left.capturedAt)
+    ? left.capturedAt
+    : Number.NEGATIVE_INFINITY;
+  const rightTime = Number.isFinite(right.capturedAt)
+    ? right.capturedAt
+    : Number.NEGATIVE_INFINITY;
+  if (leftTime !== rightTime) return rightTime - leftTime;
+  return left.originalId.localeCompare(right.originalId, "en");
+}
+
+function prepareCursor(sinceWatermark, identity) {
+  let cursor = parseCursor(sinceWatermark).cursor;
+  cursor =
+    cursor.upper === null
+      ? beginScan(cursor, identity)
+      : assertScanIdentity(cursor, identity);
+  return cursor;
+}
+
+function publishCursor(opts, cursor) {
+  if (typeof opts.updateWatermark === "function") {
+    opts.updateWatermark(serializeCursor(cursor));
+  }
+}
+
+function sqliteEntry({ capturedAt, id, kind, prefix, role, row, tableName }) {
+  return {
+    raw: {
+      adapter: NAME,
+      originalId: sqliteOriginalId(prefix, id),
+      capturedAt,
+      payload: { row, kind },
+    },
+    role,
+    row,
+    tableName,
+  };
+}
+
+function sqliteOriginalId(prefix, id) {
+  const safe =
+    (typeof id === "string" && id.length > 0 && id) ||
+    (typeof id === "number" && Number.isFinite(id) && String(id)) ||
+    (typeof id === "bigint" && id.toString()) ||
+    null;
+  if (!safe) {
+    throw new Error(
+      `${NAME}.sync: ${prefix} SQLite row requires a stable source id`,
+    );
+  }
+  return `${prefix}-${safe}`;
+}
+
+function selectFirstQuery(db, candidates) {
+  for (const candidate of candidates) {
+    const rows = trySelect(db, candidate.sql);
+    if (rows) return { rows, tableName: candidate.tableName };
+  }
+  return { rows: [], tableName: null };
+}
+
+function sanitizedUid(value) {
+  return String(value == null ? "" : value).replace(/[^0-9]/gu, "");
+}
+
+function resolveMessageDbPath(opts, baseDbPath, selfUid) {
+  if (
+    opts &&
+    typeof opts.messageDbPath === "string" &&
+    opts.messageDbPath.length > 0
+  ) {
+    return opts.messageDbPath;
+  }
+  return baseDbPath && selfUid
+    ? path.join(path.dirname(baseDbPath), `message_${selfUid}.db`)
+    : null;
+}
+
+function scopeForLocalFiles(
+  fsMod,
+  {
+    accountScope,
+    dbPath,
+    includeDm = false,
+    inputPath,
+    maxBytes,
+    messageDbPath,
+    mode,
+  },
+) {
+  const files = [];
+  if (mode === "snapshot") {
+    files.push(
+      collectionFileIdentity(
+        "snapshot",
+        inspectSnapshotFile(fsMod, inputPath, { maxBytes }),
+      ),
+    );
+  } else {
+    files.push(
+      collectionFileIdentity("main", inspectSqliteFile(fsMod, dbPath)),
+    );
+    if (includeDm) {
+      files.push(
+        messageDbPath && fsMod.existsSync(messageDbPath)
+          ? collectionFileIdentity(
+              "message",
+              inspectSqliteFile(fsMod, messageDbPath),
+            )
+          : missingCollectionFileIdentity("message", messageDbPath),
+      );
+    }
+  }
+  return createAccountScope(
+    NAME,
+    stableStringify({ accountScope: accountScope || "unscoped", files, mode }),
+  );
+}
+
+function inspectSqliteFile(fsMod, inputPath) {
+  let linkStat;
+  let stat;
+  let realPath;
+  try {
+    linkStat = fsMod.lstatSync(inputPath, { bigint: true });
+    if (
+      typeof linkStat.isSymbolicLink === "function" &&
+      linkStat.isSymbolicLink()
+    ) {
+      throw new SnapshotFileError(
+        "SNAPSHOT_SYMBOLIC_LINK",
+        "SQLite source must not be a symbolic link",
+      );
+    }
+    stat = fsMod.statSync(inputPath, { bigint: true });
+    realPath = fsMod.realpathSync(inputPath);
+  } catch (error) {
+    if (error instanceof SnapshotFileError) throw error;
+    throw new SnapshotFileError(
+      "INPUT_PATH_UNREADABLE",
+      "SQLite source is unavailable or unreadable",
+      { cause: error },
+    );
+  }
+  if (typeof stat.isFile !== "function" || !stat.isFile()) {
+    throw new SnapshotFileError(
+      "SNAPSHOT_NOT_REGULAR_FILE",
+      "SQLite source must be a regular file",
+    );
+  }
+  const size = Number(stat.size);
+  if (!Number.isSafeInteger(size) || size < 0) {
+    throw new SnapshotFileError(
+      "SNAPSHOT_SIZE_INVALID",
+      "SQLite source size is invalid",
+    );
+  }
+  return { linkStat, realPath, size, stat };
+}
+
+function fileCapturedAt(stat) {
+  const value = Number(stat && stat.mtimeMs);
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : Date.now();
+}
+
+function collectionFileIdentity(role, inspected) {
+  const revision =
+    inspected.stat.mtimeNs ??
+    inspected.stat.mtimeMs ??
+    inspected.stat.ctimeNs ??
+    inspected.stat.ctimeMs ??
+    "";
+  return {
+    missing: false,
+    path: inspected.realPath,
+    revision: String(revision),
+    role,
+    size: inspected.size,
+  };
+}
+
+function missingCollectionFileIdentity(role, inputPath) {
+  return {
+    missing: true,
+    path:
+      typeof inputPath === "string" && inputPath.length > 0
+        ? path.resolve(inputPath)
+        : null,
+    revision: null,
+    role,
+    size: null,
+  };
 }
 
 function buildSource(raw, occurredAt, capturedBy) {
