@@ -48,7 +48,7 @@ function makeFakeDriverFactory(tables, log = {}) {
 describe("constants", () => {
   it("exposes name/version + high sensitivity & legal gate", () => {
     expect(NAME).toBe("messaging-whatsapp");
-    expect(VERSION).toBe("0.8.0");
+    expect(VERSION).toBe("0.9.0");
     const a = new WhatsAppAdapter();
     expect(a.dataDisclosure.sensitivity).toBe("high");
     expect(a.dataDisclosure.legalGate).toBe(true);
@@ -70,6 +70,19 @@ describe("authenticate", () => {
     const a = new WhatsAppAdapter({ bridgeProvider: () => ({ invoke() {} }) });
     const r = await a.authenticate({});
     expect(r).toMatchObject({ ok: false, reason: "ADB_PULL_REQUIRED" });
+  });
+
+  it("reports an explicitly selected missing snapshot as unreadable", async () => {
+    const a = new WhatsAppAdapter({
+      bridgeProvider: () => ({ invoke() {} }),
+    });
+    const r = await a.authenticate({
+      inputPath: path.join(os.tmpdir(), "missing-whatsapp-snapshot.db"),
+    });
+    expect(r).toMatchObject({
+      ok: false,
+      reason: "INPUT_PATH_UNREADABLE",
+    });
   });
 
   it("ok when dbPath exists (inputPath alias too)", async () => {
@@ -191,22 +204,53 @@ describe("sync — fake sqlite driver", () => {
         dbDriverFactory: makeFakeDriverFactory({
           "FROM jid": [],
           "FROM chat": [],
-          "FROM message_media": [{ message_row_id: 7, mime_type: "image/jpeg", file_path: "/media/a.jpg" }],
-          "FROM message_location": [{ message_row_id: 7, latitude: 31.2, longitude: 121.5, place_name: "Shanghai" }],
+          "FROM message_media": [
+            {
+              message_row_id: 7,
+              mime_type: "image/jpeg",
+              file_path: "/media/a.jpg",
+            },
+          ],
+          "FROM message_location": [
+            {
+              message_row_id: 7,
+              latitude: 31.2,
+              longitude: 121.5,
+              place_name: "Shanghai",
+            },
+          ],
           "FROM message_vcard": [{ message_row_id: 7, vcard: "BEGIN:VCARD" }],
           "FROM message_quoted": [{ message_row_id: 7, text_data: "quoted" }],
           "FROM message\n": [modern],
           "FROM messages ": [
-            { _id: 7, key_id: "same-key", key_from_me: 0, data: "duplicate", timestamp: 1 },
-            { _id: 7, key_id: "legacy-only", key_from_me: 1, data: "old", timestamp: 2 },
+            {
+              _id: 7,
+              key_id: "same-key",
+              key_from_me: 0,
+              data: "duplicate",
+              timestamp: 1,
+            },
+            {
+              _id: 7,
+              key_id: "legacy-only",
+              key_from_me: 1,
+              data: "old",
+              timestamp: 2,
+            },
           ],
           "FROM call_log": [],
         }),
       });
       const items = await collect(a.sync({}));
       const messages = items.filter((item) => item.payload.kind === "message");
-      expect(messages.map((item) => item.originalId)).toEqual(["msg-7", "msg-legacy-7"]);
-      expect(messages.map((item) => item.payload.schema)).toEqual(["modern", "legacy"]);
+      expect(messages.map((item) => item.originalId)).toEqual([
+        "msg-7",
+        "msg-legacy-7",
+      ]);
+      expect(messages.map((item) => item.payload.schema)).toEqual([
+        "modern",
+        "legacy",
+      ]);
       expect(messages[0].payload.row).toMatchObject({
         chat_jid: "1234@g.us",
         sender_jid: "86139@s.whatsapp.net",
@@ -341,8 +385,17 @@ describe("normalize", () => {
           message_type: 1,
           text_data: "",
           timestamp: 1716383021000,
-          _media: { mime_type: "image/jpeg", media_name: "photo.jpg", file_path: "/media/photo.jpg" },
-          _location: { latitude: 31.2, longitude: 121.5, place_name: "Shanghai", place_address: "Pudong" },
+          _media: {
+            mime_type: "image/jpeg",
+            media_name: "photo.jpg",
+            file_path: "/media/photo.jpg",
+          },
+          _location: {
+            latitude: 31.2,
+            longitude: 121.5,
+            place_name: "Shanghai",
+            place_address: "Pudong",
+          },
           _vcards: [{ vcard: "BEGIN:VCARD" }],
           _quoted: { text_data: "quoted" },
         },
@@ -390,6 +443,10 @@ describe("normalize", () => {
     expect(ev.subtype).toBe("call");
     expect(ev.content.title).toBe("WhatsApp call (video)");
     expect(ev.actor).toBe("person-whatsapp-1");
-    expect(ev.extra).toMatchObject({ duration: 65, isVideo: true, fromMe: false });
+    expect(ev.extra).toMatchObject({
+      duration: 65,
+      isVideo: true,
+      fromMe: false,
+    });
   });
 });

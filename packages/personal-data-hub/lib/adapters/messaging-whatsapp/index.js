@@ -29,9 +29,10 @@ const {
 const { createWhatsAppBackupExtension } = require("./adb-extension");
 
 const NAME = "messaging-whatsapp";
-// v0.8.0: forward sync-time inputPath/key options through the health gate.
-// Previously Registry.syncAdapter rejected valid file imports before sync().
-const VERSION = "0.8.0";
+// v0.9.0: let a runtime key + wired ADB bridge pass the Registry health gate.
+// Previously Registry.syncAdapter returned ADB_PULL_REQUIRED before sync()
+// could invoke the public-backup extension.
+const VERSION = "0.9.0";
 
 class WhatsAppAdapter {
   constructor(opts = {}) {
@@ -70,11 +71,32 @@ class WhatsAppAdapter {
 
   async authenticate(ctx = {}) {
     const dbPath = (ctx && (ctx.inputPath || ctx.dbPath)) || this._dbPath;
-    if (!dbPath || !fs.existsSync(dbPath)) {
+    if (dbPath && !fs.existsSync(dbPath)) {
       return {
         ok: false,
-        reason: this._bridgeProvider ? "ADB_PULL_REQUIRED" : "DB_NOT_PULLED",
-        message: this._bridgeProvider
+        reason: "INPUT_PATH_UNREADABLE",
+        message: "WhatsApp snapshot path does not exist or is unreadable",
+      };
+    }
+    if (!dbPath) {
+      const bridgeProvider = ctx.bridgeProvider || this._bridgeProvider;
+      if (!ctx.readinessOnly) {
+        const bridge = tryResolveBridge(bridgeProvider);
+        if (
+          bridge &&
+          (ctx.keyProvider || ctx.key || ctx.keyPath || this._keyProvider)
+        ) {
+          return {
+            ok: true,
+            account: this.account ? this.account.phone : null,
+            mode: "adb-public-backup",
+          };
+        }
+      }
+      return {
+        ok: false,
+        reason: bridgeProvider ? "ADB_PULL_REQUIRED" : "DB_NOT_PULLED",
+        message: bridgeProvider
           ? "connect Android and sync with the user's crypt14/crypt15 key"
           : "needs ctx.inputPath / opts.dbPath pointing to msgstore.db(.crypt14/.crypt15)",
       };
@@ -84,7 +106,8 @@ class WhatsAppAdapter {
         return {
           ok: false,
           reason: "KEY_REQUIRED",
-          message: "encrypted WhatsApp backup requires the user's key/keyPath/keyProvider",
+          message:
+            "encrypted WhatsApp backup requires the user's key/keyPath/keyProvider",
         };
       }
       try {
@@ -102,7 +125,11 @@ class WhatsAppAdapter {
         };
       }
     }
-    return { ok: true, account: this.account ? this.account.phone : null, mode: "snapshot-file" };
+    return {
+      ok: true,
+      account: this.account ? this.account.phone : null,
+      mode: "snapshot-file",
+    };
   }
 
   async healthCheck(opts = {}) {
@@ -123,7 +150,8 @@ class WhatsAppAdapter {
         timeoutMs: opts.timeoutMs,
       });
       dbPath = pulled && pulled.localPath;
-      sourceCleanup = pulled && typeof pulled.cleanup === "function" ? pulled.cleanup : null;
+      sourceCleanup =
+        pulled && typeof pulled.cleanup === "function" ? pulled.cleanup : null;
     }
     if (!dbPath || !fs.existsSync(dbPath)) {
       runCleanup(sourceCleanup);
@@ -132,10 +160,13 @@ class WhatsAppAdapter {
     let openPath = dbPath;
     let tempDir = null;
     if (isEncryptedWhatsAppBackup(dbPath)) {
-      const keyProvider = opts.keyProvider || opts.key || opts.keyPath || this._keyProvider;
+      const keyProvider =
+        opts.keyProvider || opts.key || opts.keyPath || this._keyProvider;
       if (!keyProvider) {
         runCleanup(sourceCleanup);
-        const error = new Error("messaging-whatsapp: encrypted backup requires key/keyPath/keyProvider");
+        const error = new Error(
+          "messaging-whatsapp: encrypted backup requires key/keyPath/keyProvider",
+        );
         error.code = "WHATSAPP_BACKUP_KEY_REQUIRED";
         throw error;
       }
@@ -166,18 +197,37 @@ class WhatsAppAdapter {
       db = new Driver(openPath, { readonly: true });
       const jids = trySelect(db, "SELECT * FROM jid LIMIT 5000") || [];
       for (const row of jids) {
-        yield { adapter: NAME, originalId: `jid-${row._id}`, capturedAt: Date.now(), payload: { row, kind: "contact" } };
+        yield {
+          adapter: NAME,
+          originalId: `jid-${row._id}`,
+          capturedAt: Date.now(),
+          payload: { row, kind: "contact" },
+        };
       }
-      const chats = trySelect(db, `
+      const chats =
+        trySelect(
+          db,
+          `
         SELECT chat.*, jid.raw_string AS chat_jid
         FROM chat
         LEFT JOIN jid ON jid._id = chat.jid_row_id
         LIMIT 1000
-      `) || trySelect(db, "SELECT * FROM chat LIMIT 1000") || [];
+      `,
+        ) ||
+        trySelect(db, "SELECT * FROM chat LIMIT 1000") ||
+        [];
       for (const row of chats) {
-        yield { adapter: NAME, originalId: `chat-${row._id}`, capturedAt: Date.now(), payload: { row, kind: "chat" } };
+        yield {
+          adapter: NAME,
+          originalId: `chat-${row._id}`,
+          capturedAt: Date.now(),
+          payload: { row, kind: "chat" },
+        };
       }
-      const modernMessages = trySelect(db, `
+      const modernMessages =
+        trySelect(
+          db,
+          `
         SELECT message.*, chat_jid.raw_string AS chat_jid,
                sender_jid.raw_string AS sender_jid
         FROM message
@@ -186,14 +236,26 @@ class WhatsAppAdapter {
         LEFT JOIN jid AS sender_jid ON sender_jid._id = message.sender_jid_row_id
         ORDER BY message.timestamp DESC
         LIMIT 10000
-      `) || trySelect(db, "SELECT * FROM message ORDER BY timestamp DESC LIMIT 10000") || [];
+      `,
+        ) ||
+        trySelect(
+          db,
+          "SELECT * FROM message ORDER BY timestamp DESC LIMIT 10000",
+        ) ||
+        [];
       const related = loadModernMessageRelations(db);
-      const modernRows = modernMessages.map((row) => attachMessageRelations(row, related));
+      const modernRows = modernMessages.map((row) =>
+        attachMessageRelations(row, related),
+      );
 
       // Upgraded databases can retain pre-migration rows in `messages` while
       // newer rows are written to `message`. Read both and deduplicate by the
       // stable WhatsApp key_id instead of treating the old table as fallback.
-      const legacyRows = trySelect(db, "SELECT * FROM messages ORDER BY timestamp DESC LIMIT 10000") || [];
+      const legacyRows =
+        trySelect(
+          db,
+          "SELECT * FROM messages ORDER BY timestamp DESC LIMIT 10000",
+        ) || [];
       const seenMessages = new Set(modernRows.map(messageFingerprint));
       for (const row of modernRows) {
         yield {
@@ -215,7 +277,10 @@ class WhatsAppAdapter {
           payload: { row, kind: "message", schema: "legacy" },
         };
       }
-      const calls = trySelect(db, `
+      const calls =
+        trySelect(
+          db,
+          `
         SELECT call_log.*, jid.raw_string AS jid,
                group_jid.raw_string AS group_jid
         FROM call_log
@@ -223,12 +288,27 @@ class WhatsAppAdapter {
         LEFT JOIN jid AS group_jid ON group_jid._id = call_log.group_jid_row_id
         ORDER BY call_log.timestamp DESC
         LIMIT 5000
-      `) || trySelect(db, "SELECT * FROM call_log ORDER BY timestamp DESC LIMIT 5000") || [];
+      `,
+        ) ||
+        trySelect(
+          db,
+          "SELECT * FROM call_log ORDER BY timestamp DESC LIMIT 5000",
+        ) ||
+        [];
       for (const row of calls) {
-        yield { adapter: NAME, originalId: `call-${row._id}`, capturedAt: parseTime(row.timestamp), payload: { row, kind: "call" } };
+        yield {
+          adapter: NAME,
+          originalId: `call-${row._id}`,
+          capturedAt: parseTime(row.timestamp),
+          payload: { row, kind: "call" },
+        };
       }
     } finally {
-      try { if (db) db.close(); } catch (_e) {}
+      try {
+        if (db) db.close();
+      } catch {
+        // Best-effort close; preserve the primary sync result or error.
+      }
       removeTempDir(tempDir);
       runCleanup(sourceCleanup);
     }
@@ -237,67 +317,115 @@ class WhatsAppAdapter {
   normalize(raw) {
     const { kind, row } = raw.payload;
     const now = Date.now();
-    const occurredAt = parseTime(row.timestamp || row.received_timestamp) || now;
-    const source = { adapter: NAME, adapterVersion: VERSION, originalId: raw.originalId, capturedAt: occurredAt, capturedBy: "sqlite" };
+    const occurredAt =
+      parseTime(row.timestamp || row.received_timestamp) || now;
+    const source = {
+      adapter: NAME,
+      adapterVersion: VERSION,
+      originalId: raw.originalId,
+      capturedAt: occurredAt,
+      capturedBy: "sqlite",
+    };
 
     if (kind === "contact") {
       // WhatsApp jids are "<phone>@s.whatsapp.net" or "<phone>@g.us" (group)
-      const isGroup = typeof row.raw_string === "string" && row.raw_string.includes("@g.us");
+      const isGroup =
+        typeof row.raw_string === "string" && row.raw_string.includes("@g.us");
       if (isGroup) {
         return {
-          events: [], places: [], items: [], persons: [],
-          topics: [{
-            id: `topic-whatsapp-${row.raw_string}`,
-            type: "topic", name: row.display_name || row.raw_string,
-            ingestedAt: now, source,
-            extra: { fromAdapter: NAME, jid: row.raw_string },
-          }],
+          events: [],
+          places: [],
+          items: [],
+          persons: [],
+          topics: [
+            {
+              id: `topic-whatsapp-${row.raw_string}`,
+              type: "topic",
+              name: row.display_name || row.raw_string,
+              ingestedAt: now,
+              source,
+              extra: { fromAdapter: NAME, jid: row.raw_string },
+            },
+          ],
         };
       }
       const phone = (row.user || "").replace(/[^0-9]/g, "");
       return {
-        events: [], places: [], items: [], topics: [],
-        persons: [{
-          id: `person-whatsapp-${row.raw_string || row.user || row._id}`,
-          type: "person", subtype: "contact",
-          names: [row.display_name, row.user].filter((x) => typeof x === "string" && x.length > 0),
-          identifiers: phone ? { phone: [phone] } : {},
-          ingestedAt: now, source,
-          extra: { fromAdapter: NAME, jid: row.raw_string },
-        }],
+        events: [],
+        places: [],
+        items: [],
+        topics: [],
+        persons: [
+          {
+            id: `person-whatsapp-${row.raw_string || row.user || row._id}`,
+            type: "person",
+            subtype: "contact",
+            names: [row.display_name, row.user].filter(
+              (x) => typeof x === "string" && x.length > 0,
+            ),
+            identifiers: phone ? { phone: [phone] } : {},
+            ingestedAt: now,
+            source,
+            extra: { fromAdapter: NAME, jid: row.raw_string },
+          },
+        ],
       };
     }
 
     if (kind === "chat") {
       const chatJid = row.chat_jid || row.raw_string || null;
       return {
-        events: [], places: [], items: [], persons: [],
-        topics: [{
-          id: `topic-whatsapp-chat-${row._id}`,
-          type: "topic", name: row.subject || row.display_name || chatJid || String(row._id),
-          ingestedAt: now, source,
-          extra: { fromAdapter: NAME, jid: chatJid, archived: !!row.archived },
-        }],
+        events: [],
+        places: [],
+        items: [],
+        persons: [],
+        topics: [
+          {
+            id: `topic-whatsapp-chat-${row._id}`,
+            type: "topic",
+            name: row.subject || row.display_name || chatJid || String(row._id),
+            ingestedAt: now,
+            source,
+            extra: {
+              fromAdapter: NAME,
+              jid: chatJid,
+              archived: !!row.archived,
+            },
+          },
+        ],
       };
     }
 
     if (kind === "call") {
       return {
-        events: [{
-          id: newId(), type: "event", subtype: "call",
-          occurredAt, actor: row.from_me ? "person-self" : `person-whatsapp-${row.jid || row.jid_row_id || "unknown"}`,
-          content: { title: `WhatsApp call (${row.video_call ? "video" : "voice"})` },
-          ingestedAt: now, source,
-          extra: {
-            jid: row.jid || null,
-            groupJid: row.group_jid || null,
-            duration: row.duration || null,
-            isVideo: !!row.video_call,
-            fromMe: !!row.from_me,
-            callResult: row.call_result || null,
+        events: [
+          {
+            id: newId(),
+            type: "event",
+            subtype: "call",
+            occurredAt,
+            actor: row.from_me
+              ? "person-self"
+              : `person-whatsapp-${row.jid || row.jid_row_id || "unknown"}`,
+            content: {
+              title: `WhatsApp call (${row.video_call ? "video" : "voice"})`,
+            },
+            ingestedAt: now,
+            source,
+            extra: {
+              jid: row.jid || null,
+              groupJid: row.group_jid || null,
+              duration: row.duration || null,
+              isVideo: !!row.video_call,
+              fromMe: !!row.from_me,
+              callResult: row.call_result || null,
+            },
           },
-        }],
-        persons: [], places: [], items: [], topics: [],
+        ],
+        persons: [],
+        places: [],
+        items: [],
+        topics: [],
       };
     }
 
@@ -308,73 +436,125 @@ class WhatsAppAdapter {
     const actorJid = senderJid || chatJid;
     const media = row._media || null;
     const location = row._location || legacyLocation(row);
-    const mediaRefs = [media && media.file_path, media && media.direct_path, media && media.message_url]
-      .filter((value) => typeof value === "string" && value.length > 0);
-    const placeId = hasCoordinates(location) ? `place-whatsapp-${row._id}` : null;
-    const topicId = row.chat_row_id != null ? `topic-whatsapp-chat-${row.chat_row_id}` : null;
+    const mediaRefs = [
+      media && media.file_path,
+      media && media.direct_path,
+      media && media.message_url,
+    ].filter((value) => typeof value === "string" && value.length > 0);
+    const placeId = hasCoordinates(location)
+      ? `place-whatsapp-${row._id}`
+      : null;
+    const topicId =
+      row.chat_row_id != null ? `topic-whatsapp-chat-${row.chat_row_id}` : null;
     const text = row.text_data || row.data || mediaCaption(row) || "";
     return {
-      events: [{
-        id: newId(), type: "event", subtype: "message",
-        occurredAt,
-        actor: isOutgoing ? "person-self" : `person-whatsapp-${actorJid || "unknown"}`,
-        ...(placeId ? { place: placeId } : {}),
-        ...(topicId ? { topics: [topicId] } : {}),
-        content: {
-          title: text.slice(0, 80) || "(空)",
-          text,
-          ...(mediaRefs.length > 0 ? { mediaRefs } : {}),
+      events: [
+        {
+          id: newId(),
+          type: "event",
+          subtype: "message",
+          occurredAt,
+          actor: isOutgoing
+            ? "person-self"
+            : `person-whatsapp-${actorJid || "unknown"}`,
+          ...(placeId ? { place: placeId } : {}),
+          ...(topicId ? { topics: [topicId] } : {}),
+          content: {
+            title: text.slice(0, 80) || "(空)",
+            text,
+            ...(mediaRefs.length > 0 ? { mediaRefs } : {}),
+          },
+          ingestedAt: now,
+          source,
+          extra: {
+            jid: chatJid,
+            senderJid,
+            chatRowId: row.chat_row_id ?? null,
+            isOutgoing,
+            messageType: row.message_type ?? row.media_wa_type ?? null,
+            mediaType:
+              (media && media.mime_type) ||
+              row.media_mime_type ||
+              row.media_wa_type ||
+              null,
+            media,
+            location,
+            vcards: row._vcards || [],
+            quotedMessage: row._quoted || null,
+            status: row.status || null,
+          },
         },
-        ingestedAt: now, source,
-        extra: {
-          jid: chatJid,
-          senderJid,
-          chatRowId: row.chat_row_id ?? null,
-          isOutgoing,
-          messageType: row.message_type ?? row.media_wa_type ?? null,
-          mediaType: (media && media.mime_type) || row.media_mime_type || row.media_wa_type || null,
-          media,
-          location,
-          vcards: row._vcards || [],
-          quotedMessage: row._quoted || null,
-          status: row.status || null,
-        },
-      }],
+      ],
       persons: [],
-      places: placeId ? [{
-        id: placeId,
-        type: "place",
-        name: location.place_name || location.place_address || "WhatsApp location",
-        coordinates: { lat: Number(location.latitude), lng: Number(location.longitude) },
-        ...(location.place_address ? { address: location.place_address } : {}),
-        aliases: [],
-        ingestedAt: now,
-        source,
-        extra: { fromAdapter: NAME, url: location.url || null },
-      }] : [],
-      items: [], topics: [],
+      places: placeId
+        ? [
+            {
+              id: placeId,
+              type: "place",
+              name:
+                location.place_name ||
+                location.place_address ||
+                "WhatsApp location",
+              coordinates: {
+                lat: Number(location.latitude),
+                lng: Number(location.longitude),
+              },
+              ...(location.place_address
+                ? { address: location.place_address }
+                : {}),
+              aliases: [],
+              ingestedAt: now,
+              source,
+              extra: { fromAdapter: NAME, url: location.url || null },
+            },
+          ]
+        : [],
+      items: [],
+      topics: [],
     };
   }
 }
 
-function trySelect(db, sql) { try { return db.prepare(sql).all(); } catch (_e) { return null; } }
+function trySelect(db, sql) {
+  try {
+    return db.prepare(sql).all();
+  } catch {
+    return null;
+  }
+}
 function resolveBridge(provider) {
   return typeof provider === "function" ? provider() : provider;
+}
+function tryResolveBridge(provider) {
+  try {
+    const bridge = resolveBridge(provider);
+    return bridge && typeof bridge.invoke === "function" ? bridge : null;
+  } catch {
+    return null;
+  }
 }
 function removeTempDir(tempDir) {
   if (tempDir) fs.rmSync(tempDir, { recursive: true, force: true });
 }
 function runCleanup(cleanup) {
-  try { if (cleanup) cleanup(); } catch (_error) {}
+  try {
+    if (cleanup) cleanup();
+  } catch {
+    // Cleanup is best-effort and must not mask the primary sync result.
+  }
 }
 function loadModernMessageRelations(db) {
-  const query = (table) => trySelect(db, `
+  const query = (table) =>
+    trySelect(
+      db,
+      `
     SELECT related.*
     FROM ${table} AS related
     INNER JOIN (
       SELECT _id FROM message ORDER BY timestamp DESC LIMIT 10000
     ) AS recent ON recent._id = related.message_row_id
-  `) || [];
+  `,
+    ) || [];
   return {
     media: indexOne(query("message_media")),
     location: indexOne(query("message_location")),
@@ -417,21 +597,29 @@ function messageFingerprint(row) {
   ].join(":");
 }
 function legacyLocation(row) {
-  return hasCoordinates(row) ? {
-    latitude: row.latitude,
-    longitude: row.longitude,
-    place_name: null,
-    place_address: null,
-    url: null,
-  } : null;
+  return hasCoordinates(row)
+    ? {
+        latitude: row.latitude,
+        longitude: row.longitude,
+        place_name: null,
+        place_address: null,
+        url: null,
+      }
+    : null;
 }
 function hasCoordinates(location) {
   if (!location) return false;
   const latitude = Number(location.latitude);
   const longitude = Number(location.longitude);
-  return Number.isFinite(latitude) && latitude >= -90 && latitude <= 90
-    && Number.isFinite(longitude) && longitude >= -180 && longitude <= 180
-    && !(latitude === 0 && longitude === 0);
+  return (
+    Number.isFinite(latitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    Number.isFinite(longitude) &&
+    longitude >= -180 &&
+    longitude <= 180 &&
+    !(latitude === 0 && longitude === 0)
+  );
 }
 function mediaCaption(row) {
   return row.media_caption || (row._media && row._media.media_name) || "";
@@ -439,7 +627,10 @@ function mediaCaption(row) {
 function parseTime(v) {
   if (Number.isFinite(v)) return v > 1e12 ? v : v * 1000;
   if (typeof v === "string") {
-    if (/^\d+$/.test(v)) { const n = parseInt(v, 10); return n > 1e12 ? n : n * 1000; }
+    if (/^\d+$/.test(v)) {
+      const n = parseInt(v, 10);
+      return n > 1e12 ? n : n * 1000;
+    }
     return Date.parse(v) || null;
   }
   return null;

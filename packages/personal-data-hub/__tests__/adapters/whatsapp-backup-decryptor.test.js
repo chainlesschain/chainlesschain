@@ -12,9 +12,8 @@ const {
   inspectWhatsAppBackupFile,
   _internal,
 } = require("../../lib/adapters/messaging-whatsapp/backup-decryptor");
-const {
-  WhatsAppAdapter,
-} = require("../../lib/adapters/messaging-whatsapp");
+const { WhatsAppAdapter } = require("../../lib/adapters/messaging-whatsapp");
+const { AdapterRegistry } = require("../../lib/registry");
 
 const tempDirs = [];
 
@@ -154,7 +153,11 @@ describe("WhatsApp crypt14/crypt15 backup decryption", () => {
       keyProvider: { getKey: async () => javaSerializeByteArray(rawKey) },
     });
 
-    expect(result).toMatchObject({ ok: true, format: "crypt14", hasChecksum: true });
+    expect(result).toMatchObject({
+      ok: true,
+      format: "crypt14",
+      hasChecksum: true,
+    });
     expect(fs.readFileSync(outputPath)).toEqual(plaintext);
   });
 
@@ -216,9 +219,9 @@ describe("WhatsApp crypt14/crypt15 backup decryption", () => {
     const Driver = class FakeDb {
       constructor(dbPath) {
         opened.push(dbPath);
-        expect(fs.readFileSync(dbPath, { encoding: null }).subarray(0, 16)).toEqual(
-          Buffer.from("SQLite format 3\0", "ascii"),
-        );
+        expect(
+          fs.readFileSync(dbPath, { encoding: null }).subarray(0, 16),
+        ).toEqual(Buffer.from("SQLite format 3\0", "ascii"));
       }
       prepare() {
         return { all: () => [] };
@@ -231,7 +234,10 @@ describe("WhatsApp crypt14/crypt15 backup decryption", () => {
       dbDriverFactory: () => Driver,
     });
 
-    expect(await adapter.authenticate()).toMatchObject({ ok: true, mode: "crypt15" });
+    expect(await adapter.authenticate()).toMatchObject({
+      ok: true,
+      mode: "crypt15",
+    });
     const rows = [];
     for await (const row of adapter.sync()) rows.push(row);
     expect(rows).toEqual([]);
@@ -260,11 +266,14 @@ describe("WhatsApp crypt14/crypt15 backup decryption", () => {
       dbDriverFactory: () => Driver,
     });
 
-    await expect((async () => {
-      for await (const _row of adapter.sync()) {
-        // The driver fails before any row can be emitted.
-      }
-    })()).rejects.toThrow("driver could not open database");
+    await expect(
+      (async () => {
+        for await (const row of adapter.sync()) {
+          // The driver fails before any row can be emitted.
+          expect(row).toBeUndefined();
+        }
+      })(),
+    ).rejects.toThrow("driver could not open database");
     expect(openedPath).toBeTruthy();
     expect(fs.existsSync(openedPath)).toBe(false);
   });
@@ -305,16 +314,81 @@ describe("WhatsApp crypt14/crypt15 backup decryption", () => {
     });
 
     const rows = [];
-    for await (const row of adapter.sync({ key: rootKey, serial: "PHONE-1" })) rows.push(row);
+    for await (const row of adapter.sync({ key: rootKey, serial: "PHONE-1" }))
+      rows.push(row);
     expect(rows).toEqual([]);
-    expect(calls).toEqual([{ method: "whatsapp.backup", params: {
-      serial: "PHONE-1",
-      business: false,
-      remotePath: undefined,
-      timeoutMs: undefined,
-    } }]);
+    expect(calls).toEqual([
+      {
+        method: "whatsapp.backup",
+        params: {
+          serial: "PHONE-1",
+          business: false,
+          remotePath: undefined,
+          timeoutMs: undefined,
+        },
+      },
+    ]);
     expect(opened).toHaveLength(1);
     expect(fs.existsSync(opened[0])).toBe(false);
+    expect(fs.existsSync(sourceDir)).toBe(false);
+  });
+
+  it("passes the Registry health gate before pulling an ADB public backup", async () => {
+    const sourceDir = tempDir();
+    const rootKey = crypto.randomBytes(32);
+    const { inputPath } = writeEncryptedFixture({
+      dir: sourceDir,
+      format: "crypt15",
+      key: rootKey,
+    });
+    const calls = [];
+    const bridge = {
+      invoke: async (method, params) => {
+        calls.push({ method, params });
+        return {
+          localPath: inputPath,
+          cleanup: () => fs.rmSync(sourceDir, { recursive: true, force: true }),
+        };
+      },
+    };
+    const Driver = class FakeDb {
+      prepare() {
+        return { all: () => [] };
+      }
+      close() {}
+    };
+    const adapter = new WhatsAppAdapter({
+      bridgeProvider: () => bridge,
+      dbDriverFactory: () => Driver,
+    });
+    const vault = {
+      getWatermark: () => null,
+      setWatermark() {},
+      audit() {},
+    };
+    const registry = new AdapterRegistry({ vault });
+    registry.register(adapter);
+
+    await expect(
+      adapter.healthCheck({ key: rootKey, serial: "PHONE-REGISTRY" }),
+    ).resolves.toMatchObject({ ok: true });
+    const report = await registry.syncAdapter(adapter.name, {
+      key: rootKey,
+      serial: "PHONE-REGISTRY",
+    });
+
+    expect(report.status).toBe("ok");
+    expect(calls).toEqual([
+      {
+        method: "whatsapp.backup",
+        params: {
+          serial: "PHONE-REGISTRY",
+          business: false,
+          remotePath: undefined,
+          timeoutMs: undefined,
+        },
+      },
+    ]);
     expect(fs.existsSync(sourceDir)).toBe(false);
   });
 });
