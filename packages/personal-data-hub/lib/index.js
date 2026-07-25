@@ -141,6 +141,7 @@ const sourceHttp = require("./source-http");
 const snapshotFile = require("./snapshot-file");
 const sourcePage = require("./source-page");
 const partitionedWatermark = require("./partitioned-watermark");
+const qqQualityMerge = require("./qq-quality-merge");
 
 module.exports = {
   // Constants / enums
@@ -164,6 +165,7 @@ module.exports = {
   mergeBatches: batch.mergeBatches,
   validateBatch: batch.validateBatch,
   partitionBatch: batch.partitionBatch,
+  mergeQqEntityConflict: qqQualityMerge.mergeQqEntityConflict,
 
   // Migrations
   MIGRATIONS: migrations.MIGRATIONS,

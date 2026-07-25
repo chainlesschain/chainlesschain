@@ -1626,6 +1626,25 @@ async function cmdSalvage(dumpfile, options) {
 // the messages, and ingests them. The Android CollectQqNativeTool su-reads the
 // DB + uid candidates, then invokes this. Same logic also runs on PC (USB).
 // Plaintext is written to a temp file only for parsing, then deleted.
+function ingestQqParsedBatch(vault, parsed, conflictResolver) {
+  if (!vault || typeof vault.putBatchResolved !== "function") {
+    throw new Error(
+      "collect-qq requires a vault with transactional putBatchResolved support",
+    );
+  }
+  if (typeof conflictResolver !== "function") {
+    throw new Error("collect-qq requires the QQ quality conflict resolver");
+  }
+  const batch = {
+    events: Array.isArray(parsed) ? parsed : parsed?.events || [],
+    persons: Array.isArray(parsed) ? [] : parsed?.persons || [],
+    places: [],
+    items: [],
+    topics: Array.isArray(parsed) ? [] : parsed?.topics || [],
+  };
+  return vault.putBatchResolved(batch, { conflictResolver });
+}
+
 async function cmdCollectQq(options) {
   const spinner = options.json
     ? null
@@ -1706,30 +1725,14 @@ async function cmdCollectQq(options) {
     const events = Array.isArray(parsed) ? parsed : parsed.events || [];
     const persons = Array.isArray(parsed) ? [] : parsed.persons || [];
     const topics = Array.isArray(parsed) ? [] : parsed.topics || [];
-
-    for (const p of persons) {
-      try {
-        vault.putPerson(p);
-      } catch {
-        /* dup / optional */
-      }
-    }
-    for (const t of topics) {
-      try {
-        if (typeof vault.putTopic === "function") vault.putTopic(t);
-      } catch {
-        /* dup / optional */
-      }
-    }
-    let ingested = 0;
-    for (const ev of events) {
-      try {
-        vault.putEvent(ev);
-        ingested++;
-      } catch {
-        /* skip dup/invalid */
-      }
-    }
+    const qualityModule =
+      options._qqQuality ||
+      (await importPdh("@chainlesschain/personal-data-hub"));
+    const conflictResolver =
+      qualityModule.mergeQqEntityConflict ||
+      qualityModule.default?.mergeQqEntityConflict;
+    const ingestResult = ingestQqParsedBatch(vault, parsed, conflictResolver);
+    const ingested = ingestResult.counts.events;
     const report = {
       ok: true,
       matchedUid: result.uid,
@@ -1738,6 +1741,8 @@ async function cmdCollectQq(options) {
       persons: persons.length,
       topics: topics.length,
       ingested,
+      entityCounts: ingestResult.counts,
+      resolvedConflicts: ingestResult.conflicts.length,
     };
     if (spinner) spinner.succeed(`collect-qq: ${ingested} QQ messages → vault`);
     if (options.json) {
@@ -4338,4 +4343,5 @@ export const _internal = {
   importEventsInto,
   cmdExportEvents,
   cmdImportEvents,
+  ingestQqParsedBatch,
 };
