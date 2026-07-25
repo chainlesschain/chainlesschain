@@ -844,6 +844,9 @@ class AdapterRegistry {
       invalidCount: 0,
       kgTripleCount: 0,
       ragDocCount: 0,
+      resolvedConflictCount: 0,
+      sourceAliasCount: 0,
+      rawObservationCount: 0,
       durationMs: 0,
       error: null,
       watermark: null,
@@ -1977,7 +1980,12 @@ class AdapterRegistry {
         }
       }
       try {
-        const counts = this.vault.putBatch(valid);
+        const { counts } = this._persistNormalizedBatch(
+          adapter,
+          buffer,
+          valid,
+          scope,
+        );
         for (const k of Object.keys(counts)) {
           report.entityCounts[k] = (report.entityCounts[k] || 0) + counts[k];
         }
@@ -2497,11 +2505,23 @@ class AdapterRegistry {
       });
     }
 
-    // 4. Transactional write to vault.
-    const counts = this.vault.putBatch(valid);
+    // 4. Transactional write to vault. Adapters with cross-producer identity
+    // and quality evidence can opt into LocalVault.putBatchResolved through
+    // buildResolvedIngestOptions(). The returned batch is the exact entity
+    // graph persisted by the vault after ID and reference rewriting.
+    const {
+      counts,
+      persistedBatch,
+      conflicts,
+      aliasesRegistered,
+      rawObservationWrites,
+    } = this._persistNormalizedBatch(adapter, rawBatch, valid, scope);
     for (const k of Object.keys(counts)) {
       report.entityCounts[k] = (report.entityCounts[k] || 0) + counts[k];
     }
+    report.resolvedConflictCount += conflicts.length;
+    report.sourceAliasCount += aliasesRegistered;
+    report.rawObservationCount += rawObservationWrites;
 
     // 4.5. Phase 8.6: EntityResolver ingest hook. Sync-rule stage runs
     // immediately for each new Person; "uncertain" pairs go to the
@@ -2509,12 +2529,12 @@ class AdapterRegistry {
     // captured in audit_log but don't break sync.
     if (
       this.entityResolver &&
-      Array.isArray(valid.persons) &&
-      valid.persons.length > 0
+      Array.isArray(persistedBatch.persons) &&
+      persistedBatch.persons.length > 0
     ) {
       try {
         const resolverSummary = this.entityResolver.resolveOnIngest(
-          valid.persons,
+          persistedBatch.persons,
         );
         report.entityResolver = {
           ...(report.entityResolver || {
@@ -2539,7 +2559,7 @@ class AdapterRegistry {
 
     // 5. KG sink (per-batch, not per-entity, so the sink can amortize work).
     if (this.kgSink) {
-      const triples = deriveBatchTriples(valid);
+      const triples = deriveBatchTriples(persistedBatch);
       report.kgTripleCount += triples.length;
       try {
         await this.kgSink(triples);
@@ -2553,7 +2573,7 @@ class AdapterRegistry {
 
     // 6. RAG sink.
     if (this.ragSink) {
-      const docs = deriveBatchDocs(valid);
+      const docs = deriveBatchDocs(persistedBatch);
       report.ragDocCount += docs.length;
       try {
         await this.ragSink(docs);
@@ -2575,6 +2595,73 @@ class AdapterRegistry {
 
     // Suppress unused-var lint
     void invalid;
+  }
+
+  _persistNormalizedBatch(adapter, rawBatch, batch, scope) {
+    if (typeof adapter.buildResolvedIngestOptions !== "function") {
+      return {
+        counts: this.vault.putBatch(batch),
+        persistedBatch: batch,
+        conflicts: [],
+        aliasesRegistered: 0,
+        rawObservationWrites: 0,
+      };
+    }
+    if (typeof this.vault.putBatchResolved !== "function") {
+      throw new Error(
+        `AdapterRegistry: adapter "${adapter.name}" requires vault.putBatchResolved`,
+      );
+    }
+
+    let options = adapter.buildResolvedIngestOptions({
+      rawBatch,
+      batch,
+      scope,
+    });
+    if (options && typeof options.then === "function") {
+      if (typeof options.catch === "function") options.catch(() => {});
+      throw new TypeError(
+        `AdapterRegistry: ${adapter.name}.buildResolvedIngestOptions must be synchronous`,
+      );
+    }
+    if (options == null) options = {};
+    const optionsPrototype =
+      typeof options === "object" && options
+        ? Object.getPrototypeOf(options)
+        : undefined;
+    if (
+      !options ||
+      typeof options !== "object" ||
+      Array.isArray(options) ||
+      (optionsPrototype !== Object.prototype && optionsPrototype !== null)
+    ) {
+      throw new TypeError(
+        `AdapterRegistry: ${adapter.name}.buildResolvedIngestOptions must return a plain object`,
+      );
+    }
+
+    const result = this.vault.putBatchResolved(batch, options);
+    if (
+      !result ||
+      typeof result !== "object" ||
+      !result.counts ||
+      !result.resolvedBatch
+    ) {
+      throw new Error(
+        "AdapterRegistry: vault.putBatchResolved returned an invalid result",
+      );
+    }
+    return {
+      counts: result.counts,
+      persistedBatch: result.resolvedBatch,
+      conflicts: Array.isArray(result.conflicts) ? result.conflicts : [],
+      aliasesRegistered: Number.isSafeInteger(result.aliasesRegistered)
+        ? result.aliasesRegistered
+        : 0,
+      rawObservationWrites: Number.isSafeInteger(result.rawObservationWrites)
+        ? result.rawObservationWrites
+        : 0,
+    };
   }
 
   _parseStoredWatermark(s) {

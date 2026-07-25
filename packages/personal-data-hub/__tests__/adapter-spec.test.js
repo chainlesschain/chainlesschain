@@ -135,6 +135,21 @@ describe("assertAdapter", () => {
     ).toBe(true);
   });
 
+  it("validates the optional resolved-ingest options hook", () => {
+    const a = new MockAdapter();
+    a.buildResolvedIngestOptions = () => ({});
+    expect(assertAdapter(a).ok).toBe(true);
+
+    a.buildResolvedIngestOptions = "quality-first";
+    const result = assertAdapter(a);
+    expect(result.ok).toBe(false);
+    expect(
+      result.errors.some((error) =>
+        error.includes("buildResolvedIngestOptions"),
+      ),
+    ).toBe(true);
+  });
+
   it("validates lookback windows and adaptive initial page budgets", () => {
     const a = new MockAdapter();
     a.watermarkLookbackMs = 86_400_000;

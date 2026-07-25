@@ -142,6 +142,12 @@ function assertAdapter(a) {
     errors.push("fileCheckpointMode must be a function when present");
   }
   if (
+    a.buildResolvedIngestOptions !== undefined &&
+    !isFunction(a.buildResolvedIngestOptions)
+  ) {
+    errors.push("buildResolvedIngestOptions must be a function when present");
+  }
+  if (
     a.watermarkLookbackMs !== undefined &&
     (!Number.isSafeInteger(a.watermarkLookbackMs) || a.watermarkLookbackMs < 0)
   ) {
