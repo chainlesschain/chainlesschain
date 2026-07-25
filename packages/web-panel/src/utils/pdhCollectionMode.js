@@ -9,6 +9,7 @@ export const COLLECTION_MODE = Object.freeze({
   FILE: "file",
   DIRECTORY: "directory",
   COOKIE: "cookie",
+  OAUTH: "oauth",
   ADB: "adb",
   SETUP: "setup",
 });
@@ -37,6 +38,72 @@ const COOKIE_COLLECTION_CAPABILITIES = new Set([
   "sync:cookie-api",
 ]);
 
+export const OAUTH_COLLECTION_SPECS = Object.freeze({
+  "doc-baidu-netdisk": Object.freeze({
+    fields: Object.freeze([
+      Object.freeze({
+        key: "accessToken",
+        label: "OAuth access token",
+        placeholder: "百度网盘开放平台 access token",
+        required: true,
+        secret: true,
+      }),
+      Object.freeze({
+        key: "accountId",
+        label: "稳定账号标识",
+        placeholder: "仅用于生成隔离水位的哈希作用域",
+        required: true,
+      }),
+      Object.freeze({
+        key: "dir",
+        label: "应用目录",
+        placeholder: "/apps/你的应用目录",
+        required: true,
+      }),
+    ]),
+  }),
+  "doc-wps": Object.freeze({
+    fields: Object.freeze([
+      Object.freeze({
+        key: "accessToken",
+        label: "OAuth access token",
+        placeholder: "WPS 365 用户授权 access token",
+        required: true,
+        secret: true,
+      }),
+      Object.freeze({
+        key: "accountId",
+        label: "稳定账号标识",
+        placeholder: "仅用于生成隔离水位的哈希作用域",
+        required: true,
+      }),
+      Object.freeze({
+        key: "driveId",
+        label: "云盘 ID",
+        placeholder: "WPS driveId",
+        required: true,
+      }),
+      Object.freeze({
+        key: "parentId",
+        label: "起始目录 ID",
+        placeholder: "默认 0（根目录）",
+        defaultValue: "0",
+      }),
+      Object.freeze({
+        key: "appId",
+        label: "KSO-1 App ID（可选）",
+        placeholder: "启用接口签名时填写",
+      }),
+      Object.freeze({
+        key: "appKey",
+        label: "KSO-1 App Key（可选）",
+        placeholder: "必须与 App ID 同时填写",
+        secret: true,
+      }),
+    ]),
+  }),
+});
+
 const SETUP_REQUIRED_REASONS = new Set([
   "NO_KEY_PROVIDER",
   "EMPTY_KEY",
@@ -47,6 +114,17 @@ const SETUP_REQUIRED_REASONS = new Set([
 
 function capabilitiesOf(source) {
   return Array.isArray(source?.capabilities) ? source.capabilities : [];
+}
+
+export function oauthCollectionSpec(source) {
+  if (
+    !source ||
+    !capabilitiesOf(source).includes("sync:oauth-api") ||
+    !Object.prototype.hasOwnProperty.call(OAUTH_COLLECTION_SPECS, source.name)
+  ) {
+    return null;
+  }
+  return OAUTH_COLLECTION_SPECS[source.name];
 }
 
 export function resolveCollectionMode(source) {
@@ -78,6 +156,9 @@ export function resolveCollectionMode(source) {
       capabilities.includes("sync:custom-cookie-api"))
   ) {
     return COLLECTION_MODE.COOKIE;
+  }
+  if (oauthCollectionSpec(source)) {
+    return COLLECTION_MODE.OAUTH;
   }
   if (
     capabilities.includes("sync:scan-directory") ||
@@ -116,6 +197,8 @@ export function collectionActionLabel(source) {
         : "📁 选择导出目录";
     case COLLECTION_MODE.COOKIE:
       return "🔑 登录采集";
+    case COLLECTION_MODE.OAUTH:
+      return "🔐 OAuth 授权采集";
     case COLLECTION_MODE.ADB:
       return "📱 USB 一键采集";
     case COLLECTION_MODE.SYNC:
@@ -133,6 +216,8 @@ export function collectionButtonLabel(source) {
       return "📁 采集";
     case COLLECTION_MODE.COOKIE:
       return "🔑 采集";
+    case COLLECTION_MODE.OAUTH:
+      return "🔐 授权采集";
     case COLLECTION_MODE.ADB:
       return "📱 采集";
     case COLLECTION_MODE.SYNC:
@@ -161,6 +246,8 @@ export function collectionActionDescription(source) {
         : "选择本地导出目录，递归扫描支持的文件";
     case COLLECTION_MODE.COOKIE:
       return "粘贴当前登录 Cookie 后采集入库";
+    case COLLECTION_MODE.OAUTH:
+      return "临时输入官方 OAuth 凭据后采集；凭据不会保存到本地配置、数据中台或同步水位";
     case COLLECTION_MODE.ADB:
       return "连接已授权的 Android 手机后自动采集";
     case COLLECTION_MODE.SYNC:
@@ -172,6 +259,63 @@ export function collectionActionDescription(source) {
 
 export function requiresExplicitSourceUrl(source) {
   return EXPLICIT_SOURCE_URL_COOKIE_ADAPTERS.has(source?.name);
+}
+
+function normalizeRuntimeValue(value, maxLength, { normalize = false } = {}) {
+  if (typeof value !== "string") return "";
+  const normalized = (normalize ? value.normalize("NFKC") : value).trim();
+  if (
+    !normalized ||
+    normalized.length > maxLength ||
+    /[\0\r\n]/u.test(normalized)
+  ) {
+    return "";
+  }
+  return normalized;
+}
+
+export function oauthCollectionOptions(source, values = {}) {
+  if (!oauthCollectionSpec(source)) return null;
+
+  const accessToken = normalizeRuntimeValue(values.accessToken, 16 * 1024);
+  const accountId = normalizeRuntimeValue(values.accountId, 1024, {
+    normalize: true,
+  });
+  if (!accessToken || !accountId) return null;
+
+  if (source.name === "doc-baidu-netdisk") {
+    const dir = normalizeRuntimeValue(values.dir, 4096, { normalize: true });
+    if (!/^\/apps\/[^/\0\r\n]+(?:\/[^\0\r\n]*)?$/u.test(dir)) return null;
+    return {
+      accessToken,
+      accountId,
+      dir,
+      recursive: values.recursive !== false,
+    };
+  }
+
+  if (source.name === "doc-wps") {
+    const driveId = normalizeRuntimeValue(values.driveId, 1024, {
+      normalize: true,
+    });
+    const parentId =
+      normalizeRuntimeValue(values.parentId, 1024, { normalize: true }) || "0";
+    const appId = normalizeRuntimeValue(values.appId, 1024, {
+      normalize: true,
+    });
+    const appKey = normalizeRuntimeValue(values.appKey, 16 * 1024);
+    if (!driveId || Boolean(appId) !== Boolean(appKey)) return null;
+    return {
+      accessToken,
+      accountId,
+      driveId,
+      parentId,
+      recursive: values.recursive !== false,
+      ...(appId ? { appId, appKey } : {}),
+    };
+  }
+
+  return null;
 }
 
 export function cookieCollectionOptions(source, cookie, accountId, sourceUrl) {

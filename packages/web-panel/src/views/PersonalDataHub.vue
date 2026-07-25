@@ -508,6 +508,12 @@
     </a-card>
 
     <!-- Email config drawer (Phase 5.6) -->
+    <PdhOAuthCollectorDrawer
+      v-model:open="oauthCollectorOpen"
+      :source="oauthCollectorTarget"
+      @collect="collectViaOAuth"
+    />
+
     <a-drawer
       v-model:open="emailConfigOpen"
       title="添加邮箱账号"
@@ -1129,6 +1135,7 @@ import {
   INCLUDE_KIND_META,
 } from "../utils/pdhSyncInclude.js";
 import AIChatWizard from "../components/AIChatWizard.vue";
+import PdhOAuthCollectorDrawer from "../components/PdhOAuthCollectorDrawer.vue";
 import WechatWizard from "../components/WechatWizard.vue";
 
 const hub = usePersonalDataHub();
@@ -1220,6 +1227,8 @@ const emailTestResult = ref(null);
 const eventDetailOpen = ref(false);
 const eventDetail = ref(null);
 const emailAccounts = ref([]);
+const oauthCollectorOpen = ref(false);
+const oauthCollectorTarget = ref(null);
 
 // Phase 11 — analysis skills state
 const skillResult = ref(null);
@@ -2238,7 +2247,10 @@ async function oneClickCollect(name) {
       message.error("采集参数无效：请检查 Cookie、账号标识和 HTTPS 接口");
       return;
     }
-    await collectViaCookie(name, options);
+    await collectViaRuntimeOptions(name, options);
+  } else if (mode === "oauth") {
+    oauthCollectorTarget.value = r;
+    oauthCollectorOpen.value = true;
   } else if (mode === "adb") {
     const collect = ADB_COLLECT_ACTIONS[name];
     if (!collect) {
@@ -2259,7 +2271,11 @@ async function oneClickCollect(name) {
   }
 }
 
-async function collectViaCookie(name, options) {
+async function collectViaOAuth({ name, options }) {
+  await collectViaRuntimeOptions(name, options);
+}
+
+async function collectViaRuntimeOptions(name, options) {
   loading.sync[name] = true;
   resetSyncProgress(name);
   try {

@@ -7,6 +7,8 @@ import {
   collectionButtonLabel,
   cookieCollectionOptions,
   directoryCollectionOptions,
+  oauthCollectionOptions,
+  oauthCollectionSpec,
   requiresExplicitSourceUrl,
   resolveCollectionMode,
 } from "../../src/utils/pdhCollectionMode.js";
@@ -306,6 +308,105 @@ describe("pdhCollectionMode", () => {
     ).toBe("setup");
   });
 
+  it("routes official cloud-document APIs through transient OAuth collection", () => {
+    for (const name of ["doc-baidu-netdisk", "doc-wps"]) {
+      const source = catalog.adapters.find((adapter) => adapter.name === name);
+      expect(source, name).toBeDefined();
+      expect(source.capabilities).toContain("sync:oauth-api");
+      expect(oauthCollectionSpec(source), name).not.toBeNull();
+      expect(resolveCollectionMode(source), name).toBe("oauth");
+      expect(collectionActionLabel(source)).toMatch(/OAuth/u);
+      expect(collectionButtonLabel(source)).toMatch(/授权采集/u);
+      expect(collectionActionDescription(source)).toMatch(/不会保存/u);
+    }
+  });
+
+  it("builds bounded one-shot Baidu Netdisk OAuth options", () => {
+    const source = {
+      name: "doc-baidu-netdisk",
+      capabilities: ["sync:snapshot", "sync:oauth-api"],
+    };
+    expect(
+      oauthCollectionOptions(source, {
+        accessToken: " runtime-token ",
+        accountId: " local-account ",
+        dir: " /apps/chainlesschain/documents ",
+      }),
+    ).toEqual({
+      accessToken: "runtime-token",
+      accountId: "local-account",
+      dir: "/apps/chainlesschain/documents",
+      recursive: true,
+    });
+    expect(
+      oauthCollectionOptions(source, {
+        accessToken: "runtime-token",
+        accountId: "local-account",
+        dir: "/",
+      }),
+    ).toBeNull();
+    expect(
+      oauthCollectionOptions(source, {
+        accessToken: "runtime-token\nleak",
+        accountId: "local-account",
+        dir: "/apps/chainlesschain",
+      }),
+    ).toBeNull();
+  });
+
+  it("builds WPS OAuth options and enforces the optional KSO-1 pair", () => {
+    const source = {
+      name: "doc-wps",
+      capabilities: ["sync:snapshot", "sync:oauth-api"],
+    };
+    expect(
+      oauthCollectionOptions(source, {
+        accessToken: " wps-token ",
+        accountId: " local-user ",
+        driveId: " drive-1 ",
+      }),
+    ).toEqual({
+      accessToken: "wps-token",
+      accountId: "local-user",
+      driveId: "drive-1",
+      parentId: "0",
+      recursive: true,
+    });
+    expect(
+      oauthCollectionOptions(source, {
+        accessToken: "wps-token",
+        accountId: "local-user",
+        driveId: "drive-1",
+        parentId: "folder-9",
+        appId: "app-1",
+        appKey: "app-secret",
+        recursive: false,
+      }),
+    ).toEqual({
+      accessToken: "wps-token",
+      accountId: "local-user",
+      driveId: "drive-1",
+      parentId: "folder-9",
+      recursive: false,
+      appId: "app-1",
+      appKey: "app-secret",
+    });
+    expect(
+      oauthCollectionOptions(source, {
+        accessToken: "wps-token",
+        accountId: "local-user",
+        driveId: "drive-1",
+        appId: "app-without-key",
+      }),
+    ).toBeNull();
+    expect(
+      oauthCollectionOptions(source, {
+        accessToken: "wps-token",
+        accountId: "local-user",
+      }),
+    ).toBeNull();
+  });
+
   it("routes only the explicit Didi consumer custom endpoint through login collection", () => {
     const didiConsumer = {
       name: "travel-didi-consumer",
@@ -401,9 +502,10 @@ describe("pdhCollectionMode", () => {
     );
     expect(snapshotAdapters.length).toBeGreaterThan(50);
     for (const adapter of snapshotAdapters) {
-      expect(["file", "directory", "cookie", "adb"], adapter.name).toContain(
-        resolveCollectionMode(adapter),
-      );
+      expect(
+        ["file", "directory", "cookie", "oauth", "adb"],
+        adapter.name,
+      ).toContain(resolveCollectionMode(adapter));
     }
   });
 
