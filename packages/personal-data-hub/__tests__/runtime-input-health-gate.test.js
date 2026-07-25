@@ -21,6 +21,84 @@ const ACCOUNT = Object.freeze({
   email: "health-test@example.com",
 });
 
+const UNREACHABLE_LIVE_ADAPTERS = Object.freeze([
+  {
+    source: "reading-fanqie",
+    Collector: pdh.FanqieReadingAdapter,
+    noInputReason: "NO_INPUT",
+  },
+  {
+    source: "reading-qimao",
+    Collector: pdh.QimaoReadingAdapter,
+    noInputReason: "NO_INPUT",
+  },
+  {
+    source: "fitness-keep",
+    Collector: pdh.KeepAdapter,
+    noInputReason: "NO_INPUT",
+  },
+  {
+    source: "fitness-joyrun",
+    Collector: pdh.JoyrunAdapter,
+    noInputReason: "NO_INPUT",
+  },
+  {
+    source: "health-meiyou",
+    Collector: pdh.MeiyouAdapter,
+    noInputReason: "NO_INPUT",
+  },
+  {
+    source: "car-mercedesme",
+    Collector: pdh.MercedesMeAdapter,
+    noInputReason: "NO_FILE",
+  },
+  {
+    source: "bank-cmbc",
+    Collector: pdh.CmbcBankAdapter,
+    noInputReason: "NO_INPUT",
+  },
+  {
+    source: "bank-boc",
+    Collector: pdh.BocBankAdapter,
+    noInputReason: "NO_INPUT",
+  },
+  {
+    source: "bank-bankcomm",
+    Collector: pdh.BankcommBankAdapter,
+    noInputReason: "NO_INPUT",
+  },
+  {
+    source: "bank-icbc",
+    Collector: pdh.IcbcBankAdapter,
+    noInputReason: "NO_INPUT",
+  },
+  {
+    source: "finance-dcep",
+    Collector: pdh.DcepAdapter,
+    noInputReason: "NO_INPUT",
+  },
+  {
+    source: "gov-12123",
+    Collector: pdh.Tmri12123Adapter,
+    noInputReason: "NO_INPUT",
+  },
+  {
+    source: "gov-ixiamen",
+    Collector: pdh.IXiamenAdapter,
+    noInputReason: "NO_INPUT",
+  },
+  {
+    source: "gov-tax",
+    Collector: pdh.TaxAdapter,
+    noInputReason: "NO_INPUT",
+  },
+  {
+    source: "game-honor-of-kings",
+    Collector: pdh.HonorOfKingsAdapter,
+    noInputReason: "NO_INPUT",
+  },
+]);
+
 describe("runtime collection input health gate", () => {
   let tempDir;
   let inputPath;
@@ -88,5 +166,66 @@ describe("runtime collection input health gate", () => {
       }
     }
     expect(failures).toEqual([]);
+  });
+
+  it.each(UNREACHABLE_LIVE_ADAPTERS)(
+    "rejects missing runtime input for $source",
+    async ({ Collector, noInputReason }) => {
+      const adapter = new Collector();
+      const authentication = await adapter.authenticate({});
+      const health = await adapter.healthCheck({});
+
+      expect(authentication).toMatchObject({
+        ok: false,
+        reason: noInputReason,
+      });
+      expect(health).toMatchObject({
+        ok: false,
+        reason: authentication.reason,
+        error: authentication.message,
+        lastChecked: expect.any(Number),
+      });
+    },
+  );
+
+  it.each(UNREACHABLE_LIVE_ADAPTERS)(
+    "accepts a valid snapshot/file input for $source",
+    async ({ Collector }) => {
+      const adapter = new Collector();
+      const authentication = await adapter.authenticate({ inputPath });
+      const health = await adapter.healthCheck({ inputPath });
+
+      expect(authentication.ok).toBe(true);
+      expect(health).toMatchObject({
+        ok: true,
+        lastChecked: expect.any(Number),
+      });
+      expect(health.unverified).toBeUndefined();
+    },
+  );
+
+  it("passes Honor of Kings runtime credentials through the health gate", async () => {
+    const adapter = new pdh.HonorOfKingsAdapter();
+    const health = await adapter.healthCheck({
+      credential: {
+        accessToken: "runtime-health-token",
+        openid: "runtime-health-openid",
+      },
+    });
+
+    expect(health).toMatchObject({
+      ok: true,
+      lastChecked: expect.any(Number),
+    });
+  });
+
+  it("passes Mercedes me dataPath file input through the health gate", async () => {
+    const adapter = new pdh.MercedesMeAdapter();
+    const health = await adapter.healthCheck({ dataPath: inputPath });
+
+    expect(health).toMatchObject({
+      ok: true,
+      lastChecked: expect.any(Number),
+    });
   });
 });

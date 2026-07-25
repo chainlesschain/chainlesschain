@@ -219,13 +219,19 @@ class MeiyouAdapter {
   }
 
   async healthCheck(opts = {}) {
-    if (this._cookieAuth) {
-      const r = await this.authenticate(opts);
-      return r.ok
-        ? { ok: true, lastChecked: Date.now(), unverified: true }
-        : { ok: false, reason: r.reason, error: r.error };
-    }
-    return { ok: true, lastChecked: Date.now() };
+    const result = await this.authenticate(opts);
+    return result.ok
+      ? {
+          ok: true,
+          lastChecked: Date.now(),
+          ...(result.unverified === true ? { unverified: true } : {}),
+        }
+      : {
+          ok: false,
+          reason: result.reason,
+          error: result.error || result.message,
+          lastChecked: Date.now(),
+        };
   }
 
   async *sync(opts = {}) {

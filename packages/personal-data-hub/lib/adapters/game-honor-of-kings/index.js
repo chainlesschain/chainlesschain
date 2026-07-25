@@ -118,8 +118,16 @@ class HonorOfKingsAdapter {
     };
   }
 
-  async healthCheck() {
-    return { ok: true, lastChecked: Date.now() };
+  async healthCheck(opts = {}) {
+    const result = await this.authenticate(opts);
+    return result.ok
+      ? { ok: true, lastChecked: Date.now() }
+      : {
+          ok: false,
+          reason: result.reason,
+          error: result.error || result.message,
+          lastChecked: Date.now(),
+        };
   }
 
   async *sync(opts = {}) {
