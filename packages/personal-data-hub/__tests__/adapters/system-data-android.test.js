@@ -53,6 +53,9 @@ describe("SystemDataAndroidAdapter — contract", () => {
     expect(adapter.name).toBe(SYSTEM_DATA_ANDROID_NAME);
     expect(adapter.version).toBe(SYSTEM_DATA_ANDROID_VERSION);
     expect(adapter.extractMode).toBe("device-pull");
+    expect(adapter.watermarkStrategy).toBe("none");
+    expect(adapter.watermarkRequiresCompleteScan).toBe(true);
+    expect(adapter.defaultScope).toBeUndefined();
     expect(adapter.capabilities).toEqual(
       expect.arrayContaining(["sync:snapshot", "sync:adb"]),
     );
@@ -360,14 +363,53 @@ describe("SystemDataAndroidAdapter.sync + normalize", () => {
       apps: [],
     });
     const adapter = new SystemDataAndroidAdapter();
+    const markWatermarkComplete = vi.fn();
+    const onProgress = vi.fn();
     let count = 0;
     for await (const _raw of adapter.sync({
       inputPath: snapshotPath,
       limit: 2,
+      markWatermarkComplete,
+      onProgress,
     })) {
       count += 1;
     }
     expect(count).toBe(2);
+    expect(markWatermarkComplete).not.toHaveBeenCalled();
+    expect(onProgress).toHaveBeenCalledExactlyOnceWith({
+      phase: "scan-incomplete",
+      status: "partial",
+      complete: false,
+      reason: "global-limit",
+      emitted: 2,
+      available: 3,
+      limit: 2,
+      resumable: false,
+    });
+  });
+
+  it("marks an unbounded snapshot scan complete", async () => {
+    writeSnapshot({
+      schemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      contacts: [{ lookupKey: "complete", displayName: "Complete" }],
+      apps: [{ packageName: "com.complete" }],
+    });
+    const adapter = new SystemDataAndroidAdapter();
+    const markWatermarkComplete = vi.fn();
+    const onProgress = vi.fn();
+
+    const out = [];
+    for await (const raw of adapter.sync({
+      inputPath: snapshotPath,
+      markWatermarkComplete,
+      onProgress,
+    })) {
+      out.push(raw);
+    }
+
+    expect(out.map((raw) => raw.kind)).toEqual(["contact", "app"]);
+    expect(markWatermarkComplete).toHaveBeenCalledOnce();
+    expect(onProgress).not.toHaveBeenCalled();
   });
 });
 
@@ -549,12 +591,445 @@ describe("SystemDataAndroidAdapter — bridge-direct sync", () => {
     const many = Array.from({ length: 10 }, (_, i) => ({
       displayName: `c${i}`,
     }));
-    adapter._deps.bridgeProvider = () => makeBridge({ contacts: many });
+    const bridge = makeBridge({ contacts: many });
+    const invoke = vi.spyOn(bridge, "invoke");
+    adapter._deps.bridgeProvider = () => bridge;
     const out = [];
     for await (const r of adapter.sync({ useBridge: true, limit: 3 }))
       out.push(r);
     expect(out).toHaveLength(3);
+    expect(invoke).toHaveBeenCalledExactlyOnceWith("contacts.query", {
+      since: undefined,
+    });
   });
+
+  it("fairly rotates bounded samples without claiming durable resume", async () => {
+    const adapter = new SystemDataAndroidAdapter();
+    const bridge = makeBridge({
+      contacts: [
+        { lookupKey: "contact-1", displayName: "Contact 1" },
+        { lookupKey: "contact-2", displayName: "Contact 2" },
+      ],
+      apps: [{ packageName: "com.fairness.app" }],
+      sms: [{ id: 7, address: "10086", body: "hello" }],
+    });
+    const invoke = vi.spyOn(bridge, "invoke");
+    adapter._deps.bridgeProvider = () => bridge;
+    const markWatermarkComplete = vi.fn();
+    const onProgress = vi.fn();
+    const seen = [];
+
+    for (let pass = 0; pass < 4; pass += 1) {
+      for await (const raw of adapter.sync({
+        useBridge: true,
+        sourceIdentity: "fairness-device",
+        limit: 1,
+        include: {
+          contacts: true,
+          apps: true,
+          sms: true,
+          calls: false,
+          media: false,
+        },
+        markWatermarkComplete,
+        onProgress,
+      })) {
+        seen.push([raw.kind, raw.originalId]);
+      }
+    }
+
+    expect(seen).toEqual([
+      ["contact", "android-contact:contact-1"],
+      ["contact", "android-contact:contact-2"],
+      ["app", "android-app:com.fairness.app"],
+      ["sms", "android-sms:7"],
+    ]);
+    expect(invoke.mock.calls.map(([method]) => method)).toEqual([
+      "contacts.query",
+      "contacts.query",
+      "app.list",
+      "sms.query",
+    ]);
+    expect(markWatermarkComplete).not.toHaveBeenCalled();
+    expect(onProgress).toHaveBeenCalledTimes(4);
+    expect(onProgress).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        phase: "scan-incomplete",
+        reason: "global-limit",
+        resumable: false,
+      }),
+    );
+  });
+
+  it("isolates bounded sampler offsets by bridge serial and caps sampler state", async () => {
+    const adapter = new SystemDataAndroidAdapter({
+      bridgeProvider: () =>
+        makeBridge({
+          contacts: [
+            { lookupKey: "contact-1", displayName: "Contact 1" },
+            { lookupKey: "contact-2", displayName: "Contact 2" },
+          ],
+        }),
+    });
+    const collectOne = async (serial, scope) => {
+      const out = [];
+      for await (const raw of adapter.sync({
+        useBridge: true,
+        serial,
+        scope,
+        limit: 1,
+        include: {
+          contacts: true,
+          apps: false,
+          sms: false,
+          calls: false,
+          media: false,
+        },
+      })) {
+        out.push(raw.originalId);
+      }
+      return out[0];
+    };
+
+    expect(await collectOne("device-a")).toBe("android-contact:contact-1");
+    expect(await collectOne("device-b")).toBe("android-contact:contact-1");
+    expect(await collectOne("device-a")).toBe("android-contact:contact-2");
+    expect(await collectOne("shared-device", "scope-a")).toBe(
+      "android-contact:contact-1",
+    );
+    expect(await collectOne("shared-device", "scope-b")).toBe(
+      "android-contact:contact-1",
+    );
+    expect(await collectOne("shared-device", "scope-a")).toBe(
+      "android-contact:contact-2",
+    );
+
+    for (let index = 0; index < 40; index += 1) {
+      await collectOne(`bounded-device-${index}`);
+    }
+    expect(adapter._boundedSamplers.size).toBeLessThanOrEqual(32);
+  });
+
+  it("does not share bounded state when no stable bridge identity is provided", async () => {
+    const adapter = new SystemDataAndroidAdapter({
+      bridgeProvider: () =>
+        makeBridge({
+          contacts: [
+            { lookupKey: "contact-1", displayName: "Contact 1" },
+            { lookupKey: "contact-2", displayName: "Contact 2" },
+          ],
+        }),
+    });
+    const collectOne = async () => {
+      const out = [];
+      for await (const raw of adapter.sync({
+        useBridge: true,
+        limit: 1,
+        include: {
+          contacts: true,
+          apps: false,
+          sms: false,
+          calls: false,
+          media: false,
+        },
+      })) {
+        out.push(raw.originalId);
+      }
+      return out[0];
+    };
+
+    expect(await collectOne()).toBe("android-contact:contact-1");
+    expect(await collectOne()).toBe("android-contact:contact-1");
+    expect(adapter._boundedSamplers.size).toBe(0);
+  });
+
+  it("does not use random snapshot paths as sampler identities", async () => {
+    const snapshot = {
+      schemaVersion: SNAPSHOT_SCHEMA_VERSION,
+      contacts: [
+        { lookupKey: "snapshot-1", displayName: "Snapshot 1" },
+        { lookupKey: "snapshot-2", displayName: "Snapshot 2" },
+      ],
+      apps: [],
+    };
+    const secondPath = join(tmpDir, "random-copy.json");
+    writeSnapshot(snapshot);
+    writeFileSync(secondPath, JSON.stringify(snapshot), "utf8");
+    const adapter = new SystemDataAndroidAdapter();
+    const firstIds = [];
+    const secondIds = [];
+
+    for await (const raw of adapter.sync({
+      inputPath: snapshotPath,
+      limit: 1,
+    })) {
+      firstIds.push(raw.originalId);
+    }
+    for await (const raw of adapter.sync({
+      inputPath: secondPath,
+      limit: 1,
+    })) {
+      secondIds.push(raw.originalId);
+    }
+
+    expect(firstIds).toEqual(["android-contact:snapshot-1"]);
+    expect(secondIds).toEqual(["android-contact:snapshot-1"]);
+    expect(adapter._boundedSamplers.size).toBe(0);
+  });
+
+  it("does not commit direct sampler progress when the consumer returns early", async () => {
+    const adapter = new SystemDataAndroidAdapter({
+      bridgeProvider: () =>
+        makeBridge({
+          contacts: [
+            { lookupKey: "contact-1", displayName: "Contact 1" },
+            { lookupKey: "contact-2", displayName: "Contact 2" },
+          ],
+        }),
+    });
+    const options = {
+      useBridge: true,
+      sourceIdentity: "direct-consumer",
+      limit: 1,
+      include: {
+        contacts: true,
+        apps: false,
+        sms: false,
+        calls: false,
+        media: false,
+      },
+    };
+    const interrupted = adapter.sync(options);
+    await expect(interrupted.next()).resolves.toMatchObject({
+      value: { originalId: "android-contact:contact-1" },
+      done: false,
+    });
+    await interrupted.return();
+
+    const replay = [];
+    for await (const raw of adapter.sync(options)) replay.push(raw.originalId);
+    expect(replay).toEqual(["android-contact:contact-1"]);
+
+    const advanced = [];
+    for await (const raw of adapter.sync(options))
+      advanced.push(raw.originalId);
+    expect(advanced).toEqual(["android-contact:contact-2"]);
+  });
+
+  it("retains direct sampler state when completion marking fails", async () => {
+    const adapter = new SystemDataAndroidAdapter({
+      bridgeProvider: () =>
+        makeBridge({
+          contacts: [
+            { lookupKey: "contact-1", displayName: "Contact 1" },
+            { lookupKey: "contact-2", displayName: "Contact 2" },
+          ],
+        }),
+    });
+    const base = {
+      useBridge: true,
+      sourceIdentity: "completion-failure",
+      include: {
+        contacts: true,
+        apps: false,
+        sms: false,
+        calls: false,
+        media: false,
+      },
+    };
+
+    const initial = [];
+    for await (const raw of adapter.sync({ ...base, limit: 1 })) {
+      initial.push(raw.originalId);
+    }
+    expect(initial).toEqual(["android-contact:contact-1"]);
+
+    const partial = [];
+    await expect(async () => {
+      for await (const raw of adapter.sync({
+        ...base,
+        limit: 3,
+        markWatermarkComplete: () => {
+          throw new Error("completion failed");
+        },
+      })) {
+        partial.push(raw.originalId);
+      }
+    }).rejects.toThrow(/completion failed/u);
+    expect(partial).toEqual(["android-contact:contact-2"]);
+
+    const replay = [];
+    for await (const raw of adapter.sync({ ...base, limit: 1 })) {
+      replay.push(raw.originalId);
+    }
+    expect(replay).toEqual(["android-contact:contact-2"]);
+  });
+
+  it("ignores a late concurrent sampler commit instead of rolling state back", async () => {
+    const adapter = new SystemDataAndroidAdapter({
+      bridgeProvider: () =>
+        makeBridge({
+          contacts: [
+            { lookupKey: "contact-1", displayName: "Contact 1" },
+            { lookupKey: "contact-2", displayName: "Contact 2" },
+            { lookupKey: "contact-3", displayName: "Contact 3" },
+          ],
+        }),
+    });
+    const base = {
+      useBridge: true,
+      serial: "concurrent-device",
+      include: {
+        contacts: true,
+        apps: false,
+        sms: false,
+        calls: false,
+        media: false,
+      },
+    };
+    const commitsA = [];
+    const commitsB = [];
+    const runA = adapter.sync({
+      ...base,
+      limit: 1,
+      deferSyncCommit: (callback) => commitsA.push(callback),
+    });
+    const runB = adapter.sync({
+      ...base,
+      limit: 2,
+      deferSyncCommit: (callback) => commitsB.push(callback),
+    });
+
+    await expect(runA.next()).resolves.toMatchObject({
+      value: { originalId: "android-contact:contact-1" },
+    });
+    await expect(runB.next()).resolves.toMatchObject({
+      value: { originalId: "android-contact:contact-1" },
+    });
+    await expect(runB.next()).resolves.toMatchObject({
+      value: { originalId: "android-contact:contact-2" },
+    });
+    expect(commitsA).toHaveLength(1);
+    expect(commitsB).toHaveLength(1);
+
+    await commitsB[0]();
+    await commitsA[0]();
+    await runA.return();
+    await runB.return();
+
+    const next = [];
+    for await (const raw of adapter.sync({ ...base, limit: 1 })) {
+      next.push(raw.originalId);
+    }
+    expect(next).toEqual(["android-contact:contact-3"]);
+  });
+
+  it("replays earlier rows when a later lazy stream fails", async () => {
+    let failApps = true;
+    const adapter = new SystemDataAndroidAdapter({
+      bridgeProvider: () => ({
+        caps: () => ({ available: true }),
+        invoke: async (method) => {
+          if (method === "contacts.query") {
+            return {
+              contacts: [{ lookupKey: "replay", displayName: "Replay" }],
+            };
+          }
+          if (method === "app.list" && failApps) {
+            throw new Error("app stream failed");
+          }
+          if (method === "app.list") {
+            return { apps: [{ packageName: "com.recovered" }] };
+          }
+          return [];
+        },
+      }),
+    });
+    const firstSeen = [];
+    await expect(async () => {
+      for await (const raw of adapter.sync({
+        useBridge: true,
+        limit: 2,
+        include: {
+          contacts: true,
+          apps: true,
+          sms: false,
+          calls: false,
+          media: false,
+        },
+      })) {
+        firstSeen.push(raw.originalId);
+      }
+    }).rejects.toThrow(/app stream failed/u);
+    expect(firstSeen).toEqual(["android-contact:replay"]);
+
+    failApps = false;
+    const retry = [];
+    for await (const raw of adapter.sync({
+      useBridge: true,
+      limit: 1,
+      include: {
+        contacts: true,
+        apps: true,
+        sms: false,
+        calls: false,
+        media: false,
+      },
+    })) {
+      retry.push(raw.originalId);
+    }
+    expect(retry).toEqual(["android-contact:replay"]);
+  });
+
+  it.each([
+    ["unbounded", undefined, true],
+    ["under-limit", 2, true],
+    ["exact-limit", 1, false],
+  ])(
+    "%s bridge scans expose conservative completion",
+    async (_label, limit, shouldComplete) => {
+      const adapter = new SystemDataAndroidAdapter({
+        bridgeProvider: () =>
+          makeBridge({
+            contacts: [{ lookupKey: "only", displayName: "Only" }],
+          }),
+      });
+      const markWatermarkComplete = vi.fn();
+      const onProgress = vi.fn();
+      const options = {
+        useBridge: true,
+        include: {
+          contacts: true,
+          apps: false,
+          sms: false,
+          calls: false,
+          media: false,
+        },
+        markWatermarkComplete,
+        onProgress,
+      };
+      if (limit !== undefined) options.limit = limit;
+
+      const out = [];
+      for await (const raw of adapter.sync(options)) out.push(raw);
+
+      expect(out).toHaveLength(1);
+      if (shouldComplete) {
+        expect(markWatermarkComplete).toHaveBeenCalledOnce();
+        expect(onProgress).not.toHaveBeenCalled();
+      } else {
+        expect(markWatermarkComplete).not.toHaveBeenCalled();
+        expect(onProgress).toHaveBeenCalledExactlyOnceWith(
+          expect.objectContaining({
+            phase: "scan-incomplete",
+            reason: "global-limit",
+            emitted: 1,
+            limit: 1,
+          }),
+        );
+      }
+    },
+  );
 
   it("throws when useBridge=true but bridge missing", async () => {
     const adapter = new SystemDataAndroidAdapter();

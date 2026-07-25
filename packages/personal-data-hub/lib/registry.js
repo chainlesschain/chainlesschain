@@ -63,6 +63,7 @@ const DEFAULT_WATERMARK_LOOKBACK_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_SYNC_MAX_RETRIES = 3;
 const DEFAULT_SYNC_RETRY_BASE_DELAY_MS = 500;
 const DEFAULT_SYNC_RETRY_MAX_DELAY_MS = 30_000;
+const MAX_DEFERRED_SYNC_COMMITS = 64;
 const SYNC_ATTEMPT_ERROR = Symbol("syncAttemptError");
 const ADB_READINESS_REASONS = new Set([
   "ADB_NOT_INSTALLED",
@@ -898,6 +899,20 @@ class AdapterRegistry {
     // hook throws or returns an invalid value, the error path must not create
     // or mutate a durable live-source checkpoint.
     let preserveFileCheckpoint = explicitFileSync;
+    const deferredSyncCommits = [];
+    const deferSyncCommit = (callback) => {
+      if (typeof callback !== "function") {
+        throw new TypeError(
+          "AdapterRegistry: deferSyncCommit requires a function",
+        );
+      }
+      if (deferredSyncCommits.length >= MAX_DEFERRED_SYNC_COMMITS) {
+        throw new RangeError(
+          `AdapterRegistry: deferSyncCommit accepts at most ${MAX_DEFERRED_SYNC_COMMITS} callbacks per attempt`,
+        );
+      }
+      deferredSyncCommits.push(callback);
+    };
 
     try {
       this._throwIfAborted(options.signal);
@@ -1455,6 +1470,7 @@ class AdapterRegistry {
         updateWatermark: adapterUpdateWatermark,
         markWatermarkComplete: adapterMarkWatermarkComplete,
         beforeSourceRequest,
+        deferSyncCommit,
       });
 
       for await (const raw of iter) {
@@ -1695,6 +1711,29 @@ class AdapterRegistry {
             } catch (_auditError) {
               // Stale state only causes a larger future rescan; it cannot move
               // the committed source watermark or lose data.
+            }
+          }
+        }
+      }
+
+      // Adapter-local cursors/samplers are not durable source checkpoints,
+      // but they still must not advance before every raw and normalized batch
+      // is safely stored. Run deferred mutations only after the final flush
+      // and successful checkpoint/preserve handling. A callback failure is an
+      // observability issue, not grounds to turn an already committed sync
+      // into an error.
+      if (report.invalidCount === 0 && report.archiveFailureCount === 0) {
+        for (const callback of deferredSyncCommits) {
+          try {
+            await callback();
+          } catch (commitError) {
+            try {
+              this.vault.audit("adapter.sync.deferred_commit_failed", name, {
+                scope,
+                error: toError(commitError, "deferSyncCommit").message,
+              });
+            } catch (_auditError) {
+              // Best-effort callback diagnostics only.
             }
           }
         }

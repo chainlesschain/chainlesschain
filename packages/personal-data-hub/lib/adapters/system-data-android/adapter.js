@@ -37,6 +37,11 @@ const {
 } = require("../../constants");
 
 const NAME = "system-data-android";
+// v0.4.2 (2026-07-25): stop treating emitted row counts as durable source
+// cursors. Android's heterogeneous bridge streams do not expose compatible
+// resumable cursors, so bounded runs now report themselves as incomplete,
+// never advance a cursor, and fairly rotate the bounded sample. Legacy count
+// values are preserved inertly: they no longer filter this adapter or grow.
 // v0.4.1 (2026-07-25): use the shared bounded/TOCTOU-safe snapshot reader,
 // fail closed on unrecognized bridge responses, and reject records that
 // cannot provide a deterministic source identifier.
@@ -73,8 +78,16 @@ const NAME = "system-data-android";
 // v0.2.0 (2026-05-24): added kind="sms" + kind="call" via bridge mode.
 //   Snapshot mode still v1 schema — sms/calls/media only land via
 //   bridge path until Android snapshot writer is updated to include them.
-const VERSION = "0.4.1";
+const VERSION = "0.4.2";
 const SNAPSHOT_SCHEMA_VERSION = 1;
+const MAX_BOUNDED_SAMPLERS = 32;
+
+function globalEventLimit(opts) {
+  const candidates = [opts && opts.limit, opts && opts.maxEvents].filter(
+    (value) => Number.isSafeInteger(value) && value > 0,
+  );
+  return candidates.length > 0 ? Math.min(...candidates) : Infinity;
+}
 
 // Stable per-source originalId — registry.putRawEvent rejects null originalId
 // with a NOT NULL constraint, surfacing as invalidCount += rawCount on the
@@ -205,6 +218,13 @@ class SystemDataAndroidAdapter {
     ];
     this.extractMode = "device-pull";
     this.rateLimits = { perDay: 24 };
+    // Contacts, installed apps, SMS, calls, and media do not share a durable
+    // cursor. A row count is not a source position and can hide replayed
+    // prefixes, so never invent or advance one. `watermarkRequiresCompleteScan`
+    // makes a bounded run observable as `watermarkDeferred` until this adapter
+    // calls markWatermarkComplete().
+    this.watermarkStrategy = "none";
+    this.watermarkRequiresCompleteScan = true;
     this.dataDisclosure = {
       fields: [
         "contacts:displayName,phones,emails,starred,organization,jobTitle,photoUri",
@@ -243,6 +263,12 @@ class SystemDataAndroidAdapter {
           ? opts.bridgeProvider
           : () => null,
     };
+
+    // Process-local fairness only. Samplers are isolated by ingestion mode
+    // and source identity, LRU-bounded, and never advertised as durable
+    // checkpoints. A restart may replay rows, which is safe because
+    // originalId is stable and the durable watermark remains unchanged.
+    this._boundedSamplers = new Map();
   }
 
   // ─── PersonalDataAdapter contract ──────────────────────────────────────
@@ -296,6 +322,281 @@ class SystemDataAndroidAdapter {
     }
   }
 
+  _samplerKey(mode, identity) {
+    return JSON.stringify([mode, identity]);
+  }
+
+  _stableSamplerIdentity(mode, opts) {
+    const candidates =
+      mode === "bridge"
+        ? [
+            ["serial", opts.serial],
+            ["sourceIdentity", opts.sourceIdentity],
+            ["scope", opts.scope],
+          ]
+        : [
+            ["sourceIdentity", opts.sourceIdentity],
+            ["scope", opts.scope],
+          ];
+    const components = candidates.flatMap(([kind, value]) =>
+      typeof value === "string" && value.trim().length > 0
+        ? [[kind, value.trim()]]
+        : [],
+    );
+    return components.length > 0 ? JSON.stringify(components) : null;
+  }
+
+  _leaseBoundedSampler(mode, identity) {
+    if (!identity) {
+      return {
+        key: null,
+        token: null,
+        nextKey: null,
+        offsets: new Map(),
+      };
+    }
+    const key = this._samplerKey(mode, identity);
+    let sampler = this._boundedSamplers.get(key);
+    if (sampler) {
+      this._boundedSamplers.delete(key);
+      this._boundedSamplers.set(key, sampler);
+    } else {
+      while (this._boundedSamplers.size >= MAX_BOUNDED_SAMPLERS) {
+        const oldestKey = this._boundedSamplers.keys().next().value;
+        this._boundedSamplers.delete(oldestKey);
+      }
+      sampler = { nextKey: null, offsets: new Map(), token: null };
+      this._boundedSamplers.set(key, sampler);
+    }
+    const token = Symbol("system-data-android-sampler-generation");
+    sampler.token = token;
+    return {
+      key,
+      token,
+      nextKey: sampler.nextKey,
+      offsets: new Map(sampler.offsets),
+    };
+  }
+
+  _commitBoundedSampler(lease, candidate) {
+    if (!lease.key) return false;
+    const current = this._boundedSamplers.get(lease.key);
+    if (!current || current.token !== lease.token) return false;
+    current.nextKey = candidate.nextKey;
+    current.offsets = new Map(candidate.offsets);
+    this._boundedSamplers.delete(lease.key);
+    this._boundedSamplers.set(lease.key, current);
+    return true;
+  }
+
+  _clearBoundedSampler(lease) {
+    if (!lease.key) return false;
+    const current = this._boundedSamplers.get(lease.key);
+    if (!current || current.token !== lease.token) return false;
+    this._boundedSamplers.delete(lease.key);
+    return true;
+  }
+
+  _deferSamplerMutation(opts, lease, mutation) {
+    if (!lease.key || typeof opts.deferSyncCommit !== "function") return false;
+    opts.deferSyncCommit(() => mutation());
+    return true;
+  }
+
+  *_yieldSnapshotStreams(streams, opts) {
+    const activeStreams = streams.filter(
+      (stream) => Array.isArray(stream.rows) && stream.rows.length > 0,
+    );
+    const available = activeStreams.reduce(
+      (total, stream) => total + stream.rows.length,
+      0,
+    );
+    const limit = globalEventLimit(opts);
+    const samplerIdentity = this._stableSamplerIdentity("snapshot", opts);
+    const lease = this._leaseBoundedSampler("snapshot", samplerIdentity);
+
+    if (limit === Infinity || available < limit) {
+      for (const stream of activeStreams) {
+        for (const raw of stream.rows) yield raw;
+      }
+      if (typeof opts.markWatermarkComplete === "function") {
+        opts.markWatermarkComplete();
+      }
+      const deferred = this._deferSamplerMutation(opts, lease, () =>
+        this._clearBoundedSampler(lease),
+      );
+      if (!deferred) this._clearBoundedSampler(lease);
+      return;
+    }
+
+    const workingOffsets = new Map(lease.offsets);
+    const remaining = new Map(
+      activeStreams.map((stream) => [stream.key, stream.rows.length]),
+    );
+    let streamIndex = Math.max(
+      0,
+      activeStreams.findIndex((stream) => stream.key === lease.nextKey),
+    );
+    const selected = [];
+    while (selected.length < limit) {
+      const stream = activeStreams[streamIndex];
+      const streamRemaining = remaining.get(stream.key) || 0;
+      if (streamRemaining > 0) {
+        const offset =
+          (workingOffsets.get(stream.key) || 0) % stream.rows.length;
+        selected.push(stream.rows[offset]);
+        workingOffsets.set(stream.key, (offset + 1) % stream.rows.length);
+        remaining.set(stream.key, streamRemaining - 1);
+      }
+      streamIndex = (streamIndex + 1) % activeStreams.length;
+    }
+    const nextBoundedStreamKey = activeStreams[streamIndex].key;
+    const candidate = {
+      nextKey: nextBoundedStreamKey,
+      offsets: workingOffsets,
+    };
+
+    for (const [index, raw] of selected.entries()) {
+      let deferred = false;
+      if (index === selected.length - 1) {
+        if (typeof opts.onProgress === "function") {
+          opts.onProgress({
+            phase: "scan-incomplete",
+            status: "partial",
+            complete: false,
+            reason: "global-limit",
+            emitted: selected.length,
+            available,
+            limit,
+            resumable: false,
+          });
+        }
+        deferred = this._deferSamplerMutation(opts, lease, () =>
+          this._commitBoundedSampler(lease, candidate),
+        );
+      }
+      yield raw;
+      if (index === selected.length - 1 && !deferred) {
+        this._commitBoundedSampler(lease, candidate);
+      }
+    }
+  }
+
+  async *_yieldBridgeDescriptors(descriptors, opts) {
+    const limit = globalEventLimit(opts);
+    const samplerIdentity = this._stableSamplerIdentity("bridge", opts);
+    const lease = this._leaseBoundedSampler("bridge", samplerIdentity);
+
+    if (limit === Infinity) {
+      for (const descriptor of descriptors) {
+        const rows = await descriptor.load();
+        for (const raw of rows) yield raw;
+      }
+      if (typeof opts.markWatermarkComplete === "function") {
+        opts.markWatermarkComplete();
+      }
+      const deferred = this._deferSamplerMutation(opts, lease, () =>
+        this._clearBoundedSampler(lease),
+      );
+      if (!deferred) this._clearBoundedSampler(lease);
+      return;
+    }
+
+    if (descriptors.length === 0) {
+      if (typeof opts.markWatermarkComplete === "function") {
+        opts.markWatermarkComplete();
+      }
+      const deferred = this._deferSamplerMutation(opts, lease, () =>
+        this._clearBoundedSampler(lease),
+      );
+      if (!deferred) this._clearBoundedSampler(lease);
+      return;
+    }
+
+    const workingSampler = {
+      nextKey: lease.nextKey,
+      offsets: new Map(lease.offsets),
+    };
+    let descriptorIndex = Math.max(
+      0,
+      descriptors.findIndex(
+        (descriptor) => descriptor.key === workingSampler.nextKey,
+      ),
+    );
+    let queriedStreams = 0;
+    let selected = 0;
+
+    while (queriedStreams < descriptors.length) {
+      const descriptor = descriptors[descriptorIndex];
+      const rows = await descriptor.load();
+      queriedStreams += 1;
+      let rowIndex =
+        rows.length > 0
+          ? (workingSampler.offsets.get(descriptor.key) || 0) % rows.length
+          : 0;
+
+      while (rowIndex < rows.length) {
+        const raw = rows[rowIndex];
+        rowIndex += 1;
+        selected += 1;
+        if (rowIndex < rows.length) {
+          workingSampler.offsets.set(descriptor.key, rowIndex);
+          workingSampler.nextKey = descriptor.key;
+        } else {
+          workingSampler.offsets.set(descriptor.key, 0);
+          workingSampler.nextKey =
+            descriptors[(descriptorIndex + 1) % descriptors.length].key;
+        }
+
+        let deferred = false;
+        let candidate = null;
+        if (selected === limit) {
+          if (typeof opts.onProgress === "function") {
+            opts.onProgress({
+              phase: "scan-incomplete",
+              status: "partial",
+              complete: false,
+              reason: "global-limit",
+              emitted: selected,
+              limit,
+              queriedStreams,
+              enabledStreams: descriptors.length,
+              resumable: false,
+            });
+          }
+          candidate = {
+            nextKey: workingSampler.nextKey,
+            offsets: new Map(workingSampler.offsets),
+          };
+          deferred = this._deferSamplerMutation(opts, lease, () =>
+            this._commitBoundedSampler(lease, candidate),
+          );
+        }
+
+        yield raw;
+        if (selected === limit) {
+          if (!deferred) this._commitBoundedSampler(lease, candidate);
+          return;
+        }
+      }
+
+      workingSampler.offsets.set(descriptor.key, 0);
+      descriptorIndex = (descriptorIndex + 1) % descriptors.length;
+      workingSampler.nextKey = descriptors[descriptorIndex].key;
+    }
+
+    // All enabled streams were queried and fewer than `limit` records were
+    // selected. Equality remains conservatively incomplete because the
+    // registry may stop requesting values at the exact event boundary.
+    if (typeof opts.markWatermarkComplete === "function") {
+      opts.markWatermarkComplete();
+    }
+    const deferred = this._deferSamplerMutation(opts, lease, () =>
+      this._clearBoundedSampler(lease),
+    );
+    if (!deferred) this._clearBoundedSampler(lease);
+  }
+
   async *_syncViaBridge(opts) {
     const bridge = this._deps.bridgeProvider();
     if (!bridge || typeof bridge.invoke !== "function") {
@@ -303,135 +604,143 @@ class SystemDataAndroidAdapter {
         "system-data-android.sync: useBridge=true but cc-android-bridge is not loaded (run inside in-APK cc, or set CC_ANDROID_BRIDGE_OVERRIDE=1 for tests)",
       );
     }
-    const includeContacts = opts.include?.contacts !== false;
-    const includeApps = opts.include?.apps !== false;
-    const limit =
-      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const capturedAt = Date.now();
-    let emitted = 0;
+    const descriptors = [];
 
-    if (includeContacts) {
-      const res = await bridge.invoke("contacts.query", {
-        ...bridgeParams(opts),
-        since: Number.isInteger(opts.since) ? opts.since : undefined,
-      });
-      const arr = extractBridgeRows(res, "contacts", "contacts.query");
-      for (const c of arr) {
-        if (emitted >= limit) return;
-        requireBridgeRecord(c, "contacts.query");
-        // originalId required by registry.putRawEvent (NOT NULL column); use
-        // the stable Android lookupKey when present, else displayName.
-        yield {
-          kind: "contact",
-          originalId: contactOriginalId(c),
-          capturedAt,
-          payload: c,
-        };
-        emitted += 1;
-      }
-    }
-
-    if (includeApps) {
-      const res = await bridge.invoke(
-        "app.list",
-        bridgeParams(opts, { includeSystem: false }),
-      );
-      const arr = extractBridgeRows(res, "apps", "app.list");
-      for (const a of arr) {
-        if (emitted >= limit) return;
-        requireBridgeRecord(a, "app.list");
-        yield {
-          kind: "app",
-          originalId: appOriginalId(a),
-          capturedAt,
-          payload: a,
-        };
-        emitted += 1;
-      }
-    }
-
-    const includeSms = opts.include?.sms !== false;
-    if (includeSms) {
-      const res = await bridge.invoke("sms.query", {
-        ...bridgeParams(opts),
-        since: Number.isInteger(opts.since) ? opts.since : undefined,
-      });
-      const arr = extractBridgeRows(res, ["sms", "messages"], "sms.query");
-      for (const s of arr) {
-        if (emitted >= limit) return;
-        requireBridgeRecord(s, "sms.query");
-        yield {
-          kind: "sms",
-          originalId: smsOriginalId(s),
-          capturedAt,
-          payload: s,
-        };
-        emitted += 1;
-      }
-    }
-
-    const includeCalls = opts.include?.calls !== false;
-    if (includeCalls) {
-      const res = await invokeBridgeWithAliases(
-        bridge,
-        "call.query",
-        ["calls.query"],
-        {
-          ...bridgeParams(opts),
-          since: Number.isInteger(opts.since) ? opts.since : undefined,
+    if (opts.include?.contacts !== false) {
+      descriptors.push({
+        key: "contacts",
+        load: async () => {
+          const res = await bridge.invoke("contacts.query", {
+            ...bridgeParams(opts),
+            since: Number.isInteger(opts.since) ? opts.since : undefined,
+          });
+          const arr = extractBridgeRows(res, "contacts", "contacts.query");
+          return arr.map((contact) => {
+            requireBridgeRecord(contact, "contacts.query");
+            return {
+              kind: "contact",
+              originalId: contactOriginalId(contact),
+              capturedAt,
+              payload: contact,
+            };
+          });
         },
-      );
-      const arr = extractBridgeRows(res, "calls", "call.query");
-      for (const c of arr) {
-        if (emitted >= limit) return;
-        requireBridgeRecord(c, "call.query");
-        const call =
-          c.duration == null && c.durationSec != null
-            ? { ...c, duration: c.durationSec }
-            : c;
-        yield {
-          kind: "call",
-          originalId: callOriginalId(call),
-          capturedAt,
-          payload: call,
-        };
-        emitted += 1;
-      }
+      });
     }
 
-    // Media files — metadata only (path, size, mtime, ext). Never reads
-    // file content off the device. UI uses per-category include keys so
-    // a privacy-conscious user can keep photos but skip downloads, etc.
-    const MEDIA_CATEGORIES = [
+    if (opts.include?.apps !== false) {
+      descriptors.push({
+        key: "apps",
+        load: async () => {
+          const res = await bridge.invoke(
+            "app.list",
+            bridgeParams(opts, { includeSystem: false }),
+          );
+          const arr = extractBridgeRows(res, "apps", "app.list");
+          return arr.map((app) => {
+            requireBridgeRecord(app, "app.list");
+            return {
+              kind: "app",
+              originalId: appOriginalId(app),
+              capturedAt,
+              payload: app,
+            };
+          });
+        },
+      });
+    }
+
+    if (opts.include?.sms !== false) {
+      descriptors.push({
+        key: "sms",
+        load: async () => {
+          const res = await bridge.invoke("sms.query", {
+            ...bridgeParams(opts),
+            since: Number.isInteger(opts.since) ? opts.since : undefined,
+          });
+          const arr = extractBridgeRows(res, ["sms", "messages"], "sms.query");
+          return arr.map((sms) => {
+            requireBridgeRecord(sms, "sms.query");
+            return {
+              kind: "sms",
+              originalId: smsOriginalId(sms),
+              capturedAt,
+              payload: sms,
+            };
+          });
+        },
+      });
+    }
+
+    if (opts.include?.calls !== false) {
+      descriptors.push({
+        key: "calls",
+        load: async () => {
+          const res = await invokeBridgeWithAliases(
+            bridge,
+            "call.query",
+            ["calls.query"],
+            {
+              ...bridgeParams(opts),
+              since: Number.isInteger(opts.since) ? opts.since : undefined,
+            },
+          );
+          const arr = extractBridgeRows(res, "calls", "call.query");
+          return arr.map((record) => {
+            requireBridgeRecord(record, "call.query");
+            const call =
+              record.duration == null && record.durationSec != null
+                ? { ...record, duration: record.durationSec }
+                : record;
+            return {
+              kind: "call",
+              originalId: callOriginalId(call),
+              capturedAt,
+              payload: call,
+            };
+          });
+        },
+      });
+    }
+
+    // Media files are metadata only. Each category stays lazy so a bounded
+    // contacts/apps/SMS run never invokes later media bridge methods.
+    const mediaCategories = [
       "photos",
       "pictures",
       "videos",
       "downloads",
       "documents",
     ];
-    for (const cat of MEDIA_CATEGORIES) {
-      // Per-category include key: include.media.photos, include.media.videos, ...
-      // Top-level `include.media === false` disables ALL media in one switch.
-      if (opts.include?.media === false) break;
-      if (opts.include?.media?.[cat] === false) continue;
-      const res = await bridge.invoke("media.list", {
-        ...bridgeParams(opts),
-        category: cat,
-        since: Number.isInteger(opts.since) ? opts.since : undefined,
-      });
-      const arr = extractBridgeRows(res, "files", `media.list:${cat}`);
-      for (const f of arr) {
-        if (emitted >= limit) return;
-        requireBridgeRecord(f, `media.list:${cat}`);
-        yield {
-          kind: "media-file",
-          originalId: mediaOriginalId(f),
-          capturedAt,
-          payload: f,
-        };
-        emitted += 1;
+    if (opts.include?.media !== false) {
+      for (const category of mediaCategories) {
+        if (opts.include?.media?.[category] === false) continue;
+        descriptors.push({
+          key: `media:${category}`,
+          load: async () => {
+            const operation = `media.list:${category}`;
+            const res = await bridge.invoke("media.list", {
+              ...bridgeParams(opts),
+              category,
+              since: Number.isInteger(opts.since) ? opts.since : undefined,
+            });
+            const arr = extractBridgeRows(res, "files", operation);
+            return arr.map((file) => {
+              requireBridgeRecord(file, operation);
+              return {
+                kind: "media-file",
+                originalId: mediaOriginalId(file),
+                capturedAt,
+                payload: file,
+              };
+            });
+          },
+        });
       }
     }
+
+    yield* this._yieldBridgeDescriptors(descriptors, opts);
   }
 
   async *_syncViaSnapshot(opts) {
@@ -447,35 +756,33 @@ class SystemDataAndroidAdapter {
 
     const includeContacts = opts.include?.contacts !== false;
     const includeApps = opts.include?.apps !== false;
-    const limit =
-      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
-    let emitted = 0;
+    const streams = [];
 
     if (includeContacts && Array.isArray(snapshot.contacts)) {
-      for (const c of snapshot.contacts) {
-        if (emitted >= limit) return;
-        yield {
+      streams.push({
+        key: "contacts",
+        rows: snapshot.contacts.map((c) => ({
           kind: "contact",
           originalId: contactOriginalId(c),
           capturedAt,
           payload: c,
-        };
-        emitted += 1;
-      }
+        })),
+      });
     }
 
     if (includeApps && Array.isArray(snapshot.apps)) {
-      for (const a of snapshot.apps) {
-        if (emitted >= limit) return;
-        yield {
+      streams.push({
+        key: "apps",
+        rows: snapshot.apps.map((a) => ({
           kind: "app",
           originalId: appOriginalId(a),
           capturedAt,
           payload: a,
-        };
-        emitted += 1;
-      }
+        })),
+      });
     }
+
+    yield* this._yieldSnapshotStreams(streams, opts);
   }
 
   normalize(raw) {
