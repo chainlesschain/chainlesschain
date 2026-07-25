@@ -119,6 +119,72 @@ class XhsApiClientIntegrationTest {
         server.enqueue(MockResponse().setBody("""{"success":true,"code":0,"data":{}}"""))
         val notes = client.fetchNotes(fakeCookie(), fakeA1(), fakeUserId())
         assertEquals(emptyList(), notes)
+        assertEquals(-6, client.lastErrorCode)
+    }
+
+    @Test
+    fun `fetchNotes fails closed when empty page claims more data`() = runTest {
+        server.enqueue(
+            MockResponse().setBody(
+                """{"success":true,"code":0,"data":{"notes":[],"has_more":true,"cursor":"next"}}"""
+            )
+        )
+
+        val notes = client.fetchNotes(fakeCookie(), fakeA1(), fakeUserId())
+
+        assertEquals(emptyList(), notes)
+        assertEquals(XhsApiClient.ERROR_PAGINATION_TRUNCATED, client.lastErrorCode)
+        assertTrue(client.lastErrorMessage!!.contains("page is empty"))
+    }
+
+    @Test
+    fun `fetchNotes fails closed when pagination aliases conflict`() = runTest {
+        server.enqueue(
+            MockResponse().setBody(
+                """
+                {
+                  "success": true,
+                  "code": 0,
+                  "data": {
+                    "notes": [{"note_id":"N1","display_title":"one"}],
+                    "has_more": true,
+                    "hasMore": false,
+                    "cursor": "next"
+                  }
+                }
+                """.trimIndent()
+            )
+        )
+
+        val notes = client.fetchNotes(fakeCookie(), fakeA1(), fakeUserId())
+
+        assertEquals(1, notes.size)
+        assertEquals(XhsApiClient.ERROR_PAGINATION_TRUNCATED, client.lastErrorCode)
+        assertTrue(client.lastErrorMessage!!.contains("conflict"))
+    }
+
+    @Test
+    fun `fetchFollows fails closed on malformed pagination flag`() = runTest {
+        server.enqueue(
+            MockResponse().setBody(
+                """
+                {
+                  "success": true,
+                  "code": 0,
+                  "data": {
+                    "users": [{"user_id":"U1","nickname":"one"}],
+                    "has_more": "maybe"
+                  }
+                }
+                """.trimIndent()
+            )
+        )
+
+        val follows = client.fetchFollows(fakeCookie(), fakeA1(), fakeUserId())
+
+        assertEquals(1, follows.size)
+        assertEquals(XhsApiClient.ERROR_PAGINATION_TRUNCATED, client.lastErrorCode)
+        assertTrue(client.lastErrorMessage!!.contains("invalid boolean"))
     }
 
     @Test

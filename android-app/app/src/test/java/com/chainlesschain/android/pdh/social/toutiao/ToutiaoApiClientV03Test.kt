@@ -9,15 +9,19 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import okhttp3.Call
+import okhttp3.EventListener
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.SocketPolicy
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import java.util.concurrent.CancellationException
+import java.util.concurrent.CountDownLatch
 import java.util.Collections
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
@@ -837,12 +841,11 @@ class ToutiaoApiClientV03Test {
     }
 
     @Test
-    fun fetchFeed_cancellationCancelsDelayedBodyWithoutRecordingIoFailure() = runBlocking {
+    fun fetchFeed_cancellationCancelsInFlightCallWithoutRecordingIoFailure() = runBlocking {
         client.signProvider = StubSignProvider()
         server.enqueue(
             MockResponse()
-                .setBody("""{"data":[{"group_id":"too-late"}]}""")
-                .setBodyDelay(30, TimeUnit.SECONDS),
+                .setSocketPolicy(SocketPolicy.NO_RESPONSE),
         )
         val pending = async(Dispatchers.IO) {
             client.fetchFeed("cookie")
@@ -853,6 +856,52 @@ class ToutiaoApiClientV03Test {
         assertNotNull(request)
         pending.cancel()
         withTimeout(2_000) { pending.join() }
+        assertTrue(pending.isCancelled)
+        assertEquals(0, client.lastErrorCode)
+    }
+
+    @Test
+    fun fetchFeed_cancellationInterruptsResponseBodyReadWithoutRecordingIoFailure() = runBlocking {
+        val bodyStarted = CountDownLatch(1)
+        val callFinished = CountDownLatch(1)
+        client.signProvider = StubSignProvider()
+        client.httpClient = OkHttpClient.Builder()
+            .eventListener(
+                object : EventListener() {
+                    override fun responseBodyStart(call: Call) {
+                        bodyStarted.countDown()
+                    }
+
+                    override fun callEnd(call: Call) {
+                        callFinished.countDown()
+                    }
+
+                    override fun callFailed(call: Call, ioe: java.io.IOException) {
+                        callFinished.countDown()
+                    }
+                },
+            )
+            .build()
+        server.enqueue(
+            MockResponse()
+                .setBody("""{"data":[{"group_id":"too-late","padding":"${"x".repeat(4_096)}"}]}""")
+                .throttleBody(1, 100, TimeUnit.MILLISECONDS),
+        )
+        val pending = async(Dispatchers.IO) {
+            client.fetchFeed("cookie")
+        }
+        assertTrue(
+            withContext(Dispatchers.IO) { bodyStarted.await(5, TimeUnit.SECONDS) },
+            "response body read did not start",
+        )
+
+        pending.cancel()
+
+        withTimeout(2_000) { pending.join() }
+        assertTrue(
+            withContext(Dispatchers.IO) { callFinished.await(2, TimeUnit.SECONDS) },
+            "cancelled OkHttp call did not release its response body",
+        )
         assertTrue(pending.isCancelled)
         assertEquals(0, client.lastErrorCode)
     }

@@ -85,6 +85,46 @@ class DouyinApiClientFetchProfileTest {
     }
 
     @Test
+    fun `message success compatibility shape is accepted without status_code`() = runTest {
+        server.enqueue(
+            MockResponse().setBody(
+                """{"message":"success","data":{"sec_user_id":"compat-user","screen_name":"compat"}}"""
+            )
+        )
+
+        val profile = client.fetchProfile("sessionid=compat")
+
+        assertNotNull(profile)
+        assertEquals("compat-user", profile.secUid)
+        assertEquals(0, client.lastErrorCode)
+    }
+
+    @Test
+    fun `fractional status_code fails closed even with success message`() = runTest {
+        server.enqueue(
+            MockResponse().setBody(
+                """{"status_code":0.5,"message":"success","data":{"sec_user_id":"must-not-pass"}}"""
+            )
+        )
+
+        assertNull(client.fetchProfile("sessionid=malformed"))
+        assertEquals(-5, client.lastErrorCode)
+        assertTrue(client.lastErrorMessage!!.contains("32-bit integer"))
+    }
+
+    @Test
+    fun `null status_code fails closed even with success message`() = runTest {
+        server.enqueue(
+            MockResponse().setBody(
+                """{"status_code":null,"message":"success","data":{"sec_user_id":"must-not-pass"}}"""
+            )
+        )
+
+        assertNull(client.fetchProfile("sessionid=malformed"))
+        assertEquals(-5, client.lastErrorCode)
+    }
+
+    @Test
     fun `status_code missing entirely yields code -5 with top-level keys`() = runTest {
         // Endpoint shape drift — Douyin sometimes moves to ok/message/error_code.
         server.enqueue(

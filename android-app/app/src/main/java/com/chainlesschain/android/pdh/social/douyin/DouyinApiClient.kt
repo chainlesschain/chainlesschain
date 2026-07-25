@@ -140,12 +140,24 @@ class DouyinApiClient @Inject constructor() {
             .build()
         val obj = doGetJson(url, cookie) ?: return@withContext null
         // Passport-v2 has shipped both `{status_code:0,data:{...}}` and
-        // `{message:"success",data:{...}}`. The transport-level business
-        // validator has already rejected malformed/non-success aliases.
-        val hasBusinessCode = BUSINESS_CODE_KEYS.any(obj::has)
+        // `{message:"success",data:{...}}`.
+        val hasStatusCode = obj.has("status_code")
+        val statusCode = when (val raw = obj.opt("status_code")) {
+            is Int -> raw
+            is Long -> raw.takeIf { it in Int.MIN_VALUE..Int.MAX_VALUE }?.toInt()
+            else -> null
+        }
         val messageSuccess = obj.optStringOrNull("message")
             ?.equals("success", ignoreCase = true) == true
-        if (!hasBusinessCode && !messageSuccess) {
+        if (hasStatusCode && statusCode == null) {
+            Timber.w(
+                "DouyinApiClient: passport/info/v2 has malformed status_code; bodyLen=%d",
+                obj.toString().length,
+            )
+            setLastError(-5, "passport/info/v2 status_code must be a 32-bit integer")
+            return@withContext null
+        }
+        if (!hasStatusCode && !messageSuccess) {
             val topKeys = obj.keys().asSequence().toList().joinToString(",")
             Timber.w(
                 "DouyinApiClient: passport/info/v2 missing business success marker; topKeys=[%s] bodyLen=%d",
@@ -155,6 +167,18 @@ class DouyinApiClient @Inject constructor() {
                 -5,
                 "passport/info/v2 missing status_code or message=success (keys=[$topKeys])",
             )
+            return@withContext null
+        }
+        if (statusCode != null && statusCode != 0) {
+            val message = obj.optStringOrNull("status_msg")
+                ?: obj.optStringOrNull("message")
+                ?: obj.optStringOrNull("error_description")
+                ?: "status_code=$statusCode"
+            Timber.w(
+                "DouyinApiClient: passport/info/v2 status_code=%d msg=%s bodyLen=%d",
+                statusCode, message, obj.toString().length,
+            )
+            setLastError(statusCode, message)
             return@withContext null
         }
         val data = obj.optJSONObject("data")
@@ -387,13 +411,11 @@ class DouyinApiClient @Inject constructor() {
     }
 
     private fun setLastError(code: Int, message: String?) {
-        lastErrorCode = code
-        lastErrorMessage = message
+        errorSnapshot.set(ErrorSnapshot(code = code, message = message))
     }
 
     private fun clearLastError() {
-        lastErrorCode = 0
-        lastErrorMessage = null
+        errorSnapshot.set(ErrorSnapshot())
     }
 
     companion object {

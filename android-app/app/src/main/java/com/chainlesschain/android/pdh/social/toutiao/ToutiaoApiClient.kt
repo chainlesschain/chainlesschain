@@ -23,6 +23,8 @@ import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /**
  * §A8 v0.2 — Toutiao (今日头条) www.toutiao.com client.
@@ -1320,8 +1322,9 @@ class ToutiaoApiClient @Inject constructor() {
             call.enqueue(
                 object : Callback {
                     override fun onFailure(call: Call, e: IOException) {
-                        val token = continuation.tryResumeWithException(e) ?: return
-                        continuation.completeResume(token)
+                        if (continuation.isActive) {
+                            continuation.resumeWithException(e)
+                        }
                     }
 
                     override fun onResponse(call: Call, response: Response) {
@@ -1335,12 +1338,14 @@ class ToutiaoApiClient @Inject constructor() {
                                 )
                             }
                         } catch (e: IOException) {
-                            val token = continuation.tryResumeWithException(e) ?: return
-                            continuation.completeResume(token)
+                            if (continuation.isActive) {
+                                continuation.resumeWithException(e)
+                            }
                             return
                         }
-                        val token = continuation.tryResume(result) ?: return
-                        continuation.completeResume(token)
+                        if (continuation.isActive) {
+                            continuation.resume(result)
+                        }
                     }
                 },
             )

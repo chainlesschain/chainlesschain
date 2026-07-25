@@ -150,6 +150,13 @@ class XhsApiClient @Inject constructor() {
         data class Invalid(val reason: String) : PageContinuation()
     }
 
+    private sealed class PaginationFlag {
+        object Missing : PaginationFlag()
+        object End : PaginationFlag()
+        object More : PaginationFlag()
+        data class Invalid(val reason: String) : PaginationFlag()
+    }
+
     private val errorSnapshotRef = AtomicReference(ErrorSnapshot())
 
     val lastErrorSnapshot: ErrorSnapshot
@@ -471,6 +478,89 @@ class XhsApiClient @Inject constructor() {
             out
         }
 
+    private fun requireListPage(
+        response: JSONObject,
+        stream: String,
+        vararg itemKeys: String,
+    ): ListPage? {
+        val data = response.optJSONObject("data")
+        if (data == null) {
+            setLastError(ERROR_INVALID_SOURCE_PAGE, "$stream response has no data object")
+            return null
+        }
+        val items = itemKeys.firstNotNullOfOrNull { key -> data.optJSONArray(key) }
+        if (items == null) {
+            setLastError(
+                ERROR_INVALID_SOURCE_PAGE,
+                "$stream response has none of [${itemKeys.joinToString()}]",
+            )
+            return null
+        }
+        return ListPage(data, items)
+    }
+
+    private fun cursorContinuation(data: JSONObject, itemCount: Int): CursorContinuation {
+        val cursor = data.optString("cursor").trim()
+        return when (val flag = paginationFlag(data)) {
+            PaginationFlag.End -> CursorContinuation.End
+            is PaginationFlag.Invalid -> CursorContinuation.Invalid(flag.reason)
+            PaginationFlag.More -> when {
+                itemCount == 0 ->
+                    CursorContinuation.Invalid("has_more=true but page is empty")
+                cursor.isEmpty() ->
+                    CursorContinuation.Invalid("has_more=true but cursor is blank")
+                else -> CursorContinuation.Next(cursor)
+            }
+            PaginationFlag.Missing ->
+                if (itemCount > 0 && cursor.isNotEmpty()) {
+                    CursorContinuation.Next(cursor)
+                } else {
+                    CursorContinuation.End
+                }
+        }
+    }
+
+    private fun pageContinuation(data: JSONObject, itemCount: Int): PageContinuation {
+        return when (val flag = paginationFlag(data)) {
+            PaginationFlag.End, PaginationFlag.Missing -> PageContinuation.End
+            is PaginationFlag.Invalid -> PageContinuation.Invalid(flag.reason)
+            PaginationFlag.More ->
+                if (itemCount == 0) {
+                    PageContinuation.Invalid("has_more=true but page is empty")
+                } else {
+                    PageContinuation.More
+                }
+        }
+    }
+
+    private fun paginationFlag(data: JSONObject): PaginationFlag {
+        val keys = listOf("has_more", "hasMore").filter(data::has)
+        if (keys.isEmpty()) return PaginationFlag.Missing
+
+        val values = keys.map { key ->
+            val parsed = when (val value = data.opt(key)) {
+                true, 1, 1L, "1", "true" -> true
+                false, 0, 0L, "0", "false" -> false
+                else -> null
+            }
+            if (parsed == null) {
+                return PaginationFlag.Invalid("$key has an invalid boolean value")
+            }
+            parsed
+        }
+        if (values.distinct().size > 1) {
+            return PaginationFlag.Invalid("has_more and hasMore conflict")
+        }
+        return if (values.first()) PaginationFlag.More else PaginationFlag.End
+    }
+
+    private fun setPaginationError(stream: String, page: Int, detail: String) {
+        setLastError(
+            ERROR_PAGINATION_TRUNCATED,
+            "$stream pagination truncated at page $page: $detail",
+        )
+    }
+
     private suspend fun doGetJson(
         url: HttpUrl,
         cookie: String,
@@ -561,13 +651,11 @@ class XhsApiClient @Inject constructor() {
     }
 
     private fun setLastError(code: Int, message: String?) {
-        lastErrorCode = code
-        lastErrorMessage = message
+        errorSnapshotRef.set(ErrorSnapshot(code, message))
     }
 
     private fun clearLastError() {
-        lastErrorCode = 0
-        lastErrorMessage = null
+        errorSnapshotRef.set(ErrorSnapshot())
     }
 
     /**
@@ -587,6 +675,14 @@ class XhsApiClient @Inject constructor() {
     }
 
     companion object {
+        const val ERROR_PAGINATION_TRUNCATED = -11
+
+        private const val ERROR_INVALID_SOURCE_PAGE = -6
+        private const val NOTES_PAGE_SIZE = 30
+        private const val LIKED_PAGE_SIZE = 30
+        private const val FOLLOWS_PAGE_SIZE = 20
+        private const val MAX_PAGES = 10
+
         /**
          * 解 xhs cookie 中的 a1 字段 — anti-bot fingerprint, X-S 签名输入。
          * 例如 "a1=18d6e... ; web_session=..." → "18d6e..."。返 null = 缺
