@@ -1,5 +1,6 @@
 package com.chainlesschain.android.pdh.bridge
 
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonObject
@@ -7,11 +8,12 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 /**
  * Headless tests for the pure (Android-free) part of the L1 collect_files tool:
  * root resolution. The actual walk+ingest (cc subprocess + storage) is validated
- * on-device after a cc-bundle refresh that carries the `--roots` flag.
+ * on-device with the pinned cc bundle.
  */
 class CollectFilesToolTest {
 
@@ -22,21 +24,53 @@ class CollectFilesToolTest {
     }
 
     @Test
-    fun empty_roots_array_falls_back_to_default() {
+    fun explicit_empty_roots_array_is_rejected() {
         val args = buildJsonObject { putJsonArray("roots") {} }
-        assertEquals(CollectFilesTool.DEFAULT_ROOTS, CollectFilesTool.resolveRoots(args))
-    }
-
-    @Test
-    fun blank_only_roots_fall_back_to_default() {
-        val args = buildJsonObject {
-            putJsonArray("roots") { add("  "); add("") }
+        assertFailsWith<IllegalArgumentException> {
+            CollectFilesTool.resolveRoots(args)
         }
-        assertEquals(CollectFilesTool.DEFAULT_ROOTS, CollectFilesTool.resolveRoots(args))
     }
 
     @Test
-    fun caller_roots_override_default_and_are_trimmed() {
+    fun whitespace_only_root_is_preserved_exactly() {
+        val args = buildJsonObject {
+            putJsonArray("roots") { add("  ") }
+        }
+        assertEquals(listOf("  "), CollectFilesTool.resolveRoots(args))
+    }
+
+    @Test
+    fun explicit_empty_root_is_rejected() {
+        val args = buildJsonObject {
+            putJsonArray("roots") { add("") }
+        }
+        assertFailsWith<IllegalArgumentException> {
+            CollectFilesTool.resolveRoots(args)
+        }
+    }
+
+    @Test
+    fun non_array_or_null_roots_are_rejected() {
+        assertFailsWith<IllegalArgumentException> {
+            CollectFilesTool.resolveRoots(buildJsonObject { put("roots", "/sdcard/Documents") })
+        }
+        assertFailsWith<IllegalArgumentException> {
+            CollectFilesTool.resolveRoots(buildJsonObject { put("roots", JsonNull) })
+        }
+    }
+
+    @Test
+    fun non_string_root_element_is_rejected() {
+        val args = buildJsonObject {
+            putJsonArray("roots") { add(42) }
+        }
+        assertFailsWith<IllegalArgumentException> {
+            CollectFilesTool.resolveRoots(args)
+        }
+    }
+
+    @Test
+    fun caller_roots_override_default_without_rewriting_exact_paths() {
         val args = buildJsonObject {
             putJsonArray("roots") {
                 add(" /sdcard/Notes ")
@@ -45,7 +79,20 @@ class CollectFilesToolTest {
             }
         }
         assertEquals(
-            listOf("/sdcard/Notes", "/sdcard/Books"),
+            listOf(" /sdcard/Notes ", "/sdcard/Books", "   "),
+            CollectFilesTool.resolveRoots(args),
+        )
+    }
+
+    @Test
+    fun comma_inside_root_is_preserved_as_part_of_the_path() {
+        val args = buildJsonObject {
+            putJsonArray("roots") {
+                add(" /sdcard/Projects/acme,inc ")
+            }
+        }
+        assertEquals(
+            listOf(" /sdcard/Projects/acme,inc "),
             CollectFilesTool.resolveRoots(args),
         )
     }

@@ -10,6 +10,93 @@ import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
+private const val REPEATABLE_ROOT_CLI_VERSION = "0.162.179"
+
+internal fun supportsRepeatableSyncRoot(cliVersion: String?): Boolean {
+    data class ParsedVersion(
+        val numbers: List<Int>,
+        val prerelease: String?,
+    )
+
+    fun parse(version: String?): ParsedVersion? {
+        val match = Regex(
+            """^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$""",
+        )
+            .matchEntire(version.orEmpty())
+            ?: return null
+        val numbers = match.groupValues.slice(1..3).map { identifier ->
+            if (identifier.length > 1 && identifier.startsWith('0')) return null
+            identifier.toIntOrNull() ?: return null
+        }
+        val prerelease = match.groupValues[4].ifEmpty { null }
+        if (
+            prerelease
+                ?.split('.')
+                ?.any { identifier ->
+                    identifier.length > 1 &&
+                        identifier.startsWith('0') &&
+                        identifier.all { character -> character.isDigit() }
+                } == true
+        ) {
+            return null
+        }
+        return ParsedVersion(numbers, prerelease)
+    }
+
+    val actual = parse(cliVersion) ?: return false
+    val required = parse(REPEATABLE_ROOT_CLI_VERSION) ?: return false
+    return actual.numbers.zip(required.numbers)
+        .firstOrNull { (left, right) -> left != right }
+        ?.let { (left, right) -> left > right }
+        // The feature threshold is a release version. An equal-core
+        // prerelease sorts before it and must stay on the legacy-safe path.
+        ?: (actual.prerelease == null)
+}
+
+private fun Char.isEcmaScriptTrimCharacter(): Boolean =
+    this in '\u0009'..'\u000D' ||
+        this == '\u0020' ||
+        this == '\u00A0' ||
+        this == '\u1680' ||
+        this in '\u2000'..'\u200A' ||
+        this == '\u2028' ||
+        this == '\u2029' ||
+        this == '\u202F' ||
+        this == '\u205F' ||
+        this == '\u3000' ||
+        this == '\uFEFF'
+
+private fun legacyRootRoundTripsExactly(root: String): Boolean =
+    root.isNotEmpty() &&
+        !root.contains(',') &&
+        !root.first().isEcmaScriptTrimCharacter() &&
+        !root.last().isEcmaScriptTrimCharacter()
+
+internal fun buildSyncAdapterSourceArgs(
+    inputPath: String,
+    roots: List<String>?,
+    repeatableRootSupported: Boolean = true,
+): List<String> = buildList {
+    if (roots.isNullOrEmpty()) {
+        add("--input")
+        add(inputPath)
+    } else if (repeatableRootSupported) {
+        roots.forEach { root ->
+            require(root.isNotEmpty()) { "root path must not be empty" }
+            add("--root")
+            add(root)
+        }
+    } else {
+        require(
+            roots.all(::legacyRootRoundTripsExactly),
+        ) {
+            "legacy cc CLI cannot safely encode comma-containing, empty, or surrounding-space roots"
+        }
+        add("--roots")
+        add(roots.joinToString(","))
+    }
+}
+
 /**
  * Plan A v0.1 — one-shot driver around `cc hub …` for cases where we want
  * a structured JSON response rather than an interactive PTY session.
@@ -102,9 +189,10 @@ class LocalCcRunner @Inject constructor(
         // the UI can render "金库写入中（N s）" — at least the user knows
         // work is happening + how long it's been at it.
         onProgress: ((String) -> Unit)? = null,
-        // L1 local-files (module 101): when non-empty the cc command uses
-        // `--roots <comma-joined>` to walk these directories directly, instead
-        // of a snapshot `--input` file. Other adapters keep the --input path.
+        // L1 local-files (module 101): when non-empty, use repeatable
+        // `--root <path>` when the bundled CLI supports it. Older pinned
+        // bundles receive one unambiguous legacy `--roots` value; paths that
+        // legacy syntax cannot represent fail closed.
         // Placed last so existing positional callers (incl. mockk stubs that
         // match onProgress positionally) stay valid — only the named `roots =`
         // call site (CollectFilesTool) opts in.
@@ -131,6 +219,38 @@ class LocalCcRunner @Inject constructor(
         // surfaces the real ENOENT as a "spawn-failed" reason — strictly
         // more informative than the silent false-positive the old gate gave.
 
+        val sourceArgs = if (roots.isNullOrEmpty()) {
+            buildSyncAdapterSourceArgs(inputPath, roots)
+        } else {
+            val cliVersion = runCatching {
+                val packageJson = File(
+                    bootstrapper.prefixDir,
+                    "lib/node_modules/chainlesschain/package.json",
+                )
+                JSONObject(packageJson.readText(Charsets.UTF_8))
+                    .optString("version")
+                    .takeIf { it.isNotBlank() }
+            }.getOrNull()
+                ?: return@withContext CcResult.Failed(
+                    reason = "cc-cli-version-unavailable: cannot choose a safe local-files root encoding",
+                    exitCode = null,
+                    stderr = null,
+                )
+            runCatching {
+                buildSyncAdapterSourceArgs(
+                    inputPath = inputPath,
+                    roots = roots,
+                    repeatableRootSupported = supportsRepeatableSyncRoot(cliVersion),
+                )
+            }.getOrElse { error ->
+                return@withContext CcResult.Failed(
+                    reason = "unsupported-local-files-roots: ${error.message}",
+                    exitCode = null,
+                    stderr = null,
+                )
+            }
+        }
+
         // Android W^X / SELinux: untrusted_app:s0 cannot execve a plain-text
         // script in filesDir even with +x bit (LocalPtyClient sidesteps this
         // via posix_spawn JNI in libpty_jni.so). For a plain Java
@@ -145,11 +265,7 @@ class LocalCcRunner @Inject constructor(
             add(mkshPath.absolutePath)
             add(ccPath.absolutePath)
             add("hub"); add("sync-adapter"); add(adapterName)
-            if (roots != null && roots.isNotEmpty()) {
-                add("--roots"); add(roots.joinToString(","))
-            } else {
-                add("--input"); add(inputPath)
-            }
+            addAll(sourceArgs)
             // Caller-supplied cap (see [limit] param doc above). Validated
             // positive to avoid `--limit 0` masquerading as "ingest none" —
             // cc reads <=0 as Infinity per cmdSyncAdapter in hub.js.

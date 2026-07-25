@@ -8,7 +8,6 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
@@ -16,15 +15,16 @@ import kotlinx.serialization.json.putJsonObject
 /**
  * Phase 1, L1 (local files) — `collect_files`. Walks on-device directories
  * (documents/downloads by default, or caller-supplied `roots`) and ingests them
- * into the vault via `cc hub sync-adapter local-files --roots <dirs>` — the
- * local-files adapter reads directories directly, so there is no snapshot file
- * (unlike L2/L3 which stage a snapshot and pass --input).
+ * into the vault via repeated `--root <path>` arguments to
+ * `cc hub sync-adapter local-files`. The local-files adapter reads directories
+ * directly, so there is no snapshot file (unlike L2/L3 which stage a snapshot
+ * and pass --input).
  *
- * Android-bound (cc subprocess + storage access): the on-device cc bundle must
- * carry the `--roots` flag (landed CLI-side, module 101) and the app needs
- * READ_EXTERNAL_STORAGE / MANAGE_EXTERNAL_STORAGE — so full walk+ingest is
- * validated on-device after a bundle refresh. The pure root-resolution logic
- * ([resolveRoots]) is unit-tested headlessly.
+ * Android-bound (cc subprocess + storage access): the on-device cc bundle may
+ * carry either legacy `--roots` or repeatable `--root` (module 101).
+ * [LocalCcRunner] checks its version and fails closed when the legacy form
+ * cannot represent an exact path. The app also needs READ_EXTERNAL_STORAGE /
+ * MANAGE_EXTERNAL_STORAGE. Root resolution and argv logic are unit-tested.
  */
 class CollectFilesTool(
     private val ccRunner: LocalCcRunner,
@@ -68,12 +68,20 @@ class CollectFilesTool(
             "/sdcard/Download",
         )
 
-        /** Pure: caller-supplied non-blank `roots`, else [DEFAULT_ROOTS]. */
+        /** Pure: explicit exact `roots`, or [DEFAULT_ROOTS] only when omitted. */
         fun resolveRoots(args: JsonObject): List<String> {
-            val given = (args["roots"] as? JsonArray)
-                ?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull?.trim() }
-                ?.filter { it.isNotEmpty() }
-            return if (given.isNullOrEmpty()) DEFAULT_ROOTS else given
+            val supplied = args["roots"] ?: return DEFAULT_ROOTS
+            require(supplied is JsonArray && supplied.isNotEmpty()) {
+                "roots must be a non-empty array of exact directory paths"
+            }
+            return supplied.map { element ->
+                require(element is JsonPrimitive && element.isString) {
+                    "every root must be a string"
+                }
+                element.content.also { root ->
+                    require(root.isNotEmpty()) { "root path must not be empty" }
+                }
+            }
         }
     }
 }
