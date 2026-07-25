@@ -28,11 +28,18 @@
 "use strict";
 
 const fs = require("node:fs");
+const crypto = require("node:crypto");
 const { newId } = require("../../ids");
-const { createAccountScopeFromAccount } = require("../../account-scope");
 const {
+  createAccountScope,
+  createAccountScopeFromAccount,
+} = require("../../account-scope");
+const {
+  SnapshotFileError,
+  inspectSnapshotFile,
   probeJsonSnapshotFile,
-  readJsonSnapshot,
+  readBoundedSnapshotBuffer,
+  validateJsonSnapshot,
 } = require("../../snapshot-file");
 const {
   ENTITY_TYPES,
@@ -41,6 +48,13 @@ const {
   CAPTURED_BY,
 } = require("../../constants");
 const { GenshinApiClient } = require("./api-client");
+const {
+  advanceCursor,
+  assertScanIdentity,
+  beginScan,
+  parseCursor,
+  serializeCursor,
+} = require("./scan-cursor");
 const {
   assertRuntimeAccountId,
   createSourceRequestAudit,
@@ -51,7 +65,7 @@ const {
 } = require("../_runtime-cookie-source");
 
 const NAME = "game-genshin";
-const VERSION = "0.2.0";
+const VERSION = "0.3.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_PROFILE = "profile";
@@ -102,6 +116,7 @@ class GenshinAdapter {
     ];
     this.extractMode = "web-api";
     this.rateLimits = { perMinute: 8, perDay: 200 };
+    this.watermarkStrategy = "explicit";
     this.dataDisclosure = {
       fields: [
         "genshin:profile (uid / nickname / level / avatar)",
@@ -119,6 +134,29 @@ class GenshinAdapter {
         ? opts.apiClientFactory
         : null;
     this._deps = { fs };
+  }
+
+  fileCheckpointMode() {
+    return "shared";
+  }
+
+  resolveDefaultScope(options = {}) {
+    const inputPath =
+      typeof options.inputPath === "string" && options.inputPath.length > 0
+        ? options.inputPath
+        : null;
+    return inputPath
+      ? scopeForSnapshot(
+          this._deps.fs,
+          inputPath,
+          options.maxSnapshotBytes,
+          this.defaultScope,
+        )
+      : this.defaultScope;
+  }
+
+  resolveInputScope(options = {}) {
+    return this.resolveDefaultScope(options);
   }
 
   async authenticate(ctx = {}) {
@@ -198,15 +236,13 @@ class GenshinAdapter {
       if (typeof opts.onProgress === "function") {
         try {
           opts.onProgress({ phase, adapter: NAME, ...extra });
-        } catch (_e) {
+        } catch {
           /* progress callback errors are best-effort */
         }
       }
     };
-    const profiles = await client.fetchProfiles(opts.cookie, {
-      fetchStats: opts.fetchStats !== false,
-      limit: opts.limit,
-    });
+    const fetchStats = opts.fetchStats !== false;
+    const profiles = await client.fetchProfiles(opts.cookie, { fetchStats });
     sourceRequestAudit.throwIfPermitFailed();
     if (profiles === null) {
       const e = client.lastError;
@@ -216,33 +252,57 @@ class GenshinAdapter {
     }
     emit("roles", { count: profiles.length });
     const capturedAt = Date.now();
+    const records = profiles.map((prof) => ({
+      adapter: NAME,
+      kind: KIND_PROFILE,
+      originalId: stableOriginalId(KIND_PROFILE, prof.uid),
+      capturedAt,
+      payload: {
+        kind: KIND_PROFILE,
+        ...prof,
+        account: { uid: prof.uid, displayName: prof.nickname },
+      },
+    }));
+    const include = opts.include || {};
+    const filter = `${include[KIND_PROFILE] === false ? "none" : "profile"}:${
+      fetchStats ? "stats" : "no-stats"
+    }`;
+    const source = sourceDigest(
+      Buffer.from(
+        JSON.stringify(records.map((record) => record.originalId)),
+        "utf8",
+      ),
+    );
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    let cursor = prepareCursor(opts.sinceWatermark, {
+      mode: "live",
+      source,
+      filter,
+      upper: records.length,
+    });
+    const publish = () => publishCursor(opts, cursor);
     let emitted = 0;
-    for (const prof of profiles) {
-      if (emitted >= limit) return;
-      yield {
-        adapter: NAME,
-        kind: KIND_PROFILE,
-        originalId: stableOriginalId(KIND_PROFILE, prof.uid),
-        capturedAt,
-        payload: {
-          kind: KIND_PROFILE,
-          ...prof,
-          account: { uid: prof.uid, displayName: prof.nickname },
-        },
-      };
+    let ordinal = cursor.after ?? 0;
+    while (cursor.upper !== null && emitted < limit) {
+      ordinal += 1;
+      const raw = records[ordinal - 1];
+      cursor = advanceCursor(cursor, ordinal);
+      publish();
+      if (include[KIND_PROFILE] === false) continue;
+      yield raw;
       emitted += 1;
     }
+    publish();
+    emit("done", { yielded: emitted, count: records.length });
   }
 
   async *_syncViaSnapshot(opts) {
-    const snapshot = readJsonSnapshot(this._deps.fs, opts.inputPath, {
-      maxBytes: opts.maxSnapshotBytes,
-      expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
-      requiredArrayFields: ["events"],
-      allowedEventKinds: VALID_SNAPSHOT_KINDS,
-    });
+    const { snapshot, source } = readSnapshotSource(
+      this._deps.fs,
+      opts.inputPath,
+      opts.maxSnapshotBytes,
+    );
     const fallbackCapturedAt =
       Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
         ? Math.floor(snapshot.snapshottedAt)
@@ -252,30 +312,43 @@ class GenshinAdapter {
         ? snapshot.account
         : null;
     const include = opts.include || {};
-    const limit =
-      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
-
-    const events = snapshot.events;
-    let emitted = 0;
-    for (const ev of events) {
-      if (emitted >= limit) return;
+    const records = snapshot.events.map((ev) => {
       const kind = ev.kind;
-      if (include[kind] === false) continue;
-
       const capturedAt = parseTime(ev.capturedAt) || fallbackCapturedAt;
       const explicitId =
         (typeof ev.id === "string" && ev.id.length > 0 && ev.id) ||
         (typeof ev.id === "number" && Number.isFinite(ev.id) ? ev.id : null);
       const id = explicitId ?? (kind === KIND_PROFILE ? ev.uid : null);
-      yield {
+      return {
         adapter: NAME,
         kind,
         originalId: stableOriginalId(kind, id),
         capturedAt,
         payload: { ...ev, account },
       };
+    });
+    const filter = snapshotFilter(include);
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    let cursor = prepareCursor(opts.sinceWatermark, {
+      mode: "snapshot",
+      source,
+      filter,
+      upper: records.length,
+    });
+    const publish = () => publishCursor(opts, cursor);
+    let emitted = 0;
+    let ordinal = cursor.after ?? 0;
+    while (cursor.upper !== null && emitted < limit) {
+      ordinal += 1;
+      const raw = records[ordinal - 1];
+      cursor = advanceCursor(cursor, ordinal);
+      publish();
+      if (include[raw.kind] === false) continue;
+      yield raw;
       emitted += 1;
     }
+    publish();
   }
 
   normalize(raw) {
@@ -293,6 +366,77 @@ class GenshinAdapter {
     }
     throw new Error(`GenshinAdapter.normalize: unknown kind ${kind}`);
   }
+}
+
+function readSnapshotSource(fsMod, inputPath, maxBytes) {
+  const buffer = readBoundedSnapshotBuffer(fsMod, inputPath, { maxBytes });
+  let snapshot;
+  try {
+    snapshot = JSON.parse(buffer.toString("utf8"));
+  } catch (error) {
+    throw new SnapshotFileError(
+      "SNAPSHOT_JSON_INVALID",
+      "snapshot file must contain valid JSON",
+      { cause: error },
+    );
+  }
+  validateJsonSnapshot(snapshot, {
+    expectedSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
+    requiredArrayFields: ["events"],
+    allowedEventKinds: VALID_SNAPSHOT_KINDS,
+  });
+  return {
+    snapshot,
+    source: sourceDigest(buffer),
+  };
+}
+
+function sourceDigest(buffer) {
+  return crypto.createHash("sha256").update(buffer).digest("hex");
+}
+
+function prepareCursor(sinceWatermark, identity) {
+  let cursor = parseCursor(sinceWatermark).cursor;
+  cursor =
+    cursor.upper === null
+      ? beginScan(cursor, identity)
+      : assertScanIdentity(cursor, identity);
+  return cursor;
+}
+
+function publishCursor(opts, cursor) {
+  if (typeof opts.updateWatermark === "function") {
+    opts.updateWatermark(serializeCursor(cursor));
+  }
+}
+
+function snapshotFilter(include = {}) {
+  const profile = include[KIND_PROFILE] !== false;
+  const play = include[KIND_PLAY] !== false;
+  if (profile && play) return "profile+play";
+  if (profile) return "profile";
+  if (play) return "play";
+  return "none";
+}
+
+function scopeForSnapshot(fsMod, inputPath, maxBytes, accountScope) {
+  const inspected = inspectSnapshotFile(fsMod, inputPath, { maxBytes });
+  const revision =
+    inspected.stat.mtimeNs ??
+    inspected.stat.mtimeMs ??
+    inspected.stat.ctimeNs ??
+    inspected.stat.ctimeMs ??
+    "";
+  return createAccountScope(
+    NAME,
+    [
+      accountScope || "unscoped",
+      "snapshot",
+      inspected.realPath,
+      String(inspected.size),
+      String(revision),
+    ].join("\0"),
+  );
 }
 
 function buildSource(raw, occurredAt) {

@@ -7,7 +7,9 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { GenshinAdapter } = require("../../lib");
-const { GenshinApiClient } = require("../../lib/adapters/game-genshin/api-client");
+const {
+  GenshinApiClient,
+} = require("../../lib/adapters/game-genshin/api-client");
 const { assertAdapter } = require("../../lib/adapter-spec");
 const { validateBatch } = require("../../lib/batch");
 
@@ -25,7 +27,7 @@ describe("GenshinAdapter — FAMILY-23 v0.1 cookie-scrape placeholder", () => {
     const a = new GenshinAdapter();
     expect(assertAdapter(a).ok).toBe(true);
     expect(a.name).toBe("game-genshin");
-    expect(a.version).toBe("0.2.0");
+    expect(a.version).toBe("0.3.0");
     expect(a.extractMode).toBe("web-api");
     expect(a.dataDisclosure.sensitivity).toBe("medium");
     expect(a.capabilities).toContain("sync:snapshot");
@@ -59,8 +61,20 @@ describe("GenshinAdapter — FAMILY-23 v0.1 cookie-scrape placeholder", () => {
       snapshottedAt: 1700000000000,
       account: { uid: "12345", displayName: "旅行者" },
       events: [
-        { kind: "profile", id: "profile-12345", uid: "12345", nickname: "旅行者", level: 58 },
-        { kind: "play", id: "play-s1", durationMs: 3600000, mode: "single", startAt: 1700000000000 },
+        {
+          kind: "profile",
+          id: "profile-12345",
+          uid: "12345",
+          nickname: "旅行者",
+          level: 58,
+        },
+        {
+          kind: "play",
+          id: "play-s1",
+          durationMs: 3600000,
+          mode: "single",
+          startAt: 1700000000000,
+        },
       ],
     });
     try {
@@ -87,14 +101,21 @@ describe("GenshinAdapter — FAMILY-23 v0.1 cookie-scrape placeholder", () => {
     });
     expect(validateBatch(profileBatch).valid).toBe(true);
     expect(profileBatch.persons[0].subtype).toBe("self");
-    expect(profileBatch.persons[0].identifiers["genshin-uid"]).toEqual(["12345"]);
+    expect(profileBatch.persons[0].identifiers["genshin-uid"]).toEqual([
+      "12345",
+    ]);
 
     const playBatch = a.normalize({
       adapter: "game-genshin",
       kind: "play",
       originalId: "genshin:play:play-s1",
       capturedAt: 1700000000000,
-      payload: { kind: "play", durationMs: 3600000, mode: "single", startAt: 1700000000000 },
+      payload: {
+        kind: "play",
+        durationMs: 3600000,
+        mode: "single",
+        startAt: 1700000000000,
+      },
     });
     expect(validateBatch(playBatch).valid).toBe(true);
     expect(playBatch.events[0].subtype).toBe("media");
