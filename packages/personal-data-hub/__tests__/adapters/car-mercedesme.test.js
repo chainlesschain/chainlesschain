@@ -49,11 +49,14 @@ describe("car-mercedesme", () => {
     expect(mb.tripToRecord({ startAddress: "x" })).toBe(null);
   });
   it("extractTrips tolerant", () => {
+    expect(mb.extractTrips([{ tripId: 1 }])).toHaveLength(1);
     expect(mb.extractTrips({ trips: [{ tripId: 1 }] })).toHaveLength(1);
     expect(mb.extractTrips({ data: { list: [{ tripId: 1 }] } })).toHaveLength(
       1,
     );
-    expect(mb.extractTrips({})).toEqual([]);
+    expect(() => mb.extractTrips({})).toThrow(
+      expect.objectContaining({ code: "SOURCE_PAGE_UNRECOGNIZED" }),
+    );
   });
 
   it("snapshot trip → car travel event", async () => {

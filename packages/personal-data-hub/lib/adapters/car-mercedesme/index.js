@@ -23,6 +23,10 @@ const {
   readBoundedSnapshot,
 } = require("../../snapshot-file");
 const {
+  createSourcePageGuard,
+  extractRecognizedArray,
+} = require("../../source-page");
+const {
   normalizeTravelRecord,
   parseChineseDateTime,
 } = require("../travel-base");
@@ -32,7 +36,7 @@ const NAME = "car-mercedesme";
 const VERSION = "0.2.0";
 
 const DEFAULT_PAGE_SIZE = 30;
-const DEFAULT_MAX_PAGES = 10;
+const DEFAULT_MAX_PAGES = Number.POSITIVE_INFINITY;
 
 function toMs(n) {
   return n >= 1e12 ? n : n >= 1e9 ? n * 1000 : n;
@@ -101,7 +105,7 @@ function parseTrips(text) {
   let raw;
   try {
     raw = JSON.parse(text);
-  } catch (_e) {
+  } catch {
     raw = text
       .split(/\r?\n/)
       .filter((l) => l.trim().startsWith("{"))
@@ -112,16 +116,11 @@ function parseTrips(text) {
 }
 
 function extractTrips(resp) {
-  if (!resp || typeof resp !== "object") return [];
-  if (Array.isArray(resp.trips)) return resp.trips;
-  if (Array.isArray(resp.list)) return resp.list;
-  if (Array.isArray(resp.data)) return resp.data;
-  const d = resp.data;
-  if (d && typeof d === "object") {
-    if (Array.isArray(d.trips)) return d.trips;
-    if (Array.isArray(d.list)) return d.list;
-  }
-  return [];
+  return extractRecognizedArray(
+    resp,
+    [[], ["trips"], ["list"], ["data"], ["data", "trips"], ["data", "list"]],
+    { source: NAME, stream: "trips" },
+  );
 }
 
 class MercedesMeAdapter {
@@ -271,6 +270,10 @@ class MercedesMeAdapter {
         : DEFAULT_MAX_PAGES;
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard(NAME)
+        : null;
 
     let emitted = 0;
     let page = 1;
@@ -291,6 +294,7 @@ class MercedesMeAdapter {
         scanComplete = true;
         break;
       }
+      pageGuard?.observe("trips", trips);
       for (const raw of trips) {
         const rec = tripToRecord(raw, { capturedVia: "cookie-api" });
         if (!rec) continue;
@@ -327,7 +331,7 @@ class MercedesMeAdapter {
   }
 }
 
-async function defaultFetch(_opts) {
+async function defaultFetch() {
   throw new Error("car-mercedesme: no fetchFn configured for cookie-api mode");
 }
 

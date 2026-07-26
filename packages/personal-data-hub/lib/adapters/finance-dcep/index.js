@@ -32,7 +32,10 @@ const {
   EVENT_SUBTYPES,
   CAPTURED_BY,
 } = require("../../constants");
-const { extractRecognizedArray } = require("../../source-page");
+const {
+  createSourcePageGuard,
+  extractRecognizedArray,
+} = require("../../source-page");
 const {
   probeJsonSnapshotFile,
   readJsonSnapshot,
@@ -293,7 +296,13 @@ class DcepAdapter {
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
-      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 12;
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : Number.POSITIVE_INFINITY;
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard(NAME)
+        : null;
     const sinceMs =
       opts.sinceWatermark != null
         ? parseInt(String(opts.sinceWatermark), 10) || 0
@@ -321,6 +330,7 @@ class DcepAdapter {
         scanComplete = true;
         break;
       }
+      pageGuard?.observe(KIND_TX, items);
       for (const it of items) {
         const rec = mapTx(it);
         if (!rec) continue;
@@ -399,7 +409,7 @@ class DcepAdapter {
   }
 }
 
-async function defaultFetch(_opts) {
+async function defaultFetch() {
   throw new Error("finance-dcep: no fetchFn configured for cookie-api mode");
 }
 

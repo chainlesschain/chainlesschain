@@ -38,7 +38,10 @@ const {
 } = require("../../snapshot-file");
 const { createAccountScopeFromAccount } = require("../../account-scope");
 const { newId } = require("../../ids");
-const { extractRecognizedArray } = require("../../source-page");
+const {
+  createSourcePageGuard,
+  extractRecognizedArray,
+} = require("../../source-page");
 const {
   ENTITY_TYPES,
   EVENT_SUBTYPES,
@@ -276,7 +279,13 @@ class TianyanchaAdapter {
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
-      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : Number.POSITIVE_INFINITY;
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard(NAME)
+        : null;
     const sinceMs =
       opts.sinceWatermark != null
         ? parseInt(String(opts.sinceWatermark), 10) || 0
@@ -330,6 +339,7 @@ class TianyanchaAdapter {
           streamComplete = true;
           break;
         }
+        pageGuard?.observe(step.kind, items);
         for (const it of items) {
           if (!it || typeof it !== "object") continue;
           const capturedAt =
@@ -479,7 +489,7 @@ function normalizeSearch(raw, ingestedAt) {
   };
 }
 
-async function defaultFetch(_opts) {
+async function defaultFetch() {
   throw new Error("biz-tianyancha: no fetchFn configured for cookie-api mode");
 }
 
