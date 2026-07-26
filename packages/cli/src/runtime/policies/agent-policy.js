@@ -33,6 +33,8 @@ export function resolveAgentPolicy({
       : [],
     sandbox: overrides.sandbox || null,
     autoCheckpoint: overrides.autoCheckpoint === true,
+    worktreeId:
+      overrides.worktreeId == null ? null : String(overrides.worktreeId),
     systemPrompt: overrides.systemPrompt || null,
     appendSystemPrompt: overrides.appendSystemPrompt || null,
     fallbackModel: overrides.fallbackModel || null,

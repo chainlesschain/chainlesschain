@@ -1421,6 +1421,9 @@ export function registerAgentCommand(program) {
         additionalDirectories,
         sandbox: interactiveSandbox,
         autoCheckpoint,
+        // Keep interactive --worktree sessions in the same explicit
+        // turn-binding coverage model as headless runs.
+        worktreeId: _worktree ? _worktree.branch : null,
         // --vim: start the REPL in vim-mode editing (also CC_VIM=1 or /vim).
         vimMode: options.vim === true,
         // --system-prompt / --append-system-prompt (literal or @file) also

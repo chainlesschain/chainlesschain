@@ -253,7 +253,7 @@ Windows Node IPC/detached 语义及真实三平台 CI 尚未完成
 | P1-5  | MCP Elicitation 路由 | ✅ form/URL/defer 已完成                    | 基于 MCP `2025-11-25`：声明 form/URL capability；`elicitation/create`、`notifications/elicitation/complete` 与 `URLElicitationRequiredError (-32042)` 已接入；URL 仅允许无凭证 HTTPS，所有交互宿主展示完整 URL 并在明确同意后打开；Headless 结构化 defer、完成关联及原工具调用 exactly-once retry 已覆盖，URL 敏感输入不回传 `content` |
 | P1-6  | Event Runtime 常驻化 | ✅ 宿主托管、观测与恢复闭环                 | 发布二进制的 lazy-dispatch 真实入口统一启动/停止 process-level host：长驻命令持续 drain，短命命令退出前有界 final drain；durable inbox/outbox、lease fence/续租/过期接管、重试/死信/背压、producer 自动接线均已有；Webhook/Telegram 使用 required-handler 恢复路由；`cc status --json` 暴露队列及跨进程 host 心跳/stale 状态，`npm run runtime:event-recovery` 用两个真实进程验证崩溃接管与副作用只应用一次 |
 | P1-7  | Context 来源归因     | ✅ 双层 Skill 缓存与交互式快照已完成        | `cc context --sources` 已对 instruction 文件、实际注入 persona Skill、admitted MCP schema、普通 Skill descriptor/body 按需读取、缓存命中及实际 prompt 注入分别计费；Headless 与交互 REPL 共用单一 Skill loader，并持续写入无正文 `context_sources` 快照                                                                 |
-| P1-8  | Checkpoint REPL 统一 | 部分                                        | turn-binding 生产者、tool_use_id 完整浮出                                                                                                                                                                                                                                                                                  |
+| P1-8  | Checkpoint REPL 统一 | ✅ 统一 producer 与归因闭环                 | Agent Core 输出 provider 原始 `tool_use_id`/turn id/permission decision/checkpoint；Headless 与 REPL 共用 `createTurnBindingFeed`，交互 turn 逐次 fail-closed 持久化；child trace/checkpoint/tool/worktree、IDE user edit 与顶层 `--worktree` branch 均进入父 turn，shell/外部副作用诚实标为 partial                         |
 | P1-9  | Plugin 安全强化      | 🟡 OS secret + Broker provenance 已补       | 签名/manifest SHA-256、trusted key、安装后 SBOM 文件摘要、capability consent、managed allow/deny、DPAPI/Keychain/Secret Service、插件 MCP/LSP/Hook/Monitor/Bin 与 Agent `run_skill` Broker 门面已有；Desktop Plugin Loader 的依赖探测/安装/解压已去 shell 并携带 plugin source；原生模块和外部宿主全路径仍待补             |
 | P1-10 | 并发状态 fail-closed | 🟡 关键调度/会话状态已补                    | `withFileLock(failIfUnavailable)` + Agenda claim lease、Event Runtime 与 JSONL session append 已 fail-closed；approval/部分 ledger/IDE session 状态仍待统一迁移                                                                                                                                                            |
 | P1-11 | JSON Schema 完整支持 | 🟡 常用 vocabulary + external registry 已补 | Draft 2020-12 常用关键字、dependent/pattern/contains/propertyNames、local `$ref`、显式 external schema registry、组合/条件、format、structured_result 已有；完整 meta-vocabulary、自动远程 ref 与复杂互操作仍待补                                                                                                          |
@@ -316,6 +316,16 @@ prompt 的 `contextLoads/contextTokens`；普通 `run_skill` 的 handler 正文�
 每轮完成、`/reload-skills` 和退出时持续写入 content-free `context_sources` 快照。
 `cc context --sources` 的文本与 JSON 输出都能展示 resident/lazy、逐 Skill 来源、磁盘/
 缓存读取和 prompt 注入成本；定向 Context/REPL 测试 82/82 通过。
+
+**2026-07-26 P1-8 完成**：`createTurnBindingFeed` 已成为 Headless 与交互 REPL
+共享的事件归因核心；REPL 会 rehydrate 旧表、在 rewind/clear/compact 后剪除被替代
+timeline，并在每个 settled turn（包括无工具问答）以 fail-closed 锁定快照。Agent Core
+的 checkpoint/tool-executing/tool-result 全程携带 provider 原始 `tool_use_id` 和
+`turn_id`，决策事件携带稳定 permission decision id；父 turn 同时保存 child agent 的
+trace、checkpoint、tool id 和 worktree lineage，IDE 修改标记会把 coverage 降为
+partial。本轮补齐交互 `cc agent --worktree` 的 branch id 通过 runtime policy 进入
+每条 REPL binding；shell/外部进程副作用仍明确为 partial，不承诺不可逆恢复。定向
+7 个测试文件 111/111 通过。
 
 ### Hooks v2 producer 验收结果（40 项事件 registry）
 
@@ -396,6 +406,7 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 - [x] **P1-5 MCP Elicitation form/URL/defer、完成通知与 `-32042` exactly-once retry**
 - [x] **P1-6 Event Runtime 真实 binary lifecycle、跨进程 host health 与崩溃恢复演练**
 - [x] **P1-7 Context 双层 Skill cache、交互式快照与按需/命中/注入成本归因**
+- [x] **P1-8 Headless/REPL 统一 turn binding、provider id 与 child/worktree/user-edit 归因**
 - [x] **P1-12 TypeScript/Python SDK、共享 fixture、GitHub Actions 示例与 Python 0.1.0 基线 PyPI 发布**
 - [x] **2026-07-21 历史主仓验证**：当时的 Code Quality、CI Tests、E2E Tests 与 Full Test Automation 通过；不替代当前剩余严格隔离验收
 - [x] Notification Hook 事件（2026-07-20）
@@ -421,7 +432,7 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 | ---------- | ----------------------------------------------------------- |
 | **当前**   | P0-1 Windows IPC/detached 语义与真实三平台严格隔离 CI       |
 | **随后**   | P0-2 三平台断线重连 E2E 远端验收                            |
-| **并行**   | P1-4 跨平台强文件写沙箱、P1-8 Checkpoint REPL 统一                 |
+| **并行**   | P1-4 跨平台强文件写沙箱、P1-9 Plugin 外部宿主与 P1-10 状态锁收口 |
 | **发布前** | 双语言 SDK 兼容门、真实环境 parity 与文档事实源漂移检查     |
 
 ---

@@ -23,6 +23,7 @@ describe("resolveAgentPolicy — interactive REPL passthrough keys", () => {
         outputStyle: "concise",
         disableSlashCommands: true,
         remoteControl: true,
+        worktreeId: "agent/repl-task-1",
       },
     });
     expect(policy.permissionMode).toBe("auto");
@@ -34,6 +35,7 @@ describe("resolveAgentPolicy — interactive REPL passthrough keys", () => {
     expect(policy.outputStyle).toBe("concise");
     expect(policy.disableSlashCommands).toBe(true);
     expect(policy.remoteControl).toBe(true);
+    expect(policy.worktreeId).toBe("agent/repl-task-1");
   });
 
   it("leaves them undefined when not supplied (tri-state / unset semantics)", () => {
@@ -48,5 +50,6 @@ describe("resolveAgentPolicy — interactive REPL passthrough keys", () => {
     // boolean-normalized (not tri-state): absent → false
     expect(policy.disableSlashCommands).toBe(false);
     expect(policy.remoteControl).toBe(false);
+    expect(policy.worktreeId).toBeNull();
   });
 });

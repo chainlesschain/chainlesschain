@@ -583,23 +583,23 @@ turn_id / agent_id
 
 ## 9. P1：Turn、Checkpoint 与跨运行形态统一
 
-Headless 已在 [`headless-runner.js`](../packages/cli/src/runtime/headless-runner.js#L1802)
-实时建立并持久化 turn binding，REPL 也已能消费持久表。剩余问题是同一个 Agent Core 在不同入口
-仍产生不同完整度的恢复数据：
+Headless 与交互 REPL 现在共用
+[`createTurnBindingFeed`](../packages/cli/src/lib/turn-binding.js) 作为唯一事件归因核心。
+REPL 会 rehydrate 已持久化表、在 rewind/clear/compact 后剪除废弃 timeline，并在每个
+settled turn（包括无工具问答）以 fail-closed 锁定写入。Agent Core 的 checkpoint、
+tool-executing 和 tool-result 全程保留 provider 原始 `tool_use_id`、`turn_id` 与稳定的
+permission decision id；父 turn 也持久化 child trace/checkpoint/tool/worktree lineage、
+IDE user edit 标记及顶层交互 `--worktree` branch id。
 
-- REPL 自身尚未成为同等级的显式 turn-binding 生产者。
-- provider 原始 `tool_use_id` 没有完整浮出，部分位置仍由 runner 合成。
-- child agent 的 checkpoint、worktree id、user edit 标记没有统一进入父 turn。
-- shell 和外部进程写文件只能标记 `coverage: partial`。
+当前 coverage 保持诚实：checkpoint 覆盖的文件工具可标为 `full`；IDE 用户改写、shell
+和外部进程副作用标为 `partial`，没有 checkpoint 的文件修改为 `none`。这不是漏记，
+而是避免把无法撤销的网络、数据库或外部进程副作用承诺为可完整恢复。
 
-建议：
+后续增强：
 
-1. 把 turn/checkpoint 事件生产下沉到 Agent Core，REPL、Headless、SDK、IDE 只消费。
-2. Provider call id、permission decision id、checkpoint id、child agent id 全程保真。
-3. 父子 Agent 使用 trace/span 关系，不靠名称或日志文本反推。
-4. Worktree、用户编辑和外部文件变化进入同一 coverage 模型。
-5. 在 Process Broker 中增加运行前后文件摘要或变更日志，逐步把 shell 文件变更从
+1. 在 Process Broker 中增加运行前后文件摘要或变更日志，逐步把 shell 文件变更从
    `partial` 提升为可恢复；外部网络/数据库副作用仍必须明确不可回滚。
+2. 将同一 binding/coverage 视图直接暴露给 SDK 与 IDE 的恢复 UI。
 
 这也是最值得做的差异化：Claude Code 官方 checkpoint 主要跟踪编辑工具，ChainlessChain 可进一步
 覆盖受 Broker 管理的全部文件写入，但不能对外部副作用作虚假承诺。

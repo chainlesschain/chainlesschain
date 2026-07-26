@@ -71,7 +71,7 @@ export function createReplTurnBindingProducer({
      * appended, with `conversationOffset = messages.length` — the exact-match
      * contract `pickPersistedTurn` relies on.
      */
-    beginTurn(conversationOffset) {
+    beginTurn(conversationOffset, { worktreeId = null } = {}) {
       try {
         if (!feed) {
           feed = createTurnBindingFeed({
@@ -79,7 +79,10 @@ export function createReplTurnBindingProducer({
             nonce: runNonce,
           });
         }
-        return feed.beginTurn(conversationOffset, { supersede: true });
+        return feed.beginTurn(conversationOffset, {
+          supersede: true,
+          worktreeId,
+        });
       } catch (error) {
         return rejectOr(error, "load", null);
       }

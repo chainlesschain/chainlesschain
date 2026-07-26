@@ -29,14 +29,36 @@ afterEach(() => {
 });
 
 const toolEvents = [
-  { type: "checkpoint", id: "cp-1", tool: "write_file" },
-  { type: "tool-executing", tool: "write_file", args: { path: "a.txt" } },
-  { type: "tool-result", tool: "write_file", result: { ok: true } },
-  { type: "tool-executing", tool: "run_shell", args: { command: "ls" } },
+  {
+    type: "checkpoint",
+    id: "cp-1",
+    tool: "write_file",
+    tool_use_id: "provider-call-1",
+  },
+  {
+    type: "tool-executing",
+    tool: "write_file",
+    args: { path: "a.txt" },
+    tool_use_id: "provider-call-1",
+  },
+  {
+    type: "tool-result",
+    tool: "write_file",
+    result: { ok: true },
+    tool_use_id: "provider-call-1",
+  },
+  {
+    type: "tool-executing",
+    tool: "run_shell",
+    args: { command: "ls" },
+    tool_use_id: "provider-call-2",
+  },
   {
     type: "tool-result",
     tool: "run_shell",
     result: { error: "denied", policy: { decision: "deny", via: "settings" } },
+    tool_use_id: "provider-call-2",
+    permission_decision_id: "decision-shell-2",
   },
 ];
 
@@ -61,8 +83,11 @@ describe("createReplTurnBindingProducer", () => {
     const turn = log.list()[0];
     expect(turn.conversationOffset).toBe(2);
     expect(turn.fileCheckpointId).toBe("cp-1");
-    expect(turn.toolCallIds).toHaveLength(2);
-    expect(turn.permissionDecisionIds[0]).toMatch(/:perm:settings$/);
+    expect(turn.toolCallIds).toEqual([
+      "provider-call-1",
+      "provider-call-2",
+    ]);
+    expect(turn.permissionDecisionIds).toEqual(["decision-shell-2"]);
     expect(turn.coverage).toBe(TURN_COVERAGE.PARTIAL); // shell ran
 
     // settle again with nothing new → no second snapshot (dirty-gated)
@@ -78,6 +103,16 @@ describe("createReplTurnBindingProducer", () => {
     const turn = TurnBindingLog.fromJSON(snapshots[0].data).list()[0];
     expect(turn.coverage).toBe(TURN_COVERAGE.FULL);
     expect(turn.toolCallIds).toEqual([]);
+  });
+
+  it("stamps the interactive session worktree on every persisted turn", () => {
+    const p = createReplTurnBindingProducer({ sessionId: "sess-R" });
+    p.beginTurn(2, { worktreeId: "agent/repl-task-1" });
+    expect(p.persistIfDirty()).toBe(true);
+
+    const turn = TurnBindingLog.fromJSON(snapshots[0].data).list()[0];
+    expect(turn.worktreeId).toBe("agent/repl-task-1");
+    expect(turn.coverage).toBe(TURN_COVERAGE.FULL);
   });
 
   it("reports persistence degradation without clearing the dirty snapshot", () => {

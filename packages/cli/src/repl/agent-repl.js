@@ -5391,7 +5391,9 @@ export async function startAgentRepl(options = {}) {
             },
           });
         }
-        _turnBindingProducer?.beginTurn(messages.length);
+        _turnBindingProducer?.beginTurn(messages.length, {
+          worktreeId: options.worktreeId ?? null,
+        });
       } catch (error) {
         _turnBindingCriticalError =
           error instanceof Error ? error : new Error(String(error));

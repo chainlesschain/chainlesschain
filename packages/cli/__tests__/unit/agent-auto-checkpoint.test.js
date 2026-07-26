@@ -74,6 +74,14 @@ describe("agent-core auto-checkpoint (before mutating tools)", () => {
     const cp = events.find((e) => e.type === "checkpoint");
     expect(cp).toBeTruthy();
     expect(cp.tool).toBe("write_file");
+    expect(cp.tool_use_id).toBe("c1");
+
+    const executing = events.find((e) => e.type === "tool-executing");
+    const result = events.find((e) => e.type === "tool-result");
+    expect(executing.tool_use_id).toBe("c1");
+    expect(result.tool_use_id).toBe("c1");
+    expect(cp.turn_id).toBe(executing.turn_id);
+    expect(result.turn_id).toBe(executing.turn_id);
 
     // The checkpoint event precedes the tool-executing event.
     const cpIdx = events.findIndex((e) => e.type === "checkpoint");
