@@ -80,11 +80,62 @@ function loadDatabaseClass() {
   );
 }
 
-function trySelect(db, sql) {
+function pcSourceError(tableName, operation, cause) {
+  const error = new Error(
+    `wechat-pc: source table ${tableName} could not be ${operation}; refusing a partial import`,
+  );
+  error.code = "WECHAT_PC_SOURCE_UNREADABLE";
+  error.table = tableName;
+  error.operation = operation;
+  error.cause = cause;
+  return error;
+}
+
+function quoteSqliteIdentifier(identifier) {
+  return `"${String(identifier).replace(/"/g, '""')}"`;
+}
+
+function findTableName(tableNames, expectedName) {
+  const normalized = expectedName.toLowerCase();
+  return (
+    tableNames.find(
+      (tableName) =>
+        typeof tableName === "string" && tableName.toLowerCase() === normalized,
+    ) || null
+  );
+}
+
+function listSqliteTables(db) {
+  try {
+    return db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+      .all()
+      .map((row) => row && row.name)
+      .filter((name) => typeof name === "string");
+  } catch (error) {
+    throw pcSourceError("sqlite_master", "listed", error);
+  }
+}
+
+function readTableInfo(db, tableName) {
+  try {
+    const rows = db
+      .prepare(`PRAGMA table_info(${quoteSqliteIdentifier(tableName)})`)
+      .all();
+    if (!Array.isArray(rows) || rows.length === 0) {
+      throw new Error("table metadata is empty");
+    }
+    return rows;
+  } catch (error) {
+    throw pcSourceError(tableName, "inspected", error);
+  }
+}
+
+function readTableRows(db, tableName, sql) {
   try {
     return db.prepare(sql).all();
-  } catch (_e) {
-    return null;
+  } catch (error) {
+    throw pcSourceError(tableName, "read", error);
   }
 }
 
@@ -239,10 +290,13 @@ function readPcWeChat(dbPath, opts = {}) {
     },
   };
   try {
+    const tableNames = listSqliteTables(db);
+
     // ─── MSG table (messages) ────────────────────────────────────────────
-    const msgInfo = trySelect(db, "PRAGMA table_info(MSG)");
-    if (Array.isArray(msgInfo) && msgInfo.length > 0) {
+    const msgTable = findTableName(tableNames, "MSG");
+    if (msgTable) {
       out.diagnostic.hadMsgTable = true;
+      const msgInfo = readTableInfo(db, msgTable);
       const cols = new Set(msgInfo.map((r) => r.name));
       const svrCol = pickCol(cols, ["MsgSvrID", "msgSvrId", "MsgSvrId"]);
       const talkerCol = pickCol(cols, [
@@ -265,50 +319,56 @@ function readPcWeChat(dbPath, opts = {}) {
         "content",
       ]);
       const localIdCol = pickCol(cols, ["localId", "MsgId", "msgId"]);
-      if (timeCol && contentCol) {
-        const fields = [];
-        if (svrCol) fields.push(`${svrCol} AS msgSvrId`);
-        if (localIdCol) fields.push(`${localIdCol} AS localId`);
-        if (talkerCol) fields.push(`${talkerCol} AS talker`);
-        if (sendCol) fields.push(`${sendCol} AS isSend`);
-        if (typeCol) fields.push(`${typeCol} AS type`);
-        fields.push(`${timeCol} AS createTime`);
-        fields.push(`${contentCol} AS content`);
-        const messageLimitClause = Number.isSafeInteger(limitMessages)
-          ? ` LIMIT ${limitMessages}`
-          : "";
-        const sql = `SELECT ${fields.join(
-          ", ",
-        )} FROM MSG ORDER BY ${timeCol} DESC${messageLimitClause}`;
-        const rows = trySelect(db, sql) || [];
-        for (const r of rows) {
-          const isGroup = isGroupTalker(r.talker);
-          const { text, senderWxid } = parsePcContent(r.content, isGroup);
-          out.messages.push({
-            msgSvrId:
-              r.msgSvrId != null
-                ? String(r.msgSvrId)
-                : r.localId != null
-                  ? `local-${r.localId}`
-                  : null,
-            talker: r.talker ? String(r.talker) : null,
-            isSend: typeof r.isSend === "number" ? r.isSend : null,
-            createdTimeMs: normalizeEpochMs(r.createTime),
-            type: typeof r.type === "number" ? r.type : null,
-            text,
-            senderWxid,
-            isGroup,
-            contentBlob: typeof r.content === "string" ? r.content : null,
-          });
-        }
-        out.diagnostic.messageCount = out.messages.length;
+      if (!timeCol || !contentCol) {
+        throw pcSourceError(
+          msgTable,
+          "validated",
+          new Error("required message columns are missing"),
+        );
       }
+      const fields = [];
+      if (svrCol) fields.push(`${svrCol} AS msgSvrId`);
+      if (localIdCol) fields.push(`${localIdCol} AS localId`);
+      if (talkerCol) fields.push(`${talkerCol} AS talker`);
+      if (sendCol) fields.push(`${sendCol} AS isSend`);
+      if (typeCol) fields.push(`${typeCol} AS type`);
+      fields.push(`${timeCol} AS createTime`);
+      fields.push(`${contentCol} AS content`);
+      const messageLimitClause = Number.isSafeInteger(limitMessages)
+        ? ` LIMIT ${limitMessages}`
+        : "";
+      const sql = `SELECT ${fields.join(", ")} FROM ${quoteSqliteIdentifier(
+        msgTable,
+      )} ORDER BY ${timeCol} DESC${messageLimitClause}`;
+      const rows = readTableRows(db, msgTable, sql);
+      for (const r of rows) {
+        const isGroup = isGroupTalker(r.talker);
+        const { text, senderWxid } = parsePcContent(r.content, isGroup);
+        out.messages.push({
+          msgSvrId:
+            r.msgSvrId != null
+              ? String(r.msgSvrId)
+              : r.localId != null
+                ? `local-${r.localId}`
+                : null,
+          talker: r.talker ? String(r.talker) : null,
+          isSend: typeof r.isSend === "number" ? r.isSend : null,
+          createdTimeMs: normalizeEpochMs(r.createTime),
+          type: typeof r.type === "number" ? r.type : null,
+          text,
+          senderWxid,
+          isGroup,
+          contentBlob: typeof r.content === "string" ? r.content : null,
+        });
+      }
+      out.diagnostic.messageCount = out.messages.length;
     }
 
     // ─── Contact table (contacts) ────────────────────────────────────────
-    const contactInfo = trySelect(db, "PRAGMA table_info(Contact)");
-    if (Array.isArray(contactInfo) && contactInfo.length > 0) {
+    const contactTable = findTableName(tableNames, "Contact");
+    if (contactTable) {
       out.diagnostic.hadContactTable = true;
+      const contactInfo = readTableInfo(db, contactTable);
       const cols = new Set(contactInfo.map((r) => r.name));
       const wxidCol = pickCol(cols, [
         "UserName",
@@ -325,34 +385,39 @@ function readPcWeChat(dbPath, opts = {}) {
         "conRemark",
       ]);
       const typeCol = pickCol(cols, ["Type", "type"]);
-      if (wxidCol) {
-        const fields = [`${wxidCol} AS wxid`];
-        if (aliasCol) fields.push(`${aliasCol} AS alias`);
-        if (nickCol) fields.push(`${nickCol} AS nickname`);
-        if (remarkCol) fields.push(`${remarkCol} AS remark`);
-        if (typeCol) fields.push(`${typeCol} AS type`);
-        const contactLimitClause = Number.isSafeInteger(limitContacts)
-          ? ` LIMIT ${limitContacts}`
-          : "";
-        const sql = `SELECT ${fields.join(
-          ", ",
-        )} FROM Contact${contactLimitClause}`;
-        const rows = trySelect(db, sql) || [];
-        for (const r of rows) {
-          if (!r.wxid) continue;
-          const wxid = String(r.wxid);
-          // Skip WeChat internal placeholders + chatrooms (not Persons).
-          if (wxid.endsWith("@chatroom")) continue;
-          out.contacts.push({
-            wxid,
-            alias: r.alias || null,
-            nickname: r.nickname || null,
-            remark: r.remark || null,
-            type: typeof r.type === "number" ? r.type : null,
-          });
-        }
-        out.diagnostic.contactCount = out.contacts.length;
+      if (!wxidCol) {
+        throw pcSourceError(
+          contactTable,
+          "validated",
+          new Error("required contact identifier column is missing"),
+        );
       }
+      const fields = [`${wxidCol} AS wxid`];
+      if (aliasCol) fields.push(`${aliasCol} AS alias`);
+      if (nickCol) fields.push(`${nickCol} AS nickname`);
+      if (remarkCol) fields.push(`${remarkCol} AS remark`);
+      if (typeCol) fields.push(`${typeCol} AS type`);
+      const contactLimitClause = Number.isSafeInteger(limitContacts)
+        ? ` LIMIT ${limitContacts}`
+        : "";
+      const sql = `SELECT ${fields.join(
+        ", ",
+      )} FROM ${quoteSqliteIdentifier(contactTable)}${contactLimitClause}`;
+      const rows = readTableRows(db, contactTable, sql);
+      for (const r of rows) {
+        if (!r.wxid) continue;
+        const wxid = String(r.wxid);
+        // Skip WeChat internal placeholders + chatrooms (not Persons).
+        if (wxid.endsWith("@chatroom")) continue;
+        out.contacts.push({
+          wxid,
+          alias: r.alias || null,
+          nickname: r.nickname || null,
+          remark: r.remark || null,
+          type: typeof r.type === "number" ? r.type : null,
+        });
+      }
+      out.diagnostic.contactCount = out.contacts.length;
     }
   } finally {
     try {
@@ -374,5 +439,8 @@ module.exports = {
     parsePcContent,
     isGroupTalker,
     pickCol,
+    pcSourceError,
+    quoteSqliteIdentifier,
+    findTableName,
   },
 };

@@ -23,10 +23,28 @@ function makeFakeDb(spec) {
     all() {
       const s = this.sql;
       if (Array.isArray(spec.queries)) spec.queries.push(s);
-      if (/PRAGMA table_info\(MSG\)/.test(s)) return spec.msgCols || [];
-      if (/FROM MSG/.test(s)) return spec.msgRows || [];
-      if (/PRAGMA table_info\(Contact\)/.test(s)) return spec.contactCols || [];
-      if (/FROM Contact/.test(s)) return spec.contactRows || [];
+      if (
+        spec.failQuery &&
+        (typeof spec.failQuery === "string"
+          ? s.includes(spec.failQuery)
+          : spec.failQuery.test(s))
+      ) {
+        throw new Error("synthetic SQLite read failure");
+      }
+      if (/FROM sqlite_master/.test(s)) {
+        const tables =
+          spec.tables ||
+          [
+            spec.msgCols && spec.msgCols.length > 0 ? "MSG" : null,
+            spec.contactCols && spec.contactCols.length > 0 ? "Contact" : null,
+          ].filter(Boolean);
+        return tables.map((name) => ({ name }));
+      }
+      if (/PRAGMA table_info\("?MSG"?\)/.test(s)) return spec.msgCols || [];
+      if (/FROM "?MSG"?/.test(s)) return spec.msgRows || [];
+      if (/PRAGMA table_info\("?Contact"?\)/.test(s))
+        return spec.contactCols || [];
+      if (/FROM "?Contact"?/.test(s)) return spec.contactRows || [];
       return [];
     }
     get() {
@@ -284,7 +302,7 @@ describe("WeChatPcAdapter — options + edge cases", () => {
     const uncappedSpec = { ...MSG_SPEC, queries: [] };
     await collect(freshAdapter(uncappedSpec).sync({ dbPath: "/fake/MSG0.db" }));
     expect(
-      uncappedSpec.queries.find((sql) => /FROM MSG/.test(sql)),
+      uncappedSpec.queries.find((sql) => /FROM "?MSG"?/.test(sql)),
     ).not.toMatch(/\bLIMIT\b/);
 
     const cappedSpec = { ...MSG_SPEC, queries: [] };
@@ -294,7 +312,7 @@ describe("WeChatPcAdapter — options + edge cases", () => {
         limit: 2,
       }),
     );
-    expect(cappedSpec.queries.find((sql) => /FROM MSG/.test(sql))).toMatch(
+    expect(cappedSpec.queries.find((sql) => /FROM "?MSG"?/.test(sql))).toMatch(
       /\bLIMIT 2\b/,
     );
   });
@@ -310,6 +328,51 @@ describe("WeChatPcAdapter — options + edge cases", () => {
     expect(parsed.hadMsgTable).toBe(true);
     expect(parsed.messageCount).toBe(3);
     expect(parsed.mode).toBe("plaintext"); // no key supplied
+  });
+
+  it("rejects an unreadable MSG table instead of reporting empty history", async () => {
+    const a = freshAdapter({
+      ...MSG_SPEC,
+      failQuery: /FROM "?MSG"?/,
+    });
+
+    await expect(
+      collect(a.sync({ dbPath: "/fake/MSG0.db" })),
+    ).rejects.toMatchObject({
+      code: "WECHAT_PC_SOURCE_UNREADABLE",
+      table: "MSG",
+      operation: "read",
+    });
+  });
+
+  it("rejects unreadable Contact metadata instead of reporting no contacts", async () => {
+    const a = freshAdapter({
+      ...CONTACT_SPEC,
+      failQuery: /PRAGMA table_info\("?Contact"?\)/,
+    });
+
+    await expect(
+      collect(a.sync({ dbPath: "/fake/MicroMsg.db" })),
+    ).rejects.toMatchObject({
+      code: "WECHAT_PC_SOURCE_UNREADABLE",
+      table: "Contact",
+      operation: "inspected",
+    });
+  });
+
+  it("rejects recognized tables whose required columns cannot be mapped", async () => {
+    const a = freshAdapter({
+      tables: ["MSG"],
+      msgCols: [{ name: "MsgSvrID" }],
+    });
+
+    await expect(
+      collect(a.sync({ dbPath: "/fake/MSG0.db" })),
+    ).rejects.toMatchObject({
+      code: "WECHAT_PC_SOURCE_UNREADABLE",
+      table: "MSG",
+      operation: "validated",
+    });
   });
 
   it("missing db file yields nothing (no throw)", async () => {
