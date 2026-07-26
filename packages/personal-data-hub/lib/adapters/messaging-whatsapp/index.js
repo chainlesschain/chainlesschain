@@ -254,15 +254,16 @@ class WhatsAppAdapter {
   }
 
   async *_syncCursor(opts, db) {
+    const tableNames = listSqliteTables(db);
     let cursor = parseCursor(opts.sinceWatermark).cursor;
     const limit =
       Number.isSafeInteger(opts.limit) && opts.limit > 0
         ? opts.limit
         : Infinity;
     if (cursor.upper === null) {
-      cursor = beginScan(cursor, resolveSourceBounds(db));
+      cursor = beginScan(cursor, resolveSourceBounds(db, tableNames));
     } else {
-      assertFrozenSources(db, cursor.upper);
+      assertFrozenSources(db, tableNames, cursor.upper);
     }
 
     const publish = () => {
@@ -304,6 +305,7 @@ class WhatsAppAdapter {
         if (kind === KIND_MODERN_MESSAGE) {
           const related = loadModernMessageRelations(
             db,
+            tableNames,
             page.map(({ id }) => id),
           );
           page = page.map(({ row, id }) => ({
@@ -551,12 +553,62 @@ class WhatsAppAdapter {
   }
 }
 
-function trySelect(db, sql, params = []) {
+function sqliteSourceError(tableName, operation, cause) {
+  const error = new Error(
+    `messaging-whatsapp: source table ${tableName} could not be ${operation}; refusing a partial import`,
+  );
+  error.code = "WHATSAPP_SQLITE_SOURCE_UNREADABLE";
+  error.table = tableName;
+  error.operation = operation;
+  error.cause = cause;
+  return error;
+}
+
+function listSqliteTables(db) {
   try {
-    return db.prepare(sql).all(...params);
-  } catch {
-    return null;
+    const rows = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+      .all();
+    if (!Array.isArray(rows)) {
+      throw new Error("SQLite table inventory did not return a row array");
+    }
+    return new Set(
+      rows
+        .map((row) => row && row.name)
+        .filter((name) => typeof name === "string")
+        .map((name) => name.toLowerCase()),
+    );
+  } catch (error) {
+    throw sqliteSourceError("sqlite_master", "listed", error);
   }
+}
+
+function readTableRows(db, tableName, sql, params = []) {
+  try {
+    const rows = db.prepare(sql).all(...params);
+    if (!Array.isArray(rows)) {
+      throw new Error("SQLite query did not return a row array");
+    }
+    return rows;
+  } catch (error) {
+    throw sqliteSourceError(tableName, "read", error);
+  }
+}
+
+function selectCompatibleRows(db, tableName, candidates) {
+  let lastFailure = null;
+  for (const candidate of candidates) {
+    try {
+      const rows = db.prepare(candidate.sql).all(...candidate.params);
+      if (!Array.isArray(rows)) {
+        throw new Error("SQLite query did not return a row array");
+      }
+      return rows;
+    } catch (error) {
+      lastFailure = error;
+    }
+  }
+  throw sqliteSourceError(tableName, "read", lastFailure);
 }
 
 function exactRowId(row, fallbackColumn = "_id") {
@@ -587,16 +639,17 @@ function normalizedPage(rows, { after, upper, limit }) {
     .slice(0, limit);
 }
 
-function sourceUpper(db, table) {
-  const rows = trySelect(
+function sourceUpper(db, tableNames, table) {
+  if (!tableNames.has(table.toLowerCase())) return null;
+  const rows = readTableRows(
     db,
+    table,
     `SELECT CAST(source._id AS TEXT) AS "${EXACT_ID_ALIAS}", source.*
      FROM ${table} AS source
      WHERE source._id IS NOT NULL
      ORDER BY source._id DESC
      LIMIT 1`,
   );
-  if (rows === null) return null;
   let maximum = null;
   for (const row of rows) {
     const id = exactRowId(row);
@@ -607,31 +660,30 @@ function sourceUpper(db, table) {
   return maximum;
 }
 
-function sourceHasExactId(db, table, id) {
-  const rows = trySelect(
+function sourceHasExactId(db, tableNames, table, id) {
+  if (!tableNames.has(table.toLowerCase())) return false;
+  const rows = readTableRows(
     db,
+    table,
     `SELECT CAST(source._id AS TEXT) AS "${EXACT_ID_ALIAS}", source._id
      FROM ${table} AS source
      WHERE source._id = ?
      LIMIT 1`,
     [id],
   );
-  return (
-    rows !== null &&
-    rows.some((row) => {
-      const candidate = exactRowId(row);
-      return candidate !== null && compareTextIds(candidate, id) === 0;
-    })
-  );
+  return rows.some((row) => {
+    const candidate = exactRowId(row);
+    return candidate !== null && compareTextIds(candidate, id) === 0;
+  });
 }
 
-function resolveSourceBounds(db) {
+function resolveSourceBounds(db, tableNames) {
   return {
-    [KIND_CONTACT]: sourceUpper(db, "jid"),
-    [KIND_CHAT]: sourceUpper(db, "chat"),
-    [KIND_MODERN_MESSAGE]: sourceUpper(db, "message"),
-    [KIND_LEGACY_MESSAGE]: sourceUpper(db, "messages"),
-    [KIND_CALL]: sourceUpper(db, "call_log"),
+    [KIND_CONTACT]: sourceUpper(db, tableNames, "jid"),
+    [KIND_CHAT]: sourceUpper(db, tableNames, "chat"),
+    [KIND_MODERN_MESSAGE]: sourceUpper(db, tableNames, "message"),
+    [KIND_LEGACY_MESSAGE]: sourceUpper(db, tableNames, "messages"),
+    [KIND_CALL]: sourceUpper(db, tableNames, "call_log"),
   };
 }
 
@@ -652,12 +704,12 @@ function sourceTable(kind) {
   }
 }
 
-function assertFrozenSources(db, upper) {
+function assertFrozenSources(db, tableNames, upper) {
   for (const kind of POSITION_KINDS) {
     const boundary = upper[kind];
     if (
       boundary !== null &&
-      !sourceHasExactId(db, sourceTable(kind), boundary)
+      !sourceHasExactId(db, tableNames, sourceTable(kind), boundary)
     ) {
       throw sourceRegression(`${kind} frozen boundary is no longer readable`);
     }
@@ -687,11 +739,10 @@ function readSourcePage(db, kind, window) {
   const table = sourceTable(kind);
   const alias = table;
   const { where, params } = pageWindow(`${alias}._id`, window);
-  let rows;
+  const candidates = [];
   if (kind === KIND_CHAT) {
-    rows = trySelect(
-      db,
-      `SELECT CAST(chat._id AS TEXT) AS "${EXACT_ID_ALIAS}",
+    candidates.push({
+      sql: `SELECT CAST(chat._id AS TEXT) AS "${EXACT_ID_ALIAS}",
               chat.*, jid.raw_string AS chat_jid
        FROM chat AS chat
        LEFT JOIN jid ON jid._id = chat.jid_row_id
@@ -699,11 +750,10 @@ function readSourcePage(db, kind, window) {
        ORDER BY chat._id ASC
        LIMIT ?`,
       params,
-    );
+    });
   } else if (kind === KIND_MODERN_MESSAGE) {
-    rows = trySelect(
-      db,
-      `SELECT CAST(message._id AS TEXT) AS "${EXACT_ID_ALIAS}",
+    candidates.push({
+      sql: `SELECT CAST(message._id AS TEXT) AS "${EXACT_ID_ALIAS}",
               message.*, chat_jid.raw_string AS chat_jid,
               sender_jid.raw_string AS sender_jid
        FROM message AS message
@@ -715,11 +765,10 @@ function readSourcePage(db, kind, window) {
        ORDER BY message._id ASC
        LIMIT ?`,
       params,
-    );
+    });
   } else if (kind === KIND_CALL) {
-    rows = trySelect(
-      db,
-      `SELECT CAST(call_log._id AS TEXT) AS "${EXACT_ID_ALIAS}",
+    candidates.push({
+      sql: `SELECT CAST(call_log._id AS TEXT) AS "${EXACT_ID_ALIAS}",
               call_log.*, jid.raw_string AS jid,
               group_jid.raw_string AS group_jid
        FROM call_log AS call_log
@@ -730,22 +779,17 @@ function readSourcePage(db, kind, window) {
        ORDER BY call_log._id ASC
        LIMIT ?`,
       params,
-    );
+    });
   }
-  if (rows === null || rows === undefined) {
-    rows = trySelect(
-      db,
-      `SELECT CAST(${alias}._id AS TEXT) AS "${EXACT_ID_ALIAS}", ${alias}.*
+  candidates.push({
+    sql: `SELECT CAST(${alias}._id AS TEXT) AS "${EXACT_ID_ALIAS}", ${alias}.*
        FROM ${table} AS ${alias}
        WHERE ${where}
        ORDER BY ${alias}._id ASC
        LIMIT ?`,
-      params,
-    );
-  }
-  if (rows === null) {
-    throw sourceRegression(`${kind} source became unreadable`);
-  }
+    params,
+  });
+  const rows = selectCompatibleRows(db, table, candidates);
   return normalizedPage(rows, window);
 }
 
@@ -816,21 +860,22 @@ function runCleanup(cleanup) {
     // Cleanup is best-effort and must not mask the primary sync result.
   }
 }
-function loadModernMessageRelations(db, messageIds) {
+function loadModernMessageRelations(db, tableNames, messageIds) {
   const ids = [...new Set(messageIds.map(String))];
   const query = (table) => {
+    if (!tableNames.has(table.toLowerCase())) return [];
     const rows = [];
     for (const chunk of chunks(ids, 400)) {
-      const selected =
-        trySelect(
-          db,
-          `SELECT CAST(related.message_row_id AS TEXT)
+      const selected = readTableRows(
+        db,
+        table,
+        `SELECT CAST(related.message_row_id AS TEXT)
                     AS "${RELATION_ID_ALIAS}",
                   related.*
            FROM ${table} AS related
            WHERE related.message_row_id IN (${placeholders(chunk.length)})`,
-          chunk,
-        ) || [];
+        chunk,
+      );
       const wanted = new Set(chunk);
       for (const row of selected) {
         const id = relationMessageId(row);
@@ -896,15 +941,15 @@ function loadModernMessageIndex(db, modernUpper, legacyPage) {
   const candidates = [];
 
   for (const chunk of chunks(legacyIds, 400)) {
-    const rows =
-      trySelect(
-        db,
-        `SELECT CAST(modern._id AS TEXT) AS "${EXACT_ID_ALIAS}", modern.*
+    const rows = readTableRows(
+      db,
+      "message",
+      `SELECT CAST(modern._id AS TEXT) AS "${EXACT_ID_ALIAS}", modern.*
          FROM message AS modern
          WHERE modern._id <= ?
            AND modern._id IN (${placeholders(chunk.length)})`,
-        [modernUpper, ...chunk],
-      ) || [];
+      [modernUpper, ...chunk],
+    );
     const wanted = new Set(chunk);
     for (const row of rows) {
       const id = exactRowId(row);
@@ -919,15 +964,15 @@ function loadModernMessageIndex(db, modernUpper, legacyPage) {
   }
 
   for (const chunk of chunks(keyIds, 400)) {
-    const rows =
-      trySelect(
-        db,
-        `SELECT CAST(modern._id AS TEXT) AS "${EXACT_ID_ALIAS}", modern.*
+    const rows = readTableRows(
+      db,
+      "message",
+      `SELECT CAST(modern._id AS TEXT) AS "${EXACT_ID_ALIAS}", modern.*
          FROM message AS modern
          WHERE modern._id <= ?
            AND modern.key_id IN (${placeholders(chunk.length)})`,
-        [modernUpper, ...chunk],
-      ) || [];
+      [modernUpper, ...chunk],
+    );
     const wanted = new Set(chunk);
     for (const row of rows) {
       const id = exactRowId(row);

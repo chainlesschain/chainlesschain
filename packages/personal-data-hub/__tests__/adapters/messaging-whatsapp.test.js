@@ -34,8 +34,24 @@ function makeFakeDriverFactory(tables, log = {}) {
         log.opened = { dbPath, opts };
       }
       prepare(sql) {
+        if (sql.includes("FROM sqlite_master")) {
+          const names = Object.keys(tables)
+            .map((needle) => /FROM\s+([A-Za-z0-9_]+)/u.exec(needle))
+            .filter(Boolean)
+            .map((match) => match[1]);
+          return {
+            all: () => [...new Set(names)].map((name) => ({ name })),
+          };
+        }
         for (const [needle, rows] of Object.entries(tables)) {
-          if (sql.includes(needle)) return { all: () => rows };
+          if (sql.includes(needle)) {
+            return {
+              all: () => {
+                if (rows instanceof Error) throw rows;
+                return rows;
+              },
+            };
+          }
         }
         throw new Error(`no such table in: ${sql}`);
       }
@@ -258,6 +274,51 @@ describe("sync — fake sqlite driver", () => {
         _location: { place_name: "Shanghai" },
         _vcards: [{ vcard: "BEGIN:VCARD" }],
         _quoted: { text_data: "quoted" },
+      });
+    } finally {
+      fs.unlinkSync(p);
+    }
+  });
+
+  it("rejects unreadable discovered source tables", async () => {
+    const p = writeTmpDb();
+    try {
+      const a = new WhatsAppAdapter({
+        dbPath: p,
+        dbDriverFactory: makeFakeDriverFactory({
+          "FROM jid": new Error("synthetic SQLite read failure"),
+        }),
+      });
+
+      await expect(collect(a.sync({}))).rejects.toMatchObject({
+        code: "WHATSAPP_SQLITE_SOURCE_UNREADABLE",
+        table: "jid",
+        operation: "read",
+      });
+    } finally {
+      fs.unlinkSync(p);
+    }
+  });
+
+  it("rejects unreadable discovered modern-message relation tables", async () => {
+    const p = writeTmpDb();
+    try {
+      const a = new WhatsAppAdapter({
+        dbPath: p,
+        dbDriverFactory: makeFakeDriverFactory({
+          "FROM jid": [],
+          "FROM chat": [],
+          "FROM message_media": new Error("synthetic relation read failure"),
+          "FROM message AS": [MSG_ROW],
+          "FROM messages ": [],
+          "FROM call_log": [],
+        }),
+      });
+
+      await expect(collect(a.sync({}))).rejects.toMatchObject({
+        code: "WHATSAPP_SQLITE_SOURCE_UNREADABLE",
+        table: "message_media",
+        operation: "read",
       });
     } finally {
       fs.unlinkSync(p);
