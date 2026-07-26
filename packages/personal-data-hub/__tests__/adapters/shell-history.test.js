@@ -228,6 +228,39 @@ describe("ShellHistoryAdapter contract and identity", () => {
 });
 
 describe("ShellHistoryAdapter.sync", () => {
+  it("expands scan and reader defaults beyond the former record ceiling", async () => {
+    const historyFile = join(tmpDir, "adaptive-budget.txt");
+    let readerOptions = null;
+    const adapter = new ShellHistoryAdapter({
+      sources: [{ shell: "bash", file: historyFile }],
+      readAllHistory: (_sources, options) => {
+        readerOptions = options;
+        return {
+          next: () => ({ done: true, value: { complete: true } }),
+        };
+      },
+    });
+    let watermarkComplete = false;
+
+    await collect(
+      adapter.sync({
+        pageSize: 10_000,
+        maxPages: 101,
+        markWatermarkComplete: () => {
+          watermarkComplete = true;
+        },
+      }),
+    );
+
+    expect(readerOptions).toMatchObject({
+      maxRecords: 1_010_000,
+      maxFileBytes: 64 * 1024 * 1024,
+      maxLines: 1_000_000,
+      maxCommandChars: 262_144,
+    });
+    expect(watermarkComplete).toBe(true);
+  });
+
   it("does not discover or read command history after an explicit opt-out", async () => {
     let discoveryCalls = 0;
     let readCalls = 0;

@@ -14,6 +14,10 @@ const {
 } = require("../../constants");
 const { createAccountScope } = require("../../account-scope");
 const {
+  DEFAULT_MAX_LINES,
+  HARD_MAX_COMMAND_CHARS,
+  HARD_MAX_FILE_BYTES,
+  HARD_MAX_LINES,
   defaultHistorySources,
   describeHistorySource,
   entryHashFor,
@@ -27,7 +31,6 @@ const VERSION = "0.2.0";
 const DEFAULT_PAGE_SIZE = 2_500;
 const MAX_PAGE_SIZE = 10_000;
 const DEFAULT_MAX_PAGES = 20;
-const MAX_SCAN_RECORDS = 1_000_000;
 
 function sha256Hex(value) {
   return crypto
@@ -82,7 +85,7 @@ function parseScanBudget(opts = {}) {
     maxPages > Math.floor(Number.MAX_SAFE_INTEGER / pageSize)
       ? Number.MAX_SAFE_INTEGER
       : pageSize * maxPages;
-  const candidates = [Math.min(multiplied, MAX_SCAN_RECORDS)];
+  const candidates = [multiplied];
   if (opts.limit != null) {
     candidates.push(parsePositiveInteger(opts.limit, "limit"));
   }
@@ -319,15 +322,23 @@ class ShellHistoryAdapter {
 
     const since = parseSince(opts);
     const pageBudget = parseScanBudget(opts);
+    const maxLines =
+      opts.maxLines == null
+        ? Math.min(HARD_MAX_LINES, Math.max(DEFAULT_MAX_LINES, pageBudget))
+        : opts.maxLines;
     let iterator;
     try {
       iterator = this._deps.readHistory(sources, {
         fs: this._deps.fs,
         since,
         maxRecords: pageBudget,
-        maxFileBytes: opts.maxFileBytes,
-        maxLines: opts.maxLines,
-        maxCommandChars: opts.maxCommandChars,
+        maxFileBytes:
+          opts.maxFileBytes == null ? HARD_MAX_FILE_BYTES : opts.maxFileBytes,
+        maxLines,
+        maxCommandChars:
+          opts.maxCommandChars == null
+            ? HARD_MAX_COMMAND_CHARS
+            : opts.maxCommandChars,
         maxSources:
           opts.maxSources == null ? this._maxSources : opts.maxSources,
         now: this._deps.now,
