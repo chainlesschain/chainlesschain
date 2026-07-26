@@ -20,7 +20,11 @@ const {
   readBoundedSnapshot,
 } = require("../../snapshot-file");
 const { buildSourceUrl } = require("../../source-http");
-const { SourcePageError, isExplicitFailure } = require("../../source-page");
+const {
+  SourcePageError,
+  createSourcePageGuard,
+  isExplicitFailure,
+} = require("../../source-page");
 const { normalizeTravelRecord } = require("../travel-base");
 const {
   CookieAuth,
@@ -39,7 +43,7 @@ const NAME = "travel-didi-consumer";
 const VERSION = "0.3.0";
 
 const DEFAULT_PAGE_SIZE = 20;
-const DEFAULT_MAX_PAGES = 10;
+const DEFAULT_MAX_PAGES = Number.POSITIVE_INFINITY;
 const ALLOWED_SOURCE_HOST_SUFFIXES = Object.freeze(["xiaojukeji.com"]);
 
 class DidiConsumerAdapter {
@@ -232,7 +236,7 @@ class DidiConsumerAdapter {
     const sinceMs =
       opts.sinceWatermark != null
         ? parseInt(String(opts.sinceWatermark), 10) || 0
-        : Date.now() - 365 * 24 * 3600_000;
+        : 0;
     const pageSize = Number.isFinite(opts.pageSize)
       ? opts.pageSize
       : DEFAULT_PAGE_SIZE;
@@ -242,6 +246,10 @@ class DidiConsumerAdapter {
         : DEFAULT_MAX_PAGES;
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard(NAME)
+        : null;
 
     let emitted = 0;
     let pageIndex = 1;
@@ -284,6 +292,7 @@ class DidiConsumerAdapter {
           "travel-didi-consumer: orders source response did not contain a recognized list",
         );
       }
+      pageGuard?.observe("rides", rides);
       if (!rides.length) {
         const pageState = sourcePageState(resp, sourceItemsSeen);
         if (recognizedPage && pageState === "more") {
@@ -340,7 +349,7 @@ class DidiConsumerAdapter {
   }
 }
 
-async function defaultFetch(_opts) {
+async function defaultFetch() {
   throw new Error(
     "travel-didi-consumer: no fetchFn configured for cookie-api mode",
   );

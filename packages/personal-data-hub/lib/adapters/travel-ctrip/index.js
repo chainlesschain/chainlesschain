@@ -42,6 +42,7 @@ const {
   probeSnapshotFile,
   readBoundedSnapshot,
 } = require("../../snapshot-file");
+const { createSourcePageGuard } = require("../../source-page");
 const {
   normalizeTravelRecord,
   parseChineseDateTime,
@@ -61,7 +62,7 @@ const VERSION = "0.7.0"; // §9.3c — cookie-api live fetch path (signProvider 
 // at whichever order API the captured cookie is currently scoped to).
 const CTRIP_ORDERS_URL = "https://m.ctrip.com/restapi/soa2/24690/getOrderList";
 const DEFAULT_PAGE_SIZE = 20;
-const DEFAULT_MAX_PAGES = 10;
+const DEFAULT_MAX_PAGES = Number.POSITIVE_INFINITY;
 
 class CtripAdapter {
   constructor(opts = {}) {
@@ -247,7 +248,7 @@ class CtripAdapter {
     const sinceMs =
       opts.sinceWatermark != null
         ? parseInt(String(opts.sinceWatermark), 10) || 0
-        : Date.now() - 365 * 24 * 3600_000; // default last year
+        : 0;
     const pageSize = Number.isFinite(opts.pageSize)
       ? opts.pageSize
       : DEFAULT_PAGE_SIZE;
@@ -257,6 +258,10 @@ class CtripAdapter {
         : DEFAULT_MAX_PAGES;
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard(NAME)
+        : null;
 
     let emitted = 0;
     let pageIndex = 1;
@@ -288,6 +293,7 @@ class CtripAdapter {
         signal: opts.signal,
       });
       const orders = extractOrders(resp);
+      pageGuard?.observe("orders", orders);
       if (!orders.length) {
         const pageState = sourcePageState(resp, sourceItemsSeen);
         if (pageState === "more") {
@@ -357,7 +363,7 @@ function parseRecords(text) {
   let raw;
   try {
     raw = JSON.parse(text);
-  } catch (_e) {
+  } catch {
     // Try JSONL
     raw = text
       .split(/\r?\n/)
@@ -471,32 +477,6 @@ function extractOrders(resp) {
   return extractShoppingOrders(resp, { source: NAME });
 }
 
-function hasOrderList(resp) {
-  if (!resp || typeof resp !== "object") return false;
-  if (
-    Array.isArray(resp.orders) ||
-    Array.isArray(resp.orderList) ||
-    Array.isArray(resp.list)
-  ) {
-    return true;
-  }
-  const data = resp.data && typeof resp.data === "object" ? resp.data : null;
-  if (
-    data &&
-    (Array.isArray(data.orders) ||
-      Array.isArray(data.orderList) ||
-      Array.isArray(data.list))
-  ) {
-    return true;
-  }
-  const result =
-    resp.result && typeof resp.result === "object" ? resp.result : null;
-  return !!(
-    result &&
-    (Array.isArray(result.orderList) || Array.isArray(result.list))
-  );
-}
-
 function sourcePageState(resp, sourceItemsSeen) {
   const containers = [
     resp,
@@ -548,7 +528,7 @@ function hasRuntimeAccountId(opts = {}) {
   );
 }
 
-async function defaultFetch(_opts) {
+async function defaultFetch() {
   // Pure-Node has no HTTP layer; the host (Android cc → OkHttp; desktop hub →
   // Electron WebView net) injects a real fetchFn. A missing fetchFn is a wiring
   // bug, not a runtime data condition, so it throws loudly rather than silently

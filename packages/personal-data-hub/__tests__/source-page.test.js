@@ -3,6 +3,7 @@
 import { describe, expect, it } from "vitest";
 
 const {
+  createSourcePageGuard,
   extractRecognizedArray,
   isExplicitFailure,
 } = require("../lib/source-page");
@@ -13,6 +14,23 @@ describe("source page recognition", () => {
 
   it("is exported for adapters that share live JSON contracts", () => {
     expect(publicApi.extractRecognizedArray).toBe(extractRecognizedArray);
+    expect(publicApi.createSourcePageGuard).toBe(createSourcePageGuard);
+  });
+
+  it("rejects repeated pages per stream using canonical page content", () => {
+    const guard = createSourcePageGuard("example");
+    guard.observe("history", [{ id: 1, nested: { b: 2, a: 1 } }]);
+    guard.observe("favorites", [{ nested: { a: 1, b: 2 }, id: 1 }]);
+    guard.observe("history", []);
+
+    expect(() =>
+      guard.observe("history", [{ nested: { a: 1, b: 2 }, id: 1 }]),
+    ).toThrow(
+      expect.objectContaining({
+        code: "SOURCE_PAGE_STALLED",
+        message: "example: history pagination repeated a source page",
+      }),
+    );
   });
 
   it("accepts only explicitly recognized array locations", () => {

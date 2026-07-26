@@ -27,6 +27,7 @@ const {
   probeSnapshotFile,
   readBoundedSnapshot,
 } = require("../../snapshot-file");
+const { createSourcePageGuard } = require("../../source-page");
 const {
   normalizeTravelRecord,
   parseChineseDateTime,
@@ -44,7 +45,7 @@ const VERSION = "0.1.0";
 // Best-effort 滴滴企业版 ride-order list endpoint. Overridable via opts.ordersUrl.
 const DIDI_ORDERS_URL = "https://es.xiaojukeji.com/river/Order/list";
 const DEFAULT_PAGE_SIZE = 20;
-const DEFAULT_MAX_PAGES = 10;
+const DEFAULT_MAX_PAGES = Number.POSITIVE_INFINITY;
 
 // Didi car-product codes/names → keep all as "car" (vehicleType), but record the
 // finer product label in extras.productType.
@@ -217,7 +218,7 @@ class DidiAdapter {
     const sinceMs =
       opts.sinceWatermark != null
         ? parseInt(String(opts.sinceWatermark), 10) || 0
-        : Date.now() - 365 * 24 * 3600_000;
+        : 0;
     const pageSize = Number.isFinite(opts.pageSize)
       ? opts.pageSize
       : DEFAULT_PAGE_SIZE;
@@ -227,6 +228,10 @@ class DidiAdapter {
         : DEFAULT_MAX_PAGES;
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard(NAME)
+        : null;
 
     let emitted = 0;
     let pageIndex = 1;
@@ -257,6 +262,7 @@ class DidiAdapter {
         signal: opts.signal,
       });
       const rides = extractOrders(resp);
+      pageGuard?.observe("rides", rides);
       if (!rides.length) {
         const pageState = sourcePageState(resp, sourceItemsSeen);
         if (pageState === "more") {
@@ -316,7 +322,7 @@ function parseRecords(text) {
   let raw;
   try {
     raw = JSON.parse(text);
-  } catch (_e) {
+  } catch {
     raw = text
       .split(/\r?\n/)
       .filter((l) => l.trim().startsWith("{"))
@@ -495,7 +501,7 @@ function numberOrParse(v) {
   return null;
 }
 
-async function defaultFetch(_opts) {
+async function defaultFetch() {
   throw new Error("travel-didi: no fetchFn configured for cookie-api mode");
 }
 

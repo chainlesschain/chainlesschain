@@ -367,6 +367,7 @@ module.exports = {
   readJsonSnapshot: snapshotFile.readJsonSnapshot,
   SourcePageError: sourcePage.SourcePageError,
   extractRecognizedArray: sourcePage.extractRecognizedArray,
+  createSourcePageGuard: sourcePage.createSourcePageGuard,
   TaobaoAdapter,
   JdAdapter,
   MeituanAdapter,

@@ -1,5 +1,7 @@
 "use strict";
 
+const crypto = require("node:crypto");
+
 class SourcePageError extends Error {
   constructor(code, message, options = {}) {
     super(message, options);
@@ -7,6 +9,48 @@ class SourcePageError extends Error {
     this.code = code;
     this.retryable = options.retryable === true;
   }
+}
+
+function createSourcePageGuard(source = "source") {
+  const seenByStream = new Map();
+
+  return {
+    observe(stream = "records", records = []) {
+      if (!Array.isArray(records) || records.length === 0) return;
+
+      const streamName = String(stream || "records");
+      const seen = seenByStream.get(streamName) || new Set();
+      const signature = crypto
+        .createHash("sha256")
+        .update(JSON.stringify(canonicalizePageValue(records)))
+        .digest("hex");
+
+      if (seen.has(signature)) {
+        throw new SourcePageError(
+          "SOURCE_PAGE_STALLED",
+          `${source}: ${streamName} pagination repeated a source page`,
+        );
+      }
+
+      seen.add(signature);
+      seenByStream.set(streamName, seen);
+    },
+  };
+}
+
+function canonicalizePageValue(value) {
+  if (Array.isArray(value)) {
+    return value.map(canonicalizePageValue);
+  }
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  return Object.fromEntries(
+    Object.keys(value)
+      .sort()
+      .map((key) => [key, canonicalizePageValue(value[key])]),
+  );
 }
 
 const DEFAULT_SUCCESS_CODES = Object.freeze(["0", "200", "ok", "success"]);
@@ -190,6 +234,7 @@ function extractRecognizedArray(response, paths, opts = {}) {
 
 module.exports = {
   SourcePageError,
+  createSourcePageGuard,
   extractRecognizedArray,
   isExplicitFailure,
   valueAtPath,
