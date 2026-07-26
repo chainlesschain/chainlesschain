@@ -27,7 +27,10 @@
 const fs = require("node:fs");
 const { createAccountScopeFromAccount } = require("../../account-scope");
 const { newId } = require("../../ids");
-const { extractRecognizedArray } = require("../../source-page");
+const {
+  createSourcePageGuard,
+  extractRecognizedArray,
+} = require("../../source-page");
 const {
   probeJsonSnapshotFile,
   readJsonSnapshot,
@@ -288,7 +291,10 @@ class QQMusicAdapter {
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
-      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : Number.POSITIVE_INFINITY;
+    const pageGuard = createSourcePageGuard(NAME);
     const sinceWatermarks = opts.sinceWatermarks || {};
 
     const plan = [
@@ -342,6 +348,9 @@ class QQMusicAdapter {
         if (!items.length) {
           streamComplete = true;
           break;
+        }
+        if (streamMaxPages === Number.POSITIVE_INFINITY) {
+          pageGuard.observe(step.kind, items);
         }
         for (const it of items) {
           const rec = step.map(it);
@@ -568,7 +577,7 @@ function hasRuntimeAccountId(opts = {}) {
   );
 }
 
-async function defaultFetch(_opts) {
+async function defaultFetch() {
   throw new Error("music-qq: no fetchFn configured for cookie-api mode");
 }
 
