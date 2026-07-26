@@ -230,9 +230,12 @@ public final class BackgroundAgentsAction extends AnAction {
             }
         }
         if (!labels.isEmpty() && !session.pendingQuestionMultiSelect) {
-            return Messages.showChooseDialog(
-                    question, CcBundle.message("bg.agents.answer"),
-                    labels.toArray(new String[0]), labels.get(0), null);
+            return ChoiceDialog.choose(
+                    project,
+                    CcBundle.message("bg.agents.answer"),
+                    question,
+                    labels,
+                    labels.get(0));
         }
         String prompt = labels.isEmpty()
                 ? question

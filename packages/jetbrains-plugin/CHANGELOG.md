@@ -1,5 +1,18 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.73] - Durable runtime and verifier clean (2026-07-26)
+
+- Surface durable background-agent recovery and pending human questions,
+  including bound answers sent over the existing authenticated session pipe.
+- Add plugin version switching, capability-consent status, browser-evidence
+  details, and the matching capability/event contract updates.
+- Serialize the shared JetBrains / VS Code session index with an atomic
+  cross-process directory lock, fail closed on contention or corrupt JSON, and
+  preserve the prior index when a durable write cannot complete.
+- Replace the two newly added deprecated chooser calls with a supported
+  `DialogBuilder` combo-box dialog so the IntelliJ 2025.2 Plugin Verifier is
+  clean again.
+
 ## [0.4.72] - Live-session slash command parity (2026-07-25)
 
 - Route `/status`, `/doctor`, `/mcp`, `/hooks`, `/permissions`, `/agents`,

@@ -189,13 +189,14 @@ public final class PluginManagerAction extends AnAction {
                                 "Plugin Versions");
                         return;
                     }
-                    int selectedIndex = Messages.showChooseDialog(
+                    String selected = ChoiceDialog.choose(
+                            project,
+                            "Switch " + p.get("name") + " from v" + active,
                             "Select an installed version. Existing sessions keep their "
                                     + "loaded bytes; new sessions use the selected version.",
-                            "Switch " + p.get("name") + " from v" + active,
-                            choices.toArray(new String[0]), choices.get(0), null);
-                    if (selectedIndex < 0 || selectedIndex >= choices.size()) return;
-                    String selected = choices.get(selectedIndex);
+                            choices,
+                            choices.get(0));
+                    if (selected == null) return;
                     runThenRefresh(PluginManager.buildPluginUseArgs(
                                     String.valueOf(p.get("name")), selected, scopeOf(p)),
                             cwd, refresh, status);

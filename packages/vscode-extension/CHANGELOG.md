@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.34] - Durable runtime and plugin controls (2026-07-26)
+
+- Surface durable background-agent recovery, pending human questions, and
+  context attribution from the shared Agent SDK in the chat and agent views.
+- Add plugin version switching, capability-consent status, and browser-evidence
+  details to the plugin manager without weakening the CLI's authority.
+- Serialize the shared VS Code / JetBrains session index with an atomic
+  cross-process directory lock, fail closed on lock contention or corrupt JSON,
+  and preserve the prior index when a durable write cannot complete.
+
 ## [0.37.33] - Provider 403 diagnosis hotfix (2026-07-25)
 
 - Stop treating every provider HTTP 403 as an invalid API key.
