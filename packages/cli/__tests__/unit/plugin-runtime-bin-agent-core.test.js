@@ -53,6 +53,10 @@ afterEach(() => {
 describe("agent-core strict plugin bin route", () => {
   it("passes an attested absolute Node target and manifest boundaries to Broker", async () => {
     const target = installStrictNodeBin();
+    const pluginSource = path.join(
+      pluginVersionDir("local", "strict-bin", "1.0.0", { cwd }),
+      "plugin.json",
+    );
     const canonicalRuntime = fs.realpathSync.native(process.execPath);
     const nativeSpawnSync = vi.fn(() => ({
       status: 0,
@@ -164,10 +168,7 @@ describe("agent-core strict plugin bin route", () => {
       origin: "plugin:bin",
       pluginId: "strict-bin",
       pluginVersion: "1.0.0",
-      pluginSource: path.join(
-        path.dirname(path.dirname(target)),
-        "plugin.json",
-      ),
+      pluginSource,
       pluginExecutableIdentity: {
         contractVersion: 1,
         realPath: target,
