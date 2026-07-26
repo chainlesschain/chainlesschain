@@ -58,7 +58,8 @@ jobs:
       - name: Run platform sandbox contract tests
         working-directory: packages/cli
         run: >-
-          npx vitest run --reporter=default
+          npx vitest run --reporter=json
+          --outputFile=strict-sandbox-contract-result.json
           __tests__/unit/process-execution-broker-platform-sandbox.test.js
 
       - name: Run native ProcessExecutionBroker strict boundary
@@ -71,12 +72,24 @@ jobs:
           --outputFile=strict-sandbox-result.json
           __tests__/integration/process-broker-platform-sandbox-live.test.js
 
+      - name: Capture macOS sandbox diagnostics
+        if: failure() && runner.os == 'macOS'
+        shell: bash
+        run: >-
+          /usr/bin/log show --last 5m --style compact
+          --predicate 'subsystem == "com.apple.sandbox"'
+          > packages/cli/strict-sandbox-system.log
+          2>&1 || true
+
       - name: Upload strict sandbox result
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: strict-sandbox-result-${{ matrix.os }}
-          path: packages/cli/strict-sandbox-result.json
+          path: |
+            packages/cli/strict-sandbox-contract-result.json
+            packages/cli/strict-sandbox-result.json
+            packages/cli/strict-sandbox-system.log
           if-no-files-found: warn
           retention-days: 7
 
