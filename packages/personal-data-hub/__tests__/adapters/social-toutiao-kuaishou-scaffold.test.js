@@ -152,6 +152,30 @@ describe("ToutiaoAdapter — §A8 v0.2 sqlite mode", () => {
     });
   });
 
+  it("rejects unreadable discovered SQLite tables", async () => {
+    await withFakeDb(async (dbPath) => {
+      const a = new ToutiaoAdapter({
+        account: { uid: "u-1" },
+        dbPath,
+        dbDriverFactory: () =>
+          makeMockDriver([
+            ["FROM read_history", new Error("synthetic SQLite read failure")],
+          ]),
+      });
+      const pending = (async () => {
+        const raws = [];
+        for await (const raw of a.sync()) raws.push(raw);
+        return raws;
+      })();
+
+      await expect(pending).rejects.toMatchObject({
+        code: "TOUTIAO_SQLITE_SOURCE_UNREADABLE",
+        table: "read_history",
+        operation: "read",
+      });
+    });
+  });
+
   it("normalize maps read → browse / collection → like / search → post (all subtypes valid)", async () => {
     const a = new ToutiaoAdapter({ account: { uid: "u-1" } });
     const samples = [

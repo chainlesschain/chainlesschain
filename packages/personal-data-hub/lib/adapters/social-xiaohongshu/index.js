@@ -103,12 +103,58 @@ function parseTime(v) {
   return null;
 }
 
-function trySelect(db, sql) {
+function sqliteSourceError(tableName, operation, cause) {
+  const error = new Error(
+    `social-xiaohongshu: source table ${tableName} could not be ${operation}; refusing a partial import`,
+  );
+  error.code = "XIAOHONGSHU_SQLITE_SOURCE_UNREADABLE";
+  error.table = tableName;
+  error.operation = operation;
+  error.cause = cause;
+  return error;
+}
+
+function listSqliteTables(db) {
   try {
-    return db.prepare(sql).all();
-  } catch {
-    return null;
+    const rows = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+      .all();
+    if (!Array.isArray(rows)) {
+      throw new Error("SQLite table inventory did not return a row array");
+    }
+    return new Set(
+      rows
+        .map((row) => row && row.name)
+        .filter((name) => typeof name === "string")
+        .map((name) => name.toLowerCase()),
+    );
+  } catch (error) {
+    throw sqliteSourceError("sqlite_master", "listed", error);
   }
+}
+
+function selectFirstTable(db, tableNames, candidates) {
+  let lastFailure = null;
+  for (const candidate of candidates) {
+    if (!tableNames.has(candidate.tableName.toLowerCase())) continue;
+    try {
+      const rows = db.prepare(candidate.sql).all();
+      if (!Array.isArray(rows)) {
+        throw new Error("SQLite query did not return a row array");
+      }
+      return rows;
+    } catch (error) {
+      lastFailure = { error, tableName: candidate.tableName };
+    }
+  }
+  if (lastFailure) {
+    throw sqliteSourceError(lastFailure.tableName, "read", lastFailure.error);
+  }
+  return [];
+}
+
+function readOptionalTable(db, tableNames, tableName, sql) {
+  return selectFirstTable(db, tableNames, [{ tableName, sql }]);
 }
 
 class XiaohongshuAdapter {
@@ -286,10 +332,17 @@ class XiaohongshuAdapter {
       : require("better-sqlite3-multiple-ciphers");
     const db = new Driver(dbPath, { readonly: true });
     try {
-      const histories =
-        trySelect(db, "SELECT * FROM browse_history ORDER BY view_time DESC") ||
-        trySelect(db, "SELECT * FROM note ORDER BY view_time DESC") ||
-        [];
+      const tableNames = listSqliteTables(db);
+      const histories = selectFirstTable(db, tableNames, [
+        {
+          tableName: "browse_history",
+          sql: "SELECT * FROM browse_history ORDER BY view_time DESC",
+        },
+        {
+          tableName: "note",
+          sql: "SELECT * FROM note ORDER BY view_time DESC",
+        },
+      ]);
       const records = histories.map((row) => ({
         adapter: NAME,
         kind: KIND_HISTORY,
@@ -297,8 +350,12 @@ class XiaohongshuAdapter {
         capturedAt: parseTime(row.view_time),
         payload: { row, kind: KIND_HISTORY },
       }));
-      const likes =
-        trySelect(db, "SELECT * FROM liked_note ORDER BY like_time DESC") || [];
+      const likes = readOptionalTable(
+        db,
+        tableNames,
+        "liked_note",
+        "SELECT * FROM liked_note ORDER BY like_time DESC",
+      );
       records.push(
         ...likes.map((row) => ({
           adapter: NAME,
@@ -308,8 +365,12 @@ class XiaohongshuAdapter {
           payload: { row, kind: KIND_LIKE },
         })),
       );
-      const favs =
-        trySelect(db, "SELECT * FROM favourite ORDER BY save_time DESC") || [];
+      const favs = readOptionalTable(
+        db,
+        tableNames,
+        "favourite",
+        "SELECT * FROM favourite ORDER BY save_time DESC",
+      );
       records.push(
         ...favs.map((row) => ({
           adapter: NAME,

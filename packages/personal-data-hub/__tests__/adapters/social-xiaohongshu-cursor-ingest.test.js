@@ -112,6 +112,14 @@ function sqliteDriver({
       queries.push(sql);
       return {
         all() {
+          if (sql.includes("FROM sqlite_master")) {
+            return [
+              { name: "browse_history" },
+              ...(noteFallback === null ? [] : [{ name: "note" }]),
+              { name: "liked_note" },
+              { name: "favourite" },
+            ];
+          }
           if (sql.includes("FROM browse_history")) return histories;
           if (sql.includes("FROM note")) {
             if (noteFallback === null) throw new Error("no such table");

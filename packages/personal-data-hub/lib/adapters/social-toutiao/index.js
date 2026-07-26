@@ -115,11 +115,46 @@ function parseTime(v) {
   return null;
 }
 
-function trySelect(db, sql) {
+function sqliteSourceError(tableName, operation, cause) {
+  const error = new Error(
+    `social-toutiao: source table ${tableName} could not be ${operation}; refusing a partial import`,
+  );
+  error.code = "TOUTIAO_SQLITE_SOURCE_UNREADABLE";
+  error.table = tableName;
+  error.operation = operation;
+  error.cause = cause;
+  return error;
+}
+
+function listSqliteTables(db) {
   try {
-    return db.prepare(sql).all();
-  } catch {
-    return null;
+    const rows = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+      .all();
+    if (!Array.isArray(rows)) {
+      throw new Error("SQLite table inventory did not return a row array");
+    }
+    return new Set(
+      rows
+        .map((row) => row && row.name)
+        .filter((name) => typeof name === "string")
+        .map((name) => name.toLowerCase()),
+    );
+  } catch (error) {
+    throw sqliteSourceError("sqlite_master", "listed", error);
+  }
+}
+
+function readOptionalTable(db, tableNames, tableName, sql) {
+  if (!tableNames.has(tableName.toLowerCase())) return [];
+  try {
+    const rows = db.prepare(sql).all();
+    if (!Array.isArray(rows)) {
+      throw new Error("SQLite query did not return a row array");
+    }
+    return rows;
+  } catch (error) {
+    throw sqliteSourceError(tableName, "read", error);
   }
 }
 
@@ -309,9 +344,13 @@ class ToutiaoAdapter {
     const db = new Driver(dbPath, { readonly: true });
 
     try {
-      const reads =
-        trySelect(db, "SELECT * FROM read_history ORDER BY read_time DESC") ||
-        [];
+      const tableNames = listSqliteTables(db);
+      const reads = readOptionalTable(
+        db,
+        tableNames,
+        "read_history",
+        "SELECT * FROM read_history ORDER BY read_time DESC",
+      );
       const records = reads.map((row) => ({
         adapter: NAME,
         kind: KIND_READ,
@@ -320,11 +359,12 @@ class ToutiaoAdapter {
         payload: { row, kind: KIND_READ },
       }));
 
-      const collections =
-        trySelect(
-          db,
-          "SELECT * FROM collection_article ORDER BY save_time DESC",
-        ) || [];
+      const collections = readOptionalTable(
+        db,
+        tableNames,
+        "collection_article",
+        "SELECT * FROM collection_article ORDER BY save_time DESC",
+      );
       records.push(
         ...collections.map((row) => ({
           adapter: NAME,
@@ -335,11 +375,12 @@ class ToutiaoAdapter {
         })),
       );
 
-      const searches =
-        trySelect(
-          db,
-          "SELECT * FROM search_history ORDER BY search_time DESC",
-        ) || [];
+      const searches = readOptionalTable(
+        db,
+        tableNames,
+        "search_history",
+        "SELECT * FROM search_history ORDER BY search_time DESC",
+      );
       records.push(
         ...searches.map((row) => ({
           adapter: NAME,

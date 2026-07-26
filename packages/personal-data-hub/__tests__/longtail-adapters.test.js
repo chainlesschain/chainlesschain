@@ -21,8 +21,28 @@ function makeMockDriver(scriptedRows) {
       prepare(sql) {
         return {
           all() {
+            if (sql.includes("FROM sqlite_master")) {
+              const explicitInventory = scriptedRows.find(([matchSubstr]) =>
+                matchSubstr.includes("FROM sqlite_master"),
+              );
+              if (explicitInventory) {
+                if (explicitInventory[1] instanceof Error) {
+                  throw explicitInventory[1];
+                }
+                return explicitInventory[1];
+              }
+              return scriptedRows
+                .map(([matchSubstr]) =>
+                  /FROM\s+([A-Za-z0-9_]+)/u.exec(matchSubstr),
+                )
+                .filter(Boolean)
+                .map((match) => ({ name: match[1] }));
+            }
             for (const [matchSubstr, rows] of scriptedRows) {
-              if (sql.includes(matchSubstr)) return rows;
+              if (sql.includes(matchSubstr)) {
+                if (rows instanceof Error) throw rows;
+                return rows;
+              }
             }
             throw new Error("no such table");
           },
@@ -168,6 +188,33 @@ describe("XiaohongshuAdapter", () => {
         const batch = a.normalize(r);
         expect(validateBatch(batch).valid).toBe(true);
       }
+    } finally {
+      cleanup(dir);
+    }
+  });
+
+  it("rejects unreadable discovered SQLite tables", async () => {
+    const { dir, dbPath } = tmpDb();
+    try {
+      const a = new XiaohongshuAdapter({
+        account: { uid: "u-1" },
+        dbPath,
+        dbDriverFactory: () =>
+          makeMockDriver([
+            ["FROM browse_history", new Error("synthetic SQLite read failure")],
+          ]),
+      });
+      const pending = (async () => {
+        const raws = [];
+        for await (const raw of a.sync()) raws.push(raw);
+        return raws;
+      })();
+
+      await expect(pending).rejects.toMatchObject({
+        code: "XIAOHONGSHU_SQLITE_SOURCE_UNREADABLE",
+        table: "browse_history",
+        operation: "read",
+      });
     } finally {
       cleanup(dir);
     }

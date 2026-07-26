@@ -110,6 +110,13 @@ function sqliteDriver({
       queries.push(sql);
       return {
         all() {
+          if (sql.includes("FROM sqlite_master")) {
+            return [
+              { name: "read_history" },
+              { name: "collection_article" },
+              { name: "search_history" },
+            ];
+          }
           if (sql.includes("FROM read_history")) return reads;
           if (sql.includes("FROM collection_article")) return collections;
           if (sql.includes("FROM search_history")) return searches;
