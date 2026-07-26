@@ -1,30 +1,39 @@
 /**
  * `cc agent -p --json-schema <file>` — structured output for headless runs.
  *
- * The final answer must be JSON that validates against a (subset) JSON
+ * The final answer must be JSON that validates against a Draft 2020-12 JSON
  * Schema; invalid replies are retried with a corrective prompt (up to
- * MAX_ATTEMPTS total). Implemented entirely AROUND runAgentHeadless using its
- * `deps.writeOut` capture seam — the runner itself is untouched: each attempt
- * runs with output captured, the validated JSON is the only thing printed.
+ * MAX_ATTEMPTS total). Implemented around runAgentHeadless using its
+ * `deps.writeOut` capture seam: each attempt runs with output captured, and
+ * the validated JSON is the only thing printed.
  *
- * Constrained validation delegates to the richer Draft-2020-12-subset validator
- * in [[json-schema-validate.js]] (type, properties, required, items/prefixItems,
- * enum/const, additionalProperties, min/max, pattern, format, allOf/anyOf/oneOf/
- * not, if/then/else, local $ref) so retries get precise coded/pointered errors —
- * the model is told exactly WHICH JSON Pointer failed and WHY. The legacy
- * `validateAgainstSchema` (loose `$.a.b` strings) stays exported for callers.
+ * Constrained validation delegates to the standards-backed Draft 2020-12
+ * adapter in [[json-schema-validate.js]], so retries get precise coded/pointered
+ * errors. External references are resolved before the turn starts through a
+ * bounded local/HTTPS loader. The legacy `validateAgainstSchema` helper stays
+ * exported for compatibility with callers that consume its `$.a.b` strings.
  */
 
 import fsDefault from "fs";
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import {
+  assertSchemaCompiles,
+  attachExternalSchemas,
   validate,
   validateSchema,
   buildStructuredResultEvent,
   computeSchemaDigest,
 } from "./json-schema-validate.js";
+import { checkAllowed, webFetch } from "./web-fetch.js";
 
 export const MAX_ATTEMPTS = 3;
-export const _deps = { fs: fsDefault };
+const DEFAULT_MAX_EXTERNAL_DOCUMENTS = 32;
+const DEFAULT_MAX_EXTERNAL_DOCUMENT_BYTES = 1_000_000;
+const DEFAULT_MAX_EXTERNAL_TOTAL_BYTES = 4_000_000;
+const DEFAULT_EXTERNAL_TIMEOUT_MS = 10_000;
+
+export const _deps = { fs: fsDefault, webFetch };
 
 /**
  * Build the terminal `structured_result` stream event for a value against a
@@ -37,7 +46,7 @@ export function buildStructuredResult(schema, value) {
 
 export { computeSchemaDigest };
 
-/** Validate `value` against the schema subset. Returns error strings ([] = valid). */
+/** Legacy subset validator. Returns error strings ([] = valid). */
 export function validateAgainstSchema(value, schema, path = "$") {
   const errors = [];
   if (!schema || typeof schema !== "object") return errors;
@@ -225,7 +234,8 @@ export function loadSchemaFile(fs, schemaFile) {
   // schema object, never a path (a filesystem path can't start with `{`). This
   // lets `--json-schema '{"type":"object",...}'` work without a temp file.
   const trimmed = String(schemaFile).trim();
-  const isInline = trimmed.startsWith("{");
+  const isInline =
+    trimmed.startsWith("{") || trimmed === "true" || trimmed === "false";
   let raw;
   if (isInline) {
     raw = trimmed;
@@ -262,6 +272,413 @@ export function loadSchemaFile(fs, schemaFile) {
   return parsed;
 }
 
+const SINGLE_SUBSCHEMA_KEYWORDS = [
+  "additionalProperties",
+  "contains",
+  "contentSchema",
+  "else",
+  "if",
+  "items",
+  "not",
+  "propertyNames",
+  "then",
+  "unevaluatedItems",
+  "unevaluatedProperties",
+];
+
+const ARRAY_SUBSCHEMA_KEYWORDS = [
+  "allOf",
+  "anyOf",
+  "oneOf",
+  "prefixItems",
+];
+
+const MAP_SUBSCHEMA_KEYWORDS = [
+  "$defs",
+  "definitions",
+  "dependentSchemas",
+  "patternProperties",
+  "properties",
+];
+
+function withoutFragment(uri) {
+  const parsed = new URL(uri);
+  parsed.hash = "";
+  return parsed.href;
+}
+
+function resolveSchemaUri(reference, baseUri) {
+  try {
+    return new URL(reference, baseUri || undefined).href;
+  } catch (cause) {
+    const error = new Error(
+      `Cannot resolve external JSON Schema reference "${reference}"${
+        baseUri ? ` from "${baseUri}"` : " without a base URI"
+      }`,
+      { cause },
+    );
+    error.code = "JSON_SCHEMA_REF_INVALID";
+    throw error;
+  }
+}
+
+function scanSchemaDocument(
+  schema,
+  retrievalUri,
+  { references, resources },
+) {
+  const seen = new Set();
+
+  function visit(node, inheritedBase) {
+    if (
+      node === true ||
+      node === false ||
+      !node ||
+      typeof node !== "object" ||
+      Array.isArray(node) ||
+      seen.has(node)
+    ) {
+      return;
+    }
+    seen.add(node);
+
+    let baseUri = inheritedBase;
+    if (typeof node.$id === "string") {
+      baseUri = resolveSchemaUri(node.$id, inheritedBase);
+      resources.add(withoutFragment(baseUri));
+    }
+
+    for (const keyword of ["$ref", "$dynamicRef"]) {
+      const reference = node[keyword];
+      if (typeof reference !== "string" || reference.startsWith("#")) {
+        continue;
+      }
+      const uri = withoutFragment(resolveSchemaUri(reference, baseUri));
+      const origins = references.get(uri) || new Set();
+      origins.add(new URL(retrievalUri).protocol);
+      references.set(uri, origins);
+    }
+
+    for (const keyword of SINGLE_SUBSCHEMA_KEYWORDS) {
+      visit(node[keyword], baseUri);
+    }
+    for (const keyword of ARRAY_SUBSCHEMA_KEYWORDS) {
+      if (!Array.isArray(node[keyword])) continue;
+      for (const child of node[keyword]) visit(child, baseUri);
+    }
+    for (const keyword of MAP_SUBSCHEMA_KEYWORDS) {
+      const map = node[keyword];
+      if (!map || typeof map !== "object" || Array.isArray(map)) continue;
+      for (const child of Object.values(map)) visit(child, baseUri);
+    }
+  }
+
+  resources.add(withoutFragment(retrievalUri));
+  visit(schema, retrievalUri);
+}
+
+function parseExternalSchema(raw, uri) {
+  if (
+    raw === true ||
+    raw === false ||
+    (raw && typeof raw === "object" && !Array.isArray(raw))
+  ) {
+    return raw;
+  }
+  if (typeof raw !== "string") {
+    throw new Error(
+      `External JSON Schema "${uri}" must be an object or boolean`,
+    );
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    if (
+      parsed === true ||
+      parsed === false ||
+      (parsed && typeof parsed === "object" && !Array.isArray(parsed))
+    ) {
+      return parsed;
+    }
+    throw new TypeError("top-level value must be an object or boolean");
+  } catch (cause) {
+    throw new Error(`Invalid external JSON Schema "${uri}": ${cause.message}`, {
+      cause,
+    });
+  }
+}
+
+function assertExternalSchemaIsValid(schema, uri) {
+  const meta = validateSchema(schema);
+  if (meta.valid) return;
+  const detail = meta.errors
+    .slice(0, 5)
+    .map((error) => `${error.schemaPath || "/"}: ${error.message}`)
+    .join("; ");
+  throw new Error(`Invalid external JSON Schema "${uri}": ${detail}`);
+}
+
+function localSchemaPath(uri, rootDirectory, fs) {
+  const candidate = path.resolve(fileURLToPath(uri));
+  const checkedRoot =
+    typeof fs.realpathSync === "function"
+      ? fs.realpathSync(rootDirectory)
+      : rootDirectory;
+  const checkedCandidate =
+    typeof fs.realpathSync === "function"
+      ? fs.realpathSync(candidate)
+      : candidate;
+  const relative = path.relative(checkedRoot, checkedCandidate);
+  if (
+    relative === ".." ||
+    relative.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relative)
+  ) {
+    const error = new Error(
+      `Local JSON Schema reference escapes the root schema directory: ${candidate}`,
+    );
+    error.code = "JSON_SCHEMA_REF_PATH_ESCAPE";
+    throw error;
+  }
+  return candidate;
+}
+
+async function fetchExternalSchema(
+  uri,
+  {
+    allowedDomains,
+    allowFileReference,
+    fetchSchema,
+    fs,
+    maxDocumentBytes,
+    rootDirectory,
+    timeoutMs,
+  },
+) {
+  const parsed = new URL(uri);
+  if (parsed.protocol === "file:") {
+    if (!rootDirectory || !allowFileReference) {
+      throw new Error(
+        `A file JSON Schema reference is only allowed from a local root graph: ${uri}`,
+      );
+    }
+    const filename = localSchemaPath(uri, rootDirectory, fs);
+    const raw = fs.readFileSync(filename, "utf8");
+    const bytes = Buffer.byteLength(String(raw), "utf8");
+    if (bytes > maxDocumentBytes) {
+      throw new Error(
+        `External JSON Schema "${uri}" exceeds ${maxDocumentBytes} bytes`,
+      );
+    }
+    return {
+      schema: parseExternalSchema(raw, uri),
+      bytes,
+      retrievalUri: uri,
+    };
+  }
+
+  if (parsed.protocol !== "https:") {
+    const error = new Error(
+      `External JSON Schema references must use HTTPS: ${uri}`,
+    );
+    error.code = "JSON_SCHEMA_REF_PROTOCOL_BLOCKED";
+    throw error;
+  }
+  if (parsed.username || parsed.password) {
+    const error = new Error(
+      `External JSON Schema references cannot contain credentials: ${uri}`,
+    );
+    error.code = "JSON_SCHEMA_REF_CREDENTIALS_BLOCKED";
+    throw error;
+  }
+
+  const policy = checkAllowed(uri, {
+    allowedDomains,
+    allowPrivateHosts: false,
+  });
+  if (!policy.allowed) {
+    const error = new Error(
+      `External JSON Schema reference blocked: ${policy.reason}`,
+    );
+    error.code = "JSON_SCHEMA_REF_BLOCKED";
+    throw error;
+  }
+
+  const response = await fetchSchema(uri, {
+    format: "json",
+    maxBytes: maxDocumentBytes,
+    timeout: timeoutMs,
+    config: {
+      allowedDomains,
+      allowPrivateHosts: false,
+    },
+    headers: {
+      Accept: "application/schema+json, application/json",
+    },
+  });
+  const responseEnvelope =
+    response &&
+    typeof response === "object" &&
+    (Object.prototype.hasOwnProperty.call(response, "statusCode") ||
+      Object.prototype.hasOwnProperty.call(response, "bytes") ||
+      Object.prototype.hasOwnProperty.call(response, "contentType") ||
+      Object.prototype.hasOwnProperty.call(response, "format") ||
+      Object.prototype.hasOwnProperty.call(response, "url") ||
+      (Object.prototype.hasOwnProperty.call(response, "error") &&
+        Object.keys(response).length <= 2));
+  if (responseEnvelope && response?.error) {
+    throw new Error(
+      `Could not load external JSON Schema "${uri}": ${response.error}`,
+    );
+  }
+  if (
+    Number.isFinite(response?.statusCode) &&
+    (response.statusCode < 200 || response.statusCode >= 300)
+  ) {
+    throw new Error(
+      `Could not load external JSON Schema "${uri}": HTTP ${response.statusCode}`,
+    );
+  }
+
+  const raw =
+    responseEnvelope &&
+    Object.prototype.hasOwnProperty.call(response, "content")
+      ? response.content
+      : response;
+  const schema = parseExternalSchema(raw, uri);
+  const bytes =
+    Number.isFinite(response?.bytes) && response.bytes >= 0
+    ? response.bytes
+    : Buffer.byteLength(JSON.stringify(schema), "utf8");
+  if (bytes > maxDocumentBytes) {
+    throw new Error(
+      `External JSON Schema "${uri}" exceeds ${maxDocumentBytes} bytes`,
+    );
+  }
+  let retrievalUri = uri;
+  if (responseEnvelope && response?.url) {
+    retrievalUri = withoutFragment(
+      resolveSchemaUri(String(response.url), uri),
+    );
+    const redirected = new URL(retrievalUri);
+    const redirectPolicy = checkAllowed(retrievalUri, {
+      allowedDomains,
+      allowPrivateHosts: false,
+    });
+    if (
+      redirected.protocol !== "https:" ||
+      redirected.username ||
+      redirected.password ||
+      !redirectPolicy.allowed
+    ) {
+      throw new Error(
+        `External JSON Schema redirect is blocked: ${retrievalUri}`,
+      );
+    }
+  }
+  return { schema, bytes, retrievalUri };
+}
+
+/**
+ * Load a root schema and resolve every external `$ref`/`$dynamicRef` before a
+ * turn starts. Local references are confined to the root schema directory.
+ * Remote references are HTTPS-only and use the shared DNS-rebinding/SSRF-safe
+ * fetch path with bounded document count, bytes, redirects and timeout.
+ */
+export async function loadSchemaFileWithRefs(
+  fs,
+  schemaFile,
+  options = {},
+) {
+  const schema = loadSchemaFile(fs, schemaFile);
+  if (!schema || typeof schema !== "object") return schema;
+
+  const trimmed = String(schemaFile).trim();
+  const inline =
+    trimmed.startsWith("{") || trimmed === "true" || trimmed === "false";
+  const rootPath = inline ? null : path.resolve(schemaFile);
+  const retrievalUri = rootPath
+    ? pathToFileURL(rootPath).href
+    : typeof schema.$id === "string"
+      ? resolveSchemaUri(schema.$id, null)
+      : "urn:chainlesschain:inline-schema";
+  const rootDirectory = rootPath ? path.dirname(rootPath) : null;
+  const allowedDomains = Array.isArray(options.allowedDomains)
+    ? options.allowedDomains
+    : ["*"];
+  const maxDocuments =
+    options.maxDocuments ?? DEFAULT_MAX_EXTERNAL_DOCUMENTS;
+  const maxDocumentBytes =
+    options.maxDocumentBytes ?? DEFAULT_MAX_EXTERNAL_DOCUMENT_BYTES;
+  const maxTotalBytes =
+    options.maxTotalBytes ?? DEFAULT_MAX_EXTERNAL_TOTAL_BYTES;
+  const timeoutMs =
+    options.timeoutMs ?? DEFAULT_EXTERNAL_TIMEOUT_MS;
+  const fetchSchema =
+    options.fetchSchema || _deps.webFetch;
+
+  const references = new Map();
+  const resources = new Set();
+  const fetched = new Set();
+  const registry = {};
+  let totalBytes = 0;
+
+  scanSchemaDocument(schema, retrievalUri, { references, resources });
+
+  while (true) {
+    const uri = [...references.keys()].find(
+      (candidate) =>
+        !resources.has(candidate) && !fetched.has(candidate),
+    );
+    if (!uri) break;
+    if (fetched.size >= maxDocuments) {
+      throw new Error(
+        `External JSON Schema graph exceeds ${maxDocuments} documents`,
+      );
+    }
+    fetched.add(uri);
+
+    const loaded = await fetchExternalSchema(uri, {
+      allowedDomains,
+      allowFileReference: [...(references.get(uri) || [])].every(
+        (protocol) => protocol === "file:",
+      ),
+      fetchSchema,
+      fs,
+      maxDocumentBytes,
+      rootDirectory,
+      timeoutMs,
+    });
+    totalBytes += loaded.bytes;
+    if (totalBytes > maxTotalBytes) {
+      throw new Error(
+        `External JSON Schema graph exceeds ${maxTotalBytes} bytes`,
+      );
+    }
+    assertExternalSchemaIsValid(loaded.schema, uri);
+    const redirected =
+      loaded.retrievalUri && loaded.retrievalUri !== uri;
+    if (redirected) {
+      registry[loaded.retrievalUri] = loaded.schema;
+      registry[uri] = { $ref: loaded.retrievalUri };
+      resources.add(uri);
+      scanSchemaDocument(loaded.schema, loaded.retrievalUri, {
+        references,
+        resources,
+      });
+    } else {
+      registry[uri] = loaded.schema;
+      scanSchemaDocument(loaded.schema, loaded.retrievalUri || uri, {
+        references,
+        resources,
+      });
+    }
+  }
+
+  attachExternalSchemas(schema, registry, { baseUri: retrievalUri });
+  assertSchemaCompiles(schema);
+  return schema;
+}
+
 /**
  * Run a headless turn constrained to a schema, retrying on validation
  * failure. Prints the validated JSON to writeOut; returns the exit code.
@@ -275,7 +692,15 @@ export async function runJsonSchemaConstrained(cfg = {}) {
   const writeErr = cfg.writeErr || ((s) => process.stderr.write(s));
   const maxAttempts = cfg.maxAttempts || MAX_ATTEMPTS;
 
-  const schema = cfg.schema || loadSchemaFile(fs, cfg.schemaFile);
+  const schema =
+    cfg.schema ||
+    (await loadSchemaFileWithRefs(fs, cfg.schemaFile, {
+      ...(cfg.schemaLoadOptions || {}),
+      fetchSchema:
+        cfg.schemaLoadOptions?.fetchSchema ||
+        cfg.deps?.webFetch ||
+        _deps.webFetch,
+    }));
   const instruction = buildSchemaInstruction(schema);
   const base = cfg.baseOptions || {};
 

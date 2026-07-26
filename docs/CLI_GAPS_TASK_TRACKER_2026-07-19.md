@@ -256,7 +256,7 @@ Windows Node IPC/detached 语义及真实三平台 CI 尚未完成
 | P1-8  | Checkpoint REPL 统一 | ✅ 统一 producer 与归因闭环                 | Agent Core 输出 provider 原始 `tool_use_id`/turn id/permission decision/checkpoint；Headless 与 REPL 共用 `createTurnBindingFeed`，交互 turn 逐次 fail-closed 持久化；child trace/checkpoint/tool/worktree、IDE user edit 与顶层 `--worktree` branch 均进入父 turn，shell/外部副作用诚实标为 partial                         |
 | P1-9  | Plugin 安全强化      | 🟡 legacy 旁路与 direct URL egress 已补     | 签名/manifest SHA-256、trusted key、SBOM、capability consent、managed allow/deny、OS secret 与插件执行 Broker provenance 已有；强制 consent 同时强制 permissions 声明，另有独立 managed/env declaration gate；插件 URL MCP hostname 按声明 domain 连接前拒绝；stdio/native 外部宿主的跨平台 network/filesystem 强隔离仍依赖 P0 收口 |
 | P1-10 | 并发状态 fail-closed | ✅ 关键状态分级与跨宿主锁已完成             | Approval CAS、side-effect/turn/session、Agenda/Event Runtime、Cowork delivery lease、goal/config/MTC ledger、plugin/MCP trust/consent/凭据元数据均有界 fail-closed；VS Code/JetBrains 共享同一 `.lock` 目录协议与原子 session-index 写入；仅 Advisory cache 保留 best-effort                                                                 |
-| P1-11 | JSON Schema 完整支持 | 🟡 常用 vocabulary + external registry 已补 | Draft 2020-12 常用关键字、dependent/pattern/contains/propertyNames、local `$ref`、显式 external schema registry、组合/条件、format、structured_result 已有；完整 meta-vocabulary、自动远程 ref 与复杂互操作仍待补                                                                                                          |
+| P1-11 | JSON Schema 完整支持 | ✅ 标准引擎、完整 vocabulary 与受限 refs 已完成 | `Ajv2020` + `ajv-formats` 统一执行 Draft 2020-12 meta-schema/动态引用/`unevaluated*`/组合互操作；所有 `--json-schema` 入口在模型调用前编译完整 schema graph；本地 ref 限于根 schema 目录，远程 ref 仅允许无凭证公网 HTTPS，并受 DNS-SSRF、文档数/单文档/总字节/超时上限保护；稳定 digest、错误码、JSON Pointer 与 `structured_result` 保持兼容 |
 | P1-12 | SDK/CI 事件透传      | ✅ 源码完成；Python 0.1.0 基线已发布        | 当前 TypeScript + Python 源码覆盖契约中的 24 类 typed stream 事件（含 defer/complete）、approval/question/MCP elicitation callback、resume 与未知事件无损透传；共享 protocol fixture、穷举 CI consumer、GitHub Actions 模板及 22 项 hermetic 测试已补；已发布的 Python 0.1.0 是此前 22 类事件基线并通过 3.10/3.12/3.13 公网 wheel 烟测，本轮两个新增事件尚未发布新版本 |
 | P1-13 | 验收门与文档清理     | ✅ 已完成                                   | 统一 parity 10/10；旧文档持续维护                                                                                                                                                                                                                                                                                          |
 
@@ -354,6 +354,23 @@ VS Code 与 JetBrains 共享的 `ide/session-index.json` 改用完全相同的�
 回归无丢记录，JetBrains 定向测试通过。本轮 CLI 关键状态/Plugin 组合回归
 37 文件 775/775，VS Code 3/3，JetBrains `IdeSessionIndexTest` 通过。
 
+**2026-07-26 P1-11 完成**：结构化输出从自研 Draft 2020-12 子集切换到直接依赖的
+`Ajv2020` 与 `ajv-formats`，完整 meta-schema、动态作用域 `$dynamicRef`、嵌套 `$id`、
+`unevaluatedProperties`/`unevaluatedItems` 及跨 applicator evaluated-location 语义由标准
+引擎统一执行。适配层继续输出既有的 `code`/`keyword`/RFC 6901 `instancePath`/
+`schemaPath`，并保持 key-order-independent `sha256:` digest 与终态
+`structured_result` 协议；digest 同时绑定已解析外部文档内容，远端契约变化不会继续
+冒用旧摘要。无效 schema 或未解析引用会在任何模型调用前编译失败。
+
+`--json-schema` 的文本、单轮 `stream-json` 和输入流三条真实入口现共用预解析 loader。
+相对本地引用只允许落在根 schema 目录（含 realpath 检查）；自动远程引用只允许无凭证
+公网 HTTPS，复用 DNS pinning/重绑定与 private/metadata SSRF 防护，并限制最多 32 个
+文档、单文档 1 MB、总计 4 MB 和 10 秒请求超时。远程文档不能反向跳转到本地文件，
+HTTP、私网、凭证 URL、目录逃逸、损坏文档、预算超限与未闭合 graph 均 fail-closed。
+复杂 `allOf + unevaluatedProperties`、重叠 properties/patternProperties、
+prefixItems/unevaluatedItems、递归 dynamic ref、本地/递归 HTTPS ref、SSRF 与预算回归
+已加入；本轮定向 3 文件 90/90 通过。
+
 ### Hooks v2 producer 验收结果（40 项事件 registry）
 
 Hooks v2 当前注册 40 个生命周期事件、5 种公共 executor 和 trusted JS executor。运行时支持 programmatic
@@ -435,6 +452,7 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 - [x] **P1-7 Context 双层 Skill cache、交互式快照与按需/命中/注入成本归因**
 - [x] **P1-8 Headless/REPL 统一 turn binding、provider id 与 child/worktree/user-edit 归因**
 - [x] **P1-10 Critical/Durable 状态 fail-closed、Cowork delivery fence 与跨 IDE session lock**
+- [x] **P1-11 Draft 2020-12 标准引擎、启动期 graph 编译与受限 local/HTTPS refs**
 - [x] **P1-12 TypeScript/Python SDK、共享 fixture、GitHub Actions 示例与 Python 0.1.0 基线 PyPI 发布**
 - [x] **2026-07-21 历史主仓验证**：当时的 Code Quality、CI Tests、E2E Tests 与 Full Test Automation 通过；不替代当前剩余严格隔离验收
 - [x] Notification Hook 事件（2026-07-20）
@@ -460,7 +478,7 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 | ---------- | ----------------------------------------------------------- |
 | **当前**   | P0-1 Windows IPC/detached 语义与真实三平台严格隔离 CI       |
 | **随后**   | P0-2 三平台断线重连 E2E 远端验收                            |
-| **并行**   | P1-4 跨平台强文件写沙箱与 P1-9 Plugin 外部宿主（P1-10 状态锁已收口） |
+| **并行**   | P1-4 跨平台强文件写沙箱与 P1-9 Plugin 外部宿主（P1-10/P1-11 已收口） |
 | **发布前** | 双语言 SDK 兼容门、真实环境 parity 与文档事实源漂移检查     |
 
 ---

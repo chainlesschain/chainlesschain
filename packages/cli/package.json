@@ -74,6 +74,8 @@
     "@chainlesschain/shared-logger": "0.1.1",
     "@inquirer/prompts": "^7.2.0",
     "@noble/curves": "^1.9.7",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
     "chalk": "^5.4.1",
     "commander": "^12.1.0",
     "js-yaml": "^3.14.0",

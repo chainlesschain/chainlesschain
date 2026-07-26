@@ -1567,7 +1567,10 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   if (options.jsonSchema) {
     try {
       _jso = await import("../lib/json-schema-output.js");
-      _jsonSchema = _jso.loadSchemaFile(_jso._deps.fs, options.jsonSchema);
+      _jsonSchema = await _jso.loadSchemaFileWithRefs(
+        _jso._deps.fs,
+        options.jsonSchema,
+      );
     } catch (err) {
       // Fail-fast, exactly like `cc agent -p --json-schema` on a bad schema.
       writeErr(`Error: ${err.message}\n`);

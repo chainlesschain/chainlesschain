@@ -1307,7 +1307,7 @@ export function registerAgentCommand(program) {
           const jso = await import("../lib/json-schema-output.js");
           if (options.outputFormat === "stream-json") {
             try {
-              const schema = jso.loadSchemaFile(
+              const schema = await jso.loadSchemaFileWithRefs(
                 jso._deps.fs,
                 options.jsonSchema,
               );

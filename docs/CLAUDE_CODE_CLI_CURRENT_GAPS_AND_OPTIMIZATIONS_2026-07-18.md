@@ -73,7 +73,7 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 | Checkpoint    | 对话与文件按 turn 恢复                                                      | Headless/REPL 共用 turn-binding producer，provider tool/turn/decision id、child/worktree/checkpoint 与 IDE user edit 均进入持久归因                                                                                                                                          | ✅ 核心闭环；shell/外部进程副作用继续诚实标记为 partial                                                                   | P1     |
 | Plugin 安全   | 插件统一打包、作用域、企业治理                                              | 能力声明/consent/签名/typed options/OS secret/lockfile/SBOM 与执行 Broker provenance 已有；强制 consent 同时强制 permissions 声明，direct URL MCP hostname 按声明 domain 连接前拒绝；Desktop Loader 依赖探测/安装/解压已去 shell | stdio/native 外部宿主的跨平台 network/filesystem 强隔离仍需随 P0 原生沙箱收口                                           | P1     |
 | 关键状态并发  | 会话、审批、任务和副作用状态应原子持久化                                    | Approval CAS、side-effect/turn/session、Agenda/Event Runtime/Cowork delivery、goal/config/MTC、plugin/MCP trust/consent/凭据元数据均有界 fail-closed；VS Code/JetBrains 共用 `.lock` 目录协议                                                                                  | ✅ Critical/Durable 清单已收口；仅 Advisory cache/统计允许 best-effort                                                     | P1     |
-| 结构化输出    | 标准 JSON Schema、启动期校验、最终 validated result                         | 常用 Draft 2020-12 vocabulary（组合、条件、`$ref`、dependent、pattern、contains、format）、显式 external schema registry 及 stream `structured_result`                                                                                                                    | 完整 meta-vocabulary、自动远程 ref 解析与复杂 schema 互操作性仍待补                                                       | P1     |
+| 结构化输出    | 标准 JSON Schema、启动期校验、最终 validated result                         | `Ajv2020`/`ajv-formats` 执行完整 Draft 2020-12 meta-schema、动态引用、`unevaluated*` 与组合互操作；所有入口在模型调用前解析并编译 local/public-HTTPS ref graph，稳定 digest/错误指针/`structured_result` 不变                                                               | ✅ 核心闭环；远程 ref 限于无凭证公网 HTTPS 且有 DNS-SSRF、数量、字节与超时上限                                             | P1     |
 | SDK/CI        | TypeScript/Python SDK、版本化事件、GitHub/GitLab 自动化                     | 当前双语言源码覆盖 24 类 typed stream 事件（含 MCP defer/complete）、approval/question/MCP elicitation callback、resume 与未知事件无损透传；共享 fixture、GitHub Actions 模板及 22 项 hermetic 测试已落地；已发布 Python SDK 0.1.0 是此前 22 类事件基线，并通过 3.10/3.12/3.13 公网 wheel 安装矩阵 | SemVer/capability negotiation/deprecation 矩阵、跨宿主 schema package、GitLab、双语言联合发布兼容门及新增事件的新版本发布仍待补 | P1     |
 | 验收与文档    | CLI/IDE/SDK 共享运行时和持续发布验证                                        | 单元/集成测试很多                                                                                                                                                                                                                                                         | MVP 验证脚本没有覆盖完整 Desktop→真实 CLI 链；多份旧文档仍把已完成项列为缺口                                              | P1     |
 | 全进程回滚    | 官方 checkpoint 主要覆盖编辑工具                                            | 已对 shell/外部副作用诚实标记 partial                                                                                                                                                                                                                                     | 可进一步做全工具文件变更捕获，形成强于 Claude Code 的差异化                                                               | P2     |
@@ -689,16 +689,24 @@ Advisory 的 UI cache、统计快照和提示索引仍可按上表 best-effort�
 
 ### 11.3 标准化 JSON Schema
 
-当前 [`json-schema-validate.js`](../packages/cli/src/lib/json-schema-validate.js) 已覆盖许多常用
-关键字，也已经能输出带 JSON Pointer 的 `structured_result`，但仍是自研 Draft 2020-12 子集。
+2026-07-26 已完成标准化迁移：
 
-建议：
-
-- 使用成熟 Draft 2020-12 validator，或公开、版本化声明支持的精确子集，避免声称完整兼容。
-- 启动时编译 schema；无效 schema 在任何模型调用前失败。
-- `stream-json` 明确区分 partial assistant event 和最终 validated result。
-- 对 `$ref`、`unevaluatedProperties`、dependent schema、组合关键字和 format 建兼容测试集。
-- CLI、SDK、IDE 使用同一 schema digest、错误码和 JSON Pointer。
+- [`json-schema-validate.js`](../packages/cli/src/lib/json-schema-validate.js) 现在是
+  `Ajv2020`/`ajv-formats` 的稳定协议适配层，不再自行近似实现 keyword 语义。Draft
+  2020-12 meta-schema、`$dynamicRef` 动态作用域、嵌套 `$id`、`unevaluated*` 和跨
+  applicator evaluated-location 均由标准引擎执行。
+- 适配层保留原有 `code`/`keyword`/RFC 6901 JSON Pointer、规范化 schema path、
+  key-order-independent digest 与 `structured_result` envelope；digest 还会绑定
+  已解析外部文档内容，远端契约变化不会复用旧摘要。SDK/IDE 消费者无需因校验器
+  替换改变协议。
+- 文本、单轮 `stream-json` 与输入流入口在模型调用前解析并编译完整 schema graph。
+  本地相对 ref 限于根 schema 目录并校验 realpath；远程 ref 只接受无凭证公网 HTTPS，
+  复用 DNS pinning/重绑定及 private/metadata SSRF 防护，另有 32 文档、单文档 1 MB、
+  总计 4 MB 和 10 秒请求上限。远程 schema 不能反向读取本地文件。
+- 回归覆盖 `allOf + unevaluatedProperties`、重叠 `properties`/
+  `patternProperties`、`prefixItems + unevaluatedItems`、递归动态引用、本地/递归
+  HTTPS 引用、私网 SSRF、远程→本地 pivot 与文档预算超限；坏 schema/ref graph
+  在任何模型调用前 fail-closed。
 
 ## 12. P1：Agent SDK、CI 与权限默认值
 

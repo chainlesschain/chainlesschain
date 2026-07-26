@@ -1,5 +1,5 @@
 /**
- * JSON Schema (Draft 2020-12 subset) validator (P2 "JSON Schema 结构化输出") —
+ * Standards-backed JSON Schema Draft 2020-12 validator —
  * stable codes + RFC 6901 JSON Pointers, schema meta-validation, digest, and the
  * structured_result event. Pure module.
  */
@@ -227,9 +227,10 @@ describe("validate — format assertions", () => {
   });
 
   it("time accepts leap second, rejects out-of-range", () => {
-    expect(validate("23:59:60", { format: "time" }).valid).toBe(true);
-    expect(validate("24:00:00", { format: "time" }).valid).toBe(false);
-    expect(validate("10:61:00", { format: "time" }).valid).toBe(false);
+    expect(validate("23:59:60Z", { format: "time" }).valid).toBe(true);
+    expect(validate("24:00:00Z", { format: "time" }).valid).toBe(false);
+    expect(validate("10:61:00Z", { format: "time" }).valid).toBe(false);
+    expect(validate("23:59:59", { format: "time" }).valid).toBe(false);
   });
 
   it("email / uri / uuid", () => {
@@ -359,16 +360,77 @@ describe("validate Draft 2020-12 dependent and collection keywords", () => {
   });
 });
 
-describe("validateSchema (startup meta-validation)", () => {
-  it("resolves local $anchor and $dynamicRef targets", () => {
+describe("validate Draft 2020-12 applicator interoperability", () => {
+  it("tracks evaluated properties across allOf before unevaluatedProperties", () => {
     const schema = {
-      $defs: {
-        user: { $anchor: "userShape", type: "object", required: ["id"] },
-      },
-      $dynamicRef: "#userShape",
+      type: "object",
+      allOf: [
+        { properties: { name: { type: "string" } } },
+        { properties: { age: { type: "integer" } } },
+      ],
+      unevaluatedProperties: false,
     };
-    expect(validate({ id: "u1" }, schema).valid).toBe(true);
-    expect(validate({}, schema).errors[0].code).toBe("required");
+    expect(validate({ name: "Ada", age: 37 }, schema).valid).toBe(true);
+    expect(
+      validate({ name: "Ada", age: 37, extra: true }, schema).errors.some(
+        (error) =>
+          error.code === "unevaluatedProperties" &&
+          error.instancePath === "/extra",
+      ),
+    ).toBe(true);
+  });
+
+  it("applies properties and every matching patternProperties schema", () => {
+    const schema = {
+      type: "object",
+      properties: { "x-name": { type: "string" } },
+      patternProperties: { "^x-": { minLength: 3 } },
+    };
+    expect(validate({ "x-name": "Ada" }, schema).valid).toBe(true);
+    expect(validate({ "x-name": "A" }, schema).errors[0].code).toBe(
+      "minLength",
+    );
+  });
+
+  it("tracks prefixItems before applying unevaluatedItems", () => {
+    const schema = {
+      type: "array",
+      prefixItems: [{ type: "string" }],
+      unevaluatedItems: { type: "integer" },
+    };
+    expect(validate(["head", 1, 2], schema).valid).toBe(true);
+    expect(validate(["head", "tail"], schema).errors[0]).toMatchObject({
+      code: "type",
+      instancePath: "/1",
+    });
+  });
+});
+
+describe("validateSchema (startup meta-validation)", () => {
+  it("resolves recursive $dynamicRef targets through dynamic scope", () => {
+    const schema = {
+      $dynamicAnchor: "node",
+      type: "object",
+      required: ["id"],
+      properties: {
+        id: { type: "string" },
+        children: {
+          type: "array",
+          items: { $dynamicRef: "#node" },
+        },
+      },
+    };
+    expect(
+      validate({ id: "root", children: [{ id: "child" }] }, schema)
+        .valid,
+    ).toBe(true);
+    expect(
+      validate({ id: "root", children: [{}] }, schema).errors.some(
+        (error) =>
+          error.code === "required" &&
+          error.instancePath === "/children/0",
+      ),
+    ).toBe(true);
   });
 
   it("meta-validates 2020-12 identifier and vocabulary keywords", () => {
@@ -408,6 +470,13 @@ describe("validateSchema (startup meta-validation)", () => {
     expect(validateSchema({ pattern: "([" }).errors[0].code).toBe("pattern");
     expect(validateSchema({ minLength: -1 }).errors[0].code).toBe("minLength");
     expect(validateSchema({ multipleOf: 0 }).errors[0].code).toBe("multipleOf");
+  });
+
+  it("enforces meta-schema uniqueness and non-empty constraints", () => {
+    expect(validateSchema({ type: [] }).valid).toBe(false);
+    expect(validateSchema({ allOf: [] }).valid).toBe(false);
+    expect(validateSchema({ required: ["id", "id"] }).valid).toBe(false);
+    expect(validateSchema({ additionalProperties: "no" }).valid).toBe(false);
   });
 
   it("recurses into nested properties and reports the nested schemaPath", () => {

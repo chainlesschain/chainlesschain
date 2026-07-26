@@ -1,5 +1,7 @@
-/** --json-schema structured output: validator subset + extraction + retry loop. */
-import { describe, it, expect } from "vitest";
+/** --json-schema Draft 2020-12 validation, extraction and retry loop. */
+import path from "node:path";
+import { pathToFileURL } from "node:url";
+import { describe, it, expect, vi } from "vitest";
 import {
   validateAgainstSchema,
   extractJsonPayload,
@@ -7,7 +9,9 @@ import {
   buildSchemaInstruction,
   runJsonSchemaConstrained,
   loadSchemaFile,
+  loadSchemaFileWithRefs,
   buildStructuredResult,
+  computeSchemaDigest,
   formatSchemaErrors,
 } from "../../src/lib/json-schema-output.js";
 
@@ -179,6 +183,32 @@ describe("runJsonSchemaConstrained", () => {
     expect(JSON.parse(out)).toEqual({ via: "capture" });
   });
 
+  it("loads external refs before starting the constrained turn", async () => {
+    let out = "";
+    const code = await runJsonSchemaConstrained({
+      schemaFile:
+        '{"$id":"https://schemas.test/root.json","$ref":"value.json"}',
+      baseOptions: base,
+      deps: {
+        fs: {},
+        webFetch: async () => ({
+          statusCode: 200,
+          content: { type: "object", required: ["resolved"] },
+        }),
+      },
+      writeOut: (value) => {
+        out += value;
+      },
+      writeErr: () => {},
+      runHeadless: async () => ({
+        result: '{"resolved":true}',
+      }),
+    });
+
+    expect(code).toBe(0);
+    expect(JSON.parse(out)).toEqual({ resolved: true });
+  });
+
   it("buildSchemaInstruction embeds the schema verbatim", () => {
     expect(buildSchemaInstruction({ type: "object" })).toContain(
       '{"type":"object"}',
@@ -321,6 +351,201 @@ describe("loadSchemaFile", () => {
     expect(() => loadSchemaFile({}, '{"type":"objetc"}')).toThrow(
       /Invalid JSON Schema in inline schema/,
     );
+  });
+});
+
+describe("loadSchemaFileWithRefs", () => {
+  it("resolves local refs within the root schema directory", async () => {
+    const rootFile = path.resolve("schema-fixture", "root.json");
+    const defsFile = path.resolve("schema-fixture", "defs.json");
+    const fs = {
+      readFileSync: vi.fn((filename) => {
+        const resolved = path.resolve(filename);
+        if (resolved === rootFile) return '{"$ref":"defs.json"}';
+        if (resolved === defsFile) {
+          return '{"type":"object","required":["id"]}';
+        }
+        throw new Error(`unexpected read: ${resolved}`);
+      }),
+    };
+
+    const schema = await loadSchemaFileWithRefs(fs, rootFile);
+
+    expect(buildStructuredResult(schema, { id: "ok" }).valid).toBe(true);
+    expect(buildStructuredResult(schema, {}).errors[0].code).toBe("required");
+    expect(fs.readFileSync).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects local refs that escape the root schema directory", async () => {
+    const rootFile = path.resolve("schema-fixture", "root.json");
+    const fs = {
+      readFileSync: vi.fn((filename) => {
+        if (path.resolve(filename) === rootFile) {
+          return '{"$ref":"../secret.json"}';
+        }
+        throw new Error("escaped file must not be read");
+      }),
+    };
+
+    await expect(loadSchemaFileWithRefs(fs, rootFile)).rejects.toThrow(
+      /escapes the root schema directory/,
+    );
+    expect(fs.readFileSync).toHaveBeenCalledTimes(1);
+  });
+
+  it("resolves relative HTTPS refs recursively before validation starts", async () => {
+    const requested = [];
+    const documents = {
+      "https://schemas.test/defs/user.json": {
+        $id: "https://schemas.test/defs/user.json",
+        type: "object",
+        required: ["name"],
+        properties: {
+          name: { $ref: "name.json" },
+        },
+      },
+      "https://schemas.test/defs/name.json": {
+        $id: "https://schemas.test/defs/name.json",
+        type: "string",
+        minLength: 3,
+      },
+    };
+    const fetchSchema = vi.fn(async (uri) => {
+      requested.push(uri);
+      return {
+        statusCode: 200,
+        bytes: JSON.stringify(documents[uri]).length,
+        content: documents[uri],
+      };
+    });
+    const root = JSON.stringify({
+      $id: "https://schemas.test/root.json",
+      $ref: "defs/user.json",
+    });
+
+    const schema = await loadSchemaFileWithRefs({}, root, {
+      fetchSchema,
+    });
+
+    expect(requested).toEqual([
+      "https://schemas.test/defs/user.json",
+      "https://schemas.test/defs/name.json",
+    ]);
+    expect(buildStructuredResult(schema, { name: "Ada" }).valid).toBe(true);
+    expect(buildStructuredResult(schema, { name: "A" }).errors[0]).toMatchObject(
+      {
+        code: "minLength",
+        instancePath: "/name",
+      },
+    );
+  });
+
+  it("uses the final redirect URI as the base for relative refs", async () => {
+    const requested = [];
+    const schema = await loadSchemaFileWithRefs(
+      {},
+      '{"$id":"https://schemas.test/root.json","$ref":"entry.json"}',
+      {
+        fetchSchema: async (uri) => {
+          requested.push(uri);
+          if (uri === "https://schemas.test/entry.json") {
+            return {
+              statusCode: 200,
+              url: "https://cdn.schemas.test/v2/entry.json",
+              content: { $ref: "value.json" },
+            };
+          }
+          return {
+            statusCode: 200,
+            content: { type: "integer", minimum: 1 },
+          };
+        },
+      },
+    );
+
+    expect(requested).toEqual([
+      "https://schemas.test/entry.json",
+      "https://cdn.schemas.test/v2/value.json",
+    ]);
+    expect(buildStructuredResult(schema, 1).valid).toBe(true);
+    expect(buildStructuredResult(schema, 0).valid).toBe(false);
+  });
+
+  it("binds the digest to resolved external document content", async () => {
+    const load = (minimum) =>
+      loadSchemaFileWithRefs(
+        {},
+        '{"$id":"https://schemas.test/root.json","$ref":"value.json"}',
+        {
+          fetchSchema: async () => ({
+            statusCode: 200,
+            content: { type: "integer", minimum },
+          }),
+        },
+      );
+    const first = await load(1);
+    const second = await load(2);
+
+    expect(computeSchemaDigest(first)).not.toBe(
+      computeSchemaDigest(second),
+    );
+  });
+
+  it("blocks private-host refs before the injected transport is called", async () => {
+    const fetchSchema = vi.fn();
+    await expect(
+      loadSchemaFileWithRefs(
+        {},
+        '{"$ref":"https://127.0.0.1/internal-schema.json"}',
+        { fetchSchema },
+      ),
+    ).rejects.toThrow(/blocked|private/i);
+    expect(fetchSchema).not.toHaveBeenCalled();
+  });
+
+  it("does not let a remote schema pivot back into local files", async () => {
+    const rootFile = path.resolve("schema-fixture", "root.json");
+    const secretFile = path.resolve("schema-fixture", "secret.json");
+    const fs = {
+      readFileSync: vi.fn((filename) => {
+        if (path.resolve(filename) === rootFile) {
+          return '{"$ref":"https://schemas.test/remote.json"}';
+        }
+        throw new Error("remote graph must not read local files");
+      }),
+    };
+
+    await expect(
+      loadSchemaFileWithRefs(fs, rootFile, {
+        fetchSchema: async () => ({
+          statusCode: 200,
+          content: { $ref: pathToFileURL(secretFile).href },
+        }),
+      }),
+    ).rejects.toThrow(/only allowed from a local root graph/);
+    expect(fs.readFileSync).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails closed when the external document budget is exceeded", async () => {
+    const documents = {
+      "https://schemas.test/a.json": {
+        $ref: "https://schemas.test/b.json",
+      },
+      "https://schemas.test/b.json": { type: "string" },
+    };
+    await expect(
+      loadSchemaFileWithRefs(
+        {},
+        '{"$ref":"https://schemas.test/a.json"}',
+        {
+          maxDocuments: 1,
+          fetchSchema: async (uri) => ({
+            statusCode: 200,
+            content: documents[uri],
+          }),
+        },
+      ),
+    ).rejects.toThrow(/exceeds 1 documents/);
   });
 });
 
