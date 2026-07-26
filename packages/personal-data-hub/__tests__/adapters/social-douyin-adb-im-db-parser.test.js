@@ -257,8 +257,20 @@ describe("parseImDb — msg table", () => {
 describe("parseImDb — SIMPLE_USER table", () => {
   it("parses canonical contact rows", () => {
     buildSimpleUserFixture([
-      { uid: 111, shortId: 222, name: "Alice", avatar: "https://a.png", follow: 1 },
-      { uid: 333, shortId: 444, name: "Bob", avatar: "https://b.png", follow: 2 },
+      {
+        uid: 111,
+        shortId: 222,
+        name: "Alice",
+        avatar: "https://a.png",
+        follow: 1,
+      },
+      {
+        uid: 333,
+        shortId: 444,
+        name: "Bob",
+        avatar: "https://b.png",
+        follow: 2,
+      },
     ]);
     const result = parseImDb(dbPath);
     expect(result.diagnostic.hadSimpleUserTable).toBe(true);
@@ -306,5 +318,42 @@ describe("parseImDb — combined diagnostics", () => {
   it("rejects non-string / empty dbPath", () => {
     expect(() => parseImDb("")).toThrow(TypeError);
     expect(() => parseImDb(null)).toThrow(TypeError);
+  });
+
+  it("rejects unreadable discovered tables instead of returning a partial parse", () => {
+    class FakeDb {
+      prepare(sql) {
+        return {
+          all() {
+            if (sql.includes("FROM sqlite_master")) {
+              return [{ name: "msg" }];
+            }
+            if (sql === "PRAGMA table_info(msg)") {
+              return [
+                { name: "sender" },
+                { name: "created_time" },
+                { name: "content" },
+              ];
+            }
+            if (sql.includes(" FROM msg ")) {
+              throw new Error("synthetic SQLite read failure");
+            }
+            throw new Error(`unexpected SQL: ${sql}`);
+          },
+        };
+      }
+
+      close() {}
+    }
+
+    expect(() =>
+      parseImDb("synthetic.db", { _databaseClass: FakeDb }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "DOUYIN_IM_SQLITE_SOURCE_UNREADABLE",
+        table: "msg",
+        operation: "read",
+      }),
+    );
   });
 });

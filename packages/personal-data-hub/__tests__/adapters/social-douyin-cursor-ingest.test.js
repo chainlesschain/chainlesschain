@@ -146,6 +146,13 @@ function imDriver({
         queries.push(sql);
         return {
           all() {
+            if (sql.includes("FROM sqlite_master")) {
+              return [
+                { name: "msg" },
+                { name: "SIMPLE_USER" },
+                { name: "conversation_list" },
+              ];
+            }
             if (sql === "PRAGMA table_info(msg)") {
               return [
                 { name: "sender" },

@@ -107,10 +107,10 @@ function extractTextFromContent(blob) {
  *   - contacts: Array<{uid, shortId, name, avatarUrl, followStatus}>
  *   - diagnostic: {messageCount, contactCount, hadMsgTable, hadSimpleUserTable}
  *
- * If either table is missing (older Douyin version, or non-IM db opened
- * by mistake), the missing array is empty + `hadXxxTable=false` so the
- * caller can warn the user. Throws only when the db file itself isn't
- * openable (file corrupted / wrong magic header).
+ * If a table is missing (older Douyin version, or non-IM db opened by
+ * mistake), the missing array is empty + `hadXxxTable=false` so the caller
+ * can warn the user. Throws when the db file or a discovered source table
+ * is unreadable, rather than returning a successful partial parse.
  *
  * @param {string} dbPath  absolute path to the IM sqlite db
  * @param {{_databaseClass?: any, limitMessages?: number, limitContacts?: number}} [opts]
@@ -149,8 +149,9 @@ function parseImDb(dbPath, opts = {}) {
     },
   };
   try {
+    const tableNames = listSqliteTables(db);
     // ─── msg table ───────────────────────────────────────────────────────
-    const msgTableInfo = trySelect(db, "PRAGMA table_info(msg)");
+    const msgTableInfo = readTableInfo(db, tableNames, "msg");
     if (Array.isArray(msgTableInfo) && msgTableInfo.length > 0) {
       out.diagnostic.hadMsgTable = true;
       const columns = new Set(msgTableInfo.map((r) => r.name));
@@ -175,7 +176,7 @@ function parseImDb(dbPath, opts = {}) {
           (convCol ? `, ${convCol} AS conversationId` : "") +
           (readCol ? `, ${readCol} AS readStatus` : "") +
           ` FROM msg ORDER BY ${timeCol} DESC${sqlLimit(limitMessages)}`;
-        const rows = trySelect(db, sql) || [];
+        const rows = readTableRows(db, "msg", sql);
         for (const r of rows) {
           const createdTimeMs = normalizeEpochMs(r.createdTime);
           out.messages.push({
@@ -197,7 +198,7 @@ function parseImDb(dbPath, opts = {}) {
     }
 
     // ─── SIMPLE_USER table ───────────────────────────────────────────────
-    const userTableInfo = trySelect(db, "PRAGMA table_info(SIMPLE_USER)");
+    const userTableInfo = readTableInfo(db, tableNames, "SIMPLE_USER");
     if (Array.isArray(userTableInfo) && userTableInfo.length > 0) {
       out.diagnostic.hadSimpleUserTable = true;
       const columns = new Set(userTableInfo.map((r) => r.name));
@@ -219,7 +220,7 @@ function parseImDb(dbPath, opts = {}) {
         const sql =
           `SELECT ${fields.join(", ")} FROM SIMPLE_USER` +
           sqlLimit(limitContacts);
-        const rows = trySelect(db, sql) || [];
+        const rows = readTableRows(db, "SIMPLE_USER", sql);
         for (const r of rows) {
           out.contacts.push({
             uid: r.uid != null ? String(r.uid) : null,
@@ -241,7 +242,7 @@ function parseImDb(dbPath, opts = {}) {
     // as contacts — uid-only (nickname/avatar live in a separate user table),
     // so a PERSON gets created keyed by douyin-uid even without a name.
     // Dedup against contacts already harvested from SIMPLE_USER.
-    const partTableInfo = trySelect(db, "PRAGMA table_info(participant)");
+    const partTableInfo = readTableInfo(db, tableNames, "participant");
     if (Array.isArray(partTableInfo) && partTableInfo.length > 0) {
       out.diagnostic.hadParticipantTable = true;
       const columns = new Set(partTableInfo.map((r) => r.name));
@@ -251,7 +252,7 @@ function parseImDb(dbPath, opts = {}) {
         const sql =
           `SELECT DISTINCT ${uidCol} AS uid FROM participant ` +
           `WHERE ${uidCol} IS NOT NULL${sqlLimit(limitContacts)}`;
-        const rows = trySelect(db, sql) || [];
+        const rows = readTableRows(db, "participant", sql);
         for (const r of rows) {
           const uid = r.uid != null ? String(r.uid) : null;
           if (!uid || seen.has(uid)) continue;
@@ -272,7 +273,7 @@ function parseImDb(dbPath, opts = {}) {
     // ─── conversation_list table (device-verified 2026-06-16) ────────────
     // Each row is a chat thread → PDH TOPIC. Columns vary by build; pick
     // defensively. conversation_id is the only hard requirement.
-    const convTableInfo = trySelect(db, "PRAGMA table_info(conversation_list)");
+    const convTableInfo = readTableInfo(db, tableNames, "conversation_list");
     if (Array.isArray(convTableInfo) && convTableInfo.length > 0) {
       out.diagnostic.hadConversationListTable = true;
       const columns = new Set(convTableInfo.map((r) => r.name));
@@ -298,7 +299,7 @@ function parseImDb(dbPath, opts = {}) {
           `SELECT ${fields.join(", ")} FROM conversation_list` +
           orderBy +
           sqlLimit(limitConversations);
-        const rows = trySelect(db, sql) || [];
+        const rows = readTableRows(db, "conversation_list", sql);
         for (const r of rows) {
           if (r.convId == null) continue;
           out.conversations.push({
@@ -313,7 +314,11 @@ function parseImDb(dbPath, opts = {}) {
       }
     }
   } finally {
-    db.close();
+    try {
+      db.close();
+    } catch {
+      // Best-effort close must not replace a source-read error.
+    }
   }
   return out;
 }
@@ -337,16 +342,59 @@ function normalizeEpochMs(v) {
   return Math.floor(v * 1000);
 }
 
-/**
- * Try a SELECT; return the row array on success or null on any error
- * (missing table / syntax error / driver throw). Mirrors social-bilibili
- * adapter.js:trySelect.
- */
-function trySelect(db, sql) {
+function sqliteSourceError(tableName, operation, cause) {
+  const error = new Error(
+    `douyin-im-db-parser: source table ${tableName} could not be ${operation}; refusing a partial import`,
+  );
+  error.code = "DOUYIN_IM_SQLITE_SOURCE_UNREADABLE";
+  error.table = tableName;
+  error.operation = operation;
+  error.cause = cause;
+  return error;
+}
+
+function listSqliteTables(db) {
   try {
-    return db.prepare(sql).all();
-  } catch {
-    return null;
+    const rows = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+      .all();
+    if (!Array.isArray(rows)) {
+      throw new Error("SQLite table inventory did not return a row array");
+    }
+    return new Set(
+      rows
+        .map((row) => row && row.name)
+        .filter((name) => typeof name === "string")
+        .map((name) => name.toLowerCase()),
+    );
+  } catch (error) {
+    throw sqliteSourceError("sqlite_master", "listed", error);
+  }
+}
+
+function readTableInfo(db, tableNames, tableName) {
+  if (!tableNames.has(tableName.toLowerCase())) return null;
+  return readRows(
+    db,
+    tableName,
+    "inspected",
+    `PRAGMA table_info(${tableName})`,
+  );
+}
+
+function readTableRows(db, tableName, sql) {
+  return readRows(db, tableName, "read", sql);
+}
+
+function readRows(db, tableName, operation, sql) {
+  try {
+    const rows = db.prepare(sql).all();
+    if (!Array.isArray(rows)) {
+      throw new Error("SQLite query did not return a row array");
+    }
+    return rows;
+  } catch (error) {
+    throw sqliteSourceError(tableName, operation, error);
   }
 }
 
