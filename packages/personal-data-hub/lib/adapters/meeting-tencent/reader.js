@@ -44,7 +44,7 @@ const MEETING_COLUMNS = Object.freeze([
   "record_status",
   "record_permission",
 ]);
-const MAX_DATABASE_FILES = 256;
+const MAX_DATABASE_FILES = Number.POSITIVE_INFINITY;
 const MAX_MAX_PARTICIPANTS = 10_000;
 const DEFAULT_MAX_PARTICIPANTS = MAX_MAX_PARTICIPANTS;
 const MAX_PARTICIPANTS_JSON_BYTES = 4 * 1024 * 1024;

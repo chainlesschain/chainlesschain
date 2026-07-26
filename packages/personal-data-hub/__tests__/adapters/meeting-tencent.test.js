@@ -1,7 +1,13 @@
 "use strict";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { mkdirSync, mkdtempSync, rmSync, utimesSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  utimesSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import Database from "better-sqlite3";
@@ -275,6 +281,24 @@ describe("Tencent Meeting local history reader", () => {
       "historical_meetings_new",
     ]);
     expect(found.scopePath).toBe(rootDir);
+  });
+
+  it("discovers a history database beyond the former 256-file probe limit", () => {
+    buildFixture();
+    const databaseDir = join(rootDir, "Global", "Database");
+    for (let index = 0; index < 256; index += 1) {
+      writeFileSync(
+        join(
+          databaseDir,
+          `0000-unrelated-${String(index).padStart(3, "0")}.db`,
+        ),
+        "",
+      );
+    }
+
+    const found = findTencentMeetingHistoryDb(rootDir);
+
+    expect(found.dbPath).toBe(dbPath);
   });
 
   it("merges cloud and new history rows without losing participants", () => {
