@@ -441,6 +441,13 @@ describe("AmapAdapter", () => {
         prepare(sql) {
           return {
             all() {
+              if (sql.includes("FROM sqlite_master")) {
+                return [
+                  { name: "history_route" },
+                  { name: "history_search" },
+                  { name: "favourites" },
+                ];
+              }
               if (sql.includes("history_route")) {
                 return [
                   {
@@ -526,6 +533,13 @@ describe("BaiduMapAdapter", () => {
         prepare(sql) {
           return {
             all() {
+              if (sql.includes("FROM sqlite_master")) {
+                return [
+                  { name: "route_history" },
+                  { name: "search_history" },
+                  { name: "my_favourite" },
+                ];
+              }
               if (sql.includes("route_history")) {
                 return [
                   {

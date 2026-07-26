@@ -178,11 +178,18 @@ class AmapAdapter {
 
     try {
       const records = [];
+      const tableNames = listSqliteTables(db);
       // History routes (most analytically valuable)
-      const routes =
-        trySelect(db, "SELECT * FROM history_route") ||
-        trySelect(db, "SELECT * FROM ROUTE_HISTORY") ||
-        [];
+      const routes = selectFirstTable(db, tableNames, [
+        {
+          tableName: "history_route",
+          sql: "SELECT * FROM history_route",
+        },
+        {
+          tableName: "ROUTE_HISTORY",
+          sql: "SELECT * FROM ROUTE_HISTORY",
+        },
+      ]).rows;
       for (const r of routes) {
         const rec = routeRowToRecord(r);
         if (rec) {
@@ -195,7 +202,12 @@ class AmapAdapter {
         }
       }
       // History search (queries — produce trip events of type "visit")
-      const searches = trySelect(db, "SELECT * FROM history_search") || [];
+      const searches = readOptionalTable(
+        db,
+        tableNames,
+        "history_search",
+        "SELECT * FROM history_search",
+      );
       for (const r of searches) {
         const rec = searchRowToRecord(r);
         if (rec) {
@@ -207,11 +219,11 @@ class AmapAdapter {
           });
         }
       }
-      const favourites =
-        trySelect(db, "SELECT * FROM favourites") ||
-        trySelect(db, "SELECT * FROM favorite") ||
-        trySelect(db, "SELECT * FROM favorite_poi") ||
-        [];
+      const favourites = selectFirstTable(db, tableNames, [
+        { tableName: "favourites", sql: "SELECT * FROM favourites" },
+        { tableName: "favorite", sql: "SELECT * FROM favorite" },
+        { tableName: "favorite_poi", sql: "SELECT * FROM favorite_poi" },
+      ]).rows;
       for (const row of favourites) {
         const rec = favouriteRowToRecord(row);
         if (rec) {
@@ -408,12 +420,58 @@ function hasSqliteMagic(fsImpl, filePath) {
   }
 }
 
-function trySelect(db, sql) {
+function sqliteSourceError(tableName, operation, cause) {
+  const error = new Error(
+    `travel-amap: source table ${tableName} could not be ${operation}; refusing a partial import`,
+  );
+  error.code = "AMAP_SQLITE_SOURCE_UNREADABLE";
+  error.table = tableName;
+  error.operation = operation;
+  error.cause = cause;
+  return error;
+}
+
+function listSqliteTables(db) {
   try {
-    return db.prepare(sql).all();
-  } catch {
-    return null;
+    const rows = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+      .all();
+    if (!Array.isArray(rows)) {
+      throw new Error("SQLite table inventory did not return a row array");
+    }
+    return new Set(
+      rows
+        .map((row) => row && row.name)
+        .filter((name) => typeof name === "string")
+        .map((name) => name.toLowerCase()),
+    );
+  } catch (error) {
+    throw sqliteSourceError("sqlite_master", "listed", error);
   }
+}
+
+function selectFirstTable(db, tableNames, candidates) {
+  let lastFailure = null;
+  for (const candidate of candidates) {
+    if (!tableNames.has(candidate.tableName.toLowerCase())) continue;
+    try {
+      const rows = db.prepare(candidate.sql).all();
+      if (!Array.isArray(rows)) {
+        throw new Error("SQLite query did not return a row array");
+      }
+      return { rows, tableName: candidate.tableName };
+    } catch (error) {
+      lastFailure = { error, tableName: candidate.tableName };
+    }
+  }
+  if (lastFailure) {
+    throw sqliteSourceError(lastFailure.tableName, "read", lastFailure.error);
+  }
+  return { rows: [], tableName: null };
+}
+
+function readOptionalTable(db, tableNames, tableName, sql) {
+  return selectFirstTable(db, tableNames, [{ tableName, sql }]).rows;
 }
 
 function routeRowToRecord(row) {

@@ -29,7 +29,7 @@ async function collect(gen) {
 /**
  * Fake better-sqlite3 driver. `tables` maps a SQL substring (table name)
  * to rows; unmatched prepare() throws like sqlite does on missing tables
- * so trySelect's fallback chain is exercised.
+ * so the compatibility fallback chain is exercised.
  */
 function makeFakeDriverFactory(tables, log = {}) {
   return () =>
@@ -38,8 +38,20 @@ function makeFakeDriverFactory(tables, log = {}) {
         log.opened = { dbPath, opts };
       }
       prepare(sql) {
+        if (sql.includes("FROM sqlite_master")) {
+          return {
+            all: () => Object.keys(tables).map((name) => ({ name })),
+          };
+        }
         for (const [needle, rows] of Object.entries(tables)) {
-          if (sql.includes(needle)) return { all: () => rows };
+          if (sql.includes(needle)) {
+            return {
+              all: () => {
+                if (rows instanceof Error) throw rows;
+                return rows;
+              },
+            };
+          }
         }
         throw new Error(`no such table in: ${sql}`);
       }
@@ -234,6 +246,26 @@ describe("sync — fake sqlite driver", () => {
         }),
       });
       expect(await collect(a.sync({}))).toEqual([]);
+    } finally {
+      fs.unlinkSync(p);
+    }
+  });
+
+  it("rejects unreadable discovered tables instead of returning a partial collection", async () => {
+    const p = writeTmpDb();
+    try {
+      const a = new AmapAdapter({
+        dbPath: p,
+        dbDriverFactory: makeFakeDriverFactory({
+          history_route: new Error("synthetic SQLite read failure"),
+        }),
+      });
+
+      await expect(collect(a.sync({}))).rejects.toMatchObject({
+        code: "AMAP_SQLITE_SOURCE_UNREADABLE",
+        table: "history_route",
+        operation: "read",
+      });
     } finally {
       fs.unlinkSync(p);
     }

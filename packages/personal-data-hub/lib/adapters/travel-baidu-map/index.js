@@ -262,10 +262,14 @@ class BaiduMapAdapter {
 
     try {
       const entries = [];
-      const routes =
-        trySelect(db, "SELECT * FROM route_history") ||
-        trySelect(db, "SELECT * FROM bd_route_history") ||
-        [];
+      const tableNames = listSqliteTables(db);
+      const routes = selectFirstTable(db, tableNames, [
+        { tableName: "route_history", sql: "SELECT * FROM route_history" },
+        {
+          tableName: "bd_route_history",
+          sql: "SELECT * FROM bd_route_history",
+        },
+      ]).rows;
       for (const r of routes) {
         const rec = routeRowToRecord(r);
         if (rec) {
@@ -280,7 +284,12 @@ class BaiduMapAdapter {
           });
         }
       }
-      const searches = trySelect(db, "SELECT * FROM search_history") || [];
+      const searches = readOptionalTable(
+        db,
+        tableNames,
+        "search_history",
+        "SELECT * FROM search_history",
+      );
       for (const r of searches) {
         const rec = searchRowToRecord(r);
         if (rec) {
@@ -295,10 +304,10 @@ class BaiduMapAdapter {
           });
         }
       }
-      const favourites =
-        trySelect(db, "SELECT * FROM my_favourite") ||
-        trySelect(db, "SELECT * FROM favorite") ||
-        [];
+      const favourites = selectFirstTable(db, tableNames, [
+        { tableName: "my_favourite", sql: "SELECT * FROM my_favourite" },
+        { tableName: "favorite", sql: "SELECT * FROM favorite" },
+      ]).rows;
       for (const row of favourites) {
         const rec = favouriteRowToRecord(row);
         if (rec) {
@@ -638,12 +647,58 @@ function snapshotEventToRecord(kind, p, originalId) {
   };
 }
 
-function trySelect(db, sql) {
+function sqliteSourceError(tableName, operation, cause) {
+  const error = new Error(
+    `travel-baidu-map: source table ${tableName} could not be ${operation}; refusing a partial import`,
+  );
+  error.code = "BAIDU_MAP_SQLITE_SOURCE_UNREADABLE";
+  error.table = tableName;
+  error.operation = operation;
+  error.cause = cause;
+  return error;
+}
+
+function listSqliteTables(db) {
   try {
-    return db.prepare(sql).all();
-  } catch {
-    return null;
+    const rows = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+      .all();
+    if (!Array.isArray(rows)) {
+      throw new Error("SQLite table inventory did not return a row array");
+    }
+    return new Set(
+      rows
+        .map((row) => row && row.name)
+        .filter((name) => typeof name === "string")
+        .map((name) => name.toLowerCase()),
+    );
+  } catch (error) {
+    throw sqliteSourceError("sqlite_master", "listed", error);
   }
+}
+
+function selectFirstTable(db, tableNames, candidates) {
+  let lastFailure = null;
+  for (const candidate of candidates) {
+    if (!tableNames.has(candidate.tableName.toLowerCase())) continue;
+    try {
+      const rows = db.prepare(candidate.sql).all();
+      if (!Array.isArray(rows)) {
+        throw new Error("SQLite query did not return a row array");
+      }
+      return { rows, tableName: candidate.tableName };
+    } catch (error) {
+      lastFailure = { error, tableName: candidate.tableName };
+    }
+  }
+  if (lastFailure) {
+    throw sqliteSourceError(lastFailure.tableName, "read", lastFailure.error);
+  }
+  return { rows: [], tableName: null };
+}
+
+function readOptionalTable(db, tableNames, tableName, sql) {
+  return selectFirstTable(db, tableNames, [{ tableName, sql }]).rows;
 }
 
 function isSqliteFile(fsImpl, filePath) {

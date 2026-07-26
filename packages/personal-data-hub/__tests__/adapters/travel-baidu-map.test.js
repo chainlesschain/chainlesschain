@@ -35,8 +35,20 @@ function makeFakeDriverFactory(tables, log = {}) {
         log.opened = { dbPath, opts };
       }
       prepare(sql) {
+        if (sql.includes("FROM sqlite_master")) {
+          return {
+            all: () => Object.keys(tables).map((name) => ({ name })),
+          };
+        }
         for (const [needle, rows] of Object.entries(tables)) {
-          if (sql.includes(needle)) return { all: () => rows };
+          if (sql.includes(needle)) {
+            return {
+              all: () => {
+                if (rows instanceof Error) throw rows;
+                return rows;
+              },
+            };
+          }
         }
         throw new Error(`no such table in: ${sql}`);
       }
@@ -262,6 +274,26 @@ describe("sync — sqlite mode (fake driver)", () => {
         dbDriverFactory: makeFakeDriverFactory({}),
       });
       expect(await collect(gone.sync({}))).toEqual([]);
+    } finally {
+      fs.unlinkSync(p);
+    }
+  });
+
+  it("rejects unreadable discovered tables instead of returning a partial collection", async () => {
+    const p = writeTmp("fake", "db");
+    try {
+      const a = new BaiduMapAdapter({
+        dbPath: p,
+        dbDriverFactory: makeFakeDriverFactory({
+          route_history: new Error("synthetic SQLite read failure"),
+        }),
+      });
+
+      await expect(collect(a.sync({}))).rejects.toMatchObject({
+        code: "BAIDU_MAP_SQLITE_SOURCE_UNREADABLE",
+        table: "route_history",
+        operation: "read",
+      });
     } finally {
       fs.unlinkSync(p);
     }

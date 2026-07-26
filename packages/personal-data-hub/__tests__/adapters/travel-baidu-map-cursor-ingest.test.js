@@ -117,6 +117,13 @@ function sqliteDriver({
         queries.push(sql);
         return {
           all() {
+            if (sql.includes("FROM sqlite_master")) {
+              return [
+                { name: "route_history" },
+                { name: "search_history" },
+                { name: "my_favourite" },
+              ];
+            }
             if (sql.includes("route_history")) return routes;
             if (sql.includes("search_history")) return searches;
             if (sql.includes("my_favourite")) return favourites;
