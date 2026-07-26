@@ -24,7 +24,10 @@ const { NULL_SIGN_PROVIDER } = require("../../sign-providers");
 const { extractRecognizedArray } = require("../../source-page");
 
 const DEFAULT_BASE_URL = "https://www.toutiao.com/";
-const DEFAULT_MAX_PAGES = 10;
+const DEFAULT_MAX_PAGES = Number.POSITIVE_INFINITY;
+const FEED_PAGE_SIZE = 50;
+const COLLECTION_PAGE_SIZE = 200;
+const SEARCH_PAGE_SIZE = 100;
 
 const BROWSER_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
@@ -324,7 +327,8 @@ class ToutiaoApiClient {
    */
   async fetchFeed(cookie, opts = {}) {
     const limit =
-      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 50;
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const pageSize = Math.min(limit, FEED_PAGE_SIZE);
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0
         ? opts.maxPages
@@ -338,7 +342,7 @@ class ToutiaoApiClient {
       url.searchParams.set("category", "__all__");
       url.searchParams.set("aid", AID_TOUTIAO_WEB);
       url.searchParams.set("client_extra_params", "{}");
-      url.searchParams.set("count", String(limit));
+      url.searchParams.set("count", String(pageSize));
       if (cursor != null) {
         url.searchParams.set("max_behot_time", String(cursor));
       }
@@ -402,7 +406,8 @@ class ToutiaoApiClient {
    */
   async fetchCollection(cookie, opts = {}) {
     const limit =
-      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 200;
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const pageSize = Math.min(limit, COLLECTION_PAGE_SIZE);
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0
         ? opts.maxPages
@@ -414,7 +419,7 @@ class ToutiaoApiClient {
     for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
       const url = new URL("article/v2/tab_comments/", this.baseUrl);
       url.searchParams.set("aid", AID_TOUTIAO_WEB);
-      url.searchParams.set("count", String(limit));
+      url.searchParams.set("count", String(pageSize));
       if (page > 1) url.searchParams.set("offset", String(offset));
       if (typeof opts.beforeSourceRequest === "function") {
         await opts.beforeSourceRequest({
@@ -463,7 +468,8 @@ class ToutiaoApiClient {
    */
   async fetchSearchHistory(cookie, opts = {}) {
     const limit =
-      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 100;
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const pageSize = Math.min(limit, SEARCH_PAGE_SIZE);
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0
         ? opts.maxPages
@@ -478,7 +484,7 @@ class ToutiaoApiClient {
       const url = new URL("api/search/content/", this.baseUrl);
       url.searchParams.set("aid", AID_TOUTIAO_WEB);
       url.searchParams.set("keyword", "");
-      url.searchParams.set("count", String(limit));
+      url.searchParams.set("count", String(pageSize));
       if (page > 1) url.searchParams.set("offset", String(offset));
       if (typeof opts.beforeSourceRequest === "function") {
         await opts.beforeSourceRequest({

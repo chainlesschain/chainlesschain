@@ -28,7 +28,7 @@ const { NULL_SIGN_PROVIDER } = require("../../sign-providers");
 const { extractRecognizedArray } = require("../../source-page");
 
 const DEFAULT_BASE_URL = "https://www.kuaishou.com/";
-const DEFAULT_MAX_PAGES = 10;
+const DEFAULT_MAX_PAGES = Number.POSITIVE_INFINITY;
 
 const BROWSER_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
@@ -46,6 +46,8 @@ const BROWSER_HEADERS = Object.freeze({
 const OP_FEED_RECOMMEND = "visionFeedRecommend";
 const OP_PROFILE_PHOTOS = "visionProfilePhotoList";
 const OP_SEARCH_PHOTO = "visionSearchPhoto";
+const WATCH_PAGE_SIZE = 50;
+const PROFILE_PHOTO_PAGE_SIZE = 100;
 
 function normalizeMs(v) {
   if (typeof v !== "number" || !Number.isFinite(v) || v <= 0) return 0;
@@ -237,7 +239,8 @@ class KuaishouApiClient {
    */
   async fetchWatchHistory(cookie, opts = {}) {
     const limit =
-      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 50;
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const pageSize = Math.min(limit, WATCH_PAGE_SIZE);
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0
         ? opts.maxPages
@@ -256,7 +259,7 @@ class KuaishouApiClient {
       }
       const response = await this._signedGraphQL(cookie, OP_FEED_RECOMMEND, {
         pcursor: cursor,
-        count: limit,
+        count: pageSize,
       });
       if (!response) return out;
       const feeds = this._extractGraphQlArray(
@@ -295,7 +298,8 @@ class KuaishouApiClient {
    */
   async fetchProfilePhotos(cookie, userId, opts = {}) {
     const limit =
-      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 100;
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const pageSize = Math.min(limit, PROFILE_PHOTO_PAGE_SIZE);
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0
         ? opts.maxPages
@@ -315,7 +319,7 @@ class KuaishouApiClient {
       const response = await this._signedGraphQL(cookie, OP_PROFILE_PHOTOS, {
         userId,
         pcursor: cursor,
-        count: limit,
+        count: pageSize,
         page: "profile",
       });
       if (!response) return out;
@@ -354,7 +358,7 @@ class KuaishouApiClient {
    */
   async fetchSearchHistory(cookie, opts = {}) {
     const limit =
-      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 50;
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0
         ? opts.maxPages

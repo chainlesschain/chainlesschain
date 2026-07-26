@@ -257,6 +257,120 @@ const cases = [
   },
 ];
 
+const DEEP_PAGE_COUNT = 11;
+const DEEP_PAGE_SIZE = 20;
+
+function deepPageItems(page, createItem) {
+  return Array.from({ length: DEEP_PAGE_SIZE }, (_, index) => {
+    const id = (page - 1) * DEEP_PAGE_SIZE + index + 1;
+    return createItem(id);
+  });
+}
+
+function deepPageResponse(name, url, opts) {
+  if (name === "bilibili") {
+    const page = Number(new URL(url).searchParams.get("pn"));
+    return {
+      code: 0,
+      data: {
+        list: deepPageItems(page, (id) => ({
+          mid: id,
+          uname: `user-${id}`,
+          mtime: 1700000000 + id,
+        })),
+        has_more: page < DEEP_PAGE_COUNT,
+      },
+    };
+  }
+
+  if (name === "kuaishou") {
+    const variables = JSON.parse(opts.body).variables;
+    const page = variables.pcursor
+      ? Number(String(variables.pcursor).split("-").at(-1))
+      : 1;
+    return {
+      data: {
+        visionFeedRecommend: {
+          feeds: deepPageItems(page, (id) => ({
+            photo: {
+              id: String(id),
+              caption: `photo-${id}`,
+              timestamp: 1700000000 + id,
+            },
+          })),
+          pcursor: page < DEEP_PAGE_COUNT ? `cursor-${page + 1}` : "no_more",
+        },
+      },
+    };
+  }
+
+  if (name === "toutiao") {
+    const offset = Number(new URL(url).searchParams.get("offset") || 0);
+    const page = Math.floor(offset / DEEP_PAGE_SIZE) + 1;
+    return {
+      err_no: 0,
+      data: deepPageItems(page, (id) => ({
+        group_id: String(id),
+        title: `saved-${id}`,
+        behot_time: 1700000000 + id,
+      })),
+      has_more: page < DEEP_PAGE_COUNT,
+      next_offset: page * DEEP_PAGE_SIZE,
+    };
+  }
+
+  if (name === "weibo") {
+    const page = Number(new URL(url).searchParams.get("page"));
+    return {
+      ok: 1,
+      data: {
+        favorites: deepPageItems(page, (id) => ({
+          favorited_time: String(1700000000 + id),
+          status: {
+            mid: String(id),
+            text: `favorite-${id}`,
+          },
+        })),
+        maxPage: DEEP_PAGE_COUNT,
+      },
+    };
+  }
+
+  const cursor = new URL(url).searchParams.get("cursor");
+  const page = cursor ? Number(cursor.split("-").at(-1)) : 1;
+  return {
+    success: true,
+    code: 0,
+    data: {
+      notes: deepPageItems(page, (id) => ({
+        note_id: String(id),
+        display_title: `liked-${id}`,
+      })),
+      has_more: page < DEEP_PAGE_COUNT,
+      cursor: page < DEEP_PAGE_COUNT ? `cursor-${page + 1}` : "done",
+    },
+  };
+}
+
+function expectFiniteRequestPageSize(name, calls) {
+  for (const call of calls) {
+    expect(call.url).not.toContain("Infinity");
+  }
+  if (name === "kuaishou") {
+    for (const call of calls) {
+      expect(Number.isFinite(JSON.parse(call.opts.body).variables.count)).toBe(
+        true,
+      );
+    }
+  }
+  if (name === "toutiao") {
+    for (const call of calls) {
+      const count = Number(new URL(call.url).searchParams.get("count"));
+      expect(Number.isFinite(count)).toBe(true);
+    }
+  }
+}
+
 describe("social ADB API client strict source-page matrix", () => {
   it.each(cases)(
     "$name rejects an explicit source error instead of returning []",
@@ -345,6 +459,24 @@ describe("social ADB API client strict source-page matrix", () => {
       expect(ids(items)).toEqual(["1"]);
       expect(repeated.calls).toHaveLength(2);
       expect(pageHook).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it.each(cases)(
+    "$name drains past the old default page and result budgets",
+    async ({ createClient, ids, invoke, name }) => {
+      const paged = makeJsonFetch((url, opts) =>
+        deepPageResponse(name, url, opts),
+      );
+      const client = createClient(paged.fetch);
+
+      const items = await invoke(client, {});
+      const itemIds = ids(items);
+
+      expect(itemIds).toHaveLength(DEEP_PAGE_COUNT * DEEP_PAGE_SIZE);
+      expect(new Set(itemIds).size).toBe(DEEP_PAGE_COUNT * DEEP_PAGE_SIZE);
+      expect(paged.calls).toHaveLength(DEEP_PAGE_COUNT);
+      expectFiniteRequestPageSize(name, paged.calls);
     },
   );
 

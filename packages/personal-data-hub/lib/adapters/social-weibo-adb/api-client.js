@@ -37,7 +37,7 @@
 const { extractRecognizedArray } = require("../../source-page");
 
 const DEFAULT_BASE_URL = "https://m.weibo.cn/";
-const DEFAULT_MAX_PAGES = 10;
+const DEFAULT_MAX_PAGES = Number.POSITIVE_INFINITY;
 
 // Pinned Chrome 120 mobile UA — must look like a browser, default
 // `node-fetch/x.y.z` returns -100 silentband.
@@ -206,7 +206,7 @@ class WeiboApiClient {
    */
   async fetchPosts(cookie, uid, opts = {}) {
     const limit =
-      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 100;
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0
         ? opts.maxPages
@@ -277,7 +277,7 @@ class WeiboApiClient {
   /** Mirrors fetchFavourites. */
   async fetchFavourites(cookie, opts = {}) {
     const limit =
-      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 100;
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0
         ? opts.maxPages
@@ -341,7 +341,7 @@ class WeiboApiClient {
   /** Mirrors fetchFollows. */
   async fetchFollows(cookie, uid, opts = {}) {
     const limit =
-      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 200;
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0
         ? opts.maxPages

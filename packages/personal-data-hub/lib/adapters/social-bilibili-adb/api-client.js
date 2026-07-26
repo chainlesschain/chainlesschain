@@ -33,7 +33,8 @@ const crypto = require("node:crypto");
 const { extractRecognizedArray } = require("../../source-page");
 
 const DEFAULT_BASE_URL = "https://api.bilibili.com/";
-const DEFAULT_MAX_PAGES = 10;
+const DEFAULT_MAX_PAGES = Number.POSITIVE_INFINITY;
+const FAVOURITES_PAGE_SIZE = 50;
 
 // Bilibili WBI signature mixin key reorder table — fixed 64-index list the
 // web client uses to derive `mixin_key` from `img_key + sub_key`. Mirrors
@@ -390,7 +391,7 @@ class BilibiliApiClient {
    */
   async fetchHistory(cookie, opts = {}) {
     const limit =
-      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 200;
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0
         ? opts.maxPages
@@ -491,7 +492,8 @@ class BilibiliApiClient {
     const perFolderLimit =
       Number.isInteger(opts.perFolderLimit) && opts.perFolderLimit > 0
         ? opts.perFolderLimit
-        : 50;
+        : Infinity;
+    const folderPageSize = Math.min(perFolderLimit, FAVOURITES_PAGE_SIZE);
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0
         ? opts.maxPages
@@ -535,7 +537,7 @@ class BilibiliApiClient {
       ) {
         const rawItemsUrl = new URL("x/v3/fav/resource/list", this.baseUrl);
         rawItemsUrl.searchParams.set("media_id", String(folderId));
-        rawItemsUrl.searchParams.set("ps", String(perFolderLimit));
+        rawItemsUrl.searchParams.set("ps", String(folderPageSize));
         rawItemsUrl.searchParams.set("pn", String(page));
         // Real-device 2026-05-22: missing `platform=web` returns code=-400.
         rawItemsUrl.searchParams.set("platform", "web");
@@ -592,7 +594,7 @@ class BilibiliApiClient {
           folderItems >= perFolderLimit ||
           !hasNextPage(itemsJson.data, {
             page,
-            pageSize: perFolderLimit,
+            pageSize: folderPageSize,
             pageItemCount: medias.length,
             seenCount: folderRowsSeen,
           })
@@ -611,7 +613,7 @@ class BilibiliApiClient {
    */
   async fetchDynamics(cookie, opts = {}) {
     const limit =
-      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 50;
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0
         ? opts.maxPages
@@ -698,7 +700,7 @@ class BilibiliApiClient {
    */
   async fetchFollows(cookie, uid, opts = {}) {
     const limit =
-      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 200;
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0
         ? opts.maxPages

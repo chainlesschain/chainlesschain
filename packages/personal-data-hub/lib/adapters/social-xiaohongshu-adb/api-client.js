@@ -23,7 +23,7 @@ const { NULL_SIGN_PROVIDER } = require("../../sign-providers");
 const { extractRecognizedArray } = require("../../source-page");
 
 const DEFAULT_BASE_URL = "https://edith.xiaohongshu.com/";
-const DEFAULT_MAX_PAGES = 10;
+const DEFAULT_MAX_PAGES = Number.POSITIVE_INFINITY;
 
 const BROWSER_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
@@ -237,7 +237,7 @@ class XhsApiClient {
    */
   async fetchNotes(cookie, a1, userId, opts = {}) {
     const limit =
-      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 30;
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0
         ? opts.maxPages
@@ -298,7 +298,7 @@ class XhsApiClient {
    */
   async fetchLiked(cookie, a1, opts = {}) {
     const limit =
-      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 30;
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0
         ? opts.maxPages
@@ -353,7 +353,7 @@ class XhsApiClient {
    */
   async fetchFollows(cookie, a1, userId, opts = {}) {
     const limit =
-      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 100;
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
       Number.isInteger(opts.maxPages) && opts.maxPages > 0
         ? opts.maxPages
