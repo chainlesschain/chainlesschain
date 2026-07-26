@@ -900,11 +900,17 @@ export function launchBackgroundAgent({
   };
   writeBackgroundAgentState(state);
   let child;
+  let workerLogFd;
   try {
+    // Preserve loader/bootstrap failures that happen before the worker can
+    // open its own append handle. This also gives detached Windows targets
+    // concrete inheritable stdout/stderr handles instead of relying on the
+    // hosted process' possibly absent standard handles.
+    workerLogFd = openSync(job.logFile, "a");
     child = _deps.spawn(process.execPath, [worker, jobFile], {
       cwd,
       detached: true,
-      stdio: "ignore",
+      stdio: ["ignore", workerLogFd, workerLogFd],
       windowsHide: true,
       origin: "background-agent:worker",
       policy: "allow",
@@ -915,6 +921,10 @@ export function launchBackgroundAgent({
     rmSync(jobFile, { force: true });
     rmSync(statePath(id), { force: true });
     throw error;
+  } finally {
+    if (Number.isInteger(workerLogFd)) {
+      closeSync(workerLogFd);
+    }
   }
   // Async spawn failures (EPERM, cwd raced away between the check and the
   // spawn, …) arrive as an 'error' event on the detached child. Reap them

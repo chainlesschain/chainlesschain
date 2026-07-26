@@ -242,12 +242,15 @@ describe("background agent supervisor", () => {
     expect(readBackgroundAgentState(state.id)).not.toHaveProperty("argv");
     expect(_deps.spawn.mock.calls[0][2]).toMatchObject({
       detached: true,
-      stdio: "ignore",
+      stdio: ["ignore", expect.any(Number), expect.any(Number)],
       origin: "background-agent:worker",
       policy: "allow",
       scope: "background-agent",
       shell: false,
     });
+    expect(_deps.spawn.mock.calls[0][2].stdio[1]).toBe(
+      _deps.spawn.mock.calls[0][2].stdio[2],
+    );
   });
 
   it("lists sessions newest first and filters terminal states", () => {
