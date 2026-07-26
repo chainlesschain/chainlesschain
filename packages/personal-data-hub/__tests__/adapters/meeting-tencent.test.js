@@ -14,8 +14,10 @@ const {
   TencentMeetingAdapter,
   TENCENT_MEETING_NAME,
   TENCENT_MEETING_VERSION,
+  DEFAULT_MAX_PARTICIPANTS,
   defaultTencentMeetingRoot,
   findTencentMeetingHistoryDb,
+  MAX_MAX_PARTICIPANTS,
   MAX_PARTICIPANTS_JSON_BYTES,
   readTencentMeetingHistory,
   unixTimeToMs,
@@ -215,6 +217,31 @@ afterEach(() => {
 });
 
 describe("Tencent Meeting local history reader", () => {
+  it("collects participants beyond the former 1,000-person default", () => {
+    buildFixture();
+    const participantCount = 1_001;
+    const participants = Array.from(
+      { length: participantCount },
+      (_, index) => ({
+        nick_name: `Participant ${index}`,
+        app_uid: `participant-${index}`,
+      }),
+    );
+    replaceFixtureParticipants(JSON.stringify(participants), participantCount);
+
+    const result = readTencentMeetingHistory(dbPath, {
+      sourceMtimeMs: SOURCE_MTIME_MS,
+    });
+    const meeting = result.meetings.find(
+      (entry) => entry.meetingId === "secret-meeting-a",
+    );
+
+    expect(DEFAULT_MAX_PARTICIPANTS).toBe(MAX_MAX_PARTICIPANTS);
+    expect(meeting.participants).toHaveLength(participantCount);
+    expect(meeting.participantsTruncated).toBe(false);
+    expect(result.complete).toBe(true);
+  });
+
   it("resolves official Windows and macOS data roots", () => {
     expect(
       defaultTencentMeetingRoot({

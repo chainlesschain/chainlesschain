@@ -26,7 +26,7 @@ const WATERMARK_LOOKBACK_MS = 1000;
 const DEFAULT_PAGE_SIZE = 5000;
 const MAX_PAGE_SIZE = 50_000;
 const DEFAULT_MAX_PAGES = 20;
-const MAX_SCAN_RECORDS = 50_000;
+const MAX_SCAN_RECORDS = HARD_MAX_RECORDS;
 const SAFE_FILE_TYPES = new Set([
   "code",
   "config",

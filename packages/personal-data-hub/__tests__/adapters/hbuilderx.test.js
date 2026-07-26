@@ -20,7 +20,19 @@ const {
   HBUILDERX_NAME,
   HBUILDERX_VERSION,
   HBUILDERX_WATERMARK_LOOKBACK_MS,
+  DEFAULT_MAX_FILE_BYTES,
+  DEFAULT_MAX_LINE_CHARS,
+  DEFAULT_MAX_RECORDS,
+  DEFAULT_MAX_ROOTS,
+  DEFAULT_MAX_SECTIONS,
+  DEFAULT_MAX_TOTAL_BYTES,
+  HARD_MAX_FILE_BYTES,
   HARD_MAX_FILES,
+  HARD_MAX_LINE_CHARS,
+  HARD_MAX_RECORDS,
+  HARD_MAX_ROOTS,
+  HARD_MAX_SECTIONS,
+  HARD_MAX_TOTAL_BYTES,
   defaultHBuilderXHomes,
   inspectHBuilderXLocalData,
   parseHBuilderXDateTime,
@@ -88,6 +100,15 @@ afterEach(() => {
 });
 
 describe("HBuilderX local metadata discovery", () => {
+  it("uses the audited hard ceilings as complete-scan defaults", () => {
+    expect(DEFAULT_MAX_ROOTS).toBe(HARD_MAX_ROOTS);
+    expect(DEFAULT_MAX_FILE_BYTES).toBe(HARD_MAX_FILE_BYTES);
+    expect(DEFAULT_MAX_TOTAL_BYTES).toBe(HARD_MAX_TOTAL_BYTES);
+    expect(DEFAULT_MAX_SECTIONS).toBe(HARD_MAX_SECTIONS);
+    expect(DEFAULT_MAX_LINE_CHARS).toBe(HARD_MAX_LINE_CHARS);
+    expect(DEFAULT_MAX_RECORDS).toBe(HARD_MAX_RECORDS);
+  });
+
   it("discovers activity beyond the former 256-file default boundary", () => {
     const fileCount = 257;
     for (let index = 0; index < fileCount; index++) {

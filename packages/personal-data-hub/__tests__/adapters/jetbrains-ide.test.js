@@ -78,6 +78,18 @@ afterEach(() => {
 });
 
 describe("JetBrainsIdeAdapter contract and discovery", () => {
+  it("discovers product configs beyond the former 100-directory default", () => {
+    const configCount = 101;
+    for (let index = 0; index < configCount; index++) {
+      makeProductConfig(`IdeaIC${String(index).padStart(3, "0")}`, []);
+    }
+
+    const result = discoverJetBrainsProductConfigs(configRoot);
+
+    expect(result.configs).toHaveLength(configCount);
+    expect(result.complete).toBe(true);
+  });
+
   it("conforms to the adapter contract with stable metadata", () => {
     const adapter = new JetBrainsIdeAdapter();
     expect(assertAdapter(adapter)).toEqual({ ok: true });

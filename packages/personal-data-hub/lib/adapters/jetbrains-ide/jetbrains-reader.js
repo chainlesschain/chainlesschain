@@ -17,7 +17,7 @@ const os = require("node:os");
 const path = require("node:path");
 
 const MAX_RECENT_PROJECTS_XML_BYTES = 8 * 1024 * 1024;
-const DEFAULT_MAX_PRODUCT_CONFIGS = 100;
+const DEFAULT_MAX_PRODUCT_CONFIGS = Number.POSITIVE_INFINITY;
 const DEFAULT_MAX_PROJECTS = 100_000;
 
 const PRODUCT_NAMES = Object.freeze({
