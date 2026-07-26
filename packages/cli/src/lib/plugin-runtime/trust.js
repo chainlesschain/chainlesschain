@@ -21,16 +21,17 @@
  * running untrusted SHELL/binaries behind the user's back.
  */
 
-import fs from "fs";
 import path from "path";
 import { getElectronUserDataDir } from "../paths.js";
+import { withFileLock } from "../with-file-lock.js";
+import {
+  mutateSecurityStore,
+  readSecurityStore,
+} from "../durable-security-store.js";
 
 export const _deps = {
-  existsSync: fs.existsSync,
-  readFileSync: fs.readFileSync,
-  writeFileSync: fs.writeFileSync,
-  mkdirSync: fs.mkdirSync,
   now: () => new Date().toISOString(),
+  withFileLock,
   // Path of the trust store; injectable so unit tests never touch the real
   // user-data dir.
   storePath: () => path.join(getElectronUserDataDir(), "plugin-trust.json"),
@@ -39,20 +40,7 @@ export const _deps = {
 const AUTO_TRUSTED_SCOPES = new Set(["user", "local"]);
 
 export function loadTrustStore() {
-  try {
-    const p = _deps.storePath();
-    if (!_deps.existsSync(p)) return {};
-    const data = JSON.parse(_deps.readFileSync(p, "utf8"));
-    return data && typeof data === "object" && !Array.isArray(data) ? data : {};
-  } catch {
-    return {};
-  }
-}
-
-function saveTrustStore(store) {
-  const p = _deps.storePath();
-  _deps.mkdirSync(path.dirname(p), { recursive: true });
-  _deps.writeFileSync(p, JSON.stringify(store, null, 2), "utf8");
+  return readSecurityStore(_deps.storePath(), "plugin trust");
 }
 
 function trustKey(scope, name) {
@@ -66,27 +54,44 @@ function trustKey(scope, name) {
 export function isPluginTrusted(plugin) {
   if (!plugin || !plugin.name) return false;
   if (AUTO_TRUSTED_SCOPES.has(plugin.scope)) return true;
-  const entry = loadTrustStore()[trustKey(plugin.scope, plugin.name)];
-  return Boolean(entry && entry.version === plugin.version);
+  try {
+    const entry = loadTrustStore()[trustKey(plugin.scope, plugin.name)];
+    return Boolean(entry && entry.version === plugin.version);
+  } catch {
+    // Project code must stay disabled when the trust store is unavailable.
+    return false;
+  }
 }
 
 /** Trust a plugin (records the exact version). */
 export function trustPlugin(name, { scope = "project", version } = {}) {
   if (!version) throw new Error("trustPlugin requires a version");
-  const store = loadTrustStore();
-  store[trustKey(scope, name)] = { version, trustedAt: _deps.now() };
-  saveTrustStore(store);
-  return { name, scope, version };
+  const file = _deps.storePath();
+  return mutateSecurityStore(
+    file,
+    "plugin trust",
+    (store) => {
+      store[trustKey(scope, name)] = { version, trustedAt: _deps.now() };
+      return { name, scope, version };
+    },
+    { lock: _deps.withFileLock },
+  );
 }
 
 /** Revoke trust for a plugin at a scope. */
 export function untrustPlugin(name, { scope = "project" } = {}) {
-  const store = loadTrustStore();
-  const key = trustKey(scope, name);
-  const existed = Object.prototype.hasOwnProperty.call(store, key);
-  delete store[key];
-  saveTrustStore(store);
-  return { name, scope, removed: existed };
+  const file = _deps.storePath();
+  return mutateSecurityStore(
+    file,
+    "plugin trust",
+    (store) => {
+      const key = trustKey(scope, name);
+      const existed = Object.prototype.hasOwnProperty.call(store, key);
+      delete store[key];
+      return { name, scope, removed: existed };
+    },
+    { lock: _deps.withFileLock },
+  );
 }
 
 /** All trust entries (for `cc plugin trust --list`). */

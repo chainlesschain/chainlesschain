@@ -17,6 +17,8 @@ import { withFileLock } from "../lib/with-file-lock.js";
 import { getConfigPath } from "../lib/paths.js";
 import { createHash } from "node:crypto";
 import { hostname } from "node:os";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 
 const FLAG_REGISTRY = {
   BACKGROUND_TASKS: {
@@ -115,14 +117,19 @@ export function listFeatures() {
 export function setFeature(name, value) {
   // Serialize the read-modify-write across processes so two concurrent
   // `cc config features enable/disable` invocations don't clobber each other
-  // (and to space out writes so the atomic rename doesn't collide). Mirrors
-  // setConfigValue; the lock is best-effort and never hangs the CLI.
-  withFileLock(getConfigPath(), () => {
-    const config = loadConfig();
-    if (!config.features) config.features = {};
-    config.features[name] = value;
-    saveConfig(config);
-  });
+  // (and to space out writes so the atomic rename doesn't collide).
+  const configPath = getConfigPath();
+  mkdirSync(dirname(configPath), { recursive: true });
+  withFileLock(
+    configPath,
+    () => {
+      const config = loadConfig({ failIfUnavailable: true });
+      if (!config.features) config.features = {};
+      config.features[name] = value;
+      saveConfig(config);
+    },
+    { failIfUnavailable: true },
+  );
 }
 
 export function getFlagInfo(name) {

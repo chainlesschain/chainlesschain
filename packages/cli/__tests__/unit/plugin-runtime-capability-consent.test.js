@@ -4,7 +4,7 @@
  * (empty / never / widened / covered / narrowed) and the injected store
  * round-trip (grant → isConsented → widen revokes → revoke → list).
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -19,17 +19,17 @@ import {
   _deps,
 } from "../../src/lib/plugin-runtime/capability-consent.js";
 
-let dir, store, origStorePath;
+let dir, store, originalDeps;
 
 beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-capconsent-"));
   store = path.join(dir, "consent.json");
-  origStorePath = _deps.storePath;
+  originalDeps = { ..._deps };
   _deps.storePath = () => store;
 });
 
 afterEach(() => {
-  _deps.storePath = origStorePath;
+  Object.assign(_deps, originalDeps);
   try {
     fs.rmSync(dir, { recursive: true, force: true });
   } catch {
@@ -179,5 +179,57 @@ describe("consent store round-trip", () => {
     expect(() => consentPluginCapabilities("x", { scope: "project" })).toThrow(
       /version/,
     );
+  });
+
+  it("holds a fail-closed lock around the complete mutation", () => {
+    const realLock = _deps.withFileLock;
+    _deps.withFileLock = vi.fn((target, body, options) =>
+      realLock(target, body, options),
+    );
+
+    consentPluginCapabilities("locked", {
+      scope: "project",
+      version: "1.0.0",
+      capabilities: { process: true },
+    });
+
+    expect(_deps.withFileLock).toHaveBeenCalledWith(
+      store,
+      expect.any(Function),
+      expect.objectContaining({ failIfUnavailable: true }),
+    );
+  });
+
+  it("does not overwrite an unavailable or corrupt consent store", () => {
+    fs.writeFileSync(store, "{broken", "utf8");
+    expect(
+      isPluginCapabilityConsented(plugin, { process: true }),
+    ).toBe(false);
+    expect(() =>
+      consentPluginCapabilities("greeter", {
+        scope: "project",
+        version: "1.0.0",
+        capabilities: { process: true },
+      }),
+    ).toThrow(/corrupt/i);
+    expect(fs.readFileSync(store, "utf8")).toBe("{broken");
+  });
+
+  it("propagates lock failure without writing a grant", () => {
+    const error = Object.assign(new Error("busy"), {
+      code: "STATE_LOCK_UNAVAILABLE",
+    });
+    _deps.withFileLock = vi.fn(() => {
+      throw error;
+    });
+
+    expect(() =>
+      consentPluginCapabilities("greeter", {
+        scope: "project",
+        version: "1.0.0",
+        capabilities: { process: true },
+      }),
+    ).toThrow(error);
+    expect(fs.existsSync(store)).toBe(false);
   });
 });

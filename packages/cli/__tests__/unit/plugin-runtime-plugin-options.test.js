@@ -2,7 +2,7 @@
  * Plugin optionsSchema resolution + sensitive project-scope gate (P1 plugin).
  * Pure resolver + injected-IO store — never touches real dirs.
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { normalizeOptionsSchema } from "../../src/lib/plugin-runtime/capabilities.js";
 import {
   resolvePluginOptions,
@@ -19,6 +19,7 @@ const schema = normalizeOptionsSchema({
   apiKey: { type: "string", sensitive: true },
   userOnly: { type: "string", scope: "user" },
 });
+const originalDeps = { ..._deps };
 
 describe("resolvePluginOptions (pure)", () => {
   it("returns defaults with no config", () => {
@@ -90,16 +91,27 @@ describe("plugin-options store (injected IO)", () => {
     _deps.projectStorePath = () => "PROJ";
     _deps.existsSync = (p) => (p === "USER" ? userMem._ : projMem._) != null;
     _deps.readFileSync = (p) => (p === "USER" ? userMem._ : projMem._);
+    const temporary = new Map();
     _deps.writeFileSync = (p, c) => {
-      if (p === "USER") userMem._ = c;
-      else projMem._ = c;
+      temporary.set(p, c);
     };
+    _deps.renameSync = (from, to) => {
+      const value = temporary.get(from);
+      if (to === "USER") userMem._ = value;
+      else projMem._ = value;
+      temporary.delete(from);
+    };
+    _deps.unlinkSync = (p) => temporary.delete(p);
     _deps.mkdirSync = () => {};
+    _deps.withFileLock = vi.fn((_target, body) => body({ locked: true }));
     _deps.secretStore = () => ({
       set: (k, v) => secrets.set(k, String(v)),
       get: (k) => secrets.get(k) ?? null,
       delete: (k) => secrets.delete(k),
     });
+  });
+  afterEach(() => {
+    Object.assign(_deps, originalDeps);
   });
 
   it("round-trips values per scope + plugin", () => {
@@ -142,5 +154,28 @@ describe("plugin-options store (injected IO)", () => {
       __cc_rejected_sensitive: ["apiKey"],
     });
     expect(secrets.size).toBe(0);
+  });
+
+  it("fails closed without overwriting corrupt credential metadata", () => {
+    userMem._ = "{broken";
+    expect(() =>
+      setPluginOptionValues(
+        "p1",
+        { apiKey: "new-secret" },
+        "user",
+        { schema },
+      ),
+    ).toThrow(/option store/i);
+    expect(userMem._).toBe("{broken");
+    expect(secrets.size).toBe(0);
+  });
+
+  it("holds a fail-closed lock around secret and metadata updates", () => {
+    setPluginOptionValues("p1", { apiKey: "secret" }, "user", { schema });
+    expect(_deps.withFileLock).toHaveBeenCalledWith(
+      "USER",
+      expect.any(Function),
+      expect.objectContaining({ failIfUnavailable: true }),
+    );
   });
 });

@@ -22,7 +22,7 @@ export const _deps = {
   },
 };
 
-export function loadConfig() {
+export function loadConfig({ failIfUnavailable = false } = {}) {
   const configPath = getConfigPath();
   if (!existsSync(configPath)) {
     return { ...structuredClone(DEFAULT_CONFIG) };
@@ -32,6 +32,14 @@ export function loadConfig() {
     const parsed = JSON.parse(raw);
     return deepMerge(structuredClone(DEFAULT_CONFIG), parsed);
   } catch (err) {
+    if (failIfUnavailable) {
+      const error = new Error(
+        `Could not read durable config at ${configPath}: ${err.message}`,
+        { cause: err },
+      );
+      error.code = "CONFIG_STORE_UNAVAILABLE";
+      throw error;
+    }
     // The file EXISTS but couldn't be read/parsed (a typo, trailing comma, or
     // truncated write). Silently returning defaults drops the user's entire
     // config — provider, model, baseUrl, API key — and falls back to the
@@ -134,14 +142,20 @@ export function getConfigValue(key) {
 export function setConfigValue(key, value) {
   // Serialize the read-modify-write across processes: two concurrent
   // `cc config set` invocations would otherwise each load, mutate, and write
-  // back, silently losing one update. Best-effort lock (see with-file-lock):
-  // on contention timeout it proceeds anyway, so the CLI never hangs.
-  return withFileLock(getConfigPath(), () => {
-    const config = loadConfig();
-    setNestedValue(config, key, parseValue(value));
-    saveConfig(config);
-    return config;
-  });
+  // back, silently losing one update. Configuration can carry credentials and
+  // permission policy, so bounded lock failure must never write unlocked.
+  const configPath = getConfigPath();
+  mkdirSync(dirname(configPath), { recursive: true });
+  return withFileLock(
+    configPath,
+    () => {
+      const config = loadConfig({ failIfUnavailable: true });
+      setNestedValue(config, key, parseValue(value));
+      saveConfig(config);
+      return config;
+    },
+    { failIfUnavailable: true },
+  );
 }
 
 export function resetConfig() {

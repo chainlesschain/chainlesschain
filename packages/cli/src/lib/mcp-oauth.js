@@ -49,6 +49,7 @@ export const _deps = {
   warn: (msg) => {
     if (!process.env.VITEST) process.stderr.write(msg);
   },
+  withStoreLock,
 };
 
 /** Discovery/token requests retry ONCE after a transient error (CC 2.1.191). */
@@ -500,29 +501,36 @@ function _sleepSyncMs(ms) {
  * lost update. An O_EXCL lockfile makes the whole RMW mutually exclusive across
  * processes, so each writer re-reads the latest store inside the lock.
  *
- * Robustness: a stale lock (holder crashed) older than STALE_MS is stolen; if
- * the lock can't be acquired within MAX_WAIT_MS we proceed anyway (degrading to
- * the pre-lock last-writer-wins rather than failing the login). When the
- * injected fs lacks the lock primitives (test fs / exotic fs) we run `fn`
- * directly — single-process correctness is unchanged, only cross-process mutual
- * exclusion is lost. Lock timing uses the wall clock (not the `now` test seam).
+ * Robustness: a stale lock (holder crashed) older than STALE_MS is stolen.
+ * Credential metadata is critical, so missing lock primitives, unexpected lock
+ * errors, and bounded contention all fail closed instead of running `fn`
+ * without exclusion. Lock timing uses the wall clock (not the `now` test seam).
  */
-function withStoreLock(file, fn) {
+export function withStoreLock(file, fn) {
   const fs = _deps.fs;
   if (
     typeof fs.openSync !== "function" ||
     typeof fs.closeSync !== "function" ||
     typeof fs.unlinkSync !== "function"
   ) {
-    return fn(); // no lock primitives → run unlocked (back-compat)
+    const error = new Error(
+      `MCP OAuth token store lock primitives unavailable: ${file}`,
+    );
+    error.code = "MCP_TOKEN_STORE_LOCK_UNAVAILABLE";
+    throw error;
   }
   const STALE_MS = 10_000;
   const MAX_WAIT_MS = 5_000;
   const lockPath = `${file}.lock`;
   try {
     fs.mkdirSync(pathDefault.dirname(file), { recursive: true, mode: 0o700 });
-  } catch {
-    /* dir may already exist — openSync below reports any real problem */
+  } catch (cause) {
+    const error = new Error(
+      `Could not prepare MCP OAuth token store lock: ${file}`,
+      { cause },
+    );
+    error.code = "MCP_TOKEN_STORE_LOCK_UNAVAILABLE";
+    throw error;
   }
   const start = Date.now();
   let fd = null;
@@ -532,9 +540,12 @@ function withStoreLock(file, fn) {
       break;
     } catch (err) {
       if (!err || err.code !== "EEXIST") {
-        // Unexpected (e.g. ENOENT/EACCES): don't fail the login over the lock —
-        // proceed unlocked, same as a missing-primitives fs.
-        return fn();
+        const error = new Error(
+          `Could not acquire MCP OAuth token store lock: ${file}`,
+          { cause: err },
+        );
+        error.code = "MCP_TOKEN_STORE_LOCK_UNAVAILABLE";
+        throw error;
       }
       let stale = false;
       try {
@@ -552,7 +563,14 @@ function withStoreLock(file, fn) {
         }
         continue;
       }
-      if (Date.now() - start > MAX_WAIT_MS) break; // give up waiting; proceed
+      if (Date.now() - start > MAX_WAIT_MS) {
+        const error = new Error(
+          `Timed out acquiring MCP OAuth token store lock: ${file}`,
+          { cause: err },
+        );
+        error.code = "MCP_TOKEN_STORE_LOCK_UNAVAILABLE";
+        throw error;
+      }
       _sleepSyncMs(50);
     }
   }
@@ -576,7 +594,7 @@ function withStoreLock(file, fn) {
 
 export function saveStoredToken(serverUrl, record) {
   const file = tokenStorePath();
-  return withStoreLock(file, () => {
+  return _deps.withStoreLock(file, () => {
     const r = _readStore(file); // re-read inside the lock (latest state)
     if (!r.ok) {
       // The existing store is unreadable. Writing a fresh single-entry store
@@ -594,16 +612,12 @@ export function saveStoredToken(serverUrl, record) {
 
 export function deleteStoredToken(serverUrl) {
   const file = tokenStorePath();
-  return withStoreLock(file, () => {
+  return _deps.withStoreLock(file, () => {
     const store = loadTokenStore(); // re-read inside the lock (latest state)
     const key = serverKey(serverUrl);
     if (!(key in store)) return false;
     delete store[key];
-    try {
-      _writeStoreSecure(file, store);
-    } catch {
-      /* best-effort */
-    }
+    _writeStoreSecure(file, store);
     return true;
   });
 }

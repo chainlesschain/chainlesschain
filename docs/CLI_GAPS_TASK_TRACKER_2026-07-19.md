@@ -255,7 +255,7 @@ Windows Node IPC/detached 语义及真实三平台 CI 尚未完成
 | P1-7  | Context 来源归因     | ✅ 双层 Skill 缓存与交互式快照已完成        | `cc context --sources` 已对 instruction 文件、实际注入 persona Skill、admitted MCP schema、普通 Skill descriptor/body 按需读取、缓存命中及实际 prompt 注入分别计费；Headless 与交互 REPL 共用单一 Skill loader，并持续写入无正文 `context_sources` 快照                                                                 |
 | P1-8  | Checkpoint REPL 统一 | ✅ 统一 producer 与归因闭环                 | Agent Core 输出 provider 原始 `tool_use_id`/turn id/permission decision/checkpoint；Headless 与 REPL 共用 `createTurnBindingFeed`，交互 turn 逐次 fail-closed 持久化；child trace/checkpoint/tool/worktree、IDE user edit 与顶层 `--worktree` branch 均进入父 turn，shell/外部副作用诚实标为 partial                         |
 | P1-9  | Plugin 安全强化      | 🟡 legacy 旁路与 direct URL egress 已补     | 签名/manifest SHA-256、trusted key、SBOM、capability consent、managed allow/deny、OS secret 与插件执行 Broker provenance 已有；强制 consent 同时强制 permissions 声明，另有独立 managed/env declaration gate；插件 URL MCP hostname 按声明 domain 连接前拒绝；stdio/native 外部宿主的跨平台 network/filesystem 强隔离仍依赖 P0 收口 |
-| P1-10 | 并发状态 fail-closed | 🟡 关键调度/会话状态已补                    | `withFileLock(failIfUnavailable)` + Agenda claim lease、Event Runtime 与 JSONL session append 已 fail-closed；approval/部分 ledger/IDE session 状态仍待统一迁移                                                                                                                                                            |
+| P1-10 | 并发状态 fail-closed | ✅ 关键状态分级与跨宿主锁已完成             | Approval CAS、side-effect/turn/session、Agenda/Event Runtime、Cowork delivery lease、goal/config/MTC ledger、plugin/MCP trust/consent/凭据元数据均有界 fail-closed；VS Code/JetBrains 共享同一 `.lock` 目录协议与原子 session-index 写入；仅 Advisory cache 保留 best-effort                                                                 |
 | P1-11 | JSON Schema 完整支持 | 🟡 常用 vocabulary + external registry 已补 | Draft 2020-12 常用关键字、dependent/pattern/contains/propertyNames、local `$ref`、显式 external schema registry、组合/条件、format、structured_result 已有；完整 meta-vocabulary、自动远程 ref 与复杂互操作仍待补                                                                                                          |
 | P1-12 | SDK/CI 事件透传      | ✅ 源码完成；Python 0.1.0 基线已发布        | 当前 TypeScript + Python 源码覆盖契约中的 24 类 typed stream 事件（含 defer/complete）、approval/question/MCP elicitation callback、resume 与未知事件无损透传；共享 protocol fixture、穷举 CI consumer、GitHub Actions 模板及 22 项 hermetic 测试已补；已发布的 Python 0.1.0 是此前 22 类事件基线并通过 3.10/3.12/3.13 公网 wheel 烟测，本轮两个新增事件尚未发布新版本 |
 | P1-13 | 验收门与文档清理     | ✅ 已完成                                   | 统一 parity 10/10；旧文档持续维护                                                                                                                                                                                                                                                                                          |
@@ -337,6 +337,23 @@ hostname，并按声明的精确 domain / `*.subdomain` / `network:*` 执行 fai
 定向 5 个测试文件 78/78 通过。P1-9 尚未标记完成，因为 native module 与外部宿主的
 跨平台强 network/filesystem 限制仍依赖 P0 原生隔离。
 
+**2026-07-26 P1-10 完成**：对 Critical / Durable / Advisory 状态逐项复核，
+并移除关键路径的“锁失败后无锁继续”。既有 `ApprovalAuthorityStore` 已具备锁内
+CAS revision、临时文件 fsync/rename 和损坏拒绝；side-effect ledger、turn binding
+与 JSONL session append 已默认 fail-closed。Agenda/Event Runtime 的 lease/fence
+保持不变，legacy Cowork cron 新增持久 `deliveryId`、owner、lease、续租与 fence
+结算，两个 scheduler 对同一 fire 只会有一个 owner，过期 owner 不能续租或覆盖后继
+结果。Goal、config、feature flag 与 MTC batch 的读改写也不再在锁不可用时继续。
+
+安全元数据统一采用锁内严格读取和同目录原子替换：plugin trust、capability consent、
+plugin option secret-ref、project MCP trust、MCP OAuth token、sync credential vault
+与 LAN pairing token 遇到锁失败、损坏文件或持久化失败都会保留旧状态并报错；项目
+`.mcp.json` 的 trust service/首次 fingerprint 无法持久化时不再继续加载可执行配置。
+VS Code 与 JetBrains 共享的 `ide/session-index.json` 改用完全相同的原子 `.lock`
+目录协议，写入前严格解析，锁超时或损坏时均不覆盖；VS Code 8 个真实并发进程写入
+回归无丢记录，JetBrains 定向测试通过。本轮 CLI 关键状态/Plugin 组合回归
+37 文件 775/775，VS Code 3/3，JetBrains `IdeSessionIndexTest` 通过。
+
 ### Hooks v2 producer 验收结果（40 项事件 registry）
 
 Hooks v2 当前注册 40 个生命周期事件、5 种公共 executor 和 trusted JS executor。运行时支持 programmatic
@@ -417,6 +434,7 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 - [x] **P1-6 Event Runtime 真实 binary lifecycle、跨进程 host health 与崩溃恢复演练**
 - [x] **P1-7 Context 双层 Skill cache、交互式快照与按需/命中/注入成本归因**
 - [x] **P1-8 Headless/REPL 统一 turn binding、provider id 与 child/worktree/user-edit 归因**
+- [x] **P1-10 Critical/Durable 状态 fail-closed、Cowork delivery fence 与跨 IDE session lock**
 - [x] **P1-12 TypeScript/Python SDK、共享 fixture、GitHub Actions 示例与 Python 0.1.0 基线 PyPI 发布**
 - [x] **2026-07-21 历史主仓验证**：当时的 Code Quality、CI Tests、E2E Tests 与 Full Test Automation 通过；不替代当前剩余严格隔离验收
 - [x] Notification Hook 事件（2026-07-20）
@@ -442,7 +460,7 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 | ---------- | ----------------------------------------------------------- |
 | **当前**   | P0-1 Windows IPC/detached 语义与真实三平台严格隔离 CI       |
 | **随后**   | P0-2 三平台断线重连 E2E 远端验收                            |
-| **并行**   | P1-4 跨平台强文件写沙箱、P1-9 Plugin 外部宿主与 P1-10 状态锁收口 |
+| **并行**   | P1-4 跨平台强文件写沙箱与 P1-9 Plugin 外部宿主（P1-10 状态锁已收口） |
 | **发布前** | 双语言 SDK 兼容门、真实环境 parity 与文档事实源漂移检查     |
 
 ---

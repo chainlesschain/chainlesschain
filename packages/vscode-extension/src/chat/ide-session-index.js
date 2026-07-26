@@ -18,6 +18,9 @@ const VALID_STATUS = new Set([
   "completed",
 ]);
 const MAX_RECORDS = 200;
+const DEFAULT_LOCK_TIMEOUT_MS = 2000;
+const DEFAULT_LOCK_STALE_MS = 30000;
+const DEFAULT_LOCK_RETRY_MS = 25;
 
 function defaultIndexFile(home = os.homedir()) {
   return path.join(home, ".chainlesschain", "ide", "session-index.json");
@@ -64,11 +67,24 @@ function normalizeRecord(input = {}, { now = new Date() } = {}) {
   };
 }
 
-function parseIndex(raw) {
+function indexError(code, message, cause) {
+  const error = new Error(message, cause ? { cause } : undefined);
+  error.code = code;
+  return error;
+}
+
+function parseIndex(raw, { failIfUnavailable = false } = {}) {
   let parsed;
   try {
     parsed = JSON.parse(String(raw || "").trim());
-  } catch {
+  } catch (cause) {
+    if (failIfUnavailable) {
+      throw indexError(
+        "IDE_SESSION_INDEX_CORRUPT",
+        "IDE session index contains invalid JSON",
+        cause,
+      );
+    }
     return [];
   }
   const rows = Array.isArray(parsed)
@@ -76,6 +92,16 @@ function parseIndex(raw) {
     : Array.isArray(parsed?.sessions)
       ? parsed.sessions
       : [];
+  if (
+    failIfUnavailable &&
+    !Array.isArray(parsed) &&
+    !Array.isArray(parsed?.sessions)
+  ) {
+    throw indexError(
+      "IDE_SESSION_INDEX_CORRUPT",
+      "IDE session index must contain a sessions array",
+    );
+  }
   return rows.map((r) => normalizeRecord(r)).filter(Boolean);
 }
 
@@ -105,15 +131,107 @@ function mergeRecords(existing, incoming, { limit = MAX_RECORDS, now } = {}) {
     .slice(0, limit);
 }
 
-function readIdeSessionIndex({ file = defaultIndexFile(), deps = fs } = {}) {
+function readIdeSessionIndex({
+  file = defaultIndexFile(),
+  deps = fs,
+  failIfUnavailable = false,
+} = {}) {
   try {
-    return parseIndex(deps.readFileSync(file, "utf8"));
-  } catch {
+    return parseIndex(deps.readFileSync(file, "utf8"), {
+      failIfUnavailable,
+    });
+  } catch (cause) {
+    if (cause?.code === "ENOENT") return [];
+    if (failIfUnavailable || cause?.code === "IDE_SESSION_INDEX_CORRUPT") {
+      throw cause;
+    }
     return [];
   }
 }
 
-function writeIdeSessionIndex(
+function sleepSync(ms) {
+  try {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+  } catch {
+    const deadline = Date.now() + ms;
+    while (Date.now() < deadline) {
+      // SharedArrayBuffer is unavailable; retain a bounded fallback.
+    }
+  }
+}
+
+/**
+ * Cross-process protocol shared with the JetBrains implementation. The lock is
+ * an atomic sibling DIRECTORY (`session-index.json.lock`), not an advisory file
+ * lock, so Node and JVM writers exclude one another on Windows and POSIX.
+ */
+function withIdeSessionIndexLock(file, body, opts = {}) {
+  const deps = opts.deps || fs;
+  const timeoutMs = opts.lockTimeoutMs ?? DEFAULT_LOCK_TIMEOUT_MS;
+  const staleMs = opts.lockStaleMs ?? DEFAULT_LOCK_STALE_MS;
+  const retryMs = opts.lockRetryMs ?? DEFAULT_LOCK_RETRY_MS;
+  const nowMs = opts.nowMs || Date.now;
+  const sleep = opts.sleep || sleepSync;
+  const lockDir = `${file}.lock`;
+  const deadline = nowMs() + timeoutMs;
+  let held = false;
+
+  try {
+    deps.mkdirSync(path.dirname(file), { recursive: true });
+  } catch (cause) {
+    throw indexError(
+      "IDE_SESSION_INDEX_PREPARE_FAILED",
+      `Could not prepare IDE session index directory: ${path.dirname(file)}`,
+      cause,
+    );
+  }
+
+  for (;;) {
+    try {
+      deps.mkdirSync(lockDir);
+      held = true;
+      break;
+    } catch (cause) {
+      if (cause?.code !== "EEXIST") {
+        throw indexError(
+          "IDE_SESSION_INDEX_LOCK_UNAVAILABLE",
+          `Could not acquire IDE session index lock: ${lockDir}`,
+          cause,
+        );
+      }
+      try {
+        const age = nowMs() - deps.statSync(lockDir).mtimeMs;
+        if (age > staleMs) {
+          deps.rmSync(lockDir, { recursive: true, force: true });
+          continue;
+        }
+      } catch {
+        // The holder may have released between mkdir and stat; retry boundedly.
+      }
+      if (nowMs() >= deadline) {
+        throw indexError(
+          "IDE_SESSION_INDEX_LOCK_UNAVAILABLE",
+          `Timed out acquiring IDE session index lock: ${lockDir}`,
+        );
+      }
+      sleep(retryMs);
+    }
+  }
+
+  try {
+    return body();
+  } finally {
+    if (held) {
+      try {
+        deps.rmSync(lockDir, { recursive: true, force: true });
+      } catch {
+        // The mutation is already durable. A stale lock is reclaimed later.
+      }
+    }
+  }
+}
+
+function writeIdeSessionIndexUnlocked(
   records,
   { file = defaultIndexFile(), deps = fs } = {},
 ) {
@@ -121,22 +239,55 @@ function writeIdeSessionIndex(
   deps.mkdirSync(dir, { recursive: true });
   const body = JSON.stringify({ version: 1, sessions: records || [] }, null, 2);
   const tmp = `${file}.${process.pid}.${Date.now()}.tmp`;
-  deps.writeFileSync(tmp, body, { encoding: "utf8", mode: 0o600 });
   try {
-    deps.chmodSync(tmp, 0o600);
-  } catch {
-    /* best-effort */
+    deps.writeFileSync(tmp, body, { encoding: "utf8", mode: 0o600 });
+    try {
+      deps.chmodSync(tmp, 0o600);
+    } catch {
+      /* best-effort */
+    }
+    deps.renameSync(tmp, file);
+  } catch (cause) {
+    try {
+      deps.rmSync(tmp, { force: true });
+    } catch {
+      // Preserve the original persistence error.
+    }
+    throw indexError(
+      "IDE_SESSION_INDEX_WRITE_FAILED",
+      `Could not atomically write IDE session index: ${file}`,
+      cause,
+    );
   }
-  deps.renameSync(tmp, file);
   return file;
+}
+
+function writeIdeSessionIndex(records, opts = {}) {
+  const file = opts.file || defaultIndexFile();
+  return withIdeSessionIndexLock(
+    file,
+    () => writeIdeSessionIndexUnlocked(records, { ...opts, file }),
+    opts,
+  );
 }
 
 function upsertIdeSessionRecord(record, opts = {}) {
   const now = opts.now instanceof Date ? opts.now : new Date();
-  const current = readIdeSessionIndex(opts);
-  const sessions = mergeRecords(current, record, { now });
-  writeIdeSessionIndex(sessions, opts);
-  return normalizeRecord(record, { now });
+  const file = opts.file || defaultIndexFile();
+  return withIdeSessionIndexLock(
+    file,
+    () => {
+      const current = readIdeSessionIndex({
+        ...opts,
+        file,
+        failIfUnavailable: true,
+      });
+      const sessions = mergeRecords(current, record, { now });
+      writeIdeSessionIndexUnlocked(sessions, { ...opts, file });
+      return normalizeRecord(record, { now });
+    },
+    opts,
+  );
 }
 
 /**
@@ -149,26 +300,51 @@ function renameIdeSessionRecord(id, title, opts = {}) {
   const nextTitle = cleanString(title);
   if (!key || !nextTitle) return null;
   const now = opts.now instanceof Date ? opts.now : new Date();
-  const current = readIdeSessionIndex(opts);
-  const existing = current.find((r) => r.id === key);
-  const record = {
-    ...(existing || { id: key }),
-    title: nextTitle,
-    updatedAt: now.toISOString(),
-  };
-  writeIdeSessionIndex(mergeRecords(current, record, { now }), opts);
-  return normalizeRecord(record, { now });
+  const file = opts.file || defaultIndexFile();
+  return withIdeSessionIndexLock(
+    file,
+    () => {
+      const current = readIdeSessionIndex({
+        ...opts,
+        file,
+        failIfUnavailable: true,
+      });
+      const existing = current.find((r) => r.id === key);
+      const record = {
+        ...(existing || { id: key }),
+        title: nextTitle,
+        updatedAt: now.toISOString(),
+      };
+      writeIdeSessionIndexUnlocked(mergeRecords(current, record, { now }), {
+        ...opts,
+        file,
+      });
+      return normalizeRecord(record, { now });
+    },
+    opts,
+  );
 }
 
 /** Drop a session from the shared index. Returns whether anything was removed. */
 function removeIdeSessionRecord(id, opts = {}) {
   const key = cleanString(id);
   if (!key) return false;
-  const current = readIdeSessionIndex(opts);
-  const next = current.filter((r) => r.id !== key);
-  if (next.length === current.length) return false;
-  writeIdeSessionIndex(next, opts);
-  return true;
+  const file = opts.file || defaultIndexFile();
+  return withIdeSessionIndexLock(
+    file,
+    () => {
+      const current = readIdeSessionIndex({
+        ...opts,
+        file,
+        failIfUnavailable: true,
+      });
+      const next = current.filter((r) => r.id !== key);
+      if (next.length === current.length) return false;
+      writeIdeSessionIndexUnlocked(next, { ...opts, file });
+      return true;
+    },
+    opts,
+  );
 }
 
 function toSessionItems(records) {
@@ -192,5 +368,6 @@ module.exports = {
   renameIdeSessionRecord,
   toSessionItems,
   upsertIdeSessionRecord,
+  withIdeSessionIndexLock,
   writeIdeSessionIndex,
 };

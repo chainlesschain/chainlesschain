@@ -13,12 +13,16 @@
  * Store: ~/.chainlesschain/trusted-project-mcp.json  { [absPath]: {fingerprint, trustedAt} }
  */
 
-import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { getHomeDir } from "./paths.js";
+import { withFileLock } from "./with-file-lock.js";
+import {
+  mutateSecurityStore,
+  readSecurityStore,
+} from "./durable-security-store.js";
 
-export const _deps = { fs };
+export const _deps = { withFileLock };
 
 function storePath(opts = {}) {
   return (
@@ -33,13 +37,7 @@ export function projectMcpFingerprint(content) {
 }
 
 function readStore(opts) {
-  try {
-    const raw = _deps.fs.readFileSync(storePath(opts), "utf-8");
-    const data = JSON.parse(raw);
-    return data && typeof data === "object" ? data : {};
-  } catch {
-    return {};
-  }
+  return readSecurityStore(storePath(opts), "project MCP trust");
 }
 
 /**
@@ -61,23 +59,20 @@ export function checkProjectMcpTrust(file, content, opts = {}) {
 /** Record (or re-record) the trusted fingerprint for a file. */
 export function recordProjectMcpTrust(file, content, opts = {}) {
   const target = storePath(opts);
-  const store = readStore(opts);
-  store[path.resolve(file)] = {
-    fingerprint: projectMcpFingerprint(content),
-    trustedAt: new Date(
-      typeof opts.now === "number" ? opts.now : Date.now(),
-    ).toISOString(),
-  };
-  try {
-    _deps.fs.mkdirSync(path.dirname(target), { recursive: true });
-    _deps.fs.writeFileSync(target, JSON.stringify(store, null, 2), {
-      encoding: "utf-8",
-      mode: 0o600,
-    });
-    return true;
-  } catch {
-    return false; // best-effort — a failed record just re-prompts next run
-  }
+  return mutateSecurityStore(
+    target,
+    "project MCP trust",
+    (store) => {
+      store[path.resolve(file)] = {
+        fingerprint: projectMcpFingerprint(content),
+        trustedAt: new Date(
+          typeof opts.now === "number" ? opts.now : Date.now(),
+        ).toISOString(),
+      };
+      return true;
+    },
+    { lock: _deps.withFileLock },
+  );
 }
 
 /** Truthy CC_PROJECT_MCP_TRUST → the user explicitly re-trusts this run. */

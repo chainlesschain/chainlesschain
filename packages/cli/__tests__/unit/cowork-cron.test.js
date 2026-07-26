@@ -10,6 +10,9 @@ import {
   removeSchedule,
   setScheduleEnabled,
   updateScheduleRunState,
+  claimScheduleFire,
+  renewScheduleFire,
+  settleScheduleFire,
   CoworkCronScheduler,
   ALIASES,
   _expandExpr,
@@ -30,6 +33,15 @@ function installFakeFs() {
   _deps.writeFileSync = vi.fn((p, body) => {
     files.set(p, body);
   });
+  _deps.renameSync = vi.fn((from, to) => {
+    if (!files.has(from)) throw new Error(`ENOENT: ${from}`);
+    files.set(to, files.get(from));
+    files.delete(from);
+  });
+  _deps.unlinkSync = vi.fn((p) => {
+    files.delete(p);
+  });
+  _deps.withFileLock = vi.fn((_target, body) => body({ locked: true }));
   return files;
 }
 
@@ -179,6 +191,32 @@ describe("CRUD operations", () => {
     expect(s.enabled).toBe(true);
     expect(s.lastRunAt).toBeNull();
     expect(loadSchedules("/project")).toHaveLength(1);
+    expect(_deps.withFileLock).toHaveBeenCalledWith(
+      expect.stringContaining("schedules.jsonl"),
+      expect.any(Function),
+      expect.objectContaining({ failIfUnavailable: true }),
+    );
+  });
+
+  it("does not overwrite a malformed durable schedule store", () => {
+    const file = join(
+      "/project",
+      ".chainlesschain",
+      "cowork",
+      "schedules.jsonl",
+    );
+    const malformed = '{"id":"kept"}\nnot-json\n';
+    // installFakeFs returns a private map, but its write seam models an existing
+    // file just as the real filesystem would.
+    _deps.writeFileSync(file, malformed);
+
+    expect(() =>
+      addSchedule("/project", {
+        cron: "* * * * *",
+        userMessage: "must not replace the corrupt store",
+      }),
+    ).toThrow(/malformed JSON/);
+    expect(_deps.readFileSync(file)).toBe(malformed);
   });
 
   it("removeSchedule removes by id", () => {
@@ -215,6 +253,68 @@ describe("CRUD operations", () => {
     const loaded = loadSchedules("/project")[0];
     expect(loaded.lastRunAt).toBe("2026-04-14T09:00:00Z");
     expect(loaded.lastStatus).toBe("completed");
+  });
+
+  it("uses fenced delivery leases for cross-process cron claims", () => {
+    const schedule = addSchedule("/project", {
+      cron: "* * * * *",
+      userMessage: "x",
+    });
+    const deliveryId = `${schedule.id}:2026-4-14-0-0`;
+    const first = claimScheduleFire("/project", schedule.id, deliveryId, {
+      ownerId: "owner-a",
+      now: new Date("2026-04-14T00:00:00Z"),
+      leaseMs: 1000,
+    });
+    expect(first.fence).toBe(1);
+    expect(
+      claimScheduleFire("/project", schedule.id, deliveryId, {
+        ownerId: "owner-b",
+        now: new Date("2026-04-14T00:00:00.500Z"),
+        leaseMs: 1000,
+      }),
+    ).toBeNull();
+
+    const successor = claimScheduleFire(
+      "/project",
+      schedule.id,
+      deliveryId,
+      {
+        ownerId: "owner-b",
+        now: new Date("2026-04-14T00:00:02Z"),
+        leaseMs: 1000,
+      },
+    );
+    expect(successor.fence).toBe(2);
+    expect(
+      renewScheduleFire("/project", schedule.id, first, {
+        now: new Date("2026-04-14T00:00:02Z"),
+        leaseMs: 1000,
+      }),
+    ).toBe(false);
+    expect(
+      settleScheduleFire("/project", schedule.id, first, {
+        lastStatus: "completed",
+      }),
+    ).toBe(false);
+    expect(
+      settleScheduleFire("/project", schedule.id, successor, {
+        lastRunAt: "2026-04-14T00:00:03Z",
+        lastStatus: "completed",
+      }),
+    ).toBe(true);
+    expect(
+      claimScheduleFire("/project", schedule.id, deliveryId, {
+        ownerId: "owner-c",
+        now: new Date("2026-04-14T00:00:04Z"),
+      }),
+    ).toBeNull();
+    expect(loadSchedules("/project")[0]).toMatchObject({
+      lastDeliveryId: deliveryId,
+      lastStatus: "completed",
+      activeDelivery: null,
+      deliveryFence: 2,
+    });
   });
 });
 
@@ -276,6 +376,36 @@ describe("CoworkCronScheduler", () => {
     await sched._tick();
     await new Promise((r) => setImmediate(r));
     expect(_deps.runTask).toHaveBeenCalledOnce();
+  });
+
+  it("deduplicates the same fire across scheduler instances", async () => {
+    addSchedule("/project", {
+      cron: "* * * * *",
+      userMessage: "x",
+    });
+    let finish;
+    _deps.runTask = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const first = new CoworkCronScheduler({
+      cwd: "/project",
+      ownerId: "scheduler-a",
+    });
+    const second = new CoworkCronScheduler({
+      cwd: "/project",
+      ownerId: "scheduler-b",
+    });
+
+    await first._tick();
+    await second._tick();
+    expect(_deps.runTask).toHaveBeenCalledOnce();
+
+    finish({ taskId: "task-1", status: "completed" });
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(loadSchedules("/project")[0].lastStatus).toBe("completed");
   });
 
   it("fires again on a different minute", async () => {

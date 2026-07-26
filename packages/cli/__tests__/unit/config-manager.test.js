@@ -150,7 +150,7 @@ describe("config-manager", () => {
     expect(warn).toHaveBeenCalledTimes(1);
   });
 
-  it("backs up a corrupt config before it can be clobbered", async () => {
+  it("backs up a corrupt config and refuses to clobber it", async () => {
     const mod = await import("../../src/lib/config-manager.js");
     const warn = vi.fn();
     mod._deps.warn = warn;
@@ -165,13 +165,13 @@ describe("config-manager", () => {
     // ...the warning points at it...
     expect(warn.mock.calls[0][0]).toContain(`${configPath}.corrupted`);
 
-    // ...and a subsequent save (which overwrites the broken file with
-    // defaults+new values) no longer destroys the user's last good data.
-    mod.setConfigValue("edition", "enterprise");
-    expect(readFileSync(backupPath, "utf-8")).toBe(broken);
-    expect(JSON.parse(readFileSync(configPath, "utf-8")).edition).toBe(
-      "enterprise",
+    // A durable read-modify-write now fails closed. It must not replace the
+    // broken source with defaults plus one new value.
+    expect(() => mod.setConfigValue("edition", "enterprise")).toThrow(
+      /durable config/,
     );
+    expect(readFileSync(backupPath, "utf-8")).toBe(broken);
+    expect(readFileSync(configPath, "utf-8")).toBe(broken);
   });
 
   it("does not create a backup when the config is healthy", async () => {

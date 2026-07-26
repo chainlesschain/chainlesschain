@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import os from "node:os";
 import fs from "node:fs";
 import path from "node:path";
@@ -13,16 +13,16 @@ import {
 
 let dir;
 let storeFile;
-let savedStorePath;
+let originalDeps;
 
 beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-trust-"));
   storeFile = path.join(dir, "plugin-trust.json");
-  savedStorePath = trustDeps.storePath;
+  originalDeps = { ...trustDeps };
   trustDeps.storePath = () => storeFile;
 });
 afterEach(() => {
-  trustDeps.storePath = savedStorePath;
+  Object.assign(trustDeps, originalDeps);
   try {
     fs.rmSync(dir, { recursive: true, force: true });
   } catch {
@@ -89,6 +89,44 @@ describe("trust / untrust store", () => {
     expect(fs.existsSync(storeFile)).toBe(true);
     const raw = JSON.parse(fs.readFileSync(storeFile, "utf8"));
     expect(raw["project:c"].version).toBe("1.0.0");
+  });
+
+  it("holds a fail-closed lock around the complete mutation", () => {
+    const realLock = trustDeps.withFileLock;
+    trustDeps.withFileLock = vi.fn((target, body, options) =>
+      realLock(target, body, options),
+    );
+
+    trustPlugin("c", { scope: "project", version: "1.0.0" });
+
+    expect(trustDeps.withFileLock).toHaveBeenCalledWith(
+      storeFile,
+      expect.any(Function),
+      expect.objectContaining({ failIfUnavailable: true }),
+    );
+  });
+
+  it("fails closed and preserves a corrupt trust store", () => {
+    fs.writeFileSync(storeFile, "{broken", "utf8");
+    expect(isPluginTrusted(P("project", "c", "1.0.0"))).toBe(false);
+    expect(() =>
+      trustPlugin("c", { scope: "project", version: "1.0.0" }),
+    ).toThrow(/corrupt/i);
+    expect(fs.readFileSync(storeFile, "utf8")).toBe("{broken");
+  });
+
+  it("propagates lock failure without writing trust", () => {
+    const error = Object.assign(new Error("busy"), {
+      code: "STATE_LOCK_UNAVAILABLE",
+    });
+    trustDeps.withFileLock = vi.fn(() => {
+      throw error;
+    });
+
+    expect(() =>
+      trustPlugin("c", { scope: "project", version: "1.0.0" }),
+    ).toThrow(error);
+    expect(fs.existsSync(storeFile)).toBe(false);
   });
 });
 

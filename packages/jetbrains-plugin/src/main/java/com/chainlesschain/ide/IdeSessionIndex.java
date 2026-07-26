@@ -2,7 +2,9 @@ package com.chainlesschain.ide;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -25,12 +27,15 @@ public final class IdeSessionIndex {
     private IdeSessionIndex() {}
 
     public static final int MAX_RECORDS = 200;
+    private static final long LOCK_TIMEOUT_MILLIS = 2_000L;
+    private static final long LOCK_STALE_MILLIS = 30_000L;
+    private static final long LOCK_RETRY_MILLIS = 25L;
 
     // Every mutation is a read-merge-write of the whole file; two writers
     // interleaving lose one of the updates. In-process: one monitor. Cross-
-    // process (VS Code writes the same file): an OS lock on a sibling .lock
-    // file — best-effort, a lock failure NEVER drops the write (fail open;
-    // losing exclusion beats losing the upsert).
+    // process: use the same atomic sibling DIRECTORY protocol as VS Code. A
+    // lock failure is fail-closed; writing unlocked would silently lose another
+    // IDE's session update.
     private static final Object IO_LOCK = new Object();
     private static final java.util.concurrent.atomic.AtomicLong TMP_SEQ =
             new java.util.concurrent.atomic.AtomicLong();
@@ -41,30 +46,54 @@ public final class IdeSessionIndex {
 
     private static void locked(Path file, IoMutation body) throws IOException {
         synchronized (IO_LOCK) {
-            java.nio.channels.FileChannel ch = null;
-            java.nio.channels.FileLock lock = null;
-            try {
-                Files.createDirectories(file.getParent());
-                ch = java.nio.channels.FileChannel.open(
-                        file.resolveSibling(file.getFileName().toString() + ".lock"),
-                        java.nio.file.StandardOpenOption.CREATE,
-                        java.nio.file.StandardOpenOption.WRITE);
-                lock = ch.lock();
-            } catch (Exception ignored) {
-                // fail open — cross-process exclusion is best-effort
+            Files.createDirectories(file.getParent());
+            Path lockDir = file.resolveSibling(file.getFileName().toString() + ".lock");
+            long deadline = System.currentTimeMillis() + LOCK_TIMEOUT_MILLIS;
+            boolean held = false;
+
+            for (;;) {
+                try {
+                    Files.createDirectory(lockDir);
+                    held = true;
+                    break;
+                } catch (FileAlreadyExistsException occupied) {
+                    try {
+                        long age = System.currentTimeMillis()
+                                - Files.getLastModifiedTime(lockDir).toMillis();
+                        if (age > LOCK_STALE_MILLIS) {
+                            Files.delete(lockDir);
+                            continue;
+                        }
+                    } catch (NoSuchFileException released) {
+                        continue;
+                    }
+                    if (System.currentTimeMillis() >= deadline) {
+                        throw new IOException(
+                                "Timed out acquiring IDE session index lock: " + lockDir,
+                                occupied);
+                    }
+                    try {
+                        Thread.sleep(LOCK_RETRY_MILLIS);
+                    } catch (InterruptedException interrupted) {
+                        Thread.currentThread().interrupt();
+                        throw new IOException(
+                                "Interrupted while acquiring IDE session index lock: "
+                                        + lockDir,
+                                interrupted);
+                    }
+                }
             }
+
             try {
                 body.run();
             } finally {
-                try {
-                    if (lock != null) lock.release();
-                } catch (Exception ignored) {
-                    // already released / channel closed
-                }
-                try {
-                    if (ch != null) ch.close();
-                } catch (Exception ignored) {
-                    // already closed
+                if (held) {
+                    try {
+                        Files.deleteIfExists(lockDir);
+                    } catch (IOException ignored) {
+                        // The mutation is already durable. A stale lock is
+                        // reclaimed by a later bounded writer.
+                    }
                 }
             }
         }
@@ -104,7 +133,7 @@ public final class IdeSessionIndex {
     public static void upsert(Path file, Map<String, Object> record) throws IOException {
         locked(file, () -> {
             List<Map<String, Object>> merged =
-                    merge(read(file), record, Instant.now(), MAX_RECORDS);
+                    merge(readStrict(file), record, Instant.now(), MAX_RECORDS);
             write(file, merged);
         });
     }
@@ -127,7 +156,7 @@ public final class IdeSessionIndex {
         String next = clean(title);
         if (key.isEmpty() || next.isEmpty()) return false;
         locked(file, () -> {
-            List<Map<String, Object>> rows = read(file);
+            List<Map<String, Object>> rows = readStrict(file);
             Map<String, Object> match = null;
             for (Map<String, Object> row : rows) {
                 if (key.equals(row.get("id"))) match = row;
@@ -159,7 +188,7 @@ public final class IdeSessionIndex {
         if (key.isEmpty()) return false;
         boolean[] removed = new boolean[1];
         locked(file, () -> {
-            List<Map<String, Object>> rows = read(file);
+            List<Map<String, Object>> rows = readStrict(file);
             for (java.util.Iterator<Map<String, Object>> it = rows.iterator(); it.hasNext();) {
                 if (key.equals(it.next().get("id"))) {
                     it.remove();
@@ -173,21 +202,32 @@ public final class IdeSessionIndex {
 
     @SuppressWarnings("unchecked")
     public static List<Map<String, Object>> read(Path file) {
+        try {
+            return readStrict(file);
+        } catch (IOException e) {
+            return new ArrayList<Map<String, Object>>();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, Object>> readStrict(Path file) throws IOException {
         List<Map<String, Object>> out = new ArrayList<Map<String, Object>>();
         String raw;
         try {
             raw = new String(Files.readAllBytes(file), StandardCharsets.UTF_8).trim();
-        } catch (IOException e) {
+        } catch (NoSuchFileException e) {
             return out;
         }
         Object parsed;
         try {
             parsed = MiniJson.parse(raw);
         } catch (RuntimeException e) {
-            return out;
+            throw new IOException("IDE session index contains invalid JSON: " + file, e);
         }
         Object rows = parsed instanceof Map ? ((Map<?, ?>) parsed).get("sessions") : parsed;
-        if (!(rows instanceof List)) return out;
+        if (!(rows instanceof List)) {
+            throw new IOException("IDE session index must contain a sessions array: " + file);
+        }
         for (Object row : (List<?>) rows) {
             if (!(row instanceof Map)) continue;
             Map<String, Object> normalized =
@@ -234,7 +274,7 @@ public final class IdeSessionIndex {
         return rows;
     }
 
-    public static void write(Path file, List<Map<String, Object>> sessions) throws IOException {
+    private static void write(Path file, List<Map<String, Object>> sessions) throws IOException {
         Files.createDirectories(file.getParent());
         Map<String, Object> root = new LinkedHashMap<String, Object>();
         root.put("version", 1L);
@@ -244,12 +284,18 @@ public final class IdeSessionIndex {
         // tmp name — the second Files.move failed and its upsert vanished.
         Path tmp = file.resolveSibling(file.getFileName().toString()
                 + "." + System.nanoTime() + "-" + TMP_SEQ.incrementAndGet() + ".tmp");
-        Files.write(tmp, MiniJson.stringify(root).getBytes(StandardCharsets.UTF_8));
+        boolean moved = false;
         try {
-            Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING,
-                    StandardCopyOption.ATOMIC_MOVE);
-        } catch (IOException e) {
-            Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING);
+            Files.write(tmp, MiniJson.stringify(root).getBytes(StandardCharsets.UTF_8));
+            try {
+                Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING,
+                        StandardCopyOption.ATOMIC_MOVE);
+            } catch (IOException e) {
+                Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING);
+            }
+            moved = true;
+        } finally {
+            if (!moved) Files.deleteIfExists(tmp);
         }
     }
 

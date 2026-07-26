@@ -214,14 +214,15 @@ function setCredentials(providerId, creds) {
   if (!creds || typeof creds !== "object") {
     throw new Error("sync-credentials: creds must be an object");
   }
-  // Serialize the decrypt-modify-encrypt across processes so a concurrent write
-  // to a different provider doesn't drop this one (best-effort, never hangs).
+  // Credential metadata is security-critical: never decrypt-modify-encrypt
+  // without exclusion, because a lost update can silently restore/revoke the
+  // wrong provider credentials.
   return withFileLock(_vaultPath(), () => {
     const all = loadAll();
     if (!all.sync || typeof all.sync !== "object") all.sync = {};
     all.sync[providerId] = { ...creds };
     return saveAll(all);
-  });
+  }, { failIfUnavailable: true });
 }
 
 function clearCredentials(providerId) {
@@ -233,7 +234,7 @@ function clearCredentials(providerId) {
       return saveAll(all);
     }
     return true;
-  });
+  }, { failIfUnavailable: true });
 }
 
 /** Test seam: override the resolved chainlesschain dir without env leak. */

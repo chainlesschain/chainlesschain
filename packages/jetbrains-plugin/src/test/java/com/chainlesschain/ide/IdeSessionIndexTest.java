@@ -2,6 +2,7 @@ package com.chainlesschain.ide;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -125,6 +126,35 @@ final class IdeSessionIndexTest {
             assertTrue(s.noneMatch(p -> p.getFileName().toString().endsWith(".tmp")),
                     "no stranded .tmp files");
         }
+    }
+
+    @Test
+    void busyCrossProcessLockFailsClosedWithoutWriting() throws Exception {
+        Path dir = Files.createTempDirectory("cc-ide-index");
+        Path file = dir.resolve("session-index.json");
+        Files.createDirectory(dir.resolve("session-index.json.lock"));
+
+        IOException error = assertThrows(IOException.class, () ->
+                IdeSessionIndex.upsert(file, IdeSessionIndex.record(
+                        "blocked", "Blocked", "jetbrains", "", "", null,
+                        "running", "default", Instant.now())));
+
+        assertTrue(error.getMessage().contains("Timed out acquiring"));
+        assertFalse(Files.exists(file), "a writer must never proceed without the lock");
+    }
+
+    @Test
+    void corruptIndexIsPreservedInsteadOfOverwritten() throws Exception {
+        Path dir = Files.createTempDirectory("cc-ide-index");
+        Path file = dir.resolve("session-index.json");
+        Files.write(file, "{broken".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+        assertThrows(IOException.class, () ->
+                IdeSessionIndex.upsert(file, IdeSessionIndex.record(
+                        "new", "New", "jetbrains", "", "", null,
+                        "running", "default", Instant.now())));
+        assertEquals("{broken", new String(
+                Files.readAllBytes(file), java.nio.charset.StandardCharsets.UTF_8));
     }
 
     @Test

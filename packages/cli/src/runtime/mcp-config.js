@@ -647,6 +647,12 @@ export async function loadProjectMcp(opts = {}, deps = {}) {
   const trust =
     deps.projectMcpTrust ||
     (await import("../lib/project-mcp-trust.js").catch(() => null));
+  if (!trust) {
+    writeErr(
+      "  mcp: SKIPPING project .mcp.json — project trust service is unavailable.\n",
+    );
+    return deps.into || null;
+  }
 
   const servers = {};
   const seenFiles = [];
@@ -661,26 +667,32 @@ export async function loadProjectMcp(opts = {}, deps = {}) {
       writeErr(`  mcp: ignoring malformed ${file} (${err.message})\n`);
       continue;
     }
-    if (trust) {
-      try {
-        const check = trust.checkProjectMcpTrust(file, content);
-        if (check.status === "changed") {
-          if (trust.projectMcpRetrustRequested(env)) {
-            trust.recordProjectMcpTrust(file, content);
-            writeErr(`  mcp: ${file} re-trusted (CC_PROJECT_MCP_TRUST).\n`);
-          } else {
-            writeErr(
-              `  mcp: SKIPPING ${file} — its content changed since it was last trusted. ` +
-                `Review the diff, then re-trust with CC_PROJECT_MCP_TRUST=1 or \`cc mcp trust-project\`.\n`,
-            );
-            continue;
+    try {
+      const check = trust.checkProjectMcpTrust(file, content);
+      if (check.status === "changed") {
+        if (trust.projectMcpRetrustRequested(env)) {
+          if (trust.recordProjectMcpTrust(file, content) !== true) {
+            throw new Error("project MCP trust record was not persisted");
           }
-        } else if (check.status === "first-use") {
-          trust.recordProjectMcpTrust(file, content);
+          writeErr(`  mcp: ${file} re-trusted (CC_PROJECT_MCP_TRUST).\n`);
+        } else {
+          writeErr(
+            `  mcp: SKIPPING ${file} — its content changed since it was last trusted. ` +
+              `Review the diff, then re-trust with CC_PROJECT_MCP_TRUST=1 or \`cc mcp trust-project\`.\n`,
+          );
+          continue;
         }
-      } catch {
-        /* trust bookkeeping is best-effort; the opt-in gate above still holds */
+      } else if (check.status === "first-use") {
+        if (trust.recordProjectMcpTrust(file, content) !== true) {
+          throw new Error("project MCP trust record was not persisted");
+        }
       }
+    } catch (err) {
+      writeErr(
+        `  mcp: SKIPPING ${file} — project trust state is unavailable ` +
+          `(${err?.message || "unknown error"}).\n`,
+      );
+      continue;
     }
     const parsed = parseMcpServers(raw);
     if (Object.keys(parsed).length > 0) {

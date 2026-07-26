@@ -322,11 +322,12 @@ export function closeBatch(dir, opts = {}) {
   // across processes. Without it, two concurrent closes (e.g. overlapping
   // `cc audit mtc reconcile` runs) both scan the same staging events, allocate
   // the same batch id, and the defensive rmSync(finalDir) lets the second
-  // silently overwrite the first's audit batch. Best-effort lock (never hangs);
-  // generous timeout since the section includes Merkle assembly + signing.
+  // silently overwrite the first's audit batch. Audit ledger state is critical:
+  // bounded contention must fail closed rather than assemble an unlocked batch.
   ensureDirs(dir);
   return withFileLock(batchesDir(dir), () => _closeBatchImpl(dir, opts), {
     timeoutMs: 15000,
+    failIfUnavailable: true,
   });
 }
 

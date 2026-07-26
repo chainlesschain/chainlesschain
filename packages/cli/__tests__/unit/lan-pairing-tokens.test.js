@@ -122,6 +122,13 @@ describe("readTokens / writeTokens", () => {
     writeTokens({ tokens: [buildToken({ did: "did:cc:x" })] }, nested);
     expect(fs.existsSync(nested)).toBe(true);
   });
+
+  it("writes atomically without leaving temp siblings", () => {
+    writeTokens({ tokens: [buildToken({ did: "did:cc:x" })] }, store);
+    expect(
+      fs.readdirSync(tmpDir).some((name) => name.endsWith(".tmp")),
+    ).toBe(false);
+  });
 });
 
 // ─── addToken ────────────────────────────────────────────────
@@ -158,6 +165,14 @@ describe("addToken", () => {
     const tokens = readTokens(store).tokens;
     const t1After = tokens.find((t) => t.code === t1.code);
     expect(t1After.status).toBe(STATUS.CONSUMED);
+  });
+
+  it("fails closed instead of overwriting a corrupt token store", () => {
+    fs.writeFileSync(store, "{broken", "utf-8");
+    expect(() => addToken({ did: "did:cc:alice" }, store)).toThrow(
+      /pairing token store/i,
+    );
+    expect(fs.readFileSync(store, "utf-8")).toBe("{broken");
   });
 });
 

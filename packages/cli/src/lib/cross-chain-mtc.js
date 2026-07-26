@@ -536,11 +536,12 @@ export function closeBatch(dir, opts = {}) {
   // Serialize the whole staging-scan → batch-write → staging-cleanup section
   // across processes. Without it, two concurrent closes both read the same
   // staged ops, allocate the same per-pair sequence (namespace collision), and
-  // batch the same ops twice before clearing staging. Best-effort lock (never
-  // hangs); generous timeout since the section includes batch assembly+signing.
+  // batch the same ops twice before clearing staging. Ledger state is critical:
+  // bounded contention must fail closed rather than assemble an unlocked batch.
   ensureDirs(dir);
   return withFileLock(batchesDir(dir), () => _closeBatchImpl(dir, opts), {
     timeoutMs: 15000,
+    failIfUnavailable: true,
   });
 }
 

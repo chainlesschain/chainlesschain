@@ -30,7 +30,14 @@
  */
 
 import crypto from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { withFileLock } from "./with-file-lock.js";
 
@@ -38,7 +45,10 @@ export const _deps = {
   existsSync,
   mkdirSync,
   readFileSync,
+  renameSync,
+  unlinkSync,
   writeFileSync,
+  withFileLock,
   now: () => new Date(),
   runTask: null, // injected at runtime to avoid circular import
 };
@@ -225,7 +235,7 @@ function _scheduleFile(cwd) {
 }
 
 /** Load all schedules from disk. Returns [] if the file doesn't exist. */
-export function loadSchedules(cwd) {
+export function loadSchedules(cwd, { failOnMalformed = false } = {}) {
   const file = _scheduleFile(cwd);
   if (!_deps.existsSync(file)) return [];
   const raw = _deps.readFileSync(file, "utf-8");
@@ -235,20 +245,57 @@ export function loadSchedules(cwd) {
     if (!trimmed) continue;
     try {
       out.push(JSON.parse(trimmed));
-    } catch (_e) {
-      // Skip malformed lines — don't let one bad record break the rest
+    } catch (cause) {
+      if (failOnMalformed) {
+        const error = new Error(
+          `cowork schedule store contains malformed JSON: ${file}`,
+          { cause },
+        );
+        error.code = "COWORK_SCHEDULE_STORE_CORRUPT";
+        throw error;
+      }
+      // Advisory readers can still display the remaining valid records.
     }
   }
   return out;
 }
 
-/** Write the full schedule list back to disk, overwriting. */
-export function saveSchedules(cwd, schedules) {
+function _prepareScheduleDir(cwd) {
   const dir = join(cwd, ".chainlesschain", "cowork");
   _deps.mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+function _saveSchedulesUnlocked(cwd, schedules) {
+  _prepareScheduleDir(cwd);
   const file = _scheduleFile(cwd);
   const body = schedules.map((s) => JSON.stringify(s)).join("\n");
-  _deps.writeFileSync(file, body ? body + "\n" : "", "utf-8");
+  const tmp = `${file}.${process.pid}.${crypto.randomUUID()}.tmp`;
+  try {
+    _deps.writeFileSync(tmp, body ? body + "\n" : "", "utf-8");
+    _deps.renameSync(tmp, file);
+  } catch (error) {
+    try {
+      _deps.unlinkSync(tmp);
+    } catch {
+      // Preserve the original persistence error.
+    }
+    throw error;
+  }
+}
+
+function _withScheduleLock(cwd, body) {
+  _prepareScheduleDir(cwd);
+  return _deps.withFileLock(_scheduleFile(cwd), body, {
+    failIfUnavailable: true,
+  });
+}
+
+/** Atomically replace the full schedule list under a fail-closed lock. */
+export function saveSchedules(cwd, schedules) {
+  return _withScheduleLock(cwd, () =>
+    _saveSchedulesUnlocked(cwd, schedules),
+  );
 }
 
 // ─── CRUD ────────────────────────────────────────────────────────────────────
@@ -263,8 +310,8 @@ export function addSchedule(cwd, input) {
 
   // Serialize the read-modify-write across processes (cc+cc / cc+desktop share
   // the cowork dir) so concurrently-added schedules don't clobber each other.
-  return withFileLock(_scheduleFile(cwd), () => {
-    const schedules = loadSchedules(cwd);
+  return _withScheduleLock(cwd, () => {
+    const schedules = loadSchedules(cwd, { failOnMalformed: true });
     const entry = {
       id: `sch-${crypto.randomUUID().slice(0, 12)}`,
       cron: cron.trim(),
@@ -277,41 +324,146 @@ export function addSchedule(cwd, input) {
       lastStatus: null,
     };
     schedules.push(entry);
-    saveSchedules(cwd, schedules);
+    _saveSchedulesUnlocked(cwd, schedules);
     return entry;
   });
 }
 
 export function removeSchedule(cwd, id) {
-  return withFileLock(_scheduleFile(cwd), () => {
-    const schedules = loadSchedules(cwd);
+  return _withScheduleLock(cwd, () => {
+    const schedules = loadSchedules(cwd, { failOnMalformed: true });
     const idx = schedules.findIndex((s) => s.id === id);
     if (idx === -1) return false;
     schedules.splice(idx, 1);
-    saveSchedules(cwd, schedules);
+    _saveSchedulesUnlocked(cwd, schedules);
     return true;
   });
 }
 
 export function setScheduleEnabled(cwd, id, enabled) {
-  return withFileLock(_scheduleFile(cwd), () => {
-    const schedules = loadSchedules(cwd);
+  return _withScheduleLock(cwd, () => {
+    const schedules = loadSchedules(cwd, { failOnMalformed: true });
     const s = schedules.find((x) => x.id === id);
     if (!s) return false;
     s.enabled = !!enabled;
-    saveSchedules(cwd, schedules);
+    _saveSchedulesUnlocked(cwd, schedules);
     return true;
   });
 }
 
 export function updateScheduleRunState(cwd, id, { lastRunAt, lastStatus }) {
-  return withFileLock(_scheduleFile(cwd), () => {
-    const schedules = loadSchedules(cwd);
+  return _withScheduleLock(cwd, () => {
+    const schedules = loadSchedules(cwd, { failOnMalformed: true });
     const s = schedules.find((x) => x.id === id);
     if (!s) return false;
     if (lastRunAt) s.lastRunAt = lastRunAt;
     if (lastStatus) s.lastStatus = lastStatus;
-    saveSchedules(cwd, schedules);
+    _saveSchedulesUnlocked(cwd, schedules);
+    return true;
+  });
+}
+
+/**
+ * Claim one concrete cron fire before launching its side effect. The persisted
+ * delivery id prevents two scheduler processes from running the same fire; an
+ * expired claim can be recovered after a crashed owner.
+ */
+export function claimScheduleFire(
+  cwd,
+  id,
+  deliveryId,
+  { ownerId, now = _deps.now(), leaseMs = 120_000 } = {},
+) {
+  if (!ownerId || !deliveryId) {
+    throw new Error("claimScheduleFire requires ownerId and deliveryId");
+  }
+  return _withScheduleLock(cwd, () => {
+    const schedules = loadSchedules(cwd, { failOnMalformed: true });
+    const schedule = schedules.find((entry) => entry.id === id);
+    if (!schedule) return null;
+    if (schedule.lastDeliveryId === deliveryId) return null;
+
+    const nowMs = now.getTime();
+    const active = schedule.activeDelivery;
+    const expiresAt = Date.parse(active?.leaseExpiresAt || "");
+    if (active && Number.isFinite(expiresAt) && expiresAt > nowMs) {
+      return null;
+    }
+
+    const fence =
+      Math.max(
+        Number(schedule.deliveryFence) || 0,
+        Number(active?.fence) || 0,
+      ) + 1;
+    const claim = {
+      deliveryId,
+      ownerId,
+      fence,
+      claimedAt: now.toISOString(),
+      leaseExpiresAt: new Date(nowMs + Math.max(1000, leaseMs)).toISOString(),
+    };
+    schedule.deliveryFence = fence;
+    schedule.activeDelivery = claim;
+    _saveSchedulesUnlocked(cwd, schedules);
+    return { ...claim };
+  });
+}
+
+/** Renew a live claim. A stale owner can never renew after its fence is stolen. */
+export function renewScheduleFire(
+  cwd,
+  id,
+  claim,
+  { now = _deps.now(), leaseMs = 120_000 } = {},
+) {
+  return _withScheduleLock(cwd, () => {
+    const schedules = loadSchedules(cwd, { failOnMalformed: true });
+    const schedule = schedules.find((entry) => entry.id === id);
+    const active = schedule?.activeDelivery;
+    if (
+      !active ||
+      active.deliveryId !== claim?.deliveryId ||
+      active.ownerId !== claim?.ownerId ||
+      active.fence !== claim?.fence
+    ) {
+      return false;
+    }
+    active.leaseExpiresAt = new Date(
+      now.getTime() + Math.max(1000, leaseMs),
+    ).toISOString();
+    _saveSchedulesUnlocked(cwd, schedules);
+    return true;
+  });
+}
+
+/**
+ * Commit the delivery outcome only when the owner/fence still matches. This is
+ * the scheduler equivalent of compare-and-swap: a late crashed owner cannot
+ * overwrite the successor's task state.
+ */
+export function settleScheduleFire(
+  cwd,
+  id,
+  claim,
+  { lastRunAt, lastStatus } = {},
+) {
+  return _withScheduleLock(cwd, () => {
+    const schedules = loadSchedules(cwd, { failOnMalformed: true });
+    const schedule = schedules.find((entry) => entry.id === id);
+    const active = schedule?.activeDelivery;
+    if (
+      !active ||
+      active.deliveryId !== claim?.deliveryId ||
+      active.ownerId !== claim?.ownerId ||
+      active.fence !== claim?.fence
+    ) {
+      return false;
+    }
+    schedule.lastDeliveryId = claim.deliveryId;
+    schedule.lastRunAt = lastRunAt || _deps.now().toISOString();
+    schedule.lastStatus = lastStatus || "completed";
+    schedule.activeDelivery = null;
+    _saveSchedulesUnlocked(cwd, schedules);
     return true;
   });
 }
@@ -329,6 +481,10 @@ export class CoworkCronScheduler {
     this._intervalPinned = typeof options.intervalMs === "number";
     this.intervalMs = options.intervalMs || 60_000;
     this.onEvent = options.onEvent || null; // (event) => void
+    this.ownerId =
+      options.ownerId ||
+      `cowork-cron:${process.pid}:${crypto.randomUUID().slice(0, 12)}`;
+    this.leaseMs = Math.max(1000, Number(options.leaseMs) || 120_000);
     this._timer = null;
     this._firedKeys = new Set();
     this._running = new Set();
@@ -416,9 +572,27 @@ export class CoworkCronScheduler {
       const isDue = matcher(now);
       if (!isDue) continue;
 
+      let claim;
+      try {
+        claim = claimScheduleFire(this.cwd, s.id, fireKey, {
+          ownerId: this.ownerId,
+          now,
+          leaseMs: this.leaseMs,
+        });
+      } catch (err) {
+        this._emit({
+          type: "schedule-claim-failed",
+          id: s.id,
+          deliveryId: fireKey,
+          error: err.message,
+        });
+        continue;
+      }
+
       this._firedKeys.add(fireKey);
+      if (!claim) continue;
       this._running.add(s.id);
-      this._runSchedule(s).finally(() => {
+      this._runSchedule(s, claim).finally(() => {
         this._running.delete(s.id);
       });
     }
@@ -429,12 +603,25 @@ export class CoworkCronScheduler {
     }
   }
 
-  async _runSchedule(schedule) {
+  async _runSchedule(schedule, claim) {
     const runTask = _deps.runTask;
     if (typeof runTask !== "function") {
+      try {
+        settleScheduleFire(this.cwd, schedule.id, claim, {
+          lastStatus: "failed",
+        });
+      } catch (err) {
+        this._emit({
+          type: "schedule-settlement-failed",
+          id: schedule.id,
+          deliveryId: claim.deliveryId,
+          error: err.message,
+        });
+      }
       this._emit({
         type: "run-error",
         id: schedule.id,
+        deliveryId: claim.deliveryId,
         error: "runTask not injected",
       });
       return;
@@ -444,35 +631,90 @@ export class CoworkCronScheduler {
       id: schedule.id,
       cron: schedule.cron,
       templateId: schedule.templateId,
+      deliveryId: claim.deliveryId,
     });
+
+    const renewal = setInterval(() => {
+      try {
+        const renewed = renewScheduleFire(this.cwd, schedule.id, claim, {
+          leaseMs: this.leaseMs,
+        });
+        if (!renewed) {
+          this._emit({
+            type: "schedule-lease-lost",
+            id: schedule.id,
+            deliveryId: claim.deliveryId,
+          });
+        }
+      } catch (err) {
+        this._emit({
+          type: "schedule-lease-renewal-failed",
+          id: schedule.id,
+          deliveryId: claim.deliveryId,
+          error: err.message,
+        });
+      }
+    }, Math.max(1000, Math.floor(this.leaseMs / 3)));
+    renewal.unref?.();
+
+    let result = null;
+    let failure = null;
     try {
-      const result = await runTask({
+      result = await runTask({
         templateId: schedule.templateId,
         userMessage: schedule.userMessage,
         files: schedule.files,
         cwd: this.cwd,
-      });
-      updateScheduleRunState(this.cwd, schedule.id, {
-        lastRunAt: _deps.now().toISOString(),
-        lastStatus: result?.status || "completed",
-      });
-      this._emit({
-        type: "schedule-completed",
-        id: schedule.id,
-        taskId: result?.taskId,
-        status: result?.status,
+        scheduleId: schedule.id,
+        deliveryId: claim.deliveryId,
       });
     } catch (err) {
-      updateScheduleRunState(this.cwd, schedule.id, {
+      failure = err;
+    } finally {
+      clearInterval(renewal);
+    }
+
+    let settled;
+    try {
+      settled = settleScheduleFire(this.cwd, schedule.id, claim, {
         lastRunAt: _deps.now().toISOString(),
-        lastStatus: "failed",
+        lastStatus: failure ? "failed" : result?.status || "completed",
       });
+    } catch (err) {
+      this._emit({
+        type: "schedule-settlement-failed",
+        id: schedule.id,
+        deliveryId: claim.deliveryId,
+        error: err.message,
+      });
+      return;
+    }
+    if (!settled) {
+      this._emit({
+        type: "schedule-settlement-rejected",
+        id: schedule.id,
+        deliveryId: claim.deliveryId,
+      });
+      return;
+    }
+
+    if (failure) {
       this._emit({
         type: "schedule-failed",
         id: schedule.id,
-        error: err.message,
+        deliveryId: claim.deliveryId,
+        error: failure.message,
       });
+      return;
     }
+
+    this._emit({
+      type: "schedule-completed",
+      id: schedule.id,
+      deliveryId: claim.deliveryId,
+      taskId: result?.taskId,
+      status: result?.status,
+    });
   }
 }
 

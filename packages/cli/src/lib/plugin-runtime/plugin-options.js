@@ -20,6 +20,7 @@
 
 import fs from "fs";
 import path from "path";
+import crypto from "node:crypto";
 import { getElectronUserDataDir } from "../paths.js";
 import {
   optionDefaults,
@@ -31,12 +32,16 @@ import {
   isSecretRef,
   secretRef,
 } from "../secret-store.js";
+import { withFileLock } from "../with-file-lock.js";
 
 export const _deps = {
   existsSync: fs.existsSync,
   readFileSync: fs.readFileSync,
+  renameSync: fs.renameSync,
+  unlinkSync: fs.unlinkSync,
   writeFileSync: fs.writeFileSync,
   mkdirSync: fs.mkdirSync,
+  withFileLock,
   secretStore: () => createSecretStore(),
   userStorePath: () =>
     path.join(getElectronUserDataDir(), "plugin-options.json"),
@@ -44,23 +49,54 @@ export const _deps = {
     path.join(cwd || process.cwd(), ".chainlesschain", "plugin-options.json"),
 };
 
-function readJsonObject(p) {
+function readJsonObject(p, { failIfUnavailable = false } = {}) {
   try {
     if (!_deps.existsSync(p)) return {};
     const data = JSON.parse(_deps.readFileSync(p, "utf8"));
-    return data && typeof data === "object" && !Array.isArray(data) ? data : {};
-  } catch {
+    if (data && typeof data === "object" && !Array.isArray(data)) return data;
+    throw new TypeError("top-level value must be an object");
+  } catch (cause) {
+    if (failIfUnavailable) {
+      const error = new Error(`Plugin option store is unavailable: ${p}`, {
+        cause,
+      });
+      error.code = "PLUGIN_OPTION_STORE_UNAVAILABLE";
+      throw error;
+    }
     return {};
   }
 }
 
 function writeJsonObject(p, obj) {
   _deps.mkdirSync(path.dirname(p), { recursive: true });
-  _deps.writeFileSync(p, JSON.stringify(obj, null, 2), "utf8");
+  const tmp = `${p}.${process.pid}.${crypto.randomUUID()}.tmp`;
+  try {
+    _deps.writeFileSync(tmp, `${JSON.stringify(obj, null, 2)}\n`, {
+      encoding: "utf8",
+      mode: 0o600,
+    });
+    _deps.renameSync(tmp, p);
+  } catch (error) {
+    try {
+      _deps.unlinkSync(tmp);
+    } catch {
+      // Preserve the original persistence error.
+    }
+    throw error;
+  }
+}
+
+function withOptionStoreLock(p, body) {
+  _deps.mkdirSync(path.dirname(p), { recursive: true, mode: 0o700 });
+  return _deps.withFileLock(p, body, { failIfUnavailable: true });
 }
 
 /** Load a plugin's option VALUES at the given scope (`user` | `project`). */
-export function loadPluginOptionValues(name, scope, { cwd, schema, secretStore } = {}) {
+export function loadPluginOptionValues(
+  name,
+  scope,
+  { cwd, schema, secretStore } = {},
+) {
   const p =
     scope === "project" ? _deps.projectStorePath(cwd) : _deps.userStorePath();
   const store = readJsonObject(p);
@@ -71,7 +107,9 @@ export function loadPluginOptionValues(name, scope, { cwd, schema, secretStore }
   for (const [key, desc] of Object.entries(normalized)) {
     if (!desc?.sensitive || !isSecretRef(out[key])) continue;
     try {
-      const value = (secretStore || _deps.secretStore)().get(out[key].__cc_secret_ref);
+      const value = (secretStore || _deps.secretStore)().get(
+        out[key].__cc_secret_ref,
+      );
       if (value != null) out[key] = value;
       else delete out[key];
     } catch {
@@ -92,40 +130,58 @@ export function setPluginOptionValues(
 ) {
   const p =
     scope === "project" ? _deps.projectStorePath(cwd) : _deps.userStorePath();
-  const store = readJsonObject(p);
-  const input = values && typeof values === "object" ? values : {};
-  const persisted = { ...input };
-  const normalized = schema || {};
-  let secrets = null;
-  const getSecrets = () => {
-    if (!secrets) secrets = (secretStore || _deps.secretStore)();
-    return secrets;
-  };
-  const rejectedSensitive = [];
-  for (const [key, desc] of Object.entries(normalized)) {
-    if (!desc?.sensitive || !Object.prototype.hasOwnProperty.call(input, key)) continue;
-    // Project files are shareable and must never receive a sensitive value.
-    if (scope === "project") {
-      delete persisted[key];
-      rejectedSensitive.push(key);
-      continue;
+  return withOptionStoreLock(p, () => {
+    const store = readJsonObject(p, { failIfUnavailable: true });
+    const input = values && typeof values === "object" ? values : {};
+    const persisted = { ...input };
+    const normalized = schema || {};
+    let secrets = null;
+    const getSecrets = () => {
+      if (!secrets) secrets = (secretStore || _deps.secretStore)();
+      return secrets;
+    };
+    const rejectedSensitive = [];
+    for (const [key, desc] of Object.entries(normalized)) {
+      if (
+        !desc?.sensitive ||
+        !Object.prototype.hasOwnProperty.call(input, key)
+      ) {
+        continue;
+      }
+      // Project files are shareable and must never receive a sensitive value.
+      if (scope === "project") {
+        delete persisted[key];
+        rejectedSensitive.push(key);
+        continue;
+      }
+      if (input[key] == null || input[key] === "") {
+        delete persisted[key];
+        try {
+          getSecrets().delete(`${name}/${key}`);
+        } catch {
+          // Missing secrets already behave as absent on read.
+        }
+        continue;
+      }
+      getSecrets().set(`${name}/${key}`, input[key]);
+      persisted[key] = secretRef(`${name}/${key}`);
     }
-    if (input[key] == null || input[key] === "") {
-      delete persisted[key];
-      try { getSecrets().delete(`${name}/${key}`); } catch {}
-      continue;
+    if (rejectedSensitive.length > 0) {
+      persisted.__cc_rejected_sensitive = [
+        ...new Set(rejectedSensitive),
+      ].sort();
+    } else if (
+      Object.prototype.hasOwnProperty.call(
+        persisted,
+        "__cc_rejected_sensitive",
+      )
+    ) {
+      delete persisted.__cc_rejected_sensitive;
     }
-    getSecrets().set(`${name}/${key}`, input[key]);
-    persisted[key] = secretRef(`${name}/${key}`);
-  }
-  if (rejectedSensitive.length > 0) {
-    persisted.__cc_rejected_sensitive = [...new Set(rejectedSensitive)].sort();
-  } else if (Object.prototype.hasOwnProperty.call(persisted, "__cc_rejected_sensitive")) {
-    delete persisted.__cc_rejected_sensitive;
-  }
-  store[name] = persisted;
-  writeJsonObject(p, store);
-  return { name, scope, path: p };
+    store[name] = persisted;
+    writeJsonObject(p, store);
+    return { name, scope, path: p };
+  });
 }
 
 /** Provided keys of `values` (that exist in schema) accepted at `scope`. */

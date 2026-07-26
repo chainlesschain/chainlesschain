@@ -146,8 +146,18 @@ export function createGoal(input = {}, opts = {}) {
     updatedAt: nowIso(),
   };
   ensureDir(root);
-  atomicWriteFileSync(goalFile(root, id), JSON.stringify(goal, null, 2));
-  return goal;
+  const file = goalFile(root, id);
+  return withFileLock(
+    file,
+    () => {
+      if (fs.existsSync(file)) {
+        throw new Error(`goal already exists: ${id}`);
+      }
+      atomicWriteFileSync(file, JSON.stringify(goal, null, 2));
+      return goal;
+    },
+    { failIfUnavailable: true },
+  );
 }
 
 function normalizeKr(kr) {
@@ -212,19 +222,22 @@ export function listGoals(opts = {}) {
 function mutate(id, fn, opts = {}) {
   // Serialize the read-modify-write across processes (cc+cc, or cc+desktop
   // sharing the goals dir) so concurrent goal edits don't lose an update.
-  // Best-effort lock (with-file-lock): on contention timeout it proceeds anyway,
-  // so the CLI never hangs.
+  // Durable goal state never proceeds without exclusion after bounded retry.
   // Guard before deriving the lock path: an unsafe id would otherwise place the
   // lock file at a traversal path (`<root>/../../x.json.lock`) before getGoal
   // even runs. getGoal/saveGoal also guard, but keep the lock inside the dir.
   if (isUnsafeGoalId(id)) throw new Error(`no such goal: ${id}`);
   const root = opts.root || defaultRoot();
-  return withFileLock(goalFile(root, id), () => {
-    const goal = getGoal(id, opts);
-    if (!goal) throw new Error(`no such goal: ${id}`);
-    fn(goal);
-    return saveGoal(goal, opts);
-  });
+  return withFileLock(
+    goalFile(root, id),
+    () => {
+      const goal = getGoal(id, opts);
+      if (!goal) throw new Error(`no such goal: ${id}`);
+      fn(goal);
+      return saveGoal(goal, opts);
+    },
+    { failIfUnavailable: true },
+  );
 }
 
 /** Add a key result to a goal. */
@@ -368,8 +381,15 @@ export function deleteGoal(id, opts = {}) {
   const root = opts.root || defaultRoot();
   const file = goalFile(root, id);
   if (!fs.existsSync(file)) return false;
-  fs.rmSync(file);
-  return true;
+  return withFileLock(
+    file,
+    () => {
+      if (!fs.existsSync(file)) return false;
+      fs.rmSync(file);
+      return true;
+    },
+    { failIfUnavailable: true },
+  );
 }
 
 /**

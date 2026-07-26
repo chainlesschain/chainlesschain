@@ -18,21 +18,22 @@
  * never touch the real user-data dir.
  */
 
-import fs from "fs";
 import path from "path";
 import { getElectronUserDataDir } from "../paths.js";
+import { withFileLock } from "../with-file-lock.js";
 import {
   normalizeCapabilities,
   diffCapabilities,
   describeCapabilities,
 } from "./capabilities.js";
+import {
+  mutateSecurityStore,
+  readSecurityStore,
+} from "../durable-security-store.js";
 
 export const _deps = {
-  existsSync: fs.existsSync,
-  readFileSync: fs.readFileSync,
-  writeFileSync: fs.writeFileSync,
-  mkdirSync: fs.mkdirSync,
   now: () => new Date().toISOString(),
+  withFileLock,
   // Injectable so unit tests never touch the real user-data dir.
   storePath: () =>
     path.join(getElectronUserDataDir(), "plugin-capability-consent.json"),
@@ -43,20 +44,7 @@ function consentKey(scope, name) {
 }
 
 export function loadConsentStore() {
-  try {
-    const p = _deps.storePath();
-    if (!_deps.existsSync(p)) return {};
-    const data = JSON.parse(_deps.readFileSync(p, "utf8"));
-    return data && typeof data === "object" && !Array.isArray(data) ? data : {};
-  } catch {
-    return {};
-  }
-}
-
-function saveConsentStore(store) {
-  const p = _deps.storePath();
-  _deps.mkdirSync(path.dirname(p), { recursive: true });
-  _deps.writeFileSync(p, JSON.stringify(store, null, 2), "utf8");
+  return readSecurityStore(_deps.storePath(), "plugin capability consent");
 }
 
 /**
@@ -158,8 +146,15 @@ export function resolveConsentAction(
 /** Load the store and report whether one plugin's declared caps are consented. */
 export function isPluginCapabilityConsented(plugin, declaredCaps) {
   if (!plugin || !plugin.name) return false;
-  const entry = loadConsentStore()[consentKey(plugin.scope, plugin.name)];
-  return capabilityConsentStatus(declaredCaps, entry).consented;
+  if (capabilitiesAreEmpty(declaredCaps)) return true;
+  try {
+    const entry = loadConsentStore()[consentKey(plugin.scope, plugin.name)];
+    return capabilityConsentStatus(declaredCaps, entry).consented;
+  } catch {
+    // Security reads fail closed: an unavailable/corrupt consent store never
+    // turns into permission to use a capability.
+    return false;
+  }
 }
 
 /** Record consent for a plugin's currently-declared capability set. */
@@ -168,24 +163,36 @@ export function consentPluginCapabilities(
   { scope = "project", version, capabilities } = {},
 ) {
   if (!version) throw new Error("consentPluginCapabilities requires a version");
-  const store = loadConsentStore();
-  store[consentKey(scope, name)] = {
-    version,
-    capabilities: canonicalCaps(capabilities),
-    consentedAt: _deps.now(),
-  };
-  saveConsentStore(store);
-  return { name, scope, version };
+  const file = _deps.storePath();
+  return mutateSecurityStore(
+    file,
+    "plugin capability consent",
+    (store) => {
+      store[consentKey(scope, name)] = {
+        version,
+        capabilities: canonicalCaps(capabilities),
+        consentedAt: _deps.now(),
+      };
+      return { name, scope, version };
+    },
+    { lock: _deps.withFileLock },
+  );
 }
 
 /** Revoke capability consent for a plugin at a scope. */
 export function revokeCapabilityConsent(name, { scope = "project" } = {}) {
-  const store = loadConsentStore();
-  const key = consentKey(scope, name);
-  const existed = Object.prototype.hasOwnProperty.call(store, key);
-  delete store[key];
-  saveConsentStore(store);
-  return { name, scope, removed: existed };
+  const file = _deps.storePath();
+  return mutateSecurityStore(
+    file,
+    "plugin capability consent",
+    (store) => {
+      const key = consentKey(scope, name);
+      const existed = Object.prototype.hasOwnProperty.call(store, key);
+      delete store[key];
+      return { name, scope, removed: existed };
+    },
+    { lock: _deps.withFileLock },
+  );
 }
 
 /** All consent entries (for `cc plugin consent --list`). */

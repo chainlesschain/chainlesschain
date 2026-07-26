@@ -70,9 +70,9 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 | MCP 交互      | Elicitation、ElicitationResult、Channels、长调用后台化                      | Tools/Resources/Prompts/OAuth/Tool Search/list changed/roots，以及 Elicitation form/URL/defer、complete 通知、`-32042` exactly-once retry 和 Desktop/VS Code/JetBrains/双语言 SDK 宿主协议均已有                                                                      | 完整 schema vocabulary 与部分外部事件 producer 仍待补                                                                     | P1     |
 | Event Runtime | 后台会话、任务、外部事件和持续监控统一运行                                  | Agenda watch、durable inbox/outbox、lease/retry/dead-letter、Agent IPC、MCP、Webhook、Telegram、Monitor producer 默认接线与有界队列已接入；真实 binary lazy 入口统一托管 process-level worker，短命命令 final drain；`cc status --json` 暴露队列与跨进程 host heartbeat/stale，真实双进程演练验证更高 fence 接管和幂等副作用只应用一次 | ✅ 核心闭环；新增外部副作用仍须携带稳定 event id 并实现领域幂等 handler                                                    | P1     |
 | Context       | `/context` 显示 memory、skills、MCP、文件与缓存成本                         | instruction、实际注入 persona Skill、persisted MCP schema 已逐来源归因；普通 Skill 使用 descriptor/body 双层 cache，Headless/REPL 持久化无正文快照，分别报告磁盘读取、cache hit、正文大小等价量与实际 prompt 注入 token                                                     | ✅ 当前核心闭环；Subagent/Hook 独立预算与 provider 实际计费误差仍作为后续可观测性增强                                    | P1     |
-| Checkpoint    | 对话与文件按 turn 恢复                                                      | Headless 显式绑定已持久化，REPL 可消费                                                                                                                                                                                                                                    | REPL 还不是统一生产者；child/worktree/user edit/provider tool id 归因不完整                                               | P1     |
+| Checkpoint    | 对话与文件按 turn 恢复                                                      | Headless/REPL 共用 turn-binding producer，provider tool/turn/decision id、child/worktree/checkpoint 与 IDE user edit 均进入持久归因                                                                                                                                          | ✅ 核心闭环；shell/外部进程副作用继续诚实标记为 partial                                                                   | P1     |
 | Plugin 安全   | 插件统一打包、作用域、企业治理                                              | 能力声明/consent/签名/typed options/OS secret/lockfile/SBOM 与执行 Broker provenance 已有；强制 consent 同时强制 permissions 声明，direct URL MCP hostname 按声明 domain 连接前拒绝；Desktop Loader 依赖探测/安装/解压已去 shell | stdio/native 外部宿主的跨平台 network/filesystem 强隔离仍需随 P0 原生沙箱收口                                           | P1     |
-| 关键状态并发  | 会话、审批、任务和副作用状态应原子持久化                                    | Agenda/Event Runtime/session transcript 已使用 fail-closed file lock                                                                                                                                                                                                      | approval/部分 ledger/IDE session 状态仍需统一迁移，避免不同宿主各自写入                                                   | P1     |
+| 关键状态并发  | 会话、审批、任务和副作用状态应原子持久化                                    | Approval CAS、side-effect/turn/session、Agenda/Event Runtime/Cowork delivery、goal/config/MTC、plugin/MCP trust/consent/凭据元数据均有界 fail-closed；VS Code/JetBrains 共用 `.lock` 目录协议                                                                                  | ✅ Critical/Durable 清单已收口；仅 Advisory cache/统计允许 best-effort                                                     | P1     |
 | 结构化输出    | 标准 JSON Schema、启动期校验、最终 validated result                         | 常用 Draft 2020-12 vocabulary（组合、条件、`$ref`、dependent、pattern、contains、format）、显式 external schema registry 及 stream `structured_result`                                                                                                                    | 完整 meta-vocabulary、自动远程 ref 解析与复杂 schema 互操作性仍待补                                                       | P1     |
 | SDK/CI        | TypeScript/Python SDK、版本化事件、GitHub/GitLab 自动化                     | 当前双语言源码覆盖 24 类 typed stream 事件（含 MCP defer/complete）、approval/question/MCP elicitation callback、resume 与未知事件无损透传；共享 fixture、GitHub Actions 模板及 22 项 hermetic 测试已落地；已发布 Python SDK 0.1.0 是此前 22 类事件基线，并通过 3.10/3.12/3.13 公网 wheel 安装矩阵 | SemVer/capability negotiation/deprecation 矩阵、跨宿主 schema package、GitLab、双语言联合发布兼容门及新增事件的新版本发布仍待补 | P1     |
 | 验收与文档    | CLI/IDE/SDK 共享运行时和持续发布验证                                        | 单元/集成测试很多                                                                                                                                                                                                                                                         | MVP 验证脚本没有覆盖完整 Desktop→真实 CLI 链；多份旧文档仍把已完成项列为缺口                                              | P1     |
@@ -669,10 +669,23 @@ remote approval 和不同运行入口中。
 跨进程关键状态优先迁到 SQLite transaction、单写者 daemon 或带 compare-and-swap 的持久存储，
 而不是继续扩展文件锁约定。
 
-2026-07-22 已先将关键调度状态落地为 fail-closed：`withFileLock` 支持
-`failIfUnavailable`，`AgentScheduleStore.claimDue()` 在无法取得跨进程锁时拒绝执行，
-并用过期 lease 回收崩溃 runner。Approval、side-effect ledger、session/turn binding
-等其余关键状态仍需迁移到同等语义的持久事务或 daemon。
+2026-07-26 已完成清单收口。`withFileLock` 仍允许 Advisory 调用方选择 best-effort，
+但 Critical/Durable 调用方均显式使用 `failIfUnavailable` 或等价的有界严格锁：
+
+- `ApprovalAuthorityStore` 在锁内执行 CAS revision，并以临时文件 fsync/rename；
+  side-effect ledger、turn binding 与 JSONL session append 默认拒绝持久化失败。
+- Agenda/Event Runtime 保持 lease/fence；Cowork cron 增加持久 delivery id、owner、
+  lease 续租与 fenced settlement，过期 owner 不能覆盖后继结果。Goal、config/feature
+  与 MTC batch 读改写也不再无锁继续。
+- Plugin trust、capability consent、plugin option secret-ref、project MCP trust、
+  MCP OAuth、sync credential 与 pairing token 均在锁内严格读取并原子替换；损坏文件
+  不会被空对象覆盖。项目 MCP trust service 或首次 fingerprint 无法持久化时，
+  `.mcp.json` 可执行配置直接跳过。
+- VS Code 与 JetBrains 对共享 `ide/session-index.json` 使用同一个原子 `.lock`
+  目录协议；锁超时与损坏输入均 fail-closed，写入使用同目录临时文件原子替换。
+
+Advisory 的 UI cache、统计快照和提示索引仍可按上表 best-effort；该例外不再用于
+审批、幂等、调度、信任或凭据状态。
 
 ### 11.3 标准化 JSON Schema
 

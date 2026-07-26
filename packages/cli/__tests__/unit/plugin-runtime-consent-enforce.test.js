@@ -4,7 +4,10 @@
  * drops a plugin that declared capabilities but was never consented (opt-in;
  * legacy no-declaration plugins are unaffected; default byte-identical).
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import {
   capabilityConsentRequired,
   capabilityDeclarationsRequired,
@@ -16,11 +19,20 @@ import { normalizeCapabilities } from "../../src/lib/plugin-runtime/capabilities
 const DECLARED = normalizeCapabilities({ network: ["api.example.com"] });
 
 let store;
+let dir;
+let storeFile;
+let originalDeps;
 beforeEach(() => {
   store = {};
-  consentDeps.existsSync = () => true;
-  consentDeps.readFileSync = () => JSON.stringify(store);
-  consentDeps.storePath = () => "/virtual/consent.json";
+  dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-consent-enforce-"));
+  storeFile = path.join(dir, "consent.json");
+  originalDeps = { ...consentDeps };
+  consentDeps.storePath = () => storeFile;
+});
+
+afterEach(() => {
+  Object.assign(consentDeps, originalDeps);
+  fs.rmSync(dir, { recursive: true, force: true });
 });
 
 function plugin(
@@ -36,6 +48,7 @@ function plugin(
 
 function grant(name, scope, caps) {
   store[`${scope}:${name}`] = { version: "1.0.0", capabilities: caps };
+  fs.writeFileSync(storeFile, JSON.stringify(store), "utf8");
 }
 
 describe("capabilityConsentRequired", () => {
@@ -152,10 +165,7 @@ describe("filterByCapabilityConsent", () => {
   });
 
   it("fails closed when the consent lookup throws", () => {
-    consentDeps.readFileSync = () => {
-      throw new Error("io error");
-    };
-    // loadConsentStore swallows the read error → {} → no entry → not consented.
+    fs.writeFileSync(storeFile, "{broken", "utf8");
     const { kept, dropped } = filterByCapabilityConsent([plugin("x")]);
     expect(kept).toEqual([]);
     expect(dropped).toHaveLength(1);

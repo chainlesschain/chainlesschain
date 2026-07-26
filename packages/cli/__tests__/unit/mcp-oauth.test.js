@@ -39,6 +39,7 @@ beforeEach(() => {
   _deps.now = () => _n;
   _deps.homedir = () => (process.platform === "win32" ? "C:\\home" : "/home");
   _deps.randomBytes = (n) => Buffer.alloc(n, 7); // deterministic
+  _deps.withStoreLock = (_file, body) => body();
   store = {};
   const file = oauth.tokenStorePath();
   _deps.fs = {
@@ -321,6 +322,46 @@ describe("token store + expiry", () => {
     oauth.saveStoredToken("https://m.example.com", { access_token: "AT" });
     expect(oauth.deleteStoredToken("https://m.example.com")).toBe(true);
     expect(oauth.getStoredToken("https://m.example.com")).toBeNull();
+  });
+
+  it("never mutates the token store when its lock is unavailable", () => {
+    const unavailable = Object.assign(new Error("busy"), {
+      code: "MCP_TOKEN_STORE_LOCK_UNAVAILABLE",
+    });
+    _deps.withStoreLock = vi.fn(() => {
+      throw unavailable;
+    });
+
+    expect(() =>
+      oauth.saveStoredToken("https://m.example.com", { access_token: "AT" }),
+    ).toThrow(unavailable);
+    expect(store.__written).not.toBe(true);
+  });
+
+  it("the production lock fails closed when lock primitives are missing", () => {
+    let caught;
+    try {
+      oauth.withStoreLock(oauth.tokenStorePath(), () => {
+        throw new Error("critical section must not run");
+      });
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toMatchObject({
+      code: "MCP_TOKEN_STORE_LOCK_UNAVAILABLE",
+    });
+  });
+
+  it("propagates token deletion persistence failures", () => {
+    oauth.saveStoredToken("https://m.example.com", { access_token: "AT" });
+    const original = store.content;
+    _deps.fs.writeFileSync = () => {
+      throw new Error("disk full");
+    };
+    expect(() => oauth.deleteStoredToken("https://m.example.com")).toThrow(
+      /disk full/,
+    );
+    expect(store.content).toBe(original);
   });
 
   it("writes the token store atomically (temp + rename, no .tmp left, 0600 temp)", () => {
@@ -891,6 +932,10 @@ describe("HTTPS endpoint enforcement", () => {
 });
 
 describe("token store cross-process lock", () => {
+  beforeEach(() => {
+    _deps.withStoreLock = oauth.withStoreLock;
+  });
+
   // A fake fs with the lock primitives + an atomic-rename store, backed by an
   // in-memory file map, so the O_EXCL lock path is actually exercised.
   function makeLockFs({
@@ -999,19 +1044,21 @@ describe("token store cross-process lock", () => {
     ).toBe("AT");
   });
 
-  it("runs unlocked when the fs lacks lock primitives (back-compat)", () => {
+  it("fails closed when the fs lacks lock primitives", () => {
     const files = new Map();
     _deps.fs = {
       existsSync: (p) => files.has(p),
       readFileSync: (p) => files.get(p),
       writeFileSync: (p, c) => files.set(p, c),
       mkdirSync: () => {},
-      // no openSync/closeSync/unlinkSync → unlocked fallback
+      // no openSync/closeSync/unlinkSync
     };
-    const rec = oauth.saveStoredToken("https://m.example.com/mcp", {
-      access_token: "AT",
-    });
-    expect(rec.access_token).toBe("AT");
+    expect(() =>
+      oauth.saveStoredToken("https://m.example.com/mcp", {
+        access_token: "AT",
+      }),
+    ).toThrow(/lock primitives unavailable/i);
+    expect(files.size).toBe(0);
   });
 });
 

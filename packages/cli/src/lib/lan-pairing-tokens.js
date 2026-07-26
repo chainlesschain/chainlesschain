@@ -33,6 +33,7 @@ import path from "node:path";
 import os from "node:os";
 import crypto from "node:crypto";
 import { getHomeDir } from "./paths.js";
+import { withFileLock } from "./with-file-lock.js";
 
 /** Token lifetime — mirrors device-pairing-handler.js pairingTimeout (5 min). */
 const DEFAULT_TTL_MS = 5 * 60 * 1000;
@@ -108,7 +109,10 @@ export function buildToken({ did, deviceInfo } = {}) {
  * @param {string} [filePath]
  * @returns {{ schema: string, tokens: Array }}
  */
-export function readTokens(filePath = defaultTokenStorePath()) {
+export function readTokens(
+  filePath = defaultTokenStorePath(),
+  { failIfUnavailable = false } = {},
+) {
   if (!fs.existsSync(filePath)) {
     return { schema: "cc-pairing-tokens/v1", tokens: [] };
   }
@@ -121,9 +125,28 @@ export function readTokens(filePath = defaultTokenStorePath()) {
         tokens: parsed.tokens,
       };
     }
+    if (failIfUnavailable) {
+      const error = new Error(
+        `Pairing token store must contain a tokens array: ${filePath}`,
+      );
+      error.code = "PAIRING_TOKEN_STORE_CORRUPT";
+      throw error;
+    }
     return { schema: "cc-pairing-tokens/v1", tokens: [] };
-  } catch (_err) {
-    // Malformed → return empty (don't crash CLI; user can `revoke --all`).
+  } catch (cause) {
+    if (
+      failIfUnavailable ||
+      cause?.code === "PAIRING_TOKEN_STORE_CORRUPT"
+    ) {
+      if (cause?.code === "PAIRING_TOKEN_STORE_CORRUPT") throw cause;
+      const error = new Error(
+        `Could not read pairing token store: ${filePath}`,
+        { cause },
+      );
+      error.code = "PAIRING_TOKEN_STORE_UNAVAILABLE";
+      throw error;
+    }
+    // Advisory listing keeps its legacy empty fallback.
     return { schema: "cc-pairing-tokens/v1", tokens: [] };
   }
 }
@@ -134,19 +157,46 @@ export function readTokens(filePath = defaultTokenStorePath()) {
  * @param {{ schema?: string, tokens: Array }} state
  * @param {string} [filePath]
  */
-export function writeTokens(state, filePath = defaultTokenStorePath()) {
+function _prepareTokenStore(filePath) {
   const dir = path.dirname(filePath);
   if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+    fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
   }
+}
+
+function _writeTokensUnlocked(state, filePath) {
+  _prepareTokenStore(filePath);
   const toWrite = {
     schema: state.schema || "cc-pairing-tokens/v1",
     tokens: state.tokens || [],
   };
   // Write to temp + rename for atomicity (avoid partial reads).
-  const tmp = filePath + ".tmp";
-  fs.writeFileSync(tmp, JSON.stringify(toWrite, null, 2), "utf-8");
-  fs.renameSync(tmp, filePath);
+  const tmp = `${filePath}.${process.pid}.${crypto.randomUUID()}.tmp`;
+  try {
+    fs.writeFileSync(tmp, JSON.stringify(toWrite, null, 2), {
+      encoding: "utf-8",
+      mode: 0o600,
+    });
+    fs.renameSync(tmp, filePath);
+  } catch (error) {
+    try {
+      fs.rmSync(tmp, { force: true });
+    } catch {
+      // Preserve the original persistence error.
+    }
+    throw error;
+  }
+}
+
+function _withTokenStoreLock(filePath, body) {
+  _prepareTokenStore(filePath);
+  return withFileLock(filePath, body, { failIfUnavailable: true });
+}
+
+export function writeTokens(state, filePath = defaultTokenStorePath()) {
+  return _withTokenStoreLock(filePath, () =>
+    _writeTokensUnlocked(state, filePath),
+  );
 }
 
 /**
@@ -160,17 +210,19 @@ export function writeTokens(state, filePath = defaultTokenStorePath()) {
  */
 export function addToken(input, filePath = defaultTokenStorePath()) {
   const token = buildToken(input);
-  const state = readTokens(filePath);
-  // Invalidate prior pending tokens for the same DID.
-  state.tokens = state.tokens.map((t) => {
-    if (t.qrData?.did === input.did && t.status === STATUS.PENDING) {
-      return { ...t, status: STATUS.REVOKED, revokedAtMs: Date.now() };
-    }
-    return t;
+  return _withTokenStoreLock(filePath, () => {
+    const state = readTokens(filePath, { failIfUnavailable: true });
+    // Invalidate prior pending tokens for the same DID.
+    state.tokens = state.tokens.map((t) => {
+      if (t.qrData?.did === input.did && t.status === STATUS.PENDING) {
+        return { ...t, status: STATUS.REVOKED, revokedAtMs: Date.now() };
+      }
+      return t;
+    });
+    state.tokens.push(token);
+    _writeTokensUnlocked(state, filePath);
+    return token;
   });
-  state.tokens.push(token);
-  writeTokens(state, filePath);
-  return token;
 }
 
 /**
@@ -178,18 +230,20 @@ export function addToken(input, filePath = defaultTokenStorePath()) {
  * before `list` to keep status accurate.
  */
 export function sweepExpired(filePath = defaultTokenStorePath()) {
-  const state = readTokens(filePath);
-  const now = Date.now();
-  let touched = 0;
-  state.tokens = state.tokens.map((t) => {
-    if (t.status === STATUS.PENDING && t.expiresAtMs <= now) {
-      touched += 1;
-      return { ...t, status: STATUS.EXPIRED, expiredAtMs: now };
-    }
-    return t;
+  return _withTokenStoreLock(filePath, () => {
+    const state = readTokens(filePath, { failIfUnavailable: true });
+    const now = Date.now();
+    let touched = 0;
+    state.tokens = state.tokens.map((t) => {
+      if (t.status === STATUS.PENDING && t.expiresAtMs <= now) {
+        touched += 1;
+        return { ...t, status: STATUS.EXPIRED, expiredAtMs: now };
+      }
+      return t;
+    });
+    if (touched > 0) _writeTokensUnlocked(state, filePath);
+    return touched;
   });
-  if (touched > 0) writeTokens(state, filePath);
-  return touched;
 }
 
 /**
@@ -224,20 +278,22 @@ export function findToken(code, filePath = defaultTokenStorePath()) {
  * not found or already non-pending.
  */
 export function revokeToken(code, filePath = defaultTokenStorePath()) {
-  const state = readTokens(filePath);
-  const i = state.tokens.findIndex((t) => t.code === code);
-  if (i < 0) return { revoked: false, reason: "not_found" };
-  const t = state.tokens[i];
-  if (t.status !== STATUS.PENDING) {
-    return { revoked: false, reason: `not_pending(${t.status})` };
-  }
-  state.tokens[i] = {
-    ...t,
-    status: STATUS.REVOKED,
-    revokedAtMs: Date.now(),
-  };
-  writeTokens(state, filePath);
-  return { revoked: true, token: state.tokens[i] };
+  return _withTokenStoreLock(filePath, () => {
+    const state = readTokens(filePath, { failIfUnavailable: true });
+    const i = state.tokens.findIndex((t) => t.code === code);
+    if (i < 0) return { revoked: false, reason: "not_found" };
+    const t = state.tokens[i];
+    if (t.status !== STATUS.PENDING) {
+      return { revoked: false, reason: `not_pending(${t.status})` };
+    }
+    state.tokens[i] = {
+      ...t,
+      status: STATUS.REVOKED,
+      revokedAtMs: Date.now(),
+    };
+    _writeTokensUnlocked(state, filePath);
+    return { revoked: true, token: state.tokens[i] };
+  });
 }
 
 /**
@@ -245,20 +301,22 @@ export function revokeToken(code, filePath = defaultTokenStorePath()) {
  * this after the mobile successfully connects.
  */
 export function markConsumed(code, filePath = defaultTokenStorePath()) {
-  const state = readTokens(filePath);
-  const i = state.tokens.findIndex((t) => t.code === code);
-  if (i < 0) return { consumed: false, reason: "not_found" };
-  const t = state.tokens[i];
-  if (t.status !== STATUS.PENDING) {
-    return { consumed: false, reason: `not_pending(${t.status})` };
-  }
-  state.tokens[i] = {
-    ...t,
-    status: STATUS.CONSUMED,
-    consumedAtMs: Date.now(),
-  };
-  writeTokens(state, filePath);
-  return { consumed: true, token: state.tokens[i] };
+  return _withTokenStoreLock(filePath, () => {
+    const state = readTokens(filePath, { failIfUnavailable: true });
+    const i = state.tokens.findIndex((t) => t.code === code);
+    if (i < 0) return { consumed: false, reason: "not_found" };
+    const t = state.tokens[i];
+    if (t.status !== STATUS.PENDING) {
+      return { consumed: false, reason: `not_pending(${t.status})` };
+    }
+    state.tokens[i] = {
+      ...t,
+      status: STATUS.CONSUMED,
+      consumedAtMs: Date.now(),
+    };
+    _writeTokensUnlocked(state, filePath);
+    return { consumed: true, token: state.tokens[i] };
+  });
 }
 
 export { STATUS, QR_TYPE, DEFAULT_TTL_MS };
