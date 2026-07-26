@@ -36,8 +36,18 @@ const require = createRequire(import.meta.url);
 import {
   applySandbox as _applySandbox,
   postSpawnSandbox as _postSpawnSandbox,
+  SANDBOX_BOUNDARIES,
 } from "./platform-sandbox.js";
 import { credentialAgent } from "./credential-agent.js";
+
+const SUPPORTED_SANDBOX_BOUNDARIES = new Set(
+  Object.values(SANDBOX_BOUNDARIES),
+);
+const SUPPORTED_SANDBOX_PROFILES = new Set([
+  "default",
+  "strict",
+  "network-only",
+]);
 
 // 延迟导入避免循环依赖
 let _traceCtx = null;
@@ -197,16 +207,99 @@ class ProcessExecutionBroker extends EventEmitter {
     return process.env.CC_SANDBOX_DISABLE === "1";
   }
 
-  _sandboxUnavailablePlan(command, args, options, reason) {
+  /**
+   * Normalize the public per-spawn boundary contract. `requiredBoundaries` is
+   * retained as a top-level alias so callers can adopt the contract without
+   * migrating all spawn options to `sandboxPolicy` in one change.
+   *
+   * @param {Object} options
+   * @returns {{profile: "default"|"strict"|"network-only"|null, requiredBoundaries: string[]}}
+   */
+  _normalizeSandboxPolicy(options = {}) {
+    const rawPolicy = options.sandboxPolicy;
+    if (
+      rawPolicy !== undefined &&
+      (rawPolicy === null ||
+        typeof rawPolicy !== "object" ||
+        Array.isArray(rawPolicy))
+    ) {
+      throw this._sandboxBoundaryError(
+        "invalid_sandbox_policy",
+        "sandboxPolicy must be an object",
+      );
+    }
+
+    const direct = options.requiredBoundaries;
+    const nested = rawPolicy?.requiredBoundaries;
+    for (const [name, value] of [
+      ["requiredBoundaries", direct],
+      ["sandboxPolicy.requiredBoundaries", nested],
+    ]) {
+      if (value !== undefined && !Array.isArray(value)) {
+        throw this._sandboxBoundaryError(
+          "invalid_required_boundaries",
+          `${name} must be an array`,
+        );
+      }
+    }
+
+    const requiredBoundaries = [];
+    for (const boundary of [...(direct || []), ...(nested || [])]) {
+      if (
+        typeof boundary !== "string" ||
+        !SUPPORTED_SANDBOX_BOUNDARIES.has(boundary)
+      ) {
+        throw this._sandboxBoundaryError(
+          "invalid_required_boundary",
+          `Unsupported sandbox boundary: ${String(boundary)}`,
+          {
+            requiredBoundaries,
+            missingBoundaries: [String(boundary)],
+          },
+        );
+      }
+      if (!requiredBoundaries.includes(boundary)) {
+        requiredBoundaries.push(boundary);
+      }
+    }
+
+    const profile = rawPolicy?.profile ?? null;
+    if (profile !== null && !SUPPORTED_SANDBOX_PROFILES.has(profile)) {
+      throw this._sandboxBoundaryError(
+        "invalid_sandbox_profile",
+        `Unsupported sandbox profile: ${String(profile)}`,
+        { requiredBoundaries },
+      );
+    }
+    return { profile, requiredBoundaries };
+  }
+
+  _stripSandboxControlOptions(options) {
+    delete options.sandboxPolicy;
+    delete options.requiredBoundaries;
+  }
+
+  _sandboxUnavailablePlan(
+    command,
+    args,
+    options,
+    reason,
+    sandboxPolicy = {},
+  ) {
     return {
       contractVersion: 1,
       applied: false,
       platform: process.platform,
-      profile: "default",
+      profile: sandboxPolicy.profile || "default",
       command,
       args: [...(args || [])],
       options: { ...options },
       enforcement: null,
+      backend: null,
+      guarantees: [],
+      requiredBoundaries: [
+        ...(sandboxPolicy.requiredBoundaries || []),
+      ],
       reason,
       postSpawn: { required: false, mode: "none" },
     };
@@ -216,6 +309,19 @@ class ProcessExecutionBroker extends EventEmitter {
     const error = new Error(message);
     error.code = "ERR_PROCESS_SANDBOX";
     error.sandboxReason = reason;
+    return error;
+  }
+
+  _sandboxBoundaryError(reason, message = reason, metadata = {}) {
+    const error = this._sandboxError(reason, message);
+    error.code = "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED";
+    error.sandboxFailClosed = true;
+    error.requiredBoundaries = [
+      ...(metadata.requiredBoundaries || []),
+    ];
+    error.actualGuarantees = [...(metadata.actualGuarantees || [])];
+    error.missingBoundaries = [...(metadata.missingBoundaries || [])];
+    error.sandboxBackend = metadata.sandboxBackend || null;
     return error;
   }
 
@@ -262,6 +368,27 @@ class ProcessExecutionBroker extends EventEmitter {
         "Unavailable sandbox spawn plan must provide a reason",
       );
     }
+    const backend = plan.backend ?? plan.enforcement ?? null;
+    if (plan.applied && typeof backend !== "string") {
+      throw this._sandboxError(
+        "invalid_sandbox_plan",
+        "Applied sandbox spawn plan must name its backend",
+      );
+    }
+    const guarantees = plan.guarantees ?? [];
+    if (
+      !Array.isArray(guarantees) ||
+      guarantees.some(
+        (boundary) =>
+          typeof boundary !== "string" ||
+          !SUPPORTED_SANDBOX_BOUNDARIES.has(boundary),
+      )
+    ) {
+      throw this._sandboxError(
+        "invalid_sandbox_plan",
+        "Sandbox spawn plan guarantees must use supported boundary identifiers",
+      );
+    }
     const postSpawn = plan.postSpawn || { required: false, mode: "none" };
     if (
       postSpawn.required &&
@@ -277,12 +404,45 @@ class ProcessExecutionBroker extends EventEmitter {
       ...plan,
       args: [...plan.args],
       options: { ...plan.options },
+      backend,
+      guarantees: [...new Set(guarantees)],
       postSpawn: { ...postSpawn },
     };
   }
 
-  _prepareSandboxPlan(command, args, options, { sync = false } = {}) {
+  _assertRequiredSandboxBoundaries(plan, requiredBoundaries) {
+    const actualGuarantees = plan.applied ? plan.guarantees : [];
+    const guaranteed = new Set(actualGuarantees);
+    const missingBoundaries = requiredBoundaries.filter(
+      (boundary) => !guaranteed.has(boundary),
+    );
+    if (missingBoundaries.length > 0) {
+      throw this._sandboxBoundaryError(
+        "required_boundaries_unsatisfied",
+        `Sandbox backend ${plan.backend || "unavailable"} cannot satisfy required boundaries: ${missingBoundaries.join(", ")}`,
+        {
+          requiredBoundaries,
+          actualGuarantees,
+          missingBoundaries,
+          sandboxBackend: plan.backend,
+        },
+      );
+    }
+    return {
+      ...plan,
+      requiredBoundaries: [...requiredBoundaries],
+    };
+  }
+
+  _prepareSandboxPlan(
+    command,
+    args,
+    options,
+    { sync = false, sandboxPolicy = {} } = {},
+  ) {
     const strict = this._sandboxStrictEnabled();
+    const requiredBoundaries = sandboxPolicy.requiredBoundaries || [];
+    const profile = strict ? "strict" : sandboxPolicy.profile || "default";
     let disabledReason = null;
     if (this._sandboxDisabledByEnvironment()) {
       disabledReason = "disabled_by_environment";
@@ -300,22 +460,28 @@ class ProcessExecutionBroker extends EventEmitter {
           `Sandbox is unavailable in strict mode: ${disabledReason}`,
         );
       }
-      return this._sandboxUnavailablePlan(
+      const unavailablePlan = this._sandboxUnavailablePlan(
         command,
         args,
         options,
         disabledReason,
+        { ...sandboxPolicy, profile },
+      );
+      return this._assertRequiredSandboxBoundaries(
+        unavailablePlan,
+        requiredBoundaries,
       );
     }
 
-    const plan = this._validateSandboxPlan(
+    let plan = this._validateSandboxPlan(
       this._sandboxAdapter.applySandbox(
         command,
         args || [],
         options,
-        strict ? "strict" : "default",
+        profile,
       ),
     );
+    plan = this._assertRequiredSandboxBoundaries(plan, requiredBoundaries);
 
     if (!plan.applied && strict) {
       throw this._sandboxError(
@@ -339,10 +505,13 @@ class ProcessExecutionBroker extends EventEmitter {
           "spawnSync cannot satisfy required post-spawn sandbox enforcement",
         );
       }
-      if (strict && plan.postSpawn.mode !== "sync") {
+      if (
+        (strict || requiredBoundaries.length > 0) &&
+        plan.postSpawn.mode !== "sync"
+      ) {
         throw this._sandboxError(
           "async_post_spawn_disallowed_in_strict_mode",
-          "Strict sandbox mode requires synchronous post-spawn enforcement",
+          "Fail-closed sandbox enforcement requires synchronous post-spawn enforcement",
         );
       }
     }
@@ -352,6 +521,11 @@ class ProcessExecutionBroker extends EventEmitter {
   _applySandboxAudit(auditEntry, plan, applied) {
     auditEntry.sandboxed = applied;
     auditEntry.sandboxProfile = plan?.profile || null;
+    auditEntry.sandboxRequired = [...(plan?.requiredBoundaries || [])];
+    auditEntry.sandboxGuarantees = applied
+      ? [...(plan?.guarantees || [])]
+      : [];
+    auditEntry.sandboxBackend = plan?.backend || null;
     auditEntry.sandboxEnforcement = applied
       ? plan?.enforcement || "platform"
       : null;
@@ -365,6 +539,15 @@ class ProcessExecutionBroker extends EventEmitter {
     auditEntry.sandboxState = "denied";
     auditEntry.sandboxReason =
       error.sandboxReason || "sandbox_initialization_failed";
+    auditEntry.sandboxRequired = [
+      ...(error.requiredBoundaries || auditEntry.sandboxRequired || []),
+    ];
+    auditEntry.sandboxGuarantees = [
+      ...(error.actualGuarantees || auditEntry.sandboxGuarantees || []),
+    ];
+    auditEntry.sandboxMissing = [...(error.missingBoundaries || [])];
+    auditEntry.sandboxBackend =
+      error.sandboxBackend || auditEntry.sandboxBackend || null;
     auditEntry.deniedReason = `sandbox-init-failed: ${error.message}`;
     auditEntry.endTime = Date.now();
     auditEntry.durationMs = auditEntry.endTime - startTime;
@@ -391,7 +574,11 @@ class ProcessExecutionBroker extends EventEmitter {
     if (!plan.applied || !plan.postSpawn.required) {
       this._applySandboxAudit(auditEntry, plan, plan.applied);
       if (plan.applied) this._stats.sandboxed++;
-      const ready = Promise.resolve({ applied: plan.applied });
+      const ready = Promise.resolve({
+        applied: plan.applied,
+        backend: plan.backend,
+        guarantees: plan.applied ? [...plan.guarantees] : [],
+      });
       proc.sandboxReady = ready;
       return;
     }
@@ -403,7 +590,10 @@ class ProcessExecutionBroker extends EventEmitter {
       this._applySandboxAudit(auditEntry, plan, false);
       auditEntry.sandboxState = "failed";
       auditEntry.sandboxReason = `post_spawn_failed: ${error.message}`;
-      if (this._sandboxStrictEnabled()) {
+      if (
+        this._sandboxStrictEnabled() ||
+        plan.requiredBoundaries.length > 0
+      ) {
         if (typeof proc.once === "function") proc.once("error", () => {});
         try {
           proc.kill?.();
@@ -423,7 +613,10 @@ class ProcessExecutionBroker extends EventEmitter {
     }
 
     if (postSpawnResult && typeof postSpawnResult.then === "function") {
-      if (this._sandboxStrictEnabled()) {
+      if (
+        this._sandboxStrictEnabled() ||
+        plan.requiredBoundaries.length > 0
+      ) {
         Promise.resolve(postSpawnResult).catch(() => {});
         if (typeof proc.once === "function") proc.once("error", () => {});
         try {
@@ -442,7 +635,11 @@ class ProcessExecutionBroker extends EventEmitter {
         () => {
           this._applySandboxAudit(auditEntry, plan, true);
           this._stats.sandboxed++;
-          return { applied: true };
+          return {
+            applied: true,
+            backend: plan.backend,
+            guarantees: [...plan.guarantees],
+          };
         },
         (error) => {
           this._applySandboxAudit(auditEntry, plan, false);
@@ -463,7 +660,11 @@ class ProcessExecutionBroker extends EventEmitter {
 
     this._applySandboxAudit(auditEntry, plan, true);
     this._stats.sandboxed++;
-    proc.sandboxReady = Promise.resolve({ applied: true });
+    proc.sandboxReady = Promise.resolve({
+      applied: true,
+      backend: plan.backend,
+      guarantees: [...plan.guarantees],
+    });
   }
 
   _credentialBoundaryEnabled() {
@@ -658,7 +859,20 @@ class ProcessExecutionBroker extends EventEmitter {
       pluginId: options.pluginId || null,
       pluginVersion: options.pluginVersion || null,
       pluginSource: options.pluginSource || null,
+      sandboxRequired: [],
+      sandboxGuarantees: [],
+      sandboxBackend: null,
     };
+
+    let sandboxPolicy;
+    try {
+      sandboxPolicy = this._normalizeSandboxPolicy(options);
+      auditEntry.sandboxRequired = [...sandboxPolicy.requiredBoundaries];
+    } catch (sandboxPolicyError) {
+      this._recordSandboxDenial(auditEntry, sandboxPolicyError, startTime);
+      sandboxPolicyError.auditEntry = auditEntry;
+      throw sandboxPolicyError;
+    }
 
     if (decision === "deny" || decision === "prompt") {
       auditEntry.deniedReason = isDangerous
@@ -687,6 +901,7 @@ class ProcessExecutionBroker extends EventEmitter {
 
     // 传播traceparent环境变量
     const spawnOpts = this._sanitizeOptions(options);
+    this._stripSandboxControlOptions(spawnOpts);
     if (traceCtx) {
       spawnOpts.env = { ...(spawnOpts.env || process.env) };
       spawnOpts.env.TRACEPARENT = traceCtx.traceparent;
@@ -716,9 +931,15 @@ class ProcessExecutionBroker extends EventEmitter {
     // P0-1: Platform sandbox wrapping — apply macOS/Windows/Linux sandbox
     let sandboxPlan;
     try {
-      sandboxPlan = this._prepareSandboxPlan(command, args || [], spawnOpts);
+      sandboxPlan = this._prepareSandboxPlan(command, args || [], spawnOpts, {
+        sandboxPolicy,
+      });
     } catch (sandboxErr) {
-      if (this._sandboxStrictEnabled()) {
+      if (
+        this._sandboxStrictEnabled() ||
+        sandboxErr.sandboxFailClosed ||
+        sandboxPolicy.requiredBoundaries.length > 0
+      ) {
         this._recordSandboxDenial(auditEntry, sandboxErr, startTime);
         sandboxErr.auditEntry = auditEntry;
         throw sandboxErr;
@@ -731,6 +952,7 @@ class ProcessExecutionBroker extends EventEmitter {
         args || [],
         spawnOpts,
         `sandbox_init_failed: ${sandboxErr.message}`,
+        sandboxPolicy,
       );
     }
     command = sandboxPlan.command;
@@ -852,7 +1074,20 @@ class ProcessExecutionBroker extends EventEmitter {
       pluginId: options.pluginId || null,
       pluginVersion: options.pluginVersion || null,
       pluginSource: options.pluginSource || null,
+      sandboxRequired: [],
+      sandboxGuarantees: [],
+      sandboxBackend: null,
     };
+
+    let sandboxPolicy;
+    try {
+      sandboxPolicy = this._normalizeSandboxPolicy(options);
+      auditEntry.sandboxRequired = [...sandboxPolicy.requiredBoundaries];
+    } catch (sandboxPolicyError) {
+      this._recordSandboxDenial(auditEntry, sandboxPolicyError, startTime);
+      sandboxPolicyError.auditEntry = auditEntry;
+      throw sandboxPolicyError;
+    }
 
     if (decision === "deny" || decision === "prompt") {
       auditEntry.deniedReason = isDangerous
@@ -874,6 +1109,7 @@ class ProcessExecutionBroker extends EventEmitter {
     }
 
     const spawnOpts = this._sanitizeOptions(options);
+    this._stripSandboxControlOptions(spawnOpts);
     if (traceCtx) {
       spawnOpts.env = { ...(spawnOpts.env || process.env) };
       spawnOpts.env.TRACEPARENT = traceCtx.traceparent;
@@ -905,9 +1141,14 @@ class ProcessExecutionBroker extends EventEmitter {
     try {
       sandboxPlan = this._prepareSandboxPlan(command, args || [], spawnOpts, {
         sync: true,
+        sandboxPolicy,
       });
     } catch (sandboxErr) {
-      if (this._sandboxStrictEnabled()) {
+      if (
+        this._sandboxStrictEnabled() ||
+        sandboxErr.sandboxFailClosed ||
+        sandboxPolicy.requiredBoundaries.length > 0
+      ) {
         this._recordSandboxDenial(auditEntry, sandboxErr, startTime);
         sandboxErr.auditEntry = auditEntry;
         throw sandboxErr;
@@ -920,6 +1161,7 @@ class ProcessExecutionBroker extends EventEmitter {
         args || [],
         spawnOpts,
         `sandbox_init_failed: ${sandboxErr.message}`,
+        sandboxPolicy,
       );
     }
     command = sandboxPlan.command;
@@ -979,10 +1221,22 @@ class ProcessExecutionBroker extends EventEmitter {
       pty: true,
       sandboxed: false,
       sandboxReason: "native_pty_host_boundary",
+      sandboxRequired: [],
+      sandboxGuarantees: [],
+      sandboxBackend: null,
       pluginId: options.pluginId || null,
       pluginVersion: options.pluginVersion || null,
       pluginSource: options.pluginSource || null,
     };
+    let sandboxPolicy;
+    try {
+      sandboxPolicy = this._normalizeSandboxPolicy(options);
+      auditEntry.sandboxRequired = [...sandboxPolicy.requiredBoundaries];
+    } catch (sandboxPolicyError) {
+      this._recordSandboxDenial(auditEntry, sandboxPolicyError, startTime);
+      sandboxPolicyError.auditEntry = auditEntry;
+      throw sandboxPolicyError;
+    }
     if (policy === "deny" || policy === "prompt") {
       auditEntry.deniedReason = `policy_${policy}`;
       auditEntry.endTime = Date.now();
@@ -997,8 +1251,22 @@ class ProcessExecutionBroker extends EventEmitter {
       error.auditEntry = auditEntry;
       throw error;
     }
+    if (sandboxPolicy.requiredBoundaries.length > 0) {
+      const sandboxError = this._sandboxBoundaryError(
+        "required_boundaries_unsatisfied",
+        `Native PTY host cannot satisfy required boundaries: ${sandboxPolicy.requiredBoundaries.join(", ")}`,
+        {
+          requiredBoundaries: sandboxPolicy.requiredBoundaries,
+          missingBoundaries: sandboxPolicy.requiredBoundaries,
+        },
+      );
+      this._recordSandboxDenial(auditEntry, sandboxError, startTime);
+      sandboxError.auditEntry = auditEntry;
+      throw sandboxError;
+    }
 
     const spawnOptions = { ...options, args: [...auditEntry.args] };
+    this._stripSandboxControlOptions(spawnOptions);
     delete spawnOptions.origin;
     delete spawnOptions.policy;
     delete spawnOptions.scope;
@@ -1213,5 +1481,5 @@ class ProcessExecutionBroker extends EventEmitter {
 }
 
 const broker = new ProcessExecutionBroker();
-export { broker as executionBroker };
+export { broker as executionBroker, SANDBOX_BOUNDARIES };
 export default broker;

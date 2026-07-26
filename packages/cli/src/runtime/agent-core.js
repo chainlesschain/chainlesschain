@@ -94,6 +94,7 @@ import {
   formatProviderResponseError,
 } from "../lib/provider-http-error.js";
 import { buildPermissionDecision } from "../lib/permission-decision.js";
+import { resolveSandboxPolicyPath } from "../lib/agent-sandbox.js";
 
 export { formatProviderHttpError };
 
@@ -1173,6 +1174,95 @@ const GUARDED_FILE_MUTATION_TOOLS = new Set([
   "notebook_edit",
 ]);
 
+function agentFileToolPathRequests(name, args = {}, workspaceRoots = []) {
+  const one = (argument, access) =>
+    typeof args[argument] === "string" && args[argument].length > 0
+      ? [{ argument, path: args[argument], access }]
+      : [];
+  switch (name) {
+    case "read_file":
+      return one("path", "read");
+    case "write_file":
+    case "edit_file":
+    case "edit_file_hashed":
+    case "delete_file":
+    case "notebook_edit":
+      return one("path", "write");
+    case "move_file":
+      return [
+        ...one("path", "write"),
+        ...one("target_path", "write"),
+      ];
+    case "list_dir":
+      return [
+        {
+          argument: "path",
+          path:
+            typeof args.path === "string" && args.path.length > 0
+              ? args.path
+              : ".",
+          access: "read",
+        },
+      ];
+    case "search_files":
+      return typeof args.directory === "string" && args.directory.length > 0
+        ? [
+            {
+              argument: "directory",
+              path: args.directory,
+              access: "read",
+            },
+          ]
+        : workspaceRoots.map((root) => ({
+            argument: "directory",
+            path: root,
+            access: "read",
+          }));
+    case "code_intelligence":
+      return args.action === "workspace_symbols"
+        ? workspaceRoots.map((root) => ({
+            argument: "file",
+            path: root,
+            access: "read",
+          }))
+        : one("file", "read");
+    case "publish_artifact":
+      return one("path", "read");
+    default:
+      return [];
+  }
+}
+
+function guardAgentFileToolPaths(name, args, context, cwd) {
+  const workspaceRoots = workspaceRootsFor(
+    cwd,
+    context.additionalDirectories,
+  );
+  const requests = agentFileToolPathRequests(name, args || {}, workspaceRoots);
+  for (const request of requests) {
+    const verdict = resolveSandboxPolicyPath(request.path, {
+      access: request.access,
+      cwd,
+      workspaceRoots,
+      sandbox: context.sandbox || null,
+    });
+    if (!verdict.ok) {
+      return {
+        error:
+          `[Workspace Path Guard] ${name}.${request.argument} ` +
+          `"${request.path}" was blocked: ${verdict.error}.`,
+        policy: {
+          decision: "deny",
+          via: "workspace-path-guard",
+          reason: verdict.reason,
+          access: request.access,
+        },
+      };
+    }
+  }
+  return null;
+}
+
 function fileMutationPaths(name, args = {}) {
   return [
     args.path,
@@ -1554,6 +1644,16 @@ export async function executeTool(name, args, context = {}) {
     }
     context = { ...context, toolAttribution: attribution };
   }
+
+  // Built-in file tools are confined to the declared workspace roots even
+  // when no process sandbox is enabled. Resolve existing targets (and the
+  // nearest existing parent for creates) through symlinks/junctions before any
+  // permission hook, IDE preview, credential check, or filesystem operation
+  // can touch them. Explicit --add-dir roots and sandbox allowRead/allowWrite
+  // paths are the only supported expansions beyond cwd; deny paths still win.
+  const workspacePathDenial = guardAgentFileToolPaths(name, args, context, cwd);
+  if (workspacePathDenial) return workspacePathDenial;
+
   const toolContext = createToolContext({
     toolName: runtimeDescriptor?.name || name,
     cwd,

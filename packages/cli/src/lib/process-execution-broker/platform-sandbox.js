@@ -20,6 +20,39 @@ import * as fs from "node:fs";
 import crypto from "node:crypto";
 import { spawnSync as nativeSpawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+
+/**
+ * Stable boundary identifiers shared by broker policies, platform plans, and
+ * audit records. A guarantee means that the named restriction is enforced by
+ * the selected backend; it does not merely describe a configured intent.
+ */
+export const SANDBOX_BOUNDARIES = Object.freeze({
+  FILESYSTEM: "filesystem",
+  NETWORK: "network",
+  PROCESS_EXEC: "process-exec",
+  PROCESS_TREE: "process-tree",
+  RESOURCE_LIMITS: "resource-limits",
+  PRIVILEGE_REDUCTION: "privilege-reduction",
+});
+
+/**
+ * @typedef {typeof SANDBOX_BOUNDARIES[keyof typeof SANDBOX_BOUNDARIES]} SandboxBoundary
+ *
+ * @typedef {Object} SandboxGuaranteePlan
+ * @property {1} contractVersion
+ * @property {boolean} applied
+ * @property {string} platform
+ * @property {string} profile
+ * @property {string} command
+ * @property {readonly string[]} args
+ * @property {Readonly<Object>} options
+ * @property {string|null} enforcement
+ * @property {string|null} backend
+ * @property {readonly SandboxBoundary[]} guarantees
+ * @property {string|null} reason
+ * @property {{required: boolean, mode: "none"|"sync"|"async"}} postSpawn
+ */
+
 const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const WINDOWS_IDENTITY_WAIT = new Int32Array(new SharedArrayBuffer(4));
 const DEFAULT_RUNTIME = Object.freeze({
@@ -104,6 +137,8 @@ function normalizeWrappedInvocation(command, args, spawnOpts, platform) {
  *   args: string[],
  *   options: Object,
  *   enforcement: string|null,
+ *   backend: string|null,
+ *   guarantees: readonly SandboxBoundary[],
  *   reason: string|null,
  *   cleanup?: Function,
  *   postSpawn: {required: boolean, mode: "none"|"sync"|"async"}
@@ -119,10 +154,13 @@ function createSandboxPlan(input) {
     contractVersion: 1,
     applied: false,
     enforcement: null,
+    backend: null,
+    guarantees: Object.freeze([]),
     reason: null,
     ...input,
     args: Object.freeze([...(input.args || [])]),
     options: Object.freeze({ ...(input.options || {}) }),
+    guarantees: Object.freeze([...(input.guarantees || [])]),
     postSpawn,
   });
 }
@@ -237,6 +275,7 @@ export function applyMacSandbox(
   const base = {
     platform: runtime.platform,
     profile: sandboxOpts.profileName || "default",
+    backend: "macos-seatbelt",
     command,
     args,
     options: { ...(spawnOpts || {}) },
@@ -288,6 +327,13 @@ export function applyMacSandbox(
     ...base,
     applied: true,
     enforcement: "macos-seatbelt",
+    guarantees: [
+      SANDBOX_BOUNDARIES.FILESYSTEM,
+      ...(sandboxOpts.allowNetwork
+        ? []
+        : [SANDBOX_BOUNDARIES.NETWORK]),
+      ...(sandboxOpts.allowExec ? [] : [SANDBOX_BOUNDARIES.PROCESS_EXEC]),
+    ],
     command: sandboxExecutable,
     args: newArgs,
     options: invocation.options,
@@ -450,6 +496,7 @@ export function applyWindowsSandbox(
   const base = {
     platform: runtime.platform,
     profile: sandboxOpts.profileName || "default",
+    backend: "windows-job-restricted-token",
     command,
     args,
     options: spawnOpts,
@@ -458,6 +505,22 @@ export function applyWindowsSandbox(
     return createSandboxPlan({
       ...base,
       reason: "platform_mismatch",
+    });
+  }
+
+  // The hosted Windows restricted-token path cannot reliably preserve file
+  // descriptor backed stdout/stderr when its helper is itself detached. Mark
+  // that combination unavailable before launch: strict/required callers fail
+  // closed, while ordinary trusted control-plane callers retain the broker's
+  // explicit audited fallback instead of receiving a phantom target PID.
+  if (
+    spawnOpts?.detached === true &&
+    Array.isArray(spawnOpts?.stdio) &&
+    spawnOpts.stdio.slice(0, 3).some((entry) => Number.isInteger(entry))
+  ) {
+    return createSandboxPlan({
+      ...base,
+      reason: "windows_detached_file_stdio_unsupported",
     });
   }
 
@@ -617,6 +680,11 @@ export function applyWindowsSandbox(
     ...base,
     applied: true,
     enforcement: "windows-job-restricted-token",
+    guarantees: [
+      SANDBOX_BOUNDARIES.PROCESS_TREE,
+      SANDBOX_BOUNDARIES.RESOURCE_LIMITS,
+      SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
+    ],
     command: adapter.cacheExecutable,
     args: helperArgs,
     options,
@@ -676,6 +744,7 @@ export function applyLinuxSandbox(
   const base = {
     platform: runtime.platform,
     profile: sandboxOpts.profileName || "default",
+    backend: "linux-prlimit",
     command,
     args,
     options: { ...(spawnOpts || {}) },
@@ -720,6 +789,7 @@ export function applyLinuxSandbox(
     ...base,
     applied: true,
     enforcement: "linux-prlimit",
+    guarantees: [SANDBOX_BOUNDARIES.RESOURCE_LIMITS],
     command: "/usr/bin/prlimit",
     args: [...prlimitParts, "--", invocation.command, ...invocation.args],
     options,

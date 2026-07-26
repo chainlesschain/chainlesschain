@@ -40,7 +40,6 @@ namespace ChainlessChain.WindowsSandbox
         private const UInt16 SW_HIDE = 0;
         private const UInt32 INFINITE = 0xffffffff;
         private const UInt32 HANDLE_FLAG_INHERIT = 0x00000001;
-        private const UInt32 DUPLICATE_SAME_ACCESS = 0x00000002;
         private const Byte CRT_FOPEN = 0x01;
         private const Byte CRT_FPIPE = 0x08;
         private const Byte CRT_FDEV = 0x40;
@@ -143,17 +142,6 @@ namespace ChainlessChain.WindowsSandbox
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool CloseHandle(IntPtr handle);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool DuplicateHandle(
-            IntPtr sourceProcess,
-            IntPtr sourceHandle,
-            IntPtr targetProcess,
-            out IntPtr targetHandle,
-            UInt32 desiredAccess,
-            [MarshalAs(UnmanagedType.Bool)] bool inheritHandle,
-            UInt32 options);
 
         [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr _get_osfhandle(Int32 fileDescriptor);
@@ -413,20 +401,14 @@ namespace ChainlessChain.WindowsSandbox
             List<IntPtr> ownedHandles)
         {
             IntPtr handle = GetStdHandle(standardHandle);
-            IntPtr duplicate;
-            IntPtr currentProcess = GetCurrentProcess();
-            if (!IsInvalidHandle(handle) &&
-                DuplicateHandle(
-                    currentProcess,
+            if (
+                !IsInvalidHandle(handle) &&
+                SetHandleInformation(
                     handle,
-                    currentProcess,
-                    out duplicate,
-                    0,
-                    true,
-                    DUPLICATE_SAME_ACCESS))
+                    HANDLE_FLAG_INHERIT,
+                    HANDLE_FLAG_INHERIT))
             {
-                ownedHandles.Add(duplicate);
-                return duplicate;
+                return handle;
             }
 
             SECURITY_ATTRIBUTES attributes = new SECURITY_ATTRIBUTES();

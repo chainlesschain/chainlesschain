@@ -1,18 +1,10 @@
 import { EventEmitter, once } from "node:events";
-import {
-  closeSync,
-  mkdtempSync,
-  openSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   applySandbox,
   applyWindowsSandbox,
+  SANDBOX_BOUNDARIES,
 } from "../../src/lib/process-execution-broker/platform-sandbox.js";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
 
@@ -55,6 +47,7 @@ describe("platform sandbox adapter contract", () => {
       args: [],
       options,
       reason: "macos_default_profile_requires_explicit_policy",
+      guarantees: [],
     });
   });
 
@@ -80,6 +73,12 @@ describe("platform sandbox adapter contract", () => {
       profile: "strict",
       command: "/usr/bin/sandbox-exec",
       enforcement: "macos-seatbelt",
+      backend: "macos-seatbelt",
+      guarantees: [
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+        SANDBOX_BOUNDARIES.PROCESS_EXEC,
+      ],
       postSpawn: { required: false, mode: "none" },
     });
     expect(plan.args[0]).toBe("-f");
@@ -139,6 +138,8 @@ describe("platform sandbox adapter contract", () => {
       profile: "default",
       command: "/usr/bin/prlimit",
       enforcement: "linux-prlimit",
+      backend: "linux-prlimit",
+      guarantees: [SANDBOX_BOUNDARIES.RESOURCE_LIMITS],
     });
     expect(plan.args).toEqual([
       "--cpu=30",
@@ -147,6 +148,7 @@ describe("platform sandbox adapter contract", () => {
       "node",
       "script.js",
     ]);
+    expect(plan.guarantees).toEqual([SANDBOX_BOUNDARIES.RESOURCE_LIMITS]);
     expect(plan.options.env).toEqual({
       PATH: "/usr/bin",
       CHAINLESS_SANDBOXED: "1",
@@ -215,6 +217,12 @@ describe("platform sandbox adapter contract", () => {
         /^C:\\temp\\chainless-win-sandbox-[a-f0-9]+\.exe$/,
       ),
       enforcement: "windows-job-restricted-token",
+      backend: "windows-job-restricted-token",
+      guarantees: [
+        SANDBOX_BOUNDARIES.PROCESS_TREE,
+        SANDBOX_BOUNDARIES.RESOURCE_LIMITS,
+        SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
+      ],
       postSpawn: { required: false, mode: "none" },
     });
     const payload = JSON.parse(
@@ -229,6 +237,13 @@ describe("platform sandbox adapter contract", () => {
       nodeIpcFd: -1,
       windowsHide: true,
     });
+    expect(plan.guarantees).toEqual([
+      SANDBOX_BOUNDARIES.PROCESS_TREE,
+      SANDBOX_BOUNDARIES.RESOURCE_LIMITS,
+      SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
+    ]);
+    expect(plan.guarantees).not.toContain(SANDBOX_BOUNDARIES.FILESYSTEM);
+    expect(plan.guarantees).not.toContain(SANDBOX_BOUNDARIES.NETWORK);
     expect(plan.options).toMatchObject({
       windowsHide: true,
       shell: false,
@@ -246,6 +261,31 @@ describe("platform sandbox adapter contract", () => {
     });
     plan.cleanup();
     expect(fsRuntime.unlinkSync).toHaveBeenCalledOnce();
+  });
+
+  it("reports detached numeric file stdio as unavailable on Windows", () => {
+    const options = {
+      detached: true,
+      stdio: ["ignore", 17, 17],
+      windowsHide: true,
+    };
+    const plan = applyWindowsSandbox(
+      "node.exe",
+      ["worker.mjs"],
+      options,
+      { profileName: "default" },
+      { platform: "win32" },
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      backend: "windows-job-restricted-token",
+      reason: "windows_detached_file_stdio_unsupported",
+      command: "node.exe",
+      args: ["worker.mjs"],
+      options,
+      guarantees: [],
+    });
   });
 
   it("reports Windows unavailable when its native host is missing", () => {
@@ -712,7 +752,7 @@ describe.runIf(process.platform === "win32")(
       }
     }, 45_000);
 
-    it("preserves detached file stdio through restricted target startup", async () => {
+    it("fails closed for detached numeric file stdio in strict mode", () => {
       const previousStrict = process.env.CC_SANDBOX_STRICT;
       const previousDisable = process.env.CC_SANDBOX_DISABLE;
       const previousSandboxEnabled = executionBroker._sandboxEnabled;
@@ -721,47 +761,31 @@ describe.runIf(process.platform === "win32")(
       delete process.env.CC_SANDBOX_DISABLE;
       executionBroker._sandboxEnabled = true;
       executionBroker._platformSandboxEnabled = true;
-      const dir = mkdtempSync(path.join(os.tmpdir(), "cc-win-stdio-"));
-      const script = path.join(dir, "detached-worker.mjs");
-      const logFile = path.join(dir, "worker.log");
-      let logFd;
-      let child;
       try {
-        writeFileSync(
-          script,
-          [
-            'process.stdout.write("stdout-ok\\n");',
-            'process.stderr.write("stderr-ok\\n");',
-            "setTimeout(() => process.exit(0), 500);",
-            "",
-          ].join("\n"),
-          "utf8",
-        );
-        logFd = openSync(logFile, "a");
-        child = executionBroker.spawn(process.execPath, [script], {
-          origin: "test:windows-native-sandbox-detached-file-stdio-live",
-          policy: "allow",
-          detached: true,
-          stdio: ["ignore", logFd, logFd],
-          windowsHide: true,
-          timeout: 30_000,
-          env: process.env,
-        });
-        closeSync(logFd);
-        logFd = null;
-        const [code, signal] = await once(child, "exit");
-        expect({ code, signal }).toEqual({ code: 0, signal: null });
-        const log = readFileSync(logFile, "utf8");
-        expect(log).toContain("stdout-ok");
-        expect(log).toContain("stderr-ok");
-      } finally {
-        if (Number.isInteger(logFd)) closeSync(logFd);
+        let failure;
         try {
-          child?.kill();
-        } catch {
-          // The child normally exits after writing both streams.
+          executionBroker.spawn(process.execPath, ["worker.mjs"], {
+            origin: "test:windows-native-sandbox-detached-file-stdio-live",
+            policy: "allow",
+            detached: true,
+            stdio: ["ignore", 17, 17],
+            windowsHide: true,
+            timeout: 30_000,
+            env: process.env,
+          });
+        } catch (error) {
+          failure = error;
         }
-        rmSync(dir, { recursive: true, force: true });
+        expect(failure).toMatchObject({
+          code: "ERR_PROCESS_SANDBOX",
+          sandboxReason: "windows_detached_file_stdio_unsupported",
+        });
+        expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
+          sandboxed: false,
+          sandboxState: "denied",
+          sandboxReason: "windows_detached_file_stdio_unsupported",
+        });
+      } finally {
         if (previousStrict === undefined) {
           delete process.env.CC_SANDBOX_STRICT;
         } else {
@@ -865,7 +889,242 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       sandboxed: true,
       sandboxProfile: "default",
       sandboxEnforcement: "test-sandbox",
+      sandboxBackend: "test-sandbox",
+      sandboxRequired: [],
+      sandboxGuarantees: [],
       sandboxState: "ready",
+    });
+  });
+
+  it("enforces and audits a satisfied typed boundary policy", async () => {
+    const child = createChild();
+    const nativeSpawn = vi.fn(() => child);
+    const apply = vi.fn((command, args, options, profile) =>
+      appliedPlan("seatbelt-wrapper", [command, ...args], options, {
+        platform: "darwin",
+        profile,
+        enforcement: "macos-seatbelt",
+        backend: "macos-seatbelt",
+        guarantees: [
+          SANDBOX_BOUNDARIES.FILESYSTEM,
+          SANDBOX_BOUNDARIES.NETWORK,
+        ],
+      }),
+    );
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: apply,
+      postSpawnSandbox: vi.fn(),
+    };
+
+    executionBroker.spawn("tool", ["run"], {
+      origin: "test:sandbox-required-satisfied",
+      policy: "allow",
+      sandboxPolicy: {
+        profile: "strict",
+        requiredBoundaries: [
+          SANDBOX_BOUNDARIES.FILESYSTEM,
+          SANDBOX_BOUNDARIES.NETWORK,
+        ],
+      },
+    });
+
+    expect(apply).toHaveBeenCalledWith(
+      "tool",
+      ["run"],
+      expect.not.objectContaining({
+        sandboxPolicy: expect.anything(),
+        requiredBoundaries: expect.anything(),
+      }),
+      "strict",
+    );
+    const nativeOptions = nativeSpawn.mock.calls[0][2];
+    expect(nativeOptions).not.toHaveProperty("sandboxPolicy");
+    expect(nativeOptions).not.toHaveProperty("requiredBoundaries");
+    expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
+      sandboxed: true,
+      sandboxBackend: "macos-seatbelt",
+      sandboxRequired: [
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+      ],
+      sandboxGuarantees: [
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+      ],
+      sandboxState: "ready",
+    });
+    await expect(child.sandboxReady).resolves.toEqual({
+      applied: true,
+      backend: "macos-seatbelt",
+      guarantees: [
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+      ],
+    });
+  });
+
+  it("fails closed before spawn when actual guarantees miss a required boundary", () => {
+    const nativeSpawn = vi.fn();
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: (command, args, options) =>
+        appliedPlan(command, args, options, {
+          platform: "win32",
+          enforcement: "windows-job-restricted-token",
+          backend: "windows-job-restricted-token",
+          guarantees: [
+            SANDBOX_BOUNDARIES.PROCESS_TREE,
+            SANDBOX_BOUNDARIES.RESOURCE_LIMITS,
+            SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
+          ],
+        }),
+      postSpawnSandbox: vi.fn(),
+    };
+
+    let error;
+    try {
+      executionBroker.spawn("tool.exe", [], {
+        origin: "test:sandbox-required-unsatisfied",
+        policy: "allow",
+        sandboxPolicy: {
+          requiredBoundaries: [
+            SANDBOX_BOUNDARIES.FILESYSTEM,
+            SANDBOX_BOUNDARIES.NETWORK,
+          ],
+        },
+      });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error).toMatchObject({
+      code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+      sandboxReason: "required_boundaries_unsatisfied",
+      sandboxFailClosed: true,
+      requiredBoundaries: [
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+      ],
+      actualGuarantees: [
+        SANDBOX_BOUNDARIES.PROCESS_TREE,
+        SANDBOX_BOUNDARIES.RESOURCE_LIMITS,
+        SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
+      ],
+      missingBoundaries: [
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+      ],
+      sandboxBackend: "windows-job-restricted-token",
+    });
+    expect(nativeSpawn).not.toHaveBeenCalled();
+    expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
+      permissionDecision: "deny",
+      sandboxed: false,
+      sandboxState: "denied",
+      sandboxReason: "required_boundaries_unsatisfied",
+      sandboxRequired: [
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+      ],
+      sandboxGuarantees: [
+        SANDBOX_BOUNDARIES.PROCESS_TREE,
+        SANDBOX_BOUNDARIES.RESOURCE_LIMITS,
+        SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
+      ],
+      sandboxMissing: [
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+      ],
+      sandboxBackend: "windows-job-restricted-token",
+    });
+  });
+
+  it("supports the top-level requiredBoundaries alias on spawnSync", () => {
+    const nativeSpawnSync = vi.fn(() => ({ status: 0 }));
+    executionBroker._native = { spawnSync: nativeSpawnSync };
+    executionBroker._sandboxAdapter = {
+      applySandbox: (command, args, options) =>
+        appliedPlan(command, args, options, {
+          platform: "linux",
+          enforcement: "linux-prlimit",
+          backend: "linux-prlimit",
+          guarantees: [SANDBOX_BOUNDARIES.RESOURCE_LIMITS],
+        }),
+      postSpawnSandbox: vi.fn(),
+    };
+
+    executionBroker.spawnSync("tool", [], {
+      origin: "test:sandbox-required-sync",
+      policy: "allow",
+      requiredBoundaries: [SANDBOX_BOUNDARIES.RESOURCE_LIMITS],
+    });
+
+    expect(nativeSpawnSync).toHaveBeenCalledOnce();
+    expect(nativeSpawnSync.mock.calls[0][2]).not.toHaveProperty(
+      "requiredBoundaries",
+    );
+    expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
+      sandboxBackend: "linux-prlimit",
+      sandboxRequired: [SANDBOX_BOUNDARIES.RESOURCE_LIMITS],
+      sandboxGuarantees: [SANDBOX_BOUNDARIES.RESOURCE_LIMITS],
+    });
+  });
+
+  it("rejects unknown boundary identifiers before consulting the adapter", () => {
+    const nativeSpawn = vi.fn();
+    const apply = vi.fn();
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: apply,
+      postSpawnSandbox: vi.fn(),
+    };
+
+    let error;
+    try {
+      executionBroker.spawn("tool", [], {
+        origin: "test:sandbox-required-invalid",
+        policy: "allow",
+        requiredBoundaries: ["imaginary-boundary"],
+      });
+    } catch (caught) {
+      error = caught;
+    }
+    expect(error).toMatchObject({
+      code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+      sandboxReason: "invalid_required_boundary",
+      missingBoundaries: ["imaginary-boundary"],
+    });
+    expect(apply).not.toHaveBeenCalled();
+    expect(nativeSpawn).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when a native PTY cannot provide a required boundary", () => {
+    const ptyModule = { spawn: vi.fn() };
+    let error;
+    try {
+      executionBroker.spawnPty(ptyModule, "shell", [], {
+        origin: "test:pty-required-boundary",
+        policy: "allow",
+        requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+      });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error).toMatchObject({
+      code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+      sandboxReason: "required_boundaries_unsatisfied",
+      requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+      missingBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+    });
+    expect(ptyModule.spawn).not.toHaveBeenCalled();
+    expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
+      permissionDecision: "deny",
+      sandboxRequired: [SANDBOX_BOUNDARIES.FILESYSTEM],
+      sandboxGuarantees: [],
+      sandboxBackend: null,
+      sandboxState: "denied",
     });
   });
 
