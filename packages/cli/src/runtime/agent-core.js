@@ -3479,6 +3479,7 @@ async function executeToolInner(
       let pluginBinInvocation = null;
       let reattestPluginBinInvocation = null;
       let pluginBinSandboxPolicy = null;
+      let pluginBinSandboxExecutionContract = null;
       try {
         const pluginBin = await import("../lib/plugin-runtime/bin.js");
         reattestPluginBinInvocation = pluginBin.reattestPluginBinInvocation;
@@ -3516,6 +3517,26 @@ async function executeToolInner(
             },
             { cwd },
           );
+          if (
+            pluginBinInvocation.runtime === "node" &&
+            process.platform === "linux"
+          ) {
+            try {
+              pluginBinSandboxExecutionContract =
+                pluginBin.createPluginNodeSandboxExecutionContract(
+                  pluginBinInvocation,
+                );
+            } catch (error) {
+              if (error?.pluginBinFailClosed) throw error;
+              const contractError = new Error(
+                `plugin Node sandbox execution contract could not be created: ${error.message}`,
+              );
+              contractError.code =
+                "ERR_PLUGIN_NODE_SANDBOX_CONTRACT_UNATTESTED";
+              contractError.pluginBinFailClosed = true;
+              throw contractError;
+            }
+          }
         }
       } catch (err) {
         if (err?.pluginBinFailClosed) {
@@ -3555,6 +3576,11 @@ async function executeToolInner(
         ...(pluginBinSandboxPolicy
           ? { sandboxPolicy: pluginBinSandboxPolicy }
           : {}),
+        ...(pluginBinSandboxExecutionContract
+          ? {
+              sandboxExecutionContract: pluginBinSandboxExecutionContract,
+            }
+          : {}),
       };
       const pluginBinResult = pluginBinInvocation
         ? {
@@ -3581,6 +3607,23 @@ async function executeToolInner(
             error:
               "[Sandbox] Background shell tasks are not supported in the ephemeral sandbox. Run in the foreground or explicitly disable --sandbox.",
             policy: { decision: "deny", via: "sandbox" },
+          });
+        }
+        if (
+          process.platform === "linux" &&
+          pluginBinSandboxPolicy?.requiredBoundaries?.length > 0
+        ) {
+          return attachDescriptor({
+            error:
+              "[Plugin bin] The current strong Linux plugin boundary supports foreground execution only; background execution is fail-closed until Broker-owned process-tree teardown is available.",
+            policy: {
+              decision: "deny",
+              via: "plugin-bin-pinned-sandbox-policy",
+              reason: "background_execution_unsupported",
+            },
+            ...pluginBinResult,
+            shellCommandPolicy: shellPolicy,
+            approval: approvalOutcome,
           });
         }
         // Free memory from idle background tasks before adding another, so a
@@ -3643,9 +3686,17 @@ async function executeToolInner(
             reattestPluginBinInvocation(pluginBinInvocation);
             pluginBinResult.plugin_bin.launch_identity_reattested = true;
             child = broker.spawn(
-              pluginBinInvocation.command,
+              pluginBinSandboxExecutionContract?.runtimePath ||
+                pluginBinInvocation.command,
               pluginBinInvocation.args,
-              { ...brokerOpts, shell: false },
+              {
+                ...brokerOpts,
+                cwd:
+                  (process.platform === "linux"
+                    ? pluginBinSandboxExecutionContract?.workingDirectory
+                    : null) || brokerOpts.cwd,
+                shell: false,
+              },
             );
           } else {
             child = shellInv.useDefaultShell
@@ -3853,10 +3904,15 @@ async function executeToolInner(
           reattestPluginBinInvocation(pluginBinInvocation);
           pluginBinResult.plugin_bin.launch_identity_reattested = true;
           const res = broker.spawnSync(
-            pluginBinInvocation.command,
+            pluginBinSandboxExecutionContract?.runtimePath ||
+              pluginBinInvocation.command,
             pluginBinInvocation.args,
             {
               ...brokerExecOpts,
+              cwd:
+                (process.platform === "linux"
+                  ? pluginBinSandboxExecutionContract?.workingDirectory
+                  : null) || brokerExecOpts.cwd,
               shell: false,
               windowsHide: true,
             },

@@ -1,6 +1,7 @@
 import { EventEmitter, once } from "node:events";
 import { spawnSync as nativeSpawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import crypto from "node:crypto";
 import path from "node:path";
 import {
   afterAll,
@@ -128,6 +129,351 @@ function createWindowsAdapterHarness({
     helperSpawnSync,
     replaceFile: putFile,
     spawnSync,
+  };
+}
+
+function createLinuxStrongHarness({
+  bwrapStatus = 0,
+  bwrapStdout = "chainless-linux-bwrap-plugin-node-v1",
+  bwrapHelp = "--ro-bind-fd FD DEST\n--disable-userns\n--assert-userns-disabled\n--seccomp FD\n",
+  lddStdout = [
+    "libc.so.6 => /lib/libc.so.6 (0x1)",
+    "/lib64/ld-linux.so.2 (0x2)",
+  ].join("\n"),
+  includeBwrap = true,
+  tamperSeccompFilter = false,
+} = {}) {
+  const directories = new Set([
+    "/plugin",
+    "/plugin/bin",
+    "/plugin/lib",
+    "/tmp",
+  ]);
+  const files = new Map([
+    ["/plugin/bin/tool.js", Buffer.from("require('../lib/value.cjs');\n")],
+    ["/plugin/lib/value.cjs", Buffer.from("module.exports = 42;\n")],
+    ["/runtime/node", Buffer.from("attested-node-runtime")],
+    ["/usr/bin/bwrap", Buffer.from("bubblewrap")],
+    ["/usr/bin/ldd", Buffer.from("ldd")],
+    ["/lib/libc.so.6", Buffer.from("libc")],
+    ["/lib64/ld-linux.so.2", Buffer.from("loader")],
+    ["/etc/ld.so.cache", Buffer.from("loader-cache")],
+    [
+      "/proc/self/mountinfo",
+      Buffer.from("1 0 0:1 / / rw,relatime - ext4 /dev/root rw\n"),
+    ],
+  ]);
+  if (!includeBwrap) files.delete("/usr/bin/bwrap");
+  const identities = new Map();
+  const openFiles = new Map();
+  const detachedContents = new Map();
+  const anonymousFiles = new Set();
+  const fdOffsets = new Map();
+  const mountIds = new Map();
+  let nextIno = 700;
+  let nextFd = 40;
+  let nextTempDirectory = 1;
+  for (const value of [...directories, ...files.keys()]) {
+    identities.set(value, nextIno++);
+  }
+  const missing = (value) => {
+    const error = new Error(`missing ${value}`);
+    error.code = "ENOENT";
+    return error;
+  };
+  const resolveFdPath = (value) => {
+    const filePath = String(value);
+    const match = filePath.match(/^\/proc\/self\/fd\/(\d+)(?:\/(.*))?$/);
+    if (!match) return filePath;
+    const base = openFiles.get(Number(match[1]));
+    if (!base) throw missing(filePath);
+    return match[2] ? path.posix.join(base, match[2]) : base;
+  };
+  const statFor = (value) => {
+    const filePath = resolveFdPath(value);
+    if (!directories.has(filePath) && !files.has(filePath)) {
+      throw missing(filePath);
+    }
+    const isDirectory = directories.has(filePath);
+    const contents = files.get(filePath);
+    return {
+      dev: 11,
+      ino: identities.get(filePath),
+      size: contents?.length || 0,
+      mtimeMs: 1234,
+      nlink: 1,
+      mode: isDirectory
+        ? 0o040755
+        : filePath === "/plugin/bin/tool.js"
+          ? 0o100644
+          : 0o100755,
+      uid: 0,
+      isFile: () => !isDirectory,
+      isDirectory: () => isDirectory,
+      isSymbolicLink: () => false,
+      isSocket: () => false,
+      isFIFO: () => false,
+      isBlockDevice: () => false,
+      isCharacterDevice: () => false,
+    };
+  };
+  const fsRuntime = {
+    constants: {
+      O_RDONLY: 0,
+      O_RDWR: 0x2,
+      O_CREAT: 0x40,
+      O_EXCL: 0x80,
+      O_TMPFILE: 0x410000,
+      O_NONBLOCK: 0x800,
+      O_DIRECTORY: 0x10000,
+      O_NOFOLLOW: 0x20000,
+    },
+    existsSync: vi.fn((value) => {
+      const filePath = resolveFdPath(value);
+      return directories.has(filePath) || files.has(filePath);
+    }),
+    realpathSync: Object.assign(
+      vi.fn((value) => {
+        const filePath = resolveFdPath(value);
+        if (!directories.has(filePath) && !files.has(filePath)) {
+          throw missing(filePath);
+        }
+        return filePath;
+      }),
+      {
+        native: vi.fn((value) => {
+          const filePath = resolveFdPath(value);
+          if (!directories.has(filePath) && !files.has(filePath)) {
+            throw missing(filePath);
+          }
+          return filePath;
+        }),
+      },
+    ),
+    lstatSync: vi.fn(statFor),
+    statSync: vi.fn(statFor),
+    readFileSync: vi.fn((value) => {
+      const fdInfo = String(value).match(/^\/proc\/self\/fdinfo\/(\d+)$/);
+      if (fdInfo) {
+        const openPath = openFiles.get(Number(fdInfo[1]));
+        if (!openPath) throw missing(String(value));
+        return Buffer.from(
+          `pos:\t0\nflags:\t0100000\nmnt_id:\t${
+            mountIds.get(openPath) || 77
+          }\n`,
+        );
+      }
+      const filePath =
+        typeof value === "number" ? openFiles.get(value) : resolveFdPath(value);
+      if (!files.has(filePath)) throw missing(filePath);
+      return Buffer.from(files.get(filePath));
+    }),
+    readSync: vi.fn((fd, buffer, offset, length, position) => {
+      const filePath = openFiles.get(fd);
+      const contents = detachedContents.get(fd) || files.get(filePath);
+      if (!filePath || !contents) throw missing(`fd:${fd}`);
+      const available = Math.max(
+        0,
+        Math.min(length, contents.length - position),
+      );
+      if (available > 0) {
+        contents.copy(buffer, offset, position, position + available);
+      }
+      return available;
+    }),
+    readdirSync: vi.fn((value) => {
+      const directory = resolveFdPath(value);
+      if (!directories.has(directory)) throw missing(directory);
+      const children = new Set();
+      for (const candidate of [...directories, ...files.keys()]) {
+        if (candidate === directory) continue;
+        if (path.posix.dirname(candidate) === directory) {
+          children.add(path.posix.basename(candidate));
+        }
+      }
+      return [...children].map((name) => ({ name }));
+    }),
+    mkdtempSync: vi.fn((prefix) => {
+      const directory = `${prefix}${nextTempDirectory++}`;
+      directories.add(directory);
+      identities.set(directory, nextIno++);
+      return directory;
+    }),
+    openSync: vi.fn((value, flags = 0) => {
+      let filePath = resolveFdPath(value);
+      const anonymous =
+        (Number(flags) & fsRuntime.constants.O_TMPFILE) ===
+        fsRuntime.constants.O_TMPFILE;
+      if (anonymous) {
+        if (!directories.has(filePath)) throw missing(filePath);
+        filePath = `anonymous-seccomp-${nextIno}`;
+        files.set(filePath, Buffer.alloc(0));
+        identities.set(filePath, nextIno++);
+        anonymousFiles.add(filePath);
+      }
+      const create = (Number(flags) & 0x40) !== 0;
+      const exclusive = (Number(flags) & 0x80) !== 0;
+      if (create && exclusive && files.has(filePath)) {
+        const error = new Error(`exists ${filePath}`);
+        error.code = "EEXIST";
+        throw error;
+      }
+      if (create && !files.has(filePath) && !directories.has(filePath)) {
+        files.set(filePath, Buffer.alloc(0));
+        identities.set(filePath, nextIno++);
+      }
+      if (!files.has(filePath) && !directories.has(filePath)) {
+        throw missing(filePath);
+      }
+      const fd = nextFd++;
+      openFiles.set(fd, filePath);
+      fdOffsets.set(fd, 0);
+      if (anonymous) detachedContents.set(fd, Buffer.alloc(0));
+      return fd;
+    }),
+    writeSync: vi.fn((fd, buffer, offset, length, position) => {
+      const filePath = openFiles.get(fd);
+      if (!filePath || !files.has(filePath)) throw missing(`fd:${fd}`);
+      const previous = files.get(filePath);
+      const required = position + length;
+      const contents =
+        previous.length >= required
+          ? Buffer.from(previous)
+          : Buffer.concat([previous, Buffer.alloc(required - previous.length)]);
+      buffer.copy(contents, position, offset, offset + length);
+      files.set(filePath, contents);
+      if (detachedContents.has(fd)) {
+        detachedContents.set(fd, Buffer.from(contents));
+      }
+      return length;
+    }),
+    fchmodSync: vi.fn(),
+    fsyncSync: vi.fn((fd) => {
+      if (!tamperSeccompFilter || !detachedContents.has(fd)) return;
+      const filePath = openFiles.get(fd);
+      const contents = Buffer.from(files.get(filePath));
+      contents[contents.length - 1] ^= 0xff;
+      files.set(filePath, contents);
+      detachedContents.set(fd, Buffer.from(contents));
+    }),
+    fstatSync: vi.fn((fd) => {
+      const filePath = openFiles.get(fd);
+      if (!filePath) throw missing(`fd:${fd}`);
+      return statFor(filePath);
+    }),
+    closeSync: vi.fn((fd) => {
+      const filePath = openFiles.get(fd);
+      if (!openFiles.delete(fd)) throw missing(`fd:${fd}`);
+      if (anonymousFiles.delete(filePath)) {
+        files.delete(filePath);
+        identities.delete(filePath);
+      }
+      detachedContents.delete(fd);
+      fdOffsets.delete(fd);
+    }),
+    unlinkSync: vi.fn((value) => {
+      const filePath = String(value);
+      const contents = files.get(filePath);
+      for (const [fd, openPath] of openFiles) {
+        if (openPath === filePath && contents) {
+          detachedContents.set(fd, Buffer.from(contents));
+        }
+      }
+      if (!files.delete(filePath)) throw missing(filePath);
+      identities.delete(filePath);
+    }),
+    rmdirSync: vi.fn((value) => {
+      const directory = String(value);
+      if (!directories.delete(directory)) throw missing(directory);
+      identities.delete(directory);
+    }),
+  };
+  const spawnSync = vi.fn((command, args, options) => {
+    if (command === "/usr/bin/ldd") {
+      return {
+        status: 0,
+        stdout: lddStdout,
+        stderr: "",
+      };
+    }
+    if (command === "/usr/bin/bwrap") {
+      if (args?.[0] === "--help") {
+        return {
+          status: 0,
+          stdout: bwrapHelp,
+          stderr: "",
+        };
+      }
+      const seccompIndex = args.indexOf("--seccomp");
+      const seccompChildFd = Number(args[seccompIndex + 1]);
+      const seccompParentFd = options?.stdio?.[seccompChildFd];
+      const seccompContents = detachedContents.get(seccompParentFd);
+      const seccompOffset = fdOffsets.get(seccompParentFd);
+      if (
+        seccompIndex < 0 ||
+        !seccompContents ||
+        seccompOffset !== 0 ||
+        seccompContents.length === 0 ||
+        seccompContents.length % 8 !== 0
+      ) {
+        return {
+          status: 1,
+          stdout: "",
+          stderr: "invalid seccomp filter descriptor",
+        };
+      }
+      fdOffsets.set(seccompParentFd, seccompContents.length);
+      return { status: bwrapStatus, stdout: bwrapStdout, stderr: "" };
+    }
+    throw new Error(`unexpected command ${command}`);
+  });
+  const identityFor = (filePath) => {
+    const stat = statFor(filePath);
+    return Object.freeze({
+      contractVersion: 1,
+      realPath: filePath,
+      sha256: crypto
+        .createHash("sha256")
+        .update(files.get(filePath))
+        .digest("hex"),
+      bytes: stat.size,
+      fileId: Object.freeze({
+        dev: String(stat.dev),
+        ino: String(stat.ino),
+      }),
+      mtimeMs: stat.mtimeMs,
+      attestation: "realpath-file-id-sha256",
+    });
+  };
+  const contract = Object.freeze({
+    contractVersion: 1,
+    kind: "strict-plugin-node-bin",
+    pluginRoot: "/plugin",
+    workingDirectory: "/plugin",
+    runtimePath: "/runtime/node",
+    rootIdentity: Object.freeze({
+      realPath: "/plugin",
+      fileId: Object.freeze({
+        dev: String(statFor("/plugin").dev),
+        ino: String(statFor("/plugin").ino),
+      }),
+      attestation: "realpath-directory-file-id",
+    }),
+    entryIdentity: identityFor("/plugin/bin/tool.js"),
+    runtimeIdentity: identityFor("/runtime/node"),
+  });
+  return {
+    contract,
+    detachedContents,
+    directories,
+    files,
+    fsRuntime,
+    identities,
+    fdOffsets,
+    mountIds,
+    openFiles,
+    spawnSync,
+    statFor,
   };
 }
 
@@ -283,7 +629,7 @@ describe("platform sandbox adapter contract", () => {
     expect(probeSpawnSync).not.toHaveBeenCalled();
   });
 
-  it("treats a failed namespace smoke as unavailable instead of trusting the bwrap binary", () => {
+  it("requires a trusted execution contract before probing or starting bubblewrap", () => {
     const probeSpawnSync = vi.fn(() => ({ status: 1 }));
     const plan = applySandbox(
       "node",
@@ -309,52 +655,32 @@ describe("platform sandbox adapter contract", () => {
       backend: null,
       candidateBackend: "linux-bwrap",
       policyAttested: false,
-      reason: "linux_bwrap_unavailable",
+      reason: "linux_bwrap_execution_contract_missing",
       guarantees: [],
       runtimeProbe: {
-        kind: "linux-bwrap-runtime-smoke-v1",
-        attempted: true,
+        kind: "linux-bwrap-plugin-node-policy-v1",
+        attempted: false,
         runnable: false,
-        reason: "probe_failed",
+        reason: "execution_contract_missing",
       },
     });
-    expect(probeSpawnSync).toHaveBeenCalledWith(
-      "/usr/bin/bwrap",
-      [
-        "--die-with-parent",
-        "--new-session",
-        "--unshare-all",
-        "--ro-bind",
-        "/",
-        "/",
-        "--proc",
-        "/proc",
-        "--dev",
-        "/dev",
-        "--tmpfs",
-        "/tmp",
-        "--",
-        "/bin/true",
-      ],
-      expect.objectContaining({
-        shell: false,
-        stdio: "ignore",
-        timeout: 5_000,
-      }),
-    );
+    expect(probeSpawnSync).not.toHaveBeenCalled();
   });
 
-  it("does not promote filesystem or network guarantees after a successful bwrap runtime probe", () => {
-    const probeSpawnSync = vi.fn(() => ({ status: 0 }));
+  it("builds an attested empty-root bwrap plan for one direct Plugin Node bin", () => {
+    const harness = createLinuxStrongHarness();
     const plan = applySandbox(
-      "node",
-      ["script.js"],
-      {},
-      "strict",
+      "/runtime/node",
+      ["/plugin/bin/tool.js", "--label", "ready"],
       {
-        platform: "linux",
-        fs: { existsSync: vi.fn(() => true) },
-        spawnSync: probeSpawnSync,
+        cwd: "/plugin",
+        shell: false,
+        env: {
+          PATH: "/host/path",
+          NODE_OPTIONS: "--require=/host/secret.js",
+          SSH_AUTH_SOCK: "/run/user/1000/ssh-agent",
+          CC_SESSION_ID: "session-1",
+        },
       },
       {
         profile: "strict",
@@ -363,6 +689,292 @@ describe("platform sandbox adapter contract", () => {
           SANDBOX_BOUNDARIES.NETWORK,
         ],
       },
+      {
+        platform: "linux",
+        fs: harness.fsRuntime,
+        homedir: () => "/home/tester",
+        spawnSync: harness.spawnSync,
+      },
+      {
+        profile: "strict",
+        requiredBoundaries: [
+          SANDBOX_BOUNDARIES.FILESYSTEM,
+          SANDBOX_BOUNDARIES.NETWORK,
+        ],
+        sync: true,
+        executionContract: harness.contract,
+      },
+    );
+
+    expect(plan).toMatchObject({
+      applied: true,
+      backend: "linux-bwrap",
+      enforcement: "linux-bwrap",
+      policyAttested: true,
+      reason: null,
+      guarantees: [SANDBOX_BOUNDARIES.FILESYSTEM, SANDBOX_BOUNDARIES.NETWORK],
+      runtimeProbe: {
+        attempted: true,
+        runnable: true,
+        reason: null,
+      },
+    });
+    expect(plan.policyDigest).toMatch(/^[a-f0-9]{64}$/);
+    expect(plan.command).toBe("/usr/bin/bwrap");
+    expect(plan.args).toContain("--unshare-user");
+    expect(plan.args).toContain("--disable-userns");
+    expect(plan.args).toContain("--unshare-net");
+    expect(plan.args).toContain("--seccomp");
+    expect(plan.args).toContain("--clearenv");
+    expect(plan.args).toContain("--remount-ro");
+    expect(plan.args.join("\0")).not.toContain("--ro-bind\0/\0/");
+    expect(plan.args).toEqual(
+      expect.arrayContaining([
+        "--ro-bind-fd",
+        expect.any(String),
+        "/opt/chainless/plugin/bin/tool.js",
+      ]),
+    );
+    expect(plan.args).not.toContain("/plugin");
+    const libDirectoryIndex = plan.args.findIndex(
+      (value, index) => value === "--dir" && plan.args[index + 1] === "/lib",
+    );
+    const libBindIndex = plan.args.findIndex(
+      (value, index) =>
+        value === "--ro-bind-fd" && plan.args[index + 2] === "/lib/libc.so.6",
+    );
+    expect(libDirectoryIndex).toBeGreaterThan(-1);
+    expect(libBindIndex).toBeGreaterThan(libDirectoryIndex);
+    expect(plan.args.slice(-5)).toEqual([
+      "--",
+      "/opt/chainless/runtime/node",
+      "/opt/chainless/plugin/bin/tool.js",
+      "--label",
+      "ready",
+    ]);
+    expect(plan.options).toMatchObject({
+      cwd: "/",
+      shell: false,
+      detached: false,
+      env: {
+        PATH: "/usr/bin:/bin",
+        LANG: "C",
+        LC_ALL: "C",
+      },
+    });
+    expect(plan.args.join("\0")).not.toContain("NODE_OPTIONS");
+    expect(plan.args.join("\0")).not.toContain("SSH_AUTH_SOCK");
+    expect(plan.args.join("\0")).not.toContain("CC_SESSION_ID");
+    expect(harness.spawnSync.mock.calls.map(([command]) => command)).toEqual([
+      "/usr/bin/bwrap",
+      "/usr/bin/ldd",
+      "/usr/bin/bwrap",
+    ]);
+    expect(plan.options.stdio.length).toBeGreaterThan(3);
+    const anonymousFilterOpens = harness.fsRuntime.openSync.mock.calls.filter(
+      ([value, flags, mode]) =>
+        value === "/tmp" &&
+        (Number(flags) & harness.fsRuntime.constants.O_TMPFILE) ===
+          harness.fsRuntime.constants.O_TMPFILE &&
+        mode === 0o400,
+    );
+    expect(anonymousFilterOpens).toHaveLength(2);
+    expect(harness.fsRuntime.mkdtempSync).not.toHaveBeenCalled();
+    const seccompIndex = plan.args.indexOf("--seccomp");
+    expect(plan.args[seccompIndex + 1]).toBe(
+      String(plan.options.stdio.length - 1),
+    );
+    const actualSeccompFd =
+      plan.options.stdio[Number(plan.args[seccompIndex + 1])];
+    expect(harness.fdOffsets.get(actualSeccompFd)).toBe(0);
+    const seccompProgram = harness.detachedContents.get(actualSeccompFd);
+    expect(seccompProgram.length % 8).toBe(0);
+    const seccompConstants = [];
+    for (let offset = 0; offset < seccompProgram.length; offset += 8) {
+      seccompConstants.push(seccompProgram.readUInt32LE(offset + 4));
+    }
+    const expectedSocketSyscalls =
+      process.arch === "arm64" || process.arch === "riscv64"
+        ? [198, 199]
+        : [41, 53];
+    expect(seccompConstants).toEqual(
+      expect.arrayContaining([
+        ...expectedSocketSyscalls,
+        425,
+        0x00050001,
+        0x7fff0000,
+      ]),
+    );
+    const descriptorReaddirPaths = harness.fsRuntime.readdirSync.mock.calls
+      .map(([value]) => String(value))
+      .filter((value) => value.startsWith("/proc/self/fd/"));
+    expect(descriptorReaddirPaths.length).toBeGreaterThanOrEqual(3);
+    expect(
+      descriptorReaddirPaths.every((value) =>
+        /^\/proc\/self\/fd\/\d+$/.test(value),
+      ),
+    ).toBe(true);
+    expect(harness.openFiles.size).toBeGreaterThan(0);
+    plan.cleanup();
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it.each([
+    ["x64", 0xc000003e, 41, 53, 0xbfffffff],
+    ["arm64", 0xc00000b7, 198, 199, null],
+    ["riscv64", 0xc00000f3, 198, 199, null],
+  ])(
+    "emits the exact fail-closed network cBPF program for %s",
+    (arch, auditArch, socketSyscall, socketpairSyscall, syscallMask) => {
+      const harness = createLinuxStrongHarness();
+      const plan = applySandbox(
+        "/runtime/node",
+        ["/plugin/bin/tool.js"],
+        { cwd: "/plugin", shell: false },
+        "strict",
+        {
+          platform: "linux",
+          arch,
+          fs: harness.fsRuntime,
+          homedir: () => "/home/tester",
+          spawnSync: harness.spawnSync,
+        },
+        {
+          profile: "strict",
+          requiredBoundaries: [SANDBOX_BOUNDARIES.NETWORK],
+          sync: true,
+          executionContract: harness.contract,
+        },
+      );
+
+      expect(plan.applied).toBe(true);
+      const seccompIndex = plan.args.indexOf("--seccomp");
+      const seccompFd = plan.options.stdio[Number(plan.args[seccompIndex + 1])];
+      const program = harness.detachedContents.get(seccompFd);
+      const decoded = [];
+      for (let offset = 0; offset < program.length; offset += 8) {
+        decoded.push([
+          program.readUInt16LE(offset),
+          program.readUInt8(offset + 2),
+          program.readUInt8(offset + 3),
+          program.readUInt32LE(offset + 4),
+        ]);
+      }
+      expect(decoded).toEqual([
+        [0x20, 0, 0, 4],
+        [0x15, 1, 0, auditArch],
+        [0x06, 0, 0, 0x80000000],
+        [0x20, 0, 0, 0],
+        ...(syscallMask === null ? [] : [[0x54, 0, 0, syscallMask]]),
+        [0x15, 0, 1, socketSyscall],
+        [0x06, 0, 0, 0x00050001],
+        [0x15, 0, 1, socketpairSyscall],
+        [0x06, 0, 0, 0x00050001],
+        [0x15, 0, 1, 425],
+        [0x06, 0, 0, 0x00050001],
+        [0x06, 0, 0, 0x7fff0000],
+      ]);
+      plan.cleanup();
+      expect(harness.openFiles.size).toBe(0);
+    },
+  );
+
+  it("rejects an async strong Plugin Node contract before probing bwrap", () => {
+    const harness = createLinuxStrongHarness();
+    const plan = applySandbox(
+      "/runtime/node",
+      ["/plugin/bin/tool.js"],
+      { cwd: "/plugin", shell: false },
+      "strict",
+      {
+        platform: "linux",
+        fs: harness.fsRuntime,
+        homedir: () => "/home/tester",
+        spawnSync: harness.spawnSync,
+      },
+      {
+        profile: "strict",
+        requiredBoundaries: [
+          SANDBOX_BOUNDARIES.FILESYSTEM,
+          SANDBOX_BOUNDARIES.NETWORK,
+        ],
+        sync: false,
+        executionContract: harness.contract,
+      },
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_bwrap_execution_contract_invalid",
+      guarantees: [],
+      runtimeProbe: {
+        attempted: false,
+        runnable: false,
+        reason: "unsupported_launch_options",
+      },
+    });
+    expect(harness.spawnSync).not.toHaveBeenCalled();
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it("keeps the policy digest independent of user argv values", () => {
+    const createPlan = (userArg) => {
+      const harness = createLinuxStrongHarness();
+      const plan = applySandbox(
+        "/runtime/node",
+        ["/plugin/bin/tool.js", "--token", userArg],
+        { cwd: "/plugin", shell: false },
+        "strict",
+        {
+          platform: "linux",
+          fs: harness.fsRuntime,
+          homedir: () => "/home/tester",
+          spawnSync: harness.spawnSync,
+        },
+        {
+          profile: "strict",
+          requiredBoundaries: [
+            SANDBOX_BOUNDARIES.FILESYSTEM,
+            SANDBOX_BOUNDARIES.NETWORK,
+          ],
+          sync: true,
+          executionContract: harness.contract,
+        },
+      );
+      return { harness, plan };
+    };
+    const left = createPlan("first-sensitive-value");
+    const right = createPlan("different-sensitive-value");
+
+    expect(left.plan.policyDigest).toBe(right.plan.policyDigest);
+    left.plan.cleanup();
+    right.plan.cleanup();
+    expect(left.harness.openFiles.size).toBe(0);
+    expect(right.harness.openFiles.size).toBe(0);
+  });
+
+  it("keeps a failed fixed-policy bwrap probe as a candidate with no guarantee", () => {
+    const harness = createLinuxStrongHarness({ bwrapStatus: 1 });
+    const plan = applySandbox(
+      "/runtime/node",
+      ["/plugin/bin/tool.js"],
+      { cwd: "/plugin", shell: false },
+      "strict",
+      {
+        platform: "linux",
+        fs: harness.fsRuntime,
+        homedir: () => "/home/tester",
+        spawnSync: harness.spawnSync,
+      },
+      {
+        profile: "strict",
+        requiredBoundaries: [
+          SANDBOX_BOUNDARIES.FILESYSTEM,
+          SANDBOX_BOUNDARIES.NETWORK,
+        ],
+        sync: true,
+        executionContract: harness.contract,
+      },
     );
 
     expect(plan).toMatchObject({
@@ -370,17 +982,606 @@ describe("platform sandbox adapter contract", () => {
       backend: null,
       candidateBackend: "linux-bwrap",
       policyAttested: false,
-      reason: "linux_bwrap_policy_unattested",
+      reason: "linux_bwrap_policy_probe_failed",
       guarantees: [],
       runtimeProbe: {
         attempted: true,
-        runnable: true,
-        reason: null,
+        runnable: false,
+        reason: "probe_failed",
       },
     });
-    expect(plan.guarantees).not.toContain(SANDBOX_BOUNDARIES.FILESYSTEM);
-    expect(plan.guarantees).not.toContain(SANDBOX_BOUNDARIES.NETWORK);
-    expect(probeSpawnSync).toHaveBeenCalledOnce();
+    expect(plan.policyDigest).toMatch(/^[a-f0-9]{64}$/);
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it("re-attests the target after the policy probe before returning a guarantee", () => {
+    const harness = createLinuxStrongHarness();
+    const originalSpawnSync = harness.spawnSync.getMockImplementation();
+    harness.spawnSync.mockImplementation((command, args, options) => {
+      const result = originalSpawnSync(command, args, options);
+      if (command === "/usr/bin/bwrap" && args?.[0] !== "--help") {
+        harness.files.set(
+          "/plugin/bin/tool.js",
+          Buffer.from("process.stdout.write('changed after probe')"),
+        );
+      }
+      return result;
+    });
+    const plan = applySandbox(
+      "/runtime/node",
+      ["/plugin/bin/tool.js"],
+      { cwd: "/plugin", shell: false },
+      "strict",
+      {
+        platform: "linux",
+        fs: harness.fsRuntime,
+        homedir: () => "/home/tester",
+        spawnSync: harness.spawnSync,
+      },
+      {
+        profile: "strict",
+        requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        sync: true,
+        executionContract: harness.contract,
+      },
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      policyAttested: false,
+      reason: "linux_bwrap_execution_contract_changed",
+      guarantees: [],
+      runtimeProbe: {
+        attempted: true,
+        runnable: false,
+        reason: "post_probe_execution_identity_changed",
+      },
+    });
+  });
+
+  it.each([
+    ["shell", { shell: true }],
+    ["detached", { shell: false, detached: true }],
+    ["ipc", { shell: false, stdio: ["pipe", "pipe", "pipe", "ipc"] }],
+    ["numeric fd", { shell: false, stdio: ["pipe", "pipe", 9] }],
+  ])(
+    "rejects unsupported %s Plugin Node launch options before probing bwrap",
+    (_label, launchOptions) => {
+      const harness = createLinuxStrongHarness();
+      const plan = applySandbox(
+        "/runtime/node",
+        ["/plugin/bin/tool.js"],
+        { cwd: "/plugin", ...launchOptions },
+        "strict",
+        {
+          platform: "linux",
+          fs: harness.fsRuntime,
+          homedir: () => "/home/tester",
+          spawnSync: harness.spawnSync,
+        },
+        {
+          profile: "strict",
+          requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+          sync: true,
+          executionContract: harness.contract,
+        },
+      );
+
+      expect(plan).toMatchObject({
+        applied: false,
+        policyAttested: false,
+        reason: "linux_bwrap_execution_contract_invalid",
+        guarantees: [],
+        runtimeProbe: {
+          attempted: false,
+          runnable: false,
+          reason: "unsupported_launch_options",
+        },
+      });
+      expect(harness.spawnSync).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects an entry identity change before probing or starting bwrap", () => {
+    const harness = createLinuxStrongHarness();
+    harness.files.set(
+      "/plugin/bin/tool.js",
+      Buffer.from("require('node:fs').writeFileSync('/tmp/marker', 'x')"),
+    );
+    const plan = applySandbox(
+      "/runtime/node",
+      ["/plugin/bin/tool.js"],
+      { cwd: "/plugin", shell: false },
+      "strict",
+      {
+        platform: "linux",
+        fs: harness.fsRuntime,
+        homedir: () => "/home/tester",
+        spawnSync: harness.spawnSync,
+      },
+      {
+        profile: "strict",
+        requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        sync: true,
+        executionContract: harness.contract,
+      },
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_bwrap_execution_contract_invalid",
+      guarantees: [],
+      runtimeProbe: {
+        attempted: false,
+        reason: "execution_identity_changed",
+      },
+    });
+    expect(harness.spawnSync).not.toHaveBeenCalled();
+  });
+
+  it("rejects a nested host mount inside the plugin root", () => {
+    const harness = createLinuxStrongHarness();
+    harness.files.set(
+      "/proc/self/mountinfo",
+      Buffer.from(
+        [
+          "1 0 0:1 / / rw,relatime - ext4 /dev/root rw",
+          "2 1 0:1 /secret /plugin/lib/mounted rw,relatime - ext4 /dev/root rw",
+        ].join("\n"),
+      ),
+    );
+    const plan = applySandbox(
+      "/runtime/node",
+      ["/plugin/bin/tool.js"],
+      { cwd: "/plugin", shell: false },
+      "strict",
+      {
+        platform: "linux",
+        fs: harness.fsRuntime,
+        homedir: () => "/home/tester",
+        spawnSync: harness.spawnSync,
+      },
+      {
+        profile: "strict",
+        requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        sync: true,
+        executionContract: harness.contract,
+      },
+    );
+
+    expect(plan.runtimeProbe).toMatchObject({
+      attempted: false,
+      runnable: false,
+      reason: "plugin_tree_unattested",
+    });
+    expect(plan.guarantees).toEqual([]);
+    expect(harness.spawnSync).not.toHaveBeenCalled();
+  });
+
+  it.each(["fuse.sshfs", "nfs", "cifs", "9p", "virtiofs", "unknownfs"])(
+    "rejects a plugin root backed by %s before probing bubblewrap",
+    (filesystemType) => {
+      const harness = createLinuxStrongHarness();
+      harness.files.set(
+        "/proc/self/mountinfo",
+        Buffer.from(
+          [
+            "1 0 0:1 / / rw,relatime - ext4 /dev/root rw",
+            `2 1 0:2 /source /plugin rw,relatime - ${filesystemType} source rw`,
+          ].join("\n"),
+        ),
+      );
+      const plan = applySandbox(
+        "/runtime/node",
+        ["/plugin/bin/tool.js"],
+        { cwd: "/plugin", shell: false },
+        "strict",
+        {
+          platform: "linux",
+          fs: harness.fsRuntime,
+          homedir: () => "/home/tester",
+          spawnSync: harness.spawnSync,
+        },
+        {
+          profile: "strict",
+          requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+          sync: true,
+          executionContract: harness.contract,
+        },
+      );
+
+      expect(plan.runtimeProbe).toMatchObject({
+        attempted: false,
+        runnable: false,
+        reason: "plugin_tree_unattested",
+      });
+      expect(plan.guarantees).toEqual([]);
+      expect(harness.spawnSync).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects an exact local bind mount at the plugin root", () => {
+    const harness = createLinuxStrongHarness();
+    harness.files.set(
+      "/proc/self/mountinfo",
+      Buffer.from(
+        [
+          "1 0 0:1 / / rw,relatime - ext4 /dev/root rw",
+          "2 1 0:1 /other-plugin /plugin rw,relatime - ext4 /dev/root rw",
+        ].join("\n"),
+      ),
+    );
+    const plan = applySandbox(
+      "/runtime/node",
+      ["/plugin/bin/tool.js"],
+      { cwd: "/plugin", shell: false },
+      "strict",
+      {
+        platform: "linux",
+        fs: harness.fsRuntime,
+        homedir: () => "/home/tester",
+        spawnSync: harness.spawnSync,
+      },
+      {
+        profile: "strict",
+        requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        sync: true,
+        executionContract: harness.contract,
+      },
+    );
+
+    expect(plan.runtimeProbe).toMatchObject({
+      attempted: false,
+      runnable: false,
+      reason: "plugin_tree_unattested",
+    });
+    expect(plan.guarantees).toEqual([]);
+    expect(harness.spawnSync).not.toHaveBeenCalled();
+  });
+
+  it("rejects a plugin subtree that crosses a mount identity through a directory fd", () => {
+    const harness = createLinuxStrongHarness();
+    harness.mountIds.set("/plugin/lib", 88);
+    const plan = applySandbox(
+      "/runtime/node",
+      ["/plugin/bin/tool.js"],
+      { cwd: "/plugin", shell: false },
+      "strict",
+      {
+        platform: "linux",
+        fs: harness.fsRuntime,
+        homedir: () => "/home/tester",
+        spawnSync: harness.spawnSync,
+      },
+      {
+        profile: "strict",
+        requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        sync: true,
+        executionContract: harness.contract,
+      },
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_bwrap_plugin_tree_unattested",
+      guarantees: [],
+    });
+    expect(harness.openFiles.size).toBe(0);
+    expect(
+      harness.spawnSync.mock.calls.filter(
+        ([command, args]) =>
+          command === "/usr/bin/bwrap" && args?.[0] !== "--help",
+      ),
+    ).toHaveLength(0);
+  });
+
+  it("rejects a plugin root inode replacement between validation and pinning", () => {
+    const harness = createLinuxStrongHarness();
+    const originalSpawnSync = harness.spawnSync.getMockImplementation();
+    harness.spawnSync.mockImplementation((command, args, options) => {
+      const result = originalSpawnSync(command, args, options);
+      if (command === "/usr/bin/ldd") {
+        harness.identities.set("/plugin", 9_999);
+      }
+      return result;
+    });
+    const plan = applySandbox(
+      "/runtime/node",
+      ["/plugin/bin/tool.js"],
+      { cwd: "/plugin", shell: false },
+      "strict",
+      {
+        platform: "linux",
+        fs: harness.fsRuntime,
+        homedir: () => "/home/tester",
+        spawnSync: harness.spawnSync,
+      },
+      {
+        profile: "strict",
+        requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        sync: true,
+        executionContract: harness.contract,
+      },
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_bwrap_plugin_tree_unattested",
+      guarantees: [],
+      runtimeProbe: {
+        attempted: false,
+        runnable: false,
+        reason: "plugin_root_not_directory",
+      },
+    });
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it("rejects a root-wide plugin contract before probing bwrap", () => {
+    const harness = createLinuxStrongHarness();
+    harness.directories.add("/");
+    harness.identities.set("/", 1);
+    const contract = Object.freeze({
+      ...harness.contract,
+      pluginRoot: "/",
+      workingDirectory: "/",
+      rootIdentity: Object.freeze({
+        realPath: "/",
+        fileId: Object.freeze({
+          dev: String(harness.statFor("/").dev),
+          ino: String(harness.statFor("/").ino),
+        }),
+        attestation: "realpath-directory-file-id",
+      }),
+    });
+    const plan = applySandbox(
+      "/runtime/node",
+      ["/plugin/bin/tool.js"],
+      { cwd: "/", shell: false },
+      "strict",
+      {
+        platform: "linux",
+        fs: harness.fsRuntime,
+        homedir: () => "/home/tester",
+        spawnSync: harness.spawnSync,
+      },
+      {
+        profile: "strict",
+        requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        sync: true,
+        executionContract: contract,
+      },
+    );
+
+    expect(plan.runtimeProbe).toMatchObject({
+      attempted: false,
+      runnable: false,
+      reason: "broad_plugin_root_disallowed",
+    });
+    expect(plan.guarantees).toEqual([]);
+    expect(harness.spawnSync).not.toHaveBeenCalled();
+  });
+
+  it("reports an unattested or missing fixed bwrap binary without running ldd", () => {
+    const harness = createLinuxStrongHarness({ includeBwrap: false });
+    const plan = applySandbox(
+      "/runtime/node",
+      ["/plugin/bin/tool.js"],
+      { cwd: "/plugin", shell: false },
+      "strict",
+      {
+        platform: "linux",
+        fs: harness.fsRuntime,
+        homedir: () => "/home/tester",
+        spawnSync: harness.spawnSync,
+      },
+      {
+        profile: "strict",
+        requiredBoundaries: [SANDBOX_BOUNDARIES.NETWORK],
+        sync: true,
+        executionContract: harness.contract,
+      },
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_bwrap_unavailable",
+      guarantees: [],
+      runtimeProbe: {
+        attempted: false,
+        runnable: false,
+        reason: "binary_missing_or_unattested",
+      },
+    });
+    expect(harness.spawnSync).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when bubblewrap lacks descriptor-backed bind support", () => {
+    const harness = createLinuxStrongHarness({
+      bwrapHelp: "--disable-userns\n--assert-userns-disabled\n",
+    });
+    const plan = applySandbox(
+      "/runtime/node",
+      ["/plugin/bin/tool.js"],
+      { cwd: "/plugin", shell: false },
+      "strict",
+      {
+        platform: "linux",
+        fs: harness.fsRuntime,
+        homedir: () => "/home/tester",
+        spawnSync: harness.spawnSync,
+      },
+      {
+        profile: "strict",
+        requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        sync: true,
+        executionContract: harness.contract,
+      },
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_bwrap_unavailable",
+      guarantees: [],
+      runtimeProbe: {
+        attempted: true,
+        runnable: false,
+        reason: "required_option_missing:ro-bind-fd",
+      },
+    });
+    expect(harness.spawnSync).toHaveBeenCalledOnce();
+  });
+
+  it("fails closed when bubblewrap cannot install the network seccomp filter", () => {
+    const harness = createLinuxStrongHarness({
+      bwrapHelp:
+        "--ro-bind-fd FD DEST\n--disable-userns\n--assert-userns-disabled\n",
+    });
+    const plan = applySandbox(
+      "/runtime/node",
+      ["/plugin/bin/tool.js"],
+      { cwd: "/plugin", shell: false },
+      "strict",
+      {
+        platform: "linux",
+        fs: harness.fsRuntime,
+        homedir: () => "/home/tester",
+        spawnSync: harness.spawnSync,
+      },
+      {
+        profile: "strict",
+        requiredBoundaries: [SANDBOX_BOUNDARIES.NETWORK],
+        sync: true,
+        executionContract: harness.contract,
+      },
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_bwrap_unavailable",
+      guarantees: [],
+      runtimeProbe: {
+        attempted: true,
+        runnable: false,
+        reason: "required_option_missing:seccomp",
+      },
+    });
+    expect(harness.spawnSync).toHaveBeenCalledOnce();
+  });
+
+  it("fails closed and releases every pin on an unsupported seccomp architecture", () => {
+    const harness = createLinuxStrongHarness();
+    const plan = applySandbox(
+      "/runtime/node",
+      ["/plugin/bin/tool.js"],
+      { cwd: "/plugin", shell: false },
+      "strict",
+      {
+        platform: "linux",
+        arch: "unsupported-test-arch",
+        fs: harness.fsRuntime,
+        homedir: () => "/home/tester",
+        spawnSync: harness.spawnSync,
+      },
+      {
+        profile: "strict",
+        requiredBoundaries: [SANDBOX_BOUNDARIES.NETWORK],
+        sync: true,
+        executionContract: harness.contract,
+      },
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_bwrap_seccomp_unattested",
+      guarantees: [],
+      runtimeProbe: {
+        attempted: false,
+        runnable: false,
+        reason: "unsupported_seccomp_architecture:unsupported-test-arch",
+      },
+    });
+    expect(harness.spawnSync.mock.calls.map(([command]) => command)).toEqual([
+      "/usr/bin/bwrap",
+      "/usr/bin/ldd",
+    ]);
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it("fails closed when the anonymous seccomp filter bytes change before handoff", () => {
+    const harness = createLinuxStrongHarness({
+      tamperSeccompFilter: true,
+    });
+    const plan = applySandbox(
+      "/runtime/node",
+      ["/plugin/bin/tool.js"],
+      { cwd: "/plugin", shell: false },
+      "strict",
+      {
+        platform: "linux",
+        fs: harness.fsRuntime,
+        homedir: () => "/home/tester",
+        spawnSync: harness.spawnSync,
+      },
+      {
+        profile: "strict",
+        requiredBoundaries: [SANDBOX_BOUNDARIES.NETWORK],
+        sync: true,
+        executionContract: harness.contract,
+      },
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_bwrap_seccomp_unattested",
+      guarantees: [],
+      runtimeProbe: {
+        attempted: false,
+        runnable: false,
+        reason: "seccomp_filter_identity_changed",
+      },
+    });
+    expect(harness.spawnSync.mock.calls.map(([command]) => command)).toEqual([
+      "/usr/bin/bwrap",
+      "/usr/bin/ldd",
+    ]);
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it("rejects a non-canonical library path returned by ldd", () => {
+    const harness = createLinuxStrongHarness({
+      lddStdout: "libescape.so => /usr/lib/../../home/tester/secret.so (0x1)",
+    });
+    const plan = applySandbox(
+      "/runtime/node",
+      ["/plugin/bin/tool.js"],
+      { cwd: "/plugin", shell: false },
+      "strict",
+      {
+        platform: "linux",
+        fs: harness.fsRuntime,
+        homedir: () => "/home/tester",
+        spawnSync: harness.spawnSync,
+      },
+      {
+        profile: "strict",
+        requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        sync: true,
+        executionContract: harness.contract,
+      },
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_bwrap_runtime_unattested",
+      guarantees: [],
+      runtimeProbe: {
+        attempted: false,
+        runnable: false,
+        reason: "runtime_dependency_outside_system_library_roots",
+      },
+    });
+    expect(harness.openFiles.size).toBe(0);
   });
 
   it("preserves shell command semantics behind the Linux wrapper", () => {
@@ -1908,6 +3109,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
 
   it("fails closed before spawn when actual guarantees miss a required boundary", () => {
     const nativeSpawn = vi.fn();
+    const cleanup = vi.fn();
     executionBroker._native = { spawn: nativeSpawn };
     executionBroker._sandboxAdapter = {
       applySandbox: (command, args, options) =>
@@ -1920,6 +3122,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
             SANDBOX_BOUNDARIES.RESOURCE_LIMITS,
             SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
           ],
+          cleanup,
         }),
       postSpawnSandbox: vi.fn(),
     };
@@ -1960,6 +3163,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       sandboxBackend: "windows-job-restricted-token",
     });
     expect(nativeSpawn).not.toHaveBeenCalled();
+    expect(cleanup).toHaveBeenCalledOnce();
     expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
       permissionDecision: "deny",
       sandboxed: false,
@@ -1982,7 +3186,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     });
   });
 
-  it("fails closed before native spawn when Linux bwrap runs but its policy is unattested", () => {
+  it("fails closed before native spawn when a Linux strong policy has no trusted execution contract", () => {
     const nativeSpawn = vi.fn();
     const probeSpawnSync = vi.fn(() => ({ status: 0 }));
     const apply = vi.fn(
@@ -2053,14 +3257,14 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       sandboxBackend: null,
       sandboxCandidateBackend: "linux-bwrap",
       sandboxPolicyAttested: false,
-      sandboxCandidateReason: "linux_bwrap_policy_unattested",
+      sandboxCandidateReason: "linux_bwrap_execution_contract_missing",
       sandboxRuntimeProbe: {
-        attempted: true,
-        runnable: true,
-        reason: null,
+        attempted: false,
+        runnable: false,
+        reason: "execution_contract_missing",
       },
     });
-    expect(probeSpawnSync).toHaveBeenCalledOnce();
+    expect(probeSpawnSync).not.toHaveBeenCalled();
     expect(nativeSpawn).not.toHaveBeenCalled();
     expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
       permissionDecision: "deny",
@@ -2074,12 +3278,90 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       sandboxBackend: null,
       sandboxCandidateBackend: "linux-bwrap",
       sandboxPolicyAttested: false,
-      sandboxCandidateReason: "linux_bwrap_policy_unattested",
+      sandboxCandidateReason: "linux_bwrap_execution_contract_missing",
       sandboxRuntimeProbe: {
-        attempted: true,
-        runnable: true,
-        reason: null,
+        attempted: false,
+        runnable: false,
+        reason: "execution_contract_missing",
       },
+    });
+  });
+
+  it("rejects a forged Plugin Node contract before adapter or native execution", () => {
+    const nativeSpawn = vi.fn();
+    const apply = vi.fn();
+    const pluginRoot = path.resolve("forged-plugin");
+    const entryPath = path.join(pluginRoot, "bin", "tool.js");
+    const entryIdentity = Object.freeze({
+      realPath: entryPath,
+      sha256: "a".repeat(64),
+      bytes: 1,
+      dev: "1",
+      ino: "2",
+      mtimeMs: 1234,
+    });
+    const forgedContract = Object.freeze({
+      contractVersion: 1,
+      kind: "strict-plugin-node-bin",
+      pluginRoot,
+      workingDirectory: pluginRoot,
+      runtimePath: process.execPath,
+      entryIdentity,
+      runtimeIdentity: Object.freeze({
+        requestedPath: process.execPath,
+        realPath: process.execPath,
+        sha256: "b".repeat(64),
+        bytes: 1,
+        dev: "1",
+        ino: "3",
+        mtimeMs: 1234,
+      }),
+    });
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: apply,
+      postSpawnSandbox: vi.fn(),
+    };
+
+    let error;
+    try {
+      executionBroker.spawn(process.execPath, [entryPath], {
+        cwd: pluginRoot,
+        origin: "plugin:bin",
+        policy: "allow",
+        shell: false,
+        pluginId: "forged-plugin",
+        pluginVersion: "1.0.0",
+        pluginSource: path.join(pluginRoot, "plugin.json"),
+        pluginExecutableIdentity: entryIdentity,
+        sandboxPolicy: {
+          requiredBoundaries: [
+            SANDBOX_BOUNDARIES.FILESYSTEM,
+            SANDBOX_BOUNDARIES.NETWORK,
+          ],
+        },
+        sandboxExecutionContract: forgedContract,
+      });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error).toMatchObject({
+      code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+      sandboxReason: "invalid_sandbox_execution_contract",
+      sandboxFailClosed: true,
+      missingBoundaries: [
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+      ],
+    });
+    expect(error.message).toMatch(/was not issued/);
+    expect(apply).not.toHaveBeenCalled();
+    expect(nativeSpawn).not.toHaveBeenCalled();
+    expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
+      permissionDecision: "deny",
+      sandboxReason: "invalid_sandbox_execution_contract",
+      sandboxState: "denied",
     });
   });
 
@@ -2328,11 +3610,13 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
   it("rejects required async post-spawn enforcement before strict spawn", () => {
     process.env.CC_SANDBOX_STRICT = "1";
     const nativeSpawn = vi.fn();
+    const cleanup = vi.fn();
     executionBroker._native = { spawn: nativeSpawn };
     executionBroker._sandboxAdapter = {
       applySandbox: (command, args, options) =>
         appliedPlan(command, args, options, {
           postSpawn: { required: true, mode: "async" },
+          cleanup,
         }),
       postSpawnSandbox: vi.fn(),
     };
@@ -2344,6 +3628,31 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       }),
     ).toThrow(/synchronous post-spawn enforcement/);
     expect(nativeSpawn).not.toHaveBeenCalled();
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+
+  it("cleans an applied plan when spawnSync cannot run post-spawn enforcement", () => {
+    process.env.CC_SANDBOX_STRICT = "1";
+    const nativeSpawnSync = vi.fn();
+    const cleanup = vi.fn();
+    executionBroker._native = { spawnSync: nativeSpawnSync };
+    executionBroker._sandboxAdapter = {
+      applySandbox: (command, args, options) =>
+        appliedPlan(command, args, options, {
+          postSpawn: { required: true, mode: "sync" },
+          cleanup,
+        }),
+      postSpawnSandbox: vi.fn(),
+    };
+
+    expect(() =>
+      executionBroker.spawnSync("tool", [], {
+        origin: "test:sandbox-sync-post-spawn",
+        policy: "allow",
+      }),
+    ).toThrow(/spawnSync cannot satisfy required post-spawn/);
+    expect(nativeSpawnSync).not.toHaveBeenCalled();
+    expect(cleanup).toHaveBeenCalledOnce();
   });
 
   it("kills the child and throws when strict synchronous post-spawn fails", () => {

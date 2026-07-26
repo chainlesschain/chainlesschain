@@ -38,6 +38,7 @@ import {
   postSpawnSandbox as _postSpawnSandbox,
   SANDBOX_BOUNDARIES,
 } from "./platform-sandbox.js";
+import { consumeIssuedPluginNodeSandboxExecutionContract } from "../plugin-runtime/bin.js";
 import { credentialAgent } from "./credential-agent.js";
 
 const SUPPORTED_SANDBOX_BOUNDARIES = new Set(Object.values(SANDBOX_BOUNDARIES));
@@ -224,6 +225,181 @@ class ProcessExecutionBroker extends EventEmitter {
     };
   }
 
+  _freezeExecutableIdentity(identity) {
+    if (!identity) return null;
+    return Object.freeze({
+      ...identity,
+      fileId: identity.fileId ? Object.freeze({ ...identity.fileId }) : null,
+    });
+  }
+
+  _normalizePluginRootIdentity(raw) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+    if (
+      typeof raw.realPath !== "string" ||
+      !raw.realPath ||
+      raw.dev === undefined ||
+      raw.ino === undefined
+    ) {
+      return null;
+    }
+    return Object.freeze({
+      realPath: raw.realPath,
+      fileId: Object.freeze({
+        dev: String(raw.dev),
+        ino: String(raw.ino),
+      }),
+      attestation: "realpath-directory-file-id",
+    });
+  }
+
+  /**
+   * Normalize the private execution contract produced by agent-core for one
+   * direct, already-attested strict Plugin Node bin. Plugin manifests cannot
+   * provide this top-level option; they can only add required boundaries.
+   */
+  _normalizeSandboxExecutionContract(raw, options, requiredBoundaries, launch) {
+    if (raw === undefined) return null;
+    const invalid = (message) => {
+      throw this._sandboxBoundaryError(
+        "invalid_sandbox_execution_contract",
+        message,
+        {
+          requiredBoundaries,
+          missingBoundaries: requiredBoundaries,
+        },
+      );
+    };
+    if (
+      !consumeIssuedPluginNodeSandboxExecutionContract(raw, {
+        origin: options.origin,
+        command: launch?.command,
+        args: launch?.args,
+        cwd: options.cwd,
+        pluginId: options.pluginId,
+        pluginVersion: options.pluginVersion,
+        pluginSource: options.pluginSource,
+        pluginExecutableIdentity: options.pluginExecutableIdentity,
+        requiredBoundaries,
+        sync: launch?.sync === true,
+      })
+    ) {
+      return invalid(
+        "sandboxExecutionContract was not issued for this plugin launch provenance",
+      );
+    }
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      return invalid("sandboxExecutionContract must be an object");
+    }
+    const supportedKeys = new Set([
+      "contractVersion",
+      "kind",
+      "pluginRoot",
+      "workingDirectory",
+      "runtimePath",
+      "rootIdentity",
+      "entryIdentity",
+      "runtimeIdentity",
+    ]);
+    const unsupportedKey = Object.keys(raw).find(
+      (key) => !supportedKeys.has(key),
+    );
+    if (unsupportedKey) {
+      return invalid(
+        `sandboxExecutionContract contains unsupported field: ${unsupportedKey}`,
+      );
+    }
+    if (raw.contractVersion !== 1 || raw.kind !== "strict-plugin-node-bin") {
+      return invalid("unsupported sandboxExecutionContract kind or version");
+    }
+    if (
+      options.origin !== "plugin:bin" ||
+      typeof options.pluginId !== "string" ||
+      !options.pluginId ||
+      options.shell !== false
+    ) {
+      return invalid(
+        "sandboxExecutionContract is restricted to direct plugin:bin shell:false launches",
+      );
+    }
+
+    for (const [label, value] of [
+      ["pluginRoot", raw.pluginRoot],
+      ["workingDirectory", raw.workingDirectory],
+      ["runtimePath", raw.runtimePath],
+    ]) {
+      if (
+        typeof value !== "string" ||
+        !value ||
+        value.includes("\0") ||
+        !path.isAbsolute(value)
+      ) {
+        return invalid(`sandboxExecutionContract.${label} must be absolute`);
+      }
+    }
+    const entryIdentity = this._normalizePluginExecutableIdentity(
+      raw.entryIdentity,
+    );
+    const runtimeIdentity = this._normalizePluginExecutableIdentity(
+      raw.runtimeIdentity,
+    );
+    const rootIdentity = this._normalizePluginRootIdentity(raw.rootIdentity);
+    if (!rootIdentity || !entryIdentity || !runtimeIdentity) {
+      return invalid(
+        "sandboxExecutionContract requires attested root, entry, and runtime identities",
+      );
+    }
+    if (
+      rootIdentity.realPath !== raw.pluginRoot ||
+      raw.runtimeIdentity?.requestedPath !== path.resolve(process.execPath) ||
+      raw.runtimePath !== runtimeIdentity.realPath ||
+      !path.isAbsolute(entryIdentity.realPath) ||
+      !path.isAbsolute(runtimeIdentity.realPath)
+    ) {
+      return invalid(
+        "sandboxExecutionContract identity paths do not match the launch contract",
+      );
+    }
+
+    const provenanceIdentity = this._normalizePluginExecutableIdentity(
+      options.pluginExecutableIdentity,
+    );
+    if (
+      !provenanceIdentity ||
+      provenanceIdentity.realPath !== entryIdentity.realPath ||
+      provenanceIdentity.sha256 !== entryIdentity.sha256
+    ) {
+      return invalid(
+        "sandboxExecutionContract entry identity does not match plugin provenance",
+      );
+    }
+    const entryRelative = path.relative(
+      path.resolve(raw.pluginRoot),
+      path.resolve(entryIdentity.realPath),
+    );
+    if (
+      entryRelative === "" ||
+      entryRelative === ".." ||
+      entryRelative.startsWith(`..${path.sep}`) ||
+      path.isAbsolute(entryRelative)
+    ) {
+      return invalid(
+        "sandboxExecutionContract entry must be inside pluginRoot",
+      );
+    }
+
+    return Object.freeze({
+      contractVersion: 1,
+      kind: "strict-plugin-node-bin",
+      pluginRoot: raw.pluginRoot,
+      workingDirectory: raw.workingDirectory,
+      runtimePath: raw.runtimePath,
+      rootIdentity,
+      entryIdentity: this._freezeExecutableIdentity(entryIdentity),
+      runtimeIdentity: this._freezeExecutableIdentity(runtimeIdentity),
+    });
+  }
+
   _stripPluginControlOptions(options) {
     delete options.pluginId;
     delete options.pluginVersion;
@@ -247,7 +423,7 @@ class ProcessExecutionBroker extends EventEmitter {
    * @param {Object} options
    * @returns {{profile: "default"|"strict"|"network-only"|null, requiredBoundaries: string[]}}
    */
-  _normalizeSandboxPolicy(options = {}) {
+  _normalizeSandboxPolicy(options = {}, launch = {}) {
     const rawPolicy = options.sandboxPolicy;
     if (
       rawPolicy !== undefined &&
@@ -303,12 +479,19 @@ class ProcessExecutionBroker extends EventEmitter {
         { requiredBoundaries },
       );
     }
-    return { profile, requiredBoundaries };
+    const executionContract = this._normalizeSandboxExecutionContract(
+      options.sandboxExecutionContract,
+      options,
+      requiredBoundaries,
+      launch,
+    );
+    return { profile, requiredBoundaries, executionContract };
   }
 
   _stripSandboxControlOptions(options) {
     delete options.sandboxPolicy;
     delete options.requiredBoundaries;
+    delete options.sandboxExecutionContract;
   }
 
   _sandboxUnavailablePlan(command, args, options, reason, sandboxPolicy = {}) {
@@ -352,6 +535,7 @@ class ProcessExecutionBroker extends EventEmitter {
       typeof metadata.sandboxPolicyAttested === "boolean"
         ? metadata.sandboxPolicyAttested
         : null;
+    error.sandboxPolicyDigest = metadata.sandboxPolicyDigest || null;
     error.sandboxCandidateReason = metadata.sandboxCandidateReason || null;
     return error;
   }
@@ -434,6 +618,16 @@ class ProcessExecutionBroker extends EventEmitter {
         "Sandbox policy attestation must be boolean",
       );
     }
+    const policyDigest = plan.policyDigest ?? null;
+    if (
+      policyDigest !== null &&
+      (typeof policyDigest !== "string" || !/^[a-f0-9]{64}$/.test(policyDigest))
+    ) {
+      throw this._sandboxError(
+        "invalid_sandbox_plan",
+        "Sandbox policy digest must be a lowercase SHA-256 value",
+      );
+    }
     let runtimeProbe = null;
     if (plan.runtimeProbe !== null && plan.runtimeProbe !== undefined) {
       if (
@@ -476,6 +670,7 @@ class ProcessExecutionBroker extends EventEmitter {
       guarantees: [...new Set(guarantees)],
       candidateBackend,
       policyAttested,
+      policyDigest,
       runtimeProbe,
       postSpawn: { ...postSpawn },
     };
@@ -499,6 +694,7 @@ class ProcessExecutionBroker extends EventEmitter {
           sandboxCandidateBackend: plan.candidateBackend,
           sandboxRuntimeProbe: plan.runtimeProbe,
           sandboxPolicyAttested: plan.policyAttested,
+          sandboxPolicyDigest: plan.policyDigest,
           sandboxCandidateReason: plan.candidateBackend ? plan.reason : null,
         },
       );
@@ -552,55 +748,69 @@ class ProcessExecutionBroker extends EventEmitter {
       profile,
       requiredBoundaries: Object.freeze([...requiredBoundaries]),
       sync,
+      ...(sandboxPolicy.executionContract
+        ? { executionContract: sandboxPolicy.executionContract }
+        : {}),
     });
-    let plan = this._validateSandboxPlan(
-      // Keep the legacy string profile in argument four. The built-in adapter
-      // reserves argument five for runtime injection, so the typed request is
-      // additive in argument six and legacy injected adapters can ignore it.
-      this._sandboxAdapter.applySandbox(
-        command,
-        args || [],
-        options,
-        profile,
-        undefined,
-        adapterRequest,
-      ),
+    // Keep the legacy string profile in argument four. The built-in adapter
+    // reserves argument five for runtime injection, so the typed request is
+    // additive in argument six and legacy injected adapters can ignore it.
+    const rawPlan = this._sandboxAdapter.applySandbox(
+      command,
+      args || [],
+      options,
+      profile,
+      undefined,
+      adapterRequest,
     );
-    plan = this._assertRequiredSandboxBoundaries(plan, requiredBoundaries);
+    let plan;
+    try {
+      plan = this._validateSandboxPlan(rawPlan);
+      plan = this._assertRequiredSandboxBoundaries(plan, requiredBoundaries);
 
-    if (!plan.applied && strict) {
-      throw this._sandboxError(
-        plan.reason || "sandbox_unavailable",
-        `Sandbox is unavailable in strict mode: ${
-          plan.reason || "unknown reason"
-        }`,
-      );
-    }
+      if (!plan.applied && strict) {
+        throw this._sandboxError(
+          plan.reason || "sandbox_unavailable",
+          `Sandbox is unavailable in strict mode: ${
+            plan.reason || "unknown reason"
+          }`,
+        );
+      }
 
-    if (plan.applied && plan.postSpawn.required) {
-      if (typeof this._sandboxAdapter.postSpawnSandbox !== "function") {
-        throw this._sandboxError(
-          "post_spawn_adapter_unavailable",
-          "Required post-spawn sandbox adapter is unavailable",
-        );
+      if (plan.applied && plan.postSpawn.required) {
+        if (typeof this._sandboxAdapter.postSpawnSandbox !== "function") {
+          throw this._sandboxError(
+            "post_spawn_adapter_unavailable",
+            "Required post-spawn sandbox adapter is unavailable",
+          );
+        }
+        if (sync) {
+          throw this._sandboxError(
+            "post_spawn_unavailable_for_sync",
+            "spawnSync cannot satisfy required post-spawn sandbox enforcement",
+          );
+        }
+        if (
+          (strict || requiredBoundaries.length > 0) &&
+          plan.postSpawn.mode !== "sync"
+        ) {
+          throw this._sandboxError(
+            "async_post_spawn_disallowed_in_strict_mode",
+            "Fail-closed sandbox enforcement requires synchronous post-spawn enforcement",
+          );
+        }
       }
-      if (sync) {
-        throw this._sandboxError(
-          "post_spawn_unavailable_for_sync",
-          "spawnSync cannot satisfy required post-spawn sandbox enforcement",
-        );
+      return plan;
+    } catch (error) {
+      if (typeof rawPlan?.cleanup === "function") {
+        try {
+          rawPlan.cleanup();
+        } catch {
+          // Preserve the boundary/contract failure that prevented execution.
+        }
       }
-      if (
-        (strict || requiredBoundaries.length > 0) &&
-        plan.postSpawn.mode !== "sync"
-      ) {
-        throw this._sandboxError(
-          "async_post_spawn_disallowed_in_strict_mode",
-          "Fail-closed sandbox enforcement requires synchronous post-spawn enforcement",
-        );
-      }
+      throw error;
     }
-    return plan;
   }
 
   _applySandboxAudit(auditEntry, plan, applied) {
@@ -615,6 +825,7 @@ class ProcessExecutionBroker extends EventEmitter {
       : null;
     auditEntry.sandboxPolicyAttested =
       typeof plan?.policyAttested === "boolean" ? plan.policyAttested : null;
+    auditEntry.sandboxPolicyDigest = plan?.policyDigest || null;
     auditEntry.sandboxCandidateReason = plan?.candidateBackend
       ? plan?.reason || null
       : null;
@@ -651,6 +862,8 @@ class ProcessExecutionBroker extends EventEmitter {
       typeof error.sandboxPolicyAttested === "boolean"
         ? error.sandboxPolicyAttested
         : (auditEntry.sandboxPolicyAttested ?? null);
+    auditEntry.sandboxPolicyDigest =
+      error.sandboxPolicyDigest || auditEntry.sandboxPolicyDigest || null;
     auditEntry.sandboxCandidateReason =
       error.sandboxCandidateReason || auditEntry.sandboxCandidateReason || null;
     auditEntry.deniedReason = `sandbox-init-failed: ${error.message}`;
@@ -968,7 +1181,11 @@ class ProcessExecutionBroker extends EventEmitter {
 
     let sandboxPolicy;
     try {
-      sandboxPolicy = this._normalizeSandboxPolicy(options);
+      sandboxPolicy = this._normalizeSandboxPolicy(options, {
+        command,
+        args,
+        sync: false,
+      });
       auditEntry.sandboxRequired = [...sandboxPolicy.requiredBoundaries];
     } catch (sandboxPolicyError) {
       this._recordSandboxDenial(auditEntry, sandboxPolicyError, startTime);
@@ -1187,7 +1404,11 @@ class ProcessExecutionBroker extends EventEmitter {
 
     let sandboxPolicy;
     try {
-      sandboxPolicy = this._normalizeSandboxPolicy(options);
+      sandboxPolicy = this._normalizeSandboxPolicy(options, {
+        command,
+        args,
+        sync: true,
+      });
       auditEntry.sandboxRequired = [...sandboxPolicy.requiredBoundaries];
     } catch (sandboxPolicyError) {
       this._recordSandboxDenial(auditEntry, sandboxPolicyError, startTime);
@@ -1340,7 +1561,11 @@ class ProcessExecutionBroker extends EventEmitter {
     };
     let sandboxPolicy;
     try {
-      sandboxPolicy = this._normalizeSandboxPolicy(options);
+      sandboxPolicy = this._normalizeSandboxPolicy(options, {
+        command,
+        args,
+        sync: false,
+      });
       auditEntry.sandboxRequired = [...sandboxPolicy.requiredBoundaries];
     } catch (sandboxPolicyError) {
       this._recordSandboxDenial(auditEntry, sandboxPolicyError, startTime);

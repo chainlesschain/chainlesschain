@@ -3,8 +3,10 @@
  *
  * Platform enforcement currently available:
  * - macOS: Seatbelt sandbox-exec profiles
- * - Linux: prlimit resource-limit wrapper, plus a non-promoting bubblewrap
- *   runtime probe for explicitly requested filesystem/network boundaries
+ * - Linux: prlimit resource-limit wrapper, plus a narrow bubblewrap backend
+ *   for an attested direct strict Plugin Node bin. Shells, native binaries,
+ *   broader working directories, host-writable paths, inherited descriptors,
+ *   and network egress remain fail-closed.
  * - Windows: Win32 Job Object + restricted-token wrapper, with an attested
  *   zero-capability AppContainer for explicit filesystem/network boundaries
  *
@@ -62,24 +64,53 @@ const WINDOWS_APPCONTAINER_BACKEND =
   "windows-appcontainer-job-restricted-token";
 const WINDOWS_ADAPTER_IDLE_TTL_MS = 60_000;
 const LINUX_BWRAP_PATH = "/usr/bin/bwrap";
-const LINUX_BWRAP_RUNTIME_PROBE_ARGS = Object.freeze([
-  "--die-with-parent",
-  "--new-session",
-  "--unshare-all",
-  "--ro-bind",
-  "/",
-  "/",
-  "--proc",
-  "/proc",
-  "--dev",
-  "/dev",
-  "--tmpfs",
-  "/tmp",
-  "--",
-  "/bin/true",
+const LINUX_LDD_PATH = "/usr/bin/ldd";
+const LINUX_BWRAP_BACKEND = "linux-bwrap";
+const LINUX_BWRAP_NODE_PROBE_SENTINEL = "chainless-linux-bwrap-plugin-node-v1";
+const LINUX_BWRAP_MAX_PLUGIN_ENTRIES = 512;
+const LINUX_BWRAP_FIRST_MOUNT_FD = 3;
+const LINUX_ATTESTED_FILE_MAX_BYTES = 256 * 1024 * 1024;
+const LINUX_ATTESTATION_HASH_CHUNK_BYTES = 1024 * 1024;
+// Linux asm-generic: __O_TMPFILE (0x400000) | O_DIRECTORY (0x010000).
+// x64, arm64, and riscv64 use this value; unsupported seccomp architectures
+// already fail closed before the anonymous filter is created.
+const LINUX_O_TMPFILE = 0x410000;
+const LINUX_SECCOMP_FILTERS = Object.freeze({
+  x64: Object.freeze({
+    auditArch: 0xc000003e,
+    socketSyscall: 41,
+    socketpairSyscall: 53,
+    ioUringSetupSyscall: 425,
+    x32SyscallBit: 0x40000000,
+  }),
+  arm64: Object.freeze({
+    auditArch: 0xc00000b7,
+    socketSyscall: 198,
+    socketpairSyscall: 199,
+    ioUringSetupSyscall: 425,
+  }),
+  riscv64: Object.freeze({
+    auditArch: 0xc00000f3,
+    socketSyscall: 198,
+    socketpairSyscall: 199,
+    ioUringSetupSyscall: 425,
+  }),
+});
+const LINUX_LOCAL_FILESYSTEM_TYPES = new Set([
+  "btrfs",
+  "erofs",
+  "ext2",
+  "ext3",
+  "ext4",
+  "overlay",
+  "squashfs",
+  "tmpfs",
+  "xfs",
+  "zfs",
 ]);
 const DEFAULT_RUNTIME = Object.freeze({
   platform: os.platform(),
+  arch: process.arch,
   fs,
   tmpdir: () => os.tmpdir(),
   homedir: () => os.homedir(),
@@ -131,7 +162,17 @@ function normalizeSandboxRequest(profileOrRequest, explicitRequest) {
         ),
       ]
     : [];
-  return { profile, requiredBoundaries, sync: request.sync === true };
+  return {
+    profile,
+    requiredBoundaries,
+    sync: request.sync === true,
+    executionContract:
+      request.executionContract &&
+      typeof request.executionContract === "object" &&
+      !Array.isArray(request.executionContract)
+        ? request.executionContract
+        : null,
+  };
 }
 
 /**
@@ -1375,42 +1416,1053 @@ export function postSpawnWindowsSandbox(
 // Linux resource-limit enforcement
 // ---------------------------------------------------------------------------
 
-/**
- * Prove only that the installed bubblewrap binary can create the namespace and
- * mount primitives needed by a future policy backend. This deliberately does
- * not attest any filesystem/network policy and therefore must never promote a
- * sandbox guarantee.
- */
-function probeLinuxBubblewrapRuntime(runtime) {
-  let binaryPresent = false;
-  try {
-    binaryPresent = runtime.fs.existsSync(LINUX_BWRAP_PATH);
-  } catch {
-    return {
-      kind: "linux-bwrap-runtime-smoke-v1",
-      attempted: false,
-      runnable: false,
-      reason: "binary_probe_failed",
-    };
-  }
-  if (!binaryPresent) {
-    return {
-      kind: "linux-bwrap-runtime-smoke-v1",
-      attempted: false,
-      runnable: false,
-      reason: "binary_missing",
-    };
-  }
+function linuxBubblewrapProbe(attempted, runnable, reason) {
+  return {
+    kind: "linux-bwrap-plugin-node-policy-v1",
+    attempted,
+    runnable,
+    reason,
+  };
+}
 
+function linuxRealpath(runtime, value) {
+  const realpathSync = runtime.fs?.realpathSync;
+  if (typeof realpathSync !== "function") {
+    throw new Error("realpath_unavailable");
+  }
+  return typeof realpathSync.native === "function"
+    ? realpathSync.native(value)
+    : realpathSync(value);
+}
+
+function linuxPathWithin(root, target) {
+  const relative = path.posix.relative(root, target);
+  return (
+    relative !== "" &&
+    relative !== ".." &&
+    !relative.startsWith("../") &&
+    !path.posix.isAbsolute(relative)
+  );
+}
+
+function linuxIdentityMatches(runtime, identity, { executable = false } = {}) {
+  if (
+    !identity ||
+    typeof identity.realPath !== "string" ||
+    !path.posix.isAbsolute(identity.realPath) ||
+    typeof identity.sha256 !== "string" ||
+    !/^[a-f0-9]{64}$/.test(identity.sha256) ||
+    !identity.fileId ||
+    !Number.isSafeInteger(identity.bytes) ||
+    identity.bytes < 0 ||
+    identity.bytes > LINUX_ATTESTED_FILE_MAX_BYTES ||
+    identity.mtimeMs === null
+  ) {
+    return false;
+  }
+  let fd;
+  try {
+    if (linuxRealpath(runtime, identity.realPath) !== identity.realPath) {
+      return false;
+    }
+    const lst = runtime.fs.lstatSync(identity.realPath);
+    if (lst.isSymbolicLink() || !lst.isFile()) return false;
+    if (executable && (Number(lst.mode) & 0o111) === 0) return false;
+    const constants = runtime.fs.constants || fs.constants;
+    const flags =
+      Number(constants.O_RDONLY) |
+      Number(constants.O_NOFOLLOW || 0) |
+      Number(constants.O_NONBLOCK || 0);
+    fd = runtime.fs.openSync(identity.realPath, flags);
+    const before = runtime.fs.fstatSync(fd);
+    if (
+      !before.isFile() ||
+      String(before.dev) !== String(identity.fileId.dev) ||
+      String(before.ino) !== String(identity.fileId.ino) ||
+      Number(before.size) !== Number(identity.bytes) ||
+      Number(before.mtimeMs) !== Number(identity.mtimeMs)
+    ) {
+      return false;
+    }
+    const digest = crypto.createHash("sha256");
+    const chunk = Buffer.allocUnsafe(
+      Math.max(1, Math.min(LINUX_ATTESTATION_HASH_CHUNK_BYTES, identity.bytes)),
+    );
+    let offset = 0;
+    while (offset < identity.bytes) {
+      const read = runtime.fs.readSync(
+        fd,
+        chunk,
+        0,
+        Math.min(chunk.length, identity.bytes - offset),
+        offset,
+      );
+      if (read <= 0) return false;
+      digest.update(chunk.subarray(0, read));
+      offset += read;
+    }
+    const after = runtime.fs.fstatSync(fd);
+    const stable =
+      String(before.dev) === String(after.dev) &&
+      String(before.ino) === String(after.ino) &&
+      Number(before.size) === Number(after.size) &&
+      Number(before.mtimeMs) === Number(after.mtimeMs);
+    if (!stable) return false;
+    return digest.digest("hex") === identity.sha256;
+  } catch {
+    return false;
+  } finally {
+    if (fd !== undefined) {
+      try {
+        runtime.fs.closeSync(fd);
+      } catch {
+        // best effort
+      }
+    }
+  }
+}
+
+function linuxDirectoryIdentityMatches(runtime, identity) {
+  if (
+    !identity ||
+    typeof identity.realPath !== "string" ||
+    !path.posix.isAbsolute(identity.realPath) ||
+    !identity.fileId
+  ) {
+    return false;
+  }
+  try {
+    const stat = runtime.fs.lstatSync(identity.realPath);
+    return (
+      !stat.isSymbolicLink() &&
+      stat.isDirectory() &&
+      String(stat.dev) === String(identity.fileId.dev) &&
+      String(stat.ino) === String(identity.fileId.ino)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function validateLinuxPluginTree(runtime, pluginRoot) {
+  try {
+    const rootStat = runtime.fs.lstatSync(pluginRoot);
+    if (rootStat.isSymbolicLink() || !rootStat.isDirectory()) return false;
+    const rootDevice = String(rootStat.dev);
+    const pending = [pluginRoot];
+    let entries = 0;
+    while (pending.length > 0) {
+      const current = pending.pop();
+      const children = runtime.fs.readdirSync(current, {
+        withFileTypes: true,
+      });
+      for (const child of children) {
+        entries += 1;
+        if (entries > LINUX_BWRAP_MAX_PLUGIN_ENTRIES) return false;
+        const childPath = path.posix.join(current, child.name);
+        const stat = runtime.fs.lstatSync(childPath);
+        if (
+          stat.isSymbolicLink() ||
+          String(stat.dev) !== rootDevice ||
+          stat.isSocket?.() ||
+          stat.isFIFO?.() ||
+          stat.isBlockDevice?.() ||
+          stat.isCharacterDevice?.()
+        ) {
+          return false;
+        }
+        if (stat.isDirectory()) {
+          pending.push(childPath);
+        } else if (!stat.isFile() || Number(stat.nlink) !== 1) {
+          return false;
+        }
+      }
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function decodeLinuxMountInfoPath(value) {
+  return value.replace(/\\(040|011|012|134)/g, (_match, escaped) => {
+    const decoded = {
+      "040": " ",
+      "011": "\t",
+      "012": "\n",
+      134: "\\",
+    };
+    return decoded[escaped];
+  });
+}
+
+function linuxPluginMountTreeIsNarrow(runtime, pluginRoot) {
+  try {
+    const contents = String(
+      runtime.fs.readFileSync("/proc/self/mountinfo", "utf8"),
+    );
+    let parsed = 0;
+    let coveringMount = null;
+    for (const line of contents.split(/\r?\n/)) {
+      if (!line) continue;
+      const fields = line.split(" ");
+      const separator = fields.indexOf("-");
+      if (
+        fields.length < 10 ||
+        separator < 6 ||
+        separator + 2 >= fields.length
+      ) {
+        return false;
+      }
+      parsed += 1;
+      const mountPoint = decodeLinuxMountInfoPath(fields[4]);
+      const filesystemType = fields[separator + 1];
+      if (mountPoint === pluginRoot) return false;
+      if (linuxPathWithin(pluginRoot, mountPoint)) {
+        return false;
+      }
+      if (linuxPathWithin(mountPoint, pluginRoot)) {
+        if (
+          !coveringMount ||
+          mountPoint.length > coveringMount.mountPoint.length
+        ) {
+          coveringMount = { mountPoint, filesystemType };
+        }
+      }
+    }
+    return (
+      parsed > 0 &&
+      coveringMount !== null &&
+      LINUX_LOCAL_FILESYSTEM_TYPES.has(coveringMount.filesystemType)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function linuxStdioIsNarrow(stdio) {
+  if (stdio === undefined || stdio === null) return true;
+  if (stdio === "pipe" || stdio === "ignore") return true;
+  if (!Array.isArray(stdio) || stdio.length > 3) return false;
+  return stdio.every(
+    (entry) =>
+      entry === undefined ||
+      entry === null ||
+      entry === "pipe" ||
+      entry === "ignore",
+  );
+}
+
+function assignLinuxMountChildFds(mounts) {
+  return mounts.map((mount, index) => ({
+    ...mount,
+    childFd: LINUX_BWRAP_FIRST_MOUNT_FD + index,
+  }));
+}
+
+function linuxStdioWithPinnedMounts(
+  stdio,
+  descriptors,
+  { probe = false } = {},
+) {
+  let standard;
+  if (probe) {
+    standard = ["ignore", "pipe", "pipe"];
+  } else if (Array.isArray(stdio)) {
+    standard = [...stdio];
+  } else if (stdio === "ignore") {
+    standard = ["ignore", "ignore", "ignore"];
+  } else {
+    standard = ["pipe", "pipe", "pipe"];
+  }
+  while (standard.length < 3) standard.push(undefined);
+  return [
+    ...standard.slice(0, 3),
+    ...descriptors.map((descriptor) => descriptor.fd),
+  ];
+}
+
+function validateLinuxPluginNodeContract(
+  command,
+  args,
+  spawnOpts,
+  contract,
+  runtime,
+  sync,
+) {
+  if (
+    !contract ||
+    contract.contractVersion !== 1 ||
+    contract.kind !== "strict-plugin-node-bin"
+  ) {
+    return { ok: false, reason: "execution_contract_missing" };
+  }
+  if (
+    sync !== true ||
+    spawnOpts?.shell !== false ||
+    spawnOpts?.detached === true ||
+    !linuxStdioIsNarrow(spawnOpts?.stdio) ||
+    spawnOpts?.serialization !== undefined ||
+    spawnOpts?.argv0 !== undefined ||
+    spawnOpts?.uid !== undefined ||
+    spawnOpts?.gid !== undefined
+  ) {
+    return { ok: false, reason: "unsupported_launch_options" };
+  }
+  if (
+    typeof command !== "string" ||
+    !path.posix.isAbsolute(command) ||
+    command !== contract.runtimePath ||
+    command !== contract.runtimeIdentity?.realPath ||
+    !Array.isArray(args) ||
+    args.length < 1 ||
+    args.some((arg) => typeof arg !== "string" || arg.includes("\0")) ||
+    args[0] !== contract.entryIdentity?.realPath
+  ) {
+    return { ok: false, reason: "launch_identity_mismatch" };
+  }
+  if (
+    ![".js", ".cjs", ".mjs"].includes(
+      path.posix.extname(contract.entryIdentity.realPath).toLowerCase(),
+    )
+  ) {
+    return { ok: false, reason: "unsupported_plugin_entry" };
+  }
+  for (const value of [
+    contract.pluginRoot,
+    contract.workingDirectory,
+    contract.rootIdentity?.realPath,
+    contract.entryIdentity.realPath,
+    contract.runtimeIdentity.realPath,
+  ]) {
+    if (
+      typeof value !== "string" ||
+      !path.posix.isAbsolute(value) ||
+      value.includes("\0")
+    ) {
+      return { ok: false, reason: "noncanonical_contract_path" };
+    }
+  }
+  try {
+    if (
+      linuxRealpath(runtime, contract.pluginRoot) !== contract.pluginRoot ||
+      linuxRealpath(runtime, contract.workingDirectory) !==
+        contract.workingDirectory ||
+      contract.workingDirectory !== contract.pluginRoot ||
+      linuxRealpath(runtime, spawnOpts.cwd) !== contract.pluginRoot ||
+      contract.rootIdentity?.realPath !== contract.pluginRoot ||
+      !linuxPathWithin(contract.pluginRoot, contract.entryIdentity.realPath)
+    ) {
+      return { ok: false, reason: "noncanonical_contract_path" };
+    }
+  } catch {
+    return { ok: false, reason: "contract_path_unavailable" };
+  }
+  const forbiddenRoots = new Set([
+    "/",
+    "/bin",
+    "/dev",
+    "/etc",
+    "/home",
+    "/lib",
+    "/lib64",
+    "/proc",
+    "/root",
+    "/run",
+    "/sys",
+    "/tmp",
+    "/usr",
+    "/var",
+    path.posix.resolve(runtime.homedir()),
+  ]);
+  if (
+    forbiddenRoots.has(contract.pluginRoot) ||
+    ["/dev", "/proc", "/run", "/sys"].some(
+      (root) =>
+        contract.pluginRoot === root ||
+        contract.pluginRoot.startsWith(`${root}/`),
+    )
+  ) {
+    return { ok: false, reason: "broad_plugin_root_disallowed" };
+  }
+  if (
+    !linuxDirectoryIdentityMatches(runtime, contract.rootIdentity) ||
+    !linuxIdentityMatches(runtime, contract.entryIdentity) ||
+    !linuxIdentityMatches(runtime, contract.runtimeIdentity, {
+      executable: true,
+    })
+  ) {
+    return { ok: false, reason: "execution_identity_changed" };
+  }
+  if (
+    !validateLinuxPluginTree(runtime, contract.pluginRoot) ||
+    !linuxPluginMountTreeIsNarrow(runtime, contract.pluginRoot)
+  ) {
+    return { ok: false, reason: "plugin_tree_unattested" };
+  }
+  return { ok: true, contract };
+}
+
+function linuxStatMatches(left, right) {
+  return (
+    String(left.dev) === String(right.dev) &&
+    String(left.ino) === String(right.ino) &&
+    Number(left.size) === Number(right.size) &&
+    Number(left.mtimeMs) === Number(right.mtimeMs)
+  );
+}
+
+function linuxFdMountId(runtime, fd) {
+  const contents = String(
+    runtime.fs.readFileSync(`/proc/self/fdinfo/${fd}`, "utf8"),
+  );
+  const match = contents.match(/^mnt_id:\s*(\d+)\s*$/m);
+  if (!match) throw new Error("fd_mount_identity_unavailable");
+  return match[1];
+}
+
+function closeLinuxPinnedMounts(runtime, mounts) {
+  for (const mount of mounts || []) {
+    if (!Number.isInteger(mount?.fd)) continue;
+    try {
+      runtime.fs.closeSync(mount.fd);
+    } catch {
+      // Best effort. The process is already fail-closed if a pin cannot be
+      // created; cleanup must not replace the original boundary error.
+    }
+  }
+}
+
+function pinLinuxRegularFile(
+  runtime,
+  source,
+  destination,
+  expectedStat,
+  {
+    requireSingleLink = false,
+    openPath = source,
+    verifyCurrentPath = true,
+    expectedMountId = null,
+  } = {},
+) {
+  let fd;
+  try {
+    const constants = runtime.fs.constants || fs.constants;
+    const flags =
+      Number(constants.O_RDONLY) |
+      Number(constants.O_NOFOLLOW || 0) |
+      Number(constants.O_NONBLOCK || 0);
+    fd = runtime.fs.openSync(openPath, flags);
+    const opened = runtime.fs.fstatSync(fd);
+    const current = verifyCurrentPath ? runtime.fs.statSync(source) : opened;
+    if (
+      !opened.isFile() ||
+      !linuxStatMatches(opened, current) ||
+      (expectedStat && !linuxStatMatches(opened, expectedStat)) ||
+      (requireSingleLink && Number(opened.nlink) !== 1) ||
+      (expectedMountId !== null &&
+        linuxFdMountId(runtime, fd) !== expectedMountId)
+    ) {
+      throw new Error("pinned_file_identity_changed");
+    }
+    return {
+      source,
+      destination,
+      fd,
+      fileId: {
+        dev: String(opened.dev),
+        ino: String(opened.ino),
+      },
+      bytes: Number(opened.size),
+      mtimeMs: Number(opened.mtimeMs),
+    };
+  } catch (error) {
+    if (fd !== undefined) {
+      try {
+        runtime.fs.closeSync(fd);
+      } catch {
+        // best effort
+      }
+    }
+    throw error;
+  }
+}
+
+/**
+ * Build a synthetic plugin tree from individually pinned regular files.
+ * Never bind the mutable source directory itself: files added, hard-linked,
+ * symlinked, or mount-injected after this scan cannot appear in the sandbox.
+ */
+function pinLinuxPluginTree(runtime, pluginRoot, rootIdentity) {
+  const mounts = [];
+  const directoryPins = [];
+  try {
+    const constants = runtime.fs.constants || fs.constants;
+    const directoryFlags =
+      Number(constants.O_RDONLY) |
+      Number(constants.O_DIRECTORY || 0) |
+      Number(constants.O_NOFOLLOW || 0) |
+      Number(constants.O_NONBLOCK || 0);
+    const rootFd = runtime.fs.openSync(pluginRoot, directoryFlags);
+    directoryPins.push({ fd: rootFd });
+    const rootStat = runtime.fs.fstatSync(rootFd);
+    const rootPathStat = runtime.fs.lstatSync(pluginRoot);
+    if (
+      rootPathStat.isSymbolicLink() ||
+      !rootStat.isDirectory() ||
+      !linuxStatMatches(rootStat, rootPathStat) ||
+      String(rootStat.dev) !== String(rootIdentity?.fileId?.dev) ||
+      String(rootStat.ino) !== String(rootIdentity?.fileId?.ino)
+    ) {
+      throw new Error("plugin_root_not_directory");
+    }
+    const rootMountId = linuxFdMountId(runtime, rootFd);
+    const rootDevice = String(rootStat.dev);
+    const directories = new Set(["/opt/chainless/plugin"]);
+    const pending = [{ fd: rootFd, source: pluginRoot, relative: "" }];
+    let entries = 0;
+    while (pending.length > 0) {
+      const current = pending.pop();
+      const currentHandlePath = `/proc/self/fd/${current.fd}`;
+      const children = runtime.fs
+        .readdirSync(currentHandlePath, { withFileTypes: true })
+        .map((child) => child.name)
+        .sort((left, right) => left.localeCompare(right));
+      for (const name of children) {
+        if (
+          typeof name !== "string" ||
+          !name ||
+          name === "." ||
+          name === ".." ||
+          name.includes("/") ||
+          name.includes("\0")
+        ) {
+          throw new Error("plugin_tree_entry_invalid");
+        }
+        entries += 1;
+        if (entries > LINUX_BWRAP_MAX_PLUGIN_ENTRIES) {
+          throw new Error("plugin_tree_too_large");
+        }
+        const source = path.posix.join(current.source, name);
+        const sourceHandlePath = `${currentHandlePath}/${name}`;
+        const relative = current.relative
+          ? path.posix.join(current.relative, name)
+          : name;
+        const destination = path.posix.join("/opt/chainless/plugin", relative);
+        const stat = runtime.fs.lstatSync(sourceHandlePath);
+        if (
+          stat.isSymbolicLink() ||
+          String(stat.dev) !== rootDevice ||
+          stat.isSocket?.() ||
+          stat.isFIFO?.() ||
+          stat.isBlockDevice?.() ||
+          stat.isCharacterDevice?.()
+        ) {
+          throw new Error("plugin_tree_entry_unattested");
+        }
+        if (stat.isDirectory()) {
+          const fd = runtime.fs.openSync(sourceHandlePath, directoryFlags);
+          const opened = runtime.fs.fstatSync(fd);
+          directoryPins.push({ fd });
+          if (
+            !opened.isDirectory() ||
+            !linuxStatMatches(opened, stat) ||
+            linuxFdMountId(runtime, fd) !== rootMountId
+          ) {
+            throw new Error("plugin_tree_directory_changed");
+          }
+          directories.add(destination);
+          pending.push({ fd, source, relative });
+        } else if (stat.isFile() && Number(stat.nlink) === 1) {
+          mounts.push(
+            pinLinuxRegularFile(runtime, source, destination, stat, {
+              openPath: sourceHandlePath,
+              verifyCurrentPath: false,
+              requireSingleLink: true,
+              expectedMountId: rootMountId,
+            }),
+          );
+        } else {
+          throw new Error("plugin_tree_entry_unattested");
+        }
+      }
+    }
+    closeLinuxPinnedMounts(runtime, directoryPins);
+    return {
+      directories: [...directories].sort((left, right) => {
+        const depth =
+          left.split("/").filter(Boolean).length -
+          right.split("/").filter(Boolean).length;
+        return depth || left.localeCompare(right);
+      }),
+      mounts,
+    };
+  } catch (error) {
+    closeLinuxPinnedMounts(runtime, directoryPins);
+    closeLinuxPinnedMounts(runtime, mounts);
+    throw error;
+  }
+}
+
+function buildLinuxNetworkSeccompFilter(arch) {
+  const architecture = LINUX_SECCOMP_FILTERS[arch];
+  if (!architecture) {
+    throw new Error(`unsupported_seccomp_architecture:${String(arch)}`);
+  }
+  const instructions = [
+    // Reject a different syscall ABI instead of interpreting overlapping
+    // syscall numbers under the wrong architecture.
+    [0x20, 0, 0, 4],
+    [0x15, 1, 0, architecture.auditArch],
+    [0x06, 0, 0, 0x80000000],
+    [0x20, 0, 0, 0],
+  ];
+  if (architecture.x32SyscallBit) {
+    instructions.push([0x54, 0, 0, ~architecture.x32SyscallBit]);
+  }
+  instructions.push(
+    // No socket family is needed by this direct foreground Plugin Node route.
+    // Blocking creation rather than relying only on CLONE_NEWNET also closes
+    // non-network-namespaced transports such as AF_VSOCK.
+    [0x15, 0, 1, architecture.socketSyscall],
+    [0x06, 0, 0, 0x00050001],
+    [0x15, 0, 1, architecture.socketpairSyscall],
+    [0x06, 0, 0, 0x00050001],
+    // A new io_uring can create and connect sockets without the socket(2)
+    // syscall. No ring descriptor is inherited by this narrow launch route.
+    [0x15, 0, 1, architecture.ioUringSetupSyscall],
+    [0x06, 0, 0, 0x00050001],
+    [0x06, 0, 0, 0x7fff0000],
+  );
+  const buffer = Buffer.alloc(instructions.length * 8);
+  instructions.forEach(([code, jumpTrue, jumpFalse, value], index) => {
+    const offset = index * 8;
+    buffer.writeUInt16LE(code, offset);
+    buffer.writeUInt8(jumpTrue, offset + 2);
+    buffer.writeUInt8(jumpFalse, offset + 3);
+    buffer.writeUInt32LE(value >>> 0, offset + 4);
+  });
+  return {
+    arch,
+    buffer,
+    sha256: crypto.createHash("sha256").update(buffer).digest("hex"),
+  };
+}
+
+function pinLinuxNetworkSeccompFilter(runtime) {
+  const filter = buildLinuxNetworkSeccompFilter(runtime.arch);
+  let fd;
+  try {
+    for (const method of [
+      "openSync",
+      "writeSync",
+      "readSync",
+      "fchmodSync",
+      "fsyncSync",
+      "fstatSync",
+    ]) {
+      if (typeof runtime.fs[method] !== "function") {
+        throw new Error(`seccomp_filter_${method}_unavailable`);
+      }
+    }
+    const constants = runtime.fs.constants || fs.constants;
+    const flags =
+      Number(constants.O_RDWR) |
+      Number(constants.O_EXCL) |
+      Number(constants.O_TMPFILE ?? LINUX_O_TMPFILE) |
+      Number(constants.O_NOFOLLOW || 0) |
+      Number(constants.O_NONBLOCK || 0);
+    // An anonymous inode avoids a same-UID process opening the filter by path.
+    // Mode 0400 applies from creation; this process can still write through
+    // the already-open O_RDWR descriptor, but no new writable open is allowed.
+    fd = runtime.fs.openSync("/tmp", flags, 0o400);
+    runtime.fs.fchmodSync(fd, 0o400);
+    let offset = 0;
+    while (offset < filter.buffer.length) {
+      const written = runtime.fs.writeSync(
+        fd,
+        filter.buffer,
+        offset,
+        filter.buffer.length - offset,
+        offset,
+      );
+      if (written <= 0) throw new Error("seccomp_filter_write_failed");
+      offset += written;
+    }
+    runtime.fs.fsyncSync(fd);
+    const before = runtime.fs.fstatSync(fd);
+    if (!before.isFile() || Number(before.size) !== filter.buffer.length) {
+      throw new Error("seccomp_filter_identity_changed");
+    }
+    const observed = Buffer.allocUnsafe(filter.buffer.length);
+    offset = 0;
+    while (offset < observed.length) {
+      const read = runtime.fs.readSync(
+        fd,
+        observed,
+        offset,
+        observed.length - offset,
+        offset,
+      );
+      if (read <= 0) throw new Error("seccomp_filter_read_failed");
+      offset += read;
+    }
+    const after = runtime.fs.fstatSync(fd);
+    const observedSha256 = crypto
+      .createHash("sha256")
+      .update(observed)
+      .digest("hex");
+    if (!linuxStatMatches(before, after) || observedSha256 !== filter.sha256) {
+      throw new Error("seccomp_filter_identity_changed");
+    }
+    return {
+      fd,
+      childFd: null,
+      arch: filter.arch,
+      sha256: filter.sha256,
+      policy: "deny-network-creation",
+    };
+  } catch (error) {
+    if (fd !== undefined) {
+      try {
+        runtime.fs.closeSync(fd);
+      } catch {
+        // best effort
+      }
+    }
+    throw error;
+  }
+}
+
+function attestLinuxRootOwnedFile(
+  runtime,
+  filePath,
+  { executable = false } = {},
+) {
+  try {
+    if (!runtime.fs.existsSync(filePath)) return null;
+    const source = linuxRealpath(runtime, filePath);
+    const before = runtime.fs.lstatSync(source);
+    if (
+      !before.isFile() ||
+      before.isSymbolicLink() ||
+      Number(before.uid) !== 0 ||
+      (Number(before.mode) & 0o022) !== 0 ||
+      (executable && (Number(before.mode) & 0o111) === 0)
+    ) {
+      return null;
+    }
+    const after = runtime.fs.statSync(source);
+    if (
+      String(before.dev) !== String(after.dev) ||
+      String(before.ino) !== String(after.ino) ||
+      Number(before.size) !== Number(after.size) ||
+      Number(before.mtimeMs) !== Number(after.mtimeMs)
+    ) {
+      return null;
+    }
+    return source;
+  } catch {
+    return null;
+  }
+}
+
+function attestLinuxBubblewrapBinary(runtime) {
+  return (
+    attestLinuxRootOwnedFile(runtime, LINUX_BWRAP_PATH, {
+      executable: true,
+    }) === LINUX_BWRAP_PATH
+  );
+}
+
+function attestLinuxBubblewrapCapabilities(runtime) {
+  let result;
+  try {
+    result = runtime.spawnSync(LINUX_BWRAP_PATH, ["--help"], {
+      shell: false,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: 10_000,
+      env: {
+        PATH: "/usr/bin:/bin",
+        LANG: "C",
+        LC_ALL: "C",
+      },
+    });
+  } catch {
+    return { ok: false, reason: "capability_probe_spawn_failed" };
+  }
+  if (result?.error || result?.status !== 0) {
+    return { ok: false, reason: "capability_probe_failed" };
+  }
+  const help = `${String(result.stdout || "")}\n${String(result.stderr || "")}`;
+  for (const option of [
+    "--ro-bind-fd",
+    "--disable-userns",
+    "--assert-userns-disabled",
+    "--seccomp",
+  ]) {
+    if (!help.includes(option)) {
+      return {
+        ok: false,
+        reason: `required_option_missing:${option.slice(2)}`,
+      };
+    }
+  }
+  return { ok: true, reason: null };
+}
+
+function parseLinuxLddPaths(output) {
+  const paths = new Set();
+  for (const line of String(output || "").split(/\r?\n/)) {
+    if (line.includes("=> not found")) {
+      throw new Error("runtime_dependency_missing");
+    }
+    const resolved = line.match(/=>\s+(\/[^\s(]+)\s+\(/)?.[1];
+    const loader = line.match(/^\s*(\/[^\s(]+)\s+\(/)?.[1];
+    if (resolved) paths.add(resolved);
+    if (loader) paths.add(loader);
+  }
+  return [...paths];
+}
+
+function collectLinuxNodeRuntimeMounts(runtime, runtimeIdentity) {
+  if (
+    attestLinuxRootOwnedFile(runtime, LINUX_LDD_PATH, {
+      executable: true,
+    }) !== LINUX_LDD_PATH
+  ) {
+    throw new Error("ldd_unavailable");
+  }
+  const runtimeExpected = {
+    dev: runtimeIdentity.fileId.dev,
+    ino: runtimeIdentity.fileId.ino,
+    size: runtimeIdentity.bytes,
+    mtimeMs: runtimeIdentity.mtimeMs,
+  };
+  const inspectionPin = pinLinuxRegularFile(
+    runtime,
+    runtimeIdentity.realPath,
+    "/opt/chainless/runtime/node",
+    runtimeExpected,
+  );
+  let result;
+  try {
+    result = runtime.spawnSync(LINUX_LDD_PATH, ["/proc/self/fd/3"], {
+      shell: false,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe", inspectionPin.fd],
+      timeout: 10_000,
+      env: {
+        PATH: "/usr/bin:/bin",
+        LANG: "C",
+        LC_ALL: "C",
+      },
+    });
+  } finally {
+    closeLinuxPinnedMounts(runtime, [inspectionPin]);
+  }
+  if (result?.error || result?.status !== 0) {
+    throw new Error("runtime_dependency_probe_failed");
+  }
+  const mounts = [
+    {
+      source: runtimeIdentity.realPath,
+      destination: "/opt/chainless/runtime/node",
+    },
+  ];
+  for (const destination of parseLinuxLddPaths(result.stdout)) {
+    if (
+      path.posix.normalize(destination) !== destination ||
+      !["/lib/", "/lib64/", "/usr/lib/"].some((prefix) =>
+        destination.startsWith(prefix),
+      )
+    ) {
+      throw new Error("runtime_dependency_outside_system_library_roots");
+    }
+    const source = attestLinuxRootOwnedFile(runtime, destination);
+    if (!source) {
+      throw new Error("runtime_dependency_unattested");
+    }
+    mounts.push({ source, destination });
+  }
+  if (runtime.fs.existsSync("/etc/ld.so.cache")) {
+    const source = attestLinuxRootOwnedFile(runtime, "/etc/ld.so.cache");
+    if (!source) {
+      throw new Error("loader_cache_unattested");
+    }
+    mounts.push({ source, destination: "/etc/ld.so.cache" });
+  }
+  const byDestination = new Map();
+  for (const mount of mounts) {
+    const existing = byDestination.get(mount.destination);
+    if (existing && existing.source !== mount.source) {
+      throw new Error("runtime_mount_collision");
+    }
+    byDestination.set(mount.destination, mount);
+  }
+  return [...byDestination.values()].sort((left, right) =>
+    left.destination.localeCompare(right.destination),
+  );
+}
+
+function pinLinuxRuntimeMounts(runtime, runtimeMounts, runtimeIdentity) {
+  const mounts = [];
+  try {
+    for (const mount of runtimeMounts) {
+      const expected =
+        mount.source === runtimeIdentity.realPath
+          ? {
+              dev: runtimeIdentity.fileId.dev,
+              ino: runtimeIdentity.fileId.ino,
+              size: runtimeIdentity.bytes,
+              mtimeMs: runtimeIdentity.mtimeMs,
+            }
+          : runtime.fs.statSync(mount.source);
+      mounts.push(
+        pinLinuxRegularFile(runtime, mount.source, mount.destination, expected),
+      );
+    }
+    return mounts;
+  } catch (error) {
+    closeLinuxPinnedMounts(runtime, mounts);
+    throw error;
+  }
+}
+
+function linuxSandboxEnvironment() {
+  return {
+    HOME: "/home/sandbox",
+    TMPDIR: "/tmp",
+    PATH: "/opt/chainless/runtime",
+    LANG: "C.UTF-8",
+    LC_ALL: "C.UTF-8",
+    TZ: "UTC",
+    OPENSSL_CONF: "/dev/null",
+    CHAINLESS_SANDBOXED: "1",
+  };
+}
+
+function buildLinuxBubblewrapPolicyArgs(
+  pluginDirectories,
+  pinnedMounts,
+  environment,
+  seccompFilter,
+) {
+  const directories = new Set([
+    "/opt",
+    "/opt/chainless",
+    "/opt/chainless/runtime",
+    "/opt/chainless/plugin",
+    "/home",
+    "/home/sandbox",
+    "/tmp",
+    "/run",
+    "/var",
+    "/var/tmp",
+    "/proc",
+    "/dev",
+    ...(pluginDirectories || []),
+  ]);
+  for (const mount of pinnedMounts) {
+    let parent = path.posix.dirname(mount.destination);
+    while (parent !== "/") {
+      directories.add(parent);
+      parent = path.posix.dirname(parent);
+    }
+  }
+  const orderedDirectories = [...directories].sort((left, right) => {
+    const depth =
+      left.split("/").filter(Boolean).length -
+      right.split("/").filter(Boolean).length;
+    return depth || left.localeCompare(right);
+  });
+  const args = [
+    "--die-with-parent",
+    "--new-session",
+    "--unshare-user",
+    "--disable-userns",
+    "--assert-userns-disabled",
+    "--unshare-pid",
+    "--unshare-ipc",
+    "--unshare-net",
+    "--unshare-uts",
+    "--unshare-cgroup-try",
+    "--cap-drop",
+    "ALL",
+    "--hostname",
+    "chainless-sandbox",
+    "--clearenv",
+  ];
+  for (const directory of orderedDirectories) {
+    args.push("--dir", directory);
+  }
+  for (const mount of pinnedMounts) {
+    args.push("--ro-bind-fd", String(mount.childFd), mount.destination);
+  }
+  args.push(
+    "--seccomp",
+    String(seccompFilter.childFd),
+    "--remount-ro",
+    "/",
+    "--perms",
+    "1777",
+    "--size",
+    String(64 * 1024 * 1024),
+    "--tmpfs",
+    "/tmp",
+    "--perms",
+    "0755",
+    "--size",
+    String(16 * 1024 * 1024),
+    "--tmpfs",
+    "/run",
+    "--perms",
+    "1777",
+    "--size",
+    String(32 * 1024 * 1024),
+    "--tmpfs",
+    "/var/tmp",
+    "--perms",
+    "0700",
+    "--size",
+    String(16 * 1024 * 1024),
+    "--tmpfs",
+    "/home/sandbox",
+    "--proc",
+    "/proc",
+    "--dev",
+    "/dev",
+  );
+  for (const key of Object.keys(environment).sort()) {
+    args.push("--setenv", key, environment[key]);
+  }
+  args.push("--chdir", "/opt/chainless/plugin");
+  return args;
+}
+
+function probeLinuxBubblewrapPolicy(runtime, policyArgs, pinnedDescriptors) {
   let result;
   try {
     result = runtime.spawnSync(
       LINUX_BWRAP_PATH,
-      [...LINUX_BWRAP_RUNTIME_PROBE_ARGS],
+      [
+        ...policyArgs,
+        "--",
+        "/opt/chainless/runtime/node",
+        "-e",
+        `process.stdout.write(${JSON.stringify(
+          LINUX_BWRAP_NODE_PROBE_SENTINEL,
+        )})`,
+      ],
       {
+        cwd: "/",
         shell: false,
-        stdio: "ignore",
-        timeout: 5_000,
+        encoding: "utf8",
+        stdio: linuxStdioWithPinnedMounts(null, pinnedDescriptors, {
+          probe: true,
+        }),
+        timeout: 15_000,
         env: {
           PATH: "/usr/bin:/bin",
           LANG: "C",
@@ -1419,28 +2471,19 @@ function probeLinuxBubblewrapRuntime(runtime) {
       },
     );
   } catch {
-    return {
-      kind: "linux-bwrap-runtime-smoke-v1",
-      attempted: true,
-      runnable: false,
-      reason: "probe_spawn_failed",
-    };
+    return linuxBubblewrapProbe(true, false, "probe_spawn_failed");
   }
-
   if (result?.error || result?.status !== 0) {
-    return {
-      kind: "linux-bwrap-runtime-smoke-v1",
-      attempted: true,
-      runnable: false,
-      reason: result?.error ? "probe_spawn_failed" : "probe_failed",
-    };
+    return linuxBubblewrapProbe(
+      true,
+      false,
+      result?.error ? "probe_spawn_failed" : "probe_failed",
+    );
   }
-  return {
-    kind: "linux-bwrap-runtime-smoke-v1",
-    attempted: true,
-    runnable: true,
-    reason: null,
-  };
+  if (String(result.stdout) !== LINUX_BWRAP_NODE_PROBE_SENTINEL) {
+    return linuxBubblewrapProbe(true, false, "node_runtime_probe_failed");
+  }
+  return linuxBubblewrapProbe(true, true, null);
 }
 
 /**
@@ -1491,17 +2534,294 @@ export function applyLinuxSandbox(
   );
 
   if (requiresStrongLinuxBoundary) {
-    const runtimeProbe = probeLinuxBubblewrapRuntime(runtime);
+    const validation = validateLinuxPluginNodeContract(
+      command,
+      args,
+      spawnOpts,
+      sandboxOpts.executionContract,
+      runtime,
+      sandboxOpts.sync,
+    );
+    if (!validation.ok) {
+      const missing = validation.reason === "execution_contract_missing";
+      return createSandboxPlan({
+        ...base,
+        backend: null,
+        candidateBackend: LINUX_BWRAP_BACKEND,
+        policyAttested: false,
+        runtimeProbe: linuxBubblewrapProbe(false, false, validation.reason),
+        reason: missing
+          ? "linux_bwrap_execution_contract_missing"
+          : "linux_bwrap_execution_contract_invalid",
+        guarantees: [],
+      });
+    }
+    if (!attestLinuxBubblewrapBinary(runtime)) {
+      return createSandboxPlan({
+        ...base,
+        backend: null,
+        candidateBackend: LINUX_BWRAP_BACKEND,
+        policyAttested: false,
+        runtimeProbe: linuxBubblewrapProbe(
+          false,
+          false,
+          "binary_missing_or_unattested",
+        ),
+        reason: "linux_bwrap_unavailable",
+        guarantees: [],
+      });
+    }
+    const capabilities = attestLinuxBubblewrapCapabilities(runtime);
+    if (!capabilities.ok) {
+      return createSandboxPlan({
+        ...base,
+        backend: null,
+        candidateBackend: LINUX_BWRAP_BACKEND,
+        policyAttested: false,
+        runtimeProbe: linuxBubblewrapProbe(true, false, capabilities.reason),
+        reason: "linux_bwrap_unavailable",
+        guarantees: [],
+      });
+    }
+
+    let runtimeMounts;
+    let pinnedRuntimeMounts = [];
+    try {
+      runtimeMounts = collectLinuxNodeRuntimeMounts(
+        runtime,
+        validation.contract.runtimeIdentity,
+      );
+      pinnedRuntimeMounts = pinLinuxRuntimeMounts(
+        runtime,
+        runtimeMounts,
+        validation.contract.runtimeIdentity,
+      );
+    } catch (error) {
+      closeLinuxPinnedMounts(runtime, pinnedRuntimeMounts);
+      return createSandboxPlan({
+        ...base,
+        backend: null,
+        candidateBackend: LINUX_BWRAP_BACKEND,
+        policyAttested: false,
+        runtimeProbe: linuxBubblewrapProbe(
+          false,
+          false,
+          error.message || "runtime_mounts_unattested",
+        ),
+        reason: "linux_bwrap_runtime_unattested",
+        guarantees: [],
+      });
+    }
+
+    let pinnedMounts = [];
+    let pluginTree;
+    try {
+      pluginTree = pinLinuxPluginTree(
+        runtime,
+        validation.contract.pluginRoot,
+        validation.contract.rootIdentity,
+      );
+      pinnedMounts = assignLinuxMountChildFds([
+        ...pinnedRuntimeMounts,
+        ...pluginTree.mounts,
+      ]);
+      const entryMount = pinnedMounts.find(
+        (mount) => mount.source === validation.contract.entryIdentity.realPath,
+      );
+      if (
+        !entryMount ||
+        String(entryMount.fileId.dev) !==
+          String(validation.contract.entryIdentity.fileId.dev) ||
+        String(entryMount.fileId.ino) !==
+          String(validation.contract.entryIdentity.fileId.ino) ||
+        entryMount.bytes !== Number(validation.contract.entryIdentity.bytes) ||
+        entryMount.mtimeMs !== Number(validation.contract.entryIdentity.mtimeMs)
+      ) {
+        throw new Error("plugin_entry_pin_mismatch");
+      }
+    } catch (error) {
+      if (pinnedMounts.length > 0) {
+        closeLinuxPinnedMounts(runtime, pinnedMounts);
+      } else {
+        closeLinuxPinnedMounts(runtime, pinnedRuntimeMounts);
+        closeLinuxPinnedMounts(runtime, pluginTree?.mounts);
+      }
+      return createSandboxPlan({
+        ...base,
+        backend: null,
+        candidateBackend: LINUX_BWRAP_BACKEND,
+        policyAttested: false,
+        runtimeProbe: linuxBubblewrapProbe(
+          false,
+          false,
+          error.message || "plugin_tree_unattested",
+        ),
+        reason: "linux_bwrap_plugin_tree_unattested",
+        guarantees: [],
+      });
+    }
+
+    let probeSeccompFilter;
+    let seccompFilter;
+    try {
+      probeSeccompFilter = pinLinuxNetworkSeccompFilter(runtime);
+      seccompFilter = pinLinuxNetworkSeccompFilter(runtime);
+      const seccompChildFd = LINUX_BWRAP_FIRST_MOUNT_FD + pinnedMounts.length;
+      probeSeccompFilter.childFd = seccompChildFd;
+      seccompFilter.childFd = seccompChildFd;
+      if (probeSeccompFilter.sha256 !== seccompFilter.sha256) {
+        throw new Error("seccomp_filter_digest_mismatch");
+      }
+    } catch (error) {
+      closeLinuxPinnedMounts(runtime, pinnedMounts);
+      closeLinuxPinnedMounts(
+        runtime,
+        [probeSeccompFilter, seccompFilter].filter(Boolean),
+      );
+      return createSandboxPlan({
+        ...base,
+        backend: null,
+        candidateBackend: LINUX_BWRAP_BACKEND,
+        policyAttested: false,
+        runtimeProbe: linuxBubblewrapProbe(
+          false,
+          false,
+          error.message || "seccomp_filter_unattested",
+        ),
+        reason: "linux_bwrap_seccomp_unattested",
+        guarantees: [],
+      });
+    }
+    const pinnedDescriptors = [...pinnedMounts, seccompFilter];
+    const probeDescriptors = [...pinnedMounts, probeSeccompFilter];
+    const environment = linuxSandboxEnvironment();
+    const policyArgs = buildLinuxBubblewrapPolicyArgs(
+      pluginTree.directories,
+      pinnedMounts,
+      environment,
+      seccompFilter,
+    );
+    const entryRelative = path.posix.relative(
+      validation.contract.pluginRoot,
+      validation.contract.entryIdentity.realPath,
+    );
+    const sandboxEntry = path.posix.join(
+      "/opt/chainless/plugin",
+      entryRelative,
+    );
+    const targetArgs = [
+      "/opt/chainless/runtime/node",
+      sandboxEntry,
+      ...args.slice(1),
+    ];
+    const policyDigest = crypto
+      .createHash("sha256")
+      .update(
+        JSON.stringify({
+          version: 1,
+          backend: LINUX_BWRAP_BACKEND,
+          contract: {
+            kind: validation.contract.kind,
+            pluginRoot: validation.contract.pluginRoot,
+            root: validation.contract.rootIdentity,
+            entry: validation.contract.entryIdentity,
+            runtime: validation.contract.runtimeIdentity,
+          },
+          mounts: pinnedMounts.map((mount) => ({
+            destination: mount.destination,
+            fileId: mount.fileId,
+            bytes: mount.bytes,
+            mtimeMs: mount.mtimeMs,
+          })),
+          seccomp: {
+            arch: seccompFilter.arch,
+            policy: seccompFilter.policy,
+            sha256: seccompFilter.sha256,
+          },
+          policyArgs,
+          target: targetArgs.slice(0, 2),
+        }),
+      )
+      .digest("hex");
+    const runtimeProbe = probeLinuxBubblewrapPolicy(
+      runtime,
+      policyArgs,
+      probeDescriptors,
+    );
+    closeLinuxPinnedMounts(runtime, [probeSeccompFilter]);
+    if (!runtimeProbe.runnable) {
+      closeLinuxPinnedMounts(runtime, pinnedDescriptors);
+      return createSandboxPlan({
+        ...base,
+        backend: null,
+        candidateBackend: LINUX_BWRAP_BACKEND,
+        policyAttested: false,
+        policyDigest,
+        runtimeProbe,
+        reason: "linux_bwrap_policy_probe_failed",
+        guarantees: [],
+      });
+    }
+    const finalValidation = validateLinuxPluginNodeContract(
+      command,
+      args,
+      spawnOpts,
+      validation.contract,
+      runtime,
+      sandboxOpts.sync,
+    );
+    if (!finalValidation.ok) {
+      closeLinuxPinnedMounts(runtime, pinnedDescriptors);
+      return createSandboxPlan({
+        ...base,
+        backend: null,
+        candidateBackend: LINUX_BWRAP_BACKEND,
+        policyAttested: false,
+        policyDigest,
+        runtimeProbe: linuxBubblewrapProbe(
+          true,
+          false,
+          `post_probe_${finalValidation.reason}`,
+        ),
+        reason: "linux_bwrap_execution_contract_changed",
+        guarantees: [],
+      });
+    }
+    const options = {
+      ...spawnOpts,
+      cwd: "/",
+      shell: false,
+      detached: false,
+      env: {
+        PATH: "/usr/bin:/bin",
+        LANG: "C",
+        LC_ALL: "C",
+      },
+      stdio: Object.freeze(
+        linuxStdioWithPinnedMounts(spawnOpts?.stdio, pinnedDescriptors),
+      ),
+    };
+    let pinsClosed = false;
+    const cleanup = () => {
+      if (pinsClosed) return;
+      pinsClosed = true;
+      closeLinuxPinnedMounts(runtime, pinnedDescriptors);
+    };
     return createSandboxPlan({
       ...base,
-      backend: null,
-      candidateBackend: "linux-bwrap",
-      policyAttested: false,
+      applied: true,
+      enforcement: LINUX_BWRAP_BACKEND,
+      backend: LINUX_BWRAP_BACKEND,
+      candidateBackend: null,
+      policyAttested: true,
+      policyDigest,
       runtimeProbe,
-      reason: runtimeProbe.runnable
-        ? "linux_bwrap_policy_unattested"
-        : "linux_bwrap_unavailable",
-      guarantees: [],
+      reason: null,
+      guarantees: [SANDBOX_BOUNDARIES.FILESYSTEM, SANDBOX_BOUNDARIES.NETWORK],
+      command: LINUX_BWRAP_PATH,
+      args: [...policyArgs, "--", ...targetArgs],
+      options,
+      cleanup,
     });
   }
 
@@ -1558,7 +2878,12 @@ export function applyLinuxSandbox(
  *   requiredBoundaries?: string[]
  * }} profileOrRequest
  * @param {Object} runtimeOverrides
- * @param {{profile?: string, requiredBoundaries?: string[], sync?: boolean}|null} explicitRequest
+ * @param {{
+ *   profile?: string,
+ *   requiredBoundaries?: string[],
+ *   sync?: boolean,
+ *   executionContract?: Readonly<Object>|null
+ * }|null} explicitRequest
  * @returns {ReturnType<typeof createSandboxPlan>}
  */
 export function applySandbox(
@@ -1617,6 +2942,7 @@ export function applySandbox(
     profileName: profiles[profileName] ? profileName : "default",
     requiredBoundaries: sandboxRequest.requiredBoundaries,
     sync: sandboxRequest.sync,
+    executionContract: sandboxRequest.executionContract,
   };
 
   // Dispatch to platform handler

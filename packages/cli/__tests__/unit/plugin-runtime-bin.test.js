@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import os from "node:os";
 import fs from "node:fs";
 import path from "node:path";
@@ -8,17 +8,22 @@ import {
   collectPluginBinSandboxPolicy,
   applyPluginBinPath,
   _resetPluginBinSandboxPolicyPins,
+  consumeIssuedPluginNodeSandboxExecutionContract,
+  createPluginNodeSandboxExecutionContract,
   parsePluginBinCommand,
   reattestPluginBinInvocation,
   resolvePluginBinCommand,
   resolvePluginBinInvocation,
+  verifyIssuedPluginNodeSandboxExecutionContract,
 } from "../../src/lib/plugin-runtime/bin.js";
 import { pluginVersionDir } from "../../src/lib/plugin-runtime/scopes.js";
 import {
   trustPlugin,
+  untrustPlugin,
   _deps as trustDeps,
   _resetTrustWarnings,
 } from "../../src/lib/plugin-runtime/trust.js";
+import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
 
 let cwd;
 let storeFile;
@@ -298,6 +303,91 @@ describe("resolvePluginBinInvocation", () => {
       },
     });
     expect(invocation.executableIdentity.sha256).toMatch(/^[a-f0-9]{64}$/);
+
+    const contract = createPluginNodeSandboxExecutionContract(invocation);
+    const canonicalRuntime = fs.realpathSync.native(process.execPath);
+    const provenance = {
+      origin: "plugin:bin",
+      command: canonicalRuntime,
+      args: invocation.args,
+      cwd: contract.workingDirectory,
+      pluginId: invocation.pluginId,
+      pluginVersion: invocation.pluginVersion,
+      pluginSource: invocation.pluginSource,
+      pluginExecutableIdentity: invocation.executableIdentity,
+      requiredBoundaries: ["filesystem"],
+      sync: true,
+    };
+    expect(contract).toMatchObject({
+      rootIdentity: {
+        realPath: fs.realpathSync.native(dir),
+        dev: expect.any(String),
+        ino: expect.any(String),
+      },
+      runtimePath: canonicalRuntime,
+      runtimeIdentity: {
+        requestedPath: path.resolve(process.execPath),
+        realPath: canonicalRuntime,
+      },
+    });
+    expect(Object.isFrozen(contract)).toBe(true);
+    expect(
+      verifyIssuedPluginNodeSandboxExecutionContract(contract, provenance),
+    ).toBe(true);
+    expect(() => createPluginNodeSandboxExecutionContract(invocation)).toThrow(
+      /resolver-issued invocation/,
+    );
+    expect(
+      verifyIssuedPluginNodeSandboxExecutionContract(
+        Object.freeze({ ...contract }),
+        provenance,
+      ),
+    ).toBe(false);
+    expect(() =>
+      createPluginNodeSandboxExecutionContract(
+        Object.freeze({ ...invocation }),
+      ),
+    ).toThrow(/resolver-issued invocation/);
+    expect(
+      consumeIssuedPluginNodeSandboxExecutionContract(contract, provenance),
+    ).toBe(true);
+    expect(
+      consumeIssuedPluginNodeSandboxExecutionContract(contract, provenance),
+    ).toBe(false);
+  });
+
+  it("refuses contract issuance after the resolver trust decision is revoked", () => {
+    installBinPlugin("project", "toolkit", ["entry.js"], {
+      manifest: {
+        permissions: { process: true },
+        sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+        bin: { mytool: "bin/entry.js" },
+      },
+    });
+    trustPlugin("toolkit", {
+      scope: "project",
+      version: "1.0.0",
+    });
+    const invocation = resolvePluginBinInvocation("mytool --safe", {
+      cwd,
+      scopes: ["project"],
+    });
+    expect(invocation).toMatchObject({
+      pluginId: "toolkit",
+      runtime: "node",
+    });
+
+    untrustPlugin("toolkit", { scope: "project" });
+
+    expect(() => createPluginNodeSandboxExecutionContract(invocation)).toThrow(
+      expect.objectContaining({
+        code: "ERR_PLUGIN_NODE_SANDBOX_CONTRACT_STALE",
+        pluginBinFailClosed: true,
+      }),
+    );
+    expect(() => createPluginNodeSandboxExecutionContract(invocation)).toThrow(
+      /resolver-issued invocation/,
+    );
   });
 
   it("fails closed rather than accepting a compound plugin command", () => {
@@ -312,6 +402,87 @@ describe("resolvePluginBinInvocation", () => {
         scopes: ["local"],
       }),
     ).toThrow(/single direct invocation/);
+  });
+
+  it("rejects a real issued contract on the Broker async path before execution", () => {
+    const dir = pluginVersionDir("local", "toolkit", "1.0.0", { cwd });
+    const entryPath = path.join(dir, "bin", "entry.js");
+    fs.mkdirSync(path.dirname(entryPath), { recursive: true });
+    fs.writeFileSync(entryPath, "process.stdout.write('ready');\n", "utf8");
+    fs.writeFileSync(
+      path.join(dir, "plugin.json"),
+      JSON.stringify({
+        name: "toolkit",
+        version: "1.0.0",
+        permissions: { process: true },
+        sandboxPolicy: {
+          requiredBoundaries: ["filesystem", "network"],
+        },
+        bin: { mytool: "bin/entry.js" },
+      }),
+      "utf8",
+    );
+    const invocation = resolvePluginBinInvocation("mytool --safe", {
+      cwd,
+      scopes: ["local"],
+    });
+    const contract = createPluginNodeSandboxExecutionContract(invocation);
+    const provenance = {
+      origin: "plugin:bin",
+      command: contract.runtimePath,
+      args: invocation.args,
+      cwd: contract.workingDirectory,
+      pluginId: invocation.pluginId,
+      pluginVersion: invocation.pluginVersion,
+      pluginSource: invocation.pluginSource,
+      pluginExecutableIdentity: invocation.executableIdentity,
+      requiredBoundaries: invocation.sandboxPolicy.requiredBoundaries,
+      sync: true,
+    };
+    const originalNative = executionBroker._native;
+    const originalAdapter = executionBroker._sandboxAdapter;
+    const nativeSpawn = vi.fn();
+    const applySandbox = vi.fn();
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox,
+      postSpawnSandbox: vi.fn(),
+    };
+    executionBroker.flushAuditLog();
+
+    try {
+      expect(() =>
+        executionBroker.spawn(contract.runtimePath, invocation.args, {
+          cwd: contract.workingDirectory,
+          origin: "plugin:bin",
+          policy: "allow",
+          scope: "agent",
+          shell: false,
+          pluginId: invocation.pluginId,
+          pluginVersion: invocation.pluginVersion,
+          pluginSource: invocation.pluginSource,
+          pluginExecutableIdentity: invocation.executableIdentity,
+          sandboxPolicy: invocation.sandboxPolicy,
+          sandboxExecutionContract: contract,
+        }),
+      ).toThrow(
+        expect.objectContaining({
+          code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+          sandboxReason: "invalid_sandbox_execution_contract",
+          sandboxFailClosed: true,
+        }),
+      );
+      expect(applySandbox).not.toHaveBeenCalled();
+      expect(nativeSpawn).not.toHaveBeenCalled();
+      expect(
+        verifyIssuedPluginNodeSandboxExecutionContract(contract, provenance),
+      ).toBe(true);
+    } finally {
+      consumeIssuedPluginNodeSandboxExecutionContract(contract, provenance);
+      executionBroker._native = originalNative;
+      executionBroker._sandboxAdapter = originalAdapter;
+      executionBroker.flushAuditLog();
+    }
   });
 
   it("recognizes a strict alias assembled from adjacent quoted segments", () => {

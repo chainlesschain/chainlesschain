@@ -53,6 +53,7 @@ afterEach(() => {
 describe("agent-core strict plugin bin route", () => {
   it("passes an attested absolute Node target and manifest boundaries to Broker", async () => {
     const target = installStrictNodeBin();
+    const canonicalRuntime = fs.realpathSync.native(process.execPath);
     const nativeSpawnSync = vi.fn(() => ({
       status: 0,
       stdout: "broker-output",
@@ -101,7 +102,7 @@ describe("agent-core strict plugin bin route", () => {
     });
     expect(result.plugin_bin.sha256).toMatch(/^[a-f0-9]{64}$/);
     expect(applySandbox).toHaveBeenCalledWith(
-      process.execPath,
+      process.platform === "linux" ? canonicalRuntime : process.execPath,
       [target, "--label", "hello world"],
       expect.objectContaining({ shell: false }),
       "default",
@@ -114,10 +115,49 @@ describe("agent-core strict plugin bin route", () => {
         ],
       }),
     );
+    const executionContract = applySandbox.mock.calls[0][5].executionContract;
+    if (process.platform === "linux") {
+      expect(executionContract).toEqual(
+        expect.objectContaining({
+          contractVersion: 1,
+          kind: "strict-plugin-node-bin",
+          pluginRoot: path.dirname(path.dirname(target)),
+          workingDirectory: path.dirname(path.dirname(target)),
+          runtimePath: canonicalRuntime,
+          rootIdentity: expect.objectContaining({
+            realPath: path.dirname(path.dirname(target)),
+            fileId: {
+              dev: expect.any(String),
+              ino: expect.any(String),
+            },
+          }),
+          entryIdentity: expect.objectContaining({
+            realPath: target,
+            sha256: result.plugin_bin.sha256,
+          }),
+          runtimeIdentity: expect.objectContaining({
+            realPath: canonicalRuntime,
+            sha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+          }),
+        }),
+      );
+      expect(Object.isFrozen(executionContract)).toBe(true);
+      expect(Object.isFrozen(executionContract.rootIdentity)).toBe(true);
+      expect(Object.isFrozen(executionContract.entryIdentity)).toBe(true);
+      expect(Object.isFrozen(executionContract.runtimeIdentity)).toBe(true);
+    } else {
+      expect(executionContract).toBeUndefined();
+    }
     expect(nativeSpawnSync).toHaveBeenCalledWith(
-      process.execPath,
+      process.platform === "linux" ? canonicalRuntime : process.execPath,
       [target, "--label", "hello world"],
-      expect.objectContaining({ shell: false }),
+      expect.objectContaining({
+        cwd:
+          process.platform === "linux"
+            ? path.dirname(path.dirname(target))
+            : cwd,
+        shell: false,
+      }),
     );
     const audit = executionBroker.getAuditLog(1)[0];
     expect(audit).toMatchObject({
@@ -142,6 +182,9 @@ describe("agent-core strict plugin bin route", () => {
     expect(nativeSpawnSync.mock.calls[0][2]).not.toHaveProperty(
       "pluginExecutableIdentity",
     );
+    expect(nativeSpawnSync.mock.calls[0][2]).not.toHaveProperty(
+      "sandboxExecutionContract",
+    );
   });
 
   it("rejects a strict compound command before any Broker native spawn", async () => {
@@ -163,6 +206,63 @@ describe("agent-core strict plugin bin route", () => {
     });
     expect(nativeSpawnSync).not.toHaveBeenCalled();
   });
+
+  it.runIf(process.platform === "linux")(
+    "rejects a strict Plugin Node bin background launch before task registration or native spawn",
+    async () => {
+      installStrictNodeBin();
+      const nativeSpawn = vi.fn();
+      executionBroker._native = { spawn: nativeSpawn };
+
+      const result = await executeTool(
+        "run_shell",
+        { command: "strict-tool", run_in_background: true },
+        { cwd },
+      );
+
+      expect(result).toMatchObject({
+        policy: {
+          decision: "deny",
+          via: "plugin-bin-pinned-sandbox-policy",
+          reason: "background_execution_unsupported",
+        },
+        plugin_bin: {
+          plugin: "strict-bin",
+          name: "strict-tool",
+          runtime: "node",
+        },
+      });
+      expect(result.error).toMatch(/foreground execution only/);
+      expect(result).not.toHaveProperty("task_id");
+      expect(nativeSpawn).not.toHaveBeenCalled();
+    },
+  );
+
+  it.runIf(process.platform === "linux")(
+    "rejects an ordinary background command under the pinned strict-bin union before native spawn",
+    async () => {
+      installStrictNodeBin();
+      const nativeSpawn = vi.fn();
+      executionBroker._native = { spawn: nativeSpawn };
+
+      const result = await executeTool(
+        "run_shell",
+        { command: "echo safe", run_in_background: true },
+        { cwd },
+      );
+
+      expect(result).toMatchObject({
+        policy: {
+          decision: "deny",
+          via: "plugin-bin-pinned-sandbox-policy",
+          reason: "background_execution_unsupported",
+        },
+      });
+      expect(result.error).toMatch(/foreground execution only/);
+      expect(result).not.toHaveProperty("task_id");
+      expect(nativeSpawn).not.toHaveBeenCalled();
+    },
+  );
 
   it("applies the pinned strict-bin union to an interpreter wrapper shell", async () => {
     const target = installStrictNodeBin();

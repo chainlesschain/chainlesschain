@@ -5,18 +5,28 @@ on:
     branches: [main]
     paths:
       - "packages/cli/src/lib/process-execution-broker/**"
+      - "packages/cli/src/lib/plugin-runtime/bin.js"
+      - "packages/cli/src/runtime/agent-core.js"
       - "packages/cli/src/lib/agent-sandbox.js"
       - "packages/cli/__tests__/unit/process-execution-broker-platform-sandbox.test.js"
+      - "packages/cli/__tests__/unit/plugin-runtime-bin.test.js"
+      - "packages/cli/__tests__/unit/plugin-runtime-bin-agent-core.test.js"
       - "packages/cli/__tests__/integration/process-broker-platform-sandbox-live.test.js"
+      - "packages/cli/__tests__/fixtures/process-broker-linux-bwrap-live-child.mjs"
       - "packages/cli/__tests__/integration/sandbox-bwrap-live.test.js"
       - ".github/workflows/cli-strict-sandbox.yml"
   pull_request:
     branches: [main]
     paths:
       - "packages/cli/src/lib/process-execution-broker/**"
+      - "packages/cli/src/lib/plugin-runtime/bin.js"
+      - "packages/cli/src/runtime/agent-core.js"
       - "packages/cli/src/lib/agent-sandbox.js"
       - "packages/cli/__tests__/unit/process-execution-broker-platform-sandbox.test.js"
+      - "packages/cli/__tests__/unit/plugin-runtime-bin.test.js"
+      - "packages/cli/__tests__/unit/plugin-runtime-bin-agent-core.test.js"
       - "packages/cli/__tests__/integration/process-broker-platform-sandbox-live.test.js"
+      - "packages/cli/__tests__/fixtures/process-broker-linux-bwrap-live-child.mjs"
       - "packages/cli/__tests__/integration/sandbox-bwrap-live.test.js"
       - ".github/workflows/cli-strict-sandbox.yml"
   workflow_dispatch:
@@ -34,7 +44,7 @@ jobs:
         # macos-latest currently resolves to macOS 26, where Apple removed the
         # sandbox-exec binary. Keep the Seatbelt acceptance lane on the newest
         # hosted image that still exposes the declared production primitive.
-        os: [ubuntu-latest, macos-15, windows-latest]
+        os: [ubuntu-24.04, macos-15, windows-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
@@ -53,7 +63,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y bubblewrap
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
-          bwrap --version
+          /usr/bin/bwrap --version
+          /usr/bin/bwrap --help | grep -F -- --ro-bind-fd
+          /usr/bin/bwrap --help | grep -F -- --disable-userns
+          /usr/bin/bwrap --help | grep -F -- --assert-userns-disabled
+          /usr/bin/bwrap --help | grep -F -- --seccomp
 
       - name: Run platform sandbox contract tests
         working-directory: packages/cli
@@ -61,6 +75,8 @@ jobs:
           npx vitest run --reporter=json
           --outputFile=strict-sandbox-contract-result.json
           __tests__/unit/process-execution-broker-platform-sandbox.test.js
+          __tests__/unit/plugin-runtime-bin.test.js
+          __tests__/unit/plugin-runtime-bin-agent-core.test.js
 
       - name: Run native ProcessExecutionBroker strict boundary
         id: strict-native-boundary

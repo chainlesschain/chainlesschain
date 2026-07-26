@@ -26,6 +26,11 @@ import { isWithin } from "./manifest.js";
 // these plugins ARE trusted, but their bin component is denied.
 const _capabilityDenied = new Set();
 const _sandboxPolicyPins = new Map();
+const _issuedPluginBinInvocations = new WeakMap();
+const _issuedPluginNodeSandboxContracts = new WeakMap();
+const PLUGIN_BIN_MAX_BYTES = 64 * 1024 * 1024;
+const PLUGIN_NODE_RUNTIME_MAX_BYTES = 256 * 1024 * 1024;
+const ATTESTATION_HASH_CHUNK_BYTES = 1024 * 1024;
 function warnBinCapabilityDeniedOnce(entries) {
   if (!entries || entries.length === 0) return;
   if (_capabilityDenied.has("bin-capability")) return;
@@ -245,6 +250,29 @@ function pluginBinError(code, message) {
   return error;
 }
 
+function hashOpenFile(fd, bytes) {
+  const digest = crypto.createHash("sha256");
+  const chunk = Buffer.allocUnsafe(
+    Math.max(1, Math.min(ATTESTATION_HASH_CHUNK_BYTES, bytes)),
+  );
+  let offset = 0;
+  while (offset < bytes) {
+    const read = fs.readSync(
+      fd,
+      chunk,
+      0,
+      Math.min(chunk.length, bytes - offset),
+      offset,
+    );
+    if (read <= 0) {
+      throw new Error("file ended before its attested size");
+    }
+    digest.update(chunk.subarray(0, read));
+    offset += read;
+  }
+  return digest.digest("hex");
+}
+
 function sameName(left, right) {
   return process.platform === "win32"
     ? String(left).toLowerCase() === String(right).toLowerCase()
@@ -419,11 +447,23 @@ function fileIdentity(file, root) {
     if (!isWithin(rootReal, targetReal)) {
       throw new Error("target resolves outside the plugin root");
     }
-    fd = fs.openSync(targetReal, "r");
+    fd = fs.openSync(
+      targetReal,
+      Number(fs.constants.O_RDONLY) |
+        Number(fs.constants.O_NOFOLLOW || 0) |
+        Number(fs.constants.O_NONBLOCK || 0),
+    );
     const before = fs.fstatSync(fd);
     if (!before.isFile())
       throw new Error("opened target is not a regular file");
-    const bytes = fs.readFileSync(fd);
+    if (
+      !Number.isSafeInteger(before.size) ||
+      before.size < 0 ||
+      before.size > PLUGIN_BIN_MAX_BYTES
+    ) {
+      throw new Error("target exceeds the attestation size limit");
+    }
+    const sha256 = hashOpenFile(fd, before.size);
     const after = fs.fstatSync(fd);
     const pathStat = fs.statSync(targetReal);
     const stable =
@@ -443,7 +483,7 @@ function fileIdentity(file, root) {
     }
     return Object.freeze({
       realPath: targetReal,
-      sha256: crypto.createHash("sha256").update(bytes).digest("hex"),
+      sha256,
       bytes: after.size,
       dev: String(after.dev),
       ino: String(after.ino),
@@ -464,6 +504,107 @@ function fileIdentity(file, root) {
       }
     }
   }
+}
+
+/**
+ * Attest the exact Node runtime used by a direct policy-bearing plugin bin.
+ *
+ * This identity is intentionally produced outside the plugin manifest. The
+ * manifest may request boundaries, but it cannot nominate a broader runtime
+ * or filesystem root for the Linux strong-sandbox execution contract.
+ */
+export function attestPluginNodeRuntime(command) {
+  let fd;
+  try {
+    if (
+      typeof command !== "string" ||
+      !path.isAbsolute(command) ||
+      command !== process.execPath
+    ) {
+      throw new Error("runtime must be the current absolute process.execPath");
+    }
+    const requestedPath = path.resolve(command);
+    const runtimeReal = fs.realpathSync.native(requestedPath);
+    const lst = fs.lstatSync(runtimeReal);
+    if (lst.isSymbolicLink() || !lst.isFile()) {
+      throw new Error("runtime must resolve to a regular file");
+    }
+    if (process.platform !== "win32" && (lst.mode & 0o111) === 0) {
+      throw new Error("runtime is not executable");
+    }
+    fd = fs.openSync(
+      runtimeReal,
+      Number(fs.constants.O_RDONLY) |
+        Number(fs.constants.O_NOFOLLOW || 0) |
+        Number(fs.constants.O_NONBLOCK || 0),
+    );
+    const before = fs.fstatSync(fd);
+    if (
+      !before.isFile() ||
+      !Number.isSafeInteger(before.size) ||
+      before.size < 0 ||
+      before.size > PLUGIN_NODE_RUNTIME_MAX_BYTES
+    ) {
+      throw new Error("runtime exceeds the attestation size limit");
+    }
+    const sha256 = hashOpenFile(fd, before.size);
+    const after = fs.fstatSync(fd);
+    const pathStat = fs.statSync(runtimeReal);
+    const stable =
+      before.dev === after.dev &&
+      before.ino === after.ino &&
+      before.size === after.size &&
+      before.mtimeMs === after.mtimeMs &&
+      before.ctimeMs === after.ctimeMs &&
+      after.dev === pathStat.dev &&
+      after.ino === pathStat.ino &&
+      after.size === pathStat.size &&
+      after.mtimeMs === pathStat.mtimeMs &&
+      after.ctimeMs === pathStat.ctimeMs;
+    if (!stable) throw new Error("runtime identity changed during attestation");
+    return Object.freeze({
+      requestedPath,
+      realPath: runtimeReal,
+      sha256,
+      bytes: after.size,
+      dev: String(after.dev),
+      ino: String(after.ino),
+      mtimeMs: after.mtimeMs,
+      mode: after.mode,
+    });
+  } catch (err) {
+    throw pluginBinError(
+      "ERR_PLUGIN_NODE_RUNTIME_UNATTESTED",
+      `plugin Node runtime identity could not be attested: ${err.message}`,
+    );
+  } finally {
+    if (fd !== undefined) {
+      try {
+        fs.closeSync(fd);
+      } catch {
+        /* best-effort */
+      }
+    }
+  }
+}
+
+function attestPluginRootIdentity(pluginRoot) {
+  const before = fs.lstatSync(pluginRoot);
+  const after = fs.statSync(pluginRoot);
+  if (
+    before.isSymbolicLink() ||
+    !before.isDirectory() ||
+    !after.isDirectory() ||
+    before.dev !== after.dev ||
+    before.ino !== after.ino
+  ) {
+    throw new Error("plugin root identity changed during attestation");
+  }
+  return Object.freeze({
+    realPath: pluginRoot,
+    dev: String(after.dev),
+    ino: String(after.ino),
+  });
 }
 
 function launchForTarget(identity, userArgs) {
@@ -580,7 +721,7 @@ export function resolvePluginBinInvocation(command, opts = {}) {
         ]),
       })
     : null;
-  return Object.freeze({
+  const invocation = Object.freeze({
     command: launch.command,
     args: Object.freeze([...launch.args]),
     runtime: launch.runtime,
@@ -595,6 +736,18 @@ export function resolvePluginBinInvocation(command, opts = {}) {
     executableIdentity: identity,
     ...(sandboxPolicy ? { sandboxPolicy } : {}),
   });
+  _issuedPluginBinInvocations.set(
+    invocation,
+    Object.freeze({
+      command,
+      cwd: path.resolve(opts.cwd || process.cwd()),
+      commandCwd: path.resolve(opts.commandCwd || opts.cwd || process.cwd()),
+      scopes: Array.isArray(opts.scopes)
+        ? Object.freeze([...opts.scopes])
+        : undefined,
+    }),
+  );
+  return invocation;
 }
 
 /**
@@ -627,6 +780,209 @@ export function reattestPluginBinInvocation(invocation) {
     }
   }
   return current;
+}
+
+/**
+ * Issue the private Linux strong-sandbox contract for one resolver-produced
+ * policy-bearing Plugin Node invocation. Object identity is the capability:
+ * callers cannot mint a usable contract by copying these public fields.
+ */
+export function createPluginNodeSandboxExecutionContract(invocation) {
+  const issuedResolution =
+    invocation && typeof invocation === "object"
+      ? _issuedPluginBinInvocations.get(invocation)
+      : null;
+  if (!invocation || typeof invocation !== "object" || !issuedResolution) {
+    throw pluginBinError(
+      "ERR_PLUGIN_NODE_SANDBOX_CONTRACT_UNTRUSTED",
+      "plugin Node sandbox execution contract requires a resolver-issued invocation",
+    );
+  }
+  // A resolver-issued invocation is itself a one-shot capability. Consume it
+  // before any further work so failed or successful issuance cannot be replayed
+  // after trust, capability, or manifest state changes.
+  _issuedPluginBinInvocations.delete(invocation);
+  if (
+    invocation.runtime !== "node" ||
+    invocation.command !== process.execPath ||
+    invocation.shell !== false ||
+    !invocation.sandboxPolicy?.requiredBoundaries?.length ||
+    invocation.args?.[0] !== invocation.binPath
+  ) {
+    throw pluginBinError(
+      "ERR_PLUGIN_NODE_SANDBOX_CONTRACT_UNSUPPORTED",
+      "plugin Node sandbox execution contract requires one direct policy-bearing Node bin",
+    );
+  }
+
+  try {
+    let currentInvocation;
+    try {
+      currentInvocation = resolvePluginBinInvocation(issuedResolution.command, {
+        cwd: issuedResolution.cwd,
+        commandCwd: issuedResolution.commandCwd,
+        ...(issuedResolution.scopes !== undefined
+          ? { scopes: issuedResolution.scopes }
+          : {}),
+        failClosed: true,
+      });
+      const scalarFields = [
+        "command",
+        "runtime",
+        "shell",
+        "pluginId",
+        "pluginVersion",
+        "pluginSource",
+        "scope",
+        "binName",
+        "binPath",
+        "pluginRoot",
+      ];
+      const identityFields = [
+        "realPath",
+        "sha256",
+        "bytes",
+        "dev",
+        "ino",
+        "mtimeMs",
+        "mode",
+      ];
+      const originalBoundaries = [
+        ...(invocation.sandboxPolicy?.requiredBoundaries || []),
+      ].sort();
+      const currentBoundaries = [
+        ...(currentInvocation?.sandboxPolicy?.requiredBoundaries || []),
+      ].sort();
+      if (
+        !currentInvocation ||
+        scalarFields.some(
+          (field) => currentInvocation[field] !== invocation[field],
+        ) ||
+        currentInvocation.args.length !== invocation.args.length ||
+        currentInvocation.args.some(
+          (value, index) => value !== invocation.args[index],
+        ) ||
+        originalBoundaries.length !== currentBoundaries.length ||
+        originalBoundaries.some(
+          (value, index) => value !== currentBoundaries[index],
+        ) ||
+        identityFields.some(
+          (field) =>
+            currentInvocation.executableIdentity?.[field] !==
+            invocation.executableIdentity?.[field],
+        )
+      ) {
+        throw pluginBinError(
+          "ERR_PLUGIN_NODE_SANDBOX_CONTRACT_STALE",
+          "plugin Node sandbox execution contract provenance changed after resolution",
+        );
+      }
+    } finally {
+      if (currentInvocation) {
+        _issuedPluginBinInvocations.delete(currentInvocation);
+      }
+    }
+    reattestPluginBinInvocation(invocation);
+    const pluginRoot = fs.realpathSync.native(
+      path.resolve(invocation.pluginRoot),
+    );
+    const entryRelative = path.relative(
+      pluginRoot,
+      invocation.executableIdentity.realPath,
+    );
+    if (
+      entryRelative === "" ||
+      entryRelative === ".." ||
+      entryRelative.startsWith(`..${path.sep}`) ||
+      path.isAbsolute(entryRelative)
+    ) {
+      throw new Error("plugin bin target is outside its canonical plugin root");
+    }
+    const runtimeIdentity = attestPluginNodeRuntime(invocation.command);
+    const rootIdentity = attestPluginRootIdentity(pluginRoot);
+    const contract = Object.freeze({
+      contractVersion: 1,
+      kind: "strict-plugin-node-bin",
+      pluginRoot,
+      workingDirectory: pluginRoot,
+      runtimePath: runtimeIdentity.realPath,
+      rootIdentity,
+      entryIdentity: invocation.executableIdentity,
+      runtimeIdentity,
+    });
+    _issuedPluginNodeSandboxContracts.set(
+      contract,
+      Object.freeze({
+        origin: "plugin:bin",
+        command: runtimeIdentity.realPath,
+        args: invocation.args,
+        cwd: pluginRoot,
+        pluginId: invocation.pluginId,
+        pluginVersion: invocation.pluginVersion ?? null,
+        pluginSource: invocation.pluginSource,
+        pluginExecutableIdentity: invocation.executableIdentity,
+        requiredBoundaries: invocation.sandboxPolicy.requiredBoundaries,
+        sync: true,
+      }),
+    );
+    return contract;
+  } catch (error) {
+    if (error?.pluginBinFailClosed) throw error;
+    throw pluginBinError(
+      "ERR_PLUGIN_NODE_SANDBOX_CONTRACT_UNATTESTED",
+      `plugin Node sandbox execution contract could not be created: ${error.message}`,
+    );
+  }
+}
+
+/**
+ * Validate that a contract is the exact object issued above and is still
+ * attached to the launch provenance for which it was issued.
+ */
+function issuedPluginNodeSandboxContractMatches(contract, provenance = {}) {
+  if (!contract || typeof contract !== "object") return false;
+  const issued = _issuedPluginNodeSandboxContracts.get(contract);
+  if (!issued) return false;
+  const args = Array.isArray(provenance.args) ? provenance.args : [];
+  const requiredBoundaries = Array.isArray(provenance.requiredBoundaries)
+    ? provenance.requiredBoundaries
+    : [];
+  return (
+    provenance.origin === issued.origin &&
+    provenance.command === issued.command &&
+    args.length === issued.args.length &&
+    args.every((value, index) => value === issued.args[index]) &&
+    provenance.cwd === issued.cwd &&
+    provenance.pluginId === issued.pluginId &&
+    (provenance.pluginVersion ?? null) === issued.pluginVersion &&
+    provenance.pluginSource === issued.pluginSource &&
+    provenance.pluginExecutableIdentity === issued.pluginExecutableIdentity &&
+    provenance.sync === issued.sync &&
+    issued.requiredBoundaries.every((boundary) =>
+      requiredBoundaries.includes(boundary),
+    )
+  );
+}
+
+export function verifyIssuedPluginNodeSandboxExecutionContract(
+  contract,
+  provenance = {},
+) {
+  return issuedPluginNodeSandboxContractMatches(contract, provenance);
+}
+
+/**
+ * Atomically consume a one-launch contract. A trust decision captured for one
+ * Broker call cannot be replayed after trust/policy state changes.
+ */
+export function consumeIssuedPluginNodeSandboxExecutionContract(
+  contract,
+  provenance = {},
+) {
+  if (!issuedPluginNodeSandboxContractMatches(contract, provenance)) {
+    return false;
+  }
+  return _issuedPluginNodeSandboxContracts.delete(contract);
 }
 
 /**

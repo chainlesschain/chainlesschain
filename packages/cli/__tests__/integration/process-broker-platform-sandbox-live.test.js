@@ -15,6 +15,7 @@ import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
 import {
@@ -22,6 +23,7 @@ import {
   resetWindowsSandboxAdapterCache,
   SANDBOX_BOUNDARIES,
 } from "../../src/lib/process-execution-broker/platform-sandbox.js";
+import { pluginVersionDir } from "../../src/lib/plugin-runtime/scopes.js";
 
 const LIVE = process.env.CC_SANDBOX_LIVE === "1";
 const SUPPORTED = ["linux", "darwin", "win32"].includes(process.platform);
@@ -507,55 +509,380 @@ describe.runIf(LIVE && SUPPORTED)(
     );
 
     it.runIf(process.platform === "linux")(
-      "attests the bwrap runtime but rejects an unattested strong policy before the target starts",
-      () => {
-        forbiddenPath = path.join(
-          os.tmpdir(),
-          `.cc-broker-target-marker-${process.pid}-${Date.now()}`,
+      "runs an attested Plugin Node bin in an empty-root bwrap filesystem and network namespace",
+      async () => {
+        const nonce = `${process.pid}-${Date.now()}`;
+        const workspace = fs.mkdtempSync(
+          path.join(os.tmpdir(), "cc-linux-bwrap-live-"),
         );
-        let error;
+        const pluginRoot = pluginVersionDir("local", "strict-live", "1.0.0", {
+          cwd: workspace,
+        });
+        const pluginEntry = path.join(pluginRoot, "bin", "strict-live.cjs");
+        const dependencyPath = path.join(pluginRoot, "lib", "value.cjs");
+        const configPath = path.join(pluginRoot, "config.json");
+        const allowedPath = path.join(pluginRoot, "allowed.txt");
+        const pluginMarker = path.join(pluginRoot, "plugin-marker.txt");
+        const sandboxPluginMarker = "/opt/chainless/plugin/plugin-marker.txt";
+        const secretPath = path.join(
+          os.homedir(),
+          `.cc-linux-bwrap-secret-${nonce}`,
+        );
+        const hostMarker = path.join(
+          os.homedir(),
+          `.cc-linux-bwrap-host-marker-${nonce}`,
+        );
+        const sandboxTmpPath = `/tmp/.cc-linux-bwrap-tmp-${nonce}`;
+        const childFixture = fileURLToPath(
+          new URL(
+            "../fixtures/process-broker-linux-bwrap-live-child.mjs",
+            import.meta.url,
+          ),
+        );
+        let serverChild = null;
+        let serverShutdown = false;
         try {
-          executionBroker.spawnSync(
+          fs.mkdirSync(path.dirname(pluginEntry), { recursive: true });
+          fs.mkdirSync(path.dirname(dependencyPath), { recursive: true });
+          fs.writeFileSync(secretPath, "host-only-secret", { mode: 0o600 });
+          expect(fs.readFileSync(secretPath, "utf8")).toBe("host-only-secret");
+          fs.writeFileSync(allowedPath, "allowed-plugin-data", "utf8");
+          fs.writeFileSync(
+            dependencyPath,
+            "module.exports = Object.freeze({ value: 'local-dependency-ok' });\n",
+            "utf8",
+          );
+          fs.writeFileSync(
+            path.join(pluginRoot, "plugin.json"),
+            JSON.stringify({
+              name: "strict-live",
+              version: "1.0.0",
+              permissions: { process: true },
+              sandboxPolicy: {
+                requiredBoundaries: ["filesystem", "network"],
+              },
+              bin: { "strict-live": "bin/strict-live.cjs" },
+            }),
+            "utf8",
+          );
+          fs.writeFileSync(
+            pluginEntry,
+            [
+              'const fs = require("node:fs");',
+              'const net = require("node:net");',
+              'const dependency = require("../lib/value.cjs");',
+              'const config = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));',
+              "const report = {",
+              "  dependency: dependency.value,",
+              "  cwd: process.cwd(),",
+              "  allowed: fs.readFileSync('allowed.txt', 'utf8'),",
+              "  chainlessSandboxed: process.env.CHAINLESS_SANDBOXED || null,",
+              "  nodeOptions: process.env.NODE_OPTIONS || null,",
+              "  ldLibraryPath: process.env.LD_LIBRARY_PATH || null,",
+              "  sensitiveEnv: process.env.CC_TEST_SENSITIVE_ENV || null,",
+              "  secretReadable: false,",
+              "  hostRootReadable: false,",
+              "  pluginWritable: false,",
+              "  hostWritable: false,",
+              "  tmpWritable: false,",
+              "  loopbackConnected: false,",
+              "  networkError: null,",
+              "};",
+              "try { fs.readFileSync(config.secretPath, 'utf8'); report.secretReadable = true; } catch {}",
+              "try { fs.readFileSync('/etc/passwd', 'utf8'); report.hostRootReadable = true; } catch {}",
+              "try { fs.writeFileSync(config.pluginMarker, 'blocked'); report.pluginWritable = true; } catch {}",
+              "try { fs.writeFileSync(config.hostMarker, 'blocked'); report.hostWritable = true; } catch {}",
+              "try { fs.writeFileSync(config.sandboxTmpPath, 'ephemeral'); report.tmpWritable = true; } catch {}",
+              "let socket;",
+              "let finished = false;",
+              "const finish = (connected, error) => {",
+              "  if (finished) return;",
+              "  finished = true;",
+              "  clearTimeout(timer);",
+              "  socket?.destroy();",
+              "  report.loopbackConnected = connected;",
+              "  report.networkError = error;",
+              "  process.stdout.write(JSON.stringify(report));",
+              "};",
+              "const timer = setTimeout(() => finish(false, 'timeout'), 3000);",
+              "try {",
+              "  socket = net.connect({ host: '127.0.0.1', port: config.port });",
+              "  socket.once('connect', () => finish(true, null));",
+              "  socket.once('error', (error) => finish(false, error.code || error.message));",
+              "} catch (error) {",
+              "  finish(false, error.code || error.message);",
+              "}",
+            ].join("\n"),
+            "utf8",
+          );
+
+          const serverStderr = [];
+          serverChild = nativeSpawn(
             process.execPath,
             [
               "-e",
-              `require("node:fs").writeFileSync(${JSON.stringify(
-                forbiddenPath,
-              )}, "target-started")`,
+              [
+                'const net = require("node:net");',
+                "const server = net.createServer((socket) => {",
+                "  socket.on('error', () => {});",
+                "  socket.end('host-loopback-ok');",
+                "});",
+                "server.once('error', (error) => {",
+                "  process.send({ error: error.message });",
+                "  process.exitCode = 2;",
+                "});",
+                "server.listen(0, '127.0.0.1', () => {",
+                "  process.send({ ready: true, port: server.address().port });",
+                "});",
+                "process.on('message', (message) => {",
+                "  if (message?.shutdown !== true) return;",
+                "  server.close(() => {",
+                "    process.send({ closed: true }, () => process.exit(0));",
+                "  });",
+                "});",
+              ].join("\n"),
             ],
             {
-              origin: "test:linux-bwrap-policy-attestation-live",
-              scope: "sandbox-test",
-              policy: "allow",
-              timeout: 30_000,
               env: process.env,
-              sandboxPolicy: {
-                profile: "strict",
-                requiredBoundaries: [
-                  SANDBOX_BOUNDARIES.FILESYSTEM,
-                  SANDBOX_BOUNDARIES.NETWORK,
-                ],
-              },
+              stdio: ["ignore", "ignore", "pipe", "ipc"],
+              windowsHide: true,
             },
           );
-        } catch (caught) {
-          error = caught;
-        }
+          serverChild.stderr.on("data", (chunk) => serverStderr.push(chunk));
+          const serverReady = await new Promise((resolve, reject) => {
+            const timer = setTimeout(() => {
+              serverChild.kill();
+              reject(
+                new Error(
+                  `Timed out waiting for Linux loopback server: ${Buffer.concat(
+                    serverStderr,
+                  ).toString()}`,
+                ),
+              );
+            }, 10_000);
+            const finish = (callback, value) => {
+              clearTimeout(timer);
+              serverChild.off("message", onMessage);
+              serverChild.off("error", onError);
+              serverChild.off("exit", onExit);
+              callback(value);
+            };
+            const onMessage = (message) => {
+              if (message?.error) {
+                finish(reject, new Error(message.error));
+              } else if (
+                message?.ready === true &&
+                Number.isSafeInteger(message.port)
+              ) {
+                finish(resolve, message);
+              }
+            };
+            const onError = (error) => finish(reject, error);
+            const onExit = (code, signal) =>
+              finish(
+                reject,
+                new Error(
+                  `Linux loopback server exited early (${code}/${signal})`,
+                ),
+              );
+            serverChild.on("message", onMessage);
+            serverChild.once("error", onError);
+            serverChild.once("exit", onExit);
+          });
+          let coordinator;
+          let cleanupError;
+          try {
+            await new Promise((resolve, reject) => {
+              const chunks = [];
+              const socket = net.connect({
+                host: "127.0.0.1",
+                port: serverReady.port,
+              });
+              const timer = setTimeout(() => {
+                socket.destroy();
+                reject(new Error("Host loopback control connection timed out"));
+              }, 5_000);
+              socket.on("data", (chunk) => chunks.push(chunk));
+              socket.once("error", (error) => {
+                clearTimeout(timer);
+                reject(error);
+              });
+              socket.once("end", () => {
+                clearTimeout(timer);
+                expect(Buffer.concat(chunks).toString()).toBe(
+                  "host-loopback-ok",
+                );
+                resolve();
+              });
+            });
+            fs.writeFileSync(
+              configPath,
+              JSON.stringify({
+                secretPath,
+                pluginMarker: sandboxPluginMarker,
+                hostMarker,
+                sandboxTmpPath,
+                port: serverReady.port,
+              }),
+              "utf8",
+            );
+            coordinator = nativeSpawnSync(
+              process.execPath,
+              [childFixture, "positive", workspace],
+              {
+                encoding: "utf8",
+                timeout: 60_000,
+                windowsHide: true,
+                env: {
+                  ...process.env,
+                  CC_SANDBOX_STRICT: "1",
+                  NODE_OPTIONS: "--no-warnings",
+                  LD_LIBRARY_PATH: "/host/sensitive/library-path",
+                  CC_TEST_SENSITIVE_ENV: "must-not-cross-boundary",
+                },
+              },
+            );
+          } finally {
+            try {
+              await shutdownLoopbackServer(serverChild, serverStderr);
+            } catch (error) {
+              cleanupError = error;
+            } finally {
+              serverShutdown = true;
+            }
+          }
 
-        expect(error).toMatchObject({
+          if (cleanupError) throw cleanupError;
+          const failureContext = JSON.stringify({
+            status: coordinator?.status,
+            signal: coordinator?.signal,
+            error: coordinator?.error?.message,
+            stdout: String(coordinator?.stdout || ""),
+            stderr: String(coordinator?.stderr || ""),
+          });
+          expect(coordinator?.error, failureContext).toBeUndefined();
+          expect(coordinator?.status, failureContext).toBe(0);
+          const envelope = JSON.parse(coordinator.stdout);
+          expect(envelope.result).toMatchObject({
+            plugin_bin: {
+              plugin: "strict-live",
+              runtime: "node",
+              identity_attested: true,
+              launch_identity_reattested: true,
+              direct_argv: true,
+            },
+          });
+          const report = JSON.parse(envelope.result.stdout);
+          expect(report).toMatchObject({
+            dependency: "local-dependency-ok",
+            cwd: "/opt/chainless/plugin",
+            allowed: "allowed-plugin-data",
+            chainlessSandboxed: "1",
+            nodeOptions: null,
+            ldLibraryPath: null,
+            sensitiveEnv: null,
+            secretReadable: false,
+            hostRootReadable: false,
+            pluginWritable: false,
+            hostWritable: false,
+            tmpWritable: true,
+            loopbackConnected: false,
+          });
+          expect(report.networkError).toBe("EPERM");
+          expect(envelope.audit).toMatchObject({
+            permissionDecision: "allow",
+            sandboxed: true,
+            sandboxState: "ready",
+            sandboxBackend: "linux-bwrap",
+            sandboxEnforcement: "linux-bwrap",
+            sandboxPolicyAttested: true,
+            sandboxRequired: [
+              SANDBOX_BOUNDARIES.FILESYSTEM,
+              SANDBOX_BOUNDARIES.NETWORK,
+            ],
+            sandboxGuarantees: [
+              SANDBOX_BOUNDARIES.FILESYSTEM,
+              SANDBOX_BOUNDARIES.NETWORK,
+            ],
+            sandboxRuntimeProbe: {
+              kind: "linux-bwrap-plugin-node-policy-v1",
+              attempted: true,
+              runnable: true,
+              reason: null,
+            },
+          });
+          expect(envelope.audit.sandboxPolicyDigest).toMatch(/^[a-f0-9]{64}$/);
+          expect(fs.readFileSync(secretPath, "utf8")).toBe("host-only-secret");
+          expect(fs.existsSync(pluginMarker)).toBe(false);
+          expect(fs.existsSync(hostMarker)).toBe(false);
+          expect(fs.existsSync(sandboxTmpPath)).toBe(false);
+        } finally {
+          if (
+            serverChild &&
+            !serverShutdown &&
+            serverChild.exitCode === null &&
+            serverChild.signalCode === null
+          ) {
+            serverChild.kill();
+          }
+          fs.rmSync(workspace, { recursive: true, force: true });
+          fs.rmSync(secretPath, { force: true });
+          fs.rmSync(hostMarker, { force: true });
+          fs.rmSync(sandboxTmpPath, { force: true });
+        }
+      },
+      90_000,
+    );
+
+    it.runIf(process.platform === "linux")(
+      "rejects a strong Linux boundary without the private contract before the target starts",
+      () => {
+        const nonce = `${process.pid}-${Date.now()}`;
+        const markerPath = path.join(
+          os.tmpdir(),
+          `.cc-linux-bwrap-missing-contract-${nonce}`,
+        );
+        const childFixture = fileURLToPath(
+          new URL(
+            "../fixtures/process-broker-linux-bwrap-live-child.mjs",
+            import.meta.url,
+          ),
+        );
+        const coordinator = nativeSpawnSync(
+          process.execPath,
+          [childFixture, "missing-contract", markerPath],
+          {
+            encoding: "utf8",
+            timeout: 45_000,
+            windowsHide: true,
+            env: {
+              ...process.env,
+              CC_SANDBOX_STRICT: "1",
+            },
+          },
+        );
+        const failureContext = JSON.stringify({
+          status: coordinator.status,
+          signal: coordinator.signal,
+          error: coordinator.error?.message,
+          stdout: coordinator.stdout,
+          stderr: coordinator.stderr,
+        });
+        expect(coordinator.error, failureContext).toBeUndefined();
+        expect(coordinator.status, failureContext).toBe(0);
+        const envelope = JSON.parse(coordinator.stdout);
+        expect(envelope.error).toMatchObject({
           code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
           sandboxCandidateBackend: "linux-bwrap",
           sandboxPolicyAttested: false,
-          sandboxCandidateReason: "linux_bwrap_policy_unattested",
-          sandboxRuntimeProbe: {
-            attempted: true,
-            runnable: true,
-            reason: null,
-          },
+          sandboxCandidateReason: "linux_bwrap_execution_contract_missing",
           actualGuarantees: [],
+          missingBoundaries: [
+            SANDBOX_BOUNDARIES.FILESYSTEM,
+            SANDBOX_BOUNDARIES.NETWORK,
+          ],
         });
-        expect(fs.existsSync(forbiddenPath)).toBe(false);
-        expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
+        expect(envelope.audit).toMatchObject({
           permissionDecision: "deny",
           sandboxed: false,
           sandboxState: "denied",
@@ -563,13 +890,15 @@ describe.runIf(LIVE && SUPPORTED)(
           sandboxBackend: null,
           sandboxCandidateBackend: "linux-bwrap",
           sandboxPolicyAttested: false,
-          sandboxCandidateReason: "linux_bwrap_policy_unattested",
+          sandboxCandidateReason: "linux_bwrap_execution_contract_missing",
           sandboxRuntimeProbe: {
-            attempted: true,
-            runnable: true,
-            reason: null,
+            attempted: false,
+            runnable: false,
+            reason: "execution_contract_missing",
           },
         });
+        expect(fs.existsSync(markerPath)).toBe(false);
+        fs.rmSync(markerPath, { force: true });
       },
       45_000,
     );
