@@ -159,4 +159,92 @@ describe("social cookie API default pagination", () => {
     expect(offsets).toEqual(Array.from({ length: 11 }, (_, index) => index));
     expect(complete).toBe(true);
   });
+
+  it.each([
+    [
+      "Zhihu",
+      () =>
+        new ZhihuAdapter({
+          account: { cookies: "z_c0=token", urlToken: "alice" },
+          fetchFn: async () => ({
+            data: [
+              {
+                id: "same-answer",
+                question: { title: "same question" },
+                excerpt: "same answer",
+                created_time: 1716300000,
+              },
+            ],
+            paging: { is_end: false },
+          }),
+        }),
+      { favourite: false, follow: false },
+    ],
+    [
+      "Douban",
+      () =>
+        new DoubanAdapter({
+          account: { cookies: "bid=token", userId: "alice" },
+          fetchFn: async () => ({
+            interests: [
+              {
+                id: "same-interest",
+                status: "done",
+                create_time: "2024-01-01 00:00:00",
+                subject: {
+                  id: "same-subject",
+                  title: "same subject",
+                  type: "book",
+                },
+              },
+            ],
+          }),
+        }),
+      { follow: false, review: false },
+    ],
+    [
+      "CSDN",
+      () =>
+        new CsdnAdapter({
+          account: { cookies: "UserToken=token", username: "alice" },
+          fetchFn: async () => ({
+            list: [
+              {
+                articleId: "same-article",
+                title: "same article",
+                createdTime: 1716300000,
+              },
+            ],
+          }),
+        }),
+      { favourite: false, follow: false },
+    ],
+    [
+      "Dongchedi",
+      () =>
+        new DongchediAdapter({
+          account: { cookies: "sessionid=token", userId: "alice" },
+          fetchFn: async () => ({
+            data: {
+              list: [
+                {
+                  group_id: "same-favourite",
+                  title: "same favourite",
+                  create_time: 1716300000,
+                },
+              ],
+              has_more: true,
+            },
+          }),
+        }),
+      { follow: false },
+    ],
+  ])(
+    "%s aborts an unbounded repeated source page",
+    async (_name, make, include) => {
+      await expect(collect(make().sync({ include }))).rejects.toMatchObject({
+        code: "SOURCE_PAGE_STALLED",
+      });
+    },
+  );
 });

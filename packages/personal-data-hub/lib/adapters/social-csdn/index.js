@@ -40,7 +40,10 @@ const {
 } = require("../../snapshot-file");
 const { createAccountScopeFromAccount } = require("../../account-scope");
 const { newId } = require("../../ids");
-const { extractRecognizedArray } = require("../../source-page");
+const {
+  createSourcePageGuard,
+  extractRecognizedArray,
+} = require("../../source-page");
 const {
   ENTITY_TYPES,
   PERSON_SUBTYPES,
@@ -306,6 +309,10 @@ class CsdnAdapter {
       Number.isInteger(opts.maxPages) && opts.maxPages > 0
         ? opts.maxPages
         : Number.POSITIVE_INFINITY;
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard(NAME)
+        : null;
     const sinceMs =
       opts.sinceWatermark != null
         ? parseInt(String(opts.sinceWatermark), 10) || 0
@@ -366,6 +373,7 @@ class CsdnAdapter {
           streamComplete = true;
           break;
         }
+        pageGuard?.observe(step.kind, items);
         for (const it of items) {
           if (!it || typeof it !== "object") continue;
           const capturedAt = cookieItemTime(step.kind, it);

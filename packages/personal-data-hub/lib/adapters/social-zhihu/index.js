@@ -54,7 +54,10 @@ const {
   probeJsonSnapshotFile,
   readJsonSnapshot,
 } = require("../../snapshot-file");
-const { extractRecognizedArray } = require("../../source-page");
+const {
+  createSourcePageGuard,
+  extractRecognizedArray,
+} = require("../../source-page");
 const { createAccountScopeFromAccount } = require("../../account-scope");
 const { newId } = require("../../ids");
 const {
@@ -327,6 +330,10 @@ class ZhihuAdapter {
       Number.isInteger(opts.maxPages) && opts.maxPages > 0
         ? opts.maxPages
         : Number.POSITIVE_INFINITY;
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard(NAME)
+        : null;
     const sinceMs =
       opts.sinceWatermark != null
         ? parseInt(String(opts.sinceWatermark), 10) || 0
@@ -389,6 +396,7 @@ class ZhihuAdapter {
           streamComplete = true;
           break;
         }
+        pageGuard?.observe(step.kind, items);
         let reachedWatermark = false;
         for (const it of items) {
           if (!it || typeof it !== "object") continue;
