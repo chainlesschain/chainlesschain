@@ -188,28 +188,40 @@ function resolveContactSource(db, tableNames) {
         'CAST(uin AS TEXT) AS "__pdh_exact_id", uin, name AS nickname, remark',
     },
   ];
-  let unreadableTable = null;
+  const inspectedTables = new Set();
+  let emptySource = null;
+  let lastUnreadableTable = null;
   for (const candidate of candidates) {
     const sourceTable = findSqliteTable(tableNames, candidate.table);
     if (!sourceTable) continue;
+    const normalizedTable = sourceTable.toLowerCase();
+    if (inspectedTables.has(normalizedTable)) continue;
+    inspectedTables.add(normalizedTable);
     const table = quoteSqliteIdentifier(sourceTable);
+    let rows;
     try {
-      selectRows(
+      rows = selectRows(
         db,
         `SELECT ${candidate.select} FROM ${table} WHERE uin IS NOT NULL ORDER BY uin ASC LIMIT 1`,
       );
+      if (!Array.isArray(rows)) {
+        throw new Error("SQLite contact probe did not return a row array");
+      }
     } catch {
-      unreadableTable = unreadableTable || sourceTable;
+      lastUnreadableTable = sourceTable;
       continue;
     }
-    return { ...candidate, table: sourceTable };
+    lastUnreadableTable = null;
+    const source = { ...candidate, table: sourceTable };
+    if (rows.length > 0) return source;
+    if (emptySource === null) emptySource = source;
   }
-  if (unreadableTable) {
+  if (lastUnreadableTable) {
     throw sqliteCursorSourceError(
-      `discovered SQLite contact table ${unreadableTable} is unreadable`,
+      `discovered SQLite contact table ${lastUnreadableTable} is unreadable`,
     );
   }
-  return null;
+  return emptySource;
 }
 
 function contactUpper(db, source) {

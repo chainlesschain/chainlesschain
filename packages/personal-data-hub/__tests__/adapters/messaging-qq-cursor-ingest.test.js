@@ -503,6 +503,41 @@ describe("messaging-qq SQLite exact identifiers", () => {
     });
   });
 
+  it("uses a populated contact fallback when the preferred table is empty", async () => {
+    const Database = require("better-sqlite3-multiple-ciphers");
+    tmpDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "pdh-qq-android-contact-empty-fallback-"),
+    );
+    const dbPath = path.join(tmpDir, "12345.db");
+    const db = new Database(dbPath);
+    db.exec(
+      `CREATE TABLE Friends (
+        uin INTEGER PRIMARY KEY,
+        name TEXT
+      );
+      CREATE TABLE tb_recent_contact (
+        uin INTEGER PRIMARY KEY,
+        name TEXT,
+        remark TEXT
+      );
+      INSERT INTO tb_recent_contact VALUES (100, 'A', 'friend')`,
+    );
+    db.close();
+    const adapter = new QQAdapter({
+      account: { qq: "12345" },
+      dbPath,
+      keyProvider: { getKey: async () => "12" },
+      dbDriverFactory: () => Database,
+    });
+
+    const raws = await collect(adapter.sync({}));
+    expect(raws).toHaveLength(1);
+    expect(raws[0]).toMatchObject({
+      kind: "contact",
+      payload: { uin: "100", nickname: "A", remark: "friend" },
+    });
+  });
+
   it.each([
     {
       kind: "contact",
