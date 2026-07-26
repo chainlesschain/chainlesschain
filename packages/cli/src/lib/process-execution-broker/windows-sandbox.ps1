@@ -42,10 +42,19 @@ namespace ChainlessChain.WindowsSandbox
         private const UInt32 STARTF_USESTDHANDLES = 0x00000100;
         private const UInt16 SW_HIDE = 0;
         private const UInt32 INFINITE = 0xffffffff;
+        private const UInt32 WAIT_OBJECT_0 = 0x00000000;
         private const UInt32 HANDLE_FLAG_INHERIT = 0x00000001;
         private const Int32 ERROR_INSUFFICIENT_BUFFER = 122;
+        private const Int32 HRESULT_FROM_WIN32_ERROR_ALREADY_EXISTS =
+            unchecked((Int32)0x800700B7);
+        private const Int32 TokenPrivileges = 3;
+        private const Int32 TokenIsAppContainer = 29;
+        private const Int32 TokenCapabilities = 30;
+        private const Int32 TokenAppContainerSid = 31;
         private static readonly IntPtr PROC_THREAD_ATTRIBUTE_HANDLE_LIST =
             new IntPtr(0x00020002);
+        private static readonly IntPtr PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES =
+            new IntPtr(0x00020009);
         private const Byte CRT_FOPEN = 0x01;
         private const Byte CRT_FPIPE = 0x08;
         private const Byte CRT_FDEV = 0x40;
@@ -63,6 +72,7 @@ namespace ChainlessChain.WindowsSandbox
         private const UInt32 JOB_OBJECT_LIMIT_ACTIVE_PROCESS = 0x00000008;
         private const UInt32 JOB_OBJECT_LIMIT_PROCESS_MEMORY = 0x00000100;
         private const UInt32 JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000;
+        private const Int32 JobObjectBasicAccountingInformation = 1;
         private const Int32 JobObjectExtendedLimitInformation = 9;
 
         [StructLayout(LayoutKind.Sequential)]
@@ -102,6 +112,29 @@ namespace ChainlessChain.WindowsSandbox
         {
             public STARTUPINFO StartupInfo;
             public IntPtr lpAttributeList;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct SECURITY_CAPABILITIES
+        {
+            public IntPtr AppContainerSid;
+            public IntPtr Capabilities;
+            public UInt32 CapabilityCount;
+            public UInt32 Reserved;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct LUID
+        {
+            public UInt32 LowPart;
+            public Int32 HighPart;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct LUID_AND_ATTRIBUTES
+        {
+            public LUID Luid;
+            public UInt32 Attributes;
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -149,12 +182,62 @@ namespace ChainlessChain.WindowsSandbox
             public UIntPtr PeakJobMemoryUsed;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        private struct JOBOBJECT_BASIC_ACCOUNTING_INFORMATION
+        {
+            public Int64 TotalUserTime;
+            public Int64 TotalKernelTime;
+            public Int64 ThisPeriodTotalUserTime;
+            public Int64 ThisPeriodTotalKernelTime;
+            public UInt32 TotalPageFaultCount;
+            public UInt32 TotalProcesses;
+            public UInt32 ActiveProcesses;
+            public UInt32 TotalTerminatedProcesses;
+        }
+
         [DllImport("kernel32.dll")]
         private static extern IntPtr GetCurrentProcess();
 
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool CloseHandle(IntPtr handle);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr LocalFree(IntPtr memory);
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        private static extern IntPtr FreeSid(IntPtr sid);
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool EqualSid(IntPtr firstSid, IntPtr secondSid);
+
+        [DllImport(
+            "advapi32.dll",
+            CharSet = CharSet.Unicode,
+            SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool ConvertSidToStringSid(
+            IntPtr sid,
+            out IntPtr stringSid);
+
+        [DllImport("userenv.dll", CharSet = CharSet.Unicode)]
+        private static extern Int32 CreateAppContainerProfile(
+            string appContainerName,
+            string displayName,
+            string description,
+            IntPtr capabilities,
+            UInt32 capabilityCount,
+            out IntPtr appContainerSid);
+
+        [DllImport("userenv.dll", CharSet = CharSet.Unicode)]
+        private static extern Int32 DeriveAppContainerSidFromAppContainerName(
+            string appContainerName,
+            out IntPtr appContainerSid);
+
+        [DllImport("userenv.dll", CharSet = CharSet.Unicode)]
+        private static extern Int32 DeleteAppContainerProfile(
+            string appContainerName);
 
         [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr _get_osfhandle(Int32 fileDescriptor);
@@ -234,6 +317,21 @@ namespace ChainlessChain.WindowsSandbox
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool AssignProcessToJobObject(IntPtr job, IntPtr process);
 
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool TerminateJobObject(
+            IntPtr job,
+            UInt32 exitCode);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool QueryInformationJobObject(
+            IntPtr job,
+            Int32 infoClass,
+            IntPtr info,
+            UInt32 infoLength,
+            out UInt32 returnLength);
+
         [DllImport("advapi32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool OpenProcessToken(
@@ -253,6 +351,30 @@ namespace ChainlessChain.WindowsSandbox
             UInt32 restrictedSidCount,
             IntPtr sidsToRestrict,
             out IntPtr restrictedToken);
+
+        [DllImport("advapi32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool IsTokenRestricted(IntPtr token);
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetTokenInformation(
+            IntPtr token,
+            Int32 tokenInformationClass,
+            IntPtr tokenInformation,
+            UInt32 tokenInformationLength,
+            out UInt32 returnLength);
+
+        [DllImport(
+            "advapi32.dll",
+            CharSet = CharSet.Unicode,
+            SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool LookupPrivilegeName(
+            string systemName,
+            ref LUID luid,
+            StringBuilder name,
+            ref UInt32 nameLength);
 
         [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -284,6 +406,411 @@ namespace ChainlessChain.WindowsSandbox
                     operation,
                     code,
                     systemMessage));
+        }
+
+        private static void ThrowHResult(string operation, Int32 hresult)
+        {
+            Exception systemError = Marshal.GetExceptionForHR(hresult);
+            throw new COMException(
+                String.Format(
+                    CultureInfo.InvariantCulture,
+                    "{0} failed (hresult=0x{1:X8}: {2})",
+                    operation,
+                    unchecked((UInt32)hresult),
+                    systemError == null ? "unknown error" : systemError.Message),
+                hresult);
+        }
+
+        private static void ValidateAppContainerName(string appContainerName)
+        {
+            if (
+                String.IsNullOrWhiteSpace(appContainerName) ||
+                appContainerName.Length > 64)
+            {
+                throw new ArgumentException(
+                    "AppContainer profile name must contain 1-64 characters");
+            }
+            foreach (char current in appContainerName)
+            {
+                if (
+                    Char.IsLetterOrDigit(current) ||
+                    current == '-' ||
+                    current == '_' ||
+                    current == '.' ||
+                    current == ' ')
+                {
+                    continue;
+                }
+                throw new ArgumentException(
+                    "AppContainer profile name contains an unsupported character");
+            }
+        }
+
+        private static IntPtr EnsureAppContainerProfile(string appContainerName)
+        {
+            ValidateAppContainerName(appContainerName);
+            IntPtr appContainerSid;
+            Int32 hresult = CreateAppContainerProfile(
+                appContainerName,
+                "ChainlessChain CLI Sandbox",
+                "Zero-capability process sandbox for ChainlessChain CLI",
+                IntPtr.Zero,
+                0,
+                out appContainerSid);
+            if (hresult == HRESULT_FROM_WIN32_ERROR_ALREADY_EXISTS)
+            {
+                hresult = DeriveAppContainerSidFromAppContainerName(
+                    appContainerName,
+                    out appContainerSid);
+            }
+            if (hresult < 0)
+                ThrowHResult("CreateAppContainerProfile", hresult);
+            if (IsInvalidHandle(appContainerSid))
+                throw new InvalidDataException(
+                    "AppContainer profile did not return a SID");
+            return appContainerSid;
+        }
+
+        private static string SidToString(IntPtr sid)
+        {
+            if (IsInvalidHandle(sid))
+                throw new InvalidDataException("Cannot stringify an invalid SID");
+            IntPtr stringSid;
+            if (!ConvertSidToStringSid(sid, out stringSid))
+                ThrowLastError("ConvertSidToStringSid");
+            try
+            {
+                string value = Marshal.PtrToStringUni(stringSid);
+                if (String.IsNullOrWhiteSpace(value))
+                    throw new InvalidDataException(
+                        "ConvertSidToStringSid returned an empty SID");
+                return value;
+            }
+            finally
+            {
+                LocalFree(stringSid);
+            }
+        }
+
+        public static string PrepareAppContainerProfile(string appContainerName)
+        {
+            IntPtr appContainerSid = IntPtr.Zero;
+            try
+            {
+                appContainerSid = EnsureAppContainerProfile(appContainerName);
+                return SidToString(appContainerSid);
+            }
+            finally
+            {
+                if (!IsInvalidHandle(appContainerSid))
+                    FreeSid(appContainerSid);
+            }
+        }
+
+        public static void DeletePreparedAppContainerProfile(
+            string appContainerName,
+            string expectedAppContainerSid)
+        {
+            // DeleteAppContainerProfile is idempotent for an absent profile.
+            // Deriving the deterministic SID first keeps both the native
+            // finally path and the broker fallback bound to the same profile.
+            ValidateAppContainerName(appContainerName);
+            if (!String.IsNullOrWhiteSpace(expectedAppContainerSid))
+            {
+                IntPtr derivedSid = IntPtr.Zero;
+                try
+                {
+                    Int32 deriveResult =
+                        DeriveAppContainerSidFromAppContainerName(
+                            appContainerName,
+                            out derivedSid);
+                    if (deriveResult < 0)
+                    {
+                        ThrowHResult(
+                            "DeriveAppContainerSidFromAppContainerName",
+                            deriveResult);
+                    }
+                    string actualSid = SidToString(derivedSid);
+                    if (!String.Equals(
+                        actualSid,
+                        expectedAppContainerSid,
+                        StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new InvalidDataException(
+                            "Refusing to delete an AppContainer profile whose SID does not match");
+                    }
+                }
+                finally
+                {
+                    if (!IsInvalidHandle(derivedSid))
+                        FreeSid(derivedSid);
+                }
+            }
+
+            Int32 deleteResult = 0;
+            for (int attempt = 0; attempt < 40; attempt++)
+            {
+                deleteResult = DeleteAppContainerProfile(appContainerName);
+                if (deleteResult >= 0)
+                    return;
+                if (attempt < 39)
+                    System.Threading.Thread.Sleep(25);
+            }
+            ThrowHResult("DeleteAppContainerProfile", deleteResult);
+        }
+
+        public static void AssertAppContainerProfileAbsent(
+            string appContainerName)
+        {
+            ValidateAppContainerName(appContainerName);
+            IntPtr verificationSid = IntPtr.Zero;
+            bool createdVerificationProfile = false;
+            string verificationSidText = null;
+            try
+            {
+                Int32 createResult = CreateAppContainerProfile(
+                    appContainerName,
+                    "ChainlessChain CLI Sandbox Cleanup Verification",
+                    "Ephemeral profile used to verify sandbox cleanup",
+                    IntPtr.Zero,
+                    0,
+                    out verificationSid);
+                if (createResult == HRESULT_FROM_WIN32_ERROR_ALREADY_EXISTS)
+                {
+                    throw new InvalidDataException(
+                        "AppContainer profile still exists after cleanup");
+                }
+                if (createResult < 0)
+                    ThrowHResult(
+                        "CreateAppContainerProfile(cleanup verification)",
+                        createResult);
+                createdVerificationProfile = true;
+                verificationSidText = SidToString(verificationSid);
+            }
+            finally
+            {
+                if (!IsInvalidHandle(verificationSid))
+                    FreeSid(verificationSid);
+                if (createdVerificationProfile)
+                {
+                    DeletePreparedAppContainerProfile(
+                        appContainerName,
+                        verificationSidText);
+                }
+            }
+        }
+
+        private static void TerminateAndAwaitEmptyJob(IntPtr job)
+        {
+            if (job == IntPtr.Zero)
+                return;
+            if (!TerminateJobObject(job, 125))
+                ThrowLastError("TerminateJobObject");
+
+            int informationSize = Marshal.SizeOf(
+                typeof(JOBOBJECT_BASIC_ACCOUNTING_INFORMATION));
+            IntPtr information = Marshal.AllocHGlobal(informationSize);
+            try
+            {
+                for (int attempt = 0; attempt < 100; attempt++)
+                {
+                    UInt32 returnLength;
+                    if (!QueryInformationJobObject(
+                        job,
+                        JobObjectBasicAccountingInformation,
+                        information,
+                        checked((UInt32)informationSize),
+                        out returnLength))
+                    {
+                        ThrowLastError("QueryInformationJobObject");
+                    }
+                    JOBOBJECT_BASIC_ACCOUNTING_INFORMATION accounting =
+                        (JOBOBJECT_BASIC_ACCOUNTING_INFORMATION)
+                            Marshal.PtrToStructure(
+                                information,
+                                typeof(JOBOBJECT_BASIC_ACCOUNTING_INFORMATION));
+                    if (accounting.ActiveProcesses == 0)
+                        return;
+                    System.Threading.Thread.Sleep(10);
+                }
+                throw new TimeoutException(
+                    "Windows sandbox Job retained active processes after termination");
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(information);
+            }
+        }
+
+        private static IntPtr ReadTokenInformation(
+            IntPtr token,
+            Int32 informationClass,
+            out UInt32 informationLength)
+        {
+            informationLength = 0;
+            bool probeSucceeded = GetTokenInformation(
+                token,
+                informationClass,
+                IntPtr.Zero,
+                0,
+                out informationLength);
+            int probeError = Marshal.GetLastWin32Error();
+            if (
+                probeSucceeded ||
+                probeError != ERROR_INSUFFICIENT_BUFFER ||
+                informationLength == 0)
+            {
+                throw new Win32Exception(
+                    probeError,
+                    "GetTokenInformation(size) failed");
+            }
+
+            IntPtr information = Marshal.AllocHGlobal(
+                checked((Int32)informationLength));
+            try
+            {
+                for (int offset = 0; offset < checked((Int32)informationLength); offset++)
+                    Marshal.WriteByte(information, offset, 0);
+                if (!GetTokenInformation(
+                    token,
+                    informationClass,
+                    information,
+                    informationLength,
+                    out informationLength))
+                {
+                    ThrowLastError("GetTokenInformation");
+                }
+                return information;
+            }
+            catch
+            {
+                Marshal.FreeHGlobal(information);
+                throw;
+            }
+        }
+
+        private static string AttestAppContainerTarget(
+            IntPtr process,
+            IntPtr expectedAppContainerSid)
+        {
+            IntPtr targetToken = IntPtr.Zero;
+            IntPtr isAppContainerBuffer = IntPtr.Zero;
+            IntPtr capabilitiesBuffer = IntPtr.Zero;
+            IntPtr appContainerBuffer = IntPtr.Zero;
+            IntPtr privilegesBuffer = IntPtr.Zero;
+            try
+            {
+                if (!OpenProcessToken(process, TOKEN_QUERY, out targetToken))
+                    ThrowLastError("OpenProcessToken(target)");
+
+                UInt32 informationLength;
+                isAppContainerBuffer = ReadTokenInformation(
+                    targetToken,
+                    TokenIsAppContainer,
+                    out informationLength);
+                if (
+                    informationLength < sizeof(Int32) ||
+                    Marshal.ReadInt32(isAppContainerBuffer) == 0)
+                {
+                    throw new InvalidDataException(
+                        "Target token is not an AppContainer token");
+                }
+
+                capabilitiesBuffer = ReadTokenInformation(
+                    targetToken,
+                    TokenCapabilities,
+                    out informationLength);
+                if (
+                    informationLength < sizeof(Int32) ||
+                    Marshal.ReadInt32(capabilitiesBuffer) != 0)
+                {
+                    throw new InvalidDataException(
+                        "Target AppContainer token is not zero-capability");
+                }
+
+                appContainerBuffer = ReadTokenInformation(
+                    targetToken,
+                    TokenAppContainerSid,
+                    out informationLength);
+                if (informationLength < IntPtr.Size)
+                    throw new InvalidDataException(
+                        "Target AppContainer token omitted its SID");
+                IntPtr actualAppContainerSid =
+                    Marshal.ReadIntPtr(appContainerBuffer);
+                if (
+                    IsInvalidHandle(actualAppContainerSid) ||
+                    !EqualSid(actualAppContainerSid, expectedAppContainerSid))
+                {
+                    throw new InvalidDataException(
+                        "Target AppContainer SID does not match the prepared profile");
+                }
+
+                privilegesBuffer = ReadTokenInformation(
+                    targetToken,
+                    TokenPrivileges,
+                    out informationLength);
+                if (informationLength < sizeof(Int32))
+                    throw new InvalidDataException(
+                        "Target token omitted its privilege list");
+                Int32 privilegeCount = Marshal.ReadInt32(privilegesBuffer);
+                int privilegeOffset = sizeof(Int32);
+                int privilegeSize = Marshal.SizeOf(
+                    typeof(LUID_AND_ATTRIBUTES));
+                for (int index = 0; index < privilegeCount; index++)
+                {
+                    int entryOffset = checked(
+                        privilegeOffset + index * privilegeSize);
+                    if (
+                        checked((UInt32)(entryOffset + privilegeSize)) >
+                        informationLength)
+                        throw new InvalidDataException(
+                            "Target token privilege list is truncated");
+                    LUID_AND_ATTRIBUTES privilege =
+                        (LUID_AND_ATTRIBUTES)Marshal.PtrToStructure(
+                            IntPtr.Add(privilegesBuffer, entryOffset),
+                            typeof(LUID_AND_ATTRIBUTES));
+                    UInt32 privilegeNameLength = 0;
+                    LookupPrivilegeName(
+                        null,
+                        ref privilege.Luid,
+                        null,
+                        ref privilegeNameLength);
+                    if (privilegeNameLength == 0)
+                        ThrowLastError("LookupPrivilegeName(size)");
+                    StringBuilder privilegeName = new StringBuilder(
+                        checked((Int32)privilegeNameLength + 1));
+                    if (!LookupPrivilegeName(
+                        null,
+                        ref privilege.Luid,
+                        privilegeName,
+                        ref privilegeNameLength))
+                    {
+                        ThrowLastError("LookupPrivilegeName");
+                    }
+                    if (!String.Equals(
+                        privilegeName.ToString(),
+                        "SeChangeNotifyPrivilege",
+                        StringComparison.Ordinal))
+                    {
+                        throw new InvalidDataException(
+                            "Target AppContainer token retained an unexpected privilege");
+                    }
+                }
+                return SidToString(actualAppContainerSid);
+            }
+            finally
+            {
+                if (privilegesBuffer != IntPtr.Zero)
+                    Marshal.FreeHGlobal(privilegesBuffer);
+                if (appContainerBuffer != IntPtr.Zero)
+                    Marshal.FreeHGlobal(appContainerBuffer);
+                if (capabilitiesBuffer != IntPtr.Zero)
+                    Marshal.FreeHGlobal(capabilitiesBuffer);
+                if (isAppContainerBuffer != IntPtr.Zero)
+                    Marshal.FreeHGlobal(isAppContainerBuffer);
+                if (targetToken != IntPtr.Zero)
+                    CloseHandle(targetToken);
+            }
         }
 
         public static string QuoteArgument(string value)
@@ -613,12 +1140,16 @@ namespace ChainlessChain.WindowsSandbox
 
         private static IntPtr BuildProcessAttributeList(
             IntPtr inheritedHandles,
-            IntPtr inheritedHandleBytes)
+            IntPtr inheritedHandleBytes,
+            IntPtr appContainerSid,
+            out IntPtr securityCapabilitiesBuffer)
         {
+            securityCapabilitiesBuffer = IntPtr.Zero;
+            bool useAppContainer = !IsInvalidHandle(appContainerSid);
             IntPtr attributeBytes = IntPtr.Zero;
             bool probeSucceeded = InitializeProcThreadAttributeList(
                 IntPtr.Zero,
-                1,
+                useAppContainer ? 2 : 1,
                 0,
                 ref attributeBytes);
             int probeError = Marshal.GetLastWin32Error();
@@ -633,7 +1164,7 @@ namespace ChainlessChain.WindowsSandbox
             {
                 if (!InitializeProcThreadAttributeList(
                     attributeList,
-                    1,
+                    useAppContainer ? 2 : 1,
                     0,
                     ref attributeBytes))
                     ThrowLastError("InitializeProcThreadAttributeList");
@@ -647,10 +1178,45 @@ namespace ChainlessChain.WindowsSandbox
                     IntPtr.Zero,
                     IntPtr.Zero))
                     ThrowLastError("UpdateProcThreadAttribute(handle list)");
+
+                if (useAppContainer)
+                {
+                    SECURITY_CAPABILITIES securityCapabilities =
+                        new SECURITY_CAPABILITIES();
+                    securityCapabilities.AppContainerSid = appContainerSid;
+                    securityCapabilities.Capabilities = IntPtr.Zero;
+                    securityCapabilities.CapabilityCount = 0;
+                    securityCapabilities.Reserved = 0;
+                    int securityCapabilitiesSize = Marshal.SizeOf(
+                        typeof(SECURITY_CAPABILITIES));
+                    securityCapabilitiesBuffer = Marshal.AllocHGlobal(
+                        securityCapabilitiesSize);
+                    Marshal.StructureToPtr(
+                        securityCapabilities,
+                        securityCapabilitiesBuffer,
+                        false);
+                    if (!UpdateProcThreadAttribute(
+                        attributeList,
+                        0,
+                        PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES,
+                        securityCapabilitiesBuffer,
+                        new IntPtr(securityCapabilitiesSize),
+                        IntPtr.Zero,
+                        IntPtr.Zero))
+                    {
+                        ThrowLastError(
+                            "UpdateProcThreadAttribute(security capabilities)");
+                    }
+                }
                 return attributeList;
             }
             catch
             {
+                if (securityCapabilitiesBuffer != IntPtr.Zero)
+                {
+                    Marshal.FreeHGlobal(securityCapabilitiesBuffer);
+                    securityCapabilitiesBuffer = IntPtr.Zero;
+                }
                 if (initialized)
                     DeleteProcThreadAttributeList(attributeList);
                 Marshal.FreeHGlobal(attributeList);
@@ -667,7 +1233,9 @@ namespace ChainlessChain.WindowsSandbox
             int nodeIpcFd,
             bool detached,
             bool windowsHide,
-            string identityPath)
+            string identityPath,
+            string appContainerProfileName,
+            string expectedAppContainerSid)
         {
             application = ResolveApplication(application);
             string extension = Path.GetExtension(application);
@@ -682,28 +1250,65 @@ namespace ChainlessChain.WindowsSandbox
 
             IntPtr sourceToken = IntPtr.Zero;
             IntPtr restrictedToken = IntPtr.Zero;
+            IntPtr appContainerSid = IntPtr.Zero;
             IntPtr job = IntPtr.Zero;
             IntPtr limitBuffer = IntPtr.Zero;
             IntPtr descriptorBuffer = IntPtr.Zero;
             IntPtr inheritedHandleBuffer = IntPtr.Zero;
             IntPtr attributeList = IntPtr.Zero;
+            IntPtr securityCapabilitiesBuffer = IntPtr.Zero;
             List<IntPtr> ownedStandardHandles = new List<IntPtr>();
             PROCESS_INFORMATION processInfo = new PROCESS_INFORMATION();
+            bool useAppContainer =
+                !String.IsNullOrWhiteSpace(appContainerProfileName);
+            string attestedAppContainerSid = null;
+            bool targetExited = false;
+            int targetExitCode = 125;
+            Exception launchError = null;
 
             try
             {
+                if (useAppContainer)
+                {
+                    if (String.IsNullOrWhiteSpace(expectedAppContainerSid))
+                        throw new ArgumentException(
+                            "AppContainer launch omitted its expected profile SID");
+                    appContainerSid = EnsureAppContainerProfile(
+                        appContainerProfileName);
+                    string preparedSid = SidToString(appContainerSid);
+                    if (!String.Equals(
+                        preparedSid,
+                        expectedAppContainerSid,
+                        StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new InvalidDataException(
+                            "Prepared AppContainer SID does not match launch payload");
+                    }
+                }
+
                 UInt32 tokenAccess =
                     TOKEN_ASSIGN_PRIMARY |
                     TOKEN_DUPLICATE |
                     TOKEN_QUERY |
                     TOKEN_ADJUST_DEFAULT |
                     TOKEN_ADJUST_SESSIONID;
-                if (!OpenProcessToken(GetCurrentProcess(), tokenAccess, out sourceToken))
+                if (!OpenProcessToken(
+                    GetCurrentProcess(),
+                    tokenAccess,
+                    out sourceToken))
+                {
                     ThrowLastError("OpenProcessToken");
+                }
 
+                UInt32 restrictedTokenFlags = DISABLE_MAX_PRIVILEGE;
+                // Re-applying LUA_TOKEN to an already restricted parent can
+                // fail with ERROR_INVALID_PARAMETER. Preserve the parent's
+                // existing restrictions and always remove maximum privileges.
+                if (!IsTokenRestricted(sourceToken))
+                    restrictedTokenFlags |= LUA_TOKEN;
                 if (!CreateRestrictedToken(
                     sourceToken,
-                    DISABLE_MAX_PRIVILEGE | LUA_TOKEN,
+                    restrictedTokenFlags,
                     0,
                     IntPtr.Zero,
                     0,
@@ -711,7 +1316,9 @@ namespace ChainlessChain.WindowsSandbox
                     0,
                     IntPtr.Zero,
                     out restrictedToken))
+                {
                     ThrowLastError("CreateRestrictedToken");
+                }
 
                 job = CreateJobObject(IntPtr.Zero, null);
                 if (job == IntPtr.Zero) ThrowLastError("CreateJobObject");
@@ -796,7 +1403,9 @@ namespace ChainlessChain.WindowsSandbox
                     out inheritedHandleBytes);
                 attributeList = BuildProcessAttributeList(
                     inheritedHandleBuffer,
-                    inheritedHandleBytes);
+                    inheritedHandleBytes,
+                    appContainerSid,
+                    out securityCapabilitiesBuffer);
                 startup.lpAttributeList = attributeList;
 
                 StringBuilder commandLine =
@@ -808,7 +1417,7 @@ namespace ChainlessChain.WindowsSandbox
                     EXTENDED_STARTUPINFO_PRESENT;
                 if (detached)
                     creationFlags |= DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP;
-                if (!CreateProcessAsUser(
+                bool processCreated = CreateProcessAsUser(
                     restrictedToken,
                     application,
                     commandLine,
@@ -819,18 +1428,44 @@ namespace ChainlessChain.WindowsSandbox
                     IntPtr.Zero,
                     Environment.CurrentDirectory,
                     ref startup,
-                    out processInfo))
-                    ThrowLastError("CreateProcessAsUser");
+                    out processInfo);
+                if (!processCreated)
+                {
+                    ThrowLastError(
+                        useAppContainer
+                            ? "CreateProcessAsUser(AppContainer)"
+                            : "CreateProcessAsUser");
+                }
+
+                if (useAppContainer)
+                {
+                    try
+                    {
+                        attestedAppContainerSid = AttestAppContainerTarget(
+                            processInfo.hProcess,
+                            appContainerSid);
+                    }
+                    catch
+                    {
+                        TerminateProcess(processInfo.hProcess, 125);
+                        throw;
+                    }
+                }
 
                 // The target now owns its inherited copy of the duplex IPC
                 // pipe. Close the helper's CRT descriptor so process.disconnect
                 // and channel EOF retain native Node child semantics even while
                 // the helper continues waiting on the target process handle.
-                if (nodeIpcFd >= 0 && _close(nodeIpcFd) != 0)
+                if (nodeIpcFd >= 0)
                 {
-                    TerminateProcess(processInfo.hProcess, 125);
-                    throw new IOException(
-                        "Closing the Windows sandbox IPC relay descriptor failed");
+                    int ipcDescriptor = nodeIpcFd;
+                    nodeIpcFd = -1;
+                    if (_close(ipcDescriptor) != 0)
+                    {
+                        TerminateProcess(processInfo.hProcess, 125);
+                        throw new IOException(
+                            "Closing the Windows sandbox IPC relay descriptor failed");
+                    }
                 }
 
                 if (!AssignProcessToJobObject(job, processInfo.hProcess))
@@ -846,11 +1481,16 @@ namespace ChainlessChain.WindowsSandbox
 
                 if (!String.IsNullOrWhiteSpace(identityPath))
                 {
-                    string identity = String.Format(
-                        CultureInfo.InvariantCulture,
-                        "{{\"targetPid\":{0},\"helperPid\":{1}}}",
-                        processInfo.dwProcessId,
-                        System.Diagnostics.Process.GetCurrentProcess().Id);
+                    string identity = new JavaScriptSerializer().Serialize(
+                        new
+                        {
+                            targetPid = processInfo.dwProcessId,
+                            helperPid =
+                                System.Diagnostics.Process.GetCurrentProcess().Id,
+                            appContainer = useAppContainer,
+                            appContainerSid = attestedAppContainerSid,
+                            capabilityCount = useAppContainer ? 0 : -1
+                        });
                     using (FileStream stream = new FileStream(
                         identityPath,
                         FileMode.CreateNew,
@@ -864,14 +1504,57 @@ namespace ChainlessChain.WindowsSandbox
                     }
                 }
 
-                WaitForSingleObject(processInfo.hProcess, INFINITE);
+                UInt32 waitResult = WaitForSingleObject(
+                    processInfo.hProcess,
+                    INFINITE);
+                if (waitResult != WAIT_OBJECT_0)
+                    ThrowLastError("WaitForSingleObject(target)");
+                targetExited = true;
                 UInt32 exitCode;
                 if (!GetExitCodeProcess(processInfo.hProcess, out exitCode))
                     ThrowLastError("GetExitCodeProcess");
-                return unchecked((int)exitCode);
+                targetExitCode = unchecked((int)exitCode);
+            }
+            catch (Exception error)
+            {
+                launchError = error;
             }
             finally
             {
+                Exception cleanupError = null;
+                if (processInfo.hProcess != IntPtr.Zero && !targetExited)
+                    TerminateProcess(processInfo.hProcess, 125);
+                if (job != IntPtr.Zero)
+                {
+                    try
+                    {
+                        TerminateAndAwaitEmptyJob(job);
+                    }
+                    catch (Exception error)
+                    {
+                        cleanupError = error;
+                    }
+                    CloseHandle(job);
+                    job = IntPtr.Zero;
+                }
+                if (processInfo.hProcess != IntPtr.Zero && !targetExited)
+                {
+                    UInt32 cleanupWait = WaitForSingleObject(
+                        processInfo.hProcess,
+                        10000);
+                    if (cleanupWait != WAIT_OBJECT_0)
+                    {
+                        Exception waitError = new IOException(
+                            "Timed out terminating the Windows sandbox target");
+                        cleanupError =
+                            cleanupError == null
+                                ? waitError
+                                : new AggregateException(
+                                    "Windows sandbox process-tree cleanup failed",
+                                    cleanupError,
+                                    waitError);
+                    }
+                }
                 if (processInfo.hThread != IntPtr.Zero) CloseHandle(processInfo.hThread);
                 if (processInfo.hProcess != IntPtr.Zero) CloseHandle(processInfo.hProcess);
                 if (attributeList != IntPtr.Zero)
@@ -879,6 +1562,8 @@ namespace ChainlessChain.WindowsSandbox
                     DeleteProcThreadAttributeList(attributeList);
                     Marshal.FreeHGlobal(attributeList);
                 }
+                if (securityCapabilitiesBuffer != IntPtr.Zero)
+                    Marshal.FreeHGlobal(securityCapabilitiesBuffer);
                 if (inheritedHandleBuffer != IntPtr.Zero)
                     Marshal.FreeHGlobal(inheritedHandleBuffer);
                 if (descriptorBuffer != IntPtr.Zero)
@@ -886,10 +1571,44 @@ namespace ChainlessChain.WindowsSandbox
                 foreach (IntPtr handle in ownedStandardHandles)
                     CloseHandle(handle);
                 if (limitBuffer != IntPtr.Zero) Marshal.FreeHGlobal(limitBuffer);
-                if (job != IntPtr.Zero) CloseHandle(job);
+                if (!IsInvalidHandle(appContainerSid)) FreeSid(appContainerSid);
                 if (restrictedToken != IntPtr.Zero) CloseHandle(restrictedToken);
                 if (sourceToken != IntPtr.Zero) CloseHandle(sourceToken);
+                if (nodeIpcFd >= 0)
+                    _close(nodeIpcFd);
+                if (useAppContainer)
+                {
+                    try
+                    {
+                        DeletePreparedAppContainerProfile(
+                            appContainerProfileName,
+                            expectedAppContainerSid);
+                    }
+                    catch (Exception error)
+                    {
+                        cleanupError =
+                            cleanupError == null
+                                ? error
+                                : new AggregateException(
+                                    "AppContainer target and profile cleanup failed",
+                                    cleanupError,
+                                    error);
+                    }
+                }
+                if (cleanupError != null)
+                {
+                    launchError =
+                        launchError == null
+                            ? cleanupError
+                            : new AggregateException(
+                                "AppContainer launch and cleanup failed",
+                                launchError,
+                                cleanupError);
+                }
             }
+            if (launchError != null)
+                throw launchError;
+            return targetExitCode;
         }
     }
 
@@ -906,6 +1625,8 @@ namespace ChainlessChain.WindowsSandbox
             public bool detached { get; set; }
             public bool windowsHide { get; set; }
             public string identityPath { get; set; }
+            public string appContainerProfileName { get; set; }
+            public string appContainerSid { get; set; }
         }
 
         public static int Main(string[] args)
@@ -913,6 +1634,120 @@ namespace ChainlessChain.WindowsSandbox
             LaunchSpec spec = null;
             try
             {
+                if (
+                    args != null &&
+                    args.Length == 2 &&
+                    String.Equals(
+                        args[0],
+                        "--prepare-appcontainer",
+                        StringComparison.Ordinal))
+                {
+                    string profileName = args[1];
+                    string probeSid = null;
+                    string preparedSid = null;
+                    bool leavePreparedProfile = false;
+                    try
+                    {
+                        probeSid = Native.PrepareAppContainerProfile(
+                            profileName);
+                        preparedSid = probeSid;
+                        int probeExitCode = Native.Run(
+                            Path.Combine(Environment.SystemDirectory, "cmd.exe"),
+                            new[] { "/d", "/s", "/c", "exit 0" },
+                            0,
+                            0,
+                            1,
+                            -1,
+                            false,
+                            true,
+                            null,
+                            profileName,
+                            probeSid);
+                        if (probeExitCode != 0)
+                            throw new InvalidDataException(
+                                "AppContainer readiness target returned a non-zero exit code");
+
+                        preparedSid = Native.PrepareAppContainerProfile(
+                            profileName);
+                        if (!String.Equals(
+                            preparedSid,
+                            probeSid,
+                            StringComparison.OrdinalIgnoreCase))
+                        {
+                            throw new InvalidDataException(
+                                "AppContainer SID changed during readiness attestation");
+                        }
+                        string readiness =
+                            new JavaScriptSerializer().Serialize(
+                                new
+                                {
+                                    ready = true,
+                                    profileName = profileName,
+                                    appContainerSid = preparedSid,
+                                    capabilityCount = 0,
+                                    tokenAttested = true,
+                                    restrictedTokenAttested = true
+                                });
+                        Console.Out.Write(readiness);
+                        leavePreparedProfile = true;
+                        return 0;
+                    }
+                    finally
+                    {
+                        if (
+                            !leavePreparedProfile &&
+                            !String.IsNullOrWhiteSpace(preparedSid))
+                        {
+                            Native.DeletePreparedAppContainerProfile(
+                                profileName,
+                                preparedSid);
+                        }
+                    }
+                }
+
+                if (
+                    args != null &&
+                    (args.Length == 2 || args.Length == 3) &&
+                    String.Equals(
+                        args[0],
+                        "--delete-appcontainer",
+                        StringComparison.Ordinal))
+                {
+                    string expectedSid = args.Length == 3 ? args[2] : null;
+                    Native.DeletePreparedAppContainerProfile(
+                        args[1],
+                        expectedSid);
+                    Native.AssertAppContainerProfileAbsent(args[1]);
+                    Console.Out.Write(
+                        new JavaScriptSerializer().Serialize(
+                            new
+                            {
+                                deleted = true,
+                                absent = true,
+                                profileName = args[1]
+                            }));
+                    return 0;
+                }
+
+                if (
+                    args != null &&
+                    args.Length == 2 &&
+                    String.Equals(
+                        args[0],
+                        "--assert-appcontainer-absent",
+                        StringComparison.Ordinal))
+                {
+                    Native.AssertAppContainerProfileAbsent(args[1]);
+                    Console.Out.Write(
+                        new JavaScriptSerializer().Serialize(
+                            new
+                            {
+                                absent = true,
+                                profileName = args[1]
+                            }));
+                    return 0;
+                }
+
                 if (args == null || args.Length != 1)
                     throw new ArgumentException("Expected one encoded launch payload");
 
@@ -930,7 +1765,9 @@ namespace ChainlessChain.WindowsSandbox
                     spec.nodeIpcFd,
                     spec.detached,
                     spec.windowsHide,
-                    spec.identityPath);
+                    spec.identityPath,
+                    spec.appContainerProfileName,
+                    spec.appContainerSid);
             }
             catch (Exception error)
             {
@@ -965,23 +1802,26 @@ namespace ChainlessChain.WindowsSandbox
 '@
 
 try {
-  if (-not (Test-Path -LiteralPath $CacheExecutable)) {
-    $temporaryExecutable = (
-      $CacheExecutable + "." + [Diagnostics.Process]::GetCurrentProcess().Id + ".exe"
-    )
+  if (Test-Path -LiteralPath $CacheExecutable) {
+    throw "Refusing to trust a pre-existing native adapter executable"
+  }
+  $temporaryExecutable = (
+    $CacheExecutable + "." + [Diagnostics.Process]::GetCurrentProcess().Id + ".exe"
+  )
+  if (Test-Path -LiteralPath $temporaryExecutable) {
+    throw "Refusing to overwrite a pre-existing native adapter compile output"
+  }
+  try {
     Add-Type `
       -TypeDefinition $nativeSource `
       -Language CSharp `
       -ReferencedAssemblies "System.Web.Extensions" `
       -OutputAssembly $temporaryExecutable `
       -OutputType ConsoleApplication
-    try {
-      [IO.File]::Move($temporaryExecutable, $CacheExecutable)
-    }
-    catch {
-      if (-not (Test-Path -LiteralPath $CacheExecutable)) {
-        throw
-      }
+    [IO.File]::Move($temporaryExecutable, $CacheExecutable)
+  }
+  finally {
+    if (Test-Path -LiteralPath $temporaryExecutable) {
       Remove-Item -LiteralPath $temporaryExecutable -Force -ErrorAction SilentlyContinue
     }
   }
