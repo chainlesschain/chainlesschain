@@ -190,8 +190,9 @@
      崩溃恢复 exactly-once
    - `background-stability-realspawn.test.js` 在真实 worker/child 链上覆盖
      提问→attach 断线→重连重放→回答→同 turn 完成（本地 Windows 已通过）
-   - 仓库现有 `cli-ci.yml` 会在 Ubuntu/macOS/Windows 运行全部 integration 分片，该真实用例
-     无平台跳过条件；当前改动尚无远端运行结果，因此三平台验收保持未勾选
+   - `cli-background-interaction-e2e.yml` 在 Ubuntu/macOS/Windows 仅运行真实
+     `background-stability-realspawn.test.js`，避免通用 CLI 36+ 分片的无关失败掩盖本验收；
+     当前尚无远端运行结果，因此三平台验收保持未勾选
    - 本次定向回归：CLI 23 个文件 319 passed/2 skipped；Agent SDK 47 passed + TypeScript
      typecheck；Python SDK 13 passed；Web Panel 48 passed + production build；JetBrains 定向
      tests/build 通过；Desktop 新增 authority 流程用例通过
@@ -210,6 +211,7 @@
 - `packages/cli/__tests__/unit/interaction-binding.test.js`
 - `packages/cli/__tests__/unit/background-agent-supervisor.test.js`
 - `packages/cli/__tests__/integration/background-stability-realspawn.test.js`
+- `.github/workflows/cli-background-interaction-e2e.yml`
 - `packages/agent-sdk/__fixtures__/protocol/interaction.ndjson`
 - `packages/agent-sdk/src/protocol.ts`
 - `packages/agent-sdk-python/src/chainlesschain_agent_sdk/protocol.py`

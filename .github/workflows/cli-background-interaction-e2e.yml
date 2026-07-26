@@ -1,0 +1,56 @@
+name: CLI Background Interaction E2E
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/cli/src/commands/background-session.js"
+      - "packages/cli/src/lib/background-interaction-journal.js"
+      - "packages/cli/src/lib/background-interaction-resolver.js"
+      - "packages/cli/src/lib/background-session-transport.js"
+      - "packages/cli/src/lib/interaction-binding.js"
+      - "packages/cli/src/runtime/headless-runner.js"
+      - "packages/cli/src/workers/background-agent-worker.js"
+      - "packages/cli/__tests__/integration/background-stability-realspawn.test.js"
+      - ".github/workflows/cli-background-interaction-e2e.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/cli/src/commands/background-session.js"
+      - "packages/cli/src/lib/background-interaction-journal.js"
+      - "packages/cli/src/lib/background-interaction-resolver.js"
+      - "packages/cli/src/lib/background-session-transport.js"
+      - "packages/cli/src/lib/interaction-binding.js"
+      - "packages/cli/src/runtime/headless-runner.js"
+      - "packages/cli/src/workers/background-agent-worker.js"
+      - "packages/cli/__tests__/integration/background-stability-realspawn.test.js"
+      - ".github/workflows/cli-background-interaction-e2e.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reconnect-same-turn:
+    name: "disconnect/reconnect same turn (${{ matrix.os }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Run real worker/child reconnect E2E
+        working-directory: packages/cli
+        run: >-
+          npx vitest run --reporter=default
+          __tests__/integration/background-stability-realspawn.test.js
