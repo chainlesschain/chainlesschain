@@ -52,5 +52,15 @@ jobs:
       - name: Run real worker/child reconnect E2E
         working-directory: packages/cli
         run: >-
-          npx vitest run --reporter=default
+          npx vitest run --reporter=json
+          --outputFile=background-interaction-result.json
           __tests__/integration/background-stability-realspawn.test.js
+
+      - name: Upload background interaction result
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: background-interaction-result-${{ matrix.os }}
+          path: packages/cli/background-interaction-result.json
+          if-no-files-found: warn
+          retention-days: 7
