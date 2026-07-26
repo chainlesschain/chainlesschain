@@ -115,6 +115,13 @@ function contentDriver({
         queries.push(sql);
         return {
           all() {
+            if (sql.includes("FROM sqlite_master")) {
+              return [
+                { name: "video_history" },
+                { name: "user_favorite" },
+                { name: "search_history" },
+              ];
+            }
             if (sql.includes("FROM video_history")) return histories;
             if (sql.includes("FROM user_favorite")) return favourites;
             if (sql.includes("FROM search_history")) return searches;

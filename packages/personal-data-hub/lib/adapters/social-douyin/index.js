@@ -120,11 +120,33 @@ function parseTime(v) {
   return null;
 }
 
-function trySelect(db, sql) {
+function sqliteSourceError(tableName, operation, cause) {
+  const error = new Error(
+    `social-douyin: source table ${tableName} could not be ${operation}; refusing a partial import`,
+  );
+  error.code = "DOUYIN_SQLITE_SOURCE_UNREADABLE";
+  error.table = tableName;
+  error.operation = operation;
+  error.cause = cause;
+  return error;
+}
+
+function listSqliteTables(db) {
   try {
-    return db.prepare(sql).all();
-  } catch {
-    return null;
+    const rows = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+      .all();
+    if (!Array.isArray(rows)) {
+      throw new Error("SQLite table inventory did not return a row array");
+    }
+    return new Set(
+      rows
+        .map((row) => row && row.name)
+        .filter((name) => typeof name === "string")
+        .map((name) => name.toLowerCase()),
+    );
+  } catch (error) {
+    throw sqliteSourceError("sqlite_master", "listed", error);
   }
 }
 
@@ -479,7 +501,8 @@ class DouyinAdapter {
 
     try {
       const entries = [];
-      const historySelection = selectFirstQuery(db, [
+      const tableNames = listSqliteTables(db);
+      const historySelection = selectFirstQuery(db, tableNames, [
         {
           tableName: "video_history",
           sql: "SELECT * FROM video_history ORDER BY view_time DESC",
@@ -501,7 +524,7 @@ class DouyinAdapter {
           }),
         );
       }
-      const favouriteSelection = selectFirstQuery(db, [
+      const favouriteSelection = selectFirstQuery(db, tableNames, [
         {
           tableName: "user_favorite",
           sql: "SELECT * FROM user_favorite ORDER BY create_time DESC",
@@ -524,7 +547,7 @@ class DouyinAdapter {
           }),
         );
       }
-      const searchSelection = selectFirstQuery(db, [
+      const searchSelection = selectFirstQuery(db, tableNames, [
         {
           tableName: "search_history",
           sql: "SELECT * FROM search_history ORDER BY time DESC",
@@ -767,10 +790,22 @@ function positiveLimit(value) {
   return Number.isSafeInteger(value) && value > 0 ? value : null;
 }
 
-function selectFirstQuery(db, candidates) {
+function selectFirstQuery(db, tableNames, candidates) {
+  let lastFailure = null;
   for (const candidate of candidates) {
-    const rows = trySelect(db, candidate.sql);
-    if (rows) return { rows, tableName: candidate.tableName };
+    if (!tableNames.has(candidate.tableName.toLowerCase())) continue;
+    try {
+      const rows = db.prepare(candidate.sql).all();
+      if (!Array.isArray(rows)) {
+        throw new Error("SQLite query did not return a row array");
+      }
+      return { rows, tableName: candidate.tableName };
+    } catch (error) {
+      lastFailure = { error, tableName: candidate.tableName };
+    }
+  }
+  if (lastFailure) {
+    throw sqliteSourceError(lastFailure.tableName, "read", lastFailure.error);
   }
   return { rows: [], tableName: null };
 }

@@ -129,6 +129,33 @@ describe("DouyinAdapter", () => {
       cleanup(dir);
     }
   });
+
+  it("rejects unreadable discovered SQLite tables", async () => {
+    const { dir, dbPath } = tmpDb();
+    try {
+      const a = new DouyinAdapter({
+        account: { uid: "u-1" },
+        dbPath,
+        dbDriverFactory: () =>
+          makeMockDriver([
+            ["FROM video_history", new Error("synthetic SQLite read failure")],
+          ]),
+      });
+      const pending = (async () => {
+        const raws = [];
+        for await (const raw of a.sync()) raws.push(raw);
+        return raws;
+      })();
+
+      await expect(pending).rejects.toMatchObject({
+        code: "DOUYIN_SQLITE_SOURCE_UNREADABLE",
+        table: "video_history",
+        operation: "read",
+      });
+    } finally {
+      cleanup(dir);
+    }
+  });
 });
 
 // ─── XiaohongshuAdapter ─────────────────────────────────────────────────
