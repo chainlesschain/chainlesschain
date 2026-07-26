@@ -444,6 +444,84 @@ describe("messaging-qq SQLite exact identifiers", () => {
     });
   });
 
+  it("fails closed when the newest discovered message shard is unreadable", async () => {
+    const Database = require("better-sqlite3-multiple-ciphers");
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pdh-qq-android-upper-"));
+    const dbPath = path.join(tmpDir, "12345.db");
+    const db = new Database(dbPath);
+    db.exec(
+      `CREATE TABLE mr_friend_A_New (
+        msgId INTEGER PRIMARY KEY,
+        msgtype INTEGER,
+        senderuin INTEGER,
+        time INTEGER,
+        msgData BLOB,
+        issend INTEGER,
+        frienduin INTEGER,
+        troopuin INTEGER
+      );
+      INSERT INTO mr_friend_A_New VALUES
+        (1, -1000, 999, 1750000001, X'595B', 0, 999, NULL);
+      CREATE TABLE mr_friend_Z_New (legacy_id INTEGER PRIMARY KEY);
+      INSERT INTO mr_friend_Z_New VALUES (2)`,
+    );
+    db.close();
+    const adapter = new QQAdapter({
+      account: { qq: "12345" },
+      dbPath,
+      keyProvider: { getKey: async () => "12" },
+      dbDriverFactory: () => Database,
+    });
+
+    await expect(collect(adapter.sync({}))).rejects.toMatchObject({
+      code: "QQ_ANDROID_CURSOR_SOURCE_REGRESSED",
+      retryable: false,
+      message: expect.stringContaining("mr_friend_Z_New"),
+    });
+  });
+
+  it("fails closed instead of skipping an unreadable intermediate message shard", async () => {
+    const Database = require("better-sqlite3-multiple-ciphers");
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pdh-qq-android-shard-"));
+    const dbPath = path.join(tmpDir, "12345.db");
+    const db = new Database(dbPath);
+    for (const table of ["mr_friend_A_New", "mr_friend_C_New"]) {
+      db.exec(
+        `CREATE TABLE ${table} (
+          msgId INTEGER PRIMARY KEY,
+          msgtype INTEGER,
+          senderuin INTEGER,
+          time INTEGER,
+          msgData BLOB,
+          issend INTEGER,
+          frienduin INTEGER,
+          troopuin INTEGER
+        )`,
+      );
+    }
+    db.exec(
+      `INSERT INTO mr_friend_A_New VALUES
+        (1, -1000, 999, 1750000001, X'595B', 0, 999, NULL);
+      CREATE TABLE mr_friend_B_New (legacy_id INTEGER PRIMARY KEY);
+      INSERT INTO mr_friend_B_New VALUES (2);
+      INSERT INTO mr_friend_C_New VALUES
+        (3, -1000, 999, 1750000003, X'595B', 0, 999, NULL)`,
+    );
+    db.close();
+    const adapter = new QQAdapter({
+      account: { qq: "12345" },
+      dbPath,
+      keyProvider: { getKey: async () => "12" },
+      dbDriverFactory: () => Database,
+    });
+
+    await expect(collect(adapter.sync({}))).rejects.toMatchObject({
+      code: "QQ_ANDROID_CURSOR_SOURCE_REGRESSED",
+      retryable: false,
+      message: expect.stringContaining("mr_friend_B_New"),
+    });
+  });
+
   it("resumes across lexicographically ordered message shards", async () => {
     const Database = require("better-sqlite3-multiple-ciphers");
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pdh-qq-android-shards-"));

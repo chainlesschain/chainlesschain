@@ -289,11 +289,17 @@ function groupPage(db, { after, upper, limit }) {
 }
 
 function messageTables(db) {
-  const rows =
-    trySelect(
+  let rows;
+  try {
+    rows = selectRows(
       db,
       "SELECT name FROM sqlite_master WHERE type='table' AND (name LIKE 'mr_friend_%_New' OR name LIKE 'mr_troop_%_New') ORDER BY name ASC",
-    ) || [];
+    );
+  } catch {
+    throw sqliteCursorSourceError(
+      "SQLite message table inventory is unreadable",
+    );
+  }
   return Array.from(
     new Set(
       rows
@@ -370,7 +376,9 @@ function resolveSqliteUpper(db, contactSource, tables) {
     try {
       id = messageUpper(db, table);
     } catch {
-      continue;
+      throw sqliteCursorSourceError(
+        `discovered SQLite message table ${table} is unreadable`,
+      );
     }
     if (id !== null) return { kind: KIND_MESSAGE, table, id };
   }
@@ -874,12 +882,9 @@ class QQAdapter {
               limit: requested,
             });
           } catch {
-            if (table === cursor.upper.table) {
-              throw sqliteCursorSourceError(
-                `active SQLite message table ${table} is unreadable`,
-              );
-            }
-            break;
+            throw sqliteCursorSourceError(
+              `discovered SQLite message table ${table} is unreadable`,
+            );
           }
           if (page.length === 0) break;
           for (const { row, id } of page) {
