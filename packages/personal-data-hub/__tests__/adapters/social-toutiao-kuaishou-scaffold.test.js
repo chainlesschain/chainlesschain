@@ -33,8 +33,19 @@ function makeMockDriver(scriptedRows) {
       prepare(sql) {
         return {
           all() {
+            if (sql.includes("FROM sqlite_master")) {
+              return scriptedRows
+                .map(([matchSubstr]) =>
+                  /FROM\s+([A-Za-z0-9_]+)/u.exec(matchSubstr),
+                )
+                .filter(Boolean)
+                .map((match) => ({ name: match[1] }));
+            }
             for (const [matchSubstr, rows] of scriptedRows) {
-              if (sql.includes(matchSubstr)) return rows;
+              if (sql.includes(matchSubstr)) {
+                if (rows instanceof Error) throw rows;
+                return rows;
+              }
             }
             throw new Error("no such table");
           },
@@ -93,13 +104,32 @@ describe("ToutiaoAdapter — §A8 v0.2 sqlite mode", () => {
         [
           "FROM read_history",
           [
-            { id: 1, item_id: "i-1", title: "新闻 A", read_time: 1700000000, category: "tech" },
-            { id: 2, item_id: "i-2", title: "新闻 B", read_time: 1700000010, category: "finance" },
+            {
+              id: 1,
+              item_id: "i-1",
+              title: "新闻 A",
+              read_time: 1700000000,
+              category: "tech",
+            },
+            {
+              id: 2,
+              item_id: "i-2",
+              title: "新闻 B",
+              read_time: 1700000010,
+              category: "finance",
+            },
           ],
         ],
         [
           "FROM collection_article",
-          [{ id: 1, item_id: "i-3", article_title: "深度长文", save_time: 1700001000 }],
+          [
+            {
+              id: 1,
+              item_id: "i-3",
+              article_title: "深度长文",
+              save_time: 1700001000,
+            },
+          ],
         ],
         [
           "FROM search_history",
@@ -115,7 +145,9 @@ describe("ToutiaoAdapter — §A8 v0.2 sqlite mode", () => {
       for await (const r of a.sync()) raws.push(r);
       expect(raws.length).toBe(4);
       expect(raws.filter((r) => r.payload.kind === "read")).toHaveLength(2);
-      expect(raws.filter((r) => r.payload.kind === "collection")).toHaveLength(1);
+      expect(raws.filter((r) => r.payload.kind === "collection")).toHaveLength(
+        1,
+      );
       expect(raws.filter((r) => r.payload.kind === "search")).toHaveLength(1);
     });
   });
@@ -125,12 +157,23 @@ describe("ToutiaoAdapter — §A8 v0.2 sqlite mode", () => {
     const samples = [
       {
         kind: "read",
-        row: { id: 1, item_id: "i-1", title: "T1", read_time: 1700000000, category: "tech" },
+        row: {
+          id: 1,
+          item_id: "i-1",
+          title: "T1",
+          read_time: 1700000000,
+          category: "tech",
+        },
         expectedSubtype: "browse",
       },
       {
         kind: "collection",
-        row: { id: 1, item_id: "i-2", article_title: "T2", save_time: 1700001000 },
+        row: {
+          id: 1,
+          item_id: "i-2",
+          article_title: "T2",
+          save_time: 1700001000,
+        },
         expectedSubtype: "like",
       },
       {
@@ -157,7 +200,9 @@ describe("ToutiaoAdapter — §A8 v0.2 sqlite mode", () => {
     const a = new ToutiaoAdapter({ account: { uid: "u-1" } });
     // v0.2: row-missing check moved into per-kind normalizers (snapshot
     // payloads have no `row` but carry fields directly).
-    expect(() => a.normalize({ payload: { kind: "read" } })).toThrow(/row missing/);
+    expect(() => a.normalize({ payload: { kind: "read" } })).toThrow(
+      /row missing/,
+    );
   });
 
   it("search keyword preserved verbatim in content.title + extra.keyword", () => {
@@ -166,7 +211,10 @@ describe("ToutiaoAdapter — §A8 v0.2 sqlite mode", () => {
       adapter: "social-toutiao",
       originalId: "search-1",
       capturedAt: 1700002000_000,
-      payload: { row: { id: 1, keyword: "新冠 后遗症", search_time: 1700002000 }, kind: "search" },
+      payload: {
+        row: { id: 1, keyword: "新冠 后遗症", search_time: 1700002000 },
+        kind: "search",
+      },
     });
     expect(batch.events[0].content.title).toBe("新冠 后遗症");
     expect(batch.events[0].extra.kind).toBe("search");
@@ -174,7 +222,10 @@ describe("ToutiaoAdapter — §A8 v0.2 sqlite mode", () => {
   });
 
   it("sync gracefully exits when dbPath missing", async () => {
-    const a = new ToutiaoAdapter({ account: { uid: "u-1" }, dbPath: "/no/such/path.db" });
+    const a = new ToutiaoAdapter({
+      account: { uid: "u-1" },
+      dbPath: "/no/such/path.db",
+    });
     const raws = [];
     for await (const r of a.sync()) raws.push(r);
     expect(raws).toEqual([]);
@@ -232,7 +283,14 @@ describe("KuaishouAdapter — §A8 v0.2 sqlite mode", () => {
         ],
         [
           "FROM user_collect",
-          [{ id: 1, photo_id: "p-2", caption: "美食 vlog", collect_time: 1700001000 }],
+          [
+            {
+              id: 1,
+              photo_id: "p-2",
+              caption: "美食 vlog",
+              collect_time: 1700001000,
+            },
+          ],
         ],
         [
           "FROM search_record",
@@ -253,17 +311,52 @@ describe("KuaishouAdapter — §A8 v0.2 sqlite mode", () => {
     });
   });
 
+  it("rejects unreadable discovered SQLite tables", async () => {
+    await withFakeDb(async (dbPath) => {
+      const a = new KuaishouAdapter({
+        account: { uid: "u-2" },
+        dbPath,
+        dbDriverFactory: () =>
+          makeMockDriver([
+            ["FROM photo_history", new Error("synthetic SQLite read failure")],
+          ]),
+      });
+      const pending = (async () => {
+        const raws = [];
+        for await (const raw of a.sync()) raws.push(raw);
+        return raws;
+      })();
+
+      await expect(pending).rejects.toMatchObject({
+        code: "KUAISHOU_SQLITE_SOURCE_UNREADABLE",
+        table: "photo_history",
+        operation: "read",
+      });
+    });
+  });
+
   it("normalize maps watch → browse / collect → like / search → post (all subtypes valid)", () => {
     const a = new KuaishouAdapter({ account: { uid: "u-2" } });
     const samples = [
       {
         kind: "watch",
-        row: { id: 1, photo_id: "p-1", caption: "C1", view_time: 1700000000, duration: 30 },
+        row: {
+          id: 1,
+          photo_id: "p-1",
+          caption: "C1",
+          view_time: 1700000000,
+          duration: 30,
+        },
         expectedSubtype: "browse",
       },
       {
         kind: "collect",
-        row: { id: 1, photo_id: "p-2", caption: "C2", collect_time: 1700001000 },
+        row: {
+          id: 1,
+          photo_id: "p-2",
+          caption: "C2",
+          collect_time: 1700001000,
+        },
         expectedSubtype: "like",
       },
       {

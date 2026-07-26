@@ -111,11 +111,46 @@ function parseTime(v) {
   return null;
 }
 
-function trySelect(db, sql) {
+function sqliteSourceError(tableName, operation, cause) {
+  const error = new Error(
+    `social-kuaishou: source table ${tableName} could not be ${operation}; refusing a partial import`,
+  );
+  error.code = "KUAISHOU_SQLITE_SOURCE_UNREADABLE";
+  error.table = tableName;
+  error.operation = operation;
+  error.cause = cause;
+  return error;
+}
+
+function listSqliteTables(db) {
   try {
-    return db.prepare(sql).all();
-  } catch {
-    return null;
+    const rows = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+      .all();
+    if (!Array.isArray(rows)) {
+      throw new Error("SQLite table inventory did not return a row array");
+    }
+    return new Set(
+      rows
+        .map((row) => row && row.name)
+        .filter((name) => typeof name === "string")
+        .map((name) => name.toLowerCase()),
+    );
+  } catch (error) {
+    throw sqliteSourceError("sqlite_master", "listed", error);
+  }
+}
+
+function readOptionalTable(db, tableNames, tableName, sql) {
+  if (!tableNames.has(tableName.toLowerCase())) return [];
+  try {
+    const rows = db.prepare(sql).all();
+    if (!Array.isArray(rows)) {
+      throw new Error("SQLite query did not return a row array");
+    }
+    return rows;
+  } catch (error) {
+    throw sqliteSourceError(tableName, "read", error);
   }
 }
 
@@ -297,9 +332,13 @@ class KuaishouAdapter {
     const db = new Driver(dbPath, { readonly: true });
 
     try {
-      const watched =
-        trySelect(db, "SELECT * FROM photo_history ORDER BY view_time DESC") ||
-        [];
+      const tableNames = listSqliteTables(db);
+      const watched = readOptionalTable(
+        db,
+        tableNames,
+        "photo_history",
+        "SELECT * FROM photo_history ORDER BY view_time DESC",
+      );
       const records = watched.map((row) => ({
         adapter: NAME,
         kind: KIND_WATCH,
@@ -311,11 +350,12 @@ class KuaishouAdapter {
         payload: { row, kind: KIND_WATCH },
       }));
 
-      const collected =
-        trySelect(
-          db,
-          "SELECT * FROM user_collect ORDER BY collect_time DESC",
-        ) || [];
+      const collected = readOptionalTable(
+        db,
+        tableNames,
+        "user_collect",
+        "SELECT * FROM user_collect ORDER BY collect_time DESC",
+      );
       records.push(
         ...collected.map((row) => ({
           adapter: NAME,
@@ -326,11 +366,12 @@ class KuaishouAdapter {
         })),
       );
 
-      const searches =
-        trySelect(
-          db,
-          "SELECT * FROM search_record ORDER BY search_time DESC",
-        ) || [];
+      const searches = readOptionalTable(
+        db,
+        tableNames,
+        "search_record",
+        "SELECT * FROM search_record ORDER BY search_time DESC",
+      );
       records.push(
         ...searches.map((row) => ({
           adapter: NAME,

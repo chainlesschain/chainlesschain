@@ -106,6 +106,9 @@ function sqliteDriver({ history = [], favourites = [], queries = [] }) {
       queries.push(sql);
       return {
         all() {
+          if (sql.includes("FROM sqlite_master")) {
+            return [{ name: "history" }, { name: "bili_favourite" }];
+          }
           if (sql.includes("FROM history")) return history;
           if (sql.includes("FROM bili_favourite")) return favourites;
           throw new Error("no such table");

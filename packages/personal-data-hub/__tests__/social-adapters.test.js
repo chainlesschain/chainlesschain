@@ -16,8 +16,20 @@ function makeMockDriver(scriptedRows) {
       prepare(sql) {
         return {
           all() {
+            if (sql.includes("FROM sqlite_master")) {
+              const names = scriptedRows
+                .map(([matchSubstr]) =>
+                  /FROM\s+([A-Za-z0-9_]+)/u.exec(matchSubstr),
+                )
+                .filter(Boolean)
+                .map((match) => ({ name: match[1] }));
+              return names;
+            }
             for (const [matchSubstr, rows] of scriptedRows) {
-              if (sql.includes(matchSubstr)) return rows;
+              if (sql.includes(matchSubstr)) {
+                if (rows instanceof Error) throw rows;
+                return rows;
+              }
             }
             throw new Error("no such table");
           },
@@ -69,7 +81,9 @@ describe("BilibiliAdapter", () => {
       });
       let threw = null;
       try {
-        for await (const _r of b.sync()) { /* drain */ }
+        for await (const _r of b.sync()) {
+          /* drain */
+        }
       } catch (err) {
         threw = err;
       }
@@ -86,13 +100,38 @@ describe("BilibiliAdapter", () => {
     fs.writeFileSync(dbPath, "fake");
     try {
       const mockDriver = makeMockDriver([
-        ["FROM history", [
-          { id: 1, bvid: "BV1abc", title: "趣味视频", view_at: 1700000000, uploader: "UpA" },
-          { id: 2, bvid: "BV1xyz", title: "教程", view_at: 1700000010, uploader: "UpB", duration: 300 },
-        ]],
-        ["FROM bili_favourite", [
-          { id: 1, bvid: "BV1fav", title: "收藏A", save_time: 1700001000, folder_name: "学习" },
-        ]],
+        [
+          "FROM history",
+          [
+            {
+              id: 1,
+              bvid: "BV1abc",
+              title: "趣味视频",
+              view_at: 1700000000,
+              uploader: "UpA",
+            },
+            {
+              id: 2,
+              bvid: "BV1xyz",
+              title: "教程",
+              view_at: 1700000010,
+              uploader: "UpB",
+              duration: 300,
+            },
+          ],
+        ],
+        [
+          "FROM bili_favourite",
+          [
+            {
+              id: 1,
+              bvid: "BV1fav",
+              title: "收藏A",
+              save_time: 1700001000,
+              folder_name: "学习",
+            },
+          ],
+        ],
       ]);
       const a = new BilibiliAdapter({
         account: { uid: "1234" },
@@ -121,13 +160,44 @@ describe("BilibiliAdapter", () => {
     }
   });
 
+  it("sqlite mode rejects unreadable discovered tables", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "bili-unreadable-"));
+    const dbPath = path.join(dir, "bili.db");
+    fs.writeFileSync(dbPath, "fake");
+    try {
+      const a = new BilibiliAdapter({
+        account: { uid: "1234" },
+        dbPath,
+        dbDriverFactory: () =>
+          makeMockDriver([
+            ["FROM history", new Error("synthetic SQLite read failure")],
+          ]),
+      });
+      const pending = (async () => {
+        const raws = [];
+        for await (const raw of a.sync()) raws.push(raw);
+        return raws;
+      })();
+
+      await expect(pending).rejects.toMatchObject({
+        code: "BILIBILI_SQLITE_SOURCE_UNREADABLE",
+        table: "history",
+        operation: "read",
+      });
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("throws when neither inputPath nor dbPath provided (A8: surface config errors)", async () => {
     // Before A8: sync silently yielded 0 if dbPath missing — masked typos and
     // misconfigured callers. After A8 we throw so callers see the problem.
     const a = new BilibiliAdapter({ account: { uid: "1234" } });
     let threw = null;
     try {
-      for await (const _r of a.sync()) { /* drain */ }
+      for await (const _r of a.sync()) {
+        /* drain */
+      }
     } catch (err) {
       threw = err;
     }
@@ -190,7 +260,9 @@ describe("WeiboAdapter", () => {
       const a = new WeiboAdapter({});
       let threw = null;
       try {
-        for await (const _r of a.sync({ dbPath })) { /* drain */ }
+        for await (const _r of a.sync({ dbPath })) {
+          /* drain */
+        }
       } catch (e) {
         threw = e;
       }
@@ -207,14 +279,27 @@ describe("WeiboAdapter", () => {
     fs.writeFileSync(dbPath, "fake");
     try {
       const mockDriver = makeMockDriver([
-        ["FROM post", [
-          { id: 1, mid: "M1", text: "今天天气真好", created_at: 1700000000, reposts_count: 5, comments_count: 3 },
-        ]],
+        [
+          "FROM post",
+          [
+            {
+              id: 1,
+              mid: "M1",
+              text: "今天天气真好",
+              created_at: 1700000000,
+              reposts_count: 5,
+              comments_count: 3,
+            },
+          ],
+        ],
         ["FROM status", []],
-        ["FROM search_history", [
-          { id: 1, keyword: "iPhone", time: 1700001000 },
-          { id: 2, keyword: "音乐", time: 1700001100 },
-        ]],
+        [
+          "FROM search_history",
+          [
+            { id: 1, keyword: "iPhone", time: 1700001000 },
+            { id: 2, keyword: "音乐", time: 1700001100 },
+          ],
+        ],
       ]);
       const a = new WeiboAdapter({
         account: { uid: "1234" },
@@ -247,9 +332,13 @@ describe("WeiboAdapter", () => {
       payload: {
         kind: "post",
         row: {
-          id: 1, mid: "M1", text: "测试",
+          id: 1,
+          mid: "M1",
+          text: "测试",
           created_at: 1700000000,
-          reposts_count: 5, comments_count: 3, attitudes_count: 10,
+          reposts_count: 5,
+          comments_count: 3,
+          attitudes_count: 10,
           location: "上海",
         },
       },
@@ -270,7 +359,12 @@ describe("WeiboAdapter", () => {
       capturedAt: Date.now(),
       payload: {
         kind: "post",
-        row: { id: 1, mid: "X", text: "", created_at: Math.floor(Date.now() / 1000) },
+        row: {
+          id: 1,
+          mid: "X",
+          text: "",
+          created_at: Math.floor(Date.now() / 1000),
+        },
       },
     };
     const batch = a.normalize(raw);

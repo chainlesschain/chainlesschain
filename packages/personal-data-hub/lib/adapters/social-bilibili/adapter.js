@@ -108,11 +108,46 @@ function parseTime(v) {
   return null;
 }
 
-function trySelect(db, sql) {
+function sqliteSourceError(tableName, operation, cause) {
+  const error = new Error(
+    `social-bilibili: source table ${tableName} could not be ${operation}; refusing a partial import`,
+  );
+  error.code = "BILIBILI_SQLITE_SOURCE_UNREADABLE";
+  error.table = tableName;
+  error.operation = operation;
+  error.cause = cause;
+  return error;
+}
+
+function listSqliteTables(db) {
   try {
-    return db.prepare(sql).all();
-  } catch {
-    return null;
+    const rows = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+      .all();
+    if (!Array.isArray(rows)) {
+      throw new Error("SQLite table inventory did not return a row array");
+    }
+    return new Set(
+      rows
+        .map((row) => row && row.name)
+        .filter((name) => typeof name === "string")
+        .map((name) => name.toLowerCase()),
+    );
+  } catch (error) {
+    throw sqliteSourceError("sqlite_master", "listed", error);
+  }
+}
+
+function readOptionalTable(db, tableNames, tableName, sql) {
+  if (!tableNames.has(tableName.toLowerCase())) return [];
+  try {
+    const rows = db.prepare(sql).all();
+    if (!Array.isArray(rows)) {
+      throw new Error("SQLite query did not return a row array");
+    }
+    return rows;
+  } catch (error) {
+    throw sqliteSourceError(tableName, "read", error);
   }
 }
 
@@ -295,8 +330,13 @@ class BilibiliAdapter {
       : require("better-sqlite3-multiple-ciphers");
     const db = new Driver(dbPath, { readonly: true });
     try {
-      const history =
-        trySelect(db, "SELECT * FROM history ORDER BY view_at DESC") || [];
+      const tableNames = listSqliteTables(db);
+      const history = readOptionalTable(
+        db,
+        tableNames,
+        "history",
+        "SELECT * FROM history ORDER BY view_at DESC",
+      );
       const records = history.map((row) => ({
         adapter: NAME,
         kind: KIND_HISTORY,
@@ -316,9 +356,12 @@ class BilibiliAdapter {
           _row: row,
         },
       }));
-      const favs =
-        trySelect(db, "SELECT * FROM bili_favourite ORDER BY save_time DESC") ||
-        [];
+      const favs = readOptionalTable(
+        db,
+        tableNames,
+        "bili_favourite",
+        "SELECT * FROM bili_favourite ORDER BY save_time DESC",
+      );
       records.push(
         ...favs.map((row) => ({
           adapter: NAME,
