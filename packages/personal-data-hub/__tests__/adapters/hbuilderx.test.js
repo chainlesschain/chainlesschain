@@ -88,6 +88,26 @@ afterEach(() => {
 });
 
 describe("HBuilderX local metadata discovery", () => {
+  it("discovers activity beyond the former 256-file default boundary", () => {
+    const fileCount = 257;
+    for (let index = 0; index < fileCount; index++) {
+      writeActivityFile(
+        hbuilderxHome,
+        [activitySection(index)],
+        `activity-${String(index).padStart(3, "0")}.ini`,
+      );
+    }
+
+    const result = readHBuilderXFileActivity([hbuilderxHome], {
+      sourceTimezone: "+08:00",
+      scope: "account:hbuilderx:large-file-set",
+    });
+
+    expect(result.records).toHaveLength(fileCount);
+    expect(result.inspectedFiles).toBe(fileCount);
+    expect(result.complete).toBe(true);
+  });
+
   it("discovers the two audited Windows standard roots without probing other platforms", () => {
     const homes = defaultHBuilderXHomes(
       {
