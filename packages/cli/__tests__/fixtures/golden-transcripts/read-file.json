@@ -8,6 +8,7 @@
   },
   {
     "error": null,
+    "permission_decision": null,
     "result": {
       "content": "golden transcript content",
       "hashed": false

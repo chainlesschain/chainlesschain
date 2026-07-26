@@ -51,5 +51,7 @@ export {
   _resetFileFreshness,
   _getSharedCodeIntel,
   disposeSharedCodeIntel,
+  emitToolHookLifecycle,
+  emitToolBatchHookLifecycle,
   _resetSubtreeInstructionLoaders,
 } from "../runtime/agent-core.js";

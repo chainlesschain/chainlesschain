@@ -206,7 +206,7 @@ describe("publish_artifact tool dispatch (HOME redirected)", () => {
     const res = await executeTool(
       "publish_artifact",
       { path: src, title: "Findings", kind: "data" },
-      { sessionId: "sess-9" },
+      { sessionId: "sess-9", cwd: srcDir },
     );
     expect(res.error).toBeUndefined();
     expect(res.published).toMatchObject({
@@ -227,7 +227,7 @@ describe("publish_artifact tool dispatch (HOME redirected)", () => {
     const res = await executeTool(
       "publish_artifact",
       { path: path.join(srcDir, "missing.md") },
-      {},
+      { cwd: srcDir },
     );
     expect(res.error).toMatch(/publish_artifact failed/);
   });

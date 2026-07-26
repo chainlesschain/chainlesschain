@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.162.181 + PDH 0.4.57 + Agent SDK 0.1.7: sandbox contracts and complete collection
+
+> `chainlesschain` **0.162.181** bundles
+> `@chainlesschain/personal-data-hub` **0.4.57** and co-releases
+> `@chainlesschain/agent-sdk` **0.1.7** (2026-07-26).
+
+- **Enforced process boundaries**: the CLI process broker preserves native
+  sandbox identity across foreground, detached, IPC, plugin hook, MCP, monitor,
+  and LSP launches. Plugin manifests can require explicit sandbox boundaries,
+  and Linux launches attest the primitives actually applied.
+- **Runtime and protocol convergence**: restore compatibility-shim exports,
+  keep permission-decision fields stable in golden transcripts, and carry the
+  current background-session and event-recovery contract through the Agent SDK.
+- **Complete resumable collection**: PDH adapters use explicit cursors and
+  bounded page budgets across local databases, desktop clients, mobile APIs,
+  maps, social, messaging, education, music, health, shopping, and travel
+  sources. Partial or unreadable SQLite results now fail closed instead of
+  silently advancing checkpoints.
+- **Release validation**: PDH 282 files / 4,528 tests, Agent SDK build plus
+  50 tests, CLI sandbox/plugin focused regression, Web Panel build, and
+  isolated Git-worktree/WebSocket regressions passed before publication.
+
 ### Added — cc CLI 0.162.180 + PDH 0.4.56: transactional multi-source ingest
 
 > `chainlesschain` **0.162.180** bundles
