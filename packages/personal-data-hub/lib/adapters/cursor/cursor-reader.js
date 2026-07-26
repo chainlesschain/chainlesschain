@@ -146,18 +146,21 @@ function readAgentTranscripts(cursorHome, opts = {}) {
 
   const since = Number.isInteger(opts.since) && opts.since > 0 ? opts.since : 0;
   const limit = positiveInteger(opts.limit, Number.MAX_SAFE_INTEGER);
-  const maxProjects = positiveInteger(opts.maxProjects, DEFAULT_MAX_PROJECTS);
+  const maxProjects = positiveInteger(
+    opts.maxProjects,
+    Math.max(DEFAULT_MAX_PROJECTS, limit),
+  );
   const maxAgentDirectories = positiveInteger(
     opts.maxAgentDirectories,
-    DEFAULT_MAX_AGENT_DIRECTORIES,
+    Math.max(DEFAULT_MAX_AGENT_DIRECTORIES, limit),
   );
   const maxTranscriptFiles = positiveInteger(
     opts.maxTranscriptFiles,
-    DEFAULT_MAX_TRANSCRIPT_FILES,
+    Math.max(DEFAULT_MAX_TRANSCRIPT_FILES, limit),
   );
   const maxTranscriptRecords = positiveInteger(
     opts.maxTranscriptRecords,
-    DEFAULT_MAX_TRANSCRIPT_RECORDS,
+    Math.max(DEFAULT_MAX_TRANSCRIPT_RECORDS, limit),
   );
   const maxMessageChars = positiveInteger(
     opts.maxMessageChars,
@@ -389,8 +392,9 @@ function readAiTracking(cursorHome, opts = {}) {
   const limit = positiveInteger(opts.limit, Number.MAX_SAFE_INTEGER);
   const maxRows = positiveInteger(
     opts.maxTrackingRows,
-    DEFAULT_MAX_TRACKING_ROWS,
+    Math.max(DEFAULT_MAX_TRACKING_ROWS, limit),
   );
+  const probeRows = maxRows < Number.MAX_SAFE_INTEGER ? maxRows + 1 : maxRows;
   const maxSummaryChars = positiveInteger(
     opts.maxSummaryChars,
     DEFAULT_MAX_SUMMARY_CHARS,
@@ -424,7 +428,7 @@ function readAiTracking(cursorHome, opts = {}) {
         .prepare(
           `SELECT ${selected} FROM conversation_summaries ORDER BY updatedAt DESC LIMIT ?`,
         )
-        .all(maxRows + 1);
+        .all(probeRows);
       if (rows.length > maxRows) {
         rows = rows.slice(0, maxRows);
         complete = false;
@@ -471,7 +475,7 @@ function readAiTracking(cursorHome, opts = {}) {
         .prepare(
           `SELECT ${selected} FROM ai_code_hashes ORDER BY timestamp DESC LIMIT ?`,
         )
-        .all(maxRows + 1);
+        .all(probeRows);
       if (rows.length > maxRows) {
         rows = rows.slice(0, maxRows);
         complete = false;

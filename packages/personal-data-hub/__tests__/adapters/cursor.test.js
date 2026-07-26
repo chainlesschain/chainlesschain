@@ -230,6 +230,30 @@ afterEach(() => {
 });
 
 describe("Cursor local readers", () => {
+  it("expands project discovery with the scan limit instead of a fixed default", () => {
+    const projectsRoot = join(cursorHome, "projects");
+    const projectCount = 10_001;
+    const projectEntries = Array.from({ length: projectCount }, (_, index) => ({
+      name: `project-${String(index).padStart(5, "0")}`,
+      isDirectory: () => true,
+      isSymbolicLink: () => false,
+    }));
+    const fsMod = {
+      existsSync: (candidate) => candidate === projectsRoot,
+      readdirSync: (candidate) => {
+        expect(candidate).toBe(projectsRoot);
+        return projectEntries;
+      },
+    };
+
+    const result = readAgentTranscripts(cursorHome, {
+      fs: fsMod,
+      limit: projectCount,
+    });
+
+    expect(result).toEqual({ messages: [], complete: true });
+  });
+
   it("parses only bounded user/assistant text without leaking path-shaped identifiers", () => {
     makeAgentTranscript();
     const result = readAgentTranscripts(cursorHome);

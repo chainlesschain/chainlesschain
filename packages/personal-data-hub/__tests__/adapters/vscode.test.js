@@ -17,6 +17,7 @@ const {
   VSCODE_NAME,
   VSCODE_VERSION,
   decodeFileUri,
+  readWorkspaces,
 } = require("../../lib/adapters/vscode");
 const { assertAdapter } = require("../../lib/adapter-spec");
 const { EVENT_SUBTYPES, ITEM_SUBTYPES } = require("../../lib/constants");
@@ -117,6 +118,31 @@ describe("VSCodeAdapter — contract + identity", () => {
     expect(a.watermarkStrategy).toBe("max-captured-at");
     expect(a.watermarkRequiresCompleteScan).toBe(true);
     expect(a.watermarkLookbackMs).toBe(1000);
+  });
+});
+
+describe("VS Code local readers", () => {
+  it("expands workspace discovery with the scan limit instead of a fixed default", () => {
+    const workspaceRoot = join(vscodeRoot, "User", "workspaceStorage");
+    const workspaceCount = 100_001;
+    const workspaceNames = Array.from(
+      { length: workspaceCount },
+      (_, index) => `workspace-${String(index).padStart(6, "0")}`,
+    );
+    const fsMod = {
+      existsSync: (candidate) => candidate === workspaceRoot,
+      readdirSync: (candidate) => {
+        expect(candidate).toBe(workspaceRoot);
+        return workspaceNames;
+      },
+    };
+
+    const result = readWorkspaces(vscodeRoot, {
+      fs: fsMod,
+      limit: workspaceCount,
+    });
+
+    expect(result).toEqual({ workspaces: [], complete: true });
   });
 });
 

@@ -221,6 +221,28 @@ afterEach(() => {
 });
 
 describe("Claude Code local readers", () => {
+  it("expands project discovery with the scan limit instead of a fixed default", () => {
+    const projectsRoot = join(claudeHome, "projects");
+    const projectCount = 10_001;
+    const projectEntries = Array.from({ length: projectCount }, (_, index) => ({
+      name: `project-${String(index).padStart(5, "0")}`,
+      isDirectory: () => true,
+      isSymbolicLink: () => false,
+    }));
+    const fsMod = {
+      existsSync: (candidate) => candidate === projectsRoot,
+      readdirSync: (candidate) =>
+        candidate === projectsRoot ? projectEntries : [],
+    };
+
+    const discovery = discoverTranscriptFiles(claudeHome, {
+      fs: fsMod,
+      limit: projectCount,
+    });
+
+    expect(discovery).toEqual({ files: [], complete: true });
+  });
+
   it("collects main and subagent text while excluding tools, thoughts, paths, and raw ids", () => {
     makeTranscriptTree();
     const discovery = discoverTranscriptFiles(claudeHome);

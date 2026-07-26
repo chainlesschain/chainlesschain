@@ -264,7 +264,7 @@ class ClaudeCodeAdapter {
           fs: this._deps.fs,
           since,
           includeSubagents: opts.include?.subagentTranscripts !== false,
-          limit: Number.MAX_SAFE_INTEGER,
+          limit,
         });
         complete = complete && result.complete;
         for (const message of result.messages) {
@@ -282,6 +282,7 @@ class ClaudeCodeAdapter {
           ...opts,
           fs: this._deps.fs,
           since,
+          limit,
         });
         complete = complete && result.complete;
         for (const activity of result.activity) {

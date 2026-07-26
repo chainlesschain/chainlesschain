@@ -161,7 +161,7 @@ function readWorkspaces(vscodeRoot, opts = {}) {
   const limit = positiveInteger(opts.limit, Number.MAX_SAFE_INTEGER);
   const maxWorkspaces = positiveInteger(
     opts.maxWorkspaces,
-    DEFAULT_MAX_WORKSPACES,
+    Math.max(DEFAULT_MAX_WORKSPACES, limit),
   );
   let directoryNames;
   try {
@@ -265,7 +265,7 @@ function readTerminalHistory(vscodeRoot, opts = {}) {
   const limit = positiveInteger(opts.limit, Number.MAX_SAFE_INTEGER);
   const maxEntries = positiveInteger(
     opts.maxTerminalEntries,
-    DEFAULT_MAX_TERMINAL_ENTRIES,
+    Math.max(DEFAULT_MAX_TERMINAL_ENTRIES, limit),
   );
   const tempDirectory = fsMod.mkdtempSync(
     path.join(os.tmpdir(), "pdh-vscode-"),
@@ -397,11 +397,11 @@ function readLocalHistory(vscodeRoot, opts = {}) {
   const limit = positiveInteger(opts.limit, Number.MAX_SAFE_INTEGER);
   const maxDirectories = positiveInteger(
     opts.maxHistoryDirectories,
-    DEFAULT_MAX_HISTORY_DIRECTORIES,
+    Math.max(DEFAULT_MAX_HISTORY_DIRECTORIES, limit),
   );
   const maxEntries = positiveInteger(
     opts.maxHistoryEntries,
-    DEFAULT_MAX_HISTORY_ENTRIES,
+    Math.max(DEFAULT_MAX_HISTORY_ENTRIES, limit),
   );
   let directoryNames;
   try {

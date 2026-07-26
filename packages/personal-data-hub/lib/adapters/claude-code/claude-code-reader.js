@@ -109,10 +109,14 @@ function discoverTranscriptFiles(claudeHome, opts = {}) {
   }
 
   const includeSubagents = opts.includeSubagents !== false;
-  const maxProjects = positiveInteger(opts.maxProjects, DEFAULT_MAX_PROJECTS);
+  const limit = positiveInteger(opts.limit, Number.MAX_SAFE_INTEGER);
+  const maxProjects = positiveInteger(
+    opts.maxProjects,
+    Math.max(DEFAULT_MAX_PROJECTS, limit),
+  );
   const maxTranscriptFiles = positiveInteger(
     opts.maxTranscriptFiles,
-    DEFAULT_MAX_TRANSCRIPT_FILES,
+    Math.max(DEFAULT_MAX_TRANSCRIPT_FILES, limit),
   );
   let projectEntries;
   try {
@@ -228,7 +232,7 @@ function readClaudeCodeTranscripts(claudeHome, opts = {}) {
   const limit = positiveInteger(opts.limit, Number.MAX_SAFE_INTEGER);
   const maxTranscriptRecords = positiveInteger(
     opts.maxTranscriptRecords,
-    DEFAULT_MAX_TRANSCRIPT_RECORDS,
+    Math.max(DEFAULT_MAX_TRANSCRIPT_RECORDS, limit),
   );
   const maxTranscriptBytes = positiveInteger(
     opts.maxTranscriptBytes,
@@ -238,7 +242,7 @@ function readClaudeCodeTranscripts(claudeHome, opts = {}) {
     opts.maxMessageChars,
     DEFAULT_MAX_MESSAGE_CHARS,
   );
-  const discovery = discoverTranscriptFiles(claudeHome, opts);
+  const discovery = discoverTranscriptFiles(claudeHome, { ...opts, limit });
   let complete = discovery.complete;
   let inspectedRecords = 0;
   let inspectedBytes = 0;
@@ -396,9 +400,10 @@ function readClaudeCodeStats(claudeHome, opts = {}) {
 
   const since =
     Number.isSafeInteger(opts.since) && opts.since > 0 ? opts.since : 0;
+  const limit = positiveInteger(opts.limit, Number.MAX_SAFE_INTEGER);
   const maxStatsRecords = positiveInteger(
     opts.maxStatsRecords,
-    DEFAULT_MAX_STATS_RECORDS,
+    Math.max(DEFAULT_MAX_STATS_RECORDS, limit),
   );
   let parsed;
   let statsMtime;
