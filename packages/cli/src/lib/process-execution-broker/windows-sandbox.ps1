@@ -35,9 +35,11 @@ namespace ChainlessChain.WindowsSandbox
 
         private const UInt32 CREATE_SUSPENDED = 0x00000004;
         private const UInt32 CREATE_UNICODE_ENVIRONMENT = 0x00000400;
+        private const UInt32 CREATE_NO_WINDOW = 0x08000000;
         private const UInt32 STARTF_USESTDHANDLES = 0x00000100;
         private const UInt32 INFINITE = 0xffffffff;
         private const UInt32 HANDLE_FLAG_INHERIT = 0x00000001;
+        private const UInt32 DUPLICATE_SAME_ACCESS = 0x00000002;
         private const Byte CRT_FOPEN = 0x01;
         private const Byte CRT_FPIPE = 0x08;
         private const Byte CRT_FDEV = 0x40;
@@ -140,6 +142,17 @@ namespace ChainlessChain.WindowsSandbox
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool CloseHandle(IntPtr handle);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool DuplicateHandle(
+            IntPtr sourceProcess,
+            IntPtr sourceHandle,
+            IntPtr targetProcess,
+            out IntPtr targetHandle,
+            UInt32 desiredAccess,
+            [MarshalAs(UnmanagedType.Bool)] bool inheritHandle,
+            UInt32 options);
 
         [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr _get_osfhandle(Int32 fileDescriptor);
@@ -399,14 +412,20 @@ namespace ChainlessChain.WindowsSandbox
             List<IntPtr> ownedHandles)
         {
             IntPtr handle = GetStdHandle(standardHandle);
-            if (
-                !IsInvalidHandle(handle) &&
-                SetHandleInformation(
+            IntPtr duplicate;
+            IntPtr currentProcess = GetCurrentProcess();
+            if (!IsInvalidHandle(handle) &&
+                DuplicateHandle(
+                    currentProcess,
                     handle,
-                    HANDLE_FLAG_INHERIT,
-                    HANDLE_FLAG_INHERIT))
+                    currentProcess,
+                    out duplicate,
+                    0,
+                    true,
+                    DUPLICATE_SAME_ACCESS))
             {
-                return handle;
+                ownedHandles.Add(duplicate);
+                return duplicate;
             }
 
             SECURITY_ATTRIBUTES attributes = new SECURITY_ATTRIBUTES();
@@ -435,7 +454,6 @@ namespace ChainlessChain.WindowsSandbox
             out UInt16 descriptorBytes)
         {
             descriptorBytes = 0;
-            if (nodeIpcFd < 0) return IntPtr.Zero;
             if (nodeIpcFd > 255)
                 throw new InvalidDataException(
                     "Node IPC descriptor is outside the CRT table range");
@@ -521,6 +539,7 @@ namespace ChainlessChain.WindowsSandbox
             long processMemoryBytes,
             int activeProcessLimit,
             int nodeIpcFd,
+            bool windowsHide,
             string identityPath)
         {
             application = ResolveApplication(application);
@@ -637,6 +656,10 @@ namespace ChainlessChain.WindowsSandbox
                 StringBuilder commandLine =
                     new StringBuilder(
                         BuildCreateProcessCommandLine(application, arguments));
+                UInt32 creationFlags =
+                    CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT;
+                if (windowsHide)
+                    creationFlags |= CREATE_NO_WINDOW;
                 if (!CreateProcessAsUser(
                     restrictedToken,
                     application,
@@ -644,7 +667,7 @@ namespace ChainlessChain.WindowsSandbox
                     IntPtr.Zero,
                     IntPtr.Zero,
                     true,
-                    CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT,
+                    creationFlags,
                     IntPtr.Zero,
                     Environment.CurrentDirectory,
                     ref startup,
@@ -725,6 +748,7 @@ namespace ChainlessChain.WindowsSandbox
             public string command { get; set; }
             public string[] args { get; set; }
             public int nodeIpcFd { get; set; }
+            public bool windowsHide { get; set; }
             public string identityPath { get; set; }
         }
 
@@ -748,6 +772,7 @@ namespace ChainlessChain.WindowsSandbox
                     spec.processMemoryBytes,
                     spec.activeProcessLimit,
                     spec.nodeIpcFd,
+                    spec.windowsHide,
                     spec.identityPath);
             }
             catch (Exception error)

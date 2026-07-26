@@ -516,6 +516,7 @@ export function applyWindowsSandbox(
     command: invocation.command,
     args: invocation.args,
     nodeIpcFd,
+    windowsHide: invocation.options.windowsHide === true,
   };
   if (identityPath) launchSpec.identityPath = identityPath;
   const payload = Buffer.from(JSON.stringify(launchSpec), "utf8").toString(

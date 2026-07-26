@@ -1,4 +1,13 @@
 import { EventEmitter, once } from "node:events";
+import {
+  closeSync,
+  mkdtempSync,
+  openSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -218,6 +227,7 @@ describe("platform sandbox adapter contract", () => {
       command: "tool.exe",
       args: ["run"],
       nodeIpcFd: -1,
+      windowsHide: true,
     });
     expect(plan.options).toMatchObject({
       windowsHide: true,
@@ -687,6 +697,71 @@ describe.runIf(process.platform === "win32")(
             // The Job may already have reaped it.
           }
         }
+        if (previousStrict === undefined) {
+          delete process.env.CC_SANDBOX_STRICT;
+        } else {
+          process.env.CC_SANDBOX_STRICT = previousStrict;
+        }
+        if (previousDisable === undefined) {
+          delete process.env.CC_SANDBOX_DISABLE;
+        } else {
+          process.env.CC_SANDBOX_DISABLE = previousDisable;
+        }
+        executionBroker._sandboxEnabled = previousSandboxEnabled;
+        executionBroker._platformSandboxEnabled = previousPlatformEnabled;
+      }
+    }, 45_000);
+
+    it("preserves detached file stdio through restricted target startup", async () => {
+      const previousStrict = process.env.CC_SANDBOX_STRICT;
+      const previousDisable = process.env.CC_SANDBOX_DISABLE;
+      const previousSandboxEnabled = executionBroker._sandboxEnabled;
+      const previousPlatformEnabled = executionBroker._platformSandboxEnabled;
+      process.env.CC_SANDBOX_STRICT = "1";
+      delete process.env.CC_SANDBOX_DISABLE;
+      executionBroker._sandboxEnabled = true;
+      executionBroker._platformSandboxEnabled = true;
+      const dir = mkdtempSync(path.join(os.tmpdir(), "cc-win-stdio-"));
+      const script = path.join(dir, "detached-worker.mjs");
+      const logFile = path.join(dir, "worker.log");
+      let logFd;
+      let child;
+      try {
+        writeFileSync(
+          script,
+          [
+            'process.stdout.write("stdout-ok\\n");',
+            'process.stderr.write("stderr-ok\\n");',
+            "setTimeout(() => process.exit(0), 500);",
+            "",
+          ].join("\n"),
+          "utf8",
+        );
+        logFd = openSync(logFile, "a");
+        child = executionBroker.spawn(process.execPath, [script], {
+          origin: "test:windows-native-sandbox-detached-file-stdio-live",
+          policy: "allow",
+          detached: true,
+          stdio: ["ignore", logFd, logFd],
+          windowsHide: true,
+          timeout: 30_000,
+          env: process.env,
+        });
+        closeSync(logFd);
+        logFd = null;
+        const [code, signal] = await once(child, "exit");
+        expect({ code, signal }).toEqual({ code: 0, signal: null });
+        const log = readFileSync(logFile, "utf8");
+        expect(log).toContain("stdout-ok");
+        expect(log).toContain("stderr-ok");
+      } finally {
+        if (Number.isInteger(logFd)) closeSync(logFd);
+        try {
+          child?.kill();
+        } catch {
+          // The child normally exits after writing both streams.
+        }
+        rmSync(dir, { recursive: true, force: true });
         if (previousStrict === undefined) {
           delete process.env.CC_SANDBOX_STRICT;
         } else {
