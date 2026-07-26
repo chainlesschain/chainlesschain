@@ -222,7 +222,10 @@ describe.runIf(LIVE && SUPPORTED)(
             "-e",
             [
               'const net = require("node:net");',
-              "const server = net.createServer((socket) => socket.end('ok'));",
+              "const server = net.createServer((socket) => {",
+              "  socket.on('error', () => {});",
+              "  socket.end('ok');",
+              "});",
               "server.once('error', (error) => {",
               "  process.send({ error: error.message });",
               "  process.exit(2);",
@@ -303,14 +306,28 @@ describe.runIf(LIVE && SUPPORTED)(
               host: "127.0.0.1",
               port: serverReady.port,
             });
+            let response = "";
             const timer = setTimeout(() => {
               socket.destroy();
               reject(new Error("Host control connection timed out"));
             }, 5_000);
-            socket.once("connect", () => {
+            socket.setEncoding("utf8");
+            socket.on("data", (chunk) => {
+              response += chunk;
+            });
+            socket.once("end", () => {
               clearTimeout(timer);
-              socket.destroy();
-              resolve();
+              if (response === "ok") {
+                resolve();
+              } else {
+                reject(
+                  new Error(
+                    `Host control connection returned ${JSON.stringify(
+                      response,
+                    )}`,
+                  ),
+                );
+              }
             });
             socket.once("error", (error) => {
               clearTimeout(timer);
