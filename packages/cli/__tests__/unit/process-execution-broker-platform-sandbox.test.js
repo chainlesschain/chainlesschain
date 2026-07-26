@@ -78,6 +78,8 @@ describe("platform sandbox adapter contract", () => {
     expect(plan.options).toEqual(options);
     expect(fsRuntime.writeFileSync).toHaveBeenCalledOnce();
     const profile = fsRuntime.writeFileSync.mock.calls[0][1];
+    expect(profile).toContain('(import "system.sb")');
+    expect(profile).toContain("(deny network*)");
     expect(profile).toContain('(allow file-read* (subpath "/usr/bin"))');
     expect(profile).toContain(
       '(allow file-read* file-write* (literal "/dev/null")',

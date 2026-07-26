@@ -12,6 +12,7 @@ $ErrorActionPreference = "Stop"
 
 $nativeSource = @'
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
@@ -43,6 +44,12 @@ namespace ChainlessChain.WindowsSandbox
         private const UInt32 FILE_TYPE_DISK = 0x0001;
         private const UInt32 FILE_TYPE_CHAR = 0x0002;
         private const UInt32 FILE_TYPE_PIPE = 0x0003;
+        private const UInt32 GENERIC_READ = 0x80000000;
+        private const UInt32 GENERIC_WRITE = 0x40000000;
+        private const UInt32 FILE_SHARE_READ = 0x00000001;
+        private const UInt32 FILE_SHARE_WRITE = 0x00000002;
+        private const UInt32 OPEN_EXISTING = 3;
+        private const UInt32 FILE_ATTRIBUTE_NORMAL = 0x00000080;
 
         private const UInt32 JOB_OBJECT_LIMIT_PROCESS_TIME = 0x00000002;
         private const UInt32 JOB_OBJECT_LIMIT_ACTIVE_PROCESS = 0x00000008;
@@ -150,6 +157,16 @@ namespace ChainlessChain.WindowsSandbox
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern UInt32 GetFileType(IntPtr handle);
 
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern IntPtr CreateFile(
+            string fileName,
+            UInt32 desiredAccess,
+            UInt32 shareMode,
+            ref SECURITY_ATTRIBUTES securityAttributes,
+            UInt32 creationDisposition,
+            UInt32 flagsAndAttributes,
+            IntPtr templateFile);
+
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern UInt32 ResumeThread(IntPtr thread);
 
@@ -219,9 +236,16 @@ namespace ChainlessChain.WindowsSandbox
 
         private static void ThrowLastError(string operation)
         {
+            int code = Marshal.GetLastWin32Error();
+            string systemMessage = new Win32Exception(code).Message;
             throw new Win32Exception(
-                Marshal.GetLastWin32Error(),
-                operation + " failed");
+                code,
+                String.Format(
+                    CultureInfo.InvariantCulture,
+                    "{0} failed (win32={1}: {2})",
+                    operation,
+                    code,
+                    systemMessage));
         }
 
         public static string QuoteArgument(string value)
@@ -361,8 +385,53 @@ namespace ChainlessChain.WindowsSandbox
                 "Inherited descriptor has an unsupported handle type");
         }
 
+        private static bool IsInvalidHandle(IntPtr handle)
+        {
+            return
+                handle == IntPtr.Zero ||
+                handle == new IntPtr(-1) ||
+                handle == new IntPtr(-2);
+        }
+
+        private static IntPtr PrepareStandardHandle(
+            Int32 standardHandle,
+            UInt32 fallbackAccess,
+            List<IntPtr> ownedHandles)
+        {
+            IntPtr handle = GetStdHandle(standardHandle);
+            if (
+                !IsInvalidHandle(handle) &&
+                SetHandleInformation(
+                    handle,
+                    HANDLE_FLAG_INHERIT,
+                    HANDLE_FLAG_INHERIT))
+            {
+                return handle;
+            }
+
+            SECURITY_ATTRIBUTES attributes = new SECURITY_ATTRIBUTES();
+            attributes.nLength = checked(
+                (UInt32)Marshal.SizeOf(typeof(SECURITY_ATTRIBUTES)));
+            attributes.bInheritHandle = true;
+            IntPtr fallback = CreateFile(
+                "NUL",
+                fallbackAccess,
+                FILE_SHARE_READ | FILE_SHARE_WRITE,
+                ref attributes,
+                OPEN_EXISTING,
+                FILE_ATTRIBUTE_NORMAL,
+                IntPtr.Zero);
+            if (IsInvalidHandle(fallback))
+                ThrowLastError("CreateFile(NUL)");
+            ownedHandles.Add(fallback);
+            return fallback;
+        }
+
         private static IntPtr BuildNodeDescriptorTable(
             int nodeIpcFd,
+            IntPtr standardInput,
+            IntPtr standardOutput,
+            IntPtr standardError,
             out UInt16 descriptorBytes)
         {
             descriptorBytes = 0;
@@ -386,11 +455,11 @@ namespace ChainlessChain.WindowsSandbox
                 {
                     IntPtr handle;
                     if (fd == 0)
-                        handle = GetStdHandle(-10);
+                        handle = standardInput;
                     else if (fd == 1)
-                        handle = GetStdHandle(-11);
+                        handle = standardOutput;
                     else if (fd == 2)
-                        handle = GetStdHandle(-12);
+                        handle = standardError;
                     else if (fd == nodeIpcFd)
                         handle = _get_osfhandle(fd);
                     else
@@ -470,6 +539,7 @@ namespace ChainlessChain.WindowsSandbox
             IntPtr job = IntPtr.Zero;
             IntPtr limitBuffer = IntPtr.Zero;
             IntPtr descriptorBuffer = IntPtr.Zero;
+            List<IntPtr> ownedStandardHandles = new List<IntPtr>();
             PROCESS_INFORMATION processInfo = new PROCESS_INFORMATION();
 
             try
@@ -542,12 +612,24 @@ namespace ChainlessChain.WindowsSandbox
                 STARTUPINFO startup = new STARTUPINFO();
                 startup.cb = checked((UInt32)Marshal.SizeOf(typeof(STARTUPINFO)));
                 startup.dwFlags = STARTF_USESTDHANDLES;
-                startup.hStdInput = GetStdHandle(-10);
-                startup.hStdOutput = GetStdHandle(-11);
-                startup.hStdError = GetStdHandle(-12);
+                startup.hStdInput = PrepareStandardHandle(
+                    -10,
+                    GENERIC_READ,
+                    ownedStandardHandles);
+                startup.hStdOutput = PrepareStandardHandle(
+                    -11,
+                    GENERIC_WRITE,
+                    ownedStandardHandles);
+                startup.hStdError = PrepareStandardHandle(
+                    -12,
+                    GENERIC_WRITE,
+                    ownedStandardHandles);
                 UInt16 descriptorBytes;
                 descriptorBuffer = BuildNodeDescriptorTable(
                     nodeIpcFd,
+                    startup.hStdInput,
+                    startup.hStdOutput,
+                    startup.hStdError,
                     out descriptorBytes);
                 startup.cbReserved2 = descriptorBytes;
                 startup.lpReserved2 = descriptorBuffer;
@@ -623,6 +705,8 @@ namespace ChainlessChain.WindowsSandbox
                 if (processInfo.hProcess != IntPtr.Zero) CloseHandle(processInfo.hProcess);
                 if (descriptorBuffer != IntPtr.Zero)
                     Marshal.FreeHGlobal(descriptorBuffer);
+                foreach (IntPtr handle in ownedStandardHandles)
+                    CloseHandle(handle);
                 if (limitBuffer != IntPtr.Zero) Marshal.FreeHGlobal(limitBuffer);
                 if (job != IntPtr.Zero) CloseHandle(job);
                 if (restrictedToken != IntPtr.Zero) CloseHandle(restrictedToken);
@@ -646,6 +730,7 @@ namespace ChainlessChain.WindowsSandbox
 
         public static int Main(string[] args)
         {
+            LaunchSpec spec = null;
             try
             {
                 if (args == null || args.Length != 1)
@@ -653,8 +738,7 @@ namespace ChainlessChain.WindowsSandbox
 
                 string json = Encoding.UTF8.GetString(
                     Convert.FromBase64String(args[0]));
-                LaunchSpec spec =
-                    new JavaScriptSerializer().Deserialize<LaunchSpec>(json);
+                spec = new JavaScriptSerializer().Deserialize<LaunchSpec>(json);
                 if (spec == null || String.IsNullOrWhiteSpace(spec.command))
                     throw new ArgumentException("Launch payload is incomplete");
                 return Native.Run(
@@ -668,6 +752,27 @@ namespace ChainlessChain.WindowsSandbox
             }
             catch (Exception error)
             {
+                if (!String.IsNullOrWhiteSpace(spec == null ? null : spec.identityPath))
+                {
+                    try
+                    {
+                        string failure = new JavaScriptSerializer().Serialize(
+                            new
+                            {
+                                error = error.ToString(),
+                                helperPid =
+                                    System.Diagnostics.Process.GetCurrentProcess().Id
+                            });
+                        File.WriteAllText(
+                            spec.identityPath,
+                            failure,
+                            new UTF8Encoding(false));
+                    }
+                    catch
+                    {
+                        // The original native failure remains authoritative.
+                    }
+                }
                 Console.Error.WriteLine(
                     "CC_WINDOWS_SANDBOX_ERROR: " + error.Message);
                 return 125;

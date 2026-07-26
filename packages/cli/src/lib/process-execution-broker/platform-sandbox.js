@@ -154,6 +154,10 @@ export function generateMacSeatbeltProfile(opts = {}, runtimeOverrides = {}) {
   const lines = [
     "(version 1)",
     "(deny default)",
+    // Apple's system baseline supplies the loader/device primitives required
+    // for ordinary command startup. Our explicit rules below still own
+    // process, filesystem write, and network policy.
+    '(import "system.sb")',
     // Basic system operations always allowed
     "(allow signal (target self))",
     '(allow process-exec (literal "/usr/bin/env"))',
@@ -170,6 +174,10 @@ export function generateMacSeatbeltProfile(opts = {}, runtimeOverrides = {}) {
 
   if (allowNetwork) {
     lines.push("(allow network*)");
+  } else {
+    // Keep the imported system baseline from widening the caller's explicit
+    // no-network policy.
+    lines.push("(deny network*)");
   }
 
   // Allow read/write to specific paths
@@ -368,6 +376,11 @@ function waitForWindowsTargetIdentity(
       const identity = JSON.parse(
         runtime.fs.readFileSync(identityPath, "utf8"),
       );
+      if (identity?.error) {
+        throw new Error(
+          `Windows sandbox helper rejected the target: ${identity.error}`,
+        );
+      }
       const targetPid = Number(identity?.targetPid);
       const helperPid = Number(identity?.helperPid);
       if (!Number.isSafeInteger(targetPid) || targetPid <= 0) {

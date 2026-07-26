@@ -145,7 +145,10 @@ describe("4. process tree — workerPid vs agentPid semantics (real spawn)", () 
       const s = readBackgroundAgentState(state.id);
       return Number.isInteger(s?.agentPid) && s.agentPid > 0 ? s : null;
     });
-    expect(withAgent).not.toBe(null);
+    expect(
+      withAgent,
+      `state=${JSON.stringify(readBackgroundAgentState(state.id))} log=${readBackgroundAgentLog(state.id)}`,
+    ).not.toBe(null);
     expect(withAgent.workerPid).toBe(state.pid);
     expect(withAgent.agentPid).not.toBe(withAgent.workerPid);
 
@@ -189,7 +192,10 @@ describe("6. needs-input phase — turn → idle → finalize (real spawn)", () 
     const transport = await pollUntil(
       () => readBackgroundAgentState(state.id)?.transport || null,
     );
-    expect(transport?.pipe).toBeTruthy();
+    expect(
+      transport?.pipe,
+      `state=${JSON.stringify(readBackgroundAgentState(state.id))} log=${readBackgroundAgentLog(state.id)}`,
+    ).toBeTruthy();
 
     const events = [];
     const conn = await connectBackgroundSession({
@@ -265,7 +271,10 @@ describe("8. log tail — truncation while the worker is appending (real spawn)"
     const early = await pollUntil(() =>
       readBackgroundAgentLog(state.id).includes("line-3") ? true : null,
     );
-    expect(early).toBe(true);
+    expect(
+      early,
+      `state=${JSON.stringify(readBackgroundAgentState(state.id))} log=${readBackgroundAgentLog(state.id)}`,
+    ).toBe(true);
 
     // rotate: copytruncate-style — truncate the file the worker holds an
     // O_APPEND fd on (allowed on POSIX and on Windows thanks to libuv's
@@ -323,7 +332,10 @@ describe("P0-2 same-turn question round-trip (real worker/child IPC)", () => {
     const transport = await pollUntil(
       () => readBackgroundAgentState(state.id)?.transport || null,
     );
-    expect(transport?.pipe).toBeTruthy();
+    expect(
+      transport?.pipe,
+      `state=${JSON.stringify(readBackgroundAgentState(state.id))} log=${readBackgroundAgentLog(state.id)}`,
+    ).toBeTruthy();
 
     const interactionEvents = [];
     let firstConn = await connectBackgroundSession({
