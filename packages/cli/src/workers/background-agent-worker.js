@@ -12,7 +12,7 @@
  * no client is attached.
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, writeSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import {
   DEFAULT_HEARTBEAT_INTERVAL_MS,
@@ -502,6 +502,19 @@ async function main() {
 }
 
 main().catch((error) => {
+  // The earliest bootstrap failures happen before `job` and `log` exist.
+  // Write synchronously to the launcher-provided stderr handle so detached
+  // Windows workers retain the loader/job/state error that caused the exit.
+  try {
+    writeSync(
+      2,
+      `[background-agent-worker] fatal: ${
+        error?.stack || error?.message || String(error)
+      }\n`,
+    );
+  } catch {
+    /* the inherited stderr handle itself may be unavailable */
+  }
   if (job?.id) {
     try {
       finalize(1, null, error.message);

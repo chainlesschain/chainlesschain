@@ -947,6 +947,30 @@ export function launchBackgroundAgent({
         /* best-effort */
       }
     });
+    child.on("exit", (code, signal) => {
+      try {
+        rmSync(jobFile, { force: true });
+        const current = readBackgroundAgentState(id);
+        // A healthy worker persists completed/failed before exiting. If the
+        // process (or its platform wrapper) exits while the state still says
+        // running, bootstrap or finalization failed and the session must not
+        // remain a phantom live task until heartbeat reconciliation.
+        if (current && current.status === "running") {
+          writeBackgroundAgentState({
+            ...current,
+            status: "failed",
+            endedAt: Date.now(),
+            exitCode: Number.isInteger(code) ? code : null,
+            signal: signal || null,
+            lostReason: `worker-exited-before-finalize: exit=${
+              Number.isInteger(code) ? code : "null"
+            } signal=${signal || "none"}`,
+          });
+        }
+      } catch {
+        /* best-effort */
+      }
+    });
   }
   child.unref();
   const current = readBackgroundAgentState(id) || state;

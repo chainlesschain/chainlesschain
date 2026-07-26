@@ -82,7 +82,11 @@ describe("1. env inheritance", () => {
     const options = _deps.spawn.mock.calls[0][2];
     // No env key at all = full inheritance of the dispatch shell's environment.
     expect("env" in options).toBe(false);
-    expect(options).toMatchObject({ detached: true, stdio: "ignore" });
+    expect(options).toMatchObject({
+      detached: true,
+      stdio: ["ignore", expect.any(Number), expect.any(Number)],
+    });
+    expect(options.stdio[1]).toBe(options.stdio[2]);
   });
 });
 
@@ -153,6 +157,28 @@ describe("3. async spawn errors", () => {
     expect(after.status).toBe("failed");
     expect(after.lostReason).toMatch(/spawn-error: EPERM/);
     expect(after.endedAt).toBeTruthy();
+  });
+
+  it("reaps a worker that exits before persisting a terminal state", async () => {
+    const child = new EventEmitter();
+    child.pid = 4322;
+    child.unref = vi.fn();
+    _deps.spawn = vi.fn(() => child);
+    const state = launchBackgroundAgent({
+      argv: ["agent", "-p", "x"],
+      cwd: process.cwd(),
+      sessionId: "sid-bootstrap-exit",
+      title: "x",
+    });
+    expect(state.status).toBe("running");
+    child.emit("exit", 125, null);
+    await new Promise((r) => setTimeout(r, 10));
+    expect(readBackgroundAgentState(state.id)).toMatchObject({
+      status: "failed",
+      exitCode: 125,
+      signal: null,
+      lostReason: "worker-exited-before-finalize: exit=125 signal=none",
+    });
   });
 });
 
