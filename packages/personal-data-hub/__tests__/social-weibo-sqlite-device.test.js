@@ -1,6 +1,6 @@
 "use strict";
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 
 const fs = require("node:fs");
 const path = require("node:path");
@@ -33,8 +33,14 @@ function makeFakeDriver(tables) {
       prepare(sql) {
         return {
           all: () => {
+            if (sql.includes("FROM sqlite_master")) {
+              return Object.keys(tables).map((name) => ({ name }));
+            }
             for (const [name, rows] of Object.entries(tables)) {
-              if (new RegExp(`FROM ${name}\\b`).test(sql)) return rows;
+              if (new RegExp(`FROM ${name}\\b`).test(sql)) {
+                if (rows instanceof Error) throw rows;
+                return rows;
+              }
             }
             throw new Error("no such table");
           },
@@ -99,7 +105,11 @@ describe("WeiboAdapter sqlite mode — device-verified schema", () => {
   let dirs = [];
   afterEach(() => {
     for (const d of dirs) {
-      try { fs.rmSync(d, { recursive: true, force: true }); } catch (_e) { /* ignore */ }
+      try {
+        fs.rmSync(d, { recursive: true, force: true });
+      } catch (_e) {
+        /* ignore */
+      }
     }
     dirs = [];
   });
@@ -159,7 +169,14 @@ describe("WeiboAdapter sqlite mode — device-verified schema", () => {
 
   it("legacy device (post table, no home_table) still works via fallback", async () => {
     const { a, dbPath, tmp } = newAdapter({
-      post: [{ id: "L1", text: "legacy post", created_at: "1700000000", attitudes_count: 5 }],
+      post: [
+        {
+          id: "L1",
+          text: "legacy post",
+          created_at: "1700000000",
+          attitudes_count: 5,
+        },
+      ],
     });
     dirs.push(tmp);
     const raws = await collect(a, dbPath);
@@ -175,6 +192,19 @@ describe("WeiboAdapter sqlite mode — device-verified schema", () => {
     dirs.push(tmp);
     const raws = await collect(a, dbPath);
     expect(raws).toEqual([]);
+  });
+
+  it("rejects unreadable discovered main tables instead of returning an empty collection", async () => {
+    const { a, dbPath, tmp } = newAdapter({
+      home_table: new Error("synthetic SQLite read failure"),
+    });
+    dirs.push(tmp);
+
+    await expect(collect(a, dbPath)).rejects.toMatchObject({
+      code: "WEIBO_SQLITE_SOURCE_UNREADABLE",
+      table: "home_table",
+      operation: "read",
+    });
   });
 });
 
@@ -233,30 +263,42 @@ describe("WeiboAdapter sqlite mode — private messages (opt-in)", () => {
   let dirs = [];
   afterEach(() => {
     for (const d of dirs) {
-      try { fs.rmSync(d, { recursive: true, force: true }); } catch (_e) { /* ignore */ }
+      try {
+        fs.rmSync(d, { recursive: true, force: true });
+      } catch (_e) {
+        /* ignore */
+      }
     }
     dirs = [];
   });
 
   it("does NOT collect DM by default (high-sensitivity opt-in gate)", async () => {
     const { a, dbPath, tmp } = newAdapterDm({
-      t_buddy: [BUDDY_ROW], t_session: [SESSION_ROW], t_message: [MESSAGE_ROW],
+      t_buddy: [BUDDY_ROW],
+      t_session: [SESSION_ROW],
+      t_message: [MESSAGE_ROW],
       home_table: [HOME_ROW],
     });
     dirs.push(tmp);
     const raws = await collectDm(a, dbPath); // no includeDm
-    expect(raws.every((r) => !String(r.payload.kind).startsWith("dm-"))).toBe(true);
+    expect(raws.every((r) => !String(r.payload.kind).startsWith("dm-"))).toBe(
+      true,
+    );
     expect(raws.map((r) => r.payload.kind)).toContain("post"); // non-DM still flows
   });
 
   it("collects buddies→PERSON, sessions→TOPIC, messages→EVENT when includeDm:true", async () => {
     const { a, dbPath, tmp } = newAdapterDm({
-      t_buddy: [BUDDY_ROW], t_session: [SESSION_ROW], t_message: [MESSAGE_ROW],
+      t_buddy: [BUDDY_ROW],
+      t_session: [SESSION_ROW],
+      t_message: [MESSAGE_ROW],
     });
     dirs.push(tmp);
     const raws = await collectDm(a, dbPath, { includeDm: true });
     expect(raws.map((r) => r.payload.kind).sort()).toEqual([
-      "dm-buddy", "dm-message", "dm-session",
+      "dm-buddy",
+      "dm-message",
+      "dm-session",
     ]);
   });
 
@@ -313,6 +355,22 @@ describe("WeiboAdapter sqlite mode — private messages (opt-in)", () => {
     dirs.push(tmp);
     const raws = await collectDm(a, dbPath, { includeDm: true });
     expect(a.normalize(raws[0]).events[0].actor).toBe("contact");
+  });
+
+  it("rejects unreadable discovered DM tables instead of returning partial private messages", async () => {
+    const { a, dbPath, tmp } = newAdapterDm({
+      t_buddy: [BUDDY_ROW],
+      t_message: new Error("synthetic SQLite read failure"),
+    });
+    dirs.push(tmp);
+
+    await expect(
+      collectDm(a, dbPath, { includeDm: true }),
+    ).rejects.toMatchObject({
+      code: "WEIBO_SQLITE_SOURCE_UNREADABLE",
+      table: "t_message",
+      operation: "read",
+    });
   });
 
   it("no message_<uid>.db file → DM silently skipped even with includeDm", async () => {

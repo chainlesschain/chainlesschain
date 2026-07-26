@@ -114,6 +114,9 @@ function sqliteDriver({ tables = {}, queries = [] }) {
         queries.push(sql);
         return {
           all() {
+            if (sql.includes("FROM sqlite_master")) {
+              return Object.keys(tables).map((name) => ({ name }));
+            }
             for (const [tableName, rows] of Object.entries(tables)) {
               if (new RegExp(`FROM ${tableName}\\b`, "u").test(sql)) {
                 return rows;

@@ -121,11 +121,46 @@ function parseTime(v) {
   return null;
 }
 
-function trySelect(db, sql) {
+function sqliteSourceError(tableName, operation, cause) {
+  const error = new Error(
+    `social-weibo: source table ${tableName} could not be ${operation}; refusing a partial import`,
+  );
+  error.code = "WEIBO_SQLITE_SOURCE_UNREADABLE";
+  error.table = tableName;
+  error.operation = operation;
+  error.cause = cause;
+  return error;
+}
+
+function listSqliteTables(db) {
   try {
-    return db.prepare(sql).all();
-  } catch {
-    return null;
+    const rows = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+      .all();
+    if (!Array.isArray(rows)) {
+      throw new Error("SQLite table inventory did not return a row array");
+    }
+    return new Set(
+      rows
+        .map((row) => row && row.name)
+        .filter((name) => typeof name === "string")
+        .map((name) => name.toLowerCase()),
+    );
+  } catch (error) {
+    throw sqliteSourceError("sqlite_master", "listed", error);
+  }
+}
+
+function readOptionalTable(db, tableNames, tableName, sql) {
+  if (!tableNames.has(tableName.toLowerCase())) return [];
+  try {
+    const rows = db.prepare(sql).all();
+    if (!Array.isArray(rows)) {
+      throw new Error("SQLite query did not return a row array");
+    }
+    return rows;
+  } catch (error) {
+    throw sqliteSourceError(tableName, "read", error);
   }
 }
 
@@ -335,9 +370,10 @@ class WeiboAdapter {
     const files = [collectionFileIdentity("main", inspected)];
 
     try {
+      const tableNames = listSqliteTables(db);
       // POSTS — device-verified `home_table` (own posts = uid==selfUid);
       // legacy `post`/`status` kept as fallback for older builds.
-      const postSelection = selectFirstQuery(db, [
+      const postSelection = selectFirstQuery(db, tableNames, [
         ...(selfUid
           ? [
               {
@@ -372,7 +408,7 @@ class WeiboAdapter {
 
       // FAVOURITES — device-verified `like_table` (the account's likes).
       // Legacy sqlite had no favourite path (folded into posts pre-A8).
-      const favouriteSelection = selectFirstQuery(db, [
+      const favouriteSelection = selectFirstQuery(db, tableNames, [
         {
           tableName: "like_table",
           sql: "SELECT * FROM like_table ORDER BY time DESC",
@@ -394,7 +430,7 @@ class WeiboAdapter {
 
       // FOLLOWS — device-verified `follower_table`; following=1 ⇒ accounts
       // the user follows (vs followers). Fallback to the whole table.
-      const followSelection = selectFirstQuery(db, [
+      const followSelection = selectFirstQuery(db, tableNames, [
         {
           tableName: "follower_table:following",
           sql: "SELECT * FROM follower_table WHERE following=1 ORDER BY user_id",
@@ -419,8 +455,8 @@ class WeiboAdapter {
       }
 
       // SEARCH — legacy only (`search_history` doesn't exist on modern
-      // weibo; trySelect returns null gracefully, loop is skipped).
-      const searchSelection = selectFirstQuery(db, [
+      // weibo; absent legacy tables are skipped gracefully).
+      const searchSelection = selectFirstQuery(db, tableNames, [
         {
           tableName: "search_history",
           sql: "SELECT * FROM search_history ORDER BY time DESC",
@@ -497,8 +533,14 @@ class WeiboAdapter {
     const db = new Driver(msgDbPath, { readonly: true });
     const entries = [];
     try {
+      const tableNames = listSqliteTables(db);
       // BUDDIES → PERSON
-      const buddies = trySelect(db, "SELECT * FROM t_buddy") || [];
+      const buddies = readOptionalTable(
+        db,
+        tableNames,
+        "t_buddy",
+        "SELECT * FROM t_buddy",
+      );
       for (const row of buddies) {
         if (row.uid == null) continue;
         entries.push(
@@ -514,9 +556,12 @@ class WeiboAdapter {
         );
       }
       // SESSIONS → TOPIC
-      const sessions =
-        trySelect(db, "SELECT * FROM t_session ORDER BY update_time DESC") ||
-        [];
+      const sessions = readOptionalTable(
+        db,
+        tableNames,
+        "t_session",
+        "SELECT * FROM t_session ORDER BY update_time DESC",
+      );
       for (const row of sessions) {
         if (row.session_id == null) continue;
         entries.push(
@@ -532,8 +577,12 @@ class WeiboAdapter {
         );
       }
       // MESSAGES → EVENT (content best-effort; schema device-verified)
-      const messages =
-        trySelect(db, "SELECT * FROM t_message ORDER BY time DESC") || [];
+      const messages = readOptionalTable(
+        db,
+        tableNames,
+        "t_message",
+        "SELECT * FROM t_message ORDER BY time DESC",
+      );
       for (const row of messages) {
         entries.push(
           sqliteEntry({
@@ -784,10 +833,24 @@ function sqliteOriginalId(prefix, id) {
   return `${prefix}-${safe}`;
 }
 
-function selectFirstQuery(db, candidates) {
+function selectFirstQuery(db, tableNames, candidates) {
+  let lastFailure = null;
   for (const candidate of candidates) {
-    const rows = trySelect(db, candidate.sql);
-    if (rows) return { rows, tableName: candidate.tableName };
+    const sourceTable =
+      candidate.sourceTable || candidate.tableName.split(":", 1)[0];
+    if (!tableNames.has(sourceTable.toLowerCase())) continue;
+    try {
+      const rows = db.prepare(candidate.sql).all();
+      if (!Array.isArray(rows)) {
+        throw new Error("SQLite query did not return a row array");
+      }
+      return { rows, tableName: candidate.tableName };
+    } catch (error) {
+      lastFailure = { error, sourceTable };
+    }
+  }
+  if (lastFailure) {
+    throw sqliteSourceError(lastFailure.sourceTable, "read", lastFailure.error);
   }
   return { rows: [], tableName: null };
 }
