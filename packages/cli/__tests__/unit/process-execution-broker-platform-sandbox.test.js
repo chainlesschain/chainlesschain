@@ -1,4 +1,5 @@
 import { EventEmitter } from "node:events";
+import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   applySandbox,
@@ -180,6 +181,7 @@ describe("platform sandbox adapter contract", () => {
         moduleDir: "C:\\cli",
         tmpdir: () => "C:\\temp",
         randomBytes: () => Buffer.alloc(12, 7),
+        joinPath: path.win32.join,
       },
     );
 
@@ -316,20 +318,7 @@ describe.runIf(process.platform === "win32")(
           [
             "-e",
             [
-              "const { spawn, spawnSync } = require('node:child_process');",
-              "const privilegeResult = spawnSync(",
-              "  require('node:path').join(",
-              "    process.env.WINDIR,",
-              "    'System32',",
-              "    'whoami.exe',",
-              "  ),",
-              "  ['/priv'],",
-              "  { encoding: 'utf8', windowsHide: true },",
-              ");",
-              "const privilegeText = privilegeResult.stdout || '';",
-              "const privileges = [",
-              "  ...privilegeText.matchAll(/\\bSe[A-Za-z]+Privilege\\b/g),",
-              "].map((match) => match[0]);",
+              "const { spawn } = require('node:child_process');",
               "const grandchild = spawn(",
               "  process.execPath,",
               "  ['-e', 'setInterval(() => {}, 1000)'],",
@@ -339,9 +328,6 @@ describe.runIf(process.platform === "win32")(
               "process.stdout.write(JSON.stringify({",
               "  sandboxed: process.env.CC_WINDOWS_SANDBOXED,",
               "  profile: process.env.CC_WINDOWS_SANDBOX_PROFILE,",
-              "  privileges,",
-              "  privilegeStatus: privilegeResult.status,",
-              "  privilegeError: privilegeResult.stderr,",
               "  grandchildPid: grandchild.pid,",
               "}));",
             ].join("\n"),
@@ -363,11 +349,31 @@ describe.runIf(process.platform === "win32")(
           profile: "strict",
         });
         expect(childReport.grandchildPid).toBeGreaterThan(0);
-        expect(childReport.privilegeStatus, childReport.privilegeError).toBe(0);
-        expect(
-          childReport.privileges.every(
-            (name) => name === "SeChangeNotifyPrivilege",
+
+        // Query the restricted token through a second direct adapter launch.
+        // Starting whoami as a nested process is flaky on hosted Windows
+        // runners (STATUS_DLL_INIT_FAILED) and tests the nested loader more
+        // than the token assigned by this adapter.
+        const privilegeResult = executionBroker.spawnSync(
+          path.join(process.env.WINDIR, "System32", "whoami.exe"),
+          ["/priv"],
+          {
+            origin: "test:windows-restricted-token-live",
+            policy: "allow",
+            encoding: "utf8",
+            timeout: 30_000,
+            env: process.env,
+          },
+        );
+        expect(privilegeResult.error).toBeUndefined();
+        expect(privilegeResult.status, privilegeResult.stderr).toBe(0);
+        const privileges = [
+          ...(privilegeResult.stdout || "").matchAll(
+            /\bSe[A-Za-z]+Privilege\b/g,
           ),
+        ].map((match) => match[0]);
+        expect(
+          privileges.every((name) => name === "SeChangeNotifyPrivilege"),
         ).toBe(true);
         expect(() => process.kill(childReport.grandchildPid, 0)).toThrow();
         expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
