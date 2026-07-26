@@ -143,7 +143,7 @@ describe("parsePluginManifest - required plugin sandbox boundaries", () => {
     });
   });
 
-  it("rejects a top-level policy when plugin bin execution cannot honor it", () => {
+  it("propagates a top-level policy to plugin bin execution", () => {
     write("bin/strict-tool", "");
     write("plugin.json", {
       name: "strict-bin",
@@ -154,10 +154,56 @@ describe("parsePluginManifest - required plugin sandbox boundaries", () => {
 
     const m = parsePluginManifest(root);
 
+    expect(m.ok).toBe(true);
+    expect(m.components.bin[0].sandboxPolicy).toEqual({
+      requiredBoundaries: ["filesystem"],
+    });
+  });
+
+  it("merges manifest and bin descriptor requirements additively", () => {
+    write("bin/strict-tool.js", "");
+    write("plugin.json", {
+      name: "strict-bin",
+      version: "1.0.0",
+      sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+      bin: {
+        "strict-tool": {
+          path: "bin/strict-tool.js",
+          sandboxPolicy: { requiredBoundaries: ["network"] },
+        },
+      },
+    });
+
+    const m = parsePluginManifest(root);
+
+    expect(m.ok).toBe(true);
+    expect(m.components.bin[0]).toMatchObject({
+      name: "strict-tool",
+      path: "bin/strict-tool.js",
+      sandboxPolicy: {
+        requiredBoundaries: ["filesystem", "network"],
+      },
+    });
+  });
+
+  it("rejects an invalid bin descriptor policy instead of dropping it", () => {
+    write("bin/strict-tool.js", "");
+    write("plugin.json", {
+      name: "strict-bin",
+      version: "1.0.0",
+      bin: {
+        "strict-tool": {
+          path: "bin/strict-tool.js",
+          sandboxPolicy: { requiredBoundaries: ["typo"] },
+        },
+      },
+    });
+
+    const m = parsePluginManifest(root);
+
     expect(m.ok).toBe(false);
-    expect(m.errors.join("\n")).toMatch(
-      /cannot currently protect plugin bin executables/,
-    );
+    expect(m.components.bin).toEqual([]);
+    expect(m.errors.join("\n")).toMatch(/unsupported boundary: typo/);
   });
 
   it.each([

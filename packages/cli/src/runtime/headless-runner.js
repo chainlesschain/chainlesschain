@@ -433,9 +433,10 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     }
   }
 
-  // Put trusted plugins' bin/ executables on PATH for this headless run (Phase
-  // 3.3n) so run_shell can invoke them by name. Trust-gated. The process exits
-  // at the end of the run, so no explicit restore is needed.
+  // Preserve PATH compatibility for trusted legacy bin components that have no
+  // sandboxPolicy. Policy-bearing bins are excluded here and resolved as exact
+  // direct Broker invocations by agent-core. The process exits at the end of
+  // the run, so no explicit restore is needed.
   try {
     const { applyPluginBinPath } = await import("../lib/plugin-runtime/bin.js");
     applyPluginBinPath({ cwd });

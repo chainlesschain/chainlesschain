@@ -199,14 +199,15 @@ export function parsePluginManifest(root) {
     warnings,
     manifestSandboxPolicy,
   );
-  c.bin = resolveBin(abs, manifest, safeResolve, warnings);
+  c.bin = resolveBin(
+    abs,
+    manifest,
+    safeResolve,
+    errors,
+    warnings,
+    manifestSandboxPolicy,
+  );
   c.settings = resolveSettings(abs, manifest, safeResolve);
-  if (manifestSandboxPolicy && c.bin.length > 0) {
-    errors.push(
-      "manifest.sandboxPolicy cannot currently protect plugin bin executables; " +
-        "top-level sandbox requirements with bin are not supported",
-    );
-  }
 
   // ── declared capabilities + options schema (P1) ──
   const hasPermissions =
@@ -451,10 +452,17 @@ function resolveLsp(
   return out;
 }
 
-function resolveBin(root, manifest, safeResolve, warnings) {
+function resolveBin(
+  root,
+  manifest,
+  safeResolve,
+  errors,
+  warnings,
+  manifestSandboxPolicy,
+) {
   const out = [];
   const seen = new Set();
-  const push = (name, rel) => {
+  const push = (name, rel, descriptorPolicy = null) => {
     const absPath = safeResolve(rel, `bin["${name}"]`);
     if (!absPath) return;
     if (!_deps.existsSync(absPath)) {
@@ -462,8 +470,29 @@ function resolveBin(root, manifest, safeResolve, warnings) {
       return;
     }
     if (seen.has(name)) return;
+    let sandboxPolicy;
+    try {
+      sandboxPolicy = mergePluginSandboxPolicies(
+        manifestSandboxPolicy,
+        descriptorPolicy,
+      );
+    } catch (err) {
+      errors.push(`bin "${name}": ${err.message}`);
+      return;
+    }
+    if (sandboxPolicy && !/^[A-Za-z0-9._-]+$/.test(name)) {
+      errors.push(
+        `bin alias "${name}" with sandboxPolicy contains unsupported characters; use letters, numbers, dot, underscore, or hyphen`,
+      );
+      return;
+    }
     seen.add(name);
-    out.push({ name, path: rel, absPath });
+    out.push({
+      name,
+      path: rel,
+      absPath,
+      ...(sandboxPolicy ? { sandboxPolicy } : {}),
+    });
   };
 
   if (
@@ -471,8 +500,35 @@ function resolveBin(root, manifest, safeResolve, warnings) {
     typeof manifest.bin === "object" &&
     !Array.isArray(manifest.bin)
   ) {
-    for (const [name, rel] of Object.entries(manifest.bin)) {
-      if (typeof rel === "string") push(name, rel);
+    for (const [name, descriptor] of Object.entries(manifest.bin)) {
+      if (typeof descriptor === "string") {
+        push(name, descriptor);
+        continue;
+      }
+      if (
+        descriptor &&
+        typeof descriptor === "object" &&
+        !Array.isArray(descriptor)
+      ) {
+        const unsupported = Object.keys(descriptor).filter(
+          (key) => !["path", "sandboxPolicy"].includes(key),
+        );
+        if (unsupported.length > 0) {
+          errors.push(
+            `bin "${name}" contains unsupported field: ${unsupported[0]}`,
+          );
+          continue;
+        }
+        if (typeof descriptor.path !== "string") {
+          errors.push(`bin "${name}".path must be a non-empty string`);
+          continue;
+        }
+        push(name, descriptor.path, descriptor.sandboxPolicy);
+        continue;
+      }
+      errors.push(
+        `bin "${name}" must be a path string or { path, sandboxPolicy } object`,
+      );
     }
     return out;
   }

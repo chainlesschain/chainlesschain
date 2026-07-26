@@ -197,6 +197,40 @@ class ProcessExecutionBroker extends EventEmitter {
     return safe;
   }
 
+  _normalizePluginExecutableIdentity(raw) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+    const realPath =
+      typeof raw.realPath === "string" && raw.realPath ? raw.realPath : null;
+    const sha256 =
+      typeof raw.sha256 === "string" && /^[a-f0-9]{64}$/i.test(raw.sha256)
+        ? raw.sha256.toLowerCase()
+        : null;
+    if (!realPath || !sha256) return null;
+    return {
+      contractVersion: 1,
+      realPath,
+      sha256,
+      bytes:
+        Number.isSafeInteger(raw.bytes) && raw.bytes >= 0 ? raw.bytes : null,
+      fileId:
+        raw.dev !== undefined && raw.ino !== undefined
+          ? {
+              dev: String(raw.dev),
+              ino: String(raw.ino),
+            }
+          : null,
+      mtimeMs: Number.isFinite(raw.mtimeMs) ? raw.mtimeMs : null,
+      attestation: "realpath-file-id-sha256",
+    };
+  }
+
+  _stripPluginControlOptions(options) {
+    delete options.pluginId;
+    delete options.pluginVersion;
+    delete options.pluginSource;
+    delete options.pluginExecutableIdentity;
+  }
+
   _sandboxStrictEnabled() {
     return process.env.CC_SANDBOX_STRICT === "1";
   }
@@ -517,6 +551,7 @@ class ProcessExecutionBroker extends EventEmitter {
     const adapterRequest = Object.freeze({
       profile,
       requiredBoundaries: Object.freeze([...requiredBoundaries]),
+      sync,
     });
     let plan = this._validateSandboxPlan(
       // Keep the legacy string profile in argument four. The built-in adapter
@@ -923,6 +958,9 @@ class ProcessExecutionBroker extends EventEmitter {
       pluginId: options.pluginId || null,
       pluginVersion: options.pluginVersion || null,
       pluginSource: options.pluginSource || null,
+      pluginExecutableIdentity: this._normalizePluginExecutableIdentity(
+        options.pluginExecutableIdentity,
+      ),
       sandboxRequired: [],
       sandboxGuarantees: [],
       sandboxBackend: null,
@@ -966,6 +1004,7 @@ class ProcessExecutionBroker extends EventEmitter {
     // 传播traceparent环境变量
     const spawnOpts = this._sanitizeOptions(options);
     this._stripSandboxControlOptions(spawnOpts);
+    this._stripPluginControlOptions(spawnOpts);
     if (traceCtx) {
       spawnOpts.env = { ...(spawnOpts.env || process.env) };
       spawnOpts.env.TRACEPARENT = traceCtx.traceparent;
@@ -1138,6 +1177,9 @@ class ProcessExecutionBroker extends EventEmitter {
       pluginId: options.pluginId || null,
       pluginVersion: options.pluginVersion || null,
       pluginSource: options.pluginSource || null,
+      pluginExecutableIdentity: this._normalizePluginExecutableIdentity(
+        options.pluginExecutableIdentity,
+      ),
       sandboxRequired: [],
       sandboxGuarantees: [],
       sandboxBackend: null,
@@ -1174,6 +1216,7 @@ class ProcessExecutionBroker extends EventEmitter {
 
     const spawnOpts = this._sanitizeOptions(options);
     this._stripSandboxControlOptions(spawnOpts);
+    this._stripPluginControlOptions(spawnOpts);
     if (traceCtx) {
       spawnOpts.env = { ...(spawnOpts.env || process.env) };
       spawnOpts.env.TRACEPARENT = traceCtx.traceparent;
@@ -1291,6 +1334,9 @@ class ProcessExecutionBroker extends EventEmitter {
       pluginId: options.pluginId || null,
       pluginVersion: options.pluginVersion || null,
       pluginSource: options.pluginSource || null,
+      pluginExecutableIdentity: this._normalizePluginExecutableIdentity(
+        options.pluginExecutableIdentity,
+      ),
     };
     let sandboxPolicy;
     try {
@@ -1331,12 +1377,10 @@ class ProcessExecutionBroker extends EventEmitter {
 
     const spawnOptions = { ...options, args: [...auditEntry.args] };
     this._stripSandboxControlOptions(spawnOptions);
+    this._stripPluginControlOptions(spawnOptions);
     delete spawnOptions.origin;
     delete spawnOptions.policy;
     delete spawnOptions.scope;
-    delete spawnOptions.pluginId;
-    delete spawnOptions.pluginVersion;
-    delete spawnOptions.pluginSource;
     try {
       if (this._credentialBoundaryEnabled()) {
         spawnOptions.credentialContext = this._createCredentialContext(

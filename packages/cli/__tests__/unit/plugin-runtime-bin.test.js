@@ -3,9 +3,13 @@ import os from "node:os";
 import fs from "node:fs";
 import path from "node:path";
 import {
+  collectPluginBinCommands,
   collectPluginBinDirs,
   applyPluginBinPath,
+  parsePluginBinCommand,
+  reattestPluginBinInvocation,
   resolvePluginBinCommand,
+  resolvePluginBinInvocation,
 } from "../../src/lib/plugin-runtime/bin.js";
 import { pluginVersionDir } from "../../src/lib/plugin-runtime/scopes.js";
 import {
@@ -98,14 +102,51 @@ describe("collectPluginBinDirs", () => {
 });
 
 describe("applyPluginBinPath", () => {
-  it("prepends bin dirs to env.PATH and restore() puts it back", () => {
+  it("preserves PATH compatibility for a legacy bin", () => {
     const binDir = installBinPlugin("local", "toolkit", ["mytool"]);
     const env = { PATH: "/usr/bin" };
     const res = applyPluginBinPath({ cwd, scopes: ["local"], env });
     expect(res.added).toEqual([binDir]);
     expect(env.PATH.split(path.delimiter)[0]).toBe(binDir);
-    expect(env.PATH).toContain("/usr/bin");
     res.restore();
+    expect(env.PATH).toBe("/usr/bin");
+  });
+
+  it("never exposes a policy-bearing bin directory through PATH", () => {
+    installBinPlugin("local", "toolkit", ["mytool"], {
+      manifest: {
+        sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+      },
+    });
+    const env = { PATH: "/usr/bin" };
+    const res = applyPluginBinPath({ cwd, scopes: ["local"], env });
+    expect(res.added).toEqual([]);
+    expect(env.PATH).toBe("/usr/bin");
+  });
+
+  it("excludes a whole mixed directory so a strict sibling cannot leak", () => {
+    const dir = pluginVersionDir("local", "toolkit", "1.0.0", { cwd });
+    fs.mkdirSync(path.join(dir, "bin"), { recursive: true });
+    fs.writeFileSync(path.join(dir, "bin", "legacy.js"), "", "utf8");
+    fs.writeFileSync(path.join(dir, "bin", "strict.js"), "", "utf8");
+    fs.writeFileSync(
+      path.join(dir, "plugin.json"),
+      JSON.stringify({
+        name: "toolkit",
+        version: "1.0.0",
+        bin: {
+          legacy: "bin/legacy.js",
+          strict: {
+            path: "bin/strict.js",
+            sandboxPolicy: { requiredBoundaries: ["network"] },
+          },
+        },
+      }),
+      "utf8",
+    );
+    const env = { PATH: "/usr/bin" };
+    const res = applyPluginBinPath({ cwd, scopes: ["local"], env });
+    expect(res.added).toEqual([]);
     expect(env.PATH).toBe("/usr/bin");
   });
 
@@ -117,7 +158,7 @@ describe("applyPluginBinPath", () => {
     expect(() => res.restore()).not.toThrow();
   });
 
-  it("does not add a dir already present on PATH", () => {
+  it("does not rewrite an existing PATH entry", () => {
     const binDir = installBinPlugin("local", "toolkit", ["mytool"]);
     const env = { PATH: `${binDir}${path.delimiter}/usr/bin` };
     const res = applyPluginBinPath({ cwd, scopes: ["local"], env });
@@ -126,13 +167,35 @@ describe("applyPluginBinPath", () => {
   });
 });
 
+describe("parsePluginBinCommand", () => {
+  it("parses quoted arguments into literal argv", () => {
+    expect(
+      parsePluginBinCommand(`mytool --label "hello world" 'semi;literal'`),
+    ).toEqual(["mytool", "--label", "hello world", "semi;literal"]);
+  });
+
+  it.each([
+    "mytool && node evil.js",
+    "mytool | node evil.js",
+    "mytool; node evil.js",
+    "mytool $(node evil.js)",
+    "mytool\nnode evil.js",
+  ])("rejects shell composition: %s", (command) => {
+    expect(() => parsePluginBinCommand(command)).toThrow(
+      /single direct invocation|command substitution/,
+    );
+  });
+});
+
 describe("resolvePluginBinCommand", () => {
   it("returns provenance for a trusted plugin executable token", () => {
     const binDir = installBinPlugin("local", "toolkit", ["mytool"]);
-    expect(resolvePluginBinCommand("mytool --version", {
-      cwd,
-      scopes: ["local"],
-    })).toMatchObject({
+    expect(
+      resolvePluginBinCommand("mytool --version", {
+        cwd,
+        scopes: ["local"],
+      }),
+    ).toMatchObject({
       pluginId: "toolkit",
       pluginVersion: "1.0.0",
       binPath: path.join(binDir, "mytool"),
@@ -141,13 +204,282 @@ describe("resolvePluginBinCommand", () => {
 
   it("does not attribute an ordinary command or an untrusted plugin", () => {
     installBinPlugin("project", "toolkit", ["mytool"]);
-    expect(resolvePluginBinCommand("mytool", {
-      cwd,
-      scopes: ["project"],
-    })).toBeNull();
-    expect(resolvePluginBinCommand("node --version", {
+    expect(
+      resolvePluginBinCommand("mytool", {
+        cwd,
+        scopes: ["project"],
+      }),
+    ).toBeNull();
+    expect(
+      resolvePluginBinCommand("node --version", {
+        cwd,
+        scopes: ["local"],
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("resolvePluginBinInvocation", () => {
+  it("resolves a declared alias to exact argv and attests a Node target", () => {
+    const dir = pluginVersionDir("local", "toolkit", "1.0.0", { cwd });
+    fs.mkdirSync(path.join(dir, "bin"), { recursive: true });
+    const source = "process.stdout.write(process.argv.slice(2).join('|'));\n";
+    fs.writeFileSync(path.join(dir, "bin", "entry.js"), source, "utf8");
+    fs.writeFileSync(
+      path.join(dir, "plugin.json"),
+      JSON.stringify({
+        name: "toolkit",
+        version: "1.0.0",
+        permissions: { process: true },
+        sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+        bin: { mytool: "bin/entry.js" },
+      }),
+      "utf8",
+    );
+
+    const invocation = resolvePluginBinInvocation(
+      `mytool --label "hello world"`,
+      { cwd, scopes: ["local"] },
+    );
+
+    expect(invocation).toMatchObject({
+      command: process.execPath,
+      args: [path.join(dir, "bin", "entry.js"), "--label", "hello world"],
+      shell: false,
+      runtime: "node",
+      pluginId: "toolkit",
+      binName: "mytool",
+      sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+      executableIdentity: {
+        realPath: path.join(dir, "bin", "entry.js"),
+        bytes: Buffer.byteLength(source),
+      },
+    });
+    expect(invocation.executableIdentity.sha256).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("fails closed rather than accepting a compound plugin command", () => {
+    installBinPlugin("local", "toolkit", ["mytool"], {
+      manifest: {
+        sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+      },
+    });
+    expect(() =>
+      resolvePluginBinInvocation("mytool && node evil.js", {
+        cwd,
+        scopes: ["local"],
+      }),
+    ).toThrow(/single direct invocation/);
+  });
+
+  it("recognizes a strict alias assembled from adjacent quoted segments", () => {
+    installBinPlugin("local", "toolkit", ["mytool"], {
+      manifest: {
+        sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+      },
+    });
+    const invocation = resolvePluginBinInvocation(`""my"tool" --safe`, {
       cwd,
       scopes: ["local"],
-    })).toBeNull();
+    });
+    expect(invocation).toMatchObject({
+      binName: "mytool",
+      args: ["--safe"],
+      shell: false,
+      sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+    });
+  });
+
+  it("preserves legacy compound commands for the historical PATH route", () => {
+    installBinPlugin("local", "toolkit", ["mytool"]);
+    expect(
+      resolvePluginBinInvocation("mytool && node legacy.js", {
+        cwd,
+        scopes: ["local"],
+      }),
+    ).toBeNull();
+  });
+
+  it("fails closed on duplicate trusted aliases", () => {
+    const first = pluginVersionDir("local", "one", "1.0.0", { cwd });
+    const second = pluginVersionDir("local", "two", "1.0.0", { cwd });
+    for (const [dir, name] of [
+      [first, "one"],
+      [second, "two"],
+    ]) {
+      fs.mkdirSync(path.join(dir, "bin"), { recursive: true });
+      fs.writeFileSync(path.join(dir, "bin", "entry.js"), "", "utf8");
+      fs.writeFileSync(
+        path.join(dir, "plugin.json"),
+        JSON.stringify({
+          name,
+          version: "1.0.0",
+          sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+          bin: { collide: "bin/entry.js" },
+        }),
+        "utf8",
+      );
+    }
+    expect(() =>
+      resolvePluginBinInvocation("collide", {
+        cwd,
+        scopes: ["local"],
+      }),
+    ).toThrow(/multiple trusted plugins/);
+  });
+
+  it("collects exact aliases instead of every sibling file in a bin dir", () => {
+    const dir = pluginVersionDir("local", "toolkit", "1.0.0", { cwd });
+    fs.mkdirSync(path.join(dir, "bin"), { recursive: true });
+    fs.writeFileSync(path.join(dir, "bin", "entry.js"), "", "utf8");
+    fs.writeFileSync(path.join(dir, "bin", "undeclared.js"), "", "utf8");
+    fs.writeFileSync(
+      path.join(dir, "plugin.json"),
+      JSON.stringify({
+        name: "toolkit",
+        version: "1.0.0",
+        bin: { declared: "bin/entry.js" },
+      }),
+      "utf8",
+    );
+
+    expect(
+      collectPluginBinCommands({ cwd, scopes: ["local"] }).map((b) => b.name),
+    ).toEqual(["declared"]);
+    expect(
+      resolvePluginBinInvocation("undeclared.js", {
+        cwd,
+        scopes: ["local"],
+      }),
+    ).toBeNull();
+  });
+
+  it.runIf(process.platform === "win32")(
+    "refuses cmd/bat/PowerShell wrappers that require another shell",
+    () => {
+      installBinPlugin("local", "toolkit", ["wrapper.cmd"], {
+        manifest: {
+          sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+        },
+      });
+      expect(() =>
+        resolvePluginBinInvocation("wrapper.cmd", {
+          cwd,
+          scopes: ["local"],
+        }),
+      ).toThrow(/wrapper \.cmd is not supported/);
+    },
+  );
+
+  it.runIf(process.platform === "win32")(
+    "accepts the optional .exe suffix for a manifest alias",
+    () => {
+      const dir = pluginVersionDir("local", "toolkit", "1.0.0", { cwd });
+      fs.mkdirSync(path.join(dir, "bin"), { recursive: true });
+      fs.writeFileSync(path.join(dir, "bin", "native.exe"), "MZ", "utf8");
+      fs.writeFileSync(
+        path.join(dir, "plugin.json"),
+        JSON.stringify({
+          name: "toolkit",
+          version: "1.0.0",
+          sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+          bin: { mytool: "bin/native.exe" },
+        }),
+        "utf8",
+      );
+
+      expect(
+        resolvePluginBinInvocation("mytool.exe --version", {
+          cwd,
+          scopes: ["local"],
+        }),
+      ).toMatchObject({
+        command: path.join(dir, "bin", "native.exe"),
+        args: ["--version"],
+        runtime: "native",
+      });
+    },
+  );
+
+  it("detects a target mutation in the second pre-launch attestation", () => {
+    const dir = pluginVersionDir("local", "toolkit", "1.0.0", { cwd });
+    fs.mkdirSync(path.join(dir, "bin"), { recursive: true });
+    const target = path.join(dir, "bin", "entry.js");
+    fs.writeFileSync(target, "process.stdout.write('before');\n", "utf8");
+    fs.writeFileSync(
+      path.join(dir, "plugin.json"),
+      JSON.stringify({
+        name: "toolkit",
+        version: "1.0.0",
+        sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+        bin: { mytool: "bin/entry.js" },
+      }),
+      "utf8",
+    );
+    const invocation = resolvePluginBinInvocation("mytool", {
+      cwd,
+      scopes: ["local"],
+    });
+
+    fs.writeFileSync(target, "process.stdout.write('after');\n", "utf8");
+
+    expect(() => reattestPluginBinInvocation(invocation)).toThrow(
+      /identity changed before launch/,
+    );
+  });
+
+  it("rejects a policy-bearing target that resolves outside its plugin root", () => {
+    const dir = pluginVersionDir("local", "toolkit", "1.0.0", { cwd });
+    const outside = path.join(cwd, "outside-bin");
+    fs.mkdirSync(dir, { recursive: true });
+    fs.mkdirSync(outside, { recursive: true });
+    fs.writeFileSync(path.join(outside, "entry.js"), "", "utf8");
+    fs.symlinkSync(
+      outside,
+      path.join(dir, "bin"),
+      process.platform === "win32" ? "junction" : "dir",
+    );
+    fs.writeFileSync(
+      path.join(dir, "plugin.json"),
+      JSON.stringify({
+        name: "toolkit",
+        version: "1.0.0",
+        sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+        bin: { mytool: "bin/entry.js" },
+      }),
+      "utf8",
+    );
+
+    expect(() =>
+      resolvePluginBinInvocation("mytool", {
+        cwd,
+        scopes: ["local"],
+      }),
+    ).toThrow(/resolves outside the plugin root/);
+  });
+
+  it("rejects a policy-bearing hard-linked target", () => {
+    const dir = pluginVersionDir("local", "toolkit", "1.0.0", { cwd });
+    const outside = path.join(cwd, "outside.js");
+    fs.mkdirSync(path.join(dir, "bin"), { recursive: true });
+    fs.writeFileSync(outside, "", "utf8");
+    fs.linkSync(outside, path.join(dir, "bin", "entry.js"));
+    fs.writeFileSync(
+      path.join(dir, "plugin.json"),
+      JSON.stringify({
+        name: "toolkit",
+        version: "1.0.0",
+        sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+        bin: { mytool: "bin/entry.js" },
+      }),
+      "utf8",
+    );
+
+    expect(() =>
+      resolvePluginBinInvocation("mytool", {
+        cwd,
+        scopes: ["local"],
+      }),
+    ).toThrow(/must not be hard-linked/);
   });
 });

@@ -3471,25 +3471,69 @@ async function executeToolInner(
           : {}
         : { shell: shellInv.kind };
 
-      // PATH-based plugin binaries need explicit provenance at the Broker
-      // boundary; otherwise a trusted plugin executable is indistinguishable
-      // from an ambient system command in the process audit log.
-      let pluginBinProvenance = null;
+      // Policy-bearing plugin bins never enter PATH. Their declared alias is
+      // accepted only as one direct command: resolve it to literal argv, attest
+      // the exact target, then give Broker an absolute command with shell:false.
+      // Resolver failures for a matching strict alias are terminal — falling
+      // back to a shell would bypass target identity and manifest requirements.
+      let pluginBinInvocation = null;
+      let reattestPluginBinInvocation = null;
       try {
-        const { resolvePluginBinCommand } =
-          await import("../lib/plugin-runtime/bin.js");
-        pluginBinProvenance = resolvePluginBinCommand(args.command, { cwd });
-      } catch {
-        pluginBinProvenance = null;
+        const pluginBin = await import("../lib/plugin-runtime/bin.js");
+        reattestPluginBinInvocation = pluginBin.reattestPluginBinInvocation;
+        pluginBinInvocation = pluginBin.resolvePluginBinInvocation(
+          args.command,
+          {
+            cwd,
+            commandCwd: args.cwd || cwd,
+          },
+        );
+      } catch (err) {
+        if (err?.pluginBinFailClosed) {
+          return attachDescriptor(
+            {
+              error: `[Plugin bin] ${err.message}`,
+              policy: {
+                decision: "deny",
+                via: "plugin-bin-direct-invocation",
+                reason: err.code || "plugin_bin_resolution_failed",
+              },
+              shellCommandPolicy: shellPolicy,
+              approval: approvalOutcome,
+            },
+            override || runtimeDescriptor,
+          );
+        }
+        pluginBinInvocation = null;
       }
-      const processOrigin = pluginBinProvenance
+      const processOrigin = pluginBinInvocation
         ? "plugin:bin"
         : "tool:run_shell";
-      const processProvenance = pluginBinProvenance
+      const processProvenance = pluginBinInvocation
         ? {
-            pluginId: pluginBinProvenance.pluginId,
-            pluginVersion: pluginBinProvenance.pluginVersion,
-            pluginSource: pluginBinProvenance.pluginSource,
+            pluginId: pluginBinInvocation.pluginId,
+            pluginVersion: pluginBinInvocation.pluginVersion,
+            pluginSource: pluginBinInvocation.pluginSource,
+            pluginExecutableIdentity:
+              pluginBinInvocation.executableIdentity,
+            ...(pluginBinInvocation.sandboxPolicy
+              ? { sandboxPolicy: pluginBinInvocation.sandboxPolicy }
+              : {}),
+          }
+        : {};
+      const pluginBinResult = pluginBinInvocation
+        ? {
+            plugin_bin: {
+              plugin: pluginBinInvocation.pluginId,
+              version: pluginBinInvocation.pluginVersion,
+              name: pluginBinInvocation.binName,
+              target: pluginBinInvocation.binPath,
+              runtime: pluginBinInvocation.runtime,
+              sha256: pluginBinInvocation.executableIdentity.sha256,
+              identity_attested: true,
+              launch_identity_reattested: false,
+              direct_argv: true,
+            },
           }
         : {};
 
@@ -3559,9 +3603,20 @@ async function executeToolInner(
             scope: "agent",
             ...processProvenance,
           };
-          const child = shellInv.useDefaultShell
-            ? broker.spawn(args.command, [], brokerOpts)
-            : broker.spawn(shellInv.file, shellInv.argv, brokerOpts);
+          let child;
+          if (pluginBinInvocation) {
+            reattestPluginBinInvocation(pluginBinInvocation);
+            pluginBinResult.plugin_bin.launch_identity_reattested = true;
+            child = broker.spawn(
+              pluginBinInvocation.command,
+              pluginBinInvocation.args,
+              { ...brokerOpts, shell: false },
+            );
+          } else {
+            child = shellInv.useDefaultShell
+              ? broker.spawn(args.command, [], brokerOpts)
+              : broker.spawn(shellInv.file, shellInv.argv, brokerOpts);
+          }
           task.child = child;
           if (child.stdout) {
             child.stdout.setEncoding("utf8");
@@ -3612,6 +3667,7 @@ async function executeToolInner(
             status: task.status,
             command: task.command,
             ...shellMeta,
+            ...pluginBinResult,
             hint: "Poll output and completion with the check_shell tool using this task_id. Kill long-lived servers with check_shell { task_id, kill: true } when done.",
             shellCommandPolicy: shellPolicy,
             approval: approvalOutcome,
@@ -3621,6 +3677,23 @@ async function executeToolInner(
       }
 
       if (sandbox) {
+        if (pluginBinInvocation?.sandboxPolicy) {
+          return attachDescriptor(
+            {
+              error:
+                "[Plugin bin] The direct Broker route cannot be combined with the legacy ephemeral shell sandbox. Run the plugin command without that sandbox; its manifest sandboxPolicy is enforced by ProcessExecutionBroker.",
+              policy: {
+                decision: "deny",
+                via: "plugin-bin-direct-invocation",
+                reason: "conflicting_sandbox_routes",
+              },
+              ...pluginBinResult,
+              shellCommandPolicy: shellPolicy,
+              approval: approvalOutcome,
+            },
+            override || runtimeDescriptor,
+          );
+        }
         const { executeSandboxedShell, sandboxSummary } =
           await import("../lib/agent-sandbox.js");
         // Domain-restricted networking is ENFORCED by routing the sandboxed
@@ -3741,7 +3814,30 @@ async function executeToolInner(
           scope: "agent",
           ...processProvenance,
         };
-        if (shellInv.useDefaultShell) {
+        if (pluginBinInvocation) {
+          reattestPluginBinInvocation(pluginBinInvocation);
+          pluginBinResult.plugin_bin.launch_identity_reattested = true;
+          const res = broker.spawnSync(
+            pluginBinInvocation.command,
+            pluginBinInvocation.args,
+            {
+              ...brokerExecOpts,
+              shell: false,
+              windowsHide: true,
+            },
+          );
+          if (res.error) throw res.error;
+          if (res.status !== 0) {
+            const e = new Error(
+              `Plugin bin failed (exit ${res.status}): ${pluginBinInvocation.binName}`,
+            );
+            e.status = res.status;
+            e.stdout = res.stdout;
+            e.stderr = res.stderr;
+            throw e;
+          }
+          output = res.stdout ?? "";
+        } else if (shellInv.useDefaultShell) {
           output = broker.execSync(args.command, brokerExecOpts);
         } else {
           // PowerShell route: explicit argv, no intermediate default shell.
@@ -3783,6 +3879,7 @@ async function executeToolInner(
           {
             stdout: output.substring(0, 30000),
             ...shellMeta,
+            ...pluginBinResult,
             shellCommandPolicy: shellPolicy,
             approval: approvalOutcome,
           },
@@ -3803,6 +3900,7 @@ async function executeToolInner(
             stderr: (err.stderr || "").substring(0, 2000),
             exitCode: err.status,
             ...shellMeta,
+            ...pluginBinResult,
             shellCommandPolicy: shellPolicy,
             approval: approvalOutcome,
           },

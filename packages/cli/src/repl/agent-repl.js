@@ -915,8 +915,9 @@ export async function startAgentRepl(options = {}) {
     _pluginMonitors = null;
   }
 
-  // Put trusted plugins' bin/ executables on PATH for the session (Phase 3.3n),
-  // restored at SessionEnd. Trust-gated inside collectPluginBinDirs.
+  // Preserve PATH compatibility for trusted legacy bin components without a
+  // sandboxPolicy, restored at SessionEnd. Policy-bearing bins stay off PATH
+  // and use agent-core's exact direct Broker route.
   try {
     const { applyPluginBinPath } = await import("../lib/plugin-runtime/bin.js");
     const res = applyPluginBinPath({ cwd: process.cwd() });
@@ -3876,7 +3877,7 @@ export async function startAgentRepl(options = {}) {
           /* monitor restart is best-effort */
         }
 
-        // Re-apply plugin bin PATH (a newly-trusted plugin's executables).
+        // Re-apply legacy plugin bin PATH; strict bins remain direct-only.
         try {
           const { applyPluginBinPath } =
             await import("../lib/plugin-runtime/bin.js");
