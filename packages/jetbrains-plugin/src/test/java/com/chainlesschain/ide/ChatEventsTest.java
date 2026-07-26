@@ -105,6 +105,29 @@ class ChatEventsTest {
     }
 
     @Test
+    void toolResultCarriesRuntimePermissionDecisionToTheUi() {
+        Map<String, Object> decision = new LinkedHashMap<>();
+        decision.put("id", "tu-1:perm:managed");
+        decision.put("decision", "deny");
+        decision.put("via", "managed");
+        decision.put("rule", "Bash(publish:*)");
+        decision.put("reason", "publishing is disabled");
+        Map<String, Object> evt = new LinkedHashMap<>();
+        evt.put("type", "tool_result");
+        evt.put("tool", "run_shell");
+        evt.put("is_error", true);
+        evt.put("permission_decision", decision);
+
+        Map<String, Object> ui =
+                ChatEvents.mapAgentEvent(evt, new ChatEvents.TurnState());
+        assertEquals("tool_done", ui.get("kind"));
+        Map<?, ?> mapped = (Map<?, ?>) ui.get("permissionDecision");
+        assertEquals("deny", mapped.get("decision"));
+        assertEquals("managed", mapped.get("via"));
+        assertEquals("publishing is disabled", mapped.get("reason"));
+    }
+
+    @Test
     void iterationWarningMapsToWarningInfoLine() {
         ChatEvents.TurnState st = new ChatEvents.TurnState();
         Map<String, Object> evt = new LinkedHashMap<>();

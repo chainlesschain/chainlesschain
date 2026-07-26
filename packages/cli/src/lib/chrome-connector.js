@@ -31,6 +31,7 @@ import os from "os";
 import path from "path";
 import http from "http";
 import executionBroker from "./process-execution-broker/index.js";
+import { redactSecrets } from "./secret-scan.js";
 
 export const DEFAULT_CDP_PORT = 9222;
 
@@ -66,6 +67,122 @@ export function normalizeLaunchUrl(url) {
   return String(url); // validated — pass through byte-identical
 }
 export const DEFAULT_DOM_CAP = 150000;
+
+/** Secret-safe text carried from a browser into transcripts or audit logs. */
+export function redactBrowserText(value, cap = 500) {
+  if (value == null) return "";
+  const text = redactSecrets(String(value));
+  return text.length > cap ? `${text.slice(0, cap)}…` : text;
+}
+
+/**
+ * Preserve the page origin/path and query KEY names while removing credentials,
+ * fragments, and every query value. Query values often contain opaque sessions
+ * that a generic secret scanner cannot recognize.
+ */
+export function redactBrowserUrl(value, cap = 500) {
+  const raw = String(value || "");
+  if (!raw) return "";
+  try {
+    const parsed = new URL(raw);
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      return redactBrowserText(raw, cap);
+    }
+    const keys = [...new Set(parsed.searchParams.keys())].slice(0, 64);
+    const query =
+      keys.length > 0
+        ? `?${keys
+            .map((key) => `${encodeURIComponent(key)}=[REDACTED]`)
+            .join("&")}`
+        : "";
+    return redactBrowserText(
+      `${parsed.protocol}//${parsed.host}${parsed.pathname}${query}`,
+      cap,
+    );
+  } catch {
+    return redactBrowserText(raw, cap);
+  }
+}
+
+function redactBrowserDomUrl(value, cap = 1000) {
+  const raw = String(value || "");
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return redactBrowserUrl(raw, cap);
+  if (raw.startsWith("//")) {
+    const safe = redactBrowserUrl(`https:${raw}`, cap + 6);
+    return safe.startsWith("https:")
+      ? redactBrowserText(safe.slice(6), cap)
+      : redactBrowserText(safe, cap);
+  }
+
+  const withoutFragment = raw.split("#", 1)[0];
+  const queryIndex = withoutFragment.indexOf("?");
+  if (queryIndex < 0) return redactBrowserText(withoutFragment, cap);
+  const prefix = withoutFragment.slice(0, queryIndex);
+  const keys = [
+    ...new Set(
+      withoutFragment
+        .slice(queryIndex + 1)
+        .split(/&(?:amp;)?/i)
+        .map((part) => part.split("=", 1)[0].trim())
+        .filter(Boolean)
+        .slice(0, 64),
+    ),
+  ];
+  const query =
+    keys.length > 0
+      ? `?${keys
+          .map((key) => `${encodeURIComponent(key.slice(0, 128))}=[REDACTED]`)
+          .join("&")}`
+      : "";
+  return redactBrowserText(`${prefix}${query}`, cap);
+}
+
+/**
+ * Redact secret-shaped text, sensitive form values, and DOM URL query values
+ * from the bounded snapshot before it crosses the tool boundary.
+ */
+export function redactBrowserDom(value, cap = DEFAULT_DOM_CAP) {
+  let html = redactSecrets(String(value || ""));
+  html = html.replace(/<input\b[^>]*>/gi, (tag) => {
+    const sensitive =
+      /\btype\s*=\s*["']?password\b/i.test(tag) ||
+      /\b(?:name|id)\s*=\s*["'][^"']*(?:password|passwd|token|secret|api[-_]?key)[^"']*["']/i.test(
+        tag,
+      );
+    if (!sensitive) return tag;
+    return tag.replace(/\bvalue\s*=\s*(["'])[^"']*\1/i, 'value="[REDACTED]"');
+  });
+  html = html.replace(
+    /(<textarea\b[^>]*(?:name|id)\s*=\s*["'][^"']*(?:password|passwd|token|secret|api[-_]?key)[^"']*["'][^>]*>)[\s\S]*?(<\/textarea>)/gi,
+    "$1[REDACTED]$2",
+  );
+  html = html.replace(
+    /\b(href|src|action)\s*=\s*(["'])([^"']+)\2/gi,
+    (_match, attr, quote, url) =>
+      `${attr}=${quote}${redactBrowserDomUrl(url, 1000)}${quote}`,
+  );
+  return html.slice(0, Math.max(0, Number(cap) || 0));
+}
+
+function redactScreenshotFailure(error, generatedPath, cap = 300) {
+  let message = String(error && error.message ? error.message : error);
+  if (generatedPath) {
+    message = message
+      .split(String(generatedPath))
+      .join("[SCREENSHOT_PATH]");
+  }
+  return redactBrowserText(message.split("\n")[0], cap);
+}
+
+function cleanupFailedScreenshot(generatedPath, deps) {
+  if (!generatedPath) return;
+  try {
+    deps.fs.rmSync(generatedPath, { force: true });
+  } catch {
+    // Failure cleanup is best-effort; never mask the browser action error.
+  }
+}
 
 const _deps = {
   fs,
@@ -286,15 +403,18 @@ export async function captureState({
     const networkEntries = [];
     const onConsole = (m) => {
       if (consoleEntries.length < 200) {
-        consoleEntries.push({ type: m.type(), text: m.text().slice(0, 500) });
+        consoleEntries.push({
+          type: redactBrowserText(m.type(), 40),
+          text: redactBrowserText(m.text(), 500),
+        });
       }
     };
     const onRequestFailed = (r) => {
       if (networkEntries.length < 200) {
         networkEntries.push({
           kind: "failed",
-          url: r.url().slice(0, 300),
-          error: r.failure()?.errorText || "",
+          url: redactBrowserUrl(r.url(), 300),
+          error: redactBrowserText(r.failure()?.errorText || "", 300),
         });
       }
     };
@@ -302,7 +422,7 @@ export async function captureState({
       if (res.status() >= 400 && networkEntries.length < 200) {
         networkEntries.push({
           kind: "http-error",
-          url: res.url().slice(0, 300),
+          url: redactBrowserUrl(res.url(), 300),
           status: res.status(),
         });
       }
@@ -322,22 +442,33 @@ export async function captureState({
         ok: true,
         port,
         tab: index,
-        url: page.url(),
-        title: await page.title().catch(() => ""),
-        tabs: pages.map((p, i) => ({ index: i, url: p.url() })),
+        url: redactBrowserUrl(page.url()),
+        title: redactBrowserText(await page.title().catch(() => ""), 500),
+        tabs: pages.map((p, i) => ({
+          index: i,
+          url: redactBrowserUrl(p.url()),
+        })),
         console: consoleEntries,
         network: networkEntries,
       };
       if (includeDom) {
         const html = await page.content().catch(() => "");
-        state.html = html.slice(0, domCap);
+        state.html = redactBrowserDom(html, domCap);
         state.htmlTruncated = html.length > domCap;
       }
       if (screenshotPath) {
         await page.screenshot({ path: screenshotPath }).catch((err) => {
-          state.screenshotError = err.message.split("\n")[0];
+          cleanupFailedScreenshot(screenshotPath, deps);
+          state.screenshotError = redactScreenshotFailure(
+            err,
+            screenshotPath,
+            300,
+          );
         });
-        if (!state.screenshotError) state.screenshotPath = screenshotPath;
+        if (!state.screenshotError) {
+          state.screenshotPath = screenshotPath;
+          state.screenshotRef = path.basename(screenshotPath);
+        }
       }
       return state;
     } finally {
@@ -417,8 +548,7 @@ export function resolveLoopbackCdpPort(
 }
 
 function truncateForAudit(value, cap = 200) {
-  const s = String(value);
-  return s.length > cap ? `${s.slice(0, cap)}…` : s;
+  return redactBrowserText(value, cap);
 }
 
 /**
@@ -592,7 +722,7 @@ async function runOneAction(page, act, timeoutMs) {
       return `selector appeared: ${act.selector}`;
     case "screenshot":
       await page.screenshot({ path: act.screenshotPath });
-      return `screenshot saved: ${act.screenshotPath}`;
+      return "screenshot captured";
     case "assertText": {
       const text = await page.textContent(act.selector, {
         timeout: timeoutMs,
@@ -693,16 +823,24 @@ export async function performActions(
     for (const act of normalized) {
       const started = Date.now();
       const step = { ok: false, action: act.type, detail: "", durationMs: 0 };
+      const pageBefore = redactBrowserUrl(page.url());
       try {
-        step.detail = await runOneAction(page, act, stepTimeout);
+        const detail = await runOneAction(page, act, stepTimeout);
+        step.detail =
+          act.type === "navigate"
+            ? `navigated to ${redactBrowserUrl(act.url)}`
+            : redactBrowserText(detail, 500);
         step.ok = true;
-        if (act.screenshotPath) step.screenshotPath = act.screenshotPath;
+        if (act.screenshotPath) {
+          step.screenshotPath = act.screenshotPath;
+          step.screenshotRef = path.basename(act.screenshotPath);
+        }
       } catch (err) {
-        step.detail = String(err && err.message ? err.message : err).split(
-          "\n",
-        )[0];
+        cleanupFailedScreenshot(act.screenshotPath, deps);
+        step.detail = redactScreenshotFailure(err, act.screenshotPath, 500);
       }
       step.durationMs = Date.now() - started;
+      const pageAfter = redactBrowserUrl(page.url());
       result.steps.push(step);
       try {
         const entry = {
@@ -710,14 +848,22 @@ export async function performActions(
           action: act.type,
           ok: step.ok,
           durationMs: step.durationMs,
+          pageBefore,
+          pageAfter,
+          result: step.detail,
         };
-        if (sessionId) entry.sessionId = String(sessionId);
+        if (sessionId) {
+          entry.sessionId = redactBrowserText(sessionId, 160);
+        }
         if (act.selector) entry.selector = truncateForAudit(act.selector);
-        if (act.url) entry.url = truncateForAudit(act.url);
+        if (act.url) entry.url = redactBrowserUrl(act.url);
         if (act.key) entry.key = truncateForAudit(act.key, 50);
+        if (step.ok && act.screenshotPath) {
+          entry.screenshotRef = path.basename(act.screenshotPath);
+        }
         appendActionAudit(entry, deps);
       } catch (err) {
-        auditError = err.message;
+        auditError = redactBrowserText(err.message, 300);
       }
       if (!step.ok && !continueOnError) break;
     }
@@ -727,8 +873,8 @@ export async function performActions(
       result.steps.length === normalized.length &&
       result.steps.every((s) => s.ok);
     if (auditError) result.auditError = auditError;
-    result.url = page.url();
-    result.title = await page.title().catch(() => "");
+    result.url = redactBrowserUrl(page.url());
+    result.title = redactBrowserText(await page.title().catch(() => ""), 500);
     return result;
   } finally {
     // connectOverCDP close() disconnects the client; the browser lives on.

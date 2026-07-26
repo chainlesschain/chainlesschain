@@ -150,7 +150,8 @@ export function buildAgentCapabilities() {
     // P1-9: permission modes, formats and the feature flags all project from the
     // single canonical [[capability-manifest.js]] so `cc agent --capabilities`,
     // the negotiator and the docs can no longer drift. Additive protocol-v1
-    // stream fields (event_seq / tool_use_id / trace_id) come in via the wire
+    // stream fields (event_seq / tool_use_id / permission_decision / trace_id)
+    // come in via the wire
     // features; the mcp object and sandbox_engines come from the manifest too.
     permission_modes: [...CAPABILITY_MANIFEST.permissionModes],
     output_formats: [...CAPABILITY_MANIFEST.outputFormats],

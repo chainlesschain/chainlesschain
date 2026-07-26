@@ -13,9 +13,11 @@ const {
   buildMcpRemoveArgs,
   buildMcpServersArgs,
   buildPluginAddArgs,
+  buildPluginConsentArgs,
   buildPluginInstalledArgs,
   buildPluginTrustArgs,
   buildPluginUninstallArgs,
+  buildPluginUseArgs,
   buildSkillListArgs,
   parseMcpServers,
   parsePluginInstalled,
@@ -146,6 +148,81 @@ async function handleMessage(vscode, msg) {
     );
     if (ok !== "Uninstall") return;
     await runCli(buildPluginUninstallArgs(msg.name, msg.scope));
+    return refresh();
+  }
+  if (msg.command === "pluginUse") {
+    const versions = Array.isArray(msg.versions)
+      ? msg.versions.filter(
+          (version) =>
+            typeof version === "string" &&
+            version &&
+            version !== String(msg.activeVersion || ""),
+        )
+      : [];
+    if (!versions.length) {
+      vscode.window.showInformationMessage(
+        `ChainlessChain: ${msg.name} has no other installed version to activate.`,
+      );
+      return;
+    }
+    const version = await vscode.window.showQuickPick(versions, {
+      title: `Switch ${msg.name} from v${msg.activeVersion || "?"}`,
+      placeHolder: "Choose an installed version",
+    });
+    if (!version) return;
+    const confirmed = await vscode.window.showWarningMessage(
+      `Activate ${msg.name} v${version} (${msg.scope} scope)? Existing sessions keep their loaded bytes; new sessions use the selected version.`,
+      { modal: true },
+      "Switch version",
+    );
+    if (confirmed !== "Switch version") return;
+    await runCli(buildPluginUseArgs(msg.name, version, msg.scope));
+    vscode.window.showInformationMessage(
+      `ChainlessChain: ${msg.name} now points to v${version}. Reload plugin runtime in active sessions to pick it up.`,
+    );
+    return refresh();
+  }
+  if (msg.command === "pluginConsent") {
+    let details;
+    try {
+      details = JSON.parse(
+        await runCli(
+          buildPluginConsentArgs(msg.name, "status", msg.scope),
+          30000,
+        ),
+      );
+    } catch {
+      vscode.window.showWarningMessage(
+        `ChainlessChain: could not read capability consent for ${msg.name}.`,
+      );
+      return;
+    }
+    const declared = Array.isArray(details?.declared) ? details.declared : [];
+    const added = Array.isArray(details?.added) ? details.added : [];
+    const consented = details?.consented === true;
+    const action = consented ? "Revoke consent" : "Grant consent";
+    const choice = await vscode.window.showWarningMessage(
+      [
+        `${msg.name} v${details?.version || msg.activeVersion || "?"} (${msg.scope} scope)`,
+        details?.reason || "",
+        declared.length
+          ? `Declared capabilities:\n• ${declared.join("\n• ")}`
+          : "Declared capabilities: none",
+        added.length ? `New since last consent:\n• ${added.join("\n• ")}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
+      { modal: true },
+      action,
+    );
+    if (choice !== action) return;
+    await runCli(
+      buildPluginConsentArgs(
+        msg.name,
+        consented ? "revoke" : "grant",
+        msg.scope,
+      ),
+    );
     return refresh();
   }
   if (msg.command === "pluginAdd") {
@@ -280,6 +357,10 @@ function renderHtml() {
         + '<td>'
         + '<button class="sec" data-act="trust" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Trust</button>'
         + '<button class="sec" data-act="untrust" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Untrust</button>'
+        + (Array.isArray(p.versions) && p.versions.length > 1
+          ? '<button class="sec" data-act="pluginUse" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Versions ('+p.versions.length+')</button>'
+          : '')
+        + '<button class="sec" data-act="pluginConsent" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Capabilities</button>'
         + '<button class="sec" data-act="uninstall" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Uninstall</button>'
         + '</td></tr>').join('')
       + '</tbody></table>';
@@ -320,6 +401,14 @@ function renderHtml() {
     const act = b.getAttribute('data-act');
     if (act === 'trust') vscode.postMessage({command:'pluginTrust', name, trusted:true, scope: b.getAttribute('data-scope')||'user'});
     else if (act === 'untrust') vscode.postMessage({command:'pluginTrust', name, trusted:false, scope: b.getAttribute('data-scope')||'user'});
+    else if (act === 'pluginUse') {
+      const row = Array.isArray(last && last.plugins) ? last.plugins.find(p => p.name === name && p.scope === (b.getAttribute('data-scope')||'user')) : null;
+      vscode.postMessage({command:'pluginUse', name, scope:b.getAttribute('data-scope')||'user', activeVersion:row&&row.version, versions:row&&row.versions});
+    }
+    else if (act === 'pluginConsent') {
+      const row = Array.isArray(last && last.plugins) ? last.plugins.find(p => p.name === name && p.scope === (b.getAttribute('data-scope')||'user')) : null;
+      vscode.postMessage({command:'pluginConsent', name, scope:b.getAttribute('data-scope')||'user', activeVersion:row&&row.version});
+    }
     else if (act === 'uninstall') vscode.postMessage({command:'pluginUninstall', name, scope: b.getAttribute('data-scope')||'user'});
     else if (act === 'connect') vscode.postMessage({command:'mcpConnect', name});
     else if (act === 'mcpRemove') vscode.postMessage({command:'mcpRemove', name});

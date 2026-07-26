@@ -32,14 +32,15 @@ if (!existsSync(join(sdkRoot, "package.json"))) {
   console.error("packages/agent-sdk not found next to the extension");
   process.exit(1);
 }
-if (!existsSync(join(sdkDist, "index.js"))) {
-  console.log("agent-sdk dist missing — building it first…");
-  execFileSync("npm", ["run", "build"], {
-    cwd: sdkRoot,
-    stdio: "inherit",
-    shell: process.platform === "win32",
-  });
-}
+// dist/ is gitignored and may exist from an older source revision. Always
+// rebuild before copying so a normal sync can never overwrite the vendored
+// protocol with stale generated output.
+console.log("building agent-sdk before vendoring…");
+execFileSync("npm", ["run", "build"], {
+  cwd: sdkRoot,
+  stdio: "inherit",
+  shell: process.platform === "win32",
+});
 
 const sdkVersion = JSON.parse(
   readFileSync(join(sdkRoot, "package.json"), "utf8"),

@@ -3,8 +3,8 @@
  * (agent-sdk docs/PROTOCOL.md §1.3):
  *   1. parseInputEvent recognizes a `hello` line and normalizes it to an offer.
  *   2. createStreamCoalescer reads a LIVE fieldGate per line, so a negotiation
- *      arriving mid-stream can suppress `seq` / `trace_id` (teeth), while the
- *      default (all-true) gate is byte-for-byte unchanged.
+ *      arriving mid-stream can suppress negotiated metadata fields (teeth),
+ *      while the default (all-true) gate is byte-for-byte unchanged.
  * The negotiation algorithm itself is covered by capability-negotiation.test.js;
  * here we prove the runner's two integration seams.
  */
@@ -12,6 +12,7 @@ import { describe, it, expect } from "vitest";
 import {
   parseInputEvent,
   createStreamCoalescer,
+  runAgentHeadlessStream,
 } from "../../src/runtime/headless-stream.js";
 import { applyNegotiationToGate } from "../../src/lib/capability-negotiation.js";
 
@@ -58,12 +59,58 @@ function capture(fieldGate) {
   return { emit: c.emit, lines };
 }
 
+async function runNegotiatedPermissionDecision(features) {
+  const lines = [];
+  async function* input() {
+    yield `${JSON.stringify({
+      type: "hello",
+      protocol_version: 1,
+      min_protocol_version: 1,
+      features,
+    })}\n`;
+    yield `${JSON.stringify({ type: "user", text: "inspect" })}\n`;
+  }
+  async function* agentLoop() {
+    yield { type: "tool-executing", tool: "run_shell", args: {} };
+    yield {
+      type: "tool-result",
+      tool: "run_shell",
+      result: { error: "blocked" },
+      permission_decision_id: "perm-live-1",
+      permission_decision: {
+        version: 1,
+        id: "perm-live-1",
+        decision: "deny",
+      },
+    };
+    yield { type: "response-complete", content: "done" };
+    yield { type: "run-ended", reason: "complete" };
+  }
+  await runAgentHeadlessStream(
+    { expandFileRefs: false, traceId: "trace-negotiation-test" },
+    {
+      bootstrap: async () => ({ db: null }),
+      getApprovalGate: async () => null,
+      writeOut: (line) => lines.push(line),
+      writeErr: () => {},
+      agentLoop,
+      input: input(),
+    },
+  );
+  return lines
+    .join("")
+    .trimEnd()
+    .split("\n")
+    .map((line) => JSON.parse(line));
+}
+
 describe("createStreamCoalescer — fieldGate teeth", () => {
   it("stamps seq + trace_id when the gate is all true (default behavior)", () => {
     const { emit, lines } = capture({
       seq: true,
       trace_id: true,
       tool_use_id: true,
+      permission_decision: true,
     });
     emit({ type: "system", subtype: "init" });
     expect(lines[0]).toMatchObject({
@@ -74,7 +121,12 @@ describe("createStreamCoalescer — fieldGate teeth", () => {
   });
 
   it("suppresses seq but keeps trace_id after a client drops event_seq", () => {
-    const gate = { seq: true, trace_id: true, tool_use_id: true };
+    const gate = {
+      seq: true,
+      trace_id: true,
+      tool_use_id: true,
+      permission_decision: true,
+    };
     // Client negotiated only trace_id.
     applyNegotiationToGate({ ok: true, features: ["trace_id"] }, gate);
     const { emit, lines } = capture(gate);
@@ -84,7 +136,12 @@ describe("createStreamCoalescer — fieldGate teeth", () => {
   });
 
   it("suppresses trace_id but keeps seq after a client drops trace_id", () => {
-    const gate = { seq: true, trace_id: true, tool_use_id: true };
+    const gate = {
+      seq: true,
+      trace_id: true,
+      tool_use_id: true,
+      permission_decision: true,
+    };
     applyNegotiationToGate({ ok: true, features: ["event_seq"] }, gate);
     const { emit, lines } = capture(gate);
     emit({ type: "text" });
@@ -98,8 +155,52 @@ describe("createStreamCoalescer — fieldGate teeth", () => {
     expect(lines[0]).toMatchObject({ trace_id: "trace-abc", seq: 1 });
   });
 
+  it("suppresses the permission decision and its id as one feature", () => {
+    const gate = {
+      seq: true,
+      trace_id: true,
+      tool_use_id: true,
+      permission_decision: true,
+    };
+    applyNegotiationToGate({ ok: true, features: ["event_seq"] }, gate);
+    const { emit, lines } = capture(gate);
+    emit({
+      type: "tool_result",
+      permission_decision_id: "perm-1",
+      permission_decision: { id: "perm-1", decision: "allow" },
+    });
+
+    expect(lines[0]).not.toHaveProperty("permission_decision");
+    expect(lines[0]).not.toHaveProperty("permission_decision_id");
+  });
+
+  it("preserves the permission decision pair without mutating the input", () => {
+    const gate = {
+      seq: true,
+      trace_id: true,
+      tool_use_id: true,
+      permission_decision: true,
+    };
+    const { emit, lines } = capture(gate);
+    const event = {
+      type: "tool_result",
+      permission_decision_id: "perm-2",
+      permission_decision: { id: "perm-2", decision: "deny" },
+    };
+    const original = structuredClone(event);
+    emit(event);
+
+    expect(lines[0]).toMatchObject(event);
+    expect(event).toEqual(original);
+  });
+
   it("seq stays monotonic across gate flips (counter not reset by suppression)", () => {
-    const gate = { seq: true, trace_id: true, tool_use_id: true };
+    const gate = {
+      seq: true,
+      trace_id: true,
+      tool_use_id: true,
+      permission_decision: true,
+    };
     const { emit, lines } = capture(gate);
     emit({ type: "a" }); // seq 1
     gate.seq = false;
@@ -109,5 +210,39 @@ describe("createStreamCoalescer — fieldGate teeth", () => {
     expect(lines[0].seq).toBe(1);
     expect(lines[1]).not.toHaveProperty("seq");
     expect(lines[2].seq).toBe(2);
+  });
+});
+
+describe("runAgentHeadlessStream — negotiated permission decision wiring", () => {
+  it("strips both fields when an explicit hello omits the feature", async () => {
+    const lines = await runNegotiatedPermissionDecision([
+      "event_seq",
+      "tool_use_id",
+      "trace_id",
+    ]);
+    const negotiated = lines.find(
+      (line) => line.type === "system" && line.subtype === "negotiated",
+    );
+    const result = lines.find((line) => line.type === "tool_result");
+
+    expect(negotiated.disabled_features).toContain("permission_decision");
+    expect(result).not.toHaveProperty("permission_decision");
+    expect(result).not.toHaveProperty("permission_decision_id");
+  });
+
+  it("keeps both fields when an explicit hello accepts the feature", async () => {
+    const lines = await runNegotiatedPermissionDecision([
+      "event_seq",
+      "tool_use_id",
+      "permission_decision",
+      "trace_id",
+    ]);
+    const result = lines.find((line) => line.type === "tool_result");
+
+    expect(result.permission_decision_id).toBe("perm-live-1");
+    expect(result.permission_decision).toMatchObject({
+      id: "perm-live-1",
+      decision: "deny",
+    });
   });
 });

@@ -762,6 +762,16 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
       case "tool_done":
         if (m.isError) add("tool err", "✗ " + m.tool + " failed");
         else if (m.note) add("info", "ℹ " + m.tool + ": " + m.note);
+        if (m.permissionDecision && m.permissionDecision.decision !== "allow") {
+          const d = m.permissionDecision;
+          add(
+            "info",
+            "Permission " +
+              (d.decision || "decision") +
+              (d.via ? " via " + d.via : "") +
+              (d.reason ? ": " + d.reason : d.rule ? ": " + d.rule : ""),
+          );
+        }
         break;
       case "question": {
         // The agent is BLOCKED on ask_user_question. Render an in-panel card with

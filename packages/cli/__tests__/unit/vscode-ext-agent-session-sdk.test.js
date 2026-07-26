@@ -18,6 +18,7 @@ import { PassThrough } from "node:stream";
 
 import { AgentChatSession } from "../../../vscode-extension/src/chat/agent-session.js";
 import { buildAgentArgs } from "../../../vscode-extension/src/vendor/agent-sdk/agent-session.js";
+import { PROTOCOL_FEATURES } from "../../../vscode-extension/src/vendor/agent-sdk/protocol.js";
 import { ChatViewProvider } from "../../../vscode-extension/src/chat/chat-view.js";
 
 function fakeChild() {
@@ -49,6 +50,15 @@ function startSession(extraArgs = []) {
 const tick = () => new Promise((r) => setImmediate(r));
 
 describe("AgentChatSession uses the SDK protocol argv", () => {
+  it("vendors the permission decision capability", () => {
+    expect(PROTOCOL_FEATURES).toEqual([
+      "event_seq",
+      "tool_use_id",
+      "permission_decision",
+      "trace_id",
+    ]);
+  });
+
   it("spawns with exactly buildAgentArgs(extraArgs) — no hand-pinned flags", () => {
     const extras = ["--resume", "s-1", "--interactive-approvals"];
     const { spawnFn } = startSession(extras);

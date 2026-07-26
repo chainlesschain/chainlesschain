@@ -40,6 +40,41 @@ export const MAX_ARTIFACT_BYTES = 100 * 1024 * 1024; // 100 MB
 /** Default retention before `clean` removes an artifact. */
 export const DEFAULT_TTL_DAYS = 30;
 
+/**
+ * Metadata safe to return across the agent/session protocol boundary.
+ *
+ * The persisted index deliberately retains sourcePath for local artifact
+ * management, but absolute source paths are host details and must not enter
+ * model transcripts or remote-session payloads.
+ */
+export function publicArtifactMetadata(entry) {
+  if (!entry || typeof entry !== "object") return null;
+  const {
+    id,
+    title,
+    kind,
+    mime,
+    size,
+    sha256,
+    file,
+    sessionId,
+    createdAt,
+    expiresAt,
+  } = entry;
+  return {
+    id,
+    title,
+    kind,
+    mime,
+    size,
+    sha256,
+    file,
+    sessionId,
+    createdAt,
+    expiresAt,
+  };
+}
+
 const MIME_BY_EXT = Object.freeze({
   ".md": "text/markdown",
   ".markdown": "text/markdown",

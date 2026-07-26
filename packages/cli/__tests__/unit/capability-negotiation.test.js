@@ -141,6 +141,7 @@ describe("buildServerOffer — from a --capabilities manifest", () => {
         worktree: true,
         event_seq: true,
         tool_use_id: true,
+        permission_decision: true,
         trace_id: true,
         mcp: { config_file: true },
       },
@@ -149,7 +150,12 @@ describe("buildServerOffer — from a --capabilities manifest", () => {
     expect(offer.protocolVersion).toBe(1);
     expect(offer.minProtocolVersion).toBe(1);
     // runtime capabilities (bare/worktree/mcp) are NOT wire features
-    expect(offer.features).toEqual(["event_seq", "tool_use_id", "trace_id"]);
+    expect(offer.features).toEqual([
+      "event_seq",
+      "tool_use_id",
+      "permission_decision",
+      "trace_id",
+    ]);
   });
 
   it("defaults min to min(PROTOCOL_MIN_VERSION, max) when the manifest omits it", () => {
@@ -164,30 +170,70 @@ describe("buildServerOffer — from a --capabilities manifest", () => {
   it("round-trips: a live server offer with no client keeps every feature", () => {
     const manifest = {
       protocol_version: 1,
-      features: { event_seq: true, tool_use_id: true, trace_id: true },
+      features: {
+        event_seq: true,
+        tool_use_id: true,
+        permission_decision: true,
+        trace_id: true,
+      },
     };
     const r = negotiateProtocol(buildServerOffer(manifest), null);
-    expect(r.features).toEqual(["event_seq", "tool_use_id", "trace_id"]);
+    expect(r.features).toEqual([
+      "event_seq",
+      "permission_decision",
+      "tool_use_id",
+      "trace_id",
+    ]);
     expect(r.downgraded).toBe(false);
   });
 });
 
 describe("applyNegotiationToGate — teeth on the emit path", () => {
   it("leaves every field stamped for a full-feature result", () => {
-    const gate = { seq: true, trace_id: true, tool_use_id: true };
+    const gate = {
+      seq: true,
+      trace_id: true,
+      tool_use_id: true,
+      permission_decision: true,
+    };
     applyNegotiationToGate({ ok: true, features: PROTOCOL_FEATURES }, gate);
-    expect(gate).toEqual({ seq: true, trace_id: true, tool_use_id: true });
+    expect(gate).toEqual({
+      seq: true,
+      trace_id: true,
+      tool_use_id: true,
+      permission_decision: true,
+    });
   });
 
   it("suppresses the field of a feature the client dropped", () => {
-    const gate = { seq: true, trace_id: true, tool_use_id: true };
+    const gate = {
+      seq: true,
+      trace_id: true,
+      tool_use_id: true,
+      permission_decision: true,
+    };
     applyNegotiationToGate({ ok: true, features: ["trace_id"] }, gate);
-    expect(gate).toEqual({ seq: false, trace_id: true, tool_use_id: false });
+    expect(gate).toEqual({
+      seq: false,
+      trace_id: true,
+      tool_use_id: false,
+      permission_decision: false,
+    });
   });
 
   it("does not touch the gate on an incompatible (ok:false) result", () => {
-    const gate = { seq: true, trace_id: true, tool_use_id: true };
+    const gate = {
+      seq: true,
+      trace_id: true,
+      tool_use_id: true,
+      permission_decision: true,
+    };
     applyNegotiationToGate({ ok: false, features: [] }, gate);
-    expect(gate).toEqual({ seq: true, trace_id: true, tool_use_id: true });
+    expect(gate).toEqual({
+      seq: true,
+      trace_id: true,
+      tool_use_id: true,
+      permission_decision: true,
+    });
   });
 });

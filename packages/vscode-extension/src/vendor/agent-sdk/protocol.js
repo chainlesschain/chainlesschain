@@ -48,6 +48,7 @@ exports.MIN_PROTOCOL_VERSION = 1;
 exports.PROTOCOL_FEATURES = [
     "event_seq",
     "tool_use_id",
+    "permission_decision",
     "trace_id",
 ];
 // ─────────────────────────────────────────────────────────────────────────────

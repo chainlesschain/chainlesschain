@@ -44,6 +44,24 @@ public final class PluginManager {
                 "--scope", scope == null || scope.isEmpty() ? "user" : scope));
     }
 
+    public static List<String> buildPluginUseArgs(
+            String name, String version, String scope) {
+        return new ArrayList<String>(Arrays.asList(
+                "plugin", "use", String.valueOf(name), String.valueOf(version),
+                "--scope", scope == null || scope.isEmpty() ? "user" : scope));
+    }
+
+    public static List<String> buildPluginConsentArgs(
+            String name, String action, String scope) {
+        List<String> args = new ArrayList<String>(Arrays.asList(
+                "plugin", "consent", String.valueOf(name),
+                "--scope", scope == null || scope.isEmpty() ? "user" : scope));
+        if ("grant".equals(action)) args.add("--grant");
+        else if ("revoke".equals(action)) args.add("--revoke");
+        if (!"revoke".equals(action)) args.add("--json");
+        return args;
+    }
+
     public static List<String> buildPluginAddArgs(String source, String registry) {
         List<String> args = new ArrayList<String>(Arrays.asList(
                 "plugin", "add", String.valueOf(source)));
@@ -100,6 +118,20 @@ public final class PluginManager {
             Map<String, Object> p = new LinkedHashMap<String, Object>();
             p.put("name", r.get("name"));
             p.put("version", str(r.get("version")));
+            List<String> versions = new ArrayList<String>();
+            if (r.get("versions") instanceof List) {
+                for (Object version : (List<?>) r.get("versions")) {
+                    if (versions.size() >= 64) break;
+                    if (version instanceof String
+                            && !((String) version).isEmpty()
+                            && ((String) version).length() <= 128) {
+                        versions.add((String) version);
+                    }
+                }
+            } else if (!str(r.get("version")).isEmpty()) {
+                versions.add(str(r.get("version")));
+            }
+            p.put("versions", versions);
             p.put("scope", r.get("scope") == null ? "user" : String.valueOf(r.get("scope")));
             p.put("dir", str(r.get("dir"))); // quality board runs `plugin validate <dir>`
             p.put("ok", Boolean.TRUE.equals(r.get("ok")));

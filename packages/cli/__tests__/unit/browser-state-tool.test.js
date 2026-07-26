@@ -5,7 +5,9 @@
  * chrome-connector _deps seam), error surfacing, and formatToolArgs.
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import fs from "fs";
 import os from "os";
+import path from "path";
 import {
   AGENT_TOOLS,
   executeTool,
@@ -81,12 +83,25 @@ describe("browser_state contract + policy", () => {
 
 describe("browser_state dispatch (faked playwright via _deps)", () => {
   let savedImporter;
+  let savedArtifactsDir;
+  let artifactsDir;
 
   beforeEach(() => {
     savedImporter = chromeDeps.importPlaywright;
+    savedArtifactsDir = process.env.CC_ARTIFACTS_DIR;
+    artifactsDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-state-artifacts-"),
+    );
+    process.env.CC_ARTIFACTS_DIR = artifactsDir;
   });
   afterEach(() => {
     chromeDeps.importPlaywright = savedImporter;
+    if (savedArtifactsDir === undefined) {
+      delete process.env.CC_ARTIFACTS_DIR;
+    } else {
+      process.env.CC_ARTIFACTS_DIR = savedArtifactsDir;
+    }
+    fs.rmSync(artifactsDir, { recursive: true, force: true });
   });
 
   it("returns page state through executeTool", async () => {
@@ -118,22 +133,147 @@ describe("browser_state dispatch (faked playwright via _deps)", () => {
     expect(res.htmlTruncated).toBe(true);
   });
 
-  it("screenshot=true saves to a generated temp path and returns it", async () => {
+  it("redacts URL, console, network, title, and DOM secrets", async () => {
+    const handlers = {};
+    const page = fakePage({
+      url: "https://alice:password@example.com/app?token=opaque-session#private",
+      title: "Bearer abcdefghijklmnop",
+    });
+    page.on = (event, handler) => {
+      handlers[event] = handler;
+    };
+    page.off = () => {};
+    page.waitForTimeout = async () => {
+      handlers.console?.({
+        type: () => "error",
+        text: () => "Bearer abcdefghijklmnop",
+      });
+      handlers.requestfailed?.({
+        url: () => "https://api.example.com/data?auth=opaque-network",
+        failure: () => ({ errorText: "Bearer abcdefghijklmnop" }),
+      });
+      handlers.response?.({
+        status: () => 500,
+        url: () => "https://api.example.com/fail?ticket=opaque-ticket",
+      });
+    };
+    page.content = async () =>
+      '<input type="password" value="opaque-password">' +
+      '<a href="https://example.com/go?session=opaque-dom">go</a>';
+    chromeDeps.importPlaywright = async () => fakePlaywright([page]);
+
+    const res = await executeTool(
+      "browser_state",
+      { watch_ms: 0, include_dom: true },
+      {},
+    );
+    const json = JSON.stringify(res);
+    for (const secret of [
+      "password@example",
+      "opaque-session",
+      "abcdefghijklmnop",
+      "opaque-network",
+      "opaque-ticket",
+      "opaque-password",
+      "opaque-dom",
+    ]) {
+      expect(json).not.toContain(secret);
+    }
+    expect(res.url).toBe("https://example.com/app?token=[REDACTED]");
+    expect(res.title).toBe("Bearer [REDACTED]");
+    expect(res.console[0].text).toBe("Bearer [REDACTED]");
+    expect(res.network[0].url).toContain("auth=[REDACTED]");
+    expect(res.network[1].url).toContain("ticket=[REDACTED]");
+    expect(res.html).toContain('value="[REDACTED]"');
+    expect(res.html).toContain("session=[REDACTED]");
+  });
+
+  it("promotes a screenshot to a session artifact without returning its temp path", async () => {
     let capturedPath;
     const page = fakePage();
     page.screenshot = async ({ path: p }) => {
       capturedPath = p;
+      fs.writeFileSync(p, "fake-png");
     };
     chromeDeps.importPlaywright = async () => fakePlaywright([page]);
     const res = await executeTool(
       "browser_state",
       { watch_ms: 0, screenshot: true, include_dom: false },
-      {},
+      { sessionId: "sess-browser-state" },
     );
-    expect(res.screenshotPath).toBeDefined();
-    expect(res.screenshotPath).toBe(capturedPath);
-    expect(res.screenshotPath.startsWith(os.tmpdir())).toBe(true);
+    expect(capturedPath.startsWith(os.tmpdir())).toBe(true);
+    expect(fs.existsSync(capturedPath)).toBe(false);
+    expect(res.screenshotPath).toBeUndefined();
+    expect(res.screenshotRef).toMatch(/^art_/);
+    expect(res.screenshotArtifact).toMatchObject({
+      id: res.screenshotRef,
+      kind: "screenshot",
+      mime: "image/png",
+      sessionId: "sess-browser-state",
+    });
+    expect(res.screenshotArtifact.sourcePath).toBeUndefined();
+    expect(
+      fs.existsSync(
+        path.join(artifactsDir, "files", res.screenshotArtifact.file),
+      ),
+    ).toBe(true);
     expect(res.html).toBeUndefined();
+  });
+
+  it("does not expose host paths when screenshot artifact publication fails", async () => {
+    let capturedPath;
+    const page = fakePage();
+    page.screenshot = async ({ path: p }) => {
+      capturedPath = p;
+      fs.writeFileSync(p, "fake-png");
+    };
+    chromeDeps.importPlaywright = async () => fakePlaywright([page]);
+    const blockedStore = path.join(artifactsDir, "not-a-directory");
+    fs.writeFileSync(blockedStore, "blocked");
+    process.env.CC_ARTIFACTS_DIR = blockedStore;
+
+    const res = await executeTool(
+      "browser_state",
+      { watch_ms: 0, screenshot: true, include_dom: false },
+      { sessionId: "sess-browser-state-failure" },
+    );
+    const json = JSON.stringify(res);
+
+    expect(res.screenshotPath).toBeUndefined();
+    expect(res.screenshotRef).toBeUndefined();
+    expect(res.screenshotArtifact).toBeUndefined();
+    expect(res.screenshotArtifactError).toMatch(
+      /^browser screenshot artifact publication failed/,
+    );
+    expect(json).not.toContain(capturedPath);
+    expect(json).not.toContain(blockedStore);
+    expect(fs.existsSync(capturedPath)).toBe(false);
+  });
+
+  it("cleans a partial screenshot and redacts its generated path when capture fails", async () => {
+    let capturedPath;
+    const page = fakePage();
+    page.screenshot = async ({ path: p }) => {
+      capturedPath = p;
+      fs.writeFileSync(p, "partial-png");
+      throw new Error(`failed while writing ${p}`);
+    };
+    chromeDeps.importPlaywright = async () => fakePlaywright([page]);
+
+    const res = await executeTool(
+      "browser_state",
+      { watch_ms: 0, screenshot: true, include_dom: false },
+      { sessionId: "sess-browser-state-capture-failure" },
+    );
+    const json = JSON.stringify(res);
+
+    expect(res.ok).toBe(true);
+    expect(res.screenshotError).toContain("[SCREENSHOT_PATH]");
+    expect(res.screenshotPath).toBeUndefined();
+    expect(res.screenshotRef).toBeUndefined();
+    expect(res.screenshotArtifact).toBeUndefined();
+    expect(json).not.toContain(capturedPath);
+    expect(fs.existsSync(capturedPath)).toBe(false);
   });
 
   it("surfaces a clean error when Chrome is not attachable", async () => {

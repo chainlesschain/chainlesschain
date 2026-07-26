@@ -14,6 +14,7 @@ import {
   toProtocolFeatures,
   toFeatureMinVersion,
   toFieldGate,
+  toGateableFieldGate,
   toServerOffer,
   toAgentFeatureFlags,
   buildCompatFixture,
@@ -55,6 +56,13 @@ describe("drift guard: manifest ⇄ capability-negotiation.js", () => {
       .sort();
     const manifestFields = Object.values(toFieldGate()).sort();
     expect(manifestFields).toEqual(stamped);
+  });
+
+  it("maps permission decision and id to one logical gate", () => {
+    expect(toGateableFieldGate()).toMatchObject({
+      permission_decision: "permission_decision",
+      permission_decision_id: "permission_decision",
+    });
   });
 
   it("toServerOffer() drives negotiateProtocol to a full-feature agreement", () => {
@@ -116,6 +124,18 @@ describe("capabilityDigest", () => {
       ],
     };
     expect(capabilityDigest(mutated)).not.toBe(base);
+  });
+
+  it("changes when a wire feature companion field changes", () => {
+    const mutated = {
+      ...CAPABILITY_MANIFEST,
+      wireFeatures: CAPABILITY_MANIFEST.wireFeatures.map((feature) =>
+        feature.key === "permission_decision"
+          ? { ...feature, companionFields: ["different_id"] }
+          : feature,
+      ),
+    };
+    expect(capabilityDigest(mutated)).not.toBe(capabilityDigest());
   });
 });
 

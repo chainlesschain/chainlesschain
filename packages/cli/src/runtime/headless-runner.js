@@ -1967,6 +1967,11 @@ export async function runAgentHeadless(options = {}, deps = {}) {
             // P0-2: settle the in-flight side-effect (commit on success, fail on
             // a clean error) and persist the updated ledger snapshot.
             if (persist && currentSideEffectOpId) {
+              if (event.permission_decision) {
+                sideEffectLedger.annotate(currentSideEffectOpId, {
+                  permissionDecision: event.permission_decision,
+                });
+              }
               if (event.result?._diffReviewAudit) {
                 diffReviewFollowUps.observe(
                   sideEffectLedger,
@@ -1991,6 +1996,12 @@ export async function runAgentHeadless(options = {}, deps = {}) {
               is_error: Boolean(err),
               error: err,
               result: event.result,
+              ...(event.permission_decision_id
+                ? { permission_decision_id: event.permission_decision_id }
+                : {}),
+              ...(event.permission_decision
+                ? { permission_decision: event.permission_decision }
+                : {}),
             });
             if (toolCalls.length > 0) {
               toolCalls[toolCalls.length - 1].is_error = Boolean(err);

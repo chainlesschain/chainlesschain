@@ -555,12 +555,14 @@ export function createTurnBindingFeed({
           // New core events expose the exact decision id. Legacy/custom event
           // sources retain the deterministic compatibility derivation.
           const policy = event.result?.policy;
-          if (policy && (policy.via || policy.decision)) {
-            log.recordPermissionDecision(
-              turnId,
-              event.permission_decision_id ||
-                `${callId || "call"}:perm:${policy.via || policy.decision}`,
-            );
+          const decisionId =
+            event.permission_decision_id ||
+            event.permission_decision?.id ||
+            (policy && (policy.via || policy.decision)
+              ? `${callId || "call"}:perm:${policy.via || policy.decision}`
+              : null);
+          if (decisionId) {
+            log.recordPermissionDecision(turnId, decisionId);
             dirty = true;
           }
           if (event.result?.userEdited === true) {

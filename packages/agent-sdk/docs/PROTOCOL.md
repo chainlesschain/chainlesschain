@@ -75,7 +75,7 @@ cc agent --input-format stream-json --output-format stream-json \
 | `system` (`subtype:"end"`)                         | `turns`                                                                                                                                                                                                                                                                      |
 | `stream_event`                                     | `event.type:"content_block_delta"`, `event.delta` = `{type:"text_delta",text}` or `{type:"thinking_delta",thinking}`                                                                                                                                                         |
 | `tool_use`                                         | `tool`, `args`, `id?` (`tu-<n>`, additive — see 1.2.1)                                                                                                                                                                                                                       |
-| `tool_result`                                      | `tool`, `is_error`, `error?`, `result?`, `id?` (pairs with the `tool_use` of the same `id`)                                                                                                                                                                                  |
+| `tool_result`                                      | `tool`, `is_error`, `error?`, `result?`, `id?` (pairs with the same `tool_use`), `permission_decision_id?`, `permission_decision?` (bounded/redacted runtime verdict)                                                                                                        |
 | `token_usage`                                      | `usage:{input_tokens,output_tokens,cache_read_input_tokens,cache_creation_input_tokens}`                                                                                                                                                                                     |
 | `approval_request`                                 | `id`, `session_id`, `tool`, `command`, `risk`, `rule`, `reason` — tool is BLOCKED until answered; CLI fails closed after `CC_APPROVAL_TIMEOUT_MS` (default 120 s)                                                                                                            |
 | `approval_resolved`                                | `id`, `approved`, `via` (`"user"`/`"timeout"`) — settle UI cards on this                                                                                                                                                                                                     |
@@ -93,12 +93,13 @@ cc agent --input-format stream-json --output-format stream-json \
 
 Unknown `type`s MUST be ignored (forward compatibility), not treated as errors.
 
-#### 1.2.1 Additive v1 fields (`seq`, `trace_id`, tool-call `id`)
+#### 1.2.1 Additive v1 fields (`seq`, `trace_id`, tool-call `id`, permission verdict)
 
 Advertised in `cc agent --capabilities` → `features.event_seq` /
-`features.trace_id` / `features.tool_use_id`. All are **optional** —
-consumers MUST tolerate their absence (older CLIs never send them) and MUST
-NOT change behavior solely because they are missing.
+`features.trace_id` / `features.tool_use_id` /
+`features.permission_decision`. All are **optional** — consumers MUST tolerate
+their absence (older CLIs never send them) and MUST NOT change behavior solely
+because they are missing.
 
 - **`seq`** (every stdout line): 1-based, monotonically increasing emit
   sequence number, unique within one session process. Use it to order /
@@ -117,6 +118,15 @@ NOT change behavior solely because they are missing.
   `tool_use` it settles, so UIs can pair calls without relying on
   adjacency. Without ids, pairing stays adjacency-based (a `tool_result`
   follows its `tool_use`), exactly as before.
+- **`tool_result.permission_decision`**: additive `v1` explanation when the
+  runtime exposes a structured policy/approval verdict. It carries the stable
+  `permission_decision_id`, tool, decision, deciding source (`via`), matched
+  rule, reason, and a bounded consulted-layer chain. Negotiation preserves or
+  strips the object and its `permission_decision_id` atomically under one
+  `permission_decision` feature; it never negotiates the pair independently.
+  The CLI is authoritative; clients render this object but MUST NOT use it to
+  re-authorize a side effect. Text is secret-redacted before it reaches the
+  wire. Absence does not prove that a call was ungated or allowed.
 
 #### 1.2.2 Capability negotiation + N / N-1 downgrade
 

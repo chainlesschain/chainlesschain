@@ -50,6 +50,14 @@ export const CAPABILITY_MANIFEST = Object.freeze({
         'tool_use / tool_result lines carry a pairing `id` ("tu-<n>")',
     }),
     Object.freeze({
+      key: "permission_decision",
+      field: "permission_decision",
+      companionFields: Object.freeze(["permission_decision_id"]),
+      minVersion: 1,
+      description:
+        "gated tool_result lines may carry a redacted permission decision and its correlation id",
+    }),
+    Object.freeze({
       key: "trace_id",
       field: "trace_id",
       minVersion: 1,
@@ -136,6 +144,24 @@ export function toFieldGate(m = CAPABILITY_MANIFEST) {
 }
 
 /**
+ * Every negotiable line field → the primary gate field that controls it.
+ * Companion fields are kept under the same logical feature so negotiation can
+ * never emit a decision without its id (or an orphan id without its decision).
+ * @returns {Record<string, string>}
+ */
+export function toGateableFieldGate(m = CAPABILITY_MANIFEST) {
+  const out = {};
+  for (const f of wireFeaturesOf(m)) {
+    if (!f?.field) continue;
+    out[f.field] = f.field;
+    for (const companion of f.companionFields || []) {
+      if (companion) out[companion] = f.field;
+    }
+  }
+  return out;
+}
+
+/**
  * The server negotiation offer shape consumed by
  * capability-negotiation.js `negotiateProtocol(server, …)`.
  * @returns {{protocolVersion:number, minProtocolVersion:number, features:string[]}}
@@ -199,7 +225,12 @@ export function capabilityDigest(m = CAPABILITY_MANIFEST) {
     protocolVersion: Number(mm.protocolVersion) || 1,
     minProtocolVersion: Number(mm.minProtocolVersion) || 1,
     wire: wireFeaturesOf(mm)
-      .map((f) => [f.key, f.field, Number(f.minVersion) || 1])
+      .map((f) => [
+        f.key,
+        f.field,
+        [...(f.companionFields || [])].sort(),
+        Number(f.minVersion) || 1,
+      ])
       .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)),
     runtime: [...(mm.runtimeFeatures || [])].sort(),
     mcp: [...(mm.mcpFeatures || [])].sort(),
@@ -224,7 +255,7 @@ export function renderBehaviorMatrix(m = CAPABILITY_MANIFEST) {
   return wireFeaturesOf(m).map((f) => ({
     feature: f.key,
     minVersion: Number(f.minVersion) || 1,
-    field: f.field,
+    field: [f.field, ...(f.companionFields || [])].join(", "),
     negotiable: true,
     description: String(f.description || ""),
   }));
@@ -280,6 +311,7 @@ export function diffCapabilities(prev, next = CAPABILITY_MANIFEST) {
     for (const f of wireFeaturesOf(m)) {
       out.set(f.key, {
         field: f.field,
+        companionFields: [...(f.companionFields || [])].sort(),
         minVersion: Number(f.minVersion) || 1,
       });
     }
@@ -294,7 +326,13 @@ export function diffCapabilities(prev, next = CAPABILITY_MANIFEST) {
   const changedWireFeatures = [];
   for (const [key, nv] of n) {
     const pv = p.get(key);
-    if (pv && (pv.field !== nv.field || pv.minVersion !== nv.minVersion)) {
+    if (
+      pv &&
+      (pv.field !== nv.field ||
+        pv.minVersion !== nv.minVersion ||
+        JSON.stringify(pv.companionFields) !==
+          JSON.stringify(nv.companionFields))
+    ) {
       changedWireFeatures.push({ feature: key, from: pv, to: nv });
     }
   }

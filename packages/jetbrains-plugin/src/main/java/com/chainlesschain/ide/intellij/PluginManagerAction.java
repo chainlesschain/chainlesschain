@@ -1,6 +1,7 @@
 package com.chainlesschain.ide.intellij;
 
 import com.chainlesschain.ide.AgentChatSession;
+import com.chainlesschain.ide.MiniJson;
 import com.chainlesschain.ide.PluginManager;
 import com.chainlesschain.ide.PluginQuality;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -25,6 +26,7 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -154,6 +156,8 @@ public final class PluginManagerAction extends AnAction {
         // ---- plugins tab -------------------------------------------------
         JButton trust = new JButton("Trust");
         JButton untrust = new JButton("Untrust");
+        JButton versions = new JButton("Versions…");
+        JButton capabilities = new JButton("Capabilities…");
         JButton uninstall = new JButton("Uninstall…");
         JButton add = new JButton("Add…");
         // Thread the row's install scope through — CLI trust/untrust default to
@@ -164,6 +168,41 @@ public final class PluginManagerAction extends AnAction {
         untrust.addActionListener(ev -> withSelectedPlugin(project, pluginList, plugins.get(), p ->
                 runThenRefresh(PluginManager.buildPluginTrustArgs(
                         String.valueOf(p.get("name")), false, scopeOf(p)), cwd, refresh, status)));
+        versions.addActionListener(ev ->
+                withSelectedPlugin(project, pluginList, plugins.get(), p -> {
+                    List<String> choices = new ArrayList<String>();
+                    Object rawVersions = p.get("versions");
+                    String active = String.valueOf(p.get("version"));
+                    if (rawVersions instanceof List) {
+                        for (Object version : (List<?>) rawVersions) {
+                            if (version instanceof String
+                                    && !((String) version).isEmpty()
+                                    && !active.equals(version)) {
+                                choices.add((String) version);
+                            }
+                        }
+                    }
+                    if (choices.isEmpty()) {
+                        Messages.showInfoMessage(project,
+                                String.valueOf(p.get("name"))
+                                        + " has no other installed version to activate.",
+                                "Plugin Versions");
+                        return;
+                    }
+                    int selectedIndex = Messages.showChooseDialog(
+                            "Select an installed version. Existing sessions keep their "
+                                    + "loaded bytes; new sessions use the selected version.",
+                            "Switch " + p.get("name") + " from v" + active,
+                            choices.toArray(new String[0]), choices.get(0), null);
+                    if (selectedIndex < 0 || selectedIndex >= choices.size()) return;
+                    String selected = choices.get(selectedIndex);
+                    runThenRefresh(PluginManager.buildPluginUseArgs(
+                                    String.valueOf(p.get("name")), selected, scopeOf(p)),
+                            cwd, refresh, status);
+                }));
+        capabilities.addActionListener(ev ->
+                withSelectedPlugin(project, pluginList, plugins.get(), p ->
+                        manageCapabilityConsent(project, p, cwd, refresh, status)));
         uninstall.addActionListener(ev -> withSelectedPlugin(project, pluginList, plugins.get(), p -> {
             String name = String.valueOf(p.get("name"));
             String scope = String.valueOf(p.get("scope"));
@@ -187,7 +226,8 @@ public final class PluginManagerAction extends AnAction {
             runThenRefreshSlow(PluginManager.buildPluginAddArgs(
                     source.trim(), registry.trim()), cwd, refresh, status);
         });
-        JPanel pluginTab = tab(pluginList, trust, untrust, uninstall, add);
+        JPanel pluginTab = tab(
+                pluginList, trust, untrust, versions, capabilities, uninstall, add);
 
         // ---- MCP tab -----------------------------------------------------
         JButton test = new JButton("Test connect");
@@ -281,6 +321,76 @@ public final class PluginManagerAction extends AnAction {
             return;
         }
         action.accept(rows.get(idx));
+    }
+
+    private static void manageCapabilityConsent(
+            Project project, Map<String, Object> plugin, File cwd,
+            Runnable refresh, JLabel status) {
+        String name = String.valueOf(plugin.get("name"));
+        String scope = scopeOf(plugin);
+        status.setText("reading capabilities for " + name + "…");
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            String out = AgentChatSession.runCapture(
+                    PluginManager.buildPluginConsentArgs(name, "status", scope),
+                    cwd, CLI_TIMEOUT_MS);
+            Map<?, ?> details = null;
+            try {
+                Object parsed = MiniJson.parse(out == null ? "" : out.trim());
+                if (parsed instanceof Map) details = (Map<?, ?>) parsed;
+            } catch (RuntimeException ignored) {
+                // Reported on the EDT below.
+            }
+            final Map<?, ?> result = details;
+            ApplicationManager.getApplication().invokeLater(() -> {
+                if (result == null) {
+                    status.setText("could not read capability consent for " + name);
+                    return;
+                }
+                boolean consented = Boolean.TRUE.equals(result.get("consented"));
+                String action = consented ? "Revoke consent" : "Grant consent";
+                StringBuilder message = new StringBuilder();
+                message.append(name).append(" v")
+                        .append(result.get("version") == null
+                                ? String.valueOf(plugin.get("version"))
+                                : String.valueOf(result.get("version")))
+                        .append(" (").append(scope).append(" scope)\n\n");
+                if (result.get("reason") != null) {
+                    message.append(result.get("reason")).append("\n\n");
+                }
+                message.append("Declared capabilities:");
+                Object declared = result.get("declared");
+                if (declared instanceof List && !((List<?>) declared).isEmpty()) {
+                    int shown = 0;
+                    for (Object capability : (List<?>) declared) {
+                        if (shown++ >= 32) {
+                            message.append("\n• …");
+                            break;
+                        }
+                        message.append("\n• ").append(String.valueOf(capability));
+                    }
+                } else {
+                    message.append(" none");
+                }
+                Object added = result.get("added");
+                if (added instanceof List && !((List<?>) added).isEmpty()) {
+                    message.append("\n\nNew since last consent:");
+                    for (Object capability : (List<?>) added) {
+                        message.append("\n• ").append(String.valueOf(capability));
+                    }
+                }
+                int decision = Messages.showYesNoDialog(
+                        project, message.toString(), "Plugin Capabilities",
+                        action, "Cancel", null);
+                if (decision != Messages.YES) {
+                    status.setText(" ");
+                    return;
+                }
+                runThenRefresh(
+                        PluginManager.buildPluginConsentArgs(
+                                name, consented ? "revoke" : "grant", scope),
+                        cwd, refresh, status);
+            });
+        });
     }
 
     private static void runThenRefresh(List<String> args, File cwd,

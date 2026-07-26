@@ -44,6 +44,8 @@ function harness({ over = {}, options = {}, loop } = {}) {
     startSession: () => {},
     appendUserMessage: () => {},
     appendAssistantMessage: () => {},
+    appendEvent: () => true,
+    readEvents: () => [],
     rebuildMessages: () => [],
     ...over,
   };
@@ -316,6 +318,58 @@ describe("stream side-effect ledger — turn-time recording", () => {
     const op = ledger.list()[0];
     expect(op.state).toBe("failed");
     expect(op.reason).toBe("boom");
+  });
+
+  it("binds a redacted PermissionDecision to the effect and wire result", async () => {
+    const ledger = new SideEffectLedger();
+    const permissionDecision = {
+      version: 1,
+      id: "tu-1:perm:managed",
+      tool: "run_shell",
+      decision: "deny",
+      via: "managed",
+      rule: "Bash(publish:*)",
+      reason: "publishing is disabled",
+      chain: [],
+    };
+    const loop = async function* () {
+      yield {
+        type: "tool-executing",
+        tool: "run_shell",
+        args: { command: "npm publish" },
+        tool_use_id: "tu-1",
+      };
+      yield {
+        type: "tool-result",
+        tool: "run_shell",
+        error: "blocked",
+        result: { error: "blocked" },
+        tool_use_id: "tu-1",
+        permission_decision_id: permissionDecision.id,
+        permission_decision: permissionDecision,
+      };
+      yield { type: "response-complete", content: "done" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const h = harness({
+      options: { sessionId: "chat-abc" },
+      over: {
+        loadSideEffectLedger: () => ledger,
+        persistSideEffectLedger: vi.fn(),
+      },
+      loop,
+    });
+
+    await h.run();
+    expect(ledger.list()[0].meta.permissionDecision).toEqual(
+      permissionDecision,
+    );
+    expect(
+      h.events().find((event) => event.type === "tool_result"),
+    ).toMatchObject({
+      permission_decision_id: permissionDecision.id,
+      permission_decision: permissionDecision,
+    });
   });
 
   it("persists a Diff Review audit on the matching file-write effect", async () => {

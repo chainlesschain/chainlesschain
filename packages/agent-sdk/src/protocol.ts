@@ -40,6 +40,7 @@ export const MIN_PROTOCOL_VERSION = 1;
 export const PROTOCOL_FEATURES = [
   "event_seq",
   "tool_use_id",
+  "permission_decision",
   "trace_id",
 ] as const;
 
@@ -173,6 +174,27 @@ export interface ToolResultEvent extends StreamEventMeta {
   is_error?: boolean;
   error?: string | null;
   result?: unknown;
+  /** Stable correlation id for a runtime permission gate, when one applied. */
+  permission_decision_id?: string | null;
+  /** Redacted runtime-authoritative explanation; clients must not re-evaluate it. */
+  permission_decision?: PermissionDecision | null;
+}
+
+export interface PermissionDecision {
+  version: 1;
+  id: string | null;
+  tool: string | null;
+  decision: string | null;
+  via: string | null;
+  rule: string | null;
+  reason: string | null;
+  chain: Array<{
+    layer: string | null;
+    outcome: string | null;
+    via: string | null;
+    rule: string | null;
+    reason: string | null;
+  }>;
 }
 
 export interface TokenUsageEvent extends StreamEventMeta {

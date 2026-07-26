@@ -314,6 +314,31 @@ describe("createTurnBindingFeed (shared producer core)", () => {
     expect(turn.coverage).toBe(TURN_COVERAGE.PARTIAL);
   });
 
+  it("records an explicit permission decision without requiring result.policy", () => {
+    const feed = createTurnBindingFeed({ nonce: "N" });
+    feed.beginTurn(3);
+    feed.handleEvent({
+      type: "tool-executing",
+      tool: "browser_act",
+      tool_use_id: "provider-call-18",
+    });
+    feed.handleEvent({
+      type: "tool-result",
+      tool: "browser_act",
+      tool_use_id: "provider-call-18",
+      permission_decision: {
+        id: "decision-43",
+        decision: "allow",
+        via: "approval-gate",
+      },
+      result: { approval: { approved: true } },
+    });
+
+    expect(feed.log.get("N:t0").permissionDecisionIds).toEqual([
+      "decision-43",
+    ]);
+  });
+
   it("persists child checkpoint/worktree/trace lineage in the parent turn", () => {
     const feed = createTurnBindingFeed({ nonce: "N" });
     feed.beginTurn(2);

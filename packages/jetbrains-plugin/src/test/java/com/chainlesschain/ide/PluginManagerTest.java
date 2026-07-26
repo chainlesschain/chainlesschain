@@ -29,6 +29,19 @@ final class PluginManagerTest {
                 PluginManager.buildPluginUninstallArgs("p1", "project"));
         assertEquals(Arrays.asList("plugin", "uninstall", "p1", "--scope", "user"),
                 PluginManager.buildPluginUninstallArgs("p1", null));
+        assertEquals(Arrays.asList(
+                        "plugin", "use", "p1", "1.0.0", "--scope", "project"),
+                PluginManager.buildPluginUseArgs("p1", "1.0.0", "project"));
+        assertEquals(Arrays.asList(
+                        "plugin", "consent", "p1", "--scope", "user", "--json"),
+                PluginManager.buildPluginConsentArgs("p1", "status", "user"));
+        assertEquals(Arrays.asList(
+                        "plugin", "consent", "p1", "--scope", "user",
+                        "--grant", "--json"),
+                PluginManager.buildPluginConsentArgs("p1", "grant", "user"));
+        assertEquals(Arrays.asList(
+                        "plugin", "consent", "p1", "--scope", "user", "--revoke"),
+                PluginManager.buildPluginConsentArgs("p1", "revoke", "user"));
         assertEquals(Arrays.asList("plugin", "add", "./dir", "--json"),
                 PluginManager.buildPluginAddArgs("./dir", ""));
         assertEquals(Arrays.asList("plugin", "add", "pkg",
@@ -55,10 +68,13 @@ final class PluginManagerTest {
     @Test
     void parsesPluginRowsAndFormatsLines() {
         List<Map<String, Object>> rows = PluginManager.parsePluginInstalled(
-                "[{\"name\":\"a\",\"version\":\"1.0.0\",\"scope\":\"user\",\"ok\":true},"
+                "[{\"name\":\"a\",\"version\":\"1.0.0\","
+                        + "\"versions\":[\"2.0.0\",\"1.0.0\"],"
+                        + "\"scope\":\"user\",\"ok\":true},"
                         + "{\"name\":\"b\",\"scope\":\"project\",\"ok\":false},"
                         + "{\"noName\":true}]");
         assertEquals(2, rows.size());
+        assertEquals(Arrays.asList("2.0.0", "1.0.0"), rows.get(0).get("versions"));
         assertEquals("✔ a v1.0.0  [user]", PluginManager.formatPluginLine(rows.get(0)));
         assertEquals("✖ b  [project]", PluginManager.formatPluginLine(rows.get(1)));
     }

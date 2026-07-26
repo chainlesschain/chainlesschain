@@ -34,6 +34,23 @@ function createTurnState() {
   return { sawDelta: false };
 }
 
+function permissionDecision(evt) {
+  const value =
+    evt?.permission_decision && typeof evt.permission_decision === "object"
+      ? evt.permission_decision
+      : null;
+  if (!value) return null;
+  return {
+    id: typeof value.id === "string" ? value.id : null,
+    decision:
+      typeof value.decision === "string" ? value.decision.slice(0, 32) : null,
+    via: typeof value.via === "string" ? value.via.slice(0, 120) : null,
+    rule: typeof value.rule === "string" ? value.rule.slice(0, 256) : null,
+    reason:
+      typeof value.reason === "string" ? value.reason.slice(0, 512) : null,
+  };
+}
+
 /**
  * @param {object} evt    one parsed NDJSON event from the agent child
  * @param {object} state  per-conversation state from createTurnState()
@@ -99,6 +116,7 @@ function mapAgentEvent(evt, state) {
             ? "couldn't ask interactively in the panel — proceeding autonomously"
             : "skipped — proceeding"
           : null,
+        permissionDecision: permissionDecision(evt),
       };
     }
     case "compaction":
@@ -187,7 +205,7 @@ function mapAgentEvent(evt, state) {
         approved: evt.approved === true,
         via: evt.via || null,
       };
-    case "question_request":
+    case "question_request": {
       // ask_user_question round-trip (CC_INTERACTIVE_QUESTIONS): the agent is
       // BLOCKED waiting for the user. chat-view shows a native QuickPick and
       // replies {type:"answer",...}; the webview renders the question inline.
@@ -206,6 +224,7 @@ function mapAgentEvent(evt, state) {
         question.server = evt.metadata.server || null;
       }
       return question;
+    }
     case "question_resolved":
       return {
         kind: "info",

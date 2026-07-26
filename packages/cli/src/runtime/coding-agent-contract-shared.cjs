@@ -1155,7 +1155,7 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     kind: "browser",
     tier: "extension",
     description:
-      "Capture live state from the user's real Chrome over CDP: current URL/title, open tabs, console messages and failed/error network requests observed during a short watch window, a capped DOM snapshot, and optionally a screenshot (saved to a temp file whose path is returned). Requires a debuggable Chrome — the user starts one with `cc browse chrome launch`. Console/network capture starts at attach time (CDP keeps no history) — set reload=true to observe load-time errors. Use to verify web changes in the user's logged-in browser.",
+      "Capture live state from the user's real Chrome over CDP: current URL/title, open tabs, console messages and failed/error network requests observed during a short watch window, a capped DOM snapshot, and optionally a screenshot (published as a session-bound Artifact; no host temp path enters the agent result). Requires a debuggable Chrome — the user starts one with `cc browse chrome launch`. Console/network capture starts at attach time (CDP keeps no history) — set reload=true to observe load-time errors. Use to verify web changes in the user's logged-in browser.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1187,7 +1187,7 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
         screenshot: {
           type: "boolean",
           description:
-            "Save a screenshot to a generated temp file and return its path (default false)",
+            "Capture a screenshot and return opaque, session-bound Artifact metadata (default false)",
         },
       },
       required: [],
@@ -1208,7 +1208,7 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     kind: "browser",
     tier: "extension",
     description:
-      "Perform EXPLICIT actions in the user's connected Chrome over loopback CDP: click, type, press, navigate (http/https only), waitForSelector, screenshot (saved to a generated temp path — never a chosen one), assertText. Approval-gated (HIGH risk): use browser_state first to observe; only act when the task genuinely requires driving the browser. Steps run in order and fail fast unless continue_on_error; each returns {ok, action, detail, durationMs} and every executed step is audit-logged under ~/.chainlesschain/browser-actions/. Requires a debuggable Chrome (`cc browse chrome launch`).",
+      "Perform EXPLICIT actions in the user's connected Chrome over loopback CDP: click, type, press, navigate (http/https only), waitForSelector, screenshot (published as a session-bound Artifact; never a caller-chosen path), assertText. Approval-gated (HIGH risk): use browser_state first to observe; only act when the task genuinely requires driving the browser. Steps run in order and fail fast unless continue_on_error; each returns {ok, action, detail, durationMs} and every executed step is audit-logged under ~/.chainlesschain/browser-actions/. Requires a debuggable Chrome (`cc browse chrome launch`).",
     inputSchema: {
       type: "object",
       properties: {

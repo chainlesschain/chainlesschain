@@ -35,7 +35,10 @@ function fakePage() {
     keyboard: { press: async (k) => calls.push(["press", k]) },
     goto: async (u) => calls.push(["goto", u]),
     waitForSelector: async (sel) => calls.push(["wait", sel]),
-    screenshot: async ({ path: p }) => calls.push(["screenshot", p]),
+    screenshot: async ({ path: p }) => {
+      calls.push(["screenshot", p]);
+      fs.writeFileSync(p, "fake-png");
+    },
     textContent: async () => "hello world",
   };
 }
@@ -132,13 +135,18 @@ describe("browser_act contract + policy", () => {
 describe("browser_act dispatch (faked playwright via _deps)", () => {
   let savedImporter;
   let savedAuditDir;
+  let savedArtifactsDir;
   let auditDir;
+  let artifactsDir;
 
   beforeEach(() => {
     savedImporter = chromeDeps.importPlaywright;
     savedAuditDir = process.env.CC_BROWSER_ACTIONS_DIR;
+    savedArtifactsDir = process.env.CC_ARTIFACTS_DIR;
     auditDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-act-tool-"));
+    artifactsDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-act-artifacts-"));
     process.env.CC_BROWSER_ACTIONS_DIR = auditDir;
+    process.env.CC_ARTIFACTS_DIR = artifactsDir;
   });
   afterEach(() => {
     chromeDeps.importPlaywright = savedImporter;
@@ -147,8 +155,18 @@ describe("browser_act dispatch (faked playwright via _deps)", () => {
     } else {
       process.env.CC_BROWSER_ACTIONS_DIR = savedAuditDir;
     }
+    if (savedArtifactsDir === undefined) {
+      delete process.env.CC_ARTIFACTS_DIR;
+    } else {
+      process.env.CC_ARTIFACTS_DIR = savedArtifactsDir;
+    }
     try {
       fs.rmSync(auditDir, { recursive: true, force: true });
+    } catch {
+      /* best-effort cleanup */
+    }
+    try {
+      fs.rmSync(artifactsDir, { recursive: true, force: true });
     } catch {
       /* best-effort cleanup */
     }
@@ -219,6 +237,63 @@ describe("browser_act dispatch (faked playwright via _deps)", () => {
     );
     expect(res.error).toBeUndefined();
     expect(res.ok).toBe(true);
+  });
+
+  it("promotes action screenshots to artifacts without returning host paths", async () => {
+    const page = fakePage();
+    chromeDeps.importPlaywright = async () => fakePlaywright(page);
+    const res = await executeTool(
+      "browser_act",
+      { actions: [{ type: "screenshot" }] },
+      { sessionId: "sess-browser-act" },
+    );
+
+    expect(res.error).toBeUndefined();
+    expect(res.ok).toBe(true);
+    expect(res.steps[0].screenshotPath).toBeUndefined();
+    expect(res.steps[0].screenshotRef).toMatch(/^art_/);
+    expect(res.steps[0].screenshotArtifact).toMatchObject({
+      id: res.steps[0].screenshotRef,
+      kind: "screenshot",
+      sessionId: "sess-browser-act",
+    });
+    expect(res.steps[0].screenshotArtifact.sourcePath).toBeUndefined();
+    expect(res.steps[0].detail).toContain(res.steps[0].screenshotRef);
+    const tempPath = page.calls.find((call) => call[0] === "screenshot")[1];
+    expect(fs.existsSync(tempPath)).toBe(false);
+    expect(
+      fs.existsSync(
+        path.join(artifactsDir, "files", res.steps[0].screenshotArtifact.file),
+      ),
+    ).toBe(true);
+  });
+
+  it("does not expose host paths or dangling refs when screenshot publication fails", async () => {
+    const page = fakePage();
+    chromeDeps.importPlaywright = async () => fakePlaywright(page);
+    const blockedStore = path.join(artifactsDir, "not-a-directory");
+    fs.writeFileSync(blockedStore, "blocked");
+    process.env.CC_ARTIFACTS_DIR = blockedStore;
+
+    const res = await executeTool(
+      "browser_act",
+      { actions: [{ type: "screenshot" }] },
+      { sessionId: "sess-browser-act-failure" },
+    );
+    const tempPath = page.calls.find((call) => call[0] === "screenshot")[1];
+    const json = JSON.stringify(res);
+
+    expect(res.error).toBeUndefined();
+    expect(res.steps[0].screenshotPath).toBeUndefined();
+    expect(res.steps[0].screenshotRef).toBeUndefined();
+    expect(res.steps[0].screenshotArtifact).toBeUndefined();
+    expect(res.steps[0].screenshotArtifactError).toMatch(
+      /^browser screenshot artifact publication failed/,
+    );
+    expect(res.steps[0].detail).toBe(res.steps[0].screenshotArtifactError);
+    expect(json).not.toContain(tempPath);
+    expect(json).not.toContain(blockedStore);
+    expect(fs.existsSync(tempPath)).toBe(false);
   });
 
   it("surfaces validation failures (javascript: navigate) as a tool error", async () => {

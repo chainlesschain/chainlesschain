@@ -1,6 +1,7 @@
 package com.chainlesschain.ide;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -120,6 +121,12 @@ public final class ChatEvents {
         return v == null ? dflt : String.valueOf(v);
     }
 
+    private static String limitedStr(
+            Map<String, Object> m, String key, int max) {
+        String value = str(m, key, "");
+        return value.length() > max ? value.substring(0, max) : value;
+    }
+
     private static boolean isTrue(Object v) {
         return Boolean.TRUE.equals(v);
     }
@@ -207,6 +214,19 @@ public final class ChatEvents {
                 m.put("note", "ask_user_question".equals(tool)
                         ? "couldn't ask interactively in the panel — proceeding autonomously"
                         : "skipped — proceeding");
+            }
+            Map<String, Object> permissionDecision =
+                    asMap(evt.get("permission_decision"));
+            if (permissionDecision != null) {
+                Map<String, Object> decision = new LinkedHashMap<>();
+                decision.put("id", limitedStr(permissionDecision, "id", 320));
+                decision.put("decision",
+                        limitedStr(permissionDecision, "decision", 32));
+                decision.put("via", limitedStr(permissionDecision, "via", 120));
+                decision.put("rule", limitedStr(permissionDecision, "rule", 256));
+                decision.put("reason",
+                        limitedStr(permissionDecision, "reason", 512));
+                m.put("permissionDecision", decision);
             }
             return m;
         }

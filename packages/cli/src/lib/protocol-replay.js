@@ -15,10 +15,11 @@
  *      client must never receive a vN+1 field; a recording that violates that is
  *      a compat bug this catches deterministically, offline, in CI.
  *
- * The set of gateable wire fields ({seq, trace_id, tool_use_id}) is projected
- * from the ONE canonical [[capability-manifest.js]] via `toFieldGate()` — it can
- * NOT drift from the negotiated feature list. All non-negotiable frame fields
- * (type, content, tool name, …) always pass through untouched.
+ * The gateable wire fields are projected from the ONE canonical
+ * [[capability-manifest.js]] via `toGateableFieldGate()` — including companion
+ * fields controlled by the same logical feature. They cannot drift from the
+ * negotiated feature list. All non-negotiable frame fields (type, content,
+ * tool name, …) always pass through untouched.
  *
  * PURE + deterministic: no fs / process / clock / RNG. The `digest` lets a golden
  * recording be pinned so any change to negotiation/gating that alters wire output
@@ -30,12 +31,18 @@ import {
   negotiateProtocol,
   applyNegotiationToGate,
 } from "./capability-negotiation.js";
-import { toFieldGate } from "./capability-manifest.js";
+import { toGateableFieldGate } from "./capability-manifest.js";
 
-/** Negotiable wire field names ({seq, trace_id, tool_use_id}), single-sourced. */
+/** Negotiable wire field → primary gate field, single-sourced. */
+const GATEABLE_FIELD_GATE = Object.freeze(toGateableFieldGate());
+
+/** Every negotiable wire field name, including same-feature companions. */
 export const GATEABLE_FIELDS = Object.freeze(
-  [...new Set(Object.values(toFieldGate()))].sort(),
+  Object.keys(GATEABLE_FIELD_GATE).sort(),
 );
+
+const gateOn = (gate, field) =>
+  gate[GATEABLE_FIELD_GATE[field] || field] === true;
 
 /**
  * Run negotiation and fold it into a per-field gate the replay/audit read.
@@ -50,8 +57,8 @@ export const GATEABLE_FIELDS = Object.freeze(
 export function gateFromNegotiation({ server = {}, client = null } = {}) {
   const negotiation = negotiateProtocol(server, client ?? null);
   const gate = applyNegotiationToGate(negotiation, {});
-  const enabledFields = GATEABLE_FIELDS.filter((f) => gate[f] === true);
-  const gatedFields = GATEABLE_FIELDS.filter((f) => gate[f] !== true);
+  const enabledFields = GATEABLE_FIELDS.filter((f) => gateOn(gate, f));
+  const gatedFields = GATEABLE_FIELDS.filter((f) => !gateOn(gate, f));
   return { negotiation, gate, enabledFields, gatedFields };
 }
 
@@ -61,14 +68,14 @@ export function gateFromNegotiation({ server = {}, client = null } = {}) {
  * Returns a shallow copy — the input frame is never mutated.
  *
  * @param {object} frame
- * @param {object} gate  {seq?:boolean, trace_id?:boolean, tool_use_id?:boolean}
+ * @param {object} gate  negotiated primary-field gate
  * @returns {object}
  */
 export function replayFrame(frame, gate = {}) {
   if (!frame || typeof frame !== "object") return frame;
   const out = {};
   for (const [k, v] of Object.entries(frame)) {
-    if (GATEABLE_FIELDS.includes(k) && gate[k] !== true) continue;
+    if (GATEABLE_FIELDS.includes(k) && !gateOn(gate, k)) continue;
     out[k] = v;
   }
   return out;
@@ -116,7 +123,7 @@ export function auditRecordedSession(frames, ctx = {}) {
     if (!frame || typeof frame !== "object") return;
     for (const field of GATEABLE_FIELDS) {
       if (
-        gate[field] !== true &&
+        !gateOn(gate, field) &&
         Object.prototype.hasOwnProperty.call(frame, field)
       ) {
         violations.push({

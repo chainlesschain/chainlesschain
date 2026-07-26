@@ -7,12 +7,14 @@ from pathlib import Path
 
 from chainlesschain_agent_sdk import (
     KNOWN_EVENT_CLASSES,
+    PROTOCOL_FEATURES,
     ContentDeltaEvent,
     PlanUpdateEvent,
     ProtocolDecodeError,
     QuestionRequestEvent,
     ResultEvent,
     SystemInitEvent,
+    ToolResultEvent,
     UnknownAgentEvent,
     UnknownContentDelta,
     parse_event,
@@ -28,6 +30,12 @@ TYPESCRIPT_PROTOCOL = PACKAGE_ROOT.parent / "agent-sdk" / "src" / "protocol.ts"
 
 
 class ProtocolTests(unittest.TestCase):
+    def test_protocol_features_advertise_permission_decisions(self) -> None:
+        self.assertEqual(
+            PROTOCOL_FEATURES,
+            ("event_seq", "tool_use_id", "permission_decision", "trace_id"),
+        )
+
     def test_event_inventory_matches_typescript_union(self) -> None:
         source = TYPESCRIPT_PROTOCOL.read_text(encoding="utf-8")
         match = re.search(
@@ -149,6 +157,30 @@ class ProtocolTests(unittest.TestCase):
         )
         self.assertIsInstance(event, ResultEvent)
         self.assertEqual(event.subtype, "error_max_budget")
+
+    def test_tool_result_exposes_the_permission_decision(self) -> None:
+        event = parse_event(
+            {
+                "type": "tool_result",
+                "id": "tu-1",
+                "tool": "run_shell",
+                "is_error": True,
+                "permission_decision_id": "tu-1:perm:managed",
+                "permission_decision": {
+                    "version": 1,
+                    "id": "tu-1:perm:managed",
+                    "tool": "run_shell",
+                    "decision": "deny",
+                    "via": "managed",
+                    "rule": "Bash(publish:*)",
+                    "reason": "publishing is disabled",
+                    "chain": [],
+                },
+            }
+        )
+        self.assertIsInstance(event, ToolResultEvent)
+        self.assertEqual(event.permission_decision_id, "tu-1:perm:managed")
+        self.assertEqual(event.permission_decision["decision"], "deny")
 
     def test_non_event_values_raise_a_protocol_error(self) -> None:
         for value in (None, [], "event", {"type": 1}, {"no_type": True}):

@@ -215,6 +215,7 @@ describe("publish_artifact tool dispatch (HOME redirected)", () => {
       mime: "application/json",
       sessionId: "sess-9",
     });
+    expect(res.published.sourcePath).toBeUndefined();
     expect(res.hint).toContain("cc artifacts");
     const stored = new ArtifactStore({
       dir: path.join(tmpHome, ".chainlesschain", "artifacts"),

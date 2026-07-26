@@ -1371,6 +1371,20 @@ final class ConversationView {
             if (note instanceof String && !((String) note).isEmpty()) {
                 appendThinking("ℹ " + ui.get("tool") + ":" + note + "\n");
             }
+            Map<String, Object> decision =
+                    asMapOrNull(ui.get("permissionDecision"));
+            if (decision != null
+                    && !"allow".equals(String.valueOf(decision.get("decision")))) {
+                String outcome = String.valueOf(decision.get("decision"));
+                String via = String.valueOf(decision.get("via"));
+                String reason = String.valueOf(decision.get("reason"));
+                String rule = String.valueOf(decision.get("rule"));
+                String detail = !reason.isEmpty() ? reason : rule;
+                appendThinking("Permission "
+                        + (outcome.isEmpty() ? "decision" : outcome)
+                        + (via.isEmpty() ? "" : " via " + via)
+                        + (detail.isEmpty() ? "" : ": " + detail) + "\n");
+            }
         } else if ("usage".equals(kind)) {
             // Live per-turn token tally (VS Code 0.37.2 parity): token_usage
             // fires once per LLM call; accumulate onto the status line. The

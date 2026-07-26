@@ -210,7 +210,7 @@ const FEATURE_TO_FIELD = toFieldGate();
  * baseline). Mutates `gate` in place and returns it.
  *
  * @param {{features:string[], ok:boolean}} result
- * @param {{seq?:boolean, trace_id?:boolean, tool_use_id?:boolean}} gate
+ * @param {{seq?:boolean, trace_id?:boolean, tool_use_id?:boolean, permission_decision?:boolean}} gate
  */
 export function applyNegotiationToGate(result, gate = {}) {
   if (!result || result.ok === false) return gate;

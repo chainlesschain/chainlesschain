@@ -5,9 +5,11 @@ import {
   buildMcpRemoveArgs,
   buildMcpServersArgs,
   buildPluginAddArgs,
+  buildPluginConsentArgs,
   buildPluginInstalledArgs,
   buildPluginTrustArgs,
   buildPluginUninstallArgs,
+  buildPluginUseArgs,
   buildSkillListArgs,
   parseMcpServers,
   parsePluginInstalled,
@@ -51,6 +53,39 @@ describe("plugin/MCP manager argv builders", () => {
       "--scope",
       "project",
     ]);
+    expect(buildPluginUseArgs("p1", "1.0.0", "project")).toEqual([
+      "plugin",
+      "use",
+      "p1",
+      "1.0.0",
+      "--scope",
+      "project",
+    ]);
+    expect(buildPluginConsentArgs("p1", "status", "user")).toEqual([
+      "plugin",
+      "consent",
+      "p1",
+      "--scope",
+      "user",
+      "--json",
+    ]);
+    expect(buildPluginConsentArgs("p1", "grant", "user")).toEqual([
+      "plugin",
+      "consent",
+      "p1",
+      "--scope",
+      "user",
+      "--grant",
+      "--json",
+    ]);
+    expect(buildPluginConsentArgs("p1", "revoke", "user")).toEqual([
+      "plugin",
+      "consent",
+      "p1",
+      "--scope",
+      "user",
+      "--revoke",
+    ]);
     expect(buildPluginAddArgs("./dir")).toEqual([
       "plugin",
       "add",
@@ -90,14 +125,35 @@ describe("plugin/MCP manager parsers", () => {
   it("parses plugin installed rows with scope + manifest validity", () => {
     const rows = parsePluginInstalled(
       JSON.stringify([
-        { name: "a", version: "1.0.0", scope: "user", dir: "/x", ok: true },
+        {
+          name: "a",
+          version: "1.0.0",
+          versions: ["2.0.0", "1.0.0", null],
+          scope: "user",
+          dir: "/x",
+          ok: true,
+        },
         { name: "b", scope: "project", ok: false },
         { noName: true },
       ]),
     );
     expect(rows).toEqual([
-      { name: "a", version: "1.0.0", scope: "user", dir: "/x", ok: true },
-      { name: "b", version: "", scope: "project", dir: "", ok: false },
+      {
+        name: "a",
+        version: "1.0.0",
+        versions: ["2.0.0", "1.0.0"],
+        scope: "user",
+        dir: "/x",
+        ok: true,
+      },
+      {
+        name: "b",
+        version: "",
+        versions: [],
+        scope: "project",
+        dir: "",
+        ok: false,
+      },
     ]);
   });
 

@@ -20,12 +20,14 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import {
+  PROTOCOL_FEATURES,
   isSlashCommandResult,
   type AgentInputEvent,
   type AgentStreamEvent,
   type SlashCommandInput,
   type SlashCommandResultEvent,
   type SystemInitEvent,
+  type ToolResultEvent,
 } from "../src/protocol.js";
 
 const require = createRequire(import.meta.url);
@@ -254,5 +256,39 @@ describe("session slash-command wire fixture", () => {
       session_id: "sess-fx-1",
     });
     expect(deniedResult.text).toBeUndefined();
+  });
+});
+
+describe("permission decision wire shape", () => {
+  it("advertises the permission decision capability", () => {
+    expect(PROTOCOL_FEATURES).toEqual([
+      "event_seq",
+      "tool_use_id",
+      "permission_decision",
+      "trace_id",
+    ]);
+  });
+
+  it("types the additive runtime-authoritative decision on tool_result", () => {
+    const event: ToolResultEvent = {
+      type: "tool_result",
+      id: "tu-1",
+      tool: "run_shell",
+      is_error: true,
+      permission_decision_id: "tu-1:perm:managed",
+      permission_decision: {
+        version: 1,
+        id: "tu-1:perm:managed",
+        tool: "run_shell",
+        decision: "deny",
+        via: "managed",
+        rule: "Bash(publish:*)",
+        reason: "publishing is disabled",
+        chain: [],
+      },
+    };
+
+    expect(event.permission_decision?.decision).toBe("deny");
+    expect(event.permission_decision_id).toBe(event.permission_decision?.id);
   });
 });

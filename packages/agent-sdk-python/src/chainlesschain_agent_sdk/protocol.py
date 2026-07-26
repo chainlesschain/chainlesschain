@@ -20,7 +20,12 @@ from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, Type, Union
 
 PROTOCOL_VERSION = 1
 MIN_PROTOCOL_VERSION = 1
-PROTOCOL_FEATURES: Tuple[str, ...] = ("event_seq", "tool_use_id", "trace_id")
+PROTOCOL_FEATURES: Tuple[str, ...] = (
+    "event_seq",
+    "tool_use_id",
+    "permission_decision",
+    "trace_id",
+)
 
 JsonObject = Dict[str, Any]
 
@@ -203,6 +208,8 @@ class ToolResultEvent(AgentEvent):
     is_error: Optional[bool] = None
     error: Optional[str] = None
     result: Any = None
+    permission_decision_id: Optional[str] = None
+    permission_decision: Optional[Mapping[str, Any]] = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -626,6 +633,12 @@ def parse_event(value: Mapping[str, Any]) -> AgentStreamEvent:
             is_error=_as_bool(raw.get("is_error")),
             error=_as_string(raw.get("error")),
             result=_thaw_value(raw.get("result")),
+            permission_decision_id=_as_string(raw.get("permission_decision_id")),
+            permission_decision=(
+                _freeze_raw(_as_mapping(raw.get("permission_decision")))
+                if _as_mapping(raw.get("permission_decision")) is not None
+                else None
+            ),
             **common,
         )
 

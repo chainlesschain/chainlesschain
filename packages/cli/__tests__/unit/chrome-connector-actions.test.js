@@ -17,6 +17,8 @@ import {
   browserActionsDir,
   normalizeBrowserActions,
   performActions,
+  redactBrowserDom,
+  redactBrowserUrl,
   resolveLoopbackCdpPort,
 } from "../../src/lib/chrome-connector.js";
 
@@ -110,6 +112,51 @@ describe("normalizeBrowserActions (pure validation)", () => {
   });
 });
 
+describe("browser observation redaction", () => {
+  it("removes URL credentials/query values and sensitive DOM values", () => {
+    expect(
+      redactBrowserUrl(
+        "https://alice:password@example.com/account?token=opaque-session&view=full#private",
+      ),
+    ).toBe("https://example.com/account?token=[REDACTED]&view=[REDACTED]");
+
+    const dom = redactBrowserDom(
+      '<input name="api_token" value="opaque-session">' +
+        '<a href="https://example.com/download?ticket=opaque-ticket">go</a>' +
+        "<p>Bearer abcdefghijklmnop</p>",
+    );
+    expect(dom).not.toContain("opaque-session");
+    expect(dom).not.toContain("opaque-ticket");
+    expect(dom).not.toContain("abcdefghijklmnop");
+    expect(dom).toContain('value="[REDACTED]"');
+    expect(dom).toContain("ticket=[REDACTED]");
+  });
+
+  it("redacts a sensitive input before applying the DOM cap", () => {
+    const secret = "opaque-not-pattern-sensitive-value";
+    const html = `<input type="password" value="${secret}">`;
+    const capped = redactBrowserDom(html, html.indexOf(secret) + 12);
+
+    expect(capped).not.toContain(secret);
+    expect(capped).not.toContain(secret.slice(0, 8));
+    expect(capped).toContain("[REDACTED]");
+  });
+
+  it("redacts query values from relative DOM URLs", () => {
+    const secret = "plain-value-123456789";
+    const dom = redactBrowserDom(
+      `<a href="/download?ticket=${secret}&view=full#private">go</a>`,
+    );
+
+    expect(dom).not.toContain(secret);
+    expect(dom).not.toContain("full");
+    expect(dom).not.toContain("private");
+    expect(dom).toContain(
+      "/download?ticket=[REDACTED]&view=[REDACTED]",
+    );
+  });
+});
+
 describe("resolveLoopbackCdpPort", () => {
   it("accepts only http:// against loopback hosts", () => {
     expect(resolveLoopbackCdpPort("http://127.0.0.1:9333")).toBe(9333);
@@ -180,6 +227,36 @@ describe("performActions", () => {
     expect(deps._page.calls).toEqual([
       ["screenshot", res.steps[0].screenshotPath],
     ]);
+    const [audit] = readAuditLines();
+    expect(audit.screenshotRef).toBe(res.steps[0].screenshotRef);
+    expect(audit.screenshotRef).not.toContain(os.tmpdir());
+    expect(audit.result).toBe("screenshot captured");
+    expect(JSON.stringify(audit)).not.toContain(res.steps[0].screenshotPath);
+  });
+
+  it("cleans a partial screenshot and redacts its generated path when the action fails", async () => {
+    let generatedPath;
+    const page = fakePage({
+      screenshot: async ({ path: p }) => {
+        generatedPath = p;
+        fs.writeFileSync(p, "partial-png");
+        throw new Error(`failed while writing ${p}`);
+      },
+    });
+    const res = await performActions([{ type: "screenshot" }], {
+      deps: fakeDeps({ page }),
+    });
+    const [audit] = readAuditLines();
+
+    expect(res.ok).toBe(false);
+    expect(res.steps[0].screenshotPath).toBeUndefined();
+    expect(res.steps[0].screenshotRef).toBeUndefined();
+    expect(res.steps[0].detail).toContain("[SCREENSHOT_PATH]");
+    expect(JSON.stringify(res)).not.toContain(generatedPath);
+    expect(audit.screenshotRef).toBeUndefined();
+    expect(audit.result).toContain("[SCREENSHOT_PATH]");
+    expect(JSON.stringify(audit)).not.toContain(generatedPath);
+    expect(fs.existsSync(generatedPath)).toBe(false);
   });
 
   it("appends one audit JSONL line per executed step (ts/action/ok/durationMs/sessionId)", async () => {
@@ -199,6 +276,9 @@ describe("performActions", () => {
       ok: true,
       sessionId: "sess-42",
       key: "Enter",
+      pageBefore: "http://localhost:3000/after",
+      pageAfter: "http://localhost:3000/after",
+      result: "pressed Enter",
     });
     expect(typeof lines[0].ts).toBe("string");
     expect(typeof lines[0].durationMs).toBe("number");
@@ -215,6 +295,25 @@ describe("performActions", () => {
     await performActions([{ type: "click", selector: longSel }], { deps });
     const [line] = readAuditLines();
     expect(line.selector.length).toBeLessThanOrEqual(201); // 200 + ellipsis
+  });
+
+  it("redacts navigation URLs and result detail before output and audit", async () => {
+    const deps = fakeDeps();
+    const secretUrl =
+      "https://alice:password@example.com/path?token=opaque-session#private";
+    const res = await performActions([{ type: "navigate", url: secretUrl }], {
+      deps,
+    });
+    expect(res.ok).toBe(true);
+    expect(JSON.stringify(res)).not.toContain("opaque-session");
+    expect(JSON.stringify(res)).not.toContain("password");
+    expect(res.steps[0].detail).toContain("token=[REDACTED]");
+
+    const [line] = readAuditLines();
+    expect(line.url).toBe("https://example.com/path?token=[REDACTED]");
+    expect(line.result).not.toContain("opaque-session");
+    expect(line.pageBefore).toBe("http://localhost:3000/after");
+    expect(line.pageAfter).toBe("http://localhost:3000/after");
   });
 
   it("fails fast by default; continueOnError runs the remaining steps", async () => {

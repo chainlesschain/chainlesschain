@@ -18,7 +18,7 @@ import {
   auditRecordedSession,
   sessionDigest,
 } from "../../src/lib/protocol-replay.js";
-import { toFieldGate } from "../../src/lib/capability-manifest.js";
+import { toGateableFieldGate } from "../../src/lib/capability-manifest.js";
 import { PROTOCOL_VERSION } from "../../src/lib/capability-negotiation.js";
 
 const GOLDEN_PATH = fileURLToPath(
@@ -30,7 +30,7 @@ const GOLDEN_FRAMES = readFileSync(GOLDEN_PATH, "utf-8")
   .map((l) => JSON.parse(l));
 
 // A tiny recorded session captured at FULL capability (every negotiable wire
-// field present): seq + trace_id + tool_use_id.
+// field present): seq + trace_id + tool_use_id + the permission decision pair.
 const RECORDED = [
   { type: "system", subtype: "init", seq: 1, trace_id: "tr-abc" },
   {
@@ -46,6 +46,8 @@ const RECORDED = [
     trace_id: "tr-abc",
     tool_use_id: "tu-1",
     content: "ok",
+    permission_decision_id: "perm-1",
+    permission_decision: { id: "perm-1", decision: "allow" },
   },
   { type: "result", subtype: "success", seq: 4, trace_id: "tr-abc" },
 ];
@@ -53,15 +55,25 @@ const RECORDED = [
 const FULL_SERVER = {
   protocolVersion: PROTOCOL_VERSION,
   minProtocolVersion: 1,
-  features: ["event_seq", "trace_id", "tool_use_id"],
+  features: [
+    "event_seq",
+    "tool_use_id",
+    "permission_decision",
+    "trace_id",
+  ],
 };
 
 describe("GATEABLE_FIELDS", () => {
   it("is exactly the single-sourced wire field set, sorted + de-duped", () => {
-    const expected = [...new Set(Object.values(toFieldGate()))].sort();
+    const expected = Object.keys(toGateableFieldGate()).sort();
     expect(GATEABLE_FIELDS).toEqual(expected);
-    // The three protocol-v1 wire fields.
-    expect(GATEABLE_FIELDS).toEqual(["seq", "tool_use_id", "trace_id"]);
+    expect(GATEABLE_FIELDS).toEqual([
+      "permission_decision",
+      "permission_decision_id",
+      "seq",
+      "tool_use_id",
+      "trace_id",
+    ]);
   });
 });
 
@@ -71,8 +83,13 @@ describe("gateFromNegotiation", () => {
       server: FULL_SERVER,
       client: null,
     });
-    expect(gate).toEqual({ seq: true, trace_id: true, tool_use_id: true });
-    expect(enabledFields).toEqual(["seq", "tool_use_id", "trace_id"]);
+    expect(gate).toEqual({
+      seq: true,
+      tool_use_id: true,
+      permission_decision: true,
+      trace_id: true,
+    });
+    expect(enabledFields).toEqual(GATEABLE_FIELDS);
     expect(gatedFields).toEqual([]);
   });
 
@@ -85,7 +102,12 @@ describe("gateFromNegotiation", () => {
     expect(gate.trace_id).not.toBe(true);
     expect(gate.tool_use_id).not.toBe(true);
     expect(enabledFields).toEqual(["seq"]);
-    expect(gatedFields).toEqual(["tool_use_id", "trace_id"]);
+    expect(gatedFields).toEqual([
+      "permission_decision",
+      "permission_decision_id",
+      "tool_use_id",
+      "trace_id",
+    ]);
   });
 
   it("incompatible negotiation fails closed — every gateable field OFF", () => {
@@ -102,13 +124,20 @@ describe("gateFromNegotiation", () => {
 
 describe("replayFrame", () => {
   it("strips gated-off wire fields, keeps everything else, no mutation", () => {
-    const gate = { seq: true, trace_id: false, tool_use_id: false };
+    const gate = {
+      seq: true,
+      trace_id: false,
+      tool_use_id: false,
+      permission_decision: false,
+    };
     const frame = {
       type: "tool_use",
       name: "read_file",
       seq: 2,
       trace_id: "tr",
       tool_use_id: "tu-1",
+      permission_decision_id: "perm-1",
+      permission_decision: { id: "perm-1" },
     };
     const out = replayFrame(frame, gate);
     expect(out).toEqual({ type: "tool_use", name: "read_file", seq: 2 });
@@ -131,7 +160,7 @@ describe("replaySession", () => {
     expect(b.digest).toBe(a.digest);
   });
 
-  it("downgraded client → trace_id + tool_use_id stripped, digest differs", () => {
+  it("narrowed client strips every omitted negotiated field", () => {
     const full = replaySession(RECORDED, { server: FULL_SERVER, client: null });
     const down = replaySession(RECORDED, {
       server: FULL_SERVER,
@@ -140,6 +169,8 @@ describe("replaySession", () => {
     for (const f of down.frames) {
       expect(f).not.toHaveProperty("trace_id");
       expect(f).not.toHaveProperty("tool_use_id");
+      expect(f).not.toHaveProperty("permission_decision");
+      expect(f).not.toHaveProperty("permission_decision_id");
     }
     // seq survives
     expect(down.frames[1].seq).toBe(2);
@@ -170,7 +201,7 @@ describe("auditRecordedSession", () => {
   });
 
   it("recording carrying a gated-off field → violation with index + field + type", () => {
-    // The full recording carries trace_id/tool_use_id but negotiation only has seq.
+    // The full recording carries negotiated metadata but negotiation only has seq.
     const audit = auditRecordedSession(RECORDED, {
       server: FULL_SERVER,
       client: { protocolVersion: PROTOCOL_VERSION, features: ["event_seq"] },
@@ -186,6 +217,16 @@ describe("auditRecordedSession", () => {
       index: 1,
       field: "tool_use_id",
       type: "tool_use",
+    });
+    expect(audit.violations).toContainEqual({
+      index: 2,
+      field: "permission_decision",
+      type: "tool_result",
+    });
+    expect(audit.violations).toContainEqual({
+      index: 2,
+      field: "permission_decision_id",
+      type: "tool_result",
     });
   });
 

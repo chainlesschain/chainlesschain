@@ -77,6 +77,14 @@ public class CapabilityNegotiationTest {
         assertTrue(readCases().size() >= 8, "expected the full case set");
     }
 
+    @Test
+    void protocolFeaturesAdvertisePermissionDecisions() {
+        assertEquals(
+                java.util.Arrays.asList(
+                        "event_seq", "tool_use_id", "permission_decision", "trace_id"),
+                CapabilityNegotiation.PROTOCOL_FEATURES);
+    }
+
     @SuppressWarnings("unchecked")
     @TestFactory
     List<DynamicTest> matchesSharedFixture() {

@@ -6,13 +6,23 @@
       "server": {
         "protocolVersion": 1,
         "minProtocolVersion": 1,
-        "features": ["event_seq", "tool_use_id", "trace_id"]
+        "features": [
+          "event_seq",
+          "tool_use_id",
+          "permission_decision",
+          "trace_id"
+        ]
       },
       "client": null,
       "expected": {
         "ok": true,
         "agreedVersion": 1,
-        "features": ["event_seq", "tool_use_id", "trace_id"],
+        "features": [
+          "event_seq",
+          "permission_decision",
+          "tool_use_id",
+          "trace_id"
+        ],
         "downgraded": false,
         "disabledFeatures": []
       }
@@ -22,17 +32,32 @@
       "server": {
         "protocolVersion": 1,
         "minProtocolVersion": 1,
-        "features": ["event_seq", "tool_use_id", "trace_id"]
+        "features": [
+          "event_seq",
+          "tool_use_id",
+          "permission_decision",
+          "trace_id"
+        ]
       },
       "client": {
         "protocolVersion": 1,
         "minProtocolVersion": 1,
-        "features": ["event_seq", "tool_use_id", "trace_id"]
+        "features": [
+          "event_seq",
+          "tool_use_id",
+          "permission_decision",
+          "trace_id"
+        ]
       },
       "expected": {
         "ok": true,
         "agreedVersion": 1,
-        "features": ["event_seq", "tool_use_id", "trace_id"],
+        "features": [
+          "event_seq",
+          "permission_decision",
+          "tool_use_id",
+          "trace_id"
+        ],
         "downgraded": false,
         "disabledFeatures": []
       }
@@ -42,7 +67,12 @@
       "server": {
         "protocolVersion": 1,
         "minProtocolVersion": 1,
-        "features": ["event_seq", "tool_use_id", "trace_id"]
+        "features": [
+          "event_seq",
+          "tool_use_id",
+          "permission_decision",
+          "trace_id"
+        ]
       },
       "client": { "protocolVersion": 1, "features": ["trace_id"] },
       "expected": {
@@ -50,7 +80,7 @@
         "agreedVersion": 1,
         "features": ["trace_id"],
         "downgraded": true,
-        "disabledFeatures": ["event_seq", "tool_use_id"]
+        "disabledFeatures": ["event_seq", "permission_decision", "tool_use_id"]
       }
     },
     {

@@ -183,6 +183,15 @@ export function createStreamCoalescer({
   const gateOn = (field) => !fieldGate || fieldGate[field] !== false;
   const rawEmit = (obj) => {
     let line = obj;
+    if (
+      !gateOn("permission_decision") &&
+      (Object.prototype.hasOwnProperty.call(line, "permission_decision") ||
+        Object.prototype.hasOwnProperty.call(line, "permission_decision_id"))
+    ) {
+      line = { ...line };
+      delete line.permission_decision;
+      delete line.permission_decision_id;
+    }
     if (traceId && gateOn("trace_id")) line = { ...line, trace_id: traceId };
     if (stampSeq && gateOn("seq")) line = { ...line, seq: ++seq };
     writeOut(JSON.stringify(line) + "\n");
@@ -822,6 +831,11 @@ async function runTurn(
         // P0-2: settle the in-flight side-effect (commit on success, fail on
         // a clean error) and persist the updated ledger snapshot.
         if (sideEffects && currentSideEffectOpId) {
+          if (event.permission_decision) {
+            sideEffects.ledger.annotate(currentSideEffectOpId, {
+              permissionDecision: event.permission_decision,
+            });
+          }
           if (event.result?._diffReviewAudit) {
             diffReviewFollowUps.observe(
               sideEffects.ledger,
@@ -866,6 +880,12 @@ async function runTurn(
           is_error: Boolean(err),
           error: err,
           result: event.result,
+          ...(event.permission_decision_id
+            ? { permission_decision_id: event.permission_decision_id }
+            : {}),
+          ...(event.permission_decision
+            ? { permission_decision: event.permission_decision }
+            : {}),
         });
         if (settledItem) {
           emit({ type: "plan_update", ...planSnapshot(pm) });
@@ -1068,7 +1088,12 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   // client `hello` narrowing the wire features flips these to suppress the
   // additive fields it can't parse. All true by default = current behavior
   // byte-for-byte; the coalescer reads it per line.
-  const fieldGate = { seq: true, trace_id: true, tool_use_id: true };
+  const fieldGate = {
+    seq: true,
+    trace_id: true,
+    tool_use_id: true,
+    permission_decision: true,
+  };
   // Batch consecutive partial-message text/thinking deltas into one stream_event
   // line (Claude-Code 2.1.191 streaming-CPU optimization). `emit` flushes any
   // pending deltas before writing a non-delta line, so ordering is preserved;

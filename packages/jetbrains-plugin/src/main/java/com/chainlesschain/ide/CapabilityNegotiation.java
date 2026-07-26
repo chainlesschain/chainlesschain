@@ -32,7 +32,8 @@ public final class CapabilityNegotiation {
     public static final int PROTOCOL_MIN_VERSION = 1;
     public static final List<String> PROTOCOL_FEATURES =
             Collections.unmodifiableList(
-                    Arrays.asList("event_seq", "tool_use_id", "trace_id"));
+                    Arrays.asList(
+                            "event_seq", "tool_use_id", "permission_decision", "trace_id"));
 
     private CapabilityNegotiation() {}
 

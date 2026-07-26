@@ -10,6 +10,7 @@ import {
   uninstall,
   setActiveVersion,
   getActiveVersion,
+  MAX_LISTED_PLUGIN_VERSIONS,
   parseGitSource,
   _deps as installDeps,
 } from "../../src/lib/plugin-runtime/install.js";
@@ -126,6 +127,27 @@ describe("listInstalled", () => {
     const names = rows.map((r) => r.name).sort();
     expect(names).toEqual(["alpha", "beta"]);
     expect(rows.every((r) => r.ok)).toBe(true);
+    expect(rows.find((r) => r.name === "alpha")?.versions).toEqual(["1.0.0"]);
+  });
+
+  it("bounds the version history while retaining an older active version", () => {
+    installFromDirectory(makeSource("bounded", "1.0.0"), {
+      scope: "project",
+      cwd,
+    });
+    const nameDir = path.dirname(
+      pluginVersionDir("project", "bounded", "1.0.0", { cwd }),
+    );
+    for (let major = 2; major <= 71; major += 1) {
+      fs.mkdirSync(path.join(nameDir, `${major}.0.0`));
+    }
+
+    const [row] = listInstalled({ cwd, scopes: ["project"] });
+    expect(row.versions).toHaveLength(MAX_LISTED_PLUGIN_VERSIONS);
+    expect(row.versions[0]).toBe("71.0.0");
+    expect(row.versions.at(-1)).toBe("1.0.0");
+    expect(row.versions).not.toContain("8.0.0");
+    expect(row.versions).not.toContain("7.0.0");
   });
 });
 

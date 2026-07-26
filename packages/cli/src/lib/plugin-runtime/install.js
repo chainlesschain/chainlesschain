@@ -35,6 +35,8 @@ import {
 } from "./signature.js";
 import executionBroker from "../process-execution-broker/index.js";
 
+export const MAX_LISTED_PLUGIN_VERSIONS = 64;
+
 export const _deps = {
   existsSync: fs.existsSync,
   mkdirSync: fs.mkdirSync,
@@ -321,13 +323,27 @@ export function listInstalled(opts = {}) {
     cwd: opts.cwd,
     scopes: opts.scopes,
     skipPolicy: true,
-  }).map((p) => ({
-    name: p.name,
-    version: p.version,
-    scope: p.scope,
-    dir: p.root,
-    ok: p.manifest?.ok === true,
-  }));
+  }).map((p) => {
+    const allVersions = listInstalledVersions(p.scope, p.name, {
+      cwd: opts.cwd,
+    });
+    const versions = allVersions.slice(0, MAX_LISTED_PLUGIN_VERSIONS);
+    if (
+      p.version &&
+      !versions.includes(p.version) &&
+      allVersions.includes(p.version)
+    ) {
+      versions[versions.length - 1] = p.version;
+    }
+    return {
+      name: p.name,
+      version: p.version,
+      versions,
+      scope: p.scope,
+      dir: p.root,
+      ok: p.manifest?.ok === true,
+    };
+  });
 }
 
 /**

@@ -93,6 +93,7 @@ import {
   formatProviderHttpError,
   formatProviderResponseError,
 } from "../lib/provider-http-error.js";
+import { buildPermissionDecision } from "../lib/permission-decision.js";
 
 export { formatProviderHttpError };
 
@@ -2758,6 +2759,39 @@ async function filterSkillsByCwd(skills, cwd) {
   }
 }
 
+async function promoteBrowserScreenshot(
+  filePath,
+  { sessionId = null, title = "Browser screenshot" } = {},
+) {
+  if (!filePath) return { artifact: null, error: null };
+  try {
+    const { ArtifactStore, publicArtifactMetadata } =
+      await import("../lib/artifact-store.js");
+    const entry = new ArtifactStore().publish({
+      filePath,
+      title,
+      kind: "screenshot",
+      sessionId: sessionId ? String(sessionId) : null,
+    });
+    return { artifact: publicArtifactMetadata(entry), error: null };
+  } catch (err) {
+    const code =
+      typeof err?.code === "string"
+        ? err.code.replace(/[^A-Z0-9_-]/gi, "").slice(0, 40)
+        : "";
+    return {
+      artifact: null,
+      error: `browser screenshot artifact publication failed${code ? ` (${code})` : ""}`,
+    };
+  } finally {
+    try {
+      fs.rmSync(filePath, { force: true });
+    } catch {
+      /* best-effort cleanup */
+    }
+  }
+}
+
 async function executeToolInner(
   name,
   args,
@@ -4219,7 +4253,8 @@ async function executeToolInner(
       // Only METADATA returns to the conversation (the transcript never
       // carries the file body); `cc artifacts` lists/inspects/cleans.
       try {
-        const { ArtifactStore } = await import("../lib/artifact-store.js");
+        const { ArtifactStore, publicArtifactMetadata } =
+          await import("../lib/artifact-store.js");
         const store = new ArtifactStore();
         const entry = store.publish({
           filePath: path.resolve(cwd, String(args.path || "")),
@@ -4229,7 +4264,7 @@ async function executeToolInner(
           sessionId: sessionId ? String(sessionId) : null,
         });
         return attachDescriptor({
-          published: entry,
+          published: publicArtifactMetadata(entry),
           hint: "The user can browse this with `cc artifacts list` / `cc artifacts show <id>`.",
         });
       } catch (err) {
@@ -4265,7 +4300,25 @@ async function executeToolInner(
             error: `browser_state failed: ${state.error}`,
           });
         }
-        return attachDescriptor(state);
+        const safeState = { ...state };
+        if (state.screenshotPath) {
+          const promoted = await promoteBrowserScreenshot(
+            state.screenshotPath,
+            {
+              sessionId,
+              title: `Browser state — ${state.title || "page"}`,
+            },
+          );
+          delete safeState.screenshotPath;
+          delete safeState.screenshotRef;
+          if (promoted.artifact) {
+            safeState.screenshotArtifact = promoted.artifact;
+            safeState.screenshotRef = promoted.artifact.id;
+          } else {
+            safeState.screenshotArtifactError = promoted.error;
+          }
+        }
+        return attachDescriptor(safeState);
       } catch (err) {
         return attachDescriptor({
           error: `browser_state failed: ${err.message}`,
@@ -4336,7 +4389,32 @@ async function executeToolInner(
             error: `browser_act failed: ${result.error}`,
           });
         }
-        return attachDescriptor(result);
+        const safeResult = { ...result, steps: [] };
+        for (let i = 0; i < (result.steps || []).length; i += 1) {
+          const originalStep = result.steps[i];
+          const step = { ...originalStep };
+          if (originalStep.screenshotPath) {
+            const promoted = await promoteBrowserScreenshot(
+              originalStep.screenshotPath,
+              {
+                sessionId,
+                title: `Browser action screenshot ${i + 1}`,
+              },
+            );
+            delete step.screenshotPath;
+            delete step.screenshotRef;
+            if (promoted.artifact) {
+              step.screenshotArtifact = promoted.artifact;
+              step.screenshotRef = promoted.artifact.id;
+              step.detail = `screenshot artifact: ${promoted.artifact.id}`;
+            } else {
+              step.screenshotArtifactError = promoted.error;
+              step.detail = promoted.error;
+            }
+          }
+          safeResult.steps.push(step);
+        }
+        return attachDescriptor(safeResult);
       } catch (err) {
         return attachDescriptor({
           error: `browser_act failed: ${err.message}`,
@@ -7507,11 +7585,12 @@ function extractInitialPromptText(messages) {
  * recompute it. Not exported (no shim-parity impact) — only the telemetry seam
  * uses it.
  */
-function permissionDecisionId(callId, policy) {
-  if (!policy || typeof policy !== "object" || !policy.decision) return null;
-  const gate = policy.via || policy.decision;
-  const base = callId || "call";
-  return `${base}:perm:${gate}`;
+function permissionDecision(callId, tool, result) {
+  return buildPermissionDecision({
+    toolUseId: callId,
+    tool,
+    result,
+  });
 }
 
 export async function* agentLoop(messages, options) {
@@ -8284,6 +8363,11 @@ export async function* agentLoop(messages, options) {
         const toolContent = warningMsg
           ? `${resultStr}\n\n${warningMsg}`
           : resultStr;
+        const decision = permissionDecision(
+          call.id,
+          call.function.name,
+          toolResult,
+        );
         yield {
           type: "tool-result",
           tool: call.function.name,
@@ -8291,10 +8375,8 @@ export async function* agentLoop(messages, options) {
           error: toolError,
           tool_use_id: call.id,
           turn_id: `${runId}:t${budget.consumed}`,
-          permission_decision_id: permissionDecisionId(
-            call.id,
-            toolResult?.policy,
-          ),
+          permission_decision_id: decision?.id || null,
+          permission_decision: decision,
         };
         messages.push({
           role: "tool",
@@ -8413,14 +8495,14 @@ export async function* agentLoop(messages, options) {
             // (derived from the call + gate, so it's recomputable from the
             // tool-result's policy + tool_call_id) plus the low-cardinality
             // decision, letting a blocked tool span be tied to its decision.
-            const decId =
+            const decision =
               r && typeof r === "object"
-                ? permissionDecisionId(call.id, r.policy)
+                ? permissionDecision(call.id, toolName, r)
                 : null;
-            if (decId) {
+            if (decision?.id) {
               const permAttrs = buildTelemetryAttributes({
-                decisionId: decId,
-                "permission.decision": r.policy.decision,
+                decisionId: decision.id,
+                "permission.decision": decision.decision,
               });
               if (permAttrs["permission.decision_id"]) {
                 span.setAttribute(
@@ -8458,6 +8540,7 @@ export async function* agentLoop(messages, options) {
         ? `${resultStr}\n\n${warningMsg}`
         : resultStr;
 
+      const decision = permissionDecision(call.id, toolName, toolResult);
       yield {
         type: "tool-result",
         tool: toolName,
@@ -8465,10 +8548,8 @@ export async function* agentLoop(messages, options) {
         error: toolError,
         tool_use_id: call.id,
         turn_id: `${runId}:t${budget.consumed}`,
-        permission_decision_id: permissionDecisionId(
-          call.id,
-          toolResult?.policy,
-        ),
+        permission_decision_id: decision?.id || null,
+        permission_decision: decision,
       };
 
       messages.push({

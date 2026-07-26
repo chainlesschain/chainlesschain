@@ -33,6 +33,31 @@ function buildPluginUninstallArgs(name, scope = "user") {
   return ["plugin", "uninstall", String(name), "--scope", String(scope)];
 }
 
+function buildPluginUseArgs(name, version, scope = "user") {
+  return [
+    "plugin",
+    "use",
+    String(name),
+    String(version),
+    "--scope",
+    String(scope),
+  ];
+}
+
+function buildPluginConsentArgs(name, action, scope = "user") {
+  const args = [
+    "plugin",
+    "consent",
+    String(name),
+    "--scope",
+    String(scope),
+  ];
+  if (action === "grant") args.push("--grant");
+  else if (action === "revoke") args.push("--revoke");
+  if (action !== "revoke") args.push("--json");
+  return args;
+}
+
 function buildPluginAddArgs(source, { registry } = {}) {
   const args = ["plugin", "add", String(source)];
   if (registry) args.push("--registry", String(registry));
@@ -74,6 +99,18 @@ function parsePluginInstalled(text) {
     .map((r) => ({
       name: r.name,
       version: String(r.version || ""),
+      versions: Array.isArray(r.versions)
+        ? r.versions
+            .filter(
+              (version) =>
+                typeof version === "string" &&
+                version.length > 0 &&
+                version.length <= 128,
+            )
+            .slice(0, 64)
+        : r.version
+          ? [String(r.version)]
+          : [],
       scope: String(r.scope || "user"),
       dir: String(r.dir || ""),
       ok: r.ok === true,
@@ -117,9 +154,11 @@ module.exports = {
   buildMcpRemoveArgs,
   buildMcpServersArgs,
   buildPluginAddArgs,
+  buildPluginConsentArgs,
   buildPluginInstalledArgs,
   buildPluginTrustArgs,
   buildPluginUninstallArgs,
+  buildPluginUseArgs,
   buildSkillListArgs,
   parseMcpServers,
   parsePluginInstalled,
