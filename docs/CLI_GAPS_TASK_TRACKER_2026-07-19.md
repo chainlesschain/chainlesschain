@@ -4,7 +4,7 @@
 > 创建日期：2026-07-19
 > 当前 CLI 版本：`0.162.180`
 > 状态：P0-2 当前 turn、持久化与跨宿主 authority/binding 核心已完成；P0-1 Broker/凭据/macOS 核心已落地，
-> 静态进程清单与 Windows 原生标准进程边界已收口，Windows Node IPC/detached 语义和真实三平台 CI 仍在进行；P1-12 双语言 SDK 已完成，
+> 静态进程清单、Windows 原生进程边界及 Node IPC/detached 语义已收口，真实三平台 CI 仍在验收；P1-12 双语言 SDK 已完成，
 > Python SDK 0.1.0 已发布 PyPI
 > 最后更新：2026-07-26（按当前源码、跨宿主交互协议、认证凭据 transport 与生成清单复核）
 
@@ -12,12 +12,12 @@
 
 ## 执行优先级
 
-| 优先级    | 任务数 | 说明                                          |
-| --------- | ------ | --------------------------------------------- |
-| 🔴 **P0** | **2**  | P0-2 余三平台全链 E2E；P0-1 余 Windows 特殊进程语义与三平台严格隔离 CI |
-| 🟠 P0/P1  | 1      | 权限控制面统一                                |
-| 🟡 P1     | 10     | 高优先级体验/安全能力                         |
-| 🟢 P2     | 4      | 差异化方向（不抢占 P0/P1）                    |
+| 优先级    | 任务数 | 说明                                                     |
+| --------- | ------ | -------------------------------------------------------- |
+| 🔴 **P0** | **2**  | P0-2 余三平台全链 E2E；P0-1 余三平台严格隔离 CI 远端验收 |
+| 🟠 P0/P1  | 1      | 权限控制面统一                                           |
+| 🟡 P1     | 10     | 高优先级体验/安全能力                                    |
+| 🟢 P2     | 4      | 差异化方向（不抢占 P0/P1）                               |
 
 ---
 
@@ -25,8 +25,8 @@
 
 ### P0-1: 进程隔离（ProcessExecutionBroker 生产化）
 
-**状态**: 🟡 **Broker/凭据 transport/三平台执行计划与进程清单审计已落地**；
-Windows Node IPC/detached 语义及真实三平台 CI 尚未完成
+**状态**: 🟡 **Broker/凭据 transport/三平台执行计划、进程清单与 Windows 特殊进程语义已落地**；
+真实三平台 CI 尚在验收
 
 **目标**:
 
@@ -43,9 +43,9 @@ Windows Node IPC/detached 语义及真实三平台 CI 尚未完成
 - [x] Windows Job Object + Restricted Token 原生 adapter
 - [x] Broker `spawn`/`spawnSync`/PTY 接入 CredentialAgent，敏感 env/argv 默认过滤且审计不含值
 - [x] Broker 签发的 credential ref 通过认证 transport 向目标进程按需解析
-- [x] 生成清单中的 runtime 匹配全部迁移或记录审计豁免（2026-07-26：206 项，0 unreviewed）
+- [x] 生成清单中的 runtime 匹配全部迁移或记录审计豁免（2026-07-26：207 项，0 unreviewed）
 - [x] `CC_SANDBOX_STRICT` 在平台边界不可用时 fail-closed
-- [ ] Windows 原生 adapter 保真 Node IPC fd3 与 detached 目标 PID/handle 语义
+- [x] Windows 原生 adapter 保真 Node IPC fd3 与 detached 目标 PID/handle 语义
 - [ ] macOS/Linux/Windows 严格隔离真实 CI 矩阵全部通过
 
 **实现说明（2026-07-26 复核）**:
@@ -54,15 +54,17 @@ Windows Node IPC/detached 语义及真实三平台 CI 尚未完成
    - macOS：生成 Seatbelt profile，通过 `/usr/bin/sandbox-exec -f` 包装目标进程
    - Windows：Broker 控制的 Windows PowerShell/Win32 adapter 以 restricted primary token
      挂起创建目标，先加入 kill-on-close Job Object 并施加 CPU/内存/进程数限制，再恢复执行
-   - Windows adapter 首次使用通过系统 Windows PowerShell 编译内容寻址的托管 Win32 helper；
-     后续直接执行缓存 helper，npm 与 `pkg` 构建均携带同一受控源文件
+   - Windows adapter 首次使用通过系统 Windows PowerShell 同步编译内容寻址的托管 Win32 helper；
+     目标始终由缓存 helper 直接启动，避免 bootstrap wrapper 改写扩展描述符，npm 与 `pkg`
+     构建均携带同一受控源文件
    - Windows 真实测试验证受限 privilege 集、`cmd.exe /s /c` 内嵌引号与 2 MiB 输出语义，
-     以及父进程退出后 detached grandchild 被 Job Object 清理；adapter/PowerShell 缺失时仍返回
-     unavailable 并由 strict 模式 fail-closed
-   - 该托管 helper 目前不能跨中间 wrapper 复制 Node/libuv 的 fd3 IPC 描述符表，也不能让
-     `spawn().pid` 保持 detached 目标进程身份；这两类执行计划显式返回
-     `windows_node_ipc_descriptor_unsupported` / `windows_detached_process_identity_unsupported`，
-     非严格模式审计降级为原生 spawn，严格模式在目标启动前 fail-closed
+     父进程退出后 detached grandchild 被 Job Object 清理、Node fd3 双向 IPC/断连语义，
+     以及 detached `spawn().pid` 对齐真实目标并由 wrapper handle 监督整棵 Job；adapter/PowerShell
+     缺失或额外非 IPC 描述符无法保真时仍返回 unavailable 并由 strict 模式 fail-closed
+   - helper 从自身 CRT fd 映射重建 libuv `cbReserved2/lpReserved2` 描述符表，在
+     `CreateProcessAsUser` 前恢复可继承句柄；目标继承成功后关闭 helper 侧 fd，避免延迟
+     `disconnect`/EOF。detached 路径在 Job 绑定且目标恢复后通过随机控制文件同步返回
+     `targetPid`，Broker 对外暴露目标 PID，同时保留 `sandboxWrapperPid` 用于 Job 生命周期
    - Linux：Broker 可用 `prlimit` 施加资源限制；文件/网络边界继续复用显式 bubblewrap sandbox
 
 2. **`credential-agent.js` 凭据过滤代理（default-on）**：
@@ -97,8 +99,8 @@ Windows Node IPC/detached 语义及真实三平台 CI 尚未完成
 5. **2026-07-26 清单 fail-closed 收口**：
    - 生成器为每个 runtime 匹配输出 `brokered` / `audited-exemption` / `non-executable` /
      `unreviewed` disposition 与证据
-   - 当前源码共 290 个词法匹配（runtime 206、tooling 56、test 28）；runtime 中
-     157 项已路由 Broker、16 项有显式审计豁免、33 项为声明/注释/类型/安全正则噪声，
+   - 当前源码共 291 个词法匹配（runtime 207、tooling 56、test 28）；runtime 中
+     157 项已路由 Broker、17 项有显式审计豁免、33 项为声明/注释/类型/安全正则噪声，
      `unreviewed` 为 0
    - `process-spawn-audit-policy.json` 记录 Broker 原生边界、Agent SDK 外部宿主与
      goal checker fail-closed 注入规则的 owner、复核日期和原因
@@ -117,7 +119,7 @@ Windows Node IPC/detached 语义及真实三平台 CI 尚未完成
 - `packages/cli/scripts/gen-process-spawn-inventory.mjs` (✅ disposition 与 fail-closed gate)
 - `packages/cli/scripts/process-spawn-audit-policy.json` (✅ 显式审计豁免)
 - `.github/workflows/cli-strict-sandbox.yml` (✅ 三平台 strict 边界矩阵定义；当前运行结果待验收)
-- `docs/cli/PROCESS_SPAWN_INVENTORY.generated.md` (✅ 206/206 runtime 已归类)
+- `docs/cli/PROCESS_SPAWN_INVENTORY.generated.md` (✅ 207/207 runtime 已归类)
 - 详细进度记录：`packages/cli/P0_CLI_SECURITY_PROGRESS.md`
 
 ---
@@ -247,18 +249,18 @@ Windows Node IPC/detached 语义及真实三平台 CI 尚未完成
 
 ## 🟡 P1 任务（P0 完成后执行）
 
-| #     | 任务                 | 状态                                        | 说明                                                                                                                                                                                                                                                                                                                       |
-| ----- | -------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P1-4  | Hooks v2 完整实现    | 🟡 producer 与 managed policy 已完成          | 40事件注册/执行、5种公共 executor + trusted JS、并行去重、11 项高价值 producer、M5 E2E、最小环境交集、command/workspace/MCP/agent/skill allowlist、MCP 共享授权与独立 delegated budget 已有；跨平台强文件写沙箱仍依赖 P0 原生隔离收口                                                          |
-| P1-5  | MCP Elicitation 路由 | ✅ form/URL/defer 已完成                    | 基于 MCP `2025-11-25`：声明 form/URL capability；`elicitation/create`、`notifications/elicitation/complete` 与 `URLElicitationRequiredError (-32042)` 已接入；URL 仅允许无凭证 HTTPS，所有交互宿主展示完整 URL 并在明确同意后打开；Headless 结构化 defer、完成关联及原工具调用 exactly-once retry 已覆盖，URL 敏感输入不回传 `content` |
-| P1-6  | Event Runtime 常驻化 | ✅ 宿主托管、观测与恢复闭环                 | 发布二进制的 lazy-dispatch 真实入口统一启动/停止 process-level host：长驻命令持续 drain，短命命令退出前有界 final drain；durable inbox/outbox、lease fence/续租/过期接管、重试/死信/背压、producer 自动接线均已有；Webhook/Telegram 使用 required-handler 恢复路由；`cc status --json` 暴露队列及跨进程 host 心跳/stale 状态，`npm run runtime:event-recovery` 用两个真实进程验证崩溃接管与副作用只应用一次 |
-| P1-7  | Context 来源归因     | ✅ 双层 Skill 缓存与交互式快照已完成        | `cc context --sources` 已对 instruction 文件、实际注入 persona Skill、admitted MCP schema、普通 Skill descriptor/body 按需读取、缓存命中及实际 prompt 注入分别计费；Headless 与交互 REPL 共用单一 Skill loader，并持续写入无正文 `context_sources` 快照                                                                 |
-| P1-8  | Checkpoint REPL 统一 | ✅ 统一 producer 与归因闭环                 | Agent Core 输出 provider 原始 `tool_use_id`/turn id/permission decision/checkpoint；Headless 与 REPL 共用 `createTurnBindingFeed`，交互 turn 逐次 fail-closed 持久化；child trace/checkpoint/tool/worktree、IDE user edit 与顶层 `--worktree` branch 均进入父 turn，shell/外部副作用诚实标为 partial                         |
-| P1-9  | Plugin 安全强化      | 🟡 legacy 旁路与 direct URL egress 已补     | 签名/manifest SHA-256、trusted key、SBOM、capability consent、managed allow/deny、OS secret 与插件执行 Broker provenance 已有；强制 consent 同时强制 permissions 声明，另有独立 managed/env declaration gate；插件 URL MCP hostname 按声明 domain 连接前拒绝；stdio/native 外部宿主的跨平台 network/filesystem 强隔离仍依赖 P0 收口 |
-| P1-10 | 并发状态 fail-closed | ✅ 关键状态分级与跨宿主锁已完成             | Approval CAS、side-effect/turn/session、Agenda/Event Runtime、Cowork delivery lease、goal/config/MTC ledger、plugin/MCP trust/consent/凭据元数据均有界 fail-closed；VS Code/JetBrains 共享同一 `.lock` 目录协议与原子 session-index 写入；仅 Advisory cache 保留 best-effort                                                                 |
-| P1-11 | JSON Schema 完整支持 | ✅ 标准引擎、完整 vocabulary 与受限 refs 已完成 | `Ajv2020` + `ajv-formats` 统一执行 Draft 2020-12 meta-schema/动态引用/`unevaluated*`/组合互操作；所有 `--json-schema` 入口在模型调用前编译完整 schema graph；本地 ref 限于根 schema 目录，远程 ref 仅允许无凭证公网 HTTPS，并受 DNS-SSRF、文档数/单文档/总字节/超时上限保护；稳定 digest、错误码、JSON Pointer 与 `structured_result` 保持兼容 |
-| P1-12 | SDK/CI 事件透传      | ✅ 源码完成；Python 0.1.0 基线已发布        | 当前 TypeScript + Python 源码覆盖契约中的 24 类 typed stream 事件（含 defer/complete）、approval/question/MCP elicitation callback、resume 与未知事件无损透传；共享 protocol fixture、穷举 CI consumer、GitHub Actions 模板及 22 项 hermetic 测试已补；已发布的 Python 0.1.0 是此前 22 类事件基线并通过 3.10/3.12/3.13 公网 wheel 烟测，本轮两个新增事件尚未发布新版本 |
-| P1-13 | 验收门与文档清理     | ✅ 已完成                                   | 统一 parity 10/10；旧文档持续维护                                                                                                                                                                                                                                                                                          |
+| #     | 任务                 | 状态                                            | 说明                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ----- | -------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P1-4  | Hooks v2 完整实现    | 🟡 producer 与 managed policy 已完成            | 40事件注册/执行、5种公共 executor + trusted JS、并行去重、11 项高价值 producer、M5 E2E、最小环境交集、command/workspace/MCP/agent/skill allowlist、MCP 共享授权与独立 delegated budget 已有；跨平台强文件写沙箱仍依赖 P0 原生隔离收口                                                                                                                                                                       |
+| P1-5  | MCP Elicitation 路由 | ✅ form/URL/defer 已完成                        | 基于 MCP `2025-11-25`：声明 form/URL capability；`elicitation/create`、`notifications/elicitation/complete` 与 `URLElicitationRequiredError (-32042)` 已接入；URL 仅允许无凭证 HTTPS，所有交互宿主展示完整 URL 并在明确同意后打开；Headless 结构化 defer、完成关联及原工具调用 exactly-once retry 已覆盖，URL 敏感输入不回传 `content`                                                                      |
+| P1-6  | Event Runtime 常驻化 | ✅ 宿主托管、观测与恢复闭环                     | 发布二进制的 lazy-dispatch 真实入口统一启动/停止 process-level host：长驻命令持续 drain，短命命令退出前有界 final drain；durable inbox/outbox、lease fence/续租/过期接管、重试/死信/背压、producer 自动接线均已有；Webhook/Telegram 使用 required-handler 恢复路由；`cc status --json` 暴露队列及跨进程 host 心跳/stale 状态，`npm run runtime:event-recovery` 用两个真实进程验证崩溃接管与副作用只应用一次 |
+| P1-7  | Context 来源归因     | ✅ 双层 Skill 缓存与交互式快照已完成            | `cc context --sources` 已对 instruction 文件、实际注入 persona Skill、admitted MCP schema、普通 Skill descriptor/body 按需读取、缓存命中及实际 prompt 注入分别计费；Headless 与交互 REPL 共用单一 Skill loader，并持续写入无正文 `context_sources` 快照                                                                                                                                                     |
+| P1-8  | Checkpoint REPL 统一 | ✅ 统一 producer 与归因闭环                     | Agent Core 输出 provider 原始 `tool_use_id`/turn id/permission decision/checkpoint；Headless 与 REPL 共用 `createTurnBindingFeed`，交互 turn 逐次 fail-closed 持久化；child trace/checkpoint/tool/worktree、IDE user edit 与顶层 `--worktree` branch 均进入父 turn，shell/外部副作用诚实标为 partial                                                                                                        |
+| P1-9  | Plugin 安全强化      | 🟡 legacy 旁路与 direct URL egress 已补         | 签名/manifest SHA-256、trusted key、SBOM、capability consent、managed allow/deny、OS secret 与插件执行 Broker provenance 已有；强制 consent 同时强制 permissions 声明，另有独立 managed/env declaration gate；插件 URL MCP hostname 按声明 domain 连接前拒绝；stdio/native 外部宿主的跨平台 network/filesystem 强隔离仍依赖 P0 收口                                                                         |
+| P1-10 | 并发状态 fail-closed | ✅ 关键状态分级与跨宿主锁已完成                 | Approval CAS、side-effect/turn/session、Agenda/Event Runtime、Cowork delivery lease、goal/config/MTC ledger、plugin/MCP trust/consent/凭据元数据均有界 fail-closed；VS Code/JetBrains 共享同一 `.lock` 目录协议与原子 session-index 写入；仅 Advisory cache 保留 best-effort                                                                                                                                |
+| P1-11 | JSON Schema 完整支持 | ✅ 标准引擎、完整 vocabulary 与受限 refs 已完成 | `Ajv2020` + `ajv-formats` 统一执行 Draft 2020-12 meta-schema/动态引用/`unevaluated*`/组合互操作；所有 `--json-schema` 入口在模型调用前编译完整 schema graph；本地 ref 限于根 schema 目录，远程 ref 仅允许无凭证公网 HTTPS，并受 DNS-SSRF、文档数/单文档/总字节/超时上限保护；稳定 digest、错误码、JSON Pointer 与 `structured_result` 保持兼容                                                              |
+| P1-12 | SDK/CI 事件透传      | ✅ 源码完成；Python 0.1.0 基线已发布            | 当前 TypeScript + Python 源码覆盖契约中的 24 类 typed stream 事件（含 defer/complete）、approval/question/MCP elicitation callback、resume 与未知事件无损透传；共享 protocol fixture、穷举 CI consumer、GitHub Actions 模板及 22 项 hermetic 测试已补；已发布的 Python 0.1.0 是此前 22 类事件基线并通过 3.10/3.12/3.13 公网 wheel 烟测，本轮两个新增事件尚未发布新版本                                      |
+| P1-13 | 验收门与文档清理     | ✅ 已完成                                       | 统一 parity 10/10；旧文档持续维护                                                                                                                                                                                                                                                                                                                                                                           |
 
 **2026-07-24 P1-5 进度**：三端表单已覆盖 MCP form elicitation 规定的受限 schema：
 `title`/`description`/`default`、字符串长度与 `email`/`uri`/`date`/`date-time`、
@@ -474,12 +476,12 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 
 ## 近期里程碑
 
-| 顺序       | 目标                                                        |
-| ---------- | ----------------------------------------------------------- |
-| **当前**   | P0-1 Windows IPC/detached 语义与真实三平台严格隔离 CI       |
-| **随后**   | P0-2 三平台断线重连 E2E 远端验收                            |
+| 顺序       | 目标                                                                 |
+| ---------- | -------------------------------------------------------------------- |
+| **当前**   | P0-1 真实三平台严格隔离 CI 远端验收（Windows 特殊语义已收口）        |
+| **随后**   | P0-2 三平台断线重连 E2E 远端验收                                     |
 | **并行**   | P1-4 跨平台强文件写沙箱与 P1-9 Plugin 外部宿主（P1-10/P1-11 已收口） |
-| **发布前** | 双语言 SDK 兼容门、真实环境 parity 与文档事实源漂移检查     |
+| **发布前** | 双语言 SDK 兼容门、真实环境 parity 与文档事实源漂移检查              |
 
 ---
 

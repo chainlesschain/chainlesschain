@@ -18,8 +18,10 @@ import os from "node:os";
 import path from "node:path";
 import * as fs from "node:fs";
 import crypto from "node:crypto";
+import { spawnSync as nativeSpawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
+const WINDOWS_IDENTITY_WAIT = new Int32Array(new SharedArrayBuffer(4));
 const DEFAULT_RUNTIME = Object.freeze({
   platform: os.platform(),
   fs,
@@ -30,6 +32,10 @@ const DEFAULT_RUNTIME = Object.freeze({
   joinPath: (...parts) => path.join(...parts),
   windowsDir: () => process.env.WINDIR || "C:\\Windows",
   moduleDir: MODULE_DIR,
+  now: () => Date.now(),
+  sleepSync: (milliseconds) =>
+    Atomics.wait(WINDOWS_IDENTITY_WAIT, 0, 0, milliseconds),
+  spawnSync: nativeSpawnSync,
 });
 
 function resolveRuntime(overrides = {}) {
@@ -178,9 +184,17 @@ export function generateMacSeatbeltProfile(opts = {}, runtimeOverrides = {}) {
   }
 
   // Always allow read access to system paths needed for basic execution
+  lines.push('(allow file-read* (subpath "/bin"))');
+  lines.push('(allow file-read* (subpath "/usr/bin"))');
   lines.push('(allow file-read* (subpath "/usr/lib"))');
+  lines.push('(allow file-read* (subpath "/usr/libexec"))');
   lines.push('(allow file-read* (subpath "/System/Library"))');
+  lines.push('(allow file-read* (subpath "/Library/Frameworks"))');
   lines.push('(allow file-read* (subpath "/usr/local/lib"))');
+  lines.push(
+    '(allow file-read* file-write* (literal "/dev/null") (literal "/dev/stdin") (literal "/dev/stdout") (literal "/dev/stderr"))',
+  );
+  lines.push('(allow file-read* (literal "/dev/urandom"))');
   lines.push('(allow file-read* (literal "/etc/passwd"))');
 
   return lines.join("\n");
@@ -341,6 +355,66 @@ function materializeWindowsAdapter(runtime) {
   };
 }
 
+function waitForWindowsTargetIdentity(
+  proc,
+  identityPath,
+  runtime,
+  timeoutMs = 10_000,
+) {
+  const deadline = runtime.now() + timeoutMs;
+  let lastError;
+  while (runtime.now() < deadline) {
+    try {
+      const identity = JSON.parse(
+        runtime.fs.readFileSync(identityPath, "utf8"),
+      );
+      const targetPid = Number(identity?.targetPid);
+      const helperPid = Number(identity?.helperPid);
+      if (!Number.isSafeInteger(targetPid) || targetPid <= 0) {
+        throw new Error("Windows sandbox identity omitted a valid target PID");
+      }
+      if (
+        Number.isSafeInteger(helperPid) &&
+        helperPid > 0 &&
+        helperPid !== proc.pid
+      ) {
+        throw new Error(
+          `Windows sandbox identity named unexpected helper PID ${helperPid}`,
+        );
+      }
+      if (targetPid === proc.pid) {
+        throw new Error(
+          "Windows sandbox target PID unexpectedly equals its helper PID",
+        );
+      }
+
+      const wrapperPid = proc.pid;
+      proc.sandboxWrapperPid = wrapperPid;
+      proc.sandboxTargetPid = targetPid;
+      // ChildProcess.pid is a writable data property. The native ChildProcess
+      // handle still points at the helper, so kill()/ref()/unref() retain Job
+      // lifetime semantics while callers observe and persist the real target.
+      proc.pid = targetPid;
+      return { targetPid, wrapperPid };
+    } catch (error) {
+      lastError = error;
+      if (
+        error?.code !== "ENOENT" &&
+        !(error instanceof SyntaxError) &&
+        !String(error?.message || "").includes("omitted a valid target PID")
+      ) {
+        throw error;
+      }
+    }
+    runtime.sleepSync(10);
+  }
+  throw new Error(
+    `Timed out waiting for Windows sandbox target identity${
+      lastError?.message ? `: ${lastError.message}` : ""
+    }`,
+  );
+}
+
 /**
  * Wrap a target with the built-in Windows PowerShell host. The shipped script
  * P/Invokes Win32 to create a restricted primary token, starts the target
@@ -374,34 +448,24 @@ export function applyWindowsSandbox(
     });
   }
 
-  // Node's Windows IPC channel is an extra CRT file descriptor (normally fd
-  // 3), not a standard handle. The managed CreateProcessAsUser adapter can
-  // safely inherit stdin/stdout/stderr, but cannot reproduce Node/libuv's
-  // STARTUPINFO reserved-descriptor table for an intermediate wrapper.
-  // Claiming enforcement here breaks process.send() with EPIPE. Keep the plan
-  // truthful: ordinary mode falls back to the original Node spawn, while
-  // CC_SANDBOX_STRICT fails closed before starting an unisolated IPC child.
+  const nodeIpcFd = Array.isArray(spawnOpts?.stdio)
+    ? spawnOpts.stdio.findIndex((entry) => entry === "ipc")
+    : -1;
   if (
     Array.isArray(spawnOpts?.stdio) &&
-    spawnOpts.stdio.some((entry) => entry === "ipc")
+    spawnOpts.stdio
+      .slice(3)
+      .some(
+        (entry, offset) =>
+          offset + 3 !== nodeIpcFd &&
+          entry !== "ignore" &&
+          entry !== null &&
+          entry !== undefined,
+      )
   ) {
     return createSandboxPlan({
       ...base,
-      reason: "windows_node_ipc_descriptor_unsupported",
-    });
-  }
-
-  // The helper owns the Job Object and therefore remains as an intermediate
-  // process for the target's lifetime. Node would expose that helper pid from
-  // spawn(), which violates detached supervisors' process-identity contract:
-  // callers must be able to watch and signal the actual worker they launched.
-  // Until the adapter provides a target-pid/handle handshake, do not claim it
-  // can preserve detached semantics. Non-strict mode uses native spawn;
-  // strict mode fails closed.
-  if (spawnOpts?.detached === true) {
-    return createSandboxPlan({
-      ...base,
-      reason: "windows_detached_process_identity_unsupported",
+      reason: "windows_extra_descriptor_unsupported",
     });
   }
 
@@ -421,18 +485,29 @@ export function applyWindowsSandbox(
   );
   const profile = sandboxOpts.profileName || "default";
   const limits = sandboxOpts.limits || {};
-  const payload = Buffer.from(
-    JSON.stringify({
-      cpuSeconds: Number(limits.cpu || 0),
-      processMemoryBytes: Number(
-        limits.as || (profile === "strict" ? 256 * 1024 * 1024 : 0),
-      ),
-      activeProcessLimit: profile === "strict" ? 16 : 64,
-      command: invocation.command,
-      args: invocation.args,
-    }),
-    "utf8",
-  ).toString("base64");
+  const identityPath =
+    spawnOpts?.detached === true
+      ? runtime.joinPath(
+          runtime.tmpdir(),
+          `chainless-win-sandbox-identity-${runtime
+            .randomBytes(24)
+            .toString("hex")}.json`,
+        )
+      : null;
+  const launchSpec = {
+    cpuSeconds: Number(limits.cpu || 0),
+    processMemoryBytes: Number(
+      limits.as || (profile === "strict" ? 256 * 1024 * 1024 : 0),
+    ),
+    activeProcessLimit: profile === "strict" ? 16 : 64,
+    command: invocation.command,
+    args: invocation.args,
+    nodeIpcFd,
+  };
+  if (identityPath) launchSpec.identityPath = identityPath;
+  const payload = Buffer.from(JSON.stringify(launchSpec), "utf8").toString(
+    "base64",
+  );
   const helperArgs = [payload];
   const options = {
     ...invocation.options,
@@ -443,52 +518,96 @@ export function applyWindowsSandbox(
       CC_WINDOWS_SANDBOX_PROFILE: profile,
     },
   };
+  const cleanupIdentity = () => {
+    if (!identityPath) return;
+    try {
+      runtime.fs.unlinkSync(identityPath);
+    } catch {
+      // The post-spawn handshake normally removes this file first.
+    }
+  };
+  const identityContract = identityPath
+    ? {
+        postSpawn: { required: true, mode: "sync" },
+        postSpawnWindows: (proc) => {
+          try {
+            return waitForWindowsTargetIdentity(proc, identityPath, runtime);
+          } catch (error) {
+            try {
+              proc.kill?.();
+            } catch {
+              // Closing the helper is best-effort; the thrown failure remains
+              // authoritative and strict mode will fail closed.
+            }
+            throw error;
+          } finally {
+            cleanupIdentity();
+          }
+        },
+      }
+    : {};
 
-  if (!adapter.bootstrapRequired) {
-    return createSandboxPlan({
-      ...base,
-      applied: true,
-      enforcement: "windows-job-restricted-token",
-      command: adapter.cacheExecutable,
-      args: helperArgs,
-      options,
-    });
-  }
-
-  const powershell = runtime.joinPath(
-    runtime.windowsDir(),
-    "System32",
-    "WindowsPowerShell",
-    "v1.0",
-    "powershell.exe",
-  );
-  if (!runtime.fs.existsSync(powershell)) {
+  if (adapter.bootstrapRequired) {
+    const powershell = runtime.joinPath(
+      runtime.windowsDir(),
+      "System32",
+      "WindowsPowerShell",
+      "v1.0",
+      "powershell.exe",
+    );
+    if (!runtime.fs.existsSync(powershell)) {
+      adapter.cleanup?.();
+      cleanupIdentity();
+      return createSandboxPlan({
+        ...base,
+        reason: "windows_powershell_host_unavailable",
+      });
+    }
+    const compileResult = runtime.spawnSync(
+      powershell,
+      [
+        "-NoLogo",
+        "-NoProfile",
+        "-NonInteractive",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        adapter.scriptPath,
+        "-CacheExecutable",
+        adapter.cacheExecutable,
+        "-CompileOnly",
+      ],
+      {
+        shell: false,
+        windowsHide: true,
+        encoding: "utf8",
+        timeout: 30_000,
+        env: invocation.options.env || process.env,
+      },
+    );
     adapter.cleanup?.();
-    return createSandboxPlan({
-      ...base,
-      reason: "windows_powershell_host_unavailable",
-    });
+    if (
+      compileResult?.error ||
+      compileResult?.status !== 0 ||
+      !runtime.fs.existsSync(adapter.cacheExecutable)
+    ) {
+      cleanupIdentity();
+      return createSandboxPlan({
+        ...base,
+        reason: "windows_native_adapter_compile_failed",
+      });
+    }
   }
 
   return createSandboxPlan({
     ...base,
     applied: true,
     enforcement: "windows-job-restricted-token",
-    command: powershell,
-    args: [
-      "-NoLogo",
-      "-NoProfile",
-      "-NonInteractive",
-      "-ExecutionPolicy",
-      "Bypass",
-      "-File",
-      adapter.scriptPath,
-      "-CacheExecutable",
-      adapter.cacheExecutable,
-      ...helperArgs,
-    ],
+    command: adapter.cacheExecutable,
+    args: helperArgs,
     options,
-    cleanup: adapter.cleanup,
+    ...identityContract,
+    cleanup: cleanupIdentity,
   });
 }
 

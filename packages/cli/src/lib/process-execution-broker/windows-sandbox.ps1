@@ -2,6 +2,8 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$CacheExecutable,
 
+  [switch]$CompileOnly,
+
   [Parameter(ValueFromRemainingArguments = $true)]
   [string[]]$HelperArguments
 )
@@ -11,6 +13,7 @@ $ErrorActionPreference = "Stop"
 $nativeSource = @'
 using System;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -33,6 +36,13 @@ namespace ChainlessChain.WindowsSandbox
         private const UInt32 CREATE_UNICODE_ENVIRONMENT = 0x00000400;
         private const UInt32 STARTF_USESTDHANDLES = 0x00000100;
         private const UInt32 INFINITE = 0xffffffff;
+        private const UInt32 HANDLE_FLAG_INHERIT = 0x00000001;
+        private const Byte CRT_FOPEN = 0x01;
+        private const Byte CRT_FPIPE = 0x08;
+        private const Byte CRT_FDEV = 0x40;
+        private const UInt32 FILE_TYPE_DISK = 0x0001;
+        private const UInt32 FILE_TYPE_CHAR = 0x0002;
+        private const UInt32 FILE_TYPE_PIPE = 0x0003;
 
         private const UInt32 JOB_OBJECT_LIMIT_PROCESS_TIME = 0x00000002;
         private const UInt32 JOB_OBJECT_LIMIT_ACTIVE_PROCESS = 0x00000008;
@@ -123,6 +133,22 @@ namespace ChainlessChain.WindowsSandbox
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool CloseHandle(IntPtr handle);
+
+        [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr _get_osfhandle(Int32 fileDescriptor);
+
+        [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern Int32 _close(Int32 fileDescriptor);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetHandleInformation(
+            IntPtr handle,
+            UInt32 mask,
+            UInt32 flags);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern UInt32 GetFileType(IntPtr handle);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern UInt32 ResumeThread(IntPtr thread);
@@ -323,12 +349,110 @@ namespace ChainlessChain.WindowsSandbox
                 application);
         }
 
+        private static Byte GetCrtFlags(IntPtr handle)
+        {
+            UInt32 fileType = GetFileType(handle);
+            if (fileType == FILE_TYPE_DISK) return CRT_FOPEN;
+            if (fileType == FILE_TYPE_PIPE)
+                return CRT_FOPEN | CRT_FPIPE;
+            if (fileType == FILE_TYPE_CHAR)
+                return CRT_FOPEN | CRT_FDEV;
+            throw new InvalidDataException(
+                "Inherited descriptor has an unsupported handle type");
+        }
+
+        private static IntPtr BuildNodeDescriptorTable(
+            int nodeIpcFd,
+            out UInt16 descriptorBytes)
+        {
+            descriptorBytes = 0;
+            if (nodeIpcFd < 0) return IntPtr.Zero;
+            if (nodeIpcFd > 255)
+                throw new InvalidDataException(
+                    "Node IPC descriptor is outside the CRT table range");
+
+            int descriptorCount = Math.Max(3, nodeIpcFd + 1);
+            int bufferSize = checked(
+                sizeof(Int32) +
+                descriptorCount +
+                IntPtr.Size * descriptorCount);
+            IntPtr buffer = Marshal.AllocHGlobal(bufferSize);
+            try
+            {
+                for (int offset = 0; offset < bufferSize; offset++)
+                    Marshal.WriteByte(buffer, offset, 0);
+                Marshal.WriteInt32(buffer, descriptorCount);
+                for (int fd = 0; fd < descriptorCount; fd++)
+                {
+                    IntPtr handle;
+                    if (fd == 0)
+                        handle = GetStdHandle(-10);
+                    else if (fd == 1)
+                        handle = GetStdHandle(-11);
+                    else if (fd == 2)
+                        handle = GetStdHandle(-12);
+                    else if (fd == nodeIpcFd)
+                        handle = _get_osfhandle(fd);
+                    else
+                        handle = new IntPtr(-1);
+
+                    int handleOffset = checked(
+                        sizeof(Int32) +
+                        descriptorCount +
+                        IntPtr.Size * fd);
+                    if (
+                        handle == IntPtr.Zero ||
+                        handle == new IntPtr(-1) ||
+                        handle == new IntPtr(-2))
+                    {
+                        if (fd == nodeIpcFd)
+                            throw new InvalidDataException(
+                                "Node IPC descriptor has no inherited OS handle");
+                        if (IntPtr.Size == sizeof(Int64))
+                            Marshal.WriteInt64(buffer, handleOffset, -1);
+                        else
+                            Marshal.WriteInt32(buffer, handleOffset, -1);
+                        continue;
+                    }
+
+                    if (!SetHandleInformation(
+                        handle,
+                        HANDLE_FLAG_INHERIT,
+                        HANDLE_FLAG_INHERIT))
+                        ThrowLastError("SetHandleInformation(CRT descriptor)");
+                    Marshal.WriteByte(
+                        buffer,
+                        sizeof(Int32) + fd,
+                        GetCrtFlags(handle));
+                    if (IntPtr.Size == sizeof(Int64))
+                        Marshal.WriteInt64(
+                            buffer,
+                            handleOffset,
+                            handle.ToInt64());
+                    else
+                        Marshal.WriteInt32(
+                            buffer,
+                            handleOffset,
+                            handle.ToInt32());
+                }
+                descriptorBytes = checked((UInt16)bufferSize);
+                return buffer;
+            }
+            catch
+            {
+                Marshal.FreeHGlobal(buffer);
+                throw;
+            }
+        }
+
         public static int Run(
             string application,
             string[] arguments,
             int cpuSeconds,
             long processMemoryBytes,
-            int activeProcessLimit)
+            int activeProcessLimit,
+            int nodeIpcFd,
+            string identityPath)
         {
             application = ResolveApplication(application);
             string extension = Path.GetExtension(application);
@@ -345,6 +469,7 @@ namespace ChainlessChain.WindowsSandbox
             IntPtr restrictedToken = IntPtr.Zero;
             IntPtr job = IntPtr.Zero;
             IntPtr limitBuffer = IntPtr.Zero;
+            IntPtr descriptorBuffer = IntPtr.Zero;
             PROCESS_INFORMATION processInfo = new PROCESS_INFORMATION();
 
             try
@@ -409,12 +534,23 @@ namespace ChainlessChain.WindowsSandbox
                     checked((UInt32)limitSize)))
                     ThrowLastError("SetInformationJobObject");
 
+                // Node/libuv communicates Windows stdio entries above fd 2
+                // (including its fd 3 IPC channel) through the CRT descriptor
+                // table in STARTUPINFO.cbReserved2/lpReserved2. Copy the
+                // helper's inherited table into the restricted target instead
+                // of reducing the launch contract to stdin/stdout/stderr.
                 STARTUPINFO startup = new STARTUPINFO();
                 startup.cb = checked((UInt32)Marshal.SizeOf(typeof(STARTUPINFO)));
                 startup.dwFlags = STARTF_USESTDHANDLES;
                 startup.hStdInput = GetStdHandle(-10);
                 startup.hStdOutput = GetStdHandle(-11);
                 startup.hStdError = GetStdHandle(-12);
+                UInt16 descriptorBytes;
+                descriptorBuffer = BuildNodeDescriptorTable(
+                    nodeIpcFd,
+                    out descriptorBytes);
+                startup.cbReserved2 = descriptorBytes;
+                startup.lpReserved2 = descriptorBuffer;
 
                 StringBuilder commandLine =
                     new StringBuilder(
@@ -433,6 +569,17 @@ namespace ChainlessChain.WindowsSandbox
                     out processInfo))
                     ThrowLastError("CreateProcessAsUser");
 
+                // The target now owns its inherited copy of the duplex IPC
+                // pipe. Close the helper's CRT descriptor so process.disconnect
+                // and channel EOF retain native Node child semantics even while
+                // the helper continues waiting on the target process handle.
+                if (nodeIpcFd >= 0 && _close(nodeIpcFd) != 0)
+                {
+                    TerminateProcess(processInfo.hProcess, 125);
+                    throw new IOException(
+                        "Closing the Windows sandbox IPC relay descriptor failed");
+                }
+
                 if (!AssignProcessToJobObject(job, processInfo.hProcess))
                 {
                     TerminateProcess(processInfo.hProcess, 125);
@@ -442,6 +589,26 @@ namespace ChainlessChain.WindowsSandbox
                 {
                     TerminateProcess(processInfo.hProcess, 125);
                     ThrowLastError("ResumeThread");
+                }
+
+                if (!String.IsNullOrWhiteSpace(identityPath))
+                {
+                    string identity = String.Format(
+                        CultureInfo.InvariantCulture,
+                        "{{\"targetPid\":{0},\"helperPid\":{1}}}",
+                        processInfo.dwProcessId,
+                        System.Diagnostics.Process.GetCurrentProcess().Id);
+                    using (FileStream stream = new FileStream(
+                        identityPath,
+                        FileMode.CreateNew,
+                        FileAccess.Write,
+                        FileShare.Read))
+                    using (StreamWriter writer = new StreamWriter(
+                        stream,
+                        new UTF8Encoding(false)))
+                    {
+                        writer.Write(identity);
+                    }
                 }
 
                 WaitForSingleObject(processInfo.hProcess, INFINITE);
@@ -454,6 +621,8 @@ namespace ChainlessChain.WindowsSandbox
             {
                 if (processInfo.hThread != IntPtr.Zero) CloseHandle(processInfo.hThread);
                 if (processInfo.hProcess != IntPtr.Zero) CloseHandle(processInfo.hProcess);
+                if (descriptorBuffer != IntPtr.Zero)
+                    Marshal.FreeHGlobal(descriptorBuffer);
                 if (limitBuffer != IntPtr.Zero) Marshal.FreeHGlobal(limitBuffer);
                 if (job != IntPtr.Zero) CloseHandle(job);
                 if (restrictedToken != IntPtr.Zero) CloseHandle(restrictedToken);
@@ -471,6 +640,8 @@ namespace ChainlessChain.WindowsSandbox
             public int activeProcessLimit { get; set; }
             public string command { get; set; }
             public string[] args { get; set; }
+            public int nodeIpcFd { get; set; }
+            public string identityPath { get; set; }
         }
 
         public static int Main(string[] args)
@@ -491,7 +662,9 @@ namespace ChainlessChain.WindowsSandbox
                     spec.args ?? new string[0],
                     spec.cpuSeconds,
                     spec.processMemoryBytes,
-                    spec.activeProcessLimit);
+                    spec.activeProcessLimit,
+                    spec.nodeIpcFd,
+                    spec.identityPath);
             }
             catch (Exception error)
             {
@@ -524,6 +697,9 @@ try {
       }
       Remove-Item -LiteralPath $temporaryExecutable -Force -ErrorAction SilentlyContinue
     }
+  }
+  if ($CompileOnly) {
+    exit 0
   }
   & $CacheExecutable @HelperArguments
   exit $LASTEXITCODE

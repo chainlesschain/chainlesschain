@@ -758,6 +758,13 @@ class ProcessExecutionBroker extends EventEmitter {
     );
     try {
       this._runPostSpawnSandbox(proc, sandboxPlan, auditEntry);
+      auditEntry.pid = proc.pid;
+      if (Number.isSafeInteger(proc.sandboxWrapperPid)) {
+        auditEntry.sandboxWrapperPid = proc.sandboxWrapperPid;
+      }
+      if (Number.isSafeInteger(proc.sandboxTargetPid)) {
+        auditEntry.sandboxTargetPid = proc.sandboxTargetPid;
+      }
     } catch (postSpawnError) {
       cleanupSandbox();
       this._recordSandboxDenial(auditEntry, postSpawnError, startTime);

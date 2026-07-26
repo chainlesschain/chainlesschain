@@ -1,4 +1,4 @@
-import { EventEmitter } from "node:events";
+import { EventEmitter, once } from "node:events";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -77,6 +77,11 @@ describe("platform sandbox adapter contract", () => {
     expect(plan.args.slice(2)).toEqual(["node", "script.js"]);
     expect(plan.options).toEqual(options);
     expect(fsRuntime.writeFileSync).toHaveBeenCalledOnce();
+    const profile = fsRuntime.writeFileSync.mock.calls[0][1];
+    expect(profile).toContain('(allow file-read* (subpath "/usr/bin"))');
+    expect(profile).toContain(
+      '(allow file-read* file-write* (literal "/dev/null")',
+    );
 
     plan.cleanup();
     expect(fsRuntime.unlinkSync).toHaveBeenCalledOnce();
@@ -158,11 +163,13 @@ describe("platform sandbox adapter contract", () => {
   });
 
   it("returns the Windows Job Object + restricted-token wrapper plan", () => {
+    let compiled = false;
     const fsRuntime = {
       existsSync: vi.fn(
         (value) =>
           !String(value).endsWith(".exe") ||
-          String(value).endsWith("powershell.exe"),
+          String(value).endsWith("powershell.exe") ||
+          (compiled && String(value).includes("chainless-win-sandbox-")),
       ),
       readFileSync: vi.fn(() => "param([string]$Payload)"),
       writeFileSync: vi.fn(),
@@ -182,6 +189,10 @@ describe("platform sandbox adapter contract", () => {
         tmpdir: () => "C:\\temp",
         randomBytes: () => Buffer.alloc(12, 7),
         joinPath: path.win32.join,
+        spawnSync: vi.fn(() => {
+          compiled = true;
+          return { status: 0, stdout: "", stderr: "" };
+        }),
       },
     );
 
@@ -189,11 +200,12 @@ describe("platform sandbox adapter contract", () => {
       applied: true,
       platform: "win32",
       profile: "strict",
-      command: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      command: expect.stringMatching(
+        /^C:\\temp\\chainless-win-sandbox-[a-f0-9]+\.exe$/,
+      ),
       enforcement: "windows-job-restricted-token",
       postSpawn: { required: false, mode: "none" },
     });
-    expect(plan.args).toContain("-CacheExecutable");
     const payload = JSON.parse(
       Buffer.from(plan.args.at(-1), "base64").toString("utf8"),
     );
@@ -203,6 +215,7 @@ describe("platform sandbox adapter contract", () => {
       activeProcessLimit: 16,
       command: "tool.exe",
       args: ["run"],
+      nodeIpcFd: -1,
     });
     expect(plan.options).toMatchObject({
       windowsHide: true,
@@ -214,6 +227,7 @@ describe("platform sandbox adapter contract", () => {
       },
     });
     expect(fsRuntime.writeFileSync).toHaveBeenCalledOnce();
+    expect(fsRuntime.unlinkSync).toHaveBeenCalledOnce();
     expect(options).toEqual({
       windowsHide: true,
       env: { PATH: "C:\\Windows" },
@@ -247,12 +261,38 @@ describe("platform sandbox adapter contract", () => {
     });
   });
 
-  it("does not claim Windows enforcement when Node IPC cannot cross the wrapper", () => {
+  it("preserves Node IPC stdio in the Windows restricted-token plan", () => {
     const plan = applyWindowsSandbox(
       process.execPath,
       ["child.js"],
       { stdio: ["ignore", "pipe", "pipe", "ipc"] },
       { profileName: "default" },
+      {
+        platform: "win32",
+        fs: {
+          existsSync: vi.fn(() => true),
+          unlinkSync: vi.fn(),
+        },
+        windowsAdapterContent: "param()",
+        tmpdir: () => "C:\\temp",
+        randomBytes: (size) => Buffer.alloc(size, 4),
+        joinPath: path.win32.join,
+      },
+    );
+    expect(plan).toMatchObject({
+      applied: true,
+      enforcement: "windows-job-restricted-token",
+      options: { stdio: ["ignore", "pipe", "pipe", "ipc"] },
+      postSpawn: { required: false, mode: "none" },
+    });
+  });
+
+  it("fails closed for unsupported Windows descriptors above the IPC fd", () => {
+    const plan = applyWindowsSandbox(
+      process.execPath,
+      ["child.js"],
+      { stdio: ["ignore", "pipe", "pipe", "ipc", "pipe"] },
+      { profileName: "strict" },
       {
         platform: "win32",
         fs: { existsSync: vi.fn(() => true) },
@@ -262,11 +302,15 @@ describe("platform sandbox adapter contract", () => {
       applied: false,
       command: process.execPath,
       args: ["child.js"],
-      reason: "windows_node_ipc_descriptor_unsupported",
+      reason: "windows_extra_descriptor_unsupported",
     });
   });
 
-  it("does not claim Windows enforcement when detached pid identity cannot cross the wrapper", () => {
+  it("resolves detached Windows launches to the target PID synchronously", () => {
+    const unlinkSync = vi.fn();
+    const readFileSync = vi.fn(() =>
+      JSON.stringify({ targetPid: 5103, helperPid: 4102 }),
+    );
     const plan = applyWindowsSandbox(
       process.execPath,
       ["worker.js"],
@@ -274,15 +318,34 @@ describe("platform sandbox adapter contract", () => {
       { profileName: "default" },
       {
         platform: "win32",
-        fs: { existsSync: vi.fn(() => true) },
+        fs: {
+          existsSync: vi.fn(() => true),
+          readFileSync,
+          unlinkSync,
+        },
+        windowsAdapterContent: "param()",
+        tmpdir: () => "C:\\temp",
+        randomBytes: (size) => Buffer.alloc(size, 5),
+        joinPath: path.win32.join,
       },
     );
     expect(plan).toMatchObject({
-      applied: false,
-      command: process.execPath,
-      args: ["worker.js"],
-      reason: "windows_detached_process_identity_unsupported",
+      applied: true,
+      enforcement: "windows-job-restricted-token",
+      postSpawn: { required: true, mode: "sync" },
     });
+    const child = createChild(4102);
+    expect(plan.postSpawnWindows(child)).toEqual({
+      targetPid: 5103,
+      wrapperPid: 4102,
+    });
+    expect(child).toMatchObject({
+      pid: 5103,
+      sandboxTargetPid: 5103,
+      sandboxWrapperPid: 4102,
+    });
+    expect(readFileSync).toHaveBeenCalledOnce();
+    expect(unlinkSync).toHaveBeenCalledOnce();
   });
 
   it("reports Linux unavailable when the wrapper is missing", () => {
@@ -428,6 +491,200 @@ describe.runIf(process.platform === "win32")(
         expect(largeShellResult.status, largeShellResult.stderr).toBe(0);
         expect(largeShellResult.stdout).toHaveLength(2 * 1024 * 1024);
       } finally {
+        if (previousStrict === undefined) {
+          delete process.env.CC_SANDBOX_STRICT;
+        } else {
+          process.env.CC_SANDBOX_STRICT = previousStrict;
+        }
+        if (previousDisable === undefined) {
+          delete process.env.CC_SANDBOX_DISABLE;
+        } else {
+          process.env.CC_SANDBOX_DISABLE = previousDisable;
+        }
+        executionBroker._sandboxEnabled = previousSandboxEnabled;
+        executionBroker._platformSandboxEnabled = previousPlatformEnabled;
+      }
+    }, 45_000);
+
+    it("preserves a real Node fd3 IPC channel through the native adapter", async () => {
+      const previousStrict = process.env.CC_SANDBOX_STRICT;
+      const previousDisable = process.env.CC_SANDBOX_DISABLE;
+      const previousSandboxEnabled = executionBroker._sandboxEnabled;
+      const previousPlatformEnabled = executionBroker._platformSandboxEnabled;
+      process.env.CC_SANDBOX_STRICT = "1";
+      delete process.env.CC_SANDBOX_DISABLE;
+      executionBroker._sandboxEnabled = true;
+      executionBroker._platformSandboxEnabled = true;
+      let child;
+      try {
+        child = executionBroker.spawn(
+          process.execPath,
+          [
+            "-e",
+            [
+              "process.on('message', (message) => {",
+              "  process.send({",
+              "    echo: message,",
+              "    sandboxed: process.env.CC_WINDOWS_SANDBOXED,",
+              "    pid: process.pid,",
+              "  }, () => {",
+              "    process.disconnect();",
+              "    setTimeout(() => process.exit(0), 500);",
+              "  });",
+              "});",
+              "process.send({ ready: true });",
+            ].join("\n"),
+          ],
+          {
+            origin: "test:windows-native-sandbox-ipc-live",
+            policy: "allow",
+            stdio: ["ignore", "pipe", "pipe", "ipc"],
+            timeout: 30_000,
+            env: process.env,
+          },
+        );
+        const stderr = [];
+        child.stderr.on("data", (chunk) => stderr.push(chunk));
+        const disconnectPromise = once(child, "disconnect");
+        const exitPromise = once(child, "exit");
+        const report = await new Promise((resolve, reject) => {
+          const timeout = setTimeout(
+            () => reject(new Error("Timed out waiting for sandbox IPC")),
+            30_000,
+          );
+          child.once("error", reject);
+          child.once("exit", (code, signal) => {
+            reject(
+              new Error(
+                `Sandbox IPC child exited before echo (${code}/${signal}): ${Buffer.concat(
+                  stderr,
+                ).toString()}`,
+              ),
+            );
+          });
+          child.on("message", (message) => {
+            if (message?.ready) {
+              child.send({ ping: "pong" }, (error) => {
+                if (error) reject(error);
+              });
+              return;
+            }
+            clearTimeout(timeout);
+            resolve(message);
+          });
+        });
+        expect(report).toMatchObject({
+          echo: { ping: "pong" },
+          sandboxed: "1",
+        });
+        expect(report.pid).toBeGreaterThan(0);
+        await disconnectPromise;
+        expect(child.connected).toBe(false);
+        expect(child.exitCode).toBeNull();
+        const [code, signal] = await exitPromise;
+        expect({
+          code,
+          signal,
+          stderr: Buffer.concat(stderr).toString(),
+        }).toEqual({
+          code: 0,
+          signal: null,
+          stderr: "",
+        });
+        expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
+          sandboxed: true,
+          sandboxState: "ready",
+          sandboxEnforcement: "windows-job-restricted-token",
+        });
+      } finally {
+        try {
+          child?.kill();
+        } catch {
+          // The child normally exits after its echo.
+        }
+        if (previousStrict === undefined) {
+          delete process.env.CC_SANDBOX_STRICT;
+        } else {
+          process.env.CC_SANDBOX_STRICT = previousStrict;
+        }
+        if (previousDisable === undefined) {
+          delete process.env.CC_SANDBOX_DISABLE;
+        } else {
+          process.env.CC_SANDBOX_DISABLE = previousDisable;
+        }
+        executionBroker._sandboxEnabled = previousSandboxEnabled;
+        executionBroker._platformSandboxEnabled = previousPlatformEnabled;
+      }
+    }, 45_000);
+
+    it("exposes and supervises the real detached target PID", async () => {
+      const previousStrict = process.env.CC_SANDBOX_STRICT;
+      const previousDisable = process.env.CC_SANDBOX_DISABLE;
+      const previousSandboxEnabled = executionBroker._sandboxEnabled;
+      const previousPlatformEnabled = executionBroker._platformSandboxEnabled;
+      process.env.CC_SANDBOX_STRICT = "1";
+      delete process.env.CC_SANDBOX_DISABLE;
+      executionBroker._sandboxEnabled = true;
+      executionBroker._platformSandboxEnabled = true;
+      let child;
+      let targetPid;
+      try {
+        child = executionBroker.spawn(
+          process.execPath,
+          ["-e", "setInterval(() => {}, 1000)"],
+          {
+            origin: "test:windows-native-sandbox-detached-live",
+            policy: "allow",
+            detached: true,
+            stdio: "ignore",
+            timeout: 30_000,
+            env: process.env,
+          },
+        );
+        targetPid = child.pid;
+        expect(child).toMatchObject({
+          pid: targetPid,
+          sandboxTargetPid: targetPid,
+        });
+        expect(child.sandboxWrapperPid).toBeGreaterThan(0);
+        expect(child.sandboxWrapperPid).not.toBe(targetPid);
+        expect(() => process.kill(targetPid, 0)).not.toThrow();
+        expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
+          pid: targetPid,
+          sandboxWrapperPid: child.sandboxWrapperPid,
+          sandboxTargetPid: targetPid,
+          sandboxed: true,
+          sandboxState: "ready",
+          sandboxEnforcement: "windows-job-restricted-token",
+        });
+
+        const exitPromise = once(child, "exit");
+        expect(child.kill()).toBe(true);
+        await exitPromise;
+        const deadline = Date.now() + 10_000;
+        while (Date.now() < deadline) {
+          try {
+            process.kill(targetPid, 0);
+          } catch {
+            targetPid = null;
+            break;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 25));
+        }
+        expect(targetPid).toBeNull();
+      } finally {
+        try {
+          child?.kill();
+        } catch {
+          // Best-effort cleanup for a failed assertion.
+        }
+        if (targetPid) {
+          try {
+            process.kill(targetPid);
+          } catch {
+            // The Job may already have reaped it.
+          }
+        }
         if (previousStrict === undefined) {
           delete process.env.CC_SANDBOX_STRICT;
         } else {
