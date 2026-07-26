@@ -593,8 +593,9 @@ describe("resolvePluginBinInvocation", () => {
     "accepts the optional .exe suffix for a manifest alias",
     () => {
       const dir = pluginVersionDir("local", "toolkit", "1.0.0", { cwd });
+      const target = path.join(dir, "bin", "native.exe");
       fs.mkdirSync(path.join(dir, "bin"), { recursive: true });
-      fs.writeFileSync(path.join(dir, "bin", "native.exe"), "MZ", "utf8");
+      fs.writeFileSync(target, "MZ", "utf8");
       fs.writeFileSync(
         path.join(dir, "plugin.json"),
         JSON.stringify({
@@ -612,7 +613,7 @@ describe("resolvePluginBinInvocation", () => {
           scopes: ["local"],
         }),
       ).toMatchObject({
-        command: path.join(dir, "bin", "native.exe"),
+        command: fs.realpathSync.native(target),
         args: ["--version"],
         runtime: "native",
       });
