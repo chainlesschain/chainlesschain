@@ -16,6 +16,14 @@ function makeFakeDb(spec) {
     all() {
       const s = this.sql;
       if (Array.isArray(spec.queries)) spec.queries.push(s);
+      if (
+        spec.failQuery &&
+        (typeof spec.failQuery === "string"
+          ? s.includes(spec.failQuery)
+          : spec.failQuery.test(s))
+      ) {
+        throw new Error("synthetic SQLite read failure");
+      }
       if (/type='table'/.test(s))
         return (spec.tables || []).map((n) => ({ name: n }));
       const ti = s.match(/table_info\("(\w+)"\)/);
@@ -141,6 +149,57 @@ describe("readLocalImDb (generic honest reader)", () => {
     expect(
       cappedSpec.queries.find((sql) => /FROM "msg_table"/.test(sql)),
     ).toMatch(/\bLIMIT 1\b/);
+  });
+
+  it("rejects failed table discovery instead of reporting an empty database", () => {
+    expect(() =>
+      readLocalImDb("/x", {
+        _databaseClass: makeFakeDb({
+          ...SPEC,
+          failQuery: /FROM sqlite_master/,
+        }),
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "LOCAL_IM_SOURCE_UNREADABLE",
+        table: "sqlite_master",
+        operation: "listed",
+      }),
+    );
+  });
+
+  it("rejects unreadable message rows instead of returning a partial import", () => {
+    expect(() =>
+      readLocalImDb("/x", {
+        _databaseClass: makeFakeDb({
+          ...SPEC,
+          failQuery: 'FROM "msg_table"',
+        }),
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "LOCAL_IM_SOURCE_UNREADABLE",
+        table: "msg_table",
+        operation: "read",
+      }),
+    );
+  });
+
+  it("rejects unreadable candidate-table metadata instead of skipping it", () => {
+    expect(() =>
+      readLocalImDb("/x", {
+        _databaseClass: makeFakeDb({
+          ...SPEC,
+          failQuery: /PRAGMA table_info\("msg_table"\)/,
+        }),
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "LOCAL_IM_SOURCE_UNREADABLE",
+        table: "msg_table",
+        operation: "inspected",
+      }),
+    );
   });
 });
 

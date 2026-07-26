@@ -45,11 +45,26 @@ function loadDatabaseClass() {
   );
 }
 
-function trySelect(db, sql) {
+function localImSourceError(tableName, operation, cause) {
+  const error = new Error(
+    `local-im: source table ${tableName} could not be ${operation}; refusing a partial import`,
+  );
+  error.code = "LOCAL_IM_SOURCE_UNREADABLE";
+  error.table = tableName;
+  error.operation = operation;
+  error.cause = cause;
+  return error;
+}
+
+function readSourceRows(db, tableName, operation, sql) {
   try {
-    return db.prepare(sql).all();
-  } catch (_e) {
-    return null;
+    const rows = db.prepare(sql).all();
+    if (!Array.isArray(rows)) {
+      throw new Error("SQLite query did not return a row array");
+    }
+    return rows;
+  } catch (error) {
+    throw localImSourceError(tableName, operation, error);
   }
 }
 
@@ -198,8 +213,12 @@ function readLocalImDb(dbPath, opts = {}) {
   };
   const messages = [];
   try {
-    const allTables =
-      trySelect(db, "SELECT name FROM sqlite_master WHERE type='table'") || [];
+    const allTables = readSourceRows(
+      db,
+      "sqlite_master",
+      "listed",
+      "SELECT name FROM sqlite_master WHERE type='table'",
+    );
     diagnostic.tablesScanned = allTables.length;
     const candidateTables = allTables
       .map((r) => r.name)
@@ -212,8 +231,19 @@ function readLocalImDb(dbPath, opts = {}) {
 
     for (const tableName of candidateTables) {
       if (messages.length >= limit) break;
-      const info = trySelect(db, `PRAGMA table_info("${tableName}")`);
-      if (!Array.isArray(info) || info.length === 0) continue;
+      const info = readSourceRows(
+        db,
+        tableName,
+        "inspected",
+        `PRAGMA table_info("${tableName.replace(/"/g, '""')}")`,
+      );
+      if (info.length === 0) {
+        throw localImSourceError(
+          tableName,
+          "inspected",
+          new Error("table metadata is empty"),
+        );
+      }
       const cols = new Set(info.map((r) => r.name));
       const resolved = {
         msgId: pickCol(cols, cand.msgId),
@@ -236,9 +266,12 @@ function readLocalImDb(dbPath, opts = {}) {
       const limitClause = Number.isSafeInteger(remaining)
         ? ` LIMIT ${remaining}`
         : "";
-      const rows =
-        trySelect(db, `SELECT * FROM "${tableName}"${orderBy}${limitClause}`) ||
-        [];
+      const rows = readSourceRows(
+        db,
+        tableName,
+        "read",
+        `SELECT * FROM "${tableName.replace(/"/g, '""')}"${orderBy}${limitClause}`,
+      );
       rows.forEach((row, idx) => {
         const rawTime = resolved.time ? row[resolved.time] : null;
         const contentVal = resolved.content ? row[resolved.content] : null;
@@ -281,5 +314,11 @@ module.exports = {
   readLocalImDb,
   openLocalDb,
   DEFAULT_COL_CANDIDATES,
-  _internals: { loadDatabaseClass, pickCol, normalizeEpochMs },
+  _internals: {
+    loadDatabaseClass,
+    pickCol,
+    normalizeEpochMs,
+    localImSourceError,
+    readSourceRows,
+  },
 };
