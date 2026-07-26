@@ -240,6 +240,7 @@ describe("parsePluginBinCommand", () => {
 describe("resolvePluginBinCommand", () => {
   it("returns provenance for a trusted plugin executable token", () => {
     const binDir = installBinPlugin("local", "toolkit", ["mytool"]);
+    const target = fs.realpathSync.native(path.join(binDir, "mytool"));
     expect(
       resolvePluginBinCommand("mytool --version", {
         cwd,
@@ -248,7 +249,7 @@ describe("resolvePluginBinCommand", () => {
     ).toMatchObject({
       pluginId: "toolkit",
       pluginVersion: "1.0.0",
-      binPath: path.join(binDir, "mytool"),
+      binPath: target,
     });
   });
 
@@ -286,6 +287,7 @@ describe("resolvePluginBinInvocation", () => {
       }),
       "utf8",
     );
+    const target = fs.realpathSync.native(path.join(dir, "bin", "entry.js"));
 
     const invocation = resolvePluginBinInvocation(
       `mytool --label "hello world"`,
@@ -294,14 +296,14 @@ describe("resolvePluginBinInvocation", () => {
 
     expect(invocation).toMatchObject({
       command: process.execPath,
-      args: [path.join(dir, "bin", "entry.js"), "--label", "hello world"],
+      args: [target, "--label", "hello world"],
       shell: false,
       runtime: "node",
       pluginId: "toolkit",
       binName: "mytool",
       sandboxPolicy: { requiredBoundaries: ["filesystem"] },
       executableIdentity: {
-        realPath: path.join(dir, "bin", "entry.js"),
+        realPath: target,
         bytes: Buffer.byteLength(source),
       },
     });

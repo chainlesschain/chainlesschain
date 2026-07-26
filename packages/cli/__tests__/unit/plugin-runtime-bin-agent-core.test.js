@@ -32,7 +32,7 @@ function installStrictNodeBin() {
     }),
     "utf8",
   );
-  return target;
+  return fs.realpathSync.native(target);
 }
 
 beforeEach(() => {
