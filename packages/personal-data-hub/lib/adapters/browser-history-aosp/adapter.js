@@ -41,7 +41,10 @@ class BrowserHistoryAospAdapter extends BrowserHistoryChromeAdapter {
     ];
     this.dataDisclosure = {
       ...this.dataDisclosure,
-      fields: ["history:url,title,visitTimeMs,visitCount", "bookmarks:url,name"],
+      fields: [
+        "history:url,title,visitTimeMs,visitCount",
+        "bookmarks:url,name",
+      ],
     };
     this._dbPathOverride =
       (typeof opts.dbPath === "string" && opts.dbPath) ||
@@ -116,8 +119,8 @@ class BrowserHistoryAospAdapter extends BrowserHistoryChromeAdapter {
 
     const includeHistory = opts.include?.history !== false;
     const includeBookmarks = opts.include?.bookmarks !== false;
-    const limit =
-      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const since = parseSince(opts);
+    const limit = parseLimit(opts);
     const capturedAt = Date.now();
     let emitted = 0;
 
@@ -126,20 +129,21 @@ class BrowserHistoryAospAdapter extends BrowserHistoryChromeAdapter {
       try {
         tmp = this._deps.reader.copyDbSnapshot(dbPath, { fs: this._deps.fs });
         for (const v of this._deps.reader.readHistory(tmp, {
-          since: opts.since,
-          limit: Number.isFinite(limit) ? limit : undefined,
+          since,
+          limit,
         })) {
           if (emitted >= limit) return;
           yield {
             kind: "visit",
             originalId: `aosp-visit:${dbPath}:${v.visitId}`,
-            capturedAt,
+            capturedAt: v.visitTimeMs || capturedAt,
             payload: { ...v, profileDir: dbPath },
           };
           emitted += 1;
         }
       } finally {
-        if (tmp) this._deps.reader.cleanupDbSnapshot(tmp, { fs: this._deps.fs });
+        if (tmp)
+          this._deps.reader.cleanupDbSnapshot(tmp, { fs: this._deps.fs });
       }
     }
 
@@ -160,10 +164,37 @@ class BrowserHistoryAospAdapter extends BrowserHistoryChromeAdapter {
           emitted += 1;
         }
       } finally {
-        if (tmp) this._deps.reader.cleanupDbSnapshot(tmp, { fs: this._deps.fs });
+        if (tmp)
+          this._deps.reader.cleanupDbSnapshot(tmp, { fs: this._deps.fs });
       }
     }
+
+    if (
+      limit === Infinity &&
+      typeof opts.markWatermarkComplete === "function"
+    ) {
+      opts.markWatermarkComplete();
+    }
   }
+}
+
+function parseSince(opts) {
+  const candidate = opts.since !== undefined ? opts.since : opts.sinceWatermark;
+  if (candidate == null || candidate === "") return 0;
+  const numeric = Number(candidate);
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    throw new Error(`${NAME}.sync: since watermark must be unix milliseconds`);
+  }
+  return Math.floor(numeric);
+}
+
+function parseLimit(opts) {
+  if (opts.limit == null) return Infinity;
+  const numeric = Number(opts.limit);
+  if (!Number.isSafeInteger(numeric) || numeric <= 0) {
+    throw new Error(`${NAME}.sync: limit must be a positive integer`);
+  }
+  return numeric;
 }
 
 module.exports = {

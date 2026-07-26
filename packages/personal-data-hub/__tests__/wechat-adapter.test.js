@@ -556,6 +556,7 @@ describe("WechatAdapter.sync with mocked DB reader", () => {
     const fakeChatrooms = [];
 
     let openCalled = false;
+    const readOptions = {};
     const dbReaderFactory = (opts) => ({
       open: async () => {
         openCalled = true;
@@ -563,9 +564,18 @@ describe("WechatAdapter.sync with mocked DB reader", () => {
       },
       isEnMicroMsg: () => true,
       listTables: () => ["message", "rcontact"],
-      fetchContacts: () => fakeContacts,
-      fetchChatrooms: () => fakeChatrooms,
-      fetchMessages: () => fakeMessages,
+      fetchContacts: (options) => {
+        readOptions.contacts = options;
+        return fakeContacts;
+      },
+      fetchChatrooms: (options) => {
+        readOptions.chatrooms = options;
+        return fakeChatrooms;
+      },
+      fetchMessages: (options) => {
+        readOptions.messages = options;
+        return fakeMessages;
+      },
       close: () => {},
       profile: () => "wcdb-legacy",
     });
@@ -601,6 +611,11 @@ describe("WechatAdapter.sync with mocked DB reader", () => {
       expect(events).toContain("opened");
       expect(events).toContain("done");
       expect(watermark).toBe("9223372036854775806");
+      expect(readOptions).toEqual({
+        contacts: { limit: Infinity },
+        chatrooms: { limit: Infinity },
+        messages: { sinceMsgSvrId: 0, limit: Infinity },
+      });
 
       // Now normalize each raw and verify they pass schema
       for (const raw of raws) {
@@ -657,11 +672,12 @@ describe("WechatAdapter.sync with mocked DB reader", () => {
         driver: fakeDriver,
       });
       await reader.open();
-      reader.fetchContacts({ limit: 100 });
+      reader.fetchContacts();
       const contactsSql = seenSql.find((s) => s.includes("FROM rcontact"));
       expect(contactsSql).toBeDefined();
       expect(contactsSql).toMatch(/NOT LIKE '%@stranger'/);
       expect(contactsSql).toMatch(/NOT LIKE 'fake_%'/);
+      expect(contactsSql).not.toMatch(/LIMIT/u);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
@@ -709,6 +725,7 @@ describe("WechatAdapter.sync with mocked DB reader", () => {
       const contactsSql = seenSql.find((s) => s.includes("FROM rcontact"));
       expect(contactsSql).toBeDefined();
       expect(contactsSql).not.toMatch(/NOT LIKE/);
+      expect(contactsSql).toMatch(/LIMIT \?/u);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

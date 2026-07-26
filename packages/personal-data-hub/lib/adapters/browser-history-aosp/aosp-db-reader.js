@@ -105,7 +105,7 @@ function pickCol(cols, candidates) {
 function* readHistory(tmpPath, opts = {}) {
   const since = Number.isInteger(opts.since) && opts.since > 0 ? opts.since : 0;
   const limit =
-    Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 200_000;
+    Number.isSafeInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
   const Database = loadDatabase();
   const db = new Database(tmpPath, { readonly: true });
   try {
@@ -124,13 +124,16 @@ function* readHistory(tmpPath, opts = {}) {
       `${dateCol} AS date`,
       `${visitsCol || "0"} AS visits`,
     ];
-    const stmt = db.prepare(
-      `SELECT ${fields.join(", ")} FROM history
+    let sql = `SELECT ${fields.join(", ")} FROM history
        WHERE ${dateCol} > ?
-       ORDER BY ${dateCol} ASC
-       LIMIT ?`,
-    );
-    for (const r of stmt.iterate(since, limit)) {
+       ORDER BY ${dateCol} ASC`;
+    const params = [since];
+    if (limit !== Infinity) {
+      sql += "\n       LIMIT ?";
+      params.push(limit);
+    }
+    const stmt = db.prepare(sql);
+    for (const r of stmt.iterate(...params)) {
       yield {
         visitId: r.hid,
         url: typeof r.url === "string" ? r.url : "",

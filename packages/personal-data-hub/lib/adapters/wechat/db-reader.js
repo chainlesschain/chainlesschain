@@ -45,9 +45,7 @@ const KNOWN_PRAGMA_PROFILES = [
   // SQLCipher v4 default
   {
     name: "sqlcipher-v4",
-    pragmas: [
-      "PRAGMA cipher_compatibility = 4",
-    ],
+    pragmas: ["PRAGMA cipher_compatibility = 4"],
   },
 ];
 
@@ -60,7 +58,9 @@ class WeChatDBReader {
       throw new Error("WeChatDBReader: opts.dbPath required");
     }
     if (!opts.keyProvider || typeof opts.keyProvider.getKey !== "function") {
-      throw new Error("WeChatDBReader: opts.keyProvider with getKey() required");
+      throw new Error(
+        "WeChatDBReader: opts.keyProvider with getKey() required",
+      );
     }
     this._dbPath = opts.dbPath;
     this._keyProvider = opts.keyProvider;
@@ -124,7 +124,9 @@ class WeChatDBReader {
   listTables() {
     if (!this._db) return [];
     return this._db
-      .prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name",
+      )
       .all()
       .map((r) => r.name);
   }
@@ -183,7 +185,7 @@ class WeChatDBReader {
    * Column names resolved via PRAGMA table_info to survive case-drift
    * across WeChat versions (sjqz audit defence).
    */
-  fetchMessages({ sinceMsgSvrId = 0, limit = 1000, talker = null } = {}) {
+  fetchMessages({ sinceMsgSvrId = 0, limit = Infinity, talker = null } = {}) {
     if (!this._db) throw new Error("WeChatDBReader: call open() first");
     const cols = this._resolveColumns("message", [
       "msgId",
@@ -210,8 +212,8 @@ class WeChatDBReader {
       params.push(talker);
     }
     if (where.length > 0) sql += " WHERE " + where.join(" AND ");
-    sql += ` ORDER BY ${cols[1]} ASC LIMIT ?`;
-    params.push(limit);
+    sql += ` ORDER BY ${cols[1]} ASC`;
+    sql = appendLimit(sql, params, limit, "fetchMessages");
     return this._db.prepare(sql).all(...params);
   }
 
@@ -225,11 +227,11 @@ class WeChatDBReader {
    * that never represent real contacts.
    *
    * @param {object} [opts]
-   * @param {number} [opts.limit=5000]
+   * @param {number} [opts.limit=Infinity]
    * @param {boolean} [opts.includeJunk=false]  true to skip the
    *   stranger/fake filter (debug / forensic use only)
    */
-  fetchContacts({ limit = 5000, includeJunk = false } = {}) {
+  fetchContacts({ limit = Infinity, includeJunk = false } = {}) {
     if (!this._db) throw new Error("WeChatDBReader: call open() first");
     const cols = this._resolveColumns("rcontact", [
       "username",
@@ -239,33 +241,55 @@ class WeChatDBReader {
       "type",
     ]);
     const usernameCol = cols[0];
-    const sql = includeJunk
-      ? `SELECT ${cols.join(", ")} FROM rcontact LIMIT ?`
-      : `SELECT ${cols.join(", ")} FROM rcontact WHERE ${usernameCol} NOT LIKE '%@stranger' AND ${usernameCol} NOT LIKE 'fake_%' LIMIT ?`;
-    return this._db.prepare(sql).all(limit);
+    const params = [];
+    const baseSql = includeJunk
+      ? `SELECT ${cols.join(", ")} FROM rcontact`
+      : `SELECT ${cols.join(", ")} FROM rcontact WHERE ${usernameCol} NOT LIKE '%@stranger' AND ${usernameCol} NOT LIKE 'fake_%'`;
+    const sql = appendLimit(baseSql, params, limit, "fetchContacts");
+    return this._db.prepare(sql).all(...params);
   }
 
   /**
    * Fetch chatroom info.
    */
-  fetchChatrooms({ limit = 1000 } = {}) {
+  fetchChatrooms({ limit = Infinity } = {}) {
     if (!this._db) throw new Error("WeChatDBReader: call open() first");
-    return this._db
-      .prepare(
-        "SELECT chatroomname, memberlist, displayname, roomowner FROM chatroom LIMIT ?",
-      )
-      .all(limit);
+    const params = [];
+    const sql = appendLimit(
+      "SELECT chatroomname, memberlist, displayname, roomowner FROM chatroom",
+      params,
+      limit,
+      "fetchChatrooms",
+    );
+    return this._db.prepare(sql).all(...params);
   }
 
   close() {
     if (this._db) {
-      try { this._db.close(); } catch (_e) {}
+      try {
+        this._db.close();
+      } catch (_e) {
+        // Best-effort close; preserve the primary collection result.
+      }
       this._db = null;
     }
   }
 
   /** Active pragma profile name (set after successful open). */
-  profile() { return this._profile; }
+  profile() {
+    return this._profile;
+  }
+}
+
+function appendLimit(sql, params, limit, operation) {
+  if (limit === Infinity) return sql;
+  if (!Number.isSafeInteger(limit) || limit < 0) {
+    throw new Error(
+      `WeChatDBReader.${operation}: limit must be a non-negative safe integer or Infinity`,
+    );
+  }
+  params.push(limit);
+  return `${sql} LIMIT ?`;
 }
 
 let _driverCache = null;

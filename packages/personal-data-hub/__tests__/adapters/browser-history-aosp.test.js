@@ -54,7 +54,13 @@ function buildFixture({ history = [], bookmarks = [] } = {}) {
     "INSERT INTO bookmarks(title, url, folder, deleted, created) VALUES(?, ?, ?, ?, ?)",
   );
   for (const b of bookmarks) {
-    insB.run(b.title ?? null, b.url, b.folder ?? 0, b.deleted ?? 0, b.created ?? null);
+    insB.run(
+      b.title ?? null,
+      b.url,
+      b.folder ?? 0,
+      b.deleted ?? 0,
+      b.created ?? null,
+    );
   }
   db.close();
 }
@@ -82,7 +88,9 @@ describe("BrowserHistoryAospAdapter — contract", () => {
     expect(adapter.extractMode).toBe("file-import");
     expect(adapter.capabilities).toContain("sync:file-import");
     expect(adapter.capabilities).toContain("sync:aosp-browser-history-sqlite");
-    expect(adapter.capabilities).toContain("sync:aosp-browser-bookmarks-sqlite");
+    expect(adapter.capabilities).toContain(
+      "sync:aosp-browser-bookmarks-sqlite",
+    );
     expect(adapter.dataDisclosure.sensitivity).toBe("high");
   });
 });
@@ -103,7 +111,9 @@ describe("BrowserHistoryAospAdapter.authenticate", () => {
   });
 
   it("succeeds when browser2.db present (file path)", async () => {
-    buildFixture({ history: [{ url: "https://a.test", title: "A", date: 1_700_000_000_000 }] });
+    buildFixture({
+      history: [{ url: "https://a.test", title: "A", date: 1_700_000_000_000 }],
+    });
     const adapter = new BrowserHistoryAospAdapter({ dbPath });
     const r = await adapter.authenticate({});
     expect(r.ok).toBe(true);
@@ -111,7 +121,9 @@ describe("BrowserHistoryAospAdapter.authenticate", () => {
   });
 
   it("accepts a directory containing browser2.db", async () => {
-    buildFixture({ history: [{ url: "https://a.test", title: "A", date: 1_700_000_000_000 }] });
+    buildFixture({
+      history: [{ url: "https://a.test", title: "A", date: 1_700_000_000_000 }],
+    });
     const adapter = new BrowserHistoryAospAdapter({ dbPath: tmpDir });
     const r = await adapter.authenticate({});
     expect(r.ok).toBe(true);
@@ -119,14 +131,20 @@ describe("BrowserHistoryAospAdapter.authenticate", () => {
   });
 
   it("ctx.dbPath overrides constructor opts", async () => {
-    buildFixture({ history: [{ url: "https://x.test", title: "X", date: 1_700_000_000_000 }] });
-    const adapter = new BrowserHistoryAospAdapter({ dbPath: "/nonexistent/browser2.db" });
+    buildFixture({
+      history: [{ url: "https://x.test", title: "X", date: 1_700_000_000_000 }],
+    });
+    const adapter = new BrowserHistoryAospAdapter({
+      dbPath: "/nonexistent/browser2.db",
+    });
     const r = await adapter.authenticate({ dbPath });
     expect(r.ok).toBe(true);
   });
 
   it("accepts the generic ctx.inputPath file-import alias", async () => {
-    buildFixture({ history: [{ url: "https://x.test", title: "X", date: 1_700_000_000_000 }] });
+    buildFixture({
+      history: [{ url: "https://x.test", title: "X", date: 1_700_000_000_000 }],
+    });
     const adapter = new BrowserHistoryAospAdapter();
     const r = await adapter.authenticate({ inputPath: dbPath });
     expect(r.ok).toBe(true);
@@ -139,13 +157,24 @@ describe("BrowserHistoryAospAdapter.sync", () => {
   it("yields history visits ascending by date with ms timestamps", async () => {
     buildFixture({
       history: [
-        { url: "https://b.test", title: "B", date: 1_700_000_002_000, visits: 2 },
-        { url: "https://a.test", title: "A", date: 1_700_000_001_000, visits: 5 },
+        {
+          url: "https://b.test",
+          title: "B",
+          date: 1_700_000_002_000,
+          visits: 2,
+        },
+        {
+          url: "https://a.test",
+          title: "A",
+          date: 1_700_000_001_000,
+          visits: 5,
+        },
       ],
     });
     const adapter = new BrowserHistoryAospAdapter({ dbPath });
     const visits = [];
-    for await (const r of adapter.sync()) if (r.kind === "visit") visits.push(r);
+    for await (const r of adapter.sync())
+      if (r.kind === "visit") visits.push(r);
     expect(visits).toHaveLength(2);
     expect(visits[0].payload.url).toBe("https://a.test");
     expect(visits[1].payload.url).toBe("https://b.test");
@@ -168,9 +197,76 @@ describe("BrowserHistoryAospAdapter.sync", () => {
     expect(urls).toEqual(["https://new.test"]);
   });
 
+  it("uses the registry watermark and marks an unlimited scan complete", async () => {
+    buildFixture({
+      history: [
+        {
+          url: "https://old.test",
+          title: "Old",
+          date: 1_700_000_000_000,
+        },
+        {
+          url: "https://new.test",
+          title: "New",
+          date: 1_700_000_005_000,
+        },
+      ],
+    });
+    const adapter = new BrowserHistoryAospAdapter({ dbPath });
+    const visits = [];
+    let completed = 0;
+    for await (const raw of adapter.sync({
+      sinceWatermark: 1_700_000_003_000,
+      include: { bookmarks: false },
+      markWatermarkComplete: () => {
+        completed += 1;
+      },
+    })) {
+      visits.push(raw);
+    }
+
+    expect(visits.map((raw) => raw.payload.url)).toEqual(["https://new.test"]);
+    expect(visits[0].capturedAt).toBe(1_700_000_005_000);
+    expect(completed).toBe(1);
+  });
+
+  it("does not mark an explicitly limited scan complete", async () => {
+    buildFixture({
+      history: [
+        {
+          url: "https://first.test",
+          title: "First",
+          date: 1_700_000_001_000,
+        },
+        {
+          url: "https://second.test",
+          title: "Second",
+          date: 1_700_000_002_000,
+        },
+      ],
+    });
+    const adapter = new BrowserHistoryAospAdapter({ dbPath });
+    const visits = [];
+    let completed = 0;
+    for await (const raw of adapter.sync({
+      limit: 1,
+      include: { bookmarks: false },
+      markWatermarkComplete: () => {
+        completed += 1;
+      },
+    })) {
+      visits.push(raw);
+    }
+
+    expect(visits).toHaveLength(1);
+    expect(completed).toBe(0);
+  });
+
   it("sync accepts the generic inputPath file-import alias", async () => {
     buildFixture({
-      history: [{ url: "https://alias.test", title: "Alias", date: 1_700_000_000_000 }],
+      history: [
+        { url: "https://alias.test", title: "Alias", date: 1_700_000_000_000 },
+      ],
     });
     const adapter = new BrowserHistoryAospAdapter();
     const urls = [];
@@ -181,10 +277,13 @@ describe("BrowserHistoryAospAdapter.sync", () => {
   });
 
   it("normalizes second-granularity dates to ms", async () => {
-    buildFixture({ history: [{ url: "https://s.test", title: "S", date: 1_700_000_000 }] });
+    buildFixture({
+      history: [{ url: "https://s.test", title: "S", date: 1_700_000_000 }],
+    });
     const adapter = new BrowserHistoryAospAdapter({ dbPath });
     const visits = [];
-    for await (const r of adapter.sync()) if (r.kind === "visit") visits.push(r);
+    for await (const r of adapter.sync())
+      if (r.kind === "visit") visits.push(r);
     expect(visits[0].payload.visitTimeMs).toBe(1_700_000_000_000);
   });
 
@@ -193,13 +292,19 @@ describe("BrowserHistoryAospAdapter.sync", () => {
       history: [{ url: "https://h.test", title: "H", date: 1_700_000_000_000 }],
       bookmarks: [
         { url: "https://keep.test", title: "Keep", folder: 0, deleted: 0 },
-        { url: "https://afolder.test", title: "AFolder", folder: 1, deleted: 0 },
+        {
+          url: "https://afolder.test",
+          title: "AFolder",
+          folder: 1,
+          deleted: 0,
+        },
         { url: "https://gone.test", title: "Gone", folder: 0, deleted: 1 },
       ],
     });
     const adapter = new BrowserHistoryAospAdapter({ dbPath });
     const bms = [];
-    for await (const r of adapter.sync()) if (r.kind === "bookmark") bms.push(r);
+    for await (const r of adapter.sync())
+      if (r.kind === "bookmark") bms.push(r);
     expect(bms.map((b) => b.payload.url)).toEqual(["https://keep.test"]);
   });
 
@@ -210,11 +315,13 @@ describe("BrowserHistoryAospAdapter.sync", () => {
     });
     const adapter = new BrowserHistoryAospAdapter({ dbPath });
     const noHist = [];
-    for await (const r of adapter.sync({ include: { history: false } })) noHist.push(r);
+    for await (const r of adapter.sync({ include: { history: false } }))
+      noHist.push(r);
     expect(noHist.every((r) => r.kind === "bookmark")).toBe(true);
     expect(noHist.length).toBeGreaterThan(0);
     const noBm = [];
-    for await (const r of adapter.sync({ include: { bookmarks: false } })) noBm.push(r);
+    for await (const r of adapter.sync({ include: { bookmarks: false } }))
+      noBm.push(r);
     expect(noBm.every((r) => r.kind === "visit")).toBe(true);
     expect(noBm.length).toBeGreaterThan(0);
   });
@@ -223,7 +330,9 @@ describe("BrowserHistoryAospAdapter.sync", () => {
     const adapter = new BrowserHistoryAospAdapter({ dbPath });
     await expect(async () => {
       // eslint-disable-next-line no-unused-vars
-      for await (const _ of adapter.sync()) { /* consume */ }
+      for await (const _ of adapter.sync()) {
+        /* consume */
+      }
     }).rejects.toThrow(/no browser2\.db/);
   });
 });
@@ -231,7 +340,14 @@ describe("BrowserHistoryAospAdapter.sync", () => {
 describe("BrowserHistoryAospAdapter.normalize (inherited Chrome shape)", () => {
   it("maps a visit to a schema-valid Event(BROWSE) tagged browser=aosp", async () => {
     buildFixture({
-      history: [{ url: "https://a.test/x?y=1", title: "Hello", date: 1_700_000_000_500, visits: 3 }],
+      history: [
+        {
+          url: "https://a.test/x?y=1",
+          title: "Hello",
+          date: 1_700_000_000_500,
+          visits: 3,
+        },
+      ],
     });
     const adapter = new BrowserHistoryAospAdapter({ dbPath });
     const out = [];
@@ -256,7 +372,14 @@ describe("BrowserHistoryAospAdapter.normalize (inherited Chrome shape)", () => {
   it("maps a bookmark to a schema-valid Item(LINK) tagged browser=aosp", async () => {
     buildFixture({
       history: [],
-      bookmarks: [{ url: "https://anthropic.com", title: "Anthropic", folder: 0, deleted: 0 }],
+      bookmarks: [
+        {
+          url: "https://anthropic.com",
+          title: "Anthropic",
+          folder: 0,
+          deleted: 0,
+        },
+      ],
     });
     const adapter = new BrowserHistoryAospAdapter({ dbPath });
     const out = [];

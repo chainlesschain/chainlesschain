@@ -142,7 +142,7 @@ class WechatAdapter {
    *
    * @param {object} opts
    * @param {string|number} [opts.sinceWatermark]  max msgSvrId watermark
-   * @param {number} [opts.maxPerType=10_000]
+   * @param {number} [opts.maxPerType=Infinity] explicit message row limit
    * @param {Function} [opts.onProgress]
    */
   async *sync(opts = {}) {
@@ -163,9 +163,8 @@ class WechatAdapter {
       emit("idle", { reason: "no DB at " + dbPath });
       return;
     }
-    const maxPerType = Number.isFinite(opts.maxPerType)
-      ? opts.maxPerType
-      : 10_000;
+    const maxPerType =
+      opts.maxPerType == null ? Infinity : parseMaxPerType(opts.maxPerType);
     const sinceMsgSvrId = parseWatermark(opts.sinceWatermark);
 
     emit("opening", { dbPath });
@@ -186,7 +185,7 @@ class WechatAdapter {
       }
 
       // Contacts first — gives normalize() context for message senders
-      const contacts = reader.fetchContacts({ limit: 10_000 });
+      const contacts = reader.fetchContacts({ limit: Infinity });
       emit("contacts-loaded", { count: contacts.length });
       const contactByUsername = {};
       for (const c of contacts) contactByUsername[c.username] = c;
@@ -195,7 +194,7 @@ class WechatAdapter {
       }
 
       // Chatrooms — produce Topics
-      const chatrooms = reader.fetchChatrooms({ limit: 5000 });
+      const chatrooms = reader.fetchChatrooms({ limit: Infinity });
       const chatroomByName = {};
       for (const cr of chatrooms)
         chatroomByName[cr.chatroomname] = cr.displayname || cr.chatroomname;
@@ -282,6 +281,15 @@ function parseWatermark(wm) {
   } catch (_err) {
     return 0;
   }
+}
+
+function parseMaxPerType(value) {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new Error(
+      "WechatAdapter.sync: maxPerType must be a non-negative safe integer",
+    );
+  }
+  return value;
 }
 
 function maxDecimalCursor(current, candidate) {
