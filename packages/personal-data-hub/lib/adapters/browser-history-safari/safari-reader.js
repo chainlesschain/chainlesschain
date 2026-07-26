@@ -117,8 +117,7 @@ function findSafariProfiles(opts = {}) {
     add(root);
 
     // Safari 17+ stores non-default profile histories below the sandboxed
-    // Safari/Profiles directory. Bound directory enumeration so readiness
-    // cannot turn into an unbounded filesystem crawl.
+    // Safari/Profiles directory.
     const profileRoots = [path.join(root, "Profiles")];
     if (path.basename(root) === "Profiles") profileRoots.unshift(root);
     for (const profilesRoot of profileRoots) {
@@ -127,8 +126,7 @@ function findSafariProfiles(opts = {}) {
         entries = fsMod
           .readdirSync(profilesRoot, { withFileTypes: true })
           .filter((entry) => entry.isDirectory())
-          .sort((a, b) => a.name.localeCompare(b.name))
-          .slice(0, 256);
+          .sort((a, b) => a.name.localeCompare(b.name));
       } catch {
         continue;
       }

@@ -8,7 +8,7 @@ import {
   utimesSync,
   writeFileSync,
 } from "node:fs";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { tmpdir } from "node:os";
 import Database from "better-sqlite3";
 
@@ -218,6 +218,43 @@ describe("Safari reader helpers and discovery", () => {
     expect(findSafariDownloadsPath(workProfile)).toBe(
       join(containerRoot, "Downloads.plist"),
     );
+  });
+
+  it("discovers Safari profiles beyond the former 256-profile limit", () => {
+    const root = join(tempDir, "Safari");
+    const profilesRoot = join(root, "Profiles");
+    const profileCount = 257;
+    const entries = Array.from({ length: profileCount }, (_, index) => ({
+      name: `profile-${String(index).padStart(3, "0")}`,
+      isDirectory: () => true,
+    }));
+    const fsMod = {
+      readdirSync: (candidate) => {
+        if (candidate === profilesRoot) return entries;
+        const error = new Error("not found");
+        error.code = "ENOENT";
+        throw error;
+      },
+      statSync: (candidate) => {
+        if (
+          candidate.endsWith("History.db") &&
+          candidate.startsWith(`${profilesRoot}${sep}`)
+        ) {
+          return { isFile: () => true };
+        }
+        const error = new Error("not found");
+        error.code = "ENOENT";
+        throw error;
+      },
+    };
+
+    const profiles = findSafariProfiles({
+      platform: "darwin",
+      roots: [root],
+      fs: fsMod,
+    });
+
+    expect(profiles).toHaveLength(profileCount);
   });
 
   it("parses binary Safari bookmark plists without an external dependency", () => {
