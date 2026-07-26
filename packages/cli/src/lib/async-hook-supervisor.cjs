@@ -32,7 +32,10 @@
  * testable with fake child processes (no real shell).
  */
 
-const { tryParseDecision } = require("./hook-runner.cjs");
+const {
+  tryParseDecision,
+  resolveHookSandboxPolicy,
+} = require("./hook-runner.cjs");
 
 const DEFAULT_TIMEOUT_MS = 60000;
 const MAX_TIMEOUT_MS = 600000;
@@ -359,6 +362,7 @@ class AsyncHookSupervisor {
 
     let child;
     try {
+      const sandboxPolicy = resolveHookSandboxPolicy(hook, opts);
       const spawnOptions = {
         cwd: opts.cwd || process.cwd(),
         shell: true,
@@ -370,6 +374,7 @@ class AsyncHookSupervisor {
           ...process.env,
           CLAUDE_HOOK_EVENT: hook.event || payload.hook_event_name || "",
         },
+        ...(sandboxPolicy ? { sandboxPolicy } : {}),
       };
       if (typeof this._deps.run !== "function") {
         throw new Error("async hook process runner unavailable");
@@ -384,10 +389,15 @@ class AsyncHookSupervisor {
         pluginSource: hook.pluginSource || null,
       });
     } catch (err) {
+      const sandboxDenied =
+        err?.code === "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED";
       this._record(hook, {
         ok: false,
         exitCode: null,
-        error: `hook spawn failed: ${err.message}`,
+        error: sandboxDenied
+          ? `hook sandbox denied: ${err.message}`
+          : `hook spawn failed: ${err.message}`,
+        sandboxDenied,
         started,
       });
       return;
@@ -483,6 +493,7 @@ class AsyncHookSupervisor {
       error: fields.error || null,
       additionalContext: fields.additionalContext || null,
       blocked: !!fields.blocked,
+      ...(fields.sandboxDenied === true ? { sandboxDenied: true } : {}),
       asyncRewake: hook.asyncRewake === true,
       ts: now,
       ms: fields.started != null ? now - fields.started : 0,

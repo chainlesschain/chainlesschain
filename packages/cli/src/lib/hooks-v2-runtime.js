@@ -181,6 +181,65 @@ function managedPolicyError(message) {
   return error;
 }
 
+/**
+ * Merge the administrator policy with a hook's own requested sandbox. Managed
+ * settings may strengthen a hook but a hook cannot remove managed boundaries.
+ * Boundary identifiers are intentionally left for ProcessExecutionBroker to
+ * validate so every external-process caller gets the same stable contract.
+ */
+export function resolveHookSandboxPolicy(hook = {}, managedPolicy = {}) {
+  const hookPolicy = hook.sandboxPolicy;
+  const administratorPolicy = managedPolicy.sandboxPolicy;
+  for (const [label, value] of [
+    ["hook sandboxPolicy", hookPolicy],
+    ["managed hook sandboxPolicy", administratorPolicy],
+  ]) {
+    if (
+      value !== undefined &&
+      (value === null || typeof value !== "object" || Array.isArray(value))
+    ) {
+      throw managedPolicyError(`${label} must be an object`);
+    }
+  }
+
+  const requiredBoundaries = [];
+  for (const [label, value] of [
+    ["managed requiredBoundaries", managedPolicy.requiredBoundaries],
+    [
+      "managed sandboxPolicy.requiredBoundaries",
+      administratorPolicy?.requiredBoundaries,
+    ],
+    ["hook requiredBoundaries", hook.requiredBoundaries],
+    ["hook sandboxPolicy.requiredBoundaries", hookPolicy?.requiredBoundaries],
+  ]) {
+    if (value === undefined) continue;
+    if (!Array.isArray(value)) {
+      throw managedPolicyError(`${label} must be an array`);
+    }
+    for (const boundary of value) {
+      if (!requiredBoundaries.includes(boundary)) {
+        requiredBoundaries.push(boundary);
+      }
+    }
+  }
+
+  const configured =
+    hookPolicy !== undefined ||
+    administratorPolicy !== undefined ||
+    hook.requiredBoundaries !== undefined ||
+    managedPolicy.requiredBoundaries !== undefined;
+  if (!configured) return null;
+  const resolved = {
+    ...(hookPolicy || {}),
+    ...(administratorPolicy || {}),
+  };
+  delete resolved.requiredBoundaries;
+  if (requiredBoundaries.length > 0) {
+    resolved.requiredBoundaries = requiredBoundaries;
+  }
+  return resolved;
+}
+
 export function assertManagedHookPolicy(
   hook,
   context = {},
@@ -388,6 +447,8 @@ class HooksV2Runtime extends EventEmitter {
    * @property {boolean} [blocking] - default false
    * @property {string[]} [if] - conditional matchers
    * @property {string} [description]
+   * @property {{profile?:string, requiredBoundaries?:string[]}} [sandboxPolicy]
+   * @property {string[]} [requiredBoundaries]
    */
 
   async loadHooks(hooksPath) {
@@ -628,6 +689,10 @@ class HooksV2Runtime extends EventEmitter {
       throw new Error("command hook requires a command");
     }
     const budget = hookBudget(hook);
+    const sandboxPolicy = resolveHookSandboxPolicy(
+      hook,
+      this.managedPolicy,
+    );
     const child = await this.executionBroker.spawn(
       hook.command,
       hook.args || [],
@@ -641,6 +706,7 @@ class HooksV2Runtime extends EventEmitter {
         scope: "hook",
         policy: "allow",
         hookName: hook.id,
+        ...(sandboxPolicy ? { sandboxPolicy } : {}),
       },
     );
     const payload = JSON.stringify({
@@ -716,6 +782,10 @@ class HooksV2Runtime extends EventEmitter {
       throw new Error("prompt hook executor is not configured");
     }
     const budget = hookBudget(hook);
+    const sandboxPolicy = resolveHookSandboxPolicy(
+      hook,
+      this.managedPolicy,
+    );
     return executeWithHookTimeout("prompt", budget, (signal) =>
       executor({
         hook,
@@ -724,6 +794,7 @@ class HooksV2Runtime extends EventEmitter {
         budget,
         signal,
         managedPolicy: this.managedPolicy,
+        ...(sandboxPolicy ? { sandboxPolicy } : {}),
       }),
     );
   }
@@ -734,6 +805,10 @@ class HooksV2Runtime extends EventEmitter {
       throw new Error("agent hook executor is not configured");
     }
     const budget = hookBudget(hook);
+    const sandboxPolicy = resolveHookSandboxPolicy(
+      hook,
+      this.managedPolicy,
+    );
     return executeWithHookTimeout("agent", budget, (signal) =>
       executor({
         hook,
@@ -743,6 +818,7 @@ class HooksV2Runtime extends EventEmitter {
         budget,
         signal,
         managedPolicy: this.managedPolicy,
+        ...(sandboxPolicy ? { sandboxPolicy } : {}),
       }),
     );
   }
@@ -782,6 +858,10 @@ class HooksV2Runtime extends EventEmitter {
       }
     }
     const budget = hookBudget(hook);
+    const sandboxPolicy = resolveHookSandboxPolicy(
+      hook,
+      this.managedPolicy,
+    );
     return executeWithHookTimeout("mcp_tool", budget, (signal) =>
       executor({
         server: hook.server,
@@ -793,6 +873,7 @@ class HooksV2Runtime extends EventEmitter {
         signal,
         permission,
         managedPolicy: this.managedPolicy,
+        ...(sandboxPolicy ? { sandboxPolicy } : {}),
       }),
     );
   }

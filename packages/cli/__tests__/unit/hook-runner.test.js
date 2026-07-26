@@ -84,6 +84,7 @@ it("routes default hooks through the process broker adapter", () => {
         scope: "hook",
       }),
     );
+    expect(runSync.mock.calls[0][2]).not.toHaveProperty("sandboxPolicy");
   } finally {
     _processDeps.runSync = originalRunner;
   }
@@ -107,6 +108,55 @@ it("fails open with a visible error when the CJS core has no runner", () => {
 beforeEach(() => {
   calls = [];
   _resetHookBreaker(); // failure counters must not leak across cases
+});
+
+it("merges managed and per-hook sandbox requirements into the broker call", () => {
+  stub({ status: 0 });
+
+  runHooks(
+    [
+      {
+        command: "guard.sh",
+        sandboxPolicy: {
+          profile: "strict",
+          requiredBoundaries: ["filesystem"],
+        },
+        requiredBoundaries: ["network"],
+      },
+    ],
+    {},
+    { requiredBoundaries: ["process-tree"] },
+  );
+
+  expect(calls[0].opts.sandboxPolicy).toEqual({
+    profile: "strict",
+    requiredBoundaries: ["process-tree", "network", "filesystem"],
+  });
+});
+
+it("turns an explicit broker boundary refusal into a blocking hook result", () => {
+  const error = new Error(
+    "windows-job-restricted-token cannot satisfy filesystem, network",
+  );
+  error.code = "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED";
+  _deps.spawnSync = vi.fn(() => {
+    throw error;
+  });
+
+  const result = runCommandHook("guard.cmd", {}, {
+    sandboxPolicy: {
+      profile: "strict",
+      requiredBoundaries: ["filesystem", "network"],
+    },
+  });
+
+  expect(result).toMatchObject({
+    decision: "block",
+    sandboxDenied: true,
+    error:
+      "windows-job-restricted-token cannot satisfy filesystem, network",
+  });
+  expect(result.nonBlockingError).toBeUndefined();
 });
 
 it("routes plugin hooks through the supplied Process Execution Broker", () => {
@@ -570,6 +620,48 @@ describe("interpretHookOutcome — shared protocol interpreter", () => {
 });
 
 describe("runCommandHookAsync — async single hook", () => {
+  it("passes sandbox requirements through the async shell path", async () => {
+    const child = fakeChild();
+    _deps.spawn = vi.fn(() => child);
+    const pending = runCommandHookAsync("guard.sh", {}, {
+      sandboxPolicy: {
+        profile: "strict",
+        requiredBoundaries: ["filesystem", "network"],
+      },
+    });
+
+    expect(_deps.spawn).toHaveBeenCalledWith(
+      "guard.sh",
+      expect.objectContaining({
+        shell: true,
+        sandboxPolicy: {
+          profile: "strict",
+          requiredBoundaries: ["filesystem", "network"],
+        },
+      }),
+    );
+    child.finish();
+    await pending;
+  });
+
+  it("blocks when the async broker rejects an explicit boundary", async () => {
+    const error = new Error("Windows cannot satisfy filesystem");
+    error.code = "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED";
+    _deps.spawn = vi.fn(() => {
+      throw error;
+    });
+
+    await expect(
+      runCommandHookAsync("guard.cmd", {}, {
+        requiredBoundaries: ["filesystem"],
+      }),
+    ).resolves.toMatchObject({
+      decision: "block",
+      sandboxDenied: true,
+      error: "Windows cannot satisfy filesystem",
+    });
+  });
+
   it("writes the JSON payload to stdin and parses an exit-0 decision", async () => {
     const child = fakeChild();
     _deps.spawn = vi.fn(() => child);

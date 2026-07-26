@@ -59,6 +59,86 @@ const HOOK_DECISIONS = Object.freeze({
   CONTINUE: "continue",
 });
 
+/**
+ * Resolve the sandbox contract for one legacy command hook. Requirements from
+ * the caller (for example managed settings) and from the hook entry are
+ * additive; the caller's profile wins so a hook cannot weaken managed policy.
+ */
+function resolveHookSandboxPolicy(hook = {}, opts = {}) {
+  const hookPolicy = hook.sandboxPolicy;
+  const callerPolicy = opts.sandboxPolicy;
+  for (const [label, value] of [
+    ["hook sandboxPolicy", hookPolicy],
+    ["managed hook sandboxPolicy", callerPolicy],
+  ]) {
+    if (
+      value !== undefined &&
+      (value === null || typeof value !== "object" || Array.isArray(value))
+    ) {
+      const error = new Error(`${label} must be an object`);
+      error.code = "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED";
+      throw error;
+    }
+  }
+
+  const requiredBoundaries = [];
+  for (const [label, value] of [
+    ["managed requiredBoundaries", opts.requiredBoundaries],
+    [
+      "managed sandboxPolicy.requiredBoundaries",
+      callerPolicy?.requiredBoundaries,
+    ],
+    ["hook requiredBoundaries", hook.requiredBoundaries],
+    ["hook sandboxPolicy.requiredBoundaries", hookPolicy?.requiredBoundaries],
+  ]) {
+    if (value === undefined) continue;
+    if (!Array.isArray(value)) {
+      const error = new Error(`${label} must be an array`);
+      error.code = "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED";
+      throw error;
+    }
+    for (const boundary of value) {
+      if (!requiredBoundaries.includes(boundary)) {
+        requiredBoundaries.push(boundary);
+      }
+    }
+  }
+
+  const configured =
+    hookPolicy !== undefined ||
+    callerPolicy !== undefined ||
+    hook.requiredBoundaries !== undefined ||
+    opts.requiredBoundaries !== undefined;
+  if (!configured) return null;
+  const resolved = {
+    ...(hookPolicy || {}),
+    ...(callerPolicy || {}),
+  };
+  delete resolved.requiredBoundaries;
+  if (requiredBoundaries.length > 0) {
+    resolved.requiredBoundaries = requiredBoundaries;
+  }
+  return resolved;
+}
+
+function hookSpawnFailure(error) {
+  const sandboxDenied =
+    error?.code === "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED";
+  return {
+    decision: sandboxDenied
+      ? HOOK_DECISIONS.BLOCK
+      : HOOK_DECISIONS.CONTINUE,
+    reason: sandboxDenied
+      ? `hook sandbox denied: ${error.message}`
+      : `hook spawn failed: ${error.message}`,
+    exitCode: null,
+    error: error.message,
+    ...(sandboxDenied
+      ? { sandboxDenied: true }
+      : { nonBlockingError: true }),
+  };
+}
+
 /** JSON.parse that returns undefined (not throws) on failure. */
 function tryJson(text) {
   try {
@@ -240,6 +320,7 @@ function _runCommandHookInner(command, input = {}, opts = {}) {
   const usePowershell = shellKind === "powershell" || shellKind === "pwsh";
   let res;
   try {
+    const sandboxPolicy = resolveHookSandboxPolicy({}, opts);
     const common = {
       input: JSON.stringify({
         ...input,
@@ -265,6 +346,7 @@ function _runCommandHookInner(command, input = {}, opts = {}) {
       pluginId: opts.pluginId || null,
       pluginVersion: opts.pluginVersion || null,
       pluginSource: opts.pluginSource || null,
+      ...(sandboxPolicy ? { sandboxPolicy } : {}),
     };
     const brokerRunSync =
       opts.broker &&
@@ -299,13 +381,7 @@ function _runCommandHookInner(command, input = {}, opts = {}) {
       res = _deps.runSync(command, { ...processOptions, shell: true });
     }
   } catch (err) {
-    return {
-      decision: HOOK_DECISIONS.CONTINUE,
-      reason: `hook spawn failed: ${err.message}`,
-      exitCode: null,
-      error: err.message,
-      nonBlockingError: true,
-    };
+    return hookSpawnFailure(err);
   }
   return interpretHookOutcome(res);
 }
@@ -403,6 +479,12 @@ async function _runCommandHookInnerAsync(command, input = {}, opts = {}) {
       CLAUDE_HOOK_EVENT: event || input.hook_event_name || "",
     },
   });
+  let sandboxPolicy;
+  try {
+    sandboxPolicy = resolveHookSandboxPolicy({}, opts);
+  } catch (error) {
+    return hookSpawnFailure(error);
+  }
   const processOptions = {
     cwd: wd,
     env: spawnEnv,
@@ -412,6 +494,7 @@ async function _runCommandHookInnerAsync(command, input = {}, opts = {}) {
     pluginId: opts.pluginId || null,
     pluginVersion: opts.pluginVersion || null,
     pluginSource: opts.pluginSource || null,
+    ...(sandboxPolicy ? { sandboxPolicy } : {}),
   };
 
   let child;
@@ -436,13 +519,7 @@ async function _runCommandHookInnerAsync(command, input = {}, opts = {}) {
         : run(command, { ...processOptions, shell: true });
     }
   } catch (err) {
-    return {
-      decision: HOOK_DECISIONS.CONTINUE,
-      reason: `hook spawn failed: ${err.message}`,
-      exitCode: null,
-      error: err.message,
-      nonBlockingError: true,
-    };
+    return hookSpawnFailure(err);
   }
 
   return await new Promise((resolve) => {
@@ -520,9 +597,11 @@ async function _runCommandHookInnerAsync(command, input = {}, opts = {}) {
 function runHooks(commandHooks, input = {}, opts = {}) {
   const results = [];
   const hooks = commandHooks || [];
-  const runOne = (h) =>
-    runCommandHook(h.command, input, {
+  const runOne = (h) => {
+    const sandboxPolicy = resolveHookSandboxPolicy(h, opts);
+    return runCommandHook(h.command, input, {
       ...opts,
+      ...(sandboxPolicy ? { sandboxPolicy } : {}),
       broker: opts.broker,
       origin: h.origin,
       pluginId: h.pluginId,
@@ -534,6 +613,7 @@ function runHooks(commandHooks, input = {}, opts = {}) {
       // "shell":"powershell" }` in the settings hook entry
       shell: h.shell != null ? h.shell : opts.shell,
     });
+  };
 
   if (opts.mergeStrict) {
     const decisions = [];
@@ -586,9 +666,11 @@ function runHooks(commandHooks, input = {}, opts = {}) {
 async function runHooksParallel(commandHooks, input = {}, opts = {}) {
   const hooks = commandHooks || [];
   const settled = await Promise.all(
-    hooks.map((h) =>
-      runCommandHookAsync(h.command, input, {
+    hooks.map((h) => {
+      const sandboxPolicy = resolveHookSandboxPolicy(h, opts);
+      return runCommandHookAsync(h.command, input, {
         ...opts,
+        ...(sandboxPolicy ? { sandboxPolicy } : {}),
         broker: opts.broker,
         origin: h.origin,
         pluginId: h.pluginId,
@@ -597,8 +679,8 @@ async function runHooksParallel(commandHooks, input = {}, opts = {}) {
         timeout: h.timeout != null ? h.timeout * 1000 : opts.timeout,
         environmentAllowlist: h.environmentAllowlist || h.envAllowlist,
         shell: h.shell != null ? h.shell : opts.shell,
-      }).then((r) => ({ h, r })),
-    ),
+      }).then((r) => ({ h, r }));
+    }),
   );
   const results = settled.map(({ h, r }) => ({ command: h.command, ...r }));
   const decisions = settled.map(({ h, r }) => ({
@@ -626,6 +708,7 @@ module.exports = {
   HOOK_DECISIONS,
   HOOK_PAYLOAD_SCHEMA_VERSION,
   hookBreakerConfig,
+  resolveHookSandboxPolicy,
   _resetHookBreaker,
   _deps,
 };

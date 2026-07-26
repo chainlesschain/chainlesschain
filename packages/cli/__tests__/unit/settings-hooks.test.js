@@ -179,6 +179,40 @@ describe("collectHooks — matcher resolution", () => {
     );
   });
 
+  it("preserves shell and sandbox requirements on collected command hooks", () => {
+    const configured = {
+      PreToolUse: [
+        {
+          matcher: "Bash",
+          hooks: [
+            {
+              type: "command",
+              command: "guard.sh",
+              shell: "powershell",
+              sandboxPolicy: {
+                profile: "strict",
+                requiredBoundaries: ["filesystem"],
+              },
+              requiredBoundaries: ["network"],
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(collectHooks(configured, "PreToolUse", "run_shell")[0]).toMatchObject(
+      {
+        command: "guard.sh",
+        shell: "powershell",
+        sandboxPolicy: {
+          profile: "strict",
+          requiredBoundaries: ["filesystem"],
+        },
+        requiredBoundaries: ["network"],
+      },
+    );
+  });
+
   it("pipe matcher matches either alternative (Edit|Write)", () => {
     expect(
       collectHooks(block, "PreToolUse", "write_file").map((h) => h.command),

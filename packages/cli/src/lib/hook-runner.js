@@ -48,6 +48,7 @@ export const {
   HOOK_DECISIONS,
   HOOK_PAYLOAD_SCHEMA_VERSION,
   hookBreakerConfig,
+  resolveHookSandboxPolicy,
   _resetHookBreaker,
   _deps,
 } = runner;

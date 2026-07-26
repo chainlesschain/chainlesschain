@@ -256,6 +256,19 @@ function collectHooks(hooksBlock, event, toolName) {
           pluginId: h.pluginId || null,
           pluginVersion: h.pluginVersion || null,
           pluginSource: h.pluginSource || null,
+          ...(h.shell != null ? { shell: h.shell } : {}),
+          ...(h.environmentAllowlist != null
+            ? { environmentAllowlist: h.environmentAllowlist }
+            : {}),
+          ...(h.envAllowlist != null
+            ? { envAllowlist: h.envAllowlist }
+            : {}),
+          ...(h.sandboxPolicy !== undefined
+            ? { sandboxPolicy: h.sandboxPolicy }
+            : {}),
+          ...(h.requiredBoundaries !== undefined
+            ? { requiredBoundaries: h.requiredBoundaries }
+            : {}),
         });
     }
   }

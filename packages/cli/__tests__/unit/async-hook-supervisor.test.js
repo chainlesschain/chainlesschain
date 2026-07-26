@@ -82,10 +82,90 @@ describe("AsyncHookSupervisor.dispatch (fire-and-forget)", () => {
           }),
         }),
       ]);
+      expect(calls[0].options).not.toHaveProperty("sandboxPolicy");
     } finally {
       sup.stopAll();
       _processDeps.run = originalRunner;
     }
+  });
+
+  it("preserves managed and per-hook sandbox requirements for async shell hooks", () => {
+    const child = makeFakeChild();
+    const calls = [];
+    const originalRunner = _processDeps.run;
+    _processDeps.run = (command, args, options) => {
+      calls.push({ command, args, options });
+      return child;
+    };
+
+    const sup = new BrokerAsyncHookSupervisor();
+    try {
+      sup.dispatch(
+        [
+          {
+            command: "scan-workspace",
+            event: "PostToolUse",
+            sandboxPolicy: {
+              requiredBoundaries: ["filesystem"],
+            },
+            requiredBoundaries: ["network"],
+          },
+        ],
+        {},
+        {
+          sandboxPolicy: {
+            profile: "strict",
+            requiredBoundaries: ["resource-limits"],
+          },
+        },
+      );
+
+      expect(calls[0].options).toMatchObject({
+        shell: true,
+        sandboxPolicy: {
+          profile: "strict",
+          requiredBoundaries: [
+            "resource-limits",
+            "network",
+            "filesystem",
+          ],
+        },
+      });
+    } finally {
+      sup.stopAll();
+      _processDeps.run = originalRunner;
+    }
+  });
+
+  it("records an explicit boundary refusal instead of reporting a sandboxed run", () => {
+    const error = new Error(
+      "windows-job-restricted-token cannot satisfy filesystem, network",
+    );
+    error.code = "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED";
+    const sup = new AsyncHookSupervisor({
+      spawn: () => {
+        throw error;
+      },
+    });
+
+    sup.dispatch(
+      [
+        {
+          command: "scan-workspace",
+          event: "PostToolUse",
+          requiredBoundaries: ["filesystem", "network"],
+        },
+      ],
+      {},
+    );
+
+    expect(sup.drainResults()[0]).toMatchObject({
+      ok: false,
+      sandboxDenied: true,
+      error:
+        "hook sandbox denied: windows-job-restricted-token cannot satisfy filesystem, network",
+    });
+    sup.stopAll();
   });
 
   it("returns immediately and marks each hook dispatched (does not await)", () => {
