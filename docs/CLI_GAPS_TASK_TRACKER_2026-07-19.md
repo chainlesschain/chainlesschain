@@ -3,9 +3,9 @@
 > 来源：`CLAUDE_CODE_CLI_CURRENT_GAPS_AND_OPTIMIZATIONS_2026-07-18.md`
 > 创建日期：2026-07-19
 > 当前 CLI 版本：`0.162.180`
-> 状态：P0-2 当前 turn、持久化、跨宿主 authority/binding 与真实三平台断线重连 E2E 已完成；
-> P0-1 Broker/凭据/macOS 核心、静态进程清单、Windows 原生进程边界及 Node IPC/detached 语义已收口，
-> 严格隔离 CI 仅余 Windows 真实宿主验收；P1-12 双语言 SDK 已完成，
+> 状态：P0-1 Broker/凭据、静态进程清单、Windows 原生进程边界、Node IPC/detached 语义与
+> 真实三平台 strict CI 已完成；P0-2 当前 turn、持久化、跨宿主 authority/binding 与真实三平台
+> 断线重连 E2E 已完成；当前转入 P1-4/P1-9 外部宿主强隔离收口；P1-12 双语言 SDK 已完成，
 > Python SDK 0.1.0 已发布 PyPI
 > 最后更新：2026-07-26（按当前源码、跨宿主交互协议、认证凭据 transport 与生成清单复核）
 
@@ -15,7 +15,7 @@
 
 | 优先级    | 任务数 | 说明                                                     |
 | --------- | ------ | -------------------------------------------------------- |
-| 🔴 **P0** | **1**  | P0-2 已完成；P0-1 余 Windows 严格隔离 CI 远端验收        |
+| 🔴 **P0** | **0**  | P0-1、P0-2 已完成                                        |
 | 🟠 P0/P1  | 1      | 权限控制面统一                                           |
 | 🟡 P1     | 10     | 高优先级体验/安全能力                                    |
 | 🟢 P2     | 4      | 差异化方向（不抢占 P0/P1）                               |
@@ -26,8 +26,7 @@
 
 ### P0-1: 进程隔离（ProcessExecutionBroker 生产化）
 
-**状态**: 🟡 **Broker/凭据 transport/三平台执行计划、进程清单与 Windows 特殊进程语义已落地**；
-真实三平台 CI 尚在验收
+**状态**: ✅ **Broker/凭据 transport/三平台执行计划、进程清单、Windows 特殊进程语义与真实三平台 CI 已完成**
 
 **目标**:
 
@@ -47,7 +46,7 @@
 - [x] 生成清单中的 runtime 匹配全部迁移或记录审计豁免（2026-07-26：207 项，0 unreviewed）
 - [x] `CC_SANDBOX_STRICT` 在平台边界不可用时 fail-closed
 - [x] Windows 原生 adapter 保真 Node IPC fd3 与 detached 目标 PID/handle 语义
-- [ ] macOS/Linux/Windows 严格隔离真实 CI 矩阵全部通过
+- [x] macOS/Linux/Windows 严格隔离真实 CI 矩阵全部通过
 
 **实现说明（2026-07-26 复核）**:
 
@@ -108,6 +107,16 @@
    - `docs:spawn-inventory:check` 同时校验生成文档无漂移并在出现任意 unreviewed runtime
      匹配时失败
 
+6. **2026-07-26 三平台验收完成**：
+   - Broker 使用显式 `requiredBoundaries` / `guarantees` / `backend` 合约；平台只声明实际
+     强制的边界，需求未满足时在 native spawn 前 fail-closed
+   - Windows detached 调用同时把 libuv 等价的
+     `DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP` 应用于真实 restricted target，保留 helper
+     的 detached/outlive-parent 与 Job 监督语义
+   - [GitHub Actions run 30207776309](https://github.com/chainlesschain/chainlesschain/actions/runs/30207776309)
+     的 macOS 15、Ubuntu 与 Windows strict native boundary job 全部通过；Linux 独立
+     bubblewrap 文件系统/网络边界也在同一矩阵验收
+
 **涉及文件**:
 
 - `packages/cli/src/lib/process-execution-broker/index.js` (Broker 主逻辑，已完成集成)
@@ -119,7 +128,7 @@
 - `packages/cli/__tests__/unit/credential-transport.test.js` (✅ 认证拒绝、绑定与真实 `spawnSync`)
 - `packages/cli/scripts/gen-process-spawn-inventory.mjs` (✅ disposition 与 fail-closed gate)
 - `packages/cli/scripts/process-spawn-audit-policy.json` (✅ 显式审计豁免)
-- `.github/workflows/cli-strict-sandbox.yml` (✅ 三平台 strict 边界矩阵定义；当前运行结果待验收)
+- `.github/workflows/cli-strict-sandbox.yml` (✅ 三平台 strict 边界矩阵及真实运行验收)
 - `docs/cli/PROCESS_SPAWN_INVENTORY.generated.md` (✅ 207/207 runtime 已归类)
 - 详细进度记录：`packages/cli/P0_CLI_SECURITY_PROGRESS.md`
 
@@ -447,9 +456,10 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 
 ---
 
-## ✅ 已完成（M0-M6 + P0-2 及 P0-1 已落地子项）
+## ✅ 已完成（M0-M6 + P0-1/P0-2）
 
 - [x] **P0-1 Broker async/sync/PTY 凭据边界 + macOS Seatbelt/Linux 执行计划**
+- [x] **P0-1 Ubuntu/Windows/macOS strict native boundary 真实 CI 矩阵**
 - [x] **P0-2 CLI 当前 turn 提问/回答/继续核心链**
 - [x] **P0-2 pending/settlement 持久 journal、断线重放与 worker 丢失 exactly-once 拒绝**
 - [x] **P0-2 Desktop/VS Code/JetBrains/Web Panel/Remote Control/SDK authority/binding 收口**
@@ -483,9 +493,9 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 
 | 顺序       | 目标                                                                 |
 | ---------- | -------------------------------------------------------------------- |
-| **当前**   | P0-1 Windows 真实宿主严格隔离 CI 验收（macOS/Ubuntu 已通过）          |
-| **已完成** | P0-2 Ubuntu/Windows/macOS 三平台断线重连 E2E                          |
-| **并行**   | P1-4 跨平台强文件写沙箱与 P1-9 Plugin 外部宿主（P1-10/P1-11 已收口） |
+| **当前**   | P1-4/P1-9 外部宿主 sandbox policy 贯穿与强 filesystem/network backend |
+| **已完成** | P0-1 strict native boundary 与 P0-2 断线重连 E2E 三平台验收           |
+| **并行**   | P0/P1-3 权限控制面统一（P1-10/P1-11 已收口）                          |
 | **发布前** | 双语言 SDK 兼容门、真实环境 parity 与文档事实源漂移检查              |
 
 ---
