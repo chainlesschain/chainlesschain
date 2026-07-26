@@ -35,8 +35,9 @@ namespace ChainlessChain.WindowsSandbox
 
         private const UInt32 CREATE_SUSPENDED = 0x00000004;
         private const UInt32 CREATE_UNICODE_ENVIRONMENT = 0x00000400;
-        private const UInt32 CREATE_NO_WINDOW = 0x08000000;
+        private const UInt32 STARTF_USESHOWWINDOW = 0x00000001;
         private const UInt32 STARTF_USESTDHANDLES = 0x00000100;
+        private const UInt16 SW_HIDE = 0;
         private const UInt32 INFINITE = 0xffffffff;
         private const UInt32 HANDLE_FLAG_INHERIT = 0x00000001;
         private const UInt32 DUPLICATE_SAME_ACCESS = 0x00000002;
@@ -454,6 +455,11 @@ namespace ChainlessChain.WindowsSandbox
             out UInt16 descriptorBytes)
         {
             descriptorBytes = 0;
+            // stdin/stdout/stderr are transferred by STARTUPINFO. Only attach
+            // the CRT descriptor table when Node needs a descriptor above fd 2
+            // (its fd 3 IPC channel); this also preserves the previously proven
+            // non-IPC startup contract on hosted Windows runners.
+            if (nodeIpcFd < 0) return IntPtr.Zero;
             if (nodeIpcFd > 255)
                 throw new InvalidDataException(
                     "Node IPC descriptor is outside the CRT table range");
@@ -625,12 +631,16 @@ namespace ChainlessChain.WindowsSandbox
 
                 // Node/libuv communicates Windows stdio entries above fd 2
                 // (including its fd 3 IPC channel) through the CRT descriptor
-                // table in STARTUPINFO.cbReserved2/lpReserved2. Copy the
-                // helper's inherited table into the restricted target instead
-                // of reducing the launch contract to stdin/stdout/stderr.
+                // table in STARTUPINFO.cbReserved2/lpReserved2. Standard
+                // descriptors remain in STARTUPINFO's dedicated handle fields.
                 STARTUPINFO startup = new STARTUPINFO();
                 startup.cb = checked((UInt32)Marshal.SizeOf(typeof(STARTUPINFO)));
                 startup.dwFlags = STARTF_USESTDHANDLES;
+                if (windowsHide)
+                {
+                    startup.dwFlags |= STARTF_USESHOWWINDOW;
+                    startup.wShowWindow = SW_HIDE;
+                }
                 startup.hStdInput = PrepareStandardHandle(
                     -10,
                     GENERIC_READ,
@@ -658,8 +668,6 @@ namespace ChainlessChain.WindowsSandbox
                         BuildCreateProcessCommandLine(application, arguments));
                 UInt32 creationFlags =
                     CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT;
-                if (windowsHide)
-                    creationFlags |= CREATE_NO_WINDOW;
                 if (!CreateProcessAsUser(
                     restrictedToken,
                     application,
