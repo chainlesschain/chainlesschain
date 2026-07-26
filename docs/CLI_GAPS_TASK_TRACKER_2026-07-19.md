@@ -5,7 +5,9 @@
 > 当前 CLI 版本：`0.162.180`
 > 状态：P0-1 Broker/凭据、静态进程清单、Windows 原生进程边界、Node IPC/detached 语义与
 > 真实三平台 strict CI 已完成；P0-2 当前 turn、持久化、跨宿主 authority/binding 与真实三平台
-> 断线重连 E2E 已完成；当前转入 P1-4/P1-9 外部宿主强隔离收口；P1-12 双语言 SDK 已完成，
+> 断线重连 E2E 已完成；P0/P1-3 权限控制面统一已完成；stdio MCP、LSP、Monitor 与 command
+> Hook 的 sandbox policy 已贯穿，当前剩余 Plugin bin/native 与 Windows/Linux Broker 强
+> filesystem/network backend；P1-12 双语言 SDK 已完成，
 > Python SDK 0.1.0 已发布 PyPI
 > 最后更新：2026-07-26（按当前源码、跨宿主交互协议、认证凭据 transport 与生成清单复核）
 
@@ -16,8 +18,8 @@
 | 优先级    | 任务数 | 说明                                                     |
 | --------- | ------ | -------------------------------------------------------- |
 | 🔴 **P0** | **0**  | P0-1、P0-2 已完成                                        |
-| 🟠 P0/P1  | 1      | 权限控制面统一                                           |
-| 🟡 P1     | 10     | 高优先级体验/安全能力                                    |
+| 🟠 P0/P1  | 0      | P0/P1-3 权限控制面统一已完成                             |
+| 🟡 P1     | 2      | P1-4、P1-9 仍在收口                                     |
 | 🟢 P2     | 4      | 差异化方向（不抢占 P0/P1）                               |
 
 ---
@@ -113,9 +115,15 @@
    - Windows detached 调用同时把 libuv 等价的
      `DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP` 应用于真实 restricted target，保留 helper
      的 detached/outlive-parent 与 Job 监督语义
+   - Windows helper 改用 `STARTUPINFOEX + PROC_THREAD_ATTRIBUTE_HANDLE_LIST`，目标只继承
+     stdin/stdout/stderr 与可选 Node IPC fd3；Restricted Token、Job、detached 与 CRT fd3
+     语义保持不变
    - [GitHub Actions run 30207776309](https://github.com/chainlesschain/chainlesschain/actions/runs/30207776309)
      的 macOS 15、Ubuntu 与 Windows strict native boundary job 全部通过；Linux 独立
      bubblewrap 文件系统/网络边界也在同一矩阵验收
+   - 句柄白名单加固后的
+     [GitHub Actions run 30208893336](https://github.com/chainlesschain/chainlesschain/actions/runs/30208893336)
+     再次通过 macOS 15、Ubuntu 与 Windows 三个 strict native boundary job
 
 **涉及文件**:
 
@@ -235,7 +243,7 @@
 
 ### P0/P1-3: 权限控制面统一
 
-**状态**: 运行时规则、CLI 管理面和 Desktop 请求/刷新同步已完成；统一 parity 已验证
+**状态**: ✅ 运行时规则、CLI 管理面和 Desktop 请求/刷新同步已完成；统一 parity 已验证
 
 **目标**:
 
@@ -264,12 +272,12 @@
 
 | #     | 任务                 | 状态                                            | 说明                                                                                                                                                                                                                                                                                                                                                                                                        |
 | ----- | -------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P1-4  | Hooks v2 完整实现    | 🟡 producer 与 managed policy 已完成            | 40事件注册/执行、5种公共 executor + trusted JS、并行去重、11 项高价值 producer、M5 E2E、最小环境交集、command/workspace/MCP/agent/skill allowlist、MCP 共享授权与独立 delegated budget 已有；跨平台强文件写沙箱仍依赖 P0 原生隔离收口                                                                                                                                                                       |
+| P1-4  | Hooks v2 完整实现    | 🟡 producer/managed/sandbox contract 已贯穿      | 40事件注册/执行、5种公共 executor + trusted JS、并行去重、11 项高价值 producer、M5 E2E、最小环境交集、command/workspace/MCP/agent/skill allowlist、MCP 共享授权与独立 delegated budget 已有；Hook managed policy 与 plugin manifest/group/per-hook `sandboxPolicy.requiredBoundaries` 只增不减并贯穿全部 command/delegated process 启动路径；显式要求不可满足时 fail-closed；Windows/Linux Broker 强 filesystem/network backend 仍未完成 |
 | P1-5  | MCP Elicitation 路由 | ✅ form/URL/defer 已完成                        | 基于 MCP `2025-11-25`：声明 form/URL capability；`elicitation/create`、`notifications/elicitation/complete` 与 `URLElicitationRequiredError (-32042)` 已接入；URL 仅允许无凭证 HTTPS，所有交互宿主展示完整 URL 并在明确同意后打开；Headless 结构化 defer、完成关联及原工具调用 exactly-once retry 已覆盖，URL 敏感输入不回传 `content`                                                                      |
 | P1-6  | Event Runtime 常驻化 | ✅ 宿主托管、观测与恢复闭环                     | 发布二进制的 lazy-dispatch 真实入口统一启动/停止 process-level host：长驻命令持续 drain，短命命令退出前有界 final drain；durable inbox/outbox、lease fence/续租/过期接管、重试/死信/背压、producer 自动接线均已有；Webhook/Telegram 使用 required-handler 恢复路由；`cc status --json` 暴露队列及跨进程 host 心跳/stale 状态，`npm run runtime:event-recovery` 用两个真实进程验证崩溃接管与副作用只应用一次 |
 | P1-7  | Context 来源归因     | ✅ 双层 Skill 缓存与交互式快照已完成            | `cc context --sources` 已对 instruction 文件、实际注入 persona Skill、admitted MCP schema、普通 Skill descriptor/body 按需读取、缓存命中及实际 prompt 注入分别计费；Headless 与交互 REPL 共用单一 Skill loader，并持续写入无正文 `context_sources` 快照                                                                                                                                                     |
 | P1-8  | Checkpoint REPL 统一 | ✅ 统一 producer 与归因闭环                     | Agent Core 输出 provider 原始 `tool_use_id`/turn id/permission decision/checkpoint；Headless 与 REPL 共用 `createTurnBindingFeed`，交互 turn 逐次 fail-closed 持久化；child trace/checkpoint/tool/worktree、IDE user edit 与顶层 `--worktree` branch 均进入父 turn，shell/外部副作用诚实标为 partial                                                                                                        |
-| P1-9  | Plugin 安全强化      | 🟡 legacy 旁路与 direct URL egress 已补         | 签名/manifest SHA-256、trusted key、SBOM、capability consent、managed allow/deny、OS secret 与插件执行 Broker provenance 已有；强制 consent 同时强制 permissions 声明，另有独立 managed/env declaration gate；插件 URL MCP hostname 按声明 domain 连接前拒绝；stdio/native 外部宿主的跨平台 network/filesystem 强隔离仍依赖 P0 收口                                                                         |
+| P1-9  | Plugin 安全强化      | 🟡 MCP/LSP/Monitor/Hook policy 已贯穿            | 签名/manifest SHA-256、trusted key、SBOM、capability consent、managed allow/deny、OS secret 与插件执行 Broker provenance 已有；强制 consent 同时强制 permissions 声明，另有独立 managed/env declaration gate；插件 URL MCP hostname 按声明 domain 连接前拒绝；manifest/component/descriptor 的 `sandboxPolicy.requiredBoundaries` 仅接受 filesystem/network，按加法合并并贯穿 stdio MCP、LSP、Monitor、command Hook 到 Broker；无效或不可满足的显式要求 fail-closed，未声明时保持兼容；Plugin bin/native 与 Windows/Linux Broker 强 filesystem/network backend 仍未完成 |
 | P1-10 | 并发状态 fail-closed | ✅ 关键状态分级与跨宿主锁已完成                 | Approval CAS、side-effect/turn/session、Agenda/Event Runtime、Cowork delivery lease、goal/config/MTC ledger、plugin/MCP trust/consent/凭据元数据均有界 fail-closed；VS Code/JetBrains 共享同一 `.lock` 目录协议与原子 session-index 写入；仅 Advisory cache 保留 best-effort                                                                                                                                |
 | P1-11 | JSON Schema 完整支持 | ✅ 标准引擎、完整 vocabulary 与受限 refs 已完成 | `Ajv2020` + `ajv-formats` 统一执行 Draft 2020-12 meta-schema/动态引用/`unevaluated*`/组合互操作；所有 `--json-schema` 入口在模型调用前编译完整 schema graph；本地 ref 限于根 schema 目录，远程 ref 仅允许无凭证公网 HTTPS，并受 DNS-SSRF、文档数/单文档/总字节/超时上限保护；稳定 digest、错误码、JSON Pointer 与 `structured_result` 保持兼容                                                              |
 | P1-12 | SDK/CI 事件透传      | ✅ 源码完成；Python 0.1.0 基线已发布            | 当前 TypeScript + Python 源码覆盖契约中的 24 类 typed stream 事件（含 defer/complete）、approval/question/MCP elicitation callback、resume 与未知事件无损透传；共享 protocol fixture、穷举 CI consumer、GitHub Actions 模板及 22 项 hermetic 测试已补；已发布的 Python 0.1.0 是此前 22 类事件基线并通过 3.10/3.12/3.13 公网 wheel 烟测，本轮两个新增事件尚未发布新版本                                      |
@@ -349,8 +357,19 @@ partial。本轮补齐交互 `cc agent --worktree` 的 branch id 通过 runtime 
 独立启用。默认仍保留兼容迁移窗口。直接 URL 型 plugin MCP 在进入连接器前会解析目标
 hostname，并按声明的精确 domain / `*.subdomain` / `network:*` 执行 fail-closed
 校验；stdio MCP 保持可用，其子进程 egress/filesystem 仍由平台 sandbox 边界负责。
-定向 5 个测试文件 78/78 通过。P1-9 尚未标记完成，因为 native module 与外部宿主的
-跨平台强 network/filesystem 限制仍依赖 P0 原生隔离。
+定向 5 个测试文件 78/78 通过。P1-9 尚未标记完成，因为 Plugin bin/native 尚未纳入，
+Windows/Linux Broker 强 network/filesystem backend 也仍未完成。
+
+**2026-07-26 P1-4/P1-9 sandbox contract 增量**：新增插件可声明的窄型
+`sandboxPolicy.requiredBoundaries`，仅接受 filesystem/network。manifest 与
+component/descriptor 要求按加法合并，现已贯穿 stdio MCP、LSP、Monitor 和 command
+Hook 的启动链到 ProcessExecutionBroker；无效字段、类型或 boundary 均 fail-closed，
+显式要求在 backend 不可提供时拒绝启动，未声明时保持兼容。顶层策略与 Plugin bin
+共存时整个 manifest 直接判为无效，避免尚未接线的全局 PATH 可执行文件静默绕过。
+此次未将 Plugin bin/native 纳入：全局 PATH 暴露的可执行文件身份与 wrapper/TOCTOU
+尚无可证明绑定。Windows/Linux Broker 的真实 filesystem/network 强 backend 也仍未完成，
+因此 P1-4/P1-9 均保持进行中。聚焦回归 11 文件 183/183、扩展 Hook 回归 5 文件
+125/125 通过。
 
 **2026-07-26 P1-10 完成**：对 Critical / Durable / Advisory 状态逐项复核，
 并移除关键路径的“锁失败后无锁继续”。既有 `ApprovalAuthorityStore` 已具备锁内
@@ -412,8 +431,9 @@ Setup 已接到 stream 与一次性 headless 启动门并 fail-closed；UserProm
 agent/skill managed allowlist，MCP tool 默认要求共享权限 authorizer，prompt/agent/MCP
 delegated executor 受独立硬超时。Hooks v2、旧 settings Hook、CLI Hook Manager 与 Desktop
 Hook 现在只继承 PATH/临时目录/系统定位等最小环境；额外变量必须同时出现在管理员 allowlist
-和 Hook 自身请求中。平台级“不可写出工作区”仍取决于 P0 在三平台提供真实文件系统强隔离，
-因此 P1-4 仍保持进行中。
+和 Hook 自身请求中。平台级“不可写出工作区”要求 Broker 执行计划声明并实际强制 filesystem
+边界；Windows/Linux Broker 尚未提供可证明的强 filesystem/network backend，因此 P1-4
+仍保持进行中。
 
 - [x] Setup（启动前依赖检查）
 - [x] UserPromptExpansion（输入预处理）
@@ -493,9 +513,9 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 
 | 顺序       | 目标                                                                 |
 | ---------- | -------------------------------------------------------------------- |
-| **当前**   | P1-4/P1-9 外部宿主 sandbox policy 贯穿与强 filesystem/network backend |
-| **已完成** | P0-1 strict native boundary 与 P0-2 断线重连 E2E 三平台验收           |
-| **并行**   | P0/P1-3 权限控制面统一（P1-10/P1-11 已收口）                          |
+| **当前**   | P1-4/P1-9：Plugin bin/native 与 Windows/Linux Broker 强 filesystem/network backend |
+| **已完成** | P0-1/P0-2 三平台验收；P0/P1-3 权限控制面统一                           |
+| **本轮完成** | stdio MCP/LSP/Monitor/command Hook sandboxPolicy 到 Broker 的完整贯穿 |
 | **发布前** | 双语言 SDK 兼容门、真实环境 parity 与文档事实源漂移检查              |
 
 ---
