@@ -37,11 +37,15 @@ namespace ChainlessChain.WindowsSandbox
         private const UInt32 DETACHED_PROCESS = 0x00000008;
         private const UInt32 CREATE_NEW_PROCESS_GROUP = 0x00000200;
         private const UInt32 CREATE_UNICODE_ENVIRONMENT = 0x00000400;
+        private const UInt32 EXTENDED_STARTUPINFO_PRESENT = 0x00080000;
         private const UInt32 STARTF_USESHOWWINDOW = 0x00000001;
         private const UInt32 STARTF_USESTDHANDLES = 0x00000100;
         private const UInt16 SW_HIDE = 0;
         private const UInt32 INFINITE = 0xffffffff;
         private const UInt32 HANDLE_FLAG_INHERIT = 0x00000001;
+        private const Int32 ERROR_INSUFFICIENT_BUFFER = 122;
+        private static readonly IntPtr PROC_THREAD_ATTRIBUTE_HANDLE_LIST =
+            new IntPtr(0x00020002);
         private const Byte CRT_FOPEN = 0x01;
         private const Byte CRT_FPIPE = 0x08;
         private const Byte CRT_FDEV = 0x40;
@@ -91,6 +95,13 @@ namespace ChainlessChain.WindowsSandbox
             public IntPtr hStdInput;
             public IntPtr hStdOutput;
             public IntPtr hStdError;
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct STARTUPINFOEX
+        {
+            public STARTUPINFO StartupInfo;
+            public IntPtr lpAttributeList;
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -157,6 +168,29 @@ namespace ChainlessChain.WindowsSandbox
             IntPtr handle,
             UInt32 mask,
             UInt32 flags);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool InitializeProcThreadAttributeList(
+            IntPtr attributeList,
+            Int32 attributeCount,
+            Int32 flags,
+            ref IntPtr size);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool UpdateProcThreadAttribute(
+            IntPtr attributeList,
+            UInt32 flags,
+            IntPtr attribute,
+            IntPtr value,
+            IntPtr size,
+            IntPtr previousValue,
+            IntPtr returnSize);
+
+        [DllImport("kernel32.dll")]
+        private static extern void DeleteProcThreadAttributeList(
+            IntPtr attributeList);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern UInt32 GetFileType(IntPtr handle);
@@ -232,7 +266,7 @@ namespace ChainlessChain.WindowsSandbox
             UInt32 creationFlags,
             IntPtr environment,
             string currentDirectory,
-            ref STARTUPINFO startupInfo,
+            ref STARTUPINFOEX startupInfo,
             out PROCESS_INFORMATION processInformation);
 
         [DllImport("kernel32.dll", SetLastError = true)]
@@ -522,6 +556,108 @@ namespace ChainlessChain.WindowsSandbox
             }
         }
 
+        private static IntPtr BuildInheritedHandleList(
+            IntPtr standardInput,
+            IntPtr standardOutput,
+            IntPtr standardError,
+            int nodeIpcFd,
+            out IntPtr handleBytes)
+        {
+            List<IntPtr> handles = new List<IntPtr>();
+            handles.Add(standardInput);
+            if (!handles.Contains(standardOutput))
+                handles.Add(standardOutput);
+            if (!handles.Contains(standardError))
+                handles.Add(standardError);
+
+            if (nodeIpcFd >= 0)
+            {
+                IntPtr ipcHandle = _get_osfhandle(nodeIpcFd);
+                if (IsInvalidHandle(ipcHandle))
+                    throw new InvalidDataException(
+                        "Node IPC descriptor has no inherited OS handle");
+                if (!handles.Contains(ipcHandle))
+                    handles.Add(ipcHandle);
+            }
+
+            foreach (IntPtr handle in handles)
+            {
+                if (IsInvalidHandle(handle))
+                    throw new InvalidDataException(
+                        "Inherited standard handle is invalid");
+                if (!SetHandleInformation(
+                    handle,
+                    HANDLE_FLAG_INHERIT,
+                    HANDLE_FLAG_INHERIT))
+                    ThrowLastError("SetHandleInformation(handle list)");
+            }
+
+            int bufferSize = checked(handles.Count * IntPtr.Size);
+            IntPtr buffer = Marshal.AllocHGlobal(bufferSize);
+            try
+            {
+                for (int index = 0; index < handles.Count; index++)
+                    Marshal.WriteIntPtr(
+                        buffer,
+                        checked(index * IntPtr.Size),
+                        handles[index]);
+                handleBytes = new IntPtr(bufferSize);
+                return buffer;
+            }
+            catch
+            {
+                Marshal.FreeHGlobal(buffer);
+                throw;
+            }
+        }
+
+        private static IntPtr BuildProcessAttributeList(
+            IntPtr inheritedHandles,
+            IntPtr inheritedHandleBytes)
+        {
+            IntPtr attributeBytes = IntPtr.Zero;
+            bool probeSucceeded = InitializeProcThreadAttributeList(
+                IntPtr.Zero,
+                1,
+                0,
+                ref attributeBytes);
+            int probeError = Marshal.GetLastWin32Error();
+            if (probeSucceeded || probeError != ERROR_INSUFFICIENT_BUFFER)
+                throw new Win32Exception(
+                    probeError,
+                    "InitializeProcThreadAttributeList(size) failed");
+
+            IntPtr attributeList = Marshal.AllocHGlobal(attributeBytes);
+            bool initialized = false;
+            try
+            {
+                if (!InitializeProcThreadAttributeList(
+                    attributeList,
+                    1,
+                    0,
+                    ref attributeBytes))
+                    ThrowLastError("InitializeProcThreadAttributeList");
+                initialized = true;
+                if (!UpdateProcThreadAttribute(
+                    attributeList,
+                    0,
+                    PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
+                    inheritedHandles,
+                    inheritedHandleBytes,
+                    IntPtr.Zero,
+                    IntPtr.Zero))
+                    ThrowLastError("UpdateProcThreadAttribute(handle list)");
+                return attributeList;
+            }
+            catch
+            {
+                if (initialized)
+                    DeleteProcThreadAttributeList(attributeList);
+                Marshal.FreeHGlobal(attributeList);
+                throw;
+            }
+        }
+
         public static int Run(
             string application,
             string[] arguments,
@@ -549,6 +685,8 @@ namespace ChainlessChain.WindowsSandbox
             IntPtr job = IntPtr.Zero;
             IntPtr limitBuffer = IntPtr.Zero;
             IntPtr descriptorBuffer = IntPtr.Zero;
+            IntPtr inheritedHandleBuffer = IntPtr.Zero;
+            IntPtr attributeList = IntPtr.Zero;
             List<IntPtr> ownedStandardHandles = new List<IntPtr>();
             PROCESS_INFORMATION processInfo = new PROCESS_INFORMATION();
 
@@ -618,41 +756,56 @@ namespace ChainlessChain.WindowsSandbox
                 // (including its fd 3 IPC channel) through the CRT descriptor
                 // table in STARTUPINFO.cbReserved2/lpReserved2. Standard
                 // descriptors remain in STARTUPINFO's dedicated handle fields.
-                STARTUPINFO startup = new STARTUPINFO();
-                startup.cb = checked((UInt32)Marshal.SizeOf(typeof(STARTUPINFO)));
-                startup.dwFlags = STARTF_USESTDHANDLES;
+                STARTUPINFOEX startup = new STARTUPINFOEX();
+                startup.StartupInfo.cb = checked(
+                    (UInt32)Marshal.SizeOf(typeof(STARTUPINFOEX)));
+                startup.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
                 if (windowsHide)
                 {
-                    startup.dwFlags |= STARTF_USESHOWWINDOW;
-                    startup.wShowWindow = SW_HIDE;
+                    startup.StartupInfo.dwFlags |= STARTF_USESHOWWINDOW;
+                    startup.StartupInfo.wShowWindow = SW_HIDE;
                 }
-                startup.hStdInput = PrepareStandardHandle(
+                startup.StartupInfo.hStdInput = PrepareStandardHandle(
                     -10,
                     GENERIC_READ,
                     ownedStandardHandles);
-                startup.hStdOutput = PrepareStandardHandle(
+                startup.StartupInfo.hStdOutput = PrepareStandardHandle(
                     -11,
                     GENERIC_WRITE,
                     ownedStandardHandles);
-                startup.hStdError = PrepareStandardHandle(
+                startup.StartupInfo.hStdError = PrepareStandardHandle(
                     -12,
                     GENERIC_WRITE,
                     ownedStandardHandles);
                 UInt16 descriptorBytes;
                 descriptorBuffer = BuildNodeDescriptorTable(
                     nodeIpcFd,
-                    startup.hStdInput,
-                    startup.hStdOutput,
-                    startup.hStdError,
+                    startup.StartupInfo.hStdInput,
+                    startup.StartupInfo.hStdOutput,
+                    startup.StartupInfo.hStdError,
                     out descriptorBytes);
-                startup.cbReserved2 = descriptorBytes;
-                startup.lpReserved2 = descriptorBuffer;
+                startup.StartupInfo.cbReserved2 = descriptorBytes;
+                startup.StartupInfo.lpReserved2 = descriptorBuffer;
+
+                IntPtr inheritedHandleBytes;
+                inheritedHandleBuffer = BuildInheritedHandleList(
+                    startup.StartupInfo.hStdInput,
+                    startup.StartupInfo.hStdOutput,
+                    startup.StartupInfo.hStdError,
+                    nodeIpcFd,
+                    out inheritedHandleBytes);
+                attributeList = BuildProcessAttributeList(
+                    inheritedHandleBuffer,
+                    inheritedHandleBytes);
+                startup.lpAttributeList = attributeList;
 
                 StringBuilder commandLine =
                     new StringBuilder(
                         BuildCreateProcessCommandLine(application, arguments));
                 UInt32 creationFlags =
-                    CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT;
+                    CREATE_SUSPENDED |
+                    CREATE_UNICODE_ENVIRONMENT |
+                    EXTENDED_STARTUPINFO_PRESENT;
                 if (detached)
                     creationFlags |= DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP;
                 if (!CreateProcessAsUser(
@@ -721,6 +874,13 @@ namespace ChainlessChain.WindowsSandbox
             {
                 if (processInfo.hThread != IntPtr.Zero) CloseHandle(processInfo.hThread);
                 if (processInfo.hProcess != IntPtr.Zero) CloseHandle(processInfo.hProcess);
+                if (attributeList != IntPtr.Zero)
+                {
+                    DeleteProcThreadAttributeList(attributeList);
+                    Marshal.FreeHGlobal(attributeList);
+                }
+                if (inheritedHandleBuffer != IntPtr.Zero)
+                    Marshal.FreeHGlobal(inheritedHandleBuffer);
                 if (descriptorBuffer != IntPtr.Zero)
                     Marshal.FreeHGlobal(descriptorBuffer);
                 foreach (IntPtr handle in ownedStandardHandles)

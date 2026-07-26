@@ -1,4 +1,5 @@
 import { EventEmitter, once } from "node:events";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -7,6 +8,14 @@ import {
   SANDBOX_BOUNDARIES,
 } from "../../src/lib/process-execution-broker/platform-sandbox.js";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
+
+const windowsSandboxSource = readFileSync(
+  new URL(
+    "../../src/lib/process-execution-broker/windows-sandbox.ps1",
+    import.meta.url,
+  ),
+  "utf8",
+);
 
 function createChild(pid = 4102) {
   const child = new EventEmitter();
@@ -262,6 +271,20 @@ describe("platform sandbox adapter contract", () => {
     });
     plan.cleanup();
     expect(fsRuntime.unlinkSync).toHaveBeenCalledOnce();
+    expect(windowsSandboxSource).toContain(
+      "PROC_THREAD_ATTRIBUTE_HANDLE_LIST",
+    );
+    expect(windowsSandboxSource).toContain("EXTENDED_STARTUPINFO_PRESENT");
+    expect(windowsSandboxSource).toContain("BuildInheritedHandleList");
+    expect(windowsSandboxSource).toContain(
+      "InitializeProcThreadAttributeList",
+    );
+    expect(windowsSandboxSource).toContain("UpdateProcThreadAttribute");
+    expect(windowsSandboxSource).toContain("DeleteProcThreadAttributeList");
+    expect(windowsSandboxSource).toContain("_get_osfhandle(nodeIpcFd)");
+    expect(windowsSandboxSource).toMatch(
+      /CREATE_SUSPENDED\s*\|\s*CREATE_UNICODE_ENVIRONMENT\s*\|\s*EXTENDED_STARTUPINFO_PRESENT/,
+    );
   });
 
   it("reports detached numeric file stdio as unavailable on Windows", () => {
