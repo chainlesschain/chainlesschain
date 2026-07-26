@@ -2,14 +2,15 @@
 
 > 来源：`CLAUDE_CODE_CLI_CURRENT_GAPS_AND_OPTIMIZATIONS_2026-07-18.md`
 > 创建日期：2026-07-19
-> 当前 CLI 版本：`0.162.180`
+> 当前 CLI 版本：`0.162.181`
 > 状态：P0-1 Broker/凭据、静态进程清单、Windows 原生进程边界、Node IPC/detached 语义与
 > 真实三平台 strict CI 已完成；P0-2 当前 turn、持久化、跨宿主 authority/binding 与真实三平台
 > 断线重连 E2E 已完成；P0/P1-3 权限控制面统一已完成；stdio MCP、LSP、Monitor 与 command
-> Hook 的 sandbox policy 已贯穿，当前剩余 Plugin bin/native 与 Windows/Linux Broker 强
-> filesystem/network backend；P1-12 双语言 SDK 已完成，
+> Hook 的 sandbox policy 已贯穿；Plugin bin/native 直接执行身份绑定与 Windows Broker 强
+> filesystem/network backend 已完成，当前剩余 Linux Broker 强 backend 与 Plugin bin/native
+> 非直接执行面/handle-atomic 收口；P1-12 双语言 SDK 已完成，
 > Python SDK 0.1.0 已发布 PyPI
-> 最后更新：2026-07-26（按当前源码、跨宿主交互协议、认证凭据 transport 与生成清单复核）
+> 最后更新：2026-07-27（按当前源码、真实三平台 strict CI 与生成清单复核）
 
 ---
 
@@ -124,6 +125,16 @@
    - 句柄白名单加固后的
      [GitHub Actions run 30208893336](https://github.com/chainlesschain/chainlesschain/actions/runs/30208893336)
      再次通过 macOS 15、Ubuntu 与 Windows 三个 strict native boundary job
+
+7. **2026-07-27 Windows 强 filesystem/network backend 验收**：
+   - 明确要求 filesystem/network 时，Broker 使用零 capability AppContainer、
+     Restricted Token、目标进程 token/SID attestation 与 kill-on-close Job Object；
+     `STARTUPINFOEX` 句柄白名单继续只传递标准流和受支持的 Node IPC fd
+   - 临时 AppContainer profile 在目标退出后有界删除并再次证明不存在；托管 helper
+     使用进程内 SHA-256/文件身份缓存，源码、可执行文件或缓存身份漂移时重新编译并 fail-closed
+   - [GitHub Actions run 30214672198](https://github.com/chainlesschain/chainlesschain/actions/runs/30214672198)
+     的 macOS 15、Ubuntu 与 Windows 三个 job 全部通过；Windows live 用例真实证明宿主
+     secret 不可读、宿主 marker 不可写、loopback 不可达、零 capability token 与 profile 清理
 
 **涉及文件**:
 
@@ -272,12 +283,12 @@
 
 | #     | 任务                 | 状态                                            | 说明                                                                                                                                                                                                                                                                                                                                                                                                        |
 | ----- | -------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P1-4  | Hooks v2 完整实现    | 🟡 producer/managed/sandbox contract 已贯穿      | 40事件注册/执行、5种公共 executor + trusted JS、并行去重、11 项高价值 producer、M5 E2E、最小环境交集、command/workspace/MCP/agent/skill allowlist、MCP 共享授权与独立 delegated budget 已有；Hook managed policy 与 plugin manifest/group/per-hook `sandboxPolicy.requiredBoundaries` 只增不减并贯穿全部 command/delegated process 启动路径；显式要求不可满足时 fail-closed；Windows/Linux Broker 强 filesystem/network backend 仍未完成 |
+| P1-4  | Hooks v2 完整实现    | 🟡 producer/managed/sandbox contract 已贯穿；Windows backend 已验收 | 40事件注册/执行、5种公共 executor + trusted JS、并行去重、11 项高价值 producer、M5 E2E、最小环境交集、command/workspace/MCP/agent/skill allowlist、MCP 共享授权与独立 delegated budget 已有；Hook managed policy 与 plugin manifest/group/per-hook `sandboxPolicy.requiredBoundaries` 只增不减并贯穿全部 command/delegated process 启动路径；显式要求不可满足时 fail-closed；Windows AppContainer 强 filesystem/network backend 已通过真实 CI，Linux 通用 Hook backend 仍未完成 |
 | P1-5  | MCP Elicitation 路由 | ✅ form/URL/defer 已完成                        | 基于 MCP `2025-11-25`：声明 form/URL capability；`elicitation/create`、`notifications/elicitation/complete` 与 `URLElicitationRequiredError (-32042)` 已接入；URL 仅允许无凭证 HTTPS，所有交互宿主展示完整 URL 并在明确同意后打开；Headless 结构化 defer、完成关联及原工具调用 exactly-once retry 已覆盖，URL 敏感输入不回传 `content`                                                                      |
 | P1-6  | Event Runtime 常驻化 | ✅ 宿主托管、观测与恢复闭环                     | 发布二进制的 lazy-dispatch 真实入口统一启动/停止 process-level host：长驻命令持续 drain，短命命令退出前有界 final drain；durable inbox/outbox、lease fence/续租/过期接管、重试/死信/背压、producer 自动接线均已有；Webhook/Telegram 使用 required-handler 恢复路由；`cc status --json` 暴露队列及跨进程 host 心跳/stale 状态，`npm run runtime:event-recovery` 用两个真实进程验证崩溃接管与副作用只应用一次 |
 | P1-7  | Context 来源归因     | ✅ 双层 Skill 缓存与交互式快照已完成            | `cc context --sources` 已对 instruction 文件、实际注入 persona Skill、admitted MCP schema、普通 Skill descriptor/body 按需读取、缓存命中及实际 prompt 注入分别计费；Headless 与交互 REPL 共用单一 Skill loader，并持续写入无正文 `context_sources` 快照                                                                                                                                                     |
 | P1-8  | Checkpoint REPL 统一 | ✅ 统一 producer 与归因闭环                     | Agent Core 输出 provider 原始 `tool_use_id`/turn id/permission decision/checkpoint；Headless 与 REPL 共用 `createTurnBindingFeed`，交互 turn 逐次 fail-closed 持久化；child trace/checkpoint/tool/worktree、IDE user edit 与顶层 `--worktree` branch 均进入父 turn，shell/外部副作用诚实标为 partial                                                                                                        |
-| P1-9  | Plugin 安全强化      | 🟡 MCP/LSP/Monitor/Hook policy 已贯穿            | 签名/manifest SHA-256、trusted key、SBOM、capability consent、managed allow/deny、OS secret 与插件执行 Broker provenance 已有；强制 consent 同时强制 permissions 声明，另有独立 managed/env declaration gate；插件 URL MCP hostname 按声明 domain 连接前拒绝；manifest/component/descriptor 的 `sandboxPolicy.requiredBoundaries` 仅接受 filesystem/network，按加法合并并贯穿 stdio MCP、LSP、Monitor、command Hook 到 Broker；无效或不可满足的显式要求 fail-closed，未声明时保持兼容；Plugin bin/native 与 Windows/Linux Broker 强 filesystem/network backend 仍未完成 |
+| P1-9  | Plugin 安全强化      | 🟡 直接 bin 身份绑定与 Windows backend 已完成    | 签名/manifest SHA-256、trusted key、SBOM、capability consent、managed allow/deny、OS secret 与插件执行 Broker provenance 已有；manifest/component/descriptor 的窄型 sandbox policy 已贯穿 MCP/LSP/Monitor/Hook；policy-bearing Plugin bin 不再进入 PATH，Node/native 直接执行经 realpath、file-id、SHA-256 二次 attestation 后以 `shell:false` 进入 Broker，wrapper/复合命令 fail-closed，审计记录结构化可执行身份；Windows AppContainer 强 backend 已验收；Linux 强 backend、非 `run_shell` 执行面与 handle-atomic 绑定仍待收口 |
 | P1-10 | 并发状态 fail-closed | ✅ 关键状态分级与跨宿主锁已完成                 | Approval CAS、side-effect/turn/session、Agenda/Event Runtime、Cowork delivery lease、goal/config/MTC ledger、plugin/MCP trust/consent/凭据元数据均有界 fail-closed；VS Code/JetBrains 共享同一 `.lock` 目录协议与原子 session-index 写入；仅 Advisory cache 保留 best-effort                                                                                                                                |
 | P1-11 | JSON Schema 完整支持 | ✅ 标准引擎、完整 vocabulary 与受限 refs 已完成 | `Ajv2020` + `ajv-formats` 统一执行 Draft 2020-12 meta-schema/动态引用/`unevaluated*`/组合互操作；所有 `--json-schema` 入口在模型调用前编译完整 schema graph；本地 ref 限于根 schema 目录，远程 ref 仅允许无凭证公网 HTTPS，并受 DNS-SSRF、文档数/单文档/总字节/超时上限保护；稳定 digest、错误码、JSON Pointer 与 `structured_result` 保持兼容                                                              |
 | P1-12 | SDK/CI 事件透传      | ✅ 源码完成；Python 0.1.0 基线已发布            | 当前 TypeScript + Python 源码覆盖契约中的 24 类 typed stream 事件（含 defer/complete）、approval/question/MCP elicitation callback、resume 与未知事件无损透传；共享 protocol fixture、穷举 CI consumer、GitHub Actions 模板及 22 项 hermetic 测试已补；已发布的 Python 0.1.0 是此前 22 类事件基线并通过 3.10/3.12/3.13 公网 wheel 烟测，本轮两个新增事件尚未发布新版本                                      |
@@ -371,6 +382,20 @@ Hook 的启动链到 ProcessExecutionBroker；无效字段、类型或 boundary 
 因此 P1-4/P1-9 均保持进行中。聚焦回归 11 文件 183/183、扩展 Hook 回归 5 文件
 125/125 通过。
 
+**2026-07-27 P1-9 Plugin bin/native 与 Windows backend 增量**：policy-bearing bin
+不再进入 PATH；未声明 policy 的 legacy bin 保留兼容。Agent `run_shell` 解析到的 Node/native
+bin 只接受单一 literal argv，并以 `shell:false` 直接进入 Broker；Windows
+`.cmd`/`.bat`/`.ps1` wrapper、复合 alias、重复 alias、symlink/hardlink 与越界 realpath
+均 fail-closed。manifest 与 per-bin `sandboxPolicy` 按加法合并，同目录 strict/legacy
+混用时整个目录不进入 PATH，避免 legacy shell 间接命中 strict bin。入口在解析时和 Broker
+启动前按 realpath、dev/ino、size、mtime 与 SHA-256 复验，结构化
+`pluginExecutableIdentity` 写入审计但从 native spawn options 剥离；Agent 工作目录内任一
+strict bin 的要求还会收紧全部同轮 `run_shell`，关闭 wrapper、动态 shell 和 PATH 注入旁路。
+定向 3 文件 63/63、扩展 scopes/bin/Agent Core 46/46 与 background shell 21/21 通过。
+Windows AppContainer backend 的真实文件/网络隔离由 run 30214672198 验收。P1-9 仍保持
+进行中：Linux 强 backend、`run_code`/REPL bang/PTY 等非直接 `run_shell` 面，以及
+OS spawn 前窄 TOCTOU 的 handle-atomic 绑定尚未完成。
+
 **2026-07-26 P1-10 完成**：对 Critical / Durable / Advisory 状态逐项复核，
 并移除关键路径的“锁失败后无锁继续”。既有 `ApprovalAuthorityStore` 已具备锁内
 CAS revision、临时文件 fsync/rename 和损坏拒绝；side-effect ledger、turn binding
@@ -432,8 +457,8 @@ agent/skill managed allowlist，MCP tool 默认要求共享权限 authorizer，p
 delegated executor 受独立硬超时。Hooks v2、旧 settings Hook、CLI Hook Manager 与 Desktop
 Hook 现在只继承 PATH/临时目录/系统定位等最小环境；额外变量必须同时出现在管理员 allowlist
 和 Hook 自身请求中。平台级“不可写出工作区”要求 Broker 执行计划声明并实际强制 filesystem
-边界；Windows/Linux Broker 尚未提供可证明的强 filesystem/network backend，因此 P1-4
-仍保持进行中。
+边界；Windows Broker 已由零 capability AppContainer 和真实 CI 提供可证明的强
+filesystem/network backend，Linux 通用 Hook backend 尚未完成，因此 P1-4 仍保持进行中。
 
 - [x] Setup（启动前依赖检查）
 - [x] UserPromptExpansion（输入预处理）
@@ -480,6 +505,7 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 
 - [x] **P0-1 Broker async/sync/PTY 凭据边界 + macOS Seatbelt/Linux 执行计划**
 - [x] **P0-1 Ubuntu/Windows/macOS strict native boundary 真实 CI 矩阵**
+- [x] **P0-1 Windows AppContainer 强 filesystem/network backend 与真实 live CI**
 - [x] **P0-2 CLI 当前 turn 提问/回答/继续核心链**
 - [x] **P0-2 pending/settlement 持久 journal、断线重放与 worker 丢失 exactly-once 拒绝**
 - [x] **P0-2 Desktop/VS Code/JetBrains/Web Panel/Remote Control/SDK authority/binding 收口**
@@ -488,6 +514,7 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 - [x] **P1-6 Event Runtime 真实 binary lifecycle、跨进程 host health 与崩溃恢复演练**
 - [x] **P1-7 Context 双层 Skill cache、交互式快照与按需/命中/注入成本归因**
 - [x] **P1-8 Headless/REPL 统一 turn binding、provider id 与 child/worktree/user-edit 归因**
+- [x] **P1-9 policy-bearing Plugin bin/native 直接 Broker 身份绑定与审计**
 - [x] **P1-10 Critical/Durable 状态 fail-closed、Cowork delivery fence 与跨 IDE session lock**
 - [x] **P1-11 Draft 2020-12 标准引擎、启动期 graph 编译与受限 local/HTTPS refs**
 - [x] **P1-12 TypeScript/Python SDK、共享 fixture、GitHub Actions 示例与 Python 0.1.0 基线 PyPI 发布**
@@ -513,7 +540,7 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 
 | 顺序       | 目标                                                                 |
 | ---------- | -------------------------------------------------------------------- |
-| **当前**   | P1-4/P1-9：Plugin bin/native 与 Windows/Linux Broker 强 filesystem/network backend |
+| **当前**   | P1-4/P1-9：Linux Broker 强 filesystem/network backend 与 Plugin 非直接执行面/handle-atomic 收口 |
 | **已完成** | P0-1/P0-2 三平台验收；P0/P1-3 权限控制面统一                           |
 | **本轮完成** | stdio MCP/LSP/Monitor/command Hook sandboxPolicy 到 Broker 的完整贯穿 |
 | **发布前** | 双语言 SDK 兼容门、真实环境 parity 与文档事实源漂移检查              |
