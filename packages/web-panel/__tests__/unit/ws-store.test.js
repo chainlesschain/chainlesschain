@@ -77,6 +77,28 @@ describe("ws store — execute() stdout field mapping", () => {
     await Promise.resolve();
   }
 
+  it("echoes the request binding in session-answer", async () => {
+    const store = useWsStore();
+    await connectAndReady(store);
+    const binding = {
+      backgroundAgentId: null,
+      sessionId: "sess-bound",
+      turnId: "turn-1",
+      toolUseId: "tool-1",
+      sequence: 1,
+    };
+
+    store.answerQuestion("sess-bound", "question-1", "yes", binding);
+
+    expect(MockWebSocket._last._sent.at(-1)).toMatchObject({
+      type: "session-answer",
+      sessionId: "sess-bound",
+      requestId: "question-1",
+      answer: "yes",
+      binding,
+    });
+  });
+
   it("execute() returns output from server stdout field", async () => {
     const store = useWsStore();
     await connectAndReady(store);

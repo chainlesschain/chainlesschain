@@ -119,6 +119,45 @@ describe("client-hosted remote session control forwarding", () => {
     });
   });
 
+  it("forwards a fully bound question answer to the client host", async () => {
+    const remoteSessionId = createAndJoin(["observe", "prompt"]);
+    const binding = {
+      backgroundAgentId: "bg-1",
+      sessionId: "local-agent-1",
+      turnId: "turn-1",
+      toolUseId: "tool-1",
+      sequence: 1,
+    };
+    await handleRemoteSessionPublish(server, "phone", phone, {
+      id: "question-1",
+      remoteSessionId,
+      event: {
+        type: "question.answer",
+        requestId: "q-1",
+        answer: "continue",
+        binding,
+      },
+    });
+
+    expect(host.sent.at(-1)).toMatchObject({
+      type: "remote-session-control",
+      remoteSessionId,
+      agentSessionId: "local-agent-1",
+      from: "phone",
+      event: {
+        type: "question.answer",
+        requestId: "q-1",
+        answer: "continue",
+        binding,
+      },
+    });
+    expect(
+      server.remoteSessionAudit
+        .list({ sessionId: remoteSessionId, action: "control.question" })
+        .at(0).detail,
+    ).toMatchObject({ requestId: "q-1", forwarded: true });
+  });
+
   it("errors without consuming the commandId when the host is unreachable", async () => {
     const remoteSessionId = createAndJoin();
     server.clients.delete("host");

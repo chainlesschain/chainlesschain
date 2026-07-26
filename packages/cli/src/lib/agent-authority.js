@@ -155,6 +155,28 @@ export function canManageSession(envelope = {}) {
 }
 
 /**
+ * True when this envelope may answer a human-interaction request. A local UI
+ * owns this authority. A remote peer must be authenticated and explicitly
+ * paired for prompt/approve/manage control; observe-only peers cannot answer.
+ */
+export function canAnswerInteraction(envelope = {}) {
+  if (envelope.origin === ORIGIN.USER) return true;
+  if (envelope.origin !== ORIGIN.REMOTE || envelope.authenticated !== true) {
+    return false;
+  }
+  const scopes = normalizeScopes(envelope);
+  return scopes.has("prompt") || scopes.has("approve") || scopes.has("manage");
+}
+
+export function assertCanAnswerInteraction(envelope = {}) {
+  if (canAnswerInteraction(envelope)) return;
+  const who = envelope.origin || "unknown";
+  throw new Error(
+    `origin "${who}" is not authorized to answer interaction requests`,
+  );
+}
+
+/**
  * Throw a clear, log-safe error when an envelope is NOT allowed to approve.
  * Callers gate every "resolve a permission" seam through this so the rule
  * lives in exactly one place.

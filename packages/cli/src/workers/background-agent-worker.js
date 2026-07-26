@@ -25,6 +25,11 @@ import {
 import { startBackgroundSessionServer } from "../lib/background-session-transport.js";
 import { idlePhaseFor } from "../lib/background-agent-phase.js";
 import { attachInteractionRequestHandler } from "../lib/background-interaction-resolver.js";
+import {
+  loadBackgroundInteractionJournal,
+  rejectPendingBackgroundInteractions,
+  updateBackgroundInteractionJournal,
+} from "../lib/background-interaction-journal.js";
 import executionBroker from "../lib/process-execution-broker/index.js";
 
 const jobFile = process.argv[2];
@@ -39,6 +44,7 @@ let turnCount = 0;
 let lastExit = { code: 0, signal: null };
 let transportState = null;
 let detachInteractionHandler = null;
+let interactionJournal = null;
 const promptQueue = [];
 // P0-2: 保存 pending 的交互请求，等 attach 客户端连接后转发
 const pendingInteractions = new Map();
@@ -48,6 +54,24 @@ const pendingInteractions = new Map();
 // future agent turn. Past the cap the prompt is REJECTED (the transport
 // relays the throw as {type:"error", message}) instead of silently queued.
 const MAX_PROMPT_QUEUE = 100;
+
+function updateInteractionJournal(mutate, options = {}) {
+  const mutation = updateBackgroundInteractionJournal(
+    job.sessionId,
+    interactionJournal,
+    mutate,
+    options,
+  );
+  interactionJournal = mutation.journal;
+  return mutation.result;
+}
+
+function persistInteractionSettlement(requestId, binding, outcome) {
+  return updateInteractionJournal(
+    (draft) => draft.settle(requestId, binding, outcome),
+    { persistIf: (result) => result.applied },
+  );
+}
 
 function mergeState(patch) {
   const current = readBackgroundAgentState(job.id) || { id: job.id };
@@ -162,6 +186,14 @@ function startTurn(argv, promptText) {
     child,
     async (payload, msg, { signal }) => {
       const requestId = msg.requestId;
+      updateInteractionJournal((draft) =>
+        draft.recordPending({
+          requestId,
+          binding: msg.binding,
+          payload,
+          createdAt: Date.now(),
+        }),
+      );
       phase = "needs_input";
       mergeState({
         phase,
@@ -196,19 +228,33 @@ function startTurn(argv, promptText) {
           return true;
         };
         const onAbort = () => {
+          let rejection;
+          try {
+            persistInteractionSettlement(requestId, msg.binding, {
+              status: "cancelled",
+              error: {
+                code: "INTERACTION_CANCELLED",
+                message: "Background interaction was cancelled",
+              },
+            });
+          } catch (error) {
+            rejection = error;
+          }
           if (!cleanup()) return;
-          const error = new Error("Background interaction was cancelled");
-          error.code = "INTERACTION_CANCELLED";
-          reject(error);
+          if (!rejection) {
+            rejection = new Error("Background interaction was cancelled");
+            rejection.code = "INTERACTION_CANCELLED";
+          }
+          reject(rejection);
         };
         const entry = {
           payload,
           binding: msg.binding,
-          resolve(answer) {
+          deliverResolved(answer) {
             if (!cleanup()) return;
             resolve(answer);
           },
-          reject(error) {
+          deliverRejected(error) {
             if (!cleanup()) return;
             reject(error);
           },
@@ -236,8 +282,19 @@ function startTurn(argv, promptText) {
     detachInteractionHandler = null;
     // Reject any request that survived an abnormal child exit. Normal
     // responses remove themselves from this map before the turn continues.
-    for (const [, pending] of pendingInteractions) {
-      pending.reject?.(new Error("Agent exited"));
+    for (const [requestId, pending] of pendingInteractions) {
+      const error = new Error("Agent exited");
+      error.code = "INTERACTION_CHILD_EXITED";
+      try {
+        persistInteractionSettlement(requestId, pending.binding, {
+          status: "rejected",
+          error,
+        });
+      } catch {
+        // The child is already gone; the unresolved journal remains pending
+        // so the supervisor recovery path can reject it deterministically.
+      }
+      pending.deliverRejected?.(error);
     }
     pendingInteractions.clear();
     server?.broadcast({ type: "turn-ended", turn: turnCount, exitCode: code });
@@ -303,6 +360,27 @@ async function main() {
   job = JSON.parse(readFileSync(jobFile, "utf8"));
   removeJobFile(jobFile);
   log = openBackgroundLogFile(job.id);
+  interactionJournal = loadBackgroundInteractionJournal(job.sessionId, job.id);
+  if (interactionJournal.pending().length > 0) {
+    const recovery = rejectPendingBackgroundInteractions(
+      job.sessionId,
+      job.id,
+      {
+        code: "INTERACTION_WORKER_RESTARTED",
+        message:
+          "The background worker restarted before the interaction settled",
+      },
+    );
+    interactionJournal = recovery.journal;
+    mergeState({
+      phase: "turn",
+      pendingQuestion: null,
+      interactionRecovery: {
+        rejected: recovery.rejected.length,
+        recoveredAt: Date.now(),
+      },
+    });
+  }
 
   // Session transport (best-effort): interactive attach needs it, but a
   // transport failure must never take down the background task itself.
@@ -362,17 +440,41 @@ async function main() {
           finalize(lastExit.code, lastExit.signal);
         }
       },
-      onInteractionResponse: ({ requestId, intId, answer, error }) => {
+      onInteractionResponse: ({ requestId, intId, binding, answer, error }) => {
         // Support both field names: requestId (from transport) and intId (legacy)
         const resolvedId = requestId ?? intId;
         const entry = pendingInteractions.get(resolvedId);
-        if (!entry) return false;
-        if (error) {
-          entry.reject(new Error(error));
-        } else {
-          entry.resolve(answer);
+        const outcome = error
+          ? {
+              status: "rejected",
+              error:
+                typeof error === "object"
+                  ? error
+                  : { code: "INTERACTION_REJECTED", message: String(error) },
+            }
+          : { status: "resolved", answer };
+        const settlement = persistInteractionSettlement(
+          resolvedId,
+          binding,
+          outcome,
+        );
+        if (!settlement.applied) {
+          return { accepted: true, duplicate: true };
         }
-        return true;
+        if (!entry) {
+          return { accepted: true, duplicate: false, delivered: false };
+        }
+        if (error) {
+          const rejection = new Error(
+            typeof error === "object" ? error.message : error,
+          );
+          rejection.code =
+            (typeof error === "object" && error.code) || "INTERACTION_REJECTED";
+          entry.deliverRejected(rejection);
+        } else {
+          entry.deliverResolved(answer);
+        }
+        return { accepted: true, duplicate: false, delivered: true };
       },
     });
     transportState = { pipe: server.pipePath, token };

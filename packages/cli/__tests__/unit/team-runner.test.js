@@ -367,6 +367,36 @@ describe("TeamRunner directed messaging", () => {
 });
 
 describe("TeamRunner teammate lifecycle", () => {
+  it("emits TeammateIdle only for a real transition back to idle", () => {
+    const reg = freshRegistry();
+    const hooks = [];
+    const runner = new TeamRunner(reg, {
+      runTask: async () => "ok",
+      emitHook: (event, context) => hooks.push({ event, context }),
+    });
+
+    runner._setState("teammate-1", "idle");
+    runner._setState("teammate-1", "running", { key: "task-a" });
+    runner._setState("teammate-1", "completed-task");
+    runner._setState("teammate-1", "idle", { reason: "waiting-for-peer" });
+    runner._setState("teammate-1", "idle");
+
+    expect(hooks).toEqual([
+      {
+        event: "TeammateIdle",
+        context: {
+          schema_version: 1,
+          holder: "teammate-1",
+          state: "idle",
+          previous_state: "running",
+          completed: 1,
+          failed: 0,
+          reason: "waiting-for-peer",
+        },
+      },
+    ]);
+  });
+
   it("emits state transitions and ends every teammate in shutdown", async () => {
     const reg = freshRegistry();
     reg.addTask({ key: "a", title: "a" });

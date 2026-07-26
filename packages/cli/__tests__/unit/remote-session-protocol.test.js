@@ -174,6 +174,69 @@ describe("remote session WebSocket protocol", () => {
     );
   });
 
+  it("routes a prompt-scoped, fully bound question answer", async () => {
+    const remoteSessionId = createAndJoin(["observe", "prompt"]);
+    const binding = {
+      backgroundAgentId: null,
+      sessionId: "agent-1",
+      turnId: "turn-1",
+      toolUseId: "tool-1",
+      sequence: 1,
+    };
+    await handleRemoteSessionPublish(server, "phone", phone, {
+      id: "question-1",
+      remoteSessionId,
+      event: {
+        type: "question.answer",
+        requestId: "q-1",
+        answer: "continue",
+        binding,
+      },
+    });
+
+    const session = server.sessionManager.getSession.mock.results.at(-1).value;
+    expect(session.interaction.resolveAnswer).toHaveBeenCalledWith(
+      "q-1",
+      "continue",
+      binding,
+    );
+    const entry = server.remoteSessionAudit
+      .list({ sessionId: remoteSessionId, action: "control.question" })
+      .at(0);
+    expect(entry.detail.authority).toMatch(/origin=remote/);
+    expect(entry.detail.authority).toMatch(/principal=phone/);
+  });
+
+  it("rejects a remote question answer without prompt scope or binding", async () => {
+    const observeOnly = createAndJoin(["observe"]);
+    await handleRemoteSessionPublish(server, "phone", phone, {
+      id: "question-observe",
+      remoteSessionId: observeOnly,
+      event: {
+        type: "question.answer",
+        requestId: "q-1",
+        answer: "continue",
+        binding: { sequence: 1 },
+      },
+    });
+    expect(phone.sent.at(-1)).toMatchObject({ type: "error" });
+
+    const promptScoped = createAndJoin(["observe", "prompt"]);
+    await handleRemoteSessionPublish(server, "phone", phone, {
+      id: "question-unbound",
+      remoteSessionId: promptScoped,
+      event: {
+        type: "question.answer",
+        requestId: "q-1",
+        answer: "continue",
+      },
+    });
+    expect(phone.sent.at(-1)).toMatchObject({
+      type: "error",
+      message: expect.stringMatching(/binding/i),
+    });
+  });
+
   it("lists paired devices for the host and rejects non-host callers", () => {
     const remoteSessionId = createAndJoin();
     handleRemoteSessionDevices(server, "host", host, {

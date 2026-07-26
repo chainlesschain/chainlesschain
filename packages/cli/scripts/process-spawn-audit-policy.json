@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "rules": [
+    {
+      "id": "broker-native-boundary",
+      "disposition": "audited-exemption",
+      "pathPrefix": "packages/cli/src/lib/process-execution-broker/",
+      "reason": "The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible.",
+      "owner": "cli-security",
+      "reviewedAt": "2026-07-26"
+    },
+    {
+      "id": "agent-sdk-client-host",
+      "disposition": "audited-exemption",
+      "pathPrefix": "packages/agent-sdk/src/",
+      "reason": "The SDK is an external client host that launches the CLI itself; it is outside the child CLI broker trust boundary and uses argv APIs without a shell.",
+      "owner": "agent-sdk",
+      "reviewedAt": "2026-07-26"
+    },
+    {
+      "id": "goal-check-injected-runner",
+      "disposition": "brokered",
+      "path": "packages/cli/src/lib/goal-condition-engine.js",
+      "reason": "exit-zero evaluation has no ambient process fallback and fails closed unless its caller injects the broker-backed runner.",
+      "owner": "cli-runtime",
+      "reviewedAt": "2026-07-26"
+    }
+  ]
+}

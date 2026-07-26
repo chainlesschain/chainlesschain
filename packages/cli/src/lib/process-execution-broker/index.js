@@ -4,8 +4,8 @@
  *
  * 统一拦截所有子进程执行：
  * - M1: 所有子进程唯一入口，权限检查
- * - **P0-1**: 可审计的平台执行计划（macOS Seatbelt / Linux prlimit；
- *   Windows 原生 Job Object 未实现时明确报告 unavailable）
+ * - **P0-1**: 可审计的平台执行计划（macOS Seatbelt / Linux prlimit /
+ *   Windows Job Object + Restricted Token）
  * - **P0-1**: 凭据代理 default-on（secrets 永远不裸传给子进程）
  * - M3: 集成W3C trace context自动传播
  * - M4: 自动写入Runtime Provenance Ledger (RPL)
@@ -313,7 +313,7 @@ class ProcessExecutionBroker extends EventEmitter {
         command,
         args || [],
         options,
-        "default",
+        strict ? "strict" : "default",
       ),
     );
 
@@ -527,6 +527,35 @@ class ProcessExecutionBroker extends EventEmitter {
     };
   }
 
+  _createCredentialContext(command, options, executionId, decision) {
+    if (typeof this._credentialAgent.createBrokerContext !== "function") {
+      return options.credentialContext;
+    }
+    const supplied = options.credentialContext || {};
+    return this._credentialAgent.createBrokerContext({
+      approvalId: `${executionId}:${decision}`,
+      process: command,
+      host:
+        supplied.target?.host ??
+        supplied.host ??
+        options.credentialTarget?.host ??
+        options.credentialTargetHost ??
+        null,
+      ttlMs: supplied.ttlMs ?? options.credentialTtlMs,
+      maxUses: supplied.maxUses ?? options.credentialMaxUses,
+    });
+  }
+
+  _stripCredentialControlOptions(options) {
+    delete options.credentialContext;
+    delete options.credentialApproved;
+    delete options.credentialApprovalId;
+    delete options.credentialTarget;
+    delete options.credentialTargetHost;
+    delete options.credentialTtlMs;
+    delete options.credentialMaxUses;
+  }
+
   _recordCredentialReport(auditEntry, report) {
     const filtered = report?.filtered === true;
     auditEntry.credentialFiltered = filtered;
@@ -665,6 +694,12 @@ class ProcessExecutionBroker extends EventEmitter {
 
     // P0-1: Credential filtering (default-on) — strip secrets from env/args
     if (this._credentialBoundaryEnabled()) {
+      spawnOpts.credentialContext = this._createCredentialContext(
+        command,
+        spawnOpts,
+        executionId,
+        decision,
+      );
       const credentialBoundary = this._applyCredentialBoundary(
         command,
         args,
@@ -675,6 +710,7 @@ class ProcessExecutionBroker extends EventEmitter {
       args = credentialBoundary.args;
       auditEntry.args = [...args];
       this._recordCredentialReport(auditEntry, credentialBoundary.report);
+      this._stripCredentialControlOptions(spawnOpts);
     }
 
     // P0-1: Platform sandbox wrapping — apply macOS/Windows/Linux sandbox
@@ -838,6 +874,12 @@ class ProcessExecutionBroker extends EventEmitter {
 
     // P0-1: Credential filtering agent — strip secrets from env/args before spawn
     if (this._credentialBoundaryEnabled()) {
+      spawnOpts.credentialContext = this._createCredentialContext(
+        command,
+        spawnOpts,
+        executionId,
+        decision,
+      );
       const credentialBoundary = this._applyCredentialBoundary(
         command,
         args,
@@ -848,6 +890,7 @@ class ProcessExecutionBroker extends EventEmitter {
       args = credentialBoundary.args;
       auditEntry.args = [...args];
       this._recordCredentialReport(auditEntry, credentialBoundary.report);
+      this._stripCredentialControlOptions(spawnOpts);
     }
 
     // P0-1: Platform sandbox wrapping (sync path)
@@ -957,6 +1000,12 @@ class ProcessExecutionBroker extends EventEmitter {
     delete spawnOptions.pluginSource;
     try {
       if (this._credentialBoundaryEnabled()) {
+        spawnOptions.credentialContext = this._createCredentialContext(
+          command,
+          spawnOptions,
+          executionId,
+          policy,
+        );
         const credentialBoundary = this._applyCredentialBoundary(
           command,
           args,
@@ -967,6 +1016,7 @@ class ProcessExecutionBroker extends EventEmitter {
         spawnOptions.args = credentialBoundary.args;
         auditEntry.args = [...credentialBoundary.args];
         this._recordCredentialReport(auditEntry, credentialBoundary.report);
+        this._stripCredentialControlOptions(spawnOptions);
       }
       const filteredArgs = spawnOptions.args || [];
       delete spawnOptions.args;

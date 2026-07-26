@@ -184,6 +184,13 @@ describe("WebSocketInteractionAdapter", () => {
       turn_id: "turn-3",
       toolUseId: "tool-use-9",
       tool_use_id: "tool-use-9",
+      binding: {
+        backgroundAgentId: null,
+        sessionId: "session-123",
+        turnId: "turn-3",
+        toolUseId: "tool-use-9",
+        sequence: 1,
+      },
       metadata: {
         kind: "ask_user_question",
         turnId: "turn-3",
@@ -192,9 +199,28 @@ describe("WebSocketInteractionAdapter", () => {
     });
     expect(sent.id).toBe(sent.requestId);
 
-    adapter.resolveAnswer(sent.requestId, "staging");
+    adapter.resolveAnswer(sent.requestId, "staging", sent.binding);
     await expect(promise).resolves.toBe("staging");
     expect(adapter._pending.size).toBe(0);
+  });
+
+  it("keeps a bound question pending after a cross-turn answer", async () => {
+    const promise = adapter.askUser({
+      question: "Continue?",
+      turnId: "turn-bound",
+      toolUseId: "tool-bound",
+      timeoutMs: 30_000,
+    });
+    const sent = JSON.parse(ws.send.mock.calls[0][0]);
+
+    adapter.resolveAnswer(sent.requestId, "wrong", {
+      ...sent.binding,
+      turnId: "other-turn",
+    });
+    expect(adapter._pending.has(sent.requestId)).toBe(true);
+
+    adapter.resolveAnswer(sent.requestId, "yes", sent.binding);
+    await expect(promise).resolves.toBe("yes");
   });
 
   it("askSelect sends question with choices", async () => {

@@ -220,6 +220,41 @@ describe("listBackgroundSessions", () => {
     expect(s.status).toBe("lost");
     expect(s.interactive).toBe(false);
   });
+
+  it("preserves the pending question binding for an answering host", () => {
+    const now = 3_000_000;
+    const binding = {
+      backgroundAgentId: "bg-bound",
+      sessionId: "session-1",
+      turnId: "turn-1",
+      toolUseId: "tool-1",
+      sequence: 1,
+    };
+    writeState({
+      id: "bg-bound",
+      status: "running",
+      pid: 1,
+      startedAt: 2_500_000,
+      heartbeatAt: now - 1000,
+      transport: { pipe: "p", token: "t" },
+      pendingQuestion: {
+        requestId: "request-1",
+        prompt: "Continue?",
+        options: [{ label: "yes" }, { label: "no" }],
+        multiSelect: true,
+        binding,
+      },
+    });
+
+    const [session] = listBackgroundSessions({ dir, now, deps: aliveDeps });
+    expect(session.pendingQuestion).toEqual({
+      requestId: "request-1",
+      question: "Continue?",
+      options: [{ label: "yes" }, { label: "no" }],
+      multiSelect: true,
+      binding,
+    });
+  });
 });
 
 describe("summarize / format / log helpers", () => {

@@ -1,5 +1,6 @@
 /**
- * Hooks v2 System — M3-1: 完整18事件schema + 5种executor类型
+ * Hooks v2 System — 40-event schema + 5 public executor types
+ * (plus trusted programmatic `js` compatibility handlers).
  * 对应文档 §2.3
  *
  * 支持的18种生命周期事件:
@@ -24,8 +25,13 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import broker from "./process-execution-broker/index.js";
+import hookEnvironment from "./hook-environment.cjs";
+import permissionRules from "./permission-rules.cjs";
 import { EventRuntimeStore } from "./event-runtime-store.js";
 import { getDefaultEventRuntimeHost } from "./event-runtime-host.js";
+
+const { globToRegExp } = permissionRules;
+const { buildManagedHookEnvironment } = hookEnvironment;
 
 const VALID_HOOK_EVENTS = new Set([
   "Setup",
@@ -106,20 +112,6 @@ export const HOOK_EVENT_CONTRACTS = Object.freeze(
   ),
 );
 
-const SAFE_ENV_KEYS = Object.freeze([
-  "PATH",
-  "PATHEXT",
-  "SystemRoot",
-  "WINDIR",
-  "COMSPEC",
-  "TMP",
-  "TEMP",
-  "TMPDIR",
-  "LANG",
-  "LC_ALL",
-  "HOME",
-  "USERPROFILE",
-]);
 const DECISION_RANK = Object.freeze({
   continue: 0,
   allow: 1,
@@ -154,26 +146,150 @@ function hostnameMatches(hostname, pattern) {
   return host === rule;
 }
 
+function managedListAllows(value, configured) {
+  if (!Array.isArray(configured)) return true;
+  const candidate = String(value || "");
+  return configured.some((entry) => {
+    const pattern = String(entry || "").trim();
+    if (!pattern) return false;
+    if (pattern === "*") return true;
+    const expression = globToRegExp(
+      process.platform === "win32" ? pattern.toLowerCase() : pattern,
+    );
+    return expression.test(
+      process.platform === "win32" ? candidate.toLowerCase() : candidate,
+    );
+  });
+}
+
+function isInsideManagedRoot(candidate, roots) {
+  if (!Array.isArray(roots)) return true;
+  const resolved = path.resolve(candidate);
+  return roots.some((root) => {
+    const managedRoot = path.resolve(String(root));
+    const relative = path.relative(managedRoot, resolved);
+    return (
+      relative === "" ||
+      (!relative.startsWith("..") && !path.isAbsolute(relative))
+    );
+  });
+}
+
+function managedPolicyError(message) {
+  const error = new Error(message);
+  error.code = "CC_HOOK_MANAGED_POLICY_DENIED";
+  return error;
+}
+
+export function assertManagedHookPolicy(
+  hook,
+  context = {},
+  policy = {},
+  configDir = null,
+) {
+  if (!managedListAllows(hook.type, policy.allowedExecutors)) {
+    throw managedPolicyError(
+      `Hook executor is outside the managed allowlist: ${hook.type}`,
+    );
+  }
+
+  if (hook.type === "command") {
+    if (hook.shell === true && policy.allowShell !== true) {
+      throw managedPolicyError(
+        "Shell-mode command hooks are disabled by managed policy",
+      );
+    }
+    const executable = String(hook.command || "");
+    const commandCandidates = new Set([
+      executable,
+      path.basename(executable),
+    ]);
+    if (
+      Array.isArray(policy.commandAllowlist) &&
+      ![...commandCandidates].some((value) =>
+        managedListAllows(value, policy.commandAllowlist),
+      )
+    ) {
+      throw managedPolicyError(
+        `Hook command is outside the managed allowlist: ${executable}`,
+      );
+    }
+    const cwd = hook.cwd || context.cwd || configDir || process.cwd();
+    if (!isInsideManagedRoot(cwd, policy.workspaceRoots)) {
+      throw managedPolicyError(
+        `Hook working directory is outside managed workspace roots: ${cwd}`,
+      );
+    }
+  }
+
+  if (hook.type === "mcp_tool") {
+    const target = `${hook.server || ""}/${hook.tool || ""}`;
+    if (!managedListAllows(target, policy.mcpToolAllowlist)) {
+      throw managedPolicyError(
+        `MCP hook target is outside the managed allowlist: ${target}`,
+      );
+    }
+  }
+
+  if (
+    hook.type === "agent" &&
+    hook.agentName &&
+    !managedListAllows(hook.agentName, policy.agentAllowlist)
+  ) {
+    throw managedPolicyError(
+      `Hook agent is outside the managed allowlist: ${hook.agentName}`,
+    );
+  }
+  if (
+    hook.type === "agent" &&
+    hook.skillName &&
+    !managedListAllows(hook.skillName, policy.skillAllowlist)
+  ) {
+    throw managedPolicyError(
+      `Hook skill is outside the managed allowlist: ${hook.skillName}`,
+    );
+  }
+}
+
+export function fileChangedHookMatches(hook, context = {}) {
+  const configured =
+    hook?.globs ?? hook?.paths ?? hook?.glob ?? hook?.if ?? null;
+  if (configured == null) return true;
+  const patterns = (Array.isArray(configured) ? configured : [configured])
+    .map((value) => String(value || "").trim().replace(/\\/g, "/"))
+    .filter(Boolean);
+  if (patterns.length === 0) return true;
+
+  const rawPath = String(context.path || "").replace(/\\/g, "/");
+  if (!rawPath) return false;
+  const candidates = new Set([rawPath.replace(/^\.\//, "")]);
+  if (path.isAbsolute(rawPath)) {
+    const relative = path
+      .relative(context.cwd || process.cwd(), rawPath)
+      .replace(/\\/g, "/");
+    if (relative && !relative.startsWith("../")) candidates.add(relative);
+  }
+  const caseInsensitive = process.platform === "win32";
+  return patterns.some((pattern) => {
+    const normalizedPattern = pattern.replace(/^\.\//, "");
+    const expression = globToRegExp(
+      caseInsensitive ? normalizedPattern.toLowerCase() : normalizedPattern,
+    );
+    return [...candidates].some((candidate) =>
+      expression.test(caseInsensitive ? candidate.toLowerCase() : candidate),
+    );
+  });
+}
+
 function buildHookEnvironment(hook, policy) {
-  const env = {};
-  for (const key of SAFE_ENV_KEYS) {
-    if (process.env[key] != null) env[key] = process.env[key];
-  }
-  const managed = new Set(
-    (policy.environmentAllowlist || []).map((key) => String(key)),
-  );
-  const requested = new Set(
-    (hook.environmentAllowlist || hook.envAllowlist || []).map((key) =>
-      String(key),
-    ),
-  );
-  for (const key of requested) {
-    if (!managed.has(key) || process.env[key] == null) continue;
-    env[key] = process.env[key];
-  }
-  env.CC_HOOK_EVENT = hook.event;
-  env.CC_HOOK_SCHEMA_VERSION = String(HOOK_EVENT_SCHEMA_VERSION);
-  return env;
+  return buildManagedHookEnvironment({
+    managedAllowlist: policy.environmentAllowlist,
+    requestedAllowlist: hook.environmentAllowlist || hook.envAllowlist,
+    values: {
+      CC_HOOK_EVENT: hook.event,
+      CC_HOOK_SCHEMA_VERSION: HOOK_EVENT_SCHEMA_VERSION,
+    },
+  });
 }
 
 function hookBudget(hook) {
@@ -188,6 +304,29 @@ function hookBudget(hook) {
       Math.max(1, Number(hook.timeoutMs) || 30000),
     ),
   });
+}
+
+async function executeWithHookTimeout(label, budget, executor) {
+  const controller = new AbortController();
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      const error = new Error(
+        `${label} hook exceeded its ${budget.timeoutMs}ms budget`,
+      );
+      error.code = "CC_HOOK_BUDGET_EXCEEDED";
+      reject(error);
+    }, budget.timeoutMs);
+  });
+  try {
+    return await Promise.race([
+      Promise.resolve().then(() => executor(controller.signal)),
+      timeout,
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 class HooksV2Runtime extends EventEmitter {
@@ -210,9 +349,15 @@ class HooksV2Runtime extends EventEmitter {
       ...(options.promptExecutor ? { prompt: options.promptExecutor } : {}),
       ...(options.agentExecutor ? { agent: options.agentExecutor } : {}),
     };
+    this.mcpAuthorizer =
+      typeof options.mcpAuthorizer === "function"
+        ? options.mcpAuthorizer
+        : null;
     this.managedPolicy = {
       httpAllowlist: [],
       environmentAllowlist: [],
+      allowShell: false,
+      requireMcpAuthorization: true,
       ...(options.managedPolicy || {}),
     };
     this.hooks = new Map(); // eventName -> HookDefinition[]
@@ -315,7 +460,10 @@ class HooksV2Runtime extends EventEmitter {
       throw new Error(`Invalid hook event: ${eventName}`);
     }
 
-    const hooks = this.hooks.get(eventName) || [];
+    const hooks = (this.hooks.get(eventName) || []).filter(
+      (hook) =>
+        eventName !== "FileChanged" || fileChangedHookMatches(hook, context),
+    );
     // Reserve the durable record for the inline producer before executing any
     // hook. A process-level EventRuntimeHost may observe the same store, but it
     // cannot reclaim this record until the longest declared hook timeout plus
@@ -371,6 +519,12 @@ class HooksV2Runtime extends EventEmitter {
       const record = { execId, hookId: hook.id, event: eventName, type: hook.type, startedAt: new Date() };
 
       try {
+        assertManagedHookPolicy(
+          hook,
+          context,
+          this.managedPolicy,
+          this.configDir,
+        );
         let result;
         switch (hook.type) {
           case "command":
@@ -561,12 +715,17 @@ class HooksV2Runtime extends EventEmitter {
     if (typeof executor !== "function") {
       throw new Error("prompt hook executor is not configured");
     }
-    return executor({
-      hook,
-      prompt: expanded,
-      context,
-      budget: hookBudget(hook),
-    });
+    const budget = hookBudget(hook);
+    return executeWithHookTimeout("prompt", budget, (signal) =>
+      executor({
+        hook,
+        prompt: expanded,
+        context,
+        budget,
+        signal,
+        managedPolicy: this.managedPolicy,
+      }),
+    );
   }
 
   async _execAgent(hook, context) {
@@ -574,13 +733,18 @@ class HooksV2Runtime extends EventEmitter {
     if (typeof executor !== "function") {
       throw new Error("agent hook executor is not configured");
     }
-    return executor({
-      hook,
-      agentName: hook.agentName || null,
-      skillName: hook.skillName || null,
-      context,
-      budget: hookBudget(hook),
-    });
+    const budget = hookBudget(hook);
+    return executeWithHookTimeout("agent", budget, (signal) =>
+      executor({
+        hook,
+        agentName: hook.agentName || null,
+        skillName: hook.skillName || null,
+        context,
+        budget,
+        signal,
+        managedPolicy: this.managedPolicy,
+      }),
+    );
   }
 
   async _execMcpTool(hook, context) {
@@ -591,14 +755,46 @@ class HooksV2Runtime extends EventEmitter {
     if (!hook.server || !hook.tool) {
       throw new Error("mcp_tool hook requires server and tool");
     }
-    return executor({
-      server: hook.server,
-      tool: hook.tool,
-      arguments: hook.arguments || context,
-      context,
-      hook,
-      budget: hookBudget(hook),
-    });
+    let permission = null;
+    if (this.managedPolicy.requireMcpAuthorization !== false) {
+      if (!this.mcpAuthorizer) {
+        throw managedPolicyError(
+          "MCP hook requires the shared MCP permission authorizer",
+        );
+      }
+      permission = await this.mcpAuthorizer({
+        server: hook.server,
+        tool: hook.tool,
+        arguments: hook.arguments || context,
+        context,
+        hook,
+      });
+      const decision = String(permission?.decision || "").toLowerCase();
+      if (
+        permission !== true &&
+        permission?.allowed !== true &&
+        decision !== "allow" &&
+        decision !== "approve"
+      ) {
+        throw managedPolicyError(
+          `MCP hook permission denied: ${hook.server}/${hook.tool}`,
+        );
+      }
+    }
+    const budget = hookBudget(hook);
+    return executeWithHookTimeout("mcp_tool", budget, (signal) =>
+      executor({
+        server: hook.server,
+        tool: hook.tool,
+        arguments: hook.arguments || context,
+        context,
+        hook,
+        budget,
+        signal,
+        permission,
+        managedPolicy: this.managedPolicy,
+      }),
+    );
   }
 
   async _execJs(hook, context) {

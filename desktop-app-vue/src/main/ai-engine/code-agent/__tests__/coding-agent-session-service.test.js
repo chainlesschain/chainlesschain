@@ -724,6 +724,48 @@ describe("CodingAgentSessionService", () => {
     });
   });
 
+  it("keeps the runtime binding authoritative across the Desktop question flow", async () => {
+    await service.createSession();
+    const binding = {
+      backgroundAgentId: null,
+      sessionId: "session-1",
+      turnId: "turn-1",
+      toolUseId: "tool-1",
+      sequence: 1,
+    };
+    bridge.emit("message", {
+      type: "question_request",
+      sessionId: "session-1",
+      id: "q-bound",
+      question: "Continue?",
+      binding,
+    });
+
+    await expect(
+      service.respondQuestion("session-1", {
+        requestId: "q-bound",
+        answer: "yes",
+      }),
+    ).rejects.toThrow("turnId is required");
+
+    await service.respondQuestion("session-1", {
+      requestId: "q-bound",
+      answer: "yes",
+      turnId: "turn-1",
+      toolUseId: "tool-1",
+    });
+
+    expect(bridge.sentMessages.at(-1)).toMatchObject({
+      type: "session-answer",
+      sessionId: "session-1",
+      requestId: "q-bound",
+      answer: "yes",
+      turnId: "turn-1",
+      toolUseId: "tool-1",
+      binding,
+    });
+  });
+
   it("blocks follow-up messages until high-risk execution is explicitly confirmed", async () => {
     await service.createSession();
 
@@ -770,10 +812,11 @@ describe("CodingAgentSessionService", () => {
     ).toBe(true);
 
     const status = await service.getStatus();
-    // 10 mvp-tier core tools (read/write/notebook_edit/edit/edit_file_hashed/
-    // run_shell/check_shell/git/search_files/list_dir) — notebook_edit joined
-    // via Claude-Code NotebookEdit parity; check_shell via background-shell.
-    expect(status.tools).toHaveLength(10);
+    // 12 mvp-tier core tools (read/write/notebook_edit/edit/edit_file_hashed/
+    // delete_file/move_file/run_shell/check_shell/git/search_files/list_dir).
+    // Explicit lifecycle tools keep delete/rename review and attribution
+    // distinct from a generic text overwrite.
+    expect(status.tools).toHaveLength(12);
     expect(status.permissionPolicy).toMatchObject({
       planModeRules: {
         low: "allow",
@@ -813,8 +856,8 @@ describe("CodingAgentSessionService", () => {
     await managedService.createSession();
     const status = await managedService.getStatus();
 
-    // 10 core tools + 1 allowlisted managed tool (info_searcher)
-    expect(status.tools).toHaveLength(11);
+    // 12 core tools + 1 allowlisted managed tool (info_searcher)
+    expect(status.tools).toHaveLength(13);
     expect(
       status.tools.find((tool) => tool.name === "info_searcher"),
     ).toMatchObject({

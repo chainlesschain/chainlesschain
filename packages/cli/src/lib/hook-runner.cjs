@@ -26,6 +26,9 @@ const {
   loadShellConfig,
 } = require("./shell-selector.cjs");
 const { mergeHookDecisions } = require("./hook-event-bus.cjs");
+const {
+  buildManagedHookEnvironment,
+} = require("./hook-environment.cjs");
 
 const _deps = { runSync: null, run: null };
 Object.defineProperties(_deps, {
@@ -246,10 +249,13 @@ function _runCommandHookInner(command, input = {}, opts = {}) {
       encoding: "utf-8",
       timeout,
       maxBuffer: 8 * 1024 * 1024,
-      env: {
-        ...process.env,
-        CLAUDE_HOOK_EVENT: event || input.hook_event_name || "",
-      },
+      env: buildManagedHookEnvironment({
+        managedAllowlist: opts.managedEnvironmentAllowlist,
+        requestedAllowlist: opts.environmentAllowlist,
+        values: {
+          CLAUDE_HOOK_EVENT: event || input.hook_event_name || "",
+        },
+      }),
     };
     const processOptions = {
       ...common,
@@ -390,10 +396,13 @@ async function _runCommandHookInnerAsync(command, input = {}, opts = {}) {
     ...input,
     schema_version: input.schema_version ?? HOOK_PAYLOAD_SCHEMA_VERSION,
   });
-  const spawnEnv = {
-    ...process.env,
-    CLAUDE_HOOK_EVENT: event || input.hook_event_name || "",
-  };
+  const spawnEnv = buildManagedHookEnvironment({
+    managedAllowlist: opts.managedEnvironmentAllowlist,
+    requestedAllowlist: opts.environmentAllowlist,
+    values: {
+      CLAUDE_HOOK_EVENT: event || input.hook_event_name || "",
+    },
+  });
   const processOptions = {
     cwd: wd,
     env: spawnEnv,
@@ -520,6 +529,7 @@ function runHooks(commandHooks, input = {}, opts = {}) {
       pluginVersion: h.pluginVersion,
       pluginSource: h.pluginSource,
       timeout: h.timeout != null ? h.timeout * 1000 : opts.timeout,
+      environmentAllowlist: h.environmentAllowlist || h.envAllowlist,
       // per-hook shell selection (P1 #8): `{ "type":"command", "command":…,
       // "shell":"powershell" }` in the settings hook entry
       shell: h.shell != null ? h.shell : opts.shell,
@@ -585,6 +595,7 @@ async function runHooksParallel(commandHooks, input = {}, opts = {}) {
         pluginVersion: h.pluginVersion,
         pluginSource: h.pluginSource,
         timeout: h.timeout != null ? h.timeout * 1000 : opts.timeout,
+        environmentAllowlist: h.environmentAllowlist || h.envAllowlist,
         shell: h.shell != null ? h.shell : opts.shell,
       }).then((r) => ({ h, r })),
     ),

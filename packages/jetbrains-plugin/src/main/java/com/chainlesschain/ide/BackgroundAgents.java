@@ -63,6 +63,11 @@ public final class BackgroundAgents {
         public final boolean interactive;
         /** Unanswered ask_user_question parked by the worker (state pendingQuestion.question); nullable. */
         public final String pendingQuestion;
+        /** Bound request identity needed to answer the parked question in-place. */
+        public final String pendingQuestionRequestId;
+        public final Map<String, Object> pendingQuestionBinding;
+        public final List<Object> pendingQuestionOptions;
+        public final boolean pendingQuestionMultiSelect;
         /** Count of irreversible ops whose outcome is unknown after a resume (0 = none). */
         public final int uncertainSideEffects;
 
@@ -71,6 +76,19 @@ public final class BackgroundAgents {
                 String title, String cwd, String sessionId, long startedAt, long endedAt,
                 Integer exitCode, String logFile, String pipePath, String token,
                 boolean interactive, String pendingQuestion, int uncertainSideEffects) {
+            this(id, status, lostReason, phase, turnCount, pendingApprovals,
+                    title, cwd, sessionId, startedAt, endedAt, exitCode, logFile,
+                    pipePath, token, interactive, pendingQuestion, null, null,
+                    List.of(), false, uncertainSideEffects);
+        }
+
+        Session(String id, String status, String lostReason, String phase, int turnCount,
+                int pendingApprovals,
+                String title, String cwd, String sessionId, long startedAt, long endedAt,
+                Integer exitCode, String logFile, String pipePath, String token,
+                boolean interactive, String pendingQuestion, String pendingQuestionRequestId,
+                Map<String, Object> pendingQuestionBinding, List<Object> pendingQuestionOptions,
+                boolean pendingQuestionMultiSelect, int uncertainSideEffects) {
             this.id = id;
             this.status = status;
             this.lostReason = lostReason;
@@ -88,6 +106,11 @@ public final class BackgroundAgents {
             this.token = token;
             this.interactive = interactive;
             this.pendingQuestion = pendingQuestion;
+            this.pendingQuestionRequestId = pendingQuestionRequestId;
+            this.pendingQuestionBinding = pendingQuestionBinding;
+            this.pendingQuestionOptions = pendingQuestionOptions == null
+                    ? List.of() : new ArrayList<>(pendingQuestionOptions);
+            this.pendingQuestionMultiSelect = pendingQuestionMultiSelect;
             this.uncertainSideEffects = uncertainSideEffects;
         }
 
@@ -237,9 +260,31 @@ public final class BackgroundAgents {
         }
         boolean interactive = "running".equals(eff[0]) && pipe != null && !pipe.isEmpty();
         String pendingQuestion = null;
+        String pendingQuestionRequestId = null;
+        Map<String, Object> pendingQuestionBinding = null;
+        List<Object> pendingQuestionOptions = List.of();
+        boolean pendingQuestionMultiSelect = false;
         Object pq = state.get("pendingQuestion");
         if (pq instanceof Map) {
-            pendingQuestion = asString(((Map<?, ?>) pq).get("question"));
+            Map<?, ?> pending = (Map<?, ?>) pq;
+            pendingQuestion = asString(pending.get("question"));
+            if (pendingQuestion == null) pendingQuestion = asString(pending.get("prompt"));
+            pendingQuestionRequestId = asString(pending.get("requestId"));
+            if (pendingQuestionRequestId == null) {
+                pendingQuestionRequestId = asString(pending.get("intId"));
+            }
+            if (pending.get("binding") instanceof Map) {
+                pendingQuestionBinding = new LinkedHashMap<>();
+                for (Map.Entry<?, ?> entry : ((Map<?, ?>) pending.get("binding")).entrySet()) {
+                    if (entry.getKey() instanceof String) {
+                        pendingQuestionBinding.put((String) entry.getKey(), entry.getValue());
+                    }
+                }
+            }
+            if (pending.get("options") instanceof List) {
+                pendingQuestionOptions = new ArrayList<>((List<?>) pending.get("options"));
+            }
+            pendingQuestionMultiSelect = Boolean.TRUE.equals(pending.get("multiSelect"));
         }
         return new Session(
                 id, eff[0], eff[1],
@@ -252,7 +297,8 @@ public final class BackgroundAgents {
                 startedAt,
                 asLong(state.get("endedAt")),
                 exitCode, logFile, pipe, token, interactive,
-                pendingQuestion,
+                pendingQuestion, pendingQuestionRequestId, pendingQuestionBinding,
+                pendingQuestionOptions, pendingQuestionMultiSelect,
                 (int) asLong(state.get("uncertainSideEffects"), 0L));
     }
 

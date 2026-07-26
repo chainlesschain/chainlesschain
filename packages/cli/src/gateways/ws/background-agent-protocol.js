@@ -12,6 +12,8 @@
  *                                    log, latestSeq, [reattached, replayed,
  *                                    replayTruncated]}
  *   bg-prompt    {bgId, text}      → {type:"bg-prompt", bgId, sent}
+ *   bg-answer    {bgId, requestId, binding, answer}
+ *                                  → {type:"bg-answer", bgId, sent}
  *   bg-stop-turn {bgId}            → {type:"bg-stop-turn", bgId, sent}
  *   bg-detach    {bgId}            → {type:"bg-detach", bgId}
  *   bg-stop      {bgId}            → {type:"bg-stop", session}   (kill whole session)
@@ -338,6 +340,42 @@ export async function handleBgPrompt(server, clientId, id, ws, message) {
   }
   const sent = entry.conn.send({ type: "prompt", text });
   server._send(ws, { id, type: "bg-prompt", bgId: message.bgId, sent });
+}
+
+export async function handleBgAnswer(server, clientId, id, ws, message) {
+  const entry = requireAttachment(server, clientId, id, ws, message);
+  if (!entry) return;
+  const requestId = String(message.requestId || "");
+  if (!requestId) {
+    return sendError(server, id, ws, "NO_REQUEST_ID", "requestId required");
+  }
+  if (
+    !message.binding ||
+    typeof message.binding !== "object" ||
+    Array.isArray(message.binding)
+  ) {
+    return sendError(
+      server,
+      id,
+      ws,
+      "NO_INTERACTION_BINDING",
+      "interaction binding required",
+    );
+  }
+  const sent = entry.conn.send({
+    type: "interaction_response",
+    requestId,
+    binding: message.binding,
+    answer: message.answer,
+    ...(message.error ? { error: message.error } : {}),
+  });
+  server._send(ws, {
+    id,
+    type: "bg-answer",
+    bgId: message.bgId,
+    requestId,
+    sent,
+  });
 }
 
 export async function handleBgStopTurn(server, clientId, id, ws, message) {

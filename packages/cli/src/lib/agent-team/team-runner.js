@@ -14,6 +14,8 @@
  * status panel. A total-time / total-task budget bounds a runaway graph.
  */
 
+import { emitHooksV2Event } from "../hooks-v2-producers.js";
+
 export class TeamRunner {
   /**
    * @param {TaskLeaseRegistry} registry
@@ -33,6 +35,8 @@ export class TeamRunner {
     // Lease-renewal heartbeat cadence while a task runs (default ttl/3).
     this.renewEveryMs = opts.renewEveryMs;
     this.onEvent = typeof opts.onEvent === "function" ? opts.onEvent : () => {};
+    this.emitHook =
+      typeof opts.emitHook === "function" ? opts.emitHook : emitHooksV2Event;
     this.maxTasks = opts.maxTasks > 0 ? opts.maxTasks : 1000;
     this._now = opts.now || registry._now || (() => Date.now());
     // Team-wide token/USD/time/task budget (null → unbounded). Consulted before
@@ -80,8 +84,26 @@ export class TeamRunner {
       return m;
     }
     if (m.state === state) return m; // no transition
+    const previousState = m.state;
     m.state = state;
     this._emit("teammate:state", { holder, state, ...extra });
+    // Initial registration starts in `idle`; the hook is reserved for a real
+    // transition back to idle after a teammate has participated in the run.
+    if (state === "idle" && previousState !== null) {
+      try {
+        this.emitHook("TeammateIdle", {
+          schema_version: 1,
+          holder,
+          state,
+          previous_state: previousState,
+          completed: m.completed,
+          failed: m.failed,
+          ...extra,
+        });
+      } catch {
+        /* hook observer is best-effort */
+      }
+    }
     return m;
   }
 

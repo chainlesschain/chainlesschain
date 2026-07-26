@@ -7,6 +7,9 @@
  */
 
 const { spawnWithDesktopBroker } = require("../process/desktop-process-broker");
+const {
+  buildManagedHookEnvironment,
+} = require("./hook-environment");
 const path = require("path");
 const { EventEmitter } = require("events");
 
@@ -290,13 +293,17 @@ class HookExecutor extends EventEmitter {
       }
 
       // 设置环境变量
-      const env = {
-        ...process.env,
-        HOOK_EVENT: event.eventName,
-        HOOK_EVENT_ID: event.eventId,
-        HOOK_DATA: JSON.stringify(data),
-        HOOK_CONTEXT: JSON.stringify(event.context),
-      };
+      const env = buildManagedHookEnvironment({
+        managedAllowlist: this.options.managedEnvironmentAllowlist,
+        requestedAllowlist:
+          hook.environmentAllowlist || hook.envAllowlist,
+        values: {
+          HOOK_EVENT: event.eventName,
+          HOOK_EVENT_ID: event.eventId,
+          HOOK_DATA: JSON.stringify(data),
+          HOOK_CONTEXT: JSON.stringify(event.context),
+        },
+      });
 
       // 为特定事件设置额外环境变量
       if (data.toolName) {

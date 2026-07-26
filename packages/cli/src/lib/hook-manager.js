@@ -5,6 +5,9 @@
 
 import crypto from "crypto";
 import broker from "./process-execution-broker/index.js";
+import hookEnvironment from "./hook-environment.cjs";
+
+const { buildManagedHookEnvironment } = hookEnvironment;
 
 /**
  * Hook priority levels — lower values run first.
@@ -285,11 +288,15 @@ export async function executeHook(hook, context = {}) {
           executionTime: 0,
         };
       }
-      const env = {
-        ...process.env,
-        HOOK_EVENT: hook.event,
-        HOOK_CONTEXT: JSON.stringify(context),
-      };
+      const env = buildManagedHookEnvironment({
+        managedAllowlist: hook.managedEnvironmentAllowlist,
+        requestedAllowlist:
+          hook.environmentAllowlist || hook.envAllowlist,
+        values: {
+          HOOK_EVENT: hook.event,
+          HOOK_CONTEXT: JSON.stringify(context),
+        },
+      });
       const output = broker.execSync(cmd, {
         origin: "hook-manager:command",
         scope: "hook",

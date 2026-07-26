@@ -530,6 +530,13 @@ describe("Integration: WebSocket Session Workflow", () => {
 
   it("session-answer resolves pending question", () => {
     const resolveAnswer = vi.fn();
+    const binding = {
+      backgroundAgentId: null,
+      sessionId: "test-session-1",
+      turnId: "turn-1",
+      toolUseId: "tool-1",
+      sequence: 1,
+    };
     const sm = mockSessionManager({
       getSession: vi.fn().mockReturnValue({
         id: "test-session-1",
@@ -544,11 +551,12 @@ describe("Integration: WebSocket Session Workflow", () => {
       sessionId: "test-session-1",
       requestId: "q-1",
       answer: "yes",
+      binding,
     });
 
-    // handleSessionAnswer forwards the optional approval `binding` as a 3rd arg
-    // (authority §"权限来源"); a message with no binding echoes null.
-    expect(resolveAnswer).toHaveBeenCalledWith("q-1", "yes", null);
+    // The authenticated channel forwards the opaque runtime `binding`.
+    // InteractionAdapter remains the sole authority that can accept it.
+    expect(resolveAnswer).toHaveBeenCalledWith("q-1", "yes", binding);
   });
 
   // ─── ws-server handles session messages in switch ───────────────────

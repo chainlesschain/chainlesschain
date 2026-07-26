@@ -128,9 +128,19 @@ final class BackgroundAgentsTest {
         Files.writeString(dir.resolve("bg-pq.json"),
                 "{\"id\":\"bg-pq\",\"status\":\"running\",\"startedAt\":1500000,"
                         + "\"heartbeatAt\":1999000,\"phase\":\"needs_input\","
-                        + "\"pendingQuestion\":{\"question\":\"Deploy to prod?\"}}");
+                        + "\"pendingQuestion\":{\"requestId\":\"request-1\","
+                        + "\"prompt\":\"Deploy to prod?\",\"multiSelect\":true,"
+                        + "\"options\":[{\"label\":\"yes\"},{\"label\":\"no\"}],"
+                        + "\"binding\":{\"backgroundAgentId\":\"bg-pq\","
+                        + "\"sessionId\":\"session-1\",\"turnId\":\"turn-1\","
+                        + "\"toolUseId\":\"tool-1\",\"sequence\":1}}}");
         BackgroundAgents.Session s = BackgroundAgents.list(dir, now, null).get(0);
         assertEquals("Deploy to prod?", s.pendingQuestion);
+        assertEquals("request-1", s.pendingQuestionRequestId);
+        assertEquals("turn-1", s.pendingQuestionBinding.get("turnId"));
+        assertEquals(1L, s.pendingQuestionBinding.get("sequence"));
+        assertEquals(2, s.pendingQuestionOptions.size());
+        assertTrue(s.pendingQuestionMultiSelect);
         String row = BackgroundAgents.formatRow(s, now);
         assertTrue(row.contains("waiting for input: Deploy to prod?"), row);
     }

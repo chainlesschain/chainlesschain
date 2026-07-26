@@ -12,12 +12,15 @@ import { RemoteCommandLedger } from "../../harness/remote-command-ledger.js";
 import {
   ORIGIN,
   assertCanApprove,
+  assertCanAnswerInteraction,
   describeAuthorityChain,
 } from "../../lib/agent-authority.js";
+import { hasCompleteInteractionBinding } from "../../lib/interaction-binding.js";
 
 const CLIENT_EVENT_SCOPES = Object.freeze({
   prompt: "prompt",
   "approval.resolve": "approve",
+  "question.answer": "prompt",
   interrupt: "interrupt",
 });
 
@@ -30,7 +33,8 @@ function audit(server, entry) {
 }
 
 /**
- * Apply a remote-client control event (prompt / approval.resolve / interrupt)
+ * Apply a remote-client control event (prompt / approval.resolve /
+ * question.answer / interrupt)
  * idempotently when it carries a stable `commandId`. This is the ACTUAL takeover
  * path — a paired mobile/web device driving the host agent — and it does NOT
  * flow through message-dispatcher's execute/stream ledger, so without this a
@@ -448,7 +452,7 @@ export async function handleRemoteSessionPublish(
       requiredScope || "observe",
     );
     // Runtime/output events are host-only. Remote clients may publish only the
-    // three explicitly scoped control event types above.
+    // explicitly scoped control event types above.
     if (!requiredScope && session.hostClientId !== clientId) {
       throw new Error("Only the host can publish runtime events");
     }
@@ -467,6 +471,24 @@ export async function handleRemoteSessionPublish(
           !message.event.content.trim())
       ) {
         throw new Error("prompt content is required");
+      }
+      if (message.event.type === "question.answer") {
+        if (
+          typeof message.event.requestId !== "string" ||
+          !message.event.requestId
+        ) {
+          throw new Error("question requestId is required");
+        }
+        if (!hasCompleteInteractionBinding(message.event.binding)) {
+          throw new Error("complete question binding is required");
+        }
+        assertCanAnswerInteraction({
+          origin: ORIGIN.REMOTE,
+          authenticated: true,
+          scopes: ["prompt"],
+          principalId: clientId,
+          sessionId: message.remoteSessionId,
+        });
       }
       // Authority (§"权限来源与跨 Agent 授权边界"): a remote *approve* is honored
       // only from an authenticated, approve-scoped device — the SINGLE
@@ -531,7 +553,9 @@ export async function handleRemoteSessionPublish(
               ? "control.prompt"
               : message.event.type === "approval.resolve"
                 ? "control.approval"
-                : "control.interrupt";
+                : message.event.type === "question.answer"
+                  ? "control.question"
+                  : "control.interrupt";
           audit(server, {
             sessionId: message.remoteSessionId,
             actor: clientId,
@@ -548,11 +572,23 @@ export async function handleRemoteSessionPublish(
                       authority: describeAuthorityChain(approvalEnvelope || {}),
                       forwarded: true,
                     }
-                  : { forwarded: true },
+                  : message.event.type === "question.answer"
+                    ? {
+                        requestId: message.event.requestId,
+                        authority: describeAuthorityChain({
+                          origin: ORIGIN.REMOTE,
+                          authenticated: true,
+                          scopes: ["prompt"],
+                          principalId: clientId,
+                          sessionId: message.remoteSessionId,
+                        }),
+                        forwarded: true,
+                      }
+                    : { forwarded: true },
           });
           // Hand the event to the host process. `message.event` carries any
-          // echoed approval binding, so the host gate can reject a stale /
-          // tampered verdict.
+          // echoed approval or interaction binding, so the host gate can
+          // reject a stale / tampered verdict.
           server._send(hostTarget.ws, {
             type: "remote-session-control",
             remoteSessionId: message.remoteSessionId,
@@ -598,6 +634,29 @@ export async function handleRemoteSessionPublish(
             // Echoed approval binding (if any): the host interaction gate rejects
             // a verdict whose binding doesn't match the pending request.
             binding: message.event.binding ?? null,
+          });
+        } else if (message.event.type === "question.answer") {
+          const authority = {
+            origin: ORIGIN.REMOTE,
+            authenticated: true,
+            scopes: ["prompt"],
+            principalId: clientId,
+            sessionId: message.remoteSessionId,
+          };
+          audit(server, {
+            sessionId: message.remoteSessionId,
+            actor: clientId,
+            action: "control.question",
+            detail: {
+              requestId: message.event.requestId,
+              authority: describeAuthorityChain(authority),
+            },
+          });
+          await handleSessionAnswer(server, message.id, ws, {
+            ...controlMessage,
+            requestId: message.event.requestId,
+            answer: message.event.answer ?? null,
+            binding: message.event.binding,
           });
         } else if (message.event.type === "interrupt") {
           audit(server, {

@@ -153,6 +153,8 @@ class HookRegistry extends EventEmitter {
       enabled = true,
       description = "",
       metadata = {},
+      environmentAllowlist = [],
+      envAllowlist = [],
     } = hookConfig;
 
     // 验证事件名称
@@ -195,6 +197,8 @@ class HookRegistry extends EventEmitter {
       enabled,
       description,
       metadata,
+      environmentAllowlist,
+      envAllowlist,
       registeredAt: Date.now(),
       executionCount: 0,
       errorCount: 0,

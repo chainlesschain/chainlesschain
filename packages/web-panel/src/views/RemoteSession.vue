@@ -99,6 +99,48 @@
     </a-card>
 
     <a-card
+      v-if="pendingQuestions.length"
+      title="Agent questions"
+      style="
+        background: var(--bg-card);
+        border-color: var(--warning-color, #faad14);
+        margin-bottom: 16px;
+      "
+    >
+      <a-list
+        size="small"
+        :data-source="pendingQuestions"
+        data-testid="question-cards"
+      >
+        <template #renderItem="{ item }">
+          <a-list-item>
+            <a-list-item-meta
+              :description="item.question || 'Input required'"
+            />
+            <template #actions>
+              <a-button
+                v-for="option in item.multiSelect ? [] : item.options"
+                :key="optionLabel(option)"
+                size="small"
+                @click="answerQuestion(item, optionValue(option))"
+              >
+                {{ optionLabel(option) }}
+              </a-button>
+              <a-button
+                v-if="item.multiSelect || !item.options.length"
+                type="primary"
+                size="small"
+                @click="answerQuestion(item)"
+              >
+                Answer
+              </a-button>
+            </template>
+          </a-list-item>
+        </template>
+      </a-list>
+    </a-card>
+
+    <a-card
       v-if="pendingApprovals.length"
       style="
         background: var(--bg-card);
@@ -203,7 +245,7 @@ const store = useRemoteSessionStore();
 // The relay reconnect loop is attempt-capped so it can't churn forever after
 // the user leaves this page; re-entering revives a given-up pairing.
 onMounted(() => store.resumeReconnect());
-const { status, events, error, transport, pendingApprovals } =
+const { status, events, error, transport, pendingApprovals, pendingQuestions } =
   storeToRefs(store);
 
 const pairingLink = ref("");
@@ -275,6 +317,40 @@ function respond(item, approved) {
 
 function respondPermission(card, approved) {
   store.approve(card.requestId, approved);
+}
+
+function optionLabel(option) {
+  if (option && typeof option === "object") {
+    return String(option.label ?? option.value ?? "");
+  }
+  return String(option ?? "");
+}
+
+function optionValue(option) {
+  if (option && typeof option === "object" && "value" in option) {
+    return option.value;
+  }
+  return optionLabel(option);
+}
+
+function answerQuestion(card, selected) {
+  let answer = selected;
+  if (answer === undefined) {
+    const labels = card.options.map(optionLabel).filter(Boolean);
+    const raw = window.prompt(
+      `${card.question || "Input required"}${
+        labels.length ? `\nOptions: ${labels.join(", ")}` : ""
+      }`,
+    );
+    if (raw === null) return;
+    answer = card.multiSelect
+      ? raw
+          .split(",")
+          .map((value) => value.trim())
+          .filter(Boolean)
+      : raw;
+  }
+  store.answerQuestion(card.requestId, answer);
 }
 
 function interrupt() {

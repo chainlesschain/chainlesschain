@@ -10,7 +10,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { executeTool, agentLoop } from "../../src/runtime/agent-core.js";
+import {
+  executeTool,
+  agentLoop,
+  emitToolHookLifecycle,
+  emitToolBatchHookLifecycle,
+} from "../../src/runtime/agent-core.js";
 
 let tmp, file;
 
@@ -109,6 +114,96 @@ describe("PostToolUse feedback", () => {
     );
     expect(res.error).toBeUndefined();
     expect(res.hookFeedback).toBe("reformat needed");
+  });
+});
+
+describe("Hooks v2 real tool lifecycle producers", () => {
+  it("emits PostToolUseFailure and FileChanged from settled tool outcomes", () => {
+    const emit = vi.fn();
+
+    expect(
+      emitToolHookLifecycle({
+        tool: "write_file",
+        args: { path: "note.txt" },
+        result: { ok: true, toolTelemetryRecord: { durationMs: 7 } },
+        sessionId: "s-1",
+        turnId: "t-1",
+        toolUseId: "u-1",
+        cwd: tmp,
+        emit,
+      }),
+    ).toBe(false);
+    expect(emit).toHaveBeenNthCalledWith(
+      1,
+      "PostToolUse",
+      expect.objectContaining({
+        session_id: "s-1",
+        turn_id: "t-1",
+        tool_use_id: "u-1",
+        tool_name: "write_file",
+        duration_ms: 7,
+      }),
+    );
+    expect(emit).toHaveBeenNthCalledWith(
+      2,
+      "FileChanged",
+      expect.objectContaining({
+        path: "note.txt",
+        operation: "write_file",
+      }),
+    );
+
+    emit.mockClear();
+    expect(
+      emitToolHookLifecycle({
+        tool: "read_file",
+        args: { path: "missing.txt" },
+        result: { error: "missing", code: "ENOENT" },
+        sessionId: "s-1",
+        turnId: "t-1",
+        toolUseId: "u-2",
+        cwd: tmp,
+        emit,
+      }),
+    ).toBe(true);
+    expect(emit).toHaveBeenCalledWith(
+      "PostToolUseFailure",
+      expect.objectContaining({
+        tool_use_id: "u-2",
+        error_code: "ENOENT",
+      }),
+    );
+    expect(emit).not.toHaveBeenCalledWith(
+      "FileChanged",
+      expect.anything(),
+    );
+  });
+
+  it("emits one PostToolBatch aggregate with bounded identity fields", () => {
+    const emit = vi.fn();
+    const payload = emitToolBatchHookLifecycle({
+      records: [
+        { tool: "read_file", toolUseId: "u-1", failed: false },
+        { tool: "list_dir", toolUseId: "u-2", failed: true },
+      ],
+      sessionId: "s-1",
+      turnId: "t-1",
+      cwd: tmp,
+      parallel: true,
+      emit,
+    });
+
+    expect(payload).toMatchObject({
+      session_id: "s-1",
+      turn_id: "t-1",
+      parallel: true,
+      total: 2,
+      succeeded: 1,
+      failed: 1,
+      tool_names: ["read_file", "list_dir"],
+      tool_use_ids: ["u-1", "u-2"],
+    });
+    expect(emit).toHaveBeenCalledWith("PostToolBatch", payload);
   });
 });
 

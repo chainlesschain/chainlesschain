@@ -385,6 +385,7 @@ export function generatePkgConfig(ctx) {
   const assets = [
     `${posixify(distDir)}/**/*`,
     `${posixify(templatesDir)}/**/*`,
+    `${posixify(cliRoot)}/src/lib/process-execution-broker/*.ps1`,
   ];
   if (prebuildsDir) assets.push(`${posixify(prebuildsDir)}/**/*`);
   // Project mode: bundle the collected .chainlesschain/ snapshot as an asset.

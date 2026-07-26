@@ -12,6 +12,7 @@ import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import {
   cleanupBgAttachments,
+  handleBgAnswer,
   handleBgAttach,
   handleBgDetach,
   handleBgList,
@@ -60,7 +61,12 @@ function fakeServer() {
   return { server, client };
 }
 
-async function startWorkerTransport({ token = "tok", onPrompt, onStop } = {}) {
+async function startWorkerTransport({
+  token = "tok",
+  onPrompt,
+  onStop,
+  onInteractionResponse,
+} = {}) {
   const bgId = `bg-${Date.now()}-${randomBytes(3).toString("hex")}`;
   const transport = await startBackgroundSessionServer({
     id: bgId,
@@ -69,6 +75,7 @@ async function startWorkerTransport({ token = "tok", onPrompt, onStop } = {}) {
     getStatus: () => ({ id: bgId, phase: "turn", turn: 1, interactive: true }),
     onPrompt: onPrompt || (() => ({ queued: 1 })),
     onStop: onStop || (() => {}),
+    onInteractionResponse,
   });
   servers.push(transport);
   writeBackgroundAgentState({
@@ -199,6 +206,72 @@ describe("bg-attach relay", () => {
       expect(transport.clientCount()).toBe(0);
     });
     expect(client._bgAttachments.size).toBe(0);
+  });
+
+  it("relays a bound interaction answer and rejects an unbound WS message", async () => {
+    const responses = [];
+    const { bgId } = await startWorkerTransport({
+      onInteractionResponse: (response) => {
+        responses.push(response);
+        return { accepted: true, duplicate: false };
+      },
+    });
+    const { server } = fakeServer();
+    await handleBgAttach(server, "c1", "1", {}, { bgId });
+    const binding = {
+      backgroundAgentId: bgId,
+      sessionId: "session-ws",
+      turnId: "turn-ws",
+      toolUseId: "tool-ws",
+      sequence: 1,
+    };
+
+    await handleBgAnswer(
+      server,
+      "c1",
+      "2",
+      {},
+      {
+        bgId,
+        requestId: "request-ws",
+        binding,
+        answer: "yes",
+      },
+    );
+    await vi.waitFor(() => {
+      expect(responses).toEqual([
+        {
+          requestId: "request-ws",
+          binding,
+          answer: "yes",
+          error: undefined,
+        },
+      ]);
+    });
+    expect(server.sent).toContainEqual({
+      id: "2",
+      type: "bg-answer",
+      bgId,
+      requestId: "request-ws",
+      sent: true,
+    });
+
+    await handleBgAnswer(
+      server,
+      "c1",
+      "3",
+      {},
+      {
+        bgId,
+        requestId: "request-unbound",
+        answer: "no",
+      },
+    );
+    expect(server.sent.at(-1)).toMatchObject({
+      type: "error",
+      code: "NO_INTERACTION_BINDING",
+    });
+    expect(responses).toHaveLength(1);
   });
 
   it("rejects prompt/stop-turn without an attachment and attach on dead sessions", async () => {

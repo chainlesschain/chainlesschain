@@ -12,6 +12,8 @@ import {
   authorityRank,
   canApprove,
   canManageSession,
+  canAnswerInteraction,
+  assertCanAnswerInteraction,
   assertCanApprove,
   normalizeToolArgs,
   approvalBindingDigest,
@@ -141,6 +143,41 @@ describe("canApprove / assertCanApprove", () => {
       authorityRank(AUTHORITY.MANAGE),
     );
     expect(authorityRank("bogus")).toBe(0);
+  });
+});
+
+describe("canAnswerInteraction / assertCanAnswerInteraction", () => {
+  it("allows the local user and authenticated prompt-scoped remote devices", () => {
+    expect(canAnswerInteraction({ origin: ORIGIN.USER })).toBe(true);
+    expect(
+      canAnswerInteraction({
+        origin: ORIGIN.REMOTE,
+        authenticated: true,
+        scopes: ["prompt"],
+      }),
+    ).toBe(true);
+    expect(() =>
+      assertCanAnswerInteraction({
+        origin: ORIGIN.REMOTE,
+        authenticated: true,
+        scopes: ["approve"],
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects observe-only, unauthenticated, and non-human origins", () => {
+    for (const envelope of [
+      { origin: ORIGIN.REMOTE, authenticated: true, scopes: ["observe"] },
+      { origin: ORIGIN.REMOTE, authenticated: false, scopes: ["prompt"] },
+      { origin: ORIGIN.MODEL },
+      { origin: ORIGIN.SUBAGENT },
+      { origin: ORIGIN.CHANNEL },
+    ]) {
+      expect(canAnswerInteraction(envelope)).toBe(false);
+      expect(() => assertCanAnswerInteraction(envelope)).toThrow(
+        /not authorized to answer interaction/,
+      );
+    }
   });
 });
 

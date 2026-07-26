@@ -4,8 +4,7 @@
  * Platform enforcement currently available:
  * - macOS: Seatbelt sandbox-exec profiles
  * - Linux: prlimit resource-limit wrapper
- * - Windows: explicitly unavailable until a native Job Object + restricted
- *   token adapter is installed
+ * - Windows: Win32 Job Object + restricted-token wrapper
  *
  * Security model:
  * Adapters return a truthful spawn plan. An unavailable primitive is never
@@ -19,6 +18,8 @@ import os from "node:os";
 import path from "node:path";
 import * as fs from "node:fs";
 import crypto from "node:crypto";
+import { fileURLToPath } from "node:url";
+const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_RUNTIME = Object.freeze({
   platform: os.platform(),
   fs,
@@ -27,6 +28,8 @@ const DEFAULT_RUNTIME = Object.freeze({
   randomBytes: (size) => crypto.randomBytes(size),
   resolvePath: (value) => path.resolve(value),
   joinPath: (...parts) => path.join(...parts),
+  windowsDir: () => process.env.WINDIR || "C:\\Windows",
+  moduleDir: MODULE_DIR,
 });
 
 function resolveRuntime(overrides = {}) {
@@ -45,11 +48,24 @@ function resolveRuntime(overrides = {}) {
  * sandbox executable itself is always spawned directly.
  */
 function normalizeWrappedInvocation(command, args, spawnOpts, platform) {
-  if (!spawnOpts?.shell || platform === "win32") {
+  if (!spawnOpts?.shell) {
     return {
       command,
       args: [...(args || [])],
       options: { ...(spawnOpts || {}) },
+    };
+  }
+
+  if (platform === "win32") {
+    const shell =
+      typeof spawnOpts.shell === "string"
+        ? spawnOpts.shell
+        : process.env.ComSpec || "C:\\Windows\\System32\\cmd.exe";
+    const shellCommand = [command, ...(args || [])].map(String).join(" ");
+    return {
+      command: shell,
+      args: ["/d", "/s", "/c", shellCommand],
+      options: { ...spawnOpts, shell: false },
     };
   }
 
@@ -264,12 +280,72 @@ export function applyMacSandbox(
 }
 
 // ---------------------------------------------------------------------------
-// Windows Job Object availability
+// Windows Job Object + Restricted Token
 // ---------------------------------------------------------------------------
 
 /**
- * Report Windows sandbox availability. Node's child_process API cannot create
- * and synchronously assign a Job Object or restricted token by itself.
+ * Materialize the shipped PowerShell/Win32 adapter into a physical temporary
+ * file. This is required for pkg builds where source assets live in a virtual
+ * snapshot that an external powershell.exe process cannot open directly.
+ */
+function materializeWindowsAdapter(runtime) {
+  const sourcePath =
+    runtime.windowsAdapterScriptPath ||
+    runtime.joinPath(runtime.moduleDir, "windows-sandbox.ps1");
+  let content = runtime.windowsAdapterContent;
+  if (content === undefined) {
+    if (!runtime.fs.existsSync(sourcePath)) {
+      return { reason: "windows_native_adapter_missing" };
+    }
+    try {
+      content = runtime.fs.readFileSync(sourcePath, "utf8");
+    } catch {
+      return { reason: "windows_native_adapter_unreadable" };
+    }
+  }
+  const adapterHash = crypto
+    .createHash("sha256")
+    .update(String(content))
+    .digest("hex")
+    .slice(0, 24);
+  const cacheExecutable = runtime.joinPath(
+    runtime.tmpdir(),
+    `chainless-win-sandbox-${adapterHash}.exe`,
+  );
+  if (runtime.fs.existsSync(cacheExecutable)) {
+    return {
+      cacheExecutable,
+      bootstrapRequired: false,
+    };
+  }
+  const scriptPath = runtime.joinPath(
+    runtime.tmpdir(),
+    `chainless-win-sandbox-${runtime.randomBytes(12).toString("hex")}.ps1`,
+  );
+  try {
+    runtime.fs.writeFileSync(scriptPath, content, { mode: 0o600 });
+  } catch {
+    return { reason: "windows_native_adapter_materialize_failed" };
+  }
+  return {
+    scriptPath,
+    cacheExecutable,
+    bootstrapRequired: true,
+    cleanup: () => {
+      try {
+        runtime.fs.unlinkSync(scriptPath);
+      } catch {
+        // The temporary adapter may already have been removed.
+      }
+    },
+  };
+}
+
+/**
+ * Wrap a target with the built-in Windows PowerShell host. The shipped script
+ * P/Invokes Win32 to create a restricted primary token, starts the target
+ * suspended, assigns it to a kill-on-close Job Object, then resumes it. The
+ * target therefore cannot run before both native boundaries are active.
  *
  * @param {string} command
  * @param {string[]} args
@@ -298,19 +374,128 @@ export function applyWindowsSandbox(
     });
   }
 
-  // Node does not expose Job Object or restricted-token primitives. Mark the
-  // platform unavailable instead of treating CREATE_NO_WINDOW or an
-  // environment marker as a security boundary. A future native adapter may
-  // return an applied plan with a synchronous postSpawn step.
+  // Node's Windows IPC channel is an extra CRT file descriptor (normally fd
+  // 3), not a standard handle. The managed CreateProcessAsUser adapter can
+  // safely inherit stdin/stdout/stderr, but cannot reproduce Node/libuv's
+  // STARTUPINFO reserved-descriptor table for an intermediate wrapper.
+  // Claiming enforcement here breaks process.send() with EPIPE. Keep the plan
+  // truthful: ordinary mode falls back to the original Node spawn, while
+  // CC_SANDBOX_STRICT fails closed before starting an unisolated IPC child.
+  if (
+    Array.isArray(spawnOpts?.stdio) &&
+    spawnOpts.stdio.some((entry) => entry === "ipc")
+  ) {
+    return createSandboxPlan({
+      ...base,
+      reason: "windows_node_ipc_descriptor_unsupported",
+    });
+  }
+
+  // The helper owns the Job Object and therefore remains as an intermediate
+  // process for the target's lifetime. Node would expose that helper pid from
+  // spawn(), which violates detached supervisors' process-identity contract:
+  // callers must be able to watch and signal the actual worker they launched.
+  // Until the adapter provides a target-pid/handle handshake, do not claim it
+  // can preserve detached semantics. Non-strict mode uses native spawn;
+  // strict mode fails closed.
+  if (spawnOpts?.detached === true) {
+    return createSandboxPlan({
+      ...base,
+      reason: "windows_detached_process_identity_unsupported",
+    });
+  }
+
+  const adapter = materializeWindowsAdapter(runtime);
+  if (!adapter.cacheExecutable) {
+    return createSandboxPlan({
+      ...base,
+      reason: adapter.reason,
+    });
+  }
+
+  const invocation = normalizeWrappedInvocation(
+    command,
+    args,
+    spawnOpts,
+    runtime.platform,
+  );
+  const profile = sandboxOpts.profileName || "default";
+  const limits = sandboxOpts.limits || {};
+  const payload = Buffer.from(
+    JSON.stringify({
+      cpuSeconds: Number(limits.cpu || 0),
+      processMemoryBytes: Number(
+        limits.as || (profile === "strict" ? 256 * 1024 * 1024 : 0),
+      ),
+      activeProcessLimit: profile === "strict" ? 16 : 64,
+      command: invocation.command,
+      args: invocation.args,
+    }),
+    "utf8",
+  ).toString("base64");
+  const helperArgs = [payload];
+  const options = {
+    ...invocation.options,
+    shell: false,
+    env: {
+      ...(invocation.options.env || process.env),
+      CC_WINDOWS_SANDBOXED: "1",
+      CC_WINDOWS_SANDBOX_PROFILE: profile,
+    },
+  };
+
+  if (!adapter.bootstrapRequired) {
+    return createSandboxPlan({
+      ...base,
+      applied: true,
+      enforcement: "windows-job-restricted-token",
+      command: adapter.cacheExecutable,
+      args: helperArgs,
+      options,
+    });
+  }
+
+  const powershell = runtime.joinPath(
+    runtime.windowsDir(),
+    "System32",
+    "WindowsPowerShell",
+    "v1.0",
+    "powershell.exe",
+  );
+  if (!runtime.fs.existsSync(powershell)) {
+    adapter.cleanup?.();
+    return createSandboxPlan({
+      ...base,
+      reason: "windows_powershell_host_unavailable",
+    });
+  }
+
   return createSandboxPlan({
     ...base,
-    reason: "windows_native_job_object_unavailable",
+    applied: true,
+    enforcement: "windows-job-restricted-token",
+    command: powershell,
+    args: [
+      "-NoLogo",
+      "-NoProfile",
+      "-NonInteractive",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      adapter.scriptPath,
+      "-CacheExecutable",
+      adapter.cacheExecutable,
+      ...helperArgs,
+    ],
+    options,
+    cleanup: adapter.cleanup,
   });
 }
 
 /**
- * Reject an attempted Windows post-spawn association until a native adapter is
- * available.
+ * Retained for injected adapters that elect to perform synchronous post-spawn
+ * enforcement. The built-in wrapper completes enforcement before target resume
+ * and therefore does not require this path.
  *
  * @param {ChildProcess} proc - The spawned child process
  * @param {Object} sandboxResult - Result from applyWindowsSandbox
@@ -324,11 +509,9 @@ export function postSpawnWindowsSandbox(
   if (runtime.platform !== "win32" || !sandboxResult?.postSpawn?.required) {
     return;
   }
-  const error = new Error(
-    "Windows native Job Object enforcement is unavailable",
-  );
-  error.code = "ERR_WINDOWS_SANDBOX_UNAVAILABLE";
-  throw error;
+  if (typeof sandboxResult.postSpawnWindows === "function") {
+    return sandboxResult.postSpawnWindows(proc);
+  }
 }
 
 // ---------------------------------------------------------------------------

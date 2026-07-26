@@ -198,7 +198,8 @@ export function startBackgroundSessionServer(opts) {
             case "interaction_response": {
               try {
                 // Support both field names: requestId (client) and intId (wire legacy)
-                const { requestId, intId, answer, result, error } = message;
+                const { requestId, intId, binding, answer, result, error } =
+                  message;
                 const resolvedId = requestId || intId;
                 if (!resolvedId) {
                   writeMessage(socket, {
@@ -208,14 +209,23 @@ export function startBackgroundSessionServer(opts) {
                   return;
                 }
                 // Single-object callback matching worker expectation: { requestId, answer, error }
-                onInteractionResponse?.({
+                const settlement = onInteractionResponse?.({
                   requestId: resolvedId,
+                  binding,
                   answer: answer ?? result,
                   error,
                 });
                 writeMessage(socket, {
                   type: "received",
                   requestId: resolvedId,
+                  accepted:
+                    typeof settlement === "object"
+                      ? settlement.accepted === true
+                      : settlement === true,
+                  duplicate:
+                    typeof settlement === "object"
+                      ? settlement.duplicate === true
+                      : false,
                 });
               } catch (err) {
                 writeMessage(socket, {

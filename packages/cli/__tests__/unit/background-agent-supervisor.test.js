@@ -27,6 +27,10 @@ import {
   stopBackgroundAgent,
   writeBackgroundAgentState,
 } from "../../src/lib/background-agent-supervisor.js";
+import {
+  BACKGROUND_INTERACTION_JOURNAL_EVENT,
+  _deps as interactionJournalDeps,
+} from "../../src/lib/background-interaction-journal.js";
 import { existsSync } from "node:fs";
 
 let dir;
@@ -863,6 +867,82 @@ describe("pid identity — reuse detection (Gap 1, supervisor gap 2026-07-11)", 
 });
 
 describe("orphan agent reclaim (Gap 2, supervisor gap 2026-07-11)", () => {
+  it("rejects a lost worker's pending interaction exactly once", () => {
+    const originalAppend = interactionJournalDeps.appendEvent;
+    const originalRead = interactionJournalDeps.readEvents;
+    const events = [];
+    interactionJournalDeps.appendEvent = vi.fn((sessionId, type, data) => {
+      events.push({ sessionId, type, data: structuredClone(data) });
+    });
+    interactionJournalDeps.readEvents = vi.fn(() =>
+      events.map(({ type, data }) => ({ type, data: structuredClone(data) })),
+    );
+
+    try {
+      const now = Date.now();
+      writeBackgroundAgentState({
+        id: "bg-interaction-lost",
+        sessionId: "session-interaction-lost",
+        status: "running",
+        phase: "needs_input",
+        pid: 999999999,
+        workerPid: 999999999,
+        startedAt: now - 60_000,
+        heartbeatAt: now,
+        pendingQuestion: {
+          requestId: "request-lost",
+          question: "Continue?",
+          binding: {
+            backgroundAgentId: "bg-interaction-lost",
+            sessionId: "session-interaction-lost",
+            turnId: "turn-lost",
+            toolUseId: "tool-lost",
+            sequence: 1,
+          },
+          askedAt: now - 1_000,
+        },
+      });
+
+      const first = effectiveBackgroundAgentState(
+        readBackgroundAgentState("bg-interaction-lost"),
+        { now },
+      );
+      expect(first).toMatchObject({
+        status: "lost",
+        lostReason: "process-exited",
+        phase: null,
+        pendingQuestion: null,
+        interactionRecovery: {
+          status: "rejected",
+          requestIds: ["request-lost"],
+          recoveredAt: now,
+        },
+      });
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        sessionId: "session-interaction-lost",
+        type: BACKGROUND_INTERACTION_JOURNAL_EVENT,
+      });
+      expect(events[0].data.records[0]).toMatchObject({
+        requestId: "request-lost",
+        status: "rejected",
+        settlement: {
+          error: { code: "INTERACTION_WORKER_LOST" },
+        },
+      });
+
+      const second = effectiveBackgroundAgentState(
+        readBackgroundAgentState("bg-interaction-lost"),
+        { now: now + 1 },
+      );
+      expect(second.interactionRecovery).toEqual(first.interactionRecovery);
+      expect(events).toHaveLength(1);
+    } finally {
+      interactionJournalDeps.appendEvent = originalAppend;
+      interactionJournalDeps.readEvents = originalRead;
+    }
+  });
+
   it("reaps the recorded agent child when the worker is lost (dead worker pid)", () => {
     const now = Date.now();
     writeBackgroundAgentState({

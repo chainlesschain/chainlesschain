@@ -202,6 +202,21 @@ async function handleMessage(vscode, msg) {
     case "stopTurn":
       if (_attach) _attach.handle.stopTurn();
       return;
+    case "answerInteraction": {
+      if (
+        _attach &&
+        _attach.id === String(msg.id || "") &&
+        msg.binding &&
+        typeof msg.binding === "object"
+      ) {
+        _attach.handle.answerInteraction(
+          String(msg.requestId || ""),
+          msg.binding,
+          msg.answer === undefined ? null : msg.answer,
+        );
+      }
+      return;
+    }
     case "stop": {
       if (_attach && _attach.id === msg.id) detach({ notify: false });
       const r = await runCliJson(vscode, [
@@ -434,10 +449,27 @@ function renderHtml() {
     else if (m.type==='bg-log' && m.id===attachedId){ appendLog(m.chunk); }
     else if (m.type==='bg-event' && m.id===attachedId){
       const e = m.event||{};
+      if (e.type==='interaction_request' && e.requestId && e.binding){
+        const opts = Array.isArray(e.options) ? e.options : [];
+        const labels = opts.map(o => typeof o==='string' ? o : (o&&o.label!=null ? String(o.label) : String(o)));
+        const suffix = labels.length ? ('\\nOptions: '+labels.join(', ')) : '';
+        const raw = prompt(String(e.question||e.prompt||'Agent needs your input')+suffix);
+        const answer = e.multiSelect && raw!=null
+          ? raw.split(',').map(x=>x.trim()).filter(Boolean)
+          : raw;
+        vscode.postMessage({
+          command:'answerInteraction',
+          id:attachedId,
+          requestId:e.requestId,
+          binding:e.binding,
+          answer
+        });
+      }
       const line = e.type==='turn-started' ? ('turn '+e.turn+' started'+(e.prompt?(': '+e.prompt):''))
         : e.type==='turn-ended' ? ('turn '+e.turn+' ended (exit '+e.exitCode+')')
         : e.type==='idle' ? 'session idle — type a follow-up prompt'
         : e.type==='accepted' ? ('prompt queued (#'+e.queued+')')
+        : e.type==='interaction_request' ? 'answered pending question'
         : e.type==='transport-closed' ? 'session ended — connection closed'
         : e.type==='error' ? ('error: '+(e.message||'')) : e.type;
       document.getElementById('evt').textContent = line;

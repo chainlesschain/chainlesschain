@@ -182,6 +182,7 @@ export function createWsMessageDispatcher(server) {
         "bg-view": () => server._handleBgView(id, ws, message),
         "bg-attach": () => server._handleBgAttach(clientId, id, ws, message),
         "bg-prompt": () => server._handleBgPrompt(clientId, id, ws, message),
+        "bg-answer": () => server._handleBgAnswer(clientId, id, ws, message),
         "bg-stop-turn": () =>
           server._handleBgStopTurn(clientId, id, ws, message),
         "bg-detach": () => server._handleBgDetach(clientId, id, ws, message),

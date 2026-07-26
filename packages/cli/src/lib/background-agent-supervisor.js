@@ -20,6 +20,7 @@ import {
   finishAgentWorktree,
   validateAgentWorktree,
 } from "./agent-worktree.js";
+import { rejectPendingBackgroundInteractions } from "./background-interaction-journal.js";
 import executionBroker from "./process-execution-broker/index.js";
 
 export const DEFAULT_HEARTBEAT_INTERVAL_MS = 5000;
@@ -464,6 +465,67 @@ export function effectiveBackgroundAgentState(state, options = {}) {
         /* best-effort */
       }
     }
+    if (
+      options.persist !== false &&
+      state.sessionId &&
+      !isSameProcess(state.pid, state.startedAt)
+    ) {
+      const pending = state.pendingQuestion;
+      const requestId = pending?.requestId || pending?.intId;
+      try {
+        const recovery = rejectPendingBackgroundInteractions(
+          state.sessionId,
+          state.id,
+          {
+            fallbackRequest: requestId
+              ? {
+                  requestId,
+                  binding: pending.binding,
+                  payload: {
+                    kind: "question",
+                    question: pending.question || pending.prompt || "",
+                    options: pending.options || null,
+                    multiSelect: pending.multiSelect === true,
+                    timeoutMs: pending.timeoutMs,
+                  },
+                  createdAt: pending.askedAt,
+                }
+              : null,
+            code: "INTERACTION_WORKER_LOST",
+            message:
+              "The background worker was lost before the interaction settled",
+          },
+        );
+        const recoveredRecord = requestId
+          ? recovery.journal.get(requestId)
+          : null;
+        if (
+          recovery.changed ||
+          (recoveredRecord && recoveredRecord.status !== "pending")
+        ) {
+          next = {
+            ...next,
+            phase: null,
+            pendingQuestion: null,
+            interactionRecovery: {
+              status: "rejected",
+              requestIds: recovery.rejected.map((record) => record.requestId),
+              recoveredAt: t,
+            },
+          };
+        }
+      } catch (error) {
+        next = {
+          ...next,
+          interactionRecovery: {
+            status: "failed",
+            code: error?.code || "INTERACTION_RECOVERY_FAILED",
+            message: error?.message || String(error),
+            recoveredAt: t,
+          },
+        };
+      }
+    }
     if (options.persist !== false) {
       try {
         writeBackgroundAgentState(next);
@@ -880,8 +942,13 @@ export function launchBackgroundAgent({
   const current = readBackgroundAgentState(id) || state;
   const withPid = {
     ...current,
-    pid: child.pid,
-    workerPid: child.pid,
+    // A platform wrapper (notably the Windows Job Object adapter) can return
+    // from spawn after the real worker has already claimed the state file.
+    // Preserve that authoritative process.pid instead of racing it back to
+    // the wrapper pid. With an ordinary direct spawn both fields are still
+    // null here and are initialized from child.pid as before.
+    pid: current.pid ?? child.pid,
+    workerPid: current.workerPid ?? child.pid,
   };
   writeBackgroundAgentState(withPid);
   return withPid;

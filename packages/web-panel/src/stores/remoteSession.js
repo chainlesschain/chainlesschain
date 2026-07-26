@@ -67,6 +67,9 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
   // opened by `permission.request`, cleared by `permission.resolved` or an
   // answer sent from this panel.
   const pendingApprovals = ref([]);
+  // Human questions carry a runtime-owned binding. Keep it opaque and echo
+  // the stored value; UI input can never replace the authority tuple.
+  const pendingQuestions = ref([]);
 
   // Non-reactive connection internals (persist for the singleton store).
   let socket = null;
@@ -104,6 +107,10 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
   // ── shared event ingestion (both transports) ─────────────────────────────
 
   function recordEvent(event) {
+    const payload =
+      event?.payload && typeof event.payload === "object"
+        ? event.payload
+        : event;
     if (event?.type === "permission.request") {
       const requestId = event.requestId || event.approvalId || null;
       if (
@@ -124,6 +131,39 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
     } else if (event?.type === "permission.resolved") {
       const requestId = event.requestId || event.approvalId || null;
       if (requestId) clearApprovalCard(requestId);
+    } else if (
+      ["question_request", "question.requested", "question"].includes(
+        event?.type,
+      )
+    ) {
+      const requestId = payload?.requestId || payload?.id || event?.id || null;
+      const binding =
+        payload?.binding &&
+        typeof payload.binding === "object" &&
+        !Array.isArray(payload.binding)
+          ? payload.binding
+          : null;
+      if (
+        requestId &&
+        binding &&
+        !pendingQuestions.value.some((card) => card.requestId === requestId)
+      ) {
+        pendingQuestions.value = [
+          ...pendingQuestions.value,
+          {
+            requestId,
+            question: payload.question || payload.prompt || "",
+            options: Array.isArray(payload.options) ? payload.options : [],
+            multiSelect: payload.multiSelect === true,
+            binding,
+          },
+        ];
+      }
+    } else if (
+      ["question_resolved", "question.resolved"].includes(event?.type)
+    ) {
+      const requestId = payload?.requestId || payload?.id || event?.id || null;
+      if (requestId) clearQuestionCard(requestId);
     }
     seq += 1;
     events.value = [
@@ -134,6 +174,12 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
 
   function clearApprovalCard(requestId) {
     pendingApprovals.value = pendingApprovals.value.filter(
+      (card) => card.requestId !== requestId,
+    );
+  }
+
+  function clearQuestionCard(requestId) {
+    pendingQuestions.value = pendingQuestions.value.filter(
       (card) => card.requestId !== requestId,
     );
   }
@@ -551,6 +597,41 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
     }
   }
 
+  function answerQuestion(requestId, answer) {
+    if (!requestId) return;
+    const card =
+      pendingQuestions.value.find((item) => item.requestId === requestId) ||
+      null;
+    if (!card?.binding) return;
+    clearQuestionCard(requestId);
+    const event = {
+      type: "question.answer",
+      requestId,
+      answer,
+      binding: card.binding,
+    };
+    if (transport.value === "direct") {
+      if (!directSocket) {
+        error.value = "Remote Session is not connected";
+        pendingQuestions.value = [...pendingQuestions.value, card];
+        return;
+      }
+      sendDirectControl(event).then((result) => {
+        if (
+          result === null &&
+          !pendingQuestions.value.some((item) => item.requestId === requestId)
+        ) {
+          pendingQuestions.value = [...pendingQuestions.value, card];
+        }
+      });
+      return;
+    }
+    if (!sendControl(event)) {
+      error.value = "Remote Session is not connected";
+      pendingQuestions.value = [...pendingQuestions.value, card];
+    }
+  }
+
   function interrupt() {
     if (transport.value === "direct") {
       if (directSocket) sendDirectControl({ type: "interrupt" });
@@ -607,9 +688,11 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
     transport,
     scopes,
     pendingApprovals,
+    pendingQuestions,
     connect,
     sendPrompt,
     approve,
+    answerQuestion,
     interrupt,
     updatePushCredentials,
     resumeReconnect,

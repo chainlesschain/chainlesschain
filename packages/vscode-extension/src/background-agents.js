@@ -235,12 +235,25 @@ function listBackgroundSessions({
             question:
               typeof state.pendingQuestion.question === "string"
                 ? state.pendingQuestion.question
-                : "",
+                : typeof state.pendingQuestion.prompt === "string"
+                  ? state.pendingQuestion.prompt
+                  : "",
+            requestId:
+              typeof state.pendingQuestion.requestId === "string"
+                ? state.pendingQuestion.requestId
+                : typeof state.pendingQuestion.intId === "string"
+                  ? state.pendingQuestion.intId
+                  : null,
+            binding:
+              state.pendingQuestion.binding &&
+              typeof state.pendingQuestion.binding === "object" &&
+              !Array.isArray(state.pendingQuestion.binding)
+                ? state.pendingQuestion.binding
+                : null,
             options: Array.isArray(state.pendingQuestion.options)
-              ? state.pendingQuestion.options.filter(
-                  (o) => typeof o === "string",
-                )
+              ? state.pendingQuestion.options
               : [],
+            multiSelect: state.pendingQuestion.multiSelect === true,
           }
         : null;
     sessions.push({

@@ -38,7 +38,7 @@ public final class BackgroundSessionPipeClient {
     /** Reply types that settle each request kind (broadcasts are skipped). */
     private static final Set<String> HELLO_REPLIES = Set.of("hello");
     private static final Set<String> ACTION_REPLIES =
-            Set.of("accepted", "stopping", "status", "error");
+            Set.of("accepted", "stopping", "status", "received", "error");
 
     /**
      * Send one control message and return the worker's settling reply

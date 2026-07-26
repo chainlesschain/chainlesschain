@@ -671,7 +671,7 @@ export const useWsStore = defineStore("ws", () => {
   }
 
   // Answer an interactive question
-  function answerQuestion(sessionId, requestId, answer) {
+  function answerQuestion(sessionId, requestId, answer, binding = null) {
     if (socket.value?.readyState !== WebSocket.OPEN) return;
     socket.value.send(
       JSON.stringify({
@@ -680,6 +680,7 @@ export const useWsStore = defineStore("ws", () => {
         sessionId,
         requestId,
         answer,
+        ...(binding && typeof binding === "object" ? { binding } : {}),
       }),
     );
   }

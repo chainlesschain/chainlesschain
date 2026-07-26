@@ -147,6 +147,43 @@ describe("remoteSession store", () => {
     expect(active.controls.at(-1)).toMatchObject({ type: "interrupt" });
   });
 
+  it("answers a question with the exact runtime-owned binding", () => {
+    const store = useRemoteSessionStore();
+    const active = connectAndOpen(store);
+    const binding = {
+      backgroundAgentId: "bg-1",
+      sessionId: "agent-1",
+      turnId: "turn-1",
+      toolUseId: "tool-1",
+      sequence: 1,
+    };
+
+    active.pushEvent({
+      type: "question_request",
+      id: "question-1",
+      question: "Continue?",
+      options: [{ label: "yes" }, { label: "no" }],
+      binding,
+    });
+    expect(store.pendingQuestions).toEqual([
+      expect.objectContaining({
+        requestId: "question-1",
+        question: "Continue?",
+        binding,
+      }),
+    ]);
+
+    store.answerQuestion("question-1", "yes");
+
+    expect(store.pendingQuestions).toEqual([]);
+    expect(active.controls.at(-1)).toMatchObject({
+      type: "question.answer",
+      requestId: "question-1",
+      answer: "yes",
+      binding,
+    });
+  });
+
   it("stamps every control event with a commandId + monotonic seq (idempotency)", () => {
     // The relay is at-least-once (offline-message redelivery): the host dedups
     // via event.commandId in its RemoteCommandLedger, so every control must

@@ -95,6 +95,7 @@ import {
 import { handleLlmChat } from "./llm-chat-protocol.js";
 import {
   cleanupBgAttachments,
+  handleBgAnswer,
   handleBgAttach,
   handleBgDetach,
   handleBgList,
@@ -569,7 +570,8 @@ export class ChainlessChainWSServer extends EventEmitter {
       }
       const rulesMod = await import("../../lib/permission-rules.cjs");
       const mod = rulesMod.default || rulesMod;
-      if (!mod.parseRule(message.rule)) throw new Error("invalid permission rule");
+      if (!mod.parseRule(message.rule))
+        throw new Error("invalid permission rule");
       const { addRule } = await import("../../lib/settings-loader.cjs");
       const scope = ["project", "local", "user"].includes(message.scope)
         ? message.scope
@@ -765,6 +767,11 @@ export class ChainlessChainWSServer extends EventEmitter {
   /** @private — send a follow-up prompt into an attached background session */
   async _handleBgPrompt(clientId, id, ws, message) {
     return handleBgPrompt(this, clientId, id, ws, message);
+  }
+
+  /** @private — answer a bound interaction in an attached background session */
+  async _handleBgAnswer(clientId, id, ws, message) {
+    return handleBgAnswer(this, clientId, id, ws, message);
   }
 
   /** @private — stop the current turn of an attached background session */

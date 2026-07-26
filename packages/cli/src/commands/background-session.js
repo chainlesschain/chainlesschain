@@ -152,7 +152,7 @@ async function followBackgroundAgent(id, options = {}) {
   }
 
   logger.log(chalk.gray(`Attached to ${id}. Streaming logs; Ctrl-C detaches.`));
-   
+
   while (true) {
     await new Promise((resolve) => setTimeout(resolve, 1000));
     const next = readLogFromOffset(logFile, offset);
@@ -374,6 +374,7 @@ export async function interactiveAttach(id, state, options = {}) {
         options: preExistingQuestion.options,
         multiSelect: preExistingQuestion.multiSelect,
         timeoutMs: preExistingQuestion.timeoutMs,
+        binding: preExistingQuestion.binding,
         _deferred: true,
       });
     });

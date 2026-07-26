@@ -13,6 +13,16 @@
  */
 
 import { randomUUID } from "node:crypto";
+import {
+  hasCompleteInteractionBinding,
+  normalizeInteractionBinding,
+  sameInteractionBinding,
+} from "./interaction-binding.js";
+
+export {
+  normalizeInteractionBinding,
+  sameInteractionBinding,
+} from "./interaction-binding.js";
 
 export const BACKGROUND_INTERACTION_PROTOCOL_VERSION = 1;
 export const DEFAULT_BACKGROUND_INTERACTION_TIMEOUT_MS = 60_000;
@@ -30,31 +40,6 @@ function asNullableString(value) {
   return String(value);
 }
 
-function normalizeBinding(binding = {}) {
-  return {
-    backgroundAgentId: asNullableString(binding.backgroundAgentId),
-    sessionId: asNullableString(binding.sessionId),
-    turnId: asNullableString(binding.turnId),
-    toolUseId: asNullableString(binding.toolUseId),
-    sequence:
-      Number.isSafeInteger(binding.sequence) && binding.sequence > 0
-        ? binding.sequence
-        : null,
-  };
-}
-
-function sameBinding(left, right) {
-  const a = normalizeBinding(left);
-  const b = normalizeBinding(right);
-  return (
-    a.backgroundAgentId === b.backgroundAgentId &&
-    a.sessionId === b.sessionId &&
-    a.turnId === b.turnId &&
-    a.toolUseId === b.toolUseId &&
-    a.sequence === b.sequence
-  );
-}
-
 function validRequest(message) {
   return (
     message &&
@@ -65,12 +50,16 @@ function validRequest(message) {
     message.requestId.length <= 256 &&
     message.payload &&
     typeof message.payload === "object" &&
-    normalizeBinding(message.binding).sequence !== null
+    hasCompleteInteractionBinding(message.binding)
   );
 }
 
 function sendIpc(target, message, onError = () => {}) {
-  if (!target || typeof target.send !== "function" || target.connected === false)
+  if (
+    !target ||
+    typeof target.send !== "function" ||
+    target.connected === false
+  )
     return false;
   try {
     target.send(message, (error) => {
@@ -138,7 +127,8 @@ export function createBackgroundInteractionClient(options = {}) {
       return;
     }
     const entry = pending.get(message.requestId);
-    if (!entry || !sameBinding(entry.binding, message.binding)) return;
+    if (!entry || !sameInteractionBinding(entry.binding, message.binding))
+      return;
 
     if (message.status === "resolved") {
       settle(entry, entry.resolve, message.answer);
@@ -170,7 +160,7 @@ export function createBackgroundInteractionClient(options = {}) {
 
       sequence += 1;
       const requestId = `${backgroundAgentId}:${idFactory()}`;
-      const binding = normalizeBinding({
+      const binding = normalizeInteractionBinding({
         backgroundAgentId,
         sessionId: payload.sessionId ?? sessionId,
         turnId: payload.turnId ?? turnId,
@@ -301,7 +291,7 @@ export function attachInteractionRequestHandler(
       protocolVersion: BACKGROUND_INTERACTION_PROTOCOL_VERSION,
       requestId:
         typeof message?.requestId === "string" ? message.requestId : "",
-      binding: normalizeBinding(message?.binding),
+      binding: normalizeInteractionBinding(message?.binding),
       status: "rejected",
       error: { code, message: detail },
     };
@@ -315,7 +305,7 @@ export function attachInteractionRequestHandler(
       message.protocolVersion === BACKGROUND_INTERACTION_PROTOCOL_VERSION
     ) {
       const active = inflight.get(message.requestId);
-      if (active && sameBinding(active.binding, message.binding)) {
+      if (active && sameInteractionBinding(active.binding, message.binding)) {
         inflight.delete(message.requestId);
         active.controller.abort(message.reason || "cancelled");
       }
@@ -331,12 +321,11 @@ export function attachInteractionRequestHandler(
       return;
     }
 
-    const binding = normalizeBinding(message.binding);
+    const binding = normalizeInteractionBinding(message.binding);
     const expectedAgentId = asNullableString(options.backgroundAgentId);
     const expectedSessionId = asNullableString(options.sessionId);
     if (
-      (expectedAgentId &&
-        binding.backgroundAgentId !== expectedAgentId) ||
+      (expectedAgentId && binding.backgroundAgentId !== expectedAgentId) ||
       (expectedSessionId && binding.sessionId !== expectedSessionId)
     ) {
       rejectRequest(

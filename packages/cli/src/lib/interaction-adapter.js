@@ -16,6 +16,10 @@ import {
 import { createAbortError } from "./abort-utils.js";
 import { emitHooksV2Event } from "./hooks-v2-producers.js";
 import { verifyApprovalBinding } from "./agent-authority.js";
+import {
+  normalizeInteractionBinding,
+  sameInteractionBinding,
+} from "./interaction-binding.js";
 import { createEnvelope } from "@chainlesschain/session-core";
 
 // Phase 5: parallel service-envelope emission. Map WS agent-handler event
@@ -128,6 +132,7 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
     // this WS session instead of leaking across sessions via the process-
     // global default tracker.
     this._sequenceTracker = new CodingAgentSequenceTracker();
+    this._questionSequence = 0;
     // Phase 5: parallel service-envelope emission. Opt-in (default off) so
     // legacy callers that count ws.send invocations stay green.
     this.enablePhase5Envelopes = options.enablePhase5Envelopes === true;
@@ -175,6 +180,7 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
         // routed / argument-tampered verdict and is rejected in _resolvePending.
         // null (the default for plain questions) → no binding check, unchanged.
         binding: options.binding || null,
+        bindingType: options.bindingType || null,
       });
 
       this._sendWs({
@@ -274,6 +280,12 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
           }
         : {}),
     };
+    const binding = normalizeInteractionBinding({
+      sessionId: this.sessionId,
+      turnId: normalizedTurnId,
+      toolUseId: normalizedToolUseId,
+      sequence: ++this._questionSequence,
+    });
 
     return this._request(
       {
@@ -295,10 +307,13 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
               tool_use_id: normalizedToolUseId,
             }
           : {}),
+        binding,
         metadata: questionMetadata,
       },
       {
         kind: "question",
+        binding,
+        bindingType: "interaction",
         ...(Number(timeoutMs) > 0 ? { timeoutMs: Number(timeoutMs) } : {}),
       },
     );
@@ -324,30 +339,48 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
     requestedSchema = null,
     timeoutMs,
   } = {}) {
-    emitHooksV2Event("MCPElicitation", {
+    const hookContext = {
+      schema_version: 1,
       server: server || null,
       request_id: mcpRequestId ?? null,
       message: String(message),
       requested_schema: requestedSchema || null,
-    });
-    return this._request(
-      {
-        type: "question",
-        questionType: "elicitation",
-        question: String(message),
-        ...(requestedSchema ? { requestedSchema } : {}),
-        metadata: {
-          kind: "mcp_elicitation",
-          server: server || null,
-          requestId: mcpRequestId ?? null,
-          requestedSchema: requestedSchema || null,
+      session_id: this.sessionId || null,
+    };
+    emitHooksV2Event("MCPElicitation", hookContext);
+    emitHooksV2Event("Elicitation", hookContext);
+    try {
+      const answer = await this._request(
+        {
+          type: "question",
+          questionType: "elicitation",
+          question: String(message),
+          ...(requestedSchema ? { requestedSchema } : {}),
+          metadata: {
+            kind: "mcp_elicitation",
+            server: server || null,
+            requestId: mcpRequestId ?? null,
+            requestedSchema: requestedSchema || null,
+          },
         },
-      },
-      {
-        kind: "question",
-        ...(Number(timeoutMs) > 0 ? { timeoutMs: Number(timeoutMs) } : {}),
-      },
-    );
+        {
+          kind: "question",
+          ...(Number(timeoutMs) > 0 ? { timeoutMs: Number(timeoutMs) } : {}),
+        },
+      );
+      emitHooksV2Event("ElicitationResult", {
+        ...hookContext,
+        action: answer == null ? "cancel" : "accept",
+      });
+      return answer;
+    } catch (error) {
+      emitHooksV2Event("ElicitationResult", {
+        ...hookContext,
+        action: "cancel",
+        reason: error?.code || error?.message || "interaction_failed",
+      });
+      throw error;
+    }
   }
 
   async requestHostTool(toolName, args = {}, extra = {}) {
@@ -484,8 +517,16 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
     // (fail closed) instead of the approve it claims to be, mirroring the local
     // headless approval gate. Backward-compatible: no request binding, or an
     // answer with no echoed binding, resolves exactly as before.
+    if (
+      pending.bindingType === "interaction" &&
+      !sameInteractionBinding(pending.binding, incomingBinding)
+    ) {
+      return;
+    }
+
     let effective = payload;
     if (
+      pending.bindingType !== "interaction" &&
       pending.binding &&
       incomingBinding &&
       !verifyApprovalBinding(pending.binding, incomingBinding)

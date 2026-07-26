@@ -156,29 +156,130 @@ describe("platform sandbox adapter contract", () => {
     });
   });
 
-  it("does not claim Windows native isolation before it is implemented", () => {
+  it("returns the Windows Job Object + restricted-token wrapper plan", () => {
+    const fsRuntime = {
+      existsSync: vi.fn(
+        (value) =>
+          !String(value).endsWith(".exe") ||
+          String(value).endsWith("powershell.exe"),
+      ),
+      readFileSync: vi.fn(() => "param([string]$Payload)"),
+      writeFileSync: vi.fn(),
+      unlinkSync: vi.fn(),
+    };
     const options = { windowsHide: true, env: { PATH: "C:\\Windows" } };
     const plan = applyWindowsSandbox(
       "tool.exe",
       ["run"],
       options,
       { profileName: "strict" },
-      { platform: "win32" },
+      {
+        platform: "win32",
+        fs: fsRuntime,
+        windowsDir: () => "C:\\Windows",
+        moduleDir: "C:\\cli",
+        tmpdir: () => "C:\\temp",
+        randomBytes: () => Buffer.alloc(12, 7),
+      },
     );
 
     expect(plan).toMatchObject({
-      applied: false,
+      applied: true,
       platform: "win32",
       profile: "strict",
-      command: "tool.exe",
-      args: ["run"],
-      reason: "windows_native_job_object_unavailable",
+      command: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      enforcement: "windows-job-restricted-token",
       postSpawn: { required: false, mode: "none" },
     });
-    expect(plan.options).toEqual(options);
+    expect(plan.args).toContain("-CacheExecutable");
+    const payload = JSON.parse(
+      Buffer.from(plan.args.at(-1), "base64").toString("utf8"),
+    );
+    expect(payload).toEqual({
+      cpuSeconds: 0,
+      processMemoryBytes: 256 * 1024 * 1024,
+      activeProcessLimit: 16,
+      command: "tool.exe",
+      args: ["run"],
+    });
+    expect(plan.options).toMatchObject({
+      windowsHide: true,
+      shell: false,
+      env: {
+        PATH: "C:\\Windows",
+        CC_WINDOWS_SANDBOXED: "1",
+        CC_WINDOWS_SANDBOX_PROFILE: "strict",
+      },
+    });
+    expect(fsRuntime.writeFileSync).toHaveBeenCalledOnce();
     expect(options).toEqual({
       windowsHide: true,
       env: { PATH: "C:\\Windows" },
+    });
+    plan.cleanup();
+    expect(fsRuntime.unlinkSync).toHaveBeenCalledOnce();
+  });
+
+  it("reports Windows unavailable when its native host is missing", () => {
+    const plan = applyWindowsSandbox(
+      "tool.exe",
+      [],
+      {},
+      { profileName: "strict" },
+      {
+        platform: "win32",
+        fs: {
+          existsSync: vi.fn(() => false),
+          writeFileSync: vi.fn(),
+          unlinkSync: vi.fn(),
+        },
+        windowsDir: () => "C:\\Windows",
+        windowsAdapterContent: "param()",
+        tmpdir: () => "C:\\temp",
+        randomBytes: () => Buffer.alloc(12, 3),
+      },
+    );
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "windows_powershell_host_unavailable",
+    });
+  });
+
+  it("does not claim Windows enforcement when Node IPC cannot cross the wrapper", () => {
+    const plan = applyWindowsSandbox(
+      process.execPath,
+      ["child.js"],
+      { stdio: ["ignore", "pipe", "pipe", "ipc"] },
+      { profileName: "default" },
+      {
+        platform: "win32",
+        fs: { existsSync: vi.fn(() => true) },
+      },
+    );
+    expect(plan).toMatchObject({
+      applied: false,
+      command: process.execPath,
+      args: ["child.js"],
+      reason: "windows_node_ipc_descriptor_unsupported",
+    });
+  });
+
+  it("does not claim Windows enforcement when detached pid identity cannot cross the wrapper", () => {
+    const plan = applyWindowsSandbox(
+      process.execPath,
+      ["worker.js"],
+      { detached: true, stdio: "ignore" },
+      { profileName: "default" },
+      {
+        platform: "win32",
+        fs: { existsSync: vi.fn(() => true) },
+      },
+    );
+    expect(plan).toMatchObject({
+      applied: false,
+      command: process.execPath,
+      args: ["worker.js"],
+      reason: "windows_detached_process_identity_unsupported",
     });
   });
 
@@ -196,6 +297,147 @@ describe("platform sandbox adapter contract", () => {
     });
   });
 });
+
+describe.runIf(process.platform === "win32")(
+  "Windows sandbox live enforcement",
+  () => {
+    it("starts a real child only after the native wrapper is active", () => {
+      const previousStrict = process.env.CC_SANDBOX_STRICT;
+      const previousDisable = process.env.CC_SANDBOX_DISABLE;
+      const previousSandboxEnabled = executionBroker._sandboxEnabled;
+      const previousPlatformEnabled = executionBroker._platformSandboxEnabled;
+      process.env.CC_SANDBOX_STRICT = "1";
+      delete process.env.CC_SANDBOX_DISABLE;
+      executionBroker._sandboxEnabled = true;
+      executionBroker._platformSandboxEnabled = true;
+      try {
+        const result = executionBroker.spawnSync(
+          process.execPath,
+          [
+            "-e",
+            [
+              "const { spawn, spawnSync } = require('node:child_process');",
+              "const privilegeResult = spawnSync(",
+              "  require('node:path').join(",
+              "    process.env.WINDIR,",
+              "    'System32',",
+              "    'whoami.exe',",
+              "  ),",
+              "  ['/priv'],",
+              "  { encoding: 'utf8', windowsHide: true },",
+              ");",
+              "const privilegeText = privilegeResult.stdout || '';",
+              "const privileges = [",
+              "  ...privilegeText.matchAll(/\\bSe[A-Za-z]+Privilege\\b/g),",
+              "].map((match) => match[0]);",
+              "const grandchild = spawn(",
+              "  process.execPath,",
+              "  ['-e', 'setInterval(() => {}, 1000)'],",
+              "  { detached: true, stdio: 'ignore' },",
+              ");",
+              "grandchild.unref();",
+              "process.stdout.write(JSON.stringify({",
+              "  sandboxed: process.env.CC_WINDOWS_SANDBOXED,",
+              "  profile: process.env.CC_WINDOWS_SANDBOX_PROFILE,",
+              "  privileges,",
+              "  privilegeStatus: privilegeResult.status,",
+              "  privilegeError: privilegeResult.stderr,",
+              "  grandchildPid: grandchild.pid,",
+              "}));",
+            ].join("\n"),
+          ],
+          {
+            origin: "test:windows-native-sandbox-live",
+            policy: "allow",
+            encoding: "utf8",
+            timeout: 30_000,
+            env: process.env,
+          },
+        );
+        expect(result.error).toBeUndefined();
+        expect(result.status, result.stderr).toBe(0);
+        expect(result.stderr).toBe("");
+        const childReport = JSON.parse(result.stdout);
+        expect(childReport).toMatchObject({
+          sandboxed: "1",
+          profile: "strict",
+        });
+        expect(childReport.grandchildPid).toBeGreaterThan(0);
+        expect(childReport.privilegeStatus, childReport.privilegeError).toBe(0);
+        expect(
+          childReport.privileges.every(
+            (name) => name === "SeChangeNotifyPrivilege",
+          ),
+        ).toBe(true);
+        expect(() => process.kill(childReport.grandchildPid, 0)).toThrow();
+        expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
+          sandboxed: true,
+          sandboxState: "ready",
+          sandboxEnforcement: "windows-job-restricted-token",
+        });
+
+        const shellResult = executionBroker.spawnSync(
+          "echo windows-shell-ok",
+          [],
+          {
+            origin: "test:windows-native-sandbox-shell",
+            policy: "allow",
+            shell: true,
+            encoding: "utf8",
+            timeout: 30_000,
+            env: process.env,
+          },
+        );
+        expect(shellResult.status, shellResult.stderr).toBe(0);
+        expect(shellResult.stdout.trim()).toBe("windows-shell-ok");
+
+        const quotedShellResult = executionBroker.spawnSync(
+          `"${process.execPath}" -e "process.stdout.write('quoted-shell-ok')"`,
+          [],
+          {
+            origin: "test:windows-native-sandbox-quoted-shell",
+            policy: "allow",
+            shell: true,
+            encoding: "utf8",
+            timeout: 30_000,
+            env: process.env,
+          },
+        );
+        expect(quotedShellResult.status, quotedShellResult.stderr).toBe(0);
+        expect(quotedShellResult.stdout).toBe("quoted-shell-ok");
+
+        const largeShellResult = executionBroker.spawnSync(
+          `"${process.execPath}" -e "process.stdout.write('x'.repeat(2*1024*1024))"`,
+          [],
+          {
+            origin: "test:windows-native-sandbox-large-shell",
+            policy: "allow",
+            shell: true,
+            encoding: "utf8",
+            maxBuffer: 64 * 1024 * 1024,
+            timeout: 30_000,
+            env: process.env,
+          },
+        );
+        expect(largeShellResult.status, largeShellResult.stderr).toBe(0);
+        expect(largeShellResult.stdout).toHaveLength(2 * 1024 * 1024);
+      } finally {
+        if (previousStrict === undefined) {
+          delete process.env.CC_SANDBOX_STRICT;
+        } else {
+          process.env.CC_SANDBOX_STRICT = previousStrict;
+        }
+        if (previousDisable === undefined) {
+          delete process.env.CC_SANDBOX_DISABLE;
+        } else {
+          process.env.CC_SANDBOX_DISABLE = previousDisable;
+        }
+        executionBroker._sandboxEnabled = previousSandboxEnabled;
+        executionBroker._platformSandboxEnabled = previousPlatformEnabled;
+      }
+    }, 45_000);
+  },
+);
 
 describe("ProcessExecutionBroker sandbox-plan consumption", () => {
   let originalNative;
@@ -368,20 +610,21 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
   it("rejects an unavailable platform before spawn in strict mode", () => {
     process.env.CC_SANDBOX_STRICT = "1";
     const nativeSpawn = vi.fn();
+    const apply = vi.fn((command, args, options, profile) => ({
+      contractVersion: 1,
+      applied: false,
+      platform: "win32",
+      profile,
+      command,
+      args,
+      options,
+      enforcement: null,
+      reason: "windows_native_job_object_unavailable",
+      postSpawn: { required: false, mode: "none" },
+    }));
     executionBroker._native = { spawn: nativeSpawn };
     executionBroker._sandboxAdapter = {
-      applySandbox: (command, args, options) => ({
-        contractVersion: 1,
-        applied: false,
-        platform: "win32",
-        profile: "default",
-        command,
-        args,
-        options,
-        enforcement: null,
-        reason: "windows_native_job_object_unavailable",
-        postSpawn: { required: false, mode: "none" },
-      }),
+      applySandbox: apply,
       postSpawnSandbox: vi.fn(),
     };
 
@@ -391,6 +634,12 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
         policy: "allow",
       }),
     ).toThrow(/windows_native_job_object_unavailable/);
+    expect(apply).toHaveBeenCalledWith(
+      "tool",
+      [],
+      expect.any(Object),
+      "strict",
+    );
     expect(nativeSpawn).not.toHaveBeenCalled();
     expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
       sandboxed: false,

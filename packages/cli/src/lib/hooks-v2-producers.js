@@ -38,3 +38,39 @@ export async function executeHooksV2Event(
     };
   }
 }
+
+export function resolvePromptExpansion(prompt, outcome = {}) {
+  const base = String(prompt ?? "");
+  const updates = [];
+  const context = [];
+  for (const record of Array.isArray(outcome.results) ? outcome.results : []) {
+    if (record?.status !== "success" || !record.result) continue;
+    if (typeof record.result.updatedPrompt === "string") {
+      updates.push(record.result.updatedPrompt);
+    }
+    if (typeof record.result.additionalContext === "string") {
+      const value = record.result.additionalContext.trim();
+      if (value) context.push(value);
+    }
+  }
+  const distinctUpdates = [...new Set(updates)];
+  if (distinctUpdates.length > 1) {
+    return {
+      prompt: base,
+      blocked: true,
+      reason: "conflicting UserPromptExpansion updatedPrompt results",
+    };
+  }
+  let resolved = distinctUpdates[0] ?? base;
+  if (context.length > 0) {
+    resolved += `\n\n[hook context]\n${context.join("\n")}`;
+  }
+  return {
+    prompt: resolved,
+    blocked: outcome.blocked === true || outcome.decision === "block",
+    reason:
+      outcome.blockingResult?.reason ||
+      outcome.blockingResult?.message ||
+      null,
+  };
+}

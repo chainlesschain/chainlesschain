@@ -34,9 +34,11 @@ import {
   renameBackgroundAgent,
 } from "../../src/lib/background-agent-supervisor.js";
 import { connectBackgroundSession } from "../../src/lib/background-session-transport.js";
+import { loadBackgroundInteractionJournal } from "../../src/lib/background-interaction-journal.js";
 
 let dir;
 let launchedIds;
+let previousHome;
 
 function killTree(pid) {
   if (!Number.isInteger(Number(pid)) || Number(pid) <= 0) return;
@@ -71,6 +73,8 @@ async function pollUntil(fn, { timeoutMs = 10_000, intervalMs = 50 } = {}) {
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "cc-bg-real-"));
   process.env.CC_BACKGROUND_AGENTS_DIR = dir;
+  previousHome = process.env.CHAINLESSCHAIN_HOME;
+  process.env.CHAINLESSCHAIN_HOME = join(dir, "home");
   launchedIds = [];
 });
 
@@ -84,6 +88,11 @@ afterEach(async () => {
     if (state?.agentPid) killTree(state.agentPid);
   }
   delete process.env.CC_BACKGROUND_AGENTS_DIR;
+  if (previousHome === undefined) {
+    delete process.env.CHAINLESSCHAIN_HOME;
+  } else {
+    process.env.CHAINLESSCHAIN_HOME = previousHome;
+  }
   for (let attempt = 0; attempt < 40; attempt++) {
     try {
       rmSync(dir, { recursive: true, force: true });
@@ -281,15 +290,10 @@ describe("8. log tail — truncation while the worker is appending (real spawn)"
 });
 
 describe("P0-2 same-turn question round-trip (real worker/child IPC)", () => {
-  it("answers a suspended tool call and completes without starting a follow-up turn", async () => {
+  it("replays after disconnect, answers once, and completes the same turn", async () => {
     const evidenceFile = join(dir, "same-turn-result.json");
     const interactionModule = pathToFileURL(
-      join(
-        process.cwd(),
-        "src",
-        "lib",
-        "background-interaction-resolver.js",
-      ),
+      join(process.cwd(), "src", "lib", "background-interaction-resolver.js"),
     ).href;
     const state = launch({
       script: [
@@ -322,36 +326,61 @@ describe("P0-2 same-turn question round-trip (real worker/child IPC)", () => {
     expect(transport?.pipe).toBeTruthy();
 
     const interactionEvents = [];
+    let firstConn = await connectBackgroundSession({
+      pipePath: transport.pipe,
+      token: transport.token,
+      onEvent: (message) => {
+        if (message.type !== "interaction_request") return;
+        interactionEvents.push(message);
+      },
+    });
+    const firstRequest = await pollUntil(() => interactionEvents[0] || null);
+    expect(
+      firstRequest,
+      `state=${JSON.stringify(readBackgroundAgentState(state.id))} log=${readBackgroundAgentLog(state.id)}`,
+    ).not.toBeNull();
+    firstConn.close();
+    firstConn = null;
+
+    const disconnectedState = await pollUntil(() => {
+      const current = readBackgroundAgentState(state.id);
+      return current?.phase === "needs_input" &&
+        current?.pendingQuestion?.requestId === firstRequest.requestId
+        ? current
+        : null;
+    });
+    expect(disconnectedState).not.toBeNull();
+
     let conn = null;
-    const queuedResponses = [];
-    const respond = (message) => {
-      const response = {
-        type: "interaction_response",
-        requestId: message.requestId,
-        binding: message.binding,
-        answer: "yes",
-      };
-      if (conn) conn.send(response);
-      else queuedResponses.push(response);
-    };
+    const replayResponses = [];
     conn = await connectBackgroundSession({
       pipePath: transport.pipe,
       token: transport.token,
       onEvent: (message) => {
         if (message.type !== "interaction_request") return;
         interactionEvents.push(message);
-        respond(message);
+        const response = {
+          type: "interaction_response",
+          requestId: message.requestId,
+          binding: message.binding,
+          answer: "yes",
+        };
+        if (conn) conn.send(response);
+        else replayResponses.push(response);
       },
     });
-    for (const response of queuedResponses.splice(0)) conn.send(response);
+    for (const response of replayResponses.splice(0)) conn.send(response);
 
-    const evidence = await pollUntil(() => {
-      try {
-        return JSON.parse(readFileSync(evidenceFile, "utf8"));
-      } catch {
-        return null;
-      }
-    }, { timeoutMs: 20_000 });
+    const evidence = await pollUntil(
+      () => {
+        try {
+          return JSON.parse(readFileSync(evidenceFile, "utf8"));
+        } catch {
+          return null;
+        }
+      },
+      { timeoutMs: 20_000 },
+    );
     expect(evidence).toEqual({
       beforePid: expect.any(Number),
       afterPid: expect.any(Number),
@@ -363,13 +392,17 @@ describe("P0-2 same-turn question round-trip (real worker/child IPC)", () => {
     // idle, so terminal-state verification must happen after detach.
     conn.close();
 
-    const completed = await pollUntil(() => {
-      const current = readBackgroundAgentState(state.id);
-      return current?.status === "completed" ? current : null;
-    }, { timeoutMs: 20_000 });
+    const completed = await pollUntil(
+      () => {
+        const current = readBackgroundAgentState(state.id);
+        return current?.status === "completed" ? current : null;
+      },
+      { timeoutMs: 20_000 },
+    );
     expect(completed?.turnCount).toBe(1);
-    expect(interactionEvents).toHaveLength(1);
-    expect(interactionEvents[0]).toMatchObject({
+    expect(interactionEvents).toHaveLength(2);
+    expect(interactionEvents[1]).toMatchObject({
+      requestId: firstRequest.requestId,
       question: "Deploy to production?",
       binding: {
         backgroundAgentId: state.id,
@@ -378,6 +411,11 @@ describe("P0-2 same-turn question round-trip (real worker/child IPC)", () => {
         toolUseId: "provider-tool-call-1",
         sequence: 1,
       },
+    });
+    const journal = loadBackgroundInteractionJournal("sid-same-turn", state.id);
+    expect(journal.get(firstRequest.requestId)).toMatchObject({
+      status: "resolved",
+      settlement: { status: "resolved", answer: "yes", error: null },
     });
   }, 30_000);
 });

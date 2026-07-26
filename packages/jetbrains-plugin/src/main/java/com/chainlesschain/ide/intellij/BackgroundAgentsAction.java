@@ -22,6 +22,7 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -140,6 +141,21 @@ public final class BackgroundAgentsAction extends AnAction {
             msg.put("type", "stop");
             pipeAction(sel, msg, detail, refresh);
         });
+        JButton answerBtn = new JButton(CcBundle.message("bg.agents.answer"));
+        answerBtn.addActionListener(ev -> {
+            BackgroundAgents.Session sel = selected(sessions.get(), picker);
+            if (sel == null || !sel.interactive
+                    || sel.pendingQuestionRequestId == null
+                    || sel.pendingQuestionBinding == null) return;
+            Object answer = askPendingQuestion(project, sel);
+            if (answer == null) return;
+            Map<String, Object> msg = MiniJson.obj();
+            msg.put("type", "interaction_response");
+            msg.put("requestId", sel.pendingQuestionRequestId);
+            msg.put("binding", sel.pendingQuestionBinding);
+            msg.put("answer", answer);
+            pipeAction(sel, msg, detail, refresh);
+        });
         JButton stopBtn = new JButton(CcBundle.message("bg.agents.stop"));
         stopBtn.addActionListener(ev -> {
             BackgroundAgents.Session sel = selected(sessions.get(), picker);
@@ -177,6 +193,7 @@ public final class BackgroundAgentsAction extends AnAction {
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
         buttons.add(refreshBtn);
         buttons.add(promptBtn);
+        buttons.add(answerBtn);
         buttons.add(stopTurnBtn);
         buttons.add(stopBtn);
         buttons.add(renameBtn);
@@ -197,6 +214,40 @@ public final class BackgroundAgentsAction extends AnAction {
         builder.setCenterPanel(root);
         builder.addCloseButton();
         builder.show();
+    }
+
+    private static Object askPendingQuestion(
+            Project project, BackgroundAgents.Session session) {
+        String question = session.pendingQuestion == null
+                ? CcBundle.message("bg.agents.answer.ask")
+                : session.pendingQuestion;
+        List<String> labels = new ArrayList<>();
+        for (Object option : session.pendingQuestionOptions) {
+            if (option instanceof Map && ((Map<?, ?>) option).get("label") != null) {
+                labels.add(String.valueOf(((Map<?, ?>) option).get("label")));
+            } else if (option != null) {
+                labels.add(String.valueOf(option));
+            }
+        }
+        if (!labels.isEmpty() && !session.pendingQuestionMultiSelect) {
+            return Messages.showChooseDialog(
+                    question, CcBundle.message("bg.agents.answer"),
+                    labels.toArray(new String[0]), labels.get(0), null);
+        }
+        String prompt = labels.isEmpty()
+                ? question
+                : question + "\n" + String.join(", ", labels)
+                        + "\n" + CcBundle.message("bg.agents.answer.multi");
+        String raw = Messages.showInputDialog(
+                project, prompt, CcBundle.message("bg.agents.answer"), null);
+        if (raw == null) return null;
+        if (!session.pendingQuestionMultiSelect) return raw;
+        List<String> selected = new ArrayList<>();
+        for (String part : raw.split(",")) {
+            String value = part.trim();
+            if (!value.isEmpty()) selected.add(value);
+        }
+        return selected;
     }
 
     private static BackgroundAgents.Session selected(

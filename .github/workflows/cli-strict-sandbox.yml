@@ -1,0 +1,71 @@
+name: CLI Strict Sandbox
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/cli/src/lib/process-execution-broker/**"
+      - "packages/cli/src/lib/agent-sandbox.js"
+      - "packages/cli/__tests__/unit/process-execution-broker-platform-sandbox.test.js"
+      - "packages/cli/__tests__/integration/process-broker-platform-sandbox-live.test.js"
+      - "packages/cli/__tests__/integration/sandbox-bwrap-live.test.js"
+      - ".github/workflows/cli-strict-sandbox.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/cli/src/lib/process-execution-broker/**"
+      - "packages/cli/src/lib/agent-sandbox.js"
+      - "packages/cli/__tests__/unit/process-execution-broker-platform-sandbox.test.js"
+      - "packages/cli/__tests__/integration/process-broker-platform-sandbox-live.test.js"
+      - "packages/cli/__tests__/integration/sandbox-bwrap-live.test.js"
+      - ".github/workflows/cli-strict-sandbox.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  strict-platform:
+    name: "strict native boundary (${{ matrix.os }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Install bubblewrap for Linux kernel boundary
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+          bwrap --version
+
+      - name: Run native ProcessExecutionBroker strict boundary
+        working-directory: packages/cli
+        env:
+          CC_SANDBOX_LIVE: "1"
+        run: >-
+          npx vitest run --reporter=default
+          __tests__/unit/process-execution-broker-platform-sandbox.test.js
+          __tests__/integration/process-broker-platform-sandbox-live.test.js
+
+      - name: Run Linux bubblewrap filesystem and network boundary
+        if: runner.os == 'Linux'
+        working-directory: packages/cli
+        env:
+          CC_SANDBOX_LIVE: "1"
+        run: >-
+          npx vitest run --reporter=default
+          __tests__/integration/sandbox-bwrap-live.test.js

@@ -6,12 +6,14 @@
  * receives short-lived opaque references. Resolving a reference requires an
  * attested agent id and the exact process/host target recorded at issuance.
  *
- * This module deliberately does not claim to provide an OS IPC transport. A
- * future broker-owned IPC implementation can call resolveCredentialRef() after
- * it has authenticated the requesting process and destination host.
+ * The production singleton also mirrors issued references into a broker-owned
+ * authenticated local transport. Per-launch capability tokens bind resolution
+ * to the approved process and destination host without putting credential
+ * values in the child environment or argv.
  */
 
 import crypto from "node:crypto";
+import { CredentialTransport } from "./credential-transport.js";
 
 const REDACTED_VALUE = "***REDACTED***";
 const DEFAULT_TTL_MS = 60_000;
@@ -33,6 +35,7 @@ const CREDENTIAL_ERROR_CODES = Object.freeze({
   REVOKED: "CC_CREDENTIAL_REF_REVOKED",
   AGENT_MISMATCH: "CC_CREDENTIAL_AGENT_MISMATCH",
   TARGET_MISMATCH: "CC_CREDENTIAL_TARGET_MISMATCH",
+  TRANSPORT_UNAVAILABLE: "CC_CREDENTIAL_TRANSPORT_UNAVAILABLE",
 });
 
 // Patterns for environment variables that contain secrets.
@@ -126,6 +129,10 @@ const RESERVED_AGENT_ENV_KEYS = new Set([
   "CC_CREDENTIAL_AGENT_ID",
   "CC_CREDENTIAL_PROXY",
   "CC_CREDENTIAL_TRANSPORT",
+  "CC_CREDENTIAL_ENDPOINT",
+  "CC_CREDENTIAL_AUTH_TOKEN",
+  "CC_CREDENTIAL_TARGET_PROCESS",
+  "CC_CREDENTIAL_TARGET_HOST",
 ]);
 
 function credentialError(code, message) {
@@ -251,9 +258,21 @@ class CredentialAgent {
       Number.MAX_SAFE_INTEGER,
     );
 
-    // "broker-api" is an in-process primitive, not a socket/pipe endpoint.
-    this._transport = "broker-api";
-    this._proxyReady = false;
+    this._transportMode = "broker-api";
+    this._credentialTransport = null;
+    if (options.transport) {
+      this._credentialTransport =
+        options.transport === true
+          ? new CredentialTransport({
+              agentId: this._agentId,
+              onAudit: (entry) => this._recordAudit(entry),
+              onSettlement: (settlement) =>
+                this._applyTransportSettlement(settlement),
+            })
+          : options.transport;
+      this._transportMode =
+        this._credentialTransport?.version || "local-ipc-v1";
+    }
     this._lastEnabledState = this._computeEnabled();
   }
 
@@ -270,10 +289,11 @@ class CredentialAgent {
 
     if (!enabled) {
       let revoked = 0;
-      for (const record of this._credentialStore.values()) {
+      for (const [refId, record] of this._credentialStore) {
         if (record.status === "active") {
           record.value = null;
           record.status = "disabled";
+          this._credentialTransport?.revokeCredential(refId);
           revoked += 1;
         }
       }
@@ -387,6 +407,19 @@ class CredentialAgent {
     }
   }
 
+  _applyTransportSettlement(settlement) {
+    const record = this._credentialStore.get(settlement?.refId);
+    if (!record || record.status !== "active") return;
+    const useCount = Number(settlement.useCount);
+    if (Number.isFinite(useCount) && useCount > record.useCount) {
+      record.useCount = useCount;
+    }
+    if (settlement.status && settlement.status !== "active") {
+      record.status = settlement.status;
+      record.value = null;
+    }
+  }
+
   _ensureStoreCapacity() {
     this._expireStaleCredentials();
     if (this._credentialStore.size < this._maxCredentials) return;
@@ -447,6 +480,9 @@ class CredentialAgent {
         "Credential maxUses",
       ),
       origin: String(request.origin ?? "unknown"),
+      capabilityToken: request.capabilityToken
+        ? String(request.capabilityToken)
+        : null,
     };
   }
 
@@ -556,6 +592,38 @@ class CredentialAgent {
       target: normalized.target,
       approvalFingerprint: this._fingerprint(normalized.approvalId),
     });
+    if (this._credentialTransport && normalized.capabilityToken) {
+      try {
+        this._credentialTransport.registerCredential({
+          refId,
+          key: normalized.key,
+          value: normalized.value,
+          target: normalized.target,
+          createdAt,
+          expiresAt: createdAt + normalized.ttlMs,
+          maxUses: normalized.maxUses,
+          useCount: 0,
+          status: "active",
+          capabilityToken: normalized.capabilityToken,
+        });
+      } catch (error) {
+        const record = this._credentialStore.get(refId);
+        record.value = null;
+        record.status = "revoked";
+        this._recordAudit({
+          event: "credential_ref_issue",
+          outcome: "denied",
+          reason: CREDENTIAL_ERROR_CODES.TRANSPORT_UNAVAILABLE,
+          key: normalized.key,
+          target: normalized.target,
+          refFingerprint: this._fingerprint(refId),
+        });
+        throw credentialError(
+          CREDENTIAL_ERROR_CODES.TRANSPORT_UNAVAILABLE,
+          error?.message || "Credential transport is unavailable",
+        );
+      }
+    }
     this._recordAudit({
       event: "credential_ref_issue",
       outcome: "allowed",
@@ -695,6 +763,7 @@ class CredentialAgent {
       record.value = null;
       record.status = "exhausted";
     }
+    this._credentialTransport?.updateCredential(refId, record);
     this._recordAudit({
       event: "credential_ref_resolve",
       outcome: "allowed",
@@ -717,6 +786,7 @@ class CredentialAgent {
     if (!record) return false;
     record.value = null;
     record.status = "revoked";
+    this._credentialTransport?.revokeCredential(refId);
     this._recordAudit({
       event: "credential_ref_revoke",
       outcome: "allowed",
@@ -786,9 +856,18 @@ class CredentialAgent {
     );
   }
 
-  _setReferenceMarkers(safeEnv) {
+  _setReferenceMarkers(safeEnv, context) {
     safeEnv.CC_CREDENTIAL_AGENT_ID = this._agentId;
-    safeEnv.CC_CREDENTIAL_TRANSPORT = this._transport;
+    safeEnv.CC_CREDENTIAL_TRANSPORT = this._transportMode;
+    if (this._credentialTransport && context?.capabilityToken) {
+      safeEnv.CC_CREDENTIAL_ENDPOINT = this._credentialTransport.endpoint;
+      safeEnv.CC_CREDENTIAL_AUTH_TOKEN = context.capabilityToken;
+      safeEnv.CC_CREDENTIAL_TARGET_PROCESS = normalizeProcessTarget(
+        context.target?.process ?? context.process,
+      );
+      const host = normalizeHostTarget(context.target?.host ?? context.host);
+      if (host) safeEnv.CC_CREDENTIAL_TARGET_HOST = host;
+    }
   }
 
   /**
@@ -830,7 +909,7 @@ class CredentialAgent {
       redacted.push(entry);
     }
 
-    if (refsIssued > 0) this._setReferenceMarkers(safeEnv);
+    if (refsIssued > 0) this._setReferenceMarkers(safeEnv, context);
     return {
       safeEnv,
       redacted,
@@ -984,7 +1063,17 @@ class CredentialAgent {
       );
     }
 
-    const context = this._contextForSpawn(spawnOptions);
+    let context = this._contextForSpawn(spawnOptions);
+    if (
+      this._credentialTransport &&
+      this.isEnabled() &&
+      this._canIssueForContext(context)
+    ) {
+      context = {
+        ...context,
+        capabilityToken: this._credentialTransport.createCapabilityToken(),
+      };
+    }
     const env = spawnOptions.env || process.env;
     const {
       safeEnv,
@@ -1019,7 +1108,7 @@ class CredentialAgent {
     }
 
     const refsIssued = envRefsIssued + argRefsIssued;
-    if (refsIssued > 0) this._setReferenceMarkers(safeEnv);
+    if (refsIssued > 0) this._setReferenceMarkers(safeEnv, context);
     spawnOptions.env = safeEnv;
     spawnOptions.args = sanitizedArgs;
 
@@ -1094,6 +1183,14 @@ class CredentialAgent {
     this._accessLog = [];
   }
 
+  waitForTransportReady() {
+    return this._credentialTransport?.waitUntilReady() ?? Promise.resolve(null);
+  }
+
+  closeTransport() {
+    return this._credentialTransport?.close() ?? Promise.resolve();
+  }
+
   /**
    * Get credential agent info for status reporting. No raw references or
    * credential values are included.
@@ -1111,9 +1208,10 @@ class CredentialAgent {
       mode: this._lastEnabledState
         ? "broker-reference"
         : "redact-only-disabled",
-      transport: this._transport,
-      proxyReady: this._proxyReady,
-      ipcAvailable: false,
+      transport: this._transportMode,
+      proxyReady: this._credentialTransport?.ready === true,
+      ipcAvailable: this._credentialTransport?.isAvailable() === true,
+      transportInfo: this._credentialTransport?.getInfo() || null,
       credentialsTracked: this._credentialStore.size,
       activeCredentials: statusCounts.active || 0,
       accessCount: this._accessLog.length,
@@ -1126,7 +1224,7 @@ class CredentialAgent {
   }
 }
 
-const credentialAgent = new CredentialAgent();
+const credentialAgent = new CredentialAgent({ transport: true });
 
 export {
   credentialAgent,
