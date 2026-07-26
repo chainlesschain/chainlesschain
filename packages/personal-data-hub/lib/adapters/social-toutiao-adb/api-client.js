@@ -21,7 +21,10 @@
  */
 
 const { NULL_SIGN_PROVIDER } = require("../../sign-providers");
-const { extractRecognizedArray } = require("../../source-page");
+const {
+  createSourcePageGuard,
+  extractRecognizedArray,
+} = require("../../source-page");
 
 const DEFAULT_BASE_URL = "https://www.toutiao.com/";
 const DEFAULT_MAX_PAGES = Number.POSITIVE_INFINITY;
@@ -337,6 +340,10 @@ class ToutiaoApiClient {
     let cursor = null;
     const seenItems = new Set();
     const seenPages = new Set();
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard("social-toutiao-adb")
+        : null;
     for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
       const url = new URL("api/news/feed/v90/", this.baseUrl);
       url.searchParams.set("category", "__all__");
@@ -358,7 +365,8 @@ class ToutiaoApiClient {
       });
       if (!obj) return out;
       const arr = this._extractSourceArray(obj, [["data"]], "feed");
-      if (isRepeatedPage(seenPages, arr, toutiaoItemKey)) break;
+      if (pageGuard) pageGuard.observe("feed", arr);
+      else if (isRepeatedPage(seenPages, arr, toutiaoItemKey)) break;
       for (const raw of arr) {
         if (out.length >= limit) break;
         if (!raw || typeof raw !== "object") continue;
@@ -416,6 +424,10 @@ class ToutiaoApiClient {
     let offset = 0;
     const seenItems = new Set();
     const seenPages = new Set();
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard("social-toutiao-adb")
+        : null;
     for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
       const url = new URL("article/v2/tab_comments/", this.baseUrl);
       url.searchParams.set("aid", AID_TOUTIAO_WEB);
@@ -433,7 +445,8 @@ class ToutiaoApiClient {
       });
       if (!obj) return out;
       const arr = this._extractSourceArray(obj, [["data"]], "collection");
-      if (isRepeatedPage(seenPages, arr, toutiaoItemKey)) break;
+      if (pageGuard) pageGuard.observe("collection", arr);
+      else if (isRepeatedPage(seenPages, arr, toutiaoItemKey)) break;
       for (const item of arr) {
         if (out.length >= limit) break;
         if (!item || typeof item !== "object") continue;
@@ -480,6 +493,10 @@ class ToutiaoApiClient {
     let syntheticIndex = 0;
     const seenItems = new Set();
     const seenPages = new Set();
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard("social-toutiao-adb")
+        : null;
     for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
       const url = new URL("api/search/content/", this.baseUrl);
       url.searchParams.set("aid", AID_TOUTIAO_WEB);
@@ -505,7 +522,8 @@ class ToutiaoApiClient {
         ],
         "search-history",
       );
-      if (isRepeatedPage(seenPages, arr, toutiaoSearchKey)) break;
+      if (pageGuard) pageGuard.observe("search-history", arr);
+      else if (isRepeatedPage(seenPages, arr, toutiaoSearchKey)) break;
       for (const raw of arr) {
         if (out.length >= limit) break;
         let keyword = null;

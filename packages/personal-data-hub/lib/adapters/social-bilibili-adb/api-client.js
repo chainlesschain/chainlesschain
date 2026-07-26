@@ -30,7 +30,10 @@
  */
 
 const crypto = require("node:crypto");
-const { extractRecognizedArray } = require("../../source-page");
+const {
+  createSourcePageGuard,
+  extractRecognizedArray,
+} = require("../../source-page");
 
 const DEFAULT_BASE_URL = "https://api.bilibili.com/";
 const DEFAULT_MAX_PAGES = Number.POSITIVE_INFINITY;
@@ -401,6 +404,10 @@ class BilibiliApiClient {
     let previousCursorKey = null;
     const seenItems = new Set();
     const seenPages = new Set();
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard("social-bilibili-adb")
+        : null;
 
     for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
       const rawUrl = new URL("x/web-interface/history/cursor", this.baseUrl);
@@ -426,7 +433,8 @@ class BilibiliApiClient {
       const obj = await this._doGetJson(prepared.url, prepared.cookie);
       if (!obj) return out;
       const list = this._extractSourceArray(obj, [["data", "list"]], "history");
-      if (isRepeatedPage(seenPages, list, bilibiliHistoryKey)) break;
+      if (pageGuard) pageGuard.observe("history", list);
+      else if (isRepeatedPage(seenPages, list, bilibiliHistoryKey)) break;
       for (const item of list) {
         if (out.length >= limit) break;
         if (!item) continue;
@@ -530,6 +538,10 @@ class BilibiliApiClient {
       let folderItems = 0;
       let folderRowsSeen = 0;
       const seenPages = new Set();
+      const pageGuard =
+        maxPages === Number.POSITIVE_INFINITY
+          ? createSourcePageGuard("social-bilibili-adb")
+          : null;
       for (
         let page = 1;
         page <= maxPages && folderItems < perFolderLimit;
@@ -559,7 +571,9 @@ class BilibiliApiClient {
           [["data", "medias"]],
           "favourites",
         );
-        if (
+        if (pageGuard) {
+          pageGuard.observe(`favourites:${folderId}`, medias);
+        } else if (
           isRepeatedPage(seenPages, medias, (media) =>
             bilibiliFavouriteKey(folderId, media),
           )
@@ -622,6 +636,10 @@ class BilibiliApiClient {
     let offset = null;
     const seenItems = new Set();
     const seenPages = new Set();
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard("social-bilibili-adb")
+        : null;
     for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
       const rawUrl = new URL("x/polymer/web-dynamic/v1/feed/all", this.baseUrl);
       rawUrl.searchParams.set("type", "all");
@@ -645,7 +663,8 @@ class BilibiliApiClient {
         [["data", "items"]],
         "dynamics",
       );
-      if (isRepeatedPage(seenPages, items, bilibiliDynamicKey)) break;
+      if (pageGuard) pageGuard.observe("dynamics", items);
+      else if (isRepeatedPage(seenPages, items, bilibiliDynamicKey)) break;
       for (const it of items) {
         if (out.length >= limit) break;
         if (!it) continue;
@@ -710,6 +729,10 @@ class BilibiliApiClient {
     let rowsSeen = 0;
     const seenItems = new Set();
     const seenPages = new Set();
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard("social-bilibili-adb")
+        : null;
     for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
       const rawUrl = new URL("x/relation/followings", this.baseUrl);
       rawUrl.searchParams.set("vmid", String(uid));
@@ -729,7 +752,8 @@ class BilibiliApiClient {
       const obj = await this._doGetJson(prepared.url, prepared.cookie);
       if (!obj) return out;
       const list = this._extractSourceArray(obj, [["data", "list"]], "follows");
-      if (isRepeatedPage(seenPages, list, bilibiliFollowKey)) break;
+      if (pageGuard) pageGuard.observe("follows", list);
+      else if (isRepeatedPage(seenPages, list, bilibiliFollowKey)) break;
       rowsSeen += list.length;
       for (const it of list) {
         if (out.length >= limit) break;

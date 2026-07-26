@@ -20,7 +20,10 @@
 
 const { computeXsXt } = require("./sign");
 const { NULL_SIGN_PROVIDER } = require("../../sign-providers");
-const { extractRecognizedArray } = require("../../source-page");
+const {
+  createSourcePageGuard,
+  extractRecognizedArray,
+} = require("../../source-page");
 
 const DEFAULT_BASE_URL = "https://edith.xiaohongshu.com/";
 const DEFAULT_MAX_PAGES = Number.POSITIVE_INFINITY;
@@ -246,6 +249,10 @@ class XhsApiClient {
     let cursor = "";
     const seenItems = new Set();
     const seenPages = new Set();
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard("social-xiaohongshu-adb")
+        : null;
     for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
       const url = new URL("api/sns/web/v2/user_posted", this.baseUrl);
       url.searchParams.set("user_id", userId);
@@ -264,7 +271,8 @@ class XhsApiClient {
       });
       if (!obj) return out;
       const notes = this._extractSourceArray(obj, [["data", "notes"]], "notes");
-      if (isRepeatedPage(seenPages, notes, xhsNoteKey)) break;
+      if (pageGuard) pageGuard.observe("notes", notes);
+      else if (isRepeatedPage(seenPages, notes, xhsNoteKey)) break;
       for (const n of notes) {
         if (out.length >= limit) break;
         if (!n) continue;
@@ -307,6 +315,10 @@ class XhsApiClient {
     let cursor = "";
     const seenItems = new Set();
     const seenPages = new Set();
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard("social-xiaohongshu-adb")
+        : null;
     for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
       const url = new URL("api/sns/web/v1/note/like/page", this.baseUrl);
       url.searchParams.set("num", "20");
@@ -323,7 +335,8 @@ class XhsApiClient {
       });
       if (!obj) return out;
       const notes = this._extractSourceArray(obj, [["data", "notes"]], "liked");
-      if (isRepeatedPage(seenPages, notes, xhsNoteKey)) break;
+      if (pageGuard) pageGuard.observe("liked", notes);
+      else if (isRepeatedPage(seenPages, notes, xhsNoteKey)) break;
       for (const n of notes) {
         if (out.length >= limit) break;
         if (!n) continue;
@@ -362,6 +375,10 @@ class XhsApiClient {
     let cursor = "";
     const seenItems = new Set();
     const seenPages = new Set();
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard("social-xiaohongshu-adb")
+        : null;
     for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
       const url = new URL("api/sns/web/v1/user/follow/list", this.baseUrl);
       url.searchParams.set("user_id", userId);
@@ -383,7 +400,8 @@ class XhsApiClient {
         [["data", "users"]],
         "follows",
       );
-      if (isRepeatedPage(seenPages, users, xhsUserKey)) break;
+      if (pageGuard) pageGuard.observe("follows", users);
+      else if (isRepeatedPage(seenPages, users, xhsUserKey)) break;
       for (const u of users) {
         if (out.length >= limit) break;
         if (!u) continue;

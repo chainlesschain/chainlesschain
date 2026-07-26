@@ -34,7 +34,10 @@
  * so they cannot be mistaken for a real empty page.
  */
 
-const { extractRecognizedArray } = require("../../source-page");
+const {
+  createSourcePageGuard,
+  extractRecognizedArray,
+} = require("../../source-page");
 
 const DEFAULT_BASE_URL = "https://m.weibo.cn/";
 const DEFAULT_MAX_PAGES = Number.POSITIVE_INFINITY;
@@ -216,6 +219,10 @@ class WeiboApiClient {
     let cursor = null;
     const seenItems = new Set();
     const seenPages = new Set();
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard("social-weibo-adb")
+        : null;
     for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
       const url = new URL("api/container/getIndex", this.baseUrl);
       url.searchParams.set("type", "uid");
@@ -235,7 +242,8 @@ class WeiboApiClient {
       });
       if (!obj) return out;
       const cards = this._extractSourceArray(obj, [["data", "cards"]], "posts");
-      if (isRepeatedPage(seenPages, cards, weiboPostKey)) break;
+      if (pageGuard) pageGuard.observe("posts", cards);
+      else if (isRepeatedPage(seenPages, cards, weiboPostKey)) break;
       for (const card of cards) {
         if (out.length >= limit) break;
         if (!card || card.card_type !== 9) continue; // card_type=9 = mblog
@@ -285,6 +293,10 @@ class WeiboApiClient {
     const out = [];
     const seenItems = new Set();
     const seenPages = new Set();
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard("social-weibo-adb")
+        : null;
     for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
       const url = new URL("api/favorites", this.baseUrl);
       url.searchParams.set("page", String(page));
@@ -303,7 +315,8 @@ class WeiboApiClient {
         [["data", "favorites"]],
         "favourites",
       );
-      if (isRepeatedPage(seenPages, favs, weiboFavouriteKey)) break;
+      if (pageGuard) pageGuard.observe("favourites", favs);
+      else if (isRepeatedPage(seenPages, favs, weiboFavouriteKey)) break;
       for (const fav of favs) {
         if (out.length >= limit) break;
         if (!fav) continue;
@@ -349,6 +362,10 @@ class WeiboApiClient {
     const out = [];
     const seenItems = new Set();
     const seenPages = new Set();
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard("social-weibo-adb")
+        : null;
     for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
       const url = new URL("api/friendships/friends", this.baseUrl);
       url.searchParams.set("uid", String(uid));
@@ -368,7 +385,8 @@ class WeiboApiClient {
         [["data", "users"]],
         "follows",
       );
-      if (isRepeatedPage(seenPages, users, weiboFollowKey)) break;
+      if (pageGuard) pageGuard.observe("follows", users);
+      else if (isRepeatedPage(seenPages, users, weiboFollowKey)) break;
       for (const u of users) {
         if (out.length >= limit) break;
         if (!u) continue;

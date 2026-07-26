@@ -25,7 +25,10 @@
  */
 
 const { NULL_SIGN_PROVIDER } = require("../../sign-providers");
-const { extractRecognizedArray } = require("../../source-page");
+const {
+  createSourcePageGuard,
+  extractRecognizedArray,
+} = require("../../source-page");
 
 const DEFAULT_BASE_URL = "https://www.kuaishou.com/";
 const DEFAULT_MAX_PAGES = Number.POSITIVE_INFINITY;
@@ -249,6 +252,10 @@ class KuaishouApiClient {
     let cursor = "";
     const seenItems = new Set();
     const seenPages = new Set();
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard("social-kuaishou-adb")
+        : null;
     for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
       if (typeof opts.beforeSourceRequest === "function") {
         await opts.beforeSourceRequest({
@@ -267,7 +274,8 @@ class KuaishouApiClient {
         [["data", OP_FEED_RECOMMEND, "feeds"]],
         "watch",
       );
-      if (isRepeatedPage(seenPages, feeds, kuaishouPhotoKey)) break;
+      if (pageGuard) pageGuard.observe("watch", feeds);
+      else if (isRepeatedPage(seenPages, feeds, kuaishouPhotoKey)) break;
       out.push(
         ...extractPhotoList(
           feeds,
@@ -308,6 +316,10 @@ class KuaishouApiClient {
     let cursor = "";
     const seenItems = new Set();
     const seenPages = new Set();
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard("social-kuaishou-adb")
+        : null;
     for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
       if (typeof opts.beforeSourceRequest === "function") {
         await opts.beforeSourceRequest({
@@ -328,7 +340,8 @@ class KuaishouApiClient {
         [["data", OP_PROFILE_PHOTOS, "feeds"]],
         "profile-photos",
       );
-      if (isRepeatedPage(seenPages, feeds, kuaishouPhotoKey)) break;
+      if (pageGuard) pageGuard.observe("profile-photos", feeds);
+      else if (isRepeatedPage(seenPages, feeds, kuaishouPhotoKey)) break;
       out.push(
         ...extractPhotoList(
           feeds,
@@ -369,6 +382,10 @@ class KuaishouApiClient {
     let syntheticIndex = 0;
     const seenItems = new Set();
     const seenPages = new Set();
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard("social-kuaishou-adb")
+        : null;
     for (let page = 1; page <= maxPages && out.length < limit; page += 1) {
       if (typeof opts.beforeSourceRequest === "function") {
         await opts.beforeSourceRequest({
@@ -391,7 +408,8 @@ class KuaishouApiClient {
         ],
         "search-history",
       );
-      if (isRepeatedPage(seenPages, arr, kuaishouSearchKey)) break;
+      if (pageGuard) pageGuard.observe("search-history", arr);
+      else if (isRepeatedPage(seenPages, arr, kuaishouSearchKey)) break;
       for (const raw of arr) {
         if (out.length >= limit) break;
         let keyword = null;

@@ -526,7 +526,9 @@ describe("BilibiliApiClient.fetchFavourites", () => {
         },
       ],
     ]);
-    const favs = await client.fetchFavourites(FAKE_COOKIE, 1234567890);
+    const favs = await client.fetchFavourites(FAKE_COOKIE, 1234567890, {
+      maxPages: 1,
+    });
     expect(favs).toHaveLength(2);
     expect(favs[0].folderName).toBe("Folder A");
     expect(favs[1].folderName).toBe("Folder B");
@@ -789,7 +791,9 @@ describe("BilibiliApiClient.fetchFollows", () => {
         },
       ],
     ]);
-    const fols = await client.fetchFollows(FAKE_COOKIE, 1234567890);
+    const fols = await client.fetchFollows(FAKE_COOKIE, 1234567890, {
+      maxPages: 1,
+    });
     expect(fols).toHaveLength(1);
     expect(fols[0]).toMatchObject({
       mid: 42,
@@ -819,7 +823,9 @@ describe("BilibiliApiClient.fetchFollows", () => {
         },
       ],
     ]);
-    const fols = await client.fetchFollows(FAKE_COOKIE, 1234567890);
+    const fols = await client.fetchFollows(FAKE_COOKIE, 1234567890, {
+      maxPages: 1,
+    });
     expect(fols).toHaveLength(1);
     expect(fols[0].uname).toBe("Real");
   });
