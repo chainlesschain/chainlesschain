@@ -283,6 +283,8 @@ function preciseOpenFileIdentity(stat) {
     ino: String(stat.ino),
     size: String(stat.size),
     mode: String(stat.mode),
+    nlink: String(stat.nlink),
+    birthtimeNs: timestamp("birthtimeNs", "birthtimeMs"),
     ctimeNs: timestamp("ctimeNs", "ctimeMs"),
     mtimeNs: timestamp("mtimeNs", "mtimeMs"),
   });
@@ -294,6 +296,8 @@ function samePreciseOpenFileIdentity(left, right) {
     left.ino === right.ino &&
     left.size === right.size &&
     left.mode === right.mode &&
+    left.nlink === right.nlink &&
+    left.birthtimeNs === right.birthtimeNs &&
     left.ctimeNs === right.ctimeNs &&
     left.mtimeNs === right.mtimeNs
   );
@@ -303,6 +307,81 @@ function samePreciseFileObject(left, right) {
   return (
     left.dev === right.dev && left.ino === right.ino && left.size === right.size
   );
+}
+
+function openFileForAttestation(file) {
+  return fs.openSync(
+    file,
+    Number(fs.constants.O_RDONLY) |
+      Number(fs.constants.O_NOFOLLOW || 0) |
+      Number(fs.constants.O_NONBLOCK || 0),
+  );
+}
+
+function assertRegularNonLinkPath(file, label) {
+  const stat = fs.lstatSync(file);
+  if (stat.isSymbolicLink() || !stat.isFile()) {
+    throw new Error(`${label} path is not a regular, non-symlink file`);
+  }
+}
+
+/**
+ * Windows/libuv does not guarantee that file IDs reported by stat(path) and
+ * fstat(fd) are comparable on every volume. Bind the canonical path to the
+ * already-open primary handle through a second handle instead: fstat-to-fstat
+ * retains object identity, while the digest also proves byte identity.
+ */
+function attestWindowsPathHandle(
+  file,
+  expectedIdentity,
+  expectedSha256,
+  maxBytes,
+  { label, requireSingleLink = false },
+) {
+  let pathFd;
+  try {
+    assertRegularNonLinkPath(file, label);
+    pathFd = openFileForAttestation(file);
+    const before = fs.fstatSync(pathFd, { bigint: true });
+    if (!before.isFile()) {
+      throw new Error(`${label} path handle is not a regular file`);
+    }
+    if (before.size < 0n || before.size > BigInt(maxBytes)) {
+      throw new Error(`${label} path handle exceeds the attestation size limit`);
+    }
+    const beforeIdentity = preciseOpenFileIdentity(before);
+    if (!samePreciseFileObject(expectedIdentity, beforeIdentity)) {
+      throw new Error(`${label} path handle identity changed`);
+    }
+    if (requireSingleLink && before.nlink !== 1n) {
+      throw new Error(`${label} path handle must not be hard-linked`);
+    }
+
+    const sha256 = hashOpenFile(pathFd, Number(before.size));
+    const after = fs.fstatSync(pathFd, { bigint: true });
+    const afterIdentity = preciseOpenFileIdentity(after);
+    if (
+      !samePreciseOpenFileIdentity(beforeIdentity, afterIdentity) ||
+      !samePreciseFileObject(expectedIdentity, afterIdentity)
+    ) {
+      throw new Error(`${label} path handle changed during attestation`);
+    }
+    if (sha256 !== expectedSha256) {
+      throw new Error(`${label} path handle content changed`);
+    }
+    if (requireSingleLink && after.nlink !== 1n) {
+      throw new Error(`${label} path handle must not be hard-linked`);
+    }
+    assertRegularNonLinkPath(file, label);
+  } finally {
+    if (pathFd !== undefined) {
+      try {
+        fs.closeSync(pathFd);
+      } catch {
+        /* best-effort */
+      }
+    }
+  }
 }
 
 function sameName(left, right) {
@@ -479,12 +558,7 @@ function fileIdentity(file, root) {
     if (!isWithin(rootReal, targetReal)) {
       throw new Error("target resolves outside the plugin root");
     }
-    fd = fs.openSync(
-      targetReal,
-      Number(fs.constants.O_RDONLY) |
-        Number(fs.constants.O_NOFOLLOW || 0) |
-        Number(fs.constants.O_NONBLOCK || 0),
-    );
+    fd = openFileForAttestation(targetReal);
     const before = fs.fstatSync(fd, { bigint: true });
     if (!before.isFile())
       throw new Error("opened target is not a regular file");
@@ -494,7 +568,10 @@ function fileIdentity(file, root) {
     const pathBefore = fs.statSync(targetReal, { bigint: true });
     const beforeIdentity = preciseOpenFileIdentity(before);
     const pathBeforeIdentity = preciseOpenFileIdentity(pathBefore);
-    if (!samePreciseFileObject(beforeIdentity, pathBeforeIdentity)) {
+    if (
+      process.platform !== "win32" &&
+      !samePreciseFileObject(beforeIdentity, pathBeforeIdentity)
+    ) {
       throw new Error("target identity changed during attestation");
     }
     const sha256 = hashOpenFile(fd, Number(before.size));
@@ -505,8 +582,18 @@ function fileIdentity(file, root) {
     const stable =
       samePreciseOpenFileIdentity(beforeIdentity, afterIdentity) &&
       samePreciseOpenFileIdentity(pathBeforeIdentity, pathAfterIdentity) &&
-      samePreciseFileObject(afterIdentity, pathAfterIdentity);
+      (process.platform === "win32" ||
+        samePreciseFileObject(afterIdentity, pathAfterIdentity));
     if (!stable) throw new Error("target identity changed during attestation");
+    if (process.platform === "win32") {
+      attestWindowsPathHandle(
+        targetReal,
+        afterIdentity,
+        sha256,
+        PLUGIN_BIN_MAX_BYTES,
+        { label: "target", requireSingleLink: true },
+      );
+    }
     if (after.nlink !== 1n) {
       throw new Error("target must not be hard-linked");
     }
@@ -519,9 +606,19 @@ function fileIdentity(file, root) {
     if (
       !samePreciseOpenFileIdentity(afterIdentity, finalIdentity) ||
       !samePreciseOpenFileIdentity(pathAfterIdentity, finalPathIdentity) ||
-      !samePreciseFileObject(finalIdentity, finalPathIdentity)
+      (process.platform !== "win32" &&
+        !samePreciseFileObject(finalIdentity, finalPathIdentity))
     ) {
       throw new Error("target identity changed during attestation");
+    }
+    if (process.platform === "win32") {
+      attestWindowsPathHandle(
+        targetReal,
+        finalIdentity,
+        sha256,
+        PLUGIN_BIN_MAX_BYTES,
+        { label: "target", requireSingleLink: true },
+      );
     }
     if (finalStat.nlink !== 1n) {
       throw new Error("target must not be hard-linked");
@@ -577,12 +674,7 @@ export function attestPluginNodeRuntime(command) {
     if (process.platform !== "win32" && (lst.mode & 0o111) === 0) {
       throw new Error("runtime is not executable");
     }
-    fd = fs.openSync(
-      runtimeReal,
-      Number(fs.constants.O_RDONLY) |
-        Number(fs.constants.O_NOFOLLOW || 0) |
-        Number(fs.constants.O_NONBLOCK || 0),
-    );
+    fd = openFileForAttestation(runtimeReal);
     const before = fs.fstatSync(fd, { bigint: true });
     if (
       !before.isFile() ||
@@ -594,7 +686,10 @@ export function attestPluginNodeRuntime(command) {
     const pathBefore = fs.statSync(runtimeReal, { bigint: true });
     const beforeIdentity = preciseOpenFileIdentity(before);
     const pathBeforeIdentity = preciseOpenFileIdentity(pathBefore);
-    if (!samePreciseFileObject(beforeIdentity, pathBeforeIdentity)) {
+    if (
+      process.platform !== "win32" &&
+      !samePreciseFileObject(beforeIdentity, pathBeforeIdentity)
+    ) {
       throw new Error("runtime identity changed during attestation");
     }
     const sha256 = hashOpenFile(fd, Number(before.size));
@@ -605,8 +700,18 @@ export function attestPluginNodeRuntime(command) {
     const stable =
       samePreciseOpenFileIdentity(beforeIdentity, afterIdentity) &&
       samePreciseOpenFileIdentity(pathBeforeIdentity, pathAfterIdentity) &&
-      samePreciseFileObject(afterIdentity, pathAfterIdentity);
+      (process.platform === "win32" ||
+        samePreciseFileObject(afterIdentity, pathAfterIdentity));
     if (!stable) throw new Error("runtime identity changed during attestation");
+    if (process.platform === "win32") {
+      attestWindowsPathHandle(
+        runtimeReal,
+        afterIdentity,
+        sha256,
+        PLUGIN_NODE_RUNTIME_MAX_BYTES,
+        { label: "runtime" },
+      );
+    }
     const metadata = fs.fstatSync(fd);
     const finalIdentity = preciseOpenFileIdentity(
       fs.fstatSync(fd, { bigint: true }),
@@ -617,9 +722,19 @@ export function attestPluginNodeRuntime(command) {
     if (
       !samePreciseOpenFileIdentity(afterIdentity, finalIdentity) ||
       !samePreciseOpenFileIdentity(pathAfterIdentity, finalPathIdentity) ||
-      !samePreciseFileObject(finalIdentity, finalPathIdentity)
+      (process.platform !== "win32" &&
+        !samePreciseFileObject(finalIdentity, finalPathIdentity))
     ) {
       throw new Error("runtime identity changed during attestation");
+    }
+    if (process.platform === "win32") {
+      attestWindowsPathHandle(
+        runtimeReal,
+        finalIdentity,
+        sha256,
+        PLUGIN_NODE_RUNTIME_MAX_BYTES,
+        { label: "runtime" },
+      );
     }
     return Object.freeze({
       requestedPath,

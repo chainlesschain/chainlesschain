@@ -646,6 +646,49 @@ describe("resolvePluginBinInvocation", () => {
     );
   });
 
+  it("detects a same-content path replacement with a different inode", () => {
+    const dir = pluginVersionDir("local", "toolkit", "1.0.0", { cwd });
+    const binDir = path.join(dir, "bin");
+    const target = path.join(binDir, "entry.js");
+    const replacement = path.join(binDir, "replacement.js");
+    const displaced = path.join(binDir, "displaced.js");
+    const source = "process.stdout.write('same');\n";
+    const fixedTime = new Date("2024-01-01T00:00:00.000Z");
+    fs.mkdirSync(binDir, { recursive: true });
+    fs.writeFileSync(target, source, "utf8");
+    fs.writeFileSync(replacement, source, "utf8");
+    fs.utimesSync(target, fixedTime, fixedTime);
+    fs.utimesSync(replacement, fixedTime, fixedTime);
+    fs.writeFileSync(
+      path.join(dir, "plugin.json"),
+      JSON.stringify({
+        name: "toolkit",
+        version: "1.0.0",
+        sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+        bin: { mytool: "bin/entry.js" },
+      }),
+      "utf8",
+    );
+    const targetStat = fs.statSync(target, { bigint: true });
+    const replacementStat = fs.statSync(replacement, { bigint: true });
+    expect(replacementStat.dev).toBe(targetStat.dev);
+    expect(replacementStat.ino).not.toBe(targetStat.ino);
+    expect(replacementStat.size).toBe(targetStat.size);
+    expect(replacementStat.mtimeMs).toBe(targetStat.mtimeMs);
+
+    const invocation = resolvePluginBinInvocation("mytool", {
+      cwd,
+      scopes: ["local"],
+    });
+    fs.renameSync(target, displaced);
+    fs.renameSync(replacement, target);
+
+    expect(fs.readFileSync(target, "utf8")).toBe(source);
+    expect(() => reattestPluginBinInvocation(invocation)).toThrow(
+      /identity changed before launch \(ino\)/,
+    );
+  });
+
   it("rejects a policy-bearing target that resolves outside its plugin root", () => {
     const dir = pluginVersionDir("local", "toolkit", "1.0.0", { cwd });
     const outside = path.join(cwd, "outside-bin");
