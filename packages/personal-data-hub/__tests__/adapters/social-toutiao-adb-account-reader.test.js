@@ -17,18 +17,30 @@ const {
 } = require("../../lib/adapters/social-toutiao-adb/account-reader");
 
 // ── readToutiaoAccount (injected Database class) ──────────────────────
-function makeFakeDb(rows, { hasTime = true } = {}) {
+function makeFakeDb(
+  rows,
+  { hasTime = true, pragmaError = null, rowsError = null } = {},
+) {
   return class FakeDb {
     constructor() {}
     prepare(sql) {
       return {
         all: () => {
           if (/table_info\(login_info\)/.test(sql)) {
-            const cols = ["uid", "screen_name", "sec_uid", "platform_screen_name"];
+            if (pragmaError) throw pragmaError;
+            const cols = [
+              "uid",
+              "screen_name",
+              "sec_uid",
+              "platform_screen_name",
+            ];
             if (hasTime) cols.push("time");
             return cols.map((name) => ({ name }));
           }
-          if (/FROM login_info/.test(sql)) return rows;
+          if (/FROM login_info/.test(sql)) {
+            if (rowsError) throw rowsError;
+            return rows;
+          }
           return [];
         },
         get: () => undefined,
@@ -41,10 +53,19 @@ function makeFakeDb(rows, { hasTime = true } = {}) {
 describe("readToutiaoAccount", () => {
   it("picks the numeric-uid row → {uid, nickname, secUid}", () => {
     const Db = makeFakeDb([
-      { uid: "92585279158", screen_name: "小明", sec_uid: "MS4wLjAB", time: 200 },
+      {
+        uid: "92585279158",
+        screen_name: "小明",
+        sec_uid: "MS4wLjAB",
+        time: 200,
+      },
     ]);
     const r = _internals.readToutiaoAccount("x.db", { _databaseClass: Db });
-    expect(r).toEqual({ uid: "92585279158", nickname: "小明", secUid: "MS4wLjAB" });
+    expect(r).toEqual({
+      uid: "92585279158",
+      nickname: "小明",
+      secUid: "MS4wLjAB",
+    });
   });
 
   it("skips guest/zero/non-numeric uid rows, takes first valid", () => {
@@ -63,12 +84,46 @@ describe("readToutiaoAccount", () => {
     const Db = makeFakeDb([
       { uid: "7", screen_name: "", platform_screen_name: "plat", time: 1 },
     ]);
-    expect(_internals.readToutiaoAccount("x.db", { _databaseClass: Db }).nickname).toBe("plat");
+    expect(
+      _internals.readToutiaoAccount("x.db", { _databaseClass: Db }).nickname,
+    ).toBe("plat");
   });
 
   it("returns null when no numeric-uid row exists", () => {
     const Db = makeFakeDb([{ uid: "0" }, { uid: "" }]);
-    expect(_internals.readToutiaoAccount("x.db", { _databaseClass: Db })).toBe(null);
+    expect(_internals.readToutiaoAccount("x.db", { _databaseClass: Db })).toBe(
+      null,
+    );
+  });
+
+  it("rejects an unreadable login_info schema", () => {
+    const Db = makeFakeDb([], {
+      pragmaError: new Error("synthetic schema read failure"),
+    });
+    expect(() =>
+      _internals.readToutiaoAccount("x.db", { _databaseClass: Db }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "TOUTIAO_ACCOUNT_SQLITE_SOURCE_UNREADABLE",
+        table: "login_info",
+        operation: "inspected",
+      }),
+    );
+  });
+
+  it("rejects unreadable login_info rows", () => {
+    const Db = makeFakeDb([], {
+      rowsError: new Error("synthetic row read failure"),
+    });
+    expect(() =>
+      _internals.readToutiaoAccount("x.db", { _databaseClass: Db }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "TOUTIAO_ACCOUNT_SQLITE_SOURCE_UNREADABLE",
+        table: "login_info",
+        operation: "read",
+      }),
+    );
   });
 });
 
@@ -92,7 +147,10 @@ describe("pullAccountDbViaSu — diagnosis", () => {
   });
 
   it("missing db + package installed → TOUTIAO_ACCOUNT_DB_MISSING", async () => {
-    const adb = makeAdb({ ls: "NOT_FOUND\r\n", pm: "package:com.ss.android.article.news\r\n" });
+    const adb = makeAdb({
+      ls: "NOT_FOUND\r\n",
+      pm: "package:com.ss.android.article.news\r\n",
+    });
     await expect(_internals.pullAccountDbViaSu(adb, "s", {})).rejects.toThrow(
       /TOUTIAO_ACCOUNT_DB_MISSING/,
     );
@@ -107,7 +165,9 @@ describe("pullAccountDbViaSu — diagnosis", () => {
 
   it("non-root su → TOUTIAO_NO_ROOT", async () => {
     const adb = makeAdb({ ls: ACCOUNT_DB_REMOTE_PATH, id: "2000\r\n" });
-    await expect(_internals.pullAccountDbViaSu(adb, "s", {})).rejects.toThrow(/TOUTIAO_NO_ROOT/);
+    await expect(_internals.pullAccountDbViaSu(adb, "s", {})).rejects.toThrow(
+      /TOUTIAO_NO_ROOT/,
+    );
   });
 
   it("empty base64 stream → TOUTIAO_ACCOUNT_DB_EMPTY", async () => {
@@ -119,7 +179,11 @@ describe("pullAccountDbViaSu — diagnosis", () => {
 
   it("non-sqlite payload → TOUTIAO_ACCOUNT_DB_NOT_SQLITE", async () => {
     const buf = Buffer.alloc(2048, 0x41); // "AAAA…"
-    const adb = makeAdb({ ls: ACCOUNT_DB_REMOTE_PATH, id: "uid=0(root)", b64: buf.toString("base64") });
+    const adb = makeAdb({
+      ls: ACCOUNT_DB_REMOTE_PATH,
+      id: "uid=0(root)",
+      b64: buf.toString("base64"),
+    });
     await expect(_internals.pullAccountDbViaSu(adb, "s", {})).rejects.toThrow(
       /TOUTIAO_ACCOUNT_DB_NOT_SQLITE/,
     );

@@ -31,6 +31,17 @@ const TOUTIAO_PACKAGE = "com.ss.android.article.news";
 const ACCOUNT_DB_REMOTE_PATH =
   "/data/data/com.ss.android.article.news/databases/account_db";
 
+function accountSourceError(operation, cause) {
+  const error = new Error(
+    `social-toutiao-adb: login_info could not be ${operation}; refusing a partial account import`,
+  );
+  error.code = "TOUTIAO_ACCOUNT_SQLITE_SOURCE_UNREADABLE";
+  error.table = "login_info";
+  error.operation = operation;
+  error.cause = cause;
+  return error;
+}
+
 /**
  * Pull the account_db sqlite via `su base64` into a host tmp file.
  * @param {(args: string[], opts?: object) => Promise<string>} adb
@@ -41,7 +52,12 @@ const ACCOUNT_DB_REMOTE_PATH =
 async function pullAccountDbViaSu(adb, serial, opts = {}) {
   const adbOpts = { serial, timeoutMs: opts.timeoutMs || 60_000 };
   const lsOut = await adb(
-    ["shell", "su", "-c", `ls ${ACCOUNT_DB_REMOTE_PATH} 2>/dev/null || echo NOT_FOUND`],
+    [
+      "shell",
+      "su",
+      "-c",
+      `ls ${ACCOUNT_DB_REMOTE_PATH} 2>/dev/null || echo NOT_FOUND`,
+    ],
     adbOpts,
   );
   const lsLine = lsOut.replace(/\r+$/gm, "").trim();
@@ -50,7 +66,9 @@ async function pullAccountDbViaSu(adb, serial, opts = {}) {
       ["shell", "su", "-c", `pm list packages ${TOUTIAO_PACKAGE}`],
       adbOpts,
     );
-    const installed = pmOut.replace(/\r/g, "").includes(`package:${TOUTIAO_PACKAGE}`);
+    const installed = pmOut
+      .replace(/\r/g, "")
+      .includes(`package:${TOUTIAO_PACKAGE}`);
     throw new Error(
       installed
         ? "TOUTIAO_ACCOUNT_DB_MISSING: 今日头条已安装但无 account_db（未登录账号？）— " +
@@ -65,7 +83,9 @@ async function pullAccountDbViaSu(adb, serial, opts = {}) {
   const idLine = idOut.replace(/\r+$/gm, "").trim();
   if (idLine !== "0" && !idLine.includes("uid=0")) {
     throw new Error(
-      "TOUTIAO_NO_ROOT: su not uid 0 (`" + idLine.substring(0, 60) + "`); root required to read account_db.",
+      "TOUTIAO_NO_ROOT: su not uid 0 (`" +
+        idLine.substring(0, 60) +
+        "`); root required to read account_db.",
     );
   }
   const b64 = await adb(
@@ -74,13 +94,25 @@ async function pullAccountDbViaSu(adb, serial, opts = {}) {
   );
   const b64Clean = b64.replace(/[\r\n\t ]+/g, "");
   if (b64Clean.length === 0) {
-    throw new Error("TOUTIAO_ACCOUNT_DB_EMPTY: base64 stream returned 0 bytes (su may have silently failed on MIUI).");
+    throw new Error(
+      "TOUTIAO_ACCOUNT_DB_EMPTY: base64 stream returned 0 bytes (su may have silently failed on MIUI).",
+    );
   }
   const buf = Buffer.from(b64Clean, "base64");
-  if (buf.length < 1024 || !buf.subarray(0, 15).toString("latin1").startsWith("SQLite format 3")) {
-    throw new Error("TOUTIAO_ACCOUNT_DB_NOT_SQLITE: decoded file lacks `SQLite format 3` magic (" + buf.length + " bytes).");
+  if (
+    buf.length < 1024 ||
+    !buf.subarray(0, 15).toString("latin1").startsWith("SQLite format 3")
+  ) {
+    throw new Error(
+      "TOUTIAO_ACCOUNT_DB_NOT_SQLITE: decoded file lacks `SQLite format 3` magic (" +
+        buf.length +
+        " bytes).",
+    );
   }
-  const tmpFile = path.join(os.tmpdir(), `cc-toutiao-account-${crypto.randomUUID()}.db`);
+  const tmpFile = path.join(
+    os.tmpdir(),
+    `cc-toutiao-account-${crypto.randomUUID()}.db`,
+  );
   fs.writeFileSync(tmpFile, buf);
   return tmpFile;
 }
@@ -98,19 +130,30 @@ function readToutiaoAccount(dbPath, opts = {}) {
     let info;
     try {
       info = db.prepare("PRAGMA table_info(login_info)").all();
-    } catch (_e) {
-      return null;
+      if (!Array.isArray(info)) {
+        throw new Error("SQLite schema query did not return a row array");
+      }
+    } catch (error) {
+      throw accountSourceError("inspected", error);
     }
-    if (!Array.isArray(info) || info.length === 0) return null;
+    if (info.length === 0) return null;
     const cols = new Set(info.map((c) => c.name));
     if (!cols.has("uid")) return null;
     const hasTime = cols.has("time");
     // Prefer the most-recently-written numeric-uid row (multi-account safe).
-    const rows = db
-      .prepare(
-        `SELECT * FROM login_info${hasTime ? " ORDER BY time DESC" : ""}`,
-      )
-      .all();
+    let rows;
+    try {
+      rows = db
+        .prepare(
+          `SELECT * FROM login_info${hasTime ? " ORDER BY time DESC" : ""}`,
+        )
+        .all();
+      if (!Array.isArray(rows)) {
+        throw new Error("SQLite account query did not return a row array");
+      }
+    } catch (error) {
+      throw accountSourceError("read", error);
+    }
     for (const r of rows) {
       const uid = r.uid != null ? String(r.uid) : "";
       if (/^\d+$/.test(uid) && uid !== "0") {
@@ -142,8 +185,14 @@ function createToutiaoAccountExtension(factoryOpts = {}) {
   const timeoutMs = factoryOpts.timeoutMs || 60_000;
   const onCleanupFailed = factoryOpts.onCleanupFailed || (() => {});
   return async function toutiaoAccountHandler(_params, ctx) {
-    if (!ctx || typeof ctx.adb !== "function" || typeof ctx.pickDevice !== "function") {
-      throw new TypeError("toutiao.account extension: ctx must provide {adb, pickDevice}");
+    if (
+      !ctx ||
+      typeof ctx.adb !== "function" ||
+      typeof ctx.pickDevice !== "function"
+    ) {
+      throw new TypeError(
+        "toutiao.account extension: ctx must provide {adb, pickDevice}",
+      );
     }
     const serial = await ctx.pickDevice();
     let tmpFile = null;
