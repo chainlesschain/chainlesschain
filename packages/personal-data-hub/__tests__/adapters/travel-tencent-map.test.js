@@ -35,8 +35,20 @@ function makeFakeDriverFactory(tables, log = {}) {
         log.opened = { dbPath, opts };
       }
       prepare(sql) {
+        if (sql.includes("FROM sqlite_master")) {
+          return {
+            all: () => Object.keys(tables).map((name) => ({ name })),
+          };
+        }
         for (const [needle, rows] of Object.entries(tables)) {
-          if (sql.includes(needle)) return { all: () => rows };
+          if (sql.includes(needle)) {
+            return {
+              all: () => {
+                if (rows instanceof Error) throw rows;
+                return rows;
+              },
+            };
+          }
         }
         throw new Error(`no such table in: ${sql}`);
       }
@@ -191,6 +203,27 @@ describe("sync — sqlite mode (fake driver)", () => {
     await expect(collect(a.sync({}))).rejects.toThrow(
       /explicit sqliteTables profile required/,
     );
+  });
+
+  it("rejects unreadable discovered tables instead of returning a partial collection", async () => {
+    const p = writeTmp("fake", "db");
+    try {
+      const a = new TencentMapAdapter({
+        dbPath: p,
+        sqliteTables: { route: ["confirmed_route_history"] },
+        dbDriverFactory: makeFakeDriverFactory({
+          confirmed_route_history: new Error("synthetic SQLite read failure"),
+        }),
+      });
+
+      await expect(collect(a.sync({}))).rejects.toMatchObject({
+        code: "TENCENT_MAP_SQLITE_SOURCE_UNREADABLE",
+        table: "confirmed_route_history",
+        operation: "read",
+      });
+    } finally {
+      fs.unlinkSync(p);
+    }
   });
 });
 

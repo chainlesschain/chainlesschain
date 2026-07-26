@@ -110,6 +110,11 @@ function sqliteDriver({ tables = {}, queries = [] }) {
     class FakeDb {
       prepare(sql) {
         queries.push(sql);
+        if (sql.includes("FROM sqlite_master")) {
+          return {
+            all: () => Object.keys(tables).map((name) => ({ name })),
+          };
+        }
         for (const [tableName, rows] of Object.entries(tables)) {
           if (sql.includes(`"${tableName}"`)) {
             return { all: () => rows };

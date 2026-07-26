@@ -258,7 +258,12 @@ class TencentMapAdapter {
 
     try {
       const entries = [];
-      const routeSelection = selectFirstTable(db, this._sqliteTables.route);
+      const tableNames = listSqliteTables(db);
+      const routeSelection = selectFirstTable(
+        db,
+        tableNames,
+        this._sqliteTables.route,
+      );
       for (const r of routeSelection.rows) {
         const rec = routeRowToRecord(r);
         if (rec) {
@@ -274,7 +279,11 @@ class TencentMapAdapter {
           });
         }
       }
-      const searchSelection = selectFirstTable(db, this._sqliteTables.search);
+      const searchSelection = selectFirstTable(
+        db,
+        tableNames,
+        this._sqliteTables.search,
+      );
       for (const r of searchSelection.rows) {
         const rec = searchRowToRecord(r);
         if (rec) {
@@ -631,18 +640,52 @@ function normalizeSqliteTables(value) {
   };
 }
 
-function trySelect(db, sql) {
+function sqliteSourceError(tableName, operation, cause) {
+  const error = new Error(
+    `travel-tencent-map: source table ${tableName} could not be ${operation}; refusing a partial import`,
+  );
+  error.code = "TENCENT_MAP_SQLITE_SOURCE_UNREADABLE";
+  error.table = tableName;
+  error.operation = operation;
+  error.cause = cause;
+  return error;
+}
+
+function listSqliteTables(db) {
   try {
-    return db.prepare(sql).all();
-  } catch {
-    return null;
+    const rows = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+      .all();
+    if (!Array.isArray(rows)) {
+      throw new Error("SQLite table inventory did not return a row array");
+    }
+    return new Set(
+      rows
+        .map((row) => row && row.name)
+        .filter((name) => typeof name === "string")
+        .map((name) => name.toLowerCase()),
+    );
+  } catch (error) {
+    throw sqliteSourceError("sqlite_master", "listed", error);
   }
 }
 
-function selectFirstTable(db, tableNames) {
-  for (const tableName of tableNames) {
-    const rows = trySelect(db, `SELECT * FROM "${tableName}"`);
-    if (rows) return { rows, tableName };
+function selectFirstTable(db, availableTableNames, configuredTableNames) {
+  let lastFailure = null;
+  for (const tableName of configuredTableNames) {
+    if (!availableTableNames.has(tableName.toLowerCase())) continue;
+    try {
+      const rows = db.prepare(`SELECT * FROM "${tableName}"`).all();
+      if (!Array.isArray(rows)) {
+        throw new Error("SQLite query did not return a row array");
+      }
+      return { rows, tableName };
+    } catch (error) {
+      lastFailure = { error, tableName };
+    }
+  }
+  if (lastFailure) {
+    throw sqliteSourceError(lastFailure.tableName, "read", lastFailure.error);
   }
   return { rows: [], tableName: null };
 }
