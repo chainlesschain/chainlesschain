@@ -53,7 +53,9 @@ describe("gov-ixiamen mappers", () => {
   it("extractList tolerant", () => {
     expect(ix.extractList({ list: [{ id: 1 }] })).toHaveLength(1);
     expect(ix.extractList({ data: { records: [{ id: 1 }] } })).toHaveLength(1);
-    expect(ix.extractList({})).toEqual([]);
+    expect(() => ix.extractList({})).toThrow(
+      expect.objectContaining({ code: "SOURCE_PAGE_UNRECOGNIZED" }),
+    );
   });
 });
 

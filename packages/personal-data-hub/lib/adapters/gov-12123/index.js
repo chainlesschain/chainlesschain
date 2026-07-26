@@ -39,7 +39,10 @@ const {
   EVENT_SUBTYPES,
   CAPTURED_BY,
 } = require("../../constants");
-const { extractRecognizedArray } = require("../../source-page");
+const {
+  createSourcePageGuard,
+  extractRecognizedArray,
+} = require("../../source-page");
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "gov-12123";
@@ -382,7 +385,13 @@ class Tmri12123Adapter {
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
-      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : Number.POSITIVE_INFINITY;
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard(NAME)
+        : null;
     const sinceMs =
       opts.sinceWatermark != null
         ? parseInt(String(opts.sinceWatermark), 10) || 0
@@ -421,6 +430,7 @@ class Tmri12123Adapter {
           streamComplete = true;
           break;
         }
+        pageGuard?.observe(KIND_VIOLATION, items);
         for (const it of items) {
           const rec = mapViolation(it);
           if (!rec) continue;
@@ -561,7 +571,7 @@ class Tmri12123Adapter {
   }
 }
 
-async function defaultFetch(_opts) {
+async function defaultFetch() {
   throw new Error("gov-12123: no fetchFn configured for cookie-api mode");
 }
 

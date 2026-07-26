@@ -50,6 +50,10 @@ const {
   EVENT_SUBTYPES,
   CAPTURED_BY,
 } = require("../../constants");
+const {
+  createSourcePageGuard,
+  extractRecognizedArray,
+} = require("../../source-page");
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "gov-ixiamen";
@@ -161,16 +165,17 @@ function mapService(raw) {
 }
 
 function extractList(resp) {
-  if (!resp || typeof resp !== "object") return [];
-  if (Array.isArray(resp.list)) return resp.list;
-  if (Array.isArray(resp.data)) return resp.data;
-  const d = resp.data;
-  if (d && typeof d === "object") {
-    if (Array.isArray(d.list)) return d.list;
-    if (Array.isArray(d.records)) return d.records;
-    if (Array.isArray(d.result)) return d.result;
-  }
-  return [];
+  return extractRecognizedArray(
+    resp,
+    [
+      ["list"],
+      ["data"],
+      ["data", "list"],
+      ["data", "records"],
+      ["data", "result"],
+    ],
+    { source: NAME, stream: KIND_SERVICE },
+  );
 }
 
 class IXiamenAdapter {
@@ -346,7 +351,13 @@ class IXiamenAdapter {
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
-      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : Number.POSITIVE_INFINITY;
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard(NAME)
+        : null;
 
     let emitted = 0;
     let page = 1;
@@ -371,6 +382,7 @@ class IXiamenAdapter {
         scanComplete = true;
         break;
       }
+      pageGuard?.observe(KIND_SERVICE, items);
       for (const it of items) {
         const rec = mapService(it);
         if (!rec) continue;
@@ -451,7 +463,7 @@ class IXiamenAdapter {
   }
 }
 
-async function defaultFetch(_opts) {
+async function defaultFetch() {
   throw new Error("gov-ixiamen: no fetchFn configured for cookie-api mode");
 }
 
