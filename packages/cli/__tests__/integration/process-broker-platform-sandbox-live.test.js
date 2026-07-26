@@ -11,6 +11,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
+import { SANDBOX_BOUNDARIES } from "../../src/lib/process-execution-broker/platform-sandbox.js";
 
 const LIVE = process.env.CC_SANDBOX_LIVE === "1";
 const SUPPORTED = ["linux", "darwin", "win32"].includes(process.platform);
@@ -126,6 +127,74 @@ describe.runIf(LIVE && SUPPORTED)(
         sandboxEnforcement: expectedEnforcement[process.platform],
       });
     }, 45_000);
+
+    it.runIf(process.platform === "linux")(
+      "attests the bwrap runtime but rejects an unattested strong policy before the target starts",
+      () => {
+        forbiddenPath = path.join(
+          os.tmpdir(),
+          `.cc-broker-target-marker-${process.pid}-${Date.now()}`,
+        );
+        let error;
+        try {
+          executionBroker.spawnSync(
+            process.execPath,
+            [
+              "-e",
+              `require("node:fs").writeFileSync(${JSON.stringify(
+                forbiddenPath,
+              )}, "target-started")`,
+            ],
+            {
+              origin: "test:linux-bwrap-policy-attestation-live",
+              scope: "sandbox-test",
+              policy: "allow",
+              timeout: 30_000,
+              env: process.env,
+              sandboxPolicy: {
+                profile: "strict",
+                requiredBoundaries: [
+                  SANDBOX_BOUNDARIES.FILESYSTEM,
+                  SANDBOX_BOUNDARIES.NETWORK,
+                ],
+              },
+            },
+          );
+        } catch (caught) {
+          error = caught;
+        }
+
+        expect(error).toMatchObject({
+          code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+          sandboxCandidateBackend: "linux-bwrap",
+          sandboxPolicyAttested: false,
+          sandboxCandidateReason: "linux_bwrap_policy_unattested",
+          sandboxRuntimeProbe: {
+            attempted: true,
+            runnable: true,
+            reason: null,
+          },
+          actualGuarantees: [],
+        });
+        expect(fs.existsSync(forbiddenPath)).toBe(false);
+        expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
+          permissionDecision: "deny",
+          sandboxed: false,
+          sandboxState: "denied",
+          sandboxGuarantees: [],
+          sandboxBackend: null,
+          sandboxCandidateBackend: "linux-bwrap",
+          sandboxPolicyAttested: false,
+          sandboxCandidateReason: "linux_bwrap_policy_unattested",
+          sandboxRuntimeProbe: {
+            attempted: true,
+            runnable: true,
+            reason: null,
+          },
+        });
+      },
+      45_000,
+    );
   },
 );
 

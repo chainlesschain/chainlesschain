@@ -135,9 +135,11 @@ describe("platform sandbox adapter contract", () => {
 
   it("returns the Linux prlimit wrapper and marked child environment", () => {
     const options = { cwd: "/workspace", env: { PATH: "/usr/bin" } };
+    const probeSpawnSync = vi.fn();
     const plan = applySandbox("node", ["script.js"], options, "default", {
       platform: "linux",
       fs: { existsSync: vi.fn(() => true) },
+      spawnSync: probeSpawnSync,
     });
 
     expect(plan).toMatchObject({
@@ -163,6 +165,107 @@ describe("platform sandbox adapter contract", () => {
       CHAINLESS_SANDBOXED: "1",
     });
     expect(options.env).toEqual({ PATH: "/usr/bin" });
+    expect(probeSpawnSync).not.toHaveBeenCalled();
+  });
+
+  it("treats a failed namespace smoke as unavailable instead of trusting the bwrap binary", () => {
+    const probeSpawnSync = vi.fn(() => ({ status: 1 }));
+    const plan = applySandbox(
+      "node",
+      ["script.js"],
+      { cwd: "/workspace" },
+      {
+        profile: "strict",
+        requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+      },
+      {
+        platform: "linux",
+        fs: { existsSync: vi.fn(() => true) },
+        spawnSync: probeSpawnSync,
+      },
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      platform: "linux",
+      profile: "strict",
+      command: "node",
+      args: ["script.js"],
+      backend: null,
+      candidateBackend: "linux-bwrap",
+      policyAttested: false,
+      reason: "linux_bwrap_unavailable",
+      guarantees: [],
+      runtimeProbe: {
+        kind: "linux-bwrap-runtime-smoke-v1",
+        attempted: true,
+        runnable: false,
+        reason: "probe_failed",
+      },
+    });
+    expect(probeSpawnSync).toHaveBeenCalledWith(
+      "/usr/bin/bwrap",
+      [
+        "--die-with-parent",
+        "--new-session",
+        "--unshare-all",
+        "--ro-bind",
+        "/",
+        "/",
+        "--proc",
+        "/proc",
+        "--dev",
+        "/dev",
+        "--tmpfs",
+        "/tmp",
+        "--",
+        "/bin/true",
+      ],
+      expect.objectContaining({
+        shell: false,
+        stdio: "ignore",
+        timeout: 5_000,
+      }),
+    );
+  });
+
+  it("does not promote filesystem or network guarantees after a successful bwrap runtime probe", () => {
+    const probeSpawnSync = vi.fn(() => ({ status: 0 }));
+    const plan = applySandbox(
+      "node",
+      ["script.js"],
+      {},
+      "strict",
+      {
+        platform: "linux",
+        fs: { existsSync: vi.fn(() => true) },
+        spawnSync: probeSpawnSync,
+      },
+      {
+        profile: "strict",
+        requiredBoundaries: [
+          SANDBOX_BOUNDARIES.FILESYSTEM,
+          SANDBOX_BOUNDARIES.NETWORK,
+        ],
+      },
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      backend: null,
+      candidateBackend: "linux-bwrap",
+      policyAttested: false,
+      reason: "linux_bwrap_policy_unattested",
+      guarantees: [],
+      runtimeProbe: {
+        attempted: true,
+        runnable: true,
+        reason: null,
+      },
+    });
+    expect(plan.guarantees).not.toContain(SANDBOX_BOUNDARIES.FILESYSTEM);
+    expect(plan.guarantees).not.toContain(SANDBOX_BOUNDARIES.NETWORK);
+    expect(probeSpawnSync).toHaveBeenCalledOnce();
   });
 
   it("preserves shell command semantics behind the Linux wrapper", () => {
@@ -271,14 +374,10 @@ describe("platform sandbox adapter contract", () => {
     });
     plan.cleanup();
     expect(fsRuntime.unlinkSync).toHaveBeenCalledOnce();
-    expect(windowsSandboxSource).toContain(
-      "PROC_THREAD_ATTRIBUTE_HANDLE_LIST",
-    );
+    expect(windowsSandboxSource).toContain("PROC_THREAD_ATTRIBUTE_HANDLE_LIST");
     expect(windowsSandboxSource).toContain("EXTENDED_STARTUPINFO_PRESENT");
     expect(windowsSandboxSource).toContain("BuildInheritedHandleList");
-    expect(windowsSandboxSource).toContain(
-      "InitializeProcThreadAttributeList",
-    );
+    expect(windowsSandboxSource).toContain("InitializeProcThreadAttributeList");
     expect(windowsSandboxSource).toContain("UpdateProcThreadAttribute");
     expect(windowsSandboxSource).toContain("DeleteProcThreadAttributeList");
     expect(windowsSandboxSource).toContain("_get_osfhandle(nodeIpcFd)");
@@ -939,10 +1038,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
         profile,
         enforcement: "macos-seatbelt",
         backend: "macos-seatbelt",
-        guarantees: [
-          SANDBOX_BOUNDARIES.FILESYSTEM,
-          SANDBOX_BOUNDARIES.NETWORK,
-        ],
+        guarantees: [SANDBOX_BOUNDARIES.FILESYSTEM, SANDBOX_BOUNDARIES.NETWORK],
       }),
     );
     executionBroker._native = { spawn: nativeSpawn };
@@ -971,6 +1067,14 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
         requiredBoundaries: expect.anything(),
       }),
       "strict",
+      undefined,
+      {
+        profile: "strict",
+        requiredBoundaries: [
+          SANDBOX_BOUNDARIES.FILESYSTEM,
+          SANDBOX_BOUNDARIES.NETWORK,
+        ],
+      },
     );
     const nativeOptions = nativeSpawn.mock.calls[0][2];
     expect(nativeOptions).not.toHaveProperty("sandboxPolicy");
@@ -991,10 +1095,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     await expect(child.sandboxReady).resolves.toEqual({
       applied: true,
       backend: "macos-seatbelt",
-      guarantees: [
-        SANDBOX_BOUNDARIES.FILESYSTEM,
-        SANDBOX_BOUNDARIES.NETWORK,
-      ],
+      guarantees: [SANDBOX_BOUNDARIES.FILESYSTEM, SANDBOX_BOUNDARIES.NETWORK],
     });
   });
 
@@ -1071,6 +1172,106 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
         SANDBOX_BOUNDARIES.NETWORK,
       ],
       sandboxBackend: "windows-job-restricted-token",
+    });
+  });
+
+  it("fails closed before native spawn when Linux bwrap runs but its policy is unattested", () => {
+    const nativeSpawn = vi.fn();
+    const probeSpawnSync = vi.fn(() => ({ status: 0 }));
+    const apply = vi.fn(
+      (command, args, options, profile, _runtime, sandboxRequest) =>
+        applySandbox(
+          command,
+          args,
+          options,
+          profile,
+          {
+            platform: "linux",
+            fs: { existsSync: vi.fn(() => true) },
+            spawnSync: probeSpawnSync,
+          },
+          sandboxRequest,
+        ),
+    );
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: apply,
+      postSpawnSandbox: vi.fn(),
+    };
+
+    let error;
+    try {
+      executionBroker.spawn("target-with-side-effect", [], {
+        origin: "test:linux-bwrap-policy-unattested",
+        policy: "allow",
+        sandboxPolicy: {
+          profile: "strict",
+          requiredBoundaries: [
+            SANDBOX_BOUNDARIES.FILESYSTEM,
+            SANDBOX_BOUNDARIES.NETWORK,
+          ],
+        },
+      });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(apply).toHaveBeenCalledWith(
+      "target-with-side-effect",
+      [],
+      expect.not.objectContaining({
+        sandboxPolicy: expect.anything(),
+        requiredBoundaries: expect.anything(),
+      }),
+      "strict",
+      undefined,
+      {
+        profile: "strict",
+        requiredBoundaries: [
+          SANDBOX_BOUNDARIES.FILESYSTEM,
+          SANDBOX_BOUNDARIES.NETWORK,
+        ],
+      },
+    );
+    expect(error).toMatchObject({
+      code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+      sandboxReason: "required_boundaries_unsatisfied",
+      sandboxFailClosed: true,
+      actualGuarantees: [],
+      missingBoundaries: [
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+      ],
+      sandboxBackend: null,
+      sandboxCandidateBackend: "linux-bwrap",
+      sandboxPolicyAttested: false,
+      sandboxCandidateReason: "linux_bwrap_policy_unattested",
+      sandboxRuntimeProbe: {
+        attempted: true,
+        runnable: true,
+        reason: null,
+      },
+    });
+    expect(probeSpawnSync).toHaveBeenCalledOnce();
+    expect(nativeSpawn).not.toHaveBeenCalled();
+    expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
+      permissionDecision: "deny",
+      sandboxed: false,
+      sandboxState: "denied",
+      sandboxRequired: [
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+      ],
+      sandboxGuarantees: [],
+      sandboxBackend: null,
+      sandboxCandidateBackend: "linux-bwrap",
+      sandboxPolicyAttested: false,
+      sandboxCandidateReason: "linux_bwrap_policy_unattested",
+      sandboxRuntimeProbe: {
+        attempted: true,
+        runnable: true,
+        reason: null,
+      },
     });
   });
 
@@ -1272,6 +1473,11 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       [],
       expect.any(Object),
       "strict",
+      undefined,
+      {
+        profile: "strict",
+        requiredBoundaries: [],
+      },
     );
     expect(nativeSpawn).not.toHaveBeenCalled();
     expect(executionBroker.getAuditLog(1)[0]).toMatchObject({

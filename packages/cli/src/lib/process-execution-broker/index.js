@@ -40,9 +40,7 @@ import {
 } from "./platform-sandbox.js";
 import { credentialAgent } from "./credential-agent.js";
 
-const SUPPORTED_SANDBOX_BOUNDARIES = new Set(
-  Object.values(SANDBOX_BOUNDARIES),
-);
+const SUPPORTED_SANDBOX_BOUNDARIES = new Set(Object.values(SANDBOX_BOUNDARIES));
 const SUPPORTED_SANDBOX_PROFILES = new Set([
   "default",
   "strict",
@@ -279,13 +277,7 @@ class ProcessExecutionBroker extends EventEmitter {
     delete options.requiredBoundaries;
   }
 
-  _sandboxUnavailablePlan(
-    command,
-    args,
-    options,
-    reason,
-    sandboxPolicy = {},
-  ) {
+  _sandboxUnavailablePlan(command, args, options, reason, sandboxPolicy = {}) {
     return {
       contractVersion: 1,
       applied: false,
@@ -297,9 +289,7 @@ class ProcessExecutionBroker extends EventEmitter {
       enforcement: null,
       backend: null,
       guarantees: [],
-      requiredBoundaries: [
-        ...(sandboxPolicy.requiredBoundaries || []),
-      ],
+      requiredBoundaries: [...(sandboxPolicy.requiredBoundaries || [])],
       reason,
       postSpawn: { required: false, mode: "none" },
     };
@@ -316,12 +306,19 @@ class ProcessExecutionBroker extends EventEmitter {
     const error = this._sandboxError(reason, message);
     error.code = "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED";
     error.sandboxFailClosed = true;
-    error.requiredBoundaries = [
-      ...(metadata.requiredBoundaries || []),
-    ];
+    error.requiredBoundaries = [...(metadata.requiredBoundaries || [])];
     error.actualGuarantees = [...(metadata.actualGuarantees || [])];
     error.missingBoundaries = [...(metadata.missingBoundaries || [])];
     error.sandboxBackend = metadata.sandboxBackend || null;
+    error.sandboxCandidateBackend = metadata.sandboxCandidateBackend || null;
+    error.sandboxRuntimeProbe = metadata.sandboxRuntimeProbe
+      ? { ...metadata.sandboxRuntimeProbe }
+      : null;
+    error.sandboxPolicyAttested =
+      typeof metadata.sandboxPolicyAttested === "boolean"
+        ? metadata.sandboxPolicyAttested
+        : null;
+    error.sandboxCandidateReason = metadata.sandboxCandidateReason || null;
     return error;
   }
 
@@ -389,6 +386,43 @@ class ProcessExecutionBroker extends EventEmitter {
         "Sandbox spawn plan guarantees must use supported boundary identifiers",
       );
     }
+    const candidateBackend = plan.candidateBackend ?? null;
+    if (candidateBackend !== null && typeof candidateBackend !== "string") {
+      throw this._sandboxError(
+        "invalid_sandbox_plan",
+        "Sandbox candidate backend must be a string",
+      );
+    }
+    const policyAttested = plan.policyAttested ?? null;
+    if (policyAttested !== null && typeof policyAttested !== "boolean") {
+      throw this._sandboxError(
+        "invalid_sandbox_plan",
+        "Sandbox policy attestation must be boolean",
+      );
+    }
+    let runtimeProbe = null;
+    if (plan.runtimeProbe !== null && plan.runtimeProbe !== undefined) {
+      if (
+        typeof plan.runtimeProbe !== "object" ||
+        Array.isArray(plan.runtimeProbe) ||
+        typeof plan.runtimeProbe.kind !== "string" ||
+        typeof plan.runtimeProbe.attempted !== "boolean" ||
+        typeof plan.runtimeProbe.runnable !== "boolean" ||
+        (plan.runtimeProbe.reason !== null &&
+          typeof plan.runtimeProbe.reason !== "string")
+      ) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Sandbox runtime probe must use the typed probe contract",
+        );
+      }
+      runtimeProbe = {
+        kind: plan.runtimeProbe.kind,
+        attempted: plan.runtimeProbe.attempted,
+        runnable: plan.runtimeProbe.runnable,
+        reason: plan.runtimeProbe.reason,
+      };
+    }
     const postSpawn = plan.postSpawn || { required: false, mode: "none" };
     if (
       postSpawn.required &&
@@ -406,6 +440,9 @@ class ProcessExecutionBroker extends EventEmitter {
       options: { ...plan.options },
       backend,
       guarantees: [...new Set(guarantees)],
+      candidateBackend,
+      policyAttested,
+      runtimeProbe,
       postSpawn: { ...postSpawn },
     };
   }
@@ -419,12 +456,16 @@ class ProcessExecutionBroker extends EventEmitter {
     if (missingBoundaries.length > 0) {
       throw this._sandboxBoundaryError(
         "required_boundaries_unsatisfied",
-        `Sandbox backend ${plan.backend || "unavailable"} cannot satisfy required boundaries: ${missingBoundaries.join(", ")}`,
+        `Sandbox backend ${plan.backend || plan.candidateBackend || "unavailable"} cannot satisfy required boundaries: ${missingBoundaries.join(", ")}`,
         {
           requiredBoundaries,
           actualGuarantees,
           missingBoundaries,
           sandboxBackend: plan.backend,
+          sandboxCandidateBackend: plan.candidateBackend,
+          sandboxRuntimeProbe: plan.runtimeProbe,
+          sandboxPolicyAttested: plan.policyAttested,
+          sandboxCandidateReason: plan.candidateBackend ? plan.reason : null,
         },
       );
     }
@@ -473,12 +514,21 @@ class ProcessExecutionBroker extends EventEmitter {
       );
     }
 
+    const adapterRequest = Object.freeze({
+      profile,
+      requiredBoundaries: Object.freeze([...requiredBoundaries]),
+    });
     let plan = this._validateSandboxPlan(
+      // Keep the legacy string profile in argument four. The built-in adapter
+      // reserves argument five for runtime injection, so the typed request is
+      // additive in argument six and legacy injected adapters can ignore it.
       this._sandboxAdapter.applySandbox(
         command,
         args || [],
         options,
         profile,
+        undefined,
+        adapterRequest,
       ),
     );
     plan = this._assertRequiredSandboxBoundaries(plan, requiredBoundaries);
@@ -522,10 +572,17 @@ class ProcessExecutionBroker extends EventEmitter {
     auditEntry.sandboxed = applied;
     auditEntry.sandboxProfile = plan?.profile || null;
     auditEntry.sandboxRequired = [...(plan?.requiredBoundaries || [])];
-    auditEntry.sandboxGuarantees = applied
-      ? [...(plan?.guarantees || [])]
-      : [];
+    auditEntry.sandboxGuarantees = applied ? [...(plan?.guarantees || [])] : [];
     auditEntry.sandboxBackend = plan?.backend || null;
+    auditEntry.sandboxCandidateBackend = plan?.candidateBackend || null;
+    auditEntry.sandboxRuntimeProbe = plan?.runtimeProbe
+      ? { ...plan.runtimeProbe }
+      : null;
+    auditEntry.sandboxPolicyAttested =
+      typeof plan?.policyAttested === "boolean" ? plan.policyAttested : null;
+    auditEntry.sandboxCandidateReason = plan?.candidateBackend
+      ? plan?.reason || null
+      : null;
     auditEntry.sandboxEnforcement = applied
       ? plan?.enforcement || "platform"
       : null;
@@ -548,6 +605,19 @@ class ProcessExecutionBroker extends EventEmitter {
     auditEntry.sandboxMissing = [...(error.missingBoundaries || [])];
     auditEntry.sandboxBackend =
       error.sandboxBackend || auditEntry.sandboxBackend || null;
+    auditEntry.sandboxCandidateBackend =
+      error.sandboxCandidateBackend ||
+      auditEntry.sandboxCandidateBackend ||
+      null;
+    auditEntry.sandboxRuntimeProbe = error.sandboxRuntimeProbe
+      ? { ...error.sandboxRuntimeProbe }
+      : auditEntry.sandboxRuntimeProbe || null;
+    auditEntry.sandboxPolicyAttested =
+      typeof error.sandboxPolicyAttested === "boolean"
+        ? error.sandboxPolicyAttested
+        : (auditEntry.sandboxPolicyAttested ?? null);
+    auditEntry.sandboxCandidateReason =
+      error.sandboxCandidateReason || auditEntry.sandboxCandidateReason || null;
     auditEntry.deniedReason = `sandbox-init-failed: ${error.message}`;
     auditEntry.endTime = Date.now();
     auditEntry.durationMs = auditEntry.endTime - startTime;
@@ -590,10 +660,7 @@ class ProcessExecutionBroker extends EventEmitter {
       this._applySandboxAudit(auditEntry, plan, false);
       auditEntry.sandboxState = "failed";
       auditEntry.sandboxReason = `post_spawn_failed: ${error.message}`;
-      if (
-        this._sandboxStrictEnabled() ||
-        plan.requiredBoundaries.length > 0
-      ) {
+      if (this._sandboxStrictEnabled() || plan.requiredBoundaries.length > 0) {
         if (typeof proc.once === "function") proc.once("error", () => {});
         try {
           proc.kill?.();
@@ -613,10 +680,7 @@ class ProcessExecutionBroker extends EventEmitter {
     }
 
     if (postSpawnResult && typeof postSpawnResult.then === "function") {
-      if (
-        this._sandboxStrictEnabled() ||
-        plan.requiredBoundaries.length > 0
-      ) {
+      if (this._sandboxStrictEnabled() || plan.requiredBoundaries.length > 0) {
         Promise.resolve(postSpawnResult).catch(() => {});
         if (typeof proc.once === "function") proc.once("error", () => {});
         try {

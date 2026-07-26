@@ -3,7 +3,8 @@
  *
  * Platform enforcement currently available:
  * - macOS: Seatbelt sandbox-exec profiles
- * - Linux: prlimit resource-limit wrapper
+ * - Linux: prlimit resource-limit wrapper, plus a non-promoting bubblewrap
+ *   runtime probe for explicitly requested filesystem/network boundaries
  * - Windows: Win32 Job Object + restricted-token wrapper
  *
  * Security model:
@@ -55,6 +56,23 @@ export const SANDBOX_BOUNDARIES = Object.freeze({
 
 const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const WINDOWS_IDENTITY_WAIT = new Int32Array(new SharedArrayBuffer(4));
+const LINUX_BWRAP_PATH = "/usr/bin/bwrap";
+const LINUX_BWRAP_RUNTIME_PROBE_ARGS = Object.freeze([
+  "--die-with-parent",
+  "--new-session",
+  "--unshare-all",
+  "--ro-bind",
+  "/",
+  "/",
+  "--proc",
+  "/proc",
+  "--dev",
+  "/dev",
+  "--tmpfs",
+  "/tmp",
+  "--",
+  "/bin/true",
+]);
 const DEFAULT_RUNTIME = Object.freeze({
   platform: os.platform(),
   fs,
@@ -73,6 +91,37 @@ const DEFAULT_RUNTIME = Object.freeze({
 
 function resolveRuntime(overrides = {}) {
   return { ...DEFAULT_RUNTIME, ...overrides };
+}
+
+function normalizeSandboxRequest(profileOrRequest, explicitRequest) {
+  const legacyRequest =
+    profileOrRequest &&
+    typeof profileOrRequest === "object" &&
+    !Array.isArray(profileOrRequest)
+      ? profileOrRequest
+      : { profile: profileOrRequest };
+  const request =
+    explicitRequest &&
+    typeof explicitRequest === "object" &&
+    !Array.isArray(explicitRequest)
+      ? explicitRequest
+      : legacyRequest;
+  const profile =
+    typeof request.profile === "string"
+      ? request.profile
+      : typeof legacyRequest.profile === "string"
+        ? legacyRequest.profile
+        : "default";
+  const requiredBoundaries = Array.isArray(request.requiredBoundaries)
+    ? [
+        ...new Set(
+          request.requiredBoundaries.filter(
+            (boundary) => typeof boundary === "string",
+          ),
+        ),
+      ]
+    : [];
+  return { profile, requiredBoundaries };
 }
 
 /**
@@ -161,6 +210,9 @@ function createSandboxPlan(input) {
     args: Object.freeze([...(input.args || [])]),
     options: Object.freeze({ ...(input.options || {}) }),
     guarantees: Object.freeze([...(input.guarantees || [])]),
+    runtimeProbe: input.runtimeProbe
+      ? Object.freeze({ ...input.runtimeProbe })
+      : null,
     postSpawn,
   });
 }
@@ -329,9 +381,7 @@ export function applyMacSandbox(
     enforcement: "macos-seatbelt",
     guarantees: [
       SANDBOX_BOUNDARIES.FILESYSTEM,
-      ...(sandboxOpts.allowNetwork
-        ? []
-        : [SANDBOX_BOUNDARIES.NETWORK]),
+      ...(sandboxOpts.allowNetwork ? [] : [SANDBOX_BOUNDARIES.NETWORK]),
       ...(sandboxOpts.allowExec ? [] : [SANDBOX_BOUNDARIES.PROCESS_EXEC]),
     ],
     command: sandboxExecutable,
@@ -721,6 +771,74 @@ export function postSpawnWindowsSandbox(
 // ---------------------------------------------------------------------------
 
 /**
+ * Prove only that the installed bubblewrap binary can create the namespace and
+ * mount primitives needed by a future policy backend. This deliberately does
+ * not attest any filesystem/network policy and therefore must never promote a
+ * sandbox guarantee.
+ */
+function probeLinuxBubblewrapRuntime(runtime) {
+  let binaryPresent = false;
+  try {
+    binaryPresent = runtime.fs.existsSync(LINUX_BWRAP_PATH);
+  } catch {
+    return {
+      kind: "linux-bwrap-runtime-smoke-v1",
+      attempted: false,
+      runnable: false,
+      reason: "binary_probe_failed",
+    };
+  }
+  if (!binaryPresent) {
+    return {
+      kind: "linux-bwrap-runtime-smoke-v1",
+      attempted: false,
+      runnable: false,
+      reason: "binary_missing",
+    };
+  }
+
+  let result;
+  try {
+    result = runtime.spawnSync(
+      LINUX_BWRAP_PATH,
+      [...LINUX_BWRAP_RUNTIME_PROBE_ARGS],
+      {
+        shell: false,
+        stdio: "ignore",
+        timeout: 5_000,
+        env: {
+          PATH: "/usr/bin:/bin",
+          LANG: "C",
+          LC_ALL: "C",
+        },
+      },
+    );
+  } catch {
+    return {
+      kind: "linux-bwrap-runtime-smoke-v1",
+      attempted: true,
+      runnable: false,
+      reason: "probe_spawn_failed",
+    };
+  }
+
+  if (result?.error || result?.status !== 0) {
+    return {
+      kind: "linux-bwrap-runtime-smoke-v1",
+      attempted: true,
+      runnable: false,
+      reason: result?.error ? "probe_spawn_failed" : "probe_failed",
+    };
+  }
+  return {
+    kind: "linux-bwrap-runtime-smoke-v1",
+    attempted: true,
+    runnable: true,
+    reason: null,
+  };
+}
+
+/**
  * Apply Linux resource limits through the util-linux `prlimit` wrapper.
  *
  * @param {string} command
@@ -758,6 +876,29 @@ export function applyLinuxSandbox(
   }
 
   const { limits = {} } = sandboxOpts;
+  const requiredBoundaries = Array.isArray(sandboxOpts.requiredBoundaries)
+    ? sandboxOpts.requiredBoundaries
+    : [];
+  const requiresStrongLinuxBoundary = requiredBoundaries.some(
+    (boundary) =>
+      boundary === SANDBOX_BOUNDARIES.FILESYSTEM ||
+      boundary === SANDBOX_BOUNDARIES.NETWORK,
+  );
+
+  if (requiresStrongLinuxBoundary) {
+    const runtimeProbe = probeLinuxBubblewrapRuntime(runtime);
+    return createSandboxPlan({
+      ...base,
+      backend: null,
+      candidateBackend: "linux-bwrap",
+      policyAttested: false,
+      runtimeProbe,
+      reason: runtimeProbe.runnable
+        ? "linux_bwrap_policy_unattested"
+        : "linux_bwrap_unavailable",
+      guarantees: [],
+    });
+  }
 
   const prlimitParts = [];
   if (limits.cpu) prlimitParts.push(`--cpu=${limits.cpu}`);
@@ -807,17 +948,28 @@ export function applyLinuxSandbox(
  * @param {string} command
  * @param {string[]} args
  * @param {Object} spawnOpts - Original spawn options
- * @param {"default"|"strict"|"network-only"} profileName
+ * @param {"default"|"strict"|"network-only"|{
+ *   profile?: "default"|"strict"|"network-only",
+ *   requiredBoundaries?: string[]
+ * }} profileOrRequest
+ * @param {Object} runtimeOverrides
+ * @param {{profile?: string, requiredBoundaries?: string[]}|null} explicitRequest
  * @returns {ReturnType<typeof createSandboxPlan>}
  */
 export function applySandbox(
   command,
   args,
   spawnOpts,
-  profileName = "default",
+  profileOrRequest = "default",
   runtimeOverrides = {},
+  explicitRequest = null,
 ) {
   const runtime = resolveRuntime(runtimeOverrides);
+  const sandboxRequest = normalizeSandboxRequest(
+    profileOrRequest,
+    explicitRequest,
+  );
+  const profileName = sandboxRequest.profile;
   const profiles = {
     default: {
       allowNetwork: false,
@@ -858,6 +1010,7 @@ export function applySandbox(
   const profile = {
     ...(profiles[profileName] || profiles.default),
     profileName: profiles[profileName] ? profileName : "default",
+    requiredBoundaries: sandboxRequest.requiredBoundaries,
   };
 
   // Dispatch to platform handler
