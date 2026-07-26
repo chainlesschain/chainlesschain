@@ -140,7 +140,8 @@ function isGroupTalker(talker) {
  */
 function openPcWeChatDb(dbPath, opts = {}) {
   const Database = opts._databaseClass || loadDatabaseClass();
-  const key = typeof opts.key === "string" && opts.key.length > 0 ? opts.key : null;
+  const key =
+    typeof opts.key === "string" && opts.key.length > 0 ? opts.key : null;
 
   if (!key) {
     // Plaintext path — already-decrypted db. Probe sqlite_master.
@@ -149,7 +150,11 @@ function openPcWeChatDb(dbPath, opts = {}) {
       db.prepare("SELECT count(*) AS n FROM sqlite_master").get();
       return { db, mode: "plaintext", profile: null };
     } catch (err) {
-      try { db.close(); } catch (_e) { /* ignore */ }
+      try {
+        db.close();
+      } catch (_e) {
+        /* ignore */
+      }
       const e = new Error(
         `wechat-pc-db-reader: db is not plaintext SQLite (supply a 64-hex key, or decrypt first): ${err.message}`,
       );
@@ -175,7 +180,11 @@ function openPcWeChatDb(dbPath, opts = {}) {
     } catch (err) {
       lastError = err;
       if (db) {
-        try { db.close(); } catch (_e) { /* ignore */ }
+        try {
+          db.close();
+        } catch (_e) {
+          /* ignore */
+        }
       }
     }
   }
@@ -208,13 +217,13 @@ function readPcWeChat(dbPath, opts = {}) {
     throw new TypeError("readPcWeChat: dbPath must be a non-empty string");
   }
   const limitMessages =
-    Number.isInteger(opts.limitMessages) && opts.limitMessages > 0
+    Number.isSafeInteger(opts.limitMessages) && opts.limitMessages > 0
       ? opts.limitMessages
-      : 20_000;
+      : Number.POSITIVE_INFINITY;
   const limitContacts =
-    Number.isInteger(opts.limitContacts) && opts.limitContacts > 0
+    Number.isSafeInteger(opts.limitContacts) && opts.limitContacts > 0
       ? opts.limitContacts
-      : 10_000;
+      : Number.POSITIVE_INFINITY;
 
   const { db, mode, profile } = openPcWeChatDb(dbPath, opts);
   const out = {
@@ -236,11 +245,25 @@ function readPcWeChat(dbPath, opts = {}) {
       out.diagnostic.hadMsgTable = true;
       const cols = new Set(msgInfo.map((r) => r.name));
       const svrCol = pickCol(cols, ["MsgSvrID", "msgSvrId", "MsgSvrId"]);
-      const talkerCol = pickCol(cols, ["StrTalker", "strTalker", "Talker", "talker"]);
+      const talkerCol = pickCol(cols, [
+        "StrTalker",
+        "strTalker",
+        "Talker",
+        "talker",
+      ]);
       const sendCol = pickCol(cols, ["IsSender", "isSend", "IsSend"]);
-      const timeCol = pickCol(cols, ["CreateTime", "createTime", "create_time"]);
+      const timeCol = pickCol(cols, [
+        "CreateTime",
+        "createTime",
+        "create_time",
+      ]);
       const typeCol = pickCol(cols, ["Type", "type", "MsgType"]);
-      const contentCol = pickCol(cols, ["StrContent", "strContent", "Content", "content"]);
+      const contentCol = pickCol(cols, [
+        "StrContent",
+        "strContent",
+        "Content",
+        "content",
+      ]);
       const localIdCol = pickCol(cols, ["localId", "MsgId", "msgId"]);
       if (timeCol && contentCol) {
         const fields = [];
@@ -251,14 +274,23 @@ function readPcWeChat(dbPath, opts = {}) {
         if (typeCol) fields.push(`${typeCol} AS type`);
         fields.push(`${timeCol} AS createTime`);
         fields.push(`${contentCol} AS content`);
-        const sql =
-          `SELECT ${fields.join(", ")} FROM MSG ORDER BY ${timeCol} DESC LIMIT ${limitMessages}`;
+        const messageLimitClause = Number.isSafeInteger(limitMessages)
+          ? ` LIMIT ${limitMessages}`
+          : "";
+        const sql = `SELECT ${fields.join(
+          ", ",
+        )} FROM MSG ORDER BY ${timeCol} DESC${messageLimitClause}`;
         const rows = trySelect(db, sql) || [];
         for (const r of rows) {
           const isGroup = isGroupTalker(r.talker);
           const { text, senderWxid } = parsePcContent(r.content, isGroup);
           out.messages.push({
-            msgSvrId: r.msgSvrId != null ? String(r.msgSvrId) : (r.localId != null ? `local-${r.localId}` : null),
+            msgSvrId:
+              r.msgSvrId != null
+                ? String(r.msgSvrId)
+                : r.localId != null
+                  ? `local-${r.localId}`
+                  : null,
             talker: r.talker ? String(r.talker) : null,
             isSend: typeof r.isSend === "number" ? r.isSend : null,
             createdTimeMs: normalizeEpochMs(r.createTime),
@@ -278,10 +310,20 @@ function readPcWeChat(dbPath, opts = {}) {
     if (Array.isArray(contactInfo) && contactInfo.length > 0) {
       out.diagnostic.hadContactTable = true;
       const cols = new Set(contactInfo.map((r) => r.name));
-      const wxidCol = pickCol(cols, ["UserName", "userName", "Username", "username"]);
+      const wxidCol = pickCol(cols, [
+        "UserName",
+        "userName",
+        "Username",
+        "username",
+      ]);
       const aliasCol = pickCol(cols, ["Alias", "alias"]);
       const nickCol = pickCol(cols, ["NickName", "nickName", "nickname"]);
-      const remarkCol = pickCol(cols, ["Remark", "remark", "ConRemark", "conRemark"]);
+      const remarkCol = pickCol(cols, [
+        "Remark",
+        "remark",
+        "ConRemark",
+        "conRemark",
+      ]);
       const typeCol = pickCol(cols, ["Type", "type"]);
       if (wxidCol) {
         const fields = [`${wxidCol} AS wxid`];
@@ -289,7 +331,12 @@ function readPcWeChat(dbPath, opts = {}) {
         if (nickCol) fields.push(`${nickCol} AS nickname`);
         if (remarkCol) fields.push(`${remarkCol} AS remark`);
         if (typeCol) fields.push(`${typeCol} AS type`);
-        const sql = `SELECT ${fields.join(", ")} FROM Contact LIMIT ${limitContacts}`;
+        const contactLimitClause = Number.isSafeInteger(limitContacts)
+          ? ` LIMIT ${limitContacts}`
+          : "";
+        const sql = `SELECT ${fields.join(
+          ", ",
+        )} FROM Contact${contactLimitClause}`;
         const rows = trySelect(db, sql) || [];
         for (const r of rows) {
           if (!r.wxid) continue;
@@ -308,7 +355,11 @@ function readPcWeChat(dbPath, opts = {}) {
       }
     }
   } finally {
-    try { db.close(); } catch (_e) { /* ignore */ }
+    try {
+      db.close();
+    } catch (_e) {
+      /* ignore */
+    }
   }
   return out;
 }

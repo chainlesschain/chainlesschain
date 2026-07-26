@@ -51,7 +51,9 @@ function createLocalImPcAdapter(cfg) {
       this.extractMode = "device-pull";
       this.rateLimits = {};
       this.dataDisclosure = {
-        fields: [`${PLATFORM}:messages (time / sender / peer / best-effort text; raw row preserved)`],
+        fields: [
+          `${PLATFORM}:messages (time / sender / peer / best-effort text; raw row preserved)`,
+        ],
         sensitivity: "high",
         legalGate: true,
       };
@@ -89,19 +91,34 @@ function createLocalImPcAdapter(cfg) {
             discovered: disc,
           };
         }
-        return { ok: false, reason: "APP_NOT_INSTALLED", message: (disc && disc.note) || cfg.needHint };
+        return {
+          ok: false,
+          reason: "APP_NOT_INSTALLED",
+          message: (disc && disc.note) || cfg.needHint,
+        };
       }
       const dbPath =
-        (ctx && ctx.inputPath) || (ctx && ctx.dbPath) || this._dbPath || this._resolveDiscoveredDbPath();
+        (ctx && ctx.inputPath) ||
+        (ctx && ctx.dbPath) ||
+        this._dbPath ||
+        this._resolveDiscoveredDbPath();
       if (dbPath) {
         try {
           this._deps.fs.accessSync(dbPath, this._deps.fs.constants.R_OK);
         } catch (err) {
-          return { ok: false, reason: "INPUT_PATH_UNREADABLE", message: `${NAME}: db not readable at ${dbPath}: ${err.message}` };
+          return {
+            ok: false,
+            reason: "INPUT_PATH_UNREADABLE",
+            message: `${NAME}: db not readable at ${dbPath}: ${err.message}`,
+          };
         }
         return { ok: true, mode: "sqlite" };
       }
-      return { ok: false, reason: "APP_NOT_INSTALLED", message: `${NAME}.authenticate: 未检测到本机 ${PLATFORM} 库，也未提供 dbPath / inputPath` };
+      return {
+        ok: false,
+        reason: "APP_NOT_INSTALLED",
+        message: `${NAME}.authenticate: 未检测到本机 ${PLATFORM} 库，也未提供 dbPath / inputPath`,
+      };
     }
 
     async healthCheck() {
@@ -109,8 +126,15 @@ function createLocalImPcAdapter(cfg) {
     }
 
     async *sync(opts = {}) {
-      const dbPath = opts.dbPath || opts.inputPath || this._dbPath || this._resolveDiscoveredDbPath();
-      if (!dbPath) throw new Error(`${NAME}.sync: 未找到本机 ${PLATFORM} 库且未提供 opts.dbPath / opts.inputPath`);
+      const dbPath =
+        opts.dbPath ||
+        opts.inputPath ||
+        this._dbPath ||
+        this._resolveDiscoveredDbPath();
+      if (!dbPath)
+        throw new Error(
+          `${NAME}.sync: 未找到本机 ${PLATFORM} 库且未提供 opts.dbPath / opts.inputPath`,
+        );
       if (!this._deps.fs.existsSync(dbPath)) return;
 
       // eslint-disable-next-line global-require
@@ -120,15 +144,29 @@ function createLocalImPcAdapter(cfg) {
         tablePattern: cfg.tablePattern,
         colCandidates: cfg.colCandidates,
       };
-      if (Number.isInteger(opts.limitMessages)) readOpts.limitMessages = opts.limitMessages;
-      if (this._deps.dbDriverFactory) readOpts._databaseClass = this._deps.dbDriverFactory();
+      if (Number.isSafeInteger(opts.limitMessages) && opts.limitMessages > 0) {
+        readOpts.limitMessages = opts.limitMessages;
+      } else if (Number.isSafeInteger(opts.limit) && opts.limit > 0) {
+        readOpts.limitMessages = opts.limit;
+      }
+      if (this._deps.dbDriverFactory)
+        readOpts._databaseClass = this._deps.dbDriverFactory();
 
       const { messages, diagnostic } = readLocalImDb(dbPath, readOpts);
       if (typeof opts.onProgress === "function") {
-        try { opts.onProgress({ phase: "local-im-read", adapter: NAME, ...diagnostic }); } catch (_e) { /* best-effort */ }
+        try {
+          opts.onProgress({
+            phase: "local-im-read",
+            adapter: NAME,
+            ...diagnostic,
+          });
+        } catch (_e) {
+          /* best-effort */
+        }
       }
 
-      const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+      const limit =
+        Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
       const fallback = Date.now();
       let emitted = 0;
       for (const m of messages) {
@@ -138,7 +176,10 @@ function createLocalImPcAdapter(cfg) {
           adapter: NAME,
           kind: KIND_MESSAGE,
           originalId: stableOriginalId(m.msgId),
-          capturedAt: (typeof m.createdTimeMs === "number" && m.createdTimeMs > 0) ? m.createdTimeMs : fallback,
+          capturedAt:
+            typeof m.createdTimeMs === "number" && m.createdTimeMs > 0
+              ? m.createdTimeMs
+              : fallback,
           payload: { kind: KIND_MESSAGE, ...m },
         };
         emitted += 1;
@@ -146,12 +187,17 @@ function createLocalImPcAdapter(cfg) {
     }
 
     normalize(raw) {
-      if (!raw || !raw.payload) throw new Error(`${NAME}.normalize: payload missing`);
+      if (!raw || !raw.payload)
+        throw new Error(`${NAME}.normalize: payload missing`);
       const kind = raw.kind || raw.payload.kind;
-      if (kind !== KIND_MESSAGE) throw new Error(`${NAME}.normalize: unknown kind ${kind}`);
+      if (kind !== KIND_MESSAGE)
+        throw new Error(`${NAME}.normalize: unknown kind ${kind}`);
       const p = raw.payload;
       const ingestedAt = Date.now();
-      const occurredAt = (typeof p.createdTimeMs === "number" && p.createdTimeMs) || raw.capturedAt || ingestedAt;
+      const occurredAt =
+        (typeof p.createdTimeMs === "number" && p.createdTimeMs) ||
+        raw.capturedAt ||
+        ingestedAt;
       const source = {
         adapter: NAME,
         adapterVersion: VERSION,
@@ -161,26 +207,34 @@ function createLocalImPcAdapter(cfg) {
       };
       const text = typeof p.text === "string" ? p.text : "";
       return {
-        events: [{
-          id: newId(),
-          type: ENTITY_TYPES.EVENT,
-          subtype: EVENT_SUBTYPES.MESSAGE,
-          occurredAt,
-          actor: "person-self",
-          content: { title: text ? text.slice(0, 80) : "(待解析消息体)", text },
-          ingestedAt,
-          source,
-          extra: {
-            platform: PLATFORM,
-            source: "pc",
-            table: p.table || null,
-            senderId: p.senderId || null,
-            peerId: p.peerId || null,
-            rawRow: p.rawRow || null,
-            textResolved: typeof p.text === "string" && p.text.length > 0,
+        events: [
+          {
+            id: newId(),
+            type: ENTITY_TYPES.EVENT,
+            subtype: EVENT_SUBTYPES.MESSAGE,
+            occurredAt,
+            actor: "person-self",
+            content: {
+              title: text ? text.slice(0, 80) : "(待解析消息体)",
+              text,
+            },
+            ingestedAt,
+            source,
+            extra: {
+              platform: PLATFORM,
+              source: "pc",
+              table: p.table || null,
+              senderId: p.senderId || null,
+              peerId: p.peerId || null,
+              rawRow: p.rawRow || null,
+              textResolved: typeof p.text === "string" && p.text.length > 0,
+            },
           },
-        }],
-        persons: [], places: [], items: [], topics: [],
+        ],
+        persons: [],
+        places: [],
+        items: [],
+        topics: [],
       };
     }
   }

@@ -15,7 +15,9 @@ function makeFakeDb(spec) {
     }
     all() {
       const s = this.sql;
-      if (/type='table'/.test(s)) return (spec.tables || []).map((n) => ({ name: n }));
+      if (Array.isArray(spec.queries)) spec.queries.push(s);
+      if (/type='table'/.test(s))
+        return (spec.tables || []).map((n) => ({ name: n }));
       const ti = s.match(/table_info\("(\w+)"\)/);
       if (ti) return spec.cols[ti[1]] || [];
       const fr = s.match(/FROM "(\w+)"/);
@@ -57,8 +59,20 @@ const SPEC = {
   },
   rows: {
     msg_table: [
-      { msgId: "m1", createTime: 1700000000, senderId: "u1", conversationId: "c1", content: "开会通知" },
-      { msgId: "m2", createTime: 1700000010, senderId: "u2", conversationId: "c1", content: "收到" },
+      {
+        msgId: "m1",
+        createTime: 1700000000,
+        senderId: "u1",
+        conversationId: "c1",
+        content: "开会通知",
+      },
+      {
+        msgId: "m2",
+        createTime: 1700000010,
+        senderId: "u2",
+        conversationId: "c1",
+        content: "收到",
+      },
     ],
   },
 };
@@ -67,12 +81,18 @@ const SPEC = {
 const OPAQUE_SPEC = {
   tables: ["chat_msg"],
   cols: { chat_msg: [{ name: "id" }, { name: "timestamp" }, { name: "body" }] },
-  rows: { chat_msg: [{ id: 7, timestamp: 1700000000, body: Buffer.from([1, 2]) }] },
+  rows: {
+    chat_msg: [{ id: 7, timestamp: 1700000000, body: Buffer.from([1, 2]) }],
+  },
 };
 
 function adapter(Cls, spec, { exists = true } = {}) {
   const a = new Cls({ dbPath: "/fake.db" });
-  a._deps.fs = { existsSync: () => exists, accessSync: () => {}, constants: { R_OK: 4 } };
+  a._deps.fs = {
+    existsSync: () => exists,
+    accessSync: () => {},
+    constants: { R_OK: 4 },
+  };
   a._deps.dbDriverFactory = () => makeFakeDb(spec);
   return a;
 }
@@ -85,7 +105,9 @@ async function collect(iter) {
 
 describe("readLocalImDb (generic honest reader)", () => {
   it("discovers message tables, skips metadata + sqlite_*", () => {
-    const { messages, diagnostic } = readLocalImDb("/x", { _databaseClass: makeFakeDb(SPEC) });
+    const { messages, diagnostic } = readLocalImDb("/x", {
+      _databaseClass: makeFakeDb(SPEC),
+    });
     expect(diagnostic.messageTables).toEqual(["msg_table"]);
     expect(diagnostic.skippedTables).toEqual(["msg_meta"]);
     expect(messages).toHaveLength(2);
@@ -94,12 +116,31 @@ describe("readLocalImDb (generic honest reader)", () => {
   });
 
   it("opaque body → text null but rawRow preserved + loud diagnostic", () => {
-    const { messages, diagnostic } = readLocalImDb("/x", { _databaseClass: makeFakeDb(OPAQUE_SPEC) });
+    const { messages, diagnostic } = readLocalImDb("/x", {
+      _databaseClass: makeFakeDb(OPAQUE_SPEC),
+    });
     expect(messages).toHaveLength(1);
     expect(messages[0].text).toBeNull();
     expect(messages[0].rawRow).toBeTruthy();
     expect(diagnostic.textCount).toBe(0);
     expect(diagnostic.messageTables).toEqual(["chat_msg"]);
+  });
+
+  it("does not impose a default SQL row cap and preserves an explicit cap", () => {
+    const uncappedSpec = { ...SPEC, queries: [] };
+    readLocalImDb("/x", { _databaseClass: makeFakeDb(uncappedSpec) });
+    expect(
+      uncappedSpec.queries.find((sql) => /FROM "msg_table"/.test(sql)),
+    ).not.toMatch(/\bLIMIT\b/);
+
+    const cappedSpec = { ...SPEC, queries: [] };
+    readLocalImDb("/x", {
+      _databaseClass: makeFakeDb(cappedSpec),
+      limitMessages: 1,
+    });
+    expect(
+      cappedSpec.queries.find((sql) => /FROM "msg_table"/.test(sql)),
+    ).toMatch(/\bLIMIT 1\b/);
   });
 });
 
@@ -110,7 +151,12 @@ describe.each([
   it("no-arg construct + APP_NOT_INSTALLED when nothing discoverable + legalGate", async () => {
     const a = new Cls();
     a._deps.discoveryDeps = {
-      fs: { existsSync: () => false, readdirSync: () => [], statSync: () => ({ size: 0 }), constants: { R_OK: 4 } },
+      fs: {
+        existsSync: () => false,
+        readdirSync: () => [],
+        statSync: () => ({ size: 0 }),
+        constants: { R_OK: 4 },
+      },
       home: "/no-home",
       env: {},
     };
@@ -124,7 +170,13 @@ describe.each([
     const a = adapter(Cls, SPEC);
     const raws = await collect(a.sync({ dbPath: "/fake.db" }));
     expect(raws).toHaveLength(2);
-    const merged = { events: [], persons: [], places: [], items: [], topics: [] };
+    const merged = {
+      events: [],
+      persons: [],
+      places: [],
+      items: [],
+      topics: [],
+    };
     for (const r of raws) {
       const n = a.normalize(r);
       for (const k of Object.keys(merged)) merged[k].push(...n[k]);
@@ -140,15 +192,28 @@ describe.each([
   it("emits local-im-read progress diagnostic", async () => {
     const a = adapter(Cls, SPEC);
     const ev = [];
-    await collect(a.sync({ dbPath: "/fake.db", onProgress: (e) => ev.push(e) }));
+    await collect(
+      a.sync({ dbPath: "/fake.db", onProgress: (e) => ev.push(e) }),
+    );
     const d = ev.find((e) => e.phase === "local-im-read");
     expect(d.messageTables).toContain("msg_table");
     expect(d.messageCount).toBe(2);
   });
 
+  it("pushes an explicit adapter limit down to the SQL reader", async () => {
+    const spec = { ...SPEC, queries: [] };
+    const a = adapter(Cls, spec);
+    await collect(a.sync({ dbPath: "/fake.db", limit: 1 }));
+    expect(spec.queries.find((sql) => /FROM "msg_table"/.test(sql))).toMatch(
+      /\bLIMIT 1\b/,
+    );
+  });
+
   it("missing db yields nothing; unknown kind throws", async () => {
     const a = adapter(Cls, SPEC, { exists: false });
     expect(await collect(a.sync({ dbPath: "/no.db" }))).toHaveLength(0);
-    expect(() => new Cls().normalize({ kind: "x", payload: { kind: "x" } })).toThrow(/unknown kind/);
+    expect(() =>
+      new Cls().normalize({ kind: "x", payload: { kind: "x" } }),
+    ).toThrow(/unknown kind/);
   });
 });

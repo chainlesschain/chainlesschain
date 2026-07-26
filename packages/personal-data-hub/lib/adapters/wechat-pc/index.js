@@ -119,7 +119,8 @@ class WeChatPcAdapter {
       return {
         ok: false,
         reason: "APP_NOT_INSTALLED",
-        message: (disc && disc.note) || "未检测到本机微信数据（可能未安装或未登录）",
+        message:
+          (disc && disc.note) || "未检测到本机微信数据（可能未安装或未登录）",
       };
     }
     const dbPath =
@@ -151,7 +152,8 @@ class WeChatPcAdapter {
     return {
       ok: false,
       reason: "APP_NOT_INSTALLED",
-      message: "wechat-pc.authenticate: 未检测到本机微信库，也未提供 dbPath / inputPath",
+      message:
+        "wechat-pc.authenticate: 未检测到本机微信库，也未提供 dbPath / inputPath",
     };
   }
 
@@ -183,7 +185,10 @@ class WeChatPcAdapter {
     // One-click: when no explicit path is given, fall back to the
     // auto-discovered primary message DB on this host (3.x plaintext/keyed).
     const dbPath =
-      opts.dbPath || opts.inputPath || this._dbPath || this._resolveDiscoveredDbPath();
+      opts.dbPath ||
+      opts.inputPath ||
+      this._dbPath ||
+      this._resolveDiscoveredDbPath();
     if (!dbPath) {
       throw new Error(
         "wechat-pc.sync: 未找到本机微信库且未提供 opts.dbPath / opts.inputPath",
@@ -194,19 +199,33 @@ class WeChatPcAdapter {
     // eslint-disable-next-line global-require
     const { readPcWeChat } = require("./pc-db-reader");
     const readOpts = { key: opts.key || this._key || null };
-    if (Number.isInteger(opts.limitMessages)) readOpts.limitMessages = opts.limitMessages;
-    if (Number.isInteger(opts.limitContacts)) readOpts.limitContacts = opts.limitContacts;
-    if (this._deps.dbDriverFactory) readOpts._databaseClass = this._deps.dbDriverFactory();
+    const requestedLimit =
+      Number.isSafeInteger(opts.limit) && opts.limit > 0 ? opts.limit : null;
+    if (Number.isSafeInteger(opts.limitMessages) && opts.limitMessages > 0) {
+      readOpts.limitMessages = opts.limitMessages;
+    } else if (requestedLimit !== null) {
+      readOpts.limitMessages = requestedLimit;
+    }
+    if (Number.isSafeInteger(opts.limitContacts) && opts.limitContacts > 0) {
+      readOpts.limitContacts = opts.limitContacts;
+    } else if (requestedLimit !== null) {
+      readOpts.limitContacts = requestedLimit;
+    }
+    if (this._deps.dbDriverFactory)
+      readOpts._databaseClass = this._deps.dbDriverFactory();
 
     const { messages, contacts, diagnostic } = readPcWeChat(dbPath, readOpts);
     if (typeof opts.onProgress === "function") {
       try {
         opts.onProgress({ phase: "pc-db-read", adapter: NAME, ...diagnostic });
-      } catch (_e) { /* progress best-effort */ }
+      } catch (_e) {
+        /* progress best-effort */
+      }
     }
 
     const include = opts.include || {};
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const fallbackCapturedAt = Date.now();
     let emitted = 0;
 
@@ -221,7 +240,9 @@ class WeChatPcAdapter {
         // Composite id: msgSvrId is globally unique; fallback to talker+time.
         const idPart =
           m.msgSvrId ||
-          (m.talker && m.createdTimeMs ? `${m.talker}-${m.createdTimeMs}` : `msg-${emitted}`);
+          (m.talker && m.createdTimeMs
+            ? `${m.talker}-${m.createdTimeMs}`
+            : `msg-${emitted}`);
         yield {
           adapter: NAME,
           kind: KIND_MESSAGE,
@@ -258,7 +279,8 @@ class WeChatPcAdapter {
       // eslint-disable-next-line global-require
       collect = require("./v4-sidecar").collectWeChatV4;
     }
-    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : undefined;
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : undefined;
     const result = await collect({
       limit,
       key: opts.key || this._key || undefined,
@@ -268,7 +290,11 @@ class WeChatPcAdapter {
       onProgress:
         typeof opts.onProgress === "function"
           ? (m) => {
-              try { opts.onProgress({ phase: "wechat-v4", adapter: NAME, ...m }); } catch (_e) { /* best-effort */ }
+              try {
+                opts.onProgress({ phase: "wechat-v4", adapter: NAME, ...m });
+              } catch (_e) {
+                /* best-effort */
+              }
             }
           : undefined,
       _supervisorFactory: opts._supervisorFactory,
@@ -282,23 +308,28 @@ class WeChatPcAdapter {
           messageCount: result && result.messageCount,
           dbs: result && result.dbs,
         });
-      } catch (_e) { /* best-effort */ }
+      } catch (_e) {
+        /* best-effort */
+      }
     }
     const selfWxid =
       (result && result.account) ||
       (disc && disc.accounts && disc.accounts[0] && disc.accounts[0].id) ||
       null;
     const fallbackCapturedAt = Date.now();
-    const messages = (result && Array.isArray(result.messages)) ? result.messages : [];
+    const messages =
+      result && Array.isArray(result.messages) ? result.messages : [];
     // Harvest group display names from the contact roster: WeChat stores group
     // chatrooms (wxid ending @chatroom) in contact.db with a nickname/remark.
     // They are skipped as Person entities below, but their names let us label
     // group Topics with a human-readable name instead of the raw numeric id.
     const groupNames = new Map();
     {
-      const contactsForNames = (result && Array.isArray(result.contacts)) ? result.contacts : [];
+      const contactsForNames =
+        result && Array.isArray(result.contacts) ? result.contacts : [];
       for (const c of contactsForNames) {
-        if (!c || typeof c.wxid !== "string" || !c.wxid.endsWith("@chatroom")) continue;
+        if (!c || typeof c.wxid !== "string" || !c.wxid.endsWith("@chatroom"))
+          continue;
         const nm =
           (typeof c.remark === "string" && c.remark.trim()) ||
           (typeof c.nickname === "string" && c.nickname.trim()) ||
@@ -315,7 +346,9 @@ class WeChatPcAdapter {
       const conv = typeof m.conversation === "string" ? m.conversation : null;
       const isGroup = !!conv && conv.endsWith("@chatroom");
       const createdTimeMs =
-        typeof m.createTime === "number" && m.createTime > 0 ? m.createTime * 1000 : null;
+        typeof m.createTime === "number" && m.createTime > 0
+          ? m.createTime * 1000
+          : null;
       // Map → 3.x payload shape consumed by normalizeMessage().
       const payload = {
         kind: KIND_MESSAGE,
@@ -325,14 +358,14 @@ class WeChatPcAdapter {
         type: typeof m.type === "number" ? m.type : null,
         createdTimeMs,
         text: typeof m.text === "string" ? m.text : "",
-        senderWxid: isGroup ? (m.sender || null) : null,
+        senderWxid: isGroup ? m.sender || null : null,
         isGroup,
-        groupName: isGroup && conv ? (groupNames.get(conv) || null) : null,
+        groupName: isGroup && conv ? groupNames.get(conv) || null : null,
         contentBlob: typeof m.text === "string" ? m.text : null,
         // provenance: chat | biz(公众号) | sns(朋友圈) | favorite(收藏)
         wechatSource: typeof m.source === "string" ? m.source : "chat",
-        appType: typeof m.appType === "number" ? m.appType : null,  // appmsg subtype (type 49)
-        appUrl: typeof m.appUrl === "string" ? m.appUrl : null,     // link/article url
+        appType: typeof m.appType === "number" ? m.appType : null, // appmsg subtype (type 49)
+        appUrl: typeof m.appUrl === "string" ? m.appUrl : null, // link/article url
       };
       const idPart =
         m.originalId ||
@@ -352,10 +385,12 @@ class WeChatPcAdapter {
     // opts.include.contact === false.
     const include = opts.include || {};
     if (include[KIND_CONTACT] !== false) {
-      const contacts = (result && Array.isArray(result.contacts)) ? result.contacts : [];
+      const contacts =
+        result && Array.isArray(result.contacts) ? result.contacts : [];
       for (const c of contacts) {
         if (!c || typeof c !== "object" || !c.wxid) continue;
-        if (typeof c.wxid === "string" && c.wxid.endsWith("@chatroom")) continue;
+        if (typeof c.wxid === "string" && c.wxid.endsWith("@chatroom"))
+          continue;
         yield {
           adapter: NAME,
           kind: KIND_CONTACT,
@@ -380,8 +415,10 @@ class WeChatPcAdapter {
     }
     const kind = raw.kind || raw.payload.kind;
     const ingestedAt = Date.now();
-    if (kind === KIND_MESSAGE) return normalizeMessage(raw.payload, raw, ingestedAt);
-    if (kind === KIND_CONTACT) return normalizeContact(raw.payload, raw, ingestedAt);
+    if (kind === KIND_MESSAGE)
+      return normalizeMessage(raw.payload, raw, ingestedAt);
+    if (kind === KIND_CONTACT)
+      return normalizeContact(raw.payload, raw, ingestedAt);
     throw new Error(`WeChatPcAdapter.normalize: unknown kind ${kind}`);
   }
 }
@@ -398,7 +435,9 @@ function buildSource(raw, occurredAt) {
 
 function normalizeMessage(p, raw, ingestedAt) {
   const occurredAt =
-    (typeof p.createdTimeMs === "number" && p.createdTimeMs) || raw.capturedAt || ingestedAt;
+    (typeof p.createdTimeMs === "number" && p.createdTimeMs) ||
+    raw.capturedAt ||
+    ingestedAt;
   const source = buildSource(raw, occurredAt);
   const text = typeof p.text === "string" ? p.text : "";
   const isSend = Number(p.isSend) === 1;
@@ -409,7 +448,7 @@ function normalizeMessage(p, raw, ingestedAt) {
   if (isGroup) {
     actor = p.senderWxid ? wxidToPersonId(p.senderWxid) : selfId;
   } else {
-    actor = isSend ? selfId : (p.talker ? wxidToPersonId(p.talker) : selfId);
+    actor = isSend ? selfId : p.talker ? wxidToPersonId(p.talker) : selfId;
   }
 
   const persons = [];
@@ -443,7 +482,7 @@ function normalizeMessage(p, raw, ingestedAt) {
     // Prefer the resolved group display name (harvested from contact.db in
     // sync()); fall back to the raw numeric chatroom id only when unknown.
     const groupName =
-      (typeof p.groupName === "string" && p.groupName.trim())
+      typeof p.groupName === "string" && p.groupName.trim()
         ? p.groupName.trim()
         : p.talker.replace("@chatroom", "");
     topics.push({
@@ -457,33 +496,36 @@ function normalizeMessage(p, raw, ingestedAt) {
   }
 
   return {
-    events: [{
-      id: newId(),
-      type: ENTITY_TYPES.EVENT,
-      subtype: EVENT_SUBTYPES.MESSAGE,
-      occurredAt,
-      actor: actor || selfId,
-      content: {
-        title: text ? text.slice(0, 80) : "(非文本消息)",
-        text,
+    events: [
+      {
+        id: newId(),
+        type: ENTITY_TYPES.EVENT,
+        subtype: EVENT_SUBTYPES.MESSAGE,
+        occurredAt,
+        actor: actor || selfId,
+        content: {
+          title: text ? text.slice(0, 80) : "(非文本消息)",
+          text,
+        },
+        ingestedAt,
+        source,
+        extra: {
+          platform: "wechat",
+          source: "pc",
+          talker: p.talker || null,
+          isSend,
+          isGroup,
+          wechatType: typeof p.type === "number" ? p.type : null,
+          wechatSource:
+            typeof p.wechatSource === "string" ? p.wechatSource : "chat",
+          ...(p.appType != null ? { wechatAppType: p.appType } : {}),
+          ...(p.appUrl ? { url: p.appUrl } : {}),
+          senderWxid: p.senderWxid || null,
+          contentBlob: typeof p.contentBlob === "string" ? p.contentBlob : null,
+          ...(topics.length ? { topicId: topics[0].id } : {}),
+        },
       },
-      ingestedAt,
-      source,
-      extra: {
-        platform: "wechat",
-        source: "pc",
-        talker: p.talker || null,
-        isSend,
-        isGroup,
-        wechatType: typeof p.type === "number" ? p.type : null,
-        wechatSource: typeof p.wechatSource === "string" ? p.wechatSource : "chat",
-        ...(p.appType != null ? { wechatAppType: p.appType } : {}),
-        ...(p.appUrl ? { url: p.appUrl } : {}),
-        senderWxid: p.senderWxid || null,
-        contentBlob: typeof p.contentBlob === "string" ? p.contentBlob : null,
-        ...(topics.length ? { topicId: topics[0].id } : {}),
-      },
-    }],
+    ],
     persons,
     places: [],
     items: [],
@@ -499,25 +541,29 @@ function normalizeContact(p, raw, ingestedAt) {
     (n) => typeof n === "string" && n.length > 0,
   );
   const subtype =
-    wxid && wxid.startsWith("gh_") ? PERSON_SUBTYPES.MERCHANT : PERSON_SUBTYPES.CONTACT;
+    wxid && wxid.startsWith("gh_")
+      ? PERSON_SUBTYPES.MERCHANT
+      : PERSON_SUBTYPES.CONTACT;
   return {
     events: [],
-    persons: [{
-      id: wxidToPersonId(wxid) || `person-wechat-${newId()}`,
-      type: ENTITY_TYPES.PERSON,
-      subtype,
-      names: names.length ? names : ["(unnamed)"],
-      ingestedAt,
-      source,
-      identifiers: wxid ? { wechatId: wxid } : {},
-      extra: {
-        platform: "wechat",
-        source: "pc",
-        wxid,
-        alias: p.alias || null,
-        wechatType: typeof p.type === "number" ? p.type : null,
+    persons: [
+      {
+        id: wxidToPersonId(wxid) || `person-wechat-${newId()}`,
+        type: ENTITY_TYPES.PERSON,
+        subtype,
+        names: names.length ? names : ["(unnamed)"],
+        ingestedAt,
+        source,
+        identifiers: wxid ? { wechatId: wxid } : {},
+        extra: {
+          platform: "wechat",
+          source: "pc",
+          wxid,
+          alias: p.alias || null,
+          wechatType: typeof p.type === "number" ? p.type : null,
+        },
       },
-    }],
+    ],
     places: [],
     items: [],
     topics: [],

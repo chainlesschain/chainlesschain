@@ -22,6 +22,7 @@ function makeFakeDb(spec) {
     }
     all() {
       const s = this.sql;
+      if (Array.isArray(spec.queries)) spec.queries.push(s);
       const m = s.match(/PRAGMA table_info\((\w+)\)/);
       if (m) return spec.cols[m[1]] || [];
       const f = s.match(/FROM (\w+)/);
@@ -278,6 +279,27 @@ describe("QQPcAdapter — edge cases", () => {
       a.sync({ dbPath: "/fake/nt_msg.db", limit: 1 }),
     );
     expect(capped).toHaveLength(1);
+  });
+
+  it("removes default SQL row caps and pushes down an explicit limit", async () => {
+    const uncappedSpec = { ...READABLE_SPEC, queries: [] };
+    await collect(
+      freshAdapter(uncappedSpec).sync({ dbPath: "/fake/nt_msg.db" }),
+    );
+    expect(
+      uncappedSpec.queries.find((sql) => /FROM c2c_msg_table/.test(sql)),
+    ).not.toMatch(/\bLIMIT\b/);
+
+    const cappedSpec = { ...READABLE_SPEC, queries: [] };
+    await collect(
+      freshAdapter(cappedSpec).sync({
+        dbPath: "/fake/nt_msg.db",
+        limit: 1,
+      }),
+    );
+    expect(
+      cappedSpec.queries.find((sql) => /FROM c2c_msg_table/.test(sql)),
+    ).toMatch(/\bLIMIT 1\b/);
   });
 
   it("missing db yields nothing", async () => {

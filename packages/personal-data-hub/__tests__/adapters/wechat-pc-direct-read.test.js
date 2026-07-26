@@ -22,6 +22,7 @@ function makeFakeDb(spec) {
     }
     all() {
       const s = this.sql;
+      if (Array.isArray(spec.queries)) spec.queries.push(s);
       if (/PRAGMA table_info\(MSG\)/.test(s)) return spec.msgCols || [];
       if (/FROM MSG/.test(s)) return spec.msgRows || [];
       if (/PRAGMA table_info\(Contact\)/.test(s)) return spec.contactCols || [];
@@ -54,9 +55,30 @@ const MSG_SPEC = {
     { name: "StrContent" },
   ],
   msgRows: [
-    { msgSvrId: "700001", talker: "wxid_bob", isSend: 0, createTime: 1700000000, type: 1, content: "你好啊" },
-    { msgSvrId: "700002", talker: "wxid_bob", isSend: 1, createTime: 1700000010, type: 1, content: "在的" },
-    { msgSvrId: "700003", talker: "room1@chatroom", isSend: 0, createTime: 1700000020, type: 1, content: "wxid_carol:\n大家好" },
+    {
+      msgSvrId: "700001",
+      talker: "wxid_bob",
+      isSend: 0,
+      createTime: 1700000000,
+      type: 1,
+      content: "你好啊",
+    },
+    {
+      msgSvrId: "700002",
+      talker: "wxid_bob",
+      isSend: 1,
+      createTime: 1700000010,
+      type: 1,
+      content: "在的",
+    },
+    {
+      msgSvrId: "700003",
+      talker: "room1@chatroom",
+      isSend: 0,
+      createTime: 1700000020,
+      type: 1,
+      content: "wxid_carol:\n大家好",
+    },
   ],
 };
 
@@ -69,15 +91,37 @@ const CONTACT_SPEC = {
     { name: "Type" },
   ],
   contactRows: [
-    { wxid: "wxid_bob", alias: "bob123", nickname: "Bob", remark: "老鲍", type: 3 },
-    { wxid: "gh_official01", alias: null, nickname: "某公众号", remark: null, type: 3 },
-    { wxid: "room1@chatroom", alias: null, nickname: "群", remark: null, type: 2 }, // filtered
+    {
+      wxid: "wxid_bob",
+      alias: "bob123",
+      nickname: "Bob",
+      remark: "老鲍",
+      type: 3,
+    },
+    {
+      wxid: "gh_official01",
+      alias: null,
+      nickname: "某公众号",
+      remark: null,
+      type: 3,
+    },
+    {
+      wxid: "room1@chatroom",
+      alias: null,
+      nickname: "群",
+      remark: null,
+      type: 2,
+    }, // filtered
   ],
 };
 
 function freshAdapter(spec, { fsOverride } = {}) {
   const a = new WeChatPcAdapter({ dbPath: "/fake/MSG0.db" });
-  a._deps.fs = fsOverride || { existsSync: () => true, accessSync: () => {}, constants: { R_OK: 4 } };
+  a._deps.fs = fsOverride || {
+    existsSync: () => true,
+    accessSync: () => {},
+    constants: { R_OK: 4 },
+  };
   a._deps.dbDriverFactory = () => makeFakeDb(spec);
   return a;
 }
@@ -112,7 +156,9 @@ describe("WeChatPcAdapter — readiness + construction", () => {
   it("auto-discovers an installed WeChat 4.x DB → DB_FOUND_NEEDS_KEY", async () => {
     // Minimal synthetic 4.x layout: ~/Documents/xwechat_files/<wxid>_N/db_storage/message/message_0.db
     const dirs = {
-      "/h/Documents/xwechat_files": [{ name: "wxid_abc_1", isDirectory: () => true, isFile: () => false }],
+      "/h/Documents/xwechat_files": [
+        { name: "wxid_abc_1", isDirectory: () => true, isFile: () => false },
+      ],
       "/h/Documents/xwechat_files/wxid_abc_1/db_storage/message": [
         { name: "message_0.db", isDirectory: () => false, isFile: () => true },
       ],
@@ -129,7 +175,12 @@ describe("WeChatPcAdapter — readiness + construction", () => {
       constants: { R_OK: 4 },
     };
     const a = new WeChatPcAdapter();
-    a._deps.discoveryDeps = { fs: fakeFs, home: "/h", env: {}, path: require("node:path").posix };
+    a._deps.discoveryDeps = {
+      fs: fakeFs,
+      home: "/h",
+      env: {},
+      path: require("node:path").posix,
+    };
     const r = await a.authenticate({ readinessOnly: true });
     expect(r.ok).toBe(false);
     expect(r.reason).toBe("DB_FOUND_NEEDS_KEY");
@@ -160,7 +211,13 @@ describe("WeChatPcAdapter — MSG*.db messages", () => {
   it("messages normalize to valid events (+ contact persons + group topic), 0 invalid", async () => {
     const a = freshAdapter(MSG_SPEC);
     const raws = await collect(a.sync({ dbPath: "/fake/MSG0.db" }));
-    const merged = { events: [], persons: [], places: [], items: [], topics: [] };
+    const merged = {
+      events: [],
+      persons: [],
+      places: [],
+      items: [],
+      topics: [],
+    };
     for (const r of raws) {
       const n = a.normalize(r);
       for (const k of Object.keys(merged)) merged[k].push(...n[k]);
@@ -173,7 +230,9 @@ describe("WeChatPcAdapter — MSG*.db messages", () => {
     expect(personIds).toContain("person-wechat-wxid_bob");
     expect(personIds).toContain("person-wechat-wxid_carol");
     // the chatroom becomes a topic
-    expect(valid.topics.map((t) => t.id)).toContain("topic-wechat-group-room1@chatroom");
+    expect(valid.topics.map((t) => t.id)).toContain(
+      "topic-wechat-group-room1@chatroom",
+    );
   });
 
   it("strips the group-message sender prefix from the text", async () => {
@@ -213,16 +272,39 @@ describe("WeChatPcAdapter — MicroMsg.db contacts", () => {
 describe("WeChatPcAdapter — options + edge cases", () => {
   it("respects include={message:false} and limit", async () => {
     const a = freshAdapter(MSG_SPEC);
-    const none = await collect(a.sync({ dbPath: "/fake/MSG0.db", include: { message: false } }));
+    const none = await collect(
+      a.sync({ dbPath: "/fake/MSG0.db", include: { message: false } }),
+    );
     expect(none).toHaveLength(0);
     const capped = await collect(a.sync({ dbPath: "/fake/MSG0.db", limit: 2 }));
     expect(capped).toHaveLength(2);
   });
 
+  it("removes default SQL row caps and pushes down an explicit limit", async () => {
+    const uncappedSpec = { ...MSG_SPEC, queries: [] };
+    await collect(freshAdapter(uncappedSpec).sync({ dbPath: "/fake/MSG0.db" }));
+    expect(
+      uncappedSpec.queries.find((sql) => /FROM MSG/.test(sql)),
+    ).not.toMatch(/\bLIMIT\b/);
+
+    const cappedSpec = { ...MSG_SPEC, queries: [] };
+    await collect(
+      freshAdapter(cappedSpec).sync({
+        dbPath: "/fake/MSG0.db",
+        limit: 2,
+      }),
+    );
+    expect(cappedSpec.queries.find((sql) => /FROM MSG/.test(sql))).toMatch(
+      /\bLIMIT 2\b/,
+    );
+  });
+
   it("emits a pc-db-read progress event with the diagnostic", async () => {
     const a = freshAdapter(MSG_SPEC);
     const events = [];
-    await collect(a.sync({ dbPath: "/fake/MSG0.db", onProgress: (e) => events.push(e) }));
+    await collect(
+      a.sync({ dbPath: "/fake/MSG0.db", onProgress: (e) => events.push(e) }),
+    );
     const parsed = events.find((e) => e.phase === "pc-db-read");
     expect(parsed).toBeTruthy();
     expect(parsed.hadMsgTable).toBe(true);
@@ -231,22 +313,24 @@ describe("WeChatPcAdapter — options + edge cases", () => {
   });
 
   it("missing db file yields nothing (no throw)", async () => {
-    const a = freshAdapter(MSG_SPEC, { fsOverride: { existsSync: () => false } });
+    const a = freshAdapter(MSG_SPEC, {
+      fsOverride: { existsSync: () => false },
+    });
     const raws = await collect(a.sync({ dbPath: "/nope/MSG0.db" }));
     expect(raws).toHaveLength(0);
   });
 
   it("unknown normalize kind throws", () => {
     const a = new WeChatPcAdapter();
-    expect(() => a.normalize({ kind: "weird", payload: { kind: "weird" } })).toThrow(
-      /unknown kind/,
-    );
+    expect(() =>
+      a.normalize({ kind: "weird", payload: { kind: "weird" } }),
+    ).toThrow(/unknown kind/);
   });
 });
 
 describe("WeChatPcAdapter — WeChat 4.x sidecar path", () => {
   function fakeCollector(result) {
-    return async (_opts) => result;
+    return async () => result;
   }
 
   it("opts.mode='v4' routes through the injected collector and yields messages", async () => {
@@ -285,10 +369,17 @@ describe("WeChatPcAdapter — WeChat 4.x sidecar path", () => {
     expect(raws[1].payload.senderWxid).toBe("wxid_other");
 
     // normalize reuses the 3.x path → produces a valid message event
-    const merged = { events: [], persons: [], places: [], items: [], topics: [] };
+    const merged = {
+      events: [],
+      persons: [],
+      places: [],
+      items: [],
+      topics: [],
+    };
     for (const r of raws) {
       const n = a.normalize(r);
-      for (const k of Object.keys(merged)) if (Array.isArray(n[k])) merged[k].push(...n[k]);
+      for (const k of Object.keys(merged))
+        if (Array.isArray(n[k])) merged[k].push(...n[k]);
     }
     const { valid } = partitionBatch(merged);
     expect(valid.events.length).toBe(2);
@@ -302,7 +393,14 @@ describe("WeChatPcAdapter — WeChat 4.x sidecar path", () => {
       v4Collector: fakeCollector({
         account: "wxid_me",
         messages: [
-          { conversation: "wxid_friend", sender: "wxid_me", type: 1, createTime: 1700000004, text: "mine", originalId: "id-3" },
+          {
+            conversation: "wxid_friend",
+            sender: "wxid_me",
+            type: 1,
+            createTime: 1700000004,
+            text: "mine",
+            originalId: "id-3",
+          },
         ],
       }),
     });
@@ -312,13 +410,22 @@ describe("WeChatPcAdapter — WeChat 4.x sidecar path", () => {
 
   it("v4 forwards limit to the sidecar collector (sidecar owns the cap)", async () => {
     const msgs = Array.from({ length: 5 }, (_v, i) => ({
-      conversation: "wxid_f", sender: "wxid_f", type: 1, createTime: 1700000000 + i, text: "m" + i, originalId: "id-" + i,
+      conversation: "wxid_f",
+      sender: "wxid_f",
+      type: 1,
+      createTime: 1700000000 + i,
+      text: "m" + i,
+      originalId: "id-" + i,
     }));
     let seenLimit = null;
     // Collector that honors the limit, like the real Python sidecar does.
     const collector = async (opts) => {
       seenLimit = opts.limit;
-      return { account: "wxid_me", messages: msgs.slice(0, opts.limit || msgs.length), contacts: [] };
+      return {
+        account: "wxid_me",
+        messages: msgs.slice(0, opts.limit || msgs.length),
+        contacts: [],
+      };
     };
     const a = new WeChatPcAdapter({ v4Collector: collector });
     const raws = await collect(a.sync({ mode: "v4", limit: 3 }));
@@ -331,11 +438,30 @@ describe("WeChatPcAdapter — WeChat 4.x sidecar path", () => {
       v4Collector: fakeCollector({
         account: "wxid_me",
         messages: [
-          { conversation: "wxid_friend", sender: "wxid_friend", type: 1, createTime: 1700000002, text: "hi", originalId: "m-1" },
+          {
+            conversation: "wxid_friend",
+            sender: "wxid_friend",
+            type: 1,
+            createTime: 1700000002,
+            text: "hi",
+            originalId: "m-1",
+          },
         ],
         contacts: [
-          { wxid: "wxid_friend", nickname: "昵称", remark: "备注名", alias: "alias1", type: 3 },
-          { wxid: "12345@chatroom", nickname: "群", remark: null, alias: null, type: 2 }, // skipped (chatroom)
+          {
+            wxid: "wxid_friend",
+            nickname: "昵称",
+            remark: "备注名",
+            alias: "alias1",
+            type: 3,
+          },
+          {
+            wxid: "12345@chatroom",
+            nickname: "群",
+            remark: null,
+            alias: null,
+            type: 2,
+          }, // skipped (chatroom)
         ],
       }),
     });
@@ -356,10 +482,14 @@ describe("WeChatPcAdapter — WeChat 4.x sidecar path", () => {
       v4Collector: fakeCollector({
         account: "wxid_me",
         messages: [],
-        contacts: [{ wxid: "wxid_x", nickname: "n", remark: null, alias: null, type: 3 }],
+        contacts: [
+          { wxid: "wxid_x", nickname: "n", remark: null, alias: null, type: 3 },
+        ],
       }),
     });
-    const raws = await collect(a.sync({ mode: "v4", include: { contact: false } }));
+    const raws = await collect(
+      a.sync({ mode: "v4", include: { contact: false } }),
+    );
     expect(raws.filter((r) => r.kind === "contact")).toHaveLength(0);
   });
 });

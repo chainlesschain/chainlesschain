@@ -73,14 +73,19 @@ function normalizeEpochMs(v) {
  */
 function openLocalDb(dbPath, opts = {}) {
   const Database = opts._databaseClass || loadDatabaseClass();
-  const key = typeof opts.key === "string" && opts.key.length > 0 ? opts.key : null;
+  const key =
+    typeof opts.key === "string" && opts.key.length > 0 ? opts.key : null;
   if (!key) {
     const db = new Database(dbPath, { readonly: true });
     try {
       db.prepare("SELECT count(*) AS n FROM sqlite_master").get();
       return { db, mode: "plaintext" };
     } catch (err) {
-      try { db.close(); } catch (_e) { /* ignore */ }
+      try {
+        db.close();
+      } catch (_e) {
+        /* ignore */
+      }
       const e = new Error(
         `local-im-db-reader: not plaintext SQLite (decrypt first, or pass key): ${err.message}`,
       );
@@ -98,19 +103,54 @@ function openLocalDb(dbPath, opts = {}) {
       db.prepare("SELECT count(*) AS n FROM sqlite_master").get();
       return { db, mode: `sqlcipher-v${compat}` };
     } catch (_err) {
-      if (db) { try { db.close(); } catch (_e) { /* ignore */ } }
+      if (db) {
+        try {
+          db.close();
+        } catch (_e) {
+          /* ignore */
+        }
+      }
     }
   }
-  const e = new Error("local-im-db-reader: SQLCipher open failed (key wrong, or decrypt first)");
+  const e = new Error(
+    "local-im-db-reader: SQLCipher open failed (key wrong, or decrypt first)",
+  );
   e.code = "IM_DB_DECRYPT_FAILED";
   throw e;
 }
 
 const DEFAULT_COL_CANDIDATES = Object.freeze({
   msgId: ["msgId", "msg_id", "messageId", "message_id", "localId", "id", "_id"],
-  time: ["msgTime", "createTime", "create_time", "timestamp", "time", "sendTime", "send_time", "ctime"],
-  sender: ["senderId", "sender_id", "senderUid", "fromId", "from_id", "from", "sender", "uid"],
-  peer: ["peerId", "peer_id", "conversationId", "conversation_id", "chatId", "chat_id", "sessionId", "talker"],
+  time: [
+    "msgTime",
+    "createTime",
+    "create_time",
+    "timestamp",
+    "time",
+    "sendTime",
+    "send_time",
+    "ctime",
+  ],
+  sender: [
+    "senderId",
+    "sender_id",
+    "senderUid",
+    "fromId",
+    "from_id",
+    "from",
+    "sender",
+    "uid",
+  ],
+  peer: [
+    "peerId",
+    "peer_id",
+    "conversationId",
+    "conversation_id",
+    "chatId",
+    "chat_id",
+    "sessionId",
+    "talker",
+  ],
   content: ["content", "text", "msgContent", "message", "body", "summary"],
 });
 
@@ -131,13 +171,18 @@ function readLocalImDb(dbPath, opts = {}) {
     throw new TypeError("readLocalImDb: dbPath must be a non-empty string");
   }
   const limit =
-    Number.isInteger(opts.limitMessages) && opts.limitMessages > 0 ? opts.limitMessages : 20_000;
+    Number.isSafeInteger(opts.limitMessages) && opts.limitMessages > 0
+      ? opts.limitMessages
+      : Number.POSITIVE_INFINITY;
   const tablePattern = opts.tablePattern || /msg|message|chat|conversation/i;
   const cand = { ...DEFAULT_COL_CANDIDATES };
   if (opts.colCandidates) {
     for (const k of Object.keys(opts.colCandidates)) {
       // platform-specific candidates take priority, then the generic list
-      cand[k] = [...opts.colCandidates[k], ...(DEFAULT_COL_CANDIDATES[k] || [])];
+      cand[k] = [
+        ...opts.colCandidates[k],
+        ...(DEFAULT_COL_CANDIDATES[k] || []),
+      ];
     }
   }
 
@@ -158,7 +203,12 @@ function readLocalImDb(dbPath, opts = {}) {
     diagnostic.tablesScanned = allTables.length;
     const candidateTables = allTables
       .map((r) => r.name)
-      .filter((n) => typeof n === "string" && tablePattern.test(n) && !n.startsWith("sqlite_"));
+      .filter(
+        (n) =>
+          typeof n === "string" &&
+          tablePattern.test(n) &&
+          !n.startsWith("sqlite_"),
+      );
 
     for (const tableName of candidateTables) {
       if (messages.length >= limit) break;
@@ -183,8 +233,12 @@ function readLocalImDb(dbPath, opts = {}) {
 
       const orderBy = resolved.time ? ` ORDER BY "${resolved.time}" DESC` : "";
       const remaining = limit - messages.length;
+      const limitClause = Number.isSafeInteger(remaining)
+        ? ` LIMIT ${remaining}`
+        : "";
       const rows =
-        trySelect(db, `SELECT * FROM "${tableName}"${orderBy} LIMIT ${remaining}`) || [];
+        trySelect(db, `SELECT * FROM "${tableName}"${orderBy}${limitClause}`) ||
+        [];
       rows.forEach((row, idx) => {
         const rawTime = resolved.time ? row[resolved.time] : null;
         const contentVal = resolved.content ? row[resolved.content] : null;
@@ -192,12 +246,21 @@ function readLocalImDb(dbPath, opts = {}) {
         if (text && text.length > 0) diagnostic.textCount += 1;
         messages.push({
           msgId:
-            (resolved.msgId && row[resolved.msgId] != null && String(row[resolved.msgId])) ||
+            (resolved.msgId &&
+              row[resolved.msgId] != null &&
+              String(row[resolved.msgId])) ||
             `${tableName}-${idx}`,
           table: tableName,
-          createdTimeMs: typeof rawTime === "number" ? normalizeEpochMs(rawTime) : null,
-          senderId: resolved.sender && row[resolved.sender] != null ? String(row[resolved.sender]) : null,
-          peerId: resolved.peer && row[resolved.peer] != null ? String(row[resolved.peer]) : null,
+          createdTimeMs:
+            typeof rawTime === "number" ? normalizeEpochMs(rawTime) : null,
+          senderId:
+            resolved.sender && row[resolved.sender] != null
+              ? String(row[resolved.sender])
+              : null,
+          peerId:
+            resolved.peer && row[resolved.peer] != null
+              ? String(row[resolved.peer])
+              : null,
           text,
           rawRow: row,
         });
@@ -205,7 +268,11 @@ function readLocalImDb(dbPath, opts = {}) {
     }
     diagnostic.messageCount = messages.length;
   } finally {
-    try { db.close(); } catch (_e) { /* ignore */ }
+    try {
+      db.close();
+    } catch (_e) {
+      /* ignore */
+    }
   }
   return { messages, diagnostic };
 }

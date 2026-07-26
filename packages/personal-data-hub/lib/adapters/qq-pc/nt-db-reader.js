@@ -177,7 +177,9 @@ function readMsgTable(db, tableName, isGroup, limit, diag) {
   const rows =
     trySelect(
       db,
-      `SELECT *${exactMsgIdSelect} FROM ${tableName}${orderBy} LIMIT ${limit}`,
+      `SELECT *${exactMsgIdSelect} FROM ${tableName}${orderBy}${
+        Number.isSafeInteger(limit) ? ` LIMIT ${limit}` : ""
+      }`,
     ) || [];
   return rows.map((row, idx) => {
     const rawTime = resolved.time ? row[resolved.time] : null;
@@ -392,9 +394,9 @@ function readQqNt(dbPath, opts = {}) {
     throw new TypeError("readQqNt: dbPath must be a non-empty string");
   }
   const limit =
-    Number.isInteger(opts.limitMessages) && opts.limitMessages > 0
+    Number.isSafeInteger(opts.limitMessages) && opts.limitMessages > 0
       ? opts.limitMessages
-      : 20_000;
+      : Number.POSITIVE_INFINITY;
   const { db, mode } = openNtDb(dbPath, opts);
   const diagnostic = {
     messageCount: 0,

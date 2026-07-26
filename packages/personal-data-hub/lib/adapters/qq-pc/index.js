@@ -334,8 +334,11 @@ class QQPcAdapter {
 
     const { readQqNt, readQqNtCursorPage } = require("./nt-db-reader");
     const readOpts = { key: opts.key || this._key || null };
-    if (Number.isInteger(opts.limitMessages))
+    if (Number.isSafeInteger(opts.limitMessages) && opts.limitMessages > 0) {
       readOpts.limitMessages = opts.limitMessages;
+    } else if (Number.isSafeInteger(opts.limit) && opts.limit > 0) {
+      readOpts.limitMessages = opts.limit;
+    }
     if (this._deps.dbDriverFactory)
       readOpts._databaseClass = this._deps.dbDriverFactory();
     if (usesExplicitCursor(opts)) {
