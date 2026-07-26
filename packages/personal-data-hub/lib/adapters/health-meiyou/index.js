@@ -46,6 +46,10 @@ const {
   EVENT_SUBTYPES,
   CAPTURED_BY,
 } = require("../../constants");
+const {
+  createSourcePageGuard,
+  extractRecognizedArray,
+} = require("../../source-page");
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "health-meiyou";
@@ -115,17 +119,18 @@ function mapRecord(raw) {
   };
 }
 
-function extractList(resp) {
-  if (!resp || typeof resp !== "object") return [];
-  if (Array.isArray(resp.list)) return resp.list;
-  if (Array.isArray(resp.data)) return resp.data;
-  const d = resp.data;
-  if (d && typeof d === "object") {
-    if (Array.isArray(d.list)) return d.list;
-    if (Array.isArray(d.records)) return d.records;
-    if (Array.isArray(d.calendar)) return d.calendar;
-  }
-  return [];
+function extractList(resp, stream = "records") {
+  return extractRecognizedArray(
+    resp,
+    [
+      ["list"],
+      ["data"],
+      ["data", "list"],
+      ["data", "records"],
+      ["data", "calendar"],
+    ],
+    { source: NAME, stream },
+  );
 }
 
 class MeiyouAdapter {
@@ -303,7 +308,13 @@ class MeiyouAdapter {
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
-      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : Number.POSITIVE_INFINITY;
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard(NAME)
+        : null;
     const sinceMs =
       opts.sinceWatermark != null
         ? parseInt(String(opts.sinceWatermark), 10) || 0
@@ -350,7 +361,8 @@ class MeiyouAdapter {
           query,
           sign,
         });
-        const items = extractList(resp);
+        const items = extractList(resp, step.kind);
+        pageGuard?.observe(step.kind, items);
         if (!items.length) {
           stepComplete = true;
           break;
@@ -460,7 +472,7 @@ class MeiyouAdapter {
   }
 }
 
-async function defaultFetch(_opts) {
+async function defaultFetch() {
   throw new Error("health-meiyou: no fetchFn configured for cookie-api mode");
 }
 

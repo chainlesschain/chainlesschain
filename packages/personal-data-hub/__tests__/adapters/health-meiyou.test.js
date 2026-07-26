@@ -56,10 +56,12 @@ describe("health-meiyou mappers", () => {
     });
     expect(my.mapRecord({ note: "noid" })).toBe(null);
   });
-  it("extractList tolerant", () => {
+  it("extractList accepts recognized lists and rejects unknown pages", () => {
     expect(my.extractList({ list: [{ id: 1 }] })).toHaveLength(1);
     expect(my.extractList({ data: { calendar: [{ id: 1 }] } })).toHaveLength(1);
-    expect(my.extractList({})).toEqual([]);
+    expect(() => my.extractList({})).toThrow(
+      expect.objectContaining({ code: "SOURCE_PAGE_UNRECOGNIZED" }),
+    );
   });
 });
 

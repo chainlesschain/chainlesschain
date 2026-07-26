@@ -42,7 +42,10 @@ const {
   EVENT_SUBTYPES,
   CAPTURED_BY,
 } = require("../../constants");
-const { extractRecognizedArray } = require("../../source-page");
+const {
+  createSourcePageGuard,
+  extractRecognizedArray,
+} = require("../../source-page");
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "fitness-keep";
@@ -345,7 +348,13 @@ class KeepAdapter {
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
-      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 10;
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : Number.POSITIVE_INFINITY;
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard(NAME)
+        : null;
     const sinceMs =
       opts.sinceWatermark != null
         ? parseInt(String(opts.sinceWatermark), 10) || 0
@@ -366,6 +375,7 @@ class KeepAdapter {
         sign,
       });
       const items = extractList(resp);
+      pageGuard?.observe(KIND_WORKOUT, items);
       if (!items.length) {
         scanComplete = true;
         break;
@@ -451,7 +461,7 @@ class KeepAdapter {
   }
 }
 
-async function defaultFetch(_opts) {
+async function defaultFetch() {
   throw new Error("fitness-keep: no fetchFn configured for cookie-api mode");
 }
 
