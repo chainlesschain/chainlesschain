@@ -38,7 +38,10 @@ function installBinPlugin(scope, name, binFiles, { manifest = {} } = {}) {
     "utf8",
   );
   for (const f of binFiles) {
-    fs.writeFileSync(path.join(dir, "bin", f), "#!/bin/sh\necho hi\n", "utf8");
+    fs.writeFileSync(path.join(dir, "bin", f), "#!/bin/sh\necho hi\n", {
+      encoding: "utf8",
+      mode: 0o755,
+    });
   }
   return path.join(dir, "bin");
 }
