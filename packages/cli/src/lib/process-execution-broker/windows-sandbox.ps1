@@ -34,6 +34,8 @@ namespace ChainlessChain.WindowsSandbox
         private const UInt32 LUA_TOKEN = 0x00000004;
 
         private const UInt32 CREATE_SUSPENDED = 0x00000004;
+        private const UInt32 DETACHED_PROCESS = 0x00000008;
+        private const UInt32 CREATE_NEW_PROCESS_GROUP = 0x00000200;
         private const UInt32 CREATE_UNICODE_ENVIRONMENT = 0x00000400;
         private const UInt32 STARTF_USESHOWWINDOW = 0x00000001;
         private const UInt32 STARTF_USESTDHANDLES = 0x00000100;
@@ -527,6 +529,7 @@ namespace ChainlessChain.WindowsSandbox
             long processMemoryBytes,
             int activeProcessLimit,
             int nodeIpcFd,
+            bool detached,
             bool windowsHide,
             string identityPath)
         {
@@ -650,6 +653,8 @@ namespace ChainlessChain.WindowsSandbox
                         BuildCreateProcessCommandLine(application, arguments));
                 UInt32 creationFlags =
                     CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT;
+                if (detached)
+                    creationFlags |= DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP;
                 if (!CreateProcessAsUser(
                     restrictedToken,
                     application,
@@ -738,6 +743,7 @@ namespace ChainlessChain.WindowsSandbox
             public string command { get; set; }
             public string[] args { get; set; }
             public int nodeIpcFd { get; set; }
+            public bool detached { get; set; }
             public bool windowsHide { get; set; }
             public string identityPath { get; set; }
         }
@@ -762,6 +768,7 @@ namespace ChainlessChain.WindowsSandbox
                     spec.processMemoryBytes,
                     spec.activeProcessLimit,
                     spec.nodeIpcFd,
+                    spec.detached,
                     spec.windowsHide,
                     spec.identityPath);
             }

@@ -579,6 +579,7 @@ export function applyWindowsSandbox(
     command: invocation.command,
     args: invocation.args,
     nodeIpcFd,
+    detached: invocation.options.detached === true,
     windowsHide: invocation.options.windowsHide === true,
   };
   if (identityPath) launchSpec.identityPath = identityPath;

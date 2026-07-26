@@ -235,6 +235,7 @@ describe("platform sandbox adapter contract", () => {
       command: "tool.exe",
       args: ["run"],
       nodeIpcFd: -1,
+      detached: false,
       windowsHide: true,
     });
     expect(plan.guarantees).toEqual([
@@ -384,7 +385,17 @@ describe("platform sandbox adapter contract", () => {
     expect(plan).toMatchObject({
       applied: true,
       enforcement: "windows-job-restricted-token",
+      options: { detached: true, stdio: "ignore" },
       postSpawn: { required: true, mode: "sync" },
+    });
+    const payload = JSON.parse(
+      Buffer.from(plan.args[0], "base64").toString("utf8"),
+    );
+    expect(payload).toMatchObject({
+      command: process.execPath,
+      args: ["worker.js"],
+      detached: true,
+      nodeIpcFd: -1,
     });
     const child = createChild(4102);
     expect(plan.postSpawnWindows(child)).toEqual({
