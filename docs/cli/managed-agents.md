@@ -1061,6 +1061,8 @@ chainlesschain agent -p "大重构" --settings run.json
   "blockedMarketplaces": ["unknown-public-source"],
   "requireSignedPlugins": true,
   "trustedPluginKeySha256": ["<sha256-of-public-spki-der>"],
+  "requirePluginCapabilityDeclarations": true,
+  "requirePluginCapabilityConsent": true,
   "disableBypassPermissionsMode": "disable",
   "model": "managed-model",
   "env": { "AUDIT_ENABLED": "1" }
@@ -1080,7 +1082,7 @@ cc plugin install company-review \
   --public-key company-plugin-key.pem
 ```
 
-`deniedPlugins` 优先于 allowlist；source/marketplace 策略要求安装方显式声明 `--source`。启用强制签名时还必须配置受信公钥的 SPKI DER SHA-256 指纹，不能用任意自签公钥绕过。manifest SHA-256、签名或公钥信任不匹配，以及 manifest JSON 损坏都会失败关闭。
+`deniedPlugins` 优先于 allowlist；source/marketplace 策略要求安装方显式声明 `--source`。启用强制签名时还必须配置受信公钥的 SPKI DER SHA-256 指纹，不能用任意自签公钥绕过。manifest SHA-256、签名或公钥信任不匹配，以及 manifest JSON 损坏都会失败关闭。`requirePluginCapabilityDeclarations` 会拒绝没有显式 `permissions` block 的 legacy 插件；`requirePluginCapabilityConsent` 除要求当前 capability 集已授权外，也隐含声明强制，不能通过删除 `permissions` 绕过 consent。单机可分别使用 `CC_REQUIRE_PLUGIN_CAPABILITIES=1` 和 `CC_REQUIRE_PLUGIN_CONSENT=1` 收紧。插件直接 URL MCP transport 会在连接前校验目标 hostname 是否落在声明的 `network` domains 中；stdio 子进程的网络/文件边界仍由 Process Broker 平台沙箱负责。
 
 ```bash
 chainlesschain permissions list [--json]                    # 合并后规则集 + 每条来源文件

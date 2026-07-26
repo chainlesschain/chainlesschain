@@ -29,6 +29,7 @@ import {
   filterByManagedPolicy,
   filterByCapabilityConsent,
   capabilityConsentRequired,
+  capabilityDeclarationsRequired,
   warnDroppedOnce,
 } from "./policy.js";
 
@@ -163,9 +164,10 @@ export function discoverPlugins(opts = {}) {
     managedSettingsFile: opts.managedSettingsFile,
   });
   const consentGate = capabilityConsentRequired(managed, opts.env);
+  const declarationsGate = capabilityDeclarationsRequired(managed, opts.env);
   // Default (no managed policy AND consent enforcement off): byte-identical —
   // return every discovered plugin, exactly as before.
-  if (!managed && !consentGate) return all;
+  if (!managed && !consentGate && !declarationsGate) return all;
   let list = all;
   if (managed) {
     const { kept, dropped } = filterByManagedPolicy(list, managed);
@@ -174,8 +176,10 @@ export function discoverPlugins(opts = {}) {
   }
   // Capability-consent enforcement funnels through the SAME chokepoint, so an
   // un-consented plugin loads NONE of its six component types (opt-in).
-  if (consentGate) {
-    const { kept, dropped } = filterByCapabilityConsent(list);
+  if (consentGate || declarationsGate) {
+    const { kept, dropped } = filterByCapabilityConsent(list, {
+      requireDeclarations: declarationsGate,
+    });
     if (dropped.length > 0) warnDroppedOnce(dropped);
     list = kept;
   }

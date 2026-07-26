@@ -168,4 +168,16 @@ describe("discoverPlugins — managed policy enforced at load", () => {
     );
     expect(names).toEqual(["anything"]);
   });
+
+  it("managed consent enforcement cannot be bypassed by omitting permissions", () => {
+    install("local", "legacy");
+    policyDeps.loadManagedSettings = () => ({
+      file: "m.json",
+      settings: { requirePluginCapabilityConsent: true },
+    });
+    const names = discoverPlugins({ cwd, scopes: ["local"] }).map(
+      (p) => p.name,
+    );
+    expect(names).not.toContain("legacy");
+  });
 });

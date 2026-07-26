@@ -239,6 +239,56 @@ export function componentCapabilityDenial(manifest, capabilityNames) {
   return finding ? { reason: finding.reason } : null;
 }
 
+/**
+ * Enforce a declared network domain for a direct URL-based plugin component.
+ * Stdio children have no direct target here and remain subject to the process
+ * sandbox boundary; URL transports can be rejected before any connection.
+ */
+export function networkTargetDenial(manifest, targetUrl) {
+  if (!manifest || manifest.capabilitiesDeclared !== true || !targetUrl) {
+    return null;
+  }
+  let hostname;
+  try {
+    hostname = new URL(String(targetUrl)).hostname
+      .toLowerCase()
+      .replace(/\.$/, "");
+  } catch {
+    return { reason: `invalid network target URL: ${targetUrl}` };
+  }
+  const network = manifest.capabilities?.network || {
+    any: false,
+    domains: [],
+  };
+  if (network.any === true) return null;
+  const allowed = (network.domains || []).some((raw) => {
+    let domain = String(raw || "")
+      .trim()
+      .toLowerCase()
+      .replace(/\.$/, "");
+    if (!domain) return false;
+    if (domain.includes("://")) {
+      try {
+        domain = new URL(domain).hostname.toLowerCase().replace(/\.$/, "");
+      } catch {
+        return false;
+      }
+    } else {
+      domain = domain.replace(/:\d+$/, "");
+    }
+    if (domain.startsWith("*.")) {
+      const suffix = domain.slice(1);
+      return hostname.endsWith(suffix) && hostname.length > suffix.length;
+    }
+    return hostname === domain;
+  });
+  return allowed
+    ? null
+    : {
+        reason: `network target "${hostname}" is outside the plugin's declared domains`,
+      };
+}
+
 // ─── options schema ─────────────────────────────────────────────────────────
 
 export const OPTION_TYPES = Object.freeze([

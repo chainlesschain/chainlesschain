@@ -71,7 +71,7 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 | Event Runtime | 后台会话、任务、外部事件和持续监控统一运行                                  | Agenda watch、durable inbox/outbox、lease/retry/dead-letter、Agent IPC、MCP、Webhook、Telegram、Monitor producer 默认接线与有界队列已接入；真实 binary lazy 入口统一托管 process-level worker，短命命令 final drain；`cc status --json` 暴露队列与跨进程 host heartbeat/stale，真实双进程演练验证更高 fence 接管和幂等副作用只应用一次 | ✅ 核心闭环；新增外部副作用仍须携带稳定 event id 并实现领域幂等 handler                                                    | P1     |
 | Context       | `/context` 显示 memory、skills、MCP、文件与缓存成本                         | instruction、实际注入 persona Skill、persisted MCP schema 已逐来源归因；普通 Skill 使用 descriptor/body 双层 cache，Headless/REPL 持久化无正文快照，分别报告磁盘读取、cache hit、正文大小等价量与实际 prompt 注入 token                                                     | ✅ 当前核心闭环；Subagent/Hook 独立预算与 provider 实际计费误差仍作为后续可观测性增强                                    | P1     |
 | Checkpoint    | 对话与文件按 turn 恢复                                                      | Headless 显式绑定已持久化，REPL 可消费                                                                                                                                                                                                                                    | REPL 还不是统一生产者；child/worktree/user edit/provider tool id 归因不完整                                               | P1     |
-| Plugin 安全   | 插件统一打包、作用域、企业治理                                              | 能力声明、consent、签名、typed options、OS secret store、lockfile/SBOM、插件 MCP/LSP/Hook/Monitor/Bin Broker provenance；Desktop Plugin Loader 依赖探测、安装和解压已去 shell 并携带 plugin source；CLI/cc ui 与 Desktop 主进程 child_process、node-pty PTY Broker 已接入 | Desktop/CLI 原生模块和外部宿主入口仍需统一 Broker                                                                         | P1     |
+| Plugin 安全   | 插件统一打包、作用域、企业治理                                              | 能力声明/consent/签名/typed options/OS secret/lockfile/SBOM 与执行 Broker provenance 已有；强制 consent 同时强制 permissions 声明，direct URL MCP hostname 按声明 domain 连接前拒绝；Desktop Loader 依赖探测/安装/解压已去 shell | stdio/native 外部宿主的跨平台 network/filesystem 强隔离仍需随 P0 原生沙箱收口                                           | P1     |
 | 关键状态并发  | 会话、审批、任务和副作用状态应原子持久化                                    | Agenda/Event Runtime/session transcript 已使用 fail-closed file lock                                                                                                                                                                                                      | approval/部分 ledger/IDE session 状态仍需统一迁移，避免不同宿主各自写入                                                   | P1     |
 | 结构化输出    | 标准 JSON Schema、启动期校验、最终 validated result                         | 常用 Draft 2020-12 vocabulary（组合、条件、`$ref`、dependent、pattern、contains、format）、显式 external schema registry 及 stream `structured_result`                                                                                                                    | 完整 meta-vocabulary、自动远程 ref 解析与复杂 schema 互操作性仍待补                                                       | P1     |
 | SDK/CI        | TypeScript/Python SDK、版本化事件、GitHub/GitLab 自动化                     | 当前双语言源码覆盖 24 类 typed stream 事件（含 MCP defer/complete）、approval/question/MCP elicitation callback、resume 与未知事件无损透传；共享 fixture、GitHub Actions 模板及 22 项 hermetic 测试已落地；已发布 Python SDK 0.1.0 是此前 22 类事件基线，并通过 3.10/3.12/3.13 公网 wheel 安装矩阵 | SemVer/capability negotiation/deprecation 矩阵、跨宿主 schema package、GitLab、双语言联合发布兼容门及新增事件的新版本发布仍待补 | P1     |
@@ -609,13 +609,13 @@ IDE user edit 标记及顶层交互 `--worktree` branch id。
 当前 Plugin 能力声明、能力 diff、重新 consent 和 options schema 已较完善。剩余高价值工作：
 
 - 敏感 option 已从 user-scope JSON 迁移到 DPAPI、macOS Keychain、Linux Secret Service（不可用时 fail-closed）。
-- 取消 legacy manifest 的隐式旁路：当前
-  [`policy.js`](../packages/cli/src/lib/plugin-runtime/policy.js#L180) 对未声明 capabilities 的
-  旧插件保留兼容加载。建议设置迁移窗口，首次加载展示推断能力并要求确认；企业模式直接
-  fail-closed。
+- legacy manifest 兼容迁移窗口默认保留，但企业/显式严格模式已关闭隐式旁路：
+  `requirePluginCapabilityConsent` 会同时强制 `permissions` 声明，另可使用 managed
+  `requirePluginCapabilityDeclarations` 或 `CC_REQUIRE_PLUGIN_CAPABILITIES=1` 独立
+  fail-closed；未声明插件不再能靠删除权限块绕过 consent。
 - 插件 MCP stdio、LSP、settings Hook、Monitor 与 `run_shell` 命中的 Plugin Bin 已进入 Process Broker，并携带 `plugin_id/version/source`；CLI/`cc ui` 的 `node-pty` 与 Desktop 主进程的 `child_process`/`node-pty` 入口已统一进入 Broker 并记录脱敏 provenance，原生模块和外部宿主仍待收口。
-- Manifest 的 network domains、filesystem roots、process、credential 声明要从“安装期说明”
-  升级为“运行时强制”。
+- Manifest 的直接 URL MCP network domains 已在连接前强制；stdio/native 外部宿主的
+  filesystem roots、network egress、process 与 credential 仍需随 P0 平台沙箱完整收口。
 - 增加 lockfile、依赖图、签名链、SBOM 和安装产物 hash。当前安装锁已记录并校验文件级 SBOM 摘要，敏感 options 已使用 OS secret store；依赖图与全路径 Broker 强制仍待补。
 - 升级前展示新增能力、上下文成本和可执行组件；能力扩大必须重新 consent。
 - 禁止不安全 shell-form 插值，默认使用 argv 形式。

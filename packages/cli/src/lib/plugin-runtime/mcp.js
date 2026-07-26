@@ -17,7 +17,10 @@
 import fs from "fs";
 import { discoverPlugins } from "./scopes.js";
 import { partitionByTrust, warnUntrustedOnce } from "./trust.js";
-import { componentCapabilityDenial } from "./capabilities.js";
+import {
+  componentCapabilityDenial,
+  networkTargetDenial,
+} from "./capabilities.js";
 
 export const _deps = { readFileSync: fs.readFileSync };
 
@@ -35,9 +38,8 @@ function warnMcpCapabilityDeniedOnce(entries) {
   const list = entries.map((e) => `${e.name} (${e.reason})`).join("; ");
   try {
     process.stderr.write(
-      `[plugins] refused MCP server(s) from plugin(s) that declared a permissions ` +
-        `block but did not declare the 'mcp' capability their server needs: ${list}\n` +
-        `          add 'mcp' to the plugin's permissions block to enable them.\n`,
+      `[plugins] refused MCP server(s) outside declared plugin capabilities: ${list}\n` +
+        `          declare 'mcp' and every direct URL domain in the plugin permissions block.\n`,
     );
   } catch {
     /* stderr notice is best-effort */
@@ -119,6 +121,15 @@ export function collectPluginMcpServers(opts = {}) {
     for (const [name, cfg] of Object.entries(map)) {
       if (!cfg || typeof cfg !== "object") continue;
       if (name in servers) continue; // first plugin wins on a clash
+      const targetUrl = cfg.url || cfg.transport?.url || null;
+      const networkDenial = networkTargetDenial(p.manifest, targetUrl);
+      if (networkDenial) {
+        denied.push({
+          name: `${p.name}/${name}`,
+          reason: networkDenial.reason,
+        });
+        continue;
+      }
       servers[name] = {
         ...cfg,
         origin: "plugin:mcp",

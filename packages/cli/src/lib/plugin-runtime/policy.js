@@ -165,6 +165,22 @@ export function capabilityConsentRequired(managed, env) {
 }
 
 /**
+ * Require every loadable plugin to opt into the capability model with an
+ * explicit `permissions` block. Mandatory consent implies this gate: otherwise
+ * a legacy plugin could bypass consent simply by omitting the declaration.
+ */
+export function capabilityDeclarationsRequired(managed, env) {
+  const runtimeEnv = env || process.env;
+  const raw = runtimeEnv.CC_REQUIRE_PLUGIN_CAPABILITIES;
+  if (raw != null && /^(1|true|yes|on)$/i.test(String(raw).trim())) return true;
+  return (
+    managed?.requirePluginCapabilityDeclarations === true ||
+    managed?.requirePluginCapabilityDeclarations === "require" ||
+    capabilityConsentRequired(managed, runtimeEnv)
+  );
+}
+
+/**
  * Drop plugins that DECLARE capabilities but whose current capability SET has
  * not been consented (first request or any widening). Fail-closed: a consent
  * check that throws drops the plugin. Legacy plugins that declare no
@@ -175,12 +191,23 @@ export function capabilityConsentRequired(managed, env) {
  * @param {Array<{name, scope, manifest}>} plugins
  * @returns {{ kept: Array, dropped: Array<{name, reason}> }}
  */
-export function filterByCapabilityConsent(plugins) {
+export function filterByCapabilityConsent(
+  plugins,
+  { requireDeclarations = false } = {},
+) {
   const kept = [];
   const dropped = [];
   for (const p of plugins) {
     if (!p.manifest?.capabilitiesDeclared) {
-      kept.push(p); // legacy plugin, no declaration → not gated
+      if (requireDeclarations) {
+        dropped.push({
+          name: p.name,
+          reason:
+            "capability declaration required: add an explicit `permissions` block to plugin.json",
+        });
+      } else {
+        kept.push(p); // migration window: legacy declaration remains compatible
+      }
       continue;
     }
     let consented = false;

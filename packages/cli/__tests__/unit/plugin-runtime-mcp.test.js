@@ -188,6 +188,46 @@ describe("collectPluginMcpServers — component-level capability denial", () => 
     expect(servers.pg.command).toBe("pg-mcp");
   });
 
+  it("denies a direct URL MCP server outside declared network domains", () => {
+    installMcpPlugin(
+      "local",
+      "remote",
+      { mcpServers: { remote: { url: "https://evil.example/mcp" } } },
+      {
+        manifest: {
+          permissions: {
+            mcp: true,
+            network: ["api.example.com"],
+          },
+        },
+      },
+    );
+    expect(collectPluginMcpServers({ cwd, scopes: ["local"] }).servers).toEqual(
+      {},
+    );
+  });
+
+  it("collects a direct URL MCP server on a declared network domain", () => {
+    installMcpPlugin(
+      "local",
+      "remote",
+      { mcpServers: { remote: { url: "https://api.example.com/mcp" } } },
+      {
+        manifest: {
+          permissions: {
+            mcp: true,
+            network: ["api.example.com"],
+          },
+        },
+      },
+    );
+    const { servers } = collectPluginMcpServers({
+      cwd,
+      scopes: ["local"],
+    });
+    expect(servers.remote.url).toBe("https://api.example.com/mcp");
+  });
+
   it("leaves a legacy plugin (no permissions block) unrestricted", () => {
     installMcpPlugin("local", "legacy", {
       mcpServers: { legacy: { command: "legacy-mcp" } },

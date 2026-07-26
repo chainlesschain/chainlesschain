@@ -11,6 +11,7 @@ import {
   describeCapabilities,
   auditDeclaredCapabilities,
   componentCapabilityDenial,
+  networkTargetDenial,
   normalizeOptionsSchema,
   optionDefaults,
   validateOptions,
@@ -200,6 +201,54 @@ describe("componentCapabilityDenial (component-level enforcement)", () => {
   it("ignores findings for capabilities the caller did not ask about", () => {
     // ships hooks (→ a 'process' finding) but we only ask about 'monitor'
     expect(componentCapabilityDenial(hookPlugin({}), ["monitor"])).toBeNull();
+  });
+});
+
+describe("networkTargetDenial (direct URL enforcement)", () => {
+  const manifest = (network) => ({
+    capabilitiesDeclared: true,
+    capabilities: normalizeCapabilities({ network }),
+  });
+
+  it("allows exact and wildcard subdomains but not the wildcard apex", () => {
+    expect(
+      networkTargetDenial(
+        manifest(["api.example.com", "*.corp.example"]),
+        "https://api.example.com/mcp",
+      ),
+    ).toBeNull();
+    expect(
+      networkTargetDenial(
+        manifest(["*.corp.example"]),
+        "https://east.corp.example/mcp",
+      ),
+    ).toBeNull();
+    expect(
+      networkTargetDenial(
+        manifest(["*.corp.example"]),
+        "https://corp.example/mcp",
+      ),
+    ).not.toBeNull();
+  });
+
+  it("denies undeclared and malformed direct targets", () => {
+    expect(
+      networkTargetDenial(
+        manifest(["api.example.com"]),
+        "https://evil.example/mcp",
+      )?.reason,
+    ).toMatch(/outside/);
+    expect(networkTargetDenial(manifest("*"), "not-a-url")).not.toBeNull();
+  });
+
+  it("keeps legacy and non-URL stdio components compatible", () => {
+    expect(
+      networkTargetDenial(
+        { capabilitiesDeclared: false },
+        "https://any.example/mcp",
+      ),
+    ).toBeNull();
+    expect(networkTargetDenial(manifest([]), null)).toBeNull();
   });
 });
 

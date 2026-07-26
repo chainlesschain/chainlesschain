@@ -7,6 +7,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   capabilityConsentRequired,
+  capabilityDeclarationsRequired,
   filterByCapabilityConsent,
 } from "../../src/lib/plugin-runtime/policy.js";
 import { _deps as consentDeps } from "../../src/lib/plugin-runtime/capability-consent.js";
@@ -68,6 +69,32 @@ describe("capabilityConsentRequired", () => {
   });
 });
 
+describe("capabilityDeclarationsRequired", () => {
+  it("is off by default for the legacy migration window", () => {
+    expect(capabilityDeclarationsRequired(null, {})).toBe(false);
+  });
+
+  it("is enabled explicitly or whenever consent is mandatory", () => {
+    expect(
+      capabilityDeclarationsRequired(null, {
+        CC_REQUIRE_PLUGIN_CAPABILITIES: "1",
+      }),
+    ).toBe(true);
+    expect(
+      capabilityDeclarationsRequired(
+        { requirePluginCapabilityDeclarations: true },
+        {},
+      ),
+    ).toBe(true);
+    expect(
+      capabilityDeclarationsRequired(
+        { requirePluginCapabilityConsent: true },
+        {},
+      ),
+    ).toBe(true);
+  });
+});
+
 describe("filterByCapabilityConsent", () => {
   it("keeps a legacy plugin that declares no permissions block", () => {
     const { kept, dropped } = filterByCapabilityConsent([
@@ -75,6 +102,16 @@ describe("filterByCapabilityConsent", () => {
     ]);
     expect(kept.map((p) => p.name)).toEqual(["legacy"]);
     expect(dropped).toEqual([]);
+  });
+
+  it("drops an undeclared legacy plugin in declaration-required mode", () => {
+    const { kept, dropped } = filterByCapabilityConsent(
+      [plugin("legacy", { declared: false })],
+      { requireDeclarations: true },
+    );
+    expect(kept).toEqual([]);
+    expect(dropped[0]).toMatchObject({ name: "legacy" });
+    expect(dropped[0].reason).toMatch(/permissions/);
   });
 
   it("drops a declared-but-unconsented plugin and keeps a consented one", () => {
