@@ -1,6 +1,6 @@
 "use strict";
 
-const DEFAULT_MAX_PAGES = 200;
+const DEFAULT_MAX_PAGES = Number.POSITIVE_INFINITY;
 
 function resolveMaxPages(opts = {}, fallback = DEFAULT_MAX_PAGES) {
   return Number.isFinite(opts.maxPages)

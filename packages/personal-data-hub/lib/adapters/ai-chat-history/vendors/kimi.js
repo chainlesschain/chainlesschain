@@ -31,7 +31,7 @@ const CONV_LIST_PATH = "/api/chat/list";
 const USER_PATH = "/api/user";
 
 const DEFAULT_PAGE_SIZE = 30;
-const DEFAULT_MAX_PAGES = 200;
+const DEFAULT_MAX_PAGES = Number.POSITIVE_INFINITY;
 const { hasMoreState } = require("./pagination");
 const { extractVendorArray } = require("./strict-response");
 

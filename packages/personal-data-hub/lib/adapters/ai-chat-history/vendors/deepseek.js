@@ -41,7 +41,7 @@ const { hasMoreState, pageSignature } = require("./pagination");
 const { extractVendorArray } = require("./strict-response");
 
 const DEFAULT_PAGE_SIZE = 30;
-const DEFAULT_MAX_PAGES = 200;
+const DEFAULT_MAX_PAGES = Number.POSITIVE_INFINITY;
 
 function _ensureClient(ctx) {
   if (!ctx || !ctx.httpClient) {

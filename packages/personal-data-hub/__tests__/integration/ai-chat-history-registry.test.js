@@ -354,6 +354,74 @@ describe("Integration — AIChatHistoryAdapter through AdapterRegistry", () => {
     expect(r2.watermarkDeferred).toBe(false);
   });
 
+  it("expands the AI conversation page budget until a complete scan commits", async () => {
+    rig = makeRig();
+    const requiredPages = 21;
+    const seenPageBudgets = [];
+    const spec = {
+      ...DEFAULT_VENDOR_SPECS.deepseek,
+      async validateCookie() {
+        return { ok: true };
+      },
+      async *listConversations(_ctx, opts) {
+        seenPageBudgets.push(opts.maxPages);
+        for (let page = 0; page < requiredPages; page++) {
+          if (page >= opts.maxPages) {
+            const err = new Error("test pagination budget exhausted");
+            err.code = "AI_CHAT_PAGINATION_LIMIT";
+            throw err;
+          }
+          yield {
+            vendor: "deepseek",
+            originalId: `budget-conversation-${page}`,
+            createdAt: 1_700_000_000_000 + page,
+            updatedAt: 1_700_000_000_000 + page,
+          };
+        }
+      },
+      async *listMessages() {},
+    };
+    const adapter = new AIChatHistoryAdapter({
+      vendorSpecs: { deepseek: spec },
+    });
+    adapter.setSession(
+      "deepseek",
+      new CookieAuthSession({
+        vendor: "deepseek",
+        cookies: [{ name: "userToken", value: "x" }],
+      }),
+    );
+    rig.registry.register(adapter);
+
+    const partial = await rig.registry.syncAdapter("ai-chat-history");
+    expect(partial).toMatchObject({
+      status: "ok",
+      watermark: null,
+      watermarkDeferred: true,
+      checkpointCommitted: false,
+      pageBudget: 20,
+      nextPageBudget: 40,
+      scanDeferredCount: 1,
+    });
+    expect(rig.vault.getSyncScanState("ai-chat-history")).toMatchObject({
+      page_budget: 40,
+      deferred_count: 1,
+    });
+
+    const complete = await rig.registry.syncAdapter("ai-chat-history");
+    expect(complete).toMatchObject({
+      status: "ok",
+      watermarkDeferred: false,
+      checkpointCommitted: true,
+      pageBudget: 40,
+      nextPageBudget: null,
+      scanDeferredCount: 1,
+    });
+    expect(complete.watermark).toMatch(/^aichat-v1:/u);
+    expect(rig.vault.getSyncScanState("ai-chat-history")).toBeNull();
+    expect(seenPageBudgets).toEqual([20, 40]);
+  });
+
   it("retains the old cursor when a later vendor scan is rate limited", async () => {
     rig = makeRig();
     let rateLimited = false;
