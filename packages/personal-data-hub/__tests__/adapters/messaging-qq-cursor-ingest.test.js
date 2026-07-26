@@ -444,6 +444,134 @@ describe("messaging-qq SQLite exact identifiers", () => {
     });
   });
 
+  it.each([
+    ["contact", "Friends", "CREATE TABLE Friends (legacy_id INTEGER)"],
+    ["group", "TroopInfoV2", "CREATE TABLE TroopInfoV2 (legacy_id INTEGER)"],
+  ])(
+    "fails closed when a discovered %s table has an unreadable schema",
+    async (_kind, table, createSql) => {
+      const Database = require("better-sqlite3-multiple-ciphers");
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pdh-qq-android-meta-"));
+      const dbPath = path.join(tmpDir, "12345.db");
+      const db = new Database(dbPath);
+      db.exec(createSql);
+      db.close();
+      const adapter = new QQAdapter({
+        account: { qq: "12345" },
+        dbPath,
+        keyProvider: { getKey: async () => "12" },
+        dbDriverFactory: () => Database,
+      });
+
+      await expect(collect(adapter.sync({}))).rejects.toMatchObject({
+        code: "QQ_ANDROID_CURSOR_SOURCE_REGRESSED",
+        retryable: false,
+        message: expect.stringContaining(table),
+      });
+    },
+  );
+
+  it("uses a readable contact fallback when an older candidate schema is incompatible", async () => {
+    const Database = require("better-sqlite3-multiple-ciphers");
+    tmpDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "pdh-qq-android-contact-fallback-"),
+    );
+    const dbPath = path.join(tmpDir, "12345.db");
+    const db = new Database(dbPath);
+    db.exec(
+      `CREATE TABLE Friends (legacy_id INTEGER);
+      CREATE TABLE tb_recent_contact (
+        uin INTEGER PRIMARY KEY,
+        name TEXT,
+        remark TEXT
+      );
+      INSERT INTO tb_recent_contact VALUES (100, 'A', 'friend')`,
+    );
+    db.close();
+    const adapter = new QQAdapter({
+      account: { qq: "12345" },
+      dbPath,
+      keyProvider: { getKey: async () => "12" },
+      dbDriverFactory: () => Database,
+    });
+
+    const raws = await collect(adapter.sync({}));
+    expect(raws).toHaveLength(1);
+    expect(raws[0]).toMatchObject({
+      kind: "contact",
+      payload: { uin: "100", nickname: "A", remark: "friend" },
+    });
+  });
+
+  it.each([
+    {
+      kind: "contact",
+      table: "Friends",
+      createSql: `CREATE TABLE Friends (
+        uin INTEGER PRIMARY KEY,
+        name TEXT
+      );
+      INSERT INTO Friends VALUES (100, 'A'), (200, 'B')`,
+    },
+    {
+      kind: "group",
+      table: "TroopInfoV2",
+      createSql: `CREATE TABLE TroopInfoV2 (
+        troopuin INTEGER PRIMARY KEY,
+        troopname TEXT,
+        membernum INTEGER,
+        troopowneruin INTEGER
+      );
+      INSERT INTO TroopInfoV2 VALUES
+        (300, 'G1', 10, 100),
+        (400, 'G2', 20, 200)`,
+    },
+  ])(
+    "fails closed when an active SQLite $kind boundary disappears",
+    async ({ table, createSql }) => {
+      const Database = require("better-sqlite3-multiple-ciphers");
+      tmpDir = fs.mkdtempSync(
+        path.join(os.tmpdir(), "pdh-qq-android-meta-regress-"),
+      );
+      const dbPath = path.join(tmpDir, "12345.db");
+      const db = new Database(dbPath);
+      db.exec(createSql);
+      db.close();
+      const adapter = new QQAdapter({
+        account: { qq: "12345" },
+        dbPath,
+        keyProvider: { getKey: async () => "12" },
+        dbDriverFactory: () => Database,
+      });
+      let watermark;
+      await collect(
+        adapter.sync({
+          limit: 1,
+          updateWatermark(value) {
+            watermark = value;
+          },
+        }),
+      );
+      const changed = new Database(dbPath);
+      changed.exec(`DROP TABLE ${table}`);
+      changed.close();
+
+      await expect(
+        collect(
+          adapter.sync({
+            sinceWatermark: watermark,
+            updateWatermark(value) {
+              watermark = value;
+            },
+          }),
+        ),
+      ).rejects.toMatchObject({
+        code: "QQ_ANDROID_CURSOR_SOURCE_REGRESSED",
+        retryable: false,
+      });
+    },
+  );
+
   it("fails closed when the newest discovered message shard is unreadable", async () => {
     const Database = require("better-sqlite3-multiple-ciphers");
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pdh-qq-android-upper-"));

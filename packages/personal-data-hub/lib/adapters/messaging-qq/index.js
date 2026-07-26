@@ -119,14 +119,6 @@ function parseTime(v) {
   return null;
 }
 
-function trySelect(db, sql) {
-  try {
-    return db.prepare(sql).all();
-  } catch (_e) {
-    return null;
-  }
-}
-
 function quoteSqliteIdentifier(value) {
   if (typeof value !== "string" || value.length === 0) {
     throw new TypeError("messaging-qq: SQLite identifier must be non-empty");
@@ -137,6 +129,29 @@ function quoteSqliteIdentifier(value) {
 
 function selectRows(db, sql, params = []) {
   return db.prepare(sql).all(...params);
+}
+
+function sqliteTableNames(db) {
+  let rows;
+  try {
+    rows = selectRows(
+      db,
+      "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name ASC",
+    );
+  } catch {
+    throw sqliteCursorSourceError("SQLite table inventory is unreadable");
+  }
+  return rows
+    .map((row) => row?.name)
+    .filter((name) => typeof name === "string" && name.length > 0);
+}
+
+function findSqliteTable(tableNames, candidate) {
+  const normalized = candidate.toLowerCase();
+  return (
+    tableNames.find((tableName) => tableName.toLowerCase() === normalized) ||
+    null
+  );
 }
 
 function exactRowId(row, fallbackColumn) {
@@ -155,7 +170,7 @@ function maxExactId(rows, fallbackColumn) {
   return maximum;
 }
 
-function resolveContactSource(db) {
+function resolveContactSource(db, tableNames) {
   const candidates = [
     {
       table: "Friends",
@@ -173,13 +188,26 @@ function resolveContactSource(db) {
         'CAST(uin AS TEXT) AS "__pdh_exact_id", uin, name AS nickname, remark',
     },
   ];
+  let unreadableTable = null;
   for (const candidate of candidates) {
-    const table = quoteSqliteIdentifier(candidate.table);
-    const probe = trySelect(
-      db,
-      `SELECT ${candidate.select} FROM ${table} WHERE uin IS NOT NULL ORDER BY uin ASC LIMIT 1`,
+    const sourceTable = findSqliteTable(tableNames, candidate.table);
+    if (!sourceTable) continue;
+    const table = quoteSqliteIdentifier(sourceTable);
+    try {
+      selectRows(
+        db,
+        `SELECT ${candidate.select} FROM ${table} WHERE uin IS NOT NULL ORDER BY uin ASC LIMIT 1`,
+      );
+    } catch {
+      unreadableTable = unreadableTable || sourceTable;
+      continue;
+    }
+    return { ...candidate, table: sourceTable };
+  }
+  if (unreadableTable) {
+    throw sqliteCursorSourceError(
+      `discovered SQLite contact table ${unreadableTable} is unreadable`,
     );
-    if (probe !== null) return candidate;
   }
   return null;
 }
@@ -233,20 +261,30 @@ function contactPage(db, source, { after, upper, limit }) {
     .slice(0, limit);
 }
 
-function groupUpper(db) {
-  const rows = trySelect(
-    db,
-    `SELECT CAST(troopuin AS TEXT) AS "${EXACT_ID_ALIAS}", troopuin
-     FROM TroopInfoV2
-     WHERE troopuin IS NOT NULL
-     ORDER BY troopuin DESC
-     LIMIT 1`,
-  );
-  return rows === null ? null : maxExactId(rows, "troopuin");
+function groupUpper(db, sourceTable) {
+  if (!sourceTable) return null;
+  const table = quoteSqliteIdentifier(sourceTable);
+  let rows;
+  try {
+    rows = selectRows(
+      db,
+      `SELECT CAST(troopuin AS TEXT) AS "${EXACT_ID_ALIAS}", troopuin
+       FROM ${table}
+       WHERE troopuin IS NOT NULL
+       ORDER BY troopuin DESC
+       LIMIT 1`,
+    );
+  } catch {
+    throw sqliteCursorSourceError(
+      `discovered SQLite group table ${sourceTable} is unreadable`,
+    );
+  }
+  return maxExactId(rows, "troopuin");
 }
 
-function groupPage(db, { after, upper, limit }) {
-  if (limit <= 0) return [];
+function groupPage(db, sourceTable, { after, upper, limit }) {
+  if (!sourceTable || limit <= 0) return [];
+  const table = quoteSqliteIdentifier(sourceTable);
   const where = ["troopuin IS NOT NULL"];
   const params = [];
   if (after !== null) {
@@ -267,14 +305,16 @@ function groupPage(db, { after, upper, limit }) {
               troopname AS troop_name,
               membernum AS member_count,
               troopowneruin AS owner_uin
-       FROM TroopInfoV2
+       FROM ${table}
        WHERE ${where.join(" AND ")}
        ORDER BY troopuin ASC
        LIMIT ?`,
       params,
     );
-  } catch (_error) {
-    return [];
+  } catch {
+    throw sqliteCursorSourceError(
+      `discovered SQLite group table ${sourceTable} is unreadable`,
+    );
   }
   return rows
     .map((row) => ({ row, id: exactRowId(row, "troop_uin") }))
@@ -288,28 +328,15 @@ function groupPage(db, { after, upper, limit }) {
     .slice(0, limit);
 }
 
-function messageTables(db) {
-  let rows;
-  try {
-    rows = selectRows(
-      db,
-      "SELECT name FROM sqlite_master WHERE type='table' AND (name LIKE 'mr_friend_%_New' OR name LIKE 'mr_troop_%_New') ORDER BY name ASC",
-    );
-  } catch {
-    throw sqliteCursorSourceError(
-      "SQLite message table inventory is unreadable",
-    );
-  }
+function messageTables(tableNames) {
   return Array.from(
     new Set(
-      rows
-        .map((row) => row?.name)
-        .filter(
-          (name) =>
-            typeof name === "string" &&
-            (name.startsWith("mr_friend_") || name.startsWith("mr_troop_")) &&
-            name.endsWith("_New"),
-        ),
+      tableNames.filter(
+        (name) =>
+          typeof name === "string" &&
+          (name.startsWith("mr_friend_") || name.startsWith("mr_troop_")) &&
+          name.endsWith("_New"),
+      ),
     ),
   ).sort();
 }
@@ -369,7 +396,7 @@ function messagePage(db, tableName, { after, upper, limit }) {
     .slice(0, limit);
 }
 
-function resolveSqliteUpper(db, contactSource, tables) {
+function resolveSqliteUpper(db, contactSource, groupSource, tables) {
   for (let index = tables.length - 1; index >= 0; index -= 1) {
     const table = tables[index];
     let id;
@@ -382,7 +409,7 @@ function resolveSqliteUpper(db, contactSource, tables) {
     }
     if (id !== null) return { kind: KIND_MESSAGE, table, id };
   }
-  const groupId = groupUpper(db);
+  const groupId = groupUpper(db, groupSource);
   if (groupId !== null) return { kind: KIND_GROUP, id: groupId };
   const contactId = contactUpper(db, contactSource);
   return contactId === null ? null : { kind: KIND_CONTACT, id: contactId };
@@ -744,11 +771,16 @@ class QQAdapter {
         ? opts.limit
         : Infinity;
     const fallbackCapturedAt = Date.now();
-    const contactSource = resolveContactSource(db);
-    const tables = messageTables(db);
+    const tableNames = sqliteTableNames(db);
+    const contactSource = resolveContactSource(db, tableNames);
+    const groupSource = findSqliteTable(tableNames, "TroopInfoV2");
+    const tables = messageTables(tableNames);
     let cursor = parseCursor(opts.sinceWatermark).cursor;
     if (cursor.upper === null) {
-      cursor = beginScan(cursor, resolveSqliteUpper(db, contactSource, tables));
+      cursor = beginScan(
+        cursor,
+        resolveSqliteUpper(db, contactSource, groupSource, tables),
+      );
     }
     if (cursor.upper?.kind === KIND_MESSAGE) {
       let currentUpper = null;
@@ -765,6 +797,28 @@ class QQAdapter {
       ) {
         throw sqliteCursorSourceError(
           "active SQLite message boundary is no longer readable",
+        );
+      }
+    }
+    if (cursor.upper?.kind === KIND_GROUP) {
+      const currentUpper = groupUpper(db, groupSource);
+      if (
+        currentUpper === null ||
+        compareTextIds(currentUpper, cursor.upper.id) < 0
+      ) {
+        throw sqliteCursorSourceError(
+          "active SQLite group boundary is no longer readable",
+        );
+      }
+    }
+    if (cursor.upper?.kind === KIND_CONTACT) {
+      const currentUpper = contactUpper(db, contactSource);
+      if (
+        currentUpper === null ||
+        compareTextIds(currentUpper, cursor.upper.id) < 0
+      ) {
+        throw sqliteCursorSourceError(
+          "active SQLite contact boundary is no longer readable",
         );
       }
     }
@@ -822,6 +876,7 @@ class QQAdapter {
     if (
       cursor.upper !== null &&
       cursor.upper.kind !== KIND_CONTACT &&
+      groupSource !== null &&
       (cursor.after === null ||
         cursor.after.kind === KIND_CONTACT ||
         cursor.after.kind === KIND_GROUP)
@@ -830,7 +885,11 @@ class QQAdapter {
       const upper = cursor.upper.kind === KIND_GROUP ? cursor.upper.id : null;
       while (cursor.upper !== null && emitted < limit) {
         const requested = pageSize(emitted);
-        const page = groupPage(db, { after, upper, limit: requested });
+        const page = groupPage(db, groupSource, {
+          after,
+          upper,
+          limit: requested,
+        });
         if (page.length === 0) break;
         for (const { row, id } of page) {
           cursor = advanceCursor(cursor, { kind: KIND_GROUP, id });
