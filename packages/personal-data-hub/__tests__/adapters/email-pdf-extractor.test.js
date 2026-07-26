@@ -7,7 +7,9 @@ const {
   passwordsFromHints,
 } = require("../../lib/adapters/email-imap/pdf-extractor");
 
-const { extractTransactions } = require("../../lib/adapters/email-imap/transactions");
+const {
+  extractTransactions,
+} = require("../../lib/adapters/email-imap/transactions");
 
 // ─── pdf-extractor (password trial loop) ─────────────────────────────────
 
@@ -49,7 +51,10 @@ describe("extractPdfText — password trial loop", () => {
   });
 
   it("succeeds on the second password in the list", async () => {
-    const mockParse = makeMockPdfParse({ needsPassword: "OPENME-mock", text: "decrypted!" });
+    const mockParse = makeMockPdfParse({
+      needsPassword: "OPENME-mock",
+      text: "decrypted!",
+    });
     const r = await extractPdfText(Buffer.from("FAKE"), {
       passwords: ["wrong1", "OPENME-mock", "wrong2"],
       pdfParseImpl: mockParse,
@@ -207,17 +212,35 @@ describe("extractTransactions — Chinese bank statements", () => {
   });
 
   it("returns [] for non-statement text (no dates)", () => {
-    expect(extractTransactions("This is a marketing email, no statement rows.")).toEqual([]);
+    expect(
+      extractTransactions("This is a marketing email, no statement rows."),
+    ).toEqual([]);
     expect(extractTransactions("")).toEqual([]);
   });
 
   it("caps at maxRows", () => {
     const lines = Array.from(
       { length: 50 },
-      (_, i) => `2026-05-${String((i % 28) + 1).padStart(2, "0")} merchant${i} 10.00 100.00`,
+      (_, i) =>
+        `2026-05-${String((i % 28) + 1).padStart(2, "0")} merchant${i} 10.00 100.00`,
     );
     const out = extractTransactions(lines.join("\n"), { maxRows: 5 });
     expect(out).toHaveLength(5);
+  });
+
+  it("parses beyond the former 500-row default boundary", () => {
+    const rowCount = 501;
+    const lines = Array.from(
+      { length: rowCount },
+      (_, index) =>
+        `2026-05-${String((index % 28) + 1).padStart(2, "0")} merchant${index} 10.00 100.00`,
+    );
+
+    const out = extractTransactions(lines.join("\n"));
+
+    expect(out).toHaveLength(rowCount);
+    expect(out.at(-1).index).toBe(500);
+    expect(out.at(-1).raw).toContain("merchant500");
   });
 
   it("each transaction includes a unique occurredAtMs", () => {
@@ -252,14 +275,15 @@ describe("extractTransactions — Chinese bank statements", () => {
 const { EmailAdapter } = require("../../lib/adapters/email-imap/email-adapter");
 
 function makeSession(envelopes) {
-  return (_opts) => ({
+  return () => ({
     async connect() {},
-    async openMailbox(_name) {
+    async openMailbox() {
       return { uidValidity: 1, uidNext: 9999, exists: envelopes.length };
     },
     async *fetchFullSince(sinceUid = 0) {
       for (const env of envelopes) {
-        if (env.uid > sinceUid) yield { ...env, source: env.source || Buffer.alloc(0) };
+        if (env.uid > sinceUid)
+          yield { ...env, source: env.source || Buffer.alloc(0) };
       }
     },
     async close() {},
@@ -293,23 +317,30 @@ describe("EmailAdapter — Phase 5.5 PDF extraction integration", () => {
   it("decrypts bill PDF + extracts transactions into fields.transactions", async () => {
     const factory = makeSession([billEnv()]);
     const a = new EmailAdapter({
-      account: { provider: "qq", email: "u@qq.com", authCode: "x", folders: ["INBOX"] },
+      account: {
+        provider: "qq",
+        email: "u@qq.com",
+        authCode: "x",
+        folders: ["INBOX"],
+      },
       sessionFactory: factory,
       // Force-create a "decrypted" PDF attachment via a custom parser
       parser: async () => ({
         textBody: "尾号 1234 应还金额 ¥3,000",
-        attachments: [{
-          filename: "statement.pdf",
-          contentType: "application/pdf",
-          contentDisposition: "attachment",
-          size: 12345,
-          sha256: "abc",
-          isInline: false,
-          isEncrypted: true,
-          buffer: Buffer.from("FAKE PDF BYTES"),
-        }],
+        attachments: [
+          {
+            filename: "statement.pdf",
+            contentType: "application/pdf",
+            contentDisposition: "attachment",
+            size: 12345,
+            sha256: "abc",
+            isInline: false,
+            isEncrypted: true,
+            buffer: Buffer.from("FAKE PDF BYTES"),
+          },
+        ],
       }),
-      pdfExtractor: async (buf, _opts) => ({
+      pdfExtractor: async () => ({
         decrypted: true,
         text: PDF_TEXT,
         password: "987654",
@@ -341,17 +372,24 @@ describe("EmailAdapter — Phase 5.5 PDF extraction integration", () => {
   it("normalize copies transactions into extra.fields.transactions", async () => {
     const factory = makeSession([billEnv()]);
     const a = new EmailAdapter({
-      account: { provider: "qq", email: "u@qq.com", authCode: "x", folders: ["INBOX"] },
+      account: {
+        provider: "qq",
+        email: "u@qq.com",
+        authCode: "x",
+        folders: ["INBOX"],
+      },
       sessionFactory: factory,
       parser: async () => ({
         textBody: "尾号 1234",
-        attachments: [{
-          filename: "stmt.pdf",
-          contentType: "application/pdf",
-          size: 100,
-          sha256: "x",
-          buffer: Buffer.from("FAKE"),
-        }],
+        attachments: [
+          {
+            filename: "stmt.pdf",
+            contentType: "application/pdf",
+            size: 100,
+            sha256: "x",
+            buffer: Buffer.from("FAKE"),
+          },
+        ],
       }),
       pdfExtractor: async () => ({
         decrypted: true,
@@ -373,17 +411,24 @@ describe("EmailAdapter — Phase 5.5 PDF extraction integration", () => {
   it("decrypt failure: pdfExtraction.error populated; no transactions", async () => {
     const factory = makeSession([billEnv()]);
     const a = new EmailAdapter({
-      account: { provider: "qq", email: "u@qq.com", authCode: "x", folders: ["INBOX"] },
+      account: {
+        provider: "qq",
+        email: "u@qq.com",
+        authCode: "x",
+        folders: ["INBOX"],
+      },
       sessionFactory: factory,
       parser: async () => ({
         textBody: "stmt",
-        attachments: [{
-          filename: "x.pdf",
-          contentType: "application/pdf",
-          size: 100,
-          sha256: "h",
-          buffer: Buffer.from("F"),
-        }],
+        attachments: [
+          {
+            filename: "x.pdf",
+            contentType: "application/pdf",
+            size: 100,
+            sha256: "h",
+            buffer: Buffer.from("F"),
+          },
+        ],
       }),
       pdfExtractor: async () => ({
         decrypted: false,
@@ -406,21 +451,34 @@ describe("EmailAdapter — Phase 5.5 PDF extraction integration", () => {
     const factory = makeSession([billEnv()]);
     let extractorCalled = false;
     const a = new EmailAdapter({
-      account: { provider: "qq", email: "u@qq.com", authCode: "x", folders: ["INBOX"] },
+      account: {
+        provider: "qq",
+        email: "u@qq.com",
+        authCode: "x",
+        folders: ["INBOX"],
+      },
       sessionFactory: factory,
       parser: async () => ({
         textBody: "stmt",
-        attachments: [{
-          filename: "x.pdf",
-          contentType: "application/pdf",
-          size: 100,
-          sha256: "h",
-          buffer: Buffer.from("F"),
-        }],
+        attachments: [
+          {
+            filename: "x.pdf",
+            contentType: "application/pdf",
+            size: 100,
+            sha256: "h",
+            buffer: Buffer.from("F"),
+          },
+        ],
       }),
       pdfExtractor: async () => {
         extractorCalled = true;
-        return { decrypted: true, text: "txt", attempted: 1, wasEncrypted: false, pageCount: 1 };
+        return {
+          decrypted: true,
+          text: "txt",
+          attempted: 1,
+          wasEncrypted: false,
+          pageCount: 1,
+        };
       },
       disablePdfExtraction: true,
     });
@@ -431,28 +489,43 @@ describe("EmailAdapter — Phase 5.5 PDF extraction integration", () => {
   });
 
   it("non-bill email does NOT trigger PDF extraction even when PDF attached", async () => {
-    const factory = makeSession([{
-      ...billEnv(),
-      subject: "Welcome",
-      from: [{ address: "noreply@example.com" }],
-    }]);
+    const factory = makeSession([
+      {
+        ...billEnv(),
+        subject: "Welcome",
+        from: [{ address: "noreply@example.com" }],
+      },
+    ]);
     let extractorCalled = false;
     const a = new EmailAdapter({
-      account: { provider: "qq", email: "u@qq.com", authCode: "x", folders: ["INBOX"] },
+      account: {
+        provider: "qq",
+        email: "u@qq.com",
+        authCode: "x",
+        folders: ["INBOX"],
+      },
       sessionFactory: factory,
       parser: async () => ({
         textBody: "Welcome to our service!",
-        attachments: [{
-          filename: "brochure.pdf",
-          contentType: "application/pdf",
-          size: 100,
-          sha256: "b",
-          buffer: Buffer.from("F"),
-        }],
+        attachments: [
+          {
+            filename: "brochure.pdf",
+            contentType: "application/pdf",
+            size: 100,
+            sha256: "b",
+            buffer: Buffer.from("F"),
+          },
+        ],
       }),
       pdfExtractor: async () => {
         extractorCalled = true;
-        return { decrypted: true, text: "", attempted: 1, wasEncrypted: false, pageCount: 1 };
+        return {
+          decrypted: true,
+          text: "",
+          attempted: 1,
+          wasEncrypted: false,
+          pageCount: 1,
+        };
       },
     });
     const raws = [];
@@ -463,19 +536,32 @@ describe("EmailAdapter — Phase 5.5 PDF extraction integration", () => {
   it("attachment buffers are STRIPPED from the emitted RawEvent payload", async () => {
     const factory = makeSession([billEnv()]);
     const a = new EmailAdapter({
-      account: { provider: "qq", email: "u@qq.com", authCode: "x", folders: ["INBOX"] },
+      account: {
+        provider: "qq",
+        email: "u@qq.com",
+        authCode: "x",
+        folders: ["INBOX"],
+      },
       sessionFactory: factory,
       parser: async () => ({
         textBody: "stmt",
-        attachments: [{
-          filename: "x.pdf",
-          contentType: "application/pdf",
-          size: 100,
-          sha256: "h",
-          buffer: Buffer.from("SECRET PDF BYTES"),
-        }],
+        attachments: [
+          {
+            filename: "x.pdf",
+            contentType: "application/pdf",
+            size: 100,
+            sha256: "h",
+            buffer: Buffer.from("SECRET PDF BYTES"),
+          },
+        ],
       }),
-      pdfExtractor: async () => ({ decrypted: true, text: "", attempted: 1, wasEncrypted: false, pageCount: 1 }),
+      pdfExtractor: async () => ({
+        decrypted: true,
+        text: "",
+        attempted: 1,
+        wasEncrypted: false,
+        pageCount: 1,
+      }),
     });
     const raws = [];
     for await (const r of a.sync()) raws.push(r);
@@ -509,13 +595,7 @@ describe("EmailAdapter — Phase 5.5 PDF extraction integration", () => {
       pdfPasswords: ["custom1", "custom2"],
       pdfPasswordHints: { idCardLast6: "111111", phoneLast6: "custom1" }, // dup
     });
-    // Internal field — surface via the password list passed to pdfExtractor
-    let receivedPasswords = null;
-    a._pdfExtractor = async (_buf, opts) => {
-      receivedPasswords = opts.passwords;
-      return { decrypted: false, attempted: 0, text: "", wasEncrypted: false, pageCount: 0 };
-    };
-    // No need to run sync; verify the internal list directly:
+    // No need to run sync; verify the normalized internal list directly.
     expect(a._pdfPasswords).toEqual(["custom1", "custom2", "111111"]);
   });
 

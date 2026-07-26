@@ -38,6 +38,8 @@
 
 "use strict";
 
+const DEFAULT_MAX_ROWS = Number.POSITIVE_INFINITY;
+
 // Lines that look like statement chrome / legalese — skip outright.
 const SKIP_PATTERNS = [
   /^[\s\d]*$/, // pure whitespace / numbers (page-number footers)
@@ -50,7 +52,8 @@ const SKIP_PATTERNS = [
 
 // Direction keywords: ordered so "支出/借/-" wins over plain numbers.
 const DIRECTION_OUT = /(支出|借方|借|消费|扣款|paid|debit|charged?)/i;
-const DIRECTION_IN = /(收入|贷方|贷|退款|返还|到账|入账|credit|refund|received)/i;
+const DIRECTION_IN =
+  /(收入|贷方|贷|退款|返还|到账|入账|credit|refund|received)/i;
 
 // ── Row patterns (each returns a SHARED capture-group layout via .exec()):
 //   m.groups = { date, dateY, dateM, dateD, sign?, currency?, amount, balance?, desc }
@@ -68,20 +71,24 @@ const DATE_PATTERNS = [
 
 // Amount: a signed (optional) currency-marked number. Negative or "-"
 // prefix means OUT. Currency optional; defaults to CNY.
-const AMOUNT_RE = /(?<sign>[+\-])?\s*(?:(?<cur>¥|RMB|CNY|USD|EUR|\$|€)\s*)?(?<amt>[\d][\d,]*(?:\.\d{1,4})?)\b/;
+const AMOUNT_RE =
+  /(?<sign>[+-])?\s*(?:(?<cur>¥|RMB|CNY|USD|EUR|\$|€)\s*)?(?<amt>[\d][\d,]*(?:\.\d{1,4})?)\b/;
 
 /**
  * Parse a bank-statement text body into transactions.
  *
  * @param {string} text         decrypted PDF text (or any plain-text body)
  * @param {object} [opts]
- * @param {number} [opts.maxRows=500]  cap to keep DoS-shaped statements bounded
+ * @param {number} [opts.maxRows] optional explicit transaction cap
  * @param {number} [opts.nowMs=Date.now()] reference for year-less dates
  * @returns {Array<object>}
  */
 function extractTransactions(text, opts = {}) {
   if (typeof text !== "string" || text.length === 0) return [];
-  const maxRows = Number.isFinite(opts.maxRows) && opts.maxRows > 0 ? opts.maxRows : 500;
+  const maxRows =
+    Number.isFinite(opts.maxRows) && opts.maxRows > 0
+      ? opts.maxRows
+      : DEFAULT_MAX_ROWS;
   const nowMs = Number.isFinite(opts.nowMs) ? opts.nowMs : Date.now();
   const now = new Date(nowMs);
 
@@ -155,7 +162,9 @@ function extractTransactions(text, opts = {}) {
         currency: amount.currency,
         ...(direction ? { direction } : {}),
       },
-      ...(balance ? { balance: { value: balance.value, currency: balance.currency } } : {}),
+      ...(balance
+        ? { balance: { value: balance.value, currency: balance.currency } }
+        : {}),
       raw: line.trim(),
       index: i,
     };
@@ -183,7 +192,14 @@ function collectAmounts(text) {
     // Skip pure-int matches that look like year/month numbers (e.g. "2026")
     // when they are bare and < 100000 with no currency hint AND have 4
     // digits exactly. False-positive guard for date-only rows.
-    if (!groups.cur && !groups.sign && /^\d{4}$/.test(numericStr) && value >= 1900 && value <= 2099) continue;
+    if (
+      !groups.cur &&
+      !groups.sign &&
+      /^\d{4}$/.test(numericStr) &&
+      value >= 1900 &&
+      value <= 2099
+    )
+      continue;
     out.push({
       value,
       currency: normalizeCurrency(groups.cur),
@@ -220,7 +236,10 @@ function cleanDescription(text, amountMatches) {
   }
   // Strip direction keywords + standalone punctuation
   s = s
-    .replace(/(支出|收入|借方|贷方|借|贷|debit|credit|paid|charged?|refunded?)/gi, " ")
+    .replace(
+      /(支出|收入|借方|贷方|借|贷|debit|credit|paid|charged?|refunded?)/gi,
+      " ",
+    )
     .replace(/(余额|balance)\s*[:：]?/gi, " ")
     .replace(/[¥$€]\s*/g, " ")
     .replace(/[,，;；|]+/g, " ")
