@@ -7,7 +7,10 @@
 
 import { describe, it, expect } from "vitest";
 const path = require("node:path");
-const { discover, SUPPORTED_APPS } = require("../../lib/adapters/_pc-local-discovery");
+const {
+  discover,
+  SUPPORTED_APPS,
+} = require("../../lib/adapters/_pc-local-discovery");
 
 // Build a fake fs from a map of { dirPath: [entryName...] } + a set of file paths.
 function makeFakeFs({ tree = {}, files = {}, sizes = {} } = {}) {
@@ -34,17 +37,32 @@ const F = (name) => ({ name, type: "file" });
 
 describe("_pc-local-discovery", () => {
   it("supports the expected app keys", () => {
-    expect(SUPPORTED_APPS).toEqual(["wechat-pc", "qq-pc", "dingtalk-pc", "feishu-pc"]);
+    expect(SUPPORTED_APPS).toEqual([
+      "wechat-pc",
+      "qq-pc",
+      "dingtalk-pc",
+      "feishu-pc",
+    ]);
   });
 
   it("returns installed:false for an unknown app key (never throws)", () => {
-    const r = discover("totally-unknown", { fs: makeFakeFs(), home: "/h", env: {}, path: path.posix });
+    const r = discover("totally-unknown", {
+      fs: makeFakeFs(),
+      home: "/h",
+      env: {},
+      path: path.posix,
+    });
     expect(r.installed).toBe(false);
     expect(r.note).toMatch(/不支持/);
   });
 
   it("returns installed:false when nothing is on disk", () => {
-    const r = discover("wechat-pc", { fs: makeFakeFs(), home: "/h", env: {}, path: path.posix });
+    const r = discover("wechat-pc", {
+      fs: makeFakeFs(),
+      home: "/h",
+      env: {},
+      path: path.posix,
+    });
     expect(r.installed).toBe(false);
     expect(r.primaryDb).toBe(null);
   });
@@ -55,7 +73,11 @@ describe("_pc-local-discovery", () => {
     const fs = makeFakeFs({
       tree: {
         [base]: [D("wxid_demo_42"), D("all_users")],
-        [`${acc}/db_storage/message`]: [F("message_0.db"), F("biz_message_0.db"), F("message_fts.db")],
+        [`${acc}/db_storage/message`]: [
+          F("message_0.db"),
+          F("biz_message_0.db"),
+          F("message_fts.db"),
+        ],
       },
       files: {
         [`${acc}/db_storage`]: 1,
@@ -68,7 +90,12 @@ describe("_pc-local-discovery", () => {
         [`${acc}/db_storage/message/biz_message_0.db`]: 50,
       },
     });
-    const r = discover("wechat-pc", { fs, home: "/h", env: {}, path: path.posix });
+    const r = discover("wechat-pc", {
+      fs,
+      home: "/h",
+      env: {},
+      path: path.posix,
+    });
     expect(r.installed).toBe(true);
     expect(r.layout).toBe("4.x");
     expect(r.encrypted).toBe(true);
@@ -79,7 +106,9 @@ describe("_pc-local-discovery", () => {
     const purposes = r.accounts[0].dbs.map((d) => d.purpose).sort();
     expect(purposes).toContain("message");
     expect(purposes).toContain("contact");
-    expect(r.accounts[0].dbs.some((d) => /message_fts/.test(d.path))).toBe(false);
+    expect(r.accounts[0].dbs.some((d) => /message_fts/.test(d.path))).toBe(
+      false,
+    );
   });
 
   it("discovers a WeChat 3.x account (MSG*.db + MicroMsg.db)", () => {
@@ -96,10 +125,17 @@ describe("_pc-local-discovery", () => {
         [`${acc}/Msg/MicroMsg.db`]: 1,
       },
     });
-    const r = discover("wechat-pc", { fs, home: "/h", env: {}, path: path.posix });
+    const r = discover("wechat-pc", {
+      fs,
+      home: "/h",
+      env: {},
+      path: path.posix,
+    });
     expect(r.installed).toBe(true);
     expect(r.layout).toBe("3.x");
-    expect(r.accounts[0].dbs.filter((d) => d.purpose === "message")).toHaveLength(2);
+    expect(
+      r.accounts[0].dbs.filter((d) => d.purpose === "message"),
+    ).toHaveLength(2);
   });
 
   it("discovers a QQ NT account by numeric uin dir", () => {
@@ -132,10 +168,57 @@ describe("_pc-local-discovery", () => {
       },
       sizes: { [`${root}/user1/im_message.db`]: 100 },
     });
-    const r = discover("dingtalk-pc", { fs, home: "/h", env: { APPDATA: "/appdata" }, path: path.posix });
+    const r = discover("dingtalk-pc", {
+      fs,
+      home: "/h",
+      env: { APPDATA: "/appdata" },
+      path: path.posix,
+    });
     expect(r.installed).toBe(true);
     expect(r.encrypted).toBe(false);
     expect(r.bestEffort).toBe(true);
     expect(r.primaryDb).toContain("im_message.db");
+    expect(r.discoveryComplete).toBe(true);
+    expect(r.discoveryIssues).toEqual([]);
+    expect(r.maxDiscoveryDepth).toBe(5);
+  });
+
+  it("reports depth-truncated discovery and supports a larger scan depth", () => {
+    const root = "/appdata/Feishu";
+    const tree = { [root]: [D("one")] };
+    let current = root;
+    for (const name of ["one", "two", "three", "four", "five", "six"]) {
+      const next = `${current}/${name}`;
+      if (name !== "one") tree[current] = [D(name)];
+      tree[next] = name === "six" ? [F("message.db")] : [];
+      current = next;
+    }
+    const fs = makeFakeFs({
+      tree,
+      files: { [`${current}/message.db`]: 1 },
+    });
+
+    const truncated = discover("feishu-pc", {
+      fs,
+      home: "/h",
+      env: { APPDATA: "/appdata" },
+      path: path.posix,
+    });
+    expect(truncated.installed).toBe(false);
+    expect(truncated.discoveryComplete).toBe(false);
+    expect(truncated.discoveryIssues).toEqual(["DEPTH_LIMIT"]);
+
+    const extended = discover("feishu-pc", {
+      fs,
+      home: "/h",
+      env: { APPDATA: "/appdata" },
+      path: path.posix,
+      maxDiscoveryDepth: 6,
+    });
+    expect(extended.installed).toBe(true);
+    expect(extended.primaryDb).toContain("message.db");
+    expect(extended.discoveryComplete).toBe(true);
+    expect(extended.discoveryIssues).toEqual([]);
+    expect(extended.maxDiscoveryDepth).toBe(6);
   });
 });

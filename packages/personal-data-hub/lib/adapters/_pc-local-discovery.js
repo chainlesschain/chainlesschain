@@ -45,16 +45,35 @@ const SUPPORTED_APPS = Object.freeze([
   "feishu-pc",
 ]);
 
+const DEFAULT_GENERIC_SCAN_DEPTH = 5;
+const HARD_MAX_GENERIC_SCAN_DEPTH = 64;
+
 // ─── injectable host accessors ─────────────────────────────────────────────
+
+function resolveGenericScanDepth(value) {
+  if (value == null) return DEFAULT_GENERIC_SCAN_DEPTH;
+  if (
+    !Number.isSafeInteger(value) ||
+    value < 0 ||
+    value > HARD_MAX_GENERIC_SCAN_DEPTH
+  ) {
+    throw new RangeError(
+      `maxDiscoveryDepth must be an integer between 0 and ${HARD_MAX_GENERIC_SCAN_DEPTH}`,
+    );
+  }
+  return value;
+}
 
 function makeDeps(deps = {}) {
   const fs = deps.fs || nodeFs;
   const path = deps.path || nodePath;
   const platform = deps.platform || process.platform;
   const home =
-    deps.home || (deps.os && deps.os.homedir ? deps.os.homedir() : nodeOs.homedir());
+    deps.home ||
+    (deps.os && deps.os.homedir ? deps.os.homedir() : nodeOs.homedir());
   const env = deps.env || process.env;
-  return { fs, path, platform, home, env };
+  const maxDiscoveryDepth = resolveGenericScanDepth(deps.maxDiscoveryDepth);
+  return { fs, path, platform, home, env, maxDiscoveryDepth };
 }
 
 function safeReaddir(fs, dir) {
@@ -94,14 +113,21 @@ function listSubdirs(fs, path, dir) {
  * layout is proprietary and version-volatile. Bounded so a huge tree can't
  * stall a readiness probe.
  */
-function collectDbFiles(fs, path, root, maxDepth, out, depth) {
+function collectDbFiles(fs, path, root, maxDepth, out, depth, state) {
   if (depth > maxDepth) return out;
   for (const e of safeReaddir(fs, root)) {
     const fp = path.join(root, e.name);
     if (e.isFile() && /\.(db|sqlite|sqlite3)$/i.test(e.name)) {
       out.push(fp);
     } else if (e.isDirectory()) {
-      collectDbFiles(fs, path, fp, maxDepth, out, depth + 1);
+      if (depth >= maxDepth) {
+        if (state) {
+          state.complete = false;
+          state.issues.add("DEPTH_LIMIT");
+        }
+      } else {
+        collectDbFiles(fs, path, fp, maxDepth, out, depth + 1, state);
+      }
     }
   }
   return out;
@@ -129,10 +155,26 @@ function discoverWeChat({ fs, path, home, env }) {
       const msgDir = path.join(storage, "message");
       for (const e of safeReaddir(fs, msgDir)) {
         if (e.isFile() && /^message_\d+\.db$/i.test(e.name)) {
-          dbs.push(mkDb(path.join(msgDir, e.name), "message", "私聊/群聊消息", true, fs));
+          dbs.push(
+            mkDb(
+              path.join(msgDir, e.name),
+              "message",
+              "私聊/群聊消息",
+              true,
+              fs,
+            ),
+          );
         }
         if (e.isFile() && /^biz_message_\d+\.db$/i.test(e.name)) {
-          dbs.push(mkDb(path.join(msgDir, e.name), "biz-message", "公众号消息", true, fs));
+          dbs.push(
+            mkDb(
+              path.join(msgDir, e.name),
+              "biz-message",
+              "公众号消息",
+              true,
+              fs,
+            ),
+          );
         }
       }
       const contactDb = path.join(storage, "contact", "contact.db");
@@ -140,12 +182,18 @@ function discoverWeChat({ fs, path, home, env }) {
         dbs.push(mkDb(contactDb, "contact", "联系人", true, fs));
       }
       const snsDb = path.join(storage, "sns", "sns.db");
-      if (safeExists(fs, snsDb)) dbs.push(mkDb(snsDb, "sns", "朋友圈", true, fs));
+      if (safeExists(fs, snsDb))
+        dbs.push(mkDb(snsDb, "sns", "朋友圈", true, fs));
       const favDb = path.join(storage, "favorite", "favorite.db");
-      if (safeExists(fs, favDb)) dbs.push(mkDb(favDb, "favorite", "收藏", true, fs));
+      if (safeExists(fs, favDb))
+        dbs.push(mkDb(favDb, "favorite", "收藏", true, fs));
       if (dbs.length > 0) {
         layout = "4.x";
-        accounts.push({ id: name.replace(/_\d+$/, ""), root: path.join(v4Root, name), dbs });
+        accounts.push({
+          id: name.replace(/_\d+$/, ""),
+          root: path.join(v4Root, name),
+          dbs,
+        });
       }
     }
   }
@@ -153,18 +201,29 @@ function discoverWeChat({ fs, path, home, env }) {
   // ── 3.x: ~/Documents/WeChat Files/<wxid>/Msg/ ──
   const v3Roots = [
     path.join(home, "Documents", "WeChat Files"),
-    env.APPDATA ? path.join(env.APPDATA, "Tencent", "WeChat", "WeChat Files") : null,
+    env.APPDATA
+      ? path.join(env.APPDATA, "Tencent", "WeChat", "WeChat Files")
+      : null,
   ].filter(Boolean);
   for (const root of v3Roots) {
     if (!safeExists(fs, root)) continue;
     for (const name of listSubdirs(fs, path, root)) {
-      if (name === "All Users" || name === "Applet" || name === "WMPF") continue;
+      if (name === "All Users" || name === "Applet" || name === "WMPF")
+        continue;
       const msgDir = path.join(root, name, "Msg");
       const multiDir = path.join(msgDir, "Multi");
       const dbs = [];
       for (const e of safeReaddir(fs, multiDir)) {
         if (e.isFile() && /^MSG\d+\.db$/i.test(e.name)) {
-          dbs.push(mkDb(path.join(multiDir, e.name), "message", "私聊/群聊消息", true, fs));
+          dbs.push(
+            mkDb(
+              path.join(multiDir, e.name),
+              "message",
+              "私聊/群聊消息",
+              true,
+              fs,
+            ),
+          );
         }
       }
       const microMsg = path.join(msgDir, "MicroMsg.db");
@@ -200,10 +259,24 @@ function discoverQQ({ fs, path, home, env }) {
       const ntDb = path.join(root, name, "nt_qq", "nt_db", "nt_msg.db");
       if (safeExists(fs, ntDb)) {
         const dbs = [mkDb(ntDb, "message", "私聊/群聊消息", true, fs)];
-        const grpInfo = path.join(root, name, "nt_qq", "nt_db", "group_info.db");
-        if (safeExists(fs, grpInfo)) dbs.push(mkDb(grpInfo, "group-info", "群信息", true, fs));
-        const profile = path.join(root, name, "nt_qq", "nt_db", "profile_info.db");
-        if (safeExists(fs, profile)) dbs.push(mkDb(profile, "profile", "好友资料", true, fs));
+        const grpInfo = path.join(
+          root,
+          name,
+          "nt_qq",
+          "nt_db",
+          "group_info.db",
+        );
+        if (safeExists(fs, grpInfo))
+          dbs.push(mkDb(grpInfo, "group-info", "群信息", true, fs));
+        const profile = path.join(
+          root,
+          name,
+          "nt_qq",
+          "nt_db",
+          "profile_info.db",
+        );
+        if (safeExists(fs, profile))
+          dbs.push(mkDb(profile, "profile", "好友资料", true, fs));
         accounts.push({ id: name, root: path.join(root, name, "nt_qq"), dbs });
       }
     }
@@ -215,18 +288,39 @@ function discoverQQ({ fs, path, home, env }) {
 }
 
 /** DingTalk / Feishu — proprietary layout, best-effort recursive scan. */
-function discoverGenericIm(appName, roots, { fs, path }) {
+function discoverGenericIm(
+  appName,
+  roots,
+  { fs, path, maxDiscoveryDepth = DEFAULT_GENERIC_SCAN_DEPTH },
+) {
   const accounts = [];
+  const scanState = { complete: true, issues: new Set() };
   for (const root of roots) {
     if (!safeExists(fs, root)) continue;
-    const files = collectDbFiles(fs, path, root, 5, [], 0);
+    const files = collectDbFiles(
+      fs,
+      path,
+      root,
+      maxDiscoveryDepth,
+      [],
+      0,
+      scanState,
+    );
     // Heuristic: message DBs are the larger files whose name hints at chat.
     const dbs = files
-      .filter((fp) => !/\b(fts|index|cache|emoji|emoticon|head_image)\b/i.test(fp))
+      .filter(
+        (fp) => !/\b(fts|index|cache|emoji|emoticon|head_image)\b/i.test(fp),
+      )
       .map((fp) => {
         const base = path.basename(fp);
         const isMsg = /msg|message|chat|conversation|im_/i.test(base);
-        return mkDb(fp, isMsg ? "message" : "other", base, /* encrypted */ false, fs);
+        return mkDb(
+          fp,
+          isMsg ? "message" : "other",
+          base,
+          /* encrypted */ false,
+          fs,
+        );
       })
       .sort((a, b) => b.sizeBytes - a.sizeBytes);
     if (dbs.length > 0) {
@@ -237,23 +331,34 @@ function discoverGenericIm(appName, roots, { fs, path }) {
     encryptedNote:
       "桌面本地库为私有结构、可能加密、随版本变化；优先尝试明文直读，必要时先解密",
     bestEffort: true,
+    discoveryComplete: scanState.complete,
+    discoveryIssues: [...scanState.issues],
+    maxDiscoveryDepth,
   });
 }
 
-function discoverDingTalk({ fs, path, home, env }) {
+function discoverDingTalk({ fs, path, home, env, maxDiscoveryDepth }) {
   const roots = [
     env.APPDATA ? path.join(env.APPDATA, "DingTalk") : null,
     path.join(home, "Documents", "DingTalk"),
   ].filter(Boolean);
-  return discoverGenericIm("dingtalk-pc", roots, { fs, path });
+  return discoverGenericIm("dingtalk-pc", roots, {
+    fs,
+    path,
+    maxDiscoveryDepth,
+  });
 }
 
-function discoverFeishu({ fs, path, home, env }) {
+function discoverFeishu({ fs, path, env, maxDiscoveryDepth }) {
   const roots = [
     env.APPDATA ? path.join(env.APPDATA, "Feishu") : null,
     env.APPDATA ? path.join(env.APPDATA, "Lark") : null,
   ].filter(Boolean);
-  return discoverGenericIm("feishu-pc", roots, { fs, path });
+  return discoverGenericIm("feishu-pc", roots, {
+    fs,
+    path,
+    maxDiscoveryDepth,
+  });
 }
 
 // ─── helpers ───────────────────────────────────────────────────────────────
@@ -277,7 +382,7 @@ function finalize(app, accounts, extra = {}) {
   const messageDbs = allDbs
     .filter((d) => d.purpose === "message")
     .sort((a, b) => b.sizeBytes - a.sizeBytes);
-  const primaryDb = (messageDbs[0] || allDbs[0] || null);
+  const primaryDb = messageDbs[0] || allDbs[0] || null;
   const anyEncrypted = allDbs.some((d) => d.encrypted);
   return {
     app,
@@ -289,7 +394,19 @@ function finalize(app, accounts, extra = {}) {
     dbCount: allDbs.length,
     layout: extra.layout || null,
     bestEffort: !!extra.bestEffort,
-    note: accounts.length > 0 ? extra.encryptedNote || null : "未检测到本地数据（可能未安装或未登录）",
+    discoveryComplete: extra.discoveryComplete !== false,
+    discoveryIssues: Array.isArray(extra.discoveryIssues)
+      ? extra.discoveryIssues
+      : [],
+    maxDiscoveryDepth:
+      Number.isSafeInteger(extra.maxDiscoveryDepth) &&
+      extra.maxDiscoveryDepth >= 0
+        ? extra.maxDiscoveryDepth
+        : null,
+    note:
+      accounts.length > 0
+        ? extra.encryptedNote || null
+        : "未检测到本地数据（可能未安装或未登录）",
   };
 }
 
@@ -317,6 +434,9 @@ const DISCOVERERS = Object.freeze({
  * @property {number}  dbCount
  * @property {string|null} layout      version layout hint (wechat: "4.x"/"3.x")
  * @property {boolean} bestEffort      heuristic discovery (dingtalk/feishu)?
+ * @property {boolean} discoveryComplete whether the configured discovery scan completed
+ * @property {string[]} discoveryIssues machine-readable incomplete-scan reasons
+ * @property {number|null} maxDiscoveryDepth configured generic scan depth
  * @property {string|null} note
  */
 function discover(appKey, deps = {}) {
@@ -332,6 +452,9 @@ function discover(appKey, deps = {}) {
       dbCount: 0,
       layout: null,
       bestEffort: false,
+      discoveryComplete: false,
+      discoveryIssues: ["UNSUPPORTED_APP"],
+      maxDiscoveryDepth: null,
       note: `不支持的 App: ${appKey}`,
     };
   }
@@ -349,6 +472,9 @@ function discover(appKey, deps = {}) {
       dbCount: 0,
       layout: null,
       bestEffort: false,
+      discoveryComplete: false,
+      discoveryIssues: ["DISCOVERY_ERROR"],
+      maxDiscoveryDepth: null,
       note: `自动发现出错：${err && err.message ? err.message : String(err)}`,
     };
   }
@@ -358,5 +484,12 @@ module.exports = {
   discover,
   SUPPORTED_APPS,
   // exported for unit tests
-  _internals: { collectDbFiles, finalize, mkDb },
+  _internals: {
+    collectDbFiles,
+    finalize,
+    mkDb,
+    resolveGenericScanDepth,
+    DEFAULT_GENERIC_SCAN_DEPTH,
+    HARD_MAX_GENERIC_SCAN_DEPTH,
+  },
 };
