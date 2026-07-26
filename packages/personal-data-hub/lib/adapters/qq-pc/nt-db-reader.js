@@ -49,11 +49,62 @@ function loadDatabaseClass() {
   );
 }
 
-function trySelect(db, sql) {
+function qqNtSourceError(tableName, operation, cause) {
+  const error = new Error(
+    `qq-pc: source table ${tableName} could not be ${operation}; refusing a partial import`,
+  );
+  error.code = "QQ_PC_SOURCE_UNREADABLE";
+  error.table = tableName;
+  error.operation = operation;
+  error.cause = cause;
+  return error;
+}
+
+function quoteSqliteIdentifier(identifier) {
+  return `"${String(identifier).replace(/"/g, '""')}"`;
+}
+
+function findTableName(tableNames, expectedName) {
+  const normalized = expectedName.toLowerCase();
+  return (
+    tableNames.find(
+      (tableName) =>
+        typeof tableName === "string" && tableName.toLowerCase() === normalized,
+    ) || null
+  );
+}
+
+function listSqliteTables(db) {
+  try {
+    return db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+      .all()
+      .map((row) => row && row.name)
+      .filter((name) => typeof name === "string");
+  } catch (error) {
+    throw qqNtSourceError("sqlite_master", "listed", error);
+  }
+}
+
+function readTableInfo(db, tableName) {
+  try {
+    const rows = db
+      .prepare(`PRAGMA table_info(${quoteSqliteIdentifier(tableName)})`)
+      .all();
+    if (!Array.isArray(rows) || rows.length === 0) {
+      throw new Error("table metadata is empty");
+    }
+    return rows;
+  } catch (error) {
+    throw qqNtSourceError(tableName, "inspected", error);
+  }
+}
+
+function readTableRows(db, tableName, sql) {
   try {
     return db.prepare(sql).all();
-  } catch (_e) {
-    return null;
+  } catch (error) {
+    throw qqNtSourceError(tableName, "read", error);
   }
 }
 
@@ -150,8 +201,7 @@ function openNtDb(dbPath, opts = {}) {
 }
 
 function readMsgTable(db, tableName, isGroup, limit, diag) {
-  const info = trySelect(db, `PRAGMA table_info(${tableName})`);
-  if (!Array.isArray(info) || info.length === 0) return [];
+  const info = readTableInfo(db, tableName);
   const cols = new Set(info.map((r) => r.name));
   const resolved = {
     msgId: pickCol(cols, COL_CANDIDATES.msgId),
@@ -174,13 +224,13 @@ function readMsgTable(db, tableName, isGroup, limit, diag) {
   const exactMsgIdSelect = resolved.msgId
     ? `, CAST("${resolved.msgId}" AS TEXT) AS "${EXACT_MSG_ID_ALIAS}"`
     : "";
-  const rows =
-    trySelect(
-      db,
-      `SELECT *${exactMsgIdSelect} FROM ${tableName}${orderBy}${
-        Number.isSafeInteger(limit) ? ` LIMIT ${limit}` : ""
-      }`,
-    ) || [];
+  const rows = readTableRows(
+    db,
+    tableName,
+    `SELECT *${exactMsgIdSelect} FROM ${quoteSqliteIdentifier(
+      tableName,
+    )}${orderBy}${Number.isSafeInteger(limit) ? ` LIMIT ${limit}` : ""}`,
+  );
   return rows.map((row, idx) => {
     const rawTime = resolved.time ? row[resolved.time] : null;
     const contentVal = resolved.content ? row[resolved.content] : null;
@@ -231,8 +281,7 @@ function readMsgTable(db, tableName, isGroup, limit, diag) {
 }
 
 function resolveCursorTable(db, tableName) {
-  const info = trySelect(db, `PRAGMA table_info(${tableName})`);
-  if (!Array.isArray(info) || info.length === 0) return null;
+  const info = readTableInfo(db, tableName);
   const cols = new Set(info.map((row) => row.name));
   return {
     msgId: pickCol(cols, COL_CANDIDATES.msgId),
@@ -298,19 +347,28 @@ function cursorRowToMessage(row, resolved, tableName, isGroup, idx) {
 
 function cursorTablePage(db, tableName, isGroup, { after, upper, limit }) {
   const resolved = resolveCursorTable(db, tableName);
-  if (!resolved || !resolved.msgId) {
-    return { upper: null, messages: [], hasMore: false };
+  if (!resolved.msgId) {
+    throw qqNtSourceError(
+      tableName,
+      "validated",
+      new Error("required message identifier column is missing"),
+    );
   }
   const idColumn = `"${resolved.msgId}"`;
-  const upperRow = db
-    .prepare(
-      `SELECT CAST(${idColumn} AS TEXT) AS "${EXACT_MSG_ID_ALIAS}"
-       FROM ${tableName}
-       WHERE ${idColumn} IS NOT NULL
-       ORDER BY ${idColumn} DESC
-       LIMIT 1`,
-    )
-    .get();
+  let upperRow;
+  try {
+    upperRow = db
+      .prepare(
+        `SELECT CAST(${idColumn} AS TEXT) AS "${EXACT_MSG_ID_ALIAS}"
+         FROM ${quoteSqliteIdentifier(tableName)}
+         WHERE ${idColumn} IS NOT NULL
+         ORDER BY ${idColumn} DESC
+         LIMIT 1`,
+      )
+      .get();
+  } catch (error) {
+    throw qqNtSourceError(tableName, "read", error);
+  }
   const currentUpper = exactString(upperRow?.[EXACT_MSG_ID_ALIAS]);
   const frozenUpper = upper === undefined ? currentUpper : upper;
   if (frozenUpper === null || frozenUpper === undefined) {
@@ -325,15 +383,20 @@ function cursorTablePage(db, tableName, isGroup, { after, upper, limit }) {
   }
   params.push(limit + 1);
   const exactSelect = `, CAST(${idColumn} AS TEXT) AS "${EXACT_MSG_ID_ALIAS}"`;
-  const rows = db
-    .prepare(
-      `SELECT *${exactSelect}
-       FROM ${tableName}
-       WHERE ${where.join(" AND ")}
-       ORDER BY ${idColumn} ASC
-       LIMIT ?`,
-    )
-    .all(...params);
+  let rows;
+  try {
+    rows = db
+      .prepare(
+        `SELECT *${exactSelect}
+         FROM ${quoteSqliteIdentifier(tableName)}
+         WHERE ${where.join(" AND ")}
+         ORDER BY ${idColumn} ASC
+         LIMIT ?`,
+      )
+      .all(...params);
+  } catch (error) {
+    throw qqNtSourceError(tableName, "read", error);
+  }
   const hasMore = rows.length > limit;
   return {
     upper: currentUpper,
@@ -360,16 +423,23 @@ function readQqNtCursorPage(dbPath, opts = {}) {
   const frozenUpper = opts.upper || {};
   const { db, mode } = openNtDb(dbPath, opts);
   try {
-    const c2c = cursorTablePage(db, "c2c_msg_table", false, {
-      after: after.c2c ?? null,
-      upper: frozenUpper.c2c,
-      limit,
-    });
-    const group = cursorTablePage(db, "group_msg_table", true, {
-      after: after.group ?? null,
-      upper: frozenUpper.group,
-      limit,
-    });
+    const tableNames = listSqliteTables(db);
+    const c2cTable = findTableName(tableNames, "c2c_msg_table");
+    const groupTable = findTableName(tableNames, "group_msg_table");
+    const c2c = c2cTable
+      ? cursorTablePage(db, c2cTable, false, {
+          after: after.c2c ?? null,
+          upper: frozenUpper.c2c,
+          limit,
+        })
+      : { upper: null, messages: [], hasMore: false };
+    const group = groupTable
+      ? cursorTablePage(db, groupTable, true, {
+          after: after.group ?? null,
+          upper: frozenUpper.group,
+          limit,
+        })
+      : { upper: null, messages: [], hasMore: false };
     return {
       mode,
       upperBounds: { c2c: c2c.upper, group: group.upper },
@@ -408,11 +478,17 @@ function readQqNt(dbPath, opts = {}) {
   };
   const messages = [];
   try {
-    const c2c = readMsgTable(db, "c2c_msg_table", false, limit, diagnostic);
-    if (diagnostic.resolvedColumns.c2c_msg_table) diagnostic.hadC2cTable = true;
-    const group = readMsgTable(db, "group_msg_table", true, limit, diagnostic);
-    if (diagnostic.resolvedColumns.group_msg_table)
-      diagnostic.hadGroupTable = true;
+    const tableNames = listSqliteTables(db);
+    const c2cTable = findTableName(tableNames, "c2c_msg_table");
+    const groupTable = findTableName(tableNames, "group_msg_table");
+    const c2c = c2cTable
+      ? readMsgTable(db, c2cTable, false, limit, diagnostic)
+      : [];
+    if (c2cTable) diagnostic.hadC2cTable = true;
+    const group = groupTable
+      ? readMsgTable(db, groupTable, true, limit, diagnostic)
+      : [];
+    if (groupTable) diagnostic.hadGroupTable = true;
     for (const m of [...c2c, ...group]) {
       messages.push(m);
       if (typeof m.text === "string" && m.text.length > 0)
@@ -440,5 +516,8 @@ module.exports = {
     normalizeEpochMs,
     pickCol,
     readMsgTable,
+    qqNtSourceError,
+    quoteSqliteIdentifier,
+    findTableName,
   },
 };

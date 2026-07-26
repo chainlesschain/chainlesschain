@@ -3,7 +3,10 @@
 import { describe, it, expect } from "vitest";
 
 const { QQPcAdapter } = require("../../lib/adapters/qq-pc");
-const { COL_CANDIDATES } = require("../../lib/adapters/qq-pc/nt-db-reader");
+const {
+  COL_CANDIDATES,
+  readQqNtCursorPage,
+} = require("../../lib/adapters/qq-pc/nt-db-reader");
 const { partitionBatch } = require("../../lib/batch");
 
 /**
@@ -23,9 +26,25 @@ function makeFakeDb(spec) {
     all() {
       const s = this.sql;
       if (Array.isArray(spec.queries)) spec.queries.push(s);
-      const m = s.match(/PRAGMA table_info\((\w+)\)/);
+      if (
+        spec.failQuery &&
+        (typeof spec.failQuery === "string"
+          ? s.includes(spec.failQuery)
+          : spec.failQuery.test(s))
+      ) {
+        throw new Error("synthetic SQLite read failure");
+      }
+      if (/FROM sqlite_master/.test(s)) {
+        const tables =
+          spec.tables ||
+          Object.entries(spec.cols)
+            .filter(([, cols]) => Array.isArray(cols) && cols.length > 0)
+            .map(([tableName]) => tableName);
+        return tables.map((name) => ({ name }));
+      }
+      const m = s.match(/PRAGMA table_info\("?(\w+)"?\)/);
       if (m) return spec.cols[m[1]] || [];
-      const f = s.match(/FROM (\w+)/);
+      const f = s.match(/FROM "?(\w+)"?/);
       if (f) {
         const rows = spec.rows[f[1]] || [];
         const cast = s.match(/CAST\("([^"]+)" AS TEXT\) AS "([^"]+)"/);
@@ -287,7 +306,7 @@ describe("QQPcAdapter — edge cases", () => {
       freshAdapter(uncappedSpec).sync({ dbPath: "/fake/nt_msg.db" }),
     );
     expect(
-      uncappedSpec.queries.find((sql) => /FROM c2c_msg_table/.test(sql)),
+      uncappedSpec.queries.find((sql) => /FROM "?c2c_msg_table"?/.test(sql)),
     ).not.toMatch(/\bLIMIT\b/);
 
     const cappedSpec = { ...READABLE_SPEC, queries: [] };
@@ -298,8 +317,59 @@ describe("QQPcAdapter — edge cases", () => {
       }),
     );
     expect(
-      cappedSpec.queries.find((sql) => /FROM c2c_msg_table/.test(sql)),
+      cappedSpec.queries.find((sql) => /FROM "?c2c_msg_table"?/.test(sql)),
     ).toMatch(/\bLIMIT 1\b/);
+  });
+
+  it("rejects an unreadable message table instead of reporting empty history", async () => {
+    const a = freshAdapter({
+      ...READABLE_SPEC,
+      failQuery: 'FROM "c2c_msg_table"',
+    });
+
+    await expect(
+      collect(a.sync({ dbPath: "/fake/nt_msg.db" })),
+    ).rejects.toMatchObject({
+      code: "QQ_PC_SOURCE_UNREADABLE",
+      table: "c2c_msg_table",
+      operation: "read",
+    });
+  });
+
+  it("rejects unreadable message metadata instead of treating the table as absent", async () => {
+    const a = freshAdapter({
+      ...READABLE_SPEC,
+      failQuery: /PRAGMA table_info\("?group_msg_table"?\)/,
+    });
+
+    await expect(
+      collect(a.sync({ dbPath: "/fake/nt_msg.db" })),
+    ).rejects.toMatchObject({
+      code: "QQ_PC_SOURCE_UNREADABLE",
+      table: "group_msg_table",
+      operation: "inspected",
+    });
+  });
+
+  it("rejects cursor scans when a recognized table has no stable message id", () => {
+    const spec = {
+      cols: {
+        c2c_msg_table: [{ name: "msgTime" }, { name: "content" }],
+      },
+      rows: { c2c_msg_table: [] },
+    };
+
+    expect(() =>
+      readQqNtCursorPage("/fake/nt_msg.db", {
+        _databaseClass: makeFakeDb(spec),
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "QQ_PC_SOURCE_UNREADABLE",
+        table: "c2c_msg_table",
+        operation: "validated",
+      }),
+    );
   });
 
   it("missing db yields nothing", async () => {
