@@ -28,11 +28,33 @@ const KIND_CONTACT = "contact";
 const KIND_CHAT = "chat";
 const KIND_MESSAGE = "message";
 
-function tryRows(db, sql) {
+function sqliteSourceError(tableName, operation, cause) {
+  const error = new Error(
+    `messaging-telegram: source table ${tableName} could not be ${operation}; refusing a partial import`,
+  );
+  error.code = "TELEGRAM_SQLITE_SOURCE_UNREADABLE";
+  error.table = tableName;
+  error.operation = operation;
+  error.cause = cause;
+  return error;
+}
+
+function listSqliteTables(db) {
   try {
-    return db.prepare(sql).all();
-  } catch {
-    return null;
+    const rows = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+      .all();
+    if (!Array.isArray(rows)) {
+      throw new Error("SQLite table inventory did not return a row array");
+    }
+    return new Set(
+      rows
+        .map((row) => row && row.name)
+        .filter((name) => typeof name === "string")
+        .map((name) => name.toLowerCase()),
+    );
+  } catch (error) {
+    throw sqliteSourceError("sqlite_master", "listed", error);
   }
 }
 
@@ -56,23 +78,43 @@ function maxExactId(rows, fallbackColumn) {
   return maximum;
 }
 
-function resolveSource(db, tableCandidates, idCandidates) {
+function resolveSource(db, tableNames, tableCandidates, idCandidates) {
   let emptySource = null;
+  let lastFailure = null;
   for (const table of tableCandidates) {
+    if (!tableNames.has(table.toLowerCase())) continue;
+    let compatible = false;
+    let tableFailure = null;
     for (const idColumn of idCandidates) {
-      const rows = tryRows(
-        db,
-        `SELECT CAST(${idColumn} AS TEXT) AS "${EXACT_ID_ALIAS}", *
+      try {
+        const rows = db
+          .prepare(
+            `SELECT CAST(${idColumn} AS TEXT) AS "${EXACT_ID_ALIAS}", *
          FROM ${table}
          WHERE ${idColumn} IS NOT NULL
          ORDER BY ${idColumn} ASC
          LIMIT 1`,
-      );
-      if (rows === null) continue;
-      const source = { table, idColumn };
-      if (rows.length > 0) return source;
-      if (emptySource === null) emptySource = source;
+          )
+          .all();
+        if (!Array.isArray(rows)) {
+          throw new Error("SQLite query did not return a row array");
+        }
+        compatible = true;
+        lastFailure = null;
+        const source = { table, idColumn };
+        if (rows.length > 0) return source;
+        if (emptySource === null) emptySource = source;
+        break;
+      } catch (error) {
+        tableFailure = error;
+      }
     }
+    if (!compatible && tableFailure) {
+      lastFailure = { cause: tableFailure, table };
+    }
+  }
+  if (lastFailure) {
+    throw sqliteSourceError(lastFailure.table, "read", lastFailure.cause);
   }
   return emptySource;
 }
@@ -235,14 +277,16 @@ class TelegramAdapter {
   }
 
   async *_syncCursor(opts, db) {
+    const tableNames = listSqliteTables(db);
     let cursor = parseCursor(opts.sinceWatermark).cursor;
     const activeMessageTable =
       cursor.upper?.kind === KIND_MESSAGE ? cursor.upper.table : null;
     const sources = {
-      contact: resolveSource(db, ["users"], ["uid", "id"]),
-      chat: resolveSource(db, ["chats"], ["uid", "id"]),
+      contact: resolveSource(db, tableNames, ["users"], ["uid", "id"]),
+      chat: resolveSource(db, tableNames, ["chats"], ["uid", "id"]),
       message: resolveSource(
         db,
+        tableNames,
         activeMessageTable ? [activeMessageTable] : ["messages_v2", "messages"],
         ["mid", "id"],
       ),

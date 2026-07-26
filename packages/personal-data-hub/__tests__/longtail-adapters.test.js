@@ -454,6 +454,32 @@ describe("TelegramAdapter", () => {
     }
   });
 
+  it("rejects unreadable discovered SQLite tables", async () => {
+    const { dir, dbPath } = tmpDb();
+    try {
+      const a = new TelegramAdapter({
+        dbPath,
+        dbDriverFactory: () =>
+          makeMockDriver([
+            ["FROM users", new Error("synthetic SQLite read failure")],
+          ]),
+      });
+      const pending = (async () => {
+        const raws = [];
+        for await (const raw of a.sync()) raws.push(raw);
+        return raws;
+      })();
+
+      await expect(pending).rejects.toMatchObject({
+        code: "TELEGRAM_SQLITE_SOURCE_UNREADABLE",
+        table: "users",
+        operation: "read",
+      });
+    } finally {
+      cleanup(dir);
+    }
+  });
+
   it("normalize contact includes phone identifier", async () => {
     const a = new TelegramAdapter({ account: { userId: "u-1" } });
     const batch = a.normalize({
