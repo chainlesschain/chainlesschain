@@ -100,6 +100,26 @@ describe("attachBackgroundSession", () => {
         expect.objectContaining({ type: "turn-started", turn: 2 }),
       ]),
     );
+
+    const binding = {
+      backgroundAgentId: "bg-1",
+      sessionId: "session-1",
+      turnId: "turn-1",
+      toolUseId: "tool-1",
+      sequence: 1,
+    };
+    handle.answerInteraction("question-1", binding, "yes");
+    await new Promise((r) => setTimeout(r, 50));
+    expect(received).toEqual(
+      expect.arrayContaining([
+        {
+          type: "interaction_response",
+          requestId: "question-1",
+          binding,
+          answer: "yes",
+        },
+      ]),
+    );
     handle.detach();
   });
 

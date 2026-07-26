@@ -20,6 +20,13 @@ from chainlesschain_agent_sdk import (
 
 
 FAKE_CLI = Path(__file__).with_name("fake_agent_cli.py")
+QUESTION_BINDING = {
+    "backgroundAgentId": None,
+    "sessionId": "fake-session",
+    "turnId": "turn-1",
+    "toolUseId": "tool-1",
+    "sequence": 1,
+}
 
 
 class SessionHelpersTests(unittest.TestCase):
@@ -131,7 +138,12 @@ class AgentSessionTests(unittest.IsolatedAsyncioTestCase):
             [
                 {"type": "user", "text": "run tests", "images": ["shot.png"]},
                 {"type": "approval", "id": "approval-1", "approve": True},
-                {"type": "answer", "id": "question-1", "answer": None},
+                {
+                    "type": "answer",
+                    "id": "question-1",
+                    "answer": None,
+                    "binding": QUESTION_BINDING,
+                },
                 {
                     "type": "answer",
                     "id": "mcp-1",
@@ -164,7 +176,12 @@ class AgentSessionTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(
             responses[2],
-            {"type": "answer", "id": "question-1", "answer": "a"},
+            {
+                "type": "answer",
+                "id": "question-1",
+                "answer": "a",
+                "binding": QUESTION_BINDING,
+            },
         )
         self.assertEqual(
             responses[3],

@@ -2702,7 +2702,55 @@ class ChatViewProvider {
         type: "answer",
         id: String(m.id || ""),
         answer: m.answer === undefined ? null : m.answer,
+        ...(m.binding && typeof m.binding === "object"
+          ? { binding: m.binding }
+          : {}),
       });
+    } else if (m.type === "openElicitationUrl") {
+      let target;
+      try {
+        target = new URL(String(m.url || ""));
+        if (
+          target.protocol !== "https:" ||
+          !target.hostname ||
+          target.username ||
+          target.password
+        ) {
+          throw new Error("unsafe URL");
+        }
+      } catch {
+        this.session?.sendEvent({
+          type: "answer",
+          id: String(m.id || ""),
+          answer: null,
+          ...(m.binding && typeof m.binding === "object"
+            ? { binding: m.binding }
+            : {}),
+        });
+        return;
+      }
+      Promise.resolve(
+        this.vscode.env.openExternal(this.vscode.Uri.parse(target.href)),
+      ).then(
+        (opened) =>
+          this.session?.sendEvent({
+            type: "answer",
+            id: String(m.id || ""),
+            answer: opened === false ? null : {},
+            ...(m.binding && typeof m.binding === "object"
+              ? { binding: m.binding }
+              : {}),
+          }),
+        () =>
+          this.session?.sendEvent({
+            type: "answer",
+            id: String(m.id || ""),
+            answer: null,
+            ...(m.binding && typeof m.binding === "object"
+              ? { binding: m.binding }
+              : {}),
+          }),
+      );
     } else if (m.type === "interrupt") {
       // Abort the in-flight turn only — the conversation/child stays alive.
       const conv = this._activeConv();

@@ -45,6 +45,8 @@ export class EventRuntimeStore {
     leaseMs = 120000,
     lockTimeoutMs = 2000,
     maxQueueLength = 10000,
+    hostStaleMs = 15000,
+    maxHostRecords = 100,
   } = {}) {
     this.dir = dir;
     this._now = typeof now === "function" ? now : () => Number(now);
@@ -53,6 +55,8 @@ export class EventRuntimeStore {
     this.leaseMs = Math.max(1, Number(leaseMs) || 120000);
     this.lockTimeoutMs = Math.max(0, Number(lockTimeoutMs) || 2000);
     this.maxQueueLength = Math.max(1, Number(maxQueueLength) || 10000);
+    this.hostStaleMs = Math.max(1, Number(hostStaleMs) || 15000);
+    this.maxHostRecords = Math.max(1, Number(maxHostRecords) || 100);
   }
 
   _assertQueue(queue) {
@@ -62,6 +66,10 @@ export class EventRuntimeStore {
   _file(queue) {
     this._assertQueue(queue);
     return path.join(this.dir, `${queue}.json`);
+  }
+
+  _hostsFile() {
+    return path.join(this.dir, "hosts.json");
   }
 
   _ensureDir() {
@@ -86,6 +94,23 @@ export class EventRuntimeStore {
     fs.renameSync(tmp, file);
   }
 
+  _readHosts() {
+    try {
+      const value = JSON.parse(fs.readFileSync(this._hostsFile(), "utf8"));
+      return Array.isArray(value) ? value : [];
+    } catch {
+      return [];
+    }
+  }
+
+  _writeHosts(records) {
+    this._ensureDir();
+    const file = this._hostsFile();
+    const tmp = `${file}.${process.pid}.${randomUUID()}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(records, null, 2), "utf8");
+    fs.renameSync(tmp, file);
+  }
+
   _mutate(queue, fn) {
     this._ensureDir();
     return withFileLock(
@@ -96,6 +121,121 @@ export class EventRuntimeStore {
         this._write(queue, records);
         return result;
       },
+      { timeoutMs: this.lockTimeoutMs, failIfUnavailable: true },
+    );
+  }
+
+  _mutateHosts(fn) {
+    this._ensureDir();
+    return withFileLock(
+      path.join(this.dir, ".event-runtime"),
+      () => {
+        const records = this._readHosts();
+        const result = fn(records);
+        this._writeHosts(records);
+        return result;
+      },
+      { timeoutMs: this.lockTimeoutMs, failIfUnavailable: true },
+    );
+  }
+
+  /**
+   * Publish a process-host heartbeat in the same lock domain as the queues.
+   * The registry is bounded and additive: it is safe for an older observer to
+   * ignore hosts.json while newer `cc status --json` consumers can distinguish
+   * a live worker from queued work with no owner.
+   */
+  reportHost(
+    {
+      id = this.owner,
+      pid = process.pid,
+      role = "cli",
+      state = "running",
+      startedAt = null,
+      heartbeatAt = this._now(),
+      staleAfterMs = this.hostStaleMs,
+      lastStats = null,
+      lastError = null,
+    } = {},
+  ) {
+    const hostId = String(id || "").trim();
+    if (!hostId) throw new Error("Event Runtime host id is required");
+    const observedAt = Number(heartbeatAt);
+    const timestamp = Number.isFinite(observedAt) ? observedAt : this._now();
+    return this._mutateHosts((records) => {
+      const existing = records.find((record) => record.id === hostId);
+      const record =
+        existing ||
+        (() => {
+          const created = { id: hostId };
+          records.push(created);
+          return created;
+        })();
+      record.pid =
+        pid != null && Number.isFinite(Number(pid)) ? Number(pid) : null;
+      record.role = String(role || "cli");
+      record.state = state === "stopped" ? "stopped" : "running";
+      record.startedAt =
+        existing?.startedAt != null &&
+        Number.isFinite(Number(existing.startedAt))
+          ? Number(existing.startedAt)
+          : startedAt != null && Number.isFinite(Number(startedAt))
+            ? Number(startedAt)
+            : timestamp;
+      record.heartbeatAt = timestamp;
+      record.staleAfterMs = Math.max(
+        1,
+        Number(staleAfterMs) || this.hostStaleMs,
+      );
+      record.lastStats = clone(lastStats);
+      record.lastError =
+        lastError == null ? null : String(lastError).slice(0, 1000);
+      if (record.state === "stopped") record.stoppedAt = timestamp;
+      else delete record.stoppedAt;
+
+      if (records.length > this.maxHostRecords) {
+        records.sort((a, b) => {
+          const aRunning = a.state === "running" ? 1 : 0;
+          const bRunning = b.state === "running" ? 1 : 0;
+          return (
+            bRunning - aRunning ||
+            Number(b.heartbeatAt || 0) - Number(a.heartbeatAt || 0)
+          );
+        });
+        records.splice(this.maxHostRecords);
+      }
+      return clone(record);
+    });
+  }
+
+  stopHost(id = this.owner, options = {}) {
+    return this.reportHost({
+      ...options,
+      id,
+      state: "stopped",
+      heartbeatAt: options.heartbeatAt ?? this._now(),
+    });
+  }
+
+  listHosts({ now = this._now(), includeStopped = true } = {}) {
+    const t = Number(now);
+    this._ensureDir();
+    return withFileLock(
+      path.join(this.dir, ".event-runtime"),
+      () =>
+        this._readHosts()
+          .filter((record) => includeStopped || record.state !== "stopped")
+          .map((record) => ({
+            ...clone(record),
+            stale:
+              record.state === "running" &&
+              Number(record.heartbeatAt || 0) +
+                Math.max(
+                  1,
+                  Number(record.staleAfterMs) || this.hostStaleMs,
+                ) <=
+                t,
+          })),
       { timeoutMs: this.lockTimeoutMs, failIfUnavailable: true },
     );
   }
@@ -418,6 +558,28 @@ export class EventRuntimeStore {
           : Object.values(queues).some((queue) => queue.pressure === "high")
             ? "high"
             : "normal";
+        const hostEntries = this._readHosts().map((record) => ({
+          ...clone(record),
+          stale:
+            record.state === "running" &&
+            Number(record.heartbeatAt || 0) +
+              Math.max(
+                1,
+                Number(record.staleAfterMs) || this.hostStaleMs,
+              ) <=
+              t,
+        }));
+        const hosts = {
+          total: hostEntries.length,
+          running: hostEntries.filter(
+            (record) => record.state === "running" && !record.stale,
+          ).length,
+          stale: hostEntries.filter((record) => record.stale).length,
+          stopped: hostEntries.filter(
+            (record) => record.state === "stopped",
+          ).length,
+          entries: hostEntries,
+        };
         return {
           schema: "chainlesschain.event-runtime-health.v1",
           observedAt: new Date(t).toISOString(),
@@ -425,6 +587,7 @@ export class EventRuntimeStore {
           highWatermarkRatio: highWatermark,
           pressure,
           queues,
+          hosts,
         };
       },
       { timeoutMs: this.lockTimeoutMs, failIfUnavailable: true },

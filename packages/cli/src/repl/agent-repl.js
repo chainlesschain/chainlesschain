@@ -48,9 +48,11 @@ import {
   appendCompactEvent,
   appendTokenUsage,
   appendToolCallCompact,
+  appendEvent,
   rebuildMessages,
   sessionExists,
 } from "../harness/jsonl-session-store.js";
+import { CLISkillLoader } from "../lib/skill-loader.js";
 import { storeMemory, consolidateMemory } from "../lib/hierarchical-memory.js";
 import { CLIContextEngineering } from "../lib/cli-context-engineering.js";
 import { defaultPrepareCall } from "../lib/turn-context.js";
@@ -64,6 +66,7 @@ import { CLIPermanentMemory } from "../lib/permanent-memory.js";
 import { CLIAutonomousAgent, GoalStatus } from "../lib/autonomous-agent.js";
 import {
   PromptCompressor,
+  estimateTokens,
   getContextWindow,
 } from "../harness/prompt-compressor.js";
 import {
@@ -1088,20 +1091,31 @@ export async function startAgentRepl(options = {}) {
   // their existing behaviour byte-identically.
   const _leanNoProjectMemory = options.projectMemory === false;
   let _loadedReplInstructions = null;
-  let _replBaseSystem = composeSystemPrompt(
-    buildSystemPrompt(process.cwd(), {
-      additionalDirectories,
-      projectMemory: options.projectMemory,
-    }),
-    {
-      systemPrompt: options.systemPrompt,
-      appendSystemPrompt: options.appendSystemPrompt,
-      projectMemory: _leanNoProjectMemory ? false : undefined,
-      onInstructionsLoaded: (loaded) => {
-        _loadedReplInstructions = loaded;
+  let _loadedReplPersonaSkills = [];
+  let _replSkillCacheLedger = null;
+  const _replSkillLoader = options.skillLoader || new CLISkillLoader();
+  const _buildReplBaseSystem = () =>
+    composeSystemPrompt(
+      buildSystemPrompt(process.cwd(), {
+        additionalDirectories,
+        projectMemory: options.projectMemory,
+        sessionId,
+        skillLoader: _replSkillLoader,
+        onSkillsLoaded: (skills, cacheLedger) => {
+          _loadedReplPersonaSkills = Array.isArray(skills) ? skills : [];
+          _replSkillCacheLedger = cacheLedger || null;
+        },
+      }),
+      {
+        systemPrompt: options.systemPrompt,
+        appendSystemPrompt: options.appendSystemPrompt,
+        projectMemory: _leanNoProjectMemory ? false : undefined,
+        onInstructionsLoaded: (loaded) => {
+          _loadedReplInstructions = loaded;
+        },
       },
-    },
-  );
+    );
+  let _replBaseSystem = _buildReplBaseSystem();
   let _activeOutputStyle = null; // { name, body }
   const messages = [{ role: "system", content: _replBaseSystem }];
   // Resume-degenerate role sanitation (Claude Code 2.1.187 parity): a one-shot
@@ -1184,6 +1198,46 @@ export async function startAgentRepl(options = {}) {
   // for this session via the shared mcp-config engine. Holds {mcpClient,
   // extraToolDefinitions, externalToolExecutors, externalToolDescriptors}.
   let _adhocMcp = null;
+  const _persistReplContextSources = () => {
+    if (!useJsonl || !sessionId) return false;
+    _replSkillCacheLedger =
+      _replSkillLoader.getCacheLedger?.() || _replSkillCacheLedger;
+    const mcpDefinitions = _adhocMcp?.extraToolDefinitions || [];
+    if (
+      mcpDefinitions.length === 0 &&
+      _loadedReplPersonaSkills.length === 0 &&
+      !_replSkillCacheLedger?.descriptors?.resident
+    ) {
+      return false;
+    }
+    try {
+      appendEvent(sessionId, "context_sources", {
+        mcp: mcpDefinitions.map((definition) => ({
+          function: {
+            name: definition?.function?.name || null,
+            description: definition?.function?.description || "",
+            parameters: definition?.function?.parameters || {},
+          },
+        })),
+        skills: _loadedReplPersonaSkills.map((skill) => ({
+          id: skill?.id || skill?.displayName || "skill",
+          displayName: skill?.displayName || skill?.id || "skill",
+          source: skill?.source || "skill",
+          tokens: estimateTokens(
+            `## Persona: ${skill?.displayName || skill?.id || "skill"}\n${
+              typeof skill?.body === "string" ? skill.body : ""
+            }`,
+          ),
+          bodyLoaded: skill?.bodyLoaded === true,
+        })),
+        skillCache: _replSkillCacheLedger,
+      });
+      return true;
+    } catch {
+      // Source attribution must never make an interactive turn fail.
+      return false;
+    }
+  };
   if (options.bundlePath) {
     try {
       const { loadBundle } =
@@ -1338,6 +1392,7 @@ export async function startAgentRepl(options = {}) {
       _adhocMcp = null;
     }
   }
+  _persistReplContextSources();
 
   // Seed connected MCP servers with the startup workspace roots when the session
   // began with extra `--add-dir` roots — otherwise `roots/list` would only ever
@@ -1779,6 +1834,36 @@ export async function startAgentRepl(options = {}) {
         new Promise((resolve) => {
           const label =
             request.message || "MCP server requests additional input";
+          if (request.mode === "url") {
+            rl.question(
+              chalk.yellow(
+                `\n  MCP [${request.server}] ${label}\n` +
+                  `  Host: ${request.urlHost}\n` +
+                  `  URL: ${request.url}\n` +
+                  "  Open this secure page? [y/N] ",
+              ),
+              async (answer) => {
+                const approved = /^(y|yes)$/i.test(
+                  String(answer || "").trim(),
+                );
+                if (!approved) {
+                  resolve({ action: "decline" });
+                  rl.prompt();
+                  return;
+                }
+                try {
+                  const { defaultOpenBrowser } =
+                    await import("../lib/mcp-oauth.js");
+                  const opened = defaultOpenBrowser(request.url);
+                  resolve(opened ? { action: "accept" } : { action: "cancel" });
+                } catch {
+                  resolve({ action: "cancel" });
+                }
+                rl.prompt();
+              },
+            );
+            return;
+          }
           rl.question(
             chalk.yellow(`\n  MCP [${request.server}] ${label}\n  > `),
             (answer) => {
@@ -2531,17 +2616,7 @@ export async function startAgentRepl(options = {}) {
             additionalDirectories.push(res.dir);
             // Re-advertise the updated roots in the system prompt; keep the
             // active output-style body layered on top (same as /output-style).
-            _replBaseSystem = composeSystemPrompt(
-              buildSystemPrompt(process.cwd(), {
-                additionalDirectories,
-                projectMemory: options.projectMemory,
-              }),
-              {
-                systemPrompt: options.systemPrompt,
-                appendSystemPrompt: options.appendSystemPrompt,
-                projectMemory: _leanNoProjectMemory ? false : undefined,
-              },
-            );
+            _replBaseSystem = _buildReplBaseSystem();
             messages[0].content = _activeOutputStyle
               ? `${_replBaseSystem}\n\n${_activeOutputStyle.body}`
               : _replBaseSystem;
@@ -3709,11 +3784,16 @@ export async function startAgentRepl(options = {}) {
     // layers (incl. .claude/skills) without restarting the session.
     if (trimmed === "/reload-skills") {
       try {
-        const { reloadSkills } = await import("../runtime/agent-core.js");
-        const n = reloadSkills();
+        _replSkillLoader.clearCache();
+        const n = _replSkillLoader.loadAll().length;
+        _replBaseSystem = _buildReplBaseSystem();
+        messages[0].content = _activeOutputStyle
+          ? `${_replBaseSystem}\n\n${_activeOutputStyle.body}`
+          : _replBaseSystem;
+        _persistReplContextSources();
         logger.log(
           chalk.green(
-            `✔ skills reloaded — ${n} available (6 layers re-scanned)`,
+            `✔ skills reloaded — ${n} available (${_replSkillLoader.getLayerPaths().length} layers re-scanned)`,
           ),
         );
       } catch (err) {
@@ -5527,6 +5607,7 @@ export async function startAgentRepl(options = {}) {
         contextEngine,
         iterationBudget,
         sessionId,
+        skillLoader: _replSkillLoader,
         cwd: process.cwd(),
         additionalDirectories,
         sandbox: _sandbox,
@@ -5568,6 +5649,7 @@ export async function startAgentRepl(options = {}) {
         externalToolDescriptors: _adhocMcp?.externalToolDescriptors,
         chatFn: _fallbackChatFn,
       });
+      _persistReplContextSources();
       _turnAbort = null;
 
       // Strip the one-shot /btw aside now the model has seen it — so it is never
@@ -5933,6 +6015,7 @@ export async function startAgentRepl(options = {}) {
     if (sessionId) {
       try {
         if (useJsonl) {
+          _persistReplContextSources();
           // JSONL: write final compact snapshot for fast rebuild
           appendCompactEvent(sessionId, {
             strategy: "session-end",

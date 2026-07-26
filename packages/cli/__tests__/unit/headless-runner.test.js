@@ -210,6 +210,88 @@ describe("headless-runner — output formats", () => {
     expect(chatFn).not.toHaveBeenCalled();
   });
 
+  it("runs Setup fail-closed before the model loop", async () => {
+    const chatFn = replyText("should not run");
+    const { deps, out } = makeDeps(chatFn);
+    deps.executeHooksV2Event = vi.fn(async (event) =>
+      event === "Setup"
+        ? {
+            success: false,
+            blocked: true,
+            decision: "block",
+            blockingResult: { reason: "missing required runtime" },
+            results: [],
+          }
+        : {
+            success: true,
+            blocked: false,
+            decision: "continue",
+            results: [],
+          },
+    );
+
+    const result = await runAgentHeadless(
+      {
+        prompt: "hello",
+        outputFormat: "json",
+        sessionId: "setup-blocked",
+      },
+      deps,
+    );
+
+    expect(result).toMatchObject({ exitCode: 2, isError: true });
+    expect(chatFn).not.toHaveBeenCalled();
+    expect(JSON.parse(out.join(""))).toMatchObject({
+      type: "result",
+      subtype: "error",
+      is_error: true,
+      session_id: "setup-blocked",
+    });
+  });
+
+  it("applies one UserPromptExpansion result before the model loop", async () => {
+    const chatFn = vi.fn(async (messages) => {
+      expect(messages.at(-1)?.content).toContain("expanded prompt");
+      expect(messages.at(-1)?.content).toContain("[hook context]");
+      expect(messages.at(-1)?.content).toContain("policy note");
+      return {
+        message: { role: "assistant", content: "done" },
+        usage: {},
+      };
+    });
+    const { deps } = makeDeps(chatFn);
+    deps.executeHooksV2Event = vi.fn(async (event) =>
+      event === "UserPromptExpansion"
+        ? {
+            success: true,
+            blocked: false,
+            decision: "continue",
+            results: [
+              {
+                status: "success",
+                result: {
+                  updatedPrompt: "expanded prompt",
+                  additionalContext: "policy note",
+                },
+              },
+            ],
+          }
+        : {
+            success: true,
+            blocked: false,
+            decision: "continue",
+            results: [],
+          },
+    );
+
+    const result = await runAgentHeadless(
+      { prompt: "original", expandFileRefs: false },
+      deps,
+    );
+    expect(result.exitCode).toBe(0);
+    expect(chatFn).toHaveBeenCalled();
+  });
+
   it("json/stream-json: a setup-phase hook block still emits a terminal result envelope (no empty stdout)", async () => {
     const blockHooks = {
       UserPromptSubmit: [

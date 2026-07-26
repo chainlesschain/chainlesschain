@@ -73,6 +73,62 @@ describe("channel-manager", () => {
     expect(received[0].sender).toBe("ci");
   });
 
+  it("registers durable channel recovery routes and removes them on stop", async () => {
+    const received = [];
+    const routes = [];
+    const unregister = vi.fn();
+    const eventRuntimeHost = {
+      registerHandler: vi.fn((handler, route) => {
+        routes.push({ handler, route });
+        return unregister;
+      }),
+    };
+    const handle = await startChannels("webhook,telegram", {
+      onEvent: (event) => received.push(event),
+      eventRuntimeStore: { enqueue: vi.fn() },
+      eventRuntimeHost,
+      deps: {
+        webhook: {
+          startWebhookChannel: async () => ({
+            describe: "webhook fake",
+            stop: vi.fn(),
+          }),
+        },
+        telegram: {
+          startTelegramChannel: async () => ({
+            describe: "telegram fake",
+            stop: vi.fn(),
+          }),
+        },
+      },
+    });
+
+    expect(routes.map((entry) => entry.route)).toEqual([
+      { queue: "inbox", type: "channel.event", origin: "webhook" },
+      { queue: "inbox", type: "channel.event", origin: "telegram" },
+    ]);
+    await routes[0].handler({
+      type: "channel.event",
+      origin: "webhook",
+      channel: "webhook",
+      sender: "ci",
+      text: "recover me",
+      event_id: "webhook-1",
+    });
+    expect(received).toEqual([
+      expect.objectContaining({
+        channel: "webhook",
+        text: "recover me",
+        eventId: "webhook-1",
+        authority: "steer",
+        canApprove: false,
+      }),
+    ]);
+
+    handle.stop();
+    expect(unregister).toHaveBeenCalledTimes(2);
+  });
+
   it("starts requested channels via injected starters and stops them all", async () => {
     const stops = { webhook: vi.fn(), telegram: vi.fn() };
     const handle = await startChannels("webhook,telegram", {
@@ -243,7 +299,13 @@ describe("webhook channel", () => {
       expect(records[0]).toMatchObject({
         queue: "inbox",
         id: "hook-1",
-        event: { origin: "webhook", text: "persist me" },
+        event: {
+          origin: "webhook",
+          type: "channel.event",
+          requiresHandler: true,
+          eventId: "hook-1",
+          text: "persist me",
+        },
       });
     } finally {
       await handle.stop();
@@ -368,7 +430,13 @@ describe("telegram channel", () => {
     expect(records[0]).toMatchObject({
       queue: "inbox",
       id: "telegram:42",
-      event: { origin: "telegram", text: "durable" },
+      event: {
+        origin: "telegram",
+        type: "channel.event",
+        requiresHandler: true,
+        eventId: "telegram:42",
+        text: "durable",
+      },
     });
   });
 });

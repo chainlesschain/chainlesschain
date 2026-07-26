@@ -123,6 +123,41 @@ describe("EventRuntimeHost", () => {
     expect(host.status().running).toBe(false);
   });
 
+  it("performs a bounded final drain and publishes host lifecycle state", async () => {
+    const runtimeStore = store();
+    const host = new EventRuntimeHost({
+      store: runtimeStore,
+      role: "test-host",
+      setTimeoutFn: () => ({ unref() {} }),
+      clearTimeoutFn: () => {},
+    });
+    host.registerHandler(() => ({ delivered: true }), {
+      queue: "inbox",
+      type: "final.delivery",
+    });
+    host.start({ immediate: false });
+    runtimeStore.enqueueInbox({
+      event_id: "final-drain",
+      type: "final.delivery",
+      requiresHandler: true,
+    });
+
+    expect(runtimeStore.getHealthSnapshot().hosts).toMatchObject({
+      running: 1,
+      stale: 0,
+    });
+    await host.stop({ drain: true });
+
+    expect(runtimeStore.listInbox()[0]).toMatchObject({
+      status: "done",
+      result: expect.objectContaining({ handlerCount: 1 }),
+    });
+    expect(runtimeStore.getHealthSnapshot().hosts).toMatchObject({
+      running: 0,
+      stopped: 1,
+    });
+  });
+
   it("starts the default host only under the durable feature gate", async () => {
     expect(startDefaultEventRuntimeHost({ store: store() })).toBeNull();
     process.env.CC_EVENT_RUNTIME_DURABLE = "1";

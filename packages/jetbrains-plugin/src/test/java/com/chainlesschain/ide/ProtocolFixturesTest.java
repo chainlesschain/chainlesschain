@@ -151,6 +151,16 @@ class ProtocolFixturesTest {
                 p.put("elicitation", truthy(ui.get("elicitation")));
                 p.put("server", ui.get("server"));
                 p.put("hasSchema", ui.get("requestedSchema") != null);
+                if (truthy(ui.get("elicitation"))) {
+                    p.put("mode", ui.get("mode") == null
+                            ? "form" : ui.get("mode"));
+                    p.put("elicitationId", ui.get("elicitationId"));
+                    p.put("url", ui.get("url"));
+                    p.put("urlHost", ui.get("urlHost"));
+                }
+                if (ui.get("binding") instanceof Map) {
+                    p.put("binding", ui.get("binding"));
+                }
                 break;
             case "plan":
                 p.put("active", truthy(ui.get("active")));

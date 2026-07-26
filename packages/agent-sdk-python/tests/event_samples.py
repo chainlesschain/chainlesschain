@@ -71,6 +71,31 @@ EVENT_SAMPLES = (
         "QuestionResolvedEvent",
         {"type": "question_resolved", "id": "q-1", "answer": "a"},
     ),
+    (
+        "ElicitationDeferredEvent",
+        {
+            "type": "elicitation_deferred",
+            "session_id": "sess-1",
+            "server": "payments",
+            "request_id": "req-1",
+            "mode": "url",
+            "message": "Authorize",
+            "elicitation_id": "elicit-1",
+            "url": "https://accounts.example.test/authorize",
+            "url_host": "accounts.example.test",
+            "reason": "no_interactive_host",
+            "wire_action": "decline",
+        },
+    ),
+    (
+        "ElicitationCompleteEvent",
+        {
+            "type": "elicitation_complete",
+            "session_id": "sess-1",
+            "server": "payments",
+            "elicitation_id": "elicit-1",
+        },
+    ),
     ("PlanUpdateEvent", {"type": "plan_update", "active": True}),
     ("CompactionEvent", {"type": "compaction", "stats": {"saved": 4}}),
     (

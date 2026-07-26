@@ -378,6 +378,12 @@ export const useChatStore = defineStore('chat', () => {
         requestId: msg.requestId || p.requestId || msg.id,
         question: msg.question || p.question || p.message || '',
         choices: msg.choices || p.choices || p.options || [],
+        binding:
+          msg.binding && typeof msg.binding === 'object'
+            ? msg.binding
+            : p.binding && typeof p.binding === 'object'
+              ? p.binding
+              : null,
       }
       setSessionLoading(sessionId, false)
     } else if (type === 'error') {
@@ -585,7 +591,7 @@ export const useChatStore = defineStore('chat', () => {
     const ws = useWsStore()
     const question = pendingQuestion[sessionId]
     if (!question) return
-    ws.answerQuestion(sessionId, question.requestId, answer)
+    ws.answerQuestion(sessionId, question.requestId, answer, question.binding)
     delete pendingQuestion[sessionId]
   }
 

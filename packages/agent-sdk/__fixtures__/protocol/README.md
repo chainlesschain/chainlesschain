@@ -43,7 +43,9 @@ tests keep the two panels honest.
     argument-summary truncation, and an empty-summary tool.
   - `interaction.ndjson` — `approval_request` / `approval_resolved` and
     `question_request` / `question_resolved` (answered vs. timed-out),
-    including an MCP elicitation request carrying a restricted form schema.
+    including a runtime interaction binding that both IDE hosts must preserve
+    and MCP form/URL elicitation requests, the restricted form schema, URL
+    safety metadata, and deferred/completion lifecycle events.
   - `misc.ndjson` — `token_usage`, `plan_update`, `compaction`,
     `iteration_warning`, `iteration_budget_exhausted` (info line),
     `stream_retry` (info line — a reconnect loop must not look like a
@@ -74,7 +76,7 @@ projection** of that map, not the whole map. The projection is:
 | `turn_end`              | `kind, isError, text` (may be `null`), `hasUsage` (`usage != null`)                                     |
 | `approval`              | `kind, id, tool, command, risk, rule, reason`                                                           |
 | `approval_done`         | `kind, id, approved, via`                                                                               |
-| `question`              | `kind, id, question, multiSelect, hasOptions` (`options != null`), `elicitation`, `server`, `hasSchema` |
+| `question`              | `kind, id, question, multiSelect, hasOptions` (`options != null`), `elicitation`, `server`, `hasSchema`, MCP `mode/elicitationId/url/urlHost`, optional exact `binding` |
 | `plan`                  | `kind, active, state`                                                                                   |
 | `usage`                 | `kind`                                                                                                  |
 | `info`                  | `kind, text`                                                                                            |

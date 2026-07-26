@@ -194,6 +194,14 @@ class AgentSession {
             this.autoRespondElicitation(event);
             return;
         }
+        if (event.type === "elicitation_deferred") {
+            this.emit("elicitation_deferred", event);
+            return;
+        }
+        if (event.type === "elicitation_complete") {
+            this.emit("elicitation_complete", event);
+            return;
+        }
         if ((0, protocol_js_1.isQuestionRequest)(event)) {
             this.emit("question_request", event);
             this.autoRespondQuestion(event);
@@ -231,7 +239,7 @@ class AgentSession {
             catch {
                 answer = null; // cancel — the CLI resolves it as user_timeout
             }
-            this.answerQuestion(request.id, answer);
+            this.answerQuestion(request.id, answer, request.binding);
         })();
     }
     autoRespondElicitation(request) {
@@ -242,14 +250,14 @@ class AgentSession {
             try {
                 const response = await callback(request);
                 if (response?.action === "accept") {
-                    this.answerQuestion(request.id, response.content ?? {});
+                    this.answerQuestion(request.id, response.content ?? {}, request.binding);
                 }
                 else {
-                    this.answerQuestion(request.id, null);
+                    this.answerQuestion(request.id, null, request.binding);
                 }
             }
             catch {
-                this.answerQuestion(request.id, null);
+                this.answerQuestion(request.id, null, request.binding);
             }
         })();
     }
@@ -285,8 +293,13 @@ class AgentSession {
     respondApproval(id, approve) {
         return this.write({ type: "approval", id, approve });
     }
-    answerQuestion(id, answer) {
-        return this.write({ type: "answer", id, answer });
+    answerQuestion(id, answer, binding) {
+        return this.write({
+            type: "answer",
+            id,
+            answer,
+            ...(binding ? { binding } : {}),
+        });
     }
     planControl(action) {
         return this.write({ type: "plan", action });

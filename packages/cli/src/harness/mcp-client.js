@@ -56,6 +56,16 @@ const HTTP_REQUEST_TIMEOUT_MS = 30000;
  * hard 30s regardless of its config — an inconsistency with HTTP servers.
  */
 const STDIO_REQUEST_TIMEOUT_MS = 30000;
+const MCP_PROTOCOL_VERSION = "2025-11-25";
+const URL_ELICITATION_REQUIRED = -32042;
+
+function supportsUrlElicitationVersion(version) {
+  const normalized = String(version || "");
+  return (
+    /^\d{4}-\d{2}-\d{2}$/.test(normalized) &&
+    normalized >= MCP_PROTOCOL_VERSION
+  );
+}
 
 /**
  * Infer the transport kind for a server config. Falls back to "stdio".
@@ -83,6 +93,75 @@ export function inferTransport(config) {
     }
   }
   return "stdio";
+}
+
+function mcpRpcError(payload = {}) {
+  const error = new Error(payload.message || "Unknown MCP error");
+  if (payload.code !== undefined) error.code = payload.code;
+  if (payload.data !== undefined) error.data = payload.data;
+  return error;
+}
+
+export function normalizeMcpElicitationRequest(
+  serverName,
+  requestId,
+  params = {},
+) {
+  const mode = params.mode == null ? "form" : String(params.mode);
+  const message = String(params.message || "").trim();
+  if (!message) {
+    const error = new Error("MCP elicitation requires a non-empty message");
+    error.code = "CC_MCP_ELICITATION_INVALID";
+    throw error;
+  }
+  const base = {
+    ...params,
+    mode,
+    message,
+    server: String(serverName),
+    requestId,
+  };
+  if (mode === "form") return base;
+  if (mode !== "url") {
+    const error = new Error(`Unsupported MCP elicitation mode: ${mode}`);
+    error.code = "CC_MCP_ELICITATION_INVALID";
+    throw error;
+  }
+
+  const elicitationId = String(params.elicitationId || "").trim();
+  if (!elicitationId) {
+    const error = new Error(
+      "URL mode MCP elicitation requires elicitationId",
+    );
+    error.code = "CC_MCP_ELICITATION_INVALID";
+    throw error;
+  }
+  let target;
+  try {
+    target = new URL(String(params.url || ""));
+  } catch {
+    const error = new Error("URL mode MCP elicitation requires a valid URL");
+    error.code = "CC_MCP_ELICITATION_INVALID";
+    throw error;
+  }
+  if (
+    target.protocol !== "https:" ||
+    target.username ||
+    target.password ||
+    !target.hostname
+  ) {
+    const error = new Error(
+      "URL mode MCP elicitation requires credential-free HTTPS",
+    );
+    error.code = "CC_MCP_ELICITATION_INVALID";
+    throw error;
+  }
+  return {
+    ...base,
+    elicitationId,
+    url: target.href,
+    urlHost: target.host,
+  };
 }
 
 /** True for transports that talk over HTTP(S) — i.e. use fetch. */
@@ -182,6 +261,14 @@ export class MCPClient extends EventEmitter {
         ? Number(options.elicitationTimeoutMs)
         : 180000;
     this._pendingElicitations = new Map();
+    this._urlElicitations = new Map();
+    this._activeElicitations = 0;
+    this._maxConcurrentElicitations =
+      Number(options.maxConcurrentElicitations) > 0
+        ? Math.min(128, Number(options.maxConcurrentElicitations))
+        : 32;
+    this._protocolVersion =
+      String(options.protocolVersion || MCP_PROTOCOL_VERSION);
     this._runtimeProducer = options.eventRuntimeStore
       ? new EventRuntimeProducer({ store: options.eventRuntimeStore, emitter: this })
       : null;
@@ -200,6 +287,11 @@ export class MCPClient extends EventEmitter {
     }
     if (Number(options.timeoutMs) > 0) {
       this._elicitationTimeoutMs = Number(options.timeoutMs);
+    }
+    if (typeof handler === "function") {
+      for (const name of this.servers.keys()) {
+        this._ensureHttpMessageStream(name);
+      }
     }
   }
 
@@ -223,11 +315,15 @@ export class MCPClient extends EventEmitter {
     const key = this._elicitationKey(serverName, requestId);
     const pending = this._pendingElicitations.get(key);
     if (!pending) return false;
-    pending.resolve(this._normalizeElicitationResponse(response));
+    const normalized = this._normalizeElicitationResponse(
+      response,
+      pending.request,
+    );
+    pending.resolve(normalized);
     try {
       this._runtimeProducer?.store.acknowledgeInbox(
         `mcp-elicitation:${this._elicitationKey(serverName, requestId)}`,
-        { response: this._normalizeElicitationResponse(response) },
+        { response: normalized },
       );
     } catch {}
     return true;
@@ -244,27 +340,82 @@ export class MCPClient extends EventEmitter {
     return `${String(serverName)}:${String(requestId)}`;
   }
 
-  _normalizeElicitationResponse(response) {
+  _normalizeElicitationResponse(response, request = null) {
     const action = String(response?.action || "decline").toLowerCase();
     const safeAction = new Set(["accept", "decline", "cancel"]).has(action)
       ? action
       : "decline";
     const normalized = { action: safeAction };
-    if (safeAction === "accept" && response?.content !== undefined) {
+    if (
+      safeAction === "accept" &&
+      request?.mode !== "url" &&
+      response?.content !== undefined
+    ) {
       normalized.content = response.content;
     }
     return normalized;
   }
 
   async _resolveElicitation(serverName, requestId, params = {}) {
+    if (this._activeElicitations >= this._maxConcurrentElicitations) {
+      const request = normalizeMcpElicitationRequest(
+        serverName,
+        requestId,
+        params,
+      );
+      this.emit("elicitation-deferred", {
+        ...request,
+        reason: "capacity_exceeded",
+        wireAction: "decline",
+      });
+      return { action: "decline" };
+    }
+    this._activeElicitations += 1;
+    try {
+      return await this._resolveElicitationWithin(
+        serverName,
+        requestId,
+        params,
+      );
+    } finally {
+      this._activeElicitations -= 1;
+    }
+  }
+
+  async _resolveElicitationWithin(serverName, requestId, params = {}) {
     const key = this._elicitationKey(serverName, requestId);
+    const request = normalizeMcpElicitationRequest(
+      serverName,
+      requestId,
+      params,
+    );
+    const negotiatedVersion =
+      this.servers.get(String(serverName))?.protocolVersion;
+    if (
+      request.mode === "url" &&
+      negotiatedVersion &&
+      !supportsUrlElicitationVersion(negotiatedVersion)
+    ) {
+      const error = new Error(
+        `URL elicitation is unavailable under MCP ${negotiatedVersion}`,
+      );
+      error.code = "CC_MCP_ELICITATION_INVALID";
+      throw error;
+    }
+    if (request.mode === "url") this._rememberUrlElicitation(request);
     try {
       this._runtimeProducer?.publish(
-        { type: "mcp_elicitation", server: serverName, requestId, params },
+        {
+          type: "mcp_elicitation",
+          server: serverName,
+          requestId,
+          params: request,
+        },
         { origin: "mcp", id: `mcp-elicitation:${key}` },
       );
     } catch (error) {
       this.emit("elicitation-error", { server: serverName, requestId, error });
+      this._settleUrlElicitation(request, { action: "cancel" });
       return { action: "cancel" };
     }
     const contextSessionId = this._elicitationContext.getStore();
@@ -274,12 +425,17 @@ export class MCPClient extends EventEmitter {
     if (handler) {
       try {
         const direct = await handler({
-          server: serverName,
-          requestId,
-          ...params,
+          ...request,
         });
-        if (direct !== undefined) {
-          const response = this._normalizeElicitationResponse(direct);
+        if (
+          direct !== undefined &&
+          String(direct?.action || "").toLowerCase() !== "defer"
+        ) {
+          const response = this._normalizeElicitationResponse(
+            direct,
+            request,
+          );
+          this._settleUrlElicitation(request, response);
           try {
             this._runtimeProducer?.store.acknowledgeInbox(
               `mcp-elicitation:${key}`,
@@ -294,6 +450,7 @@ export class MCPClient extends EventEmitter {
           requestId,
           error,
         });
+        this._settleUrlElicitation(request, { action: "cancel" });
         return { action: "cancel" };
       }
     }
@@ -308,12 +465,19 @@ export class MCPClient extends EventEmitter {
           { response: { action: "decline" } },
         );
       } catch {}
+      this._settleUrlElicitation(request, { action: "decline" });
+      this.emit("elicitation-deferred", {
+        ...request,
+        reason: "no_interactive_host",
+        wireAction: "decline",
+      });
       return { action: "decline" };
     }
     return new Promise((resolve) => {
       const timeout = setTimeout(() => {
         this._pendingElicitations.delete(key);
         this.emit("elicitation-timeout", { server: serverName, requestId });
+        this._settleUrlElicitation(request, { action: "cancel" });
         try {
           this._runtimeProducer?.store.fail(
             "inbox",
@@ -326,19 +490,125 @@ export class MCPClient extends EventEmitter {
       }, this._elicitationTimeoutMs);
       timeout.unref?.();
       this._pendingElicitations.set(key, {
+        request,
         resolve: (response) => {
           clearTimeout(timeout);
           this._pendingElicitations.delete(key);
-          resolve(this._normalizeElicitationResponse(response));
+          const normalized = this._normalizeElicitationResponse(
+            response,
+            request,
+          );
+          this._settleUrlElicitation(request, normalized);
+          resolve(normalized);
         },
       });
       this.emit("elicitation-request", {
-        server: serverName,
-        requestId,
-        ...params,
+        ...request,
         respond: (response) => this.respondElicitation(serverName, requestId, response),
         cancel: () => this.cancelElicitation(serverName, requestId),
       });
+    });
+  }
+
+  _rememberUrlElicitation(request) {
+    const id = request?.elicitationId;
+    if (!id) return;
+    const existing = this._urlElicitations.get(id);
+    if (existing && existing.server !== request.server) {
+      throw new Error(
+        `MCP URL elicitation id collision across servers: ${id}`,
+      );
+    }
+    if (existing && existing.request?.url !== request.url) {
+      throw new Error(
+        `MCP URL elicitation id reused with a different URL: ${id}`,
+      );
+    }
+    if (!existing) {
+      this._urlElicitations.set(id, {
+        id,
+        server: request.server,
+        request,
+        status: "pending",
+        completionNotified: false,
+        waiters: new Set(),
+      });
+      while (this._urlElicitations.size > 1000) {
+        this._urlElicitations.delete(this._urlElicitations.keys().next().value);
+      }
+    }
+  }
+
+  _settleUrlElicitation(request, response) {
+    if (request?.mode !== "url" || !request.elicitationId) return;
+    const entry = this._urlElicitations.get(request.elicitationId);
+    if (!entry || entry.status === "completed") return;
+    entry.status =
+      response?.action === "accept" ? "accepted" : response?.action || "decline";
+    if (entry.status === "accepted" && entry.completionNotified) {
+      this._completeUrlElicitation(entry);
+    }
+    if (entry.status !== "accepted") {
+      for (const waiter of entry.waiters) waiter(false);
+      entry.waiters.clear();
+    }
+    this.emit("elicitation-url-response", {
+      server: request.server,
+      elicitationId: request.elicitationId,
+      action: response?.action || "decline",
+      url: request.url,
+      urlHost: request.urlHost,
+    });
+  }
+
+  _handleElicitationComplete(serverName, params = {}) {
+    const elicitationId = String(params.elicitationId || "");
+    const entry = this._urlElicitations.get(elicitationId);
+    if (!entry || entry.server !== String(serverName)) {
+      return false;
+    }
+    if (entry.status === "completed") return false;
+    if (entry.status === "pending") {
+      // A fast out-of-band flow can finish while the host is still returning
+      // its explicit consent result. Remember the notification, but do not
+      // mark it complete until that consent has resolved to `accept`.
+      entry.completionNotified = true;
+      return true;
+    }
+    if (entry.status !== "accepted") return false;
+    this._completeUrlElicitation(entry);
+    return true;
+  }
+
+  _completeUrlElicitation(entry) {
+    if (!entry || entry.status === "completed") return;
+    entry.status = "completed";
+    for (const waiter of entry.waiters) waiter(true);
+    entry.waiters.clear();
+    this.emit("elicitation-complete", {
+      server: entry.server,
+      elicitationId: entry.id,
+    });
+  }
+
+  waitForElicitationCompletion(elicitationId, timeoutMs) {
+    const entry = this._urlElicitations.get(String(elicitationId));
+    if (!entry) return Promise.resolve(false);
+    if (entry.status === "completed") return Promise.resolve(true);
+    if (entry.status !== "accepted") return Promise.resolve(false);
+    const waitMs =
+      Number(timeoutMs) > 0 ? Number(timeoutMs) : this._elicitationTimeoutMs;
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = (value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        entry.waiters.delete(finish);
+        resolve(value);
+      };
+      const timer = setTimeout(() => finish(false), waitMs);
+      entry.waiters.add(finish);
     });
   }
 
@@ -457,6 +727,8 @@ export class MCPClient extends EventEmitter {
       httpUrl: null,
       httpHeaders: {},
       httpSessionId: null,
+      protocolVersion: null,
+      _httpMessageStream: null,
       tools: [],
       resources: [],
       prompts: [],
@@ -574,11 +846,14 @@ export class MCPClient extends EventEmitter {
 
       // Initialize MCP protocol (retried on transient network errors).
       const initResult = await this._requestWithRetry(name, "initialize", {
-        protocolVersion: "2024-11-05",
+        protocolVersion: this._protocolVersion,
         capabilities: {
           tools: {},
           resources: {},
           prompts: {},
+          elicitation: supportsUrlElicitationVersion(this._protocolVersion)
+            ? { form: {}, url: {} }
+            : { form: {} },
           // Client-side roots capability: servers may request roots/list and
           // subscribe to list_changed notifications (Claude-Code 2.1.203).
           roots: { listChanged: true },
@@ -586,6 +861,9 @@ export class MCPClient extends EventEmitter {
         clientInfo: { name: "chainlesschain-cli", version: "0.37.9" },
       });
 
+      entry.protocolVersion = String(
+        initResult?.protocolVersion || this._protocolVersion,
+      );
       // Send initialized notification
       this._sendNotification(name, "notifications/initialized", {});
 
@@ -649,6 +927,12 @@ export class MCPClient extends EventEmitter {
         tools: entry.tools.length,
         toolsError: entry.toolsError,
       });
+      if (
+        entry.httpUrl &&
+        (this._elicitationHandler || this._elicitationHandlers.size > 0)
+      ) {
+        this._ensureHttpMessageStream(name);
+      }
       return {
         name,
         state: entry.state,
@@ -700,12 +984,23 @@ export class MCPClient extends EventEmitter {
     if (entry.process) {
       entry.process.kill();
     }
+    if (entry._httpMessageStream) {
+      entry._httpMessageStream.stopped = true;
+      entry._httpMessageStream.controller?.abort();
+      entry._httpMessageStream.wake?.();
+      entry._httpMessageStream = null;
+    }
     // HTTP sessions: best-effort DELETE to free server-side state.
     if (entry.httpUrl && entry.httpSessionId) {
       try {
         await _deps.fetch(entry.httpUrl, {
           method: "DELETE",
-          headers: { "Mcp-Session-Id": entry.httpSessionId },
+          headers: {
+            ...(entry.httpHeaders || {}),
+            "Mcp-Session-Id": entry.httpSessionId,
+            "MCP-Protocol-Version":
+              entry.protocolVersion || this._protocolVersion,
+          },
         });
       } catch (_e) {
         // ignore — disconnect is best-effort
@@ -779,6 +1074,13 @@ export class MCPClient extends EventEmitter {
       return await this._callToolOnce(serverName, toolName, args);
     } catch (err) {
       if (
+        err?.code === URL_ELICITATION_REQUIRED &&
+        (await this._resolveRequiredUrlElicitations(serverName, err))
+      ) {
+        // Retry exactly once after every out-of-band flow reports completion.
+        return this._callToolOnce(serverName, toolName, args);
+      }
+      if (
         !this._reconnectors.has(serverName) ||
         !isLikelyConnectionError(err)
       ) {
@@ -788,6 +1090,49 @@ export class MCPClient extends EventEmitter {
       if (!reconnected) throw err;
       return await this._callToolOnce(serverName, toolName, args);
     }
+  }
+
+  async _resolveRequiredUrlElicitations(serverName, error) {
+    const requested = Array.isArray(error?.data?.elicitations)
+      ? error.data.elicitations
+      : [];
+    if (requested.length === 0 || requested.length > 16) return false;
+    const normalized = [];
+    const ids = new Set();
+    for (const params of requested) {
+      let request;
+      try {
+        request = normalizeMcpElicitationRequest(
+          serverName,
+          `url-required:${params?.elicitationId || normalized.length}`,
+          params,
+        );
+      } catch {
+        return false;
+      }
+      if (request.mode !== "url" || ids.has(request.elicitationId)) return false;
+      ids.add(request.elicitationId);
+      normalized.push(request);
+    }
+    const accepted = [];
+    for (const request of normalized) {
+      const response = await this._resolveElicitation(
+        serverName,
+        request.requestId,
+        request,
+      );
+      if (response.action !== "accept") return false;
+      accepted.push(request);
+    }
+    const completed = await Promise.all(
+      accepted.map((request) =>
+        this.waitForElicitationCompletion(
+          request.elicitationId,
+          this._elicitationTimeoutMs,
+        ),
+      ),
+    );
+    return completed.every(Boolean);
   }
 
   async _callToolOnce(serverName, toolName, args) {
@@ -1020,6 +1365,113 @@ export class MCPClient extends EventEmitter {
   }
 
   /**
+   * Open the optional Streamable HTTP GET/SSE channel used for asynchronous
+   * server requests and notifications. Interactive hosts enable it when they
+   * install an elicitation handler; stdio already has a bidirectional stream.
+   */
+  _ensureHttpMessageStream(serverName) {
+    const entry = this.servers.get(serverName);
+    if (
+      !entry?.httpUrl ||
+      entry.state !== ServerState.CONNECTED ||
+      entry._httpMessageStream
+    ) {
+      return false;
+    }
+    const stream = {
+      stopped: false,
+      controller: null,
+      lastEventId: null,
+      retryMs: 1000,
+      wake: null,
+      promise: null,
+    };
+    entry._httpMessageStream = stream;
+    stream.promise = (async () => {
+      try {
+        while (
+          !stream.stopped &&
+          this.servers.get(serverName) === entry
+        ) {
+          stream.controller =
+            typeof AbortController === "function"
+              ? new AbortController()
+              : null;
+          const headers = {
+            Accept: "text/event-stream",
+            ...(entry.httpHeaders || {}),
+            ...(entry.httpSessionId
+              ? { "Mcp-Session-Id": entry.httpSessionId }
+              : {}),
+            "MCP-Protocol-Version":
+              entry.protocolVersion || this._protocolVersion,
+            ...(stream.lastEventId
+              ? { "Last-Event-ID": stream.lastEventId }
+              : {}),
+          };
+          try {
+            const response = await _deps.fetch(entry.httpUrl, {
+              method: "GET",
+              headers,
+              ...(stream.controller
+                ? { signal: stream.controller.signal }
+                : {}),
+            });
+            if (response.status === 405) return;
+            if (!response.ok) {
+              throw new Error(
+                `MCP HTTP message stream returned ${response.status}`,
+              );
+            }
+            const contentType = response.headers?.get
+              ? String(
+                  response.headers.get("content-type") || "",
+                ).toLowerCase()
+              : "";
+            if (!contentType.includes("text/event-stream")) return;
+            const cap = Number.isFinite(entry.config?.maxBufferChars)
+              ? entry.config.maxBufferChars
+              : MCP_MAX_BUFFER_CHARS;
+            await _consumeSseMessageStream(response, {
+              cap,
+              stream,
+              onMessage: (message) =>
+                this._handleMessage(serverName, message),
+            });
+          } catch (error) {
+            if (stream.stopped || stream.controller?.signal.aborted) return;
+            this.emit("server-stream-error", {
+              name: serverName,
+              error: error?.message || String(error),
+            });
+          } finally {
+            stream.controller = null;
+          }
+          if (stream.stopped) return;
+          await new Promise((resolve) => {
+            const delay = Math.max(
+              50,
+              Math.min(30000, Number(stream.retryMs) || 1000),
+            );
+            const timer = setTimeout(resolve, delay);
+            stream.wake = () => {
+              clearTimeout(timer);
+              resolve();
+            };
+          });
+          stream.wake = null;
+        }
+      } finally {
+        if (entry._httpMessageStream === stream) {
+          entry._httpMessageStream = null;
+        }
+      }
+    })();
+    stream.promise.catch(() => {});
+    return true;
+  }
+
+  /**
    * Send a JSON-RPC request over HTTP (Streamable HTTP per MCP spec).
    * Accepts responses as either `application/json` or `text/event-stream`.
    * Captures `Mcp-Session-Id` header from the first response for reuse.
@@ -1039,6 +1491,10 @@ export class MCPClient extends EventEmitter {
     };
     if (entry.httpSessionId) {
       headers["Mcp-Session-Id"] = entry.httpSessionId;
+    }
+    if (method !== "initialize") {
+      headers["MCP-Protocol-Version"] =
+        entry.protocolVersion || this._protocolVersion;
     }
 
     // Per-call timeout (parity with the 30s stdio timeout) so a hung or dead
@@ -1105,7 +1561,12 @@ export class MCPClient extends EventEmitter {
 
       let envelope;
       if (contentType.includes("text/event-stream")) {
-        envelope = await _extractSseResponse(response, id, cap);
+        envelope = await _extractSseResponse(
+          response,
+          id,
+          cap,
+          (message) => this._handleMessage(serverName, message),
+        );
       } else {
         const text = await _readBodyCapped(response, cap);
         envelope = text ? JSON.parse(text) : null;
@@ -1115,7 +1576,7 @@ export class MCPClient extends EventEmitter {
         throw new Error("Empty or invalid JSON-RPC response");
       }
       if (envelope.error) {
-        throw new Error(envelope.error.message || "Unknown error");
+        throw mcpRpcError(envelope.error);
       }
       return envelope.result;
     } catch (err) {
@@ -1143,6 +1604,8 @@ export class MCPClient extends EventEmitter {
     if (entry.httpSessionId) {
       headers["Mcp-Session-Id"] = entry.httpSessionId;
     }
+    headers["MCP-Protocol-Version"] =
+      entry.protocolVersion || this._protocolVersion;
     try {
       const p = _deps.fetch(entry.httpUrl, {
         method: "POST",
@@ -1220,7 +1683,7 @@ export class MCPClient extends EventEmitter {
       entry._pending.delete(msg.id);
 
       if (msg.error) {
-        reject(new Error(msg.error.message || "Unknown error"));
+        reject(mcpRpcError(msg.error));
       } else {
         resolve(msg.result);
       }
@@ -1248,6 +1711,8 @@ export class MCPClient extends EventEmitter {
         this._refreshServerList(serverName, "tools");
       } else if (msg.method === "notifications/resources/list_changed") {
         this._refreshServerList(serverName, "resources");
+      } else if (msg.method === "notifications/elicitation/complete") {
+        this._handleElicitationComplete(serverName, msg.params || {});
       }
       this.emit("notification", {
         server: serverName,
@@ -1315,7 +1780,12 @@ export class MCPClient extends EventEmitter {
     if (method === "elicitation/create") {
       this._resolveElicitation(serverName, id, msg.params || {})
         .then((response) => this._sendResponse(serverName, id, response))
-        .catch(() => this._sendResponse(serverName, id, { action: "cancel" }));
+        .catch((error) =>
+          this._sendResponse(serverName, id, undefined, {
+            code: -32602,
+            message: error?.message || "invalid elicitation request",
+          }),
+        );
       return;
     }
     this._sendResponse(serverName, id, undefined, {
@@ -1324,19 +1794,47 @@ export class MCPClient extends EventEmitter {
     });
   }
 
-  /**
-   * Write a JSON-RPC response back to a stdio server. HTTP transports cannot
-   * deliver server-initiated requests to this client (no persistent SSE GET
-   * stream is held), so there is never a response to send there.
-   */
+  /** Write a JSON-RPC response back over stdio or Streamable HTTP POST. */
   _sendResponse(serverName, id, result, error) {
     const entry = this.servers.get(serverName);
-    if (!entry || !entry.process) return;
-    const message = JSON.stringify(
+    if (!entry) return;
+    const envelope =
       error !== undefined
         ? { jsonrpc: "2.0", id, error }
-        : { jsonrpc: "2.0", id, result },
-    );
+        : { jsonrpc: "2.0", id, result };
+    if (entry.httpUrl) {
+      const headers = {
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+        ...(entry.httpHeaders || {}),
+        ...(entry.httpSessionId
+          ? { "Mcp-Session-Id": entry.httpSessionId }
+          : {}),
+        "MCP-Protocol-Version":
+          entry.protocolVersion || this._protocolVersion,
+      };
+      try {
+        const pending = _deps.fetch(entry.httpUrl, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(envelope),
+        });
+        pending?.catch?.((cause) =>
+          this.emit("server-stream-error", {
+            name: serverName,
+            error: cause?.message || String(cause),
+          }),
+        );
+      } catch (cause) {
+        this.emit("server-stream-error", {
+          name: serverName,
+          error: cause?.message || String(cause),
+        });
+      }
+      return;
+    }
+    if (!entry.process) return;
+    const message = JSON.stringify(envelope);
     try {
       entry.process.stdin.write(message + "\n");
     } catch {
@@ -1408,30 +1906,104 @@ async function _readBodyCapped(response, cap) {
  * `data:` chunks, comments, and non-JSON-RPC events. `cap` bounds the body
  * size (see _readBodyCapped).
  */
-async function _extractSseResponse(response, requestId, cap = 0) {
+async function _extractSseResponse(
+  response,
+  requestId,
+  cap = 0,
+  onMessage = null,
+) {
   const text = await _readBodyCapped(response, cap);
 
   // Split into events on blank line, parse each event's concatenated `data:` lines.
   const events = text.split(/\r?\n\r?\n/);
   for (const event of events) {
-    const dataLines = [];
-    for (const line of event.split(/\r?\n/)) {
-      if (line.startsWith(":")) continue; // comment
-      if (line.startsWith("data:")) {
-        dataLines.push(line.slice(5).replace(/^ /, ""));
-      }
+    const parsed = _parseSseEvent(event);
+    if (!parsed?.message) continue;
+    const payload = parsed.message;
+    if (payload.jsonrpc === "2.0" && payload.id === requestId) {
+      return payload;
     }
-    if (dataLines.length === 0) continue;
-    try {
-      const payload = JSON.parse(dataLines.join("\n"));
-      if (payload && payload.jsonrpc === "2.0" && payload.id === requestId) {
-        return payload;
-      }
-    } catch (_e) {
-      // skip non-JSON data events
-    }
+    onMessage?.(payload);
   }
   throw new Error(`SSE stream ended without a response for id ${requestId}`);
+}
+
+function _parseSseEvent(event) {
+  const dataLines = [];
+  let id = null;
+  let retry = null;
+  for (const line of String(event || "").split(/\r?\n/)) {
+    if (line.startsWith(":")) continue;
+    if (line.startsWith("data:")) {
+      dataLines.push(line.slice(5).replace(/^ /, ""));
+    } else if (line.startsWith("id:")) {
+      id = line.slice(3).replace(/^ /, "");
+    } else if (line.startsWith("retry:")) {
+      const value = Number(line.slice(6).trim());
+      if (Number.isFinite(value) && value >= 0) retry = value;
+    }
+  }
+  let message = null;
+  if (dataLines.some((line) => line.length > 0)) {
+    try {
+      const candidate = JSON.parse(dataLines.join("\n"));
+      if (candidate && typeof candidate === "object") message = candidate;
+    } catch {
+      // Non-JSON SSE events are transport metadata, not MCP messages.
+    }
+  }
+  return { id, retry, message };
+}
+
+async function _consumeSseMessageStream(
+  response,
+  { cap = 0, stream, onMessage },
+) {
+  const dispatch = (rawEvent) => {
+    const parsed = _parseSseEvent(rawEvent);
+    if (parsed.id != null && parsed.id !== "") {
+      stream.lastEventId = parsed.id;
+    }
+    if (parsed.retry != null) stream.retryMs = parsed.retry;
+    if (parsed.message) onMessage(parsed.message);
+  };
+
+  if (!response.body || typeof response.body.getReader !== "function") {
+    const text = await _readBodyCapped(response, cap);
+    for (const event of text.split(/\r?\n\r?\n/)) dispatch(event);
+    return;
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder("utf-8");
+  let buffer = "";
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      if (cap > 0 && buffer.length > cap) {
+        throw new Error(
+          `MCP HTTP SSE event exceeded the ${cap}-char cap`,
+        );
+      }
+      let boundary;
+      while ((boundary = buffer.search(/\r?\n\r?\n/)) >= 0) {
+        const separator = buffer.match(/\r?\n\r?\n/)[0];
+        const event = buffer.slice(0, boundary);
+        buffer = buffer.slice(boundary + separator.length);
+        dispatch(event);
+      }
+    }
+    buffer += decoder.decode();
+    if (buffer.trim()) dispatch(buffer);
+  } finally {
+    try {
+      reader.releaseLock?.();
+    } catch {
+      // Best-effort cleanup; abort/disconnect owns cancellation.
+    }
+  }
 }
 
 /**

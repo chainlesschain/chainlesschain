@@ -330,12 +330,19 @@ public final class ChatEvents {
             m.put("question", str(evt, "question", ""));
             m.put("options", evt.get("options") instanceof List ? evt.get("options") : null);
             m.put("multiSelect", isTrue(evt.get("multiSelect")));
+            if (evt.get("binding") instanceof Map) {
+                m.put("binding", evt.get("binding"));
+            }
             Object metadata = evt.get("metadata");
             if (metadata instanceof Map) {
                 Map<?, ?> meta = (Map<?, ?>) metadata;
                 m.put("elicitation", "mcp_elicitation".equals(String.valueOf(meta.get("kind"))));
                 m.put("server", meta.get("server"));
                 m.put("requestedSchema", meta.get("requestedSchema"));
+                m.put("mode", meta.get("mode") == null ? "form" : meta.get("mode"));
+                m.put("elicitationId", meta.get("elicitationId"));
+                m.put("url", meta.get("url"));
+                m.put("urlHost", meta.get("urlHost"));
             }
             return m;
         }

@@ -327,8 +327,20 @@ class AgentSession:
             {"type": "approval", "id": request_id, "approve": bool(approve)}
         )
 
-    async def answer_question(self, request_id: str, answer: Any) -> None:
-        await self.write({"type": "answer", "id": request_id, "answer": answer})
+    async def answer_question(
+        self,
+        request_id: str,
+        answer: Any,
+        binding: Optional[Mapping[str, Any]] = None,
+    ) -> None:
+        event: Dict[str, Any] = {
+            "type": "answer",
+            "id": request_id,
+            "answer": answer,
+        }
+        if binding is not None:
+            event["binding"] = dict(binding)
+        await self.write(event)
 
     async def plan_control(
         self,
@@ -547,7 +559,7 @@ class AgentSession:
             await self._notify_error(exc)
             answer = None
         try:
-            await self.answer_question(event.id, answer)
+            await self.answer_question(event.id, answer, event.binding)
         except SessionNotRunningError:
             pass
 
@@ -565,7 +577,7 @@ class AgentSession:
             await self._notify_error(exc)
             answer = None
         try:
-            await self.answer_question(event.id, answer)
+            await self.answer_question(event.id, answer, event.binding)
         except SessionNotRunningError:
             pass
 

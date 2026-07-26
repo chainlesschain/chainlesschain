@@ -12,10 +12,14 @@ const session = new AgentSession({
   resume: previousSessionId, // session-resume contract
   permissionMode: "acceptEdits",
   onApproval: async (req) => await ui.confirm(req), // approval-callback contract
+  onQuestion: async (req) => await ui.answer(req), // SDK echoes req.binding
+  onElicitation: async (req) => await ui.answerMcp(req),
 });
 session.start();
 session.on("text", (delta) => render(delta)); // stream-event contract
 session.on("init", (e) => persist(e.session_id));
+session.on("elicitation_deferred", (e) => queueForInteractiveHost(e));
+session.on("elicitation_complete", (e) => settleExternalFlow(e));
 session.send("run the tests and fix failures");
 const result = await session.nextResult();
 ```

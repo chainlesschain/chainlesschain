@@ -52,6 +52,13 @@ for line in sys.stdin:
                 "id": "question-1",
                 "question": "Choose?",
                 "options": ["a", "b"],
+                "binding": {
+                    "backgroundAgentId": None,
+                    "sessionId": "fake-session",
+                    "turnId": "turn-1",
+                    "toolUseId": "tool-1",
+                    "sequence": 1,
+                },
             }
         )
     elif event_type == "answer" and event.get("id") == "question-1":

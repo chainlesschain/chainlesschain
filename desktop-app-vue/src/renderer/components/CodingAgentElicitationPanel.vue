@@ -7,7 +7,19 @@
 
     <p class="elicitation-message">{{ request.payload?.question }}</p>
 
-    <a-form v-if="isMcpElicitation && schemaModel.supported" layout="vertical">
+    <div v-if="isUrlElicitation" class="elicitation-url-card">
+      <p>
+        This MCP server requests a secure out-of-band interaction. Review the
+        complete destination before opening it.
+      </p>
+      <p><strong>Host:</strong> {{ elicitationUrlHost }}</p>
+      <code>{{ elicitationUrl }}</code>
+    </div>
+
+    <a-form
+      v-else-if="isMcpElicitation && schemaModel.supported"
+      layout="vertical"
+    >
       <p v-if="!objectFields.length" class="elicitation-field-description">
         This request does not require any fields.
       </p>
@@ -60,7 +72,7 @@
       </a-form-item>
     </a-form>
 
-    <template v-else-if="isMcpElicitation">
+    <template v-else-if="isMcpElicitation && !isUrlElicitation">
       <p class="elicitation-schema-warning">
         This server supplied a schema outside the supported MCP form vocabulary.
         Review and enter the response as a JSON object.
@@ -81,7 +93,7 @@
     </p>
 
     <a-checkbox-group
-      v-else-if="questionOptions.length && isMultiSelect"
+      v-else-if="!isMcpElicitation && questionOptions.length && isMultiSelect"
       v-model:value="selectedValues"
       class="question-options"
     >
@@ -97,7 +109,7 @@
     </a-checkbox-group>
 
     <a-radio-group
-      v-else-if="questionOptions.length"
+      v-else-if="!isMcpElicitation && questionOptions.length"
       v-model:value="selectedValue"
       class="question-options"
     >
@@ -113,7 +125,7 @@
     </a-radio-group>
 
     <a-textarea
-      v-else
+      v-else-if="!isMcpElicitation"
       v-model:value="textValue"
       :rows="3"
       placeholder="Type your answer"
@@ -122,7 +134,7 @@
     <div class="elicitation-actions">
       <a-button @click="cancel">Cancel</a-button>
       <a-button type="primary" :disabled="!canSubmit" @click="accept">
-        Submit
+        {{ isUrlElicitation ? "Open secure page" : "Submit" }}
       </a-button>
     </div>
   </a-card>
@@ -153,8 +165,17 @@ const validationErrors = ref<ElicitationIssue[]>([]);
 const isMcpElicitation = computed(
   () => props.request?.payload?.metadata?.kind === "mcp_elicitation",
 );
+const isUrlElicitation = computed(
+  () =>
+    isMcpElicitation.value &&
+    props.request?.payload?.metadata?.mode === "url",
+);
 const panelTitle = computed(() =>
-  isMcpElicitation.value ? "MCP input required" : "Agent needs your input",
+  isUrlElicitation.value
+    ? "MCP external action required"
+    : isMcpElicitation.value
+      ? "MCP input required"
+      : "Agent needs your input",
 );
 const schema = computed(
   () =>
@@ -172,6 +193,12 @@ const globalValidationError = computed(
 );
 const serverName = computed(
   () => props.request?.payload?.metadata?.server || "MCP server",
+);
+const elicitationUrl = computed(
+  () => props.request?.payload?.metadata?.url || "",
+);
+const elicitationUrlHost = computed(
+  () => props.request?.payload?.metadata?.urlHost || "",
 );
 const isMultiSelect = computed(
   () => props.request?.payload?.multiSelect === true,
@@ -241,8 +268,44 @@ watch(
   { immediate: true },
 );
 
-function accept() {
+async function accept() {
   if (isMcpElicitation.value) {
+    if (isUrlElicitation.value) {
+      try {
+        const target = new URL(elicitationUrl.value);
+        if (
+          target.protocol !== "https:" ||
+          !target.hostname ||
+          target.username ||
+          target.password
+        ) {
+          throw new Error("Only credential-free HTTPS URLs are allowed.");
+        }
+        const api = (window as any).electronAPI?.system?.openExternal;
+        if (typeof api !== "function") {
+          throw new Error("External browser integration is unavailable.");
+        }
+        const opened = await api(target.href);
+        if (
+          opened &&
+          typeof opened === "object" &&
+          opened.success === false
+        ) {
+          throw new Error(opened.error || "Could not open the secure page.");
+        }
+        validationErrors.value = [];
+        emit("accept", {});
+      } catch (error: any) {
+        validationErrors.value = [
+          {
+            path: "",
+            code: "url_open_failed",
+            message: error?.message || "Could not open the secure page.",
+          },
+        ];
+      }
+      return;
+    }
     if (schemaModel.value.supported) {
       const submission = prepareElicitationSubmission(
         schemaModel.value,
@@ -299,6 +362,18 @@ function fieldError(name: string) {
 .coding-agent-elicitation-panel {
   margin: 12px 0;
   border-color: #7c3aed;
+}
+
+.elicitation-url-card {
+  overflow-wrap: anywhere;
+}
+
+.elicitation-url-card code {
+  display: block;
+  padding: 8px;
+  border-radius: 4px;
+  background: rgba(127, 127, 127, 0.12);
+  white-space: pre-wrap;
 }
 
 .elicitation-server {

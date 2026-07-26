@@ -229,6 +229,14 @@ export interface ApprovalResolvedEvent extends StreamEventMeta {
 }
 
 /** ask_user_question round-trip (CC_INTERACTIVE_QUESTIONS=1). */
+export interface InteractionBinding {
+  backgroundAgentId: string | null;
+  sessionId: string | null;
+  turnId: string | null;
+  toolUseId: string | null;
+  sequence: number;
+}
+
 export interface QuestionRequestEvent extends StreamEventMeta {
   type: "question_request";
   id: string;
@@ -236,12 +244,18 @@ export interface QuestionRequestEvent extends StreamEventMeta {
   options?: unknown[];
   multiSelect?: boolean;
   session_id?: string;
+  /** Must be echoed unchanged by the answering host. */
+  binding?: InteractionBinding;
   /** Present for host-routed MCP elicitation requests. */
   metadata?: {
     kind?: string;
     server?: string;
     requestId?: string | number;
+    mode?: "form" | "url";
     requestedSchema?: unknown;
+    elicitationId?: string;
+    url?: string;
+    urlHost?: string;
     [key: string]: unknown;
   };
 }
@@ -252,6 +266,31 @@ export interface QuestionResolvedEvent extends StreamEventMeta {
   answer?: unknown;
   via?: string;
   session_id?: string;
+}
+
+/** A non-interactive host could not service an MCP elicitation synchronously. */
+export interface ElicitationDeferredEvent extends StreamEventMeta {
+  type: "elicitation_deferred";
+  session_id?: string;
+  server: string | null;
+  request_id: string | number | null;
+  mode: "form" | "url";
+  message: string;
+  requested_schema?: unknown;
+  elicitation_id?: string | null;
+  url?: string | null;
+  url_host?: string | null;
+  reason: string;
+  /** Standards-compliant action returned to the MCP server. */
+  wire_action: "decline";
+}
+
+/** A server reported completion of a previously accepted URL elicitation. */
+export interface ElicitationCompleteEvent extends StreamEventMeta {
+  type: "elicitation_complete";
+  session_id?: string;
+  server: string | null;
+  elicitation_id: string;
 }
 
 export interface PlanUpdateEvent extends StreamEventMeta {
@@ -383,6 +422,8 @@ export type AgentStreamEvent =
   | ApprovalResolvedEvent
   | QuestionRequestEvent
   | QuestionResolvedEvent
+  | ElicitationDeferredEvent
+  | ElicitationCompleteEvent
   | PlanUpdateEvent
   | CompactionEvent
   | StreamRetryEvent
@@ -455,6 +496,8 @@ export interface QuestionAnswerInput {
   id: string;
   /** null / absent cancels (handler resolves as user_timeout). */
   answer: unknown;
+  /** Opaque binding copied from the matching QuestionRequestEvent. */
+  binding?: InteractionBinding;
 }
 
 export interface PlanControlInput {
@@ -547,12 +590,21 @@ export interface BgDetachClient {
   type: "detach";
 }
 
+export interface BgInteractionResponseClient {
+  type: "interaction_response";
+  requestId: string;
+  binding: InteractionBinding;
+  answer?: unknown;
+  error?: { code?: string; message: string } | string;
+}
+
 export type BgClientMessage =
   | BgHelloClient
   | BgPromptClient
   | BgStatusClient
   | BgStopClient
-  | BgDetachClient;
+  | BgDetachClient
+  | BgInteractionResponseClient;
 
 export interface BgHelloServer {
   type: "hello";
@@ -600,6 +652,24 @@ export interface BgClosingServer {
   type: "closing";
 }
 
+export interface BgInteractionRequestServer {
+  type: "interaction_request";
+  requestId: string;
+  binding: InteractionBinding;
+  question: string;
+  prompt?: string;
+  options?: unknown[] | null;
+  multiSelect?: boolean;
+  [key: string]: unknown;
+}
+
+export interface BgInteractionReceivedServer {
+  type: "received";
+  requestId: string;
+  accepted: boolean;
+  duplicate: boolean;
+}
+
 export type BgServerMessage =
   | BgHelloServer
   | BgAcceptedServer
@@ -610,6 +680,8 @@ export type BgServerMessage =
   | BgTurnEndedServer
   | BgIdleServer
   | BgClosingServer
+  | BgInteractionRequestServer
+  | BgInteractionReceivedServer
   | UnknownAgentEvent;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -621,6 +693,7 @@ export type BgWsRequestType =
   | "bg-view"
   | "bg-attach"
   | "bg-prompt"
+  | "bg-answer"
   | "bg-stop-turn"
   | "bg-detach"
   | "bg-stop"

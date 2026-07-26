@@ -330,14 +330,81 @@ export function registerContextCommand(program) {
           );
         }
         if (sourceReport.skillCache.descriptors.resident > 0) {
+          const skillDescriptors = sourceReport.skillCache.descriptors;
+          const skillBodies = sourceReport.skillCache.bodies;
           logger.log("");
           logger.log(
             chalk.gray(
-              `  Skill cache: ${sourceReport.skillCache.descriptors.resident} descriptors, ` +
-                `${sourceReport.skillCache.bodies.resident} bodies resident, ` +
+              `  Skill cache: ${skillDescriptors.resident} descriptors ` +
+                `(${skillDescriptors.estimatedTokens} estimated descriptor-token equivalents), ` +
+                `${skillBodies.resident} bodies resident ` +
+                `(${skillBodies.estimatedTokensResident} estimated body-token equivalents), ` +
                 `${sourceReport.skillCache.savings.estimatedTokensAvoided} estimated tokens kept lazy`,
             ),
           );
+          logger.log(
+            chalk.gray(
+              `  Descriptor prompt returns: ${skillDescriptors.contextLoads} / ` +
+                `${skillDescriptors.contextTokens} estimated context tokens`,
+            ),
+          );
+          logger.log(
+            chalk.gray(
+              `  On-demand reads: ${skillBodies.cacheMisses} disk / ` +
+                `${skillBodies.cacheHits} cache; cache reuse avoided ` +
+                `${skillBodies.estimatedTokensAvoidedByCache} body-token equivalents of disk reads`,
+            ),
+          );
+          logger.log(
+            chalk.gray(
+              `  Prompt injections: ${skillBodies.contextLoads} loads / ` +
+                `${skillBodies.contextTokens} estimated context tokens`,
+            ),
+          );
+          const activeBodies = [...skillBodies.entries]
+            .filter((entry) => entry.loads > 0 || entry.contextLoads > 0)
+            .sort(
+              (a, b) =>
+                b.contextTokens - a.contextTokens ||
+                b.loads - a.loads ||
+                a.id.localeCompare(b.id),
+            );
+          for (const entry of activeBodies.slice(0, 8)) {
+            logger.log(
+              chalk.gray(
+                `    ${entry.id} [${entry.source}]: ${entry.estimatedTokens} token body; ` +
+                  `${entry.cacheMisses} disk / ${entry.cacheHits} cache reads; ` +
+                  `${entry.contextLoads} prompt loads / ${entry.contextTokens} tokens`,
+              ),
+            );
+          }
+          if (activeBodies.length > 8) {
+            logger.log(
+              chalk.gray(`    ... ${activeBodies.length - 8} more active bodies`),
+            );
+          }
+          const usedDescriptors = [...skillDescriptors.entries]
+            .filter((entry) => entry.contextLoads > 0)
+            .sort(
+              (a, b) =>
+                b.contextTokens - a.contextTokens ||
+                a.id.localeCompare(b.id),
+            );
+          for (const entry of usedDescriptors.slice(0, 8)) {
+            logger.log(
+              chalk.gray(
+                `    descriptor ${entry.id} [${entry.source}]: ` +
+                  `${entry.contextLoads} prompt returns / ${entry.contextTokens} tokens`,
+              ),
+            );
+          }
+          if (usedDescriptors.length > 8) {
+            logger.log(
+              chalk.gray(
+                `    ... ${usedDescriptors.length - 8} more used descriptors`,
+              ),
+            );
+          }
         }
         if (sourceReport.optimizations.length > 0) {
           logger.log("");

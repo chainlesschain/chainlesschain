@@ -17,6 +17,7 @@ import com.chainlesschain.ide.SessionArgs;
 import com.chainlesschain.ide.SessionList;
 import com.chainlesschain.ide.SlashCommands;
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -42,6 +43,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -1484,6 +1486,9 @@ final class ConversationView {
         ev.put("type", "answer");
         ev.put("id", id);
         ev.put("answer", answer);
+        if (ui.get("binding") instanceof Map) {
+            ev.put("binding", ui.get("binding"));
+        }
         queueSessionEvent(ev);
     }
 
@@ -1498,13 +1503,17 @@ final class ConversationView {
         String id = ui.get("id") == null ? "" : String.valueOf(ui.get("id"));
         if (id.isEmpty()) return;
         String question = ui.get("question") == null ? CcBundle.message("chat.question.title") : String.valueOf(ui.get("question"));
+        if ("url".equals(String.valueOf(ui.get("mode")))) {
+            askUrlElicitation(ui, id, question);
+            return;
+        }
         Object schemaO = ui.get("requestedSchema");
         ElicitationSchema.Model model = ElicitationSchema.compile(schemaO);
         String title = String.valueOf(ui.get("server") == null
                 ? "MCP elicitation" : "MCP: " + ui.get("server"));
         if (!model.supported) {
             Object answer = askRawElicitation(question, title);
-            sendElicitationAnswer(id, answer);
+            sendElicitationAnswer(id, answer, ui.get("binding"));
             return;
         }
 
@@ -1627,7 +1636,41 @@ final class ConversationView {
             com.intellij.openapi.ui.Messages.showErrorDialog(
                     project, problem.toString(), "Invalid MCP input");
         }
-        sendElicitationAnswer(id, answer);
+        sendElicitationAnswer(id, answer, ui.get("binding"));
+    }
+
+    private void askUrlElicitation(
+            Map<String, Object> ui, String id, String question) {
+        Object answer = null;
+        try {
+            URI target = URI.create(String.valueOf(ui.get("url")));
+            if (!"https".equalsIgnoreCase(target.getScheme())
+                    || target.getHost() == null
+                    || target.getUserInfo() != null) {
+                throw new IllegalArgumentException("unsafe URL");
+            }
+            String server = String.valueOf(
+                    ui.get("server") == null ? "MCP server" : ui.get("server"));
+            int choice = com.intellij.openapi.ui.Messages.showYesNoDialog(
+                    project,
+                    question + "\n\nServer: " + server
+                            + "\nHost: " + target.getAuthority()
+                            + "\nURL: " + target,
+                    "MCP External Action",
+                    "Open Secure Page",
+                    "Cancel",
+                    null);
+            if (choice == com.intellij.openapi.ui.Messages.YES) {
+                BrowserUtil.browse(target.toString());
+                answer = new LinkedHashMap<String, Object>();
+            }
+        } catch (IllegalArgumentException error) {
+            com.intellij.openapi.ui.Messages.showErrorDialog(
+                    project,
+                    "The MCP server supplied an unsafe URL.",
+                    "Invalid MCP Elicitation URL");
+        }
+        sendElicitationAnswer(id, answer, ui.get("binding"));
     }
 
     private Object askRawElicitation(String question, String title) {
@@ -1649,11 +1692,15 @@ final class ConversationView {
         }
     }
 
-    private void sendElicitationAnswer(String id, Object answer) {
+    private void sendElicitationAnswer(
+            String id, Object answer, Object binding) {
         Map<String, Object> ev = new LinkedHashMap<>();
         ev.put("type", "answer");
         ev.put("id", id);
         ev.put("answer", answer);
+        if (binding instanceof Map) {
+            ev.put("binding", binding);
+        }
         queueSessionEvent(ev);
     }
 

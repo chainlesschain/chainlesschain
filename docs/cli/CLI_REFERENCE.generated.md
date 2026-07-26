@@ -180,18 +180,20 @@
 - `workflow` — Workflow engine — create, run, and manage DAG-based workflows
 - `zkp` — Zero-knowledge proof engine — circuits, proofs, identity
 
-## Agent tools (26)
+## Agent tools (28)
 
 - `ask_user_question`
 - `browser_act`
 - `browser_state`
 - `check_shell`
 - `code_intelligence`
+- `delete_file`
 - `edit_file`
 - `edit_file_hashed`
 - `git`
 - `list_dir`
 - `list_skills`
+- `move_file`
 - `notebook_edit`
 - `notify`
 - `publish_artifact`

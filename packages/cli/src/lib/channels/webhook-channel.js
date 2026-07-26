@@ -36,6 +36,7 @@ export async function startWebhookChannel(options = {}) {
     onEvent,
     log = () => {},
     eventRuntimeStore = null,
+    eventRuntimeHost = null,
   } = options;
   const runtimeProducer = eventRuntimeStore
     ? new EventRuntimeProducer({ store: eventRuntimeStore })
@@ -80,7 +81,7 @@ export async function startWebhookChannel(options = {}) {
       }
       chunks.push(chunk);
     });
-    req.on("end", () => {
+    req.on("end", async () => {
       if (aborted) return;
       let payload;
       try {
@@ -92,30 +93,52 @@ export async function startWebhookChannel(options = {}) {
       if (!text) return respond(400, { error: "missing text" });
       const sender =
         typeof payload.sender === "string" ? payload.sender : "webhook";
+      const eventId = payload.event_id || payload.eventId || null;
       if (Array.isArray(allowlist) && allowlist.length > 0) {
         if (!allowlist.includes(sender)) {
           return respond(403, { error: "sender not in allowlist" });
         }
       }
       const event = {
-          channel: "webhook",
-          sender,
-          text,
-          meta:
-            payload.meta && typeof payload.meta === "object"
-              ? payload.meta
-              : undefined,
-        };
+        channel: "webhook",
+        sender,
+        text,
+        ...(eventId == null ? {} : { eventId: String(eventId) }),
+        meta:
+          payload.meta && typeof payload.meta === "object"
+            ? payload.meta
+            : undefined,
+      };
       try {
-        runtimeProducer?.publish(event, {
-          origin: "webhook",
-          id: payload.event_id || payload.eventId || null,
-        });
-        onEvent?.(event);
+        if (runtimeProducer) {
+          const record = runtimeProducer.publish(
+            {
+              ...event,
+              type: "channel.event",
+              requiresHandler: true,
+            },
+            {
+              origin: "webhook",
+              id: eventId,
+            },
+          );
+          if (eventRuntimeHost) {
+            const stats = await eventRuntimeHost.runOnce();
+            if (Number(stats?.inboxFailed || 0) > 0) {
+              throw new Error("durable event delivery failed");
+            }
+          } else {
+            const result = await onEvent?.(event);
+            eventRuntimeStore.acknowledgeInbox?.(record.id, result);
+          }
+        } else {
+          await onEvent?.(event);
+        }
       } catch {
         // A configured durable runtime is the recovery boundary. Refuse the
         // request rather than acknowledging an event that was not persisted.
-        if (runtimeProducer) return respond(503, { error: "event persistence unavailable" });
+        if (runtimeProducer)
+          return respond(503, { error: "event persistence unavailable" });
       }
       respond(202, { ok: true });
     });

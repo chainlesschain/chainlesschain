@@ -21,6 +21,15 @@ import {
   approvalBindingDigest,
   verifyApprovalBinding,
 } from "../lib/agent-authority.js";
+import {
+  normalizeInteractionBinding,
+  sameInteractionBinding,
+} from "../lib/interaction-binding.js";
+import {
+  emitHooksV2Event,
+  executeHooksV2Event,
+  resolvePromptExpansion,
+} from "../lib/hooks-v2-producers.js";
 import { bootstrap } from "./bootstrap.js";
 import { buildSystemPrompt, agentLoop as coreAgentLoop } from "./agent-core.js";
 import { composeSystemPrompt } from "./system-prompt.js";
@@ -497,6 +506,9 @@ export function parseInputEvent(line) {
       answer: {
         id: String(obj.id),
         value: obj.answer === undefined ? null : obj.answer,
+        ...(obj.binding && typeof obj.binding === "object"
+          ? { binding: normalizeInteractionBinding(obj.binding) }
+          : {}),
       },
     };
   }
@@ -770,8 +782,7 @@ async function runTurn(
         // agent-sdk docs/PROTOCOL.md §1.2.1): the matching tool_result below
         // echoes the same id so UIs can pair calls without adjacency.
         const toolUseId =
-          event.tool_use_id ||
-          (nextToolUseId ? nextToolUseId() : undefined);
+          event.tool_use_id || (nextToolUseId ? nextToolUseId() : undefined);
         const pm = getPlanModeManager();
         const planItem = pm.startPlanItemForTool(event.tool, {
           toolUseId,
@@ -1066,6 +1077,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   const input = deps.input || process.stdin;
   const runLoop = deps.agentLoop || coreAgentLoop;
   const doBootstrap = deps.bootstrap || bootstrap;
+  const executeLifecycleHooks = deps.executeHooksV2Event || executeHooksV2Event;
   const doExpand = deps.expandFileRefs || expandFileRefsAsync;
   const runSessionSlashCommand =
     deps.executeSessionSlashCommand || executeSessionSlashCommand;
@@ -1139,6 +1151,33 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
 
   const sessionId =
     options.sessionId || `headless-stream-${Date.now()}-${process.pid}`;
+
+  const setupHooks = await executeLifecycleHooks(
+    "Setup",
+    {
+      schema_version: 1,
+      session_id: sessionId,
+      cwd,
+      database_available: db != null,
+      enabled_tools: enabledToolNames,
+      settings_files: settingsFiles,
+    },
+    { failClosed: true },
+  );
+  if (setupHooks.blocked || setupHooks.decision === "block") {
+    const reason =
+      setupHooks.blockingResult?.reason ||
+      setupHooks.error ||
+      "blocked by Setup hook";
+    emit({
+      type: "result",
+      subtype: "blocked",
+      is_error: true,
+      result: reason,
+      session_id: sessionId,
+    });
+    return { exitCode: 2, turns: 0 };
+  }
 
   // Session persistence + resume (chat-panel "session resume" / --resume):
   // an EXPLICIT session id (--session / --resume) opts into JSONL persistence —
@@ -1459,17 +1498,29 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     multiSelect,
     timeoutMs,
     metadata,
+    sessionId: requestedSessionId,
+    turnId,
+    toolUseId,
   } = {}) =>
     new Promise((resolve, reject) => {
       const id = `q-${++questionSeq}`;
+      const binding = normalizeInteractionBinding({
+        sessionId: requestedSessionId ?? sessionId,
+        turnId,
+        toolUseId,
+        sequence: questionSeq,
+      });
       const ms = Number(timeoutMs) > 0 ? Number(timeoutMs) : questionTimeoutMs;
       const timer = setTimeout(() => failQuestion(id, "timeout"), ms);
       timer.unref?.();
-      pendingQuestions.set(id, { resolve, reject, timer });
+      pendingQuestions.set(id, { resolve, reject, timer, binding });
       emit({
         type: "question_request",
         id,
         session_id: sessionId,
+        binding,
+        ...(binding.turnId ? { turn_id: binding.turnId } : {}),
+        ...(binding.toolUseId ? { tool_use_id: binding.toolUseId } : {}),
         question: typeof question === "string" ? question : "",
         options: Array.isArray(qOptions) ? qOptions : null,
         multiSelect: multiSelect === true,
@@ -1786,32 +1837,91 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   // handler only after MCP resolution so the client is initialized before use.
   // Reuse the structured Desktop/headless question channel, while preserving
   // the MCP response shape (`action` + object `content`) at this boundary.
+  if (mcp?.mcpClient?.on) {
+    mcp.mcpClient.on("elicitation-deferred", (request) => {
+      emit({
+        type: "elicitation_deferred",
+        session_id: sessionId,
+        server: request.server || null,
+        request_id: request.requestId ?? null,
+        mode: request.mode || "form",
+        message: request.message || "",
+        requested_schema: request.requestedSchema || null,
+        elicitation_id: request.elicitationId || null,
+        url: request.url || null,
+        url_host: request.urlHost || null,
+        reason: request.reason || "no_interactive_host",
+        wire_action: request.wireAction || "decline",
+      });
+    });
+    mcp.mcpClient.on("elicitation-complete", (event) => {
+      emit({
+        type: "elicitation_complete",
+        session_id: sessionId,
+        server: event.server || null,
+        elicitation_id: event.elicitationId || null,
+      });
+    });
+  }
   if (mcp?.mcpClient?.setElicitationHandler && interactiveQuestions) {
     mcp.mcpClient.setElicitationHandler(async (request) => {
-      const { emitHooksV2Event } = await import("../lib/hooks-v2-producers.js");
-      emitHooksV2Event("MCPElicitation", {
+      const hookContext = {
+        schema_version: 1,
         server: request.server || null,
         request_id: request.requestId ?? null,
         message: request.message || "MCP server requests additional input",
         requested_schema: request.requestedSchema || null,
+        mode: request.mode || "form",
+        elicitation_id: request.elicitationId || null,
+        url: request.url || null,
+        url_host: request.urlHost || null,
         session_id: sessionId,
-      });
-      const answer = await interactionAskUser({
-        question: request.message || "MCP server requests additional input",
-        timeoutMs: request.timeoutMs,
-        metadata: {
-          kind: "mcp_elicitation",
-          server: request.server,
-          requestId: request.requestId,
-          requestedSchema: request.requestedSchema || null,
-        },
-      });
-      if (answer == null) return { action: "cancel" };
-      return {
-        action: "accept",
-        content:
-          answer && typeof answer === "object" ? answer : { value: answer },
       };
+      emitHooksV2Event("MCPElicitation", hookContext);
+      emitHooksV2Event("Elicitation", hookContext);
+      try {
+        const answer = await interactionAskUser({
+          question:
+            request.mode === "url"
+              ? `${request.message || "MCP server requests an external interaction"}\nOpen secure URL on ${request.urlHost}?`
+              : request.message || "MCP server requests additional input",
+          timeoutMs: request.timeoutMs,
+          metadata: {
+            kind: "mcp_elicitation",
+            server: request.server,
+            requestId: request.requestId,
+            mode: request.mode || "form",
+            requestedSchema: request.requestedSchema || null,
+            elicitationId: request.elicitationId || null,
+            url: request.url || null,
+            urlHost: request.urlHost || null,
+          },
+        });
+        const response =
+          answer == null
+            ? { action: "cancel" }
+            : request.mode === "url"
+              ? { action: "accept" }
+              : {
+                  action: "accept",
+                  content:
+                    answer && typeof answer === "object"
+                      ? answer
+                      : { value: answer },
+                };
+        emitHooksV2Event("ElicitationResult", {
+          ...hookContext,
+          action: response.action,
+        });
+        return response;
+      } catch (error) {
+        emitHooksV2Event("ElicitationResult", {
+          ...hookContext,
+          action: "cancel",
+          reason: error?.code || error?.message || "interaction_failed",
+        });
+        throw error;
+      }
     });
   }
 
@@ -2069,6 +2179,19 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
         if (parsed.answer) {
           // Answers settle a BLOCKED ask_user_question — never queued. A null
           // value (user cancelled the QuickPick) → user_timeout (model proceeds).
+          const pending = pendingQuestions.get(parsed.answer.id);
+          if (
+            !pending ||
+            !sameInteractionBinding(pending.binding, parsed.answer.binding)
+          ) {
+            emit({
+              type: "question_response_rejected",
+              id: parsed.answer.id,
+              reason: "binding_mismatch",
+              session_id: sessionId,
+            });
+            continue;
+          }
           if (parsed.answer.value == null)
             failQuestion(parsed.answer.id, "cancelled");
           else
@@ -2220,6 +2343,15 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
         stats,
         messages_before: before,
         messages_after: messages.length,
+      });
+      emitHooksV2Event("PostCompact", {
+        schema_version: 1,
+        trigger: "manual",
+        session_id: sessionId,
+        messages_before: before,
+        messages_after: messages.length,
+        stats,
+        cwd,
       });
       continue;
     }
@@ -2463,6 +2595,32 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       userContent = expanded.prompt;
       for (const w of expanded.warnings) writeErr(`  @ref: ${w}\n`);
     }
+
+    const expansionHooks = await executeLifecycleHooks(
+      "UserPromptExpansion",
+      {
+        schema_version: 1,
+        session_id: sessionId,
+        turn: turns + 1,
+        cwd,
+        prompt: userContent,
+        original_prompt: parsed.text,
+      },
+      { failClosed: true },
+    );
+    const expansion = resolvePromptExpansion(userContent, expansionHooks);
+    if (expansion.blocked) {
+      emit({
+        type: "result",
+        subtype: "blocked",
+        is_error: true,
+        result: expansion.reason || "blocked by UserPromptExpansion hook",
+        session_id: sessionId,
+      });
+      sawError = true;
+      continue;
+    }
+    userContent = expansion.prompt;
 
     // settings.json UserPromptSubmit hooks. block → skip this turn; context → inject.
     if (settingsHooks) {

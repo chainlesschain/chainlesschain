@@ -35,12 +35,24 @@ export class EventRuntimeHost extends EventEmitter {
     worker = null,
     setTimeoutFn = setTimeout,
     clearTimeoutFn = clearTimeout,
+    id = store.owner,
+    role = process.env.CC_EVENT_RUNTIME_HOST_ROLE || "cli",
+    pid = process.pid,
+    heartbeatStaleMs = null,
   } = {}) {
     super();
     this.store = store;
     this.intervalMs = Math.max(1, Number(intervalMs) || 1000);
     this.setTimeoutFn = setTimeoutFn;
     this.clearTimeoutFn = clearTimeoutFn;
+    this.id = String(id || store.owner || `${process.pid}`);
+    this.role = String(role || "cli");
+    this.pid = Number.isFinite(Number(pid)) ? Number(pid) : null;
+    this.startedAt = null;
+    this.heartbeatStaleMs =
+      heartbeatStaleMs == null
+        ? Math.max(5000, this.intervalMs * 3)
+        : Math.max(1, Number(heartbeatStaleMs) || 5000);
     this.handlers = new Map();
     this.running = false;
     this.timer = null;
@@ -56,6 +68,25 @@ export class EventRuntimeHost extends EventEmitter {
         onOutbox: (event, record) =>
           this._dispatch("outbox", event, record),
       });
+  }
+
+  _reportHost(state, { stats = this.lastStats, error = this.lastError } = {}) {
+    if (typeof this.store.reportHost !== "function") return null;
+    try {
+      return this.store.reportHost({
+        id: this.id,
+        pid: this.pid,
+        role: this.role,
+        state,
+        startedAt: this.startedAt,
+        staleAfterMs: this.heartbeatStaleMs,
+        lastStats: stats,
+        lastError: error?.message || error || null,
+      });
+    } catch (reportError) {
+      this.emit("host-status-error", reportError);
+      return null;
+    }
   }
 
   registerHandler(
@@ -125,11 +156,13 @@ export class EventRuntimeHost extends EventEmitter {
       .then((stats) => {
         this.lastStats = stats;
         this.lastError = null;
+        this._reportHost("running", { stats, error: null });
         this.emit("tick", stats);
         return stats;
       })
       .catch((error) => {
         this.lastError = error;
+        this._reportHost("running", { error });
         this.emit("runtime-error", error);
         throw error;
       })
@@ -158,6 +191,8 @@ export class EventRuntimeHost extends EventEmitter {
   start({ immediate = true } = {}) {
     if (this.running) return false;
     this.running = true;
+    this.startedAt = Date.now();
+    this._reportHost("running", { stats: null, error: null });
     if (immediate) {
       void this.runOnce()
         .catch(() => {})
@@ -169,18 +204,42 @@ export class EventRuntimeHost extends EventEmitter {
     return true;
   }
 
-  async stop({ drain = true } = {}) {
+  async stop({ drain = true, maxDrainTicks = 10 } = {}) {
     const wasRunning = this.running;
     this.running = false;
     if (this.timer != null) {
       this.clearTimeoutFn(this.timer);
       this.timer = null;
     }
-    if (drain && this.inFlight) {
+    if (drain && (wasRunning || this.inFlight)) {
+      const maxTicks = Math.max(1, Number(maxDrainTicks) || 10);
+      for (let tick = 0; tick < maxTicks; tick += 1) {
+        let stats;
+        try {
+          stats = this.inFlight ? await this.inFlight : await this.runOnce();
+        } catch {
+          // Error already exposed through runtime-error/lastError. A later
+          // process can recover the durable records after the lease expires.
+          break;
+        }
+        const claimed =
+          Number(stats?.inboxClaimed || 0) +
+          Number(stats?.outboxClaimed || 0);
+        if (claimed === 0) break;
+      }
+    }
+    if (typeof this.store.stopHost === "function") {
       try {
-        await this.inFlight;
-      } catch {
-        // Error already exposed through runtime-error/lastError.
+        this.store.stopHost(this.id, {
+          pid: this.pid,
+          role: this.role,
+          startedAt: this.startedAt,
+          staleAfterMs: this.heartbeatStaleMs,
+          lastStats: this.lastStats,
+          lastError: this.lastError?.message || null,
+        });
+      } catch (reportError) {
+        this.emit("host-status-error", reportError);
       }
     }
     if (wasRunning) this.emit("stopped");
@@ -190,6 +249,9 @@ export class EventRuntimeHost extends EventEmitter {
   status() {
     return {
       running: this.running,
+      id: this.id,
+      role: this.role,
+      pid: this.pid,
       inFlight: this.inFlight != null,
       handlerRoutes: this.handlers.size,
       lastStats: this.lastStats,
@@ -222,4 +284,3 @@ export async function stopDefaultEventRuntimeHost(options) {
 export function _resetDefaultEventRuntimeHostForTests() {
   defaultHost = null;
 }
-

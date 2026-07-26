@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
 import { mount } from "@vue/test-utils";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import CodingAgentElicitationPanel from "../CodingAgentElicitationPanel.vue";
 
 const stubs = {
@@ -67,6 +67,10 @@ const stubs = {
 };
 
 describe("CodingAgentElicitationPanel", () => {
+  afterEach(() => {
+    delete (window as any).electronAPI;
+  });
+
   it("renders a free-text AskUserQuestion and emits the submitted answer", async () => {
     const wrapper = mount(CodingAgentElicitationPanel, {
       props: {
@@ -178,5 +182,124 @@ describe("CodingAgentElicitationPanel", () => {
         },
       ],
     ]);
+  });
+
+  it("shows the full URL and opens it only after explicit consent", async () => {
+    const openExternal = vi.fn(async () => {});
+    (window as any).electronAPI = {
+      system: { openExternal },
+    };
+    const wrapper = mount(CodingAgentElicitationPanel, {
+      props: {
+        request: {
+          id: "event-url-1",
+          sessionId: "session-1",
+          requestId: "mcp-url-1",
+          payload: {
+            id: "mcp-url-1",
+            question: "Authorize the release provider",
+            metadata: {
+              kind: "mcp_elicitation",
+              server: "release-server",
+              mode: "url",
+              elicitationId: "flow-1",
+              url: "https://auth.example.com/setup?flow=1",
+              urlHost: "auth.example.com",
+            },
+          },
+        },
+      },
+      global: { stubs },
+    });
+
+    expect(wrapper.text()).toContain("MCP external action required");
+    expect(wrapper.text()).toContain("auth.example.com");
+    expect(wrapper.text()).toContain(
+      "https://auth.example.com/setup?flow=1",
+    );
+    expect(openExternal).not.toHaveBeenCalled();
+
+    const open = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Open secure page");
+    await open!.trigger("click");
+
+    expect(openExternal).toHaveBeenCalledWith(
+      "https://auth.example.com/setup?flow=1",
+    );
+    expect(wrapper.emitted("accept")).toEqual([[{}]]);
+  });
+
+  it("rejects credential-bearing URL elicitation without opening it", async () => {
+    const openExternal = vi.fn(async () => {});
+    (window as any).electronAPI = {
+      system: { openExternal },
+    };
+    const wrapper = mount(CodingAgentElicitationPanel, {
+      props: {
+        request: {
+          id: "event-url-unsafe",
+          payload: {
+            id: "mcp-url-unsafe",
+            question: "Authorize",
+            metadata: {
+              kind: "mcp_elicitation",
+              mode: "url",
+              url: "https://user:secret@auth.example.com/setup",
+              urlHost: "auth.example.com",
+            },
+          },
+        },
+      },
+      global: { stubs },
+    });
+
+    const open = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Open secure page");
+    await open!.trigger("click");
+
+    expect(openExternal).not.toHaveBeenCalled();
+    expect(wrapper.emitted("accept")).toBeUndefined();
+    expect(wrapper.text()).toContain(
+      "Only credential-free HTTPS URLs are allowed.",
+    );
+  });
+
+  it("does not accept when the trusted main process cannot open the URL", async () => {
+    const openExternal = vi.fn(async () => ({
+      success: false,
+      error: "Browser unavailable",
+    }));
+    (window as any).electronAPI = {
+      system: { openExternal },
+    };
+    const wrapper = mount(CodingAgentElicitationPanel, {
+      props: {
+        request: {
+          id: "event-url-open-failed",
+          payload: {
+            id: "mcp-url-open-failed",
+            question: "Authorize",
+            metadata: {
+              kind: "mcp_elicitation",
+              mode: "url",
+              url: "https://auth.example.com/setup",
+              urlHost: "auth.example.com",
+            },
+          },
+        },
+      },
+      global: { stubs },
+    });
+
+    const open = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Open secure page");
+    await open!.trigger("click");
+
+    expect(openExternal).toHaveBeenCalledOnce();
+    expect(wrapper.emitted("accept")).toBeUndefined();
+    expect(wrapper.text()).toContain("Browser unavailable");
   });
 });

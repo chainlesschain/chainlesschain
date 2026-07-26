@@ -16,6 +16,13 @@ import {
 } from "../../src/runtime/headless-stream.js";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const questionBinding = (sequence = 1) => ({
+  backgroundAgentId: null,
+  sessionId: "test-question-session",
+  turnId: null,
+  toolUseId: null,
+  sequence,
+});
 
 describe("parseInputEvent — answers", () => {
   it("parses answers and rejects malformed ones", () => {
@@ -80,7 +87,12 @@ describe("interactive questions round-trip", () => {
     return {
       run: () =>
         runAgentHeadlessStream(
-          { expandFileRefs: false, interactiveQuestions: true, ...options },
+          {
+            expandFileRefs: false,
+            interactiveQuestions: true,
+            sessionId: "test-question-session",
+            ...options,
+          },
           deps,
         ),
       events: () =>
@@ -102,6 +114,7 @@ describe("interactive questions round-trip", () => {
           type: "answer",
           id: "q-1",
           answer: "approved",
+          binding: questionBinding(),
         }) + "\n";
       },
       agentLoop: async function* () {
@@ -145,13 +158,135 @@ describe("interactive questions round-trip", () => {
     ).toEqual({ action: "accept", content: { value: "approved" } });
   });
 
+  it("routes URL-mode elicitation with explicit host metadata and no content", async () => {
+    let elicitationHandler = null;
+    const h = harness({
+      inputGen: async function* () {
+        yield JSON.stringify({ type: "user", text: "trigger URL MCP" }) + "\n";
+        await sleep(80);
+        yield JSON.stringify({
+          type: "answer",
+          id: "q-1",
+          answer: {},
+          binding: questionBinding(),
+        }) + "\n";
+      },
+      agentLoop: async function* () {
+        const response = await elicitationHandler({
+          server: "payments",
+          requestId: "req-url-1",
+          mode: "url",
+          message: "Authorize the payment provider",
+          elicitationId: "elicit-1",
+          url: "https://accounts.example.test/authorize",
+          urlHost: "accounts.example.test",
+        });
+        yield { type: "response-complete", content: JSON.stringify(response) };
+        yield { type: "run-ended", reason: "complete" };
+      },
+      extraDeps: {
+        resolveAgentMcp: async () => ({
+          mcpClient: {
+            setElicitationHandler(handler) {
+              elicitationHandler = handler;
+            },
+          },
+          tools: [],
+        }),
+      },
+    });
+
+    await h.run();
+
+    expect(
+      h.events().find((event) => event.type === "question_request"),
+    ).toMatchObject({
+      question: expect.stringContaining("accounts.example.test"),
+      metadata: {
+        kind: "mcp_elicitation",
+        server: "payments",
+        requestId: "req-url-1",
+        mode: "url",
+        elicitationId: "elicit-1",
+        url: "https://accounts.example.test/authorize",
+        urlHost: "accounts.example.test",
+      },
+    });
+    expect(
+      JSON.parse(h.events().find((event) => event.type === "result").result),
+    ).toEqual({ action: "accept" });
+  });
+
+  it("forwards deferred and completed URL elicitation lifecycle events", async () => {
+    const listeners = new Map();
+    const h = harness({
+      inputGen: async function* () {
+        yield JSON.stringify({ type: "user", text: "trigger lifecycle" }) + "\n";
+      },
+      agentLoop: async function* () {
+        listeners.get("elicitation-deferred")({
+          server: "payments",
+          requestId: "req-url-2",
+          mode: "url",
+          message: "Authorize",
+          elicitationId: "elicit-2",
+          url: "https://accounts.example.test/authorize",
+          urlHost: "accounts.example.test",
+          reason: "no_interactive_host",
+          wireAction: "decline",
+        });
+        listeners.get("elicitation-complete")({
+          server: "payments",
+          elicitationId: "elicit-2",
+        });
+        yield { type: "response-complete", content: "done" };
+        yield { type: "run-ended", reason: "complete" };
+      },
+      extraDeps: {
+        resolveAgentMcp: async () => ({
+          mcpClient: {
+            on(event, handler) {
+              listeners.set(event, handler);
+            },
+            setElicitationHandler() {},
+          },
+          tools: [],
+        }),
+      },
+    });
+
+    await h.run();
+
+    expect(
+      h.events().find((event) => event.type === "elicitation_deferred"),
+    ).toMatchObject({
+      server: "payments",
+      request_id: "req-url-2",
+      mode: "url",
+      elicitation_id: "elicit-2",
+      url_host: "accounts.example.test",
+      reason: "no_interactive_host",
+      wire_action: "decline",
+    });
+    expect(
+      h.events().find((event) => event.type === "elicitation_complete"),
+    ).toMatchObject({
+      server: "payments",
+      elicitation_id: "elicit-2",
+    });
+  });
+
   it("answer: the blocked tool gets the value; request + resolution emitted", async () => {
     const h = harness({
       inputGen: async function* () {
         yield JSON.stringify({ type: "user", text: "ASK me a color" }) + "\n";
         await sleep(80);
-        yield JSON.stringify({ type: "answer", id: "q-1", answer: "Blue" }) +
-          "\n";
+        yield JSON.stringify({
+          type: "answer",
+          id: "q-1",
+          answer: "Blue",
+          binding: questionBinding(),
+        }) + "\n";
       },
     });
     await h.run();
@@ -180,6 +315,7 @@ describe("interactive questions round-trip", () => {
           type: "answer",
           id: "q-1",
           answer: ["Blue", "Red"],
+          binding: questionBinding(),
         }) + "\n";
       },
     });
@@ -189,13 +325,50 @@ describe("interactive questions round-trip", () => {
     );
   });
 
+  it("rejects a cross-turn answer and keeps waiting for the bound response", async () => {
+    const h = harness({
+      inputGen: async function* () {
+        yield JSON.stringify({ type: "user", text: "ASK" }) + "\n";
+        await sleep(80);
+        yield JSON.stringify({
+          type: "answer",
+          id: "q-1",
+          answer: "Red",
+          binding: { ...questionBinding(), turnId: "wrong-turn" },
+        }) + "\n";
+        await sleep(20);
+        yield JSON.stringify({
+          type: "answer",
+          id: "q-1",
+          answer: "Blue",
+          binding: questionBinding(),
+        }) + "\n";
+      },
+    });
+    await h.run();
+    expect(
+      h.events().find((event) => event.type === "question_response_rejected"),
+    ).toMatchObject({
+      id: "q-1",
+      reason: "binding_mismatch",
+      session_id: "test-question-session",
+    });
+    expect(h.events().find((event) => event.type === "result").result).toBe(
+      'picked "Blue"',
+    );
+  });
+
   it("cancel (null answer) → USER_TIMEOUT, model proceeds", async () => {
     const h = harness({
       inputGen: async function* () {
         yield JSON.stringify({ type: "user", text: "ASK" }) + "\n";
         await sleep(80);
-        yield JSON.stringify({ type: "answer", id: "q-1", answer: null }) +
-          "\n";
+        yield JSON.stringify({
+          type: "answer",
+          id: "q-1",
+          answer: null,
+          binding: questionBinding(),
+        }) + "\n";
       },
     });
     await h.run();

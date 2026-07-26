@@ -13,6 +13,7 @@ export {
   MCPClient,
   MCPServerConfig,
   inferTransport,
+  normalizeMcpElicitationRequest,
   isHttpTransport,
   isLikelyConnectionError,
   isTransientMcpError,

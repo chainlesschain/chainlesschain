@@ -175,4 +175,54 @@ describe("EventRuntimeStore", () => {
     expect(health.queues.inbox.oldestActiveAgeMs).toBe(101);
     expect(claimed.lease.owner).toBe("observer");
   });
+
+  it("publishes bounded cross-process host health and detects stale owners", () => {
+    const observed = new EventRuntimeStore({
+      dir,
+      now: () => now,
+      owner: "observer",
+      hostStaleMs: 100,
+      maxHostRecords: 2,
+    });
+    observed.reportHost({
+      id: "host-a",
+      pid: 1001,
+      role: "cli",
+      lastStats: { inboxAcked: 2 },
+    });
+    now = 1050;
+    observed.reportHost({
+      id: "host-b",
+      pid: 1002,
+      role: "desktop-cli",
+    });
+
+    expect(observed.getHealthSnapshot().hosts).toMatchObject({
+      total: 2,
+      running: 2,
+      stale: 0,
+      stopped: 0,
+    });
+
+    now = 1101;
+    expect(observed.listHosts()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "host-a", stale: true }),
+        expect.objectContaining({ id: "host-b", stale: false }),
+      ]),
+    );
+
+    observed.stopHost("host-b");
+    expect(observed.getHealthSnapshot().hosts).toMatchObject({
+      total: 2,
+      running: 0,
+      stale: 1,
+      stopped: 1,
+    });
+
+    observed.reportHost({ id: "host-c", pid: 1003 });
+    const bounded = observed.listHosts().map((host) => host.id);
+    expect(bounded).toHaveLength(2);
+    expect(bounded).toContain("host-c");
+  });
 });

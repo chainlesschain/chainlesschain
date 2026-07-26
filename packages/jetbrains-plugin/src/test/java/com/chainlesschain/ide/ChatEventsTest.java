@@ -154,6 +154,38 @@ class ChatEventsTest {
     }
 
     @Test
+    void urlElicitationCarriesSafeOpenMetadataAndBindingToTheUi() {
+        Map<String, Object> binding = new LinkedHashMap<>();
+        binding.put("session_id", "session-1");
+        binding.put("request_id", "request-1");
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        metadata.put("kind", "mcp_elicitation");
+        metadata.put("server", "payments");
+        metadata.put("mode", "url");
+        metadata.put("elicitationId", "elicit-1");
+        metadata.put("url", "https://accounts.example.test/authorize");
+        metadata.put("urlHost", "accounts.example.test");
+        Map<String, Object> event = new LinkedHashMap<>();
+        event.put("type", "question_request");
+        event.put("id", "question-1");
+        event.put("question", "Authorize the payment provider");
+        event.put("binding", binding);
+        event.put("metadata", metadata);
+
+        Map<String, Object> ui =
+                ChatEvents.mapAgentEvent(event, new ChatEvents.TurnState());
+
+        assertEquals("question", ui.get("kind"));
+        assertEquals(Boolean.TRUE, ui.get("elicitation"));
+        assertEquals("url", ui.get("mode"));
+        assertEquals("elicit-1", ui.get("elicitationId"));
+        assertEquals(
+                "https://accounts.example.test/authorize", ui.get("url"));
+        assertEquals("accounts.example.test", ui.get("urlHost"));
+        assertSame(binding, ui.get("binding"));
+    }
+
+    @Test
     void successfulSessionSlashResultMapsToPreformattedOutput() {
         Map<String, Object> event = new LinkedHashMap<>();
         event.put("type", "slash_command_result");

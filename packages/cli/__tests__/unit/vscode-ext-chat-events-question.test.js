@@ -48,6 +48,29 @@ describe("chat-events — ask_user_question round-trip", () => {
     });
   });
 
+  it("preserves URL elicitation consent metadata for the host", () => {
+    const r = map({
+      type: "question_request",
+      id: "mcp-url-1",
+      question: "Authorize",
+      metadata: {
+        kind: "mcp_elicitation",
+        server: "github",
+        mode: "url",
+        elicitationId: "flow-1",
+        url: "https://github.example/setup",
+        urlHost: "github.example",
+      },
+    });
+    expect(r).toMatchObject({
+      elicitation: true,
+      mode: "url",
+      elicitationId: "flow-1",
+      url: "https://github.example/setup",
+      urlHost: "github.example",
+    });
+  });
+
   it("question_resolved (answered) → a quiet confirmation line", () => {
     const r = map({ type: "question_resolved", id: "q-1", via: "user-answer" });
     expect(r).toEqual({ kind: "info", text: "✓ answered" });

@@ -41,7 +41,7 @@
 | IDE 脱敏诊断导出            | VS Code 命令/Status 入口与 JetBrains Tools action 均调用 `cc doctor --export-bundle`；私有临时文件通过 schema/隐私契约校验后才替换用户目标，异常产物保留旧文件            |
 | JetBrains Marketplace 发布  | `0.4.68` 已发布；公开 API 已回读并确认 `approve=true`、`listed=true`、`hidden=false`；发布 workflow 已接入同一验证脚本                                                    |
 | VS Code 官方 Marketplace    | 未发布，当前未配置 `VSCE_PAT`；不影响 Open VSX 发布                                                                                                                       |
-| 跨端 `needs_input` 回答闭环 | 尚未纳入本轮已验证基线；绑定校验、后台持久化结算、断线重附、Remote 回答及 VS Code / JetBrains / Desktop / Web / TS/Python SDK 回显需作为独立变更验收                      |
+| 跨端 `needs_input` 回答闭环 | 尚未纳入本轮已验证基线；绑定校验、后台持久化结算、断线重附、Remote 回答及 VS Code / JetBrains / Desktop / Web / TS/Python SDK 回显需作为独立变更验收                         |
 
 已验证发布版本：VS Code `0.37.26`，JetBrains `0.4.68`；当前源码版本：
 VS Code `0.37.33`，JetBrains `0.4.72`。Plan/Diff、后台 Agent、Remote、

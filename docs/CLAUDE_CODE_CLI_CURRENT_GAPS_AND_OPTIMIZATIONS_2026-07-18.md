@@ -19,7 +19,7 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 一个可信、可恢复、跨平台一致的运行时。建议优先投入以下五项：
 
 1. **P0：统一 Process Sandbox Broker。** 所有子进程入口统一经过强隔离、网络策略、凭据代理和审计。
-2. **P0/P1：后台 Agent 实时交互总线产品化。** CLI 当前 turn 暂停/回答/继续核心已落地，继续补齐跨宿主接管、持久恢复与端到端验收。
+2. **P0/P1：后台 Agent 实时交互总线产品化。** CLI 当前 turn 暂停/回答/继续、持久 settlement 与跨宿主 authority/binding 核心已落地，继续补齐三平台端到端验收。
 3. **P1：Hooks v2。** 补齐新版事件和五种 Hook 类型，并默认并行、去重、最严决策合并及沙箱执行。
 4. **P1：常驻 Event Runtime + MCP Elicitation/Channels。** 让 Agenda、Monitor、Webhook 和 MCP 外部事件真正可持续运行。
 5. **P1：统一协议与验收门。** CLI、SDK、IDE、Desktop 共用版本化事件协议和真实端到端发布门，清理已过时的能力文档。
@@ -38,18 +38,18 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 
 ## 2. 已有基线：这些不应再作为独立大项目
 
-| 维度            | 当前仓库事实                                                                                        | 判断         |
-| --------------- | --------------------------------------------------------------------------------------------------- | ------------ |
-| Headless        | text/JSON/stream-json、stream input、结构化结果、预算、turn 上限、`--bare`、`--ephemeral`、能力清单 | 主体已具备   |
-| 会话            | 新建、恢复、命名、清理、PR 关联、导出、搜索、哈希链与 Mirror                                        | 主体已具备   |
-| 后台 Agent      | `--bg`、attach、logs、stop、resume、状态持久化、PID identity、孤儿回收、副作用台账                  | 主体已具备   |
-| 权限            | allow/ask/deny、permission mode、managed policy、项目配置信任、authority envelope、远程审批绑定     | 主体已具备   |
-| Checkpoint      | 自动 checkpoint、`/rewind`、conversation/files/both、显式 turn binding、partial coverage            | 主体已具备   |
-| Skills/Subagent | 多层 Skill、热加载、隔离上下文、完整约束契约、后台运行、Worktree、精确取消                          | 主体已具备   |
-| MCP             | stdio/HTTP、Tools、Resources、Prompts、OAuth、Tool Search、动态 list changed、Roots 通知、重连      | 主体已具备   |
-| Plugin          | Manifest、签名/信任、能力声明、能力差异与重新 consent、typed options、LSP/MCP/Hooks/Bin             | 主体已具备   |
-| 质量            | LSP、多根工作区、编辑后诊断、多 Agent Review + verifier、Doctor、OTel                               | 主体已具备   |
-| SDK             | TypeScript/Python Agent SDK、22 类 typed stream 事件、交互回调、共享 NDJSON fixture 与 CI 示例       | 双语言基线已具备 |
+| 维度            | 当前仓库事实                                                                                        | 判断             |
+| --------------- | --------------------------------------------------------------------------------------------------- | ---------------- |
+| Headless        | text/JSON/stream-json、stream input、结构化结果、预算、turn 上限、`--bare`、`--ephemeral`、能力清单 | 主体已具备       |
+| 会话            | 新建、恢复、命名、清理、PR 关联、导出、搜索、哈希链与 Mirror                                        | 主体已具备       |
+| 后台 Agent      | `--bg`、attach、logs、stop、resume、状态持久化、PID identity、孤儿回收、副作用台账                  | 主体已具备       |
+| 权限            | allow/ask/deny、permission mode、managed policy、项目配置信任、authority envelope、远程审批绑定     | 主体已具备       |
+| Checkpoint      | 自动 checkpoint、`/rewind`、conversation/files/both、显式 turn binding、partial coverage            | 主体已具备       |
+| Skills/Subagent | 多层 Skill、热加载、隔离上下文、完整约束契约、后台运行、Worktree、精确取消                          | 主体已具备       |
+| MCP             | stdio/HTTP、Tools、Resources、Prompts、OAuth、Tool Search、动态 list changed、Roots 通知、重连      | 主体已具备       |
+| Plugin          | Manifest、签名/信任、能力声明、能力差异与重新 consent、typed options、LSP/MCP/Hooks/Bin             | 主体已具备       |
+| 质量            | LSP、多根工作区、编辑后诊断、多 Agent Review + verifier、Doctor、OTel                               | 主体已具备       |
+| SDK             | TypeScript/Python Agent SDK、24 类 typed stream 事件、交互回调、共享 NDJSON fixture 与 CI 示例      | 双语言基线已具备 |
 
 因此不建议再单独立项：
 
@@ -61,22 +61,22 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
 
 ## 3. 当前对标矩阵
 
-| 能力面        | Claude Code 官方能力                                                        | ChainlessChain 当前状态                                                                                                                                                                                                            | 当前净差距                                                                                                          | 优先级 |
-| ------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------ |
-| 进程隔离      | macOS Seatbelt、Linux/WSL2 bubblewrap、文件/网络边界、凭据隔离、严格失败    | Docker/bubblewrap 与 macOS Seatbelt wrapper 已有；Broker async/sync/PTY 默认过滤 env/argv 并输出无值计数；Windows 会如实报告原生强边界 unavailable                                                                                 | Windows Job Object/Restricted Token 未落地；204 项 runtime 静态匹配仍需迁移或审计豁免；凭据 ref 的宿主认证解析通道待补 | P0     |
-| 后台人机回路  | 后台任务可暂停、请求权限/输入、恢复和接管                                   | CLI turn child 与 worker 已有绑定校验的 Node IPC；attach 回答会返回同一 child、继续同一 turn，并可向重连客户端重放 pending request                                                                                                  | Desktop/IDE/Remote Control 尚未共用完整 authority/binding 验收向量；worker/child 崩溃后的 pending 持久恢复与全链 E2E 待补 | P0/P1  |
-| 权限控制面    | CLI、交互、SDK、IDE 使用同一权限规则和决策来源                              | Agent Runtime 已有 settings rules + ApprovalGate；`cc permissions` 仍是另一套管理面                                                                                                                                                | 用户可能误以为 `cc permissions` 已直接约束 Agent 工具；安全默认和来源解释需统一                                     | P0/P1  |
-| Hooks         | 完整生命周期；command/http/mcp_tool/prompt/agent 五类；并行、去重、最严合并 | 稳定 command hook、部分事件、async/replay/trace 已有                                                                                                                                                                               | Hook 类型和事件生产者不全；shell 继承全 env；严格并行仍有 opt-in 路径                                               | P1     |
-| MCP 交互      | Elicitation、ElicitationResult、Channels、长调用后台化                      | Tools/Resources/Prompts/OAuth/Tool Search/list changed/roots、Elicitation transport、Desktop/VS Code/JetBrains common schema UX 已有                                                                                               | 完整 schema vocabulary 与部分外部事件 producer 仍待补                                                               | P1     |
-| Event Runtime | 后台会话、任务、外部事件和持续监控统一运行                                  | Agenda watch、durable inbox/outbox、lease/retry/dead-letter、Agent IPC、MCP、Webhook、Telegram、Monitor producer 默认接线与有界队列已接入；`cc status --json` 已暴露跨进程队列压力/过期租约，跨 owner 恢复演练会拒绝旧租约迟到结算 | 所有宿主统一启动/托管 worker 与完整长运行副作用恢复演练仍待补                                                       | P1     |
-| Context       | `/context` 显示 memory、skills、MCP、文件与缓存成本                         | 已显示消息角色、instruction 文件、实际注入 persona Skill 及 persisted MCP schema 的逐来源归因                                                                                                                                      | Skill 按需加载/缓存命中成本仍不完整                                                                                 | P1     |
-| Checkpoint    | 对话与文件按 turn 恢复                                                      | Headless 显式绑定已持久化，REPL 可消费                                                                                                                                                                                             | REPL 还不是统一生产者；child/worktree/user edit/provider tool id 归因不完整                                         | P1     |
-| Plugin 安全   | 插件统一打包、作用域、企业治理                                              | 能力声明、consent、签名、typed options、OS secret store、lockfile/SBOM、插件 MCP/LSP/Hook/Monitor/Bin Broker provenance；Desktop Plugin Loader 依赖探测、安装和解压已去 shell 并携带 plugin source；CLI/cc ui 与 Desktop 主进程 child_process、node-pty PTY Broker 已接入 | Desktop/CLI 原生模块和外部宿主入口仍需统一 Broker                                                                   | P1     |
-| 关键状态并发  | 会话、审批、任务和副作用状态应原子持久化                                    | Agenda/Event Runtime/session transcript 已使用 fail-closed file lock                                                                                                                                                               | approval/部分 ledger/IDE session 状态仍需统一迁移，避免不同宿主各自写入                                             | P1     |
-| 结构化输出    | 标准 JSON Schema、启动期校验、最终 validated result                         | 常用 Draft 2020-12 vocabulary（组合、条件、`$ref`、dependent、pattern、contains、format）、显式 external schema registry 及 stream `structured_result`                                                                             | 完整 meta-vocabulary、自动远程 ref 解析与复杂 schema 互操作性仍待补                                                 | P1     |
-| SDK/CI        | TypeScript/Python SDK、版本化事件、GitHub/GitLab 自动化                     | 双语言 SDK 已覆盖 22 类 typed stream 事件、approval/question/MCP elicitation callback、resume 与未知事件无损透传；共享 fixture、GitHub Actions 模板及 21 项 hermetic 测试已落地；Python SDK 0.1.0 已发 PyPI，并通过 3.10/3.12/3.13 公网 wheel 安装矩阵 | SemVer/capability negotiation/deprecation 矩阵、跨宿主 schema package、GitLab 与双语言联合发布兼容门仍待补          | P1     |
-| 验收与文档    | CLI/IDE/SDK 共享运行时和持续发布验证                                        | 单元/集成测试很多                                                                                                                                                                                                                  | MVP 验证脚本没有覆盖完整 Desktop→真实 CLI 链；多份旧文档仍把已完成项列为缺口                                        | P1     |
-| 全进程回滚    | 官方 checkpoint 主要覆盖编辑工具                                            | 已对 shell/外部副作用诚实标记 partial                                                                                                                                                                                              | 可进一步做全工具文件变更捕获，形成强于 Claude Code 的差异化                                                         | P2     |
+| 能力面        | Claude Code 官方能力                                                        | ChainlessChain 当前状态                                                                                                                                                                                                                                                   | 当前净差距                                                                                                                | 优先级 |
+| ------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 进程隔离      | macOS Seatbelt、Linux/WSL2 bubblewrap、文件/网络边界、凭据隔离、严格失败    | Docker/bubblewrap、macOS Seatbelt wrapper 与 Windows Job Object/Restricted Token adapter 已有；Broker async/sync/PTY 默认过滤 env/argv；credential ref 已通过本地认证 transport 按进程/host/TTL/次数解析；206 项 runtime 静态匹配已全部归类且 unreviewed=0                | Windows Node IPC fd3/detached 目标身份尚不能跨原生 wrapper 保真；真实三平台严格隔离 CI 待补                               | P0     |
+| 后台人机回路  | 后台任务可暂停、请求权限/输入、恢复和接管                                   | CLI turn child 与 worker 已有绑定校验的 Node IPC；attach 回答会返回同一 child、继续同一 turn；pending/settlement 已写入 session journal，重连可重放，worker 丢失会 exactly-once 拒绝；Desktop/IDE/Web Panel/Remote Control/双语言 SDK 已共用 runtime authority 与 binding 验收向量 | 三平台全链 E2E 已接入现有 CLI matrix，当前改动的远端结果待验收                                                           | P0/P1  |
+| 权限控制面    | CLI、交互、SDK、IDE 使用同一权限规则和决策来源                              | Agent Runtime 已有 settings rules + ApprovalGate；`cc permissions` 仍是另一套管理面                                                                                                                                                                                       | 用户可能误以为 `cc permissions` 已直接约束 Agent 工具；安全默认和来源解释需统一                                           | P0/P1  |
+| Hooks         | 完整生命周期；command/http/mcp_tool/prompt/agent 五类；并行、去重、最严合并 | 40 事件 registry、5 类公共 executor + trusted JS、默认并行/去重、11 项高价值 producer、最小环境交集、command/workspace/MCP/agent/skill managed allowlist、MCP 共享授权和 delegated budget 已接真实路径 | 跨平台强文件写沙箱仍依赖 P0 原生隔离收口                                                                                  | P1     |
+| MCP 交互      | Elicitation、ElicitationResult、Channels、长调用后台化                      | Tools/Resources/Prompts/OAuth/Tool Search/list changed/roots，以及 Elicitation form/URL/defer、complete 通知、`-32042` exactly-once retry 和 Desktop/VS Code/JetBrains/双语言 SDK 宿主协议均已有                                                                      | 完整 schema vocabulary 与部分外部事件 producer 仍待补                                                                     | P1     |
+| Event Runtime | 后台会话、任务、外部事件和持续监控统一运行                                  | Agenda watch、durable inbox/outbox、lease/retry/dead-letter、Agent IPC、MCP、Webhook、Telegram、Monitor producer 默认接线与有界队列已接入；真实 binary lazy 入口统一托管 process-level worker，短命命令 final drain；`cc status --json` 暴露队列与跨进程 host heartbeat/stale，真实双进程演练验证更高 fence 接管和幂等副作用只应用一次 | ✅ 核心闭环；新增外部副作用仍须携带稳定 event id 并实现领域幂等 handler                                                    | P1     |
+| Context       | `/context` 显示 memory、skills、MCP、文件与缓存成本                         | instruction、实际注入 persona Skill、persisted MCP schema 已逐来源归因；普通 Skill 使用 descriptor/body 双层 cache，Headless/REPL 持久化无正文快照，分别报告磁盘读取、cache hit、正文大小等价量与实际 prompt 注入 token                                                     | ✅ 当前核心闭环；Subagent/Hook 独立预算与 provider 实际计费误差仍作为后续可观测性增强                                    | P1     |
+| Checkpoint    | 对话与文件按 turn 恢复                                                      | Headless 显式绑定已持久化，REPL 可消费                                                                                                                                                                                                                                    | REPL 还不是统一生产者；child/worktree/user edit/provider tool id 归因不完整                                               | P1     |
+| Plugin 安全   | 插件统一打包、作用域、企业治理                                              | 能力声明、consent、签名、typed options、OS secret store、lockfile/SBOM、插件 MCP/LSP/Hook/Monitor/Bin Broker provenance；Desktop Plugin Loader 依赖探测、安装和解压已去 shell 并携带 plugin source；CLI/cc ui 与 Desktop 主进程 child_process、node-pty PTY Broker 已接入 | Desktop/CLI 原生模块和外部宿主入口仍需统一 Broker                                                                         | P1     |
+| 关键状态并发  | 会话、审批、任务和副作用状态应原子持久化                                    | Agenda/Event Runtime/session transcript 已使用 fail-closed file lock                                                                                                                                                                                                      | approval/部分 ledger/IDE session 状态仍需统一迁移，避免不同宿主各自写入                                                   | P1     |
+| 结构化输出    | 标准 JSON Schema、启动期校验、最终 validated result                         | 常用 Draft 2020-12 vocabulary（组合、条件、`$ref`、dependent、pattern、contains、format）、显式 external schema registry 及 stream `structured_result`                                                                                                                    | 完整 meta-vocabulary、自动远程 ref 解析与复杂 schema 互操作性仍待补                                                       | P1     |
+| SDK/CI        | TypeScript/Python SDK、版本化事件、GitHub/GitLab 自动化                     | 当前双语言源码覆盖 24 类 typed stream 事件（含 MCP defer/complete）、approval/question/MCP elicitation callback、resume 与未知事件无损透传；共享 fixture、GitHub Actions 模板及 22 项 hermetic 测试已落地；已发布 Python SDK 0.1.0 是此前 22 类事件基线，并通过 3.10/3.12/3.13 公网 wheel 安装矩阵 | SemVer/capability negotiation/deprecation 矩阵、跨宿主 schema package、GitLab、双语言联合发布兼容门及新增事件的新版本发布仍待补 | P1     |
+| 验收与文档    | CLI/IDE/SDK 共享运行时和持续发布验证                                        | 单元/集成测试很多                                                                                                                                                                                                                                                         | MVP 验证脚本没有覆盖完整 Desktop→真实 CLI 链；多份旧文档仍把已完成项列为缺口                                              | P1     |
+| 全进程回滚    | 官方 checkpoint 主要覆盖编辑工具                                            | 已对 shell/外部副作用诚实标记 partial                                                                                                                                                                                                                                     | 可进一步做全工具文件变更捕获，形成强于 Claude Code 的差异化                                                               | P2     |
 
 ## 4. P0：统一 Process Sandbox Broker
 
@@ -86,21 +86,28 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   `docker` 和 `bubblewrap`；Broker 的
   [`platform-sandbox.js`](../packages/cli/src/lib/process-execution-broker/platform-sandbox.js)
   已另行提供 macOS Seatbelt wrapper 与 Linux `prlimit` 执行计划。
-- `bubblewrap` 已有真实 Linux 集成测试，macOS Seatbelt wrapper 有注入式单元测试；原生 Windows
-  Job Object/Restricted Token 尚无 adapter，当前会明确返回
-  `windows_native_job_object_unavailable`，严格模式据此 fail-closed。
+- `bubblewrap` 已有真实 Linux 集成测试，macOS Seatbelt wrapper 有注入式单元测试；Windows
+  adapter 通过系统 PowerShell bootstrap P/Invoke Win32，以 restricted token 挂起创建目标、
+  加入 kill-on-close Job 后再恢复。Windows 真实测试已覆盖 privilege 收缩、`cmd.exe /s /c`
+  内嵌引号、2 MiB 输出与 detached grandchild 清理；adapter/系统宿主缺失时严格模式仍
+  fail-closed。
+- Windows helper 仍是中间 wrapper，当前不能复制 Node/libuv fd3 IPC 描述符表，也不能让
+  `spawn().pid` 保持 detached 目标身份。Broker 对这两类计划显式报告 unavailable：
+  非严格模式审计降级，`CC_SANDBOX_STRICT=1` 则在启动前拒绝。
 - Hook command 仍从完整 `process.env` 构造执行环境，但已通过 Process Broker；Broker 会移除已识别
   的敏感环境变量。按 executor 声明最小环境 allowlist 尚未完成。
 - `run_shell`、`run_code`、Hook、Plugin Bin、LSP、MCP stdio、CLI/`cc ui` PTY 与 Desktop
   `child_process`/PTY 的已迁移入口现已进入 Broker；静态 spawn 清单中的剩余直接入口、原生模块和
   外部宿主仍无法证明遵守同一文件/网络边界。
-- 2026-07-24 重新生成
-  [`PROCESS_SPAWN_INVENTORY.generated.md`](./cli/PROCESS_SPAWN_INVENTORY.generated.md)：总匹配从
-  317 降至 285，runtime 从 236 降至 204，tooling/test 保持 53/28。该计数用于逐项迁移或记录
-  审计豁免，不能直接等同于 204 个真实绕过。
-- 2026-07-23 已统一 Broker async/sync/PTY 的 CredentialAgent 边界：过滤后的 env 与 argv 会真正
+- 2026-07-26 重新生成
+  [`PROCESS_SPAWN_INVENTORY.generated.md`](./cli/PROCESS_SPAWN_INVENTORY.generated.md)：当前共
+  290 个词法匹配（runtime 206、tooling 56、test 28）；runtime 已逐项归类为 157 个
+  `brokered`、16 个 `audited-exemption` 与 33 个 `non-executable`，`unreviewed=0`。
+  `docs:spawn-inventory:check` 在文档漂移或出现任意未复核 runtime 匹配时失败。
+- 2026-07-26 已统一 Broker async/sync/PTY 的 CredentialAgent 边界：过滤后的 env 与 argv 会真正
   传给原生执行函数，审计仅记录 env/argv 过滤数量，拒绝路径会先脱敏 argv，过滤器异常时不再让
-  sync 路径携带原始凭据继续执行。按 host/process 审批后解析短期值的完整代理闭环仍待补。
+  sync 路径携带原始凭据继续执行；ref 通过 Windows named pipe / POSIX Unix socket transport，
+  按 Broker execution decision、进程、host、TTL 与使用次数认证解析。
 - 同日已将 npm 登录态命令、`llm.apiKeyHelper` 外部凭据命令和 MCP OAuth 浏览器启动器从直接
   `child_process` 调用迁移到显式 Broker provenance/scope；静态清单继续作为剩余入口的事实源。
 - `cc config edit` 也已移除 shell 字符串拼接：`$EDITOR` 被解析为 executable/argv，配置路径作为
@@ -343,7 +350,7 @@ ExecutionResult
 
 ## 5. P0/P1：后台 Agent 实时交互总线产品化
 
-### 5.1 已实现（2026-07-24 复核）
+### 5.1 已实现（2026-07-26 复核）
 
 - [`background-agent-worker.js`](../packages/cli/src/workers/background-agent-worker.js) 启动 turn child
   时已打开 Node IPC；[`headless-runner.js`](../packages/cli/src/runtime/headless-runner.js) 将后台
@@ -354,15 +361,29 @@ ExecutionResult
 - worker 通过
   [`background-session-transport.js`](../packages/cli/src/lib/background-session-transport.js)
   向 attach 客户端广播 `interaction_request`。客户端回答后，结果经 worker 返回同一个 turn child，
-  不进入下一轮 `promptQueue`；重连时会重放当前 worker 内存中的 pending request。
+  不进入下一轮 `promptQueue`；重连时会重放当前 pending request。
+- [`background-interaction-journal.js`](../packages/cli/src/lib/background-interaction-journal.js)
+  在 request 对宿主可见前持久化完整 binding/payload 指纹，并在结果交付 child 前先写 terminal
+  settlement。同一答案重试幂等，不同答案与跨绑定响应 fail-closed；worker 重启或监管器确认
+  worker 已丢失时，遗留 pending 会确定性写成一次 rejected settlement。
+- [`interaction-binding.js`](../packages/cli/src/lib/interaction-binding.js) 是 runtime 的绑定
+  规范化和逐字段比较事实源。Desktop trusted main、VS Code、JetBrains、Web Panel 与 Remote
+  Control 只保留并回传 request 携带的 opaque binding，不能以 UI 文本或自报字段改变最终
+  session/turn/tool authority；Remote Control 的回答还要求认证的人类 actor 和 `prompt` scope。
+- TypeScript/Python SDK 的自动 question/MCP elicitation callback 会原样回传 binding；
+  WebSocket `session-answer`、后台 `bg-answer` 和 Remote Control `question.answer` 都要求完整
+  binding。Agent SDK `interaction.ndjson` 中的共享 Golden 向量由 CLI、SDK、VS Code 和
+  JetBrains 用于缺字段、stale 及跨 session/turn/tool 一致拒绝测试。
 - `headless-side-effect-ledger-resume.test.js` 已验证后台问题在同一 turn 内解析；
-  `background-stability-realspawn.test.js` 覆盖真实子进程交互链。
+  `background-stability-realspawn.test.js` 已在本地 Windows 覆盖真实子进程链的
+  提问→断线→重连→回答→同 turn 完成。现有 CLI CI 会在 Ubuntu/macOS/Windows 运行全部
+  integration 分片，且该用例无平台跳过条件；当前改动尚无远端运行结果，三平台结果仍待验收。
 
 因此，“后台提问只能结束当前 turn、回答必须另起一轮”的核心缺口已经关闭。
 
 ### 5.2 剩余收口
 
-现有双向通道应继续收敛为跨宿主的唯一交互协议：
+现有双向通道已经收敛为以下跨宿主交互协议：
 
 ```text
 turn child -> worker (Node IPC)
@@ -378,18 +399,18 @@ worker <-> attach/Desktop/IDE/Remote
   interaction_request / interaction_response
 ```
 
+已完成：
+
+- attach、Desktop、VS Code、JetBrains、Web Panel 与 Remote Control 共用 runtime
+  authority/binding resolver 和 Golden Fixtures；UI 文本不能自行代表用户授权。
+
 仍需完成：
 
-- 把 pending request 和 settlement 持久化，worker/child 崩溃后可以确定性恢复、取消或拒绝，而不只依赖
-  当前 worker 内存。
-- attach、Desktop、VS Code、JetBrains 与 Remote Control 共用同一 authority/binding resolver、
-  过期规则和 Golden Fixtures，UI 文本不能自行代表用户授权。
 - question、permission 与 MCP elicitation 共用状态迁移、取消、超时、重复回答幂等和有界背压。
 - Headless 无可交互宿主时返回结构化 `defer`，交给 SDK/CI 处理，不能挂死或静默 allow。
 
 ### 5.3 剩余验收标准
 
-- worker 或 UI 重启后 pending request 可恢复，settlement 最多生效一次。
 - stale、伪造、跨 session、跨 turn 和跨 tool call 的回答在所有宿主上一致拒绝。
 - 本地 attach、WebSocket、Desktop、VS Code、JetBrains 使用相同 authority/binding 测试向量。
 - `working`、`needs_input`、`waiting_permission`、`uncertain_side_effect`、`idle` 状态有唯一生产者和
@@ -400,18 +421,32 @@ worker <-> attach/Desktop/IDE/Remote
 
 ### 6.1 当前证据
 
-- [`settings-hooks.cjs`](../packages/cli/src/lib/settings-hooks.cjs#L35) 的旧配置加载面仍是部分集合；Hooks v2 runtime 注册表已扩展为 31 个事件。
+- [`settings-hooks.cjs`](../packages/cli/src/lib/settings-hooks.cjs#L35) 的旧配置加载面仍是部分集合；Hooks v2 runtime 注册表已扩展为 40 个事件。
 - 同一加载器在 [`settings-hooks.cjs`](../packages/cli/src/lib/settings-hooks.cjs#L111) 只收
   `type: "command"`。
-- `TaskCreated` / `TaskCompleted` 已由 Subagent 生命周期生产，`MCPElicitation` 已由交互和 headless-stream producer 生产；其余事件仍未全部接入真实 producer。
+- `TaskCreated` / `TaskCompleted` 已由 Subagent 生命周期生产；顺序与并行 tool loop
+  会在每项 settlement 后发 `PostToolUse`/`PostToolUseFailure`，并在整批完成后发一次
+  `PostToolBatch`；成功的文件写工具会发支持跨平台 glob 过滤的 `FileChanged`。
+- 自动与手动压缩会发 `PostCompact`；Desktop/WS 与 headless MCP 通道会发
+  `MCPElicitation` 兼容事件以及成对的 `Elicitation`/`ElicitationResult`。
+- Setup 已接 stream/一次性 headless 启动门并 fail-closed；UserPromptExpansion
+  在模型调用前合并唯一 prompt 更新和附加上下文，冲突会拒绝本轮。
+- 停止 hook 的执行错误、畸形决策与断路器打开会发 `StopFailure`；团队调度状态机在成员
+  从运行态真实回到空闲态时发 `TeammateIdle`，不把初始化或重复 idle 当作事件。
 - 真并行和最严决策合并已经有实现，但仍存在 opt-in/default-flip 余量。
-- CLI 与 Desktop command/script Hook 已进入各自的 Process Broker，但仍以 shell 执行并从宿主环境
-  构造输入；统一强沙箱和按 executor 声明的 managed 最小环境 allowlist 尚未完成。
+- CLI 与 Desktop command/script Hook 已进入各自的 Process Broker。所有 CLI Hook 面与
+  Desktop Hook 已改用最小环境，额外变量要求管理员 allowlist 与 Hook 请求取交集；Hooks v2
+  另有 command/workspace/MCP/agent/skill allowlist、MCP 共享授权和 delegated executor
+  独立超时。旧 command/script 兼容面仍会显式进入 shell，跨平台强文件写沙箱尚未完成。
 
-2026-07-22 复核：`hooks-v2-runtime.js` 已提供 31 事件注册表、5 种 executor、默认并行
+2026-07-26 复核：`hooks-v2-runtime.js` 已提供 40 事件注册表、5 种公共 executor、trusted
+JS compatibility handler、默认并行
 执行、按 id 去重、顺序兼容开关和 `executeHooks` 公共入口；JS handler、Process Broker
-同步执行、Agent IPC 注册状态及 Context Source Ledger 适配已由 M5 E2E 覆盖。当前仍未
-将每一个事件都接入真实 producer，也未完成统一 sandbox/managed allowlist，因此本节的
+同步执行、Agent IPC 注册状态及 Context Source Ledger 适配已由 M5 E2E 覆盖。真实 loop
+新增真实 loop 的 `PostToolUseFailure`/`PostToolBatch` 绑定聚合、FileChanged 跨平台 glob、
+Setup fail-closed、UserPromptExpansion、StopFailure、TeammateIdle 状态迁移、最小环境交集、
+managed target deny、MCP 共享授权和 delegated timeout 测试。
+11 项高价值 producer 与 managed policy 缺口已闭合，但仍未完成跨平台强文件写 sandbox，因此本节的
 “完整 Hooks v2”仍是进行中，不能仅凭事件白名单宣称全部完成。
 
 Claude Code 当前官方 Hook 面已包括更完整的生命周期，并支持 `command`、`http`、`mcp_tool`、
@@ -422,17 +457,17 @@ Claude Code 当前官方 Hook 面已包括更完整的生命周期，并支持 `
 1. 建立唯一 `HookEventSchema`，CLI、SDK、IDE、插件共用版本和 Golden Fixtures。
 2. 补齐高价值事件：
    - `Notification` ✅ **已实现**（`hook-events.js` 新增枚举、`session-hooks.js` 实现 `fireNotification`、`agent-repl.js` 接入触发、payload 支持 `message`/`level`/`subtitle` 字段）
-   - `Setup`
-   - `UserPromptExpansion`
-   - `PostToolUseFailure`
-   - `PostToolBatch`
-   - `PermissionDenied`
-   - `StopFailure`
-   - `FileChanged`
-   - `PostCompact`
-   - `TaskCreated` / `TaskCompleted`
-   - `Elicitation` / `ElicitationResult`
-   - `TeammateIdle`
+   - `Setup` ✅
+   - `UserPromptExpansion` ✅
+   - `PostToolUseFailure` ✅
+   - `PostToolBatch` ✅
+   - `PermissionDenied` ✅
+   - `StopFailure` ✅
+   - `FileChanged` ✅
+   - `PostCompact` ✅
+   - `TaskCreated` / `TaskCompleted` ✅
+   - `Elicitation` / `ElicitationResult` ✅
+   - `TeammateIdle` ✅
 3. 实现五种 Hook executor，并为各事件声明允许的类型和决策语义。
 4. 默认并行执行、相同处理器去重、最严格决策优先；保留兼容开关和明确迁移日志。
 5. command/agent hook 进入 Process Broker；HTTP hook 使用 managed 域名 allowlist；MCP hook 复用 MCP 权限。
@@ -463,7 +498,9 @@ Claude Code 当前官方 Hook 面已包括更完整的生命周期，并支持 `
 2026-07-22 另补齐 Agenda 的持久执行 lease 和常驻入口：`AgentScheduleStore.claimDue()`
 通过跨进程锁标记 due 条目，完成/失败时释放，进程异常后由过期 lease 回收，避免两个
 `cc agenda run` 同时触发同一任务；`cc agenda run --watch <seconds>` 现在以可停止
-daemon loop 持续轮询。`EventRuntimeStore` 与可停止的 `EventRuntimeWorker` 已提供 durable inbox/outbox、幂等、租约回收、失败重试/死信；`EventRuntimeProducer` 已规范 origin/authority，Agent IPC、MCP resolver、Webhook、Telegram 和 Plugin Monitor 在 `CC_EVENT_RUNTIME_DURABLE=1` 时均自动接入，队列超过上限会 fail-closed。2026-07-23 起 `cc status --json` 会输出 inbox/outbox 的 active、claimable、delayed、processing、dead、过期租约、容量余量及 `normal/high/full` 压力；真实文件存储的双 owner 恢复演练覆盖进程崩溃、租约过期接管，并拒绝旧 owner 的迟到 ack/fail 覆盖新结果。所有宿主统一启动/托管 worker 与完整长运行副作用恢复演练仍待落地。
+daemon loop 持续轮询。`EventRuntimeStore` 与可停止的 `EventRuntimeWorker` 已提供 durable inbox/outbox、幂等、租约回收、失败重试/死信；`EventRuntimeProducer` 已规范 origin/authority，Agent IPC、MCP resolver、Webhook、Telegram 和 Plugin Monitor 在 `CC_EVENT_RUNTIME_DURABLE=1` 时均自动接入，队列超过上限会 fail-closed。2026-07-26 起，真实发布 binary 的 lazy-dispatch 入口统一托管 process-level host：所选命令先注册 handler 再开始 claim，长驻命令持续 drain，短命命令退出前进行最多 10 tick 的有界 final drain。Webhook/Telegram durable 事件通过 queue/type/origin required-handler 恢复路由进入当前会话，不会在无 handler 时被误 ack。
+
+`cc status --json` 除 inbox/outbox 的 active、claimable、delayed、processing、dead、过期租约、容量余量及 `normal/high/full` 压力外，还会从同锁域、100 条上限的 `hosts.json` 输出 process host 的 pid、role、heartbeat、lastStats/lastError 及 running/stale/stopped 汇总。`npm run runtime:event-recovery` 会启动两个真实 Node 进程：首进程 claim 后硬退出，lease 过期后 successor 以更高 fence 接管，通过真实 host 执行幂等 marker 副作用并结算；本地演练锁定 attempts 2、fence `1 → 2`、副作用应用一次及 stale/stopped host 可观测。核心常驻与恢复闭环已完成；后续新增外部副作用仍必须携带稳定 event id，并提供领域幂等 handler。
 
 2026-07-22 已补齐 MCP transport 核心：服务器发出的 `elicitation/create` 会进入注入的
 handler，或通过 `elicitation-request` 事件交给宿主；支持 `accept/decline/cancel` 规范化、
@@ -472,8 +509,18 @@ stream/headless 路径会复用现有结构化问题通道。WS question channel
 schema fixture 已接入；Desktop/VS Code/JetBrains 已补齐 MCP 受限 form vocabulary：
 字符串长度和四种标准格式、数值上下界、`enum`/`enumNames`/带标题 `oneOf`、多选
 `items.enum`/`items.anyOf` 与 item 数约束，并在提交前使用同一 conformance contract
-校验。URL-mode/defer 尚未接入；嵌套 schema、`$ref`（含远程解析）和完整 Draft 2020-12
-不属于该 form-mode 完成口径，因此 P1-5 仍保留为部分完成。
+校验。2026-07-26 又按 MCP 稳定版本 `2025-11-25` 补齐 URL-mode：client 声明
+form/URL capability，仅接受带 `elicitationId` 的无凭证 HTTPS URL；CLI、Desktop、
+VS Code、JetBrains 和 SDK 均展示完整 URL/host，并在用户明确同意后才打开浏览器，
+URL 应答不携带 `content`。`notifications/elicitation/complete` 按 server/id 关联，
+未知、跨 server 与重复通知会被忽略；`URLElicitationRequiredError (-32042)` 在全部
+URL 流完成后只重试原工具调用一次。无交互宿主输出 typed
+`elicitation_deferred`，MCP wire 同时 fail-closed `decline`，不会挂死。因此 P1-5
+路由项已完成；嵌套 schema、`$ref`（含远程解析）和完整 Draft 2020-12 继续归 P1-11，
+不回退 P1-5 状态。Streamable HTTP 也会在初始化后发送协商版本 header，分派 POST SSE
+响应中先于 request response 到达的 server message，并在交互宿主安装 handler 后保持
+可恢复的 GET SSE 接收器；因此异步 URL complete 与 HTTP server-initiated elicitation
+不再只在 stdio 上生效。
 
 ### 7.2 建议
 
@@ -498,13 +545,23 @@ schema fixture 已接入；Desktop/VS Code/JetBrains 已补齐 MCP 受限 form v
 ## 8. P1：Context 成本与懒加载可观测性
 
 [`context-breakdown.js`](../packages/cli/src/lib/context-breakdown.js#L14) 现在会归因实际注入系统提示的
-persona Skill 和 persisted MCP tool schema；未注入的 lazy/discoverable Skill 不计入上下文成本。`/context`
-已经有价值，但还不能回答：
+persona Skill 和 persisted MCP tool schema；未注入的 lazy/discoverable Skill 不计入上下文成本。
+普通 Skill 已使用 descriptor/body 双层 cache：discovery 仅解析 YAML frontmatter，正文只在 persona
+注入或 `run_skill` 执行时 materialize，并按文件 mtime/size 失效。cache ledger 不保存正文，
+但会分别记录 descriptor prompt return、body 磁盘读取、cache hit、正文大小等价量，以及正文
+真正进入 prompt 的 `contextLoads/contextTokens`；因此 `run_skill` 读取 handler 正文不会被误报
+成 provider token。
 
-- 哪个 Skill 描述常驻、哪个正文按需加载、实际占了多少 token。当前已记录实际注入 persona Skill 的来源和 token；普通 lazy Skill 仍待运行时 cache ledger。
-- 哪个 MCP server/tool schema 占用最多，Tool Search 节省了多少。当前已将实际 admitted MCP schema 持久化并在 `cc context --sources` 中逐工具归因。
-- 哪条指令、规则、文件或 compaction re-injection 导致 cache miss。
+Headless 与交互 REPL 现在共享 session-scoped Skill loader。两种入口都会把 admitted MCP schema、
+实际 persona 和最新 Skill cache ledger 写为 content-free `context_sources` 事件；REPL 在 MCP
+启动、每轮完成、`/reload-skills` 和退出时刷新。`cc context --sources` 文本和 JSON 可展示
+resident/lazy、逐 Skill 来源、磁盘/缓存读取与 prompt 注入成本。
+
+仍可继续增强的可观测性：
+
+- 哪条 compaction re-injection 导致 cache miss。
 - Subagent、Hook、MCP 和主会话各自消耗多少上下文和预算。
+- `/context --json` 与 provider 最终计费 token 的持续误差上限。
 
 建议引入 `ContextSourceLedger`，在真正构造 provider request 的位置记录：
 
@@ -635,17 +692,20 @@ remote approval 和不同运行入口中。
 2026-07-24 复核时，SDK 主体已经从单一 TypeScript 雏形扩展为双语言基线：
 
 - [`packages/agent-sdk`](../packages/agent-sdk/) 与
-  [`packages/agent-sdk-python`](../packages/agent-sdk-python/) 均覆盖协议中的 22 类 typed stream
+  [`packages/agent-sdk-python`](../packages/agent-sdk-python/) 均覆盖协议中的 24 类 typed stream
   事件，并支持 approval、question、MCP elicitation callback、session resume。
 - 两端都会无损保留未知事件，旧消费者不会因新事件类型破坏事件泵；共享 NDJSON fixture 作为
   跨语言事实源。
-- Python 包已提供穷举 CI consumer、最小权限 GitHub Actions 示例和 21 项 hermetic 测试。
+- Python 包已提供穷举 CI consumer、最小权限 GitHub Actions 示例和 22 项 hermetic 测试。
 - `chainlesschain-agent-sdk==0.1.0` 已通过 tag 驱动的 PyPI Trusted Publishing 正式发布；
   发布门包含版本/tag 一致性、编译、测试、共享 fixture 回放、wheel/sdist 构建、`twine check`
   和隔离环境 wheel 导入。发布后又从公开 PyPI 在 Python 3.10、3.12、3.13 上完成安装与
   公共 API 烟测。证据：[PyPI](https://pypi.org/project/chainlesschain-agent-sdk/)、
   [发布工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/30065060091)、
   [公网安装矩阵](https://github.com/chainlesschain/chainlesschain/actions/runs/30065341896)。
+- 上述 0.1.0 是 22 类事件发布基线；当前源码新增的
+  `ElicitationDeferredEvent` / `ElicitationCompleteEvent` 尚未发布新版本，不能把本地
+  24 类事件验证误写成公网包已包含。
 
 因此 Python SDK、基础事件透传、GitHub Actions 示例和 Python 独立发布门不再列为缺口。
 剩余工作集中在跨语言、跨宿主兼容门：
@@ -742,19 +802,19 @@ mTLS 和团队级成本/失败聚合；继续坚持内容默认不出端。
 
 ## 15. 建议实施路线
 
-| 批次          | 时间建议 | 交付目标                                                                        | 退出条件                                        |
-| ------------- | -------- | ------------------------------------------------------------------------------- | ----------------------------------------------- |
-| M0 事实基线   | 1 周     | 统一 parity 验收脚本、spawn 清单、文档状态清理、权限双系统标识                  | 当前能力可一键复验，旧待办和权限 UI 不再误导    |
-| M1 可信执行   | 4–6 周   | Process Broker、Linux/macOS/Windows 后端、凭据 default-on、关键状态 fail-closed | 所有生产子进程统一受控，三平台严格测试通过      |
-| M2 实时交互   | 2–3 周   | 已有 worker-child IPC 之上的跨宿主 resolver、持久恢复与断线重连 E2E             | 所有宿主同 turn 继续，stale response 全拒且可恢复 |
-| M3 扩展运行时 | 4–6 周   | Hooks v2、常驻 Event Runtime、MCP Elicitation/Channels                          | 事件可恢复、幂等、有界，Hook 协议稳定           |
-| M4 协议收口   | 3–4 周   | Context ledger、统一 turn binding、标准 JSON Schema、双语言 SDK/IDE golden gate | CLI/SDK/IDE/Desktop 事件与恢复语义一致          |
-| M5 差异化     | 按需求   | 全工具文件回滚、安全分类器评测、大规模 Agent                                    | 有真实用户指标与故障模型后再投入                |
+| 批次          | 时间建议 | 交付目标                                                                        | 退出条件                                          |
+| ------------- | -------- | ------------------------------------------------------------------------------- | ------------------------------------------------- |
+| M0 事实基线   | 1 周     | 统一 parity 验收脚本、spawn 清单、文档状态清理、权限双系统标识                  | 当前能力可一键复验，旧待办和权限 UI 不再误导      |
+| M1 可信执行   | 4–6 周   | Process Broker、Linux/macOS/Windows 后端、凭据 default-on、关键状态 fail-closed | 所有生产子进程统一受控，三平台严格测试通过        |
+| M2 实时交互   | 2–3 周   | 已有 worker-child IPC、持久 settlement 与跨宿主 resolver 之上的三平台断线重连 E2E | 所有宿主同 turn 继续，stale response 全拒且可恢复 |
+| M3 扩展运行时 | 4–6 周   | Hooks v2、常驻 Event Runtime、MCP Elicitation/Channels                          | 事件可恢复、幂等、有界，Hook 协议稳定             |
+| M4 协议收口   | 3–4 周   | Context ledger、统一 turn binding、标准 JSON Schema、双语言 SDK/IDE golden gate | CLI/SDK/IDE/Desktop 事件与恢复语义一致            |
+| M5 差异化     | 按需求   | 全工具文件回滚、安全分类器评测、大规模 Agent                                    | 有真实用户指标与故障模型后再投入                  |
 
 可以并行的工作：
 
 - M0 可与 M1 的接口设计并行。
-- M2 的跨宿主 adapter 与恢复测试可和 M1 剩余入口审计并行，但必须复用同一 authority。
+- M2 的三平台恢复验收可和 M1 剩余入口审计并行，并继续复用同一 authority。
 - Context ledger 与双语言 SDK Golden Fixtures/发布门可独立推进。
 
 不能倒置的依赖：
@@ -836,7 +896,7 @@ mTLS 和团队级成本/失败聚合；继续坚持内容默认不出端。
 | **M1**   | Broker 支持所有 origin 类型 (shell/mcp/lsp/agent/background/hook) | ✅ **Completed**         | Broker 内置权限决策、凭据过滤、平台沙箱和审计机制；未提供 `addPolicyEnforcer()` 公共 API |
 | **M1**   | 现有入口接入审计 (hook-manager)                                   | ✅ **Completed**         | `packages/cli/src/lib/hook-manager.js` 已由 Process Broker 执行并统一审计                |
 | **M2**   | 后台 Agent 实时 IPC 总线 (`agent-ipc-bus`)                        | ✅ **Completed**         | `packages/cli/src/lib/agent-ipc-bus.js`                                                  |
-| **M3-1** | Hooks v2: 18个生命周期事件 + 5种executor类型统一API               | 🟡 **Runtime completed** | `packages/cli/src/lib/hooks-v2-runtime.js`；真实 producer 接入与 sandbox 强制仍待补      |
+| **M3-1** | Hooks v2: 当前 40 个事件 + 5 种公共 executor（另有 trusted JS）统一 API | 🟡 **Runtime completed** | `packages/cli/src/lib/hooks-v2-runtime.js`；高价值 producer/managed policy 已接，跨平台强文件写 sandbox 仍待补 |
 | **M3-2** | Event Runtime 常驻框架 (emit/subscribe)                           | ✅ **Completed**         | HooksV2Runtime 内置 EventEmitter，支持事件调度                                           |
 | **M4-1** | Context Source Ledger 来源记账                                    | ✅ **Completed**         | `packages/cli/src/lib/context-source-ledger.js`                                          |
 | **M4-2** | Turn binding schema (sessionId/turnId/toolUseId 全透传)           | ✅ **Completed**         | Broker/IPCBus/Ledger 统一支持 traceId 透传                                               |

@@ -120,7 +120,14 @@
       "hasOptions": true,
       "elicitation": false,
       "server": null,
-      "hasSchema": false
+      "hasSchema": false,
+      "binding": {
+        "backgroundAgentId": null,
+        "sessionId": "sess-fx-1",
+        "turnId": "turn-fx-1",
+        "toolUseId": "tool-fx-1",
+        "sequence": 1
+      }
     },
     {
       "kind": "question",
@@ -140,8 +147,35 @@
       "hasOptions": false,
       "elicitation": true,
       "server": "release-mcp",
-      "hasSchema": true
+      "hasSchema": true,
+      "mode": "form",
+      "elicitationId": null,
+      "url": null,
+      "urlHost": null
     },
+    {
+      "kind": "question",
+      "id": "mcp-url-1",
+      "question": "Authorize payments",
+      "multiSelect": false,
+      "hasOptions": false,
+      "elicitation": true,
+      "server": "payments-mcp",
+      "hasSchema": false,
+      "mode": "url",
+      "elicitationId": "flow-fx-1",
+      "url": "https://accounts.example.test/authorize",
+      "urlHost": "accounts.example.test",
+      "binding": {
+        "backgroundAgentId": null,
+        "sessionId": "sess-fx-1",
+        "turnId": "turn-fx-2",
+        "toolUseId": "tool-fx-2",
+        "sequence": 2
+      }
+    },
+    { "kind": null },
+    { "kind": null },
     { "kind": "info", "text": "✓ answered" },
     { "kind": "info", "text": "ask_user_question: no answer — proceeding" }
   ],

@@ -6,6 +6,10 @@ import { pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
+import {
+  startDefaultEventRuntimeHost,
+  stopDefaultEventRuntimeHost,
+} from "./lib/event-runtime-host.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const manifest = JSON.parse(
@@ -29,7 +33,28 @@ export function resolveCommandToken(argv = []) {
   return null;
 }
 
-export async function runCli(argv) {
+export async function withDefaultEventRuntimeLifecycle(
+  task,
+  { hostOptions = {} } = {},
+) {
+  if (typeof task !== "function") {
+    throw new TypeError("Event Runtime lifecycle task must be a function");
+  }
+  const host = startDefaultEventRuntimeHost({
+    ...hostOptions,
+    // Let the selected command finish registering its handlers before the
+    // first claim. Resident commands then run on the normal interval; short
+    // commands receive a bounded final drain in the finally block.
+    immediate: false,
+  });
+  try {
+    return await task(host);
+  } finally {
+    if (host) await stopDefaultEventRuntimeHost({ drain: true });
+  }
+}
+
+async function dispatchCli(argv) {
   const args = argv.slice(2);
 
   // Resolve the command before deciding whether help/version needs the eager
@@ -93,6 +118,10 @@ export async function runCli(argv) {
     const program = await createProgramAsync();
     await program.parseAsync(argv);
   }
+}
+
+export async function runCli(argv) {
+  return withDefaultEventRuntimeLifecycle(() => dispatchCli(argv));
 }
 
 export class LazyDispatch {

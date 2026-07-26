@@ -795,7 +795,14 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
          const opts = Array.isArray(m.options) ? m.options : [];
         const labelOf = (o) => (typeof o === "string" ? o : (o && o.label != null ? String(o.label) : String(o)));
         const reply = (answer) => {
-          vscode.postMessage({ type: "answer", id: m.id, answer });
+          vscode.postMessage({
+            type: "answer",
+            id: m.id,
+            answer,
+            ...(m.binding && typeof m.binding === "object"
+              ? { binding: m.binding }
+              : {}),
+          });
           for (const b of card.querySelectorAll("button,input")) b.disabled = true;
           const note = document.createElement("div");
           note.className = "info";
@@ -803,9 +810,46 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
             : "✓ " + (Array.isArray(answer) ? answer.join(", ") : answer);
           card.appendChild(note);
           card.className = "approval done";
-        };
+         };
          const btns = document.createElement("div");
          btns.className = "buttons";
+         if (m.elicitation && m.mode === "url") {
+           const host = document.createElement("div");
+           host.className = "info";
+           host.textContent = "Destination host: " + (m.urlHost || "(unknown)");
+           card.appendChild(host);
+           const target = document.createElement("code");
+           target.textContent = m.url || "";
+           target.style.overflowWrap = "anywhere";
+           card.appendChild(target);
+           const open = document.createElement("button");
+           open.textContent = "Open secure page";
+           open.addEventListener("click", () => {
+             vscode.postMessage({
+               type: "openElicitationUrl",
+               id: m.id,
+               url: m.url,
+               ...(m.binding && typeof m.binding === "object"
+                 ? { binding: m.binding }
+                 : {}),
+             });
+             for (const b of card.querySelectorAll("button,input")) b.disabled = true;
+             const note = document.createElement("div");
+             note.className = "info";
+             note.textContent = "Opening the reviewed URL…";
+             card.appendChild(note);
+           });
+           btns.appendChild(open);
+           const skipUrl = document.createElement("button");
+           skipUrl.textContent = "Skip";
+           skipUrl.className = "secondary";
+           skipUrl.addEventListener("click", () => reply(null));
+           btns.appendChild(skipUrl);
+           card.appendChild(btns);
+           log.appendChild(card);
+           log.scrollTop = log.scrollHeight;
+           break;
+         }
          const schema = m.elicitation && m.requestedSchema && typeof m.requestedSchema === "object"
            ? m.requestedSchema : null;
          const schemaForm = schema

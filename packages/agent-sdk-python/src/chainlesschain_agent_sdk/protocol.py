@@ -244,7 +244,11 @@ class QuestionMetadata:
     kind: Optional[str] = None
     server: Optional[str] = None
     request_id: Optional[Union[str, int]] = None
+    mode: Optional[str] = None
     requested_schema: Any = None
+    elicitation_id: Optional[str] = None
+    url: Optional[str] = None
+    url_host: Optional[str] = None
     raw: Mapping[str, Any] = field(
         default_factory=lambda: MappingProxyType({}),
         repr=False,
@@ -260,6 +264,7 @@ class QuestionRequestEvent(AgentEvent):
     has_options: bool = False
     multi_select: Optional[bool] = None
     session_id: Optional[str] = None
+    binding: Optional[Mapping[str, Any]] = None
     metadata: Optional[QuestionMetadata] = None
 
     @property
@@ -272,6 +277,28 @@ class QuestionResolvedEvent(AgentEvent):
     id: str
     answer: Any = None
     via: Optional[str] = None
+    session_id: Optional[str] = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ElicitationDeferredEvent(AgentEvent):
+    server: Optional[str]
+    request_id: Optional[Union[str, int]]
+    mode: str
+    message: str
+    reason: str
+    wire_action: str
+    session_id: Optional[str] = None
+    requested_schema: Any = None
+    elicitation_id: Optional[str] = None
+    url: Optional[str] = None
+    url_host: Optional[str] = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ElicitationCompleteEvent(AgentEvent):
+    server: Optional[str]
+    elicitation_id: str
     session_id: Optional[str] = None
 
 
@@ -408,6 +435,8 @@ KnownAgentEvent = Union[
     ApprovalResolvedEvent,
     QuestionRequestEvent,
     QuestionResolvedEvent,
+    ElicitationDeferredEvent,
+    ElicitationCompleteEvent,
     PlanUpdateEvent,
     CompactionEvent,
     StreamRetryEvent,
@@ -436,6 +465,8 @@ KNOWN_EVENT_CLASSES: Tuple[Type[AgentEvent], ...] = (
     ApprovalResolvedEvent,
     QuestionRequestEvent,
     QuestionResolvedEvent,
+    ElicitationDeferredEvent,
+    ElicitationCompleteEvent,
     PlanUpdateEvent,
     CompactionEvent,
     StreamRetryEvent,
@@ -481,7 +512,11 @@ def _question_metadata(value: Any) -> Optional[QuestionMetadata]:
         kind=_as_string(metadata.get("kind")),
         server=_as_string(metadata.get("server")),
         request_id=request_id,
+        mode=_as_string(metadata.get("mode")),
         requested_schema=_thaw_value(metadata.get("requestedSchema")),
+        elicitation_id=_as_string(metadata.get("elicitationId")),
+        url=_as_string(metadata.get("url")),
+        url_host=_as_string(metadata.get("urlHost")),
         raw=_freeze_raw(metadata),
     )
 
@@ -687,6 +722,11 @@ def parse_event(value: Mapping[str, Any]) -> AgentStreamEvent:
             and not isinstance(raw.get("options"), (str, bytes, bytearray)),
             multi_select=_as_bool(raw.get("multiSelect")),
             session_id=_as_string(raw.get("session_id")),
+            binding=(
+                _freeze_raw(raw["binding"])
+                if isinstance(raw.get("binding"), Mapping)
+                else None
+            ),
             metadata=_question_metadata(raw.get("metadata")),
             **common,
         )
@@ -699,6 +739,47 @@ def parse_event(value: Mapping[str, Any]) -> AgentStreamEvent:
             id=request_id,
             answer=_thaw_value(raw.get("answer")),
             via=_as_string(raw.get("via")),
+            session_id=_as_string(raw.get("session_id")),
+            **common,
+        )
+
+    if event_type == "elicitation_deferred":
+        request_id = raw.get("request_id")
+        if not isinstance(request_id, (str, int)) or isinstance(request_id, bool):
+            request_id = None
+        mode = _as_string(raw.get("mode"))
+        message = _as_string(raw.get("message"))
+        reason = _as_string(raw.get("reason"))
+        wire_action = _as_string(raw.get("wire_action"))
+        if (
+            mode not in ("form", "url")
+            or message is None
+            or reason is None
+            or wire_action != "decline"
+        ):
+            return _unknown(raw, event_type)
+        return ElicitationDeferredEvent(
+            server=_as_string(raw.get("server")),
+            request_id=request_id,
+            mode=mode,
+            message=message,
+            requested_schema=_thaw_value(raw.get("requested_schema")),
+            elicitation_id=_as_string(raw.get("elicitation_id")),
+            url=_as_string(raw.get("url")),
+            url_host=_as_string(raw.get("url_host")),
+            reason=reason,
+            wire_action=wire_action,
+            session_id=_as_string(raw.get("session_id")),
+            **common,
+        )
+
+    if event_type == "elicitation_complete":
+        elicitation_id = _as_string(raw.get("elicitation_id"))
+        if elicitation_id is None:
+            return _unknown(raw, event_type)
+        return ElicitationCompleteEvent(
+            server=_as_string(raw.get("server")),
+            elicitation_id=elicitation_id,
             session_id=_as_string(raw.get("session_id")),
             **common,
         )

@@ -5375,7 +5375,7 @@ export function safeStringifyToolResult(value) {
   }
 }
 
-function emitToolHookLifecycle({
+export function emitToolHookLifecycle({
   tool,
   args,
   result,
@@ -5384,6 +5384,7 @@ function emitToolHookLifecycle({
   turnId = null,
   toolUseId = null,
   cwd = process.cwd(),
+  emit = emitHooksV2Event,
 }) {
   const failed = Boolean(error || result?.error);
   const base = {
@@ -5395,7 +5396,7 @@ function emitToolHookLifecycle({
     duration_ms: Number(result?.toolTelemetryRecord?.durationMs || 0),
     cwd,
   };
-  emitHooksV2Event(failed ? "PostToolUseFailure" : "PostToolUse", {
+  emit(failed ? "PostToolUseFailure" : "PostToolUse", {
     ...base,
     ...(failed
       ? {
@@ -5415,13 +5416,39 @@ function emitToolHookLifecycle({
       args?.targetPath ||
       args?.target_path ||
       null;
-    emitHooksV2Event("FileChanged", {
+    emit("FileChanged", {
       ...base,
       path: changedPath == null ? null : String(changedPath),
       operation: tool,
     });
   }
   return failed;
+}
+
+export function emitToolBatchHookLifecycle({
+  records = [],
+  sessionId = null,
+  turnId = null,
+  cwd = process.cwd(),
+  parallel = false,
+  emit = emitHooksV2Event,
+}) {
+  if (!Array.isArray(records) || records.length === 0) return null;
+  const failed = records.filter((record) => record?.failed === true).length;
+  const payload = {
+    schema_version: 1,
+    session_id: sessionId,
+    turn_id: turnId,
+    cwd,
+    parallel: parallel === true,
+    total: records.length,
+    succeeded: records.length - failed,
+    failed,
+    tool_names: records.map((record) => record?.tool || "(unknown)"),
+    tool_use_ids: records.map((record) => record?.toolUseId || null),
+  };
+  emit("PostToolBatch", payload);
+  return payload;
 }
 
 /**
@@ -8010,6 +8037,14 @@ export async function* agentLoop(messages, options) {
                 // self-persist is best-effort
               }
             }
+            emitHooksV2Event("PostCompact", {
+              schema_version: 1,
+              trigger: "auto",
+              session_id: options.sessionId || null,
+              messages_after: messages.length,
+              stats,
+              cwd: options.cwd || process.cwd(),
+            });
             yield { type: "compaction", stats, runId };
           }
         }
@@ -8261,7 +8296,33 @@ export async function* agentLoop(messages, options) {
             },
             { cwd: options.cwd || process.cwd() },
           );
-        } catch (_err) {
+          const failures = (stopOutcome?.results || []).filter(
+            (result) =>
+              result?.nonBlockingError === true ||
+              result?.malformedDecision === true ||
+              result?.breakerOpen === true,
+          );
+          if (failures.length > 0) {
+            emitHooksV2Event("StopFailure", {
+              schema_version: 1,
+              session_id: options.sessionId || null,
+              run_id: runId,
+              phase: "stop-hook",
+              failures: failures.map((failure) => ({
+                command: failure.command || null,
+                exit_code: failure.exitCode ?? null,
+                reason: failure.reason || failure.error || null,
+              })),
+            });
+          }
+        } catch (error) {
+          emitHooksV2Event("StopFailure", {
+            schema_version: 1,
+            session_id: options.sessionId || null,
+            run_id: runId,
+            phase: "stop-hook",
+            reason: error?.message || String(error),
+          });
           stopOutcome = null; // never affect the run outcome
         }
         if (stopOutcome && stopOutcome.decision === "block") {
@@ -8322,6 +8383,8 @@ export async function* agentLoop(messages, options) {
       );
     if (parallelReads) {
       throwIfAborted(signal);
+      const turnId = `${runId}:t${budget.consumed}`;
+      const toolBatchRecords = [];
       // Kick every read off now; settle into {result,error} so an unawaited
       // promise can never surface as an unhandled rejection if the loop aborts
       // before it is consumed.
@@ -8356,6 +8419,21 @@ export async function* agentLoop(messages, options) {
         };
         const { result: toolResult, error: toolError } = await promise;
         throwIfAborted(signal);
+        const failed = emitToolHookLifecycle({
+          tool: call.function.name,
+          args: toolArgs,
+          result: toolResult,
+          error: toolError,
+          sessionId: options.sessionId || null,
+          turnId,
+          toolUseId: call.id,
+          cwd: options.cwd || process.cwd(),
+        });
+        toolBatchRecords.push({
+          tool: call.function.name,
+          toolUseId: call.id,
+          failed,
+        });
         const warningMsg = budget.toWarningMessage();
         const resultStr = capToolResultString(
           safeStringifyToolResult(toolResult),
@@ -8384,9 +8462,18 @@ export async function* agentLoop(messages, options) {
           tool_call_id: call.id,
         });
       }
+      emitToolBatchHookLifecycle({
+        records: toolBatchRecords,
+        sessionId: options.sessionId || null,
+        turnId,
+        cwd: options.cwd || process.cwd(),
+        parallel: true,
+      });
       continue; // all read results in place — back to the LLM call
     }
 
+    const turnId = `${runId}:t${budget.consumed}`;
+    const toolBatchRecords = [];
     for (const call of toolCalls) {
       throwIfAborted(signal);
       const fn = call?.function;
@@ -8400,6 +8487,21 @@ export async function* agentLoop(messages, options) {
       // malformed call.
       if (typeof toolName !== "string" || !toolName) {
         const reason = "malformed tool call: missing function name";
+        emitToolHookLifecycle({
+          tool: "(unknown)",
+          args: null,
+          result: { error: reason },
+          error: reason,
+          sessionId: options.sessionId || null,
+          turnId,
+          toolUseId: call?.id || null,
+          cwd: options.cwd || process.cwd(),
+        });
+        toolBatchRecords.push({
+          tool: "(unknown)",
+          toolUseId: call?.id || null,
+          failed: true,
+        });
         yield {
           type: "tool-result",
           tool: "(unknown)",
@@ -8557,7 +8659,29 @@ export async function* agentLoop(messages, options) {
         content: toolContent,
         tool_call_id: call.id,
       });
+      const failed = emitToolHookLifecycle({
+        tool: toolName,
+        args: toolArgs,
+        result: toolResult,
+        error: toolError,
+        sessionId: options.sessionId || null,
+        turnId,
+        toolUseId: call.id,
+        cwd: options.cwd || process.cwd(),
+      });
+      toolBatchRecords.push({
+        tool: toolName,
+        toolUseId: call.id,
+        failed,
+      });
     }
+    emitToolBatchHookLifecycle({
+      records: toolBatchRecords,
+      sessionId: options.sessionId || null,
+      turnId,
+      cwd: options.cwd || process.cwd(),
+      parallel: false,
+    });
   }
 
   // Budget exhausted — flush any child usage the final iteration produced,

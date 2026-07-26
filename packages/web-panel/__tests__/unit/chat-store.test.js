@@ -61,6 +61,35 @@ describe('chat store', () => {
     expect(store.sessions[0].type).toBe('agent')
   })
 
+  it('echoes the runtime interaction binding when answering a question', async () => {
+    createSession.mockResolvedValueOnce('sess-bound')
+    const store = useChatStore()
+    await store.createSession('agent')
+    const binding = {
+      backgroundAgentId: null,
+      sessionId: 'sess-bound',
+      turnId: 'turn-1',
+      toolUseId: 'tool-1',
+      sequence: 1,
+    }
+
+    sessionHandlers.get('sess-bound')({
+      type: 'question',
+      sessionId: 'sess-bound',
+      requestId: 'question-1',
+      question: 'Continue?',
+      binding,
+    })
+    store.answerQuestion('sess-bound', 'yes')
+
+    expect(answerQuestion).toHaveBeenCalledWith(
+      'sess-bound',
+      'question-1',
+      'yes',
+      binding,
+    )
+  })
+
   it('applies resumed session history from runtime events', async () => {
     listSessions.mockResolvedValueOnce([])
     const store = useChatStore()

@@ -105,11 +105,32 @@ export function breakdownSkillCache(cache) {
       scans: Number(descriptors.scans) || 0,
       cacheHits: Number(descriptors.cacheHits) || 0,
       estimatedTokens: Number(descriptors.estimatedTokens) || 0,
+      contextLoads: Number(descriptors.contextLoads) || 0,
+      contextTokens: Number(descriptors.contextTokens) || 0,
+      entries: Array.isArray(descriptors.entries)
+        ? descriptors.entries.map((entry) => ({
+            id: String(entry?.id || "skill"),
+            source: String(entry?.source || "skill"),
+            estimatedTokens: Number(entry?.estimatedTokens) || 0,
+            contextLoads: Number(entry?.contextLoads) || 0,
+            contextTokens: Number(entry?.contextTokens) || 0,
+            loadedBecause: Array.isArray(entry?.loadedBecause)
+              ? entry.loadedBecause.map(String)
+              : [],
+          }))
+        : [],
     },
     bodies: {
       resident: Number(bodies.resident) || 0,
       cacheHits: Number(bodies.cacheHits) || 0,
       cacheMisses: Number(bodies.cacheMisses) || 0,
+      estimatedTokensResident:
+        Number(bodies.estimatedTokensResident) || 0,
+      estimatedTokensServed: Number(bodies.estimatedTokensServed) || 0,
+      estimatedTokensAvoidedByCache:
+        Number(bodies.estimatedTokensAvoidedByCache) || 0,
+      contextLoads: Number(bodies.contextLoads) || 0,
+      contextTokens: Number(bodies.contextTokens) || 0,
       entries: Array.isArray(bodies.entries)
         ? bodies.entries.map((entry) => ({
             id: String(entry?.id || "skill"),
@@ -117,6 +138,16 @@ export function breakdownSkillCache(cache) {
             estimatedTokens: Number(entry?.estimatedTokens) || 0,
             loads: Number(entry?.loads) || 0,
             cacheHits: Number(entry?.cacheHits) || 0,
+            cacheMisses:
+              Number(entry?.cacheMisses) ||
+              Math.max(
+                0,
+                (Number(entry?.loads) || 0) -
+                  (Number(entry?.cacheHits) || 0),
+              ),
+            contextLoads: Number(entry?.contextLoads) || 0,
+            contextCacheHits: Number(entry?.contextCacheHits) || 0,
+            contextTokens: Number(entry?.contextTokens) || 0,
             loadedBecause: Array.isArray(entry?.loadedBecause)
               ? entry.loadedBecause.map(String)
               : [],

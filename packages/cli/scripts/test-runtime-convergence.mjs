@@ -54,11 +54,11 @@ t("M2 AgentIPCBus supports registerAgent/respond/cancel", () => {
 t("M3 HooksV2Runtime loads", () => {
   const hooks = require(`${SRC}/hooks-v2-runtime.js`).default;
   const { VALID_HOOK_EVENTS, VALID_EXECUTOR_TYPES } = require(`${SRC}/hooks-v2-runtime.js`);
-  if (VALID_HOOK_EVENTS.size !== 18) throw new Error(`expected 18 hook events, got ${VALID_HOOK_EVENTS.size}`);
-  if (VALID_EXECUTOR_TYPES.size !== 5) throw new Error(`expected 5 executor types, got ${VALID_EXECUTOR_TYPES.size}`);
+  if (VALID_HOOK_EVENTS.size < 40) throw new Error(`expected at least 40 hook events, got ${VALID_HOOK_EVENTS.size}`);
+  if (VALID_EXECUTOR_TYPES.size < 6) throw new Error(`expected at least 6 executor types, got ${VALID_EXECUTOR_TYPES.size}`);
 });
 
-t("M3 HooksV2Runtime supports all 18 events", () => {
+t("M3 HooksV2Runtime supports at least 40 registered events", () => {
   const { VALID_HOOK_EVENTS } = require(`${SRC}/hooks-v2-runtime.js`);
   const required = ["PreToolUse","PostToolUse","Notification","Stop","SubagentStop",
     "PreCommit","PostCommit","UserPromptSubmit","SessionStart","SessionEnd",
@@ -69,9 +69,9 @@ t("M3 HooksV2Runtime supports all 18 events", () => {
   }
 });
 
-t("M3 HooksV2Runtime supports 5 executor types", () => {
+t("M3 HooksV2Runtime supports 5 public + trusted JS executor types", () => {
   const { VALID_EXECUTOR_TYPES } = require(`${SRC}/hooks-v2-runtime.js`);
-  for (const typ of ["command","http","prompt","agent","js"]) {
+  for (const typ of ["command","http","mcp_tool","prompt","agent","js"]) {
     if (!VALID_EXECUTOR_TYPES.has(typ)) throw new Error(`missing executor: ${typ}`);
   }
 });

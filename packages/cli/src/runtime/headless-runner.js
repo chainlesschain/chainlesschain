@@ -61,6 +61,11 @@ import { SIDE_EFFECT_LEDGER_EVENT } from "../lib/side-effect-ledger-store.js";
 import { TurnBindingLog, createTurnBindingFeed } from "../lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../lib/turn-binding-store.js";
 import { operationIdempotencyKey } from "../lib/idempotency.js";
+import {
+  emitHooksV2Event,
+  executeHooksV2Event,
+  resolvePromptExpansion,
+} from "../lib/hooks-v2-producers.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
 import { expandFileRefsAsync } from "./file-ref-expander.js";
 import { composeSystemPrompt } from "./system-prompt.js";
@@ -367,6 +372,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   // every existing risk-tier / shell-policy layer runs unchanged.
   let permissionRules = options.permissionRules || null;
   let managedSettings = null;
+  let settingsFiles = [];
   try {
     const { loadSettings, applyManagedPermissionPolicy } =
       await import("../lib/settings-loader.cjs");
@@ -376,6 +382,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
       managedSettingsFile: options.managedSettingsFile,
     });
     managedSettings = loaded.managed;
+    settingsFiles = Array.isArray(loaded.files) ? loaded.files : [];
     if (!permissionRules) {
       const total =
         loaded.rules.allow.length +
@@ -465,6 +472,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
 
   const runLoop = deps.agentLoop || coreAgentLoop;
   const doBootstrap = deps.bootstrap || bootstrap;
+  const executeLifecycleHooks = deps.executeHooksV2Event || executeHooksV2Event;
   const getApprovalGate =
     deps.getApprovalGate ||
     (async () => {
@@ -680,6 +688,48 @@ export async function runAgentHeadless(options = {}, deps = {}) {
       );
     }
   };
+
+  const setupHooks = await executeLifecycleHooks(
+    "Setup",
+    {
+      schema_version: 1,
+      session_id: sessionId,
+      cwd,
+      database_available: db != null,
+      enabled_tools: enabledToolNames,
+      settings_files: settingsFiles,
+    },
+    { failClosed: true },
+  );
+  if (setupHooks.blocked || setupHooks.decision === "block") {
+    const reason =
+      setupHooks.blockingResult?.reason ||
+      setupHooks.error ||
+      "blocked by Setup hook";
+    writeErr(`[hook] ${reason}\n`);
+    emitHeadlessError(reason);
+    return { exitCode: 2, result: reason, isError: true };
+  }
+
+  const expansionHooks = await executeLifecycleHooks(
+    "UserPromptExpansion",
+    {
+      schema_version: 1,
+      session_id: sessionId,
+      cwd,
+      prompt: userContent,
+      original_prompt: prompt,
+    },
+    { failClosed: true },
+  );
+  const expansion = resolvePromptExpansion(userContent, expansionHooks);
+  if (expansion.blocked) {
+    const reason = expansion.reason || "blocked by UserPromptExpansion hook";
+    writeErr(`[hook] ${reason}\n`);
+    emitHeadlessError(reason);
+    return { exitCode: 2, result: reason, isError: true };
+  }
+  userContent = expansion.prompt;
 
   // Load prior conversation when resuming an existing session. The fresh
   // system prompt always leads; we drop any persisted system turns so it is
@@ -1033,8 +1083,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   let _loadedInstructions = null;
   let _loadedPersonaSkills = [];
   let _skillCacheLedger = null;
-  const _runtimeSkillLoader =
-    options.skillLoader || new CLISkillLoader();
+  const _runtimeSkillLoader = options.skillLoader || new CLISkillLoader();
   const systemContent = composeSystemPrompt(
     buildSystemPrompt(cwd, {
       additionalDirectories,
@@ -2362,7 +2411,30 @@ export async function runAgentHeadless(options = {}, deps = {}) {
         const { runObserveHooks, dispatchAsyncHooks } =
           await import("../lib/settings-hook-events.js");
         const stopPayload = { reason: endReason, cwd, session_id: sessionId };
-        runObserveHooks(settingsHooks, "Stop", stopPayload, { cwd });
+        const stopOutcome = runObserveHooks(
+          settingsHooks,
+          "Stop",
+          stopPayload,
+          { cwd },
+        );
+        const stopFailures = (stopOutcome?.results || []).filter(
+          (result) =>
+            result?.nonBlockingError === true ||
+            result?.malformedDecision === true ||
+            result?.breakerOpen === true,
+        );
+        if (stopFailures.length > 0) {
+          emitHooksV2Event("StopFailure", {
+            schema_version: 1,
+            session_id: sessionId,
+            phase: "stop-hook",
+            failures: stopFailures.map((failure) => ({
+              command: failure.command || null,
+              exit_code: failure.exitCode ?? null,
+              reason: failure.reason || failure.error || null,
+            })),
+          });
+        }
         // Skip the async Stop dispatch/settle here if the auto-rewake re-drive
         // loop already fired + drained it this run (avoids double-execution).
         if (_hookSupervisor && !_asyncStopHandled) {
@@ -2388,6 +2460,14 @@ export async function runAgentHeadless(options = {}, deps = {}) {
           // re-engage the agent in an interactive session — flag it clearly so a
           // headless caller/CI can react.
           for (const rw of _hookSupervisor.drainRewakes()) {
+            emitHooksV2Event("StopFailure", {
+              schema_version: 1,
+              session_id: sessionId,
+              phase: "async-stop-hook",
+              command: rw.command || null,
+              exit_code: rw.exitCode ?? null,
+              reason: rw.error || "async stop hook requested rewake",
+            });
             writeErr(
               `[async-hook REWAKE] ${rw.command} failed` +
                 `${rw.exitCode != null ? ` (exit ${rw.exitCode})` : ""}` +
@@ -2409,7 +2489,13 @@ export async function runAgentHeadless(options = {}, deps = {}) {
           { reason: "completed", cwd, session_id: sessionId },
           { cwd },
         );
-      } catch {
+      } catch (error) {
+        emitHooksV2Event("StopFailure", {
+          schema_version: 1,
+          session_id: sessionId,
+          phase: "stop-hook-dispatch",
+          reason: error?.message || String(error),
+        });
         // observe-only + best-effort async surfacing
       }
     }

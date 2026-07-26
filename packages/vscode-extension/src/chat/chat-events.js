@@ -215,6 +215,9 @@ function mapAgentEvent(evt, state) {
         question: evt.question || "",
         options: Array.isArray(evt.options) ? evt.options : null,
         multiSelect: evt.multiSelect === true,
+        ...(evt.binding && typeof evt.binding === "object"
+          ? { binding: evt.binding }
+          : {}),
       };
       if (evt.metadata && typeof evt.metadata === "object") {
         question.metadata = evt.metadata;
@@ -222,6 +225,10 @@ function mapAgentEvent(evt, state) {
         question.requestedSchema =
           evt.metadata.requestedSchema || evt.requestedSchema || null;
         question.server = evt.metadata.server || null;
+        question.mode = evt.metadata.mode || "form";
+        question.elicitationId = evt.metadata.elicitationId || null;
+        question.url = evt.metadata.url || null;
+        question.urlHost = evt.metadata.urlHost || null;
       }
       return question;
     }

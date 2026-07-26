@@ -43,6 +43,8 @@ function makeHarness() {
   const vscode = {
     l10n: { t: (text) => text },
     commands: { executeCommand: vi.fn(() => Promise.resolve()) },
+    env: { openExternal: vi.fn(() => Promise.resolve(true)) },
+    Uri: { parse: vi.fn((value) => ({ value })) },
     window: {},
     workspace: {
       workspaceFolders: [{ uri: { fsPath: "C:\\workspace" } }],
@@ -57,6 +59,7 @@ function makeHarness() {
 
   return {
     provider,
+    vscode,
     view,
     htmlWrites,
     posted,
@@ -173,6 +176,72 @@ describe("chat Webview UI protocol self-heal", () => {
     expect(html).toContain("uiProtocolVersion: CC_CHAT_UI_PROTOCOL_VERSION");
     expect(html).toContain("CcElicitationSchema");
     expect(html).toContain("CcElicitationForm");
+    expect(html).toContain('type: "openElicitationUrl"');
+    expect(html).toContain("Open secure page");
+  });
+
+  it("opens a reviewed HTTPS elicitation URL and returns no form content", async () => {
+    const harness = makeHarness();
+    harness.provider.resolveWebviewView(harness.view);
+    harness.receive({
+      type: "ready",
+      uiProtocolVersion: CHAT_UI_PROTOCOL_VERSION,
+    });
+    const session = { sendEvent: vi.fn(() => true) };
+    harness.provider.session = session;
+    const binding = {
+      backgroundAgentId: null,
+      sessionId: "session-1",
+      turnId: "turn-1",
+      toolUseId: "tool-1",
+      sequence: 1,
+    };
+
+    harness.receive({
+      type: "openElicitationUrl",
+      id: "question-url-1",
+      url: "https://accounts.example.test/authorize",
+      binding,
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(harness.vscode.Uri.parse).toHaveBeenCalledWith(
+      "https://accounts.example.test/authorize",
+    );
+    expect(harness.vscode.env.openExternal).toHaveBeenCalledOnce();
+    expect(session.sendEvent).toHaveBeenCalledWith({
+      type: "answer",
+      id: "question-url-1",
+      answer: {},
+      binding,
+    });
+    harness.disposeView();
+  });
+
+  it("rejects credential-bearing elicitation URLs without opening them", () => {
+    const harness = makeHarness();
+    harness.provider.resolveWebviewView(harness.view);
+    harness.receive({
+      type: "ready",
+      uiProtocolVersion: CHAT_UI_PROTOCOL_VERSION,
+    });
+    const session = { sendEvent: vi.fn(() => true) };
+    harness.provider.session = session;
+
+    harness.receive({
+      type: "openElicitationUrl",
+      id: "question-url-unsafe",
+      url: "https://user:secret@accounts.example.test/authorize",
+    });
+
+    expect(harness.vscode.env.openExternal).not.toHaveBeenCalled();
+    expect(session.sendEvent).toHaveBeenCalledWith({
+      type: "answer",
+      id: "question-url-unsafe",
+      answer: null,
+    });
+    harness.disposeView();
   });
 });
 

@@ -39,8 +39,21 @@ describe("CLISkillLoader two-tier body cache", () => {
       mcpServers: [],
     });
     loader._cache = [skill];
+    loader.recordDescriptorUse([skill], {
+      sessionId: "s1",
+      turnId: "t1",
+      loadedBecause: "list_skills",
+    });
     const ledger = loader.getCacheLedger();
     expect(ledger.descriptors.resident).toBe(1);
+    expect(ledger.descriptors.contextLoads).toBe(1);
+    expect(ledger.descriptors.contextTokens).toBeGreaterThan(0);
+    expect(ledger.descriptors.entries[0]).toMatchObject({
+      id: "ordinary",
+      source: "workspace",
+      contextLoads: 1,
+      loadedBecause: ["list_skills"],
+    });
     expect(ledger.bodies.resident).toBe(0);
     expect(ledger.savings.lazyFileBytes).toBeGreaterThan(0);
   });
@@ -77,19 +90,43 @@ describe("CLISkillLoader two-tier body cache", () => {
       turnId: "t2",
       loadedBecause: "run_skill",
     });
+    loader.materializeSkill(skill, {
+      sessionId: "s1",
+      turnId: "t3",
+      loadedBecause: "prompt_injection",
+      bodyIncluded: true,
+    });
     const ledger = loader.getCacheLedger();
     expect(ledger.bodies).toMatchObject({
       resident: 1,
       cacheMisses: 1,
-      cacheHits: 1,
+      cacheHits: 2,
+      contextLoads: 1,
+      contextTokens: expect.any(Number),
     });
     expect(ledger.bodies.entries[0]).toMatchObject({
       id: "weather",
-      loads: 2,
-      cacheHits: 1,
-      loadedBecause: ["run_skill"],
+      loads: 3,
+      cacheHits: 2,
+      cacheMisses: 1,
+      contextLoads: 1,
+      contextCacheHits: 1,
+      loadedBecause: ["run_skill", "prompt_injection"],
     });
-    expect(recordRead).toHaveBeenCalledTimes(2);
+    expect(recordRead).toHaveBeenCalledTimes(3);
+    expect(recordRead.mock.calls[0][0]).toMatchObject({
+      tokenCount: 0,
+      metadata: {
+        bodyIncluded: false,
+        cacheRead: false,
+        estimatedBodyTokens: expect.any(Number),
+      },
+    });
+    expect(recordRead.mock.calls[2][0]).toMatchObject({
+      tokenCount: expect.any(Number),
+      metadata: { bodyIncluded: true, cacheRead: true },
+    });
+    expect(recordRead.mock.calls[2][0].tokenCount).toBeGreaterThan(0);
     expect(JSON.stringify(recordRead.mock.calls)).not.toContain("# Weather");
   });
 

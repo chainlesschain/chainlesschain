@@ -1,14 +1,30 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
+import fs from "node:fs";
+import os from "node:os";
 import { fileURLToPath } from "url";
 import { join, dirname } from "path";
-import { resolveCommandToken } from "../../src/lazy-dispatch.js";
+import {
+  resolveCommandToken,
+  withDefaultEventRuntimeLifecycle,
+} from "../../src/lazy-dispatch.js";
 import { createProgram } from "../../src/index.js";
+import { EventRuntimeStore } from "../../src/lib/event-runtime-store.js";
+import { _resetDefaultEventRuntimeHostForTests } from "../../src/lib/event-runtime-host.js";
 
 const cliRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const manifest = JSON.parse(
   readFileSync(join(cliRoot, "src", "command-manifest.json"), "utf-8"),
 );
+const runtimeDirs = [];
+
+afterEach(() => {
+  delete process.env.CC_EVENT_RUNTIME_DURABLE;
+  _resetDefaultEventRuntimeHostForTests();
+  for (const dir of runtimeDirs.splice(0)) {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 describe("command manifest ⇄ eager program (drift guard)", () => {
   // The lazy dispatcher trusts the generated manifest to map a command name to
@@ -82,5 +98,41 @@ describe("resolveCommandToken", () => {
 
   it("stops scanning at -- (end of options)", () => {
     expect(resolveCommandToken(argv("--", "status"))).toBeNull();
+  });
+});
+
+describe("lazy binary Event Runtime lifecycle", () => {
+  it("starts after handler registration and final-drains a short command", async () => {
+    const dir = fs.mkdtempSync(join(os.tmpdir(), "cc-lazy-event-runtime-"));
+    runtimeDirs.push(dir);
+    const store = new EventRuntimeStore({ dir, owner: "lazy-host" });
+    process.env.CC_EVENT_RUNTIME_DURABLE = "1";
+
+    await withDefaultEventRuntimeLifecycle(
+      async (host) => {
+        expect(host?.status()).toMatchObject({
+          running: true,
+          id: "lazy-host",
+        });
+        host.registerHandler(() => ({ from: "lazy-command" }), {
+          type: "lazy.short",
+        });
+        store.enqueueInbox({
+          event_id: "lazy-short-1",
+          type: "lazy.short",
+          requiresHandler: true,
+        });
+      },
+      { hostOptions: { store } },
+    );
+
+    expect(store.listInbox()[0]).toMatchObject({
+      status: "done",
+      result: expect.objectContaining({ handlerCount: 1 }),
+    });
+    expect(store.getHealthSnapshot().hosts).toMatchObject({
+      running: 0,
+      stopped: 1,
+    });
   });
 });

@@ -110,11 +110,33 @@ describe("rankContextSources", () => {
 
   it("normalizes the two-tier Skill cache and produces actionable savings", () => {
     const cache = breakdownSkillCache({
-      descriptors: { resident: 8, scans: 1, cacheHits: 3, estimatedTokens: 90 },
+      descriptors: {
+        resident: 8,
+        scans: 1,
+        cacheHits: 3,
+        estimatedTokens: 90,
+        contextLoads: 2,
+        contextTokens: 18,
+        entries: [
+          {
+            id: "review",
+            source: "workspace",
+            estimatedTokens: 9,
+            contextLoads: 2,
+            contextTokens: 18,
+            loadedBecause: ["list_skills"],
+          },
+        ],
+      },
       bodies: {
         resident: 1,
         cacheHits: 2,
         cacheMisses: 1,
+        estimatedTokensResident: 400,
+        estimatedTokensServed: 1200,
+        estimatedTokensAvoidedByCache: 800,
+        contextLoads: 1,
+        contextTokens: 400,
         entries: [
           {
             id: "review",
@@ -122,6 +144,10 @@ describe("rankContextSources", () => {
             estimatedTokens: 400,
             loads: 3,
             cacheHits: 2,
+            cacheMisses: 1,
+            contextLoads: 1,
+            contextCacheHits: 1,
+            contextTokens: 400,
             loadedBecause: ["run_skill"],
           },
         ],
@@ -131,6 +157,22 @@ describe("rankContextSources", () => {
     expect(cache.bodies.entries[0]).toMatchObject({
       id: "review",
       cacheHits: 2,
+      contextLoads: 1,
+      contextTokens: 400,
+    });
+    expect(cache.bodies).toMatchObject({
+      estimatedTokensServed: 1200,
+      estimatedTokensAvoidedByCache: 800,
+      contextTokens: 400,
+    });
+    expect(cache.descriptors).toMatchObject({
+      contextLoads: 2,
+      contextTokens: 18,
+    });
+    expect(cache.descriptors.entries[0]).toMatchObject({
+      id: "review",
+      contextLoads: 2,
+      contextTokens: 18,
     });
     expect(
       buildContextOptimizations({ skillCache: cache })[0],

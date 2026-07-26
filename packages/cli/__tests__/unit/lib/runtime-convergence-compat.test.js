@@ -4,6 +4,7 @@ import { ContextSourceLedger } from "../../../src/lib/context-source-ledger.js";
 import { AgentIPCBus } from "../../../src/lib/agent-ipc-bus.js";
 import { EventRuntimeStore } from "../../../src/lib/event-runtime-store.js";
 import { emitHooksV2Event } from "../../../src/lib/hooks-v2-producers.js";
+import { agentLoop } from "../../../src/runtime/agent-core.js";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -63,6 +64,39 @@ describe("runtime convergence compatibility APIs", () => {
     ]);
   });
 
+  test("filters FileChanged producers with cross-platform globs", async () => {
+    const runtime = new HooksV2Runtime();
+    const seen = [];
+    runtime.registerHook({
+      id: "file-js",
+      event: "FileChanged",
+      type: "js",
+      globs: ["src/**/*.js"],
+      handler: (context) => {
+        seen.push(context.path);
+        return { ok: true };
+      },
+    });
+
+    await runtime.executeHooks("FileChanged", {
+      path: "src/lib/worker.js",
+      cwd: process.cwd(),
+    });
+    await runtime.executeHooks("FileChanged", {
+      path: "docs/worker.js",
+      cwd: process.cwd(),
+    });
+    await runtime.executeHooks("FileChanged", {
+      path: "src\\runtime\\agent-core.js",
+      cwd: process.cwd(),
+    });
+
+    expect(seen).toEqual([
+      "src/lib/worker.js",
+      "src\\runtime\\agent-core.js",
+    ]);
+  });
+
   test("bridges a producer event into the default Hooks v2 runtime", async () => {
     const { default: runtime } = await import(
       "../../../src/lib/hooks-v2-runtime.js"
@@ -83,6 +117,123 @@ describe("runtime convergence compatibility APIs", () => {
         await new Promise((resolve) => setTimeout(resolve, 5));
       }
       expect(seen).toEqual(["mcp-1"]);
+    } finally {
+      runtime.unregisterHook(id);
+    }
+  });
+
+  test("agent tool loop emits failure and batch producers from a real turn", async () => {
+    const { default: runtime } = await import(
+      "../../../src/lib/hooks-v2-runtime.js"
+    );
+    const seen = [];
+    const ids = ["PostToolUseFailure", "PostToolBatch"].map((event) =>
+      runtime.registerHook({
+        id: `real-loop-${event}`,
+        event,
+        type: "js",
+        handler: (context) => {
+          seen.push({ event, context });
+          return { ok: true };
+        },
+      }),
+    );
+    let call = 0;
+    try {
+      const events = agentLoop([{ role: "user", content: "test malformed" }], {
+        autoCompact: false,
+        sessionId: "hook-session",
+        runId: "hook-run",
+        chatFn: async () => {
+          call += 1;
+          return call === 1
+            ? {
+                message: {
+                  role: "assistant",
+                  content: "",
+                  tool_calls: [{ id: "bad-1", type: "function" }],
+                },
+                usage: {},
+              }
+            : {
+                message: { role: "assistant", content: "done" },
+                usage: {},
+              };
+        },
+      });
+      for await (const _event of events) {
+        // Drain the real generator.
+      }
+      for (let i = 0; i < 20 && seen.length < 2; i += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      }
+      expect(seen.map((entry) => entry.event).sort()).toEqual([
+        "PostToolBatch",
+        "PostToolUseFailure",
+      ]);
+      expect(
+        seen.find((entry) => entry.event === "PostToolBatch")?.context,
+      ).toMatchObject({
+        session_id: "hook-session",
+        turn_id: "hook-run:t1",
+        total: 1,
+        failed: 1,
+        tool_use_ids: ["bad-1"],
+      });
+    } finally {
+      ids.forEach((id) => runtime.unregisterHook(id));
+    }
+  });
+
+  test("emits StopFailure when a real Stop hook cannot execute", async () => {
+    const { default: runtime } = await import(
+      "../../../src/lib/hooks-v2-runtime.js"
+    );
+    const seen = [];
+    const id = runtime.registerHook({
+      id: "real-stop-failure",
+      event: "StopFailure",
+      type: "js",
+      handler: (context) => {
+        seen.push(context);
+        return { ok: true };
+      },
+    });
+    try {
+      const events = agentLoop([{ role: "user", content: "finish" }], {
+        autoCompact: false,
+        sessionId: "stop-session",
+        runId: "stop-run",
+        chatFn: async () => ({
+          message: { role: "assistant", content: "done" },
+          usage: {},
+        }),
+        settingsHooks: {
+          Stop: [
+            {
+              matcher: null,
+              hooks: [
+                {
+                  type: "command",
+                  command: "cc-definitely-missing-stop-hook-command",
+                },
+              ],
+            },
+          ],
+        },
+      });
+      for await (const _event of events) {
+        // Drain the real generator.
+      }
+      for (let i = 0; i < 40 && seen.length === 0; i += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      }
+      expect(seen[0]).toMatchObject({
+        session_id: "stop-session",
+        run_id: "stop-run",
+        phase: "stop-hook",
+      });
+      expect(seen[0].failures).toHaveLength(1);
     } finally {
       runtime.unregisterHook(id);
     }

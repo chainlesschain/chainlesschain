@@ -41,7 +41,10 @@ function startSession(options: AgentSessionOptions = {}) {
   });
   session.start();
   const push = (event: unknown) =>
-    child.stdout.emit("data", Buffer.from(`${JSON.stringify(event)}\n`, "utf8"));
+    child.stdout.emit(
+      "data",
+      Buffer.from(`${JSON.stringify(event)}\n`, "utf8"),
+    );
   const writtenEvents = () =>
     child.stdin.written.map((line) => JSON.parse(line));
   return { session, child, spawn, push, writtenEvents };
@@ -254,10 +257,22 @@ describe("AgentSession", () => {
   it("auto-answers question requests; a thrown callback cancels with null", async () => {
     const onQuestion = vi.fn(async () => "option-a");
     const first = startSession({ onQuestion });
-    first.push({ type: "question_request", id: "q-1", question: "pick" });
+    const binding = {
+      backgroundAgentId: null,
+      sessionId: "session-1",
+      turnId: "turn-1",
+      toolUseId: "tool-1",
+      sequence: 1,
+    };
+    first.push({
+      type: "question_request",
+      id: "q-1",
+      question: "pick",
+      binding,
+    });
     await flush();
     expect(first.writtenEvents()).toEqual([
-      { type: "answer", id: "q-1", answer: "option-a" },
+      { type: "answer", id: "q-1", answer: "option-a", binding },
     ]);
 
     const second = startSession({
@@ -298,6 +313,40 @@ describe("AgentSession", () => {
     expect(writtenEvents()).toEqual([
       { type: "answer", id: "mcp-1", answer: { approved: true } },
     ]);
+  });
+
+  it("surfaces headless defer and URL completion as typed events", async () => {
+    const { session, push } = startSession();
+    const deferred = vi.fn();
+    const completed = vi.fn();
+    session.on("elicitation_deferred", deferred);
+    session.on("elicitation_complete", completed);
+
+    push({
+      type: "elicitation_deferred",
+      server: "demo",
+      request_id: "r-1",
+      mode: "url",
+      message: "Authorize",
+      elicitation_id: "flow-1",
+      url: "https://example.com/setup",
+      url_host: "example.com",
+      reason: "no_interactive_host",
+      wire_action: "decline",
+    });
+    push({
+      type: "elicitation_complete",
+      server: "demo",
+      elicitation_id: "flow-1",
+    });
+    await flush();
+
+    expect(deferred).toHaveBeenCalledWith(
+      expect.objectContaining({ mode: "url", elicitation_id: "flow-1" }),
+    );
+    expect(completed).toHaveBeenCalledWith(
+      expect.objectContaining({ elicitation_id: "flow-1" }),
+    );
   });
 
   it("nextResult resolves on result and rejects on exit", async () => {

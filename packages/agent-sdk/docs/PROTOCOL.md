@@ -60,7 +60,7 @@ cc agent --input-format stream-json --output-format stream-json \
 | interrupt        | `{"type":"interrupt"}`                                                                                                                        | aborts in-flight turn, session survives                                                                                                                          |
 | compact          | `{"type":"compact"}`                                                                                                                          | manual history compaction between turns                                                                                                                          |
 | approval verdict | `{"type":"approval","id":str,"approve":bool}`                                                                                                 | answers an `approval_request`                                                                                                                                    |
-| question answer  | `{"type":"answer","id":str,"answer":unknown\|null}`                                                                                           | `null` cancels; object answers are used by MCP elicitation                                                                                                       |
+| question answer  | `{"type":"answer","id":str,"answer":unknown\|null,"binding":InteractionBinding?}`                                                             | `null` cancels; when `question_request.binding` is present it MUST be echoed unchanged; object answers are used by MCP elicitation                               |
 | plan control     | `{"type":"plan","action":"enter"\|"approve"\|"reject"\|"revise"\|"regenerate","review":{"snapshot":str,"comments":[],"executionLock":obj?}?}` | plan-mode UI; decisions/revisions may carry bounded Markdown, structured comments, and an audit-only requested lock; CLI derives the authoritative approval lock |
 | feedback         | `{"type":"feedback","turn_id":str?,"kind":"positive"\|"negative"\|"correction","comment":str?}`                                               | PDH self-learning                                                                                                                                                |
 | assist resume    | `{"type":"resume","token":str?,"action":"completed"\|"skip"}`                                                                                 | PDH guided collection                                                                                                                                            |
@@ -79,8 +79,10 @@ cc agent --input-format stream-json --output-format stream-json \
 | `token_usage`                                      | `usage:{input_tokens,output_tokens,cache_read_input_tokens,cache_creation_input_tokens}`                                                                                                                                                                                     |
 | `approval_request`                                 | `id`, `session_id`, `tool`, `command`, `risk`, `rule`, `reason` — tool is BLOCKED until answered; CLI fails closed after `CC_APPROVAL_TIMEOUT_MS` (default 120 s)                                                                                                            |
 | `approval_resolved`                                | `id`, `approved`, `via` (`"user"`/`"timeout"`) — settle UI cards on this                                                                                                                                                                                                     |
-| `question_request` / `question_resolved`           | `id`, `question`, `options?`, `multiSelect?` (needs env `CC_INTERACTIVE_QUESTIONS=1`)                                                                                                                                                                                        |
-| MCP elicitation (as `question_request`)            | same fields plus `metadata.kind:"mcp_elicitation"`, `server`, `requestId`, `requestedSchema`; SDK `onElicitation` returns `{action,content}` and answers with the same `id`                                                                                                  |
+| `question_request` / `question_resolved`           | `id`, `question`, `options?`, `multiSelect?`, `binding?:{backgroundAgentId,sessionId,turnId,toolUseId,sequence}` (needs env `CC_INTERACTIVE_QUESTIONS=1`); a bound answer missing or changing any field is ignored                                                           |
+| MCP elicitation (as `question_request`)            | same fields plus `metadata.kind:"mcp_elicitation"`, `server`, `requestId`, `mode:"form"\|"url"`, `requestedSchema?`, `elicitationId?`, `url?`, `urlHost?`; URL mode requires explicit consent and an HTTPS URL with no credentials; the host answers with the same `id` and binding, and URL acceptance carries no form content              |
+| `elicitation_deferred`                             | bounded non-interactive fallback: `server`, `request_id`, `mode`, `message`, `requested_schema?`, `elicitation_id?`, `url?`, `url_host?`, `reason`, `wire_action:"decline"`                                                                                                  |
+| `elicitation_complete`                             | accepted URL flow completed out of band: `server`, `elicitation_id`; unknown or duplicate completion notifications are ignored by the MCP client                                                                                                                           |
 | `plan_update`                                      | `active`, `state`, `plan_id`, `plan_version`, `previous_plan_id?`, `items[]{id,title,tool,impact,status,turn?,tool_use_id?,started_at?,completed_at?,error?}`, `risk{level,totalScore}`, `execution_lock?{planId,permissionMode,approvedItemIds[],allowedTools[],createdAt}` |
 | `compaction`                                       | history-trim stats                                                                                                                                                                                                                                                           |
 | `stream_retry`                                     | provider retry notice                                                                                                                                                                                                                                                        |
@@ -167,6 +169,16 @@ Source of truth: `packages/cli/src/lib/capability-negotiation.js`
   `--interactive-approvals`; each `approval_request` is answered with
   `{"type":"approval",...}`; a handler failure answers `approve:false`
   (fail closed, matching the CLI's own timeout behavior).
+- **Question callback**: `AgentSession` automatically echoes the opaque
+  `question_request.binding` on both successful and failed/cancelled callback
+  answers. Custom clients MUST do the same; the runtime is the only binding
+  resolver.
+- **MCP elicitation callback**: `onElicitation` receives both form and URL
+  requests. A URL request exposes `metadata.url` and `metadata.urlHost`; hosts
+  must show the full HTTPS URL and obtain explicit consent before opening it.
+  `AgentSession` also emits typed `elicitation_deferred` and
+  `elicitation_complete` lifecycle events. URL-mode sensitive input remains
+  out of band and is never returned as `content`.
 - **Session resume**: persist `session_id` from `system/init`; pass it back
   as `--resume <id>` (optionally `--fork-session`). `resumed_messages > 0`
   confirms the transcript was restored.
@@ -181,8 +193,10 @@ Endpoint: Windows named pipe `\\.\pipe\cc-bg-<id>` / POSIX socket
 state file `~/.chainlesschain/background-agents/<id>.json` → `transport.token`.
 
 - client → worker: `{"type":"hello","token"}` · `{"type":"prompt","text"}` ·
+  `{"type":"interaction_response","requestId","binding","answer"}` ·
   `{"type":"status"}` · `{"type":"stop"}` · `{"type":"detach"}`
 - worker → client: `{"type":"hello",...status}` · `{"type":"accepted","queued"}` ·
+  `{"type":"interaction_request","requestId","binding","question",...}` ·
   `{"type":"status",...}` · `{"type":"stopping"}` · `{"type":"error","message"}` ·
   `{"type":"turn-started","turn","prompt"}` · `{"type":"turn-ended","turn","exitCode"}` ·
   `{"type":"idle","turn"}` · `{"type":"closing"}`
@@ -194,7 +208,8 @@ socket. Wrong token → immediate destroy.
 
 Request/reply routes on the CLI's WS gateway: `bg-list` · `bg-view` ·
 `bg-attach` · `bg-prompt {bgId,text}` · `bg-stop-turn` · `bg-detach` ·
-`bg-stop` · `bg-rename` · `bg-resume`.
+`bg-answer {bgId,requestId,binding,answer}` · `bg-stop` · `bg-rename` ·
+`bg-resume`.
 
 Unsolicited pushes while attached, each stamped with a per-attachment
 monotonic 1-based `seq` (additive — older clients ignore it):
@@ -225,3 +240,12 @@ and MAY eagerly `bg-attach {sinceSeq}` on recovery. Policy core:
 
 Security: `transport.token` never crosses the WS boundary — the gateway
 performs the pipe handshake itself and exposes only `interactive:true|false`.
+
+## 4. Remote Control question answers
+
+A paired remote device answers a mirrored question by publishing
+`{"type":"question.answer","requestId","binding","answer"}` through
+`remote-session-publish`. The server accepts this control only from an
+authenticated device granted `prompt` (or stronger) scope. Observe-only
+devices are rejected, a complete binding is mandatory, and the session
+runtime still performs the authoritative exact-field comparison.

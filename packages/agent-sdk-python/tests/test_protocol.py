@@ -101,10 +101,21 @@ class ProtocolTests(unittest.TestCase):
                 "type": "question_request",
                 "id": "mcp-1",
                 "question": "Configure",
+                "binding": {
+                    "backgroundAgentId": None,
+                    "sessionId": "s",
+                    "turnId": "turn-1",
+                    "toolUseId": "tool-1",
+                    "sequence": 1,
+                },
                 "metadata": {
                     "kind": "mcp_elicitation",
                     "server": "demo",
                     "requestId": 42,
+                    "mode": "url",
+                    "elicitationId": "elicit-42",
+                    "url": "https://accounts.example.test/authorize",
+                    "urlHost": "accounts.example.test",
                     "requestedSchema": {"type": "object"},
                     "future": 1,
                 },
@@ -112,7 +123,15 @@ class ProtocolTests(unittest.TestCase):
         )
         self.assertIsInstance(question, QuestionRequestEvent)
         self.assertTrue(question.is_mcp_elicitation)
+        self.assertEqual(question.binding["turnId"], "turn-1")
+        self.assertEqual(question.binding["sequence"], 1)
         self.assertEqual(question.metadata.request_id, 42)
+        self.assertEqual(question.metadata.mode, "url")
+        self.assertEqual(question.metadata.elicitation_id, "elicit-42")
+        self.assertEqual(
+            question.metadata.url, "https://accounts.example.test/authorize"
+        )
+        self.assertEqual(question.metadata.url_host, "accounts.example.test")
         self.assertEqual(question.metadata.raw["future"], 1)
 
         plan = parse_event(

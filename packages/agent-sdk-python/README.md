@@ -10,7 +10,9 @@ events, and performs approval, question, and MCP elicitation round trips.
 
 Version `0.1.0` is available from
 [PyPI](https://pypi.org/project/chainlesschain-agent-sdk/). Python 3.10 or
-newer is required.
+newer is required. That published version is the 22-event baseline; the
+current source tree adds the typed URL-elicitation defer/complete events and
+has not yet been published as a new package version.
 
 ## Install
 
@@ -79,7 +81,7 @@ matching the TypeScript SDK.
 
 ## Event and callback guarantees
 
-- The 22 classes in `KNOWN_EVENT_CLASSES` mirror the TypeScript
+- The 24 classes in `KNOWN_EVENT_CLASSES` mirror the TypeScript
   `AgentStreamEvent` union. Nested token usage, deltas, questions, and plan
   records are dataclasses too.
 - Every event retains its original object in the read-only `raw` mapping;
@@ -89,9 +91,14 @@ matching the TypeScript SDK.
 - NDJSON decoding carries split lines and split UTF-8 code points across
   chunks, accepts CRLF, and flushes a final line without a newline.
 - Approval callback errors answer `approve:false` (fail closed). Question
-  callback errors answer `null`. MCP elicitation accepts only an explicit
+  callbacks automatically echo the opaque runtime `binding` on both normal
+  and `null` answers, so stale/cross-turn answers remain fail closed. MCP
+  elicitation accepts only an explicit
   `ElicitationResponse("accept", content)` (or equivalent mapping); all other
-  outcomes cancel.
+  outcomes cancel. URL requests expose `metadata.url` / `metadata.url_host`;
+  the host must show the full HTTPS URL and obtain explicit consent before
+  opening it. URL completion and non-interactive fallback arrive as typed
+  `ElicitationCompleteEvent` / `ElicitationDeferredEvent` objects.
 - `stderr` is diagnostics only. It is available through `on_stderr` and is
   never parsed as protocol data.
 

@@ -29,6 +29,7 @@ export async function startTelegramChannel(options = {}) {
     // the event loop (timers, stop()) entirely.
     pollPauseMs = 50,
     eventRuntimeStore = null,
+    eventRuntimeHost = null,
   } = options;
   const runtimeProducer = eventRuntimeStore
     ? new EventRuntimeProducer({ store: eventRuntimeStore })
@@ -74,13 +75,30 @@ export async function startTelegramChannel(options = {}) {
               channel: "telegram",
               sender: String(chatId),
               text,
+              eventId: `telegram:${update.update_id}`,
               meta: { updateId: update.update_id },
             };
-            runtimeProducer?.publish(event, {
-              origin: "telegram",
-              id: `telegram:${update.update_id}`,
-            });
-            onEvent?.(event);
+            if (runtimeProducer) {
+              const record = runtimeProducer.publish(
+                {
+                  ...event,
+                  type: "channel.event",
+                  requiresHandler: true,
+                },
+                {
+                  origin: "telegram",
+                  id: `telegram:${update.update_id}`,
+                },
+              );
+              if (eventRuntimeHost) {
+                await eventRuntimeHost.runOnce();
+              } else {
+                const result = await onEvent?.(event);
+                eventRuntimeStore.acknowledgeInbox?.(record.id, result);
+              }
+            } else {
+              await onEvent?.(event);
+            }
           } catch {
             /* downstream owns its failures */
           }

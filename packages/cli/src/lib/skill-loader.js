@@ -332,6 +332,7 @@ export class CLISkillLoader {
     this._cacheStats = {
       descriptorScans: 0,
       descriptorCacheHits: 0,
+      descriptorUses: new Map(),
       bodyCacheHits: 0,
       bodyCacheMisses: 0,
       bodyLoads: new Map(),
@@ -579,10 +580,16 @@ export class CLISkillLoader {
       estimatedTokens: cached.estimatedTokens,
       loads: 0,
       cacheHits: 0,
+      contextLoads: 0,
+      contextCacheHits: 0,
       loadedBecause: [],
     };
     prior.loads += 1;
     if (cacheRead) prior.cacheHits += 1;
+    if (context.bodyIncluded === true) {
+      prior.contextLoads += 1;
+      if (cacheRead) prior.contextCacheHits += 1;
+    }
     const reason = context.loadedBecause || "explicit";
     if (!prior.loadedBecause.includes(reason)) prior.loadedBecause.push(reason);
     this._cacheStats.bodyLoads.set(skill.skillMdPath, prior);
@@ -594,12 +601,17 @@ export class CLISkillLoader {
         sourceType: "skill",
         sourceId: skill.id,
         permissionMode: context.permissionMode || "agent",
-        tokenCount: cached.estimatedTokens,
+        // Only text that actually entered a model prompt consumes context
+        // tokens. Ordinary run_skill materialization is still recorded, but
+        // as a content-size/cache observation rather than a false token charge.
+        tokenCount:
+          context.bodyIncluded === true ? cached.estimatedTokens : 0,
         metadata: {
           source: skill.source,
           loadedBecause: reason,
           cacheRead,
           bodyIncluded: context.bodyIncluded === true,
+          estimatedBodyTokens: cached.estimatedTokens,
         },
       });
     } catch {
@@ -612,6 +624,22 @@ export class CLISkillLoader {
   recordDescriptorUse(skills, context = {}) {
     for (const skill of Array.isArray(skills) ? skills : []) {
       const descriptorText = `${skill.id}\n${skill.description || ""}\n${skill.category || ""}`;
+      const estimatedTokens = estimateSkillTokens(descriptorText);
+      const prior = this._cacheStats.descriptorUses.get(skill.id) || {
+        id: skill.id,
+        source: skill.source,
+        estimatedTokens,
+        contextLoads: 0,
+        contextTokens: 0,
+        loadedBecause: [],
+      };
+      prior.contextLoads += 1;
+      prior.contextTokens += estimatedTokens;
+      const reason = context.loadedBecause || "list_skills";
+      if (!prior.loadedBecause.includes(reason)) {
+        prior.loadedBecause.push(reason);
+      }
+      this._cacheStats.descriptorUses.set(skill.id, prior);
       try {
         this._contextLedger?.recordRead?.({
           sessionId: context.sessionId || "unknown",
@@ -619,10 +647,10 @@ export class CLISkillLoader {
           sourceType: "skill_descriptor",
           sourceId: skill.id,
           permissionMode: context.permissionMode || "agent",
-          tokenCount: estimateSkillTokens(descriptorText),
+          tokenCount: estimatedTokens,
           metadata: {
             source: skill.source,
-            loadedBecause: context.loadedBecause || "list_skills",
+            loadedBecause: reason,
             bodyLoaded: skill.bodyLoaded === true,
           },
         });
@@ -635,10 +663,28 @@ export class CLISkillLoader {
   /** Content-free cache/cost snapshot for `cc context --sources`. */
   getCacheLedger() {
     const descriptors = Array.isArray(this._cache) ? this._cache : [];
-    const descriptorChars = descriptors.reduce(
-      (sum, skill) =>
-        sum +
-        `${skill.id}\n${skill.displayName}\n${skill.description}\n${skill.category}`.length,
+    const descriptorEntries = descriptors.map((skill) => {
+      const descriptorText = `${skill.id}\n${skill.displayName}\n${skill.description}\n${skill.category}`;
+      const used = this._cacheStats.descriptorUses.get(skill.id);
+      return {
+        id: skill.id,
+        source: skill.source,
+        estimatedTokens: estimateSkillTokens(descriptorText),
+        contextLoads: Number(used?.contextLoads) || 0,
+        contextTokens: Number(used?.contextTokens) || 0,
+        loadedBecause: [...(used?.loadedBecause || [])],
+      };
+    });
+    const descriptorTokens = descriptorEntries.reduce(
+      (sum, entry) => sum + entry.estimatedTokens,
+      0,
+    );
+    const descriptorContextLoads = descriptorEntries.reduce(
+      (sum, entry) => sum + entry.contextLoads,
+      0,
+    );
+    const descriptorContextTokens = descriptorEntries.reduce(
+      (sum, entry) => sum + entry.contextTokens,
       0,
     );
     const residentPaths = new Set(this._bodyCache.keys());
@@ -649,20 +695,46 @@ export class CLISkillLoader {
       0,
     );
     const bodyLoads = Array.from(this._cacheStats.bodyLoads.values()).map(
-      (entry) => ({ ...entry, loadedBecause: [...entry.loadedBecause] }),
+      (entry) => ({
+        ...entry,
+        cacheMisses: Math.max(0, entry.loads - entry.cacheHits),
+        contextTokens: entry.estimatedTokens * entry.contextLoads,
+        loadedBecause: [...entry.loadedBecause],
+      }),
+    );
+    const bodyTotals = bodyLoads.reduce(
+      (totals, entry) => {
+        totals.estimatedTokensResident += entry.estimatedTokens;
+        totals.estimatedTokensServed += entry.estimatedTokens * entry.loads;
+        totals.estimatedTokensAvoidedByCache +=
+          entry.estimatedTokens * entry.cacheHits;
+        totals.contextLoads += entry.contextLoads;
+        totals.contextTokens += entry.contextTokens;
+        return totals;
+      },
+      {
+        estimatedTokensResident: 0,
+        estimatedTokensServed: 0,
+        estimatedTokensAvoidedByCache: 0,
+        contextLoads: 0,
+        contextTokens: 0,
+      },
     );
     return {
       descriptors: {
         resident: descriptors.length,
         scans: this._cacheStats.descriptorScans,
         cacheHits: this._cacheStats.descriptorCacheHits,
-        rawChars: descriptorChars,
-        estimatedTokens: estimateSkillTokens(descriptorChars),
+        estimatedTokens: descriptorTokens,
+        contextLoads: descriptorContextLoads,
+        contextTokens: descriptorContextTokens,
+        entries: descriptorEntries,
       },
       bodies: {
         resident: this._bodyCache.size,
         cacheHits: this._cacheStats.bodyCacheHits,
         cacheMisses: this._cacheStats.bodyCacheMisses,
+        ...bodyTotals,
         entries: bodyLoads,
       },
       savings: {
@@ -770,6 +842,7 @@ export class CLISkillLoader {
     this._cacheStats = {
       descriptorScans: 0,
       descriptorCacheHits: 0,
+      descriptorUses: new Map(),
       bodyCacheHits: 0,
       bodyCacheMisses: 0,
       bodyLoads: new Map(),

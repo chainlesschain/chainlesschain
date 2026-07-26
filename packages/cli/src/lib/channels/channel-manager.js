@@ -21,6 +21,7 @@ import {
   describeAuthorityChain,
 } from "../agent-authority.js";
 import { EventRuntimeStore } from "../event-runtime-store.js";
+import { getDefaultEventRuntimeHost } from "../event-runtime-host.js";
 
 export const CHANNEL_KINDS = ["webhook", "telegram"];
 
@@ -128,12 +129,42 @@ export async function startChannels(specsInput, opts = {}) {
   // `approve`) before the caller's handler sees it — so a channel message can
   // never be mistaken for a user approval no matter what it contains.
   const onEvent = stampChannelAuthority(opts.onEvent);
+  const eventRuntimeHost =
+    opts.eventRuntimeHost ||
+    (eventRuntimeStore && process.env.CC_EVENT_RUNTIME_DURABLE === "1"
+      ? getDefaultEventRuntimeHost({ store: eventRuntimeStore })
+      : null);
 
   const started = [];
+  const unregisterRuntimeHandlers = [];
+  if (eventRuntimeHost) {
+    for (const origin of new Set(specs.map((spec) => spec.kind))) {
+      unregisterRuntimeHandlers.push(
+        eventRuntimeHost.registerHandler(
+          (event) =>
+            onEvent({
+              channel: event.channel || origin,
+              sender: event.sender,
+              text: event.text,
+              ...(event.meta == null ? {} : { meta: event.meta }),
+              eventId: event.event_id || event.eventId || event.id || null,
+            }),
+          { queue: "inbox", type: "channel.event", origin },
+        ),
+      );
+    }
+  }
   const stopAll = () => {
     for (const c of started) {
       try {
         c.stop?.();
+      } catch {
+        /* best-effort */
+      }
+    }
+    for (const unregister of unregisterRuntimeHandlers.splice(0)) {
+      try {
+        unregister();
       } catch {
         /* best-effort */
       }
@@ -154,6 +185,7 @@ export async function startChannels(specsInput, opts = {}) {
           onEvent,
           log,
           eventRuntimeStore,
+          eventRuntimeHost,
         });
         started.push({ kind: "webhook", describe: handle.describe, ...handle });
       } else if (spec.kind === "telegram") {
@@ -167,6 +199,7 @@ export async function startChannels(specsInput, opts = {}) {
           onEvent,
           log,
           eventRuntimeStore,
+          eventRuntimeHost,
         });
         started.push({
           kind: "telegram",

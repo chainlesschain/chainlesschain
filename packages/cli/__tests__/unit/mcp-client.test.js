@@ -552,22 +552,30 @@ describe("MCP Client", () => {
       expect(calls[0].opts.method).toBe("POST");
       const body = JSON.parse(calls[0].opts.body);
       expect(body.method).toBe("initialize");
+      expect(calls[0].opts.headers["MCP-Protocol-Version"]).toBeUndefined();
       // Session id propagates to subsequent calls.
       const toolsCall = calls.find((c) => {
         const b = JSON.parse(c.opts.body);
         return b.method === "tools/list";
       });
       expect(toolsCall.opts.headers["Mcp-Session-Id"]).toBe("sess-abc");
+      expect(toolsCall.opts.headers["MCP-Protocol-Version"]).toBe(
+        "2025-11-25",
+      );
     });
 
     it("parses a text/event-stream response for a matching id", async () => {
       const sseBody = [
         ":keep-alive",
         "",
+        'data: {"jsonrpc":"2.0","method":"notifications/elicitation/complete","params":{"elicitationId":"unknown-is-ignored"}}',
+        "",
         'data: {"jsonrpc":"2.0","id":1,"result":{"serverInfo":{"name":"sse"}}}',
         "",
         "",
       ].join("\n");
+      const notification = vi.fn();
+      client.on("notification", notification);
       fetchQueue.push(
         makeResponse({
           contentType: "text/event-stream",
@@ -601,6 +609,12 @@ describe("MCP Client", () => {
         transport: "sse",
       });
       expect(result.serverInfo).toEqual({ name: "sse" });
+      expect(notification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          server: "sse-srv",
+          method: "notifications/elicitation/complete",
+        }),
+      );
     });
 
     it("throws a readable error on HTTP non-2xx response", async () => {

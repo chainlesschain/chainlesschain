@@ -14,7 +14,11 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { createNdjsonDecoder, encodeNdjson } from "./ndjson.js";
-import type { BgClientMessage, BgServerMessage } from "./protocol.js";
+import type {
+  BgClientMessage,
+  BgServerMessage,
+  InteractionBinding,
+} from "./protocol.js";
 
 export interface BackgroundAgentState {
   id: string;
@@ -56,6 +60,11 @@ export interface BackgroundSessionHandle {
   prompt: (text: string) => boolean;
   requestStatus: () => boolean;
   stopTurn: () => boolean;
+  answerInteraction: (
+    requestId: string,
+    binding: InteractionBinding,
+    answer: unknown,
+  ) => boolean;
   detach: () => void;
 }
 
@@ -121,6 +130,13 @@ export function attachBackgroundSession(
               prompt: (text) => write({ type: "prompt", text }),
               requestStatus: () => write({ type: "status" }),
               stopTurn: () => write({ type: "stop" }),
+              answerInteraction: (requestId, binding, answer) =>
+                write({
+                  type: "interaction_response",
+                  requestId,
+                  binding,
+                  answer,
+                }),
               detach: () => {
                 write({ type: "detach" });
                 socket.end();

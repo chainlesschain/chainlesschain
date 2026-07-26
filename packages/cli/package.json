@@ -32,7 +32,8 @@
     "build:changelog": "node scripts/build-changelog.mjs",
     "runtime:convergence": "node scripts/test-runtime-convergence.mjs",
     "runtime:e2e": "node scripts/test-runtime-e2e.cjs",
-    "runtime:test": "npm run runtime:convergence && npm run runtime:e2e",
+    "runtime:event-recovery": "node scripts/event-runtime-recovery-drill.mjs",
+    "runtime:test": "npm run runtime:convergence && npm run runtime:e2e && npm run runtime:event-recovery",
     "prepublishOnly": "npm run build:web-panel && npm run build:changelog"
   },
   "engines": {

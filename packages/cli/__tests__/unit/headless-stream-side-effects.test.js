@@ -251,12 +251,14 @@ describe("stream side-effect ledger — turn-time recording", () => {
     expect(effectExecuted).toBe(false);
     expect(ledger.list()[0].state).toBe("started");
     expect(
-      h.events().find(
-        (event) =>
-          event.type === "result" &&
-          event.subtype === "error" &&
-          /ledger disk full/.test(event.error || ""),
-      ),
+      h
+        .events()
+        .find(
+          (event) =>
+            event.type === "result" &&
+            event.subtype === "error" &&
+            /ledger disk full/.test(event.error || ""),
+        ),
     ).toBeTruthy();
   });
 
@@ -290,12 +292,14 @@ describe("stream side-effect ledger — turn-time recording", () => {
     expect(outcome.exitCode).toBe(1);
     expect(effectExecuted).toBe(false);
     expect(
-      h.events().find(
-        (event) =>
-          event.type === "result" &&
-          event.subtype === "error" &&
-          /ledger read unavailable/.test(event.error || ""),
-      ),
+      h
+        .events()
+        .find(
+          (event) =>
+            event.type === "result" &&
+            event.subtype === "error" &&
+            /ledger read unavailable/.test(event.error || ""),
+        ),
     ).toBeTruthy();
   });
 

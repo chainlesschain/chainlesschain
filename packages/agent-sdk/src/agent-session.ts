@@ -29,6 +29,8 @@ import {
   type AgentInputEvent,
   type AgentStreamEvent,
   type ApprovalRequestEvent,
+  type ElicitationCompleteEvent,
+  type ElicitationDeferredEvent,
   type LlmHint,
   type QuestionRequestEvent,
   type ResultEvent,
@@ -62,6 +64,8 @@ export interface AgentSessionEvents {
   approval_request: (event: ApprovalRequestEvent) => void;
   question_request: (event: QuestionRequestEvent) => void;
   elicitation_request: (event: QuestionRequestEvent) => void;
+  elicitation_deferred: (event: ElicitationDeferredEvent) => void;
+  elicitation_complete: (event: ElicitationCompleteEvent) => void;
   result: (event: ResultEvent) => void;
   stderr: (chunk: string) => void;
   /** Child exited. Fires exactly once. */
@@ -108,7 +112,8 @@ export interface AgentSessionOptions {
   /** MCP elicitation callback. Returning `{ action: "accept", content }` accepts; anything else cancels. */
   onElicitation?: (
     request: QuestionRequestEvent,
-  ) => Promise<{ action: "accept" | "decline" | "cancel"; content?: unknown }>
+  ) =>
+    | Promise<{ action: "accept" | "decline" | "cancel"; content?: unknown }>
     | { action: "accept" | "decline" | "cancel"; content?: unknown };
   /** DI seam for tests. */
   spawn?: typeof nodeSpawn;
@@ -252,9 +257,7 @@ export class AgentSession {
       (message) => this.dispatch(message),
       { onError: () => {} },
     );
-    child.stdout?.on("data", (chunk: Buffer) =>
-      decode(chunk.toString("utf8")),
-    );
+    child.stdout?.on("data", (chunk: Buffer) => decode(chunk.toString("utf8")));
     child.stderr?.on("data", (chunk: Buffer) =>
       this.emit("stderr", chunk.toString("utf8")),
     );
@@ -312,6 +315,14 @@ export class AgentSession {
       this.autoRespondElicitation(event);
       return;
     }
+    if (event.type === "elicitation_deferred") {
+      this.emit("elicitation_deferred", event as ElicitationDeferredEvent);
+      return;
+    }
+    if (event.type === "elicitation_complete") {
+      this.emit("elicitation_complete", event as ElicitationCompleteEvent);
+      return;
+    }
     if (isQuestionRequest(event)) {
       this.emit("question_request", event);
       this.autoRespondQuestion(event);
@@ -347,7 +358,7 @@ export class AgentSession {
       } catch {
         answer = null; // cancel — the CLI resolves it as user_timeout
       }
-      this.answerQuestion(request.id, answer);
+      this.answerQuestion(request.id, answer, request.binding);
     })();
   }
 
@@ -358,12 +369,16 @@ export class AgentSession {
       try {
         const response = await callback(request);
         if (response?.action === "accept") {
-          this.answerQuestion(request.id, response.content ?? {});
+          this.answerQuestion(
+            request.id,
+            response.content ?? {},
+            request.binding,
+          );
         } else {
-          this.answerQuestion(request.id, null);
+          this.answerQuestion(request.id, null, request.binding);
         }
       } catch {
-        this.answerQuestion(request.id, null);
+        this.answerQuestion(request.id, null, request.binding);
       }
     })();
   }
@@ -401,8 +416,17 @@ export class AgentSession {
     return this.write({ type: "approval", id, approve });
   }
 
-  answerQuestion(id: string, answer: unknown): boolean {
-    return this.write({ type: "answer", id, answer });
+  answerQuestion(
+    id: string,
+    answer: unknown,
+    binding?: QuestionRequestEvent["binding"],
+  ): boolean {
+    return this.write({
+      type: "answer",
+      id,
+      answer,
+      ...(binding ? { binding } : {}),
+    });
   }
 
   planControl(action: "enter" | "approve" | "reject"): boolean {

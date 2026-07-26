@@ -102,6 +102,17 @@ function project(ui: Record<string, unknown> | null): Record<string, unknown> {
         elicitation: ui.elicitation === true,
         server: ui.server ?? null,
         hasSchema: ui.requestedSchema != null,
+        ...(ui.elicitation === true
+          ? {
+              mode: ui.mode ?? "form",
+              elicitationId: ui.elicitationId ?? null,
+              url: ui.url ?? null,
+              urlHost: ui.urlHost ?? null,
+            }
+          : {}),
+        ...(ui.binding && typeof ui.binding === "object"
+          ? { binding: ui.binding }
+          : {}),
       };
     case "plan":
       return { kind, active: ui.active === true, state: ui.state ?? null };

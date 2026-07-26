@@ -19,6 +19,8 @@ from chainlesschain_agent_sdk import (
     ApprovalResolvedEvent,
     CompactionEvent,
     ContentDeltaEvent,
+    ElicitationCompleteEvent,
+    ElicitationDeferredEvent,
     ElicitationResponse,
     FeedbackAckEvent,
     IterationBudgetExhaustedEvent,
@@ -141,6 +143,24 @@ def _question_resolved(consumer: CiEventConsumer, event: QuestionResolvedEvent) 
     consumer.log(f"[agent:question] resolved id={event.id} via={event.via or '-'}")
 
 
+def _elicitation_deferred(
+    consumer: CiEventConsumer, event: ElicitationDeferredEvent
+) -> None:
+    consumer.log(
+        f"[agent:mcp-elicitation] deferred id={event.elicitation_id or '-'} "
+        f"server={event.server or '-'} reason={event.reason}"
+    )
+
+
+def _elicitation_complete(
+    consumer: CiEventConsumer, event: ElicitationCompleteEvent
+) -> None:
+    consumer.log(
+        f"[agent:mcp-elicitation] complete id={event.elicitation_id} "
+        f"server={event.server or '-'}"
+    )
+
+
 def _plan(consumer: CiEventConsumer, event: PlanUpdateEvent) -> None:
     consumer.log(
         f"[agent:plan] active={event.active} state={event.state or '-'} "
@@ -221,6 +241,8 @@ EVENT_HANDLERS: Dict[Type[AgentEvent], Handler] = {
     ApprovalResolvedEvent: _approval_resolved,
     QuestionRequestEvent: _question_request,
     QuestionResolvedEvent: _question_resolved,
+    ElicitationDeferredEvent: _elicitation_deferred,
+    ElicitationCompleteEvent: _elicitation_complete,
     PlanUpdateEvent: _plan,
     CompactionEvent: _compaction,
     StreamRetryEvent: _retry,
