@@ -21,6 +21,7 @@ import {
   componentCapabilityDenial,
   networkTargetDenial,
 } from "./capabilities.js";
+import { mergePluginSandboxPolicies } from "./sandbox-policy.js";
 
 export const _deps = { readFileSync: fs.readFileSync };
 
@@ -121,6 +122,17 @@ export function collectPluginMcpServers(opts = {}) {
     for (const [name, cfg] of Object.entries(map)) {
       if (!cfg || typeof cfg !== "object") continue;
       if (name in servers) continue; // first plugin wins on a clash
+      let sandboxPolicy;
+      try {
+        sandboxPolicy = mergePluginSandboxPolicies(
+          p.manifest.sandboxPolicy,
+          cfg.sandboxPolicy,
+        );
+      } catch {
+        // An invalid explicit requirement must never degrade to an unsandboxed
+        // process. Refuse only this server so independent entries still load.
+        continue;
+      }
       const targetUrl = cfg.url || cfg.transport?.url || null;
       const networkDenial = networkTargetDenial(p.manifest, targetUrl);
       if (networkDenial) {
@@ -130,8 +142,10 @@ export function collectPluginMcpServers(opts = {}) {
         });
         continue;
       }
+      const { sandboxPolicy: _rawSandboxPolicy, ...serverConfig } = cfg;
       servers[name] = {
-        ...cfg,
+        ...serverConfig,
+        ...(sandboxPolicy ? { sandboxPolicy } : {}),
         origin: "plugin:mcp",
         policy: "allow",
         pluginId: p.name,

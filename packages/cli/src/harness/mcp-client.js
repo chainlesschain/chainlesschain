@@ -773,6 +773,9 @@ export class MCPClient extends EventEmitter {
           pluginId: config.pluginId,
           pluginVersion: config.pluginVersion,
           pluginSource: config.pluginSource,
+          ...(config.sandboxPolicy
+            ? { sandboxPolicy: config.sandboxPolicy }
+            : {}),
         });
 
         entry.process = proc;

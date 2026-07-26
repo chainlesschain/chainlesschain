@@ -18,6 +18,7 @@ import fs from "fs";
 import { discoverPlugins } from "./scopes.js";
 import { partitionByTrust, warnUntrustedOnce } from "./trust.js";
 import { componentCapabilityDenial } from "./capabilities.js";
+import { mergePluginSandboxPolicies } from "./sandbox-policy.js";
 
 export const _deps = { readFileSync: fs.readFileSync };
 
@@ -124,17 +125,43 @@ export function collectPluginHooks(opts = {}) {
       if (!Array.isArray(entries)) continue;
       const tagged = entries.map((group) => {
         if (!group || typeof group !== "object" || !Array.isArray(group.hooks)) return group;
+        let groupSandboxPolicy;
+        try {
+          groupSandboxPolicy = mergePluginSandboxPolicies(
+            p.manifest.sandboxPolicy,
+            group.sandboxPolicy,
+          );
+        } catch {
+          return null;
+        }
+        const { sandboxPolicy: _rawGroupPolicy, ...groupConfig } = group;
         return {
-          ...group,
-          hooks: group.hooks.map((hook) => ({
-            ...hook,
-            origin: "plugin:hook",
-            pluginId: p.name,
-            pluginVersion: p.version || null,
-            pluginSource: p.manifest?.manifestPath || null,
-          })),
+          ...groupConfig,
+          hooks: group.hooks
+            .map((hook) => {
+              if (!hook || typeof hook !== "object") return hook;
+              let sandboxPolicy;
+              try {
+                sandboxPolicy = mergePluginSandboxPolicies(
+                  groupSandboxPolicy,
+                  hook.sandboxPolicy,
+                );
+              } catch {
+                return null;
+              }
+              const { sandboxPolicy: _rawHookPolicy, ...hookConfig } = hook;
+              return {
+                ...hookConfig,
+                ...(sandboxPolicy ? { sandboxPolicy } : {}),
+                origin: "plugin:hook",
+                pluginId: p.name,
+                pluginVersion: p.version || null,
+                pluginSource: p.manifest?.manifestPath || null,
+              };
+            })
+            .filter(Boolean),
         };
-      });
+      }).filter(Boolean);
       merged[event] = (merged[event] || []).concat(tagged);
     }
   }

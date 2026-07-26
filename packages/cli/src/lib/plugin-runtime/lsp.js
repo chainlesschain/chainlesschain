@@ -73,6 +73,7 @@ export function ensurePluginLspServers(opts = {}) {
 
   const denied = [];
   for (const p of trusted) {
+    if (!p.manifest || p.manifest.ok !== true) continue;
     const servers = p.manifest?.components?.lsp || [];
     if (servers.length === 0) continue;
     // Component-level capability gate: a plugin that declared a permissions
@@ -94,6 +95,9 @@ export function ensurePluginLspServers(opts = {}) {
           pluginId: p.name,
           pluginVersion: p.version,
           pluginSource: s.absPath || p.manifest.manifestPath,
+          ...(s.sandboxPolicy
+            ? { sandboxPolicy: s.sandboxPolicy }
+            : {}),
         });
         registered.push({ plugin: p.name, languageId: s.languageId, id: s.id });
       } catch {

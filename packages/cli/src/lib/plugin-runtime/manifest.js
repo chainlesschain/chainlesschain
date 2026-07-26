@@ -32,6 +32,10 @@ import {
   normalizeOptionsSchema,
   auditDeclaredCapabilities,
 } from "./capabilities.js";
+import {
+  mergePluginSandboxPolicies,
+  normalizePluginSandboxPolicy,
+} from "./sandbox-policy.js";
 
 export const _deps = {
   existsSync: fs.existsSync,
@@ -137,6 +141,19 @@ export function parsePluginManifest(root) {
     license: strOr(manifest.license, ""),
   };
 
+  let manifestSandboxPolicy = null;
+  try {
+    manifestSandboxPolicy = normalizePluginSandboxPolicy(
+      manifest.sandboxPolicy,
+      { label: "manifest.sandboxPolicy" },
+    );
+    if (manifestSandboxPolicy) {
+      result.sandboxPolicy = manifestSandboxPolicy;
+    }
+  } catch (err) {
+    errors.push(err.message);
+  }
+
   // A helper that resolves a plugin-relative path safely, recording an error if
   // it escapes the root or is absolute. Returns the absolute path or null.
   const safeResolve = (rel, label) => {
@@ -174,9 +191,22 @@ export function parsePluginManifest(root) {
     conventionPath: ["monitors", "monitors.json"],
     listKey: "monitors",
   });
-  c.lsp = resolveLsp(abs, manifest, safeResolve, errors, warnings);
+  c.lsp = resolveLsp(
+    abs,
+    manifest,
+    safeResolve,
+    errors,
+    warnings,
+    manifestSandboxPolicy,
+  );
   c.bin = resolveBin(abs, manifest, safeResolve, warnings);
   c.settings = resolveSettings(abs, manifest, safeResolve);
+  if (manifestSandboxPolicy && c.bin.length > 0) {
+    errors.push(
+      "manifest.sandboxPolicy cannot currently protect plugin bin executables; " +
+        "top-level sandbox requirements with bin are not supported",
+    );
+  }
 
   // ── declared capabilities + options schema (P1) ──
   const hasPermissions =
@@ -363,7 +393,14 @@ function extractList(obj, listKey) {
   return { count: 0, names: [] };
 }
 
-function resolveLsp(root, manifest, safeResolve, errors, warnings) {
+function resolveLsp(
+  root,
+  manifest,
+  safeResolve,
+  errors,
+  warnings,
+  manifestSandboxPolicy,
+) {
   let content = manifest.lsp;
   // Convention file `.lsp.json`.
   if (!content) {
@@ -392,12 +429,23 @@ function resolveLsp(root, manifest, safeResolve, errors, warnings) {
       warnings.push("lsp server entry missing languageId/command — skipped");
       continue;
     }
+    let sandboxPolicy;
+    try {
+      sandboxPolicy = mergePluginSandboxPolicies(
+        manifestSandboxPolicy,
+        s.sandboxPolicy,
+      );
+    } catch (err) {
+      errors.push(`lsp server "${s.languageId}": ${err.message}`);
+      continue;
+    }
     out.push({
       languageId: s.languageId,
       command: s.command,
       args: Array.isArray(s.args) ? s.args.map(String) : [],
       extensions: Array.isArray(s.extensions) ? s.extensions.map(String) : [],
       id: typeof s.id === "string" ? s.id : s.command,
+      ...(sandboxPolicy ? { sandboxPolicy } : {}),
     });
   }
   return out;

@@ -64,6 +64,51 @@ describe("collectPluginMcpServers", () => {
     expect(Object.keys(servers)).toEqual(["weather"]);
     expect(servers.weather.command).toBe("weather-mcp");
     expect(servers.weather.args).toEqual(["--stdio"]);
+    expect(servers.weather).not.toHaveProperty("sandboxPolicy");
+  });
+
+  it("merges manifest and server sandbox requirements before stdio launch", () => {
+    installMcpPlugin(
+      "local",
+      "strict-mcp",
+      {
+        mcpServers: {
+          strict: {
+            command: "strict-mcp",
+            sandboxPolicy: { requiredBoundaries: ["network"] },
+          },
+        },
+      },
+      {
+        manifest: {
+          sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+        },
+      },
+    );
+
+    const { servers } = collectPluginMcpServers({
+      cwd,
+      scopes: ["local"],
+    });
+
+    expect(servers.strict.sandboxPolicy).toEqual({
+      requiredBoundaries: ["filesystem", "network"],
+    });
+  });
+
+  it("refuses a server with an invalid explicit sandbox requirement", () => {
+    installMcpPlugin("local", "bad-mcp", {
+      mcpServers: {
+        bad: {
+          command: "bad-mcp",
+          sandboxPolicy: { requiredBoundaries: ["filesytem"] },
+        },
+      },
+    });
+
+    expect(
+      collectPluginMcpServers({ cwd, scopes: ["local"] }).servers,
+    ).toEqual({});
   });
 
   it("accepts the bare `servers` key too", () => {

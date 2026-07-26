@@ -47,6 +47,7 @@ export class LSPClient extends EventEmitter {
     this.pluginId = opts.pluginId || null;
     this.pluginVersion = opts.pluginVersion || null;
     this.pluginSource = opts.pluginSource || null;
+    this.sandboxPolicy = opts.sandboxPolicy || null;
 
     this._child = null;
     this._buffer = new MessageBuffer();
@@ -97,6 +98,9 @@ export class LSPClient extends EventEmitter {
             pluginId: this.pluginId,
             pluginVersion: this.pluginVersion,
             pluginSource: this.pluginSource,
+            ...(this.sandboxPolicy
+              ? { sandboxPolicy: this.sandboxPolicy }
+              : {}),
           }
         : {}),
     });

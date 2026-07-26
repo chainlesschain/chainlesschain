@@ -1,12 +1,16 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import os from "node:os";
 import fs from "node:fs";
 import path from "node:path";
+import { createRequire } from "node:module";
 import {
   collectPluginHooks,
   mergePluginHooks,
 } from "../../src/lib/plugin-runtime/hooks.js";
 import { pluginVersionDir } from "../../src/lib/plugin-runtime/scopes.js";
+
+const require = createRequire(import.meta.url);
+const { runHooks } = require("../../src/lib/hook-runner.cjs");
 
 let cwd;
 
@@ -82,6 +86,75 @@ describe("collectPluginHooks", () => {
     });
     const map = collectPluginHooks({ cwd, scopes: ["local"] });
     expect(map.SessionStart).toHaveLength(1);
+    expect(map.SessionStart[0].hooks[0]).not.toHaveProperty("sandboxPolicy");
+  });
+
+  it("merges manifest, group, and command-hook sandbox requirements", () => {
+    installHookPlugin(
+      "local",
+      "strict-hooks",
+      {
+        hooks: {
+          SessionStart: [
+            {
+              sandboxPolicy: { requiredBoundaries: ["network"] },
+              hooks: [
+                {
+                  type: "command",
+                  command: "guard",
+                  sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+                },
+              ],
+            },
+          ],
+        },
+      },
+      {
+        manifest: {
+          sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+        },
+      },
+    );
+
+    const map = collectPluginHooks({ cwd, scopes: ["local"] });
+
+    expect(map.SessionStart[0]).not.toHaveProperty("sandboxPolicy");
+    expect(map.SessionStart[0].hooks[0].sandboxPolicy).toEqual({
+      requiredBoundaries: ["filesystem", "network"],
+    });
+
+    const broker = {
+      spawnSync: vi.fn(() => ({ status: 0, stdout: "", stderr: "" })),
+    };
+    runHooks(map.SessionStart[0].hooks, {}, { broker, event: "SessionStart" });
+    expect(broker.spawnSync.mock.calls[0][2].sandboxPolicy).toEqual({
+      requiredBoundaries: ["filesystem", "network"],
+    });
+  });
+
+  it("drops an invalid command-hook descriptor instead of running it unsandboxed", () => {
+    installHookPlugin("local", "bad-hooks", {
+      hooks: {
+        SessionStart: [
+          {
+            hooks: [
+              {
+                type: "command",
+                command: "bad",
+                sandboxPolicy: { requiredBoundaries: ["filesytem"] },
+              },
+              { type: "command", command: "good" },
+            ],
+          },
+        ],
+      },
+    });
+
+    const hooks =
+      collectPluginHooks({ cwd, scopes: ["local"] }).SessionStart[0].hooks;
+
+    expect(hooks).toHaveLength(1);
+    expect(hooks[0].command).toBe("good");
   });
 
   it("collects unwrapped { Event: [...] } form", () => {

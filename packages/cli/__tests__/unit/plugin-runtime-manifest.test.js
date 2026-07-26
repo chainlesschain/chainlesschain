@@ -97,6 +97,115 @@ describe("parsePluginManifest — metadata validation", () => {
       version: "1.2.3",
       description: "hi",
     });
+    expect(m).not.toHaveProperty("sandboxPolicy");
+  });
+});
+
+describe("parsePluginManifest - required plugin sandbox boundaries", () => {
+  it("normalizes and deduplicates explicit filesystem/network requirements", () => {
+    write("plugin.json", {
+      name: "strict-plugin",
+      version: "1.0.0",
+      sandboxPolicy: {
+        requiredBoundaries: ["network", "filesystem", "network"],
+      },
+    });
+
+    const m = parsePluginManifest(root);
+
+    expect(m.ok).toBe(true);
+    expect(m.sandboxPolicy).toEqual({
+      requiredBoundaries: ["network", "filesystem"],
+    });
+  });
+
+  it("merges manifest and LSP descriptor requirements additively", () => {
+    write("plugin.json", {
+      name: "strict-lsp",
+      version: "1.0.0",
+      sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+    });
+    write(".lsp.json", {
+      servers: [
+        {
+          languageId: "toml",
+          command: "taplo",
+          sandboxPolicy: { requiredBoundaries: ["network"] },
+        },
+      ],
+    });
+
+    const m = parsePluginManifest(root);
+
+    expect(m.ok).toBe(true);
+    expect(m.components.lsp[0].sandboxPolicy).toEqual({
+      requiredBoundaries: ["filesystem", "network"],
+    });
+  });
+
+  it("rejects a top-level policy when plugin bin execution cannot honor it", () => {
+    write("bin/strict-tool", "");
+    write("plugin.json", {
+      name: "strict-bin",
+      version: "1.0.0",
+      sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+      bin: { "strict-tool": "bin/strict-tool" },
+    });
+
+    const m = parsePluginManifest(root);
+
+    expect(m.ok).toBe(false);
+    expect(m.errors.join("\n")).toMatch(
+      /cannot currently protect plugin bin executables/,
+    );
+  });
+
+  it.each([
+    {
+      sandboxPolicy: { requiredBoundaries: ["process-tree"] },
+      expected: /unsupported boundary: process-tree/,
+    },
+    {
+      sandboxPolicy: { requiredBoundaries: "filesystem" },
+      expected: /requiredBoundaries must be an array/,
+    },
+    {
+      sandboxPolicy: { profile: "strict" },
+      expected: /unsupported field: profile/,
+    },
+  ])(
+    "rejects an invalid strong sandbox declaration",
+    ({ sandboxPolicy, expected }) => {
+      write("plugin.json", {
+        name: "invalid-sandbox",
+        version: "1.0.0",
+        sandboxPolicy,
+      });
+
+      const m = parsePluginManifest(root);
+
+      expect(m.ok).toBe(false);
+      expect(m.errors.join("\n")).toMatch(expected);
+    },
+  );
+
+  it("rejects an invalid LSP descriptor instead of loading it without isolation", () => {
+    write("plugin.json", { name: "bad-lsp", version: "1.0.0" });
+    write(".lsp.json", {
+      servers: [
+        {
+          languageId: "toml",
+          command: "taplo",
+          sandboxPolicy: { requiredBoundaries: ["typo"] },
+        },
+      ],
+    });
+
+    const m = parsePluginManifest(root);
+
+    expect(m.ok).toBe(false);
+    expect(m.components.lsp).toEqual([]);
+    expect(m.errors.join("\n")).toMatch(/unsupported boundary: typo/);
   });
 });
 

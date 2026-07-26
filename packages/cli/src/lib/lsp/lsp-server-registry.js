@@ -96,6 +96,15 @@ export function registerLanguageServer(def) {
     pluginId: def.pluginId || null,
     pluginVersion: def.pluginVersion || null,
     pluginSource: def.pluginSource || null,
+    ...(def.sandboxPolicy
+      ? {
+          sandboxPolicy: {
+            requiredBoundaries: [
+              ...(def.sandboxPolicy.requiredBoundaries || []),
+            ],
+          },
+        }
+      : {}),
   };
   const existing = pluginServers.get(def.languageId) || [];
   // De-dupe by server id so re-registering the same server (e.g. a reload)
@@ -154,6 +163,15 @@ export function resolveServer(languageId, projectRoot) {
                 pluginId: def.pluginId,
                 pluginVersion: def.pluginVersion,
                 pluginSource: def.pluginSource,
+                ...(def.sandboxPolicy
+                  ? {
+                      sandboxPolicy: {
+                        requiredBoundaries: [
+                          ...(def.sandboxPolicy.requiredBoundaries || []),
+                        ],
+                      },
+                    }
+                  : {}),
               }
             : {}),
         };

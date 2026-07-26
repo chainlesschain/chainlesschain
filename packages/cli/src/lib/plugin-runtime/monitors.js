@@ -22,6 +22,7 @@ import fs from "fs";
 import { discoverPlugins } from "./scopes.js";
 import { partitionByTrust, warnUntrustedOnce } from "./trust.js";
 import { componentCapabilityDenial } from "./capabilities.js";
+import { mergePluginSandboxPolicies } from "./sandbox-policy.js";
 
 export const _deps = { readFileSync: fs.readFileSync };
 
@@ -68,6 +69,15 @@ function normalizeMonitor(plugin, raw) {
     raw.env && typeof raw.env === "object" && !Array.isArray(raw.env)
       ? raw.env
       : null;
+  let sandboxPolicy;
+  try {
+    sandboxPolicy = mergePluginSandboxPolicies(
+      plugin.manifest?.sandboxPolicy,
+      raw.sandboxPolicy,
+    );
+  } catch {
+    return null;
+  }
   return {
     plugin: plugin.name,
     scope: plugin.scope,
@@ -85,6 +95,7 @@ function normalizeMonitor(plugin, raw) {
     pluginId: plugin.name,
     pluginVersion: plugin.version,
     pluginSource: plugin.manifest?.manifestPath || null,
+    ...(sandboxPolicy ? { sandboxPolicy } : {}),
   };
 }
 

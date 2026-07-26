@@ -9,6 +9,7 @@ import {
 import {
   languageIdForFile,
   probeServers,
+  resolveServer,
   _resetPluginServers,
 } from "../../src/lib/lsp/lsp-server-registry.js";
 import { pluginVersionDir } from "../../src/lib/plugin-runtime/scopes.js";
@@ -79,6 +80,34 @@ describe("ensurePluginLspServers — component-level capability gate", () => {
 });
 
 describe("ensurePluginLspServers", () => {
+  it("does not register LSP servers from an invalid manifest sandbox policy", () => {
+    installLspPlugin(
+      "local",
+      "invalid-policy",
+      {
+        servers: [
+          {
+            languageId: "toml",
+            command: "taplo",
+            extensions: [".toml"],
+          },
+        ],
+      },
+      {
+        manifest: {
+          sandboxPolicy: {
+            requiredBoundaries: ["filesytem"],
+          },
+        },
+      },
+    );
+
+    expect(
+      ensurePluginLspServers({ cwd, scopes: ["local"] }).registered,
+    ).toEqual([]);
+    expect(languageIdForFile(path.join(cwd, "config.toml"))).toBeNull();
+  });
+
   it("registers a plugin-declared language server into the LSP registry", () => {
     installLspPlugin("local", "toml-tools", {
       servers: [
@@ -102,6 +131,38 @@ describe("ensurePluginLspServers", () => {
     const toml = probeServers(cwd).find((s) => s.languageId === "toml");
     expect(toml).toBeTruthy();
     expect(toml.id).toBe("taplo");
+  });
+
+  it("preserves normalized sandbox requirements through registry resolution", () => {
+    installLspPlugin(
+      "local",
+      "strict-lsp",
+      {
+        servers: [
+          {
+            languageId: "toml",
+            command: "taplo",
+            extensions: [".toml"],
+            sandboxPolicy: { requiredBoundaries: ["network"] },
+          },
+        ],
+      },
+      {
+        manifest: {
+          sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+        },
+      },
+    );
+    const localBin = path.join(cwd, "node_modules", ".bin", "taplo");
+    fs.mkdirSync(path.dirname(localBin), { recursive: true });
+    fs.writeFileSync(localBin, "", "utf8");
+
+    ensurePluginLspServers({ cwd, scopes: ["local"] });
+    const resolved = resolveServer("toml", cwd);
+
+    expect(resolved.sandboxPolicy).toEqual({
+      requiredBoundaries: ["filesystem", "network"],
+    });
   });
 
   it("is memoized per root — a second call is a no-op unless forced", () => {

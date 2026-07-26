@@ -102,8 +102,50 @@ describe("collectPluginMonitors", () => {
     expect(tests.mode).toBe("interval");
     expect(tests.intervalMs).toBe(5000);
     expect(tests.command).toBe("npm");
+    expect(tests).not.toHaveProperty("sandboxPolicy");
     const logs = mons.find((m) => m.name === "logs");
     expect(logs.mode).toBe("longRunning");
+  });
+
+  it("merges manifest and monitor sandbox requirements additively", () => {
+    installMonitorPlugin(
+      "local",
+      "strict-monitor",
+      {
+        monitors: [
+          {
+            name: "watch",
+            command: "watcher",
+            sandboxPolicy: { requiredBoundaries: ["network"] },
+          },
+        ],
+      },
+      {
+        manifest: {
+          sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+        },
+      },
+    );
+
+    const [monitor] = collectPluginMonitors({ cwd, scopes: ["local"] });
+
+    expect(monitor.sandboxPolicy).toEqual({
+      requiredBoundaries: ["filesystem", "network"],
+    });
+  });
+
+  it("drops a monitor with an invalid explicit sandbox requirement", () => {
+    installMonitorPlugin("local", "bad-monitor", {
+      monitors: [
+        {
+          name: "watch",
+          command: "watcher",
+          sandboxPolicy: { requiredBoundaries: "filesystem" },
+        },
+      ],
+    });
+
+    expect(collectPluginMonitors({ cwd, scopes: ["local"] })).toEqual([]);
   });
 
   it("collects monitors declared INLINE in plugin.json (no monitors.json)", () => {

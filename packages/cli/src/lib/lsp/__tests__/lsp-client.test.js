@@ -15,6 +15,7 @@ import {
   buildSpawnCommand,
 } from "../lsp-client.js";
 import { encodeMessage, MessageBuffer } from "../jsonrpc-stream.js";
+import { executionBroker } from "../../process-execution-broker/index.js";
 
 /** A fake language server process. Auto-replies to `initialize`; test controls the rest. */
 class FakeChild extends EventEmitter {
@@ -94,6 +95,37 @@ describe("LSPClient handshake", () => {
         shell: false,
       }),
     );
+    expect(_deps.spawn.mock.calls[0][2]).not.toHaveProperty("sandboxPolicy");
+  });
+
+  it("passes plugin sandbox requirements to ProcessExecutionBroker", async () => {
+    const child = new FakeChild();
+    const brokerSpawn = vi
+      .spyOn(executionBroker, "spawn")
+      .mockReturnValue(child);
+    const client = makeClient(child, {
+      origin: "plugin:lsp",
+      pluginId: "strict-lsp",
+      pluginVersion: "1.0.0",
+      pluginSource: "/plugins/strict-lsp/.lsp.json",
+      sandboxPolicy: {
+        requiredBoundaries: ["filesystem", "network"],
+      },
+    });
+
+    await client.start();
+
+    expect(brokerSpawn).toHaveBeenCalledWith(
+      "fake-lsp",
+      ["--stdio"],
+      expect.objectContaining({
+        origin: "plugin:lsp",
+        sandboxPolicy: {
+          requiredBoundaries: ["filesystem", "network"],
+        },
+      }),
+    );
+    expect(_deps.spawn).not.toHaveBeenCalled();
   });
 
   it("kills the spawned server when the initialize handshake times out (no orphan)", async () => {

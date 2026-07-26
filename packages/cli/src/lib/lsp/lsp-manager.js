@@ -243,6 +243,9 @@ export class LSPManager {
       pluginId: resolved.pluginId,
       pluginVersion: resolved.pluginVersion,
       pluginSource: resolved.pluginSource,
+      ...(resolved.sandboxPolicy
+        ? { sandboxPolicy: resolved.sandboxPolicy }
+        : {}),
     });
     // Collect pushed diagnostics keyed by document, tracking publish count/time
     // so callers can wait for the project to load (first publish) and settle

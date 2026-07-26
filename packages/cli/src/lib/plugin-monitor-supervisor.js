@@ -224,6 +224,9 @@ export class PluginMonitorSupervisor {
               pluginId: desc.pluginId,
               pluginVersion: desc.pluginVersion,
               pluginSource: desc.pluginSource,
+              ...(desc.sandboxPolicy
+                ? { sandboxPolicy: desc.sandboxPolicy }
+                : {}),
             }
           : {}),
       },

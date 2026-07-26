@@ -19,6 +19,7 @@ import { _deps as regDeps } from "../lsp-server-registry.js";
 class FakeClient extends EventEmitter {
   constructor(opts) {
     super();
+    this.opts = opts;
     this.rootPath = opts.rootPath;
     this.running = true;
     this.notifications = [];
@@ -102,6 +103,30 @@ describe("position helpers", () => {
 });
 
 describe("ensureFor", () => {
+  it("passes resolved plugin sandbox requirements into LSPClient", async () => {
+    const mgr = new LSPManager();
+
+    await mgr._startServer(
+      "/proj::strict-lsp",
+      {
+        id: "strict-lsp",
+        command: "strict-lsp",
+        args: ["--stdio"],
+        origin: "plugin:lsp",
+        pluginId: "strict-plugin",
+        sandboxPolicy: {
+          requiredBoundaries: ["filesystem", "network"],
+        },
+      },
+      "/proj",
+    );
+
+    expect(lastClient.opts.sandboxPolicy).toEqual({
+      requiredBoundaries: ["filesystem", "network"],
+    });
+    await mgr.disposeAll();
+  });
+
   it("starts a server and sends didOpen the first time", async () => {
     const mgr = new LSPManager();
     const ready = await mgr.ensureFor("/proj/src/a.ts");

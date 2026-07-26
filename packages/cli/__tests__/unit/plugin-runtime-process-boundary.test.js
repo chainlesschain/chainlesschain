@@ -28,6 +28,9 @@ describe("plugin process boundary", () => {
         pluginId: "p",
         pluginVersion: "1.0.0",
         pluginSource: "/plugin/monitors.json",
+        sandboxPolicy: {
+          requiredBoundaries: ["filesystem", "network"],
+        },
       },
     ]);
     expect(brokerSpawn).toHaveBeenCalledWith(
@@ -40,8 +43,31 @@ describe("plugin process boundary", () => {
         pluginId: "p",
         pluginVersion: "1.0.0",
         pluginSource: "/plugin/monitors.json",
+        sandboxPolicy: {
+          requiredBoundaries: ["filesystem", "network"],
+        },
       }),
     );
+    supervisor.stopAll();
+  });
+
+  it("does not add a sandbox contract for an undeclared plugin monitor", () => {
+    const brokerSpawn = vi.fn(() => child());
+    const supervisor = new PluginMonitorSupervisor({ brokerSpawn });
+    supervisor.start([
+      {
+        id: "p:legacy",
+        plugin: "p",
+        name: "legacy",
+        command: "legacy-watch",
+        args: [],
+        mode: "longRunning",
+        origin: "plugin:monitor",
+        pluginId: "p",
+      },
+    ]);
+
+    expect(brokerSpawn.mock.calls[0][2]).not.toHaveProperty("sandboxPolicy");
     supervisor.stopAll();
   });
 
