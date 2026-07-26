@@ -7,6 +7,7 @@ import {
   executionBroker,
   SANDBOX_BOUNDARIES,
 } from "../../src/lib/process-execution-broker/index.js";
+import { _resetPluginBinSandboxPolicyPins } from "../../src/lib/plugin-runtime/bin.js";
 import { pluginVersionDir } from "../../src/lib/plugin-runtime/scopes.js";
 
 let cwd;
@@ -39,6 +40,7 @@ beforeEach(() => {
   originalNative = executionBroker._native;
   originalAdapter = executionBroker._sandboxAdapter;
   executionBroker.flushAuditLog();
+  _resetPluginBinSandboxPolicyPins();
 });
 
 afterEach(() => {
@@ -159,6 +161,91 @@ describe("agent-core strict plugin bin route", () => {
       via: "plugin-bin-direct-invocation",
       reason: "ERR_PLUGIN_BIN_COMPOUND_COMMAND",
     });
+    expect(nativeSpawnSync).not.toHaveBeenCalled();
+  });
+
+  it("applies the pinned strict-bin union to an interpreter wrapper shell", async () => {
+    const target = installStrictNodeBin();
+    const nativeSpawnSync = vi.fn(() => ({
+      status: 0,
+      stdout: "wrapped-output",
+      stderr: "",
+    }));
+    const applySandbox = vi.fn(
+      (command, args, options, profile, _runtime, request) => ({
+        contractVersion: 1,
+        applied: true,
+        platform: "test",
+        profile,
+        command,
+        args,
+        options,
+        enforcement: "test-attested-sandbox",
+        backend: "test-attested-sandbox",
+        guarantees: [...request.requiredBoundaries],
+        policyAttested: true,
+        reason: null,
+        postSpawn: { required: false, mode: "none" },
+      }),
+    );
+    executionBroker._native = { spawnSync: nativeSpawnSync };
+    executionBroker._sandboxAdapter = {
+      applySandbox,
+      postSpawnSandbox: vi.fn(),
+    };
+
+    const command = `node ${JSON.stringify(target)}`;
+    const result = await executeTool("run_shell", { command }, { cwd });
+
+    expect(result).toMatchObject({ stdout: "wrapped-output" });
+    expect(result).not.toHaveProperty("plugin_bin");
+    expect(applySandbox).toHaveBeenCalledWith(
+      command,
+      [],
+      expect.objectContaining({ shell: true }),
+      "default",
+      undefined,
+      expect.objectContaining({
+        requiredBoundaries: [
+          SANDBOX_BOUNDARIES.FILESYSTEM,
+          SANDBOX_BOUNDARIES.NETWORK,
+        ],
+      }),
+    );
+    expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
+      origin: "tool:run_shell",
+      pluginId: null,
+      pluginExecutableIdentity: null,
+      sandboxRequired: ["filesystem", "network"],
+      sandboxGuarantees: ["filesystem", "network"],
+    });
+  });
+
+  it("rejects the legacy ephemeral sandbox when a strict-bin union is pinned", async () => {
+    installStrictNodeBin();
+    const nativeSpawnSync = vi.fn();
+    executionBroker._native = { spawnSync: nativeSpawnSync };
+
+    const result = await executeTool(
+      "run_shell",
+      { command: "echo safe" },
+      {
+        cwd,
+        sandbox: {
+          filesystem: { denyRead: [], denyWrite: [] },
+          network: false,
+        },
+      },
+    );
+
+    expect(result).toMatchObject({
+      policy: {
+        decision: "deny",
+        via: "plugin-bin-pinned-sandbox-policy",
+        reason: "conflicting_sandbox_routes",
+      },
+    });
+    expect(result.error).toMatch(/strict plugin bin policy/);
     expect(nativeSpawnSync).not.toHaveBeenCalled();
   });
 });

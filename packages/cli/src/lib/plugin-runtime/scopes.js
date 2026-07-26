@@ -136,13 +136,20 @@ export function discoverPlugins(opts = {}) {
   const byName = new Map(); // name → record (later scope overrides earlier)
   for (const scope of scopes) {
     const root = scopeRoot(scope, opts);
-    if (!dirExists(root)) continue;
-    for (const encoded of listDirs(root)) {
+    if (!dirExists(root, opts.strictIo === true)) continue;
+    for (const encoded of listDirs(root, opts.strictIo === true)) {
       const nameDir = path.join(root, encoded);
-      const version = activeVersionForDir(nameDir);
+      const version = activeVersionForDir(nameDir, opts.strictIo === true);
       if (!version) continue;
       const versionDir = path.join(nameDir, version);
       const manifest = parsePluginManifest(versionDir);
+      if (opts.strictIo === true && manifest.ok !== true) {
+        throw new Error(
+          `plugin manifest is not safely loadable at ${versionDir}: ${
+            manifest.errors?.join("; ") || "unknown manifest error"
+          }`,
+        );
+      }
       manifest.scope = scope;
       const name = manifest.metadata?.name || encoded;
       byName.set(name, {
@@ -188,8 +195,8 @@ export function discoverPlugins(opts = {}) {
 
 // ── internals ────────────────────────────────────────────────────────────
 
-function activeVersionForDir(nameDir) {
-  if (!dirExists(nameDir)) return null;
+function activeVersionForDir(nameDir, strictIo = false) {
+  if (!dirExists(nameDir, strictIo)) return null;
   const versions = _deps
     .readdirSync(nameDir, { withFileTypes: true })
     .filter((e) => e.isDirectory())
@@ -202,28 +209,31 @@ function activeVersionForDir(nameDir) {
     try {
       const pinned = _deps.readFileSync(activeFile, "utf8").trim();
       if (versions.includes(pinned)) return pinned;
-    } catch {
+    } catch (error) {
+      if (strictIo) throw error;
       /* fall through */
     }
   }
   return versions[0];
 }
 
-function dirExists(dir) {
+function dirExists(dir, strictIo = false) {
   try {
     return _deps.existsSync(dir) && _deps.statSync(dir).isDirectory();
-  } catch {
+  } catch (error) {
+    if (strictIo) throw error;
     return false;
   }
 }
 
-function listDirs(dir) {
+function listDirs(dir, strictIo = false) {
   try {
     return _deps
       .readdirSync(dir, { withFileTypes: true })
       .filter((e) => e.isDirectory())
       .map((e) => e.name);
-  } catch {
+  } catch (error) {
+    if (strictIo) throw error;
     return [];
   }
 }

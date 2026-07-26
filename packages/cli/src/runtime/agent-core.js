@@ -3478,9 +3478,27 @@ async function executeToolInner(
       // back to a shell would bypass target identity and manifest requirements.
       let pluginBinInvocation = null;
       let reattestPluginBinInvocation = null;
+      let pluginBinSandboxPolicy = null;
       try {
         const pluginBin = await import("../lib/plugin-runtime/bin.js");
         reattestPluginBinInvocation = pluginBin.reattestPluginBinInvocation;
+        const pluginPolicyBoundaries = new Set();
+        for (const policyCwd of new Set([
+          path.resolve(cwd),
+          path.resolve(args.cwd || cwd),
+        ])) {
+          const observedPolicy = pluginBin.collectPluginBinSandboxPolicy({
+            cwd: policyCwd,
+          });
+          for (const boundary of
+            observedPolicy?.requiredBoundaries || []) {
+            pluginPolicyBoundaries.add(boundary);
+          }
+        }
+        pluginBinSandboxPolicy = pluginBin.pinPluginBinSandboxPolicy(
+          { requiredBoundaries: [...pluginPolicyBoundaries] },
+          { cwd },
+        );
         pluginBinInvocation = pluginBin.resolvePluginBinInvocation(
           args.command,
           {
@@ -3488,14 +3506,29 @@ async function executeToolInner(
             commandCwd: args.cwd || cwd,
           },
         );
+        if (pluginBinInvocation?.sandboxPolicy) {
+          pluginBinSandboxPolicy = pluginBin.pinPluginBinSandboxPolicy(
+            {
+              requiredBoundaries: [
+                ...(pluginBinSandboxPolicy?.requiredBoundaries || []),
+                ...(pluginBinInvocation.sandboxPolicy.requiredBoundaries || []),
+              ],
+            },
+            { cwd },
+          );
+        }
       } catch (err) {
         if (err?.pluginBinFailClosed) {
+          const policyVia =
+            err.code === "ERR_PLUGIN_BIN_DISCOVERY_FAILED"
+              ? "plugin-bin-pinned-sandbox-policy"
+              : "plugin-bin-direct-invocation";
           return attachDescriptor(
             {
               error: `[Plugin bin] ${err.message}`,
               policy: {
                 decision: "deny",
-                via: "plugin-bin-direct-invocation",
+                via: policyVia,
                 reason: err.code || "plugin_bin_resolution_failed",
               },
               shellCommandPolicy: shellPolicy,
@@ -3509,18 +3542,20 @@ async function executeToolInner(
       const processOrigin = pluginBinInvocation
         ? "plugin:bin"
         : "tool:run_shell";
-      const processProvenance = pluginBinInvocation
-        ? {
-            pluginId: pluginBinInvocation.pluginId,
-            pluginVersion: pluginBinInvocation.pluginVersion,
-            pluginSource: pluginBinInvocation.pluginSource,
-            pluginExecutableIdentity:
-              pluginBinInvocation.executableIdentity,
-            ...(pluginBinInvocation.sandboxPolicy
-              ? { sandboxPolicy: pluginBinInvocation.sandboxPolicy }
-              : {}),
-          }
-        : {};
+      const processProvenance = {
+        ...(pluginBinInvocation
+          ? {
+              pluginId: pluginBinInvocation.pluginId,
+              pluginVersion: pluginBinInvocation.pluginVersion,
+              pluginSource: pluginBinInvocation.pluginSource,
+              pluginExecutableIdentity:
+                pluginBinInvocation.executableIdentity,
+            }
+          : {}),
+        ...(pluginBinSandboxPolicy
+          ? { sandboxPolicy: pluginBinSandboxPolicy }
+          : {}),
+      };
       const pluginBinResult = pluginBinInvocation
         ? {
             plugin_bin: {
@@ -3677,14 +3712,14 @@ async function executeToolInner(
       }
 
       if (sandbox) {
-        if (pluginBinInvocation?.sandboxPolicy) {
+        if (pluginBinSandboxPolicy) {
           return attachDescriptor(
             {
               error:
-                "[Plugin bin] The direct Broker route cannot be combined with the legacy ephemeral shell sandbox. Run the plugin command without that sandbox; its manifest sandboxPolicy is enforced by ProcessExecutionBroker.",
+                "[Plugin bin] A strict plugin bin policy cannot be combined with the legacy ephemeral shell sandbox. Run without that sandbox so the ProcessExecutionBroker can enforce the pinned plugin boundary union.",
               policy: {
                 decision: "deny",
-                via: "plugin-bin-direct-invocation",
+                via: "plugin-bin-pinned-sandbox-policy",
                 reason: "conflicting_sandbox_routes",
               },
               ...pluginBinResult,

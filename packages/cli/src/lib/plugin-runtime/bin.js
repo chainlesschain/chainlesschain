@@ -25,6 +25,7 @@ import { isWithin } from "./manifest.js";
 // the `process` capability its executables need. Distinct from the trust gate:
 // these plugins ARE trusted, but their bin component is denied.
 const _capabilityDenied = new Set();
+const _sandboxPolicyPins = new Map();
 function warnBinCapabilityDeniedOnce(entries) {
   if (!entries || entries.length === 0) return;
   if (_capabilityDenied.has("bin-capability")) return;
@@ -46,6 +47,10 @@ export function _resetBinWarnings() {
   _capabilityDenied.clear();
 }
 
+export function _resetPluginBinSandboxPolicyPins() {
+  _sandboxPolicyPins.clear();
+}
+
 /**
  * Collect trusted, installed plugins' declared bin commands. Unlike a PATH
  * directory, each record preserves the manifest alias, exact target, sandbox
@@ -57,8 +62,18 @@ export function _resetBinWarnings() {
 export function collectPluginBinCommands(opts = {}) {
   let plugins = [];
   try {
-    plugins = discoverPlugins({ cwd: opts.cwd, scopes: opts.scopes });
-  } catch {
+    plugins = discoverPlugins({
+      cwd: opts.cwd,
+      scopes: opts.scopes,
+      strictIo: opts.failClosed === true,
+    });
+  } catch (error) {
+    if (opts.failClosed === true) {
+      throw pluginBinError(
+        "ERR_PLUGIN_BIN_DISCOVERY_FAILED",
+        `plugin bin policy discovery failed: ${error.message}`,
+      );
+    }
     return [];
   }
   const { trusted, skipped } = partitionByTrust(plugins);
@@ -106,6 +121,48 @@ export function collectPluginBinCommands(opts = {}) {
   }
   warnBinCapabilityDeniedOnce(denied);
   return out;
+}
+
+/**
+ * Return a tighten-only union of every trusted policy-bearing bin visible from
+ * this workspace. The union is intentionally broader than alias attribution:
+ * shell indirection (`node <script>`, compound commands, PATH assignment,
+ * expansion, wrappers) cannot reliably identify the eventual executable from
+ * source text, so every agent shell invocation inherits the union.
+ *
+ * Pinning by workspace prevents a manifest mutation or trust change from
+ * weakening an already observed requirement during the process lifetime.
+ */
+export function collectPluginBinSandboxPolicy(opts = {}) {
+  const pinKey = path.resolve(opts.cwd || process.cwd());
+  const required = new Set(_sandboxPolicyPins.get(pinKey) || []);
+  const commands = collectPluginBinCommands({
+    ...opts,
+    failClosed: true,
+  });
+  for (const command of commands) {
+    for (const boundary of command.sandboxPolicy?.requiredBoundaries || []) {
+      required.add(boundary);
+    }
+  }
+  return pinPluginBinSandboxPolicy(
+    { requiredBoundaries: [...required] },
+    { cwd: pinKey },
+  );
+}
+
+export function pinPluginBinSandboxPolicy(policy, opts = {}) {
+  const pinKey = path.resolve(opts.cwd || process.cwd());
+  const required = new Set(_sandboxPolicyPins.get(pinKey) || []);
+  for (const boundary of policy?.requiredBoundaries || []) {
+    required.add(boundary);
+  }
+  if (required.size === 0) return null;
+  const pinnedPolicy = Object.freeze({
+    requiredBoundaries: Object.freeze([...required].sort()),
+  });
+  _sandboxPolicyPins.set(pinKey, pinnedPolicy.requiredBoundaries);
+  return pinnedPolicy;
 }
 
 /**

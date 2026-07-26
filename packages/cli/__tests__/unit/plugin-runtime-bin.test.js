@@ -5,7 +5,9 @@ import path from "node:path";
 import {
   collectPluginBinCommands,
   collectPluginBinDirs,
+  collectPluginBinSandboxPolicy,
   applyPluginBinPath,
+  _resetPluginBinSandboxPolicyPins,
   parsePluginBinCommand,
   reattestPluginBinInvocation,
   resolvePluginBinCommand,
@@ -42,6 +44,7 @@ beforeEach(() => {
   savedStorePath = trustDeps.storePath;
   trustDeps.storePath = () => storeFile;
   _resetTrustWarnings();
+  _resetPluginBinSandboxPolicyPins();
 });
 afterEach(() => {
   trustDeps.storePath = savedStorePath;
@@ -164,6 +167,45 @@ describe("applyPluginBinPath", () => {
     const res = applyPluginBinPath({ cwd, scopes: ["local"], env });
     expect(res.added).toEqual([]);
     expect(env.PATH).toBe(`${binDir}${path.delimiter}/usr/bin`);
+  });
+});
+
+describe("collectPluginBinSandboxPolicy", () => {
+  it("pins a tighten-only union when a strict manifest is weakened on disk", () => {
+    const binDir = installBinPlugin("local", "toolkit", ["mytool"], {
+      manifest: {
+        sandboxPolicy: { requiredBoundaries: ["filesystem", "network"] },
+      },
+    });
+    expect(collectPluginBinSandboxPolicy({ cwd, scopes: ["local"] })).toEqual({
+      requiredBoundaries: ["filesystem", "network"],
+    });
+
+    fs.writeFileSync(
+      path.join(path.dirname(binDir), "plugin.json"),
+      JSON.stringify({
+        name: "toolkit",
+        version: "1.0.0",
+        bin: { mytool: "bin/mytool" },
+      }),
+      "utf8",
+    );
+    expect(collectPluginBinSandboxPolicy({ cwd, scopes: ["local"] })).toEqual({
+      requiredBoundaries: ["filesystem", "network"],
+    });
+  });
+
+  it("fails closed when an installed manifest cannot be loaded safely", () => {
+    const binDir = installBinPlugin("local", "broken", ["mytool"]);
+    fs.writeFileSync(
+      path.join(path.dirname(binDir), "plugin.json"),
+      "{ invalid json",
+      "utf8",
+    );
+
+    expect(() =>
+      collectPluginBinSandboxPolicy({ cwd, scopes: ["local"] }),
+    ).toThrow(/plugin bin policy discovery failed/);
   });
 });
 
