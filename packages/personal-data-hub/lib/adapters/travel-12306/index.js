@@ -60,7 +60,10 @@ const {
   readBoundedSnapshot,
   readJsonSnapshot,
 } = require("../../snapshot-file");
-const { extractRecognizedArray } = require("../../source-page");
+const {
+  createSourcePageGuard,
+  extractRecognizedArray,
+} = require("../../source-page");
 const {
   normalizeTravelRecord,
   parseChineseDateTime,
@@ -276,7 +279,13 @@ class Train12306Adapter {
     const limit =
       Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
     const maxPages =
-      Number.isInteger(opts.maxPages) && opts.maxPages > 0 ? opts.maxPages : 4;
+      Number.isInteger(opts.maxPages) && opts.maxPages > 0
+        ? opts.maxPages
+        : Number.POSITIVE_INFINITY;
+    const pageGuard =
+      maxPages === Number.POSITIVE_INFINITY
+        ? createSourcePageGuard(NAME)
+        : null;
     const endDateMs = Number.isFinite(opts.endDateMs)
       ? opts.endDateMs
       : Date.now();
@@ -323,6 +332,7 @@ class Train12306Adapter {
         form,
       });
       const orders = extractCompletedOrders(resp);
+      pageGuard?.observe("completed-orders", orders);
       const pageState = sourcePageState(
         resp,
         completedItemsSeen + orders.length,
@@ -539,7 +549,7 @@ function parseRecords(text) {
   let raw;
   try {
     raw = JSON.parse(text);
-  } catch (_e) {
+  } catch {
     // Try JSONL
     raw = text
       .split(/\r?\n/)
@@ -624,16 +634,6 @@ function extractCompletedOrders(resp) {
   );
 }
 
-function hasCompletedOrderList(resp) {
-  const data = resp && typeof resp === "object" ? resp.data : null;
-  return !!(
-    data &&
-    typeof data === "object" &&
-    (Array.isArray(data.OrderDTODataList) ||
-      Array.isArray(data.orderDTODataList))
-  );
-}
-
 /** Pull the pending-order array out of a queryMyOrderNoComplete response. */
 function extractPendingOrders(resp) {
   return extractRecognizedArray(
@@ -643,15 +643,6 @@ function extractPendingOrders(resp) {
       ["data", "orderDbList"],
     ],
     { source: NAME, stream: "pending-orders" },
-  );
-}
-
-function hasPendingOrderList(resp) {
-  const data = resp && typeof resp === "object" ? resp.data : null;
-  return !!(
-    data &&
-    typeof data === "object" &&
-    (Array.isArray(data.orderDBList) || Array.isArray(data.orderDbList))
   );
 }
 
@@ -804,7 +795,7 @@ function toNum(v) {
   return Number.isFinite(n) ? n : 0;
 }
 
-async function defaultFetch(_opts) {
+async function defaultFetch() {
   // Pure-Node has no HTTP layer; the host (Android cc → Kyfw12306ApiClient /
   // desktop hub → Electron WebView net) injects a real fetchFn. Mirrors the
   // shopping adapters' defaultFetch — a missing fetchFn is a wiring bug, not a

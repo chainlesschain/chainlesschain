@@ -528,6 +528,64 @@ describe("sync — cookie-api mode", () => {
     expect(items).toHaveLength(51); // 50 + 1, then an empty page stops
   });
 
+  it("drains more than four completed-order pages by default", async () => {
+    let requests = 0;
+    let completions = 0;
+    const fetchFn = async ({ url, form }) => {
+      requests += 1;
+      if (url.includes("NoComplete")) {
+        return { data: { orderDBList: [] } };
+      }
+      const page = parseInt(form.pageIndex, 10);
+      return {
+        data: {
+          OrderDTODataList: page <= 5 ? [rawOrder(`PAGE-${page}`)] : [],
+        },
+      };
+    };
+    const adapter = new Train12306Adapter({
+      account: { cookies: COOKIE },
+      fetchFn,
+    });
+
+    const items = await collect(
+      adapter.sync({
+        markWatermarkComplete: () => {
+          completions += 1;
+        },
+      }),
+    );
+
+    expect(items).toHaveLength(5);
+    expect(requests).toBe(7);
+    expect(completions).toBe(1);
+  });
+
+  it("rejects a repeated completed-order page during an uncapped scan", async () => {
+    let requests = 0;
+    let completions = 0;
+    const adapter = new Train12306Adapter({
+      account: { cookies: COOKIE },
+      fetchFn: async () => {
+        requests += 1;
+        return { data: { OrderDTODataList: [rawOrder("REPEATED")] } };
+      },
+    });
+
+    await expect(
+      collect(
+        adapter.sync({
+          markWatermarkComplete: () => {
+            completions += 1;
+          },
+        }),
+      ),
+    ).rejects.toMatchObject({ code: "SOURCE_PAGE_STALLED" });
+
+    expect(requests).toBe(2);
+    expect(completions).toBe(0);
+  });
+
   it("honors limit + include gate", async () => {
     const fetchFn = async ({ url }) =>
       url.includes("NoComplete")
