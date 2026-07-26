@@ -22,21 +22,24 @@ const { DouyinAdapter } = require("../../lib/adapters/social-douyin");
 const { partitionBatch } = require("../../lib/batch");
 
 // ── readDouyinWatchHistory (injected Database) ────────────────────────
-function makeFakeDb(tablesToRows) {
+function makeFakeDb(tablesToRows, failures = {}) {
   return class FakeDb {
     constructor() {}
     prepare(sql) {
+      const tm = /FROM "([^"]+)"/.exec(sql);
       return {
         all: () => {
           if (/sqlite_master/.test(sql)) {
             return Object.keys(tablesToRows).map((name) => ({ name }));
           }
-          const tm = /FROM "([^"]+)"/.exec(sql);
           if (
             tm &&
             /table_info/.test(sql) === false &&
             /COUNT/.test(sql) === false
           ) {
+            if (failures.read === tm[1]) {
+              throw new Error(`cannot read ${tm[1]}`);
+            }
             return tablesToRows[tm[1]] || [];
           }
           if (/table_info/.test(sql)) {
@@ -49,9 +52,12 @@ function makeFakeDb(tablesToRows) {
           return [];
         },
         get: () => {
-          const tm = /FROM "([^"]+)"/.exec(sql);
-          if (/COUNT/.test(sql) && tm)
+          if (/COUNT/.test(sql) && tm) {
+            if (failures.count === tm[1]) {
+              throw new Error(`cannot count ${tm[1]}`);
+            }
             return { c: (tablesToRows[tm[1]] || []).length };
+          }
           return undefined;
         },
       };
@@ -169,6 +175,42 @@ describe("readDouyinWatchHistory", () => {
     const r = _internals.readDouyinWatchHistory("x.db", { _databaseClass: Db });
     expect(r.records).toHaveLength(1);
   });
+
+  it.each([
+    ["count", "counted"],
+    ["read", "read"],
+  ])(
+    "fails closed when a discovered source table cannot be %s",
+    (failure, operation) => {
+      const Db = makeFakeDb(
+        {
+          record_0: [
+            {
+              aid: "available",
+              view_time_timestamp: 1717800000,
+            },
+          ],
+          record_111: [
+            {
+              aid: "would-be-lost",
+              view_time_timestamp: 1717800600,
+            },
+          ],
+        },
+        { [failure]: "record_111" },
+      );
+
+      expect(() =>
+        _internals.readDouyinWatchHistory("x.db", { _databaseClass: Db }),
+      ).toThrow(
+        expect.objectContaining({
+          code: "DOUYIN_VIDEO_RECORD_UNREADABLE",
+          table: "record_111",
+          operation,
+        }),
+      );
+    },
+  );
 
   it("toEpochMs treats >1e12 as ms, else seconds; rejects junk", () => {
     expect(_internals.toEpochMs(1717800000)).toBe(1717800000000);

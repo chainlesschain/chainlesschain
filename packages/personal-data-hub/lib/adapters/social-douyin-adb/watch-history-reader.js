@@ -35,6 +35,17 @@ const DOUYIN_PACKAGE = "com.ss.android.ugc.aweme";
 const VIDEO_RECORD_DB_REMOTE_PATH =
   "/data/data/com.ss.android.ugc.aweme/databases/video_record.db";
 
+function watchHistorySourceError(tableName, operation, cause) {
+  const error = new Error(
+    `Douyin watch-history source table ${tableName} could not be ${operation}; refusing a partial import`,
+  );
+  error.code = "DOUYIN_VIDEO_RECORD_UNREADABLE";
+  error.table = tableName;
+  error.operation = operation;
+  error.cause = cause;
+  return error;
+}
+
 /** seconds-or-ms epoch → ms (heuristic: > 1e12 ⇒ already ms). */
 function toEpochMs(v) {
   const n = Number(v);
@@ -65,11 +76,11 @@ async function pullVideoRecordDbViaSu(adb, serial, opts = {}) {
     throw new Error(
       installed
         ? "DOUYIN_VIDEO_RECORD_MISSING: 抖音已安装但无 video_record.db（未观看过视频？）— " +
-            VIDEO_RECORD_DB_REMOTE_PATH +
-            " 不存在。"
+          VIDEO_RECORD_DB_REMOTE_PATH +
+          " 不存在。"
         : "DOUYIN_NOT_INSTALLED: " +
-            VIDEO_RECORD_DB_REMOTE_PATH +
-            " not found and package not installed.",
+          VIDEO_RECORD_DB_REMOTE_PATH +
+          " not found and package not installed.",
     );
   }
   const idOut = await adb(["shell", "su", "-c", "id -u"], adbOpts);
@@ -154,8 +165,8 @@ function readDouyinWatchHistory(dbPath, opts = {}) {
       let count = 0;
       try {
         count = db.prepare(`SELECT COUNT(*) c FROM "${name}"`).get().c;
-      } catch {
-        continue;
+      } catch (error) {
+        throw watchHistorySourceError(name, "counted", error);
       }
       if (m && m[1] !== "0" && (!bestUid || count > bestUid.count)) {
         bestUid = { uid: m[1], count };
@@ -177,8 +188,8 @@ function readDouyinWatchHistory(dbPath, opts = {}) {
               (limit === null ? "" : ` LIMIT ${limit}`),
           )
           .all();
-      } catch {
-        continue;
+      } catch (error) {
+        throw watchHistorySourceError(name, "read", error);
       }
       for (const r of rows) {
         const awemeId = r.aid != null ? String(r.aid) : null;
