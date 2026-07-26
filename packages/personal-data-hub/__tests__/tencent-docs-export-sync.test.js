@@ -9,7 +9,9 @@ const path = require("node:path");
 const {
   TencentDocsAdapter,
   createExportDocumentId,
+  normalizeMaxFiles,
   SUPPORTED_EXPORT_EXTENSIONS,
+  DEFAULT_MAX_FILES,
 } = require("../lib/adapters/doc-tencent-docs");
 const { generateKeyHex } = require("../lib/key-providers");
 const { AdapterRegistry } = require("../lib/registry");
@@ -52,6 +54,66 @@ function createExportTree(prefix = "pdh-tencent-export-") {
 }
 
 describe("Tencent Docs local export collection", () => {
+  it("scans beyond the former 10,000-file default boundary", async () => {
+    const legacyDefaultMaxFiles = 10_000;
+    const fileCount = legacyDefaultMaxFiles + 1;
+    const root = path.resolve(os.tmpdir(), "pdh-tencent-large-export");
+    const rootStat = {
+      dev: 1,
+      ino: 1,
+      size: 0,
+      birthtimeMs: 1_700_000_000_000,
+      mtimeMs: 1_700_000_000_000,
+      ctimeMs: 1_700_000_000_000,
+      isSymbolicLink: () => false,
+      isDirectory: () => true,
+      isFile: () => false,
+    };
+    const fileStat = {
+      dev: 1,
+      ino: 2,
+      size: 1,
+      birthtimeMs: 1_700_000_000_000,
+      mtimeMs: 1_700_000_000_000,
+      ctimeMs: 1_700_000_000_000,
+      isSymbolicLink: () => false,
+      isDirectory: () => false,
+      isFile: () => true,
+    };
+    const entries = Array.from({ length: fileCount }, (_, index) => ({
+      name: `document-${String(index).padStart(5, "0")}.pdf`,
+      isSymbolicLink: () => false,
+      isDirectory: () => false,
+      isFile: () => true,
+    }));
+    const adapter = new TencentDocsAdapter();
+    adapter._deps.fs = {
+      constants: { R_OK: 4 },
+      accessSync: () => {},
+      lstatSync: (candidate) =>
+        path.resolve(candidate) === root ? rootStat : fileStat,
+      realpathSync: (candidate) => path.resolve(candidate),
+      readdirSync: () => entries,
+    };
+    let completions = 0;
+
+    const records = await collect(
+      adapter.sync({
+        exportDir: root,
+        accountId: "large-local-export",
+        markWatermarkComplete: () => {
+          completions += 1;
+        },
+      }),
+    );
+
+    expect(DEFAULT_MAX_FILES).toBe(Number.POSITIVE_INFINITY);
+    expect(normalizeMaxFiles()).toBe(Number.POSITIVE_INFINITY);
+    expect(records).toHaveLength(fileCount);
+    expect(records.at(-1).payload.record.title).toBe("document-10000.pdf");
+    expect(completions).toBe(1);
+  });
+
   it("recursively discovers supported exports with stable privacy-safe records", async () => {
     const root = createExportTree();
     const adapter = new TencentDocsAdapter();

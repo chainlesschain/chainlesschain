@@ -27,7 +27,7 @@ const { CAPTURED_BY } = require("../../constants");
 
 const NAME = "doc-tencent-docs";
 const VERSION = "0.2.0";
-const DEFAULT_MAX_FILES = 10_000;
+const DEFAULT_MAX_FILES = Number.POSITIVE_INFINITY;
 
 const EXPORT_TYPE_BY_EXTENSION = Object.freeze({
   ".csv": "sheet",
