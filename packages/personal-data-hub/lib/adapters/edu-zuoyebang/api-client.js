@@ -26,7 +26,7 @@ const BROWSER_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
   "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 const DEFAULT_STUDY_PAGE_SIZE = 100;
-const DEFAULT_MAX_STUDY_PAGES = 10_000;
+const DEFAULT_MAX_STUDY_PAGES = Number.POSITIVE_INFINITY;
 
 class ZuoyebangApiClient {
   constructor(opts = {}) {

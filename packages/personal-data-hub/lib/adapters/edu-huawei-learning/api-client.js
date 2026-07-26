@@ -23,7 +23,7 @@ const BROWSER_UA =
   "Mozilla/5.0 (Linux; Android 12; HarmonyOS) AppleWebKit/537.36 " +
   "(KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36";
 const DEFAULT_STUDY_PAGE_SIZE = 100;
-const DEFAULT_MAX_STUDY_PAGES = 10_000;
+const DEFAULT_MAX_STUDY_PAGES = Number.POSITIVE_INFINITY;
 
 class HuaweiLearningApiClient {
   constructor(opts = {}) {

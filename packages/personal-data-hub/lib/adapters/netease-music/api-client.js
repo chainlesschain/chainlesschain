@@ -36,7 +36,7 @@ const BROWSER_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
   "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 const DEFAULT_PLAYLIST_PAGE_SIZE = 100;
-const DEFAULT_MAX_PLAYLIST_PAGES = 10_000;
+const DEFAULT_MAX_PLAYLIST_PAGES = Number.POSITIVE_INFINITY;
 
 /** AES-128-CBC encrypt `text` with `key` (utf-8, fixed IV) → base64. */
 function aesEncrypt(text, key) {
