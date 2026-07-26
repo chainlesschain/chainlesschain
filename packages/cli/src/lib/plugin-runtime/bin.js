@@ -273,6 +273,38 @@ function hashOpenFile(fd, bytes) {
   return digest.digest("hex");
 }
 
+function preciseOpenFileIdentity(stat) {
+  const timestamp = (nanosecondsKey, millisecondsKey) =>
+    stat[nanosecondsKey] !== undefined
+      ? String(stat[nanosecondsKey])
+      : String(Math.trunc(Number(stat[millisecondsKey] || 0) * 1_000_000));
+  return Object.freeze({
+    dev: String(stat.dev),
+    ino: String(stat.ino),
+    size: String(stat.size),
+    mode: String(stat.mode),
+    ctimeNs: timestamp("ctimeNs", "ctimeMs"),
+    mtimeNs: timestamp("mtimeNs", "mtimeMs"),
+  });
+}
+
+function samePreciseOpenFileIdentity(left, right) {
+  return (
+    left.dev === right.dev &&
+    left.ino === right.ino &&
+    left.size === right.size &&
+    left.mode === right.mode &&
+    left.ctimeNs === right.ctimeNs &&
+    left.mtimeNs === right.mtimeNs
+  );
+}
+
+function samePreciseFileObject(left, right) {
+  return (
+    left.dev === right.dev && left.ino === right.ino && left.size === right.size
+  );
+}
+
 function sameName(left, right) {
   return process.platform === "win32"
     ? String(left).toLowerCase() === String(right).toLowerCase()
@@ -453,42 +485,55 @@ function fileIdentity(file, root) {
         Number(fs.constants.O_NOFOLLOW || 0) |
         Number(fs.constants.O_NONBLOCK || 0),
     );
-    const before = fs.fstatSync(fd);
+    const before = fs.fstatSync(fd, { bigint: true });
     if (!before.isFile())
       throw new Error("opened target is not a regular file");
-    if (
-      !Number.isSafeInteger(before.size) ||
-      before.size < 0 ||
-      before.size > PLUGIN_BIN_MAX_BYTES
-    ) {
+    if (before.size < 0n || before.size > BigInt(PLUGIN_BIN_MAX_BYTES)) {
       throw new Error("target exceeds the attestation size limit");
     }
-    const sha256 = hashOpenFile(fd, before.size);
-    const after = fs.fstatSync(fd);
-    const pathStat = fs.statSync(targetReal);
+    const pathBefore = fs.statSync(targetReal, { bigint: true });
+    const beforeIdentity = preciseOpenFileIdentity(before);
+    const pathBeforeIdentity = preciseOpenFileIdentity(pathBefore);
+    if (!samePreciseFileObject(beforeIdentity, pathBeforeIdentity)) {
+      throw new Error("target identity changed during attestation");
+    }
+    const sha256 = hashOpenFile(fd, Number(before.size));
+    const after = fs.fstatSync(fd, { bigint: true });
+    const pathAfter = fs.statSync(targetReal, { bigint: true });
+    const afterIdentity = preciseOpenFileIdentity(after);
+    const pathAfterIdentity = preciseOpenFileIdentity(pathAfter);
     const stable =
-      before.dev === after.dev &&
-      before.ino === after.ino &&
-      before.size === after.size &&
-      before.mtimeMs === after.mtimeMs &&
-      before.ctimeMs === after.ctimeMs &&
-      after.dev === pathStat.dev &&
-      after.ino === pathStat.ino &&
-      after.size === pathStat.size &&
-      after.mtimeMs === pathStat.mtimeMs &&
-      after.ctimeMs === pathStat.ctimeMs;
+      samePreciseOpenFileIdentity(beforeIdentity, afterIdentity) &&
+      samePreciseOpenFileIdentity(pathBeforeIdentity, pathAfterIdentity) &&
+      samePreciseFileObject(afterIdentity, pathAfterIdentity);
     if (!stable) throw new Error("target identity changed during attestation");
-    if (after.nlink !== 1) {
+    if (after.nlink !== 1n) {
+      throw new Error("target must not be hard-linked");
+    }
+    const metadata = fs.fstatSync(fd);
+    const finalStat = fs.fstatSync(fd, { bigint: true });
+    const finalIdentity = preciseOpenFileIdentity(finalStat);
+    const finalPathIdentity = preciseOpenFileIdentity(
+      fs.statSync(targetReal, { bigint: true }),
+    );
+    if (
+      !samePreciseOpenFileIdentity(afterIdentity, finalIdentity) ||
+      !samePreciseOpenFileIdentity(pathAfterIdentity, finalPathIdentity) ||
+      !samePreciseFileObject(finalIdentity, finalPathIdentity)
+    ) {
+      throw new Error("target identity changed during attestation");
+    }
+    if (finalStat.nlink !== 1n) {
       throw new Error("target must not be hard-linked");
     }
     return Object.freeze({
       realPath: targetReal,
       sha256,
-      bytes: after.size,
+      bytes: Number(after.size),
       dev: String(after.dev),
       ino: String(after.ino),
-      mtimeMs: after.mtimeMs,
-      mode: after.mode,
+      mtimeMs: metadata.mtimeMs,
+      mode: Number(after.mode),
     });
   } catch (err) {
     throw pluginBinError(
@@ -538,39 +583,53 @@ export function attestPluginNodeRuntime(command) {
         Number(fs.constants.O_NOFOLLOW || 0) |
         Number(fs.constants.O_NONBLOCK || 0),
     );
-    const before = fs.fstatSync(fd);
+    const before = fs.fstatSync(fd, { bigint: true });
     if (
       !before.isFile() ||
-      !Number.isSafeInteger(before.size) ||
-      before.size < 0 ||
-      before.size > PLUGIN_NODE_RUNTIME_MAX_BYTES
+      before.size < 0n ||
+      before.size > BigInt(PLUGIN_NODE_RUNTIME_MAX_BYTES)
     ) {
       throw new Error("runtime exceeds the attestation size limit");
     }
-    const sha256 = hashOpenFile(fd, before.size);
-    const after = fs.fstatSync(fd);
-    const pathStat = fs.statSync(runtimeReal);
+    const pathBefore = fs.statSync(runtimeReal, { bigint: true });
+    const beforeIdentity = preciseOpenFileIdentity(before);
+    const pathBeforeIdentity = preciseOpenFileIdentity(pathBefore);
+    if (!samePreciseFileObject(beforeIdentity, pathBeforeIdentity)) {
+      throw new Error("runtime identity changed during attestation");
+    }
+    const sha256 = hashOpenFile(fd, Number(before.size));
+    const after = fs.fstatSync(fd, { bigint: true });
+    const pathAfter = fs.statSync(runtimeReal, { bigint: true });
+    const afterIdentity = preciseOpenFileIdentity(after);
+    const pathAfterIdentity = preciseOpenFileIdentity(pathAfter);
     const stable =
-      before.dev === after.dev &&
-      before.ino === after.ino &&
-      before.size === after.size &&
-      before.mtimeMs === after.mtimeMs &&
-      before.ctimeMs === after.ctimeMs &&
-      after.dev === pathStat.dev &&
-      after.ino === pathStat.ino &&
-      after.size === pathStat.size &&
-      after.mtimeMs === pathStat.mtimeMs &&
-      after.ctimeMs === pathStat.ctimeMs;
+      samePreciseOpenFileIdentity(beforeIdentity, afterIdentity) &&
+      samePreciseOpenFileIdentity(pathBeforeIdentity, pathAfterIdentity) &&
+      samePreciseFileObject(afterIdentity, pathAfterIdentity);
     if (!stable) throw new Error("runtime identity changed during attestation");
+    const metadata = fs.fstatSync(fd);
+    const finalIdentity = preciseOpenFileIdentity(
+      fs.fstatSync(fd, { bigint: true }),
+    );
+    const finalPathIdentity = preciseOpenFileIdentity(
+      fs.statSync(runtimeReal, { bigint: true }),
+    );
+    if (
+      !samePreciseOpenFileIdentity(afterIdentity, finalIdentity) ||
+      !samePreciseOpenFileIdentity(pathAfterIdentity, finalPathIdentity) ||
+      !samePreciseFileObject(finalIdentity, finalPathIdentity)
+    ) {
+      throw new Error("runtime identity changed during attestation");
+    }
     return Object.freeze({
       requestedPath,
       realPath: runtimeReal,
       sha256,
-      bytes: after.size,
+      bytes: Number(after.size),
       dev: String(after.dev),
       ino: String(after.ino),
-      mtimeMs: after.mtimeMs,
-      mode: after.mode,
+      mtimeMs: metadata.mtimeMs,
+      mode: Number(after.mode),
     });
   } catch (err) {
     throw pluginBinError(
