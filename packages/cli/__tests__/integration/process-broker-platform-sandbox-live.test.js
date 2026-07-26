@@ -107,8 +107,14 @@ describe.runIf(LIVE && SUPPORTED)(
         env: process.env,
       });
 
-      expect(result.error).toBeUndefined();
-      expect(result.status, result.stderr).toBe(0);
+      const failureContext = JSON.stringify({
+        status: result.status,
+        signal: result.signal,
+        error: result.error?.message,
+        stderr: String(result.stderr || ""),
+      });
+      expect(result.error, failureContext).toBeUndefined();
+      expect(result.status, failureContext).toBe(0);
       expect(result.stdout.trim()).toBe("strict-ok");
       if (forbiddenPath) {
         expect(fs.existsSync(forbiddenPath)).toBe(false);

@@ -55,14 +55,30 @@ jobs:
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
           bwrap --version
 
+      - name: Run platform sandbox contract tests
+        working-directory: packages/cli
+        run: >-
+          npx vitest run --reporter=default
+          __tests__/unit/process-execution-broker-platform-sandbox.test.js
+
       - name: Run native ProcessExecutionBroker strict boundary
+        id: strict-native-boundary
         working-directory: packages/cli
         env:
           CC_SANDBOX_LIVE: "1"
         run: >-
-          npx vitest run --reporter=default
-          __tests__/unit/process-execution-broker-platform-sandbox.test.js
+          npx vitest run --reporter=json
+          --outputFile=strict-sandbox-result.json
           __tests__/integration/process-broker-platform-sandbox-live.test.js
+
+      - name: Upload strict sandbox result
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: strict-sandbox-result-${{ matrix.os }}
+          path: packages/cli/strict-sandbox-result.json
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Run Linux bubblewrap filesystem and network boundary
         if: runner.os == 'Linux'
