@@ -926,6 +926,7 @@ describe.runIf(LIVE && SUPPORTED)(
             [
               "-static",
               "-no-pie",
+              "-Wl,-z,noexecstack",
               "-O2",
               "-Wall",
               "-Wextra",

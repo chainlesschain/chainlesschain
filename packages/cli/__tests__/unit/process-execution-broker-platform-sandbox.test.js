@@ -138,9 +138,16 @@ function createLinuxStaticElf64({
   elfType = 2,
   machine = 62,
   extraProgramType = null,
+  includeGnuStack = true,
+  gnuStackFlags = 0x6,
+  loadFlags = 0x5,
+  loadFileSize = null,
+  loadMemorySize = null,
+  entryAddress = 0x400040n,
   programHeaderOffset = 64,
 } = {}) {
-  const programHeaderCount = extraProgramType === null ? 1 : 2;
+  const programHeaderCount =
+    1 + (includeGnuStack ? 1 : 0) + (extraProgramType === null ? 0 : 1);
   const bytes = 64 + programHeaderCount * 56 + 16;
   const image = Buffer.alloc(bytes);
   image.set([0x7f, 0x45, 0x4c, 0x46], 0);
@@ -150,7 +157,7 @@ function createLinuxStaticElf64({
   image.writeUInt16LE(elfType, 16);
   image.writeUInt16LE(machine, 18);
   image.writeUInt32LE(1, 20);
-  image.writeBigUInt64LE(0x400040n, 24);
+  image.writeBigUInt64LE(entryAddress, 24);
   image.writeBigUInt64LE(BigInt(programHeaderOffset), 32);
   image.writeUInt16LE(64, 52);
   image.writeUInt16LE(56, 54);
@@ -158,19 +165,38 @@ function createLinuxStaticElf64({
 
   if (programHeaderOffset + 56 <= image.length) {
     image.writeUInt32LE(1, programHeaderOffset);
-    image.writeUInt32LE(0x5, programHeaderOffset + 4);
+    image.writeUInt32LE(loadFlags, programHeaderOffset + 4);
     image.writeBigUInt64LE(0n, programHeaderOffset + 8);
     image.writeBigUInt64LE(0x400000n, programHeaderOffset + 16);
     image.writeBigUInt64LE(0x400000n, programHeaderOffset + 24);
-    image.writeBigUInt64LE(BigInt(image.length), programHeaderOffset + 32);
-    image.writeBigUInt64LE(BigInt(image.length), programHeaderOffset + 40);
+    image.writeBigUInt64LE(
+      BigInt(loadFileSize ?? image.length),
+      programHeaderOffset + 32,
+    );
+    image.writeBigUInt64LE(
+      BigInt(loadMemorySize ?? image.length),
+      programHeaderOffset + 40,
+    );
     image.writeBigUInt64LE(0x1000n, programHeaderOffset + 48);
+  }
+  let nextProgramHeader = 1;
+  if (
+    includeGnuStack &&
+    programHeaderOffset + (nextProgramHeader + 1) * 56 <= image.length
+  ) {
+    const offset = programHeaderOffset + nextProgramHeader * 56;
+    image.writeUInt32LE(0x6474e551, offset);
+    image.writeUInt32LE(gnuStackFlags, offset + 4);
+    nextProgramHeader += 1;
   }
   if (
     extraProgramType !== null &&
-    programHeaderOffset + 2 * 56 <= image.length
+    programHeaderOffset + (nextProgramHeader + 1) * 56 <= image.length
   ) {
-    image.writeUInt32LE(extraProgramType, programHeaderOffset + 56);
+    image.writeUInt32LE(
+      extraProgramType,
+      programHeaderOffset + nextProgramHeader * 56,
+    );
   }
   return image;
 }
@@ -187,6 +213,7 @@ function createLinuxStrongHarness({
   tamperSeccompFilter = false,
   entryRuntime = "node",
   nativeEntry = createLinuxStaticElf64(),
+  nativeEntryMode = 0o100755,
 } = {}) {
   const nativeStatic = entryRuntime === "native-static-elf";
   const entryPath = nativeStatic ? "/plugin/bin/tool" : "/plugin/bin/tool.js";
@@ -259,7 +286,9 @@ function createLinuxStrongHarness({
         ? 0o040755
         : filePath === entryPath && !nativeStatic
           ? 0o100644
-          : 0o100755,
+          : filePath === entryPath
+            ? nativeEntryMode
+            : 0o100755,
       uid: 0,
       isFile: () => !isDirectory,
       isDirectory: () => isDirectory,
@@ -1017,6 +1046,31 @@ describe("platform sandbox adapter contract", () => {
       Buffer.from("#!/bin/sh\nexit 0\n".padEnd(128, "#")),
       "native_entry_not_elf",
     ],
+    [
+      "missing non-executable stack attestation",
+      createLinuxStaticElf64({ includeGnuStack: false }),
+      "native_entry_nonexecutable_stack_unattested",
+    ],
+    [
+      "executable stack",
+      createLinuxStaticElf64({ gnuStackFlags: 0x7 }),
+      "native_entry_executable_stack_unsupported",
+    ],
+    [
+      "writable executable load segment",
+      createLinuxStaticElf64({ loadFlags: 0x7 }),
+      "native_entry_writable_executable_segment",
+    ],
+    [
+      "load segment larger on disk than in memory",
+      createLinuxStaticElf64({ loadFileSize: 64, loadMemorySize: 32 }),
+      "native_entry_segment_out_of_bounds",
+    ],
+    [
+      "entry outside every executable load segment",
+      createLinuxStaticElf64({ entryAddress: 0x500000n }),
+      "native_entry_has_no_executable_entry_segment",
+    ],
   ])(
     "rejects a native %s before the bwrap policy probe or target spawn",
     (_label, nativeEntry, expectedReason) => {
@@ -1060,6 +1114,29 @@ describe("platform sandbox adapter contract", () => {
       expect(harness.openFiles.size).toBe(0);
     },
   );
+
+  it("rejects a set-id native entry before any host inspection or spawn", () => {
+    const harness = createLinuxStrongHarness({
+      entryRuntime: "native-static-elf",
+      nativeEntryMode: 0o104755,
+    });
+    const plan = applyLinuxStrongNativeHarness(harness);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_bwrap_execution_contract_invalid",
+      runtimeProbe: {
+        kind: "linux-bwrap-plugin-native-static-elf-policy-v1",
+        attempted: false,
+        runnable: false,
+        reason: "native_entry_identity_changed",
+        targetRuntime: "native-static-elf",
+      },
+    });
+    expect(harness.lddInspectionSources).toEqual([]);
+    expect(harness.spawnSync).not.toHaveBeenCalled();
+    expect(harness.openFiles.size).toBe(0);
+  });
 
   it.each([
     ["x64", 0xc000003e, 41, 53, 0xbfffffff],

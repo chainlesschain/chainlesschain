@@ -1993,6 +1993,7 @@ function inspectLinuxStaticNativeElf(runtime, fd, identity) {
   const entryAddress = header.readBigUInt64LE(24);
   let executableLoad = false;
   let entryInExecutableLoad = false;
+  let nonExecutableStack = false;
   for (let index = 0; index < programHeaderCount; index += 1) {
     const offset =
       Number(programHeaderOffset) + index * LINUX_ELF64_PROGRAM_HEADER_BYTES;
@@ -2016,8 +2017,11 @@ function inspectLinuxStaticNativeElf(runtime, fd, identity) {
     }
     if (type === 2) throw new Error("native_entry_dynamic_elf_unsupported");
     if (type === 3) throw new Error("native_entry_interpreter_unsupported");
-    if (type === 0x6474e551 && (flags & 0x1) !== 0) {
-      throw new Error("native_entry_executable_stack_unsupported");
+    if (type === 0x6474e551) {
+      if ((flags & 0x1) !== 0) {
+        throw new Error("native_entry_executable_stack_unsupported");
+      }
+      nonExecutableStack = true;
     }
     if (type === 1 && (flags & 0x1) !== 0) {
       if ((flags & 0x2) !== 0) {
@@ -2034,6 +2038,9 @@ function inspectLinuxStaticNativeElf(runtime, fd, identity) {
   }
   if (!executableLoad || !entryInExecutableLoad) {
     throw new Error("native_entry_has_no_executable_entry_segment");
+  }
+  if (!nonExecutableStack) {
+    throw new Error("native_entry_nonexecutable_stack_unattested");
   }
 
   const sha256 = hashLinuxOpenFile(runtime, fd, Number(before.size));
