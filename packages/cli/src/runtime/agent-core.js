@@ -4540,6 +4540,9 @@ async function executeToolInner(
             : 60000;
           const entry = store.createMonitor({
             command: args.command,
+            // Bind the persisted command to the host/session workspace. This
+            // value comes from executeTool's trusted context, never model args.
+            workspaceCwd: path.resolve(cwd),
             intervalMs,
             stopWhen: args.stop_when || null,
             notify: args.notify_title ? { title: args.notify_title } : null,

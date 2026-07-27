@@ -76,7 +76,9 @@ describe("AgentScheduleStore", () => {
     expect(first.map((item) => item.id)).toEqual([entry.id]);
     expect(store.claimDue(clock, 1000)).toHaveLength(0);
     clock += 1001;
-    expect(store.claimDue(clock, 1000).map((item) => item.id)).toEqual([entry.id]);
+    expect(store.claimDue(clock, 1000).map((item) => item.id)).toEqual([
+      entry.id,
+    ]);
   });
 
   it("clears the lease when a recurring entry advances", () => {
@@ -491,6 +493,25 @@ describe("AgentScheduleStore", () => {
       expect(m.source).toBe("command");
       expect(m.watchFile).toBeNull();
       expect(m.command).toBe("echo hi");
+      expect(m).not.toHaveProperty("workspaceCwd");
+    });
+
+    it("normalizes and persists a command monitor workspace binding", () => {
+      const workspaceCwd = `${dir}${path.sep}workspace${path.sep}..${path.sep}trusted`;
+      const expected = path.resolve(workspaceCwd);
+      const m = store.createMonitor({
+        command: "echo hi",
+        workspaceCwd,
+        intervalMs: 1000,
+      });
+
+      expect(m.workspaceCwd).toBe(expected);
+      const reloaded = new AgentScheduleStore({
+        dir,
+        now: () => clock,
+      }).list("monitor");
+      expect(reloaded).toHaveLength(1);
+      expect(reloaded[0].workspaceCwd).toBe(expected);
     });
 
     it("rejects supplying both command and watchFile", () => {

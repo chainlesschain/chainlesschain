@@ -48,6 +48,14 @@ function normalizeJitterMs(v) {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
+function normalizeMonitorWorkspaceCwd(value) {
+  if (value == null) return null;
+  if (typeof value !== "string" || value.length === 0) {
+    throw new Error("monitor workspaceCwd must be a non-empty string");
+  }
+  return path.resolve(value);
+}
+
 /**
  * A per-task execution policy for wakeup/cron entries — how the spawned
  * `cc agent` run should behave when this entry fires. Each field maps to a real
@@ -388,6 +396,7 @@ export class AgentScheduleStore {
 
   createMonitor({
     command,
+    workspaceCwd = null,
     watchFile = null,
     watchUrl = null,
     watchChange = false,
@@ -443,16 +452,22 @@ export class AgentScheduleStore {
     if (stopWhen != null) {
       // Validate the regex up-front so a bad pattern errors at creation, not
       // silently at the first check.
-      // eslint-disable-next-line no-new
+
       new RegExp(stopWhen);
     }
     const now = this._now();
     const source = hasFile ? "file" : hasUrl ? "http" : "command";
+    const normalizedWorkspaceCwd = hasCommand
+      ? normalizeMonitorWorkspaceCwd(workspaceCwd)
+      : null;
     const entry = {
       id: randomUUID(),
       kind: "monitor",
       source,
       command: hasCommand ? command : null,
+      ...(normalizedWorkspaceCwd
+        ? { workspaceCwd: normalizedWorkspaceCwd }
+        : {}),
       watchFile: hasFile ? watchFile : null,
       watchUrl: hasUrl ? watchUrl : null,
       watchChange: hasFile ? Boolean(watchChange) : false,
@@ -513,28 +528,36 @@ export class AgentScheduleStore {
     const now = atMs != null ? Number(atMs) : this._now();
     const ttl = Math.max(1000, Number(leaseMs) || 120000);
     this._ensureDir();
-    return withFileLock(path.join(this.dir, ".agenda-claims"), () => {
-      const claimed = [];
-      for (const kind of SCHEDULE_KINDS) {
-        const entries = this._readAll(kind);
-        let changed = false;
-        for (const entry of entries) {
-          if (!isSchedulableStatus(entry) || isEntryExpired(entry, now)) continue;
-          if (hasLiveExecutionLease(entry, now)) continue;
-          const fireAt = effectiveFireAt(entry);
-          if (fireAt == null || fireAt > now) continue;
-          entry.executionLease = {
-            owner: `${process.pid}:${randomUUID()}`,
-            claimedAt: now,
-            expiresAt: now + ttl,
-          };
-          claimed.push({ ...entry, executionLease: { ...entry.executionLease } });
-          changed = true;
+    return withFileLock(
+      path.join(this.dir, ".agenda-claims"),
+      () => {
+        const claimed = [];
+        for (const kind of SCHEDULE_KINDS) {
+          const entries = this._readAll(kind);
+          let changed = false;
+          for (const entry of entries) {
+            if (!isSchedulableStatus(entry) || isEntryExpired(entry, now))
+              continue;
+            if (hasLiveExecutionLease(entry, now)) continue;
+            const fireAt = effectiveFireAt(entry);
+            if (fireAt == null || fireAt > now) continue;
+            entry.executionLease = {
+              owner: `${process.pid}:${randomUUID()}`,
+              claimedAt: now,
+              expiresAt: now + ttl,
+            };
+            claimed.push({
+              ...entry,
+              executionLease: { ...entry.executionLease },
+            });
+            changed = true;
+          }
+          if (changed) this._writeAll(kind, entries);
         }
-        if (changed) this._writeAll(kind, entries);
-      }
-      return claimed;
-    }, { failIfUnavailable: true });
+        return claimed;
+      },
+      { failIfUnavailable: true },
+    );
   }
 
   /** Release a failed/aborted claim so a later runner can retry it. */

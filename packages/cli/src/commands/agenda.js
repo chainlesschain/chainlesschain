@@ -19,6 +19,7 @@
  */
 
 import { readFileSync, statSync } from "node:fs";
+import { isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 import { AgentScheduleStore } from "../lib/agent-schedule-store.js";
@@ -27,6 +28,10 @@ import { nextWakeupAt, partitionSchedule } from "../lib/schedule-planner.js";
 import { monitorEventEnvelope, capEventPayload } from "../lib/monitor-event.js";
 import { unattendedDisallowedTools } from "../lib/unattended-action-policy.js";
 import executionBroker from "../lib/process-execution-broker/index.js";
+import { collectWorkspacePluginBinSandboxPolicy } from "../lib/plugin-runtime/bin.js";
+import sharedShellPolicy from "../runtime/coding-agent-shell-policy.cjs";
+
+const { evaluateShellCommandPolicy } = sharedShellPolicy;
 
 export const _processDeps = {
   spawn: (...args) => executionBroker.spawn(...args),
@@ -36,6 +41,76 @@ export const _processDeps = {
 const BIN_PATH = fileURLToPath(
   new URL("../../bin/chainlesschain.js", import.meta.url),
 );
+
+function createAgendaPolicyError(code, reason, message) {
+  const error = new Error(message);
+  error.code = code;
+  error.sandboxReason = reason;
+  error.sandboxFailClosed = true;
+  return error;
+}
+
+function resolveMonitorWorkspaceCwd(entry) {
+  const workspaceCwd = entry?.workspaceCwd;
+  if (
+    typeof workspaceCwd !== "string" ||
+    workspaceCwd.length === 0 ||
+    !isAbsolute(workspaceCwd)
+  ) {
+    throw createAgendaPolicyError(
+      "ERR_AGENDA_MONITOR_WORKSPACE_UNBOUND",
+      "agenda_monitor_workspace_unbound",
+      "Agenda command monitor has no trusted workspace binding; recreate it before running.",
+    );
+  }
+  return resolve(workspaceCwd);
+}
+
+function assertMonitorShellPolicy(command) {
+  const shellPolicy = evaluateShellCommandPolicy(command);
+  if (shellPolicy.allowed) return;
+  const error = new Error(`[Shell Policy] ${shellPolicy.reason}`);
+  error.code = "ERR_AGENDA_MONITOR_SHELL_POLICY_DENIED";
+  error.shellCommandPolicy = shellPolicy;
+  error.policyDecision = "deny";
+  throw error;
+}
+
+function validatePinnedSandboxPolicy(policy) {
+  if (policy == null) return null;
+  if (
+    typeof policy !== "object" ||
+    Array.isArray(policy) ||
+    typeof policy.then === "function" ||
+    !Array.isArray(policy.requiredBoundaries) ||
+    policy.requiredBoundaries.length === 0 ||
+    policy.requiredBoundaries.some(
+      (boundary) => typeof boundary !== "string" || boundary.length === 0,
+    ) ||
+    !Object.isFrozen(policy) ||
+    !Object.isFrozen(policy.requiredBoundaries)
+  ) {
+    throw createAgendaPolicyError(
+      "ERR_AGENDA_MONITOR_SANDBOX_POLICY_INVALID",
+      "invalid_agenda_monitor_sandbox_policy",
+      "Agenda monitor sandbox policy must be a synchronous frozen pinned policy.",
+    );
+  }
+  return policy;
+}
+
+function isExecutionPolicyFailure(error) {
+  const brokerDecision = error?.auditEntry?.permissionDecision;
+  return (
+    error?.sandboxFailClosed === true ||
+    (typeof error?.code === "string" &&
+      error.code.startsWith("ERR_PROCESS_SANDBOX")) ||
+    error?.policyDecision === "deny" ||
+    error?.policyDecision === "prompt" ||
+    brokerDecision === "deny" ||
+    brokerDecision === "prompt"
+  );
+}
 
 export function registerAgendaCommand(program) {
   const cmd = program
@@ -220,7 +295,15 @@ export async function runAgendaRun(options = {}, _deps = {}) {
   const log = _deps.log || ((m) => console.log(m));
   const store = _deps.store || new AgentScheduleStore();
   const spawnAgent = _deps.spawnAgent || defaultSpawnAgent;
-  const runCommand = _deps.runCommand || defaultRunCommand;
+  const resolveSandboxPolicy =
+    _deps.resolveSandboxPolicy || collectWorkspacePluginBinSandboxPolicy;
+  const runCommand =
+    _deps.runCommand ||
+    ((command, commandOptions) =>
+      defaultRunCommand(command, {
+        ...commandOptions,
+        resolveSandboxPolicy,
+      }));
   const readWatchedFile = _deps.readWatchedFile || defaultReadWatchedFile;
   const fetchUrl = _deps.fetchUrl || defaultFetchUrl;
   const notify = _deps.notify || sendAgentNotification;
@@ -281,7 +364,9 @@ export async function runAgendaRun(options = {}, _deps = {}) {
             ? new RegExp(entry.stopWhen).test(res.body)
             : res.ok; // no pattern → a 2xx response is the signal
         } else {
-          output = await runCommand(entry.command);
+          const workspaceCwd = resolveMonitorWorkspaceCwd(entry);
+          assertMonitorShellPolicy(entry.command);
+          output = await runCommand(entry.command, { workspaceCwd });
           matched = entry.stopWhen
             ? new RegExp(entry.stopWhen).test(output)
             : false;
@@ -358,6 +443,11 @@ export async function runAgendaRun(options = {}, _deps = {}) {
         kind: entry.kind,
         action: "error",
         error: err.message,
+        ...(typeof err.code === "string" ? { errorCode: err.code } : {}),
+        ...(typeof err.sandboxReason === "string"
+          ? { sandboxReason: err.sandboxReason }
+          : {}),
+        ...(err.sandboxFailClosed === true ? { sandboxFailClosed: true } : {}),
       });
     }
   }
@@ -524,9 +614,29 @@ function defaultSpawnAgent(prompt, policy = null) {
   });
 }
 
-function defaultRunCommand(command) {
+function defaultRunCommand(
+  command,
+  {
+    workspaceCwd,
+    resolveSandboxPolicy = collectWorkspacePluginBinSandboxPolicy,
+  } = {},
+) {
+  if (typeof resolveSandboxPolicy !== "function") {
+    throw createAgendaPolicyError(
+      "ERR_AGENDA_MONITOR_SANDBOX_POLICY_INVALID",
+      "invalid_agenda_monitor_sandbox_policy",
+      "Agenda monitor sandbox policy resolver must be synchronous.",
+    );
+  }
+  const sandboxPolicy = validatePinnedSandboxPolicy(
+    resolveSandboxPolicy({
+      workspaceCwd,
+      executionCwd: workspaceCwd,
+    }),
+  );
   try {
     return _processDeps.execSync(command, {
+      cwd: workspaceCwd,
       encoding: "utf-8",
       stdio: ["ignore", "pipe", "pipe"],
       timeout: 60000,
@@ -534,8 +644,10 @@ function defaultRunCommand(command) {
       policy: "allow",
       scope: "agenda",
       shell: true,
+      ...(sandboxPolicy ? { sandboxPolicy } : {}),
     });
   } catch (err) {
+    if (isExecutionPolicyFailure(err)) throw err;
     // A non-zero exit still yields output we want to match against.
     return (err.stdout || "") + (err.stderr || "");
   }

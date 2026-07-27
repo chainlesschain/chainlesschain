@@ -32,6 +32,14 @@ describe("cc agenda", () => {
   });
 
   const log = (m) => logs.push(m);
+  const createCommandMonitor = (options) =>
+    store.createMonitor({ workspaceCwd: dir, ...options });
+
+  function createPinnedPolicy(...requiredBoundaries) {
+    return Object.freeze({
+      requiredBoundaries: Object.freeze(requiredBoundaries),
+    });
+  }
 
   it("runs a resident scheduler for deterministic ticks and stops", async () => {
     const calls = [];
@@ -147,15 +155,16 @@ describe("cc agenda", () => {
     }
   });
 
-  it("routes the default monitor command through the Broker shell path", async () => {
+  it("keeps null-policy monitor execution on the legacy Broker shell path", async () => {
     const original = _processDeps.execSync;
     const calls = [];
+    const resolveSandboxPolicy = vi.fn(() => null);
     try {
       _processDeps.execSync = (command, options) => {
         calls.push([command, options]);
         return "BUILD OK\n";
       };
-      store.createMonitor({
+      createCommandMonitor({
         command: "echo BUILD OK",
         intervalMs: 1000,
         stopWhen: "OK",
@@ -168,13 +177,19 @@ describe("cc agenda", () => {
           log,
           notify: vi.fn(async () => ({})),
           now: () => clock + 2000,
+          resolveSandboxPolicy,
         },
       );
       expect(code).toBe(0);
+      expect(resolveSandboxPolicy).toHaveBeenCalledWith({
+        workspaceCwd: dir,
+        executionCwd: dir,
+      });
       expect(calls).toEqual([
         [
           "echo BUILD OK",
           expect.objectContaining({
+            cwd: dir,
             origin: "agenda:monitor-command",
             policy: "allow",
             scope: "agenda",
@@ -182,9 +197,304 @@ describe("cc agenda", () => {
           }),
         ],
       ]);
+      expect(calls[0][1]).not.toHaveProperty("sandboxPolicy");
     } finally {
       _processDeps.execSync = original;
     }
+  });
+
+  describe("command monitor execution policy", () => {
+    it("passes a synchronous frozen workspace policy to the Broker", async () => {
+      const original = _processDeps.execSync;
+      const calls = [];
+      const sandboxPolicy = createPinnedPolicy("filesystem", "network");
+      const resolveSandboxPolicy = vi.fn(() => sandboxPolicy);
+      try {
+        _processDeps.execSync = (command, options) => {
+          calls.push([command, options]);
+          return "BUILD OK\n";
+        };
+        createCommandMonitor({
+          command: "echo BUILD OK",
+          intervalMs: 1000,
+          stopWhen: "OK",
+        });
+
+        const code = await runAgendaRun(
+          { json: true },
+          {
+            store,
+            log,
+            notify: vi.fn(async () => ({})),
+            now: () => clock + 2000,
+            resolveSandboxPolicy,
+          },
+        );
+
+        expect(code).toBe(0);
+        expect(resolveSandboxPolicy).toHaveBeenCalledWith({
+          workspaceCwd: dir,
+          executionCwd: dir,
+        });
+        expect(calls).toHaveLength(1);
+        expect(calls[0][0]).toBe("echo BUILD OK");
+        expect(calls[0][1]).toEqual(
+          expect.objectContaining({
+            cwd: dir,
+            sandboxPolicy,
+          }),
+        );
+        expect(calls[0][1].sandboxPolicy).toBe(sandboxPolicy);
+      } finally {
+        _processDeps.execSync = original;
+      }
+    });
+
+    it("fails closed when a legacy command monitor has no workspace binding", async () => {
+      const original = _processDeps.execSync;
+      const execSync = vi.fn(() => "BUILD OK\n");
+      try {
+        _processDeps.execSync = execSync;
+        const monitor = store.createMonitor({
+          command: "echo BUILD OK",
+          intervalMs: 1000,
+          stopWhen: "OK",
+        });
+
+        const code = await runAgendaRun(
+          { json: true },
+          {
+            store,
+            log,
+            notify: vi.fn(async () => ({})),
+            now: () => clock + 2000,
+            resolveSandboxPolicy: vi.fn(() => null),
+          },
+        );
+
+        expect(code).toBe(1);
+        expect(execSync).not.toHaveBeenCalled();
+        const { actions } = JSON.parse(logs.join("\n"));
+        expect(actions).toEqual([
+          expect.objectContaining({
+            id: monitor.id,
+            action: "error",
+            errorCode: "ERR_AGENDA_MONITOR_WORKSPACE_UNBOUND",
+            sandboxReason: "agenda_monitor_workspace_unbound",
+            sandboxFailClosed: true,
+          }),
+        ]);
+        const persisted = store
+          .list("monitor")
+          .find((entry) => entry.id === monitor.id);
+        expect(persisted.status).toBe("active");
+        expect(persisted.checks).toBe(0);
+        expect(persisted).not.toHaveProperty("executionLease");
+      } finally {
+        _processDeps.execSync = original;
+      }
+    });
+
+    it.each([
+      ["asynchronous", async () => null],
+      ["unfrozen", () => ({ requiredBoundaries: ["filesystem"] })],
+    ])(
+      "rejects an %s sandbox policy before Broker execution",
+      async (_kind, resolveSandboxPolicy) => {
+        const original = _processDeps.execSync;
+        const execSync = vi.fn(() => "BUILD OK\n");
+        try {
+          _processDeps.execSync = execSync;
+          const monitor = createCommandMonitor({
+            command: "echo BUILD OK",
+            intervalMs: 1000,
+            stopWhen: "OK",
+          });
+
+          const code = await runAgendaRun(
+            { json: true },
+            {
+              store,
+              log,
+              now: () => clock + 2000,
+              resolveSandboxPolicy,
+            },
+          );
+
+          expect(code).toBe(1);
+          expect(execSync).not.toHaveBeenCalled();
+          const { actions } = JSON.parse(logs.join("\n"));
+          expect(actions[0]).toEqual(
+            expect.objectContaining({
+              id: monitor.id,
+              action: "error",
+              errorCode: "ERR_AGENDA_MONITOR_SANDBOX_POLICY_INVALID",
+              sandboxReason: "invalid_agenda_monitor_sandbox_policy",
+              sandboxFailClosed: true,
+            }),
+          );
+          const persisted = store
+            .list("monitor")
+            .find((entry) => entry.id === monitor.id);
+          expect(persisted.status).toBe("active");
+          expect(persisted.checks).toBe(0);
+          expect(persisted).not.toHaveProperty("executionLease");
+        } finally {
+          _processDeps.execSync = original;
+        }
+      },
+    );
+
+    it("does not let a sandbox failure output satisfy stopWhen", async () => {
+      const original = _processDeps.execSync;
+      const notify = vi.fn(async () => ({}));
+      try {
+        _processDeps.execSync = vi.fn(() => {
+          throw Object.assign(new Error("sandbox unavailable"), {
+            code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+            sandboxReason: "required_boundary_unavailable",
+            sandboxFailClosed: true,
+            stdout: "BUILD OK\n",
+            stderr: "",
+          });
+        });
+        const monitor = createCommandMonitor({
+          command: "echo BUILD OK",
+          intervalMs: 1000,
+          stopWhen: "OK",
+        });
+
+        const code = await runAgendaRun(
+          { json: true },
+          {
+            store,
+            log,
+            notify,
+            now: () => clock + 2000,
+            resolveSandboxPolicy: () => createPinnedPolicy("filesystem"),
+          },
+        );
+
+        expect(code).toBe(1);
+        expect(notify).not.toHaveBeenCalled();
+        const { actions } = JSON.parse(logs.join("\n"));
+        expect(actions[0]).toEqual(
+          expect.objectContaining({
+            id: monitor.id,
+            action: "error",
+            errorCode: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+            sandboxReason: "required_boundary_unavailable",
+            sandboxFailClosed: true,
+          }),
+        );
+        expect(actions[0].action).not.toBe("matched");
+        const persisted = store
+          .list("monitor")
+          .find((entry) => entry.id === monitor.id);
+        expect(persisted.status).toBe("active");
+        expect(persisted.checks).toBe(0);
+        expect(persisted).not.toHaveProperty("executionLease");
+      } finally {
+        _processDeps.execSync = original;
+      }
+    });
+
+    it("does not let a Broker policy denial output satisfy stopWhen", async () => {
+      const original = _processDeps.execSync;
+      const notify = vi.fn(async () => ({}));
+      try {
+        _processDeps.execSync = vi.fn(() => {
+          throw Object.assign(new Error("Process spawnSync denied"), {
+            stdout: "BUILD OK\n",
+            stderr: "",
+            auditEntry: {
+              permissionDecision: "deny",
+              deniedReason: "dangerous_command",
+            },
+          });
+        });
+        const monitor = createCommandMonitor({
+          command: "echo BUILD OK",
+          intervalMs: 1000,
+          stopWhen: "OK",
+        });
+
+        const code = await runAgendaRun(
+          { json: true },
+          {
+            store,
+            log,
+            notify,
+            now: () => clock + 2000,
+            resolveSandboxPolicy: () => null,
+          },
+        );
+
+        expect(code).toBe(1);
+        expect(notify).not.toHaveBeenCalled();
+        const { actions } = JSON.parse(logs.join("\n"));
+        expect(actions[0]).toEqual(
+          expect.objectContaining({
+            id: monitor.id,
+            action: "error",
+            error: "Process spawnSync denied",
+          }),
+        );
+        expect(actions[0].action).not.toBe("matched");
+        const persisted = store
+          .list("monitor")
+          .find((entry) => entry.id === monitor.id);
+        expect(persisted.status).toBe("active");
+        expect(persisted.checks).toBe(0);
+        expect(persisted).not.toHaveProperty("executionLease");
+      } finally {
+        _processDeps.execSync = original;
+      }
+    });
+
+    it("applies the canonical hard shell deny before policy collection", async () => {
+      const original = _processDeps.execSync;
+      const execSync = vi.fn(() => "done\n");
+      const resolveSandboxPolicy = vi.fn(() => null);
+      try {
+        _processDeps.execSync = execSync;
+        const monitor = createCommandMonitor({
+          command: "rm -rf protected",
+          intervalMs: 1000,
+          stopWhen: "done",
+        });
+
+        const code = await runAgendaRun(
+          { json: true },
+          {
+            store,
+            log,
+            now: () => clock + 2000,
+            resolveSandboxPolicy,
+          },
+        );
+
+        expect(code).toBe(1);
+        expect(resolveSandboxPolicy).not.toHaveBeenCalled();
+        expect(execSync).not.toHaveBeenCalled();
+        const { actions } = JSON.parse(logs.join("\n"));
+        expect(actions[0]).toEqual(
+          expect.objectContaining({
+            id: monitor.id,
+            action: "error",
+            errorCode: "ERR_AGENDA_MONITOR_SHELL_POLICY_DENIED",
+          }),
+        );
+        const persisted = store
+          .list("monitor")
+          .find((entry) => entry.id === monitor.id);
+        expect(persisted.status).toBe("active");
+        expect(persisted.checks).toBe(0);
+        expect(persisted).not.toHaveProperty("executionLease");
+      } finally {
+        _processDeps.execSync = original;
+      }
+    });
   });
 
   describe("per-task run policy", () => {
@@ -315,7 +625,7 @@ describe("cc agenda", () => {
   });
 
   it("runs a monitor, matches output, and notifies", async () => {
-    const m = store.createMonitor({
+    const m = createCommandMonitor({
       command: "echo BUILD OK",
       intervalMs: 1000,
       stopWhen: "OK",
@@ -327,7 +637,9 @@ describe("cc agenda", () => {
       { json: true },
       { store, log, runCommand, notify, now: () => clock + 2000 },
     );
-    expect(runCommand).toHaveBeenCalledWith("echo BUILD OK");
+    expect(runCommand).toHaveBeenCalledWith("echo BUILD OK", {
+      workspaceCwd: dir,
+    });
     expect(notify).toHaveBeenCalledWith(
       expect.objectContaining({ title: "build done", level: "success" }),
     );
@@ -338,7 +650,7 @@ describe("cc agenda", () => {
 
   describe("monitor event envelope (event_id / authority / dedup)", () => {
     it("stamps a matched firing with a deterministic event_id + steer authority", async () => {
-      const m = store.createMonitor({
+      const m = createCommandMonitor({
         command: "echo BUILD OK",
         intervalMs: 1000,
         stopWhen: "OK",
@@ -379,6 +691,7 @@ describe("cc agenda", () => {
         kind: "monitor",
         source: "command",
         command: "echo BUILD OK",
+        workspaceCwd: dir,
         stopWhen: "OK",
         status: "active",
         notify: null,
@@ -419,7 +732,7 @@ describe("cc agenda", () => {
     });
 
     it("keeps action=matched and records the match when the notification fails", async () => {
-      const m = store.createMonitor({
+      const m = createCommandMonitor({
         command: "echo BUILD OK",
         intervalMs: 1000,
         stopWhen: "OK",
@@ -445,7 +758,7 @@ describe("cc agenda", () => {
     });
 
     it("byte-caps an oversized notification body without splitting a code point", async () => {
-      const m = store.createMonitor({
+      const m = createCommandMonitor({
         command: "echo big",
         intervalMs: 1000,
         stopWhen: "DONE",
@@ -470,7 +783,7 @@ describe("cc agenda", () => {
   });
 
   it("re-arms a monitor whose output does not match yet", async () => {
-    const m = store.createMonitor({
+    const m = createCommandMonitor({
       command: "echo waiting",
       intervalMs: 1000,
       stopWhen: "OK",

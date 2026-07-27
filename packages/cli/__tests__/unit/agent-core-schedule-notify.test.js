@@ -51,18 +51,33 @@ describe("schedule tool dispatch", () => {
   });
 
   it("creates a monitor entry", async () => {
-    const res = await executeTool("schedule", {
-      action: "monitor",
-      command: "curl -s localhost:3000/health",
-      interval: "30s",
-      stop_when: "healthy",
-      notify_title: "service up",
-    });
+    const trustedWorkspace =
+      `${tmpHome}${path.sep}staging${path.sep}..` +
+      `${path.sep}trusted-workspace`;
+    const res = await executeTool(
+      "schedule",
+      {
+        action: "monitor",
+        command: "curl -s localhost:3000/health",
+        interval: "30s",
+        stop_when: "healthy",
+        notify_title: "service up",
+        // Unknown/model-supplied fields never override the host context.
+        workspaceCwd: path.join(tmpHome, "model-controlled"),
+      },
+      { cwd: trustedWorkspace },
+    );
     expect(res.scheduled).toMatchObject({
       kind: "monitor",
       intervalMs: 30000,
       stopWhen: "healthy",
+      workspaceCwd: path.resolve(trustedWorkspace),
     });
+    const persisted = new AgentScheduleStore({
+      dir: path.join(tmpHome, ".chainlesschain", "agent-schedule"),
+    }).list("monitor");
+    expect(persisted).toHaveLength(1);
+    expect(persisted[0].workspaceCwd).toBe(path.resolve(trustedWorkspace));
   });
 
   it("lists and cancels", async () => {
