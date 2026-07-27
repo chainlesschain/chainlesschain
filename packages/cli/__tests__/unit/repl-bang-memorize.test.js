@@ -3,7 +3,7 @@
  * Real spawnSync (node -e scripts via files per the dash-syntax-error lesson —
  * here we stay on simple echo-able commands) + real temp dirs.
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "fs";
 import os from "os";
 import path from "path";
@@ -44,7 +44,10 @@ describe("prefix detection", () => {
 
 describe("runBangCommand", () => {
   it("runs a real command, captures stdout and exit code 0", () => {
-    const res = runBangCommand("!echo bang-ok", { cwd: tmp });
+    const res = runBangCommand("!echo bang-ok", {
+      cwd: tmp,
+      deps: { collectPluginBinSandboxPolicy: () => null },
+    });
     expect(res.exitCode).toBe(0);
     expect(res.stdout).toContain("bang-ok");
     expect(res.error).toBeNull();
@@ -53,13 +56,16 @@ describe("runBangCommand", () => {
       "<bash-input>echo bang-ok</bash-input>",
     );
     expect(res.contextMessage.content).toContain('exit-code="0"');
-  });
+  }, 30_000);
 
   it("propagates non-zero exit codes", () => {
-    const res = runBangCommand("!exit 3", { cwd: tmp });
+    const res = runBangCommand("!exit 3", {
+      cwd: tmp,
+      deps: { collectPluginBinSandboxPolicy: () => null },
+    });
     expect(res.exitCode).toBe(3);
     expect(res.contextMessage.content).toContain('exit-code="3"');
-  });
+  }, 30_000);
 
   it("uses the injected spawnSync seam", () => {
     let seen = null;
@@ -67,6 +73,7 @@ describe("runBangCommand", () => {
       cwd: tmp,
       platform: "linux",
       deps: {
+        collectPluginBinSandboxPolicy: () => null,
         spawnSync: (bin, args, options) => {
           seen = { bin, args, options };
           return { status: 0, stdout: "stub-out", stderr: "" };
@@ -83,22 +90,32 @@ describe("runBangCommand", () => {
         shell: false,
       }),
     );
+    expect(seen.options).not.toHaveProperty("sandboxPolicy");
     expect(res.stdout).toBe("stub-out");
   });
 
   it("wraps through cmd.exe with chcp 65001 on win32", () => {
     let seen = null;
+    const comSpec = String.raw`C:\Windows\System32\cmd.exe`;
     runBangCommand("!dir", {
       cwd: tmp,
       platform: "win32",
+      comSpec,
+      systemRoot: String.raw`F:\Windows`,
+      env: {
+        ComSpec: String.raw`D:\Windows\System32\cmd.exe`,
+        COMSPEC: String.raw`E:\Windows\System32\cmd.exe`,
+        SystemRoot: String.raw`G:\Windows`,
+      },
       deps: {
+        collectPluginBinSandboxPolicy: () => null,
         spawnSync: (bin, args, options) => {
           seen = { bin, args, options };
           return { status: 0, stdout: "", stderr: "" };
         },
       },
     });
-    expect(seen.bin).toBe("cmd.exe");
+    expect(seen.bin).toBe(comSpec);
     expect(seen.args[seen.args.length - 1]).toBe("chcp 65001 >nul && dir");
     expect(seen.options).toEqual(
       expect.objectContaining({
@@ -108,6 +125,161 @@ describe("runBangCommand", () => {
         shell: false,
       }),
     );
+    expect(seen.options).not.toHaveProperty("sandboxPolicy");
+  });
+
+  it("prefers ComSpec over COMSPEC and SystemRoot", () => {
+    let seen = null;
+    runBangCommand("!dir", {
+      cwd: tmp,
+      platform: "win32",
+      env: {
+        ComSpec: String.raw`D:\Windows\System32\cmd.exe`,
+        COMSPEC: String.raw`E:\Windows\System32\cmd.exe`,
+        SystemRoot: String.raw`F:\Windows`,
+      },
+      deps: {
+        collectPluginBinSandboxPolicy: () => null,
+        spawnSync: (bin, args, options) => {
+          seen = { bin, args, options };
+          return { status: 0, stdout: "", stderr: "" };
+        },
+      },
+    });
+
+    expect(seen.bin).toBe(String.raw`D:\Windows\System32\cmd.exe`);
+  });
+
+  it.each([
+    String.raw`\workspace\cmd.exe`,
+    String.raw`\\server\share\cmd.exe`,
+    String.raw`D:\tools\other.exe`,
+  ])("rejects non-local or non-cmd ComSpec candidate %s", (comSpec) => {
+    let seen = null;
+    runBangCommand("!dir", {
+      cwd: tmp,
+      platform: "win32",
+      comSpec,
+      systemRoot: String.raw`D:\Windows`,
+      env: {},
+      deps: {
+        collectPluginBinSandboxPolicy: () => null,
+        spawnSync: (bin, args, options) => {
+          seen = { bin, args, options };
+          return { status: 0, stdout: "", stderr: "" };
+        },
+      },
+    });
+
+    expect(seen.bin).toBe(String.raw`D:\Windows\System32\cmd.exe`);
+  });
+
+  it.each([String.raw`\Windows`, String.raw`\\server\share\Windows`])(
+    "rejects non-local SystemRoot candidate %s",
+    (systemRoot) => {
+      let seen = null;
+      runBangCommand("!dir", {
+        cwd: tmp,
+        platform: "win32",
+        comSpec: String.raw`D:\tools\other.exe`,
+        systemRoot,
+        env: {},
+        deps: {
+          collectPluginBinSandboxPolicy: () => null,
+          spawnSync: (bin, args, options) => {
+            seen = { bin, args, options };
+            return { status: 0, stdout: "", stderr: "" };
+          },
+        },
+      });
+
+      expect(seen.bin).toBe(String.raw`C:\Windows\System32\cmd.exe`);
+    },
+  );
+
+  it("collects before spawn and passes the exact pinned sandbox policy", () => {
+    const order = [];
+    const sandboxPolicy = Object.freeze({
+      requiredBoundaries: Object.freeze(["filesystem", "network"]),
+    });
+    const spawnSync = vi.fn((_bin, _args, options) => {
+      order.push("spawn");
+      expect(options.sandboxPolicy).toBe(sandboxPolicy);
+      return { status: 0, stdout: "ok", stderr: "" };
+    });
+
+    runBangCommand("!echo safe", {
+      cwd: tmp,
+      platform: "linux",
+      deps: {
+        collectPluginBinSandboxPolicy: ({ cwd }) => {
+          order.push("collect");
+          expect(cwd).toBe(tmp);
+          return sandboxPolicy;
+        },
+        spawnSync,
+      },
+    });
+
+    expect(order).toEqual(["collect", "spawn"]);
+    expect(spawnSync).toHaveBeenCalledOnce();
+  });
+
+  it("fails closed before spawn when Plugin policy discovery fails", () => {
+    const discoveryError = Object.assign(new Error("malformed plugin"), {
+      code: "ERR_PLUGIN_BIN_DISCOVERY_FAILED",
+      pluginBinFailClosed: true,
+    });
+    const spawnSync = vi.fn();
+    let caught;
+
+    try {
+      runBangCommand("!echo must-not-run", {
+        cwd: tmp,
+        platform: "linux",
+        deps: {
+          collectPluginBinSandboxPolicy: () => {
+            throw discoveryError;
+          },
+          spawnSync,
+        },
+      });
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBe(discoveryError);
+    expect(spawnSync).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["sandboxFailClosed flag", { code: "ERR_OTHER", sandboxFailClosed: true }],
+    ["ERR_PROCESS_SANDBOX prefix", { code: "ERR_PROCESS_SANDBOX" }],
+  ])("preserves Broker sandbox failure via %s", (_label, metadata) => {
+    const sandboxError = Object.assign(
+      new Error("sandbox backend unavailable"),
+      metadata,
+    );
+
+    let caught;
+    try {
+      runBangCommand("!echo must-not-run", {
+        cwd: tmp,
+        platform: "linux",
+        deps: {
+          collectPluginBinSandboxPolicy: () => ({
+            requiredBoundaries: ["filesystem"],
+          }),
+          spawnSync: () => {
+            throw sandboxError;
+          },
+        },
+      });
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBe(sandboxError);
   });
 });
 

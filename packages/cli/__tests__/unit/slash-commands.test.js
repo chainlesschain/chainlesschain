@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -116,6 +116,7 @@ describe("slash-commands", () => {
       const { prompt } = expandCommand(mk("status: !`git status`"), [], {
         cwd,
         deps: {
+          collectPluginBinSandboxPolicy: () => null,
           execSync: (cmd, options) => {
             calls.push([cmd, options]);
             return "BRANCH-CLEAN\n";
@@ -133,27 +134,127 @@ describe("slash-commands", () => {
           }),
         ],
       ]);
+      expect(calls[0][1]).not.toHaveProperty("sandboxPolicy");
       expect(prompt).toContain("status: BRANCH-CLEAN");
     });
 
     it("--no-bang leaves bang segments untouched", () => {
+      const collectPluginBinSandboxPolicy = vi.fn();
+      const execSync = vi.fn();
       const { prompt } = expandCommand(mk("x !`rm -rf /` y"), [], {
         cwd,
         allowBang: false,
+        deps: { collectPluginBinSandboxPolicy, execSync },
       });
       expect(prompt).toContain("!`rm -rf /`");
+      expect(collectPluginBinSandboxPolicy).not.toHaveBeenCalled();
+      expect(execSync).not.toHaveBeenCalled();
     });
 
     it("a failing bang is spliced as an error marker, not fatal", () => {
       const { prompt } = expandCommand(mk("out: !`boom`"), [], {
         cwd,
         deps: {
+          collectPluginBinSandboxPolicy: () => null,
           execSync: () => {
             throw new Error("nonzero exit");
           },
         },
       });
       expect(prompt).toContain("[command failed: boom");
+    });
+
+    it("collects once before multiple bangs and reuses the exact policy", () => {
+      const order = [];
+      const sandboxPolicy = Object.freeze({
+        requiredBoundaries: Object.freeze(["filesystem", "network"]),
+      });
+      const collectPluginBinSandboxPolicy = vi.fn(() => {
+        order.push("collect");
+        return sandboxPolicy;
+      });
+      const execSync = vi.fn((cmd, options) => {
+        order.push(`exec:${cmd}`);
+        expect(options.sandboxPolicy).toBe(sandboxPolicy);
+        return `${cmd}-out`;
+      });
+
+      const { prompt } = expandCommand(mk("first=!`one` second=!`two`"), [], {
+        cwd,
+        deps: { collectPluginBinSandboxPolicy, execSync },
+      });
+
+      expect(order).toEqual(["collect", "exec:one", "exec:two"]);
+      expect(collectPluginBinSandboxPolicy).toHaveBeenCalledOnce();
+      expect(collectPluginBinSandboxPolicy).toHaveBeenCalledWith({ cwd });
+      expect(prompt).toContain("first=one-out second=two-out");
+    });
+
+    it("fails closed before every bang when policy discovery fails", () => {
+      const discoveryError = Object.assign(new Error("malformed plugin"), {
+        code: "ERR_PLUGIN_BIN_DISCOVERY_FAILED",
+        pluginBinFailClosed: true,
+      });
+      const execSync = vi.fn();
+      let caught;
+
+      try {
+        expandCommand(mk("first=!`one` second=!`two`"), [], {
+          cwd,
+          deps: {
+            collectPluginBinSandboxPolicy: () => {
+              throw discoveryError;
+            },
+            execSync,
+          },
+        });
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(caught).toBe(discoveryError);
+      expect(execSync).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [
+        "sandboxFailClosed flag",
+        { code: "ERR_OTHER", sandboxFailClosed: true },
+      ],
+      ["ERR_PROCESS_SANDBOX prefix", { code: "ERR_PROCESS_SANDBOX" }],
+    ])("preserves Broker sandbox failure via %s", (_label, metadata) => {
+      const sandboxError = Object.assign(
+        new Error("sandbox backend unavailable"),
+        metadata,
+      );
+
+      let caught;
+      try {
+        expandCommand(mk("out: !`must-not-run`"), [], {
+          cwd,
+          deps: {
+            collectPluginBinSandboxPolicy: () => ({
+              requiredBoundaries: ["filesystem"],
+            }),
+            execSync: () => {
+              throw sandboxError;
+            },
+          },
+        });
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(caught).toBe(sandboxError);
+    });
+
+    it("does not discover policy when the template has no bang", () => {
+      const collectPluginBinSandboxPolicy = vi.fn();
+      expandCommand(mk("plain prompt"), [], {
+        cwd,
+        deps: { collectPluginBinSandboxPolicy },
+      });
+      expect(collectPluginBinSandboxPolicy).not.toHaveBeenCalled();
     });
   });
 

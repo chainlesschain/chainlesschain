@@ -24,11 +24,14 @@ import { homedir } from "node:os";
 import { expandFileRefs } from "../runtime/file-ref-expander.js";
 import { projectRootBase } from "./project-root.cjs";
 import executionBroker from "./process-execution-broker/index.js";
+import { collectPluginBinSandboxPolicy as collectDefaultPluginBinSandboxPolicy } from "./plugin-runtime/bin.js";
 
 const _deps = {
   fs: fsDefault,
   path: pathDefault,
   execSync: (...args) => executionBroker.execSync(...args),
+  collectPluginBinSandboxPolicy: (opts) =>
+    collectDefaultPluginBinSandboxPolicy(opts),
 };
 
 /**
@@ -186,8 +189,16 @@ export function substituteArgs(text, args = []) {
   return out;
 }
 
+function isSandboxFailClosedError(error) {
+  return (
+    error?.sandboxFailClosed === true ||
+    (typeof error?.code === "string" &&
+      error.code.startsWith("ERR_PROCESS_SANDBOX"))
+  );
+}
+
 /** Run every `!`cmd`` and replace it with the command's stdout (best-effort). */
-function runBangs(text, { cwd, execSync }) {
+function runBangs(text, { cwd, execSync, sandboxPolicy }) {
   return text.replace(/!`([^`]+)`/g, (_, cmd) => {
     try {
       const out = execSync(cmd, {
@@ -199,9 +210,13 @@ function runBangs(text, { cwd, execSync }) {
         policy: "allow",
         scope: "slash-command",
         shell: true,
+        ...(sandboxPolicy ? { sandboxPolicy } : {}),
       });
       return String(out).trim();
     } catch (err) {
+      // Broker boundary failures are security decisions, not ordinary command
+      // failures. Preserve the exact structured error for the caller.
+      if (isSandboxFailClosedError(err)) throw err;
       return `[command failed: ${cmd} — ${err.message?.split("\n")[0] || err}]`;
     }
   });
@@ -215,18 +230,26 @@ function runBangs(text, { cwd, execSync }) {
  *
  * @param {object} command  output of getCommand/parseCommandFile (needs .body)
  * @param {string[]} args
- * @param {object} [opts] { cwd, allowBang, deps:{ execSync } }
+ * @param {object} [opts] { cwd, allowBang,
+ *   deps:{ execSync, collectPluginBinSandboxPolicy } }
  * @returns {{ prompt:string, warnings:string[] }}
  */
 export function expandCommand(command, args = [], opts = {}) {
   const cwd = opts.cwd || process.cwd();
   const execSync = opts.deps?.execSync || _deps.execSync;
+  const collectPluginBinSandboxPolicy =
+    opts.deps?.collectPluginBinSandboxPolicy ||
+    _deps.collectPluginBinSandboxPolicy;
   const warnings = [];
 
   let text = substituteArgs(command.body || "", args);
 
-  if (opts.allowBang !== false) {
-    text = runBangs(text, { cwd, execSync });
+  if (opts.allowBang !== false && /!`[^`]+`/.test(text)) {
+    // Resolve and pin once before the first bang. Every expansion in this macro
+    // receives the same immutable policy object, so no earlier command can run
+    // before a later discovery failure or observe a weaker boundary set.
+    const sandboxPolicy = collectPluginBinSandboxPolicy({ cwd });
+    text = runBangs(text, { cwd, execSync, sandboxPolicy });
   }
 
   // @file expansion appends a <referenced-files> block when anything resolves.

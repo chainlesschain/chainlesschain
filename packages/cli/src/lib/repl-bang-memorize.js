@@ -21,6 +21,7 @@ import fsDefault from "fs";
 import pathDefault from "path";
 import { findProjectRoot } from "./project-instructions.js";
 import executionBroker from "./process-execution-broker/index.js";
+import { collectPluginBinSandboxPolicy as collectDefaultPluginBinSandboxPolicy } from "./plugin-runtime/bin.js";
 
 export const BANG_TIMEOUT_MS = 120_000;
 export const BANG_MAX_BUFFER = 10 * 1024 * 1024;
@@ -33,6 +34,8 @@ export const MEMO_NOTE_MAX = 4_000;
 
 export const _deps = {
   spawnSync: (...args) => executionBroker.spawnSync(...args),
+  collectPluginBinSandboxPolicy: (opts) =>
+    collectDefaultPluginBinSandboxPolicy(opts),
   fs: fsDefault,
   path: pathDefault,
 };
@@ -42,6 +45,46 @@ function cap(s) {
   return str.length > BANG_OUTPUT_CAP
     ? `${str.slice(0, BANG_OUTPUT_CAP)}\n… [truncated]`
     : str;
+}
+
+function resolveWindowsCommandShell(opts = {}) {
+  const path = opts.deps?.path || _deps.path;
+  const env = opts.env || process.env;
+  const normalizeLocalPath = (candidate) => {
+    const value =
+      typeof candidate === "string"
+        ? candidate.trim()
+        : String(candidate || "");
+    // `path.win32.isAbsolute("\\foo")` is true even though the result still
+    // depends on the process's current drive. Require a drive-qualified local
+    // path so the helper receives one deterministic executable identity.
+    if (!/^[a-z]:[\\/]/i.test(value)) return null;
+    return path.win32.normalize(value);
+  };
+
+  for (const candidate of [opts.comSpec, env.ComSpec, env.COMSPEC]) {
+    const value = normalizeLocalPath(candidate);
+    if (value && path.win32.basename(value).toLowerCase() === "cmd.exe") {
+      return value;
+    }
+  }
+
+  for (const candidate of [
+    opts.systemRoot,
+    env.SystemRoot,
+    env.SYSTEMROOT,
+    env.WINDIR,
+    "C:\\Windows",
+  ]) {
+    const value = normalizeLocalPath(candidate);
+    if (value) {
+      return path.win32.join(value, "System32", "cmd.exe");
+    }
+  }
+
+  // The literal fallback above is absolute, so this is unreachable with Node's
+  // path.win32 implementation. Keep a fail-closed guard for injected path seams.
+  throw new Error("No absolute Windows command shell is available");
 }
 
 /** True when the REPL line is a `!` bash passthrough. */
@@ -70,24 +113,37 @@ export function isMemorizeLine(trimmed) {
  */
 export function runBangCommand(line, opts = {}) {
   const spawnSync = opts.deps?.spawnSync || _deps.spawnSync;
+  const collectPluginBinSandboxPolicy =
+    opts.deps?.collectPluginBinSandboxPolicy ||
+    _deps.collectPluginBinSandboxPolicy;
   const cwd = opts.cwd || process.cwd();
   const isWin =
     opts.platform != null
       ? opts.platform === "win32"
       : process.platform === "win32";
   const cmd = String(line).replace(/^!/, "").trim();
+  // A bang command is another arbitrary workspace process surface. Collect the
+  // tighten-only Plugin bin boundary union before the shell starts so it cannot
+  // bypass a policy that run_shell already pins for the same workspace.
+  const sandboxPolicy = collectPluginBinSandboxPolicy({ cwd });
+  const sandboxOptions = sandboxPolicy ? { sandboxPolicy } : {};
 
   const res = isWin
-    ? spawnSync("cmd.exe", ["/d", "/s", "/c", `chcp 65001 >nul && ${cmd}`], {
-        encoding: "utf-8",
-        timeout: BANG_TIMEOUT_MS,
-        maxBuffer: BANG_MAX_BUFFER,
-        cwd,
-        origin: "repl:bang-command",
-        policy: "allow",
-        scope: "repl",
-        shell: false,
-      })
+    ? spawnSync(
+        resolveWindowsCommandShell(opts),
+        ["/d", "/s", "/c", `chcp 65001 >nul && ${cmd}`],
+        {
+          encoding: "utf-8",
+          timeout: BANG_TIMEOUT_MS,
+          maxBuffer: BANG_MAX_BUFFER,
+          cwd,
+          origin: "repl:bang-command",
+          policy: "allow",
+          scope: "repl",
+          shell: false,
+          ...sandboxOptions,
+        },
+      )
     : spawnSync("/bin/sh", ["-c", cmd], {
         encoding: "utf-8",
         timeout: BANG_TIMEOUT_MS,
@@ -97,6 +153,7 @@ export function runBangCommand(line, opts = {}) {
         policy: "allow",
         scope: "repl",
         shell: false,
+        ...sandboxOptions,
       });
 
   const exitCode = res.status == null ? (res.error ? -1 : 0) : res.status;
