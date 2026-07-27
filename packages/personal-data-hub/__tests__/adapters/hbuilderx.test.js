@@ -13,7 +13,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, join } from "node:path";
+import { basename, join, resolve } from "node:path";
 
 const {
   HBuilderXAdapter,
@@ -44,6 +44,14 @@ const { validate } = require("../../lib/schemas");
 
 let tempRoot;
 let hbuilderxHome;
+
+function canonicalPath(value) {
+  const realPath =
+    typeof realpathSync.native === "function"
+      ? realpathSync.native(value)
+      : realpathSync(value);
+  return resolve(realPath);
+}
 
 const PRIVATE_PROJECT = "private-project-name";
 const PRIVATE_BASENAME = "secret-source-file.vue";
@@ -90,7 +98,11 @@ async function collect(adapter, options = {}) {
 }
 
 beforeEach(() => {
-  tempRoot = mkdtempSync(join(tmpdir(), "hbuilderx-adapter-test-"));
+  // Windows runners can expose TEMP through an 8.3 alias. Mirror the
+  // adapter's canonical-root semantics before constructing path-sensitive mocks.
+  tempRoot = canonicalPath(
+    mkdtempSync(join(tmpdir(), "hbuilderx-adapter-test-")),
+  );
   hbuilderxHome = join(tempRoot, "HBuilder X");
   mkdirSync(hbuilderxHome, { recursive: true });
 });

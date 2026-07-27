@@ -3381,7 +3381,7 @@ class LocalVault {
     const sql =
       "SELECT * FROM audit_log" +
       (where.length ? " WHERE " + where.join(" AND ") : "") +
-      " ORDER BY at DESC LIMIT @limit";
+      " ORDER BY at DESC, id DESC LIMIT @limit";
     return this._requireOpen().prepare(sql).all(params);
   }
 

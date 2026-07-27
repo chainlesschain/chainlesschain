@@ -318,6 +318,7 @@ jobs:
           cp packages/personal-data-hub/package.json "$ROOT/packages/personal-data-hub/"
           cp packages/personal-data-hub/vitest.config.js "$ROOT/packages/personal-data-hub/"
           cp -r packages/cli/src "$ROOT/packages/cli/src"   # host-adb-bridge.js (node builtins only)
+          cp packages/cli/package.json "$ROOT/packages/cli/"  # package metadata read by CLI bridge tests
           cp scripts/android/pdh-sqlite-leaf-salvage.js "$ROOT/scripts/android/"  # leaf-salvage test re-export target
           cp docs/internal/pdh-app-data-catalog.json "$ROOT/docs/internal/"  # catalog completeness fixture
           cd "$ROOT/packages/personal-data-hub"

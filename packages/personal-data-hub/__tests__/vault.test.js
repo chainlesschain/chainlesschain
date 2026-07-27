@@ -1,6 +1,6 @@
 "use strict";
 
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 
 const fs = require("node:fs");
 const os = require("node:os");
@@ -1946,6 +1946,29 @@ describe("LocalVault audit_log", () => {
     const rows = vault.queryAudit({ since: middle });
     expect(rows.length).toBeGreaterThanOrEqual(1);
     expect(rows[0].action).toBe("b");
+  });
+
+  it("returns the newest insertion first when audit timestamps tie", () => {
+    freshVault();
+    const tiedAt = 1_700_000_000_000;
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(tiedAt);
+    try {
+      vault.audit("test.same-timestamp", "older");
+      vault.audit("test.same-timestamp", "newer");
+    } finally {
+      nowSpy.mockRestore();
+    }
+
+    const rows = vault.queryAudit({
+      action: "test.same-timestamp",
+      limit: 1,
+    });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      at: tiedAt,
+      action: "test.same-timestamp",
+      target: "newer",
+    });
   });
 });
 

@@ -4,11 +4,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   mkdirSync,
   mkdtempSync,
+  realpathSync,
   rmSync,
   utimesSync,
   writeFileSync,
 } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 
 const {
@@ -24,6 +25,14 @@ const { EVENT_SUBTYPES } = require("../../lib/constants");
 const { validateEvent } = require("../../lib/schemas");
 
 let tmpDir;
+
+function canonicalPath(value) {
+  const realPath =
+    typeof realpathSync.native === "function"
+      ? realpathSync.native(value)
+      : realpathSync(value);
+  return resolve(realPath);
+}
 
 function makeFile(relativePath, content, mtimeMs) {
   const filePath = join(tmpDir, relativePath);
@@ -42,7 +51,9 @@ async function collect(iterable) {
 }
 
 beforeEach(() => {
-  tmpDir = mkdtempSync(join(tmpdir(), "local-files-test-"));
+  // Windows runners can expose TEMP through an 8.3 alias. Mirror the
+  // adapter's canonical-root semantics before constructing path-sensitive mocks.
+  tmpDir = canonicalPath(mkdtempSync(join(tmpdir(), "local-files-test-")));
 });
 
 afterEach(() => {
