@@ -624,6 +624,25 @@ namespace ChainlessChain.WindowsSandbox
             ref STARTUPINFOEX startupInfo,
             out PROCESS_INFORMATION processInformation);
 
+        [DllImport(
+            "kernel32.dll",
+            EntryPoint = "CreateProcessW",
+            CharSet = CharSet.Unicode,
+            ExactSpelling = true,
+            SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool CreateProcess(
+            string applicationName,
+            StringBuilder commandLine,
+            IntPtr processAttributes,
+            IntPtr threadAttributes,
+            [MarshalAs(UnmanagedType.Bool)] bool inheritHandles,
+            UInt32 creationFlags,
+            IntPtr environment,
+            string currentDirectory,
+            ref STARTUPINFOEX startupInfo,
+            out PROCESS_INFORMATION processInformation);
+
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern IntPtr GetStdHandle(Int32 standardHandle);
 
@@ -3154,23 +3173,42 @@ namespace ChainlessChain.WindowsSandbox
                 if (detached)
                     creationFlags |= DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP;
                 AssertLaunchPathLocksIntact(launchPathLocks);
-                bool processCreated = CreateProcessAsUser(
-                    restrictedToken,
-                    application,
-                    commandLine,
-                    IntPtr.Zero,
-                    IntPtr.Zero,
-                    true,
-                    creationFlags,
-                    environmentBuffer,
-                    workingDirectory,
-                    ref startup,
-                    out processInfo);
+                // SECURITY_CAPABILITIES asks the kernel to derive the target
+                // AppContainer token during ordinary process creation.
+                // Supplying a separately restricted primary token to
+                // CreateProcessAsUser conflicts with that derivation on
+                // current hosted Windows images (ERROR_ENVVAR_NOT_FOUND).
+                // Non-AppContainer launches continue to use the explicitly
+                // restricted primary token.
+                bool processCreated = useAppContainer
+                    ? CreateProcess(
+                        application,
+                        commandLine,
+                        IntPtr.Zero,
+                        IntPtr.Zero,
+                        true,
+                        creationFlags,
+                        environmentBuffer,
+                        workingDirectory,
+                        ref startup,
+                        out processInfo)
+                    : CreateProcessAsUser(
+                        restrictedToken,
+                        application,
+                        commandLine,
+                        IntPtr.Zero,
+                        IntPtr.Zero,
+                        true,
+                        creationFlags,
+                        environmentBuffer,
+                        workingDirectory,
+                        ref startup,
+                        out processInfo);
                 if (!processCreated)
                 {
                     ThrowLastError(
                         useAppContainer
-                            ? "CreateProcessAsUser(AppContainer)"
+                            ? "CreateProcess(AppContainer)"
                             : "CreateProcessAsUser");
                 }
                 AssertLaunchPathLocksIntact(launchPathLocks);

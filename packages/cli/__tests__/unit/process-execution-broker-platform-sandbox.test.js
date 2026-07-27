@@ -3982,6 +3982,13 @@ describe("platform sandbox adapter contract", () => {
     expect(windowsSandboxSource).toContain("TokenAppContainerSid");
     expect(windowsSandboxSource).toContain("EqualSid");
     expect(windowsSandboxSource).toContain("CreateProcessAsUser");
+    expect(windowsSandboxSource).toContain('EntryPoint = "CreateProcessW"');
+    expect(windowsSandboxSource).toMatch(
+      /bool processCreated = useAppContainer\s+\? CreateProcess\(/,
+    );
+    expect(windowsSandboxSource).not.toContain(
+      "CreateProcessAsUser(AppContainer)",
+    );
     expect(windowsSandboxSource).toContain("TerminateAndAwaitEmptyJob");
     expect(windowsSandboxSource).toContain("DataContractJsonSerializer");
     expect(windowsSandboxSource).not.toContain("System.Web");
@@ -4212,7 +4219,7 @@ describe("platform sandbox adapter contract", () => {
     );
 
     const createProcessCall = windowsSandboxSource.indexOf(
-      "bool processCreated = CreateProcessAsUser(",
+      "bool processCreated = useAppContainer",
       acquireEnd,
     );
     const acquireLocksCall = windowsSandboxSource.indexOf(

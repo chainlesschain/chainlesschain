@@ -1478,7 +1478,10 @@ function windowsSandboxHelperFailureReason(result, fallback) {
     ],
     [/CreateAppContainerProfile/i, "appcontainer_profile_create"],
     [/DeleteAppContainerProfile/i, "appcontainer_profile_delete"],
-    [/CreateProcessAsUser\(AppContainer\)/i, "appcontainer_process_create"],
+    [
+      /CreateProcess(?:AsUser)?\(AppContainer\)/i,
+      "appcontainer_process_create",
+    ],
     [/Target application contains a reparse component/i, "target_reparse"],
     [
       /Target working directory contains a reparse component/i,
