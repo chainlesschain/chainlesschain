@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.162.182",
+      "cliVersions": ["0.162.181", "0.162.182"],
+      "date": "2026-07-27",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed — cc CLI 0.162.182: attested native plugin sandbox closure",
+          "body": "> `chainlesschain` **0.162.181 → 0.162.182** (2026-07-27).\n> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **One-shot native plugin execution contracts**: policy-bearing native plugin\n  bins must preserve the resolver-issued target, literal argv, plugin root, and\n  executable identity through the process broker. Replayed, copied, stale, or\n  asynchronous contracts fail closed before a target process is started.\n- **Linux strong boundary completion**: strict native launches accept only\n  attested static ELF executables for the current architecture, reject dynamic\n  loaders and malformed program headers, pin the plugin tree through file\n  descriptors, and enter the fixed bubblewrap filesystem/network policy\n  without exposing a mutable host path.\n- **Cross-platform identity hardening**: Windows AppContainer launches retain\n  attested target handles, while platform adapters revalidate executable and\n  plugin identities across probe, spawn, IPC, and detached launch boundaries.\n- **Release validation gate**: the exact release commit must pass `CLI CI` and\n  `CLI Strict Sandbox` on their configured Ubuntu, Windows, and macOS runners;\n  local tests are supplementary and cannot authorize publication."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.162.181",
       "cliVersions": ["0.162.181"],
       "date": "2026-07-26",

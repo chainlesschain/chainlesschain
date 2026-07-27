@@ -13,6 +13,7 @@ on:
       - "packages/cli/__tests__/unit/plugin-runtime-bin-agent-core.test.js"
       - "packages/cli/__tests__/integration/process-broker-platform-sandbox-live.test.js"
       - "packages/cli/__tests__/fixtures/process-broker-linux-bwrap-live-child.mjs"
+      - "packages/cli/__tests__/fixtures/process-broker-linux-bwrap-native-live.c"
       - "packages/cli/__tests__/integration/sandbox-bwrap-live.test.js"
       - ".github/workflows/cli-strict-sandbox.yml"
   pull_request:
@@ -27,6 +28,7 @@ on:
       - "packages/cli/__tests__/unit/plugin-runtime-bin-agent-core.test.js"
       - "packages/cli/__tests__/integration/process-broker-platform-sandbox-live.test.js"
       - "packages/cli/__tests__/fixtures/process-broker-linux-bwrap-live-child.mjs"
+      - "packages/cli/__tests__/fixtures/process-broker-linux-bwrap-native-live.c"
       - "packages/cli/__tests__/integration/sandbox-bwrap-live.test.js"
       - ".github/workflows/cli-strict-sandbox.yml"
   workflow_dispatch:
@@ -61,7 +63,7 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update
-          sudo apt-get install -y bubblewrap
+          sudo apt-get install -y bubblewrap build-essential
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
           /usr/bin/bwrap --version
           /usr/bin/bwrap --help | grep -F -- --ro-bind-fd

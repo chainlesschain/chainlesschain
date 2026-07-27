@@ -35,6 +35,13 @@
 - Coverage targets (from docs): unit 80%+, integration 60%+, E2E on critical flows.
 - Naming: `*.test.ts` / `*.spec.ts` and tests under `tests/`.
 
+## npm Release Validation
+
+- Treat GitHub Actions as the authoritative npm release gate; local tests are supplementary.
+- Before publishing an npm package, verify the exact release commit with the relevant Linux, Windows, and macOS workflow matrix.
+- For CLI releases, require both `CLI CI` and `CLI Strict Sandbox` to pass on all configured operating systems.
+- Do not publish from a local-only result, a partial matrix, a timed-out suite, or checks attached to an older commit.
+
 ## Commit & Pull Request Guidelines
 
 - Commit style: Conventional Commits with optional scope, e.g.:
@@ -52,12 +59,14 @@
 ## Recent Test Improvements (2026-02-04)
 
 ### Project Management Journey E2E Test
+
 **File**: `tests/e2e/project-management-journey.e2e.test.ts`
 **Documentation**: `tests/e2e/PROJECT_MANAGEMENT_JOURNEY_TEST.md`
 
 Comprehensive E2E test covering complete project management lifecycle:
 
 **Test Coverage** (33 tests across 8 phases):
+
 1. **Organization & Team Setup**: Team creation, member management, permission grants
 2. **Project Creation**: Project initialization, metadata updates, deliverable files
 3. **Task Board Creation**: Scrum board setup, columns (Todo/In Progress/Done), labels
@@ -68,6 +77,7 @@ Comprehensive E2E test covering complete project management lifecycle:
 8. **Cleanup & Verification**: Final state validation
 
 **IPC Channels Tested** (30+ handlers):
+
 - Team Management: `team:create-team`, `team:add-member`, `team:get-team-members`
 - Permissions: `perm:grant-permission`
 - Task Boards: `task:create-board`, `task:create-column`, `task:create-label`
@@ -77,11 +87,13 @@ Comprehensive E2E test covering complete project management lifecycle:
 - Projects: `project:create-quick`, `project:update`, `project:export-file`, `project:shareProject`
 
 **Run Command**:
+
 ```bash
 npx playwright test tests/e2e/project-management-journey.e2e.test.ts
 ```
 
 **Key Features Validated**:
+
 - ✅ Permission Engine (RBAC) integration
 - ✅ Team hierarchy and membership
 - ✅ Task board workflows (Kanban/Scrum)
@@ -100,6 +112,7 @@ npx playwright test tests/e2e/project-management-journey.e2e.test.ts
 #### Test Suites Added
 
 **1. Approval Workflow Journey** (20+ tests)
+
 - File: `tests/e2e/approval-workflow-journey.e2e.test.ts`
 - Duration: ~30-45 seconds
 - Coverage: Sequential, Parallel, Any-One approval workflows
@@ -107,6 +120,7 @@ npx playwright test tests/e2e/project-management-journey.e2e.test.ts
 - IPC Handlers: 8+ approval workflow handlers
 
 **2. Error Scenarios** (30+ tests)
+
 - File: `tests/e2e/error-scenarios.e2e.test.ts`
 - Duration: ~20-30 seconds
 - Coverage: Invalid inputs, resource not found, permission denied, constraint violations
@@ -114,6 +128,7 @@ npx playwright test tests/e2e/project-management-journey.e2e.test.ts
 - Validates: Error handling, validation, graceful degradation
 
 **3. Performance & Stress Tests** (15+ tests)
+
 - File: `tests/e2e/performance-stress.e2e.test.ts`
 - Duration: ~90-120 seconds
 - Coverage: Bulk operations (100+ tasks, 50+ members), concurrent operations
@@ -123,16 +138,19 @@ npx playwright test tests/e2e/project-management-journey.e2e.test.ts
 #### Test Infrastructure
 
 **Test Runners**:
+
 - `run-pm-journey-test.sh/.bat` - Single journey test runner
 - `run-all-pm-tests.sh/.bat` - Complete suite runner (all 4 suites)
 
 **Documentation**:
+
 - `PROJECT_MANAGEMENT_JOURNEY_TEST.md` - Journey test guide (276 lines)
 - `PM_JOURNEY_TEST_SUMMARY.md` - Implementation summary (431 lines)
 - `PM_JOURNEY_QUICK_REF.md` - Quick reference (159 lines)
 - `COMPREHENSIVE_TEST_SUITE.md` - Complete suite documentation (500+ lines)
 
 **Total Test Metrics**:
+
 - Test Suites: 4
 - Individual Tests: ~98+
 - IPC Handlers Tested: 100+
@@ -142,6 +160,7 @@ npx playwright test tests/e2e/project-management-journey.e2e.test.ts
 - Documentation: ~2,500 lines
 
 **Run All Tests**:
+
 ```bash
 # Linux/macOS
 ./tests/e2e/run-all-pm-tests.sh
@@ -151,6 +170,7 @@ tests\e2e\run-all-pm-tests.bat
 ```
 
 **Coverage Summary**:
+
 - Permission System: ✅ 100% (28 handlers)
 - Task Management: ✅ 95%+ (49 handlers)
 - Team Management: ✅ 100% (8 handlers)
@@ -158,6 +178,7 @@ tests\e2e\run-all-pm-tests.bat
 - Project Management: ✅ 90%+ (10+ handlers)
 
 **Performance Benchmarks**:
+
 - Bulk task creation (100 tasks): < 60s
 - Task query (100+ tasks): < 5s
 - Large team management (50 members): < 40s

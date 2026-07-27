@@ -835,6 +835,243 @@ describe.runIf(LIVE && SUPPORTED)(
     );
 
     it.runIf(process.platform === "linux")(
+      "runs an attested static Plugin native ELF and rejects dynamic or scripted entries",
+      () => {
+        const nonce = `${process.pid}-${Date.now()}`;
+        const workspace = fs.mkdtempSync(
+          path.join(os.tmpdir(), "cc-linux-bwrap-native-live-"),
+        );
+        const pluginRoot = pluginVersionDir("local", "strict-native", "1.0.0", {
+          cwd: workspace,
+        });
+        const binDirectory = path.join(pluginRoot, "bin");
+        const staticEntry = path.join(binDirectory, "strict-native");
+        const dynamicEntry = path.join(binDirectory, "dynamic-native");
+        const scriptEntry = path.join(binDirectory, "script-native");
+        const allowedPath = path.join(pluginRoot, "allowed.txt");
+        const secretPath = path.join(
+          os.homedir(),
+          `.cc-linux-native-secret-${nonce}`,
+        );
+        const hostMarker = path.join(
+          os.homedir(),
+          `.cc-linux-native-host-marker-${nonce}`,
+        );
+        const scriptMarker = path.join(
+          os.homedir(),
+          `.cc-linux-native-script-marker-${nonce}`,
+        );
+        const sandboxPluginMarker = "/opt/chainless/plugin/plugin-marker.txt";
+        const sandboxTmpPath = `/tmp/.cc-linux-native-tmp-${nonce}`;
+        const childFixture = fileURLToPath(
+          new URL(
+            "../fixtures/process-broker-linux-bwrap-live-child.mjs",
+            import.meta.url,
+          ),
+        );
+        const nativeSource = fileURLToPath(
+          new URL(
+            "../fixtures/process-broker-linux-bwrap-native-live.c",
+            import.meta.url,
+          ),
+        );
+        const runPluginCommand = (command) =>
+          nativeSpawnSync(
+            process.execPath,
+            [childFixture, "plugin-command", workspace, command],
+            {
+              encoding: "utf8",
+              timeout: 60_000,
+              windowsHide: true,
+              env: {
+                ...process.env,
+                CC_SANDBOX_STRICT: "1",
+                LD_LIBRARY_PATH: "/host/sensitive/library-path",
+                CC_TEST_SENSITIVE_ENV: "must-not-cross-boundary",
+              },
+            },
+          );
+        const commandArgs = [
+          "allowed.txt",
+          secretPath,
+          sandboxPluginMarker,
+          hostMarker,
+          sandboxTmpPath,
+        ];
+
+        try {
+          fs.mkdirSync(binDirectory, { recursive: true });
+          fs.writeFileSync(allowedPath, "allowed-native-data", "utf8");
+          fs.writeFileSync(secretPath, "host-only-secret", { mode: 0o600 });
+          fs.writeFileSync(
+            path.join(pluginRoot, "plugin.json"),
+            JSON.stringify({
+              name: "strict-native",
+              version: "1.0.0",
+              permissions: { process: true },
+              sandboxPolicy: {
+                requiredBoundaries: ["filesystem", "network"],
+              },
+              bin: {
+                "strict-native": "bin/strict-native",
+                "dynamic-native": "bin/dynamic-native",
+                "script-native": "bin/script-native",
+              },
+            }),
+            "utf8",
+          );
+
+          const staticBuild = nativeSpawnSync(
+            "/usr/bin/cc",
+            [
+              "-static",
+              "-no-pie",
+              "-O2",
+              "-Wall",
+              "-Wextra",
+              "-o",
+              staticEntry,
+              nativeSource,
+            ],
+            { encoding: "utf8", timeout: 60_000 },
+          );
+          expect(
+            staticBuild.error,
+            `${staticBuild.stdout}\n${staticBuild.stderr}`,
+          ).toBeUndefined();
+          expect(staticBuild.status, staticBuild.stderr).toBe(0);
+
+          const dynamicBuild = nativeSpawnSync(
+            "/usr/bin/cc",
+            ["-no-pie", "-O2", "-o", dynamicEntry, nativeSource],
+            { encoding: "utf8", timeout: 60_000 },
+          );
+          expect(
+            dynamicBuild.error,
+            `${dynamicBuild.stdout}\n${dynamicBuild.stderr}`,
+          ).toBeUndefined();
+          expect(dynamicBuild.status, dynamicBuild.stderr).toBe(0);
+          fs.writeFileSync(
+            scriptEntry,
+            `#!/bin/sh\nprintf launched > ${quotePosix(scriptMarker)}\n`,
+            { mode: 0o700 },
+          );
+
+          const positive = runPluginCommand(
+            ["strict-native", ...commandArgs].join(" "),
+          );
+          const positiveContext = JSON.stringify({
+            status: positive.status,
+            signal: positive.signal,
+            error: positive.error?.message,
+            stdout: positive.stdout,
+            stderr: positive.stderr,
+          });
+          expect(positive.error, positiveContext).toBeUndefined();
+          expect(positive.status, positiveContext).toBe(0);
+          const envelope = JSON.parse(positive.stdout);
+          expect(envelope.result).toMatchObject({
+            plugin_bin: {
+              plugin: "strict-native",
+              runtime: "native",
+              identity_attested: true,
+              launch_identity_reattested: true,
+              direct_argv: true,
+            },
+          });
+          expect(JSON.parse(envelope.result.stdout)).toMatchObject({
+            allowedReadable: true,
+            allowed: "allowed-native-data",
+            cwd: "/opt/chainless/plugin",
+            chainlessSandboxed: true,
+            sensitiveEnv: false,
+            ldLibraryPath: false,
+            secretReadable: false,
+            hostRootReadable: false,
+            pluginWritable: false,
+            hostWritable: false,
+            tmpWritable: true,
+            networkErrno: 1,
+          });
+          expect(envelope.audit).toMatchObject({
+            permissionDecision: "allow",
+            sandboxed: true,
+            sandboxState: "ready",
+            sandboxBackend: "linux-bwrap",
+            sandboxEnforcement: "linux-bwrap",
+            sandboxPolicyAttested: true,
+            sandboxGuarantees: [
+              SANDBOX_BOUNDARIES.FILESYSTEM,
+              SANDBOX_BOUNDARIES.NETWORK,
+            ],
+            sandboxRuntimeProbe: {
+              kind: "linux-bwrap-plugin-native-static-elf-policy-v1",
+              attempted: true,
+              runnable: true,
+              reason: null,
+              probeRuntime: "node",
+              targetRuntime: "native-static-elf",
+              contentSnapshot: false,
+              handleAtomic: false,
+            },
+          });
+          expect(envelope.audit.sandboxPolicyDigest).toMatch(/^[a-f0-9]{64}$/);
+
+          for (const [alias, reason] of [
+            ["dynamic-native", "native_entry_interpreter_unsupported"],
+            ["script-native", "native_entry_not_elf"],
+          ]) {
+            const negative = runPluginCommand(
+              [alias, ...commandArgs].join(" "),
+            );
+            const negativeContext = JSON.stringify({
+              alias,
+              status: negative.status,
+              signal: negative.signal,
+              error: negative.error?.message,
+              stdout: negative.stdout,
+              stderr: negative.stderr,
+            });
+            expect(negative.error, negativeContext).toBeUndefined();
+            expect(negative.status, negativeContext).toBe(0);
+            const rejected = JSON.parse(negative.stdout);
+            expect(rejected.result.error).toContain(
+              "required sandbox boundaries are unavailable",
+            );
+            expect(rejected.audit).toMatchObject({
+              permissionDecision: "deny",
+              sandboxed: false,
+              sandboxState: "denied",
+              sandboxBackend: null,
+              sandboxCandidateBackend: "linux-bwrap",
+              sandboxPolicyAttested: false,
+              sandboxRuntimeProbe: {
+                attempted: false,
+                runnable: false,
+                reason,
+              },
+            });
+          }
+
+          expect(fs.readFileSync(secretPath, "utf8")).toBe("host-only-secret");
+          expect(
+            fs.existsSync(path.join(pluginRoot, "plugin-marker.txt")),
+          ).toBe(false);
+          expect(fs.existsSync(hostMarker)).toBe(false);
+          expect(fs.existsSync(scriptMarker)).toBe(false);
+          expect(fs.existsSync(sandboxTmpPath)).toBe(false);
+        } finally {
+          fs.rmSync(workspace, { recursive: true, force: true });
+          fs.rmSync(secretPath, { force: true });
+          fs.rmSync(hostMarker, { force: true });
+          fs.rmSync(scriptMarker, { force: true });
+          fs.rmSync(sandboxTmpPath, { force: true });
+        }
+      },
+      150_000,
+    );
+
+    it.runIf(process.platform === "linux")(
       "rejects a strong Linux boundary without the private contract before the target starts",
       () => {
         const nonce = `${process.pid}-${Date.now()}`;

@@ -27,7 +27,7 @@ import { isWithin } from "./manifest.js";
 const _capabilityDenied = new Set();
 const _sandboxPolicyPins = new Map();
 const _issuedPluginBinInvocations = new WeakMap();
-const _issuedPluginNodeSandboxContracts = new WeakMap();
+const _issuedPluginSandboxContracts = new WeakMap();
 const PLUGIN_BIN_MAX_BYTES = 64 * 1024 * 1024;
 const PLUGIN_NODE_RUNTIME_MAX_BYTES = 256 * 1024 * 1024;
 const ATTESTATION_HASH_CHUNK_BYTES = 1024 * 1024;
@@ -347,7 +347,9 @@ function attestWindowsPathHandle(
       throw new Error(`${label} path handle is not a regular file`);
     }
     if (before.size < 0n || before.size > BigInt(maxBytes)) {
-      throw new Error(`${label} path handle exceeds the attestation size limit`);
+      throw new Error(
+        `${label} path handle exceeds the attestation size limit`,
+      );
     }
     const beforeIdentity = preciseOpenFileIdentity(before);
     if (!samePreciseFileObject(expectedIdentity, beforeIdentity)) {
@@ -958,34 +960,42 @@ export function reattestPluginBinInvocation(invocation) {
 
 /**
  * Issue the private Linux strong-sandbox contract for one resolver-produced
- * policy-bearing Plugin Node invocation. Object identity is the capability:
- * callers cannot mint a usable contract by copying these public fields.
+ * policy-bearing Plugin Node or native invocation. Object identity is the
+ * capability: callers cannot mint a usable contract by copying public fields.
  */
-export function createPluginNodeSandboxExecutionContract(invocation) {
+export function createPluginSandboxExecutionContract(invocation) {
   const issuedResolution =
     invocation && typeof invocation === "object"
       ? _issuedPluginBinInvocations.get(invocation)
       : null;
+  const runtime = invocation?.runtime;
+  const runtimeLabel = runtime === "native" ? "native" : "Node";
+  const errorPrefix =
+    runtime === "native" ? "ERR_PLUGIN_NATIVE" : "ERR_PLUGIN_NODE";
   if (!invocation || typeof invocation !== "object" || !issuedResolution) {
     throw pluginBinError(
-      "ERR_PLUGIN_NODE_SANDBOX_CONTRACT_UNTRUSTED",
-      "plugin Node sandbox execution contract requires a resolver-issued invocation",
+      `${errorPrefix}_SANDBOX_CONTRACT_UNTRUSTED`,
+      `plugin ${runtimeLabel} sandbox execution contract requires a resolver-issued invocation`,
     );
   }
   // A resolver-issued invocation is itself a one-shot capability. Consume it
   // before any further work so failed or successful issuance cannot be replayed
   // after trust, capability, or manifest state changes.
   _issuedPluginBinInvocations.delete(invocation);
+  const directNode =
+    runtime === "node" &&
+    invocation.command === process.execPath &&
+    invocation.args?.[0] === invocation.binPath;
+  const directNative =
+    runtime === "native" && invocation.command === invocation.binPath;
   if (
-    invocation.runtime !== "node" ||
-    invocation.command !== process.execPath ||
+    (!directNode && !directNative) ||
     invocation.shell !== false ||
-    !invocation.sandboxPolicy?.requiredBoundaries?.length ||
-    invocation.args?.[0] !== invocation.binPath
+    !invocation.sandboxPolicy?.requiredBoundaries?.length
   ) {
     throw pluginBinError(
-      "ERR_PLUGIN_NODE_SANDBOX_CONTRACT_UNSUPPORTED",
-      "plugin Node sandbox execution contract requires one direct policy-bearing Node bin",
+      `${errorPrefix}_SANDBOX_CONTRACT_UNSUPPORTED`,
+      `plugin ${runtimeLabel} sandbox execution contract requires one direct policy-bearing bin`,
     );
   }
 
@@ -1047,8 +1057,8 @@ export function createPluginNodeSandboxExecutionContract(invocation) {
         )
       ) {
         throw pluginBinError(
-          "ERR_PLUGIN_NODE_SANDBOX_CONTRACT_STALE",
-          "plugin Node sandbox execution contract provenance changed after resolution",
+          `${errorPrefix}_SANDBOX_CONTRACT_STALE`,
+          `plugin ${runtimeLabel} sandbox execution contract provenance changed after resolution`,
         );
       }
     } finally {
@@ -1072,11 +1082,17 @@ export function createPluginNodeSandboxExecutionContract(invocation) {
     ) {
       throw new Error("plugin bin target is outside its canonical plugin root");
     }
-    const runtimeIdentity = attestPluginNodeRuntime(invocation.command);
+    // The trusted Node runtime is both the Node launch target and the
+    // capability-probe runtime for a native launch. Keeping the probe runtime
+    // in the contract prevents a plugin from nominating a host executable.
+    const runtimeIdentity = attestPluginNodeRuntime(process.execPath);
     const rootIdentity = attestPluginRootIdentity(pluginRoot);
     const contract = Object.freeze({
       contractVersion: 1,
-      kind: "strict-plugin-node-bin",
+      kind:
+        runtime === "native"
+          ? "strict-plugin-native-static-elf-bin"
+          : "strict-plugin-node-bin",
       pluginRoot,
       workingDirectory: pluginRoot,
       runtimePath: runtimeIdentity.realPath,
@@ -1084,11 +1100,12 @@ export function createPluginNodeSandboxExecutionContract(invocation) {
       entryIdentity: invocation.executableIdentity,
       runtimeIdentity,
     });
-    _issuedPluginNodeSandboxContracts.set(
+    _issuedPluginSandboxContracts.set(
       contract,
       Object.freeze({
         origin: "plugin:bin",
-        command: runtimeIdentity.realPath,
+        command:
+          runtime === "native" ? invocation.command : runtimeIdentity.realPath,
         args: invocation.args,
         cwd: pluginRoot,
         pluginId: invocation.pluginId,
@@ -1103,19 +1120,32 @@ export function createPluginNodeSandboxExecutionContract(invocation) {
   } catch (error) {
     if (error?.pluginBinFailClosed) throw error;
     throw pluginBinError(
-      "ERR_PLUGIN_NODE_SANDBOX_CONTRACT_UNATTESTED",
-      `plugin Node sandbox execution contract could not be created: ${error.message}`,
+      `${errorPrefix}_SANDBOX_CONTRACT_UNATTESTED`,
+      `plugin ${runtimeLabel} sandbox execution contract could not be created: ${error.message}`,
     );
   }
+}
+
+/**
+ * Backward-compatible Node-only issuer retained for existing callers.
+ */
+export function createPluginNodeSandboxExecutionContract(invocation) {
+  if (invocation?.runtime !== "node") {
+    throw pluginBinError(
+      "ERR_PLUGIN_NODE_SANDBOX_CONTRACT_UNSUPPORTED",
+      "plugin Node sandbox execution contract requires one direct policy-bearing Node bin",
+    );
+  }
+  return createPluginSandboxExecutionContract(invocation);
 }
 
 /**
  * Validate that a contract is the exact object issued above and is still
  * attached to the launch provenance for which it was issued.
  */
-function issuedPluginNodeSandboxContractMatches(contract, provenance = {}) {
+function issuedPluginSandboxContractMatches(contract, provenance = {}) {
   if (!contract || typeof contract !== "object") return false;
-  const issued = _issuedPluginNodeSandboxContracts.get(contract);
+  const issued = _issuedPluginSandboxContracts.get(contract);
   if (!issued) return false;
   const args = Array.isArray(provenance.args) ? provenance.args : [];
   const requiredBoundaries = Array.isArray(provenance.requiredBoundaries)
@@ -1142,7 +1172,14 @@ export function verifyIssuedPluginNodeSandboxExecutionContract(
   contract,
   provenance = {},
 ) {
-  return issuedPluginNodeSandboxContractMatches(contract, provenance);
+  return issuedPluginSandboxContractMatches(contract, provenance);
+}
+
+export function verifyIssuedPluginSandboxExecutionContract(
+  contract,
+  provenance = {},
+) {
+  return issuedPluginSandboxContractMatches(contract, provenance);
 }
 
 /**
@@ -1153,10 +1190,20 @@ export function consumeIssuedPluginNodeSandboxExecutionContract(
   contract,
   provenance = {},
 ) {
-  if (!issuedPluginNodeSandboxContractMatches(contract, provenance)) {
+  if (!issuedPluginSandboxContractMatches(contract, provenance)) {
     return false;
   }
-  return _issuedPluginNodeSandboxContracts.delete(contract);
+  return _issuedPluginSandboxContracts.delete(contract);
+}
+
+export function consumeIssuedPluginSandboxExecutionContract(
+  contract,
+  provenance = {},
+) {
+  if (!issuedPluginSandboxContractMatches(contract, provenance)) {
+    return false;
+  }
+  return _issuedPluginSandboxContracts.delete(contract);
 }
 
 /**

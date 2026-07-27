@@ -132,6 +132,49 @@ function createWindowsAdapterHarness({
   };
 }
 
+function createLinuxStaticElf64({
+  elfClass = 2,
+  dataEncoding = 1,
+  elfType = 2,
+  machine = 62,
+  extraProgramType = null,
+  programHeaderOffset = 64,
+} = {}) {
+  const programHeaderCount = extraProgramType === null ? 1 : 2;
+  const bytes = 64 + programHeaderCount * 56 + 16;
+  const image = Buffer.alloc(bytes);
+  image.set([0x7f, 0x45, 0x4c, 0x46], 0);
+  image[4] = elfClass;
+  image[5] = dataEncoding;
+  image[6] = 1;
+  image.writeUInt16LE(elfType, 16);
+  image.writeUInt16LE(machine, 18);
+  image.writeUInt32LE(1, 20);
+  image.writeBigUInt64LE(0x400040n, 24);
+  image.writeBigUInt64LE(BigInt(programHeaderOffset), 32);
+  image.writeUInt16LE(64, 52);
+  image.writeUInt16LE(56, 54);
+  image.writeUInt16LE(programHeaderCount, 56);
+
+  if (programHeaderOffset + 56 <= image.length) {
+    image.writeUInt32LE(1, programHeaderOffset);
+    image.writeUInt32LE(0x5, programHeaderOffset + 4);
+    image.writeBigUInt64LE(0n, programHeaderOffset + 8);
+    image.writeBigUInt64LE(0x400000n, programHeaderOffset + 16);
+    image.writeBigUInt64LE(0x400000n, programHeaderOffset + 24);
+    image.writeBigUInt64LE(BigInt(image.length), programHeaderOffset + 32);
+    image.writeBigUInt64LE(BigInt(image.length), programHeaderOffset + 40);
+    image.writeBigUInt64LE(0x1000n, programHeaderOffset + 48);
+  }
+  if (
+    extraProgramType !== null &&
+    programHeaderOffset + 2 * 56 <= image.length
+  ) {
+    image.writeUInt32LE(extraProgramType, programHeaderOffset + 56);
+  }
+  return image;
+}
+
 function createLinuxStrongHarness({
   bwrapStatus = 0,
   bwrapStdout = "chainless-linux-bwrap-plugin-node-v1",
@@ -142,7 +185,11 @@ function createLinuxStrongHarness({
   ].join("\n"),
   includeBwrap = true,
   tamperSeccompFilter = false,
+  entryRuntime = "node",
+  nativeEntry = createLinuxStaticElf64(),
 } = {}) {
+  const nativeStatic = entryRuntime === "native-static-elf";
+  const entryPath = nativeStatic ? "/plugin/bin/tool" : "/plugin/bin/tool.js";
   const directories = new Set([
     "/plugin",
     "/plugin/bin",
@@ -150,7 +197,12 @@ function createLinuxStrongHarness({
     "/tmp",
   ]);
   const files = new Map([
-    ["/plugin/bin/tool.js", Buffer.from("require('../lib/value.cjs');\n")],
+    [
+      entryPath,
+      nativeStatic
+        ? Buffer.from(nativeEntry)
+        : Buffer.from("require('../lib/value.cjs');\n"),
+    ],
     ["/plugin/lib/value.cjs", Buffer.from("module.exports = 42;\n")],
     ["/runtime/node", Buffer.from("attested-node-runtime")],
     ["/usr/bin/bwrap", Buffer.from("bubblewrap")],
@@ -170,6 +222,7 @@ function createLinuxStrongHarness({
   const anonymousFiles = new Set();
   const fdOffsets = new Map();
   const mountIds = new Map();
+  const lddInspectionSources = [];
   let nextIno = 700;
   let nextFd = 40;
   let nextTempDirectory = 1;
@@ -204,7 +257,7 @@ function createLinuxStrongHarness({
       nlink: 1,
       mode: isDirectory
         ? 0o040755
-        : filePath === "/plugin/bin/tool.js"
+        : filePath === entryPath && !nativeStatic
           ? 0o100644
           : 0o100755,
       uid: 0,
@@ -390,6 +443,11 @@ function createLinuxStrongHarness({
   };
   const spawnSync = vi.fn((command, args, options) => {
     if (command === "/usr/bin/ldd") {
+      const inspectionChildFd = Number(
+        String(args?.[0] || "").match(/^\/proc\/self\/fd\/(\d+)$/)?.[1],
+      );
+      const inspectionParentFd = options?.stdio?.[inspectionChildFd];
+      lddInspectionSources.push(openFiles.get(inspectionParentFd) || null);
       return {
         status: 0,
         stdout: lddStdout,
@@ -447,7 +505,9 @@ function createLinuxStrongHarness({
   };
   const contract = Object.freeze({
     contractVersion: 1,
-    kind: "strict-plugin-node-bin",
+    kind: nativeStatic
+      ? "strict-plugin-native-static-elf-bin"
+      : "strict-plugin-node-bin",
     pluginRoot: "/plugin",
     workingDirectory: "/plugin",
     runtimePath: "/runtime/node",
@@ -459,22 +519,60 @@ function createLinuxStrongHarness({
       }),
       attestation: "realpath-directory-file-id",
     }),
-    entryIdentity: identityFor("/plugin/bin/tool.js"),
+    entryIdentity: identityFor(entryPath),
     runtimeIdentity: identityFor("/runtime/node"),
   });
   return {
     contract,
     detachedContents,
     directories,
+    entryPath,
     files,
     fsRuntime,
     identities,
     fdOffsets,
+    lddInspectionSources,
     mountIds,
     openFiles,
     spawnSync,
     statFor,
   };
+}
+
+function applyLinuxStrongNativeHarness(harness, args = ["--label", "ready"]) {
+  const requiredBoundaries = [
+    SANDBOX_BOUNDARIES.FILESYSTEM,
+    SANDBOX_BOUNDARIES.NETWORK,
+  ];
+  return applySandbox(
+    harness.entryPath,
+    args,
+    {
+      cwd: "/plugin",
+      shell: false,
+      env: {
+        PATH: "/host/path",
+        LD_LIBRARY_PATH: "/host/plugin-native-libs",
+      },
+    },
+    {
+      profile: "strict",
+      requiredBoundaries,
+    },
+    {
+      platform: "linux",
+      arch: "x64",
+      fs: harness.fsRuntime,
+      homedir: () => "/home/tester",
+      spawnSync: harness.spawnSync,
+    },
+    {
+      profile: "strict",
+      requiredBoundaries,
+      sync: true,
+      executionContract: harness.contract,
+    },
+  );
 }
 
 function appliedPlan(command, args, options, overrides = {}) {
@@ -818,6 +916,145 @@ describe("platform sandbox adapter contract", () => {
     plan.cleanup();
     expect(harness.openFiles.size).toBe(0);
   });
+
+  it("builds an attested bwrap plan for one direct static ELF native bin", () => {
+    const harness = createLinuxStrongHarness({
+      entryRuntime: "native-static-elf",
+    });
+    const plan = applyLinuxStrongNativeHarness(harness);
+
+    expect(harness.contract.kind).toBe("strict-plugin-native-static-elf-bin");
+    expect(plan).toMatchObject({
+      applied: true,
+      backend: "linux-bwrap",
+      enforcement: "linux-bwrap",
+      policyAttested: true,
+      reason: null,
+      guarantees: [SANDBOX_BOUNDARIES.FILESYSTEM, SANDBOX_BOUNDARIES.NETWORK],
+      runtimeProbe: {
+        kind: "linux-bwrap-plugin-native-static-elf-policy-v1",
+        attempted: true,
+        runnable: true,
+        reason: null,
+        probeRuntime: "node",
+        targetRuntime: "native-static-elf",
+        contentSnapshot: false,
+        handleAtomic: false,
+      },
+    });
+    expect(plan.args).toEqual(
+      expect.arrayContaining([
+        "--ro-bind-fd",
+        expect.any(String),
+        "/opt/chainless/plugin/bin/tool",
+      ]),
+    );
+    expect(plan.args.slice(-4)).toEqual([
+      "--",
+      "/opt/chainless/plugin/bin/tool",
+      "--label",
+      "ready",
+    ]);
+    expect(plan.args.join("\0")).not.toContain("LD_LIBRARY_PATH");
+    expect(harness.lddInspectionSources).toEqual(["/runtime/node"]);
+    const policyProbeCall = harness.spawnSync.mock.calls.find(
+      ([command, probeArgs]) =>
+        command === "/usr/bin/bwrap" && probeArgs?.[0] !== "--help",
+    );
+    const probeSeparator = policyProbeCall[1].lastIndexOf("--");
+    expect(
+      policyProbeCall[1].slice(probeSeparator + 1, probeSeparator + 3),
+    ).toEqual(["/opt/chainless/runtime/node", "-e"]);
+    expect(
+      policyProbeCall[1]
+        .slice(probeSeparator + 1)
+        .includes("/opt/chainless/plugin/bin/tool"),
+    ).toBe(false);
+    expect(harness.openFiles.size).toBeGreaterThan(0);
+
+    plan.cleanup();
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it.each([
+    [
+      "PT_INTERP",
+      createLinuxStaticElf64({ extraProgramType: 3 }),
+      "native_entry_interpreter_unsupported",
+    ],
+    [
+      "PT_DYNAMIC",
+      createLinuxStaticElf64({ extraProgramType: 2 }),
+      "native_entry_dynamic_elf_unsupported",
+    ],
+    [
+      "ET_DYN",
+      createLinuxStaticElf64({ elfType: 3 }),
+      "native_entry_not_static_et_exec",
+    ],
+    [
+      "ELF32",
+      createLinuxStaticElf64({ elfClass: 1 }),
+      "native_entry_not_elf64",
+    ],
+    [
+      "big-endian ELF",
+      createLinuxStaticElf64({ dataEncoding: 2 }),
+      "native_entry_not_little_endian",
+    ],
+    [
+      "foreign architecture",
+      createLinuxStaticElf64({ machine: 183 }),
+      "native_entry_architecture_mismatch",
+    ],
+    [
+      "out-of-bounds program headers",
+      createLinuxStaticElf64({ programHeaderOffset: 4096 }),
+      "native_entry_program_headers_out_of_bounds",
+    ],
+    [
+      "executable script",
+      Buffer.from("#!/bin/sh\nexit 0\n".padEnd(128, "#")),
+      "native_entry_not_elf",
+    ],
+  ])(
+    "rejects a native %s before the bwrap policy probe or target spawn",
+    (_label, nativeEntry, expectedReason) => {
+      const harness = createLinuxStrongHarness({
+        entryRuntime: "native-static-elf",
+        nativeEntry,
+      });
+      const plan = applyLinuxStrongNativeHarness(harness);
+
+      expect(plan).toMatchObject({
+        applied: false,
+        backend: null,
+        candidateBackend: "linux-bwrap",
+        policyAttested: false,
+        reason: "linux_bwrap_execution_contract_invalid",
+        guarantees: [],
+        runtimeProbe: {
+          attempted: false,
+          runnable: false,
+          reason: expectedReason,
+        },
+      });
+      expect(harness.lddInspectionSources).toEqual([]);
+      expect(harness.spawnSync).not.toHaveBeenCalled();
+      expect(
+        harness.spawnSync.mock.calls.filter(
+          ([command, probeArgs]) =>
+            command === "/usr/bin/bwrap" && probeArgs?.[0] !== "--help",
+        ),
+      ).toHaveLength(0);
+      expect(
+        harness.spawnSync.mock.calls.some(([, spawnArgs]) =>
+          spawnArgs?.includes("/opt/chainless/plugin/bin/tool"),
+        ),
+      ).toBe(false);
+      expect(harness.openFiles.size).toBe(0);
+    },
+  );
 
   it.each([
     ["x64", 0xc000003e, 41, 53, 0xbfffffff],

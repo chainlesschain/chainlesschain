@@ -38,7 +38,7 @@ import {
   postSpawnSandbox as _postSpawnSandbox,
   SANDBOX_BOUNDARIES,
 } from "./platform-sandbox.js";
-import { consumeIssuedPluginNodeSandboxExecutionContract } from "../plugin-runtime/bin.js";
+import { consumeIssuedPluginSandboxExecutionContract } from "../plugin-runtime/bin.js";
 import { credentialAgent } from "./credential-agent.js";
 
 const SUPPORTED_SANDBOX_BOUNDARIES = new Set(Object.values(SANDBOX_BOUNDARIES));
@@ -255,8 +255,9 @@ class ProcessExecutionBroker extends EventEmitter {
 
   /**
    * Normalize the private execution contract produced by agent-core for one
-   * direct, already-attested strict Plugin Node bin. Plugin manifests cannot
-   * provide this top-level option; they can only add required boundaries.
+   * direct, already-attested strict Plugin Node or static-native bin. Plugin
+   * manifests cannot provide this top-level option; they can only add
+   * required boundaries.
    */
   _normalizeSandboxExecutionContract(raw, options, requiredBoundaries, launch) {
     if (raw === undefined) return null;
@@ -271,7 +272,7 @@ class ProcessExecutionBroker extends EventEmitter {
       );
     };
     if (
-      !consumeIssuedPluginNodeSandboxExecutionContract(raw, {
+      !consumeIssuedPluginSandboxExecutionContract(raw, {
         origin: options.origin,
         command: launch?.command,
         args: launch?.args,
@@ -309,7 +310,13 @@ class ProcessExecutionBroker extends EventEmitter {
         `sandboxExecutionContract contains unsupported field: ${unsupportedKey}`,
       );
     }
-    if (raw.contractVersion !== 1 || raw.kind !== "strict-plugin-node-bin") {
+    if (
+      raw.contractVersion !== 1 ||
+      ![
+        "strict-plugin-node-bin",
+        "strict-plugin-native-static-elf-bin",
+      ].includes(raw.kind)
+    ) {
       return invalid("unsupported sandboxExecutionContract kind or version");
     }
     if (
@@ -390,7 +397,7 @@ class ProcessExecutionBroker extends EventEmitter {
 
     return Object.freeze({
       contractVersion: 1,
-      kind: "strict-plugin-node-bin",
+      kind: raw.kind,
       pluginRoot: raw.pluginRoot,
       workingDirectory: raw.workingDirectory,
       runtimePath: raw.runtimePath,

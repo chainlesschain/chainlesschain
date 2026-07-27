@@ -1189,10 +1189,7 @@ function agentFileToolPathRequests(name, args = {}, workspaceRoots = []) {
     case "notebook_edit":
       return one("path", "write");
     case "move_file":
-      return [
-        ...one("path", "write"),
-        ...one("target_path", "write"),
-      ];
+      return [...one("path", "write"), ...one("target_path", "write")];
     case "list_dir":
       return [
         {
@@ -1234,10 +1231,7 @@ function agentFileToolPathRequests(name, args = {}, workspaceRoots = []) {
 }
 
 function guardAgentFileToolPaths(name, args, context, cwd) {
-  const workspaceRoots = workspaceRootsFor(
-    cwd,
-    context.additionalDirectories,
-  );
+  const workspaceRoots = workspaceRootsFor(cwd, context.additionalDirectories);
   const requests = agentFileToolPathRequests(name, args || {}, workspaceRoots);
   for (const request of requests) {
     const verdict = resolveSandboxPolicyPath(request.path, {
@@ -3491,8 +3485,7 @@ async function executeToolInner(
           const observedPolicy = pluginBin.collectPluginBinSandboxPolicy({
             cwd: policyCwd,
           });
-          for (const boundary of
-            observedPolicy?.requiredBoundaries || []) {
+          for (const boundary of observedPolicy?.requiredBoundaries || []) {
             pluginPolicyBoundaries.add(boundary);
           }
         }
@@ -3517,22 +3510,18 @@ async function executeToolInner(
             },
             { cwd },
           );
-          if (
-            pluginBinInvocation.runtime === "node" &&
-            process.platform === "linux"
-          ) {
+          if (process.platform === "linux") {
             try {
               pluginBinSandboxExecutionContract =
-                pluginBin.createPluginNodeSandboxExecutionContract(
+                pluginBin.createPluginSandboxExecutionContract(
                   pluginBinInvocation,
                 );
             } catch (error) {
               if (error?.pluginBinFailClosed) throw error;
               const contractError = new Error(
-                `plugin Node sandbox execution contract could not be created: ${error.message}`,
+                `plugin sandbox execution contract could not be created: ${error.message}`,
               );
-              contractError.code =
-                "ERR_PLUGIN_NODE_SANDBOX_CONTRACT_UNATTESTED";
+              contractError.code = "ERR_PLUGIN_SANDBOX_CONTRACT_UNATTESTED";
               contractError.pluginBinFailClosed = true;
               throw contractError;
             }
@@ -3569,8 +3558,7 @@ async function executeToolInner(
               pluginId: pluginBinInvocation.pluginId,
               pluginVersion: pluginBinInvocation.pluginVersion,
               pluginSource: pluginBinInvocation.pluginSource,
-              pluginExecutableIdentity:
-                pluginBinInvocation.executableIdentity,
+              pluginExecutableIdentity: pluginBinInvocation.executableIdentity,
             }
           : {}),
         ...(pluginBinSandboxPolicy
@@ -3686,8 +3674,10 @@ async function executeToolInner(
             reattestPluginBinInvocation(pluginBinInvocation);
             pluginBinResult.plugin_bin.launch_identity_reattested = true;
             child = broker.spawn(
-              pluginBinSandboxExecutionContract?.runtimePath ||
-                pluginBinInvocation.command,
+              pluginBinSandboxExecutionContract?.kind ===
+                "strict-plugin-node-bin"
+                ? pluginBinSandboxExecutionContract.runtimePath
+                : pluginBinInvocation.command,
               pluginBinInvocation.args,
               {
                 ...brokerOpts,
@@ -3904,8 +3894,9 @@ async function executeToolInner(
           reattestPluginBinInvocation(pluginBinInvocation);
           pluginBinResult.plugin_bin.launch_identity_reattested = true;
           const res = broker.spawnSync(
-            pluginBinSandboxExecutionContract?.runtimePath ||
-              pluginBinInvocation.command,
+            pluginBinSandboxExecutionContract?.kind === "strict-plugin-node-bin"
+              ? pluginBinSandboxExecutionContract.runtimePath
+              : pluginBinInvocation.command,
             pluginBinInvocation.args,
             {
               ...brokerExecOpts,

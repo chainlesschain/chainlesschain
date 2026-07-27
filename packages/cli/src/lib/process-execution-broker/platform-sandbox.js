@@ -4,9 +4,10 @@
  * Platform enforcement currently available:
  * - macOS: Seatbelt sandbox-exec profiles
  * - Linux: prlimit resource-limit wrapper, plus a narrow bubblewrap backend
- *   for an attested direct strict Plugin Node bin. Shells, native binaries,
- *   broader working directories, host-writable paths, inherited descriptors,
- *   and network egress remain fail-closed.
+ *   for an attested direct strict Plugin Node bin or static ELF native bin.
+ *   Shells, dynamically linked binaries, broader working directories,
+ *   host-writable paths, inherited descriptors, and network egress remain
+ *   fail-closed.
  * - Windows: Win32 Job Object + restricted-token wrapper, with an attested
  *   zero-capability AppContainer for explicit filesystem/network boundaries
  *
@@ -71,6 +72,14 @@ const LINUX_BWRAP_MAX_PLUGIN_ENTRIES = 512;
 const LINUX_BWRAP_FIRST_MOUNT_FD = 3;
 const LINUX_ATTESTED_FILE_MAX_BYTES = 256 * 1024 * 1024;
 const LINUX_ATTESTATION_HASH_CHUNK_BYTES = 1024 * 1024;
+const LINUX_ELF64_HEADER_BYTES = 64;
+const LINUX_ELF64_PROGRAM_HEADER_BYTES = 56;
+const LINUX_ELF_MAX_PROGRAM_HEADERS = 128;
+const LINUX_ELF_MACHINES = Object.freeze({
+  x64: 62,
+  arm64: 183,
+  riscv64: 243,
+});
 // Linux asm-generic: __O_TMPFILE (0x400000) | O_DIRECTORY (0x010000).
 // x64, arm64, and riscv64 use this value; unsupported seccomp architectures
 // already fail closed before the anonymous filter is created.
@@ -1682,7 +1691,7 @@ function linuxStdioWithPinnedMounts(
   ];
 }
 
-function validateLinuxPluginNodeContract(
+function validateLinuxPluginContract(
   command,
   args,
   spawnOpts,
@@ -1690,10 +1699,13 @@ function validateLinuxPluginNodeContract(
   runtime,
   sync,
 ) {
+  const nodeContract = contract?.kind === "strict-plugin-node-bin";
+  const nativeContract =
+    contract?.kind === "strict-plugin-native-static-elf-bin";
   if (
     !contract ||
     contract.contractVersion !== 1 ||
-    contract.kind !== "strict-plugin-node-bin"
+    (!nodeContract && !nativeContract)
   ) {
     return { ok: false, reason: "execution_contract_missing" };
   }
@@ -1709,19 +1721,29 @@ function validateLinuxPluginNodeContract(
   ) {
     return { ok: false, reason: "unsupported_launch_options" };
   }
+  const invalidArgs =
+    !Array.isArray(args) ||
+    args.some((arg) => typeof arg !== "string" || arg.includes("\0"));
+  const invalidNodeLaunch =
+    nodeContract &&
+    (!Array.isArray(args) ||
+      command !== contract.runtimePath ||
+      command !== contract.runtimeIdentity?.realPath ||
+      args.length < 1 ||
+      args[0] !== contract.entryIdentity?.realPath);
+  const invalidNativeLaunch =
+    nativeContract && command !== contract.entryIdentity?.realPath;
   if (
     typeof command !== "string" ||
     !path.posix.isAbsolute(command) ||
-    command !== contract.runtimePath ||
-    command !== contract.runtimeIdentity?.realPath ||
-    !Array.isArray(args) ||
-    args.length < 1 ||
-    args.some((arg) => typeof arg !== "string" || arg.includes("\0")) ||
-    args[0] !== contract.entryIdentity?.realPath
+    invalidArgs ||
+    invalidNodeLaunch ||
+    invalidNativeLaunch
   ) {
     return { ok: false, reason: "launch_identity_mismatch" };
   }
   if (
+    nodeContract &&
     ![".js", ".cjs", ".mjs"].includes(
       path.posix.extname(contract.entryIdentity.realPath).toLowerCase(),
     )
@@ -1787,12 +1809,28 @@ function validateLinuxPluginNodeContract(
   }
   if (
     !linuxDirectoryIdentityMatches(runtime, contract.rootIdentity) ||
-    !linuxIdentityMatches(runtime, contract.entryIdentity) ||
+    !linuxIdentityMatches(runtime, contract.entryIdentity, {
+      executable: nativeContract,
+    }) ||
     !linuxIdentityMatches(runtime, contract.runtimeIdentity, {
       executable: true,
     })
   ) {
     return { ok: false, reason: "execution_identity_changed" };
+  }
+  let entryFormat = null;
+  if (nativeContract) {
+    try {
+      entryFormat = inspectLinuxStaticNativePath(
+        runtime,
+        contract.entryIdentity,
+      );
+    } catch (error) {
+      return {
+        ok: false,
+        reason: error.message || "native_entry_unattested",
+      };
+    }
   }
   if (
     !validateLinuxPluginTree(runtime, contract.pluginRoot) ||
@@ -1800,7 +1838,12 @@ function validateLinuxPluginNodeContract(
   ) {
     return { ok: false, reason: "plugin_tree_unattested" };
   }
-  return { ok: true, contract };
+  return {
+    ok: true,
+    contract,
+    entryRuntime: nativeContract ? "native-static-elf" : "node",
+    entryFormat,
+  };
 }
 
 function linuxStatMatches(left, right) {
@@ -1810,6 +1853,210 @@ function linuxStatMatches(left, right) {
     Number(left.size) === Number(right.size) &&
     Number(left.mtimeMs) === Number(right.mtimeMs)
   );
+}
+
+function linuxOpenStatMatches(left, right) {
+  const timestamp = (stat, nanosecondsKey, millisecondsKey) =>
+    stat[nanosecondsKey] !== undefined
+      ? String(stat[nanosecondsKey])
+      : String(Math.trunc(Number(stat[millisecondsKey] || 0) * 1_000_000));
+  return (
+    linuxStatMatches(left, right) &&
+    String(left.mode) === String(right.mode) &&
+    String(left.nlink) === String(right.nlink) &&
+    timestamp(left, "ctimeNs", "ctimeMs") ===
+      timestamp(right, "ctimeNs", "ctimeMs") &&
+    timestamp(left, "mtimeNs", "mtimeMs") ===
+      timestamp(right, "mtimeNs", "mtimeMs")
+  );
+}
+
+function readLinuxFdExactly(runtime, fd, bytes, position) {
+  const result = Buffer.allocUnsafe(bytes);
+  let offset = 0;
+  while (offset < bytes) {
+    const read = runtime.fs.readSync(
+      fd,
+      result,
+      offset,
+      bytes - offset,
+      position + offset,
+    );
+    if (read <= 0) throw new Error("elf_file_ended_early");
+    offset += read;
+  }
+  return result;
+}
+
+function hashLinuxOpenFile(runtime, fd, bytes) {
+  const digest = crypto.createHash("sha256");
+  const chunk = Buffer.allocUnsafe(
+    Math.max(1, Math.min(LINUX_ATTESTATION_HASH_CHUNK_BYTES, bytes)),
+  );
+  let offset = 0;
+  while (offset < bytes) {
+    const read = runtime.fs.readSync(
+      fd,
+      chunk,
+      0,
+      Math.min(chunk.length, bytes - offset),
+      offset,
+    );
+    if (read <= 0) throw new Error("elf_file_ended_early");
+    digest.update(chunk.subarray(0, read));
+    offset += read;
+  }
+  return digest.digest("hex");
+}
+
+/**
+ * Classify one already-pinned plugin entry without invoking it or any host
+ * inspection utility. The initial native slice accepts only conventional
+ * fully static ELF64 ET_EXEC images for the current architecture.
+ */
+function inspectLinuxStaticNativeElf(runtime, fd, identity) {
+  const expectedMachine = LINUX_ELF_MACHINES[runtime.arch];
+  if (!expectedMachine) {
+    throw new Error(`unsupported_elf_architecture:${String(runtime.arch)}`);
+  }
+  const before = runtime.fs.fstatSync(fd);
+  if (
+    !before.isFile() ||
+    Number(before.nlink) !== 1 ||
+    (Number(before.mode) & 0o111) === 0 ||
+    (Number(before.mode) & 0o6000) !== 0 ||
+    String(before.dev) !== String(identity?.fileId?.dev) ||
+    String(before.ino) !== String(identity?.fileId?.ino) ||
+    Number(before.size) !== Number(identity?.bytes) ||
+    Number(before.mtimeMs) !== Number(identity?.mtimeMs) ||
+    Number(before.size) < LINUX_ELF64_HEADER_BYTES
+  ) {
+    throw new Error("native_entry_identity_changed");
+  }
+
+  const header = readLinuxFdExactly(runtime, fd, LINUX_ELF64_HEADER_BYTES, 0);
+  if (
+    header[0] !== 0x7f ||
+    header[1] !== 0x45 ||
+    header[2] !== 0x4c ||
+    header[3] !== 0x46
+  ) {
+    throw new Error("native_entry_not_elf");
+  }
+  if (header[4] !== 2) throw new Error("native_entry_not_elf64");
+  if (header[5] !== 1) throw new Error("native_entry_not_little_endian");
+  if (header[6] !== 1 || header.readUInt32LE(20) !== 1) {
+    throw new Error("native_entry_invalid_elf_version");
+  }
+  if (header.readUInt16LE(16) !== 2) {
+    throw new Error("native_entry_not_static_et_exec");
+  }
+  if (header.readUInt16LE(18) !== expectedMachine) {
+    throw new Error("native_entry_architecture_mismatch");
+  }
+  if (header.readUInt16LE(52) !== LINUX_ELF64_HEADER_BYTES) {
+    throw new Error("native_entry_invalid_elf_header");
+  }
+  const programHeaderBytes = header.readUInt16LE(54);
+  const programHeaderCount = header.readUInt16LE(56);
+  if (
+    programHeaderBytes !== LINUX_ELF64_PROGRAM_HEADER_BYTES ||
+    programHeaderCount < 1 ||
+    programHeaderCount > LINUX_ELF_MAX_PROGRAM_HEADERS ||
+    programHeaderCount === 0xffff
+  ) {
+    throw new Error("native_entry_invalid_program_headers");
+  }
+  const programHeaderOffset = header.readBigUInt64LE(32);
+  const tableBytes = BigInt(programHeaderBytes) * BigInt(programHeaderCount);
+  const fileBytes = BigInt(before.size);
+  if (
+    programHeaderOffset > fileBytes ||
+    tableBytes > fileBytes - programHeaderOffset ||
+    programHeaderOffset > BigInt(Number.MAX_SAFE_INTEGER)
+  ) {
+    throw new Error("native_entry_program_headers_out_of_bounds");
+  }
+
+  const entryAddress = header.readBigUInt64LE(24);
+  let executableLoad = false;
+  let entryInExecutableLoad = false;
+  for (let index = 0; index < programHeaderCount; index += 1) {
+    const offset =
+      Number(programHeaderOffset) + index * LINUX_ELF64_PROGRAM_HEADER_BYTES;
+    const program = readLinuxFdExactly(
+      runtime,
+      fd,
+      LINUX_ELF64_PROGRAM_HEADER_BYTES,
+      offset,
+    );
+    const type = program.readUInt32LE(0);
+    const flags = program.readUInt32LE(4);
+    const fileOffset = program.readBigUInt64LE(8);
+    const virtualAddress = program.readBigUInt64LE(16);
+    const fileSize = program.readBigUInt64LE(32);
+    const memorySize = program.readBigUInt64LE(40);
+    if (
+      fileOffset > fileBytes ||
+      fileSize > fileBytes - fileOffset ||
+      fileSize > memorySize
+    ) {
+      throw new Error("native_entry_segment_out_of_bounds");
+    }
+    if (type === 2) throw new Error("native_entry_dynamic_elf_unsupported");
+    if (type === 3) throw new Error("native_entry_interpreter_unsupported");
+    if (type === 0x6474e551 && (flags & 0x1) !== 0) {
+      throw new Error("native_entry_executable_stack_unsupported");
+    }
+    if (type === 1 && (flags & 0x1) !== 0) {
+      if ((flags & 0x2) !== 0) {
+        throw new Error("native_entry_writable_executable_segment");
+      }
+      executableLoad = true;
+      if (
+        entryAddress >= virtualAddress &&
+        entryAddress - virtualAddress < memorySize
+      ) {
+        entryInExecutableLoad = true;
+      }
+    }
+  }
+  if (!executableLoad || !entryInExecutableLoad) {
+    throw new Error("native_entry_has_no_executable_entry_segment");
+  }
+
+  const sha256 = hashLinuxOpenFile(runtime, fd, Number(before.size));
+  const after = runtime.fs.fstatSync(fd);
+  if (!linuxOpenStatMatches(before, after) || sha256 !== identity.sha256) {
+    throw new Error("native_entry_changed_during_elf_attestation");
+  }
+  return Object.freeze({
+    format: "elf64-static-et-exec",
+    architecture: runtime.arch,
+    machine: expectedMachine,
+    programHeaders: programHeaderCount,
+  });
+}
+
+function inspectLinuxStaticNativePath(runtime, identity) {
+  let fd;
+  try {
+    const constants = runtime.fs.constants || fs.constants;
+    const flags =
+      Number(constants.O_RDONLY) |
+      Number(constants.O_NOFOLLOW || 0) |
+      Number(constants.O_NONBLOCK || 0);
+    fd = runtime.fs.openSync(identity.realPath, flags);
+    return inspectLinuxStaticNativeElf(runtime, fd, identity);
+  } finally {
+    if (fd !== undefined) {
+      try {
+        runtime.fs.closeSync(fd);
+      } catch {
+        // best effort
+      }
+    }
+  }
 }
 
 function linuxFdMountId(runtime, fd) {
@@ -2534,7 +2781,7 @@ export function applyLinuxSandbox(
   );
 
   if (requiresStrongLinuxBoundary) {
-    const validation = validateLinuxPluginNodeContract(
+    const validation = validateLinuxPluginContract(
       command,
       args,
       spawnOpts,
@@ -2615,6 +2862,8 @@ export function applyLinuxSandbox(
 
     let pinnedMounts = [];
     let pluginTree;
+    let entryFormat = null;
+    let entryMount;
     try {
       pluginTree = pinLinuxPluginTree(
         runtime,
@@ -2625,7 +2874,7 @@ export function applyLinuxSandbox(
         ...pinnedRuntimeMounts,
         ...pluginTree.mounts,
       ]);
-      const entryMount = pinnedMounts.find(
+      entryMount = pinnedMounts.find(
         (mount) => mount.source === validation.contract.entryIdentity.realPath,
       );
       if (
@@ -2638,6 +2887,18 @@ export function applyLinuxSandbox(
         entryMount.mtimeMs !== Number(validation.contract.entryIdentity.mtimeMs)
       ) {
         throw new Error("plugin_entry_pin_mismatch");
+      }
+      if (validation.entryRuntime === "native-static-elf") {
+        entryFormat = inspectLinuxStaticNativeElf(
+          runtime,
+          entryMount.fd,
+          validation.contract.entryIdentity,
+        );
+        if (
+          JSON.stringify(entryFormat) !== JSON.stringify(validation.entryFormat)
+        ) {
+          throw new Error("native_entry_format_changed_before_pin");
+        }
       }
     } catch (error) {
       if (pinnedMounts.length > 0) {
@@ -2709,11 +2970,10 @@ export function applyLinuxSandbox(
       "/opt/chainless/plugin",
       entryRelative,
     );
-    const targetArgs = [
-      "/opt/chainless/runtime/node",
-      sandboxEntry,
-      ...args.slice(1),
-    ];
+    const targetArgs =
+      validation.entryRuntime === "native-static-elf"
+        ? [sandboxEntry, ...args]
+        : ["/opt/chainless/runtime/node", sandboxEntry, ...args.slice(1)];
     const policyDigest = crypto
       .createHash("sha256")
       .update(
@@ -2726,6 +2986,8 @@ export function applyLinuxSandbox(
             root: validation.contract.rootIdentity,
             entry: validation.contract.entryIdentity,
             runtime: validation.contract.runtimeIdentity,
+            entryRuntime: validation.entryRuntime,
+            entryFormat,
           },
           mounts: pinnedMounts.map((mount) => ({
             destination: mount.destination,
@@ -2739,15 +3001,24 @@ export function applyLinuxSandbox(
             sha256: seccompFilter.sha256,
           },
           policyArgs,
-          target: targetArgs.slice(0, 2),
+          target:
+            validation.entryRuntime === "native-static-elf"
+              ? targetArgs.slice(0, 1)
+              : targetArgs.slice(0, 2),
         }),
       )
       .digest("hex");
-    const runtimeProbe = probeLinuxBubblewrapPolicy(
-      runtime,
-      policyArgs,
-      probeDescriptors,
-    );
+    const runtimeProbe = Object.freeze({
+      ...probeLinuxBubblewrapPolicy(runtime, policyArgs, probeDescriptors),
+      kind:
+        validation.entryRuntime === "native-static-elf"
+          ? "linux-bwrap-plugin-native-static-elf-policy-v1"
+          : "linux-bwrap-plugin-node-policy-v1",
+      probeRuntime: "node",
+      targetRuntime: validation.entryRuntime,
+      contentSnapshot: false,
+      handleAtomic: false,
+    });
     closeLinuxPinnedMounts(runtime, [probeSeccompFilter]);
     if (!runtimeProbe.runnable) {
       closeLinuxPinnedMounts(runtime, pinnedDescriptors);
@@ -2762,7 +3033,7 @@ export function applyLinuxSandbox(
         guarantees: [],
       });
     }
-    const finalValidation = validateLinuxPluginNodeContract(
+    const finalValidation = validateLinuxPluginContract(
       command,
       args,
       spawnOpts,
@@ -2786,6 +3057,40 @@ export function applyLinuxSandbox(
         reason: "linux_bwrap_execution_contract_changed",
         guarantees: [],
       });
+    }
+    if (validation.entryRuntime === "native-static-elf") {
+      try {
+        const finalEntryFormat = inspectLinuxStaticNativeElf(
+          runtime,
+          entryMount.fd,
+          validation.contract.entryIdentity,
+        );
+        if (JSON.stringify(finalEntryFormat) !== JSON.stringify(entryFormat)) {
+          throw new Error("native_entry_format_changed");
+        }
+        if (
+          JSON.stringify(finalValidation.entryFormat) !==
+          JSON.stringify(entryFormat)
+        ) {
+          throw new Error("native_entry_path_format_changed");
+        }
+      } catch (error) {
+        closeLinuxPinnedMounts(runtime, pinnedDescriptors);
+        return createSandboxPlan({
+          ...base,
+          backend: null,
+          candidateBackend: LINUX_BWRAP_BACKEND,
+          policyAttested: false,
+          policyDigest,
+          runtimeProbe: linuxBubblewrapProbe(
+            true,
+            false,
+            `post_probe_${error.message || "native_entry_changed"}`,
+          ),
+          reason: "linux_bwrap_execution_contract_changed",
+          guarantees: [],
+        });
+      }
     }
     const options = {
       ...spawnOpts,

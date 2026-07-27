@@ -4,7 +4,7 @@ import {
   SANDBOX_BOUNDARIES,
 } from "../../src/lib/process-execution-broker/index.js";
 
-const [mode, value] = process.argv.slice(2);
+const [mode, value, extra] = process.argv.slice(2);
 
 function writeResult(result) {
   process.stdout.write(JSON.stringify(result));
@@ -16,6 +16,16 @@ if (mode === "positive") {
   const result = await executeTool(
     "run_shell",
     { command: "strict-live config.json" },
+    { cwd: value },
+  );
+  writeResult({
+    result,
+    audit: executionBroker.getAuditLog(1)[0] || null,
+  });
+} else if (mode === "plugin-command") {
+  const result = await executeTool(
+    "run_shell",
+    { command: extra },
     { cwd: value },
   );
   writeResult({

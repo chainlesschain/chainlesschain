@@ -8,12 +8,15 @@ import {
   collectPluginBinSandboxPolicy,
   applyPluginBinPath,
   _resetPluginBinSandboxPolicyPins,
+  consumeIssuedPluginSandboxExecutionContract,
   consumeIssuedPluginNodeSandboxExecutionContract,
+  createPluginSandboxExecutionContract,
   createPluginNodeSandboxExecutionContract,
   parsePluginBinCommand,
   reattestPluginBinInvocation,
   resolvePluginBinCommand,
   resolvePluginBinInvocation,
+  verifyIssuedPluginSandboxExecutionContract,
   verifyIssuedPluginNodeSandboxExecutionContract,
 } from "../../src/lib/plugin-runtime/bin.js";
 import { pluginVersionDir } from "../../src/lib/plugin-runtime/scopes.js";
@@ -44,6 +47,41 @@ function installBinPlugin(scope, name, binFiles, { manifest = {} } = {}) {
     });
   }
   return path.join(dir, "bin");
+}
+
+function syntheticNativeElf(marker = 0x41) {
+  const bytes = Buffer.alloc(64);
+  bytes.set([0x7f, 0x45, 0x4c, 0x46, 2, 1, 1, 0]);
+  bytes.writeUInt16LE(2, 16);
+  bytes.writeUInt16LE(
+    {
+      arm64: 183,
+      riscv64: 243,
+      x64: 62,
+    }[process.arch] || 62,
+    18,
+  );
+  bytes.writeUInt32LE(1, 20);
+  bytes.writeUInt16LE(64, 52);
+  bytes[bytes.length - 1] = marker;
+  return bytes;
+}
+
+function installPolicyNativePlugin(scope = "local", name = "toolkit") {
+  const binDir = installBinPlugin(scope, name, ["native-tool"], {
+    manifest: {
+      permissions: { process: true },
+      sandboxPolicy: { requiredBoundaries: ["filesystem", "network"] },
+      bin: { native: "bin/native-tool" },
+    },
+  });
+  const target = path.join(binDir, "native-tool");
+  fs.writeFileSync(target, syntheticNativeElf(), { mode: 0o755 });
+  if (process.platform !== "win32") fs.chmodSync(target, 0o755);
+  return {
+    dir: path.dirname(binDir),
+    target: fs.realpathSync.native(target),
+  };
 }
 
 beforeEach(() => {
@@ -391,6 +429,138 @@ describe("resolvePluginBinInvocation", () => {
       }),
     );
     expect(() => createPluginNodeSandboxExecutionContract(invocation)).toThrow(
+      /resolver-issued invocation/,
+    );
+  });
+
+  it("issues a one-shot static native contract with entry launch provenance", () => {
+    const { dir, target } = installPolicyNativePlugin();
+    const invocation = resolvePluginBinInvocation("native --safe", {
+      cwd,
+      scopes: ["local"],
+    });
+
+    expect(invocation).toMatchObject({
+      command: target,
+      args: ["--safe"],
+      runtime: "native",
+      shell: false,
+      pluginId: "toolkit",
+      sandboxPolicy: {
+        requiredBoundaries: ["filesystem", "network"],
+      },
+      executableIdentity: {
+        realPath: target,
+        bytes: syntheticNativeElf().length,
+      },
+    });
+    expect(() => createPluginNodeSandboxExecutionContract(invocation)).toThrow(
+      expect.objectContaining({
+        code: "ERR_PLUGIN_NODE_SANDBOX_CONTRACT_UNSUPPORTED",
+        pluginBinFailClosed: true,
+      }),
+    );
+    expect(() =>
+      createPluginSandboxExecutionContract(Object.freeze({ ...invocation })),
+    ).toThrow(/resolver-issued invocation/);
+
+    const contract = createPluginSandboxExecutionContract(invocation);
+    const canonicalRuntime = fs.realpathSync.native(process.execPath);
+    const provenance = {
+      origin: "plugin:bin",
+      command: invocation.command,
+      args: invocation.args,
+      cwd: contract.workingDirectory,
+      pluginId: invocation.pluginId,
+      pluginVersion: invocation.pluginVersion,
+      pluginSource: invocation.pluginSource,
+      pluginExecutableIdentity: invocation.executableIdentity,
+      requiredBoundaries: invocation.sandboxPolicy.requiredBoundaries,
+      sync: true,
+    };
+    expect(contract).toMatchObject({
+      contractVersion: 1,
+      kind: "strict-plugin-native-static-elf-bin",
+      pluginRoot: fs.realpathSync.native(dir),
+      workingDirectory: fs.realpathSync.native(dir),
+      runtimePath: canonicalRuntime,
+      entryIdentity: invocation.executableIdentity,
+      runtimeIdentity: {
+        requestedPath: path.resolve(process.execPath),
+        realPath: canonicalRuntime,
+      },
+    });
+    expect(contract.runtimePath).not.toBe(invocation.command);
+    expect(
+      verifyIssuedPluginSandboxExecutionContract(contract, provenance),
+    ).toBe(true);
+    expect(
+      verifyIssuedPluginSandboxExecutionContract(contract, {
+        ...provenance,
+        command: contract.runtimePath,
+      }),
+    ).toBe(false);
+    expect(
+      verifyIssuedPluginSandboxExecutionContract(
+        Object.freeze({ ...contract }),
+        provenance,
+      ),
+    ).toBe(false);
+    expect(() => createPluginSandboxExecutionContract(invocation)).toThrow(
+      /resolver-issued invocation/,
+    );
+    expect(
+      consumeIssuedPluginSandboxExecutionContract(contract, provenance),
+    ).toBe(true);
+    expect(
+      consumeIssuedPluginSandboxExecutionContract(contract, provenance),
+    ).toBe(false);
+  }, 15_000);
+
+  it("refuses a native contract after resolver trust is revoked", () => {
+    installPolicyNativePlugin("project");
+    trustPlugin("toolkit", {
+      scope: "project",
+      version: "1.0.0",
+    });
+    const invocation = resolvePluginBinInvocation("native --safe", {
+      cwd,
+      scopes: ["project"],
+    });
+    expect(invocation).toMatchObject({
+      pluginId: "toolkit",
+      runtime: "native",
+    });
+
+    untrustPlugin("toolkit", { scope: "project" });
+
+    expect(() => createPluginSandboxExecutionContract(invocation)).toThrow(
+      expect.objectContaining({
+        code: "ERR_PLUGIN_NATIVE_SANDBOX_CONTRACT_STALE",
+        pluginBinFailClosed: true,
+      }),
+    );
+    expect(() => createPluginSandboxExecutionContract(invocation)).toThrow(
+      /resolver-issued invocation/,
+    );
+  });
+
+  it("refuses a native contract after the executable identity changes", () => {
+    const { target } = installPolicyNativePlugin();
+    const invocation = resolvePluginBinInvocation("native --safe", {
+      cwd,
+      scopes: ["local"],
+    });
+
+    fs.writeFileSync(target, syntheticNativeElf(0x42));
+
+    expect(() => createPluginSandboxExecutionContract(invocation)).toThrow(
+      expect.objectContaining({
+        code: "ERR_PLUGIN_NATIVE_SANDBOX_CONTRACT_STALE",
+        pluginBinFailClosed: true,
+      }),
+    );
+    expect(() => createPluginSandboxExecutionContract(invocation)).toThrow(
       /resolver-issued invocation/,
     );
   });

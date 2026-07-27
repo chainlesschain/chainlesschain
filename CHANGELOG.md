@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — cc CLI 0.162.182: attested native plugin sandbox closure
+
+> `chainlesschain` **0.162.181 → 0.162.182** (2026-07-27).
+> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**
+> and `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **One-shot native plugin execution contracts**: policy-bearing native plugin
+  bins must preserve the resolver-issued target, literal argv, plugin root, and
+  executable identity through the process broker. Replayed, copied, stale, or
+  asynchronous contracts fail closed before a target process is started.
+- **Linux strong boundary completion**: strict native launches accept only
+  attested static ELF executables for the current architecture, reject dynamic
+  loaders and malformed program headers, pin the plugin tree through file
+  descriptors, and enter the fixed bubblewrap filesystem/network policy
+  without exposing a mutable host path.
+- **Cross-platform identity hardening**: Windows AppContainer launches retain
+  attested target handles, while platform adapters revalidate executable and
+  plugin identities across probe, spawn, IPC, and detached launch boundaries.
+- **Release validation gate**: the exact release commit must pass `CLI CI` and
+  `CLI Strict Sandbox` on their configured Ubuntu, Windows, and macOS runners;
+  local tests are supplementary and cannot authorize publication.
+
 ### Added — cc CLI 0.162.181 + PDH 0.4.57 + Agent SDK 0.1.7: sandbox contracts and complete collection
 
 > `chainlesschain` **0.162.181** bundles
