@@ -2498,6 +2498,7 @@ describe("platform sandbox adapter contract", () => {
     ]);
     expect(helperSpawnSync.mock.calls[0][2]).toMatchObject({
       cwd: "C:\\Windows\\System32",
+      timeout: 120_000,
       env: {
         SystemRoot: "C:\\Windows",
         WINDIR: "C:\\Windows",
@@ -3042,7 +3043,7 @@ describe("platform sandbox adapter contract", () => {
       shell: false,
       windowsHide: true,
       encoding: "utf8",
-      timeout: 60_000,
+      timeout: 120_000,
     });
     const payload = decodeWindowsLaunchSpec(harness, plan);
     expect(payload).toMatchObject({
@@ -3468,6 +3469,13 @@ describe("platform sandbox adapter contract", () => {
     expect(plan).toMatchObject({
       applied: false,
       reason: "windows_appcontainer_readiness_cleanup_unverified",
+      runtimeProbe: {
+        kind: "windows-appcontainer-launch-attestation-v1",
+        attempted: true,
+        runnable: false,
+        reason:
+          "cleanup_unverified_after_probe_failed_helper_exit_125_because_cleanup_failed_helper_exit_125",
+      },
     });
     expect(deletionAttempts).toBe(1);
     expect(resetWindowsSandboxAdapterCache()).toBe(true);
@@ -3554,6 +3562,13 @@ describe("platform sandbox adapter contract", () => {
     expect(plan).toMatchObject({
       applied: false,
       reason: "windows_appcontainer_readiness_cleanup_unverified",
+      runtimeProbe: {
+        kind: "windows-appcontainer-launch-attestation-v1",
+        attempted: true,
+        runnable: false,
+        reason:
+          "cleanup_unverified_after_ready_because_cleanup_failed_helper_exit_125",
+      },
     });
     expect(deletionAttempts).toBe(1);
     expect(resetWindowsSandboxAdapterCache()).toBe(true);
@@ -3651,7 +3666,8 @@ describe("platform sandbox adapter contract", () => {
       .mockReturnValueOnce({
         status: 125,
         stdout: "",
-        stderr: "CreateAppContainerProfile failed",
+        stderr:
+          "CC_WINDOWS_SANDBOX_ERROR: CreateAppContainerProfile failed (hresult=0x800706D9)",
       })
       .mockReturnValueOnce({
         status: 0,
@@ -3695,13 +3711,17 @@ describe("platform sandbox adapter contract", () => {
         kind: "windows-appcontainer-launch-attestation-v1",
         attempted: true,
         runnable: false,
-        reason: "probe_failed",
+        reason:
+          "probe_failed_helper_exit_125_appcontainer_profile_create_0x800706d9",
       },
     });
     expect(helperSpawnSync.mock.calls[1][1]).toEqual([
       "--delete-appcontainer",
       "ChainlessChain.CliSandbox.060606060606060606060606",
     ]);
+    expect(helperSpawnSync.mock.calls[1][2]).toMatchObject({
+      timeout: 120_000,
+    });
     expect(resetWindowsSandboxAdapterCache()).toBe(true);
     expect(harness.fsRuntime.unlinkSync).toHaveBeenCalledWith(
       expect.stringMatching(/chainless-win-sandbox-[a-f0-9]+\.dll$/),

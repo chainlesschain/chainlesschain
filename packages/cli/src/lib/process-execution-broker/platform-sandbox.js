@@ -94,6 +94,10 @@ const WINDOWS_RESTRICTED_TOKEN_BACKEND = "windows-job-restricted-token";
 const WINDOWS_APPCONTAINER_BACKEND =
   "windows-appcontainer-job-restricted-token";
 const WINDOWS_ADAPTER_IDLE_TTL_MS = 60_000;
+// Every native helper operation starts a trusted System32 PowerShell host and
+// byte-loads the checked-in assembly. Hosted Windows runners can spend well
+// over ten seconds in that bootstrap before the managed operation begins.
+const WINDOWS_SANDBOX_HELPER_OPERATION_TIMEOUT_MS = 120_000;
 const WINDOWS_SANDBOX_HOST_ENV_DENYLIST = new Set([
   "APPDOMAIN_MANAGER_ASM",
   "APPDOMAIN_MANAGER_TYPE",
@@ -1042,7 +1046,7 @@ function createFreshWindowsAdapter(runtime, source, hostEnvironment) {
         shell: false,
         windowsHide: true,
         encoding: "utf8",
-        timeout: 60_000,
+        timeout: WINDOWS_SANDBOX_HELPER_OPERATION_TIMEOUT_MS,
         cwd: runtime.joinPath(runtime.windowsDir(), "System32"),
         env: hostEnvironment,
       },
@@ -1307,7 +1311,12 @@ function windowsNodeSnapshotProbeResult(result) {
     probeRuntime: "node",
     targetRuntime: "node",
   };
-  if (result?.error || result?.status !== 0) return runtimeProbe;
+  if (result?.error || result?.status !== 0) {
+    return {
+      ...runtimeProbe,
+      reason: windowsSandboxHelperFailureReason(result, "probe_failed"),
+    };
+  }
 
   try {
     const attestation = JSON.parse(String(result.stdout || "").trim());
@@ -1324,6 +1333,80 @@ function windowsNodeSnapshotProbeResult(result) {
   return { ...runtimeProbe, runnable: true, reason: null };
 }
 
+function windowsSandboxHelperFailureReason(result, fallback) {
+  if (result?.error) {
+    const errorCode = String(result.error.code || "").toLowerCase();
+    if (
+      errorCode === "etimedout" ||
+      result.error.killed === true ||
+      result.error.signal
+    ) {
+      return `${fallback}_timeout`;
+    }
+    if (/^[a-z0-9_]+$/.test(errorCode)) {
+      return `${fallback}_spawn_${errorCode}`;
+    }
+    return `${fallback}_spawn_error`;
+  }
+
+  if (result?.status === 0) return fallback;
+  const status = Number.isSafeInteger(result?.status)
+    ? result.status
+    : "unknown";
+  const stderr = String(result?.stderr || "");
+  const knownFailures = [
+    [
+      /CreateAppContainerProfile\(cleanup verification\)/i,
+      "appcontainer_cleanup_verification_create",
+    ],
+    [/CreateAppContainerProfile/i, "appcontainer_profile_create"],
+    [/DeleteAppContainerProfile/i, "appcontainer_profile_delete"],
+    [/CreateProcessAsUser\(AppContainer\)/i, "appcontainer_process_create"],
+    [/Target application contains a reparse component/i, "target_reparse"],
+    [
+      /Target working directory contains a reparse component/i,
+      "working_directory_reparse",
+    ],
+    [
+      /Target PATH directory contains a reparse component/i,
+      "path_directory_reparse",
+    ],
+    [/Target application must use a local DOS drive/i, "target_nonlocal"],
+    [
+      /Target working directory must use a local DOS drive/i,
+      "working_directory_nonlocal",
+    ],
+    [
+      /Node entry snapshot probe returned a non-zero exit code/i,
+      "node_snapshot_nonzero",
+    ],
+    [
+      /Node entry snapshot probe did not execute its verified source/i,
+      "node_snapshot_unverified",
+    ],
+    [
+      /AppContainer readiness target returned a non-zero exit code/i,
+      "appcontainer_readiness_nonzero",
+    ],
+    [
+      /AppContainer SID changed during readiness attestation/i,
+      "appcontainer_sid_changed",
+    ],
+  ];
+  const classified = knownFailures.find(([pattern]) => pattern.test(stderr));
+  const nativeCode = stderr.match(
+    /\b(?:hresult|win32)=(0x[0-9a-f]+|\d+)\b/i,
+  )?.[1];
+  return [
+    fallback,
+    `helper_exit_${status}`,
+    classified?.[1],
+    nativeCode?.toLowerCase(),
+  ]
+    .filter(Boolean)
+    .join("_");
+}
+
 function appContainerReadinessResult(
   result,
   profileName,
@@ -1336,7 +1419,13 @@ function appContainerReadinessResult(
     reason: "probe_failed",
   };
   if (result?.error || result?.status !== 0) {
-    return { runtimeProbe, readiness: null };
+    return {
+      runtimeProbe: {
+        ...runtimeProbe,
+        reason: windowsSandboxHelperFailureReason(result, "probe_failed"),
+      },
+      readiness: null,
+    };
   }
 
   let readiness;
@@ -1392,6 +1481,7 @@ function deleteWindowsAppContainerProfile(
   adapter,
   profileName,
   expectedSid = null,
+  failure = null,
 ) {
   const helperArgs = ["--delete-appcontainer", profileName];
   if (expectedSid) helperArgs.push(expectedSid);
@@ -1400,18 +1490,55 @@ function deleteWindowsAppContainerProfile(
       shell: false,
       windowsHide: true,
       encoding: "utf8",
-      timeout: 10_000,
+      timeout: WINDOWS_SANDBOX_HELPER_OPERATION_TIMEOUT_MS,
     });
-    if (result?.error || result?.status !== 0) return false;
-    const deletion = JSON.parse(String(result.stdout || "").trim());
-    return (
+    if (result?.error || result?.status !== 0) {
+      if (failure) {
+        failure.reason = windowsSandboxHelperFailureReason(
+          result,
+          "cleanup_failed",
+        );
+      }
+      return false;
+    }
+    let deletion;
+    try {
+      deletion = JSON.parse(String(result.stdout || "").trim());
+    } catch {
+      if (failure) {
+        failure.reason = "cleanup_failed_invalid_attestation";
+      }
+      return false;
+    }
+    const deleted =
       deletion?.deleted === true &&
       deletion?.absent === true &&
-      deletion?.profileName === profileName
-    );
-  } catch {
+      deletion?.profileName === profileName;
+    if (!deleted && failure) {
+      failure.reason = "cleanup_failed_invalid_attestation";
+    }
+    return deleted;
+  } catch (error) {
+    if (failure) {
+      failure.reason = windowsSandboxHelperFailureReason(
+        { error, status: null },
+        "cleanup_failed",
+      );
+    }
     return false;
   }
+}
+
+function appContainerCleanupFailureReason(readinessReason, cleanupReason) {
+  const readiness =
+    typeof readinessReason === "string" && readinessReason
+      ? readinessReason
+      : "unknown_readiness";
+  const cleanup =
+    typeof cleanupReason === "string" && cleanupReason
+      ? cleanupReason
+      : "unknown_cleanup";
+  return `cleanup_unverified_after_${readiness}_because_${cleanup}`;
 }
 
 function retryWindowsAppContainerCleanup(record) {
@@ -1896,7 +2023,7 @@ export function applyWindowsSandbox(
           shell: false,
           windowsHide: true,
           encoding: "utf8",
-          timeout: 60_000,
+          timeout: WINDOWS_SANDBOX_HELPER_OPERATION_TIMEOUT_MS,
         },
       );
     } catch (error) {
@@ -1922,7 +2049,7 @@ export function applyWindowsSandbox(
         shell: false,
         windowsHide: true,
         encoding: "utf8",
-        timeout: 60_000,
+        timeout: WINDOWS_SANDBOX_HELPER_OPERATION_TIMEOUT_MS,
       });
     } catch (error) {
       readinessResult = { error, status: null };
@@ -1934,9 +2061,12 @@ export function applyWindowsSandbox(
     );
     appContainerRuntimeProbe = readiness.runtimeProbe;
     if (!readiness.readiness) {
+      const cleanupFailure = {};
       const deleted = deleteWindowsAppContainerProfile(
         adapter,
         appContainerProfileName,
+        null,
+        cleanupFailure,
       );
       if (!deleted) {
         trackWindowsAppContainerCleanup(
@@ -1951,7 +2081,10 @@ export function applyWindowsSandbox(
       if (!deleted) {
         appContainerRuntimeProbe = {
           ...appContainerRuntimeProbe,
-          reason: "cleanup_unverified",
+          reason: appContainerCleanupFailureReason(
+            appContainerRuntimeProbe.reason,
+            cleanupFailure.reason,
+          ),
         };
         cleanupIdentity();
         return unavailablePlan(
@@ -1999,11 +2132,13 @@ export function applyWindowsSandbox(
     // pass through the same digest + file-identity attestation.
     helperInvocation = adapter.createInvocation([payload]);
   } catch (error) {
+    const cleanupFailure = {};
     const deleted = appContainer
       ? deleteWindowsAppContainerProfile(
           adapter,
           appContainer.appContainerProfileName,
           appContainer.appContainerSid,
+          cleanupFailure,
         )
       : true;
     if (!deleted) {
@@ -2022,7 +2157,14 @@ export function applyWindowsSandbox(
         "windows_appcontainer_readiness_cleanup_unverified",
         {
           runtimeProbe: appContainerRuntimeProbe
-            ? { ...appContainerRuntimeProbe, reason: "cleanup_unverified" }
+            ? {
+                ...appContainerRuntimeProbe,
+                runnable: false,
+                reason: appContainerCleanupFailureReason(
+                  appContainerRuntimeProbe.reason || "ready",
+                  cleanupFailure.reason,
+                ),
+              }
             : null,
         },
       );

@@ -63,14 +63,33 @@ function fileIdentity(filePath) {
   };
 }
 
-function waitForJsonLine(child, stream, predicate, label, timeoutMs = 15_000) {
+function waitForJsonLine(
+  child,
+  stream,
+  predicate,
+  label,
+  timeoutMs = 15_000,
+  diagnostics = () => "",
+) {
   return new Promise((resolve, reject) => {
     let pending = "";
+    let transcript = "";
     let settled = false;
+    const failureContext = () => {
+      let diagnosticText = "";
+      try {
+        diagnosticText = String(diagnostics() || "");
+      } catch (error) {
+        diagnosticText = `diagnostic callback failed: ${error?.message || error}`;
+      }
+      return `stdout=${JSON.stringify(transcript)} stderr=${JSON.stringify(
+        diagnosticText,
+      )}`;
+    };
     const timer = setTimeout(() => {
       finish(
         reject,
-        new Error(`Timed out waiting for ${label}: ${JSON.stringify(pending)}`),
+        new Error(`Timed out waiting for ${label}: ${failureContext()}`),
       );
     }, timeoutMs);
     const finish = (callback, value) => {
@@ -79,7 +98,7 @@ function waitForJsonLine(child, stream, predicate, label, timeoutMs = 15_000) {
       clearTimeout(timer);
       stream.off("data", onData);
       child.off("error", onError);
-      child.off("exit", onExit);
+      child.off("close", onClose);
       callback(value);
     };
     const inspectLine = (line) => {
@@ -97,6 +116,7 @@ function waitForJsonLine(child, stream, predicate, label, timeoutMs = 15_000) {
     };
     const onData = (chunk) => {
       pending += chunk;
+      transcript = `${transcript}${chunk}`.slice(-16 * 1024);
       const lines = pending.split(/\r?\n/);
       pending = lines.pop() || "";
       for (const line of lines) {
@@ -104,22 +124,74 @@ function waitForJsonLine(child, stream, predicate, label, timeoutMs = 15_000) {
       }
     };
     const onError = (error) => finish(reject, error);
-    const onExit = (code, signal) => {
+    const onClose = (code, signal) => {
       if (inspectLine(pending)) return;
       finish(
         reject,
         new Error(
-          `${label} process exited before its report (${code}/${signal}): ${JSON.stringify(
-            pending,
-          )}`,
+          `${label} process closed before its report (${code}/${signal}): ${failureContext()}`,
         ),
       );
     };
     stream.setEncoding("utf8");
     stream.on("data", onData);
     child.once("error", onError);
-    child.once("exit", onExit);
+    child.once("close", onClose);
   });
+}
+
+describe("live sandbox helper diagnostics", () => {
+  it("drains stdout and stderr before reporting a missing JSON event", async () => {
+    const stderrChunks = [];
+    const child = nativeSpawn(
+      process.execPath,
+      [
+        "-e",
+        [
+          'process.stdout.write(JSON.stringify({ event: "OTHER" }) + "\\n");',
+          'process.stderr.write("native helper detail\\n", () => {',
+          "  process.exit(125);",
+          "});",
+        ].join("\n"),
+      ],
+      {
+        stdio: ["ignore", "pipe", "pipe"],
+        windowsHide: true,
+      },
+    );
+    child.stderr.on("data", (chunk) => stderrChunks.push(chunk));
+
+    const failure = await waitForJsonLine(
+      child,
+      child.stdout,
+      (record) => record?.event === "EXPECTED",
+      "diagnostic fixture",
+      10_000,
+      () => Buffer.concat(stderrChunks).toString(),
+    ).then(
+      () => null,
+      (error) => error,
+    );
+
+    expect(failure).toBeInstanceOf(Error);
+    expect(failure.message).toContain("(125/null)");
+    expect(failure.message).toContain(String.raw`{\"event\":\"OTHER\"}`);
+    expect(failure.message).toContain(String.raw`native helper detail\n`);
+  });
+});
+
+async function waitForChildClose(closePromise, timeoutMs = 10_000) {
+  let timer;
+  try {
+    await Promise.race([
+      closePromise.catch(() => null),
+      new Promise((resolve) => {
+        timer = setTimeout(resolve, timeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function shutdownLoopbackServer(serverChild, stderrChunks) {
@@ -258,7 +330,7 @@ describe.runIf(LIVE && SUPPORTED)(
         scope: "sandbox-test",
         policy: "allow",
         encoding: "utf8",
-        timeout: 30_000,
+        timeout: 120_000,
         env: process.env,
       });
 
@@ -280,7 +352,7 @@ describe.runIf(LIVE && SUPPORTED)(
         sandboxProfile: "strict",
         sandboxEnforcement: expectedEnforcement[process.platform],
       });
-    }, 45_000);
+    }, 180_000);
 
     it.runIf(process.platform === "win32")(
       "enforces the attested AppContainer filesystem and network boundary and removes its profile",
@@ -480,7 +552,7 @@ describe.runIf(LIVE && SUPPORTED)(
               scope: "sandbox-test",
               policy: "allow",
               encoding: "utf8",
-              timeout: 120_000,
+              timeout: 180_000,
               env: process.env,
               sandboxPolicy: {
                 profile: "strict",
@@ -502,7 +574,19 @@ describe.runIf(LIVE && SUPPORTED)(
         }
         if (launchError) {
           if (cleanupError) launchError.loopbackCleanupError = cleanupError;
-          throw launchError;
+          throw new Error(
+            `Windows AppContainer launch failed: ${JSON.stringify({
+              message: launchError.message,
+              code: launchError.code,
+              sandboxReason: launchError.sandboxReason,
+              sandboxCandidateReason: launchError.sandboxCandidateReason,
+              sandboxRuntimeProbe: launchError.sandboxRuntimeProbe,
+              loopbackCleanupError:
+                launchError.loopbackCleanupError?.message || null,
+              audit: executionBroker.getAuditLog(1)[0] || null,
+            })}`,
+            { cause: launchError },
+          );
         }
         if (cleanupError) throw cleanupError;
 
@@ -565,7 +649,7 @@ describe.runIf(LIVE && SUPPORTED)(
         // delete-and-assert-absent operation. A failed absence proof throws
         // from spawnSync's finally block, so reaching here proves cleanup.
       },
-      180_000,
+      300_000,
     );
 
     it.runIf(process.platform === "win32")(
@@ -624,7 +708,7 @@ describe.runIf(LIVE && SUPPORTED)(
             [childFixture, "positive", workspace],
             {
               encoding: "utf8",
-              timeout: 120_000,
+              timeout: 300_000,
               windowsHide: true,
               env: {
                 ...process.env,
@@ -699,7 +783,7 @@ describe.runIf(LIVE && SUPPORTED)(
           fs.rmSync(workspace, { recursive: true, force: true });
         }
       },
-      180_000,
+      360_000,
     );
 
     it.runIf(process.platform === "win32")(
@@ -866,7 +950,7 @@ describe.runIf(LIVE && SUPPORTED)(
           });
 
           helper = nativeSpawn(plan.command, plan.args, plan.options);
-          helperExit = once(helper, "exit");
+          helperExit = once(helper, "close");
           helper.stdout.on("data", (chunk) => helperStdout.push(chunk));
           helper.stderr.on("data", (chunk) => helperStderr.push(chunk));
           const snapshotCaptured = await waitForJsonLine(
@@ -877,6 +961,7 @@ describe.runIf(LIVE && SUPPORTED)(
               record?.token === snapshotGateToken,
             "verified entry snapshot gate",
             30_000,
+            () => helperStderr.join(""),
           );
           expect(snapshotCaptured).toEqual({
             eventName: "SNAPSHOT_CAPTURED",
@@ -911,7 +996,7 @@ describe.runIf(LIVE && SUPPORTED)(
               windowsHide: true,
             },
           );
-          attackerExit = once(attacker, "exit");
+          attackerExit = once(attacker, "close");
           attacker.stdout.on("data", (chunk) => attackerStdout.push(chunk));
           attacker.stderr.on("data", (chunk) => attackerStderr.push(chunk));
           const attempting = await waitForJsonLine(
@@ -920,6 +1005,7 @@ describe.runIf(LIVE && SUPPORTED)(
             (record) => record?.state === "ATTEMPTING",
             "POSIX replacement ATTEMPTING",
             30_000,
+            () => attackerStderr.join(""),
           );
           expect(attempting).toMatchObject({
             state: "ATTEMPTING",
@@ -954,6 +1040,7 @@ describe.runIf(LIVE && SUPPORTED)(
               record?.event === "READY" && record?.version === "original",
             "original target READY",
             30_000,
+            () => helperStderr.join(""),
           );
           fs.writeFileSync(snapshotReleasePath, "release", "utf8");
 
@@ -1007,16 +1094,8 @@ describe.runIf(LIVE && SUPPORTED)(
           ) {
             helper.kill();
           }
-          if (
-            helperExit &&
-            helper &&
-            helper.exitCode === null &&
-            helper.signalCode === null
-          ) {
-            await Promise.race([
-              helperExit.catch(() => null),
-              new Promise((resolve) => setTimeout(resolve, 10_000)),
-            ]);
+          if (helperExit && helper) {
+            await waitForChildClose(helperExit);
           }
           if (
             attacker &&
@@ -1025,23 +1104,15 @@ describe.runIf(LIVE && SUPPORTED)(
           ) {
             attacker.kill();
           }
-          if (
-            attackerExit &&
-            attacker &&
-            attacker.exitCode === null &&
-            attacker.signalCode === null
-          ) {
-            await Promise.race([
-              attackerExit.catch(() => null),
-              new Promise((resolve) => setTimeout(resolve, 10_000)),
-            ]);
+          if (attackerExit && attacker) {
+            await waitForChildClose(attackerExit);
           }
           if (typeof plan?.cleanup === "function") plan.cleanup();
           fs.rmSync(snapshotReleasePath, { force: true });
           fs.rmSync(workspace, { recursive: true, force: true });
         }
       },
-      180_000,
+      300_000,
     );
 
     it.runIf(process.platform === "linux")(
