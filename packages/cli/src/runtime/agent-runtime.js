@@ -23,6 +23,7 @@ import { MCPClient, MCPServerConfig } from "../harness/mcp-client.js";
 import sharedManagedToolPolicy from "./coding-agent-managed-tool-policy.cjs";
 import { findProjectRoot, loadProjectConfig } from "../lib/project-detector.js";
 import { loadConfig } from "../lib/config-manager.js";
+import { collectWorkspacePluginBinSandboxPolicy } from "../lib/plugin-runtime/bin.js";
 
 const {
   DEFAULT_ALLOWED_MCP_SERVER_NAMES,
@@ -63,6 +64,8 @@ export class AgentRuntime {
       createSessionManager:
         deps.createSessionManager ||
         ((options) => new WSSessionManager(options)),
+      createPtyManager:
+        deps.createPtyManager || ((options) => new PtyManager(options)),
       createMcpClient: deps.createMcpClient || (() => new MCPClient()),
       createMcpServerConfig:
         deps.createMcpServerConfig || ((db) => new MCPServerConfig(db)),
@@ -530,7 +533,15 @@ export class AgentRuntime {
     // matching topics through `terminalHandlers.handlers`, falling back to
     // the original CLI dispatcher for everything else.
     const wsBroadcastRef = { current: null };
-    const ptyManager = new PtyManager();
+    const terminalPolicyCwd = path.resolve(projectRoot || process.cwd());
+    const ptyManager = this.deps.createPtyManager({
+      policyCwd: terminalPolicyCwd,
+      resolveSandboxPolicy: ({ workspaceCwd, executionCwd }) =>
+        collectWorkspacePluginBinSandboxPolicy({
+          workspaceCwd,
+          executionCwd,
+        }),
+    });
     const terminal = createTerminalHandlers({
       ptyManager,
       broadcast: (frame) => wsBroadcastRef.current?.(frame),

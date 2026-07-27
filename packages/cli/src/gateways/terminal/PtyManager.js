@@ -1,9 +1,9 @@
 /**
  * PtyManager — ESM mirror of `desktop-app-vue/src/main/terminal/PtyManager.js`.
  *
- * Keep both copies in sync. The desktop copy targets Electron's CJS main
- * process; this one targets `cc ui` (Node ESM) so `cc ui` users also get
- * remote-terminal support via the same WS protocol.
+ * Keep their protocol and session behavior in sync. The desktop copy targets
+ * Electron's CJS main process; this one targets `cc ui` (Node ESM), whose host
+ * injects its own trusted workspace-policy resolver.
  *
  * Design notes — see docs/design/Android_Remote_Terminal_Plan_A.md §4:
  *   - node-pty loaded lazily so the module loads without the native
@@ -44,6 +44,24 @@ function resolveShellCmd(shell) {
   return shell;
 }
 
+function validatePinnedSandboxPolicy(policy) {
+  if (policy == null) return null;
+  if (
+    typeof policy !== "object" ||
+    Array.isArray(policy) ||
+    typeof policy.then === "function" ||
+    !Array.isArray(policy.requiredBoundaries) ||
+    policy.requiredBoundaries.length === 0 ||
+    !Object.isFrozen(policy) ||
+    !Object.isFrozen(policy.requiredBoundaries)
+  ) {
+    const error = new TypeError("invalid_pty_sandbox_policy");
+    error.code = "ERR_PTY_SANDBOX_POLICY_INVALID";
+    throw error;
+  }
+  return policy;
+}
+
 class PtySession {
   constructor({ id, shell, cwd, cols, rows, proc, createdAt, ringBuffer }) {
     this.id = id;
@@ -65,6 +83,16 @@ export class PtyManager extends EventEmitter {
   constructor(opts = {}) {
     super();
     this.config = { ...DEFAULT_CONFIG, ...(opts.config || {}) };
+    const resolveSandboxPolicy =
+      opts.resolveSandboxPolicy ?? opts._deps?.resolveSandboxPolicy ?? null;
+    if (
+      resolveSandboxPolicy !== null &&
+      typeof resolveSandboxPolicy !== "function"
+    ) {
+      throw new TypeError("resolveSandboxPolicy must be a function or null");
+    }
+    this._policyCwd = opts.policyCwd || process.cwd();
+    this._resolveSandboxPolicy = resolveSandboxPolicy;
     this._deps = {
       loadNodePty: opts._deps?.loadNodePty || (() => require("node-pty")),
       spawnPty: opts._deps?.spawnPty || null,
@@ -92,6 +120,19 @@ export class PtyManager extends EventEmitter {
       throw new Error("shell_not_allowed");
     }
 
+    const cwd = req.cwd || this.config.defaultCwd || process.cwd();
+    // A remote cwd may discover a stricter policy, but it must never replace
+    // the fixed workspace root supplied by the host. Resolve and validate the
+    // pinned policy before loading node-pty or allocating a native terminal.
+    const sandboxPolicy = this._resolveSandboxPolicy
+      ? validatePinnedSandboxPolicy(
+          this._resolveSandboxPolicy({
+            workspaceCwd: this._policyCwd,
+            executionCwd: cwd,
+          }),
+        )
+      : null;
+
     let pty;
     try {
       pty = this._deps.loadNodePty();
@@ -101,7 +142,6 @@ export class PtyManager extends EventEmitter {
       throw err;
     }
 
-    const cwd = req.cwd || this.config.defaultCwd || process.cwd();
     const cols = Number.isFinite(req.cols) ? req.cols : 80;
     const rows = Number.isFinite(req.rows) ? req.rows : 24;
     const cmd = resolveShellCmd(shell);
@@ -123,6 +163,7 @@ export class PtyManager extends EventEmitter {
       origin: "terminal:pty",
       policy: "allow",
       scope: "terminal",
+      ...(sandboxPolicy ? { sandboxPolicy } : {}),
     });
 
     const sessionId = randomUUID();

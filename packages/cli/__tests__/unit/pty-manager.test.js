@@ -7,7 +7,7 @@
  * reaper removes it, and must not block new sessions), plus the shell whitelist
  * and stopped-manager guards.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { PtyManager } from "../../src/gateways/terminal/PtyManager.js";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
 
@@ -121,7 +121,137 @@ describe("PtyManager env handling (remote frame input)", () => {
       policy: "allow",
       scope: "terminal",
     });
+    expect(calls[0].options).not.toHaveProperty("sandboxPolicy");
     expect(procs).toHaveLength(1);
+  });
+});
+
+describe("PtyManager plugin sandbox policy", () => {
+  it("passes the exact pinned policy from the fixed workspace resolver", () => {
+    const { loadNodePty } = makeFakeDeps();
+    const calls = [];
+    const policy = Object.freeze({
+      requiredBoundaries: Object.freeze(["filesystem", "network"]),
+    });
+    const resolveSandboxPolicy = vi.fn(() => policy);
+    const mgr = new PtyManager({
+      policyCwd: "trusted-workspace",
+      resolveSandboxPolicy,
+      _deps: {
+        loadNodePty,
+        spawnPty(pty, command, args, options) {
+          calls.push({ pty, command, args, options });
+          return pty.spawn(command, args, options);
+        },
+      },
+    });
+
+    mgr.create({ shell: "bash", cwd: "requested-worktree" });
+
+    expect(resolveSandboxPolicy).toHaveBeenCalledWith({
+      workspaceCwd: "trusted-workspace",
+      executionCwd: "requested-worktree",
+    });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].options.sandboxPolicy).toBe(policy);
+  });
+
+  it("fails closed through the real Broker before native PTY allocation", () => {
+    executionBroker.flushAuditLog();
+    const pty = { spawn: vi.fn() };
+    const loadNodePty = vi.fn(() => pty);
+    const policy = Object.freeze({
+      requiredBoundaries: Object.freeze(["filesystem"]),
+    });
+    const mgr = new PtyManager({
+      policyCwd: "trusted-workspace",
+      resolveSandboxPolicy: () => policy,
+      _deps: { loadNodePty },
+    });
+
+    let error;
+    try {
+      mgr.create({ shell: "bash", cwd: "requested-worktree" });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error).toMatchObject({
+      code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+      sandboxReason: "required_boundaries_unsatisfied",
+      requiredBoundaries: ["filesystem"],
+      missingBoundaries: ["filesystem"],
+    });
+    expect(loadNodePty).toHaveBeenCalledOnce();
+    expect(pty.spawn).not.toHaveBeenCalled();
+    expect(
+      executionBroker
+        .getAuditLog(10)
+        .findLast((entry) => entry.origin === "terminal:pty"),
+    ).toMatchObject({
+      operation: "pty.spawn",
+      sandboxRequired: ["filesystem"],
+      sandboxGuarantees: [],
+      sandboxBackend: null,
+      sandboxState: "denied",
+    });
+  });
+
+  it("propagates discovery failure before loading node-pty", () => {
+    const discoveryError = Object.assign(
+      new Error("plugin bin policy discovery failed"),
+      {
+        code: "ERR_PLUGIN_BIN_DISCOVERY_FAILED",
+        pluginBinFailClosed: true,
+      },
+    );
+    const loadNodePty = vi.fn();
+    const mgr = new PtyManager({
+      resolveSandboxPolicy: () => {
+        throw discoveryError;
+      },
+      _deps: { loadNodePty },
+    });
+
+    let error;
+    try {
+      mgr.create({ shell: "bash" });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error).toBe(discoveryError);
+    expect(loadNodePty).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["an async resolver", () => Promise.resolve(null)],
+    ["an unfrozen policy", () => ({ requiredBoundaries: ["filesystem"] })],
+    [
+      "an empty policy",
+      () =>
+        Object.freeze({
+          requiredBoundaries: Object.freeze([]),
+        }),
+    ],
+  ])("rejects %s before loading node-pty", (_label, resolver) => {
+    const loadNodePty = vi.fn();
+    const mgr = new PtyManager({
+      resolveSandboxPolicy: resolver,
+      _deps: { loadNodePty },
+    });
+
+    let error;
+    try {
+      mgr.create({ shell: "bash" });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error).toMatchObject({
+      code: "ERR_PTY_SANDBOX_POLICY_INVALID",
+    });
+    expect(loadNodePty).not.toHaveBeenCalled();
   });
 });
 

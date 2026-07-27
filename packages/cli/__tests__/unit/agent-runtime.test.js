@@ -189,6 +189,10 @@ describe("AgentRuntime MCP bootstrap", () => {
       disconnectAll: vi.fn().mockResolvedValue(undefined),
     };
     const createSessionManager = vi.fn(() => ({ kind: "ui-session-manager" }));
+    const ptyManager = Object.assign(new EventEmitter(), {
+      shutdown: vi.fn(),
+    });
+    const createPtyManager = vi.fn(() => ptyManager);
     const wsServer = Object.assign(new EventEmitter(), {
       start: vi.fn().mockResolvedValue(undefined),
       stop: vi.fn().mockResolvedValue(undefined),
@@ -223,6 +227,7 @@ describe("AgentRuntime MCP bootstrap", () => {
           ]),
         })),
         createSessionManager,
+        createPtyManager,
         createServer: vi.fn(() => wsServer),
         createWebServer: vi.fn(() => httpServer),
         findProjectRoot: vi.fn(() => null),
@@ -258,6 +263,11 @@ describe("AgentRuntime MCP bootstrap", () => {
         wsHost: "127.0.0.1",
       }),
     );
+    expect(createPtyManager).toHaveBeenCalledOnce();
+    expect(createPtyManager.mock.calls[0][0]).toMatchObject({
+      policyCwd: process.cwd(),
+      resolveSandboxPolicy: expect.any(Function),
+    });
     expect(result.uiUrl).toBe("http://127.0.0.1:18810");
   });
 });

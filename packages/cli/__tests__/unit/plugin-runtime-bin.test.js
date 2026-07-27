@@ -6,6 +6,7 @@ import {
   collectPluginBinCommands,
   collectPluginBinDirs,
   collectPluginBinSandboxPolicy,
+  collectWorkspacePluginBinSandboxPolicy,
   applyPluginBinPath,
   _resetPluginBinSandboxPolicyPins,
   consumeIssuedPluginSandboxExecutionContract,
@@ -32,8 +33,13 @@ let cwd;
 let storeFile;
 let savedStorePath;
 
-function installBinPlugin(scope, name, binFiles, { manifest = {} } = {}) {
-  const dir = pluginVersionDir(scope, name, "1.0.0", { cwd });
+function installBinPlugin(
+  scope,
+  name,
+  binFiles,
+  { manifest = {}, rootCwd = cwd } = {},
+) {
+  const dir = pluginVersionDir(scope, name, "1.0.0", { cwd: rootCwd });
   fs.mkdirSync(path.join(dir, "bin"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "plugin.json"),
@@ -252,6 +258,71 @@ describe("collectPluginBinSandboxPolicy", () => {
     expect(() =>
       collectPluginBinSandboxPolicy({ cwd, scopes: ["local"] }),
     ).toThrow(/plugin bin policy discovery failed/);
+  });
+});
+
+describe("collectWorkspacePluginBinSandboxPolicy", () => {
+  it("pins the union of the fixed workspace and requested execution cwd", () => {
+    const executionCwd = path.join(cwd, "requested-cwd");
+    fs.mkdirSync(executionCwd, { recursive: true });
+    const workspaceBinDir = installBinPlugin(
+      "local",
+      "workspace-toolkit",
+      ["workspace-tool"],
+      {
+        manifest: {
+          sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+        },
+      },
+    );
+    const executionBinDir = installBinPlugin(
+      "local",
+      "execution-toolkit",
+      ["execution-tool"],
+      {
+        rootCwd: executionCwd,
+        manifest: {
+          sandboxPolicy: { requiredBoundaries: ["network"] },
+        },
+      },
+    );
+
+    const policy = collectWorkspacePluginBinSandboxPolicy({
+      workspaceCwd: cwd,
+      executionCwd,
+      scopes: ["local"],
+    });
+
+    expect(policy).toEqual({
+      requiredBoundaries: ["filesystem", "network"],
+    });
+    expect(Object.isFrozen(policy)).toBe(true);
+    expect(Object.isFrozen(policy.requiredBoundaries)).toBe(true);
+
+    for (const [binDir, name, binName] of [
+      [workspaceBinDir, "workspace-toolkit", "workspace-tool"],
+      [executionBinDir, "execution-toolkit", "execution-tool"],
+    ]) {
+      fs.writeFileSync(
+        path.join(path.dirname(binDir), "plugin.json"),
+        JSON.stringify({
+          name,
+          version: "1.0.0",
+          bin: { [binName]: `bin/${binName}` },
+        }),
+        "utf8",
+      );
+    }
+
+    expect(
+      collectWorkspacePluginBinSandboxPolicy({
+        workspaceCwd: cwd,
+        executionCwd,
+        scopes: ["local"],
+      }),
+    ).toEqual({
+      requiredBoundaries: ["filesystem", "network"],
+    });
   });
 });
 

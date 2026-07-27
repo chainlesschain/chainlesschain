@@ -156,6 +156,33 @@ export function collectPluginBinSandboxPolicy(opts = {}) {
   );
 }
 
+/**
+ * Collect the tighten-only union for a fixed workspace and the requested
+ * execution directory, then pin the result to the fixed workspace key.
+ * Callers must not let an execution-directory override replace the workspace
+ * root: it may only discover additional boundaries.
+ */
+export function collectWorkspacePluginBinSandboxPolicy(opts = {}) {
+  const workspaceCwd = path.resolve(
+    opts.workspaceCwd || opts.cwd || process.cwd(),
+  );
+  const executionCwd = path.resolve(opts.executionCwd || workspaceCwd);
+  const required = new Set();
+  for (const policyCwd of new Set([workspaceCwd, executionCwd])) {
+    const observed = collectPluginBinSandboxPolicy({
+      cwd: policyCwd,
+      ...(opts.scopes !== undefined ? { scopes: opts.scopes } : {}),
+    });
+    for (const boundary of observed?.requiredBoundaries || []) {
+      required.add(boundary);
+    }
+  }
+  return pinPluginBinSandboxPolicy(
+    { requiredBoundaries: [...required] },
+    { cwd: workspaceCwd },
+  );
+}
+
 export function pinPluginBinSandboxPolicy(policy, opts = {}) {
   const pinKey = path.resolve(opts.cwd || process.cwd());
   const required = new Set(_sandboxPolicyPins.get(pinKey) || []);
