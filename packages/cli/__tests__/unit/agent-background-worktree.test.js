@@ -112,6 +112,10 @@ describe("cc agent --bg --worktree dispatch", () => {
     expect(launch.argv).not.toContain("--worktree");
     expect(launch.followUpArgv).not.toContain("--worktree");
     expect(launch.argv).toContain("--session");
+    expect(launch.governance).toEqual({
+      permissionMode: "default",
+      resourceBudget: { maxTurns: null, maxCostUsd: null },
+    });
     expect(process.cwd().replace(/^\/private\//, "/")).toBe(repoRoot);
 
     // Ownership was transferred: the foreground exit/finish path must not

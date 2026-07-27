@@ -338,6 +338,95 @@ public final class IdeTools {
             });
         }
 
+        // Conditional IDE-native quality context. The facade owns host API
+        // adaptation and bounding; this layer owns capability gating, workspace
+        // path protection, and the Context v2 freshness envelope.
+        if (editor.supportsTestResults()) {
+            tools.add(new BaseTool(
+                    "getTestResults",
+                    "Return a bounded snapshot of recent IDE test runs and their final "
+                            + "states using cc-ide-quality/v1. Source locations are included "
+                            + "when the host test framework provides them.",
+                    qualityLimitSchema()) {
+                @Override public Object call(Map<String, Object> args) {
+                    int limit = 5;
+                    Object raw = args == null ? null : args.get("limit");
+                    if (raw instanceof Number) {
+                        limit = Math.max(1, Math.min(
+                                20, ((Number) raw).intValue()));
+                    }
+                    Map<String, Object> res = editor.getTestResults(limit);
+                    if (res == null) {
+                        res = new LinkedHashMap<String, Object>();
+                        res.put("schema", "cc-ide-quality/v1");
+                        res.put("kind", "test-results");
+                        res.put("available", Boolean.FALSE);
+                        res.put("runs", new ArrayList<Map<String, Object>>());
+                    }
+                    return withContext(
+                            editor, res, null, "getTestResults");
+                }
+            });
+        }
+
+        if (editor.supportsCoverage()) {
+            tools.add(new BaseTool(
+                    "getCoverage",
+                    "Return the latest IDE coverage snapshot using cc-ide-quality/v1. "
+                            + "Optionally scope to one workspace file.",
+                    schemaWithOptionalPath()) {
+                @Override public Object call(Map<String, Object> args) {
+                    String path = args == null
+                            ? null : stringValue(args.get("path"));
+                    if (path != null && !path.isEmpty()
+                            && workspaceRoots != null) {
+                        IdePathGuard.Result guard =
+                                IdePathGuard.validate(path, workspaceRoots);
+                        if (!guard.ok) {
+                            throw new IllegalArgumentException(
+                                    "getCoverage: unsafe read path rejected: "
+                                            + guard.reason);
+                        }
+                        path = guard.resolved;
+                    }
+                    Map<String, Object> res = editor.getCoverage(path);
+                    if (res == null) {
+                        res = new LinkedHashMap<String, Object>();
+                        res.put("schema", "cc-ide-quality/v1");
+                        res.put("kind", "coverage");
+                        res.put("available", Boolean.FALSE);
+                        res.put("files", new ArrayList<Map<String, Object>>());
+                    }
+                    return withContext(
+                            editor, res, path, "getCoverage");
+                }
+            });
+        }
+
+        if (editor.supportsDebugState()) {
+            tools.add(new BaseTool(
+                    "getDebugState",
+                    "Return the current IDE debugger session, selected frame, and bounded "
+                            + "breakpoint locations. Launch arguments, environment variables, "
+                            + "expressions, and credential-bearing fields are omitted.",
+                    emptyObjectSchema()) {
+                @Override public Object call(Map<String, Object> args) {
+                    Map<String, Object> res = editor.getDebugState();
+                    if (res == null) {
+                        res = new LinkedHashMap<String, Object>();
+                        res.put("schema", "cc-ide-quality/v1");
+                        res.put("kind", "debug-state");
+                        res.put("available", Boolean.FALSE);
+                        res.put("session", null);
+                        res.put("breakpoints",
+                                new ArrayList<Map<String, Object>>());
+                    }
+                    return withContext(
+                            editor, res, null, "getDebugState");
+                }
+            });
+        }
+
         // Conditional: PSI-backed semantic tools (hover / definition / references /
         // rename preview / call hierarchy / symbol info / project model). Only
         // exposed when the IntelliJ glue supplies a SemanticFacade — the pure
@@ -424,6 +513,19 @@ public final class IdeTools {
         s.put("type", "object");
         s.put("properties", props);
         return s;
+    }
+
+    private static Map<String, Object> qualityLimitSchema() {
+        Map<String, Object> limit = new LinkedHashMap<>();
+        limit.put("type", "number");
+        limit.put("description",
+                "Maximum recent runs to return (default 5, maximum 20).");
+        Map<String, Object> props = new LinkedHashMap<>();
+        props.put("limit", limit);
+        Map<String, Object> schema = new LinkedHashMap<>();
+        schema.put("type", "object");
+        schema.put("properties", props);
+        return schema;
     }
 
     private static Map<String, Object> openMultiDiffSchema() {

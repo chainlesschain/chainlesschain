@@ -51,6 +51,29 @@ public final class PluginManager {
                 "--scope", scope == null || scope.isEmpty() ? "user" : scope));
     }
 
+    public static List<String> buildPluginLifecycleArgs(
+            String name, boolean enabled, String scope) {
+        return new ArrayList<String>(Arrays.asList(
+                "plugin", enabled ? "enable" : "disable", String.valueOf(name),
+                "--scope", scope == null || scope.isEmpty() ? "user" : scope,
+                "--json"));
+    }
+
+    public static List<String> buildPluginUpgradeArgs(
+            String source, String scope, String registry, String packageName) {
+        String target = registry != null && !registry.isEmpty()
+                ? packageName : source;
+        List<String> args = new ArrayList<String>(Arrays.asList(
+                "plugin", "upgrade", target == null ? "" : target,
+                "--scope", scope == null || scope.isEmpty() ? "user" : scope));
+        if (registry != null && !registry.isEmpty()) {
+            args.add("--registry");
+            args.add(registry);
+        }
+        args.add("--json");
+        return args;
+    }
+
     public static List<String> buildPluginConsentArgs(
             String name, String action, String scope) {
         List<String> args = new ArrayList<String>(Arrays.asList(
@@ -135,6 +158,10 @@ public final class PluginManager {
             p.put("scope", r.get("scope") == null ? "user" : String.valueOf(r.get("scope")));
             p.put("dir", str(r.get("dir"))); // quality board runs `plugin validate <dir>`
             p.put("ok", Boolean.TRUE.equals(r.get("ok")));
+            p.put("enabled", !Boolean.FALSE.equals(r.get("enabled")));
+            p.put("source", parsePluginSource(r.get("source")));
+            p.put("integrity", parsePluginIntegrity(r.get("integrity")));
+            p.put("policy", parsePluginPolicy(r.get("policy")));
             out.add(p);
         }
         return out;
@@ -184,10 +211,20 @@ public final class PluginManager {
 
     /** One JList row for a plugin: {@code "✔ name v1.2.3  [user]"}. */
     public static String formatPluginLine(Map<String, Object> p) {
+        Map<?, ?> integrity = map(p.get("integrity"));
+        Map<?, ?> signature = map(integrity == null ? null : integrity.get("signature"));
+        Map<?, ?> policy = map(p.get("policy"));
+        String state = Boolean.FALSE.equals(p.get("enabled")) ? "disabled" : "enabled";
+        String signed = signature != null && Boolean.TRUE.equals(signature.get("verified"))
+                ? "signed" : "unsigned";
+        String managed = policy != null && Boolean.TRUE.equals(policy.get("managed"))
+                ? (Boolean.FALSE.equals(policy.get("allowed"))
+                        ? " policy-blocked" : " managed")
+                : "";
         return (Boolean.TRUE.equals(p.get("ok")) ? "✔ " : "✖ ")
                 + p.get("name")
                 + (str(p.get("version")).isEmpty() ? "" : " v" + p.get("version"))
-                + "  [" + p.get("scope") + "]";
+                + "  [" + p.get("scope") + "] " + state + " " + signed + managed;
     }
 
     /** One JList row for an MCP server: {@code "name (http) url  [blocked: …]"}. */
@@ -233,5 +270,75 @@ public final class PluginManager {
 
     private static String str(Object o) {
         return o == null ? "" : String.valueOf(o);
+    }
+
+    private static String bounded(Object value, int max) {
+        String text = str(value);
+        return text.length() <= max ? text : text.substring(0, max);
+    }
+
+    private static Map<?, ?> map(Object value) {
+        return value instanceof Map ? (Map<?, ?>) value : null;
+    }
+
+    private static Map<String, Object> parsePluginSource(Object value) {
+        Map<?, ?> source = map(value);
+        if (source == null) return null;
+        String type = bounded(source.get("type"), 32);
+        String location = bounded(source.get("source"), 4096);
+        if (!Arrays.asList("local", "git", "registry").contains(type)
+                || location.isEmpty()) return null;
+        Map<String, Object> out = new LinkedHashMap<String, Object>();
+        out.put("type", type);
+        out.put("source", location);
+        out.put("ref", bounded(source.get("ref"), 256));
+        out.put("registry", bounded(source.get("registry"), 4096));
+        out.put("resolvedSource", bounded(source.get("resolvedSource"), 4096));
+        out.put("package", bounded(source.get("package"), 256));
+        out.put("offline", Boolean.TRUE.equals(source.get("offline")));
+        return out;
+    }
+
+    private static Map<String, Object> parsePluginIntegrity(Object value) {
+        Map<?, ?> integrity = map(value);
+        Map<?, ?> signature = map(integrity == null ? null : integrity.get("signature"));
+        Map<?, ?> sbom = map(integrity == null ? null : integrity.get("sbom"));
+        Map<String, Object> sig = new LinkedHashMap<String, Object>();
+        sig.put("present", signature != null && Boolean.TRUE.equals(signature.get("present")));
+        sig.put("verified", signature != null && Boolean.TRUE.equals(signature.get("verified")));
+        sig.put("reason", bounded(signature == null ? null : signature.get("reason"), 512));
+        sig.put("manifestSha256", bounded(
+                signature == null ? null : signature.get("manifestSha256"), 128));
+        sig.put("publicKeySha256", bounded(
+                signature == null ? null : signature.get("publicKeySha256"), 128));
+        Map<String, Object> bill = new LinkedHashMap<String, Object>();
+        bill.put("present", sbom != null && Boolean.TRUE.equals(sbom.get("present")));
+        bill.put("digest", bounded(sbom == null ? null : sbom.get("digest"), 128));
+        bill.put("fileCount", boundedNumber(
+                sbom == null ? null : sbom.get("fileCount"), 100000L));
+        bill.put("totalBytes", boundedNumber(
+                sbom == null ? null : sbom.get("totalBytes"), Long.MAX_VALUE));
+        Map<String, Object> out = new LinkedHashMap<String, Object>();
+        out.put("signature", sig);
+        out.put("sbom", bill);
+        return out;
+    }
+
+    private static Map<String, Object> parsePluginPolicy(Object value) {
+        Map<?, ?> policy = map(value);
+        Map<String, Object> out = new LinkedHashMap<String, Object>();
+        out.put("managed", policy != null && Boolean.TRUE.equals(policy.get("managed")));
+        out.put("source", bounded(policy == null ? null : policy.get("source"), 4096));
+        out.put("allowed", policy == null || !Boolean.FALSE.equals(policy.get("allowed")));
+        out.put("reason", bounded(policy == null ? null : policy.get("reason"), 1024));
+        out.put("requireSigned",
+                policy != null && Boolean.TRUE.equals(policy.get("requireSigned")));
+        return out;
+    }
+
+    private static long boundedNumber(Object value, long max) {
+        if (!(value instanceof Number)) return 0L;
+        long number = ((Number) value).longValue();
+        return Math.max(0L, Math.min(max, number));
     }
 }

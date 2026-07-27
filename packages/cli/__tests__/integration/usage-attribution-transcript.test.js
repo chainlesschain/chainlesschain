@@ -3,11 +3,11 @@
  * home dir.
  *
  *  - The REPL agentLoop wrapper persists compact tool_call events
- *    ({tool, is_error, skill?} — never args) for a session-bound run.
+ *    ({tool, is_error, skill?, plugin?} — never args) for a session-bound run.
  *  - appendTokenUsage carries the attribution frame into the transcript and
  *    extractUsage/sessionUsage read it back.
  *  - `cc session usage <id> --json` includes the attribution section;
- *    `--by tool|origin|mcp` renders the breakdown; the DEFAULT output is
+ *    `--by tool|origin|mcp|plugin` renders the breakdown; the DEFAULT output is
  *    unchanged; an invalid --by is rejected.
  *  - Mixed-generation compat: a transcript with pre-attribution events only
  *    aggregates exactly as before.
@@ -78,6 +78,12 @@ async function seedSession(id) {
   store.appendToolCallCompact(id, {
     tool: "mcp__github__search_issues",
     isError: true,
+  });
+  store.appendToolCallCompact(id, {
+    tool: "mcp__review__check",
+    isError: false,
+    plugin: "review-suite",
+    pluginVersion: "1.4.0",
   });
   store.appendTokenUsage(id, {
     provider: "anthropic",
@@ -209,7 +215,7 @@ describe("cc session usage — attribution surfaces", () => {
       role: "researcher",
     });
     // tools + MCP bucket + turn association (single turn → all tools get 175)
-    expect(payload.attribution.tools.totalCalls).toBe(3);
+    expect(payload.attribution.tools.totalCalls).toBe(4);
     expect(payload.attribution.tools.totalErrors).toBe(1);
     const skillRow = payload.attribution.tools.byTool.find(
       (t) => t.tool === "run_skill",
@@ -222,10 +228,25 @@ describe("cc session usage — attribution surfaces", () => {
         errors: 1,
         turnTokens: 175,
       }),
+      expect.objectContaining({
+        server: "review",
+        calls: 1,
+        errors: 0,
+        turnTokens: 175,
+      }),
+    ]);
+    expect(payload.attribution.tools.byPlugin).toEqual([
+      expect.objectContaining({
+        plugin: "review-suite",
+        version: "1.4.0",
+        calls: 1,
+        errors: 0,
+        turnTokens: 175,
+      }),
     ]);
   });
 
-  it("--by tool / --by origin / --by mcp render breakdowns; global mode works too", async () => {
+  it("--by tool/origin/mcp/plugin render breakdowns; global mode works too", async () => {
     await seedSession("s-by");
     const program = await makeProgram();
 
@@ -253,6 +274,13 @@ describe("cc session usage — attribution surfaces", () => {
       }),
     );
     expect(mcpLogs.join("\n")).toContain("github");
+
+    const pluginLogs = await captureStdout(() =>
+      program.parseAsync(["session", "usage", "s-by", "--by", "plugin"], {
+        from: "user",
+      }),
+    );
+    expect(pluginLogs.join("\n")).toContain("review-suite@1.4.0");
   });
 
   it("default output is unchanged (no attribution lines) and invalid --by is rejected", async () => {

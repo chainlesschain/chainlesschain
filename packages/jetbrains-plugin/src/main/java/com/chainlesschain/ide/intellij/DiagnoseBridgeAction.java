@@ -6,6 +6,7 @@ import com.chainlesschain.ide.IdeDoctor;
 import com.chainlesschain.ide.RemoteDoctor;
 import com.chainlesschain.ide.RemoteDoctorFixes;
 import com.chainlesschain.ide.RuntimeCompatibility;
+import com.chainlesschain.ide.RuntimeEnvironment;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationInfo;
@@ -83,9 +84,14 @@ public final class DiagnoseBridgeAction extends AnAction {
                             null);
             final RemoteDoctor.Result remote =
                     remoteDoctorResult(project, port, cliVersionText);
+            final RuntimeEnvironment.Result environment =
+                    // Runtime probes must not resolve node.exe/java.exe from
+                    // an untrusted workspace directory on Windows.
+                    RuntimeEnvironment.probe(null);
             final String report = IdeDoctor.formatReport(
                     port, status, doctor, jb, compatibility,
-                    pluginVersion(), ApplicationInfo.getInstance().getFullVersion())
+                    pluginVersion(), ApplicationInfo.getInstance().getFullVersion(),
+                    environment)
                     + "\n\n── Remote / WSL Doctor (P2 #12) ──\n" + remote.summary;
             final List<RemoteDoctorFixes.Fix> fixes =
                     RemoteDoctorFixes.classifyFixes(remote.checks);

@@ -22,6 +22,9 @@ public final class IdeCapabilities {
         TOOL_FEATURES.put("openMultiDiff", "multi_file_diff");
         TOOL_FEATURES.put("getTerminalOutput", "terminal_output");
         TOOL_FEATURES.put("getPreviewState", "preview_state");
+        TOOL_FEATURES.put("getTestResults", "test_results");
+        TOOL_FEATURES.put("getCoverage", "coverage");
+        TOOL_FEATURES.put("getDebugState", "debug_state");
         TOOL_FEATURES.put("executeCode", "notebook_execute");
         TOOL_FEATURES.put("getHover", "semantic_hover");
         TOOL_FEATURES.put("goToDefinition", "semantic_definition");

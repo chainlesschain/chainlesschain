@@ -242,6 +242,35 @@ describe("TeamRunner events + guards", () => {
     expect(summary.members.reduce((n, m) => n + m.completed, 0)).toBe(1);
   });
 
+  it("reacquires its own expired lease after a delayed heartbeat without a local double-run", async () => {
+    let now = 1000;
+    const reg = new TaskLeaseRegistry({
+      now: () => now,
+      defaultTtlMs: 100,
+    });
+    reg.addTask({ key: "stalled", title: "stalled" });
+    let runs = 0;
+    const runner = new TeamRunner(reg, {
+      teammates: 2,
+      ttlMs: 100,
+      now: () => now,
+      runTask: async ({ renew }) => {
+        runs++;
+        // Model an event-loop stall that carries the logical clock beyond the
+        // lease before either the heartbeat or the peer loop gets CPU.
+        now += 5000;
+        await Promise.resolve();
+        expect(renew()).toMatchObject({ ok: true });
+        return "done";
+      },
+    });
+
+    const summary = await runner.run();
+    expect(runs).toBe(1);
+    expect(reg.getTask("stalled")).toMatchObject({ status: "completed" });
+    expect(summary.executions).toBe(1);
+  });
+
   it("requires runTask", async () => {
     const reg = freshRegistry();
     reg.addTask({ key: "x", title: "x" });

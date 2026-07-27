@@ -122,7 +122,9 @@ final class UsageReportTest {
                 + "    {\"tool\":\"read_file\",\"mcpServer\":null,\"calls\":4,\"errors\":1,\"turnTokens\":600},"
                 + "    {\"tool\":\"mcp__github__search\",\"mcpServer\":\"github\",\"calls\":3,\"errors\":1,\"turnTokens\":150}"
                 + "  ],"
-                + "  \"byMcpServer\":[{\"server\":\"github\",\"calls\":3,\"errors\":1,\"turnTokens\":150}]}"
+                + "  \"byMcpServer\":[{\"server\":\"github\",\"calls\":3,\"errors\":1,\"turnTokens\":150}],"
+                + "  \"byPlugin\":[{\"plugin\":\"review-suite\",\"version\":\"1.4.0\","
+                + "    \"calls\":2,\"errors\":1,\"turnTokens\":150}]}"
                 + "}";
     }
 
@@ -204,6 +206,8 @@ final class UsageReportTest {
         assertTrue(squashed.contains("mcp__github__search github calls 3 errors 1 turn tokens ≈ 150"));
         assertTrue(report.contains("MCP servers:"));
         assertTrue(squashed.contains("github calls 3 errors 1 turn tokens ≈ 150"));
+        assertTrue(report.contains("Plugins:"));
+        assertTrue(squashed.contains("review-suite@1.4.0 calls 2 errors 1 turn tokens ≈ 150"));
         assertTrue(report.contains("do not sum that column across rows"));
         assertTrue(report.contains("approximation"));
         // The stale footer is replaced when attribution is rendered.

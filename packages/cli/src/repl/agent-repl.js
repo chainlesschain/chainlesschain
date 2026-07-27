@@ -108,6 +108,7 @@ import {
 import { resolveSlashMacro } from "./slash-macro.js";
 import { expandMcpPrompt, renderMcpSurface } from "./mcp-prompt.js";
 import { newCostStore, addUsage } from "./session-cost.js";
+import { extractPluginUsageAttribution } from "../lib/plugin-usage-attribution.js";
 import { parseThinkCommand, parseEffortCommand } from "./think-command.js";
 import { parseBtwCommand, buildAsideBlock, applyAside } from "./btw-command.js";
 import { shouldStreamLive } from "./stream-decision.js";
@@ -360,9 +361,9 @@ export async function agentLoop(messages, options) {
       );
     } else if (event.type === "tool-result") {
       // 用量归因: persist a compact tool_call record (name + error flag +
-      // skill hint — never args, which can carry whole file bodies) so
-      // `cc session usage --by tool|mcp` and `cc insights` can aggregate
-      // tool use for REPL sessions. Best-effort; opt out with
+      // skill/plugin hints — never args, which can carry whole file bodies)
+      // so `cc session usage --by tool|mcp|plugin` and `cc insights` can
+      // aggregate tool use for REPL sessions. Best-effort; opt out with
       // options.persistToolCalls === false.
       if (options.sessionId && options.persistToolCalls !== false) {
         try {
@@ -373,6 +374,7 @@ export async function agentLoop(messages, options) {
               event.tool === "run_skill" && _lastExec?.tool === "run_skill"
                 ? _lastExec.args?.skill_name
                 : undefined,
+            ...extractPluginUsageAttribution(event.result),
           });
         } catch (_e) {
           // persistence is best-effort — never break the turn
@@ -1844,9 +1846,7 @@ export async function startAgentRepl(options = {}) {
                   "  Open this secure page? [y/N] ",
               ),
               async (answer) => {
-                const approved = /^(y|yes)$/i.test(
-                  String(answer || "").trim(),
-                );
+                const approved = /^(y|yes)$/i.test(String(answer || "").trim());
                 if (!approved) {
                   resolve({ action: "decline" });
                   rl.prompt();

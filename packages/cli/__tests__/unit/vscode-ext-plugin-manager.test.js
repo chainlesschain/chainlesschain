@@ -7,8 +7,10 @@ import {
   buildPluginAddArgs,
   buildPluginConsentArgs,
   buildPluginInstalledArgs,
+  buildPluginLifecycleArgs,
   buildPluginTrustArgs,
   buildPluginUninstallArgs,
+  buildPluginUpgradeArgs,
   buildPluginUseArgs,
   buildSkillListArgs,
   parseMcpServers,
@@ -60,6 +62,38 @@ describe("plugin/MCP manager argv builders", () => {
       "1.0.0",
       "--scope",
       "project",
+    ]);
+    expect(buildPluginLifecycleArgs("p1", false, "local")).toEqual([
+      "plugin",
+      "disable",
+      "p1",
+      "--scope",
+      "local",
+      "--json",
+    ]);
+    expect(buildPluginLifecycleArgs("p1", true, "user")).toEqual([
+      "plugin",
+      "enable",
+      "p1",
+      "--scope",
+      "user",
+      "--json",
+    ]);
+    expect(
+      buildPluginUpgradeArgs("p1", {
+        scope: "project",
+        registry: "https://registry.example/plugins.json",
+        packageName: "p1",
+      }),
+    ).toEqual([
+      "plugin",
+      "upgrade",
+      "p1",
+      "--scope",
+      "project",
+      "--registry",
+      "https://registry.example/plugins.json",
+      "--json",
     ]);
     expect(buildPluginConsentArgs("p1", "status", "user")).toEqual([
       "plugin",
@@ -132,6 +166,35 @@ describe("plugin/MCP manager parsers", () => {
           scope: "user",
           dir: "/x",
           ok: true,
+          enabled: false,
+          source: {
+            type: "registry",
+            source: "https://registry.example/plugins.json",
+            registry: "https://registry.example/plugins.json",
+            package: "a",
+            ref: "v1.0.0",
+          },
+          integrity: {
+            signature: {
+              present: true,
+              verified: true,
+              manifestSha256: "m",
+              publicKeySha256: "k",
+            },
+            sbom: {
+              present: true,
+              digest: "d",
+              fileCount: 4,
+              totalBytes: 123,
+            },
+          },
+          policy: {
+            managed: true,
+            source: "/managed.json",
+            allowed: false,
+            reason: "denied",
+            requireSigned: true,
+          },
         },
         { name: "b", scope: "project", ok: false },
         { noName: true },
@@ -145,6 +208,38 @@ describe("plugin/MCP manager parsers", () => {
         scope: "user",
         dir: "/x",
         ok: true,
+        enabled: false,
+        source: {
+          type: "registry",
+          source: "https://registry.example/plugins.json",
+          ref: "v1.0.0",
+          registry: "https://registry.example/plugins.json",
+          resolvedSource: "",
+          package: "a",
+          offline: false,
+        },
+        integrity: {
+          signature: {
+            present: true,
+            verified: true,
+            reason: "",
+            manifestSha256: "m",
+            publicKeySha256: "k",
+          },
+          sbom: {
+            present: true,
+            digest: "d",
+            fileCount: 4,
+            totalBytes: 123,
+          },
+        },
+        policy: {
+          managed: true,
+          source: "/managed.json",
+          allowed: false,
+          reason: "denied",
+          requireSigned: true,
+        },
       },
       {
         name: "b",
@@ -153,6 +248,30 @@ describe("plugin/MCP manager parsers", () => {
         scope: "project",
         dir: "",
         ok: false,
+        enabled: true,
+        source: null,
+        integrity: {
+          signature: {
+            present: false,
+            verified: false,
+            reason: "",
+            manifestSha256: "",
+            publicKeySha256: "",
+          },
+          sbom: {
+            present: false,
+            digest: "",
+            fileCount: 0,
+            totalBytes: 0,
+          },
+        },
+        policy: {
+          managed: false,
+          source: "",
+          allowed: true,
+          reason: "",
+          requireSigned: false,
+        },
       },
     ]);
   });

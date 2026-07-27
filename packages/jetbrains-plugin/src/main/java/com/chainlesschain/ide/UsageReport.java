@@ -188,8 +188,8 @@ public final class UsageReport {
         if (attribution == null) {
             // Old CLI (no attribution section): keep the legacy tail
             // byte-identical (UsageReportTest snapshot-locks this).
-            sb.append("\nPer-skill / per-subagent / per-plugin attribution needs CLI-side"
-                    + " event tagging (not recorded yet).\n");
+            sb.append("\nPer-skill / per-subagent / per-plugin attribution needs"
+                    + " CLI-side event tagging (not recorded yet).\n");
         } else {
             appendAttribution(sb, attribution, total, usage);
         }
@@ -217,6 +217,7 @@ public final class UsageReport {
         tools.put("totalErrors", num(rawTools.get("totalErrors")));
         tools.put("byTool", mapRows(rawTools.get("byTool")));
         tools.put("byMcpServer", mapRows(rawTools.get("byMcpServer")));
+        tools.put("byPlugin", mapRows(rawTools.get("byPlugin")));
         n.put("tools", tools);
         return n;
     }
@@ -400,6 +401,31 @@ public final class UsageReport {
                     sb.append("    ").append(pad("…" + sOthers.size() + " more", 26))
                             .append("  calls ").append(pad(fmt(sumBy(sOthers, "calls")), 6))
                             .append("  errors ").append(pad(fmt(sumBy(sOthers, "errors")), 4))
+                            .append("  turn tokens ≈ —\n");
+                }
+            }
+            List<Map<String, Object>> byPlugin = rowsOf(tools.get("byPlugin"));
+            if (!byPlugin.isEmpty()) {
+                sb.append("  Plugins:\n");
+                List<Map<String, Object>> pTop = capTop(byPlugin);
+                List<Map<String, Object>> pOthers = capOthers(byPlugin);
+                for (Map<String, Object> r : pTop) {
+                    String label = cell(r.get("plugin"), "?");
+                    if (!cell(r.get("version"), "").isEmpty()) {
+                        label += "@" + cell(r.get("version"), "");
+                    }
+                    sb.append("    ").append(pad(label, 26))
+                            .append("  calls ").append(pad(fmt(num(r.get("calls"))), 6))
+                            .append("  errors ").append(pad(fmt(num(r.get("errors"))), 4))
+                            .append("  turn tokens ≈ ")
+                            .append(fmt(num(r.get("turnTokens")))).append('\n');
+                }
+                if (pOthers != null) {
+                    sb.append("    ").append(pad("…" + pOthers.size() + " more", 26))
+                            .append("  calls ")
+                            .append(pad(fmt(sumBy(pOthers, "calls")), 6))
+                            .append("  errors ")
+                            .append(pad(fmt(sumBy(pOthers, "errors")), 4))
                             .append("  turn tokens ≈ —\n");
                 }
             }

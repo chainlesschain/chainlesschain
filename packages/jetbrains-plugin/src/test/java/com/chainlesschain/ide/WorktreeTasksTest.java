@@ -39,6 +39,7 @@ final class WorktreeTasksTest {
 
         assertTrue(WorktreeTasks.isTaskBranch("batch/unit-1"));
         assertTrue(WorktreeTasks.isTaskBranch("agent/task-9"));
+        assertTrue(WorktreeTasks.isTaskBranch("team/release-reviewer"));
         assertFalse(WorktreeTasks.isTaskBranch("main"));
         assertFalse(WorktreeTasks.isTaskBranch(null));
     }
@@ -86,6 +87,8 @@ final class WorktreeTasksTest {
     void buildsArgvAndNewTaskCommand() {
         assertEquals(Arrays.asList("worktree", "list", "--porcelain"),
                 WorktreeTasks.buildWorktreeListArgs());
+        assertEquals(Arrays.asList("daemon", "view", "--json"),
+                WorktreeTasks.buildBackgroundListArgs());
         assertEquals(Arrays.asList("rev-list", "--count", "abc..b1"),
                 WorktreeTasks.buildAheadArgs("abc", "b1"));
         assertEquals(Arrays.asList("diff", "--shortstat", "abc...b1"),
@@ -101,12 +104,59 @@ final class WorktreeTasksTest {
         assertEquals(Arrays.asList("branch", "-D", "b1"),
                 WorktreeTasks.buildBranchDeleteArgs("b1"));
 
-        assertEquals("cc agent --worktree -p \"fix the tests\"",
+        assertEquals("cc agent --bg --worktree -p \"fix the tests\"",
                 WorktreeTasks.buildNewTaskCommand("fix the tests", "cc", true));
-        assertEquals("clc agent --worktree -p 'fix the tests'",
+        assertEquals("clc agent --bg --worktree -p 'fix the tests'",
                 WorktreeTasks.buildNewTaskCommand("fix the tests", "clc", false));
         // Quotes/backticks in the task are stripped, not escaped.
-        assertEquals("cc agent --worktree -p \"say  hi   now\"",
+        assertEquals("cc agent --bg --worktree -p \"say  hi   now\"",
                 WorktreeTasks.buildNewTaskCommand("say \"hi\" `now`", "cc", true));
+    }
+
+    @Test
+    void projectsAndAttachesBackgroundGovernance() {
+        String daemon = "{"
+                + "\"sessions\":[{"
+                + "\"id\":\"bg-1700000000000-a1b2c3\","
+                + "\"sessionId\":\"fallback\","
+                + "\"branch\":\"cc-agent-20260710-ab12\","
+                + "\"worktreePath\":\"C:\\\\repo\\\\.cc-worktrees\\\\cc-agent-20260710-ab12\","
+                + "\"status\":\"running\","
+                + "\"lifecycleState\":\"waiting_for_approval\","
+                + "\"governance\":{"
+                + "\"owner\":\"background:bg-1700000000000-a1b2c3\","
+                + "\"sessionId\":\"session-1\","
+                + "\"permissionMode\":\"auto\","
+                + "\"resourceBudget\":{\"maxTurns\":7,\"maxCostUsd\":2.5}},"
+                + "\"sideEffects\":{\"total\":4,\"unsettled\":1,\"unknown\":1,"
+                + "\"metadata\":{\"secret\":\"must-not-cross\"}},"
+                + "\"argv\":[\"agent\",\"-p\",\"secret-prompt\"]"
+                + "}]}";
+        List<Map<String, Object>> projected =
+                WorktreeTasks.parseBackgroundTaskGovernance(daemon);
+        assertEquals(1, projected.size());
+        assertEquals("auto", projected.get(0).get("permissionMode"));
+        assertEquals("waiting_for_approval",
+                projected.get(0).get("backgroundStatus"));
+        assertFalse(MiniJson.stringify(projected).contains("secret"));
+
+        Map<String, Object> task = new LinkedHashMap<String, Object>();
+        task.put("branch", "cc-agent-20260710-ab12");
+        task.put("path", "C:/wrong");
+        List<Map<String, Object>> attached =
+                WorktreeTasks.attachTaskGovernance(Arrays.asList(task), daemon);
+        assertEquals("bg-1700000000000-a1b2c3",
+                attached.get(0).get("backgroundId"));
+        assertTrue(WorktreeTasks.formatTaskLine(attached.get(0))
+                .contains("bg: waiting_for_approval / auto"));
+
+        Map<String, Object> legacy = new LinkedHashMap<String, Object>();
+        legacy.put("branch", "legacy/task");
+        legacy.put("path",
+                "c:/repo/.cc-worktrees/cc-agent-20260710-ab12/");
+        assertEquals("bg-1700000000000-a1b2c3",
+                WorktreeTasks.attachTaskGovernance(Arrays.asList(legacy), daemon)
+                        .get(0).get("backgroundId"));
+        assertTrue(WorktreeTasks.parseBackgroundTaskGovernance("not json").isEmpty());
     }
 }

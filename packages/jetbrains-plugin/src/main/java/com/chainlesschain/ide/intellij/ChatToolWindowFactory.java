@@ -2,6 +2,7 @@ package com.chainlesschain.ide.intellij;
 
 import com.chainlesschain.ide.ChatEvents;
 import com.chainlesschain.ide.ConversationManager;
+import com.chainlesschain.ide.AgentChatSession;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.project.DumbAware;
@@ -70,6 +71,25 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
         ChatPanel panel = REGISTRY.get(project);
         ConversationManager.Conversation c = panel != null ? panel.conversations.active() : null;
         return c != null ? c.mode : "default";
+    }
+
+    /** Ask every live foreground chat child to re-scan plugin components. */
+    static int reloadPluginRuntimes(Project project) {
+        ChatPanel panel = REGISTRY.get(project);
+        if (panel == null) return 0;
+        int requested = 0;
+        for (Object handle : panel.conversations.allSessions()) {
+            if (handle instanceof AgentChatSession) {
+                try {
+                    if (((AgentChatSession) handle).send("/reload-plugins")) {
+                        requested++;
+                    }
+                } catch (RuntimeException ignored) {
+                    // One stale child must not block the other live tabs.
+                }
+            }
+        }
+        return requested;
     }
 
     /** Reveal the chat tool window and run {@code body} on its panel (creates it if needed). */

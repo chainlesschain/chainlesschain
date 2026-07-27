@@ -236,6 +236,24 @@ class ChatViewProvider {
     return this.insertReference(text);
   }
 
+  /**
+   * Ask every live foreground chat child to re-scan plugin components. New
+   * sessions always discover the current runtime state; this closes the
+   * lifecycle seam for sessions that were already running when a plugin was
+   * upgraded, enabled, disabled, trusted, or rolled back.
+   */
+  reloadPluginRuntimes() {
+    let requested = 0;
+    for (const session of this._convs.allSessions()) {
+      try {
+        if (session.send("/reload-plugins")) requested += 1;
+      } catch {
+        /* one stale child must not block the other live tabs */
+      }
+    }
+    return requested;
+  }
+
   /** Webview script is live — flush any action queued before it loaded. */
   _onWebviewReady() {
     this._webviewReady = true;

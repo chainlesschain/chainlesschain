@@ -61,12 +61,13 @@ public final class WorktreeTasksAction extends AnAction {
             status.setText("loading…");
             ApplicationManager.getApplication().executeOnPooledThread(() -> {
                 Git list0 = git(WorktreeTasks.buildWorktreeListArgs(), repo);
+                Git background = cli(WorktreeTasks.buildBackgroundListArgs(), repo);
                 List<Map<String, Object>> rows =
                         WorktreeTasks.parseWorktreeList(list0.stdout);
                 Map<String, Object> main = rows.isEmpty() ? null : rows.get(0);
                 String base = main == null ? "HEAD" : String.valueOf(main.get("branch"));
                 String baseHead = main == null ? "HEAD" : String.valueOf(main.get("head"));
-                List<Map<String, Object>> enriched = new ArrayList<>();
+                List<Map<String, Object>> worktrees = new ArrayList<>();
                 for (Map<String, Object> r : rows) {
                     if (Boolean.TRUE.equals(r.get("main"))
                             || !Boolean.TRUE.equals(r.get("isTask"))) continue;
@@ -87,8 +88,10 @@ public final class WorktreeTasksAction extends AnAction {
                     r.put("stat", WorktreeTasks.summarizeShortstat(stat.stdout));
                     r.put("merge", WorktreeTasks.parseMergePreview(
                             prev.code, prev.stdout, prev.stderr));
-                    enriched.add(r);
+                    worktrees.add(r);
                 }
+                List<Map<String, Object>> enriched =
+                        WorktreeTasks.attachTaskGovernance(worktrees, background.stdout);
                 tasks.set(enriched);
                 mainBranch.set(base);
                 ApplicationManager.getApplication().invokeLater(() -> {
@@ -98,7 +101,7 @@ public final class WorktreeTasksAction extends AnAction {
                                 + list0.stderr.trim() + ")");
                     } else if (enriched.isEmpty()) {
                         model.addElement("(no agent task worktrees — cc-agent-* / "
-                                + "batch/* / agent/*; New task… starts one)");
+                                + "batch/* / agent/* / team/*; New task… starts one)");
                     } else {
                         for (Map<String, Object> t : enriched) {
                             model.addElement(WorktreeTasks.formatTaskLine(t));
@@ -232,6 +235,18 @@ public final class WorktreeTasksAction extends AnAction {
         List<String> cmd = new ArrayList<>();
         cmd.add("git");
         cmd.addAll(args);
+        return run(cmd, cwd);
+    }
+
+    /** Run the resolved cc binary with captured stdout/stderr. */
+    private static Git cli(List<String> args, File cwd) {
+        List<String> cmd = new ArrayList<>();
+        cmd.add(AgentChatSession.resolveBinary());
+        cmd.addAll(args);
+        return run(cmd, cwd);
+    }
+
+    private static Git run(List<String> cmd, File cwd) {
         try {
             ProcessBuilder pb = new ProcessBuilder(cmd);
             pb.directory(cwd);

@@ -9,20 +9,29 @@ test("capability manifest is derived from registered tools", () => {
     { name: "getActiveFile" },
     { name: "openDiff" },
     { name: "getProjectModel" },
+    { name: "getTestResults" },
+    { name: "getCoverage" },
+    { name: "getDebugState" },
     { name: "unknown_optional_tool" },
   ]);
 
   assert.equal(manifest.schemaVersion, 1);
   assert.deepEqual(manifest.tools, [
     "getActiveFile",
+    "getCoverage",
+    "getDebugState",
     "getProjectModel",
+    "getTestResults",
     "openDiff",
     "unknown_optional_tool",
   ]);
   assert.deepEqual(manifest.features, [
     "active_file",
+    "coverage",
+    "debug_state",
     "native_diff",
     "project_model",
+    "test_results",
   ]);
 });
 

@@ -51,6 +51,10 @@ export class TeamRunner {
     this._executions = 0;
     this._inFlight = 0;
     this._maxInFlight = 0;
+    // Keys executing in this runner process. An event-loop stall may let a
+    // short lease expire before its heartbeat callback runs; peer loops in the
+    // same process must not steal and double-run that still-active task.
+    this._activeKeys = new Set();
     this._members = new Map(); // holder → lifecycle record
     this._budgetStopped = false;
   }
@@ -208,6 +212,7 @@ export class TeamRunner {
     let best = null;
     let bestScore = Infinity;
     for (const key of claimable) {
+      if (this._activeKeys.has(key)) continue;
       const t = this.registry.getTask(key);
       const score = rank[t?.priority] ?? 1;
       if (score < bestScore) {
@@ -222,10 +227,22 @@ export class TeamRunner {
     const task = this.registry.getTask(key);
     this._executions++;
     this._inFlight++;
+    this._activeKeys.add(key);
     this._maxInFlight = Math.max(this._maxInFlight, this._inFlight);
     this._setState(holder, "running", { key });
     this._emit("task:claimed", { key, holder, attempts: task.attempts });
-    const renew = () => this.registry.renew(key, { holder, ttlMs: this.ttlMs });
+    const renew = () => {
+      const result = this.registry.renew(key, {
+        holder,
+        ttlMs: this.ttlMs,
+      });
+      // A delayed timer may wake just after expiry. Reacquire is safe and
+      // optimistic: it succeeds only if no external runner has taken the
+      // lease; a real takeover remains authoritative and stops the heartbeat.
+      return !result?.ok && result?.reason === "not_holder_or_expired"
+        ? this.registry.acquire(key, { holder, ttlMs: this.ttlMs })
+        : result;
+    };
     // Heartbeat: the built-in executors (shell / agent / worktree) never call
     // `renew` themselves, so before this ANY task outliving the lease TTL was
     // indistinguishable from a crash — a peer could steal it and the SAME task
@@ -338,6 +355,7 @@ export class TeamRunner {
       });
     } finally {
       clearInterval(heartbeat);
+      this._activeKeys.delete(key);
       this._inFlight--;
     }
   }

@@ -12,6 +12,7 @@ import {
   readEvents,
   listJsonlSessions,
 } from "../harness/jsonl-session-store.js";
+import { extractPluginUsageAttribution } from "./plugin-usage-attribution.js";
 
 // Injectable disk seams (tests override). readEvents skips malformed JSON lines
 // but does NOT guard readFileSync, so an unreadable session file (EACCES /
@@ -228,6 +229,7 @@ function _isToolResultError(event) {
 export function aggregateToolCalls(events) {
   const byTool = new Map();
   const byServer = new Map();
+  const byPlugin = new Map();
   let totalCalls = 0;
   let totalErrors = 0;
 
@@ -253,19 +255,42 @@ export function aggregateToolCalls(events) {
     }
     return s;
   };
+  const bumpPlugin = (plugin, version = null) => {
+    const key = `${plugin}@${version || "?"}`;
+    let row = byPlugin.get(key);
+    if (!row) {
+      row = {
+        plugin,
+        version: version || null,
+        calls: 0,
+        errors: 0,
+        turnTokens: 0,
+      };
+      byPlugin.set(key, row);
+    }
+    return row;
+  };
 
   let turnTools = new Set();
   let turnServers = new Set();
+  let turnPlugins = new Set();
   let turnTokens = 0;
+  let pendingPlugin = null;
   const flushTurn = () => {
     if (turnTokens > 0) {
       for (const name of turnTools) bumpTool(name).turnTokens += turnTokens;
       for (const server of turnServers)
         bumpServer(server).turnTokens += turnTokens;
+      for (const key of turnPlugins) {
+        const row = byPlugin.get(key);
+        if (row) row.turnTokens += turnTokens;
+      }
     }
     turnTools = new Set();
     turnServers = new Set();
+    turnPlugins = new Set();
     turnTokens = 0;
+    pendingPlugin = null;
   };
 
   for (const evt of events || []) {
@@ -292,6 +317,21 @@ export function aggregateToolCalls(events) {
         if (isErr) s.errors++;
         turnServers.add(server);
       }
+      const plugin =
+        typeof evt.data?.plugin === "string" && evt.data.plugin
+          ? evt.data.plugin
+          : null;
+      const pluginVersion =
+        typeof evt.data?.plugin_version === "string"
+          ? evt.data.plugin_version
+          : null;
+      pendingPlugin = { tool: name, plugin, version: pluginVersion };
+      if (plugin) {
+        const p = bumpPlugin(plugin, pluginVersion);
+        p.calls++;
+        if (isErr) p.errors++;
+        turnPlugins.add(`${plugin}@${pluginVersion || "?"}`);
+      }
       continue;
     }
     if (evt.type === "tool_result") {
@@ -304,6 +344,26 @@ export function aggregateToolCalls(events) {
         bumpTool(name).errors++;
         if (server) bumpServer(server).errors++;
       }
+      const extracted = extractPluginUsageAttribution(evt.data?.result);
+      const plugin =
+        typeof evt.data?.plugin === "string" && evt.data.plugin
+          ? evt.data.plugin
+          : extracted.plugin || null;
+      const pluginVersion =
+        typeof evt.data?.plugin_version === "string"
+          ? evt.data.plugin_version
+          : extracted.pluginVersion || null;
+      if (plugin) {
+        const p = bumpPlugin(plugin, pluginVersion);
+        const countedByCall =
+          pendingPlugin?.tool === name &&
+          pendingPlugin?.plugin === plugin &&
+          (pendingPlugin?.version || null) === (pluginVersion || null);
+        if (!countedByCall) p.calls++;
+        if (_isToolResultError(evt) && !countedByCall) p.errors++;
+        turnPlugins.add(`${plugin}@${pluginVersion || "?"}`);
+      }
+      pendingPlugin = null;
       continue;
     }
     const u = extractUsage(evt);
@@ -317,6 +377,7 @@ export function aggregateToolCalls(events) {
     totalErrors,
     byTool: Array.from(byTool.values()).sort(byCallsDesc),
     byMcpServer: Array.from(byServer.values()).sort(byCallsDesc),
+    byPlugin: Array.from(byPlugin.values()).sort(byCallsDesc),
   };
 }
 
@@ -457,6 +518,7 @@ export function allSessionsUsage({ limit = 1000 } = {}) {
   const gSubagent = new Map();
   const gTool = new Map();
   const gServer = new Map();
+  const gPlugin = new Map();
   let gToolCalls = 0;
   let gToolErrors = 0;
   const mergeRow = (map, key, row, seed) => {
@@ -508,6 +570,20 @@ export function allSessionsUsage({ limit = 1000 } = {}) {
       entry.turnTokens += row.turnTokens || 0;
       gServer.set(row.server, entry);
     }
+    for (const row of tools.byPlugin || []) {
+      const key = `${row.plugin}@${row.version || "?"}`;
+      const entry = gPlugin.get(key) || {
+        plugin: row.plugin,
+        version: row.version || null,
+        calls: 0,
+        errors: 0,
+        turnTokens: 0,
+      };
+      entry.calls += row.calls || 0;
+      entry.errors += row.errors || 0;
+      entry.turnTokens += row.turnTokens || 0;
+      gPlugin.set(key, entry);
+    }
   }
   const byCallsDesc = (a, b) => b.calls - a.calls;
 
@@ -527,6 +603,7 @@ export function allSessionsUsage({ limit = 1000 } = {}) {
         totalErrors: gToolErrors,
         byTool: Array.from(gTool.values()).sort(byCallsDesc),
         byMcpServer: Array.from(gServer.values()).sort(byCallsDesc),
+        byPlugin: Array.from(gPlugin.values()).sort(byCallsDesc),
       },
     },
   };

@@ -32,6 +32,7 @@ function formatBridgeReport({
   cliVersionText,
   workspaceTrusted,
   workspace,
+  runtimeEnvironment,
 } = {}) {
   const { evaluateRuntimeCompatibility } = require("./runtime-compatibility");
   const compatibility = evaluateRuntimeCompatibility({
@@ -56,6 +57,12 @@ function formatBridgeReport({
     `- CLI: ${compatibility.cliVersion || "missing / unrecognized"} (minimum ${compatibility.minimumCliVersion})`,
     `- Workspace trust: ${workspaceTrusted === true ? "trusted" : workspaceTrusted === false ? "restricted" : "unknown"}`,
     `- Workspace: ${sectionBody(workspace)}`,
+    "",
+    "## Development runtimes and offline recovery",
+    "",
+    ...require("./runtime-environment").formatRuntimeEnvironment(
+      runtimeEnvironment,
+    ),
     "",
     "## cc ide status — which server a terminal `cc agent` would connect",
     "",

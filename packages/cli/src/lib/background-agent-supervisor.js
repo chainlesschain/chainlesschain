@@ -762,6 +762,47 @@ export function normalizeBackgroundWorktree(worktree, cwd) {
   return normalized;
 }
 
+/**
+ * Persist only the bounded, secret-free governance envelope needed by IDE task
+ * rows. The supervisor owns `owner`; callers cannot forge it. Prompt text,
+ * argv, credentials and tool arguments are deliberately excluded.
+ */
+export function normalizeBackgroundGovernance(
+  governance,
+  { id, sessionId } = {},
+) {
+  const source = governance && typeof governance === "object" ? governance : {};
+  const budget =
+    source.resourceBudget && typeof source.resourceBudget === "object"
+      ? source.resourceBudget
+      : {};
+  const positive = (value) => {
+    const n = Number(value);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  };
+  const permissionMode = new Set([
+    "manual",
+    "auto",
+    "dontAsk",
+    "default",
+    "plan",
+    "acceptEdits",
+    "bypassPermissions",
+  ]).has(source.permissionMode)
+    ? source.permissionMode
+    : "default";
+  return {
+    version: 1,
+    owner: `background:${String(id || "").slice(0, 160)}`,
+    sessionId: sessionId ? String(sessionId).slice(0, 256) : null,
+    permissionMode,
+    resourceBudget: {
+      maxTurns: positive(budget.maxTurns),
+      maxCostUsd: positive(budget.maxCostUsd),
+    },
+  };
+}
+
 function persistedWorktree(state) {
   if (!state?.worktreePath) return null;
   return {
@@ -817,6 +858,7 @@ export function resumeBackgroundAgent(id, prompt, options = {}) {
     cliEntry: options.cliEntry,
     followUpArgv: ["agent", "--session", state.sessionId],
     worktree,
+    governance: state.governance,
   });
 }
 
@@ -855,10 +897,15 @@ export function launchBackgroundAgent({
   cliEntry,
   followUpArgv,
   worktree,
+  governance,
 }) {
   assertUsableCwd(cwd);
   const worktreeState = normalizeBackgroundWorktree(worktree, cwd);
   const id = createBackgroundAgentId();
+  const governanceState = normalizeBackgroundGovernance(governance, {
+    id,
+    sessionId,
+  });
   const dir = backgroundAgentsDir();
   const jobFile = join(dir, `${id}.job.${process.pid}.json`);
   const worker = fileURLToPath(
@@ -873,6 +920,7 @@ export function launchBackgroundAgent({
     cliEntry: cliEntry || process.argv[1],
     logFile: logPath(id),
     ...(worktreeState || {}),
+    governance: governanceState,
     // Present = interactive attach can start follow-up turns; absent = the
     // transport rejects prompts (log-only session).
     ...(Array.isArray(followUpArgv) ? { followUpArgv } : {}),
@@ -897,6 +945,7 @@ export function launchBackgroundAgent({
     exitCode: null,
     logFile: job.logFile,
     ...(worktreeState || {}),
+    governance: governanceState,
   };
   writeBackgroundAgentState(state);
   let child;

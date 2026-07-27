@@ -2,6 +2,19 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.35] - IDE quality and governed plugin/worktree operations (2026-07-27)
+
+- Add bounded Test API, coverage, debugger, and notebook execution context to
+  the negotiated IDE bridge without exposing launch arguments or environment
+  variables.
+- Extend Installation Doctor with Node/Java probes and offline managed-CLI /
+  registry-cache recovery status.
+- Complete plugin enable/disable/upgrade/details and live-session reload
+  controls, including source, signature, SBOM, and managed-policy provenance.
+- Attribute plugin-provided tool usage in the shared usage report.
+- Start isolated IDE tasks through the background worktree supervisor and show
+  lifecycle, permission mode, resource budget, and side-effect summaries.
+
 ## [0.37.34] - Durable runtime and plugin controls (2026-07-26)
 
 - Surface durable background-agent recovery, pending human questions, and

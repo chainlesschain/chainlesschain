@@ -20,10 +20,8 @@ import {
   removePlugin,
   updatePlugin,
   getPluginSettings,
-  setPluginSetting,
   searchRegistry,
   listRegistry,
-  registerInMarketplace,
   getPluginSummary,
   installPluginSkills,
   removePluginSkills,
@@ -404,8 +402,28 @@ export function registerPluginCommand(program) {
     .command("enable")
     .description("Enable a plugin")
     .argument("<name>", "Plugin name")
-    .action(async (name) => {
+    .option(
+      "--scope <scope>",
+      "Enable the unified-runtime install at this scope (user|project|local)",
+    )
+    .option("--json", "Output unified-runtime result as JSON")
+    .action(async (name, options) => {
       try {
+        if (options.scope) {
+          const { setPluginEnabled } =
+            await import("../lib/plugin-runtime/install.js");
+          const result = setPluginEnabled(name, true, {
+            scope: options.scope,
+            cwd: process.cwd(),
+          });
+          if (options.json) console.log(JSON.stringify(result, null, 2));
+          else {
+            logger.success(
+              `Enabled ${name} (${options.scope} scope). Reload active plugin sessions to apply the change.`,
+            );
+          }
+          return;
+        }
         enforcePluginPolicy(
           { name, action: "enable" },
           loadPluginManagedPolicy(),
@@ -436,8 +454,28 @@ export function registerPluginCommand(program) {
     .command("disable")
     .description("Disable a plugin")
     .argument("<name>", "Plugin name")
-    .action(async (name) => {
+    .option(
+      "--scope <scope>",
+      "Disable the unified-runtime install at this scope (user|project|local)",
+    )
+    .option("--json", "Output unified-runtime result as JSON")
+    .action(async (name, options) => {
       try {
+        if (options.scope) {
+          const { setPluginEnabled } =
+            await import("../lib/plugin-runtime/install.js");
+          const result = setPluginEnabled(name, false, {
+            scope: options.scope,
+            cwd: process.cwd(),
+          });
+          if (options.json) console.log(JSON.stringify(result, null, 2));
+          else {
+            logger.success(
+              `Disabled ${name} (${options.scope} scope). Reload active plugin sessions to apply the change.`,
+            );
+          }
+          return;
+        }
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         if (!ctx.db) {
           logger.error("Database not available");
@@ -860,6 +898,7 @@ export function registerPluginCommand(program) {
       // plugin name) resolves to a git source the installer already handles.
       let installSource = source;
       let integritySha = null;
+      let sourceMetadata = null;
       const { isRemoteSource, resolveRemoteSource } =
         await import("../lib/plugin-runtime/remote-source.js");
       if (options.registry || isRemoteSource(source)) {
@@ -883,6 +922,19 @@ export function registerPluginCommand(program) {
           });
           installSource = resolved.source;
           integritySha = resolved.sha256;
+          sourceMetadata = {
+            type: "registry",
+            source: url,
+            registry: url,
+            package: name || source,
+            resolvedSource: resolved.source,
+            ref:
+              (typeof resolved.source === "string" &&
+                resolved.source.includes("#") &&
+                resolved.source.slice(resolved.source.indexOf("#") + 1)) ||
+              null,
+            offline: resolved.fromCache === true,
+          };
           if (resolved.fromCache) {
             logger.warn(
               chalk.yellow(
@@ -897,13 +949,31 @@ export function registerPluginCommand(program) {
         }
       }
 
+      let managed = null;
+      try {
+        managed = loadPluginManagedPolicy();
+      } catch (err) {
+        logger.error(`Managed plugin policy is invalid: ${err.message}`);
+        process.exitCode = 1;
+        return;
+      }
+      const requiresManagedSignature =
+        managed?.requireSignedPlugins === true ||
+        managed?.requireSignedPlugins === "require";
       const signature =
-        options.sha256 || options.signature || options.publicKey || integritySha
+        options.sha256 ||
+        options.signature ||
+        options.publicKey ||
+        integritySha ||
+        requiresManagedSignature
           ? {
               sha256: options.sha256 || integritySha,
               signatureFile: options.signature,
               publicKeyFile: options.publicKey,
-              requireSignature: Boolean(options.signature),
+              requireSignature:
+                Boolean(options.signature) || requiresManagedSignature,
+              trustedKeySha256: managed?.trustedPluginKeySha256 || null,
+              requireTrustedKey: requiresManagedSignature,
             }
           : null;
       try {
@@ -912,6 +982,9 @@ export function registerPluginCommand(program) {
           cwd: process.cwd(),
           force: options.force === true,
           signature,
+          sourceMetadata,
+          managedPolicy: managed,
+          policySource: options.registry || source,
         });
         const capNotice = await resolvePluginCapabilityNotice(
           res.name,
@@ -1060,8 +1133,21 @@ export function registerPluginCommand(program) {
         const trust = isPluginTrusted(r)
           ? chalk.green("trusted")
           : chalk.yellow("untrusted");
+        const state =
+          r.enabled === false
+            ? chalk.yellow("disabled")
+            : chalk.green("enabled");
+        const signed = r.integrity?.signature?.verified
+          ? chalk.green("signed")
+          : chalk.gray("unsigned");
+        const policy =
+          r.policy?.allowed === false
+            ? chalk.red("policy-blocked")
+            : r.policy?.managed
+              ? chalk.cyan("managed")
+              : "";
         logger.log(
-          `  ${ok} ${chalk.cyan(r.name)} v${r.version} ${chalk.gray(`[${r.scope}]`)} ${trust}`,
+          `  ${ok} ${chalk.cyan(r.name)} v${r.version} ${chalk.gray(`[${r.scope}]`)} ${state} ${trust} ${signed}${policy ? ` ${policy}` : ""}`,
         );
       }
     });
@@ -1456,22 +1542,162 @@ export function registerPluginCommand(program) {
   plugin
     .command("upgrade <source>")
     .description(
-      "Update a runtime plugin from its source (local dir or git); repoints .active",
+      "Update a runtime plugin from its pinned local, git, or registry source; repoints .active",
     )
     .option("--scope <scope>", `Scope to update in (${SCOPES})`, "user")
     .option("--force", "Reinstall even if the version is unchanged")
+    .option("--sha256 <hex>", "Expected SHA-256 of the manifest file")
+    .option("--signature <path>", "Detached Ed25519 signature of the manifest")
+    .option("--public-key <path>", "Public key for signature verification")
+    .option(
+      "--registry <url>",
+      "Resolve <source> as a plugin NAME in this registry URL",
+    )
+    .option(
+      "--name <plugin>",
+      "Plugin name to select from a multi-plugin registry",
+    )
+    .option("--token <token>", "Bearer token for a private registry")
+    .option(
+      "--allow-insecure-registry",
+      "Allow a plain-HTTP registry URL (MITM risk — trusted networks only)",
+    )
     .option(
       "--grant-capabilities",
       "Grant any newly declared capabilities during the upgrade (no separate consent step)",
     )
+    .option("--json", "Output as JSON")
     .action(async (source, options) => {
       const { updatePlugin } = await import("../lib/plugin-runtime/install.js");
+      let installSource = source;
+      let integritySha = null;
+      let sourceMetadata = null;
+      const { isRemoteSource, resolveRemoteSource } =
+        await import("../lib/plugin-runtime/remote-source.js");
+      if (options.registry || isRemoteSource(source)) {
+        const url = options.registry || source;
+        const name = options.registry ? source : options.name;
+        let config = null;
+        try {
+          const cm = await import("../lib/config-manager.js");
+          config = cm.loadConfig();
+        } catch {
+          config = null;
+        }
+        try {
+          const resolved = await resolveRemoteSource(url, {
+            name,
+            token: options.token,
+            config,
+            allowInsecure: options.allowInsecureRegistry === true,
+          });
+          installSource = resolved.source;
+          integritySha = resolved.sha256;
+          sourceMetadata = {
+            type: "registry",
+            source: url,
+            registry: url,
+            package: name || source,
+            resolvedSource: resolved.source,
+            ref:
+              (typeof resolved.source === "string" &&
+                resolved.source.includes("#") &&
+                resolved.source.slice(resolved.source.indexOf("#") + 1)) ||
+              null,
+            offline: resolved.fromCache === true,
+          };
+          if (resolved.fromCache && !options.json) {
+            logger.warn(
+              chalk.yellow(
+                "  ⚠ registry unreachable — using cached copy (offline)",
+              ),
+            );
+          }
+        } catch (err) {
+          logger.error(`Registry resolution failed: ${err.message}`);
+          process.exitCode = 1;
+          return;
+        }
+      }
+
+      let managed = null;
       try {
-        const res = updatePlugin(source, {
+        managed = loadPluginManagedPolicy();
+      } catch (err) {
+        logger.error(`Managed plugin policy is invalid: ${err.message}`);
+        process.exitCode = 1;
+        return;
+      }
+      const requiresManagedSignature =
+        managed?.requireSignedPlugins === true ||
+        managed?.requireSignedPlugins === "require";
+      const signature =
+        options.sha256 ||
+        options.signature ||
+        options.publicKey ||
+        integritySha ||
+        requiresManagedSignature
+          ? {
+              sha256: options.sha256 || integritySha,
+              signatureFile: options.signature,
+              publicKeyFile: options.publicKey,
+              requireSignature:
+                Boolean(options.signature) || requiresManagedSignature,
+              trustedKeySha256: managed?.trustedPluginKeySha256 || null,
+              requireTrustedKey: requiresManagedSignature,
+            }
+          : null;
+      try {
+        const res = updatePlugin(installSource, {
           scope: options.scope,
           cwd: process.cwd(),
           force: options.force,
+          signature,
+          sourceMetadata,
+          managedPolicy: managed,
+          policySource: options.registry || source,
         });
+        const upgradeNotice = await resolvePluginCapabilityNotice(
+          res.name,
+          options.scope,
+          process.cwd(),
+        );
+        if (res.updated || res.reinstalled)
+          await auditPluginInstall(
+            "upgrade",
+            { ...res, scope: options.scope },
+            installSource,
+            upgradeNotice,
+          );
+
+        if (options.json) {
+          let capabilitiesGranted = false;
+          if (
+            options.grantCapabilities &&
+            upgradeNotice &&
+            !upgradeNotice.consented
+          ) {
+            capabilitiesGranted = await grantInstalledPluginCapabilities(
+              res.name,
+              options.scope,
+              process.cwd(),
+            );
+          }
+          console.log(
+            JSON.stringify(
+              {
+                ...res,
+                scope: options.scope,
+                capabilities: upgradeNotice,
+                capabilitiesGranted,
+              },
+              null,
+              2,
+            ),
+          );
+          return;
+        }
+
         if (res.updated) {
           logger.success(
             `Updated ${res.name}: ${res.previousVersion ? `v${res.previousVersion} → ` : ""}v${res.version} (${options.scope} scope)`,
@@ -1489,20 +1715,6 @@ export function registerPluginCommand(program) {
         // upgrade that adds a capability shows a `⚠ capability consent required`
         // notice diffed against the prior consent, then either auto-grants
         // (--grant-capabilities) or blocks interactively to re-consent now.
-        const upgradeNotice = await resolvePluginCapabilityNotice(
-          res.name,
-          options.scope,
-          process.cwd(),
-        );
-        // Only a version that actually landed on disk is an install; an
-        // already-up-to-date no-op fetched nothing new to run.
-        if (res.updated || res.reinstalled)
-          await auditPluginInstall(
-            "upgrade",
-            { ...res, scope: options.scope },
-            source,
-            upgradeNotice,
-          );
         await applyCapabilityConsentGate(
           res.name,
           options.scope,

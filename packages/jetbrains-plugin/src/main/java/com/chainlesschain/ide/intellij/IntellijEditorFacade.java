@@ -202,6 +202,36 @@ public final class IntellijEditorFacade implements EditorFacade {
     }
 
     @Override
+    public boolean supportsTestResults() {
+        return true;
+    }
+
+    @Override
+    public Map<String, Object> getTestResults(int limit) {
+        return IntellijQualityContext.testResults(project, limit);
+    }
+
+    @Override
+    public boolean supportsCoverage() {
+        return true;
+    }
+
+    @Override
+    public Map<String, Object> getCoverage(String path) {
+        return IntellijQualityContext.coverage(project, path);
+    }
+
+    @Override
+    public boolean supportsDebugState() {
+        return true;
+    }
+
+    @Override
+    public Map<String, Object> getDebugState() {
+        return IntellijQualityContext.debugState(project);
+    }
+
+    @Override
     public Map<String, Object> getPreviewState() {
         try {
             PreviewService preview = PreviewService.getInstance(project);

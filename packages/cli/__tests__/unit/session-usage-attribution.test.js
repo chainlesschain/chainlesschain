@@ -267,6 +267,49 @@ describe("aggregateToolCalls", () => {
     expect(r.byTool.find((t) => t.tool === "write_file").turnTokens).toBe(600);
   });
 
+  it("attributes plugin-bin and extension-tier calls by plugin/version", () => {
+    const r = aggregateToolCalls([
+      { type: "user_message", data: { content: "go" } },
+      compactCall("run_shell", false, {
+        plugin: "acme-tools",
+        plugin_version: "2.1.0",
+      }),
+      {
+        type: "tool_call",
+        data: { tool: "custom_tool", args: {} },
+      },
+      {
+        type: "tool_result",
+        data: {
+          tool: "custom_tool",
+          result: {
+            toolAttribution: {
+              source: "plugin:review-suite",
+              version: "1.4.0",
+            },
+          },
+        },
+      },
+      legacyUsage("opus", 60, 40),
+    ]);
+    expect(r.byPlugin).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          plugin: "acme-tools",
+          version: "2.1.0",
+          calls: 1,
+          turnTokens: 100,
+        }),
+        expect.objectContaining({
+          plugin: "review-suite",
+          version: "1.4.0",
+          calls: 1,
+          turnTokens: 100,
+        }),
+      ]),
+    );
+  });
+
   it("transcripts without tool events aggregate to zeros", () => {
     const r = aggregateToolCalls([
       { type: "user_message", data: { content: "hi" } },
@@ -276,6 +319,7 @@ describe("aggregateToolCalls", () => {
     expect(r.totalErrors).toBe(0);
     expect(r.byTool).toEqual([]);
     expect(r.byMcpServer).toEqual([]);
+    expect(r.byPlugin).toEqual([]);
   });
 
   it("handles empty + nullish input", () => {

@@ -7,6 +7,7 @@ import {
   formatBackgroundAgentDetails,
   formatBackgroundAgentLine,
   readLogFromOffset,
+  summarizeSideEffects,
 } from "../../src/commands/background-session.js";
 
 describe("background-session command helpers", () => {
@@ -73,6 +74,49 @@ describe("background-session command helpers", () => {
     expect(text).toContain("phase: idle");
     expect(text).toContain("turns: 3");
     expect(text).toContain("transport: interactive attach available");
+  });
+
+  it("renders the bounded governance and side-effect summaries", () => {
+    const text = formatBackgroundAgentDetails(
+      {
+        id: "bg-gov",
+        status: "running",
+        startedAt: 1_000,
+        governance: {
+          owner: "background:bg-gov",
+          permissionMode: "auto",
+          resourceBudget: { maxTurns: 8, maxCostUsd: 3.5 },
+        },
+        sideEffects: { total: 3, unsettled: 1, unknown: 1 },
+      },
+      "",
+      { now: 2_000 },
+    );
+    expect(text).toContain("owner: background:bg-gov");
+    expect(text).toContain("permissionMode: auto");
+    expect(text).toContain("budget: turns=8 costUsd=3.5");
+    expect(text).toContain("sideEffects: total=3 unsettled=1 unknown=1");
+  });
+
+  it("summarizes ledger state without exposing operation metadata", () => {
+    expect(
+      summarizeSideEffects({
+        ops: [
+          { state: "prepared", meta: { secret: "must-not-leak" } },
+          { state: "started" },
+          { state: "committed" },
+          { state: "unknown" },
+        ],
+      }),
+    ).toEqual({
+      total: 4,
+      prepared: 1,
+      started: 1,
+      committed: 1,
+      failed: 0,
+      unknown: 1,
+      unsettled: 2,
+    });
   });
 });
 

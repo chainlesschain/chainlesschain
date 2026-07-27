@@ -1333,6 +1333,7 @@ export function registerSessionCommand(program) {
     "subagent",
     "tool",
     "mcp",
+    "plugin",
     "model",
   ];
 
@@ -1399,6 +1400,18 @@ export function registerSessionCommand(program) {
         logger.log(
           chalk.gray(
             "  turnTokens = tokens of turns that used the server (approximation; do not sum across rows)",
+          ),
+        );
+        return;
+      }
+      case "plugin": {
+        const rows = a.tools?.byPlugin || [];
+        if (rows.length === 0) return empty("plugin-attributed tool calls");
+        for (const r of rows)
+          toolRow(`${r.plugin}${r.version ? `@${r.version}` : ""}`, r);
+        logger.log(
+          chalk.gray(
+            "  turnTokens = tokens of turns that used the plugin (approximation; do not sum across rows)",
           ),
         );
         return;

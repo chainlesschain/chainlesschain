@@ -19,6 +19,9 @@ const TOOL_FEATURES = new Map([
   ["openMultiDiff", "multi_file_diff"],
   ["getTerminalOutput", "terminal_output"],
   ["getPreviewState", "preview_state"],
+  ["getTestResults", "test_results"],
+  ["getCoverage", "coverage"],
+  ["getDebugState", "debug_state"],
   ["executeCode", "notebook_execute"],
   ["getHover", "semantic_hover"],
   ["goToDefinition", "semantic_definition"],
@@ -35,11 +38,11 @@ function buildIdeCapabilities(tools = []) {
       .map((tool) => tool && tool.name)
       .filter((name) => typeof name === "string" && name.length > 0),
   );
-  const features = [...new Set(
-    [...names]
-      .map((name) => TOOL_FEATURES.get(name))
-      .filter(Boolean),
-  )].sort();
+  const features = [
+    ...new Set(
+      [...names].map((name) => TOOL_FEATURES.get(name)).filter(Boolean),
+    ),
+  ].sort();
   return {
     schemaVersion: IDE_CAPABILITY_VERSION,
     features,

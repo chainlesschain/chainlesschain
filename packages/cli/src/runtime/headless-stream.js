@@ -81,6 +81,7 @@ import {
   startSession as jsonlStartSession,
   appendUserMessage as jsonlAppendUserMessage,
   appendAssistantMessage as jsonlAppendAssistantMessage,
+  appendToolCallCompact as jsonlAppendToolCallCompact,
   appendEvent as jsonlAppendEvent,
   readEvents as jsonlReadEvents,
   rebuildMessages as jsonlRebuildMessages,
@@ -105,6 +106,7 @@ import {
   executeSessionSlashCommand,
   parseSessionSlashCommandEvent,
 } from "./session-slash-commands.js";
+import { extractPluginUsageAttribution } from "../lib/plugin-usage-attribution.js";
 
 /**
  * Resolve the streaming-delta coalesce window (ms). Adjacent partial-message
@@ -871,7 +873,10 @@ async function runTurn(
             ? toolCalls.find((call) => call.id === event.tool_use_id)
             : null) ||
           (toolCalls.length > 0 ? toolCalls[toolCalls.length - 1] : null);
-        if (lastCall) lastCall.is_error = Boolean(err);
+        if (lastCall) {
+          lastCall.is_error = Boolean(err);
+          Object.assign(lastCall, extractPluginUsageAttribution(event.result));
+        }
         const pm = getPlanModeManager();
         const settledItem = lastCall?.planItemId
           ? pm.settlePlanItem(lastCall.planItemId, {
@@ -1190,6 +1195,8 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     appendUserMessage: deps.appendUserMessage || jsonlAppendUserMessage,
     appendAssistantMessage:
       deps.appendAssistantMessage || jsonlAppendAssistantMessage,
+    appendToolCallCompact:
+      deps.appendToolCallCompact || jsonlAppendToolCallCompact,
     appendEvent: deps.appendEvent || jsonlAppendEvent,
     readEvents: deps.readEvents || jsonlReadEvents,
     rebuildMessages: deps.rebuildMessages || jsonlRebuildMessages,
@@ -2897,6 +2904,18 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     if (persist) {
       try {
         store.appendAssistantMessage(sessionId, outcome.finalText);
+        for (const call of outcome.toolCalls || []) {
+          store.appendToolCallCompact(sessionId, {
+            tool: call.tool,
+            isError: Boolean(call.is_error),
+            skill:
+              call.tool === "run_skill"
+                ? call.args?.skill_name || null
+                : undefined,
+            plugin: call.plugin || undefined,
+            pluginVersion: call.pluginVersion || undefined,
+          });
+        }
       } catch {
         /* best-effort */
       }

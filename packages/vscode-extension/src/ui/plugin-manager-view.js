@@ -15,8 +15,10 @@ const {
   buildPluginAddArgs,
   buildPluginConsentArgs,
   buildPluginInstalledArgs,
+  buildPluginLifecycleArgs,
   buildPluginTrustArgs,
   buildPluginUninstallArgs,
+  buildPluginUpgradeArgs,
   buildPluginUseArgs,
   buildSkillListArgs,
   parseMcpServers,
@@ -33,6 +35,7 @@ const {
 } = require("../plugin-quality.js");
 
 let _panel = null;
+let _chatProvider = null;
 
 async function runCli(args, timeoutMs = 30000) {
   const { runCliText } = require("../chat/introspect-commands.js");
@@ -105,7 +108,8 @@ async function refresh() {
   post(await snapshot());
 }
 
-function openPluginManager(vscode) {
+function openPluginManager(vscode, chatProvider) {
+  _chatProvider = chatProvider || _chatProvider;
   if (_panel) {
     _panel.reveal();
     refresh().catch(() => {});
@@ -138,7 +142,99 @@ async function handleMessage(vscode, msg) {
     await runCli(
       buildPluginTrustArgs(msg.name, msg.trusted === true, msg.scope),
     );
+    reloadActivePluginSessions();
     return refresh();
+  }
+  if (msg.command === "pluginLifecycle") {
+    const enabled = msg.enabled === true;
+    if (!enabled) {
+      const choice = await vscode.window.showWarningMessage(
+        `Disable ${msg.name} (${msg.scope} scope)? Installed versions and configuration are retained, but its runtime components stop loading.`,
+        { modal: true },
+        "Disable",
+      );
+      if (choice !== "Disable") return;
+    }
+    await runCli(buildPluginLifecycleArgs(msg.name, enabled, msg.scope), 30000);
+    const reloaded = reloadActivePluginSessions();
+    vscode.window.showInformationMessage(
+      `ChainlessChain: ${msg.name} ${enabled ? "enabled" : "disabled"}; reload requested in ${reloaded} live chat session(s).`,
+    );
+    return refresh();
+  }
+  if (msg.command === "pluginUpgrade") {
+    const source =
+      msg.source && typeof msg.source === "object" ? msg.source : {};
+    const useRegistry = Boolean(source.registry && source.package);
+    let target = useRegistry
+      ? source.package
+      : source.resolvedSource || source.source;
+    if (!target) {
+      target = await vscode.window.showInputBox({
+        prompt: `Upgrade source for ${msg.name}`,
+        placeHolder: "C:\\path\\to\\plugin · owner/repo[#ref]",
+      });
+      if (!target) return;
+    }
+    const choice = await vscode.window.showWarningMessage(
+      `Upgrade ${msg.name} from its ${source.type || "selected"} source? The current immutable version remains available for rollback.`,
+      { modal: true },
+      "Upgrade",
+    );
+    if (choice !== "Upgrade") return;
+    await runCli(
+      buildPluginUpgradeArgs(target, {
+        scope: msg.scope,
+        registry: useRegistry ? source.registry : undefined,
+        packageName: useRegistry ? source.package : undefined,
+      }),
+      120000,
+    );
+    const reloaded = reloadActivePluginSessions();
+    vscode.window.showInformationMessage(
+      `ChainlessChain: ${msg.name} upgrade finished; reload requested in ${reloaded} live chat session(s).`,
+    );
+    return refresh();
+  }
+  if (msg.command === "pluginDetails") {
+    const source =
+      msg.source && typeof msg.source === "object" ? msg.source : {};
+    const integrity =
+      msg.integrity && typeof msg.integrity === "object" ? msg.integrity : {};
+    const signature = integrity.signature || {};
+    const sbom = integrity.sbom || {};
+    const policy =
+      msg.policy && typeof msg.policy === "object" ? msg.policy : {};
+    await vscode.window.showInformationMessage(
+      [
+        `${msg.name} v${msg.version || "?"} (${msg.scope} scope)`,
+        `State: ${msg.enabled === false ? "disabled" : "enabled"}`,
+        `Source: ${source.type || "legacy/unknown"} ${source.source || ""}`,
+        source.ref ? `Pin: ${source.ref}` : "",
+        signature.verified
+          ? `Signature: verified (${signature.publicKeySha256 || "key fingerprint unavailable"})`
+          : `Signature: unverified${signature.reason ? ` — ${signature.reason}` : ""}`,
+        sbom.present
+          ? `SBOM: ${sbom.fileCount || 0} files, ${sbom.totalBytes || 0} bytes, digest ${sbom.digest || "unknown"}`
+          : "SBOM: unavailable",
+        policy.managed
+          ? `Managed policy: ${policy.allowed === false ? "blocked" : "allowed"} (${policy.source || "source unavailable"})${policy.reason ? ` — ${policy.reason}` : ""}`
+          : "Managed policy: none",
+      ]
+        .filter(Boolean)
+        .join("\n"),
+      { modal: true },
+    );
+    return;
+  }
+  if (msg.command === "pluginReload") {
+    const reloaded = reloadActivePluginSessions();
+    vscode.window.showInformationMessage(
+      reloaded
+        ? `ChainlessChain: requested plugin-runtime reload in ${reloaded} live chat session(s).`
+        : "ChainlessChain: no live foreground chat session needed reloading; new sessions already use the current plugin state.",
+    );
+    return;
   }
   if (msg.command === "pluginUninstall") {
     const ok = await vscode.window.showWarningMessage(
@@ -177,8 +273,9 @@ async function handleMessage(vscode, msg) {
     );
     if (confirmed !== "Switch version") return;
     await runCli(buildPluginUseArgs(msg.name, version, msg.scope));
+    const reloaded = reloadActivePluginSessions();
     vscode.window.showInformationMessage(
-      `ChainlessChain: ${msg.name} now points to v${version}. Reload plugin runtime in active sessions to pick it up.`,
+      `ChainlessChain: ${msg.name} now points to v${version}; reload requested in ${reloaded} live chat session(s).`,
     );
     return refresh();
   }
@@ -223,6 +320,7 @@ async function handleMessage(vscode, msg) {
         msg.scope,
       ),
     );
+    reloadActivePluginSessions();
     return refresh();
   }
   if (msg.command === "pluginAdd") {
@@ -275,6 +373,16 @@ async function handleMessage(vscode, msg) {
   }
 }
 
+function reloadActivePluginSessions() {
+  try {
+    return typeof _chatProvider?.reloadPluginRuntimes === "function"
+      ? _chatProvider.reloadPluginRuntimes()
+      : 0;
+  } catch {
+    return 0;
+  }
+}
+
 function nonce() {
   return require("crypto").randomBytes(16).toString("hex");
 }
@@ -323,6 +431,7 @@ function renderHtml() {
   <div>
     <button id="refresh">Refresh</button>
     <button id="pluginAdd" class="sec">Add plugin…</button>
+    <button id="pluginReload" class="sec">Reload live sessions</button>
   </div>
 
   <h2>Runtime plugins</h2>
@@ -344,23 +453,37 @@ function renderHtml() {
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
   document.getElementById('refresh').addEventListener('click', ()=>vscode.postMessage({command:'refresh'}));
   document.getElementById('pluginAdd').addEventListener('click', ()=>vscode.postMessage({command:'pluginAdd'}));
+  document.getElementById('pluginReload').addEventListener('click', ()=>vscode.postMessage({command:'pluginReload'}));
   document.getElementById('skillFilter').addEventListener('input', ()=>{ if(last) renderSkills(last.skills); });
 
   function renderPlugins(rows){
     const el = document.getElementById('plugins');
     if (rows === null){ el.innerHTML = '<p class="err">could not read plugins (is cc installed?)</p>'; return; }
     if (!rows.length){ el.innerHTML = '<p class="muted">No runtime plugins installed — Add plugin… installs a directory or a registry package.</p>'; return; }
-    el.innerHTML = '<table><thead><tr><th>plugin</th><th>version</th><th>scope</th><th>manifest</th><th style="width:220px"></th></tr></thead><tbody>'
+    el.innerHTML = '<table><thead><tr><th>plugin</th><th>version</th><th>scope</th><th>state</th><th>supply chain</th><th style="width:360px"></th></tr></thead><tbody>'
       + rows.map(p => '<tr><td>'+esc(p.name)+'</td><td>'+esc(p.version)+'</td>'
         + '<td><span class="pill">'+esc(p.scope)+'</span></td>'
-        + '<td>'+(p.ok?'<span class="ok">✔ ok</span>':'<span class="bad">✖ invalid</span>')+'</td>'
+        + '<td>'+(p.enabled?'<span class="ok">enabled</span>':'<span class="warnflag">disabled</span>')
+        + (p.ok?'':' <span class="bad">invalid manifest</span>')+'</td>'
+        + '<td>'+(p.integrity&&p.integrity.signature&&p.integrity.signature.verified
+          ? '<span class="pill ok">signed</span>'
+          : '<span class="pill muted">unsigned</span>')
+        + (p.integrity&&p.integrity.sbom&&p.integrity.sbom.present
+          ? ' <span class="pill">SBOM '+esc(p.integrity.sbom.fileCount)+'</span>'
+          : '')
+        + (p.policy&&p.policy.managed
+          ? (p.policy.allowed? ' <span class="pill">managed</span>' : ' <span class="pill bad">policy blocked</span>')
+          : '')+'</td>'
         + '<td>'
+        + '<button class="sec" data-act="pluginLifecycle" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">'+(p.enabled?'Disable':'Enable')+'</button>'
+        + '<button class="sec" data-act="pluginUpgrade" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Upgrade</button>'
         + '<button class="sec" data-act="trust" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Trust</button>'
         + '<button class="sec" data-act="untrust" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Untrust</button>'
         + (Array.isArray(p.versions) && p.versions.length > 1
           ? '<button class="sec" data-act="pluginUse" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Versions ('+p.versions.length+')</button>'
           : '')
         + '<button class="sec" data-act="pluginConsent" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Capabilities</button>'
+        + '<button class="sec" data-act="pluginDetails" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Details</button>'
         + '<button class="sec" data-act="uninstall" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Uninstall</button>'
         + '</td></tr>').join('')
       + '</tbody></table>';
@@ -399,14 +522,17 @@ function renderHtml() {
     if (!b) return;
     const name = b.getAttribute('data-name');
     const act = b.getAttribute('data-act');
+    const scope = b.getAttribute('data-scope')||'user';
+    const row = Array.isArray(last && last.plugins) ? last.plugins.find(p => p.name === name && p.scope === scope) : null;
     if (act === 'trust') vscode.postMessage({command:'pluginTrust', name, trusted:true, scope: b.getAttribute('data-scope')||'user'});
     else if (act === 'untrust') vscode.postMessage({command:'pluginTrust', name, trusted:false, scope: b.getAttribute('data-scope')||'user'});
+    else if (act === 'pluginLifecycle') vscode.postMessage({command:'pluginLifecycle', name, scope, enabled:!(row&&row.enabled)});
+    else if (act === 'pluginUpgrade') vscode.postMessage({command:'pluginUpgrade', name, scope, source:row&&row.source});
+    else if (act === 'pluginDetails') vscode.postMessage({command:'pluginDetails', name, scope, version:row&&row.version, enabled:row&&row.enabled, source:row&&row.source, integrity:row&&row.integrity, policy:row&&row.policy});
     else if (act === 'pluginUse') {
-      const row = Array.isArray(last && last.plugins) ? last.plugins.find(p => p.name === name && p.scope === (b.getAttribute('data-scope')||'user')) : null;
       vscode.postMessage({command:'pluginUse', name, scope:b.getAttribute('data-scope')||'user', activeVersion:row&&row.version, versions:row&&row.versions});
     }
     else if (act === 'pluginConsent') {
-      const row = Array.isArray(last && last.plugins) ? last.plugins.find(p => p.name === name && p.scope === (b.getAttribute('data-scope')||'user')) : null;
       vscode.postMessage({command:'pluginConsent', name, scope:b.getAttribute('data-scope')||'user', activeVersion:row&&row.version});
     }
     else if (act === 'uninstall') vscode.postMessage({command:'pluginUninstall', name, scope: b.getAttribute('data-scope')||'user'});

@@ -27,6 +27,18 @@ describe("formatBridgeReport", () => {
       doctorText: "live locks: 1\nreason: workspace-match",
       cliVersionText: "0.162.176",
       workspaceTrusted: true,
+      runtimeEnvironment: {
+        node: {
+          status: "ready",
+          version: "22.12.0",
+          minimumVersion: "22.12.0",
+        },
+        java: { status: "ready", version: "21.0.3" },
+        caches: {
+          managedCli: { status: "ready", version: "0.200.0" },
+          pluginRegistry: { status: "ready", entries: 3 },
+        },
+      },
     });
     expect(md).toContain("running on 127.0.0.1:51234");
     expect(md).toContain("connect vscode:51234");
@@ -35,6 +47,10 @@ describe("formatBridgeReport", () => {
     expect(md).toContain("## cc ide doctor");
     expect(md).toContain("READY (可运行)");
     expect(md).toContain("CLI: 0.162.176");
+    expect(md).toContain("## Development runtimes and offline recovery");
+    expect(md).toContain("Node.js: 22.12.0");
+    expect(md).toContain("Managed CLI offline copy: ready (0.200.0)");
+    expect(md).toContain("Plugin registry offline cache: ready (3 entries)");
   });
 
   it("says STOPPED (with the recovery action) when the bridge is down", () => {

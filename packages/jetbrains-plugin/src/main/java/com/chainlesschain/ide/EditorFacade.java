@@ -97,6 +97,52 @@ public interface EditorFacade {
         return false;
     }
 
+    /** Whether recent IDE-native test results are available. */
+    default boolean supportsTestResults() {
+        return false;
+    }
+
+    /** Bounded {@code cc-ide-quality/v1} test-result snapshot. */
+    default Map<String, Object> getTestResults(int limit) {
+        Map<String, Object> out = new java.util.LinkedHashMap<String, Object>();
+        out.put("schema", "cc-ide-quality/v1");
+        out.put("kind", "test-results");
+        out.put("available", Boolean.FALSE);
+        out.put("runs", new java.util.ArrayList<Map<String, Object>>());
+        return out;
+    }
+
+    /** Whether the host can inspect its latest coverage suite. */
+    default boolean supportsCoverage() {
+        return false;
+    }
+
+    /** Bounded {@code cc-ide-quality/v1} coverage snapshot. */
+    default Map<String, Object> getCoverage(String path) {
+        Map<String, Object> out = new java.util.LinkedHashMap<String, Object>();
+        out.put("schema", "cc-ide-quality/v1");
+        out.put("kind", "coverage");
+        out.put("available", Boolean.FALSE);
+        out.put("files", new java.util.ArrayList<Map<String, Object>>());
+        return out;
+    }
+
+    /** Whether the host can inspect debugger state. */
+    default boolean supportsDebugState() {
+        return false;
+    }
+
+    /** Secret-free {@code cc-ide-quality/v1} debugger snapshot. */
+    default Map<String, Object> getDebugState() {
+        Map<String, Object> out = new java.util.LinkedHashMap<String, Object>();
+        out.put("schema", "cc-ide-quality/v1");
+        out.put("kind", "debug-state");
+        out.put("available", Boolean.FALSE);
+        out.put("session", null);
+        out.put("breakpoints", new java.util.ArrayList<Map<String, Object>>());
+        return out;
+    }
+
     /**
      * App Preview dev-server state: running flag, detected URL, npm script,
      * last exit code, and the recent server output tail. Page-side state

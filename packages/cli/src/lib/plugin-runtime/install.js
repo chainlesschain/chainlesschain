@@ -26,22 +26,32 @@ import {
   listInstalledVersions,
   activeVersion,
   discoverPlugins,
+  DISABLED_FILENAME,
 } from "./scopes.js";
-import { verifyPluginManifest } from "../plugin-security.js";
+import {
+  enforcePluginPolicy,
+  verifyPluginManifest,
+} from "../plugin-security.js";
 import {
   writePluginLock,
   buildPluginSbom,
   LOCK_FILENAME,
+  readPluginLock,
+  verifyInstalledSignature,
 } from "./signature.js";
+import { loadManagedPluginPolicy, filterByManagedPolicy } from "./policy.js";
+import { managedSettingsPath } from "../settings-loader.cjs";
 import executionBroker from "../process-execution-broker/index.js";
 
 export const MAX_LISTED_PLUGIN_VERSIONS = 64;
+export const SOURCE_METADATA_FILENAME = ".plugin-source.json";
 
 export const _deps = {
   existsSync: fs.existsSync,
   mkdirSync: fs.mkdirSync,
   rmSync: fs.rmSync,
   readdirSync: fs.readdirSync,
+  readFileSync: fs.readFileSync,
   copyFileSync: fs.copyFileSync,
   lstatSync: fs.lstatSync,
   writeFileSync: fs.writeFileSync,
@@ -69,6 +79,17 @@ export function installFromDirectory(srcDir, opts = {}) {
     );
   }
   const { name, version } = manifest.metadata;
+  const sourceMetadata = normalizeSourceMetadata(opts.sourceMetadata);
+  if (opts.managedPolicy) {
+    enforcePluginPolicy(
+      {
+        name,
+        source: opts.policySource || sourceMetadata?.source || null,
+        action: "install",
+      },
+      opts.managedPolicy,
+    );
+  }
 
   // Optional signature/integrity verification of the manifest at install time
   // (Phase 3.3l). verifyPluginManifest THROWS on any mismatch/failure — a signed
@@ -108,6 +129,15 @@ export function installFromDirectory(srcDir, opts = {}) {
   // unsigned install that forged lock would otherwise survive into the
   // "immutable" version dir and defeat load-time requireSignedPlugins.
   _deps.rmSync(path.join(dest, LOCK_FILENAME), { force: true });
+  _deps.rmSync(path.join(dest, SOURCE_METADATA_FILENAME), { force: true });
+
+  if (sourceMetadata) {
+    _deps.writeFileSync(
+      path.join(dest, SOURCE_METADATA_FILENAME),
+      JSON.stringify(sourceMetadata, null, 2),
+      "utf8",
+    );
+  }
 
   // Record the verified signature into the installed (immutable) version dir so
   // load-time enforcement can re-check it. The manifest was copied verbatim, so
@@ -138,6 +168,8 @@ export function installFromDirectory(srcDir, opts = {}) {
     dir: dest,
     warnings: manifest.warnings,
     signatureVerified: verification?.signatureVerified === true,
+    sourceMetadata,
+    enabled: isPluginEnabled(name, { scope, cwd: opts.cwd }),
   };
 }
 
@@ -150,8 +182,21 @@ export function installFromDirectory(srcDir, opts = {}) {
  */
 export function installFromSource(source, opts = {}) {
   return _withMaterializedSource(source, (dir, info) => {
-    const res = installFromDirectory(dir, opts);
-    return info ? { ...res, source: info.url, ref: info.ref || null } : res;
+    const sourceMetadata =
+      normalizeSourceMetadata(opts.sourceMetadata) ||
+      normalizeSourceMetadata(
+        info
+          ? { type: "git", source: info.url, ref: info.ref || null }
+          : { type: "local", source: path.resolve(String(source || "")) },
+      );
+    const res = installFromDirectory(dir, { ...opts, sourceMetadata });
+    return info
+      ? {
+          ...res,
+          source: sourceMetadata?.source || null,
+          ref: sourceMetadata?.ref || null,
+        }
+      : res;
   });
 }
 
@@ -202,6 +247,13 @@ export function updatePlugin(source, opts = {}) {
       );
     }
     const { name, version } = manifest.metadata;
+    const sourceMetadata =
+      normalizeSourceMetadata(opts.sourceMetadata) ||
+      normalizeSourceMetadata(
+        info
+          ? { type: "git", source: info.url, ref: info.ref || null }
+          : { type: "local", source: path.resolve(String(source || "")) },
+      );
     const previousVersion = getActiveVersion(name, { scope, cwd: opts.cwd });
     const dest = pluginVersionDir(scope, name, version, { cwd: opts.cwd });
     const sameVersionExists = _deps.existsSync(dest);
@@ -218,18 +270,24 @@ export function updatePlugin(source, opts = {}) {
         previousVersion,
         updated: previousVersion !== version,
         reinstalled: false,
-        source: info ? info.url : null,
+        source: sourceMetadata?.source || null,
+        ref: sourceMetadata?.ref || null,
       };
     }
 
-    const res = installFromDirectory(dir, { ...opts, scope, force: true });
+    const res = installFromDirectory(dir, {
+      ...opts,
+      scope,
+      force: true,
+      sourceMetadata,
+    });
     return {
       ...res,
       previousVersion,
       updated: previousVersion !== version,
       reinstalled: sameVersionExists,
-      source: info ? info.url : null,
-      ref: info ? info.ref || null : null,
+      source: sourceMetadata?.source || null,
+      ref: sourceMetadata?.ref || null,
     };
   });
 }
@@ -319,10 +377,26 @@ export function fetchGitRepo(url, ref) {
  * invisible and impossible to inspect / uninstall / un-deny.
  */
 export function listInstalled(opts = {}) {
+  let managed = null;
+  let managedError = null;
+  try {
+    managed = loadManagedPluginPolicy({
+      env: opts.env,
+      managedSettingsFile: opts.managedSettingsFile,
+    });
+  } catch (error) {
+    managedError = error;
+  }
+  const policySource = managedSettingsPath({
+    env: opts.env,
+    managedSettingsFile: opts.managedSettingsFile,
+  });
+
   return discoverPlugins({
     cwd: opts.cwd,
     scopes: opts.scopes,
     skipPolicy: true,
+    includeDisabled: true,
   }).map((p) => {
     const allVersions = listInstalledVersions(p.scope, p.name, {
       cwd: opts.cwd,
@@ -335,6 +409,16 @@ export function listInstalled(opts = {}) {
     ) {
       versions[versions.length - 1] = p.version;
     }
+    const lock = readPluginLock(p.root);
+    const signature = verifyInstalledSignature(p);
+    const policyResult =
+      managed && !managedError
+        ? filterByManagedPolicy([p], managed)
+        : { kept: [p], dropped: [] };
+    const policyDrop = policyResult.dropped[0] || null;
+    const sbomFiles = Array.isArray(lock?.sbom?.files)
+      ? lock.sbom.files.slice(0, 100000)
+      : [];
     return {
       name: p.name,
       version: p.version,
@@ -342,6 +426,45 @@ export function listInstalled(opts = {}) {
       scope: p.scope,
       dir: p.root,
       ok: p.manifest?.ok === true,
+      enabled: p.enabled !== false,
+      source: readSourceMetadata(p.root),
+      integrity: {
+        signature: {
+          present: Boolean(lock?.signatureBase64 && lock?.publicKeyPem),
+          verified: signature.signed === true,
+          reason: signature.signed ? null : signature.reason || "unsigned",
+          manifestSha256: lock?.sha256 || null,
+          publicKeySha256:
+            signature.publicKeySha256 || lock?.publicKeySha256 || null,
+        },
+        sbom: {
+          present: Boolean(lock?.sbom),
+          digest: lock?.sbom?.digest || null,
+          fileCount: sbomFiles.length,
+          totalBytes: Math.min(
+            Number.MAX_SAFE_INTEGER,
+            sbomFiles.reduce(
+              (sum, file) =>
+                sum +
+                (Number.isFinite(Number(file?.bytes)) && Number(file.bytes) > 0
+                  ? Number(file.bytes)
+                  : 0),
+              0,
+            ),
+          ),
+        },
+      },
+      policy: {
+        managed: Boolean(managed) || Boolean(managedError),
+        source: policySource,
+        allowed: !managedError && !policyDrop,
+        reason: managedError
+          ? managedError.message
+          : policyDrop?.reason || (managed ? "allowed by managed policy" : ""),
+        requireSigned:
+          managed?.requireSignedPlugins === true ||
+          managed?.requireSignedPlugins === "require",
+      },
     };
   });
 }
@@ -412,9 +535,105 @@ export function setActiveVersion(name, version, opts = {}) {
   return { name, version, scope, active: version };
 }
 
+/** Enable or disable one scoped plugin without deleting immutable versions. */
+export function setPluginEnabled(name, enabled, opts = {}) {
+  const scope = opts.scope || "user";
+  const cwd = opts.cwd;
+  const nameDir = pluginNameDir(scope, name, { cwd });
+  if (
+    !_deps.existsSync(nameDir) ||
+    listInstalledVersions(scope, name, { cwd }).length === 0
+  ) {
+    throw new Error(`${name} is not installed at ${scope} scope`);
+  }
+  const marker = path.join(nameDir, DISABLED_FILENAME);
+  if (enabled) {
+    _deps.rmSync(marker, { force: true });
+  } else {
+    _deps.writeFileSync(
+      marker,
+      JSON.stringify(
+        {
+          disabled: true,
+          reason: String(opts.reason || "disabled by user").slice(0, 256),
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+  }
+  return { name, scope, enabled: Boolean(enabled) };
+}
+
+/** Current lifecycle state for one scoped plugin. */
+export function isPluginEnabled(name, opts = {}) {
+  const scope = opts.scope || "user";
+  return !_deps.existsSync(
+    path.join(pluginNameDir(scope, name, { cwd: opts.cwd }), DISABLED_FILENAME),
+  );
+}
+
 /** Which version is active for a plugin at a scope (or null). */
 export function getActiveVersion(name, opts = {}) {
   return activeVersion(opts.scope || "user", name, { cwd: opts.cwd });
+}
+
+function readSourceMetadata(versionDir) {
+  const file = path.join(versionDir, SOURCE_METADATA_FILENAME);
+  if (!_deps.existsSync(file)) return null;
+  try {
+    return normalizeSourceMetadata(
+      JSON.parse(_deps.readFileSync(file, "utf8")),
+    );
+  } catch {
+    return null;
+  }
+}
+
+function normalizeSourceMetadata(value) {
+  if (!value || typeof value !== "object") return null;
+  const type = ["local", "git", "registry"].includes(value.type)
+    ? value.type
+    : "git";
+  const source = sanitizeSource(value.source, type === "local");
+  if (!source) return null;
+  const metadata = {
+    version: 1,
+    type,
+    source,
+    ref: cleanBounded(value.ref, 256),
+  };
+  const registry = sanitizeSource(value.registry);
+  const resolvedSource = sanitizeSource(value.resolvedSource);
+  const packageName = cleanBounded(value.package, 256);
+  if (registry) metadata.registry = registry;
+  if (resolvedSource) metadata.resolvedSource = resolvedSource;
+  if (packageName) metadata.package = packageName;
+  if (value.offline === true) metadata.offline = true;
+  return metadata;
+}
+
+function sanitizeSource(value, preservePath = false) {
+  const raw = cleanBounded(value, 4096);
+  if (!raw) return null;
+  if (preservePath) return raw;
+  try {
+    const parsed = new URL(raw);
+    parsed.username = "";
+    parsed.password = "";
+    parsed.search = "";
+    parsed.hash = "";
+    return parsed.toString();
+  } catch {
+    return raw;
+  }
+}
+
+function cleanBounded(value, max) {
+  if (typeof value !== "string") return null;
+  const clean = value.replace(/\p{Cc}/gu, "").trim();
+  return clean ? clean.slice(0, max) : null;
 }
 
 // ── guarded recursive copy ────────────────────────────────────────────────

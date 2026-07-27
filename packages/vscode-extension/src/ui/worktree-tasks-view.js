@@ -8,8 +8,11 @@
  * list`; worktree-tasks.js owns the argv/parsing. SDK-bound glue only.
  */
 const { execFile } = require("child_process");
+const { runCliResult } = require("../chat/introspect-commands.js");
 const {
+  attachTaskGovernance,
   buildAheadArgs,
+  buildBackgroundListArgs,
   buildBranchDeleteArgs,
   buildMergeAbortArgs,
   buildMergeArgs,
@@ -43,7 +46,16 @@ function runGit(args, cwd, timeoutMs = 30000) {
 }
 
 async function snapshot(repoRoot) {
-  const list = await runGit(buildWorktreeListArgs(), repoRoot);
+  const { getResolvedCli } = require("../cli-binary");
+  const [list, background] = await Promise.all([
+    runGit(buildWorktreeListArgs(), repoRoot),
+    runCliResult({
+      command: getResolvedCli(),
+      args: buildBackgroundListArgs(),
+      cwd: repoRoot,
+      timeoutMs: 15000,
+    }),
+  ]);
   if (list.code !== 0) {
     return {
       type: "update",
@@ -77,7 +89,7 @@ async function snapshot(repoRoot) {
     ok: true,
     repoRoot,
     mainBranch,
-    tasks: enriched,
+    tasks: attachTaskGovernance(enriched, background.stdout),
   };
 }
 
@@ -262,6 +274,23 @@ function renderHtml() {
     return '<span class="bad">conflicts</span> <span class="muted">'+esc(files)+((m.files||[]).length>3?' …':'')+'</span>';
   }
 
+  function governanceCell(t){
+    if (!t.backgroundId) return '<span class="muted">unmanaged</span>';
+    const b = t.resourceBudget || {};
+    const e = t.sideEffects || {};
+    const budget = [
+      b.maxTurns ? 'turns '+b.maxTurns : '',
+      b.maxCostUsd ? '$'+b.maxCostUsd : ''
+    ].filter(Boolean).join(' / ') || 'unbounded';
+    const effects = Number(e.total||0)
+      ? 'effects '+Number(e.total||0)+' / unsettled '+Number(e.unsettled||0)
+        +' / unknown '+Number(e.unknown||0)
+      : 'no effects';
+    return '<span class="pill">'+esc(t.permissionMode||'default')+'</span> '
+      + '<span class="muted">'+esc(t.owner||t.backgroundId)+'</span><br>'
+      + '<span class="muted">'+esc(budget)+' · '+esc(effects)+'</span>';
+  }
+
   function apply(m){
     document.getElementById('busy').textContent = '';
     const body = document.getElementById('body');
@@ -269,13 +298,16 @@ function renderHtml() {
     mainBranch = m.mainBranch || '';
     document.getElementById('base').textContent = 'base: '+mainBranch;
     if (!m.tasks.length){
-      body.innerHTML = '<p class="muted">No agent task worktrees (cc-agent-* / batch/* / agent/*). “New isolated task…” starts one.</p>';
+      body.innerHTML = '<p class="muted">No agent task worktrees (cc-agent-* / batch/* / agent/* / team/*). “New isolated task…” starts one.</p>';
       return;
     }
-    body.innerHTML = '<table><thead><tr><th>branch</th><th>changes</th><th>state</th><th>merge risk</th><th style="width:170px"></th></tr></thead><tbody>'
+    body.innerHTML = '<table><thead><tr><th>branch</th><th>changes</th><th>state</th><th>governance</th><th>merge risk</th><th style="width:170px"></th></tr></thead><tbody>'
       + m.tasks.map(t => '<tr><td title="'+esc(t.path)+'">'+esc(t.branch)+'</td>'
         + '<td>'+esc(t.stat)+' <span class="muted">↑'+t.ahead+'</span></td>'
-        + '<td>'+(t.dirty?'<span class="warn">working (dirty)</span>':'<span class="muted">idle</span>')+'</td>'
+        + '<td>'+(t.backgroundStatus
+          ? '<span class="'+(t.backgroundStatus==='failed'||t.backgroundStatus==='lost'?'bad':'ok')+'">'+esc(t.backgroundStatus)+'</span>'
+          : (t.dirty?'<span class="warn">working (dirty)</span>':'<span class="muted">idle</span>'))+'</td>'
+        + '<td>'+governanceCell(t)+'</td>'
         + '<td>'+riskCell(t.merge)+'</td>'
         + '<td>'
         + '<button class="sec" data-act="merge" data-branch="'+esc(t.branch)+'"'+(t.dirty?' title="worktree has uncommitted changes — they will NOT be merged"':'')+'>Merge</button>'

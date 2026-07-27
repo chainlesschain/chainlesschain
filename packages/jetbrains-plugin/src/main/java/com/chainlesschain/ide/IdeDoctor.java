@@ -47,6 +47,15 @@ public final class IdeDoctor {
             String doctorOut, String jetbrainsOut,
             RuntimeCompatibility.Result compatibility,
             String pluginVersion, String ideVersion) {
+        return formatReport(port, statusOut, doctorOut, jetbrainsOut,
+                compatibility, pluginVersion, ideVersion, null);
+    }
+
+    public static String formatReport(int port, String statusOut,
+            String doctorOut, String jetbrainsOut,
+            RuntimeCompatibility.Result compatibility,
+            String pluginVersion, String ideVersion,
+            RuntimeEnvironment.Result environment) {
         StringBuilder sb = new StringBuilder("ChainlessChain IDE bridge — diagnostics\n\n");
         RuntimeCompatibility.Result runtime = compatibility != null
                 ? compatibility
@@ -61,6 +70,11 @@ public final class IdeDoctor {
                   ? "missing / unrecognized" : runtime.cliVersion)
           .append(" (minimum ").append(runtime.minimumCliVersion)
           .append(")\n\n");
+        sb.append("── Development runtimes and offline recovery ──\n");
+        for (String line : RuntimeEnvironment.formatLines(environment)) {
+            sb.append(line).append('\n');
+        }
+        sb.append('\n');
         sb.append("This project's bridge: ");
         if (port > 0) {
             sb.append("running on 127.0.0.1:").append(port).append(" (server \"ide\")\n");

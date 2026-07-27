@@ -88,6 +88,7 @@ function normalizeAttribution(a) {
       totalErrors: num(tools.totalErrors),
       byTool: rows(tools.byTool),
       byMcpServer: rows(tools.byMcpServer),
+      byPlugin: rows(tools.byPlugin),
     },
   };
 }
@@ -189,7 +190,8 @@ function deriveUsageHints(summary) {
       input >= CACHE_MISS_MIN_INPUT_TOKENS &&
       num(t.cacheReadTokens) < CACHE_MISS_MAX_READ_RATIO * input
     ) {
-      const pct = input > 0 ? ((num(t.cacheReadTokens) / input) * 100).toFixed(1) : "0";
+      const pct =
+        input > 0 ? ((num(t.cacheReadTokens) / input) * 100).toFixed(1) : "0";
       hints.push(
         `High cache-miss: only ${fmt(t.cacheReadTokens)} cache-read vs ${fmt(input)} input tokens (${pct}%, threshold ${CACHE_MISS_MAX_READ_RATIO * 100}%) — stable prompt prefixes may not be cache-aligned.`,
       );
@@ -335,6 +337,26 @@ function attributionToLines(summary) {
       if (servers.others) {
         lines.push(
           `| _…${servers.others.length} more_ | ${fmt(sumBy(servers.others, "calls"))} | ${fmt(sumBy(servers.others, "errors"))} | — |`,
+        );
+      }
+    }
+    if (a.tools.byPlugin.length > 0) {
+      lines.push(
+        "",
+        "### Plugins",
+        "",
+        "| Plugin | Version | Calls | Errors | Turn tokens ≈ |",
+        "| --- | --- | ---: | ---: | ---: |",
+      );
+      const plugins = capRows(a.tools.byPlugin);
+      for (const r of plugins.top) {
+        lines.push(
+          `| ${escapeCell(r.plugin || "?")} | ${escapeCell(r.version || "")} | ${fmt(r.calls)} | ${fmt(r.errors)} | ${fmt(r.turnTokens)} |`,
+        );
+      }
+      if (plugins.others) {
+        lines.push(
+          `| _…${plugins.others.length} more_ | | ${fmt(sumBy(plugins.others, "calls"))} | ${fmt(sumBy(plugins.others, "errors"))} | — |`,
         );
       }
     }

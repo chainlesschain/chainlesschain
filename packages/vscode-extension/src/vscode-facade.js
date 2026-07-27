@@ -14,6 +14,84 @@ const {
 const { buildIdeContextV2 } = require("./ide-context-v2");
 
 const SEVERITY = ["error", "warning", "information", "hint"];
+const IDE_QUALITY_SCHEMA = "cc-ide-quality/v1";
+const MAX_TEST_ITEMS = 500;
+const MAX_TEST_MESSAGES = 8;
+const MAX_COVERAGE_FILES = 500;
+const MAX_BREAKPOINTS = 200;
+
+function boundedText(value, limit = 2000) {
+  if (value === null || value === undefined) return null;
+  const text =
+    typeof value === "string"
+      ? value
+      : typeof value?.value === "string"
+        ? value.value
+        : String(value);
+  return text.slice(0, limit);
+}
+
+function isoTimestamp(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  try {
+    return new Date(n).toISOString();
+  } catch {
+    return null;
+  }
+}
+
+function testStateName(value) {
+  const numberStates = [
+    "unknown",
+    "queued",
+    "running",
+    "passed",
+    "failed",
+    "skipped",
+    "errored",
+  ];
+  if (Number.isInteger(Number(value))) {
+    return numberStates[Number(value)] || "unknown";
+  }
+  const state = String(value || "").toLowerCase();
+  return [
+    "queued",
+    "running",
+    "passed",
+    "failed",
+    "skipped",
+    "errored",
+  ].includes(state)
+    ? state
+    : "unknown";
+}
+
+function rangeShape(range) {
+  if (!range?.start) return null;
+  return {
+    start: {
+      line: Number(range.start.line) || 0,
+      character: Number(range.start.character) || 0,
+    },
+    end: {
+      line: Number(range.end?.line ?? range.start.line) || 0,
+      character: Number(range.end?.character ?? range.start.character) || 0,
+    },
+  };
+}
+
+function coverageCount(value) {
+  if (!value || typeof value !== "object") return null;
+  const covered = Number(value.covered);
+  const total = Number(value.total);
+  if (!Number.isFinite(covered) || !Number.isFinite(total)) return null;
+  return {
+    covered: Math.max(0, covered),
+    total: Math.max(0, total),
+    percent: total > 0 ? Math.round((covered / total) * 10000) / 100 : null,
+  };
+}
 
 function uriText(uri) {
   if (!uri || typeof uri.toString !== "function") return null;
@@ -21,9 +99,23 @@ function uriText(uri) {
   return value && value !== "[object Object]" ? value : null;
 }
 
+function readVscodeTestResults(vscode) {
+  try {
+    const results = vscode?.tests?.testResults;
+    return Array.isArray(results) ? results : null;
+  } catch {
+    // `tests.testResults` is still guarded by VS Code's `testObserver`
+    // proposal on stable hosts. Merely reading that property throws when a
+    // Marketplace extension has not opted into proposed APIs, so feature
+    // detection must fail closed instead of aborting extension activation.
+    return null;
+  }
+}
+
 function createVscodeEditorFacade(vscode, opts = {}) {
   const hostPlatform = opts.platform || process.platform;
   const now = typeof opts.now === "function" ? opts.now : () => Date.now();
+  const hasTestResultObserver = readVscodeTestResults(vscode) !== null;
   // Optional provider for the App Preview controller (created lazily by the
   // preview.start command) — getPreviewState reads through it so the tool
   // reports "not running" before the first start instead of being absent.
@@ -136,11 +228,18 @@ function createVscodeEditorFacade(vscode, opts = {}) {
     async getContextMetadata({ file, tool } = {}) {
       const documents = vscode.workspace.textDocuments || [];
       const activeDocument = vscode.window.activeTextEditor?.document || null;
+      const notebookDocuments = vscode.workspace.notebookDocuments || [];
+      const activeNotebook =
+        vscode.window.activeNotebookEditor?.notebook || null;
       const document = file
-        ? documents.find((doc) => doc?.uri?.fsPath === file) || null
+        ? documents.find((doc) => doc?.uri?.fsPath === file) ||
+          notebookDocuments.find((doc) => doc?.uri?.fsPath === file) ||
+          null
         : tool === "getSelection" || tool === "getActiveFile"
           ? activeDocument
-          : null;
+          : tool === "executeCode"
+            ? activeNotebook
+            : null;
       const uri =
         document?.uri ||
         (file && vscode.Uri && typeof vscode.Uri.file === "function"
@@ -150,8 +249,7 @@ function createVscodeEditorFacade(vscode, opts = {}) {
         workspaceRoots: (vscode.workspace.workspaceFolders || [])
           .map((folder) => folder?.uri?.fsPath)
           .filter(Boolean),
-        documentUri:
-          uriText(uri),
+        documentUri: uriText(uri),
         documentVersion:
           document && Number.isFinite(Number(document.version))
             ? Number(document.version)
@@ -955,8 +1053,237 @@ function createVscodeEditorFacade(vscode, opts = {}) {
         tokenSource.dispose();
       }
       const cancelled = tokenSource.token.isCancellationRequested;
-      return { success: !cancelled, cancelled, outputs };
+      return {
+        success: !cancelled,
+        cancelled,
+        outputs,
+        notebookUri: uriText(notebook.uri),
+        notebookType: boundedText(notebook.notebookType, 96),
+        _contextFile:
+          typeof notebook.uri?.fsPath === "string" ? notebook.uri.fsPath : null,
+      };
     },
+
+    // VS Code Test API snapshots. The API is intentionally read-only here:
+    // the agent can inspect recent verification without triggering tests or
+    // duplicating a test runner in the extension host.
+    ...(hasTestResultObserver
+      ? {
+          async getTestResults({ limit } = {}) {
+            const testResults = readVscodeTestResults(vscode) || [];
+            const maxRuns = Math.max(
+              1,
+              Math.min(20, Number.isFinite(Number(limit)) ? Number(limit) : 5),
+            );
+            const runs = [];
+            const totals = {
+              passed: 0,
+              failed: 0,
+              skipped: 0,
+              errored: 0,
+              running: 0,
+              queued: 0,
+              unknown: 0,
+            };
+            let remaining = MAX_TEST_ITEMS;
+            for (const [runIndex, run] of testResults
+              .slice(0, maxRuns)
+              .entries()) {
+              const items = [];
+              const visit = (snapshot, parentId = null) => {
+                if (!snapshot || remaining <= 0) return;
+                const taskStates = Array.isArray(snapshot.taskStates)
+                  ? snapshot.taskStates
+                  : [];
+                const latest = taskStates[taskStates.length - 1] || {};
+                const state = testStateName(latest.state);
+                const messages = (
+                  Array.isArray(latest.messages) ? latest.messages : []
+                )
+                  .slice(0, MAX_TEST_MESSAGES)
+                  .map((message) => boundedText(message?.message ?? message))
+                  .filter(Boolean);
+                const uri = snapshot.uri || snapshot.item?.uri;
+                const range = snapshot.range || snapshot.item?.range;
+                const id = boundedText(
+                  snapshot.id || snapshot.item?.id || `item-${items.length}`,
+                  256,
+                );
+                items.push({
+                  id,
+                  parentId,
+                  label: boundedText(
+                    snapshot.label ||
+                      snapshot.item?.label ||
+                      snapshot.item?.id ||
+                      id,
+                    512,
+                  ),
+                  state,
+                  durationMs: Number.isFinite(Number(latest.duration))
+                    ? Math.max(0, Number(latest.duration))
+                    : null,
+                  uri: uriText(uri),
+                  range: rangeShape(range),
+                  messages,
+                });
+                totals[state] = (totals[state] || 0) + 1;
+                remaining--;
+                const children = snapshot.children;
+                if (
+                  children &&
+                  typeof children[Symbol.iterator] === "function"
+                ) {
+                  for (const child of children) visit(child, id);
+                }
+              };
+              const roots = Array.isArray(run?.results) ? run.results : [];
+              for (const root of roots) visit(root);
+              runs.push({
+                id: boundedText(run?.id || `run-${runIndex}`, 256),
+                name: boundedText(run?.name || `Test run ${runIndex + 1}`, 512),
+                completedAt: isoTimestamp(run?.completedAt),
+                items,
+                truncated: remaining <= 0,
+              });
+              if (remaining <= 0) break;
+            }
+            return {
+              schema: IDE_QUALITY_SCHEMA,
+              kind: "test-results",
+              available: true,
+              source: "vscode-test-api",
+              runs,
+              summary: totals,
+              truncated: remaining <= 0,
+            };
+          },
+
+          async getCoverage({ path } = {}) {
+            const testResults = readVscodeTestResults(vscode) || [];
+            // VS Code versions expose coverage on the TestRunResult
+            // incrementally. Feature-detect all known public/additive shapes
+            // and return an explicit unavailable reason when no provider has
+            // published coverage instead of inventing zero coverage.
+            let coverage = null;
+            let completedAt = null;
+            for (const run of testResults) {
+              const candidate = run?.coverage || run?.fileCoverage;
+              if (
+                Array.isArray(candidate) ||
+                (candidate && typeof candidate[Symbol.iterator] === "function")
+              ) {
+                coverage = [...candidate];
+                completedAt = isoTimestamp(run?.completedAt);
+                break;
+              }
+            }
+            if (!coverage) {
+              return {
+                schema: IDE_QUALITY_SCHEMA,
+                kind: "coverage",
+                available: false,
+                source: "vscode-test-api",
+                reason: "no-published-coverage",
+                files: [],
+              };
+            }
+            const files = [];
+            for (const entry of coverage) {
+              if (files.length >= MAX_COVERAGE_FILES) break;
+              const uri = entry?.uri || entry?.file?.uri;
+              const filePath = uri?.fsPath || null;
+              if (path && filePath !== path) continue;
+              files.push({
+                uri: uriText(uri),
+                statements: coverageCount(
+                  entry?.statementCoverage || entry?.statements,
+                ),
+                branches: coverageCount(
+                  entry?.branchCoverage || entry?.branches,
+                ),
+                functions: coverageCount(
+                  entry?.declarationCoverage ||
+                    entry?.functionCoverage ||
+                    entry?.functions,
+                ),
+              });
+            }
+            return {
+              schema: IDE_QUALITY_SCHEMA,
+              kind: "coverage",
+              available: true,
+              source: "vscode-test-api",
+              completedAt,
+              files,
+              truncated: coverage.length > MAX_COVERAGE_FILES,
+            };
+          },
+        }
+      : {}),
+
+    ...(vscode.debug
+      ? {
+          async getDebugState() {
+            const active = vscode.debug.activeDebugSession || null;
+            const configuration = active?.configuration || {};
+            const safeConfiguration = {};
+            for (const key of ["type", "request", "name", "noDebug"]) {
+              const value = configuration[key];
+              if (
+                typeof value === "string" ||
+                typeof value === "boolean" ||
+                typeof value === "number"
+              ) {
+                safeConfiguration[key] =
+                  typeof value === "string" ? boundedText(value, 256) : value;
+              }
+            }
+            const breakpoints = [];
+            for (const breakpoint of (vscode.debug.breakpoints || []).slice(
+              0,
+              MAX_BREAKPOINTS,
+            )) {
+              const location = breakpoint.location;
+              const uri = location?.uri;
+              const range = location?.range;
+              const record = {
+                kind: location
+                  ? "source"
+                  : breakpoint.functionName
+                    ? "function"
+                    : "other",
+                enabled: breakpoint.enabled !== false,
+              };
+              if (uri) record.uri = uriText(uri);
+              if (range) record.range = rangeShape(range);
+              if (breakpoint.functionName) {
+                record.functionName = boundedText(breakpoint.functionName, 256);
+              }
+              breakpoints.push(record);
+            }
+            return {
+              schema: IDE_QUALITY_SCHEMA,
+              kind: "debug-state",
+              available: true,
+              source: "vscode-debug-api",
+              session: active
+                ? {
+                    id: boundedText(active.id, 256),
+                    name: boundedText(active.name, 256),
+                    type: boundedText(active.type, 96),
+                    workspaceFolderUri: uriText(active.workspaceFolder?.uri),
+                    configuration: safeConfiguration,
+                    state: "active",
+                  }
+                : null,
+              breakpoints,
+              truncated:
+                (vscode.debug.breakpoints || []).length > MAX_BREAKPOINTS,
+            };
+          },
+        }
+      : {}),
 
     // Recent terminal commands + their output (shell integration). Lets the
     // agent see what you just ran and how it failed — Claude-Code parity for

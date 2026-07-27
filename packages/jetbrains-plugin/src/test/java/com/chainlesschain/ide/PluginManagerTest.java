@@ -33,6 +33,19 @@ final class PluginManagerTest {
                         "plugin", "use", "p1", "1.0.0", "--scope", "project"),
                 PluginManager.buildPluginUseArgs("p1", "1.0.0", "project"));
         assertEquals(Arrays.asList(
+                        "plugin", "disable", "p1", "--scope", "local", "--json"),
+                PluginManager.buildPluginLifecycleArgs("p1", false, "local"));
+        assertEquals(Arrays.asList(
+                        "plugin", "enable", "p1", "--scope", "user", "--json"),
+                PluginManager.buildPluginLifecycleArgs("p1", true, "user"));
+        assertEquals(Arrays.asList(
+                        "plugin", "upgrade", "p1", "--scope", "project",
+                        "--registry", "https://registry.example/plugins.json",
+                        "--json"),
+                PluginManager.buildPluginUpgradeArgs(
+                        "ignored", "project",
+                        "https://registry.example/plugins.json", "p1"));
+        assertEquals(Arrays.asList(
                         "plugin", "consent", "p1", "--scope", "user", "--json"),
                 PluginManager.buildPluginConsentArgs("p1", "status", "user"));
         assertEquals(Arrays.asList(
@@ -70,13 +83,28 @@ final class PluginManagerTest {
         List<Map<String, Object>> rows = PluginManager.parsePluginInstalled(
                 "[{\"name\":\"a\",\"version\":\"1.0.0\","
                         + "\"versions\":[\"2.0.0\",\"1.0.0\"],"
-                        + "\"scope\":\"user\",\"ok\":true},"
+                        + "\"scope\":\"user\",\"ok\":true,\"enabled\":false,"
+                        + "\"source\":{\"type\":\"registry\","
+                        + "\"source\":\"https://registry.example/plugins.json\","
+                        + "\"package\":\"a\",\"ref\":\"v1.0.0\"},"
+                        + "\"integrity\":{\"signature\":{\"present\":true,"
+                        + "\"verified\":true,\"publicKeySha256\":\"key\"},"
+                        + "\"sbom\":{\"present\":true,\"fileCount\":4,"
+                        + "\"totalBytes\":123,\"digest\":\"sbom\"}},"
+                        + "\"policy\":{\"managed\":true,\"allowed\":false,"
+                        + "\"source\":\"/managed.json\",\"reason\":\"denied\"}},"
                         + "{\"name\":\"b\",\"scope\":\"project\",\"ok\":false},"
                         + "{\"noName\":true}]");
         assertEquals(2, rows.size());
         assertEquals(Arrays.asList("2.0.0", "1.0.0"), rows.get(0).get("versions"));
-        assertEquals("✔ a v1.0.0  [user]", PluginManager.formatPluginLine(rows.get(0)));
-        assertEquals("✖ b  [project]", PluginManager.formatPluginLine(rows.get(1)));
+        assertEquals("✔ a v1.0.0  [user] disabled signed policy-blocked",
+                PluginManager.formatPluginLine(rows.get(0)));
+        assertEquals("registry",
+                ((Map<?, ?>) rows.get(0).get("source")).get("type"));
+        assertEquals(4L, ((Map<?, ?>) ((Map<?, ?>)
+                rows.get(0).get("integrity")).get("sbom")).get("fileCount"));
+        assertEquals("✖ b  [project] enabled unsigned",
+                PluginManager.formatPluginLine(rows.get(1)));
     }
 
     @Test

@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  attachTaskGovernance,
   buildAheadArgs,
+  buildBackgroundListArgs,
   buildBranchDeleteArgs,
   buildMergeAbortArgs,
   buildMergeArgs,
@@ -11,6 +13,7 @@ import {
   buildWorktreeListArgs,
   buildWorktreeRemoveArgs,
   isTaskBranch,
+  parseBackgroundTaskGovernance,
   parseMergePreview,
   parseWorktreeList,
   summarizeShortstat,
@@ -56,10 +59,11 @@ describe("worktree list parsing", () => {
     expect(parseWorktreeList("")).toEqual([]);
   });
 
-  it("recognizes all three task-branch prefixes", () => {
+  it("recognizes all four task-branch prefixes", () => {
     expect(isTaskBranch("cc-agent-x")).toBe(true);
     expect(isTaskBranch("batch/unit-1")).toBe(true);
     expect(isTaskBranch("agent/task-9")).toBe(true);
+    expect(isTaskBranch("team/release-reviewer")).toBe(true);
     expect(isTaskBranch("main")).toBe(false);
     expect(isTaskBranch("")).toBe(false);
   });
@@ -111,6 +115,7 @@ describe("shortstat + argv + new-task command", () => {
       "list",
       "--porcelain",
     ]);
+    expect(buildBackgroundListArgs()).toEqual(["daemon", "view", "--json"]);
     expect(buildAheadArgs("abc", "b1")).toEqual([
       "rev-list",
       "--count",
@@ -141,14 +146,88 @@ describe("shortstat + argv + new-task command", () => {
 
   it("builds a shell-safe new-task command", () => {
     expect(buildNewTaskCommand("fix the tests", { windows: true })).toBe(
-      'cc agent --worktree -p "fix the tests"',
+      'cc agent --bg --worktree -p "fix the tests"',
     );
     expect(
       buildNewTaskCommand("fix the tests", { command: "clc", windows: false }),
-    ).toBe("clc agent --worktree -p 'fix the tests'");
+    ).toBe("clc agent --bg --worktree -p 'fix the tests'");
     // Quotes/backticks in the task are stripped, not escaped.
     expect(buildNewTaskCommand('say "hi" `now`', { windows: true })).toBe(
-      'cc agent --worktree -p "say  hi   now"',
+      'cc agent --bg --worktree -p "say  hi   now"',
     );
+  });
+});
+
+describe("background task governance", () => {
+  const DAEMON = JSON.stringify({
+    sessions: [
+      {
+        id: "bg-1700000000000-a1b2c3",
+        sessionId: "session-fallback",
+        branch: "cc-agent-20260710-ab12",
+        worktreePath: "C:\\repo\\.cc-worktrees\\cc-agent-20260710-ab12",
+        status: "running",
+        lifecycleState: "waiting_for_approval",
+        governance: {
+          owner: "background:bg-1700000000000-a1b2c3",
+          sessionId: "session-1",
+          permissionMode: "auto",
+          resourceBudget: { maxTurns: 7, maxCostUsd: 2.5 },
+        },
+        sideEffects: {
+          total: 4,
+          committed: 2,
+          unsettled: 1,
+          unknown: 1,
+          metadata: { secret: "must not cross the parser boundary" },
+        },
+        argv: ["agent", "-p", "secret prompt"],
+        transport: { token: "secret" },
+      },
+    ],
+  });
+
+  it("projects only bounded governance and joins by branch", () => {
+    const rows = parseBackgroundTaskGovernance(DAEMON);
+    expect(rows).toEqual([
+      {
+        backgroundId: "bg-1700000000000-a1b2c3",
+        branch: "cc-agent-20260710-ab12",
+        worktreePath: "C:\\repo\\.cc-worktrees\\cc-agent-20260710-ab12",
+        owner: "background:bg-1700000000000-a1b2c3",
+        sessionId: "session-1",
+        backgroundStatus: "waiting_for_approval",
+        permissionMode: "auto",
+        resourceBudget: { maxTurns: 7, maxCostUsd: 2.5 },
+        sideEffects: { total: 4, unsettled: 1, unknown: 1 },
+      },
+    ]);
+    const [task] = attachTaskGovernance(
+      [{ branch: "cc-agent-20260710-ab12", path: "C:/wrong" }],
+      DAEMON,
+    );
+    expect(task).toMatchObject({
+      backgroundId: "bg-1700000000000-a1b2c3",
+      permissionMode: "auto",
+      backgroundStatus: "waiting_for_approval",
+    });
+    expect(JSON.stringify(task)).not.toContain("secret");
+  });
+
+  it("falls back to normalized Windows paths and fails closed on bad JSON", () => {
+    const [task] = attachTaskGovernance(
+      [
+        {
+          branch: "legacy/task",
+          path: "c:/repo/.cc-worktrees/cc-agent-20260710-ab12/",
+        },
+      ],
+      DAEMON,
+    );
+    expect(task.backgroundId).toBe("bg-1700000000000-a1b2c3");
+    expect(parseBackgroundTaskGovernance("not json")).toEqual([]);
+    expect(attachTaskGovernance([{ branch: "main" }], "{}")).toEqual([
+      { branch: "main" },
+    ]);
   });
 });

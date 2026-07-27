@@ -285,6 +285,15 @@ function attributionFixture() {
         },
       ],
       byMcpServer: [{ server: "github", calls: 3, errors: 1, turnTokens: 150 }],
+      byPlugin: [
+        {
+          plugin: "review-suite",
+          version: "1.4.0",
+          calls: 2,
+          errors: 1,
+          turnTokens: 150,
+        },
+      ],
     },
   };
 }
@@ -330,6 +339,7 @@ describe("attribution parsing (additive section)", () => {
     expect(a.tools).toMatchObject({ totalCalls: 7, totalErrors: 2 });
     expect(a.tools.byTool).toHaveLength(2);
     expect(a.tools.byMcpServer).toHaveLength(1);
+    expect(a.tools.byPlugin).toHaveLength(1);
   });
 
   it("survives a JSON round-trip through parseUsageJson", () => {
@@ -368,6 +378,8 @@ describe("attribution rendering", () => {
     expect(md).toContain("| mcp__github__search | github | 3 | 1 | 150 |");
     expect(md).toContain("### MCP servers");
     expect(md).toContain("| github | 3 | 1 | 150 |");
+    expect(md).toContain("### Plugins");
+    expect(md).toContain("| review-suite | 1.4.0 | 2 | 1 | 150 |");
     expect(md).toContain("do not sum that column across rows");
     expect(md).toContain("approximation");
   });

@@ -14,6 +14,9 @@
  *   getDiagnostics({ path? })           -> [{ file, severity, message, line, character, source? }]
  *   getOpenEditors()                    -> [{ file, active, languageId?, isDirty? }]
  *   openDiff({ path, originalText?, modifiedText, operation?, targetPath?, title? }) -> { shown, ... }
+ *   getTestResults?({ limit? })         -> cc-ide-quality/v1 test-results snapshot
+ *   getCoverage?({ path? })             -> cc-ide-quality/v1 coverage snapshot
+ *   getDebugState?()                    -> cc-ide-quality/v1 debug-state snapshot
  *   executeCode?({ code, timeoutMs? })  -> { success, outputs:[{mime,text}] }
  *     OPTIONAL — when absent (e.g. the JetBrains plugin, or a VS Code host
  *     without notebook support) the executeCode tool is simply not exposed,
@@ -345,10 +348,7 @@ function buildIdeTools(editor, options = {}) {
         };
         const contextual = await withContext(output, safePath, "openDiff");
         if (!safeTargetPath) return contextual;
-        const targetContext = await contextMetadata(
-          safeTargetPath,
-          "openDiff",
-        );
+        const targetContext = await contextMetadata(safeTargetPath, "openDiff");
         return targetContext ? { ...contextual, targetContext } : contextual;
       },
     },
@@ -537,6 +537,118 @@ function buildIdeTools(editor, options = {}) {
           },
         ]
       : []),
+    // Conditional: IDE-native verification context. Each host is responsible
+    // for returning the bounded cc-ide-quality/v1 payload; the bridge attaches
+    // the same Context v2 freshness envelope used by the core read tools.
+    ...(typeof editor.getTestResults === "function"
+      ? [
+          {
+            name: "getTestResults",
+            description:
+              "Return a bounded snapshot of recent IDE test runs and their " +
+              "final states. Results use cc-ide-quality/v1 and include source " +
+              "locations when the host test framework provides them.",
+            inputSchema: {
+              type: "object",
+              properties: {
+                limit: {
+                  type: "number",
+                  description:
+                    "Maximum recent runs to return (default 5, maximum 20).",
+                },
+              },
+            },
+            handler: async (args = {}) => {
+              const raw = Number(args.limit);
+              const limit = Number.isFinite(raw)
+                ? Math.max(1, Math.min(20, Math.floor(raw)))
+                : 5;
+              const res = await editor.getTestResults({ limit });
+              const payload =
+                res && typeof res === "object"
+                  ? res
+                  : {
+                      schema: "cc-ide-quality/v1",
+                      kind: "test-results",
+                      available: false,
+                      runs: [],
+                    };
+              return withContext(payload, null, "getTestResults");
+            },
+          },
+        ]
+      : []),
+    ...(typeof editor.getCoverage === "function"
+      ? [
+          {
+            name: "getCoverage",
+            description:
+              "Return the latest IDE coverage snapshot using " +
+              "cc-ide-quality/v1. Optionally scope to one workspace file.",
+            inputSchema: {
+              type: "object",
+              properties: {
+                path: {
+                  type: "string",
+                  description:
+                    "Absolute workspace file path to scope coverage (optional).",
+                },
+              },
+            },
+            handler: async (args = {}) => {
+              let scopePath = args.path;
+              if (
+                scopePath !== undefined &&
+                scopePath !== null &&
+                scopePath !== ""
+              ) {
+                scopePath = await guardToolPath(
+                  scopePath,
+                  "read",
+                  "getCoverage",
+                );
+              }
+              const res = await editor.getCoverage({ path: scopePath });
+              const payload =
+                res && typeof res === "object"
+                  ? res
+                  : {
+                      schema: "cc-ide-quality/v1",
+                      kind: "coverage",
+                      available: false,
+                      files: [],
+                    };
+              return withContext(payload, scopePath, "getCoverage");
+            },
+          },
+        ]
+      : []),
+    ...(typeof editor.getDebugState === "function"
+      ? [
+          {
+            name: "getDebugState",
+            description:
+              "Return the current IDE debugger session, selected frame, and " +
+              "bounded breakpoint locations. Launch arguments, environment " +
+              "variables, expressions, and credential-bearing fields are omitted.",
+            inputSchema: { type: "object", properties: {} },
+            handler: async () => {
+              const res = await editor.getDebugState();
+              const payload =
+                res && typeof res === "object"
+                  ? res
+                  : {
+                      schema: "cc-ide-quality/v1",
+                      kind: "debug-state",
+                      available: false,
+                      session: null,
+                      breakpoints: [],
+                    };
+              return withContext(payload, null, "getDebugState");
+            },
+          },
+        ]
+      : []),
     // Conditional 5th tool: notebook code execution (Claude-Code
     // mcp__ide__executeCode parity). Only exposed when the facade supports it.
     ...(typeof editor.executeCode === "function"
@@ -571,7 +683,17 @@ function buildIdeTools(editor, options = {}) {
                 code: args.code,
                 timeoutMs: args.timeout_ms,
               });
-              return res || { success: false, outputs: [] };
+              const output = res || { success: false, outputs: [] };
+              const contextFile =
+                typeof output._contextFile === "string"
+                  ? output._contextFile
+                  : null;
+              if (
+                Object.prototype.hasOwnProperty.call(output, "_contextFile")
+              ) {
+                delete output._contextFile;
+              }
+              return withContext(output, contextFile, "executeCode");
             },
           },
         ]

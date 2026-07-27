@@ -458,26 +458,30 @@ function activate(context) {
       const { getResolvedCli } = require("./cli-binary");
       const command = getResolvedCli();
       const cwd = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
-      const [statusText, doctorText, cliVersionText] = await Promise.all([
-        runCliText({
-          command,
-          args: doctor.IDE_STATUS_ARGS,
-          cwd,
-          timeoutMs: 15000,
-        }),
-        runCliText({
-          command,
-          args: doctor.IDE_DOCTOR_ARGS,
-          cwd,
-          timeoutMs: 15000,
-        }),
-        runCliText({
-          command,
-          args: doctor.CLI_VERSION_ARGS,
-          cwd,
-          timeoutMs: 12000,
-        }),
-      ]);
+      const [statusText, doctorText, cliVersionText, runtimeEnvironment] =
+        await Promise.all([
+          runCliText({
+            command,
+            args: doctor.IDE_STATUS_ARGS,
+            cwd,
+            timeoutMs: 15000,
+          }),
+          runCliText({
+            command,
+            args: doctor.IDE_DOCTOR_ARGS,
+            cwd,
+            timeoutMs: 15000,
+          }),
+          runCliText({
+            command,
+            args: doctor.CLI_VERSION_ARGS,
+            cwd,
+            timeoutMs: 12000,
+          }),
+          require("./runtime-environment").probeRuntimeEnvironment({
+            managedCliRoot: managedCliRoot(context),
+          }),
+        ]);
       const doc = await vscode.workspace.openTextDocument({
         content: doctor.formatBridgeReport({
           port: _port,
@@ -488,6 +492,7 @@ function activate(context) {
           cliVersionText,
           workspaceTrusted: vscode.workspace.isTrusted,
           workspace: cwd || "(no workspace folder)",
+          runtimeEnvironment,
         }),
         language: "markdown",
       });
@@ -760,7 +765,7 @@ function activate(context) {
     // filterable read-only skills listing.
     vscode.commands.registerCommand("chainlesschain.plugins.manage", () => {
       const { openPluginManager } = require("./ui/plugin-manager-view.js");
-      openPluginManager(vscode);
+      openPluginManager(vscode, chatProvider);
     }),
     // Remote Control (cc remote-control): start a pairing host so a phone /
     // web panel can drive this machine's agent sessions, show the one-time

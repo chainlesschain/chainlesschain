@@ -42,6 +42,7 @@ export const _deps = {
 
 // Lowest → highest precedence.
 export const SCOPES = ["user", "project", "local"];
+export const DISABLED_FILENAME = ".disabled";
 
 /** Filesystem-safe encoding of a (possibly scoped, e.g. @org/name) plugin name. */
 export function encodeName(name) {
@@ -105,6 +106,13 @@ export function activeVersion(scope, name, opts = {}) {
   return versions[0];
 }
 
+/** Whether one scoped plugin install is eligible for runtime discovery. */
+export function isPluginEnabled(scope, name, opts = {}) {
+  return !_deps.existsSync(
+    path.join(pluginNameDir(scope, name, opts), DISABLED_FILENAME),
+  );
+}
+
 /**
  * Discover every installed plugin's ACTIVE version across all scopes, applying
  * scope precedence (local > project > user) so a name installed at multiple
@@ -116,8 +124,8 @@ export function activeVersion(scope, name, opts = {}) {
  * for tooling that must see even blocked plugins (e.g. `cc plugin installed`
  * showing why something is blocked). No managed settings file → no filtering.
  *
- * @param {object} [opts] { cwd, scopes?, skipPolicy?, env?, managedSettingsFile? }
- * @returns {Array<{scope, name, version, root, manifest}>}
+ * @param {object} [opts] { cwd, scopes?, skipPolicy?, includeDisabled?, env?, managedSettingsFile? }
+ * @returns {Array<{scope, name, version, root, manifest, enabled}>}
  */
 export function discoverPlugins(opts = {}) {
   // `cc agent --bare` (CC_PLUGINS=0): the plugin runtime is fully off. Every
@@ -139,6 +147,8 @@ export function discoverPlugins(opts = {}) {
     if (!dirExists(root, opts.strictIo === true)) continue;
     for (const encoded of listDirs(root, opts.strictIo === true)) {
       const nameDir = path.join(root, encoded);
+      const enabled = !_deps.existsSync(path.join(nameDir, DISABLED_FILENAME));
+      if (!enabled && opts.includeDisabled !== true) continue;
       const version = activeVersionForDir(nameDir, opts.strictIo === true);
       if (!version) continue;
       const versionDir = path.join(nameDir, version);
@@ -158,6 +168,7 @@ export function discoverPlugins(opts = {}) {
         version: manifest.metadata?.version || version,
         root: versionDir,
         manifest,
+        enabled,
       });
     }
   }

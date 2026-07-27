@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { readPrLinkLedger } from "../lib/pr-link-ledger.js";
+import { loadSideEffectLedger } from "../lib/side-effect-ledger-store.js";
 import executionBroker from "../lib/process-execution-broker/index.js";
 
 function formatAge(ms) {
@@ -74,6 +75,21 @@ export function formatBackgroundAgentDetails(
     lines.push(`  branch: ${session.branch || "-"}`);
     lines.push(`  baseSha: ${session.baseSha || "-"}`);
   }
+  if (session.governance) {
+    const governance = session.governance;
+    const budget = governance.resourceBudget || {};
+    lines.push(`  owner: ${governance.owner || "-"}`);
+    lines.push(`  permissionMode: ${governance.permissionMode || "default"}`);
+    lines.push(
+      `  budget: turns=${budget.maxTurns || "unlimited"} costUsd=${budget.maxCostUsd || "unlimited"}`,
+    );
+  }
+  if (session.sideEffects) {
+    const effects = session.sideEffects;
+    lines.push(
+      `  sideEffects: total=${effects.total || 0} unsettled=${effects.unsettled || 0} unknown=${effects.unknown || 0}`,
+    );
+  }
   if (session.phase) lines.push(`  phase: ${session.phase}`);
   if (session.pr?.number) {
     lines.push(
@@ -99,6 +115,27 @@ export function formatBackgroundAgentDetails(
     lines.push(`  cc daemon stop ${session.id}`);
   }
   return lines.join("\n");
+}
+
+export function summarizeSideEffects(ledger) {
+  const ops =
+    ledger && typeof ledger.list === "function"
+      ? ledger.list()
+      : Array.isArray(ledger?.ops)
+        ? ledger.ops
+        : [];
+  const count = (state) => ops.filter((op) => op?.state === state).length;
+  return {
+    total: ops.length,
+    prepared: count("prepared"),
+    started: count("started"),
+    committed: count("committed"),
+    failed: count("failed"),
+    unknown: count("unknown"),
+    unsettled: ops.filter(
+      (op) => op?.state === "prepared" || op?.state === "started",
+    ).length,
+  };
 }
 
 function parseLines(value, fallback) {
@@ -446,6 +483,18 @@ async function runDashboardView(options = {}) {
       }
     } catch {
       /* PR decoration is cosmetic */
+    }
+    for (const s of sessions) {
+      if (!s.sessionId) continue;
+      try {
+        s.sideEffects = summarizeSideEffects(
+          loadSideEffectLedger(s.sessionId, {
+            failIfUnavailable: false,
+          }),
+        );
+      } catch {
+        /* side-effect decoration is cosmetic */
+      }
     }
     return sessions;
   };

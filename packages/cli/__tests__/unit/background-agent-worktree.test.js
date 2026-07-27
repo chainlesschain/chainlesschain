@@ -12,6 +12,7 @@ import { join, resolve } from "node:path";
 import {
   _deps,
   launchBackgroundAgent,
+  normalizeBackgroundGovernance,
   readBackgroundAgentState,
   removeBackgroundAgent,
   resumeBackgroundAgent,
@@ -101,6 +102,28 @@ describe("background agent worktree lifecycle", () => {
     };
   }
 
+  it("normalizes governance to the public permission vocabulary", () => {
+    expect(
+      normalizeBackgroundGovernance(
+        {
+          permissionMode: "secret-bearing-custom-mode",
+          owner: "forged",
+          resourceBudget: {
+            maxTurns: -1,
+            maxCostUsd: Number.POSITIVE_INFINITY,
+          },
+        },
+        { id: "bg-safe", sessionId: "session-safe" },
+      ),
+    ).toEqual({
+      version: 1,
+      owner: "background:bg-safe",
+      sessionId: "session-safe",
+      permissionMode: "default",
+      resourceBudget: { maxTurns: null, maxCostUsd: null },
+    });
+  });
+
   it("persists repoRoot/worktreePath/baseSha/branch in both state and job", () => {
     const worktree = setupAgentWorktree({ cwd: repo });
     const state = launchBackgroundAgent({
@@ -110,6 +133,10 @@ describe("background agent worktree lifecycle", () => {
       title: "work",
       followUpArgv: ["agent", "--session", "session-launch"],
       worktree,
+      governance: {
+        permissionMode: "auto",
+        resourceBudget: { maxTurns: 7, maxCostUsd: 2.5 },
+      },
     });
 
     expect(state).toMatchObject({
@@ -118,6 +145,13 @@ describe("background agent worktree lifecycle", () => {
       worktreePath: worktree.path,
       baseSha: worktree.baseSha,
       branch: worktree.branch,
+      governance: {
+        version: 1,
+        owner: `background:${state.id}`,
+        sessionId: "session-launch",
+        permissionMode: "auto",
+        resourceBudget: { maxTurns: 7, maxCostUsd: 2.5 },
+      },
     });
     expect(readBackgroundAgentState(state.id)).toMatchObject({
       cwd: worktree.path,
@@ -125,6 +159,13 @@ describe("background agent worktree lifecycle", () => {
       worktreePath: worktree.path,
       baseSha: worktree.baseSha,
       branch: worktree.branch,
+      governance: {
+        version: 1,
+        owner: `background:${state.id}`,
+        sessionId: "session-launch",
+        permissionMode: "auto",
+        resourceBudget: { maxTurns: 7, maxCostUsd: 2.5 },
+      },
     });
 
     const jobFile = _deps.spawn.mock.calls[0][1][1];

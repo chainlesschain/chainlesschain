@@ -42,6 +42,8 @@ class IdeDoctorTest {
         assertTrue(up.contains("READY (可运行)"));
         assertTrue(up.contains("Plugin: 0.4.69"));
         assertTrue(up.contains("CLI: 0.162.176"));
+        assertTrue(up.contains("Development runtimes and offline recovery"));
+        assertTrue(up.contains("Node.js: missing"));
     }
 
     @Test

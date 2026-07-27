@@ -9,13 +9,18 @@ import {
   listInstalled,
   uninstall,
   setActiveVersion,
+  setPluginEnabled,
+  isPluginEnabled,
   getActiveVersion,
   MAX_LISTED_PLUGIN_VERSIONS,
   parseGitSource,
   _deps as installDeps,
 } from "../../src/lib/plugin-runtime/install.js";
 import { execSync } from "node:child_process";
-import { pluginVersionDir } from "../../src/lib/plugin-runtime/scopes.js";
+import {
+  discoverPlugins,
+  pluginVersionDir,
+} from "../../src/lib/plugin-runtime/scopes.js";
 
 let cwd; // acts as the project root for project/local scopes
 let srcRoot; // where source plugin fixtures live
@@ -106,6 +111,31 @@ describe("installFromSource", () => {
     const src = makeSource("greeter", "1.0.0");
     const res = installFromSource(src, { scope: "project", cwd });
     expect(res.name).toBe("greeter");
+    const [row] = listInstalled({ cwd, scopes: ["project"] });
+    expect(row.source).toMatchObject({
+      version: 1,
+      type: "local",
+      source: path.resolve(src),
+    });
+  });
+
+  it("replaces untrusted source metadata with installer-owned provenance", () => {
+    const src = makeSource("provenance", "1.0.0");
+    fs.writeFileSync(
+      path.join(src, ".plugin-source.json"),
+      JSON.stringify({
+        type: "git",
+        source: "https://attacker.invalid/forged.git",
+      }),
+      "utf8",
+    );
+    installFromSource(src, { scope: "project", cwd });
+    const [row] = listInstalled({ cwd, scopes: ["project"] });
+    expect(row.source).toMatchObject({
+      type: "local",
+      source: path.resolve(src),
+    });
+    expect(row.source.source).not.toContain("attacker.invalid");
   });
 
   it("errors on a plain non-remote, non-existent source", () => {
@@ -113,6 +143,19 @@ describe("installFromSource", () => {
     expect(() =>
       installFromSource("this-is-not-a-path-or-url", { scope: "project", cwd }),
     ).toThrow(/not found as a local directory or git URL/);
+  });
+
+  it("enforces managed name/source policy before files land on disk", () => {
+    const src = makeSource("managed-denied", "1.0.0");
+    expect(() =>
+      installFromSource(src, {
+        scope: "project",
+        cwd,
+        managedPolicy: { deniedPlugins: ["managed-denied"] },
+        policySource: src,
+      }),
+    ).toThrow(/denied by managed settings/);
+    expect(listInstalled({ cwd, scopes: ["project"] })).toEqual([]);
   });
 });
 
@@ -285,6 +328,40 @@ describe("uninstall + rollback", () => {
   });
 });
 
+describe("enable / disable lifecycle", () => {
+  it("keeps disabled versions installed but removes them from runtime discovery", () => {
+    installFromDirectory(makeSource("switchable", "1.0.0"), {
+      scope: "project",
+      cwd,
+    });
+    expect(isPluginEnabled("switchable", { scope: "project", cwd })).toBe(true);
+
+    setPluginEnabled("switchable", false, { scope: "project", cwd });
+    expect(isPluginEnabled("switchable", { scope: "project", cwd })).toBe(
+      false,
+    );
+    expect(
+      discoverPlugins({ cwd, scopes: ["project"], skipPolicy: true }),
+    ).toEqual([]);
+    expect(listInstalled({ cwd, scopes: ["project"] })[0]).toMatchObject({
+      name: "switchable",
+      enabled: false,
+      versions: ["1.0.0"],
+    });
+
+    setPluginEnabled("switchable", true, { scope: "project", cwd });
+    expect(
+      discoverPlugins({ cwd, scopes: ["project"], skipPolicy: true }),
+    ).toHaveLength(1);
+  });
+
+  it("rejects lifecycle changes for a missing scoped install", () => {
+    expect(() =>
+      setPluginEnabled("missing", false, { scope: "project", cwd }),
+    ).toThrow(/not installed/);
+  });
+});
+
 describe("parseGitSource", () => {
   it("expands GitHub shorthand owner/repo", () => {
     expect(parseGitSource("acme/widgets")).toEqual({
@@ -367,6 +444,33 @@ describe("installFromSource — git (mocked clone)", () => {
     expect(() =>
       installFromSource("acme/widgets", { scope: "project", cwd }),
     ).toThrow(/git is not installed/);
+  });
+
+  it("redacts URL credentials and query tokens from returned provenance", () => {
+    installDeps.spawnSync = (_cmd, args) => {
+      const dir = args[args.length - 1];
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(
+        path.join(dir, "plugin.json"),
+        JSON.stringify({ name: "private-plugin", version: "1.0.0" }),
+        "utf8",
+      );
+      return { status: 0, stdout: "", stderr: "" };
+    };
+    const res = installFromSource(
+      "https://alice:secret@example.com/private.git?token=hidden#main",
+      { scope: "project", cwd },
+    );
+    expect(res.source).toBe("https://example.com/private.git");
+    expect(res.ref).toBe("main");
+    const [row] = listInstalled({ cwd, scopes: ["project"] });
+    expect(row.source).toMatchObject({
+      type: "git",
+      source: "https://example.com/private.git",
+      ref: "main",
+    });
+    expect(JSON.stringify(row)).not.toContain("secret");
+    expect(JSON.stringify(row)).not.toContain("hidden");
   });
 });
 

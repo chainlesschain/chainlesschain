@@ -271,6 +271,60 @@ describe("runAgentHeadlessStream", () => {
     expect(seen[1]).toEqual(["system", "user", "assistant", "user"]);
   });
 
+  it("persists plugin/version attribution for extension-tier tool results", async () => {
+    const compactCalls = [];
+    const agentLoop = async function* () {
+      yield {
+        type: "tool-executing",
+        tool: "custom_plugin_tool",
+        args: { value: "x" },
+      };
+      yield {
+        type: "tool-result",
+        tool: "custom_plugin_tool",
+        result: {
+          ok: true,
+          toolAttribution: {
+            source: "plugin:review-suite",
+            version: "1.4.0",
+          },
+        },
+      };
+      yield { type: "response-complete", content: "done" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const deps = baseDeps({
+      agentLoop,
+      input: input({ text: "go" }),
+      sessionExists: () => false,
+      startSession: () => {},
+      appendUserMessage: () => {},
+      appendAssistantMessage: () => {},
+      appendToolCallCompact: (_sessionId, record) => compactCalls.push(record),
+      appendEvent: () => {},
+      readEvents: () => [],
+      rebuildMessages: () => [],
+      loadSideEffectLedger: () => null,
+    });
+
+    await runAgentHeadlessStream(
+      {
+        sessionId: "stream-plugin-attribution",
+        expandFileRefs: false,
+      },
+      deps,
+    );
+
+    expect(compactCalls).toEqual([
+      expect.objectContaining({
+        tool: "custom_plugin_tool",
+        isError: false,
+        plugin: "review-suite",
+        pluginVersion: "1.4.0",
+      }),
+    ]);
+  });
+
   it("emits an error result for an invalid JSON line and keeps going", async () => {
     const agentLoop = async function* () {
       yield { type: "response-complete", content: "ok" };
@@ -383,7 +437,7 @@ describe("runAgentHeadlessStream — custom slash-command macros (panel parity)"
 
   it("expands a resolved /name macro and skips the @file pass for that turn", async () => {
     const { seen, agentLoop } = captureUser();
-    const resolveSlashMacro = vi.fn(async (text) => ({
+    const resolveSlashMacro = vi.fn(async () => ({
       matched: true,
       promptText: "EXPANDED: review the diff",
       warnings: [],

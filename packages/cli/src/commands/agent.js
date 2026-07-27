@@ -1131,6 +1131,15 @@ export function registerAgentCommand(program) {
             title: prompt.slice(0, 100),
             followUpArgv,
             worktree: _worktree,
+            governance: {
+              permissionMode: options.permissionMode || "default",
+              resourceBudget: {
+                maxTurns: options.maxTurns
+                  ? parseInt(options.maxTurns, 10)
+                  : null,
+                maxCostUsd,
+              },
+            },
           });
           if (_worktree) {
             // Ownership moves to the persisted background session only after

@@ -7,14 +7,14 @@
  *  - be persisted as its OWN token_usage event carrying the attribution
  *    frame (no double count with the end-of-run main aggregate),
  *  - still flow on the stream as ordinary token_usage events.
- * Compact tool_call records ({tool, is_error, skill?} — never args) are
- * persisted for every tool call so `cc session usage --by tool|mcp` works
- * for headless sessions too.
+ * Compact tool_call records ({tool, is_error, skill?, plugin?} — never args)
+ * are persisted for every tool call so
+ * `cc session usage --by tool|mcp|plugin` works for headless sessions too.
  *
  * The agent loop is faked via deps.agentLoop (deterministic events); every
  * store write is captured via the deps store seam — no disk, no LLM.
  */
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
 
 const ATTR = {
@@ -26,8 +26,7 @@ const ATTR = {
 };
 
 function fakeLoop() {
-  // eslint-disable-next-line require-yield
-  return async function* (_messages, _opts) {
+  return async function* () {
     yield { type: "run-started", runId: "r1", sessionId: "s-attr" };
     yield {
       type: "tool-executing",
@@ -45,6 +44,22 @@ function fakeLoop() {
       tool: "mcp__github__search_issues",
       result: { error: "rate limited" },
       error: "rate limited",
+    };
+    yield {
+      type: "tool-executing",
+      tool: "run_shell",
+      args: { command: "acme-lint" },
+    };
+    yield {
+      type: "tool-result",
+      tool: "run_shell",
+      result: {
+        plugin_bin: {
+          plugin: "acme-tools",
+          version: "2.1.0",
+          bin: "acme-lint",
+        },
+      },
     };
     // attributed child usage (as drained from the sink by the real loop)
     yield {
@@ -134,7 +149,7 @@ describe("headless runner usage attribution", () => {
 
     // compact tool_call records: skill hint on run_skill, error flag from
     // the tool result, never args
-    expect(writes.toolCalls).toHaveLength(2);
+    expect(writes.toolCalls).toHaveLength(3);
     expect(writes.toolCalls[0].rec).toMatchObject({
       tool: "run_skill",
       isError: false,
@@ -144,6 +159,12 @@ describe("headless runner usage attribution", () => {
     expect(writes.toolCalls[1].rec).toMatchObject({
       tool: "mcp__github__search_issues",
       isError: true,
+    });
+    expect(writes.toolCalls[2].rec).toMatchObject({
+      tool: "run_shell",
+      isError: false,
+      plugin: "acme-tools",
+      pluginVersion: "2.1.0",
     });
   });
 

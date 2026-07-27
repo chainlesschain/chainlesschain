@@ -9,7 +9,7 @@
  * expose its worktree lib as commands, and these are standard operations.
  */
 
-const TASK_BRANCH_RE = /^(cc-agent-|batch\/|agent\/)/;
+const TASK_BRANCH_RE = /^(cc-agent-|batch\/|agent\/|team\/)/;
 
 function isTaskBranch(branch) {
   return TASK_BRANCH_RE.test(String(branch || ""));
@@ -18,6 +18,11 @@ function isTaskBranch(branch) {
 /** `git worktree list --porcelain`. */
 function buildWorktreeListArgs() {
   return ["worktree", "list", "--porcelain"];
+}
+
+/** `cc daemon view --json` - bounded supervisor/governance snapshot. */
+function buildBackgroundListArgs() {
+  return ["daemon", "view", "--json"];
 }
 
 /**
@@ -128,25 +133,132 @@ function summarizeShortstat(text) {
   );
 }
 
+function boundedString(value, max = 256) {
+  if (typeof value !== "string") return null;
+  const clean = value.replace(/\p{Cc}/gu, "").trim();
+  return clean ? clean.slice(0, max) : null;
+}
+
+function normalizedPath(value) {
+  const path = boundedString(value, 4096);
+  if (!path) return "";
+  const slash = path.replace(/\\/g, "/").replace(/\/+$/, "");
+  return /^[a-z]:\//i.test(slash) ? slash.toLowerCase() : slash;
+}
+
+function positiveNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function nonNegativeInteger(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
+}
+
 /**
- * The terminal command for a NEW isolated task. Runs interactively in the
- * integrated terminal (`--bg --worktree` is rejected by the CLI), so the
- * user watches/interrupts it; the worktree row appears on the next refresh.
- * The task is single-quoted for POSIX shells and double-quoted for
- * cmd/PowerShell — quotes in the task itself are stripped rather than
- * escaped (shell-escaping across three shells is not worth a prompt char).
+ * Parse `cc daemon view --json`, retaining only the secret-free fields a task
+ * row needs. Prompts, argv, logs, transport tokens and side-effect metadata
+ * never cross this boundary.
+ */
+function parseBackgroundTaskGovernance(text) {
+  let data;
+  try {
+    data = JSON.parse(String(text || ""));
+  } catch {
+    return [];
+  }
+  if (!data || !Array.isArray(data.sessions)) return [];
+  const rows = [];
+  for (const session of data.sessions.slice(0, 1000)) {
+    if (!session || typeof session !== "object") continue;
+    const backgroundId = boundedString(session.id, 160);
+    const branch = boundedString(session.branch, 512);
+    const worktreePath = boundedString(
+      session.worktreePath || session.cwd,
+      4096,
+    );
+    if (!backgroundId || (!branch && !worktreePath)) continue;
+    const governance =
+      session.governance && typeof session.governance === "object"
+        ? session.governance
+        : {};
+    const budget =
+      governance.resourceBudget && typeof governance.resourceBudget === "object"
+        ? governance.resourceBudget
+        : {};
+    const effects =
+      session.sideEffects && typeof session.sideEffects === "object"
+        ? session.sideEffects
+        : {};
+    rows.push({
+      backgroundId,
+      branch,
+      worktreePath,
+      owner:
+        boundedString(governance.owner, 160) || `background:${backgroundId}`,
+      sessionId:
+        boundedString(governance.sessionId || session.sessionId, 256) || null,
+      backgroundStatus:
+        boundedString(session.lifecycleState || session.status, 64) ||
+        "unknown",
+      permissionMode: boundedString(governance.permissionMode, 64) || "default",
+      resourceBudget: {
+        maxTurns: positiveNumber(budget.maxTurns),
+        maxCostUsd: positiveNumber(budget.maxCostUsd),
+      },
+      sideEffects: {
+        total: nonNegativeInteger(effects.total),
+        unsettled: nonNegativeInteger(effects.unsettled),
+        unknown: nonNegativeInteger(effects.unknown),
+      },
+    });
+  }
+  return rows;
+}
+
+/**
+ * Join supervisor governance onto worktree rows. Branch identity wins; path is
+ * the fallback for legacy records. A task without a supervisor stays visibly
+ * unmanaged instead of receiving guessed policy.
+ */
+function attachTaskGovernance(tasks, text) {
+  const governance = parseBackgroundTaskGovernance(text);
+  return (Array.isArray(tasks) ? tasks : []).map((task) => {
+    const branch = boundedString(task?.branch, 512);
+    const path = normalizedPath(task?.path);
+    const match =
+      governance.find((row) => branch && row.branch === branch) ||
+      governance.find(
+        (row) => path && normalizedPath(row.worktreePath) === path,
+      );
+    if (!match) return { ...task };
+    const visible = { ...match };
+    delete visible.branch;
+    delete visible.worktreePath;
+    return { ...task, ...visible };
+  });
+}
+
+/**
+ * The terminal command for a NEW isolated task. The background supervisor owns
+ * lifecycle, permission-mode, resource-budget and side-effect metadata while
+ * the worktree provides filesystem isolation. Quotes in task text are stripped
+ * rather than escaped across cmd, PowerShell and POSIX shells.
  */
 function buildNewTaskCommand(task, { command = "cc", windows = false } = {}) {
   const clean = String(task || "")
     .replace(/["'`\\]/g, " ")
     .trim();
   return windows
-    ? `${command} agent --worktree -p "${clean}"`
-    : `${command} agent --worktree -p '${clean}'`;
+    ? `${command} agent --bg --worktree -p "${clean}"`
+    : `${command} agent --bg --worktree -p '${clean}'`;
 }
 
 module.exports = {
+  attachTaskGovernance,
   buildAheadArgs,
+  buildBackgroundListArgs,
   buildBranchDeleteArgs,
   buildMergeAbortArgs,
   buildMergeArgs,
@@ -157,6 +269,7 @@ module.exports = {
   buildWorktreeListArgs,
   buildWorktreeRemoveArgs,
   isTaskBranch,
+  parseBackgroundTaskGovernance,
   parseMergePreview,
   parseWorktreeList,
   summarizeShortstat,

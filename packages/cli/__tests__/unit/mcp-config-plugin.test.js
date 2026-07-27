@@ -47,7 +47,14 @@ afterEach(() => {
 describe("loadPluginMcp", () => {
   it("connects the servers a collector returns", async () => {
     const collect = () => ({
-      servers: { weather: { command: "weather-mcp", args: ["--stdio"] } },
+      servers: {
+        weather: {
+          command: "weather-mcp",
+          args: ["--stdio"],
+          pluginId: "weather-suite",
+          pluginVersion: "2.3.0",
+        },
+      },
       sources: ["/x/.mcp.json"],
     });
     const createClient = fakeClientFactory();
@@ -55,6 +62,10 @@ describe("loadPluginMcp", () => {
     expect(res).toBeTruthy();
     expect(res.mcpClient.connects.map((c) => c.name)).toEqual(["weather"]);
     expect(res.connected.map((c) => c.server)).toContain("weather");
+    expect(res.externalToolDescriptors.mcp__weather__ping).toMatchObject({
+      source: "plugin:weather-suite",
+      version: "2.3.0",
+    });
   });
 
   it("returns into unchanged when no plugin declares MCP servers", async () => {

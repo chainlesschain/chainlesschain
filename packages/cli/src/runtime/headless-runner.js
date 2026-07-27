@@ -95,6 +95,7 @@ import {
   formatDenials,
 } from "../lib/repl-denials.js";
 import executionBroker from "../lib/process-execution-broker/index.js";
+import { extractPluginUsageAttribution } from "../lib/plugin-usage-attribution.js";
 
 const goalBrokerRunner = executionBroker.spawnSync.bind(executionBroker);
 
@@ -2054,7 +2055,12 @@ export async function runAgentHeadless(options = {}, deps = {}) {
                 : {}),
             });
             if (toolCalls.length > 0) {
-              toolCalls[toolCalls.length - 1].is_error = Boolean(err);
+              const settledCall = toolCalls[toolCalls.length - 1];
+              settledCall.is_error = Boolean(err);
+              Object.assign(
+                settledCall,
+                extractPluginUsageAttribution(event.result),
+              );
             }
             // Track policy denials (not plain tool failures) for the end-of-run
             // summary. The preceding tool-executing pushed the args.
@@ -2532,6 +2538,8 @@ export async function runAgentHeadless(options = {}, deps = {}) {
           isError: Boolean(tc.is_error),
           skill:
             tc.tool === "run_skill" ? tc.args?.skill_name || null : undefined,
+          plugin: tc.plugin || undefined,
+          pluginVersion: tc.pluginVersion || undefined,
         });
       }
       // Attributed child-loop usage first (chronology: it happened during

@@ -20,9 +20,18 @@ const baseFacade = () => ({
 
 const kernelFacade = () => ({
   ...baseFacade(),
+  getContextMetadata: async ({ file, tool }) => ({
+    schema: "cc-ide-context/v2",
+    workspaceId: "ws-test",
+    documentUri: file ? `file://${file}` : null,
+    tool,
+  }),
   executeCode: async ({ code, timeoutMs }) => ({
     success: true,
     cancelled: false,
+    notebookUri: "file:///workspace/notebook.ipynb",
+    notebookType: "jupyter-notebook",
+    _contextFile: "/workspace/notebook.ipynb",
     outputs: [
       { mime: "application/vnd.code.notebook.stdout", text: `ran: ${code}` },
       ...(timeoutMs
@@ -60,6 +69,12 @@ describe("buildIdeTools — conditional executeCode", () => {
     expect(res.success).toBe(true);
     expect(res.outputs[0].text).toBe("ran: 1+1");
     expect(res.outputs[1].text).toBe("budget=5000");
+    expect(res).not.toHaveProperty("_contextFile");
+    expect(res.context).toMatchObject({
+      schema: "cc-ide-context/v2",
+      documentUri: "file:///workspace/notebook.ipynb",
+      tool: "executeCode",
+    });
   });
 });
 

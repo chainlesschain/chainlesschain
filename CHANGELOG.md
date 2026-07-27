@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.162.183 + IDE quality, plugin, and worktree governance
+
+> `chainlesschain` **0.162.182 → 0.162.183**, VS Code
+> **0.37.34 → 0.37.35**, and JetBrains **0.4.73 → 0.4.74** (2026-07-27).
+> `@chainlesschain/personal-data-hub` remains **0.4.57** and
+> `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **IDE-native quality context**: both IDE bridges negotiate bounded
+  `cc-ide-quality/v1` test-result, coverage, and debugger snapshots with
+  Context v2 freshness metadata; VS Code notebook execution now carries its
+  real notebook context.
+- **Installation Doctor depth**: VS Code and JetBrains report Node/Java
+  availability plus managed-CLI and plugin-registry offline recovery state,
+  without probing executables from an untrusted workspace directory.
+- **Plugin lifecycle and supply-chain UI**: scoped enable/disable, source-aware
+  upgrades, live-session reload, signature/SBOM summaries, managed-policy
+  provenance, and sanitized registry/Git/local source metadata stay governed
+  by the CLI runtime.
+- **Plugin usage attribution**: compact transcripts and usage reports now
+  attribute plugin-bin and plugin-provided MCP calls by plugin/version without
+  persisting tool arguments.
+- **Supervised worktree tasks**: IDE-created isolated tasks run as background
+  worktree agents and display canonical lifecycle, owner/session, permission
+  mode, resource budget, and bounded side-effect counts. Team and batch rows
+  remain explicitly unmanaged until they expose equivalent durable state.
+- **Release validation**: publication remains gated on the exact release
+  commit passing CLI CI, CLI Strict Sandbox, background reconnect E2E, packaged
+  VSIX Extension Host gates, JetBrains unit/build/Remote Robot gates, and
+  public marketplace readback.
+
 ### Fixed — cc CLI 0.162.182: attested native plugin sandbox closure
 
 > `chainlesschain` **0.162.181 → 0.162.182** (2026-07-27).

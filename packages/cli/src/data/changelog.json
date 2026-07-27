@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.162.183",
+      "cliVersions": ["0.4.74", "0.37.35", "0.162.182", "0.162.183"],
+      "date": "2026-07-27",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added — cc CLI 0.162.183 + IDE quality, plugin, and worktree governance",
+          "body": "> `chainlesschain` **0.162.182 → 0.162.183**, VS Code\n> **0.37.34 → 0.37.35**, and JetBrains **0.4.73 → 0.4.74** (2026-07-27).\n> `@chainlesschain/personal-data-hub` remains **0.4.57** and\n> `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **IDE-native quality context**: both IDE bridges negotiate bounded\n  `cc-ide-quality/v1` test-result, coverage, and debugger snapshots with\n  Context v2 freshness metadata; VS Code notebook execution now carries its\n  real notebook context.\n- **Installation Doctor depth**: VS Code and JetBrains report Node/Java\n  availability plus managed-CLI and plugin-registry offline recovery state,\n  without probing executables from an untrusted workspace directory.\n- **Plugin lifecycle and supply-chain UI**: scoped enable/disable, source-aware\n  upgrades, live-session reload, signature/SBOM summaries, managed-policy\n  provenance, and sanitized registry/Git/local source metadata stay governed\n  by the CLI runtime.\n- **Plugin usage attribution**: compact transcripts and usage reports now\n  attribute plugin-bin and plugin-provided MCP calls by plugin/version without\n  persisting tool arguments.\n- **Supervised worktree tasks**: IDE-created isolated tasks run as background\n  worktree agents and display canonical lifecycle, owner/session, permission\n  mode, resource budget, and bounded side-effect counts. Team and batch rows\n  remain explicitly unmanaged until they expose equivalent durable state.\n- **Release validation**: publication remains gated on the exact release\n  commit passing CLI CI, CLI Strict Sandbox, background reconnect E2E, packaged\n  VSIX Extension Host gates, JetBrains unit/build/Remote Robot gates, and\n  public marketplace readback."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.162.182",
       "cliVersions": ["0.162.181", "0.162.182"],
       "date": "2026-07-27",

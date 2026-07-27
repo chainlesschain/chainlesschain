@@ -156,18 +156,75 @@ public final class PluginManagerAction extends AnAction {
         // ---- plugins tab -------------------------------------------------
         JButton trust = new JButton("Trust");
         JButton untrust = new JButton("Untrust");
+        JButton lifecycle = new JButton("Enable / Disable");
+        JButton upgrade = new JButton("Upgrade…");
         JButton versions = new JButton("Versions…");
         JButton capabilities = new JButton("Capabilities…");
+        JButton details = new JButton("Supply-chain details…");
         JButton uninstall = new JButton("Uninstall…");
         JButton add = new JButton("Add…");
         // Thread the row's install scope through — CLI trust/untrust default to
         // scope project, and the panel's Add installs at user scope (B-drift fix).
         trust.addActionListener(ev -> withSelectedPlugin(project, pluginList, plugins.get(), p ->
-                runThenRefresh(PluginManager.buildPluginTrustArgs(
-                        String.valueOf(p.get("name")), true, scopeOf(p)), cwd, refresh, status)));
+                runThenRefreshAndReload(PluginManager.buildPluginTrustArgs(
+                        String.valueOf(p.get("name")), true, scopeOf(p)),
+                        cwd, refresh, status, project)));
         untrust.addActionListener(ev -> withSelectedPlugin(project, pluginList, plugins.get(), p ->
-                runThenRefresh(PluginManager.buildPluginTrustArgs(
-                        String.valueOf(p.get("name")), false, scopeOf(p)), cwd, refresh, status)));
+                runThenRefreshAndReload(PluginManager.buildPluginTrustArgs(
+                        String.valueOf(p.get("name")), false, scopeOf(p)),
+                        cwd, refresh, status, project)));
+        lifecycle.addActionListener(ev ->
+                withSelectedPlugin(project, pluginList, plugins.get(), p -> {
+                    boolean enable = Boolean.FALSE.equals(p.get("enabled"));
+                    if (!enable) {
+                        int decision = Messages.showYesNoDialog(
+                                project,
+                                "Disable " + p.get("name") + " (" + scopeOf(p)
+                                        + " scope)? Installed versions and configuration "
+                                        + "are retained, but runtime components stop loading.",
+                                "Disable Plugin", null);
+                        if (decision != Messages.YES) return;
+                    }
+                    runThenRefreshAndReload(
+                            PluginManager.buildPluginLifecycleArgs(
+                                    String.valueOf(p.get("name")), enable, scopeOf(p)),
+                            cwd, refresh, status, project);
+                }));
+        upgrade.addActionListener(ev ->
+                withSelectedPlugin(project, pluginList, plugins.get(), p -> {
+                    Map<?, ?> source = asMap(p.get("source"));
+                    String registry = value(source, "registry");
+                    String packageName = value(source, "package");
+                    boolean useRegistry = !registry.isEmpty() && !packageName.isEmpty();
+                    String target = useRegistry
+                            ? packageName
+                            : firstNonEmpty(
+                                    value(source, "resolvedSource"),
+                                    value(source, "source"));
+                    if (target.isEmpty()) {
+                        target = Messages.showInputDialog(
+                                project,
+                                "Upgrade source for " + p.get("name"),
+                                "Upgrade Plugin", null);
+                        if (target == null || target.trim().isEmpty()) return;
+                        target = target.trim();
+                        useRegistry = false;
+                    }
+                    int decision = Messages.showYesNoDialog(
+                            project,
+                            "Upgrade " + p.get("name")
+                                    + " from its pinned source? The current immutable "
+                                    + "version remains available for rollback.",
+                            "Upgrade Plugin", null);
+                    if (decision != Messages.YES) return;
+                    runThenRefreshSlowAndReload(
+                            PluginManager.buildPluginUpgradeArgs(
+                                    target,
+                                    scopeOf(p),
+                                    useRegistry ? registry : null,
+                                    useRegistry ? packageName : null),
+                            cwd, refresh, status, project);
+                }));
         versions.addActionListener(ev ->
                 withSelectedPlugin(project, pluginList, plugins.get(), p -> {
                     List<String> choices = new ArrayList<String>();
@@ -197,13 +254,16 @@ public final class PluginManagerAction extends AnAction {
                             choices,
                             choices.get(0));
                     if (selected == null) return;
-                    runThenRefresh(PluginManager.buildPluginUseArgs(
+                    runThenRefreshAndReload(PluginManager.buildPluginUseArgs(
                                     String.valueOf(p.get("name")), selected, scopeOf(p)),
-                            cwd, refresh, status);
+                            cwd, refresh, status, project);
                 }));
         capabilities.addActionListener(ev ->
                 withSelectedPlugin(project, pluginList, plugins.get(), p ->
                         manageCapabilityConsent(project, p, cwd, refresh, status)));
+        details.addActionListener(ev ->
+                withSelectedPlugin(project, pluginList, plugins.get(), p ->
+                        showPluginDetails(project, p)));
         uninstall.addActionListener(ev -> withSelectedPlugin(project, pluginList, plugins.get(), p -> {
             String name = String.valueOf(p.get("name"));
             String scope = String.valueOf(p.get("scope"));
@@ -228,7 +288,8 @@ public final class PluginManagerAction extends AnAction {
                     source.trim(), registry.trim()), cwd, refresh, status);
         });
         JPanel pluginTab = tab(
-                pluginList, trust, untrust, versions, capabilities, uninstall, add);
+                pluginList, lifecycle, upgrade, trust, untrust, versions,
+                capabilities, details, uninstall, add);
 
         // ---- MCP tab -----------------------------------------------------
         JButton test = new JButton("Test connect");
@@ -284,7 +345,15 @@ public final class PluginManagerAction extends AnAction {
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 2));
         JButton refreshBtn = new JButton("Refresh");
         refreshBtn.addActionListener(ev -> refresh.run());
+        JButton reloadBtn = new JButton("Reload live sessions");
+        reloadBtn.addActionListener(ev -> {
+            int count = ChatToolWindowFactory.reloadPluginRuntimes(project);
+            status.setText(count > 0
+                    ? "plugin reload requested in " + count + " live session(s)"
+                    : "no live foreground session; new sessions already use current state");
+        });
         bottom.add(refreshBtn);
+        bottom.add(reloadBtn);
         bottom.add(status);
         root.add(bottom, BorderLayout.SOUTH);
         root.setPreferredSize(new Dimension(860, 480));
@@ -386,12 +455,87 @@ public final class PluginManagerAction extends AnAction {
                     status.setText(" ");
                     return;
                 }
-                runThenRefresh(
+                runThenRefreshAndReload(
                         PluginManager.buildPluginConsentArgs(
                                 name, consented ? "revoke" : "grant", scope),
-                        cwd, refresh, status);
+                        cwd, refresh, status, project);
             });
         });
+    }
+
+    private static void showPluginDetails(
+            Project project, Map<String, Object> plugin) {
+        Map<?, ?> source = asMap(plugin.get("source"));
+        Map<?, ?> integrity = asMap(plugin.get("integrity"));
+        Map<?, ?> signature =
+                asMap(integrity == null ? null : integrity.get("signature"));
+        Map<?, ?> sbom = asMap(integrity == null ? null : integrity.get("sbom"));
+        Map<?, ?> policy = asMap(plugin.get("policy"));
+        StringBuilder text = new StringBuilder();
+        text.append(plugin.get("name")).append(" v")
+                .append(plugin.get("version")).append(" (")
+                .append(scopeOf(plugin)).append(" scope)\n");
+        text.append("State: ")
+                .append(Boolean.FALSE.equals(plugin.get("enabled"))
+                        ? "disabled" : "enabled")
+                .append('\n');
+        text.append("Source: ")
+                .append(value(source, "type").isEmpty()
+                        ? "legacy/unknown" : value(source, "type"))
+                .append(' ').append(value(source, "source")).append('\n');
+        if (!value(source, "ref").isEmpty()) {
+            text.append("Pin: ").append(value(source, "ref")).append('\n');
+        }
+        if (signature != null && Boolean.TRUE.equals(signature.get("verified"))) {
+            text.append("Signature: verified (")
+                    .append(firstNonEmpty(
+                            value(signature, "publicKeySha256"),
+                            "key fingerprint unavailable"))
+                    .append(")\n");
+        } else {
+            text.append("Signature: unverified");
+            if (!value(signature, "reason").isEmpty()) {
+                text.append(" — ").append(value(signature, "reason"));
+            }
+            text.append('\n');
+        }
+        if (sbom != null && Boolean.TRUE.equals(sbom.get("present"))) {
+            text.append("SBOM: ").append(value(sbom, "fileCount"))
+                    .append(" files, ").append(value(sbom, "totalBytes"))
+                    .append(" bytes, digest ")
+                    .append(firstNonEmpty(value(sbom, "digest"), "unknown"))
+                    .append('\n');
+        } else {
+            text.append("SBOM: unavailable\n");
+        }
+        if (policy != null && Boolean.TRUE.equals(policy.get("managed"))) {
+            text.append("Managed policy: ")
+                    .append(Boolean.FALSE.equals(policy.get("allowed"))
+                            ? "blocked" : "allowed")
+                    .append(" (")
+                    .append(firstNonEmpty(value(policy, "source"), "source unavailable"))
+                    .append(')');
+            if (!value(policy, "reason").isEmpty()) {
+                text.append(" — ").append(value(policy, "reason"));
+            }
+        } else {
+            text.append("Managed policy: none");
+        }
+        Messages.showInfoMessage(project, text.toString(), "Plugin Supply Chain");
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<?, ?> asMap(Object value) {
+        return value instanceof Map ? (Map<?, ?>) value : null;
+    }
+
+    private static String value(Map<?, ?> map, String key) {
+        Object value = map == null ? null : map.get(key);
+        return value == null ? "" : String.valueOf(value);
+    }
+
+    private static String firstNonEmpty(String first, String second) {
+        return first == null || first.isEmpty() ? second : first;
     }
 
     private static void runThenRefresh(List<String> args, File cwd,
@@ -409,6 +553,32 @@ public final class PluginManagerAction extends AnAction {
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             AgentChatSession.runCapture(args, cwd, SLOW_CLI_TIMEOUT_MS);
             ApplicationManager.getApplication().invokeLater(refresh::run);
+        });
+    }
+
+    private static void runThenRefreshAndReload(
+            List<String> args, File cwd, Runnable refresh, JLabel status,
+            Project project) {
+        status.setText("working…");
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            AgentChatSession.runCapture(args, cwd, CLI_TIMEOUT_MS);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                ChatToolWindowFactory.reloadPluginRuntimes(project);
+                refresh.run();
+            });
+        });
+    }
+
+    private static void runThenRefreshSlowAndReload(
+            List<String> args, File cwd, Runnable refresh, JLabel status,
+            Project project) {
+        status.setText("working…");
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            AgentChatSession.runCapture(args, cwd, SLOW_CLI_TIMEOUT_MS);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                ChatToolWindowFactory.reloadPluginRuntimes(project);
+                refresh.run();
+            });
         });
     }
 

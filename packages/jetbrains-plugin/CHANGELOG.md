@@ -1,5 +1,17 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.74] - IDE quality and governed plugin/worktree operations (2026-07-27)
+
+- Add bounded test-runner, coverage, and debugger snapshots to the negotiated
+  IDE bridge while degrading explicitly when optional platform APIs are absent.
+- Extend Installation Doctor with Node/Java probes and offline managed-CLI /
+  registry-cache recovery status.
+- Complete plugin enable/disable/upgrade/details and live-session reload
+  controls, including source, signature, SBOM, and managed-policy provenance.
+- Attribute plugin-provided tool usage in the shared usage report.
+- Start isolated IDE tasks through the background worktree supervisor and show
+  lifecycle, permission mode, resource budget, and side-effect summaries.
+
 ## [0.4.73] - Durable runtime and verifier clean (2026-07-26)
 
 - Surface durable background-agent recovery and pending human questions,

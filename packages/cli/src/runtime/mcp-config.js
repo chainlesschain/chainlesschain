@@ -153,7 +153,8 @@ export async function setupMcpFromConfig(servers, deps = {}) {
   const writeErr = deps.writeErr || (() => {});
   const createClient =
     deps.createClient ||
-    (() => new MCPClient({ eventRuntimeStore: deps.eventRuntimeStore || null }));
+    (() =>
+      new MCPClient({ eventRuntimeStore: deps.eventRuntimeStore || null }));
   servers = filterMcpServersByPolicy(servers, deps.mcpPolicy, writeErr);
 
   // `deps.into` lets a second batch (e.g. registered servers) accumulate into
@@ -194,8 +195,10 @@ export async function setupMcpFromConfig(servers, deps = {}) {
   if (deps.sessionId != null && typeof mcpClient.setSessionId === "function") {
     mcpClient.setSessionId(deps.sessionId);
   }
-  if (typeof mcpClient.setElicitationHandler === "function" &&
-      typeof deps.elicitationHandler === "function") {
+  if (
+    typeof mcpClient.setElicitationHandler === "function" &&
+    typeof deps.elicitationHandler === "function"
+  ) {
     mcpClient.setElicitationHandler(deps.elicitationHandler, {
       timeoutMs: deps.elicitationTimeoutMs,
     });
@@ -310,7 +313,12 @@ export async function setupMcpFromConfig(servers, deps = {}) {
         name: full,
         kind: "mcp",
         category: "mcp",
-        source: name,
+        // A trusted plugin MCP server carries immutable plugin provenance in
+        // its collected server config. Preserve it at the tool descriptor
+        // boundary so toolAttribution and persisted usage can distinguish a
+        // plugin-provided MCP tool from a user/project MCP server.
+        source: cfg.pluginId ? `plugin:${cfg.pluginId}` : name,
+        ...(cfg.pluginVersion ? { version: cfg.pluginVersion } : {}),
       };
     }
   }
@@ -770,7 +778,9 @@ export async function resolveAgentMcp(args = {}, deps = {}) {
   const eventRuntimeStore =
     deps.eventRuntimeStore ||
     args.eventRuntimeStore ||
-    (runtimeEnv.CC_EVENT_RUNTIME_DURABLE === "1" ? new EventRuntimeStore() : null);
+    (runtimeEnv.CC_EVENT_RUNTIME_DURABLE === "1"
+      ? new EventRuntimeStore()
+      : null);
   // Thread the agent session id down to setupMcpFromConfig so spawned stdio MCP
   // servers get CC_SESSION_ID / CLAUDE_CODE_SESSION_ID (Claude-Code parity).
   let mcpPolicy = deps.mcpPolicy || null;

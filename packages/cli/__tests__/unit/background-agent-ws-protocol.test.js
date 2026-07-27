@@ -474,10 +474,12 @@ describe("bg-* over the real WS server", () => {
     const { ChainlessChainWSServer } =
       await import("../../src/gateways/ws/ws-server.js");
     const { default: WebSocket } = await import("ws");
-    const port = 19000 + Math.floor(Math.random() * 2000);
-    const wsServer = new ChainlessChainWSServer({ port });
+    // Let the OS allocate an ephemeral port. Picking from a small fixed range
+    // collides with parallel Vitest workers and can leave an unhandled
+    // EADDRINUSE rejection in the release suite.
+    const wsServer = new ChainlessChainWSServer({ port: 0 });
     await wsServer.start();
-    const socket = new WebSocket(`ws://127.0.0.1:${port}`);
+    const socket = new WebSocket(`ws://127.0.0.1:${wsServer.port}`);
     const frames = [];
     socket.on("message", (data) => frames.push(JSON.parse(data.toString())));
     await new Promise((resolve, reject) => {
