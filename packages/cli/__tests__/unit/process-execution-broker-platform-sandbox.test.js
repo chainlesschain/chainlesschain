@@ -445,7 +445,7 @@ function createLinuxStaticPieElf64({
 function createLinuxStrongHarness({
   bwrapStatus = 0,
   bwrapStdout = "chainless-linux-bwrap-plugin-node-v1",
-  bwrapHelp = "--ro-bind-fd FD DEST\n--ro-bind-data FD DEST\n--perms MODE\n--disable-userns\n--assert-userns-disabled\n--seccomp FD\n",
+  bwrapHelp = "--file FD DEST\n--ro-bind-fd FD DEST\n--ro-bind-data FD DEST\n--perms MODE\n--disable-userns\n--assert-userns-disabled\n--seccomp FD\n",
   lddStdout = [
     "libc.so.6 => /lib/libc.so.6 (0x1)",
     "/lib64/ld-linux.so.2 (0x2)",
@@ -458,6 +458,8 @@ function createLinuxStrongHarness({
   entryRuntime = "node",
   nativeEntry = createLinuxStaticElf64(),
   nativeEntryMode = 0o100755,
+  bwrapDevice = 11,
+  bwrapInode = null,
 } = {}) {
   const nativeStatic = entryRuntime === "native-static-elf";
   const entryPath = nativeStatic ? "/plugin/bin/tool" : "/plugin/bin/tool.js";
@@ -491,11 +493,14 @@ function createLinuxStrongHarness({
   const openFiles = new Map();
   const openFlags = new Map();
   const detachedContents = new Map();
+  const detachedStats = new Map();
   const anonymousFiles = new Set();
   const fileModes = new Map();
   const fileMtimes = new Map();
   const fdOffsets = new Map();
   const mountIds = new Map();
+  const bwrapInvocations = [];
+  const bwrapSupervisorReads = [];
   const bwrapDataReads = [];
   const lddInspectionSources = [];
   const tamperedAnonymousFiles = new Set();
@@ -505,6 +510,9 @@ function createLinuxStrongHarness({
   let bwrapInvocationCount = 0;
   for (const value of [...directories, ...files.keys()]) {
     identities.set(value, nextIno++);
+  }
+  if (bwrapInode !== null && files.has("/usr/bin/bwrap")) {
+    identities.set("/usr/bin/bwrap", bwrapInode);
   }
   const missing = (value) => {
     const error = new Error(`missing ${value}`);
@@ -519,29 +527,34 @@ function createLinuxStrongHarness({
     if (!base) throw missing(filePath);
     return match[2] ? path.posix.join(base, match[2]) : base;
   };
-  const statFor = (value) => {
+  const statFor = (value, options = {}) => {
     const filePath = resolveFdPath(value);
     if (!directories.has(filePath) && !files.has(filePath)) {
       throw missing(filePath);
     }
     const isDirectory = directories.has(filePath);
     const contents = files.get(filePath);
+    const statValue = (raw) =>
+      options?.bigint === true ? BigInt(raw) : Number(raw);
     return {
-      dev: 11,
-      ino: identities.get(filePath),
-      size: contents?.length || 0,
-      mtimeMs: fileMtimes.get(filePath) ?? 1234,
-      nlink: anonymousFiles.has(filePath) ? 0 : 1,
-      mode:
+      dev: statValue(filePath === "/usr/bin/bwrap" ? bwrapDevice : 11),
+      ino: statValue(identities.get(filePath)),
+      size: statValue(contents?.length || 0),
+      mtimeMs: statValue(fileMtimes.get(filePath) ?? 1234),
+      ctimeMs: statValue(fileMtimes.get(filePath) ?? 1234),
+      nlink: statValue(anonymousFiles.has(filePath) ? 0 : 1),
+      mode: statValue(
         fileModes.get(filePath) ??
-        (isDirectory
-          ? 0o040755
-          : filePath === entryPath && !nativeStatic
-            ? 0o100644
-            : filePath === entryPath
-              ? nativeEntryMode
-              : 0o100755),
-      uid: 0,
+          (isDirectory
+            ? 0o040755
+            : filePath === entryPath && !nativeStatic
+              ? 0o100644
+              : filePath === entryPath
+                ? nativeEntryMode
+                : 0o100755),
+      ),
+      uid: statValue(0),
+      gid: statValue(0),
       isFile: () => !isDirectory,
       isDirectory: () => isDirectory,
       isSymbolicLink: () => false,
@@ -637,6 +650,9 @@ function createLinuxStrongHarness({
     }),
     openSync: vi.fn((value, flags = 0, mode = 0o666) => {
       const requestedPath = String(value);
+      const reopenedFd = Number(
+        requestedPath.match(/^\/proc\/self\/fd\/(\d+)$/)?.[1],
+      );
       let filePath = resolveFdPath(value);
       const anonymous =
         (Number(flags) & fsRuntime.constants.O_TMPFILE) ===
@@ -677,6 +693,10 @@ function createLinuxStrongHarness({
       openFlags.set(fd, Number(flags));
       fdOffsets.set(fd, 0);
       if (anonymous) detachedContents.set(fd, Buffer.alloc(0));
+      if (Number.isInteger(reopenedFd) && detachedStats.has(reopenedFd)) {
+        detachedContents.set(fd, Buffer.from(detachedContents.get(reopenedFd)));
+        detachedStats.set(fd, { ...detachedStats.get(reopenedFd) });
+      }
       return fd;
     }),
     writeSync: vi.fn((fd, buffer, offset, length, position) => {
@@ -719,16 +739,31 @@ function createLinuxStrongHarness({
       detachedContents.set(fd, Buffer.from(contents));
       tamperedAnonymousFiles.add(filePath);
     }),
-    fstatSync: vi.fn((fd) => {
+    fstatSync: vi.fn((fd, options = {}) => {
       const filePath = openFiles.get(fd);
       if (!filePath) throw missing(`fd:${fd}`);
-      return statFor(filePath);
+      const detached = detachedStats.get(fd);
+      if (!detached) return statFor(filePath, options);
+      if (options?.bigint !== true) return detached;
+      return {
+        ...detached,
+        dev: BigInt(detached.dev),
+        ino: BigInt(detached.ino),
+        size: BigInt(detached.size),
+        mtimeMs: BigInt(detached.mtimeMs),
+        ctimeMs: BigInt(detached.ctimeMs),
+        nlink: BigInt(detached.nlink),
+        mode: BigInt(detached.mode),
+        uid: BigInt(detached.uid),
+        gid: BigInt(detached.gid),
+      };
     }),
     closeSync: vi.fn((fd) => {
       const filePath = openFiles.get(fd);
       if (!openFiles.delete(fd)) throw missing(`fd:${fd}`);
       openFlags.delete(fd);
       detachedContents.delete(fd);
+      detachedStats.delete(fd);
       fdOffsets.delete(fd);
       const hasOpenReference = [...openFiles.values()].some(
         (openPath) => openPath === filePath,
@@ -745,9 +780,12 @@ function createLinuxStrongHarness({
     unlinkSync: vi.fn((value) => {
       const filePath = String(value);
       const contents = files.get(filePath);
+      const detachedStat =
+        contents === undefined ? null : { ...statFor(filePath), nlink: 0 };
       for (const [fd, openPath] of openFiles) {
         if (openPath === filePath && contents) {
           detachedContents.set(fd, Buffer.from(contents));
+          detachedStats.set(fd, detachedStat);
         }
       }
       if (!files.delete(filePath)) throw missing(filePath);
@@ -763,6 +801,44 @@ function createLinuxStrongHarness({
       fileMtimes.delete(directory);
     }),
   };
+  const sha256 = (contents) =>
+    crypto.createHash("sha256").update(contents).digest("hex");
+  const originalBwrapSha256 = sha256(
+    files.get("/usr/bin/bwrap") || Buffer.alloc(0),
+  );
+  const replaceFileAtPath = (filePath, replacement) => {
+    if (!files.has(filePath)) throw missing(filePath);
+    const before = statFor(filePath);
+    const contents = Buffer.from(files.get(filePath));
+    for (const [fd, openPath] of openFiles) {
+      if (openPath !== filePath) continue;
+      if (!detachedContents.has(fd)) {
+        detachedContents.set(fd, Buffer.from(contents));
+      }
+      if (!detachedStats.has(fd)) {
+        // Model a mount/path replacement: already-open descriptions keep the
+        // original inode while rename-over drops its link count and changes
+        // ctime. Fresh path resolution sees the replacement object.
+        detachedStats.set(fd, {
+          ...before,
+          nlink: 0,
+          ctimeMs: Number(before.ctimeMs) + 1,
+        });
+      }
+    }
+    files.set(filePath, Buffer.from(replacement));
+    identities.set(filePath, nextIno++);
+    fileMtimes.set(filePath, Number(before.mtimeMs) + 1);
+    return {
+      before,
+      after: statFor(filePath),
+      beforeSha256: sha256(contents),
+      afterSha256: sha256(files.get(filePath)),
+    };
+  };
+  const isBwrapCommand = (command) =>
+    command === "/usr/bin/bwrap" ||
+    /^\/proc\/self\/fd\/\d+$/.test(String(command));
   const spawnSync = vi.fn((command, args, options) => {
     if (command === "/usr/bin/ldd") {
       const inspectionChildFd = Number(
@@ -776,7 +852,52 @@ function createLinuxStrongHarness({
         stderr: "",
       };
     }
-    if (command === "/usr/bin/bwrap") {
+    if (isBwrapCommand(command)) {
+      const descriptorChildFd = Number(
+        String(command).match(/^\/proc\/self\/fd\/(\d+)$/)?.[1],
+      );
+      const descriptorBacked = Number.isInteger(descriptorChildFd);
+      const supervisorParentFd = descriptorBacked
+        ? options?.stdio?.[descriptorChildFd]
+        : null;
+      const supervisorSourcePath = descriptorBacked
+        ? openFiles.get(supervisorParentFd)
+        : "/usr/bin/bwrap";
+      const supervisorContents = descriptorBacked
+        ? detachedContents.get(supervisorParentFd) ||
+          files.get(supervisorSourcePath)
+        : files.get("/usr/bin/bwrap");
+      const supervisorStat =
+        descriptorBacked && Number.isInteger(supervisorParentFd)
+          ? detachedStats.get(supervisorParentFd) ||
+            statFor(supervisorSourcePath, { bigint: true })
+          : statFor("/usr/bin/bwrap", { bigint: true });
+      const invocation = {
+        command,
+        args: [...(args || [])],
+        descriptorBacked,
+        childFd: descriptorBacked ? descriptorChildFd : null,
+        parentFd: supervisorParentFd,
+        sourcePath: supervisorSourcePath,
+        sourceFileId: {
+          dev: String(supervisorStat.dev),
+          ino: String(supervisorStat.ino),
+        },
+        sourceSha256: supervisorContents ? sha256(supervisorContents) : null,
+        sourceBytes: supervisorContents?.length ?? null,
+        sourceNlink: Number(supervisorStat.nlink),
+        sourceCtimeMs: Number(supervisorStat.ctimeMs),
+        offsetBefore: descriptorBacked
+          ? fdOffsets.get(supervisorParentFd)
+          : null,
+        stage:
+          args?.[0] === "--help"
+            ? "capability"
+            : bwrapInvocationCount === 0
+              ? "probe"
+              : "final",
+      };
+      bwrapInvocations.push(invocation);
       if (args?.[0] === "--help") {
         return {
           status: 0,
@@ -785,6 +906,72 @@ function createLinuxStrongHarness({
         };
       }
       bwrapInvocationCount += 1;
+      if (descriptorBacked) {
+        const supervisorFileIndex = args.findIndex(
+          (value, index) =>
+            value === "--file" &&
+            Number(args[index + 1]) === descriptorChildFd &&
+            args[index + 2] === "/run/.chainless-bwrap-supervisor",
+        );
+        const runTmpfsIndex = args.findIndex(
+          (value, index) =>
+            index > supervisorFileIndex &&
+            value === "--tmpfs" &&
+            args[index + 1] === "/run",
+        );
+        const accessMode =
+          Number(openFlags.get(supervisorParentFd)) &
+          fsRuntime.constants.O_ACCMODE;
+        const offsetBefore = fdOffsets.get(supervisorParentFd);
+        const bytesRead =
+          supervisorContents && Number.isInteger(offsetBefore)
+            ? Math.max(0, supervisorContents.length - offsetBefore)
+            : 0;
+        const supervisorRead = {
+          stage: invocation.stage,
+          childFd: descriptorChildFd,
+          parentFd: supervisorParentFd,
+          sourcePath: supervisorSourcePath,
+          sourceFileId: invocation.sourceFileId,
+          sourceSha256:
+            supervisorContents && Number.isInteger(offsetBefore)
+              ? sha256(supervisorContents.subarray(offsetBefore))
+              : null,
+          offsetBefore,
+          bytesRead,
+          flags: openFlags.get(supervisorParentFd),
+          permissions:
+            supervisorFileIndex >= 2 &&
+            args[supervisorFileIndex - 2] === "--perms"
+              ? args[supervisorFileIndex - 1]
+              : null,
+          destination:
+            supervisorFileIndex >= 0 ? args[supervisorFileIndex + 2] : null,
+          fileIndex: supervisorFileIndex,
+          runTmpfsIndex,
+        };
+        bwrapSupervisorReads.push(supervisorRead);
+        if (
+          supervisorSourcePath !== "/usr/bin/bwrap" ||
+          !supervisorContents ||
+          accessMode !== fsRuntime.constants.O_RDONLY ||
+          offsetBefore !== 0 ||
+          bytesRead <= 0 ||
+          supervisorFileIndex < 2 ||
+          supervisorRead.permissions !== "0000" ||
+          runTmpfsIndex <= supervisorFileIndex
+        ) {
+          return {
+            status: 1,
+            stdout: "",
+            stderr: "invalid bwrap supervisor descriptor",
+          };
+        }
+        // bubblewrap SETUP_MAKE_FILE reads from the descriptor's current
+        // offset through EOF and closes the child copy. The independently
+        // reopened parent OFD records the consumed offset for this invocation.
+        fdOffsets.set(supervisorParentFd, supervisorContents.length);
+      }
       for (let index = 0; index < args.length; index += 1) {
         if (args[index] !== "--ro-bind-data") continue;
         const childFd = Number(args[index + 1]);
@@ -910,7 +1097,10 @@ function createLinuxStrongHarness({
     contract,
     anonymousFiles,
     bwrapDataReads,
+    bwrapInvocations,
+    bwrapSupervisorReads,
     detachedContents,
+    detachedStats,
     directories,
     entryPath,
     files,
@@ -921,6 +1111,9 @@ function createLinuxStrongHarness({
     mountIds,
     openFiles,
     openFlags,
+    originalBwrapSha256,
+    replaceFileAtPath,
+    isBwrapCommand,
     spawnSync,
     statFor,
   };
@@ -960,6 +1153,175 @@ function applyLinuxStrongNativeHarness(harness, args = ["--label", "ready"]) {
       executionContract: harness.contract,
     },
   );
+}
+
+function applyLinuxStrongNodeHarness(harness, args = ["--label", "ready"]) {
+  const requiredBoundaries = [
+    SANDBOX_BOUNDARIES.FILESYSTEM,
+    SANDBOX_BOUNDARIES.NETWORK,
+  ];
+  return applySandbox(
+    "/runtime/node",
+    [harness.entryPath, ...args],
+    {
+      cwd: "/plugin",
+      shell: false,
+    },
+    {
+      profile: "strict",
+      requiredBoundaries,
+    },
+    {
+      platform: "linux",
+      arch: "x64",
+      fs: harness.fsRuntime,
+      homedir: () => "/home/tester",
+      spawnSync: harness.spawnSync,
+    },
+    {
+      profile: "strict",
+      requiredBoundaries,
+      sync: true,
+      executionContract: harness.contract,
+    },
+  );
+}
+
+function expectLinuxBwrapSupervisorPolicy(args) {
+  const fileIndex = args.findIndex(
+    (value, index) =>
+      value === "--file" &&
+      args[index + 1] === "3" &&
+      args[index + 2] === "/run/.chainless-bwrap-supervisor",
+  );
+  expect(fileIndex).toBeGreaterThanOrEqual(2);
+  expect(args.slice(fileIndex - 2, fileIndex + 3)).toEqual([
+    "--perms",
+    "0000",
+    "--file",
+    "3",
+    "/run/.chainless-bwrap-supervisor",
+  ]);
+  const runTmpfsIndex = args.findIndex(
+    (value, index) =>
+      index > fileIndex && value === "--tmpfs" && args[index + 1] === "/run",
+  );
+  expect(runTmpfsIndex).toBeGreaterThan(fileIndex);
+
+  for (let index = 0; index < args.length; index += 1) {
+    if (
+      args[index] === "--ro-bind-fd" ||
+      args[index] === "--ro-bind-data" ||
+      args[index] === "--seccomp"
+    ) {
+      expect(Number(args[index + 1])).toBeGreaterThanOrEqual(4);
+    }
+  }
+  return { fileIndex, runTmpfsIndex };
+}
+
+function expectLinuxBwrapSupervisorInvocations(harness, expectedStages) {
+  expect(harness.bwrapInvocations.map(({ stage }) => stage)).toEqual(
+    expectedStages,
+  );
+  expect(
+    harness.bwrapInvocations.every(
+      ({ command, descriptorBacked, childFd, sourcePath, sourceSha256 }) =>
+        command === "/proc/self/fd/3" &&
+        descriptorBacked === true &&
+        childFd === 3 &&
+        sourcePath === "/usr/bin/bwrap" &&
+        sourceSha256 === harness.originalBwrapSha256,
+    ),
+  ).toBe(true);
+  expect(
+    harness.bwrapInvocations.every(
+      ({ sourceNlink }) => sourceNlink === 0 || sourceNlink === 1,
+    ),
+  ).toBe(true);
+  expect(
+    new Set(harness.bwrapInvocations.map(({ parentFd }) => parentFd)).size,
+  ).toBe(expectedStages.length);
+  expect(
+    new Set(
+      harness.bwrapInvocations.map(
+        ({ sourceFileId }) => `${sourceFileId.dev}:${sourceFileId.ino}`,
+      ),
+    ).size,
+  ).toBe(1);
+  expect(
+    harness.bwrapInvocations.every(({ offsetBefore }) => offsetBefore === 0),
+  ).toBe(true);
+
+  expect(harness.bwrapSupervisorReads).toHaveLength(
+    expectedStages.filter((stage) => stage !== "capability").length,
+  );
+  expect(
+    harness.bwrapSupervisorReads.every(
+      ({
+        childFd,
+        sourcePath,
+        sourceSha256,
+        offsetBefore,
+        bytesRead,
+        permissions,
+        destination,
+        fileIndex,
+        runTmpfsIndex,
+      }) =>
+        childFd === 3 &&
+        sourcePath === "/usr/bin/bwrap" &&
+        sourceSha256 === harness.originalBwrapSha256 &&
+        offsetBefore === 0 &&
+        bytesRead > 0 &&
+        permissions === "0000" &&
+        destination === "/run/.chainless-bwrap-supervisor" &&
+        fileIndex >= 2 &&
+        runTmpfsIndex > fileIndex,
+    ),
+  ).toBe(true);
+}
+
+function createLinuxSupervisorExecutableIdentity(overrides = {}) {
+  return {
+    path: "/usr/bin/bwrap",
+    fileId: {
+      dev: "11",
+      ino: "701",
+    },
+    sha256: "a".repeat(64),
+    bytes: 10,
+    mtimeMs: 1234,
+    mode: 0o100755,
+    uid: 0,
+    gid: 0,
+    ...overrides,
+  };
+}
+
+function createLinuxSupervisorRuntimeProbe(overrides = {}) {
+  return {
+    kind: "linux-bwrap-plugin-node-policy-v1",
+    attempted: true,
+    runnable: true,
+    reason: null,
+    probeRuntime: "node",
+    targetRuntime: "node",
+    contentSnapshot: false,
+    handleAtomic: false,
+    supervisorDescriptorBound: true,
+    supervisorExecutablePinned: true,
+    supervisorBindingScope: "host-path-replacement",
+    supervisorDescriptorBindingMechanism:
+      "pinned-child-fd3-file-consume-run-overmount-v1",
+    supervisorDescriptorContained: true,
+    supervisorDescriptorConsumedBeforeTarget: true,
+    supervisorStagingPathHidden: true,
+    supervisorTemporaryCopyObscured: true,
+    supervisorPid1ExecutableExposure: "procfs",
+    supervisorExecutableIdentity: createLinuxSupervisorExecutableIdentity(),
+    ...overrides,
+  };
 }
 
 function appliedPlan(command, args, options, overrides = {}) {
@@ -1202,10 +1564,21 @@ describe("platform sandbox adapter contract", () => {
         attempted: true,
         runnable: true,
         reason: null,
+        targetRuntime: "node",
+        contentSnapshot: false,
+        supervisorDescriptorBound: true,
+        supervisorDescriptorBindingMechanism:
+          "pinned-child-fd3-file-consume-run-overmount-v1",
+        supervisorExecutableIdentity: {
+          path: "/usr/bin/bwrap",
+          sha256: harness.originalBwrapSha256,
+        },
+        handleAtomic: false,
       },
     });
     expect(plan.policyDigest).toMatch(/^[a-f0-9]{64}$/);
-    expect(plan.command).toBe("/usr/bin/bwrap");
+    expect(plan.command).toBe("/proc/self/fd/3");
+    expectLinuxBwrapSupervisorPolicy(plan.args);
     expect(plan.args).toContain("--unshare-user");
     expect(plan.args).toContain("--disable-userns");
     expect(plan.args).toContain("--unshare-net");
@@ -1251,11 +1624,19 @@ describe("platform sandbox adapter contract", () => {
     expect(plan.args.join("\0")).not.toContain("SSH_AUTH_SOCK");
     expect(plan.args.join("\0")).not.toContain("CC_SESSION_ID");
     expect(harness.spawnSync.mock.calls.map(([command]) => command)).toEqual([
-      "/usr/bin/bwrap",
       "/usr/bin/ldd",
-      "/usr/bin/bwrap",
+      "/proc/self/fd/3",
+      "/proc/self/fd/3",
     ]);
+    expectLinuxBwrapSupervisorInvocations(harness, ["capability", "probe"]);
     expect(plan.options.stdio.length).toBeGreaterThan(3);
+    expect(plan.options.stdio[3]).not.toBe(
+      harness.bwrapInvocations[0].parentFd,
+    );
+    expect(plan.options.stdio[3]).not.toBe(
+      harness.bwrapInvocations[1].parentFd,
+    );
+    expect(harness.fdOffsets.get(plan.options.stdio[3])).toBe(0);
     const anonymousFilterOpens = harness.fsRuntime.openSync.mock.calls.filter(
       ([value, flags, mode]) =>
         value === "/tmp" &&
@@ -1300,6 +1681,89 @@ describe("platform sandbox adapter contract", () => {
       ),
     ).toBe(true);
     expect(harness.openFiles.size).toBeGreaterThan(0);
+
+    const finalResult = harness.spawnSync(
+      plan.command,
+      plan.args,
+      plan.options,
+    );
+    expect(finalResult.status).toBe(0);
+    expectLinuxBwrapSupervisorInvocations(harness, [
+      "capability",
+      "probe",
+      "final",
+    ]);
+
+    plan.cleanup();
+    plan.cleanup();
+    expect(harness.openFiles.size).toBe(0);
+    const closedFds = harness.fsRuntime.closeSync.mock.calls.map(([fd]) => fd);
+    expect(new Set(closedFds).size).toBe(closedFds.length);
+  });
+
+  it("preserves full-width bwrap device and inode identity evidence", () => {
+    const bwrapDevice = 9_007_199_254_740_993n;
+    const bwrapInode = 9_007_199_254_740_995n;
+    const harness = createLinuxStrongHarness({
+      bwrapDevice,
+      bwrapInode,
+    });
+    const plan = applyLinuxStrongNodeHarness(harness);
+
+    expect(plan).toMatchObject({
+      applied: true,
+      policyAttested: true,
+      runtimeProbe: {
+        runnable: true,
+        supervisorExecutableIdentity: {
+          fileId: {
+            dev: String(bwrapDevice),
+            ino: String(bwrapInode),
+          },
+        },
+      },
+    });
+    expect(
+      harness.bwrapInvocations.every(
+        ({ sourceFileId }) =>
+          sourceFileId.dev === String(bwrapDevice) &&
+          sourceFileId.ino === String(bwrapInode),
+      ),
+    ).toBe(true);
+
+    const sourceOpenIndex = harness.fsRuntime.openSync.mock.calls.findIndex(
+      ([value]) => value === "/usr/bin/bwrap",
+    );
+    const sourceFd =
+      harness.fsRuntime.openSync.mock.results[sourceOpenIndex]?.value;
+    const supervisorFds = new Set([sourceFd]);
+    harness.fsRuntime.openSync.mock.calls.forEach(([value], index) => {
+      if (value === `/proc/self/fd/${sourceFd}`) {
+        supervisorFds.add(harness.fsRuntime.openSync.mock.results[index].value);
+      }
+    });
+    expect(supervisorFds.size).toBe(4);
+    const supervisorStats = harness.fsRuntime.fstatSync.mock.calls.filter(
+      ([fd]) => supervisorFds.has(fd),
+    );
+    expect(supervisorStats.length).toBeGreaterThanOrEqual(8);
+    expect(
+      supervisorStats.every(([, options]) => options?.bigint === true),
+    ).toBe(true);
+    expect(harness.fsRuntime.lstatSync).toHaveBeenCalledWith("/usr/bin/bwrap", {
+      bigint: true,
+    });
+    expect(harness.fsRuntime.statSync).toHaveBeenCalledWith("/usr/bin/bwrap", {
+      bigint: true,
+    });
+    const policyProbeCall = harness.spawnSync.mock.calls.find(
+      ([command, args]) =>
+        command === "/proc/self/fd/3" && args?.[0] !== "--help",
+    );
+    expect(policyProbeCall[1].join("\n")).toContain(
+      "fstatSync(Number(name), { bigint: true })",
+    );
+
     plan.cleanup();
     expect(harness.openFiles.size).toBe(0);
   });
@@ -1329,9 +1793,26 @@ describe("platform sandbox adapter contract", () => {
         contentSnapshotScope: "plugin-entry-executable",
         contentSnapshotMechanism:
           "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+        supervisorDescriptorBound: true,
+        supervisorDescriptorBindingMechanism:
+          "pinned-child-fd3-file-consume-run-overmount-v1",
+        supervisorExecutableIdentity: {
+          path: "/usr/bin/bwrap",
+          sha256: harness.originalBwrapSha256,
+        },
         handleAtomic: false,
       },
     });
+    expect(plan.command).toBe("/proc/self/fd/3");
+    expectLinuxBwrapSupervisorPolicy(plan.args);
+    expectLinuxBwrapSupervisorInvocations(harness, ["capability", "probe"]);
+    expect(plan.options.stdio[3]).not.toBe(
+      harness.bwrapInvocations[0].parentFd,
+    );
+    expect(plan.options.stdio[3]).not.toBe(
+      harness.bwrapInvocations[1].parentFd,
+    );
+    expect(harness.fdOffsets.get(plan.options.stdio[3])).toBe(0);
     const entryDataIndex = plan.args.indexOf("--ro-bind-data");
     expect(plan.args.slice(entryDataIndex - 2, entryDataIndex + 3)).toEqual([
       "--perms",
@@ -1350,7 +1831,7 @@ describe("platform sandbox adapter contract", () => {
     expect(harness.lddInspectionSources).toEqual(["/runtime/node"]);
     const policyProbeCall = harness.spawnSync.mock.calls.find(
       ([command, probeArgs]) =>
-        command === "/usr/bin/bwrap" && probeArgs?.[0] !== "--help",
+        harness.isBwrapCommand(command) && probeArgs?.[0] !== "--help",
     );
     const probeSeparator = policyProbeCall[1].lastIndexOf("--");
     expect(
@@ -1397,6 +1878,11 @@ describe("platform sandbox adapter contract", () => {
       plan.options,
     );
     expect(finalResult.status).toBe(0);
+    expectLinuxBwrapSupervisorInvocations(harness, [
+      "capability",
+      "probe",
+      "final",
+    ]);
     expect(harness.bwrapDataReads).toHaveLength(2);
     expect(harness.bwrapDataReads[1]).toMatchObject({
       parentFd: finalSnapshotFd,
@@ -1409,9 +1895,101 @@ describe("platform sandbox adapter contract", () => {
     });
 
     plan.cleanup();
+    plan.cleanup();
     expect(harness.openFiles.size).toBe(0);
     expect(harness.anonymousFiles.size).toBe(0);
   });
+
+  it.each([
+    ["Plugin Node", "node"],
+    ["static ELF native", "native-static-elf"],
+  ])(
+    "keeps the descriptor-pinned bwrap supervisor stable when its path is replaced for %s",
+    (_label, entryRuntime) => {
+      const harness = createLinuxStrongHarness({ entryRuntime });
+      const originalSpawnSync = harness.spawnSync.getMockImplementation();
+      let replacement;
+      harness.spawnSync.mockImplementation((command, args, options) => {
+        if (
+          !replacement &&
+          command === "/proc/self/fd/3" &&
+          args?.[0] === "--help"
+        ) {
+          replacement = harness.replaceFileAtPath(
+            "/usr/bin/bwrap",
+            Buffer.from("replacement-bwrap-binary"),
+          );
+        }
+        return originalSpawnSync(command, args, options);
+      });
+
+      const plan =
+        entryRuntime === "native-static-elf"
+          ? applyLinuxStrongNativeHarness(harness)
+          : applyLinuxStrongNodeHarness(harness);
+
+      expect(replacement).toMatchObject({
+        beforeSha256: harness.originalBwrapSha256,
+      });
+      expect(plan).toMatchObject({
+        applied: true,
+        command: "/proc/self/fd/3",
+        runtimeProbe: {
+          runnable: true,
+          targetRuntime: entryRuntime,
+          supervisorDescriptorBound: true,
+          handleAtomic: false,
+        },
+      });
+      expect(replacement.after.ino).not.toBe(replacement.before.ino);
+      expect(replacement.afterSha256).not.toBe(replacement.beforeSha256);
+      expectLinuxBwrapSupervisorPolicy(plan.args);
+      expectLinuxBwrapSupervisorInvocations(harness, ["capability", "probe"]);
+      expect(
+        harness.bwrapInvocations.every(
+          ({ sourceFileId }) =>
+            sourceFileId.ino === String(replacement.before.ino),
+        ),
+      ).toBe(true);
+      expect(
+        harness.bwrapInvocations.every(
+          ({ sourceNlink, sourceCtimeMs }) =>
+            sourceNlink === 0 &&
+            sourceCtimeMs === Number(replacement.before.ctimeMs) + 1,
+        ),
+      ).toBe(true);
+      expect(
+        harness.bwrapInvocations.some(
+          ({ command }) => command === "/usr/bin/bwrap",
+        ),
+      ).toBe(false);
+
+      const finalResult = harness.spawnSync(
+        plan.command,
+        plan.args,
+        plan.options,
+      );
+
+      expect(finalResult.status).toBe(0);
+      expectLinuxBwrapSupervisorInvocations(harness, [
+        "capability",
+        "probe",
+        "final",
+      ]);
+      expect(
+        harness.bwrapInvocations.every(
+          ({ sourceFileId }) =>
+            sourceFileId.ino === String(replacement.before.ino),
+        ),
+      ).toBe(true);
+      expect(harness.statFor("/usr/bin/bwrap").ino).toBe(replacement.after.ino);
+
+      plan.cleanup();
+      plan.cleanup();
+      expect(harness.openFiles.size).toBe(0);
+      expect(harness.anonymousFiles.size).toBe(0);
+    },
+  );
 
   it("builds the same attested bwrap plan for a narrow static PIE native bin", () => {
     const harness = createLinuxStrongHarness({
@@ -1500,7 +2078,7 @@ describe("platform sandbox adapter contract", () => {
     const originalSpawnSync = harness.spawnSync.getMockImplementation();
     harness.spawnSync.mockImplementation((command, args, options) => {
       const result = originalSpawnSync(command, args, options);
-      if (command === "/usr/bin/bwrap" && args?.[0] !== "--help") {
+      if (harness.isBwrapCommand(command) && args?.[0] !== "--help") {
         harness.files.set(
           harness.entryPath,
           Buffer.from(
@@ -1607,7 +2185,7 @@ describe("platform sandbox adapter contract", () => {
     expect(
       harness.spawnSync.mock.calls.filter(
         ([command, probeArgs]) =>
-          command === "/usr/bin/bwrap" && probeArgs?.[0] !== "--help",
+          harness.isBwrapCommand(command) && probeArgs?.[0] !== "--help",
       ),
     ).toHaveLength(0);
     expect(harness.openFiles.size).toBe(0);
@@ -1808,7 +2386,7 @@ describe("platform sandbox adapter contract", () => {
       expect(
         harness.spawnSync.mock.calls.filter(
           ([command, probeArgs]) =>
-            command === "/usr/bin/bwrap" && probeArgs?.[0] !== "--help",
+            harness.isBwrapCommand(command) && probeArgs?.[0] !== "--help",
         ),
       ).toHaveLength(0);
       expect(
@@ -2015,6 +2593,7 @@ describe("platform sandbox adapter contract", () => {
       },
     });
     expect(plan.policyDigest).toMatch(/^[a-f0-9]{64}$/);
+    expectLinuxBwrapSupervisorInvocations(harness, ["capability", "probe"]);
     expect(harness.openFiles.size).toBe(0);
   });
 
@@ -2023,7 +2602,7 @@ describe("platform sandbox adapter contract", () => {
     const originalSpawnSync = harness.spawnSync.getMockImplementation();
     harness.spawnSync.mockImplementation((command, args, options) => {
       const result = originalSpawnSync(command, args, options);
-      if (command === "/usr/bin/bwrap" && args?.[0] !== "--help") {
+      if (harness.isBwrapCommand(command) && args?.[0] !== "--help") {
         harness.files.set(
           "/plugin/bin/tool.js",
           Buffer.from("process.stdout.write('changed after probe')"),
@@ -2061,6 +2640,8 @@ describe("platform sandbox adapter contract", () => {
         reason: "post_probe_execution_identity_changed",
       },
     });
+    expectLinuxBwrapSupervisorInvocations(harness, ["capability", "probe"]);
+    expect(harness.openFiles.size).toBe(0);
   });
 
   it.each([
@@ -2294,7 +2875,7 @@ describe("platform sandbox adapter contract", () => {
     expect(
       harness.spawnSync.mock.calls.filter(
         ([command, args]) =>
-          command === "/usr/bin/bwrap" && args?.[0] !== "--help",
+          harness.isBwrapCommand(command) && args?.[0] !== "--help",
       ),
     ).toHaveLength(0);
   });
@@ -2420,46 +3001,63 @@ describe("platform sandbox adapter contract", () => {
     expect(harness.spawnSync).not.toHaveBeenCalled();
   });
 
-  it("fails closed when bubblewrap lacks descriptor-backed bind support", () => {
-    const harness = createLinuxStrongHarness({
-      bwrapHelp: "--disable-userns\n--assert-userns-disabled\n",
-    });
-    const plan = applySandbox(
-      "/runtime/node",
-      ["/plugin/bin/tool.js"],
-      { cwd: "/plugin", shell: false },
-      "strict",
-      {
-        platform: "linux",
-        fs: harness.fsRuntime,
-        homedir: () => "/home/tester",
-        spawnSync: harness.spawnSync,
-      },
-      {
-        profile: "strict",
-        requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
-        sync: true,
-        executionContract: harness.contract,
-      },
-    );
+  it.each([
+    [
+      "file",
+      "--ro-bind-fd FD DEST\n--perms MODE\n--disable-userns\n--assert-userns-disabled\n--seccomp FD\n",
+    ],
+    [
+      "ro-bind-fd",
+      "--file FD DEST\n--perms MODE\n--disable-userns\n--assert-userns-disabled\n--seccomp FD\n",
+    ],
+    [
+      "perms",
+      "--file FD DEST\n--ro-bind-fd FD DEST\n--disable-userns\n--assert-userns-disabled\n--seccomp FD\n",
+    ],
+  ])(
+    "fails closed when bubblewrap lacks required supervisor option %s",
+    (missingOption, bwrapHelp) => {
+      const harness = createLinuxStrongHarness({ bwrapHelp });
+      const plan = applySandbox(
+        "/runtime/node",
+        ["/plugin/bin/tool.js"],
+        { cwd: "/plugin", shell: false },
+        "strict",
+        {
+          platform: "linux",
+          fs: harness.fsRuntime,
+          homedir: () => "/home/tester",
+          spawnSync: harness.spawnSync,
+        },
+        {
+          profile: "strict",
+          requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+          sync: true,
+          executionContract: harness.contract,
+        },
+      );
 
-    expect(plan).toMatchObject({
-      applied: false,
-      reason: "linux_bwrap_unavailable",
-      guarantees: [],
-      runtimeProbe: {
-        attempted: true,
-        runnable: false,
-        reason: "required_option_missing:ro-bind-fd",
-      },
-    });
-    expect(harness.spawnSync).toHaveBeenCalledOnce();
-  });
+      expect(plan).toMatchObject({
+        applied: false,
+        reason: "linux_bwrap_unavailable",
+        guarantees: [],
+        runtimeProbe: {
+          attempted: true,
+          runnable: false,
+          reason: `required_option_missing:${missingOption}`,
+          supervisorDescriptorBound: true,
+          handleAtomic: false,
+        },
+      });
+      expectLinuxBwrapSupervisorInvocations(harness, ["capability"]);
+      expect(harness.openFiles.size).toBe(0);
+    },
+  );
 
   it("keeps the Node backend compatible without native snapshot options", () => {
     const harness = createLinuxStrongHarness({
       bwrapHelp:
-        "--ro-bind-fd FD DEST\n--disable-userns\n--assert-userns-disabled\n--seccomp FD\n",
+        "--file FD DEST\n--ro-bind-fd FD DEST\n--perms MODE\n--disable-userns\n--assert-userns-disabled\n--seccomp FD\n",
     });
     const plan = applySandbox(
       "/runtime/node",
@@ -2497,11 +3095,11 @@ describe("platform sandbox adapter contract", () => {
   it.each([
     [
       "ro-bind-data",
-      "--ro-bind-fd FD DEST\n--perms MODE\n--disable-userns\n--assert-userns-disabled\n--seccomp FD\n",
+      "--file FD DEST\n--ro-bind-fd FD DEST\n--perms MODE\n--disable-userns\n--assert-userns-disabled\n--seccomp FD\n",
     ],
     [
       "perms",
-      "--ro-bind-fd FD DEST\n--ro-bind-data FD DEST\n--disable-userns\n--assert-userns-disabled\n--seccomp FD\n",
+      "--file FD DEST\n--ro-bind-fd FD DEST\n--ro-bind-data FD DEST\n--disable-userns\n--assert-userns-disabled\n--seccomp FD\n",
     ],
   ])(
     "fails closed when native bubblewrap lacks %s",
@@ -2531,7 +3129,7 @@ describe("platform sandbox adapter contract", () => {
   it("fails closed when bubblewrap cannot install the network seccomp filter", () => {
     const harness = createLinuxStrongHarness({
       bwrapHelp:
-        "--ro-bind-fd FD DEST\n--ro-bind-data FD DEST\n--perms MODE\n--disable-userns\n--assert-userns-disabled\n",
+        "--file FD DEST\n--ro-bind-fd FD DEST\n--ro-bind-data FD DEST\n--perms MODE\n--disable-userns\n--assert-userns-disabled\n",
     });
     const plan = applySandbox(
       "/runtime/node",
@@ -2562,7 +3160,8 @@ describe("platform sandbox adapter contract", () => {
         reason: "required_option_missing:seccomp",
       },
     });
-    expect(harness.spawnSync).toHaveBeenCalledOnce();
+    expectLinuxBwrapSupervisorInvocations(harness, ["capability"]);
+    expect(harness.openFiles.size).toBe(0);
   });
 
   it("fails closed and releases every pin on an unsupported seccomp architecture", () => {
@@ -2598,9 +3197,9 @@ describe("platform sandbox adapter contract", () => {
       },
     });
     expect(harness.spawnSync.mock.calls.map(([command]) => command)).toEqual([
-      "/usr/bin/bwrap",
       "/usr/bin/ldd",
     ]);
+    expect(harness.bwrapInvocations).toHaveLength(0);
     expect(harness.openFiles.size).toBe(0);
   });
 
@@ -2638,9 +3237,9 @@ describe("platform sandbox adapter contract", () => {
       },
     });
     expect(harness.spawnSync.mock.calls.map(([command]) => command)).toEqual([
-      "/usr/bin/bwrap",
       "/usr/bin/ldd",
     ]);
+    expect(harness.bwrapInvocations).toHaveLength(0);
     expect(harness.openFiles.size).toBe(0);
   });
 
@@ -6181,6 +6780,198 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       sandboxRuntimeProbe: runtimeProbe,
     });
   });
+
+  it("preserves complete bwrap supervisor evidence in the audit log", () => {
+    const child = createChild();
+    const nativeSpawn = vi.fn(() => child);
+    const runtimeProbe = createLinuxSupervisorRuntimeProbe();
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: vi.fn((command, args, options) =>
+        appliedPlan("sandbox-wrapper", ["--", command, ...args], options, {
+          runtimeProbe,
+        }),
+      ),
+      postSpawnSandbox: vi.fn(),
+    };
+
+    const returned = executionBroker.spawn("tool", ["run"], {
+      origin: "test:bwrap-supervisor-runtime-probe",
+      policy: "allow",
+    });
+
+    expect(returned).toBe(child);
+    expect(nativeSpawn).toHaveBeenCalledOnce();
+    expect(executionBroker.getAuditLog(1)[0].sandboxRuntimeProbe).toEqual(
+      runtimeProbe,
+    );
+  });
+
+  it.each([
+    "supervisorDescriptorBound",
+    "supervisorExecutablePinned",
+    "supervisorDescriptorContained",
+    "supervisorDescriptorConsumedBeforeTarget",
+    "supervisorStagingPathHidden",
+    "supervisorTemporaryCopyObscured",
+  ])("rejects a non-boolean runtime probe %s before native spawn", (field) => {
+    const nativeSpawn = vi.fn();
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: vi.fn((command, args, options) =>
+        appliedPlan(command, args, options, {
+          runtimeProbe: createLinuxSupervisorRuntimeProbe({
+            [field]: "yes",
+          }),
+        }),
+      ),
+      postSpawnSandbox: vi.fn(),
+    };
+
+    expect(() =>
+      executionBroker.spawn("tool", ["run"], {
+        origin: `test:invalid-bwrap-supervisor-boolean-${field}`,
+        policy: "allow",
+        sandboxPolicy: {
+          requiredBoundaries: [SANDBOX_BOUNDARIES.PROCESS_TREE],
+        },
+      }),
+    ).toThrow(/Sandbox runtime probe/);
+    expect(nativeSpawn).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["supervisorBindingScope", ""],
+    ["supervisorBindingScope", "generic"],
+    ["supervisorDescriptorBindingMechanism", []],
+    ["supervisorDescriptorBindingMechanism", "other"],
+    ["supervisorPid1ExecutableExposure", null],
+    ["supervisorPid1ExecutableExposure", "hidden"],
+  ])(
+    "rejects an invalid runtime probe %s string before native spawn",
+    (field, value) => {
+      const nativeSpawn = vi.fn();
+      executionBroker._native = { spawn: nativeSpawn };
+      executionBroker._sandboxAdapter = {
+        applySandbox: vi.fn((command, args, options) =>
+          appliedPlan(command, args, options, {
+            runtimeProbe: createLinuxSupervisorRuntimeProbe({
+              [field]: value,
+            }),
+          }),
+        ),
+        postSpawnSandbox: vi.fn(),
+      };
+
+      expect(() =>
+        executionBroker.spawn("tool", ["run"], {
+          origin: `test:invalid-bwrap-supervisor-string-${field}`,
+          policy: "allow",
+          sandboxPolicy: {
+            requiredBoundaries: [SANDBOX_BOUNDARIES.PROCESS_TREE],
+          },
+        }),
+      ).toThrow(/Sandbox runtime probe/);
+      expect(nativeSpawn).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ["object", null],
+    [
+      "path",
+      createLinuxSupervisorExecutableIdentity({
+        path: "",
+      }),
+    ],
+    [
+      "sha256",
+      createLinuxSupervisorExecutableIdentity({
+        sha256: "not-a-sha256",
+      }),
+    ],
+    [
+      "fileId",
+      createLinuxSupervisorExecutableIdentity({
+        fileId: { dev: "11" },
+      }),
+    ],
+    [
+      "bytes",
+      createLinuxSupervisorExecutableIdentity({
+        bytes: -1,
+      }),
+    ],
+    [
+      "oversized bytes",
+      createLinuxSupervisorExecutableIdentity({
+        bytes: 256 * 1024 * 1024 + 1,
+      }),
+    ],
+    [
+      "mtimeMs",
+      createLinuxSupervisorExecutableIdentity({
+        mtimeMs: "1234",
+      }),
+    ],
+    [
+      "mode",
+      createLinuxSupervisorExecutableIdentity({
+        mode: 0.5,
+      }),
+    ],
+    [
+      "unsafe mode",
+      createLinuxSupervisorExecutableIdentity({
+        mode: 0o100777,
+      }),
+    ],
+    [
+      "uid",
+      createLinuxSupervisorExecutableIdentity({
+        uid: -1,
+      }),
+    ],
+    [
+      "non-root uid",
+      createLinuxSupervisorExecutableIdentity({
+        uid: 1,
+      }),
+    ],
+    [
+      "gid",
+      createLinuxSupervisorExecutableIdentity({
+        gid: "0",
+      }),
+    ],
+  ])(
+    "rejects an invalid bwrap supervisor executable identity %s before native spawn",
+    (_field, supervisorExecutableIdentity) => {
+      const nativeSpawn = vi.fn();
+      executionBroker._native = { spawn: nativeSpawn };
+      executionBroker._sandboxAdapter = {
+        applySandbox: vi.fn((command, args, options) =>
+          appliedPlan(command, args, options, {
+            runtimeProbe: createLinuxSupervisorRuntimeProbe({
+              supervisorExecutableIdentity,
+            }),
+          }),
+        ),
+        postSpawnSandbox: vi.fn(),
+      };
+
+      expect(() =>
+        executionBroker.spawn("tool", ["run"], {
+          origin: "test:invalid-bwrap-supervisor-executable-identity",
+          policy: "allow",
+          sandboxPolicy: {
+            requiredBoundaries: [SANDBOX_BOUNDARIES.PROCESS_TREE],
+          },
+        }),
+      ).toThrow(/Sandbox runtime probe/);
+      expect(nativeSpawn).not.toHaveBeenCalled();
+    },
+  );
 
   it.each([
     ["contentSnapshot", "yes", "must be boolean"],

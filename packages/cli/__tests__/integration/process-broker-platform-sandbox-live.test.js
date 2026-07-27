@@ -33,6 +33,10 @@ const expectedEnforcement = {
   darwin: "macos-seatbelt",
   win32: "windows-job-restricted-token",
 };
+const LINUX_BWRAP_PATH = "/usr/bin/bwrap";
+const LINUX_BWRAP_SUPERVISOR_STAGING_PATH = "/run/.chainless-bwrap-supervisor";
+const LINUX_BWRAP_SUPERVISOR_BINDING =
+  "pinned-child-fd3-file-consume-run-overmount-v1";
 
 afterAll(() => {
   expect(resetWindowsSandboxAdapterCache()).toBe(true);
@@ -61,6 +65,51 @@ function fileIdentity(filePath) {
       ino: String(stat.ino),
     },
   };
+}
+
+function expectLinuxSupervisorPlan(supervisorPlan) {
+  expect(supervisorPlan).toMatchObject({
+    command: "/proc/self/fd/3",
+    childFd3Mapped: true,
+    supervisorFile: {
+      childFd: "3",
+      destination: LINUX_BWRAP_SUPERVISOR_STAGING_PATH,
+      permissions: "0000",
+    },
+  });
+  expect(supervisorPlan.runDirectoryIndex).toBeGreaterThanOrEqual(0);
+  expect(supervisorPlan.supervisorFile.index).toBeGreaterThan(
+    supervisorPlan.runDirectoryIndex,
+  );
+  expect(supervisorPlan.runTmpfsIndex).toBeGreaterThan(
+    supervisorPlan.supervisorFile.index,
+  );
+  expect(supervisorPlan.descriptorChildFds.length).toBeGreaterThan(0);
+  expect(
+    supervisorPlan.descriptorChildFds.every(
+      (childFd) => Number.isInteger(childFd) && childFd >= 4,
+    ),
+  ).toBe(true);
+}
+
+function expectLinuxSupervisorAudit(audit, supervisorIdentity) {
+  expect(audit.sandboxRuntimeProbe).toMatchObject({
+    supervisorDescriptorBound: true,
+    supervisorExecutablePinned: true,
+    supervisorBindingScope: "host-path-replacement",
+    supervisorDescriptorBindingMechanism: LINUX_BWRAP_SUPERVISOR_BINDING,
+    supervisorDescriptorContained: true,
+    supervisorDescriptorConsumedBeforeTarget: true,
+    supervisorStagingPathHidden: true,
+    supervisorTemporaryCopyObscured: true,
+    supervisorPid1ExecutableExposure: "procfs",
+    supervisorExecutableIdentity: {
+      path: LINUX_BWRAP_PATH,
+      fileId: supervisorIdentity.fileId,
+      sha256: supervisorIdentity.sha256,
+      bytes: supervisorIdentity.bytes,
+    },
+  });
 }
 
 function waitForJsonLine(
@@ -1145,6 +1194,7 @@ describe.runIf(LIVE && SUPPORTED)(
           `.cc-linux-bwrap-host-marker-${nonce}`,
         );
         const sandboxTmpPath = `/tmp/.cc-linux-bwrap-tmp-${nonce}`;
+        const supervisorIdentity = fileIdentity(LINUX_BWRAP_PATH);
         const childFixture = fileURLToPath(
           new URL(
             "../fixtures/process-broker-linux-bwrap-live-child.mjs",
@@ -1184,6 +1234,47 @@ describe.runIf(LIVE && SUPPORTED)(
               'const net = require("node:net");',
               'const dependency = require("../lib/value.cjs");',
               'const config = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));',
+              "const supervisorFdMatches = [];",
+              "let supervisorFdScanError = null;",
+              "try {",
+              "  for (const name of fs.readdirSync('/proc/self/fd')) {",
+              "    if (!/^\\d+$/.test(name)) continue;",
+              "    let descriptorStat;",
+              "    try {",
+              "      descriptorStat = fs.fstatSync(Number(name), { bigint: true });",
+              "    } catch {",
+              "      continue;",
+              "    }",
+              "    if (",
+              "      String(descriptorStat.dev) === config.supervisorIdentity.fileId.dev &&",
+              "      String(descriptorStat.ino) === config.supervisorIdentity.fileId.ino",
+              "    ) {",
+              "      supervisorFdMatches.push(Number(name));",
+              "    }",
+              "  }",
+              "} catch (error) {",
+              "  supervisorFdScanError = error.code || error.message;",
+              "}",
+              "let supervisorStagingPathVisible = false;",
+              "let supervisorStagingPathError = null;",
+              "try {",
+              "  fs.lstatSync(config.supervisorStagingPath);",
+              "  supervisorStagingPathVisible = true;",
+              "} catch (error) {",
+              "  supervisorStagingPathError = error.code || error.message;",
+              "}",
+              "let pid1ExecutableStatOk = false;",
+              "let pid1ExecutableMatchesSupervisor = false;",
+              "let pid1ExecutableError = null;",
+              "try {",
+              "  const pid1ExecutableStat = fs.statSync('/proc/1/exe', { bigint: true });",
+              "  pid1ExecutableStatOk = true;",
+              "  pid1ExecutableMatchesSupervisor =",
+              "    String(pid1ExecutableStat.dev) === config.supervisorIdentity.fileId.dev &&",
+              "    String(pid1ExecutableStat.ino) === config.supervisorIdentity.fileId.ino;",
+              "} catch (error) {",
+              "  pid1ExecutableError = error.code || error.message;",
+              "}",
               "const report = {",
               "  dependency: dependency.value,",
               "  cwd: process.cwd(),",
@@ -1199,6 +1290,13 @@ describe.runIf(LIVE && SUPPORTED)(
               "  tmpWritable: false,",
               "  loopbackConnected: false,",
               "  networkError: null,",
+              "  supervisorFdMatches,",
+              "  supervisorFdScanError,",
+              "  supervisorStagingPathVisible,",
+              "  supervisorStagingPathError,",
+              "  pid1ExecutableStatOk,",
+              "  pid1ExecutableMatchesSupervisor,",
+              "  pid1ExecutableError,",
               "};",
               "try { fs.readFileSync(config.secretPath, 'utf8'); report.secretReadable = true; } catch {}",
               "try { fs.readFileSync('/etc/passwd', 'utf8'); report.hostRootReadable = true; } catch {}",
@@ -1335,6 +1433,8 @@ describe.runIf(LIVE && SUPPORTED)(
                 hostMarker,
                 sandboxTmpPath,
                 port: serverReady.port,
+                supervisorIdentity,
+                supervisorStagingPath: LINUX_BWRAP_SUPERVISOR_STAGING_PATH,
               }),
               "utf8",
             );
@@ -1399,8 +1499,22 @@ describe.runIf(LIVE && SUPPORTED)(
             hostWritable: false,
             tmpWritable: true,
             loopbackConnected: false,
+            supervisorFdMatches: [],
+            supervisorFdScanError: null,
+            supervisorStagingPathVisible: false,
+            supervisorStagingPathError: "ENOENT",
+            pid1ExecutableStatOk: expect.any(Boolean),
+            pid1ExecutableMatchesSupervisor: expect.any(Boolean),
           });
+          // Bubblewrap may legitimately remain visible as PID 1's executable.
+          // The boundary under test is the consumed launch FD and the hidden
+          // staging file, not global invisibility of the supervisor's bytes.
+          expect(
+            report.pid1ExecutableError === null ||
+              typeof report.pid1ExecutableError === "string",
+          ).toBe(true);
           expect(report.networkError).toBe("EPERM");
+          expectLinuxSupervisorPlan(envelope.supervisorPlan);
           expect(envelope.audit).toMatchObject({
             permissionDecision: "allow",
             sandboxed: true,
@@ -1423,6 +1537,7 @@ describe.runIf(LIVE && SUPPORTED)(
               reason: null,
             },
           });
+          expectLinuxSupervisorAudit(envelope.audit, supervisorIdentity);
           expect(envelope.audit.sandboxPolicyDigest).toMatch(/^[a-f0-9]{64}$/);
           expect(fs.readFileSync(secretPath, "utf8")).toBe("host-only-secret");
           expect(fs.existsSync(pluginMarker)).toBe(false);
@@ -1481,6 +1596,7 @@ describe.runIf(LIVE && SUPPORTED)(
         );
         const sandboxPluginMarker = "/opt/chainless/plugin/plugin-marker.txt";
         const sandboxTmpPath = `/tmp/.cc-linux-native-tmp-${nonce}`;
+        const supervisorIdentity = fileIdentity(LINUX_BWRAP_PATH);
         const childFixture = fileURLToPath(
           new URL(
             "../fixtures/process-broker-linux-bwrap-live-child.mjs",
@@ -1515,6 +1631,8 @@ describe.runIf(LIVE && SUPPORTED)(
           sandboxPluginMarker,
           hostMarker,
           sandboxTmpPath,
+          supervisorIdentity.fileId.dev,
+          supervisorIdentity.fileId.ino,
         ];
 
         try {
@@ -1724,7 +1842,8 @@ describe.runIf(LIVE && SUPPORTED)(
                 direct_argv: true,
               },
             });
-            expect(JSON.parse(envelope.result.stdout)).toMatchObject({
+            const nativeReport = JSON.parse(envelope.result.stdout);
+            expect(nativeReport).toMatchObject({
               allowedReadable: true,
               allowed: "allowed-native-data",
               cwd: "/opt/chainless/plugin",
@@ -1740,7 +1859,21 @@ describe.runIf(LIVE && SUPPORTED)(
               entryMode: "0500",
               entryWritable: false,
               entryChmodWritable: false,
+              supervisorFdScanOk: true,
+              supervisorFdMatches: 0,
+              supervisorFdScanErrno: 0,
+              supervisorStagingPathVisible: false,
+              supervisorStagingPathErrno: 2,
+              pid1ExecutableStatOk: expect.any(Boolean),
+              pid1ExecutableMatchesSupervisor: expect.any(Boolean),
             });
+            // `/proc/1/exe` can identify bwrap's PID 1 and is intentionally
+            // diagnostic only; it is not an assertion that the executable's
+            // bytes or all paths to it are invisible inside the sandbox.
+            expect(Number.isInteger(nativeReport.pid1ExecutableErrno)).toBe(
+              true,
+            );
+            expectLinuxSupervisorPlan(envelope.supervisorPlan);
             expect(envelope.mutation).toMatchObject({
               sameDevice: true,
               sameInode: true,
@@ -1787,6 +1920,7 @@ describe.runIf(LIVE && SUPPORTED)(
                 handleAtomic: false,
               },
             });
+            expectLinuxSupervisorAudit(envelope.audit, supervisorIdentity);
             expect(envelope.audit.sandboxPolicyDigest).toMatch(
               /^[a-f0-9]{64}$/,
             );

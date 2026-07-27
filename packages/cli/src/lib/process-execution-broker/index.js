@@ -679,6 +679,115 @@ class ProcessExecutionBroker extends EventEmitter {
           );
         }
       }
+      const supervisorStringFields = [
+        "supervisorBindingScope",
+        "supervisorDescriptorBindingMechanism",
+        "supervisorPid1ExecutableExposure",
+      ];
+      const supervisorBooleanFields = [
+        "supervisorDescriptorBound",
+        "supervisorExecutablePinned",
+        "supervisorDescriptorContained",
+        "supervisorDescriptorConsumedBeforeTarget",
+        "supervisorStagingPathHidden",
+        "supervisorTemporaryCopyObscured",
+      ];
+      for (const field of supervisorStringFields) {
+        if (
+          plan.runtimeProbe[field] !== undefined &&
+          (typeof plan.runtimeProbe[field] !== "string" ||
+            !plan.runtimeProbe[field])
+        ) {
+          throw this._sandboxError(
+            "invalid_sandbox_plan",
+            `Sandbox runtime probe ${field} must be a non-empty string`,
+          );
+        }
+      }
+      for (const field of supervisorBooleanFields) {
+        if (
+          plan.runtimeProbe[field] !== undefined &&
+          typeof plan.runtimeProbe[field] !== "boolean"
+        ) {
+          throw this._sandboxError(
+            "invalid_sandbox_plan",
+            `Sandbox runtime probe ${field} must be boolean`,
+          );
+        }
+      }
+      const supervisorIdentity = plan.runtimeProbe.supervisorExecutableIdentity;
+      if (supervisorIdentity !== undefined) {
+        const fileId = supervisorIdentity?.fileId;
+        if (
+          !supervisorIdentity ||
+          typeof supervisorIdentity !== "object" ||
+          Array.isArray(supervisorIdentity) ||
+          typeof supervisorIdentity.path !== "string" ||
+          !supervisorIdentity.path.startsWith("/") ||
+          !fileId ||
+          typeof fileId !== "object" ||
+          Array.isArray(fileId) ||
+          typeof fileId.dev !== "string" ||
+          !/^\d+$/.test(fileId.dev) ||
+          typeof fileId.ino !== "string" ||
+          !/^\d+$/.test(fileId.ino) ||
+          typeof supervisorIdentity.sha256 !== "string" ||
+          !/^[a-f0-9]{64}$/.test(supervisorIdentity.sha256) ||
+          !Number.isSafeInteger(supervisorIdentity.bytes) ||
+          supervisorIdentity.bytes <= 0 ||
+          supervisorIdentity.bytes > 256 * 1024 * 1024 ||
+          !Number.isFinite(supervisorIdentity.mtimeMs) ||
+          !Number.isSafeInteger(supervisorIdentity.mode) ||
+          supervisorIdentity.mode <= 0 ||
+          (supervisorIdentity.mode & 0o170000) !== 0o100000 ||
+          (supervisorIdentity.mode & 0o111) === 0 ||
+          (supervisorIdentity.mode & 0o022) !== 0 ||
+          !Number.isSafeInteger(supervisorIdentity.uid) ||
+          supervisorIdentity.uid !== 0 ||
+          !Number.isSafeInteger(supervisorIdentity.gid) ||
+          supervisorIdentity.gid < 0
+        ) {
+          throw this._sandboxError(
+            "invalid_sandbox_plan",
+            "Sandbox runtime probe supervisorExecutableIdentity must use the typed executable identity contract",
+          );
+        }
+      }
+      const supervisorBound =
+        plan.runtimeProbe.supervisorDescriptorBound === true;
+      if (
+        supervisorBound &&
+        (plan.runtimeProbe.supervisorExecutablePinned !== true ||
+          supervisorIdentity === undefined ||
+          plan.runtimeProbe.supervisorBindingScope !==
+            "host-path-replacement" ||
+          plan.runtimeProbe.supervisorDescriptorBindingMechanism !==
+            "pinned-child-fd3-file-consume-run-overmount-v1" ||
+          plan.runtimeProbe.supervisorPid1ExecutableExposure !== "procfs")
+      ) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Sandbox runtime probe bound supervisor evidence must include its typed identity and binding contract",
+        );
+      }
+      for (const field of [
+        "supervisorDescriptorContained",
+        "supervisorDescriptorConsumedBeforeTarget",
+        "supervisorStagingPathHidden",
+        "supervisorTemporaryCopyObscured",
+      ]) {
+        if (
+          (plan.runtimeProbe[field] === true &&
+            (!supervisorBound || plan.runtimeProbe.runnable !== true)) ||
+          (supervisorBound &&
+            plan.runtimeProbe[field] !== plan.runtimeProbe.runnable)
+        ) {
+          throw this._sandboxError(
+            "invalid_sandbox_plan",
+            `Sandbox runtime probe ${field} requires a runnable bound supervisor`,
+          );
+        }
+      }
       runtimeProbe = {
         kind: plan.runtimeProbe.kind,
         attempted: plan.runtimeProbe.attempted,
@@ -708,6 +817,29 @@ class ProcessExecutionBroker extends EventEmitter {
             }
           : {}),
       };
+      for (const field of [
+        ...supervisorStringFields,
+        ...supervisorBooleanFields,
+      ]) {
+        if (plan.runtimeProbe[field] !== undefined) {
+          runtimeProbe[field] = plan.runtimeProbe[field];
+        }
+      }
+      if (supervisorIdentity !== undefined) {
+        runtimeProbe.supervisorExecutableIdentity = {
+          path: supervisorIdentity.path,
+          fileId: {
+            dev: supervisorIdentity.fileId.dev,
+            ino: supervisorIdentity.fileId.ino,
+          },
+          sha256: supervisorIdentity.sha256,
+          bytes: supervisorIdentity.bytes,
+          mtimeMs: supervisorIdentity.mtimeMs,
+          mode: supervisorIdentity.mode,
+          uid: supervisorIdentity.uid,
+          gid: supervisorIdentity.gid,
+        };
+      }
     }
     const postSpawn = plan.postSpawn || { required: false, mode: "none" };
     if (

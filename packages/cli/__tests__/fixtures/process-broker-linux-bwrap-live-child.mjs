@@ -7,6 +7,8 @@ import {
 } from "../../src/lib/process-execution-broker/index.js";
 
 const [mode, value, extra] = process.argv.slice(2);
+const BWRAP_SUPERVISOR_CHILD_FD = 3;
+const BWRAP_SUPERVISOR_STAGING_PATH = "/run/.chainless-bwrap-supervisor";
 
 function writeResult(result) {
   process.stdout.write(JSON.stringify(result));
@@ -16,26 +18,96 @@ function sha256(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
 
+function summarizeLinuxSupervisorPlan(plan) {
+  if (plan?.backend !== "linux-bwrap") return null;
+
+  const planArgs = Array.isArray(plan.args) ? plan.args : [];
+  const stdio = Array.isArray(plan.options?.stdio) ? plan.options.stdio : [];
+  const supervisorFileIndex = planArgs.findIndex(
+    (argument, index) =>
+      argument === "--file" &&
+      planArgs[index + 1] === String(BWRAP_SUPERVISOR_CHILD_FD) &&
+      planArgs[index + 2] === BWRAP_SUPERVISOR_STAGING_PATH,
+  );
+  const runDirectoryIndex = planArgs.findIndex(
+    (argument, index) => argument === "--dir" && planArgs[index + 1] === "/run",
+  );
+  const runTmpfsIndex = planArgs.findIndex(
+    (argument, index) =>
+      argument === "--tmpfs" && planArgs[index + 1] === "/run",
+  );
+  const descriptorChildFds = [];
+  for (let index = 0; index < planArgs.length; index += 1) {
+    if (
+      planArgs[index] === "--ro-bind-fd" ||
+      planArgs[index] === "--ro-bind-data" ||
+      planArgs[index] === "--seccomp"
+    ) {
+      descriptorChildFds.push(Number(planArgs[index + 1]));
+    }
+  }
+
+  return {
+    command: plan.command,
+    childFd3Mapped: Number.isInteger(stdio[BWRAP_SUPERVISOR_CHILD_FD]),
+    supervisorFile: {
+      index: supervisorFileIndex,
+      childFd:
+        supervisorFileIndex >= 0 ? planArgs[supervisorFileIndex + 1] : null,
+      destination:
+        supervisorFileIndex >= 0 ? planArgs[supervisorFileIndex + 2] : null,
+      permissions:
+        supervisorFileIndex >= 2 &&
+        planArgs[supervisorFileIndex - 2] === "--perms"
+          ? planArgs[supervisorFileIndex - 1]
+          : null,
+    },
+    runDirectoryIndex,
+    runTmpfsIndex,
+    descriptorChildFds,
+  };
+}
+
+async function executeWithSupervisorPlan(execute) {
+  const originalApplySandbox = executionBroker._sandboxAdapter.applySandbox;
+  let supervisorPlan = null;
+  executionBroker._sandboxAdapter.applySandbox = (...adapterArgs) => {
+    const plan = originalApplySandbox(...adapterArgs);
+    supervisorPlan = summarizeLinuxSupervisorPlan(plan) || supervisorPlan;
+    return plan;
+  };
+  try {
+    return {
+      result: await execute(),
+      supervisorPlan,
+    };
+  } finally {
+    executionBroker._sandboxAdapter.applySandbox = originalApplySandbox;
+  }
+}
+
 executionBroker.flushAuditLog();
 
 if (mode === "positive") {
-  const result = await executeTool(
-    "run_shell",
-    { command: "strict-live config.json" },
-    { cwd: value },
+  const { result, supervisorPlan } = await executeWithSupervisorPlan(() =>
+    executeTool(
+      "run_shell",
+      { command: "strict-live config.json" },
+      { cwd: value },
+    ),
   );
   writeResult({
     result,
+    supervisorPlan,
     audit: executionBroker.getAuditLog(1)[0] || null,
   });
 } else if (mode === "plugin-command") {
-  const result = await executeTool(
-    "run_shell",
-    { command: extra },
-    { cwd: value },
+  const { result, supervisorPlan } = await executeWithSupervisorPlan(() =>
+    executeTool("run_shell", { command: extra }, { cwd: value }),
   );
   writeResult({
     result,
+    supervisorPlan,
     audit: executionBroker.getAuditLog(1)[0] || null,
   });
 } else if (mode === "plugin-command-snapshot-race") {
@@ -43,9 +115,11 @@ if (mode === "positive") {
   const originalApplySandbox = executionBroker._sandboxAdapter.applySandbox;
   let mutation = null;
   let entryBindings = null;
+  let supervisorPlan = null;
   let mutated = false;
   executionBroker._sandboxAdapter.applySandbox = (...adapterArgs) => {
     const plan = originalApplySandbox(...adapterArgs);
+    supervisorPlan = summarizeLinuxSupervisorPlan(plan) || supervisorPlan;
     if (mutated) return plan;
     mutated = true;
     try {
@@ -127,6 +201,7 @@ if (mode === "positive") {
     result,
     mutation,
     entryBindings,
+    supervisorPlan,
     audit: executionBroker.getAuditLog(1)[0] || null,
   });
 } else if (mode === "missing-contract") {

@@ -1,6 +1,8 @@
 #include <arpa/inet.h>
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,8 +30,60 @@ static int can_write(const char *path) {
   return ok;
 }
 
+static int count_matching_fds(uintmax_t expected_dev, uintmax_t expected_ino,
+                              int *scan_errno) {
+  DIR *directory = opendir("/proc/self/fd");
+  if (directory == NULL) {
+    *scan_errno = errno;
+    return -1;
+  }
+
+  int matches = 0;
+  errno = 0;
+  for (;;) {
+    struct dirent *entry = readdir(directory);
+    if (entry == NULL) break;
+    char *end = NULL;
+    errno = 0;
+    long descriptor = strtol(entry->d_name, &end, 10);
+    if (errno != 0 || end == entry->d_name || *end != '\0' ||
+        descriptor < 0 || descriptor > INT_MAX) {
+      errno = 0;
+      continue;
+    }
+    struct stat descriptor_stat = {0};
+    if (fstat((int)descriptor, &descriptor_stat) != 0) {
+      errno = 0;
+      continue;
+    }
+    if ((uintmax_t)descriptor_stat.st_dev == expected_dev &&
+        (uintmax_t)descriptor_stat.st_ino == expected_ino) {
+      matches += 1;
+    }
+    errno = 0;
+  }
+  if (errno != 0) *scan_errno = errno;
+  closedir(directory);
+  return *scan_errno == 0 ? matches : -1;
+}
+
 int main(int argc, char **argv) {
-  if (argc != 6) return 64;
+  if (argc != 8) return 64;
+
+  char *expected_dev_end = NULL;
+  char *expected_ino_end = NULL;
+  errno = 0;
+  uintmax_t expected_dev = strtoumax(argv[6], &expected_dev_end, 10);
+  if (errno != 0 || expected_dev_end == argv[6] ||
+      *expected_dev_end != '\0') {
+    return 64;
+  }
+  errno = 0;
+  uintmax_t expected_ino = strtoumax(argv[7], &expected_ino_end, 10);
+  if (errno != 0 || expected_ino_end == argv[7] ||
+      *expected_ino_end != '\0') {
+    return 64;
+  }
 
   char allowed[128] = {0};
   char ignored[128] = {0};
@@ -49,6 +103,21 @@ int main(int argc, char **argv) {
   int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
   int network_errno = socket_fd < 0 ? errno : 0;
   if (socket_fd >= 0) close(socket_fd);
+  int supervisor_fd_scan_errno = 0;
+  int supervisor_fd_matches =
+      count_matching_fds(expected_dev, expected_ino, &supervisor_fd_scan_errno);
+  struct stat supervisor_staging_stat = {0};
+  int supervisor_staging_visible =
+      lstat("/run/.chainless-bwrap-supervisor", &supervisor_staging_stat) == 0;
+  int supervisor_staging_errno = supervisor_staging_visible ? 0 : errno;
+  struct stat pid1_executable_stat = {0};
+  int pid1_executable_stat_ok =
+      stat("/proc/1/exe", &pid1_executable_stat) == 0;
+  int pid1_executable_errno = pid1_executable_stat_ok ? 0 : errno;
+  int pid1_executable_matches =
+      pid1_executable_stat_ok &&
+      (uintmax_t)pid1_executable_stat.st_dev == expected_dev &&
+      (uintmax_t)pid1_executable_stat.st_ino == expected_ino;
 
   if (!getcwd(cwd, sizeof(cwd))) strcpy(cwd, "unavailable");
   printf(
@@ -57,7 +126,14 @@ int main(int argc, char **argv) {
       "\"entryMode\":\"%04o\",\"entryWritable\":%s,"
       "\"entryChmodWritable\":%s,"
       "\"secretReadable\":%s,\"hostRootReadable\":%s,\"pluginWritable\":%s,"
-      "\"hostWritable\":%s,\"tmpWritable\":%s,\"networkErrno\":%d}",
+      "\"hostWritable\":%s,\"tmpWritable\":%s,\"networkErrno\":%d,"
+      "\"supervisorFdScanOk\":%s,\"supervisorFdMatches\":%d,"
+      "\"supervisorFdScanErrno\":%d,"
+      "\"supervisorStagingPathVisible\":%s,"
+      "\"supervisorStagingPathErrno\":%d,"
+      "\"pid1ExecutableStatOk\":%s,"
+      "\"pid1ExecutableMatchesSupervisor\":%s,"
+      "\"pid1ExecutableErrno\":%d}",
       allowed_readable ? "true" : "false", allowed, cwd,
       getenv("CHAINLESS_SANDBOXED") ? "true" : "false",
       getenv("CC_TEST_SENSITIVE_ENV") ? "true" : "false",
@@ -69,6 +145,10 @@ int main(int argc, char **argv) {
       host_root_readable ? "true" : "false",
       plugin_writable ? "true" : "false",
       host_writable ? "true" : "false", tmp_writable ? "true" : "false",
-      network_errno);
+      network_errno, supervisor_fd_matches >= 0 ? "true" : "false",
+      supervisor_fd_matches, supervisor_fd_scan_errno,
+      supervisor_staging_visible ? "true" : "false",
+      supervisor_staging_errno, pid1_executable_stat_ok ? "true" : "false",
+      pid1_executable_matches ? "true" : "false", pid1_executable_errno);
   return 0;
 }
