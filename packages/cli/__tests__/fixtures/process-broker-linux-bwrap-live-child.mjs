@@ -166,7 +166,7 @@ if (mode === "positive") {
             offset,
           );
           if (written <= 0)
-            throw new Error("native race write made no progress");
+            throw new Error("entry snapshot race write made no progress");
           offset += written;
         }
         fs.fsyncSync(fd);

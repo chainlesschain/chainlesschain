@@ -452,10 +452,17 @@ function createLinuxStrongHarness({
   ].join("\n"),
   includeBwrap = true,
   tamperSeccompFilter = false,
+  tamperNodeSnapshot = false,
+  tamperNodeSnapshotAfterProbe = false,
+  tamperNodeSourceDuringSnapshotCopy = false,
   tamperNativeSnapshot = false,
   tamperNativeSnapshotAfterProbe = false,
+  failNodeSnapshotTmpfileOpen = false,
+  failNodeSnapshotReopen = false,
+  failNodeSnapshotWriterClose = false,
   failNativeSnapshotReopen = false,
   entryRuntime = "node",
+  nodeEntry = Buffer.from("require('../lib/value.cjs');\n"),
   nativeEntry = createLinuxStaticElf64(),
   nativeEntryMode = 0o100755,
   bwrapDevice = 11,
@@ -463,6 +470,10 @@ function createLinuxStrongHarness({
 } = {}) {
   const nativeStatic = entryRuntime === "native-static-elf";
   const entryPath = nativeStatic ? "/plugin/bin/tool" : "/plugin/bin/tool.js";
+  const sandboxEntryPath = nativeStatic
+    ? "/opt/chainless/plugin/bin/tool"
+    : "/opt/chainless/plugin/bin/tool.js";
+  const originalNodeEntry = Buffer.from(nodeEntry);
   const directories = new Set([
     "/plugin",
     "/plugin/bin",
@@ -472,9 +483,7 @@ function createLinuxStrongHarness({
   const files = new Map([
     [
       entryPath,
-      nativeStatic
-        ? Buffer.from(nativeEntry)
-        : Buffer.from("require('../lib/value.cjs');\n"),
+      nativeStatic ? Buffer.from(nativeEntry) : Buffer.from(originalNodeEntry),
     ],
     ["/plugin/lib/value.cjs", Buffer.from("module.exports = 42;\n")],
     ["/runtime/node", Buffer.from("attested-node-runtime")],
@@ -504,10 +513,14 @@ function createLinuxStrongHarness({
   const bwrapDataReads = [];
   const lddInspectionSources = [];
   const tamperedAnonymousFiles = new Set();
+  const nodeSnapshotWriterCloseErrors = [];
   let nextIno = 700;
   let nextFd = 40;
   let nextTempDirectory = 1;
   let bwrapInvocationCount = 0;
+  let nodeSnapshotTmpfileOpenFailed = false;
+  let nodeSnapshotSourceTampered = false;
+  let nodeSnapshotWriterCloseFailed = false;
   for (const value of [...directories, ...files.keys()]) {
     identities.set(value, nextIno++);
   }
@@ -628,6 +641,22 @@ function createLinuxStrongHarness({
       if (available > 0) {
         contents.copy(buffer, offset, position, position + available);
       }
+      if (
+        tamperNodeSourceDuringSnapshotCopy &&
+        !nativeStatic &&
+        !nodeSnapshotSourceTampered &&
+        filePath === entryPath &&
+        anonymousFiles.size > 0
+      ) {
+        const changed = Buffer.from(files.get(entryPath));
+        changed[changed.length - 1] ^= 0x1;
+        files.set(entryPath, changed);
+        fileMtimes.set(
+          entryPath,
+          Number(fileMtimes.get(entryPath) ?? 1234) + 1,
+        );
+        nodeSnapshotSourceTampered = true;
+      }
       return available;
     }),
     readdirSync: vi.fn((value) => {
@@ -658,6 +687,14 @@ function createLinuxStrongHarness({
         (Number(flags) & fsRuntime.constants.O_TMPFILE) ===
         fsRuntime.constants.O_TMPFILE;
       if (anonymous) {
+        if (
+          failNodeSnapshotTmpfileOpen &&
+          !nativeStatic &&
+          !nodeSnapshotTmpfileOpenFailed
+        ) {
+          nodeSnapshotTmpfileOpenFailed = true;
+          throw new Error("node snapshot O_TMPFILE open denied");
+        }
         if (!directories.has(filePath)) throw missing(filePath);
         filePath = `anonymous-inode-${nextIno}`;
         files.set(filePath, Buffer.alloc(0));
@@ -673,6 +710,14 @@ function createLinuxStrongHarness({
         files.get(filePath)?.subarray(0, 4).equals(Buffer.from("\x7fELF"))
       ) {
         throw new Error("snapshot reader reopen denied");
+      }
+      if (
+        failNodeSnapshotReopen &&
+        requestedPath.startsWith("/proc/self/fd/") &&
+        anonymousFiles.has(filePath) &&
+        files.get(filePath)?.equals(originalNodeEntry)
+      ) {
+        throw new Error("node snapshot reader reopen denied");
       }
       const create = (Number(flags) & 0x40) !== 0;
       const exclusive = (Number(flags) & 0x80) !== 0;
@@ -727,9 +772,14 @@ function createLinuxStrongHarness({
       const nativeSnapshot = contents
         .subarray(0, 4)
         .equals(Buffer.from("\x7fELF"));
+      const nodeSnapshot = !nativeStatic && contents.equals(originalNodeEntry);
       if (
         tamperedAnonymousFiles.has(filePath) ||
-        (nativeSnapshot ? !tamperNativeSnapshot : !tamperSeccompFilter) ||
+        (nativeSnapshot
+          ? !tamperNativeSnapshot
+          : nodeSnapshot
+            ? !tamperNodeSnapshot
+            : !tamperSeccompFilter) ||
         contents.length === 0
       ) {
         return;
@@ -760,6 +810,17 @@ function createLinuxStrongHarness({
     }),
     closeSync: vi.fn((fd) => {
       const filePath = openFiles.get(fd);
+      const failAfterClose =
+        failNodeSnapshotWriterClose &&
+        !nativeStatic &&
+        !nodeSnapshotWriterCloseFailed &&
+        anonymousFiles.has(filePath) &&
+        files.get(filePath)?.equals(originalNodeEntry) &&
+        (Number(openFlags.get(fd)) & fsRuntime.constants.O_ACCMODE) ===
+          fsRuntime.constants.O_RDWR;
+      if (failAfterClose) {
+        nodeSnapshotWriterCloseFailed = true;
+      }
       if (!openFiles.delete(fd)) throw missing(`fd:${fd}`);
       openFlags.delete(fd);
       detachedContents.delete(fd);
@@ -775,6 +836,10 @@ function createLinuxStrongHarness({
         fileMtimes.delete(filePath);
         identities.delete(filePath);
         tamperedAnonymousFiles.delete(filePath);
+      }
+      if (failAfterClose) {
+        nodeSnapshotWriterCloseErrors.push(fd);
+        throw new Error("node snapshot writer close result unavailable");
       }
     }),
     unlinkSync: vi.fn((value) => {
@@ -833,6 +898,19 @@ function createLinuxStrongHarness({
       before,
       after: statFor(filePath),
       beforeSha256: sha256(contents),
+      afterSha256: sha256(files.get(filePath)),
+    };
+  };
+  const rewriteFileInPlace = (filePath, replacement) => {
+    if (!files.has(filePath)) throw missing(filePath);
+    const before = statFor(filePath);
+    const beforeSha256 = sha256(files.get(filePath));
+    files.set(filePath, Buffer.from(replacement));
+    fileMtimes.set(filePath, Number(before.mtimeMs) + 1);
+    return {
+      before,
+      after: statFor(filePath),
+      beforeSha256,
       afterSha256: sha256(files.get(filePath)),
     };
   };
@@ -1008,8 +1086,7 @@ function createLinuxStrongHarness({
           !sourcePath ||
           !contents ||
           accessMode !== fsRuntime.constants.O_RDONLY ||
-          offsetBefore !== 0 ||
-          bytesRead <= 0
+          offsetBefore !== 0
         ) {
           return {
             status: 1,
@@ -1038,11 +1115,12 @@ function createLinuxStrongHarness({
         };
       }
       fdOffsets.set(seccompParentFd, seccompContents.length);
-      if (tamperNativeSnapshotAfterProbe && bwrapInvocationCount === 1) {
+      if (
+        (tamperNativeSnapshotAfterProbe || tamperNodeSnapshotAfterProbe) &&
+        bwrapInvocationCount === 1
+      ) {
         const snapshotRead = bwrapDataReads.find(
-          (read) =>
-            read.destination === "/opt/chainless/plugin/bin/tool" &&
-            read.sourcePath,
+          (read) => read.destination === sandboxEntryPath && read.sourcePath,
         );
         const snapshotContents = snapshotRead
           ? Buffer.from(files.get(snapshotRead.sourcePath))
@@ -1109,10 +1187,12 @@ function createLinuxStrongHarness({
     fdOffsets,
     lddInspectionSources,
     mountIds,
+    nodeSnapshotWriterCloseErrors,
     openFiles,
     openFlags,
     originalBwrapSha256,
     replaceFileAtPath,
+    rewriteFileInPlace,
     isBwrapCommand,
     spawnSync,
     statFor,
@@ -1565,7 +1645,10 @@ describe("platform sandbox adapter contract", () => {
         runnable: true,
         reason: null,
         targetRuntime: "node",
-        contentSnapshot: false,
+        contentSnapshot: true,
+        contentSnapshotScope: "plugin-entry-source",
+        contentSnapshotMechanism:
+          "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
         supervisorDescriptorBound: true,
         supervisorDescriptorBindingMechanism:
           "pinned-child-fd3-file-consume-run-overmount-v1",
@@ -1586,13 +1669,26 @@ describe("platform sandbox adapter contract", () => {
     expect(plan.args).toContain("--clearenv");
     expect(plan.args).toContain("--remount-ro");
     expect(plan.args.join("\0")).not.toContain("--ro-bind\0/\0/");
-    expect(plan.args).toEqual(
-      expect.arrayContaining([
-        "--ro-bind-fd",
-        expect.any(String),
-        "/opt/chainless/plugin/bin/tool.js",
-      ]),
+    const entryDataIndex = plan.args.findIndex(
+      (value, index) =>
+        value === "--ro-bind-data" &&
+        plan.args[index + 2] === "/opt/chainless/plugin/bin/tool.js",
     );
+    expect(entryDataIndex).toBeGreaterThanOrEqual(2);
+    expect(plan.args.slice(entryDataIndex - 2, entryDataIndex + 3)).toEqual([
+      "--perms",
+      "0400",
+      "--ro-bind-data",
+      expect.any(String),
+      "/opt/chainless/plugin/bin/tool.js",
+    ]);
+    expect(
+      plan.args.some(
+        (value, index) =>
+          value === "--ro-bind-fd" &&
+          plan.args[index + 2] === "/opt/chainless/plugin/bin/tool.js",
+      ),
+    ).toBe(false);
     expect(plan.args).not.toContain("/plugin");
     const libDirectoryIndex = plan.args.findIndex(
       (value, index) => value === "--dir" && plan.args[index + 1] === "/lib",
@@ -1637,6 +1733,34 @@ describe("platform sandbox adapter contract", () => {
       harness.bwrapInvocations[1].parentFd,
     );
     expect(harness.fdOffsets.get(plan.options.stdio[3])).toBe(0);
+    expect(harness.bwrapDataReads).toHaveLength(1);
+    const probeSnapshotRead = harness.bwrapDataReads[0];
+    expect(probeSnapshotRead).toMatchObject({
+      destination: "/opt/chainless/plugin/bin/tool.js",
+      offsetBefore: 0,
+      bytesRead: harness.contract.entryIdentity.bytes,
+      sha256: harness.contract.entryIdentity.sha256,
+      permissions: "0400",
+    });
+    expect(
+      probeSnapshotRead.flags & harness.fsRuntime.constants.O_ACCMODE,
+    ).toBe(harness.fsRuntime.constants.O_RDONLY);
+    const finalSnapshotChildFd = Number(plan.args[entryDataIndex + 1]);
+    const finalSnapshotFd = plan.options.stdio[finalSnapshotChildFd];
+    expect(finalSnapshotFd).not.toBe(probeSnapshotRead.parentFd);
+    expect(harness.fdOffsets.get(finalSnapshotFd)).toBe(0);
+    expect(
+      harness.openFlags.get(finalSnapshotFd) &
+        harness.fsRuntime.constants.O_ACCMODE,
+    ).toBe(harness.fsRuntime.constants.O_RDONLY);
+    const finalSnapshotPath = harness.openFiles.get(finalSnapshotFd);
+    expect(finalSnapshotPath).toBe(probeSnapshotRead.sourcePath);
+    expect(harness.statFor(finalSnapshotPath)).toMatchObject({
+      nlink: 0,
+      mode: 0o100400,
+      size: harness.contract.entryIdentity.bytes,
+    });
+    expect([...harness.openFiles.values()]).not.toContain(harness.entryPath);
     const anonymousFilterOpens = harness.fsRuntime.openSync.mock.calls.filter(
       ([value, flags, mode]) =>
         value === "/tmp" &&
@@ -1644,7 +1768,7 @@ describe("platform sandbox adapter contract", () => {
           harness.fsRuntime.constants.O_TMPFILE &&
         mode === 0o400,
     );
-    expect(anonymousFilterOpens).toHaveLength(2);
+    expect(anonymousFilterOpens).toHaveLength(3);
     expect(harness.fsRuntime.mkdtempSync).not.toHaveBeenCalled();
     const seccompIndex = plan.args.indexOf("--seccomp");
     expect(plan.args[seccompIndex + 1]).toBe(
@@ -1693,12 +1817,283 @@ describe("platform sandbox adapter contract", () => {
       "probe",
       "final",
     ]);
+    expect(harness.bwrapDataReads).toHaveLength(2);
+    expect(harness.bwrapDataReads[1]).toMatchObject({
+      parentFd: finalSnapshotFd,
+      sourcePath: finalSnapshotPath,
+      destination: "/opt/chainless/plugin/bin/tool.js",
+      offsetBefore: 0,
+      bytesRead: harness.contract.entryIdentity.bytes,
+      sha256: harness.contract.entryIdentity.sha256,
+      permissions: "0400",
+    });
 
     plan.cleanup();
     plan.cleanup();
     expect(harness.openFiles.size).toBe(0);
+    expect(harness.anonymousFiles.size).toBe(0);
     const closedFds = harness.fsRuntime.closeSync.mock.calls.map(([fd]) => fd);
     expect(new Set(closedFds).size).toBe(closedFds.length);
+  });
+
+  it.each([
+    [
+      "same-inode truncate/write",
+      (harness) =>
+        harness.rewriteFileInPlace(
+          harness.entryPath,
+          Buffer.from("throw new Error('changed');\n"),
+        ),
+      true,
+    ],
+    [
+      "rename-over",
+      (harness) =>
+        harness.replaceFileAtPath(
+          harness.entryPath,
+          Buffer.from("throw new Error('replacement');\n"),
+        ),
+      false,
+    ],
+  ])(
+    "keeps the Node entry snapshot stable across %s between plan and spawn",
+    (_label, mutateEntry, sameInode) => {
+      const harness = createLinuxStrongHarness();
+      const originalSha256 = harness.contract.entryIdentity.sha256;
+      const originalBytes = harness.contract.entryIdentity.bytes;
+      const plan = applyLinuxStrongNodeHarness(harness);
+
+      expect(plan).toMatchObject({
+        applied: true,
+        runtimeProbe: {
+          runnable: true,
+          targetRuntime: "node",
+          contentSnapshot: true,
+          contentSnapshotScope: "plugin-entry-source",
+          contentSnapshotMechanism:
+            "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+          handleAtomic: false,
+        },
+      });
+      const mutation = mutateEntry(harness);
+      expect(mutation.afterSha256).not.toBe(originalSha256);
+      expect(mutation.after.ino === mutation.before.ino).toBe(sameInode);
+
+      const finalResult = harness.spawnSync(
+        plan.command,
+        plan.args,
+        plan.options,
+      );
+
+      expect(finalResult.status).toBe(0);
+      expect(harness.bwrapDataReads).toHaveLength(2);
+      expect(harness.bwrapDataReads[1]).toMatchObject({
+        destination: "/opt/chainless/plugin/bin/tool.js",
+        offsetBefore: 0,
+        bytesRead: originalBytes,
+        sha256: originalSha256,
+        permissions: "0400",
+      });
+      expect(
+        crypto
+          .createHash("sha256")
+          .update(harness.files.get(harness.entryPath))
+          .digest("hex"),
+      ).toBe(mutation.afterSha256);
+
+      plan.cleanup();
+      plan.cleanup();
+      expect(harness.openFiles.size).toBe(0);
+      expect(harness.anonymousFiles.size).toBe(0);
+    },
+  );
+
+  it("snapshots a valid empty Node entry source", () => {
+    const harness = createLinuxStrongHarness({
+      nodeEntry: Buffer.alloc(0),
+    });
+    const plan = applyLinuxStrongNodeHarness(harness);
+
+    expect(plan).toMatchObject({
+      applied: true,
+      policyAttested: true,
+      runtimeProbe: {
+        runnable: true,
+        contentSnapshot: true,
+        contentSnapshotScope: "plugin-entry-source",
+        contentSnapshotMechanism:
+          "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+        handleAtomic: false,
+      },
+    });
+    expect(harness.contract.entryIdentity).toMatchObject({
+      bytes: 0,
+      sha256: crypto.createHash("sha256").update("").digest("hex"),
+    });
+    expect(harness.bwrapDataReads).toHaveLength(1);
+    expect(harness.bwrapDataReads[0]).toMatchObject({
+      destination: "/opt/chainless/plugin/bin/tool.js",
+      offsetBefore: 0,
+      bytesRead: 0,
+      permissions: "0400",
+    });
+
+    const finalResult = harness.spawnSync(
+      plan.command,
+      plan.args,
+      plan.options,
+    );
+    expect(finalResult.status).toBe(0);
+    expect(harness.bwrapDataReads).toHaveLength(2);
+    expect(harness.bwrapDataReads[1]).toMatchObject({
+      offsetBefore: 0,
+      bytesRead: 0,
+    });
+
+    plan.cleanup();
+    expect(harness.openFiles.size).toBe(0);
+    expect(harness.anonymousFiles.size).toBe(0);
+  });
+
+  it("keeps the Node policy digest stable across anonymous inode IDs and binds entry bytes", () => {
+    const left = createLinuxStrongHarness();
+    const right = createLinuxStrongHarness();
+    const temporaryFd = right.fsRuntime.openSync(
+      "/tmp",
+      right.fsRuntime.constants.O_TMPFILE |
+        right.fsRuntime.constants.O_EXCL |
+        right.fsRuntime.constants.O_RDWR,
+      0o400,
+    );
+    right.fsRuntime.closeSync(temporaryFd);
+    const changed = createLinuxStrongHarness({
+      nodeEntry: Buffer.from("require('../lib/value.cjs'); // changed\n"),
+    });
+
+    const leftPlan = applyLinuxStrongNodeHarness(left);
+    const rightPlan = applyLinuxStrongNodeHarness(right);
+    const changedPlan = applyLinuxStrongNodeHarness(changed);
+
+    expect(leftPlan.applied).toBe(true);
+    expect(rightPlan.applied).toBe(true);
+    expect(changedPlan.applied).toBe(true);
+    expect(leftPlan.policyDigest).toBe(rightPlan.policyDigest);
+    expect(changedPlan.policyDigest).not.toBe(leftPlan.policyDigest);
+    expect(leftPlan.runtimeProbe).toMatchObject({
+      contentSnapshot: true,
+      contentSnapshotScope: "plugin-entry-source",
+      contentSnapshotMechanism: "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+      handleAtomic: false,
+    });
+
+    leftPlan.cleanup();
+    rightPlan.cleanup();
+    changedPlan.cleanup();
+    expect(left.openFiles.size).toBe(0);
+    expect(right.openFiles.size).toBe(0);
+    expect(changed.openFiles.size).toBe(0);
+  });
+
+  it.each([
+    [
+      "source changes during verified copy",
+      { tamperNodeSourceDuringSnapshotCopy: true },
+    ],
+    ["copied bytes change before sealing", { tamperNodeSnapshot: true }],
+    ["O_TMPFILE creation is denied", { failNodeSnapshotTmpfileOpen: true }],
+    ["read-only OFDs cannot be reopened", { failNodeSnapshotReopen: true }],
+    [
+      "writer close result is unavailable",
+      { failNodeSnapshotWriterClose: true },
+    ],
+  ])("fails closed when the Node entry snapshot %s", (_label, options) => {
+    const harness = createLinuxStrongHarness(options);
+    const plan = applyLinuxStrongNodeHarness(harness);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      backend: null,
+      candidateBackend: "linux-bwrap",
+      policyAttested: false,
+      reason: "linux_bwrap_plugin_snapshot_unattested",
+      guarantees: [],
+      runtimeProbe: {
+        kind: "linux-bwrap-plugin-node-policy-v1",
+        attempted: false,
+        runnable: false,
+        targetRuntime: "node",
+        contentSnapshot: false,
+        handleAtomic: false,
+      },
+    });
+    expect(
+      harness.spawnSync.mock.calls.filter(
+        ([command, probeArgs]) =>
+          harness.isBwrapCommand(command) && probeArgs?.[0] !== "--help",
+      ),
+    ).toHaveLength(0);
+    expect(harness.openFiles.size).toBe(0);
+    expect(harness.anonymousFiles.size).toBe(0);
+    if (options.failNodeSnapshotWriterClose) {
+      expect(harness.nodeSnapshotWriterCloseErrors).toHaveLength(1);
+      const [failedFd] = harness.nodeSnapshotWriterCloseErrors;
+      expect(
+        harness.fsRuntime.closeSync.mock.calls.filter(
+          ([closedFd]) => closedFd === failedFd,
+        ),
+      ).toHaveLength(1);
+    }
+  });
+
+  it("fails closed when the Node snapshot changes after the policy probe", () => {
+    const harness = createLinuxStrongHarness({
+      tamperNodeSnapshotAfterProbe: true,
+    });
+    const plan = applyLinuxStrongNodeHarness(harness);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      backend: null,
+      candidateBackend: "linux-bwrap",
+      policyAttested: false,
+      reason: "linux_bwrap_execution_contract_changed",
+      guarantees: [],
+      runtimeProbe: {
+        kind: "linux-bwrap-plugin-node-policy-v1",
+        attempted: true,
+        runnable: false,
+        targetRuntime: "node",
+        contentSnapshot: false,
+        handleAtomic: false,
+      },
+    });
+    expect(plan.runtimeProbe.reason).toMatch(
+      /^post_probe_.*entry_snapshot_identity_changed$/,
+    );
+    expect(harness.bwrapDataReads).toHaveLength(1);
+    expect(harness.openFiles.size).toBe(0);
+    expect(harness.anonymousFiles.size).toBe(0);
+  });
+
+  it("releases both Node snapshot readers when the policy probe fails", () => {
+    const harness = createLinuxStrongHarness({ bwrapStatus: 1 });
+    const plan = applyLinuxStrongNodeHarness(harness);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_bwrap_policy_probe_failed",
+      runtimeProbe: {
+        attempted: true,
+        runnable: false,
+        reason: "probe_failed",
+        targetRuntime: "node",
+        contentSnapshot: false,
+        handleAtomic: false,
+      },
+    });
+    expect(harness.bwrapDataReads).toHaveLength(1);
+    expect(harness.openFiles.size).toBe(0);
+    expect(harness.anonymousFiles.size).toBe(0);
   });
 
   it("preserves full-width bwrap device and inode identity evidence", () => {
@@ -2597,14 +2992,20 @@ describe("platform sandbox adapter contract", () => {
     expect(harness.openFiles.size).toBe(0);
   });
 
-  it("re-attests the target after the policy probe before returning a guarantee", () => {
+  it("keeps the sealed Node entry after its source changes after the policy probe", () => {
     const harness = createLinuxStrongHarness();
+    const originalSha256 = harness.contract.entryIdentity.sha256;
     const originalSpawnSync = harness.spawnSync.getMockImplementation();
+    let mutation;
     harness.spawnSync.mockImplementation((command, args, options) => {
       const result = originalSpawnSync(command, args, options);
-      if (harness.isBwrapCommand(command) && args?.[0] !== "--help") {
-        harness.files.set(
-          "/plugin/bin/tool.js",
+      if (
+        !mutation &&
+        harness.isBwrapCommand(command) &&
+        args?.[0] !== "--help"
+      ) {
+        mutation = harness.rewriteFileInPlace(
+          harness.entryPath,
           Buffer.from("process.stdout.write('changed after probe')"),
         );
       }
@@ -2630,7 +3031,71 @@ describe("platform sandbox adapter contract", () => {
     );
 
     expect(plan).toMatchObject({
+      applied: true,
+      policyAttested: true,
+      reason: null,
+      guarantees: [SANDBOX_BOUNDARIES.FILESYSTEM, SANDBOX_BOUNDARIES.NETWORK],
+      runtimeProbe: {
+        attempted: true,
+        runnable: true,
+        reason: null,
+        targetRuntime: "node",
+        contentSnapshot: true,
+        contentSnapshotScope: "plugin-entry-source",
+        contentSnapshotMechanism:
+          "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+        handleAtomic: false,
+      },
+    });
+    expect(mutation.afterSha256).not.toBe(originalSha256);
+    expectLinuxBwrapSupervisorInvocations(harness, ["capability", "probe"]);
+    expect(harness.bwrapDataReads).toHaveLength(1);
+
+    const finalResult = harness.spawnSync(
+      plan.command,
+      plan.args,
+      plan.options,
+    );
+
+    expect(finalResult.status).toBe(0);
+    expect(harness.bwrapDataReads).toHaveLength(2);
+    expect(harness.bwrapDataReads[1]).toMatchObject({
+      destination: "/opt/chainless/plugin/bin/tool.js",
+      offsetBefore: 0,
+      sha256: originalSha256,
+      permissions: "0400",
+    });
+    plan.cleanup();
+    expect(harness.openFiles.size).toBe(0);
+    expect(harness.anonymousFiles.size).toBe(0);
+  });
+
+  it("still fails closed when the attested runtime changes after the policy probe", () => {
+    const harness = createLinuxStrongHarness();
+    const originalSpawnSync = harness.spawnSync.getMockImplementation();
+    let mutation;
+    harness.spawnSync.mockImplementation((command, args, options) => {
+      const result = originalSpawnSync(command, args, options);
+      if (
+        !mutation &&
+        harness.isBwrapCommand(command) &&
+        args?.[0] !== "--help"
+      ) {
+        mutation = harness.rewriteFileInPlace(
+          "/runtime/node",
+          Buffer.from("changed-node-runtime-after-probe"),
+        );
+      }
+      return result;
+    });
+
+    const plan = applyLinuxStrongNodeHarness(harness);
+
+    expect(mutation.afterSha256).not.toBe(mutation.beforeSha256);
+    expect(plan).toMatchObject({
       applied: false,
+      backend: null,
+      candidateBackend: "linux-bwrap",
       policyAttested: false,
       reason: "linux_bwrap_execution_contract_changed",
       guarantees: [],
@@ -2638,10 +3103,14 @@ describe("platform sandbox adapter contract", () => {
         attempted: true,
         runnable: false,
         reason: "post_probe_execution_identity_changed",
+        targetRuntime: "node",
+        contentSnapshot: false,
+        handleAtomic: false,
       },
     });
     expectLinuxBwrapSupervisorInvocations(harness, ["capability", "probe"]);
     expect(harness.openFiles.size).toBe(0);
+    expect(harness.anonymousFiles.size).toBe(0);
   });
 
   it.each([
@@ -3004,15 +3473,15 @@ describe("platform sandbox adapter contract", () => {
   it.each([
     [
       "file",
-      "--ro-bind-fd FD DEST\n--perms MODE\n--disable-userns\n--assert-userns-disabled\n--seccomp FD\n",
+      "--ro-bind-fd FD DEST\n--ro-bind-data FD DEST\n--perms MODE\n--disable-userns\n--assert-userns-disabled\n--seccomp FD\n",
     ],
     [
       "ro-bind-fd",
-      "--file FD DEST\n--perms MODE\n--disable-userns\n--assert-userns-disabled\n--seccomp FD\n",
+      "--file FD DEST\n--ro-bind-data FD DEST\n--perms MODE\n--disable-userns\n--assert-userns-disabled\n--seccomp FD\n",
     ],
     [
       "perms",
-      "--file FD DEST\n--ro-bind-fd FD DEST\n--disable-userns\n--assert-userns-disabled\n--seccomp FD\n",
+      "--file FD DEST\n--ro-bind-fd FD DEST\n--ro-bind-data FD DEST\n--disable-userns\n--assert-userns-disabled\n--seccomp FD\n",
     ],
   ])(
     "fails closed when bubblewrap lacks required supervisor option %s",
@@ -3054,7 +3523,7 @@ describe("platform sandbox adapter contract", () => {
     },
   );
 
-  it("keeps the Node backend compatible without native snapshot options", () => {
+  it("fails closed when Node bubblewrap lacks ro-bind-data snapshot support", () => {
     const harness = createLinuxStrongHarness({
       bwrapHelp:
         "--file FD DEST\n--ro-bind-fd FD DEST\n--perms MODE\n--disable-userns\n--assert-userns-disabled\n--seccomp FD\n",
@@ -3079,17 +3548,22 @@ describe("platform sandbox adapter contract", () => {
     );
 
     expect(plan).toMatchObject({
-      applied: true,
-      backend: "linux-bwrap",
+      applied: false,
+      backend: null,
+      reason: "linux_bwrap_unavailable",
+      guarantees: [],
       runtimeProbe: {
+        attempted: true,
+        runnable: false,
+        reason: "required_option_missing:ro-bind-data",
         targetRuntime: "node",
         contentSnapshot: false,
+        handleAtomic: false,
       },
     });
-    expect(plan.args).not.toContain("--ro-bind-data");
-
-    plan.cleanup();
+    expectLinuxBwrapSupervisorInvocations(harness, ["capability"]);
     expect(harness.openFiles.size).toBe(0);
+    expect(harness.anonymousFiles.size).toBe(0);
   });
 
   it.each([

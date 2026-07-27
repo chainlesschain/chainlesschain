@@ -37,6 +37,8 @@ const LINUX_BWRAP_PATH = "/usr/bin/bwrap";
 const LINUX_BWRAP_SUPERVISOR_STAGING_PATH = "/run/.chainless-bwrap-supervisor";
 const LINUX_BWRAP_SUPERVISOR_BINDING =
   "pinned-child-fd3-file-consume-run-overmount-v1";
+const LINUX_ENTRY_SNAPSHOT_MECHANISM =
+  "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1";
 
 afterAll(() => {
   expect(resetWindowsSandboxAdapterCache()).toBe(true);
@@ -1170,7 +1172,7 @@ describe.runIf(LIVE && SUPPORTED)(
     );
 
     it.runIf(process.platform === "linux")(
-      "runs an attested Plugin Node bin in an empty-root bwrap filesystem and network namespace",
+      "keeps executing an attested Plugin Node entry snapshot after a same-inode source rewrite",
       async () => {
         const nonce = `${process.pid}-${Date.now()}`;
         const workspace = fs.mkdtempSync(
@@ -1180,6 +1182,10 @@ describe.runIf(LIVE && SUPPORTED)(
           cwd: workspace,
         });
         const pluginEntry = path.join(pluginRoot, "bin", "strict-live.cjs");
+        const replacementEntry = path.join(
+          workspace,
+          "replacement-strict-live.cjs",
+        );
         const dependencyPath = path.join(pluginRoot, "lib", "value.cjs");
         const configPath = path.join(pluginRoot, "config.json");
         const allowedPath = path.join(pluginRoot, "allowed.txt");
@@ -1234,6 +1240,26 @@ describe.runIf(LIVE && SUPPORTED)(
               'const net = require("node:net");',
               'const dependency = require("../lib/value.cjs");',
               'const config = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));',
+              "const processStatus = Object.fromEntries(",
+              "  fs.readFileSync('/proc/self/status', 'utf8')",
+              "    .split(/\\r?\\n/)",
+              "    .map((line) => line.match(/^([^:]+):\\s*(.*)$/))",
+              "    .filter(Boolean)",
+              "    .map((match) => [match[1], match[2]]),",
+              ");",
+              "const entryMode = (fs.statSync(__filename).mode & 0o777)",
+              '  .toString(8).padStart(4, "0");',
+              "let entryWritable = false;",
+              "try {",
+              '  const entryFd = fs.openSync(__filename, "r+");',
+              "  fs.closeSync(entryFd);",
+              "  entryWritable = true;",
+              "} catch {}",
+              "let entryChmodWritable = false;",
+              "try {",
+              "  fs.chmodSync(__filename, 0o600);",
+              "  entryChmodWritable = true;",
+              "} catch {}",
               "const supervisorFdMatches = [];",
               "let supervisorFdScanError = null;",
               "try {",
@@ -1276,6 +1302,15 @@ describe.runIf(LIVE && SUPPORTED)(
               "  pid1ExecutableError = error.code || error.message;",
               "}",
               "const report = {",
+              "  entryVersion: 'original',",
+              "  processStatus: {",
+              "    NoNewPrivs: processStatus.NoNewPrivs || null,",
+              "    CapInh: processStatus.CapInh || null,",
+              "    CapEff: processStatus.CapEff || null,",
+              "    CapPrm: processStatus.CapPrm || null,",
+              "    CapAmb: processStatus.CapAmb || null,",
+              "    CapBnd: processStatus.CapBnd || null,",
+              "  },",
               "  dependency: dependency.value,",
               "  cwd: process.cwd(),",
               "  allowed: fs.readFileSync('allowed.txt', 'utf8'),",
@@ -1290,6 +1325,9 @@ describe.runIf(LIVE && SUPPORTED)(
               "  tmpWritable: false,",
               "  loopbackConnected: false,",
               "  networkError: null,",
+              "  entryMode,",
+              "  entryWritable,",
+              "  entryChmodWritable,",
               "  supervisorFdMatches,",
               "  supervisorFdScanError,",
               "  supervisorStagingPathVisible,",
@@ -1323,6 +1361,11 @@ describe.runIf(LIVE && SUPPORTED)(
               "  finish(false, error.code || error.message);",
               "}",
             ].join("\n"),
+            "utf8",
+          );
+          fs.writeFileSync(
+            replacementEntry,
+            'process.stdout.write("REPLACEMENT_NODE_ENTRY\\n");\n',
             "utf8",
           );
 
@@ -1440,7 +1483,17 @@ describe.runIf(LIVE && SUPPORTED)(
             );
             coordinator = nativeSpawnSync(
               process.execPath,
-              [childFixture, "positive", workspace],
+              [
+                childFixture,
+                "plugin-command-snapshot-race",
+                workspace,
+                JSON.stringify({
+                  command: "strict-live config.json",
+                  entryPath: pluginEntry,
+                  replacementPath: replacementEntry,
+                  destination: "/opt/chainless/plugin/bin/strict-live.cjs",
+                }),
+              ],
               {
                 encoding: "utf8",
                 timeout: 60_000,
@@ -1486,6 +1539,15 @@ describe.runIf(LIVE && SUPPORTED)(
           });
           const report = JSON.parse(envelope.result.stdout);
           expect(report).toMatchObject({
+            entryVersion: "original",
+            processStatus: {
+              NoNewPrivs: "1",
+              CapInh: "0000000000000000",
+              CapEff: "0000000000000000",
+              CapPrm: "0000000000000000",
+              CapAmb: "0000000000000000",
+              CapBnd: "0000000000000000",
+            },
             dependency: "local-dependency-ok",
             cwd: "/opt/chainless/plugin",
             allowed: "allowed-plugin-data",
@@ -1499,6 +1561,9 @@ describe.runIf(LIVE && SUPPORTED)(
             hostWritable: false,
             tmpWritable: true,
             loopbackConnected: false,
+            entryMode: "0400",
+            entryWritable: false,
+            entryChmodWritable: false,
             supervisorFdMatches: [],
             supervisorFdScanError: null,
             supervisorStagingPathVisible: false,
@@ -1515,6 +1580,27 @@ describe.runIf(LIVE && SUPPORTED)(
           ).toBe(true);
           expect(report.networkError).toBe("EPERM");
           expectLinuxSupervisorPlan(envelope.supervisorPlan);
+          expect(envelope.mutation).toMatchObject({
+            sameDevice: true,
+            sameInode: true,
+            afterSha256: envelope.mutation.replacementSha256,
+          });
+          expect(envelope.mutation.beforeSha256).not.toBe(
+            envelope.mutation.afterSha256,
+          );
+          expect(envelope.mutation.afterSha256).toBe(
+            fileSha256(replacementEntry),
+          );
+          expect(envelope.entryBindings).toEqual({
+            destination: "/opt/chainless/plugin/bin/strict-live.cjs",
+            roBindData: [
+              {
+                childFd: expect.any(String),
+                permissions: "0400",
+              },
+            ],
+            roBindFd: [],
+          });
           expect(envelope.audit).toMatchObject({
             permissionDecision: "allow",
             sandboxed: true,
@@ -1535,6 +1621,12 @@ describe.runIf(LIVE && SUPPORTED)(
               attempted: true,
               runnable: true,
               reason: null,
+              probeRuntime: "node",
+              targetRuntime: "node",
+              contentSnapshot: true,
+              contentSnapshotScope: "plugin-entry-source",
+              contentSnapshotMechanism: LINUX_ENTRY_SNAPSHOT_MECHANISM,
+              handleAtomic: false,
             },
           });
           expectLinuxSupervisorAudit(envelope.audit, supervisorIdentity);
@@ -1543,6 +1635,15 @@ describe.runIf(LIVE && SUPPORTED)(
           expect(fs.existsSync(pluginMarker)).toBe(false);
           expect(fs.existsSync(hostMarker)).toBe(false);
           expect(fs.existsSync(sandboxTmpPath)).toBe(false);
+
+          const replaced = nativeSpawnSync(process.execPath, [pluginEntry], {
+            encoding: "utf8",
+            timeout: 15_000,
+            windowsHide: true,
+          });
+          expect(replaced.error, replaced.stderr).toBeUndefined();
+          expect(replaced.status, replaced.stderr).toBe(0);
+          expect(replaced.stdout).toBe("REPLACEMENT_NODE_ENTRY\n");
         } finally {
           if (
             serverChild &&
