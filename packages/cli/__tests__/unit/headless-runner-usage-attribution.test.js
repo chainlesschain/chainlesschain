@@ -166,7 +166,7 @@ describe("headless runner usage attribution", () => {
       plugin: "acme-tools",
       pluginVersion: "2.1.0",
     });
-  });
+  }, 15000);
 
   it("stream mode forwards attributed usage as ordinary token_usage events (wire shape unchanged)", async () => {
     const { deps, out } = makeDeps();

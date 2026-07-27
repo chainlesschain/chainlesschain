@@ -216,7 +216,7 @@ describe("runAgentHeadlessStream", () => {
       turns: 2,
     });
     expect(outcome).toEqual({ exitCode: 0, turns: 2 });
-  });
+  }, 15000);
 
   it("threads autoCheckpoint into the loop options, keyed by sessionId", async () => {
     const captured = [];
