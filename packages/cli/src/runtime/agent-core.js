@@ -185,6 +185,22 @@ function rethrowRunCodeSandboxFailure(error) {
   }
 }
 
+function createPythonInterpreterProbeSandboxFailure(sandboxPolicy) {
+  const requiredBoundaries = [...(sandboxPolicy?.requiredBoundaries || [])];
+  const error = new Error(
+    `Python interpreter discovery cannot run without its required sandbox boundaries: ${requiredBoundaries.join(", ")}`,
+  );
+  error.code = "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED";
+  error.sandboxReason = "python_interpreter_probe_requires_sandbox";
+  error.sandboxFailClosed = true;
+  error.requiredBoundaries = requiredBoundaries;
+  error.actualGuarantees = [];
+  error.missingBoundaries = [...requiredBoundaries];
+  error.sandboxBackend = null;
+  error.sandboxCandidateBackend = null;
+  return error;
+}
+
 // ─── Background shell tasks ────────────────────────────────────────────────
 //
 // run_shell is synchronous (execSync) and capped at a foreground timeout, which
@@ -871,6 +887,10 @@ export function getCachedPython() {
     _cachedPython = detectPython();
   }
   return _cachedPython;
+}
+
+export function _resetCachedPythonForTests() {
+  _cachedPython = null;
 }
 
 /**
@@ -5391,6 +5411,28 @@ async function _executeRunCode(args, cwd) {
     ? { sandboxPolicy: pluginBinSandboxPolicy }
     : {};
 
+  // cli-anything's Python discovery probes candidate executables through its
+  // own Broker call. That probe cannot inherit this run_code invocation's
+  // pinned Plugin sandbox policy, so never launch it when strict boundaries
+  // are required. A previously cached interpreter is safe to execute here
+  // because the real script (and any pip/retry process) still goes through
+  // runCodeProcess with the exact pinned policy below.
+  let cachedPythonInterpreter = null;
+  if (
+    lang === "python" &&
+    pluginBinSandboxPolicy?.requiredBoundaries?.length > 0
+  ) {
+    if (
+      _cachedPython?.found === true &&
+      typeof _cachedPython.command === "string" &&
+      _cachedPython.command.trim()
+    ) {
+      cachedPythonInterpreter = _cachedPython.command;
+    } else {
+      throw createPythonInterpreterProbeSandboxFailure(pluginBinSandboxPolicy);
+    }
+  }
+
   // Determine script path
   let scriptPath;
   if (persist) {
@@ -5413,8 +5455,12 @@ async function _executeRunCode(args, cwd) {
     // Determine interpreter
     let interpreter;
     if (lang === "python") {
-      const py = getCachedPython();
-      interpreter = py.found ? py.command : "python";
+      if (cachedPythonInterpreter) {
+        interpreter = cachedPythonInterpreter;
+      } else {
+        const py = getCachedPython();
+        interpreter = py.found ? py.command : "python";
+      }
     } else if (lang === "node") {
       interpreter = "node";
     } else {

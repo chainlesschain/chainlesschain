@@ -4,6 +4,8 @@ import path from "node:path";
 import { mkdtempSync, rmSync, writeFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { _resetPluginBinSandboxPolicyPins } from "../../src/lib/plugin-runtime/bin.js";
+import { pluginVersionDir } from "../../src/lib/plugin-runtime/scopes.js";
 
 // Mock plan-mode, skill-loader, hook-manager before importing agent-core
 vi.mock("../../src/lib/plan-mode.js", () => ({
@@ -29,13 +31,17 @@ vi.mock("../../src/lib/hook-manager.js", () => ({
   },
 }));
 
-// Mock cli-anything-bridge's detectPython
-vi.mock("../../src/lib/cli-anything-bridge.js", () => ({
-  detectPython: vi.fn(() => ({
+const { detectPythonMock } = vi.hoisted(() => ({
+  detectPythonMock: vi.fn(() => ({
     found: true,
     command: "python3",
     version: "3.11.0",
   })),
+}));
+
+// Mock cli-anything-bridge's detectPython
+vi.mock("../../src/lib/cli-anything-bridge.js", () => ({
+  detectPython: detectPythonMock,
 }));
 
 const {
@@ -46,6 +52,30 @@ const {
   getBaseSystemPrompt,
   _agentToolProcessDeps,
 } = await import("../../src/lib/agent-core.js");
+const { _resetCachedPythonForTests } =
+  await import("../../src/runtime/agent-core.js");
+
+function installStrictRunCodePolicy(cwd) {
+  const root = pluginVersionDir("local", "strict-python-probe", "1.0.0", {
+    cwd,
+  });
+  const target = join(root, "bin", "strict-python-probe.js");
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  writeFileSync(target, "process.stdout.write('strict');\n", "utf8");
+  writeFileSync(
+    join(root, "plugin.json"),
+    JSON.stringify({
+      name: "strict-python-probe",
+      version: "1.0.0",
+      permissions: { process: true },
+      sandboxPolicy: {
+        requiredBoundaries: ["filesystem", "network"],
+      },
+      bin: { "strict-python-probe": "bin/strict-python-probe.js" },
+    }),
+    "utf8",
+  );
+}
 
 describe("classifyError", () => {
   it("classifies ModuleNotFoundError as import_error", () => {
@@ -217,10 +247,116 @@ describe("executeTool — run_code enhancements", () => {
 
   beforeEach(() => {
     tempDir = mkdtempSync(join(tmpdir(), "cc-run-code-test-"));
+    _resetCachedPythonForTests();
+    _resetPluginBinSandboxPolicyPins();
+    detectPythonMock.mockClear();
   });
 
   afterEach(() => {
+    _resetPluginBinSandboxPolicyPins();
     rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  it("fails closed before cli-anything probes Python without the required sandbox policy", async () => {
+    installStrictRunCodePolicy(tempDir);
+    const original = _agentToolProcessDeps.runCode;
+    const runCode = vi.fn();
+    _agentToolProcessDeps.runCode = runCode;
+
+    try {
+      await expect(
+        executeTool(
+          "run_code",
+          {
+            language: "python",
+            code: "print('must-not-run')",
+            persist: true,
+          },
+          { cwd: tempDir },
+        ),
+      ).rejects.toMatchObject({
+        code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+        sandboxReason: "python_interpreter_probe_requires_sandbox",
+        sandboxFailClosed: true,
+        requiredBoundaries: ["filesystem", "network"],
+        actualGuarantees: [],
+        missingBoundaries: ["filesystem", "network"],
+      });
+      expect(detectPythonMock).not.toHaveBeenCalled();
+      expect(runCode).not.toHaveBeenCalled();
+      expect(
+        existsSync(join(tempDir, ".chainlesschain", "agent-scripts")),
+      ).toBe(false);
+    } finally {
+      _agentToolProcessDeps.runCode = original;
+    }
+  });
+
+  it("keeps legacy Python detection without a policy and reuses its cache under the pinned policy", async () => {
+    const original = _agentToolProcessDeps.runCode;
+    const runCode = vi.fn(() => "python-output");
+    _agentToolProcessDeps.runCode = runCode;
+
+    try {
+      const legacyResult = await executeTool(
+        "run_code",
+        { language: "python", code: "print('legacy')" },
+        { cwd: tempDir },
+      );
+
+      expect(legacyResult).toMatchObject({
+        success: true,
+        output: "python-output",
+      });
+      expect(detectPythonMock).toHaveBeenCalledTimes(1);
+      expect(runCode).toHaveBeenNthCalledWith(
+        1,
+        "python3",
+        [expect.stringMatching(/cc-agent-\d+\.py$/)],
+        expect.objectContaining({
+          cwd: tempDir,
+          origin: "agent-core:run-code",
+          policy: "allow",
+          scope: "agent-core",
+          shell: false,
+        }),
+      );
+      expect(runCode.mock.calls[0][2]).not.toHaveProperty("sandboxPolicy");
+
+      installStrictRunCodePolicy(tempDir);
+      _resetPluginBinSandboxPolicyPins();
+      const strictResult = await executeTool(
+        "run_code",
+        { language: "python", code: "print('strict')" },
+        { cwd: tempDir },
+      );
+
+      expect(strictResult).toMatchObject({
+        success: true,
+        output: "python-output",
+      });
+      expect(detectPythonMock).toHaveBeenCalledTimes(1);
+      expect(runCode).toHaveBeenNthCalledWith(
+        2,
+        "python3",
+        [expect.stringMatching(/cc-agent-\d+\.py$/)],
+        expect.objectContaining({
+          cwd: tempDir,
+          origin: "agent-core:run-code",
+          policy: "allow",
+          scope: "agent-core",
+          shell: false,
+          sandboxPolicy: {
+            requiredBoundaries: ["filesystem", "network"],
+          },
+        }),
+      );
+      expect(Object.isFrozen(runCode.mock.calls[1][2].sandboxPolicy)).toBe(
+        true,
+      );
+    } finally {
+      _agentToolProcessDeps.runCode = original;
+    }
   });
 
   it("persists scripts to .chainlesschain/agent-scripts/ only with persist:true", async () => {
