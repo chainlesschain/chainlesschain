@@ -2351,6 +2351,74 @@ describe("platform sandbox adapter contract", () => {
         handleAtomic: false,
       },
     });
+    expect(plan.policyDigest).toBe(
+      crypto
+        .createHash("sha256")
+        .update(
+          JSON.stringify({
+            version: 1,
+            backend: "windows-appcontainer-job-restricted-token",
+            profile: "strict",
+            requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+            guarantees: [
+              SANDBOX_BOUNDARIES.FILESYSTEM,
+              SANDBOX_BOUNDARIES.NETWORK,
+              SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
+              SANDBOX_BOUNDARIES.PROCESS_TREE,
+              SANDBOX_BOUNDARIES.RESOURCE_LIMITS,
+            ],
+            adapter: {
+              loaderMode: "powershell-byte-assembly",
+              sourceDigest: crypto
+                .createHash("sha256")
+                .update(Buffer.from("param()"))
+                .digest("hex"),
+              sourceContractDigest: null,
+            },
+            appContainer: {
+              attestationKind: "windows-appcontainer-launch-attestation-v1",
+              capabilities: [],
+              token: "restricted-primary-lowbox",
+              disableAdministratorSids: true,
+              allowReparsePaths: false,
+              lifecycle: "ephemeral-delete-and-assert-absent",
+            },
+            job: {
+              killOnClose: true,
+              activeProcessLimit: 16,
+              cpuSeconds: 0,
+              processMemoryBytes: 256 * 1024 * 1024,
+            },
+            execution: {
+              contractKind: "strict-plugin-node-bin",
+              contentSnapshot: true,
+              contentSnapshotScope: "plugin-entry-source",
+              contentSnapshotMechanism:
+                "verified-handle-inherited-pipe-module-compile-v1",
+              handleAtomic: false,
+              launchPathLocks: [
+                {
+                  role: "runtime",
+                  path: runtimePath,
+                  sha256: runtimeSha256,
+                  bytes: 91_234_567,
+                  dev: "4",
+                  ino: "5678",
+                },
+                {
+                  role: "entry",
+                  path: entryPath,
+                  sha256: entrySha256,
+                  bytes: 4_321,
+                  dev: "4",
+                  ino: "9876",
+                },
+              ],
+            },
+          }),
+        )
+        .digest("hex"),
+    );
     const payload = decodeWindowsLaunchSpec(harness, plan);
     expect(payload.command).toBe(runtimePath);
     expect(payload.args).toEqual([entryPath, "--label", "ready"]);
@@ -3860,6 +3928,7 @@ describe("platform sandbox adapter contract", () => {
           "probe_failed_helper_exit_125_appcontainer_profile_create_0x800706d9",
       },
     });
+    expect(plan.policyDigest).toMatch(/^[a-f0-9]{64}$/);
     expect(helperSpawnSync.mock.calls[1][1]).toEqual([
       "--delete-appcontainer",
       "ChainlessChain.CliSandbox.060606060606060606060606",

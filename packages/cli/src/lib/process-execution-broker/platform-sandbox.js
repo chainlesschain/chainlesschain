@@ -1894,6 +1894,72 @@ function windowsPluginNodeEntrySnapshot(invocation, sandboxOpts, spawnOpts) {
   };
 }
 
+function windowsAppContainerPolicyDigest({
+  profile,
+  requiredBoundaries,
+  guarantees,
+  adapterSource,
+  launchSpec,
+  entrySnapshot,
+  executionContract,
+}) {
+  // Bind the effective enforcement policy and attested executable snapshot.
+  // Transient profile names/SIDs and caller payload values are intentionally
+  // excluded so identical policy identities remain stable across launches.
+  const snapshotLocks = entrySnapshot.locks
+    ? entrySnapshot.locks.map(
+        ({ role, path: lockPath, sha256, bytes, dev, ino }) => ({
+          role,
+          path: lockPath,
+          sha256,
+          bytes,
+          dev,
+          ino,
+        }),
+      )
+    : [];
+  return sha256(
+    JSON.stringify({
+      version: 1,
+      backend: WINDOWS_APPCONTAINER_BACKEND,
+      profile,
+      requiredBoundaries: [...new Set(requiredBoundaries)].sort(),
+      guarantees: [...new Set(guarantees)].sort(),
+      adapter: {
+        loaderMode: adapterSource.loaderMode,
+        sourceDigest: adapterSource.sourceDigest,
+        sourceContractDigest: adapterSource.sourceContractDigest,
+      },
+      appContainer: {
+        attestationKind: "windows-appcontainer-launch-attestation-v1",
+        capabilities: [],
+        token: "restricted-primary-lowbox",
+        disableAdministratorSids: launchSpec.disableAdministratorSids,
+        allowReparsePaths: launchSpec.allowReparsePaths,
+        lifecycle: "ephemeral-delete-and-assert-absent",
+      },
+      job: {
+        killOnClose: true,
+        activeProcessLimit: launchSpec.activeProcessLimit,
+        cpuSeconds: launchSpec.cpuSeconds,
+        processMemoryBytes: launchSpec.processMemoryBytes,
+      },
+      execution: {
+        contractKind: executionContract?.kind || null,
+        contentSnapshot: snapshotLocks.length > 0,
+        contentSnapshotScope:
+          snapshotLocks.length > 0 ? "plugin-entry-source" : null,
+        contentSnapshotMechanism:
+          snapshotLocks.length > 0
+            ? "verified-handle-inherited-pipe-module-compile-v1"
+            : null,
+        handleAtomic: false,
+        launchPathLocks: snapshotLocks,
+      },
+    }),
+  );
+}
+
 /**
  * Wrap a target with a protected Windows PowerShell host. PowerShell 7 is
  * preferred only when its canonical Program Files path is intact; otherwise
@@ -1942,6 +2008,7 @@ export function applyWindowsSandbox(
     args,
     options: spawnOpts,
   };
+  let appContainerPolicyDigest = null;
   const unavailablePlan = (reason, extra = {}) =>
     createSandboxPlan({
       ...base,
@@ -1950,6 +2017,7 @@ export function applyWindowsSandbox(
             backend: null,
             candidateBackend: WINDOWS_APPCONTAINER_BACKEND,
             policyAttested: false,
+            policyDigest: appContainerPolicyDigest,
           }
         : {}),
       reason,
@@ -2133,6 +2201,17 @@ export function applyWindowsSandbox(
       launchSpec.snapshotTestGateToken = snapshotTestGate.token;
       launchSpec.snapshotTestGateReleasePath = snapshotTestGate.releasePath;
     }
+  }
+  if (requiresAppContainer) {
+    appContainerPolicyDigest = windowsAppContainerPolicyDigest({
+      profile,
+      requiredBoundaries,
+      guarantees: appContainerGuarantees,
+      adapterSource,
+      launchSpec,
+      entrySnapshot,
+      executionContract: sandboxOpts.executionContract,
+    });
   }
   if (identityPath) launchSpec.identityPath = identityPath;
   const cleanupIdentity = () => {
@@ -2438,12 +2517,12 @@ export function applyWindowsSandbox(
         handleAtomic: false,
       }
     : appContainerRuntimeProbe;
-
   return createSandboxPlan({
     ...base,
     applied: true,
     enforcement: backend,
     policyAttested: requiresAppContainer ? true : null,
+    policyDigest: appContainerPolicyDigest,
     runtimeProbe: entrySnapshotRuntimeProbe,
     guarantees: requiresAppContainer
       ? appContainerGuarantees
