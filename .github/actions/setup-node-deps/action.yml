@@ -34,6 +34,14 @@ runs:
         attempt_install() {
           eval "$INSTALL_CMD"
         }
+        cleanup_partial_install() {
+          # A failed npm ci can leave partially-extracted packages behind.
+          # Retrying in-place then fails with ENOTEMPTY (notably electron on
+          # hosted runners), so restore npm ci's clean-install precondition.
+          # Node's maxRetries/retryDelay also handles short Windows file-lock
+          # release delays while keeping the deletion scoped to this checkout.
+          node -e "require('node:fs').rmSync('node_modules',{recursive:true,force:true,maxRetries:5,retryDelay:250})"
+        }
         for i in 1 2 3; do
           if attempt_install; then
             exit 0
@@ -41,6 +49,7 @@ runs:
           if [ "$i" -lt 3 ]; then
             delay=$((i * 15))
             echo "::warning::npm install attempt $i failed, retrying in ${delay}s..."
+            cleanup_partial_install
             sleep "$delay"
           fi
         done
