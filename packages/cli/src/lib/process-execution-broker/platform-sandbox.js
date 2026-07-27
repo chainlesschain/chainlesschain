@@ -151,7 +151,19 @@ const LINUX_ATTESTED_FILE_MAX_BYTES = 256 * 1024 * 1024;
 const LINUX_ATTESTATION_HASH_CHUNK_BYTES = 1024 * 1024;
 const LINUX_ELF64_HEADER_BYTES = 64;
 const LINUX_ELF64_PROGRAM_HEADER_BYTES = 56;
+const LINUX_ELF64_DYNAMIC_ENTRY_BYTES = 16;
 const LINUX_ELF_MAX_PROGRAM_HEADERS = 128;
+const LINUX_ELF_MAX_DYNAMIC_ENTRIES = 4096;
+const LINUX_ELF_TYPE_EXEC = 2;
+const LINUX_ELF_TYPE_DYN = 3;
+const LINUX_ELF_PROGRAM_LOAD = 1;
+const LINUX_ELF_PROGRAM_DYNAMIC = 2;
+const LINUX_ELF_PROGRAM_INTERP = 3;
+const LINUX_ELF_PROGRAM_GNU_STACK = 0x6474e551;
+const LINUX_ELF_DYNAMIC_NULL = 0n;
+const LINUX_ELF_DYNAMIC_NEEDED = 1n;
+const LINUX_ELF_DYNAMIC_FLAGS_1 = 0x6ffffffbn;
+const LINUX_ELF_DYNAMIC_FLAG_PIE = 0x08000000n;
 const LINUX_ELF_MACHINES = Object.freeze({
   x64: 62,
   arm64: 183,
@@ -3063,8 +3075,10 @@ function hashLinuxOpenFile(runtime, fd, bytes) {
 
 /**
  * Classify one already-pinned plugin entry without invoking it or any host
- * inspection utility. The initial native slice accepts only conventional
- * fully static ELF64 ET_EXEC images for the current architecture.
+ * inspection utility. The native slice accepts conventional fully static
+ * ELF64 ET_EXEC images and a narrow static-PIE-shaped ELF:
+ * ET_DYN without PT_INTERP, with one bounded PT_DYNAMIC table that declares
+ * PIE but no external DT_NEEDED dependency.
  */
 function inspectLinuxStaticNativeElf(runtime, fd, identity) {
   const expectedMachine = LINUX_ELF_MACHINES[runtime.arch];
@@ -3100,8 +3114,9 @@ function inspectLinuxStaticNativeElf(runtime, fd, identity) {
   if (header[6] !== 1 || header.readUInt32LE(20) !== 1) {
     throw new Error("native_entry_invalid_elf_version");
   }
-  if (header.readUInt16LE(16) !== 2) {
-    throw new Error("native_entry_not_static_et_exec");
+  const elfType = header.readUInt16LE(16);
+  if (elfType !== LINUX_ELF_TYPE_EXEC && elfType !== LINUX_ELF_TYPE_DYN) {
+    throw new Error("native_entry_unsupported_elf_type");
   }
   if (header.readUInt16LE(18) !== expectedMachine) {
     throw new Error("native_entry_architecture_mismatch");
@@ -3134,6 +3149,8 @@ function inspectLinuxStaticNativeElf(runtime, fd, identity) {
   let executableLoad = false;
   let entryInExecutableLoad = false;
   let nonExecutableStack = false;
+  const loadSegments = [];
+  const dynamicSegments = [];
   for (let index = 0; index < programHeaderCount; index += 1) {
     const offset =
       Number(programHeaderOffset) + index * LINUX_ELF64_PROGRAM_HEADER_BYTES;
@@ -3152,18 +3169,40 @@ function inspectLinuxStaticNativeElf(runtime, fd, identity) {
     if (fileOffset > fileBytes || fileSize > fileBytes - fileOffset) {
       throw new Error("native_entry_segment_out_of_bounds");
     }
-    if (type === 1 && fileSize > memorySize) {
+    if (type === LINUX_ELF_PROGRAM_LOAD && fileSize > memorySize) {
       throw new Error("native_entry_segment_out_of_bounds");
     }
-    if (type === 2) throw new Error("native_entry_dynamic_elf_unsupported");
-    if (type === 3) throw new Error("native_entry_interpreter_unsupported");
-    if (type === 0x6474e551) {
+    if (type === LINUX_ELF_PROGRAM_INTERP) {
+      throw new Error("native_entry_interpreter_unsupported");
+    }
+    if (type === LINUX_ELF_PROGRAM_DYNAMIC) {
+      if (elfType === LINUX_ELF_TYPE_EXEC) {
+        throw new Error("native_entry_dynamic_elf_unsupported");
+      }
+      dynamicSegments.push({
+        flags,
+        fileOffset,
+        virtualAddress,
+        fileSize,
+        memorySize,
+      });
+    }
+    if (type === LINUX_ELF_PROGRAM_GNU_STACK) {
       if ((flags & 0x1) !== 0) {
         throw new Error("native_entry_executable_stack_unsupported");
       }
       nonExecutableStack = true;
     }
-    if (type === 1 && (flags & 0x1) !== 0) {
+    if (type === LINUX_ELF_PROGRAM_LOAD) {
+      loadSegments.push({
+        flags,
+        fileOffset,
+        virtualAddress,
+        fileSize,
+        memorySize,
+      });
+    }
+    if (type === LINUX_ELF_PROGRAM_LOAD && (flags & 0x1) !== 0) {
       if ((flags & 0x2) !== 0) {
         throw new Error("native_entry_writable_executable_segment");
       }
@@ -3183,13 +3222,100 @@ function inspectLinuxStaticNativeElf(runtime, fd, identity) {
     throw new Error("native_entry_nonexecutable_stack_unattested");
   }
 
+  if (elfType === LINUX_ELF_TYPE_DYN) {
+    if (dynamicSegments.length === 0) {
+      throw new Error("native_entry_static_pie_dynamic_segment_missing");
+    }
+    if (dynamicSegments.length !== 1) {
+      throw new Error("native_entry_static_pie_dynamic_segment_ambiguous");
+    }
+    const dynamic = dynamicSegments[0];
+    if ((dynamic.flags & 0x1) !== 0) {
+      throw new Error("native_entry_static_pie_dynamic_segment_executable");
+    }
+    if (
+      dynamic.fileSize < BigInt(LINUX_ELF64_DYNAMIC_ENTRY_BYTES) ||
+      dynamic.fileSize % BigInt(LINUX_ELF64_DYNAMIC_ENTRY_BYTES) !== 0n ||
+      dynamic.fileSize > dynamic.memorySize
+    ) {
+      throw new Error("native_entry_static_pie_dynamic_segment_invalid");
+    }
+    const dynamicEntries =
+      dynamic.fileSize / BigInt(LINUX_ELF64_DYNAMIC_ENTRY_BYTES);
+    if (
+      dynamicEntries < 1n ||
+      dynamicEntries > BigInt(LINUX_ELF_MAX_DYNAMIC_ENTRIES)
+    ) {
+      throw new Error("native_entry_static_pie_dynamic_table_too_large");
+    }
+    const containingLoad = loadSegments.find((load) => {
+      if (
+        dynamic.fileOffset < load.fileOffset ||
+        dynamic.virtualAddress < load.virtualAddress
+      ) {
+        return false;
+      }
+      const fileDelta = dynamic.fileOffset - load.fileOffset;
+      const memoryDelta = dynamic.virtualAddress - load.virtualAddress;
+      return (
+        fileDelta === memoryDelta &&
+        fileDelta <= load.fileSize &&
+        dynamic.fileSize <= load.fileSize - fileDelta &&
+        memoryDelta <= load.memorySize &&
+        dynamic.memorySize <= load.memorySize - memoryDelta
+      );
+    });
+    if (!containingLoad) {
+      throw new Error("native_entry_static_pie_dynamic_segment_unmapped");
+    }
+
+    const dynamicTable = readLinuxFdExactly(
+      runtime,
+      fd,
+      Number(dynamic.fileSize),
+      Number(dynamic.fileOffset),
+    );
+    let terminated = false;
+    let flags1 = null;
+    for (
+      let offset = 0;
+      offset < dynamicTable.length;
+      offset += LINUX_ELF64_DYNAMIC_ENTRY_BYTES
+    ) {
+      const tag = dynamicTable.readBigUInt64LE(offset);
+      const value = dynamicTable.readBigUInt64LE(offset + 8);
+      if (tag === LINUX_ELF_DYNAMIC_NULL) {
+        terminated = true;
+        break;
+      }
+      if (tag === LINUX_ELF_DYNAMIC_NEEDED) {
+        throw new Error("native_entry_static_pie_dependency_unsupported");
+      }
+      if (tag === LINUX_ELF_DYNAMIC_FLAGS_1) {
+        if (flags1 !== null) {
+          throw new Error("native_entry_static_pie_flags_ambiguous");
+        }
+        flags1 = value;
+      }
+    }
+    if (!terminated) {
+      throw new Error("native_entry_static_pie_dynamic_table_unterminated");
+    }
+    if (flags1 === null || (flags1 & LINUX_ELF_DYNAMIC_FLAG_PIE) === 0n) {
+      throw new Error("native_entry_static_pie_flag_missing");
+    }
+  }
+
   const sha256 = hashLinuxOpenFile(runtime, fd, Number(before.size));
   const after = runtime.fs.fstatSync(fd);
   if (!linuxOpenStatMatches(before, after) || sha256 !== identity.sha256) {
     throw new Error("native_entry_changed_during_elf_attestation");
   }
   return Object.freeze({
-    format: "elf64-static-et-exec",
+    format:
+      elfType === LINUX_ELF_TYPE_DYN
+        ? "elf64-static-pie-shaped-et-dyn"
+        : "elf64-static-et-exec",
     architecture: runtime.arch,
     machine: expectedMachine,
     programHeaders: programHeaderCount,

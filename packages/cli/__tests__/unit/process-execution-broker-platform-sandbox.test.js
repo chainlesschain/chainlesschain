@@ -321,6 +321,127 @@ function createLinuxStaticElf64({
   return image;
 }
 
+function createLinuxStaticPieElf64({
+  machine = 62,
+  includeDynamic = true,
+  dynamicSegmentCount = 1,
+  includeInterp = false,
+  dynamicNeeded = false,
+  dynamicFlags1 = 0x08000000n,
+  dynamicTerminated = true,
+  dynamicExecutable = false,
+  dynamicFileSize = null,
+  dynamicVirtualAddress = 0x1000n,
+} = {}) {
+  const dynamicEntries = [];
+  if (dynamicNeeded) dynamicEntries.push([1n, 0n]);
+  if (dynamicFlags1 !== null) {
+    dynamicEntries.push([0x6ffffffbn, BigInt(dynamicFlags1)]);
+  }
+  if (dynamicTerminated) dynamicEntries.push([0n, 0n]);
+  const dynamicTable = Buffer.alloc(dynamicEntries.length * 16);
+  dynamicEntries.forEach(([tag, value], index) => {
+    dynamicTable.writeBigUInt64LE(tag, index * 16);
+    dynamicTable.writeBigUInt64LE(value, index * 16 + 8);
+  });
+
+  const dynamicOffset = 0x1000;
+  const interp = Buffer.from("/lib64/ld-linux-x86-64.so.2\0", "utf8");
+  const interpOffset = dynamicOffset + dynamicTable.length;
+  const payloadBytes =
+    dynamicTable.length + (includeInterp ? interp.length : 0);
+  const includeDataLoad = payloadBytes > 0;
+  const programHeaderCount =
+    1 +
+    (includeDataLoad ? 1 : 0) +
+    1 +
+    (includeDynamic ? dynamicSegmentCount : 0) +
+    (includeInterp ? 1 : 0);
+  const image = Buffer.alloc(
+    includeDataLoad ? dynamicOffset + payloadBytes : dynamicOffset,
+  );
+  image.set([0x7f, 0x45, 0x4c, 0x46], 0);
+  image[4] = 2;
+  image[5] = 1;
+  image[6] = 1;
+  image.writeUInt16LE(3, 16);
+  image.writeUInt16LE(machine, 18);
+  image.writeUInt32LE(1, 20);
+  image.writeBigUInt64LE(0x200n, 24);
+  image.writeBigUInt64LE(64n, 32);
+  image.writeUInt16LE(64, 52);
+  image.writeUInt16LE(56, 54);
+  image.writeUInt16LE(programHeaderCount, 56);
+
+  let programHeaderIndex = 0;
+  const writeProgramHeader = ({
+    type,
+    flags,
+    fileOffset = 0n,
+    virtualAddress = fileOffset,
+    fileSize = 0n,
+    memorySize = fileSize,
+    alignment = 1n,
+  }) => {
+    const offset = 64 + programHeaderIndex * 56;
+    programHeaderIndex += 1;
+    image.writeUInt32LE(type, offset);
+    image.writeUInt32LE(flags, offset + 4);
+    image.writeBigUInt64LE(fileOffset, offset + 8);
+    image.writeBigUInt64LE(virtualAddress, offset + 16);
+    image.writeBigUInt64LE(virtualAddress, offset + 24);
+    image.writeBigUInt64LE(fileSize, offset + 32);
+    image.writeBigUInt64LE(memorySize, offset + 40);
+    image.writeBigUInt64LE(alignment, offset + 48);
+  };
+
+  writeProgramHeader({
+    type: 1,
+    flags: 0x5,
+    fileSize: BigInt(dynamicOffset),
+    memorySize: BigInt(dynamicOffset),
+    alignment: 0x1000n,
+  });
+  if (includeDataLoad) {
+    writeProgramHeader({
+      type: 1,
+      flags: 0x6,
+      fileOffset: BigInt(dynamicOffset),
+      virtualAddress: 0x1000n,
+      fileSize: BigInt(payloadBytes),
+      memorySize: BigInt(payloadBytes),
+      alignment: 0x1000n,
+    });
+  }
+  writeProgramHeader({ type: 0x6474e551, flags: 0x6 });
+  if (includeDynamic) {
+    for (let index = 0; index < dynamicSegmentCount; index += 1) {
+      writeProgramHeader({
+        type: 2,
+        flags: dynamicExecutable ? 0x5 : 0x6,
+        fileOffset: BigInt(dynamicOffset),
+        virtualAddress: dynamicVirtualAddress,
+        fileSize: BigInt(dynamicFileSize ?? dynamicTable.length),
+        memorySize: BigInt(dynamicFileSize ?? dynamicTable.length),
+        alignment: 8n,
+      });
+    }
+  }
+  if (includeInterp) {
+    writeProgramHeader({
+      type: 3,
+      flags: 0x4,
+      fileOffset: BigInt(interpOffset),
+      virtualAddress: BigInt(interpOffset),
+      fileSize: BigInt(interp.length),
+      memorySize: BigInt(interp.length),
+    });
+  }
+  dynamicTable.copy(image, dynamicOffset);
+  if (includeInterp) interp.copy(image, interpOffset);
+  return image;
+}
+
 function createLinuxStrongHarness({
   bwrapStatus = 0,
   bwrapStdout = "chainless-linux-bwrap-plugin-node-v1",
@@ -1125,6 +1246,45 @@ describe("platform sandbox adapter contract", () => {
     expect(harness.openFiles.size).toBe(0);
   });
 
+  it("builds the same attested bwrap plan for a narrow static PIE native bin", () => {
+    const harness = createLinuxStrongHarness({
+      entryRuntime: "native-static-elf",
+      nativeEntry: createLinuxStaticPieElf64(),
+    });
+    const plan = applyLinuxStrongNativeHarness(harness);
+
+    expect(plan).toMatchObject({
+      applied: true,
+      backend: "linux-bwrap",
+      enforcement: "linux-bwrap",
+      policyAttested: true,
+      reason: null,
+      guarantees: [SANDBOX_BOUNDARIES.FILESYSTEM, SANDBOX_BOUNDARIES.NETWORK],
+      runtimeProbe: {
+        kind: "linux-bwrap-plugin-native-static-elf-policy-v1",
+        attempted: true,
+        runnable: true,
+        reason: null,
+        probeRuntime: "node",
+        targetRuntime: "native-static-elf",
+        contentSnapshot: false,
+        handleAtomic: false,
+      },
+    });
+    expect(plan.args.slice(-4)).toEqual([
+      "--",
+      "/opt/chainless/plugin/bin/tool",
+      "--label",
+      "ready",
+    ]);
+    expect(harness.lddInspectionSources).toEqual(["/runtime/node"]);
+    expect(plan.policyDigest).toMatch(/^[a-f0-9]{64}$/);
+    expect(harness.openFiles.size).toBeGreaterThan(0);
+
+    plan.cleanup();
+    expect(harness.openFiles.size).toBe(0);
+  });
+
   it.each([
     [
       "PT_INTERP",
@@ -1137,9 +1297,54 @@ describe("platform sandbox adapter contract", () => {
       "native_entry_dynamic_elf_unsupported",
     ],
     [
-      "ET_DYN",
-      createLinuxStaticElf64({ elfType: 3 }),
-      "native_entry_not_static_et_exec",
+      "ET_REL",
+      createLinuxStaticElf64({ elfType: 1 }),
+      "native_entry_unsupported_elf_type",
+    ],
+    [
+      "ET_DYN without PT_DYNAMIC",
+      createLinuxStaticPieElf64({ includeDynamic: false }),
+      "native_entry_static_pie_dynamic_segment_missing",
+    ],
+    [
+      "ET_DYN with PT_INTERP",
+      createLinuxStaticPieElf64({ includeInterp: true }),
+      "native_entry_interpreter_unsupported",
+    ],
+    [
+      "ET_DYN with duplicate PT_DYNAMIC",
+      createLinuxStaticPieElf64({ dynamicSegmentCount: 2 }),
+      "native_entry_static_pie_dynamic_segment_ambiguous",
+    ],
+    [
+      "ET_DYN with executable PT_DYNAMIC",
+      createLinuxStaticPieElf64({ dynamicExecutable: true }),
+      "native_entry_static_pie_dynamic_segment_executable",
+    ],
+    [
+      "ET_DYN with malformed PT_DYNAMIC size",
+      createLinuxStaticPieElf64({ dynamicFileSize: 15 }),
+      "native_entry_static_pie_dynamic_segment_invalid",
+    ],
+    [
+      "ET_DYN with unmapped PT_DYNAMIC",
+      createLinuxStaticPieElf64({ dynamicVirtualAddress: 0x2000n }),
+      "native_entry_static_pie_dynamic_segment_unmapped",
+    ],
+    [
+      "ET_DYN with DT_NEEDED",
+      createLinuxStaticPieElf64({ dynamicNeeded: true }),
+      "native_entry_static_pie_dependency_unsupported",
+    ],
+    [
+      "ET_DYN with unterminated dynamic table",
+      createLinuxStaticPieElf64({ dynamicTerminated: false }),
+      "native_entry_static_pie_dynamic_table_unterminated",
+    ],
+    [
+      "ET_DYN without DF_1_PIE",
+      createLinuxStaticPieElf64({ dynamicFlags1: 0n }),
+      "native_entry_static_pie_flag_missing",
     ],
     [
       "ELF32",

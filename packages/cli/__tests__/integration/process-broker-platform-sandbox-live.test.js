@@ -1447,7 +1447,7 @@ describe.runIf(LIVE && SUPPORTED)(
     );
 
     it.runIf(process.platform === "linux")(
-      "runs an attested static Plugin native ELF and rejects dynamic or scripted entries",
+      "runs attested static ET_EXEC and static PIE Plugin native ELFs and rejects interpreted or scripted entries",
       () => {
         const nonce = `${process.pid}-${Date.now()}`;
         const workspace = fs.mkdtempSync(
@@ -1458,7 +1458,12 @@ describe.runIf(LIVE && SUPPORTED)(
         });
         const binDirectory = path.join(pluginRoot, "bin");
         const staticEntry = path.join(binDirectory, "strict-native");
+        const staticPieEntry = path.join(
+          binDirectory,
+          "strict-native-static-pie",
+        );
         const dynamicEntry = path.join(binDirectory, "dynamic-native");
+        const dynamicPieEntry = path.join(binDirectory, "dynamic-pie-native");
         const scriptEntry = path.join(binDirectory, "script-native");
         const allowedPath = path.join(pluginRoot, "allowed.txt");
         const secretPath = path.join(
@@ -1526,7 +1531,9 @@ describe.runIf(LIVE && SUPPORTED)(
               },
               bin: {
                 "strict-native": "bin/strict-native",
+                "strict-native-static-pie": "bin/strict-native-static-pie",
                 "dynamic-native": "bin/dynamic-native",
+                "dynamic-pie-native": "bin/dynamic-pie-native",
                 "script-native": "bin/script-native",
               },
             }),
@@ -1554,6 +1561,44 @@ describe.runIf(LIVE && SUPPORTED)(
           ).toBeUndefined();
           expect(staticBuild.status, staticBuild.stderr).toBe(0);
 
+          const staticPieBuild = nativeSpawnSync(
+            "/usr/bin/cc",
+            [
+              "-fPIE",
+              "-static-pie",
+              "-Wl,-z,noexecstack",
+              "-O2",
+              "-Wall",
+              "-Wextra",
+              "-o",
+              staticPieEntry,
+              nativeSource,
+            ],
+            { encoding: "utf8", timeout: 60_000 },
+          );
+          expect(
+            staticPieBuild.error,
+            `${staticPieBuild.stdout}\n${staticPieBuild.stderr}`,
+          ).toBeUndefined();
+          expect(staticPieBuild.status, staticPieBuild.stderr).toBe(0);
+          const staticPieImage = fs.readFileSync(staticPieEntry);
+          expect(staticPieImage.readUInt16LE(16)).toBe(3);
+          const staticPieProgramHeaderOffset = Number(
+            staticPieImage.readBigUInt64LE(32),
+          );
+          const staticPieProgramHeaderBytes = staticPieImage.readUInt16LE(54);
+          const staticPieProgramHeaderCount = staticPieImage.readUInt16LE(56);
+          const staticPieProgramTypes = Array.from(
+            { length: staticPieProgramHeaderCount },
+            (_unused, index) =>
+              staticPieImage.readUInt32LE(
+                staticPieProgramHeaderOffset +
+                  index * staticPieProgramHeaderBytes,
+              ),
+          );
+          expect(staticPieProgramTypes).toContain(2);
+          expect(staticPieProgramTypes).not.toContain(3);
+
           const dynamicBuild = nativeSpawnSync(
             "/usr/bin/cc",
             ["-no-pie", "-O2", "-o", dynamicEntry, nativeSource],
@@ -1564,74 +1609,100 @@ describe.runIf(LIVE && SUPPORTED)(
             `${dynamicBuild.stdout}\n${dynamicBuild.stderr}`,
           ).toBeUndefined();
           expect(dynamicBuild.status, dynamicBuild.stderr).toBe(0);
+          const dynamicPieBuild = nativeSpawnSync(
+            "/usr/bin/cc",
+            [
+              "-fPIE",
+              "-pie",
+              "-Wl,-z,noexecstack",
+              "-O2",
+              "-o",
+              dynamicPieEntry,
+              nativeSource,
+            ],
+            { encoding: "utf8", timeout: 60_000 },
+          );
+          expect(
+            dynamicPieBuild.error,
+            `${dynamicPieBuild.stdout}\n${dynamicPieBuild.stderr}`,
+          ).toBeUndefined();
+          expect(dynamicPieBuild.status, dynamicPieBuild.stderr).toBe(0);
+          const dynamicPieImage = fs.readFileSync(dynamicPieEntry);
+          expect(dynamicPieImage.readUInt16LE(16)).toBe(3);
           fs.writeFileSync(
             scriptEntry,
             `#!/bin/sh\nprintf launched > ${quotePosix(scriptMarker)}\n`,
             { mode: 0o700 },
           );
 
-          const positive = runPluginCommand(
-            ["strict-native", ...commandArgs].join(" "),
-          );
-          const positiveContext = JSON.stringify({
-            status: positive.status,
-            signal: positive.signal,
-            error: positive.error?.message,
-            stdout: positive.stdout,
-            stderr: positive.stderr,
-          });
-          expect(positive.error, positiveContext).toBeUndefined();
-          expect(positive.status, positiveContext).toBe(0);
-          const envelope = JSON.parse(positive.stdout);
-          expect(envelope.result).toMatchObject({
-            plugin_bin: {
-              plugin: "strict-native",
-              runtime: "native",
-              identity_attested: true,
-              launch_identity_reattested: true,
-              direct_argv: true,
-            },
-          });
-          expect(JSON.parse(envelope.result.stdout)).toMatchObject({
-            allowedReadable: true,
-            allowed: "allowed-native-data",
-            cwd: "/opt/chainless/plugin",
-            chainlessSandboxed: true,
-            sensitiveEnv: false,
-            ldLibraryPath: false,
-            secretReadable: false,
-            hostRootReadable: false,
-            pluginWritable: false,
-            hostWritable: false,
-            tmpWritable: true,
-            networkErrno: 1,
-          });
-          expect(envelope.audit).toMatchObject({
-            permissionDecision: "allow",
-            sandboxed: true,
-            sandboxState: "ready",
-            sandboxBackend: "linux-bwrap",
-            sandboxEnforcement: "linux-bwrap",
-            sandboxPolicyAttested: true,
-            sandboxGuarantees: [
-              SANDBOX_BOUNDARIES.FILESYSTEM,
-              SANDBOX_BOUNDARIES.NETWORK,
-            ],
-            sandboxRuntimeProbe: {
-              kind: "linux-bwrap-plugin-native-static-elf-policy-v1",
-              attempted: true,
-              runnable: true,
-              reason: null,
-              probeRuntime: "node",
-              targetRuntime: "native-static-elf",
-              contentSnapshot: false,
-              handleAtomic: false,
-            },
-          });
-          expect(envelope.audit.sandboxPolicyDigest).toMatch(/^[a-f0-9]{64}$/);
+          for (const alias of ["strict-native", "strict-native-static-pie"]) {
+            const positive = runPluginCommand(
+              [alias, ...commandArgs].join(" "),
+            );
+            const positiveContext = JSON.stringify({
+              alias,
+              status: positive.status,
+              signal: positive.signal,
+              error: positive.error?.message,
+              stdout: positive.stdout,
+              stderr: positive.stderr,
+            });
+            expect(positive.error, positiveContext).toBeUndefined();
+            expect(positive.status, positiveContext).toBe(0);
+            const envelope = JSON.parse(positive.stdout);
+            expect(envelope.result).toMatchObject({
+              plugin_bin: {
+                plugin: "strict-native",
+                runtime: "native",
+                identity_attested: true,
+                launch_identity_reattested: true,
+                direct_argv: true,
+              },
+            });
+            expect(JSON.parse(envelope.result.stdout)).toMatchObject({
+              allowedReadable: true,
+              allowed: "allowed-native-data",
+              cwd: "/opt/chainless/plugin",
+              chainlessSandboxed: true,
+              sensitiveEnv: false,
+              ldLibraryPath: false,
+              secretReadable: false,
+              hostRootReadable: false,
+              pluginWritable: false,
+              hostWritable: false,
+              tmpWritable: true,
+              networkErrno: 1,
+            });
+            expect(envelope.audit).toMatchObject({
+              permissionDecision: "allow",
+              sandboxed: true,
+              sandboxState: "ready",
+              sandboxBackend: "linux-bwrap",
+              sandboxEnforcement: "linux-bwrap",
+              sandboxPolicyAttested: true,
+              sandboxGuarantees: [
+                SANDBOX_BOUNDARIES.FILESYSTEM,
+                SANDBOX_BOUNDARIES.NETWORK,
+              ],
+              sandboxRuntimeProbe: {
+                kind: "linux-bwrap-plugin-native-static-elf-policy-v1",
+                attempted: true,
+                runnable: true,
+                reason: null,
+                probeRuntime: "node",
+                targetRuntime: "native-static-elf",
+                contentSnapshot: false,
+                handleAtomic: false,
+              },
+            });
+            expect(envelope.audit.sandboxPolicyDigest).toMatch(
+              /^[a-f0-9]{64}$/,
+            );
+          }
 
           for (const [alias, reason] of [
             ["dynamic-native", "native_entry_interpreter_unsupported"],
+            ["dynamic-pie-native", "native_entry_interpreter_unsupported"],
             ["script-native", "native_entry_not_elf"],
           ]) {
             const negative = runPluginCommand(
