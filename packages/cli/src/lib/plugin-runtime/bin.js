@@ -655,7 +655,7 @@ function fileIdentity(file, root) {
  *
  * This identity is intentionally produced outside the plugin manifest. The
  * manifest may request boundaries, but it cannot nominate a broader runtime
- * or filesystem root for the Linux strong-sandbox execution contract.
+ * or filesystem root for a strong-sandbox execution contract.
  */
 export function attestPluginNodeRuntime(command) {
   let fd;
@@ -959,7 +959,7 @@ export function reattestPluginBinInvocation(invocation) {
 }
 
 /**
- * Issue the private Linux strong-sandbox contract for one resolver-produced
+ * Issue the private strong-sandbox contract for one resolver-produced
  * policy-bearing Plugin Node or native invocation. Object identity is the
  * capability: callers cannot mint a usable contract by copying public fields.
  */

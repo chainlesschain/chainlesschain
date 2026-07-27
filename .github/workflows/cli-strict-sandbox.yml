@@ -14,8 +14,10 @@ on:
       - "packages/cli/__tests__/integration/process-broker-platform-sandbox-live.test.js"
       - "packages/cli/__tests__/fixtures/process-broker-linux-bwrap-live-child.mjs"
       - "packages/cli/__tests__/fixtures/process-broker-linux-bwrap-native-live.c"
+      - "packages/cli/__tests__/fixtures/process-broker-windows-posix-replace.ps1"
       - "packages/cli/__tests__/integration/sandbox-bwrap-live.test.js"
       - ".github/workflows/cli-strict-sandbox.yml"
+      - ".github/actions/setup-node-deps/action.yml"
   pull_request:
     branches: [main]
     paths:
@@ -29,8 +31,10 @@ on:
       - "packages/cli/__tests__/integration/process-broker-platform-sandbox-live.test.js"
       - "packages/cli/__tests__/fixtures/process-broker-linux-bwrap-live-child.mjs"
       - "packages/cli/__tests__/fixtures/process-broker-linux-bwrap-native-live.c"
+      - "packages/cli/__tests__/fixtures/process-broker-windows-posix-replace.ps1"
       - "packages/cli/__tests__/integration/sandbox-bwrap-live.test.js"
       - ".github/workflows/cli-strict-sandbox.yml"
+      - ".github/actions/setup-node-deps/action.yml"
   workflow_dispatch:
 
 concurrency:

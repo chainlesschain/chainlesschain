@@ -10,6 +10,7 @@ import {
   spawn as nativeSpawn,
   spawnSync as nativeSpawnSync,
 } from "node:child_process";
+import crypto from "node:crypto";
 import { once } from "node:events";
 import fs from "node:fs";
 import net from "node:net";
@@ -39,6 +40,86 @@ afterAll(() => {
 
 function quotePosix(value) {
   return `'${String(value).replaceAll("'", "'\\''")}'`;
+}
+
+function fileSha256(filePath) {
+  return crypto
+    .createHash("sha256")
+    .update(fs.readFileSync(filePath))
+    .digest("hex");
+}
+
+function fileIdentity(filePath) {
+  const realPath = fs.realpathSync.native(filePath);
+  const stat = fs.statSync(realPath, { bigint: true });
+  return {
+    realPath,
+    sha256: fileSha256(realPath),
+    bytes: Number(stat.size),
+    fileId: {
+      dev: String(stat.dev),
+      ino: String(stat.ino),
+    },
+  };
+}
+
+function waitForJsonLine(child, stream, predicate, label, timeoutMs = 15_000) {
+  return new Promise((resolve, reject) => {
+    let pending = "";
+    let settled = false;
+    const timer = setTimeout(() => {
+      finish(
+        reject,
+        new Error(`Timed out waiting for ${label}: ${JSON.stringify(pending)}`),
+      );
+    }, timeoutMs);
+    const finish = (callback, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      stream.off("data", onData);
+      child.off("error", onError);
+      child.off("exit", onExit);
+      callback(value);
+    };
+    const inspectLine = (line) => {
+      if (!line.trim()) return false;
+      try {
+        const parsed = JSON.parse(line);
+        if (predicate(parsed)) {
+          finish(resolve, parsed);
+          return true;
+        }
+      } catch {
+        // Keep non-JSON diagnostics for the timeout/exit failure context.
+      }
+      return false;
+    };
+    const onData = (chunk) => {
+      pending += chunk;
+      const lines = pending.split(/\r?\n/);
+      pending = lines.pop() || "";
+      for (const line of lines) {
+        if (inspectLine(line)) return;
+      }
+    };
+    const onError = (error) => finish(reject, error);
+    const onExit = (code, signal) => {
+      if (inspectLine(pending)) return;
+      finish(
+        reject,
+        new Error(
+          `${label} process exited before its report (${code}/${signal}): ${JSON.stringify(
+            pending,
+          )}`,
+        ),
+      );
+    };
+    stream.setEncoding("utf8");
+    stream.on("data", onData);
+    child.once("error", onError);
+    child.once("exit", onExit);
+  });
 }
 
 async function shutdownLoopbackServer(serverChild, stderrChunks) {
@@ -506,6 +587,482 @@ describe.runIf(LIVE && SUPPORTED)(
         });
       },
       90_000,
+    );
+
+    it.runIf(process.platform === "win32")(
+      "runs a self-contained policy-bearing Plugin Node bin from a verified entry snapshot",
+      () => {
+        const workspace = fs.mkdtempSync(
+          path.join(os.tmpdir(), "cc-windows-plugin-node-live-"),
+        );
+        const pluginRoot = pluginVersionDir("local", "strict-live", "1.0.0", {
+          cwd: workspace,
+        });
+        const pluginEntry = path.join(pluginRoot, "bin", "strict-live.cjs");
+        const childFixture = fileURLToPath(
+          new URL(
+            "../fixtures/process-broker-linux-bwrap-live-child.mjs",
+            import.meta.url,
+          ),
+        );
+
+        try {
+          fs.mkdirSync(path.dirname(pluginEntry), { recursive: true });
+          fs.writeFileSync(
+            path.join(pluginRoot, "plugin.json"),
+            JSON.stringify({
+              name: "strict-live",
+              version: "1.0.0",
+              permissions: { process: true },
+              sandboxPolicy: {
+                requiredBoundaries: [
+                  SANDBOX_BOUNDARIES.FILESYSTEM,
+                  SANDBOX_BOUNDARIES.NETWORK,
+                ],
+              },
+              bin: { "strict-live": "bin/strict-live.cjs" },
+            }),
+            "utf8",
+          );
+          fs.writeFileSync(
+            pluginEntry,
+            [
+              "process.stdout.write(JSON.stringify({",
+              "  filename: __filename,",
+              "  argvEntry: process.argv[1],",
+              "  mainMatches: require.main === module,",
+              "  evalPresent: Object.prototype.hasOwnProperty.call(process, '_eval'),",
+              "  cwd: process.cwd(),",
+              "  sandboxed: process.env.CC_WINDOWS_SANDBOXED || null,",
+              "  profile: process.env.CC_WINDOWS_SANDBOX_PROFILE || null,",
+              "}));",
+            ].join("\n") + `\n/*${"x".repeat(128 * 1024)}*/\n`,
+            "utf8",
+          );
+
+          const coordinator = nativeSpawnSync(
+            process.execPath,
+            [childFixture, "positive", workspace],
+            {
+              encoding: "utf8",
+              timeout: 60_000,
+              windowsHide: true,
+              env: {
+                ...process.env,
+                CC_SANDBOX_STRICT: "1",
+              },
+            },
+          );
+          const failureContext = JSON.stringify({
+            status: coordinator.status,
+            signal: coordinator.signal,
+            error: coordinator.error?.message,
+            stdout: coordinator.stdout,
+            stderr: coordinator.stderr,
+          });
+          expect(coordinator.error, failureContext).toBeUndefined();
+          expect(coordinator.status, failureContext).toBe(0);
+          const envelope = JSON.parse(coordinator.stdout);
+          expect(envelope.result).toMatchObject({
+            plugin_bin: {
+              plugin: "strict-live",
+              runtime: "node",
+              identity_attested: true,
+              launch_identity_reattested: true,
+              direct_argv: true,
+            },
+          });
+          expect(typeof envelope.result.stdout, JSON.stringify(envelope)).toBe(
+            "string",
+          );
+          expect(JSON.parse(envelope.result.stdout)).toMatchObject({
+            filename: fs.realpathSync.native(pluginEntry),
+            argvEntry: fs.realpathSync.native(pluginEntry),
+            mainMatches: true,
+            evalPresent: false,
+            cwd: fs.realpathSync.native(pluginRoot),
+            sandboxed: "1",
+            profile: "default",
+          });
+          expect(envelope.audit).toMatchObject({
+            permissionDecision: "allow",
+            sandboxed: true,
+            sandboxState: "ready",
+            sandboxBackend: "windows-appcontainer-job-restricted-token",
+            sandboxEnforcement: "windows-appcontainer-job-restricted-token",
+            sandboxRequired: [
+              SANDBOX_BOUNDARIES.FILESYSTEM,
+              SANDBOX_BOUNDARIES.NETWORK,
+            ],
+            sandboxGuarantees: [
+              SANDBOX_BOUNDARIES.FILESYSTEM,
+              SANDBOX_BOUNDARIES.NETWORK,
+              SANDBOX_BOUNDARIES.PROCESS_TREE,
+              SANDBOX_BOUNDARIES.RESOURCE_LIMITS,
+              SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
+            ],
+            sandboxRuntimeProbe: {
+              kind: "windows-appcontainer-launch-attestation-v1",
+              attempted: true,
+              runnable: true,
+              reason: null,
+              probeRuntime: "node",
+              targetRuntime: "node",
+              contentSnapshot: true,
+              contentSnapshotScope: "plugin-entry-source",
+              contentSnapshotMechanism:
+                "verified-handle-inherited-pipe-module-compile-v1",
+              handleAtomic: false,
+            },
+          });
+          expect(envelope.audit.sandboxPolicyDigest).toMatch(/^[a-f0-9]{64}$/);
+        } finally {
+          fs.rmSync(workspace, { recursive: true, force: true });
+        }
+      },
+      90_000,
+    );
+
+    it.runIf(process.platform === "win32")(
+      "keeps executing the verified entry snapshot after a POSIX path replacement",
+      async () => {
+        const workspace = fs.mkdtempSync(
+          path.join(os.tmpdir(), "cc-windows-oplock-live-"),
+        );
+        const pluginRoot = path.join(workspace, "plugin");
+        const pluginEntry = path.join(pluginRoot, "bin", "strict-live.cjs");
+        const dependencyPath = path.join(pluginRoot, "lib", "value.cjs");
+        const preloadPath = path.join(workspace, "untrusted-preload.cjs");
+        const preloadMarker = path.join(workspace, "preload-ran.txt");
+        const replacementEntry = path.join(
+          pluginRoot,
+          "bin",
+          "replacement.cjs",
+        );
+        const snapshotGateToken = crypto.randomBytes(32).toString("hex");
+        const snapshotReleasePath = path.join(workspace, "snapshot-release");
+        const attackerFixture = fileURLToPath(
+          new URL(
+            "../fixtures/process-broker-windows-posix-replace.ps1",
+            import.meta.url,
+          ),
+        );
+        const runtimePath = fs.realpathSync.native(process.execPath);
+        let plan = null;
+        let helper = null;
+        let attacker = null;
+        let helperExit = null;
+        let attackerExit = null;
+        const helperStdout = [];
+        const helperStderr = [];
+        const attackerStdout = [];
+        const attackerStderr = [];
+
+        try {
+          fs.mkdirSync(path.dirname(pluginEntry), { recursive: true });
+          fs.mkdirSync(path.dirname(dependencyPath), { recursive: true });
+          fs.writeFileSync(
+            dependencyPath,
+            "module.exports = 'relative-dependency-ok';\n",
+            "utf8",
+          );
+          fs.writeFileSync(
+            preloadPath,
+            `require("node:fs").writeFileSync(${JSON.stringify(
+              preloadMarker,
+            )}, "unsafe");\n`,
+            "utf8",
+          );
+          fs.writeFileSync(
+            pluginEntry,
+            [
+              "#!/usr/bin/env node",
+              'const dependency = require("../lib/value.cjs");',
+              "module.exports.snapshotMarker = 'cached';",
+              "const self = require(__filename);",
+              "process.stdout.write(",
+              "  JSON.stringify({",
+              '    event: "READY",',
+              '    version: "original",',
+              "    filename: __filename,",
+              "    argvEntry: process.argv[1],",
+              "    execArgv: process.execArgv,",
+              "    mainMatches: require.main === module,",
+              "    evalPresent: Object.prototype.hasOwnProperty.call(process, '_eval'),",
+              "    selfCached: self === module.exports,",
+              "    injectionKeysPresent: Object.keys(process.env)",
+              "      .map((key) => key.toUpperCase())",
+              "      .filter((key) => [",
+              "        'APPDOMAIN_MANAGER_ASM',",
+              "        'APPDOMAIN_MANAGER_TYPE',",
+              "        'NODE_CHANNEL_FD',",
+              "        'NODE_OPTIONS',",
+              "        'OPENSSL_CONF_INCLUDE',",
+              "      ].includes(key)),",
+              "    dependency,",
+              '  }) + "\\n",',
+              ");",
+              "process.stdin.setEncoding('utf8');",
+              "process.stdin.resume();",
+              "let input = '';",
+              "process.stdin.on('data', (chunk) => {",
+              "  input += chunk;",
+              "  if (!input.includes('EXIT\\n')) return;",
+              "  process.stdout.write(",
+              '    JSON.stringify({ event: "EXIT", version: "original" }) + "\\n",',
+              "  );",
+              "  process.exit(0);",
+              "});",
+              "setTimeout(() => process.exit(88), 30000).unref();",
+            ].join("\n") + `\n/*${"x".repeat(128 * 1024)}*/\n`,
+            "utf8",
+          );
+          fs.writeFileSync(
+            replacementEntry,
+            'process.stdout.write("replacement-entry");\n',
+            "utf8",
+          );
+          const canonicalEntry = fs.realpathSync.native(pluginEntry);
+          const executionContract = {
+            contractVersion: 1,
+            kind: "strict-plugin-node-bin",
+            pluginRoot: fs.realpathSync.native(pluginRoot),
+            workingDirectory: fs.realpathSync.native(pluginRoot),
+            runtimePath,
+            runtimeIdentity: fileIdentity(runtimePath),
+            entryIdentity: fileIdentity(canonicalEntry),
+          };
+
+          plan = applyWindowsSandbox(
+            runtimePath,
+            [canonicalEntry],
+            {
+              cwd: pluginRoot,
+              env: {
+                ...process.env,
+                APPDOMAIN_MANAGER_ASM:
+                  "Missing.Manager, Version=1.0.0.0, Culture=neutral",
+                APPDOMAIN_MANAGER_TYPE: "Missing.Manager.Bootstrap",
+                NODE_OPTIONS: `--require=${preloadPath}`,
+                NODE_CHANNEL_FD: "4",
+                OPENSSL_CONF_INCLUDE: path.dirname(preloadPath),
+              },
+              stdio: ["pipe", "pipe", "pipe"],
+              windowsHide: true,
+            },
+            {
+              profileName: "strict",
+              sync: true,
+              requiredBoundaries: [
+                SANDBOX_BOUNDARIES.PROCESS_TREE,
+                SANDBOX_BOUNDARIES.RESOURCE_LIMITS,
+                SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
+              ],
+              executionContract,
+            },
+            {
+              platform: "win32",
+              windowsSnapshotTestGate: {
+                token: snapshotGateToken,
+                releasePath: snapshotReleasePath,
+              },
+            },
+          );
+          expect(plan).toMatchObject({
+            applied: true,
+            backend: "windows-job-restricted-token",
+            runtimeProbe: {
+              kind: "windows-plugin-node-entry-snapshot-v1",
+              attempted: true,
+              runnable: true,
+              reason: null,
+              probeRuntime: "node",
+              targetRuntime: "node",
+              contentSnapshot: true,
+              contentSnapshotScope: "plugin-entry-source",
+              contentSnapshotMechanism:
+                "verified-handle-inherited-pipe-module-compile-v1",
+              handleAtomic: false,
+            },
+          });
+
+          helper = nativeSpawn(plan.command, plan.args, plan.options);
+          helperExit = once(helper, "exit");
+          helper.stdout.on("data", (chunk) => helperStdout.push(chunk));
+          helper.stderr.on("data", (chunk) => helperStderr.push(chunk));
+          const snapshotCaptured = await waitForJsonLine(
+            helper,
+            helper.stdout,
+            (record) =>
+              record?.eventName === "SNAPSHOT_CAPTURED" &&
+              record?.token === snapshotGateToken,
+            "verified entry snapshot gate",
+            30_000,
+          );
+          expect(snapshotCaptured).toEqual({
+            eventName: "SNAPSHOT_CAPTURED",
+            token: snapshotGateToken,
+          });
+
+          attacker = nativeSpawn(
+            path.join(
+              process.env.SystemRoot || process.env.WINDIR,
+              "System32",
+              "WindowsPowerShell",
+              "v1.0",
+              "powershell.exe",
+            ),
+            [
+              "-NoLogo",
+              "-NoProfile",
+              "-NonInteractive",
+              "-ExecutionPolicy",
+              "Bypass",
+              "-File",
+              attackerFixture,
+              "-SourcePath",
+              replacementEntry,
+              "-DestinationPath",
+              canonicalEntry,
+            ],
+            {
+              cwd: pluginRoot,
+              env: process.env,
+              stdio: ["ignore", "pipe", "pipe"],
+              windowsHide: true,
+            },
+          );
+          attackerExit = once(attacker, "exit");
+          attacker.stdout.on("data", (chunk) => attackerStdout.push(chunk));
+          attacker.stderr.on("data", (chunk) => attackerStderr.push(chunk));
+          const attempting = await waitForJsonLine(
+            attacker,
+            attacker.stdout,
+            (record) => record?.state === "ATTEMPTING",
+            "POSIX replacement ATTEMPTING",
+            30_000,
+          );
+          expect(attempting).toMatchObject({
+            state: "ATTEMPTING",
+            api: "SetFileInformationByHandle",
+            class: "FileRenameInfoEx",
+            flags: ["REPLACE_IF_EXISTS", "POSIX_SEMANTICS"],
+          });
+
+          const attackerCompletedBeforeTargetStart = await Promise.race([
+            attackerExit.then(() => true),
+            new Promise((resolve) => setTimeout(() => resolve(false), 10_000)),
+          ]);
+          expect(
+            attackerCompletedBeforeTargetStart,
+            JSON.stringify({
+              helperExitCode: helper.exitCode,
+              attackerExitCode: attacker.exitCode,
+              helperStdout: helperStdout.join(""),
+              helperStderr: helperStderr.join(""),
+              attackerStdout: attackerStdout.join(""),
+              attackerStderr: attackerStderr.join(""),
+            }),
+          ).toBe(true);
+          expect(helper.exitCode).toBeNull();
+          expect(fs.readFileSync(canonicalEntry, "utf8")).toBe(
+            'process.stdout.write("replacement-entry");\n',
+          );
+          const readyPromise = waitForJsonLine(
+            helper,
+            helper.stdout,
+            (record) =>
+              record?.event === "READY" && record?.version === "original",
+            "original target READY",
+            30_000,
+          );
+          fs.writeFileSync(snapshotReleasePath, "release", "utf8");
+
+          const ready = await readyPromise;
+          expect(ready).toMatchObject({
+            event: "READY",
+            version: "original",
+            filename: canonicalEntry,
+            argvEntry: canonicalEntry,
+            execArgv: [],
+            mainMatches: true,
+            evalPresent: false,
+            selfCached: true,
+            injectionKeysPresent: [],
+            dependency: "relative-dependency-ok",
+          });
+          expect(fs.existsSync(preloadMarker)).toBe(false);
+
+          helper.stdin.end("EXIT\n");
+          const [helperCode, helperSignal] = await helperExit;
+          const [attackerCode, attackerSignal] = await attackerExit;
+          expect(
+            { helperCode, helperSignal },
+            `${helperStdout.join("")}\n${helperStderr.join("")}`,
+          ).toEqual({ helperCode: 0, helperSignal: null });
+          expect(
+            { attackerCode, attackerSignal },
+            `${attackerStdout.join("")}\n${attackerStderr.join("")}`,
+          ).toEqual({ attackerCode: 0, attackerSignal: null });
+          expect(attackerStdout.join("")).toContain('"state":"REPLACED"');
+          expect(helperStdout.join("")).toContain(
+            '{"event":"EXIT","version":"original"}',
+          );
+          expect(helperStdout.join("")).not.toContain("replacement-entry");
+          expect(fs.existsSync(replacementEntry)).toBe(false);
+
+          const replaced = nativeSpawnSync(runtimePath, [canonicalEntry], {
+            cwd: pluginRoot,
+            encoding: "utf8",
+            timeout: 15_000,
+            windowsHide: true,
+          });
+          expect(replaced.error).toBeUndefined();
+          expect(replaced.status, replaced.stderr).toBe(0);
+          expect(replaced.stdout).toBe("replacement-entry");
+        } finally {
+          if (
+            helper &&
+            helper.exitCode === null &&
+            helper.signalCode === null
+          ) {
+            helper.kill();
+          }
+          if (
+            helperExit &&
+            helper &&
+            helper.exitCode === null &&
+            helper.signalCode === null
+          ) {
+            await Promise.race([
+              helperExit.catch(() => null),
+              new Promise((resolve) => setTimeout(resolve, 10_000)),
+            ]);
+          }
+          if (
+            attacker &&
+            attacker.exitCode === null &&
+            attacker.signalCode === null
+          ) {
+            attacker.kill();
+          }
+          if (
+            attackerExit &&
+            attacker &&
+            attacker.exitCode === null &&
+            attacker.signalCode === null
+          ) {
+            await Promise.race([
+              attackerExit.catch(() => null),
+              new Promise((resolve) => setTimeout(resolve, 10_000)),
+            ]);
+          }
+          if (typeof plan?.cleanup === "function") plan.cleanup();
+          fs.rmSync(snapshotReleasePath, { force: true });
+          fs.rmSync(workspace, { recursive: true, force: true });
+        }
+      },
+      120_000,
     );
 
     it.runIf(process.platform === "linux")(

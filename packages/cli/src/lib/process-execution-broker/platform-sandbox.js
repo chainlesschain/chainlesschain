@@ -59,11 +59,70 @@ export const SANDBOX_BOUNDARIES = Object.freeze({
  */
 
 const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
+const WINDOWS_SANDBOX_HELPER_ASSEMBLY = fs.readFileSync(
+  path.join(MODULE_DIR, "windows-sandbox-helper.dll"),
+);
+const WINDOWS_SANDBOX_HELPER_ASSEMBLY_DIGEST = crypto
+  .createHash("sha256")
+  .update(WINDOWS_SANDBOX_HELPER_ASSEMBLY)
+  .digest("hex");
+const WINDOWS_TRUSTED_SYSTEM_ROOT =
+  os.platform() === "win32"
+    ? (() => {
+        try {
+          const resolved = fs.realpathSync.native(
+            String.raw`\\?\GLOBALROOT\SystemRoot`,
+          );
+          const normalized = path.win32.resolve(resolved);
+          return /^[A-Za-z]:\\/.test(normalized) && !normalized.includes("\0")
+            ? normalized
+            : null;
+        } catch {
+          return null;
+        }
+      })()
+    : "C:\\Windows";
 const WINDOWS_IDENTITY_WAIT = new Int32Array(new SharedArrayBuffer(4));
 const WINDOWS_RESTRICTED_TOKEN_BACKEND = "windows-job-restricted-token";
 const WINDOWS_APPCONTAINER_BACKEND =
   "windows-appcontainer-job-restricted-token";
 const WINDOWS_ADAPTER_IDLE_TTL_MS = 60_000;
+const WINDOWS_SANDBOX_HOST_ENV_DENYLIST = new Set([
+  "APPDOMAIN_MANAGER_ASM",
+  "APPDOMAIN_MANAGER_TYPE",
+  "COMPLUS_APPLICATIONMIGRATIONRUNTIMEACTIVATIONCONFIGPATH",
+  "COMPLUS_INSTALLROOT",
+  "COMPLUS_STARTUPHOOK",
+  "COMPLUS_VERSION",
+  "CORECLR_ENABLE_PROFILING",
+  "CORECLR_PROFILER",
+  "CORECLR_PROFILER_PATH",
+  "CORECLR_PROFILER_PATH_32",
+  "CORECLR_PROFILER_PATH_64",
+  "CORECLR_PROFILER_PATH_ARM32",
+  "CORECLR_PROFILER_PATH_ARM64",
+  "COR_ENABLE_PROFILING",
+  "COR_PROFILER",
+  "COR_PROFILER_PATH",
+  "COR_PROFILER_PATH_32",
+  "COR_PROFILER_PATH_64",
+  "DOTNET_ENABLE_PROFILING",
+  "DOTNET_PROFILER",
+  "DOTNET_PROFILER_PATH",
+  "DOTNET_PROFILER_PATH_32",
+  "DOTNET_PROFILER_PATH_64",
+  "DOTNET_PROFILER_PATH_ARM32",
+  "DOTNET_PROFILER_PATH_ARM64",
+  "DOTNET_STARTUP_HOOKS",
+]);
+const WINDOWS_PLUGIN_NODE_ENV_DENYLIST = new Set([
+  "NODE_CHANNEL_FD",
+  "NODE_OPTIONS",
+  "OPENSSL_CONF",
+  "OPENSSL_CONF_INCLUDE",
+  "OPENSSL_ENGINES",
+  "OPENSSL_MODULES",
+]);
 const LINUX_BWRAP_PATH = "/usr/bin/bwrap";
 const LINUX_LDD_PATH = "/usr/bin/ldd";
 const LINUX_BWRAP_BACKEND = "linux-bwrap";
@@ -126,7 +185,9 @@ const DEFAULT_RUNTIME = Object.freeze({
   randomBytes: (size) => crypto.randomBytes(size),
   resolvePath: (value) => path.resolve(value),
   joinPath: (...parts) => path.join(...parts),
-  windowsDir: () => process.env.WINDIR || "C:\\Windows",
+  // GLOBALROOT resolves the kernel-owned SystemRoot object rather than the
+  // caller-controlled WINDIR/SystemRoot environment variables.
+  windowsDir: () => WINDOWS_TRUSTED_SYSTEM_ROOT,
   moduleDir: MODULE_DIR,
   now: () => Date.now(),
   sleepSync: (milliseconds) =>
@@ -513,29 +574,29 @@ function sameWindowsFileIdentity(left, right) {
   );
 }
 
-function inspectWindowsAdapterExecutable(runtime, executablePath) {
+function inspectWindowsAdapterAssembly(runtime, assemblyPath) {
   if (typeof runtime.fs.lstatSync === "function") {
-    const linkStat = runtime.fs.lstatSync(executablePath, { bigint: true });
+    const linkStat = runtime.fs.lstatSync(assemblyPath, { bigint: true });
     if (
       linkStat.isSymbolicLink?.() ||
       (typeof linkStat.isFile === "function" && !linkStat.isFile())
     ) {
-      throw new Error("Windows native adapter is not a regular file");
+      throw new Error("Windows in-memory adapter is not a regular file");
     }
   }
-  const before = runtime.fs.statSync(executablePath, { bigint: true });
+  const before = runtime.fs.statSync(assemblyPath, { bigint: true });
   if (typeof before.isFile === "function" && !before.isFile()) {
-    throw new Error("Windows native adapter is not a regular file");
+    throw new Error("Windows in-memory adapter is not a regular file");
   }
   const beforeIdentity = windowsFileIdentity(before);
-  const executableDigest = sha256(runtime.fs.readFileSync(executablePath));
+  const assemblyDigest = sha256(runtime.fs.readFileSync(assemblyPath));
   const afterIdentity = windowsFileIdentity(
-    runtime.fs.statSync(executablePath, { bigint: true }),
+    runtime.fs.statSync(assemblyPath, { bigint: true }),
   );
   if (!sameWindowsFileIdentity(beforeIdentity, afterIdentity)) {
-    throw new Error("Windows native adapter changed during attestation");
+    throw new Error("Windows in-memory adapter changed during attestation");
   }
-  return { executableDigest, fileIdentity: afterIdentity };
+  return { assemblyDigest, fileIdentity: afterIdentity };
 }
 
 function verifyWindowsAdapterEntry(entry, runtime, source) {
@@ -549,12 +610,12 @@ function verifyWindowsAdapterEntry(entry, runtime, source) {
     return false;
   }
   try {
-    const attestation = inspectWindowsAdapterExecutable(
+    const attestation = inspectWindowsAdapterAssembly(
       runtime,
-      entry.executablePath,
+      entry.assemblyPath,
     );
     return (
-      attestation.executableDigest === entry.executableDigest &&
+      attestation.assemblyDigest === entry.assemblyDigest &&
       sameWindowsFileIdentity(attestation.fileIdentity, entry.fileIdentity)
     );
   } catch {
@@ -570,7 +631,7 @@ function cleanupWindowsAdapterEntry(entry, attempts = 100) {
   }
   const deleted = cleanupWindowsTemporaryPath(
     entry.runtime,
-    entry.executablePath,
+    entry.assemblyPath,
     attempts,
   );
   if (deleted) {
@@ -652,55 +713,38 @@ function scheduleWindowsAdapterIdleCleanup(entry) {
 }
 
 function loadWindowsAdapterSource(runtime) {
-  const sourcePath =
-    runtime.windowsAdapterScriptPath ||
-    runtime.joinPath(runtime.moduleDir, "windows-sandbox.ps1");
-  let content = runtime.windowsAdapterContent;
-  if (content === undefined) {
-    if (!runtime.fs.existsSync(sourcePath)) {
-      return { reason: "windows_native_adapter_missing" };
-    }
-    try {
-      content = runtime.fs.readFileSync(sourcePath, "utf8");
-    } catch {
-      return { reason: "windows_native_adapter_unreadable" };
-    }
-  }
-  content = String(content);
+  const bundled = runtime.windowsAdapterContent === undefined;
+  const content = bundled
+    ? WINDOWS_SANDBOX_HELPER_ASSEMBLY
+    : Buffer.from(runtime.windowsAdapterContent);
   return {
     content,
-    sourceDigest: sha256(content),
+    sourceDigest: bundled
+      ? WINDOWS_SANDBOX_HELPER_ASSEMBLY_DIGEST
+      : sha256(content),
     tempDirectory: runtime.tmpdir(),
   };
 }
 
 /**
- * Materialize a cache miss for the shipped PowerShell/Win32 adapter into
- * fresh, unpredictable temporary paths. This is required for pkg builds where
- * source assets live in a virtual snapshot that an external powershell.exe
- * process cannot open directly. A persistent executable discovered on disk is
- * never trusted.
+ * Materialize the trusted in-process assembly bytes at a fresh path. The
+ * managed image is never executed from this user-writable location. A fixed
+ * System32 PowerShell host reads the bytes once, verifies the expected digest,
+ * and loads those exact bytes with Assembly.Load(byte[]).
  */
 function materializeWindowsAdapter(runtime, source) {
   const adapterBaseName = `chainless-win-sandbox-${runtime
     .randomBytes(24)
     .toString("hex")}`;
-  const scriptPath = runtime.joinPath(
+  const assemblyPath = runtime.joinPath(
     source.tempDirectory,
-    `${adapterBaseName}.ps1`,
+    `${adapterBaseName}.dll`,
   );
-  const cacheExecutable = runtime.joinPath(
-    source.tempDirectory,
-    `${adapterBaseName}.exe`,
-  );
-  if (
-    runtime.fs.existsSync(scriptPath) ||
-    runtime.fs.existsSync(cacheExecutable)
-  ) {
+  if (runtime.fs.existsSync(assemblyPath)) {
     return { reason: "windows_native_adapter_random_path_collision" };
   }
   try {
-    runtime.fs.writeFileSync(scriptPath, source.content, {
+    runtime.fs.writeFileSync(assemblyPath, source.content, {
       mode: 0o600,
       flag: "wx",
     });
@@ -708,17 +752,112 @@ function materializeWindowsAdapter(runtime, source) {
     return { reason: "windows_native_adapter_materialize_failed" };
   }
   return {
-    scriptPath,
-    cacheExecutable,
-    cleanupScript: () => cleanupWindowsTemporaryPath(runtime, scriptPath),
-    cleanupExecutable: () =>
-      cleanupWindowsTemporaryPath(runtime, cacheExecutable),
+    assemblyPath,
+    cleanupAssembly: () => cleanupWindowsTemporaryPath(runtime, assemblyPath),
   };
 }
 
-function compileFreshWindowsAdapter(runtime, source, compileEnv) {
+function materializeWindowsAdapterInvocation(runtime, helperArgs) {
+  const payloadPath = runtime.joinPath(
+    runtime.tmpdir(),
+    `chainless-win-sandbox-invocation-${runtime
+      .randomBytes(24)
+      .toString("hex")}.json`,
+  );
+  if (runtime.fs.existsSync(payloadPath)) {
+    return { reason: "windows_adapter_invocation_random_path_collision" };
+  }
+  let content;
+  try {
+    content = Buffer.from(
+      [
+        "CC_WINDOWS_SANDBOX_INVOCATION_V1",
+        ...Array.from(helperArgs || [], (value) =>
+          Buffer.from(String(value), "utf8").toString("base64"),
+        ),
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+  } catch {
+    return { reason: "windows_adapter_invocation_encode_failed" };
+  }
+  if (content.length > 8 * 1024 * 1024) {
+    return { reason: "windows_adapter_invocation_too_large" };
+  }
+  try {
+    runtime.fs.writeFileSync(payloadPath, content, {
+      mode: 0o600,
+      flag: "wx",
+    });
+  } catch {
+    return { reason: "windows_adapter_invocation_materialize_failed" };
+  }
+  return {
+    payloadPath,
+    payloadDigest: sha256(content),
+    cleanup: () => cleanupWindowsTemporaryPath(runtime, payloadPath),
+  };
+}
+
+function windowsPowerShellBootstrap(entry, invocation) {
+  const encodeUtf8 = (value) =>
+    Buffer.from(String(value), "utf8").toString("base64");
+  const assemblyPath = encodeUtf8(entry.assemblyPath);
+  const payloadPath = encodeUtf8(invocation.payloadPath);
+  const bootstrap = [
+    "$ErrorActionPreference='Stop'",
+    "$ProgressPreference='SilentlyContinue'",
+    "try {",
+    `$ccAssemblyPath=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${assemblyPath}'))`,
+    `$ccPayloadPath=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${payloadPath}'))`,
+    `$ccExpectedAssembly='${entry.assemblyDigest}'`,
+    `$ccExpectedPayload='${invocation.payloadDigest}'`,
+    "$ccAssemblyBytes=[IO.File]::ReadAllBytes($ccAssemblyPath)",
+    "$ccPayloadBytes=[IO.File]::ReadAllBytes($ccPayloadPath)",
+    "if($ccAssemblyBytes.Length -gt 1048576 -or $ccPayloadBytes.Length -gt 8388608){throw 'Windows sandbox adapter input exceeds its limit'}",
+    "$ccSha=[Security.Cryptography.SHA256]::Create()",
+    "try{$ccAssemblyHash=([BitConverter]::ToString($ccSha.ComputeHash($ccAssemblyBytes))).Replace('-','').ToLowerInvariant();$ccSha.Initialize();$ccPayloadHash=([BitConverter]::ToString($ccSha.ComputeHash($ccPayloadBytes))).Replace('-','').ToLowerInvariant()}finally{$ccSha.Dispose()}",
+    "if(![String]::Equals($ccAssemblyHash,$ccExpectedAssembly,[StringComparison]::Ordinal)-or ![String]::Equals($ccPayloadHash,$ccExpectedPayload,[StringComparison]::Ordinal)){throw 'Windows sandbox adapter input digest mismatch'}",
+    "$ccUtf8=New-Object Text.UTF8Encoding($false,$true)",
+    "$ccLines=$ccUtf8.GetString($ccPayloadBytes).Split([char]10)",
+    "if($ccLines.Length -lt 2 -or $ccLines[0] -cne 'CC_WINDOWS_SANDBOX_INVOCATION_V1' -or $ccLines[$ccLines.Length-1] -cne ''){throw 'Windows sandbox adapter invocation is invalid'}",
+    "$ccArgCount=$ccLines.Length-2",
+    "$ccArgs=[Array]::CreateInstance([string],$ccArgCount)",
+    "for($ccIndex=0;$ccIndex -lt $ccArgCount;$ccIndex++){$ccArgs[$ccIndex]=$ccUtf8.GetString([Convert]::FromBase64String($ccLines[$ccIndex+1]))}",
+    "$ccAssembly=[Reflection.Assembly]::Load($ccAssemblyBytes)",
+    "$ccProgram=$ccAssembly.GetType('ChainlessChain.WindowsSandbox.Program',$true)",
+    "$ccMain=$ccProgram.GetMethod('Main',[Reflection.BindingFlags]'Public,Static')",
+    "if($null -eq $ccMain){throw 'Windows sandbox adapter entry point is missing'}",
+    "$ccExit=$ccMain.Invoke($null,[object[]]@(,[string[]]$ccArgs))",
+    "exit [int]$ccExit",
+    "} catch {",
+    "[Console]::Error.WriteLine('CC_WINDOWS_SANDBOX_ERROR: '+$_.Exception.Message)",
+    "exit 125",
+    "}",
+  ].join("\n");
+  return Buffer.from(bootstrap, "utf16le").toString("base64");
+}
+
+function buildWindowsAdapterInvocation(entry, invocation) {
+  return {
+    command: entry.powershellPath,
+    args: [
+      "-NoLogo",
+      "-NoProfile",
+      "-NonInteractive",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-EncodedCommand",
+      windowsPowerShellBootstrap(entry, invocation),
+    ],
+    cleanup: invocation.cleanup,
+  };
+}
+
+function createFreshWindowsAdapter(runtime, source, hostEnvironment) {
   const materialized = materializeWindowsAdapter(runtime, source);
-  if (!materialized.cacheExecutable) return materialized;
+  if (!materialized.assemblyPath) return materialized;
 
   const powershell = runtime.joinPath(
     runtime.windowsDir(),
@@ -728,61 +867,24 @@ function compileFreshWindowsAdapter(runtime, source, compileEnv) {
     "powershell.exe",
   );
   if (!runtime.fs.existsSync(powershell)) {
-    materialized.cleanupScript();
-    materialized.cleanupExecutable();
+    materialized.cleanupAssembly();
     return { reason: "windows_powershell_host_unavailable" };
-  }
-
-  let compileResult;
-  try {
-    compileResult = runtime.spawnSync(
-      powershell,
-      [
-        "-NoLogo",
-        "-NoProfile",
-        "-NonInteractive",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        materialized.scriptPath,
-        "-CacheExecutable",
-        materialized.cacheExecutable,
-        "-CompileOnly",
-      ],
-      {
-        shell: false,
-        windowsHide: true,
-        encoding: "utf8",
-        timeout: 30_000,
-        env: compileEnv,
-      },
-    );
-  } catch (error) {
-    compileResult = { error, status: null };
-  }
-
-  const scriptDeleted = materialized.cleanupScript();
-  if (compileResult?.error || compileResult?.status !== 0 || !scriptDeleted) {
-    const executableDeleted = materialized.cleanupExecutable();
-    return {
-      reason:
-        !scriptDeleted || !executableDeleted
-          ? "windows_native_adapter_compile_cleanup_unverified"
-          : "windows_native_adapter_compile_failed",
-    };
   }
 
   let attestation;
   try {
-    attestation = inspectWindowsAdapterExecutable(
+    attestation = inspectWindowsAdapterAssembly(
       runtime,
-      materialized.cacheExecutable,
+      materialized.assemblyPath,
     );
+    if (attestation.assemblyDigest !== source.sourceDigest) {
+      throw new Error("Materialized Windows adapter digest mismatch");
+    }
   } catch {
-    const executableDeleted = materialized.cleanupExecutable();
+    const assemblyDeleted = materialized.cleanupAssembly();
     return {
-      reason: executableDeleted
-        ? "windows_native_adapter_compile_attestation_failed"
+      reason: assemblyDeleted
+        ? "windows_native_adapter_materialize_attestation_failed"
         : "windows_native_adapter_compile_cleanup_unverified",
     };
   }
@@ -792,21 +894,68 @@ function compileFreshWindowsAdapter(runtime, source, compileEnv) {
     runtimeFs: runtime.fs,
     tempDirectory: source.tempDirectory,
     sourceDigest: source.sourceDigest,
-    executablePath: materialized.cacheExecutable,
-    executableDigest: attestation.executableDigest,
+    powershellPath: powershell,
+    assemblyPath: materialized.assemblyPath,
+    assemblyDigest: attestation.assemblyDigest,
     fileIdentity: attestation.fileIdentity,
     refCount: 0,
     idleTimer: null,
     retired: false,
     cleaned: false,
   };
+  const probePayload = materializeWindowsAdapterInvocation(runtime, [
+    "--probe-helper",
+  ]);
+  if (!probePayload.payloadPath) {
+    materialized.cleanupAssembly();
+    return probePayload;
+  }
+  const probeInvocation = buildWindowsAdapterInvocation(entry, probePayload);
+  let probeResult;
+  try {
+    probeResult = runtime.spawnSync(
+      probeInvocation.command,
+      probeInvocation.args,
+      {
+        shell: false,
+        windowsHide: true,
+        encoding: "utf8",
+        timeout: 30_000,
+        cwd: runtime.joinPath(runtime.windowsDir(), "System32"),
+        env: hostEnvironment,
+      },
+    );
+  } catch (error) {
+    probeResult = { error, status: null };
+  } finally {
+    probeInvocation.cleanup();
+  }
+  let probeReady = false;
+  try {
+    const probe = JSON.parse(String(probeResult?.stdout || "").trim());
+    probeReady =
+      probeResult?.status === 0 &&
+      probe?.ready === true &&
+      probe?.hostRuntime === "powershell-byte-assembly-v1";
+  } catch {
+    probeReady = false;
+  }
+  if (!probeReady || !verifyWindowsAdapterEntry(entry, runtime, source)) {
+    const assemblyDeleted = materialized.cleanupAssembly();
+    return {
+      reason: !assemblyDeleted
+        ? "windows_native_adapter_compile_cleanup_unverified"
+        : "windows_in_memory_adapter_probe_failed",
+    };
+  }
+
   windowsAdapterCacheEntries.add(entry);
   windowsAdapterCache = entry;
   registerWindowsAdapterExitCleanup();
   return { entry };
 }
 
-function acquireWindowsAdapterLease(runtime, source, compileEnv) {
+function acquireWindowsAdapterLease(runtime, source, hostEnvironment) {
   if (windowsAdapterCache) {
     if (verifyWindowsAdapterEntry(windowsAdapterCache, runtime, source)) {
       if (windowsAdapterCache.idleTimer) {
@@ -822,7 +971,7 @@ function acquireWindowsAdapterLease(runtime, source, compileEnv) {
     retireWindowsAdapterEntry(windowsAdapterCache);
   }
 
-  const compiled = compileFreshWindowsAdapter(runtime, source, compileEnv);
+  const compiled = createFreshWindowsAdapter(runtime, source, hostEnvironment);
   if (!compiled.entry) return compiled;
   compiled.entry.refCount += 1;
   return { entry: compiled.entry, released: false };
@@ -839,13 +988,13 @@ function releaseWindowsAdapterLease(lease) {
   }
 }
 
-function createWindowsAdapterController(runtime, source, compileEnv) {
-  const acquired = acquireWindowsAdapterLease(runtime, source, compileEnv);
+function createWindowsAdapterController(runtime, source, hostEnvironment) {
+  const acquired = acquireWindowsAdapterLease(runtime, source, hostEnvironment);
   if (!acquired.entry) return acquired;
   let lease = acquired;
   let released = false;
 
-  const ensureExecutable = () => {
+  const ensureEntry = () => {
     if (released) {
       const error = new Error("Windows native adapter lease was released");
       error.adapterReason = "windows_native_adapter_lease_released";
@@ -854,7 +1003,11 @@ function createWindowsAdapterController(runtime, source, compileEnv) {
     if (!verifyWindowsAdapterEntry(lease.entry, runtime, source)) {
       retireWindowsAdapterEntry(lease.entry);
       releaseWindowsAdapterLease(lease);
-      const refreshed = acquireWindowsAdapterLease(runtime, source, compileEnv);
+      const refreshed = acquireWindowsAdapterLease(
+        runtime,
+        source,
+        hostEnvironment,
+      );
       if (!refreshed.entry) {
         const error = new Error(
           `Windows native adapter refresh failed: ${refreshed.reason}`,
@@ -864,13 +1017,37 @@ function createWindowsAdapterController(runtime, source, compileEnv) {
       }
       lease = refreshed;
     }
-    return lease.entry.executablePath;
+    return lease.entry;
+  };
+
+  const createInvocation = (helperArgs) => {
+    const entry = ensureEntry();
+    const payload = materializeWindowsAdapterInvocation(runtime, helperArgs);
+    if (!payload.payloadPath) {
+      const error = new Error(
+        `Windows in-memory adapter invocation failed: ${payload.reason}`,
+      );
+      error.adapterReason = payload.reason;
+      throw error;
+    }
+    return buildWindowsAdapterInvocation(entry, payload);
   };
 
   return {
-    ensureExecutable,
-    spawnSync: (args, options) =>
-      runtime.spawnSync(ensureExecutable(), args, options),
+    ensureExecutable: ensureEntry,
+    createInvocation,
+    spawnSync: (args, options) => {
+      const invocation = createInvocation(args);
+      try {
+        return runtime.spawnSync(invocation.command, invocation.args, {
+          ...options,
+          cwd: runtime.joinPath(runtime.windowsDir(), "System32"),
+          env: hostEnvironment,
+        });
+      } finally {
+        invocation.cleanup();
+      }
+    },
     release: () => {
       if (released) return;
       released = true;
@@ -884,7 +1061,7 @@ function waitForWindowsTargetIdentity(
   identityPath,
   runtime,
   expectedAppContainer = null,
-  timeoutMs = 10_000,
+  timeoutMs = 30_000,
 ) {
   const deadline = runtime.now() + timeoutMs;
   let lastError;
@@ -980,7 +1157,37 @@ function waitForWindowsTargetIdentity(
   );
 }
 
-function appContainerReadinessResult(result, profileName) {
+function windowsNodeSnapshotProbeResult(result) {
+  const runtimeProbe = {
+    kind: "windows-plugin-node-entry-snapshot-v1",
+    attempted: true,
+    runnable: false,
+    reason: "probe_failed",
+    probeRuntime: "node",
+    targetRuntime: "node",
+  };
+  if (result?.error || result?.status !== 0) return runtimeProbe;
+
+  try {
+    const attestation = JSON.parse(String(result.stdout || "").trim());
+    if (
+      attestation?.ready !== true ||
+      attestation?.targetRuntime !== "node" ||
+      attestation?.contentSnapshot !== true
+    ) {
+      return { ...runtimeProbe, reason: "invalid_attestation" };
+    }
+  } catch {
+    return { ...runtimeProbe, reason: "invalid_attestation" };
+  }
+  return { ...runtimeProbe, runnable: true, reason: null };
+}
+
+function appContainerReadinessResult(
+  result,
+  profileName,
+  targetRuntime = null,
+) {
   const runtimeProbe = {
     kind: "windows-appcontainer-launch-attestation-v1",
     attempted: true,
@@ -1011,7 +1218,10 @@ function appContainerReadinessResult(result, profileName) {
     !sidPattern.test(readiness.appContainerSid) ||
     readiness?.capabilityCount !== 0 ||
     readiness?.tokenAttested !== true ||
-    readiness?.restrictedTokenAttested !== true
+    readiness?.restrictedTokenAttested !== true ||
+    (targetRuntime !== null &&
+      (readiness?.probeRuntime !== targetRuntime ||
+        readiness?.targetRuntime !== targetRuntime))
   ) {
     return {
       runtimeProbe: {
@@ -1026,6 +1236,12 @@ function appContainerReadinessResult(result, profileName) {
       ...runtimeProbe,
       runnable: true,
       reason: null,
+      ...(targetRuntime
+        ? {
+            probeRuntime: targetRuntime,
+            targetRuntime,
+          }
+        : {}),
     },
     readiness,
   };
@@ -1057,6 +1273,145 @@ function deleteWindowsAppContainerProfile(
   }
 }
 
+function windowsCanonicalPathKey(value) {
+  if (typeof value !== "string" || !value || value.includes("\0")) return null;
+  try {
+    return path.win32.resolve(value).toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+function sanitizeWindowsSandboxEnvironment(environment, pluginNodeSnapshot) {
+  const sanitized = {};
+  const normalizedKeys = new Map();
+  for (const [key, value] of Object.entries(environment || process.env)) {
+    const normalized = key.toUpperCase();
+    if (
+      WINDOWS_SANDBOX_HOST_ENV_DENYLIST.has(normalized) ||
+      (pluginNodeSnapshot && WINDOWS_PLUGIN_NODE_ENV_DENYLIST.has(normalized))
+    ) {
+      continue;
+    }
+    const previousKey = normalizedKeys.get(normalized);
+    if (previousKey !== undefined) delete sanitized[previousKey];
+    normalizedKeys.set(normalized, key);
+    sanitized[key] = String(value);
+  }
+  return sanitized;
+}
+
+function setWindowsEnvironmentValue(environment, name, value) {
+  const normalized = name.toUpperCase();
+  for (const key of Object.keys(environment)) {
+    if (key.toUpperCase() === normalized) delete environment[key];
+  }
+  environment[name] = String(value);
+}
+
+function windowsSandboxHostEnvironment(runtime) {
+  const windowsDirectory = path.win32.resolve(runtime.windowsDir());
+  const systemDirectory = runtime.joinPath(windowsDirectory, "System32");
+  const temporaryDirectory = runtime.joinPath(windowsDirectory, "Temp");
+  return {
+    SystemRoot: windowsDirectory,
+    WINDIR: windowsDirectory,
+    ComSpec: runtime.joinPath(systemDirectory, "cmd.exe"),
+    PATH: `${systemDirectory};${windowsDirectory}`,
+    PATHEXT: ".COM;.EXE;.BAT;.CMD",
+    TEMP: temporaryDirectory,
+    TMP: temporaryDirectory,
+  };
+}
+
+function windowsPluginNodeEntrySnapshot(invocation, sandboxOpts, spawnOpts) {
+  const contract = sandboxOpts.executionContract;
+  if (!contract) return { locks: null, reason: null };
+  if (contract.kind !== "strict-plugin-node-bin") {
+    return {
+      locks: null,
+      reason: "windows_plugin_execution_contract_unsupported",
+    };
+  }
+  if (sandboxOpts.sync !== true || spawnOpts?.detached === true) {
+    return {
+      locks: null,
+      reason: "windows_plugin_launch_path_lock_requires_sync_foreground",
+    };
+  }
+
+  const runtimeIdentity = contract.runtimeIdentity;
+  const entryIdentity = contract.entryIdentity;
+  const validIdentity = (identity, maxBytes) =>
+    identity &&
+    typeof identity === "object" &&
+    typeof identity.realPath === "string" &&
+    path.win32.isAbsolute(identity.realPath) &&
+    typeof identity.sha256 === "string" &&
+    /^[a-f0-9]{64}$/.test(identity.sha256) &&
+    identity.fileId &&
+    typeof identity.fileId === "object" &&
+    typeof identity.fileId.dev === "string" &&
+    typeof identity.fileId.ino === "string" &&
+    /^\d+$/.test(identity.fileId.dev) &&
+    /^\d+$/.test(identity.fileId.ino) &&
+    Number.isSafeInteger(identity.bytes) &&
+    identity.bytes >= 0 &&
+    identity.bytes <= maxBytes;
+  if (
+    !validIdentity(runtimeIdentity, 256 * 1024 * 1024) ||
+    !validIdentity(entryIdentity, 64 * 1024 * 1024)
+  ) {
+    return {
+      locks: null,
+      reason: "windows_plugin_launch_path_identity_invalid",
+    };
+  }
+
+  const runtimePath = windowsCanonicalPathKey(runtimeIdentity.realPath);
+  const entryPath = windowsCanonicalPathKey(entryIdentity.realPath);
+  if (
+    !runtimePath ||
+    !entryPath ||
+    runtimePath !== windowsCanonicalPathKey(contract.runtimePath) ||
+    runtimePath !== windowsCanonicalPathKey(invocation.command) ||
+    entryPath !== windowsCanonicalPathKey(invocation.args?.[0])
+  ) {
+    return {
+      locks: null,
+      reason: "windows_plugin_launch_path_identity_mismatch",
+    };
+  }
+  if (path.win32.extname(entryIdentity.realPath).toLowerCase() !== ".cjs") {
+    return {
+      locks: null,
+      reason: "windows_plugin_entry_snapshot_format_unsupported",
+    };
+  }
+
+  return {
+    locks: [
+      {
+        role: "runtime",
+        path: runtimeIdentity.realPath,
+        sha256: runtimeIdentity.sha256,
+        bytes: runtimeIdentity.bytes,
+        dev: runtimeIdentity.fileId.dev,
+        ino: runtimeIdentity.fileId.ino,
+      },
+      {
+        role: "entry",
+        path: entryIdentity.realPath,
+        sha256: entryIdentity.sha256,
+        bytes: entryIdentity.bytes,
+        dev: entryIdentity.fileId.dev,
+        ino: entryIdentity.fileId.ino,
+      },
+    ],
+    reason: null,
+  };
+}
+
 /**
  * Wrap a target with the built-in Windows PowerShell host. The shipped script
  * P/Invokes Win32 to create a restricted primary token, starts the target
@@ -1076,7 +1431,7 @@ export function applyWindowsSandbox(
   sandboxOpts = {},
   runtimeOverrides = {},
 ) {
-  const runtime = resolveRuntime(runtimeOverrides);
+  let runtime = resolveRuntime(runtimeOverrides);
   const requiredBoundaries = Array.isArray(sandboxOpts.requiredBoundaries)
     ? sandboxOpts.requiredBoundaries
     : [];
@@ -1119,6 +1474,22 @@ export function applyWindowsSandbox(
   if (runtime.platform !== "win32") {
     return unavailablePlan("platform_mismatch");
   }
+  let windowsDirectory;
+  try {
+    windowsDirectory = path.win32.resolve(runtime.windowsDir());
+  } catch {
+    windowsDirectory = null;
+  }
+  if (
+    typeof windowsDirectory !== "string" ||
+    !/^[A-Za-z]:\\/.test(windowsDirectory) ||
+    windowsDirectory.includes("\0")
+  ) {
+    return unavailablePlan("windows_trusted_system_root_unavailable");
+  }
+  // Resolve once per plan so even trusted embedding hooks cannot redirect the
+  // host executable, cwd, and environment between individual launch steps.
+  runtime = { ...runtime, windowsDir: () => windowsDirectory };
 
   if (
     requiresAppContainer &&
@@ -1166,21 +1537,77 @@ export function applyWindowsSandbox(
     spawnOpts,
     runtime.platform,
   );
+  const entrySnapshot = windowsPluginNodeEntrySnapshot(
+    invocation,
+    sandboxOpts,
+    spawnOpts,
+  );
+  if (entrySnapshot.reason) {
+    return unavailablePlan(entrySnapshot.reason);
+  }
+  if (entrySnapshot.locks && nodeIpcFd >= 0) {
+    return unavailablePlan("windows_plugin_entry_snapshot_ipc_unsupported");
+  }
+  const snapshotTestGate = entrySnapshot.locks
+    ? runtime.windowsSnapshotTestGate
+    : null;
+  if (
+    snapshotTestGate !== null &&
+    snapshotTestGate !== undefined &&
+    (typeof snapshotTestGate !== "object" ||
+      typeof snapshotTestGate.token !== "string" ||
+      !/^[a-f0-9]{64}$/.test(snapshotTestGate.token) ||
+      typeof snapshotTestGate.releasePath !== "string" ||
+      !path.win32.isAbsolute(snapshotTestGate.releasePath) ||
+      snapshotTestGate.releasePath.includes("\0"))
+  ) {
+    return unavailablePlan("windows_plugin_entry_snapshot_test_gate_invalid");
+  }
   const adapterSource = loadWindowsAdapterSource(runtime);
   if (!adapterSource.content) {
     return unavailablePlan(adapterSource.reason);
   }
+  const profile = sandboxOpts.profileName || "default";
+  const targetEnvironment = sanitizeWindowsSandboxEnvironment(
+    invocation.options.env,
+    Boolean(entrySnapshot.locks),
+  );
+  setWindowsEnvironmentValue(targetEnvironment, "CC_WINDOWS_SANDBOXED", "1");
+  setWindowsEnvironmentValue(
+    targetEnvironment,
+    "CC_WINDOWS_SANDBOX_PROFILE",
+    profile,
+  );
+  if (nodeIpcFd >= 0) {
+    setWindowsEnvironmentValue(
+      targetEnvironment,
+      "NODE_CHANNEL_FD",
+      String(nodeIpcFd),
+    );
+    setWindowsEnvironmentValue(
+      targetEnvironment,
+      "NODE_CHANNEL_SERIALIZATION_MODE",
+      invocation.options.serialization === "advanced" ? "advanced" : "json",
+    );
+  }
+  const hostEnvironment = windowsSandboxHostEnvironment(runtime);
+  const helperWorkingDirectory = runtime.joinPath(
+    runtime.windowsDir(),
+    "System32",
+  );
   const adapter = createWindowsAdapterController(
     runtime,
     adapterSource,
-    invocation.options.env || process.env,
+    hostEnvironment,
   );
   if (!adapter.ensureExecutable) {
     return unavailablePlan(adapter.reason);
   }
 
-  const profile = sandboxOpts.profileName || "default";
   const limits = sandboxOpts.limits || {};
+  const targetWorkingDirectory = runtime.resolvePath(
+    invocation.options.cwd || process.cwd(),
+  );
   const identityPath =
     spawnOpts?.detached === true ||
     (requiresAppContainer && sandboxOpts.sync !== true)
@@ -1202,7 +1629,16 @@ export function applyWindowsSandbox(
     nodeIpcFd,
     detached: invocation.options.detached === true,
     windowsHide: invocation.options.windowsHide === true,
+    workingDirectory: targetWorkingDirectory,
+    environment: targetEnvironment,
   };
+  if (entrySnapshot.locks) {
+    launchSpec.launchPathLocks = entrySnapshot.locks;
+    if (snapshotTestGate) {
+      launchSpec.snapshotTestGateToken = snapshotTestGate.token;
+      launchSpec.snapshotTestGateReleasePath = snapshotTestGate.releasePath;
+    }
+  }
   if (identityPath) launchSpec.identityPath = identityPath;
   const cleanupIdentity = () => {
     if (!identityPath) return;
@@ -1211,28 +1647,54 @@ export function applyWindowsSandbox(
 
   let appContainer = null;
   let appContainerRuntimeProbe = null;
+  let nodeSnapshotRuntimeProbe = null;
+  if (entrySnapshot.locks && !requiresAppContainer) {
+    let probeResult;
+    try {
+      probeResult = adapter.spawnSync(
+        ["--probe-node-snapshot", entrySnapshot.locks[0].path],
+        {
+          shell: false,
+          windowsHide: true,
+          encoding: "utf8",
+          timeout: 30_000,
+        },
+      );
+    } catch (error) {
+      probeResult = { error, status: null };
+    }
+    nodeSnapshotRuntimeProbe = windowsNodeSnapshotProbeResult(probeResult);
+    if (!nodeSnapshotRuntimeProbe.runnable) {
+      adapter.release();
+      cleanupIdentity();
+      return unavailablePlan("windows_plugin_entry_snapshot_probe_failed", {
+        runtimeProbe: nodeSnapshotRuntimeProbe,
+      });
+    }
+  }
   if (requiresAppContainer) {
     const appContainerProfileName = `ChainlessChain.CliSandbox.${runtime
       .randomBytes(12)
       .toString("hex")}`;
     let readinessResult;
     try {
-      readinessResult = adapter.spawnSync(
-        ["--prepare-appcontainer", appContainerProfileName],
-        {
-          shell: false,
-          windowsHide: true,
-          encoding: "utf8",
-          timeout: 30_000,
-          env: invocation.options.env || process.env,
-        },
-      );
+      const readinessArgs = ["--prepare-appcontainer", appContainerProfileName];
+      if (entrySnapshot.locks) {
+        readinessArgs.push(entrySnapshot.locks[0].path);
+      }
+      readinessResult = adapter.spawnSync(readinessArgs, {
+        shell: false,
+        windowsHide: true,
+        encoding: "utf8",
+        timeout: 30_000,
+      });
     } catch (error) {
       readinessResult = { error, status: null };
     }
     const readiness = appContainerReadinessResult(
       readinessResult,
       appContainerProfileName,
+      entrySnapshot.locks ? "node" : null,
     );
     appContainerRuntimeProbe = readiness.runtimeProbe;
     if (!readiness.readiness) {
@@ -1265,14 +1727,32 @@ export function applyWindowsSandbox(
     };
     launchSpec.appContainerProfileName = appContainer.appContainerProfileName;
     launchSpec.appContainerSid = appContainer.appContainerSid;
+    setWindowsEnvironmentValue(
+      targetEnvironment,
+      "CC_WINDOWS_APPCONTAINER",
+      "1",
+    );
+    setWindowsEnvironmentValue(
+      targetEnvironment,
+      "CC_WINDOWS_APPCONTAINER_PROFILE",
+      appContainer.appContainerProfileName,
+    );
+    setWindowsEnvironmentValue(
+      targetEnvironment,
+      "CC_WINDOWS_APPCONTAINER_SID",
+      appContainer.appContainerSid,
+    );
   }
 
-  let helperExecutable;
+  const payload = Buffer.from(JSON.stringify(launchSpec), "utf8").toString(
+    "base64",
+  );
+  let helperInvocation;
   try {
     // This is the final synchronous operation before the broker consumes the
     // plan and spawns the helper. Internal readiness/deletion invocations also
     // pass through the same digest + file-identity attestation.
-    helperExecutable = adapter.ensureExecutable();
+    helperInvocation = adapter.createInvocation([payload]);
   } catch (error) {
     const deleted = appContainer
       ? deleteWindowsAppContainerProfile(
@@ -1299,26 +1779,18 @@ export function applyWindowsSandbox(
     );
   }
 
-  const payload = Buffer.from(JSON.stringify(launchSpec), "utf8").toString(
-    "base64",
-  );
-  const helperArgs = [payload];
   const options = {
     ...invocation.options,
+    // The managed helper is the lifetime supervisor and must stay attached to
+    // the broker so its bootstrap can reliably publish the target identity.
+    // The payload still carries `detached: true`, so the helper creates the
+    // actual target with DETACHED_PROCESS + CREATE_NEW_PROCESS_GROUP. Detaching
+    // the outer PowerShell host as well caused it to stall before writing the
+    // identity file on Windows.
+    detached: false,
     shell: false,
-    env: {
-      ...(invocation.options.env || process.env),
-      CC_WINDOWS_SANDBOXED: "1",
-      CC_WINDOWS_SANDBOX_PROFILE: profile,
-      ...(appContainer
-        ? {
-            CC_WINDOWS_APPCONTAINER: "1",
-            CC_WINDOWS_APPCONTAINER_PROFILE:
-              appContainer.appContainerProfileName,
-            CC_WINDOWS_APPCONTAINER_SID: appContainer.appContainerSid,
-          }
-        : {}),
-    },
+    cwd: helperWorkingDirectory,
+    env: hostEnvironment,
   };
   let appContainerCleanupAttempted = false;
   const cleanupAppContainer = () => {
@@ -1347,6 +1819,7 @@ export function applyWindowsSandbox(
   const cleanup = () => {
     cleanupIdentity();
     try {
+      helperInvocation.cleanup();
       cleanupAppContainer();
     } finally {
       adapter.release();
@@ -1377,13 +1850,23 @@ export function applyWindowsSandbox(
         },
       }
     : {};
+  const entrySnapshotRuntimeProbe = entrySnapshot.locks
+    ? {
+        ...(appContainerRuntimeProbe || nodeSnapshotRuntimeProbe),
+        contentSnapshot: true,
+        contentSnapshotScope: "plugin-entry-source",
+        contentSnapshotMechanism:
+          "verified-handle-inherited-pipe-module-compile-v1",
+        handleAtomic: false,
+      }
+    : appContainerRuntimeProbe;
 
   return createSandboxPlan({
     ...base,
     applied: true,
     enforcement: backend,
     policyAttested: requiresAppContainer ? true : null,
-    runtimeProbe: appContainerRuntimeProbe,
+    runtimeProbe: entrySnapshotRuntimeProbe,
     guarantees: requiresAppContainer
       ? appContainerGuarantees
       : [
@@ -1391,8 +1874,8 @@ export function applyWindowsSandbox(
           SANDBOX_BOUNDARIES.RESOURCE_LIMITS,
           SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
         ],
-    command: helperExecutable,
-    args: helperArgs,
+    command: helperInvocation.command,
+    args: helperInvocation.args,
     options,
     ...identityContract,
     cleanup,

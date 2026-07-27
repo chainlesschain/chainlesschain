@@ -1,23 +1,13 @@
-param(
-  [Parameter(Mandatory = $true)]
-  [string]$CacheExecutable,
-
-  [switch]$CompileOnly,
-
-  [Parameter(ValueFromRemainingArguments = $true)]
-  [string[]]$HelperArguments
-)
-
-$ErrorActionPreference = "Stop"
-
-$nativeSource = @'
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
+using Microsoft.Win32.SafeHandles;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Web.Script.Serialization;
 
 namespace ChainlessChain.WindowsSandbox
@@ -43,8 +33,10 @@ namespace ChainlessChain.WindowsSandbox
         private const UInt16 SW_HIDE = 0;
         private const UInt32 INFINITE = 0xffffffff;
         private const UInt32 WAIT_OBJECT_0 = 0x00000000;
+        private const UInt32 WAIT_TIMEOUT = 0x00000102;
         private const UInt32 HANDLE_FLAG_INHERIT = 0x00000001;
         private const Int32 ERROR_INSUFFICIENT_BUFFER = 122;
+        private const Int32 ERROR_IO_PENDING = 997;
         private const Int32 HRESULT_FROM_WIN32_ERROR_ALREADY_EXISTS =
             unchecked((Int32)0x800700B7);
         private const Int32 TokenPrivileges = 3;
@@ -61,12 +53,26 @@ namespace ChainlessChain.WindowsSandbox
         private const UInt32 FILE_TYPE_DISK = 0x0001;
         private const UInt32 FILE_TYPE_CHAR = 0x0002;
         private const UInt32 FILE_TYPE_PIPE = 0x0003;
+        private const UInt32 DRIVE_UNKNOWN = 0;
+        private const UInt32 DRIVE_NO_ROOT_DIR = 1;
+        private const UInt32 DRIVE_REMOTE = 4;
+        private const UInt16 IMAGE_FILE_MACHINE_I386 = 0x014c;
+        private const UInt16 IMAGE_FILE_MACHINE_ARMNT = 0x01c4;
+        private const UInt16 IMAGE_FILE_MACHINE_AMD64 = 0x8664;
+        private const UInt16 IMAGE_FILE_MACHINE_ARM64 = 0xaa64;
         private const UInt32 GENERIC_READ = 0x80000000;
         private const UInt32 GENERIC_WRITE = 0x40000000;
         private const UInt32 FILE_SHARE_READ = 0x00000001;
         private const UInt32 FILE_SHARE_WRITE = 0x00000002;
         private const UInt32 OPEN_EXISTING = 3;
+        private const UInt32 FILE_ATTRIBUTE_DIRECTORY = 0x00000010;
         private const UInt32 FILE_ATTRIBUTE_NORMAL = 0x00000080;
+        private const UInt32 FILE_ATTRIBUTE_REPARSE_POINT = 0x00000400;
+        private const UInt32 FILE_FLAG_OVERLAPPED = 0x40000000;
+        private const UInt32 FSCTL_REQUEST_FILTER_OPLOCK = 0x0009005C;
+        private const UInt32 VOLUME_NAME_DOS = 0x00000000;
+        private const UInt32 FILE_NAME_NORMALIZED = 0x00000000;
+        private const Int32 FileIdInfo = 18;
 
         private const UInt32 JOB_OBJECT_LIMIT_PROCESS_TIME = 0x00000002;
         private const UInt32 JOB_OBJECT_LIMIT_ACTIVE_PROCESS = 0x00000008;
@@ -147,6 +153,52 @@ namespace ChainlessChain.WindowsSandbox
         }
 
         [StructLayout(LayoutKind.Sequential)]
+        private struct NATIVE_OVERLAPPED
+        {
+            public UIntPtr Internal;
+            public UIntPtr InternalHigh;
+            public UInt32 Offset;
+            public UInt32 OffsetHigh;
+            public IntPtr EventHandle;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct FILE_TIME
+        {
+            public UInt32 LowDateTime;
+            public UInt32 HighDateTime;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct BY_HANDLE_FILE_INFORMATION
+        {
+            public UInt32 FileAttributes;
+            public FILE_TIME CreationTime;
+            public FILE_TIME LastAccessTime;
+            public FILE_TIME LastWriteTime;
+            public UInt32 VolumeSerialNumber;
+            public UInt32 FileSizeHigh;
+            public UInt32 FileSizeLow;
+            public UInt32 NumberOfLinks;
+            public UInt32 FileIndexHigh;
+            public UInt32 FileIndexLow;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct FILE_ID_128
+        {
+            public UInt64 LowPart;
+            public UInt64 HighPart;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct FILE_ID_INFO
+        {
+            public UInt64 VolumeSerialNumber;
+            public FILE_ID_128 FileId;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
         private struct JOBOBJECT_BASIC_LIMIT_INFORMATION
         {
             public Int64 PerProcessUserTimeLimit;
@@ -197,6 +249,9 @@ namespace ChainlessChain.WindowsSandbox
 
         [DllImport("kernel32.dll")]
         private static extern IntPtr GetCurrentProcess();
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+        private static extern UInt32 GetDriveType(string rootPathName);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -287,6 +342,66 @@ namespace ChainlessChain.WindowsSandbox
             UInt32 creationDisposition,
             UInt32 flagsAndAttributes,
             IntPtr templateFile);
+
+        [DllImport(
+            "kernel32.dll",
+            CharSet = CharSet.Unicode,
+            SetLastError = true)]
+        private static extern IntPtr CreateEvent(
+            IntPtr eventAttributes,
+            [MarshalAs(UnmanagedType.Bool)] bool manualReset,
+            [MarshalAs(UnmanagedType.Bool)] bool initialState,
+            string name);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool CreatePipe(
+            out IntPtr readPipe,
+            out IntPtr writePipe,
+            ref SECURITY_ATTRIBUTES pipeAttributes,
+            UInt32 size);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool DeviceIoControl(
+            IntPtr device,
+            UInt32 controlCode,
+            IntPtr inputBuffer,
+            UInt32 inputBufferSize,
+            IntPtr outputBuffer,
+            UInt32 outputBufferSize,
+            out UInt32 bytesReturned,
+            IntPtr overlapped);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool CancelIoEx(
+            IntPtr handle,
+            IntPtr overlapped);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetFileInformationByHandle(
+            IntPtr file,
+            out BY_HANDLE_FILE_INFORMATION information);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetFileInformationByHandleEx(
+            IntPtr file,
+            Int32 informationClass,
+            out FILE_ID_INFO information,
+            UInt32 informationSize);
+
+        [DllImport(
+            "kernel32.dll",
+            CharSet = CharSet.Unicode,
+            SetLastError = true)]
+        private static extern UInt32 GetFinalPathNameByHandle(
+            IntPtr file,
+            StringBuilder path,
+            UInt32 pathLength,
+            UInt32 flags);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern UInt32 ResumeThread(IntPtr thread);
@@ -891,17 +1006,253 @@ namespace ChainlessChain.WindowsSandbox
             return BuildCommandLine(application, arguments);
         }
 
-        private static string ResolveApplication(string application)
+        private static string GetEnvironmentValue(
+            Dictionary<string, string> environment,
+            string name,
+            string fallback)
         {
-            if (String.IsNullOrWhiteSpace(application))
+            if (environment != null)
+            {
+                foreach (KeyValuePair<string, string> entry in environment)
+                {
+                    if (String.Equals(
+                        entry.Key,
+                        name,
+                        StringComparison.OrdinalIgnoreCase))
+                    {
+                        return entry.Value;
+                    }
+                }
+            }
+            return fallback;
+        }
+
+        private static Dictionary<string, string> CaptureCurrentEnvironment()
+        {
+            Dictionary<string, string> captured =
+                new Dictionary<string, string>(
+                    StringComparer.OrdinalIgnoreCase);
+            foreach (
+                System.Collections.DictionaryEntry entry in
+                    Environment.GetEnvironmentVariables())
+            {
+                string name = Convert.ToString(
+                    entry.Key,
+                    CultureInfo.InvariantCulture);
+                string value = Convert.ToString(
+                    entry.Value,
+                    CultureInfo.InvariantCulture);
+                if (!String.IsNullOrEmpty(name))
+                    captured[name] = value ?? String.Empty;
+            }
+            return captured;
+        }
+
+        private static void RemoveEnvironmentValue(
+            Dictionary<string, string> environment,
+            string name)
+        {
+            if (environment == null) return;
+            string matched = null;
+            foreach (string key in environment.Keys)
+            {
+                if (String.Equals(
+                    key,
+                    name,
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    matched = key;
+                    break;
+                }
+            }
+            if (matched != null) environment.Remove(matched);
+        }
+
+        private static IntPtr BuildEnvironmentBlock(
+            Dictionary<string, string> environment)
+        {
+            SortedDictionary<string, string> sorted =
+                new SortedDictionary<string, string>(
+                    StringComparer.OrdinalIgnoreCase);
+            if (environment != null)
+            {
+                foreach (KeyValuePair<string, string> entry in environment)
+                {
+                    if (
+                        String.IsNullOrEmpty(entry.Key) ||
+                        entry.Key.IndexOf('=') >= 0 ||
+                        entry.Key.IndexOf('\0') >= 0 ||
+                        (entry.Value ?? String.Empty).IndexOf('\0') >= 0)
+                    {
+                        throw new InvalidDataException(
+                            "Target environment contains an invalid entry");
+                    }
+                    if (sorted.ContainsKey(entry.Key))
+                        throw new InvalidDataException(
+                            "Target environment contains duplicate keys");
+                    sorted.Add(entry.Key, entry.Value ?? String.Empty);
+                }
+            }
+
+            StringBuilder block = new StringBuilder();
+            foreach (KeyValuePair<string, string> entry in sorted)
+            {
+                block.Append(entry.Key);
+                block.Append('=');
+                block.Append(entry.Value);
+                block.Append('\0');
+            }
+            if (sorted.Count == 0) block.Append('\0');
+            block.Append('\0');
+            if (block.Length > 32767)
+                throw new InvalidDataException(
+                    "Target environment exceeds the Windows environment-block limit");
+            return Marshal.StringToHGlobalUni(block.ToString());
+        }
+
+        private static bool IsLocalDosDriveRoot(string root)
+        {
+            return
+                !String.IsNullOrEmpty(root) &&
+                root.Length == 3 &&
+                Char.IsLetter(root[0]) &&
+                root[1] == ':' &&
+                (root[2] == '\\' || root[2] == '/');
+        }
+
+        private static string NormalizeLocalDosPath(
+            string value,
+            string baseDirectory,
+            string description)
+        {
+            if (
+                String.IsNullOrWhiteSpace(value) ||
+                value.IndexOf('\0') >= 0)
+            {
+                throw new InvalidDataException(
+                    description + " is empty or invalid");
+            }
+
+            string fullPath;
+            if (Path.IsPathRooted(value))
+            {
+                string suppliedRoot = Path.GetPathRoot(value);
+                if (!IsLocalDosDriveRoot(suppliedRoot))
+                {
+                    throw new InvalidDataException(
+                        description + " must use a local DOS drive");
+                }
+                fullPath = Path.GetFullPath(value);
+            }
+            else
+            {
+                if (String.IsNullOrWhiteSpace(baseDirectory))
+                {
+                    throw new InvalidDataException(
+                        description + " must be an absolute local path");
+                }
+                fullPath = Path.GetFullPath(
+                    Path.Combine(baseDirectory, value));
+            }
+
+            string root = Path.GetPathRoot(fullPath);
+            if (!IsLocalDosDriveRoot(root))
+            {
+                throw new InvalidDataException(
+                    description + " must use a local DOS drive");
+            }
+            UInt32 driveType = GetDriveType(root);
+            if (
+                driveType == DRIVE_UNKNOWN ||
+                driveType == DRIVE_NO_ROOT_DIR ||
+                driveType == DRIVE_REMOTE)
+            {
+                throw new InvalidDataException(
+                    description + " must not use a remote or unavailable drive");
+            }
+            return fullPath;
+        }
+
+        private static FileAttributes ValidateExistingLocalNonReparsePath(
+            string fullPath,
+            string description)
+        {
+            string root = Path.GetPathRoot(fullPath);
+            string current = root;
+            FileAttributes attributes = File.GetAttributes(root);
+            string relative = fullPath.Substring(root.Length);
+            string[] components = relative.Split(
+                new[] { '\\', '/' },
+                StringSplitOptions.RemoveEmptyEntries);
+            foreach (string component in components)
+            {
+                current = Path.Combine(current, component);
+                attributes = File.GetAttributes(current);
+                if ((attributes & FileAttributes.ReparsePoint) != 0)
+                {
+                    throw new InvalidDataException(
+                        description + " contains a reparse component");
+                }
+            }
+            return attributes;
+        }
+
+        private static void ValidateExistingLocalNonReparseFile(
+            string fullPath,
+            string description)
+        {
+            FileAttributes attributes =
+                ValidateExistingLocalNonReparsePath(fullPath, description);
+            if ((attributes & FileAttributes.Directory) != 0)
+            {
+                throw new FileNotFoundException(
+                    description + " is not a regular file",
+                    fullPath);
+            }
+        }
+
+        private static bool TryValidateExistingLocalNonReparseDirectory(
+            string fullPath)
+        {
+            try
+            {
+                FileAttributes attributes =
+                    ValidateExistingLocalNonReparsePath(
+                        fullPath,
+                        "Target PATH directory");
+                return (attributes & FileAttributes.Directory) != 0;
+            }
+            catch (FileNotFoundException)
+            {
+                return false;
+            }
+            catch (DirectoryNotFoundException)
+            {
+                return false;
+            }
+        }
+
+        private static string ResolveApplication(
+            string application,
+            string workingDirectory,
+            Dictionary<string, string> environment)
+        {
+            if (
+                String.IsNullOrWhiteSpace(application) ||
+                application.IndexOf('\0') >= 0)
                 throw new ArgumentException("Target application is empty");
 
             if (Path.IsPathRooted(application) || application.IndexOf('\\') >= 0 ||
                 application.IndexOf('/') >= 0)
             {
-                string rooted = Path.GetFullPath(application);
-                if (File.Exists(rooted)) return rooted;
-                throw new FileNotFoundException("Target application was not found", rooted);
+                string rooted = NormalizeLocalDosPath(
+                    application,
+                    workingDirectory,
+                    "Target application");
+                ValidateExistingLocalNonReparseFile(
+                    rooted,
+                    "Target application");
+                return rooted;
             }
 
             string[] extensions;
@@ -911,26 +1262,68 @@ namespace ChainlessChain.WindowsSandbox
             }
             else
             {
-                string pathExt = Environment.GetEnvironmentVariable("PATHEXT") ??
-                    ".COM;.EXE;.BAT;.CMD";
+                string pathExt = GetEnvironmentValue(
+                    environment,
+                    "PATHEXT",
+                    ".COM;.EXE;.BAT;.CMD");
                 string[] configured = pathExt.Split(
                     new[] { ';' },
                     StringSplitOptions.RemoveEmptyEntries);
                 extensions = new string[configured.Length + 1];
                 extensions[0] = String.Empty;
-                Array.Copy(configured, 0, extensions, 1, configured.Length);
+                for (int index = 0; index < configured.Length; index++)
+                {
+                    string extension = configured[index].Trim();
+                    if (
+                        extension.Length < 2 ||
+                        extension[0] != '.' ||
+                        extension.IndexOfAny(
+                            new[] { '\\', '/', ':', '"', '\0' }) >= 0)
+                    {
+                        throw new InvalidDataException(
+                            "Target PATHEXT contains an invalid extension");
+                    }
+                    extensions[index + 1] = extension;
+                }
             }
 
-            string searchPath = Environment.GetEnvironmentVariable("PATH") ?? String.Empty;
+            string searchPath = GetEnvironmentValue(
+                environment,
+                "PATH",
+                String.Empty);
             foreach (string directory in searchPath.Split(Path.PathSeparator))
             {
                 if (String.IsNullOrWhiteSpace(directory)) continue;
+                string searchDirectory = directory.Trim().Trim('"');
+                searchDirectory = NormalizeLocalDosPath(
+                    searchDirectory,
+                    workingDirectory,
+                    "Target PATH directory");
+                if (!TryValidateExistingLocalNonReparseDirectory(
+                    searchDirectory))
+                {
+                    continue;
+                }
                 foreach (string extension in extensions)
                 {
                     string candidate = Path.Combine(
-                        directory.Trim().Trim('"'),
+                        searchDirectory,
                         application + extension);
-                    if (File.Exists(candidate)) return Path.GetFullPath(candidate);
+                    try
+                    {
+                        ValidateExistingLocalNonReparseFile(
+                            candidate,
+                            "Target application");
+                        return candidate;
+                    }
+                    catch (FileNotFoundException)
+                    {
+                        // Continue searching the remaining local PATH entries.
+                    }
+                    catch (DirectoryNotFoundException)
+                    {
+                        // Continue searching the remaining local PATH entries.
+                    }
                 }
             }
             throw new FileNotFoundException(
@@ -950,12 +1343,857 @@ namespace ChainlessChain.WindowsSandbox
                 "Inherited descriptor has an unsupported handle type");
         }
 
+        private static void AssertSnapshotRuntimeBitness(string application)
+        {
+            SECURITY_ATTRIBUTES attributes = new SECURITY_ATTRIBUTES();
+            attributes.nLength = checked(
+                (UInt32)Marshal.SizeOf(typeof(SECURITY_ATTRIBUTES)));
+            attributes.bInheritHandle = false;
+            IntPtr runtimeHandle = CreateFile(
+                application,
+                GENERIC_READ,
+                FILE_SHARE_READ,
+                ref attributes,
+                OPEN_EXISTING,
+                FILE_ATTRIBUTE_NORMAL,
+                IntPtr.Zero);
+            if (IsInvalidHandle(runtimeHandle))
+                ThrowLastError("CreateFile(entry snapshot runtime)");
+
+            UInt16 machine;
+            try
+            {
+                using (SafeFileHandle safeHandle =
+                    new SafeFileHandle(runtimeHandle, false))
+                using (FileStream stream =
+                    new FileStream(safeHandle, FileAccess.Read))
+                using (BinaryReader reader = new BinaryReader(stream))
+                {
+                    if (stream.Length < 64 || reader.ReadUInt16() != 0x5a4d)
+                        throw new InvalidDataException(
+                            "Entry snapshot runtime is not a PE image");
+                    stream.Position = 0x3c;
+                    Int32 peOffset = reader.ReadInt32();
+                    if (peOffset < 64 || peOffset > stream.Length - 6)
+                        throw new InvalidDataException(
+                            "Entry snapshot runtime has an invalid PE header");
+                    stream.Position = peOffset;
+                    if (reader.ReadUInt32() != 0x00004550)
+                        throw new InvalidDataException(
+                            "Entry snapshot runtime has an invalid PE signature");
+                    machine = reader.ReadUInt16();
+                }
+            }
+            finally
+            {
+                CloseHandle(runtimeHandle);
+            }
+
+            bool compatible =
+                ((machine == IMAGE_FILE_MACHINE_I386 ||
+                  machine == IMAGE_FILE_MACHINE_ARMNT) &&
+                 IntPtr.Size == sizeof(Int32)) ||
+                ((machine == IMAGE_FILE_MACHINE_AMD64 ||
+                  machine == IMAGE_FILE_MACHINE_ARM64) &&
+                 IntPtr.Size == sizeof(Int64));
+            if (!compatible)
+            {
+                throw new InvalidDataException(
+                    "Entry snapshot runtime bitness does not match the Windows sandbox helper");
+            }
+        }
+
         private static bool IsInvalidHandle(IntPtr handle)
         {
             return
                 handle == IntPtr.Zero ||
                 handle == new IntPtr(-1) ||
                 handle == new IntPtr(-2);
+        }
+
+        public sealed class LaunchPathLockSpec
+        {
+            public string role { get; set; }
+            public string path { get; set; }
+            public string sha256 { get; set; }
+            public long bytes { get; set; }
+            public string dev { get; set; }
+            public string ino { get; set; }
+        }
+
+        private sealed class LaunchPathFileIdentity
+        {
+            public UInt64 VolumeSerialNumber;
+            public UInt64 FileIdLow;
+            public UInt64 FileIdHigh;
+            public UInt64 NodeDevice;
+            public UInt64 NodeFileId;
+            public UInt64 Bytes;
+            public UInt32 Links;
+            public UInt32 Attributes;
+            public string FinalPath;
+        }
+
+        private sealed class LaunchPathLock : IDisposable
+        {
+            public readonly string Role;
+            public readonly string ExpectedPath;
+            public readonly IntPtr BreakEvent;
+            public readonly LaunchPathFileIdentity Identity;
+            public readonly byte[] SnapshotContent;
+            private IntPtr lockingHandle;
+            private IntPtr readHandle;
+            private IntPtr eventHandle;
+            private IntPtr overlapped;
+            private bool oplockPending;
+            private bool disposed;
+
+            public LaunchPathLock(
+                LaunchPathLockSpec spec,
+                IntPtr lockingHandleValue,
+                IntPtr readHandleValue,
+                IntPtr eventHandleValue,
+                IntPtr overlappedValue,
+                LaunchPathFileIdentity identity,
+                byte[] snapshotContent)
+            {
+                Role = spec.role;
+                ExpectedPath = spec.path;
+                lockingHandle = lockingHandleValue;
+                readHandle = readHandleValue;
+                eventHandle = eventHandleValue;
+                BreakEvent = eventHandleValue;
+                overlapped = overlappedValue;
+                oplockPending = true;
+                Identity = identity;
+                SnapshotContent = snapshotContent;
+            }
+
+            public void Dispose()
+            {
+                if (disposed) return;
+                disposed = true;
+                ReleaseLaunchPathLockHandles(
+                    ref readHandle,
+                    ref lockingHandle,
+                    ref eventHandle,
+                    ref overlapped,
+                    oplockPending);
+                oplockPending = false;
+            }
+        }
+
+        private static void ReleaseLaunchPathLockHandles(
+            ref IntPtr readHandle,
+            ref IntPtr lockingHandle,
+            ref IntPtr eventHandle,
+            ref IntPtr overlapped,
+            bool oplockPending)
+        {
+            if (!IsInvalidHandle(readHandle))
+            {
+                CloseHandle(readHandle);
+                readHandle = IntPtr.Zero;
+            }
+
+            bool abandonOverlappedStorage = false;
+            if (!IsInvalidHandle(lockingHandle) && oplockPending)
+            {
+                // A Filter oplock owns one pending OVERLAPPED operation until
+                // it breaks or is cancelled. Cancel and wait before freeing
+                // that fixed native storage. On the defensive timeout path,
+                // keep the event/storage allocated until this short-lived
+                // helper exits so the kernel can never write into freed memory.
+                CancelIoEx(lockingHandle, overlapped);
+                UInt32 cancelWait = IsInvalidHandle(eventHandle)
+                    ? WAIT_TIMEOUT
+                    : WaitForSingleObject(eventHandle, 10000);
+                abandonOverlappedStorage = cancelWait != WAIT_OBJECT_0;
+            }
+
+            if (!IsInvalidHandle(lockingHandle))
+            {
+                CloseHandle(lockingHandle);
+                lockingHandle = IntPtr.Zero;
+            }
+            if (!abandonOverlappedStorage)
+            {
+                if (!IsInvalidHandle(eventHandle))
+                {
+                    CloseHandle(eventHandle);
+                    eventHandle = IntPtr.Zero;
+                }
+                if (overlapped != IntPtr.Zero)
+                {
+                    Marshal.FreeHGlobal(overlapped);
+                    overlapped = IntPtr.Zero;
+                }
+            }
+        }
+
+        private static bool SameLaunchPathFile(
+            LaunchPathFileIdentity left,
+            LaunchPathFileIdentity right)
+        {
+            return
+                left.VolumeSerialNumber == right.VolumeSerialNumber &&
+                left.FileIdLow == right.FileIdLow &&
+                left.FileIdHigh == right.FileIdHigh;
+        }
+
+        private static string NormalizeFinalPath(string value)
+        {
+            string normalized = value;
+            if (normalized.StartsWith(
+                @"\\?\UNC\",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                normalized = @"\\" + normalized.Substring(8);
+            }
+            else if (normalized.StartsWith(
+                @"\\?\",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                normalized = normalized.Substring(4);
+            }
+            return Path.GetFullPath(normalized);
+        }
+
+        private static string GetHandleFinalPath(IntPtr handle)
+        {
+            UInt32 capacity = 512;
+            while (capacity <= 32768)
+            {
+                StringBuilder output = new StringBuilder(checked((int)capacity));
+                UInt32 written = GetFinalPathNameByHandle(
+                    handle,
+                    output,
+                    capacity,
+                    FILE_NAME_NORMALIZED | VOLUME_NAME_DOS);
+                if (written == 0) ThrowLastError("GetFinalPathNameByHandle");
+                if (written < capacity)
+                    return NormalizeFinalPath(output.ToString());
+                capacity = checked(written + 1);
+            }
+            throw new PathTooLongException(
+                "Launch path exceeds the supported final-path limit");
+        }
+
+        private static LaunchPathFileIdentity ReadLaunchPathFileIdentity(
+            IntPtr handle)
+        {
+            BY_HANDLE_FILE_INFORMATION basic;
+            if (!GetFileInformationByHandle(handle, out basic))
+                ThrowLastError("GetFileInformationByHandle(launch path)");
+            if (
+                (basic.FileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0 ||
+                (basic.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0)
+            {
+                throw new InvalidDataException(
+                    "Launch path handle is not a regular non-reparse file");
+            }
+
+            FILE_ID_INFO fileId;
+            if (!GetFileInformationByHandleEx(
+                handle,
+                FileIdInfo,
+                out fileId,
+                checked((UInt32)Marshal.SizeOf(typeof(FILE_ID_INFO)))))
+            {
+                ThrowLastError("GetFileInformationByHandleEx(FileIdInfo)");
+            }
+            return new LaunchPathFileIdentity
+            {
+                VolumeSerialNumber = fileId.VolumeSerialNumber,
+                FileIdLow = fileId.FileId.LowPart,
+                FileIdHigh = fileId.FileId.HighPart,
+                NodeDevice = basic.VolumeSerialNumber,
+                NodeFileId =
+                    ((UInt64)basic.FileIndexHigh << 32) |
+                    (UInt64)basic.FileIndexLow,
+                Bytes =
+                    ((UInt64)basic.FileSizeHigh << 32) |
+                    (UInt64)basic.FileSizeLow,
+                Links = basic.NumberOfLinks,
+                Attributes = basic.FileAttributes,
+                FinalPath = GetHandleFinalPath(handle)
+            };
+        }
+
+        private static string ValidateLocalNonReparsePath(string value)
+        {
+            if (String.IsNullOrWhiteSpace(value) || value.IndexOf('\0') >= 0)
+                throw new InvalidDataException("Launch path is empty or invalid");
+            string fullPath = NormalizeLocalDosPath(
+                NormalizeFinalPath(value),
+                null,
+                "Launch path");
+            ValidateExistingLocalNonReparseFile(fullPath, "Launch path");
+            return fullPath;
+        }
+
+        private static bool IsLowercaseSha256(string value)
+        {
+            if (String.IsNullOrEmpty(value) || value.Length != 64) return false;
+            foreach (char character in value)
+            {
+                bool digit = character >= '0' && character <= '9';
+                bool lowerHex = character >= 'a' && character <= 'f';
+                if (!digit && !lowerHex) return false;
+            }
+            return true;
+        }
+
+        private static string HashLaunchPathHandle(IntPtr handle)
+        {
+            using (SafeFileHandle safeHandle = new SafeFileHandle(handle, false))
+            using (FileStream stream = new FileStream(
+                safeHandle,
+                FileAccess.Read,
+                1024 * 1024,
+                false))
+            using (SHA256 algorithm = SHA256.Create())
+            {
+                byte[] digest = algorithm.ComputeHash(stream);
+                StringBuilder encoded = new StringBuilder(digest.Length * 2);
+                foreach (byte value in digest)
+                    encoded.Append(value.ToString("x2", CultureInfo.InvariantCulture));
+                return encoded.ToString();
+            }
+        }
+
+        private static byte[] SnapshotLaunchPathHandle(
+            IntPtr handle,
+            UInt64 expectedBytes)
+        {
+            if (expectedBytes > Int32.MaxValue)
+                throw new InvalidDataException(
+                    "Launch path snapshot exceeds the supported memory limit");
+            byte[] content = new byte[checked((Int32)expectedBytes)];
+            using (SafeFileHandle safeHandle = new SafeFileHandle(handle, false))
+            using (FileStream stream = new FileStream(
+                safeHandle,
+                FileAccess.Read,
+                1024 * 1024,
+                false))
+            {
+                stream.Position = 0;
+                int offset = 0;
+                while (offset < content.Length)
+                {
+                    int read = stream.Read(
+                        content,
+                        offset,
+                        content.Length - offset);
+                    if (read == 0)
+                        throw new EndOfStreamException(
+                            "Launch path ended while taking its content snapshot");
+                    offset += read;
+                }
+                if (stream.ReadByte() != -1)
+                    throw new InvalidDataException(
+                        "Launch path grew while taking its content snapshot");
+            }
+            return content;
+        }
+
+        private static string HashBytes(byte[] content)
+        {
+            using (SHA256 algorithm = SHA256.Create())
+            {
+                byte[] digest = algorithm.ComputeHash(content);
+                StringBuilder encoded = new StringBuilder(digest.Length * 2);
+                foreach (byte value in digest)
+                    encoded.Append(value.ToString("x2", CultureInfo.InvariantCulture));
+                return encoded.ToString();
+            }
+        }
+
+        private static LaunchPathLock AcquireLaunchPathLock(
+            LaunchPathLockSpec spec)
+        {
+            UInt64 expectedDevice;
+            UInt64 expectedFileId;
+            if (
+                spec == null ||
+                (spec.role != "runtime" && spec.role != "entry") ||
+                !IsLowercaseSha256(spec.sha256) ||
+                !UInt64.TryParse(
+                    spec.dev,
+                    NumberStyles.None,
+                    CultureInfo.InvariantCulture,
+                    out expectedDevice) ||
+                !UInt64.TryParse(
+                    spec.ino,
+                    NumberStyles.None,
+                    CultureInfo.InvariantCulture,
+                    out expectedFileId) ||
+                spec.bytes < 0 ||
+                (spec.role == "runtime" && spec.bytes > 256L * 1024L * 1024L) ||
+                (spec.role == "entry" && spec.bytes > 64L * 1024L * 1024L))
+            {
+                throw new InvalidDataException(
+                    "Launch path lock specification is invalid");
+            }
+            string expectedPath = ValidateLocalNonReparsePath(spec.path);
+            spec.path = expectedPath;
+
+            SECURITY_ATTRIBUTES attributes = new SECURITY_ATTRIBUTES();
+            attributes.nLength = checked(
+                (UInt32)Marshal.SizeOf(typeof(SECURITY_ATTRIBUTES)));
+            attributes.bInheritHandle = false;
+            IntPtr lockingHandle = IntPtr.Zero;
+            IntPtr readHandle = IntPtr.Zero;
+            IntPtr eventHandle = IntPtr.Zero;
+            IntPtr overlapped = IntPtr.Zero;
+            bool oplockPending = false;
+            try
+            {
+                lockingHandle = CreateFile(
+                    expectedPath,
+                    0,
+                    FILE_SHARE_READ,
+                    ref attributes,
+                    OPEN_EXISTING,
+                    FILE_FLAG_OVERLAPPED,
+                    IntPtr.Zero);
+                if (IsInvalidHandle(lockingHandle))
+                    ThrowLastError("CreateFile(launch path locking handle)");
+
+                eventHandle = CreateEvent(IntPtr.Zero, true, false, null);
+                if (IsInvalidHandle(eventHandle))
+                    ThrowLastError("CreateEvent(launch path oplock)");
+                NATIVE_OVERLAPPED nativeOverlapped = new NATIVE_OVERLAPPED();
+                nativeOverlapped.EventHandle = eventHandle;
+                overlapped = Marshal.AllocHGlobal(
+                    Marshal.SizeOf(typeof(NATIVE_OVERLAPPED)));
+                Marshal.StructureToPtr(nativeOverlapped, overlapped, false);
+
+                UInt32 returned;
+                bool completed = DeviceIoControl(
+                    lockingHandle,
+                    FSCTL_REQUEST_FILTER_OPLOCK,
+                    IntPtr.Zero,
+                    0,
+                    IntPtr.Zero,
+                    0,
+                    out returned,
+                    overlapped);
+                int oplockError = Marshal.GetLastWin32Error();
+                if (completed || oplockError != ERROR_IO_PENDING)
+                {
+                    throw new Win32Exception(
+                        oplockError,
+                        "FSCTL_REQUEST_FILTER_OPLOCK was not granted");
+                }
+                oplockPending = true;
+
+                readHandle = CreateFile(
+                    expectedPath,
+                    GENERIC_READ,
+                    FILE_SHARE_READ,
+                    ref attributes,
+                    OPEN_EXISTING,
+                    FILE_ATTRIBUTE_NORMAL,
+                    IntPtr.Zero);
+                if (IsInvalidHandle(readHandle))
+                    ThrowLastError("CreateFile(launch path read handle)");
+
+                LaunchPathFileIdentity lockingIdentity =
+                    ReadLaunchPathFileIdentity(lockingHandle);
+                LaunchPathFileIdentity before =
+                    ReadLaunchPathFileIdentity(readHandle);
+                if (
+                    !SameLaunchPathFile(lockingIdentity, before) ||
+                    !String.Equals(
+                        lockingIdentity.FinalPath,
+                        expectedPath,
+                        StringComparison.OrdinalIgnoreCase) ||
+                    !String.Equals(
+                        before.FinalPath,
+                        expectedPath,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidDataException(
+                        "Launch path changed while acquiring its Filter oplock");
+                }
+                if (before.Bytes != checked((UInt64)spec.bytes))
+                    throw new InvalidDataException(
+                        "Launch path size does not match its execution contract");
+                if (
+                    before.NodeDevice != expectedDevice ||
+                    before.NodeFileId != expectedFileId)
+                {
+                    throw new InvalidDataException(
+                        "Launch path file ID does not match its execution contract");
+                }
+                string actualSha256 = HashLaunchPathHandle(readHandle);
+                byte[] snapshotContent =
+                    spec.role == "entry"
+                        ? SnapshotLaunchPathHandle(readHandle, before.Bytes)
+                        : null;
+                LaunchPathFileIdentity afterLocking =
+                    ReadLaunchPathFileIdentity(lockingHandle);
+                LaunchPathFileIdentity after =
+                    ReadLaunchPathFileIdentity(readHandle);
+                if (
+                    !SameLaunchPathFile(lockingIdentity, afterLocking) ||
+                    !SameLaunchPathFile(before, after) ||
+                    !SameLaunchPathFile(afterLocking, after) ||
+                    before.Bytes != after.Bytes ||
+                    before.NodeDevice != after.NodeDevice ||
+                    before.NodeFileId != after.NodeFileId ||
+                    before.Links != after.Links ||
+                    before.Attributes != after.Attributes ||
+                    !String.Equals(
+                        after.FinalPath,
+                        expectedPath,
+                        StringComparison.OrdinalIgnoreCase) ||
+                    !String.Equals(
+                        actualSha256,
+                        spec.sha256,
+                        StringComparison.Ordinal) ||
+                    (snapshotContent != null &&
+                        !String.Equals(
+                            HashBytes(snapshotContent),
+                            spec.sha256,
+                            StringComparison.Ordinal)))
+                {
+                    throw new InvalidDataException(
+                        "Launch path identity or content changed during attestation");
+                }
+                UInt32 breakState = WaitForSingleObject(eventHandle, 0);
+                if (breakState != WAIT_TIMEOUT)
+                {
+                    if (breakState == UInt32.MaxValue)
+                        ThrowLastError("WaitForSingleObject(launch path oplock)");
+                    throw new InvalidDataException(
+                        "Launch path Filter oplock broke during attestation");
+                }
+                ValidateLocalNonReparsePath(expectedPath);
+
+                LaunchPathLock result = new LaunchPathLock(
+                    spec,
+                    lockingHandle,
+                    readHandle,
+                    eventHandle,
+                    overlapped,
+                    after,
+                    snapshotContent);
+                lockingHandle = IntPtr.Zero;
+                readHandle = IntPtr.Zero;
+                eventHandle = IntPtr.Zero;
+                overlapped = IntPtr.Zero;
+                oplockPending = false;
+                return result;
+            }
+            finally
+            {
+                ReleaseLaunchPathLockHandles(
+                    ref readHandle,
+                    ref lockingHandle,
+                    ref eventHandle,
+                    ref overlapped,
+                    oplockPending);
+            }
+        }
+
+        private static List<LaunchPathLock> AcquireLaunchPathLocks(
+            LaunchPathLockSpec[] specs,
+            string application,
+            string[] arguments)
+        {
+            List<LaunchPathLock> locks = new List<LaunchPathLock>();
+            if (specs == null) return locks;
+            try
+            {
+                if (specs.Length != 2)
+                    throw new InvalidDataException(
+                        "Plugin Node launch requires runtime and entry path locks");
+                LaunchPathLockSpec runtimeSpec = null;
+                LaunchPathLockSpec entrySpec = null;
+                foreach (LaunchPathLockSpec spec in specs)
+                {
+                    if (spec != null && spec.role == "runtime" && runtimeSpec == null)
+                        runtimeSpec = spec;
+                    else if (spec != null && spec.role == "entry" && entrySpec == null)
+                        entrySpec = spec;
+                    else
+                        throw new InvalidDataException(
+                            "Launch path lock roles must be unique");
+                }
+                if (
+                    runtimeSpec == null ||
+                    entrySpec == null ||
+                    !String.Equals(
+                        NormalizeFinalPath(application),
+                        NormalizeFinalPath(runtimeSpec.path),
+                        StringComparison.OrdinalIgnoreCase) ||
+                    arguments == null ||
+                    arguments.Length == 0 ||
+                    !String.Equals(
+                        NormalizeFinalPath(arguments[0]),
+                        NormalizeFinalPath(entrySpec.path),
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidDataException(
+                        "Launch command does not match its path lock contract");
+                }
+
+                LaunchPathLock runtimeLock = AcquireLaunchPathLock(runtimeSpec);
+                locks.Add(runtimeLock);
+                LaunchPathLock entryLock = AcquireLaunchPathLock(entrySpec);
+                locks.Add(entryLock);
+                if (SameLaunchPathFile(runtimeLock.Identity, entryLock.Identity))
+                    throw new InvalidDataException(
+                        "Runtime and entry path locks unexpectedly name one file");
+                return locks;
+            }
+            catch
+            {
+                foreach (LaunchPathLock launchLock in locks)
+                    launchLock.Dispose();
+                throw;
+            }
+        }
+
+        private static void AssertLaunchPathLocksIntact(
+            List<LaunchPathLock> locks)
+        {
+            foreach (LaunchPathLock launchLock in locks)
+            {
+                UInt32 state = WaitForSingleObject(launchLock.BreakEvent, 0);
+                if (state == WAIT_TIMEOUT) continue;
+                if (state == UInt32.MaxValue)
+                    ThrowLastError("WaitForSingleObject(launch path lock)");
+                throw new InvalidDataException(
+                    "Launch path Filter oplock broke before target resume (" +
+                    launchLock.Role +
+                    ")");
+            }
+        }
+
+        private static void ReattestLaunchPaths(
+            List<LaunchPathLock> locks)
+        {
+            AssertLaunchPathLocksIntact(locks);
+            SECURITY_ATTRIBUTES attributes = new SECURITY_ATTRIBUTES();
+            attributes.nLength = checked(
+                (UInt32)Marshal.SizeOf(typeof(SECURITY_ATTRIBUTES)));
+            attributes.bInheritHandle = false;
+            foreach (LaunchPathLock launchLock in locks)
+            {
+                IntPtr pathHandle = CreateFile(
+                    launchLock.ExpectedPath,
+                    0,
+                    FILE_SHARE_READ,
+                    ref attributes,
+                    OPEN_EXISTING,
+                    FILE_ATTRIBUTE_NORMAL,
+                    IntPtr.Zero);
+                if (IsInvalidHandle(pathHandle))
+                    ThrowLastError("CreateFile(launch path reattestation)");
+                try
+                {
+                    LaunchPathFileIdentity current =
+                        ReadLaunchPathFileIdentity(pathHandle);
+                    if (
+                        !SameLaunchPathFile(launchLock.Identity, current) ||
+                        !String.Equals(
+                            current.FinalPath,
+                            launchLock.ExpectedPath,
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new InvalidDataException(
+                            "Launch path identity changed before target resume (" +
+                            launchLock.Role +
+                            ")");
+                    }
+                }
+                finally
+                {
+                    CloseHandle(pathHandle);
+                }
+            }
+            AssertLaunchPathLocksIntact(locks);
+        }
+
+        private static void ReleaseLaunchPathLocks(
+            List<LaunchPathLock> locks)
+        {
+            foreach (LaunchPathLock launchLock in locks)
+                launchLock.Dispose();
+            locks.Clear();
+        }
+
+        private static byte[] TakeEntrySnapshot(
+            List<LaunchPathLock> locks)
+        {
+            byte[] snapshot = null;
+            for (int index = locks.Count - 1; index >= 0; index--)
+            {
+                LaunchPathLock launchLock = locks[index];
+                if (launchLock.Role != "entry") continue;
+                if (snapshot != null || launchLock.SnapshotContent == null)
+                    throw new InvalidDataException(
+                        "Plugin Node launch has an invalid entry snapshot");
+                snapshot = launchLock.SnapshotContent;
+                // Once copied into helper-owned memory, the Plugin Node entry
+                // no longer needs a pathname or open file handle. Release its
+                // stream guard before CreateProcess; the target receives only
+                // the verified bytes through the private inherited pipe.
+                launchLock.Dispose();
+                locks.RemoveAt(index);
+            }
+            if (locks.Count > 0 && snapshot == null)
+                throw new InvalidDataException(
+                    "Plugin Node launch has no verified entry snapshot");
+            return snapshot;
+        }
+
+        private static void AwaitSnapshotTestGate(
+            byte[] entrySnapshot,
+            LaunchPathLockSpec[] launchPathLockSpecs,
+            string gateToken,
+            string releasePath)
+        {
+            bool hasGateToken = !String.IsNullOrWhiteSpace(gateToken);
+            bool hasReleasePath = !String.IsNullOrWhiteSpace(releasePath);
+            if (!hasGateToken && !hasReleasePath) return;
+            if (
+                !hasGateToken ||
+                !hasReleasePath ||
+                entrySnapshot == null ||
+                launchPathLockSpecs == null ||
+                !IsLowercaseSha256(gateToken))
+            {
+                throw new InvalidDataException(
+                    "Entry snapshot test gate is incomplete");
+            }
+
+            string release = Path.GetFullPath(releasePath);
+            if (
+                !Path.IsPathRooted(release) ||
+                File.Exists(release))
+            {
+                throw new InvalidDataException(
+                    "Entry snapshot test gate paths are invalid");
+            }
+
+            Console.Out.WriteLine(
+                new JavaScriptSerializer().Serialize(
+                    new
+                    {
+                        eventName = "SNAPSHOT_CAPTURED",
+                        token = gateToken
+                    }));
+            Console.Out.Flush();
+
+            DateTime deadline = DateTime.UtcNow.AddSeconds(30);
+            while (!File.Exists(release))
+            {
+                if (DateTime.UtcNow >= deadline)
+                    throw new TimeoutException(
+                        "Timed out waiting for the entry snapshot test gate");
+                Thread.Sleep(10);
+            }
+        }
+
+        private static string[] BuildSnapshotNodeArguments(
+            string[] arguments,
+            int snapshotFd,
+            byte[] snapshot)
+        {
+            if (arguments == null || arguments.Length == 0)
+                throw new InvalidDataException(
+                    "Plugin Node entry snapshot has no original entry path");
+            string expectedSha256 = HashBytes(snapshot);
+            string bootstrap = String.Format(
+                CultureInfo.InvariantCulture,
+                "const fs=require('node:fs'),crypto=require('node:crypto')," +
+                "Module=require('node:module')," +
+                "path=require('node:path');" +
+                "const filename=process.argv[1];let source;" +
+                "try{{source=fs.readFileSync({0});}}" +
+                "finally{{fs.closeSync({0});}}" +
+                "if(source.length!=={1}||" +
+                "crypto.createHash('sha256').update(source).digest('hex')!==" +
+                "'{2}')throw new Error('entry snapshot pipe integrity failed');" +
+                "const main=new Module(filename,null);main.id='.';" +
+                "main.filename=filename;" +
+                "main.paths=Module._nodeModulePaths(path.dirname(filename));" +
+                "process.mainModule=main;process.execArgv.length=0;" +
+                "delete process._eval;" +
+                "Module._cache[filename]=main;" +
+                "try{{main._compile(source.toString('utf8'),filename);" +
+                "main.loaded=true;}}" +
+                "catch(error){{delete Module._cache[filename];throw error;}}",
+                snapshotFd,
+                snapshot.Length,
+                expectedSha256);
+            string[] snapshotArguments = new string[arguments.Length + 3];
+            snapshotArguments[0] = "--eval";
+            snapshotArguments[1] = bootstrap;
+            snapshotArguments[2] = "--";
+            Array.Copy(
+                arguments,
+                0,
+                snapshotArguments,
+                3,
+                arguments.Length);
+            return snapshotArguments;
+        }
+
+        private static void CreateEntrySnapshotPipe(
+            int nodeIpcFd,
+            out int snapshotFd,
+            out IntPtr snapshotReadHandle,
+            out IntPtr snapshotWriteHandle)
+        {
+            snapshotFd = 4;
+            if (nodeIpcFd == snapshotFd)
+                throw new InvalidDataException(
+                    "Node IPC descriptor conflicts with the entry snapshot pipe");
+            SECURITY_ATTRIBUTES attributes = new SECURITY_ATTRIBUTES();
+            attributes.nLength = checked(
+                (UInt32)Marshal.SizeOf(typeof(SECURITY_ATTRIBUTES)));
+            attributes.bInheritHandle = true;
+            if (!CreatePipe(
+                out snapshotReadHandle,
+                out snapshotWriteHandle,
+                ref attributes,
+                64 * 1024))
+            {
+                ThrowLastError("CreatePipe(entry snapshot)");
+            }
+            if (!SetHandleInformation(
+                snapshotWriteHandle,
+                HANDLE_FLAG_INHERIT,
+                0))
+            {
+                CloseHandle(snapshotReadHandle);
+                snapshotReadHandle = IntPtr.Zero;
+                CloseHandle(snapshotWriteHandle);
+                snapshotWriteHandle = IntPtr.Zero;
+                ThrowLastError("SetHandleInformation(entry snapshot writer)");
+            }
+        }
+
+        private static void WriteEntrySnapshot(
+            IntPtr snapshotWriteHandle,
+            byte[] snapshot)
+        {
+            using (SafeFileHandle safeHandle =
+                new SafeFileHandle(snapshotWriteHandle, false))
+            using (FileStream stream = new FileStream(
+                safeHandle,
+                FileAccess.Write,
+                64 * 1024,
+                false))
+            {
+                stream.Write(snapshot, 0, snapshot.Length);
+                stream.Flush();
+            }
         }
 
         private static IntPtr PrepareStandardHandle(
@@ -994,22 +2232,25 @@ namespace ChainlessChain.WindowsSandbox
 
         private static IntPtr BuildNodeDescriptorTable(
             int nodeIpcFd,
+            int entrySnapshotFd,
+            IntPtr entrySnapshotHandle,
             IntPtr standardInput,
             IntPtr standardOutput,
             IntPtr standardError,
             out UInt16 descriptorBytes)
         {
             descriptorBytes = 0;
-            // stdin/stdout/stderr are transferred by STARTUPINFO. Only attach
-            // the CRT descriptor table when Node needs a descriptor above fd 2
-            // (its fd 3 IPC channel); this also preserves the previously proven
-            // non-IPC startup contract on hosted Windows runners.
-            if (nodeIpcFd < 0) return IntPtr.Zero;
-            if (nodeIpcFd > 255)
+            // stdin/stdout/stderr are transferred by STARTUPINFO. Higher CRT
+            // descriptors carry the optional Node IPC channel and the verified
+            // Plugin Node entry snapshot pipe.
+            if (nodeIpcFd < 0 && entrySnapshotFd < 0) return IntPtr.Zero;
+            if (nodeIpcFd > 255 || entrySnapshotFd > 255)
                 throw new InvalidDataException(
-                    "Node IPC descriptor is outside the CRT table range");
+                    "Node descriptor is outside the CRT table range");
 
-            int descriptorCount = Math.Max(3, nodeIpcFd + 1);
+            int descriptorCount = Math.Max(
+                3,
+                Math.Max(nodeIpcFd, entrySnapshotFd) + 1);
             int bufferSize = checked(
                 sizeof(Int32) +
                 descriptorCount +
@@ -1031,6 +2272,8 @@ namespace ChainlessChain.WindowsSandbox
                         handle = standardError;
                     else if (fd == nodeIpcFd)
                         handle = _get_osfhandle(fd);
+                    else if (fd == entrySnapshotFd)
+                        handle = entrySnapshotHandle;
                     else
                         handle = new IntPtr(-1);
 
@@ -1043,9 +2286,9 @@ namespace ChainlessChain.WindowsSandbox
                         handle == new IntPtr(-1) ||
                         handle == new IntPtr(-2))
                     {
-                        if (fd == nodeIpcFd)
+                        if (fd == nodeIpcFd || fd == entrySnapshotFd)
                             throw new InvalidDataException(
-                                "Node IPC descriptor has no inherited OS handle");
+                                "Node descriptor has no inherited OS handle");
                         if (IntPtr.Size == sizeof(Int64))
                             Marshal.WriteInt64(buffer, handleOffset, -1);
                         else
@@ -1088,6 +2331,7 @@ namespace ChainlessChain.WindowsSandbox
             IntPtr standardOutput,
             IntPtr standardError,
             int nodeIpcFd,
+            IntPtr entrySnapshotHandle,
             out IntPtr handleBytes)
         {
             List<IntPtr> handles = new List<IntPtr>();
@@ -1105,6 +2349,11 @@ namespace ChainlessChain.WindowsSandbox
                         "Node IPC descriptor has no inherited OS handle");
                 if (!handles.Contains(ipcHandle))
                     handles.Add(ipcHandle);
+            }
+            if (!IsInvalidHandle(entrySnapshotHandle) &&
+                !handles.Contains(entrySnapshotHandle))
+            {
+                handles.Add(entrySnapshotHandle);
             }
 
             foreach (IntPtr handle in handles)
@@ -1224,6 +2473,50 @@ namespace ChainlessChain.WindowsSandbox
             }
         }
 
+        public static int RunNodeSnapshotProbe(
+            string application,
+            string appContainerProfileName,
+            string expectedAppContainerSid)
+        {
+            string probeDirectory = Path.Combine(
+                Path.GetTempPath(),
+                "chainless-node-entry-snapshot-probe-" +
+                    Guid.NewGuid().ToString("N"));
+            string probeEntry = Path.Combine(probeDirectory, "entry.cjs");
+            if (Directory.Exists(probeDirectory) || File.Exists(probeEntry))
+                throw new IOException(
+                    "Node entry snapshot probe path unexpectedly exists");
+            byte[] probeSource = Encoding.UTF8.GetBytes(
+                "if(require.main!==module||process.mainModule!==module||" +
+                "process.execArgv.length!==0||" +
+                "Object.prototype.hasOwnProperty.call(process,'_eval')||" +
+                "__filename!==process.argv[1])" +
+                "throw new Error('entry snapshot transport probe failed');" +
+                "process.exitCode=73;");
+            int probeExitCode = Run(
+                application,
+                new[] { probeEntry },
+                0,
+                256L * 1024L * 1024L,
+                1,
+                -1,
+                false,
+                true,
+                Environment.SystemDirectory,
+                CaptureCurrentEnvironment(),
+                null,
+                appContainerProfileName,
+                expectedAppContainerSid,
+                null,
+                probeSource,
+                null,
+                null);
+            if (probeExitCode != 73)
+                throw new InvalidDataException(
+                    "Node entry snapshot probe did not execute its verified source");
+            return 0;
+        }
+
         public static int Run(
             string application,
             string[] arguments,
@@ -1233,18 +2526,53 @@ namespace ChainlessChain.WindowsSandbox
             int nodeIpcFd,
             bool detached,
             bool windowsHide,
+            string workingDirectory,
+            Dictionary<string, string> targetEnvironment,
             string identityPath,
             string appContainerProfileName,
-            string expectedAppContainerSid)
+            string expectedAppContainerSid,
+            LaunchPathLockSpec[] launchPathLockSpecs,
+            byte[] entrySnapshotOverride,
+            string snapshotTestGateToken,
+            string snapshotTestGateReleasePath)
         {
-            application = ResolveApplication(application);
+            targetEnvironment =
+                targetEnvironment ?? CaptureCurrentEnvironment();
+            workingDirectory = NormalizeLocalDosPath(
+                String.IsNullOrWhiteSpace(workingDirectory)
+                    ? Environment.SystemDirectory
+                    : workingDirectory,
+                null,
+                "Target working directory");
+            FileAttributes workingDirectoryAttributes =
+                ValidateExistingLocalNonReparsePath(
+                    workingDirectory,
+                    "Target working directory");
+            if (
+                (workingDirectoryAttributes & FileAttributes.Directory) == 0)
+            {
+                throw new DirectoryNotFoundException(
+                    "Target working directory was not found: " +
+                    workingDirectory);
+            }
+            application = ResolveApplication(
+                application,
+                workingDirectory,
+                targetEnvironment);
             string extension = Path.GetExtension(application);
             if (extension.Equals(".cmd", StringComparison.OrdinalIgnoreCase) ||
                 extension.Equals(".bat", StringComparison.OrdinalIgnoreCase))
             {
                 string commandText = BuildCommandLine(application, arguments);
                 application = ResolveApplication(
-                    Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe");
+                    GetEnvironmentValue(
+                        targetEnvironment,
+                        "ComSpec",
+                        Path.Combine(
+                            Environment.SystemDirectory,
+                            "cmd.exe")),
+                    workingDirectory,
+                    targetEnvironment);
                 arguments = new[] { "/d", "/s", "/c", commandText };
             }
 
@@ -1255,9 +2583,15 @@ namespace ChainlessChain.WindowsSandbox
             IntPtr limitBuffer = IntPtr.Zero;
             IntPtr descriptorBuffer = IntPtr.Zero;
             IntPtr inheritedHandleBuffer = IntPtr.Zero;
+            IntPtr environmentBuffer = IntPtr.Zero;
             IntPtr attributeList = IntPtr.Zero;
             IntPtr securityCapabilitiesBuffer = IntPtr.Zero;
+            IntPtr entrySnapshotReadHandle = IntPtr.Zero;
+            IntPtr entrySnapshotWriteHandle = IntPtr.Zero;
+            int entrySnapshotFd = -1;
+            byte[] entrySnapshot = null;
             List<IntPtr> ownedStandardHandles = new List<IntPtr>();
+            List<LaunchPathLock> launchPathLocks = new List<LaunchPathLock>();
             PROCESS_INFORMATION processInfo = new PROCESS_INFORMATION();
             bool useAppContainer =
                 !String.IsNullOrWhiteSpace(appContainerProfileName);
@@ -1268,6 +2602,55 @@ namespace ChainlessChain.WindowsSandbox
 
             try
             {
+                launchPathLocks = AcquireLaunchPathLocks(
+                    launchPathLockSpecs,
+                    application,
+                    arguments);
+                entrySnapshot = TakeEntrySnapshot(launchPathLocks);
+                if (entrySnapshotOverride != null)
+                {
+                    if (entrySnapshot != null || launchPathLocks.Count != 0)
+                        throw new InvalidDataException(
+                            "Entry snapshot probe cannot use launch path locks");
+                    entrySnapshot = entrySnapshotOverride;
+                }
+                AwaitSnapshotTestGate(
+                    entrySnapshot,
+                    launchPathLockSpecs,
+                    snapshotTestGateToken,
+                    snapshotTestGateReleasePath);
+                if (entrySnapshot != null)
+                {
+                    RemoveEnvironmentValue(
+                        targetEnvironment,
+                        "NODE_OPTIONS");
+                    RemoveEnvironmentValue(
+                        targetEnvironment,
+                        "NODE_CHANNEL_FD");
+                    RemoveEnvironmentValue(
+                        targetEnvironment,
+                        "OPENSSL_CONF");
+                    RemoveEnvironmentValue(
+                        targetEnvironment,
+                        "OPENSSL_CONF_INCLUDE");
+                    RemoveEnvironmentValue(
+                        targetEnvironment,
+                        "OPENSSL_ENGINES");
+                    RemoveEnvironmentValue(
+                        targetEnvironment,
+                        "OPENSSL_MODULES");
+                    AssertSnapshotRuntimeBitness(application);
+                    CreateEntrySnapshotPipe(
+                        nodeIpcFd,
+                        out entrySnapshotFd,
+                        out entrySnapshotReadHandle,
+                        out entrySnapshotWriteHandle);
+                    arguments = BuildSnapshotNodeArguments(
+                        arguments,
+                        entrySnapshotFd,
+                        entrySnapshot);
+                }
+                environmentBuffer = BuildEnvironmentBlock(targetEnvironment);
                 if (useAppContainer)
                 {
                     if (String.IsNullOrWhiteSpace(expectedAppContainerSid))
@@ -1387,6 +2770,8 @@ namespace ChainlessChain.WindowsSandbox
                 UInt16 descriptorBytes;
                 descriptorBuffer = BuildNodeDescriptorTable(
                     nodeIpcFd,
+                    entrySnapshotFd,
+                    entrySnapshotReadHandle,
                     startup.StartupInfo.hStdInput,
                     startup.StartupInfo.hStdOutput,
                     startup.StartupInfo.hStdError,
@@ -1400,6 +2785,7 @@ namespace ChainlessChain.WindowsSandbox
                     startup.StartupInfo.hStdOutput,
                     startup.StartupInfo.hStdError,
                     nodeIpcFd,
+                    entrySnapshotReadHandle,
                     out inheritedHandleBytes);
                 attributeList = BuildProcessAttributeList(
                     inheritedHandleBuffer,
@@ -1417,6 +2803,7 @@ namespace ChainlessChain.WindowsSandbox
                     EXTENDED_STARTUPINFO_PRESENT;
                 if (detached)
                     creationFlags |= DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP;
+                AssertLaunchPathLocksIntact(launchPathLocks);
                 bool processCreated = CreateProcessAsUser(
                     restrictedToken,
                     application,
@@ -1425,8 +2812,8 @@ namespace ChainlessChain.WindowsSandbox
                     IntPtr.Zero,
                     true,
                     creationFlags,
-                    IntPtr.Zero,
-                    Environment.CurrentDirectory,
+                    environmentBuffer,
+                    workingDirectory,
                     ref startup,
                     out processInfo);
                 if (!processCreated)
@@ -1436,6 +2823,7 @@ namespace ChainlessChain.WindowsSandbox
                             ? "CreateProcessAsUser(AppContainer)"
                             : "CreateProcessAsUser");
                 }
+                AssertLaunchPathLocksIntact(launchPathLocks);
 
                 if (useAppContainer)
                 {
@@ -1450,6 +2838,13 @@ namespace ChainlessChain.WindowsSandbox
                         TerminateProcess(processInfo.hProcess, 125);
                         throw;
                     }
+                }
+                AssertLaunchPathLocksIntact(launchPathLocks);
+
+                if (!IsInvalidHandle(entrySnapshotReadHandle))
+                {
+                    CloseHandle(entrySnapshotReadHandle);
+                    entrySnapshotReadHandle = IntPtr.Zero;
                 }
 
                 // The target now owns its inherited copy of the duplex IPC
@@ -1473,10 +2868,33 @@ namespace ChainlessChain.WindowsSandbox
                     TerminateProcess(processInfo.hProcess, 125);
                     ThrowLastError("AssignProcessToJobObject");
                 }
+                ReattestLaunchPaths(launchPathLocks);
+                // The suspended process has already created its image section.
+                // Release all remaining runtime stream guards before resume so
+                // target code can never deadlock waiting for a break owned by
+                // the helper. This is not a pathname-atomic runtime launch.
+                ReleaseLaunchPathLocks(launchPathLocks);
                 if (ResumeThread(processInfo.hThread) == UInt32.MaxValue)
                 {
                     TerminateProcess(processInfo.hProcess, 125);
                     ThrowLastError("ResumeThread");
+                }
+                if (entrySnapshot != null)
+                {
+                    try
+                    {
+                        WriteEntrySnapshot(
+                            entrySnapshotWriteHandle,
+                            entrySnapshot);
+                    }
+                    finally
+                    {
+                        if (!IsInvalidHandle(entrySnapshotWriteHandle))
+                        {
+                            CloseHandle(entrySnapshotWriteHandle);
+                            entrySnapshotWriteHandle = IntPtr.Zero;
+                        }
+                    }
                 }
 
                 if (!String.IsNullOrWhiteSpace(identityPath))
@@ -1504,10 +2922,10 @@ namespace ChainlessChain.WindowsSandbox
                     }
                 }
 
-                UInt32 waitResult = WaitForSingleObject(
+                UInt32 targetWait = WaitForSingleObject(
                     processInfo.hProcess,
                     INFINITE);
-                if (waitResult != WAIT_OBJECT_0)
+                if (targetWait != WAIT_OBJECT_0)
                     ThrowLastError("WaitForSingleObject(target)");
                 targetExited = true;
                 UInt32 exitCode;
@@ -1557,6 +2975,13 @@ namespace ChainlessChain.WindowsSandbox
                 }
                 if (processInfo.hThread != IntPtr.Zero) CloseHandle(processInfo.hThread);
                 if (processInfo.hProcess != IntPtr.Zero) CloseHandle(processInfo.hProcess);
+                if (!IsInvalidHandle(entrySnapshotReadHandle))
+                    CloseHandle(entrySnapshotReadHandle);
+                if (!IsInvalidHandle(entrySnapshotWriteHandle))
+                    CloseHandle(entrySnapshotWriteHandle);
+                foreach (LaunchPathLock launchPathLock in launchPathLocks)
+                    launchPathLock.Dispose();
+                launchPathLocks.Clear();
                 if (attributeList != IntPtr.Zero)
                 {
                     DeleteProcThreadAttributeList(attributeList);
@@ -1566,6 +2991,8 @@ namespace ChainlessChain.WindowsSandbox
                     Marshal.FreeHGlobal(securityCapabilitiesBuffer);
                 if (inheritedHandleBuffer != IntPtr.Zero)
                     Marshal.FreeHGlobal(inheritedHandleBuffer);
+                if (environmentBuffer != IntPtr.Zero)
+                    Marshal.FreeHGlobal(environmentBuffer);
                 if (descriptorBuffer != IntPtr.Zero)
                     Marshal.FreeHGlobal(descriptorBuffer);
                 foreach (IntPtr handle in ownedStandardHandles)
@@ -1624,9 +3051,14 @@ namespace ChainlessChain.WindowsSandbox
             public int nodeIpcFd { get; set; }
             public bool detached { get; set; }
             public bool windowsHide { get; set; }
+            public string workingDirectory { get; set; }
+            public Dictionary<string, string> environment { get; set; }
             public string identityPath { get; set; }
             public string appContainerProfileName { get; set; }
             public string appContainerSid { get; set; }
+            public Native.LaunchPathLockSpec[] launchPathLocks { get; set; }
+            public string snapshotTestGateToken { get; set; }
+            public string snapshotTestGateReleasePath { get; set; }
         }
 
         public static int Main(string[] args)
@@ -1636,13 +3068,59 @@ namespace ChainlessChain.WindowsSandbox
             {
                 if (
                     args != null &&
+                    args.Length == 1 &&
+                    String.Equals(
+                        args[0],
+                        "--probe-helper",
+                        StringComparison.Ordinal))
+                {
+                    Console.Out.Write(
+                        new JavaScriptSerializer().Serialize(
+                            new
+                            {
+                                ready = true,
+                                hostRuntime = "powershell-byte-assembly-v1"
+                            }));
+                    return 0;
+                }
+
+                if (
+                    args != null &&
                     args.Length == 2 &&
+                    String.Equals(
+                        args[0],
+                        "--probe-node-snapshot",
+                        StringComparison.Ordinal))
+                {
+                    int probeExitCode = Native.RunNodeSnapshotProbe(
+                        args[1],
+                        null,
+                        null);
+                    if (probeExitCode != 0)
+                        throw new InvalidDataException(
+                            "Node entry snapshot probe returned a non-zero exit code");
+                    Console.Out.Write(
+                        new JavaScriptSerializer().Serialize(
+                            new
+                            {
+                                ready = true,
+                                targetRuntime = "node",
+                                contentSnapshot = true
+                            }));
+                    return 0;
+                }
+
+                if (
+                    args != null &&
+                    (args.Length == 2 || args.Length == 3) &&
                     String.Equals(
                         args[0],
                         "--prepare-appcontainer",
                         StringComparison.Ordinal))
                 {
                     string profileName = args[1];
+                    string nodeRuntime =
+                        args.Length == 3 ? args[2] : null;
                     string probeSid = null;
                     string preparedSid = null;
                     bool leavePreparedProfile = false;
@@ -1651,18 +3129,32 @@ namespace ChainlessChain.WindowsSandbox
                         probeSid = Native.PrepareAppContainerProfile(
                             profileName);
                         preparedSid = probeSid;
-                        int probeExitCode = Native.Run(
-                            Path.Combine(Environment.SystemDirectory, "cmd.exe"),
-                            new[] { "/d", "/s", "/c", "exit 0" },
-                            0,
-                            0,
-                            1,
-                            -1,
-                            false,
-                            true,
-                            null,
-                            profileName,
-                            probeSid);
+                        int probeExitCode =
+                            String.IsNullOrWhiteSpace(nodeRuntime)
+                                ? Native.Run(
+                                    Path.Combine(
+                                        Environment.SystemDirectory,
+                                        "cmd.exe"),
+                                    new[] { "/d", "/s", "/c", "exit 0" },
+                                    0,
+                                    0,
+                                    1,
+                                    -1,
+                                    false,
+                                    true,
+                                    Environment.SystemDirectory,
+                                    null,
+                                    null,
+                                    profileName,
+                                    probeSid,
+                                    null,
+                                    null,
+                                    null,
+                                    null)
+                                : Native.RunNodeSnapshotProbe(
+                                    nodeRuntime,
+                                    profileName,
+                                    probeSid);
                         if (probeExitCode != 0)
                             throw new InvalidDataException(
                                 "AppContainer readiness target returned a non-zero exit code");
@@ -1686,7 +3178,15 @@ namespace ChainlessChain.WindowsSandbox
                                     appContainerSid = preparedSid,
                                     capabilityCount = 0,
                                     tokenAttested = true,
-                                    restrictedTokenAttested = true
+                                    restrictedTokenAttested = true,
+                                    probeRuntime =
+                                        String.IsNullOrWhiteSpace(nodeRuntime)
+                                            ? "cmd"
+                                            : "node",
+                                    targetRuntime =
+                                        String.IsNullOrWhiteSpace(nodeRuntime)
+                                            ? "cmd"
+                                            : "node"
                                 });
                         Console.Out.Write(readiness);
                         leavePreparedProfile = true;
@@ -1765,9 +3265,15 @@ namespace ChainlessChain.WindowsSandbox
                     spec.nodeIpcFd,
                     spec.detached,
                     spec.windowsHide,
+                    spec.workingDirectory,
+                    spec.environment,
                     spec.identityPath,
                     spec.appContainerProfileName,
-                    spec.appContainerSid);
+                    spec.appContainerSid,
+                    spec.launchPathLocks,
+                    null,
+                    spec.snapshotTestGateToken,
+                    spec.snapshotTestGateReleasePath);
             }
             catch (Exception error)
             {
@@ -1798,42 +3304,4 @@ namespace ChainlessChain.WindowsSandbox
             }
         }
     }
-}
-'@
-
-try {
-  if (Test-Path -LiteralPath $CacheExecutable) {
-    throw "Refusing to trust a pre-existing native adapter executable"
-  }
-  $temporaryExecutable = (
-    $CacheExecutable + "." + [Diagnostics.Process]::GetCurrentProcess().Id + ".exe"
-  )
-  if (Test-Path -LiteralPath $temporaryExecutable) {
-    throw "Refusing to overwrite a pre-existing native adapter compile output"
-  }
-  try {
-    Add-Type `
-      -TypeDefinition $nativeSource `
-      -Language CSharp `
-      -ReferencedAssemblies "System.Web.Extensions" `
-      -OutputAssembly $temporaryExecutable `
-      -OutputType ConsoleApplication
-    [IO.File]::Move($temporaryExecutable, $CacheExecutable)
-  }
-  finally {
-    if (Test-Path -LiteralPath $temporaryExecutable) {
-      Remove-Item -LiteralPath $temporaryExecutable -Force -ErrorAction SilentlyContinue
-    }
-  }
-  if ($CompileOnly) {
-    exit 0
-  }
-  & $CacheExecutable @HelperArguments
-  exit $LASTEXITCODE
-}
-catch {
-  [Console]::Error.WriteLine(
-    "CC_WINDOWS_SANDBOX_ERROR: " + $_.Exception.Message
-  )
-  exit 125
 }

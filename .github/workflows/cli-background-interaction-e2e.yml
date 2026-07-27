@@ -15,6 +15,7 @@ on:
       - "packages/cli/src/workers/background-agent-worker.js"
       - "packages/cli/__tests__/integration/background-stability-realspawn.test.js"
       - ".github/workflows/cli-background-interaction-e2e.yml"
+      - ".github/actions/setup-node-deps/action.yml"
   pull_request:
     branches: [main]
     paths:
@@ -29,6 +30,7 @@ on:
       - "packages/cli/src/workers/background-agent-worker.js"
       - "packages/cli/__tests__/integration/background-stability-realspawn.test.js"
       - ".github/workflows/cli-background-interaction-e2e.yml"
+      - ".github/actions/setup-node-deps/action.yml"
   workflow_dispatch:
 
 concurrency:

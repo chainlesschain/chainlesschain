@@ -651,7 +651,12 @@ class ProcessExecutionBroker extends EventEmitter {
           "Sandbox runtime probe must use the typed probe contract",
         );
       }
-      for (const field of ["probeRuntime", "targetRuntime"]) {
+      for (const field of [
+        "probeRuntime",
+        "targetRuntime",
+        "contentSnapshotScope",
+        "contentSnapshotMechanism",
+      ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
           (typeof plan.runtimeProbe[field] !== "string" ||
@@ -690,6 +695,17 @@ class ProcessExecutionBroker extends EventEmitter {
           : {}),
         ...(plan.runtimeProbe.handleAtomic !== undefined
           ? { handleAtomic: plan.runtimeProbe.handleAtomic }
+          : {}),
+        ...(plan.runtimeProbe.contentSnapshotScope !== undefined
+          ? {
+              contentSnapshotScope: plan.runtimeProbe.contentSnapshotScope,
+            }
+          : {}),
+        ...(plan.runtimeProbe.contentSnapshotMechanism !== undefined
+          ? {
+              contentSnapshotMechanism:
+                plan.runtimeProbe.contentSnapshotMechanism,
+            }
           : {}),
       };
     }
