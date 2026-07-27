@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { executeTool } from "../../src/runtime/agent-core.js";
+import {
+  _agentToolProcessDeps,
+  executeTool,
+} from "../../src/runtime/agent-core.js";
 import {
   executionBroker,
   SANDBOX_BOUNDARIES,
@@ -13,6 +16,7 @@ import { pluginVersionDir } from "../../src/lib/plugin-runtime/scopes.js";
 let cwd;
 let originalNative;
 let originalAdapter;
+let originalRunCode;
 
 function installStrictNodeBin() {
   const root = pluginVersionDir("local", "strict-bin", "1.0.0", { cwd });
@@ -70,10 +74,19 @@ function installStrictNativeBin() {
   };
 }
 
+function installMalformedPlugin() {
+  const root = pluginVersionDir("local", "broken-run-code", "1.0.0", {
+    cwd,
+  });
+  fs.mkdirSync(root, { recursive: true });
+  fs.writeFileSync(path.join(root, "plugin.json"), "{", "utf8");
+}
+
 beforeEach(() => {
   cwd = fs.mkdtempSync(path.join(os.tmpdir(), "cc-bin-agent-"));
   originalNative = executionBroker._native;
   originalAdapter = executionBroker._sandboxAdapter;
+  originalRunCode = _agentToolProcessDeps.runCode;
   executionBroker.flushAuditLog();
   _resetPluginBinSandboxPolicyPins();
 });
@@ -81,11 +94,122 @@ beforeEach(() => {
 afterEach(() => {
   executionBroker._native = originalNative;
   executionBroker._sandboxAdapter = originalAdapter;
+  _agentToolProcessDeps.runCode = originalRunCode;
   executionBroker.flushAuditLog();
   fs.rmSync(cwd, { recursive: true, force: true });
 });
 
 describe("agent-core strict plugin bin route", () => {
+  it("applies the pinned strict Plugin workspace union to run_code", async () => {
+    installStrictNodeBin();
+    _agentToolProcessDeps.runCode = vi.fn(() => "run-code-output");
+
+    const result = await executeTool(
+      "run_code",
+      { language: "node", code: "process.stdout.write('ok')" },
+      { cwd },
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      output: "run-code-output",
+    });
+    expect(_agentToolProcessDeps.runCode).toHaveBeenCalledWith(
+      "node",
+      [expect.stringMatching(/cc-agent-\d+\.js$/)],
+      expect.objectContaining({
+        cwd,
+        origin: "agent-core:run-code",
+        policy: "allow",
+        scope: "agent-core",
+        shell: false,
+        sandboxPolicy: {
+          requiredBoundaries: ["filesystem", "network"],
+        },
+      }),
+    );
+  });
+
+  it("fails closed before run_code persists a script or reaches Broker when Plugin policy discovery fails", async () => {
+    installMalformedPlugin();
+    _agentToolProcessDeps.runCode = vi.fn();
+
+    const result = await executeTool(
+      "run_code",
+      {
+        language: "node",
+        code: "process.stdout.write('must-not-run')",
+        persist: true,
+      },
+      { cwd },
+    );
+
+    expect(result).toMatchObject({
+      policy: {
+        decision: "deny",
+        via: "plugin-bin-pinned-sandbox-policy",
+        reason: "ERR_PLUGIN_BIN_DISCOVERY_FAILED",
+      },
+    });
+    expect(result.error).toMatch(/plugin bin policy discovery failed/);
+    expect(
+      fs.existsSync(path.join(cwd, ".chainlesschain", "agent-scripts")),
+    ).toBe(false);
+    expect(_agentToolProcessDeps.runCode).not.toHaveBeenCalled();
+  });
+
+  it("preserves Broker's structured boundary refusal from run_code", async () => {
+    installStrictNodeBin();
+    const boundaryError = Object.assign(
+      new Error("strict backend cannot satisfy filesystem, network"),
+      {
+        code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+        sandboxFailClosed: true,
+        requiredBoundaries: ["filesystem", "network"],
+        actualGuarantees: ["filesystem"],
+        missingBoundaries: ["network"],
+        sandboxBackend: "test-strict-backend",
+      },
+    );
+    let scriptPath;
+    _agentToolProcessDeps.runCode = vi.fn((_file, args) => {
+      [scriptPath] = args;
+      throw boundaryError;
+    });
+
+    await expect(
+      executeTool(
+        "run_code",
+        { language: "node", code: "process.stdout.write('must-not-run')" },
+        { cwd },
+      ),
+    ).rejects.toBe(boundaryError);
+    expect(scriptPath).toMatch(/cc-agent-\d+\.js$/);
+    expect(fs.existsSync(scriptPath)).toBe(false);
+  });
+
+  it("preserves Broker's generic sandbox startup failure from run_code", async () => {
+    installStrictNodeBin();
+    const sandboxError = Object.assign(
+      new Error("strict backend startup failed"),
+      {
+        code: "ERR_PROCESS_SANDBOX",
+        sandboxBackend: "test-strict-backend",
+      },
+    );
+    _agentToolProcessDeps.runCode = vi.fn(() => {
+      throw sandboxError;
+    });
+
+    await expect(
+      executeTool(
+        "run_code",
+        { language: "node", code: "process.stdout.write('must-not-run')" },
+        { cwd },
+      ),
+    ).rejects.toBe(sandboxError);
+  });
+
   it("passes an attested absolute Node target and manifest boundaries to Broker", async () => {
     const supportsNodeExecutionContract =
       process.platform === "linux" || process.platform === "win32";

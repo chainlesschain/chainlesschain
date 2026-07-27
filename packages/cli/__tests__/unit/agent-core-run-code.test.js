@@ -179,7 +179,7 @@ describe("getEnvironmentInfo", () => {
     expect(info).toHaveProperty("git");
     expect(typeof info.os).toBe("string");
     expect(typeof info.arch).toBe("string");
-  });
+  }, 30_000);
 
   it("reports Node.js as available", () => {
     const info = getEnvironmentInfo();
@@ -339,6 +339,9 @@ describe("executeTool — run_code enhancements", () => {
           scope: "agent-core",
           shell: false,
         }),
+      );
+      expect(_agentToolProcessDeps.runCode.mock.calls[0][2]).not.toHaveProperty(
+        "sandboxPolicy",
       );
     } finally {
       _agentToolProcessDeps.runCode = original;

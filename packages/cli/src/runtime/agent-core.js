@@ -151,6 +151,40 @@ function runCodeProcess(file, args, options = {}, origin = "run-code") {
   });
 }
 
+function collectWorkspacePluginBinSandboxPolicy(
+  pluginBin,
+  workspaceCwd,
+  executionCwd = workspaceCwd,
+) {
+  const resolvedWorkspaceCwd = path.resolve(workspaceCwd);
+  const pluginPolicyBoundaries = new Set();
+  for (const policyCwd of new Set([
+    resolvedWorkspaceCwd,
+    path.resolve(executionCwd),
+  ])) {
+    const observedPolicy = pluginBin.collectPluginBinSandboxPolicy({
+      cwd: policyCwd,
+    });
+    for (const boundary of observedPolicy?.requiredBoundaries || []) {
+      pluginPolicyBoundaries.add(boundary);
+    }
+  }
+  return pluginBin.pinPluginBinSandboxPolicy(
+    { requiredBoundaries: [...pluginPolicyBoundaries] },
+    { cwd: resolvedWorkspaceCwd },
+  );
+}
+
+function rethrowRunCodeSandboxFailure(error) {
+  if (
+    error?.sandboxFailClosed === true ||
+    (typeof error?.code === "string" &&
+      error.code.startsWith("ERR_PROCESS_SANDBOX"))
+  ) {
+    throw error;
+  }
+}
+
 // ─── Background shell tasks ────────────────────────────────────────────────
 //
 // run_shell is synchronous (execSync) and capped at a foreground timeout, which
@@ -3477,21 +3511,10 @@ async function executeToolInner(
       try {
         const pluginBin = await import("../lib/plugin-runtime/bin.js");
         reattestPluginBinInvocation = pluginBin.reattestPluginBinInvocation;
-        const pluginPolicyBoundaries = new Set();
-        for (const policyCwd of new Set([
-          path.resolve(cwd),
-          path.resolve(args.cwd || cwd),
-        ])) {
-          const observedPolicy = pluginBin.collectPluginBinSandboxPolicy({
-            cwd: policyCwd,
-          });
-          for (const boundary of observedPolicy?.requiredBoundaries || []) {
-            pluginPolicyBoundaries.add(boundary);
-          }
-        }
-        pluginBinSandboxPolicy = pluginBin.pinPluginBinSandboxPolicy(
-          { requiredBoundaries: [...pluginPolicyBoundaries] },
-          { cwd },
+        pluginBinSandboxPolicy = collectWorkspacePluginBinSandboxPolicy(
+          pluginBin,
+          cwd,
+          args.cwd || cwd,
         );
         pluginBinInvocation = pluginBin.resolvePluginBinInvocation(
           args.command,
@@ -5342,6 +5365,32 @@ async function _executeRunCode(args, cwd) {
     };
   }
 
+  // Every agent-generated interpreter process inherits the tighten-only union
+  // of strict Plugin bin boundaries visible from this workspace. Discover and
+  // pin it before creating a persistent directory, writing a temporary script,
+  // or probing an interpreter so discovery failure cannot fall through to an
+  // unbounded native spawn.
+  let pluginBinSandboxPolicy = null;
+  try {
+    const pluginBin = await import("../lib/plugin-runtime/bin.js");
+    pluginBinSandboxPolicy = collectWorkspacePluginBinSandboxPolicy(
+      pluginBin,
+      cwd,
+    );
+  } catch (error) {
+    return {
+      error: `[Plugin bin] ${error.message}`,
+      policy: {
+        decision: "deny",
+        via: "plugin-bin-pinned-sandbox-policy",
+        reason: error.code || "ERR_PLUGIN_BIN_SANDBOX_POLICY_DISCOVERY_FAILED",
+      },
+    };
+  }
+  const pluginBinSandboxOptions = pluginBinSandboxPolicy
+    ? { sandboxPolicy: pluginBinSandboxPolicy }
+    : {};
+
   // Determine script path
   let scriptPath;
   if (persist) {
@@ -5380,8 +5429,13 @@ async function _executeRunCode(args, cwd) {
         encoding: "utf8",
         timeout: timeoutSec * 1000,
         maxBuffer: 5 * 1024 * 1024,
+        ...pluginBinSandboxOptions,
       });
     } catch (err) {
+      // Broker boundary errors carry the required/actual/missing guarantees and
+      // backend attestation. Preserve that exact structured error for callers
+      // instead of flattening it into run_code's generic runtime classifier.
+      rethrowRunCodeSandboxFailure(err);
       const stderr = (err.stderr || "").toString();
       const message = err.message || "";
       const classified = classifyError(stderr, message, err.status, lang);
@@ -5473,6 +5527,36 @@ async function _executeRunCode(args, cwd) {
             /* unified audit must never affect the install itself */
           }
 
+          const autoInstallFailure = (installError) => {
+            recordInstallAudit({
+              package: packageName,
+              interpreter,
+              cwd,
+              outcome: "failed",
+              detail: (
+                installError.stderr ||
+                installError.message ||
+                ""
+              ).substring(0, 200),
+            });
+            auditUnifiedInstall(
+              "failed",
+              (installError.stderr || installError.message || "").substring(
+                0,
+                200,
+              ),
+            );
+            return {
+              error: (stderr || message).substring(0, 5000),
+              stderr: stderr.substring(0, 5000),
+              exitCode: err.status,
+              language: lang,
+              ...classified,
+              hint: `Failed to auto-install "${packageName}". ${(installError.stderr || installError.message || "").substring(0, 500)}`,
+              scriptPath: persist ? scriptPath : undefined,
+            };
+          };
+
           // Attempt pip install
           try {
             runCodeProcess(
@@ -5484,18 +5568,27 @@ async function _executeRunCode(args, cwd) {
                 timeout: 120000,
                 maxBuffer: 2 * 1024 * 1024,
                 stdio: ["pipe", "pipe", "pipe"],
+                ...pluginBinSandboxOptions,
               },
               "run-code-install",
             );
-            recordInstallAudit({
-              package: packageName,
-              interpreter,
-              cwd,
-              outcome: "installed",
-            });
-            auditUnifiedInstall("installed");
+          } catch (pipErr) {
+            const failure = autoInstallFailure(pipErr);
+            rethrowRunCodeSandboxFailure(pipErr);
+            return failure;
+          }
+          recordInstallAudit({
+            package: packageName,
+            interpreter,
+            cwd,
+            outcome: "installed",
+          });
+          auditUnifiedInstall("installed");
 
-            // Retry execution
+          // Keep retry separate from the install catch: either Broker call can
+          // carry an independently attested fail-closed boundary error, and
+          // neither may be flattened into the legacy auto-install result.
+          try {
             const retryStart = Date.now();
             const retryOutput = runCodeProcess(
               interpreter,
@@ -5505,6 +5598,7 @@ async function _executeRunCode(args, cwd) {
                 encoding: "utf8",
                 timeout: timeoutSec * 1000,
                 maxBuffer: 5 * 1024 * 1024,
+                ...pluginBinSandboxOptions,
               },
               "run-code-retry",
             );
@@ -5518,25 +5612,24 @@ async function _executeRunCode(args, cwd) {
               autoInstalled: [packageName],
               scriptPath: persist ? scriptPath : undefined,
             };
-          } catch (pipErr) {
-            recordInstallAudit({
-              package: packageName,
-              interpreter,
-              cwd,
-              outcome: "failed",
-              detail: (pipErr.stderr || pipErr.message || "").substring(0, 200),
-            });
-            auditUnifiedInstall(
-              "failed",
-              (pipErr.stderr || pipErr.message || "").substring(0, 200),
+          } catch (retryErr) {
+            rethrowRunCodeSandboxFailure(retryErr);
+            const retryStderr = (retryErr.stderr || "").toString();
+            const retryMessage = retryErr.message || "";
+            const retryClassified = classifyError(
+              retryStderr,
+              retryMessage,
+              retryErr.status,
+              lang,
             );
             return {
-              error: (stderr || message).substring(0, 5000),
-              stderr: stderr.substring(0, 5000),
-              exitCode: err.status,
+              error: (retryStderr || retryMessage).substring(0, 5000),
+              stderr: retryStderr.substring(0, 5000),
+              exitCode: retryErr.status,
               language: lang,
-              ...classified,
-              hint: `Failed to auto-install "${packageName}". ${(pipErr.stderr || pipErr.message || "").substring(0, 500)}`,
+              ...retryClassified,
+              hint: `Package "${packageName}" was installed, but the script retry failed.`,
+              autoInstalled: [packageName],
               scriptPath: persist ? scriptPath : undefined,
             };
           }
