@@ -30,7 +30,10 @@ function probeNativeVault() {
     db.close();
     return { available: true, reason: null };
   } catch (err) {
-    return { available: false, reason: (err && err.message ? err.message : String(err)).split("\n")[0] };
+    return {
+      available: false,
+      reason: (err && err.message ? err.message : String(err)).split("\n")[0],
+    };
   }
 }
 
@@ -60,16 +63,22 @@ const NATIVE_DEPENDENT_TESTS = [
 
 const native = probeNativeVault();
 const exclude = [...configDefaults.exclude];
+// Shared Windows runners can exceed 10s under filesystem/Defender contention.
+// Keep every other environment strict while retaining a finite Windows CI cap.
+const windowsCI = process.platform === "win32" && process.env.CI === "true";
+const timeout = windowsCI ? 30_000 : 10_000;
 
 if (!native.available) {
   exclude.push(...NATIVE_DEPENDENT_TESTS);
-  // eslint-disable-next-line no-console
+
   console.warn(
     [
       "",
       "⚠️  PDH: native SQLCipher driver (bs3mc) does not load on this host Node —",
       "    " + (native.reason || "unknown load failure"),
-      "    Skipping " + NATIVE_DEPENDENT_TESTS.length + " vault-dependent test file(s) so the rest stay green.",
+      "    Skipping " +
+        NATIVE_DEPENDENT_TESTS.length +
+        " vault-dependent test file(s) so the rest stay green.",
       "    For full native coverage run:  bash scripts/run-native-tests-sandbox.sh",
       "    (CI rebuilds bs3mc for the host ABI and runs the full suite.)",
       "",
@@ -83,6 +92,7 @@ export default defineConfig({
     environment: "node",
     include: ["__tests__/**/*.test.js"],
     exclude,
-    testTimeout: 10000,
+    testTimeout: timeout,
+    hookTimeout: timeout,
   },
 });
