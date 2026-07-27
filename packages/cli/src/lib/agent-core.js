@@ -12,6 +12,7 @@ export {
   getAgentToolDefinitions,
   getAgentToolDescriptors,
   getCachedPython,
+  _resetCachedPythonForTests,
   getEnvironmentInfo,
   _environmentProcessDeps,
   _agentToolProcessDeps,
