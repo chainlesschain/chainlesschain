@@ -235,14 +235,86 @@ describe("desktop process broker", () => {
     const proc = broker.spawnPty(pty, "pwsh.exe", ["-NoLogo"], {
       cwd: "C:\\work",
       env: { API_TOKEN: "do-not-log", PATH: "safe" },
+      origin: "terminal:pty",
+      policy: "allow",
+      scope: "terminal",
     });
 
     expect(proc.pid).toBe(9001);
     expect(calls[0].options.env.API_TOKEN).toBe("do-not-log");
+    expect(calls[0].options).not.toHaveProperty("origin");
+    expect(calls[0].options).not.toHaveProperty("policy");
+    expect(calls[0].options).not.toHaveProperty("scope");
+    expect(calls[0].options).not.toHaveProperty("sandboxPolicy");
     expect(audit[0]).toMatchObject({
       operation: "pty.spawn",
+      origin: "terminal:pty",
       command: "pwsh.exe",
       args: ["-NoLogo"],
+      sandboxed: false,
+      sandboxRequired: [],
+      sandboxGuarantees: [],
+      sandboxBackend: null,
+      sandboxState: "not-required",
+      sandboxReason: "native_pty_host_boundary",
+    });
+    expect(JSON.stringify(audit)).not.toContain("do-not-log");
+    broker.uninstall();
+  });
+
+  it("denies required PTY boundaries with a structured audit and never calls node-pty", () => {
+    const { cp } = fakeChildProcess();
+    const calls = [];
+    const audit = [];
+    const broker = installDesktopProcessBroker({
+      childProcess: cp,
+      auditSink: (entry) => audit.push(entry),
+      now: () => "2026-07-22T00:00:00.000Z",
+    });
+    const pty = {
+      spawn(...args) {
+        calls.push(args);
+        return { pid: 9001 };
+      },
+    };
+    const sandboxPolicy = Object.freeze({
+      requiredBoundaries: Object.freeze(["filesystem", "network"]),
+    });
+
+    let error;
+    try {
+      broker.spawnPty(pty, "pwsh.exe", [], {
+        cwd: "C:\\work",
+        env: { API_TOKEN: "do-not-log" },
+        origin: "terminal:pty",
+        policy: "allow",
+        scope: "terminal",
+        sandboxPolicy,
+      });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(calls).toHaveLength(0);
+    expect(error).toMatchObject({
+      code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+      sandboxReason: "required_boundaries_unsatisfied",
+      sandboxFailClosed: true,
+      requiredBoundaries: ["filesystem", "network"],
+      actualGuarantees: [],
+      missingBoundaries: ["filesystem", "network"],
+      sandboxBackend: null,
+    });
+    expect(error.auditEntry).toBe(audit[0]);
+    expect(audit[0]).toMatchObject({
+      operation: "pty.spawn",
+      origin: "terminal:pty",
+      sandboxed: false,
+      sandboxRequired: ["filesystem", "network"],
+      sandboxGuarantees: [],
+      sandboxBackend: null,
+      sandboxState: "denied",
+      sandboxReason: "required_boundaries_unsatisfied",
     });
     expect(JSON.stringify(audit)).not.toContain("do-not-log");
     broker.uninstall();

@@ -79,7 +79,9 @@ const {
 } = require("../ukey/multisig-signer");
 const { createProjectHandlers } = require("./handlers/project-handlers");
 const { createTerminalHandlers } = require("./handlers/terminal-handlers");
-const { PtyManager } = require("../terminal/PtyManager");
+const {
+  createPolicyAwarePtyManager,
+} = require("../terminal/policy-aware-pty-manager");
 
 /** CLI flag / env var that opts in to the web-shell entry point. */
 const WEB_SHELL_FLAG = "--web-shell";
@@ -131,6 +133,11 @@ const NO_WEB_SHELL_FLAG = "--no-web-shell";
  * @property {string|null} [projectName]     Human-readable project name.
  * @property {"project"|"global"} [mode]     Defaults to "global".
  * @property {string} [staticDir]            Override for web-panel dist dir.
+ * @property {(options: object) => Promise<object>} [createPtyManager]
+ *                                            Test seam for the async,
+ *                                            policy-aware PTY factory.
+ * @property {(context: object) => object|null} [terminalSandboxPolicyResolver]
+ *                                            Preloaded synchronous resolver.
  * @property {Record<string, Function>} [extraHandlers]
  *                                            Extra WS topics to register up-front.
  */
@@ -161,7 +168,11 @@ async function startWebShell(options = {}) {
   // unit tests) we fall back to a local one.
   const ptyManager =
     options.ptyManager ||
-    new PtyManager({ config: options.terminalConfig || undefined });
+    (await (options.createPtyManager || createPolicyAwarePtyManager)({
+      config: options.terminalConfig || undefined,
+      policyCwd: options.projectRoot || process.cwd(),
+      resolveSandboxPolicy: options.terminalSandboxPolicyResolver,
+    }));
   // Whether to call shutdown() on close — only when we own the instance.
   const ownsPtyManager = !options.ptyManager;
   // ws.broadcast isn't available until startWsCliBackend resolves below.

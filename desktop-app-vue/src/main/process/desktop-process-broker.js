@@ -11,6 +11,7 @@ const nodePath = require("node:path");
 const nativeChildProcess = require("node:child_process");
 
 const BROKER_MARK = Symbol.for("chainlesschain.desktopProcessBroker");
+const DESKTOP_PTY_SANDBOX_BOUNDARIES = new Set(["filesystem", "network"]);
 
 function redact(value) {
   return String(value ?? "")
@@ -23,11 +24,79 @@ function redact(value) {
 }
 
 function cleanOptions(options) {
-  if (!options || typeof options !== "object") return options;
+  if (!options || typeof options !== "object") {
+    return options;
+  }
   const clean = { ...options };
   delete clean.origin;
   delete clean.provenance;
   return clean;
+}
+
+function cleanPtyOptions(options) {
+  const clean = cleanOptions(options) || {};
+  delete clean.policy;
+  delete clean.scope;
+  delete clean.sandboxPolicy;
+  return clean;
+}
+
+function invalidPtySandboxPolicy(message) {
+  const error = new TypeError(message);
+  error.code = "ERR_PROCESS_SANDBOX_POLICY_INVALID";
+  error.sandboxReason = "invalid_sandbox_policy";
+  error.sandboxFailClosed = true;
+  return error;
+}
+
+function validateDesktopPtySandboxPolicy(policy) {
+  if (policy == null) {
+    return [];
+  }
+  if (
+    typeof policy !== "object" ||
+    Array.isArray(policy) ||
+    typeof policy.then === "function" ||
+    !Object.isFrozen(policy) ||
+    !Array.isArray(policy.requiredBoundaries) ||
+    !Object.isFrozen(policy.requiredBoundaries) ||
+    policy.requiredBoundaries.length === 0 ||
+    Object.keys(policy).some((key) => key !== "requiredBoundaries")
+  ) {
+    throw invalidPtySandboxPolicy(
+      "Desktop PTY sandboxPolicy must be a frozen, non-empty pinned policy",
+    );
+  }
+  const required = [];
+  for (const boundary of policy.requiredBoundaries) {
+    if (
+      typeof boundary !== "string" ||
+      !DESKTOP_PTY_SANDBOX_BOUNDARIES.has(boundary)
+    ) {
+      throw invalidPtySandboxPolicy(
+        `Desktop PTY sandboxPolicy contains unsupported boundary: ${String(boundary)}`,
+      );
+    }
+    if (!required.includes(boundary)) {
+      required.push(boundary);
+    }
+  }
+  return required;
+}
+
+function ptySandboxBoundaryError(requiredBoundaries, auditEntry) {
+  const error = new Error(
+    `Native Desktop PTY host cannot satisfy required boundaries: ${requiredBoundaries.join(", ")}`,
+  );
+  error.code = "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED";
+  error.sandboxReason = "required_boundaries_unsatisfied";
+  error.sandboxFailClosed = true;
+  error.requiredBoundaries = [...requiredBoundaries];
+  error.actualGuarantees = [];
+  error.missingBoundaries = [...requiredBoundaries];
+  error.sandboxBackend = null;
+  error.auditEntry = auditEntry;
+  return error;
 }
 
 function commandLabel(command, args) {
@@ -40,7 +109,9 @@ function commandLabel(command, args) {
 }
 
 function cleanProvenance(provenance) {
-  if (!provenance || typeof provenance !== "object") return null;
+  if (!provenance || typeof provenance !== "object") {
+    return null;
+  }
   const allowed = [
     "pluginId",
     "pluginVersion",
@@ -75,8 +146,12 @@ function defaultAuditSink(entry) {
 }
 
 function invokeWithOptionalArgs(original, first, args, options) {
-  if (args === undefined && options === undefined) return original(first);
-  if (options === undefined) return original(first, args);
+  if (args === undefined && options === undefined) {
+    return original(first);
+  }
+  if (options === undefined) {
+    return original(first, args);
+  }
   return original(first, args, cleanOptions(options));
 }
 
@@ -85,11 +160,13 @@ function installDesktopProcessBroker({
   auditSink = defaultAuditSink,
   now = () => new Date().toISOString(),
 } = {}) {
-  if (childProcess[BROKER_MARK]) return childProcess[BROKER_MARK];
+  if (childProcess[BROKER_MARK]) {
+    return childProcess[BROKER_MARK];
+  }
 
   const originals = {};
   const auditLog = [];
-  const record = (operation, command, args, options) => {
+  const record = (operation, command, args, options, sandbox = null) => {
     const entry = {
       timestamp: now(),
       pid: process.pid,
@@ -99,14 +176,27 @@ function installDesktopProcessBroker({
       provenance: cleanProvenance(options?.provenance),
       cwd: options?.cwd || process.cwd(),
       ...commandLabel(command, args),
+      ...(sandbox
+        ? {
+            sandboxed: false,
+            sandboxRequired: [...sandbox.requiredBoundaries],
+            sandboxGuarantees: [],
+            sandboxBackend: null,
+            sandboxState: sandbox.state,
+            sandboxReason: sandbox.reason,
+          }
+        : {}),
     };
     auditLog.push(entry);
-    if (auditLog.length > 1000) auditLog.shift();
+    if (auditLog.length > 1000) {
+      auditLog.shift();
+    }
     try {
       auditSink(entry);
     } catch {
       // An injected audit sink is advisory and must not break execution.
     }
+    return entry;
   };
 
   const wrap = (name, fn) => {
@@ -148,7 +238,9 @@ function installDesktopProcessBroker({
       options = undefined;
     }
     record("execFile", file, args, options);
-    if (options === undefined) return original(file, args, callback);
+    if (options === undefined) {
+      return original(file, args, callback);
+    }
     return original(file, args, cleanOptions(options), callback);
   });
   wrap("execFileSync", (original) => (file, args, options) => {
@@ -164,14 +256,28 @@ function installDesktopProcessBroker({
     spawn(command, args, options) {
       return childProcess.spawn(command, args, options);
     },
-    spawnPty(ptyModule, command, args, options) {
+    spawnPty(ptyModule, command, args, options = {}) {
       if (!ptyModule || typeof ptyModule.spawn !== "function") {
         throw new TypeError("pty_module_spawn_unavailable");
       }
+      const requiredBoundaries = validateDesktopPtySandboxPolicy(
+        options.sandboxPolicy,
+      );
+      const denied = requiredBoundaries.length > 0;
       // PTY options contain the complete inherited environment. Keep values
-      // out of the audit record while preserving the native spawn options.
-      record("pty.spawn", command, args, options);
-      return ptyModule.spawn(command, args, options);
+      // out of the audit record. Broker-only policy controls are stripped
+      // before the native addon sees them.
+      const auditEntry = record("pty.spawn", command, args, options, {
+        requiredBoundaries,
+        state: denied ? "denied" : "not-required",
+        reason: denied
+          ? "required_boundaries_unsatisfied"
+          : "native_pty_host_boundary",
+      });
+      if (denied) {
+        throw ptySandboxBoundaryError(requiredBoundaries, auditEntry);
+      }
+      return ptyModule.spawn(command, args, cleanPtyOptions(options));
     },
     getAuditLog: (limit = 100) => auditLog.slice(-limit),
     flushAuditLog: () => auditLog.splice(0, auditLog.length),
@@ -205,7 +311,9 @@ function spawnWithDesktopBroker(
   { childProcess = nativeChildProcess } = {},
 ) {
   const broker = getDesktopProcessBroker({ childProcess });
-  if (!broker) throw new Error("desktop_process_broker_not_installed");
+  if (!broker) {
+    throw new Error("desktop_process_broker_not_installed");
+  }
   return broker.spawn(command, args, options);
 }
 
@@ -216,7 +324,9 @@ function spawnSyncWithDesktopBroker(
   { childProcess = nativeChildProcess } = {},
 ) {
   const broker = getDesktopProcessBroker({ childProcess });
-  if (!broker) throw new Error("desktop_process_broker_not_installed");
+  if (!broker) {
+    throw new Error("desktop_process_broker_not_installed");
+  }
   return childProcess.spawnSync(command, args, options);
 }
 
@@ -227,7 +337,9 @@ function execFileSyncWithDesktopBroker(
   { childProcess = nativeChildProcess } = {},
 ) {
   const broker = getDesktopProcessBroker({ childProcess });
-  if (!broker) throw new Error("desktop_process_broker_not_installed");
+  if (!broker) {
+    throw new Error("desktop_process_broker_not_installed");
+  }
   return childProcess.execFileSync(file, args, options);
 }
 
@@ -239,13 +351,16 @@ function execFileWithDesktopBroker(
   { childProcess = nativeChildProcess } = {},
 ) {
   const broker = getDesktopProcessBroker({ childProcess });
-  if (!broker) throw new Error("desktop_process_broker_not_installed");
+  if (!broker) {
+    throw new Error("desktop_process_broker_not_installed");
+  }
   return childProcess.execFile(file, args, options, callback);
 }
 
 module.exports = {
   installDesktopProcessBroker,
   getDesktopProcessBroker,
+  validateDesktopPtySandboxPolicy,
   spawnWithDesktopBroker,
   spawnSyncWithDesktopBroker,
   execFileWithDesktopBroker,

@@ -32,6 +32,13 @@ const WEB_SHELL_DIR = path.join(
   "main",
   "web-shell",
 );
+const TERMINAL_DIR = path.join(
+  REPO_ROOT,
+  "desktop-app-vue",
+  "src",
+  "main",
+  "terminal",
+);
 
 /**
  * Simulated `__dirname` of each web-shell loader inside a packaged app.
@@ -42,8 +49,12 @@ const WEB_SHELL_DIR = path.join(
  * `../../../../packages/...` constant works in both — IF the vendor put
  * `packages/...` at `<buildPath>/packages/...`.
  */
-function simulatedPackagedDirname(buildPath, loaderRelDir = "") {
-  return path.join(buildPath, "dist", "main", "web-shell", loaderRelDir);
+function simulatedPackagedDirname(
+  buildPath,
+  loaderRelDir = "",
+  mainDir = "web-shell",
+) {
+  return path.join(buildPath, "dist", "main", mainDir, loaderRelDir);
 }
 
 /**
@@ -80,6 +91,13 @@ const LOADERS = [
     expectedTail: "packages/cli/src/lib/skill-loader.js",
     relDir: "handlers",
   },
+  {
+    file: "policy-aware-pty-manager.js",
+    constName: "PLUGIN_BIN_MODULE_REL",
+    expectedTail: "packages/cli/src/lib/plugin-runtime/bin.js",
+    sourceDir: TERMINAL_DIR,
+    mainDir: "terminal",
+  },
 ];
 
 describe("Phase 1.4 path math (loader REL ↔ vendor layout)", () => {
@@ -109,8 +127,15 @@ describe("Phase 1.4 path math (loader REL ↔ vendor layout)", () => {
 
   it.each(LOADERS)(
     "$file's $constName resolves to a real vendored file at $expectedTail",
-    ({ file, constName, expectedTail, relDir = "" }) => {
-      const loaderPath = path.join(WEB_SHELL_DIR, file);
+    ({
+      file,
+      constName,
+      expectedTail,
+      relDir = "",
+      sourceDir = WEB_SHELL_DIR,
+      mainDir = "web-shell",
+    }) => {
+      const loaderPath = path.join(sourceDir, file);
       const source = fs.readFileSync(loaderPath, "utf-8");
       const rel = extractStringConstant(source, constName);
 
@@ -121,7 +146,11 @@ describe("Phase 1.4 path math (loader REL ↔ vendor layout)", () => {
       expect(rel).toContain("packages/");
 
       // Resolve as the loader would in a packaged app.
-      const simulatedDirname = simulatedPackagedDirname(tempBuildPath, relDir);
+      const simulatedDirname = simulatedPackagedDirname(
+        tempBuildPath,
+        relDir,
+        mainDir,
+      );
       const resolved = path.resolve(simulatedDirname, rel);
 
       // The resolved path must be a real file in the vendor output.

@@ -1,6 +1,9 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import path from "node:path";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import pkg from "../../../../src/main/terminal/PtyManager.js";
+import brokerPkg from "../../../../src/main/process/desktop-process-broker.js";
 const { PtyManager } = pkg;
+const { installDesktopProcessBroker } = brokerPkg;
 
 // Mock node-pty: each `spawn` returns a fake ptyProcess with stubs that we
 // can drive from the test (e.g. trigger onData to simulate stdout).
@@ -228,5 +231,207 @@ describe("PtyManager — env handling (remote frame input)", () => {
     expect(fakes[0].proc.spawnOpts.env["0"]).toBeUndefined();
     mgr.create({ shell: "pwsh", env: { MY_VAR: "x" } });
     expect(fakes[1].proc.spawnOpts.env.MY_VAR).toBe("x");
+  });
+});
+
+describe("PtyManager Plugin-bin sandbox policy", () => {
+  it("uses the fixed host root and passes the exact pinned policy to the broker", () => {
+    const policy = Object.freeze({
+      requiredBoundaries: Object.freeze(["filesystem"]),
+    });
+    const resolveSandboxPolicy = vi.fn(() => policy);
+    const brokerCalls = [];
+    const fake = makeFakePty();
+    const pty = {
+      spawn: vi.fn(() => fake.proc),
+    };
+    const broker = {
+      spawnPty(ptyModule, command, args, options) {
+        brokerCalls.push({ ptyModule, command, args, options });
+        return fake.proc;
+      },
+    };
+    const mgr = new PtyManager({
+      policyCwd: "trusted-workspace",
+      resolveSandboxPolicy,
+      _deps: {
+        loadNodePty: () => pty,
+        getProcessBroker: () => broker,
+      },
+    });
+
+    mgr.create({ shell: "pwsh", cwd: "caller-worktree" });
+
+    expect(resolveSandboxPolicy).toHaveBeenCalledWith({
+      workspaceCwd: path.resolve("trusted-workspace"),
+      executionCwd: "caller-worktree",
+    });
+    expect(brokerCalls).toHaveLength(1);
+    expect(brokerCalls[0].options).toMatchObject({
+      origin: "terminal:pty",
+      policy: "allow",
+      scope: "terminal",
+    });
+    expect(brokerCalls[0].options.sandboxPolicy).toBe(policy);
+    expect(pty.spawn).not.toHaveBeenCalled();
+  });
+
+  it("rejects a strict policy without the Desktop broker before loading node-pty", () => {
+    const policy = Object.freeze({
+      requiredBoundaries: Object.freeze(["network"]),
+    });
+    const loadNodePty = vi.fn();
+    const mgr = new PtyManager({
+      resolveSandboxPolicy: () => policy,
+      _deps: {
+        loadNodePty,
+        getProcessBroker: () => null,
+        // A custom seam must not become a strict-policy direct fallback.
+        spawnPty: vi.fn(),
+      },
+    });
+
+    let error;
+    try {
+      mgr.create({ shell: "pwsh" });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error).toMatchObject({
+      code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+      sandboxReason: "desktop_process_broker_unavailable",
+      sandboxFailClosed: true,
+      requiredBoundaries: ["network"],
+      actualGuarantees: [],
+      missingBoundaries: ["network"],
+      sandboxBackend: null,
+    });
+    expect(loadNodePty).not.toHaveBeenCalled();
+  });
+
+  it("fails closed through the real Desktop broker without native PTY allocation", () => {
+    const childProcess = Object.fromEntries(
+      [
+        "spawn",
+        "spawnSync",
+        "exec",
+        "execSync",
+        "execFile",
+        "execFileSync",
+        "fork",
+      ].map((name) => [name, vi.fn()]),
+    );
+    const audit = [];
+    const broker = installDesktopProcessBroker({
+      childProcess,
+      auditSink: (entry) => audit.push(entry),
+    });
+    const pty = { spawn: vi.fn() };
+    const loadNodePty = vi.fn(() => pty);
+    const policy = Object.freeze({
+      requiredBoundaries: Object.freeze(["filesystem"]),
+    });
+    const mgr = new PtyManager({
+      resolveSandboxPolicy: () => policy,
+      _deps: {
+        loadNodePty,
+        getProcessBroker: () => broker,
+      },
+    });
+
+    let error;
+    try {
+      mgr.create({ shell: "pwsh" });
+    } catch (caught) {
+      error = caught;
+    } finally {
+      broker.uninstall();
+    }
+
+    expect(error).toMatchObject({
+      code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+      sandboxReason: "required_boundaries_unsatisfied",
+      requiredBoundaries: ["filesystem"],
+      missingBoundaries: ["filesystem"],
+    });
+    expect(loadNodePty).toHaveBeenCalledOnce();
+    expect(pty.spawn).not.toHaveBeenCalled();
+    expect(audit[0]).toMatchObject({
+      operation: "pty.spawn",
+      origin: "terminal:pty",
+      sandboxRequired: ["filesystem"],
+      sandboxGuarantees: [],
+      sandboxBackend: null,
+      sandboxState: "denied",
+    });
+  });
+
+  it("propagates policy discovery failure before loading node-pty", () => {
+    const policyError = Object.assign(new Error("policy discovery failed"), {
+      code: "ERR_TEST_POLICY_DISCOVERY",
+    });
+    const loadNodePty = vi.fn();
+    const mgr = new PtyManager({
+      resolveSandboxPolicy() {
+        throw policyError;
+      },
+      _deps: { loadNodePty },
+    });
+
+    expect(() => mgr.create({ shell: "pwsh" })).toThrow(policyError);
+    expect(loadNodePty).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      name: "an async resolver result",
+      policy: Promise.resolve(null),
+    },
+    {
+      name: "an unfrozen policy",
+      policy: { requiredBoundaries: ["filesystem"] },
+    },
+    {
+      name: "an unfrozen boundary list",
+      policy: Object.freeze({ requiredBoundaries: ["filesystem"] }),
+    },
+    {
+      name: "an empty pinned policy",
+      policy: Object.freeze({ requiredBoundaries: Object.freeze([]) }),
+    },
+    {
+      name: "an unsupported policy field",
+      policy: Object.freeze({
+        requiredBoundaries: Object.freeze(["filesystem"]),
+        profile: "allow-all",
+      }),
+    },
+    {
+      name: "an unsupported boundary",
+      policy: Object.freeze({
+        requiredBoundaries: Object.freeze(["process"]),
+      }),
+    },
+  ])("rejects $name before loading node-pty", ({ policy }) => {
+    const loadNodePty = vi.fn();
+    const mgr = new PtyManager({
+      resolveSandboxPolicy: () => policy,
+      _deps: { loadNodePty },
+    });
+
+    let error;
+    try {
+      mgr.create({ shell: "pwsh" });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error).toMatchObject({
+      code: "ERR_PTY_SANDBOX_POLICY_INVALID",
+      sandboxReason: "invalid_sandbox_policy",
+      sandboxFailClosed: true,
+    });
+    expect(loadNodePty).not.toHaveBeenCalled();
   });
 });

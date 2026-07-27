@@ -3,7 +3,9 @@
  * WS bridge with a matching wsPort, and tears both down cleanly.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { EventEmitter } from "node:events";
+import path from "node:path";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import WebSocket from "ws";
 import {
   startWebShell,
@@ -123,9 +125,24 @@ describe("startWebShell", () => {
   it("close() is idempotent", async () => {
     // Second close on the same handle is a no-op — but we'll call it via a
     // fresh handle so the global afterAll doesn't fight us.
-    const local = await startWebShell({ ukeyManager: null });
+    const localPtyManager = new EventEmitter();
+    localPtyManager.shutdown = vi.fn();
+    const createPtyManager = vi.fn(async () => localPtyManager);
+    const projectRoot = path.resolve("trusted-web-shell-project");
+    const local = await startWebShell({
+      ukeyManager: null,
+      projectRoot,
+      createPtyManager,
+    });
+    expect(createPtyManager).toHaveBeenCalledWith({
+      config: undefined,
+      policyCwd: projectRoot,
+      resolveSandboxPolicy: undefined,
+    });
+    expect(local.ptyManager).toBe(localPtyManager);
     await local.close();
     await expect(local.close()).resolves.toBeUndefined();
+    expect(localPtyManager.shutdown).toHaveBeenCalledOnce();
   });
 
   it("fs.openDialog wired with no mainWindow returns main_window_unavailable error", async () => {

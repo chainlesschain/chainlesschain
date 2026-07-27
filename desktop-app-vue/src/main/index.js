@@ -968,13 +968,19 @@ class ChainlessChainApp {
     // The same manager is passed into startWebShell({ ptyManager }) below
     // when isWebShell is true, so sessions appear in both shells.
     try {
-      const { PtyManager } = require("./terminal/PtyManager");
+      const {
+        createPolicyAwarePtyManager,
+      } = require("./terminal/policy-aware-pty-manager");
       const { setupTerminalIpc } = require("./terminal/terminal-ipc");
       const {
         createTerminalConfirmation,
       } = require("./terminal/confirmation-dialog");
       const { ipcMain } = require("electron");
-      this.ptyManager = new PtyManager();
+      // Await the CLI ESM policy collector before registering terminal IPC.
+      // create() remains synchronous and can never race a lazy import.
+      this.ptyManager = await createPolicyAwarePtyManager({
+        policyCwd: process.cwd(),
+      });
       this._disposeTerminalIpc = setupTerminalIpc({
         ptyManager: this.ptyManager,
         ipcMain,

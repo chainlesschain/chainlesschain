@@ -23,8 +23,12 @@
 
 const EventEmitter = require("events");
 const { randomUUID } = require("crypto");
+const path = require("node:path");
 const { RingBuffer } = require("./RingBuffer");
-const { getDesktopProcessBroker } = require("../process/desktop-process-broker");
+const {
+  getDesktopProcessBroker,
+  validateDesktopPtySandboxPolicy,
+} = require("../process/desktop-process-broker");
 
 const DEFAULT_CONFIG = Object.freeze({
   shellWhitelist: ["pwsh", "cmd", "bash", "wsl"],
@@ -89,6 +93,35 @@ function resolveShellCmd(shell) {
   return { cmd: shell, args: [] };
 }
 
+function validatePinnedSandboxPolicy(policy) {
+  try {
+    validateDesktopPtySandboxPolicy(policy);
+    return policy;
+  } catch (cause) {
+    const error = new TypeError("invalid_pty_sandbox_policy");
+    error.code = "ERR_PTY_SANDBOX_POLICY_INVALID";
+    error.sandboxReason = "invalid_sandbox_policy";
+    error.sandboxFailClosed = true;
+    error.cause = cause;
+    throw error;
+  }
+}
+
+function desktopBrokerUnavailable(policy) {
+  const requiredBoundaries = [...(policy?.requiredBoundaries || [])];
+  const error = new Error(
+    `Desktop process broker is required for PTY sandbox boundaries: ${requiredBoundaries.join(", ")}`,
+  );
+  error.code = "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED";
+  error.sandboxReason = "desktop_process_broker_unavailable";
+  error.sandboxFailClosed = true;
+  error.requiredBoundaries = requiredBoundaries;
+  error.actualGuarantees = [];
+  error.missingBoundaries = [...requiredBoundaries];
+  error.sandboxBackend = null;
+  return error;
+}
+
 class PtyManager extends EventEmitter {
   /**
    * @param {object} [opts]
@@ -102,9 +135,21 @@ class PtyManager extends EventEmitter {
   constructor(opts = {}) {
     super();
     this.config = { ...DEFAULT_CONFIG, ...(opts.config || {}) };
+    const resolveSandboxPolicy =
+      opts.resolveSandboxPolicy ?? opts._deps?.resolveSandboxPolicy ?? null;
+    if (
+      resolveSandboxPolicy !== null &&
+      typeof resolveSandboxPolicy !== "function"
+    ) {
+      throw new TypeError("resolveSandboxPolicy must be a function or null");
+    }
+    this._policyCwd = path.resolve(opts.policyCwd || process.cwd());
+    this._resolveSandboxPolicy = resolveSandboxPolicy;
     this._deps = {
       loadNodePty: opts._deps?.loadNodePty || (() => require("node-pty")),
       spawnPty: opts._deps?.spawnPty || null,
+      getProcessBroker:
+        opts._deps?.getProcessBroker || (() => getDesktopProcessBroker()),
       now: opts._deps?.now || (() => Date.now()),
     };
     /** @type {Map<string, PtySession>} */
@@ -144,6 +189,31 @@ class PtyManager extends EventEmitter {
       throw new Error("shell_not_allowed");
     }
 
+    const cwd = req.cwd || this.config.defaultCwd || process.cwd();
+    // req.cwd can originate in the renderer, WebSocket, or mobile command
+    // payload. It may discover a stricter policy, but it must never replace
+    // the fixed host root captured when this manager was constructed.
+    const sandboxPolicy = this._resolveSandboxPolicy
+      ? validatePinnedSandboxPolicy(
+          this._resolveSandboxPolicy({
+            workspaceCwd: this._policyCwd,
+            executionCwd: cwd,
+          }),
+        )
+      : null;
+    const desktopBroker = this._deps.getProcessBroker();
+    const brokerSpawnPty =
+      typeof desktopBroker?.spawnPty === "function"
+        ? desktopBroker.spawnPty.bind(desktopBroker)
+        : null;
+    if (sandboxPolicy && !brokerSpawnPty) {
+      throw desktopBrokerUnavailable(sandboxPolicy);
+    }
+    // A test-only/custom spawn seam may preserve legacy no-policy behavior,
+    // but can never stand in for the Desktop broker when boundaries are
+    // required. Strict policy always reaches the auditable broker path.
+    const spawnPty = brokerSpawnPty || this._deps.spawnPty;
+
     let pty;
     try {
       pty = this._deps.loadNodePty();
@@ -153,7 +223,6 @@ class PtyManager extends EventEmitter {
       throw err;
     }
 
-    const cwd = req.cwd || this.config.defaultCwd || process.cwd();
     const cols = Number.isFinite(req.cols) ? req.cols : 80;
     const rows = Number.isFinite(req.rows) ? req.rows : 24;
     const { cmd, args } = resolveShellCmd(shell);
@@ -164,18 +233,23 @@ class PtyManager extends EventEmitter {
       req.env && typeof req.env === "object" && !Array.isArray(req.env)
         ? req.env
         : {};
-    const spawnPty =
-      this._deps.spawnPty || getDesktopProcessBroker()?.spawnPty;
-    const spawnOptions = {
+    const nativeSpawnOptions = {
       name: "xterm-256color",
       cols,
       rows,
       cwd,
       env: { ...process.env, ...extraEnv },
     };
+    const brokerSpawnOptions = {
+      ...nativeSpawnOptions,
+      origin: "terminal:pty",
+      policy: "allow",
+      scope: "terminal",
+      ...(sandboxPolicy ? { sandboxPolicy } : {}),
+    };
     const proc = spawnPty
-      ? spawnPty(pty, cmd, args, spawnOptions)
-      : pty.spawn(cmd, args, spawnOptions);
+      ? spawnPty(pty, cmd, args, brokerSpawnOptions)
+      : pty.spawn(cmd, args, nativeSpawnOptions);
 
     const sessionId = randomUUID();
     const session = new PtySession({
