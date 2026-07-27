@@ -593,12 +593,37 @@ OFD，bwrap 通过 `--perms 0400 --ro-bind-data` 把封存源码挂入固定目�
 spawn 前原地 truncate/write/fsync 同一 inode，证明 host 随后执行 replacement，而沙箱仍
 执行封存的旧源码，目标模式为 `0400` 且不可写/chmod；child 同时验证
 `NoNewPrivs:1`，以及 inheritable/permitted/effective/ambient/bounding capability 集均为零。
-该快照只覆盖 plugin entry source，不覆盖同插件其他源码/包元数据、Node runtime、
+该提交自身只覆盖 plugin entry source，不覆盖同插件其他源码/包元数据、Node runtime、
 dynamic loader/DSO 或完整启动链，也不是内核 seal 或跨平台 handle-atomic 保证，因此继续
 记录 `handleAtomic:false`。不支持 `O_TMPFILE`、只读 reopen 或 bwrap `--ro-bind-data`
 的环境 fail-closed；generic PTY/background、Linux 通用 Hook/MCP/LSP/Monitor 强 backend、
 动态链接/带解释器及其他 `ET_DYN` native、Desktop 权威 project binding 与跨平台
 handle-atomic 仍是残项，P1-4/P1-9 均保持 🟡。
+
+**2026-07-28 P1-9 Linux Plugin Node 有界 regular-file tree snapshot 增量**：
+`c9b186afcb` 在 entry-source snapshot 上继续封存 `pinLinuxPluginTree()` 枚举出的全部普通
+文件；最多 256 个文件、聚合最多 256 MiB，任一上限或复制/回读/只读 reopen 失败均在
+bwrap probe 前 fail-closed。entry 目标仍固定为 `0400`，其余文件按原 source 任一执行位
+归一为 `0500`，否则为 `0400`；每个文件的 policy-probe/final mount 使用独立只读 OFD，
+原始 plugin file FD 不进入 target。Node policy digest 升为 v4，绑定按 destination 排序的
+tree membership、source file-id/mtime/mode、SHA-256、bytes、source/target mode 及聚合
+digest，不绑定匿名 inode 或 FD 数字。成功审计新增 `pluginTreeContentSnapshot:true`、
+scope `all-pinned-plugin-regular-files`、mechanism
+`verified-o_tmpfile-copy-bwrap-ro-bind-data-v1`、文件数/字节数/聚合 digest，并明确
+consistency `per-file-pin-to-launch`、`pluginTreeSnapshotContractBound:false` 与
+`pluginTreeSnapshotAtomic:false`；Broker 拒绝不完整、伪造 complete/atomic、超限或未绑定
+真实 Linux bwrap policy/backend/guarantees 的证据。
+[run 30293216204](https://github.com/chainlesschain/chainlesschain/actions/runs/30293216204)
+的 Windows、macOS 15、Ubuntu 24.04 strict job 全绿；Ubuntu real-bwrap 对 manifest、entry、
+dependency、config、allowed 五个 destination 做 exact-set 验收，全部唯一使用
+`--ro-bind-data`，runtime 仍使用 `--ro-bind-fd`。live 在 plan 返回后、spawn 前分别原地
+重写 entry 与 dependency 的同一 inode，证明沙箱仍执行/读取封存的 original，而宿主随后
+执行/读取 replacement；目标文件不可写/chmod，并继续验证 `NoNewPrivs:1` 与全部 capability
+集为零。该保证是逐文件 pin-to-launch，不是整棵树同一瞬间的原子快照，也未把 tree bytes
+绑定到签名/SBOM；Node runtime、dynamic loader/DSO、bwrap 完整启动链、generic
+PTY/background、Linux 通用 Hook/MCP/LSP/Monitor 强 backend、动态链接/带解释器及其他
+`ET_DYN` native、Desktop 权威 project binding 与跨平台 handle-atomic 仍未覆盖，
+`handleAtomic:false`，P1-4/P1-9 均保持 🟡。
 
 **2026-07-27 P1-9 非直接执行面与 Desktop PTY 增量**：`7ae04a47e8` /
 `860bc7a0fc` 固定 `run_code` policy 并让未缓存 Python discovery 在严格策略下前置拒绝，
