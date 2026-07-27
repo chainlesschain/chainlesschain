@@ -101,6 +101,23 @@ describe("generatePkgConfig", () => {
     expect(assetStr).toContain(templatesDir.replace(/\\/g, "/"));
   });
 
+  it("embeds the Windows helper and its source-integrity contract", () => {
+    const r = callGenerator();
+    const synth = JSON.parse(fs.readFileSync(r.pkgConfigFile, "utf-8"));
+    const brokerRoot = path
+      .join(cliRoot, "src", "lib", "process-execution-broker")
+      .replace(/\\/g, "/");
+    expect(synth.pkg.assets).toEqual(
+      expect.arrayContaining([
+        `${brokerRoot}/windows-sandbox-helper.dll`,
+        `${brokerRoot}/windows-sandbox.cs`,
+      ]),
+    );
+    expect(synth.pkg.assets).not.toEqual(
+      expect.arrayContaining([expect.stringMatching(/\.ps1(?:$|[*])/i)]),
+    );
+  });
+
   it("assets include prebuildsDir when provided", () => {
     const prebuildsDir = path.join(tempDir, "prebuilds");
     fs.mkdirSync(prebuildsDir);

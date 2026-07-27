@@ -5,6 +5,11 @@ on:
     branches: [main]
     paths:
       - "packages/cli/src/lib/process-execution-broker/**"
+      - "packages/cli/scripts/build-windows-sandbox-helper.ps1"
+      - "packages/cli/src/lib/packer/pkg-config-generator.js"
+      - "packages/cli/__tests__/unit/packer-pkg-config-generator.test.js"
+      - "packages/cli/package.json"
+      - ".gitattributes"
       - "packages/cli/src/lib/plugin-runtime/bin.js"
       - "packages/cli/src/runtime/agent-core.js"
       - "packages/cli/src/lib/agent-sandbox.js"
@@ -22,6 +27,11 @@ on:
     branches: [main]
     paths:
       - "packages/cli/src/lib/process-execution-broker/**"
+      - "packages/cli/scripts/build-windows-sandbox-helper.ps1"
+      - "packages/cli/src/lib/packer/pkg-config-generator.js"
+      - "packages/cli/__tests__/unit/packer-pkg-config-generator.test.js"
+      - "packages/cli/package.json"
+      - ".gitattributes"
       - "packages/cli/src/lib/plugin-runtime/bin.js"
       - "packages/cli/src/runtime/agent-core.js"
       - "packages/cli/src/lib/agent-sandbox.js"
@@ -61,6 +71,12 @@ jobs:
           cache: "npm"
           cache-dependency-path: package-lock.json
       - uses: ./.github/actions/setup-node-deps
+
+      - name: Verify Windows helper source contract
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: >-
+          ./packages/cli/scripts/build-windows-sandbox-helper.ps1 -Check
 
       - name: Install bubblewrap for Linux kernel boundary
         if: runner.os == 'Linux'

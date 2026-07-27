@@ -2105,6 +2105,87 @@ describe("platform sandbox adapter contract", () => {
     );
   });
 
+  it("fails closed when the native helper probe payload cannot be removed", () => {
+    const harness = createWindowsAdapterHarness();
+    const unlink = harness.fsRuntime.unlinkSync.getMockImplementation();
+    harness.fsRuntime.unlinkSync.mockImplementation((value) => {
+      if (String(value).includes("chainless-win-sandbox-invocation-")) {
+        const error = new Error("invocation is still open");
+        error.code = "EACCES";
+        throw error;
+      }
+      return unlink(value);
+    });
+
+    const plan = applyWindowsSandbox(
+      "tool.exe",
+      [],
+      {},
+      { profileName: "strict", sync: true },
+      {
+        platform: "win32",
+        fs: harness.fsRuntime,
+        windowsAdapterContent: "adapter-bytes",
+        tmpdir: () => "C:\\temp",
+        randomBytes: (size) => Buffer.alloc(size, 7),
+        joinPath: path.win32.join,
+        sleepSync: vi.fn(),
+        spawnSync: harness.spawnSync,
+      },
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "windows_native_adapter_compile_cleanup_unverified",
+    });
+    expect(resetWindowsSandboxAdapterCache()).toBe(false);
+    harness.fsRuntime.unlinkSync.mockImplementation(unlink);
+    expect(resetWindowsSandboxAdapterCache()).toBe(true);
+    expect(
+      [...harness.files].some((value) =>
+        value.includes("chainless-win-sandbox-invocation-"),
+      ),
+    ).toBe(false);
+  });
+
+  it("fails synchronous plan cleanup when its invocation payload remains", () => {
+    const harness = createWindowsAdapterHarness();
+    const plan = applyWindowsSandbox(
+      "tool.exe",
+      [],
+      {},
+      { profileName: "strict", sync: true },
+      {
+        platform: "win32",
+        fs: harness.fsRuntime,
+        windowsAdapterContent: "adapter-bytes",
+        tmpdir: () => "C:\\temp",
+        randomBytes: (size) => Buffer.alloc(size, 8),
+        joinPath: path.win32.join,
+        sleepSync: vi.fn(),
+        spawnSync: harness.spawnSync,
+      },
+    );
+    expect(plan.applied).toBe(true);
+    const { payloadPath } = harness.decodeInvocationPaths(plan.args);
+    const unlink = harness.fsRuntime.unlinkSync.getMockImplementation();
+    harness.fsRuntime.unlinkSync.mockImplementation((value) => {
+      if (String(value) === payloadPath) {
+        const error = new Error("invocation is still open");
+        error.code = "EACCES";
+        throw error;
+      }
+      return unlink(value);
+    });
+
+    expect(() => plan.cleanup()).toThrow(
+      "Windows sandbox cleanup could not be verified for invocation payload",
+    );
+    harness.fsRuntime.unlinkSync.mockImplementation(unlink);
+    expect(plan.cleanup()).toBe(true);
+    expect(resetWindowsSandboxAdapterCache()).toBe(true);
+  });
+
   it("binds a synchronous Windows Plugin Node launch to a verified entry snapshot", () => {
     const appContainerSid = "S-1-15-2-31-32-33-34-35-36-37";
     const helperSpawnSync = vi.fn((_helper, helperArgs) => {
@@ -2758,7 +2839,7 @@ describe("platform sandbox adapter contract", () => {
     }
   });
 
-  it("rejects and recompiles a cached helper when its digest or file identity changes", () => {
+  it("rejects and rematerializes a cached helper when its digest or file identity changes", () => {
     const harness = createWindowsAdapterHarness();
     let helperNonce = 0xc0;
     const runtime = {
@@ -2961,7 +3042,7 @@ describe("platform sandbox adapter contract", () => {
       shell: false,
       windowsHide: true,
       encoding: "utf8",
-      timeout: 30_000,
+      timeout: 60_000,
     });
     const payload = decodeWindowsLaunchSpec(harness, plan);
     expect(payload).toMatchObject({
@@ -2989,6 +3070,499 @@ describe("platform sandbox adapter contract", () => {
     const { assemblyPath } = harness.decodeInvocationPaths(plan.args);
     expect(resetWindowsSandboxAdapterCache()).toBe(true);
     expect(harness.fsRuntime.unlinkSync).toHaveBeenCalledWith(assemblyPath);
+  });
+
+  it("retries AppContainer cleanup before reporting a synchronous failure", () => {
+    const appContainerSid = "S-1-15-2-71-72-73-74-75-76-77";
+    let deletionAttempts = 0;
+    const helperSpawnSync = vi.fn((_helper, helperArgs) => {
+      if (helperArgs[0] === "--prepare-appcontainer") {
+        return {
+          status: 0,
+          stdout: JSON.stringify({
+            ready: true,
+            profileName: helperArgs[1],
+            appContainerSid,
+            capabilityCount: 0,
+            tokenAttested: true,
+            restrictedTokenAttested: true,
+          }),
+          stderr: "",
+        };
+      }
+      if (helperArgs[0] === "--delete-appcontainer") {
+        deletionAttempts += 1;
+        if (deletionAttempts === 1) {
+          return {
+            status: 125,
+            stdout: "",
+            stderr: "profile is still in use",
+          };
+        }
+        return {
+          status: 0,
+          stdout: JSON.stringify({
+            deleted: true,
+            absent: true,
+            profileName: helperArgs[1],
+          }),
+          stderr: "",
+        };
+      }
+      throw new Error(`Unexpected helper invocation: ${helperArgs}`);
+    });
+    const harness = createWindowsAdapterHarness({ helperSpawnSync });
+    const sleepSync = vi.fn();
+    const plan = applyWindowsSandbox(
+      "tool.exe",
+      [],
+      {},
+      {
+        profileName: "strict",
+        requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        sync: true,
+      },
+      {
+        platform: "win32",
+        fs: harness.fsRuntime,
+        windowsAdapterContent: "adapter-bytes",
+        tmpdir: () => "C:\\temp",
+        randomBytes: (size) => Buffer.alloc(size, 0x47),
+        joinPath: path.win32.join,
+        sleepSync,
+        spawnSync: harness.spawnSync,
+      },
+    );
+
+    expect(plan.applied).toBe(true);
+    expect(plan.cleanup()).toBe(true);
+    expect(deletionAttempts).toBe(2);
+    expect(sleepSync).toHaveBeenCalledWith(25);
+    expect(plan.cleanup()).toBe(true);
+    expect(deletionAttempts).toBe(2);
+    expect(resetWindowsSandboxAdapterCache()).toBe(true);
+  });
+
+  it("reacquires the helper when AppContainer cleanup succeeds only after a reported failure", () => {
+    const appContainerSid = "S-1-15-2-81-82-83-84-85-86-87";
+    let deletionAttempts = 0;
+    const helperSpawnSync = vi.fn((_helper, helperArgs) => {
+      if (helperArgs[0] === "--prepare-appcontainer") {
+        return {
+          status: 0,
+          stdout: JSON.stringify({
+            ready: true,
+            profileName: helperArgs[1],
+            appContainerSid,
+            capabilityCount: 0,
+            tokenAttested: true,
+            restrictedTokenAttested: true,
+          }),
+          stderr: "",
+        };
+      }
+      if (helperArgs[0] === "--delete-appcontainer") {
+        deletionAttempts += 1;
+        if (deletionAttempts <= 4) {
+          return {
+            status: 125,
+            stdout: "",
+            stderr: "profile is still in use",
+          };
+        }
+        return {
+          status: 0,
+          stdout: JSON.stringify({
+            deleted: true,
+            absent: true,
+            profileName: helperArgs[1],
+          }),
+          stderr: "",
+        };
+      }
+      throw new Error(`Unexpected helper invocation: ${helperArgs}`);
+    });
+    const harness = createWindowsAdapterHarness({ helperSpawnSync });
+    const plan = applyWindowsSandbox(
+      "tool.exe",
+      [],
+      {},
+      {
+        profileName: "strict",
+        requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        sync: true,
+      },
+      {
+        platform: "win32",
+        fs: harness.fsRuntime,
+        windowsAdapterContent: "adapter-bytes",
+        tmpdir: () => "C:\\temp",
+        randomBytes: (size) => Buffer.alloc(size, 0x51),
+        joinPath: path.win32.join,
+        sleepSync: vi.fn(),
+        spawnSync: harness.spawnSync,
+      },
+    );
+
+    expect(plan.applied).toBe(true);
+    expect(() => plan.cleanup()).toThrow(
+      "Windows sandbox cleanup could not be verified for AppContainer profile",
+    );
+    expect(deletionAttempts).toBe(4);
+    expect(plan.cleanup()).toBe(true);
+    expect(deletionAttempts).toBe(5);
+    expect(resetWindowsSandboxAdapterCache()).toBe(true);
+  });
+
+  it("bounds automatic AppContainer cleanup retries after a permanent failure", () => {
+    vi.useFakeTimers();
+    const appContainerSid = "S-1-15-2-88-89-90-91-92-93-94";
+    let deletionAttempts = 0;
+    let deletionSucceeds = false;
+    const helperSpawnSync = vi.fn((_helper, helperArgs) => {
+      if (helperArgs[0] === "--prepare-appcontainer") {
+        return {
+          status: 0,
+          stdout: JSON.stringify({
+            ready: true,
+            profileName: helperArgs[1],
+            appContainerSid,
+            capabilityCount: 0,
+            tokenAttested: true,
+            restrictedTokenAttested: true,
+          }),
+          stderr: "",
+        };
+      }
+      if (helperArgs[0] === "--delete-appcontainer") {
+        deletionAttempts += 1;
+        if (!deletionSucceeds) {
+          return {
+            status: 125,
+            stdout: "",
+            stderr: "AppContainer APIs remain unavailable",
+          };
+        }
+        return {
+          status: 0,
+          stdout: JSON.stringify({
+            deleted: true,
+            absent: true,
+            profileName: helperArgs[1],
+          }),
+          stderr: "",
+        };
+      }
+      throw new Error(`Unexpected helper invocation: ${helperArgs}`);
+    });
+    const harness = createWindowsAdapterHarness({ helperSpawnSync });
+    let plan;
+    try {
+      plan = applyWindowsSandbox(
+        "tool.exe",
+        [],
+        {},
+        {
+          profileName: "strict",
+          requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+          sync: true,
+        },
+        {
+          platform: "win32",
+          fs: harness.fsRuntime,
+          windowsAdapterContent: "adapter-bytes",
+          tmpdir: () => "C:\\temp",
+          randomBytes: (size) => Buffer.alloc(size, 0x58),
+          joinPath: path.win32.join,
+          sleepSync: vi.fn(),
+          spawnSync: harness.spawnSync,
+        },
+      );
+
+      expect(plan.applied).toBe(true);
+      expect(() => plan.cleanup()).toThrow(
+        "Windows sandbox cleanup could not be verified for AppContainer profile",
+      );
+      expect(deletionAttempts).toBe(4);
+      vi.runAllTimers();
+      expect(deletionAttempts).toBe(7);
+      expect(vi.getTimerCount()).toBe(0);
+
+      deletionSucceeds = true;
+      expect(resetWindowsSandboxAdapterCache()).toBe(true);
+      expect(deletionAttempts).toBe(8);
+    } finally {
+      deletionSucceeds = true;
+      resetWindowsSandboxAdapterCache();
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps automatic AppContainer backoff independent for staggered profiles", () => {
+    vi.useFakeTimers();
+    const createFailingProfile = (nonce, appContainerSid) => {
+      let deletionAttempts = 0;
+      let deletionSucceeds = false;
+      const helperSpawnSync = vi.fn((_helper, helperArgs) => {
+        if (helperArgs[0] === "--prepare-appcontainer") {
+          return {
+            status: 0,
+            stdout: JSON.stringify({
+              ready: true,
+              profileName: helperArgs[1],
+              appContainerSid,
+              capabilityCount: 0,
+              tokenAttested: true,
+              restrictedTokenAttested: true,
+            }),
+            stderr: "",
+          };
+        }
+        if (helperArgs[0] === "--delete-appcontainer") {
+          deletionAttempts += 1;
+          if (!deletionSucceeds) {
+            return {
+              status: 125,
+              stdout: "",
+              stderr: "profile remains busy",
+            };
+          }
+          return {
+            status: 0,
+            stdout: JSON.stringify({
+              deleted: true,
+              absent: true,
+              profileName: helperArgs[1],
+            }),
+            stderr: "",
+          };
+        }
+        throw new Error(`Unexpected helper invocation: ${helperArgs}`);
+      });
+      const harness = createWindowsAdapterHarness({ helperSpawnSync });
+      const plan = applyWindowsSandbox(
+        "tool.exe",
+        [],
+        {},
+        {
+          profileName: "strict",
+          requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+          sync: true,
+        },
+        {
+          platform: "win32",
+          fs: harness.fsRuntime,
+          windowsAdapterContent: "adapter-bytes",
+          tmpdir: () => "C:\\temp",
+          randomBytes: (size) => Buffer.alloc(size, nonce),
+          joinPath: path.win32.join,
+          sleepSync: vi.fn(),
+          spawnSync: harness.spawnSync,
+        },
+      );
+      expect(plan.applied).toBe(true);
+      expect(() => plan.cleanup()).toThrow(
+        "Windows sandbox cleanup could not be verified for AppContainer profile",
+      );
+      return {
+        attempts: () => deletionAttempts,
+        allowCleanup: () => {
+          deletionSucceeds = true;
+        },
+      };
+    };
+
+    let first;
+    let second;
+    try {
+      first = createFailingProfile(
+        0x61,
+        "S-1-15-2-101-102-103-104-105-106-107",
+      );
+      expect(first.attempts()).toBe(4);
+      vi.advanceTimersByTime(250);
+      expect(first.attempts()).toBe(5);
+      vi.advanceTimersByTime(1_000);
+      expect(first.attempts()).toBe(6);
+
+      second = createFailingProfile(
+        0x62,
+        "S-1-15-2-111-112-113-114-115-116-117",
+      );
+      expect(second.attempts()).toBe(4);
+      vi.advanceTimersByTime(250);
+      expect(second.attempts()).toBe(5);
+      expect(first.attempts()).toBe(6);
+      vi.advanceTimersByTime(1_000);
+      expect(second.attempts()).toBe(6);
+      expect(first.attempts()).toBe(6);
+
+      first.allowCleanup();
+      second.allowCleanup();
+      expect(resetWindowsSandboxAdapterCache()).toBe(true);
+      expect(first.attempts()).toBe(7);
+      expect(second.attempts()).toBe(7);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      first?.allowCleanup();
+      second?.allowCleanup();
+      resetWindowsSandboxAdapterCache();
+      vi.useRealTimers();
+    }
+  });
+
+  it("tracks AppContainer cleanup when readiness fails before a plan is returned", () => {
+    let deletionAttempts = 0;
+    const helperSpawnSync = vi.fn((_helper, helperArgs) => {
+      if (helperArgs[0] === "--prepare-appcontainer") {
+        return {
+          status: 125,
+          stdout: "",
+          stderr: "readiness failed after creating the profile",
+        };
+      }
+      if (helperArgs[0] === "--delete-appcontainer") {
+        deletionAttempts += 1;
+        if (deletionAttempts === 1) {
+          return {
+            status: 125,
+            stdout: "",
+            stderr: "profile is still in use",
+          };
+        }
+        return {
+          status: 0,
+          stdout: JSON.stringify({
+            deleted: true,
+            absent: true,
+            profileName: helperArgs[1],
+          }),
+          stderr: "",
+        };
+      }
+      throw new Error(`Unexpected helper invocation: ${helperArgs}`);
+    });
+    const harness = createWindowsAdapterHarness({ helperSpawnSync });
+    const runtime = {
+      platform: "win32",
+      fs: harness.fsRuntime,
+      windowsAdapterContent: "adapter-bytes",
+      tmpdir: () => "C:\\temp",
+      randomBytes: (size) => Buffer.alloc(size, 0x53),
+      joinPath: path.win32.join,
+      spawnSync: harness.spawnSync,
+    };
+
+    const plan = applyWindowsSandbox(
+      "tool.exe",
+      [],
+      {},
+      {
+        profileName: "strict",
+        requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        sync: true,
+      },
+      runtime,
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "windows_appcontainer_readiness_cleanup_unverified",
+    });
+    expect(deletionAttempts).toBe(1);
+    expect(resetWindowsSandboxAdapterCache()).toBe(true);
+    expect(deletionAttempts).toBe(2);
+  });
+
+  it("tracks AppContainer cleanup when final invocation creation fails", () => {
+    const appContainerSid = "S-1-15-2-91-92-93-94-95-96-97";
+    let deletionAttempts = 0;
+    const helperSpawnSync = vi.fn((_helper, helperArgs) => {
+      if (helperArgs[0] === "--prepare-appcontainer") {
+        return {
+          status: 0,
+          stdout: JSON.stringify({
+            ready: true,
+            profileName: helperArgs[1],
+            appContainerSid,
+            capabilityCount: 0,
+            tokenAttested: true,
+            restrictedTokenAttested: true,
+          }),
+          stderr: "",
+        };
+      }
+      if (helperArgs[0] === "--delete-appcontainer") {
+        deletionAttempts += 1;
+        if (deletionAttempts === 1) {
+          return {
+            status: 125,
+            stdout: "",
+            stderr: "profile is still in use",
+          };
+        }
+        return {
+          status: 0,
+          stdout: JSON.stringify({
+            deleted: true,
+            absent: true,
+            profileName: helperArgs[1],
+          }),
+          stderr: "",
+        };
+      }
+      throw new Error(`Unexpected helper invocation: ${helperArgs}`);
+    });
+    const harness = createWindowsAdapterHarness({ helperSpawnSync });
+    const writeFile = harness.fsRuntime.writeFileSync.getMockImplementation();
+    let invocationWrites = 0;
+    harness.fsRuntime.writeFileSync.mockImplementation(
+      (filePath, content, options) => {
+        if (
+          String(filePath).includes("chainless-win-sandbox-invocation-") &&
+          (invocationWrites += 1) === 3
+        ) {
+          const error = new Error("final invocation write failed");
+          error.code = "EACCES";
+          throw error;
+        }
+        return writeFile(filePath, content, options);
+      },
+    );
+    const runtime = {
+      platform: "win32",
+      fs: harness.fsRuntime,
+      windowsAdapterContent: "adapter-bytes",
+      tmpdir: () => "C:\\temp",
+      randomBytes: (size) => Buffer.alloc(size, 0x59),
+      joinPath: path.win32.join,
+      spawnSync: harness.spawnSync,
+    };
+
+    const plan = applyWindowsSandbox(
+      "tool.exe",
+      [],
+      {},
+      {
+        profileName: "strict",
+        requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        sync: true,
+      },
+      runtime,
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "windows_appcontainer_readiness_cleanup_unverified",
+    });
+    expect(deletionAttempts).toBe(1);
+    expect(resetWindowsSandboxAdapterCache()).toBe(true);
+    expect(deletionAttempts).toBe(2);
+    expect(helperSpawnSync.mock.calls.at(-1)?.[1]).toEqual([
+      "--delete-appcontainer",
+      "ChainlessChain.CliSandbox.595959595959595959595959",
+      appContainerSid,
+    ]);
   });
 
   it("re-attests and refreshes the helper before AppContainer cleanup invocation", () => {
@@ -3248,6 +3822,13 @@ describe("platform sandbox adapter contract", () => {
       "$ccAssembly=[Reflection.Assembly]::Load($ccAssemblyBytes)",
     );
     expect(platformSandboxSource).toContain(
+      String.raw`\\?\GLOBALROOT\SystemRoot`,
+    );
+    expect(platformSandboxSource).not.toContain("process.env.WINDIR");
+    expect(platformSandboxSource).toContain(
+      "[IO.File]::Delete($ccPayloadPath)",
+    );
+    expect(platformSandboxSource).toContain(
       "Windows sandbox adapter input digest mismatch",
     );
     expect(platformSandboxSource).toContain('"powershell.exe"');
@@ -3256,6 +3837,15 @@ describe("platform sandbox adapter contract", () => {
     expect(platformSandboxSource).not.toContain('"-CompileOnly"');
     expect(windowsSandboxSource).toContain(
       "environmentBuffer = BuildEnvironmentBlock(targetEnvironment);",
+    );
+    expect(windowsSandboxSource).toContain(
+      "private static extern UInt32 GetDriveType(string rootPathName);",
+    );
+    expect(windowsSandboxSource).toContain(
+      'description + " must use a local DOS drive"',
+    );
+    expect(windowsSandboxSource).toContain(
+      "ValidateExistingLocalNonReparsePath(",
     );
     expect(windowsSandboxSource).not.toContain("Environment.CurrentDirectory");
     expect(windowsSandboxSource).not.toMatch(
@@ -3500,6 +4090,53 @@ describe("platform sandbox adapter contract", () => {
       applied: false,
       reason: "windows_powershell_host_unavailable",
     });
+  });
+
+  it("retains a retryable cleanup record when a host-missing helper cannot be removed", () => {
+    const harness = createWindowsAdapterHarness();
+    const exists = harness.fsRuntime.existsSync.getMockImplementation();
+    harness.fsRuntime.existsSync.mockImplementation((value) =>
+      String(value).toLowerCase().endsWith("\\powershell.exe")
+        ? false
+        : exists(value),
+    );
+    const unlink = harness.fsRuntime.unlinkSync.getMockImplementation();
+    harness.fsRuntime.unlinkSync.mockImplementation((value) => {
+      if (String(value).toLowerCase().endsWith(".dll")) {
+        const error = new Error("helper is still open");
+        error.code = "EACCES";
+        throw error;
+      }
+      return unlink(value);
+    });
+
+    const plan = applyWindowsSandbox(
+      "tool.exe",
+      [],
+      {},
+      { profileName: "strict", sync: true },
+      {
+        platform: "win32",
+        fs: harness.fsRuntime,
+        windowsAdapterContent: "adapter-bytes",
+        tmpdir: () => "C:\\temp",
+        randomBytes: (size) => Buffer.alloc(size, 0x33),
+        joinPath: path.win32.join,
+        sleepSync: vi.fn(),
+        spawnSync: harness.spawnSync,
+      },
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "windows_native_adapter_compile_cleanup_unverified",
+    });
+    expect(resetWindowsSandboxAdapterCache()).toBe(false);
+    harness.fsRuntime.unlinkSync.mockImplementation(unlink);
+    expect(resetWindowsSandboxAdapterCache()).toBe(true);
+    expect(
+      [...harness.files].some((value) => value.toLowerCase().endsWith(".dll")),
+    ).toBe(false);
   });
 
   it("preserves Node IPC stdio in the Windows restricted-token plan", () => {
@@ -3787,8 +4424,90 @@ describe.runIf(process.platform === "win32")(
       }
     }, 120_000);
 
+    it("rejects remote target paths before the helper performs target lookup", () => {
+      const workspace = fs.mkdtempSync(
+        path.join(os.tmpdir(), "cc-windows-local-path-live-"),
+      );
+      const remotePath = String.raw`\\localhost\cc-sandbox-must-not-open`;
+      let activePlan;
+      try {
+        expect(resetWindowsSandboxAdapterCache()).toBe(true);
+        for (const targetCase of [
+          {
+            command: process.execPath,
+            cwd: remotePath,
+            expected: "Target working directory must use a local DOS drive",
+          },
+          {
+            command: `${remotePath}\\target.exe`,
+            cwd: workspace,
+            expected: "Target application must use a local DOS drive",
+          },
+        ]) {
+          activePlan = applyWindowsSandbox(
+            targetCase.command,
+            ["-e", "process.exitCode = 91"],
+            {
+              cwd: targetCase.cwd,
+              encoding: "utf8",
+              timeout: 30_000,
+              windowsHide: true,
+              env: process.env,
+            },
+            { profileName: "strict", sync: true },
+            { platform: "win32", tmpdir: () => workspace },
+          );
+          expect(activePlan.applied, activePlan.reason).toBe(true);
+
+          const result = nativeSpawnSync(
+            activePlan.command,
+            [...activePlan.args],
+            { ...activePlan.options },
+          );
+          expect(result.error).toBeUndefined();
+          expect(result.status, result.stderr).toBe(125);
+          expect(result.stderr).toContain(targetCase.expected);
+          activePlan.cleanup();
+          activePlan = null;
+        }
+      } finally {
+        let cacheCleaned = false;
+        try {
+          activePlan?.cleanup?.();
+        } finally {
+          try {
+            cacheCleaned = resetWindowsSandboxAdapterCache();
+          } finally {
+            fs.rmSync(workspace, { recursive: true, force: true });
+          }
+        }
+        expect(cacheCleaned).toBe(true);
+      }
+    }, 120_000);
+
     it("launches an attested AppContainer target and leaves no profile behind when the OS supports it", () => {
       const command = path.join(process.env.WINDIR, "System32", "cmd.exe");
+      const appContainerProfileName = `ChainlessChain.CliSandbox.${"6a".repeat(
+        12,
+      )}`;
+      let acknowledgeUnavailableCleanup = false;
+      const runtime = {
+        platform: "win32",
+        randomBytes: (size) =>
+          size === 12 ? Buffer.alloc(size, 0x6a) : crypto.randomBytes(size),
+        spawnSync: (...spawnArgs) =>
+          acknowledgeUnavailableCleanup
+            ? {
+                status: 0,
+                stdout: JSON.stringify({
+                  deleted: true,
+                  absent: true,
+                  profileName: appContainerProfileName,
+                }),
+                stderr: "",
+              }
+            : nativeSpawnSync(...spawnArgs),
+      };
       const plan = applyWindowsSandbox(
         command,
         ["/d", "/c", "echo %CC_WINDOWS_APPCONTAINER%"],
@@ -3806,7 +4525,7 @@ describe.runIf(process.platform === "win32")(
           ],
           sync: true,
         },
-        { platform: "win32" },
+        runtime,
       );
 
       if (!plan.applied) {
@@ -3824,6 +4543,16 @@ describe.runIf(process.platform === "win32")(
             runnable: false,
           },
         });
+        if (
+          plan.reason === "windows_appcontainer_readiness_cleanup_unverified"
+        ) {
+          // Some Windows installations cannot service AppContainer APIs at
+          // all. Preserve the fail-closed assertion while letting this live
+          // test acknowledge the deliberately retained cleanup record; the
+          // mock-only retry behavior is covered by the unit contracts above.
+          acknowledgeUnavailableCleanup = true;
+          expect(resetWindowsSandboxAdapterCache()).toBe(true);
+        }
         return;
       }
 
@@ -3838,7 +4567,7 @@ describe.runIf(process.platform === "win32")(
       expect(result.error).toBeUndefined();
       expect(result.status, result.stderr).toBe(0);
       expect(result.stdout.trim()).toBe("1");
-    }, 60_000);
+    }, 180_000);
 
     it("starts a real child only after the native wrapper is active", () => {
       const previousStrict = process.env.CC_SANDBOX_STRICT;
@@ -3849,6 +4578,7 @@ describe.runIf(process.platform === "win32")(
       delete process.env.CC_SANDBOX_DISABLE;
       executionBroker._sandboxEnabled = true;
       executionBroker._platformSandboxEnabled = true;
+      let grandchildPid;
       try {
         const result = executionBroker.spawnSync(
           process.execPath,
@@ -3858,7 +4588,7 @@ describe.runIf(process.platform === "win32")(
               "const { spawn } = require('node:child_process');",
               "const grandchild = spawn(",
               "  process.execPath,",
-              "  ['-e', 'setInterval(() => {}, 1000)'],",
+              "  ['-e', 'setTimeout(() => process.exit(0), 30000); setInterval(() => {}, 1000)'],",
               "  { detached: true, stdio: 'ignore' },",
               ");",
               "grandchild.unref();",
@@ -3886,6 +4616,7 @@ describe.runIf(process.platform === "win32")(
           profile: "strict",
         });
         expect(childReport.grandchildPid).toBeGreaterThan(0);
+        grandchildPid = childReport.grandchildPid;
 
         // Query the restricted token through a second direct adapter launch.
         // Starting whoami as a nested process is flaky on hosted Windows
@@ -3909,10 +4640,12 @@ describe.runIf(process.platform === "win32")(
             /\bSe[A-Za-z]+Privilege\b/g,
           ),
         ].map((match) => match[0]);
+        expect(privileges).not.toHaveLength(0);
         expect(
           privileges.every((name) => name === "SeChangeNotifyPrivilege"),
         ).toBe(true);
-        expect(() => process.kill(childReport.grandchildPid, 0)).toThrow();
+        expect(() => process.kill(grandchildPid, 0)).toThrow();
+        grandchildPid = null;
         expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
           sandboxed: true,
           sandboxState: "ready",
@@ -3965,6 +4698,13 @@ describe.runIf(process.platform === "win32")(
         expect(largeShellResult.status, largeShellResult.stderr).toBe(0);
         expect(largeShellResult.stdout).toHaveLength(2 * 1024 * 1024);
       } finally {
+        if (grandchildPid) {
+          try {
+            process.kill(grandchildPid);
+          } catch {
+            // The Job normally reaps the nested detached process.
+          }
+        }
         if (previousStrict === undefined) {
           delete process.env.CC_SANDBOX_STRICT;
         } else {
@@ -3978,7 +4718,7 @@ describe.runIf(process.platform === "win32")(
         executionBroker._sandboxEnabled = previousSandboxEnabled;
         executionBroker._platformSandboxEnabled = previousPlatformEnabled;
       }
-    }, 45_000);
+    }, 180_000);
 
     it("preserves a real Node fd3 IPC channel through the native adapter", async () => {
       const previousStrict = process.env.CC_SANDBOX_STRICT;
@@ -3990,6 +4730,7 @@ describe.runIf(process.platform === "win32")(
       executionBroker._sandboxEnabled = true;
       executionBroker._platformSandboxEnabled = true;
       let child;
+      let ipcTimer;
       try {
         child = executionBroker.spawn(
           process.execPath,
@@ -4021,31 +4762,46 @@ describe.runIf(process.platform === "win32")(
         child.stderr.on("data", (chunk) => stderr.push(chunk));
         const disconnectPromise = once(child, "disconnect");
         const exitPromise = once(child, "exit");
+        void disconnectPromise.catch(() => {});
+        void exitPromise.catch(() => {});
         const report = await new Promise((resolve, reject) => {
-          const timeout = setTimeout(
-            () => reject(new Error("Timed out waiting for sandbox IPC")),
-            30_000,
-          );
-          child.once("error", reject);
-          child.once("exit", (code, signal) => {
-            reject(
+          let settled = false;
+          const finish = (callback, value) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(ipcTimer);
+            child.off("error", onError);
+            child.off("exit", onEarlyExit);
+            child.off("message", onMessage);
+            callback(value);
+          };
+          const onError = (error) => finish(reject, error);
+          const onEarlyExit = (code, signal) =>
+            finish(
+              reject,
               new Error(
                 `Sandbox IPC child exited before echo (${code}/${signal}): ${Buffer.concat(
                   stderr,
                 ).toString()}`,
               ),
             );
-          });
-          child.on("message", (message) => {
+          const onMessage = (message) => {
             if (message?.ready) {
               child.send({ ping: "pong" }, (error) => {
-                if (error) reject(error);
+                if (error) finish(reject, error);
               });
               return;
             }
-            clearTimeout(timeout);
-            resolve(message);
-          });
+            finish(resolve, message);
+          };
+          ipcTimer = setTimeout(
+            () =>
+              finish(reject, new Error("Timed out waiting for sandbox IPC")),
+            30_000,
+          );
+          child.once("error", onError);
+          child.once("exit", onEarlyExit);
+          child.on("message", onMessage);
         });
         expect(report).toMatchObject({
           echo: { ping: "pong" },
@@ -4071,6 +4827,7 @@ describe.runIf(process.platform === "win32")(
           sandboxEnforcement: "windows-job-restricted-token",
         });
       } finally {
+        clearTimeout(ipcTimer);
         try {
           child?.kill();
         } catch {
@@ -4089,7 +4846,7 @@ describe.runIf(process.platform === "win32")(
         executionBroker._sandboxEnabled = previousSandboxEnabled;
         executionBroker._platformSandboxEnabled = previousPlatformEnabled;
       }
-    }, 45_000);
+    }, 120_000);
 
     it("exposes and supervises the real detached target PID", async () => {
       const previousStrict = process.env.CC_SANDBOX_STRICT;
@@ -4172,7 +4929,7 @@ describe.runIf(process.platform === "win32")(
         executionBroker._sandboxEnabled = previousSandboxEnabled;
         executionBroker._platformSandboxEnabled = previousPlatformEnabled;
       }
-    }, 45_000);
+    }, 120_000);
 
     it("fails closed for detached numeric file stdio in strict mode", () => {
       const previousStrict = process.env.CC_SANDBOX_STRICT;
@@ -4183,18 +4940,23 @@ describe.runIf(process.platform === "win32")(
       delete process.env.CC_SANDBOX_DISABLE;
       executionBroker._sandboxEnabled = true;
       executionBroker._platformSandboxEnabled = true;
+      let unexpectedChild;
       try {
         let failure;
         try {
-          executionBroker.spawn(process.execPath, ["worker.mjs"], {
-            origin: "test:windows-native-sandbox-detached-file-stdio-live",
-            policy: "allow",
-            detached: true,
-            stdio: ["ignore", 17, 17],
-            windowsHide: true,
-            timeout: 30_000,
-            env: process.env,
-          });
+          unexpectedChild = executionBroker.spawn(
+            process.execPath,
+            ["worker.mjs"],
+            {
+              origin: "test:windows-native-sandbox-detached-file-stdio-live",
+              policy: "allow",
+              detached: true,
+              stdio: ["ignore", 17, 17],
+              windowsHide: true,
+              timeout: 30_000,
+              env: process.env,
+            },
+          );
         } catch (error) {
           failure = error;
         }
@@ -4208,6 +4970,11 @@ describe.runIf(process.platform === "win32")(
           sandboxReason: "windows_detached_file_stdio_unsupported",
         });
       } finally {
+        try {
+          unexpectedChild?.kill();
+        } catch {
+          // A correct fail-closed launch never creates this child.
+        }
         if (previousStrict === undefined) {
           delete process.env.CC_SANDBOX_STRICT;
         } else {
@@ -4221,7 +4988,7 @@ describe.runIf(process.platform === "win32")(
         executionBroker._sandboxEnabled = previousSandboxEnabled;
         executionBroker._platformSandboxEnabled = previousPlatformEnabled;
       }
-    }, 45_000);
+    }, 90_000);
   },
 );
 

@@ -386,6 +386,7 @@ export function generatePkgConfig(ctx) {
     `${posixify(distDir)}/**/*`,
     `${posixify(templatesDir)}/**/*`,
     `${posixify(cliRoot)}/src/lib/process-execution-broker/windows-sandbox-helper.dll`,
+    `${posixify(cliRoot)}/src/lib/process-execution-broker/windows-sandbox.cs`,
   ];
   if (prebuildsDir) assets.push(`${posixify(prebuildsDir)}/**/*`);
   // Project mode: bundle the collected .chainlesschain/ snapshot as an asset.

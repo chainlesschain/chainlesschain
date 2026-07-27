@@ -14,6 +14,9 @@ namespace ChainlessChain.WindowsSandbox
 {
     public static class Native
     {
+        public const string SourceSha256 =
+            "__CHAINLESS_WINDOWS_SANDBOX_SOURCE_SHA256__";
+
         private const UInt32 TOKEN_ASSIGN_PRIMARY = 0x0001;
         private const UInt32 TOKEN_DUPLICATE = 0x0002;
         private const UInt32 TOKEN_QUERY = 0x0008;
@@ -3079,7 +3082,8 @@ namespace ChainlessChain.WindowsSandbox
                             new
                             {
                                 ready = true,
-                                hostRuntime = "powershell-byte-assembly-v1"
+                                hostRuntime = "powershell-byte-assembly-v1",
+                                sourceSha256 = Native.SourceSha256
                             }));
                     return 0;
                 }

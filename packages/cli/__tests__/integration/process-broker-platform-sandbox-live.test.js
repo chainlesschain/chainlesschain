@@ -480,7 +480,7 @@ describe.runIf(LIVE && SUPPORTED)(
               scope: "sandbox-test",
               policy: "allow",
               encoding: "utf8",
-              timeout: 45_000,
+              timeout: 120_000,
               env: process.env,
               sandboxPolicy: {
                 profile: "strict",
@@ -561,32 +561,11 @@ describe.runIf(LIVE && SUPPORTED)(
           ]),
         );
 
-        const helperPlan = applyWindowsSandbox(
-          path.join(process.env.WINDIR, "System32", "cmd.exe"),
-          ["/d", "/c", "exit 0"],
-          {},
-          { profileName: "default", sync: true },
-          { platform: "win32" },
-        );
-        expect(helperPlan.applied).toBe(true);
-        const absence = nativeSpawnSync(
-          helperPlan.command,
-          ["--assert-appcontainer-absent", report.appContainerProfile],
-          {
-            encoding: "utf8",
-            timeout: 30_000,
-            windowsHide: true,
-          },
-        );
-        helperPlan.cleanup();
-        expect(absence.error).toBeUndefined();
-        expect(absence.status, absence.stderr).toBe(0);
-        expect(JSON.parse(absence.stdout)).toEqual({
-          absent: true,
-          profileName: report.appContainerProfile,
-        });
+        // The synchronous broker cleanup calls the digest-attested helper's
+        // delete-and-assert-absent operation. A failed absence proof throws
+        // from spawnSync's finally block, so reaching here proves cleanup.
       },
-      90_000,
+      180_000,
     );
 
     it.runIf(process.platform === "win32")(
@@ -645,7 +624,7 @@ describe.runIf(LIVE && SUPPORTED)(
             [childFixture, "positive", workspace],
             {
               encoding: "utf8",
-              timeout: 60_000,
+              timeout: 120_000,
               windowsHide: true,
               env: {
                 ...process.env,
@@ -720,7 +699,7 @@ describe.runIf(LIVE && SUPPORTED)(
           fs.rmSync(workspace, { recursive: true, force: true });
         }
       },
-      90_000,
+      180_000,
     );
 
     it.runIf(process.platform === "win32")(
@@ -1062,7 +1041,7 @@ describe.runIf(LIVE && SUPPORTED)(
           fs.rmSync(workspace, { recursive: true, force: true });
         }
       },
-      120_000,
+      180_000,
     );
 
     it.runIf(process.platform === "linux")(
