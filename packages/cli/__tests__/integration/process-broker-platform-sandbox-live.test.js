@@ -1036,7 +1036,7 @@ describe.runIf(LIVE && SUPPORTED)(
             expect(negative.status, negativeContext).toBe(0);
             const rejected = JSON.parse(negative.stdout);
             expect(rejected.result.error).toContain(
-              "required sandbox boundaries are unavailable",
+              "cannot satisfy required boundaries",
             );
             expect(rejected.audit).toMatchObject({
               permissionDecision: "deny",

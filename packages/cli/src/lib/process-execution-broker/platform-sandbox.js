@@ -1996,11 +1996,10 @@ function inspectLinuxStaticNativeElf(runtime, fd, identity) {
     const virtualAddress = program.readBigUInt64LE(16);
     const fileSize = program.readBigUInt64LE(32);
     const memorySize = program.readBigUInt64LE(40);
-    if (
-      fileOffset > fileBytes ||
-      fileSize > fileBytes - fileOffset ||
-      fileSize > memorySize
-    ) {
+    if (fileOffset > fileBytes || fileSize > fileBytes - fileOffset) {
+      throw new Error("native_entry_segment_out_of_bounds");
+    }
+    if (type === 1 && fileSize > memorySize) {
       throw new Error("native_entry_segment_out_of_bounds");
     }
     if (type === 2) throw new Error("native_entry_dynamic_elf_unsupported");
