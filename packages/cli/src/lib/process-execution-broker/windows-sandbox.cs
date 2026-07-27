@@ -76,6 +76,8 @@ namespace ChainlessChain.WindowsSandbox
         private const UInt32 VOLUME_NAME_DOS = 0x00000000;
         private const UInt32 FILE_NAME_NORMALIZED = 0x00000000;
         private const Int32 FileIdInfo = 18;
+        private const Int32 FileStatInformation = 68;
+        private const Int32 FileStatBasicByNameInfo = 3;
 
         private const UInt32 JOB_OBJECT_LIMIT_PROCESS_TIME = 0x00000002;
         private const UInt32 JOB_OBJECT_LIMIT_ACTIVE_PROCESS = 0x00000008;
@@ -199,6 +201,49 @@ namespace ChainlessChain.WindowsSandbox
         {
             public UInt64 VolumeSerialNumber;
             public FILE_ID_128 FileId;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct IO_STATUS_BLOCK
+        {
+            public IntPtr Status;
+            public UIntPtr Information;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct FILE_STAT_INFORMATION
+        {
+            public Int64 FileId;
+            public Int64 CreationTime;
+            public Int64 LastAccessTime;
+            public Int64 LastWriteTime;
+            public Int64 ChangeTime;
+            public Int64 AllocationSize;
+            public Int64 EndOfFile;
+            public UInt32 FileAttributes;
+            public UInt32 ReparseTag;
+            public UInt32 NumberOfLinks;
+            public UInt32 EffectiveAccess;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct FILE_STAT_BASIC_INFORMATION
+        {
+            public Int64 FileId;
+            public Int64 CreationTime;
+            public Int64 LastAccessTime;
+            public Int64 LastWriteTime;
+            public Int64 ChangeTime;
+            public Int64 AllocationSize;
+            public Int64 EndOfFile;
+            public UInt32 FileAttributes;
+            public UInt32 ReparseTag;
+            public UInt32 NumberOfLinks;
+            public UInt32 DeviceType;
+            public UInt32 DeviceCharacteristics;
+            public UInt32 Reserved;
+            public UInt64 VolumeSerialNumber;
+            public FILE_ID_128 FileId128;
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -394,6 +439,26 @@ namespace ChainlessChain.WindowsSandbox
             IntPtr file,
             Int32 informationClass,
             out FILE_ID_INFO information,
+            UInt32 informationSize);
+
+        [DllImport("ntdll.dll")]
+        private static extern Int32 NtQueryInformationFile(
+            IntPtr file,
+            out IO_STATUS_BLOCK ioStatusBlock,
+            out FILE_STAT_INFORMATION information,
+            UInt32 informationSize,
+            Int32 informationClass);
+
+        [DllImport(
+            "api-ms-win-core-file-l2-1-4.dll",
+            CharSet = CharSet.Unicode,
+            ExactSpelling = true,
+            SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetFileInformationByName(
+            string fileName,
+            Int32 informationClass,
+            out FILE_STAT_BASIC_INFORMATION information,
             UInt32 informationSize);
 
         [DllImport(
@@ -1424,13 +1489,26 @@ namespace ChainlessChain.WindowsSandbox
             public string ino { get; set; }
         }
 
+        private sealed class NodeFileIdentityProjection
+        {
+            public readonly UInt64 Device;
+            public readonly UInt64 FileId;
+
+            public NodeFileIdentityProjection(UInt64 device, UInt64 fileId)
+            {
+                Device = device;
+                FileId = fileId;
+            }
+        }
+
         private sealed class LaunchPathFileIdentity
         {
             public UInt64 VolumeSerialNumber;
             public UInt64 FileIdLow;
             public UInt64 FileIdHigh;
-            public UInt64 NodeDevice;
-            public UInt64 NodeFileId;
+            public NodeFileIdentityProjection LegacyNodeIdentity;
+            public NodeFileIdentityProjection FixedFastNodeIdentity;
+            public NodeFileIdentityProjection Node22FastNodeIdentity;
             public UInt64 Bytes;
             public UInt32 Links;
             public UInt32 Attributes;
@@ -1544,6 +1622,64 @@ namespace ChainlessChain.WindowsSandbox
                 left.FileIdHigh == right.FileIdHigh;
         }
 
+        private static bool SameNodeFileIdentityProjection(
+            NodeFileIdentityProjection left,
+            NodeFileIdentityProjection right)
+        {
+            if (left == null || right == null) return left == right;
+            return left.Device == right.Device && left.FileId == right.FileId;
+        }
+
+        private static bool SameNodeFileIdentityObservations(
+            LaunchPathFileIdentity left,
+            LaunchPathFileIdentity right)
+        {
+            return
+                SameNodeFileIdentityProjection(
+                    left.LegacyNodeIdentity,
+                    right.LegacyNodeIdentity) &&
+                SameNodeFileIdentityProjection(
+                    left.FixedFastNodeIdentity,
+                    right.FixedFastNodeIdentity) &&
+                SameNodeFileIdentityProjection(
+                    left.Node22FastNodeIdentity,
+                    right.Node22FastNodeIdentity);
+        }
+
+        private static bool MatchesNodeFileIdentityProjection(
+            NodeFileIdentityProjection projection,
+            UInt64 expectedDevice,
+            UInt64 expectedFileId)
+        {
+            return
+                projection != null &&
+                projection.Device == expectedDevice &&
+                projection.FileId == expectedFileId;
+        }
+
+        private static bool MatchesExpectedNodeFileIdentity(
+            LaunchPathFileIdentity identity,
+            UInt64 expectedDevice,
+            UInt64 expectedFileId)
+        {
+            // Keep each libuv projection paired. In particular, never combine
+            // a device value from one stat implementation with a file ID from
+            // another implementation.
+            return
+                MatchesNodeFileIdentityProjection(
+                    identity.LegacyNodeIdentity,
+                    expectedDevice,
+                    expectedFileId) ||
+                MatchesNodeFileIdentityProjection(
+                    identity.FixedFastNodeIdentity,
+                    expectedDevice,
+                    expectedFileId) ||
+                MatchesNodeFileIdentityProjection(
+                    identity.Node22FastNodeIdentity,
+                    expectedDevice,
+                    expectedFileId);
+        }
+
         private static string NormalizeFinalPath(string value)
         {
             string normalized = value;
@@ -1582,6 +1718,93 @@ namespace ChainlessChain.WindowsSandbox
                 "Launch path exceeds the supported final-path limit");
         }
 
+        private static bool TryReadHandlePathStatFileId(
+            IntPtr handle,
+            out UInt64 fileId)
+        {
+            IO_STATUS_BLOCK ioStatusBlock;
+            FILE_STAT_INFORMATION information;
+            Int32 status = NtQueryInformationFile(
+                handle,
+                out ioStatusBlock,
+                out information,
+                checked((UInt32)Marshal.SizeOf(typeof(FILE_STAT_INFORMATION))),
+                FileStatInformation);
+            if (status < 0)
+            {
+                fileId = 0;
+                return false;
+            }
+            fileId = unchecked((UInt64)information.FileId);
+            return true;
+        }
+
+        private static bool TryReadFastNodeFileIdentityProjections(
+            string finalPath,
+            FILE_ID_INFO handleIdentity,
+            UInt64 handlePathStatFileId,
+            out NodeFileIdentityProjection fixedProjection,
+            out NodeFileIdentityProjection node22Projection)
+        {
+            fixedProjection = null;
+            node22Projection = null;
+            FILE_STAT_BASIC_INFORMATION information;
+            try
+            {
+                if (!GetFileInformationByName(
+                    finalPath,
+                    FileStatBasicByNameInfo,
+                    out information,
+                    checked(
+                        (UInt32)Marshal.SizeOf(
+                            typeof(FILE_STAT_BASIC_INFORMATION)))))
+                {
+                    return false;
+                }
+            }
+            catch (DllNotFoundException)
+            {
+                return false;
+            }
+            catch (EntryPointNotFoundException)
+            {
+                return false;
+            }
+
+            UInt64 pathStatFileId = unchecked((UInt64)information.FileId);
+            if (
+                (information.FileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0 ||
+                (information.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0 ||
+                information.VolumeSerialNumber !=
+                    handleIdentity.VolumeSerialNumber ||
+                information.FileId128.LowPart !=
+                    handleIdentity.FileId.LowPart ||
+                information.FileId128.HighPart !=
+                    handleIdentity.FileId.HighPart ||
+                pathStatFileId != handlePathStatFileId)
+            {
+                throw new InvalidDataException(
+                    "Path stat identity does not match the locked launch handle");
+            }
+
+            // libuv 1.51+ intentionally exposes only the low DWORD of the
+            // volume serial so its handle and path stat implementations agree.
+            fixedProjection = new NodeFileIdentityProjection(
+                information.VolumeSerialNumber & UInt32.MaxValue,
+                pathStatFileId);
+
+            // Node 22.12 ships libuv's original FILE_STAT_BASIC_INFORMATION
+            // declaration with FileId128 and VolumeSerialNumber reversed.
+            // With the documented layout, that declaration reads the high
+            // half of FileId128 as st_dev. This compatibility projection is
+            // safe only after the correctly laid-out path result above has
+            // been tied back to this same handle's 128-bit identity.
+            node22Projection = new NodeFileIdentityProjection(
+                information.FileId128.HighPart,
+                pathStatFileId);
+            return true;
+        }
+
         private static LaunchPathFileIdentity ReadLaunchPathFileIdentity(
             IntPtr handle)
         {
@@ -1605,21 +1828,39 @@ namespace ChainlessChain.WindowsSandbox
             {
                 ThrowLastError("GetFileInformationByHandleEx(FileIdInfo)");
             }
+
+            string finalPath = GetHandleFinalPath(handle);
+            UInt64 legacyFileId =
+                ((UInt64)basic.FileIndexHigh << 32) |
+                (UInt64)basic.FileIndexLow;
+            NodeFileIdentityProjection fixedFastNodeIdentity = null;
+            NodeFileIdentityProjection node22FastNodeIdentity = null;
+            UInt64 handlePathStatFileId;
+            if (TryReadHandlePathStatFileId(handle, out handlePathStatFileId))
+            {
+                TryReadFastNodeFileIdentityProjections(
+                    finalPath,
+                    fileId,
+                    handlePathStatFileId,
+                    out fixedFastNodeIdentity,
+                    out node22FastNodeIdentity);
+            }
             return new LaunchPathFileIdentity
             {
                 VolumeSerialNumber = fileId.VolumeSerialNumber,
                 FileIdLow = fileId.FileId.LowPart,
                 FileIdHigh = fileId.FileId.HighPart,
-                NodeDevice = basic.VolumeSerialNumber,
-                NodeFileId =
-                    ((UInt64)basic.FileIndexHigh << 32) |
-                    (UInt64)basic.FileIndexLow,
+                LegacyNodeIdentity = new NodeFileIdentityProjection(
+                    basic.VolumeSerialNumber,
+                    legacyFileId),
+                FixedFastNodeIdentity = fixedFastNodeIdentity,
+                Node22FastNodeIdentity = node22FastNodeIdentity,
                 Bytes =
                     ((UInt64)basic.FileSizeHigh << 32) |
                     (UInt64)basic.FileSizeLow,
                 Links = basic.NumberOfLinks,
                 Attributes = basic.FileAttributes,
-                FinalPath = GetHandleFinalPath(handle)
+                FinalPath = finalPath
             };
         }
 
@@ -1823,9 +2064,10 @@ namespace ChainlessChain.WindowsSandbox
                 if (before.Bytes != checked((UInt64)spec.bytes))
                     throw new InvalidDataException(
                         "Launch path size does not match its execution contract");
-                if (
-                    before.NodeDevice != expectedDevice ||
-                    before.NodeFileId != expectedFileId)
+                if (!MatchesExpectedNodeFileIdentity(
+                    before,
+                    expectedDevice,
+                    expectedFileId))
                 {
                     throw new InvalidDataException(
                         "Launch path file ID does not match its execution contract");
@@ -1843,9 +2085,8 @@ namespace ChainlessChain.WindowsSandbox
                     !SameLaunchPathFile(lockingIdentity, afterLocking) ||
                     !SameLaunchPathFile(before, after) ||
                     !SameLaunchPathFile(afterLocking, after) ||
+                    !SameNodeFileIdentityObservations(before, after) ||
                     before.Bytes != after.Bytes ||
-                    before.NodeDevice != after.NodeDevice ||
-                    before.NodeFileId != after.NodeFileId ||
                     before.Links != after.Links ||
                     before.Attributes != after.Attributes ||
                     !String.Equals(
@@ -2506,7 +2747,7 @@ namespace ChainlessChain.WindowsSandbox
                 false,
                 true,
                 Environment.SystemDirectory,
-                CaptureCurrentEnvironment(),
+                null,
                 null,
                 appContainerProfileName,
                 expectedAppContainerSid,
@@ -2539,6 +2780,11 @@ namespace ChainlessChain.WindowsSandbox
             string snapshotTestGateToken,
             string snapshotTestGateReleasePath)
         {
+            // A null environment is reserved for trusted readiness probes:
+            // CreateProcessAsUser then inherits the already reduced helper
+            // environment. Ordinary launch payloads are required to provide
+            // an explicit target environment in Program.Main.
+            bool inheritCallerEnvironment = targetEnvironment == null;
             targetEnvironment =
                 targetEnvironment ?? CaptureCurrentEnvironment();
             workingDirectory = NormalizeLocalDosPath(
@@ -2653,7 +2899,9 @@ namespace ChainlessChain.WindowsSandbox
                         entrySnapshotFd,
                         entrySnapshot);
                 }
-                environmentBuffer = BuildEnvironmentBlock(targetEnvironment);
+                if (!inheritCallerEnvironment)
+                    environmentBuffer =
+                        BuildEnvironmentBlock(targetEnvironment);
                 if (useAppContainer)
                 {
                     if (String.IsNullOrWhiteSpace(expectedAppContainerSid))
@@ -3258,8 +3506,13 @@ namespace ChainlessChain.WindowsSandbox
                 string json = Encoding.UTF8.GetString(
                     Convert.FromBase64String(args[0]));
                 spec = new JavaScriptSerializer().Deserialize<LaunchSpec>(json);
-                if (spec == null || String.IsNullOrWhiteSpace(spec.command))
+                if (
+                    spec == null ||
+                    String.IsNullOrWhiteSpace(spec.command) ||
+                    spec.environment == null)
+                {
                     throw new ArgumentException("Launch payload is incomplete");
+                }
                 return Native.Run(
                     spec.command,
                     spec.args ?? new string[0],

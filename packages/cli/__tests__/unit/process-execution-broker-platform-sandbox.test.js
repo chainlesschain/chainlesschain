@@ -3856,7 +3856,13 @@ describe("platform sandbox adapter contract", () => {
     expect(platformSandboxSource).not.toContain('"-File"');
     expect(platformSandboxSource).not.toContain('"-CompileOnly"');
     expect(windowsSandboxSource).toContain(
-      "environmentBuffer = BuildEnvironmentBlock(targetEnvironment);",
+      "bool inheritCallerEnvironment = targetEnvironment == null;",
+    );
+    expect(windowsSandboxSource).toMatch(
+      /if \(!inheritCallerEnvironment\)\s+environmentBuffer =\s+BuildEnvironmentBlock\(targetEnvironment\);/,
+    );
+    expect(windowsSandboxSource).toMatch(
+      /spec == null \|\|\s+String\.IsNullOrWhiteSpace\(spec\.command\) \|\|\s+spec\.environment == null/,
     );
     expect(windowsSandboxSource).toContain(
       "private static extern UInt32 GetDriveType(string rootPathName);",
@@ -3879,6 +3885,127 @@ describe("platform sandbox adapter contract", () => {
       windowsSandboxSource.indexOf(
         "if (ResumeThread(processInfo.hThread) == UInt32.MaxValue)",
       ),
+    );
+  });
+
+  it("inherits the trusted helper environment only for readiness probes", () => {
+    const nodeProbeStart = windowsSandboxSource.indexOf(
+      "public static int RunNodeSnapshotProbe(",
+    );
+    const nativeRunStart = windowsSandboxSource.indexOf(
+      "public static int Run(",
+      nodeProbeStart,
+    );
+    const nodeProbeSource = windowsSandboxSource.slice(
+      nodeProbeStart,
+      nativeRunStart,
+    );
+    expect(nodeProbeSource).toMatch(
+      /Environment\.SystemDirectory,\s+null,\s+null,\s+appContainerProfileName,/,
+    );
+
+    const prepareStart = windowsSandboxSource.indexOf(
+      '"--prepare-appcontainer"',
+    );
+    const deleteStart = windowsSandboxSource.indexOf(
+      '"--delete-appcontainer"',
+      prepareStart,
+    );
+    const prepareSource = windowsSandboxSource.slice(prepareStart, deleteStart);
+    expect(prepareSource).toMatch(
+      /Environment\.SystemDirectory,\s+null,\s+null,\s+profileName,/,
+    );
+
+    expect(windowsSandboxSource).toContain(
+      "bool inheritCallerEnvironment = targetEnvironment == null;",
+    );
+    expect(windowsSandboxSource).toMatch(
+      /if \(!inheritCallerEnvironment\)\s+environmentBuffer =\s+BuildEnvironmentBlock\(targetEnvironment\);/,
+    );
+    expect(windowsSandboxSource).toMatch(
+      /spec == null \|\|\s+String\.IsNullOrWhiteSpace\(spec\.command\) \|\|\s+spec\.environment == null/,
+    );
+  });
+
+  it("maps Node path-stat identities to the same locked native file", () => {
+    expect(windowsSandboxSource).toContain(
+      "private const Int32 FileStatInformation = 68;",
+    );
+    expect(windowsSandboxSource).toMatch(
+      /NtQueryInformationFile\(\s*handle,[\s\S]*FileStatInformation\);/,
+    );
+    expect(windowsSandboxSource).toMatch(
+      /"api-ms-win-core-file-l2-1-4\.dll",\s+CharSet = CharSet\.Unicode,\s+ExactSpelling = true,/,
+    );
+
+    const fastStatStructStart = windowsSandboxSource.indexOf(
+      "private struct FILE_STAT_BASIC_INFORMATION",
+    );
+    const fastStatStructEnd = windowsSandboxSource.indexOf(
+      "private struct JOBOBJECT_BASIC_LIMIT_INFORMATION",
+      fastStatStructStart,
+    );
+    const fastStatStruct = windowsSandboxSource.slice(
+      fastStatStructStart,
+      fastStatStructEnd,
+    );
+    expect(
+      fastStatStruct.indexOf("public UInt64 VolumeSerialNumber;"),
+    ).toBeLessThan(fastStatStruct.indexOf("public FILE_ID_128 FileId128;"));
+
+    const fastProjectionStart = windowsSandboxSource.indexOf(
+      "private static bool TryReadFastNodeFileIdentityProjections(",
+    );
+    const readIdentityStart = windowsSandboxSource.indexOf(
+      "private static LaunchPathFileIdentity ReadLaunchPathFileIdentity(",
+      fastProjectionStart,
+    );
+    const fastProjectionSource = windowsSandboxSource.slice(
+      fastProjectionStart,
+      readIdentityStart,
+    );
+    expect(fastProjectionSource).toMatch(
+      /information\.VolumeSerialNumber !=\s+handleIdentity\.VolumeSerialNumber/,
+    );
+    expect(fastProjectionSource).toMatch(
+      /information\.FileId128\.LowPart !=\s+handleIdentity\.FileId\.LowPart/,
+    );
+    expect(fastProjectionSource).toMatch(
+      /information\.FileId128\.HighPart !=\s+handleIdentity\.FileId\.HighPart/,
+    );
+    expect(fastProjectionSource).toContain(
+      "pathStatFileId != handlePathStatFileId",
+    );
+    expect(fastProjectionSource).toMatch(
+      /fixedProjection = new NodeFileIdentityProjection\(\s*information\.VolumeSerialNumber & UInt32\.MaxValue,\s*pathStatFileId\);/,
+    );
+    expect(fastProjectionSource).toMatch(
+      /node22Projection = new NodeFileIdentityProjection\(\s*information\.FileId128\.HighPart,\s*pathStatFileId\);/,
+    );
+
+    const matchStart = windowsSandboxSource.indexOf(
+      "private static bool MatchesExpectedNodeFileIdentity(",
+    );
+    const normalizeStart = windowsSandboxSource.indexOf(
+      "private static string NormalizeFinalPath(",
+      matchStart,
+    );
+    const matchSource = windowsSandboxSource.slice(matchStart, normalizeStart);
+    for (const projection of [
+      "LegacyNodeIdentity",
+      "FixedFastNodeIdentity",
+      "Node22FastNodeIdentity",
+    ]) {
+      expect(matchSource).toContain(`identity.${projection}`);
+    }
+    expect(windowsSandboxSource).toMatch(
+      /VolumeSerialNumber = fileId\.VolumeSerialNumber,[\s\S]*FileIdLow = fileId\.FileId\.LowPart,[\s\S]*FileIdHigh = fileId\.FileId\.HighPart,/,
+    );
+    expect(windowsSandboxSource).toContain(
+      "!SameNodeFileIdentityObservations(before, after)",
+    );
+    expect(windowsSandboxSource).toMatch(
+      /if \(!MatchesExpectedNodeFileIdentity\(\s*before,\s*expectedDevice,\s*expectedFileId\)\)/,
     );
   });
 
