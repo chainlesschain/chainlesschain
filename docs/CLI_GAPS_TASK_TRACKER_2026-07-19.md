@@ -580,6 +580,26 @@ PTY/background、Linux 通用 Hook/MCP/LSP/Monitor 强 backend、动态链接/�
 `ET_DYN` native、Desktop 权威 project binding 与跨平台 handle-atomic 仍未完成，
 P1-4/P1-9 均保持 🟡。
 
+**2026-07-28 P1-9 Linux Plugin Node entry-source snapshot 增量**：
+`4d806d222f` 把直接、前台、同步 policy-bearing Plugin Node bin 已验真的入口内容复制到
+匿名 `O_TMPFILE`；复制前后复核 source identity/SHA-256，`fsync` 后回读 snapshot 的
+size/SHA-256，并将匿名 inode 收紧为 `0400`。policy probe 与最终启动使用两个独立只读
+OFD，bwrap 通过 `--perms 0400 --ro-bind-data` 把封存源码挂入固定目标；合法的零字节入口
+同样受支持。成功审计记录 `contentSnapshot:true`、scope `plugin-entry-source`、mechanism
+`verified-o_tmpfile-copy-bwrap-ro-bind-data-v1`，失败路径不冒充已应用快照，policy digest
+绑定稳定的 source contract 与 snapshot 内容但不绑定匿名 inode/FD。
+[run 30286701845](https://github.com/chainlesschain/chainlesschain/actions/runs/30286701845)
+的 Windows、macOS 15、Ubuntu 24.04 strict job 全绿；Ubuntu real-bwrap live 在 plan 建成后、
+spawn 前原地 truncate/write/fsync 同一 inode，证明 host 随后执行 replacement，而沙箱仍
+执行封存的旧源码，目标模式为 `0400` 且不可写/chmod；child 同时验证
+`NoNewPrivs:1`，以及 inheritable/permitted/effective/ambient/bounding capability 集均为零。
+该快照只覆盖 plugin entry source，不覆盖同插件其他源码/包元数据、Node runtime、
+dynamic loader/DSO 或完整启动链，也不是内核 seal 或跨平台 handle-atomic 保证，因此继续
+记录 `handleAtomic:false`。不支持 `O_TMPFILE`、只读 reopen 或 bwrap `--ro-bind-data`
+的环境 fail-closed；generic PTY/background、Linux 通用 Hook/MCP/LSP/Monitor 强 backend、
+动态链接/带解释器及其他 `ET_DYN` native、Desktop 权威 project binding 与跨平台
+handle-atomic 仍是残项，P1-4/P1-9 均保持 🟡。
+
 **2026-07-27 P1-9 非直接执行面与 Desktop PTY 增量**：`7ae04a47e8` /
 `860bc7a0fc` 固定 `run_code` policy 并让未缓存 Python discovery 在严格策略下前置拒绝，
 `e43f078a01` 固定整条 slash/REPL bang macro 的 policy，`764c0e0845` 固定 CLI PTY 的
