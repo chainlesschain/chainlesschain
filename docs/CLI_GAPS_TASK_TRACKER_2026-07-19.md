@@ -559,6 +559,27 @@ policy digest 绑定稳定的 source contract、snapshot SHA/bytes、destination
 generic PTY/background、通用 Hook/MCP/LSP/Monitor 强 backend 与 Desktop 权威 project binding
 仍是残项，P1-9 保持 🟡。
 
+**2026-07-28 P1-9 Linux bwrap supervisor descriptor binding 增量**：
+`920615b0ea` 对 root-owned `/usr/bin/bwrap` 主 executable 的全宽 dev/ino、metadata 与
+SHA-256 验真后固定其 inode；capability、policy probe 与最终启动分别重开独立只读 OFD，
+映射为 child FD 3 并经 `/proc/self/fd/3` 启动，其他 mount/seccomp descriptor 从 FD 4
+起分配。bwrap setup 以
+`--perms 0000 --file 3 /run/.chainless-bwrap-supervisor` 消费并关闭 launch FD，随后以
+`/run` tmpfs 遮蔽暂存副本；Node/native live 目标确认同 inode launch FD 不存在且暂存路径
+为 `ENOENT`。成功审计记录 `supervisorDescriptorBound:true`、scope
+`host-path-replacement`、mechanism
+`pinned-child-fd3-file-consume-run-overmount-v1`，并继续记录 `handleAtomic:false`。
+[run 30283391416](https://github.com/chainlesschain/chainlesschain/actions/runs/30283391416)
+的 Windows、macOS 15、Ubuntu 24.04 三个 strict job 全绿，Ubuntu real-bwrap 的平台合同、
+Broker strict boundary、filesystem/network live 步骤均通过。该 scope 只缩窄
+`/usr/bin/bwrap` host path replacement/rename-over；它不是 executable content snapshot、
+seal 或 `execveat`/`fexecve` 级原子启动，也不覆盖同 inode 原地改写、动态 loader/DSO。
+bwrap 作为 PID 1 仍可能经 `/proc/1/exe` 暴露，因此审计明确记录
+`supervisorPid1ExecutableExposure:procfs`，不宣称 supervisor 字节全局不可达。generic
+PTY/background、Linux 通用 Hook/MCP/LSP/Monitor 强 backend、动态链接/带解释器及其他
+`ET_DYN` native、Desktop 权威 project binding 与跨平台 handle-atomic 仍未完成，
+P1-4/P1-9 均保持 🟡。
+
 **2026-07-27 P1-9 非直接执行面与 Desktop PTY 增量**：`7ae04a47e8` /
 `860bc7a0fc` 固定 `run_code` policy 并让未缓存 Python discovery 在严格策略下前置拒绝，
 `e43f078a01` 固定整条 slash/REPL bang macro 的 policy，`764c0e0845` 固定 CLI PTY 的
