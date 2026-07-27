@@ -2142,7 +2142,10 @@ describe("platform sandbox adapter contract", () => {
     expect(windowsSandboxSource).toContain("DeleteProcThreadAttributeList");
     expect(windowsSandboxSource).toContain("_get_osfhandle(nodeIpcFd)");
     expect(windowsSandboxSource).toMatch(
-      /CREATE_SUSPENDED\s*\|\s*CREATE_UNICODE_ENVIRONMENT\s*\|\s*EXTENDED_STARTUPINFO_PRESENT/,
+      /CREATE_SUSPENDED\s*\|\s*EXTENDED_STARTUPINFO_PRESENT/,
+    );
+    expect(windowsSandboxSource).toMatch(
+      /if \(environmentBuffer != IntPtr\.Zero\)\s+creationFlags \|= CREATE_UNICODE_ENVIRONMENT;/,
     );
   });
 
@@ -4014,6 +4017,9 @@ describe("platform sandbox adapter contract", () => {
     );
     expect(windowsSandboxSource).toMatch(
       /if \(!inheritCallerEnvironment\)\s+environmentBuffer =\s+BuildEnvironmentBlock\(targetEnvironment\);/,
+    );
+    expect(windowsSandboxSource).toMatch(
+      /if \(environmentBuffer != IntPtr\.Zero\)\s+creationFlags \|= CREATE_UNICODE_ENVIRONMENT;/,
     );
     expect(windowsSandboxSource).toMatch(
       /spec == null \|\|\s+String\.IsNullOrWhiteSpace\(spec\.command\) \|\|\s+spec\.environment == null/,

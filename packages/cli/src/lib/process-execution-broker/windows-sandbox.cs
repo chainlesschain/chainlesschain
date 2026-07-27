@@ -3168,8 +3168,9 @@ namespace ChainlessChain.WindowsSandbox
                         BuildCreateProcessCommandLine(application, arguments));
                 UInt32 creationFlags =
                     CREATE_SUSPENDED |
-                    CREATE_UNICODE_ENVIRONMENT |
                     EXTENDED_STARTUPINFO_PRESENT;
+                if (environmentBuffer != IntPtr.Zero)
+                    creationFlags |= CREATE_UNICODE_ENVIRONMENT;
                 if (detached)
                     creationFlags |= DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP;
                 AssertLaunchPathLocksIntact(launchPathLocks);
