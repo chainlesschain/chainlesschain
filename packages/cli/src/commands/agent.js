@@ -757,6 +757,12 @@ export function registerAgentCommand(program) {
         process.stderr.write(
           "--permission-prompt-tool requires --mcp-config (the tool must come from a loaded MCP server).\n",
         );
+        // Complete worktree cleanup while the async command action is still
+        // running. Windows hosted runners do not reliably permit the exit
+        // handler to start the synchronous git subprocesses needed to remove
+        // the linked worktree, so the exit hook remains only a last-resort
+        // fallback for unexpected termination paths.
+        await _finishWorktree();
         process.exit(1);
       }
 
