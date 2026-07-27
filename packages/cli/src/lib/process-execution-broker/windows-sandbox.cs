@@ -624,25 +624,6 @@ namespace ChainlessChain.WindowsSandbox
             ref STARTUPINFOEX startupInfo,
             out PROCESS_INFORMATION processInformation);
 
-        [DllImport(
-            "kernel32.dll",
-            EntryPoint = "CreateProcessW",
-            CharSet = CharSet.Unicode,
-            ExactSpelling = true,
-            SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool CreateProcess(
-            string applicationName,
-            StringBuilder commandLine,
-            IntPtr processAttributes,
-            IntPtr threadAttributes,
-            [MarshalAs(UnmanagedType.Bool)] bool inheritHandles,
-            UInt32 creationFlags,
-            IntPtr environment,
-            string currentDirectory,
-            ref STARTUPINFOEX startupInfo,
-            out PROCESS_INFORMATION processInformation);
-
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern IntPtr GetStdHandle(Int32 standardHandle);
 
@@ -1203,6 +1184,54 @@ namespace ChainlessChain.WindowsSandbox
                 }
             }
             if (matched != null) environment.Remove(matched);
+        }
+
+        private static void SetEnvironmentValue(
+            Dictionary<string, string> environment,
+            string name,
+            string value)
+        {
+            if (environment == null)
+                throw new ArgumentNullException("environment");
+            RemoveEnvironmentValue(environment, name);
+            environment[name] = value ?? String.Empty;
+        }
+
+        private static void ConfigureAppContainerEnvironment(
+            Dictionary<string, string> environment)
+        {
+            // CreateProcess extends this trusted host location into the
+            // AppContainer profile. Passing the already-extended AC path would
+            // make that transformation ambiguous; never recover this value
+            // from the caller-controlled launch environment.
+            string localAppData = NormalizeLocalDosPath(
+                Environment.GetFolderPath(
+                    Environment.SpecialFolder.LocalApplicationData),
+                null,
+                "Host local app data");
+            string temporaryDirectory =
+                Path.Combine(localAppData, "Temp");
+            string systemRoot = Path.GetPathRoot(
+                Environment.SystemDirectory);
+            if (!IsLocalDosDriveRoot(systemRoot))
+                throw new InvalidDataException(
+                    "Windows system directory is not on a local DOS drive");
+            SetEnvironmentValue(
+                environment,
+                "LOCALAPPDATA",
+                localAppData);
+            SetEnvironmentValue(
+                environment,
+                "TEMP",
+                temporaryDirectory);
+            SetEnvironmentValue(
+                environment,
+                "TMP",
+                temporaryDirectory);
+            SetEnvironmentValue(
+                environment,
+                "SystemDrive",
+                systemRoot.Substring(0, 2));
         }
 
         private static IntPtr BuildEnvironmentBlock(
@@ -2843,6 +2872,16 @@ namespace ChainlessChain.WindowsSandbox
                 "Object.prototype.hasOwnProperty.call(process,'_eval')||" +
                 "__filename!==process.argv[1])" +
                 "throw new Error('entry snapshot transport probe failed');" +
+                (String.IsNullOrWhiteSpace(appContainerProfileName)
+                    ? String.Empty
+                    : "const local=process.env.LOCALAPPDATA;" +
+                      "const expectedTemp=local&&local+'\\\\Temp';" +
+                      "if(!local||!process.env.TEMP||!process.env.TMP||" +
+                      "process.env.TEMP.toLowerCase()!==" +
+                      "expectedTemp.toLowerCase()||" +
+                      "process.env.TMP.toLowerCase()!==" +
+                      "expectedTemp.toLowerCase())" +
+                      "throw new Error('appcontainer environment probe failed');") +
                 "process.exitCode=73;");
             int probeExitCode = Run(
                 application,
@@ -2891,11 +2930,6 @@ namespace ChainlessChain.WindowsSandbox
             string snapshotTestGateToken,
             string snapshotTestGateReleasePath)
         {
-            // A null environment is reserved for trusted readiness probes:
-            // CreateProcessAsUser then inherits the already reduced helper
-            // environment. Ordinary launch payloads are required to provide
-            // an explicit target environment in Program.Main.
-            bool inheritCallerEnvironment = targetEnvironment == null;
             targetEnvironment =
                 targetEnvironment ?? CaptureCurrentEnvironment();
             workingDirectory = NormalizeLocalDosPath(
@@ -3013,9 +3047,6 @@ namespace ChainlessChain.WindowsSandbox
                         entrySnapshotFd,
                         entrySnapshot);
                 }
-                if (!inheritCallerEnvironment)
-                    environmentBuffer =
-                        BuildEnvironmentBlock(targetEnvironment);
                 if (useAppContainer)
                 {
                     if (String.IsNullOrWhiteSpace(expectedAppContainerSid))
@@ -3032,7 +3063,10 @@ namespace ChainlessChain.WindowsSandbox
                         throw new InvalidDataException(
                             "Prepared AppContainer SID does not match launch payload");
                     }
+                    ConfigureAppContainerEnvironment(targetEnvironment);
                 }
+                environmentBuffer =
+                    BuildEnvironmentBlock(targetEnvironment);
 
                 UInt32 tokenAccess =
                     TOKEN_ASSIGN_PRIMARY |
@@ -3168,48 +3202,31 @@ namespace ChainlessChain.WindowsSandbox
                         BuildCreateProcessCommandLine(application, arguments));
                 UInt32 creationFlags =
                     CREATE_SUSPENDED |
+                    CREATE_UNICODE_ENVIRONMENT |
                     EXTENDED_STARTUPINFO_PRESENT;
-                if (environmentBuffer != IntPtr.Zero)
-                    creationFlags |= CREATE_UNICODE_ENVIRONMENT;
                 if (detached)
                     creationFlags |= DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP;
                 AssertLaunchPathLocksIntact(launchPathLocks);
-                // SECURITY_CAPABILITIES asks the kernel to derive the target
-                // AppContainer token during ordinary process creation.
-                // Supplying a separately restricted primary token to
-                // CreateProcessAsUser conflicts with that derivation on
-                // current hosted Windows images (ERROR_ENVVAR_NOT_FOUND).
-                // Non-AppContainer launches continue to use the explicitly
-                // restricted primary token.
-                bool processCreated = useAppContainer
-                    ? CreateProcess(
-                        application,
-                        commandLine,
-                        IntPtr.Zero,
-                        IntPtr.Zero,
-                        true,
-                        creationFlags,
-                        environmentBuffer,
-                        workingDirectory,
-                        ref startup,
-                        out processInfo)
-                    : CreateProcessAsUser(
-                        restrictedToken,
-                        application,
-                        commandLine,
-                        IntPtr.Zero,
-                        IntPtr.Zero,
-                        true,
-                        creationFlags,
-                        environmentBuffer,
-                        workingDirectory,
-                        ref startup,
-                        out processInfo);
+                // Keep privilege reduction independent from the AppContainer
+                // boundary: SECURITY_CAPABILITIES derives the LowBox token
+                // from this already restricted primary token.
+                bool processCreated = CreateProcessAsUser(
+                    restrictedToken,
+                    application,
+                    commandLine,
+                    IntPtr.Zero,
+                    IntPtr.Zero,
+                    true,
+                    creationFlags,
+                    environmentBuffer,
+                    workingDirectory,
+                    ref startup,
+                    out processInfo);
                 if (!processCreated)
                 {
                     ThrowLastError(
                         useAppContainer
-                            ? "CreateProcess(AppContainer)"
+                            ? "CreateProcessAsUser(AppContainer)"
                             : "CreateProcessAsUser");
                 }
                 AssertLaunchPathLocksIntact(launchPathLocks);

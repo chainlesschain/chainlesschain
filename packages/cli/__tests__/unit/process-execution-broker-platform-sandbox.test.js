@@ -2142,10 +2142,7 @@ describe("platform sandbox adapter contract", () => {
     expect(windowsSandboxSource).toContain("DeleteProcThreadAttributeList");
     expect(windowsSandboxSource).toContain("_get_osfhandle(nodeIpcFd)");
     expect(windowsSandboxSource).toMatch(
-      /CREATE_SUSPENDED\s*\|\s*EXTENDED_STARTUPINFO_PRESENT/,
-    );
-    expect(windowsSandboxSource).toMatch(
-      /if \(environmentBuffer != IntPtr\.Zero\)\s+creationFlags \|= CREATE_UNICODE_ENVIRONMENT;/,
+      /CREATE_SUSPENDED\s*\|\s*CREATE_UNICODE_ENVIRONMENT\s*\|\s*EXTENDED_STARTUPINFO_PRESENT/,
     );
   });
 
@@ -3985,13 +3982,8 @@ describe("platform sandbox adapter contract", () => {
     expect(windowsSandboxSource).toContain("TokenAppContainerSid");
     expect(windowsSandboxSource).toContain("EqualSid");
     expect(windowsSandboxSource).toContain("CreateProcessAsUser");
-    expect(windowsSandboxSource).toContain('EntryPoint = "CreateProcessW"');
-    expect(windowsSandboxSource).toMatch(
-      /bool processCreated = useAppContainer\s+\? CreateProcess\(/,
-    );
-    expect(windowsSandboxSource).not.toContain(
-      "CreateProcessAsUser(AppContainer)",
-    );
+    expect(windowsSandboxSource).not.toContain('EntryPoint = "CreateProcessW"');
+    expect(windowsSandboxSource).toContain("CreateProcessAsUser(AppContainer)");
     expect(windowsSandboxSource).toContain("TerminateAndAwaitEmptyJob");
     expect(windowsSandboxSource).toContain("DataContractJsonSerializer");
     expect(windowsSandboxSource).not.toContain("System.Web");
@@ -4012,14 +4004,12 @@ describe("platform sandbox adapter contract", () => {
     expect(platformSandboxSource).toContain('"-EncodedCommand"');
     expect(platformSandboxSource).not.toContain('"-File"');
     expect(platformSandboxSource).not.toContain('"-CompileOnly"');
-    expect(windowsSandboxSource).toContain(
-      "bool inheritCallerEnvironment = targetEnvironment == null;",
-    );
     expect(windowsSandboxSource).toMatch(
-      /if \(!inheritCallerEnvironment\)\s+environmentBuffer =\s+BuildEnvironmentBlock\(targetEnvironment\);/,
+      /environmentBuffer =\s+BuildEnvironmentBlock\(targetEnvironment\);/,
     );
+    expect(windowsSandboxSource).not.toContain("inheritCallerEnvironment");
     expect(windowsSandboxSource).toMatch(
-      /if \(environmentBuffer != IntPtr\.Zero\)\s+creationFlags \|= CREATE_UNICODE_ENVIRONMENT;/,
+      /CREATE_SUSPENDED\s*\|\s*CREATE_UNICODE_ENVIRONMENT\s*\|\s*EXTENDED_STARTUPINFO_PRESENT/,
     );
     expect(windowsSandboxSource).toMatch(
       /spec == null \|\|\s+String\.IsNullOrWhiteSpace\(spec\.command\) \|\|\s+spec\.environment == null/,
@@ -4048,7 +4038,7 @@ describe("platform sandbox adapter contract", () => {
     );
   });
 
-  it("inherits the trusted helper environment only for readiness probes", () => {
+  it("builds an explicit AppContainer environment for readiness probes", () => {
     const nodeProbeStart = windowsSandboxSource.indexOf(
       "public static int RunNodeSnapshotProbe(",
     );
@@ -4076,14 +4066,44 @@ describe("platform sandbox adapter contract", () => {
       /Environment\.SystemDirectory,\s+null,\s+null,\s+profileName,/,
     );
 
-    expect(windowsSandboxSource).toContain(
-      "bool inheritCallerEnvironment = targetEnvironment == null;",
+    const configureStart = windowsSandboxSource.indexOf(
+      "private static void ConfigureAppContainerEnvironment(",
     );
-    expect(windowsSandboxSource).toMatch(
-      /if \(!inheritCallerEnvironment\)\s+environmentBuffer =\s+BuildEnvironmentBlock\(targetEnvironment\);/,
+    const environmentBlockStart = windowsSandboxSource.indexOf(
+      "private static IntPtr BuildEnvironmentBlock(",
+      configureStart,
+    );
+    const configureSource = windowsSandboxSource.slice(
+      configureStart,
+      environmentBlockStart,
+    );
+    expect(configureSource).toContain('"LOCALAPPDATA"');
+    expect(configureSource).toContain('"TEMP"');
+    expect(configureSource).toContain('"TMP"');
+    expect(configureSource).toContain('"SystemDrive"');
+    expect(configureSource).toContain(
+      "Environment.SpecialFolder.LocalApplicationData",
+    );
+    expect(configureSource).toContain('Path.Combine(localAppData, "Temp")');
+
+    const runStart = windowsSandboxSource.indexOf("public static int Run(");
+    const runEnd = windowsSandboxSource.indexOf(
+      "public static void WriteIdentityError(",
+      runStart,
+    );
+    const runSource = windowsSandboxSource.slice(runStart, runEnd);
+    expect(runSource).not.toContain("inheritCallerEnvironment");
+    expect(
+      runSource.indexOf("preparedSid = SidToString(appContainerSid);"),
+    ).toBeLessThan(runSource.indexOf("ConfigureAppContainerEnvironment("));
+    expect(runSource.indexOf("ConfigureAppContainerEnvironment(")).toBeLessThan(
+      runSource.indexOf("BuildEnvironmentBlock(targetEnvironment)"),
     );
     expect(windowsSandboxSource).toMatch(
       /spec == null \|\|\s+String\.IsNullOrWhiteSpace\(spec\.command\) \|\|\s+spec\.environment == null/,
+    );
+    expect(platformSandboxSource).not.toMatch(
+      /function windowsSandboxHostEnvironment[\s\S]*LOCALAPPDATA/,
     );
   });
 
@@ -4225,7 +4245,7 @@ describe("platform sandbox adapter contract", () => {
     );
 
     const createProcessCall = windowsSandboxSource.indexOf(
-      "bool processCreated = useAppContainer",
+      "bool processCreated = CreateProcessAsUser(",
       acquireEnd,
     );
     const acquireLocksCall = windowsSandboxSource.indexOf(
