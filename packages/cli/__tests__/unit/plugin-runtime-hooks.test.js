@@ -150,8 +150,8 @@ describe("collectPluginHooks", () => {
       },
     });
 
-    const hooks =
-      collectPluginHooks({ cwd, scopes: ["local"] }).SessionStart[0].hooks;
+    const hooks = collectPluginHooks({ cwd, scopes: ["local"] }).SessionStart[0]
+      .hooks;
 
     expect(hooks).toHaveLength(1);
     expect(hooks[0].command).toBe("good");
@@ -259,17 +259,27 @@ describe("mergePluginHooks", () => {
 // End-to-end through the REAL hook-runner (spawns the hook command) — no LLM.
 describe("plugin hooks fire through the settings-hook lifecycle", () => {
   it("a plugin SessionStart hook runs and injects its stdout as context", async () => {
-    installHookPlugin("local", "greeter", {
-      hooks: {
-        SessionStart: [
-          { hooks: [{ type: "command", command: "echo PLUGIN_HOOK_OK" }] },
-        ],
-      },
-    });
-    const merged = mergePluginHooks(null, { cwd, scopes: ["local"] });
-    const { runSessionStartHooks } =
-      await import("../../src/lib/settings-hook-events.js");
-    const res = runSessionStartHooks(merged, { source: "startup", cwd });
-    expect(res.additionalContext || "").toContain("PLUGIN_HOOK_OK");
+    const previousSandboxDisable = process.env.CC_SANDBOX_DISABLE;
+    process.env.CC_SANDBOX_DISABLE = "1";
+    try {
+      installHookPlugin("local", "greeter", {
+        hooks: {
+          SessionStart: [
+            { hooks: [{ type: "command", command: "echo PLUGIN_HOOK_OK" }] },
+          ],
+        },
+      });
+      const merged = mergePluginHooks(null, { cwd, scopes: ["local"] });
+      const { runSessionStartHooks } =
+        await import("../../src/lib/settings-hook-events.js");
+      const res = runSessionStartHooks(merged, { source: "startup", cwd });
+      expect(res.additionalContext || "").toContain("PLUGIN_HOOK_OK");
+    } finally {
+      if (previousSandboxDisable === undefined) {
+        delete process.env.CC_SANDBOX_DISABLE;
+      } else {
+        process.env.CC_SANDBOX_DISABLE = previousSandboxDisable;
+      }
+    }
   });
 });

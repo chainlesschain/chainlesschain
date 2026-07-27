@@ -7,7 +7,7 @@
  * blocking; runHooks short-circuits on the first block. `_deps.spawnSync` is
  * stubbed (no real process).
  */
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { EventEmitter } from "node:events";
 import runner from "../../src/lib/hook-runner.cjs";
 import {
@@ -26,6 +26,10 @@ const {
   _resetHookBreaker,
   _deps,
 } = runner;
+const originalRunSync = _deps.runSync;
+const originalRun = _deps.run;
+const originalBreakerThreshold = process.env.CC_HOOK_BREAKER_THRESHOLD;
+const originalBreakerCooldown = process.env.CC_HOOK_BREAKER_COOLDOWN_MS;
 
 /** A controllable fake child process for the async `_deps.spawn` path. */
 function fakeChild() {
@@ -110,6 +114,22 @@ beforeEach(() => {
   _resetHookBreaker(); // failure counters must not leak across cases
 });
 
+afterEach(() => {
+  _deps.runSync = originalRunSync;
+  _deps.run = originalRun;
+  _resetHookBreaker();
+  if (originalBreakerThreshold === undefined) {
+    delete process.env.CC_HOOK_BREAKER_THRESHOLD;
+  } else {
+    process.env.CC_HOOK_BREAKER_THRESHOLD = originalBreakerThreshold;
+  }
+  if (originalBreakerCooldown === undefined) {
+    delete process.env.CC_HOOK_BREAKER_COOLDOWN_MS;
+  } else {
+    process.env.CC_HOOK_BREAKER_COOLDOWN_MS = originalBreakerCooldown;
+  }
+});
+
 it("merges managed and per-hook sandbox requirements into the broker call", () => {
   stub({ status: 0 });
 
@@ -143,18 +163,21 @@ it("turns an explicit broker boundary refusal into a blocking hook result", () =
     throw error;
   });
 
-  const result = runCommandHook("guard.cmd", {}, {
-    sandboxPolicy: {
-      profile: "strict",
-      requiredBoundaries: ["filesystem", "network"],
+  const result = runCommandHook(
+    "guard.cmd",
+    {},
+    {
+      sandboxPolicy: {
+        profile: "strict",
+        requiredBoundaries: ["filesystem", "network"],
+      },
     },
-  });
+  );
 
   expect(result).toMatchObject({
     decision: "block",
     sandboxDenied: true,
-    error:
-      "windows-job-restricted-token cannot satisfy filesystem, network",
+    error: "windows-job-restricted-token cannot satisfy filesystem, network",
   });
   expect(result.nonBlockingError).toBeUndefined();
 });
@@ -623,12 +646,16 @@ describe("runCommandHookAsync — async single hook", () => {
   it("passes sandbox requirements through the async shell path", async () => {
     const child = fakeChild();
     _deps.spawn = vi.fn(() => child);
-    const pending = runCommandHookAsync("guard.sh", {}, {
-      sandboxPolicy: {
-        profile: "strict",
-        requiredBoundaries: ["filesystem", "network"],
+    const pending = runCommandHookAsync(
+      "guard.sh",
+      {},
+      {
+        sandboxPolicy: {
+          profile: "strict",
+          requiredBoundaries: ["filesystem", "network"],
+        },
       },
-    });
+    );
 
     expect(_deps.spawn).toHaveBeenCalledWith(
       "guard.sh",
@@ -652,9 +679,13 @@ describe("runCommandHookAsync — async single hook", () => {
     });
 
     await expect(
-      runCommandHookAsync("guard.cmd", {}, {
-        requiredBoundaries: ["filesystem"],
-      }),
+      runCommandHookAsync(
+        "guard.cmd",
+        {},
+        {
+          requiredBoundaries: ["filesystem"],
+        },
+      ),
     ).resolves.toMatchObject({
       decision: "block",
       sandboxDenied: true,
@@ -777,4 +808,9 @@ describe("runHooksParallel — concurrent strictest merge", () => {
     expect(r.decision).toBe("continue");
     expect(_deps.spawn).toHaveBeenCalledTimes(2);
   });
+});
+
+it("restores the shared CJS process runners between test cases", () => {
+  expect(_deps.runSync).toBe(originalRunSync);
+  expect(_deps.run).toBe(originalRun);
 });
