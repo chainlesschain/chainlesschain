@@ -623,7 +623,11 @@ describe("ChainlessChainWSServer", () => {
       await server.start();
 
       const ws = await connect(port);
-      const authResp = await rpc(ws, { id: "1", type: "auth", token: "secret" });
+      const authResp = await rpc(ws, {
+        id: "1",
+        type: "auth",
+        token: "secret",
+      });
       expect(authResp.success).toBe(true);
 
       // Wait well past the grace window — an authenticated client must survive.
@@ -982,13 +986,14 @@ describe("ChainlessChainWSServer", () => {
     it("returns task list from the background task manager", async () => {
       const list = vi.fn(() => [{ id: "task-1", status: "running" }]);
       const on = vi.fn();
+      const projectRoot = process.cwd();
       mockTaskManagerFactory.mockReturnValueOnce({
         list,
         on,
       });
 
       port = nextPort();
-      server = new ChainlessChainWSServer({ port });
+      server = new ChainlessChainWSServer({ port, projectRoot });
       await server.start();
 
       const ws = await connect(port);
@@ -1000,6 +1005,11 @@ describe("ChainlessChainWSServer", () => {
         tasks: [{ id: "task-1", status: "running" }],
       });
       expect(list).toHaveBeenCalled();
+      expect(mockTaskManagerFactory).toHaveBeenCalledWith({
+        recoverOnStart: true,
+        policyCwd: projectRoot,
+        resolveSandboxPolicy: expect.any(Function),
+      });
       ws.close();
     });
 

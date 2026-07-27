@@ -452,6 +452,7 @@ export class AgentRuntime {
     const projectName =
       projectConfig?.name || (projectRoot ? path.basename(projectRoot) : null);
     const mode = projectRoot ? "project" : "global";
+    const workspacePolicyCwd = path.resolve(projectRoot || process.cwd());
 
     let db = null;
     let rawDb = null;
@@ -495,6 +496,7 @@ export class AgentRuntime {
           maxConnections: 20,
           timeout: 60000,
           sessionManager,
+          projectRoot: workspacePolicyCwd,
         });
         // ChainlessChainWSServer extends EventEmitter and emits "error"
         // synchronously on bind failure (in addition to rejecting start()).
@@ -533,9 +535,8 @@ export class AgentRuntime {
     // matching topics through `terminalHandlers.handlers`, falling back to
     // the original CLI dispatcher for everything else.
     const wsBroadcastRef = { current: null };
-    const terminalPolicyCwd = path.resolve(projectRoot || process.cwd());
     const ptyManager = this.deps.createPtyManager({
-      policyCwd: terminalPolicyCwd,
+      policyCwd: workspacePolicyCwd,
       resolveSandboxPolicy: ({ workspaceCwd, executionCwd }) =>
         collectWorkspacePluginBinSandboxPolicy({
           workspaceCwd,

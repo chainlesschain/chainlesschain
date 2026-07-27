@@ -9,7 +9,7 @@
  */
 
 import { existsSync, mkdirSync, appendFileSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { createHash } from "node:crypto";
 import { EventEmitter } from "node:events";
 import { getHomeDir } from "../lib/paths.js";
@@ -42,9 +42,55 @@ const RECOVERABLE_TASK_STATUSES = new Set([
   TaskStatus.RUNNING,
 ]);
 
+function validatePinnedSandboxPolicy(policy) {
+  if (policy == null) return null;
+  if (
+    typeof policy !== "object" ||
+    Array.isArray(policy) ||
+    typeof policy.then === "function" ||
+    !Array.isArray(policy.requiredBoundaries) ||
+    policy.requiredBoundaries.length === 0 ||
+    policy.requiredBoundaries.some(
+      (boundary) => typeof boundary !== "string" || boundary.length === 0,
+    ) ||
+    !Object.isFrozen(policy) ||
+    !Object.isFrozen(policy.requiredBoundaries)
+  ) {
+    const error = new TypeError("invalid_background_task_sandbox_policy");
+    error.code = "ERR_BACKGROUND_TASK_SANDBOX_POLICY_INVALID";
+    error.sandboxReason = "invalid_background_task_sandbox_policy";
+    error.sandboxFailClosed = true;
+    throw error;
+  }
+  return policy;
+}
+
+function createUnsupportedSandboxError(sandboxPolicy) {
+  const requiredBoundaries = [...sandboxPolicy.requiredBoundaries];
+  const error = new Error(
+    `Background tasks cannot run without their required sandbox boundaries: ${requiredBoundaries.join(", ")}`,
+  );
+  error.code = "ERR_BACKGROUND_TASK_SANDBOX_UNSUPPORTED";
+  error.sandboxReason = "background_execution_unsupported";
+  error.sandboxFailClosed = true;
+  error.requiredBoundaries = requiredBoundaries;
+  error.actualGuarantees = [];
+  error.missingBoundaries = [...requiredBoundaries];
+  error.sandboxBackend = null;
+  error.sandboxCandidateBackend = null;
+  return error;
+}
+
 export class BackgroundTaskManager extends EventEmitter {
   constructor(options = {}) {
     super();
+    const resolveSandboxPolicy = options.resolveSandboxPolicy ?? null;
+    if (
+      resolveSandboxPolicy !== null &&
+      typeof resolveSandboxPolicy !== "function"
+    ) {
+      throw new TypeError("resolveSandboxPolicy must be a function or null");
+    }
     this.maxConcurrent = options.maxConcurrent || 3;
     this.heartbeatTimeout = options.heartbeatTimeout || 60000;
     this.historyLimit = options.historyLimit || 50;
@@ -54,6 +100,10 @@ export class BackgroundTaskManager extends EventEmitter {
       `${process.pid}@${process.platform}`;
     this.recoveryPolicy = options.recoveryPolicy || "claim-stale";
     this.staleNodeTimeout = options.staleNodeTimeout || 5 * 60 * 1000;
+    this._policyCwd = resolveSandboxPolicy
+      ? resolve(options.policyCwd || process.cwd())
+      : null;
+    this._resolveSandboxPolicy = resolveSandboxPolicy;
     this.tasks = new Map();
     this.processes = new Map();
     this._checkInterval = null;
@@ -72,12 +122,15 @@ export class BackgroundTaskManager extends EventEmitter {
       );
     }
 
+    const cwd = spec.cwd || process.cwd();
+    this._assertSandboxSupported(cwd);
+
     const id = `task-${Date.now()}-${createHash("sha256").update(Math.random().toString()).digest("hex").slice(0, 6)}`;
     const task = {
       id,
       type: spec.type || "shell",
       command: spec.command,
-      cwd: spec.cwd || process.cwd(),
+      cwd,
       description: spec.description || spec.command,
       status: TaskStatus.PENDING,
       createdAt: Date.now(),
@@ -110,6 +163,8 @@ export class BackgroundTaskManager extends EventEmitter {
     if (task.status !== TaskStatus.PENDING) {
       throw new Error(`Task ${taskId} is not pending (status: ${task.status})`);
     }
+
+    this._assertSandboxSupported(task.cwd);
 
     task.status = TaskStatus.RUNNING;
     task.startedAt = Date.now();
@@ -183,6 +238,19 @@ export class BackgroundTaskManager extends EventEmitter {
     const task = this.create(spec);
     this.start(task.id);
     return task;
+  }
+
+  _assertSandboxSupported(executionCwd) {
+    if (!this._resolveSandboxPolicy) return;
+    const sandboxPolicy = validatePinnedSandboxPolicy(
+      this._resolveSandboxPolicy({
+        workspaceCwd: this._policyCwd,
+        executionCwd,
+      }),
+    );
+    if (sandboxPolicy) {
+      throw createUnsupportedSandboxError(sandboxPolicy);
+    }
   }
 
   get(taskId) {

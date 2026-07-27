@@ -254,6 +254,7 @@ describe("AgentRuntime MCP bootstrap", () => {
         host: "127.0.0.1",
         token: "secret",
         sessionManager: { kind: "ui-session-manager" },
+        projectRoot: process.cwd(),
       }),
     );
     expect(runtime.deps.createWebServer).toHaveBeenCalledWith(

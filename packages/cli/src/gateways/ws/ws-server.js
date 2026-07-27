@@ -114,6 +114,7 @@ import {
   handleArtifactShow,
 } from "./artifact-protocol.js";
 import { executionBroker } from "../../lib/process-execution-broker/index.js";
+import { collectWorkspacePluginBinSandboxPolicy } from "../../lib/plugin-runtime/bin.js";
 
 export const _deps = {
   spawn: (...args) => executionBroker.spawn(...args),
@@ -1215,7 +1216,15 @@ export class ChainlessChainWSServer extends EventEmitter {
     if (this._taskManager) return this._taskManager;
     const { BackgroundTaskManager } =
       await import("../../harness/background-task-manager.js");
-    this._taskManager = new BackgroundTaskManager({ recoverOnStart: true });
+    this._taskManager = new BackgroundTaskManager({
+      recoverOnStart: true,
+      policyCwd: this.projectRoot,
+      resolveSandboxPolicy: ({ workspaceCwd, executionCwd }) =>
+        collectWorkspacePluginBinSandboxPolicy({
+          workspaceCwd,
+          executionCwd,
+        }),
+    });
     this._subscribeTaskNotifications();
     return this._taskManager;
   }

@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { EventEmitter } from "node:events";
-import { mkdirSync, rmSync, existsSync, appendFileSync } from "node:fs";
+import {
+  mkdirSync,
+  rmSync,
+  existsSync,
+  appendFileSync,
+  readFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -14,6 +20,12 @@ vi.mock("../../src/lib/paths.js", () => ({
 const { _deps, BackgroundTaskManager, TaskStatus } =
   await import("../../src/lib/background-task-manager.js");
 const originalSpawn = _deps.spawn;
+
+function createPinnedPolicy(...requiredBoundaries) {
+  return Object.freeze({
+    requiredBoundaries: Object.freeze(requiredBoundaries),
+  });
+}
 
 describe("BackgroundTaskManager", () => {
   let manager;
@@ -68,6 +80,98 @@ describe("BackgroundTaskManager", () => {
     it("defaults type to shell", () => {
       const task = manager.create({ command: "pwd" });
       expect(task.type).toBe("shell");
+    });
+
+    it("fails closed before allocating or persisting a strict-policy task", () => {
+      manager.destroy();
+      const policyCwd = join(testDir, "trusted-workspace");
+      const taskCwd = join(testDir, "requested-task-cwd");
+      const policy = createPinnedPolicy("filesystem", "network");
+      const resolveSandboxPolicy = vi.fn(() => policy);
+      _deps.spawn = vi.fn();
+      manager = new BackgroundTaskManager({
+        policyCwd,
+        resolveSandboxPolicy,
+      });
+
+      let error;
+      try {
+        manager.create({ command: "echo denied", cwd: taskCwd });
+      } catch (caught) {
+        error = caught;
+      }
+
+      expect(error).toMatchObject({
+        code: "ERR_BACKGROUND_TASK_SANDBOX_UNSUPPORTED",
+        sandboxReason: "background_execution_unsupported",
+        sandboxFailClosed: true,
+        requiredBoundaries: ["filesystem", "network"],
+        actualGuarantees: [],
+        missingBoundaries: ["filesystem", "network"],
+        sandboxBackend: null,
+        sandboxCandidateBackend: null,
+      });
+      expect(resolveSandboxPolicy).toHaveBeenCalledOnce();
+      expect(resolveSandboxPolicy).toHaveBeenCalledWith({
+        workspaceCwd: policyCwd,
+        executionCwd: taskCwd,
+      });
+      expect(manager.list()).toEqual([]);
+      expect(manager._createSeq).toBe(0);
+      expect(existsSync(join(testDir, "tasks", "queue.jsonl"))).toBe(false);
+      expect(_deps.spawn).not.toHaveBeenCalled();
+    });
+
+    it("preserves policy discovery errors without task side effects", () => {
+      manager.destroy();
+      const discoveryError = Object.assign(
+        new Error("plugin policy discovery failed"),
+        {
+          code: "ERR_PLUGIN_POLICY_DISCOVERY",
+          sandboxFailClosed: true,
+        },
+      );
+      manager = new BackgroundTaskManager({
+        policyCwd: join(testDir, "trusted-workspace"),
+        resolveSandboxPolicy: () => {
+          throw discoveryError;
+        },
+      });
+
+      let error;
+      try {
+        manager.create({ command: "echo denied" });
+      } catch (caught) {
+        error = caught;
+      }
+
+      expect(error).toBe(discoveryError);
+      expect(manager.list()).toEqual([]);
+      expect(manager._createSeq).toBe(0);
+      expect(existsSync(join(testDir, "tasks", "queue.jsonl"))).toBe(false);
+    });
+
+    it("rejects asynchronous policy resolvers before task mutation", () => {
+      manager.destroy();
+      manager = new BackgroundTaskManager({
+        resolveSandboxPolicy: async () => null,
+      });
+
+      let error;
+      try {
+        manager.create({ command: "echo denied" });
+      } catch (caught) {
+        error = caught;
+      }
+
+      expect(error).toMatchObject({
+        code: "ERR_BACKGROUND_TASK_SANDBOX_POLICY_INVALID",
+        sandboxReason: "invalid_background_task_sandbox_policy",
+        sandboxFailClosed: true,
+      });
+      expect(manager.list()).toEqual([]);
+      expect(manager._createSeq).toBe(0);
+      expect(existsSync(join(testDir, "tasks", "queue.jsonl"))).toBe(false);
     });
   });
 
@@ -181,7 +285,57 @@ describe("BackgroundTaskManager", () => {
         scope: "background-task",
         shell: false,
       });
+      expect(options).not.toHaveProperty("sandboxPolicy");
       child.emit("exit", 0);
+    });
+
+    it("rechecks policy before start and leaves a newly restricted task pending", () => {
+      manager.destroy();
+      const policyCwd = join(testDir, "trusted-workspace");
+      const taskCwd = join(testDir, "requested-task-cwd");
+      let policy = null;
+      const resolveSandboxPolicy = vi.fn(() => policy);
+      manager = new BackgroundTaskManager({
+        policyCwd,
+        resolveSandboxPolicy,
+      });
+      _deps.spawn = vi.fn();
+
+      const task = manager.create({
+        command: "echo initially-allowed",
+        cwd: taskCwd,
+      });
+      const queueFile = join(testDir, "tasks", "queue.jsonl");
+      const queueBeforeStart = readFileSync(queueFile, "utf-8");
+      const historyBeforeStart = [...task.history];
+      policy = createPinnedPolicy("filesystem");
+
+      let error;
+      try {
+        manager.start(task.id);
+      } catch (caught) {
+        error = caught;
+      }
+
+      expect(error).toMatchObject({
+        code: "ERR_BACKGROUND_TASK_SANDBOX_UNSUPPORTED",
+        sandboxReason: "background_execution_unsupported",
+        sandboxFailClosed: true,
+        requiredBoundaries: ["filesystem"],
+        missingBoundaries: ["filesystem"],
+      });
+      expect(resolveSandboxPolicy).toHaveBeenCalledTimes(2);
+      expect(resolveSandboxPolicy).toHaveBeenLastCalledWith({
+        workspaceCwd: policyCwd,
+        executionCwd: taskCwd,
+      });
+      expect(task.status).toBe(TaskStatus.PENDING);
+      expect(task.startedAt).toBeNull();
+      expect(task.lastHeartbeat).toBeNull();
+      expect(task.history).toEqual(historyBeforeStart);
+      expect(readFileSync(queueFile, "utf-8")).toBe(queueBeforeStart);
+      expect(manager.processes.size).toBe(0);
+      expect(_deps.spawn).not.toHaveBeenCalled();
     });
   });
 
