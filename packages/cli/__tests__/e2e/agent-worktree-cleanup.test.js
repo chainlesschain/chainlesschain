@@ -48,6 +48,7 @@ describe("cc agent --worktree cleanup on early-exit validation guard", () => {
     // worktree is created (agent.js). The worktree changed nothing, so cleanup
     // must remove it rather than orphan it.
     let exitCode = 0;
+    let childStderr = "";
     try {
       execSync(
         `node "${BIN}" agent --worktree --permission-prompt-tool foo -p "hi"`,
@@ -60,10 +61,11 @@ describe("cc agent --worktree cleanup on early-exit validation guard", () => {
       );
     } catch (err) {
       exitCode = err.status ?? 1;
+      childStderr = String(err.stderr || "");
     }
 
     expect(exitCode).toBe(1); // the validation guard fired
     const worktrees = git("worktree list", repo);
-    expect(worktrees).not.toContain("cc-agent-");
+    expect(worktrees, childStderr).not.toContain("cc-agent-");
   });
 });
