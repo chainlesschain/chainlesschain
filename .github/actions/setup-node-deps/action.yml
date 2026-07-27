@@ -5,6 +5,7 @@ description: "Install npm deps and the platform-correct @rollup/rollup-* native 
 # Linux, macOS, and Windows runners. Local checks are supplementary only. This
 # shared action stays in all three workflows' path filters so changes here
 # deliberately exercise the complete cross-platform gate on a main push.
+# Any release-candidate fix must rerun all three gates at its resulting SHA.
 inputs:
   working-directory:
     description: "Directory to run npm install in"
