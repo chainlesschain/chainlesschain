@@ -68,7 +68,15 @@ jobs:
       - uses: ./.github/actions/setup-node-deps
       - name: vitest unit shard ${{ matrix.shard }}/${{ inputs.shards }}
         working-directory: packages/cli
-        run: npx vitest run --shard=${{ matrix.shard }}/${{ inputs.shards }} --reporter=default --silent=passed-only __tests__/unit/
+        run: npx vitest run --shard=${{ matrix.shard }}/${{ inputs.shards }} --reporter=default --reporter=junit --outputFile.junit=test-results/unit-${{ matrix.shard }}.xml --silent=passed-only __tests__/unit/
+      - name: Upload failed unit report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-${{ inputs.runs-on }}-unit-${{ matrix.shard }}-results
+          path: packages/cli/test-results/unit-${{ matrix.shard }}.xml
+          if-no-files-found: error
+          retention-days: 7
 
   integration:
     # Integration runs 8 shards because shard 4 (at the 4-shard layout)
@@ -101,7 +109,15 @@ jobs:
       - uses: ./.github/actions/setup-node-deps
       - name: vitest integration shard ${{ matrix.shard }}/8
         working-directory: packages/cli
-        run: npx vitest run --shard=${{ matrix.shard }}/8 --reporter=default --silent=passed-only __tests__/integration/
+        run: npx vitest run --shard=${{ matrix.shard }}/8 --reporter=default --reporter=junit --outputFile.junit=test-results/integration-${{ matrix.shard }}.xml --silent=passed-only __tests__/integration/
+      - name: Upload failed integration report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-${{ inputs.runs-on }}-integration-${{ matrix.shard }}-results
+          path: packages/cli/test-results/integration-${{ matrix.shard }}.xml
+          if-no-files-found: error
+          retention-days: 7
 
   e2e:
     name: "e2e (${{ inputs.runs-on }}, shard ${{ matrix.shard }}/${{ inputs.shards }})"
@@ -126,4 +142,12 @@ jobs:
       # attempts still fails the job.
       - name: vitest e2e shard ${{ matrix.shard }}/${{ inputs.shards }}
         working-directory: packages/cli
-        run: npx vitest run --config vitest.e2e.config.js --shard=${{ matrix.shard }}/${{ inputs.shards }} --retry=2 --reporter=default --silent=passed-only __tests__/e2e/
+        run: npx vitest run --config vitest.e2e.config.js --shard=${{ matrix.shard }}/${{ inputs.shards }} --retry=2 --reporter=default --reporter=junit --outputFile.junit=test-results/e2e-${{ matrix.shard }}.xml --silent=passed-only __tests__/e2e/
+      - name: Upload failed e2e report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-${{ inputs.runs-on }}-e2e-${{ matrix.shard }}-results
+          path: packages/cli/test-results/e2e-${{ matrix.shard }}.xml
+          if-no-files-found: error
+          retention-days: 7

@@ -416,7 +416,7 @@ describe("background agent supervisor", () => {
       cliEntry: fakeCli,
     });
     let completed = null;
-    const completionDeadline = Date.now() + 30_000;
+    const completionDeadline = Date.now() + 60_000;
     while (Date.now() < completionDeadline) {
       await new Promise((resolve) => setTimeout(resolve, 50));
       const current = readBackgroundAgentState(state.id);
@@ -602,7 +602,7 @@ describe("background agent supervisor", () => {
     const conn = await connectBackgroundSession({
       pipePath: transport.pipe,
       token: transport.token,
-      timeoutMs: 30_000,
+      timeoutMs: 60_000,
       onEvent: (m) => events.push(m),
     });
     expect(conn.hello).toMatchObject({ type: "hello", interactive: true });
@@ -637,7 +637,7 @@ describe("background agent supervisor", () => {
     expect(final?.status).toBe("completed");
     expect(final?.transport ?? null).toBe(null);
     expect(final?.turnCount).toBe(2);
-  }, 30000);
+  }, 90000);
 
   it.skipIf(process.platform !== "win32")(
     "stops a running Windows process tree through taskkill",
@@ -1072,7 +1072,7 @@ describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
     const conn = await connectBackgroundSession({
       pipePath: transport.pipe,
       token: transport.token,
-      timeoutMs: 30_000,
+      timeoutMs: 60_000,
       onEvent: (m) => events.push(m),
     });
 

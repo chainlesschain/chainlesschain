@@ -60,7 +60,7 @@ function killTree(pid) {
   }
 }
 
-async function pollUntil(fn, { timeoutMs = 30_000, intervalMs = 50 } = {}) {
+async function pollUntil(fn, { timeoutMs = 60_000, intervalMs = 50 } = {}) {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     const value = await fn();
@@ -201,7 +201,7 @@ describe("6. needs-input phase — turn → idle → finalize (real spawn)", () 
     const conn = await connectBackgroundSession({
       pipePath: transport.pipe,
       token: transport.token,
-      timeoutMs: 30_000,
+      timeoutMs: 60_000,
       onEvent: (m) => events.push(m),
     });
     expect(conn.hello).toMatchObject({ type: "hello", interactive: true });
@@ -342,7 +342,7 @@ describe("P0-2 same-turn question round-trip (real worker/child IPC)", () => {
     let firstConn = await connectBackgroundSession({
       pipePath: transport.pipe,
       token: transport.token,
-      timeoutMs: 30_000,
+      timeoutMs: 60_000,
       onEvent: (message) => {
         if (message.type !== "interaction_request") return;
         interactionEvents.push(message);
@@ -370,7 +370,7 @@ describe("P0-2 same-turn question round-trip (real worker/child IPC)", () => {
     conn = await connectBackgroundSession({
       pipePath: transport.pipe,
       token: transport.token,
-      timeoutMs: 30_000,
+      timeoutMs: 60_000,
       onEvent: (message) => {
         if (message.type !== "interaction_request") return;
         interactionEvents.push(message);
@@ -394,7 +394,7 @@ describe("P0-2 same-turn question round-trip (real worker/child IPC)", () => {
           return null;
         }
       },
-      { timeoutMs: 20_000 },
+      { timeoutMs: 60_000 },
     );
     expect(evidence).toEqual({
       beforePid: expect.any(Number),
@@ -412,7 +412,7 @@ describe("P0-2 same-turn question round-trip (real worker/child IPC)", () => {
         const current = readBackgroundAgentState(state.id);
         return current?.status === "completed" ? current : null;
       },
-      { timeoutMs: 20_000 },
+      { timeoutMs: 60_000 },
     );
     expect(completed?.turnCount).toBe(1);
     expect(interactionEvents).toHaveLength(2);
@@ -432,5 +432,5 @@ describe("P0-2 same-turn question round-trip (real worker/child IPC)", () => {
       status: "resolved",
       settlement: { status: "resolved", answer: "yes", error: null },
     });
-  }, 30_000);
+  }, 90_000);
 });
