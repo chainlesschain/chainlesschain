@@ -87,6 +87,8 @@ afterEach(() => {
 
 describe("agent-core strict plugin bin route", () => {
   it("passes an attested absolute Node target and manifest boundaries to Broker", async () => {
+    const supportsNodeExecutionContract =
+      process.platform === "linux" || process.platform === "win32";
     const target = installStrictNodeBin();
     const pluginSource = path.join(
       pluginVersionDir("local", "strict-bin", "1.0.0", { cwd }),
@@ -141,7 +143,7 @@ describe("agent-core strict plugin bin route", () => {
     });
     expect(result.plugin_bin.sha256).toMatch(/^[a-f0-9]{64}$/);
     expect(applySandbox).toHaveBeenCalledWith(
-      process.platform === "linux" ? canonicalRuntime : process.execPath,
+      supportsNodeExecutionContract ? canonicalRuntime : process.execPath,
       [target, "--label", "hello world"],
       expect.objectContaining({ shell: false }),
       "default",
@@ -155,7 +157,7 @@ describe("agent-core strict plugin bin route", () => {
       }),
     );
     const executionContract = applySandbox.mock.calls[0][5].executionContract;
-    if (process.platform === "linux") {
+    if (supportsNodeExecutionContract) {
       expect(executionContract).toEqual(
         expect.objectContaining({
           contractVersion: 1,
@@ -188,13 +190,12 @@ describe("agent-core strict plugin bin route", () => {
       expect(executionContract).toBeUndefined();
     }
     expect(nativeSpawnSync).toHaveBeenCalledWith(
-      process.platform === "linux" ? canonicalRuntime : process.execPath,
+      supportsNodeExecutionContract ? canonicalRuntime : process.execPath,
       [target, "--label", "hello world"],
       expect.objectContaining({
-        cwd:
-          process.platform === "linux"
-            ? path.dirname(path.dirname(target))
-            : cwd,
+        cwd: supportsNodeExecutionContract
+          ? path.dirname(path.dirname(target))
+          : cwd,
         shell: false,
       }),
     );
@@ -340,7 +341,7 @@ describe("agent-core strict plugin bin route", () => {
     expect(nativeSpawnSync).not.toHaveBeenCalled();
   });
 
-  it.runIf(process.platform === "linux")(
+  it.runIf(process.platform === "linux" || process.platform === "win32")(
     "rejects a strict Plugin Node bin background launch before task registration or native spawn",
     async () => {
       installStrictNodeBin();
@@ -402,7 +403,7 @@ describe("agent-core strict plugin bin route", () => {
     },
   );
 
-  it.runIf(process.platform === "linux")(
+  it.runIf(process.platform === "linux" || process.platform === "win32")(
     "rejects an ordinary background command under the pinned strict-bin union before native spawn",
     async () => {
       installStrictNodeBin();

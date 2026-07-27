@@ -3510,7 +3510,11 @@ async function executeToolInner(
             },
             { cwd },
           );
-          if (process.platform === "linux") {
+          if (
+            process.platform === "linux" ||
+            (process.platform === "win32" &&
+              pluginBinInvocation.runtime === "node")
+          ) {
             try {
               pluginBinSandboxExecutionContract =
                 pluginBin.createPluginSandboxExecutionContract(
@@ -3598,12 +3602,12 @@ async function executeToolInner(
           });
         }
         if (
-          process.platform === "linux" &&
+          (process.platform === "linux" || process.platform === "win32") &&
           pluginBinSandboxPolicy?.requiredBoundaries?.length > 0
         ) {
           return attachDescriptor({
             error:
-              "[Plugin bin] The current strong Linux plugin boundary supports foreground execution only; background execution is fail-closed until Broker-owned process-tree teardown is available.",
+              "[Plugin bin] The current strong plugin boundary supports foreground execution only; background execution is fail-closed until Broker-owned process-tree teardown is available.",
             policy: {
               decision: "deny",
               via: "plugin-bin-pinned-sandbox-policy",
@@ -3682,9 +3686,8 @@ async function executeToolInner(
               {
                 ...brokerOpts,
                 cwd:
-                  (process.platform === "linux"
-                    ? pluginBinSandboxExecutionContract?.workingDirectory
-                    : null) || brokerOpts.cwd,
+                  pluginBinSandboxExecutionContract?.workingDirectory ||
+                  brokerOpts.cwd,
                 shell: false,
               },
             );
@@ -3901,9 +3904,8 @@ async function executeToolInner(
             {
               ...brokerExecOpts,
               cwd:
-                (process.platform === "linux"
-                  ? pluginBinSandboxExecutionContract?.workingDirectory
-                  : null) || brokerExecOpts.cwd,
+                pluginBinSandboxExecutionContract?.workingDirectory ||
+                brokerExecOpts.cwd,
               shell: false,
               windowsHide: true,
             },
