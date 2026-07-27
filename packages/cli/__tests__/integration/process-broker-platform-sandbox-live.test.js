@@ -1046,9 +1046,14 @@ describe.runIf(LIVE && SUPPORTED)(
               sandboxCandidateBackend: "linux-bwrap",
               sandboxPolicyAttested: false,
               sandboxRuntimeProbe: {
+                kind: "linux-bwrap-plugin-native-static-elf-policy-v1",
                 attempted: false,
                 runnable: false,
                 reason,
+                probeRuntime: "node",
+                targetRuntime: "native-static-elf",
+                contentSnapshot: false,
+                handleAtomic: false,
               },
             });
           }

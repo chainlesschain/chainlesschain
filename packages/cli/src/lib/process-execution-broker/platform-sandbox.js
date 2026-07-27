@@ -1425,12 +1425,24 @@ export function postSpawnWindowsSandbox(
 // Linux resource-limit enforcement
 // ---------------------------------------------------------------------------
 
-function linuxBubblewrapProbe(attempted, runnable, reason) {
+function linuxBubblewrapProbe(
+  attempted,
+  runnable,
+  reason,
+  targetRuntime = "node",
+) {
+  const native = targetRuntime === "native-static-elf";
   return {
-    kind: "linux-bwrap-plugin-node-policy-v1",
+    kind: native
+      ? "linux-bwrap-plugin-native-static-elf-policy-v1"
+      : "linux-bwrap-plugin-node-policy-v1",
     attempted,
     runnable,
     reason,
+    probeRuntime: "node",
+    targetRuntime,
+    contentSnapshot: false,
+    handleAtomic: false,
   };
 }
 
@@ -2687,7 +2699,12 @@ function buildLinuxBubblewrapPolicyArgs(
   return args;
 }
 
-function probeLinuxBubblewrapPolicy(runtime, policyArgs, pinnedDescriptors) {
+function probeLinuxBubblewrapPolicy(
+  runtime,
+  policyArgs,
+  pinnedDescriptors,
+  targetRuntime,
+) {
   let result;
   try {
     result = runtime.spawnSync(
@@ -2717,19 +2734,30 @@ function probeLinuxBubblewrapPolicy(runtime, policyArgs, pinnedDescriptors) {
       },
     );
   } catch {
-    return linuxBubblewrapProbe(true, false, "probe_spawn_failed");
+    return linuxBubblewrapProbe(
+      true,
+      false,
+      "probe_spawn_failed",
+      targetRuntime,
+    );
   }
   if (result?.error || result?.status !== 0) {
     return linuxBubblewrapProbe(
       true,
       false,
       result?.error ? "probe_spawn_failed" : "probe_failed",
+      targetRuntime,
     );
   }
   if (String(result.stdout) !== LINUX_BWRAP_NODE_PROBE_SENTINEL) {
-    return linuxBubblewrapProbe(true, false, "node_runtime_probe_failed");
+    return linuxBubblewrapProbe(
+      true,
+      false,
+      "node_runtime_probe_failed",
+      targetRuntime,
+    );
   }
-  return linuxBubblewrapProbe(true, true, null);
+  return linuxBubblewrapProbe(true, true, null, targetRuntime);
 }
 
 /**
@@ -2780,6 +2808,11 @@ export function applyLinuxSandbox(
   );
 
   if (requiresStrongLinuxBoundary) {
+    const requestedEntryRuntime =
+      sandboxOpts.executionContract?.kind ===
+      "strict-plugin-native-static-elf-bin"
+        ? "native-static-elf"
+        : "node";
     const validation = validateLinuxPluginContract(
       command,
       args,
@@ -2795,7 +2828,12 @@ export function applyLinuxSandbox(
         backend: null,
         candidateBackend: LINUX_BWRAP_BACKEND,
         policyAttested: false,
-        runtimeProbe: linuxBubblewrapProbe(false, false, validation.reason),
+        runtimeProbe: linuxBubblewrapProbe(
+          false,
+          false,
+          validation.reason,
+          requestedEntryRuntime,
+        ),
         reason: missing
           ? "linux_bwrap_execution_contract_missing"
           : "linux_bwrap_execution_contract_invalid",
@@ -2812,6 +2850,7 @@ export function applyLinuxSandbox(
           false,
           false,
           "binary_missing_or_unattested",
+          validation.entryRuntime,
         ),
         reason: "linux_bwrap_unavailable",
         guarantees: [],
@@ -2824,7 +2863,12 @@ export function applyLinuxSandbox(
         backend: null,
         candidateBackend: LINUX_BWRAP_BACKEND,
         policyAttested: false,
-        runtimeProbe: linuxBubblewrapProbe(true, false, capabilities.reason),
+        runtimeProbe: linuxBubblewrapProbe(
+          true,
+          false,
+          capabilities.reason,
+          validation.entryRuntime,
+        ),
         reason: "linux_bwrap_unavailable",
         guarantees: [],
       });
@@ -2853,6 +2897,7 @@ export function applyLinuxSandbox(
           false,
           false,
           error.message || "runtime_mounts_unattested",
+          validation.entryRuntime,
         ),
         reason: "linux_bwrap_runtime_unattested",
         guarantees: [],
@@ -2915,6 +2960,7 @@ export function applyLinuxSandbox(
           false,
           false,
           error.message || "plugin_tree_unattested",
+          validation.entryRuntime,
         ),
         reason: "linux_bwrap_plugin_tree_unattested",
         guarantees: [],
@@ -2947,6 +2993,7 @@ export function applyLinuxSandbox(
           false,
           false,
           error.message || "seccomp_filter_unattested",
+          validation.entryRuntime,
         ),
         reason: "linux_bwrap_seccomp_unattested",
         guarantees: [],
@@ -3007,17 +3054,14 @@ export function applyLinuxSandbox(
         }),
       )
       .digest("hex");
-    const runtimeProbe = Object.freeze({
-      ...probeLinuxBubblewrapPolicy(runtime, policyArgs, probeDescriptors),
-      kind:
-        validation.entryRuntime === "native-static-elf"
-          ? "linux-bwrap-plugin-native-static-elf-policy-v1"
-          : "linux-bwrap-plugin-node-policy-v1",
-      probeRuntime: "node",
-      targetRuntime: validation.entryRuntime,
-      contentSnapshot: false,
-      handleAtomic: false,
-    });
+    const runtimeProbe = Object.freeze(
+      probeLinuxBubblewrapPolicy(
+        runtime,
+        policyArgs,
+        probeDescriptors,
+        validation.entryRuntime,
+      ),
+    );
     closeLinuxPinnedMounts(runtime, [probeSeccompFilter]);
     if (!runtimeProbe.runnable) {
       closeLinuxPinnedMounts(runtime, pinnedDescriptors);
@@ -3052,6 +3096,7 @@ export function applyLinuxSandbox(
           true,
           false,
           `post_probe_${finalValidation.reason}`,
+          validation.entryRuntime,
         ),
         reason: "linux_bwrap_execution_contract_changed",
         guarantees: [],
@@ -3085,6 +3130,7 @@ export function applyLinuxSandbox(
             true,
             false,
             `post_probe_${error.message || "native_entry_changed"}`,
+            validation.entryRuntime,
           ),
           reason: "linux_bwrap_execution_contract_changed",
           guarantees: [],

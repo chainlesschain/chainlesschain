@@ -495,6 +495,12 @@ describe("resolvePluginBinInvocation", () => {
       verifyIssuedPluginSandboxExecutionContract(contract, provenance),
     ).toBe(true);
     expect(
+      verifyIssuedPluginNodeSandboxExecutionContract(contract, provenance),
+    ).toBe(false);
+    expect(
+      consumeIssuedPluginNodeSandboxExecutionContract(contract, provenance),
+    ).toBe(false);
+    expect(
       verifyIssuedPluginSandboxExecutionContract(contract, {
         ...provenance,
         command: contract.runtimePath,

@@ -651,11 +651,46 @@ class ProcessExecutionBroker extends EventEmitter {
           "Sandbox runtime probe must use the typed probe contract",
         );
       }
+      for (const field of ["probeRuntime", "targetRuntime"]) {
+        if (
+          plan.runtimeProbe[field] !== undefined &&
+          (typeof plan.runtimeProbe[field] !== "string" ||
+            !plan.runtimeProbe[field])
+        ) {
+          throw this._sandboxError(
+            "invalid_sandbox_plan",
+            `Sandbox runtime probe ${field} must be a non-empty string`,
+          );
+        }
+      }
+      for (const field of ["contentSnapshot", "handleAtomic"]) {
+        if (
+          plan.runtimeProbe[field] !== undefined &&
+          typeof plan.runtimeProbe[field] !== "boolean"
+        ) {
+          throw this._sandboxError(
+            "invalid_sandbox_plan",
+            `Sandbox runtime probe ${field} must be boolean`,
+          );
+        }
+      }
       runtimeProbe = {
         kind: plan.runtimeProbe.kind,
         attempted: plan.runtimeProbe.attempted,
         runnable: plan.runtimeProbe.runnable,
         reason: plan.runtimeProbe.reason,
+        ...(plan.runtimeProbe.probeRuntime !== undefined
+          ? { probeRuntime: plan.runtimeProbe.probeRuntime }
+          : {}),
+        ...(plan.runtimeProbe.targetRuntime !== undefined
+          ? { targetRuntime: plan.runtimeProbe.targetRuntime }
+          : {}),
+        ...(plan.runtimeProbe.contentSnapshot !== undefined
+          ? { contentSnapshot: plan.runtimeProbe.contentSnapshot }
+          : {}),
+        ...(plan.runtimeProbe.handleAtomic !== undefined
+          ? { handleAtomic: plan.runtimeProbe.handleAtomic }
+          : {}),
       };
     }
     const postSpawn = plan.postSpawn || { required: false, mode: "none" };

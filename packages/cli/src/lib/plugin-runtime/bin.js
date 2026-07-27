@@ -1172,7 +1172,10 @@ export function verifyIssuedPluginNodeSandboxExecutionContract(
   contract,
   provenance = {},
 ) {
-  return issuedPluginSandboxContractMatches(contract, provenance);
+  return (
+    contract?.kind === "strict-plugin-node-bin" &&
+    issuedPluginSandboxContractMatches(contract, provenance)
+  );
 }
 
 export function verifyIssuedPluginSandboxExecutionContract(
@@ -1190,7 +1193,10 @@ export function consumeIssuedPluginNodeSandboxExecutionContract(
   contract,
   provenance = {},
 ) {
-  if (!issuedPluginSandboxContractMatches(contract, provenance)) {
+  if (
+    contract?.kind !== "strict-plugin-node-bin" ||
+    !issuedPluginSandboxContractMatches(contract, provenance)
+  ) {
     return false;
   }
   return _issuedPluginSandboxContracts.delete(contract);

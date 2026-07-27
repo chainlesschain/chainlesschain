@@ -1034,9 +1034,14 @@ describe("platform sandbox adapter contract", () => {
         reason: "linux_bwrap_execution_contract_invalid",
         guarantees: [],
         runtimeProbe: {
+          kind: "linux-bwrap-plugin-native-static-elf-policy-v1",
           attempted: false,
           runnable: false,
           reason: expectedReason,
+          probeRuntime: "node",
+          targetRuntime: "native-static-elf",
+          contentSnapshot: false,
+          handleAtomic: false,
         },
       });
       expect(harness.lddInspectionSources).toEqual([]);
@@ -3270,6 +3275,40 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       sandboxRequired: [],
       sandboxGuarantees: [],
       sandboxState: "ready",
+    });
+  });
+
+  it("preserves extended runtime probe evidence in the audit log", () => {
+    const child = createChild();
+    const nativeSpawn = vi.fn(() => child);
+    const runtimeProbe = {
+      kind: "linux-bwrap-plugin-native-static-elf-policy-v1",
+      attempted: true,
+      runnable: true,
+      reason: null,
+      probeRuntime: "node",
+      targetRuntime: "native-static-elf",
+      contentSnapshot: false,
+      handleAtomic: false,
+    };
+    const apply = vi.fn((command, args, options) =>
+      appliedPlan("sandbox-wrapper", ["--", command, ...args], options, {
+        runtimeProbe,
+      }),
+    );
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: apply,
+      postSpawnSandbox: vi.fn(),
+    };
+
+    executionBroker.spawn("tool", ["run"], {
+      origin: "test:sandbox-runtime-probe",
+      policy: "allow",
+    });
+
+    expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
+      sandboxRuntimeProbe: runtimeProbe,
     });
   });
 
