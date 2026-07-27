@@ -445,13 +445,16 @@ function createLinuxStaticPieElf64({
 function createLinuxStrongHarness({
   bwrapStatus = 0,
   bwrapStdout = "chainless-linux-bwrap-plugin-node-v1",
-  bwrapHelp = "--ro-bind-fd FD DEST\n--disable-userns\n--assert-userns-disabled\n--seccomp FD\n",
+  bwrapHelp = "--ro-bind-fd FD DEST\n--ro-bind-data FD DEST\n--perms MODE\n--disable-userns\n--assert-userns-disabled\n--seccomp FD\n",
   lddStdout = [
     "libc.so.6 => /lib/libc.so.6 (0x1)",
     "/lib64/ld-linux.so.2 (0x2)",
   ].join("\n"),
   includeBwrap = true,
   tamperSeccompFilter = false,
+  tamperNativeSnapshot = false,
+  tamperNativeSnapshotAfterProbe = false,
+  failNativeSnapshotReopen = false,
   entryRuntime = "node",
   nativeEntry = createLinuxStaticElf64(),
   nativeEntryMode = 0o100755,
@@ -486,14 +489,20 @@ function createLinuxStrongHarness({
   if (!includeBwrap) files.delete("/usr/bin/bwrap");
   const identities = new Map();
   const openFiles = new Map();
+  const openFlags = new Map();
   const detachedContents = new Map();
   const anonymousFiles = new Set();
+  const fileModes = new Map();
+  const fileMtimes = new Map();
   const fdOffsets = new Map();
   const mountIds = new Map();
+  const bwrapDataReads = [];
   const lddInspectionSources = [];
+  const tamperedAnonymousFiles = new Set();
   let nextIno = 700;
   let nextFd = 40;
   let nextTempDirectory = 1;
+  let bwrapInvocationCount = 0;
   for (const value of [...directories, ...files.keys()]) {
     identities.set(value, nextIno++);
   }
@@ -521,15 +530,17 @@ function createLinuxStrongHarness({
       dev: 11,
       ino: identities.get(filePath),
       size: contents?.length || 0,
-      mtimeMs: 1234,
-      nlink: 1,
-      mode: isDirectory
-        ? 0o040755
-        : filePath === entryPath && !nativeStatic
-          ? 0o100644
-          : filePath === entryPath
-            ? nativeEntryMode
-            : 0o100755,
+      mtimeMs: fileMtimes.get(filePath) ?? 1234,
+      nlink: anonymousFiles.has(filePath) ? 0 : 1,
+      mode:
+        fileModes.get(filePath) ??
+        (isDirectory
+          ? 0o040755
+          : filePath === entryPath && !nativeStatic
+            ? 0o100644
+            : filePath === entryPath
+              ? nativeEntryMode
+              : 0o100755),
       uid: 0,
       isFile: () => !isDirectory,
       isDirectory: () => isDirectory,
@@ -543,7 +554,9 @@ function createLinuxStrongHarness({
   const fsRuntime = {
     constants: {
       O_RDONLY: 0,
+      O_WRONLY: 0x1,
       O_RDWR: 0x2,
+      O_ACCMODE: 0x3,
       O_CREAT: 0x40,
       O_EXCL: 0x80,
       O_TMPFILE: 0x410000,
@@ -622,17 +635,28 @@ function createLinuxStrongHarness({
       identities.set(directory, nextIno++);
       return directory;
     }),
-    openSync: vi.fn((value, flags = 0) => {
+    openSync: vi.fn((value, flags = 0, mode = 0o666) => {
+      const requestedPath = String(value);
       let filePath = resolveFdPath(value);
       const anonymous =
         (Number(flags) & fsRuntime.constants.O_TMPFILE) ===
         fsRuntime.constants.O_TMPFILE;
       if (anonymous) {
         if (!directories.has(filePath)) throw missing(filePath);
-        filePath = `anonymous-seccomp-${nextIno}`;
+        filePath = `anonymous-inode-${nextIno}`;
         files.set(filePath, Buffer.alloc(0));
+        fileModes.set(filePath, 0o100000 | (Number(mode) & 0o777));
+        fileMtimes.set(filePath, 10_000 + nextIno);
         identities.set(filePath, nextIno++);
         anonymousFiles.add(filePath);
+      }
+      if (
+        failNativeSnapshotReopen &&
+        requestedPath.startsWith("/proc/self/fd/") &&
+        anonymousFiles.has(filePath) &&
+        files.get(filePath)?.subarray(0, 4).equals(Buffer.from("\x7fELF"))
+      ) {
+        throw new Error("snapshot reader reopen denied");
       }
       const create = (Number(flags) & 0x40) !== 0;
       const exclusive = (Number(flags) & 0x80) !== 0;
@@ -650,6 +674,7 @@ function createLinuxStrongHarness({
       }
       const fd = nextFd++;
       openFiles.set(fd, filePath);
+      openFlags.set(fd, Number(flags));
       fdOffsets.set(fd, 0);
       if (anonymous) detachedContents.set(fd, Buffer.alloc(0));
       return fd;
@@ -670,14 +695,29 @@ function createLinuxStrongHarness({
       }
       return length;
     }),
-    fchmodSync: vi.fn(),
-    fsyncSync: vi.fn((fd) => {
-      if (!tamperSeccompFilter || !detachedContents.has(fd)) return;
+    fchmodSync: vi.fn((fd, mode) => {
       const filePath = openFiles.get(fd);
+      if (!filePath || !files.has(filePath)) throw missing(`fd:${fd}`);
+      fileModes.set(filePath, 0o100000 | (Number(mode) & 0o777));
+    }),
+    fsyncSync: vi.fn((fd) => {
+      const filePath = openFiles.get(fd);
+      if (!filePath || !detachedContents.has(fd)) return;
       const contents = Buffer.from(files.get(filePath));
+      const nativeSnapshot = contents
+        .subarray(0, 4)
+        .equals(Buffer.from("\x7fELF"));
+      if (
+        tamperedAnonymousFiles.has(filePath) ||
+        (nativeSnapshot ? !tamperNativeSnapshot : !tamperSeccompFilter) ||
+        contents.length === 0
+      ) {
+        return;
+      }
       contents[contents.length - 1] ^= 0xff;
       files.set(filePath, contents);
       detachedContents.set(fd, Buffer.from(contents));
+      tamperedAnonymousFiles.add(filePath);
     }),
     fstatSync: vi.fn((fd) => {
       const filePath = openFiles.get(fd);
@@ -687,12 +727,20 @@ function createLinuxStrongHarness({
     closeSync: vi.fn((fd) => {
       const filePath = openFiles.get(fd);
       if (!openFiles.delete(fd)) throw missing(`fd:${fd}`);
-      if (anonymousFiles.delete(filePath)) {
-        files.delete(filePath);
-        identities.delete(filePath);
-      }
+      openFlags.delete(fd);
       detachedContents.delete(fd);
       fdOffsets.delete(fd);
+      const hasOpenReference = [...openFiles.values()].some(
+        (openPath) => openPath === filePath,
+      );
+      if (anonymousFiles.has(filePath) && !hasOpenReference) {
+        anonymousFiles.delete(filePath);
+        files.delete(filePath);
+        fileModes.delete(filePath);
+        fileMtimes.delete(filePath);
+        identities.delete(filePath);
+        tamperedAnonymousFiles.delete(filePath);
+      }
     }),
     unlinkSync: vi.fn((value) => {
       const filePath = String(value);
@@ -703,12 +751,16 @@ function createLinuxStrongHarness({
         }
       }
       if (!files.delete(filePath)) throw missing(filePath);
+      fileModes.delete(filePath);
+      fileMtimes.delete(filePath);
       identities.delete(filePath);
     }),
     rmdirSync: vi.fn((value) => {
       const directory = String(value);
       if (!directories.delete(directory)) throw missing(directory);
       identities.delete(directory);
+      fileModes.delete(directory);
+      fileMtimes.delete(directory);
     }),
   };
   const spawnSync = vi.fn((command, args, options) => {
@@ -732,6 +784,54 @@ function createLinuxStrongHarness({
           stderr: "",
         };
       }
+      bwrapInvocationCount += 1;
+      for (let index = 0; index < args.length; index += 1) {
+        if (args[index] !== "--ro-bind-data") continue;
+        const childFd = Number(args[index + 1]);
+        const destination = args[index + 2];
+        const parentFd = options?.stdio?.[childFd];
+        const sourcePath = openFiles.get(parentFd);
+        const contents =
+          detachedContents.get(parentFd) || files.get(sourcePath);
+        const accessMode =
+          Number(openFlags.get(parentFd)) & fsRuntime.constants.O_ACCMODE;
+        const offsetBefore = fdOffsets.get(parentFd);
+        const bytesRead =
+          contents && Number.isInteger(offsetBefore)
+            ? Math.max(0, contents.length - offsetBefore)
+            : 0;
+        bwrapDataReads.push({
+          childFd,
+          parentFd,
+          destination,
+          sourcePath,
+          offsetBefore,
+          bytesRead,
+          flags: openFlags.get(parentFd),
+          permissions: args[index - 2] === "--perms" ? args[index - 1] : null,
+          sha256:
+            contents && Number.isInteger(offsetBefore)
+              ? crypto
+                  .createHash("sha256")
+                  .update(contents.subarray(offsetBefore))
+                  .digest("hex")
+              : null,
+        });
+        if (
+          !sourcePath ||
+          !contents ||
+          accessMode !== fsRuntime.constants.O_RDONLY ||
+          offsetBefore !== 0 ||
+          bytesRead <= 0
+        ) {
+          return {
+            status: 1,
+            stdout: "",
+            stderr: "invalid ro-bind-data descriptor",
+          };
+        }
+        fdOffsets.set(parentFd, contents.length);
+      }
       const seccompIndex = args.indexOf("--seccomp");
       const seccompChildFd = Number(args[seccompIndex + 1]);
       const seccompParentFd = options?.stdio?.[seccompChildFd];
@@ -751,6 +851,20 @@ function createLinuxStrongHarness({
         };
       }
       fdOffsets.set(seccompParentFd, seccompContents.length);
+      if (tamperNativeSnapshotAfterProbe && bwrapInvocationCount === 1) {
+        const snapshotRead = bwrapDataReads.find(
+          (read) =>
+            read.destination === "/opt/chainless/plugin/bin/tool" &&
+            read.sourcePath,
+        );
+        const snapshotContents = snapshotRead
+          ? Buffer.from(files.get(snapshotRead.sourcePath))
+          : null;
+        if (snapshotContents?.length > 0) {
+          snapshotContents[snapshotContents.length - 1] ^= 0xff;
+          files.set(snapshotRead.sourcePath, snapshotContents);
+        }
+      }
       return { status: bwrapStatus, stdout: bwrapStdout, stderr: "" };
     }
     throw new Error(`unexpected command ${command}`);
@@ -794,6 +908,8 @@ function createLinuxStrongHarness({
   });
   return {
     contract,
+    anonymousFiles,
+    bwrapDataReads,
     detachedContents,
     directories,
     entryPath,
@@ -804,6 +920,7 @@ function createLinuxStrongHarness({
     lddInspectionSources,
     mountIds,
     openFiles,
+    openFlags,
     spawnSync,
     statFor,
   };
@@ -1208,17 +1325,21 @@ describe("platform sandbox adapter contract", () => {
         reason: null,
         probeRuntime: "node",
         targetRuntime: "native-static-elf",
-        contentSnapshot: false,
+        contentSnapshot: true,
+        contentSnapshotScope: "plugin-entry-executable",
+        contentSnapshotMechanism:
+          "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
         handleAtomic: false,
       },
     });
-    expect(plan.args).toEqual(
-      expect.arrayContaining([
-        "--ro-bind-fd",
-        expect.any(String),
-        "/opt/chainless/plugin/bin/tool",
-      ]),
-    );
+    const entryDataIndex = plan.args.indexOf("--ro-bind-data");
+    expect(plan.args.slice(entryDataIndex - 2, entryDataIndex + 3)).toEqual([
+      "--perms",
+      "0500",
+      "--ro-bind-data",
+      expect.any(String),
+      "/opt/chainless/plugin/bin/tool",
+    ]);
     expect(plan.args.slice(-4)).toEqual([
       "--",
       "/opt/chainless/plugin/bin/tool",
@@ -1240,10 +1361,56 @@ describe("platform sandbox adapter contract", () => {
         .slice(probeSeparator + 1)
         .includes("/opt/chainless/plugin/bin/tool"),
     ).toBe(false);
+    expect(harness.bwrapDataReads).toHaveLength(1);
+    const probeSnapshotRead = harness.bwrapDataReads[0];
+    expect(probeSnapshotRead).toMatchObject({
+      destination: "/opt/chainless/plugin/bin/tool",
+      offsetBefore: 0,
+      bytesRead: harness.contract.entryIdentity.bytes,
+      sha256: harness.contract.entryIdentity.sha256,
+      permissions: "0500",
+    });
+    expect(
+      probeSnapshotRead.flags & harness.fsRuntime.constants.O_ACCMODE,
+    ).toBe(harness.fsRuntime.constants.O_RDONLY);
+    const finalSnapshotChildFd = Number(plan.args[entryDataIndex + 1]);
+    const finalSnapshotFd = plan.options.stdio[finalSnapshotChildFd];
+    expect(finalSnapshotFd).not.toBe(probeSnapshotRead.parentFd);
+    expect(harness.fdOffsets.get(finalSnapshotFd)).toBe(0);
+    expect(
+      harness.openFlags.get(finalSnapshotFd) &
+        harness.fsRuntime.constants.O_ACCMODE,
+    ).toBe(harness.fsRuntime.constants.O_RDONLY);
+    const finalSnapshotPath = harness.openFiles.get(finalSnapshotFd);
+    expect(finalSnapshotPath).toBe(probeSnapshotRead.sourcePath);
+    expect(harness.statFor(finalSnapshotPath)).toMatchObject({
+      nlink: 0,
+      mode: 0o100400,
+      size: harness.contract.entryIdentity.bytes,
+    });
+    expect([...harness.openFiles.values()]).not.toContain(harness.entryPath);
     expect(harness.openFiles.size).toBeGreaterThan(0);
+
+    const finalResult = harness.spawnSync(
+      plan.command,
+      plan.args,
+      plan.options,
+    );
+    expect(finalResult.status).toBe(0);
+    expect(harness.bwrapDataReads).toHaveLength(2);
+    expect(harness.bwrapDataReads[1]).toMatchObject({
+      parentFd: finalSnapshotFd,
+      sourcePath: finalSnapshotPath,
+      destination: "/opt/chainless/plugin/bin/tool",
+      offsetBefore: 0,
+      bytesRead: harness.contract.entryIdentity.bytes,
+      sha256: harness.contract.entryIdentity.sha256,
+      permissions: "0500",
+    });
 
     plan.cleanup();
     expect(harness.openFiles.size).toBe(0);
+    expect(harness.anonymousFiles.size).toBe(0);
   });
 
   it("builds the same attested bwrap plan for a narrow static PIE native bin", () => {
@@ -1267,7 +1434,10 @@ describe("platform sandbox adapter contract", () => {
         reason: null,
         probeRuntime: "node",
         targetRuntime: "native-static-elf",
-        contentSnapshot: false,
+        contentSnapshot: true,
+        contentSnapshotScope: "plugin-entry-executable",
+        contentSnapshotMechanism:
+          "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
         handleAtomic: false,
       },
     });
@@ -1283,6 +1453,216 @@ describe("platform sandbox adapter contract", () => {
 
     plan.cleanup();
     expect(harness.openFiles.size).toBe(0);
+  });
+
+  it("keeps a native entry snapshot runnable after the source inode changes", () => {
+    const harness = createLinuxStrongHarness({
+      entryRuntime: "native-static-elf",
+    });
+    const originalSha256 = harness.contract.entryIdentity.sha256;
+    const originalBytes = harness.contract.entryIdentity.bytes;
+    const plan = applyLinuxStrongNativeHarness(harness);
+
+    expect(plan.applied).toBe(true);
+    harness.files.set(
+      harness.entryPath,
+      Buffer.from("REPLACEMENT_MARKER".padEnd(originalBytes, "!")),
+    );
+    const finalResult = harness.spawnSync(
+      plan.command,
+      plan.args,
+      plan.options,
+    );
+
+    expect(finalResult.status).toBe(0);
+    expect(harness.bwrapDataReads).toHaveLength(2);
+    expect(harness.bwrapDataReads[1]).toMatchObject({
+      offsetBefore: 0,
+      bytesRead: originalBytes,
+      sha256: originalSha256,
+    });
+    expect(
+      crypto
+        .createHash("sha256")
+        .update(harness.files.get(harness.entryPath))
+        .digest("hex"),
+    ).not.toBe(originalSha256);
+
+    plan.cleanup();
+    expect(harness.openFiles.size).toBe(0);
+    expect(harness.anonymousFiles.size).toBe(0);
+  });
+
+  it("does not reselect the host native entry after the policy probe", () => {
+    const harness = createLinuxStrongHarness({
+      entryRuntime: "native-static-elf",
+    });
+    const originalSpawnSync = harness.spawnSync.getMockImplementation();
+    harness.spawnSync.mockImplementation((command, args, options) => {
+      const result = originalSpawnSync(command, args, options);
+      if (command === "/usr/bin/bwrap" && args?.[0] !== "--help") {
+        harness.files.set(
+          harness.entryPath,
+          Buffer.from(
+            "REPLACEMENT_MARKER".padEnd(
+              harness.contract.entryIdentity.bytes,
+              "!",
+            ),
+          ),
+        );
+      }
+      return result;
+    });
+
+    const plan = applyLinuxStrongNativeHarness(harness);
+
+    expect(plan).toMatchObject({
+      applied: true,
+      runtimeProbe: {
+        runnable: true,
+        contentSnapshot: true,
+      },
+    });
+    const finalResult = harness.spawnSync(
+      plan.command,
+      plan.args,
+      plan.options,
+    );
+    expect(finalResult.status).toBe(0);
+    expect(harness.bwrapDataReads).toHaveLength(2);
+    expect(harness.bwrapDataReads[1].sha256).toBe(
+      harness.contract.entryIdentity.sha256,
+    );
+
+    plan.cleanup();
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it("keeps the native policy digest stable across anonymous inode IDs", () => {
+    const left = createLinuxStrongHarness({
+      entryRuntime: "native-static-elf",
+    });
+    const right = createLinuxStrongHarness({
+      entryRuntime: "native-static-elf",
+    });
+    const temporaryFd = right.fsRuntime.openSync(
+      "/tmp",
+      right.fsRuntime.constants.O_TMPFILE |
+        right.fsRuntime.constants.O_EXCL |
+        right.fsRuntime.constants.O_RDWR,
+      0o400,
+    );
+    right.fsRuntime.closeSync(temporaryFd);
+    const changedEntry = createLinuxStaticElf64();
+    changedEntry[changedEntry.length - 1] ^= 0x1;
+    const changed = createLinuxStrongHarness({
+      entryRuntime: "native-static-elf",
+      nativeEntry: changedEntry,
+    });
+
+    const leftPlan = applyLinuxStrongNativeHarness(left);
+    const rightPlan = applyLinuxStrongNativeHarness(right);
+    const changedPlan = applyLinuxStrongNativeHarness(changed);
+
+    expect(leftPlan.applied).toBe(true);
+    expect(rightPlan.applied).toBe(true);
+    expect(changedPlan.applied).toBe(true);
+    expect(leftPlan.policyDigest).toBe(rightPlan.policyDigest);
+    expect(changedPlan.policyDigest).not.toBe(leftPlan.policyDigest);
+
+    leftPlan.cleanup();
+    rightPlan.cleanup();
+    changedPlan.cleanup();
+    expect(left.openFiles.size).toBe(0);
+    expect(right.openFiles.size).toBe(0);
+    expect(changed.openFiles.size).toBe(0);
+  });
+
+  it.each([
+    ["changes during verified copy", { tamperNativeSnapshot: true }],
+    ["cannot be reopened read-only", { failNativeSnapshotReopen: true }],
+  ])("fails closed when a native snapshot %s", (_label, options) => {
+    const harness = createLinuxStrongHarness({
+      entryRuntime: "native-static-elf",
+      ...options,
+    });
+    const plan = applyLinuxStrongNativeHarness(harness);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      backend: null,
+      candidateBackend: "linux-bwrap",
+      policyAttested: false,
+      reason: "linux_bwrap_plugin_snapshot_unattested",
+      guarantees: [],
+      runtimeProbe: {
+        kind: "linux-bwrap-plugin-native-static-elf-policy-v1",
+        attempted: false,
+        runnable: false,
+        targetRuntime: "native-static-elf",
+        contentSnapshot: false,
+        handleAtomic: false,
+      },
+    });
+    expect(
+      harness.spawnSync.mock.calls.filter(
+        ([command, probeArgs]) =>
+          command === "/usr/bin/bwrap" && probeArgs?.[0] !== "--help",
+      ),
+    ).toHaveLength(0);
+    expect(harness.openFiles.size).toBe(0);
+    expect(harness.anonymousFiles.size).toBe(0);
+  });
+
+  it("fails closed when the native snapshot changes after the policy probe", () => {
+    const harness = createLinuxStrongHarness({
+      entryRuntime: "native-static-elf",
+      tamperNativeSnapshotAfterProbe: true,
+    });
+    const plan = applyLinuxStrongNativeHarness(harness);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      backend: null,
+      candidateBackend: "linux-bwrap",
+      policyAttested: false,
+      reason: "linux_bwrap_execution_contract_changed",
+      guarantees: [],
+      runtimeProbe: {
+        kind: "linux-bwrap-plugin-native-static-elf-policy-v1",
+        attempted: true,
+        runnable: false,
+        reason: "post_probe_native_entry_snapshot_identity_changed",
+        targetRuntime: "native-static-elf",
+        contentSnapshot: false,
+        handleAtomic: false,
+      },
+    });
+    expect(harness.bwrapDataReads).toHaveLength(1);
+    expect(harness.openFiles.size).toBe(0);
+    expect(harness.anonymousFiles.size).toBe(0);
+  });
+
+  it("releases both snapshot readers when the native policy probe fails", () => {
+    const harness = createLinuxStrongHarness({
+      entryRuntime: "native-static-elf",
+      bwrapStatus: 1,
+    });
+    const plan = applyLinuxStrongNativeHarness(harness);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_bwrap_policy_probe_failed",
+      runtimeProbe: {
+        attempted: true,
+        runnable: false,
+        reason: "probe_failed",
+        contentSnapshot: false,
+      },
+    });
+    expect(harness.bwrapDataReads).toHaveLength(1);
+    expect(harness.openFiles.size).toBe(0);
+    expect(harness.anonymousFiles.size).toBe(0);
   });
 
   it.each([
@@ -2076,10 +2456,82 @@ describe("platform sandbox adapter contract", () => {
     expect(harness.spawnSync).toHaveBeenCalledOnce();
   });
 
+  it("keeps the Node backend compatible without native snapshot options", () => {
+    const harness = createLinuxStrongHarness({
+      bwrapHelp:
+        "--ro-bind-fd FD DEST\n--disable-userns\n--assert-userns-disabled\n--seccomp FD\n",
+    });
+    const plan = applySandbox(
+      "/runtime/node",
+      ["/plugin/bin/tool.js"],
+      { cwd: "/plugin", shell: false },
+      "strict",
+      {
+        platform: "linux",
+        fs: harness.fsRuntime,
+        homedir: () => "/home/tester",
+        spawnSync: harness.spawnSync,
+      },
+      {
+        profile: "strict",
+        requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        sync: true,
+        executionContract: harness.contract,
+      },
+    );
+
+    expect(plan).toMatchObject({
+      applied: true,
+      backend: "linux-bwrap",
+      runtimeProbe: {
+        targetRuntime: "node",
+        contentSnapshot: false,
+      },
+    });
+    expect(plan.args).not.toContain("--ro-bind-data");
+
+    plan.cleanup();
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it.each([
+    [
+      "ro-bind-data",
+      "--ro-bind-fd FD DEST\n--perms MODE\n--disable-userns\n--assert-userns-disabled\n--seccomp FD\n",
+    ],
+    [
+      "perms",
+      "--ro-bind-fd FD DEST\n--ro-bind-data FD DEST\n--disable-userns\n--assert-userns-disabled\n--seccomp FD\n",
+    ],
+  ])(
+    "fails closed when native bubblewrap lacks %s",
+    (missingOption, bwrapHelp) => {
+      const harness = createLinuxStrongHarness({
+        entryRuntime: "native-static-elf",
+        bwrapHelp,
+      });
+      const plan = applyLinuxStrongNativeHarness(harness);
+
+      expect(plan).toMatchObject({
+        applied: false,
+        reason: "linux_bwrap_unavailable",
+        guarantees: [],
+        runtimeProbe: {
+          attempted: true,
+          runnable: false,
+          reason: `required_option_missing:${missingOption}`,
+          targetRuntime: "native-static-elf",
+          contentSnapshot: false,
+        },
+      });
+      expect(harness.openFiles.size).toBe(0);
+    },
+  );
+
   it("fails closed when bubblewrap cannot install the network seccomp filter", () => {
     const harness = createLinuxStrongHarness({
       bwrapHelp:
-        "--ro-bind-fd FD DEST\n--disable-userns\n--assert-userns-disabled\n",
+        "--ro-bind-fd FD DEST\n--ro-bind-data FD DEST\n--perms MODE\n--disable-userns\n--assert-userns-disabled\n",
     });
     const plan = applySandbox(
       "/runtime/node",

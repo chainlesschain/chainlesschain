@@ -149,6 +149,11 @@ const LINUX_BWRAP_MAX_PLUGIN_ENTRIES = 512;
 const LINUX_BWRAP_FIRST_MOUNT_FD = 3;
 const LINUX_ATTESTED_FILE_MAX_BYTES = 256 * 1024 * 1024;
 const LINUX_ATTESTATION_HASH_CHUNK_BYTES = 1024 * 1024;
+const LINUX_NATIVE_ENTRY_SNAPSHOT_SCOPE = "plugin-entry-executable";
+const LINUX_NATIVE_ENTRY_SNAPSHOT_MECHANISM =
+  "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1";
+const LINUX_NATIVE_ENTRY_SNAPSHOT_SOURCE_MODE = 0o400;
+const LINUX_NATIVE_ENTRY_SNAPSHOT_TARGET_MODE = "0500";
 const LINUX_ELF64_HEADER_BYTES = 64;
 const LINUX_ELF64_PROGRAM_HEADER_BYTES = 56;
 const LINUX_ELF64_DYNAMIC_ENTRY_BYTES = 16;
@@ -2582,8 +2587,13 @@ function linuxBubblewrapProbe(
   runnable,
   reason,
   targetRuntime = "node",
+  contentSnapshot = null,
 ) {
   const native = targetRuntime === "native-static-elf";
+  const snapshot =
+    native &&
+    contentSnapshot?.scope === LINUX_NATIVE_ENTRY_SNAPSHOT_SCOPE &&
+    contentSnapshot?.mechanism === LINUX_NATIVE_ENTRY_SNAPSHOT_MECHANISM;
   return {
     kind: native
       ? "linux-bwrap-plugin-native-static-elf-policy-v1"
@@ -2593,7 +2603,13 @@ function linuxBubblewrapProbe(
     reason,
     probeRuntime: "node",
     targetRuntime,
-    contentSnapshot: false,
+    contentSnapshot: snapshot,
+    ...(snapshot
+      ? {
+          contentSnapshotScope: contentSnapshot.scope,
+          contentSnapshotMechanism: contentSnapshot.mechanism,
+        }
+      : {}),
     handleAtomic: false,
   };
 }
@@ -2862,10 +2878,12 @@ function validateLinuxPluginContract(
   contract,
   runtime,
   sync,
+  { sealedNativeEntry = false } = {},
 ) {
   const nodeContract = contract?.kind === "strict-plugin-node-bin";
   const nativeContract =
     contract?.kind === "strict-plugin-native-static-elf-bin";
+  const nativeEntryIsSealed = nativeContract && sealedNativeEntry === true;
   if (
     !contract ||
     contract.contractVersion !== 1 ||
@@ -2973,9 +2991,10 @@ function validateLinuxPluginContract(
   }
   if (
     !linuxDirectoryIdentityMatches(runtime, contract.rootIdentity) ||
-    !linuxIdentityMatches(runtime, contract.entryIdentity, {
-      executable: nativeContract,
-    }) ||
+    (!nativeEntryIsSealed &&
+      !linuxIdentityMatches(runtime, contract.entryIdentity, {
+        executable: nativeContract,
+      })) ||
     !linuxIdentityMatches(runtime, contract.runtimeIdentity, {
       executable: true,
     })
@@ -2983,7 +3002,7 @@ function validateLinuxPluginContract(
     return { ok: false, reason: "execution_identity_changed" };
   }
   let entryFormat = null;
-  if (nativeContract) {
+  if (nativeContract && !nativeEntryIsSealed) {
     try {
       entryFormat = inspectLinuxStaticNativePath(
         runtime,
@@ -3071,6 +3090,258 @@ function hashLinuxOpenFile(runtime, fd, bytes) {
     offset += read;
   }
   return digest.digest("hex");
+}
+
+function createLinuxNativeEntrySnapshot(runtime, entryMount, entryIdentity) {
+  let writerFd;
+  let probeFd;
+  let finalFd;
+  try {
+    for (const method of [
+      "openSync",
+      "readSync",
+      "writeSync",
+      "fchmodSync",
+      "fsyncSync",
+      "fstatSync",
+      "closeSync",
+    ]) {
+      if (typeof runtime.fs[method] !== "function") {
+        throw new Error(`native_entry_snapshot_${method}_unavailable`);
+      }
+    }
+    if (
+      !Number.isInteger(entryMount?.fd) ||
+      !entryIdentity ||
+      typeof entryIdentity.sha256 !== "string" ||
+      !/^[a-f0-9]{64}$/.test(entryIdentity.sha256) ||
+      !Number.isSafeInteger(entryIdentity.bytes) ||
+      entryIdentity.bytes < LINUX_ELF64_HEADER_BYTES ||
+      entryIdentity.bytes > LINUX_ATTESTED_FILE_MAX_BYTES
+    ) {
+      throw new Error("native_entry_snapshot_identity_invalid");
+    }
+
+    const sourceBefore = runtime.fs.fstatSync(entryMount.fd);
+    if (
+      !sourceBefore.isFile() ||
+      Number(sourceBefore.nlink) !== 1 ||
+      String(sourceBefore.dev) !== String(entryIdentity.fileId?.dev) ||
+      String(sourceBefore.ino) !== String(entryIdentity.fileId?.ino) ||
+      Number(sourceBefore.size) !== entryIdentity.bytes ||
+      Number(sourceBefore.mtimeMs) !== Number(entryIdentity.mtimeMs)
+    ) {
+      throw new Error("native_entry_snapshot_source_changed");
+    }
+
+    const constants = runtime.fs.constants || fs.constants;
+    const writerFlags =
+      Number(constants.O_RDWR) |
+      Number(constants.O_EXCL) |
+      Number(constants.O_TMPFILE ?? LINUX_O_TMPFILE) |
+      Number(constants.O_NOFOLLOW || 0) |
+      Number(constants.O_NONBLOCK || 0);
+    writerFd = runtime.fs.openSync(
+      "/tmp",
+      writerFlags,
+      LINUX_NATIVE_ENTRY_SNAPSHOT_SOURCE_MODE,
+    );
+
+    const sourceDigest = crypto.createHash("sha256");
+    const chunk = Buffer.allocUnsafe(
+      Math.max(
+        1,
+        Math.min(LINUX_ATTESTATION_HASH_CHUNK_BYTES, entryIdentity.bytes),
+      ),
+    );
+    let copied = 0;
+    while (copied < entryIdentity.bytes) {
+      const read = runtime.fs.readSync(
+        entryMount.fd,
+        chunk,
+        0,
+        Math.min(chunk.length, entryIdentity.bytes - copied),
+        copied,
+      );
+      if (read <= 0) {
+        throw new Error("native_entry_snapshot_source_ended_early");
+      }
+      sourceDigest.update(chunk.subarray(0, read));
+      let written = 0;
+      while (written < read) {
+        const count = runtime.fs.writeSync(
+          writerFd,
+          chunk,
+          written,
+          read - written,
+          copied + written,
+        );
+        if (count <= 0) {
+          throw new Error("native_entry_snapshot_write_failed");
+        }
+        written += count;
+      }
+      copied += read;
+    }
+    const sourceAfter = runtime.fs.fstatSync(entryMount.fd);
+    if (
+      !linuxOpenStatMatches(sourceBefore, sourceAfter) ||
+      sourceDigest.digest("hex") !== entryIdentity.sha256
+    ) {
+      throw new Error("native_entry_snapshot_source_changed");
+    }
+
+    runtime.fs.fsyncSync(writerFd);
+    const snapshotBeforeRead = runtime.fs.fstatSync(writerFd);
+    if (
+      !snapshotBeforeRead.isFile() ||
+      Number(snapshotBeforeRead.nlink) !== 0 ||
+      Number(snapshotBeforeRead.size) !== entryIdentity.bytes
+    ) {
+      throw new Error("native_entry_snapshot_identity_changed");
+    }
+    const snapshotSha256 = hashLinuxOpenFile(
+      runtime,
+      writerFd,
+      entryIdentity.bytes,
+    );
+    const snapshotAfterRead = runtime.fs.fstatSync(writerFd);
+    if (
+      !linuxOpenStatMatches(snapshotBeforeRead, snapshotAfterRead) ||
+      snapshotSha256 !== entryIdentity.sha256
+    ) {
+      throw new Error("native_entry_snapshot_identity_changed");
+    }
+
+    runtime.fs.fchmodSync(writerFd, LINUX_NATIVE_ENTRY_SNAPSHOT_SOURCE_MODE);
+    runtime.fs.fsyncSync(writerFd);
+    const sealedBeforeRead = runtime.fs.fstatSync(writerFd);
+    if (
+      !sealedBeforeRead.isFile() ||
+      Number(sealedBeforeRead.nlink) !== 0 ||
+      Number(sealedBeforeRead.size) !== entryIdentity.bytes ||
+      (Number(sealedBeforeRead.mode) & 0o777) !==
+        LINUX_NATIVE_ENTRY_SNAPSHOT_SOURCE_MODE
+    ) {
+      throw new Error("native_entry_snapshot_readonly_mode_unattested");
+    }
+    const sealedSha256 = hashLinuxOpenFile(
+      runtime,
+      writerFd,
+      entryIdentity.bytes,
+    );
+    const sealed = runtime.fs.fstatSync(writerFd);
+    if (
+      !linuxOpenStatMatches(sealedBeforeRead, sealed) ||
+      sealedSha256 !== entryIdentity.sha256
+    ) {
+      throw new Error("native_entry_snapshot_identity_changed");
+    }
+
+    const readerFlags =
+      Number(constants.O_RDONLY) | Number(constants.O_NONBLOCK || 0);
+    probeFd = runtime.fs.openSync(`/proc/self/fd/${writerFd}`, readerFlags);
+    finalFd = runtime.fs.openSync(`/proc/self/fd/${writerFd}`, readerFlags);
+    if (probeFd === finalFd) {
+      throw new Error("native_entry_snapshot_readers_not_independent");
+    }
+    for (const fd of [probeFd, finalFd]) {
+      const reader = runtime.fs.fstatSync(fd);
+      if (!linuxOpenStatMatches(sealed, reader)) {
+        throw new Error("native_entry_snapshot_reader_identity_changed");
+      }
+    }
+    runtime.fs.closeSync(writerFd);
+    writerFd = undefined;
+
+    const verifyClosedWriterSnapshot = runtime.fs.fstatSync(finalFd);
+    if (!linuxOpenStatMatches(sealed, verifyClosedWriterSnapshot)) {
+      throw new Error("native_entry_snapshot_reader_identity_changed");
+    }
+
+    const attestation = Object.freeze({
+      scope: LINUX_NATIVE_ENTRY_SNAPSHOT_SCOPE,
+      mechanism: LINUX_NATIVE_ENTRY_SNAPSHOT_MECHANISM,
+      sha256: entryIdentity.sha256,
+      bytes: entryIdentity.bytes,
+      sourceFileId: Object.freeze({
+        dev: String(entryIdentity.fileId.dev),
+        ino: String(entryIdentity.fileId.ino),
+      }),
+      sourceMtimeMs: Number(entryIdentity.mtimeMs),
+      sourceMode: LINUX_NATIVE_ENTRY_SNAPSHOT_SOURCE_MODE.toString(8).padStart(
+        4,
+        "0",
+      ),
+      targetMode: LINUX_NATIVE_ENTRY_SNAPSHOT_TARGET_MODE,
+    });
+    const descriptor = (fd) => {
+      const stat = runtime.fs.fstatSync(fd);
+      return {
+        ...entryMount,
+        fd,
+        fileId: {
+          dev: String(stat.dev),
+          ino: String(stat.ino),
+        },
+        bytes: Number(stat.size),
+        mtimeMs: Number(stat.mtimeMs),
+        mountMode: "ro-bind-data",
+        mountPermissions: LINUX_NATIVE_ENTRY_SNAPSHOT_TARGET_MODE,
+        contentSnapshot: attestation,
+        snapshotIdentity: Object.freeze({
+          sha256: entryIdentity.sha256,
+          bytes: entryIdentity.bytes,
+          fileId: Object.freeze({
+            dev: String(stat.dev),
+            ino: String(stat.ino),
+          }),
+          mtimeMs: Number(stat.mtimeMs),
+        }),
+      };
+    };
+    const result = {
+      attestation,
+      probeMount: descriptor(probeFd),
+      finalMount: descriptor(finalFd),
+    };
+    probeFd = undefined;
+    finalFd = undefined;
+    return result;
+  } catch (error) {
+    closeLinuxPinnedMounts(
+      runtime,
+      [probeFd, finalFd, writerFd]
+        .filter(Number.isInteger)
+        .map((fd) => ({ fd })),
+    );
+    throw error;
+  }
+}
+
+function attestLinuxNativeEntrySnapshot(runtime, mount, attestation) {
+  const before = runtime.fs.fstatSync(mount?.fd);
+  if (
+    !before.isFile() ||
+    Number(before.nlink) !== 0 ||
+    (Number(before.mode) & 0o777) !== LINUX_NATIVE_ENTRY_SNAPSHOT_SOURCE_MODE ||
+    String(before.dev) !== String(mount?.snapshotIdentity?.fileId?.dev) ||
+    String(before.ino) !== String(mount?.snapshotIdentity?.fileId?.ino) ||
+    Number(before.size) !== Number(attestation?.bytes) ||
+    Number(before.size) !== Number(mount?.snapshotIdentity?.bytes) ||
+    Number(before.mtimeMs) !== Number(mount?.snapshotIdentity?.mtimeMs)
+  ) {
+    throw new Error("native_entry_snapshot_identity_changed");
+  }
+  const sha256 = hashLinuxOpenFile(runtime, mount.fd, Number(before.size));
+  const after = runtime.fs.fstatSync(mount.fd);
+  if (
+    !linuxOpenStatMatches(before, after) ||
+    sha256 !== attestation?.sha256 ||
+    sha256 !== mount.snapshotIdentity.sha256
+  ) {
+    throw new Error("native_entry_snapshot_identity_changed");
+  }
 }
 
 /**
@@ -3706,7 +3977,7 @@ function attestLinuxBubblewrapBinary(runtime) {
   );
 }
 
-function attestLinuxBubblewrapCapabilities(runtime) {
+function attestLinuxBubblewrapCapabilities(runtime, targetRuntime = "node") {
   let result;
   try {
     result = runtime.spawnSync(LINUX_BWRAP_PATH, ["--help"], {
@@ -3727,12 +3998,16 @@ function attestLinuxBubblewrapCapabilities(runtime) {
     return { ok: false, reason: "capability_probe_failed" };
   }
   const help = `${String(result.stdout || "")}\n${String(result.stderr || "")}`;
-  for (const option of [
+  const requiredOptions = [
     "--ro-bind-fd",
     "--disable-userns",
     "--assert-userns-disabled",
     "--seccomp",
-  ]) {
+    ...(targetRuntime === "native-static-elf"
+      ? ["--ro-bind-data", "--perms"]
+      : []),
+  ];
+  for (const option of requiredOptions) {
     if (!help.includes(option)) {
       return {
         ok: false,
@@ -3929,7 +4204,17 @@ function buildLinuxBubblewrapPolicyArgs(
     args.push("--dir", directory);
   }
   for (const mount of pinnedMounts) {
-    args.push("--ro-bind-fd", String(mount.childFd), mount.destination);
+    if (mount.mountMode === "ro-bind-data") {
+      args.push(
+        "--perms",
+        mount.mountPermissions,
+        "--ro-bind-data",
+        String(mount.childFd),
+        mount.destination,
+      );
+    } else {
+      args.push("--ro-bind-fd", String(mount.childFd), mount.destination);
+    }
   }
   args.push(
     "--seccomp",
@@ -3977,6 +4262,7 @@ function probeLinuxBubblewrapPolicy(
   policyArgs,
   pinnedDescriptors,
   targetRuntime,
+  contentSnapshot = null,
 ) {
   let result;
   try {
@@ -4012,6 +4298,7 @@ function probeLinuxBubblewrapPolicy(
       false,
       "probe_spawn_failed",
       targetRuntime,
+      contentSnapshot,
     );
   }
   if (result?.error || result?.status !== 0) {
@@ -4020,6 +4307,7 @@ function probeLinuxBubblewrapPolicy(
       false,
       result?.error ? "probe_spawn_failed" : "probe_failed",
       targetRuntime,
+      contentSnapshot,
     );
   }
   if (String(result.stdout) !== LINUX_BWRAP_NODE_PROBE_SENTINEL) {
@@ -4028,9 +4316,10 @@ function probeLinuxBubblewrapPolicy(
       false,
       "node_runtime_probe_failed",
       targetRuntime,
+      contentSnapshot,
     );
   }
-  return linuxBubblewrapProbe(true, true, null, targetRuntime);
+  return linuxBubblewrapProbe(true, true, null, targetRuntime, contentSnapshot);
 }
 
 /**
@@ -4129,7 +4418,10 @@ export function applyLinuxSandbox(
         guarantees: [],
       });
     }
-    const capabilities = attestLinuxBubblewrapCapabilities(runtime);
+    const capabilities = attestLinuxBubblewrapCapabilities(
+      runtime,
+      validation.entryRuntime,
+    );
     if (!capabilities.ok) {
       return createSandboxPlan({
         ...base,
@@ -4240,6 +4532,52 @@ export function applyLinuxSandbox(
       });
     }
 
+    let nativeEntrySnapshot = null;
+    let probePinnedMounts = pinnedMounts;
+    if (validation.entryRuntime === "native-static-elf") {
+      try {
+        const entryIndex = pinnedMounts.indexOf(entryMount);
+        if (entryIndex < 0) {
+          throw new Error("plugin_entry_pin_missing");
+        }
+        const rawEntryMount = entryMount;
+        const snapshot = createLinuxNativeEntrySnapshot(
+          runtime,
+          rawEntryMount,
+          validation.contract.entryIdentity,
+        );
+        const finalMounts = [...pinnedMounts];
+        const probeMounts = [...pinnedMounts];
+        finalMounts[entryIndex] = snapshot.finalMount;
+        probeMounts[entryIndex] = snapshot.probeMount;
+        nativeEntrySnapshot = snapshot;
+        pinnedMounts = finalMounts;
+        probePinnedMounts = probeMounts;
+        entryMount = snapshot.finalMount;
+        closeLinuxPinnedMounts(runtime, [rawEntryMount]);
+      } catch (error) {
+        closeLinuxPinnedMounts(runtime, pinnedMounts);
+        closeLinuxPinnedMounts(runtime, [
+          nativeEntrySnapshot?.probeMount,
+          nativeEntrySnapshot?.finalMount,
+        ]);
+        return createSandboxPlan({
+          ...base,
+          backend: null,
+          candidateBackend: LINUX_BWRAP_BACKEND,
+          policyAttested: false,
+          runtimeProbe: linuxBubblewrapProbe(
+            false,
+            false,
+            error.message || "native_entry_snapshot_unattested",
+            validation.entryRuntime,
+          ),
+          reason: "linux_bwrap_plugin_snapshot_unattested",
+          guarantees: [],
+        });
+      }
+    }
+
     let probeSeccompFilter;
     let seccompFilter;
     try {
@@ -4255,7 +4593,11 @@ export function applyLinuxSandbox(
       closeLinuxPinnedMounts(runtime, pinnedMounts);
       closeLinuxPinnedMounts(
         runtime,
-        [probeSeccompFilter, seccompFilter].filter(Boolean),
+        [
+          nativeEntrySnapshot?.probeMount,
+          probeSeccompFilter,
+          seccompFilter,
+        ].filter(Boolean),
       );
       return createSandboxPlan({
         ...base,
@@ -4273,7 +4615,7 @@ export function applyLinuxSandbox(
       });
     }
     const pinnedDescriptors = [...pinnedMounts, seccompFilter];
-    const probeDescriptors = [...pinnedMounts, probeSeccompFilter];
+    const probeDescriptors = [...probePinnedMounts, probeSeccompFilter];
     const environment = linuxSandboxEnvironment();
     const policyArgs = buildLinuxBubblewrapPolicyArgs(
       pluginTree.directories,
@@ -4293,11 +4635,23 @@ export function applyLinuxSandbox(
       validation.entryRuntime === "native-static-elf"
         ? [sandboxEntry, ...args]
         : ["/opt/chainless/runtime/node", sandboxEntry, ...args.slice(1)];
+    const snapshotPolicyBinding = nativeEntrySnapshot
+      ? {
+          scope: nativeEntrySnapshot.attestation.scope,
+          mechanism: nativeEntrySnapshot.attestation.mechanism,
+          sourceIdentity: validation.contract.entryIdentity,
+          sha256: nativeEntrySnapshot.attestation.sha256,
+          bytes: nativeEntrySnapshot.attestation.bytes,
+          destination: sandboxEntry,
+          sourceMode: nativeEntrySnapshot.attestation.sourceMode,
+          targetMode: nativeEntrySnapshot.attestation.targetMode,
+        }
+      : null;
     const policyDigest = crypto
       .createHash("sha256")
       .update(
         JSON.stringify({
-          version: 1,
+          version: nativeEntrySnapshot ? 2 : 1,
           backend: LINUX_BWRAP_BACKEND,
           contract: {
             kind: validation.contract.kind,
@@ -4308,12 +4662,30 @@ export function applyLinuxSandbox(
             entryRuntime: validation.entryRuntime,
             entryFormat,
           },
-          mounts: pinnedMounts.map((mount) => ({
-            destination: mount.destination,
-            fileId: mount.fileId,
-            bytes: mount.bytes,
-            mtimeMs: mount.mtimeMs,
-          })),
+          mounts: pinnedMounts.map((mount) =>
+            mount.contentSnapshot
+              ? {
+                  destination: mount.destination,
+                  fileId: mount.contentSnapshot.sourceFileId,
+                  bytes: mount.contentSnapshot.bytes,
+                  mtimeMs: mount.contentSnapshot.sourceMtimeMs,
+                  contentSnapshot: {
+                    scope: mount.contentSnapshot.scope,
+                    mechanism: mount.contentSnapshot.mechanism,
+                    sha256: mount.contentSnapshot.sha256,
+                    bytes: mount.contentSnapshot.bytes,
+                    sourceMode: mount.contentSnapshot.sourceMode,
+                    targetMode: mount.contentSnapshot.targetMode,
+                  },
+                }
+              : {
+                  destination: mount.destination,
+                  fileId: mount.fileId,
+                  bytes: mount.bytes,
+                  mtimeMs: mount.mtimeMs,
+                },
+          ),
+          contentSnapshot: snapshotPolicyBinding,
           seccomp: {
             arch: seccompFilter.arch,
             policy: seccompFilter.policy,
@@ -4327,7 +4699,7 @@ export function applyLinuxSandbox(
         }),
       )
       .digest("hex");
-    const runtimeProbe = Object.freeze(
+    const policyProbe = Object.freeze(
       probeLinuxBubblewrapPolicy(
         runtime,
         policyArgs,
@@ -4335,8 +4707,11 @@ export function applyLinuxSandbox(
         validation.entryRuntime,
       ),
     );
-    closeLinuxPinnedMounts(runtime, [probeSeccompFilter]);
-    if (!runtimeProbe.runnable) {
+    closeLinuxPinnedMounts(runtime, [
+      probeSeccompFilter,
+      nativeEntrySnapshot?.probeMount,
+    ]);
+    if (!policyProbe.runnable) {
       closeLinuxPinnedMounts(runtime, pinnedDescriptors);
       return createSandboxPlan({
         ...base,
@@ -4344,7 +4719,7 @@ export function applyLinuxSandbox(
         candidateBackend: LINUX_BWRAP_BACKEND,
         policyAttested: false,
         policyDigest,
-        runtimeProbe,
+        runtimeProbe: policyProbe,
         reason: "linux_bwrap_policy_probe_failed",
         guarantees: [],
       });
@@ -4356,6 +4731,7 @@ export function applyLinuxSandbox(
       validation.contract,
       runtime,
       sandboxOpts.sync,
+      { sealedNativeEntry: nativeEntrySnapshot !== null },
     );
     if (!finalValidation.ok) {
       closeLinuxPinnedMounts(runtime, pinnedDescriptors);
@@ -4377,20 +4753,11 @@ export function applyLinuxSandbox(
     }
     if (validation.entryRuntime === "native-static-elf") {
       try {
-        const finalEntryFormat = inspectLinuxStaticNativeElf(
+        attestLinuxNativeEntrySnapshot(
           runtime,
-          entryMount.fd,
-          validation.contract.entryIdentity,
+          entryMount,
+          nativeEntrySnapshot.attestation,
         );
-        if (JSON.stringify(finalEntryFormat) !== JSON.stringify(entryFormat)) {
-          throw new Error("native_entry_format_changed");
-        }
-        if (
-          JSON.stringify(finalValidation.entryFormat) !==
-          JSON.stringify(entryFormat)
-        ) {
-          throw new Error("native_entry_path_format_changed");
-        }
       } catch (error) {
         closeLinuxPinnedMounts(runtime, pinnedDescriptors);
         return createSandboxPlan({
@@ -4410,6 +4777,15 @@ export function applyLinuxSandbox(
         });
       }
     }
+    const runtimeProbe = Object.freeze(
+      linuxBubblewrapProbe(
+        true,
+        true,
+        null,
+        validation.entryRuntime,
+        nativeEntrySnapshot?.attestation,
+      ),
+    );
     const options = {
       ...spawnOpts,
       cwd: "/",

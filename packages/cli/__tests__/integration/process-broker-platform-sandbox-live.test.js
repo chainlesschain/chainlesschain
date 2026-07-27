@@ -1465,6 +1465,7 @@ describe.runIf(LIVE && SUPPORTED)(
         const dynamicEntry = path.join(binDirectory, "dynamic-native");
         const dynamicPieEntry = path.join(binDirectory, "dynamic-pie-native");
         const scriptEntry = path.join(binDirectory, "script-native");
+        const replacementEntry = path.join(workspace, "replacement-native");
         const allowedPath = path.join(pluginRoot, "allowed.txt");
         const secretPath = path.join(
           os.homedir(),
@@ -1599,6 +1600,42 @@ describe.runIf(LIVE && SUPPORTED)(
           expect(staticPieProgramTypes).toContain(2);
           expect(staticPieProgramTypes).not.toContain(3);
 
+          const replacementBuild = nativeSpawnSync(
+            "/usr/bin/cc",
+            [
+              "-static",
+              "-no-pie",
+              "-Wl,-z,noexecstack",
+              "-O2",
+              "-Wall",
+              "-Wextra",
+              "-x",
+              "c",
+              "-o",
+              replacementEntry,
+              "-",
+            ],
+            {
+              encoding: "utf8",
+              input: [
+                "#include <unistd.h>",
+                "int main(void) {",
+                '  static const char marker[] = "REPLACEMENT_MARKER\\n";',
+                "  return write(1, marker, sizeof(marker) - 1) ==",
+                "                 (ssize_t)(sizeof(marker) - 1)",
+                "             ? 0",
+                "             : 1;",
+                "}",
+              ].join("\n"),
+              timeout: 60_000,
+            },
+          );
+          expect(
+            replacementBuild.error,
+            `${replacementBuild.stdout}\n${replacementBuild.stderr}`,
+          ).toBeUndefined();
+          expect(replacementBuild.status, replacementBuild.stderr).toBe(0);
+
           const dynamicBuild = nativeSpawnSync(
             "/usr/bin/cc",
             ["-no-pie", "-O2", "-o", dynamicEntry, nativeSource],
@@ -1635,9 +1672,37 @@ describe.runIf(LIVE && SUPPORTED)(
             { mode: 0o700 },
           );
 
-          for (const alias of ["strict-native", "strict-native-static-pie"]) {
-            const positive = runPluginCommand(
-              [alias, ...commandArgs].join(" "),
+          for (const [alias, entryPath] of [
+            ["strict-native", staticEntry],
+            ["strict-native-static-pie", staticPieEntry],
+          ]) {
+            const destination = `/opt/chainless/plugin/bin/${path.basename(
+              entryPath,
+            )}`;
+            const positive = nativeSpawnSync(
+              process.execPath,
+              [
+                childFixture,
+                "plugin-command-snapshot-race",
+                workspace,
+                JSON.stringify({
+                  command: [alias, ...commandArgs].join(" "),
+                  entryPath,
+                  replacementPath: replacementEntry,
+                  destination,
+                }),
+              ],
+              {
+                encoding: "utf8",
+                timeout: 60_000,
+                windowsHide: true,
+                env: {
+                  ...process.env,
+                  CC_SANDBOX_STRICT: "1",
+                  LD_LIBRARY_PATH: "/host/sensitive/library-path",
+                  CC_TEST_SENSITIVE_ENV: "must-not-cross-boundary",
+                },
+              },
             );
             const positiveContext = JSON.stringify({
               alias,
@@ -1672,6 +1737,30 @@ describe.runIf(LIVE && SUPPORTED)(
               hostWritable: false,
               tmpWritable: true,
               networkErrno: 1,
+              entryMode: "0500",
+              entryWritable: false,
+              entryChmodWritable: false,
+            });
+            expect(envelope.mutation).toMatchObject({
+              sameDevice: true,
+              sameInode: true,
+              afterSha256: envelope.mutation.replacementSha256,
+            });
+            expect(envelope.mutation.beforeSha256).not.toBe(
+              envelope.mutation.afterSha256,
+            );
+            expect(envelope.mutation.afterSha256).toBe(
+              fileSha256(replacementEntry),
+            );
+            expect(envelope.entryBindings).toEqual({
+              destination,
+              roBindData: [
+                {
+                  childFd: expect.any(String),
+                  permissions: "0500",
+                },
+              ],
+              roBindFd: [],
             });
             expect(envelope.audit).toMatchObject({
               permissionDecision: "allow",
@@ -1691,13 +1780,24 @@ describe.runIf(LIVE && SUPPORTED)(
                 reason: null,
                 probeRuntime: "node",
                 targetRuntime: "native-static-elf",
-                contentSnapshot: false,
+                contentSnapshot: true,
+                contentSnapshotScope: "plugin-entry-executable",
+                contentSnapshotMechanism:
+                  "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
                 handleAtomic: false,
               },
             });
             expect(envelope.audit.sandboxPolicyDigest).toMatch(
               /^[a-f0-9]{64}$/,
             );
+
+            const replaced = nativeSpawnSync(entryPath, [], {
+              encoding: "utf8",
+              timeout: 15_000,
+            });
+            expect(replaced.error, replaced.stderr).toBeUndefined();
+            expect(replaced.status, replaced.stderr).toBe(0);
+            expect(replaced.stdout).toBe("REPLACEMENT_MARKER\n");
           }
 
           for (const [alias, reason] of [

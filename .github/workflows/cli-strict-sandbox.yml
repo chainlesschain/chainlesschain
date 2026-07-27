@@ -87,6 +87,8 @@ jobs:
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
           /usr/bin/bwrap --version
           /usr/bin/bwrap --help | grep -F -- --ro-bind-fd
+          /usr/bin/bwrap --help | grep -F -- "--ro-bind-data FD DEST"
+          /usr/bin/bwrap --help | grep -F -- "--perms OCTAL"
           /usr/bin/bwrap --help | grep -F -- --disable-userns
           /usr/bin/bwrap --help | grep -F -- --assert-userns-disabled
           /usr/bin/bwrap --help | grep -F -- --seccomp

@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 static int can_read(const char *path, char *buffer, size_t capacity) {
@@ -33,6 +34,12 @@ int main(int argc, char **argv) {
   char allowed[128] = {0};
   char ignored[128] = {0};
   char cwd[PATH_MAX] = {0};
+  struct stat entry_stat = {0};
+  int entry_stat_ok = stat(argv[0], &entry_stat) == 0;
+  int entry_fd = open(argv[0], O_WRONLY);
+  int entry_writable = entry_fd >= 0;
+  if (entry_fd >= 0) close(entry_fd);
+  int entry_chmod_writable = chmod(argv[0], 0700) == 0;
   int allowed_readable = can_read(argv[1], allowed, sizeof(allowed));
   int secret_readable = can_read(argv[2], ignored, sizeof(ignored));
   int host_root_readable = can_read("/etc/passwd", ignored, sizeof(ignored));
@@ -47,12 +54,17 @@ int main(int argc, char **argv) {
   printf(
       "{\"allowedReadable\":%s,\"allowed\":\"%s\",\"cwd\":\"%s\","
       "\"chainlessSandboxed\":%s,\"sensitiveEnv\":%s,\"ldLibraryPath\":%s,"
+      "\"entryMode\":\"%04o\",\"entryWritable\":%s,"
+      "\"entryChmodWritable\":%s,"
       "\"secretReadable\":%s,\"hostRootReadable\":%s,\"pluginWritable\":%s,"
       "\"hostWritable\":%s,\"tmpWritable\":%s,\"networkErrno\":%d}",
       allowed_readable ? "true" : "false", allowed, cwd,
       getenv("CHAINLESS_SANDBOXED") ? "true" : "false",
       getenv("CC_TEST_SENSITIVE_ENV") ? "true" : "false",
       getenv("LD_LIBRARY_PATH") ? "true" : "false",
+      entry_stat_ok ? (unsigned int)(entry_stat.st_mode & 0777) : 0,
+      entry_writable ? "true" : "false",
+      entry_chmod_writable ? "true" : "false",
       secret_readable ? "true" : "false",
       host_root_readable ? "true" : "false",
       plugin_writable ? "true" : "false",
