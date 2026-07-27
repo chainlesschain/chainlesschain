@@ -7,12 +7,16 @@ vi.mock("child_process", () => ({
   spawnSync: vi.fn(() => ({ status: 0, stdout: "" })),
 }));
 
-vi.mock("fs", () => ({
-  default: {},
-  existsSync: vi.fn(),
-  writeFileSync: vi.fn(),
-  chmodSync: vi.fn(),
-}));
+vi.mock("fs", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    default: actual,
+    existsSync: vi.fn(),
+    writeFileSync: vi.fn(),
+    chmodSync: vi.fn(),
+  };
+});
 
 import { execSync, spawnSync } from "child_process";
 import { existsSync, writeFileSync, chmodSync } from "fs";

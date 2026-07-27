@@ -1279,15 +1279,43 @@ namespace ChainlessChain.WindowsSandbox
             }
         }
 
+        private static FileAttributes ValidateExistingLocalPath(
+            string fullPath,
+            string description,
+            bool allowReparsePaths)
+        {
+            return allowReparsePaths
+                ? File.GetAttributes(fullPath)
+                : ValidateExistingLocalNonReparsePath(fullPath, description);
+        }
+
+        private static void ValidateExistingLocalFile(
+            string fullPath,
+            string description,
+            bool allowReparsePaths)
+        {
+            FileAttributes attributes = ValidateExistingLocalPath(
+                fullPath,
+                description,
+                allowReparsePaths);
+            if ((attributes & FileAttributes.Directory) != 0)
+            {
+                throw new FileNotFoundException(
+                    description + " is not a regular file",
+                    fullPath);
+            }
+        }
+
         private static bool TryValidateExistingLocalNonReparseDirectory(
-            string fullPath)
+            string fullPath,
+            bool allowReparsePaths)
         {
             try
             {
-                FileAttributes attributes =
-                    ValidateExistingLocalNonReparsePath(
-                        fullPath,
-                        "Target PATH directory");
+                FileAttributes attributes = ValidateExistingLocalPath(
+                    fullPath,
+                    "Target PATH directory",
+                    allowReparsePaths);
                 return (attributes & FileAttributes.Directory) != 0;
             }
             catch (FileNotFoundException)
@@ -1303,7 +1331,8 @@ namespace ChainlessChain.WindowsSandbox
         private static string ResolveApplication(
             string application,
             string workingDirectory,
-            Dictionary<string, string> environment)
+            Dictionary<string, string> environment,
+            bool allowReparsePaths)
         {
             if (
                 String.IsNullOrWhiteSpace(application) ||
@@ -1317,9 +1346,10 @@ namespace ChainlessChain.WindowsSandbox
                     application,
                     workingDirectory,
                     "Target application");
-                ValidateExistingLocalNonReparseFile(
+                ValidateExistingLocalFile(
                     rooted,
-                    "Target application");
+                    "Target application",
+                    allowReparsePaths);
                 return rooted;
             }
 
@@ -1368,7 +1398,8 @@ namespace ChainlessChain.WindowsSandbox
                     workingDirectory,
                     "Target PATH directory");
                 if (!TryValidateExistingLocalNonReparseDirectory(
-                    searchDirectory))
+                    searchDirectory,
+                    allowReparsePaths))
                 {
                     continue;
                 }
@@ -1379,9 +1410,10 @@ namespace ChainlessChain.WindowsSandbox
                         application + extension);
                     try
                     {
-                        ValidateExistingLocalNonReparseFile(
+                        ValidateExistingLocalFile(
                             candidate,
-                            "Target application");
+                            "Target application",
+                            allowReparsePaths);
                         return candidate;
                     }
                     catch (FileNotFoundException)
@@ -2743,6 +2775,8 @@ namespace ChainlessChain.WindowsSandbox
                 0,
                 256L * 1024L * 1024L,
                 1,
+                false,
+                true,
                 -1,
                 false,
                 true,
@@ -2767,6 +2801,8 @@ namespace ChainlessChain.WindowsSandbox
             int cpuSeconds,
             long processMemoryBytes,
             int activeProcessLimit,
+            bool allowReparsePaths,
+            bool disableAdministratorSids,
             int nodeIpcFd,
             bool detached,
             bool windowsHide,
@@ -2794,9 +2830,10 @@ namespace ChainlessChain.WindowsSandbox
                 null,
                 "Target working directory");
             FileAttributes workingDirectoryAttributes =
-                ValidateExistingLocalNonReparsePath(
+                ValidateExistingLocalPath(
                     workingDirectory,
-                    "Target working directory");
+                    "Target working directory",
+                    allowReparsePaths);
             if (
                 (workingDirectoryAttributes & FileAttributes.Directory) == 0)
             {
@@ -2807,7 +2844,8 @@ namespace ChainlessChain.WindowsSandbox
             application = ResolveApplication(
                 application,
                 workingDirectory,
-                targetEnvironment);
+                targetEnvironment,
+                allowReparsePaths);
             string extension = Path.GetExtension(application);
             if (extension.Equals(".cmd", StringComparison.OrdinalIgnoreCase) ||
                 extension.Equals(".bat", StringComparison.OrdinalIgnoreCase))
@@ -2821,7 +2859,8 @@ namespace ChainlessChain.WindowsSandbox
                             Environment.SystemDirectory,
                             "cmd.exe")),
                     workingDirectory,
-                    targetEnvironment);
+                    targetEnvironment,
+                    allowReparsePaths);
                 arguments = new[] { "/d", "/s", "/c", commandText };
             }
 
@@ -2935,10 +2974,14 @@ namespace ChainlessChain.WindowsSandbox
                 }
 
                 UInt32 restrictedTokenFlags = DISABLE_MAX_PRIVILEGE;
-                // Re-applying LUA_TOKEN to an already restricted parent can
-                // fail with ERROR_INVALID_PARAMETER. Preserve the parent's
-                // existing restrictions and always remove maximum privileges.
-                if (!IsTokenRestricted(sourceToken))
+                // The ordinary compatibility profile removes privileges while
+                // retaining the caller's enabled SIDs so nested tools such as
+                // Git for Windows can still create their helper processes and
+                // anonymous pipes. Strong profiles additionally deny enabled
+                // administrator SIDs with LUA_TOKEN. Re-applying LUA_TOKEN to
+                // an already restricted parent can fail with
+                // ERROR_INVALID_PARAMETER.
+                if (disableAdministratorSids && !IsTokenRestricted(sourceToken))
                     restrictedTokenFlags |= LUA_TOKEN;
                 if (!CreateRestrictedToken(
                     sourceToken,
@@ -3300,6 +3343,8 @@ namespace ChainlessChain.WindowsSandbox
             public int cpuSeconds { get; set; }
             public long processMemoryBytes { get; set; }
             public int activeProcessLimit { get; set; }
+            public bool allowReparsePaths { get; set; }
+            public bool disableAdministratorSids { get; set; }
             public string command { get; set; }
             public string[] args { get; set; }
             public int nodeIpcFd { get; set; }
@@ -3502,6 +3547,8 @@ namespace ChainlessChain.WindowsSandbox
                                     0,
                                     0,
                                     1,
+                                    false,
+                                    true,
                                     -1,
                                     false,
                                     true,
@@ -3630,6 +3677,8 @@ namespace ChainlessChain.WindowsSandbox
                     spec.cpuSeconds,
                     spec.processMemoryBytes,
                     spec.activeProcessLimit,
+                    spec.allowReparsePaths,
+                    spec.disableAdministratorSids,
                     spec.nodeIpcFd,
                     spec.detached,
                     spec.windowsHide,

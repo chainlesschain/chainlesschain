@@ -2017,6 +2017,17 @@ export function applyWindowsSandbox(
     return unavailablePlan("windows_plugin_entry_snapshot_test_gate_invalid");
   }
   const profile = sandboxOpts.profileName || "default";
+  const executableName = path.win32
+    .basename(String(invocation.command))
+    .toLowerCase();
+  if (
+    profile === "default" &&
+    requiredBoundaries.length === 0 &&
+    !entrySnapshot.locks &&
+    (executableName === "git" || executableName === "git.exe")
+  ) {
+    return unavailablePlan("windows_git_nested_process_compatibility");
+  }
   const loaderMode =
     profile !== "strict" && !requiresAppContainer && !entrySnapshot.locks
       ? "managed-executable"
@@ -2072,6 +2083,11 @@ export function applyWindowsSandbox(
       limits.as || (profile === "strict" ? 256 * 1024 * 1024 : 0),
     ),
     activeProcessLimit: profile === "strict" ? 16 : 64,
+    allowReparsePaths: loaderMode === "managed-executable",
+    disableAdministratorSids:
+      profile === "strict" ||
+      requiresAppContainer ||
+      Boolean(entrySnapshot.locks),
     command: invocation.command,
     args: invocation.args,
     nodeIpcFd,

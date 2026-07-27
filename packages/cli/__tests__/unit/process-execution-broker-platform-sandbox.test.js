@@ -2744,6 +2744,34 @@ describe("platform sandbox adapter contract", () => {
     },
   );
 
+  it("uses the audited default fallback for Git's nested Windows process tree", () => {
+    const harness = createWindowsAdapterHarness();
+    const plan = applyWindowsSandbox(
+      "git",
+      ["status", "--short"],
+      { cwd: "C:\\repo" },
+      { profileName: "default" },
+      {
+        platform: "win32",
+        fs: harness.fsRuntime,
+        windowsDir: () => "C:\\Windows",
+        tmpdir: () => "C:\\temp",
+        randomBytes: (size) => Buffer.alloc(size, 0x9a),
+        joinPath: path.win32.join,
+        spawnSync: harness.spawnSync,
+      },
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "windows_git_nested_process_compatibility",
+      command: "git",
+      args: ["status", "--short"],
+    });
+    expect(harness.spawnSync).not.toHaveBeenCalled();
+    expect(harness.fsRuntime.writeFileSync).not.toHaveBeenCalled();
+  });
+
   it("materializes a random byte-loaded Windows helper and never trusts a prepositioned cache", () => {
     const oldHashAssembly =
       "C:\\temp\\chainless-win-sandbox-0123456789abcdef01234567\\windows-sandbox-helper.exe";
@@ -2778,6 +2806,10 @@ describe("platform sandbox adapter contract", () => {
     expect(harness.logicalCalls[0]).toMatchObject({
       command: assemblyPath,
       args: ["--probe-helper"],
+    });
+    expect(decodeWindowsLaunchSpec(harness, plan)).toMatchObject({
+      allowReparsePaths: true,
+      disableAdministratorSids: false,
     });
 
     plan.cleanup();
@@ -3089,6 +3121,8 @@ describe("platform sandbox adapter contract", () => {
     expect(payload).toMatchObject({
       command: "tool.exe",
       args: ["run"],
+      allowReparsePaths: false,
+      disableAdministratorSids: true,
       appContainerProfileName:
         "ChainlessChain.CliSandbox.090909090909090909090909",
       appContainerSid,
