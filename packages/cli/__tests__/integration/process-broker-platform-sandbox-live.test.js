@@ -1172,7 +1172,7 @@ describe.runIf(LIVE && SUPPORTED)(
     );
 
     it.runIf(process.platform === "linux")(
-      "keeps executing an attested Plugin Node entry snapshot after a same-inode source rewrite",
+      "keeps executing attested Plugin Node entry and tree snapshots after same-inode source rewrites",
       async () => {
         const nonce = `${process.pid}-${Date.now()}`;
         const workspace = fs.mkdtempSync(
@@ -1187,8 +1187,19 @@ describe.runIf(LIVE && SUPPORTED)(
           "replacement-strict-live.cjs",
         );
         const dependencyPath = path.join(pluginRoot, "lib", "value.cjs");
+        const replacementDependencyPath = path.join(
+          workspace,
+          "replacement-value.cjs",
+        );
+        const pluginManifestPath = path.join(pluginRoot, "plugin.json");
         const configPath = path.join(pluginRoot, "config.json");
         const allowedPath = path.join(pluginRoot, "allowed.txt");
+        const sandboxEntryPath = "/opt/chainless/plugin/bin/strict-live.cjs";
+        const sandboxDependencyPath = "/opt/chainless/plugin/lib/value.cjs";
+        const sandboxManifestPath = "/opt/chainless/plugin/plugin.json";
+        const sandboxConfigPath = "/opt/chainless/plugin/config.json";
+        const sandboxAllowedPath = "/opt/chainless/plugin/allowed.txt";
+        const sandboxRuntimePath = "/opt/chainless/runtime/node";
         const pluginMarker = path.join(pluginRoot, "plugin-marker.txt");
         const sandboxPluginMarker = "/opt/chainless/plugin/plugin-marker.txt";
         const secretPath = path.join(
@@ -1209,6 +1220,9 @@ describe.runIf(LIVE && SUPPORTED)(
         );
         let serverChild = null;
         let serverShutdown = false;
+        let expectedPluginTreeSnapshotFiles = null;
+        let expectedPluginTreeSnapshotBytes = null;
+        let expectedPluginFileBindings = null;
         try {
           fs.mkdirSync(path.dirname(pluginEntry), { recursive: true });
           fs.mkdirSync(path.dirname(dependencyPath), { recursive: true });
@@ -1217,11 +1231,11 @@ describe.runIf(LIVE && SUPPORTED)(
           fs.writeFileSync(allowedPath, "allowed-plugin-data", "utf8");
           fs.writeFileSync(
             dependencyPath,
-            "module.exports = Object.freeze({ value: 'local-dependency-ok' });\n",
+            "module.exports = Object.freeze({ value: 'ORIGINAL_DEPENDENCY' });\n",
             "utf8",
           );
           fs.writeFileSync(
-            path.join(pluginRoot, "plugin.json"),
+            pluginManifestPath,
             JSON.stringify({
               name: "strict-live",
               version: "1.0.0",
@@ -1259,6 +1273,20 @@ describe.runIf(LIVE && SUPPORTED)(
               "try {",
               "  fs.chmodSync(__filename, 0o600);",
               "  entryChmodWritable = true;",
+              "} catch {}",
+              'const dependencyFilename = require.resolve("../lib/value.cjs");',
+              "const dependencyMode = (fs.statSync(dependencyFilename).mode & 0o777)",
+              '  .toString(8).padStart(4, "0");',
+              "let dependencyWritable = false;",
+              "try {",
+              '  const dependencyFd = fs.openSync(dependencyFilename, "r+");',
+              "  fs.closeSync(dependencyFd);",
+              "  dependencyWritable = true;",
+              "} catch {}",
+              "let dependencyChmodWritable = false;",
+              "try {",
+              "  fs.chmodSync(dependencyFilename, 0o600);",
+              "  dependencyChmodWritable = true;",
               "} catch {}",
               "const supervisorFdMatches = [];",
               "let supervisorFdScanError = null;",
@@ -1328,6 +1356,9 @@ describe.runIf(LIVE && SUPPORTED)(
               "  entryMode,",
               "  entryWritable,",
               "  entryChmodWritable,",
+              "  dependencyMode,",
+              "  dependencyWritable,",
+              "  dependencyChmodWritable,",
               "  supervisorFdMatches,",
               "  supervisorFdScanError,",
               "  supervisorStagingPathVisible,",
@@ -1366,6 +1397,11 @@ describe.runIf(LIVE && SUPPORTED)(
           fs.writeFileSync(
             replacementEntry,
             'process.stdout.write("REPLACEMENT_NODE_ENTRY\\n");\n',
+            "utf8",
+          );
+          fs.writeFileSync(
+            replacementDependencyPath,
+            "module.exports = Object.freeze({ value: 'REPLACEMENT_DEPENDENCY' });\n",
             "utf8",
           );
 
@@ -1481,6 +1517,51 @@ describe.runIf(LIVE && SUPPORTED)(
               }),
               "utf8",
             );
+            const pluginTreeSnapshotMembers = [
+              {
+                sourcePath: pluginManifestPath,
+                destination: sandboxManifestPath,
+              },
+              {
+                sourcePath: pluginEntry,
+                destination: sandboxEntryPath,
+              },
+              {
+                sourcePath: dependencyPath,
+                destination: sandboxDependencyPath,
+              },
+              {
+                sourcePath: configPath,
+                destination: sandboxConfigPath,
+              },
+              {
+                sourcePath: allowedPath,
+                destination: sandboxAllowedPath,
+              },
+            ];
+            expectedPluginTreeSnapshotFiles = pluginTreeSnapshotMembers.length;
+            expectedPluginTreeSnapshotBytes = pluginTreeSnapshotMembers.reduce(
+              (total, member) =>
+                total + Number(fs.statSync(member.sourcePath).size),
+              0,
+            );
+            expectedPluginFileBindings = pluginTreeSnapshotMembers
+              .map((member) => ({
+                destination: member.destination,
+                roBindData: [
+                  {
+                    childFd: expect.any(String),
+                    permissions:
+                      (fs.statSync(member.sourcePath).mode & 0o111) !== 0
+                        ? "0500"
+                        : "0400",
+                  },
+                ],
+                roBindFd: [],
+              }))
+              .sort((left, right) =>
+                left.destination.localeCompare(right.destination),
+              );
             coordinator = nativeSpawnSync(
               process.execPath,
               [
@@ -1491,7 +1572,11 @@ describe.runIf(LIVE && SUPPORTED)(
                   command: "strict-live config.json",
                   entryPath: pluginEntry,
                   replacementPath: replacementEntry,
-                  destination: "/opt/chainless/plugin/bin/strict-live.cjs",
+                  destination: sandboxEntryPath,
+                  dependencyPath,
+                  dependencyReplacementPath: replacementDependencyPath,
+                  dependencyDestination: sandboxDependencyPath,
+                  runtimeDestination: sandboxRuntimePath,
                 }),
               ],
               {
@@ -1548,7 +1633,7 @@ describe.runIf(LIVE && SUPPORTED)(
               CapAmb: "0000000000000000",
               CapBnd: "0000000000000000",
             },
-            dependency: "local-dependency-ok",
+            dependency: "ORIGINAL_DEPENDENCY",
             cwd: "/opt/chainless/plugin",
             allowed: "allowed-plugin-data",
             chainlessSandboxed: "1",
@@ -1564,6 +1649,9 @@ describe.runIf(LIVE && SUPPORTED)(
             entryMode: "0400",
             entryWritable: false,
             entryChmodWritable: false,
+            dependencyMode: "0400",
+            dependencyWritable: false,
+            dependencyChmodWritable: false,
             supervisorFdMatches: [],
             supervisorFdScanError: null,
             supervisorStagingPathVisible: false,
@@ -1592,7 +1680,7 @@ describe.runIf(LIVE && SUPPORTED)(
             fileSha256(replacementEntry),
           );
           expect(envelope.entryBindings).toEqual({
-            destination: "/opt/chainless/plugin/bin/strict-live.cjs",
+            destination: sandboxEntryPath,
             roBindData: [
               {
                 childFd: expect.any(String),
@@ -1601,6 +1689,44 @@ describe.runIf(LIVE && SUPPORTED)(
             ],
             roBindFd: [],
           });
+          expect(envelope.dependencyMutation).toMatchObject({
+            sameDevice: true,
+            sameInode: true,
+            afterSha256: envelope.dependencyMutation.replacementSha256,
+          });
+          expect(envelope.dependencyMutation.beforeSha256).not.toBe(
+            envelope.dependencyMutation.afterSha256,
+          );
+          expect(envelope.dependencyMutation.afterSha256).toBe(
+            fileSha256(replacementDependencyPath),
+          );
+          expect(envelope.dependencyBindings).toEqual({
+            destination: sandboxDependencyPath,
+            roBindData: [
+              {
+                childFd: expect.any(String),
+                permissions: "0400",
+              },
+            ],
+            roBindFd: [],
+          });
+          expect(envelope.runtimeBindings).toEqual({
+            destination: sandboxRuntimePath,
+            roBindData: [],
+            roBindFd: [{ childFd: expect.any(String) }],
+          });
+          expect(expectedPluginFileBindings).toHaveLength(5);
+          expect(
+            expectedPluginFileBindings.every(
+              (binding) =>
+                binding.roBindData.length === 1 &&
+                binding.roBindData[0].permissions === "0400" &&
+                binding.roBindFd.length === 0,
+            ),
+          ).toBe(true);
+          expect(envelope.pluginFileBindings).toEqual(
+            expectedPluginFileBindings,
+          );
           expect(envelope.audit).toMatchObject({
             permissionDecision: "allow",
             sandboxed: true,
@@ -1627,6 +1753,17 @@ describe.runIf(LIVE && SUPPORTED)(
               contentSnapshotScope: "plugin-entry-source",
               contentSnapshotMechanism: LINUX_ENTRY_SNAPSHOT_MECHANISM,
               handleAtomic: false,
+              pluginTreeContentSnapshot: true,
+              pluginTreeContentSnapshotScope: "all-pinned-plugin-regular-files",
+              pluginTreeContentSnapshotMechanism:
+                LINUX_ENTRY_SNAPSHOT_MECHANISM,
+              pluginTreeContentSnapshotFiles: expectedPluginTreeSnapshotFiles,
+              pluginTreeContentSnapshotBytes: expectedPluginTreeSnapshotBytes,
+              pluginTreeContentSnapshotDigest:
+                expect.stringMatching(/^[a-f0-9]{64}$/),
+              pluginTreeSnapshotConsistency: "per-file-pin-to-launch",
+              pluginTreeSnapshotContractBound: false,
+              pluginTreeSnapshotAtomic: false,
             },
           });
           expectLinuxSupervisorAudit(envelope.audit, supervisorIdentity);
@@ -1644,6 +1781,26 @@ describe.runIf(LIVE && SUPPORTED)(
           expect(replaced.error, replaced.stderr).toBeUndefined();
           expect(replaced.status, replaced.stderr).toBe(0);
           expect(replaced.stdout).toBe("REPLACEMENT_NODE_ENTRY\n");
+
+          const replacedDependency = nativeSpawnSync(
+            process.execPath,
+            [
+              "-e",
+              "process.stdout.write(require(process.argv[1]).value)",
+              dependencyPath,
+            ],
+            {
+              encoding: "utf8",
+              timeout: 15_000,
+              windowsHide: true,
+            },
+          );
+          expect(
+            replacedDependency.error,
+            replacedDependency.stderr,
+          ).toBeUndefined();
+          expect(replacedDependency.status, replacedDependency.stderr).toBe(0);
+          expect(replacedDependency.stdout).toBe("REPLACEMENT_DEPENDENCY");
         } finally {
           if (
             serverChild &&

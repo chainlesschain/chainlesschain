@@ -656,6 +656,9 @@ class ProcessExecutionBroker extends EventEmitter {
         "targetRuntime",
         "contentSnapshotScope",
         "contentSnapshotMechanism",
+        "pluginTreeContentSnapshotScope",
+        "pluginTreeContentSnapshotMechanism",
+        "pluginTreeSnapshotConsistency",
       ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
@@ -668,7 +671,13 @@ class ProcessExecutionBroker extends EventEmitter {
           );
         }
       }
-      for (const field of ["contentSnapshot", "handleAtomic"]) {
+      for (const field of [
+        "contentSnapshot",
+        "handleAtomic",
+        "pluginTreeContentSnapshot",
+        "pluginTreeSnapshotContractBound",
+        "pluginTreeSnapshotAtomic",
+      ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
           typeof plan.runtimeProbe[field] !== "boolean"
@@ -678,6 +687,108 @@ class ProcessExecutionBroker extends EventEmitter {
             `Sandbox runtime probe ${field} must be boolean`,
           );
         }
+      }
+      for (const field of [
+        "pluginTreeContentSnapshotFiles",
+        "pluginTreeContentSnapshotBytes",
+      ]) {
+        if (
+          plan.runtimeProbe[field] !== undefined &&
+          (!Number.isSafeInteger(plan.runtimeProbe[field]) ||
+            plan.runtimeProbe[field] < 0)
+        ) {
+          throw this._sandboxError(
+            "invalid_sandbox_plan",
+            `Sandbox runtime probe ${field} must be a non-negative safe integer`,
+          );
+        }
+      }
+      if (
+        plan.runtimeProbe.pluginTreeContentSnapshotDigest !== undefined &&
+        (typeof plan.runtimeProbe.pluginTreeContentSnapshotDigest !==
+          "string" ||
+          !/^[a-f0-9]{64}$/.test(
+            plan.runtimeProbe.pluginTreeContentSnapshotDigest,
+          ))
+      ) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Sandbox runtime probe pluginTreeContentSnapshotDigest must be a lowercase SHA-256 value",
+        );
+      }
+      const pluginTreeSnapshot =
+        plan.runtimeProbe.pluginTreeContentSnapshot === true;
+      const pluginTreeEvidenceFields = [
+        "pluginTreeContentSnapshotScope",
+        "pluginTreeContentSnapshotMechanism",
+        "pluginTreeContentSnapshotFiles",
+        "pluginTreeContentSnapshotBytes",
+        "pluginTreeContentSnapshotDigest",
+        "pluginTreeSnapshotConsistency",
+        "pluginTreeSnapshotContractBound",
+        "pluginTreeSnapshotAtomic",
+      ];
+      if (
+        pluginTreeSnapshot &&
+        (plan.applied !== true ||
+          plan.platform !== "linux" ||
+          plan.enforcement !== "linux-bwrap" ||
+          backend !== "linux-bwrap" ||
+          candidateBackend !== null ||
+          policyAttested !== true ||
+          policyDigest === null ||
+          !guarantees.includes(SANDBOX_BOUNDARIES.FILESYSTEM) ||
+          !guarantees.includes(SANDBOX_BOUNDARIES.NETWORK) ||
+          plan.runtimeProbe.attempted !== true ||
+          plan.runtimeProbe.runnable !== true ||
+          plan.runtimeProbe.reason !== null ||
+          plan.runtimeProbe.kind !== "linux-bwrap-plugin-node-policy-v1" ||
+          plan.runtimeProbe.probeRuntime !== "node" ||
+          plan.runtimeProbe.targetRuntime !== "node" ||
+          plan.runtimeProbe.contentSnapshot !== true ||
+          plan.runtimeProbe.contentSnapshotScope !== "plugin-entry-source" ||
+          plan.runtimeProbe.contentSnapshotMechanism !==
+            "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1" ||
+          plan.runtimeProbe.handleAtomic !== false ||
+          plan.runtimeProbe.supervisorDescriptorBound !== true ||
+          plan.runtimeProbe.pluginTreeContentSnapshotScope !==
+            "all-pinned-plugin-regular-files" ||
+          plan.runtimeProbe.pluginTreeContentSnapshotMechanism !==
+            "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1" ||
+          !Number.isSafeInteger(
+            plan.runtimeProbe.pluginTreeContentSnapshotFiles,
+          ) ||
+          plan.runtimeProbe.pluginTreeContentSnapshotFiles < 1 ||
+          plan.runtimeProbe.pluginTreeContentSnapshotFiles > 256 ||
+          !Number.isSafeInteger(
+            plan.runtimeProbe.pluginTreeContentSnapshotBytes,
+          ) ||
+          plan.runtimeProbe.pluginTreeContentSnapshotBytes < 0 ||
+          plan.runtimeProbe.pluginTreeContentSnapshotBytes >
+            256 * 1024 * 1024 ||
+          !/^[a-f0-9]{64}$/.test(
+            plan.runtimeProbe.pluginTreeContentSnapshotDigest || "",
+          ) ||
+          plan.runtimeProbe.pluginTreeSnapshotConsistency !==
+            "per-file-pin-to-launch" ||
+          plan.runtimeProbe.pluginTreeSnapshotContractBound !== false ||
+          plan.runtimeProbe.pluginTreeSnapshotAtomic !== false)
+      ) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Sandbox runtime probe plugin tree snapshot evidence must use the typed complete-tree contract",
+        );
+      }
+      if (
+        !pluginTreeSnapshot &&
+        pluginTreeEvidenceFields.some(
+          (field) => plan.runtimeProbe[field] !== undefined,
+        )
+      ) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Sandbox runtime probe plugin tree snapshot evidence requires pluginTreeContentSnapshot",
+        );
       }
       const supervisorStringFields = [
         "supervisorBindingScope",
@@ -817,6 +928,14 @@ class ProcessExecutionBroker extends EventEmitter {
             }
           : {}),
       };
+      for (const field of [
+        "pluginTreeContentSnapshot",
+        ...pluginTreeEvidenceFields,
+      ]) {
+        if (plan.runtimeProbe[field] !== undefined) {
+          runtimeProbe[field] = plan.runtimeProbe[field];
+        }
+      }
       for (const field of [
         ...supervisorStringFields,
         ...supervisorBooleanFields,

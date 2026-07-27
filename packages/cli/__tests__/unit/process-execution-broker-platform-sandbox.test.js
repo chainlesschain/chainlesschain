@@ -457,12 +457,17 @@ function createLinuxStrongHarness({
   tamperNodeSourceDuringSnapshotCopy = false,
   tamperNativeSnapshot = false,
   tamperNativeSnapshotAfterProbe = false,
+  removeNativeEntryExecuteBeforeSnapshot = false,
   failNodeSnapshotTmpfileOpen = false,
   failNodeSnapshotReopen = false,
   failNodeSnapshotWriterClose = false,
   failNativeSnapshotReopen = false,
   entryRuntime = "node",
   nodeEntry = Buffer.from("require('../lib/value.cjs');\n"),
+  nodeDependency = Buffer.from("module.exports = 42;\n"),
+  nodeDependencyMode = 0o100644,
+  additionalPluginFiles = [],
+  failSnapshotReopenForContents = null,
   nativeEntry = createLinuxStaticElf64(),
   nativeEntryMode = 0o100755,
   bwrapDevice = 11,
@@ -474,6 +479,14 @@ function createLinuxStrongHarness({
     ? "/opt/chainless/plugin/bin/tool"
     : "/opt/chainless/plugin/bin/tool.js";
   const originalNodeEntry = Buffer.from(nodeEntry);
+  const snapshotReopenFailureContents =
+    failSnapshotReopenForContents === null
+      ? null
+      : Buffer.from(failSnapshotReopenForContents);
+  const regularFileMode = (value) => {
+    const mode = Number(value);
+    return (mode & 0o170000) === 0 ? 0o100000 | mode : mode;
+  };
   const directories = new Set([
     "/plugin",
     "/plugin/bin",
@@ -485,7 +498,7 @@ function createLinuxStrongHarness({
       entryPath,
       nativeStatic ? Buffer.from(nativeEntry) : Buffer.from(originalNodeEntry),
     ],
-    ["/plugin/lib/value.cjs", Buffer.from("module.exports = 42;\n")],
+    ["/plugin/lib/value.cjs", Buffer.from(nodeDependency)],
     ["/runtime/node", Buffer.from("attested-node-runtime")],
     ["/usr/bin/bwrap", Buffer.from("bubblewrap")],
     ["/usr/bin/ldd", Buffer.from("ldd")],
@@ -497,6 +510,24 @@ function createLinuxStrongHarness({
       Buffer.from("1 0 0:1 / / rw,relatime - ext4 /dev/root rw\n"),
     ],
   ]);
+  const reportedFileSizes = new Map();
+  const fileModes = new Map([
+    ["/plugin/lib/value.cjs", regularFileMode(nodeDependencyMode)],
+  ]);
+  for (const pluginFile of additionalPluginFiles) {
+    const filePath = String(pluginFile.path);
+    files.set(filePath, Buffer.from(pluginFile.contents));
+    fileModes.set(filePath, regularFileMode(pluginFile.mode));
+    if (pluginFile.reportedSize !== undefined) {
+      reportedFileSizes.set(filePath, Number(pluginFile.reportedSize));
+    }
+    let parent = path.posix.dirname(filePath);
+    while (parent !== "/" && parent !== ".") {
+      directories.add(parent);
+      if (parent === "/plugin") break;
+      parent = path.posix.dirname(parent);
+    }
+  }
   if (!includeBwrap) files.delete("/usr/bin/bwrap");
   const identities = new Map();
   const openFiles = new Map();
@@ -504,7 +535,7 @@ function createLinuxStrongHarness({
   const detachedContents = new Map();
   const detachedStats = new Map();
   const anonymousFiles = new Set();
-  const fileModes = new Map();
+  const anonymousSnapshotSources = new Map();
   const fileMtimes = new Map();
   const fdOffsets = new Map();
   const mountIds = new Map();
@@ -521,6 +552,10 @@ function createLinuxStrongHarness({
   let nodeSnapshotTmpfileOpenFailed = false;
   let nodeSnapshotSourceTampered = false;
   let nodeSnapshotWriterCloseFailed = false;
+  let lastPluginSnapshotReadSource = null;
+  let nativeEntryFullHashReads = 0;
+  let nativeEntryExecuteRemovalArmed = false;
+  let nativeEntryExecuteRemoved = false;
   for (const value of [...directories, ...files.keys()]) {
     identities.set(value, nextIno++);
   }
@@ -552,7 +587,7 @@ function createLinuxStrongHarness({
     return {
       dev: statValue(filePath === "/usr/bin/bwrap" ? bwrapDevice : 11),
       ino: statValue(identities.get(filePath)),
-      size: statValue(contents?.length || 0),
+      size: statValue(reportedFileSizes.get(filePath) ?? contents?.length ?? 0),
       mtimeMs: statValue(fileMtimes.get(filePath) ?? 1234),
       ctimeMs: statValue(fileMtimes.get(filePath) ?? 1234),
       nlink: statValue(anonymousFiles.has(filePath) ? 0 : 1),
@@ -634,12 +669,28 @@ function createLinuxStrongHarness({
       const filePath = openFiles.get(fd);
       const contents = detachedContents.get(fd) || files.get(filePath);
       if (!filePath || !contents) throw missing(`fd:${fd}`);
+      if (filePath.startsWith("/plugin/")) {
+        lastPluginSnapshotReadSource = filePath;
+      }
       const available = Math.max(
         0,
         Math.min(length, contents.length - position),
       );
       if (available > 0) {
         contents.copy(buffer, offset, position, position + available);
+      }
+      if (
+        removeNativeEntryExecuteBeforeSnapshot &&
+        nativeStatic &&
+        !nativeEntryExecuteRemoved &&
+        filePath === entryPath &&
+        position === 0 &&
+        length === contents.length
+      ) {
+        nativeEntryFullHashReads += 1;
+        if (nativeEntryFullHashReads === 3) {
+          nativeEntryExecuteRemovalArmed = true;
+        }
       }
       if (
         tamperNodeSourceDuringSnapshotCopy &&
@@ -719,6 +770,14 @@ function createLinuxStrongHarness({
       ) {
         throw new Error("node snapshot reader reopen denied");
       }
+      if (
+        snapshotReopenFailureContents &&
+        requestedPath.startsWith("/proc/self/fd/") &&
+        anonymousFiles.has(filePath) &&
+        files.get(filePath)?.equals(snapshotReopenFailureContents)
+      ) {
+        throw new Error("node_plugin_tree_snapshot_reader_reopen_denied");
+      }
       const create = (Number(flags) & 0x40) !== 0;
       const exclusive = (Number(flags) & 0x80) !== 0;
       if (create && exclusive && files.has(filePath)) {
@@ -758,6 +817,13 @@ function createLinuxStrongHarness({
       if (detachedContents.has(fd)) {
         detachedContents.set(fd, Buffer.from(contents));
       }
+      if (
+        anonymousFiles.has(filePath) &&
+        lastPluginSnapshotReadSource !== null
+      ) {
+        anonymousSnapshotSources.set(filePath, lastPluginSnapshotReadSource);
+        lastPluginSnapshotReadSource = null;
+      }
       return length;
     }),
     fchmodSync: vi.fn((fd, mode) => {
@@ -773,13 +839,16 @@ function createLinuxStrongHarness({
         .subarray(0, 4)
         .equals(Buffer.from("\x7fELF"));
       const nodeSnapshot = !nativeStatic && contents.equals(originalNodeEntry);
+      const pluginTreeSnapshot = anonymousSnapshotSources.has(filePath);
       if (
         tamperedAnonymousFiles.has(filePath) ||
         (nativeSnapshot
           ? !tamperNativeSnapshot
           : nodeSnapshot
             ? !tamperNodeSnapshot
-            : !tamperSeccompFilter) ||
+            : pluginTreeSnapshot
+              ? true
+              : !tamperSeccompFilter) ||
         contents.length === 0
       ) {
         return;
@@ -793,20 +862,32 @@ function createLinuxStrongHarness({
       const filePath = openFiles.get(fd);
       if (!filePath) throw missing(`fd:${fd}`);
       const detached = detachedStats.get(fd);
-      if (!detached) return statFor(filePath, options);
-      if (options?.bigint !== true) return detached;
-      return {
-        ...detached,
-        dev: BigInt(detached.dev),
-        ino: BigInt(detached.ino),
-        size: BigInt(detached.size),
-        mtimeMs: BigInt(detached.mtimeMs),
-        ctimeMs: BigInt(detached.ctimeMs),
-        nlink: BigInt(detached.nlink),
-        mode: BigInt(detached.mode),
-        uid: BigInt(detached.uid),
-        gid: BigInt(detached.gid),
-      };
+      const result = !detached
+        ? statFor(filePath, options)
+        : options?.bigint !== true
+          ? detached
+          : {
+              ...detached,
+              dev: BigInt(detached.dev),
+              ino: BigInt(detached.ino),
+              size: BigInt(detached.size),
+              mtimeMs: BigInt(detached.mtimeMs),
+              ctimeMs: BigInt(detached.ctimeMs),
+              nlink: BigInt(detached.nlink),
+              mode: BigInt(detached.mode),
+              uid: BigInt(detached.uid),
+              gid: BigInt(detached.gid),
+            };
+      if (
+        nativeEntryExecuteRemovalArmed &&
+        !nativeEntryExecuteRemoved &&
+        filePath === entryPath
+      ) {
+        nativeEntryExecuteRemovalArmed = false;
+        fileModes.set(entryPath, regularFileMode(nativeEntryMode) & ~0o111);
+        nativeEntryExecuteRemoved = true;
+      }
+      return result;
     }),
     closeSync: vi.fn((fd) => {
       const filePath = openFiles.get(fd);
@@ -836,6 +917,7 @@ function createLinuxStrongHarness({
         fileMtimes.delete(filePath);
         identities.delete(filePath);
         tamperedAnonymousFiles.delete(filePath);
+        anonymousSnapshotSources.delete(filePath);
       }
       if (failAfterClose) {
         nodeSnapshotWriterCloseErrors.push(fd);
@@ -894,6 +976,7 @@ function createLinuxStrongHarness({
     files.set(filePath, Buffer.from(replacement));
     identities.set(filePath, nextIno++);
     fileMtimes.set(filePath, Number(before.mtimeMs) + 1);
+    reportedFileSizes.delete(filePath);
     return {
       before,
       after: statFor(filePath),
@@ -907,6 +990,7 @@ function createLinuxStrongHarness({
     const beforeSha256 = sha256(files.get(filePath));
     files.set(filePath, Buffer.from(replacement));
     fileMtimes.set(filePath, Number(before.mtimeMs) + 1);
+    reportedFileSizes.delete(filePath);
     return {
       before,
       after: statFor(filePath),
@@ -1066,6 +1150,7 @@ function createLinuxStrongHarness({
             ? Math.max(0, contents.length - offsetBefore)
             : 0;
         bwrapDataReads.push({
+          stage: invocation.stage,
           childFd,
           parentFd,
           destination,
@@ -1181,16 +1266,24 @@ function createLinuxStrongHarness({
     detachedStats,
     directories,
     entryPath,
+    fileModes,
     files,
     fsRuntime,
     identities,
     fdOffsets,
     lddInspectionSources,
     mountIds,
+    get nativeEntryExecuteRemoved() {
+      return nativeEntryExecuteRemoved;
+    },
+    get nativeEntryFullHashReads() {
+      return nativeEntryFullHashReads;
+    },
     nodeSnapshotWriterCloseErrors,
     openFiles,
     openFlags,
     originalBwrapSha256,
+    reportedFileSizes,
     replaceFileAtPath,
     rewriteFileInPlace,
     isBwrapCommand,
@@ -1300,6 +1393,28 @@ function expectLinuxBwrapSupervisorPolicy(args) {
   return { fileIndex, runTmpfsIndex };
 }
 
+function linuxBwrapFileMounts(args) {
+  const mounts = [];
+  for (let index = 0; index < args.length; index += 1) {
+    if (args[index] === "--ro-bind-data") {
+      mounts.push({
+        mode: "ro-bind-data",
+        childFd: Number(args[index + 1]),
+        destination: args[index + 2],
+        permissions: args[index - 2] === "--perms" ? args[index - 1] : null,
+      });
+    } else if (args[index] === "--ro-bind-fd") {
+      mounts.push({
+        mode: "ro-bind-fd",
+        childFd: Number(args[index + 1]),
+        destination: args[index + 2],
+        permissions: null,
+      });
+    }
+  }
+  return mounts;
+}
+
 function expectLinuxBwrapSupervisorInvocations(harness, expectedStages) {
   expect(harness.bwrapInvocations.map(({ stage }) => stage)).toEqual(
     expectedStages,
@@ -1404,6 +1519,25 @@ function createLinuxSupervisorRuntimeProbe(overrides = {}) {
   };
 }
 
+function createLinuxPluginTreeRuntimeProbe(overrides = {}) {
+  return createLinuxSupervisorRuntimeProbe({
+    contentSnapshot: true,
+    contentSnapshotScope: "plugin-entry-source",
+    contentSnapshotMechanism: "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+    pluginTreeContentSnapshot: true,
+    pluginTreeContentSnapshotScope: "all-pinned-plugin-regular-files",
+    pluginTreeContentSnapshotMechanism:
+      "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+    pluginTreeContentSnapshotFiles: 2,
+    pluginTreeContentSnapshotBytes: 50,
+    pluginTreeContentSnapshotDigest: "b".repeat(64),
+    pluginTreeSnapshotConsistency: "per-file-pin-to-launch",
+    pluginTreeSnapshotContractBound: false,
+    pluginTreeSnapshotAtomic: false,
+    ...overrides,
+  });
+}
+
 function appliedPlan(command, args, options, overrides = {}) {
   return {
     contractVersion: 1,
@@ -1418,6 +1552,26 @@ function appliedPlan(command, args, options, overrides = {}) {
     postSpawn: { required: false, mode: "none" },
     ...overrides,
   };
+}
+
+function appliedLinuxBwrapPluginTreePlan(
+  command,
+  args,
+  options,
+  overrides = {},
+) {
+  return appliedPlan("/proc/self/fd/3", ["--", command, ...args], options, {
+    platform: "linux",
+    profile: "strict",
+    enforcement: "linux-bwrap",
+    backend: "linux-bwrap",
+    candidateBackend: null,
+    policyAttested: true,
+    policyDigest: "c".repeat(64),
+    guarantees: [SANDBOX_BOUNDARIES.FILESYSTEM, SANDBOX_BOUNDARIES.NETWORK],
+    runtimeProbe: createLinuxPluginTreeRuntimeProbe(),
+    ...overrides,
+  });
 }
 
 afterAll(() => {
@@ -1649,6 +1803,19 @@ describe("platform sandbox adapter contract", () => {
         contentSnapshotScope: "plugin-entry-source",
         contentSnapshotMechanism:
           "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+        pluginTreeContentSnapshot: true,
+        pluginTreeContentSnapshotScope: "all-pinned-plugin-regular-files",
+        pluginTreeContentSnapshotMechanism:
+          "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+        pluginTreeContentSnapshotFiles: 2,
+        pluginTreeContentSnapshotBytes:
+          harness.contract.entryIdentity.bytes +
+          harness.files.get("/plugin/lib/value.cjs").length,
+        pluginTreeContentSnapshotDigest:
+          expect.stringMatching(/^[a-f0-9]{64}$/),
+        pluginTreeSnapshotConsistency: "per-file-pin-to-launch",
+        pluginTreeSnapshotContractBound: false,
+        pluginTreeSnapshotAtomic: false,
         supervisorDescriptorBound: true,
         supervisorDescriptorBindingMechanism:
           "pinned-child-fd3-file-consume-run-overmount-v1",
@@ -1733,8 +1900,13 @@ describe("platform sandbox adapter contract", () => {
       harness.bwrapInvocations[1].parentFd,
     );
     expect(harness.fdOffsets.get(plan.options.stdio[3])).toBe(0);
-    expect(harness.bwrapDataReads).toHaveLength(1);
-    const probeSnapshotRead = harness.bwrapDataReads[0];
+    const probeDataReads = harness.bwrapDataReads.filter(
+      ({ stage }) => stage === "probe",
+    );
+    expect(probeDataReads).toHaveLength(2);
+    const probeSnapshotRead = probeDataReads.find(
+      ({ destination }) => destination === "/opt/chainless/plugin/bin/tool.js",
+    );
     expect(probeSnapshotRead).toMatchObject({
       destination: "/opt/chainless/plugin/bin/tool.js",
       offsetBefore: 0,
@@ -1761,6 +1933,9 @@ describe("platform sandbox adapter contract", () => {
       size: harness.contract.entryIdentity.bytes,
     });
     expect([...harness.openFiles.values()]).not.toContain(harness.entryPath);
+    expect([...harness.openFiles.values()]).not.toContain(
+      "/plugin/lib/value.cjs",
+    );
     const anonymousFilterOpens = harness.fsRuntime.openSync.mock.calls.filter(
       ([value, flags, mode]) =>
         value === "/tmp" &&
@@ -1768,7 +1943,7 @@ describe("platform sandbox adapter contract", () => {
           harness.fsRuntime.constants.O_TMPFILE &&
         mode === 0o400,
     );
-    expect(anonymousFilterOpens).toHaveLength(3);
+    expect(anonymousFilterOpens).toHaveLength(4);
     expect(harness.fsRuntime.mkdtempSync).not.toHaveBeenCalled();
     const seccompIndex = plan.args.indexOf("--seccomp");
     expect(plan.args[seccompIndex + 1]).toBe(
@@ -1817,8 +1992,14 @@ describe("platform sandbox adapter contract", () => {
       "probe",
       "final",
     ]);
-    expect(harness.bwrapDataReads).toHaveLength(2);
-    expect(harness.bwrapDataReads[1]).toMatchObject({
+    expect(harness.bwrapDataReads).toHaveLength(4);
+    expect(
+      harness.bwrapDataReads.find(
+        ({ stage, destination }) =>
+          stage === "final" &&
+          destination === "/opt/chainless/plugin/bin/tool.js",
+      ),
+    ).toMatchObject({
       parentFd: finalSnapshotFd,
       sourcePath: finalSnapshotPath,
       destination: "/opt/chainless/plugin/bin/tool.js",
@@ -1834,6 +2015,141 @@ describe("platform sandbox adapter contract", () => {
     expect(harness.anonymousFiles.size).toBe(0);
     const closedFds = harness.fsRuntime.closeSync.mock.calls.map(([fd]) => fd);
     expect(new Set(closedFds).size).toBe(closedFds.length);
+  });
+
+  it("snapshots every Node plugin file with normalized data-bind modes", () => {
+    const emptyContents = Buffer.alloc(0);
+    const helperContents = Buffer.from("#!/bin/sh\nexit 0\n");
+    const harness = createLinuxStrongHarness({
+      nodeDependencyMode: 0o100400,
+      additionalPluginFiles: [
+        {
+          path: "/plugin/lib/empty.dat",
+          contents: emptyContents,
+          mode: 0o100444,
+        },
+        {
+          path: "/plugin/bin/helper",
+          contents: helperContents,
+          mode: 0o100010,
+        },
+      ],
+    });
+    const plan = applyLinuxStrongNodeHarness(harness);
+    const expectedBytes =
+      harness.contract.entryIdentity.bytes +
+      harness.files.get("/plugin/lib/value.cjs").length +
+      emptyContents.length +
+      helperContents.length;
+
+    expect(plan).toMatchObject({
+      applied: true,
+      policyAttested: true,
+      runtimeProbe: {
+        runnable: true,
+        targetRuntime: "node",
+        contentSnapshot: true,
+        contentSnapshotScope: "plugin-entry-source",
+        contentSnapshotMechanism:
+          "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+        pluginTreeContentSnapshot: true,
+        pluginTreeContentSnapshotScope: "all-pinned-plugin-regular-files",
+        pluginTreeContentSnapshotMechanism:
+          "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+        pluginTreeContentSnapshotFiles: 4,
+        pluginTreeContentSnapshotBytes: expectedBytes,
+        pluginTreeContentSnapshotDigest:
+          expect.stringMatching(/^[a-f0-9]{64}$/),
+        pluginTreeSnapshotConsistency: "per-file-pin-to-launch",
+        pluginTreeSnapshotContractBound: false,
+        pluginTreeSnapshotAtomic: false,
+        handleAtomic: false,
+      },
+    });
+
+    const mounts = linuxBwrapFileMounts(plan.args);
+    expect(
+      mounts
+        .filter(({ destination }) =>
+          destination.startsWith("/opt/chainless/plugin/"),
+        )
+        .map(({ mode, destination, permissions }) => ({
+          mode,
+          destination,
+          permissions,
+        }))
+        .sort((left, right) =>
+          left.destination.localeCompare(right.destination),
+        ),
+    ).toEqual([
+      {
+        mode: "ro-bind-data",
+        destination: "/opt/chainless/plugin/bin/helper",
+        permissions: "0500",
+      },
+      {
+        mode: "ro-bind-data",
+        destination: "/opt/chainless/plugin/bin/tool.js",
+        permissions: "0400",
+      },
+      {
+        mode: "ro-bind-data",
+        destination: "/opt/chainless/plugin/lib/empty.dat",
+        permissions: "0400",
+      },
+      {
+        mode: "ro-bind-data",
+        destination: "/opt/chainless/plugin/lib/value.cjs",
+        permissions: "0400",
+      },
+    ]);
+    for (const destination of [
+      "/opt/chainless/runtime/node",
+      "/lib/libc.so.6",
+      "/lib64/ld-linux.so.2",
+      "/etc/ld.so.cache",
+    ]) {
+      expect(mounts).toContainEqual({
+        mode: "ro-bind-fd",
+        childFd: expect.any(Number),
+        destination,
+        permissions: null,
+      });
+    }
+
+    const probeReads = harness.bwrapDataReads.filter(
+      ({ stage }) => stage === "probe",
+    );
+    expect(probeReads).toHaveLength(4);
+    expect(
+      probeReads.find(
+        ({ destination }) =>
+          destination === "/opt/chainless/plugin/lib/empty.dat",
+      ),
+    ).toMatchObject({
+      bytesRead: 0,
+      permissions: "0400",
+      sha256: crypto.createHash("sha256").update(emptyContents).digest("hex"),
+    });
+    expect(
+      probeReads.find(
+        ({ destination }) => destination === "/opt/chainless/plugin/bin/helper",
+      ),
+    ).toMatchObject({
+      bytesRead: helperContents.length,
+      permissions: "0500",
+      sha256: crypto.createHash("sha256").update(helperContents).digest("hex"),
+    });
+
+    const result = harness.spawnSync(plan.command, plan.args, plan.options);
+    expect(result.status).toBe(0);
+    expect(
+      harness.bwrapDataReads.filter(({ stage }) => stage === "final"),
+    ).toHaveLength(4);
+
+    plan.cleanup();
+    expect(harness.openFiles.size).toBe(0);
+    expect(harness.anonymousFiles.size).toBe(0);
   });
 
   it.each([
@@ -1872,6 +2188,13 @@ describe("platform sandbox adapter contract", () => {
           contentSnapshotScope: "plugin-entry-source",
           contentSnapshotMechanism:
             "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+          pluginTreeContentSnapshot: true,
+          pluginTreeContentSnapshotScope: "all-pinned-plugin-regular-files",
+          pluginTreeContentSnapshotMechanism:
+            "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+          pluginTreeSnapshotConsistency: "per-file-pin-to-launch",
+          pluginTreeSnapshotContractBound: false,
+          pluginTreeSnapshotAtomic: false,
           handleAtomic: false,
         },
       });
@@ -1886,8 +2209,14 @@ describe("platform sandbox adapter contract", () => {
       );
 
       expect(finalResult.status).toBe(0);
-      expect(harness.bwrapDataReads).toHaveLength(2);
-      expect(harness.bwrapDataReads[1]).toMatchObject({
+      expect(harness.bwrapDataReads).toHaveLength(4);
+      expect(
+        harness.bwrapDataReads.find(
+          ({ stage, destination }) =>
+            stage === "final" &&
+            destination === "/opt/chainless/plugin/bin/tool.js",
+        ),
+      ).toMatchObject({
         destination: "/opt/chainless/plugin/bin/tool.js",
         offsetBefore: 0,
         bytesRead: originalBytes,
@@ -1902,6 +2231,77 @@ describe("platform sandbox adapter contract", () => {
       ).toBe(mutation.afterSha256);
 
       plan.cleanup();
+      plan.cleanup();
+      expect(harness.openFiles.size).toBe(0);
+      expect(harness.anonymousFiles.size).toBe(0);
+    },
+  );
+
+  it.each([
+    [
+      "same-inode truncate/write",
+      (harness, replacement) =>
+        harness.rewriteFileInPlace("/plugin/lib/value.cjs", replacement),
+      true,
+    ],
+    [
+      "rename-over",
+      (harness, replacement) =>
+        harness.replaceFileAtPath("/plugin/lib/value.cjs", replacement),
+      false,
+    ],
+  ])(
+    "keeps a Node dependency snapshot stable across %s after planning",
+    (_label, mutateDependency, sameInode) => {
+      const originalContents = Buffer.from("module.exports = 'original';\n");
+      const replacement = Buffer.from("module.exports = 'replacement';\n");
+      const originalSha256 = crypto
+        .createHash("sha256")
+        .update(originalContents)
+        .digest("hex");
+      const harness = createLinuxStrongHarness({
+        nodeDependency: originalContents,
+        nodeDependencyMode: 0o100600,
+      });
+      const plan = applyLinuxStrongNodeHarness(harness);
+
+      expect(plan).toMatchObject({
+        applied: true,
+        runtimeProbe: {
+          contentSnapshot: true,
+          contentSnapshotScope: "plugin-entry-source",
+          handleAtomic: false,
+          pluginTreeContentSnapshot: true,
+          pluginTreeContentSnapshotScope: "all-pinned-plugin-regular-files",
+          pluginTreeSnapshotConsistency: "per-file-pin-to-launch",
+          pluginTreeSnapshotContractBound: false,
+          pluginTreeSnapshotAtomic: false,
+        },
+      });
+      const mutation = mutateDependency(harness, replacement);
+      expect(mutation.afterSha256).not.toBe(originalSha256);
+      expect(mutation.after.ino === mutation.before.ino).toBe(sameInode);
+
+      const result = harness.spawnSync(plan.command, plan.args, plan.options);
+      expect(result.status).toBe(0);
+      expect(
+        harness.bwrapDataReads.find(
+          ({ stage, destination }) =>
+            stage === "final" &&
+            destination === "/opt/chainless/plugin/lib/value.cjs",
+        ),
+      ).toMatchObject({
+        bytesRead: originalContents.length,
+        permissions: "0400",
+        sha256: originalSha256,
+      });
+      expect(
+        crypto
+          .createHash("sha256")
+          .update(harness.files.get("/plugin/lib/value.cjs"))
+          .digest("hex"),
+      ).toBe(mutation.afterSha256);
+
       plan.cleanup();
       expect(harness.openFiles.size).toBe(0);
       expect(harness.anonymousFiles.size).toBe(0);
@@ -1923,6 +2323,11 @@ describe("platform sandbox adapter contract", () => {
         contentSnapshotScope: "plugin-entry-source",
         contentSnapshotMechanism:
           "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+        pluginTreeContentSnapshot: true,
+        pluginTreeContentSnapshotFiles: 2,
+        pluginTreeSnapshotConsistency: "per-file-pin-to-launch",
+        pluginTreeSnapshotContractBound: false,
+        pluginTreeSnapshotAtomic: false,
         handleAtomic: false,
       },
     });
@@ -1930,8 +2335,14 @@ describe("platform sandbox adapter contract", () => {
       bytes: 0,
       sha256: crypto.createHash("sha256").update("").digest("hex"),
     });
-    expect(harness.bwrapDataReads).toHaveLength(1);
-    expect(harness.bwrapDataReads[0]).toMatchObject({
+    expect(harness.bwrapDataReads).toHaveLength(2);
+    expect(
+      harness.bwrapDataReads.find(
+        ({ stage, destination }) =>
+          stage === "probe" &&
+          destination === "/opt/chainless/plugin/bin/tool.js",
+      ),
+    ).toMatchObject({
       destination: "/opt/chainless/plugin/bin/tool.js",
       offsetBefore: 0,
       bytesRead: 0,
@@ -1944,8 +2355,14 @@ describe("platform sandbox adapter contract", () => {
       plan.options,
     );
     expect(finalResult.status).toBe(0);
-    expect(harness.bwrapDataReads).toHaveLength(2);
-    expect(harness.bwrapDataReads[1]).toMatchObject({
+    expect(harness.bwrapDataReads).toHaveLength(4);
+    expect(
+      harness.bwrapDataReads.find(
+        ({ stage, destination }) =>
+          stage === "final" &&
+          destination === "/opt/chainless/plugin/bin/tool.js",
+      ),
+    ).toMatchObject({
       offsetBefore: 0,
       bytesRead: 0,
     });
@@ -1955,9 +2372,26 @@ describe("platform sandbox adapter contract", () => {
     expect(harness.anonymousFiles.size).toBe(0);
   });
 
-  it("keeps the Node policy digest stable across anonymous inode IDs and binds entry bytes", () => {
-    const left = createLinuxStrongHarness();
-    const right = createLinuxStrongHarness();
+  it("keeps the Node v4 digest stable and binds sorted tree membership", () => {
+    const alpha = {
+      path: "/plugin/lib/alpha.cjs",
+      contents: Buffer.from("module.exports = 'alpha';\n"),
+      mode: 0o100644,
+    };
+    const beta = {
+      path: "/plugin/lib/beta.cjs",
+      contents: Buffer.from("module.exports = 'beta';\n"),
+      mode: 0o100755,
+    };
+    const left = createLinuxStrongHarness({
+      additionalPluginFiles: [alpha, beta],
+    });
+    const right = createLinuxStrongHarness({
+      additionalPluginFiles: [beta, alpha],
+    });
+    for (const filePath of [alpha.path, beta.path]) {
+      right.identities.set(filePath, left.identities.get(filePath));
+    }
     const temporaryFd = right.fsRuntime.openSync(
       "/tmp",
       right.fsRuntime.constants.O_TMPFILE |
@@ -1966,32 +2400,85 @@ describe("platform sandbox adapter contract", () => {
       0o400,
     );
     right.fsRuntime.closeSync(temporaryFd);
-    const changed = createLinuxStrongHarness({
+    const changedEntry = createLinuxStrongHarness({
       nodeEntry: Buffer.from("require('../lib/value.cjs'); // changed\n"),
+      additionalPluginFiles: [alpha, beta],
+    });
+    const changedDependency = createLinuxStrongHarness({
+      nodeDependency: Buffer.from("module.exports = 43;\n"),
+      additionalPluginFiles: [alpha, beta],
+    });
+    const changedPath = createLinuxStrongHarness({
+      additionalPluginFiles: [
+        alpha,
+        {
+          ...beta,
+          path: "/plugin/lib/renamed-beta.cjs",
+        },
+      ],
+    });
+    const changedMode = createLinuxStrongHarness({
+      additionalPluginFiles: [
+        {
+          ...alpha,
+          mode: 0o100744,
+        },
+        beta,
+      ],
     });
 
     const leftPlan = applyLinuxStrongNodeHarness(left);
     const rightPlan = applyLinuxStrongNodeHarness(right);
-    const changedPlan = applyLinuxStrongNodeHarness(changed);
+    const changedPlans = [
+      applyLinuxStrongNodeHarness(changedEntry),
+      applyLinuxStrongNodeHarness(changedDependency),
+      applyLinuxStrongNodeHarness(changedPath),
+      applyLinuxStrongNodeHarness(changedMode),
+    ];
 
     expect(leftPlan.applied).toBe(true);
     expect(rightPlan.applied).toBe(true);
-    expect(changedPlan.applied).toBe(true);
+    expect(changedPlans.every(({ applied }) => applied)).toBe(true);
     expect(leftPlan.policyDigest).toBe(rightPlan.policyDigest);
-    expect(changedPlan.policyDigest).not.toBe(leftPlan.policyDigest);
+    expect(leftPlan.runtimeProbe.pluginTreeContentSnapshotDigest).toBe(
+      rightPlan.runtimeProbe.pluginTreeContentSnapshotDigest,
+    );
+    for (const changedPlan of changedPlans) {
+      expect(changedPlan.policyDigest).not.toBe(leftPlan.policyDigest);
+      expect(changedPlan.runtimeProbe.pluginTreeContentSnapshotDigest).not.toBe(
+        leftPlan.runtimeProbe.pluginTreeContentSnapshotDigest,
+      );
+    }
     expect(leftPlan.runtimeProbe).toMatchObject({
       contentSnapshot: true,
       contentSnapshotScope: "plugin-entry-source",
       contentSnapshotMechanism: "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+      pluginTreeContentSnapshot: true,
+      pluginTreeContentSnapshotScope: "all-pinned-plugin-regular-files",
+      pluginTreeContentSnapshotMechanism:
+        "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+      pluginTreeContentSnapshotFiles: 4,
+      pluginTreeContentSnapshotDigest: expect.stringMatching(/^[a-f0-9]{64}$/),
+      pluginTreeSnapshotConsistency: "per-file-pin-to-launch",
+      pluginTreeSnapshotContractBound: false,
+      pluginTreeSnapshotAtomic: false,
       handleAtomic: false,
     });
 
     leftPlan.cleanup();
     rightPlan.cleanup();
-    changedPlan.cleanup();
+    for (const changedPlan of changedPlans) changedPlan.cleanup();
     expect(left.openFiles.size).toBe(0);
     expect(right.openFiles.size).toBe(0);
-    expect(changed.openFiles.size).toBe(0);
+    for (const changedHarness of [
+      changedEntry,
+      changedDependency,
+      changedPath,
+      changedMode,
+    ]) {
+      expect(changedHarness.openFiles.size).toBe(0);
+      expect(changedHarness.anonymousFiles.size).toBe(0);
+    }
   });
 
   it.each([
@@ -2045,6 +2532,122 @@ describe("platform sandbox adapter contract", () => {
     }
   });
 
+  it.each([
+    [
+      "regular-file count exceeds 256",
+      {
+        additionalPluginFiles: Array.from({ length: 255 }, (_, index) => ({
+          path: `/plugin/lib/count-${String(index).padStart(3, "0")}.dat`,
+          contents: Buffer.from([index % 251]),
+          mode: 0o100644,
+        })),
+      },
+      /(?:plugin_tree|snapshot).*(?:file|count|large|limit)/,
+    ],
+    [
+      "aggregate bytes exceed 256 MiB",
+      {
+        additionalPluginFiles: [
+          {
+            path: "/plugin/lib/reported-large.dat",
+            contents: Buffer.from("small fake backing"),
+            mode: 0o100644,
+            reportedSize: 256 * 1024 * 1024,
+          },
+        ],
+      },
+      /(?:plugin_tree|snapshot).*(?:byte|size|large|limit)/,
+    ],
+  ])("fails closed when Node plugin tree %s", (_label, options, reason) => {
+    const harness = createLinuxStrongHarness(options);
+    const plan = applyLinuxStrongNodeHarness(harness);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      backend: null,
+      candidateBackend: "linux-bwrap",
+      policyAttested: false,
+      reason: "linux_bwrap_plugin_snapshot_unattested",
+      guarantees: [],
+      runtimeProbe: {
+        kind: "linux-bwrap-plugin-node-policy-v1",
+        attempted: false,
+        runnable: false,
+        targetRuntime: "node",
+        contentSnapshot: false,
+        handleAtomic: false,
+      },
+    });
+    expect(plan.runtimeProbe.reason).toMatch(reason);
+    expect(
+      harness.spawnSync.mock.calls.filter(([command]) =>
+        harness.isBwrapCommand(command),
+      ),
+    ).toHaveLength(0);
+    expect(harness.openFiles.size).toBe(0);
+    expect(harness.anonymousFiles.size).toBe(0);
+  });
+
+  it("releases every prior tree snapshot when a middle snapshot fails", () => {
+    const failingContents = Buffer.from("fail this snapshot reopen\n");
+    const harness = createLinuxStrongHarness({
+      additionalPluginFiles: [
+        {
+          path: "/plugin/lib/a-first.dat",
+          contents: Buffer.from("first snapshot succeeds\n"),
+          mode: 0o100644,
+        },
+        {
+          path: "/plugin/lib/b-fail.dat",
+          contents: failingContents,
+          mode: 0o100755,
+        },
+        {
+          path: "/plugin/lib/c-never.dat",
+          contents: Buffer.from("later member\n"),
+          mode: 0o100644,
+        },
+      ],
+      failSnapshotReopenForContents: failingContents,
+    });
+    const plan = applyLinuxStrongNodeHarness(harness);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      backend: null,
+      candidateBackend: "linux-bwrap",
+      policyAttested: false,
+      reason: "linux_bwrap_plugin_snapshot_unattested",
+      guarantees: [],
+      runtimeProbe: {
+        attempted: false,
+        runnable: false,
+        targetRuntime: "node",
+        contentSnapshot: false,
+        handleAtomic: false,
+      },
+    });
+    expect(plan.runtimeProbe.reason).toMatch(
+      /node_plugin_tree_snapshot.*reopen/,
+    );
+    const snapshotTmpfileOpens = harness.fsRuntime.openSync.mock.calls.filter(
+      ([value, flags]) =>
+        value === "/tmp" &&
+        (Number(flags) & harness.fsRuntime.constants.O_TMPFILE) ===
+          harness.fsRuntime.constants.O_TMPFILE,
+    );
+    expect(snapshotTmpfileOpens.length).toBeGreaterThanOrEqual(2);
+    expect(
+      harness.spawnSync.mock.calls.filter(([command]) =>
+        harness.isBwrapCommand(command),
+      ),
+    ).toHaveLength(0);
+    expect(harness.openFiles.size).toBe(0);
+    expect(harness.anonymousFiles.size).toBe(0);
+    const closedFds = harness.fsRuntime.closeSync.mock.calls.map(([fd]) => fd);
+    expect(new Set(closedFds).size).toBe(closedFds.length);
+  });
+
   it("fails closed when the Node snapshot changes after the policy probe", () => {
     const harness = createLinuxStrongHarness({
       tamperNodeSnapshotAfterProbe: true,
@@ -2070,7 +2673,7 @@ describe("platform sandbox adapter contract", () => {
     expect(plan.runtimeProbe.reason).toMatch(
       /^post_probe_.*entry_snapshot_identity_changed$/,
     );
-    expect(harness.bwrapDataReads).toHaveLength(1);
+    expect(harness.bwrapDataReads).toHaveLength(2);
     expect(harness.openFiles.size).toBe(0);
     expect(harness.anonymousFiles.size).toBe(0);
   });
@@ -2091,7 +2694,7 @@ describe("platform sandbox adapter contract", () => {
         handleAtomic: false,
       },
     });
-    expect(harness.bwrapDataReads).toHaveLength(1);
+    expect(harness.bwrapDataReads).toHaveLength(2);
     expect(harness.openFiles.size).toBe(0);
     expect(harness.anonymousFiles.size).toBe(0);
   });
@@ -2216,6 +2819,21 @@ describe("platform sandbox adapter contract", () => {
       expect.any(String),
       "/opt/chainless/plugin/bin/tool",
     ]);
+    const nativeMounts = linuxBwrapFileMounts(plan.args);
+    expect(nativeMounts.filter(({ mode }) => mode === "ro-bind-data")).toEqual([
+      {
+        mode: "ro-bind-data",
+        childFd: expect.any(Number),
+        destination: "/opt/chainless/plugin/bin/tool",
+        permissions: "0500",
+      },
+    ]);
+    expect(nativeMounts).toContainEqual({
+      mode: "ro-bind-fd",
+      childFd: expect.any(Number),
+      destination: "/opt/chainless/plugin/lib/value.cjs",
+      permissions: null,
+    });
     expect(plan.args.slice(-4)).toEqual([
       "--",
       "/opt/chainless/plugin/bin/tool",
@@ -2549,6 +3167,47 @@ describe("platform sandbox adapter contract", () => {
     expect(left.openFiles.size).toBe(0);
     expect(right.openFiles.size).toBe(0);
     expect(changed.openFiles.size).toBe(0);
+  });
+
+  it("fails closed when a native entry loses execute mode before snapshot", () => {
+    const harness = createLinuxStrongHarness({
+      entryRuntime: "native-static-elf",
+      removeNativeEntryExecuteBeforeSnapshot: true,
+    });
+    const originalInode = harness.contract.entryIdentity.fileId.ino;
+    const plan = applyLinuxStrongNativeHarness(harness);
+
+    expect(harness.nativeEntryFullHashReads).toBe(3);
+    expect(harness.nativeEntryExecuteRemoved).toBe(true);
+    expect(String(harness.statFor(harness.entryPath).ino)).toBe(originalInode);
+    expect(harness.statFor(harness.entryPath).mode & 0o111).toBe(0);
+    expect(plan).toMatchObject({
+      applied: false,
+      backend: null,
+      candidateBackend: "linux-bwrap",
+      policyAttested: false,
+      reason: "linux_bwrap_plugin_snapshot_unattested",
+      guarantees: [],
+      runtimeProbe: {
+        kind: "linux-bwrap-plugin-native-static-elf-policy-v1",
+        attempted: false,
+        runnable: false,
+        targetRuntime: "native-static-elf",
+        contentSnapshot: false,
+        handleAtomic: false,
+      },
+    });
+    expect(plan.runtimeProbe.reason).toMatch(
+      /native_entry_snapshot.*(?:mode|execut)/,
+    );
+    expect(
+      harness.spawnSync.mock.calls.filter(
+        ([command, probeArgs]) =>
+          harness.isBwrapCommand(command) && probeArgs?.[0] !== "--help",
+      ),
+    ).toHaveLength(0);
+    expect(harness.openFiles.size).toBe(0);
+    expect(harness.anonymousFiles.size).toBe(0);
   });
 
   it.each([
@@ -3044,12 +3703,17 @@ describe("platform sandbox adapter contract", () => {
         contentSnapshotScope: "plugin-entry-source",
         contentSnapshotMechanism:
           "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+        pluginTreeContentSnapshot: true,
+        pluginTreeContentSnapshotScope: "all-pinned-plugin-regular-files",
+        pluginTreeSnapshotConsistency: "per-file-pin-to-launch",
+        pluginTreeSnapshotContractBound: false,
+        pluginTreeSnapshotAtomic: false,
         handleAtomic: false,
       },
     });
     expect(mutation.afterSha256).not.toBe(originalSha256);
     expectLinuxBwrapSupervisorInvocations(harness, ["capability", "probe"]);
-    expect(harness.bwrapDataReads).toHaveLength(1);
+    expect(harness.bwrapDataReads).toHaveLength(2);
 
     const finalResult = harness.spawnSync(
       plan.command,
@@ -3058,8 +3722,14 @@ describe("platform sandbox adapter contract", () => {
     );
 
     expect(finalResult.status).toBe(0);
-    expect(harness.bwrapDataReads).toHaveLength(2);
-    expect(harness.bwrapDataReads[1]).toMatchObject({
+    expect(harness.bwrapDataReads).toHaveLength(4);
+    expect(
+      harness.bwrapDataReads.find(
+        ({ stage, destination }) =>
+          stage === "final" &&
+          destination === "/opt/chainless/plugin/bin/tool.js",
+      ),
+    ).toMatchObject({
       destination: "/opt/chainless/plugin/bin/tool.js",
       offsetBefore: 0,
       sha256: originalSha256,
@@ -7254,6 +7924,183 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       sandboxRuntimeProbe: runtimeProbe,
     });
   });
+
+  it("preserves complete Node plugin-tree snapshot evidence in the audit log", () => {
+    const child = createChild();
+    const nativeSpawn = vi.fn(() => child);
+    const runtimeProbe = createLinuxPluginTreeRuntimeProbe();
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: vi.fn((command, args, options) =>
+        appliedLinuxBwrapPluginTreePlan(command, args, options, {
+          runtimeProbe,
+        }),
+      ),
+      postSpawnSandbox: vi.fn(),
+    };
+
+    const returned = executionBroker.spawn("tool", ["run"], {
+      origin: "test:plugin-tree-runtime-probe",
+      policy: "allow",
+    });
+
+    expect(returned).toBe(child);
+    expect(nativeSpawn).toHaveBeenCalledOnce();
+    const auditEntry = executionBroker.getAuditLog(1)[0];
+    expect(auditEntry).toMatchObject({
+      sandboxed: true,
+      sandboxProfile: "strict",
+      sandboxEnforcement: "linux-bwrap",
+      sandboxBackend: "linux-bwrap",
+      sandboxCandidateBackend: null,
+      sandboxPolicyAttested: true,
+      sandboxPolicyDigest: "c".repeat(64),
+      sandboxGuarantees: [
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+      ],
+    });
+    expect(auditEntry.sandboxRuntimeProbe).toEqual(runtimeProbe);
+  });
+
+  it.each([
+    [
+      "forged complete-tree scope",
+      {
+        pluginTreeContentSnapshotScope: "plugin-entry-source",
+      },
+    ],
+    [
+      "incomplete evidence",
+      {
+        pluginTreeContentSnapshotMechanism: undefined,
+      },
+    ],
+    [
+      "atomic claim",
+      {
+        pluginTreeSnapshotAtomic: true,
+      },
+    ],
+    [
+      "regular-file count above 256",
+      {
+        pluginTreeContentSnapshotFiles: 257,
+      },
+    ],
+    [
+      "aggregate bytes above 256 MiB",
+      {
+        pluginTreeContentSnapshotBytes: 256 * 1024 * 1024 + 1,
+      },
+    ],
+    [
+      "with attempted=false",
+      {
+        attempted: false,
+      },
+    ],
+    [
+      "with a non-null reason",
+      {
+        reason: "forged_success",
+      },
+    ],
+    [
+      "with a non-Node probe runtime",
+      {
+        probeRuntime: "python",
+      },
+    ],
+    [
+      "without a bound supervisor",
+      {
+        supervisorDescriptorBound: false,
+        supervisorExecutablePinned: false,
+        supervisorDescriptorContained: false,
+        supervisorDescriptorConsumedBeforeTarget: false,
+        supervisorStagingPathHidden: false,
+        supervisorTemporaryCopyObscured: false,
+      },
+    ],
+    [
+      "on a non-Linux platform",
+      {},
+      {
+        platform: "darwin",
+      },
+    ],
+    [
+      "with a candidate backend",
+      {},
+      {
+        candidateBackend: "linux-bwrap",
+      },
+    ],
+    [
+      "from a non-bwrap backend",
+      {},
+      {
+        backend: "forged-backend",
+      },
+    ],
+    [
+      "with non-bwrap enforcement",
+      {},
+      {
+        enforcement: "forged-enforcement",
+      },
+    ],
+    [
+      "without policy attestation",
+      {},
+      {
+        policyAttested: false,
+      },
+    ],
+    [
+      "without a policy digest",
+      {},
+      {
+        policyDigest: undefined,
+      },
+    ],
+    [
+      "without both strong guarantees",
+      {},
+      {
+        guarantees: [SANDBOX_BOUNDARIES.FILESYSTEM],
+      },
+    ],
+  ])(
+    "rejects Node plugin-tree snapshot %s before native spawn",
+    (_label, runtimeProbeOverrides, planOverrides = {}) => {
+      const nativeSpawn = vi.fn();
+      executionBroker._native = { spawn: nativeSpawn };
+      executionBroker._sandboxAdapter = {
+        applySandbox: vi.fn((command, args, options) =>
+          appliedLinuxBwrapPluginTreePlan(command, args, options, {
+            runtimeProbe: createLinuxPluginTreeRuntimeProbe(
+              runtimeProbeOverrides,
+            ),
+            ...planOverrides,
+          }),
+        ),
+        postSpawnSandbox: vi.fn(),
+      };
+
+      expect(() =>
+        executionBroker.spawn("tool", ["run"], {
+          origin: `test:invalid-plugin-tree-runtime-probe-${_label}`,
+          policy: "allow",
+          sandboxPolicy: {
+            requiredBoundaries: [SANDBOX_BOUNDARIES.PROCESS_TREE],
+          },
+        }),
+      ).toThrow(/plugin tree snapshot evidence/);
+      expect(nativeSpawn).not.toHaveBeenCalled();
+    },
+  );
 
   it("preserves complete bwrap supervisor evidence in the audit log", () => {
     const child = createChild();

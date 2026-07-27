@@ -146,6 +146,8 @@ const LINUX_LDD_PATH = "/usr/bin/ldd";
 const LINUX_BWRAP_BACKEND = "linux-bwrap";
 const LINUX_BWRAP_NODE_PROBE_SENTINEL = "chainless-linux-bwrap-plugin-node-v1";
 const LINUX_BWRAP_MAX_PLUGIN_ENTRIES = 512;
+const LINUX_PLUGIN_TREE_SNAPSHOT_MAX_FILES = 256;
+const LINUX_PLUGIN_TREE_SNAPSHOT_MAX_BYTES = 256 * 1024 * 1024;
 const LINUX_BWRAP_SUPERVISOR_CHILD_FD = 3;
 const LINUX_BWRAP_FIRST_MOUNT_FD = 4;
 const LINUX_BWRAP_SUPERVISOR_HIDDEN_PATH = "/run/.chainless-bwrap-supervisor";
@@ -158,6 +160,8 @@ const LINUX_ENTRY_SNAPSHOT_MECHANISM =
 const LINUX_ENTRY_SNAPSHOT_SOURCE_MODE = 0o400;
 const LINUX_NODE_ENTRY_SNAPSHOT_SCOPE = "plugin-entry-source";
 const LINUX_NATIVE_ENTRY_SNAPSHOT_SCOPE = "plugin-entry-executable";
+const LINUX_NODE_PLUGIN_TREE_SNAPSHOT_SCOPE = "all-pinned-plugin-regular-files";
+const LINUX_NODE_PLUGIN_TREE_SNAPSHOT_CONSISTENCY = "per-file-pin-to-launch";
 const LINUX_NODE_ENTRY_SNAPSHOT_TARGET_MODE = "0400";
 const LINUX_NATIVE_ENTRY_SNAPSHOT_TARGET_MODE = "0500";
 const LINUX_ELF64_HEADER_BYTES = 64;
@@ -2595,6 +2599,7 @@ function linuxBubblewrapProbe(
   targetRuntime = "node",
   contentSnapshot = null,
   supervisorBinding = null,
+  pluginTreeSnapshot = null,
 ) {
   const native = targetRuntime === "native-static-elf";
   const expectedSnapshotScope = native
@@ -2605,6 +2610,27 @@ function linuxBubblewrapProbe(
     contentSnapshot?.mechanism === LINUX_ENTRY_SNAPSHOT_MECHANISM;
   const supervisorDescriptorBound =
     supervisorBinding?.mechanism === LINUX_BWRAP_SUPERVISOR_BINDING_MECHANISM;
+  const pluginTreeContentSnapshot =
+    !native &&
+    attempted &&
+    snapshot &&
+    runnable &&
+    reason === null &&
+    supervisorDescriptorBound &&
+    pluginTreeSnapshot?.scope === LINUX_NODE_PLUGIN_TREE_SNAPSHOT_SCOPE &&
+    pluginTreeSnapshot?.mechanism === LINUX_ENTRY_SNAPSHOT_MECHANISM &&
+    Number.isSafeInteger(pluginTreeSnapshot?.files) &&
+    pluginTreeSnapshot.files > 0 &&
+    pluginTreeSnapshot.files <= LINUX_PLUGIN_TREE_SNAPSHOT_MAX_FILES &&
+    Number.isSafeInteger(pluginTreeSnapshot?.bytes) &&
+    pluginTreeSnapshot.bytes >= 0 &&
+    pluginTreeSnapshot.bytes <= LINUX_PLUGIN_TREE_SNAPSHOT_MAX_BYTES &&
+    typeof pluginTreeSnapshot?.digest === "string" &&
+    /^[a-f0-9]{64}$/.test(pluginTreeSnapshot.digest) &&
+    pluginTreeSnapshot?.consistency ===
+      LINUX_NODE_PLUGIN_TREE_SNAPSHOT_CONSISTENCY &&
+    pluginTreeSnapshot?.contractBound === false &&
+    pluginTreeSnapshot?.atomic === false;
   return {
     kind: native
       ? "linux-bwrap-plugin-native-static-elf-policy-v1"
@@ -2619,6 +2645,19 @@ function linuxBubblewrapProbe(
       ? {
           contentSnapshotScope: contentSnapshot.scope,
           contentSnapshotMechanism: contentSnapshot.mechanism,
+        }
+      : {}),
+    ...(pluginTreeContentSnapshot
+      ? {
+          pluginTreeContentSnapshot: true,
+          pluginTreeContentSnapshotScope: pluginTreeSnapshot.scope,
+          pluginTreeContentSnapshotMechanism: pluginTreeSnapshot.mechanism,
+          pluginTreeContentSnapshotFiles: pluginTreeSnapshot.files,
+          pluginTreeContentSnapshotBytes: pluginTreeSnapshot.bytes,
+          pluginTreeContentSnapshotDigest: pluginTreeSnapshot.digest,
+          pluginTreeSnapshotConsistency: pluginTreeSnapshot.consistency,
+          pluginTreeSnapshotContractBound: pluginTreeSnapshot.contractBound,
+          pluginTreeSnapshotAtomic: pluginTreeSnapshot.atomic,
         }
       : {}),
     supervisorDescriptorBound,
@@ -3150,19 +3189,40 @@ function linuxEntrySnapshotContract(targetRuntime) {
   throw new Error("entry_snapshot_runtime_unsupported");
 }
 
-function createLinuxEntrySnapshot(
+function linuxNodePluginTreeFileSnapshotContract(sourceMode) {
+  if (!Number.isSafeInteger(sourceMode) || sourceMode < 0) {
+    throw new Error("node_plugin_tree_snapshot_source_mode_invalid");
+  }
+  return {
+    scope: LINUX_NODE_PLUGIN_TREE_SNAPSHOT_SCOPE,
+    targetMode: (sourceMode & 0o111) !== 0 ? "0500" : "0400",
+    minimumBytes: 0,
+    errorPrefix: "node_plugin_tree_snapshot",
+  };
+}
+
+function createLinuxRegularFileSnapshot(
   runtime,
   entryMount,
   entryIdentity,
-  targetRuntime,
+  snapshotContract,
 ) {
   let writerFd;
   let probeFd;
   let finalFd;
   try {
-    const snapshotContract = linuxEntrySnapshotContract(targetRuntime);
+    if (
+      !snapshotContract ||
+      typeof snapshotContract.scope !== "string" ||
+      typeof snapshotContract.targetMode !== "string" ||
+      !Number.isSafeInteger(snapshotContract.minimumBytes) ||
+      typeof snapshotContract.errorPrefix !== "string"
+    ) {
+      throw new Error("file_snapshot_contract_invalid");
+    }
     const snapshotError = (reason) =>
       new Error(`${snapshotContract.errorPrefix}_${reason}`);
+    const expectedSha256 = entryIdentity?.sha256 ?? null;
     for (const method of [
       "openSync",
       "readSync",
@@ -3179,8 +3239,9 @@ function createLinuxEntrySnapshot(
     if (
       !Number.isInteger(entryMount?.fd) ||
       !entryIdentity ||
-      typeof entryIdentity.sha256 !== "string" ||
-      !/^[a-f0-9]{64}$/.test(entryIdentity.sha256) ||
+      (expectedSha256 !== null &&
+        (typeof expectedSha256 !== "string" ||
+          !/^[a-f0-9]{64}$/.test(expectedSha256))) ||
       !Number.isSafeInteger(entryIdentity.bytes) ||
       entryIdentity.bytes < snapshotContract.minimumBytes ||
       entryIdentity.bytes > LINUX_ATTESTED_FILE_MAX_BYTES
@@ -3189,6 +3250,7 @@ function createLinuxEntrySnapshot(
     }
 
     const sourceBefore = runtime.fs.fstatSync(entryMount.fd);
+    const sourceFileMode = Number(sourceBefore.mode) & 0o7777;
     if (
       !sourceBefore.isFile() ||
       Number(sourceBefore.nlink) !== 1 ||
@@ -3198,6 +3260,19 @@ function createLinuxEntrySnapshot(
       Number(sourceBefore.mtimeMs) !== Number(entryIdentity.mtimeMs)
     ) {
       throw snapshotError("source_changed");
+    }
+    if (
+      snapshotContract.scope === LINUX_NODE_PLUGIN_TREE_SNAPSHOT_SCOPE &&
+      snapshotContract.targetMode !==
+        linuxNodePluginTreeFileSnapshotContract(sourceFileMode).targetMode
+    ) {
+      throw snapshotError("source_mode_changed");
+    }
+    if (
+      snapshotContract.scope === LINUX_NATIVE_ENTRY_SNAPSHOT_SCOPE &&
+      (sourceFileMode & 0o111) === 0
+    ) {
+      throw snapshotError("source_mode_changed");
     }
 
     const constants = runtime.fs.constants || fs.constants;
@@ -3250,9 +3325,10 @@ function createLinuxEntrySnapshot(
       copied += read;
     }
     const sourceAfter = runtime.fs.fstatSync(entryMount.fd);
+    const sourceSha256 = sourceDigest.digest("hex");
     if (
       !linuxOpenStatMatches(sourceBefore, sourceAfter) ||
-      sourceDigest.digest("hex") !== entryIdentity.sha256
+      (expectedSha256 !== null && sourceSha256 !== expectedSha256)
     ) {
       throw snapshotError("source_changed");
     }
@@ -3274,7 +3350,7 @@ function createLinuxEntrySnapshot(
     const snapshotAfterRead = runtime.fs.fstatSync(writerFd);
     if (
       !linuxOpenStatMatches(snapshotBeforeRead, snapshotAfterRead) ||
-      snapshotSha256 !== entryIdentity.sha256
+      snapshotSha256 !== sourceSha256
     ) {
       throw snapshotError("identity_changed");
     }
@@ -3299,7 +3375,7 @@ function createLinuxEntrySnapshot(
     const sealed = runtime.fs.fstatSync(writerFd);
     if (
       !linuxOpenStatMatches(sealedBeforeRead, sealed) ||
-      sealedSha256 !== entryIdentity.sha256
+      sealedSha256 !== sourceSha256
     ) {
       throw snapshotError("identity_changed");
     }
@@ -3329,13 +3405,14 @@ function createLinuxEntrySnapshot(
     const attestation = Object.freeze({
       scope: snapshotContract.scope,
       mechanism: LINUX_ENTRY_SNAPSHOT_MECHANISM,
-      sha256: entryIdentity.sha256,
+      sha256: sourceSha256,
       bytes: entryIdentity.bytes,
       sourceFileId: Object.freeze({
         dev: String(entryIdentity.fileId.dev),
         ino: String(entryIdentity.fileId.ino),
       }),
       sourceMtimeMs: Number(entryIdentity.mtimeMs),
+      sourceFileMode: sourceFileMode.toString(8).padStart(4, "0"),
       sourceMode: LINUX_ENTRY_SNAPSHOT_SOURCE_MODE.toString(8).padStart(4, "0"),
       targetMode: snapshotContract.targetMode,
     });
@@ -3354,7 +3431,7 @@ function createLinuxEntrySnapshot(
         mountPermissions: snapshotContract.targetMode,
         contentSnapshot: attestation,
         snapshotIdentity: Object.freeze({
-          sha256: entryIdentity.sha256,
+          sha256: sourceSha256,
           bytes: entryIdentity.bytes,
           fileId: Object.freeze({
             dev: String(stat.dev),
@@ -3383,8 +3460,26 @@ function createLinuxEntrySnapshot(
   }
 }
 
-function attestLinuxEntrySnapshot(runtime, mount, attestation, targetRuntime) {
-  const snapshotContract = linuxEntrySnapshotContract(targetRuntime);
+function createLinuxEntrySnapshot(
+  runtime,
+  entryMount,
+  entryIdentity,
+  targetRuntime,
+) {
+  return createLinuxRegularFileSnapshot(
+    runtime,
+    entryMount,
+    entryIdentity,
+    linuxEntrySnapshotContract(targetRuntime),
+  );
+}
+
+function attestLinuxRegularFileSnapshot(
+  runtime,
+  mount,
+  attestation,
+  snapshotContract,
+) {
   const errorPrefix = snapshotContract.errorPrefix;
   const before = runtime.fs.fstatSync(mount?.fd);
   if (
@@ -3392,6 +3487,8 @@ function attestLinuxEntrySnapshot(runtime, mount, attestation, targetRuntime) {
     attestation?.mechanism !== LINUX_ENTRY_SNAPSHOT_MECHANISM ||
     attestation?.sourceMode !==
       LINUX_ENTRY_SNAPSHOT_SOURCE_MODE.toString(8).padStart(4, "0") ||
+    typeof attestation?.sourceFileMode !== "string" ||
+    !/^[0-7]{4}$/.test(attestation.sourceFileMode) ||
     attestation?.targetMode !== snapshotContract.targetMode ||
     mount?.mountMode !== "ro-bind-data" ||
     mount?.mountPermissions !== snapshotContract.targetMode ||
@@ -3415,6 +3512,154 @@ function attestLinuxEntrySnapshot(runtime, mount, attestation, targetRuntime) {
     sha256 !== mount.snapshotIdentity.sha256
   ) {
     throw new Error(`${errorPrefix}_identity_changed`);
+  }
+}
+
+function attestLinuxEntrySnapshot(runtime, mount, attestation, targetRuntime) {
+  attestLinuxRegularFileSnapshot(
+    runtime,
+    mount,
+    attestation,
+    linuxEntrySnapshotContract(targetRuntime),
+  );
+}
+
+function buildLinuxNodePluginTreeSnapshotAttestation(mounts, entryDestination) {
+  const members = [];
+  const destinations = new Set();
+  for (const mount of mounts || []) {
+    if (!linuxPathWithin("/opt/chainless/plugin", mount?.destination)) continue;
+    if (
+      path.posix.normalize(mount.destination) !== mount.destination ||
+      destinations.has(mount.destination)
+    ) {
+      throw new Error("node_plugin_tree_snapshot_destination_invalid");
+    }
+    destinations.add(mount.destination);
+    const snapshot = mount.contentSnapshot;
+    const entry = mount.destination === entryDestination;
+    const expectedScope = entry
+      ? LINUX_NODE_ENTRY_SNAPSHOT_SCOPE
+      : LINUX_NODE_PLUGIN_TREE_SNAPSHOT_SCOPE;
+    const sourceMode = Number.parseInt(snapshot?.sourceFileMode, 8);
+    const expectedTargetMode = entry
+      ? LINUX_NODE_ENTRY_SNAPSHOT_TARGET_MODE
+      : linuxNodePluginTreeFileSnapshotContract(sourceMode).targetMode;
+    if (
+      snapshot?.scope !== expectedScope ||
+      snapshot?.mechanism !== LINUX_ENTRY_SNAPSHOT_MECHANISM ||
+      typeof snapshot?.sha256 !== "string" ||
+      !/^[a-f0-9]{64}$/.test(snapshot.sha256) ||
+      typeof snapshot?.sourceFileId !== "object" ||
+      typeof snapshot.sourceFileId?.dev !== "string" ||
+      !/^\d+$/.test(snapshot.sourceFileId.dev) ||
+      typeof snapshot.sourceFileId?.ino !== "string" ||
+      !/^\d+$/.test(snapshot.sourceFileId.ino) ||
+      !Number.isFinite(snapshot?.sourceMtimeMs) ||
+      !Number.isSafeInteger(snapshot?.bytes) ||
+      snapshot.bytes < 0 ||
+      snapshot.bytes > LINUX_ATTESTED_FILE_MAX_BYTES ||
+      typeof snapshot?.sourceFileMode !== "string" ||
+      !/^[0-7]{4}$/.test(snapshot.sourceFileMode) ||
+      snapshot.sourceMode !==
+        LINUX_ENTRY_SNAPSHOT_SOURCE_MODE.toString(8).padStart(4, "0") ||
+      snapshot.targetMode !== expectedTargetMode ||
+      mount.mountMode !== "ro-bind-data" ||
+      mount.mountPermissions !== expectedTargetMode
+    ) {
+      throw new Error("node_plugin_tree_snapshot_member_invalid");
+    }
+    members.push({
+      destination: mount.destination,
+      sourceFileId: snapshot.sourceFileId,
+      sourceMtimeMs: snapshot.sourceMtimeMs,
+      sourceFileMode: snapshot.sourceFileMode,
+      sha256: snapshot.sha256,
+      bytes: snapshot.bytes,
+      sourceMode: snapshot.sourceMode,
+      targetMode: snapshot.targetMode,
+      scope: snapshot.scope,
+      mechanism: snapshot.mechanism,
+    });
+  }
+  members.sort((left, right) =>
+    left.destination < right.destination
+      ? -1
+      : left.destination > right.destination
+        ? 1
+        : 0,
+  );
+  if (
+    members.length < 1 ||
+    members.length > LINUX_PLUGIN_TREE_SNAPSHOT_MAX_FILES ||
+    !members.some((member) => member.destination === entryDestination)
+  ) {
+    throw new Error("node_plugin_tree_snapshot_file_count_invalid");
+  }
+  const bytes = members.reduce((total, member) => total + member.bytes, 0);
+  if (
+    !Number.isSafeInteger(bytes) ||
+    bytes > LINUX_PLUGIN_TREE_SNAPSHOT_MAX_BYTES
+  ) {
+    throw new Error("node_plugin_tree_snapshot_bytes_exceeded");
+  }
+  const digest = crypto
+    .createHash("sha256")
+    .update(
+      JSON.stringify({
+        version: 1,
+        scope: LINUX_NODE_PLUGIN_TREE_SNAPSHOT_SCOPE,
+        consistency: LINUX_NODE_PLUGIN_TREE_SNAPSHOT_CONSISTENCY,
+        members,
+      }),
+    )
+    .digest("hex");
+  return Object.freeze({
+    scope: LINUX_NODE_PLUGIN_TREE_SNAPSHOT_SCOPE,
+    mechanism: LINUX_ENTRY_SNAPSHOT_MECHANISM,
+    files: members.length,
+    bytes,
+    digest,
+    consistency: LINUX_NODE_PLUGIN_TREE_SNAPSHOT_CONSISTENCY,
+    contractBound: false,
+    atomic: false,
+  });
+}
+
+function attestLinuxNodePluginTreeSnapshot(
+  runtime,
+  mounts,
+  entryDestination,
+  expected,
+) {
+  for (const mount of mounts || []) {
+    if (!linuxPathWithin("/opt/chainless/plugin", mount?.destination)) continue;
+    const snapshot = mount.contentSnapshot;
+    const contract =
+      mount.destination === entryDestination
+        ? linuxEntrySnapshotContract("node")
+        : linuxNodePluginTreeFileSnapshotContract(
+            Number.parseInt(snapshot?.sourceFileMode, 8),
+          );
+    attestLinuxRegularFileSnapshot(runtime, mount, snapshot, contract);
+  }
+  const actual = buildLinuxNodePluginTreeSnapshotAttestation(
+    mounts,
+    entryDestination,
+  );
+  for (const field of [
+    "scope",
+    "mechanism",
+    "files",
+    "bytes",
+    "digest",
+    "consistency",
+    "contractBound",
+    "atomic",
+  ]) {
+    if (actual[field] !== expected?.[field]) {
+      throw new Error("node_plugin_tree_snapshot_identity_changed");
+    }
   }
 }
 
@@ -4769,6 +5014,14 @@ export function applyLinuxSandbox(
     let pluginTree;
     let entryFormat = null;
     let entryMount;
+    const entryRelative = path.posix.relative(
+      validation.contract.pluginRoot,
+      validation.contract.entryIdentity.realPath,
+    );
+    const sandboxEntry = path.posix.join(
+      "/opt/chainless/plugin",
+      entryRelative,
+    );
     try {
       pluginTree = pinLinuxPluginTree(
         runtime,
@@ -4829,11 +5082,48 @@ export function applyLinuxSandbox(
     }
 
     let entrySnapshot = null;
+    let pluginTreeSnapshot = null;
+    const pluginTreeFileSnapshots = [];
     let probePinnedMounts = pinnedMounts;
     try {
       const entryIndex = pinnedMounts.indexOf(entryMount);
       if (entryIndex < 0) {
         throw new Error("plugin_entry_pin_missing");
+      }
+      const pluginMountIndexes = pinnedMounts
+        .map((mount, index) =>
+          linuxPathWithin("/opt/chainless/plugin", mount.destination)
+            ? index
+            : -1,
+        )
+        .filter((index) => index >= 0);
+      const rawPluginMounts = pluginMountIndexes.map(
+        (index) => pinnedMounts[index],
+      );
+      if (validation.entryRuntime === "node") {
+        if (
+          pluginMountIndexes.length < 1 ||
+          pluginMountIndexes.length > LINUX_PLUGIN_TREE_SNAPSHOT_MAX_FILES
+        ) {
+          throw new Error("node_plugin_tree_snapshot_file_count_invalid");
+        }
+        const pluginBytes = pluginMountIndexes.reduce((total, index) => {
+          const bytes = pinnedMounts[index]?.bytes;
+          if (
+            !Number.isSafeInteger(bytes) ||
+            bytes < 0 ||
+            bytes > LINUX_ATTESTED_FILE_MAX_BYTES
+          ) {
+            throw new Error("node_plugin_tree_snapshot_member_size_invalid");
+          }
+          return total + bytes;
+        }, 0);
+        if (
+          !Number.isSafeInteger(pluginBytes) ||
+          pluginBytes > LINUX_PLUGIN_TREE_SNAPSHOT_MAX_BYTES
+        ) {
+          throw new Error("node_plugin_tree_snapshot_bytes_exceeded");
+        }
       }
       const rawEntryMount = entryMount;
       const snapshot = createLinuxEntrySnapshot(
@@ -4847,15 +5137,46 @@ export function applyLinuxSandbox(
       finalMounts[entryIndex] = snapshot.finalMount;
       probeMounts[entryIndex] = snapshot.probeMount;
       entrySnapshot = snapshot;
+      if (validation.entryRuntime === "node") {
+        for (const index of pluginMountIndexes) {
+          if (index === entryIndex) continue;
+          const rawMount = pinnedMounts[index];
+          const source = runtime.fs.fstatSync(rawMount.fd);
+          const fileSnapshot = createLinuxRegularFileSnapshot(
+            runtime,
+            rawMount,
+            {
+              fileId: rawMount.fileId,
+              bytes: rawMount.bytes,
+              mtimeMs: rawMount.mtimeMs,
+            },
+            linuxNodePluginTreeFileSnapshotContract(Number(source.mode)),
+          );
+          pluginTreeFileSnapshots.push(fileSnapshot);
+          finalMounts[index] = fileSnapshot.finalMount;
+          probeMounts[index] = fileSnapshot.probeMount;
+        }
+        pluginTreeSnapshot = buildLinuxNodePluginTreeSnapshotAttestation(
+          finalMounts,
+          sandboxEntry,
+        );
+      }
       pinnedMounts = finalMounts;
       probePinnedMounts = probeMounts;
-      entryMount = snapshot.finalMount;
-      closeLinuxPinnedMounts(runtime, [rawEntryMount]);
+      entryMount = entrySnapshot.finalMount;
+      closeLinuxPinnedMounts(
+        runtime,
+        validation.entryRuntime === "node" ? rawPluginMounts : [rawEntryMount],
+      );
     } catch (error) {
       closeLinuxPinnedMounts(runtime, pinnedMounts);
       closeLinuxPinnedMounts(runtime, [
         entrySnapshot?.probeMount,
         entrySnapshot?.finalMount,
+        ...pluginTreeFileSnapshots.flatMap((snapshot) => [
+          snapshot.probeMount,
+          snapshot.finalMount,
+        ]),
       ]);
       return createSandboxPlan({
         ...base,
@@ -4875,6 +5196,9 @@ export function applyLinuxSandbox(
 
     let probeSeccompFilter;
     let seccompFilter;
+    const pluginTreeProbeMounts = pluginTreeFileSnapshots.map(
+      (snapshot) => snapshot.probeMount,
+    );
     try {
       probeSeccompFilter = pinLinuxNetworkSeccompFilter(runtime);
       seccompFilter = pinLinuxNetworkSeccompFilter(runtime);
@@ -4888,9 +5212,12 @@ export function applyLinuxSandbox(
       closeLinuxPinnedMounts(runtime, pinnedMounts);
       closeLinuxPinnedMounts(
         runtime,
-        [entrySnapshot?.probeMount, probeSeccompFilter, seccompFilter].filter(
-          Boolean,
-        ),
+        [
+          entrySnapshot?.probeMount,
+          ...pluginTreeProbeMounts,
+          probeSeccompFilter,
+          seccompFilter,
+        ].filter(Boolean),
       );
       return createSandboxPlan({
         ...base,
@@ -4914,6 +5241,7 @@ export function applyLinuxSandbox(
         ...pinnedDescriptors,
         probeSeccompFilter,
         entrySnapshot?.probeMount,
+        ...pluginTreeProbeMounts,
         ...extra,
       ]);
     };
@@ -4997,14 +5325,6 @@ export function applyLinuxSandbox(
       environment,
       seccompFilter,
     );
-    const entryRelative = path.posix.relative(
-      validation.contract.pluginRoot,
-      validation.contract.entryIdentity.realPath,
-    );
-    const sandboxEntry = path.posix.join(
-      "/opt/chainless/plugin",
-      entryRelative,
-    );
     const targetArgs =
       validation.entryRuntime === "native-static-elf"
         ? [sandboxEntry, ...args]
@@ -5017,6 +5337,9 @@ export function applyLinuxSandbox(
           sha256: entrySnapshot.attestation.sha256,
           bytes: entrySnapshot.attestation.bytes,
           destination: sandboxEntry,
+          ...(validation.entryRuntime === "node"
+            ? { sourceFileMode: entrySnapshot.attestation.sourceFileMode }
+            : {}),
           sourceMode: entrySnapshot.attestation.sourceMode,
           targetMode: entrySnapshot.attestation.targetMode,
         }
@@ -5025,7 +5348,7 @@ export function applyLinuxSandbox(
       .createHash("sha256")
       .update(
         JSON.stringify({
-          version: 3,
+          version: validation.entryRuntime === "node" ? 4 : 3,
           backend: LINUX_BWRAP_BACKEND,
           supervisor: supervisorPin.attestation,
           contract: {
@@ -5049,6 +5372,11 @@ export function applyLinuxSandbox(
                     mechanism: mount.contentSnapshot.mechanism,
                     sha256: mount.contentSnapshot.sha256,
                     bytes: mount.contentSnapshot.bytes,
+                    ...(validation.entryRuntime === "node"
+                      ? {
+                          sourceFileMode: mount.contentSnapshot.sourceFileMode,
+                        }
+                      : {}),
                     sourceMode: mount.contentSnapshot.sourceMode,
                     targetMode: mount.contentSnapshot.targetMode,
                   },
@@ -5061,6 +5389,9 @@ export function applyLinuxSandbox(
                 },
           ),
           contentSnapshot: snapshotPolicyBinding,
+          ...(validation.entryRuntime === "node"
+            ? { pluginTreeContentSnapshot: pluginTreeSnapshot }
+            : {}),
           seccomp: {
             arch: seccompFilter.arch,
             policy: seccompFilter.policy,
@@ -5088,6 +5419,7 @@ export function applyLinuxSandbox(
       probeLaunch,
       probeSeccompFilter,
       entrySnapshot?.probeMount,
+      ...pluginTreeProbeMounts,
     ]);
     probeLaunch = null;
     if (!policyProbe.runnable) {
@@ -5133,12 +5465,21 @@ export function applyLinuxSandbox(
       });
     }
     try {
-      attestLinuxEntrySnapshot(
-        runtime,
-        entryMount,
-        entrySnapshot.attestation,
-        validation.entryRuntime,
-      );
+      if (validation.entryRuntime === "node") {
+        attestLinuxNodePluginTreeSnapshot(
+          runtime,
+          pinnedMounts,
+          sandboxEntry,
+          pluginTreeSnapshot,
+        );
+      } else {
+        attestLinuxEntrySnapshot(
+          runtime,
+          entryMount,
+          entrySnapshot.attestation,
+          validation.entryRuntime,
+        );
+      }
     } catch (error) {
       closeStrongLinuxResources(supervisorPin, finalLaunch);
       return createSandboxPlan({
@@ -5214,6 +5555,7 @@ export function applyLinuxSandbox(
         validation.entryRuntime,
         entrySnapshot?.attestation,
         supervisorBinding,
+        pluginTreeSnapshot,
       ),
     );
     const options = {

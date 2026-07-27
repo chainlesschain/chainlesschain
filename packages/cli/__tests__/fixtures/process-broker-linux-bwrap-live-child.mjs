@@ -18,6 +18,80 @@ function sha256(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
 
+function summarizeDestinationBindings(planArgs, destination) {
+  const roBindData = [];
+  const roBindFd = [];
+  for (let index = 0; index < planArgs.length; index += 1) {
+    if (
+      planArgs[index] === "--ro-bind-data" &&
+      planArgs[index + 2] === destination
+    ) {
+      roBindData.push({
+        childFd: planArgs[index + 1],
+        permissions:
+          planArgs[index - 2] === "--perms" ? planArgs[index - 1] : null,
+      });
+    }
+    if (
+      planArgs[index] === "--ro-bind-fd" &&
+      planArgs[index + 2] === destination
+    ) {
+      roBindFd.push({ childFd: planArgs[index + 1] });
+    }
+  }
+  return { destination, roBindData, roBindFd };
+}
+
+function summarizePluginFileBindings(planArgs) {
+  const destinations = new Set();
+  for (let index = 0; index < planArgs.length; index += 1) {
+    if (
+      (planArgs[index] === "--ro-bind-data" ||
+        planArgs[index] === "--ro-bind-fd") &&
+      typeof planArgs[index + 2] === "string" &&
+      planArgs[index + 2].startsWith("/opt/chainless/plugin/")
+    ) {
+      destinations.add(planArgs[index + 2]);
+    }
+  }
+  return [...destinations]
+    .sort((left, right) => left.localeCompare(right))
+    .map((destination) => summarizeDestinationBindings(planArgs, destination));
+}
+
+function rewriteSameInode(filePath, replacementPath) {
+  const replacement = fs.readFileSync(replacementPath);
+  const before = fs.statSync(filePath, { bigint: true });
+  const beforeSha256 = sha256(fs.readFileSync(filePath));
+  const fd = fs.openSync(filePath, "r+");
+  try {
+    fs.ftruncateSync(fd, 0);
+    let offset = 0;
+    while (offset < replacement.length) {
+      const written = fs.writeSync(
+        fd,
+        replacement,
+        offset,
+        replacement.length - offset,
+        offset,
+      );
+      if (written <= 0) throw new Error("snapshot race write made no progress");
+      offset += written;
+    }
+    fs.fsyncSync(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
+  const after = fs.statSync(filePath, { bigint: true });
+  return {
+    sameDevice: String(before.dev) === String(after.dev),
+    sameInode: String(before.ino) === String(after.ino),
+    beforeSha256,
+    afterSha256: sha256(fs.readFileSync(filePath)),
+    replacementSha256: sha256(replacement),
+  };
+}
+
 function summarizeLinuxSupervisorPlan(plan) {
   if (plan?.backend !== "linux-bwrap") return null;
 
@@ -115,6 +189,10 @@ if (mode === "positive") {
   const originalApplySandbox = executionBroker._sandboxAdapter.applySandbox;
   let mutation = null;
   let entryBindings = null;
+  let dependencyMutation = null;
+  let dependencyBindings = null;
+  let runtimeBindings = null;
+  let pluginFileBindings = null;
   let supervisorPlan = null;
   let mutated = false;
   executionBroker._sandboxAdapter.applySandbox = (...adapterArgs) => {
@@ -124,63 +202,31 @@ if (mode === "positive") {
     mutated = true;
     try {
       const planArgs = Array.isArray(plan?.args) ? plan.args : [];
-      const roBindData = [];
-      const roBindFd = [];
-      for (let index = 0; index < planArgs.length; index += 1) {
-        if (
-          planArgs[index] === "--ro-bind-data" &&
-          planArgs[index + 2] === request.destination
-        ) {
-          roBindData.push({
-            childFd: planArgs[index + 1],
-            permissions:
-              planArgs[index - 2] === "--perms" ? planArgs[index - 1] : null,
-          });
-        }
-        if (
-          planArgs[index] === "--ro-bind-fd" &&
-          planArgs[index + 2] === request.destination
-        ) {
-          roBindFd.push({ childFd: planArgs[index + 1] });
-        }
+      pluginFileBindings = summarizePluginFileBindings(planArgs);
+      entryBindings = summarizeDestinationBindings(
+        planArgs,
+        request.destination,
+      );
+      if (request.dependencyDestination) {
+        dependencyBindings = summarizeDestinationBindings(
+          planArgs,
+          request.dependencyDestination,
+        );
       }
-      entryBindings = {
-        destination: request.destination,
-        roBindData,
-        roBindFd,
-      };
+      if (request.runtimeDestination) {
+        runtimeBindings = summarizeDestinationBindings(
+          planArgs,
+          request.runtimeDestination,
+        );
+      }
 
-      const replacement = fs.readFileSync(request.replacementPath);
-      const before = fs.statSync(request.entryPath, { bigint: true });
-      const beforeSha256 = sha256(fs.readFileSync(request.entryPath));
-      const fd = fs.openSync(request.entryPath, "r+");
-      try {
-        fs.ftruncateSync(fd, 0);
-        let offset = 0;
-        while (offset < replacement.length) {
-          const written = fs.writeSync(
-            fd,
-            replacement,
-            offset,
-            replacement.length - offset,
-            offset,
-          );
-          if (written <= 0)
-            throw new Error("entry snapshot race write made no progress");
-          offset += written;
-        }
-        fs.fsyncSync(fd);
-      } finally {
-        fs.closeSync(fd);
+      mutation = rewriteSameInode(request.entryPath, request.replacementPath);
+      if (request.dependencyPath && request.dependencyReplacementPath) {
+        dependencyMutation = rewriteSameInode(
+          request.dependencyPath,
+          request.dependencyReplacementPath,
+        );
       }
-      const after = fs.statSync(request.entryPath, { bigint: true });
-      mutation = {
-        sameDevice: String(before.dev) === String(after.dev),
-        sameInode: String(before.ino) === String(after.ino),
-        beforeSha256,
-        afterSha256: sha256(fs.readFileSync(request.entryPath)),
-        replacementSha256: sha256(replacement),
-      };
       return plan;
     } catch (error) {
       plan?.cleanup?.();
@@ -201,6 +247,10 @@ if (mode === "positive") {
     result,
     mutation,
     entryBindings,
+    dependencyMutation,
+    dependencyBindings,
+    runtimeBindings,
+    pluginFileBindings,
     supervisorPlan,
     audit: executionBroker.getAuditLog(1)[0] || null,
   });
