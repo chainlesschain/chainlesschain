@@ -1,5 +1,10 @@
 name: "Setup Node deps + platform rollup binary"
 description: "Install npm deps and the platform-correct @rollup/rollup-* native binary (fixes npm/cli#4828 on CI)"
+# CLI npm release gate (2026-07-27): the exact release commit must pass CLI CI,
+# CLI Strict Sandbox, and CLI Background Interaction E2E on their configured
+# Linux, macOS, and Windows runners. Local checks are supplementary only. This
+# shared action stays in all three workflows' path filters so changes here
+# deliberately exercise the complete cross-platform gate on a main push.
 inputs:
   working-directory:
     description: "Directory to run npm install in"
