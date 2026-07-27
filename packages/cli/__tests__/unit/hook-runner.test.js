@@ -13,6 +13,7 @@ import runner from "../../src/lib/hook-runner.cjs";
 import {
   runCommandHook as runBrokerCommandHook,
   _processDeps,
+  _restoreProcessRunners,
 } from "../../src/lib/hook-runner.js";
 
 const {
@@ -26,8 +27,6 @@ const {
   _resetHookBreaker,
   _deps,
 } = runner;
-const originalRunSync = _deps.runSync;
-const originalRun = _deps.run;
 const originalBreakerThreshold = process.env.CC_HOOK_BREAKER_THRESHOLD;
 const originalBreakerCooldown = process.env.CC_HOOK_BREAKER_COOLDOWN_MS;
 
@@ -115,8 +114,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  _deps.runSync = originalRunSync;
-  _deps.run = originalRun;
+  _restoreProcessRunners();
   _resetHookBreaker();
   if (originalBreakerThreshold === undefined) {
     delete process.env.CC_HOOK_BREAKER_THRESHOLD;
@@ -811,6 +809,9 @@ describe("runHooksParallel — concurrent strictest merge", () => {
 });
 
 it("restores the shared CJS process runners between test cases", () => {
-  expect(_deps.runSync).toBe(originalRunSync);
-  expect(_deps.run).toBe(originalRun);
+  _deps.runSync = null;
+  _deps.run = null;
+  _restoreProcessRunners();
+  expect(_deps.runSync).toBeTypeOf("function");
+  expect(_deps.run).toBeTypeOf("function");
 });

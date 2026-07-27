@@ -35,8 +35,12 @@ function runHookProcessSync(file, argsOrOptions, maybeOptions) {
   });
 }
 
-runner._deps.run = runHookProcess;
-runner._deps.runSync = runHookProcessSync;
+export function _restoreProcessRunners() {
+  runner._deps.run = runHookProcess;
+  runner._deps.runSync = runHookProcessSync;
+}
+
+_restoreProcessRunners();
 
 export const {
   runCommandHook,

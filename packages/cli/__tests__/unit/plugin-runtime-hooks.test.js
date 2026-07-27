@@ -2,15 +2,16 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import os from "node:os";
 import fs from "node:fs";
 import path from "node:path";
-import { createRequire } from "node:module";
 import {
   collectPluginHooks,
   mergePluginHooks,
 } from "../../src/lib/plugin-runtime/hooks.js";
 import { pluginVersionDir } from "../../src/lib/plugin-runtime/scopes.js";
-
-const require = createRequire(import.meta.url);
-const { runHooks } = require("../../src/lib/hook-runner.cjs");
+import {
+  runHooks,
+  _deps as hookRunnerDeps,
+  _restoreProcessRunners,
+} from "../../src/lib/hook-runner.js";
 
 let cwd;
 
@@ -262,6 +263,10 @@ describe("plugin hooks fire through the settings-hook lifecycle", () => {
     const previousSandboxDisable = process.env.CC_SANDBOX_DISABLE;
     process.env.CC_SANDBOX_DISABLE = "1";
     try {
+      // Reproduce the cross-suite CJS cache state that previously made this
+      // live lifecycle smoke fail only in the full Ubuntu unit shard.
+      hookRunnerDeps.runSync = null;
+      _restoreProcessRunners();
       installHookPlugin("local", "greeter", {
         hooks: {
           SessionStart: [
@@ -273,7 +278,9 @@ describe("plugin hooks fire through the settings-hook lifecycle", () => {
       const { runSessionStartHooks } =
         await import("../../src/lib/settings-hook-events.js");
       const res = runSessionStartHooks(merged, { source: "startup", cwd });
-      expect(res.additionalContext || "").toContain("PLUGIN_HOOK_OK");
+      expect(res.additionalContext || "", JSON.stringify(res)).toContain(
+        "PLUGIN_HOOK_OK",
+      );
     } finally {
       if (previousSandboxDisable === undefined) {
         delete process.env.CC_SANDBOX_DISABLE;
