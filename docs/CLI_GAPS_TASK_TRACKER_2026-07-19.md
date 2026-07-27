@@ -8,9 +8,12 @@
 > 断线重连 E2E 已完成；P0/P1-3 权限控制面统一已完成；stdio MCP、LSP、Monitor 与 command
 > Hook 的 sandbox policy 已贯穿；Plugin bin/native 直接执行身份绑定与 Windows Broker 强
 > filesystem/network backend 已完成；Linux 已完成直接、前台、同步、policy-bearing Plugin Node bin
-> 与静态 ELF native bin 的窄型 bwrap 强 backend。当前剩余 Linux 通用 Hook/MCP/LSP/Monitor backend、
-> 动态链接/PIE 等其余 Plugin native、
-> background、`run_code`/REPL bang/PTY 等非直接或非同步执行面及 handle-atomic 收口；P1-12 双语言 SDK 已完成，
+> 与静态 ELF native bin 的窄型 bwrap 强 backend。`run_code`（含 pip/retry 与 Python discovery
+> fail-closed）、slash/REPL bang、CLI/Desktop PTY 和 `BackgroundTaskManager` 已接入 pinned policy
+> 或严格策略下的 upfront denial；但这只代表 policy plumbing/前置拒绝，
+> 不代表已有通用强 backend。当前剩余 Linux 通用 Hook/MCP/LSP/Monitor、generic PTY/background
+> 强 backend，动态链接/PIE 等其余 Plugin native，Desktop 权威 active-project binding、交互 shell
+> 内 `cd` 后的 policy 重算，以及 handle-atomic 收口；P1-12 双语言 SDK 已完成，
 > Python SDK 0.1.0 已发布 PyPI
 > 最后更新：2026-07-27（按当前源码、真实三平台 strict CI 与生成清单复核）
 
@@ -18,12 +21,12 @@
 
 ## 执行优先级
 
-| 优先级    | 任务数 | 说明                                                     |
-| --------- | ------ | -------------------------------------------------------- |
-| 🔴 **P0** | **0**  | P0-1、P0-2 已完成                                        |
-| 🟠 P0/P1  | 0      | P0/P1-3 权限控制面统一已完成                             |
-| 🟡 P1     | 2      | P1-4、P1-9 仍在收口                                     |
-| 🟢 P2     | 4      | 差异化方向（不抢占 P0/P1）                               |
+| 优先级    | 任务数 | 说明                         |
+| --------- | ------ | ---------------------------- |
+| 🔴 **P0** | **0**  | P0-1、P0-2 已完成            |
+| 🟠 P0/P1  | 0      | P0/P1-3 权限控制面统一已完成 |
+| 🟡 P1     | 2      | P1-4、P1-9 仍在收口          |
+| 🟢 P2     | 4      | 差异化方向（不抢占 P0/P1）   |
 
 ---
 
@@ -59,9 +62,13 @@
    - macOS：生成 Seatbelt profile，通过 `/usr/bin/sandbox-exec -f` 包装目标进程
    - Windows：Broker 控制的 Windows PowerShell/Win32 adapter 以 restricted primary token
      挂起创建目标，先加入 kill-on-close Job Object 并施加 CPU/内存/进程数限制，再恢复执行
-   - Windows adapter 首次使用通过系统 Windows PowerShell 同步编译内容寻址的托管 Win32 helper；
-     目标始终由缓存 helper 直接启动，避免 bootstrap wrapper 改写扩展描述符，npm 与 `pkg`
-     构建均携带同一受控源文件
+   - Windows adapter 使用受控的 `windows-sandbox.cs` 源码契约与随包交付的托管 DLL/EXE；
+     strict/AppContainer 路径由受保护 PowerShell host 校验并 byte-load 精确 DLL 字节，兼容路径可物化
+     checked-in managed executable。helper 的 loader mode、二进制 SHA-256 与源码契约摘要均被探测，
+     漂移或物化/清理无法证明时 fail-closed，npm 与 `pkg` 构建携带相同受控产物。运行时不会调用
+     C# 编译器；构建脚本仅供 build/CI 生成或以 `-Check` 校验 embedded source digest。源码/helper
+     SHA 与文件身份只能证明 freshness/integrity，不等同于编译器 provenance、可复现构建、
+     Authenticode 或 publisher 身份证明
    - Windows 真实测试验证受限 privilege 集、`cmd.exe /s /c` 内嵌引号与 2 MiB 输出语义，
      父进程退出后 detached grandchild 被 Job Object 清理、Node fd3 双向 IPC/断连语义，
      以及 detached `spawn().pid` 对齐真实目标并由 wrapper handle 监督整棵 Job；adapter/PowerShell
@@ -153,9 +160,10 @@
      的 macOS 15、Ubuntu 与 Windows 三个 job 全部通过；Ubuntu live 用例证明插件依赖和声明文件可读、
      HOME secret 与宿主 `/etc/passwd` 不可读、插件树和宿主 marker 不可写、`/tmp` 仅沙箱内临时可写，
      且宿主 loopback 可达而沙箱创建 socket 返回 `EPERM`；缺少私有 contract 时目标 marker 未启动
-   - 该 Node 验收不扩展到 Plugin native、background、Hook/MCP/LSP/Monitor、
-     `run_code`、REPL bang 或 PTY。FD pinning 已缩窄路径替换、symlink/mount 注入与身份漂移窗口，
-     但 sealed immutable executable snapshot 和 OS spawn 前 handle-atomic 绑定仍未完成
+   - 该 Node 强 backend 本身仍只覆盖窄型直接 bin，不会自动成为 Plugin native、background、
+     Hook/MCP/LSP/Monitor、`run_code`、REPL bang 或 PTY 的**通用强 backend**；这些执行面后来已接入
+     pinned policy 或 upfront denial，详见第 10 项。FD pinning 已缩窄路径替换、symlink/mount 注入与身份漂移窗口，
+     但 Linux sealed immutable executable snapshot 和 OS spawn 前 handle-atomic 绑定仍未完成
 
 9. **2026-07-27 Linux 静态 Plugin native ELF 窄型强 filesystem/network backend 验收**：
    - 在相同 one-shot contract、empty-root bwrap、逐文件 FD 只读挂载、namespace/capability drop
@@ -172,13 +180,58 @@
    - 实现落在 `92ca5dc69f`，ELF segment 边界修正在 `0b2b638b11`，native probe 审计传播修正在
      `c2e4053c87`。审计明确记录 `targetRuntime:native-static-elf`、`contentSnapshot:false` 与
      `handleAtomic:false`；同 inode 内容在最终 hash 后仍可能被另一写入者修改，动态/PIE native、
-     background、通用 Hook/MCP/LSP/Monitor、`run_code`/REPL bang/PTY 也仍未覆盖
+     generic background/PTY 与通用 Hook/MCP/LSP/Monitor 强 backend 仍缺；`run_code`、REPL bang、
+     CLI/Desktop PTY 与 BackgroundTaskManager 已有 policy plumbing/前置拒绝，但不能据此宣称强隔离
+
+10. **2026-07-27 非直接执行面 policy plumbing、Windows 加固与 Desktop 运行时闭包**：
+    - `7ae04a47e8` 在创建脚本/临时目录及解释器探测前固定 `run_code` 的 workspace policy，并把同一
+      policy 传给实际解释器、pip 自动安装和 retry；`860bc7a0fc` 对严格策略下尚无缓存解释器的
+      Python discovery 以 `python_interpreter_probe_requires_sandbox` 前置拒绝。`80fbe06e25`
+      只是在兼容 shim 重新导出测试用 Python cache reset，不新增运行时安全语义
+    - `e43f078a01` 对同一 slash/REPL bang macro 在第一条命令前一次性收集并冻结 policy，全部 bang
+      共享该快照且 Broker boundary error 不再被扁平化；`764c0e0845` 让 CLI PTY 以固定 workspace
+      root 加请求 cwd 在创建时收集 policy。native PTY host 无法兑现任何 required boundary 时会在
+      分配/启动前拒绝，不存在 generic PTY 强 backend；交互 shell 内后续 `cd` 对宿主不可见，不能重算
+    - `543c877cd2` 为 `BackgroundTaskManager` 注入固定 policy root，并在 `create()`（生成 task id/
+      持久化前）和 `start()`（状态变更/spawn 前）两次重新收集、验证冻结 policy；出现 required
+      boundary 时以 `ERR_BACKGROUND_TASK_SANDBOX_UNSUPPORTED` /
+      `background_execution_unsupported` 前置拒绝。该双时点检查覆盖排队、恢复及启动时漂移，
+      但没有实现 generic background 强 backend
+    - `770b07aa33` 为 Desktop PTY 在构造 manager 前预载 CLI ESM policy collector；导入/导出失败会
+      缓存为同步 fail-closed resolver。Desktop collector 同样以固定 root 加请求 cwd 在 create 时
+      求值，安装的 Desktop broker 对任意非空边界只报告空 guarantees 并拒绝 native PTY。当前常驻
+      singleton 仍以 `process.cwd()` 作为 policy root，尚未权威绑定 active project；shell 内 `cd`
+      后同样无法重算
+    - `130acdfa9c` 补齐 Forge 包的 CLI runtime closure：在 ASAR 外 vendor
+      `packages/cli/src`、CLI `package.json` 和独立 production `node_modules`，所有
+      package/make/publish 流程先准备依赖；`packageAfterCopy` 会从 staged Resources 布局真实动态
+      import `plugin-runtime/bin.js` 并验证 `collectWorkspacePluginBinSandboxPolicy`，失败即阻断构建
+    - Windows helper 现从干净、可信的 host environment 启动，显式固定
+      `SystemRoot/WINDIR/ComSpec/PATH/PATHEXT/TEMP/TMP`；目标环境剥离 CLR/profiler 注入变量，窄型
+      Plugin Node snapshot 还剥离 `NODE_OPTIONS`、IPC channel 与 OpenSSL 配置变量。仅同步前台
+      `strict-plugin-node-bin` 的 `.cjs` entry 可进入 snapshot 路径：runtime/entry 的 path、bytes、
+      SHA-256 与 Node `dev/ino` 必须成对匹配同一 libuv identity projection，helper 以 Filter oplock
+      和已验证 handle 固定二者，并通过 inherited pipe 把 entry source 交给 Node module compile。
+      审计因此记录 `contentSnapshot:true`、scope `plugin-entry-source`、mechanism
+      `verified-handle-inherited-pipe-module-compile-v1`，但仍诚实记录 `handleAtomic:false`
+    - Windows AppContainer `policyDigest` 绑定 backend/profile、排序后的 required boundaries/
+      guarantees、helper loader/source/source-contract 摘要、零 capability AppContainer 与 restricted
+      primary LowBox token、管理员 SID 禁用/reparse 选择/profile 生命周期、Job limits、execution
+      contract、content snapshot 语义及 runtime/entry launch locks；瞬态 profile name/SID 和调用者
+      payload 有意不参与摘要
+    - 已确认 [GitHub Actions run 30263304582](https://github.com/chainlesschain/chainlesschain/actions/runs/30263304582)
+      在 `764c0e0845` 上的 macOS 15、Ubuntu 24.04、Windows strict matrix 全绿。其后的
+      `543c877cd2`、`80fbe06e25`、`130acdfa9c`、`770b07aa33` 本表只记录本地定向验证，
+      不虚构更新后的三平台全绿结论
 
 **涉及文件**:
 
 - `packages/cli/src/lib/process-execution-broker/index.js` (Broker 主逻辑，已完成集成)
 - `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` (✅ 新增完成)
-- `packages/cli/src/lib/process-execution-broker/windows-sandbox.ps1` (✅ Win32 原生 adapter)
+- `packages/cli/src/lib/process-execution-broker/windows-sandbox.cs` (✅ Win32 helper 源码契约)
+- `packages/cli/src/lib/process-execution-broker/windows-sandbox-helper.dll` (✅ 托管 helper)
+- `packages/cli/src/lib/process-execution-broker/windows-sandbox-helper.exe` (✅ 兼容路径托管 helper)
+- `packages/cli/scripts/build-windows-sandbox-helper.ps1` (✅ helper 构建与源码契约 freshness 校验)
 - `packages/cli/src/lib/process-execution-broker/credential-agent.js` (✅ 新增完成)
 - `packages/cli/src/lib/process-execution-broker/credential-transport.js` (✅ 认证客户端/父端控制)
 - `packages/cli/src/lib/process-execution-broker/credential-transport-worker.js` (✅ 本地 transport 服务)
@@ -319,18 +372,18 @@
 
 ## 🟡 P1 任务（P0 完成后执行）
 
-| #     | 任务                 | 状态                                            | 说明                                                                                                                                                                                                                                                                                                                                                                                                        |
-| ----- | -------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P1-4  | Hooks v2 完整实现    | 🟡 producer/managed/sandbox contract 已贯穿；Windows backend 已验收 | 40事件注册/执行、5种公共 executor + trusted JS、并行去重、11 项高价值 producer、M5 E2E、最小环境交集、command/workspace/MCP/agent/skill allowlist、MCP 共享授权与独立 delegated budget 已有；Hook managed policy 与 plugin manifest/group/per-hook `sandboxPolicy.requiredBoundaries` 只增不减并贯穿全部 command/delegated process 启动路径；显式要求不可满足时 fail-closed；Windows AppContainer 强 filesystem/network backend 已通过真实 CI，Linux 通用 Hook backend 仍未完成 |
-| P1-5  | MCP Elicitation 路由 | ✅ form/URL/defer 已完成                        | 基于 MCP `2025-11-25`：声明 form/URL capability；`elicitation/create`、`notifications/elicitation/complete` 与 `URLElicitationRequiredError (-32042)` 已接入；URL 仅允许无凭证 HTTPS，所有交互宿主展示完整 URL 并在明确同意后打开；Headless 结构化 defer、完成关联及原工具调用 exactly-once retry 已覆盖，URL 敏感输入不回传 `content`                                                                      |
-| P1-6  | Event Runtime 常驻化 | ✅ 宿主托管、观测与恢复闭环                     | 发布二进制的 lazy-dispatch 真实入口统一启动/停止 process-level host：长驻命令持续 drain，短命命令退出前有界 final drain；durable inbox/outbox、lease fence/续租/过期接管、重试/死信/背压、producer 自动接线均已有；Webhook/Telegram 使用 required-handler 恢复路由；`cc status --json` 暴露队列及跨进程 host 心跳/stale 状态，`npm run runtime:event-recovery` 用两个真实进程验证崩溃接管与副作用只应用一次 |
-| P1-7  | Context 来源归因     | ✅ 双层 Skill 缓存与交互式快照已完成            | `cc context --sources` 已对 instruction 文件、实际注入 persona Skill、admitted MCP schema、普通 Skill descriptor/body 按需读取、缓存命中及实际 prompt 注入分别计费；Headless 与交互 REPL 共用单一 Skill loader，并持续写入无正文 `context_sources` 快照                                                                                                                                                     |
-| P1-8  | Checkpoint REPL 统一 | ✅ 统一 producer 与归因闭环                     | Agent Core 输出 provider 原始 `tool_use_id`/turn id/permission decision/checkpoint；Headless 与 REPL 共用 `createTurnBindingFeed`，交互 turn 逐次 fail-closed 持久化；child trace/checkpoint/tool/worktree、IDE user edit 与顶层 `--worktree` branch 均进入父 turn，shell/外部副作用诚实标为 partial                                                                                                        |
-| P1-9  | Plugin 安全强化      | 🟡 直接 bin 身份绑定及 Windows/Linux Node/静态 native 窄型 backend 已验收 | 签名/manifest SHA-256、trusted key、SBOM、capability consent、managed allow/deny、OS secret 与插件执行 Broker provenance 已有；manifest/component/descriptor 的窄型 sandbox policy 已贯穿 MCP/LSP/Monitor/Hook；policy-bearing Plugin bin 不再进入 PATH，Node/native 直接执行经 realpath、file-id、SHA-256 二次 attestation 后以 `shell:false` 进入 Broker，wrapper/复合命令 fail-closed，审计记录结构化可执行身份；Windows AppContainer 强 backend，以及 Linux 直接、前台、同步 policy-bearing Plugin Node bin 与静态 ELF64 `ET_EXEC` native bin 的 empty-root bwrap、FD 只读挂载及 seccomp 强 backend 已通过真实 CI；Linux 动态/PIE 等其余 Plugin native、通用 Hook/MCP/LSP/Monitor、background、`run_code`/REPL bang/PTY 等非直接或非同步执行面、内容不可变 snapshot 及 handle-atomic 绑定仍待收口 |
-| P1-10 | 并发状态 fail-closed | ✅ 关键状态分级与跨宿主锁已完成                 | Approval CAS、side-effect/turn/session、Agenda/Event Runtime、Cowork delivery lease、goal/config/MTC ledger、plugin/MCP trust/consent/凭据元数据均有界 fail-closed；VS Code/JetBrains 共享同一 `.lock` 目录协议与原子 session-index 写入；仅 Advisory cache 保留 best-effort                                                                                                                                |
-| P1-11 | JSON Schema 完整支持 | ✅ 标准引擎、完整 vocabulary 与受限 refs 已完成 | `Ajv2020` + `ajv-formats` 统一执行 Draft 2020-12 meta-schema/动态引用/`unevaluated*`/组合互操作；所有 `--json-schema` 入口在模型调用前编译完整 schema graph；本地 ref 限于根 schema 目录，远程 ref 仅允许无凭证公网 HTTPS，并受 DNS-SSRF、文档数/单文档/总字节/超时上限保护；稳定 digest、错误码、JSON Pointer 与 `structured_result` 保持兼容                                                              |
-| P1-12 | SDK/CI 事件透传      | ✅ 源码完成；Python 0.1.0 基线已发布            | 当前 TypeScript + Python 源码覆盖契约中的 24 类 typed stream 事件（含 defer/complete）、approval/question/MCP elicitation callback、resume 与未知事件无损透传；共享 protocol fixture、穷举 CI consumer、GitHub Actions 模板及 22 项 hermetic 测试已补；已发布的 Python 0.1.0 是此前 22 类事件基线并通过 3.10/3.12/3.13 公网 wheel 烟测，本轮两个新增事件尚未发布新版本                                      |
-| P1-13 | 验收门与文档清理     | ✅ 已完成                                       | 统一 parity 10/10；旧文档持续维护                                                                                                                                                                                                                                                                                                                                                                           |
+| #     | 任务                 | 状态                                                                | 说明                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ----- | -------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P1-4  | Hooks v2 完整实现    | 🟡 producer/managed/sandbox contract 已贯穿；Windows backend 已验收 | 40事件注册/执行、5种公共 executor + trusted JS、并行去重、11 项高价值 producer、M5 E2E、最小环境交集、command/workspace/MCP/agent/skill allowlist、MCP 共享授权与独立 delegated budget 已有；Hook managed policy 与 plugin manifest/group/per-hook `sandboxPolicy.requiredBoundaries` 只增不减并贯穿全部 command/delegated process 启动路径；显式要求不可满足时 fail-closed；Windows AppContainer 强 filesystem/network backend 已通过真实 CI，Linux 通用 Hook backend 仍未完成                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| P1-5  | MCP Elicitation 路由 | ✅ form/URL/defer 已完成                                            | 基于 MCP `2025-11-25`：声明 form/URL capability；`elicitation/create`、`notifications/elicitation/complete` 与 `URLElicitationRequiredError (-32042)` 已接入；URL 仅允许无凭证 HTTPS，所有交互宿主展示完整 URL 并在明确同意后打开；Headless 结构化 defer、完成关联及原工具调用 exactly-once retry 已覆盖，URL 敏感输入不回传 `content`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| P1-6  | Event Runtime 常驻化 | ✅ 宿主托管、观测与恢复闭环                                         | 发布二进制的 lazy-dispatch 真实入口统一启动/停止 process-level host：长驻命令持续 drain，短命命令退出前有界 final drain；durable inbox/outbox、lease fence/续租/过期接管、重试/死信/背压、producer 自动接线均已有；Webhook/Telegram 使用 required-handler 恢复路由；`cc status --json` 暴露队列及跨进程 host 心跳/stale 状态，`npm run runtime:event-recovery` 用两个真实进程验证崩溃接管与副作用只应用一次                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| P1-7  | Context 来源归因     | ✅ 双层 Skill 缓存与交互式快照已完成                                | `cc context --sources` 已对 instruction 文件、实际注入 persona Skill、admitted MCP schema、普通 Skill descriptor/body 按需读取、缓存命中及实际 prompt 注入分别计费；Headless 与交互 REPL 共用单一 Skill loader，并持续写入无正文 `context_sources` 快照                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| P1-8  | Checkpoint REPL 统一 | ✅ 统一 producer 与归因闭环                                         | Agent Core 输出 provider 原始 `tool_use_id`/turn id/permission decision/checkpoint；Headless 与 REPL 共用 `createTurnBindingFeed`，交互 turn 逐次 fail-closed 持久化；child trace/checkpoint/tool/worktree、IDE user edit 与顶层 `--worktree` branch 均进入父 turn，shell/外部副作用诚实标为 partial                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| P1-9  | Plugin 安全强化      | 🟡 直接 bin 强 backend 已验收；非直接面已 policy-pinned/fail-closed | 签名/manifest SHA-256、trusted key、SBOM、capability consent、managed allow/deny、OS secret 与插件执行 Broker provenance 已有；manifest/component/descriptor 的窄型 sandbox policy 已贯穿 MCP/LSP/Monitor/Hook；policy-bearing Plugin bin 不再进入 PATH，Node/native 直接执行经 realpath、file-id、SHA-256 二次 attestation 后以 `shell:false` 进入 Broker；Windows AppContainer 及 Linux 直接、前台、同步 Plugin Node/静态 ELF64 `ET_EXEC` 的窄型强 backend 已通过真实 CI。`run_code`、slash/REPL bang、CLI/Desktop PTY 与 BackgroundTaskManager 已有 pinned policy 或 upfront denial，但 generic PTY/background、通用 Hook/MCP/LSP/Monitor 强 backend 仍缺；Desktop 尚无权威 active-project binding，shell 内 `cd` 后不能重算。Windows 窄型 `.cjs` 已有 entry-source snapshot，但 `handleAtomic:false`；Linux 静态 native 仍为 `contentSnapshot:false`，动态/PIE native 与 handle-atomic 仍待收口 |
+| P1-10 | 并发状态 fail-closed | ✅ 关键状态分级与跨宿主锁已完成                                     | Approval CAS、side-effect/turn/session、Agenda/Event Runtime、Cowork delivery lease、goal/config/MTC ledger、plugin/MCP trust/consent/凭据元数据均有界 fail-closed；VS Code/JetBrains 共享同一 `.lock` 目录协议与原子 session-index 写入；仅 Advisory cache 保留 best-effort                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| P1-11 | JSON Schema 完整支持 | ✅ 标准引擎、完整 vocabulary 与受限 refs 已完成                     | `Ajv2020` + `ajv-formats` 统一执行 Draft 2020-12 meta-schema/动态引用/`unevaluated*`/组合互操作；所有 `--json-schema` 入口在模型调用前编译完整 schema graph；本地 ref 限于根 schema 目录，远程 ref 仅允许无凭证公网 HTTPS，并受 DNS-SSRF、文档数/单文档/总字节/超时上限保护；稳定 digest、错误码、JSON Pointer 与 `structured_result` 保持兼容                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| P1-12 | SDK/CI 事件透传      | ✅ 源码完成；Python 0.1.0 基线已发布                                | 当前 TypeScript + Python 源码覆盖契约中的 24 类 typed stream 事件（含 defer/complete）、approval/question/MCP elicitation callback、resume 与未知事件无损透传；共享 protocol fixture、穷举 CI consumer、GitHub Actions 模板及 22 项 hermetic 测试已补；已发布的 Python 0.1.0 是此前 22 类事件基线并通过 3.10/3.12/3.13 公网 wheel 烟测，本轮两个新增事件尚未发布新版本                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| P1-13 | 验收门与文档清理     | ✅ 已完成                                                           | 统一 parity 10/10；旧文档持续维护                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 **2026-07-24 P1-5 进度**：三端表单已覆盖 MCP form elicitation 规定的受限 schema：
 `title`/`description`/`default`、字符串长度与 `email`/`uri`/`date`/`date-time`、
@@ -434,15 +487,17 @@ strict bin 的要求还会收紧全部同轮 `run_shell`，关闭 wrapper、动�
 fstat-to-fstat 身份/摘要对照捕获同内容路径替换，进一步缩窄 path TOCTOU，但不宣称
 OS spawn 已实现 handle-atomic。
 Windows AppContainer backend 的真实文件/网络隔离由 run 30214672198 验收。P1-9 仍保持
-进行中：Linux 强 backend、`run_code`/REPL bang/PTY 等非直接 `run_shell` 面，以及
-OS spawn 前窄 TOCTOU 的 handle-atomic 绑定尚未完成。
+进行中：`run_code`/REPL bang/PTY/background 后来虽已接入 policy plumbing 或 upfront denial，
+但 generic PTY/background、通用 Hook/MCP/LSP/Monitor 强 backend，以及 OS spawn 前窄 TOCTOU
+的 handle-atomic 绑定尚未完成。
 
 **2026-07-27 P1-9 Linux 直接 Plugin Node bin backend 增量**：`2caef1e2ac` 至
 `e0ef465227` 为直接、前台、同步的 policy-bearing Plugin Node bin 加入 one-shot trusted
 contract、empty-root bwrap、FD-backed read-only mounts 与网络 namespace/seccomp 强边界，
 并由 run 30220657085 的 Ubuntu live 用例验收。该增量只关闭 Linux Plugin Node 的窄型
-直接执行面；Plugin native、通用 Hook/MCP/LSP/Monitor、background、
-`run_code`/REPL bang/PTY，以及同 inode 内容不可变快照和 OS spawn 前 handle-atomic 绑定
+直接执行面；`run_code`/REPL bang/CLI/Desktop PTY 与 BackgroundTaskManager 后来已补 policy
+plumbing/前置拒绝，但 Plugin 动态/PIE native、generic PTY/background、通用
+Hook/MCP/LSP/Monitor 强 backend，同 inode 内容不可变快照及 OS spawn 前 handle-atomic 绑定
 仍是 P1-9 残项，因此状态继续保持 🟡。
 
 **2026-07-27 P1-9 Linux 静态 Plugin native ELF backend 增量**：`92ca5dc69f`、
@@ -453,8 +508,22 @@ probe 后同时复核路径身份与 pinned entry FD；实际 bwrap target 仍�
 仅是可信 capability probe。run 30232622815 的三平台 strict matrix 全绿，Ubuntu live
 现场证明 static ELF 隔离成功且 dynamic ELF/shebang 在目标启动前被拒绝。该增量不宣称
 sealed content snapshot 或 handle-atomic：审计固定为 `contentSnapshot:false`、
-`handleAtomic:false`；同 inode 写入窗口、动态/PIE native、background、通用
-Hook/MCP/LSP/Monitor、`run_code`/REPL bang/PTY 仍是残项，因此 P1-9 继续保持 🟡。
+`handleAtomic:false`；同 inode 写入窗口、动态/PIE native、generic PTY/background 和通用
+Hook/MCP/LSP/Monitor 强 backend 仍是残项。`run_code`/REPL bang/CLI/Desktop PTY 与
+BackgroundTaskManager 已有 policy plumbing/前置拒绝，但不改变上述强 backend 缺口，
+因此 P1-9 继续保持 🟡。
+
+**2026-07-27 P1-9 非直接执行面与 Desktop PTY 增量**：`7ae04a47e8` /
+`860bc7a0fc` 固定 `run_code` policy 并让未缓存 Python discovery 在严格策略下前置拒绝，
+`e43f078a01` 固定整条 slash/REPL bang macro 的 policy，`764c0e0845` 固定 CLI PTY 的
+workspace root + create cwd；`543c877cd2` 在 BackgroundTaskManager create/start 双时点
+检查并拒绝无法沙箱化的任务，`770b07aa33` 则让 Desktop PTY collector/broker 缺失或边界
+不可满足时 fail-closed。`80fbe06e25` 只是 Python cache reset shim 的 CI 兼容修正。
+这些提交关闭了静默 policy bypass，不等于 generic PTY/background 强 backend；Desktop
+singleton 仍以 `process.cwd()` 固定 root，尚无权威 active-project binding，且 CLI/Desktop
+交互 shell 内 `cd` 后都不能重算。`130acdfa9c` 同时补齐 Forge 的 CLI runtime/vendor
+依赖闭包与真实 import gate。P1-4/P1-9 均继续保持 🟡；远端 strict 证据以全绿的
+run 30263304582 为准，后续提交只记录本地定向验证。
 
 **2026-07-26 P1-10 完成**：对 Critical / Durable / Advisory 状态逐项复核，
 并移除关键路径的“锁失败后无锁继续”。既有 `ApprovalAuthorityStore` 已具备锁内
@@ -577,6 +646,9 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 - [x] **P1-9 policy-bearing Plugin bin/native 直接 Broker 身份绑定与审计**
 - [x] **P1-9 Linux 直接、前台、同步 policy-bearing Plugin Node bin 的 bwrap empty-root、FD mounts、seccomp 强 filesystem/network live CI**
 - [x] **P1-9 Linux 直接、前台、同步 policy-bearing 静态 Plugin native ELF 的格式验真、bwrap 强边界与 live CI**
+- [x] **P1-9 `run_code`、slash/REPL bang、CLI/Desktop PTY 与 BackgroundTaskManager 的 pinned policy/upfront denial**
+- [x] **P1-9 Windows 窄型 Plugin Node `.cjs` entry-source snapshot、可信环境、成对 identity 与 policy digest**
+- [x] **Desktop Forge CLI runtime/vendor 依赖闭包、真实 import gate 与 PTY collector/broker fail-closed**
 - [x] **P1-10 Critical/Durable 状态 fail-closed、Cowork delivery fence 与跨 IDE session lock**
 - [x] **P1-11 Draft 2020-12 标准引擎、启动期 graph 编译与受限 local/HTTPS refs**
 - [x] **P1-12 TypeScript/Python SDK、共享 fixture、GitHub Actions 示例与 Python 0.1.0 基线 PyPI 发布**
@@ -593,25 +665,25 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 - [x] M4-2: Turn binding schema 全透传
 - [x] M5: `--jsii-runtime` + `--otlp-endpoint` 全局参数
 - [x] M5: 端到端 parity 验证脚本
-- [x] M6: 收敛设计文档 `CLI_ARCHITECTURE_CONVERGENCE_2026-07-19.md`
+- [x] M6: 收敛设计文档 `docs/implementation-plans/CLI_RUNTIME_CONVERGENCE_ADR.md`
 - [x] M6: 四层模块边界严格定义
 
 ---
 
 ## 近期里程碑
 
-| 顺序       | 目标                                                                 |
-| ---------- | -------------------------------------------------------------------- |
-| **当前**   | P1-4/P1-9：Linux 通用 Hook/MCP/LSP/Monitor backend、动态/PIE 等其余 Plugin native、非直接或非同步执行面、内容 snapshot 及 handle-atomic 收口 |
-| **已完成** | P0-1/P0-2 三平台验收；P0/P1-3 权限控制面统一                           |
-| **本轮完成** | stdio MCP/LSP/Monitor/command Hook sandboxPolicy 到 Broker 的完整贯穿；Linux 直接前台同步 policy-bearing Plugin Node 与静态 native ELF bin 窄型强 backend |
-| **发布前** | 双语言 SDK 兼容门、真实环境 parity 与文档事实源漂移检查              |
+| 顺序         | 目标                                                                                                                                                                                                             |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **当前**     | P1-4/P1-9：generic PTY/background 与 Linux 通用 Hook/MCP/LSP/Monitor 强 backend、动态/PIE 等其余 Plugin native、Desktop 权威 active-project binding/`cd` 后重算、Linux 内容 snapshot 及跨平台 handle-atomic 收口 |
+| **已完成**   | P0-1/P0-2 三平台验收；P0/P1-3 权限控制面统一                                                                                                                                                                     |
+| **本轮完成** | 非直接执行面的 pinned policy/upfront denial；Windows `.cjs` snapshot/可信 helper 环境/policy digest；Forge CLI runtime closure/import gate；Desktop PTY fixed-root collector/broker fail-closed                  |
+| **发布前**   | 双语言 SDK 兼容门、真实环境 parity 与文档事实源漂移检查                                                                                                                                                          |
 
 ---
 
 ## 参考文档
 
 - 差距分析：`docs/CLAUDE_CODE_CLI_CURRENT_GAPS_AND_OPTIMIZATIONS_2026-07-18.md`
-- 架构收敛：`docs/architecture/CLI_ARCHITECTURE_CONVERGENCE_2026-07-19.md`
-- Parity 验证：`packages/cli/scripts/verify-agent-runtime-parity.js`
+- 架构收敛：`docs/implementation-plans/CLI_RUNTIME_CONVERGENCE_ADR.md`
+- Parity 验证：`desktop-app-vue/scripts/verify-coding-agent-parity.js`
 - P0-1 沙箱详细进度：`packages/cli/P0_CLI_SECURITY_PROGRESS.md`
