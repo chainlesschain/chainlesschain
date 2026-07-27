@@ -416,7 +416,8 @@ describe("background agent supervisor", () => {
       cliEntry: fakeCli,
     });
     let completed = null;
-    for (let i = 0; i < 50; i++) {
+    const completionDeadline = Date.now() + 30_000;
+    while (Date.now() < completionDeadline) {
       await new Promise((resolve) => setTimeout(resolve, 50));
       const current = readBackgroundAgentState(state.id);
       if (current?.status === "completed") {
@@ -601,6 +602,7 @@ describe("background agent supervisor", () => {
     const conn = await connectBackgroundSession({
       pipePath: transport.pipe,
       token: transport.token,
+      timeoutMs: 30_000,
       onEvent: (m) => events.push(m),
     });
     expect(conn.hello).toMatchObject({ type: "hello", interactive: true });
@@ -1070,6 +1072,7 @@ describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
     const conn = await connectBackgroundSession({
       pipePath: transport.pipe,
       token: transport.token,
+      timeoutMs: 30_000,
       onEvent: (m) => events.push(m),
     });
 

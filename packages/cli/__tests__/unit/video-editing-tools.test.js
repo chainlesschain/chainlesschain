@@ -10,7 +10,17 @@ import { describe, test, expect, vi, beforeEach } from "vitest";
 const mockFs = vi.hoisted(() => ({
   readFile: vi.fn(),
 }));
-vi.mock("fs", () => ({ promises: mockFs }));
+vi.mock("fs", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    default: actual.default || actual,
+    promises: {
+      ...actual.promises,
+      readFile: mockFs.readFile,
+    },
+  };
+});
 
 // ── review-clip ─────────────────────────────────────────────
 
