@@ -2,13 +2,14 @@
 
 > 来源：`CLAUDE_CODE_CLI_CURRENT_GAPS_AND_OPTIMIZATIONS_2026-07-18.md`
 > 创建日期：2026-07-19
-> 当前 CLI 版本：`0.162.181`
+> 当前 CLI 版本：`0.162.182`
 > 状态：P0-1 Broker/凭据、静态进程清单、Windows 原生进程边界、Node IPC/detached 语义与
 > 真实三平台 strict CI 已完成；P0-2 当前 turn、持久化、跨宿主 authority/binding 与真实三平台
 > 断线重连 E2E 已完成；P0/P1-3 权限控制面统一已完成；stdio MCP、LSP、Monitor 与 command
 > Hook 的 sandbox policy 已贯穿；Plugin bin/native 直接执行身份绑定与 Windows Broker 强
 > filesystem/network backend 已完成；Linux 已完成直接、前台、同步、policy-bearing Plugin Node bin
-> 的窄型 bwrap 强 backend。当前剩余 Linux 通用 Hook/MCP/LSP/Monitor backend、Plugin native、
+> 与静态 ELF native bin 的窄型 bwrap 强 backend。当前剩余 Linux 通用 Hook/MCP/LSP/Monitor backend、
+> 动态链接/PIE 等其余 Plugin native、
 > background、`run_code`/REPL bang/PTY 等非直接或非同步执行面及 handle-atomic 收口；P1-12 双语言 SDK 已完成，
 > Python SDK 0.1.0 已发布 PyPI
 > 最后更新：2026-07-27（按当前源码、真实三平台 strict CI 与生成清单复核）
@@ -71,7 +72,7 @@
      `targetPid`，Broker 对外暴露目标 PID，同时保留 `sandboxWrapperPid` 用于 Job 生命周期
    - Linux：Broker 可用 `prlimit` 施加通用资源限制；显式 Agent sandbox 继续复用既有 bubblewrap；
      Broker 强 filesystem/network backend 目前仅覆盖直接、前台、同步且 policy-bearing 的
-     Plugin Node bin，通用 Hook/MCP/LSP/Monitor backend 尚未完成
+     Plugin Node bin 与静态 ELF native bin，通用 Hook/MCP/LSP/Monitor backend 尚未完成
 
 2. **`credential-agent.js` 凭据过滤代理（default-on）**：
    - 30+ 正则模式识别敏感 env（API_KEY/TOKEN/PASSWORD/SECRET/PRIVATE_KEY/BEARER/AUTH 等）
@@ -152,9 +153,26 @@
      的 macOS 15、Ubuntu 与 Windows 三个 job 全部通过；Ubuntu live 用例证明插件依赖和声明文件可读、
      HOME secret 与宿主 `/etc/passwd` 不可读、插件树和宿主 marker 不可写、`/tmp` 仅沙箱内临时可写，
      且宿主 loopback 可达而沙箱创建 socket 返回 `EPERM`；缺少私有 contract 时目标 marker 未启动
-   - 该验收不扩展到 Plugin native、background、Hook/MCP/LSP/Monitor、
+   - 该 Node 验收不扩展到 Plugin native、background、Hook/MCP/LSP/Monitor、
      `run_code`、REPL bang 或 PTY。FD pinning 已缩窄路径替换、symlink/mount 注入与身份漂移窗口，
      但 sealed immutable executable snapshot 和 OS spawn 前 handle-atomic 绑定仍未完成
+
+9. **2026-07-27 Linux 静态 Plugin native ELF 窄型强 filesystem/network backend 验收**：
+   - 在相同 one-shot contract、empty-root bwrap、逐文件 FD 只读挂载、namespace/capability drop
+     与网络 seccomp 边界内，实际目标保持插件 native entry 与 literal argv；attested Node runtime
+     只用于 bwrap policy capability probe，不替代或解释执行 native 目标
+   - 目标必须是当前架构的 little-endian ELF64 `ET_EXEC`，program-header table 有界，入口位于可执行
+     `PT_LOAD`；`PT_INTERP`、`PT_DYNAMIC`、`ET_DYN`/PIE、ELF32、大端、异架构、越界 header、
+     executable stack、W+X、setuid/setgid 与 shebang/script 均在 bwrap probe 和目标启动前 fail-closed；
+     `ldd` 仍只检查已证明身份的 Node probe runtime，不检查不可信插件 ELF
+   - [GitHub Actions run 30232622815](https://github.com/chainlesschain/chainlesschain/actions/runs/30232622815)
+     的 macOS 15、Ubuntu 与 Windows 三个 job 全部通过；Ubuntu live 用例现场编译 static/dynamic
+     C fixture，证明 static native 的插件文件可读、宿主 secret/`/etc/passwd` 不可读、插件树与宿主
+     marker 不可写、沙箱 `/tmp` 可写且 `socket` 返回 `EPERM`，同时 dynamic ELF 与 shebang 的目标均未启动
+   - 实现落在 `92ca5dc69f`，ELF segment 边界修正在 `0b2b638b11`，native probe 审计传播修正在
+     `c2e4053c87`。审计明确记录 `targetRuntime:native-static-elf`、`contentSnapshot:false` 与
+     `handleAtomic:false`；同 inode 内容在最终 hash 后仍可能被另一写入者修改，动态/PIE native、
+     background、通用 Hook/MCP/LSP/Monitor、`run_code`/REPL bang/PTY 也仍未覆盖
 
 **涉及文件**:
 
@@ -308,7 +326,7 @@
 | P1-6  | Event Runtime 常驻化 | ✅ 宿主托管、观测与恢复闭环                     | 发布二进制的 lazy-dispatch 真实入口统一启动/停止 process-level host：长驻命令持续 drain，短命命令退出前有界 final drain；durable inbox/outbox、lease fence/续租/过期接管、重试/死信/背压、producer 自动接线均已有；Webhook/Telegram 使用 required-handler 恢复路由；`cc status --json` 暴露队列及跨进程 host 心跳/stale 状态，`npm run runtime:event-recovery` 用两个真实进程验证崩溃接管与副作用只应用一次 |
 | P1-7  | Context 来源归因     | ✅ 双层 Skill 缓存与交互式快照已完成            | `cc context --sources` 已对 instruction 文件、实际注入 persona Skill、admitted MCP schema、普通 Skill descriptor/body 按需读取、缓存命中及实际 prompt 注入分别计费；Headless 与交互 REPL 共用单一 Skill loader，并持续写入无正文 `context_sources` 快照                                                                                                                                                     |
 | P1-8  | Checkpoint REPL 统一 | ✅ 统一 producer 与归因闭环                     | Agent Core 输出 provider 原始 `tool_use_id`/turn id/permission decision/checkpoint；Headless 与 REPL 共用 `createTurnBindingFeed`，交互 turn 逐次 fail-closed 持久化；child trace/checkpoint/tool/worktree、IDE user edit 与顶层 `--worktree` branch 均进入父 turn，shell/外部副作用诚实标为 partial                                                                                                        |
-| P1-9  | Plugin 安全强化      | 🟡 直接 bin 身份绑定及 Windows/Linux Node 窄型 backend 已验收 | 签名/manifest SHA-256、trusted key、SBOM、capability consent、managed allow/deny、OS secret 与插件执行 Broker provenance 已有；manifest/component/descriptor 的窄型 sandbox policy 已贯穿 MCP/LSP/Monitor/Hook；policy-bearing Plugin bin 不再进入 PATH，Node/native 直接执行经 realpath、file-id、SHA-256 二次 attestation 后以 `shell:false` 进入 Broker，wrapper/复合命令 fail-closed，审计记录结构化可执行身份；Windows AppContainer 强 backend 与 Linux 直接、前台、同步 policy-bearing Plugin Node bin 的 empty-root bwrap、FD 只读挂载及 seccomp 强 backend 已通过真实 CI；Linux Plugin native、通用 Hook/MCP/LSP/Monitor、background、`run_code`/REPL bang/PTY 等非直接或非同步执行面及 handle-atomic 绑定仍待收口 |
+| P1-9  | Plugin 安全强化      | 🟡 直接 bin 身份绑定及 Windows/Linux Node/静态 native 窄型 backend 已验收 | 签名/manifest SHA-256、trusted key、SBOM、capability consent、managed allow/deny、OS secret 与插件执行 Broker provenance 已有；manifest/component/descriptor 的窄型 sandbox policy 已贯穿 MCP/LSP/Monitor/Hook；policy-bearing Plugin bin 不再进入 PATH，Node/native 直接执行经 realpath、file-id、SHA-256 二次 attestation 后以 `shell:false` 进入 Broker，wrapper/复合命令 fail-closed，审计记录结构化可执行身份；Windows AppContainer 强 backend，以及 Linux 直接、前台、同步 policy-bearing Plugin Node bin 与静态 ELF64 `ET_EXEC` native bin 的 empty-root bwrap、FD 只读挂载及 seccomp 强 backend 已通过真实 CI；Linux 动态/PIE 等其余 Plugin native、通用 Hook/MCP/LSP/Monitor、background、`run_code`/REPL bang/PTY 等非直接或非同步执行面、内容不可变 snapshot 及 handle-atomic 绑定仍待收口 |
 | P1-10 | 并发状态 fail-closed | ✅ 关键状态分级与跨宿主锁已完成                 | Approval CAS、side-effect/turn/session、Agenda/Event Runtime、Cowork delivery lease、goal/config/MTC ledger、plugin/MCP trust/consent/凭据元数据均有界 fail-closed；VS Code/JetBrains 共享同一 `.lock` 目录协议与原子 session-index 写入；仅 Advisory cache 保留 best-effort                                                                                                                                |
 | P1-11 | JSON Schema 完整支持 | ✅ 标准引擎、完整 vocabulary 与受限 refs 已完成 | `Ajv2020` + `ajv-formats` 统一执行 Draft 2020-12 meta-schema/动态引用/`unevaluated*`/组合互操作；所有 `--json-schema` 入口在模型调用前编译完整 schema graph；本地 ref 限于根 schema 目录，远程 ref 仅允许无凭证公网 HTTPS，并受 DNS-SSRF、文档数/单文档/总字节/超时上限保护；稳定 digest、错误码、JSON Pointer 与 `structured_result` 保持兼容                                                              |
 | P1-12 | SDK/CI 事件透传      | ✅ 源码完成；Python 0.1.0 基线已发布            | 当前 TypeScript + Python 源码覆盖契约中的 24 类 typed stream 事件（含 defer/complete）、approval/question/MCP elicitation callback、resume 与未知事件无损透传；共享 protocol fixture、穷举 CI consumer、GitHub Actions 模板及 22 项 hermetic 测试已补；已发布的 Python 0.1.0 是此前 22 类事件基线并通过 3.10/3.12/3.13 公网 wheel 烟测，本轮两个新增事件尚未发布新版本                                      |
@@ -426,6 +444,17 @@ contract、empty-root bwrap、FD-backed read-only mounts 与网络 namespace/sec
 直接执行面；Plugin native、通用 Hook/MCP/LSP/Monitor、background、
 `run_code`/REPL bang/PTY，以及同 inode 内容不可变快照和 OS spawn 前 handle-atomic 绑定
 仍是 P1-9 残项，因此状态继续保持 🟡。
+
+**2026-07-27 P1-9 Linux 静态 Plugin native ELF backend 增量**：`92ca5dc69f`、
+`0b2b638b11` 与 `c2e4053c87` 把同一窄型强边界扩展到当前架构的 ELF64 little-endian
+`ET_EXEC` 静态 native bin。Broker 在调用任何插件目标或 `ldd` 前从 attested FD 严格解析
+ELF，拒绝 interpreter/dynamic/PIE/script、异架构和畸形 program header，并在 Node policy
+probe 后同时复核路径身份与 pinned entry FD；实际 bwrap target 仍是 native entry，Node
+仅是可信 capability probe。run 30232622815 的三平台 strict matrix 全绿，Ubuntu live
+现场证明 static ELF 隔离成功且 dynamic ELF/shebang 在目标启动前被拒绝。该增量不宣称
+sealed content snapshot 或 handle-atomic：审计固定为 `contentSnapshot:false`、
+`handleAtomic:false`；同 inode 写入窗口、动态/PIE native、background、通用
+Hook/MCP/LSP/Monitor、`run_code`/REPL bang/PTY 仍是残项，因此 P1-9 继续保持 🟡。
 
 **2026-07-26 P1-10 完成**：对 Critical / Durable / Advisory 状态逐项复核，
 并移除关键路径的“锁失败后无锁继续”。既有 `ApprovalAuthorityStore` 已具备锁内
@@ -547,6 +576,7 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 - [x] **P1-8 Headless/REPL 统一 turn binding、provider id 与 child/worktree/user-edit 归因**
 - [x] **P1-9 policy-bearing Plugin bin/native 直接 Broker 身份绑定与审计**
 - [x] **P1-9 Linux 直接、前台、同步 policy-bearing Plugin Node bin 的 bwrap empty-root、FD mounts、seccomp 强 filesystem/network live CI**
+- [x] **P1-9 Linux 直接、前台、同步 policy-bearing 静态 Plugin native ELF 的格式验真、bwrap 强边界与 live CI**
 - [x] **P1-10 Critical/Durable 状态 fail-closed、Cowork delivery fence 与跨 IDE session lock**
 - [x] **P1-11 Draft 2020-12 标准引擎、启动期 graph 编译与受限 local/HTTPS refs**
 - [x] **P1-12 TypeScript/Python SDK、共享 fixture、GitHub Actions 示例与 Python 0.1.0 基线 PyPI 发布**
@@ -572,9 +602,9 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 
 | 顺序       | 目标                                                                 |
 | ---------- | -------------------------------------------------------------------- |
-| **当前**   | P1-4/P1-9：Linux 通用 Hook/MCP/LSP/Monitor backend、Plugin native/非直接或非同步执行面及 handle-atomic 收口 |
+| **当前**   | P1-4/P1-9：Linux 通用 Hook/MCP/LSP/Monitor backend、动态/PIE 等其余 Plugin native、非直接或非同步执行面、内容 snapshot 及 handle-atomic 收口 |
 | **已完成** | P0-1/P0-2 三平台验收；P0/P1-3 权限控制面统一                           |
-| **本轮完成** | stdio MCP/LSP/Monitor/command Hook sandboxPolicy 到 Broker 的完整贯穿；Linux 直接前台同步 policy-bearing Plugin Node bin 窄型强 backend |
+| **本轮完成** | stdio MCP/LSP/Monitor/command Hook sandboxPolicy 到 Broker 的完整贯穿；Linux 直接前台同步 policy-bearing Plugin Node 与静态 native ELF bin 窄型强 backend |
 | **发布前** | 双语言 SDK 兼容门、真实环境 parity 与文档事实源漂移检查              |
 
 ---
