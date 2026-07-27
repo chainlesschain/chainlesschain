@@ -367,6 +367,7 @@ describe("P0-2 same-turn question round-trip (real worker/child IPC)", () => {
 
     let conn = null;
     const replayResponses = [];
+    let replayRequest = null;
     conn = await connectBackgroundSession({
       pipePath: transport.pipe,
       token: transport.token,
@@ -374,6 +375,12 @@ describe("P0-2 same-turn question round-trip (real worker/child IPC)", () => {
       onEvent: (message) => {
         if (message.type !== "interaction_request") return;
         interactionEvents.push(message);
+        // Delivery is intentionally at-least-once: the request can be emitted
+        // both when it is created and when a reconnect is authenticated. Those
+        // paths may overlap on a loaded runner, so answer the logical request
+        // once by requestId rather than once per transport delivery.
+        if (replayRequest) return;
+        replayRequest = message;
         const response = {
           type: "interaction_response",
           requestId: message.requestId,
@@ -415,18 +422,24 @@ describe("P0-2 same-turn question round-trip (real worker/child IPC)", () => {
       { timeoutMs: 60_000 },
     );
     expect(completed?.turnCount).toBe(1);
-    expect(interactionEvents).toHaveLength(2);
-    expect(interactionEvents[1]).toMatchObject({
-      requestId: firstRequest.requestId,
-      question: "Deploy to production?",
-      binding: {
-        backgroundAgentId: state.id,
-        sessionId: "sid-same-turn",
-        turnId: "provider-turn-1",
-        toolUseId: "provider-tool-call-1",
-        sequence: 1,
-      },
-    });
+    expect(interactionEvents.length).toBeGreaterThanOrEqual(2);
+    expect(replayRequest).not.toBeNull();
+    for (const event of interactionEvents) {
+      expect(event).toMatchObject({
+        requestId: firstRequest.requestId,
+        question: "Deploy to production?",
+        binding: {
+          backgroundAgentId: state.id,
+          sessionId: "sid-same-turn",
+          turnId: "provider-turn-1",
+          toolUseId: "provider-tool-call-1",
+          sequence: 1,
+        },
+      });
+    }
+    expect(
+      new Set(interactionEvents.map((event) => event.requestId)),
+    ).toHaveLength(1);
     const journal = loadBackgroundInteractionJournal("sid-same-turn", state.id);
     expect(journal.get(firstRequest.requestId)).toMatchObject({
       status: "resolved",

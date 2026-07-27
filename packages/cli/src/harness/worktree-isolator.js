@@ -456,7 +456,11 @@ export function previewWorktreeMerge(repoDir, branchName, options = {}) {
 
   let mergeStarted = false;
   try {
-    gitExec(`merge ${baseBranch} --no-commit --no-ff`, worktree.path);
+    // Use argv form here rather than routing through a shell. Besides avoiding
+    // another quoting surface, this is important on Windows where a conflicted
+    // `git merge` followed immediately by another shell-wrapped git process can
+    // race the hosted runner's process/job cleanup and hide the unmerged index.
+    gitExecArgs(["merge", baseBranch, "--no-commit", "--no-ff"], worktree.path);
     mergeStarted = true;
 
     return {
@@ -713,7 +717,14 @@ function _hasBranchCommits(repoDir, branchName) {
 
 function _collectConflictFiles(repoDir) {
   try {
-    const output = gitExec("diff --name-only --diff-filter=U", repoDir);
+    // A conflict is expected to make the preceding merge exit non-zero. Query
+    // the index with a direct git argv invocation so Windows shell/process
+    // teardown cannot turn the authoritative conflict probe into an empty
+    // best-effort result.
+    const output = gitExecArgs(
+      ["diff", "--name-only", "--diff-filter=U"],
+      repoDir,
+    );
     return output
       .split("\n")
       .map((line) => line.trim())
@@ -988,7 +999,7 @@ function _resolveAutomationCandidate(type, filePath, branchName, candidateId) {
 
 function _abortMergeIfPresent(repoDir) {
   try {
-    gitExec("merge --abort", repoDir);
+    gitExecArgs(["merge", "--abort"], repoDir);
   } catch (_e) {
     // Ignore if there is no in-progress merge.
   }
