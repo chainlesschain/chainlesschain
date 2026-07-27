@@ -118,7 +118,7 @@ try {
         /nologo `
         /target:library `
         /optimize+ `
-        /reference:System.Web.Extensions.dll `
+        /reference:System.Runtime.Serialization.dll `
         /out:$temporaryLibrary `
         $compiledSourcePath
     if ($LASTEXITCODE -ne 0) {
@@ -129,7 +129,7 @@ try {
         /nologo `
         /target:exe `
         /optimize+ `
-        /reference:System.Web.Extensions.dll `
+        /reference:System.Runtime.Serialization.dll `
         /out:$temporaryExecutable `
         $compiledSourcePath
     if ($LASTEXITCODE -ne 0) {

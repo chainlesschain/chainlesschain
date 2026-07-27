@@ -2772,6 +2772,77 @@ describe("platform sandbox adapter contract", () => {
     expect(harness.fsRuntime.writeFileSync).not.toHaveBeenCalled();
   });
 
+  it("prefers a canonical protected PowerShell 7 host for strong Windows plans", () => {
+    const harness = createWindowsAdapterHarness();
+    const modernHost = "C:\\Program Files\\PowerShell\\7\\pwsh.exe";
+    const exists = harness.fsRuntime.existsSync.getMockImplementation();
+    harness.fsRuntime.existsSync.mockImplementation(
+      (value) => String(value) === modernHost || exists(value),
+    );
+    const realpathSync = vi.fn((value) => String(value));
+    realpathSync.native = vi.fn((value) => String(value));
+    harness.fsRuntime.realpathSync = realpathSync;
+
+    const plan = applyWindowsSandbox(
+      "tool.exe",
+      [],
+      {},
+      { profileName: "strict", sync: true },
+      {
+        platform: "win32",
+        fs: harness.fsRuntime,
+        windowsAdapterContent: "adapter-bytes",
+        windowsDir: () => "C:\\Windows",
+        tmpdir: () => "C:\\temp",
+        randomBytes: (size) => Buffer.alloc(size, 0x9b),
+        joinPath: path.win32.join,
+        spawnSync: harness.spawnSync,
+      },
+    );
+
+    expect(plan.applied).toBe(true);
+    expect(plan.command).toBe(modernHost);
+    expect(realpathSync.native).toHaveBeenCalledWith(modernHost);
+    plan.cleanup();
+    expect(resetWindowsSandboxAdapterCache()).toBe(true);
+  });
+
+  it("rejects a redirected PowerShell 7 host and retains the in-box host", () => {
+    const harness = createWindowsAdapterHarness();
+    const modernHost = "C:\\Program Files\\PowerShell\\7\\pwsh.exe";
+    const inboxHost =
+      "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
+    const exists = harness.fsRuntime.existsSync.getMockImplementation();
+    harness.fsRuntime.existsSync.mockImplementation(
+      (value) => String(value) === modernHost || exists(value),
+    );
+    const realpathSync = vi.fn((value) => String(value));
+    realpathSync.native = vi.fn(() => "C:\\temp\\redirected-pwsh.exe");
+    harness.fsRuntime.realpathSync = realpathSync;
+
+    const plan = applyWindowsSandbox(
+      "tool.exe",
+      [],
+      {},
+      { profileName: "strict", sync: true },
+      {
+        platform: "win32",
+        fs: harness.fsRuntime,
+        windowsAdapterContent: "adapter-bytes",
+        windowsDir: () => "C:\\Windows",
+        tmpdir: () => "C:\\temp",
+        randomBytes: (size) => Buffer.alloc(size, 0x9c),
+        joinPath: path.win32.join,
+        spawnSync: harness.spawnSync,
+      },
+    );
+
+    expect(plan.applied).toBe(true);
+    expect(plan.command).toBe(inboxHost);
+    plan.cleanup();
+    expect(resetWindowsSandboxAdapterCache()).toBe(true);
+  });
+
   it("materializes a random byte-loaded Windows helper and never trusts a prepositioned cache", () => {
     const oldHashAssembly =
       "C:\\temp\\chainless-win-sandbox-0123456789abcdef01234567\\windows-sandbox-helper.exe";
@@ -3912,6 +3983,8 @@ describe("platform sandbox adapter contract", () => {
     expect(windowsSandboxSource).toContain("EqualSid");
     expect(windowsSandboxSource).toContain("CreateProcessAsUser");
     expect(windowsSandboxSource).toContain("TerminateAndAwaitEmptyJob");
+    expect(windowsSandboxSource).toContain("DataContractJsonSerializer");
+    expect(windowsSandboxSource).not.toContain("System.Web");
     expect(platformSandboxSource).toContain(
       "$ccAssembly=[Reflection.Assembly]::Load($ccAssemblyBytes)",
     );
@@ -4517,17 +4590,24 @@ describe.runIf(process.platform === "win32")(
         );
 
         expect(plan.applied, plan.reason).toBe(true);
-        expect(plan.command.toLowerCase()).toBe(
-          path
-            .join(
+        expect(
+          [
+            path.join(
+              path.parse(trustedWindowsDirectory).root,
+              "Program Files",
+              "PowerShell",
+              "7",
+              "pwsh.exe",
+            ),
+            path.join(
               trustedWindowsDirectory,
               "System32",
               "WindowsPowerShell",
               "v1.0",
               "powershell.exe",
-            )
-            .toLowerCase(),
-        );
+            ),
+          ].map((value) => value.toLowerCase()),
+        ).toContain(plan.command.toLowerCase());
         expect(plan.options.cwd.toLowerCase()).toBe(
           path.join(trustedWindowsDirectory, "System32").toLowerCase(),
         );

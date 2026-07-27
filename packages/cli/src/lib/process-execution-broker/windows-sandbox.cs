@@ -6,12 +6,62 @@ using System.IO;
 using Microsoft.Win32.SafeHandles;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading;
-using System.Web.Script.Serialization;
 
 namespace ChainlessChain.WindowsSandbox
 {
+    public static class JsonCodec
+    {
+        private static DataContractJsonSerializer CreateSerializer(Type type)
+        {
+            return new DataContractJsonSerializer(
+                type,
+                new DataContractJsonSerializerSettings
+                {
+                    UseSimpleDictionaryFormat = true
+                });
+        }
+
+        public static string SerializeObject(params object[] pairs)
+        {
+            if (pairs == null || pairs.Length % 2 != 0)
+                throw new ArgumentException(
+                    "JSON object entries must be key/value pairs");
+            Dictionary<string, object> values =
+                new Dictionary<string, object>(StringComparer.Ordinal);
+            for (int index = 0; index < pairs.Length; index += 2)
+            {
+                string key = pairs[index] as string;
+                if (String.IsNullOrEmpty(key))
+                    throw new ArgumentException(
+                        "JSON object keys must be non-empty strings");
+                values.Add(key, pairs[index + 1]);
+            }
+
+            using (MemoryStream stream = new MemoryStream())
+            {
+                CreateSerializer(typeof(Dictionary<string, object>))
+                    .WriteObject(stream, values);
+                return new UTF8Encoding(false, true).GetString(
+                    stream.ToArray());
+            }
+        }
+
+        public static T Deserialize<T>(string json)
+        {
+            if (json == null)
+                throw new ArgumentNullException("json");
+            byte[] bytes = new UTF8Encoding(false, true).GetBytes(json);
+            using (MemoryStream stream = new MemoryStream(bytes, false))
+            {
+                return (T)CreateSerializer(typeof(T)).ReadObject(stream);
+            }
+        }
+    }
+
     public static class Native
     {
         public const string SourceSha256 =
@@ -1511,13 +1561,20 @@ namespace ChainlessChain.WindowsSandbox
                 handle == new IntPtr(-2);
         }
 
+        [DataContract]
         public sealed class LaunchPathLockSpec
         {
+            [DataMember]
             public string role { get; set; }
+            [DataMember]
             public string path { get; set; }
+            [DataMember]
             public string sha256 { get; set; }
+            [DataMember]
             public long bytes { get; set; }
+            [DataMember]
             public string dev { get; set; }
+            [DataMember]
             public string ino { get; set; }
         }
 
@@ -2357,12 +2414,11 @@ namespace ChainlessChain.WindowsSandbox
             }
 
             Console.Out.WriteLine(
-                new JavaScriptSerializer().Serialize(
-                    new
-                    {
-                        eventName = "SNAPSHOT_CAPTURED",
-                        token = gateToken
-                    }));
+                JsonCodec.SerializeObject(
+                    "eventName",
+                    "SNAPSHOT_CAPTURED",
+                    "token",
+                    gateToken));
             Console.Out.Flush();
 
             DateTime deadline = DateTime.UtcNow.AddSeconds(30);
@@ -3193,16 +3249,17 @@ namespace ChainlessChain.WindowsSandbox
 
                 if (!String.IsNullOrWhiteSpace(identityPath))
                 {
-                    string identity = new JavaScriptSerializer().Serialize(
-                        new
-                        {
-                            targetPid = processInfo.dwProcessId,
-                            helperPid =
-                                System.Diagnostics.Process.GetCurrentProcess().Id,
-                            appContainer = useAppContainer,
-                            appContainerSid = attestedAppContainerSid,
-                            capabilityCount = useAppContainer ? 0 : -1
-                        });
+                    string identity = JsonCodec.SerializeObject(
+                        "targetPid",
+                        processInfo.dwProcessId,
+                        "helperPid",
+                        System.Diagnostics.Process.GetCurrentProcess().Id,
+                        "appContainer",
+                        useAppContainer,
+                        "appContainerSid",
+                        attestedAppContainerSid,
+                        "capabilityCount",
+                        useAppContainer ? 0 : -1);
                     using (FileStream stream = new FileStream(
                         identityPath,
                         FileMode.CreateNew,
@@ -3338,25 +3395,44 @@ namespace ChainlessChain.WindowsSandbox
         private const string InvocationHeader =
             "CC_WINDOWS_SANDBOX_INVOCATION_V1";
 
-        private sealed class LaunchSpec
+        [DataContract]
+        public sealed class LaunchSpec
         {
+            [DataMember]
             public int cpuSeconds { get; set; }
+            [DataMember]
             public long processMemoryBytes { get; set; }
+            [DataMember]
             public int activeProcessLimit { get; set; }
+            [DataMember]
             public bool allowReparsePaths { get; set; }
+            [DataMember]
             public bool disableAdministratorSids { get; set; }
+            [DataMember]
             public string command { get; set; }
+            [DataMember]
             public string[] args { get; set; }
+            [DataMember]
             public int nodeIpcFd { get; set; }
+            [DataMember]
             public bool detached { get; set; }
+            [DataMember]
             public bool windowsHide { get; set; }
+            [DataMember]
             public string workingDirectory { get; set; }
+            [DataMember]
             public Dictionary<string, string> environment { get; set; }
+            [DataMember]
             public string identityPath { get; set; }
+            [DataMember]
             public string appContainerProfileName { get; set; }
+            [DataMember]
             public string appContainerSid { get; set; }
+            [DataMember]
             public Native.LaunchPathLockSpec[] launchPathLocks { get; set; }
+            [DataMember]
             public string snapshotTestGateToken { get; set; }
+            [DataMember]
             public string snapshotTestGateReleasePath { get; set; }
         }
 
@@ -3477,18 +3553,17 @@ namespace ChainlessChain.WindowsSandbox
                         StringComparison.Ordinal))
                 {
                     Console.Out.Write(
-                        new JavaScriptSerializer().Serialize(
-                            new
-                            {
-                                ready = true,
-                                hostRuntime =
-                                    System.Reflection.Assembly
-                                        .GetExecutingAssembly()
-                                        .EntryPoint == null
-                                        ? "powershell-byte-assembly-v1"
-                                        : "managed-executable-v1",
-                                sourceSha256 = Native.SourceSha256
-                            }));
+                        JsonCodec.SerializeObject(
+                            "ready",
+                            true,
+                            "hostRuntime",
+                            System.Reflection.Assembly
+                                .GetExecutingAssembly()
+                                .EntryPoint == null
+                                ? "powershell-byte-assembly-v1"
+                                : "managed-executable-v1",
+                            "sourceSha256",
+                            Native.SourceSha256));
                     return 0;
                 }
 
@@ -3508,13 +3583,13 @@ namespace ChainlessChain.WindowsSandbox
                         throw new InvalidDataException(
                             "Node entry snapshot probe returned a non-zero exit code");
                     Console.Out.Write(
-                        new JavaScriptSerializer().Serialize(
-                            new
-                            {
-                                ready = true,
-                                targetRuntime = "node",
-                                contentSnapshot = true
-                            }));
+                        JsonCodec.SerializeObject(
+                            "ready",
+                            true,
+                            "targetRuntime",
+                            "node",
+                            "contentSnapshot",
+                            true));
                     return 0;
                 }
 
@@ -3579,25 +3654,27 @@ namespace ChainlessChain.WindowsSandbox
                             throw new InvalidDataException(
                                 "AppContainer SID changed during readiness attestation");
                         }
-                        string readiness =
-                            new JavaScriptSerializer().Serialize(
-                                new
-                                {
-                                    ready = true,
-                                    profileName = profileName,
-                                    appContainerSid = preparedSid,
-                                    capabilityCount = 0,
-                                    tokenAttested = true,
-                                    restrictedTokenAttested = true,
-                                    probeRuntime =
-                                        String.IsNullOrWhiteSpace(nodeRuntime)
-                                            ? "cmd"
-                                            : "node",
-                                    targetRuntime =
-                                        String.IsNullOrWhiteSpace(nodeRuntime)
-                                            ? "cmd"
-                                            : "node"
-                                });
+                        string probeRuntime =
+                            String.IsNullOrWhiteSpace(nodeRuntime)
+                                ? "cmd"
+                                : "node";
+                        string readiness = JsonCodec.SerializeObject(
+                            "ready",
+                            true,
+                            "profileName",
+                            profileName,
+                            "appContainerSid",
+                            preparedSid,
+                            "capabilityCount",
+                            0,
+                            "tokenAttested",
+                            true,
+                            "restrictedTokenAttested",
+                            true,
+                            "probeRuntime",
+                            probeRuntime,
+                            "targetRuntime",
+                            probeRuntime);
                         Console.Out.Write(readiness);
                         leavePreparedProfile = true;
                         return 0;
@@ -3629,13 +3706,13 @@ namespace ChainlessChain.WindowsSandbox
                         expectedSid);
                     Native.AssertAppContainerProfileAbsent(args[1]);
                     Console.Out.Write(
-                        new JavaScriptSerializer().Serialize(
-                            new
-                            {
-                                deleted = true,
-                                absent = true,
-                                profileName = args[1]
-                            }));
+                        JsonCodec.SerializeObject(
+                            "deleted",
+                            true,
+                            "absent",
+                            true,
+                            "profileName",
+                            args[1]));
                     return 0;
                 }
 
@@ -3649,12 +3726,11 @@ namespace ChainlessChain.WindowsSandbox
                 {
                     Native.AssertAppContainerProfileAbsent(args[1]);
                     Console.Out.Write(
-                        new JavaScriptSerializer().Serialize(
-                            new
-                            {
-                                absent = true,
-                                profileName = args[1]
-                            }));
+                        JsonCodec.SerializeObject(
+                            "absent",
+                            true,
+                            "profileName",
+                            args[1]));
                     return 0;
                 }
 
@@ -3663,7 +3739,7 @@ namespace ChainlessChain.WindowsSandbox
 
                 string json = Encoding.UTF8.GetString(
                     Convert.FromBase64String(args[0]));
-                spec = new JavaScriptSerializer().Deserialize<LaunchSpec>(json);
+                spec = JsonCodec.Deserialize<LaunchSpec>(json);
                 if (
                     spec == null ||
                     String.IsNullOrWhiteSpace(spec.command) ||
@@ -3698,13 +3774,13 @@ namespace ChainlessChain.WindowsSandbox
                 {
                     try
                     {
-                        string failure = new JavaScriptSerializer().Serialize(
-                            new
-                            {
-                                error = error.ToString(),
-                                helperPid =
-                                    System.Diagnostics.Process.GetCurrentProcess().Id
-                            });
+                        string failure = JsonCodec.SerializeObject(
+                            "error",
+                            error.ToString(),
+                            "helperPid",
+                            System.Diagnostics.Process
+                                .GetCurrentProcess()
+                                .Id);
                         File.WriteAllText(
                             spec.identityPath,
                             failure,

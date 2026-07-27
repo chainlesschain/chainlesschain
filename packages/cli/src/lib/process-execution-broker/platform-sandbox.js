@@ -868,9 +868,9 @@ function loadWindowsAdapterSource(runtime, loaderMode) {
 
 /**
  * Materialize the trusted in-process assembly bytes at a fresh path. The
- * managed image is never executed from this user-writable location. A fixed
- * System32 PowerShell host reads the bytes once, verifies the expected digest,
- * and loads those exact bytes with Assembly.Load(byte[]).
+ * managed image is never executed from this user-writable location. A
+ * protected PowerShell host reads the bytes once, verifies the expected
+ * digest, and loads those exact bytes with Assembly.Load(byte[]).
  */
 function materializeWindowsAdapter(runtime, source) {
   const adapterBaseName = `chainless-win-sandbox-${runtime
@@ -1055,21 +1055,48 @@ function buildWindowsAdapterInvocation(entry, invocation) {
   };
 }
 
+function resolveWindowsPowerShellHost(runtime, loaderMode) {
+  if (loaderMode !== "powershell-byte-assembly") return null;
+  const windowsDirectory = path.win32.resolve(runtime.windowsDir());
+  const driveRoot = path.win32.parse(windowsDirectory).root;
+  const modernHost = runtime.joinPath(
+    driveRoot,
+    "Program Files",
+    "PowerShell",
+    "7",
+    "pwsh.exe",
+  );
+  const realpath =
+    runtime.fs.realpathSync?.native || runtime.fs.realpathSync || null;
+  if (runtime.fs.existsSync(modernHost) && typeof realpath === "function") {
+    try {
+      if (
+        windowsCanonicalPathKey(realpath.call(runtime.fs, modernHost)) ===
+        windowsCanonicalPathKey(modernHost)
+      ) {
+        return modernHost;
+      }
+    } catch {
+      // Fall through to the protected in-box host.
+    }
+  }
+
+  const inboxHost = runtime.joinPath(
+    windowsDirectory,
+    "System32",
+    "WindowsPowerShell",
+    "v1.0",
+    "powershell.exe",
+  );
+  return runtime.fs.existsSync(inboxHost) ? inboxHost : null;
+}
+
 function createFreshWindowsAdapter(runtime, source, hostEnvironment) {
   const materialized = materializeWindowsAdapter(runtime, source);
   if (!materialized.assemblyPath) return materialized;
 
-  const powershell =
-    source.loaderMode === "powershell-byte-assembly"
-      ? runtime.joinPath(
-          runtime.windowsDir(),
-          "System32",
-          "WindowsPowerShell",
-          "v1.0",
-          "powershell.exe",
-        )
-      : null;
-  if (powershell && !runtime.fs.existsSync(powershell)) {
+  const powershell = resolveWindowsPowerShellHost(runtime, source.loaderMode);
+  if (source.loaderMode === "powershell-byte-assembly" && !powershell) {
     const assemblyDeleted = materialized.cleanupAssembly();
     return {
       reason: assemblyDeleted
@@ -1865,9 +1892,10 @@ function windowsPluginNodeEntrySnapshot(invocation, sandboxOpts, spawnOpts) {
 }
 
 /**
- * Wrap a target with the built-in Windows PowerShell host. The shipped
- * byte-loaded helper P/Invokes Win32 to create a restricted primary token,
- * starts the target
+ * Wrap a target with a protected Windows PowerShell host. PowerShell 7 is
+ * preferred only when its canonical Program Files path is intact; otherwise
+ * the in-box System32 host remains the fallback. The shipped byte-loaded helper
+ * P/Invokes Win32 to create a restricted primary token, starts the target
  * suspended, assigns it to a kill-on-close Job Object, then resumes it.
  * Filesystem/network requests additionally require a synchronous real-launch
  * AppContainer probe and suspended-target token/SID attestation.
