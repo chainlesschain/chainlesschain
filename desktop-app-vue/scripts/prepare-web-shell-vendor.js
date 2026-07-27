@@ -1,18 +1,20 @@
 /**
  * prepare-web-shell-vendor.js — Phase 1.4 packaging prep (2026-04-30).
  *
- * Standalone, idempotent helper that copies the two source trees the
- * embedded web-shell needs INTO a target build directory:
+ * Standalone, idempotent helper that copies the CLI runtime closure and
+ * web-panel assets the embedded web-shell/Desktop PTY policy loader need:
  *
  *   <root>/packages/cli/src      → <buildPath>/packages/cli/src
+ *   <root>/packages/cli/package.json
+ *                                → <buildPath>/packages/cli/package.json
+ *   <root>/packages/cli/node_modules
+ *                                → <buildPath>/packages/cli/node_modules
  *   <root>/packages/web-panel/dist → <buildPath>/packages/web-panel/dist
  *
- * After this runs, the existing relative-path constants in
- * `desktop-app-vue/src/main/web-shell/{web-ui-loader,ws-cli-loader,
- *  handlers/skill-list-handler}.js` resolve correctly because the path
- * `../../../../packages/cli/...` from `<buildPath>/dist/main/web-shell/`
- * lands at `<buildPath>/packages/cli/...`. No code changes needed in the
- * loaders themselves.
+ * After this runs, the existing relative-path constants in the Desktop
+ * web-shell loaders and terminal/policy-aware-pty-manager resolve correctly:
+ * `../../../../packages/cli/...` from `<buildPath>/dist/main/<loader>/` lands
+ * at `<buildPath>/packages/cli/...`.
  *
  * Excluded from the cli/src copy:
  *   - assets/web-panel/  — duplicates web-panel/dist (cc pack bundle).
@@ -20,7 +22,9 @@
  *                          web-ui-server so the bundled fallback is
  *                          unreachable; saves ~3.4 MB.
  *
- * The 13 MB cli/src + 3.4 MB web-panel/dist totals ~16 MB net vendor.
+ * `packages/cli/node_modules` must be a standalone production install created
+ * by `npm run prepare:cli-prod-deps`; relying on repo-root hoisting breaks once
+ * the CLI source is moved outside app.asar.
  *
  * ─────────────────────────────────────────────────────────────────────
  * HOW TO WIRE THIS INTO PACKAGING (Phase 1.4 next-session checklist)
@@ -30,7 +34,10 @@
  *    `copyMissing(rootNodeModules, buildNodeModules)` block (so node_modules
  *    is settled first):
  *
- *        const { vendorWebShellInto } =
+ *        const {
+ *          vendorWebShellInto,
+ *          verifyVendoredPluginBinRuntime,
+ *        } =
  *          require("./scripts/prepare-web-shell-vendor.js");
  *        // CRITICAL: vendor target is the PARENT of buildPath, NOT buildPath.
  *        // The web-shell loaders' REL constants (`../../../../packages/...`)
@@ -39,23 +46,27 @@
  *        // overshoots and lands at <Resources>/packages/... (empty), so the
  *        // loaders ENOENT at startup.
  *        const path = require("path");
- *        vendorWebShellInto(path.join(buildPath, ".."));
+ *        const vendorTarget = path.join(buildPath, "..");
+ *        vendorWebShellInto(vendorTarget);
+ *        await verifyVendoredPluginBinRuntime(vendorTarget);
  *
- * 2. forge.config.js packagerConfig.asar — extend the unpack glob so the
- *    vendored ESM files live as real files on disk (Electron's asar fs
- *    shim does NOT cover Node's URL-based ESM loader, so dynamic import
- *    via pathToFileURL of an in-asar path silently fails):
+ * 2. Keep packagerConfig.asar focused on native modules. The CLI runtime lives
+ *    under Resources/packages, outside app.asar, so a packages/** unpack glob
+ *    is neither needed nor sufficient:
  *
  *        asar: {
- *          unpack: "{*.{node,dll,dylib,so,exe},packages/**}",
+ *          unpack: "*.{node,dll,dylib,so,exe}",
  *        },
  *
  * 3. After `npm run make:win`, verify the produced bundle:
  *
- *        out/build/.../Resources/packages/cli/src/lib/web-ui-server.js
- *        out/build/.../Resources/packages/web-panel/dist/index.html
+ *        out/.../Resources/packages/cli/src/lib/web-ui-server.js
+ *        out/.../Resources/packages/cli/src/lib/plugin-runtime/bin.js
+ *        out/.../Resources/packages/cli/package.json
+ *        out/.../Resources/packages/cli/node_modules/semver/package.json
+ *        out/.../Resources/packages/web-panel/dist/index.html
  *
- *    Both must exist as real files. Because the vendor target is now
+ *    These must exist as real files. Because the vendor target is now
  *    Resources/ (outside the app.asar staging dir), these files are
  *    automatically OUTSIDE asar — no asar unpack glob needed for them.
  *    (The unpack glob still matters for any future native-module needs.)
@@ -72,9 +83,13 @@
 
 const fs = require("fs");
 const path = require("path");
+const { pathToFileURL } = require("url");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
+const CLI_ROOT = path.join(REPO_ROOT, "packages", "cli");
 const CLI_SRC = path.join(REPO_ROOT, "packages", "cli", "src");
+const CLI_PACKAGE_JSON = path.join(CLI_ROOT, "package.json");
+const CLI_NODE_MODULES = path.join(CLI_ROOT, "node_modules");
 const WEB_PANEL_DIST = path.join(REPO_ROOT, "packages", "web-panel", "dist");
 
 /** Names ignored at every directory level during the cli/src copy. */
@@ -94,6 +109,16 @@ const CLI_SRC_TOP_LEVEL_DROP = new Set([
   "assets/web-panel", // duplicate of web-panel/dist (cc pack bundle)
 ]);
 
+/** Match electron-builder's extraResources exclusions for CLI runtime deps. */
+const CLI_NODE_MODULES_EXCLUDES = new Set([
+  ".bin",
+  ".cache",
+  ".git",
+  ".vite",
+  ".vite-temp",
+  "__tests__",
+]);
+
 /** @typedef {{ files: number, bytes: number, skipped: number }} CopyStats */
 
 /**
@@ -101,11 +126,25 @@ const CLI_SRC_TOP_LEVEL_DROP = new Set([
  *
  * @param {string} src
  * @param {string} dst
- * @param {{ dryRun?: boolean, relRoot?: string }} [options]
+ * @param {{
+ *   dryRun?: boolean,
+ *   relRoot?: string,
+ *   excludedNames?: Set<string>,
+ *   droppedPaths?: Set<string>,
+ *   excludeEntry?: (entry: import("fs").Dirent, rel: string) => boolean,
+ *   rejectSpecialEntries?: boolean,
+ * }} [options]
  * @returns {CopyStats}
  */
 function copyTree(src, dst, options = {}) {
-  const { dryRun = false, relRoot = "" } = options;
+  const {
+    dryRun = false,
+    relRoot = "",
+    excludedNames = CLI_SRC_EXCLUDES,
+    droppedPaths = CLI_SRC_TOP_LEVEL_DROP,
+    excludeEntry,
+    rejectSpecialEntries = false,
+  } = options;
   const stats = { files: 0, bytes: 0, skipped: 0 };
 
   if (!fs.existsSync(src)) {
@@ -118,12 +157,12 @@ function copyTree(src, dst, options = {}) {
 
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
     const name = entry.name;
-    if (CLI_SRC_EXCLUDES.has(name)) {
-      stats.skipped++;
-      continue;
-    }
     const rel = relRoot ? `${relRoot}/${name}` : name;
-    if (CLI_SRC_TOP_LEVEL_DROP.has(rel)) {
+    if (
+      excludedNames.has(name) ||
+      droppedPaths.has(rel) ||
+      excludeEntry?.(entry, rel)
+    ) {
       stats.skipped++;
       continue;
     }
@@ -132,19 +171,34 @@ function copyTree(src, dst, options = {}) {
     const dstPath = path.join(dst, name);
 
     if (entry.isDirectory()) {
-      const sub = copyTree(srcPath, dstPath, { dryRun, relRoot: rel });
+      const sub = copyTree(srcPath, dstPath, {
+        dryRun,
+        relRoot: rel,
+        excludedNames,
+        droppedPaths,
+        excludeEntry,
+        rejectSpecialEntries,
+      });
       stats.files += sub.files;
       stats.bytes += sub.bytes;
       stats.skipped += sub.skipped;
     } else if (entry.isFile()) {
-      const size = fs.statSync(srcPath).size;
+      const sourceStat = fs.statSync(srcPath);
+      const size = sourceStat.size;
       stats.files++;
       stats.bytes += size;
       if (!dryRun) {
         fs.copyFileSync(srcPath, dstPath);
+        fs.chmodSync(dstPath, sourceStat.mode);
       }
     } else {
-      // Symlinks, sockets, etc. — don't try to copy.
+      if (rejectSpecialEntries) {
+        throw new Error(
+          `runtime dependency tree contains a non-file entry at ${srcPath}; ` +
+            "run `npm run prepare:cli-prod-deps` to create a standalone install",
+        );
+      }
+      // Symlinks, sockets, etc. — don't try to copy from source-only trees.
       stats.skipped++;
     }
   }
@@ -152,24 +206,64 @@ function copyTree(src, dst, options = {}) {
   return stats;
 }
 
+function copyFileWithStats(src, dst, { dryRun = false } = {}) {
+  if (!fs.existsSync(src)) {
+    throw new Error(`source does not exist: ${src}`);
+  }
+  const bytes = fs.statSync(src).size;
+  if (!dryRun) {
+    fs.mkdirSync(path.dirname(dst), { recursive: true });
+    fs.copyFileSync(src, dst);
+    fs.chmodSync(dst, fs.statSync(src).mode);
+  }
+  return { files: 1, bytes, skipped: 0 };
+}
+
 /**
- * Vendor the cli/src + web-panel/dist trees into `buildPath`. Idempotent —
- * subsequent runs overwrite files in place.
+ * Vendor the CLI ESM package boundary, source, standalone production
+ * dependencies, and web-panel assets into `buildPath`. Idempotent — subsequent
+ * runs overwrite files in place.
  *
  * @param {string} buildPath
  *   Absolute path of the desktop-app-vue copy that forge stages before asar.
  *   (In packageAfterCopy this is the second hook arg.)
- * @param {{ dryRun?: boolean, log?: (msg: string) => void }} [options]
- * @returns {{ cli: CopyStats, webPanel: CopyStats, totalBytes: number }}
+ * @param {{
+ *   dryRun?: boolean,
+ *   log?: (msg: string) => void,
+ *   includeRuntimeDependencies?: boolean,
+ *   cliNodeModulesSource?: string,
+ * }} [options]
+ * @returns {{
+ *   cli: CopyStats,
+ *   cliPackage: CopyStats,
+ *   cliNodeModules: CopyStats,
+ *   webPanel: CopyStats,
+ *   totalFiles: number,
+ *   totalBytes: number,
+ * }}
  */
 function vendorWebShellInto(buildPath, options = {}) {
-  const { dryRun = false, log = console.log } = options;
+  const {
+    dryRun = false,
+    log = console.log,
+    includeRuntimeDependencies = true,
+    cliNodeModulesSource = CLI_NODE_MODULES,
+  } = options;
 
   if (!buildPath || typeof buildPath !== "string") {
     throw new TypeError("vendorWebShellInto: buildPath must be a string");
   }
   if (!fs.existsSync(CLI_SRC)) {
     throw new Error(`cli source not found at ${CLI_SRC}`);
+  }
+  if (!fs.existsSync(CLI_PACKAGE_JSON)) {
+    throw new Error(`cli package.json not found at ${CLI_PACKAGE_JSON}`);
+  }
+  if (includeRuntimeDependencies && !fs.existsSync(cliNodeModulesSource)) {
+    throw new Error(
+      `cli production dependencies not found at ${cliNodeModulesSource}. ` +
+        "Run `npm run prepare:cli-prod-deps` first.",
+    );
   }
   if (!fs.existsSync(path.join(WEB_PANEL_DIST, "index.html"))) {
     throw new Error(
@@ -178,7 +272,10 @@ function vendorWebShellInto(buildPath, options = {}) {
     );
   }
 
-  const cliDst = path.join(buildPath, "packages", "cli", "src");
+  const cliRootDst = path.join(buildPath, "packages", "cli");
+  const cliDst = path.join(cliRootDst, "src");
+  const cliPackageDst = path.join(cliRootDst, "package.json");
+  const cliNodeModulesDst = path.join(cliRootDst, "node_modules");
   const webPanelDst = path.join(buildPath, "packages", "web-panel", "dist");
 
   log(`[vendor] ${dryRun ? "(dry-run) " : ""}cli  : ${CLI_SRC} -> ${cliDst}`);
@@ -188,6 +285,31 @@ function vendorWebShellInto(buildPath, options = {}) {
   );
 
   log(
+    `[vendor] ${dryRun ? "(dry-run) " : ""}pkg  : ${CLI_PACKAGE_JSON} -> ${cliPackageDst}`,
+  );
+  const cliPackage = copyFileWithStats(CLI_PACKAGE_JSON, cliPackageDst, {
+    dryRun,
+  });
+
+  let cliNodeModules = { files: 0, bytes: 0, skipped: 0 };
+  if (includeRuntimeDependencies) {
+    log(
+      `[vendor] ${dryRun ? "(dry-run) " : ""}deps : ${cliNodeModulesSource} -> ${cliNodeModulesDst}`,
+    );
+    cliNodeModules = copyTree(cliNodeModulesSource, cliNodeModulesDst, {
+      dryRun,
+      excludedNames: CLI_NODE_MODULES_EXCLUDES,
+      droppedPaths: new Set(),
+      excludeEntry: (entry) =>
+        entry.isFile() && entry.name.endsWith(".test.js"),
+      rejectSpecialEntries: true,
+    });
+    log(
+      `[vendor] ${dryRun ? "(dry-run) " : ""}deps : ${cliNodeModules.files} files, ${formatBytes(cliNodeModules.bytes)}, skipped ${cliNodeModules.skipped}`,
+    );
+  }
+
+  log(
     `[vendor] ${dryRun ? "(dry-run) " : ""}panel: ${WEB_PANEL_DIST} -> ${webPanelDst}`,
   );
   const webPanel = copyTree(WEB_PANEL_DIST, webPanelDst, { dryRun });
@@ -195,12 +317,62 @@ function vendorWebShellInto(buildPath, options = {}) {
     `[vendor] ${dryRun ? "(dry-run) " : ""}panel: ${webPanel.files} files, ${formatBytes(webPanel.bytes)}, skipped ${webPanel.skipped}`,
   );
 
-  const totalBytes = cli.bytes + webPanel.bytes;
+  const totalFiles =
+    cli.files + cliPackage.files + cliNodeModules.files + webPanel.files;
+  const totalBytes =
+    cli.bytes + cliPackage.bytes + cliNodeModules.bytes + webPanel.bytes;
   log(
-    `[vendor] ${dryRun ? "(dry-run) " : ""}TOTAL: ${cli.files + webPanel.files} files, ${formatBytes(totalBytes)}`,
+    `[vendor] ${dryRun ? "(dry-run) " : ""}TOTAL: ${totalFiles} files, ${formatBytes(totalBytes)}`,
   );
 
-  return { cli, webPanel, totalBytes };
+  return {
+    cli,
+    cliPackage,
+    cliNodeModules,
+    webPanel,
+    totalFiles,
+    totalBytes,
+  };
+}
+
+/**
+ * Exercise the exact ESM entry that the packaged Desktop PTY policy loader
+ * imports. This is intentionally a real dynamic import, not a path-only check.
+ *
+ * @param {string} buildPath Resources/ directory containing packages/cli
+ * @returns {Promise<{ modulePath: string, exportName: string }>}
+ */
+async function verifyVendoredPluginBinRuntime(buildPath) {
+  const cliRoot = path.join(buildPath, "packages", "cli");
+  const packagePath = path.join(cliRoot, "package.json");
+  const modulePath = path.join(
+    cliRoot,
+    "src",
+    "lib",
+    "plugin-runtime",
+    "bin.js",
+  );
+  const exportName = "collectWorkspacePluginBinSandboxPolicy";
+
+  try {
+    const cliPackage = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+    if (cliPackage.type !== "module") {
+      throw new Error(`${packagePath} must declare "type": "module"`);
+    }
+    const pluginBin = await import(pathToFileURL(modulePath).href);
+    if (typeof pluginBin?.[exportName] !== "function") {
+      throw new TypeError(`${exportName} export is unavailable`);
+    }
+  } catch (cause) {
+    const error = new Error(
+      `vendored CLI Plugin-bin runtime import failed at ${modulePath}: ${cause.message}`,
+      { cause },
+    );
+    error.code = "ERR_FORGE_VENDOR_RUNTIME_IMPORT";
+    throw error;
+  }
+
+  return { modulePath, exportName };
 }
 
 function formatBytes(n) {
@@ -211,8 +383,12 @@ function formatBytes(n) {
 
 module.exports = {
   vendorWebShellInto,
+  verifyVendoredPluginBinRuntime,
   REPO_ROOT,
+  CLI_ROOT,
   CLI_SRC,
+  CLI_PACKAGE_JSON,
+  CLI_NODE_MODULES,
   WEB_PANEL_DIST,
 };
 
@@ -225,13 +401,18 @@ if (require.main === module) {
     ? path.resolve(targetArg.slice("--target=".length))
     : path.join(__dirname, "..", ".web-shell-vendor");
 
-  console.log(`[vendor] target: ${target}`);
-  console.log(`[vendor] dryRun: ${dryRun}`);
-  try {
-    vendorWebShellInto(target, { dryRun });
-    console.log("[vendor] DONE");
-  } catch (err) {
-    console.error(`[vendor] FAIL: ${err.message}`);
-    process.exit(1);
-  }
+  void (async () => {
+    console.log(`[vendor] target: ${target}`);
+    console.log(`[vendor] dryRun: ${dryRun}`);
+    try {
+      vendorWebShellInto(target, { dryRun });
+      if (!dryRun) {
+        await verifyVendoredPluginBinRuntime(target);
+      }
+      console.log("[vendor] DONE");
+    } catch (err) {
+      console.error(`[vendor] FAIL: ${err.message}`);
+      process.exitCode = 1;
+    }
+  })();
 }

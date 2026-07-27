@@ -245,9 +245,10 @@ module.exports = {
     // Allow offline packaging when a local Electron ZIP cache directory is provided.
     electronZipDir: process.env.ELECTRON_ZIP_DIR,
     asar: {
-      // 仅排除原生模块和可执行文件。Phase 1.4 web-shell vendor 树
-      // (packages/cli/src + packages/web-panel/dist) 由 packageAfterCopy 直接
-      // 拷到 path.join(buildPath, "..") = Resources/ — 在 asar 之外，
+      // 仅排除原生模块和可执行文件。Phase 1.4 CLI runtime closure
+      // (src + package.json + node_modules) 与 web-panel/dist 由
+      // packageAfterCopy 直接拷到 path.join(buildPath, "..") = Resources/ —
+      // 在 asar 之外，
       // 无需 unpack glob 覆盖。loader 的 4-up REL 命中 Resources/packages/...
       // 时是真 fs 路径，dynamic import via pathToFileURL 不经过 Electron 的
       // asar fs shim。
@@ -537,25 +538,31 @@ module.exports = {
         throw error;
       }
 
-      // Phase 1.4 — vendor packages/cli/src + packages/web-panel/dist into
-      // path.join(buildPath, "..") = Resources/ in a packaged app. The
+      // Phase 1.4 — vendor the CLI ESM package boundary + production runtime
+      // closure and packages/web-panel/dist into path.join(buildPath, "..") =
+      // Resources/ in a packaged app. The
       // web-shell loaders' REL constants (`../../../../packages/cli/src/lib/
       // web-ui-server.js` etc.) hop 4-up from `<buildPath>/dist/main/
       // web-shell/`, landing at the parent of buildPath. So packages/ must
       // live there — NOT under buildPath, where it would overshoot.
-      // Sitting at Resources/ also keeps the vendored ESM files outside
-      // the asar entirely, so dynamic import via pathToFileURL hits real
-      // on-disk paths without going through Electron's asar fs shim.
+      // Sitting at Resources/ also keeps the vendored ESM files outside the
+      // asar entirely, so dynamic import via pathToFileURL hits real on-disk
+      // paths and resolves bare imports from packages/cli/node_modules.
       // Path math validated by tests/unit/scripts/phase1.4-path-math.test.js.
       try {
         const {
           vendorWebShellInto,
+          verifyVendoredPluginBinRuntime,
         } = require("./scripts/prepare-web-shell-vendor.js");
         const vendorTarget = path.join(buildPath, "..");
         const stats = vendorWebShellInto(vendorTarget);
+        await verifyVendoredPluginBinRuntime(vendorTarget);
         console.log(
-          `[Packaging] web-shell vendor → ${vendorTarget}: ${stats.cli.files + stats.webPanel.files} files, ` +
+          `[Packaging] web-shell vendor → ${vendorTarget}: ${stats.totalFiles} files, ` +
             `${(stats.totalBytes / (1024 * 1024)).toFixed(2)} MB`,
+        );
+        console.log(
+          "[Packaging] Verified vendored CLI Plugin-bin ESM runtime import",
         );
       } catch (error) {
         console.error("[Packaging] web-shell vendor failed:", error.message);
