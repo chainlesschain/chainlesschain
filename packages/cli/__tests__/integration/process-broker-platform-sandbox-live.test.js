@@ -738,18 +738,23 @@ describe.runIf(LIVE && SUPPORTED)(
           expect(typeof envelope.result.stdout, JSON.stringify(envelope)).toBe(
             "string",
           );
-          expect(JSON.parse(envelope.result.stdout)).toMatchObject({
+          const pluginOutput = JSON.parse(envelope.result.stdout);
+          expect(
+            pluginOutput,
+            JSON.stringify({ pluginOutput, envelope }),
+          ).toMatchObject({
             filename: fs.realpathSync.native(pluginEntry),
             argvEntry: fs.realpathSync.native(pluginEntry),
             mainMatches: true,
             evalPresent: false,
             cwd: fs.realpathSync.native(pluginRoot),
             sandboxed: "1",
-            profile: "default",
+            profile: "strict",
           });
           expect(envelope.audit).toMatchObject({
             permissionDecision: "allow",
             sandboxed: true,
+            sandboxProfile: "strict",
             sandboxState: "ready",
             sandboxBackend: "windows-appcontainer-job-restricted-token",
             sandboxEnforcement: "windows-appcontainer-job-restricted-token",
