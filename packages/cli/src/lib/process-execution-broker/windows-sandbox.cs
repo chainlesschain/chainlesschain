@@ -3292,6 +3292,9 @@ namespace ChainlessChain.WindowsSandbox
 
     public static class Program
     {
+        private const string InvocationHeader =
+            "CC_WINDOWS_SANDBOX_INVOCATION_V1";
+
         private sealed class LaunchSpec
         {
             public int cpuSeconds { get; set; }
@@ -3312,11 +3315,114 @@ namespace ChainlessChain.WindowsSandbox
             public string snapshotTestGateReleasePath { get; set; }
         }
 
+        private static string Sha256Hex(byte[] value)
+        {
+            using (SHA256 algorithm = SHA256.Create())
+            {
+                byte[] digest = algorithm.ComputeHash(value);
+                StringBuilder result = new StringBuilder(
+                    checked(digest.Length * 2));
+                foreach (byte item in digest)
+                    result.Append(item.ToString("x2", CultureInfo.InvariantCulture));
+                return result.ToString();
+            }
+        }
+
+        private static string[] DecodeInvocationFile(string[] args)
+        {
+            if (
+                args == null ||
+                args.Length != 5 ||
+                !String.Equals(
+                    args[0],
+                    "--adapter-path",
+                    StringComparison.Ordinal) ||
+                !String.Equals(
+                    args[2],
+                    "--invocation-file",
+                    StringComparison.Ordinal))
+            {
+                return args;
+            }
+
+            string expectedAdapterPath = Path.GetFullPath(args[1]);
+            string currentAdapterPath = Path.GetFullPath(
+                System.Diagnostics.Process
+                    .GetCurrentProcess()
+                    .MainModule
+                    .FileName);
+            if (!String.Equals(
+                expectedAdapterPath,
+                currentAdapterPath,
+                StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException(
+                    "Windows sandbox adapter path does not match the running helper");
+            }
+
+            string payloadPath = Path.GetFullPath(args[3]);
+            string expectedDigest = args[4] ?? String.Empty;
+            if (
+                expectedDigest.Length != 64 ||
+                !System.Text.RegularExpressions.Regex.IsMatch(
+                    expectedDigest,
+                    "\\A[a-f0-9]{64}\\z",
+                    System.Text.RegularExpressions.RegexOptions.CultureInvariant))
+            {
+                throw new InvalidDataException(
+                    "Windows sandbox adapter invocation digest is invalid");
+            }
+
+            byte[] payload = File.ReadAllBytes(payloadPath);
+            if (payload.Length > 8 * 1024 * 1024)
+                throw new InvalidDataException(
+                    "Windows sandbox adapter invocation exceeds its limit");
+            if (!String.Equals(
+                Sha256Hex(payload),
+                expectedDigest,
+                StringComparison.Ordinal))
+            {
+                throw new InvalidDataException(
+                    "Windows sandbox adapter invocation digest mismatch");
+            }
+
+            File.Delete(payloadPath);
+            if (File.Exists(payloadPath))
+                throw new IOException(
+                    "Windows sandbox adapter invocation cleanup failed");
+
+            string text = new UTF8Encoding(false, true).GetString(payload);
+            string[] lines = text.Split(
+                new[] { '\n' },
+                StringSplitOptions.None);
+            if (
+                lines.Length < 2 ||
+                !String.Equals(
+                    lines[0],
+                    InvocationHeader,
+                    StringComparison.Ordinal) ||
+                lines[lines.Length - 1].Length != 0)
+            {
+                throw new InvalidDataException(
+                    "Windows sandbox adapter invocation is invalid");
+            }
+
+            string[] decoded = new string[lines.Length - 2];
+            UTF8Encoding strictUtf8 = new UTF8Encoding(false, true);
+            for (int index = 0; index < decoded.Length; index++)
+            {
+                decoded[index] = strictUtf8.GetString(
+                    Convert.FromBase64String(lines[index + 1]));
+            }
+            return decoded;
+        }
+
         public static int Main(string[] args)
         {
             LaunchSpec spec = null;
             try
             {
+                args = DecodeInvocationFile(args);
                 if (
                     args != null &&
                     args.Length == 1 &&
@@ -3330,7 +3436,12 @@ namespace ChainlessChain.WindowsSandbox
                             new
                             {
                                 ready = true,
-                                hostRuntime = "powershell-byte-assembly-v1",
+                                hostRuntime =
+                                    System.Reflection.Assembly
+                                        .GetExecutingAssembly()
+                                        .EntryPoint == null
+                                        ? "powershell-byte-assembly-v1"
+                                        : "managed-executable-v1",
                                 sourceSha256 = Native.SourceSha256
                             }));
                     return 0;

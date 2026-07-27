@@ -43,6 +43,7 @@
     "bin/",
     "src/",
     "scripts/postinstall.mjs",
+    "scripts/build-windows-sandbox-helper.ps1",
     "README.md"
   ],
   "keywords": [

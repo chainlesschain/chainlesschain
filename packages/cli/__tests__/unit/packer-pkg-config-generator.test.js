@@ -101,7 +101,7 @@ describe("generatePkgConfig", () => {
     expect(assetStr).toContain(templatesDir.replace(/\\/g, "/"));
   });
 
-  it("embeds the Windows helper and its source-integrity contract", () => {
+  it("embeds both Windows helpers and their source-integrity contract", () => {
     const r = callGenerator();
     const synth = JSON.parse(fs.readFileSync(r.pkgConfigFile, "utf-8"));
     const brokerRoot = path
@@ -110,6 +110,7 @@ describe("generatePkgConfig", () => {
     expect(synth.pkg.assets).toEqual(
       expect.arrayContaining([
         `${brokerRoot}/windows-sandbox-helper.dll`,
+        `${brokerRoot}/windows-sandbox-helper.exe`,
         `${brokerRoot}/windows-sandbox.cs`,
       ]),
     );

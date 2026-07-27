@@ -52,6 +52,7 @@ function createWindowsAdapterHarness({
   preexistingPaths = [],
 } = {}) {
   const files = new Set(preexistingPaths.map(String));
+  const directories = new Set();
   const contents = new Map();
   const identities = new Map();
   let nextFileIdentity = 100;
@@ -73,9 +74,12 @@ function createWindowsAdapterHarness({
   };
   const statFile = (value) => {
     const filePath = String(value);
-    if (!files.has(filePath)) throw missingPathError(filePath);
+    if (!files.has(filePath) && !directories.has(filePath)) {
+      throw missingPathError(filePath);
+    }
     const identity = BigInt(identities.get(filePath));
-    const size = BigInt(contents.get(filePath).length);
+    const size = BigInt(contents.get(filePath)?.length || 0);
+    const isFile = files.has(filePath);
     return {
       dev: 1n,
       ino: identity,
@@ -84,7 +88,8 @@ function createWindowsAdapterHarness({
       birthtimeNs: identity * 1_000_000n,
       ctimeNs: identity * 1_000_000n,
       mtimeNs: identity * 1_000_000n,
-      isFile: () => true,
+      isFile: () => isFile,
+      isDirectory: () => !isFile,
       isSymbolicLink: () => false,
     };
   };
@@ -93,7 +98,8 @@ function createWindowsAdapterHarness({
       const filePath = String(value);
       return (
         filePath.toLowerCase().endsWith("\\powershell.exe") ||
-        files.has(filePath)
+        files.has(filePath) ||
+        directories.has(filePath)
       );
     }),
     readFileSync: vi.fn((value, encoding) => {
@@ -113,6 +119,16 @@ function createWindowsAdapterHarness({
       }
       putFile(filePath, _content);
     }),
+    mkdirSync: vi.fn((value) => {
+      const directory = String(value);
+      if (files.has(directory) || directories.has(directory)) {
+        const error = new Error(`Path already exists: ${directory}`);
+        error.code = "EEXIST";
+        throw error;
+      }
+      directories.add(directory);
+      identities.set(directory, nextFileIdentity++);
+    }),
     unlinkSync: vi.fn((value) => {
       const filePath = String(value);
       if (!files.delete(filePath)) {
@@ -121,10 +137,29 @@ function createWindowsAdapterHarness({
       contents.delete(filePath);
       identities.delete(filePath);
     }),
+    rmdirSync: vi.fn((value) => {
+      const directory = String(value);
+      if (!directories.delete(directory)) {
+        throw missingPathError(directory);
+      }
+      identities.delete(directory);
+    }),
     lstatSync: vi.fn(statFile),
     statSync: vi.fn(statFile),
   };
   const decodeInvocationPaths = (args) => {
+    if (
+      args?.length === 5 &&
+      args[0] === "--adapter-path" &&
+      args[2] === "--invocation-file"
+    ) {
+      return {
+        assemblyPath: args[1],
+        payloadPath: args[3],
+        payloadDigest: args[4],
+        loaderMode: "managed-executable",
+      };
+    }
     const encodedIndex = args?.indexOf("-EncodedCommand") ?? -1;
     if (encodedIndex < 0 || typeof args[encodedIndex + 1] !== "string") {
       throw new Error(`Missing encoded PowerShell helper command: ${args}`);
@@ -148,6 +183,7 @@ function createWindowsAdapterHarness({
       assemblyPath: encodedPath("$ccAssemblyPath"),
       payloadPath: encodedPath("$ccPayloadPath"),
       bootstrap,
+      loaderMode: "powershell-byte-assembly",
     };
   };
   const decodeHelperArgs = (args) => {
@@ -180,11 +216,15 @@ function createWindowsAdapterHarness({
       invocationPaths,
     });
     if (logicalArgs[0] === "--probe-helper") {
+      const loaderMode = invocationPaths.loaderMode;
       return {
         status: 0,
         stdout: JSON.stringify({
           ready: true,
-          hostRuntime: "powershell-byte-assembly-v1",
+          hostRuntime:
+            loaderMode === "managed-executable"
+              ? "managed-executable-v1"
+              : "powershell-byte-assembly-v1",
         }),
         stderr: "",
       };
@@ -192,6 +232,7 @@ function createWindowsAdapterHarness({
     return helperSpawnSync(command, logicalArgs, options);
   });
   return {
+    directories,
     files,
     fsRuntime,
     helperSpawnSync,
@@ -2705,7 +2746,7 @@ describe("platform sandbox adapter contract", () => {
 
   it("materializes a random byte-loaded Windows helper and never trusts a prepositioned cache", () => {
     const oldHashAssembly =
-      "C:\\temp\\chainless-win-sandbox-0123456789abcdef01234567.dll";
+      "C:\\temp\\chainless-win-sandbox-0123456789abcdef01234567\\windows-sandbox-helper.exe";
     const harness = createWindowsAdapterHarness({
       preexistingPaths: [oldHashAssembly],
     });
@@ -2726,17 +2767,16 @@ describe("platform sandbox adapter contract", () => {
       },
     );
 
-    expect(plan).toMatchObject({
-      applied: true,
-      command: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
-    });
+    expect(plan.applied).toBe(true);
     const { assemblyPath } = harness.decodeInvocationPaths(plan.args);
     expect(assemblyPath).toBe(
-      "C:\\temp\\chainless-win-sandbox-" + `${"a1".repeat(24)}.dll`,
+      "C:\\temp\\chainless-win-sandbox-" +
+        `${"a1".repeat(24)}\\windows-sandbox-helper.exe`,
     );
+    expect(plan.command).toBe(assemblyPath);
     expect(assemblyPath).not.toBe(oldHashAssembly);
     expect(harness.logicalCalls[0]).toMatchObject({
-      command: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      command: assemblyPath,
       args: ["--probe-helper"],
     });
 
