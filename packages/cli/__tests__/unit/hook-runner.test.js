@@ -465,6 +465,19 @@ describe("runCommandHook — input + protocol", () => {
     expect(r.nonBlockingError).toBe(true);
   });
 
+  it("honors a completed hook when spawnSync reports a late stdin EPIPE", () => {
+    const error = Object.assign(new Error("spawnSync /bin/sh EPIPE"), {
+      code: "EPIPE",
+    });
+    stub({ status: 0, error, stdout: "ctx from fast hook\n" });
+
+    expect(runCommandHook("fast.sh", {})).toMatchObject({
+      decision: "continue",
+      exitCode: 0,
+      stdout: "ctx from fast hook\n",
+    });
+  });
+
   it("converts CC seconds timeout to ms via runHooks", () => {
     stub({ status: 0 });
     runHooks([{ command: "g.sh", timeout: 30 }], {});
@@ -800,6 +813,41 @@ describe("interpretHookOutcome — shared protocol interpreter", () => {
     ).toMatchObject({ decision: "ask" });
     expect(interpretHookOutcome({ status: 1, stderr: "warn" })).toMatchObject({
       decision: "continue",
+      nonBlockingError: true,
+    });
+  });
+
+  it("preserves an explicit block when stdin closes after the child exits", () => {
+    const error = Object.assign(new Error("spawnSync /bin/sh EPIPE"), {
+      code: "EPIPE",
+    });
+    expect(
+      interpretHookOutcome({ status: 2, error, stderr: "denied" }),
+    ).toMatchObject({
+      decision: "block",
+      exitCode: 2,
+      reason: "denied",
+    });
+  });
+
+  it("does not forgive EPIPE without an exit or a different spawn error", () => {
+    const epipe = Object.assign(new Error("spawnSync /bin/sh EPIPE"), {
+      code: "EPIPE",
+    });
+    const enobufs = Object.assign(new Error("spawnSync /bin/sh ENOBUFS"), {
+      code: "ENOBUFS",
+    });
+
+    expect(interpretHookOutcome({ status: null, error: epipe })).toMatchObject({
+      decision: "continue",
+      exitCode: null,
+      nonBlockingError: true,
+    });
+    expect(
+      interpretHookOutcome({ status: 0, error: enobufs, stdout: "partial" }),
+    ).toMatchObject({
+      decision: "continue",
+      exitCode: null,
       nonBlockingError: true,
     });
   });

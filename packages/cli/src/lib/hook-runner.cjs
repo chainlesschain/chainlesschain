@@ -438,7 +438,13 @@ function _runCommandHookInner(command, input = {}, opts = {}) {
 function interpretHookOutcome(res) {
   // A surfaced spawn error (timeout / ENOENT, status null) is non-blocking — a
   // broken hook must never wedge the agent; only an explicit block blocks.
-  if (res.error) {
+  // spawnSync can also report EPIPE after a fast-exiting hook closes stdin,
+  // even though the child has a real exit status and complete output. The
+  // async runner already treats that early stdin close as harmless; preserve
+  // the exit-code/stdout protocol on the sync path as well.
+  const inputClosedAfterExit =
+    res.error?.code === "EPIPE" && Number.isInteger(res.status);
+  if (res.error && !inputClosedAfterExit) {
     return {
       decision: HOOK_DECISIONS.CONTINUE,
       reason: `hook error: ${res.error.message}`,
