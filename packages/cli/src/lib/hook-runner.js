@@ -107,6 +107,8 @@ function runHookProcessSync(file, argsOrOptions, maybeOptions) {
 }
 
 export function _restoreProcessRunners() {
+  _processDeps.run = brokerRunner;
+  _processDeps.runSync = brokerSyncRunner;
   runner._deps.run = runHookProcess;
   runner._deps.runSync = runHookProcessSync;
 }

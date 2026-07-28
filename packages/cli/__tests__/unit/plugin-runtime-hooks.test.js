@@ -10,6 +10,7 @@ import { pluginVersionDir } from "../../src/lib/plugin-runtime/scopes.js";
 import {
   runHooks,
   _deps as hookRunnerDeps,
+  _processDeps as hookProcessDeps,
   _restoreProcessRunners,
 } from "../../src/lib/hook-runner.js";
 
@@ -278,12 +279,38 @@ describe("mergePluginHooks", () => {
 describe("plugin hooks fire through the settings-hook lifecycle", () => {
   it("a plugin SessionStart hook runs and injects its stdout as context", async () => {
     const previousSandboxDisable = process.env.CC_SANDBOX_DISABLE;
+    const diagnostics = {
+      cjsRunnerName: null,
+      processRunnerName: null,
+      settingsRunnerMatches: null,
+      invocation: null,
+    };
     process.env.CC_SANDBOX_DISABLE = "1";
     try {
       // Reproduce the cross-suite CJS cache state that previously made this
       // live lifecycle smoke fail only in the full Ubuntu unit shard.
       hookRunnerDeps.runSync = null;
+      hookProcessDeps.runSync = null;
       _restoreProcessRunners();
+      diagnostics.cjsRunnerName = hookRunnerDeps.runSync?.name || null;
+      diagnostics.processRunnerName = hookProcessDeps.runSync?.name || null;
+      const restoredRunSync = hookProcessDeps.runSync;
+      hookProcessDeps.runSync = (file, args, options) => {
+        const result = restoredRunSync(file, args, options);
+        diagnostics.invocation = {
+          file,
+          args,
+          cwd: options?.cwd || null,
+          shell: options?.shell === true,
+          status: result?.status ?? null,
+          signal: result?.signal ?? null,
+          errorCode: result?.error?.code || null,
+          errorMessage: result?.error?.message || null,
+          stdout: String(result?.stdout || "").slice(0, 500),
+          stderr: String(result?.stderr || "").slice(0, 500),
+        };
+        return result;
+      };
       installHookPlugin("local", "greeter", {
         hooks: {
           SessionStart: [
@@ -292,13 +319,18 @@ describe("plugin hooks fire through the settings-hook lifecycle", () => {
         },
       });
       const merged = mergePluginHooks(null, { cwd, scopes: ["local"] });
-      const { runSessionStartHooks } =
+      const settingsEvents =
         await import("../../src/lib/settings-hook-events.js");
+      const { runSessionStartHooks } = settingsEvents;
+      diagnostics.settingsRunnerMatches =
+        settingsEvents.default?._deps?.runHooks === runHooks;
       const res = runSessionStartHooks(merged, { source: "startup", cwd });
-      expect(res.additionalContext || "", JSON.stringify(res)).toContain(
-        "PLUGIN_HOOK_OK",
-      );
+      expect(
+        res.additionalContext || "",
+        JSON.stringify({ res, diagnostics }),
+      ).toContain("PLUGIN_HOOK_OK");
     } finally {
+      _restoreProcessRunners();
       if (previousSandboxDisable === undefined) {
         delete process.env.CC_SANDBOX_DISABLE;
       } else {

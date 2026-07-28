@@ -977,9 +977,13 @@ describe("runHooksParallel — concurrent strictest merge", () => {
 });
 
 it("restores the shared CJS process runners between test cases", () => {
+  _processDeps.runSync = null;
+  _processDeps.run = null;
   _deps.runSync = null;
   _deps.run = null;
   _restoreProcessRunners();
+  expect(_processDeps.runSync).toBeTypeOf("function");
+  expect(_processDeps.run).toBeTypeOf("function");
   expect(_deps.runSync).toBeTypeOf("function");
   expect(_deps.run).toBeTypeOf("function");
 });
