@@ -2,6 +2,19 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.36] - Retry, collaboration, and plugin recovery governance (2026-07-28)
+
+- Show measured tool duration, observed tool retries, and controlled streaming
+  LLM retry attribution from the CLI's authoritative usage report.
+- Project durable team/batch owner, session, permission, budget, lifecycle, and
+  bounded side-effect state alongside background worktree tasks without
+  granting background process controls to collaboration units.
+- Consume transactional plugin upgrade results, reload live sessions only
+  after confirmed activation, and show the restored version when automatic
+  recovery runs.
+- Present widened capabilities before offering an explicit retry with
+  `--grant-capabilities`; unreadable or rolled-back results fail closed.
+
 ## [0.37.35] - IDE quality and governed plugin/worktree operations (2026-07-27)
 
 - Add bounded Test API, coverage, debugger, and notebook execution context to

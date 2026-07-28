@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.162.184 + IDE retry, collaboration, and recovery governance
+
+> `chainlesschain` **0.162.183 → 0.162.184**, VS Code
+> **0.37.35 → 0.37.36**, and JetBrains **0.4.74 → 0.4.75** (2026-07-28).
+> `@chainlesschain/personal-data-hub` remains **0.4.57** and
+> `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Measured retry and tool attribution**: compact transcripts now record
+  bounded tool durations, observed same-turn retries, and secret-free streaming
+  LLM retry reasons with actual provider/model identity. CLI and both IDE usage
+  reports consume the same authoritative aggregates.
+- **Durable team/batch governance**: collaboration runs persist bounded
+  owner/session, permission mode, resource budget, lifecycle, and side-effect
+  counts without prompts, argv, tool arguments, output, or credentials. IDE
+  worktree views project these records as managed tasks without exposing
+  background attach/stop controls.
+- **Transactional plugin upgrades**: staged installs revalidate manifests and
+  signed SBOMs before atomic activation. Failed copies, load checks,
+  post-install handling, or declined capability widening restore the prior
+  active version; forced same-version reinstalls restore the exact old bytes.
+- **IDE activation feedback**: VS Code and JetBrains parse controlled
+  `activated / rolled_back / unchanged` results, reload live sessions only
+  after activation, and require explicit user approval before retrying with a
+  widened capability grant.
+- **Process-boundary hardening**: plugin hooks, MCP/LSP servers, monitors, and
+  native bins retain sandbox policy through the centralized execution broker;
+  Linux bubblewrap setup fails closed with bounded diagnostics.
+- **Release validation**: publication requires this exact release commit to
+  pass CLI CI and CLI Strict Sandbox on Linux, Windows, and macOS plus the
+  packaged VSIX and JetBrains unit/build/Remote Robot gates.
+
 ### Added — cc CLI 0.162.183 + IDE quality, plugin, and worktree governance
 
 > `chainlesschain` **0.162.182 → 0.162.183**, VS Code

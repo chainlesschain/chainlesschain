@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.162.184",
+      "cliVersions": ["0.4.75", "0.37.36", "0.162.183", "0.162.184"],
+      "date": "2026-07-28",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added — cc CLI 0.162.184 + IDE retry, collaboration, and recovery governance",
+          "body": "> `chainlesschain` **0.162.183 → 0.162.184**, VS Code\n> **0.37.35 → 0.37.36**, and JetBrains **0.4.74 → 0.4.75** (2026-07-28).\n> `@chainlesschain/personal-data-hub` remains **0.4.57** and\n> `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Measured retry and tool attribution**: compact transcripts now record\n  bounded tool durations, observed same-turn retries, and secret-free streaming\n  LLM retry reasons with actual provider/model identity. CLI and both IDE usage\n  reports consume the same authoritative aggregates.\n- **Durable team/batch governance**: collaboration runs persist bounded\n  owner/session, permission mode, resource budget, lifecycle, and side-effect\n  counts without prompts, argv, tool arguments, output, or credentials. IDE\n  worktree views project these records as managed tasks without exposing\n  background attach/stop controls.\n- **Transactional plugin upgrades**: staged installs revalidate manifests and\n  signed SBOMs before atomic activation. Failed copies, load checks,\n  post-install handling, or declined capability widening restore the prior\n  active version; forced same-version reinstalls restore the exact old bytes.\n- **IDE activation feedback**: VS Code and JetBrains parse controlled\n  `activated / rolled_back / unchanged` results, reload live sessions only\n  after activation, and require explicit user approval before retrying with a\n  widened capability grant.\n- **Process-boundary hardening**: plugin hooks, MCP/LSP servers, monitors, and\n  native bins retain sandbox policy through the centralized execution broker;\n  Linux bubblewrap setup fails closed with bounded diagnostics.\n- **Release validation**: publication requires this exact release commit to\n  pass CLI CI and CLI Strict Sandbox on Linux, Windows, and macOS plus the\n  packaged VSIX and JetBrains unit/build/Remote Robot gates."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.162.183",
       "cliVersions": ["0.4.74", "0.37.35", "0.162.182", "0.162.183"],
       "date": "2026-07-27",

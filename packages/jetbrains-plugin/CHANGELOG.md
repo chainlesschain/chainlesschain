@@ -1,5 +1,18 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.75] - Retry, collaboration, and plugin recovery governance (2026-07-28)
+
+- Show measured tool duration, observed tool retries, and controlled streaming
+  LLM retry attribution from the CLI's authoritative usage report.
+- Project durable team/batch owner, session, permission, budget, lifecycle, and
+  bounded side-effect state alongside background worktree tasks without
+  granting background process controls to collaboration units.
+- Consume transactional plugin upgrade results, reload live sessions only
+  after confirmed activation, and show the restored version when automatic
+  recovery runs.
+- Present widened capabilities before offering an explicit retry with
+  `--grant-capabilities`; unreadable or rolled-back results fail closed.
+
 ## [0.4.74] - IDE quality and governed plugin/worktree operations (2026-07-27)
 
 - Add bounded test-runner, coverage, and debugger snapshots to the negotiated

@@ -1583,11 +1583,8 @@ export function registerPluginCommand(program) {
     )
     .option("--json", "Output as JSON")
     .action(async (source, options) => {
-      const {
-        updatePlugin,
-        finalizePluginUpdate,
-        rollbackPluginUpdate,
-      } = await import("../lib/plugin-runtime/install.js");
+      const { updatePlugin, finalizePluginUpdate, rollbackPluginUpdate } =
+        await import("../lib/plugin-runtime/install.js");
       let installSource = source;
       let integritySha = null;
       let sourceMetadata = null;

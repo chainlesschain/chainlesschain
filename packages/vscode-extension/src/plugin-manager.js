@@ -125,7 +125,8 @@ function parsePluginUpgradeResult(text) {
   } catch {
     return null;
   }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
+    return null;
   const inferredStatus =
     parsed.updated === true || parsed.reinstalled === true
       ? "activated"
