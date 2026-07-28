@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — cc CLI 0.162.185: sandbox authority and Hook runtime hardening
+
+> `chainlesschain` **0.162.184 → 0.162.185** (2026-07-29).
+> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**
+> and `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Complete strong execution routes**: policy-bearing Plugin bins now retain
+  pinned identity through async/background launches, while generic background,
+  CLI PTY, and Desktop project PTY enter the same fail-closed Linux
+  filesystem/network boundary.
+- **Authority and teardown integrity**: every actual bind source requires
+  private mount propagation, parent-side pinned descriptors close after spawn,
+  raw PTY masters invalidate on close/error, and attached sessions terminate
+  their POSIX process group or Windows process tree.
+- **Trusted project and Hook roots**: Desktop V8 migrations quarantine
+  unattested project roots and prevent remote metadata from acquiring local PTY
+  authority. Hooks v2 binds canonical host roots to generation-aware opaque
+  durable identities across headless, stream, REPL, and WebSocket turns.
+- **Hook process reliability**: completed Hook subprocesses preserve their
+  status-0 output and status-2 block protocol when Node reports a late stdin
+  `EPIPE`; missing exit status and unrelated spawn errors still fail closed.
+- **Single Broker runtime graph**: Hooks v2 now registers its default runtime
+  as the Broker event sink without a reverse ESM load, preventing a duplicate
+  CredentialTransport Worker, Unix listener, and steady-state file descriptors.
+- **Release validation gate**: publication requires this exact release commit
+  to pass `CLI CI` and `CLI Strict Sandbox` on their configured Ubuntu,
+  Windows, and macOS runners; local tests remain supplementary.
+
 ### Added — cc CLI 0.162.184 + IDE retry, collaboration, and recovery governance
 
 > `chainlesschain` **0.162.183 → 0.162.184**, VS Code

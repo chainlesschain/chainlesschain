@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.162.185",
+      "cliVersions": ["0.162.184", "0.162.185"],
+      "date": "2026-07-29",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed — cc CLI 0.162.185: sandbox authority and Hook runtime hardening",
+          "body": "> `chainlesschain` **0.162.184 → 0.162.185** (2026-07-29).\n> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Complete strong execution routes**: policy-bearing Plugin bins now retain\n  pinned identity through async/background launches, while generic background,\n  CLI PTY, and Desktop project PTY enter the same fail-closed Linux\n  filesystem/network boundary.\n- **Authority and teardown integrity**: every actual bind source requires\n  private mount propagation, parent-side pinned descriptors close after spawn,\n  raw PTY masters invalidate on close/error, and attached sessions terminate\n  their POSIX process group or Windows process tree.\n- **Trusted project and Hook roots**: Desktop V8 migrations quarantine\n  unattested project roots and prevent remote metadata from acquiring local PTY\n  authority. Hooks v2 binds canonical host roots to generation-aware opaque\n  durable identities across headless, stream, REPL, and WebSocket turns.\n- **Hook process reliability**: completed Hook subprocesses preserve their\n  status-0 output and status-2 block protocol when Node reports a late stdin\n  `EPIPE`; missing exit status and unrelated spawn errors still fail closed.\n- **Single Broker runtime graph**: Hooks v2 now registers its default runtime\n  as the Broker event sink without a reverse ESM load, preventing a duplicate\n  CredentialTransport Worker, Unix listener, and steady-state file descriptors.\n- **Release validation gate**: publication requires this exact release commit\n  to pass `CLI CI` and `CLI Strict Sandbox` on their configured Ubuntu,\n  Windows, and macOS runners; local tests remain supplementary."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.162.184",
       "cliVersions": ["0.4.75", "0.37.36", "0.162.183", "0.162.184"],
       "date": "2026-07-28",

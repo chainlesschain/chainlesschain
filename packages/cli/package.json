@@ -1,6 +1,6 @@
 {
   "name": "chainlesschain",
-  "version": "0.162.184",
+  "version": "0.162.185",
   "description": "CLI for ChainlessChain - install, configure, and manage your personal AI management system",
   "type": "module",
   "bin": {
