@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { once } from "node:events";
 import fs from "node:fs";
 import { executeTool } from "../../src/runtime/agent-core.js";
 import {
@@ -36,6 +37,47 @@ function positiveFdGrowth(before, after) {
     }))
     .filter((entry) => entry.count > 0)
     .sort((left, right) => left.target.localeCompare(right.target));
+}
+
+async function warmBrokerAsyncRuntime(cwd) {
+  // The credential transport Worker and the Broker's lazy Hooks v2 import
+  // intentionally keep process-lifetime libuv descriptors. Establish those
+  // host-runtime descriptors before measuring per-launch FD ownership. Keep
+  // the warmup explicitly unsandboxed so a first-use sandbox leak can never
+  // be absorbed into the baseline.
+  await executionBroker._credentialAgent.waitForTransportReady();
+  const previousStrict = process.env.CC_SANDBOX_STRICT;
+  const previousDisable = process.env.CC_SANDBOX_DISABLE;
+  try {
+    delete process.env.CC_SANDBOX_STRICT;
+    process.env.CC_SANDBOX_DISABLE = "1";
+    const child = executionBroker.spawn(process.execPath, ["-e", ""], {
+      cwd,
+      shell: false,
+      stdio: ["ignore", "ignore", "ignore"],
+      origin: "test:linux-live-fd-baseline-warmup",
+      scope: "sandbox-test",
+      policy: "allow",
+    });
+    const [code, signal] = await once(child, "close");
+    if (code !== 0 || signal !== null) {
+      throw new Error(
+        `Broker FD baseline warmup failed: code=${String(code)} signal=${String(signal)}`,
+      );
+    }
+  } finally {
+    if (previousStrict === undefined) {
+      delete process.env.CC_SANDBOX_STRICT;
+    } else {
+      process.env.CC_SANDBOX_STRICT = previousStrict;
+    }
+    if (previousDisable === undefined) {
+      delete process.env.CC_SANDBOX_DISABLE;
+    } else {
+      process.env.CC_SANDBOX_DISABLE = previousDisable;
+    }
+  }
+  await new Promise((resolve) => setImmediate(resolve));
 }
 
 function sha256(value) {
@@ -277,6 +319,7 @@ if (mode === "positive") {
     audit: executionBroker.getAuditLog(1)[0] || null,
   });
 } else if (mode === "plugin-command-background") {
+  await warmBrokerAsyncRuntime(value);
   const beforeFds = fdTargetCounts();
   const { result: launch, supervisorPlan } = await executeWithSupervisorPlan(
     () =>

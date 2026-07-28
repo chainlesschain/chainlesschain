@@ -78,6 +78,47 @@ function fileIdentity(filePath) {
   };
 }
 
+async function warmBrokerAsyncRuntime(cwd) {
+  // The credential transport Worker and the Broker's lazy Hooks v2 import
+  // intentionally keep process-lifetime libuv descriptors. Establish those
+  // host-runtime descriptors before measuring per-launch FD ownership. Keep
+  // the warmup explicitly unsandboxed so a first-use sandbox leak can never
+  // be absorbed into the baseline.
+  await executionBroker._credentialAgent.waitForTransportReady();
+  const previousStrict = process.env.CC_SANDBOX_STRICT;
+  const previousDisable = process.env.CC_SANDBOX_DISABLE;
+  try {
+    delete process.env.CC_SANDBOX_STRICT;
+    process.env.CC_SANDBOX_DISABLE = "1";
+    const child = executionBroker.spawn(process.execPath, ["-e", ""], {
+      cwd,
+      shell: false,
+      stdio: ["ignore", "ignore", "ignore"],
+      origin: "test:linux-live-fd-baseline-warmup",
+      scope: "sandbox-test",
+      policy: "allow",
+    });
+    const [code, signal] = await once(child, "close");
+    if (code !== 0 || signal !== null) {
+      throw new Error(
+        `Broker FD baseline warmup failed: code=${String(code)} signal=${String(signal)}`,
+      );
+    }
+  } finally {
+    if (previousStrict === undefined) {
+      delete process.env.CC_SANDBOX_STRICT;
+    } else {
+      process.env.CC_SANDBOX_STRICT = previousStrict;
+    }
+    if (previousDisable === undefined) {
+      delete process.env.CC_SANDBOX_DISABLE;
+    } else {
+      process.env.CC_SANDBOX_DISABLE = previousDisable;
+    }
+  }
+  await new Promise((resolve) => setImmediate(resolve));
+}
+
 function expectLinuxSupervisorPlan(supervisorPlan) {
   expect(supervisorPlan).toMatchObject({
     command: "/proc/self/fd/3",
@@ -2867,6 +2908,7 @@ describe.runIf(LIVE && SUPPORTED)(
             ),
           ).toEqual([]);
 
+          await warmBrokerAsyncRuntime(workspace);
           const beforeBackgroundFds = fdTargetCounts();
           const backgroundOutput = await executeBackgroundTaskCommand({
             command: [
@@ -3281,12 +3323,12 @@ describe.runIf(LIVE && SUPPORTED)(
               "test -t 0 && test -t 1 && test -t 2 || exit 31",
               `test "$(pwd)" = ${quotePosix(workspace)} || exit 32`,
               `test ! -e ${quotePosix(outsideMarker)} || exit 33`,
-              `printf pty-ok > ${quotePosix(workspaceMarker)}`,
+              `printf pty-ok > ${quotePosix(workspaceMarker)} || exit 37`,
               `/usr/bin/python3 -I -S -c ${quotePosix(socketProbe)} || exit 34`,
               "set -o | grep -E '^monitor[[:space:]]+on$' >/dev/null || exit 35",
               'test "$(stty size)" = "43 132" || exit 36',
               "sleep 120 &",
-              "printf '\\n__CC_PTY_READY__\\n'",
+              "printf '\\n__CC_PTY_%s__\\n' READY",
             ].join("; ") + "\n",
           );
           await ready;
