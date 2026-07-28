@@ -1,5 +1,4 @@
 import crypto from "node:crypto";
-import { once } from "node:events";
 import fs from "node:fs";
 import { executeTool } from "../../src/runtime/agent-core.js";
 import {
@@ -74,22 +73,24 @@ async function warmBrokerAsyncRuntime(cwd) {
   try {
     delete process.env.CC_SANDBOX_STRICT;
     process.env.CC_SANDBOX_DISABLE = "1";
-    const child = executionBroker.spawn(process.execPath, ["-e", ""], {
-      cwd,
-      shell: false,
-      stdio: ["ignore", "pipe", "pipe"],
-      origin: "test:linux-live-fd-baseline-warmup",
-      scope: "sandbox-test",
-      policy: "allow",
-    });
-    child.stdout.resume();
-    child.stderr.resume();
-    const [code, signal] = await once(child, "close");
-    if (code !== 0 || signal !== null) {
-      throw new Error(
-        `Broker FD baseline warmup failed: code=${String(code)} signal=${String(signal)}`,
+    await new Promise((resolve, reject) => {
+      executionBroker.execFile(
+        process.execPath,
+        ["-e", ""],
+        {
+          cwd,
+          shell: false,
+          stdio: ["ignore", "pipe", "pipe"],
+          origin: "test:linux-live-fd-baseline-warmup",
+          scope: "sandbox-test",
+          policy: "allow",
+        },
+        (error) => {
+          if (error) reject(error);
+          else resolve();
+        },
       );
-    }
+    });
   } finally {
     if (previousStrict === undefined) {
       delete process.env.CC_SANDBOX_STRICT;
