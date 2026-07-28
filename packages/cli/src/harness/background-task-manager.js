@@ -8,8 +8,15 @@
  * Feature-flag gated: BACKGROUND_TASKS
  */
 
-import { existsSync, mkdirSync, appendFileSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import {
+  existsSync,
+  mkdirSync,
+  appendFileSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+} from "node:fs";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { createHash } from "node:crypto";
 import { EventEmitter } from "node:events";
 import { getHomeDir } from "../lib/paths.js";
@@ -17,6 +24,7 @@ import executionBroker from "../lib/process-execution-broker/index.js";
 
 export const _deps = {
   spawn: executionBroker.spawn.bind(executionBroker),
+  platform: process.platform,
 };
 
 function getTasksDir() {
@@ -41,6 +49,7 @@ const RECOVERABLE_TASK_STATUSES = new Set([
   TaskStatus.PENDING,
   TaskStatus.RUNNING,
 ]);
+const SUPPORTED_STRONG_BOUNDARIES = new Set(["filesystem", "network"]);
 
 function validatePinnedSandboxPolicy(policy) {
   if (policy == null) return null;
@@ -51,7 +60,9 @@ function validatePinnedSandboxPolicy(policy) {
     !Array.isArray(policy.requiredBoundaries) ||
     policy.requiredBoundaries.length === 0 ||
     policy.requiredBoundaries.some(
-      (boundary) => typeof boundary !== "string" || boundary.length === 0,
+      (boundary) =>
+        typeof boundary !== "string" ||
+        !SUPPORTED_STRONG_BOUNDARIES.has(boundary),
     ) ||
     !Object.isFrozen(policy) ||
     !Object.isFrozen(policy.requiredBoundaries)
@@ -65,20 +76,86 @@ function validatePinnedSandboxPolicy(policy) {
   return policy;
 }
 
-function createUnsupportedSandboxError(sandboxPolicy) {
-  const requiredBoundaries = [...sandboxPolicy.requiredBoundaries];
-  const error = new Error(
-    `Background tasks cannot run without their required sandbox boundaries: ${requiredBoundaries.join(", ")}`,
-  );
-  error.code = "ERR_BACKGROUND_TASK_SANDBOX_UNSUPPORTED";
-  error.sandboxReason = "background_execution_unsupported";
+function createSandboxError(code, reason, message, requiredBoundaries = []) {
+  const error = new Error(message);
+  error.code = code;
+  error.sandboxReason = reason;
   error.sandboxFailClosed = true;
-  error.requiredBoundaries = requiredBoundaries;
+  error.requiredBoundaries = [...requiredBoundaries];
   error.actualGuarantees = [];
   error.missingBoundaries = [...requiredBoundaries];
   error.sandboxBackend = null;
-  error.sandboxCandidateBackend = null;
+  error.sandboxCandidateBackend =
+    _deps.platform === "linux" ? "linux-bwrap-workspace" : null;
   return error;
+}
+
+function canonicalSandboxBinding(workspaceCwd, executionCwd) {
+  try {
+    if (
+      typeof workspaceCwd !== "string" ||
+      !isAbsolute(workspaceCwd) ||
+      typeof executionCwd !== "string"
+    ) {
+      throw new Error("sandbox paths must be absolute");
+    }
+    const workspaceRoot = realpathSync.native(resolve(workspaceCwd));
+    const workingDirectory = realpathSync.native(resolve(executionCwd));
+    if (
+      !statSync(workspaceRoot).isDirectory() ||
+      !statSync(workingDirectory).isDirectory()
+    ) {
+      throw new Error("sandbox paths must be directories");
+    }
+    const rel = relative(workspaceRoot, workingDirectory);
+    if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+      throw new Error("execution cwd escapes workspace");
+    }
+    return { workspaceRoot, workingDirectory };
+  } catch (cause) {
+    const error = createSandboxError(
+      "ERR_BACKGROUND_TASK_SANDBOX_BINDING_INVALID",
+      "background_sandbox_binding_invalid",
+      "Background task sandbox workspace/cwd binding is invalid.",
+    );
+    error.cause = cause;
+    throw error;
+  }
+}
+
+function sameBoundaries(left, right) {
+  const normalizedLeft = Array.isArray(left) ? [...left].sort() : null;
+  const normalizedRight = Array.isArray(right) ? [...right].sort() : null;
+  return (
+    normalizedLeft &&
+    normalizedRight &&
+    normalizedLeft.length === normalizedRight.length &&
+    normalizedLeft.every((value, index) => value === normalizedRight[index])
+  );
+}
+
+function strongWorkerEnvironment(taskId) {
+  const blocked = new Set([
+    "BASH_ENV",
+    "CC_TASK_ID",
+    "ELECTRON_RUN_AS_NODE",
+    "ENV",
+    "GCONV_PATH",
+    "OPENSSL_CONF",
+    "RUBYOPT",
+  ]);
+  const blockedPrefixes = ["DYLD_", "LD_", "NODE_", "PYTHON"];
+  return Object.fromEntries([
+    ...Object.entries(process.env).filter(([key, value]) => {
+      const normalizedKey = key.toUpperCase();
+      return (
+        value != null &&
+        !blocked.has(normalizedKey) &&
+        !blockedPrefixes.some((prefix) => normalizedKey.startsWith(prefix))
+      );
+    }),
+    ["CC_TASK_ID", taskId],
+  ]);
 }
 
 export class BackgroundTaskManager extends EventEmitter {
@@ -123,14 +200,17 @@ export class BackgroundTaskManager extends EventEmitter {
     }
 
     const cwd = spec.cwd || process.cwd();
-    this._assertSandboxSupported(cwd);
+    const sandboxPolicy = this._resolvePinnedSandboxPolicy(cwd);
+    const sandboxBinding = sandboxPolicy
+      ? canonicalSandboxBinding(this._policyCwd, cwd)
+      : null;
 
     const id = `task-${Date.now()}-${createHash("sha256").update(Math.random().toString()).digest("hex").slice(0, 6)}`;
     const task = {
       id,
       type: spec.type || "shell",
       command: spec.command,
-      cwd,
+      cwd: sandboxBinding?.workingDirectory || cwd,
       description: spec.description || spec.command,
       status: TaskStatus.PENDING,
       createdAt: Date.now(),
@@ -145,6 +225,10 @@ export class BackgroundTaskManager extends EventEmitter {
       recoverySourceStatus: null,
       ownerNodeId: spec.ownerNodeId || this.nodeId,
       recoveryDecision: null,
+      sandboxWorkspaceCwd: sandboxBinding?.workspaceRoot || null,
+      sandboxRequiredBoundaries: sandboxPolicy
+        ? [...sandboxPolicy.requiredBoundaries].sort()
+        : null,
       _seq: ++this._createSeq,
     };
 
@@ -164,7 +248,34 @@ export class BackgroundTaskManager extends EventEmitter {
       throw new Error(`Task ${taskId} is not pending (status: ${task.status})`);
     }
 
-    this._assertSandboxSupported(task.cwd);
+    const sandboxPolicy = this._resolvePinnedSandboxPolicy(task.cwd);
+    const pinnedBoundaries = task.sandboxRequiredBoundaries;
+    if (
+      Boolean(sandboxPolicy) !== Array.isArray(pinnedBoundaries) ||
+      (sandboxPolicy &&
+        !sameBoundaries(sandboxPolicy.requiredBoundaries, pinnedBoundaries))
+    ) {
+      throw createSandboxError(
+        "ERR_BACKGROUND_TASK_SANDBOX_POLICY_CHANGED",
+        "background_sandbox_policy_changed",
+        "Background task sandbox policy changed after creation; recreate the task.",
+        sandboxPolicy?.requiredBoundaries || pinnedBoundaries || [],
+      );
+    }
+    if (sandboxPolicy) {
+      const currentBinding = canonicalSandboxBinding(this._policyCwd, task.cwd);
+      if (
+        currentBinding.workspaceRoot !== task.sandboxWorkspaceCwd ||
+        currentBinding.workingDirectory !== task.cwd
+      ) {
+        throw createSandboxError(
+          "ERR_BACKGROUND_TASK_SANDBOX_BINDING_CHANGED",
+          "background_sandbox_binding_changed",
+          "Background task sandbox workspace/cwd identity changed after creation; recreate the task.",
+          pinnedBoundaries,
+        );
+      }
+    }
 
     task.status = TaskStatus.RUNNING;
     task.startedAt = Date.now();
@@ -179,11 +290,21 @@ export class BackgroundTaskManager extends EventEmitter {
     );
     const child = _deps.spawn(
       process.execPath,
-      [...process.execArgv, workerPath, task.command, task.cwd, task.type],
+      [
+        ...(sandboxPolicy ? [] : process.execArgv),
+        workerPath,
+        task.command,
+        task.cwd,
+        task.type,
+        task.sandboxWorkspaceCwd || "",
+        JSON.stringify(task.sandboxRequiredBoundaries || []),
+      ],
       {
         cwd: task.cwd,
         stdio: ["pipe", "pipe", "pipe", "ipc"],
-        env: { ...process.env, CC_TASK_ID: taskId },
+        env: sandboxPolicy
+          ? strongWorkerEnvironment(taskId)
+          : { ...process.env, CC_TASK_ID: taskId },
         origin: "background-task:worker",
         policy: "allow",
         scope: "background-task",
@@ -199,6 +320,9 @@ export class BackgroundTaskManager extends EventEmitter {
       } else if (msg.type === "result") {
         this._complete(taskId, TaskStatus.COMPLETED, msg.data, null);
       } else if (msg.type === "error") {
+        task.errorCode = msg.code || null;
+        task.sandboxReason = msg.sandboxReason || null;
+        task.sandboxFailClosed = msg.sandboxFailClosed === true;
         this._complete(taskId, TaskStatus.FAILED, null, msg.error);
       }
     });
@@ -240,7 +364,7 @@ export class BackgroundTaskManager extends EventEmitter {
     return task;
   }
 
-  _assertSandboxSupported(executionCwd) {
+  _resolvePinnedSandboxPolicy(executionCwd) {
     if (!this._resolveSandboxPolicy) return;
     const sandboxPolicy = validatePinnedSandboxPolicy(
       this._resolveSandboxPolicy({
@@ -248,9 +372,15 @@ export class BackgroundTaskManager extends EventEmitter {
         executionCwd,
       }),
     );
-    if (sandboxPolicy) {
-      throw createUnsupportedSandboxError(sandboxPolicy);
+    if (sandboxPolicy && _deps.platform !== "linux") {
+      throw createSandboxError(
+        "ERR_BACKGROUND_TASK_SANDBOX_UNSUPPORTED",
+        "background_platform_backend_unavailable",
+        "Background task strong sandbox execution is only available on Linux.",
+        sandboxPolicy.requiredBoundaries,
+      );
     }
+    return sandboxPolicy;
   }
 
   get(taskId) {

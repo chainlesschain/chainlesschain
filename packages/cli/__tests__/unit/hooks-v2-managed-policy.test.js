@@ -1,7 +1,31 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import { EventEmitter } from "node:events";
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
-import { HooksV2Runtime } from "../../src/lib/hooks-v2-runtime.js";
+import {
+  executeRecoveredHooksV2Event,
+  HooksV2Runtime,
+} from "../../src/lib/hooks-v2-runtime.js";
+import {
+  currentHostHooksV2WorkspaceRoot,
+  registerHostHooksV2Workspace,
+  runWithHostHooksV2Workspace,
+} from "../../src/lib/hooks-v2-workspace-context.js";
+
+const managedPolicyWorkspaceParent = fs.mkdtempSync(
+  path.join(os.tmpdir(), "cc-hooks-v2-managed-policy-"),
+);
+
+function createManagedPolicyWorkspace(name) {
+  const workspaceRoot = path.join(managedPolicyWorkspaceParent, name);
+  fs.mkdirSync(workspaceRoot, { recursive: true });
+  return fs.realpathSync.native(workspaceRoot);
+}
+
+afterAll(() => {
+  fs.rmSync(managedPolicyWorkspaceParent, { recursive: true, force: true });
+});
 
 describe("Hooks v2 managed execution policy", () => {
   it("issues a non-shell command authority from the host project root", async () => {
@@ -112,6 +136,226 @@ describe("Hooks v2 managed execution policy", () => {
         "Hooks v2 hook working directory escapes the trusted workspace root",
     });
     expect(broker.spawn).not.toHaveBeenCalled();
+  });
+
+  it("uses the async-scoped host root and ignores hook/event root claims", async () => {
+    const trustedRoot = createManagedPolicyWorkspace(
+      "scoped-trusted-host-workspace",
+    );
+    const forgedRoot = path.resolve("payload-selected-workspace");
+    const child = new EventEmitter();
+    child.stdin = { end: vi.fn() };
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    const contract = Object.freeze({ kind: "scoped-workspace-contract" });
+    const broker = {
+      issueLinuxWorkspaceSandboxExecutionContract: vi.fn(() => contract),
+      spawn: vi.fn(() => {
+        setImmediate(() => child.emit("exit", 0));
+        return child;
+      }),
+    };
+    const runtime = new HooksV2Runtime(undefined, {
+      broker,
+      managedPolicy: {
+        requiredBoundaries: ["filesystem"],
+      },
+    });
+
+    await runWithHostHooksV2Workspace(trustedRoot, () =>
+      runtime._execCommand(
+        {
+          id: "scoped-root",
+          event: "PostToolUse",
+          command: "node",
+          shell: false,
+          workspaceRoot: forgedRoot,
+          sandboxWorkspaceRoot: forgedRoot,
+        },
+        {
+          cwd: forgedRoot,
+          workspaceRoot: forgedRoot,
+          sandboxExecutionContract: Object.freeze({ kind: "forged" }),
+        },
+      ),
+    );
+
+    expect(
+      broker.issueLinuxWorkspaceSandboxExecutionContract,
+    ).toHaveBeenCalledWith(
+      "node",
+      [],
+      expect.objectContaining({
+        cwd: trustedRoot,
+        shell: false,
+      }),
+      trustedRoot,
+    );
+    expect(broker.spawn).toHaveBeenCalledWith(
+      "node",
+      [],
+      expect.objectContaining({
+        sandboxExecutionContract: contract,
+      }),
+    );
+  });
+
+  it("does not let context.cwd bypass the managed workspace allowlist", async () => {
+    const trustedRoot = createManagedPolicyWorkspace(
+      "allowlist-trusted-host-workspace",
+    );
+    const payloadRoot = path.resolve("payload-allowed-workspace");
+    const broker = {
+      issueLinuxWorkspaceSandboxExecutionContract: vi.fn(),
+      spawn: vi.fn(),
+    };
+    const runtime = new HooksV2Runtime(undefined, {
+      broker,
+      managedPolicy: {
+        workspaceRoots: [payloadRoot],
+        requiredBoundaries: ["filesystem"],
+      },
+    });
+    runtime.registerHook({
+      id: "payload-cwd",
+      event: "PostToolUse",
+      type: "command",
+      command: "node",
+      shell: false,
+    });
+
+    const outcome = await runWithHostHooksV2Workspace(trustedRoot, () =>
+      runtime.executeHooks("PostToolUse", {
+        cwd: payloadRoot,
+        workspaceRoot: payloadRoot,
+      }),
+    );
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.results[0]).toMatchObject({
+      status: "error",
+      error: `Hook working directory is outside managed workspace roots: ${trustedRoot}`,
+    });
+    expect(
+      broker.issueLinuxWorkspaceSandboxExecutionContract,
+    ).not.toHaveBeenCalled();
+    expect(broker.spawn).not.toHaveBeenCalled();
+  });
+
+  it("persists only an opaque durable workspace binding", async () => {
+    const trustedRoot = createManagedPolicyWorkspace(
+      "durable-metadata-workspace",
+    );
+    const durableStore = {
+      enqueueInbox: vi.fn(() => null),
+    };
+    const runtime = new HooksV2Runtime(undefined, { durableStore });
+    runtime.registerHook({
+      id: "durable-observer",
+      event: "PostToolUse",
+      type: "js",
+      handler: () => ({ ok: true }),
+    });
+
+    await runWithHostHooksV2Workspace(trustedRoot, () =>
+      runtime.executeHooks("PostToolUse", { workspaceRoot: "forged" }),
+    );
+
+    const enqueueOptions = durableStore.enqueueInbox.mock.calls[0][1];
+    expect(enqueueOptions.metadata).toEqual({
+      hooksV2WorkspaceBindingId: expect.stringMatching(/^[a-f0-9]{64}$/),
+      hooksV2WorkspaceBindingRequired: false,
+    });
+    expect(JSON.stringify(enqueueOptions.metadata)).not.toContain(trustedRoot);
+    expect(enqueueOptions.metadata).not.toHaveProperty("workspaceRoot");
+  });
+
+  it("recovers only through a host-registered binding ID", async () => {
+    const trustedRoot = createManagedPolicyWorkspace(
+      "durable-recovery-workspace",
+    );
+    const binding = registerHostHooksV2Workspace(trustedRoot);
+    const runtime = {
+      executeHooks: vi.fn(async () => ({
+        workspaceRoot: currentHostHooksV2WorkspaceRoot(),
+      })),
+    };
+    const event = {
+      event: "PostToolUse",
+      context: {
+        workspaceRoot: path.resolve("forged-recovery-workspace"),
+      },
+    };
+
+    const outcome = await executeRecoveredHooksV2Event(runtime, event, {
+      metadata: {
+        hooksV2WorkspaceBindingId: binding.bindingId,
+        hooksV2WorkspaceBindingRequired: true,
+        workspaceRoot: event.context.workspaceRoot,
+      },
+    });
+
+    expect(outcome.workspaceRoot).toBe(trustedRoot);
+    expect(runtime.executeHooks).toHaveBeenCalledWith(
+      "PostToolUse",
+      event.context,
+      { skipDurable: true, recovered: true },
+    );
+    expect(currentHostHooksV2WorkspaceRoot()).toBeNull();
+  });
+
+  it("fails durable recovery closed for missing or unknown strong bindings", async () => {
+    const runtime = { executeHooks: vi.fn() };
+    const event = { event: "PostToolUse", context: {} };
+
+    await expect(
+      executeRecoveredHooksV2Event(runtime, event, {
+        metadata: {
+          hooksV2WorkspaceBindingRequired: true,
+          workspaceRoot: path.resolve("forged"),
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+      message:
+        "durable Hooks v2 recovery requires a trusted host workspace binding",
+    });
+    await expect(
+      executeRecoveredHooksV2Event(runtime, event, {
+        metadata: {
+          hooksV2WorkspaceBindingId: "0".repeat(64),
+          hooksV2WorkspaceBindingRequired: true,
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+      message:
+        "durable Hooks v2 workspace binding is not registered by this host",
+    });
+    expect(runtime.executeHooks).not.toHaveBeenCalled();
+
+    const driftedRuntime = new HooksV2Runtime(undefined, {
+      broker: { spawn: vi.fn() },
+      managedPolicy: { requiredBoundaries: ["filesystem"] },
+    });
+    driftedRuntime.registerHook({
+      id: "strong-after-restart",
+      event: "PostToolUse",
+      type: "command",
+      command: "node",
+      shell: false,
+    });
+    await expect(
+      executeRecoveredHooksV2Event(driftedRuntime, event, {
+        metadata: {
+          hooksV2WorkspaceBindingRequired: false,
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+      message:
+        "durable Hooks v2 recovery requires a trusted host workspace binding",
+    });
   });
 
   it("never reuses or accepts a manifest-provided Hooks v2 authority", async () => {

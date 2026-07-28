@@ -36,6 +36,7 @@ function createLinuxRuntime({
   homeIdentityAlias = false,
 } = {}) {
   const bwrapContents = Buffer.from("ELF-bwrap-supervisor");
+  const setsidContents = Buffer.from("ELF-setsid-pty-launcher");
   const nodeContents = Buffer.from("ELF-node-runtime");
   const pythonContents = Buffer.from("ELF-python-runtime");
   const passwdContents = Buffer.from("root:x:0:0:root:/root:/bin/sh\n");
@@ -97,6 +98,20 @@ function createLinuxRuntime({
           size: nodeContents.length,
         }),
         buffer: nodeContents,
+      },
+    ],
+    [
+      "/usr/bin/setsid",
+      {
+        stat: typedStat({
+          dev: 1,
+          ino: 7,
+          mode: 0o100755,
+          uid: 0,
+          gid: 0,
+          size: setsidContents.length,
+        }),
+        buffer: setsidContents,
       },
     ],
     [
@@ -310,6 +325,10 @@ function createLinuxRuntime({
   const spawnSync = vi.fn((command, args, options) => {
     calls.push({ command, args, options });
     if (args.length === 1 && args[0] === "--help") {
+      const executable = openFiles.get(options.stdio[3])?.buffer;
+      if (executable?.equals(setsidContents)) {
+        return { status: 0, stdout: "--ctty", stderr: "" };
+      }
       return { status: 0, stdout: capabilities.join(" "), stderr: "" };
     }
     const script = args.at(-1);
@@ -346,7 +365,11 @@ function createLinuxRuntime({
   };
 }
 
-function issueAndAdmit({ command = "node", args = ["server.js"] } = {}) {
+function issueAndAdmit({
+  command = "node",
+  args = ["server.js"],
+  pty = false,
+} = {}) {
   const provenance = {
     origin: "mcp:server:test",
     command,
@@ -354,6 +377,7 @@ function issueAndAdmit({ command = "node", args = ["server.js"] } = {}) {
     cwd: ROOT,
     shell: false,
     sync: false,
+    pty,
     stdio: ["pipe", "pipe", "pipe"],
     requiredBoundaries: ["filesystem", "network"],
   };
@@ -411,12 +435,44 @@ function applyHarness(harness, admitted, overrides = {}) {
       profile: "strict",
       requiredBoundaries: ["filesystem", "network"],
       sync: false,
+      ...(overrides.pty ? { pty: true } : {}),
       executionContract: admitted,
     },
   );
 }
 
 describe("Linux generic production runtime integration", () => {
+  it("pins and capability-checks the setsid launcher for a controlling PTY plan", () => {
+    const harness = createLinuxRuntime();
+    const { admitted } = issueAndAdmit({ pty: true });
+    const plan = applyHarness(harness, admitted, { pty: true });
+
+    expect(plan.applied, plan.reason).toBe(true);
+    expect(plan).toMatchObject({
+      applied: true,
+      backend: "linux-bwrap-workspace",
+      command: "/proc/self/fd/3",
+      ptyPolicy: {
+        mode: "dedicated-controlling-terminal",
+        launcherPath: "/usr/bin/setsid",
+        launcherDescriptorBound: true,
+        launcherExecutablePinned: true,
+        launcherDescriptorConsumedBeforeTarget: true,
+        launcherStagingPathHidden: true,
+        bwrapNewSession: false,
+      },
+    });
+    expect(plan.args.slice(0, 2)).toEqual(["--ctty", "/proc/self/fd/4"]);
+    expect(plan.args).not.toContain("--new-session");
+    expect(harness.calls).toHaveLength(3);
+    expect(harness.calls[1].args).toEqual(["--help"]);
+    expect(executionBroker._validateSandboxPlan(plan).ptyPolicy).toEqual(
+      plan.ptyPolicy,
+    );
+    plan.cleanup();
+    expect(harness.openFiles.size).toBe(0);
+  });
+
   it("acquires trusted descriptors and returns a typed empty-root plan", () => {
     const harness = createLinuxRuntime();
     const { admitted } = issueAndAdmit();
@@ -438,6 +494,7 @@ describe("Linux generic production runtime integration", () => {
         workspaceMountTopology:
           "no-strict-descendants-or-forbidden-root-aliases-at-attestation",
         mountTopologySource: "proc-self-mountinfo",
+        sourceMountPropagationPrivateAtAttestation: true,
         mountTopologyAtomic: false,
       },
       networkPolicy: {
@@ -451,6 +508,7 @@ describe("Linux generic production runtime integration", () => {
         workspaceReadWrite: true,
         workspaceMountTopologyAttested: true,
         workspaceRootAliasAttested: true,
+        sourceMountPropagationPrivateAtAttestation: true,
         anonymousDevWritable: true,
         mountTopologyAtomic: false,
         systemReadOnly: true,
@@ -462,6 +520,12 @@ describe("Linux generic production runtime integration", () => {
       },
     });
     expect(executionBroker._validateSandboxPlan(plan).applied).toBe(true);
+    expect(plan.filesystemPolicy.sourceMountSetDigest).toMatch(
+      /^[a-f0-9]{64}$/,
+    );
+    expect(plan.runtimeProbe.sourceMountSetDigest).toBe(
+      plan.filesystemPolicy.sourceMountSetDigest,
+    );
     expect(plan.args).toContain("--bind-fd");
     expect(plan.args).toContain("--ro-bind-fd");
     expect(plan.args).toContain("--remount-ro");
@@ -476,6 +540,7 @@ describe("Linux generic production runtime integration", () => {
       ),
     ).toBe(false);
     expect(harness.calls).toHaveLength(2);
+    expect(harness.calls[1].options.timeout).toBe(10_000);
     const probeScript = harness.calls[1].args.at(-1);
     expect(probeScript).toContain("net:[4026531992]");
     expect(probeScript).toContain("mount_is_read_only /");
@@ -555,6 +620,93 @@ describe("Linux generic production runtime integration", () => {
       reason: "linux_generic_execution_contract_changed",
       guarantees: [],
     });
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it.each([
+    ["shared", "shared:1"],
+    ["slave", "master:1"],
+    ["propagate-from", "master:1 propagate_from:2"],
+    ["unbindable", "unbindable"],
+    ["unknown", "future-propagation:1"],
+  ])(
+    "rejects an initially %s recursive bind source",
+    (_state, optionalFields) => {
+      const harness = createLinuxRuntime({
+        mountInfo: `20 1 8:1 / / rw,relatime ${optionalFields} - ext4 /dev/root rw\n`,
+      });
+      const { admitted } = issueAndAdmit();
+      const plan = applyHarness(harness, admitted);
+
+      expect(plan).toMatchObject({
+        applied: false,
+        reason: "linux_generic_resources_unattested",
+        guarantees: [],
+      });
+      expect(harness.calls).toHaveLength(0);
+      expect(harness.openFiles.size).toBe(0);
+    },
+  );
+
+  it("rejects a shared system source even when the workspace source is private", () => {
+    const harness = createLinuxRuntime({
+      mountInfo: [
+        "20 1 8:1 / / rw,relatime shared:1 - ext4 /dev/root rw",
+        "21 20 8:2 / /work/project rw,relatime - ext4 /dev/work rw",
+        "",
+      ].join("\n"),
+    });
+    const { admitted } = issueAndAdmit();
+    const plan = applyHarness(harness, admitted);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_generic_resources_unattested",
+      guarantees: [],
+    });
+    expect(harness.calls).toHaveLength(1);
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it("rejects a shared descendant imported by a recursive system bind", () => {
+    const harness = createLinuxRuntime({
+      mountInfo: [
+        "20 1 8:1 / / rw,relatime - ext4 /dev/root rw",
+        "21 20 0:44 / /usr/share/late rw,nosuid shared:9 - tmpfs tmpfs rw",
+        "",
+      ].join("\n"),
+    });
+    const { admitted } = issueAndAdmit();
+    const plan = applyHarness(harness, admitted);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_generic_resources_unattested",
+      guarantees: [],
+    });
+    expect(harness.calls).toHaveLength(1);
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it("re-attests every exact bind source and rejects final system propagation drift", () => {
+    const initial = "20 1 8:1 / / rw,relatime - ext4 /dev/root rw\n";
+    const harness = createLinuxRuntime({
+      mountInfo: initial,
+      mountInfoAfterProbe: [
+        initial.trimEnd(),
+        "21 20 0:44 / /usr/share/late rw,nosuid shared:9 - tmpfs tmpfs rw",
+        "",
+      ].join("\n"),
+    });
+    const { admitted } = issueAndAdmit();
+    const plan = applyHarness(harness, admitted);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_generic_execution_contract_changed",
+      guarantees: [],
+    });
+    expect(harness.calls).toHaveLength(2);
     expect(harness.openFiles.size).toBe(0);
   });
 

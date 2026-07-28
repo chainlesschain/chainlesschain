@@ -68,6 +68,7 @@ import {
   executeHooksV2Event,
   resolvePromptExpansion,
 } from "../lib/hooks-v2-producers.js";
+import { runWithHostHooksV2Workspace } from "../lib/hooks-v2-workspace-context.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
 import { expandFileRefsAsync } from "./file-ref-expander.js";
 import { composeSystemPrompt } from "./system-prompt.js";
@@ -325,7 +326,9 @@ export function applyForkSession(opts = {}, store = {}) {
  * @param {string[]} [options.allowedTools]
  * @param {string[]} [options.disallowedTools]
  * @param {number} [options.maxTurns]          Cap on agent loop iterations.
- * @param {string} [options.cwd]
+ * @param {string} [options.cwd]               Trusted CLI-host workspace
+ *                                             input. Never populate this from
+ *                                             model/plugin/hook/event payloads.
  * @param {string[]} [options.additionalDirectories] Extra workspace roots
  *                                             (--add-dir): absolute dirs the
  *                                             agent may read/search/edit.
@@ -341,6 +344,13 @@ export function applyForkSession(opts = {}, store = {}) {
  * @returns {Promise<{ exitCode:number, result:string, isError:boolean }>}
  */
 export async function runAgentHeadless(options = {}, deps = {}) {
+  const trustedWorkspaceRoot = options.cwd || process.cwd();
+  return runWithHostHooksV2Workspace(trustedWorkspaceRoot, () =>
+    runAgentHeadlessInWorkspace(options, deps),
+  );
+}
+
+async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
   const prompt = (options.prompt || "").trim();
   if (!prompt) {
     throw new Error(

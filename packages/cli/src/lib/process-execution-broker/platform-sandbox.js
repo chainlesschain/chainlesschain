@@ -321,6 +321,7 @@ function normalizeSandboxRequest(profileOrRequest, explicitRequest) {
     profile,
     requiredBoundaries,
     sync: request.sync === true,
+    pty: request.pty === true,
     executionContract:
       request.executionContract &&
       typeof request.executionContract === "object" &&
@@ -3040,7 +3041,7 @@ function validateLinuxPluginContract(
     return { ok: false, reason: "execution_contract_missing" };
   }
   if (
-    sync !== true ||
+    (sync !== true && sync !== false) ||
     spawnOpts?.shell !== false ||
     spawnOpts?.detached === true ||
     !linuxStdioIsNarrow(spawnOpts?.stdio) ||
@@ -4553,7 +4554,8 @@ function buildLinuxNetworkSeccompFilter(arch) {
     instructions.push([0x54, 0, 0, ~architecture.x32SyscallBit]);
   }
   instructions.push(
-    // No socket family is needed by this direct foreground Plugin Node route.
+    // No socket family is needed by this direct one-shot Plugin bin route,
+    // whether the Broker call is synchronous or asynchronously supervised.
     // Blocking creation rather than relying only on CLONE_NEWNET also closes
     // non-network-namespaced transports such as AF_VSOCK.
     [0x15, 0, 1, architecture.socketSyscall],
@@ -6179,6 +6181,7 @@ export function applyLinuxSandbox(
  *   profile?: string,
  *   requiredBoundaries?: string[],
  *   sync?: boolean,
+ *   pty?: boolean,
  *   executionContract?: Readonly<Object>|null
  * }|null} explicitRequest
  * @returns {ReturnType<typeof createSandboxPlan>}
@@ -6239,6 +6242,7 @@ export function applySandbox(
     profileName: profiles[profileName] ? profileName : "default",
     requiredBoundaries: sandboxRequest.requiredBoundaries,
     sync: sandboxRequest.sync,
+    pty: sandboxRequest.pty,
     executionContract: sandboxRequest.executionContract,
   };
 

@@ -1,4 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { afterAll, describe, it, expect, vi, beforeEach } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 // Mock agent-core (canonical runtime path — Phase 6b)
 vi.mock("../../src/runtime/agent-core.js", () => ({
@@ -32,6 +35,24 @@ import {
   detectTaskType,
   selectModelForTask,
 } from "../../src/lib/task-model-selector.js";
+import {
+  currentHostHooksV2WorkspaceRoot,
+  registerHostHooksV2Workspace,
+} from "../../src/lib/hooks-v2-workspace-context.js";
+
+const wsAgentWorkspaceParent = fs.mkdtempSync(
+  path.join(os.tmpdir(), "cc-hooks-v2-ws-agent-"),
+);
+
+function createWsAgentWorkspace(name) {
+  const workspaceRoot = path.join(wsAgentWorkspaceParent, name);
+  fs.mkdirSync(workspaceRoot, { recursive: true });
+  return fs.realpathSync.native(workspaceRoot);
+}
+
+afterAll(() => {
+  fs.rmSync(wsAgentWorkspaceParent, { recursive: true, force: true });
+});
 
 function createMockSession(overrides = {}) {
   return {
@@ -109,6 +130,51 @@ describe("WSAgentHandler", () => {
   });
 
   describe("handleMessage", () => {
+    it("scopes a turn only from the session's host-owned Hooks root", async () => {
+      const trustedRoot = createWsAgentWorkspace("host-project");
+      session.hooksV2WorkspaceBindingId =
+        registerHostHooksV2Workspace(trustedRoot).bindingId;
+      let observedRoot = null;
+      agentLoop.mockImplementation(() =>
+        fakeAgentLoop([
+          {
+            type: "response-complete",
+            get content() {
+              observedRoot = currentHostHooksV2WorkspaceRoot();
+              return "done";
+            },
+          },
+        ]),
+      );
+
+      await handler.handleMessage("Run in the host project", "req-1");
+
+      expect(observedRoot).toBe(trustedRoot);
+      expect(currentHostHooksV2WorkspaceRoot()).toBeNull();
+    });
+
+    it("does not derive a Hooks root from session.projectRoot", async () => {
+      session.projectRoot = path.resolve("ws-request-project");
+      session.hooksV2WorkspaceRoot = path.resolve("forged-hooks-root");
+      session.hooksV2WorkspaceBindingId = "0".repeat(64);
+      let observedRoot = "not-observed";
+      agentLoop.mockImplementation(() =>
+        fakeAgentLoop([
+          {
+            type: "response-complete",
+            get content() {
+              observedRoot = currentHostHooksV2WorkspaceRoot();
+              return "done";
+            },
+          },
+        ]),
+      );
+
+      await handler.handleMessage("Keep strong hooks closed", "req-1");
+
+      expect(observedRoot).toBeNull();
+    });
+
     it("adds user message to session", async () => {
       agentLoop.mockReturnValue(fakeAgentLoop([]));
       await handler.handleMessage("Hello agent", "req-1");
@@ -264,11 +330,13 @@ describe("WSAgentHandler", () => {
     it("returns busy error when already processing", async () => {
       // Simulate a long-running loop
       let resolveLoop;
+      /* eslint-disable require-yield */
       const blockingLoop = (async function* () {
         await new Promise((r) => {
           resolveLoop = r;
         });
       })();
+      /* eslint-enable require-yield */
       agentLoop.mockReturnValue(blockingLoop);
 
       // Start first message (will block)
@@ -379,6 +447,7 @@ describe("WSAgentHandler", () => {
     });
 
     it("interrupts an active turn without emitting an AGENT_ERROR", async () => {
+      /* eslint-disable require-yield */
       agentLoop.mockImplementation((_messages, options) =>
         (async function* () {
           await new Promise((resolve, reject) => {
@@ -390,6 +459,7 @@ describe("WSAgentHandler", () => {
           });
         })(),
       );
+      /* eslint-enable require-yield */
 
       const pending = handler.handleMessage("long running", "req-1");
       await Promise.resolve();

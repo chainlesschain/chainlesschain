@@ -201,6 +201,76 @@ function createPythonInterpreterProbeSandboxFailure(sandboxPolicy) {
   return error;
 }
 
+function createBackgroundShellSandboxFailure(
+  reason,
+  message,
+  sandboxPolicy,
+  cause = null,
+) {
+  const requiredBoundaries = [...(sandboxPolicy?.requiredBoundaries || [])];
+  const error = new Error(message);
+  error.code = "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED";
+  error.sandboxReason = reason;
+  error.sandboxFailClosed = true;
+  error.requiredBoundaries = requiredBoundaries;
+  error.actualGuarantees = [];
+  error.missingBoundaries = [...requiredBoundaries];
+  error.sandboxBackend = null;
+  error.sandboxCandidateBackend = "linux-bwrap-workspace";
+  if (cause) error.cause = cause;
+  return error;
+}
+
+function resolveBackgroundShellWorkspacePaths(
+  trustedWorkspaceRoot,
+  requestedCwd,
+  sandboxPolicy,
+) {
+  if (
+    typeof trustedWorkspaceRoot !== "string" ||
+    !trustedWorkspaceRoot ||
+    trustedWorkspaceRoot.includes("\0") ||
+    !path.isAbsolute(trustedWorkspaceRoot)
+  ) {
+    throw createBackgroundShellSandboxFailure(
+      "background_workspace_root_untrusted",
+      "Background shell strong sandbox requires an absolute trusted host workspace root",
+      sandboxPolicy,
+    );
+  }
+  const workspaceRoot = path.resolve(trustedWorkspaceRoot);
+  let workingDirectory = workspaceRoot;
+  if (
+    requestedCwd !== undefined &&
+    requestedCwd !== null &&
+    requestedCwd !== ""
+  ) {
+    if (typeof requestedCwd !== "string" || requestedCwd.includes("\0")) {
+      throw createBackgroundShellSandboxFailure(
+        "background_working_directory_untrusted",
+        "Background shell strong sandbox cwd must be a trusted path string",
+        sandboxPolicy,
+      );
+    }
+    workingDirectory = path.isAbsolute(requestedCwd)
+      ? path.resolve(requestedCwd)
+      : path.resolve(workspaceRoot, requestedCwd);
+  }
+  const relative = path.relative(workspaceRoot, workingDirectory);
+  if (
+    relative === ".." ||
+    relative.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relative)
+  ) {
+    throw createBackgroundShellSandboxFailure(
+      "background_working_directory_escape",
+      "Background shell strong sandbox cwd escapes the trusted host workspace root",
+      sandboxPolicy,
+    );
+  }
+  return { workspaceRoot, workingDirectory };
+}
+
 // ─── Background shell tasks ────────────────────────────────────────────────
 //
 // run_shell is synchronous (execSync) and capped at a foreground timeout, which
@@ -321,10 +391,16 @@ function _releaseBgChildHandles(task) {
 
 const backgroundTaskRunner = broker.spawn.bind(broker);
 const backgroundTaskSyncRunner = broker.spawnSync.bind(broker);
+const backgroundTaskContractIssuer =
+  typeof broker.issueLinuxWorkspaceSandboxExecutionContract === "function"
+    ? broker.issueLinuxWorkspaceSandboxExecutionContract.bind(broker)
+    : null;
 
 export const _backgroundProcessDeps = {
   run: backgroundTaskRunner,
   runSync: backgroundTaskSyncRunner,
+  issueLinuxWorkspaceSandboxExecutionContract: backgroundTaskContractIssuer,
+  platform: () => process.platform,
 };
 
 export function _runBackgroundTaskkill(pid, { sync = false } = {}) {
@@ -350,7 +426,12 @@ function _killTask(task) {
   const child = task?.child;
   if (!child || child.killed || task?.status !== "running") return false;
   try {
-    if (process.platform === "win32") {
+    if (task.sandboxManagedTree === true) {
+      // Linux generic launches are never detached. Bubblewrap owns the private
+      // PID namespace and runs with --die-with-parent/--new-session, so killing
+      // the Broker child reaps the complete sandbox tree.
+      child.kill("SIGTERM");
+    } else if (process.platform === "win32") {
       if (child.pid) {
         const tk = _runBackgroundTaskkill(child.pid);
         const fallbackDirectKill = () => {
@@ -425,7 +506,9 @@ function _killTaskSync(task) {
   const child = task?.child;
   if (!child || child.killed || task?.status !== "running") return false;
   try {
-    if (process.platform === "win32") {
+    if (task.sandboxManagedTree === true) {
+      child.kill("SIGKILL");
+    } else if (process.platform === "win32") {
       if (child.pid) {
         const killed = _runBackgroundTaskkill(child.pid, { sync: true });
         if (killed.error || killed.status !== 0) {
@@ -3562,6 +3645,7 @@ async function executeToolInner(
               pluginBinSandboxExecutionContract =
                 pluginBin.createPluginSandboxExecutionContract(
                   pluginBinInvocation,
+                  { sync: args.run_in_background !== true },
                 );
             } catch (error) {
               if (error?.pluginBinFailClosed) throw error;
@@ -3644,9 +3728,33 @@ async function executeToolInner(
             policy: { decision: "deny", via: "sandbox" },
           });
         }
+        const backgroundPlatform =
+          typeof _backgroundProcessDeps.platform === "function"
+            ? _backgroundProcessDeps.platform()
+            : process.platform;
+        const pinnedBackgroundBoundaries = [
+          ...(pluginBinSandboxPolicy?.requiredBoundaries || []),
+        ];
+        const hasPinnedBackgroundPolicy = pinnedBackgroundBoundaries.length > 0;
+        const linuxGenericStrongBackground =
+          backgroundPlatform === "linux" &&
+          !pluginBinInvocation &&
+          pinnedBackgroundBoundaries.some(
+            (boundary) => boundary === "filesystem" || boundary === "network",
+          );
+        const linuxDirectPluginStrongBackground =
+          backgroundPlatform === "linux" &&
+          pluginBinInvocation !== null &&
+          pluginBinSandboxExecutionContract !== null &&
+          pinnedBackgroundBoundaries.some(
+            (boundary) => boundary === "filesystem" || boundary === "network",
+          );
         if (
-          (process.platform === "linux" || process.platform === "win32") &&
-          pluginBinSandboxPolicy?.requiredBoundaries?.length > 0
+          hasPinnedBackgroundPolicy &&
+          (backgroundPlatform === "win32" ||
+            (backgroundPlatform === "linux" &&
+              !linuxGenericStrongBackground &&
+              !linuxDirectPluginStrongBackground))
         ) {
           return attachDescriptor({
             error:
@@ -3661,37 +3769,20 @@ async function executeToolInner(
             approval: approvalOutcome,
           });
         }
-        // Free memory from idle background tasks before adding another, so a
-        // long agent run can't accumulate forgotten dev servers (no-op unless
-        // the machine is actually under memory pressure).
-        reapIdleBackgroundShellTasks();
-        const id = `bg_${++_backgroundTaskSeq}`;
-        const task = {
-          id,
-          command: args.command,
-          cwd: args.cwd || cwd,
-          status: "running",
-          exitCode: null,
-          signal: null,
-          error: null,
-          startedAt: new Date().toISOString(),
-          lastActivityAt: Date.now(),
-          endedAt: null,
-          out: _newBgStream(),
-          err: _newBgStream(),
-          child: null,
-        };
-        try {
-          const bgSpawnOpts = {
-            cwd: task.cwd,
-            shell: shellInv.useDefaultShell,
+        let linuxGenericBackgroundLaunch = null;
+        if (linuxGenericStrongBackground) {
+          const { workspaceRoot, workingDirectory } =
+            resolveBackgroundShellWorkspacePaths(
+              cwd,
+              args.cwd,
+              pluginBinSandboxPolicy,
+            );
+          const file = "/bin/sh";
+          const launchArgs = ["-c", args.command];
+          const options = {
+            cwd: workingDirectory,
+            shell: false,
             windowsHide: true,
-            // Same agent-identity env as the foreground path: CLAUDECODE marks
-            // "running under the agent"; the session id correlates work to the
-            // run (CC_SESSION_ID + CLAUDE_CODE_SESSION_ID for Claude-Code parity).
-            // Credential proxy (opt-in, CC_CREDENTIAL_PROXY): keeps the agent's
-            // real long-lived secrets out of the spawned command's env — a
-            // no-op (same object) when disabled. See credential-proxy.js.
             env: applyCredentialProxy({
               ...process.env,
               CLAUDECODE: "1",
@@ -3702,22 +3793,138 @@ async function executeToolInner(
                   }
                 : {}),
             }).env,
-            // POSIX: own process group so check_shell{kill}/teardown can signal
-            // the whole tree (shell + its grandchild command). No-op on Windows
-            // where the tree is killed via taskkill /T instead.
-            detached: process.platform !== "win32",
-          };
-          // PowerShell route: explicit argv (shell:false above); default route
-          // is the historical spawn(command, {shell:true}) byte-for-byte.
-          const brokerOpts = {
-            ...bgSpawnOpts,
-            origin: processOrigin,
+            detached: false,
+            origin: "tool:run_shell",
             policy: "allow",
             scope: "agent",
-            ...processProvenance,
+            sandboxPolicy: pluginBinSandboxPolicy,
           };
+          const issuer =
+            _backgroundProcessDeps.issueLinuxWorkspaceSandboxExecutionContract;
+          if (typeof issuer !== "function") {
+            throw createBackgroundShellSandboxFailure(
+              "background_contract_issuer_unavailable",
+              "Linux background shell sandbox contract issuer is unavailable",
+              pluginBinSandboxPolicy,
+            );
+          }
+          let sandboxExecutionContract;
+          try {
+            sandboxExecutionContract = issuer(
+              file,
+              launchArgs,
+              options,
+              workspaceRoot,
+              { sync: false },
+            );
+          } catch (error) {
+            if (
+              error?.sandboxFailClosed === true ||
+              error?.code === "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED"
+            ) {
+              throw error;
+            }
+            throw createBackgroundShellSandboxFailure(
+              "background_contract_issuance_failed",
+              `Linux background shell sandbox contract could not be issued: ${error?.message || String(error)}`,
+              pluginBinSandboxPolicy,
+              error,
+            );
+          }
+          if (!sandboxExecutionContract) {
+            throw createBackgroundShellSandboxFailure(
+              "background_contract_unavailable",
+              "Linux background shell sandbox contract issuer returned no authority",
+              pluginBinSandboxPolicy,
+            );
+          }
+          linuxGenericBackgroundLaunch = {
+            file,
+            args: launchArgs,
+            options: {
+              ...options,
+              sandboxExecutionContract,
+            },
+          };
+        }
+        // Free memory from idle background tasks before adding another, so a
+        // long agent run can't accumulate forgotten dev servers (no-op unless
+        // the machine is actually under memory pressure).
+        reapIdleBackgroundShellTasks();
+        const id = `bg_${++_backgroundTaskSeq}`;
+        const task = {
+          id,
+          command: args.command,
+          cwd:
+            linuxGenericBackgroundLaunch?.options.cwd ||
+            (linuxDirectPluginStrongBackground
+              ? pluginBinSandboxExecutionContract.workingDirectory
+              : args.cwd || cwd),
+          status: "running",
+          exitCode: null,
+          signal: null,
+          error: null,
+          startedAt: new Date().toISOString(),
+          lastActivityAt: Date.now(),
+          endedAt: null,
+          out: _newBgStream(),
+          err: _newBgStream(),
+          child: null,
+          sandboxManagedTree:
+            linuxGenericBackgroundLaunch !== null ||
+            linuxDirectPluginStrongBackground,
+        };
+        try {
+          // The strong route already has its exact contract-bound options.
+          // Construct legacy options only for legacy/direct-Plugin launches.
+          const bgSpawnOpts = linuxGenericBackgroundLaunch
+            ? null
+            : {
+                cwd: task.cwd,
+                shell: shellInv.useDefaultShell,
+                windowsHide: true,
+                // Same agent-identity env as the foreground path: CLAUDECODE marks
+                // "running under the agent"; the session id correlates work to the
+                // run (CC_SESSION_ID + CLAUDE_CODE_SESSION_ID for Claude-Code parity).
+                // Credential proxy (opt-in, CC_CREDENTIAL_PROXY): keeps the agent's
+                // real long-lived secrets out of the spawned command's env — a
+                // no-op (same object) when disabled. See credential-proxy.js.
+                env: applyCredentialProxy({
+                  ...process.env,
+                  CLAUDECODE: "1",
+                  ...(sessionId
+                    ? {
+                        CC_SESSION_ID: String(sessionId),
+                        CLAUDE_CODE_SESSION_ID: String(sessionId),
+                      }
+                    : {}),
+                }).env,
+                // POSIX: own process group so check_shell{kill}/teardown can signal
+                // the whole tree (shell + its grandchild command). No-op on Windows
+                // where the tree is killed via taskkill /T instead.
+                detached:
+                  process.platform !== "win32" &&
+                  !linuxDirectPluginStrongBackground,
+              };
+          // PowerShell route: explicit argv (shell:false above); default route
+          // is the historical spawn(command, {shell:true}) byte-for-byte.
+          const brokerOpts = bgSpawnOpts
+            ? {
+                ...bgSpawnOpts,
+                origin: processOrigin,
+                policy: "allow",
+                scope: "agent",
+                ...processProvenance,
+              }
+            : null;
           let child;
-          if (pluginBinInvocation) {
+          if (linuxGenericBackgroundLaunch) {
+            child = _backgroundProcessDeps.run(
+              linuxGenericBackgroundLaunch.file,
+              linuxGenericBackgroundLaunch.args,
+              linuxGenericBackgroundLaunch.options,
+            );
+          } else if (pluginBinInvocation) {
             reattestPluginBinInvocation(pluginBinInvocation);
             pluginBinResult.plugin_bin.launch_identity_reattested = true;
             child = broker.spawn(
@@ -3774,6 +3981,33 @@ async function executeToolInner(
             _releaseBgChildHandles(task);
           });
         } catch (err) {
+          if (
+            linuxGenericBackgroundLaunch ||
+            linuxDirectPluginStrongBackground
+          ) {
+            if (task.child && !task.child.killed) {
+              try {
+                task.child.kill("SIGKILL");
+              } catch {
+                // Preserve the setup failure; the bwrap supervisor also has
+                // --die-with-parent as a final process-lifetime backstop.
+              }
+              _releaseBgChildHandles(task);
+            }
+            if (
+              err?.sandboxFailClosed === true ||
+              (typeof err?.code === "string" &&
+                err.code.startsWith("ERR_PROCESS_SANDBOX"))
+            ) {
+              throw err;
+            }
+            throw createBackgroundShellSandboxFailure(
+              "background_sandbox_launch_failed",
+              `Linux background shell sandbox launch failed: ${err?.message || String(err)}`,
+              pluginBinSandboxPolicy,
+              err,
+            );
+          }
           task.status = "error";
           task.error = String(err?.message || err).substring(0, 2000);
           task.endedAt = new Date().toISOString();

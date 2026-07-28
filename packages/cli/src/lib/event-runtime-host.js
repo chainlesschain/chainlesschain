@@ -9,6 +9,7 @@
 import { EventEmitter } from "node:events";
 import { EventRuntimeStore } from "./event-runtime-store.js";
 import { EventRuntimeWorker } from "./event-runtime-worker.js";
+import { registerHostHooksV2Workspace } from "./hooks-v2-workspace-context.js";
 
 function routeType(event) {
   return String(
@@ -63,10 +64,8 @@ export class EventRuntimeHost extends EventEmitter {
       worker ||
       new EventRuntimeWorker({
         store,
-        onInbox: (event, record) =>
-          this._dispatch("inbox", event, record),
-        onOutbox: (event, record) =>
-          this._dispatch("outbox", event, record),
+        onInbox: (event, record) => this._dispatch("inbox", event, record),
+        onOutbox: (event, record) => this._dispatch("outbox", event, record),
       });
   }
 
@@ -89,10 +88,7 @@ export class EventRuntimeHost extends EventEmitter {
     }
   }
 
-  registerHandler(
-    handler,
-    { queue = "inbox", type = "*", origin = "*" } = {},
-  ) {
+  registerHandler(handler, { queue = "inbox", type = "*", origin = "*" } = {}) {
     if (typeof handler !== "function") {
       throw new TypeError("Event Runtime handler must be a function");
     }
@@ -223,8 +219,7 @@ export class EventRuntimeHost extends EventEmitter {
           break;
         }
         const claimed =
-          Number(stats?.inboxClaimed || 0) +
-          Number(stats?.outboxClaimed || 0);
+          Number(stats?.inboxClaimed || 0) + Number(stats?.outboxClaimed || 0);
         if (claimed === 0) break;
       }
     }
@@ -272,7 +267,14 @@ export function startDefaultEventRuntimeHost(options = {}) {
   if (process.env.CC_EVENT_RUNTIME_DURABLE !== "1" && options.force !== true) {
     return null;
   }
+  // The CLI process startup directory is host state. Register it before the
+  // first durable claim so a recovered Hooks v2 record can resolve its opaque
+  // workspace ID without accepting any path from the record itself.
+  const hooksV2WorkspaceBinding = registerHostHooksV2Workspace(
+    options.workspaceRoot ?? process.cwd(),
+  );
   const host = getDefaultEventRuntimeHost(options);
+  host.hooksV2WorkspaceBindingId = hooksV2WorkspaceBinding.bindingId;
   host.start({ immediate: options.immediate !== false });
   return host;
 }

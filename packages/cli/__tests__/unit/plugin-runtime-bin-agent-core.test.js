@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { EventEmitter } from "node:events";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
   _agentToolProcessDeps,
+  _backgroundProcessDeps,
   executeTool,
+  killAllBackgroundShellTasksSync,
 } from "../../src/runtime/agent-core.js";
 import {
   executionBroker,
@@ -17,6 +20,7 @@ let cwd;
 let originalNative;
 let originalAdapter;
 let originalRunCode;
+let originalBackgroundPlatform;
 
 function installStrictNodeBin() {
   const root = pluginVersionDir("local", "strict-bin", "1.0.0", { cwd });
@@ -87,14 +91,17 @@ beforeEach(() => {
   originalNative = executionBroker._native;
   originalAdapter = executionBroker._sandboxAdapter;
   originalRunCode = _agentToolProcessDeps.runCode;
+  originalBackgroundPlatform = _backgroundProcessDeps.platform;
   executionBroker.flushAuditLog();
   _resetPluginBinSandboxPolicyPins();
 });
 
 afterEach(() => {
+  killAllBackgroundShellTasksSync();
   executionBroker._native = originalNative;
   executionBroker._sandboxAdapter = originalAdapter;
   _agentToolProcessDeps.runCode = originalRunCode;
+  _backgroundProcessDeps.platform = originalBackgroundPlatform;
   executionBroker.flushAuditLog();
   fs.rmSync(cwd, { recursive: true, force: true });
 });
@@ -465,8 +472,8 @@ describe("agent-core strict plugin bin route", () => {
     expect(nativeSpawnSync).not.toHaveBeenCalled();
   });
 
-  it.runIf(process.platform === "linux" || process.platform === "win32")(
-    "rejects a strict Plugin Node bin background launch before task registration or native spawn",
+  it.runIf(process.platform === "win32")(
+    "rejects a strict Plugin Node bin background launch before task registration or native spawn on Windows",
     async () => {
       installStrictNodeBin();
       const nativeSpawn = vi.fn();
@@ -496,38 +503,101 @@ describe("agent-core strict plugin bin route", () => {
     },
   );
 
-  it.runIf(process.platform === "linux")(
-    "rejects a strict native background launch before task registration or native spawn",
+  it.runIf(process.platform === "linux" || process.platform === "win32")(
+    "runs a strict Plugin Node bin background launch through one async direct contract",
     async () => {
-      installStrictNativeBin();
-      const nativeSpawn = vi.fn();
+      _backgroundProcessDeps.platform = () => "linux";
+      const target = installStrictNodeBin();
+      const pluginRoot = fs.realpathSync.native(
+        path.dirname(path.dirname(target)),
+      );
+      const child = new EventEmitter();
+      child.pid = 44001;
+      child.killed = false;
+      child.stdout = Object.assign(new EventEmitter(), {
+        setEncoding: vi.fn(),
+        destroy: vi.fn(),
+      });
+      child.stderr = Object.assign(new EventEmitter(), {
+        setEncoding: vi.fn(),
+        destroy: vi.fn(),
+      });
+      child.kill = vi.fn((signal) => {
+        child.killed = true;
+        child.emit("exit", null, signal);
+        child.emit("close", null, signal);
+        return true;
+      });
+      const nativeSpawn = vi.fn(() => child);
+      const cleanup = vi.fn();
+      const applySandbox = vi.fn(
+        (command, launchArgs, options, profile, _runtime, request) => ({
+          contractVersion: 1,
+          applied: true,
+          platform: "linux",
+          profile,
+          command,
+          args: launchArgs,
+          options,
+          enforcement: "linux-bwrap",
+          backend: "linux-bwrap",
+          guarantees: [...request.requiredBoundaries],
+          policyAttested: true,
+          reason: null,
+          postSpawn: { required: false, mode: "none" },
+          cleanup,
+        }),
+      );
       executionBroker._native = { spawn: nativeSpawn };
+      executionBroker._sandboxAdapter = {
+        applySandbox,
+        postSpawnSandbox: vi.fn(),
+      };
 
       const result = await executeTool(
         "run_shell",
-        { command: "strict-native-tool", run_in_background: true },
+        { command: "strict-tool --safe", run_in_background: true },
         { cwd },
       );
 
       expect(result).toMatchObject({
-        policy: {
-          decision: "deny",
-          via: "plugin-bin-pinned-sandbox-policy",
-          reason: "background_execution_unsupported",
-        },
+        background: true,
+        status: "running",
         plugin_bin: {
-          plugin: "strict-native",
-          name: "strict-native-tool",
-          runtime: "native",
+          plugin: "strict-bin",
+          name: "strict-tool",
+          runtime: "node",
+          target,
+          launch_identity_reattested: true,
         },
       });
-      expect(result.error).toMatch(/foreground execution only/);
-      expect(result).not.toHaveProperty("task_id");
-      expect(nativeSpawn).not.toHaveBeenCalled();
+      expect(result.task_id).toMatch(/^bg_/);
+      expect(applySandbox).toHaveBeenCalledWith(
+        fs.realpathSync.native(process.execPath),
+        [target, "--safe"],
+        expect.objectContaining({
+          cwd: pluginRoot,
+          shell: false,
+          detached: false,
+        }),
+        "default",
+        undefined,
+        expect.objectContaining({
+          requiredBoundaries: ["filesystem", "network"],
+          sync: false,
+          executionContract: expect.objectContaining({
+            kind: "strict-plugin-node-bin",
+          }),
+        }),
+      );
+      expect(nativeSpawn).toHaveBeenCalledTimes(1);
+      expect(killAllBackgroundShellTasksSync()).toBeGreaterThanOrEqual(1);
+      expect(child.kill).toHaveBeenCalledWith("SIGKILL");
+      expect(cleanup).toHaveBeenCalledTimes(1);
     },
   );
 
-  it.runIf(process.platform === "linux" || process.platform === "win32")(
+  it.runIf(process.platform === "win32")(
     "rejects an ordinary background command under the pinned strict-bin union before native spawn",
     async () => {
       installStrictNodeBin();

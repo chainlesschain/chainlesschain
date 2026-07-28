@@ -5,7 +5,9 @@ import pkg from "../../../../src/main/terminal/policy-aware-pty-manager.js";
 
 const {
   PLUGIN_BIN_MODULE_REL,
+  PROCESS_BROKER_MODULE_REL,
   loadDesktopPluginBinSandboxPolicyResolver,
+  loadDesktopStrongPtyBroker,
   createPolicyAwarePtyManager,
 } = pkg;
 
@@ -79,6 +81,7 @@ describe("Desktop policy-aware PtyManager bootstrap", () => {
       _deps: {
         loadNodePty: vi.fn(),
         getProcessBroker: () => null,
+        platform: () => "win32",
       },
     });
     let settled = false;
@@ -112,12 +115,129 @@ describe("Desktop policy-aware PtyManager bootstrap", () => {
       _deps: {
         loadNodePty: vi.fn(),
         getProcessBroker: () => null,
+        platform: () => "win32",
       },
     });
 
     expect(manager._requireProjectBinding).toBe(true);
     expect(manager._policyCwd).toBeNull();
     expect(manager._resolveProjectBinding).toBe(resolveProjectBinding);
+  });
+
+  it("preloads and binds the CLI strong PTY broker facade", async () => {
+    const broker = {
+      issueLinuxWorkspaceSandboxExecutionContract: vi.fn(function () {
+        return this;
+      }),
+      spawnPty: vi.fn(function () {
+        return this;
+      }),
+    };
+    const importModule = vi.fn(async () => ({ executionBroker: broker }));
+
+    const facade = await loadDesktopStrongPtyBroker({ importModule });
+
+    expect(facade.issueLinuxWorkspaceSandboxExecutionContract()).toBe(broker);
+    expect(facade.spawnPty()).toBe(broker);
+    expect(facade.loadError).toBeNull();
+    expect(fileURLToPath(importModule.mock.calls[0][0])).toBe(
+      path.resolve(
+        __dirname,
+        "../../../../src/main/terminal",
+        PROCESS_BROKER_MODULE_REL,
+      ),
+    );
+  });
+
+  it("turns strong broker import failure into a synchronous fail-closed facade", async () => {
+    const cause = new Error("broker bundle unavailable");
+    const facade = await loadDesktopStrongPtyBroker({
+      importModule: async () => {
+        throw cause;
+      },
+    });
+
+    let error;
+    try {
+      facade.issueLinuxWorkspaceSandboxExecutionContract();
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error).toMatchObject({
+      code: "ERR_DESKTOP_PTY_STRONG_BACKEND_UNAVAILABLE",
+      sandboxReason: "desktop_strong_pty_backend_unavailable",
+      sandboxFailClosed: true,
+      cause,
+    });
+    expect(facade.loadError).toBe(error);
+    expect(() => facade.spawnPty()).toThrow(error);
+  });
+
+  it("injects the preloaded strong facade only into a Linux manager", async () => {
+    const issueContract = vi.fn();
+    const spawnPty = vi.fn();
+    const strongBroker = {
+      issueLinuxWorkspaceSandboxExecutionContract: issueContract,
+      spawnPty,
+    };
+    const importModule = vi.fn(async () => ({
+      executionBroker: strongBroker,
+    }));
+
+    const manager = await createPolicyAwarePtyManager({
+      resolveSandboxPolicy: () => null,
+      strongPtyBrokerLoaderOptions: { importModule },
+      _deps: {
+        platform: () => "linux",
+        loadNodePty: vi.fn(),
+        getProcessBroker: () => null,
+      },
+    });
+
+    expect(importModule).toHaveBeenCalledOnce();
+    expect(manager._deps.issueLinuxWorkspaceSandboxExecutionContract).toEqual(
+      expect.any(Function),
+    );
+    expect(manager._deps.spawnLinuxStrongPty).toEqual(expect.any(Function));
+    manager._deps.issueLinuxWorkspaceSandboxExecutionContract();
+    manager._deps.spawnLinuxStrongPty();
+    expect(issueContract.mock.contexts[0]).toBe(strongBroker);
+    expect(spawnPty.mock.contexts[0]).toBe(strongBroker);
+  });
+
+  it("keeps a Linux policy-bearing create fail-closed when broker preload failed", async () => {
+    const loadNodePty = vi.fn();
+    const getProcessBroker = vi.fn();
+    const manager = await createPolicyAwarePtyManager({
+      policyCwd: process.cwd(),
+      resolveSandboxPolicy: () =>
+        Object.freeze({
+          requiredBoundaries: Object.freeze(["filesystem"]),
+        }),
+      strongPtyBrokerLoaderOptions: {
+        importModule: async () => {
+          throw new Error("strong broker missing");
+        },
+      },
+      _deps: {
+        platform: () => "linux",
+        loadNodePty,
+        getProcessBroker,
+      },
+    });
+
+    expect(() => manager.create({ shell: "bash" })).toThrowError(
+      expect.objectContaining({
+        code: "ERR_DESKTOP_PTY_STRONG_BACKEND_UNAVAILABLE",
+        sandboxReason: "desktop_strong_pty_backend_unavailable",
+        sandboxFailClosed: true,
+        requiredBoundaries: ["filesystem"],
+        missingBoundaries: ["filesystem"],
+      }),
+    );
+    expect(loadNodePty).not.toHaveBeenCalled();
+    expect(getProcessBroker).not.toHaveBeenCalled();
   });
 
   it("resolves the packaged dist/main/terminal location to Resources/packages", () => {
@@ -143,6 +263,17 @@ describe("Desktop policy-aware PtyManager bootstrap", () => {
         "lib",
         "plugin-runtime",
         "bin.js",
+      ),
+    );
+    expect(path.resolve(packagedDirname, PROCESS_BROKER_MODULE_REL)).toBe(
+      path.join(
+        resourcesRoot,
+        "packages",
+        "cli",
+        "src",
+        "lib",
+        "process-execution-broker",
+        "index.js",
       ),
     );
   });

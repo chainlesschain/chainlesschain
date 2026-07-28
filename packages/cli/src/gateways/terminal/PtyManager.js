@@ -20,6 +20,7 @@
 import EventEmitter from "events";
 import { randomUUID } from "crypto";
 import { createRequire } from "module";
+import path from "node:path";
 import { RingBuffer } from "./RingBuffer.js";
 import { executionBroker } from "../../lib/process-execution-broker/index.js";
 
@@ -91,11 +92,17 @@ export class PtyManager extends EventEmitter {
     ) {
       throw new TypeError("resolveSandboxPolicy must be a function or null");
     }
-    this._policyCwd = opts.policyCwd || process.cwd();
+    this._policyCwd = path.resolve(opts.policyCwd || process.cwd());
     this._resolveSandboxPolicy = resolveSandboxPolicy;
     this._deps = {
       loadNodePty: opts._deps?.loadNodePty || (() => require("node-pty")),
       spawnPty: opts._deps?.spawnPty || null,
+      issueLinuxWorkspaceSandboxExecutionContract:
+        opts._deps?.issueLinuxWorkspaceSandboxExecutionContract ||
+        executionBroker.issueLinuxWorkspaceSandboxExecutionContract.bind(
+          executionBroker,
+        ),
+      platform: opts._deps?.platform || (() => process.platform),
       now: opts._deps?.now || (() => Date.now()),
     };
     this._sessions = new Map();
@@ -120,7 +127,10 @@ export class PtyManager extends EventEmitter {
       throw new Error("shell_not_allowed");
     }
 
-    const cwd = req.cwd || this.config.defaultCwd || process.cwd();
+    const cwd = path.resolve(
+      this._policyCwd,
+      req.cwd || this.config.defaultCwd || this._policyCwd,
+    );
     // A remote cwd may discover a stricter policy, but it must never replace
     // the fixed workspace root supplied by the host. Resolve and validate the
     // pinned policy before loading node-pty or allocating a native terminal.
@@ -133,15 +143,6 @@ export class PtyManager extends EventEmitter {
         )
       : null;
 
-    let pty;
-    try {
-      pty = this._deps.loadNodePty();
-    } catch {
-      const err = new Error("pty_native_unavailable");
-      err.cause = "node-pty failed to load (native binding missing)";
-      throw err;
-    }
-
     const cols = Number.isFinite(req.cols) ? req.cols : 80;
     const rows = Number.isFinite(req.rows) ? req.rows : 24;
     const cmd = resolveShellCmd(shell);
@@ -152,9 +153,7 @@ export class PtyManager extends EventEmitter {
       req.env && typeof req.env === "object" && !Array.isArray(req.env)
         ? req.env
         : {};
-    const spawnPty =
-      this._deps.spawnPty || executionBroker.spawnPty.bind(executionBroker);
-    const proc = spawnPty(pty, cmd, [], {
+    const brokerSpawnOptions = {
       name: "xterm-256color",
       cols,
       rows,
@@ -163,8 +162,39 @@ export class PtyManager extends EventEmitter {
       origin: "terminal:pty",
       policy: "allow",
       scope: "terminal",
+      shell: false,
       ...(sandboxPolicy ? { sandboxPolicy } : {}),
-    });
+    };
+    if (sandboxPolicy && this._deps.platform() === "linux") {
+      const contract = this._deps.issueLinuxWorkspaceSandboxExecutionContract(
+        cmd,
+        [],
+        brokerSpawnOptions,
+        this._policyCwd,
+        { pty: true },
+      );
+      if (!contract) {
+        const error = new Error("pty_sandbox_contract_unavailable");
+        error.code = "ERR_PTY_SANDBOX_CONTRACT_UNAVAILABLE";
+        error.sandboxFailClosed = true;
+        error.requiredBoundaries = [...sandboxPolicy.requiredBoundaries];
+        throw error;
+      }
+      brokerSpawnOptions.sandboxExecutionContract = contract;
+    }
+
+    let pty;
+    try {
+      pty = this._deps.loadNodePty();
+    } catch {
+      const err = new Error("pty_native_unavailable");
+      err.cause = "node-pty failed to load (native binding missing)";
+      throw err;
+    }
+
+    const spawnPty =
+      this._deps.spawnPty || executionBroker.spawnPty.bind(executionBroker);
+    const proc = spawnPty(pty, cmd, [], brokerSpawnOptions);
 
     const sessionId = randomUUID();
     const session = new PtySession({

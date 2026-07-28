@@ -14,6 +14,30 @@ function writeResult(result) {
   process.stdout.write(JSON.stringify(result));
 }
 
+function fdTargetCounts() {
+  const counts = new Map();
+  for (const entry of fs.readdirSync("/proc/self/fd")) {
+    try {
+      const target = String(fs.readlinkSync(`/proc/self/fd/${entry}`));
+      counts.set(target, (counts.get(target) || 0) + 1);
+    } catch {
+      // The descriptor used to enumerate /proc/self/fd can disappear.
+    }
+  }
+  return counts;
+}
+
+function positiveFdGrowth(before, after) {
+  return [...after.entries()]
+    .filter(([, count]) => count > 0)
+    .map(([target, count]) => ({
+      target,
+      count: count - (before.get(target) || 0),
+    }))
+    .filter((entry) => entry.count > 0)
+    .sort((left, right) => left.target.localeCompare(right.target));
+}
+
 function sha256(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
@@ -40,6 +64,25 @@ function hostDescendants(rootPid) {
     pending.push(...(children.get(pid) || []));
   }
   return descendants;
+}
+
+function hostProcessExists(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    if (error?.code === "ESRCH") return false;
+    throw error;
+  }
+}
+
+async function waitForHostProcessExit(pid, timeoutMs = 10_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (hostProcessExists(pid)) {
+    if (Date.now() >= deadline) return false;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  return true;
 }
 
 async function waitForGenericGrandchild(wrapperPid, timeoutMs = 10_000) {
@@ -230,6 +273,74 @@ if (mode === "positive") {
   );
   writeResult({
     result,
+    supervisorPlan,
+    audit: executionBroker.getAuditLog(1)[0] || null,
+  });
+} else if (mode === "plugin-command-background") {
+  const beforeFds = fdTargetCounts();
+  const { result: launch, supervisorPlan } = await executeWithSupervisorPlan(
+    () =>
+      executeTool(
+        "run_shell",
+        { command: extra, run_in_background: true },
+        { cwd: value },
+      ),
+  );
+  let completion = null;
+  let stdout = "";
+  let stderr = "";
+  let activeStatus = null;
+  let activeFdGrowth = null;
+  let activeDescendantHostPids = [];
+  let killRequested = false;
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline) {
+    completion = await executeTool(
+      "check_shell",
+      { task_id: launch.task_id },
+      {},
+    );
+    stdout += completion.stdout || "";
+    stderr += completion.stderr || "";
+    if (
+      activeFdGrowth === null &&
+      completion.status === "running" &&
+      stdout.length > 0
+    ) {
+      activeStatus = completion.status;
+      activeFdGrowth = positiveFdGrowth(beforeFds, fdTargetCounts());
+      const activeAudit = executionBroker.getAuditLog(1)[0] || null;
+      activeDescendantHostPids = Number.isSafeInteger(activeAudit?.pid)
+        ? hostDescendants(activeAudit.pid)
+        : [];
+      const killed = await executeTool(
+        "check_shell",
+        { task_id: launch.task_id, kill: true },
+        {},
+      );
+      stdout += killed.stdout || "";
+      stderr += killed.stderr || "";
+      completion = killed;
+      killRequested = killed.killed === true;
+    }
+    if (completion.status !== "running") break;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  const descendantExitResults = await Promise.all(
+    activeDescendantHostPids.map((pid) => waitForHostProcessExit(pid)),
+  );
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  writeResult({
+    launch,
+    completion: completion ? { ...completion, stdout, stderr } : null,
+    activeStatus,
+    activeFdGrowth,
+    activeDescendantHostPids,
+    killRequested,
+    survivingDescendantHostPids: activeDescendantHostPids.filter(
+      (_pid, index) => descendantExitResults[index] !== true,
+    ),
+    finalFdGrowth: positiveFdGrowth(beforeFds, fdTargetCounts()),
     supervisorPlan,
     audit: executionBroker.getAuditLog(1)[0] || null,
   });

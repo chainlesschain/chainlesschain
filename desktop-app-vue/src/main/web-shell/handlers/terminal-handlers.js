@@ -18,6 +18,10 @@
  * selected that project. Client-side filtering is not an authorization
  * boundary.
  *
+ * projectId is a session partition inside the already authenticated/trusted
+ * device boundary; it is not a per-client project ACL. `verifyTrustedSource`
+ * remains the caller trust gate.
+ *
  * Payload data is base64(UTF-8) on the wire — see design §3.3 / §3.4. The
  * handlers do the encode/decode so the PtyManager stays Buffer-native and
  * SPA stays string-native.
@@ -63,6 +67,9 @@ function base64ToBuffer(s) {
  *   Per-envelope trust gate — return false to silently drop. Plan A
  *   intends to wire this to paired_devices/trustLevel checks in Phase 3;
  *   in Phase 1 (developer using own desktop) default-allows everything.
+ * @property {boolean} [requireProjectScope]
+ *   Require every operation to carry a projectId. Defaults to the
+ *   PtyManager's DB-binding mode.
  */
 
 /**
@@ -85,15 +92,20 @@ function createTerminalHandlers(options) {
     options.requireProjectScope ?? ptyManager.requiresProjectScope === true;
   const clientProjectScopes = new Map();
 
-  function projectIdFrom(payload) {
+  function optionalProjectIdFrom(payload) {
     const projectId =
       typeof payload?.projectId === "string" ? payload.projectId.trim() : "";
+    return projectId || null;
+  }
+
+  function projectIdFrom(payload) {
+    const projectId = optionalProjectIdFrom(payload);
     if (requireProjectScope && !projectId) {
       const error = new Error("terminal_project_scope_required");
       error.code = "ERR_PTY_PROJECT_SCOPE_REQUIRED";
       throw error;
     }
-    return projectId || null;
+    return projectId;
   }
 
   function rememberClientProject(ctx, projectId) {
@@ -136,8 +148,12 @@ function createTerminalHandlers(options) {
   }
 
   // Server → project-subscribed-client fan-out plumbing.
+  let detachServerEvents = null;
   function attachServerEvents() {
-    ptyManager.on("stdout", ({ sessionId, projectId, data, seq }) => {
+    if (detachServerEvents) {
+      return detachServerEvents;
+    }
+    const onStdout = ({ sessionId, projectId, data, seq }) => {
       publishProjectEvent(projectId, {
         type: "terminal.stdout",
         payload: {
@@ -147,13 +163,32 @@ function createTerminalHandlers(options) {
           seq,
         },
       });
-    });
-    ptyManager.on("exit", ({ sessionId, projectId, exitCode, signal }) => {
+    };
+    const onExit = ({ sessionId, projectId, exitCode, signal }) => {
       publishProjectEvent(projectId, {
         type: "terminal.exit",
         payload: { sessionId, projectId, exitCode, signal },
       });
-    });
+    };
+    ptyManager.on("stdout", onStdout);
+    ptyManager.on("exit", onExit);
+    const detach = () => {
+      if (detachServerEvents !== detach) {
+        return;
+      }
+      const remove =
+        typeof ptyManager.off === "function"
+          ? ptyManager.off.bind(ptyManager)
+          : typeof ptyManager.removeListener === "function"
+            ? ptyManager.removeListener.bind(ptyManager)
+            : null;
+      remove?.("stdout", onStdout);
+      remove?.("exit", onExit);
+      clientProjectScopes.clear();
+      detachServerEvents = null;
+    };
+    detachServerEvents = detach;
+    return detach;
   }
 
   const handlers = {
@@ -165,9 +200,16 @@ function createTerminalHandlers(options) {
       // PtyManager.create throws on whitelist / native / cap failures.
       // The dispatcher converts thrown errors into `.result` ok:false
       // envelopes, so SPA gets a clean error.code.
-      const projectId = projectIdFrom(payload);
       const created = createBoundTerminalSession(ptyManager, payload);
-      rememberClientProject(ctx, projectId);
+      const resolvedProjectId = optionalProjectIdFrom(created);
+      if (requireProjectScope && !resolvedProjectId) {
+        const error = new Error("terminal_project_binding_missing");
+        error.code = "ERR_PTY_PROJECT_BINDING_INVALID";
+        throw error;
+      }
+      // Legacy clients may select by cwd. Subscribe with the manager's
+      // DB-resolved id, never the caller's selector.
+      rememberClientProject(ctx, resolvedProjectId);
       return created;
     },
 

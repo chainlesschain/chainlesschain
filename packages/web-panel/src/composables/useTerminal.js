@@ -5,16 +5,18 @@
  * `desktop-app-vue/src/main/web-shell/handlers/terminal-handlers.js`):
  *
  *   request/reply:  terminal.create / list / stdin / resize / close / history
- *   server push:    terminal.stdout / terminal.exit  (broadcast to all clients)
+ *   server push:    terminal.stdout / terminal.exit
+ *                   (only connections subscribed to the matching project)
  *
  * Two API surfaces:
  *
  *   1. Imperative — one-shot calls returning Promises:
  *
  *        const t = useTerminal()
- *        const { sessionId } = await t.create({ shell: 'pwsh' })
- *        await t.stdin(sessionId, 'ls\r')
- *        await t.close(sessionId)
+ *        const { sessionId, projectId } =
+ *          await t.create({ projectId: selectedProjectId, shell: 'pwsh' })
+ *        await t.stdin(projectId, sessionId, 'ls\r')
+ *        await t.close(projectId, sessionId)
  *
  *   2. Subscription — server push fan-out via callbacks:
  *
@@ -34,74 +36,74 @@
  * `ws.onMessage` listener; later calls just register their callbacks.
  */
 
-import { useWsStore } from '../stores/ws.js'
+import { useWsStore } from "../stores/ws.js";
 
 // Module-singleton fan-out: keyed by sessionId, value = Set of callbacks.
 // Listeners are reused across all callers of useTerminal() in one tab.
-const stdoutSubs = new Map() // sessionId → Set<(payload) => void>
-const exitSubs = new Map() // sessionId → Set<(payload) => void>
+const stdoutSubs = new Map(); // sessionId → Set<(payload) => void>
+const exitSubs = new Map(); // sessionId → Set<(payload) => void>
 // "any session" subscriptions — useful for the "+ 새 session" UI which
 // wants to see exits without binding to a known id yet.
-const stdoutAnySubs = new Set()
-const exitAnySubs = new Set()
+const stdoutAnySubs = new Set();
+const exitAnySubs = new Set();
 
-let wsListenerInstalled = false
+let wsListenerInstalled = false;
 function ensureWsListener(ws) {
-  if (wsListenerInstalled) return
-  wsListenerInstalled = true
+  if (wsListenerInstalled) return;
+  wsListenerInstalled = true;
   ws.onMessage((msg) => {
-    if (!msg || typeof msg.type !== 'string') return
-    if (msg.type === 'terminal.stdout') {
-      const { sessionId, projectId, data, seq } = msg.payload || {}
-      if (!sessionId) return
+    if (!msg || typeof msg.type !== "string") return;
+    if (msg.type === "terminal.stdout") {
+      const { sessionId, projectId, data, seq } = msg.payload || {};
+      if (!sessionId) return;
       // Decode base64 → utf-8 once per push so every subscriber gets the
       // already-decoded string. Doing it inline (rather than per-callback)
       // saves CPU when multiple components watch the same session.
-      let decoded
+      let decoded;
       try {
         // atob → binary string → utf-8 (handles multi-byte CJK / emoji)
-        const bin = atob(data || '')
-        const bytes = new Uint8Array(bin.length)
-        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
-        decoded = new TextDecoder('utf-8').decode(bytes)
+        const bin = atob(data || "");
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        decoded = new TextDecoder("utf-8").decode(bytes);
       } catch {
-        decoded = ''
+        decoded = "";
       }
-      const evt = { sessionId, projectId, data: decoded, seq }
-      stdoutSubs.get(sessionId)?.forEach((cb) => cb(evt))
-      stdoutAnySubs.forEach((cb) => cb(evt))
-    } else if (msg.type === 'terminal.exit') {
-      const { sessionId, projectId, exitCode, signal } = msg.payload || {}
-      if (!sessionId) return
-      const evt = { sessionId, projectId, exitCode, signal }
-      exitSubs.get(sessionId)?.forEach((cb) => cb(evt))
-      exitAnySubs.forEach((cb) => cb(evt))
+      const evt = { sessionId, projectId, data: decoded, seq };
+      stdoutSubs.get(sessionId)?.forEach((cb) => cb(evt));
+      stdoutAnySubs.forEach((cb) => cb(evt));
+    } else if (msg.type === "terminal.exit") {
+      const { sessionId, projectId, exitCode, signal } = msg.payload || {};
+      if (!sessionId) return;
+      const evt = { sessionId, projectId, exitCode, signal };
+      exitSubs.get(sessionId)?.forEach((cb) => cb(evt));
+      exitAnySubs.forEach((cb) => cb(evt));
     }
-  })
+  });
 }
 
 function toBase64Utf8(str) {
-  const bytes = new TextEncoder().encode(str)
-  let bin = ''
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
-  return btoa(bin)
+  const bytes = new TextEncoder().encode(str);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
 }
 
 function fromBase64Utf8(b64) {
-  const bin = atob(b64 || '')
-  const bytes = new Uint8Array(bin.length)
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
-  return new TextDecoder('utf-8').decode(bytes)
+  const bin = atob(b64 || "");
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder("utf-8").decode(bytes);
 }
 
 export function useTerminal() {
-  const ws = useWsStore()
-  ensureWsListener(ws)
+  const ws = useWsStore();
+  ensureWsListener(ws);
 
-  /** @returns {Promise<{ sessionId, pid, shell, createdAt }>} */
+  /** @returns {Promise<{ sessionId, pid, shell, projectId, cwd, createdAt }>} */
   async function create(req = {}) {
     const reply = await ws.sendRaw({
-      type: 'terminal.create',
+      type: "terminal.create",
       payload: {
         projectId: req.projectId,
         shell: req.shell,
@@ -110,58 +112,59 @@ export function useTerminal() {
         cols: req.cols,
         rows: req.rows,
       },
-    })
+    });
     if (reply.ok === false) {
-      throw new Error(reply.error || 'terminal_create_failed')
+      throw new Error(reply.error || "terminal_create_failed");
     }
     // Server replies as { type: 'terminal.create.result', ok, result } via
     // ws-cli-loader's non-streaming envelope. ws-store flattens to whatever
     // sendRaw resolves with — for non-streaming topics it's the full frame.
-    return reply.result ?? reply
+    return reply.result ?? reply;
   }
 
-  /** @returns {Promise<Array<{ id, shell, cwd, createdAt, alive, lastSeq }>>} */
+  /** @returns {Promise<Array<{ id, shell, projectId, cwd, createdAt, alive, lastSeq }>>} */
   async function list(projectId) {
     const reply = await ws.sendRaw({
-      type: 'terminal.list',
+      type: "terminal.list",
       payload: { projectId },
-    })
-    if (reply.ok === false) throw new Error(reply.error || 'terminal_list_failed')
-    const result = reply.result ?? reply
-    return Array.isArray(result.sessions) ? result.sessions : []
+    });
+    if (reply.ok === false)
+      throw new Error(reply.error || "terminal_list_failed");
+    const result = reply.result ?? reply;
+    return Array.isArray(result.sessions) ? result.sessions : [];
   }
 
   async function stdin(projectId, sessionId, data) {
     const reply = await ws.sendRaw({
-      type: 'terminal.stdin',
+      type: "terminal.stdin",
       payload: { projectId, sessionId, data: toBase64Utf8(String(data)) },
-    })
+    });
     if (reply.ok === false) {
-      throw new Error(reply.error || 'terminal_stdin_failed')
+      throw new Error(reply.error || "terminal_stdin_failed");
     }
-    return reply.result ?? reply
+    return reply.result ?? reply;
   }
 
   async function resize(projectId, sessionId, cols, rows) {
     const reply = await ws.sendRaw({
-      type: 'terminal.resize',
+      type: "terminal.resize",
       payload: { projectId, sessionId, cols, rows },
-    })
+    });
     if (reply.ok === false) {
-      throw new Error(reply.error || 'terminal_resize_failed')
+      throw new Error(reply.error || "terminal_resize_failed");
     }
-    return reply.result ?? reply
+    return reply.result ?? reply;
   }
 
   async function close(projectId, sessionId) {
     const reply = await ws.sendRaw({
-      type: 'terminal.close',
+      type: "terminal.close",
       payload: { projectId, sessionId },
-    })
+    });
     if (reply.ok === false) {
-      throw new Error(reply.error || 'terminal_close_failed')
+      throw new Error(reply.error || "terminal_close_failed");
     }
-    return reply.result ?? reply
+    return reply.result ?? reply;
   }
 
   /**
@@ -170,61 +173,67 @@ export function useTerminal() {
    */
   async function history(projectId, sessionId, fromSeq = 0) {
     const reply = await ws.sendRaw({
-      type: 'terminal.history',
+      type: "terminal.history",
       payload: { projectId, sessionId, fromSeq },
-    })
+    });
     if (reply.ok === false) {
-      throw new Error(reply.error || 'terminal_history_failed')
+      throw new Error(reply.error || "terminal_history_failed");
     }
-    const result = reply.result ?? reply
+    const result = reply.result ?? reply;
     return {
       truncated: !!result.truncated,
       chunks: (result.chunks || []).map((c) => ({
         seq: c.seq,
         data: fromBase64Utf8(c.data),
       })),
-    }
+    };
   }
 
   function onStdout(sessionId, cb) {
     if (!sessionId) {
-      stdoutAnySubs.add(cb)
-      return () => stdoutAnySubs.delete(cb)
+      stdoutAnySubs.add(cb);
+      return () => stdoutAnySubs.delete(cb);
     }
-    if (!stdoutSubs.has(sessionId)) stdoutSubs.set(sessionId, new Set())
-    stdoutSubs.get(sessionId).add(cb)
+    if (!stdoutSubs.has(sessionId)) stdoutSubs.set(sessionId, new Set());
+    stdoutSubs.get(sessionId).add(cb);
     return () => {
-      stdoutSubs.get(sessionId)?.delete(cb)
-      if (stdoutSubs.get(sessionId)?.size === 0) stdoutSubs.delete(sessionId)
-    }
+      stdoutSubs.get(sessionId)?.delete(cb);
+      if (stdoutSubs.get(sessionId)?.size === 0) stdoutSubs.delete(sessionId);
+    };
   }
 
   function onExit(sessionId, cb) {
     if (!sessionId) {
-      exitAnySubs.add(cb)
-      return () => exitAnySubs.delete(cb)
+      exitAnySubs.add(cb);
+      return () => exitAnySubs.delete(cb);
     }
-    if (!exitSubs.has(sessionId)) exitSubs.set(sessionId, new Set())
-    exitSubs.get(sessionId).add(cb)
+    if (!exitSubs.has(sessionId)) exitSubs.set(sessionId, new Set());
+    exitSubs.get(sessionId).add(cb);
     return () => {
-      exitSubs.get(sessionId)?.delete(cb)
-      if (exitSubs.get(sessionId)?.size === 0) exitSubs.delete(sessionId)
-    }
+      exitSubs.get(sessionId)?.delete(cb);
+      if (exitSubs.get(sessionId)?.size === 0) exitSubs.delete(sessionId);
+    };
   }
 
   return {
-    create, list, stdin, resize, close, history,
-    onStdout, onExit,
+    create,
+    list,
+    stdin,
+    resize,
+    close,
+    history,
+    onStdout,
+    onExit,
     // exported for tests
     _internal: { stdoutSubs, exitSubs, toBase64Utf8, fromBase64Utf8 },
-  }
+  };
 }
 
 // Test-only — reset the module-singleton state between unit tests.
 export function _resetTerminalSubsForTest() {
-  stdoutSubs.clear()
-  exitSubs.clear()
-  stdoutAnySubs.clear()
-  exitAnySubs.clear()
-  wsListenerInstalled = false
+  stdoutSubs.clear();
+  exitSubs.clear();
+  stdoutAnySubs.clear();
+  exitAnySubs.clear();
+  wsListenerInstalled = false;
 }

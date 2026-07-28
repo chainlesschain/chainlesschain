@@ -102,10 +102,7 @@ describe("LSPClient handshake", () => {
     const child = new FakeChild();
     const contract = Object.freeze({ kind: "test-workspace-contract" });
     const issueAuthority = vi
-      .spyOn(
-        executionBroker,
-        "issueLinuxWorkspaceSandboxExecutionContract",
-      )
+      .spyOn(executionBroker, "issueLinuxWorkspaceSandboxExecutionContract")
       .mockReturnValue(contract);
     const brokerSpawn = vi
       .spyOn(executionBroker, "spawn")

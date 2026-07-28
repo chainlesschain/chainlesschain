@@ -24,6 +24,7 @@ import path from "node:path";
 
 export const LINUX_GENERIC_BWRAP_BACKEND = "linux-bwrap-workspace";
 export const LINUX_GENERIC_CONTRACT_KIND = "strict-workspace-command";
+export const LINUX_GENERIC_PTY_LAUNCHER_PATH = "/usr/bin/setsid";
 
 const SUPPORTED_BOUNDARIES = new Set(["filesystem", "network"]);
 const SYSTEM_RUNTIME_DESTINATIONS = new Set([
@@ -97,6 +98,7 @@ const CONTRACT_VERSION = 1;
 const PLAN_VERSION = 1;
 const SANDBOX_HOME = "/home/sandbox";
 const SUPERVISOR_STAGING_PATH = "/run/.chainless-bwrap-supervisor";
+const PTY_LAUNCHER_STAGING_PATH = "/run/.chainless-pty-launcher";
 const SCRATCH_MOUNTS = ["/tmp", "/run", "/var/tmp", SANDBOX_HOME];
 
 const issuedContracts = new WeakMap();
@@ -192,6 +194,12 @@ function normalizeBoundaries(boundaries) {
 function normalizeShell(shell) {
   if (shell === undefined || shell === null || shell === false) return false;
   throw new TypeError("strong Linux workspace sandbox requires shell:false");
+}
+
+function normalizePty(pty) {
+  if (pty === undefined || pty === null || pty === false) return false;
+  if (pty === true) return true;
+  throw new TypeError("strong Linux workspace sandbox requires pty:boolean");
 }
 
 function normalizeStdio(stdio) {
@@ -324,6 +332,10 @@ export function issueLinuxGenericSandboxExecutionContract(
   const args = normalizeArgs(spec?.args || []);
   const shell = normalizeShell(spec?.shell);
   const sync = spec?.sync === true;
+  const pty = normalizePty(spec?.pty);
+  if (pty && sync) {
+    throw new TypeError("strong Linux workspace PTY cannot be synchronous");
+  }
   const stdio = normalizeStdio(spec?.stdio);
   const requiredBoundaries = normalizeBoundaries(spec?.requiredBoundaries);
   if (
@@ -355,6 +367,7 @@ export function issueLinuxGenericSandboxExecutionContract(
     args,
     shell,
     sync,
+    pty,
     stdio,
     requiredBoundaries,
   };
@@ -383,11 +396,13 @@ function issuedBindingMatches(issued, provenance = {}) {
   let args;
   let boundaries;
   let shell;
+  let pty;
   let stdio;
   try {
     args = normalizeArgs(provenance.args || []);
     boundaries = normalizeBoundaries(provenance.requiredBoundaries);
     shell = normalizeShell(provenance.shell);
+    pty = normalizePty(provenance.pty);
     stdio = normalizeStdio(provenance.stdio);
   } catch {
     return false;
@@ -397,6 +412,7 @@ function issuedBindingMatches(issued, provenance = {}) {
     provenance.command === issued.command &&
     provenance.cwd === issued.workingDirectory &&
     provenance.sync === issued.sync &&
+    pty === issued.pty &&
     shell === issued.shell &&
     args.length === issued.args.length &&
     args.every((value, index) => value === issued.args[index]) &&
@@ -514,12 +530,23 @@ function validateWorkspaceMountTopology(value, issued) {
     !/^[a-f0-9]{64}$/.test(value.digest || "") ||
     !Number.isSafeInteger(value.lineageEntryCount) ||
     value.lineageEntryCount < 1 ||
+    value.lineageEntryCount > 4096 ||
     !Number.isSafeInteger(value.filesystemEntryCount) ||
     value.filesystemEntryCount < 1 ||
+    value.filesystemEntryCount > 16384 ||
     !Number.isSafeInteger(value.aliasCount) ||
-    value.aliasCount < 1 ||
+    value.aliasCount !== 1 ||
     !Number.isSafeInteger(value.forbiddenIdentityCount) ||
     value.forbiddenIdentityCount < 1 ||
+    value.forbiddenIdentityCount > 64 ||
+    !/^[a-f0-9]{64}$/.test(value.sourceMountSetDigest || "") ||
+    !Number.isSafeInteger(value.sourceMountCount) ||
+    value.sourceMountCount < 2 ||
+    value.sourceMountCount > 64 ||
+    !Number.isSafeInteger(value.importedMountEntryCount) ||
+    value.importedMountEntryCount < value.sourceMountCount ||
+    value.importedMountEntryCount > 65536 ||
+    value.sourceMountPropagationPrivateAtAttestation !== true ||
     value.strictDescendantMountsAtAttestation !== 0 ||
     value.rootAliasAttested !== true ||
     value.recursiveBind !== true ||
@@ -538,6 +565,11 @@ function validateWorkspaceMountTopology(value, issued) {
     filesystemEntryCount: value.filesystemEntryCount,
     aliasCount: value.aliasCount,
     forbiddenIdentityCount: value.forbiddenIdentityCount,
+    sourceMountSetDigest: value.sourceMountSetDigest,
+    sourceMountCount: value.sourceMountCount,
+    importedMountEntryCount: value.importedMountEntryCount,
+    sourceMountPropagationPrivateAtAttestation:
+      value.sourceMountPropagationPrivateAtAttestation,
     strictDescendantMountsAtAttestation:
       value.strictDescendantMountsAtAttestation,
     rootAliasAttested: value.rootAliasAttested,
@@ -578,6 +610,30 @@ function validateResourceContract(resources, issued) {
     !Number.isInteger(resources.supervisor?.finalFd)
   ) {
     throw new Error("bubblewrap supervisor is not root-owned and pinned");
+  }
+  let ptyLauncher = null;
+  if (issued.pty) {
+    if (
+      resources.ptyLauncher?.identity?.realPath !==
+        LINUX_GENERIC_PTY_LAUNCHER_PATH ||
+      !validateRootOwnedIdentity(resources.ptyLauncher?.identity, {
+        directory: false,
+      }) ||
+      !/^[a-f0-9]{64}$/.test(resources.ptyLauncher?.sha256 || "") ||
+      !Number.isSafeInteger(resources.ptyLauncher?.bytes) ||
+      resources.ptyLauncher.bytes <= 0 ||
+      !Number.isInteger(resources.ptyLauncher?.probeFd) ||
+      !Number.isInteger(resources.ptyLauncher?.finalFd)
+    ) {
+      throw new Error("PTY session launcher is not root-owned and pinned");
+    }
+    ptyLauncher = {
+      identity: resources.ptyLauncher.identity,
+      sha256: resources.ptyLauncher.sha256,
+      bytes: resources.ptyLauncher.bytes,
+    };
+  } else if (resources.ptyLauncher !== undefined) {
+    throw new Error("non-PTY launch supplied a PTY session launcher");
   }
   const system = Array.isArray(resources.system) ? resources.system : [];
   if (!system.some((entry) => entry.destination === "/usr")) {
@@ -657,6 +713,7 @@ function validateResourceContract(resources, issued) {
       sha256: resources.supervisor.sha256,
       bytes: resources.supervisor.bytes,
     },
+    ptyLauncher,
     system,
     symlinks,
     etc,
@@ -749,6 +806,15 @@ function directoryArguments(directoryDestinations, fileDestinations) {
 
 function descriptorLayout(stdio, resources, validated, workspaceRoot, phase) {
   const descriptors = [
+    ...(validated.ptyLauncher
+      ? [
+          {
+            kind: "ptyLauncher",
+            fd: resources.ptyLauncher[`${phase}Fd`],
+            destination: PTY_LAUNCHER_STAGING_PATH,
+          },
+        ]
+      : []),
     {
       kind: "supervisor",
       fd: resources.supervisor[`${phase}Fd`],
@@ -791,6 +857,7 @@ function descriptorLayout(stdio, resources, validated, workspaceRoot, phase) {
 function buildPolicyArgs({ issued, validated, descriptors, environment }) {
   const byKind = (kind) =>
     descriptors.filter((descriptor) => descriptor.kind === kind);
+  const ptyLauncher = byKind("ptyLauncher")[0] || null;
   const supervisor = byKind("supervisor")[0];
   const workspace = byKind("workspace")[0];
   const seccomp = byKind("seccomp")[0];
@@ -805,7 +872,7 @@ function buildPolicyArgs({ issued, validated, descriptors, environment }) {
   );
   const args = [
     "--die-with-parent",
-    "--new-session",
+    ...(issued.pty ? [] : ["--new-session"]),
     "--unshare-user",
     "--disable-userns",
     "--assert-userns-disabled",
@@ -824,6 +891,15 @@ function buildPolicyArgs({ issued, validated, descriptors, environment }) {
     args.push("--dir", directory);
   }
   args.push(
+    ...(ptyLauncher
+      ? [
+          "--perms",
+          "0000",
+          "--file",
+          String(ptyLauncher.childFd),
+          PTY_LAUNCHER_STAGING_PATH,
+        ]
+      : []),
     "--perms",
     "0000",
     "--file",
@@ -951,6 +1027,15 @@ function policyBinding({
         ? { identity: validated.target.identity }
         : {}),
     },
+    pty: issued.pty
+      ? {
+          mode: "dedicated-controlling-terminal",
+          launcher: validated.ptyLauncher,
+          launcherDescriptorBound: true,
+          launcherDescriptorConsumedBeforeTarget: true,
+          bwrapNewSession: false,
+        }
+      : { mode: "none" },
     requiredBoundaries: [...requiredBoundaries].sort(),
     environmentDigest: sha256(stableJson(environment)),
     policyArgs,
@@ -1067,6 +1152,7 @@ export function planLinuxGenericBubblewrap(
     cwd: "/",
     shell: false,
     encoding: "utf8",
+    timeout: 10_000,
     stdio: [
       ...issued.stdio.map((_, index) =>
         index === 1 || index === 2 ? "pipe" : "ignore",
@@ -1138,13 +1224,22 @@ export function planLinuxGenericBubblewrap(
   const supervisor = finalDescriptors.find(
     (entry) => entry.kind === "supervisor",
   );
-  const command = `/proc/self/fd/${supervisor.childFd}`;
-  const args = Object.freeze([
+  const ptyLauncher = finalDescriptors.find(
+    (entry) => entry.kind === "ptyLauncher",
+  );
+  const supervisorCommand = `/proc/self/fd/${supervisor.childFd}`;
+  const command = issued.pty
+    ? `/proc/self/fd/${ptyLauncher.childFd}`
+    : supervisorCommand;
+  const bwrapArgs = [
     ...policyArgs,
     "--",
     validated.target.resolvedCommand,
     ...validated.target.args,
-  ]);
+  ];
+  const args = Object.freeze(
+    issued.pty ? ["--ctty", supervisorCommand, ...bwrapArgs] : bwrapArgs,
+  );
   const options = Object.freeze({
     ...passthroughSpawnOptions(spawnOptions),
     cwd: "/",
@@ -1187,10 +1282,16 @@ export function planLinuxGenericBubblewrap(
       targetRuntime: "generic-command",
       contentSnapshot: false,
       handleAtomic: false,
+      // Every descriptor bind source is private at both attestations, which
+      // prevents ongoing host propagation after bwrap clones that topology.
+      // The final check is still not atomic with the subsequent native spawn.
       mountTopologyAtomic: false,
       contractDigest: issued.contractDigest,
       policyDigest,
       mountTopologyDigest: validated.workspaceMountTopology.digest,
+      sourceMountSetDigest:
+        validated.workspaceMountTopology.sourceMountSetDigest,
+      sourceMountPropagationPrivateAtAttestation: true,
       emptyRoot: true,
       undeclaredRootReadOnly: true,
       workspaceReadWrite: true,
@@ -1228,6 +1329,9 @@ export function planLinuxGenericBubblewrap(
         "no-strict-descendants-or-forbidden-root-aliases-at-attestation",
       mountTopologySource: validated.workspaceMountTopology.source,
       mountTopologyDigest: validated.workspaceMountTopology.digest,
+      sourceMountSetDigest:
+        validated.workspaceMountTopology.sourceMountSetDigest,
+      sourceMountPropagationPrivateAtAttestation: true,
       mountTopologyAtomic: false,
     }),
     networkPolicy: Object.freeze({
@@ -1235,6 +1339,19 @@ export function planLinuxGenericBubblewrap(
       namespaceIdentityChanged: true,
       seccomp: "deny-network-creation",
     }),
+    ptyPolicy: issued.pty
+      ? Object.freeze({
+          mode: "dedicated-controlling-terminal",
+          launcherPath: validated.ptyLauncher.identity.realPath,
+          launcherSha256: validated.ptyLauncher.sha256,
+          launcherBytes: validated.ptyLauncher.bytes,
+          launcherDescriptorBound: true,
+          launcherExecutablePinned: true,
+          launcherDescriptorConsumedBeforeTarget: true,
+          launcherStagingPathHidden: true,
+          bwrapNewSession: false,
+        })
+      : null,
     postSpawn: Object.freeze({ required: false, mode: "none" }),
     cleanup: finalCleanup,
   });
@@ -1248,7 +1365,8 @@ export function verifyLinuxGenericBubblewrapPlan(plan) {
     Object.isFrozen(plan) &&
     Object.isFrozen(plan.args) &&
     Object.isFrozen(plan.options) &&
-    Object.isFrozen(plan.options.stdio)
+    Object.isFrozen(plan.options.stdio) &&
+    (plan.ptyPolicy === null || Object.isFrozen(plan.ptyPolicy))
   );
 }
 

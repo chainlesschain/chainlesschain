@@ -27,6 +27,7 @@ import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import * as fs from "node:fs";
+import * as tty from "node:tty";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
@@ -85,6 +86,396 @@ function getHooksV2() {
   return _hooksV2;
 }
 
+function createNativePtyAdapter() {
+  const MAX_PENDING_WRITE_BYTES = 1024 * 1024;
+  const terminalStates = new WeakMap();
+  const blockingSlaveOwners = new Map();
+  const closeStream = (stream) => {
+    try {
+      stream?.destroy?.();
+    } catch {
+      // PTY cleanup is best-effort after the owning process has terminated.
+    }
+  };
+  const terminalState = (terminal) => {
+    const state = terminalStates.get(terminal);
+    if (!state) {
+      throw new Error("pty_terminal_state_unavailable");
+    }
+    return state;
+  };
+  const processWriteQueue = (state) => {
+    if (state.disposed || state.writeQueue.length === 0) {
+      return;
+    }
+    const task = state.writeQueue[0];
+    let written = 0;
+    try {
+      // The node-pty master is non-blocking. Keep the syscall synchronous so
+      // releaseTerminal() can never close and recycle this numeric fd while a
+      // libuv fs.write request still refers to it. Bound each turn for event
+      // loop fairness; EAGAIN is retried from the next turn.
+      written = fs.writeSync(
+        state.fd,
+        task.buffer,
+        task.offset,
+        Math.min(task.buffer.byteLength - task.offset, 64 * 1024),
+        null,
+      );
+    } catch (error) {
+      if (error.code !== "EAGAIN" && error.code !== "EWOULDBLOCK") {
+        state.writeQueue.length = 0;
+        state.pendingWriteBytes = 0;
+      }
+    }
+    if (written > 0) {
+      task.offset += written;
+      state.pendingWriteBytes -= written;
+      if (task.offset >= task.buffer.byteLength) {
+        state.writeQueue.shift();
+      }
+    }
+    if (
+      !state.disposed &&
+      state.writeQueue.length > 0 &&
+      !state.writeImmediate
+    ) {
+      state.writeImmediate = setImmediate(() => {
+        state.writeImmediate = null;
+        processWriteQueue(state);
+      });
+    }
+  };
+  return {
+    allocate(ptyModule, options) {
+      if (
+        typeof ptyModule?.native?.open !== "function" ||
+        typeof ptyModule.native.resize !== "function"
+      ) {
+        throw new TypeError("pty_module_native_open_unavailable");
+      }
+      const cols = options?.cols || 80;
+      const rows = options?.rows || 24;
+      if (
+        !Number.isInteger(cols) ||
+        cols <= 0 ||
+        cols > 65_535 ||
+        !Number.isInteger(rows) ||
+        rows <= 0 ||
+        rows > 65_535
+      ) {
+        throw new TypeError("pty_dimensions_invalid");
+      }
+      let opened;
+      let master = null;
+      try {
+        opened = ptyModule.native.open(cols, rows);
+        if (
+          !Number.isInteger(opened?.master) ||
+          opened.master < 0 ||
+          !Number.isInteger(opened?.slave) ||
+          opened.slave < 0 ||
+          opened.master === opened.slave ||
+          typeof opened?.pty !== "string" ||
+          !/^\/dev\/pts\/\d+$/.test(opened.pty)
+        ) {
+          throw new Error("pty_native_identity_unavailable");
+        }
+        const masterStat = fs.fstatSync(opened.master);
+        const slaveStat = fs.fstatSync(opened.slave);
+        const ptmxStat = fs.statSync("/dev/ptmx");
+        const pathStat = fs.statSync(opened.pty);
+        if (
+          !masterStat.isCharacterDevice() ||
+          !slaveStat.isCharacterDevice() ||
+          !ptmxStat.isCharacterDevice() ||
+          !pathStat.isCharacterDevice() ||
+          String(masterStat.dev) !== String(ptmxStat.dev) ||
+          String(masterStat.rdev) !== String(ptmxStat.rdev) ||
+          String(pathStat.dev) !== String(slaveStat.dev) ||
+          String(pathStat.rdev) !== String(slaveStat.rdev)
+        ) {
+          throw new Error("pty_native_identity_invalid");
+        }
+        master = new tty.ReadStream(opened.master);
+        const encoding =
+          options?.encoding === null
+            ? null
+            : typeof options?.encoding === "string"
+              ? options.encoding
+              : "utf8";
+        if (encoding !== null) {
+          master.setEncoding(encoding);
+        }
+        const terminal = {
+          master,
+          ptsName: opened.pty,
+        };
+        const state = {
+          fd: opened.master,
+          rawSlaveFd: opened.slave,
+          blockingSlaveFd: null,
+          native: ptyModule.native,
+          cols,
+          rows,
+          encoding: encoding || "utf8",
+          writeQueue: [],
+          pendingWriteBytes: 0,
+          writeImmediate: null,
+          disposed: false,
+          readError: null,
+        };
+        terminalStates.set(terminal, state);
+        master.on("error", (error) => {
+          state.readError = error;
+        });
+        return terminal;
+      } catch (error) {
+        if (master) {
+          closeStream(master);
+        } else if (Number.isInteger(opened?.master)) {
+          try {
+            fs.closeSync(opened.master);
+          } catch {
+            // Preserve the allocation failure.
+          }
+        }
+        if (Number.isInteger(opened?.slave)) {
+          try {
+            fs.closeSync(opened.slave);
+          } catch {
+            // Preserve the allocation failure.
+          }
+        }
+        throw error;
+      }
+    },
+    openBlockingSlave(terminal) {
+      const ptsName = terminal?.ptsName;
+      const state = terminalState(terminal);
+      const originalFd = state.rawSlaveFd;
+      if (
+        typeof ptsName !== "string" ||
+        !/^\/dev\/pts\/\d+$/.test(ptsName) ||
+        !Number.isInteger(originalFd)
+      ) {
+        throw new Error("pty_slave_identity_unavailable");
+      }
+      const originalStat = fs.fstatSync(originalFd);
+      if (!originalStat.isCharacterDevice()) {
+        throw new Error("pty_slave_not_character_device");
+      }
+      const flags =
+        Number(fs.constants.O_RDWR) |
+        Number(fs.constants.O_NOCTTY || 0) |
+        Number(fs.constants.O_CLOEXEC || 0);
+      const fd = fs.openSync(ptsName, flags);
+      try {
+        const openedStat = fs.fstatSync(fd);
+        const pathStat = fs.statSync(ptsName);
+        if (
+          !openedStat.isCharacterDevice() ||
+          !pathStat.isCharacterDevice() ||
+          String(openedStat.dev) !== String(originalStat.dev) ||
+          String(openedStat.rdev) !== String(originalStat.rdev) ||
+          String(pathStat.dev) !== String(originalStat.dev) ||
+          String(pathStat.rdev) !== String(originalStat.rdev)
+        ) {
+          throw new Error("pty_slave_identity_changed");
+        }
+        fs.closeSync(originalFd);
+        state.rawSlaveFd = null;
+        state.blockingSlaveFd = fd;
+        blockingSlaveOwners.set(fd, state);
+        return fd;
+      } catch (error) {
+        fs.closeSync(fd);
+        throw error;
+      }
+    },
+    closeFd(fd) {
+      fs.closeSync(fd);
+      const state = blockingSlaveOwners.get(fd);
+      if (state) {
+        state.blockingSlaveFd = null;
+        blockingSlaveOwners.delete(fd);
+      }
+    },
+    getCols(terminal) {
+      return terminalState(terminal).cols;
+    },
+    getRows(terminal) {
+      return terminalState(terminal).rows;
+    },
+    onData(terminal, listener) {
+      const master = terminal?.master;
+      if (typeof master?.on !== "function") {
+        throw new Error("pty_master_stream_unavailable");
+      }
+      master.on("data", listener);
+      return {
+        dispose() {
+          if (typeof master.off === "function") {
+            master.off("data", listener);
+          } else {
+            master.removeListener?.("data", listener);
+          }
+        },
+      };
+    },
+    write(terminal, data) {
+      const state = terminalState(terminal);
+      if (state.disposed) return;
+      const buffer =
+        typeof data === "string"
+          ? Buffer.from(data, state.encoding)
+          : Buffer.from(data);
+      if (buffer.byteLength === 0) return;
+      if (
+        buffer.byteLength > MAX_PENDING_WRITE_BYTES ||
+        state.pendingWriteBytes > MAX_PENDING_WRITE_BYTES - buffer.byteLength
+      ) {
+        const error = new Error("pty_write_queue_limit_exceeded");
+        error.code = "ERR_PTY_WRITE_BACKPRESSURE";
+        throw error;
+      }
+      state.writeQueue.push({ buffer, offset: 0 });
+      state.pendingWriteBytes += buffer.byteLength;
+      processWriteQueue(state);
+    },
+    resize(terminal, cols, rows) {
+      const state = terminalState(terminal);
+      if (
+        !Number.isInteger(cols) ||
+        cols <= 0 ||
+        cols > 65_535 ||
+        !Number.isInteger(rows) ||
+        rows <= 0 ||
+        rows > 65_535
+      ) {
+        throw new TypeError("pty_dimensions_invalid");
+      }
+      state.native.resize(state.fd, cols, rows);
+      state.cols = cols;
+      state.rows = rows;
+    },
+    clear() {},
+    pause(terminal) {
+      return terminal?.master?.pause?.();
+    },
+    resume(terminal) {
+      return terminal?.master?.resume?.();
+    },
+    setEncoding(terminal, encoding) {
+      const master = terminal?.master;
+      if (master?._decoder) {
+        delete master._decoder;
+      }
+      if (encoding) {
+        master?.setEncoding?.(encoding);
+      }
+    },
+    releaseTerminal(terminal) {
+      const state = terminalStates.get(terminal);
+      if (state) {
+        state.disposed = true;
+        state.writeQueue.length = 0;
+        state.pendingWriteBytes = 0;
+        if (state.writeImmediate) {
+          clearImmediate(state.writeImmediate);
+          state.writeImmediate = null;
+        }
+        if (Number.isInteger(state.rawSlaveFd)) {
+          try {
+            fs.closeSync(state.rawSlaveFd);
+          } catch {
+            // Closing the master below remains authoritative.
+          }
+          state.rawSlaveFd = null;
+        }
+        if (Number.isInteger(state.blockingSlaveFd)) {
+          try {
+            fs.closeSync(state.blockingSlaveFd);
+          } catch {
+            // The descriptor may already have been closed by the launch path.
+          }
+          blockingSlaveOwners.delete(state.blockingSlaveFd);
+          state.blockingSlaveFd = null;
+        }
+      }
+      closeStream(terminal?.master);
+    },
+  };
+}
+
+function wrapSandboxedPty(terminal, child, command, ptyAdapter) {
+  const exitEmitter = new EventEmitter();
+  let exitState = null;
+  let closed = false;
+  const finish = (exitCode, signal) => {
+    if (closed) return;
+    closed = true;
+    exitState = {
+      exitCode: Number.isInteger(exitCode) ? exitCode : 1,
+      signal: signal ?? null,
+    };
+    exitEmitter.emit("exit", exitState);
+  };
+  child.once("exit", finish);
+  child.once("error", () => finish(1, null));
+
+  return {
+    pid: child.pid,
+    process: command,
+    childProcess: child,
+    get cols() {
+      return ptyAdapter.getCols(terminal);
+    },
+    get rows() {
+      return ptyAdapter.getRows(terminal);
+    },
+    onData(listener) {
+      return ptyAdapter.onData(terminal, listener);
+    },
+    onExit(listener) {
+      if (exitState) {
+        queueMicrotask(() => listener(exitState));
+        return { dispose() {} };
+      }
+      exitEmitter.once("exit", listener);
+      return {
+        dispose() {
+          exitEmitter.off("exit", listener);
+        },
+      };
+    },
+    write(data) {
+      return ptyAdapter.write(terminal, data);
+    },
+    resize(cols, rows) {
+      return ptyAdapter.resize(terminal, cols, rows);
+    },
+    clear() {
+      return ptyAdapter.clear(terminal);
+    },
+    pause() {
+      return ptyAdapter.pause(terminal);
+    },
+    resume() {
+      return ptyAdapter.resume(terminal);
+    },
+    setEncoding(encoding) {
+      return ptyAdapter.setEncoding(terminal, encoding);
+    },
+    kill(signal = "SIGHUP") {
+      return child.kill(signal);
+    },
+    destroy() {
+      return child.kill("SIGHUP");
+    },
+  };
+}
+
 class ProcessExecutionBroker extends EventEmitter {
   constructor() {
     super();
@@ -122,6 +513,7 @@ class ProcessExecutionBroker extends EventEmitter {
       applySandbox: _applySandbox,
       postSpawnSandbox: _postSpawnSandbox,
     };
+    this._ptyAdapter = createNativePtyAdapter();
 
     this._ensureLogDir();
     this._loadPermissions();
@@ -277,6 +669,7 @@ class ProcessExecutionBroker extends EventEmitter {
         cwd: options.cwd || process.cwd(),
         shell: options.shell,
         sync: launch?.sync === true,
+        pty: launch?.pty === true,
         stdio: options.stdio,
         requiredBoundaries,
       });
@@ -435,7 +828,7 @@ class ProcessExecutionBroker extends EventEmitter {
     args = [],
     options = {},
     trustedWorkspaceRoot = process.cwd(),
-    { sync = false } = {},
+    { sync = false, pty = false } = {},
   ) {
     const requiredBoundaries = [
       ...new Set([
@@ -465,6 +858,7 @@ class ProcessExecutionBroker extends EventEmitter {
       workspaceRoot: trustedWorkspaceRoot,
       shell: options.shell,
       sync,
+      pty,
       stdio: options.stdio,
       requiredBoundaries,
       detached: options.detached,
@@ -707,6 +1101,7 @@ class ProcessExecutionBroker extends EventEmitter {
     let genericWorkspaceProbe = false;
     let sanitizedFilesystemPolicy = null;
     let sanitizedNetworkPolicy = null;
+    let sanitizedPtyPolicy = null;
     if (plan.runtimeProbe !== null && plan.runtimeProbe !== undefined) {
       if (
         typeof plan.runtimeProbe !== "object" ||
@@ -1085,6 +1480,7 @@ class ProcessExecutionBroker extends EventEmitter {
         "contractDigest",
         "policyDigest",
         "mountTopologyDigest",
+        "sourceMountSetDigest",
         "emptyRoot",
         "undeclaredRootReadOnly",
         "workspaceReadWrite",
@@ -1099,11 +1495,13 @@ class ProcessExecutionBroker extends EventEmitter {
         "socketCreationDenied",
         "descriptorMounts",
         "mountTopologyAtomic",
+        "sourceMountPropagationPrivateAtAttestation",
       ];
       for (const field of [
         "contractDigest",
         "policyDigest",
         "mountTopologyDigest",
+        "sourceMountSetDigest",
       ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
@@ -1116,7 +1514,7 @@ class ProcessExecutionBroker extends EventEmitter {
           );
         }
       }
-      for (const field of genericWorkspaceEvidenceFields.slice(3)) {
+      for (const field of genericWorkspaceEvidenceFields.slice(4)) {
         if (
           plan.runtimeProbe[field] !== undefined &&
           typeof plan.runtimeProbe[field] !== "boolean"
@@ -1143,6 +1541,30 @@ class ProcessExecutionBroker extends EventEmitter {
       if (genericWorkspaceKind) {
         const filesystemPolicy = plan.filesystemPolicy;
         const networkPolicy = plan.networkPolicy;
+        const ptyPolicy = plan.ptyPolicy ?? null;
+        const ptyPlan =
+          ptyPolicy !== null &&
+          typeof ptyPolicy === "object" &&
+          !Array.isArray(ptyPolicy);
+        const ptyPlanValid = ptyPlan
+          ? ptyPolicy.mode === "dedicated-controlling-terminal" &&
+            ptyPolicy.launcherPath === "/usr/bin/setsid" &&
+            typeof ptyPolicy.launcherSha256 === "string" &&
+            /^[a-f0-9]{64}$/.test(ptyPolicy.launcherSha256) &&
+            Number.isSafeInteger(ptyPolicy.launcherBytes) &&
+            ptyPolicy.launcherBytes > 0 &&
+            ptyPolicy.launcherBytes <= 256 * 1024 * 1024 &&
+            ptyPolicy.launcherDescriptorBound === true &&
+            ptyPolicy.launcherExecutablePinned === true &&
+            ptyPolicy.launcherDescriptorConsumedBeforeTarget === true &&
+            ptyPolicy.launcherStagingPathHidden === true &&
+            ptyPolicy.bwrapNewSession === false &&
+            plan.args[0] === "--ctty" &&
+            /^\/proc\/self\/fd\/\d+$/.test(plan.args[1] || "") &&
+            !plan.args.includes("--new-session")
+          : ptyPolicy === null &&
+            plan.args[0] !== "--ctty" &&
+            plan.args.includes("--new-session");
         const workspaceRoot = filesystemPolicy?.workspaceRoot;
         const workingDirectory = filesystemPolicy?.workingDirectory;
         const workspaceRelative =
@@ -1172,6 +1594,10 @@ class ProcessExecutionBroker extends EventEmitter {
           plan.runtimeProbe.mountTopologyAtomic === false &&
           plan.runtimeProbe.mountTopologyDigest ===
             filesystemPolicy?.mountTopologyDigest &&
+          plan.runtimeProbe.sourceMountSetDigest ===
+            filesystemPolicy?.sourceMountSetDigest &&
+          plan.runtimeProbe.sourceMountPropagationPrivateAtAttestation ===
+            true &&
           [
             "emptyRoot",
             "undeclaredRootReadOnly",
@@ -1208,6 +1634,9 @@ class ProcessExecutionBroker extends EventEmitter {
             "no-strict-descendants-or-forbidden-root-aliases-at-attestation" &&
           filesystemPolicy.mountTopologySource === "proc-self-mountinfo" &&
           /^[a-f0-9]{64}$/.test(filesystemPolicy.mountTopologyDigest || "") &&
+          /^[a-f0-9]{64}$/.test(filesystemPolicy.sourceMountSetDigest || "") &&
+          filesystemPolicy.sourceMountPropagationPrivateAtAttestation ===
+            true &&
           filesystemPolicy.mountTopologyAtomic === false &&
           Array.isArray(filesystemPolicy.anonymousWritablePaths) &&
           filesystemPolicy.anonymousWritablePaths.length === 5 &&
@@ -1227,7 +1656,8 @@ class ProcessExecutionBroker extends EventEmitter {
           plan.args.includes("--remount-ro") &&
           plan.args.includes("--unshare-net") &&
           plan.args.includes("--seccomp") &&
-          !plan.args.includes("--ro-bind");
+          !plan.args.includes("--ro-bind") &&
+          ptyPlanValid;
         if (!genericWorkspaceProbe) {
           throw this._sandboxError(
             "invalid_sandbox_plan",
@@ -1252,6 +1682,9 @@ class ProcessExecutionBroker extends EventEmitter {
           workspaceMountTopology: filesystemPolicy.workspaceMountTopology,
           mountTopologySource: filesystemPolicy.mountTopologySource,
           mountTopologyDigest: filesystemPolicy.mountTopologyDigest,
+          sourceMountSetDigest: filesystemPolicy.sourceMountSetDigest,
+          sourceMountPropagationPrivateAtAttestation:
+            filesystemPolicy.sourceMountPropagationPrivateAtAttestation,
           mountTopologyAtomic: filesystemPolicy.mountTopologyAtomic,
         });
         sanitizedNetworkPolicy = Object.freeze({
@@ -1259,6 +1692,20 @@ class ProcessExecutionBroker extends EventEmitter {
           namespaceIdentityChanged: networkPolicy.namespaceIdentityChanged,
           seccomp: networkPolicy.seccomp,
         });
+        sanitizedPtyPolicy = ptyPlan
+          ? Object.freeze({
+              mode: ptyPolicy.mode,
+              launcherPath: ptyPolicy.launcherPath,
+              launcherSha256: ptyPolicy.launcherSha256,
+              launcherBytes: ptyPolicy.launcherBytes,
+              launcherDescriptorBound: ptyPolicy.launcherDescriptorBound,
+              launcherExecutablePinned: ptyPolicy.launcherExecutablePinned,
+              launcherDescriptorConsumedBeforeTarget:
+                ptyPolicy.launcherDescriptorConsumedBeforeTarget,
+              launcherStagingPathHidden: ptyPolicy.launcherStagingPathHidden,
+              bwrapNewSession: ptyPolicy.bwrapNewSession,
+            })
+          : null;
       }
       runtimeProbe = {
         kind: plan.runtimeProbe.kind,
@@ -1365,6 +1812,7 @@ class ProcessExecutionBroker extends EventEmitter {
         ? {
             filesystemPolicy: sanitizedFilesystemPolicy,
             networkPolicy: sanitizedNetworkPolicy,
+            ptyPolicy: sanitizedPtyPolicy,
           }
         : {}),
       postSpawn: { ...postSpawn },
@@ -1404,7 +1852,7 @@ class ProcessExecutionBroker extends EventEmitter {
     command,
     args,
     options,
-    { sync = false, sandboxPolicy = {} } = {},
+    { sync = false, pty = false, sandboxPolicy = {} } = {},
   ) {
     const strict = this._sandboxStrictEnabled();
     const requiredBoundaries = sandboxPolicy.requiredBoundaries || [];
@@ -1443,6 +1891,7 @@ class ProcessExecutionBroker extends EventEmitter {
       profile,
       requiredBoundaries: Object.freeze([...requiredBoundaries]),
       sync,
+      ...(pty ? { pty: true } : {}),
       ...(sandboxPolicy.executionContract
         ? { executionContract: sandboxPolicy.executionContract }
         : {}),
@@ -1544,6 +1993,9 @@ class ProcessExecutionBroker extends EventEmitter {
           workspaceMountTopology: plan.filesystemPolicy.workspaceMountTopology,
           mountTopologySource: plan.filesystemPolicy.mountTopologySource,
           mountTopologyDigest: plan.filesystemPolicy.mountTopologyDigest,
+          sourceMountSetDigest: plan.filesystemPolicy.sourceMountSetDigest,
+          sourceMountPropagationPrivateAtAttestation:
+            plan.filesystemPolicy.sourceMountPropagationPrivateAtAttestation,
           mountTopologyAtomic: plan.filesystemPolicy.mountTopologyAtomic,
         }
       : null;
@@ -1554,6 +2006,21 @@ class ProcessExecutionBroker extends EventEmitter {
           seccomp: plan.networkPolicy.seccomp,
         }
       : null;
+    auditEntry.sandboxPtyPolicy =
+      genericPolicy && plan.ptyPolicy
+        ? {
+            mode: plan.ptyPolicy.mode,
+            launcherPath: plan.ptyPolicy.launcherPath,
+            launcherSha256: plan.ptyPolicy.launcherSha256,
+            launcherBytes: plan.ptyPolicy.launcherBytes,
+            launcherDescriptorBound: plan.ptyPolicy.launcherDescriptorBound,
+            launcherExecutablePinned: plan.ptyPolicy.launcherExecutablePinned,
+            launcherDescriptorConsumedBeforeTarget:
+              plan.ptyPolicy.launcherDescriptorConsumedBeforeTarget,
+            launcherStagingPathHidden: plan.ptyPolicy.launcherStagingPathHidden,
+            bwrapNewSession: plan.ptyPolicy.bwrapNewSession,
+          }
+        : null;
     auditEntry.sandboxCandidateReason = plan?.candidateBackend
       ? plan?.reason || null
       : null;
@@ -2038,14 +2505,16 @@ class ProcessExecutionBroker extends EventEmitter {
     );
     if (
       sandboxPlan.applied === true &&
-      sandboxPlan.backend === "linux-bwrap-workspace" &&
+      (sandboxPlan.backend === "linux-bwrap-workspace" ||
+        sandboxPlan.backend === "linux-bwrap") &&
       sandboxPlan.postSpawn.required === false
     ) {
       // child_process.spawn() has synchronously duplicated every stdio entry
-      // into the launched bwrap process before returning. Generic workspace
-      // plans do not need a parent-side post-spawn handle, so retaining their
-      // pinned mount/seccomp descriptors until a long-lived MCP/LSP/monitor
-      // exits would turn each child into an avoidable FD leak.
+      // into the launched bwrap process before returning. Both the generic
+      // workspace backend and direct Plugin-bin bwrap backend are complete
+      // pre-spawn plans with no parent-side enforcement handle. Retaining
+      // their pinned mount/seccomp/supervisor descriptors until a long-lived
+      // process exits would turn each child into an avoidable FD leak.
       cleanupSandbox();
     }
     try {
@@ -2271,9 +2740,10 @@ class ProcessExecutionBroker extends EventEmitter {
 
   /**
    * Route a node-pty session through the same provenance and credential
-   * boundary as child_process execution. node-pty owns the native PTY
-   * allocation, so the platform sandbox is reported as unavailable here
-   * rather than being falsely marked as applied.
+   * boundary as child_process execution. Policy-free sessions retain native
+   * node-pty semantics. A policy-bearing Linux session uses node-pty only to
+   * allocate a dedicated terminal; child_process then duplicates its slave
+   * together with the descriptor-pinned generic bwrap plan.
    */
   spawnPty(ptyModule, command, args = [], options = {}) {
     if (!ptyModule || typeof ptyModule.spawn !== "function") {
@@ -2315,6 +2785,7 @@ class ProcessExecutionBroker extends EventEmitter {
         command,
         args,
         sync: false,
+        pty: true,
       });
       auditEntry.sandboxRequired = [...sandboxPolicy.requiredBoundaries];
     } catch (sandboxPolicyError) {
@@ -2336,27 +2807,19 @@ class ProcessExecutionBroker extends EventEmitter {
       error.auditEntry = auditEntry;
       throw error;
     }
-    if (sandboxPolicy.requiredBoundaries.length > 0) {
-      const sandboxError = this._sandboxBoundaryError(
-        "required_boundaries_unsatisfied",
-        `Native PTY host cannot satisfy required boundaries: ${sandboxPolicy.requiredBoundaries.join(", ")}`,
-        {
-          requiredBoundaries: sandboxPolicy.requiredBoundaries,
-          missingBoundaries: sandboxPolicy.requiredBoundaries,
-        },
-      );
-      this._recordSandboxDenial(auditEntry, sandboxError, startTime);
-      sandboxError.auditEntry = auditEntry;
-      throw sandboxError;
-    }
 
     const spawnOptions = { ...options, args: [...auditEntry.args] };
     this._stripSandboxControlOptions(spawnOptions);
     this._stripPluginControlOptions(spawnOptions);
-    delete spawnOptions.origin;
-    delete spawnOptions.policy;
-    delete spawnOptions.scope;
     try {
+      const terminalName =
+        typeof options.name === "string" && options.name
+          ? options.name
+          : "xterm";
+      spawnOptions.env = {
+        ...(spawnOptions.env || process.env),
+        TERM: terminalName,
+      };
       if (this._credentialBoundaryEnabled()) {
         spawnOptions.credentialContext = this._createCredentialContext(
           command,
@@ -2378,7 +2841,170 @@ class ProcessExecutionBroker extends EventEmitter {
       }
       const filteredArgs = spawnOptions.args || [];
       delete spawnOptions.args;
-      const proc = ptyModule.spawn(command, filteredArgs, spawnOptions);
+
+      if (sandboxPolicy.requiredBoundaries.length === 0) {
+        delete spawnOptions.origin;
+        delete spawnOptions.policy;
+        delete spawnOptions.scope;
+        const proc = ptyModule.spawn(command, filteredArgs, spawnOptions);
+        auditEntry.pid = proc?.pid ?? null;
+        auditEntry.endTime = Date.now();
+        auditEntry.durationMs = auditEntry.endTime - startTime;
+        this._recordAudit(auditEntry);
+        this._writeRplEntry(auditEntry, "started");
+        return proc;
+      }
+
+      let sandboxPlan;
+      try {
+        sandboxPlan = this._prepareSandboxPlan(
+          command,
+          filteredArgs,
+          spawnOptions,
+          {
+            pty: true,
+            sandboxPolicy,
+          },
+        );
+        if (
+          sandboxPlan.applied !== true ||
+          sandboxPlan.backend !== "linux-bwrap-workspace" ||
+          sandboxPlan.ptyPolicy?.mode !== "dedicated-controlling-terminal"
+        ) {
+          throw this._sandboxBoundaryError(
+            "required_boundaries_unsatisfied",
+            `PTY backend ${sandboxPlan.backend || sandboxPlan.candidateBackend || "unavailable"} cannot satisfy the dedicated terminal contract`,
+            {
+              requiredBoundaries: sandboxPolicy.requiredBoundaries,
+              actualGuarantees: sandboxPlan.guarantees,
+              missingBoundaries: sandboxPolicy.requiredBoundaries.filter(
+                (boundary) => !sandboxPlan.guarantees.includes(boundary),
+              ),
+              sandboxBackend: sandboxPlan.backend,
+              sandboxCandidateBackend: sandboxPlan.candidateBackend,
+              sandboxRuntimeProbe: sandboxPlan.runtimeProbe,
+              sandboxPolicyAttested: sandboxPlan.policyAttested,
+              sandboxPolicyDigest: sandboxPlan.policyDigest,
+            },
+          );
+        }
+      } catch (sandboxError) {
+        sandboxPlan?.cleanup?.();
+        this._recordSandboxDenial(auditEntry, sandboxError, startTime);
+        sandboxError.auditEntry = auditEntry;
+        throw sandboxError;
+      }
+
+      let terminal;
+      let slaveFd = null;
+      let child;
+      let proc;
+      let terminalReleased = false;
+      const releaseTerminal = () => {
+        if (terminalReleased) return;
+        terminalReleased = true;
+        try {
+          this._ptyAdapter.releaseTerminal(terminal);
+        } catch {
+          // The sandbox process exit remains authoritative.
+        }
+      };
+      try {
+        terminal = this._ptyAdapter.allocate(ptyModule, {
+          cols: options.cols,
+          rows: options.rows,
+          encoding: options.encoding,
+        });
+        slaveFd = this._ptyAdapter.openBlockingSlave(terminal);
+        const nativeSpawnFn = this._native?.spawn || nativeSpawn;
+        child = nativeSpawnFn(sandboxPlan.command, sandboxPlan.args, {
+          ...sandboxPlan.options,
+          stdio: [
+            slaveFd,
+            slaveFd,
+            slaveFd,
+            ...sandboxPlan.options.stdio.slice(3),
+          ],
+        });
+        proc = wrapSandboxedPty(terminal, child, command, this._ptyAdapter);
+      } catch (ptyError) {
+        if (child && typeof child.kill === "function") {
+          try {
+            child.kill();
+          } catch {
+            // Continue fail-closed cleanup after a partial child launch.
+          }
+        }
+        if (Number.isInteger(slaveFd)) {
+          try {
+            this._ptyAdapter.closeFd(slaveFd);
+          } catch {
+            // Preserve the allocation/spawn failure.
+          }
+        }
+        sandboxPlan.cleanup?.();
+        releaseTerminal();
+        const sandboxError = this._sandboxBoundaryError(
+          "pty_allocation_or_spawn_failed",
+          `Strong Linux PTY launch failed: ${ptyError.message}`,
+          {
+            requiredBoundaries: sandboxPolicy.requiredBoundaries,
+            actualGuarantees: [],
+            missingBoundaries: sandboxPolicy.requiredBoundaries,
+            sandboxBackend: sandboxPlan.backend,
+            sandboxRuntimeProbe: sandboxPlan.runtimeProbe,
+            sandboxPolicyAttested: sandboxPlan.policyAttested,
+            sandboxPolicyDigest: sandboxPlan.policyDigest,
+          },
+        );
+        this._recordSandboxDenial(auditEntry, sandboxError, startTime);
+        sandboxError.auditEntry = auditEntry;
+        throw sandboxError;
+      }
+      try {
+        this._ptyAdapter.closeFd(slaveFd);
+      } catch {
+        try {
+          child.kill();
+        } catch {
+          // Continue fail-closed cleanup even if the partial child already died.
+        }
+        sandboxPlan.cleanup?.();
+        releaseTerminal();
+        const sandboxError = this._sandboxBoundaryError(
+          "pty_parent_slave_cleanup_failed",
+          "Strong Linux PTY could not close its parent-side slave descriptor",
+          {
+            requiredBoundaries: sandboxPolicy.requiredBoundaries,
+            missingBoundaries: sandboxPolicy.requiredBoundaries,
+            sandboxBackend: sandboxPlan.backend,
+          },
+        );
+        this._recordSandboxDenial(auditEntry, sandboxError, startTime);
+        sandboxError.auditEntry = auditEntry;
+        throw sandboxError;
+      }
+      sandboxPlan.cleanup?.();
+      this._applySandboxAudit(auditEntry, sandboxPlan, true);
+      this._stats.sandboxed++;
+
+      child.once("exit", (code, signal) => {
+        releaseTerminal();
+        auditEntry.exitCode = code;
+        auditEntry.signal = signal;
+        auditEntry.endTime = Date.now();
+        auditEntry.durationMs = auditEntry.endTime - startTime;
+        this._writeRplEntry(auditEntry, "completed");
+        this.emit("exit", auditEntry);
+      });
+      child.once("error", (error) => {
+        releaseTerminal();
+        auditEntry.error = error.message;
+        auditEntry.endTime = Date.now();
+        auditEntry.durationMs = auditEntry.endTime - startTime;
+        this._writeRplEntry(auditEntry, "error", error);
+        if (this.listenerCount("error") > 0) this.emit("error", auditEntry);
+      });
       auditEntry.pid = proc?.pid ?? null;
       auditEntry.endTime = Date.now();
       auditEntry.durationMs = auditEntry.endTime - startTime;
@@ -2386,6 +3012,7 @@ class ProcessExecutionBroker extends EventEmitter {
       this._writeRplEntry(auditEntry, "started");
       return proc;
     } catch (error) {
+      if (error.auditEntry === auditEntry) throw error;
       auditEntry.error = error.message;
       auditEntry.endTime = Date.now();
       auditEntry.durationMs = auditEntry.endTime - startTime;

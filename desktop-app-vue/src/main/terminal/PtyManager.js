@@ -45,8 +45,8 @@ const DEFAULT_CONFIG = Object.freeze({
 // ~/.profile load so user PATH (npm-global, cargo, brew etc.) is visible —
 // otherwise `cc` / `claude` / other globally-installed CLIs are unreachable
 // in the remote terminal (real-device E2E feedback, 2026-05-14).
-function resolveShellCmd(shell) {
-  if (process.platform === "win32") {
+function resolveShellCmd(shell, platform = process.platform) {
+  if (platform === "win32") {
     if (shell === "cmd") {
       return { cmd: process.env.ComSpec || "cmd.exe", args: [] };
     }
@@ -120,6 +120,24 @@ function desktopBrokerUnavailable(policy) {
   error.actualGuarantees = [];
   error.missingBoundaries = [...requiredBoundaries];
   error.sandboxBackend = null;
+  return error;
+}
+
+function strongPtyBackendUnavailable(policy, cause = null) {
+  const requiredBoundaries = [...(policy?.requiredBoundaries || [])];
+  const error = new Error(
+    `Desktop strong Linux PTY backend is unavailable for boundaries: ${requiredBoundaries.join(", ")}`,
+  );
+  error.code = "ERR_DESKTOP_PTY_STRONG_BACKEND_UNAVAILABLE";
+  error.sandboxReason = "desktop_strong_pty_backend_unavailable";
+  error.sandboxFailClosed = true;
+  error.requiredBoundaries = requiredBoundaries;
+  error.actualGuarantees = [];
+  error.missingBoundaries = [...requiredBoundaries];
+  error.sandboxBackend = null;
+  if (cause) {
+    error.cause = cause;
+  }
   return error;
 }
 
@@ -222,11 +240,34 @@ class PtyManager extends EventEmitter {
         : path.resolve(process.cwd());
     this._resolveSandboxPolicy = resolveSandboxPolicy;
     this._resolveProjectBinding = resolveProjectBinding;
+    const issueLinuxWorkspaceSandboxExecutionContract =
+      opts.issueLinuxWorkspaceSandboxExecutionContract ??
+      opts._deps?.issueLinuxWorkspaceSandboxExecutionContract ??
+      null;
+    if (
+      issueLinuxWorkspaceSandboxExecutionContract !== null &&
+      typeof issueLinuxWorkspaceSandboxExecutionContract !== "function"
+    ) {
+      throw new TypeError(
+        "issueLinuxWorkspaceSandboxExecutionContract must be a function or null",
+      );
+    }
+    const spawnLinuxStrongPty =
+      opts.spawnLinuxStrongPty ?? opts._deps?.spawnLinuxStrongPty ?? null;
+    if (
+      spawnLinuxStrongPty !== null &&
+      typeof spawnLinuxStrongPty !== "function"
+    ) {
+      throw new TypeError("spawnLinuxStrongPty must be a function or null");
+    }
     this._deps = {
       loadNodePty: opts._deps?.loadNodePty || (() => require("node-pty")),
       spawnPty: opts._deps?.spawnPty || null,
+      issueLinuxWorkspaceSandboxExecutionContract,
+      spawnLinuxStrongPty,
       getProcessBroker:
         opts._deps?.getProcessBroker || (() => getDesktopProcessBroker()),
+      platform: opts._deps?.platform || (() => process.platform),
       now: opts._deps?.now || (() => Date.now()),
     };
     /** @type {Map<string, PtySession>} */
@@ -320,11 +361,12 @@ class PtyManager extends EventEmitter {
     );
     // Without projectId, `cwd` is accepted only as the legacy Android lookup
     // selector. It is not reused as an execution-directory claim.
-    const requestedCwd = requestedProjectId && req.cwd
-      ? path.isAbsolute(req.cwd)
-        ? req.cwd
-        : path.resolve(workspaceCwd, req.cwd)
-      : workspaceCwd;
+    const requestedCwd =
+      requestedProjectId && req.cwd
+        ? path.isAbsolute(req.cwd)
+          ? req.cwd
+          : path.resolve(workspaceCwd, req.cwd)
+        : workspaceCwd;
     const executionCwd = canonicalDirectory(
       requestedCwd,
       "ERR_PTY_EXECUTION_CWD_INVALID",
@@ -385,11 +427,12 @@ class PtyManager extends EventEmitter {
   /**
    * @param {object} req
    * @param {string} [req.shell]
+   * @param {string} [req.projectId]
    * @param {string} [req.cwd]
    * @param {Record<string,string>} [req.env]
    * @param {number} [req.cols]
    * @param {number} [req.rows]
-   * @returns {{ sessionId: string, pid: number, shell: string, createdAt: number }}
+   * @returns {{ sessionId: string, pid: number, shell: string, projectId: string|null, cwd: string, createdAt: number }}
    */
   create(req = {}) {
     if (this._stopped) {
@@ -415,35 +458,18 @@ class PtyManager extends EventEmitter {
 
     // projectId / legacy cwd select a main-process database record. Its local
     // canonical root fixes the initial execution/policy root. This does not
-    // attest later interactive shell cwd changes.
+    // trust any renderer/WS cwd as workspace authority. When the strong Linux
+    // backend is active, the canonical root is mounted into an otherwise
+    // empty filesystem namespace, so later interactive `cd` cannot reveal a
+    // different host workspace.
     const binding = this._resolveCreateBinding(req);
     const cwd = binding.executionCwd;
     const sandboxPolicy = this._resolvePolicy(binding.workspaceCwd, cwd);
-    const desktopBroker = this._deps.getProcessBroker();
-    const brokerSpawnPty =
-      typeof desktopBroker?.spawnPty === "function"
-        ? desktopBroker.spawnPty.bind(desktopBroker)
-        : null;
-    if (sandboxPolicy && !brokerSpawnPty) {
-      throw desktopBrokerUnavailable(sandboxPolicy);
-    }
-    // A test-only/custom spawn seam may preserve legacy no-policy behavior,
-    // but can never stand in for the Desktop broker when boundaries are
-    // required. Strict policy always reaches the auditable broker path.
-    const spawnPty = brokerSpawnPty || this._deps.spawnPty;
-
-    let pty;
-    try {
-      pty = this._deps.loadNodePty();
-    } catch {
-      const err = new Error("pty_native_unavailable");
-      err.cause = "node-pty failed to load (native binding missing)";
-      throw err;
-    }
+    const platform = this._deps.platform();
 
     const cols = Number.isFinite(req.cols) ? req.cols : 80;
     const rows = Number.isFinite(req.rows) ? req.rows : 24;
-    const { cmd, args } = resolveShellCmd(shell);
+    const { cmd, args } = resolveShellCmd(shell, platform);
 
     // req.env arrives from a remote WS frame; only merge a plain object, else a
     // string/array would spread into garbage numeric env keys.
@@ -463,10 +489,70 @@ class PtyManager extends EventEmitter {
       origin: "terminal:pty",
       policy: "allow",
       scope: "terminal",
+      shell: false,
       ...(sandboxPolicy ? { sandboxPolicy } : {}),
     };
+    let effectiveBrokerSpawnOptions = brokerSpawnOptions;
+    let spawnPty;
+    if (sandboxPolicy && platform === "linux") {
+      const issueContract =
+        this._deps.issueLinuxWorkspaceSandboxExecutionContract;
+      spawnPty = this._deps.spawnLinuxStrongPty;
+      if (!issueContract || !spawnPty) {
+        throw strongPtyBackendUnavailable(sandboxPolicy);
+      }
+      let contract;
+      try {
+        contract = issueContract(
+          cmd,
+          args,
+          brokerSpawnOptions,
+          binding.workspaceCwd,
+          { pty: true },
+        );
+      } catch (cause) {
+        if (cause?.code === "ERR_DESKTOP_PTY_STRONG_BACKEND_UNAVAILABLE") {
+          throw strongPtyBackendUnavailable(sandboxPolicy, cause);
+        }
+        if (cause?.sandboxFailClosed) {
+          throw cause;
+        }
+        throw strongPtyBackendUnavailable(sandboxPolicy, cause);
+      }
+      if (!contract || typeof contract !== "object") {
+        throw strongPtyBackendUnavailable(sandboxPolicy);
+      }
+      effectiveBrokerSpawnOptions = {
+        ...brokerSpawnOptions,
+        sandboxExecutionContract: contract,
+      };
+    } else {
+      const desktopBroker = this._deps.getProcessBroker();
+      const brokerSpawnPty =
+        typeof desktopBroker?.spawnPty === "function"
+          ? desktopBroker.spawnPty.bind(desktopBroker)
+          : null;
+      if (sandboxPolicy && !brokerSpawnPty) {
+        throw desktopBrokerUnavailable(sandboxPolicy);
+      }
+      // A test-only/custom spawn seam may preserve legacy no-policy behavior,
+      // but can never stand in for the Desktop broker when boundaries are
+      // required. Strict non-Linux policy always reaches the auditable
+      // fail-closed Desktop broker path.
+      spawnPty = brokerSpawnPty || this._deps.spawnPty;
+    }
+
+    let pty;
+    try {
+      pty = this._deps.loadNodePty();
+    } catch {
+      const err = new Error("pty_native_unavailable");
+      err.cause = "node-pty failed to load (native binding missing)";
+      throw err;
+    }
+
     const proc = spawnPty
-      ? spawnPty(pty, cmd, args, brokerSpawnOptions)
+      ? spawnPty(pty, cmd, args, effectiveBrokerSpawnOptions)
       : pty.spawn(cmd, args, nativeSpawnOptions);
 
     const sessionId = randomUUID();
@@ -529,6 +615,7 @@ class PtyManager extends EventEmitter {
   /**
    * @param {string} sessionId
    * @param {Buffer | string} data
+   * @param {string|null} [projectId]
    */
   write(sessionId, data, projectId = null) {
     this._normalizeProjectScope(projectId);
@@ -549,6 +636,7 @@ class PtyManager extends EventEmitter {
    * @param {string} sessionId
    * @param {number} cols
    * @param {number} rows
+   * @param {string|null} [projectId]
    */
   resize(sessionId, cols, rows, projectId = null) {
     this._normalizeProjectScope(projectId);
@@ -570,6 +658,7 @@ class PtyManager extends EventEmitter {
 
   /**
    * @param {string} sessionId
+   * @param {string|null} [projectId]
    */
   close(sessionId, projectId = null) {
     this._normalizeProjectScope(projectId);
@@ -588,7 +677,8 @@ class PtyManager extends EventEmitter {
   }
 
   /**
-   * @returns {Array<{ id: string, shell: string, cwd: string, createdAt: number, alive: boolean, lastSeq: number }>}
+   * @param {string|null} [projectId]
+   * @returns {Array<{ id: string, shell: string, projectId: string|null, cwd: string, createdAt: number, alive: boolean, lastSeq: number }>}
    */
   list(projectId = null) {
     const requestedProjectId = this._normalizeProjectScope(projectId);
@@ -613,6 +703,7 @@ class PtyManager extends EventEmitter {
   /**
    * @param {string} sessionId
    * @param {number} [fromSeq]
+   * @param {string|null} [projectId]
    */
   history(sessionId, fromSeq = 0, projectId = null) {
     this._normalizeProjectScope(projectId);

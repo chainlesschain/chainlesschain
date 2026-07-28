@@ -482,8 +482,11 @@ class MobileBridgeSync {
 
   /**
    * Sub-phase 5-6 fix (2026-05-17): Android LOCAL 项目首次设 PC 工作目录后写回
-   * 桌面 `projects.pc_root_path`。空串 / null 视为清空。同时 COALESCE 一份到
-   * `root_path` 让历史 row（只有 root_path 字段的旧客户端）也能命中。
+   * 桌面 `projects.pc_root_path`。空串 / null 视为清空。
+   *
+   * `root_path` 是仅由本机选择的执行根，远端请求不得创建或修改它。历史客户端
+   * 仍可通过出站 payload 的 `pcRootPath` 兼容字段读取本机路径，但入站路径只写
+   * `pc_root_path`。
    *
    * params: { projectId, pcRootPath }
    * response: { ok: true, pcRootPath } 或 { ok: false, error }
@@ -506,10 +509,9 @@ class MobileBridgeSync {
       const res = this.dbManager.run(
         `UPDATE projects
             SET pc_root_path = ?,
-                root_path = COALESCE(root_path, ?),
                 updated_at = ?
           WHERE id = ? AND deleted = 0`,
-        [normalized, normalized, Date.now(), projectId],
+        [normalized, Date.now(), projectId],
       );
       if (!res || res.changes === 0) {
         return { ok: false, error: "PROJECT_NOT_FOUND" };
@@ -1482,8 +1484,11 @@ class MobileBridgeSync {
    * docs/design/Android_Project_Remote_Terminal_Entry.md Sub-phase 2）：
    *   - 入站 payload 缺 source_peer_id / pc_root_path 时**保留**桌面已有值
    *     （Android 不知道这俩字段，不能让 push 把桌面值清零）
-   *   - 实现：INSERT OR REPLACE 前先 SELECT existing → COALESCE(incoming, existing)
-   *     合并；纯新建（existing 不存在）走默认 null
+   *   - `root_path` 是本机选择的执行根；入站 `data.root_path` 永远不可信。更新时
+   *     保留本机已有值，新建远端记录时写 null。远端文件系统路径只能进入
+   *     `pc_root_path`，且不能通过缺少 provenance 字段回退到 `data.root_path`
+   *   - 实现：UPSERT 的 INSERT 分支将 `root_path` 固定为 null，UPDATE 分支不更新
+   *     `root_path`；provenance 字段则以 COALESCE 保留已有值
    */
   async _applyProject(item) {
     const data = JSON.parse(item.data || "{}");
@@ -1498,26 +1503,38 @@ class MobileBridgeSync {
     const projectType = this._normalizeProjectType(data.project_type);
     const status = this._normalizeProjectStatus(data.status);
 
-    // v1.3 字段级 merge：先读 existing，再 COALESCE(incoming, existing) 合并
-    const existing = this.dbManager.get(
-      `SELECT source_peer_id, pc_root_path FROM projects WHERE id = ?`,
-      [item.resourceId],
-    );
-    const sourcePeerId =
-      data.source_peer_id !== undefined && data.source_peer_id !== null
-        ? data.source_peer_id
-        : existing?.source_peer_id || null;
-    const pcRootPath =
-      data.pc_root_path !== undefined && data.pc_root_path !== null
-        ? data.pc_root_path
-        : existing?.pc_root_path || null;
+    const sourcePeerId = data.source_peer_id ?? null;
+    const pcRootPath = data.pc_root_path ?? null;
 
     this.dbManager.run(
-      `INSERT OR REPLACE INTO projects
+      `INSERT INTO projects
        (id, user_id, name, description, project_type, status, root_path,
         file_count, total_size, tags, metadata, created_at, updated_at,
         sync_status, device_id, deleted, source_peer_id, pc_root_path)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced', ?, 0, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced', ?, 0, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         user_id = excluded.user_id,
+         name = excluded.name,
+         description = excluded.description,
+         project_type = excluded.project_type,
+         status = excluded.status,
+         file_count = excluded.file_count,
+         total_size = excluded.total_size,
+         tags = excluded.tags,
+         metadata = excluded.metadata,
+         created_at = excluded.created_at,
+         updated_at = excluded.updated_at,
+         sync_status = excluded.sync_status,
+         device_id = excluded.device_id,
+         deleted = 0,
+         source_peer_id = COALESCE(
+           excluded.source_peer_id,
+           projects.source_peer_id
+         ),
+         pc_root_path = COALESCE(
+           excluded.pc_root_path,
+           projects.pc_root_path
+         )`,
       [
         item.resourceId,
         data.user_id || "",
@@ -1525,7 +1542,7 @@ class MobileBridgeSync {
         data.description || null,
         projectType,
         status,
-        data.root_path || null,
+        null,
         data.file_count || 0,
         data.total_size || 0,
         data.tags || null,

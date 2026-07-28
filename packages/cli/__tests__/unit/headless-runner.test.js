@@ -14,6 +14,7 @@ import {
   _goalProcessDeps,
 } from "../../src/runtime/headless-runner.js";
 import { GoalConditionEngine } from "../../src/lib/goal-condition-engine.js";
+import { currentHostHooksV2WorkspaceRoot } from "../../src/lib/hooks-v2-workspace-context.js";
 
 // installPipeSafety moved to pipe-safety.js (canonical tests in
 // pipe-safety.test.js); headless-runner re-exports it for back-compat.
@@ -122,6 +123,40 @@ describe("headless-runner — pure helpers", () => {
 });
 
 describe("headless-runner — output formats", () => {
+  it("binds lifecycle hooks to the CLI host cwd for the full async run", async () => {
+    const { deps } = makeDeps(replyText("scoped"));
+    const trustedRoot = mkdtempSync(join(tmpdir(), "headless-host-workspace-"));
+    const observedRoots = [];
+    deps.executeHooksV2Event = vi.fn(async () => {
+      await Promise.resolve();
+      observedRoots.push(currentHostHooksV2WorkspaceRoot());
+      return {
+        success: true,
+        blocked: false,
+        decision: "continue",
+        results: [],
+      };
+    });
+
+    try {
+      const result = await runAgentHeadless(
+        {
+          cwd: trustedRoot,
+          prompt: "hi",
+          outputFormat: "text",
+        },
+        deps,
+      );
+
+      expect(result.exitCode).toBe(0);
+      expect(observedRoots.length).toBeGreaterThan(0);
+      expect(new Set(observedRoots)).toEqual(new Set([trustedRoot]));
+      expect(currentHostHooksV2WorkspaceRoot()).toBeNull();
+    } finally {
+      rmSync(trustedRoot, { recursive: true, force: true });
+    }
+  }, 30_000);
+
   it("text: final answer on stdout, exitCode 0", async () => {
     const { deps, out } = makeDeps(replyText("hello world"));
     const r = await runAgentHeadless(
@@ -131,7 +166,7 @@ describe("headless-runner — output formats", () => {
     expect(r.exitCode).toBe(0);
     expect(r.isError).toBe(false);
     expect(out.join("")).toBe("hello world\n");
-  });
+  }, 30_000);
 
   it("json: single result envelope with usage + session_id", async () => {
     const { deps, out } = makeDeps(replyText("done"));
@@ -349,7 +384,7 @@ describe("headless-runner — output formats", () => {
         is_error: true,
       });
     }
-  });
+  }, 30_000);
 
   it("a SessionStart hook injects context as a system message", async () => {
     let seen = null;

@@ -42,6 +42,7 @@ const {
   summarizeMobileCommandMessage,
 } = require("./p2p/mobile-command-log.js");
 console.log("[DEBUG] Logger loaded");
+const crypto = require("crypto");
 const path = require("path");
 const fs = require("fs");
 console.log("[DEBUG] Node modules loaded");
@@ -1003,6 +1004,23 @@ class ChainlessChainApp {
       logger.info("[Main] terminal IPC bridge registered (Plan A)");
     } catch (e) {
       logger.warn("[Main] terminal IPC bridge setup failed:", e.message);
+      try {
+        this._disposeTerminalIpc?.();
+      } catch (cleanupError) {
+        logger.warn(
+          "[Main] terminal IPC cleanup after setup failure failed:",
+          cleanupError.message,
+        );
+      }
+      this._disposeTerminalIpc = null;
+      try {
+        this.ptyManager?.shutdown();
+      } catch (cleanupError) {
+        logger.warn(
+          "[Main] terminal manager cleanup after setup failure failed:",
+          cleanupError.message,
+        );
+      }
       this.ptyManager = null;
       this.terminalRequireConfirmation = null;
     }
@@ -1023,6 +1041,10 @@ class ChainlessChainApp {
       const handle = await startWebShell({
         mode: "global",
         projectName: "ChainlessChain Desktop",
+        // Authenticate the loopback WS even in single-user Desktop mode.
+        // The same ephemeral capability is injected into the same-origin SPA
+        // config below; it is never accepted from a renderer request.
+        wsToken: crypto.randomBytes(32).toString("hex"),
         ukeyManager: this.ukeyManager,
         // Plan A: share PtyManager so terminal sessions are visible in both
         // web-shell SPA and V6 native (when user toggles between them).
@@ -2107,9 +2129,7 @@ class ChainlessChainApp {
       }
     });
 
-    this.ptyManager.on(
-      "exit",
-      ({ sessionId, projectId, exitCode, signal }) => {
+    this.ptyManager.on("exit", ({ sessionId, projectId, exitCode, signal }) => {
       const subs = this._mobileTerminalSubs.get(sessionId);
       if (!subs || subs.size === 0 || !this.mobileBridge) {
         this._mobileTerminalSubs.delete(sessionId);
@@ -2129,8 +2149,7 @@ class ChainlessChainApp {
         this.mobileBridge.sendToMobile(peerId, frame).catch(() => {});
       }
       this._mobileTerminalSubs.delete(sessionId);
-      },
-    );
+    });
   }
 
   _subscribeMobileToSession(peerId, sessionId) {
@@ -2839,6 +2858,28 @@ class ChainlessChainApp {
       } catch (error) {
         logger.error("[Main] WebShell stop error:", error);
       }
+    }
+
+    // Stop accepting terminal IPC before killing the shared PtyManager.
+    // The web-shell close above detaches its stdout/exit fan-out listeners;
+    // this closes the remaining native IPC path and signals every live PTY
+    // session. Strong, Broker-owned process-tree teardown remains a separate
+    // platform capability.
+    if (this._disposeTerminalIpc) {
+      try {
+        this._disposeTerminalIpc();
+      } catch (error) {
+        logger.warn("[Main] terminal IPC dispose error:", error.message);
+      }
+      this._disposeTerminalIpc = null;
+    }
+    if (this.ptyManager) {
+      try {
+        this.ptyManager.shutdown();
+      } catch (error) {
+        logger.warn("[Main] terminal manager shutdown error:", error.message);
+      }
+      this.ptyManager = null;
     }
 
     if (this.codingAgentBootstrap) {

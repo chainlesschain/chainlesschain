@@ -20,6 +20,7 @@ vi.mock("../../src/lib/paths.js", () => ({
 const { _deps, BackgroundTaskManager, TaskStatus } =
   await import("../../src/lib/background-task-manager.js");
 const originalSpawn = _deps.spawn;
+const originalPlatform = _deps.platform;
 
 function createPinnedPolicy(...requiredBoundaries) {
   return Object.freeze({
@@ -31,6 +32,7 @@ describe("BackgroundTaskManager", () => {
   let manager;
 
   beforeEach(() => {
+    _deps.platform = "linux";
     mkdirSync(join(testDir, "tasks"), { recursive: true });
     manager = new BackgroundTaskManager({
       maxConcurrent: 3,
@@ -41,6 +43,7 @@ describe("BackgroundTaskManager", () => {
   afterEach(() => {
     manager.destroy();
     _deps.spawn = originalSpawn;
+    _deps.platform = originalPlatform;
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
@@ -82,10 +85,11 @@ describe("BackgroundTaskManager", () => {
       expect(task.type).toBe("shell");
     });
 
-    it("fails closed before allocating or persisting a strict-policy task", () => {
+    it("pins a strict policy and canonical workspace before persistence", () => {
       manager.destroy();
       const policyCwd = join(testDir, "trusted-workspace");
-      const taskCwd = join(testDir, "requested-task-cwd");
+      const taskCwd = join(policyCwd, "requested-task-cwd");
+      mkdirSync(taskCwd, { recursive: true });
       const policy = createPinnedPolicy("filesystem", "network");
       const resolveSandboxPolicy = vi.fn(() => policy);
       _deps.spawn = vi.fn();
@@ -94,32 +98,97 @@ describe("BackgroundTaskManager", () => {
         resolveSandboxPolicy,
       });
 
-      let error;
-      try {
-        manager.create({ command: "echo denied", cwd: taskCwd });
-      } catch (caught) {
-        error = caught;
-      }
+      const task = manager.create({
+        command: "echo sandboxed",
+        cwd: taskCwd,
+      });
 
-      expect(error).toMatchObject({
-        code: "ERR_BACKGROUND_TASK_SANDBOX_UNSUPPORTED",
-        sandboxReason: "background_execution_unsupported",
-        sandboxFailClosed: true,
-        requiredBoundaries: ["filesystem", "network"],
-        actualGuarantees: [],
-        missingBoundaries: ["filesystem", "network"],
-        sandboxBackend: null,
-        sandboxCandidateBackend: null,
+      expect(task).toMatchObject({
+        command: "echo sandboxed",
+        cwd: taskCwd,
+        sandboxWorkspaceCwd: policyCwd,
+        sandboxRequiredBoundaries: ["filesystem", "network"],
+        status: TaskStatus.PENDING,
       });
       expect(resolveSandboxPolicy).toHaveBeenCalledOnce();
       expect(resolveSandboxPolicy).toHaveBeenCalledWith({
         workspaceCwd: policyCwd,
         executionCwd: taskCwd,
       });
-      expect(manager.list()).toEqual([]);
-      expect(manager._createSeq).toBe(0);
-      expect(existsSync(join(testDir, "tasks", "queue.jsonl"))).toBe(false);
+      expect(manager.list()).toEqual([task]);
+      expect(manager._createSeq).toBe(1);
+      expect(existsSync(join(testDir, "tasks", "queue.jsonl"))).toBe(true);
       expect(_deps.spawn).not.toHaveBeenCalled();
+    });
+
+    it("rejects a strict task cwd outside the trusted workspace before persistence", () => {
+      manager.destroy();
+      const policyCwd = join(testDir, "trusted-workspace");
+      const taskCwd = join(testDir, "outside-workspace");
+      mkdirSync(policyCwd, { recursive: true });
+      mkdirSync(taskCwd, { recursive: true });
+      manager = new BackgroundTaskManager({
+        policyCwd,
+        resolveSandboxPolicy: () => createPinnedPolicy("filesystem"),
+      });
+
+      expect(() =>
+        manager.create({ command: "echo denied", cwd: taskCwd }),
+      ).toThrow(
+        expect.objectContaining({
+          code: "ERR_BACKGROUND_TASK_SANDBOX_BINDING_INVALID",
+          sandboxReason: "background_sandbox_binding_invalid",
+          sandboxFailClosed: true,
+        }),
+      );
+      expect(manager.list()).toEqual([]);
+      expect(existsSync(join(testDir, "tasks", "queue.jsonl"))).toBe(false);
+    });
+
+    it("fails closed before persistence when the strong backend is unavailable", () => {
+      manager.destroy();
+      _deps.platform = "win32";
+      const policyCwd = join(testDir, "trusted-workspace");
+      mkdirSync(policyCwd, { recursive: true });
+      manager = new BackgroundTaskManager({
+        policyCwd,
+        resolveSandboxPolicy: () => createPinnedPolicy("filesystem"),
+      });
+
+      expect(() =>
+        manager.create({ command: "echo denied", cwd: policyCwd }),
+      ).toThrow(
+        expect.objectContaining({
+          code: "ERR_BACKGROUND_TASK_SANDBOX_UNSUPPORTED",
+          sandboxReason: "background_platform_backend_unavailable",
+          sandboxFailClosed: true,
+          sandboxCandidateBackend: null,
+        }),
+      );
+      expect(manager.list()).toEqual([]);
+      expect(existsSync(join(testDir, "tasks", "queue.jsonl"))).toBe(false);
+    });
+
+    it("rejects unsupported strong boundaries before persistence", () => {
+      manager.destroy();
+      const policyCwd = join(testDir, "trusted-workspace");
+      mkdirSync(policyCwd, { recursive: true });
+      manager = new BackgroundTaskManager({
+        policyCwd,
+        resolveSandboxPolicy: () => createPinnedPolicy("process"),
+      });
+
+      expect(() =>
+        manager.create({ command: "echo denied", cwd: policyCwd }),
+      ).toThrow(
+        expect.objectContaining({
+          code: "ERR_BACKGROUND_TASK_SANDBOX_POLICY_INVALID",
+          sandboxReason: "invalid_background_task_sandbox_policy",
+          sandboxFailClosed: true,
+        }),
+      );
+      expect(manager.list()).toEqual([]);
+      expect(existsSync(join(testDir, "tasks", "queue.jsonl"))).toBe(false);
     });
 
     it("preserves policy discovery errors without task side effects", () => {
@@ -271,11 +340,13 @@ describe("BackgroundTaskManager", () => {
 
       const [file, args, options] = _deps.spawn.mock.calls[0];
       expect(file).toBe(process.execPath);
-      expect(args.slice(-4)).toEqual([
+      expect(args.slice(-6)).toEqual([
         expect.stringMatching(/background-task-worker\.js$/),
         "echo input with spaces",
         testDir,
         "shell",
+        "",
+        "[]",
       ]);
       expect(options).toMatchObject({
         cwd: testDir,
@@ -289,10 +360,72 @@ describe("BackgroundTaskManager", () => {
       child.emit("exit", 0);
     });
 
+    it("starts a pinned task with a sanitized trusted-worker envelope", () => {
+      manager.destroy();
+      const policyCwd = join(testDir, "trusted-workspace");
+      const taskCwd = join(policyCwd, "nested");
+      mkdirSync(taskCwd, { recursive: true });
+      const policy = createPinnedPolicy("network", "filesystem");
+      manager = new BackgroundTaskManager({
+        policyCwd,
+        resolveSandboxPolicy: () => policy,
+      });
+      const child = new EventEmitter();
+      child.kill = vi.fn();
+      child.exitCode = 0;
+      _deps.spawn = vi.fn(() => child);
+      const hostileEnvironment = {
+        NODE_OPTIONS: "--require hostile.js",
+        NODE_PATH: "hostile-node-path",
+        LD_AUDIT: "hostile-audit.so",
+        DYLD_INSERT_LIBRARIES: "hostile-dylib",
+        PYTHONSTARTUP: "hostile-startup.py",
+      };
+      const previousEnvironment = Object.fromEntries(
+        Object.keys(hostileEnvironment).map((key) => [key, process.env[key]]),
+      );
+      Object.assign(process.env, hostileEnvironment);
+      try {
+        const task = manager.create({
+          command: "echo sandboxed",
+          cwd: taskCwd,
+        });
+        manager.start(task.id);
+
+        const [file, args, options] = _deps.spawn.mock.calls[0];
+        expect(file).toBe(process.execPath);
+        expect(args).toEqual([
+          expect.stringMatching(/background-task-worker\.js$/),
+          "echo sandboxed",
+          taskCwd,
+          "shell",
+          policyCwd,
+          JSON.stringify(["filesystem", "network"]),
+        ]);
+        expect(options).toMatchObject({
+          cwd: taskCwd,
+          origin: "background-task:worker",
+          shell: false,
+        });
+        expect(options.env.CC_TASK_ID).toBe(task.id);
+        for (const key of Object.keys(hostileEnvironment)) {
+          expect(options.env).not.toHaveProperty(key);
+        }
+        expect(options).not.toHaveProperty("sandboxPolicy");
+        child.emit("exit", 0);
+      } finally {
+        for (const [key, previous] of Object.entries(previousEnvironment)) {
+          if (previous === undefined) delete process.env[key];
+          else process.env[key] = previous;
+        }
+      }
+    });
+
     it("rechecks policy before start and leaves a newly restricted task pending", () => {
       manager.destroy();
       const policyCwd = join(testDir, "trusted-workspace");
-      const taskCwd = join(testDir, "requested-task-cwd");
+      const taskCwd = join(policyCwd, "requested-task-cwd");
+      mkdirSync(taskCwd, { recursive: true });
       let policy = null;
       const resolveSandboxPolicy = vi.fn(() => policy);
       manager = new BackgroundTaskManager({
@@ -318,8 +451,8 @@ describe("BackgroundTaskManager", () => {
       }
 
       expect(error).toMatchObject({
-        code: "ERR_BACKGROUND_TASK_SANDBOX_UNSUPPORTED",
-        sandboxReason: "background_execution_unsupported",
+        code: "ERR_BACKGROUND_TASK_SANDBOX_POLICY_CHANGED",
+        sandboxReason: "background_sandbox_policy_changed",
         sandboxFailClosed: true,
         requiredBoundaries: ["filesystem"],
         missingBoundaries: ["filesystem"],

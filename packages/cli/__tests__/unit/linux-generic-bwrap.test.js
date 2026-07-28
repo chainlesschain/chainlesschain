@@ -47,6 +47,13 @@ const ETC_FILE = Object.freeze({
   uid: 0,
   gid: 0,
 });
+const PTY_LAUNCHER_FILE = Object.freeze({
+  realPath: "/usr/bin/setsid",
+  fileId: Object.freeze({ dev: "1", ino: "5" }),
+  mode: 0o100755,
+  uid: 0,
+  gid: 0,
+});
 const MOUNT_TOPOLOGY = Object.freeze({
   version: 1,
   source: "proc-self-mountinfo",
@@ -56,6 +63,10 @@ const MOUNT_TOPOLOGY = Object.freeze({
   filesystemEntryCount: 1,
   aliasCount: 1,
   forbiddenIdentityCount: 8,
+  sourceMountSetDigest: "e".repeat(64),
+  sourceMountCount: 3,
+  importedMountEntryCount: 3,
+  sourceMountPropagationPrivateAtAttestation: true,
   strictDescendantMountsAtAttestation: 0,
   rootAliasAttested: true,
   recursiveBind: true,
@@ -287,6 +298,20 @@ describe("Linux generic bubblewrap authority contract", () => {
         provenance({ requiredBoundaries: ["network"] }),
       ),
     ).toBe(false);
+
+    const ptyContract = issue({ pty: true });
+    expect(
+      verifyIssuedLinuxGenericSandboxExecutionContract(
+        ptyContract,
+        provenance({ pty: true }),
+      ),
+    ).toBe(true);
+    expect(
+      verifyIssuedLinuxGenericSandboxExecutionContract(
+        ptyContract,
+        provenance(),
+      ),
+    ).toBe(false);
   });
 
   it("is one-shot and refuses command drift without consuming the valid contract", () => {
@@ -370,6 +395,46 @@ describe("Linux generic bubblewrap authority contract", () => {
 });
 
 describe("Linux generic bubblewrap exact mount plan", () => {
+  it("uses a pinned setsid controlling-terminal launcher without bwrap session detachment", () => {
+    const commandContract = issue({ pty: true });
+    const plan = planLinuxGenericBubblewrap(
+      {
+        contract: commandContract,
+        provenance: provenance({ pty: true }),
+        resources: resources(commandContract, {
+          ptyLauncher: {
+            probeFd: 105,
+            finalFd: 205,
+            identity: PTY_LAUNCHER_FILE,
+            sha256: "c".repeat(64),
+            bytes: 2048,
+          },
+        }),
+        probe: successfulProbe,
+      },
+      { platform: "linux" },
+    );
+
+    expect(plan.applied).toBe(true);
+    expect(plan.command).toBe("/proc/self/fd/3");
+    expect(plan.args.slice(0, 2)).toEqual(["--ctty", "/proc/self/fd/4"]);
+    expect(plan.args).toContain("--die-with-parent");
+    expect(plan.args).not.toContain("--new-session");
+    expect(plan.args).toContain("/run/.chainless-pty-launcher");
+    expect(plan.ptyPolicy).toEqual({
+      mode: "dedicated-controlling-terminal",
+      launcherPath: "/usr/bin/setsid",
+      launcherSha256: "c".repeat(64),
+      launcherBytes: 2048,
+      launcherDescriptorBound: true,
+      launcherExecutablePinned: true,
+      launcherDescriptorConsumedBeforeTarget: true,
+      launcherStagingPathHidden: true,
+      bwrapNewSession: false,
+    });
+    expect(verifyLinuxGenericBubblewrapPlan(plan)).toBe(true);
+  });
+
   it("maps only rw workspace, anonymous scratch, root-owned runtime, and exact /etc files", () => {
     const commandContract = issue();
     const hostHomeSecret = "/home/alice/.ssh/id_ed25519";
@@ -403,10 +468,13 @@ describe("Linux generic bubblewrap exact mount plan", () => {
         "no-strict-descendants-or-forbidden-root-aliases-at-attestation",
       mountTopologySource: "proc-self-mountinfo",
       mountTopologyDigest: MOUNT_TOPOLOGY.digest,
+      sourceMountSetDigest: MOUNT_TOPOLOGY.sourceMountSetDigest,
+      sourceMountPropagationPrivateAtAttestation: true,
       mountTopologyAtomic: false,
     });
     expect(plan.args).toContain("--bind-fd");
     expect(plan.args).toContain("--ro-bind-fd");
+    expect(plan.args).toContain("--die-with-parent");
     expect(plan.args).toContain("--unshare-net");
     expect(plan.args).toContain("--seccomp");
     expect(plan.args).toContain("--remount-ro");
@@ -467,6 +535,8 @@ describe("Linux generic bubblewrap exact mount plan", () => {
         workspaceMountTopologyAttested: true,
         workspaceRootAliasAttested: true,
         mountTopologyDigest: MOUNT_TOPOLOGY.digest,
+        sourceMountSetDigest: MOUNT_TOPOLOGY.sourceMountSetDigest,
+        sourceMountPropagationPrivateAtAttestation: true,
         mountTopologyAtomic: false,
       },
     });
@@ -489,6 +559,8 @@ describe("Linux generic bubblewrap exact mount plan", () => {
           "no-strict-descendants-or-forbidden-root-aliases-at-attestation",
         mountTopologySource: "proc-self-mountinfo",
         mountTopologyDigest: MOUNT_TOPOLOGY.digest,
+        sourceMountSetDigest: MOUNT_TOPOLOGY.sourceMountSetDigest,
+        sourceMountPropagationPrivateAtAttestation: true,
         mountTopologyAtomic: false,
       },
       sandboxNetworkPolicy: {
@@ -513,6 +585,24 @@ describe("Linux generic bubblewrap exact mount plan", () => {
             ...plan.filesystemPolicy.anonymousWritablePaths,
             "/host-forgery",
           ],
+        },
+      }),
+    ).toThrow(/typed descriptor-bound empty-root contract/);
+    expect(() =>
+      executionBroker._validateSandboxPlan({
+        ...plan,
+        filesystemPolicy: {
+          ...plan.filesystemPolicy,
+          sourceMountSetDigest: "invalid",
+        },
+      }),
+    ).toThrow(/typed descriptor-bound empty-root contract/);
+    expect(() =>
+      executionBroker._validateSandboxPlan({
+        ...plan,
+        runtimeProbe: {
+          ...plan.runtimeProbe,
+          sourceMountPropagationPrivateAtAttestation: false,
         },
       }),
     ).toThrow(/typed descriptor-bound empty-root contract/);
@@ -754,6 +844,34 @@ describe("Linux generic bubblewrap exact mount plan", () => {
     expect(acquired.cleanup).toHaveBeenCalledOnce();
   });
 
+  it("rejects resources without private bind-source propagation evidence", () => {
+    const commandContract = issue();
+    const acquired = resources(commandContract);
+    acquired.workspace = {
+      ...acquired.workspace,
+      mountTopology: {
+        ...acquired.workspace.mountTopology,
+        sourceMountPropagationPrivateAtAttestation: false,
+      },
+    };
+    const plan = planLinuxGenericBubblewrap(
+      {
+        contract: commandContract,
+        provenance: provenance(),
+        resources: acquired,
+        probe: successfulProbe,
+      },
+      { platform: "linux" },
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_generic_resources_unattested",
+      guarantees: [],
+    });
+    expect(acquired.cleanup).toHaveBeenCalledOnce();
+  });
+
   it("binds the seccomp bytes, supervisor image, and system target identity into policyDigest", () => {
     const variants = [
       (value) => value,
@@ -942,6 +1060,8 @@ describe("Linux generic bubblewrap exact mount plan", () => {
             "no-strict-descendants-or-forbidden-root-aliases-at-attestation",
           mountTopologySource: "proc-self-mountinfo",
           mountTopologyDigest: MOUNT_TOPOLOGY.digest,
+          sourceMountSetDigest: MOUNT_TOPOLOGY.sourceMountSetDigest,
+          sourceMountPropagationPrivateAtAttestation: true,
           mountTopologyAtomic: false,
         },
         sandboxNetworkPolicy: {
@@ -969,6 +1089,8 @@ describe("Linux generic bubblewrap exact mount plan", () => {
           workspaceRoot: ROOT,
           workingDirectory: CWD,
           mountTopologyDigest: MOUNT_TOPOLOGY.digest,
+          sourceMountSetDigest: MOUNT_TOPOLOGY.sourceMountSetDigest,
+          sourceMountPropagationPrivateAtAttestation: true,
           mountTopologyAtomic: false,
         },
         networkPolicy: {

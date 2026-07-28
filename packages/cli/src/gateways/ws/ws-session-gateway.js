@@ -45,6 +45,35 @@ import {
   CODING_AGENT_MVP_TOOL_NAMES,
   listCodingAgentToolNames,
 } from "../../runtime/coding-agent-contract.js";
+import { registerHostHooksV2Workspace } from "../../lib/hooks-v2-workspace-context.js";
+
+function normalizeHostWorkspaceRoot(workspaceRoot) {
+  if (
+    typeof workspaceRoot !== "string" ||
+    workspaceRoot.length === 0 ||
+    workspaceRoot.includes("\0")
+  ) {
+    return null;
+  }
+  try {
+    return path.resolve(workspaceRoot);
+  } catch {
+    return null;
+  }
+}
+
+function bindSessionHooksV2Workspace(session, workspaceRoot) {
+  const binding = workspaceRoot
+    ? registerHostHooksV2Workspace(workspaceRoot)
+    : null;
+  Object.defineProperty(session, "hooksV2WorkspaceBindingId", {
+    value: binding?.bindingId || null,
+    enumerable: false,
+    writable: false,
+    configurable: false,
+  });
+  return session.hooksV2WorkspaceBindingId;
+}
 
 /**
  * @typedef {object} Session
@@ -85,6 +114,15 @@ export class WSSessionManager {
     this.db = options.db || null;
     this.config = options.config || {};
     this.defaultProjectRoot = options.defaultProjectRoot || process.cwd();
+    // Snapshot constructor authority once. Later request fields (and even a
+    // mutable compatibility assignment to defaultProjectRoot) cannot replace
+    // the root used for strong Hooks v2 execution.
+    this._hooksV2HostWorkspaceRoot = normalizeHostWorkspaceRoot(
+      this.defaultProjectRoot,
+    );
+    if (this._hooksV2HostWorkspaceRoot) {
+      registerHostHooksV2Workspace(this._hooksV2HostWorkspaceRoot);
+    }
     this.mcpClient = options.mcpClient || null;
     this.allowedMcpServerNames = Array.isArray(options.allowedMcpServerNames)
       ? options.allowedMcpServerNames
@@ -324,6 +362,11 @@ export class WSSessionManager {
     const sessionId = this._generateId();
     const type = options.type || "agent";
     const baseProjectRoot = options.projectRoot || this.defaultProjectRoot;
+    const hostAuthorizedBaseRoot =
+      normalizeHostWorkspaceRoot(baseProjectRoot) ===
+      this._hooksV2HostWorkspaceRoot
+        ? this._hooksV2HostWorkspaceRoot
+        : null;
     const cfgLlm = this.config?.llm || {};
     const provider = options.provider || cfgLlm.provider || "ollama";
     const model =
@@ -435,6 +478,14 @@ export class WSSessionManager {
       createdAt: new Date().toISOString(),
       lastActivity: new Date().toISOString(),
     };
+    bindSessionHooksV2Workspace(
+      session,
+      hostAuthorizedBaseRoot
+        ? worktree
+          ? normalizeHostWorkspaceRoot(projectRoot)
+          : hostAuthorizedBaseRoot
+        : null,
+    );
 
     if (this.db) {
       try {
@@ -546,6 +597,15 @@ export class WSSessionManager {
         createdAt: dbSession.created_at,
         lastActivity: new Date().toISOString(),
       };
+      const recoveredHooksWorkspaceRoot =
+        metadata.worktreeIsolation !== true &&
+        normalizeHostWorkspaceRoot(baseProjectRoot) ===
+          this._hooksV2HostWorkspaceRoot &&
+        normalizeHostWorkspaceRoot(workspace.projectRoot) ===
+          this._hooksV2HostWorkspaceRoot
+          ? this._hooksV2HostWorkspaceRoot
+          : null;
+      bindSessionHooksV2Workspace(session, recoveredHooksWorkspaceRoot);
 
       this._bindPlanManagerPersistence(session);
       this.sessions.set(session.id, session);

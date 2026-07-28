@@ -1753,7 +1753,7 @@ describe("MobileBridgeSync · _applyProject (v1.3 field-level merge)", () => {
     sync = makeSync();
   });
 
-  it("writes source_peer_id + pc_root_path on CREATE", async () => {
+  it("stores remote provenance but never trusts root_path on CREATE", async () => {
     await sync._applyProject({
       resourceType: ResourceType.PROJECT,
       resourceId: "p1",
@@ -1775,6 +1775,40 @@ describe("MobileBridgeSync · _applyProject (v1.3 field-level merge)", () => {
     const row = dbManager.get("SELECT * FROM projects WHERE id = ?", ["p1"]);
     expect(row.source_peer_id).toBe("PC-XYZ");
     expect(row.pc_root_path).toBe("/pc/path");
+    expect(row.root_path).toBeNull();
+  });
+
+  it("does not let root_path bypass missing provenance on a new remote row", async () => {
+    const result = await sync.handlePush({
+      item: {
+        resourceType: ResourceType.PROJECT,
+        resourceId: "unprovenanced-new",
+        operation: SyncOperation.CREATE,
+        version: 1,
+        timestamp: 100,
+        deviceId: "REMOTE-DEV",
+        data: JSON.stringify({
+          user_id: "u1",
+          name: "Unprovenanced remote project",
+          project_type: "document",
+          status: "active",
+          root_path: "C:\\attacker-controlled",
+          created_at: 100,
+          updated_at: 100,
+          // Deliberately no source_peer_id or pc_root_path.
+        }),
+      },
+    });
+    expect(result).toEqual({ status: "applied" });
+
+    const row = dbManager.get(
+      `SELECT root_path, source_peer_id, pc_root_path
+         FROM projects WHERE id = ?`,
+      ["unprovenanced-new"],
+    );
+    expect(row.root_path).toBeNull();
+    expect(row.source_peer_id).toBeNull();
+    expect(row.pc_root_path).toBeNull();
   });
 
   it("preserves existing source_peer_id + pc_root_path when incoming payload lacks them (字段级 merge 核心)", async () => {
@@ -1835,6 +1869,47 @@ describe("MobileBridgeSync · _applyProject (v1.3 field-level merge)", () => {
     const row = dbManager.get("SELECT * FROM projects WHERE id = ?", ["p3"]);
     expect(row.source_peer_id).toBe("NEW-PEER");
     expect(row.pc_root_path).toBe("/new/path");
+  });
+
+  it("preserves the local root_path when an unprovenanced update supplies a malicious root", async () => {
+    dbManager.run(
+      `INSERT INTO projects (id, user_id, name, project_type, status,
+        root_path, created_at, updated_at, source_peer_id, pc_root_path)
+       VALUES ('local-root', 'u1', 'Local', 'document', 'active',
+        '/locally/approved', 100, 100, 'PC-ORIGINAL', '/original/path')`,
+    );
+
+    const result = await sync.handlePush({
+      item: {
+        resourceType: ResourceType.PROJECT,
+        resourceId: "local-root",
+        operation: SyncOperation.UPDATE,
+        version: 1,
+        timestamp: 200,
+        deviceId: "REMOTE-DEV",
+        data: JSON.stringify({
+          user_id: "u1",
+          name: "Remote rename",
+          project_type: "document",
+          status: "active",
+          root_path: "C:\\attacker-controlled",
+          created_at: 100,
+          updated_at: 200,
+          // Deliberately no source_peer_id or pc_root_path.
+        }),
+      },
+    });
+    expect(result).toEqual({ status: "applied" });
+
+    const row = dbManager.get(
+      `SELECT name, root_path, source_peer_id, pc_root_path
+         FROM projects WHERE id = ?`,
+      ["local-root"],
+    );
+    expect(row.name).toBe("Remote rename");
+    expect(row.root_path).toBe("/locally/approved");
+    expect(row.source_peer_id).toBe("PC-ORIGINAL");
+    expect(row.pc_root_path).toBe("/original/path");
   });
 
   it("handles DELETE operation as soft-delete (sets deleted=1)", async () => {
@@ -2030,7 +2105,7 @@ describe("MobileBridgeSync · handleProjectUpdatePath (Sub-phase 5-6 fix)", () =
     expect(result.error).toBe("MISSING_PROJECT_ID");
   });
 
-  it("updates pc_root_path on existing project", async () => {
+  it("updates pc_root_path without promoting it to the local root_path", async () => {
     dbManager.run(
       `INSERT INTO projects (id, user_id, name, project_type, status,
         root_path, created_at, updated_at, pc_root_path)
@@ -2046,11 +2121,10 @@ describe("MobileBridgeSync · handleProjectUpdatePath (Sub-phase 5-6 fix)", () =
       `SELECT pc_root_path, root_path FROM projects WHERE id = 'p1'`,
     );
     expect(row.pc_root_path).toBe("C:\\code\\new");
-    // root_path 之前为 null → COALESCE 也补成同值（兼容只有 root_path 字段的旧客户端）
-    expect(row.root_path).toBe("C:\\code\\new");
+    expect(row.root_path).toBeNull();
   });
 
-  it("preserves existing root_path via COALESCE", async () => {
+  it("preserves an existing local root_path", async () => {
     dbManager.run(
       `INSERT INTO projects (id, user_id, name, project_type, status,
         root_path, created_at, updated_at, pc_root_path)
@@ -2065,7 +2139,6 @@ describe("MobileBridgeSync · handleProjectUpdatePath (Sub-phase 5-6 fix)", () =
       `SELECT pc_root_path, root_path FROM projects WHERE id = 'p1'`,
     );
     expect(row.pc_root_path).toBe("C:\\code\\new");
-    // root_path 已有值 → COALESCE 保留原值
     expect(row.root_path).toBe("/existing/root");
   });
 

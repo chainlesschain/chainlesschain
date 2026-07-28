@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import path from "node:path";
 
 // Mock all heavy dependencies before importing
 vi.mock("../../src/lib/plan-mode.js", () => ({
@@ -74,14 +75,21 @@ vi.mock("../../src/lib/git-integration.js", () => ({
   isGitRepo: vi.fn(() => true),
 }));
 
-vi.mock("fs", () => ({
-  default: {
-    existsSync: vi.fn(() => false),
-    readFileSync: vi.fn(() => ""),
-  },
-  existsSync: vi.fn(() => false),
-  readFileSync: vi.fn(() => ""),
-}));
+vi.mock("fs", async (importOriginal) => {
+  const actual = await importOriginal();
+  const existsSync = vi.fn(() => false);
+  const readFileSync = vi.fn(() => "");
+  return {
+    ...actual,
+    default: {
+      ...actual.default,
+      existsSync,
+      readFileSync,
+    },
+    existsSync,
+    readFileSync,
+  };
+});
 
 import { WSSessionManager } from "../../src/lib/ws-session-manager.js";
 import {
@@ -98,6 +106,7 @@ import {
 import { isGitRepo } from "../../src/lib/git-integration.js";
 import fs from "fs";
 import { CODING_AGENT_MVP_TOOL_NAMES } from "../../src/runtime/coding-agent-contract.js";
+import { resolveRegisteredHostHooksV2Workspace } from "../../src/lib/hooks-v2-workspace-context.js";
 
 describe("WSSessionManager", () => {
   let manager;
@@ -316,6 +325,53 @@ describe("WSSessionManager", () => {
       const { sessionId } = manager.createSession();
       const session = manager.getSession(sessionId);
       expect(session.projectRoot).toBe("/my/project");
+    });
+
+    it("binds Hooks v2 only to the immutable host project root", () => {
+      const trustedRoot = fs.realpathSync.native(process.cwd());
+      const m = new WSSessionManager({ defaultProjectRoot: trustedRoot });
+
+      const { sessionId } = m.createSession({
+        hooksV2WorkspaceRoot: path.resolve("forged-root"),
+      });
+      const session = m.getSession(sessionId);
+      const descriptor = Object.getOwnPropertyDescriptor(
+        session,
+        "hooksV2WorkspaceBindingId",
+      );
+
+      expect(session.hooksV2WorkspaceBindingId).toMatch(/^[a-f0-9]{64}$/);
+      expect(
+        resolveRegisteredHostHooksV2Workspace(session.hooksV2WorkspaceBindingId)
+          ?.workspaceRoot,
+      ).toBe(trustedRoot);
+      expect(descriptor).toMatchObject({
+        enumerable: false,
+        writable: false,
+        configurable: false,
+      });
+      expect(m._serializeSessionMetadata(session)).not.toHaveProperty(
+        "hooksV2WorkspaceBindingId",
+      );
+      expect(m._serializeSessionMetadata(session)).not.toHaveProperty(
+        "hooksV2WorkspaceRoot",
+      );
+      expect(Object.keys(session)).not.toContain("hooksV2WorkspaceBindingId");
+    });
+
+    it("leaves request-selected project roots unbound for strong Hooks v2", () => {
+      const trustedRoot = fs.realpathSync.native(process.cwd());
+      const requestedRoot = path.resolve("ws-request-project");
+      const m = new WSSessionManager({ defaultProjectRoot: trustedRoot });
+
+      const { sessionId } = m.createSession({
+        projectRoot: requestedRoot,
+        hooksV2WorkspaceRoot: trustedRoot,
+      });
+      const session = m.getSession(sessionId);
+
+      expect(session.projectRoot).toBe(requestedRoot);
+      expect(session.hooksV2WorkspaceBindingId).toBeNull();
     });
 
     it("rules.md is now loaded by buildSystemPrompt (session.rulesContent is null)", () => {
@@ -640,6 +696,78 @@ describe("WSSessionManager", () => {
       ]);
       expect(session.messages).toEqual([{ role: "system", content: "hello" }]);
       expect(dbGetSession).toHaveBeenCalledWith(mockDb, "db-session-123");
+    });
+
+    it("rebinds a non-isolated DB session only to the current host root", () => {
+      const trustedRoot = fs.realpathSync.native(process.cwd());
+      const m = new WSSessionManager({
+        db: mockDb,
+        defaultProjectRoot: trustedRoot,
+      });
+      dbGetSession.mockReturnValue({
+        id: "trusted-recovery",
+        provider: "ollama",
+        model: "qwen2.5:7b",
+        messages: "[]",
+        metadata: JSON.stringify({
+          projectRoot: trustedRoot,
+          baseProjectRoot: trustedRoot,
+          worktreeIsolation: false,
+          hooksV2WorkspaceRoot: path.resolve("forged-root"),
+        }),
+        created_at: "2026-01-01T00:00:00Z",
+      });
+
+      const session = m.resumeSession("trusted-recovery");
+
+      expect(session.hooksV2WorkspaceBindingId).toMatch(/^[a-f0-9]{64}$/);
+      expect(Object.keys(session)).not.toContain("hooksV2WorkspaceBindingId");
+    });
+
+    it("keeps differing and persisted-worktree DB roots fail-closed", () => {
+      const trustedRoot = fs.realpathSync.native(process.cwd());
+      const m = new WSSessionManager({
+        db: mockDb,
+        defaultProjectRoot: trustedRoot,
+      });
+      dbGetSession
+        .mockReturnValueOnce({
+          id: "request-root-recovery",
+          provider: "ollama",
+          model: "qwen2.5:7b",
+          messages: "[]",
+          metadata: JSON.stringify({
+            projectRoot: path.resolve("request-project"),
+            baseProjectRoot: path.resolve("request-project"),
+            worktreeIsolation: false,
+            hooksV2WorkspaceRoot: trustedRoot,
+          }),
+          created_at: "2026-01-01T00:00:00Z",
+        })
+        .mockReturnValueOnce({
+          id: "worktree-recovery",
+          provider: "ollama",
+          model: "qwen2.5:7b",
+          messages: "[]",
+          metadata: JSON.stringify({
+            projectRoot: path.join(trustedRoot, ".worktrees", "forged"),
+            baseProjectRoot: trustedRoot,
+            worktreeIsolation: true,
+            worktree: {
+              path: path.join(trustedRoot, ".worktrees", "forged"),
+              branch: "coding-agent/worktree-recovery",
+            },
+            hooksV2WorkspaceRoot: trustedRoot,
+          }),
+          created_at: "2026-01-01T00:00:00Z",
+        });
+
+      expect(
+        m.resumeSession("request-root-recovery").hooksV2WorkspaceBindingId,
+      ).toBeNull();
+      expect(
+        m.resumeSession("worktree-recovery").hooksV2WorkspaceBindingId,
+      ).toBeNull();
     });
 
     it("returns null when not found in memory or DB", () => {

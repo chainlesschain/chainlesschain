@@ -4,6 +4,7 @@
  */
 
 import { EventEmitter } from "node:events";
+import { createServer } from "node:http";
 import path from "node:path";
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import WebSocket from "ws";
@@ -122,6 +123,53 @@ describe("startWebShell", () => {
     expect(html).toContain('"embeddedShell":true');
   });
 
+  it("injects a configured WS token into the SPA and gates native topics", async () => {
+    const token = "desktop-test-token";
+    const local = await startWebShell({
+      ukeyManager: null,
+      wsToken: token,
+    });
+    const ws = new WebSocket(local.wsUrl);
+    await new Promise((resolve, reject) => {
+      ws.once("open", resolve);
+      ws.once("error", reject);
+    });
+    try {
+      const html = await (await fetch(local.httpUrl)).text();
+      expect(html).toContain(`"wsToken":${JSON.stringify(token)}`);
+
+      const denied = await rpc(ws, {
+        type: "ukey.status",
+        id: "token-denied",
+      });
+      expect(denied).toMatchObject({
+        type: "error",
+        code: "AUTH_REQUIRED",
+      });
+
+      const auth = await rpc(ws, {
+        type: "auth",
+        id: "token-auth",
+        token,
+      });
+      expect(auth).toMatchObject({
+        type: "auth-result",
+        success: true,
+      });
+      const allowed = await rpc(ws, {
+        type: "ukey.status",
+        id: "token-allowed",
+      });
+      expect(allowed).toMatchObject({
+        type: "ukey.status.result",
+        ok: true,
+      });
+    } finally {
+      ws.close();
+      await local.close();
+    }
+  });
+
   it("close() is idempotent", async () => {
     // Second close on the same handle is a no-op — but we'll call it via a
     // fresh handle so the global afterAll doesn't fight us.
@@ -145,6 +193,46 @@ describe("startWebShell", () => {
     await local.close();
     await expect(local.close()).resolves.toBeUndefined();
     expect(localPtyManager.shutdown).toHaveBeenCalledOnce();
+  });
+
+  it("detaches terminal fan-out without shutting down a caller-owned manager", async () => {
+    const sharedPtyManager = new EventEmitter();
+    sharedPtyManager.shutdown = vi.fn();
+    const local = await startWebShell({
+      ukeyManager: null,
+      projectRoot: path.resolve("shared-terminal-project"),
+      ptyManager: sharedPtyManager,
+    });
+    expect(sharedPtyManager.listenerCount("stdout")).toBe(1);
+    expect(sharedPtyManager.listenerCount("exit")).toBe(1);
+
+    await local.close();
+
+    expect(sharedPtyManager.listenerCount("stdout")).toBe(0);
+    expect(sharedPtyManager.listenerCount("exit")).toBe(0);
+    expect(sharedPtyManager.shutdown).not.toHaveBeenCalled();
+  });
+
+  it("does not use the desktop process cwd as a strict DB-bound terminal root", async () => {
+    const localPtyManager = new EventEmitter();
+    localPtyManager.shutdown = vi.fn();
+    const createPtyManager = vi.fn(async () => localPtyManager);
+    const local = await startWebShell({
+      ukeyManager: null,
+      createPtyManager,
+      requireTerminalProjectBinding: true,
+    });
+    try {
+      expect(createPtyManager).toHaveBeenCalledOnce();
+      expect(createPtyManager.mock.calls[0][0]).toEqual({
+        config: undefined,
+        resolveSandboxPolicy: undefined,
+        resolveProjectBinding: undefined,
+        requireProjectBinding: true,
+      });
+    } finally {
+      await local.close();
+    }
   });
 
   it("fs.openDialog wired with no mainWindow returns main_window_unavailable error", async () => {
@@ -204,24 +292,54 @@ describe("startWebShell", () => {
   });
 });
 
-describe("startWebShell — WS startup failure cleans up the HTTP side", () => {
-  it("does not leak the HTTP listener if the bridge fails", async () => {
+describe("startWebShell — startup failure cleanup", () => {
+  it("shuts down an owned terminal manager if the WS bridge fails", async () => {
     // Force a WS port collision by starting one bridge first then asking
     // bootstrap to bind the same port.
     const { startWsBridge } = await import("../ws-bridge.js");
     const occupant = await startWsBridge({ port: 0 });
+    const localPtyManager = new EventEmitter();
+    localPtyManager.shutdown = vi.fn();
+    const createPtyManager = vi.fn(async () => localPtyManager);
     try {
       await expect(
-        startWebShell({ wsPort: occupant.port, ukeyManager: null }),
+        startWebShell({
+          wsPort: occupant.port,
+          ukeyManager: null,
+          createPtyManager,
+        }),
       ).rejects.toBeDefined();
-      // If the HTTP server leaked we'd see open handles; vitest's leak
-      // detector covers this. We also re-bind the same port to prove no
-      // residual http listener is squatting on it via OS-assignment race
-      // conditions — skipped: HTTP port was OS-assigned so collision is
-      // already vanishingly unlikely. The negative assertion above is
-      // sufficient for the spike.
+      expect(createPtyManager).toHaveBeenCalledOnce();
+      expect(localPtyManager.shutdown).toHaveBeenCalledOnce();
     } finally {
       await occupant.close();
+    }
+  });
+
+  it("shuts down an owned terminal manager when HTTP startup fails", async () => {
+    const occupant = createServer((_request, response) => response.end());
+    await new Promise((resolve, reject) => {
+      occupant.once("error", reject);
+      occupant.listen(0, "127.0.0.1", resolve);
+    });
+    const localPtyManager = new EventEmitter();
+    localPtyManager.shutdown = vi.fn();
+    const createPtyManager = vi.fn(async () => localPtyManager);
+    try {
+      const address = occupant.address();
+      await expect(
+        startWebShell({
+          httpPort: address.port,
+          ukeyManager: null,
+          createPtyManager,
+        }),
+      ).rejects.toBeDefined();
+      expect(createPtyManager).toHaveBeenCalledOnce();
+      expect(localPtyManager.listenerCount("stdout")).toBe(0);
+      expect(localPtyManager.listenerCount("exit")).toBe(0);
+      expect(localPtyManager.shutdown).toHaveBeenCalledOnce();
+    } finally {
+      await new Promise((resolve) => occupant.close(resolve));
     }
   });
 });

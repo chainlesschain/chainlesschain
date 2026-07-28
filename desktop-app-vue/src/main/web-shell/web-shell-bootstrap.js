@@ -164,6 +164,8 @@ const NO_WEB_SHELL_FLAG = "--no-web-shell";
  */
 async function startWebShell(options = {}) {
   const host = options.host || "127.0.0.1";
+  const requireTerminalProjectBinding =
+    options.requireTerminalProjectBinding === true;
 
   // Plan A remote-terminal (docs/design/Android_Remote_Terminal_Plan_A.md):
   // PtyManager is a singleton; sessions are shared between the web-shell
@@ -175,10 +177,15 @@ async function startWebShell(options = {}) {
     options.ptyManager ||
     (await (options.createPtyManager || createPolicyAwarePtyManager)({
       config: options.terminalConfig || undefined,
-      policyCwd: options.projectRoot || process.cwd(),
+      // A DB-bound production manager must derive its authority from the
+      // resolved project row. Do not silently turn the desktop process cwd
+      // into an executable root when no project has been selected.
+      ...(options.projectRoot || !requireTerminalProjectBinding
+        ? { policyCwd: options.projectRoot || process.cwd() }
+        : {}),
       resolveSandboxPolicy: options.terminalSandboxPolicyResolver,
       resolveProjectBinding: options.terminalProjectBindingResolver,
-      requireProjectBinding: options.requireTerminalProjectBinding === true,
+      requireProjectBinding: requireTerminalProjectBinding,
     }));
   // Whether to call shutdown() on close — only when we own the instance.
   const ownsPtyManager = !options.ptyManager;
@@ -397,18 +404,30 @@ async function startWebShell(options = {}) {
     ...(options.extraHandlers || {}),
   };
 
-  const ws = await startWsCliBackend({
-    host,
-    port: typeof options.wsPort === "number" ? options.wsPort : 0,
-    token: options.wsToken ?? null,
-    handlers: wsHandlers,
-    sessionManager: options.sessionManager,
-  });
+  let ws;
+  try {
+    ws = await startWsCliBackend({
+      host,
+      port: typeof options.wsPort === "number" ? options.wsPort : 0,
+      token: options.wsToken ?? null,
+      handlers: wsHandlers,
+      sessionManager: options.sessionManager,
+    });
+  } catch (err) {
+    if (ownsPtyManager) {
+      try {
+        ptyManager.shutdown();
+      } catch {
+        /* preserve the WS startup error */
+      }
+    }
+    throw err;
+  }
 
   // Plan A: now that ws.broadcast exists, hand it to the terminal handler
   // closure and subscribe PtyManager events → broadcast frame fan-out.
   wsBroadcastRef.current = ws.broadcast;
-  terminal.attachServerEvents();
+  const detachTerminalEvents = terminal.attachServerEvents();
 
   // PDH LLM override — by default cli's personal-data-hub-wiring.js uses a
   // hardcoded OllamaClient (localhost:11434). The desktop main process has
@@ -453,6 +472,7 @@ async function startWebShell(options = {}) {
       port: typeof options.httpPort === "number" ? options.httpPort : 0,
       wsHost: host,
       wsPort: ws.port,
+      wsToken: options.wsToken ?? null,
       projectRoot: options.projectRoot ?? null,
       projectName: options.projectName ?? null,
       mode: options.mode || "global",
@@ -465,7 +485,15 @@ async function startWebShell(options = {}) {
       embeddedShell: true,
     });
   } catch (err) {
+    detachTerminalEvents?.();
     await ws.close().catch(() => {});
+    if (ownsPtyManager) {
+      try {
+        ptyManager.shutdown();
+      } catch {
+        /* preserve the HTTP startup error */
+      }
+    }
     throw err;
   }
 
@@ -475,6 +503,7 @@ async function startWebShell(options = {}) {
       return;
     }
     closed = true;
+    detachTerminalEvents?.();
     // Kill PTY sessions only when we own the manager (caller-injected
     // managers are owned by main/index.js's lifecycle and must outlive
     // the web-shell so V6 IPC stays alive when user toggles shell mode).

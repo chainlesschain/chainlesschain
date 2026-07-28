@@ -5,24 +5,27 @@
  * Sends messages to parent: { type: "heartbeat"|"result"|"error", ... }
  */
 
-import executionBroker from "../lib/process-execution-broker/index.js";
+import { executeBackgroundTaskCommand } from "./background-task-command-runner.js";
 
-const [command, cwd, type] = process.argv.slice(2);
+const [
+  command,
+  cwd,
+  type,
+  sandboxWorkspaceCwd = "",
+  sandboxRequiredBoundaries = "",
+] = process.argv.slice(2);
 
 const heartbeat = setInterval(() => {
   if (process.send) process.send({ type: "heartbeat" });
 }, 5000);
 
 try {
-  const result = executionBroker.execSync(command, {
-    cwd: cwd || process.cwd(),
-    encoding: "utf-8",
-    timeout: 300000,
-    maxBuffer: 10 * 1024 * 1024,
-    origin: `background-task:command:${type || "unknown"}`,
-    policy: "allow",
-    scope: "background-task",
-    shell: true,
+  const result = await executeBackgroundTaskCommand({
+    command,
+    cwd,
+    type,
+    workspaceCwd: sandboxWorkspaceCwd,
+    requiredBoundaries: sandboxRequiredBoundaries,
   });
 
   if (process.send) {
@@ -33,6 +36,9 @@ try {
     process.send({
       type: "error",
       error: err.stderr || err.message || String(err),
+      code: err.code || null,
+      sandboxReason: err.sandboxReason || null,
+      sandboxFailClosed: err.sandboxFailClosed === true,
     });
   }
   process.exitCode = 1;

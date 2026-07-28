@@ -14,6 +14,7 @@ import { spawnSync as nativeSpawnSync } from "node:child_process";
 import {
   LINUX_GENERIC_BWRAP_BACKEND,
   LINUX_GENERIC_CONTRACT_KIND,
+  LINUX_GENERIC_PTY_LAUNCHER_PATH,
   planLinuxGenericBubblewrap,
 } from "./linux-generic-bwrap.js";
 
@@ -345,8 +346,12 @@ function parseMountInfo(runtime) {
     }
     const root = decodeMountInfoPath(fields[3]);
     const mountPoint = decodeMountInfoPath(fields[4]);
+    const optionalFields = fields.slice(6, separator);
     const fsType = fields[separator + 1];
     if (
+      !fields[5] ||
+      fields[5].includes("\0") ||
+      optionalFields.some((field) => !field || field.includes("\0")) ||
       !fsType ||
       fsType.includes("\0") ||
       fields.slice(separator + 1).some((field) => !field)
@@ -361,6 +366,7 @@ function parseMountInfo(runtime) {
         root,
         mountPoint,
         fsType,
+        optionalFields: Object.freeze(optionalFields),
         lineDigest: sha256(line),
       }),
     );
@@ -399,7 +405,75 @@ function sameDirectoryIdentity(left, right) {
   );
 }
 
-function workspaceMountTopology(runtime, workspaceRoot, workspaceIdentity) {
+function bindSourceMountTopology(entries, bindSources) {
+  const normalizedSources = bindSources
+    .map((source) => ({
+      kind: source.kind,
+      source: source.source,
+      recursive: source.recursive === true,
+    }))
+    .sort(
+      (left, right) =>
+        left.source.localeCompare(right.source) ||
+        left.kind.localeCompare(right.kind),
+    );
+  const sourceKeys = new Set();
+  for (const source of normalizedSources) {
+    if (
+      typeof source.kind !== "string" ||
+      !source.kind ||
+      typeof source.source !== "string" ||
+      !path.posix.isAbsolute(source.source) ||
+      path.posix.normalize(source.source) !== source.source
+    ) {
+      throw new Error("bind_source_mount_topology_invalid");
+    }
+    const key = `${source.kind}\0${source.source}`;
+    if (sourceKeys.has(key)) {
+      throw new Error("bind_source_mount_topology_duplicate");
+    }
+    sourceKeys.add(key);
+  }
+
+  let importedMountEntryCount = 0;
+  const sourceMountBindings = normalizedSources.map((source) => {
+    const mountedBy = containingMount(entries, source.source);
+    const importedMounts = new Map([[mountedBy.mountId, mountedBy]]);
+    if (source.recursive) {
+      for (const entry of entries) {
+        if (isWithin(source.source, entry.mountPoint)) {
+          importedMounts.set(entry.mountId, entry);
+        }
+      }
+    }
+    const imported = [...importedMounts.values()];
+    if (imported.some((entry) => entry.optionalFields.length !== 0)) {
+      throw new Error("bind_source_mount_propagation_not_private");
+    }
+    importedMountEntryCount += imported.length;
+    return {
+      ...source,
+      containingMount: mountedBy.lineDigest,
+      importedMountEntryDigests: imported
+        .map((entry) => entry.lineDigest)
+        .sort(),
+    };
+  });
+  return {
+    sourceMountSetDigest: sha256(stableJson(normalizedSources)),
+    sourceMountCount: normalizedSources.length,
+    importedMountEntryCount,
+    sourceMountBindings,
+    sourceMountPropagationPrivateAtAttestation: true,
+  };
+}
+
+function workspaceMountTopology(
+  runtime,
+  workspaceRoot,
+  workspaceIdentity,
+  bindSources,
+) {
   const entries = parseMountInfo(runtime);
   const descendants = entries.filter(
     (entry) =>
@@ -498,6 +572,7 @@ function workspaceMountTopology(runtime, workspaceRoot, workspaceIdentity) {
   const lineage = entries.filter((entry) =>
     isWithin(entry.mountPoint, workspaceRoot),
   );
+  const bindSourceTopology = bindSourceMountTopology(entries, bindSources);
   const binding = {
     version: MOUNT_TOPOLOGY_VERSION,
     source: "proc-self-mountinfo",
@@ -512,6 +587,7 @@ function workspaceMountTopology(runtime, workspaceRoot, workspaceIdentity) {
     forbiddenIdentityDigests: forbiddenIdentities
       .map((entry) => sha256(stableJson(entry)))
       .sort(),
+    ...bindSourceTopology,
     strictDescendantMountsAtAttestation: 0,
     recursiveBind: true,
     mountTopologyAtomic: false,
@@ -525,6 +601,11 @@ function workspaceMountTopology(runtime, workspaceRoot, workspaceIdentity) {
     filesystemEntryCount: binding.filesystemEntryDigests.length,
     aliasCount: binding.aliasDigests.length,
     forbiddenIdentityCount: binding.forbiddenIdentityDigests.length,
+    sourceMountSetDigest: binding.sourceMountSetDigest,
+    sourceMountCount: binding.sourceMountCount,
+    importedMountEntryCount: binding.importedMountEntryCount,
+    sourceMountPropagationPrivateAtAttestation:
+      binding.sourceMountPropagationPrivateAtAttestation,
     strictDescendantMountsAtAttestation:
       binding.strictDescendantMountsAtAttestation,
     rootAliasAttested: true,
@@ -697,10 +778,20 @@ function createTrustedResources(
     const cwdPins = openPair(contract.workingDirectory, {
       directory: true,
     });
-    const initialWorkspaceMountTopology = workspaceMountTopology(
+    // Fail before executing any helper when the writable recursive source is
+    // already propagation-capable. The complete exact source set is attested
+    // after the actual system and /etc descriptors have been acquired.
+    workspaceMountTopology(
       runtime,
       contract.workspaceRoot,
       workspace.identity,
+      [
+        {
+          kind: "workspace",
+          source: contract.workspaceRoot,
+          recursive: true,
+        },
+      ],
     );
 
     const supervisor = openPair(BWRAP_PATH, {
@@ -771,6 +862,76 @@ function createTrustedResources(
       throw error;
     }
 
+    let ptyLauncher = null;
+    let ptyLauncherBytes = 0;
+    let ptyLauncherDigest = null;
+    if (sandboxOpts?.pty === true) {
+      ptyLauncher = openPair(LINUX_GENERIC_PTY_LAUNCHER_PATH, {
+        directory: false,
+        rootRequired: true,
+        executable: true,
+      });
+      ptyLauncherBytes = Number(runtime.fs.fstatSync(ptyLauncher.probeFd).size);
+      const probeDigest = hashOpenFile(
+        runtime,
+        ptyLauncher.probeFd,
+        ptyLauncherBytes,
+      );
+      ptyLauncherDigest = hashOpenFile(
+        runtime,
+        ptyLauncher.finalFd,
+        ptyLauncherBytes,
+      );
+      if (probeDigest !== ptyLauncherDigest) {
+        throw new Error("pty_launcher_digest_mismatch");
+      }
+      ptyLauncher.identity = Object.freeze({
+        ...ptyLauncher.identity,
+        sha256: ptyLauncherDigest,
+        bytes: ptyLauncherBytes,
+      });
+
+      const launcherCapabilityFd = runtime.fs.openSync(
+        LINUX_GENERIC_PTY_LAUNCHER_PATH,
+        openFlags({ directory: false }),
+      );
+      ownedFds.add(launcherCapabilityFd);
+      const launcherCapabilityStat = runtime.fs.fstatSync(launcherCapabilityFd);
+      if (
+        !statMatchesIdentity(launcherCapabilityStat, ptyLauncher.identity, {
+          directory: false,
+        }) ||
+        hashOpenFile(runtime, launcherCapabilityFd, ptyLauncherBytes) !==
+          ptyLauncherDigest
+      ) {
+        throw new Error("pty_launcher_capability_reader_unattested");
+      }
+      const launcherCapabilityResult = runtime.spawnSync(
+        "/proc/self/fd/3",
+        ["--help"],
+        {
+          shell: false,
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe", launcherCapabilityFd],
+          timeout: 10_000,
+          env: { PATH: "/usr/bin:/bin", LANG: "C", LC_ALL: "C" },
+        },
+      );
+      closeFd(launcherCapabilityFd);
+      const launcherHelp =
+        `${String(launcherCapabilityResult?.stdout || "")}\n` +
+        String(launcherCapabilityResult?.stderr || "");
+      if (
+        launcherCapabilityResult?.error ||
+        launcherCapabilityResult?.status !== 0 ||
+        !launcherHelp.split(/\s+/).includes("--ctty")
+      ) {
+        const error = new Error("pty_launcher_capability_probe_failed");
+        error.code = "LINUX_GENERIC_BWRAP_UNAVAILABLE";
+        throw error;
+      }
+    }
+
     const system = [];
     const systemSymlinks = [];
     for (const destination of SYSTEM_DESTINATIONS) {
@@ -824,6 +985,33 @@ function createTrustedResources(
         identity: pair.identity,
       });
     }
+    const sourceMountSources = Object.freeze([
+      Object.freeze({
+        kind: "workspace",
+        source: contract.workspaceRoot,
+        recursive: true,
+      }),
+      ...system.map((entry) =>
+        Object.freeze({
+          kind: "system",
+          source: entry.destination,
+          recursive: true,
+        }),
+      ),
+      ...etc.map((entry) =>
+        Object.freeze({
+          kind: "etc",
+          source: entry.destination,
+          recursive: false,
+        }),
+      ),
+    ]);
+    const initialWorkspaceMountTopology = workspaceMountTopology(
+      runtime,
+      contract.workspaceRoot,
+      workspace.identity,
+      sourceMountSources,
+    );
 
     const filter = buildNetworkSeccompFilter(runtime.arch);
     const openSeccomp = (phase) => {
@@ -969,6 +1157,7 @@ function createTrustedResources(
         issued.origin === (spawnOpts?.origin || "unknown") &&
         issued.command === command &&
         issued.sync === (sandboxOpts?.sync === true) &&
+        issued.pty === (sandboxOpts?.pty === true) &&
         issued.shell === false &&
         Array.isArray(stdio) &&
         issued.stdio.length === stdio.length &&
@@ -986,6 +1175,7 @@ function createTrustedResources(
           runtime,
           contract.workspaceRoot,
           workspace.identity,
+          sourceMountSources,
         );
       } catch {
         return false;
@@ -1001,6 +1191,14 @@ function createTrustedResources(
         !descriptorAttested(supervisor.finalFd, supervisor.identity, false) ||
         hashOpenFile(runtime, supervisor.finalFd, supervisorBytes) !==
           supervisorFinalDigest ||
+        (sandboxOpts?.pty === true &&
+          (!descriptorAttested(
+            ptyLauncher?.finalFd,
+            ptyLauncher?.identity,
+            false,
+          ) ||
+            hashOpenFile(runtime, ptyLauncher.finalFd, ptyLauncherBytes) !==
+              ptyLauncherDigest)) ||
         hashOpenFile(runtime, seccomp.finalFd, filter.buffer.length) !==
           filter.sha256
       ) {
@@ -1249,6 +1447,17 @@ function createTrustedResources(
         sha256: supervisorFinalDigest,
         bytes: supervisorBytes,
       },
+      ...(ptyLauncher
+        ? {
+            ptyLauncher: {
+              probeFd: ptyLauncher.probeFd,
+              finalFd: ptyLauncher.finalFd,
+              identity: ptyLauncher.identity,
+              sha256: ptyLauncherDigest,
+              bytes: ptyLauncherBytes,
+            },
+          }
+        : {}),
       workspace: {
         probeFd: workspace.probeFd,
         finalFd: workspace.finalFd,
@@ -1291,6 +1500,7 @@ export function applyLinuxGenericWorkspaceSandbox(
     cwd: spawnOpts?.cwd || process.cwd(),
     shell: spawnOpts?.shell,
     sync: sandboxOpts?.sync === true,
+    pty: sandboxOpts?.pty === true,
     stdio: spawnOpts?.stdio,
     requiredBoundaries,
   };

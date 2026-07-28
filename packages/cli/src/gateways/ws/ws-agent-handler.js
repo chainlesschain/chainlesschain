@@ -27,6 +27,10 @@ import { runnableTaskModel } from "../../lib/runnable-provider.js";
 import { PlanState } from "../../lib/plan-mode.js";
 import { CLISlotFiller } from "../../lib/slot-filler.js";
 import { createAbortError, isAbortError } from "../../lib/abort-utils.js";
+import {
+  resolveRegisteredHostHooksV2Workspace,
+  runWithHostHooksV2Workspace,
+} from "../../lib/hooks-v2-workspace-context.js";
 import { createWsApprovalGate } from "./ws-approval-gate.js";
 
 export class WSAgentHandler {
@@ -166,7 +170,7 @@ export class WSAgentHandler {
       diffReviewFollowUps = new DiffReviewFollowUpTracker(sideEffectLedger);
       let currentSideEffectOpId = null;
 
-      const runAgentTurn = async () => {
+      const executeAgentTurn = async () => {
         for await (const event of agentLoop(session.messages, loopOptions)) {
           switch (event.type) {
             case "slot-filling":
@@ -250,6 +254,16 @@ export class WSAgentHandler {
           }
         }
       };
+      const hooksWorkspaceBinding = resolveRegisteredHostHooksV2Workspace(
+        session.hooksV2WorkspaceBindingId,
+      );
+      const runAgentTurn = () =>
+        hooksWorkspaceBinding
+          ? runWithHostHooksV2Workspace(
+              hooksWorkspaceBinding.workspaceRoot,
+              executeAgentTurn,
+            )
+          : executeAgentTurn();
 
       if (session.mcpClient?.withElicitationContext) {
         await session.mcpClient.withElicitationContext(

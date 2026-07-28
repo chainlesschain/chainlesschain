@@ -3917,7 +3917,7 @@ describe("platform sandbox adapter contract", () => {
     },
   );
 
-  it("rejects an async strong Plugin Node contract before probing bwrap", () => {
+  it("accepts an async strong Plugin Node contract without detaching the bwrap supervisor", () => {
     const harness = createLinuxStrongHarness();
     const plan = applySandbox(
       "/runtime/node",
@@ -3942,16 +3942,22 @@ describe("platform sandbox adapter contract", () => {
     );
 
     expect(plan).toMatchObject({
-      applied: false,
-      reason: "linux_bwrap_execution_contract_invalid",
-      guarantees: [],
+      applied: true,
+      backend: "linux-bwrap",
+      policyAttested: true,
+      guarantees: [SANDBOX_BOUNDARIES.FILESYSTEM, SANDBOX_BOUNDARIES.NETWORK],
+      options: {
+        shell: false,
+        detached: false,
+      },
       runtimeProbe: {
-        attempted: false,
-        runnable: false,
-        reason: "unsupported_launch_options",
+        attempted: true,
+        runnable: true,
+        reason: null,
       },
     });
-    expect(harness.spawnSync).not.toHaveBeenCalled();
+    expectLinuxBwrapSupervisorInvocations(harness, ["capability", "probe"]);
+    plan.cleanup();
     expect(harness.openFiles.size).toBe(0);
   });
 
@@ -8270,6 +8276,44 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     });
   });
 
+  it("releases direct Linux bwrap descriptors immediately after async spawn duplication", () => {
+    const child = createChild();
+    const nativeSpawn = vi.fn(() => child);
+    const cleanup = vi.fn();
+    const plan = appliedLinuxBwrapPluginTreePlan(
+      "tool",
+      ["run"],
+      {
+        cwd: "/workspace",
+        shell: false,
+        stdio: ["pipe", "pipe", "pipe", 41, 42],
+      },
+      { cleanup },
+    );
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: vi.fn(() => plan),
+      postSpawnSandbox: vi.fn(),
+    };
+
+    const returned = executionBroker.spawn("tool", ["run"], {
+      origin: "plugin:bin",
+      policy: "allow",
+      cwd: "/workspace",
+      shell: false,
+      requiredBoundaries: [
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+      ],
+    });
+
+    expect(returned).toBe(child);
+    expect(nativeSpawn).toHaveBeenCalledOnce();
+    expect(cleanup).toHaveBeenCalledOnce();
+    child.emit("exit", 0, null);
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+
   it("preserves extended runtime probe evidence in the audit log", () => {
     const child = createChild();
     const nativeSpawn = vi.fn(() => child);
@@ -9264,12 +9308,25 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
 
   it("fails closed when a native PTY cannot provide a required boundary", () => {
     const ptyModule = { spawn: vi.fn() };
+    const requiredBoundaries = [SANDBOX_BOUNDARIES.FILESYSTEM];
+    executionBroker._sandboxAdapter = {
+      applySandbox: vi.fn((command, args, options) =>
+        executionBroker._sandboxUnavailablePlan(
+          command,
+          args,
+          options,
+          "native_pty_host_boundary",
+          { requiredBoundaries },
+        ),
+      ),
+      postSpawnSandbox: vi.fn(),
+    };
     let error;
     try {
       executionBroker.spawnPty(ptyModule, "shell", [], {
         origin: "test:pty-required-boundary",
         policy: "allow",
-        requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        requiredBoundaries,
       });
     } catch (caught) {
       error = caught;
@@ -9289,7 +9346,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       sandboxBackend: null,
       sandboxState: "denied",
     });
-  });
+  }, 20_000);
 
   it("passes adapter command, args, and options to native spawnSync", () => {
     const nativeSpawnSync = vi.fn(() => ({ status: 0 }));

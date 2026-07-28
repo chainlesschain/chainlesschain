@@ -148,10 +148,7 @@ export function normalizePluginSandboxPolicy(raw, opts = {}) {
 
   const requiredBoundaries = [];
   for (const boundary of boundaries) {
-    if (
-      typeof boundary !== "string" ||
-      !SUPPORTED_BOUNDARIES.has(boundary)
-    ) {
+    if (typeof boundary !== "string" || !SUPPORTED_BOUNDARIES.has(boundary)) {
       throw invalidPolicy(
         `${label}.requiredBoundaries contains unsupported boundary: ${String(boundary)}`,
       );

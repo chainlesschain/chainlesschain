@@ -121,6 +121,7 @@ import {
   questionWithIdleTimeout,
 } from "./permission-prompt.js";
 import { describeAskContext, raceLocalAndRemote } from "./remote-approval.js";
+import { runWithHostHooksV2Workspace } from "../lib/hooks-v2-workspace-context.js";
 import {
   parsePermissionTier,
   parsePermissionModeArg,
@@ -477,6 +478,13 @@ export async function agentLoop(messages, options) {
  * Start the agentic REPL
  */
 export async function startAgentRepl(options = {}) {
+  const trustedWorkspaceRoot = process.cwd();
+  return runWithHostHooksV2Workspace(trustedWorkspaceRoot, () =>
+    startAgentReplInWorkspace(options),
+  );
+}
+
+async function startAgentReplInWorkspace(options = {}) {
   // EPIPE guard: if the REPL's stdout is piped and the consumer closes (e.g.
   // `cc agent | head`), the async stream `error` would otherwise crash the
   // process. Route a broken pipe into the REPL's own graceful shutdown (the

@@ -8,6 +8,7 @@ import {
   _resetDefaultEventRuntimeHostForTests,
   startDefaultEventRuntimeHost,
 } from "../../src/lib/event-runtime-host.js";
+import { resolveRegisteredHostHooksV2Workspace } from "../../src/lib/hooks-v2-workspace-context.js";
 
 const dirs = [];
 
@@ -167,6 +168,27 @@ describe("EventRuntimeHost", () => {
     });
     expect(host).toBeInstanceOf(EventRuntimeHost);
     expect(host.status().running).toBe(true);
+    await host.stop();
+  });
+
+  it("registers only its host-provided workspace for durable Hook recovery", async () => {
+    const runtimeStore = store();
+    const workspaceRoot = fs.realpathSync.native(runtimeStore.dir);
+
+    process.env.CC_EVENT_RUNTIME_DURABLE = "1";
+    const host = startDefaultEventRuntimeHost({
+      store: runtimeStore,
+      immediate: false,
+      workspaceRoot,
+    });
+
+    expect(host.hooksV2WorkspaceBindingId).toMatch(/^[a-f0-9]{64}$/);
+    expect(
+      resolveRegisteredHostHooksV2Workspace(host.hooksV2WorkspaceBindingId),
+    ).toMatchObject({
+      bindingId: host.hooksV2WorkspaceBindingId,
+      workspaceRoot,
+    });
     await host.stop();
   });
 });

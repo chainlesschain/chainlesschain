@@ -990,7 +990,20 @@ export function reattestPluginBinInvocation(invocation) {
  * policy-bearing Plugin Node or native invocation. Object identity is the
  * capability: callers cannot mint a usable contract by copying public fields.
  */
-export function createPluginSandboxExecutionContract(invocation) {
+export function createPluginSandboxExecutionContract(invocation, options = {}) {
+  if (
+    options === null ||
+    typeof options !== "object" ||
+    Array.isArray(options) ||
+    Object.keys(options).some((key) => key !== "sync") ||
+    (options.sync !== undefined && typeof options.sync !== "boolean")
+  ) {
+    throw pluginBinError(
+      "ERR_PLUGIN_SANDBOX_CONTRACT_OPTIONS_INVALID",
+      "plugin sandbox execution contract options must contain an optional boolean sync field",
+    );
+  }
+  const sync = options.sync !== false;
   const issuedResolution =
     invocation && typeof invocation === "object"
       ? _issuedPluginBinInvocations.get(invocation)
@@ -1140,7 +1153,7 @@ export function createPluginSandboxExecutionContract(invocation) {
         pluginSource: invocation.pluginSource,
         pluginExecutableIdentity: invocation.executableIdentity,
         requiredBoundaries: invocation.sandboxPolicy.requiredBoundaries,
-        sync: true,
+        sync,
       }),
     );
     return contract;
@@ -1156,14 +1169,17 @@ export function createPluginSandboxExecutionContract(invocation) {
 /**
  * Backward-compatible Node-only issuer retained for existing callers.
  */
-export function createPluginNodeSandboxExecutionContract(invocation) {
+export function createPluginNodeSandboxExecutionContract(
+  invocation,
+  options = {},
+) {
   if (invocation?.runtime !== "node") {
     throw pluginBinError(
       "ERR_PLUGIN_NODE_SANDBOX_CONTRACT_UNSUPPORTED",
       "plugin Node sandbox execution contract requires one direct policy-bearing Node bin",
     );
   }
-  return createPluginSandboxExecutionContract(invocation);
+  return createPluginSandboxExecutionContract(invocation, options);
 }
 
 /**

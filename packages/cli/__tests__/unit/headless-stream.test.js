@@ -5,6 +5,9 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import {
   parseInputEvent,
   readJsonLines,
@@ -12,6 +15,7 @@ import {
 } from "../../src/runtime/headless-stream.js";
 import { TurnBindingLog } from "../../src/lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../../src/lib/turn-binding-store.js";
+import { currentHostHooksV2WorkspaceRoot } from "../../src/lib/hooks-v2-workspace-context.js";
 
 describe("parseInputEvent", () => {
   it("returns null for blank lines", () => {
@@ -170,6 +174,47 @@ describe("runAgentHeadlessStream", () => {
       .trimEnd()
       .split("\n")
       .map((l) => JSON.parse(l));
+
+  it("binds lifecycle hooks to the streaming CLI host cwd", async () => {
+    const trustedRoot = mkdtempSync(
+      path.join(tmpdir(), "stream-host-workspace-"),
+    );
+    const observedRoots = [];
+    const agentLoop = async function* () {
+      await Promise.resolve();
+      observedRoots.push(currentHostHooksV2WorkspaceRoot());
+      yield { type: "response-complete", content: "ok" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const deps = baseDeps({
+      agentLoop,
+      input: input({ type: "user", text: "go" }),
+      executeHooksV2Event: vi.fn(async () => {
+        await Promise.resolve();
+        observedRoots.push(currentHostHooksV2WorkspaceRoot());
+        return {
+          success: true,
+          blocked: false,
+          decision: "continue",
+          results: [],
+        };
+      }),
+    });
+
+    try {
+      const outcome = await runAgentHeadlessStream(
+        { cwd: trustedRoot, expandFileRefs: false },
+        deps,
+      );
+
+      expect(outcome).toEqual({ exitCode: 0, turns: 1 });
+      expect(observedRoots.length).toBeGreaterThan(1);
+      expect(new Set(observedRoots)).toEqual(new Set([trustedRoot]));
+      expect(currentHostHooksV2WorkspaceRoot()).toBeNull();
+    } finally {
+      rmSync(trustedRoot, { recursive: true, force: true });
+    }
+  }, 30_000);
 
   it("runs one turn per event, emitting init + per-turn result + end", async () => {
     const seen = [];

@@ -267,6 +267,7 @@ describe("PtyManager Plugin-bin sandbox policy", () => {
       _deps: {
         loadNodePty: () => pty,
         getProcessBroker: () => broker,
+        platform: () => "win32",
       },
     });
 
@@ -296,6 +297,7 @@ describe("PtyManager Plugin-bin sandbox policy", () => {
       _deps: {
         loadNodePty,
         getProcessBroker: () => null,
+        platform: () => "win32",
         // A custom seam must not become a strict-policy direct fallback.
         spawnPty: vi.fn(),
       },
@@ -347,6 +349,7 @@ describe("PtyManager Plugin-bin sandbox policy", () => {
       _deps: {
         loadNodePty,
         getProcessBroker: () => broker,
+        platform: () => "win32",
       },
     });
 
@@ -450,6 +453,9 @@ function makeBoundProjectManager({
   shell = "bash",
   projectOverrides = {},
   resolveSandboxPolicy = () => null,
+  platform = () => process.platform,
+  issueLinuxWorkspaceSandboxExecutionContract = null,
+  spawnLinuxStrongPty = null,
 } = {}) {
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "pty-project-"));
   tempRoots.push(tmpRoot);
@@ -473,6 +479,7 @@ function makeBoundProjectManager({
   };
   const resolveProjectBinding = vi.fn(() => project);
   const policyResolver = vi.fn(resolveSandboxPolicy);
+  const loadNodePty = vi.fn(() => pty);
   const mgr = new PtyManager({
     requireProjectBinding: true,
     resolveProjectBinding,
@@ -482,8 +489,11 @@ function makeBoundProjectManager({
       shellWhitelist: ["bash", "pwsh", "cmd"],
     },
     _deps: {
-      loadNodePty: () => pty,
+      loadNodePty,
       getProcessBroker: () => broker,
+      platform,
+      issueLinuxWorkspaceSandboxExecutionContract,
+      spawnLinuxStrongPty,
     },
   });
   return {
@@ -493,12 +503,134 @@ function makeBoundProjectManager({
     project,
     resolveProjectBinding,
     resolveSandboxPolicy: policyResolver,
+    loadNodePty,
     workspace,
     subdir,
     strictDir,
     outside,
   };
 }
+
+describe("PtyManager DB-authorized strong Linux PTY", () => {
+  it("issues one launch from the canonical DB root and routes it to the strong broker", () => {
+    const policy = Object.freeze({
+      requiredBoundaries: Object.freeze(["filesystem", "network"]),
+    });
+    const contract = Object.freeze({
+      contractVersion: 1,
+      kind: "strict-workspace-command",
+    });
+    const issueContract = vi.fn(() => contract);
+    const strongSpawn = vi.fn();
+    const { mgr, fake, broker, loadNodePty, workspace, subdir, outside } =
+      makeBoundProjectManager({
+        resolveSandboxPolicy: () => policy,
+        platform: () => "linux",
+        issueLinuxWorkspaceSandboxExecutionContract: issueContract,
+        spawnLinuxStrongPty: strongSpawn,
+      });
+    strongSpawn.mockReturnValue(fake.proc);
+
+    const created = mgr.create({
+      projectId: "project-1",
+      shell: "bash",
+      cwd: subdir,
+      // These untrusted fields are deliberately ignored as authority.
+      workspaceRoot: outside,
+      policyCwd: outside,
+    });
+
+    const canonicalWorkspace = fs.realpathSync.native(workspace);
+    const canonicalCwd = fs.realpathSync.native(subdir);
+    expect(issueContract).toHaveBeenCalledOnce();
+    expect(issueContract.mock.calls[0]).toEqual([
+      "bash",
+      ["-l"],
+      expect.objectContaining({
+        cwd: canonicalCwd,
+        origin: "terminal:pty",
+        scope: "terminal",
+        policy: "allow",
+        shell: false,
+        sandboxPolicy: policy,
+      }),
+      canonicalWorkspace,
+      { pty: true },
+    ]);
+    expect(issueContract.mock.calls[0][2]).not.toHaveProperty(
+      "sandboxExecutionContract",
+    );
+    expect(strongSpawn).toHaveBeenCalledWith(
+      expect.objectContaining({ spawn: expect.any(Function) }),
+      "bash",
+      ["-l"],
+      expect.objectContaining({
+        cwd: canonicalCwd,
+        sandboxPolicy: policy,
+        sandboxExecutionContract: contract,
+      }),
+    );
+    expect(broker.spawnPty).not.toHaveBeenCalled();
+    expect(loadNodePty).toHaveBeenCalledOnce();
+    expect(issueContract.mock.invocationCallOrder[0]).toBeLessThan(
+      loadNodePty.mock.invocationCallOrder[0],
+    );
+    expect(created).toMatchObject({
+      projectId: "project-1",
+      cwd: canonicalCwd,
+      pid: fake.proc.pid,
+    });
+  });
+
+  it("fails before loading node-pty when the strong Linux facade is unavailable", () => {
+    const policy = Object.freeze({
+      requiredBoundaries: Object.freeze(["filesystem"]),
+    });
+    const { mgr, broker, loadNodePty } = makeBoundProjectManager({
+      resolveSandboxPolicy: () => policy,
+      platform: () => "linux",
+    });
+
+    expect(() =>
+      mgr.create({ projectId: "project-1", shell: "bash" }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "ERR_DESKTOP_PTY_STRONG_BACKEND_UNAVAILABLE",
+        sandboxReason: "desktop_strong_pty_backend_unavailable",
+        sandboxFailClosed: true,
+        requiredBoundaries: ["filesystem"],
+        missingBoundaries: ["filesystem"],
+      }),
+    );
+    expect(loadNodePty).not.toHaveBeenCalled();
+    expect(broker.spawnPty).not.toHaveBeenCalled();
+  });
+
+  it("fails before loading node-pty when no one-shot contract is issued", () => {
+    const policy = Object.freeze({
+      requiredBoundaries: Object.freeze(["network"]),
+    });
+    const issueContract = vi.fn(() => null);
+    const strongSpawn = vi.fn();
+    const { mgr, loadNodePty } = makeBoundProjectManager({
+      resolveSandboxPolicy: () => policy,
+      platform: () => "linux",
+      issueLinuxWorkspaceSandboxExecutionContract: issueContract,
+      spawnLinuxStrongPty: strongSpawn,
+    });
+
+    expect(() =>
+      mgr.create({ projectId: "project-1", shell: "bash" }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "ERR_DESKTOP_PTY_STRONG_BACKEND_UNAVAILABLE",
+        sandboxFailClosed: true,
+      }),
+    );
+    expect(loadNodePty).not.toHaveBeenCalled();
+    expect(strongSpawn).not.toHaveBeenCalled();
+  });
+});
 
 describe("PtyManager DB-backed project-root selector", () => {
   it("derives the initial workspace/cwd from the DB project record", () => {

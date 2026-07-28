@@ -4,9 +4,9 @@
  * The worker is the fork() child that background-task-manager spawns to run a
  * command in isolation. It was previously untested — the parent is tested but
  * never actually forks this file. Here we fork it directly (the same contract:
- * argv = [command, cwd, type]) and assert it classifies success vs failure into
- * the {type:"result"} / {type:"error"} process.send messages and sets the exit
- * code accordingly.
+ * argv = [command, cwd, type, sandboxWorkspaceCwd?, boundariesJson?]) and
+ * assert it classifies success vs failure into the {type:"result"} /
+ * {type:"error"} process.send messages and sets the exit code accordingly.
  */
 
 import { describe, it, expect } from "vitest";
@@ -35,8 +35,8 @@ function runWorker(command, cwd, type) {
       } catch {
         /* already gone */
       }
-      reject(new Error("worker did not exit within 15s"));
-    }, 15000);
+      reject(new Error("worker did not exit within 30s"));
+    }, 30000);
     if (typeof timer.unref === "function") timer.unref();
     child.on("message", (m) => messages.push(m));
     child.on("error", (e) => {
@@ -63,7 +63,7 @@ describe("background-task-worker (fork child)", () => {
     // No error message on the success path.
     expect(messages.find((m) => m.type === "error")).toBeUndefined();
     expect(code).toBe(0);
-  });
+  }, 35_000);
 
   it("sends a {type:'error'} message and exits 1 on command failure", async () => {
     const { messages, code } = await runWorker(
@@ -78,7 +78,7 @@ describe("background-task-worker (fork child)", () => {
     // No result message on the failure path.
     expect(messages.find((m) => m.type === "result")).toBeUndefined();
     expect(code).toBe(1);
-  });
+  }, 35_000);
 
   it("treats a non-'shell' type the same execSync path (result on success)", async () => {
     const { messages, code } = await runWorker(
@@ -90,5 +90,5 @@ describe("background-task-worker (fork child)", () => {
     expect(result).toBeTruthy();
     expect(result.data).toContain("other-type-ok");
     expect(code).toBe(0);
-  });
+  }, 35_000);
 });

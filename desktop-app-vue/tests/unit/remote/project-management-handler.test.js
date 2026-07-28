@@ -5,7 +5,7 @@
  *   list / get / init / delete / listFiles / getFile
  */
 
-import { vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const ProjectManagementHandler = require("../../../src/main/remote/handlers/project-management-handler");
 
 describe("ProjectManagementHandler", () => {
@@ -103,11 +103,12 @@ describe("ProjectManagementHandler", () => {
 
       const [sql, args] = mockDatabase.run.mock.calls[0];
       expect(sql).toContain("INSERT INTO projects");
-      // args: [id, userId, name, description=null, type, rootPath=null, now, now]
+      expect(sql).not.toContain("root_path");
+      // args: [id, userId, name, description=null, type, now, now]
       expect(args[2]).toBe("My Project");
       expect(args[3]).toBeNull();
       expect(args[4]).toBe("document");
-      expect(args[5]).toBeNull();
+      expect(r.requiresLocalRootBinding).toBe(true);
     });
 
     it("validates project_type", async () => {
@@ -120,20 +121,23 @@ describe("ProjectManagementHandler", () => {
       await expect(handler.init({}, context)).rejects.toThrow(/name required/);
     });
 
-    it("passes through description and rootPath", async () => {
-      await handler.init(
+    it("ignores an attacker-controlled absolute rootPath", async () => {
+      const maliciousRoot = "C:\\Users\\victim\\sensitive-project";
+      const result = await handler.init(
         {
           name: "Detailed Project",
           description: "Some desc",
           type: "code",
-          rootPath: "/Users/test/proj",
+          rootPath: maliciousRoot,
         },
         context,
       );
-      const [, args] = mockDatabase.run.mock.calls[0];
+      const [sql, args] = mockDatabase.run.mock.calls[0];
       expect(args[3]).toBe("Some desc");
       expect(args[4]).toBe("code");
-      expect(args[5]).toBe("/Users/test/proj");
+      expect(sql).not.toContain("root_path");
+      expect(args).not.toContain(maliciousRoot);
+      expect(result.requiresLocalRootBinding).toBe(true);
     });
   });
 

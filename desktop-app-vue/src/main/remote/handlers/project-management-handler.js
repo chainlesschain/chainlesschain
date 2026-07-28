@@ -101,7 +101,6 @@ class ProjectManagementHandler {
       description = null,
       type = "document",
       userId = context.userId || "default",
-      rootPath = null,
     } = params;
     if (!name) {
       throw new Error("name required");
@@ -128,9 +127,9 @@ class ProjectManagementHandler {
     await this.database.run(
       `INSERT INTO projects (
         id, user_id, name, description, project_type, status,
-        root_path, created_at, updated_at, sync_status, deleted
-      ) VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, 'pending', 0)`,
-      [id, userId, name, description, type, rootPath, now, now],
+        created_at, updated_at, sync_status, deleted
+      ) VALUES (?, ?, ?, ?, ?, 'active', ?, ?, 'pending', 0)`,
+      [id, userId, name, description, type, now, now],
     );
     logger.info(`[ProjectManagementHandler] init: ${name} (${id})`);
     return {
@@ -140,6 +139,9 @@ class ProjectManagementHandler {
       status: "active",
       created_at: now,
       message: "Project created",
+      // Remote callers can create project metadata, but only a local desktop
+      // action may bind the filesystem root used by terminal/file authority.
+      requiresLocalRootBinding: true,
     };
   }
 

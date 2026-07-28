@@ -30,6 +30,7 @@ import {
   executeHooksV2Event,
   resolvePromptExpansion,
 } from "../lib/hooks-v2-producers.js";
+import { runWithHostHooksV2Workspace } from "../lib/hooks-v2-workspace-context.js";
 import { bootstrap } from "./bootstrap.js";
 import { buildSystemPrompt, agentLoop as coreAgentLoop } from "./agent-core.js";
 import { composeSystemPrompt } from "./system-prompt.js";
@@ -996,6 +997,13 @@ async function runTurn(
  * @returns {Promise<{exitCode:number, turns:number}>}
  */
 export async function runAgentHeadlessStream(options = {}, deps = {}) {
+  const trustedWorkspaceRoot = options.cwd || process.cwd();
+  return runWithHostHooksV2Workspace(trustedWorkspaceRoot, () =>
+    runAgentHeadlessStreamInWorkspace(options, deps),
+  );
+}
+
+async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
   const model = options.model || "qwen2.5:7b";
   const provider = options.provider || "ollama";
   const baseUrl = options.baseUrl || "http://localhost:11434";

@@ -26,17 +26,34 @@ on:
       - "packages/cli/src/lib/async-hook-supervisor.js"
       - "packages/cli/src/lib/async-hook-supervisor.cjs"
       - "packages/cli/src/lib/hooks-v2-runtime.js"
+      - "packages/cli/src/lib/hooks-v2-workspace-context.js"
+      - "packages/cli/src/lib/event-runtime-host.js"
       - "packages/cli/src/lib/lsp/lsp-client.js"
       - "packages/cli/src/lib/plugin-monitor-supervisor.js"
       - "packages/cli/src/commands/agenda.js"
       - "packages/cli/src/runtime/agent-core.js"
+      - "packages/cli/src/runtime/headless-runner.js"
+      - "packages/cli/src/runtime/headless-stream.js"
+      - "packages/cli/src/repl/agent-repl.js"
+      - "packages/cli/src/gateways/ws/ws-agent-handler.js"
+      - "packages/cli/src/gateways/ws/ws-session-gateway.js"
+      - "packages/cli/src/gateways/terminal/PtyManager.js"
       - "packages/cli/src/lib/agent-sandbox.js"
       - "packages/cli/__tests__/unit/process-execution-broker-platform-sandbox.test.js"
       - "packages/cli/__tests__/unit/linux-generic-bwrap.test.js"
       - "packages/cli/__tests__/unit/linux-generic-bwrap-runtime.test.js"
+      - "packages/cli/__tests__/unit/process-execution-broker-linux-generic-pty.test.js"
+      - "packages/cli/__tests__/unit/pty-manager.test.js"
       - "packages/cli/__tests__/unit/hook-runner.test.js"
       - "packages/cli/__tests__/unit/async-hook-supervisor.test.js"
       - "packages/cli/__tests__/unit/hooks-v2-managed-policy.test.js"
+      - "packages/cli/__tests__/unit/hooks-v2-workspace-context.test.js"
+      - "packages/cli/__tests__/unit/event-runtime-host.test.js"
+      - "packages/cli/__tests__/unit/headless-runner.test.js"
+      - "packages/cli/__tests__/unit/headless-stream.test.js"
+      - "packages/cli/__tests__/unit/agent-repl-loop-wrapper.test.js"
+      - "packages/cli/__tests__/unit/ws-agent-handler.test.js"
+      - "packages/cli/__tests__/unit/ws-session-manager.test.js"
       - "packages/cli/__tests__/unit/mcp-client-sandbox-policy.test.js"
       - "packages/cli/__tests__/unit/plugin-monitor-supervisor.test.js"
       - "packages/cli/__tests__/unit/plugin-runtime-mcp.test.js"
@@ -46,6 +63,8 @@ on:
       - "packages/cli/__tests__/unit/agenda-command.test.js"
       - "packages/cli/__tests__/unit/background-task-manager.test.js"
       - "packages/cli/__tests__/unit/background-task-command-runner.test.js"
+      - "packages/cli/__tests__/unit/agent-core-run-shell-background-sandbox.test.js"
+      - "packages/cli/__tests__/integration/background-task-worker.test.js"
       - "packages/cli/src/lib/lsp/__tests__/lsp-client.test.js"
       - "packages/cli/__tests__/unit/plugin-runtime-bin.test.js"
       - "packages/cli/__tests__/unit/plugin-runtime-bin-agent-core.test.js"
@@ -81,17 +100,34 @@ on:
       - "packages/cli/src/lib/async-hook-supervisor.js"
       - "packages/cli/src/lib/async-hook-supervisor.cjs"
       - "packages/cli/src/lib/hooks-v2-runtime.js"
+      - "packages/cli/src/lib/hooks-v2-workspace-context.js"
+      - "packages/cli/src/lib/event-runtime-host.js"
       - "packages/cli/src/lib/lsp/lsp-client.js"
       - "packages/cli/src/lib/plugin-monitor-supervisor.js"
       - "packages/cli/src/commands/agenda.js"
       - "packages/cli/src/runtime/agent-core.js"
+      - "packages/cli/src/runtime/headless-runner.js"
+      - "packages/cli/src/runtime/headless-stream.js"
+      - "packages/cli/src/repl/agent-repl.js"
+      - "packages/cli/src/gateways/ws/ws-agent-handler.js"
+      - "packages/cli/src/gateways/ws/ws-session-gateway.js"
+      - "packages/cli/src/gateways/terminal/PtyManager.js"
       - "packages/cli/src/lib/agent-sandbox.js"
       - "packages/cli/__tests__/unit/process-execution-broker-platform-sandbox.test.js"
       - "packages/cli/__tests__/unit/linux-generic-bwrap.test.js"
       - "packages/cli/__tests__/unit/linux-generic-bwrap-runtime.test.js"
+      - "packages/cli/__tests__/unit/process-execution-broker-linux-generic-pty.test.js"
+      - "packages/cli/__tests__/unit/pty-manager.test.js"
       - "packages/cli/__tests__/unit/hook-runner.test.js"
       - "packages/cli/__tests__/unit/async-hook-supervisor.test.js"
       - "packages/cli/__tests__/unit/hooks-v2-managed-policy.test.js"
+      - "packages/cli/__tests__/unit/hooks-v2-workspace-context.test.js"
+      - "packages/cli/__tests__/unit/event-runtime-host.test.js"
+      - "packages/cli/__tests__/unit/headless-runner.test.js"
+      - "packages/cli/__tests__/unit/headless-stream.test.js"
+      - "packages/cli/__tests__/unit/agent-repl-loop-wrapper.test.js"
+      - "packages/cli/__tests__/unit/ws-agent-handler.test.js"
+      - "packages/cli/__tests__/unit/ws-session-manager.test.js"
       - "packages/cli/__tests__/unit/mcp-client-sandbox-policy.test.js"
       - "packages/cli/__tests__/unit/plugin-monitor-supervisor.test.js"
       - "packages/cli/__tests__/unit/plugin-runtime-mcp.test.js"
@@ -101,6 +137,8 @@ on:
       - "packages/cli/__tests__/unit/agenda-command.test.js"
       - "packages/cli/__tests__/unit/background-task-manager.test.js"
       - "packages/cli/__tests__/unit/background-task-command-runner.test.js"
+      - "packages/cli/__tests__/unit/agent-core-run-shell-background-sandbox.test.js"
+      - "packages/cli/__tests__/integration/background-task-worker.test.js"
       - "packages/cli/src/lib/lsp/__tests__/lsp-client.test.js"
       - "packages/cli/__tests__/unit/plugin-runtime-bin.test.js"
       - "packages/cli/__tests__/unit/plugin-runtime-bin-agent-core.test.js"
@@ -184,18 +222,29 @@ jobs:
           /usr/bin/bwrap --help | grep -F -- --assert-userns-disabled
           /usr/bin/bwrap --help | grep -F -- --remount-ro
           /usr/bin/bwrap --help | grep -F -- --seccomp
+          /usr/bin/setsid --help | grep -F -- --ctty
 
       - name: Run platform sandbox contract tests
         working-directory: packages/cli
         run: >-
           npx vitest run --reporter=json
+          --testTimeout=35000
           --outputFile=strict-sandbox-contract-result.json
           __tests__/unit/process-execution-broker-platform-sandbox.test.js
           __tests__/unit/linux-generic-bwrap.test.js
           __tests__/unit/linux-generic-bwrap-runtime.test.js
+          __tests__/unit/process-execution-broker-linux-generic-pty.test.js
+          __tests__/unit/pty-manager.test.js
           __tests__/unit/hook-runner.test.js
           __tests__/unit/async-hook-supervisor.test.js
           __tests__/unit/hooks-v2-managed-policy.test.js
+          __tests__/unit/hooks-v2-workspace-context.test.js
+          __tests__/unit/event-runtime-host.test.js
+          __tests__/unit/headless-runner.test.js
+          __tests__/unit/headless-stream.test.js
+          __tests__/unit/agent-repl-loop-wrapper.test.js
+          __tests__/unit/ws-agent-handler.test.js
+          __tests__/unit/ws-session-manager.test.js
           __tests__/unit/mcp-client-sandbox-policy.test.js
           __tests__/unit/plugin-monitor-supervisor.test.js
           __tests__/unit/plugin-runtime-mcp.test.js
@@ -205,6 +254,8 @@ jobs:
           __tests__/unit/agenda-command.test.js
           __tests__/unit/background-task-manager.test.js
           __tests__/unit/background-task-command-runner.test.js
+          __tests__/unit/agent-core-run-shell-background-sandbox.test.js
+          __tests__/integration/background-task-worker.test.js
           src/lib/lsp/__tests__/lsp-client.test.js
           __tests__/unit/plugin-runtime-bin.test.js
           __tests__/unit/plugin-runtime-bin-agent-core.test.js

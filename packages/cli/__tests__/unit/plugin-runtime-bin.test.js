@@ -470,6 +470,50 @@ describe("resolvePluginBinInvocation", () => {
     ).toBe(false);
   });
 
+  it("binds an async direct Plugin Node contract to async provenance only", () => {
+    installBinPlugin("local", "async-toolkit", ["entry.js"], {
+      manifest: {
+        permissions: { process: true },
+        sandboxPolicy: {
+          requiredBoundaries: ["filesystem", "network"],
+        },
+        bin: { "async-tool": "bin/entry.js" },
+      },
+    });
+    const invocation = resolvePluginBinInvocation("async-tool --safe", {
+      cwd,
+      scopes: ["local"],
+    });
+    const contract = createPluginNodeSandboxExecutionContract(invocation, {
+      sync: false,
+    });
+    const provenance = {
+      origin: "plugin:bin",
+      command: contract.runtimePath,
+      args: invocation.args,
+      cwd: contract.workingDirectory,
+      pluginId: invocation.pluginId,
+      pluginVersion: invocation.pluginVersion,
+      pluginSource: invocation.pluginSource,
+      pluginExecutableIdentity: invocation.executableIdentity,
+      requiredBoundaries: invocation.sandboxPolicy.requiredBoundaries,
+      sync: false,
+    };
+
+    expect(
+      verifyIssuedPluginNodeSandboxExecutionContract(contract, provenance),
+    ).toBe(true);
+    expect(
+      consumeIssuedPluginNodeSandboxExecutionContract(contract, {
+        ...provenance,
+        sync: true,
+      }),
+    ).toBe(false);
+    expect(
+      consumeIssuedPluginNodeSandboxExecutionContract(contract, provenance),
+    ).toBe(true);
+  });
+
   it("refuses contract issuance after the resolver trust decision is revoked", () => {
     installBinPlugin("project", "toolkit", ["entry.js"], {
       manifest: {

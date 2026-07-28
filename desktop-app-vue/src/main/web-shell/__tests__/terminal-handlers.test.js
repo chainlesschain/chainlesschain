@@ -19,11 +19,17 @@ class FakePtyManager {
       history: [],
     };
     this.nextSessionId = "sess-1";
+    this.createdProjectId = null;
     this.listResult = [];
     this.historyResult = { chunks: [], truncated: false };
   }
   on(event, cb) {
     this._listeners[event].push(cb);
+  }
+  off(event, cb) {
+    this._listeners[event] = this._listeners[event].filter(
+      (listener) => listener !== cb,
+    );
   }
   emit(event, payload) {
     for (const cb of this._listeners[event]) {
@@ -36,6 +42,7 @@ class FakePtyManager {
       sessionId: this.nextSessionId,
       pid: 99,
       shell: req.shell || "pwsh",
+      projectId: req.projectId || this.createdProjectId,
       createdAt: 1700000000000,
     };
   }
@@ -244,6 +251,24 @@ describe("terminal-handlers", () => {
       });
     });
 
+    it("attaches once and detaches both PTY event listeners idempotently", () => {
+      const detach = attachServerEvents();
+      expect(attachServerEvents()).toBe(detach);
+      expect(pty._listeners.stdout).toHaveLength(1);
+      expect(pty._listeners.exit).toHaveLength(1);
+
+      detach();
+      detach();
+      expect(pty._listeners.stdout).toHaveLength(0);
+      expect(pty._listeners.exit).toHaveLength(0);
+      pty.emit("stdout", {
+        sessionId: "sess-after-close",
+        data: Buffer.from("hidden", "utf8"),
+        seq: 1,
+      });
+      expect(broadcastFrames).toEqual([]);
+    });
+
     it("requires projectId and sends events only to subscribed WS clients in DB-bound mode", async () => {
       pty.requiresProjectScope = true;
       const local = createTerminalHandlers({
@@ -290,6 +315,40 @@ describe("terminal-handlers", () => {
       expect(broadcastFrames).toEqual([]);
     });
 
+    it("partitions legacy cwd creates by the DB-resolved projectId", async () => {
+      pty.requiresProjectScope = true;
+      pty.createdProjectId = "project-from-db";
+      const local = createTerminalHandlers({
+        ptyManager: pty,
+        broadcast,
+      });
+      const ws = { once: vi.fn() };
+      const server = { _send: vi.fn() };
+      const ctx = { clientId: "legacy-client", ws, server };
+
+      const created = await local.handlers["terminal.create"](
+        { payload: { cwd: "C:\\legacy-selector" } },
+        ctx,
+      );
+      expect(created.projectId).toBe("project-from-db");
+
+      local.attachServerEvents();
+      pty.emit("stdout", {
+        sessionId: created.sessionId,
+        projectId: "project-from-db",
+        data: Buffer.from("visible", "utf-8"),
+        seq: 1,
+      });
+      expect(server._send).toHaveBeenCalledWith(
+        ws,
+        expect.objectContaining({
+          payload: expect.objectContaining({
+            projectId: "project-from-db",
+          }),
+        }),
+      );
+      expect(broadcastFrames).toEqual([]);
+    });
   });
 
   describe("DEFAULT_DANGEROUS_PATTERNS", () => {

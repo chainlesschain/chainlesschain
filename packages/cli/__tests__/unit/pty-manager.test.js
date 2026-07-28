@@ -8,6 +8,7 @@
  * and stopped-manager guards.
  */
 import { describe, it, expect, vi } from "vitest";
+import path from "node:path";
 import { PtyManager } from "../../src/gateways/terminal/PtyManager.js";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
 
@@ -149,24 +150,112 @@ describe("PtyManager plugin sandbox policy", () => {
     mgr.create({ shell: "bash", cwd: "requested-worktree" });
 
     expect(resolveSandboxPolicy).toHaveBeenCalledWith({
-      workspaceCwd: "trusted-workspace",
-      executionCwd: "requested-worktree",
+      workspaceCwd: path.resolve("trusted-workspace"),
+      executionCwd: path.resolve("trusted-workspace", "requested-worktree"),
     });
     expect(calls).toHaveLength(1);
     expect(calls[0].options.sandboxPolicy).toBe(policy);
   });
 
+  it("issues a Linux PTY contract from the fixed host root before loading node-pty", () => {
+    const { loadNodePty } = makeFakeDeps();
+    const calls = [];
+    const order = [];
+    const policy = Object.freeze({
+      requiredBoundaries: Object.freeze(["filesystem", "network"]),
+    });
+    const contract = Object.freeze({ kind: "strict-workspace-command" });
+    const workspaceRoot = path.resolve("trusted-workspace");
+    const executionCwd = path.join(workspaceRoot, "subdir");
+    const issueContract = vi.fn(() => {
+      order.push("issue");
+      return contract;
+    });
+    const mgr = new PtyManager({
+      policyCwd: workspaceRoot,
+      resolveSandboxPolicy: () => policy,
+      _deps: {
+        platform: () => "linux",
+        issueLinuxWorkspaceSandboxExecutionContract: issueContract,
+        loadNodePty: () => {
+          order.push("load");
+          return loadNodePty();
+        },
+        spawnPty(pty, command, args, options) {
+          calls.push({ pty, command, args, options });
+          return pty.spawn(command, args, options);
+        },
+      },
+    });
+
+    mgr.create({ shell: "bash", cwd: "subdir" });
+
+    expect(order).toEqual(["issue", "load"]);
+    expect(issueContract).toHaveBeenCalledWith(
+      expect.stringMatching(/bash(?:\.exe)?$/),
+      [],
+      expect.objectContaining({
+        cwd: executionCwd,
+        shell: false,
+        sandboxPolicy: policy,
+      }),
+      workspaceRoot,
+      { pty: true },
+    );
+    expect(calls[0].options.sandboxExecutionContract).toBe(contract);
+  });
+
+  it("fails closed before loading node-pty when Linux cannot issue the host contract", () => {
+    const loadNodePty = vi.fn();
+    const policy = Object.freeze({
+      requiredBoundaries: Object.freeze(["filesystem"]),
+    });
+    const mgr = new PtyManager({
+      policyCwd: path.resolve("trusted-workspace"),
+      resolveSandboxPolicy: () => policy,
+      _deps: {
+        platform: () => "linux",
+        issueLinuxWorkspaceSandboxExecutionContract: () => null,
+        loadNodePty,
+      },
+    });
+
+    expect(() => mgr.create({ shell: "bash", cwd: "subdir" })).toThrow(
+      expect.objectContaining({
+        code: "ERR_PTY_SANDBOX_CONTRACT_UNAVAILABLE",
+        sandboxFailClosed: true,
+      }),
+    );
+    expect(loadNodePty).not.toHaveBeenCalled();
+  });
+
   it("fails closed through the real Broker before native PTY allocation", () => {
     executionBroker.flushAuditLog();
+    const originalAdapter = executionBroker._sandboxAdapter;
     const pty = { spawn: vi.fn() };
     const loadNodePty = vi.fn(() => pty);
     const policy = Object.freeze({
       requiredBoundaries: Object.freeze(["filesystem"]),
     });
+    executionBroker._sandboxAdapter = {
+      applySandbox: vi.fn((command, args, options) =>
+        executionBroker._sandboxUnavailablePlan(
+          command,
+          args,
+          options,
+          "native_pty_host_boundary",
+          { requiredBoundaries: ["filesystem"] },
+        ),
+      ),
+      postSpawnSandbox: vi.fn(),
+    };
     const mgr = new PtyManager({
       policyCwd: "trusted-workspace",
       resolveSandboxPolicy: () => policy,
-      _deps: { loadNodePty },
+      _deps: {
+        loadNodePty,
+        platform: () => "test",
+      },
     });
 
     let error;
@@ -174,6 +263,8 @@ describe("PtyManager plugin sandbox policy", () => {
       mgr.create({ shell: "bash", cwd: "requested-worktree" });
     } catch (caught) {
       error = caught;
+    } finally {
+      executionBroker._sandboxAdapter = originalAdapter;
     }
 
     expect(error).toMatchObject({

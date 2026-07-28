@@ -19,6 +19,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
+import { executeBackgroundTaskCommand } from "../../src/harness/background-task-command-runner.js";
 import {
   applyWindowsSandbox,
   resetWindowsSandboxAdapterCache,
@@ -1180,6 +1181,253 @@ describe.runIf(LIVE && SUPPORTED)(
     );
 
     it.runIf(process.platform === "linux")(
+      "runs and tears down a direct policy-bearing Plugin Node background tree without retaining parent mount descriptors",
+      () => {
+        const nonce = `${process.pid}-${Date.now()}`;
+        const workspace = fs.mkdtempSync(
+          path.join(os.tmpdir(), "cc-linux-plugin-background-"),
+        );
+        const pluginRoot = pluginVersionDir(
+          "local",
+          "strict-background",
+          "1.0.0",
+          { cwd: workspace },
+        );
+        const pluginEntry = path.join(
+          pluginRoot,
+          "bin",
+          "strict-background.cjs",
+        );
+        const configPath = path.join(pluginRoot, "config.json");
+        const allowedPath = path.join(pluginRoot, "allowed.txt");
+        const secretPath = path.join(
+          os.homedir(),
+          `.cc-linux-plugin-background-secret-${nonce}`,
+        );
+        const hostMarker = path.join(
+          os.homedir(),
+          `.cc-linux-plugin-background-host-${nonce}`,
+        );
+        const pluginMarker = "/opt/chainless/plugin/plugin-marker.txt";
+        const sandboxTmpPath = `/tmp/.cc-linux-plugin-background-${nonce}`;
+        const supervisorIdentity = fileIdentity(LINUX_BWRAP_PATH);
+        const childFixture = fileURLToPath(
+          new URL(
+            "../fixtures/process-broker-linux-bwrap-live-child.mjs",
+            import.meta.url,
+          ),
+        );
+
+        try {
+          fs.mkdirSync(path.dirname(pluginEntry), { recursive: true });
+          fs.writeFileSync(secretPath, "host-only-secret", { mode: 0o600 });
+          fs.writeFileSync(allowedPath, "background-allowed", "utf8");
+          fs.writeFileSync(
+            path.join(pluginRoot, "plugin.json"),
+            JSON.stringify({
+              name: "strict-background",
+              version: "1.0.0",
+              permissions: { process: true },
+              sandboxPolicy: {
+                requiredBoundaries: [
+                  SANDBOX_BOUNDARIES.FILESYSTEM,
+                  SANDBOX_BOUNDARIES.NETWORK,
+                ],
+              },
+              bin: {
+                "strict-background": "bin/strict-background.cjs",
+              },
+            }),
+            "utf8",
+          );
+          fs.writeFileSync(
+            configPath,
+            JSON.stringify({
+              secretPath,
+              hostMarker,
+              pluginMarker,
+              sandboxTmpPath,
+            }),
+            "utf8",
+          );
+          fs.writeFileSync(
+            pluginEntry,
+            [
+              'const fs = require("node:fs");',
+              'const net = require("node:net");',
+              'const { spawn } = require("node:child_process");',
+              'const config = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));',
+              "const hold = process.argv[3] === '--background-hold';",
+              "const report = {",
+              "  cwd: process.cwd(),",
+              "  allowed: fs.readFileSync('allowed.txt', 'utf8'),",
+              "  chainlessSandboxed: process.env.CHAINLESS_SANDBOXED || null,",
+              "  secretReadable: false,",
+              "  hostRootReadable: false,",
+              "  pluginWritable: false,",
+              "  hostWritable: false,",
+              "  tmpWritable: false,",
+              "  loopbackConnected: false,",
+              "  networkError: null,",
+              "  nestedProcessStarted: false,",
+              "  nestedProcessError: null,",
+              "};",
+              "try { fs.readFileSync(config.secretPath, 'utf8'); report.secretReadable = true; } catch {}",
+              "try { fs.readFileSync('/etc/passwd', 'utf8'); report.hostRootReadable = true; } catch {}",
+              "try { fs.writeFileSync(config.pluginMarker, 'blocked'); report.pluginWritable = true; } catch {}",
+              "try { fs.writeFileSync(config.hostMarker, 'blocked'); report.hostWritable = true; } catch {}",
+              "try { fs.writeFileSync(config.sandboxTmpPath, 'ephemeral'); report.tmpWritable = true; } catch {}",
+              "if (hold) {",
+              "  const nested = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' });",
+              "  report.nestedProcessStarted = Number.isInteger(nested.pid);",
+              "  nested.once('error', (error) => { report.nestedProcessError = error.code || error.message; });",
+              "}",
+              "let socket;",
+              "let finished = false;",
+              "const finish = (connected, error) => {",
+              "  if (finished) return;",
+              "  finished = true;",
+              "  clearTimeout(timer);",
+              "  socket?.destroy();",
+              "  report.loopbackConnected = connected;",
+              "  report.networkError = error;",
+              "  process.stdout.write(JSON.stringify(report));",
+              "  if (hold) setInterval(() => {}, 1000);",
+              "};",
+              "const timer = setTimeout(() => finish(false, 'timeout'), 3000);",
+              "try {",
+              "  socket = net.connect({ host: '127.0.0.1', port: 9 });",
+              "  socket.once('connect', () => finish(true, null));",
+              "  socket.once('error', (error) => finish(false, error.code || error.message));",
+              "} catch (error) {",
+              "  finish(false, error.code || error.message);",
+              "}",
+            ].join("\n"),
+            "utf8",
+          );
+
+          const coordinator = nativeSpawnSync(
+            process.execPath,
+            [
+              childFixture,
+              "plugin-command-background",
+              workspace,
+              "strict-background config.json --background-hold",
+            ],
+            {
+              encoding: "utf8",
+              timeout: 60_000,
+              windowsHide: true,
+              env: {
+                ...process.env,
+                CC_SANDBOX_STRICT: "1",
+                NODE_OPTIONS: "--no-warnings",
+                LD_LIBRARY_PATH: "/host/sensitive/library-path",
+                CC_TEST_SENSITIVE_ENV: "must-not-cross-boundary",
+              },
+            },
+          );
+          const failureContext = JSON.stringify({
+            status: coordinator.status,
+            signal: coordinator.signal,
+            error: coordinator.error?.message,
+            stdout: coordinator.stdout,
+            stderr: coordinator.stderr,
+          });
+          expect(coordinator.error, failureContext).toBeUndefined();
+          expect(coordinator.status, failureContext).toBe(0);
+
+          const envelope = JSON.parse(coordinator.stdout);
+          expect(envelope.launch).toMatchObject({
+            background: true,
+            status: "running",
+            task_id: expect.stringMatching(/^bg_/),
+            plugin_bin: {
+              plugin: "strict-background",
+              runtime: "node",
+              identity_attested: true,
+              launch_identity_reattested: true,
+              direct_argv: true,
+            },
+          });
+          expect(envelope.activeStatus).toBe("running");
+          expect(envelope.killRequested).toBe(true);
+          expect(
+            envelope.activeDescendantHostPids.length,
+          ).toBeGreaterThanOrEqual(2);
+          expect(envelope.survivingDescendantHostPids).toEqual([]);
+          expect(envelope.completion).toMatchObject({
+            running: false,
+            task_id: envelope.launch.task_id,
+          });
+          const report = JSON.parse(envelope.completion.stdout);
+          expect(report).toMatchObject({
+            cwd: "/opt/chainless/plugin",
+            allowed: "background-allowed",
+            chainlessSandboxed: "1",
+            secretReadable: false,
+            hostRootReadable: false,
+            pluginWritable: false,
+            hostWritable: false,
+            tmpWritable: true,
+            loopbackConnected: false,
+            networkError: "EPERM",
+            nestedProcessStarted: true,
+            nestedProcessError: null,
+          });
+
+          const filesystemFdGrowth = (growth) =>
+            (growth || []).filter(
+              ({ target }) =>
+                target.startsWith("/") || target.includes("(deleted)"),
+            );
+          expect(filesystemFdGrowth(envelope.activeFdGrowth)).toEqual([]);
+          expect(filesystemFdGrowth(envelope.finalFdGrowth)).toEqual([]);
+          expectLinuxSupervisorPlan(envelope.supervisorPlan);
+          expect(envelope.audit).toMatchObject({
+            permissionDecision: "allow",
+            sandboxed: true,
+            sandboxState: "ready",
+            sandboxBackend: "linux-bwrap",
+            sandboxEnforcement: "linux-bwrap",
+            sandboxPolicyAttested: true,
+            sandboxRequired: [
+              SANDBOX_BOUNDARIES.FILESYSTEM,
+              SANDBOX_BOUNDARIES.NETWORK,
+            ],
+            sandboxGuarantees: [
+              SANDBOX_BOUNDARIES.FILESYSTEM,
+              SANDBOX_BOUNDARIES.NETWORK,
+            ],
+            sandboxRuntimeProbe: {
+              kind: "linux-bwrap-plugin-node-policy-v1",
+              attempted: true,
+              runnable: true,
+              reason: null,
+              contentSnapshot: true,
+              pluginTreeContentSnapshot: true,
+              handleAtomic: false,
+            },
+          });
+          expectLinuxSupervisorAudit(envelope.audit, supervisorIdentity);
+          expect(envelope.audit.sandboxPolicyDigest).toMatch(/^[a-f0-9]{64}$/);
+          expect(fs.readFileSync(secretPath, "utf8")).toBe("host-only-secret");
+          expect(fs.existsSync(hostMarker)).toBe(false);
+          expect(
+            fs.existsSync(path.join(pluginRoot, "plugin-marker.txt")),
+          ).toBe(false);
+          expect(fs.existsSync(sandboxTmpPath)).toBe(false);
+        } finally {
+          fs.rmSync(workspace, { recursive: true, force: true });
+          fs.rmSync(secretPath, { force: true });
+          fs.rmSync(hostMarker, { force: true });
+          fs.rmSync(sandboxTmpPath, { force: true });
+        }
+      },
+      90_000,
+    );
+
+    it.runIf(process.platform === "linux")(
       "keeps executing attested Plugin Node entry and tree snapshots after same-inode source rewrites",
       async () => {
         const nonce = `${process.pid}-${Date.now()}`;
@@ -2303,6 +2551,10 @@ describe.runIf(LIVE && SUPPORTED)(
           "verify-tree-termination.sh",
         );
         const workspaceMarker = path.join(workspace, "workspace-marker.txt");
+        const backgroundMarker = path.join(
+          workspace,
+          "background-runner-marker.txt",
+        );
         const asyncReadyMarker = path.join(workspace, "async-ready.txt");
         const asyncReleaseMarker = path.join(workspace, "async-release.txt");
         const asyncDoneMarker = path.join(workspace, "async-done.txt");
@@ -2610,6 +2862,32 @@ describe.runIf(LIVE && SUPPORTED)(
             ),
           ).toEqual([]);
 
+          const beforeBackgroundFds = fdTargetCounts();
+          const backgroundOutput = await executeBackgroundTaskCommand({
+            command: [
+              `test ! -e ${quotePosix(outsideMarker)}`,
+              `printf background-ok > ${quotePosix(backgroundMarker)}`,
+              `/usr/bin/python3 -I -S -c ${quotePosix(socketProbe)}`,
+              "printf background-live-ok",
+            ].join(" && "),
+            cwd: workspace,
+            type: "shell",
+            workspaceCwd: workspace,
+            requiredBoundaries: ["filesystem", "network"],
+          });
+          expect(backgroundOutput).toBe("background-live-ok");
+          expect(fs.readFileSync(backgroundMarker, "utf8")).toBe(
+            "background-ok",
+          );
+          expect(fs.readFileSync(outsideMarker, "utf8")).toBe("host-outside");
+          const afterBackgroundFds = fdTargetCounts();
+          expect(
+            [...afterBackgroundFds.entries()].filter(
+              ([target, count]) =>
+                count > (beforeBackgroundFds.get(target) || 0),
+            ),
+          ).toEqual([]);
+
           expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
             permissionDecision: "allow",
             sandboxed: true,
@@ -2810,6 +3088,9 @@ describe.runIf(LIVE && SUPPORTED)(
           expect(parentExitResult.descendantHostPids).toContain(
             parentExitResult.grandchildHostPid,
           );
+          trackedHostPids.add(parentExitResult.wrapperPid);
+          await waitForHostProcessExit(parentExitResult.wrapperPid);
+          trackedHostPids.delete(parentExitResult.wrapperPid);
           for (const pid of parentExitResult.descendantHostPids) {
             trackedHostPids.add(pid);
             await waitForHostProcessExit(pid);
@@ -2844,6 +3125,215 @@ describe.runIf(LIVE && SUPPORTED)(
         }
       },
       180_000,
+    );
+
+    it.runIf(process.platform === "linux")(
+      "runs an interactive controlling PTY inside the generic workspace boundary and reaps its tree",
+      async () => {
+        const importedPty = await import("node-pty");
+        const ptyModule = importedPty.default || importedPty;
+        expect(typeof ptyModule.open).toBe("function");
+        expect(typeof ptyModule.spawn).toBe("function");
+
+        const workspace = fs.mkdtempSync(
+          path.join(os.tmpdir(), "cc-linux-generic-pty-"),
+        );
+        const outsideMarker = path.join(
+          os.tmpdir(),
+          `.cc-linux-generic-pty-outside-${process.pid}-${Date.now()}`,
+        );
+        const workspaceMarker = path.join(workspace, "pty-marker.txt");
+        fs.writeFileSync(outsideMarker, "host-only", "utf8");
+
+        const command = "/bin/bash";
+        const args = ["--noprofile", "--norc", "-i"];
+        const sandboxPolicy = {
+          profile: "strict",
+          requiredBoundaries: [
+            SANDBOX_BOUNDARIES.FILESYSTEM,
+            SANDBOX_BOUNDARIES.NETWORK,
+          ],
+        };
+        const options = {
+          cwd: workspace,
+          shell: false,
+          origin: "test:linux-generic-pty-live",
+          scope: "sandbox-test",
+          policy: "allow",
+          name: "xterm-256color",
+          cols: 80,
+          rows: 24,
+          env: {
+            PATH: process.env.PATH,
+            LANG: "C",
+            LC_ALL: "C",
+          },
+          sandboxPolicy,
+        };
+        const contract =
+          executionBroker.issueLinuxWorkspaceSandboxExecutionContract(
+            command,
+            args,
+            options,
+            workspace,
+            { pty: true },
+          );
+        expect(contract).toBeTruthy();
+
+        const hostProcessExists = (pid) => {
+          try {
+            process.kill(pid, 0);
+            return true;
+          } catch (error) {
+            if (error?.code === "ESRCH") return false;
+            throw error;
+          }
+        };
+        const descendantsOf = (rootPid) => {
+          const children = new Map();
+          for (const entry of fs.readdirSync("/proc")) {
+            if (!/^\d+$/.test(entry)) continue;
+            try {
+              const stat = fs.readFileSync(`/proc/${entry}/stat`, "utf8");
+              const tail = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
+              const parentPid = Number(tail[1]);
+              const pid = Number(entry);
+              if (!children.has(parentPid)) children.set(parentPid, []);
+              children.get(parentPid).push(pid);
+            } catch {
+              // A short-lived process may disappear while /proc is scanned.
+            }
+          }
+          const found = [];
+          const queue = [rootPid];
+          while (queue.length > 0) {
+            const parentPid = queue.shift();
+            for (const pid of children.get(parentPid) || []) {
+              found.push(pid);
+              queue.push(pid);
+            }
+          }
+          return found;
+        };
+        const waitForExit = async (pid) => {
+          const deadline = Date.now() + 10_000;
+          while (hostProcessExists(pid)) {
+            if (Date.now() >= deadline) {
+              throw new Error(`Timed out waiting for PTY descendant ${pid}`);
+            }
+            await new Promise((resolve) => setTimeout(resolve, 25));
+          }
+        };
+
+        let proc = null;
+        let exited = false;
+        const tracked = new Set();
+        try {
+          proc = executionBroker.spawnPty(ptyModule, command, args, {
+            ...options,
+            sandboxExecutionContract: contract,
+          });
+          expect(proc.pid).toBeGreaterThan(1);
+          proc.resize(132, 43);
+
+          let transcript = "";
+          const ready = new Promise((resolve, reject) => {
+            const timer = setTimeout(
+              () =>
+                reject(
+                  new Error(
+                    `Timed out waiting for strong PTY output: ${transcript}`,
+                  ),
+                ),
+              20_000,
+            );
+            proc.onData((data) => {
+              transcript += String(data);
+              if (transcript.includes("__CC_PTY_READY__")) {
+                clearTimeout(timer);
+                resolve();
+              }
+            });
+          });
+          const exit = new Promise((resolve) => {
+            proc.onExit((event) => {
+              exited = true;
+              resolve(event);
+            });
+          });
+          const socketProbe = [
+            "import errno,socket,sys",
+            "try:",
+            " s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)",
+            "except OSError as e:",
+            " sys.exit(0 if e.errno==errno.EPERM else 6)",
+            "else:",
+            " s.close()",
+            " sys.exit(5)",
+          ].join("\n");
+          proc.write(
+            [
+              "test -t 0 && test -t 1 && test -t 2 || exit 31",
+              `test "$(pwd)" = ${quotePosix(workspace)} || exit 32`,
+              `test ! -e ${quotePosix(outsideMarker)} || exit 33`,
+              `printf pty-ok > ${quotePosix(workspaceMarker)}`,
+              `/usr/bin/python3 -I -S -c ${quotePosix(socketProbe)} || exit 34`,
+              "set -o | grep -E '^monitor[[:space:]]+on$' >/dev/null || exit 35",
+              'test "$(stty size)" = "43 132" || exit 36',
+              "sleep 120 &",
+              "printf '\\n__CC_PTY_READY__\\n'",
+            ].join("; ") + "\n",
+          );
+          await ready;
+          expect(transcript).toContain("__CC_PTY_READY__");
+          expect(fs.readFileSync(workspaceMarker, "utf8")).toBe("pty-ok");
+          expect(fs.readFileSync(outsideMarker, "utf8")).toBe("host-only");
+
+          const descendants = descendantsOf(proc.pid);
+          expect(descendants.length).toBeGreaterThanOrEqual(2);
+          for (const pid of descendants) tracked.add(pid);
+
+          expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
+            permissionDecision: "allow",
+            operation: "pty.spawn",
+            pty: true,
+            sandboxed: true,
+            sandboxBackend: "linux-bwrap-workspace",
+            sandboxGuarantees: ["filesystem", "network"],
+            sandboxPtyPolicy: {
+              mode: "dedicated-controlling-terminal",
+              launcherPath: "/usr/bin/setsid",
+              launcherDescriptorBound: true,
+              launcherExecutablePinned: true,
+              launcherDescriptorConsumedBeforeTarget: true,
+              launcherStagingPathHidden: true,
+              bwrapNewSession: false,
+            },
+          });
+
+          expect(proc.kill("SIGTERM")).toBe(true);
+          await exit;
+          for (const pid of tracked) await waitForExit(pid);
+        } finally {
+          if (proc && !exited) {
+            try {
+              proc.kill("SIGKILL");
+            } catch {
+              // The strong wrapper may already have exited.
+            }
+          }
+          for (const pid of tracked) {
+            try {
+              process.kill(pid, "SIGKILL");
+            } catch {
+              // Expected after the bwrap PID namespace is reaped.
+            }
+          }
+          fs.rmSync(workspace, { recursive: true, force: true });
+          fs.rmSync(outsideMarker, { force: true });
+        }
+      },
+      60_000,
     );
 
     it.runIf(process.platform === "linux")(

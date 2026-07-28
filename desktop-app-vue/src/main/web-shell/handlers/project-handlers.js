@@ -16,7 +16,8 @@
  * Topics shipped:
  *   project.list        - list({ userId?, status?, limit?, offset? })
  *   project.show        - get({ id })
- *   project.init        - init({ name, description?, type?, userId?, rootPath? })
+ *   project.init        - init({ name, description?, type?, userId? });
+ *                         filesystem root binding is a separate local-only action
  *   project.delete      - delete({ id, hard? })
  *   project.listFiles   - listFiles({ projectId, limit?, offset? })
  *   project.getFile     - getFile({ fileId })

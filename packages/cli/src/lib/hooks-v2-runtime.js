@@ -30,6 +30,13 @@ import hookShellCommand from "./hook-shell-command.cjs";
 import permissionRules from "./permission-rules.cjs";
 import { EventRuntimeStore } from "./event-runtime-store.js";
 import { getDefaultEventRuntimeHost } from "./event-runtime-host.js";
+import {
+  currentHostHooksV2WorkspaceBinding,
+  currentHostHooksV2WorkspaceRoot,
+  registerHostHooksV2Workspace,
+  resolveRegisteredHostHooksV2Workspace,
+  runWithHostHooksV2Workspace,
+} from "./hooks-v2-workspace-context.js";
 
 const { globToRegExp } = permissionRules;
 const { buildManagedHookEnvironment } = hookEnvironment;
@@ -279,12 +286,31 @@ export function resolveHookSandboxPolicy(hook = {}, managedPolicy = {}) {
   return resolved;
 }
 
+function hooksRequireWorkspaceBinding(hooks, managedPolicy) {
+  return hooks.some((hook) => {
+    if (hook.type !== "command") return false;
+    try {
+      return requiresExplicitHookShell(
+        resolveHookSandboxPolicy(hook, managedPolicy),
+      );
+    } catch {
+      // Invalid policy is fail-closed during execution and must remain so after
+      // a crash instead of recovering without workspace authority.
+      return true;
+    }
+  });
+}
+
 export function assertManagedHookPolicy(
   hook,
   context = {},
   policy = {},
   configDir = null,
+  workspaceRoot = null,
 ) {
+  // Retained for API compatibility and non-command policy growth, but never
+  // consulted as filesystem authority.
+  void context;
   if (!managedListAllows(hook.type, policy.allowedExecutors)) {
     throw managedPolicyError(
       `Hook executor is outside the managed allowlist: ${hook.type}`,
@@ -309,7 +335,11 @@ export function assertManagedHookPolicy(
         `Hook command is outside the managed allowlist: ${executable}`,
       );
     }
-    const cwd = hook.cwd || context.cwd || configDir || process.cwd();
+    // The event context is payload, not workspace authority. Keep this
+    // selection identical to _execCommand so a forged context.cwd cannot make
+    // the managed-root check approve a different directory than the one the
+    // Broker will actually execute in.
+    const cwd = hook.cwd || configDir || workspaceRoot || process.cwd();
     if (!isInsideManagedRoot(cwd, policy.workspaceRoots)) {
       throw managedPolicyError(
         `Hook working directory is outside managed workspace roots: ${cwd}`,
@@ -435,7 +465,14 @@ class HooksV2Runtime extends EventEmitter {
     // Both values are host constructor inputs. Hook definitions may select a
     // cwd inside this root, but can never replace the writable root used to
     // issue a Linux one-shot execution contract.
-    this.workspaceRoot = options.workspaceRoot || configDir || null;
+    const configuredWorkspaceRoot = options.workspaceRoot || configDir || null;
+    this.workspaceBinding =
+      typeof configuredWorkspaceRoot === "string" &&
+      path.isAbsolute(configuredWorkspaceRoot)
+        ? registerHostHooksV2Workspace(configuredWorkspaceRoot)
+        : null;
+    this.workspaceRoot =
+      this.workspaceBinding?.workspaceRoot || configuredWorkspaceRoot;
     this.durableStore = options.durableStore || null;
     this.durableOwner =
       options.durableOwner ||
@@ -587,6 +624,12 @@ class HooksV2Runtime extends EventEmitter {
       (max, hook) => Math.max(max, Number(hook?.timeoutMs) || 30000),
       0,
     );
+    const durableWorkspaceBinding =
+      this.workspaceBinding || currentHostHooksV2WorkspaceBinding();
+    const durableWorkspaceBindingRequired = hooksRequireWorkspaceBinding(
+      hooks,
+      this.managedPolicy,
+    );
     const durableRecord =
       this.durableStore && options.skipDurable !== true
         ? this.durableStore.enqueueInbox(
@@ -598,6 +641,12 @@ class HooksV2Runtime extends EventEmitter {
             },
             {
               id: context.event_id || context.eventId || null,
+              metadata: {
+                hooksV2WorkspaceBindingId:
+                  durableWorkspaceBinding?.bindingId || null,
+                hooksV2WorkspaceBindingRequired:
+                  durableWorkspaceBindingRequired,
+              },
               claimOwner: this.durableOwner,
               leaseMs: longestHookTimeout + this.durableRecoveryBufferMs,
             },
@@ -644,6 +693,7 @@ class HooksV2Runtime extends EventEmitter {
           context,
           this.managedPolicy,
           this.configDir,
+          this.workspaceRoot || currentHostHooksV2WorkspaceRoot(),
         );
         let result;
         switch (hook.type) {
@@ -750,9 +800,11 @@ class HooksV2Runtime extends EventEmitter {
     const budget = hookBudget(hook);
     const sandboxPolicy = resolveHookSandboxPolicy(hook, this.managedPolicy);
     const requiresContract = requiresExplicitHookShell(sandboxPolicy);
+    const trustedRootSource =
+      this.workspaceRoot || currentHostHooksV2WorkspaceRoot();
     const trustedRoot = requiresContract
       ? requireTrustedHookRoot(
-          this.workspaceRoot,
+          trustedRootSource,
           "Hooks v2 trusted workspace root",
         )
       : null;
@@ -1023,12 +1075,47 @@ const hooksRuntime = new HooksV2Runtime(undefined, {
       ? new EventRuntimeStore()
       : null),
 });
-defaultEventRuntimeHost?.registerHandler(
-  (event) =>
-    hooksRuntime.executeHooks(event.event, event.context || {}, {
+
+export async function executeRecoveredHooksV2Event(
+  runtime,
+  event,
+  record = {},
+) {
+  const bindingId = record?.metadata?.hooksV2WorkspaceBindingId || null;
+  const bindingRequired =
+    record?.metadata?.hooksV2WorkspaceBindingRequired === true ||
+    hooksRequireWorkspaceBinding(
+      runtime?.hooks?.get?.(event?.event) || [],
+      runtime?.managedPolicy || {},
+    );
+  if (!bindingId) {
+    if (bindingRequired) {
+      throw sandboxBoundaryError(
+        "durable Hooks v2 recovery requires a trusted host workspace binding",
+      );
+    }
+    return runtime.executeHooks(event.event, event.context || {}, {
+      skipDurable: true,
+      recovered: true,
+    });
+  }
+
+  const binding = resolveRegisteredHostHooksV2Workspace(bindingId);
+  if (!binding) {
+    throw sandboxBoundaryError(
+      "durable Hooks v2 workspace binding is not registered by this host",
+    );
+  }
+  return runWithHostHooksV2Workspace(binding.workspaceRoot, () =>
+    runtime.executeHooks(event.event, event.context || {}, {
       skipDurable: true,
       recovered: true,
     }),
+  );
+}
+
+defaultEventRuntimeHost?.registerHandler(
+  (event, record) => executeRecoveredHooksV2Event(hooksRuntime, event, record),
   { queue: "inbox", type: "hooks.v2" },
 );
 export default hooksRuntime;
