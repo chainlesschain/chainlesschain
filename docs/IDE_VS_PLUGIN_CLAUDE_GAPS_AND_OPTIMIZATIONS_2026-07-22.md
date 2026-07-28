@@ -1,17 +1,43 @@
 # ChainlessChain IDE 相对插件与 Claude Code 的不足及优化建议
 
-更新日期：2026-07-27；最近代码复核：2026-07-27
+更新日期：2026-07-28；最近代码复核：2026-07-28
 评估范围：ChainlessChain VS Code / JetBrains 插件、IDE 宿主能力，以及 Claude Code 官方 IDE 集成和插件生态。
 
 ## 实施与发布状态
 
-本轮文档对应的仓库内高优先级实现已完成；候选版本正在按发布门验证：
+本轮文档对应的仓库内高优先级实现、精确提交发布门与公开发布均已完成：
 
-> 2026-07-27 已公开回读的发布基线为 CLI 0.162.182、VS Code 0.37.34、
-> JetBrains 0.4.73；候选源码版本分别为 0.162.183、0.37.35、0.4.74。
-> 下文的“已完成”仅表示仓库代码、
-> 定向测试或构建证据；不能据此宣称较新的源码版本已经发布，也不能把真实
-> Extension Host / Remote Robot smoke 与远程、多宿主或长期稳定性矩阵混为一谈。
+> 2026-07-28 已公开回读的发布基线为 CLI 0.162.183、VS Code 0.37.35、
+> JetBrains 0.4.74。三个标签均精确指向提交
+> `053488076486c19dcf572dcd4123854b7084ad1d`，不是从本地未提交状态或较旧
+> CI 结果发布。下文的“已完成”仍不等于远程、多宿主或长期稳定性矩阵已经穷尽。
+
+### 2026-07-28 发布与验收证据
+
+| 发布面                   | 版本与标签                                                                                             | 公开回读                                                                                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CLI                      | [`v-npm-0-162-183`](https://github.com/chainlesschain/chainlesschain/tree/v-npm-0-162-183)             | [npm `chainlesschain@0.162.183`](https://www.npmjs.com/package/chainlesschain/v/0.162.183) 返回版本与 tarball                                     |
+| VS Code / VSCodium       | [`ide-vscode-v0.37.35`](https://github.com/chainlesschain/chainlesschain/tree/ide-vscode-v0.37.35)     | [Open VSX API](https://open-vsx.org/api/chainlesschain/chainlesschain-ide) 返回 `latest=0.37.35`、`downloadable=true`、`listed=true`              |
+| JetBrains                | [`ide-jetbrains-v0.4.74`](https://github.com/chainlesschain/chainlesschain/tree/ide-jetbrains-v0.4.74) | [JetBrains Marketplace API](https://plugins.jetbrains.com/api/plugins/32208/updates) 返回 `0.4.74`、`approve=true`、`listed=true`、`hidden=false` |
+| VS Code 官方 Marketplace | 同一 `0.37.35` VSIX 已完成宿主验证                                                                     | 仓库未配置 `VSCE_PAT`，tag workflow 明确跳过该可选渠道；不能宣称已在官方市场发布                                                                  |
+
+精确发布提交 [`0534880764`](https://github.com/chainlesschain/chainlesschain/commit/053488076486c19dcf572dcd4123854b7084ad1d)
+的必需门禁均为成功：
+
+| 门禁               | 精确运行证据                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CLI 全矩阵         | [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30311338829)：53 个作业全部成功，包含 Linux、Windows、macOS 分片与三系统最终包校验                                                                                                                                                                                                                                       |
+| 严格沙箱与后台恢复 | [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30311346864) 3/3 系统成功；[Background Interaction E2E](https://github.com/chainlesschain/chainlesschain/actions/runs/30311359290) 3/3 系统成功                                                                                                                                                              |
+| IDE 发布门         | [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/30311367620) 成功；覆盖 VSIX stable/minimum Extension Host、真实 Bridge、JetBrains build/test/GUI release gate                                                                                                                                                                                                   |
+| JetBrains 独立 GUI | [IDE JetBrains UI Smoke](https://github.com/chainlesschain/chainlesschain/actions/runs/30311375238) 成功                                                                                                                                                                                                                                                                                        |
+| 仓库综合门         | [CI Tests](https://github.com/chainlesschain/chainlesschain/actions/runs/30310621507)、[Full Test Automation](https://github.com/chainlesschain/chainlesschain/actions/runs/30310621430)、[Code Quality & Security](https://github.com/chainlesschain/chainlesschain/actions/runs/30310621726) 与 [E2E Tests](https://github.com/chainlesschain/chainlesschain/actions/runs/30310621603) 均成功 |
+| 发布工作流         | [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/30312521665) 与 [Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/30312527959) 成功                                                                                                                                                                                                        |
+
+JetBrains tag workflow 的构建、测试、GUI smoke、制品上传和 `publishPlugin` 均成功，
+但首次公开 API 验证在上传后 2 分钟传播窗口内尚未看到 `0.4.74`，因此
+[该运行](https://github.com/chainlesschain/chainlesschain/actions/runs/30312521183)
+最终标记为失败。2026-07-28 再次执行同一公开验证脚本后已确认版本审核通过且公开；
+这里保留原始运行结论，不把市场传播延迟改写成绿色工作流。
 
 ### 本轮复核后已收口的历史开放项
 
@@ -28,20 +54,20 @@
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | VS Code 插件能力清单        | 已完成，随 MCP `initialize` 动态返回实际工具和可选能力                                                                                                                                |
 | JetBrains 插件能力清单      | 已完成，随 MCP `initialize` 动态返回实际工具和可选能力                                                                                                                                |
-| VS Code 契约与插件回归      | 已完成，能力契约 Node 测试 2/2 通过；`vscode-ext-*` Vitest 全量 82 个文件、926 项测试无失败                                                                                           |
-| VS Code 真实 Extension Host | 已完成，当前 `0.37.26` VSIX 在 VS Code Stable 干净 profile 激活，16 个关键命令和 Bridge 端口校验通过                                                                                  |
+| VS Code 契约与插件回归      | 已完成，能力契约、定向 Vitest、VSIX metadata/selftest 与精确提交 IDE workflow 均通过                                                                                                  |
+| VS Code 真实 Extension Host | 已完成，`0.37.35` VSIX 在 VS Code Stable 与最低支持版本 1.85.2 的干净 profile 激活，16 个关键命令和真实本地 Bridge 校验通过                                                           |
 | JetBrains 契约测试          | 已完成，`IdeCapabilitiesTest` 通过                                                                                                                                                    |
-| JetBrains 纯逻辑回归        | 已完成，`PureLogicSmokeMain` 1219/1219 通过                                                                                                                                           |
-| JetBrains 完整单元测试      | 已完成，Gradle `test --rerun-tasks` 通过，608 项测试无失败（另有 2 项按条件跳过）                                                                                                     |
+| JetBrains 纯逻辑回归        | 已完成，`PureLogicSmokeMain` 1254/1254 通过                                                                                                                                           |
+| JetBrains 完整单元测试      | 已完成，Gradle `test --rerun-tasks` 与精确提交 IDE workflow 通过                                                                                                                      |
 | JetBrains 真实 GUI smoke    | 已完成，Remote Robot `IdeUiSmokeTest.chainlessChainToolWindowOpens` 通过                                                                                                              |
-| JetBrains 插件构建          | 已完成，`0.4.68` ZIP 构建成功                                                                                                                                                         |
-| VS Code VSIX 构建           | 已完成，`0.37.26` VSIX 构建成功                                                                                                                                                       |
-| Open VSX 发布               | 已发布 `0.37.34`；公开 API 已回读并确认可下载，发布 workflow 已接入 `scripts/verify-ide-marketplace.mjs`                                                                              |
-| 定向复核测试                | CLI 6 个相关测试文件 48 项通过；Desktop bootstrap 2 项通过；关键 JS 语法检查通过                                                                                                      |
+| JetBrains 插件构建          | 已完成，`0.4.74` ZIP 构建、JUnit、纯逻辑 smoke 与 GUI release gate 成功                                                                                                               |
+| VS Code VSIX 构建           | 已完成，`0.37.35` VSIX 为 117 个文件、约 409 KiB；18 项 metadata 与 11 项 selftest 通过                                                                                               |
+| Open VSX 发布               | 已发布 `0.37.35`；公开 API 已回读并确认可下载，发布 workflow 已接入 `scripts/verify-ide-marketplace.mjs`                                                                              |
+| 定向复核测试                | 精确发布提交的相关 19 个文件、203 项测试通过；另有 CLI/IDE/仓库级远程矩阵证据见上表                                                                                                   |
 | IDE Runtime Doctor          | 两端 Doctor 均主动探测 `cc --version`，把 CLI 下限、Bridge 和 workspace trust 汇总为 `可运行 / 可降级运行 / 需要修复`；共享 JSON fixture 锁定双端规则并拒绝 GCC 同名 `cc`             |
 | Runtime 与离线恢复诊断      | 两端 Doctor 均探测 Node/Java，并报告 Managed CLI 当前/回滚副本和 Plugin Registry 离线缓存；探测不从不受信 workspace 解析可执行文件                                                    |
 | IDE 脱敏诊断导出            | VS Code 命令/Status 入口与 JetBrains Tools action 均调用 `cc doctor --export-bundle`；私有临时文件通过 schema/隐私契约校验后才替换用户目标，异常产物保留旧文件                        |
-| JetBrains Marketplace 发布  | `0.4.73` 已发布；公开 API 已回读并确认 `approve=true`、`listed=true`、`hidden=false`；发布 workflow 已接入同一验证脚本                                                                |
+| JetBrains Marketplace 发布  | `0.4.74` 已发布；公开 API 已回读并确认 `approve=true`、`listed=true`、`hidden=false`；发布 workflow 已接入同一验证脚本                                                                |
 | VS Code 官方 Marketplace    | 未发布，当前未配置 `VSCE_PAT`；不影响 Open VSX 发布                                                                                                                                   |
 | 跨端 `needs_input` 回答闭环 | `InteractionBinding`、后台 journal/settlement、同 turn 断线重附、Remote 权限校验及 VS Code / JetBrains / Desktop / Web / TS/Python SDK 原绑定回显均已完成定向验收；真实远程矩阵仍开放 |
 | IDE Context 质量上下文      | 双端新增 `cc-ide-quality/v1` Test/Coverage/Debugger 只读快照，VS Code Notebook 执行附带真实 Context v2；宿主 API 缺失时显式降级                                                       |
@@ -49,8 +75,8 @@
 | Plugin 用量归因             | plugin bin 与 plugin 提供的 MCP 工具按 plugin/version 写入无参数 compact transcript，并进入 CLI/双 IDE Usage 报告                                                                     |
 | Worktree 后台治理           | IDE 新任务以 `--bg --worktree` 启动；同一任务行展示 lifecycle、owner/session、permission mode、预算和脱敏副作用计数；team/batch 持久治理仍开放                                        |
 
-已验证发布版本：CLI `0.162.182`、VS Code `0.37.34`、JetBrains `0.4.73`；
-当前候选源码版本：CLI `0.162.183`、VS Code `0.37.35`、JetBrains `0.4.74`。
+已验证发布版本与当前源码版本一致：CLI `0.162.183`、VS Code `0.37.35`、
+JetBrains `0.4.74`。
 Plan/Diff、后台 Agent、Remote、
 Artifact、Managed CLI、权限保护和安全审计等项目经代码核对已在现有
 CLI/插件实现中落地；本轮没有重复实现。
@@ -72,7 +98,7 @@ skill/subagent/plugin/MCP server 的本机近似用量归因、带 user/project/
 的图形 Plugin/Marketplace 管理、`--worktree` 并行任务和 Chrome 浏览器工作流；
 这些能力已纳入下文第 7～10 节的对标口径，而不是沿用 7 月 22 日的旧功能面。
 
-## 代码核对后的现状（2026-07-27）
+## 代码核对后的现状（截至 2026-07-28 发布）
 
 本节以仓库当前代码为准，不把已经实现的能力重复列为缺口。
 
@@ -101,7 +127,7 @@ skill/subagent/plugin/MCP server 的本机近似用量归因、带 user/project/
 
 > 说明：下方链接说明的是能力来源；版本以本节顶部的当前代码基线为准。历史版本号不会改变本报告的结论。
 
-- [VS Code package.json](../packages/vscode-extension/package.json)（当前候选源码版本 `0.37.35`、命令、权限和配置入口）。
+- [VS Code package.json](../packages/vscode-extension/package.json)（当前已发布源码版本 `0.37.35`、命令、权限和配置入口）。
 - [VS Code IDE tools](../packages/vscode-extension/src/ide-tools.js) 与 [semantic tools](../packages/vscode-extension/src/semantic-tools.js)。
 - [JetBrains plugin.xml](../packages/jetbrains-plugin/src/main/resources/META-INF/plugin.xml)（当前版本以插件构建配置和顶部基线为准、Tool Window、Action 和能力说明）。
 - [JetBrains IdeTools](../packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/IdeTools.java) 与 [SemanticTools](../packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SemanticTools.java)。
@@ -652,9 +678,11 @@ and its official `/loop` and `/goal` workflows.
 
 ## Command parity implementation and verification
 
-- VS Code `0.37.26`: the current slash-command catalog is discoverable from
-  `/`; command syntax passes Node parse and parity smoke checks.
-- JetBrains `0.4.68`: the same command catalog is implemented in
+- VS Code: the slash-command catalog first shipped in `0.37.26` and remains
+  verified in the published `0.37.35`; it is discoverable from `/`, and command
+  syntax passes Node parse and parity smoke checks.
+- JetBrains: the same command catalog first shipped in `0.4.68` and remains
+  verified in the published `0.4.74`. It is implemented in
   `SlashCommands`, with `/goal` passed as `--goal-condition` and `/loop`
   scheduled on the application executor. Targeted `SlashCommandsTest` and
   `SessionArgsTest` pass.
@@ -722,11 +750,12 @@ and its official `/loop` and `/goal` workflows.
   soak，需要对应运行环境和 CI 资源。
 - Collector/SIEM 的 OTLP 端到端接收、企业签名/SBOM/升级回滚生命周期，
   需要组织级基础设施与发布凭据。
-- 当前公开基线 Open VSX `0.37.34` 与 JetBrains `0.4.73` 均已完成发布及
-  公开 API 回读；候选 `0.37.35` / `0.4.74` 必须在各自 tag 的发布门完成后
-  才能更新此结论。官方 VS Code Marketplace 仍需 `VSCE_PAT`。
+- 当前公开基线 Open VSX `0.37.35` 与 JetBrains `0.4.74` 均已完成发布及
+  公开 API 回读；CLI `0.162.183` 也已由 npm registry 回读。官方 VS Code
+  Marketplace 仍需 `VSCE_PAT`。
 
 ### `/` 输入边界修复
 
 Fixed the bare `/` edge case that previously fell through to `unknown command /`.
-The fix is included in VS Code `0.37.26` and JetBrains `0.4.68`.
+The fix has been included since VS Code `0.37.26` and JetBrains `0.4.68`, and is
+present in the published `0.37.35` / `0.4.74` pair.
