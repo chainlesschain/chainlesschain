@@ -251,6 +251,84 @@ describe("cc plugin upgrade — capability diff", () => {
     );
   });
 
+  it("returns activated JSON after an explicit widened-capability grant", async () => {
+    await run(
+      "add",
+      makeSource("greeter", "1.0.0", { process: true }),
+      "--scope",
+      "project",
+      "--grant-capabilities",
+      "--json",
+    );
+    const out = JSON.parse(
+      await run(
+        "upgrade",
+        makeSource("greeter", "2.0.0", {
+          process: true,
+          network: "*",
+        }),
+        "--scope",
+        "project",
+        "--grant-capabilities",
+        "--json",
+      ),
+    );
+    expect(out).toMatchObject({
+      activationStatus: "activated",
+      rollbackVersion: null,
+      rollbackReason: null,
+      capabilitiesGranted: true,
+      loadValidated: true,
+    });
+    expect(getActiveVersion("greeter", { scope: "project", cwd })).toBe(
+      "2.0.0",
+    );
+  });
+
+  it("restores prior bytes when a same-version force upgrade is not consented", async () => {
+    await run(
+      "add",
+      makeSource("greeter", "1.0.0", { process: true }),
+      "--scope",
+      "project",
+      "--grant-capabilities",
+      "--json",
+    );
+    const out = JSON.parse(
+      await run(
+        "upgrade",
+        makeSource("greeter", "1.0.0", {
+          process: true,
+          network: "*",
+        }),
+        "--scope",
+        "project",
+        "--force",
+        "--json",
+      ),
+    );
+    expect(out).toMatchObject({
+      activationStatus: "rolled_back",
+      rollbackVersion: "1.0.0",
+      rollbackReason: "capability_consent_required",
+      reinstalled: true,
+    });
+    const manifest = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          cwd,
+          ".chainlesschain",
+          "plugins",
+          "greeter",
+          "1.0.0",
+          "plugin.json",
+        ),
+        "utf8",
+      ),
+    );
+    expect(manifest.permissions).toEqual({ process: true });
+  });
+
   it("shows a satisfied notice when an upgrade does not widen", async () => {
     await run(
       "add",

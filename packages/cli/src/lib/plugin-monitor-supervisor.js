@@ -25,6 +25,7 @@ import { executionBroker } from "./process-execution-broker/index.js";
 import { EventRuntimeProducer } from "./event-runtime-producer.js";
 import { EventRuntimeStore } from "./event-runtime-store.js";
 import { monitorEventId } from "./monitor-event.js";
+import { resolvePluginWorkspaceAuthority } from "./plugin-runtime/sandbox-policy.js";
 
 export const _deps = {
   spawn: (...args) => executionBroker.spawn(...args),
@@ -217,6 +218,23 @@ export class PluginMonitorSupervisor {
 
   _spawnForDescriptor(desc, options) {
     const isPlugin = desc?.origin === "plugin:monitor";
+    const pluginWorkspaceRoot = isPlugin
+      ? resolvePluginWorkspaceAuthority(desc.pluginWorkspaceAuthority, {
+          origin: desc.origin,
+          pluginId: desc.pluginId,
+          pluginVersion: desc.pluginVersion,
+          pluginSource: desc.pluginSource,
+        })
+      : null;
+    if (
+      isPlugin &&
+      desc.sandboxPolicy?.requiredBoundaries?.length > 0 &&
+      !pluginWorkspaceRoot
+    ) {
+      throw new Error(
+        `plugin monitor "${desc.id || desc.name || "unknown"}" is missing its trusted workspace authority`,
+      );
+    }
     const spawnOptions = {
       ...options,
       origin: isPlugin ? desc.origin : "plugin-monitor:process",
@@ -234,12 +252,12 @@ export class PluginMonitorSupervisor {
         : {}),
     };
     const sandboxExecutionContract =
-      isPlugin && desc.pluginWorkspaceRoot
+      isPlugin && pluginWorkspaceRoot
         ? executionBroker.issueLinuxWorkspaceSandboxExecutionContract(
             desc.command,
             desc.args,
             spawnOptions,
-            desc.pluginWorkspaceRoot,
+            pluginWorkspaceRoot,
           )
         : null;
     return (isPlugin ? this._pluginSpawn : this._spawn)(

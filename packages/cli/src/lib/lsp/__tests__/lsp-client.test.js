@@ -141,7 +141,7 @@ describe("LSPClient handshake", () => {
         shell: false,
         origin: "plugin:lsp",
       }),
-      process.cwd(),
+      "/proj",
     );
     expect(_deps.spawn).not.toHaveBeenCalled();
   });

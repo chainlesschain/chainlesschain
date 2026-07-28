@@ -336,6 +336,19 @@ public final class PluginManager {
         return text.length() <= max ? text : text.substring(0, max);
     }
 
+    private static List<String> boundedStrings(
+            Object value, int maxItems, int maxLength) {
+        List<String> out = new ArrayList<String>();
+        if (!(value instanceof List)) return out;
+        for (Object item : (List<?>) value) {
+            if (out.size() >= maxItems) break;
+            if (item instanceof String && !((String) item).isEmpty()) {
+                out.add(bounded(item, maxLength));
+            }
+        }
+        return out;
+    }
+
     private static Map<?, ?> map(Object value) {
         return value instanceof Map ? (Map<?, ?>) value : null;
     }

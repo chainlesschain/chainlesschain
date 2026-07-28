@@ -41,10 +41,11 @@ final class PluginManagerTest {
         assertEquals(Arrays.asList(
                         "plugin", "upgrade", "p1", "--scope", "project",
                         "--registry", "https://registry.example/plugins.json",
+                        "--grant-capabilities",
                         "--json"),
                 PluginManager.buildPluginUpgradeArgs(
                         "ignored", "project",
-                        "https://registry.example/plugins.json", "p1"));
+                        "https://registry.example/plugins.json", "p1", true));
         assertEquals(Arrays.asList(
                         "plugin", "consent", "p1", "--scope", "user", "--json"),
                 PluginManager.buildPluginConsentArgs("p1", "status", "user"));
@@ -76,6 +77,35 @@ final class PluginManagerTest {
         assertTrue(PluginManager.parsePluginInstalled("[]").isEmpty());
         assertNull(PluginManager.parseMcpServers("nope"));
         assertNull(PluginManager.parseSkillList("{}"));
+        assertNull(PluginManager.parsePluginUpgradeResult("not json"));
+    }
+
+    @Test
+    void parsesTransactionalUpgradeActivationAndRollback() {
+        Map<String, Object> activated = PluginManager.parsePluginUpgradeResult(
+                "{\"name\":\"a\",\"version\":\"2.0.0\","
+                        + "\"previousVersion\":\"1.0.0\",\"updated\":true}");
+        assertNotNull(activated);
+        assertEquals("activated", activated.get("activationStatus"));
+        assertEquals("2.0.0", activated.get("version"));
+
+        Map<String, Object> rolledBack = PluginManager.parsePluginUpgradeResult(
+                "{\"name\":\"a\",\"version\":\"2.0.0\","
+                        + "\"activationStatus\":\"rolled_back\","
+                        + "\"rollbackVersion\":\"1.0.0\","
+                        + "\"rollbackReason\":\"capability_consent_required\","
+                        + "\"capabilities\":{\"consented\":false,"
+                        + "\"reason\":\"capabilities widened\","
+                        + "\"declared\":[\"process\",\"network:*\"],"
+                        + "\"added\":[\"network:*\"]}}");
+        assertNotNull(rolledBack);
+        assertEquals("rolled_back", rolledBack.get("activationStatus"));
+        assertEquals("1.0.0", rolledBack.get("rollbackVersion"));
+        assertEquals("capability_consent_required",
+                rolledBack.get("rollbackReason"));
+        assertTrue(rolledBack.get("capabilities") instanceof Map);
+        assertNull(PluginManager.parsePluginUpgradeResult(
+                "{\"activationStatus\":\"partially_active\"}"));
     }
 
     @Test

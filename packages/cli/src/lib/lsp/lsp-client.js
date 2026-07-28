@@ -109,7 +109,7 @@ export class LSPClient extends EventEmitter {
         spawnSpec.file,
         spawnSpec.args,
         spawnOptions,
-        process.cwd(),
+        this.rootPath,
       );
     this._child = spawnFn(spawnSpec.file, spawnSpec.args, {
       ...spawnOptions,

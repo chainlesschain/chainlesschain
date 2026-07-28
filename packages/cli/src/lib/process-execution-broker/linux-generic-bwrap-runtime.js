@@ -693,9 +693,12 @@ function createTrustedResources(
           (target.scope === "workspace"
             ? isWithin(contract.workspaceRoot, currentTarget.canonical)
             : rootOwned(currentTarget.stat, {
-                directory: false,
-                executable: true,
-              }))
+                  directory: false,
+                  executable: true,
+                }) &&
+                statMatchesIdentity(currentTarget.stat, target.identity, {
+                  directory: false,
+                }))
         );
       } catch {
         return false;
@@ -745,6 +748,21 @@ function createTrustedResources(
         ].join("");
         const script = [
           "set -eu",
+          "mount_is_read_only() {",
+          '  want="$1"',
+          "  seen=0",
+          "  while IFS=' ' read -r _ _ _ _ mountpoint mountopts _; do",
+          '    [ "$mountpoint" = "$want" ] || continue',
+          "    seen=1",
+          '    case ",$mountopts," in',
+          "      *,ro,*) ;;",
+          "      *) return 1 ;;",
+          "    esac",
+          "  done < /proc/self/mountinfo",
+          '  [ "$seen" = 1 ]',
+          "}",
+          "mount_is_read_only /",
+          "mount_is_read_only /usr",
           `test ! -e ${shellQuote("/etc/shadow")}`,
           `test ! -e ${shellQuote(homeMarker)}`,
           `test ! -e ${shellQuote(outsideMarker)}`,

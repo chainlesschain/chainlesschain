@@ -217,12 +217,12 @@ public final class PluginManagerAction extends AnAction {
                                     + "version remains available for rollback.",
                             "Upgrade Plugin", null);
                     if (decision != Messages.YES) return;
-                    runThenRefreshSlowAndReload(
-                            PluginManager.buildPluginUpgradeArgs(
-                                    target,
-                                    scopeOf(p),
-                                    useRegistry ? registry : null,
-                                    useRegistry ? packageName : null),
+                    runPluginUpgrade(
+                            target,
+                            scopeOf(p),
+                            useRegistry ? registry : null,
+                            useRegistry ? packageName : null,
+                            false,
                             cwd, refresh, status, project);
                 }));
         versions.addActionListener(ev ->
@@ -569,14 +569,76 @@ public final class PluginManagerAction extends AnAction {
         });
     }
 
-    private static void runThenRefreshSlowAndReload(
-            List<String> args, File cwd, Runnable refresh, JLabel status,
-            Project project) {
-        status.setText("working…");
+    private static void runPluginUpgrade(
+            String source, String scope, String registry, String packageName,
+            boolean grantCapabilities, File cwd, Runnable refresh,
+            JLabel status, Project project) {
+        status.setText("validating plugin upgrade…");
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            AgentChatSession.runCapture(args, cwd, SLOW_CLI_TIMEOUT_MS);
+            String out = AgentChatSession.runCapture(
+                    PluginManager.buildPluginUpgradeArgs(
+                            source, scope, registry, packageName, grantCapabilities),
+                    cwd, SLOW_CLI_TIMEOUT_MS);
+            Map<String, Object> result =
+                    PluginManager.parsePluginUpgradeResult(out);
             ApplicationManager.getApplication().invokeLater(() -> {
-                ChatToolWindowFactory.reloadPluginRuntimes(project);
+                if (result == null) {
+                    status.setText(
+                            "upgrade result unreadable; live sessions not reloaded");
+                    refresh.run();
+                    return;
+                }
+                String activation = String.valueOf(result.get("activationStatus"));
+                String reason = String.valueOf(result.get("rollbackReason"));
+                if ("rolled_back".equals(activation)
+                        && "capability_consent_required".equals(reason)
+                        && !grantCapabilities) {
+                    StringBuilder message = new StringBuilder();
+                    message.append(result.get("name")).append(" v")
+                            .append(result.get("version"))
+                            .append(" requested new capabilities, so the CLI restored v")
+                            .append(result.get("rollbackVersion")).append(".\n\n");
+                    Map<?, ?> capabilities = asMap(result.get("capabilities"));
+                    Object added = capabilities == null ? null : capabilities.get("added");
+                    if (added instanceof List && !((List<?>) added).isEmpty()) {
+                        message.append("New capabilities:");
+                        for (Object capability : (List<?>) added) {
+                            message.append("\n• ").append(String.valueOf(capability));
+                        }
+                        message.append("\n\n");
+                    }
+                    message.append(
+                            "Retry the validated upgrade and grant this capability set?");
+                    int retry = Messages.showYesNoDialog(
+                            project, message.toString(), "Plugin Capabilities",
+                            "Retry and grant", "Keep restored version", null);
+                    if (retry == Messages.YES) {
+                        runPluginUpgrade(
+                                source, scope, registry, packageName, true,
+                                cwd, refresh, status, project);
+                    } else {
+                        status.setText("upgrade not activated; restored v"
+                                + result.get("rollbackVersion"));
+                        refresh.run();
+                    }
+                    return;
+                }
+                if ("rolled_back".equals(activation)) {
+                    status.setText("upgrade not activated ("
+                            + (reason.isEmpty() ? "automatic recovery" : reason)
+                            + "); restored v" + result.get("rollbackVersion"));
+                    refresh.run();
+                    return;
+                }
+                if ("unchanged".equals(activation)) {
+                    status.setText("already up to date at v" + result.get("version"));
+                    refresh.run();
+                    return;
+                }
+                int count = ChatToolWindowFactory.reloadPluginRuntimes(project);
+                status.setText("v" + result.get("version")
+                        + " activated; reload requested in " + count
+                        + " live session(s)");
                 refresh.run();
             });
         });
