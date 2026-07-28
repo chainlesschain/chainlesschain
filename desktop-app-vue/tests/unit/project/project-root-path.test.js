@@ -313,9 +313,7 @@ describe("external-device cache authority boundary", () => {
   );
 
   it("never unlinks an out-of-cache historical path during eviction or cleanup", async () => {
-    const cacheRoot = fs.mkdtempSync(
-      path.join(os.tmpdir(), "external-cache-"),
-    );
+    const cacheRoot = fs.mkdtempSync(path.join(os.tmpdir(), "external-cache-"));
     tempRoots.push(cacheRoot);
     const outsideRoot = fs.mkdtempSync(
       path.join(os.tmpdir(), "external-outside-"),
@@ -335,13 +333,9 @@ describe("external-device cache authority boundary", () => {
       expiredFiles: [expiredFile],
       onClear,
     });
-    const manager = new ExternalDeviceFileManager(
-      database,
-      null,
-      null,
-      null,
-      { cacheDir: cacheRoot },
-    );
+    const manager = new ExternalDeviceFileManager(database, null, null, null, {
+      cacheDir: cacheRoot,
+    });
 
     await manager.evictLRUCacheFiles(4);
     await manager.cleanupExpiredCache(1);
@@ -353,9 +347,7 @@ describe("external-device cache authority boundary", () => {
   });
 
   it("uses a random local leaf for downloads despite malicious remote names", async () => {
-    const cacheRoot = fs.mkdtempSync(
-      path.join(os.tmpdir(), "external-cache-"),
-    );
+    const cacheRoot = fs.mkdtempSync(path.join(os.tmpdir(), "external-cache-"));
     tempRoots.push(cacheRoot);
     const file = {
       id: "file-1",

@@ -8,12 +8,16 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 // Mock FieldMapper class
 class FieldMapper {
   toISO8601(timestamp) {
-    if (timestamp == null) return null;
+    if (timestamp == null) {
+      return null;
+    }
     return new Date(timestamp).toISOString();
   }
 
   toMillis(iso) {
-    if (iso == null) return null;
+    if (iso == null) {
+      return null;
+    }
     return new Date(iso).getTime();
   }
 
