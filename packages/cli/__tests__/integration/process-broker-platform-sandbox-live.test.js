@@ -84,7 +84,20 @@ async function warmBrokerAsyncRuntime(cwd) {
   // host-runtime descriptors before measuring per-launch FD ownership. Keep
   // the warmup explicitly unsandboxed so a first-use sandbox leak can never
   // be absorbed into the baseline.
-  await executionBroker._credentialAgent.waitForTransportReady();
+  let readyTimeout;
+  try {
+    await Promise.race([
+      executionBroker._credentialAgent.waitForTransportReady(),
+      new Promise((_, reject) => {
+        readyTimeout = setTimeout(
+          () => reject(new Error("credential transport warmup timed out")),
+          10_000,
+        );
+      }),
+    ]);
+  } finally {
+    clearTimeout(readyTimeout);
+  }
   const previousStrict = process.env.CC_SANDBOX_STRICT;
   const previousDisable = process.env.CC_SANDBOX_DISABLE;
   try {
@@ -2638,6 +2651,23 @@ describe.runIf(LIVE && SUPPORTED)(
           }
           return counts;
         };
+        const positiveFdGrowth = (before) =>
+          [...fdTargetCounts().entries()]
+            .map(([target, count]) => ({
+              target,
+              count: count - (before.get(target) || 0),
+            }))
+            .filter((entry) => entry.count > 0)
+            .sort((left, right) => left.target.localeCompare(right.target));
+        const waitForFdGrowthToClear = async (before, timeoutMs = 5_000) => {
+          const deadline = Date.now() + timeoutMs;
+          let growth = positiveFdGrowth(before);
+          while (growth.length > 0 && Date.now() < deadline) {
+            await new Promise((resolve) => setTimeout(resolve, 25));
+            growth = positiveFdGrowth(before);
+          }
+          return growth;
+        };
         const waitForPath = async (target, timeoutMs = 10_000) => {
           const deadline = Date.now() + timeoutMs;
           while (!fs.existsSync(target)) {
@@ -2927,12 +2957,11 @@ describe.runIf(LIVE && SUPPORTED)(
             "background-ok",
           );
           expect(fs.readFileSync(outsideMarker, "utf8")).toBe("host-outside");
-          const afterBackgroundFds = fdTargetCounts();
+          const backgroundFdGrowth =
+            await waitForFdGrowthToClear(beforeBackgroundFds);
           expect(
-            [...afterBackgroundFds.entries()].filter(
-              ([target, count]) =>
-                count > (beforeBackgroundFds.get(target) || 0),
-            ),
+            backgroundFdGrowth,
+            JSON.stringify(backgroundFdGrowth),
           ).toEqual([]);
 
           expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
@@ -3327,8 +3356,7 @@ describe.runIf(LIVE && SUPPORTED)(
               `/usr/bin/python3 -I -S -c ${quotePosix(socketProbe)} || exit 34`,
               "set -o | grep -E '^monitor[[:space:]]+on$' >/dev/null || exit 35",
               'test "$(stty size)" = "43 132" || exit 36',
-              "sleep 120 &",
-              "printf '\\n__CC_PTY_%s__\\n' READY",
+              "sleep 120 & printf '\\n__CC_PTY_%s__\\n' READY",
             ].join("; ") + "\n",
           );
           await ready;

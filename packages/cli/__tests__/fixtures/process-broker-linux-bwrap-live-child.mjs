@@ -39,13 +39,36 @@ function positiveFdGrowth(before, after) {
     .sort((left, right) => left.target.localeCompare(right.target));
 }
 
+async function waitForFdGrowthToClear(before, timeoutMs = 5_000) {
+  const deadline = Date.now() + timeoutMs;
+  let growth = positiveFdGrowth(before, fdTargetCounts());
+  while (growth.length > 0 && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    growth = positiveFdGrowth(before, fdTargetCounts());
+  }
+  return growth;
+}
+
 async function warmBrokerAsyncRuntime(cwd) {
   // The credential transport Worker and the Broker's lazy Hooks v2 import
   // intentionally keep process-lifetime libuv descriptors. Establish those
   // host-runtime descriptors before measuring per-launch FD ownership. Keep
   // the warmup explicitly unsandboxed so a first-use sandbox leak can never
   // be absorbed into the baseline.
-  await executionBroker._credentialAgent.waitForTransportReady();
+  let readyTimeout;
+  try {
+    await Promise.race([
+      executionBroker._credentialAgent.waitForTransportReady(),
+      new Promise((_, reject) => {
+        readyTimeout = setTimeout(
+          () => reject(new Error("credential transport warmup timed out")),
+          10_000,
+        );
+      }),
+    ]);
+  } finally {
+    clearTimeout(readyTimeout);
+  }
   const previousStrict = process.env.CC_SANDBOX_STRICT;
   const previousDisable = process.env.CC_SANDBOX_DISABLE;
   try {
@@ -372,7 +395,7 @@ if (mode === "positive") {
   const descendantExitResults = await Promise.all(
     activeDescendantHostPids.map((pid) => waitForHostProcessExit(pid)),
   );
-  await new Promise((resolve) => setTimeout(resolve, 20));
+  const finalFdGrowth = await waitForFdGrowthToClear(beforeFds);
   writeResult({
     launch,
     completion: completion ? { ...completion, stdout, stderr } : null,
@@ -383,7 +406,7 @@ if (mode === "positive") {
     survivingDescendantHostPids: activeDescendantHostPids.filter(
       (_pid, index) => descendantExitResults[index] !== true,
     ),
-    finalFdGrowth: positiveFdGrowth(beforeFds, fdTargetCounts()),
+    finalFdGrowth,
     supervisorPlan,
     audit: executionBroker.getAuditLog(1)[0] || null,
   });
