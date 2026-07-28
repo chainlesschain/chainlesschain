@@ -26,9 +26,13 @@ function typedStat(raw) {
   };
 }
 
-function createLinuxRuntime({ omitCapability = null } = {}) {
+function createLinuxRuntime({
+  omitCapability = null,
+  omitSystemNode = false,
+} = {}) {
   const bwrapContents = Buffer.from("ELF-bwrap-supervisor");
   const nodeContents = Buffer.from("ELF-node-runtime");
+  const pythonContents = Buffer.from("ELF-python-runtime");
   const passwdContents = Buffer.from("root:x:0:0:root:/root:/bin/sh\n");
   const entries = new Map([
     [ROOT, { stat: typedStat(ROOT_STAT), buffer: null }],
@@ -74,6 +78,20 @@ function createLinuxRuntime({ omitCapability = null } = {}) {
       },
     ],
     [
+      "/usr/bin/python3",
+      {
+        stat: typedStat({
+          dev: 1,
+          ino: 6,
+          mode: 0o100755,
+          uid: 0,
+          gid: 0,
+          size: pythonContents.length,
+        }),
+        buffer: pythonContents,
+      },
+    ],
+    [
       "/etc/passwd",
       {
         stat: typedStat({
@@ -88,6 +106,7 @@ function createLinuxRuntime({ omitCapability = null } = {}) {
       },
     ],
   ]);
+  if (omitSystemNode) entries.delete("/usr/bin/node");
   const symlinks = new Map([
     ["/bin", "usr/bin"],
     ["/sbin", "usr/sbin"],
@@ -406,6 +425,9 @@ describe("Linux generic production runtime integration", () => {
     expect(harness.calls).toHaveLength(2);
     const probeScript = harness.calls[1].args.at(-1);
     expect(probeScript).toContain("net:[4026531992]");
+    expect(probeScript).toContain("mount_is_read_only /");
+    expect(probeScript).toContain("mount_is_read_only /usr");
+    expect(probeScript).toContain("/proc/self/mountinfo");
     expect(probeScript).toContain("/chainless-undeclared-root");
     expect(probeScript).toContain("/usr/.chainless-system-write");
 
@@ -426,6 +448,19 @@ describe("Linux generic production runtime integration", () => {
       reason: "linux_generic_bwrap_unavailable",
     });
     expect(harness.openFiles.size).toBe(0);
+  });
+
+  it("uses a root-owned system Python fallback when Node lives outside mounted system roots", () => {
+    const harness = createLinuxRuntime({ omitSystemNode: true });
+    harness.runtime.execPath = "/opt/hostedtoolcache/node/bin/node";
+    const { admitted } = issueAndAdmit();
+    const plan = applyHarness(harness, admitted);
+
+    expect(plan.applied).toBe(true);
+    const probeScript = harness.calls[1].args.at(-1);
+    expect(probeScript).toContain("/usr/bin/python3");
+    expect(probeScript).toContain("import errno,socket,sys");
+    plan.cleanup();
   });
 
   it("rejects argv drift after Broker admission and consumes the authority", () => {

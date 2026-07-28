@@ -582,17 +582,19 @@ function createTrustedResources(
     };
 
     const socketProbeCandidates = [
-      runtime.execPath,
-      "/usr/local/bin/node",
-      "/usr/bin/node",
+      { command: runtime.execPath, kind: "node" },
+      { command: "/usr/local/bin/node", kind: "node" },
+      { command: "/usr/bin/node", kind: "node" },
+      { command: "/usr/bin/python3", kind: "python" },
+      { command: "/usr/bin/python", kind: "python" },
     ];
     let socketProbeRuntime = null;
     for (const candidate of socketProbeCandidates) {
-      if (typeof candidate !== "string" || !candidate) continue;
+      if (typeof candidate.command !== "string" || !candidate.command) continue;
       try {
         const resolved = resolveExecutable(
           runtime,
-          candidate,
+          candidate.command,
           contract.workingDirectory,
           environment,
         );
@@ -603,7 +605,10 @@ function createTrustedResources(
             executable: true,
           })
         ) {
-          socketProbeRuntime = resolved.canonical;
+          socketProbeRuntime = Object.freeze({
+            command: resolved.canonical,
+            kind: candidate.kind,
+          });
           break;
         }
       } catch {
@@ -736,16 +741,43 @@ function createTrustedResources(
           mode: 0o600,
         });
         homeCreated = true;
-        const socketSource = [
-          'const net = require("node:net");',
-          'const socket = net.connect({host:"127.0.0.1",port:9});',
-          "const timer = setTimeout(() => process.exit(4), 1000);",
-          'socket.once("connect", () => { clearTimeout(timer); process.exit(5); });',
-          'socket.once("error", (error) => {',
-          "  clearTimeout(timer);",
-          '  process.exit(error?.code === "EPERM" ? 0 : 6);',
-          "});",
-        ].join("");
+        const socketProbe =
+          socketProbeRuntime.kind === "node"
+            ? {
+                args: [
+                  "-e",
+                  [
+                    'const net = require("node:net");',
+                    'const socket = net.connect({host:"127.0.0.1",port:9});',
+                    "const timer = setTimeout(() => process.exit(4), 1000);",
+                    'socket.once("connect", () => { clearTimeout(timer); process.exit(5); });',
+                    'socket.once("error", (error) => {',
+                    "  clearTimeout(timer);",
+                    '  process.exit(error?.code === "EPERM" ? 0 : 6);',
+                    "});",
+                  ].join(""),
+                ],
+              }
+            : {
+                args: [
+                  "-I",
+                  "-c",
+                  [
+                    "import errno,socket,sys",
+                    "try:",
+                    " s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)",
+                    "except OSError as e:",
+                    " sys.exit(0 if e.errno==errno.EPERM else 6)",
+                    "else:",
+                    " s.close()",
+                    " sys.exit(5)",
+                  ].join("\n"),
+                ],
+              };
+        const socketProbeCommand = [
+          shellQuote(socketProbeRuntime.command),
+          ...socketProbe.args.map(shellQuote),
+        ].join(" ");
         const script = [
           "set -eu",
           "mount_is_read_only() {",
@@ -776,7 +808,7 @@ function createTrustedResources(
           `printf %s ${shellQuote(nonce)} > ${shellQuote(workspaceMarker)}`,
           `test "$(cat ${shellQuote(workspaceMarker)})" = ${shellQuote(nonce)}`,
           `rm -f ${shellQuote(workspaceMarker)}`,
-          `${shellQuote(socketProbeRuntime)} -e ${shellQuote(socketSource)}`,
+          socketProbeCommand,
           `printf '%s\\n%s\\n' ${shellQuote(call.policyDigest)} ${shellQuote(
             call.contractDigest,
           )}`,
