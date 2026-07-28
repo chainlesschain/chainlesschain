@@ -44,6 +44,12 @@ class FieldMapper {
 
     // Convert camelCase to snake_case
     for (const [key, value] of Object.entries(record)) {
+      if (
+        table === "projects" &&
+        (key === "rootPath" || key === "rootPathLocalAttested")
+      ) {
+        continue;
+      }
       const snakeKey = key.replace(/([A-Z])/g, "_$1").toLowerCase();
       // Convert timestamps
       if (key.endsWith("At")) {
@@ -226,7 +232,7 @@ describe("FieldMapper - 字段映射测试", () => {
 
       expect(localRecord.user_id).toBe("user-456");
       expect(localRecord.project_type).toBe("code");
-      expect(localRecord.root_path).toBe("/path");
+      expect(localRecord).not.toHaveProperty("root_path");
       expect(localRecord).not.toHaveProperty("root_path_local_attested");
       expect(localRecord.file_count).toBe(10);
       expect(localRecord.total_size).toBe(1024);

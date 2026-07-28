@@ -9,7 +9,9 @@ const crypto = require("crypto");
 const fs = require("fs").promises;
 const path = require("path");
 const {
-  resolveManagedProjectRoot,
+  assertManagedProjectRoot,
+  assertNewProjectIdAvailable,
+  createManagedProjectRootExclusive,
   resolveProjectChildPath,
 } = require("./project-root-path.js");
 
@@ -326,55 +328,87 @@ async function saveProjectToDatabase(options) {
     file_count: accumulatedData.files.length,
   };
 
-  logger.info("[StreamCheckpoint] 保存项目到数据库，ID:", localProject.id);
-  await database.saveProject(localProject);
-
-  // 创建项目目录
-  const projectRootPath = resolveManagedProjectRoot(
-    projectConfig.getProjectsRootPath(),
+  const projectsRoot = projectConfig.getProjectsRootPath();
+  assertNewProjectIdAvailable(database, localProject.id);
+  const projectRootPath = await createManagedProjectRootExclusive(
+    projectsRoot,
     localProject.id,
   );
+  localProject.root_path = projectRootPath;
+  let projectSaved = false;
 
-  logger.info("[StreamCheckpoint] 创建项目目录:", projectRootPath);
-  await fs.mkdir(projectRootPath, { recursive: true });
+  try {
+    logger.info("[StreamCheckpoint] 保存项目到数据库，ID:", localProject.id);
+    await database.saveProject(localProject, {
+      attestRootPath: true,
+      requireNewProject: true,
+    });
+    projectSaved = true;
 
-  // 更新 root_path
-  database.updateProject(
-    localProject.id,
-    {
-      root_path: projectRootPath,
-    },
-    { attestRootPath: true },
-  );
+    logger.info("[StreamCheckpoint] 创建项目目录:", projectRootPath);
 
-  // 写入文件
-  if (accumulatedData.files.length > 0) {
-    for (const file of accumulatedData.files) {
-      const filePath = resolveProjectChildPath(projectRootPath, file.path);
-      logger.info("[StreamCheckpoint] 写入文件:", filePath);
+    // 更新 root_path
+    database.updateProject(
+      localProject.id,
+      {
+        root_path: projectRootPath,
+      },
+      { attestRootPath: true },
+    );
 
-      // 确保目录存在
-      const fileDir = path.dirname(filePath);
-      await fs.mkdir(fileDir, { recursive: true });
+    // 写入文件
+    if (accumulatedData.files.length > 0) {
+      for (const file of accumulatedData.files) {
+        const filePath = resolveProjectChildPath(projectRootPath, file.path);
+        logger.info("[StreamCheckpoint] 写入文件:", filePath);
 
-      // 解码内容
-      let fileContent;
-      if (file.content_encoding === "base64") {
-        fileContent = Buffer.from(file.content, "base64");
-      } else if (typeof file.content === "string") {
-        fileContent = file.content;
-      } else {
-        fileContent = JSON.stringify(file.content, null, 2);
+        // 确保目录存在
+        const fileDir = path.dirname(filePath);
+        await fs.mkdir(fileDir, { recursive: true });
+
+        // 解码内容
+        let fileContent;
+        if (file.content_encoding === "base64") {
+          fileContent = Buffer.from(file.content, "base64");
+        } else if (typeof file.content === "string") {
+          fileContent = file.content;
+        } else {
+          fileContent = JSON.stringify(file.content, null, 2);
+        }
+
+        await fs.writeFile(filePath, fileContent, "utf-8");
       }
 
-      await fs.writeFile(filePath, fileContent, "utf-8");
+      // 保存文件到数据库
+      database.saveProjectFiles(localProject.id, accumulatedData.files);
     }
 
-    // 保存文件到数据库
-    database.saveProjectFiles(localProject.id, accumulatedData.files);
+    return localProject;
+  } catch (error) {
+    if (projectSaved) {
+      try {
+        await database.deleteProject(localProject.id);
+      } catch (cleanupError) {
+        logger.error(
+          "[StreamCheckpoint] Failed to roll back project row:",
+          cleanupError,
+        );
+      }
+    }
+    try {
+      const rollbackPath = assertManagedProjectRoot(
+        projectsRoot,
+        projectRootPath,
+      );
+      await fs.rm(rollbackPath, { recursive: true, force: true });
+    } catch (cleanupError) {
+      logger.error(
+        "[StreamCheckpoint] Failed to roll back project root:",
+        cleanupError,
+      );
+    }
+    throw error;
   }
-
-  return localProject;
 }
 
 /**

@@ -1376,13 +1376,18 @@ describe.runIf(LIVE && SUPPORTED)(
             nestedProcessError: null,
           });
 
-          const filesystemFdGrowth = (growth) =>
+          const mountAuthorityFdGrowth = (growth) =>
             (growth || []).filter(
               ({ target }) =>
-                target.startsWith("/") || target.includes("(deleted)"),
+                target !== "/dev/null" &&
+                (target.startsWith("/") || target.includes("(deleted)")),
             );
-          expect(filesystemFdGrowth(envelope.activeFdGrowth)).toEqual([]);
-          expect(filesystemFdGrowth(envelope.finalFdGrowth)).toEqual([]);
+          // A running child may retain the ordinary /dev/null stdin sentinel;
+          // it is not a bind-source authority. Every filesystem-backed mount
+          // descriptor must already be gone while active, and every parent FD
+          // of any kind must return to baseline after teardown.
+          expect(mountAuthorityFdGrowth(envelope.activeFdGrowth)).toEqual([]);
+          expect(envelope.finalFdGrowth).toEqual([]);
           expectLinuxSupervisorPlan(envelope.supervisorPlan);
           expect(envelope.audit).toMatchObject({
             permissionDecision: "allow",

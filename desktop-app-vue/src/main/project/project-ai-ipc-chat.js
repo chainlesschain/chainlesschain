@@ -11,7 +11,10 @@ const { looseParseJSON } = require("../ai-engine/response-parser.js");
 const axios = require("axios");
 const crypto = require("crypto");
 const path = require("path");
-const { resolveManagedProjectRoot } = require("./project-root-path.js");
+const {
+  createManagedRootForExistingProjectExclusive,
+  resolveManagedProjectRoot,
+} = require("./project-root-path.js");
 
 /**
  * 当前活跃的AI对话AbortController
@@ -340,18 +343,17 @@ function registerChatHandlers(ctx) {
       if (!projectPath) {
         logger.warn("[Main] 项目路径未设置，自动创建项目目录");
 
-        const fs = require("fs").promises;
         const { getProjectConfig } = require("../config/project-config");
         const projectConfig = getProjectConfig();
 
         // 使用项目名称或ID作为目录名
-        projectPath = resolveManagedProjectRoot(
+        projectPath = await createManagedRootForExistingProjectExclusive(
+          database,
           projectConfig.getProjectsRootPath(),
           projectId,
         );
 
         // 创建目录
-        await fs.mkdir(projectPath, { recursive: true });
         logger.info("[Main] 项目目录已自动创建:", projectPath);
 
         // 更新数据库中的项目路径

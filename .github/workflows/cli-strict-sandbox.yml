@@ -20,6 +20,8 @@ on:
       - "packages/cli/src/harness/background-task-manager.js"
       - "packages/cli/src/harness/background-task-worker.js"
       - "packages/cli/src/harness/background-task-command-runner.js"
+      - "packages/cli/src/lib/background-agent-supervisor.js"
+      - "packages/cli/src/workers/background-agent-worker.js"
       - "packages/cli/src/lib/hook-runner.js"
       - "packages/cli/src/lib/hook-runner.cjs"
       - "packages/cli/src/lib/hook-shell-command.cjs"
@@ -64,6 +66,7 @@ on:
       - "packages/cli/__tests__/unit/background-task-manager.test.js"
       - "packages/cli/__tests__/unit/background-task-command-runner.test.js"
       - "packages/cli/__tests__/unit/agent-core-run-shell-background-sandbox.test.js"
+      - "packages/cli/__tests__/unit/background-agent-supervisor.test.js"
       - "packages/cli/__tests__/integration/background-task-worker.test.js"
       - "packages/cli/src/lib/lsp/__tests__/lsp-client.test.js"
       - "packages/cli/__tests__/unit/plugin-runtime-bin.test.js"
@@ -94,6 +97,8 @@ on:
       - "packages/cli/src/harness/background-task-manager.js"
       - "packages/cli/src/harness/background-task-worker.js"
       - "packages/cli/src/harness/background-task-command-runner.js"
+      - "packages/cli/src/lib/background-agent-supervisor.js"
+      - "packages/cli/src/workers/background-agent-worker.js"
       - "packages/cli/src/lib/hook-runner.js"
       - "packages/cli/src/lib/hook-runner.cjs"
       - "packages/cli/src/lib/hook-shell-command.cjs"
@@ -138,6 +143,7 @@ on:
       - "packages/cli/__tests__/unit/background-task-manager.test.js"
       - "packages/cli/__tests__/unit/background-task-command-runner.test.js"
       - "packages/cli/__tests__/unit/agent-core-run-shell-background-sandbox.test.js"
+      - "packages/cli/__tests__/unit/background-agent-supervisor.test.js"
       - "packages/cli/__tests__/integration/background-task-worker.test.js"
       - "packages/cli/src/lib/lsp/__tests__/lsp-client.test.js"
       - "packages/cli/__tests__/unit/plugin-runtime-bin.test.js"
@@ -223,6 +229,16 @@ jobs:
           /usr/bin/bwrap --help | grep -F -- --remount-ro
           /usr/bin/bwrap --help | grep -F -- --seccomp
           /usr/bin/setsid --help | grep -F -- --ctty
+          # The generic backend deliberately rejects recursive bind sources
+          # whose mounts can still receive host propagation. Hosted runners
+          # inherit a shared root, so make this disposable VM's complete
+          # source topology private before exercising the production gate.
+          sudo mount --make-rprivate /
+          for source in / /tmp /usr /etc/hosts "$GITHUB_WORKSPACE"; do
+            propagation="$(findmnt -rn -T "$source" -o PROPAGATION)"
+            echo "$source propagation=$propagation"
+            test "$propagation" = "private"
+          done
 
       - name: Run platform sandbox contract tests
         working-directory: packages/cli
@@ -255,6 +271,7 @@ jobs:
           __tests__/unit/background-task-manager.test.js
           __tests__/unit/background-task-command-runner.test.js
           __tests__/unit/agent-core-run-shell-background-sandbox.test.js
+          __tests__/unit/background-agent-supervisor.test.js
           __tests__/integration/background-task-worker.test.js
           src/lib/lsp/__tests__/lsp-client.test.js
           __tests__/unit/plugin-runtime-bin.test.js

@@ -8,6 +8,9 @@ import ExternalDeviceFileManager from "../../../src/main/file/external-device-fi
 
 const {
   assertManagedProjectRoot,
+  assertExistingProjectRootOwnershipAvailable,
+  assertNewProjectIdAvailable,
+  createManagedRootForExistingProjectExclusive,
   resolveManagedProjectRoot,
   resolveProjectChildPath,
 } = rootPathModule;
@@ -50,6 +53,120 @@ describe("managed project root resolver", () => {
         code: "ERR_PROJECT_ROOT_ID_INVALID",
         projectRootBindingFailClosed: true,
       }),
+    );
+  });
+
+  it("checks create-new IDs with a case-insensitive database lookup", () => {
+    const get = vi.fn(() => ({ id: "Project-ABC" }));
+    const database = {
+      db: {
+        prepare: vi.fn((sql) => {
+          expect(sql).toContain("COLLATE NOCASE");
+          return { get };
+        }),
+      },
+    };
+
+    expect(() =>
+      assertNewProjectIdAvailable(database, "project-abc"),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "ERR_PROJECT_ID_COLLISION",
+        projectCreationFailClosed: true,
+      }),
+    );
+    expect(get).toHaveBeenCalledWith("project-abc");
+  });
+
+  function createExistingProjectDatabase({
+    currentId = "project-abc",
+    caseAlias = null,
+    attestedRoots = [],
+  } = {}) {
+    return {
+      db: {
+        prepare: vi.fn((sql) => {
+          if (sql.includes("WHERE id = ? LIMIT 1")) {
+            return { get: () => ({ id: currentId }) };
+          }
+          if (sql.includes("COLLATE NOCASE")) {
+            return { get: () => caseAlias };
+          }
+          if (sql.includes("root_path_local_attested = 1")) {
+            return { all: () => attestedRoots };
+          }
+          throw new Error(`Unexpected SQL: ${sql}`);
+        }),
+      },
+    };
+  }
+
+  it("rejects a portable case alias before binding an existing marker-0 project", () => {
+    const database = createExistingProjectDatabase({
+      caseAlias: { id: "Project-ABC" },
+    });
+
+    expect(() =>
+      assertExistingProjectRootOwnershipAvailable(
+        database,
+        path.resolve("managed"),
+        "project-abc",
+      ),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "ERR_PROJECT_ID_COLLISION",
+        projectCreationFailClosed: true,
+      }),
+    );
+  });
+
+  it("rejects a canonical root already owned by another attested project", () => {
+    const projectsRoot = path.resolve("managed");
+    const database = createExistingProjectDatabase({
+      attestedRoots: [
+        {
+          id: "other-project",
+          root_path: path.resolve(projectsRoot, "project-abc").toUpperCase(),
+        },
+      ],
+    });
+
+    expect(() =>
+      assertExistingProjectRootOwnershipAvailable(
+        database,
+        projectsRoot,
+        "project-abc",
+      ),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "ERR_PROJECT_ROOT_OWNERSHIP_COLLISION",
+        projectCreationFailClosed: true,
+      }),
+    );
+  });
+
+  it("does not reuse or delete an orphan directory for marker-0 repair", async () => {
+    const projectsRoot = fs.mkdtempSync(
+      path.join(os.tmpdir(), "existing-root-repair-"),
+    );
+    tempRoots.push(projectsRoot);
+    const orphanRoot = path.join(projectsRoot, "project-abc");
+    fs.mkdirSync(orphanRoot);
+    fs.writeFileSync(path.join(orphanRoot, "sentinel.txt"), "keep");
+    const database = createExistingProjectDatabase();
+
+    await expect(
+      createManagedRootForExistingProjectExclusive(
+        database,
+        projectsRoot,
+        "project-abc",
+      ),
+    ).rejects.toMatchObject({
+      code: "ERR_PROJECT_ROOT_COLLISION",
+      projectCreationFailClosed: true,
+    });
+    expect(fs.readFileSync(path.join(orphanRoot, "sentinel.txt"), "utf8")).toBe(
+      "keep",
     );
   });
 });

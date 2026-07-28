@@ -181,6 +181,9 @@ describe("项目创建事务集成测试", () => {
       saveProjectFiles: vi.fn(),
       db: {
         run: vi.fn(),
+        prepare: vi.fn(() => ({
+          get: vi.fn(() => null),
+        })),
       },
     };
 
@@ -233,7 +236,16 @@ describe("项目创建事务集成测试", () => {
 
     // 验证调用顺序
     expect(mockHttpClient.createProject).toHaveBeenCalledWith(createData);
-    expect(mockDatabase.saveProject).toHaveBeenCalled();
+    expect(mockDatabase.saveProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "project-123",
+        root_path: path.join(testProjectsDir, "project-123"),
+      }),
+      expect.objectContaining({
+        attestRootPath: true,
+        requireNewProject: true,
+      }),
+    );
     expect(mockDatabase.updateProject).toHaveBeenCalled();
     expect(mockDatabase.saveProjectFiles).toHaveBeenCalled();
 
@@ -340,7 +352,8 @@ describe("项目创建事务集成测试", () => {
 
     // 验证回滚
     expect(mockHttpClient.deleteProject).toHaveBeenCalledWith("project-123");
-    expect(mockDatabase.deleteProject).toHaveBeenCalledWith("project-123");
+    expect(mockDatabase.saveProject).not.toHaveBeenCalled();
+    expect(mockDatabase.deleteProject).not.toHaveBeenCalled();
   });
 
   test("应该在文件保存失败时回滚", async () => {
@@ -412,6 +425,71 @@ describe("项目创建事务集成测试", () => {
         .catch(() => false),
     ).toBe(false);
   });
+
+  test("rejects a backend ID that already exists locally without replacing it", async () => {
+    const existingRoot = path.join(testProjectsDir, "project-123");
+    await fs.mkdir(existingRoot);
+    await fs.writeFile(path.join(existingRoot, "sentinel.txt"), "keep");
+    mockDatabase.db.prepare.mockReturnValue({
+      get: vi.fn(() => ({ id: "project-123" })),
+    });
+    mockHttpClient.createProject.mockResolvedValue({
+      id: "project-123",
+      name: "Collision",
+      project_type: "web",
+      files: [],
+    });
+
+    await expect(
+      createProjectWithTransaction({
+        createData: { name: "Collision", userId: "user-123" },
+        httpClient: mockHttpClient,
+        database: mockDatabase,
+        projectConfig: mockProjectConfig,
+        replaceUndefinedWithNull: (obj) => obj,
+      }),
+    ).rejects.toMatchObject({
+      code: "ERR_PROJECT_ID_COLLISION",
+      projectCreationFailClosed: true,
+    });
+
+    expect(mockDatabase.saveProject).not.toHaveBeenCalled();
+    expect(mockDatabase.updateProject).not.toHaveBeenCalled();
+    expect(
+      await fs.readFile(path.join(existingRoot, "sentinel.txt"), "utf8"),
+    ).toBe("keep");
+  });
+
+  test("rejects an orphan project directory without reusing or deleting it", async () => {
+    const orphanRoot = path.join(testProjectsDir, "project-123");
+    await fs.mkdir(orphanRoot);
+    await fs.writeFile(path.join(orphanRoot, "sentinel.txt"), "keep");
+    mockHttpClient.createProject.mockResolvedValue({
+      id: "project-123",
+      name: "Orphan collision",
+      project_type: "web",
+      files: [],
+    });
+
+    await expect(
+      createProjectWithTransaction({
+        createData: { name: "Orphan collision", userId: "user-123" },
+        httpClient: mockHttpClient,
+        database: mockDatabase,
+        projectConfig: mockProjectConfig,
+        replaceUndefinedWithNull: (obj) => obj,
+      }),
+    ).rejects.toMatchObject({
+      code: "ERR_PROJECT_ROOT_COLLISION",
+      projectCreationFailClosed: true,
+    });
+
+    expect(mockDatabase.saveProject).not.toHaveBeenCalled();
+    expect(mockDatabase.updateProject).not.toHaveBeenCalled();
+    expect(
+      await fs.readFile(path.join(orphanRoot, "sentinel.txt"), "utf8"),
+    ).toBe("keep");
+  });
 });
 
 describe("快速创建项目事务测试", () => {
@@ -432,6 +510,7 @@ describe("快速创建项目事务测试", () => {
       saveProject: vi.fn(),
       deleteProject: vi.fn(),
       saveProjectFiles: vi.fn(),
+      getProjectById: vi.fn(() => null),
     };
 
     mockProjectConfig = {
@@ -539,7 +618,12 @@ describe("并发创建测试", () => {
       deleteProject: vi.fn(),
       updateProject: vi.fn(),
       saveProjectFiles: vi.fn(),
-      db: { run: vi.fn() },
+      db: {
+        run: vi.fn(),
+        prepare: vi.fn(() => ({
+          get: vi.fn(() => null),
+        })),
+      },
     };
 
     mockProjectConfig = {

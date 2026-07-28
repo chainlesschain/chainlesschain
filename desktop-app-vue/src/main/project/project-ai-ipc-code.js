@@ -5,7 +5,9 @@
  * @module project/project-ai-ipc-code
  */
 const { logger } = require("../utils/logger.js");
-const { resolveManagedProjectRoot } = require("./project-root-path.js");
+const {
+  createManagedRootForExistingProjectExclusive,
+} = require("./project-root-path.js");
 
 function registerCodeHandlers(ctx) {
   const { ipcMain, database, llmManager, mainWindow } = ctx;
@@ -189,18 +191,17 @@ function registerCodeHandlers(ctx) {
       if (!projectPath) {
         logger.warn("[Main] 项目路径未设置（流式），自动创建项目目录");
 
-        const fs = require("fs").promises;
         const { getProjectConfig } = require("../config/project-config");
         const projectConfig = getProjectConfig();
 
         // 使用项目名称或ID作为目录名
-        projectPath = resolveManagedProjectRoot(
+        projectPath = await createManagedRootForExistingProjectExclusive(
+          database,
           projectConfig.getProjectsRootPath(),
           projectId,
         );
 
         // 创建目录
-        await fs.mkdir(projectPath, { recursive: true });
         logger.info("[Main] 项目目录已自动创建:", projectPath);
 
         // 更新数据库中的项目路径

@@ -201,6 +201,52 @@ export const _deps = {
   killProcessTree: defaultKillProcessTree,
 };
 
+/**
+ * Stop the active turn launched by an attached background session.
+ * Windows must terminate the complete descendant tree; a bare ChildProcess
+ * kill only reaches the top-level CLI process and can orphan tool children.
+ */
+export function stopBackgroundAgentChildTree(
+  pid,
+  { platform = process.platform, signal = "SIGTERM" } = {},
+) {
+  const target = Number(pid);
+  if (!Number.isInteger(target) || target <= 0 || target === process.pid) {
+    const error = new Error("background_agent_child_pid_invalid");
+    error.code = "ERR_BACKGROUND_AGENT_CHILD_PID_INVALID";
+    throw error;
+  }
+  if (platform === "win32") {
+    const result = runSupervisorCommand(
+      "taskkill",
+      ["/PID", String(target), "/T", "/F"],
+      {
+        windowsHide: true,
+        encoding: "utf8",
+      },
+      "background-agent:session-stop-tree",
+    );
+    if (result?.error || result?.status !== 0) {
+      const error = new Error(
+        `background_agent_child_tree_stop_failed: ${
+          result?.error?.message ||
+          result?.stderr ||
+          `taskkill exited ${result?.status}`
+        }`,
+      );
+      error.code = "ERR_BACKGROUND_AGENT_CHILD_TREE_STOP_FAILED";
+      throw error;
+    }
+    return true;
+  }
+  try {
+    _deps.kill(-target, signal);
+  } catch {
+    _deps.kill(target, signal);
+  }
+  return true;
+}
+
 /** Cached probe (default impl only — injected probes run uncached for tests). */
 function processStartTimeMs(pid) {
   if (_deps.readProcessStartTimeMs !== defaultReadProcessStartTimeMs) {

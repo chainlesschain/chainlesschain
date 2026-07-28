@@ -20,6 +20,7 @@ import {
   openBackgroundLogFile,
   readBackgroundAgentState,
   removeJobFile,
+  stopBackgroundAgentChildTree,
   writeBackgroundAgentState,
 } from "../lib/background-agent-supervisor.js";
 import { startBackgroundSessionServer } from "../lib/background-session-transport.js";
@@ -409,17 +410,10 @@ async function main() {
       },
       onStop: () => {
         if (!child) return;
-        if (process.platform !== "win32") {
-          // The agent child is detached into its own group — signal the
-          // whole tree, not just the top-level CLI process.
-          try {
-            process.kill(-child.pid, "SIGTERM");
-          } catch {
-            child.kill("SIGTERM");
-          }
-        } else {
-          child.kill("SIGTERM");
-        }
+        // The agent child is detached into its own group on POSIX; Windows
+        // requires brokered taskkill /T /F so tool grandchildren cannot
+        // survive an attached-session stop.
+        stopBackgroundAgentChildTree(child.pid);
       },
       onClientChange: (count) => {
         // A UI/terminal may attach after the request was created. Re-broadcast

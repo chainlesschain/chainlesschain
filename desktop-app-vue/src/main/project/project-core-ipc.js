@@ -14,7 +14,10 @@ const FileCacheManager = require("./file-cache-manager.js");
 const ConflictError = require("../errors/conflict-error.js");
 const { getSyncLockManager } = require("./sync-lock-manager.js");
 const {
-  resolveManagedProjectRoot,
+  assertManagedProjectRoot,
+  assertNewProjectIdAvailable,
+  createManagedProjectRootExclusive,
+  createManagedRootForExistingProjectExclusive,
   resolveProjectChildPath,
 } = require("./project-root-path.js");
 
@@ -194,6 +197,10 @@ function registerProjectCoreIPC({
    * Channel: 'project:create'
    */
   ipcMain.handle("project:create", async (_event, createData) => {
+    let activeDatabase = null;
+    let reservedProjectRootPath = null;
+    let reservedProjectsRoot = null;
+    let savedProjectId = null;
     try {
       // 首先清理输入数据中的 undefined 值（IPC 已经不应该传递 undefined，但双重保险）
       const cleanedCreateData = _replaceUndefinedWithNull(createData);
@@ -211,12 +218,22 @@ function registerProjectCoreIPC({
 
       // 保存到本地数据库
       if (project) {
-        const database = await getActiveDatabase();
+        activeDatabase = await getActiveDatabase();
+        const database = activeDatabase;
         // 先清理 project 中的 undefined，再保存到数据库
         const cleanedProject = _replaceUndefinedWithNull(project);
         logger.info(
           "[Main] 清理后的项目:",
           JSON.stringify(cleanedProject, null, 2),
+        );
+
+        const { getProjectConfig } = require("./project-config");
+        const projectConfig = getProjectConfig();
+        reservedProjectsRoot = projectConfig.getProjectsRootPath();
+        assertNewProjectIdAvailable(database, cleanedProject.id);
+        reservedProjectRootPath = await createManagedProjectRootExclusive(
+          reservedProjectsRoot,
+          cleanedProject.id,
         );
 
         const localProject = {
@@ -225,6 +242,7 @@ function registerProjectCoreIPC({
           sync_status: "synced",
           synced_at: Date.now(),
           file_count: cleanedProject.files ? cleanedProject.files.length : 0, // 设置文件数量
+          root_path: reservedProjectRootPath,
         };
 
         // 检查 localProject 中是否有 undefined
@@ -238,7 +256,11 @@ function registerProjectCoreIPC({
 
         try {
           logger.info("[Main] 调用 saveProject...");
-          await database.saveProject(localProject);
+          await database.saveProject(localProject, {
+            attestRootPath: true,
+            requireNewProject: true,
+          });
+          savedProjectId = cleanedProject.id;
           logger.info("[Main] 项目已保存到本地数据库");
         } catch (saveError) {
           logger.error("[Main] saveProject 失败:", saveError.message);
@@ -250,12 +272,7 @@ function registerProjectCoreIPC({
         const projectType =
           cleanedProject.project_type || cleanedProject.projectType;
         try {
-          const { getProjectConfig } = require("./project-config");
-          const projectConfig = getProjectConfig();
-          const projectRootPath = resolveManagedProjectRoot(
-            projectConfig.getProjectsRootPath(),
-            cleanedProject.id,
-          );
+          const projectRootPath = reservedProjectRootPath;
 
           logger.info(
             "[Main] 创建项目目录:",
@@ -263,10 +280,6 @@ function registerProjectCoreIPC({
             "项目类型:",
             projectType,
           );
-          await require("fs").promises.mkdir(projectRootPath, {
-            recursive: true,
-          });
-
           // 立即更新项目的root_path（无论项目类型和是否有文件）
           // updateProject 是同步函数
           database.updateProject(
@@ -334,6 +347,33 @@ function registerProjectCoreIPC({
 
       return safeProject;
     } catch (error) {
+      if (savedProjectId && activeDatabase) {
+        try {
+          await activeDatabase.deleteProject(savedProjectId);
+        } catch (cleanupError) {
+          logger.error(
+            "[Main] Failed to roll back local project row:",
+            cleanupError,
+          );
+        }
+      }
+      if (reservedProjectRootPath && reservedProjectsRoot) {
+        try {
+          const rollbackPath = assertManagedProjectRoot(
+            reservedProjectsRoot,
+            reservedProjectRootPath,
+          );
+          await require("fs").promises.rm(rollbackPath, {
+            recursive: true,
+            force: true,
+          });
+        } catch (cleanupError) {
+          logger.error(
+            "[Main] Failed to roll back reserved project root:",
+            cleanupError,
+          );
+        }
+      }
       logger.error("[Main] 创建项目失败:", error);
       throw error;
     }
@@ -432,6 +472,9 @@ function registerProjectCoreIPC({
 
           // 保存到SQLite数据库
           if (database && accumulatedData.files.length > 0) {
+            let reservedStreamProjectRoot = null;
+            let streamProjectId = null;
+            let streamProjectSaved = false;
             try {
               // 确定项目类型：优先使用后端返回的类型，然后用户指定的类型，最后默认web
               const projectType =
@@ -450,17 +493,27 @@ function registerProjectCoreIPC({
                 sync_status: "pending",
                 file_count: accumulatedData.files.length, // 设置文件数量
               };
+              streamProjectId = localProject.id;
+              const projectConfig = getProjectConfig();
+              const streamProjectsRoot = projectConfig.getProjectsRootPath();
+              assertNewProjectIdAvailable(database, localProject.id);
+              reservedStreamProjectRoot =
+                await createManagedProjectRootExclusive(
+                  streamProjectsRoot,
+                  localProject.id,
+                );
+              localProject.root_path = reservedStreamProjectRoot;
 
               logger.info("[Main] 保存项目到数据库，ID:", localProject.id);
-              await database.saveProject(localProject);
+              await database.saveProject(localProject, {
+                attestRootPath: true,
+                requireNewProject: true,
+              });
+              streamProjectSaved = true;
 
               // 为所有类型项目创建根目录并设置root_path（统一从系统配置读取）
               try {
-                const projectConfig = getProjectConfig();
-                const projectRootPath = resolveManagedProjectRoot(
-                  projectConfig.getProjectsRootPath(),
-                  localProject.id,
-                );
+                const projectRootPath = reservedStreamProjectRoot;
 
                 logger.info(
                   "[Main] 创建项目目录:",
@@ -468,8 +521,6 @@ function registerProjectCoreIPC({
                   "项目类型:",
                   projectType,
                 );
-                await fs.mkdir(projectRootPath, { recursive: true });
-
                 // 立即更新项目的root_path（无论项目类型和是否有文件）
                 // updateProject 是同步函数
                 database.updateProject(
@@ -559,6 +610,29 @@ function registerProjectCoreIPC({
               // 返回包含本地ID的完整数据
               data.projectId = localProject.id;
             } catch (saveError) {
+              if (streamProjectSaved && streamProjectId) {
+                try {
+                  await database.deleteProject(streamProjectId);
+                } catch (cleanupError) {
+                  logger.error(
+                    "[Main] Failed to roll back streamed project row:",
+                    cleanupError,
+                  );
+                }
+              }
+              if (reservedStreamProjectRoot) {
+                try {
+                  await fs.rm(reservedStreamProjectRoot, {
+                    recursive: true,
+                    force: true,
+                  });
+                } catch (cleanupError) {
+                  logger.error(
+                    "[Main] Failed to roll back streamed project root:",
+                    cleanupError,
+                  );
+                }
+              }
               logger.error("[Main] 保存项目失败:", saveError);
               event.sender.send("project:stream-chunk", {
                 type: "error",
@@ -627,6 +701,10 @@ function registerProjectCoreIPC({
    * Channel: 'project:create-quick'
    */
   ipcMain.handle("project:create-quick", async (_event, createData) => {
+    let quickDatabase = null;
+    let quickProjectRootPath = null;
+    let quickProjectsRoot = null;
+    let quickSavedProjectId = null;
     try {
       const fs = require("fs").promises;
       const path = require("path");
@@ -640,13 +718,16 @@ function registerProjectCoreIPC({
 
       // 创建项目文件夹
       const projectConfig = getProjectConfig();
-      const projectRootPath = resolveManagedProjectRoot(
-        projectConfig.getProjectsRootPath(),
+      quickProjectsRoot = projectConfig.getProjectsRootPath();
+      quickDatabase = await getActiveDatabase();
+      assertNewProjectIdAvailable(quickDatabase, projectId);
+      const projectRootPath = await createManagedProjectRootExclusive(
+        quickProjectsRoot,
         projectId,
       );
+      quickProjectRootPath = projectRootPath;
 
       logger.info("[Main] 创建项目目录:", projectRootPath);
-      await fs.mkdir(projectRootPath, { recursive: true });
 
       // 创建一个默认的README.md文件
       const readmePath = path.join(projectRootPath, "README.md");
@@ -673,8 +754,12 @@ function registerProjectCoreIPC({
 
       // 保存到本地数据库
       if (project) {
-        const database = await getActiveDatabase();
-        await database.saveProject(project, { attestRootPath: true });
+        const database = quickDatabase;
+        await database.saveProject(project, {
+          attestRootPath: true,
+          requireNewProject: true,
+        });
+        quickSavedProjectId = projectId;
         logger.info("[Main] 项目已保存到本地数据库");
 
         // 保存项目文件记录
@@ -694,6 +779,33 @@ function registerProjectCoreIPC({
       logger.info("[Main] 快速创建项目成功，ID:", projectId);
       return _replaceUndefinedWithNull(project);
     } catch (error) {
+      if (quickSavedProjectId && quickDatabase) {
+        try {
+          await quickDatabase.deleteProject(quickSavedProjectId);
+        } catch (cleanupError) {
+          logger.error(
+            "[Main] Failed to roll back quick project row:",
+            cleanupError,
+          );
+        }
+      }
+      if (quickProjectRootPath && quickProjectsRoot) {
+        try {
+          const rollbackPath = assertManagedProjectRoot(
+            quickProjectsRoot,
+            quickProjectRootPath,
+          );
+          await require("fs").promises.rm(rollbackPath, {
+            recursive: true,
+            force: true,
+          });
+        } catch (cleanupError) {
+          logger.error(
+            "[Main] Failed to roll back quick project root:",
+            cleanupError,
+          );
+        }
+      }
       logger.error("[Main] 快速创建项目失败:", error);
       throw error;
     }
@@ -864,13 +976,14 @@ function registerProjectCoreIPC({
       // 创建项目目录
       const { getProjectConfig } = require("./project-config");
       const projectConfig = getProjectConfig();
-      const projectRootPath = resolveManagedProjectRoot(
-        projectConfig.getProjectsRootPath(),
-        projectId,
-      );
+      const projectRootPath =
+        await createManagedRootForExistingProjectExclusive(
+          database,
+          projectConfig.getProjectsRootPath(),
+          projectId,
+        );
 
       logger.info("[Main] 为项目创建目录:", projectRootPath);
-      await fs.mkdir(projectRootPath, { recursive: true });
 
       // 更新项目的 root_path
       database.updateProject(
@@ -966,13 +1079,14 @@ function registerProjectCoreIPC({
       // 创建项目目录
       const { getProjectConfig } = require("./project-config");
       const projectConfig = getProjectConfig();
-      const projectRootPath = resolveManagedProjectRoot(
-        projectConfig.getProjectsRootPath(),
-        projectId,
-      );
+      const projectRootPath =
+        await createManagedRootForExistingProjectExclusive(
+          database,
+          projectConfig.getProjectsRootPath(),
+          projectId,
+        );
 
       logger.info("[Main] 修复项目root_path，创建目录:", projectRootPath);
-      await require("fs").promises.mkdir(projectRootPath, { recursive: true });
 
       // 更新数据库（updateProject 是同步函数）
       database.updateProject(
@@ -1044,18 +1158,15 @@ function registerProjectCoreIPC({
       // 逐个修复
       for (const project of brokenProjects) {
         try {
-          const projectRootPath = resolveManagedProjectRoot(
-            projectConfig.getProjectsRootPath(),
-            project.id,
-          );
+          const projectRootPath =
+            await createManagedRootForExistingProjectExclusive(
+              database,
+              projectConfig.getProjectsRootPath(),
+              project.id,
+            );
 
           logger.info(`[Main] 修复项目: ${project.name} (${project.id})`);
           logger.info(`[Main]   创建目录: ${projectRootPath}`);
-
-          // 创建目录
-          await require("fs").promises.mkdir(projectRootPath, {
-            recursive: true,
-          });
 
           // 更新数据库（updateProject 是同步函数）
           database.updateProject(
@@ -2361,6 +2472,10 @@ function registerProjectCoreIPC({
    * Channel: 'project:create-from-template'
    */
   ipcMain.handle("project:create-from-template", async (_event, createData) => {
+    let templateProjectId = null;
+    let templateProjectRootPath = null;
+    let templateProjectsRoot = null;
+    let templateProjectSaved = false;
     try {
       const path = require("path");
       const crypto = require("crypto");
@@ -2378,11 +2493,15 @@ function registerProjectCoreIPC({
 
       // 生成项目ID和路径
       const projectId = crypto.randomUUID();
+      templateProjectId = projectId;
       const projectConfig = getProjectConfig();
-      const projectRootPath = resolveManagedProjectRoot(
-        projectConfig.getProjectsRootPath(),
+      templateProjectsRoot = projectConfig.getProjectsRootPath();
+      assertNewProjectIdAvailable(database, projectId);
+      const projectRootPath = await createManagedProjectRootExclusive(
+        templateProjectsRoot,
         projectId,
       );
+      templateProjectRootPath = projectRootPath;
 
       // 使用 ProjectStructureManager 从模板创建
       const structureManager = new ProjectStructureManager();
@@ -2411,7 +2530,11 @@ function registerProjectCoreIPC({
           }),
         };
 
-        await database.saveProject(project, { attestRootPath: true });
+        await database.saveProject(project, {
+          attestRootPath: true,
+          requireNewProject: true,
+        });
+        templateProjectSaved = true;
         logger.info("[Main] 项目已保存到数据库, ID:", projectId);
       }
 
@@ -2425,6 +2548,33 @@ function registerProjectCoreIPC({
         directories: result.directories,
       };
     } catch (error) {
+      if (templateProjectSaved && templateProjectId) {
+        try {
+          await database.deleteProject(templateProjectId);
+        } catch (cleanupError) {
+          logger.error(
+            "[Main] Failed to roll back template project row:",
+            cleanupError,
+          );
+        }
+      }
+      if (templateProjectRootPath && templateProjectsRoot) {
+        try {
+          const rollbackPath = assertManagedProjectRoot(
+            templateProjectsRoot,
+            templateProjectRootPath,
+          );
+          await require("fs").promises.rm(rollbackPath, {
+            recursive: true,
+            force: true,
+          });
+        } catch (cleanupError) {
+          logger.error(
+            "[Main] Failed to roll back template project root:",
+            cleanupError,
+          );
+        }
+      }
       logger.error("[Main] 从模板创建项目失败:", error);
       return {
         success: false,

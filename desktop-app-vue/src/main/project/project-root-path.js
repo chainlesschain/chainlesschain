@@ -71,12 +71,12 @@ function resolveManagedProjectRoot(projectsRoot, projectId) {
  */
 function assertNewProjectIdAvailable(database, projectId) {
   let existingProject;
-  if (typeof database?.getProjectById === "function") {
-    existingProject = database.getProjectById(projectId);
-  } else if (typeof database?.db?.prepare === "function") {
+  if (typeof database?.db?.prepare === "function") {
     existingProject = database.db
-      .prepare("SELECT id FROM projects WHERE id = ? LIMIT 1")
+      .prepare("SELECT id FROM projects WHERE id = ? COLLATE NOCASE LIMIT 1")
       .get(projectId);
+  } else if (typeof database?.getProjectById === "function") {
+    existingProject = database.getProjectById(projectId);
   } else {
     throw projectCreationError(
       "ERR_PROJECT_ID_CHECK_UNAVAILABLE",
@@ -90,6 +90,78 @@ function assertNewProjectIdAvailable(database, projectId) {
       "project_id_collision",
     );
   }
+}
+
+function getProjectDatabaseConnection(database) {
+  if (typeof database?.db?.prepare === "function") {
+    return database.db;
+  }
+  throw projectCreationError(
+    "ERR_PROJECT_ID_CHECK_UNAVAILABLE",
+    "project_id_check_unavailable",
+  );
+}
+
+function portableCanonicalPath(candidatePath) {
+  return path
+    .resolve(candidatePath)
+    .replace(/[\\/]+$/, "")
+    .toLowerCase();
+}
+
+/**
+ * Existing marker-0 projects may acquire a local root only when their ID has
+ * no portable case alias and no other attested project owns the canonical
+ * managed destination.
+ */
+function assertExistingProjectRootOwnershipAvailable(
+  database,
+  projectsRoot,
+  projectId,
+) {
+  const projectRoot = resolveManagedProjectRoot(projectsRoot, projectId);
+  const connection = getProjectDatabaseConnection(database);
+  const currentProject = connection
+    .prepare("SELECT id FROM projects WHERE id = ? LIMIT 1")
+    .get(projectId);
+  if (!currentProject) {
+    throw projectCreationError("ERR_PROJECT_NOT_FOUND", "project_not_found");
+  }
+
+  const caseAlias = connection
+    .prepare(
+      "SELECT id FROM projects WHERE id = ? COLLATE NOCASE AND id <> ? LIMIT 1",
+    )
+    .get(projectId, projectId);
+  if (caseAlias) {
+    throw projectCreationError(
+      "ERR_PROJECT_ID_COLLISION",
+      "project_id_collision",
+    );
+  }
+
+  const canonicalProjectRoot = portableCanonicalPath(projectRoot);
+  const attestedRoots = connection
+    .prepare(
+      `SELECT id, root_path FROM projects
+       WHERE root_path_local_attested = 1
+         AND root_path IS NOT NULL
+         AND root_path != ''`,
+    )
+    .all();
+  for (const owner of attestedRoots) {
+    if (
+      owner.id !== projectId &&
+      portableCanonicalPath(owner.root_path) === canonicalProjectRoot
+    ) {
+      throw projectCreationError(
+        "ERR_PROJECT_ROOT_OWNERSHIP_COLLISION",
+        "project_root_ownership_collision",
+      );
+    }
+  }
+
+  return projectRoot;
 }
 
 /**
@@ -116,6 +188,19 @@ async function createManagedProjectRootExclusive(projectsRoot, projectId) {
     throw error;
   }
   return projectRoot;
+}
+
+async function createManagedRootForExistingProjectExclusive(
+  database,
+  projectsRoot,
+  projectId,
+) {
+  assertExistingProjectRootOwnershipAvailable(
+    database,
+    projectsRoot,
+    projectId,
+  );
+  return createManagedProjectRootExclusive(projectsRoot, projectId);
 }
 
 /**
@@ -175,8 +260,10 @@ function resolveProjectChildPath(projectRoot, relativePath) {
 
 module.exports = {
   assertManagedProjectRoot,
+  assertExistingProjectRootOwnershipAvailable,
   assertNewProjectIdAvailable,
   createManagedProjectRootExclusive,
+  createManagedRootForExistingProjectExclusive,
   isContainedPath,
   resolveManagedProjectRoot,
   resolveProjectChildPath,

@@ -6,7 +6,10 @@
  */
 const { logger } = require("../utils/logger.js");
 const { getMessageAggregator } = require("../utils/message-aggregator.js");
-const { resolveManagedProjectRoot } = require("./project-root-path.js");
+const {
+  createManagedRootForExistingProjectExclusive,
+  resolveManagedProjectRoot,
+} = require("./project-root-path.js");
 
 function registerPlanningHandlers(ctx) {
   const {
@@ -88,15 +91,20 @@ function registerPlanningHandlers(ctx) {
 
         if (!projectContext.root_path) {
           const fs = require("fs").promises;
-          const path = require("path");
           const projectConfig = getProjectConfig();
           const dirName = projectId || `task_${taskPlanId}`;
-          const projectRootPath = resolveManagedProjectRoot(
-            projectConfig.getProjectsRootPath(),
-            dirName,
-          );
+          const projectsRoot = projectConfig.getProjectsRootPath();
+          const projectRootPath = projectId
+            ? await createManagedRootForExistingProjectExclusive(
+                database,
+                projectsRoot,
+                projectId,
+              )
+            : resolveManagedProjectRoot(projectsRoot, dirName);
 
-          await fs.mkdir(projectRootPath, { recursive: true });
+          if (!projectId) {
+            await fs.mkdir(projectRootPath, { recursive: true });
+          }
           logger.info("[Main] 项目目录已创建:", projectRootPath);
 
           if (projectId) {

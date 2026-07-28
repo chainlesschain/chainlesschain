@@ -341,4 +341,43 @@ describe("ProcessExecutionBroker Linux generic PTY", () => {
       );
     },
   );
+
+  it.runIf(process.platform === "linux")(
+    "invalidates raw master writes as soon as the read stream fails",
+    async () => {
+      const importedPty = await import("node-pty");
+      const ptyModule = importedPty.default || importedPty;
+      const adapter = originalPtyAdapter;
+      const terminal = adapter.allocate(ptyModule, {
+        cols: 80,
+        rows: 24,
+        encoding: "utf8",
+      });
+      let slaveFd = null;
+      try {
+        slaveFd = adapter.openBlockingSlave(terminal);
+        terminal.master.emit(
+          "error",
+          Object.assign(new Error("simulated PTY EIO"), { code: "EIO" }),
+        );
+
+        // The numeric master descriptor may be closed and reused before the
+        // child exits. Neither a queued write nor resize may retain authority
+        // after the stream error invalidates that descriptor.
+        expect(() =>
+          adapter.write(terminal, "must-not-be-written"),
+        ).not.toThrow();
+        expect(() => adapter.resize(terminal, 81, 25)).toThrow(
+          expect.objectContaining({
+            code: "ERR_PTY_TERMINAL_CLOSED",
+          }),
+        );
+      } finally {
+        if (Number.isInteger(slaveFd)) {
+          adapter.closeFd(slaveFd);
+        }
+        adapter.releaseTerminal(terminal);
+      }
+    },
+  );
 });

@@ -13,7 +13,8 @@ const fs = require("fs").promises;
 const path = require("path");
 const {
   assertManagedProjectRoot,
-  resolveManagedProjectRoot,
+  assertNewProjectIdAvailable,
+  createManagedProjectRootExclusive,
 } = require("./project-root-path.js");
 
 /**
@@ -84,6 +85,26 @@ async function createProjectWithTransaction({
       },
     );
 
+    projectRootPath = await transaction.step(
+      "reserve-local-root",
+      async () => {
+        assertNewProjectIdAvailable(database, projectId);
+        return createManagedProjectRootExclusive(
+          projectConfig.getProjectsRootPath(),
+          projectId,
+        );
+      },
+      async () => {
+        if (projectRootPath) {
+          const safeRollbackPath = assertManagedProjectRoot(
+            projectConfig.getProjectsRootPath(),
+            projectRootPath,
+          );
+          await fs.rm(safeRollbackPath, { recursive: true, force: true });
+        }
+      },
+    );
+
     // ========================================
     // 步骤3: 保存到本地数据库
     // ========================================
@@ -98,10 +119,14 @@ async function createProjectWithTransaction({
           sync_status: "synced",
           synced_at: Date.now(),
           file_count: cleanedProject.files ? cleanedProject.files.length : 0,
+          root_path: projectRootPath,
         };
 
         logger.info("[Transaction] 保存项目到本地数据库...");
-        await database.saveProject(localProject);
+        await database.saveProject(localProject, {
+          attestRootPath: true,
+          requireNewProject: true,
+        });
         logger.info("[Transaction] 项目已保存到本地数据库");
 
         return localProject;
@@ -123,33 +148,26 @@ async function createProjectWithTransaction({
     // ========================================
     // 步骤4: 创建项目目录
     // ========================================
-    projectRootPath = await transaction.step(
-      "create-directory",
+    await transaction.step(
+      "attest-directory",
       async () => {
         const projectType =
           backendProject.project_type || backendProject.projectType;
-        const rootPath = resolveManagedProjectRoot(
-          projectConfig.getProjectsRootPath(),
-          projectId,
-        );
-
         logger.info(
           "[Transaction] 创建项目目录:",
-          rootPath,
+          projectRootPath,
           "项目类型:",
           projectType,
         );
-        await fs.mkdir(rootPath, { recursive: true });
-
         // 立即更新 root_path
         database.updateProject(
           projectId,
-          { root_path: rootPath },
+          { root_path: projectRootPath },
           { attestRootPath: true },
         );
-        logger.info("[Transaction] 项目 root_path 已设置:", rootPath);
+        logger.info("[Transaction] 项目 root_path 已设置:", projectRootPath);
 
-        return rootPath;
+        return projectRootPath;
       },
       // 回滚: 删除项目目录
       async () => {
@@ -277,12 +295,12 @@ async function createQuickProjectWithTransaction({
     projectRootPath = await transaction.step(
       "create-directory",
       async () => {
-        const rootPath = resolveManagedProjectRoot(
+        assertNewProjectIdAvailable(database, projectId);
+        const rootPath = await createManagedProjectRootExclusive(
           projectConfig.getProjectsRootPath(),
           projectId,
         );
         logger.info("[Transaction] 创建项目目录:", rootPath);
-        await fs.mkdir(rootPath, { recursive: true });
         return rootPath;
       },
       // 回滚: 删除目录
@@ -331,7 +349,10 @@ async function createQuickProjectWithTransaction({
           }),
         };
 
-        await database.saveProject(project, { attestRootPath: true });
+        await database.saveProject(project, {
+          attestRootPath: true,
+          requireNewProject: true,
+        });
 
         // 保存文件记录
         const file = {

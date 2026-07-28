@@ -25,6 +25,7 @@ import {
   sessionLifecycleState,
   statePath,
   stopBackgroundAgent,
+  stopBackgroundAgentChildTree,
   writeBackgroundAgentState,
 } from "../../src/lib/background-agent-supervisor.js";
 import {
@@ -668,6 +669,24 @@ describe("background agent supervisor", () => {
       );
     },
   );
+
+  it("routes an attached Windows session stop through brokered taskkill tree semantics", () => {
+    _deps.spawnSync = vi.fn(() => ({ status: 0 }));
+
+    expect(stopBackgroundAgentChildTree(4242, { platform: "win32" })).toBe(
+      true,
+    );
+    expect(_deps.spawnSync).toHaveBeenCalledWith(
+      "taskkill",
+      ["/PID", "4242", "/T", "/F"],
+      expect.objectContaining({
+        origin: "background-agent:session-stop-tree",
+        policy: "allow",
+        scope: "background-agent",
+        shell: false,
+      }),
+    );
+  });
 
   it.skipIf(process.platform === "win32")(
     "stops a running POSIX worker via the injectable kill seam (group first)",

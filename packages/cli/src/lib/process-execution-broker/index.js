@@ -104,8 +104,27 @@ function createNativePtyAdapter() {
     }
     return state;
   };
+  const invalidateMasterState = (state) => {
+    state.disposed = true;
+    state.fd = null;
+    state.writeQueue.length = 0;
+    state.pendingWriteBytes = 0;
+    if (state.writeImmediate) {
+      clearImmediate(state.writeImmediate);
+      state.writeImmediate = null;
+    }
+  };
+  const hasLiveMaster = (state) =>
+    !state.disposed &&
+    Number.isInteger(state.fd) &&
+    state.master?.destroyed !== true &&
+    state.master?.closed !== true;
   const processWriteQueue = (state) => {
-    if (state.disposed || state.writeQueue.length === 0) {
+    if (!hasLiveMaster(state)) {
+      invalidateMasterState(state);
+      return;
+    }
+    if (state.writeQueue.length === 0) {
       return;
     }
     const task = state.writeQueue[0];
@@ -124,8 +143,7 @@ function createNativePtyAdapter() {
       );
     } catch (error) {
       if (error.code !== "EAGAIN" && error.code !== "EWOULDBLOCK") {
-        state.writeQueue.length = 0;
-        state.pendingWriteBytes = 0;
+        invalidateMasterState(state);
       }
     }
     if (written > 0) {
@@ -224,11 +242,14 @@ function createNativePtyAdapter() {
           writeImmediate: null,
           disposed: false,
           readError: null,
+          master,
         };
         terminalStates.set(terminal, state);
         master.on("error", (error) => {
           state.readError = error;
+          invalidateMasterState(state);
         });
+        master.once("close", () => invalidateMasterState(state));
         return terminal;
       } catch (error) {
         if (master) {
@@ -325,7 +346,10 @@ function createNativePtyAdapter() {
     },
     write(terminal, data) {
       const state = terminalState(terminal);
-      if (state.disposed) return;
+      if (!hasLiveMaster(state)) {
+        invalidateMasterState(state);
+        return;
+      }
       const buffer =
         typeof data === "string"
           ? Buffer.from(data, state.encoding)
@@ -345,7 +369,8 @@ function createNativePtyAdapter() {
     },
     resize(terminal, cols, rows) {
       const state = terminalState(terminal);
-      if (state.disposed || !Number.isInteger(state.fd)) {
+      if (!hasLiveMaster(state)) {
+        invalidateMasterState(state);
         const error = new Error("pty_terminal_closed");
         error.code = "ERR_PTY_TERMINAL_CLOSED";
         throw error;
@@ -360,7 +385,12 @@ function createNativePtyAdapter() {
       ) {
         throw new TypeError("pty_dimensions_invalid");
       }
-      state.native.resize(state.fd, cols, rows);
+      try {
+        state.native.resize(state.fd, cols, rows);
+      } catch (error) {
+        invalidateMasterState(state);
+        throw error;
+      }
       state.cols = cols;
       state.rows = rows;
     },
@@ -383,14 +413,7 @@ function createNativePtyAdapter() {
     releaseTerminal(terminal) {
       const state = terminalStates.get(terminal);
       if (state) {
-        state.disposed = true;
-        state.fd = null;
-        state.writeQueue.length = 0;
-        state.pendingWriteBytes = 0;
-        if (state.writeImmediate) {
-          clearImmediate(state.writeImmediate);
-          state.writeImmediate = null;
-        }
+        invalidateMasterState(state);
         if (Number.isInteger(state.rawSlaveFd)) {
           try {
             fs.closeSync(state.rawSlaveFd);
@@ -1837,9 +1860,18 @@ class ProcessExecutionBroker extends EventEmitter {
       (boundary) => !guaranteed.has(boundary),
     );
     if (missingBoundaries.length > 0) {
+      const candidateReason =
+        typeof plan.reason === "string" && plan.reason
+          ? `; reason=${plan.reason}${
+              typeof plan.runtimeProbe?.reason === "string" &&
+              plan.runtimeProbe.reason
+                ? `:${plan.runtimeProbe.reason}`
+                : ""
+            }`
+          : "";
       throw this._sandboxBoundaryError(
         "required_boundaries_unsatisfied",
-        `Sandbox backend ${plan.backend || plan.candidateBackend || "unavailable"} cannot satisfy required boundaries: ${missingBoundaries.join(", ")}`,
+        `Sandbox backend ${plan.backend || plan.candidateBackend || "unavailable"} cannot satisfy required boundaries: ${missingBoundaries.join(", ")}${candidateReason}`,
         {
           requiredBoundaries,
           actualGuarantees,
