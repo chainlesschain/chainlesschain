@@ -1,6 +1,6 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> **当前推荐组合（2026-07-28）：CLI `0.162.183` + VS Code 扩展 `0.37.35`（Open VSX）+ JetBrains 插件 `0.4.74`（JetBrains Marketplace）。双端共享 Agent Protocol、质量上下文、插件治理与 worktree 后台任务契约。**
+> **当前推荐组合（2026-07-29）：CLI `0.162.185` + VS Code 扩展 `0.37.36`（Open VSX）+ JetBrains 插件 `0.4.75`（JetBrains Marketplace）。双端共享 Agent Protocol、质量/重试归因、事务化插件治理与 worktree/team/batch durable 状态契约。**
 >
 > 把 ChainlessChain 的 `cc` agent 变成**编辑器里的一等公民**：侧边栏 Chat 面板直接对话、计划以可编辑 Markdown 文档审阅、文件改动走编辑器原生 diff 评审（可逐块接受、可行级批注）、代理自动感知你的选区与诊断。VS Code 与 JetBrains 双端同一套协议、同一套功能面，会话还能跨 IDE 互相续接。
 
@@ -70,7 +70,7 @@ cc ide doctor       # 发现失败时解释原因
 - **图片 / 视觉**：Ctrl/Cmd+V 粘贴截图或拖拽图片（单条最多 4 张），走独立视觉模型。
 - **`@` 提及**：文件（排序下拉）、`@folder/`（递归目录树）、**类 / 方法符号**（按符号名找文件）、`@terminal`、`@selection` / `@diagnostics`；支持 `@file#L5-10` 行区间引用。
 - **审批卡与提问卡**：危险动作（危险 shell、settings `ask` 规则）弹 Approve/Deny 卡片阻塞等裁决（默认 120s 超时回落拒绝）；agent 拿不准时经 `ask_user_question` 弹单选 / 多选 / 自由文本卡而不是瞎猜。
-- **用量可视化**：工作中实时 token 计数、回合结束 `in→out` 汇总、迭代预算预警、常驻**上下文窗口占用指示条**（可在设置关闭）。
+- **用量与重试可视化**：工作中实时 token 计数、回合结束 `in→out` 汇总、迭代预算预警、常驻**上下文窗口占用指示条**；CLI `0.162.184+` 还提供真实工具耗时、同轮观测重试，以及不含密钥/参数的流式 LLM retry 原因和实际 provider/model。
 - **后台 tab 信号**：非活动标签回合完成亮绿点、等待审批亮蓝点 + "Show" 提示，不抢焦点。
 
 **面板斜杠命令**（双端一致，输入 `/` 有自动补全）：
@@ -129,10 +129,11 @@ settings 权限规则对 `Write`/`Edit` 配了 `ask` 且在交互会话时，终
 
 “Manage Plugins & MCP” 由 CLI runtime 执行实际变更，IDE 不维护第二份插件状态：
 
-- 按 `user / project / local` scope 启用或禁用插件，升级时保留来源并提示新增 capability consent。
+- 按 `user / project / local` scope 启用或禁用插件。升级先在 staging 重新校验 manifest 与签名 SBOM，再原子激活；复制、加载、post-install 或新增 capability 未获同意时自动恢复旧版本。
+- IDE 解析受控的 `activated / rolled_back / unchanged` 结果，只在确认激活后重载当前会话；扩大 capability 前先展示新增能力并要求显式批准。
 - 当前会话可重载插件状态；签名、SBOM、registry / Git / local 来源、managed-policy 来源与生效范围在同一视图展示。
 - 来源元数据在展示前脱敏，不从不可信工作区目录探测 Node、Java 或 `cc`。
-- Token Usage / session usage 可按插件 id/version 归因 plugin-bin 和插件提供的 MCP 调用，但不保存工具参数。
+- Token Usage / session usage 可按插件 id/version 归因 plugin-bin 和插件提供的 MCP 调用，并显示有界耗时/重试摘要；不保存工具参数、输出或凭据。
 
 命令行等价操作：
 
@@ -145,19 +146,19 @@ cc plugin upgrade <source> --scope user
 
 ### 7. 后台与协作面板
 
-| 面板                  | 入口（命令面板 / Tools 菜单）        | 作用                                                                                                                                                                             |
-| --------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Background Agents** | ChainlessChain: Background Agents    | 列出 `cc agent --bg` 后台会话，追加指令 / 停止 / 重命名 / 续接                                                                                                                   |
-| **Team Monitor**      | ChainlessChain: Team Monitor         | 观察 `cc team run` 快照：任务图、lease 持有者、进度                                                                                                                              |
-| **Remote Control**    | ChainlessChain: Remote Control       | 起 `cc remote-control` 配对主机，IDE 内直接渲染一次性配对 URI 的 QR 码（0.37.12/0.4.56+，手机扫码即配对），relay（E2EE 跨网）可在 IDE 设置面配置，手机 / Web 观察-提问-审批-中断 |
-| **Worktree Tasks**    | ChainlessChain: Worktree Tasks       | 新建受监督的隔离后台任务；显示 owner/session、权限模式、资源预算、生命周期、副作用计数、变更足迹与冲突预览；Merge back / Discard                                                 |
-| **Plugin & MCP 管理** | ChainlessChain: Manage Plugins & MCP | 分 scope 启停 / 升级 / 重载、签名与 SBOM 摘要、managed-policy 来源；MCP server 测试 / 移除，技能列表过滤                                                                         |
-| **Chrome Connector**  | ChainlessChain: Chrome Connector     | 驱动 `cc browse chrome`，抓取页面 console / network / DOM / 截图成报告                                                                                                           |
-| **Token Usage**       | ChainlessChain: Show Token Usage     | 全时段 / 24h / 7d / 30d 用量、按模型汇总、Top 会话                                                                                                                               |
-| **Dashboard**         | ChainlessChain IDE: Open Dashboard   | 桥接状态卡 + 实时工具调用流 + Restart                                                                                                                                            |
-| **What's New**        | ChainlessChain: What's New           | 渲染 `cc changelog`，配合 CLI 版本检查 / 一键升级                                                                                                                                |
+| 面板                  | 入口（命令面板 / Tools 菜单）        | 作用                                                                                                                                                                                    |
+| --------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Background Agents** | ChainlessChain: Background Agents    | 列出 `cc agent --bg` 后台会话，追加指令 / 停止 / 重命名 / 续接                                                                                                                          |
+| **Team Monitor**      | ChainlessChain: Team Monitor         | 查看 `cc team` / `cc batch` 的 durable owner/session、权限模式、预算、生命周期、副作用计数、任务图、lease 与进度；不授予后台 attach/stop 控制                                           |
+| **Remote Control**    | ChainlessChain: Remote Control       | 起 `cc remote-control` 配对主机，IDE 内直接渲染一次性配对 URI 的 QR 码（0.37.12/0.4.56+，手机扫码即配对），relay（E2EE 跨网）可在 IDE 设置面配置，手机 / Web 观察-提问-审批-中断        |
+| **Worktree Tasks**    | ChainlessChain: Worktree Tasks       | 新建受监督的隔离后台任务；显示 worktree 与 team/batch 协作记录的 owner/session、权限模式、资源预算、生命周期、副作用计数、变更足迹与冲突预览；仅 worktree 任务提供 Merge back / Discard |
+| **Plugin & MCP 管理** | ChainlessChain: Manage Plugins & MCP | 分 scope 启停 / 升级 / 重载、签名与 SBOM 摘要、managed-policy 来源；MCP server 测试 / 移除，技能列表过滤                                                                                |
+| **Chrome Connector**  | ChainlessChain: Chrome Connector     | 驱动 `cc browse chrome`，抓取页面 console / network / DOM / 截图成报告                                                                                                                  |
+| **Token Usage**       | ChainlessChain: Show Token Usage     | 全时段 / 24h / 7d / 30d 用量、按模型汇总、Top 会话，以及工具耗时、观测重试和脱敏 LLM retry 归因                                                                                         |
+| **Dashboard**         | ChainlessChain IDE: Open Dashboard   | 桥接状态卡 + 实时工具调用流 + Restart                                                                                                                                                   |
+| **What's New**        | ChainlessChain: What's New           | 渲染 `cc changelog`，配合 CLI 版本检查 / 一键升级                                                                                                                                       |
 
-Worktree Tasks 只把拥有 durable 后台状态的 IDE 任务标为 **managed**。`cc team` / `cc batch` 行在尚未提供等价 owner、预算与恢复状态时明确显示 **unmanaged**，不会把只能观察的任务伪装成可安全控制。
+Worktree 后台任务与 `cc team` / `cc batch` 协作单元都使用 durable 治理记录；协作记录不保存 prompt、argv、工具参数、输出或凭据。**managed** 表示治理状态可审计，不代表 team/batch 获得后台进程控制能力；只有真正拥有后台会话的 worktree 任务显示 attach/stop/Merge back/Discard。
 
 ### 8. Installation Doctor 与离线恢复
 

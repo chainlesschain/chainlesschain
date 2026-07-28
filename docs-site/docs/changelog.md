@@ -5,6 +5,27 @@
 
 ## [Unreleased]
 
+#### Fixed — CLI 0.162.185：沙箱 authority、PTY 与 Hook runtime 收口
+
+> `chainlesschain` `0.162.184 → 0.162.185`（2026-07-29）；PDH 保持 `0.4.57`，Agent SDK 保持 `0.1.7`。
+
+- 带策略的插件 bin 在异步/后台启动中保留 pinned identity；通用后台任务、CLI PTY 与桌面项目 PTY 进入同一套失败闭合 Linux 文件系统/网络边界。
+- 每个实际 bind source 必须证明 private mount propagation；父进程 pinned descriptor 在 spawn 后关闭，raw PTY 在 close/error 后立即失效，attached session 停止时回收完整 POSIX process group 或 Windows process tree。
+- 桌面 V8 根迁移隔离未证明的历史项目根，远端 metadata 不能获得本机 PTY authority；Hooks v2 以 generation-aware opaque identity 绑定可信宿主根。
+- hook 子进程在晚到的 stdin `EPIPE` 下保留 status 0 输出与 status 2 block 协议；其它 spawn error 继续失败闭合。
+- Hooks 与 Broker 使用单一 runtime graph，避免重复 CredentialTransport worker、listener 和稳态 FD。
+- 精确提交 `d7d378d3e1` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30402651323)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30402651097) 与 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/30404265474) 均成功。
+
+#### Added — CLI 0.162.184 + VS Code 0.37.36 + JetBrains 0.4.75：重试、协作与插件恢复治理
+
+> `chainlesschain` `0.162.183 → 0.162.184`，VS Code `0.37.35 → 0.37.36`，JetBrains `0.4.74 → 0.4.75`（2026-07-28）；PDH 保持 `0.4.57`，Agent SDK 保持 `0.1.7`。
+
+- compact transcript 与用量报告增加有界工具耗时、同轮观测重试和脱敏流式 LLM retry 原因/实际 provider/model。
+- team/batch 协作单元持久化 owner/session、权限模式、资源预算、生命周期与副作用计数，但不保存 prompt、argv、工具参数、输出或凭据。
+- 插件升级先 staging 校验 manifest 与签名 SBOM，再原子激活；复制、加载、post-install 或 capability widening 失败时恢复旧 active version。
+- IDE 只在收到 `activated` 后重载 live session；扩大 capability 前先展示新增能力并要求显式批准，`rolled_back` 或不可读结果保持失败闭合。
+- plugin hook、MCP/LSP server、monitor 与 native bin 跨中央 Broker 保留 sandbox policy，Linux bubblewrap 初始化失败时给出有界诊断并拒绝降级。
+
 #### Added — CLI 0.162.183 + VS Code 0.37.35 + JetBrains 0.4.74：质量上下文、插件治理与 Worktree 任务
 
 > `chainlesschain` `0.162.182 → 0.162.183`，VS Code `0.37.34 → 0.37.35`，JetBrains `0.4.73 → 0.4.74`（2026-07-27）；PDH 保持 `0.4.57`，Agent SDK 保持 `0.1.7`。

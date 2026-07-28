@@ -1,6 +1,6 @@
-# CLI Runtime 当前实现（0.162.183）
+# CLI Runtime 当前实现（0.162.185）
 
-> 更新时间：2026-07-28。
+> 更新时间：2026-07-29。npm `latest` 已发布 `0.162.185`。
 
 本文是当前 CLI 运行时的实现快照，适合部署、排障和集成方阅读。设计取舍详见[运行时设计核对](/design/cli-runtime-current)。
 
@@ -12,10 +12,11 @@
 - 后台提问、审批与副作用确认：重连后继续等待原问题，并按会话/回合/操作指纹校验，避免重复执行。
 - `Setup` / `Notification` hooks：在命令开始前注入环境并发送会话通知。
 - 跨平台 sandbox 与 credential agent：前台、后台、hook、MCP、monitor、LSP、PTY 和插件 bin 都通过统一 broker 执行。
+- 强执行路径补齐：插件异步/后台进程、通用后台任务、CLI PTY 与桌面项目 PTY 共用失败闭合边界；未经证明的项目根和远端 metadata 不能获得本机 PTY 权限。
 - 技能进程安全：CLI-Anything 与 CLI 指令技能包生成的 handler 通过宿主 Process Broker 执行，不再直接导入 `child_process`。
-- 插件治理：按 scope 启停、来源感知升级/回滚、当前会话热重载，并查看签名、SBOM、来源与组织策略摘要。
-- 插件用量归因：`cc session usage` 可按插件/版本归因 plugin-bin 与插件 MCP 调用，不记录工具参数。
-- IDE worktree 任务：VS Code / JetBrains 创建的隔离任务可作为受监督后台 Agent 运行，并显示 owner、权限模式、预算、状态和副作用计数。
+- 插件治理：按 scope 启停、来源感知升级/回滚、当前会话热重载，并查看签名、SBOM、来源与组织策略摘要；升级在 staging 校验后原子激活，失败时恢复旧版本。
+- 用量与重试归因：`cc session usage` 可按插件/版本归因 plugin-bin 与插件 MCP 调用，并显示有界工具耗时、观测重试及脱敏 LLM retry 原因，不记录工具参数、输出或凭据。
+- IDE worktree 与协作任务：VS Code / JetBrains 显示 worktree、team 与 batch 的 owner、权限模式、预算、状态和副作用计数；协作单元不会因此获得后台进程 attach/stop 权限。
 - `cc session export <id>`：默认扫描并脱敏会话中的 API Key、JWT、连接串等秘密；只有显式 `--no-redact` 才保留原文。
 - `CHAINLESSCHAIN_HOME=<dir>`：把配置、会话、状态、日志和缓存统一隔离到指定目录，适合 CI、多项目或便携部署。
 
@@ -33,8 +34,9 @@ cc
  ├─ skill-process-broker
  │    └─ frozen host facade → process-execution-broker
  ├─ durable event / interaction journal
+ ├─ bounded usage / retry attribution
  ├─ async-hook supervisor (timeout + process-tree reap)
- └─ session hooks (Setup/Notification)
+ └─ Hooks v2 + session hooks (Setup/Notification)
 ```
 
 ## 命令入口
@@ -56,20 +58,25 @@ cc
 ## 平台注意
 
 - Linux 严格原生插件路径只接受受支持的当前架构静态 ELF，并把解析、探测和启动绑定到同一插件树/文件描述符；动态 loader、可执行栈、畸形 segment、复制或过期 contract 会在启动前拒绝。
+- Linux 上每个实际 bind source 都必须证明 private mount propagation；证明不足时拒绝启动。父进程 pinned descriptor 在 spawn 后关闭，避免 authority 泄漏。
 - Windows AppContainer 路径绑定目标句柄、受信环境与策略摘要；跨 probe、spawn、IPC 和 detached 启动边界都会复核目标及插件身份。
 - Windows 上 `.cmd` 启动、hook 输出清理、后台 attach 路径已修复。
 - Windows 异步 hook 优先使用 `taskkill /T /F` 回收整棵进程树；当系统允许枚举但拒绝 `taskkill` 时，会先快照后代 PID 并从叶子向上兜底终止。受限沙箱若同时禁止枚举和终止，只能回收当前可控子进程并显式跳过真实树终止测试。
+- raw PTY 在 close/error 后立即失效；attached session 停止时回收完整 POSIX process group 或 Windows process tree。
+- Hooks v2 以 generation-aware opaque identity 绑定可信宿主根。晚到的 stdin `EPIPE` 不会吞掉已完成 hook 的 status 0 输出或 status 2 block；其它 spawn error 仍失败闭合。
+- Hooks 与 Broker 共享单一 runtime graph，避免重复 CredentialTransport worker/listener 与稳态 FD。
 - 本地控制通道优先使用 NDJSON/TCP fallback，需要本地会话凭据。
 - 停止后台 Agent 时，supervisor 会校验 PID 与会话绑定关系，避免误杀。
 
 ## 在 IDE 中查看质量、插件与 Worktree
 
-VS Code `0.37.35` 和 JetBrains `0.4.74` 推荐搭配 CLI `0.162.183`：
+VS Code `0.37.36` 和 JetBrains `0.4.75` 推荐搭配 CLI `0.162.185`：
 
 - 质量上下文只发送有界的测试结果、覆盖率与调试器快照，并标注新鲜度；VS Code Notebook 使用当前 notebook 的真实执行上下文。
 - Installation Doctor 会同时检查 Node/Java、managed CLI 与插件 registry 离线恢复状态，不从工作区目录探测可执行文件。
-- Plugin Manager 的 enable/disable、upgrade、reload、签名/SBOM 与策略来源都由 CLI runtime 执行。
-- Worktree Tasks 中只有具备 durable 后台状态的任务标为 managed；team/batch 尚未提供等价状态时会明确显示 unmanaged，不伪造可控状态。
+- Plugin Manager 的 enable/disable、upgrade、reload、签名/SBOM 与策略来源都由 CLI runtime 执行；IDE 只在收到 `activated` 后重载会话，扩大 capability 前必须显式确认。
+- Worktree Tasks 和 team/batch 协作记录显示 durable owner/session、权限、预算、生命周期与副作用摘要；team/batch 仍不暴露后台进程控制按钮。
+- 用量视图显示真实工具耗时、观测重试与实际 provider/model 的脱敏 retry 原因。
 
 ## 配置目录约定
 
@@ -108,4 +115,4 @@ npm run test:integration
 npm run test:e2e
 ```
 
-`0.162.183` 的权威发布门是同一精确提交上的 `CLI CI`、`CLI Strict Sandbox`、后台重连 E2E、打包 VSIX Extension Host、JetBrains unit/build/Remote Robot 与公开市场回读。Linux、Windows、macOS 矩阵必须全部通过；本地结果只能补充，不能替代发布门。
+`0.162.185` 的权威发布提交为 `d7d378d3e14825d316f28a3ee62a8ab8da40c452`。同一 `head_sha` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30402651323)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30402651097) 与 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/30404265474) 均已成功。Linux、Windows、macOS 矩阵必须全部通过；本地结果只能补充，不能替代发布门。

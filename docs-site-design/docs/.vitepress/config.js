@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.135 · CLI 0.162.183 · PDH 0.4.57｜事务化多源归并 · 显式游标续扫 · 跨平台插件强沙箱 · IDE 质量/插件/worktree 治理";
+        "v5.0.3.135 · CLI 0.162.185 · PDH 0.4.57｜后台/PTY authority · Hooks v2 · 事务化插件恢复 · IDE 协作治理";
     }
   },
 
@@ -874,7 +874,7 @@ export default defineConfig({
               link: "/modules/m78-cli-agent-runtime",
             },
             {
-              text: "CLI Runtime 当前实现核对 (0.162.183) ⭐NEW",
+              text: "CLI Runtime 当前实现核对 (0.162.185) ⭐NEW",
               link: "/cli-runtime-current",
             },
             {

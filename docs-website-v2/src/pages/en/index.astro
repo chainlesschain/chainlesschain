@@ -502,9 +502,12 @@ const badges = [
         <p class="prose-muted text-lg mb-8">
           No GUI required — <code class="font-mono text-sm bg-cream px-2 py-0.5 rounded">chainlesschain</code> runs local AI, agent coding, and multi-agent orchestration entirely in the terminal.
         </p>
+        <p class="text-sm text-muted mb-8">
+          Current {CLI_VERSION}: background work, plugin processes, and PTYs share a fail-closed execution boundary, while Hooks, collaboration runs, and plugin upgrades keep recoverable, auditable durable state.
+        </p>
         <div class="grid grid-cols-3 gap-6 mb-8">
           <div>
-            <div class="font-display text-4xl text-ember">172</div>
+            <div class="font-display text-4xl text-ember">175</div>
             <div class="text-sm text-muted mt-1">CLI commands</div>
           </div>
           <div>

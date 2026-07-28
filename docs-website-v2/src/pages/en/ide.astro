@@ -5,7 +5,7 @@ import vscodePkg from '../../../../packages/vscode-extension/package.json';
 
 const CLI_VERSION = cliPkg.version;
 const VSCODE_VERSION = vscodePkg.version;
-const JETBRAINS_VERSION = '0.4.74';
+const JETBRAINS_VERSION = '0.4.75';
 ---
 <BaseLayout
   title="IDE Integration — VS Code + JetBrains extensions, agent in your editor | ChainlessChain"
@@ -31,7 +31,7 @@ const JETBRAINS_VERSION = '0.4.74';
           <a href="https://docs.chainlesschain.com/chainlesschain/ide-bridge.html" rel="noopener" class="btn-ghost">Full docs ↗</a>
         </div>
         <p class="mt-5 text-sm text-muted">
-          VS Code <strong class="text-ink">{VSCODE_VERSION}</strong> and JetBrains <strong class="text-ink">{JETBRAINS_VERSION}</strong> are recommended with CLI <strong class="text-ink">{CLI_VERSION}</strong>. Quality context, plugin governance, and worktree task state all come from the same authoritative CLI runtime.
+          VS Code <strong class="text-ink">{VSCODE_VERSION}</strong> and JetBrains <strong class="text-ink">{JETBRAINS_VERSION}</strong> are recommended with CLI <strong class="text-ink">{CLI_VERSION}</strong>. Quality/retry attribution, transactional plugin recovery, and durable worktree/team/batch governance all come from the same authoritative CLI runtime.
         </p>
       </div>
     </div>
@@ -50,8 +50,9 @@ const JETBRAINS_VERSION = '0.4.74';
           ['Preview', 'In-editor app preview', 'Start App Preview finds your dev script → runs the dev server → detects the served URL → opens it embedded in the editor (VS Code’s built-in Simple Browser / JetBrains’ JCEF browser, falling back to the external browser when JCEF is unavailable); the dev server’s HMR handles live reload on edits; if the dev server dies unexpectedly it reports a crash with a one-click Restart instead of silently stopping.'],
           ['Terminal', 'Terminal-context sharing', 'getTerminalOutput lets the agent see the commands you just ran in the integrated terminal — their output and exit code (VS Code 1.93+ shell integration) — so it knows what you ran and how it failed. Auto-injected into <ide-context> each turn, plus an explicit @terminal mention.'],
           ['Quality', 'Tests, coverage, and debugger context', 'cc-ide-quality/v1 sends bounded quality snapshots with freshness metadata. Stale results stay visibly stale, and VS Code notebook execution carries the real notebook and cell context.'],
-          ['Plugins', 'Lifecycle and supply-chain governance', 'Enable or disable by scope, upgrade from the recorded source, and reload active sessions. Signature, SBOM, registry/Git/local source, and managed-policy summaries come from the CLI runtime, not a second IDE-side state store.'],
-          ['Isolation', 'Supervised worktree tasks', 'IDE-created isolated tasks run as background worktree agents with owner/session, permission mode, budget, lifecycle, and bounded side-effect counts. Observe-only team/batch rows remain explicitly unmanaged.'],
+          ['Plugins', 'Transactional upgrades and supply-chain governance', 'Enable or disable by scope. Upgrades stage and revalidate manifests/signatures/SBOMs before atomic activation, restoring the previous version on failure. IDEs reload only after activation and require explicit consent for capability widening.'],
+          ['Governance', 'Worktree and collaboration tasks', 'Worktree, team, and batch records show owner/session, permission mode, budget, lifecycle, and bounded side-effect counts. Team/batch governance stays auditable without exposing background attach/stop controls.'],
+          ['Attribution', 'Tool duration and retries', 'Usage views show measured tool duration, observed same-turn retries, and secret-free streaming LLM retry reasons with actual provider/model identity, without retaining tool arguments, output, or credentials.'],
           ['Sync', 'CLI version-sync', 'On activation it checks cc --version and offers a one-click upgrade if your chainlesschain CLI is older than the extension needs; the "Upgrade CLI" palette command runs npm i -g chainlesschain@latest on demand — keeping the extension (Open VSX) and CLI (npm) in step.'],
           ['Complete', '@ files / live slash commands', '@-path TAB completion ranks editor-open files first; @-completion offers @selection / @diagnostics / @terminal; /status /doctor /mcp /hooks /permissions /agents /tasks /memory inspect the active session, alongside /new /plan /approve /reject /stop /expand.'],
         ].map(([tag, title, desc]) => (

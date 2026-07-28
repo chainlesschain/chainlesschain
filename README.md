@@ -11,15 +11,19 @@
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-07-28 当前主线 — **v5.0.3.135 / CLI 0.162.183 / PDH 0.4.57 / VS Code 0.37.35 / JetBrains 0.4.74**
+## 2026-07-29 当前主线 — **v5.0.3.135 / CLI 0.162.185 / PDH 0.4.57 / VS Code 0.37.36 / JetBrains 0.4.75**
 
-> npm 公网 `latest` 已对齐 `chainlesschain@0.162.183`、`@chainlesschain/personal-data-hub@0.4.57` 与 `@chainlesschain/agent-sdk@0.1.7`；桌面端与 Android 源码版本保持 `5.0.3.135`，VS Code / JetBrains 扩展分别为 `0.37.35` / `0.4.74`。Python Agent SDK 与 TypeScript SDK 共用 Agent Protocol v1。
+> npm 公网 `latest` 已对齐 `chainlesschain@0.162.185`、`@chainlesschain/personal-data-hub@0.4.57` 与 `@chainlesschain/agent-sdk@0.1.7`；桌面端与 Android 源码版本保持 `5.0.3.135`，VS Code / JetBrains 扩展分别为 `0.37.36` / `0.4.75`。Python Agent SDK 与 TypeScript SDK 共用 Agent Protocol v1。
 >
-> 本轮把“能运行”进一步收口到“边界可证明、状态可恢复”：CLI 的插件原生进程在 Linux 走 fd 绑定的 bubblewrap 强边界，在 Windows 走带目标句柄与策略摘要证明的 AppContainer；前台、后台、IPC、hook、MCP、monitor、LSP 与 PTY 统一遵守插件沙箱策略，缺少声明或隔离能力时失败闭合。后台交互、事件恢复与副作用台账继续通过 Agent SDK 保持跨端一致。
+> CLI `0.162.185` 把强执行边界补齐到插件异步/后台进程、通用后台任务、CLI PTY 与桌面项目 PTY：Linux bind source 必须证明 private mount propagation，钉住的父进程描述符在 spawn 后关闭，raw PTY 在 close/error 后立即失效，attached session 停止时回收整个 POSIX 进程组或 Windows 进程树。未经证明的项目根会被隔离，远端元数据不能获得本机 PTY authority。
 >
-> IDE 双端新增有界的测试结果 / 覆盖率 / 调试器质量上下文、Node/Java 与离线恢复诊断、带签名/SBOM/策略来源的插件生命周期管理，以及受监督的 worktree 后台任务视图；插件 bin 与插件提供的 MCP 调用可按插件和版本归因，但不会把工具参数写入用量记录。
+> Hooks v2 现在以 generation-aware opaque identity 绑定可信宿主根；hook 子进程在晚到的 stdin `EPIPE` 下仍保留 status 0 输出与 status 2 block 协议。Hooks 与 Broker 只保留一份 runtime graph，避免重复 CredentialTransport worker、listener 与稳态 FD。
+>
+> CLI `0.162.184` 与 IDE `0.37.36 / 0.4.75` 同步增加工具耗时、同轮重试和脱敏 LLM retry 归因；team/batch 的 owner、会话、权限、预算、生命周期与副作用计数进入 durable 治理状态。插件升级采用 staging 校验 + 原子激活，复制、加载、post-install 或 capability widening 失败时恢复旧版本；IDE 只在确认 `activated` 后重载会话，并在扩大能力前要求显式批准。
 >
 > 个人数据中台仍提供 **92 个已注册采集契约 / 18 类数据源**，现把来源别名、原始 observation、字段级冲突决策、引用重写与最终实体放进同一事务；本地数据库、桌面客户端、移动 API、社交、健康、教育、音乐、购物和出行采集统一采用显式游标与有界分页，部分或不可读结果不会误推进 checkpoint。
+>
+> 精确发布提交 `d7d378d3e1` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30402651323)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30402651097) 与 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/30404265474) 均已成功；本地测试只作补充，不替代三平台发布门。
 >
 > 详见 [CLI Runtime 当前实现](docs-site/docs/chainlesschain/cli-runtime-current.md)、[IDE 插件使用指南](docs-site/docs/chainlesschain/ide-plugin.md)、[个人数据中台用户指南](docs-site/docs/chainlesschain/personal-data-hub.md)、[运行时设计核对](docs/design/cli-runtime-current.md)、[个人数据中台架构](docs/design/Personal_Data_Hub_Architecture.md)及[更新日志](CHANGELOG.md)。
 

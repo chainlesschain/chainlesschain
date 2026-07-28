@@ -11,15 +11,19 @@
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
 
-## 2026-07-28 Current mainline — **v5.0.3.135 / CLI 0.162.183 / PDH 0.4.57 / VS Code 0.37.35 / JetBrains 0.4.74**
+## 2026-07-29 Current mainline — **v5.0.3.135 / CLI 0.162.185 / PDH 0.4.57 / VS Code 0.37.36 / JetBrains 0.4.75**
 
-> npm `latest` now aligns `chainlesschain@0.162.183`, `@chainlesschain/personal-data-hub@0.4.57`, and `@chainlesschain/agent-sdk@0.1.7`. Desktop and Android source remain at `5.0.3.135`; the VS Code and JetBrains extensions are `0.37.35` and `0.4.74`. The Python and TypeScript Agent SDKs share Agent Protocol v1.
+> npm `latest` now aligns `chainlesschain@0.162.185`, `@chainlesschain/personal-data-hub@0.4.57`, and `@chainlesschain/agent-sdk@0.1.7`. Desktop and Android source remain at `5.0.3.135`; the VS Code and JetBrains extensions are `0.37.36` and `0.4.75`. The Python and TypeScript Agent SDKs share Agent Protocol v1.
 >
-> This release moves the runtime from merely runnable to bounded and recoverable. Native plugin processes use an fd-bound bubblewrap boundary on Linux and an AppContainer boundary with target-handle and policy-digest attestation on Windows. Foreground, background, IPC, hook, MCP, monitor, LSP, and PTY paths all honor plugin sandbox policy and fail closed when a required declaration or isolation primitive is unavailable. Background interaction, event recovery, and the side-effect ledger stay aligned through the Agent SDK.
+> CLI `0.162.185` completes the strong execution boundary across async/background plugin processes, generic background work, CLI PTYs, and Desktop project PTYs. Linux bind sources must prove private mount propagation, parent-side pinned descriptors close after spawn, raw PTYs invalidate on close/error, and stopping an attached session reaps its entire POSIX process group or Windows process tree. Unattested project roots are quarantined, and remote metadata cannot acquire local PTY authority.
 >
-> Both IDE extensions now provide bounded test-result, coverage, and debugger quality context; Node/Java and offline-recovery diagnostics; signature/SBOM/policy-aware plugin lifecycle controls; and supervised background worktree tasks. Plugin-bin and plugin-provided MCP usage is attributed by plugin and version without retaining tool arguments.
+> Hooks v2 now binds trusted host roots to generation-aware opaque identities. Hook subprocesses preserve status-0 output and the status-2 block protocol when Node reports a late stdin `EPIPE`. Hooks and the Broker keep a single runtime graph, preventing duplicate CredentialTransport workers, listeners, and steady-state descriptors.
+>
+> CLI `0.162.184` and IDE releases `0.37.36 / 0.4.75` add measured tool duration, same-turn retries, and secret-free LLM retry attribution; durable owner, session, permission, budget, lifecycle, and side-effect state for team/batch collaboration; and staged, transactional plugin upgrades with exact rollback. IDE sessions reload only after confirmed activation, and capability widening requires explicit approval.
 >
 > The Personal Data Hub still exposes **92 registered collection contracts across 18 source categories**. Source aliases, raw observations, field-level conflict decisions, reference rewriting, and final entities now commit in one transaction. Local databases, desktop clients, mobile APIs, social, health, education, music, shopping, and travel collectors use explicit cursors and bounded pagination, so partial or unreadable results cannot silently advance checkpoints.
+>
+> The exact release commit `d7d378d3e1` passed [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30402651323), [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30402651097), and the [npm publish workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/30404265474). Local tests remain supplementary and do not replace the three-platform release gate.
 >
 > See the [current CLI Runtime guide](docs-site/docs/chainlesschain/cli-runtime-current.md), [IDE extension guide](docs-site/docs/chainlesschain/ide-plugin.md), [Personal Data Hub guide](docs-site/docs/chainlesschain/personal-data-hub.md), [runtime design check](docs/design/cli-runtime-current.md), [Personal Data Hub architecture](docs/design/Personal_Data_Hub_Architecture.md), and [changelog](CHANGELOG.md).
 
